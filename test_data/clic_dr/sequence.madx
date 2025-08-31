@@ -28,7 +28,7 @@ wigpoleneg: sbend,l:= 0.02026423673,angle:= -0.004170861183,e1:= -0.002085430592
 wigpolepos: sbend,l:= 0.02026423673,angle:= 0.004170861183,e1:= 0.002085430592,e2:= 0.002085430592;
 qdw1: quadrupole,l:= 0.1,k1:=kqdw ;
 mh3: marker;
-rf: rfcavity,l:= 1e-09,volt:= 4.5,lag:=lgrf ,harmon:= 2852;
+rf: rfcavity,volt:= 4.5,lag:=lgrf ,harmon:= 2852;
 qdw02: quadrupole,l:= 0.1,k1:=kqdw02 ;
 qfw02: quadrupole,l:= 0.1,k1:=kqfw02 ;
 qm412: quadrupole,l:= 0.3,k1:=kqm412 ;

@@ -1429,6 +1429,7 @@ class Particles(xo.HybridClass):
 
         src_lines.append('                 int64_t ipart;')
         src_lines.append('                 int64_t endpart;')
+        src_lines.append('                 uint64_t track_flags;')
         src_lines.append('    /*gpuglmem*/ int8_t* io_buffer;')
         src_lines.append('} LocalParticle;')
         src_typedef = '\n'.join(src_lines)
@@ -1442,6 +1443,14 @@ class Particles(xo.HybridClass):
             }
 
             ''')
+
+        # Get track flag
+        src_lines.append('''
+            /*gpufun*/
+            uint64_t LocalParticle_check_track_flag(LocalParticle* part, uint8_t index){
+                return (part->track_flags >> index) & 1;
+            }
+        ''')
 
         # Particles_to_LocalParticle
         src_lines.append('''
@@ -1467,8 +1476,7 @@ class Particles(xo.HybridClass):
         src_lines = []
         src_lines.append('''
             /*gpufun*/
-            void LocalParticle_to_Particles(
-                                            LocalParticle* source,
+            void LocalParticle_to_Particles(LocalParticle* source,
                                             ParticlesData dest,
                                             int64_t id,
                                             int64_t set_scalar){''')

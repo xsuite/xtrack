@@ -83,6 +83,9 @@ def get_params(params, parent):
         else:
             main_params[k] = v
 
+    if 'l' in params:
+        main_params['isthick'] = True
+
     return main_params, extras
 
 
@@ -133,6 +136,7 @@ class MadxLoader:
         self._new_builtin("rfcavity", "Cavity")
         self._new_builtin("multipole", "Multipole", knl=6 * [0])
         self._new_builtin("solenoid", "UniformSolenoid")
+        self._new_builtin("crabcavity", "CrabCavity")
 
         for mad_apertype in _APERTURE_TYPES:
             self._new_builtin(mad_apertype, 'Marker')
@@ -301,39 +305,41 @@ class MadxLoader:
 
         if (extras := el_params.pop('extra', None)):
             _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
-        element = self.env[name]
+        # element = self.env[name]
 
-        length = self._element_length(name, el_params)
-        is_not_thick = isinstance(element, BeamElement) and not element.isthick
-        if is_not_thick and length and not isinstance(element, xt.Marker):
-            # Handle the thin elements that have a length in MAD-X: sandwich
-            line = self._make_thick_sandwich(name, length)
-            builder.place(line, **el_params)
-        else:
-            builder.place(name, **el_params)
+        # length = self._element_length(name, el_params)
+        # is_not_thick = isinstance(element, BeamElement) and not element.isthick
+        # if is_not_thick and length and not isinstance(element, xt.Marker):
+        #     # Handle the thin elements that have a length in MAD-X: sandwich
+        #     line = self._make_thick_sandwich(name, length)
+        #     builder.place(line, **el_params)
+        # else:
+        #     builder.place(name, **el_params)
+        builder.place(name, **el_params)
 
     def _clone_element(self, name, parent, builder, el_params):
         """Clone an element, and possibly place it if we are in a sequence.
 
         Here `parent` is not None.
         """
-        length = self._element_length(name, el_params)
-        element = self.env[parent]
-        is_not_thick = isinstance(element, BeamElement) and not element.isthick
+        # length = self._element_length(name, el_params)
+        # element = self.env[parent]
+        # is_not_thick = isinstance(element, BeamElement) and not element.isthick
 
-        if is_not_thick and length and not isinstance(element, xt.Marker):
-            # Handle the thin elements that have a length in MAD-X: sandwich
-            at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
-            if name not in self.env.element_dict:
-                make_drifts = True
-                self.env.new(name, parent, **el_params)
-            else:
-                make_drifts = False
-                _warn(f'Element `{name}` already exists, this definition '
-                      f'will be ignored (for compatibility with MAD-X)')
-            name = self._make_thick_sandwich(name, length, make_drifts)
-            builder.place(name, at=at, from_=from_)
-        elif name == parent:
+        # if is_not_thick and length and not isinstance(element, xt.Marker):
+        #     # Handle the thin elements that have a length in MAD-X: sandwich
+        #     at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
+        #     if name not in self.env.element_dict:
+        #         make_drifts = True
+        #         self.env.new(name, parent, **el_params)
+        #     else:
+        #         make_drifts = False
+        #         _warn(f'Element `{name}` already exists, this definition '
+        #               f'will be ignored (for compatibility with MAD-X)')
+        #     name = self._make_thick_sandwich(name, length, make_drifts)
+        #     builder.place(name, at=at, from_=from_)
+        # elif name == parent:
+        if name == parent:
             # This happens when the element is cloned with the same name, which
             # is allowed inside MAD-X sequences, e.g.: `el: el, at = 42;`.
             # We cannot attach extra to a place though, so this is skipped.
@@ -359,14 +365,14 @@ class MadxLoader:
 
         return length
 
-    def _make_thick_sandwich(self, name, length, make_drifts=True):
-        """Make a sandwich of two drifts around the element."""
-        drift_name = f'{name}_drift'
-        if make_drifts:
-            self.env.new(drift_name + '_0', 'Drift', length=length / 2)
-            self.env.new(drift_name + '_1', 'Drift', length=length / 2)
-        line = self.env.new_line([drift_name + '_0', name, drift_name + '_1'])
-        return line
+    # def _make_thick_sandwich(self, name, length, make_drifts=True):
+    #     """Make a sandwich of two drifts around the element."""
+    #     drift_name = f'{name}_drift'
+    #     if make_drifts:
+    #         self.env.new(drift_name + '_0', 'Drift', length=length / 2)
+    #         self.env.new(drift_name + '_1', 'Drift', length=length / 2)
+    #     line = self.env.new_line([drift_name + '_0', name, drift_name + '_1'])
+    #     return line
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
@@ -409,11 +415,14 @@ class MadxLoader:
                 params['edge_entry_hgap'] = hgap
                 params['edge_exit_hgap'] = hgap
 
-        elif parent_name in {'rfcavity', 'rfmultipole'}:
+        elif parent_name in {'rfcavity', 'crabcavity'}:
             if (lag := params.pop('lag', None)):
                 params['lag'] = lag * 360
             if (volt := params.pop('volt', None)):
-                params['voltage'] = volt * 1e6
+                if parent_name == 'crabcavity':
+                    params['crab_voltage'] = volt * 1e6
+                elif parent_name == 'rfcavity':
+                    params['voltage'] = volt * 1e6
             if (freq := params.pop('freq', None)):
                 params['frequency'] = freq * 1e6
             if 'harmon' in params:
@@ -452,6 +461,9 @@ class MadxLoader:
                 params['ksl'] = [vkick]
             if (hkick := params.pop('hkick', None)):
                 params['knl'] = [-hkick]
+        elif parent_name == 'marker':
+            params.pop('isthick', None)
+            params.pop('length', None)
 
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']

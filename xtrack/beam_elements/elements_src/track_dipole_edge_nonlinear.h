@@ -24,7 +24,7 @@ void DipoleEdgeNonLinear_single_particle(LocalParticle* part,
 
     if (side == 0){ // entry
         if (sin_ > -99.){
-            YRotation_single_particle(part, sin_, cos_, tan_);
+            YRotation_single_particle(part, -sin_, cos_, -tan_);
         }
         DipoleFringe_single_particle(part, fint, hgap, k);
         if (sin_ > -99.){
@@ -37,7 +37,7 @@ void DipoleEdgeNonLinear_single_particle(LocalParticle* part,
         }
         DipoleFringe_single_particle(part, fint, hgap, -k);
         if (sin_ > -99.){
-            YRotation_single_particle(part, sin_, cos_, tan_);
+            YRotation_single_particle(part, -sin_, cos_, -tan_);
         }
 
     }

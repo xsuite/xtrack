@@ -470,7 +470,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         with xt.freeze_longitudinal(line):
             return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
-    elif freeze_energy or (freeze_energy is None and method=='4d'):
+    elif freeze_energy:
         if not line._energy_is_frozen():
             kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
             kwargs.pop('freeze_energy')
@@ -478,6 +478,12 @@ def twiss_line(line, particle_ref=None, method=None,
                 line.freeze_energy(force=True) # need to force for collective lines
                 return _add_action_in_res(
                     twiss_line(freeze_energy=False, **kwargs), input_kwargs)
+
+    if method == '4d' and not line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK:
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        with xt.line._preserve_track_flags(line):
+            line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
+            return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
 
     if at_s is not None:
         if reverse:
@@ -722,34 +728,35 @@ def twiss_line(line, particle_ref=None, method=None,
         or (compute_chromatic_properties is None and periodic))):
 
         with xt.line._preserve_config(line):
-            line.freeze_energy(force=True)
-            line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-            line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
-            cols_chrom, scalars_chrom = _compute_chromatic_functions(
-                line=line,
-                init=init,
-                delta_chrom=delta_chrom,
-                steps_r_matrix=steps_r_matrix,
-                matrix_responsiveness_tol=matrix_responsiveness_tol,
-                matrix_stability_tol=matrix_stability_tol,
-                symplectify=symplectify,
-                method=method,
-                use_full_inverse=use_full_inverse,
-                nemitt_x=nemitt_x,
-                nemitt_y=nemitt_y,
-                on_momentum_twiss_res=twiss_res,
-                r_sigma=r_sigma,
-                delta_disp=delta_disp,
-                zeta_disp=zeta_disp,
-                start=start,
-                end=end,
-                num_turns=num_turns,
-                hide_thin_groups=hide_thin_groups,
-                only_markers=only_markers,
-                periodic=periodic,
-                periodic_mode=periodic_mode,
-                include_collective=include_collective,
-            )
+            with xt.line._preserve_track_flags(line):
+                line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
+                line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
+                cols_chrom, scalars_chrom = _compute_chromatic_functions(
+                    line=line,
+                    init=init,
+                    delta_chrom=delta_chrom,
+                    steps_r_matrix=steps_r_matrix,
+                    matrix_responsiveness_tol=matrix_responsiveness_tol,
+                    matrix_stability_tol=matrix_stability_tol,
+                    symplectify=symplectify,
+                    method=method,
+                    use_full_inverse=use_full_inverse,
+                    nemitt_x=nemitt_x,
+                    nemitt_y=nemitt_y,
+                    on_momentum_twiss_res=twiss_res,
+                    r_sigma=r_sigma,
+                    delta_disp=delta_disp,
+                    zeta_disp=zeta_disp,
+                    start=start,
+                    end=end,
+                    num_turns=num_turns,
+                    hide_thin_groups=hide_thin_groups,
+                    only_markers=only_markers,
+                    periodic=periodic,
+                    periodic_mode=periodic_mode,
+                    include_collective=include_collective,
+                )
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
@@ -846,6 +853,10 @@ def twiss_line(line, particle_ref=None, method=None,
         _compute_spin_polarization(twiss_res, line, method)
 
     if coupling_edw_teng:
+        if not periodic:
+            raise ValueError(
+                'Computing Edwards-Teng coupling elements is only supported for periodic lines.'
+            )
         if reverse:
             raise NotImplementedError(
                 'Computing Edwards-Teng coupling elements in reverse mode is not '
@@ -857,15 +868,12 @@ def twiss_line(line, particle_ref=None, method=None,
         alfx1, alfx2 = twiss_res['alfx1'], twiss_res['alfx2']
         alfy1, alfy2 = twiss_res['alfy1'], twiss_res['alfy2']
         coupling_result = _compute_coupling_elements_edwards_teng(
-            delta, betx1, betx2, bety1, bety2, alfx1, alfx2, alfy1, alfy2
+            W_matrix=twiss_res['W_matrix'],
+            qx=twiss_res['qx'],
+            qy=twiss_res['qy']
         )
-        r11, r12, r21, r22, f1010, f1001 = coupling_result
-        twiss_res['r11_edw_teng'] = r11
-        twiss_res['r12_edw_teng'] = r12
-        twiss_res['r21_edw_teng'] = r21
-        twiss_res['r22_edw_teng'] = r22
-        twiss_res['f1010'] = f1010
-        twiss_res['f1001'] = f1001
+        for kk in coupling_result:
+            twiss_res[kk] = coupling_result[kk]
 
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
@@ -1002,12 +1010,12 @@ def _twiss_open(
             zeta  = [0] + list(W_matrix[4, :] * -scale_eigen) + list(W_matrix[4, :] * scale_eigen),
             pzeta = [0] + list(W_matrix[5, :] * -scale_eigen) + list(W_matrix[5, :] * scale_eigen),
             )
-        part_for_twiss.ax = particle_on_co.ax[0]
-        part_for_twiss.ay = particle_on_co.ay[0]
+        part_for_twiss.ax = particle_on_co._xobject.ax[0]
+        part_for_twiss.ay = particle_on_co._xobject.ay[0]
         if spin:
-            part_for_twiss.spin_x = particle_on_co.spin_x[0]
-            part_for_twiss.spin_y = particle_on_co.spin_y[0]
-            part_for_twiss.spin_z = particle_on_co.spin_z[0]
+            part_for_twiss.spin_x = particle_on_co._xobject.spin_x[0]
+            part_for_twiss.spin_y = particle_on_co._xobject.spin_y[0]
+            part_for_twiss.spin_z = particle_on_co._xobject.spin_z[0]
 
         if twiss_orientation == 'forward':
             part_for_twiss.at_element = start
@@ -1325,21 +1333,13 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
 
 
 def _compute_coupling_elements_edwards_teng(
-        delta: np.ndarray,
-        betx1: np.ndarray,
-        betx2: np.ndarray,
-        bety1: np.ndarray,
-        bety2: np.ndarray,
-        alfx1: np.ndarray,
-        alfx2: np.ndarray,
-        alfy1: np.ndarray,
-        alfy2: np.ndarray,
+        W_matrix: np.ndarray,
+        qx: float = None,
+        qy: float = None,
 ):
     """Compute coupling matrix elements using the Edwards-Teng method.
 
-    Refer to the paper by Lebedev and Bogacz (2010) and the source code of
-    MAD-NG –- madl_gphys.mad.
-    (https://github.com/MethodicalAcceleratorDesign/MAD-NG/blob/a73ac34f85426f8e6ad15fb99f5ee0a4c6d1636d/src/madl_gphys.mad#L1807)
+    Using definition in chapter 7 of MAD8 guide
 
     For the RDTs calculation, refer to R. Calaga and R. Tomás, "Betatron coupling:
     Merging Hamiltonian and matrix approaches", 10.1103/PhysRevSTAB.8.034001.
@@ -1351,134 +1351,142 @@ def _compute_coupling_elements_edwards_teng(
     f1010, f1001: complex
         Resonance driving terms f1010 and f1001.
     """
-    matrix_stability_tol = 1e-10
 
-    # Base computations
-    one_plus_delta = 1 + delta
-    betx = betx1 * one_plus_delta
-    bety = bety2 * one_plus_delta
-    alfx = alfx1
-    alfy = alfy2
+    Rot = np.zeros(shape=(6, 6), dtype=np.float64)
+    lnf = xt.linear_normal_form
 
-    # Coupling terms
-    kx2 = betx2 / betx1
-    ky2 = bety1 / bety2
-    kxy = kx2 * ky2
+    Rot[0:2,0:2] = lnf.Rot2D(qx)
+    Rot[2:4,2:4] = lnf.Rot2D(qy)
 
-    # Stability mask
-    idx_stable = (
-        (np.abs(kx2 - ky2) >= matrix_stability_tol) &
-        (np.abs(1 - kxy) >= matrix_stability_tol)
-    )
+    num_places = W_matrix.shape[0]
+    r11 = np.zeros(num_places)
+    r12 = np.zeros(num_places)
+    r21 = np.zeros(num_places)
+    r22 = np.zeros(num_places)
+    betx_et = np.zeros(num_places)
+    bety_et = np.zeros(num_places)
+    alfx_et = np.zeros(num_places)
+    alfy_et = np.zeros(num_places)
+    for idx in range(num_places):
 
-    # Allocate outputs
-    r11 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    r12 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    r21 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    r22 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    f1010 = np.zeros_like(one_plus_delta, dtype=np.complex128)
-    f1001 = np.zeros_like(one_plus_delta, dtype=np.complex128)
+        WW = W_matrix[idx, :, :]
 
-    # Only compute where stable, if not stable anywhere return zeros
-    if not np.any(idx_stable):
-        return r11.real, r12.real, r21.real, r22.real, f1010, f1001
+        WW_inv = lnf.S.T @ WW.T @ lnf.S
 
-    kx = np.sqrt(kx2[idx_stable])
-    ky = np.sqrt(ky2[idx_stable])
-    ax = alfx1[idx_stable] * kx - alfx2[idx_stable] / kx
-    ay = alfy2[idx_stable] * ky - alfy1[idx_stable] / ky
-    kxy_ = kxy[idx_stable]
-    kx2_ = kx2[idx_stable]
-    ky2_ = ky2[idx_stable]
+        RR = WW @ Rot @ WW_inv
 
-    ku = kxy_ * (1 + ((ax ** 2 - ay ** 2) / (kx2_ - ky2_)) * (1 - kxy_))
-    u = -kxy_ / (1 - kxy_)
+        AA = RR[:2, :2]
+        BB = RR[:2, 2:4]
+        CC = RR[2:4, :2]
+        DD = RR[2:4, 2:4]
 
-    su = np.sqrt(np.maximum(ku, 0))
-    add_term = np.where(kxy_ <= su, +1, -1) * su / (1 - kxy_)
-    u = np.where(ku >= matrix_stability_tol, u + add_term, u)
-    kpa_ = 1 - u
+        if np.linalg.norm(BB) < 1e-12 and np.linalg.norm(CC) < 1e-12:
+            R_edw_teng = np.zeros((2, 2))
+        else:
+            tr = np.linalg.trace
+            b_pl_c = CC + _conj_mat(BB)
+            det_bc = np.linalg.det(b_pl_c)
+            tr_a_m_tr_d = tr(AA) - tr(DD)
+            coeff = - (0.5 * tr_a_m_tr_d
+                + np.sign(det_bc) * np.sqrt(det_bc + 0.25 * tr_a_m_tr_d**2))
+            R_edw_teng = 1/coeff * b_pl_c
 
-    betx_ = betx[idx_stable] / kpa_
-    bety_ = bety[idx_stable] / kpa_
-    alfx_ = alfx[idx_stable] / kpa_
-    alfy_ = alfy[idx_stable] / kpa_
+        EE = AA - BB@R_edw_teng
+        FF = DD + R_edw_teng@BB
 
-    bx = kx * kpa_ + u / kx
-    by = ky * kpa_ + u / ky
-    cx = kx * kpa_ - u / kx
-    cy = ky * kpa_ - u / ky
+        quarter = 0.25
+        two = 2.0
 
-    evp = (ax + 1j * bx) / (ay - 1j * by)
-    evm = (ax + 1j * cx) / (ay + 1j * cy)
-    ev1sq = evp * evm
-    ev2sq = evp / evm
+        sinmu2 = -EE[0,1]*EE[1,0] - quarter*(EE[0,0] - EE[1,1])**2
+        sinmux = np.sign(EE[0,1]) * np.sqrt(abs(sinmu2))
+        betx_et_this = EE[0,1] / sinmux
+        alfx_et_this = (EE[0,0] - EE[1,1]) / (two * sinmux)
 
-    ev1_angle = np.angle(ev1sq)
-    ev2_angle = np.angle(ev2sq)
+        sinmu2 = -FF[0,1]*FF[1,0] - quarter*(FF[0,0] - FF[1,1])**2
+        sinmuy = np.sign(FF[0,1]) * np.sqrt(abs(sinmu2))
+        bety_et_this = FF[0,1] / sinmuy
+        alfy_et_this = (FF[0,0] - FF[1,1]) / (two * sinmuy)
 
-    ev1 = -np.sqrt(np.abs(ev1sq)) * np.exp(1j * np.unwrap(ev1_angle) / 2)
-    ev2 = np.sqrt(np.abs(ev2sq)) * np.exp(1j * np.unwrap(ev2_angle) / 2)
+        r11[idx] = R_edw_teng[0,0]
+        r12[idx] = R_edw_teng[0,1]
+        r21[idx] = R_edw_teng[1,0]
+        r22[idx] = R_edw_teng[1,1]
+        betx_et[idx] = betx_et_this
+        alfx_et[idx] = alfx_et_this
+        bety_et[idx] = bety_et_this
+        alfy_et[idx] = alfy_et_this
 
-    r11[idx_stable] = (
-            np.sqrt(bety2[idx_stable] / betx2[idx_stable]) *
-            (u * ev2.real + alfx2[idx_stable] * ev2.imag) / kpa_
-    )
+    rdts = _compute_coupling_rdts(r11, r12, r21, r22,
+                                   betx_et, bety_et, alfx_et, alfy_et)
 
-    r22[idx_stable] = (
-            -np.sqrt(betx1[idx_stable] / bety1[idx_stable]) *
-            (u * ev1.real + alfy1[idx_stable] * ev1.imag) / kpa_
-    )
+    out = {
+        'r11_edw_teng': r11,
+        'r12_edw_teng': r12,
+        'r21_edw_teng': r21,
+        'r22_edw_teng': r22,
+        'betx_edw_teng': betx_et,
+        'alfx_edw_teng': alfx_et,
+        'bety_edw_teng': bety_et,
+        'alfy_edw_teng': alfy_et,
+    }
+    out.update(rdts)
 
-    r12[idx_stable] = (
-            np.sqrt(betx1[idx_stable] * bety1[idx_stable]) * ev1.imag / kpa_
-    )
+    return out
 
-    r21[idx_stable] = (
-        (
-                (ev2.real * (alfx2[idx_stable] * kpa_ - alfy2[idx_stable] * u)) -
-                (ev2.imag * (alfx2[idx_stable] * alfy2[idx_stable] + kpa_ * u))
-        ) / (kpa_ * np.sqrt(betx2[idx_stable] * bety2[idx_stable]))
-    )
+def _compute_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
 
-    # Compute the RDTs
-    sbetx = np.sqrt(betx_)
-    sbety = np.sqrt(bety_)
+    '''
+    Developed by CERN OMC team.
+    Ported from:
+    https://pypi.org/project/optics-functions/
+    https://github.com/pylhc/optics_functions
 
-    mask_nonzero_sbetxy = (np.abs(sbetx) > 1e-6) & (np.abs(sbety) > 1e-6)
-    # The above mask is computed on arrays whose length has been reduced already
-    # with idx_stable. Therefore, to address the original length of the arrays,
-    # we need to compute a new mask combining both conditions:
-    idx_compute_rdts = np.where(idx_stable)[0][mask_nonzero_sbetxy]
+    Based on Calaga, Tomas, https://journals.aps.org/prab/pdf/10.1103/PhysRevSTAB.8.034001
+    '''
 
-    sbetx_ = sbetx[mask_nonzero_sbetxy]
-    sbety_ = sbety[mask_nonzero_sbetxy]
+    n = len(r11)
+    assert len(r12) == n
+    assert len(r21) == n
+    assert len(r22) == n
+    gx, r, inv_gy = np.zeros((n, 2, 2)), np.zeros((n, 2, 2)), np.zeros((n, 2, 2))
 
-    ga = np.array([
-        [1 / sbetx_, np.zeros_like(sbetx_)],
-        [alfx_[mask_nonzero_sbetxy] / sbetx_, sbetx_],
-    ]).transpose(2, 0, 1)
+    # Eq. (16)  C = 1 / (1 + |R|) * -J R J
+    # rs form after -J R^T J
+    r[:, 0, 0] = r22
+    r[:, 0, 1] = -r12
+    r[:, 1, 0] = -r21
+    r[:, 1, 1] = r11
 
-    gb_inv = np.array([
-        [sbety_, np.zeros_like(sbety_)],
-        [-alfy_[mask_nonzero_sbetxy] / sbety_, 1 / sbety_],
-    ]).transpose(2, 0, 1)
+    r *= 1 / np.sqrt(1 + np.linalg.det(r)[:, None, None])
 
-    r = np.array([
-        [r22[idx_compute_rdts], -r12[idx_compute_rdts]],
-        [-r21[idx_compute_rdts], r11[idx_compute_rdts]],
-    ])
+    # Cbar = Gx * C * Gy^-1,   Eq. (5)
+    sqrt_betax = np.sqrt(betx)
+    sqrt_betay = np.sqrt(bety)
 
-    c = (r / np.sqrt(1 + np.linalg.det(r.T))).transpose(2, 0, 1)
+    gx[:, 0, 0] = 1 / sqrt_betax
+    gx[:, 1, 0] = alfx * gx[:, 0, 0]
+    gx[:, 1, 1] = sqrt_betax
 
-    cbar = (ga @ c @ gb_inv).transpose(1, 2, 0)
+    inv_gy[:, 1, 1] = 1 / sqrt_betay
+    inv_gy[:, 1, 0] = -alfy * inv_gy[:, 1, 1]
+    inv_gy[:, 0, 0] = sqrt_betay
 
-    cb = 0.25 / np.sqrt(1 - np.linalg.det(cbar.T)) * cbar
+    c = np.matmul(gx, np.matmul(r, inv_gy))
+    gamma = np.sqrt(1 - np.linalg.det(c))
 
-    f1010[idx_compute_rdts] = -cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] - cb[1, 1])
-    f1001[idx_compute_rdts] = cb[0, 1] - cb[1, 0] + 1j * (cb[0, 0] + cb[1, 1])
+    # Eq. (9) and Eq. (10)
+    denom = 1 / (4 * gamma)
+    f1001 = denom * (+c[:, 0, 1] - c[:, 1, 0] + (c[:, 0, 0] + c[:, 1, 1]) * 1j)
+    f1010 = denom * (-c[:, 0, 1] - c[:, 1, 0] + (c[:, 0, 0] - c[:, 1, 1]) * 1j)
 
-    return r11.real, r12.real, r21.real, r22.real, f1010, f1001
+    return {'f1001': f1001, 'f1010': f1010}
+
+def _conj_mat(mm):
+    a = mm[0,0]
+    b = mm[0,1]
+    c = mm[1,0]
+    d = mm[1,1]
+    return np.array([[d, -b], [-c, a]])
 
 
 def _compute_global_quantities(line, twiss_res):
@@ -3027,11 +3035,30 @@ class TwissInit:
 
         if self._temp_optics_data is not None:
 
-            aux_segment = xt.LineSegmentMap(
-                length=1., # dummy
-                qx=0.55, # dummy
-                qy=0.57, # dummy
-                qs=0.0000001, # dummy
+            # aux_segment = xt.LineSegmentMap(
+            #     length=1., # dummy
+            #     qx=0.55, # dummy
+            #     qy=0.57, # dummy
+            #     qs=0.0000001, # dummy
+            #     bets=self._temp_optics_data['bets'],
+            #     betx=self._temp_optics_data['betx'],
+            #     bety=self._temp_optics_data['bety'],
+            #     alfx=self._temp_optics_data['alfx'] * (-1 if input_reversed else 1),
+            #     alfy=self._temp_optics_data['alfy'] * (-1 if input_reversed else 1),
+            #     dx=self._temp_optics_data['dx'] * (-1 if input_reversed else 1),
+            #     dy=self._temp_optics_data['dy'],
+            #     dpx=self._temp_optics_data['dpx'],
+            #     dpy=self._temp_optics_data['dpy'] * (-1 if input_reversed else 1),
+            #     )
+            # aux_line = xt.Line(elements=[aux_segment])
+            # aux_line.particle_ref = particle_on_co.copy(
+            #                             _context=xo.context_default)
+            # aux_line.particle_ref.reorganize()
+            # aux_line.build_tracker()
+            # aux_tw = aux_line.twiss()
+            # W_matrix = aux_tw.W_matrix[0]
+
+            W_matrix = _6d_w_matrix(
                 bets=self._temp_optics_data['bets'],
                 betx=self._temp_optics_data['betx'],
                 bety=self._temp_optics_data['bety'],
@@ -3041,14 +3068,7 @@ class TwissInit:
                 dy=self._temp_optics_data['dy'],
                 dpx=self._temp_optics_data['dpx'],
                 dpy=self._temp_optics_data['dpy'] * (-1 if input_reversed else 1),
-                )
-            aux_line = xt.Line(elements=[aux_segment])
-            aux_line.particle_ref = particle_on_co.copy(
-                                        _context=xo.context_default)
-            aux_line.particle_ref.reorganize()
-            aux_line.build_tracker()
-            aux_tw = aux_line.twiss()
-            W_matrix = aux_tw.W_matrix[0]
+            )
 
             if input_reversed:
                 W_matrix[0, :] = -W_matrix[0, :]
@@ -5068,3 +5088,22 @@ def _compute_trajectory_curvatures(twiss_res):
             / (yp_ele**2 + hhh**2)[mask]**(3/2))
 
     return kappa_x, kappa_y, kappa0_x, kappa0_y
+
+def _2d_w_matrix(bet, alf):
+    sqrt_bet = np.sqrt(bet)
+    return np.array([
+        [sqrt_bet,      0.],
+        [-alf/sqrt_bet, 1/sqrt_bet]
+    ])
+
+def _6d_w_matrix(betx, bety, alfx, alfy, bets, dx, dpx, dy, dpy):
+
+    out = np.eye(6)
+    out[0:2, 0:2] = _2d_w_matrix(betx, alfx)
+    out[2:4, 2:4] = _2d_w_matrix(bety, alfy)
+    out[4:6, 4:6] = _2d_w_matrix(bets, 0)
+    out[0, 5] = dx
+    out[1, 5] = dpx
+    out[2, 5] = dy
+    out[3, 5] = dpy
+    return out

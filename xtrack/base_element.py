@@ -81,16 +81,20 @@ def _handle_per_particle_blocks(sources, local_particle_src):
     return out
 
 def _generate_track_local_particle_with_transformations(
-                                                element_name,
-                                                allow_rot_and_shift,
-                                                rot_and_shift_from_parent,
-                                                local_particle_function_name):
-
-    source = ('''
-            /*gpufun*/
-            '''
-            f'void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part0)'
-            '{\n')
+    element_name,
+    allow_rot_and_shift,
+    rot_and_shift_from_parent,
+    local_particle_function_name,
+    isthick,
+    xofields
+):
+    source = (
+        '#include <headers/track.h>\n'
+        '#include <headers/particle_states.h>\n'
+        '#include <beam_elements/elements_src/track_misalignments.h>\n'
+        f'GPUFUN void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part0)'
+        '{\n'
+    )
 
     if rot_and_shift_from_parent:
         add_to_call = '__parent'
@@ -98,27 +102,68 @@ def _generate_track_local_particle_with_transformations(
         add_to_call = ''
 
     if allow_rot_and_shift:
+        if ('angle' in xofields or
+           (('ThickSlice' in element_name) and ('Bend' in element_name)) or
+           (('ThinSlice' in element_name) and ('Bend' in element_name))
+        ):
+            element_shape = 'curved'
+            misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length, angle, rot_s_rad'
+            get_angle = f'double const angle = {element_name}Data_get{add_to_call}_angle(el)'
+            get_rot_s_rad = 'double const rot_s_rad = atan2(_sin_rot_s, _cos_rot_s)'
+        else:
+            element_shape = 'straight'
+            misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length'
+            get_angle = ''
+            get_rot_s_rad = ''
+
+        if 'isthick' in xofields:
+            get_length = (
+                f'double const length = {element_name}Data_get{add_to_call}_isthick(el)'
+                f' ? {element_name}Data_get{add_to_call}_length(el)'
+                f' : 0.0'
+            )
+        elif 'length' in xofields and isthick:
+            get_length = f'double const length = {element_name}Data_get{add_to_call}_length(el)'
+        else:
+            get_length = 'double const length = 0.'
 
         source += (
             '    // Transform to local frame\n'
-            # f'    printf("Transform to local frame {element_name}\\n");\n'
             f'double const _sin_rot_s = {element_name}Data_get{add_to_call}__sin_rot_s(el);\n'
             'if (_sin_rot_s > -2.) {\n'
             f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
+            f'    {get_rot_s_rad};\n'
             f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
             f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
             f'    double const shift_s = {element_name}Data_get{add_to_call}__shift_s(el);\n'
-            '\n'
-            '    if (shift_s != 0.) {\n'
-            '        //start_per_particle_block (part0->part)\n'
-            '            Drift_single_particle(part, shift_s);\n'
-            '        //end_per_particle_block\n'
-            '    }\n'
-            '\n'
-            '    //start_per_particle_block (part0->part)\n'
-            '       LocalParticle_add_to_x(part, -shift_x);\n'
-            '       LocalParticle_add_to_y(part, -shift_y);\n'
-            '    //end_per_particle_block\n'
+            f'    double const rot_x_rad = {element_name}Data_get{add_to_call}__rot_x_rad(el);\n'
+            f'    double const rot_y_rad = {element_name}Data_get{add_to_call}__rot_y_rad(el);\n'
+            f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_call}__rot_s_rad_no_frame(el);\n'
+            f'    {get_length};\n'
+            f'    {get_angle};\n'
+            f'    double const anchor = {element_name}Data_get{add_to_call}_rot_shift_anchor(el);\n'
+            '\n')
+
+        if rot_and_shift_from_parent:
+            source += (
+                "if (rot_x_rad != 0 || rot_y_rad != 0) {\n"
+                " //start_per_particle_block (part0->part)\n"
+                "    LocalParticle_set_state(part, XT_INVALID_SLICE_TRANSFORM);\n"
+                " //end_per_particle_block\n"
+                "}\n"
+            )
+            if element_shape == 'curved':
+                source += (
+                    "if (angle != 0 && (shift_x != 0 || shift_y != 0 || shift_s != 0"
+                    "                   || rot_x_rad !=0 || rot_y_rad != 0 || rot_s_rad_no_frame != 0)) {\n"
+                    " //start_per_particle_block (part0->part)\n"
+                    "    LocalParticle_set_state(part, XT_INVALID_CURVED_SLICE_TRANSFORM);\n"
+                    " //end_per_particle_block\n"
+                "}\n"
+            )
+
+        source += (
+            f'    track_misalignment_entry_{element_shape}(part0, {misalign_arguments});'
             '\n'
             '     //start_per_particle_block (part0->part)\n'
             '          SRotation_single_particle(part, _sin_rot_s, _cos_rot_s);\n'
@@ -140,21 +185,20 @@ def _generate_track_local_particle_with_transformations(
             '    #endif\n'
             '\n'
             '}\n'
-        )
-
-    source += (
             f'    {local_particle_function_name}(el, part0);\n'
-    )
-
-    if allow_rot_and_shift:
-        source += (
             '    // Transform back to global frame\n'
-            #f'    printf("Transform to back to global frame {element_name}\\n");\n'
             'if (_sin_rot_s > -2.) {\n'
             f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
+            f'    {get_rot_s_rad};\n'
             f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
             f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
             f'    double const shift_s = {element_name}Data_get{add_to_call}__shift_s(el);\n'
+            f'    double const rot_x_rad = {element_name}Data_get{add_to_call}__rot_x_rad(el);\n'
+            f'    double const rot_y_rad = {element_name}Data_get{add_to_call}__rot_y_rad(el);\n'
+            f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_call}__rot_s_rad_no_frame(el);\n'
+            f'    {get_length};\n'
+            f'    {get_angle};\n'
+            f'    double const anchor = {element_name}Data_get{add_to_call}_rot_shift_anchor(el);\n'
             '\n'
             '    /* Spin tracking is disabled by the synrad compile flag */\n'
             '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
@@ -175,17 +219,12 @@ def _generate_track_local_particle_with_transformations(
             '       SRotation_single_particle(part, -_sin_rot_s, _cos_rot_s);\n'
             '    //end_per_particle_block\n'
             '\n'
-            '    //start_per_particle_block (part0->part)\n'
-            '       LocalParticle_add_to_x(part, shift_x);\n'
-            '       LocalParticle_add_to_y(part, shift_y);\n'
-            '    //end_per_particle_block\n'
-            '\n'
-            '    if (shift_s != 0.) {\n'
-            '        //start_per_particle_block (part0->part)\n'
-            '            Drift_single_particle(part, -shift_s);\n'
-            '        //end_per_particle_block\n'
-            '    }\n'
+            f'    track_misalignment_exit_{element_shape}(part0, {misalign_arguments});'
             '}\n'
+        )
+    else:
+        source += (
+            f'    {local_particle_function_name}(el, part0);\n'
         )
     source += '}\n'
     return source
@@ -277,15 +316,25 @@ def _generate_per_particle_kernel_from_local_particle_function(
     return source
 
 def _tranformations_active(self):
+    no_shift = self.shift_x == 0 and self.shift_y == 0 and self.shift_s == 0
+    no_rot = (
+        self.rot_x_rad == 0 and self.rot_y_rad == 0 and self.rot_s_rad == 0 and
+        self.rot_s_rad_no_frame == 0
+    )
 
-    if (self.shift_x == 0 and self.shift_y == 0 and self.shift_s == 0
-        and self._sin_rot_s == 0 and self._cos_rot_s >= 0): # means angle is zero
+    if no_shift and no_rot:
         return False
-    elif (self.shift_x == 0 and self.shift_y == 0 and self.shift_s == 0
-          and self._sin_rot_s < -2.):
-        return False
-    else:
-        return True
+
+    return True
+
+
+def _disable_transformations_if_needed(self):
+    if not _tranformations_active(self):
+        self._sin_rot_s = -999.
+    elif self._sin_rot_s < -2.:
+        self._sin_rot_s = 0.
+        self._cos_rot_s = 1.
+
 
 def _rot_s_property(self):
     if self._sin_rot_s < -2.:
@@ -295,52 +344,59 @@ def _rot_s_property(self):
 def _set_rot_s_property_setter(self, value):
     self._sin_rot_s = np.sin(value)
     self._cos_rot_s = np.cos(value)
-    if not _tranformations_active(self):
-        self._sin_rot_s = -999.
-    elif self._sin_rot_s < -2.:
-        self._sin_rot_s = 0.
-        self._cos_rot_s = 1.
+    _disable_transformations_if_needed(self)
 
 def _shiftx_property(self):
     return self._shift_x
 
 def _set_shiftx_property_setter(self, value):
     self._shift_x = value
-    if not _tranformations_active(self):
-        self._sin_rot_s = -999.
-    elif self._sin_rot_s < -2.:
-        self._sin_rot_s = 0.
-        self._cos_rot_s = 1.
+    _disable_transformations_if_needed(self)
 
 def _shifty_property(self):
     return self._shift_y
 
 def _set_shifty_property_setter(self, value):
     self._shift_y = value
-    if not _tranformations_active(self):
-        self._sin_rot_s = -999.
-    elif self._sin_rot_s < -2.:
-        self._sin_rot_s = 0.
-        self._cos_rot_s = 1.
+    _disable_transformations_if_needed(self)
 
 def _shifts_property(self):
     return self._shift_s
 
 def _set_shifts_property_setter(self, value):
     self._shift_s = value
-    if not _tranformations_active(self):
-        self._sin_rot_s = -999.
-    elif self._sin_rot_s < -2.:
-        self._sin_rot_s = 0.
-        self._cos_rot_s = 1.
+    _disable_transformations_if_needed(self)
+
+def _rot_x_property(self):
+    return self._rot_x_rad
+
+def _set_rot_x_property_setter(self, value):
+    self._rot_x_rad = value
+    _disable_transformations_if_needed(self)
+
+def _rot_y_property(self):
+    return self._rot_y_rad
+
+def _set_rot_y_property_setter(self, value):
+    self._rot_y_rad = value
+    _disable_transformations_if_needed(self)
+
+def _rot_s_no_frame_property(self):
+    return self._rot_s_rad_no_frame
+
+def _set_rot_s_no_frame_property_setter(self, value):
+    self._rot_s_rad_no_frame = value
+    _disable_transformations_if_needed(self)
 
 class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
+
         _XoStruct_name = name+'Data'
 
         data_in = data.copy()
         data = {}
+
         for bb in bases:
             if bb.__name__ == 'HybridClass':
                 continue
@@ -363,6 +419,13 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         data.update(data_in)
 
+        data['_isthick'] = False
+        istk = data.pop('isthick', False)
+        if istk in [True, False]:
+            data['_isthick'] = istk
+        else: # is property
+            data['isthick'] = istk
+
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
 
@@ -374,6 +437,10 @@ class MetaBeamElement(xo.MetaHybridClass):
             xofields['_shift_x'] = xo.Field(xo.Float64, 0)
             xofields['_shift_y'] = xo.Field(xo.Float64, 0)
             xofields['_shift_s'] = xo.Field(xo.Float64, 0)
+            xofields['_rot_x_rad'] = xo.Field(xo.Float64, 0)
+            xofields['_rot_y_rad'] = xo.Field(xo.Float64, 0)
+            xofields['_rot_s_rad_no_frame'] = xo.Field(xo.Float64, 0)
+            xofields['rot_shift_anchor'] = xo.Field(xo.Float64, 0)
 
         data = data.copy()
         data['_xofields'] = xofields
@@ -422,13 +489,16 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         track_kernel_name = None
         if ('allow_track' not in data.keys() or data['allow_track']):
-
             extra_c_source.append(
                 _generate_track_local_particle_with_transformations(
                     element_name=name,
                     allow_rot_and_shift=(allow_rot_and_shift or rot_and_shift_from_parent),
                     rot_and_shift_from_parent=rot_and_shift_from_parent,
-                    local_particle_function_name=name+'_track_local_particle'))
+                    local_particle_function_name=name+'_track_local_particle',
+                    isthick=data['_isthick'],
+                    xofields=xofields,
+                )
+            )
 
             # Generate track kernel
             extra_c_source.append(
@@ -502,6 +572,9 @@ class MetaBeamElement(xo.MetaHybridClass):
             new_class.shift_x = property(_shiftx_property, _set_shiftx_property_setter)
             new_class.shift_y = property(_shifty_property, _set_shifty_property_setter)
             new_class.shift_s = property(_shifts_property, _set_shifts_property_setter)
+            new_class.rot_x_rad = property(_rot_x_property, _set_rot_x_property_setter)
+            new_class.rot_y_rad = property(_rot_y_property, _set_rot_y_property_setter)
+            new_class.rot_s_rad_no_frame = property(_rot_s_no_frame_property, _set_rot_s_no_frame_property_setter)
 
         return new_class
 
@@ -509,7 +582,6 @@ class MetaBeamElement(xo.MetaHybridClass):
 class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     iscollective = False
-    isthick = False
     behaves_like_drift = False
     allow_track = True
     has_backtrack = False
@@ -521,6 +593,16 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
+
+    @property
+    def isthick(self):
+        return self._isthick
+
+    @isthick.setter
+    def isthick(self, value):
+        if value != self._isthick:
+            raise AttributeError("The property 'isthick' cannot be changed dynamically for "
+                             f"elements of type {self.__class__.__name__}")
 
     def init_pipeline(self, pipeline_manager, name, partners_names=[]):
         self._pipeline_manager = pipeline_manager
@@ -628,6 +710,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         shift_x = kwargs.pop('shift_x', None)
         shift_y = kwargs.pop('shift_y', None)
         shift_s = kwargs.pop('shift_s', None)
+        rot_x_rad = kwargs.pop('rot_x_rad', None)
+        rot_y_rad = kwargs.pop('rot_y_rad', None)
+        rot_s_rad_no_frame = kwargs.pop('rot_s_rad_no_frame', None)
 
         xo.HybridClass.xoinitialize(self, **kwargs)
 
@@ -642,6 +727,15 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
         if shift_s is not None:
             self.shift_s = shift_s
+
+        if rot_x_rad is not None:
+            self.rot_x_rad = rot_x_rad
+
+        if rot_y_rad is not None:
+            self.rot_y_rad = rot_y_rad
+
+        if rot_s_rad_no_frame is not None:
+            self.rot_s_rad_no_frame = rot_s_rad_no_frame
 
     def to_dict(self, **kwargs):
         dct = xo.HybridClass.to_dict(self, **kwargs)

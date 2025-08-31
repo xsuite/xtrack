@@ -14,10 +14,6 @@
 GPUFUN
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
-    int64_t radiation_flag = 0;
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-        radiation_flag = MultipoleData_get_radiation_flag(el);
-    #endif
 
     track_magnet_particles(
         /*weight*/                1.,
@@ -27,12 +23,12 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*inv_factorial_order*/   MultipoleData_get_inv_factorial_order(el),
         /*knl*/                   MultipoleData_getp1_knl(el, 0),
         /*ksl*/                   MultipoleData_getp1_ksl(el, 0),
-        /*num_multipole_kicks*/   1,
-        /*model*/                 -1, // kick only
-        /*default_model*/         0, // unused
-        /*integrator*/            3, // uniform
-        /*default_integrator*/    3, // unused
-        /*radiation_flag*/        radiation_flag,
+        /*num_multipole_kicks*/   MultipoleData_get_num_multipole_kicks(el),
+        /*model*/                 ((MultipoleData_get_isthick(el) <= 0) ? (-1) : MultipoleData_get_model(el)), // kick only if not thick
+        /*default_model*/         MULTIPOLE_DEFAULT_MODEL,
+        /*integrator*/            MultipoleData_get_integrator(el),
+        /*default_integrator*/    MULTIPOLE_DEFAULT_INTEGRATOR,
+        /*radiation_flag*/        MultipoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      (SynchrotronRadiationRecordData) MultipoleData_getp_internal_record(el, part0),
         /*delta_taper*/           MultipoleData_get_delta_taper(el),

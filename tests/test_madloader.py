@@ -366,16 +366,23 @@ def test_thick_kicker_option():
 
     beam; use, sequence=ss;
     """)
-    line = MadLoader(mad.sequence.ss, enable_expressions=True, allow_thick=True, enable_thick_kickers=True).make_line()
+    line = xt.Line.from_madx_sequence(mad.sequence.ss, deferred_expressions=True)
 
     _, vk, hk, ki, vk_thin, hk_thin, ki_thin, _ = line.elements
 
-    assert isinstance(vk, xt.Magnet)
-    assert isinstance(hk, xt.Magnet)
-    assert isinstance(ki, xt.Magnet)
+    assert isinstance(vk, xt.Multipole)
+    assert isinstance(hk, xt.Multipole)
+    assert isinstance(ki, xt.Multipole)
     assert isinstance(vk_thin, xt.Multipole)
     assert isinstance(hk_thin, xt.Multipole)
     assert isinstance(ki_thin, xt.Multipole)
+
+    assert vk.isthick
+    assert hk.isthick
+    assert ki.isthick
+    assert not vk_thin.isthick
+    assert not hk_thin.isthick
+    assert not ki_thin.isthick
 
     def assert_integrated_strength_eq(value, expected):
         padded_expected = np.zeros_like(value)
@@ -512,7 +519,7 @@ def test_mad_elements_import():
     k2: kick2, at=0.34;
     k3: kick3, at=0.35;
     de0: dipedge0, at=0.38;
-    r0: rfm0, at=0.4;
+    !r0: rfm0, at=0.4; # Loading of RFMultipole not supported anymore
     cb0: crab0, at=0.41;
     cb1: crab1, at=0.42;
     w: wire1, at=1;
@@ -608,44 +615,32 @@ def test_mad_elements_import():
         assert line['de0'].fint == 4
         assert line['de0'].hgap == 0.02
 
-        assert isinstance(line['r0'], xt.RFMultipole)
-        assert line.get_s_position('r0') == 0.4
-        assert np.all(line['r0'].knl == np.array([2, 3]))
-        assert np.all(line['r0'].ksl == np.array([0, 5]))
-        assert np.all(line['r0'].pn == np.array([0.3 * 360, 0.4 * 360]))
-        assert np.all(line['r0'].ps == np.array([0.5 * 360, 0.6 * 360]))
-        assert line['r0'].voltage == 2e6
-        assert line['r0'].order == 1
-        assert line['r0'].frequency == 100e6
-        assert line['r0'].lag == 180
+        # Loading of RFMultipole not supported anymore:
+        #
+        # assert isinstance(line['r0'], xt.RFMultipole)
+        # assert line.get_s_position('r0') == 0.4
+        # assert np.all(line['r0'].knl == np.array([2, 3, 0, 0, 0, 0]))
+        # assert np.all(line['r0'].ksl == np.array([0, 5, 0, 0, 0, 0]))
+        # assert np.all(line['r0'].pn == np.array([0.3 * 360, 0.4 * 360, 0, 0, 0, 0]))
+        # assert np.all(line['r0'].ps == np.array([0.5 * 360, 0.6 * 360, 0, 0, 0, 0]))
+        # assert line['r0'].voltage == 2e6
+        # assert line['r0'].order == 5
+        # assert line['r0'].frequency == 100e6
+        # assert line['r0'].lag == 180
 
-        assert isinstance(line['cb0'], xt.RFMultipole)
+        assert isinstance(line['cb0'], xt.CrabCavity)
         assert line.get_s_position('cb0') == 0.41
-        assert len(line['cb0'].knl) == 1
-        assert len(line['cb0'].ksl) == 1
-        xo.assert_allclose(line['cb0'].knl[0], 2 * 1e6 / line.particle_ref.p0c[0],
+        xo.assert_allclose(line['cb0'].crab_voltage, 2 * 1e6,
                            rtol=0, atol=1e-12)
-        assert np.all(line['cb0'].ksl == 0)
-        assert np.all(line['cb0'].pn == np.array([270]))
-        assert np.all(line['cb0'].ps == 0.)
-        assert line['cb0'].voltage == 0
-        assert line['cb0'].order == 0
+        assert np.all(line['cb0'].lag == 180)
         assert line['cb0'].frequency == 100e6
-        assert line['cb0'].lag == 0
 
-        assert isinstance(line['cb1'], xt.RFMultipole)
+        assert isinstance(line['cb1'], xt.CrabCavity)
         assert line.get_s_position('cb1') == 0.42
-        assert len(line['cb1'].knl) == 1
-        assert len(line['cb1'].ksl) == 1
-        xo.assert_allclose(line['cb1'].ksl[0], -2 * 1e6 / line.particle_ref.p0c[0],
-                           rtol=0, atol=1e-12)
-        assert np.all(line['cb1'].knl == 0)
-        assert np.all(line['cb1'].ps == np.array([270]))
-        assert np.all(line['cb1'].pn == 0.)
-        assert line['cb1'].voltage == 0
-        assert line['cb1'].order == 0
+        assert line['cb1'].crab_voltage == 2 * 1e6
+        assert np.all(line['cb1'].lag == 180)
+        xo.assert_allclose(line['cb1'].rot_s_rad, np.pi / 2, rtol=0, atol=1e-12)
         assert line['cb1'].frequency == 100e6
-        assert line['cb1'].lag == 0
 
         assert isinstance(line['w'], xt.Wire)
         assert line.get_s_position('w') == 1

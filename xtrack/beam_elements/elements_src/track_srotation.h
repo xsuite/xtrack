@@ -9,8 +9,8 @@
 
 
 GPUFUN
-void SRotation_single_particle(LocalParticle* part, double sin_z, double cos_z){
-
+void SRotation_single_particle(LocalParticle* part, double sin_z, double cos_z)
+{
     double const x  = LocalParticle_get_x(part);
     double const y  = LocalParticle_get_y(part);
     double const px = LocalParticle_get_px(part);
@@ -25,7 +25,6 @@ void SRotation_single_particle(LocalParticle* part, double sin_z, double cos_z){
     LocalParticle_set_y(part, y_hat);
     LocalParticle_set_px(part, px_hat);
     LocalParticle_set_py(part, py_hat);
-
 }
 
 #endif

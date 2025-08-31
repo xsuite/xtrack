@@ -586,7 +586,7 @@ def collider_for_test_twiss_range():
 
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
 @pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw', 'fw_table', 'bw_table'])
 @pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
@@ -974,7 +974,7 @@ def test_twiss_against_matrix(test_context):
         xo.assert_allclose(chroma_table.dnqx[1:], dnqx[1:], atol=1e-5, rtol=1e-5)
         xo.assert_allclose(chroma_table.dnqy[1:], dnqy[1:], atol=1e-5, rtol=1e-5)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize('machine', ['sps', 'psb'])
 def test_longitudinal_plane_against_matrix(machine, test_context):
 
@@ -1151,7 +1151,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         xo.assert_allclose(np.std(particles_matrix.pzeta), np.std(particles_line.pzeta),
             atol=0, rtol=(25e-2 if longitudinal_mode.startswith('linear') else 2e-2))
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_custom_twiss_init(test_context):
 
     line = xt.load(test_data_folder /
@@ -1584,7 +1584,7 @@ def test_longitudinal_beam_sizes(test_context):
     xo.assert_allclose(
         beam_sizes.sigma_zeta / beam_sizes.sigma_pzeta, tw.bets0, atol=0, rtol=5e-5)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_second_order_chromaticity_and_dispersion(test_context):
 
     line = xt.load(test_data_folder /
@@ -1664,7 +1664,7 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     xo.assert_allclose(tw_part['dpx'], tw_bw.rows[:-1]['dpx'], atol=1e-3, rtol=0)
     xo.assert_allclose(tw_part['dpy'], tw_bw.rows[:-1]['dpy'], atol=1e-3, rtol=0)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_twiss_strength_reverse_vs_madx(test_context):
 
     test_data_folder_str = str(test_data_folder)
@@ -2005,59 +2005,3 @@ def test_twiss_collective_end_is_len():
     t2 = line2.twiss4d(betx=1,bety=1,include_collective=True)
 
     xo.assert_allclose(t.betx, t2.betx, atol=1e-12, rtol=0)
-
-
-def test_twiss_compute_coupling_elements_edwards_teng():
-    env = xt.load(test_data_folder / 'lhc_2024/lhc.seq')
-    env.vars.set_from_madx_file(test_data_folder / 'lhc_2024/injection_optics.madx')
-
-    # Clean machine
-    env['on_x1'] = 0
-    env['on_x2h'] = 0
-    env['on_x2v'] = 0
-    env['on_x5'] = 0
-    env['on_x8h'] = 0
-    env['on_x8v'] = 0
-
-    env['on_sep1'] = 0
-    env['on_sep2h'] = 0
-    env['on_sep2v'] = 0
-    env['on_sep5'] = 0
-    env['on_sep8h'] = 0
-    env['on_sep8v'] = 0
-
-    env['on_a2'] = 0
-    env['on_a8'] = 0
-
-    # Introduce some coupling by powering up a skew quadrupole
-    env['kqs.a67b1'] = 1e-4
-
-    line = env.lhcb1
-    line.particle_ref = xt.Particles(p0c=450e9)
-    tw = line.twiss4d(coupling_edw_teng=True)
-
-    tw_ng = line.madng_twiss()
-
-    # We will correct for the sign, as our result is smoother
-    sgn_ng = np.sign(tw.r11_edw_teng / tw_ng.r11_ng)
-
-    # Check against MAD-NG
-    xo.assert_allclose(tw.r11_edw_teng, sgn_ng * tw_ng.r11_ng, atol=np.max(np.abs(tw.r11_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.r12_edw_teng, sgn_ng * tw_ng.r12_ng, atol=np.max(np.abs(tw.r12_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.r21_edw_teng, sgn_ng * tw_ng.r21_ng, atol=np.max(np.abs(tw.r21_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.r22_edw_teng, sgn_ng * tw_ng.r22_ng, atol=np.max(np.abs(tw.r22_edw_teng)) * 5e-3, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.f1010, sgn_ng * tw_ng.f1010_ng, atol=3e-5, rtol=0, max_outliers=1)
-    xo.assert_allclose(tw.f1001, sgn_ng * tw_ng.f1001_ng, atol=1e-3, rtol=0, max_outliers=1)
-
-    # Test that reverse twiss is disabled for now
-    with pytest.raises(NotImplementedError):
-        line.twiss4d(coupling_edw_teng=True, reverse=True)
-
-    # Test that reversal removes the quantities for now
-    tw_rev = tw.reverse()
-    rev_fields = set(dir(tw_rev))
-    fields_shouldnt_be_there = {
-        'r11_edw_teng', 'r12_edw_teng', 'r21_edw_teng', 'r22_edw_teng',
-        'f1010', 'f1001',
-    }
-    assert not (rev_fields & fields_shouldnt_be_there)

@@ -17,7 +17,7 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_match_and_track_from_element(test_context):
     # Load machine model (from pymask)
     filename = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')

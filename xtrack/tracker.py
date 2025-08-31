@@ -23,6 +23,7 @@ from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
 from .tracker_data import TrackerData
+from .track_flags import TrackFlags
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ class Tracker:
         self.local_particle_src = local_particle_src
         self._enable_pipeline_hold = enable_pipeline_hold
         self.use_prebuilt_kernels = use_prebuilt_kernels
+        self.track_flags = TrackFlags()
 
         # Some data for collective mode prepared also for non-collective lines
         # to allow collective actions by the tracker (e.g. time-functions on knobs)
@@ -464,6 +466,7 @@ class Tracker:
 
         headers.extend(self.extra_headers)
         headers.append(_pkg_root.joinpath("headers/constants.h"))
+        headers.append(self.track_flags.c_header_flag_mapping)
 
         src_lines = []
         src_lines.append(
@@ -483,7 +486,9 @@ class Tracker:
                              double line_length,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor,
-                /*gpuglmem*/ int8_t* io_buffer){
+                /*gpuglmem*/ int8_t* io_buffer,
+                             uint64_t track_flags
+                             ){
 
             #define CONTEXT_OPENMP  //only_for_context cpu_openmp
             #ifdef CONTEXT_OPENMP
@@ -492,7 +497,7 @@ class Tracker:
 
                 #ifndef XT_OMP_SKIP_REORGANIZE
                     const int64_t num_particles_to_track = ParticlesData_get__num_active_particles(particles);
-                    
+
                     {
                         LocalParticle lpart;
                         lpart.io_buffer = io_buffer;
@@ -504,10 +509,10 @@ class Tracker:
                 #else // When we skip reorganize, we cannot just batch active particles
                     const int64_t num_particles_to_track = capacity;
                 #endif
-                
+
                 const int64_t chunk_size = (num_particles_to_track + num_threads - 1)/num_threads; // ceil division
             #endif // CONTEXT_OPENMP
-            
+
             #pragma omp parallel for                                                           //only_for_context cpu_openmp
             for (int chunk = 0; chunk < num_threads; chunk++) {                                //only_for_context cpu_openmp
             int64_t part_id = chunk * chunk_size;                                              //only_for_context cpu_openmp
@@ -521,6 +526,7 @@ class Tracker:
 
             LocalParticle lpart;
             lpart.io_buffer = io_buffer;
+            lpart.track_flags = track_flags;
 
             /*gpuglmem*/ int8_t* tbt_mon_pointer =
                             buffer_tbt_monitor + offset_tbt_monitor;
@@ -706,6 +712,7 @@ class Tracker:
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
+                    xo.Arg(xo.UInt64, name="track_flags"),
                 ],
             )
         }
@@ -1148,6 +1155,8 @@ class Tracker:
         assert ele_start >= 0
         assert ele_start <= self.num_elements
 
+        track_flags = self.track_flags.get_flags_register()
+
         # Logic to split the tracking turns:
         # Case 1: 0 <= start < stop <= L
         #      Track first turn from start until stop (with num_elements_first_turn=stop-start)
@@ -1255,6 +1264,7 @@ class Tracker:
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
             io_buffer=self.io_buffer.buffer,
+            track_flags=track_flags
         )
 
         # Middle turns
@@ -1275,6 +1285,7 @@ class Tracker:
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 io_buffer=self.io_buffer.buffer,
+                track_flags=track_flags
             )
 
         # Last turn, only if incomplete
@@ -1295,6 +1306,7 @@ class Tracker:
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 io_buffer=self.io_buffer.buffer,
+                track_flags=track_flags
             )
 
         self.record_last_track = monitor

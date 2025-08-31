@@ -19,6 +19,14 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
         raise ValueError("Line must not contain repeated elements to use "
                          "`compensate_radiation_energy_loss(...)`. ")
 
+    ele_type = line.tracker._tracker_data_base._line_table.element_type
+    ele_type_set = set(ele_type)
+    for et in ele_type_set:
+        if 'SliceCavity' in et:
+            raise ValueError(
+                f"Element type '{et}' is not supported for radiation energy "
+                "loss compensation.")
+
     if 'record_iterations' in kwargs:
         record_iterations = kwargs['record_iterations']
         kwargs.pop('record_iterations')
@@ -46,10 +54,11 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
         return
 
     # save voltages
-    v_setter = line.attr._cache['voltage'].multisetter
-    f_setter = line.attr._cache['frequency'].multisetter
-    lag_setter = line.attr._cache['lag'].multisetter
-    lag_taper_setter = line.attr._cache['lag_taper'].multisetter
+    # Can do "own" as cavity slices are not supported here (see assert above)
+    v_setter = line.attr._cache['_own_voltage'].multisetter
+    f_setter = line.attr._cache['_own_frequency'].multisetter
+    lag_setter = line.attr._cache['_own_lag'].multisetter
+    lag_taper_setter = line.attr._cache['_own_lag_taper'].multisetter
 
     v0 = v_setter.get_values()
     f0 = f_setter.get_values()
@@ -117,7 +126,7 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     if verbose: _print("  - Restore cavity voltage and frequency. Set cavity lag")
     v_synchronous = v_setter.get_values()
 
-    mask_cav = line.attr._cache['voltage'].mask
+    mask_cav = line.attr._cache['_own_voltage'].mask
     zeta_at_cav = np.atleast_1d(np.squeeze(mon.zeta[0, :-1]))[mask_cav]
     mask_active_cav = np.abs(v0) > 0
     v_ratio = v0 * 0

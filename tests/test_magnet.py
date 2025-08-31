@@ -5,7 +5,7 @@ import xtrack as xt
 import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 
-from xtrack.beam_elements.magnets import Magnet, MagnetEdge
+from xtrack import Magnet, MagnetEdge
 
 
 def make_particles(context):

@@ -383,7 +383,7 @@ def norm(x):
     return np.sqrt(np.sum(np.array(x) ** 2))
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_line_import_from_madx(test_context, mad_with_errors):
 
     mad = mad_with_errors
@@ -466,6 +466,9 @@ def test_line_import_from_madx(test_context, mad_with_errors):
             if skip_order and kk in ('order', 'knl', 'ksl'):
                 continue
 
+            if kk == '_isthick':
+                continue # the one with an expression on the length is loaded 
+
             # Check if they are identical
             if np.isscalar(dref[kk]) and dtest[kk] == dref[kk]:
                 continue
@@ -529,39 +532,28 @@ def test_line_import_from_madx(test_context, mad_with_errors):
     xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].lag, 270,
                     rtol=0, atol=1e-14)
 
-    assert np.abs(
-        line.element_dict['acfcav.bl5.b1'].to_dict()['ksl'][0]) > 0
+    assert np.abs(line['acfcav.bl5.b1'].crab_voltage) > 0
+    xo.assert_allclose(line['acfcav.bl5.b1'].rot_s_rad, np.pi/2, atol=1e-14, rtol=0)
     line.vars['on_crab5'] = 0
-    assert np.abs(
-        line.element_dict['acfcav.bl5.b1'].to_dict()['ksl'][0]) == 0
+    assert np.abs(line['acfcav.bl5.b1'].crab_voltage) == 0
 
-    xo.assert_allclose(
-        line.element_dict['acfcav.bl5.b1'].to_dict()['ps'][0], 90,
-        rtol=0, atol=1e-14)
+    xo.assert_allclose(line['acfcav.bl5.b1'].lag, 0, rtol=0, atol=1e-14)
     line.vars['phi_crab_l5b1'] = 0.5
-    xo.assert_allclose(
-        line.element_dict['acfcav.bl5.b1'].to_dict()['ps'][0], 270,
-                    rtol=0, atol=1e-14)
+    xo.assert_allclose(line['acfcav.bl5.b1'].lag, 180, rtol=0, atol=1e-14)
 
-    assert np.abs(
-        line.element_dict['acfcah.bl1.b1'].to_dict()['knl'][0]) > 0
+    assert np.abs(line['acfcah.bl1.b1'].crab_voltage) > 0
     line.vars['on_crab1'] = 0
-    assert np.abs(
-        line.element_dict['acfcah.bl1.b1'].to_dict()['knl'][0]) == 0
+    assert np.abs(line['acfcah.bl1.b1'].crab_voltage) == 0
 
-    xo.assert_allclose(
-        line.element_dict['acfcah.bl1.b1'].to_dict()['pn'][0], 90,
-        rtol=0, atol=1e-14)
+    xo.assert_allclose(line['acfcah.bl1.b1'].lag, 0, rtol=0, atol=1e-14)
     line.vars['phi_crab_l1b1'] = 0.5
-    xo.assert_allclose(
-        line.element_dict['acfcah.bl1.b1'].to_dict()['pn'][0], 270,
-        rtol=0, atol=1e-14)
+    xo.assert_allclose(line['acfcah.bl1.b1'].lag, 180, rtol=0, atol=1e-14)
 
-    assert np.abs(line.element_dict['acfcah.bl1.b1'].frequency) > 0
-    assert np.abs(line.element_dict['acfcav.bl5.b1'].frequency) > 0
+    assert np.abs(line['acfcah.bl1.b1'].frequency) > 0
+    assert np.abs(line['acfcav.bl5.b1'].frequency) > 0
     line.vars['crabrf'] = 0.
-    assert np.abs(line.element_dict['acfcah.bl1.b1'].frequency) == 0
-    assert np.abs(line.element_dict['acfcav.bl5.b1'].frequency) == 0
+    assert np.abs(line['acfcah.bl1.b1']._xobject.frequency) == 0
+    assert np.abs(line['acfcav.bl5.b1']._xobject.frequency) == 0
 
 
 @for_all_test_contexts

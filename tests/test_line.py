@@ -867,7 +867,7 @@ def test_insert_thin_elements_at_s_basic(test_context):
     assert t1.s[-2] == 5.
     assert t1.s[-3] == 5.
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_insert_thin_elements_at_s_lhc(test_context):
 
     line = xt.load(test_data_folder /

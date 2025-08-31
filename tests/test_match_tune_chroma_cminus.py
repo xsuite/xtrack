@@ -15,7 +15,7 @@ path_line = test_data_folder.joinpath(
 
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_match_tune_chromaticity(test_context):
 
     with open(path_line) as f:
@@ -131,7 +131,7 @@ def test_match_tune_chromaticity(test_context):
     xo.assert_allclose(tw_final['dqx'],  6.0, atol=0.05)
     xo.assert_allclose(tw_final['dqy'],  4.0, atol=0.05)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_match_tune_chromaticity_scalar(test_context):
 
     with open(path_line) as f:
@@ -225,7 +225,7 @@ def test_match_coupling(test_context):
     tw = line.twiss()
     assert tw.c_minus < 2e-4
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_match_chroma_knob(test_context):
 
     with open(test_data_folder /

@@ -24,7 +24,7 @@ void Wedge_single_particle(
         const double sin_ = sin(theta);
         const double cos_ = cos(theta);
         const double tan_ = tan(theta);
-        YRotation_single_particle(part, sin_, cos_, tan_);
+        YRotation_single_particle(part, -sin_, cos_, -tan_);
         return;
     }
 

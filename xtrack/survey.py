@@ -10,7 +10,6 @@
 import numpy as np
 
 from xdeps import Table
-import xtrack as xt
 
 # Required functions
 # ==================================================
@@ -305,7 +304,9 @@ def survey_from_line(
     # Handling of XRotation, YRotation and SRotation elements
     ref_rot_angle_rad   = tt.ref_rot_angle_rad
     ref_rot_x_rad    = ref_rot_angle_rad * np.array(tt.element_type == 'XRotation')
-    ref_rot_y_rad    = ref_rot_angle_rad * np.array(tt.element_type == 'YRotation')
+    # The minus sign accounts for the discrepancy between the definition of the
+    # y-rotation between the survey and the tracking (MAD-X convention)
+    ref_rot_y_rad    = -ref_rot_angle_rad * np.array(tt.element_type == 'YRotation')
     ref_rot_s_rad    = ref_rot_angle_rad * np.array(tt.element_type == 'SRotation')
 
     if isinstance(element0, str):

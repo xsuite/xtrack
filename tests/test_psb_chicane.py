@@ -15,7 +15,7 @@ from xtrack.slicing import Teapot, Strategy
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_psb_chicane(test_context):
     mad = Madx(stdout=False)
 

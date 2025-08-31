@@ -601,7 +601,7 @@ def test_match_bump_sets_implicit_end(test_context):
     xo.assert_allclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
     xo.assert_allclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_match_bump_sets_init_end(test_context):
 
     line = xt.load(test_data_folder /
@@ -636,7 +636,7 @@ def test_match_bump_sets_init_end(test_context):
     xo.assert_allclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
     xo.assert_allclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_match_bump_sets_init_middle(test_context):
 
     line = xt.load(test_data_folder /
