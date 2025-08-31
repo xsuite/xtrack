@@ -12,12 +12,15 @@ from xobjects.test_helpers import for_all_test_contexts
 
 
 @for_all_test_contexts
+@pytest.mark.parametrize("overload", [True, False], ids=['overload', 'no_overload'])
 @pytest.mark.parametrize("ctype", [xo.Int8, xo.Int16, xo.Int32, xo.Int64,
                                    xo.UInt8, xo.UInt16, xo.UInt32,
                                    xo.UInt64, xo.Float32, xo.Float64])
-def test_atomic(ctype, test_context):
-    if not isinstance(test_context, xo.ContextCupy):
-        pytest.skip('Only test atomicAdd on CUDA')
+def test_atomic(overload, ctype, test_context):
+    if overload:
+        func_name = 'atomicAdd'
+    else:
+        func_name = f'atomicAdd_{ctype.__name__.lower()[0]}{ctype.__name__.split("t")[1]}'
     class TestAtomic(xt.BeamElement):
         _xofields = {f'val':  ctype}
         allow_track = False
@@ -30,21 +33,10 @@ def test_atomic(ctype, test_context):
                              GPUGLMEM {ctype._c_type}* retvals, int length) {{
             VECTORIZE_OVER(ii, length);
                 GPUGLMEM {ctype._c_type}* val = TestAtomicData_getp_val(el);
-                {ctype._c_type} ret = atomicAdd_{ctype.__name__.lower()[0]}{ctype.__name__.split('t')[1]}(val, increments[ii]);
-                //{ctype._c_type} ret = atomicAdd(val, increments[ii]);
+                {ctype._c_type} ret = {func_name}(val, increments[ii]);
                 retvals[ii] = ret;
             END_VECTORIZE;
         }}
-
-//        GPUKERN
-//        void run_atomic_test_overloaded(TestAtomicData el, GPUGLMEM {ctype._c_type}* increments,
-//                                        GPUGLMEM {ctype._c_type}* retvals, int length) {{
-//            VECTORIZE_OVER(ii, length);
-//                GPUGLMEM {ctype._c_type}* val = TestAtomicData_getp_val(el);
-//                {ctype._c_type} ret = atomicAdd(val, increments[ii]);
-//                retvals[ii] = ret;
-//            END_VECTORIZE;
-//        }}
         ''']
 
         _kernels = {
@@ -83,6 +75,7 @@ def test_atomic(ctype, test_context):
         increments = np.random.randint(low, high+1, size=num_steps, dtype=ctype._dtype)
         increments = test_context.nparray_to_context_array(increments)
         atomic.run_atomic_test(increments=increments, retvals=retvals, length=num_steps)
+        increments = test_context.nparray_from_context_array(increments)
         assert atomic.val == (np.sum(increments).item() % (2**(8*ctype._size)))
 
     elif ctype.__name__.startswith('Float'):
@@ -90,6 +83,7 @@ def test_atomic(ctype, test_context):
         increments += np.random.uniform(0, 10, size=num_steps)
         increments  = test_context.nparray_to_context_array(increments)
         atomic.run_atomic_test(increments=increments, retvals=retvals, length=num_steps)
+        increments = test_context.nparray_from_context_array(increments)
         if ctype == xo.Float32:
             assert np.isclose(atomic.val, np.sum(increments), atol=10., rtol=1.e-4)
         else:
