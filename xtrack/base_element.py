@@ -15,6 +15,7 @@ from xobjects.hybrid_class import _build_xofields_dict
 from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 from .particles import Particles
+from .track_flags import c_header_flag_mapping
 
 start_per_part_block = """
     {
@@ -280,6 +281,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
             for (int64_t batch_id = 0; batch_id < num_threads; batch_id++) {                   //only_for_context cpu_openmp
                 LocalParticle lpart;
                 lpart.io_buffer = io_buffer;
+                lpart.track_flags = 0;
                 int64_t part_id = batch_id * chunk_size;                                       //only_for_context cpu_openmp
                 int64_t end_id = (batch_id + 1) * chunk_size;                                  //only_for_context cpu_openmp
                 if (end_id > num_particles_to_track) end_id = num_particles_to_track;          //only_for_context cpu_openmp
@@ -452,6 +454,7 @@ class MetaBeamElement(xo.MetaHybridClass):
             _pkg_root.joinpath('headers','particle_states.h'),
             _pkg_root.joinpath('beam_elements', 'elements_src', 'track_srotation.h'),
             _pkg_root.joinpath('beam_elements', 'elements_src', 'track_drift.h'),
+            c_header_flag_mapping
         ]
         kernels = {}
 
