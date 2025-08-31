@@ -19,3 +19,5 @@ line.track(p2)
 
 print("p1 delta:", p1.delta)
 print("p2 delta:", p2.delta)
+
+line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = False

@@ -5513,6 +5513,15 @@ def _preserve_config(ln_or_trk):
         ln_or_trk.config.clear()
         ln_or_trk.config.update(config)
 
+@contextmanager
+def _preserve_track_flags(line):
+    old_flags = line.tracker.track_flags.flags.copy()
+    try:
+        yield
+    finally:
+        line.tracker.track_flags.flags.clear()
+        line.tracker.track_flags.flags.update(old_flags)
+
 
 @contextmanager
 def freeze_longitudinal(ln_or_trk):

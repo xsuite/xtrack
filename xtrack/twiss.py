@@ -470,7 +470,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         with xt.freeze_longitudinal(line):
             return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
-    elif freeze_energy or (freeze_energy is None and method=='4d'):
+    elif freeze_energy:
         if not line._energy_is_frozen():
             kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
             kwargs.pop('freeze_energy')
@@ -478,6 +478,12 @@ def twiss_line(line, particle_ref=None, method=None,
                 line.freeze_energy(force=True) # need to force for collective lines
                 return _add_action_in_res(
                     twiss_line(freeze_energy=False, **kwargs), input_kwargs)
+
+    if method == '4d' and not line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK:
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        with xt.line._preserve_track_flags(line):
+            line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
+            return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
 
     if at_s is not None:
         if reverse:
@@ -722,34 +728,35 @@ def twiss_line(line, particle_ref=None, method=None,
         or (compute_chromatic_properties is None and periodic))):
 
         with xt.line._preserve_config(line):
-            line.freeze_energy(force=True)
-            line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-            line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
-            cols_chrom, scalars_chrom = _compute_chromatic_functions(
-                line=line,
-                init=init,
-                delta_chrom=delta_chrom,
-                steps_r_matrix=steps_r_matrix,
-                matrix_responsiveness_tol=matrix_responsiveness_tol,
-                matrix_stability_tol=matrix_stability_tol,
-                symplectify=symplectify,
-                method=method,
-                use_full_inverse=use_full_inverse,
-                nemitt_x=nemitt_x,
-                nemitt_y=nemitt_y,
-                on_momentum_twiss_res=twiss_res,
-                r_sigma=r_sigma,
-                delta_disp=delta_disp,
-                zeta_disp=zeta_disp,
-                start=start,
-                end=end,
-                num_turns=num_turns,
-                hide_thin_groups=hide_thin_groups,
-                only_markers=only_markers,
-                periodic=periodic,
-                periodic_mode=periodic_mode,
-                include_collective=include_collective,
-            )
+            with xt.line._preserve_track_flags(line):
+                line.tracker.flags.XS_FLAG_KILL_CAVITY_KICK = True
+                line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
+                cols_chrom, scalars_chrom = _compute_chromatic_functions(
+                    line=line,
+                    init=init,
+                    delta_chrom=delta_chrom,
+                    steps_r_matrix=steps_r_matrix,
+                    matrix_responsiveness_tol=matrix_responsiveness_tol,
+                    matrix_stability_tol=matrix_stability_tol,
+                    symplectify=symplectify,
+                    method=method,
+                    use_full_inverse=use_full_inverse,
+                    nemitt_x=nemitt_x,
+                    nemitt_y=nemitt_y,
+                    on_momentum_twiss_res=twiss_res,
+                    r_sigma=r_sigma,
+                    delta_disp=delta_disp,
+                    zeta_disp=zeta_disp,
+                    start=start,
+                    end=end,
+                    num_turns=num_turns,
+                    hide_thin_groups=hide_thin_groups,
+                    only_markers=only_markers,
+                    periodic=periodic,
+                    periodic_mode=periodic_mode,
+                    include_collective=include_collective,
+                )
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
