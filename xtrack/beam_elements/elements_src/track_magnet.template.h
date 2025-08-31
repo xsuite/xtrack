@@ -319,12 +319,12 @@ void track_magnet_particles(
     #endif
 
     // Tapering
-    #ifdef XTRACK_MULTIPOLE_TAPER // Computing the tapering
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)){
         part0->ipart = 0;
         delta_taper = LocalParticle_get_delta(part0); // I can use part0 because
                                                       // there is only one particle
                                                       // when doing the tapering
-    #endif
+    }
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag){

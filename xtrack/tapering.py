@@ -73,8 +73,10 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
 
     if verbose: _print("Share energy loss among cavities (repeat until energy loss is zero)")
     with xt.line._preserve_config(line):
+      with xt.line._preserve_track_flags(line):
         line.config.XTRACK_MULTIPOLE_TAPER = True
         line.config.XTRACK_DIPOLEEDGE_TAPER = True
+        line.tracker.track_flags.XS_FLAG_SR_TAPER = True
 
         if delta0 == 'zero_mean':
             num_rounds = 2
