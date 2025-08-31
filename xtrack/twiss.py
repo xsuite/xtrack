@@ -1602,7 +1602,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 include_collective=include_collective)
             part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
                                     start=start, end=end, num_turns=num_turns,
-                                    symmetrize=(periodic_mode == 'periodic_symmetric'),
+                                    symmetrize=False,
                                     include_collective=include_collective,
                                     )
             tw_init_chrom.particle_on_co = part_chrom
@@ -1610,7 +1610,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                                         particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                         start=start, end=end, num_turns=num_turns,
                                         steps_r_matrix=steps_r_matrix,
-                                        symmetrize=(periodic_mode == 'periodic_symmetric'),
+                                        symmetrize=False,
                                         include_collective=include_collective,
                                         )['R_matrix']
             (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
@@ -2113,6 +2113,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
     assert periodic_mode in ['periodic', 'periodic_symmetric']
 
+    if periodic_mode == 'periodic_symmetric':
+        raise ValueError('`periodic_symmetric` not supported anymore')
+
     if start is not None or end is not None:
         assert start is not None and end is not None, (
             'start and end must be both None or both not None')
@@ -2124,6 +2127,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         delta0 = 0
 
     if periodic_mode == 'periodic_symmetric':
+        raise ValueError('`periodic_symmetric` not supported anymore')
         assert R_matrix is None, 'R_matrix must be None for `periodic_symmetric`'
         assert W_matrix is None, 'W_matrix must be None for `periodic_symmetric`'
 
@@ -2146,7 +2150,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 search_for_t_rev=search_for_t_rev,
                                 spin=spin,
                                 num_turns_search_t_rev=num_turns_search_t_rev,
-                                symmetrize=(periodic_mode == 'periodic_symmetric'),
+                                symmetrize=False,
                                 include_collective=include_collective
                                 )
     if only_orbit:
@@ -2177,7 +2181,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     num_turns=num_turns,
                     element_by_element=compute_R_element_by_element,
                     only_markers=only_markers,
-                    symmetrize=(periodic_mode == 'periodic_symmetric'),
+                    symmetrize=False,
                     include_collective=include_collective
                     )
                 RR = RR_out['R_matrix']
@@ -2703,9 +2707,7 @@ def compute_one_turn_matrix_finite_differences(
         assert end is not None
         line.track(part_temp, ele_start=start, ele_stop=end)
         if symmetrize:
-            with xt.line._preserve_config(line):
-                line.config.XSUITE_MIRROR = True
-                line.track(part_temp, ele_start=start, ele_stop=end)
+            raise NotImplementedError
     elif particle_on_co._xobject.at_element[0]>0:
         assert element_by_element is False, 'Not yet implemented'
         assert num_turns == 1, 'Not yet implemented'
@@ -2721,9 +2723,7 @@ def compute_one_turn_matrix_finite_differences(
         line.track(part_temp, num_turns=num_turns,
                    turn_by_turn_monitor=monitor_setting)
         if symmetrize:
-            with xt.line._preserve_config(line):
-                line.config.XSUITE_MIRROR = True
-                line.track(part_temp, num_turns=num_turns)
+            raise NotImplementedError
 
     temp_mat = np.zeros(shape=(6, 13), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
