@@ -6,6 +6,7 @@ flag_mapping = {
     'XS_FLAG_IGNORE_GLOBAL_APERTURE': 3,
     'XS_FLAG_IGNORE_LOCAL_APERTURE': 4,
     'XS_FLAG_SR_TAPER': 5,
+    'XS_FLAG_SR_KICK_SAME_AS_FIRST': 6
 }
 
 flag_defaults = {
@@ -13,7 +14,8 @@ flag_defaults = {
     'XS_FLAG_KILL_CAVITY_KICK': False,
     'XS_FLAG_IGNORE_GLOBAL_APERTURE': False,
     'XS_FLAG_IGNORE_LOCAL_APERTURE': False,
-    'XS_FLAG_SR_TAPER': False
+    'XS_FLAG_SR_TAPER': False,
+    'XS_FLAG_SR_KICK_SAME_AS_FIRST': False
 }
 
 c_header_flag_mapping = """

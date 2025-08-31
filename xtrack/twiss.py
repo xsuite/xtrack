@@ -527,10 +527,9 @@ def twiss_line(line, particle_ref=None, method=None,
         assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
         assert freeze_longitudinal is False
         if (radiation_method == 'kick_as_co' and (
-            not hasattr(line.config, 'XTRACK_SYNRAD_KICK_SAME_AS_FIRST') or
-            not line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST)):
-            with xt.line._preserve_config(line):
-                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
+            not line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST)):
+            with xt.line._preserve_track_flags(line):
+                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = True
                 return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
         elif (radiation_method == 'scale_as_co' and (
             not hasattr(line.config, 'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST') or
@@ -540,8 +539,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
 
     if radiation_method == 'kick_as_co':
-        assert hasattr(line.config, 'XTRACK_SYNRAD_KICK_SAME_AS_FIRST')
-        assert line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST
+        assert line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST
 
     if line.enable_time_dependent_vars:
         raise RuntimeError('Time dependent variables not supported in Twiss')
@@ -731,7 +729,7 @@ def twiss_line(line, particle_ref=None, method=None,
             with xt.line._preserve_track_flags(line):
                 line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
                 line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
+                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
                 cols_chrom, scalars_chrom = _compute_chromatic_functions(
                     line=line,
                     init=init,
@@ -778,7 +776,8 @@ def twiss_line(line, particle_ref=None, method=None,
             raise ValueError('method="4d" not supported for eneloss_and_damping=True')
         if radiation_method != 'full' or twiss_res._data['R_matrix_ebe'] is None:
             with xt.line._preserve_config(line):
-                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
+              with xt.line._preserve_track_flags(line):
+                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
                 _, RR, _, _, _, RR_ebe = _find_periodic_solution(
                     line=line, particle_on_co=particle_on_co,
