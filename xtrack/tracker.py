@@ -1119,7 +1119,9 @@ class Tracker:
             kwargs.pop('self')
             kwargs.pop('backtrack')
             with xt.line._preserve_config(self):
+              with xt.line._preserve_track_flags(self.line):
                 self.config.XSUITE_BACKTRACK = True
+                self.track_flags.XS_FLAG_BACKTRACK = True
                 return self._track_no_collective(**kwargs)
 
         self.local_particle_src = particles.gen_local_particle_api()
