@@ -1379,7 +1379,7 @@ def _compute_coupling_elements_edwards_teng(
         CC = RR[2:4, :2]
         DD = RR[2:4, 2:4]
 
-        if np.linalg.norm(BB) < 1e-12 and np.linalg.norm(CC) < 1e-12:
+        if np.linalg.norm(BB) < 1e-10 and np.linalg.norm(CC) < 1e-10:
             R_edw_teng = np.zeros((2, 2))
         else:
             tr = np.linalg.trace
