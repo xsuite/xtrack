@@ -1,7 +1,13 @@
 import xtrack as xt
 import numpy as np
 
-line = xt.load('../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
+dct = xt.json.load('../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
+
+del dct['line']['particle_ref']
+
+line = xt.Line.from_dict(dct['line'])
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=26e9)
+
 tw = line.twiss4d()
 
 n_particles = 1_000
