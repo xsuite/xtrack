@@ -115,9 +115,9 @@ void legacy_solenoid_apply_radiation_single_particle(
 
     if ((spin_flag != 0) && (spin_x_0 != 0. || spin_y_0 != 0. || spin_z_0 != 0.)){
 
-        #ifdef XSUITE_BACKTRACK
+        if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
             LocalParticle_set_state(part, -33);
-        #else
+        } else {
             double const Bz_T = ks * brho0;
 
             double const kin_px_mean = (old_px + new_ax);
@@ -209,7 +209,7 @@ void legacy_solenoid_apply_radiation_single_particle(
                 LocalParticle_set_spin_y(part, spin_y_3);
                 LocalParticle_set_spin_z(part, spin_z_3);
             }
-        #endif
+        }
     }
 
     // Synchrotron radiation
