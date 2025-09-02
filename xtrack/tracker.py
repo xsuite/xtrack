@@ -1118,9 +1118,7 @@ class Tracker:
                 raise ValueError("This line is not backtrackable.")
             kwargs.pop('self')
             kwargs.pop('backtrack')
-            with xt.line._preserve_config(self):
-              with xt.line._preserve_track_flags(self.line):
-                self.config.XSUITE_BACKTRACK = True
+            with xt.line._preserve_track_flags(self.line):
                 self.track_flags.XS_FLAG_BACKTRACK = True
                 return self._track_no_collective(**kwargs)
 
