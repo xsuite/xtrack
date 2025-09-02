@@ -74,7 +74,7 @@ def _flatten_components(components, refer: ReferType = 'center'):
 
 class Environment:
     def __init__(self, element_dict=None, particle_ref=None, _var_management=None,
-                 lines=None):
+                 lines=None, particles=None):
 
         '''
         Create an environment.
@@ -128,6 +128,11 @@ class Environment:
         '''
         self._element_dict = element_dict or {}
         self.particle_ref = particle_ref
+
+        if particles is not None:
+            self.particles = particles
+        else:
+            self.particles = EnvParticles()
 
         if _var_management is not None:
             self._var_management = _var_management
@@ -320,7 +325,8 @@ class Environment:
     def _init_var_management(self, dct=None):
 
         self._var_management = xt.line._make_var_management(element_dict=self.element_dict,
-                                               dct=dct)
+                                                            particles=self.particles,
+                                                            dct=dct)
         self._line_vars = xt.line.LineVars(self)
 
 
@@ -615,6 +621,9 @@ class Environment:
 
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
+
+        out['particles'] = self.particles.to_dict()
+
         if self._var_management is not None and include_var_management:
             if hasattr(self, '_in_multiline') and self._in_multiline is not None:
                 raise ValueError('The line is part ot a MultiLine object. '
@@ -656,8 +665,11 @@ class Environment:
 
         ldummy = xt.Line.from_dict(dct)
         out = cls(element_dict=ldummy.element_dict, particle_ref=ldummy.particle_ref,
-                _var_management=ldummy._var_management)
+                  _var_management=ldummy._var_management)
         out._line_vars = xt.line.LineVars(out)
+
+        if 'particles' in dct:
+            out.particles = EnvParticles.from_dict(dct['particles'])
 
         for nn in dct['lines'].keys():
             ll = xt.Line.from_dict(dct['lines'][nn], env=out, verbose=False)
@@ -1556,3 +1568,25 @@ def _resolve_lines_in_components(components, env):
             components[ii] = env.lines[nn]
 
     return components
+
+class EnvParticles:
+
+    def __init__(self):
+        self._particles = {}
+
+    def __getitem__(self, key):
+        return self._particles[key]
+
+    def __setitem__(self, key, value):
+        self._particles[key] = value
+        self._particles[key].label = key
+
+    def to_dict(self):
+        return {key: particle.to_dict() for key, particle in self._particles.items()}
+
+    @classmethod
+    def from_dict(cls, dct):
+        instance = cls()
+        for key, value in dct.items():
+            instance[key] = xt.Particles.from_dict(value)
+        return instance

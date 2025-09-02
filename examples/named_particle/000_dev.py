@@ -1,30 +1,5 @@
 import xtrack as xt
 
-
-
-class EnvParticles:
-
-    def __init__(self):
-        self._particles = {}
-
-    def __getitem__(self, key):
-        return self._particles[key]
-
-    def __setitem__(self, key, value):
-        self._particles[key] = value
-        self._particles[key].label = key
-
-    def to_dict(self):
-        return {key: particle.to_dict() for key, particle in self._particles.items()}
-
-    @classmethod
-    def from_dict(cls, dct):
-        instance = cls()
-        for key, value in dct.items():
-            instance[key] = xt.Particles.from_dict(value)
-        return instance
-
-
 class LineParticleRef:
 
     def __get__(self, line, objtype=None):
@@ -39,11 +14,6 @@ class LineParticleRef:
 xt.Line.particle_ref = LineParticleRef()
 
 env = xt.Environment()
-env.particles = EnvParticles()
-
-pref = env.ref_manager.ref(env.particles, 'particles')
-
-env._var_management['pref'] = pref
 
 line = env.new_line(name='b1')
 
@@ -51,6 +21,8 @@ line._extra_config['particle_ref'] = None
 
 env.particles['particle/b1'] = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1)
 line.particle_ref = 'particle/b1'
+
+env2 = xt.Environment.from_dict(env.to_dict())
 
 
 

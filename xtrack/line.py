@@ -4457,12 +4457,14 @@ class Line:
 
     def _init_var_management(self, dct=None):
 
-        self._var_management = _make_var_management(element_dict=self.element_dict,
-                                               dct=dct)
-
         if not hasattr(self, 'env') or self.env is None:
             self._env_if_needed()
             self.env._line_vars = LineVars(self.env)
+
+        self._var_management = _make_var_management(
+                                element_dict=self.element_dict,
+                                particles=self.env.particles,
+                                dct=dct)
 
     @property
     def _line_vars(self):
@@ -6228,7 +6230,7 @@ def _rot_s_from_attr(attr):
     return rot_s_rad
 
 
-def _make_var_management(element_dict, dct=None):
+def _make_var_management(element_dict, particles, dct=None):
 
     from collections import defaultdict
 
@@ -6241,6 +6243,7 @@ def _make_var_management(element_dict, dct=None):
     _vref = manager.ref(_var_values, 'vars')
     _fref = manager.ref(functions, 'f')
     _lref = manager.ref(element_dict, 'element_refs')
+    _pref = manager.ref(particles, 'particle_refs')
 
     _var_management = {}
     _var_management['data'] = {}
@@ -6251,6 +6254,7 @@ def _make_var_management(element_dict, dct=None):
     _var_management['lref'] = _lref
     _var_management['vref'] = _vref
     _var_management['fref'] = _fref
+    _var_management['pref'] = _pref
 
     _vref['t_turn_s'] = 0.0
 
