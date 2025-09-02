@@ -547,20 +547,22 @@ class Tracker:
 
                 int64_t const ele_stop = ele_start + num_ele_track;
 
-                #if defined(XSUITE_BACKTRACK) || defined(XSUITE_MIRROR)
-                int64_t elem_idx = ele_stop - 1;
-                int64_t const increm = -1;
-                if (flag_end_turn_actions>0){
-                    increment_at_turn_backtrack(&lpart, flag_reset_s_at_end_turn,
-                                                line_length, num_ele_line);
+                int64_t elem_idx, increm;
+                if (LocalParticle_check_track_flag(&lpart, XS_FLAG_BACKTRACK)) {
+                    elem_idx = ele_stop - 1;
+                    increm = -1;
+                    if (flag_end_turn_actions>0){
+                        increment_at_turn_backtrack(&lpart, flag_reset_s_at_end_turn,
+                                                    line_length, num_ele_line);
+                    }
                 }
-                #else
-                if (flag_monitor==1){
-                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                else{
+                    if (flag_monitor==1){
+                        ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                    }
+                    elem_idx = ele_start;
+                    increm = 1;
                 }
-                int64_t elem_idx = ele_start;
-                int64_t const increm = 1;
-                #endif
 
                 for (; ((elem_idx >= ele_start) && (elem_idx < ele_stop)); elem_idx+=increm){
                         if (flag_monitor==2){
@@ -610,11 +612,11 @@ class Tracker:
                         break;
                     }
 
-                    #if defined(XSUITE_BACKTRACK) || defined(XSUITE_MIRROR)
+                    if (LocalParticle_check_track_flag(&lpart, XS_FLAG_BACKTRACK)) {
                         increment_at_element(&lpart, -1);
-                    #else
+                    } else {
                         increment_at_element(&lpart, 1);
-                    #endif
+                    }
 
                     #endif //DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS
 
@@ -625,18 +627,16 @@ class Tracker:
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
 
-                #if defined(XSUITE_BACKTRACK) || defined(XSUITE_MIRROR)
-                if (flag_monitor==1){
-                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                if (LocalParticle_check_track_flag(&lpart, XS_FLAG_BACKTRACK)) {
+                    if (flag_monitor==1){
+                        ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                    }
                 }
-                # else
-                if (flag_end_turn_actions>0){
+                else if (flag_end_turn_actions>0){
                     if (isactive){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn);
                     }
                 }
-                #endif
-
             } // for turns
 
             LocalParticle_to_Particles(&lpart, particles, part_id, 1);
