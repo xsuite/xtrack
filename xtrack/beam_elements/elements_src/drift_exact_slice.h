@@ -18,10 +18,11 @@ void DriftExactSlice_track_local_particle(
 
     double weight = DriftExactSliceData_get_weight(el);
 
+    double length;
     if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
-        double const length = -weight * DriftExactSliceData_get__parent_length(el); // m
+        length = -weight * DriftExactSliceData_get__parent_length(el); // m
     } else {
-        double const length = weight * DriftExactSliceData_get__parent_length(el); // m
+        length = weight * DriftExactSliceData_get__parent_length(el); // m
     }
 
     START_PER_PARTICLE_BLOCK(part0, part);
