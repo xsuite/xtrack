@@ -21,9 +21,9 @@ void VariableSolenoid_track_local_particle(
     double const x0 = VariableSolenoidData_get_x0(el);
     double const y0 = VariableSolenoidData_get_y0(el);
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         VSWAP(ks_entry, ks_exit);
-    #endif
+    }
 
     double ks, dks_ds;
     if (length != 0){
