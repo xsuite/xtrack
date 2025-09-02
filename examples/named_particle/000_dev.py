@@ -14,7 +14,6 @@ class LineParticleRef:
 xt.Line.particle_ref = LineParticleRef()
 
 env = xt.Environment()
-
 line = env.new_line(name='b1')
 
 line._extra_config['particle_ref'] = None
