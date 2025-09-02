@@ -1295,6 +1295,8 @@ class EnvRef:
     def __getitem__(self, name):
         if hasattr(self.env, 'lines') and name in self.env.lines:
             return self.env.lines[name].ref
+        elif name in self.env.particles:
+            return self.env._var_management['pref'][name]
         elif name in self.env.element_dict:
             return self.env.element_refs[name]
         elif name in self.env.vars:
@@ -1580,6 +1582,9 @@ class EnvParticles:
     def __setitem__(self, key, value):
         self._particles[key] = value
         self._particles[key].label = key
+
+    def __contains__(self, key):
+        return key in self._particles
 
     def to_dict(self):
         return {key: particle.to_dict() for key, particle in self._particles.items()}

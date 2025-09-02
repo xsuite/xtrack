@@ -4753,6 +4753,8 @@ class Line:
             return self.vv[key]
         elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
             return self.lines[key]
+        elif hasattr(self, 'particles') and key in self.particles: # Want to reuse the method for the env
+            return self.particles[key]
         elif "::" in key and (env_name := key.split("::")[0]) in self.element_dict:
             return self[env_name]
         else:
