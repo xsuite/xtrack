@@ -527,10 +527,9 @@ def twiss_line(line, particle_ref=None, method=None,
         assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
         assert freeze_longitudinal is False
         if (radiation_method == 'kick_as_co' and (
-            not hasattr(line.config, 'XTRACK_SYNRAD_KICK_SAME_AS_FIRST') or
-            not line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST)):
-            with xt.line._preserve_config(line):
-                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
+            not line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST)):
+            with xt.line._preserve_track_flags(line):
+                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = True
                 return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
         elif (radiation_method == 'scale_as_co' and (
             not hasattr(line.config, 'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST') or
@@ -540,8 +539,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
 
     if radiation_method == 'kick_as_co':
-        assert hasattr(line.config, 'XTRACK_SYNRAD_KICK_SAME_AS_FIRST')
-        assert line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST
+        assert line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST
 
     if line.enable_time_dependent_vars:
         raise RuntimeError('Time dependent variables not supported in Twiss')
@@ -731,7 +729,7 @@ def twiss_line(line, particle_ref=None, method=None,
             with xt.line._preserve_track_flags(line):
                 line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
                 line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
+                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
                 cols_chrom, scalars_chrom = _compute_chromatic_functions(
                     line=line,
                     init=init,
@@ -778,7 +776,8 @@ def twiss_line(line, particle_ref=None, method=None,
             raise ValueError('method="4d" not supported for eneloss_and_damping=True')
         if radiation_method != 'full' or twiss_res._data['R_matrix_ebe'] is None:
             with xt.line._preserve_config(line):
-                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
+              with xt.line._preserve_track_flags(line):
+                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
                 _, RR, _, _, _, RR_ebe = _find_periodic_solution(
                     line=line, particle_on_co=particle_on_co,
@@ -1380,7 +1379,7 @@ def _compute_coupling_elements_edwards_teng(
         CC = RR[2:4, :2]
         DD = RR[2:4, 2:4]
 
-        if np.linalg.norm(BB) < 1e-12 and np.linalg.norm(CC) < 1e-12:
+        if np.linalg.norm(BB) < 1e-10 and np.linalg.norm(CC) < 1e-10:
             R_edw_teng = np.zeros((2, 2))
         else:
             tr = np.linalg.trace
@@ -1602,7 +1601,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 include_collective=include_collective)
             part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
                                     start=start, end=end, num_turns=num_turns,
-                                    symmetrize=(periodic_mode == 'periodic_symmetric'),
+                                    symmetrize=False,
                                     include_collective=include_collective,
                                     )
             tw_init_chrom.particle_on_co = part_chrom
@@ -1610,7 +1609,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                                         particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                         start=start, end=end, num_turns=num_turns,
                                         steps_r_matrix=steps_r_matrix,
-                                        symmetrize=(periodic_mode == 'periodic_symmetric'),
+                                        symmetrize=False,
                                         include_collective=include_collective,
                                         )['R_matrix']
             (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
@@ -2113,6 +2112,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
     assert periodic_mode in ['periodic', 'periodic_symmetric']
 
+    if periodic_mode == 'periodic_symmetric':
+        raise ValueError('`periodic_symmetric` not supported anymore')
+
     if start is not None or end is not None:
         assert start is not None and end is not None, (
             'start and end must be both None or both not None')
@@ -2124,6 +2126,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         delta0 = 0
 
     if periodic_mode == 'periodic_symmetric':
+        raise ValueError('`periodic_symmetric` not supported anymore')
         assert R_matrix is None, 'R_matrix must be None for `periodic_symmetric`'
         assert W_matrix is None, 'W_matrix must be None for `periodic_symmetric`'
 
@@ -2146,7 +2149,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 search_for_t_rev=search_for_t_rev,
                                 spin=spin,
                                 num_turns_search_t_rev=num_turns_search_t_rev,
-                                symmetrize=(periodic_mode == 'periodic_symmetric'),
+                                symmetrize=False,
                                 include_collective=include_collective
                                 )
     if only_orbit:
@@ -2177,7 +2180,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     num_turns=num_turns,
                     element_by_element=compute_R_element_by_element,
                     only_markers=only_markers,
-                    symmetrize=(periodic_mode == 'periodic_symmetric'),
+                    symmetrize=False,
                     include_collective=include_collective
                     )
                 RR = RR_out['R_matrix']
@@ -2703,9 +2706,7 @@ def compute_one_turn_matrix_finite_differences(
         assert end is not None
         line.track(part_temp, ele_start=start, ele_stop=end)
         if symmetrize:
-            with xt.line._preserve_config(line):
-                line.config.XSUITE_MIRROR = True
-                line.track(part_temp, ele_start=start, ele_stop=end)
+            raise NotImplementedError
     elif particle_on_co._xobject.at_element[0]>0:
         assert element_by_element is False, 'Not yet implemented'
         assert num_turns == 1, 'Not yet implemented'
@@ -2721,9 +2722,7 @@ def compute_one_turn_matrix_finite_differences(
         line.track(part_temp, num_turns=num_turns,
                    turn_by_turn_monitor=monitor_setting)
         if symmetrize:
-            with xt.line._preserve_config(line):
-                line.config.XSUITE_MIRROR = True
-                line.track(part_temp, num_turns=num_turns)
+            raise NotImplementedError
 
     temp_mat = np.zeros(shape=(6, 13), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)

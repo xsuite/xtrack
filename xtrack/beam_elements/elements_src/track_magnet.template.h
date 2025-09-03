@@ -287,13 +287,15 @@ void track_magnet_particles(
         edge_exit_angle_fdown += rbend_half_angle;
     }
 
+    double core_length, core_length_curved,factor_knl_ksl_body,
+           factor_knl_ksl_edge,factor_backtrack_edge;
     // Backtracking
-    #ifdef XSUITE_BACKTRACK
-        const double core_length = -length * weight;
-        const double core_length_curved = -length_curved * weight;
-        double factor_knl_ksl_body = -factor_knl_ksl * weight;
-        double factor_knl_ksl_edge = factor_knl_ksl; // Edge has a specific factor for backtracking
-        const double factor_backtrack_edge = -1.;
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
+        core_length = -length * weight;
+        core_length_curved = -length_curved * weight;
+        factor_knl_ksl_body = -factor_knl_ksl * weight;
+        factor_knl_ksl_edge = factor_knl_ksl; // Edge has a specific factor for backtracking
+        factor_backtrack_edge = -1.;
         hxl = -hxl;
         VSWAP(edge_entry_active, edge_exit_active);
         VSWAP(edge_entry_model, edge_exit_model);
@@ -303,14 +305,14 @@ void track_magnet_particles(
         VSWAP(edge_entry_hgap, edge_exit_hgap);
         rbend_half_angle = -rbend_half_angle;
         sin_rbha = -sin_rbha;
-
-    #else
-        const double core_length = length * weight;
-        const double core_length_curved = length_curved * weight;
-        double factor_knl_ksl_body = factor_knl_ksl * weight;
-        double factor_knl_ksl_edge = factor_knl_ksl;
-        const double factor_backtrack_edge = 1.;
-    #endif
+    }
+    else {
+        core_length = length * weight;
+        core_length_curved = length_curved * weight;
+        factor_knl_ksl_body = factor_knl_ksl * weight;
+        factor_knl_ksl_edge = factor_knl_ksl;
+        factor_backtrack_edge = 1.;
+    }
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag == 10){ // from parent
@@ -319,12 +321,12 @@ void track_magnet_particles(
     #endif
 
     // Tapering
-    #ifdef XTRACK_MULTIPOLE_TAPER // Computing the tapering
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)){
         part0->ipart = 0;
         delta_taper = LocalParticle_get_delta(part0); // I can use part0 because
                                                       // there is only one particle
                                                       // when doing the tapering
-    #endif
+    }
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag){

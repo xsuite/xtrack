@@ -29,7 +29,7 @@ def test_tapering_and_twiss_with_radiation():
 
     # Initial twiss (no radiation)
     line.configure_radiation(model=None)
-    tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
+    tw_no_rad = line.twiss(method='4d')
 
     assert tw_no_rad.radiation_method == None
 
@@ -145,7 +145,7 @@ def test_tapering_zero_mean():
     line.particle_ref.p0c = 4e9  # eV
 
     line.configure_radiation(model=None)
-    tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
+    tw_no_rad = line.twiss(method='4d')
 
     ###############################################
     # Enable radiation and compensate energy loss #

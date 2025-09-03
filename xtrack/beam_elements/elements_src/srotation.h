@@ -16,9 +16,9 @@ void SRotation_track_local_particle(SRotationData el, LocalParticle* part0){
     double sin_z = SRotationData_get_sin_z(el);
     double cos_z = SRotationData_get_cos_z(el);
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         sin_z = -sin_z;
-    #endif
+    }
 
     START_PER_PARTICLE_BLOCK(part0, part);
         SRotation_single_particle(part, sin_z, cos_z);

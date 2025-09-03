@@ -7,6 +7,7 @@ from enum import Enum
 from pathlib import Path
 from xobjects.general import _print  # noqa: F401
 import requests
+import gzip
 
 _pkg_root = Path(__file__).parent.absolute()
 
@@ -29,6 +30,9 @@ def read_url(url, timeout=0.1):
     try:
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()  # Raise an error for bad responses
-        return response.text
+        if url.endswith('.gz'):
+            return gzip.decompress(response.content).decode("utf-8")
+        else:
+            return response.text
     except requests.exceptions.RequestException as e:
         raise RuntimeError(f"Failed to read from URL {url}: {e}")

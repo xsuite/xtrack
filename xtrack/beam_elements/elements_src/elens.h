@@ -13,9 +13,9 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
     double elens_length = ElensData_get_elens_length(el);
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         elens_length = -elens_length;
-    #endif
+    }
 
     double const inner_radius = ElensData_get_inner_radius(el);
     double const outer_radius = ElensData_get_outer_radius(el);

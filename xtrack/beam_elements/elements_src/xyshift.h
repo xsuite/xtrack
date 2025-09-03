@@ -15,10 +15,10 @@ void XYShift_track_local_particle(XYShiftData el, LocalParticle* part0){
     double dx = XYShiftData_get_dx(el);
     double dy = XYShiftData_get_dy(el);
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         dx = -dx;
         dy = -dy;
-    #endif
+    }
 
     START_PER_PARTICLE_BLOCK(part0, part);
         XYShift_single_particle(part, dx, dy);
