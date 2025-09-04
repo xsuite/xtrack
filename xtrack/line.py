@@ -868,34 +868,41 @@ class Line:
         if shallow==True:
             assert _context is None and _buffer is None, (
                 'Shallow copy with _context or _buffer is not supported')
-            out = self.select()
+            return self.select()
         else:
-            elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
-                                        for nn, ee in self.element_dict.items()}
-            element_names = [nn for nn in self.element_names]
-            out = self.__class__(elements=elements, element_names=element_names)
+            out_env = self.env.copy()
+            out_line = out_env.new_line(components=self.element_names)
+            out_line.build_tracker(_context=_context, _buffer=_buffer,
+                                   compile=False)
+            out_line.discard_tracker()
+            return out_line
 
-            if self._var_management is not None:
-                # reinit env and var management
-                out.env = None
-                out._var_management = None
-                out._init_var_management(dct=self._var_management_to_dict())
-                out._env_if_needed()
+        #     elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
+        #                                 for nn, ee in self.element_dict.items()}
+        #     element_names = [nn for nn in self.element_names]
+        #     out = self.__class__(elements=elements, element_names=element_names)
 
-        if self.particle_ref is not None:
-            out.particle_ref = self.particle_ref.copy(
-                                        _context=_context, _buffer=_buffer)
+        #     if self._var_management is not None:
+        #         # reinit env and var management
+        #         out.env = None
+        #         out._var_management = None
+        #         out._init_var_management(dct=self._var_management_to_dict())
+        #         out._env_if_needed()
 
-        out.config.clear()
-        out.config.update(self.config.copy())
-        out._extra_config.update(self._extra_config.copy())
-        out.metadata.clear()
-        out.metadata.update(self.metadata)
+        # if self.particle_ref is not None:
+        #     out.particle_ref = self.particle_ref.copy(
+        #                                 _context=_context, _buffer=_buffer)
 
-        if out.energy_program is not None:
-            out.energy_program.line = out
+        # out.config.clear()
+        # out.config.update(self.config.copy())
+        # out._extra_config.update(self._extra_config.copy())
+        # out.metadata.clear()
+        # out.metadata.update(self.metadata)
 
-        return out
+        # if out.energy_program is not None:
+        #     out.energy_program.line = out
+
+        # return out
 
     def build_tracker(
             self,
