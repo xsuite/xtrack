@@ -73,8 +73,8 @@ def _flatten_components(components, refer: ReferType = 'center'):
     return flatt_components
 
 class Environment:
-    def __init__(self, element_dict=None, particle_ref=None, _var_management=None,
-                 lines=None):
+    def __init__(self, element_dict=None, particle_ref=None, lines=None,
+                 _var_management_dct=None):
 
         '''
         Create an environment.
@@ -129,10 +129,10 @@ class Environment:
         self._element_dict = element_dict or {}
         self.particle_ref = particle_ref
 
-        if _var_management is not None:
-            self._var_management = _var_management
-        else:
-            self._init_var_management()
+        self._var_management = xt.line._make_var_management(
+            element_dict=self.element_dict,
+            dct=_var_management_dct)
+        self._line_vars = xt.line.LineVars(self)
 
         self.lines = EnvLines(self)
         self._lines_weakrefs = WeakSet()
@@ -316,13 +316,6 @@ class Environment:
         self.element_dict[name].prototype = prototype
 
         return name
-
-    def _init_var_management(self, dct=None):
-
-        self._var_management = xt.line._make_var_management(element_dict=self.element_dict,
-                                               dct=dct)
-        self._line_vars = xt.line.LineVars(self)
-
 
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
                  length=None, s_tol=1e-6):
@@ -651,13 +644,37 @@ class Environment:
         return out
 
     @classmethod
-    def from_dict(cls, dct):
+    def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         cls = xt.Environment
 
-        ldummy = xt.Line.from_dict(dct)
-        out = cls(element_dict=ldummy.element_dict, particle_ref=ldummy.particle_ref,
-                _var_management=ldummy._var_management)
-        out._line_vars = xt.line.LineVars(out)
+        class_dict = xt.line.mk_class_namespace(classes)
+
+        _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
+
+        if isinstance(dct['elements'], dict):
+            elements = {}
+            for (kk, ee) in progress(dct['elements'].items(), desc='Loading line from dict'):
+                elements[kk] = xt.line._deserialize_element(ee, class_dict, _buffer)
+        elif isinstance(dct['elements'], list):
+            elements = []
+            for ii, ee in enumerate(
+                    progress(dct['elements'], desc='Loading line from dict')):
+                elements.append(xt.line._deserialize_element(ee, class_dict, _buffer))
+        else:
+            raise ValueError('Field `elements` must be a dict or a list')
+
+        particle_ref = None
+        if 'particle_ref' in dct.keys():
+            particle_ref = xt.Particles.from_dict(dct['particle_ref'],
+                                    _context=_buffer.context)
+
+        if '_var_manager' in dct.keys():
+            _var_management_dct = dct
+        else:
+            _var_management_dct = None
+
+        out = cls(element_dict=elements, particle_ref=particle_ref,
+                _var_management_dct=_var_management_dct)
 
         for nn in dct['lines'].keys():
             ll = xt.Line.from_dict(dct['lines'][nn], env=out, verbose=False)

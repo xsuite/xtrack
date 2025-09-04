@@ -225,6 +225,10 @@ class Line:
 
         """
 
+        # When env is given it means that the line is being reloaded as part of
+        # and env. In that case the element_dict, vars and xdeps stuff come through
+        # the environment and should not be in the dictionary
+
         class_dict = mk_class_namespace(classes)
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
@@ -4452,15 +4456,6 @@ class Line:
             raise RuntimeError(
                 '`Line._context` con only be called after `Line.build_tracker`')
         return self.tracker._context
-
-    def _init_var_management(self, dct=None):
-
-        self._var_management = _make_var_management(element_dict=self.element_dict,
-                                               dct=dct)
-
-        if not hasattr(self, 'env') or self.env is None:
-            self._env_if_needed()
-            self.env._line_vars = LineVars(self.env)
 
     @property
     def _line_vars(self):
