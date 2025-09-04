@@ -327,16 +327,19 @@ void track_rf_particles(
                     part0, XS_FLAG_KILL_CAVITY_KICK);
 
     // Backtracking
-    #ifdef XSUITE_BACKTRACK
-        const double body_length = -length;
-        double factor_knl_ksl_body = -factor_knl_ksl;
+    double body_length;
+    double factor_knl_ksl_body;
+
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
+        body_length = -length;
+        factor_knl_ksl_body = -factor_knl_ksl;
         VSWAP(edge_entry_active, edge_exit_active);
         voltage = -voltage;
         transverse_voltage = -transverse_voltage;
-    #else
-        const double body_length = length;
-        double factor_knl_ksl_body = factor_knl_ksl;
-    #endif
+    } else {
+        body_length = length;
+        factor_knl_ksl_body = factor_knl_ksl;
+    }
 
     if (body_active){
 

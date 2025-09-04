@@ -24,10 +24,10 @@ void MultFringe_track_single_particle(
 ) {
     if (k_order == -1 && kl_order == -1) return;
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part, XS_FLAG_BACKTRACK)) {
         LocalParticle_kill_particle(part, -32);
         return;
-    #endif
+    }
 
     const double beta0 = LocalParticle_get_beta0(part);
     const double q = LocalParticle_get_q0(part) * LocalParticle_get_charge_ratio(part);

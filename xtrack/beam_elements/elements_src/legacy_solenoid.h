@@ -24,10 +24,10 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     int64_t radiation_flag = SolenoidData_get_radiation_flag(el);
     double factor_knl_ksl = 1;
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         length = -length;
         factor_knl_ksl = -1;
-    #endif
+    }
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         double dp_record_entry = 0.;

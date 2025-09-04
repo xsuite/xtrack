@@ -326,7 +326,7 @@ class OrbitCorrectionSinglePlane:
                             element_name=self.start)
         else:
             twinit = None
-        tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
+        tw_orbit = self.line.twiss(only_orbit=True, start=self.start, end=self.end,
                                      init=twinit, reverse=False, delta0=delta0)
         return tw_orbit
 

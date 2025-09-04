@@ -14,9 +14,9 @@ void SimpleThinQuadrupole_track_local_particle(SimpleThinQuadrupoleData el, Loca
 
     double knl1 = SimpleThinQuadrupoleData_get_knl(el, 1);
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         knl1 = -knl1;
-    #endif
+    }
 
     START_PER_PARTICLE_BLOCK(part0, part);
         double const x = LocalParticle_get_x(part);

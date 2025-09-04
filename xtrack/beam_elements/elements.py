@@ -140,13 +140,13 @@ class _HasModelRF:
     """
 
     @property
-    def rf_model(self):
-        return _INDEX_TO_MODEL_RF[self._rf_model]
+    def model(self):
+        return _INDEX_TO_MODEL_RF[self._model]
 
-    @rf_model.setter
-    def rf_model(self, value):
+    @model.setter
+    def model(self, value):
         try:
-            self._rf_model = _MODEL_TO_INDEX_RF[value]
+            self._model = _MODEL_TO_INDEX_RF[value]
         except KeyError:
             raise ValueError(f'Invalid RF model: {value}')
 

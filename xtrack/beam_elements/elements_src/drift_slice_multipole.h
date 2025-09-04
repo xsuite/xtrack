@@ -21,12 +21,13 @@
     ) {
 
         double weight = DriftSliceMultipoleData_get_weight(el);
-
-        #ifndef XSUITE_BACKTRACK
-            double const length = weight * DriftSliceMultipoleData_get__parent_length(el); // m
-        #else
-            double const length = -weight * DriftSliceMultipoleData_get__parent_length(el); // m
-        #endif
+        double length;
+        if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
+            length = -weight * DriftSliceMultipoleData_get__parent_length(el); // m
+        }
+        else {
+            length = weight * DriftSliceMultipoleData_get__parent_length(el); // m
+        }
 
         START_PER_PARTICLE_BLOCK(part0, part);
             Drift_single_particle(part, length);

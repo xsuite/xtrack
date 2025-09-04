@@ -30,11 +30,10 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
             at_turn = LocalParticle_get_at_element(part);
         }
         else{
-            #ifdef XSUITE_BACKTRACK
-            return; // do not log (only ebe monitor supported for now in backtrack)
-            #else
+            if (LocalParticle_check_track_flag(part, XS_FLAG_BACKTRACK)) {
+                return; // do not log (only ebe monitor supported for now in backtrack)
+            }
             at_turn = LocalParticle_get_at_turn(part);
-            #endif
         }
         if (n_repetitions == 1){
             if (at_turn>=start_at_turn && at_turn<stop_at_turn){

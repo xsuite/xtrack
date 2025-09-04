@@ -61,17 +61,15 @@ from .general import _print
 
 log = logging.getLogger(__name__)
 
-
-_ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
-                                 xt.Octupole, xt.Cavity, xt.Multipole,
-                                 xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
-                                 xt.Marker, xt.Replica, xt.XYShift, xt.XRotation,
-                                 xt.YRotation, xt.SRotation, xt.ZetaShift,
-                                 xt.LimitRacetrack, xt.LimitRectEllipse,
-                                 xt.LimitRect, xt.LimitEllipse,
-                                 xt.LimitPolygon, xt.RFMultipole, xt.RBend,
-                                 xt.Magnet, xt.CrabCavity]
-
+_ALLOWED_ELEMENT_TYPES_IN_NEW   = [
+    xt.Drift, xt.DriftExact,
+    xt.Magnet, xt.Replica, xt.Marker,
+    xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole,
+    xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
+    xt.Cavity, xt.RFMultipole, xt.CrabCavity, xt.ReferenceEnergyIncrease,
+    xt.XYShift, xt.XRotation, xt.YRotation, xt.SRotation, xt.ZetaShift,
+    xt.LimitRacetrack, xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
+    xt.LimitPolygon]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {
     cc.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
