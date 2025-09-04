@@ -515,6 +515,8 @@ def twiss_line(line, particle_ref=None, method=None,
         if line._radiation_model == 'quantum':
             raise ValueError(
                 'twiss cannot be called when the radiation model is `quantum`')
+        if method == '4d':
+            raise RuntimeError('4d twiss cannot be called when radiation is present')
         radiation_method = 'kick_as_co'
 
     if radiation_method is not None and radiation_method != 'full':
