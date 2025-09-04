@@ -980,15 +980,18 @@ class Environment:
     def __setitem__(self, key, value):
 
         if isinstance(value, xt.Line):
-            raise ValueError('Cannot set a Line, please use Envirnoment.new_line')
-            # Would need to make sure they refer to the same environment
-
-        if np.isscalar(value) or xd.refs.is_ref(value):
+            assert value.env is self, 'Line must be in the same environment'
+            if key in self.lines:
+                raise ValueError(f'There is already a line with name {key}')
+            if key in self.element_dict:
+                raise ValueError(f'There is already an element with name {key}')
+            self.lines[key] = value
+        elif np.isscalar(value) or xd.refs.is_ref(value):
             if key in self.element_dict:
                 raise ValueError(f'There is already an element with name {key}')
             self.vars[key] = value
         else:
-            raise ValueError('Only scalars or references are allowed')
+            raise ValueError('Only lines, scalars or references are allowed')
 
 
     def set(self, name, *args, **kwargs):

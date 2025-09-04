@@ -877,14 +877,16 @@ class Line:
             elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
                                         for nn, ee in self.element_dict.items()}
             element_names = [nn for nn in self.element_names]
-            out = self.__class__(elements=elements, element_names=element_names)
 
-            if self._var_management is not None:
-                # reinit env and var management
-                out.env = None
-                out._var_management = None
-                out._init_var_management(dct=self._var_management_to_dict())
-                out._env_if_needed()
+            var_management_dict = None
+            if hasattr(self.env, '_var_management'):
+                var_management_dict = self.env._var_management_to_dict()
+
+            env = xt.Environment(element_dict=elements,
+                                  _var_management_dct=var_management_dict)
+
+            out = self.__class__(elements=elements, element_names=element_names,
+                                 env=env)
 
         if self.particle_ref is not None:
             out.particle_ref = self.particle_ref.copy(
@@ -4381,8 +4383,9 @@ class Line:
     def _xdeps_manager(self):
         return self.env._xdeps_manager
 
-    def _xdeps_eval(self, expr):
-        return self.env._xdeps_eval(expr)
+    @property
+    def _xdeps_eval(self):
+        return self.env._xdeps_eval
 
     @property
     def vv(self):  # Shorter alias
