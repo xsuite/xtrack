@@ -1293,11 +1293,12 @@ class EnvRef:
         self.env = env
 
     def __getitem__(self, name):
-        if hasattr(self.env, 'lines') and name in self.env.lines:
-            return self.env.lines[name].ref
-        elif name in self.env.particles:
-            return self.env._var_management['pref'][name]
-        elif name in self.env.element_dict:
+        if hasattr(self.env, 'lines'): # is environment and not line
+            if name in self.env.lines:
+                return self.env.lines[name].ref
+            elif name in self.env.particles:
+                return self.env._var_management['pref'][name]
+        if name in self.env.element_dict:
             return self.env.element_refs[name]
         elif name in self.env.vars:
             return self.env.vars[name]
