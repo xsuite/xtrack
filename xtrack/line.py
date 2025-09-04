@@ -4209,111 +4209,7 @@ class Line:
 
         return out
 
-    def set(self, name, *args, **kwargs):
-        '''
-        Set the values or expressions of variables or element properties.
 
-        Parameters
-        ----------
-        name : str
-            Name(s) of the variable or element.
-        value: float or str
-            Value or expression of the variable to set. Can be provided only
-            if the name is associated to a variable.
-        **kwargs, float or str
-            Attributes to set. Can be provided only if the name is associated
-            to an element.
-
-        Examples
-        --------
-        >>> line.set('a', 0.1)
-        >>> line.set('k1', '3*a')
-        >>> line.set('quad', k1=0.1, k2='3*a')
-        >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
-        >>> line.set(['c', 'd'], 0.1)
-        >>> line.set(['e', 'f'], '3*a')
-
-        '''
-        if hasattr(name, 'env_name'):
-            name = name.env_name
-        elif hasattr(name, 'name'):
-            name = name.name
-
-        if isinstance(name, Iterable) and not isinstance(name, str):
-            for nn in name:
-                self.set(nn, *args, **kwargs)
-            return
-
-        _eval = self._xdeps_eval.eval
-
-        if hasattr(self, 'lines') and name in self.lines:
-            raise ValueError('Cannot set a line')
-
-        if name in self.element_dict:
-            if len(args) > 0:
-                raise ValueError(f'Only kwargs are allowed when setting element attributes')
-
-            extra = kwargs.pop('extra', None)
-
-            ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
-                type(self.element_dict[name]), kwargs, _eval)
-            xt.environment._set_kwargs(
-                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                element_dict=self.element_dict, element_refs=self.element_refs)
-            if extra is not None:
-                assert isinstance(extra, dict), (
-                    'Description must be a dictionary')
-                if (not hasattr(self.element_dict[name], 'extra')
-                    or not isinstance(self.element_dict[name].extra, dict)):
-                    self.element_dict[name].extra = {}
-                self.element_dict[name].extra.update(extra)
-        else:
-            if len(kwargs) > 0:
-                raise ValueError(f'Only a single value is allowed when setting variable')
-            if len(args) != 1:
-                raise ValueError(f'A value must be provided when setting a variable')
-            value = args[0]
-            if 'extra' in kwargs and kwargs['extra'] is not None:
-                raise ValueError(f'Extra is only allowed for elements')
-            if isinstance(value, str):
-                self.vars[name] = _eval(value)
-            else:
-                self.vars[name] = value
-
-    def get(self, key):
-        '''
-        Get an element or the value of a variable.
-
-        Parameters
-        ----------
-        key : str
-            Name of the element or variable.
-
-        Returns
-        -------
-        element : Element or float
-            Element or value of the variable.
-
-        '''
-
-        if key in self.element_dict:
-            return self.element_dict[key]
-        elif key in self.vars:
-            return self._xdeps_vref._owner[key]
-        else:
-            raise KeyError(f'Element or variable {key} not found')
-
-    def info(self, key, limit=30):
-        """
-            Get information about an element or a variable.
-        """
-
-        if key in self.element_dict:
-            return self[key].get_info()
-        elif key in self.vars:
-            return self.vars.info(key, limit=limit)
-        else:
-            raise KeyError(f'Element or variable {key} not found')
 
 #    def get_value(self, key):
 #        if key in self.element_dict:
@@ -4322,10 +4218,6 @@ class Line:
 #            return self.vars.get_value(key)
 #        else:
 #            raise KeyError(f'Element or variable {key} not found')
-
-    @property
-    def ref_manager(self):
-        return self._xdeps_manager
 
     def eval(self, expr):
         '''
@@ -4344,38 +4236,8 @@ class Line:
 
         return self.vars.eval(expr)
 
-    def new_expr(self, expr):
-        '''
-        Create a new expression
 
-        Parameters
-        ----------
-        expr : str
-            Expression to create.
 
-        Returns
-        -------
-        expr : Expression
-            New expression.
-        '''
-        return self.vars.new_expr(expr)
-
-    def get_expr(self, var):
-        '''
-        Get expression associated to a variable
-
-        Parameters
-        ----------
-        var: str
-            Name of the variable
-
-        Returns
-        -------
-        expr : Expression
-            Expression associated to the variable
-        '''
-
-        return self.vars.get_expr(var)
 
     def _env_if_needed(self):
         if not hasattr(self, 'env') or self.env is None:
@@ -4399,16 +4261,6 @@ class Line:
     def items(self):
         for name in self.element_names:
             yield name, self.element_dict[name]
-
-    def _var_management_to_dict(self):
-        out = {}
-        out['_var_management_data'] = deepcopy(self._var_management['data'])
-        for kk in out['_var_management_data'].keys():
-            if hasattr(out['_var_management_data'][kk], 'to_dict'):
-                out['_var_management_data'][kk] = (
-                    out['_var_management_data'][kk].to_dict())
-        out['_var_manager'] = self._var_management['manager'].dump()
-        return out
 
     def _has_valid_tracker(self):
 
@@ -4471,7 +4323,7 @@ class Line:
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline.vars
         else:
-            return self._line_vars
+            return self.env.vars
 
     @property
     def varval(self):
@@ -4481,43 +4333,32 @@ class Line:
     def vv(self): # Shorter alias
         return self.vars.val
 
+    def set(self, name, *args, **kwargs):
+        self.env.set(name, *args, **kwargs)
+
+    def get(self, key):
+        return self.env.get(key)
+
+    def info(self, key, limit=30):
+        return self.env.info(key, limit=limit)
+
+    def get_expr(self, var):
+        return self.env.get_expr(var)
+
+    def new_expr(self, var):
+        return self.env.new_expr(var)
+
+    @property
+    def ref_manager(self):
+        return self.env.ref_manager
+
     @property
     def functions(self):
         return self._xdeps_fref
 
     @property
-    def _xdeps_vref(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_vref
-        if self._var_management is not None:
-            return self._var_management['vref']
-
-    @property
-    def _xdeps_fref(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_fref
-        if self._var_management is not None:
-            return self._var_management['fref']
-
-    @property
-    def _xdeps_manager(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_manager
-        if self._var_management is not None:
-            return self._var_management['manager']
-
-    @property
-    def _xdeps_eval(self):
-        try:
-            eva_obj = self._xdeps_eval_obj
-        except AttributeError:
-            eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
-                                            functions=self._xdeps_fref,
-                                            elements=self.element_dict,
-                                            get='attr')
-            self._xdeps_eval_obj = eva_obj
-
-        return eva_obj
+    def element_dict(self):
+        return self.env.element_dict
 
     @property
     def element_refs(self):
@@ -4526,18 +4367,26 @@ class Line:
             if var_sharing is not None:
                 return var_sharing._eref[self._name_in_multiline]
         if self._var_management is not None:
-            return self._var_management['lref']
+            return self.env.element_refs
 
     @property
-    def element_dict(self):
-        return self._element_dict
+    def _xdeps_vref(self):
+        return self.env._xdeps_vref
 
-    @element_dict.setter
-    def element_dict(self, value):
-        if self._element_dict is None:
-            self._element_dict = {}
-        self._element_dict.clear()
-        self._element_dict.update(value)
+    @property
+    def _xdeps_fref(self):
+        return self.env._xdeps_fref
+
+    @property
+    def _xdeps_manager(self):
+        return self.env._xdeps_manager
+
+    def _xdeps_eval(self, expr):
+        return self.env._xdeps_eval(expr)
+
+    @property
+    def vv(self):  # Shorter alias
+        return self.vars.val
 
     @property
     def element_names(self):
@@ -4742,12 +4591,11 @@ class Line:
                 evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
             return self.vv[key]
-        elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
-            return self.lines[key]
         elif "::" in key and (env_name := key.split("::")[0]) in self.element_dict:
             return self[env_name]
         else:
             raise KeyError(f'Name {key} not found')
+
 
     def __setitem__(self, key, value):
 
