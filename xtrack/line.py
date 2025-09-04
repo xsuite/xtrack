@@ -101,10 +101,9 @@ class Line:
     corresponding beam element object.
     """
 
-    _element_dict = None
     config = None
 
-    def __init__(self, elements=(), element_names=None, particle_ref=None,
+    def __init__(self, elements=None, element_names=None, particle_ref=None,
                  energy_program=None, env=None):
         """
         Parameters
@@ -157,31 +156,33 @@ class Line:
         self._extra_config['corrector_limits_x'] = None
         self._extra_config['corrector_limits_y'] = None
 
-        if env is None:
-            env = xt.Environment()
+        if elements is None and env is None:
+            elements = []
+
+        if env is not None:
+            assert elements is None, "If env is provided, elements must be None"
+        else:
+            if isinstance(elements, dict):
+                element_dict = elements
+                if element_names is None:
+                    element_names = list(element_dict.keys())
+            else:
+                if element_names is None:
+                    element_names = [f"e{ii}" for ii in range(len(elements))]
+
+                assert len(element_names) == len(elements), (
+                    "`elements` and `element_names` should have the same length"
+                )
+                element_dict = dict(zip(element_names, elements))
+                env = xt.Environment(element_dict=element_dict)
 
         self.env = env
-        self._element_dict = env.element_dict # Avoid copying (the property setter would do that)
-        self._var_management = env._var_management
+
         self.env._lines_weakrefs.add(self)
 
         if particle_ref is None:
-            particle_ref = env.particle_ref
+            particle_ref = self.env.particle_ref
 
-        if isinstance(elements, dict):
-            element_dict = elements
-            if element_names is None:
-                element_names = list(element_dict.keys())
-        else:
-            if element_names is None:
-                element_names = [f"e{ii}" for ii in range(len(elements))]
-
-            assert len(element_names) == len(elements), (
-                "`elements` and `element_names` should have the same length"
-            )
-            element_dict = dict(zip(element_names, elements))
-
-        self.element_dict.update(element_dict)
         self.element_names = list(element_names).copy()
 
         self.particle_ref = particle_ref
@@ -229,41 +230,23 @@ class Line:
         # and env. In that case the element_dict, vars and xdeps stuff come through
         # the environment and should not be in the dictionary
 
-        class_dict = mk_class_namespace(classes)
-
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
-        if env is not None:
-            elements = env.element_dict
-        elif isinstance(dct['elements'], dict):
-            elements = {}
-            for ii, (kk, ee) in enumerate(
-                    progress(dct['elements'].items(), desc='Loading line from dict')):
-                elements[kk] = _deserialize_element(ee, class_dict, _buffer)
-        elif isinstance(dct['elements'], list):
-            elements = []
-            for ii, ee in enumerate(
-                    progress(dct['elements'], desc='Loading line from dict')):
-                elements.append(_deserialize_element(ee, class_dict, _buffer))
+        if '_var_management' in dct.keys():
+            var_management_dict = dct
         else:
-            raise ValueError('Field `elements` must be a dict or a list')
+            var_management_dict = None
+
+        env = env or xt.Environment(
+            element_dict=dct['elements'],
+            _var_management_dct=var_management_dict)
 
         element_names = dct.get('element_names', [])
-        self = cls(elements=elements, element_names=element_names)
+        self = cls(env=env, element_names=element_names)
 
         if 'particle_ref' in dct.keys():
             self.particle_ref = xt.Particles.from_dict(dct['particle_ref'],
                                     _context=_buffer.context)
-
-        if env is not None:
-            self.env = env
-            self._var_management = env._var_management
-            self._element_dict = env.element_dict # __init__ makes a copy of the dict
-        elif '_var_manager' in dct.keys():
-            # reinit env and var management
-            self.env = None
-            self._var_management = None
-            self._init_var_management(dct=dct)
 
         if 'config' in dct.keys():
             self.config.clear()
@@ -885,7 +868,7 @@ class Line:
             env = xt.Environment(element_dict=elements,
                                   _var_management_dct=var_management_dict)
 
-            out = self.__class__(elements=elements, element_names=element_names,
+            out = self.__class__(element_names=element_names,
                                  env=env)
 
         if self.particle_ref is not None:
@@ -4368,7 +4351,7 @@ class Line:
             var_sharing = self._in_multiline._var_sharing
             if var_sharing is not None:
                 return var_sharing._eref[self._name_in_multiline]
-        if self._var_management is not None:
+        if self.env._var_management is not None:
             return self.env.element_refs
 
     @property
@@ -4621,14 +4604,19 @@ class Line:
             out = Line.__new__(Line)
             out.__dict__.update(self.__dict__)
 
-            # Change the element dict (beware of the element_dict property)
-            out._element_dict = self.tracker._element_dict_non_collective
-
             # Shallow copy of the tracker
             out.tracker = self.tracker.__new__(self.tracker.__class__)
             out.tracker.__dict__.update(self.tracker.__dict__)
             out.tracker.iscollective = False
             out.tracker.line = out
+
+            # Shallow copy of the environment
+            out.env = self.env.__new__(self.env.__class__)
+            out.env.__dict__.update(self.env.__dict__)
+
+            # Change the element dict (beware of the element_dict property)
+            out.env._element_dict = self.tracker._element_dict_non_collective
+            out.env._lines_weakrefs.add(out)
 
             return out
 

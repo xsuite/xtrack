@@ -362,7 +362,7 @@ class Environment:
                 ])
         '''
 
-        out = xt.Line(env=self)
+        out = xt.Line(env=self, element_names=[])
 
         if components is None:
             components = []

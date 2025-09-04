@@ -620,19 +620,19 @@ def test_assemble_ring():
     assert 'cell3_copy' in env.lines
     assert cell3_select.particle_ref is not None
     assert env.lines['cell3_copy'] is cell3_select
-    assert cell3_select._element_dict is env.element_dict
+    assert cell3_select.element_dict is env.element_dict
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
     assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
     assert (np.array(cell3_select.element_names) == np.array(
         tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
 
-    # Check that they share the _element_dict
-    assert cell._element_dict is env.element_dict
-    assert halfcell._element_dict is env.element_dict
-    assert halfcell_ss._element_dict is env.element_dict
-    assert cell_ss._element_dict is env.element_dict
-    assert insertion._element_dict is env.element_dict
-    assert ring2._element_dict is env.element_dict
+    # Check that they share the element_dict
+    assert cell.element_dict is env.element_dict
+    assert halfcell.element_dict is env.element_dict
+    assert halfcell_ss.element_dict is env.element_dict
+    assert cell_ss.element_dict is env.element_dict
+    assert insertion.element_dict is env.element_dict
+    assert ring2.element_dict is env.element_dict
 
     cell3_select.twiss4d()
 
@@ -1039,19 +1039,19 @@ def test_assemble_ring_builders():
                                 name='cell3_copy')
     assert 'cell3_copy' in env.lines
     assert env.lines['cell3_copy'] is cell3_select
-    assert cell3_select._element_dict is env.element_dict
+    assert cell3_select.element_dict is env.element_dict
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
     assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
     assert (np.array(cell3_select.element_names) == np.array(
         tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
 
-    # Check that they share the _element_dict
-    assert cell._element_dict is env.element_dict
-    assert halfcell._element_dict is env.element_dict
-    assert halfcell_ss._element_dict is env.element_dict
-    assert cell_ss._element_dict is env.element_dict
-    assert insertion._element_dict is env.element_dict
-    assert ring2._element_dict is env.element_dict
+    # Check that they share the element_dict
+    assert cell.element_dict is env.element_dict
+    assert halfcell.element_dict is env.element_dict
+    assert halfcell_ss.element_dict is env.element_dict
+    assert cell_ss.element_dict is env.element_dict
+    assert insertion.element_dict is env.element_dict
+    assert ring2.element_dict is env.element_dict
 
     cell3_select.twiss4d()
 
@@ -1393,13 +1393,13 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(tw_ring2.betx[0], tw_cell.betx[0], atol=0, rtol=5e-4)
     xo.assert_allclose(tw_ring2.bety[0], tw_cell.bety[0], atol=0, rtol=5e-4)
 
-    # Check that they share the _element_dict
-    assert cell._element_dict is env.element_dict
-    assert halfcell._element_dict is env.element_dict
-    assert halfcell_ss._element_dict is env.element_dict
-    assert cell_ss._element_dict is env.element_dict
-    assert insertion._element_dict is env.element_dict
-    assert ring2._element_dict is env.element_dict
+    # Check that they share the element_dict
+    assert cell.element_dict is env.element_dict
+    assert halfcell.element_dict is env.element_dict
+    assert halfcell_ss.element_dict is env.element_dict
+    assert cell_ss.element_dict is env.element_dict
+    assert insertion.element_dict is env.element_dict
+    assert ring2.element_dict is env.element_dict
 
     xo.assert_allclose(tw_ring2['betx', 'ip::0'], tw_half_insertion['betx', 'ip'], atol=0, rtol=5e-4)
     xo.assert_allclose(tw_ring2['bety', 'ip::0'], tw_half_insertion['bety', 'ip'], atol=0, rtol=5e-4)
