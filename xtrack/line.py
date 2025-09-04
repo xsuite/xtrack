@@ -174,7 +174,7 @@ class Line:
                     "`elements` and `element_names` should have the same length"
                 )
                 element_dict = dict(zip(element_names, elements))
-                env = xt.Environment(element_dict=element_dict)
+            env = xt.Environment(element_dict=element_dict)
 
         self.env = env
 
