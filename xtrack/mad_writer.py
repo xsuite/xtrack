@@ -497,8 +497,8 @@ xsuite_to_mad_converters = {
 def element_to_mad_str(
     name,
     line,
-    mad_type,
-    substituted_vars,
+    mad_type=MadType.MADX,
+    substituted_vars=None,
 ):
     """
     Generic converter for elements to MADX/MAD-NG.
@@ -560,7 +560,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
 
 
             el = line.element_dict[nn]
-            el_str = xsuite_to_mad_converters[el.__class__](nn, line, mad_type=MadType.MADX)
+            el_str = element_to_mad_str(nn, line, mad_type=MadType.MADX)
             if nn + '_tilt_entry' in line.element_dict:
                 el_str += ", " + mad_assignment('tilt',
                             _ge(line.element_refs[nn + '_tilt_entry'].angle) / 180. * np.pi,
