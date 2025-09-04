@@ -604,7 +604,7 @@ class Line:
 
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
-        if self._var_management is not None and include_var_management:
+        if self.env._var_management is not None and include_var_management:
             if hasattr(self, '_in_multiline') and self._in_multiline is not None:
                 raise ValueError('The line is part ot a MultiLine object. '
                     'To save without expressions please use '
@@ -612,7 +612,7 @@ class Line:
                     'To save also the deferred expressions please save the '
                     'entire multiline.\n ')
 
-            out.update(self._var_management_to_dict())
+            out.update(self.env._var_management_to_dict())
 
         out["metadata"] = deepcopy(self.metadata)
 
