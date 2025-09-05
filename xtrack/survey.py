@@ -169,7 +169,7 @@ class SurveyTable(Table):
 
         new_cols = {}
 
-        element_properties = ['name', 'element_type', 'drift_length',
+        element_properties = ['name', 'element_type', 'isthick', 'drift_length',
                                 'length', 'angle', 'rot_s_rad',
                                 'ref_shift_x', 'ref_shift_y',
                                 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad']
@@ -338,6 +338,7 @@ def survey_from_line(
     # element properties
     out_columns["name"]             = tt.name
     out_columns["element_type"]     = tt.element_type
+    out_columns['isthick']          = tt.isthick
     out_columns['drift_length']     = drift_length
     out_columns['length']           = tt.length
     out_columns['angle']            = angle
