@@ -1019,6 +1019,12 @@ class Environment:
             return xd.madxutils.View(
                 self.element_dict[key], self.element_refs[key],
                 evaluator=self._xdeps_eval.eval)
+        elif key in self.particles:
+            if self._xdeps_pref is None:
+                return self.particles[key]
+            return xd.madxutils.View(
+                self.particles[key], self._xdeps_pref[key],
+                evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
             return self.vv[key]
         elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
