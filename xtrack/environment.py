@@ -667,7 +667,7 @@ class Environment:
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)
         for nn in dct['lines'].keys():
-            ll = xt.Line.from_dict(dct_lines['lines'][nn], env=out, verbose=False)
+            ll = xt.Line.from_dict(dct_lines['lines'][nn], _env=out, verbose=False)
             out[nn] = ll
 
         if '_bb_config' in dct:

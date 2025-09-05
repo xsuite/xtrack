@@ -200,7 +200,7 @@ class Line:
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
-                  verbose=True):
+                  verbose=True, _env=None):
 
         """
         Create a Line object from a dictionary.
@@ -237,12 +237,18 @@ class Line:
         else:
             var_management_dict = None
 
-        elements = xt.environment._deserialize_elements(dct=dct, classes=classes,
+        if _env is not None:
+            assert 'elements' not in dct.keys(), (
+                'When _env is provided, elements should not be in the dictionary')
+            assert '_var_management' not in dct.keys(), (
+                'When _env is provided, _var_management should not be in the dictionary')
+            env = _env
+        else:
+            elements = xt.environment._deserialize_elements(dct=dct, classes=classes,
                                              _buffer=_buffer, _context=_context)
-
-        env = xt.Environment(
-            element_dict=elements,
-            _var_management_dct=var_management_dict)
+            env = xt.Environment(
+                element_dict=elements,
+                _var_management_dct=var_management_dict)
 
         element_names = dct.get('element_names', [])
         self = cls(env=env, element_names=element_names)
