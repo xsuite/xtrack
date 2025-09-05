@@ -14,6 +14,7 @@ from copy import deepcopy
 from pprint import pformat
 from typing import List, Literal, Optional, Dict
 from pathlib import Path
+from .functions import Functions
 
 import numpy as np
 from scipy.constants import c as clight
