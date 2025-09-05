@@ -232,7 +232,7 @@ class Line:
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
-        if '_var_management' in dct.keys():
+        if '_var_manager' in dct.keys():
             var_management_dict = dct
         else:
             var_management_dict = None
@@ -240,8 +240,8 @@ class Line:
         if _env is not None:
             assert 'elements' not in dct.keys(), (
                 'When _env is provided, elements should not be in the dictionary')
-            assert '_var_management' not in dct.keys(), (
-                'When _env is provided, _var_management should not be in the dictionary')
+            assert '_var_manager' not in dct.keys(), (
+                'When _env is provided, _var_manager should not be in the dictionary')
             env = _env
         else:
             elements = xt.environment._deserialize_elements(dct=dct, classes=classes,
