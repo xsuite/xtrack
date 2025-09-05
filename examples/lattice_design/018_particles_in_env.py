@@ -1,6 +1,21 @@
 import xtrack as xt
+import xobjects as xo
 
 env = xt.Environment()
 env['a'] = 4.
 
 env.new_particle('my_particle', "Particles", p0c=['1e12 * a'])
+assert 'my_particle' in env.particles
+xo.assert_allclose(env['my_particle'].p0c, 4e12, rtol=0, atol=1e-9)
+env['a'] = 5.
+xo.assert_allclose(env['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+
+env2 = xt.Environment.from_dict(env.to_dict())
+assert 'my_particle' in env2.particles
+xo.assert_allclose(env2['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+env2['a'] = 6.
+xo.assert_allclose(env2['my_particle'].p0c, 6e12, rtol=0, atol=1e-9)
+
+ll = env.new_line(name='my_line', components=[])
+
+ll2 = xt.Line.from_dict(ll.to_dict())

@@ -691,10 +691,13 @@ class Environment:
         out['xsuite_data_type'] = 'Environment'
 
         out['lines'] = {}
-
         for nn, ll in self.lines.items():
             out['lines'][nn] = ll.to_dict(include_element_dict=False,
                                         include_var_management=False)
+
+        out['particles'] = {}
+        for nn, pp in self.particles.items():
+            out['particles'][nn] = pp.to_dict()
 
         return out
 
@@ -736,6 +739,10 @@ class Environment:
 
         if "metadata" in dct:
             out.metadata = dct["metadata"]
+
+        if 'particles' in dct:
+            for nn, ppd in dct['particles'].items():
+               out._particles[nn] = xt.Particles.from_dict(ppd)
 
         return out
 
