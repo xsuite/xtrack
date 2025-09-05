@@ -320,6 +320,58 @@ class Environment:
 
         return name
 
+    def new_particle(self, name, parent, force=False, **kwargs):
+
+        '''
+        Create a new particle type.
+
+        Parameters
+        ----------
+        name : str
+            Name of the new particle type
+        parent : str or class
+            Parent class or name of the parent particle type
+
+
+        '''
+
+        if name in self.particles and not force:
+            raise ValueError(f'Particle `{name}` already exists')
+
+        _eval = self._xdeps_eval.eval
+
+        needs_instantiation = True
+        prototype = None
+        if isinstance(parent, str):
+            if parent in self.particles:
+                # Clone an existing particle
+                raise NotImplementedError # To be sorted out
+                prototype = parent
+                self.particles[name] = xt.Replica(parent_name=parent)
+                xt.Line.replace_replica(self, name)
+
+                parent_element = self.element_dict[name]
+                parent = type(parent_element)
+                needs_instantiation = False
+            elif parent == 'Particles':
+                parent = xt.Particles
+                needs_instantiation = True
+            else:
+                raise ValueError(f'Element type {parent} not found')
+
+        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
+
+        if needs_instantiation: # Parent is a class and not another particle
+            self.particles[name] = parent(**value_kwargs)
+
+        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                    element_dict=self._particles, element_refs=self._xdeps_pref)
+
+        self.particles[name].prototype = prototype
+
+        return name
+
+
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
                  length=None, s_tol=1e-6):
 
@@ -953,7 +1005,7 @@ class Environment:
             return self._var_management['lref']
 
     @property
-    def particles_ref(self):
+    def _xdeps_pref(self):
         if self._var_management is not None:
             return self._var_management['pref']
 
