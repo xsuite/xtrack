@@ -132,7 +132,8 @@ class Environment:
         self.particle_ref = particle_ref
 
         self._var_management = _make_var_management(
-            element_dict=self.element_dict,
+            element_dict=self._element_dict,
+            particles=self._particles,
             dct=_var_management_dct)
         self._line_vars = xt.line.LineVars(self)
 
@@ -746,6 +747,10 @@ class Environment:
         '''
         return xt.multiline_legacy._multiline_from_madx(cls, filename=filename, madx=madx, stdout=stdout,
                              return_lines=return_lines, **kwargs)
+
+    @property
+    def particles(self):
+        return self._particles
 
     @property
     def elements(self):
