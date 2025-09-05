@@ -19,3 +19,7 @@ xo.assert_allclose(env2['my_particle'].p0c, 6e12, rtol=0, atol=1e-9)
 ll = env.new_line(name='my_line', components=[])
 
 ll2 = xt.Line.from_dict(ll.to_dict())
+assert 'my_particle' in ll2.env.particles
+xo.assert_allclose(ll2.env['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+ll2['a'] = 7.
+xo.assert_allclose(ll2.env['my_particle'].p0c, 7e12, rtol=0, atol=1e-9)

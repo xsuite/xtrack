@@ -259,6 +259,10 @@ class Line:
                 element_dict=elements,
                 _var_management_dct=var_management_dict)
 
+            if 'env_particles' in dct:
+                for nn, ppd in dct['env_particles'].items():
+                   env._particles[nn] = xt.Particles.from_dict(ppd, _context=_context)
+
         element_names = dct.get('element_names', [])
         self = cls(env=env, element_names=element_names)
 
@@ -614,6 +618,8 @@ class Line:
                     'entire multiline.\n ')
 
             out.update(self.env._var_management_to_dict())
+
+        out['env_particles'] = {k: pp.to_dict() for k, pp in self.env._particles.items()}
 
         out["metadata"] = deepcopy(self.metadata)
 
