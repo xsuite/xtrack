@@ -647,7 +647,7 @@ class MadLoader:
     @property
     def math(self):
         if issubclass(self.Builder, ElementBuilderWithExpr):
-            return self.line._var_management['fref']
+            return self.line._xdeps_fref
 
         return np
 
