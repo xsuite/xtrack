@@ -425,22 +425,18 @@ class MadLoader:
     @staticmethod
     def init_line_expressions(line, mad, replace_in_expr):  # to be added to Line....
         """Enable expressions"""
-        if line._var_management is None:
-            line._init_var_management()
         line.vars.default_to_zero = True
 
         from xdeps.madxutils import MadxEval
 
-        _var_values = line._var_management["data"]["var_values"]
+        _var_values = line.env._var_management["data"]["var_values"]
         for name, par in mad.globals.cmdpar.items():
             if replace_in_expr is not None:
                 for k, v in replace_in_expr.items():
                     name = name.replace(k, v)
             _var_values[name] = par.value
-        _ref_manager = line._var_management["manager"]
-        _vref = line._var_management["vref"]
-        _fref = line._var_management["fref"]
-        _lref = line._var_management["lref"]
+        _vref = line._xdeps_vref
+        _fref = line._xdeps_fref
 
         madeval_no_repl = MadxEval(_vref, _fref, mad.elements).eval
 
