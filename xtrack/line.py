@@ -244,6 +244,15 @@ class Line:
                 'When _env is provided, _var_manager should not be in the dictionary')
             env = _env
         else:
+
+            if isinstance(dct['elements'], list):
+                # Ancient format
+                assert 'element_names' in dct
+                assert len(dct['elements']) == len(dct['element_names'])
+                ele_list = dct['elements']
+                dct['elements'] = {
+                    nn: ee for nn, ee in zip(dct['element_names'], ele_list)}
+
             elements = xt.environment._deserialize_elements(dct=dct, classes=classes,
                                              _buffer=_buffer, _context=_context)
             env = xt.Environment(
