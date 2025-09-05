@@ -5984,3 +5984,28 @@ def _rot_s_from_attr(attr):
         parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
 
     return rot_s_rad
+
+class LineParticleRef:
+
+    def __init__(self, line):
+        self.line = line
+
+    @property
+    def _resolved(self):
+        _particle_ref = self.line._particle_ref
+        if isinstance(_particle_ref, str):
+            return self.env.particles[_particle_ref]
+        else:
+            return _particle_ref
+
+    def __getattr__(self, key):
+        return getattr(self._resolved, key)
+
+    def __setattr__(self, key, value):
+        if key == 'line':
+            object.__setattr__(self, key, value)
+        else:
+            setattr(self._resolved, key, value)
+
+    def copy(self, **kwargs):
+        return self._resolved.copy(**kwargs)
