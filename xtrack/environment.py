@@ -1141,6 +1141,8 @@ class Environment:
 
         if key in self.element_dict:
             return self.element_dict[key]
+        elif key in self.particles:
+            return self.particles[key]
         elif key in self.vars:
             return self._xdeps_vref._owner[key]
         else:
