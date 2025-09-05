@@ -3288,7 +3288,7 @@ class Line:
         self.tracker.track_kernel.clear() # Remove all kernels
 
         if verbose: _print("Disable xdeps expressions")
-        self._var_management = None # Disable expressions
+        self.env._var_management = None # Disable expressions for the entire env
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             self._in_multiline._var_sharing = None
 
@@ -4059,7 +4059,6 @@ class Line:
         return self.mirror(inplace=False)
 
     def __rmul__(self, other):
-        self._env_if_needed()
         assert isinstance(other, int), 'Only integer multiplication is supported'
         assert other > 0, 'Only positive integer multiplication is supported'
         ele_names = list(self.element_names)
@@ -4068,7 +4067,6 @@ class Line:
         return out
 
     def __add__(self, other):
-        self._env_if_needed
         #assert isinstance(other, Line), 'Only Line can be added to Line'
         assert other.__class__.__name__=="Line", 'Only Line can be added to Line'
         assert other.env is self.env, 'Lines must be in the same environment'
@@ -4080,8 +4078,6 @@ class Line:
         return self + (-other)
 
     def replicate(self, name, mirror=False):
-
-        self._env_if_needed()
 
         new_element_names = []
         for nn in self.element_names:
@@ -4158,7 +4154,6 @@ class Line:
 
     def replace_all_repeated_elements(self, separator='.', mode='clone'):
 
-        self._env_if_needed()
         env = self.env
 
         self.discard_tracker()
@@ -4187,8 +4182,6 @@ class Line:
         tt = self.get_table().rows[start:end]
         if tt.name[-1] == '_end_point':
             tt = tt.rows[:-1]
-
-        self._env_if_needed()
 
         out = self.env.new_line(components=list(tt.env_name), name=name)
         out.particle_ref = self.particle_ref.copy() if self.particle_ref else None
@@ -4229,22 +4222,6 @@ class Line:
         '''
 
         return self.vars.eval(expr)
-
-
-
-
-    def _env_if_needed(self):
-        if not hasattr(self, 'env') or self.env is None:
-            self.env = xt.Environment(element_dict=self.element_dict,
-                                      particle_ref=self.particle_ref,
-                                      _var_management=self._var_management)
-            self.env._lines_weakrefs.add(self)
-
-            # Temporary solution to keep consistency in multiline
-            if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-                self.env._var_management = None
-                self.env._in_multiline = self._in_multiline
-                self.env._name_in_multiline = self._name_in_multiline
 
     def extend(self, line):
         self.element_names.extend(line.element_names)
