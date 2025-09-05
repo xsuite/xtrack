@@ -2127,6 +2127,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     if method == '4d' and delta0 is None:
         delta0 = 0
 
+    if method == '6d' and delta0 is not None:
+        raise ValueError('delta0 should be None when method is "6d"')
+
     if periodic_mode == 'periodic_symmetric':
         raise ValueError('`periodic_symmetric` not supported anymore')
         assert R_matrix is None, 'R_matrix must be None for `periodic_symmetric`'
