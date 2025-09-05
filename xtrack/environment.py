@@ -128,6 +128,7 @@ class Environment:
 
         '''
         self._element_dict = element_dict or {}
+        self._particles = {}
         self.particle_ref = particle_ref
 
         self._var_management = _make_var_management(
@@ -945,6 +946,11 @@ class Environment:
     def element_refs(self):
         if self._var_management is not None:
             return self._var_management['lref']
+
+    @property
+    def particles_ref(self):
+        if self._var_management is not None:
+            return self._var_management['pref']
 
     def __getitem__(self, key):
         if np.issubdtype(key.__class__, np.integer):
@@ -1835,7 +1841,7 @@ def _deserialize_elements(dct, classes, _buffer, _context):
 
     return elements
 
-def _make_var_management(element_dict, dct=None):
+def _make_var_management(element_dict, particles, dct=None):
 
     from collections import defaultdict
 
@@ -1848,6 +1854,7 @@ def _make_var_management(element_dict, dct=None):
     _vref = manager.ref(_var_values, 'vars')
     _fref = manager.ref(functions, 'f')
     _lref = manager.ref(element_dict, 'element_refs')
+    _pref = manager.ref(particles, 'particles')
 
     _var_management = {}
     _var_management['data'] = {}
@@ -1858,6 +1865,7 @@ def _make_var_management(element_dict, dct=None):
     _var_management['lref'] = _lref
     _var_management['vref'] = _vref
     _var_management['fref'] = _fref
+    _var_management['pref'] = _pref
 
     _vref['t_turn_s'] = 0.0
 
