@@ -648,21 +648,8 @@ class Environment:
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         cls = xt.Environment
 
-        class_dict = xt.line.mk_class_namespace(classes)
-
-        _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
-
-        if isinstance(dct['elements'], dict):
-            elements = {}
-            for (kk, ee) in progress(dct['elements'].items(), desc='Loading line from dict'):
-                elements[kk] = xt.line._deserialize_element(ee, class_dict, _buffer)
-        elif isinstance(dct['elements'], list):
-            elements = []
-            for ii, ee in enumerate(
-                    progress(dct['elements'], desc='Loading line from dict')):
-                elements.append(xt.line._deserialize_element(ee, class_dict, _buffer))
-        else:
-            raise ValueError('Field `elements` must be a dict or a list')
+        elements = _deserialize_elements(dct=dct, classes=classes,
+                                         _buffer=_buffer, _context=_context)
 
         particle_ref = None
         if 'particle_ref' in dct.keys():
@@ -677,8 +664,10 @@ class Environment:
         out = cls(element_dict=elements, particle_ref=particle_ref,
                 _var_management_dct=_var_management_dct)
 
+        dct_lines = dct.copy()
+        dct_lines.pop('elements', None)
         for nn in dct['lines'].keys():
-            ll = xt.Line.from_dict(dct['lines'][nn], env=out, verbose=False)
+            ll = xt.Line.from_dict(dct_lines['lines'][nn], env=out, verbose=False)
             out[nn] = ll
 
         if '_bb_config' in dct:
@@ -1826,3 +1815,22 @@ def _resolve_lines_in_components(components, env):
             components[ii] = env.lines[nn]
 
     return components
+
+def _deserialize_elements(dct, classes, _buffer, _context):
+    class_dict = xt.line.mk_class_namespace(classes)
+
+    _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
+
+    if isinstance(dct['elements'], dict):
+        elements = {}
+        for (kk, ee) in progress(dct['elements'].items(), desc='Loading line from dict'):
+            elements[kk] = xt.line._deserialize_element(ee, class_dict, _buffer)
+    elif isinstance(dct['elements'], list):
+        elements = []
+        for ii, ee in enumerate(
+                progress(dct['elements'], desc='Loading line from dict')):
+            elements.append(xt.line._deserialize_element(ee, class_dict, _buffer))
+    else:
+        raise ValueError('Field `elements` must be a dict or a list')
+
+    return elements
