@@ -818,6 +818,8 @@ class Environment:
 
     @property
     def particle_ref(self):
+        if self._particle_ref is None:
+            return None
         return EnvParticleRef(self)
 
     @particle_ref.setter

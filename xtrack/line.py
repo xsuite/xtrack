@@ -181,7 +181,7 @@ class Line:
         self.env._lines_weakrefs.add(self)
 
         if particle_ref is None:
-            particle_ref = self.env.particle_ref
+            particle_ref = self.env._particle_ref
 
         self.element_names = list(element_names).copy()
 
