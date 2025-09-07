@@ -320,7 +320,7 @@ class Environment:
 
         return name
 
-    def new_particle(self, name, parent, force=False, **kwargs):
+    def new_particle(self, name, parent=None, force=False, **kwargs):
 
         '''
         Create a new particle type.
@@ -337,6 +337,9 @@ class Environment:
 
         if name in self.particles and not force:
             raise ValueError(f'Particle `{name}` already exists')
+
+        if parent is None:
+            parent = xt.Particles
 
         _eval = self._xdeps_eval.eval
 

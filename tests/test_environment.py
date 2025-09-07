@@ -3199,7 +3199,7 @@ def test_particle_ref_from_particles_container():
     env = xt.Environment()
     env['a'] = 4.
 
-    env.new_particle('my_particle', "Particles", p0c=['1e12 * a'])
+    env.new_particle('my_particle', p0c=['1e12 * a'])
     assert 'my_particle' in env.particles
     xo.assert_allclose(env['my_particle'].p0c, 4e12, rtol=0, atol=1e-9)
     env['a'] = 5.
@@ -3293,7 +3293,7 @@ def test_particle_ref_as_object():
     env = xt.Environment()
     env['a'] = 4.
 
-    env.new_particle('my_particle', "Particles", p0c=['1e12 * a'])
+    env.new_particle('my_particle', p0c=['1e12 * a'])
     assert 'my_particle' in env.particles
     xo.assert_allclose(env['my_particle'].p0c, 4e12, rtol=0, atol=1e-9)
     env['a'] = 5.
