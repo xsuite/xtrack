@@ -59,7 +59,7 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
 
     ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
-    line_thick.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with mad
+    line_thick.configure_drift_model('exact') # to be consistent with madx
     line_thick.build_tracker(_context=test_context)
     line_thick.configure_bend_model(core=model, edge='dipole-only')
 
@@ -1283,7 +1283,7 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
     ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
     line_thick.build_tracker(_context=test_context)
-    line_thick.config.XTRACK_USE_EXACT_DRIFTS = True  # to be consistent with madx
+    line_thick.configure_drift_model('exact')  # to be consistent with madx
 
     for ii in range(len(p0.x)):
         mad.input(f"""
@@ -1320,7 +1320,7 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
 def test_solenoid_thick_drift_like(test_context):
     solenoid = xt.UniformSolenoid(ks=1.001e-9, length=1, _context=test_context)
     l_drift = xt.Line(elements=[xt.Drift(length=1)])
-    l_drift.config.XTRACK_USE_EXACT_DRIFTS = True
+    l_drift.configure_drift_model('exact')
     l_drift.build_tracker(_context=test_context)
 
     p0 = xp.Particles(
@@ -1743,7 +1743,6 @@ def test_solenoid_multipole_rotations():
 def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
     test_context = xo.ContextCpu()
 
-    config['XTRACK_USE_EXACT_DRIFTS'] = True
     knl = [0.1, 0.4, 0.5]
     ksl = [0.2, 0.3, 0.6]
 
@@ -1752,6 +1751,7 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
         xt.Multipole(knl=knl, ksl=ksl),
         xt.Drift(length=0.5),
     ])
+    line_test.configure_drift_model('exact')
 
     line_ref = xt.Line(elements=[
         xt.UniformSolenoid(ks=0, length=1, knl=knl, ksl=ksl, num_multipole_kicks=1)
@@ -1803,8 +1803,6 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
 def test_solenoid_with_kicks_radiation(radiation_mode, config):
     test_context = xo.ContextCpu()
 
-    config['XTRACK_USE_EXACT_DRIFTS'] = True
-
     ks = 0.4
     l = 1.1
     knl = [0.1, 0.4, 0.5]
@@ -1817,6 +1815,9 @@ def test_solenoid_with_kicks_radiation(radiation_mode, config):
     line_ref = xt.Line(elements=[sol_ref])
     line_1 = xt.Line(elements=[sol_1])
     line_3 = xt.Line(elements=[sol_3])
+
+    for ll in (line_ref, line_1, line_3):
+        ll.configure_drift_model('exact')
 
     coords = np.linspace(-0.05, 0.05, 10)
     coords_6d = np.array(list(itertools.product(*(coords,) * 6))).T
