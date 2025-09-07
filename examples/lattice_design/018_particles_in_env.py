@@ -23,6 +23,8 @@ xo.assert_allclose(env.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
 
 env2 = xt.Environment.from_dict(env.to_dict())
 assert 'my_particle' in env2.particles
+assert isinstance(env2.get('my_particle'), xt.Particles)
+assert env2.get('my_particle') is not env.get('my_particle')
 assert env2._particle_ref == "my_particle"
 xo.assert_allclose(env2['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
 env2['a'] = 6.
