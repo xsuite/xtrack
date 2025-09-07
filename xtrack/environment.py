@@ -1982,7 +1982,7 @@ class EnvParticleRef:
         return getattr(self._resolved, key)
 
     def __setattr__(self, key, value):
-        if key == 'line':
+        if key == 'env':
             object.__setattr__(self, key, value)
         else:
             setattr(self._resolved, key, value)
