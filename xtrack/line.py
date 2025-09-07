@@ -898,14 +898,17 @@ class Line:
             env = xt.Environment(element_dict=elements,
                                   _var_management_dct=var_management_dict)
 
+            if isinstance(self._particle_ref, str):
+                env.particles[self._particle_ref] = self.particle_ref.copy()
+
             out = self.__class__(element_names=element_names,
                                  env=env)
 
-        if self.particle_ref is not None:
-            if isinstance(self.particle_ref, str):
-                out.particle_ref = self.particle_ref
+        if self._particle_ref is not None:
+            if isinstance(self._particle_ref, str):
+                out._particle_ref = self._particle_ref
             else:
-                out.particle_ref = self.particle_ref.copy(
+                out._particle_ref = self._particle_ref.copy(
                                             _context=_context, _buffer=_buffer)
 
         out.config.clear()
