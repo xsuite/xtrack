@@ -243,7 +243,7 @@ def test_drift_exact_and_expanded(test_context):
     line.track(p)
     xo.assert_allclose(p.x, x_prime_expanded*ltot, rtol=1e-14, atol=1e-14)
 
-    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    line.configure_drift_model(model='exact')
     p = p0.copy(_context=test_context)
     line.track(p)
     xo.assert_allclose(p.x, x_prime_exact*ltot, rtol=1e-14, atol=1e-14)
@@ -266,7 +266,7 @@ def test_drift_exact(test_context):
     drift = xt.Drift(_context=test_context, length=10.)
     line = xt.Line(elements=[drift])
     line.build_tracker(compile=False, _context=test_context)
-    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    line.configure_drift_model(model='exact')
     line.track(particles)
 
     dtk_drift = dtk.elements.DriftExact(length=10.)
@@ -1196,7 +1196,7 @@ def test_nonlinearlens(test_context):
     """)
 
     line = xt.Line.from_madx_sequence(mad.sequence.ss)
-    line.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with madx
+    line.configure_drift_model('exact') # to be consistent with madx
     line.build_tracker(_context=test_context)
 
     num_p_test = 10
