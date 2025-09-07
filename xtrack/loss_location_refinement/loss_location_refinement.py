@@ -93,7 +93,6 @@ class LossLocationRefinement:
                       element_names=list(line.element_names)
                       + ['_xtrack_temp_poly_', '_xtrack_temp_marker_'])
         ln_gen.build_tracker(_buffer=self.line._buffer)
-        ln_gen.config.XTRACK_GLOBAL_XY_LIMIT = line.config.XTRACK_GLOBAL_XY_LIMIT
         self._ln_gen = ln_gen
 
         self.i_apertures, self.apertures = find_apertures(self.line)
@@ -286,8 +285,8 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
                 f'Cannot backtrack through element {nn} of type '
                 f'{ee.__class__.__name__}')
 
-    with xt.line._preserve_config(line):
-        line.config.XTRACK_GLOBAL_XY_LIMIT = None
+    with xt.line._preserve_track_flags(line):
+        line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
         line.track(part_refine, ele_start=i_start, ele_stop=i_stop,
                     backtrack='force')
 
@@ -455,7 +454,7 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
     interp_line.build_tracker(_buffer=_buffer,
                               track_kernel=_ln_gen.tracker.track_kernel)
     interp_line.reset_s_at_end_turn = False
-    interp_line.config.XTRACK_GLOBAL_XY_LIMIT = _ln_gen.config.XTRACK_GLOBAL_XY_LIMIT
+    interp_line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
 
     return interp_line
 
@@ -541,8 +540,8 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
         ptest = xt.Particles(p0c=1,
                 x = x_test.copy(),
                 y = y_test.copy())
-        with xt.line._preserve_config(line):
-            line.config.XTRACK_GLOBAL_XY_LIMIT = None
+        with xt.line._preserve_track_flags(line):
+            line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
             line.track(ptest, ele_start=i_start, ele_stop=i_stop,
                        backtrack=backtrack)
 
