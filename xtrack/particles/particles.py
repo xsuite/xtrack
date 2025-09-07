@@ -1229,6 +1229,14 @@ class Particles(xo.HybridClass):
     def p0c(self, value):
         self.p0c[:] = value
 
+    @property
+    def rigidity0(self):
+        rigidity0 = self.p0c / clight / self.q0
+        return self._buffer.context.linked_array_type.from_array(
+            rigidity0,
+            mode='readonly',
+            container=self)
+
     def update_gamma0(self, new_gamma0):
 
         """
