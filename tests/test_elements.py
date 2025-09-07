@@ -243,7 +243,7 @@ def test_drift_exact_and_expanded(test_context):
     line.track(p)
     xo.assert_allclose(p.x, x_prime_expanded*ltot, rtol=1e-14, atol=1e-14)
 
-    line.configure_drift_model(model='exact')
+    line.config.XTRACK_USE_EXACT_DRIFTS = True
     p = p0.copy(_context=test_context)
     line.track(p)
     xo.assert_allclose(p.x, x_prime_exact*ltot, rtol=1e-14, atol=1e-14)
