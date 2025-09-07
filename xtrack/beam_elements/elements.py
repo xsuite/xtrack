@@ -340,7 +340,7 @@ class Marker(BeamElement):
     ]
 
 
-class Drift(BeamElement):
+class Drift(_HasModelDrift, BeamElement):
     """Beam element modeling a drift section.
 
     Parameters
