@@ -49,6 +49,7 @@ xo.assert_allclose(env2.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
 
 
 ll = env.new_line(name='my_line', components=[])
+assert ll._particle_ref == 'my_particle'
 
 xo.assert_allclose(ll.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
 assert ll.particle_ref.__class__.__name__ == 'LineParticleRef'
@@ -57,10 +58,14 @@ xo.assert_allclose(env.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
 env['my_particle'].p0c = '1e12 * a'
 xo.assert_allclose(ll.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
 
-
-
 ll2 = xt.Line.from_dict(ll.to_dict())
 assert 'my_particle' in ll2.env.particles
 xo.assert_allclose(ll2.env['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
 ll2['a'] = 7.
 xo.assert_allclose(ll2.env['my_particle'].p0c, 7e12, rtol=0, atol=1e-9)
+
+assert ll2.particle_ref.__class__.__name__ == 'LineParticleRef'
+ll2.particle_ref.p0c = '2e12 * a'
+xo.assert_allclose(env.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
+env['my_particle'].p0c = '1e12 * a'
+xo.assert_allclose(ll.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
