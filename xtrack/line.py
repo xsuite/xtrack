@@ -185,7 +185,7 @@ class Line:
 
         self.element_names = list(element_names).copy()
 
-        self.particle_ref = particle_ref
+        self._particle_ref = particle_ref
 
         if energy_program is not None:
             self.energy_program = energy_program # setter will take care of completing
@@ -267,8 +267,11 @@ class Line:
         self = cls(env=env, element_names=element_names)
 
         if 'particle_ref' in dct.keys():
-            self.particle_ref = xt.Particles.from_dict(dct['particle_ref'],
-                                    _context=_buffer.context)
+            particle_ref = dct['particle_ref']
+            if not isinstance(particle_ref, str):
+                particle_ref = xt.Particles.from_dict(particle_ref,
+                                                      _context=_buffer.context)
+            self.particle_ref = particle_ref
 
         if 'config' in dct.keys():
             self.config.clear()
@@ -607,8 +610,11 @@ class Line:
         if self._element_names_before_slicing is not None:
             out['_element_names_before_slicing'] = self._element_names_before_slicing
 
-        if self.particle_ref is not None:
-            out['particle_ref'] = self.particle_ref.to_dict()
+        if self._particle_ref is not None:
+            if isinstance(self._particle_ref, str):
+                out['particle_ref'] = self._particle_ref
+            else:
+                out['particle_ref'] = self._particle_ref.to_dict()
         if self.env._var_management is not None and include_var_management:
             if hasattr(self, '_in_multiline') and self._in_multiline is not None:
                 raise ValueError('The line is part ot a MultiLine object. '
@@ -896,8 +902,11 @@ class Line:
                                  env=env)
 
         if self.particle_ref is not None:
-            out.particle_ref = self.particle_ref.copy(
-                                        _context=_context, _buffer=_buffer)
+            if isinstance(self.particle_ref, str):
+                out.particle_ref = self.particle_ref
+            else:
+                out.particle_ref = self.particle_ref.copy(
+                                            _context=_context, _buffer=_buffer)
 
         out.config.clear()
         out.config.update(self.config.copy())
@@ -992,11 +1001,13 @@ class Line:
 
     @property
     def particle_ref(self):
-        return self._particle_ref
+        return LineParticleRef(self)
 
     @particle_ref.setter
     def particle_ref(self, particle_ref):
         self._particle_ref = particle_ref
+        # This looks a bit dangerous, when working with coasting beams in environments.
+        # If the particle is shared with other lines, t_sim might be wrong.
         if self.particle_ref is not None and self.particle_ref.t_sim == 0:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
