@@ -28,9 +28,6 @@ env.vars.load(format='madx', string='''
 
 env['spectrometer.b1'].k0 # is 0.000128482482
 
-
-
-# Control particle_rev.p0c directly (breaking control by `p0c_optics_gev`)
 line.particle_ref.p0c = 450e9
 
 env['spectrometer.b1'].k0 # is 0.0019986163866

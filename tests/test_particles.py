@@ -4,6 +4,7 @@
 # ######################################### #
 import numpy as np
 import pytest
+from scipy.constants import c as clight
 
 import xtrack as xt
 import xobjects as xo
@@ -135,7 +136,7 @@ def test_check_is_active_sorting_cpu_default(test_context):
     assert set(particles.particle_id[8:]) == {1, 3, 5, 6, 7, 8, 9, 10, 12, 17}
 
 def test_particles_energy_coordinates():
-    p = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1,
+    p = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=2,
                     kinetic_energy0=50e6, delta=0.1)
 
     beta0 = p.beta0[0]
@@ -144,6 +145,7 @@ def test_particles_energy_coordinates():
     energy0 = p.energy0[0]
     energy = p.energy[0]
     p0c = p.p0c[0]
+    rigidity0 = p.rigidity0[0]
 
     delta = p.delta[0]
     ptau = p.ptau[0]
@@ -156,6 +158,7 @@ def test_particles_energy_coordinates():
     xo.assert_allclose(gamma, 1 / np.sqrt(1 - beta**2), rtol=0, atol=1e-14)
     xo.assert_allclose(energy, mass0_ev * gamma, rtol=0, atol=1e-6) # 1e-6 eV
     xo.assert_allclose(energy0, mass0_ev * gamma0, rtol=0, atol=1e-6) # 1e-6 eV
+    xo.assert_allclose(rigidity0, p0c / clight / p.q0, rtol=0, atol=1e-14)
 
     Pc = p0c * (1 + delta)
     xo.assert_allclose(Pc, mass0_ev * gamma * beta, rtol=0, atol=1e-6) # 1e-6 eV
