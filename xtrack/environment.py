@@ -1951,3 +1951,28 @@ def _make_var_management(element_dict, particles, dct=None):
         manager.load(dct['_var_manager'])
 
     return _var_management
+
+class EnvParticleRef:
+
+    def __init__(self, env):
+        self.env = env
+
+    @property
+    def _resolved(self):
+        _particle_ref = self.env._particle_ref
+        if isinstance(_particle_ref, str):
+            return self.env[_particle_ref]
+        else:
+            return _particle_ref
+
+    def __getattr__(self, key):
+        return getattr(self._resolved, key)
+
+    def __setattr__(self, key, value):
+        if key == 'line':
+            object.__setattr__(self, key, value)
+        else:
+            setattr(self._resolved, key, value)
+
+    def copy(self, **kwargs):
+        return self._resolved.copy(**kwargs)
