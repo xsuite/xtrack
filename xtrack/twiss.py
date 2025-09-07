@@ -320,6 +320,14 @@ def twiss_line(line, particle_ref=None, method=None,
     """
     input_kwargs = locals().copy()
 
+    # Twiss calculation is made with apertures off
+    if not (line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE
+            and line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE):
+        with xt.line._preserve_track_flags(line):
+            line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
+            line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE = True
+            return twiss_line(**input_kwargs)
+
     # defaults
     r_sigma=(r_sigma or 0.01)
     nemitt_x=(nemitt_x or 1e-6)
