@@ -27,7 +27,7 @@ import xtrack as xt
 import xdeps as xd
 from .beam_elements.elements import (
     MagnetEdge, _MODEL_TO_INDEX_CURVED,
-    _EDGE_MODEL_TO_INDEX,
+    _EDGE_MODEL_TO_INDEX, _MODEL_TO_INDEX_DRIFT
 )
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
@@ -2976,6 +2976,28 @@ class Line:
 
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
+
+    def configure_drift_model(self, model=None):
+
+        """
+        Configure the method used to track drifts.
+
+        See documentation of ``xt.Drift`` for more details on the values of the
+        models used below.
+
+        Parameters
+        ----------
+        model: str
+            Model to be used for the drifts. Can be 'adaptive', 'exact' or
+            'expanded'.
+        """
+
+        if model is not None and model not in _MODEL_TO_INDEX_DRIFT:
+            raise ValueError(f'Unknown drift model {model}')
+
+        for ee in self.element_dict.values():
+            if model is not None and isinstance(ee, xt.Drift):
+                ee.model = model
 
     def configure_bend_model(
             self,
