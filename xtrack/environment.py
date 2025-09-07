@@ -812,6 +812,14 @@ class Environment:
         return self._particles
 
     @property
+    def particle_ref(self):
+        return EnvParticleRef(self)
+
+    @particle_ref.setter
+    def particle_ref(self, particle_ref):
+        self._particle_ref = particle_ref
+
+    @property
     def elements(self):
         return self.element_dict
 
