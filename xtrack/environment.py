@@ -1642,6 +1642,8 @@ class EnvRef:
             return self.env.element_refs[name]
         elif name in self.env.vars:
             return self.env.vars[name]
+        elif name in self.env.particles:
+            return self.env._xdeps_pref[name]
         else:
             raise KeyError(f'Name {name} not found.')
 
