@@ -716,7 +716,7 @@ class Environment:
             particle_ref = dct['particle_ref']
             if not isinstance(particle_ref, str):
                 particle_ref = xt.Particles.from_dict(particle_ref,
-                                    _context=_buffer.context)
+                                    _context=_context, _buffer=_buffer)
 
         if '_var_manager' in dct.keys():
             _var_management_dct = dct
