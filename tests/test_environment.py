@@ -3210,6 +3210,7 @@ def test_particle_ref_from_particles_container():
     xo.assert_allclose(env.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
     assert env.particle_ref.__class__.__name__ == 'EnvParticleRef'
     assert env._particle_ref == 'my_particle'
+    assert env.ref['my_particle']._value is env.get('my_particle')
     env.particle_ref.p0c = '2e12 * a'
     xo.assert_allclose(env.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
     env['my_particle'].p0c = '1e12 * a'
@@ -3220,6 +3221,7 @@ def test_particle_ref_from_particles_container():
     assert isinstance(env2.get('my_particle'), xt.Particles)
     assert env2.get('my_particle') is not env.get('my_particle')
     assert env2._particle_ref == "my_particle"
+    assert env2.ref['my_particle']._value is env2.get('my_particle')
     xo.assert_allclose(env2['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
     env2['a'] = 6.
     xo.assert_allclose(env2['my_particle'].p0c, 6e12, rtol=0, atol=1e-9)
@@ -3234,6 +3236,7 @@ def test_particle_ref_from_particles_container():
     env2 = env.copy()
     assert 'my_particle' in env2.particles
     assert env2._particle_ref == "my_particle"
+    assert env.ref['my_particle']._value is env.get('my_particle')
     assert isinstance(env2.get('my_particle'), xt.Particles)
     assert env2.get('my_particle') is not env.get('my_particle')
     xo.assert_allclose(env2['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
