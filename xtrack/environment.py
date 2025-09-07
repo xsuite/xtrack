@@ -661,8 +661,11 @@ class Environment:
         out = {}
         out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
 
-        if self.particle_ref is not None:
-            out['particle_ref'] = self.particle_ref.to_dict()
+        if self._particle_ref is not None:
+            if isinstance(self._particle_ref, str):
+                out['particle_ref'] = self._particle_ref
+            else:
+                out['particle_ref'] = self._particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
             if hasattr(self, '_in_multiline') and self._in_multiline is not None:
                 raise ValueError('The line is part ot a MultiLine object. '
