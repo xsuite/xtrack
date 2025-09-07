@@ -10,14 +10,14 @@ xo.assert_allclose(env['my_particle'].p0c, 4e12, rtol=0, atol=1e-9)
 env['a'] = 5.
 xo.assert_allclose(env['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
 
-env.particle_ref = 'my_particle'
+part = env['my_particle'].copy()
+env.particle_ref = part
 
 xo.assert_allclose(env.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
 assert env.particle_ref.__class__.__name__ == 'EnvParticleRef'
-assert env._particle_ref == 'my_particle'
-env.particle_ref.p0c = '2e12 * a'
-xo.assert_allclose(env.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
-env['my_particle'].p0c = '1e12 * a'
+assert env._particle_ref is part
+env['my_particle'].p0c = '2e12 * a'
+xo.assert_allclose(env.eval('2e12 * a'), 10e12, rtol=0, atol=1e-9)
 xo.assert_allclose(env.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
 
 env2 = xt.Environment.from_dict(env.to_dict())
