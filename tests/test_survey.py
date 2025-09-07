@@ -150,7 +150,7 @@ def test_survey_with_ref_transformations():
     ])
 
     line.config.XTRACK_GLOBAL_XY_LIMIT = None
-    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    line.configure_drift_model('exact')
     tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3, y=2e-3)
 
     sv_no_arg = line.survey()
@@ -289,7 +289,7 @@ def test_survey_with_h_and_v_bends():
     ])
 
     line.config.XTRACK_GLOBAL_XY_LIMIT = None
-    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    line.configure_drift_model('exact')
     tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3, y=2e-3)
 
     sv_no_arg = line.survey()
