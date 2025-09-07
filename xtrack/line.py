@@ -6005,7 +6005,7 @@ class LineParticleRef:
     def _resolved(self):
         _particle_ref = self.line._particle_ref
         if isinstance(_particle_ref, str):
-            return self.env.particles[_particle_ref]
+            return self.line.env.particles[_particle_ref]
         else:
             return _particle_ref
 
