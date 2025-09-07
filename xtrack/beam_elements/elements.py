@@ -18,6 +18,13 @@ from xtrack.internal_record import RecordIndex
 
 DEFAULT_MULTIPOLE_ORDER = 5
 
+_INDEX_TO_MODEL_DRIFT = {
+    0: 'adaptive',
+    1: 'expanded',
+    2: 'exact'
+}
+_MODEL_TO_INDEX_DRIFT = {k: v for v, k in _INDEX_TO_MODEL_DRIFT.items()}
+
 _INDEX_TO_MODEL_CURVED = {
     0: 'adaptive',
     1: 'full',
@@ -94,6 +101,24 @@ class _HasIntegrator:
             self._integrator = _INTEGRATOR_TO_INDEX[value]
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
+
+class _HasModelDrift:
+
+    """
+    Mixin class adding properties and methods for beam elements
+    with drift model fields.
+    """
+
+    @property
+    def model(self):
+        return _INDEX_TO_MODEL_DRIFT[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = _MODEL_TO_INDEX_DRIFT[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
 
 class _HasModelStraight:
 
@@ -326,7 +351,8 @@ class Drift(BeamElement):
     """
 
     _xofields = {
-        'length': xo.Float64
+        'length': xo.Float64,
+        'model': xo.Int64
     }
 
     isthick = True
@@ -338,6 +364,12 @@ class Drift(BeamElement):
     _extra_c_sources = [
         '#include <beam_elements/elements_src/drift.h>',
     ]
+
+    _rename = {
+        'model': '_model',
+    }
+
+    _no_expr_fields = {'model'}
 
     def __init__(self, length=None, **kwargs):
 
