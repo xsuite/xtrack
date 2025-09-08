@@ -1373,6 +1373,7 @@ class Line:
         zero_at=None,
         co_search_at=None,
         include_collective=None,
+        disable_apertures=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,

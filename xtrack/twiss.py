@@ -112,6 +112,7 @@ def twiss_line(line, particle_ref=None, method=None,
         zero_at=None,
         co_search_at=None,
         include_collective=False,
+        disable_apertures=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -320,13 +321,7 @@ def twiss_line(line, particle_ref=None, method=None,
     """
     input_kwargs = locals().copy()
 
-    # Twiss calculation is made with apertures off
-    if not (line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE
-            and line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE):
-        with xt.line._preserve_track_flags(line):
-            line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
-            line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE = True
-            return twiss_line(**input_kwargs)
+
 
     # defaults
     r_sigma=(r_sigma or 0.01)
@@ -358,6 +353,16 @@ def twiss_line(line, particle_ref=None, method=None,
     compute_chromatic_properties=(compute_chromatic_properties
                         if compute_chromatic_properties is not None else None)
     num_turns = (num_turns or 1)
+    disable_apertures = (disable_apertures if disable_apertures is not None else True)
+
+    if disable_apertures:
+        if not (line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE
+                and line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE):
+            with xt.line._preserve_track_flags(line):
+                line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
+                line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE = True
+                out = twiss_line(**input_kwargs)
+                return _add_action_in_res(out, input_kwargs)
 
     if only_markers:
         raise NotImplementedError('`only_markers` not supported anymore')

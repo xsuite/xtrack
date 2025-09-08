@@ -2005,3 +2005,57 @@ def test_twiss_collective_end_is_len():
     t2 = line2.twiss4d(betx=1,bety=1,include_collective=True)
 
     xo.assert_allclose(t.betx, t2.betx, atol=1e-12, rtol=0)
+
+def test_twiss_disable_apertures():
+
+    line = xt.Line(elements=[xt.Drift(length=1.0)])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+
+    # check global aperture
+    tw = line.twiss(betx=1, bety=1, x=2.)
+    xo.assert_allclose(tw.x[-1], 2.)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=2., disable_apertures=False)
+
+    # check limit rect
+    line = xt.Line(elements=[xt.Drift(length=1.0), xt.LimitRect(min_x=0.1)])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    tw = line.twiss(betx=1, bety=1, x=0)
+    xo.assert_allclose(tw.x[-1], 0.)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=0, disable_apertures=False)
+
+    # check limit racetrack
+    line = xt.Line(elements=[xt.Drift(length=1.0), xt.LimitRacetrack(min_x=0.1)])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    tw = line.twiss(betx=1, bety=1, x=0)
+    xo.assert_allclose(tw.x[-1], 0.)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=0, disable_apertures=False)
+
+    # check limit ellipse
+    line = xt.Line(elements=[xt.Drift(length=1.0), xt.LimitEllipse(a=0.01, b=0.01)])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    tw = line.twiss(betx=1, bety=1, x=0.02)
+    xo.assert_allclose(tw.x[-1], 0.02)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=0.02, disable_apertures=False)
+
+    # Check limit polygon
+    line = xt.Line(elements=[xt.Drift(length=1.0), xt.LimitPolygon(
+        x_vertices=[0.1, 0.1, -0.1, -0.1],
+        y_vertices=[0.1, -0.1, -0.1, 0.1])])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    tw = line.twiss(betx=1, bety=1, x=0.2, y=0)
+    xo.assert_allclose(tw.x[-1], 0.2)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=0.2, y=0, disable_apertures=False)
+
+    # Check rectellipse
+    line = xt.Line(elements=[xt.Drift(length=1.0), xt.LimitRectEllipse(
+        a=0.1, b=0.1)])
+    line.particle_ref = xt.Particles(energy0=10e9, mass0=xt.PROTON_MASS_EV)
+    tw = line.twiss(betx=1, bety=1, x=0.2, y=0)
+    xo.assert_allclose(tw.x[-1], 0.2)
+    with pytest.raises(AssertionError):
+        line.twiss(betx=1, bety=1, x=0.2, y=0, disable_apertures=False)
