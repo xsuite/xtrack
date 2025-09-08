@@ -5,6 +5,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
+import xtrack._temp.lhc_match as lm
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -726,3 +727,61 @@ def test_match_ir8_optics(test_context):
     xo.assert_allclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
     xo.assert_allclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
 
+@for_all_test_contexts
+def test_match_optics_ad(test_context):
+    collider = xt.Environment.from_json(test_data_folder /
+                    'hllhc15_thick/hllhc15_collider_thick.json')
+    collider.vars.load_madx(test_data_folder /
+                    'hllhc15_thick/opt_round_150_1500.madx')
+    collider.build_trackers(test_context)
+
+    line = collider.lhcb1
+    tw0 = line.twiss()
+
+    lm.set_var_limits_and_steps(collider)
+
+    opt = line.match(
+    solve=False,
+    default_tol={None: 1e-8, 'betx': 1e-6, 'bety': 1e-6, 'alfx': 1e-6, 'alfy': 1e-6},
+    start='s.ds.l8.b1', end='ip1',
+    init=tw0, init_at=xt.START,
+    vary=[
+        # Only IR8 quadrupoles including DS
+        xt.VaryList(['kq6.l8b1', 'kq7.l8b1', 'kq8.l8b1', 'kq9.l8b1', 'kq10.l8b1',
+            'kqtl11.l8b1', 'kqt12.l8b1', 'kqt13.l8b1',
+            'kq4.l8b1', 'kq5.l8b1', 'kq4.r8b1', 'kq5.r8b1',
+            'kq6.r8b1', 'kq7.r8b1', 'kq8.r8b1', 'kq9.r8b1',
+            'kq10.r8b1', 'kqtl11.r8b1', 'kqt12.r8b1', 'kqt13.r8b1'])],
+    targets=[
+        xt.TargetSet(at='ip8', tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), value=tw0),
+        xt.TargetSet(at='ip1', betx=0.15, bety=0.1, alfx=0, alfy=0, dx=0, dpx=0),
+        xt.TargetRelPhaseAdvance('mux', value = tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1']),
+        xt.TargetRelPhaseAdvance('muy', value = tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1']),
+    ],
+    use_ad=True)
+
+    opt.step(30)
+
+    ## With edge effects takes a bit longer
+
+    assert opt._err.call_counter < 120
+    assert len(opt.log()) < 30
+
+    tw = line.twiss(init=tw0, start='s.ds.l8.b1', end='ip1')
+
+    xo.assert_allclose(tw['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['bety', 'ip1'], 0.1, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfx', 'ip1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfy', 'ip1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dx', 'ip1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dy', 'ip1'], 0., atol=1e-6, rtol=0)
+
+    xo.assert_allclose(tw['betx', 'ip8'], tw0['betx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['bety', 'ip8'], tw0['bety', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfx', 'ip8'], tw0['alfx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfy', 'ip8'], tw0['alfy', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dx', 'ip8'], tw0['dx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dy', 'ip8'], tw0['dy', 'ip8'], atol=1e-6, rtol=0)
+
+    xo.assert_allclose(tw['mux', 'ip1.l1'] - tw['mux', 's.ds.l8.b1'], tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['muy', 'ip1.l1'] - tw['muy', 's.ds.l8.b1'], tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], atol=1e-6, rtol=0)
