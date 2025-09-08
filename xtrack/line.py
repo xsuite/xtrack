@@ -1114,6 +1114,167 @@ class Line:
             with_progress=with_progress,
             **kwargs)
 
+    def momentum_aperture(
+        self,
+        *,
+        twiss=None,
+        x_offset: float = 0.0,
+        y_offset: float = 0.0,
+        delta_negative_limit: float = -0.10,
+        delta_positive_limit: float = +0.10,
+        delta_step_size: float = 0.01,
+        skip_elements: int = 0,
+        process_elements: int = 2**31 - 1,
+        s_start: float = 0.0,
+        s_end: float | None = None,
+        include_name_pattern: str | None = None,
+        include_type_pattern: str | None = None,
+        n_turns: int = 512,
+        forbid_resonance_crossing: int = 0,
+        with_progress: bool | int = False,
+        verbose: bool = False,
+        **kwargs
+    ):
+        """
+        Local momentum aperture (LMA).
+
+        Returns
+        -------
+        xt.Table with columns:
+        - s:       element entrance position (m)  <-- entrance by default
+        - deltan:  largest surviving -δ
+        - deltap:  largest surviving +δ
+        """
+        import fnmatch
+
+        if forbid_resonance_crossing:
+            raise NotImplementedError("forbid_resonance_crossing is not implemented yet.")
+
+        if delta_negative_limit >= 0:
+            raise ValueError("delta_negative_limit must be < 0")
+        if delta_positive_limit <= 0:
+            raise ValueError("delta_positive_limit must be > 0")
+        if delta_step_size <= 0:
+            raise ValueError("delta_step_size must be > 0")
+        if s_end is None:
+            s_end = np.inf
+        if s_start >= s_end:
+            raise ValueError("s_start must be < s_end")
+        if skip_elements < 0:
+            raise ValueError("skip_elements must be >= 0")
+        if process_elements <= 0:
+            raise ValueError("process_elements must be > 0")
+        if n_turns <= 0:
+            raise ValueError("n_turns must be > 0")
+        if self.particle_ref is None:
+            raise ValueError("Line.particle_ref must be set to build probe particles.")
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
+        # Compute twiss (use 6D by default, overridable via kwargs['method'])
+        if twiss is None:
+            twiss_method = kwargs.pop('method', '6d')
+            twiss = self.twiss(method=twiss_method)
+
+        # By default, we scan at the ENTRANCE of each element
+        s_entr = np.array(list(self.get_s_elements(mode="upstream")))
+        elem_names = np.array(self.element_names)
+        elem_types = np.array([ee.__class__.__name__ for ee in self.elements])
+
+        candidates: list[int] = []
+        for i, (nm, tp, s_en) in enumerate(zip(elem_names, elem_types, s_entr)):
+            if not (s_start <= s_en <= s_end):
+                continue
+            # If patterns are given, enforce them; otherwise keep default (all entrances)
+            if include_name_pattern and not fnmatch.fnmatch(nm, include_name_pattern):
+                continue
+            if include_type_pattern and not fnmatch.fnmatch(tp, include_type_pattern):
+                continue
+            candidates.append(i)
+
+        if skip_elements:
+            candidates = candidates[skip_elements:]
+        if process_elements < len(candidates):
+            candidates = candidates[:process_elements]
+
+        if len(candidates) == 0:
+            raise ValueError("No elements selected for momentum aperture computation.")
+
+        elements = elem_names[candidates]
+
+        # Delta grid
+        deltas = np.arange(delta_negative_limit, delta_positive_limit + 0.5*delta_step_size,
+                        delta_step_size)
+        n_part = len(deltas)
+
+        rows = []
+        seen_s = set()
+
+        # --- restored xsuite progress bar here ---
+        iterable = progress(elements, desc="Momentum aperture") if with_progress else elements
+
+        for ii, ee in enumerate(iterable):
+            s_here = float(twiss['s', ee])
+
+            # Some elements may share the same s
+            if s_here in seen_s:
+                continue
+            seen_s.add(s_here)
+
+            x_co    = twiss['x', ee]
+            px_co   = twiss['px', ee]
+            y_co    = twiss['y', ee]
+            py_co   = twiss['py', ee]
+            zeta_co = twiss['zeta', ee]
+            delta_co= twiss['delta', ee]
+
+            # Prepare test particles at the chosen reference (entrance of ee)
+            particles = xt.Particles(
+                _context=self._context,
+                p0c=self.particle_ref.p0c[0],
+                mass0=self.particle_ref.mass0,
+                q0=self.particle_ref.q0,
+                pdg_id=self.particle_ref.pdg_id,
+                x=np.full(n_part, x_co) + x_offset,
+                px=np.full(n_part, px_co),
+                y=np.full(n_part, y_co) + y_offset,
+                py=np.full(n_part, py_co),
+                zeta=np.full(n_part, zeta_co),
+                delta=np.full(n_part, delta_co) + deltas,
+            )
+
+            initial_deltas = particles.delta.copy()
+
+            print(f"\nTrack test particles from reference point #{ii}")
+            self.track(
+                particles,
+                ele_start=ee,
+                ele_stop=ee,
+                num_turns=n_turns,
+                with_progress=1 if verbose else 0
+            )
+
+            mask_alive = (particles.state == 1)
+            if np.any(mask_alive):
+                surviving_pids = particles.filter(mask_alive).particle_id
+                deltan = float(np.min(initial_deltas[surviving_pids]))
+                deltap = float(np.max(initial_deltas[surviving_pids]))
+            else:
+                # No survivors → report NaNs
+                deltan = float('nan')
+                deltap = float('nan')
+
+            rows.append({
+                's': s_here,
+                'deltan': deltan,
+                'deltap': deltap
+            })
+
+        cols = {k: np.array([r[k] for r in rows]) for k in rows[0].keys()}
+
+        return xt.Table(cols, index='s')
+
     def slice_thick_elements(self, slicing_strategies):
         """
         Slice thick elements in the line. Slicing is done in place.
