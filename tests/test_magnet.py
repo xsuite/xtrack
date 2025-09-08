@@ -5,7 +5,7 @@ import xtrack as xt
 import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 
-from xtrack.beam_elements.magnets import Magnet, MagnetEdge
+from xtrack import Magnet, MagnetEdge
 
 
 def make_particles(context):
@@ -992,7 +992,7 @@ def test_edge_full_model_with_dipole_component_and_angle(test_context):
         # The rotation is also the other way than in the underlying map :'(
         xt.DipoleEdge(model='full', k=3, fint=0.3, hgap=0.4),
         xt.MultipoleEdge(kn=[0, 4, 5], order=2),
-        xt.Wedge(angle=-0.2, k=3),
+        xt.Wedge(angle=-0.2, k=3, k1=4, quad_wedge_then_dip_wedge=1),
     ]
 
     p0 = xt.Particles(
@@ -1030,7 +1030,7 @@ def test_edge_full_model_with_dipole_component_and_angle_exit(test_context):
         fringe_integral=0.3, half_gap=0.4, k_order=2, _context=test_context
     )
     e_ref = [
-        xt.Wedge(angle=-0.2, k=3),
+        xt.Wedge(angle=-0.2, k=3, k1=4),
         xt.MultipoleEdge(kn=[0, 4, 5], is_exit=True, order=2),
         xt.DipoleEdge(model='full', k=-3, fint=0.3, hgap=0.4),
         xt.YRotation(angle=np.rad2deg(-0.2)),

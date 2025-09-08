@@ -5,7 +5,7 @@ import xtrack as xt
 import xdeps as xd
 
 # Load a line and build a tracker
-line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=7e12)
 line.build_tracker()
 

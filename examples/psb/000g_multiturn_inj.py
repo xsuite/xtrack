@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import xtrack as xt
 
-line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
+line = xt.load('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()
 line.t_turn_s = 0 # Reset time!
 

@@ -166,7 +166,7 @@ def test_aperture_refinement(sandwitch_aper):
                     + line_aper_0.elements
                     + (xt.Drift(_buffer=buf, length=1),
                        xt.Multipole(_buffer=buf, knl=[0.]),
-                       xt.Drift(_buffer=buf, length=1),
+                       xt.Quadrupole(_buffer=buf, length=1),
                        xt.Cavity(_buffer=buf, voltage=3e6, frequency=400e6),
                        xt.ParticlesMonitor(_buffer=buf,
                             start_at_turn=0, stop_at_turn=10, num_particles=3),
@@ -439,7 +439,6 @@ def test_losslocationrefinement_skip_refinement_for_collimators():
                                                 dr = 50e-6,
                                                 ds = 0.05,
                                                 save_refine_lines=True)
-
     loss_loc_refinement.refine_loss_location(particles)
 
     assert np.all(part_before.s == particles.s)

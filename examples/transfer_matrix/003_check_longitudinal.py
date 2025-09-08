@@ -10,7 +10,7 @@ import xobjects as xo
 
 
 # machine = 'sps'
-# line = xt.Line.from_json(
+# line = xt.load(
 #     '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
 # # I put the cavity at the end of the ring to get closer to the kick-drift model
 # line.cycle('actb.31739_aper', inplace=True)
@@ -20,7 +20,7 @@ import xobjects as xo
 # sigmaz=0.20
 
 machine = 'psb'
-line = xt.Line.from_json('../../test_data/psb_injection/line_and_particle.json')
+line = xt.load('../../test_data/psb_injection/line_and_particle.json')
 configurations = ['below transition']
 num_turns = 1000
 cavity_name = 'br.c02'

@@ -1,7 +1,7 @@
 import xtrack as xt
 import numpy as np
 
-env = xt.load_madx_lattice('../../test_data/fcc_ee/fccee_z.seq')
+env = xt.load('../../test_data/fcc_ee/fccee_z.seq')
 line = env.fccee_p_ring
 line.particle_ref = xt.Particles(p0c=45.6e9, mass0=xt.ELECTRON_MASS_EV)
 

@@ -1397,22 +1397,24 @@ _crab_make_rf(NNN,SIDE,IRN,BIM,FFF): macro {
 l_crab=0;
 
 _crab_make_cc(nnn,side,irn,bim,fff): macro {
-    !sigmas=0.075;
     vhcrabref_sideirnbim:=ahcrab_sideirnbim/fff*cosiirn*nrj*1e9/1e6;
     vvcrabref_sideirnbim:=avcrab_sideirnbim/fff*sinuirn*nrj*1e9/1e6;
     acfgah.4nnnsideirn.bim: crabcavity, l:=l_crab,
       volt:=on_crabirn*vhcrabref_sideirnbim*bv_aux, !implements reflect.py,
-      lag:=phi_crab_sideirnbim*bv_aux, !implements reflect.py 3 sign changes s,x,z,
+      lag:=phi_crab_sideirnbim*bv_aux + lagref_crab_bim * isnotb4, !implements reflect.py 3 sign changes s,x,z,
       freq=crabrf/1e6,tilt=0,rv3=1e9,rv4=1e9;
     acfgav.4nnnsideirn.bim: crabcavity, l:=l_crab,
       volt:=on_crabirn*vvcrabref_sideirnbim, ! 2 sign change s,z
-      lag:=phi_crab_sideirnbim,
+      lag:=phi_crab_sideirnbim + lagref_crab_bim * isnotb4,
       freq:=crabrf/1e6,tilt=pi/2,rv3=1e9,rv4=1e9;
     print,text="making acfgah.4nnnsideirn.bim";
     print,text="making acfgav.4nnnsideirn.bim";
 };
 
 crab_make_cc(NNN,FFF): macro {
+lagref_crab_b1 = 0;
+lagref_crab_b2 = 0.5;
+isnotb4 = (1 + bv_aux) / 2;
 exec,_crab_make_cc(NNN,l,5,b1,FFF);
 exec,_crab_make_cc(NNN,l,5,b2,FFF);
 exec,_crab_make_cc(NNN,r,5,b1,FFF);

@@ -324,7 +324,8 @@ class Environment:
         self._line_vars = xt.line.LineVars(self)
 
 
-    def new_line(self, components=None, name=None, refer: ReferType = 'center', length=None):
+    def new_line(self, components=None, name=None, refer: ReferType = 'center',
+                 length=None, s_tol=1e-6):
 
         '''
         Create a new line.
@@ -386,12 +387,13 @@ class Environment:
             tab_unsorted = _resolve_s_positions(seq_all_places, self, refer=refer)
             tab_sorted = _sort_places(tab_unsorted)
             element_names = _generate_element_names_with_drifts(self, tab_sorted,
-                                                                length=length)
+                                                                length=length,
+                                                                s_tol=s_tol)
 
         out.element_names = element_names
         out._name = name
         out.builder = Builder(env=self, components=components, length=length,
-                              name=name, refer=refer)
+                              name=name, refer=refer, s_tol=s_tol)
 
         # Temporary solution to keep consistency in multiline
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
@@ -438,7 +440,7 @@ class Environment:
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',
-                    length=None):
+                    length=None, s_tol=1e-6):
         '''
         Create a new builder.
 
@@ -465,7 +467,7 @@ class Environment:
         '''
 
         return Builder(env=self, components=components, name=name, refer=refer,
-                       length=length)
+                       length=length, s_tol=s_tol)
 
     def call(self, filename):
         '''
@@ -484,6 +486,9 @@ class Environment:
             xtrack._passed_env = None
             raise ee
         xtrack._passed_env = None
+
+    def copy(self):
+        return self.__class__.from_dict(self.to_dict())
 
     def copy_element_from(self, name, source, new_name=None):
         return xt.Line.copy_element_from(self, name, source, new_name)
@@ -1312,12 +1317,15 @@ class EnvRef:
 
 
 class Builder:
-    def __init__(self, env, components=None, name=None, length=None, refer: ReferType = 'center'):
+    def __init__(self, env, components=None, name=None, length=None, 
+                 refer: ReferType = 'center', s_tol=1e-6):
         self.env = env
         self.components = components or []
         self.name = name
         self.refer = refer
         self.length = length
+        self.s_tol = s_tol
+
 
     def __repr__(self):
         parts = [f'name={self.name!r}']
@@ -1342,11 +1350,15 @@ class Builder:
         self.components.append(out)
         return out
 
-    def build(self, name=None):
+    def build(self, name=None, s_tol=1e-6):
+
+        if s_tol is None:
+            s_tol = self.s_tol
+
         if name is None:
             name = self.name
         out =  self.env.new_line(components=self.components, name=name, refer=self.refer,
-                                 length=self.length)
+                                 length=self.length, s_tol=s_tol)
         out.builder = self
         return out
 
@@ -1465,9 +1477,9 @@ def _reverse_element(env, name):
     """Return a reversed element without modifying the original."""
 
     SUPPORTED = {'RBend', 'Bend', 'Quadrupole', 'Sextupole', 'Octupole',
-                'Multipole', 'Cavity', 'UniformSolenoid', 'RFMultipole',
+                'Multipole', 'Cavity', 'UniformSolenoid',
                 'Marker', 'Drift', 'LimitRect', 'LimitEllipse', 'LimitPolygon',
-                'LimitRectEllipse'}
+                'LimitRectEllipse', 'CrabCavity'}
 
     ee = env.get(name)
     ee_ref = env.ref[name]
@@ -1511,6 +1523,9 @@ def _reverse_element(env, name):
     _reverse_field('ks')
     _reverse_field('ksi')
     _reverse_field('rot_s_rad')
+
+    if ee.__class__.__name__ == 'CrabCavity':
+        ee_ref.voltage = -ee_ref.voltage._expr or ee_ref.voltage._value
 
     if hasattr(ee, 'lag'):
         ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)

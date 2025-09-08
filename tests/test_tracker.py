@@ -436,7 +436,7 @@ def test_tracker_config(test_context):
 def test_optimize_for_tracking(test_context, multiline):
 
     if multiline:
-        mline = xt.Environment.from_json(test_data_folder /
+        mline = xt.load(test_data_folder /
                          "hllhc15_collider/collider_00_from_mad.json")
         line = mline['lhcb1']
         line.particle_ref = xp.Particles(p0c=7000e9)
@@ -510,7 +510,7 @@ def test_optimize_for_tracking(test_context, multiline):
 @for_all_test_contexts
 def test_backtrack_with_flag(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                 'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
     line.build_tracker(_context=test_context)
 

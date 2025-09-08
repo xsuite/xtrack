@@ -1,6 +1,6 @@
 import xtrack as xt
 
-line = xt.Line.from_json('lep.json')
+line = xt.load('lep.json')
 
 tt0 = line.get_table()
 

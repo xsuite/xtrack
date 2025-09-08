@@ -11,7 +11,7 @@ endsequence;
 
 '''
 
-env_native = xt.load_madx_lattice(string=mad_source)
+env_native = xt.load(string=mad_source, format='madx')
 
 from cpymad.madx import Madx
 mad = Madx()

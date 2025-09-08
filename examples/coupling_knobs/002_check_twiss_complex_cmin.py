@@ -3,7 +3,7 @@ import xtrack as xt
 import xobjects as xo
 
 # Load a line and build tracker
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.cycle('ip1', inplace=True)

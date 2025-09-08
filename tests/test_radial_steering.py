@@ -11,7 +11,7 @@ test_data_folder = pathlib.Path(
 @for_all_test_contexts
 def test_radial_steering(test_context):
 
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                                     'psb_injection/line_and_particle.json')
     line.particle_ref = xp.Particles(
         mass0=(xp.PROTON_MASS_EV), q0=1, energy0=(2*160.+938.)*1.e6)

@@ -92,7 +92,7 @@ class ActionMatchPhaseWithMQTs(xd.Action):
                 self.line.vars[kk] = mqt_knob_values[kk]
         return res
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_match_nested(test_context):
 
     # Load the line

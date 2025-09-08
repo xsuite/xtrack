@@ -29,7 +29,7 @@ def test_tapering_and_twiss_with_radiation():
 
     # Initial twiss (no radiation)
     line.configure_radiation(model=None)
-    tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
+    tw_no_rad = line.twiss(method='4d')
 
     assert tw_no_rad.radiation_method == None
 
@@ -37,7 +37,7 @@ def test_tapering_and_twiss_with_radiation():
     line.configure_radiation(model='mean')
     # - Set cavity lags to compensate energy loss
     # - Taper magnet strengths
-    line.compensate_radiation_energy_loss()
+    line.compensate_radiation_energy_loss(delta0=0)
 
     for conf in configs:
         print(f'Running test with conf: {conf}')
@@ -126,3 +126,64 @@ def test_tapering_and_twiss_with_radiation():
         xo.assert_allclose(
             line['rf3'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
             eneloss/4, rtol=3e-5)
+
+def test_tapering_zero_mean():
+
+    filename = test_data_folder / 'clic_dr/line_for_taper.json'
+    with open(filename, 'r') as f:
+        line = xt.Line.from_dict(json.load(f))
+
+    line.build_tracker()
+
+    line['rf3'].voltage = 0. # desymmetrize the rf
+    line['rf'].voltage = 0.  # desymmetrize the rf
+
+    line['rf1'].voltage *= 2
+    line['rf2b'].voltage *= 2
+    line['rf2a'].voltage *= 2
+
+    line.particle_ref.p0c = 4e9  # eV
+
+    line.configure_radiation(model=None)
+    tw_no_rad = line.twiss(method='4d')
+
+    ###############################################
+    # Enable radiation and compensate energy loss #
+    ###############################################
+
+    line.configure_radiation(model='mean')
+
+    # - Set cavity lags to compensate energy loss
+    # - Taper magnet strengths to avoid optics and orbit distortions
+    line.compensate_radiation_energy_loss(max_iter=100, delta0='zero_mean')
+
+    ##############################
+    # Twiss to check the results #
+    ##############################
+
+    tw = line.twiss(method='6d')
+
+    tw.delta # contains the momentum deviation along the ring
+
+    #!end-doc-part
+
+    p0corr = 1 + tw.delta
+
+    delta_ave = np.trapezoid(tw.delta, tw.s)/tw.s[-1]
+    xo.assert_allclose(delta_ave, 0, rtol=0, atol=1e-6)
+
+    xo.assert_allclose(tw.qx, tw_no_rad.qx, rtol=0, atol=5e-4)
+    xo.assert_allclose(tw.qy, tw_no_rad.qy, rtol=0, atol=5e-4)
+
+    xo.assert_allclose(tw.dqx, tw_no_rad.dqx, rtol=0, atol=1.5e-2*tw.qx)
+    xo.assert_allclose(tw.dqy, tw_no_rad.dqy, rtol=0, atol=1.5e-2*tw.qy)
+
+    xo.assert_allclose(tw.x, tw_no_rad.x, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw.y, tw_no_rad.y, rtol=0, atol=1e-7)
+
+    xo.assert_allclose(tw.betx*p0corr, tw_no_rad.betx, rtol=2e-2, atol=0)
+    xo.assert_allclose(tw.bety*p0corr, tw_no_rad.bety, rtol=2e-2, atol=0)
+
+    xo.assert_allclose(tw.dx, tw.dx, rtol=0.0, atol=0.1e-3)
+
+    xo.assert_allclose(tw.dy, tw.dy, rtol=0.0, atol=0.1e-3)

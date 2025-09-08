@@ -46,6 +46,8 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
         /* factor_knl_ksl */ 1,
         kl_order,
         ks,
+        0., // x0_solenoid
+        0., // y0_solenoid
         length,
         face_angle,
         face_angle_feed_down,

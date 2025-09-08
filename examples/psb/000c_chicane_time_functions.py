@@ -8,7 +8,7 @@ import xdeps as xd
 
 import matplotlib.pyplot as plt
 
-line = xt.Line.from_json('psb_01_with_chicane.json')
+line = xt.load('psb_01_with_chicane.json')
 line.build_tracker()
 line.twiss_default['method'] = '4d'
 

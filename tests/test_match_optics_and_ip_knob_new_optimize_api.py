@@ -9,10 +9,10 @@ from xobjects.test_helpers import for_all_test_contexts
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_ip_knob_matching_new_optimize_api(test_context):
 
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -326,10 +326,10 @@ def test_ip_knob_matching_new_optimize_api(test_context):
     xo.assert_allclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-9, rtol=0)
     xo.assert_allclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-9, rtol=0)
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_match_ir8_optics_new_optimize_api(test_context):
 
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 

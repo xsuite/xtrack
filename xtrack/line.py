@@ -14,6 +14,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
 from typing import List, Literal, Optional, Dict
+from pathlib import Path
 
 import numpy as np
 from scipy.constants import c as clight
@@ -24,7 +25,7 @@ from . import json as json_utils
 import xobjects as xo
 import xtrack as xt
 import xdeps as xd
-from .beam_elements.magnets import (
+from .beam_elements.elements import (
     MagnetEdge, _MODEL_TO_INDEX_CURVED,
     _EDGE_MODEL_TO_INDEX,
 )
@@ -32,7 +33,8 @@ from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .mad_writer import to_madx_sequence
 from .madng_interface import (build_madng_model, discard_madng_model,
-                              regen_madng_model, _tw_ng, line_to_madng)
+                              regen_madng_model, _tw_ng, line_to_madng,
+                              _survey_ng)
 
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -48,7 +50,7 @@ from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
-from .beam_elements.slice_elements_thin import ID_RADIATION_FROM_PARENT
+from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type,
@@ -68,7 +70,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [xt.Drift, xt.Bend, xt.Quadrupole, xt.Sextupole,
                                  xt.LimitRacetrack, xt.LimitRectEllipse,
                                  xt.LimitRect, xt.LimitEllipse,
                                  xt.LimitPolygon, xt.RFMultipole, xt.RBend,
-                                 xt.Magnet]
+                                 xt.Magnet, xt.CrabCavity]
 
 
 _ALLOWED_ELEMENT_TYPES_DICT = {
@@ -494,7 +496,7 @@ class Line:
         allow_thick=None,
         name_prefix=None,
         enable_layout_data=False,
-        enable_thick_kickers=False,
+        enable_thick_kickers=True
     ):
 
         """
@@ -544,6 +546,9 @@ class Line:
 
         """
 
+        if not enable_thick_kickers:
+            raise "On-the-fly kicker slicing not supported anymore"
+
         class_namespace = mk_class_namespace(classes)
 
         loader = MadLoader(
@@ -564,7 +569,6 @@ class Line:
             allow_thick=allow_thick,
             name_prefix=name_prefix,
             enable_layout_data=enable_layout_data,
-            enable_thick_kickers=enable_thick_kickers,
         )
         line = loader.make_line()
         return line
@@ -656,6 +660,7 @@ class Line:
     discard_madng_model = discard_madng_model
     regen_madng_model = regen_madng_model
     madng_twiss = _tw_ng
+    madng_survey = _survey_ng
 
     def __repr__(self):
         if hasattr(self, '_name'):
@@ -1329,6 +1334,7 @@ class Line:
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,
+        coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
         betx=None, alfx=None, bety=None, alfy=None, bets=None,
@@ -2616,7 +2622,7 @@ class Line:
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
         at: int or string, optional
-            Index or name of the element in the line. If `index` is provided, `at_s` must be None. 
+            Index or name of the element in the line. If `index` is provided, `at_s` must be None.
         at_s: float, optional
             Position of the element in the line in meters. If `at_s` is provided, `index`
             must be None.
@@ -3232,7 +3238,7 @@ class Line:
             self, element=element, update_every=update_every, **kwargs
         )
 
-    def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
+    def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
         """
@@ -3242,7 +3248,9 @@ class Line:
         Parameters
         ----------
         delta0: float
-            Initial energy deviation.
+            Initial energy deviation. If `delta0='zero_mean'` is specified, the
+            compensation is done such that the mean energy deviation along the
+            ring is zero.
         rtol_eneloss: float
             Relative tolerance on energy loss.
         max_iter: int
@@ -3921,10 +3929,11 @@ class Line:
                 newline.append_element(ee, nn)
                 continue
 
-            if isinstance(ee, Multipole) and nn not in keep:
+            if isinstance(ee, Multipole) and nn not in keep and not ee.isthick:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
                 if (isinstance(prev_ee, Multipole)
+                    and not prev_ee.isthick
                     and prev_ee.hxl==ee.hxl==0
                     and prev_nn not in keep
                     ):
@@ -4784,8 +4793,6 @@ class Line:
             line=self,
             fields={
                 'delta_taper': None, 'ks': None,
-                'voltage': None, 'frequency': None, 'lag': None,
-                'lag_taper': None,
 
                 'weight': None,
 
@@ -4799,6 +4806,11 @@ class Line:
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
+
+                '_own_voltage': 'voltage',
+                '_own_lag': 'lag',
+                '_own_lag_taper': 'lag_taper',
+                '_own_frequency': 'frequency',
 
                 '_own_radiation_flag': 'radiation_flag',
 
@@ -4830,6 +4842,16 @@ class Line:
                 '_own_k4sl': ('ksl', 4),
                 '_own_k5sl': ('ksl', 5),
 
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_own_ref_shift_x':         'dx',
+                '_own_ref_shift_y':         'dy',
+                '_own_ref_rot_sin_angle':   'sin_angle',
+                '_own_ref_rot_cos_angle':   'cos_angle',
+                '_own_ref_rot_sin_z':       'sin_z',
+                '_own_ref_rot_cos_z':       'cos_z',
+
                 '_parent_length': (('_parent', 'length'), None),
                 '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
                 '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
@@ -4839,6 +4861,12 @@ class Line:
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
+                '_parent_rbend_model': (('_parent', 'rbend_model'), None),
+
+                '_parent_voltage': (('_parent', 'voltage'), None),
+                '_parent_lag': (('_parent', 'lag'), None),
+                '_parent_lag_taper': (('_parent', 'lag_taper'), None),
+                '_parent_frequency': (('_parent', 'frequency'), None),
 
                 '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
@@ -4870,11 +4898,22 @@ class Line:
                 '_parent_k4sl': (('_parent', 'ksl'), 4),
                 '_parent_k5sl': (('_parent', 'ksl'), 5),
 
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_parent_ref_shift_x': (('_parent', 'dx'), None),
+                '_parent_ref_shift_y': (('_parent', 'dy'), None),
+                '_parent_ref_rot_sin_angle': (('_parent', 'sin_angle'), None),
+                '_parent_ref_rot_cos_angle': (('_parent', 'cos_angle'), None),
+                '_parent_ref_rot_sin_z': (('_parent', 'sin_z'), None),
+                '_parent_ref_rot_cos_z': (('_parent', 'cos_z'), None),
+
             },
             derived_fields={
                 'length': lambda attr:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
-                'angle_rad': _angle_from_attr,
+                '_angle_force_body': _angle_force_body_from_attr,
+                'angle_rad': _angle_rbend_correction_from_attr,
                 'rot_s_rad': _rot_s_from_attr,
                 'shift_x': lambda attr:
                     attr['_own_shift_x'] + attr['_parent_shift_x']
@@ -4885,6 +4924,14 @@ class Line:
                 'shift_s': lambda attr:
                     attr['_own_shift_s'] + attr['_parent_shift_s']
                     * attr._rot_and_shift_from_parent,
+                'voltage': lambda attr:
+                    attr['_own_voltage'] + attr['_parent_voltage'] * attr['weight'] * attr._inherit_strengths,
+                'lag': lambda attr:
+                    attr['_own_lag'] + attr['_parent_lag'] * attr._inherit_strengths,
+                'lag_taper': lambda attr:
+                    attr['_own_lag_taper'] + attr['_parent_lag_taper'] * attr._inherit_strengths,
+                'frequency': lambda attr:
+                    attr['_own_frequency'] + attr['_parent_frequency'] * attr._inherit_strengths,
                 'radiation_flag': lambda attr:
                     attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
                   + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
@@ -4950,6 +4997,13 @@ class Line:
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
+                'ref_shift_x': lambda attr: attr['_own_ref_shift_x'] + attr['_parent_ref_shift_x'],
+                'ref_shift_y': lambda attr: attr['_own_ref_shift_y'] + attr['_parent_ref_shift_y'],
+                'ref_rot_angle_rad': lambda attr: np.arctan2(
+                    attr['_own_ref_rot_sin_angle'] + attr['_parent_ref_rot_sin_angle'] +\
+                    attr['_own_ref_rot_sin_z'] + attr['_parent_ref_rot_sin_z'],
+                    attr['_own_ref_rot_cos_angle'] + attr['_parent_ref_rot_cos_angle'] +\
+                    attr['_own_ref_rot_cos_z'] + attr['_parent_ref_rot_cos_z']),
             }
         )
         return cache
@@ -5459,6 +5513,15 @@ def _preserve_config(ln_or_trk):
         ln_or_trk.config.clear()
         ln_or_trk.config.update(config)
 
+@contextmanager
+def _preserve_track_flags(line):
+    old_flags = line.tracker.track_flags.flags.copy()
+    try:
+        yield
+    finally:
+        line.tracker.track_flags.flags.clear()
+        line.tracker.track_flags.flags.update(old_flags)
+
 
 @contextmanager
 def freeze_longitudinal(ln_or_trk):
@@ -5534,6 +5597,50 @@ class LineVars:
             raise ee
         if default_to_zero is not None:
             self.default_to_zero = old_default_to_zero
+
+    def load(
+            self,
+            file=None,
+            string=None,
+            format: Literal['json', 'madx', 'python'] = None,
+            timeout=5.,
+        ):
+
+        if isinstance(file, Path):
+            file = str(file)
+
+        if (file is None) == (string is None):
+            raise ValueError('Must specify either file or string, but not both')
+
+        FORMATS = {'json', 'madx', 'python'}
+        if string and format not in FORMATS:
+            raise ValueError(f'Format must be specified to be one of {FORMATS} when '
+                            f'using string input')
+
+        if format is None and file is not None:
+            if file.endswith('.json') or file.endswith('.json.gz'):
+                format = 'json'
+            elif file.endswith('.str') or file.endswith('.madx'):
+                format = 'madx'
+            elif file.endswith('.py'):
+                format = 'python'
+
+        if file and (file.startswith('http://') or file.startswith('https://')):
+            string = xt.general.read_url(file, timeout=timeout)
+            file = None
+
+        if format == 'json':
+            ddd = xt.json.load(file=file, string=string)
+            self.update(ddd, default_to_zero=True)
+        elif format == 'madx':
+            return self.load_madx(file, string)
+        elif format == 'python':
+            if string is not None:
+                raise NotImplementedError('Loading from string not implemented for python format')
+            env = xt.Environment()
+            env.call(file)
+            self.update(env.vars.get_table().to_dict(), default_to_zero=True)
+            return env
 
     @property
     def vary_default(self):
@@ -5640,8 +5747,8 @@ class LineVars:
             assert filename is None, 'Cannot specify both filename and string'
             loader.load_string(string)
 
-    def load_madx_optics_file(self, filename):
-        self.set_from_madx_file(filename)
+    def load_madx_optics_file(self, filename=None, string=None):
+        self.set_from_madx_file(filename, string)
 
     load_madx = load_madx_optics_file
 
@@ -5675,37 +5782,6 @@ class LineVars:
                 self[kk] = _eval(kwargs[kk])
             else:
                 self[kk] = kwargs[kk]
-
-    def load(self, file=None, string=None, format=None, timeout=5.):
-
-        if format is None and file is not None:
-            if file.endswith('.json'):
-                format = 'json'
-            elif file.endswith('.seq') or file.endswith('.madx') or file.endswith('.mad'):
-                format = 'madx'
-
-        if file.startswith('http://') or file.startswith('https://'):
-            assert string is None, 'Cannot specify both fname and string'
-            string = xt.general.read_url(file, timeout=timeout)
-            file = None
-
-        if file is not None:
-            assert string is None, 'Cannot specify both fname and string'
-
-        if string is not None:
-            assert file is None, 'Cannot specify both fname and string'
-            assert format is not None, 'Must specify format when using string'
-
-        assert format in ['json', 'madx'], f'Unknown format {format}'
-
-        if format == 'json':
-            ddd = xt.json.load(file=file, string=string)
-            self.update(ddd)
-        elif format == 'madx':
-            return self.set_from_madx_file(filename=file, string=string)
-        else:
-            raise ValueError(f'Unknown format {format}')
-
 
     def set(self, name, value):
         if isinstance(value, str):
@@ -6079,7 +6155,11 @@ def _vars_unused(line):
         return True
     return False
 
-def _angle_from_attr(attr):
+def _angle_force_body_from_attr(attr):
+
+    """This angle has always the curvature in the body, even for RBend elements
+    with rbend_model='straight-body'. It is used mostly for plotting purposes.
+    """
 
     weight = attr['weight']
 
@@ -6095,6 +6175,30 @@ def _angle_from_attr(attr):
                                 * attr._inherit_strengths)
 
     angle = own_hxl_proper_system + parent_hxl_proper_system
+
+    return angle
+
+def _angle_rbend_correction_from_attr(attr):
+
+    angle = attr['_angle_force_body'].copy()
+
+    ## Correction for RBend elements
+
+    # Retrieve element_type from tracker cache (remove _end_point)
+    element_type = attr.line.tracker._tracker_data_base._line_table.element_type[:-1]
+
+    mask_rbend_edges = ((element_type == 'ThinSliceRBendEntry')
+                        | (element_type == 'ThinSliceRBendExit'))
+    mask_rbend_body_slices = ((element_type == 'ThinSliceRBend')
+                            | (element_type == 'ThickSliceRBend'))
+    mask_parent_is_rbend_straigth_body = (attr['_parent_rbend_model'] == 2)
+    mask_rbend_edges_straight_body = (mask_rbend_edges
+                                      & mask_parent_is_rbend_straigth_body)
+
+    angle[mask_parent_is_rbend_straigth_body & mask_rbend_body_slices] = 0
+    angle[mask_rbend_edges_straight_body] = 0.5 * (
+        attr['_parent_h'][mask_rbend_edges_straight_body]
+        * attr['_parent_length'][mask_rbend_edges_straight_body])
 
     return angle
 

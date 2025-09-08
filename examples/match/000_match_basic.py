@@ -1,7 +1,7 @@
 import xtrack as xt
 
 # Load a line and build a tracker
-line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 line.build_tracker()
 
 # Match tunes and chromaticities to assigned values

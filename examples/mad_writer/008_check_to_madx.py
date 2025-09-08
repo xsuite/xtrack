@@ -2,10 +2,10 @@ import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
 
-# line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+# line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 
 
-line = xt.Environment.from_json(
+line = xt.load(
     '../../test_data/hllhc15_collider/collider_00_from_mad.json').lhcb1
 # Rotations not supported in thin
 for nn in list(line.element_names):

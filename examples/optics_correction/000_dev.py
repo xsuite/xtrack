@@ -1,7 +1,7 @@
 import xtrack as xt
 import numpy as np
 
-line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 line.twiss_default.update({'strengths': False, 'method': '4d'})
 tw0 = line.twiss()
 

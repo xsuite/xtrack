@@ -17,6 +17,7 @@ CERN contributors:
  - S. Lopaciuk
  - J. Salvesen
  - G. Sterbini
+ - S. Van Der Schueren
  - F. Van Der Veken
 
 External contributors:

@@ -1,42 +1,31 @@
 import xobjects as xo
+import numpy as np
 
 from ..general import _pkg_root
 from ..base_element import BeamElement
-from .slice_elements_thin import _slice_copy, ID_RADIATION_FROM_PARENT, _common_xofields
+from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from .elements import (
     Bend, Quadrupole, Sextupole,
     Octupole, RBend, UniformSolenoid, DipoleEdge, Marker, MultipoleEdge
 )
+from ..survey import advance_element as survey_advance_element
 
-class ThinSliceBendEntry(BeamElement):
+class _ThinSliceEdgeBase(_SliceBase):
 
-    allow_rot_and_shift = False
     rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
+    allow_loss_refinement = False
+    isthick=False
     _inherit_strengths = False
 
-    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
+class ThinSliceBendEntry(_ThinSliceEdgeBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_dipole_edge_nonlinear.h'),
         '#include <beam_elements/elements_src/thin_slice_bend_entry.h>'
     ]
-
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
 
     def get_equivalent_element(self):
 
@@ -58,33 +47,13 @@ class ThinSliceBendEntry(BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
+class ThinSliceBendExit(_ThinSliceEdgeBase, BeamElement):
 
-class ThinSliceBendExit(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
-
-    _xofields = {'_parent': xo.Ref(Bend), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_bend_exit.h>'
     ]
-
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
 
     def get_equivalent_element(self):
 
@@ -107,34 +76,14 @@ class ThinSliceBendExit(BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
+class ThinSliceQuadrupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
-class ThinSliceQuadrupoleEntry(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
-
-    _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_quadrupole_entry.h>'
     ]
 
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
-
     def get_equivalent_element(self):
         if self._parent.edge_entry_active:
             return MultipoleEdge(
@@ -150,34 +99,14 @@ class ThinSliceQuadrupoleEntry(BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
+class ThinSliceQuadrupoleExit(_ThinSliceEdgeBase, BeamElement):
 
-class ThinSliceQuadrupoleExit(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
-
-    _xofields = {'_parent': xo.Ref(Quadrupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Quadrupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_quadrupole_exit.h>'
     ]
 
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
-
     def get_equivalent_element(self):
         if self._parent.edge_exit_active:
             return MultipoleEdge(
@@ -193,34 +122,14 @@ class ThinSliceQuadrupoleExit(BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
+class ThinSliceSextupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
-class ThinSliceSextupoleEntry(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
-
-    _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_sextupole_entry.h>'
     ]
 
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
-
     def get_equivalent_element(self):
         if self._parent.edge_entry_active:
             return MultipoleEdge(
@@ -236,34 +145,14 @@ class ThinSliceSextupoleEntry(BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
+class ThinSliceSextupoleExit(_ThinSliceEdgeBase, BeamElement):
 
-class ThinSliceSextupoleExit(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
-
-    _xofields = {'_parent': xo.Ref(Sextupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_sextupole_exit.h>'
     ]
 
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
-
     def get_equivalent_element(self):
         if self._parent.edge_exit_active:
             return MultipoleEdge(
@@ -279,33 +168,13 @@ class ThinSliceSextupoleExit(BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
+class ThinSliceOctupoleEntry(_ThinSliceEdgeBase, BeamElement):
 
-class ThinSliceOctupoleEntry(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
-
-    _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_octupole_entry.h>'
     ]
-
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
 
     def get_equivalent_element(self):
         if self._parent.edge_entry_active:
@@ -322,33 +191,13 @@ class ThinSliceOctupoleEntry(BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
+class ThinSliceOctupoleExit(_ThinSliceEdgeBase, BeamElement):
 
-class ThinSliceOctupoleExit(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
-
-    _xofields = {'_parent': xo.Ref(Octupole), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_octupole_exit.h>'
     ]
-
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
 
     def get_equivalent_element(self):
         if self._parent.edge_exit_active:
@@ -365,99 +214,41 @@ class ThinSliceOctupoleExit(BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceUniformSolenoidEntry(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
+class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(UniformSolenoid), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_uniform_solenoid_entry.h>'
     ]
 
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
-
     def get_equivalent_element(self):
         if self._parent.edge_entry_active:
             raise NotImplementedError
         else:
             return Marker(_buffer=self._buffer)
 
-class ThinSliceUniformSolenoidExit(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
+class ThinSliceUniformSolenoidExit(_ThinSliceEdgeBase, BeamElement):
 
-    _xofields = {'_parent': xo.Ref(UniformSolenoid), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(UniformSolenoid), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_uniform_solenoid_exit.h>'
     ]
 
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
-
     def get_equivalent_element(self):
         if self._parent.edge_entry_active:
             raise NotImplementedError
         else:
             return Marker(_buffer=self._buffer)
 
+class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
 
-class ThinSliceRBendEntry(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
-
-    _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
+    _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_rbend_entry.h>'
     ]
-
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
 
     def get_equivalent_element(self):
 
@@ -479,33 +270,71 @@ class ThinSliceRBendEntry(BeamElement):
         else:
             return Marker(_buffer=self._buffer)
 
+    def _propagate_survey(self, v, w, backtrack):
 
-class ThinSliceRBendExit(BeamElement):
-    allow_rot_and_shift = False
-    rot_and_shift_from_parent = True
-    _skip_in_to_dict = ['_parent']
-    has_backtrack = True
-    _force_moveable = True
-    _inherit_strengths = False
+        if self._parent.rbend_model == "straight-body":
+            rbend_shift_tot = self._parent.sagitta / 2  + self._parent.rbend_shift
+            if backtrack:
+                if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
+                    v, w = survey_advance_element(
+                        v               = v,
+                        w               = w,
+                        length          = 0,
+                        angle           = 0,
+                        tilt            = 0,
+                        ref_shift_x     = -rbend_shift_tot * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = -rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_rot_x_rad   = 0,
+                        ref_rot_y_rad   = 0,
+                        ref_rot_s_rad   = 0,
+                    )
+                v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = -self._parent.angle / 2.,
+                    tilt            = self._parent.rot_s_rad,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+            else:
+                v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = self._parent.angle / 2.,
+                    tilt            = self._parent.rot_s_rad,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+                if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
+                    v, w = survey_advance_element(
+                        v               = v,
+                        w               = w,
+                        length          = 0,
+                        angle           = 0,
+                        tilt            = 0,
+                        ref_shift_x     = rbend_shift_tot * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_rot_x_rad   = 0,
+                        ref_rot_y_rad   = 0,
+                        ref_rot_s_rad   = 0,
+                    )
+        return v, w
 
-    _xofields = {'_parent': xo.Ref(RBend), **_common_xofields}
+class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
+
+    _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/thin_slice_rbend_exit.h>'
     ]
-
-    copy = _slice_copy
-
-    def to_dict(self, **kwargs):
-        dct = BeamElement.to_dict(self, **kwargs)
-        dct['parent_name'] = self.parent_name
-        return dct
-
-    @classmethod
-    def from_dict(cls, dct, **kwargs):
-        obj = super().from_dict(dct, **kwargs)
-        obj.parent_name = dct['parent_name']
-        return obj
 
     def get_equivalent_element(self):
 
@@ -526,4 +355,62 @@ class ThinSliceRBendExit(BeamElement):
             )
         else:
             return Marker(_buffer=self._buffer)
+
+    def _propagate_survey(self, v, w, backtrack):
+
+        if self._parent.rbend_model == "straight-body":
+            rbend_shift_tot = self._parent.sagitta / 2  + self._parent.rbend_shift
+            if backtrack:
+                v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = -self._parent.angle / 2.,
+                    tilt            = self._parent.rot_s_rad,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+                if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
+                    v, w = survey_advance_element(
+                        v               = v,
+                        w               = w,
+                        length          = 0,
+                        angle           = 0,
+                        tilt            = 0,
+                        ref_shift_x     = rbend_shift_tot * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_rot_x_rad   = 0,
+                        ref_rot_y_rad   = 0,
+                        ref_rot_s_rad   = 0,
+                    )
+            else:
+                if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
+                    v, w = survey_advance_element(
+                        v               = v,
+                        w               = w,
+                        length          = 0,
+                        angle           = 0,
+                        tilt            = 0,
+                        ref_shift_x     = -rbend_shift_tot * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = -rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_rot_x_rad   = 0,
+                        ref_rot_y_rad   = 0,
+                        ref_rot_s_rad   = 0,
+                    )
+                v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = self._parent.angle / 2.,
+                    tilt            = self._parent.rot_s_rad,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+        return v, w
 

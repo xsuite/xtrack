@@ -9,14 +9,14 @@ import matplotlib.pyplot as plt
 core = 'full'
 edge = 'full'
 
-line_thick = xt.Line.from_json('psb_03_with_chicane_corrected.json')
+line_thick = xt.load('psb_03_with_chicane_corrected.json')
 line_thick.build_tracker()
 line_thick.configure_bend_model(core='full', edge='full')
 line_thick.vars['on_chicane_beta_corr'] = 0
 line_thick.vars['on_chicane_tune_corr'] = 0
 line_thick.configure_bend_model(core=core, edge=edge)
 
-line_thin = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
+line_thin = xt.load('psb_04_with_chicane_corrected_thin.json')
 line_thin.build_tracker()
 line_thin.vars['on_chicane_beta_corr'] = 0
 line_thin.vars['on_chicane_tune_corr'] = 0

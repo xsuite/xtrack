@@ -23,7 +23,7 @@ t_s = df.t_s.values
 # # Shift the time scale for testing purposes
 # t_s = t_s + 5e-3
 
-line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
+line = xt.load('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()
 line['br1.acwf7l1.1'].voltage = 2e3
 

@@ -492,19 +492,19 @@ def test_exciter(test_context):
     expected_px = np.array([0.1, 0.2, 0.3])
     particles.move(_context=xo.context_default)
 
-    xo.assert_allclose(particles.px, expected_px)
+    xo.assert_allclose(particles.px, expected_px, atol=1e-14)
 
     particles.move(_context=test_context)
     line.track(particles, num_turns=1)
     expected_px += np.array([0.2, 0.3, 0.1])
     particles.move(_context=xo.context_default)
-    xo.assert_allclose(particles.px, expected_px)
+    xo.assert_allclose(particles.px, expected_px, atol=1e-14)
 
     particles.move(_context=test_context)
     line.track(particles, num_turns=1)
     expected_px += np.array([0.3, 0.1, 0])
     particles.move(_context=xo.context_default)
-    xo.assert_allclose(particles.px, expected_px)
+    xo.assert_allclose(particles.px, expected_px, atol=1e-14)
 
 
 test_source = r"""

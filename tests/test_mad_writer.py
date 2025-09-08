@@ -14,10 +14,10 @@ test_data_folder = pathlib.Path(
 def test_mad_writer(case):
 
     if case == 'thick':
-        line = xt.Line.from_json(
+        line = xt.load(
             test_data_folder / 'hllhc15_thick/lhc_thick_with_knobs.json')
     else:
-        line = xt.Environment.from_json(
+        line = xt.load(
             test_data_folder / 'hllhc15_collider/collider_00_from_mad.json').lhcb1
         # Rotations not supported in thin
         for nn in list(line.element_names):

@@ -4,11 +4,11 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-# line = xt.Line.from_json('fccee_z_with_sol_corrected.json')
+# line = xt.load('fccee_z_with_sol_corrected.json')
 # n_turns_track_test = 6000
 # num_particles_test = 150
 
-line = xt.Line.from_json('fccee_t_with_sol_corrected.json')
+line = xt.load('fccee_t_with_sol_corrected.json')
 n_turns_track_test = 200
 num_particles_test = 200
 

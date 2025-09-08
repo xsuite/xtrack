@@ -48,7 +48,10 @@ void ThinSliceRBend_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    0.,
         /*dks_ds*/                0.,
-        /*rbend_model*/           0, // auto mode, curved body
+        /*x0_solenoid*/           0.,
+        /*y0_solenoid*/           0.,
+        /*rbend_model*/           ThinSliceRBendData_get__parent_rbend_model(el),
+        /*rbend_shift*/           ThinSliceRBendData_get__parent_rbend_shift(el),
         /*body_active*/           1,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,

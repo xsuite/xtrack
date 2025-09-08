@@ -26,7 +26,7 @@ line = env.new_line(components=[
 line.to_json('line.json')
 
 # Load from json
-line_2 = xt.Line.from_json('line.json')
+line_2 = xt.load('line.json')
 
 # Alternatively the to_dict method can be used, which is more flexible for
 # example to save additional information in the json file
