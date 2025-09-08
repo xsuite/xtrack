@@ -515,6 +515,8 @@ def twiss_line(line, particle_ref=None, method=None,
         if line._radiation_model == 'quantum':
             raise ValueError(
                 'twiss cannot be called when the radiation model is `quantum`')
+        if method == '4d':
+            raise RuntimeError('4d twiss cannot be called when radiation is present')
         radiation_method = 'kick_as_co'
 
     if radiation_method is not None and radiation_method != 'full':
@@ -2124,6 +2126,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
     if method == '4d' and delta0 is None:
         delta0 = 0
+
+    if method == '6d' and delta0 is not None:
+        raise ValueError('delta0 should be None when method is "6d"')
 
     if periodic_mode == 'periodic_symmetric':
         raise ValueError('`periodic_symmetric` not supported anymore')

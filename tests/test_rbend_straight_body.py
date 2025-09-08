@@ -1376,7 +1376,7 @@ def test_rbend_straight_body_thin_slices_fine():
                 at=2.5)])
     line.insert('start', xt.Marker(), at=0)
     line.append('end', xt.Marker())
-    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    line.configure_drift_model('exact')
 
     line_no_slice = line.copy(shallow=True)
 

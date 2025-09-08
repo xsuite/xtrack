@@ -61,7 +61,7 @@ sv_mad = xt.Table(mad.table.survey)
 tw_ptc = xt.Table(mad.table.ptc_twiss)
 
 line.config.XTRACK_GLOBAL_XY_LIMIT = None
-line.config.XTRACK_USE_EXACT_DRIFTS = True
+line.configure_drift_model(model='exact')
 
 sv = line.survey()
 tw = line.twiss(betx=1, bety=1, x=1e-3, y=2e-3)

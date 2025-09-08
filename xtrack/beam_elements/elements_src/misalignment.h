@@ -24,10 +24,6 @@ void Misalignment_track_local_particle(MisalignmentData el, LocalParticle* part0
     const double tilt = MisalignmentData_get_tilt(el);
     const double is_exit = MisalignmentData_get_is_exit(el);
 
-    #ifdef XSUITE_BACKTRACK
-        voltage = -voltage;
-    #endif
-
     if (!is_exit) {
         if (NONZERO(angle)) {
             track_misalignment_entry_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle, tilt);

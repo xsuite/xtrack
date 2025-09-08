@@ -14,9 +14,9 @@ GPUFUN
 void DriftExact_track_local_particle(DriftExactData el, LocalParticle* part0){
 
     double length = DriftExactData_get_length(el);
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         length = -length;
-    #endif
+    }
 
     START_PER_PARTICLE_BLOCK(part0, part);
         Drift_single_particle_exact(part, length);
