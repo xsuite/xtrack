@@ -296,6 +296,9 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
     # We verified that they are really at the edge. Their coordinates
     # correspond to the end fo the short line, which is correct
 
+    if np.any(part_refine.state<0): # Some particles are lost but not on instelled limits
+        raise RuntimeError(f'Particles are lost with error codes: {part_refine.state[part_refine.state<0]}')
+
     if inplace:
         indx_sorted = np.argsort(part_refine.particle_id)
         with particles._bypass_linked_vars():
