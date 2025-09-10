@@ -56,12 +56,21 @@ void track_misalignment_entry_straight(
     const double mis_s = ds - anchor * (cos(phi) * cos(theta) - 1);
 
     // Apply transformations
-    XY_SHIFT(part0, mis_x, mis_y);
-    S_SHIFT(part0, mis_s);
-    Y_ROTATE(part0, theta);
-    X_ROTATE(part0, phi);
-    S_ROTATE(part0, psi_no_frame);
-    S_ROTATE(part0, psi_with_frame);
+    if (!backtrack){
+        XY_SHIFT(part0, mis_x, mis_y);
+        S_SHIFT(part0, mis_s);
+        Y_ROTATE(part0, theta);
+        X_ROTATE(part0, phi);
+        S_ROTATE(part0, psi_no_frame);
+        S_ROTATE(part0, psi_with_frame);
+    } else {
+        S_ROTATE(part0, -psi_with_frame);
+        S_ROTATE(part0, -psi_no_frame);
+        X_ROTATE(part0, -phi);
+        Y_ROTATE(part0, -theta);
+        S_SHIFT(part0, -mis_s);
+        XY_SHIFT(part0, -mis_x, -mis_y);
+    }
 }
 
 
@@ -85,12 +94,21 @@ void track_misalignment_exit_straight(
     const double mis_s = neg_part_length * (cos(phi) * cos(theta) - 1) - ds;
 
     // Apply transformations
-    S_ROTATE(part0, -psi_with_frame);
-    S_ROTATE(part0, -psi_no_frame);
-    X_ROTATE(part0, -phi);
-    Y_ROTATE(part0, -theta);
-    S_SHIFT(part0, mis_s);
-    XY_SHIFT(part0, mis_x, mis_y);
+    if (!backtrack){
+        S_ROTATE(part0, -psi_with_frame);
+        S_ROTATE(part0, -psi_no_frame);
+        X_ROTATE(part0, -phi);
+        Y_ROTATE(part0, -theta);
+        S_SHIFT(part0, mis_s);
+        XY_SHIFT(part0, mis_x, mis_y);
+    } else {
+        XY_SHIFT(part0, -mis_x, -mis_y);
+        S_SHIFT(part0, -mis_s);
+        Y_ROTATE(part0, theta);
+        X_ROTATE(part0, phi);
+        S_ROTATE(part0, psi_no_frame);
+        S_ROTATE(part0, psi_with_frame);
+    }
 }
 
 
