@@ -345,7 +345,6 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
             angle=angle,
             model='rot-kick-rot',
             k0=0.09,
-            # rot_s_rad=tilt,
         )
     elif element_type == 'Quadrupole':
         angle = 0
@@ -353,7 +352,6 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
         element = xt.Quadrupole(
             length=length,
             k1=0.09,
-            # rot_s_rad=tilt,
         )
     elif element_type == 'Multipole':
         angle = 0
@@ -362,7 +360,6 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
             length=5,
             knl=[0.04, 0.09],
             ksl=[0.02, 0.01],
-            # rot_s_rad=tilt,
         )
     else:
         raise ValueError(f"Test not implemented for {element_type}")
@@ -398,6 +395,7 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
     transformed_element.rot_x_rad = phi
     transformed_element.rot_y_rad = theta
     transformed_element.rot_s_rad_no_frame = psi
+    transformed_element.rot_s_rad = tilt
     transformed_element.rot_shift_anchor = anchor
 
     line_test = xt.Line(elements=[transformed_element])
