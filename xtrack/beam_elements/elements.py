@@ -371,7 +371,7 @@ class Drift(_HasModelDrift, BeamElement):
 
     _no_expr_fields = {'model'}
 
-    def __init__(self, length=None, **kwargs):
+    def __init__(self, length=None, model=None, **kwargs):
 
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -380,6 +380,10 @@ class Drift(_HasModelDrift, BeamElement):
         if length:  # otherwise length cannot be set as a positional argument
             kwargs['length'] = length
         super().__init__(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
 
     @property
     def _thin_slice_class(self):
