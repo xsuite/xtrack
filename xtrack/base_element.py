@@ -165,7 +165,11 @@ def _generate_track_local_particle_with_transformations(
             )
 
         source += (
-            f'    track_misalignment_entry_{element_shape}(part0, {misalign_arguments}, backtrack);'
+            '     if (!backtrack) {\n'
+            f'      track_misalignment_entry_{element_shape}(part0, {misalign_arguments}, backtrack);'
+            '     } else {\n'
+            f'      track_misalignment_exit_{element_shape}(part0, {misalign_arguments}, backtrack);\n'
+            '     }\n'
             '\n'
             '    /* Spin tracking is disabled by the synrad compile flag */\n'
             '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
