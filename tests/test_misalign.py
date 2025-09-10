@@ -112,7 +112,7 @@ def test_misalign_drift(angle, tilt, test_context):
             angle=angle,
             length=length,
             k0=0,
-            rot_s_rad=tilt,
+            # rot_s_rad=tilt,
             model='rot-kick-rot',
             _context=test_context,
         )
@@ -206,9 +206,9 @@ def test_misalign_vs_madng(angle, tilt):
     psi = 0.5  # rad
 
     if angle:
-        element = xt.Bend(length=length, angle=angle, model='rot-kick-rot', k0=k0, rot_s_rad=tilt)
+        element = xt.Bend(length=length, angle=angle, model='rot-kick-rot', k0=k0)#, rot_s_rad=tilt)
     else:
-        element = xt.Solenoid(length=length, ks=ks, rot_s_rad=tilt)
+        element = xt.Solenoid(length=length, ks=ks)#, rot_s_rad=tilt)
 
     # Track in Xsuite
     p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
@@ -345,7 +345,7 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
             angle=angle,
             model='rot-kick-rot',
             k0=0.09,
-            rot_s_rad=tilt,
+            # rot_s_rad=tilt,
         )
     elif element_type == 'Quadrupole':
         angle = 0
@@ -353,7 +353,7 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
         element = xt.Quadrupole(
             length=length,
             k1=0.09,
-            rot_s_rad=tilt,
+            # rot_s_rad=tilt,
         )
     elif element_type == 'Multipole':
         angle = 0
@@ -362,7 +362,7 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
             length=5,
             knl=[0.04, 0.09],
             ksl=[0.02, 0.01],
-            rot_s_rad=tilt,
+            # rot_s_rad=tilt,
         )
     else:
         raise ValueError(f"Test not implemented for {element_type}")

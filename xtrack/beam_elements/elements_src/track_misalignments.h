@@ -203,6 +203,7 @@ void track_misalignment_entry_curved(
     Y_ROTATE(part0, rot_theta);
     X_ROTATE(part0, rot_phi);
     S_ROTATE(part0, rot_psi);
+    S_ROTATE(part0, psi_with_frame);
 }
 
 
@@ -322,6 +323,7 @@ void track_misalignment_exit_curved(
     double rot_psi = atan2(realign[1][0], realign[1][1]);
 
     // Apply transformations
+    S_ROTATE(part0, -psi_with_frame);
     XY_SHIFT(part0, mis_x, mis_y);
     S_SHIFT(part0, mis_s);
     Y_ROTATE(part0, rot_theta);
