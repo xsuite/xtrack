@@ -143,6 +143,7 @@ def _generate_track_local_particle_with_transformations(
             f'    {get_length};\n'
             f'    {get_angle};\n'
             f'    double const anchor = {element_name}Data_get{add_to_call}_rot_shift_anchor(el);\n'
+            f'    int8_t const backtrack = 0; // Always false for now\n'
             '\n')
 
         if rot_and_shift_from_parent:
@@ -164,7 +165,7 @@ def _generate_track_local_particle_with_transformations(
             )
 
         source += (
-            f'    track_misalignment_entry_{element_shape}(part0, {misalign_arguments});'
+            f'    track_misalignment_entry_{element_shape}(part0, {misalign_arguments}, backtrack);'
             '\n'
             '    /* Spin tracking is disabled by the synrad compile flag */\n'
             '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
@@ -196,6 +197,7 @@ def _generate_track_local_particle_with_transformations(
             f'    {get_length};\n'
             f'    {get_angle};\n'
             f'    double const anchor = {element_name}Data_get{add_to_call}_rot_shift_anchor(el);\n'
+            f'    int8_t const backtrack = 0; // Always false for now\n'
             '\n'
             '    /* Spin tracking is disabled by the synrad compile flag */\n'
             '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
@@ -212,7 +214,7 @@ def _generate_track_local_particle_with_transformations(
             '       //end_per_particle_block\n'
             '    #endif\n'
             '\n'
-            f'    track_misalignment_exit_{element_shape}(part0, {misalign_arguments});'
+            f'    track_misalignment_exit_{element_shape}(part0, {misalign_arguments}, backtrack);'
             '}\n'
         )
     else:

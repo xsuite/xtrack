@@ -45,7 +45,8 @@ void track_misalignment_entry_straight(
     double psi_no_frame,  // rotation around s, roll, positive y to x
     double anchor, // anchor of the misalignment as offset in m from entry
     double length,  // length of the misaligned element
-    double psi_with_frame  // psi_with_frame of the element, positive s to x
+    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    int8_t backtrack
 ) {
     // Silence the warning about unused variable length
     (void)length; // kept for API consistency with track_misalignment_exit_straight
@@ -75,7 +76,8 @@ void track_misalignment_exit_straight(
     double psi_no_frame,  // rotation around s, roll, positive y to x
     double anchor, // anchor of the misalignment as offset in m from entry
     double length,  // length of the misaligned element
-    double psi_with_frame  // psi_with_frame of the element, positive s to x
+    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    int8_t backtrack
 ) {
     const double neg_part_length = anchor - length;
     const double mis_x = neg_part_length * cos(phi) * sin(theta) - dx;
@@ -104,10 +106,12 @@ void track_misalignment_entry_curved(
     double anchor, // anchor of the misalignment as offset in m from entry
     double length,  // length of the misaligned element
     double angle,  // angle by which the element bends the reference frame
-    double psi_with_frame  // psi_with_frame of the element, positive s to x
+    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    int8_t backtrack
 ) {
     if (angle == 0.0) {
-        track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi, psi_no_frame, anchor, length, psi_with_frame);
+        track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi,
+            psi_no_frame, anchor, length, psi_with_frame, backtrack);
         return;
     }
     // Precompute trigonometric functions
@@ -219,11 +223,13 @@ void track_misalignment_exit_curved(
     double anchor, // anchor of the misalignment as a fraction of the length
     double length,  // length of the misaligned element
     double angle,  // angle by which the element bends the reference frame
-    double psi_with_frame  // psi_with_frame of the element, positive s to x
+    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    int8_t backtrack  // whether to backtrack the particle
 ) {
     if (angle == 0.0) {
         track_misalignment_exit_straight(
-            part0, dx, dy, ds, theta, phi, psi_no_frame, anchor, length, psi_with_frame);
+            part0, dx, dy, ds, theta, phi, psi_no_frame, anchor, length,
+            psi_with_frame, backtrack);
         return;
     }
     // Precompute trigonometric functions
