@@ -338,12 +338,21 @@ void track_misalignment_exit_curved(
     double rot_psi = atan2(realign[1][0], realign[1][1]);
 
     // Apply transformations
-    S_ROTATE(part0, -psi_with_frame);
-    XY_SHIFT(part0, mis_x, mis_y);
-    S_SHIFT(part0, mis_s);
-    Y_ROTATE(part0, rot_theta);
-    X_ROTATE(part0, rot_phi);
-    S_ROTATE(part0, rot_psi);
+    if (!backtrack){
+        S_ROTATE(part0, -psi_with_frame);
+        XY_SHIFT(part0, mis_x, mis_y);
+        S_SHIFT(part0, mis_s);
+        Y_ROTATE(part0, rot_theta);
+        X_ROTATE(part0, rot_phi);
+        S_ROTATE(part0, rot_psi);
+    } else {
+        S_ROTATE(part0, -rot_psi);
+        X_ROTATE(part0, -rot_phi);
+        Y_ROTATE(part0, -rot_theta);
+        S_SHIFT(part0, -mis_s);
+        XY_SHIFT(part0, -mis_x, -mis_y);
+        S_ROTATE(part0, psi_with_frame);
+    }
 }
 
 
