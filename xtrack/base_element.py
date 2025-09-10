@@ -110,12 +110,12 @@ def _generate_track_local_particle_with_transformations(
             element_shape = 'curved'
             misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length, angle, rot_s_rad'
             get_angle = f'double const angle = {element_name}Data_get{add_to_call}_angle(el)'
-            get_rot_s_rad = 'double const rot_s_rad = atan2(_sin_rot_s, _cos_rot_s)'
         else:
             element_shape = 'straight'
-            misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length'
+            misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length, rot_s_rad'
             get_angle = ''
             get_rot_s_rad = ''
+        get_rot_s_rad = 'double const rot_s_rad = atan2(_sin_rot_s, _cos_rot_s)'
 
         if 'isthick' in xofields:
             get_length = (
