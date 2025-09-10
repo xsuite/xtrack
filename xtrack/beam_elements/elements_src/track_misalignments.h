@@ -60,6 +60,7 @@ void track_misalignment_entry_straight(
     Y_ROTATE(part0, theta);
     X_ROTATE(part0, phi);
     S_ROTATE(part0, psi_no_frame);
+    S_ROTATE(part0, psi_with_frame);
 }
 
 
@@ -82,6 +83,7 @@ void track_misalignment_exit_straight(
     const double mis_s = neg_part_length * (cos(phi) * cos(theta) - 1) - ds;
 
     // Apply transformations
+    S_ROTATE(part0, -psi_with_frame);
     S_ROTATE(part0, -psi_no_frame);
     X_ROTATE(part0, -phi);
     Y_ROTATE(part0, -theta);

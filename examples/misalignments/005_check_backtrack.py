@@ -8,7 +8,7 @@ line = env.new_line(length=5, components=[
 ])
 
 line['q'].rot_shift_anchor=0.5
-line['q'].rot_x_rad=0.1
+line['q'].rot_s_rad=0.1
 
 tw = line.twiss(betx=1, bety=2)
 print("tw:", tw)
