@@ -415,6 +415,16 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
     xo.assert_allclose(p_ref.zeta, p_test.zeta, atol=1e-15, rtol=1e-15)
     xo.assert_allclose(p_ref.s, p_test.s, atol=1e-15, rtol=1e-15)
 
+    # Check backtrak
+    line_test.track(p_test, backtrack=True)
+    xo.assert_allclose(p_test.x, p0.x, atol=1e-14, rtol=1e-14)
+    xo.assert_allclose(p_test.px, p0.px, atol=1e-14, rtol=1e-14)
+    xo.assert_allclose(p_test.y, p0.y, atol=1e-14, rtol=1e-14)
+    xo.assert_allclose(p_test.py, p0.py, atol=1e-14, rtol=1e-14)
+    xo.assert_allclose(p_test.delta, p0.delta, atol=1e-14, rtol=1e-14)
+    xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=1e-14)
+    xo.assert_allclose(p_test.s, p0.s, atol=1e-14, rtol=1e-14)
+
 def test_errors_on_slices():
 
     env = xt.Environment()
