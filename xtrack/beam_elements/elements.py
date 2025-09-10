@@ -369,7 +369,7 @@ class Drift(_HasModelDrift, BeamElement):
         'model': '_model',
     }
 
-    _no_expr_fields = {'model'}
+    _noexpr_fields = {'model'}
 
     def __init__(self, length=None, model=None, **kwargs):
 
