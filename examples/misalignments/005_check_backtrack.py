@@ -18,7 +18,7 @@ line['q'].shift_y=-0.002
 line['q'].shift_s=0.003
 
 
-tw = line.twiss(betx=1, bety=2)
+tw = line.twiss(betx=1, bety=2, delta=1e-2)
 print("tw:", tw)
 tw_back = line.twiss(init_at='end', init=tw)
 print("tw_back:", tw_back)
