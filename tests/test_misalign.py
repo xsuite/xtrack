@@ -156,6 +156,9 @@ def test_misalign_drift(angle, tilt, test_context):
     xo.assert_allclose(p_expected.s, p_aligned_exit.s, atol=1e-14, rtol=1e-9)
     xo.assert_allclose(p_expected.zeta, p_aligned_exit.zeta, atol=1e-14, rtol=1e-9)
 
+    # I comment out the following as it is inconsistent with the current implementation
+    # (including the tilt in the misalignment), need to adapt:
+
     # # Check that the intermediate points (entry and exit in the misaligned frame)
     # # still lie on the straight line
     # p0.move(_context=xo.ContextCpu())
