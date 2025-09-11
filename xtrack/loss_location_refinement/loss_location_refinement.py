@@ -129,6 +129,8 @@ class LossLocationRefinement:
         for i_ap in i_apertures:
             if np.any((particles.at_element==i_ap) & (particles.state==0)):
 
+                elements_existing_before = set(self.line.env._element_dict.keys())
+
                 if self.i_apertures.index(i_ap) == 0:
                     logger.warning(
                             'Unable to handle the first aperture in the line')
@@ -188,6 +190,16 @@ class LossLocationRefinement:
                     interp_line.s0 = s0
                     interp_line.s1 = s1
                     self.refine_lines[i_ap] = interp_line
+                else:
+                    elements_existing_after = set(self.line.env._element_dict.keys())
+                    elements_to_delete = (elements_existing_after - elements_existing_before)
+                    interp_line.discard_tracker() # Free tracker data
+                    del interp_line
+                    for nn in elements_to_delete:
+                        sz = self.line.env.element_dict[nn]._xobject._size
+                        oo = self.line.env.element_dict[nn]._xobject._offset
+                        self.line._buffer.free(oo, sz)
+                        del self.line.env.element_dict[nn]
 
 
 def check_for_active_shifts_and_rotations(line, i_aper_0, i_aper_1):
