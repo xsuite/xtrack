@@ -360,12 +360,23 @@ class Environment:
                 parent = xt.Particles
                 needs_instantiation = True
             else:
-                raise ValueError(f'Element type {parent} not found')
+                 self.particles[name] = xt.particles.reference_from_pdg_id(parent)
+                 parent = xt.Particles
+                 needs_instantiation = False
+
+        # Make lists where needed
+        for kk in kwargs:
+            if not np.isscalar(kwargs[kk]):
+                continue
+            if kk in xt.Particles._xofields and 'Arr' in xt.Particles._xofields[kk].__name__:
+                kwargs[kk] = [kwargs[kk]]
 
         ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
 
         if needs_instantiation: # Parent is a class and not another particle
             self.particles[name] = parent(**value_kwargs)
+
+
 
         _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                     element_dict=self._particles, element_refs=self._xdeps_pref)

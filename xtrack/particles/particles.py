@@ -119,6 +119,7 @@ class Particles(xo.HybridClass):
 
     def __init__(
             self,
+            pdg_id_0=None,
             _capacity=None,
             _no_reorganize=False,
             **kwargs,
@@ -136,6 +137,8 @@ class Particles(xo.HybridClass):
 
         Parameters
         ----------
+        pdg_id_0 : int or str, optional, define reference mass and charge from
+            PDG id or particle name.
         _capacity: int
             The maximum number of particles that can be stored in the object.
             If not provided, it is inferred from the size of the provided
@@ -226,6 +229,8 @@ class Particles(xo.HybridClass):
         if set(kwargs.keys()) - accepted_args:
             raise NameError(f'Invalid argument(s) provided: '
                             f'{set(kwargs.keys()) - accepted_args}')
+
+        _update_kwargs0_from_pdg_id(pdg_id_0, kwargs)
 
         per_part_input_vars = (
             self.per_particle_vars +
@@ -1997,15 +2002,8 @@ class Particles(xo.HybridClass):
 
     @classmethod
     def reference_from_pdg_id(cls, pdg_id, **kwargs):
-        pdg_id = get_pdg_id_from_name(pdg_id)
-        kwargs['pdg_id'] = pdg_id
-        q0 = kwargs.get('q0')
-        mass0 = kwargs.get('mass0')
-        if q0 is None:
-            q, _, _, _ = get_properties_from_pdg_id(pdg_id)
-            kwargs['q0'] = q
-        if mass0 is None:
-            kwargs['mass0'] = get_mass_from_pdg_id(pdg_id)
+
+        _update_kwargs0_from_pdg_id(pdg_id, kwargs)
 
         particle_ref = cls(**kwargs)
         if particle_ref._capacity > 1:
@@ -2265,3 +2263,14 @@ def _mask_to_where(mask, ctx):
 
 def reference_from_pdg_id(pdg_id, **kwargs):
     return Particles.reference_from_pdg_id(pdg_id, **kwargs)
+
+def _update_kwargs0_from_pdg_id(pdg_id, kwargs):
+        pdg_id = get_pdg_id_from_name(pdg_id)
+        kwargs['pdg_id'] = pdg_id
+        q0 = kwargs.get('q0')
+        mass0 = kwargs.get('mass0')
+        if q0 is None:
+            q, _, _, _ = get_properties_from_pdg_id(pdg_id)
+            kwargs['q0'] = q
+        if mass0 is None:
+            kwargs['mass0'] = get_mass_from_pdg_id(pdg_id)
