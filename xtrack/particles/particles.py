@@ -1276,6 +1276,8 @@ class Particles(xo.HybridClass):
     def gamma0(self, value):
         self.gamma0[:] = value
 
+    
+
     def update_beta0(self, new_beta0):
 
         """
@@ -1322,12 +1324,26 @@ class Particles(xo.HybridClass):
             self._rpp, mode='readonly',
             container=self)
 
+    def _energy0_setitem(self, indx, val):
+        ctx = self._buffer.context
+        temp_gamma0 = ctx.zeros(shape=self._gamma0.shape, dtype=np.float64)
+        temp_gamma0[:] = np.nan
+        temp_gamma0[indx] = val / self.mass0
+        self.update_gamma0(temp_gamma0)
+
     @property
     def energy0(self):
         energy0 = (self.p0c * self.p0c + self.mass0 * self.mass0) ** 0.5
-        return self._buffer.context.linked_array_type.from_array(
-            energy0, mode='readonly',
-            container=self)
+        out  = self._buffer.context.linked_array_type.from_array(
+            energy0,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_energy0_setitem')
+        return out
+
+    @energy0.setter
+    def energy0(self, value):
+        self.energy0[:] = value
 
     @property
     def kinetic_energy0(self):
