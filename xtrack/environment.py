@@ -376,8 +376,6 @@ class Environment:
         if needs_instantiation: # Parent is a class and not another particle
             self.particles[name] = parent(**value_kwargs)
 
-
-
         _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                     element_dict=self._particles, element_refs=self._xdeps_pref)
 
