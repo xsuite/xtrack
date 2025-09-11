@@ -1345,12 +1345,27 @@ class Particles(xo.HybridClass):
     def energy0(self, value):
         self.energy0[:] = value
 
+
+    def _kinetic_energy0_setitem(self, indx, val):
+        ctx = self._buffer.context
+        temp_gamma0 = ctx.zeros(shape=self._gamma0.shape, dtype=np.float64)
+        temp_gamma0[:] = np.nan
+        temp_gamma0[indx] = val / self.mass0 + 1
+        self.update_gamma0(temp_gamma0)
+
     @property
     def kinetic_energy0(self):
         kene0 = self.energy0 - self.mass0
-        return self._buffer.context.linked_array_type.from_array(
-            kene0, mode='readonly',
-            container=self)
+        out  = self._buffer.context.linked_array_type.from_array(
+            kene0,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_kinetic_energy0_setitem')
+        return out
+
+    @kinetic_energy0.setter
+    def kinetic_energy0(self, value):
+        self.kinetic_energy0[:] = value
 
     @property
     def energy(self):
