@@ -79,12 +79,12 @@ line.build_tracker(_buffer=buf)
 # Test on full line
 r = np.linspace(0, 0.018, n_part)
 theta = np.linspace(0, 8*np.pi, n_part)
-particles = xp.Particles(_context=ctx,
+particles0 = xp.Particles(_context=ctx,
         p0c=6500e9,
         x=r*np.cos(theta)+shift_x,
         y=r*np.sin(theta)+shift_y)
 
-line.track(particles)
+
 
 print('occupied size before refinement', _occupied_size(buf))
 
@@ -102,15 +102,24 @@ print('occupied size after init refinement', _occupied_size(buf))
 
 n_repetitions = 20
 
-particles0 = particles.copy()
 
 import time
-for _ in range(n_repetitions):
-    t0 = time.time()
+for i_iter in range(n_repetitions):
+
     particles = particles0.copy()
+
+    line.track(particles)
+
+    t0 = time.time()
 
     loss_loc_refinement.refine_loss_location(particles)
     print('occupied size after refinement', _occupied_size(buf))
+
+    if i_iter==0:
+        occupied_size_first_iter = _occupied_size(buf)
+    else:
+        assert _occupied_size(buf) == occupied_size_first_iter, \
+            'Buffer size increased after refinement! Memory leak?'
 
     t1 = time.time()
     print(f'Took\t{(t1-t0)*1e3:.2f} ms')
