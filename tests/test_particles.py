@@ -190,3 +190,44 @@ def test_particles_energy_coordinates():
     xo.assert_allclose(delta_small, ptau_small/beta0, rtol=0, atol=1e-8)
     xo.assert_allclose(delta_small, pzeta_small, rtol=0, atol=1e-8)
     xo.assert_allclose(beta_small, beta0 + (1 - beta0**2) * ptau_small, rtol=0, atol=1e-8)
+
+def test_energy0_setter():
+
+    p = xt.Particles('electron', beta0=[0.6, 0.7, 0.8])
+    xo.assert_allclose(p.q0, -1, rtol=0, atol=1e-15)
+    xo.assert_allclose(p.mass0, xt.ELECTRON_MASS_EV, rtol=0, atol=1e-15)
+
+    beta0_expected = np.array([0.6, 0.7, 0.8])
+    gamma0_expected = 1 / np.sqrt(1 - beta0_expected**2)
+    energy0_expected = p.mass0 * gamma0_expected
+    kin_energy0_expected = energy0_expected - p.mass0
+    p0c_expected = p.mass0 * gamma0_expected * beta0_expected
+    xo.assert_allclose(p.beta0, beta0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.gamma0, gamma0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.energy0, energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.kinetic_energy0, kin_energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.p0c, p0c_expected, rtol=1e-14, atol=1e-14)
+
+    p.energy0[:1] = p.energy0[1]
+    beta0_expected = np.array([0.7, 0.7, 0.8])
+    gamma0_expected = 1 / np.sqrt(1 - beta0_expected**2)
+    energy0_expected = p.mass0 * gamma0_expected
+    kin_energy0_expected = energy0_expected - p.mass0
+    p0c_expected = p.mass0 * gamma0_expected * beta0_expected
+    xo.assert_allclose(p.beta0, beta0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.gamma0, gamma0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.energy0, energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.kinetic_energy0, kin_energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.p0c, p0c_expected, rtol=1e-14, atol=1e-14)
+
+    p.kinetic_energy0[2:] = p.kinetic_energy0[1]
+    beta0_expected = np.array([0.7, 0.7, 0.7])
+    gamma0_expected = 1 / np.sqrt(1 - beta0_expected**2)
+    energy0_expected = p.mass0 * gamma0_expected
+    kin_energy0_expected = energy0_expected - p.mass0
+    p0c_expected = p.mass0 * gamma0_expected * beta0_expected
+    xo.assert_allclose(p.beta0, beta0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.gamma0, gamma0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.energy0, energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.kinetic_energy0, kin_energy0_expected, rtol=1e-14, atol=1e-14)
+    xo.assert_allclose(p.p0c, p0c_expected, rtol=1e-14, atol=1e-14)
