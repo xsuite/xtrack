@@ -828,6 +828,35 @@ class Environment:
     def particles(self):
         return self._particles
 
+    def set_particle_ref(self, *args, lines=True, **kwargs):
+
+        if lines is True:
+            lines = self.lines.keys()
+        elif lines is False or lines is None:
+            lines = []
+        elif isinstance(lines, str):
+            lines = [lines]
+        elif isinstance(lines, Iterable):
+            lines = list(lines)
+        else:
+            raise ValueError('lines must be True, False, None, a string or an iterable of strings')
+
+        if len(args)==1:
+            if isinstance(args[0], xt.Particles):
+                self.particle_ref = args[0].copy()
+                for nn in lines:
+                    self.lines[nn].particle_ref = args[0].copy()
+            elif len(args)==1 and isinstance(args[0], str):
+                name = args[0]
+                if name in self.env.particles:
+                    self.particle_ref = name
+                else:
+                    self.particle_ref = xt.Particles(*args, **kwargs)
+        else:
+            self.particle_ref = xt.Particles(*args, **kwargs)
+
+
+
     @property
     def particle_ref(self):
         if self._particle_ref is None:

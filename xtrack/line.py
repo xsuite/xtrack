@@ -1002,6 +1002,21 @@ class Line:
 
         return self.tracker._tracker_data_base.cache['attr']
 
+    def set_particle_ref(self, *args, **kwargs):
+        """
+        Set the reference particle of the line. See `particle_ref` property.
+        """
+        if len(args)==1 and isinstance(args[0], xt.Particles):
+            self.particle_ref = args[0].copy()
+        elif len(args)==1 and isinstance(args[0], str):
+            name = args[0]
+            if name in self.env.particles:
+                self.particle_ref = name
+            else:
+                self.particle_ref = xt.Particles(*args, **kwargs)
+        else:
+            self.particle_ref = xt.Particles(*args, **kwargs)
+
     @property
     def particle_ref(self):
         if self._particle_ref is None:
