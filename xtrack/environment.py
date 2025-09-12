@@ -668,9 +668,13 @@ class Environment:
         else:
             xt.Line.__setitem__(self, key, value)
 
-    def to_dict(self, include_var_management=True):
+    def to_dict(self, include_var_management=True, include_version=True):
 
         out = {}
+
+        if include_version:
+            out["xtrack_version"] = xt.__version__
+
         out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
 
         if self._particle_ref is not None:
@@ -719,6 +723,16 @@ class Environment:
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         cls = xt.Environment
+
+        if "xtrack_version" in dct:
+            version = dct["xtrack_version"]
+            if xt.general._compare_versions(version, xt.__version__) > 0:
+                print(f'Warning: The environment you are loading was created '
+                      f'with xtrack version {version}, which is more recent '
+                      f'than the current version {xt.__version__}. '
+                      'Some features may not be available or '
+                      f'may not work correctly. Please update your xsuite '
+                      f'package to the latest version.')
 
         elements = _deserialize_elements(dct=dct, classes=classes,
                                          _buffer=_buffer, _context=_context)
