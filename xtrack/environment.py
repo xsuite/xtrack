@@ -847,7 +847,7 @@ class Environment:
                 self.lines[ln].particle_ref = self.particle_ref.copy()
         elif len(args)==1 and isinstance(args[0], str):
             name = args[0]
-            if name in self.env.particles:
+            if name in self.particles:
                 self.particle_ref = name
                 for ln in lines:
                     self.lines[ln].particle_ref = name
