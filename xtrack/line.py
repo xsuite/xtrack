@@ -226,6 +226,16 @@ class Line:
 
         """
 
+        if "xtrack_version" in dct:
+            version = dct["xtrack_version"]
+            if xt.general._compare_versions(version, xt.__version__) > 0:
+                print(f'Warning: The line you are loading was created '
+                      f'with xtrack version {version}, which is more recent '
+                      f'than the current version {xt.__version__}. '
+                      'Some features may not be available or '
+                      f'may not work correctly. Please update your xsuite '
+                      f'package to the latest version.')
+
         # When env is given it means that the line is being reloaded as part of
         # and env. In that case the element_dict, vars and xdeps stuff come through
         # the environment and should not be in the dictionary
@@ -583,7 +593,8 @@ class Line:
         line = loader.make_line()
         return line
 
-    def to_dict(self, include_var_management=True, include_element_dict=True):
+    def to_dict(self, include_var_management=True, include_element_dict=True,
+                include_version=False):
 
         '''
         Returns a dictionary representation of the line.
@@ -601,6 +612,10 @@ class Line:
         '''
 
         out = {}
+
+        if include_version:
+            out["xtrack_version"] = xt.__version__
+
         if include_element_dict:
             out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
         out["element_names"] = self.element_names[:]
@@ -704,6 +719,9 @@ class Line:
             Additional keyword arguments are passed to the `Line.to_dict` method.
 
         '''
+
+        if 'inlude_version' not in kwargs:
+            kwargs['include_version'] = True
 
         json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 

@@ -815,6 +815,9 @@ class Environment:
 
         '''
 
+        if 'include_version' not in kwargs:
+            kwargs['include_version'] = True
+
         xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
 
     @classmethod
