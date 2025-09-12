@@ -3365,3 +3365,5 @@ def test_set_particle_ref():
     xo.assert_allclose(line.particle_ref.q0 , 1, rtol=0, atol=1e-14)
     xo.assert_allclose(line.particle_ref.mass0 , xt.PROTON_MASS_EV)
     xo.assert_allclose(line.particle_ref.beta0 , 0.6, rtol=0, atol=1e-14)
+
+    
