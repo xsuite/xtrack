@@ -417,11 +417,11 @@ void track_magnet_particles(
             }
         }
 
-        double k0_drift, k1_drift, h_drift, ks_drift;
-        double k0_kick, k1_kick, h_kick;
-        double k0_h_correction, k1_h_correction;
-        int8_t kick_rot_frame;
-        int8_t drift_model;
+        double k0_drift=0, k1_drift=0, h_drift=0, ks_drift=0;
+        double k0_kick=0, k1_kick=0, h_kick=0;
+        double k0_h_correction=0, k1_h_correction=0;
+        int8_t kick_rot_frame=0;
+        int8_t drift_model=0;
         configure_tracking_model(
             model,
             k0,

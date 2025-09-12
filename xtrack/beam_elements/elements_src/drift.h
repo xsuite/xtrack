@@ -18,9 +18,25 @@ void Drift_track_local_particle(DriftData el, LocalParticle* part0){
         length = -length;
     }
 
-    START_PER_PARTICLE_BLOCK(part0, part);
-        Drift_single_particle(part, length);
-    END_PER_PARTICLE_BLOCK;
+    int64_t model;
+    #ifdef XTRACK_USE_EXACT_DRIFTS
+        model = 2;
+    #else
+        model = DriftData_get_model(el);
+        if (model == 0) { // adaptive
+            model = 1; // expanded
+        }
+    #endif
+
+    if (model == 1) {
+        START_PER_PARTICLE_BLOCK(part0, part);
+            Drift_single_particle_expanded(part, length);
+        END_PER_PARTICLE_BLOCK;
+    } else if (model == 2) {
+        START_PER_PARTICLE_BLOCK(part0, part);
+            Drift_single_particle_exact(part, length);
+        END_PER_PARTICLE_BLOCK;
+    }
 }
 
 

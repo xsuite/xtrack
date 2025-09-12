@@ -214,6 +214,40 @@ def test_drift(test_context):
                       dtk_particle.zeta,
                       rtol=1e-14, atol=1e-14)
 
+@for_all_test_contexts
+def test_drift_exact_and_expanded(test_context):
+
+    line = xt.Line(elements=[xt.Drift(length=1.), xt.Drift(length=2.), xt.Drift(length=3.)])
+    ltot = line.get_length()
+    line.build_tracker(_context=test_context)
+
+    assert line['e2'].model == 'adaptive'
+
+    p0 = xp.Particles(p0c=1e9, px=0.3, _context=test_context)
+    x_prime_expanded = p0.px / (1 + p0.delta)
+    x_prime_exact = p0.px / np.sqrt((1 + p0.delta)**2 - p0.px**2)
+
+    p = p0.copy(_context=test_context)
+    line.track(p)
+    xo.assert_allclose(p.x, x_prime_expanded*ltot, rtol=1e-14, atol=1e-14)
+
+    line.configure_drift_model(model='exact')
+    assert line['e2'].model == 'exact'
+    p = p0.copy(_context=test_context)
+    line.track(p)
+    xo.assert_allclose(p.x, x_prime_exact*ltot, rtol=1e-14, atol=1e-14)
+
+    line.configure_drift_model(model='expanded')
+    assert line['e2'].model == 'expanded'
+    p = p0.copy(_context=test_context)
+    line.track(p)
+    xo.assert_allclose(p.x, x_prime_expanded*ltot, rtol=1e-14, atol=1e-14)
+
+    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    p = p0.copy(_context=test_context)
+    line.track(p)
+    xo.assert_allclose(p.x, x_prime_exact*ltot, rtol=1e-14, atol=1e-14)
+
 
 @for_all_test_contexts
 def test_drift_exact(test_context):
@@ -232,7 +266,7 @@ def test_drift_exact(test_context):
     drift = xt.Drift(_context=test_context, length=10.)
     line = xt.Line(elements=[drift])
     line.build_tracker(compile=False, _context=test_context)
-    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    line.configure_drift_model(model='exact')
     line.track(particles)
 
     dtk_drift = dtk.elements.DriftExact(length=10.)
@@ -1162,7 +1196,7 @@ def test_nonlinearlens(test_context):
     """)
 
     line = xt.Line.from_madx_sequence(mad.sequence.ss)
-    line.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with madx
+    line.configure_drift_model('exact') # to be consistent with madx
     line.build_tracker(_context=test_context)
 
     num_p_test = 10
