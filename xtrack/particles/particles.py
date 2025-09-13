@@ -230,7 +230,8 @@ class Particles(xo.HybridClass):
             raise NameError(f'Invalid argument(s) provided: '
                             f'{set(kwargs.keys()) - accepted_args}')
 
-        _update_kwargs0_from_pdg_id(pdg_id_0, kwargs)
+        if pdg_id_0 is not None:
+            _update_kwargs0_from_pdg_id(pdg_id_0, kwargs)
 
         per_part_input_vars = (
             self.per_particle_vars +
