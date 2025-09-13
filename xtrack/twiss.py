@@ -30,6 +30,7 @@ from xdeps import Table
 from . import linear_normal_form as lnf
 from .general import _print
 from .twissplot import TwissPlot
+from . import json as json_utils
 
 import xtrack as xt  # To avoid circular imports
 
@@ -2932,7 +2933,7 @@ class TwissInit:
         out['particle_on_co'] = out['particle_on_co'].to_dict()
         return out
 
-    def to_json(self, file, **kwargs):
+    def to_json(self, file, indent=1, **kwargs):
 
         '''
         Convert to JSON representation.
@@ -2943,8 +2944,7 @@ class TwissInit:
 
         '''
 
-        # Can reuse the one from the Line (it is general enough)
-        return xt.Line.to_json(self, file, **kwargs)
+        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
     @classmethod
     def from_dict(cls, dct):
