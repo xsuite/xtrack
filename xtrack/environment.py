@@ -442,6 +442,14 @@ class Environment:
         if np.array([isinstance(ss, str) for ss in flattened_components]).all():
             # All elements provided by name
             element_names = [str(ss) for ss in flattened_components]
+            if length is not None:
+                length_all_elements = self.new_line(components=element_names).get_length()
+                if length_all_elements > length + s_tol:
+                    raise ValueError(f'Line length {length_all_elements} is '
+                                     f'greater than the requested length {length}')
+                elif length_all_elements < length - s_tol:
+                    element_names.append(self.new(self._get_a_drift_name(), xt.Drift,
+                                                  length=length-length_all_elements))
         else:
             seq_all_places = _all_places(flattened_components)
             tab_unsorted = _resolve_s_positions(seq_all_places, self, refer=refer)
