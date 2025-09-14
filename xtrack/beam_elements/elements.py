@@ -120,6 +120,18 @@ class _HasModelDrift:
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
+    @staticmethod
+    def get_available_models():
+        """Get list of available models for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available models.
+        """
+        out = [kk for kk in _MODEL_TO_INDEX_DRIFT.keys()]
+        return out
+
 class _HasModelStraight:
 
     """
@@ -167,6 +179,19 @@ class _HasModelCurved:
             self._model = _MODEL_TO_INDEX_CURVED[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
+
+    @staticmethod
+    def get_available_models():
+        """Get list of available models for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available models.
+        """
+        out = [kk for kk in _MODEL_TO_INDEX_CURVED.keys()
+               if kk not in ('full', 'expanded')]
+        return out
 
 
 class _HasModelRF:
