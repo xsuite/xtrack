@@ -25,7 +25,7 @@ line['mqxfa.b1l5'].model # is 'drift-kick-drift-exact'
 line['mqxfa.b1l5'].integrator # is 'yoshida4'
 line['mqxfa.b1l5'].num_multipole_kicks # is 21
 
-# Alter individual element
+# Alter a single element
 line['mqxfa.b1l5'].model = 'mat-kick-mat'
 line['mqxfa.b1l5'].integrator = 'teapot'
 line['mqxfa.b1l5'].num_multipole_kicks = 10

@@ -138,6 +138,18 @@ class _HasModelStraight:
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
+    @staticmethod
+    def get_available_models():
+        """Get list of available models for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available models.
+        """
+        out = [kk for kk in _MODEL_TO_INDEX_STRAIGHT.keys() if kk != 'full']
+        return out
+
 class _HasModelCurved:
 
     """
