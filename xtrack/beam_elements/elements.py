@@ -102,6 +102,18 @@ class _HasIntegrator:
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
+    @staticmethod
+    def get_available_integrators():
+        """Get list of available integrators for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available integrators.
+        """
+        out = [kk for kk in _INTEGRATOR_TO_INDEX.keys()]
+        return out
+
 class _HasModelDrift:
 
     """
