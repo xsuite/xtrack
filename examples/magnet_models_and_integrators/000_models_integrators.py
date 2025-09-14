@@ -2,7 +2,21 @@ import xtrack as xt
 
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 
-# Get table with all elements
+# Get available models and integrators for a given element type (e.g. Bend)
+xt.Bend.get_available_models()
+# returns:
+# ['adaptive',
+# 'bend-kick-bend',
+# 'rot-kick-rot',
+# 'mat-kick-mat',
+# 'drift-kick-drift-exact',
+# 'drift-kick-drift-expanded']
+
+xt.Bend.get_available_integrators()
+# returns:
+# ['adaptive', 'teapot', 'yoshida4', 'uniform']
+
+# Get table with all elements in the line
 tt = line.get_table()
 
 # Table with all bends and all quadrupoles
