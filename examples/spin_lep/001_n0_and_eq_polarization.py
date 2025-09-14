@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 # Load LEP lattice
 line = xt.load('../../test_data/lep/lep_sol.json')
 
+# Make sure anomalous magnetic moment is set:
+line.particle_ref.anomalous_magnetic_moment # is 0.00115965
+
 # Set solenoids and compensation bumps off
 line['on_solenoids'] = 0
 line['on_spin_bumps'] = 0
