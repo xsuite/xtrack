@@ -5,6 +5,10 @@ import numpy as np
 from scipy.stats import linregress
 import matplotlib.pyplot as plt
 
+# Some references:
+# CERN-SL-94-71-BI https://cds.cern.ch/record/267514
+# CERN-LEP-Note-629 https://cds.cern.ch/record/442887
+
 # Load and configure ring model
 line = xt.Line.from_json('../../test_data/lep/lep_sol.json')
 line['vrfc231'] = 12.65  # RF voltage -> qs=0.6 with radiation
