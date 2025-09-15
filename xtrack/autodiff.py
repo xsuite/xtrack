@@ -215,6 +215,11 @@ def encode_elements(elements, elem_to_deriv):
                 data2=elem.length,
                 data3=elem.h
             ))
+        elif isinstance(elem, xt.Multipole) and elem.isthick and elem.length > 0:
+            encoded.append(EncodedElem(
+                etype=3,
+                data0=elem.length
+            ))
         elif isinstance(elem, xt.Multipole):
             encoded.append(EncodedElem(
                 etype=4
