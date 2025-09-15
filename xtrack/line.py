@@ -226,6 +226,16 @@ class Line:
 
         """
 
+        if "xtrack_version" in dct:
+            version = dct["xtrack_version"]
+            if xt.general._compare_versions(version, xt.__version__) > 0:
+                print(f'Warning: The line you are loading was created '
+                      f'with xtrack version {version}, which is more recent '
+                      f'than the current version {xt.__version__}. '
+                      'Some features may not be available or '
+                      f'may not work correctly. Please update your xsuite '
+                      f'package to the latest version.')
+
         # When env is given it means that the line is being reloaded as part of
         # and env. In that case the element_dict, vars and xdeps stuff come through
         # the environment and should not be in the dictionary
@@ -583,7 +593,8 @@ class Line:
         line = loader.make_line()
         return line
 
-    def to_dict(self, include_var_management=True, include_element_dict=True):
+    def to_dict(self, include_var_management=True, include_element_dict=True,
+                include_version=False):
 
         '''
         Returns a dictionary representation of the line.
@@ -601,6 +612,10 @@ class Line:
         '''
 
         out = {}
+
+        if include_version:
+            out["xtrack_version"] = xt.__version__
+
         if include_element_dict:
             out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
         out["element_names"] = self.element_names[:]
@@ -704,6 +719,9 @@ class Line:
             Additional keyword arguments are passed to the `Line.to_dict` method.
 
         '''
+
+        if 'inlude_version' not in kwargs:
+            kwargs['include_version'] = True
 
         json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
@@ -1001,6 +1019,21 @@ class Line:
             self.tracker._tracker_data_base.cache['attr'] = self._get_attr_cache()
 
         return self.tracker._tracker_data_base.cache['attr']
+
+    def set_particle_ref(self, *args, **kwargs):
+        """
+        Set the reference particle of the line. See `particle_ref` property.
+        """
+        if len(args)==1 and isinstance(args[0], xt.Particles):
+            self.particle_ref = args[0].copy()
+        elif len(args)==1 and isinstance(args[0], str):
+            name = args[0]
+            if name in self.env.particles:
+                self.particle_ref = name
+            else:
+                self.particle_ref = xt.Particles(*args, **kwargs)
+        else:
+            self.particle_ref = xt.Particles(*args, **kwargs)
 
     @property
     def particle_ref(self):
@@ -1373,6 +1406,7 @@ class Line:
         zero_at=None,
         co_search_at=None,
         include_collective=None,
+        disable_apertures=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,

@@ -12,6 +12,9 @@
 GPUFUN
 void LimitEllipse_track_local_particle(LimitEllipseData el, LocalParticle* part0){
 
+    if(LocalParticle_check_track_flag(part0, XS_FLAG_IGNORE_LOCAL_APERTURE)){
+        return;
+    }
 
     double const a_squ = LimitEllipseData_get_a_squ(el);
     double const b_squ = LimitEllipseData_get_b_squ(el);

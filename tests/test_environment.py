@@ -3344,3 +3344,85 @@ def test_particle_ref_as_object():
     assert ll2.particle_ref.__class__.__name__ == 'LineParticleRef'
     assert isinstance(ll2._particle_ref, xt.Particles)
     assert ll2._particle_ref is not ll._particle_ref
+
+def test_line_set_particle_ref():
+
+    line = xt.Line()
+    line.set_particle_ref('electron', beta0=0.9)
+
+    xo.assert_allclose(line.particle_ref.q0 , -1, rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.mass0 , xt.ELECTRON_MASS_EV)
+    xo.assert_allclose(line.particle_ref.beta0 , 0.9, rtol=0, atol=1e-14)
+
+    env = xt.Environment()
+    env['my_beta0'] = 0.1
+    env.new_particle('my_part', 'proton', beta0='my_beta0')
+
+    line = env.new_line()
+    line.set_particle_ref('my_part')
+    line['my_beta0'] = 0.6
+
+    xo.assert_allclose(line.particle_ref.q0 , 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.mass0 , xt.PROTON_MASS_EV)
+    xo.assert_allclose(line.particle_ref.beta0 , 0.6, rtol=0, atol=1e-14)
+
+    p_ref = xt.Particles('Pb208', p0c=7e12/82)
+    line = xt.Line()
+    line.set_particle_ref(p_ref)
+
+    xo.assert_allclose(line.particle_ref.q0 , 82, rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.mass0, xt.particles.masses.Pb208_MASS_EV)
+    xo.assert_allclose(line.particle_ref.p0c , 7e12/82, rtol=0, atol=1e-14)
+
+
+def test_env_set_particle_ref():
+
+    env = xt.Environment()
+    env.set_particle_ref('electron', beta0=0.9)
+
+    xo.assert_allclose(env.particle_ref.q0 , -1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.particle_ref.mass0 , xt.ELECTRON_MASS_EV)
+    xo.assert_allclose(env.particle_ref.beta0 , 0.9, rtol=0, atol=1e-14)
+
+    env.new_line(name='line1', components=[env.new('d1', 'Drift', length=1)])
+    env.line1.set_particle_ref('electron', beta0=0.9)
+
+    xo.assert_allclose(env.line1.particle_ref.q0 , -1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.mass0 , xt.ELECTRON_MASS_EV)
+    xo.assert_allclose(env.line1.particle_ref.beta0 , 0.9, rtol=0, atol=1e-14)
+
+    env.set_particle_ref('proton', beta0=0.8)
+    xo.assert_allclose(env.particle_ref.q0 , 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.particle_ref.mass0 , xt.PROTON_MASS_EV)
+    xo.assert_allclose(env.particle_ref.beta0 , 0.8, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.q0 , 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.mass0 , xt.PROTON_MASS_EV)
+    xo.assert_allclose(env.line1.particle_ref.beta0 , 0.8, rtol=0, atol=1e-14)
+
+    env['my_beta0'] = 0.1
+    env.new_particle('my_part', 'proton', beta0='my_beta0')
+    env.set_particle_ref('my_part')
+
+    env['my_beta0'] = 0.6
+    xo.assert_allclose(env.line1.particle_ref.q0 , 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.mass0 , xt.PROTON_MASS_EV)
+    xo.assert_allclose(env.line1.particle_ref.beta0 , 0.6, rtol=0, atol=1e-14)
+
+    p_ref = xt.Particles('Pb208', p0c=7e12/82)
+    env.set_particle_ref(p_ref)
+
+    xo.assert_allclose(env.particle_ref.q0 , 82, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.particle_ref.mass0, xt.particles.masses.Pb208_MASS_EV)
+    xo.assert_allclose(env.particle_ref.p0c , 7e12/82, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.q0 , 82, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.mass0, xt.particles.masses.Pb208_MASS_EV)
+    xo.assert_allclose(env.line1.particle_ref.p0c , 7e12/82, rtol=0, atol=1e-14)
+
+    env.set_particle_ref('positron', beta0=0.7, lines=None)
+    xo.assert_allclose(env.particle_ref.q0 , 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.particle_ref.mass0 , xt.ELECTRON_MASS_EV)
+    xo.assert_allclose(env.particle_ref.beta0 , 0.7, rtol=0, atol=1e-14)
+    # line unchanged
+    xo.assert_allclose(env.line1.particle_ref.q0 , 82, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.mass0, xt.particles.masses.Pb208_MASS_EV)
+    xo.assert_allclose(env.line1.particle_ref.p0c , 7e12/82, rtol=0, atol=1e-14)

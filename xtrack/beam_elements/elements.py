@@ -102,6 +102,18 @@ class _HasIntegrator:
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
+    @staticmethod
+    def get_available_integrators():
+        """Get list of available integrators for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available integrators.
+        """
+        out = [kk for kk in _INTEGRATOR_TO_INDEX.keys()]
+        return out
+
 class _HasModelDrift:
 
     """
@@ -119,6 +131,18 @@ class _HasModelDrift:
             self._model = _MODEL_TO_INDEX_DRIFT[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
+
+    @staticmethod
+    def get_available_models():
+        """Get list of available models for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available models.
+        """
+        out = [kk for kk in _MODEL_TO_INDEX_DRIFT.keys()]
+        return out
 
 class _HasModelStraight:
 
@@ -138,6 +162,18 @@ class _HasModelStraight:
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
+    @staticmethod
+    def get_available_models():
+        """Get list of available models for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available models.
+        """
+        out = [kk for kk in _MODEL_TO_INDEX_STRAIGHT.keys() if kk != 'full']
+        return out
+
 class _HasModelCurved:
 
     """
@@ -155,6 +191,19 @@ class _HasModelCurved:
             self._model = _MODEL_TO_INDEX_CURVED[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
+
+    @staticmethod
+    def get_available_models():
+        """Get list of available models for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available models.
+        """
+        out = [kk for kk in _MODEL_TO_INDEX_CURVED.keys()
+               if kk not in ('full', 'expanded')]
+        return out
 
 
 class _HasModelRF:
@@ -369,9 +418,9 @@ class Drift(_HasModelDrift, BeamElement):
         'model': '_model',
     }
 
-    _no_expr_fields = {'model'}
+    _noexpr_fields = {'model'}
 
-    def __init__(self, length=None, **kwargs):
+    def __init__(self, length=None, model=None, **kwargs):
 
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -380,6 +429,10 @@ class Drift(_HasModelDrift, BeamElement):
         if length:  # otherwise length cannot be set as a positional argument
             kwargs['length'] = length
         super().__init__(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
 
     @property
     def _thin_slice_class(self):

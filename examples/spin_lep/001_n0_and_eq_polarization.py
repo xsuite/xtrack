@@ -1,74 +1,55 @@
 import xtrack as xt
-import xpart as xp
-import xobjects as xo
-import numpy as np
+import matplotlib.pyplot as plt
 
-# Some references:
-# CERN-SL-94-71-BI https://cds.cern.ch/record/267514
-# CERN-LEP-Note-629 https://cds.cern.ch/record/442887
+# Load LEP lattice
+line = xt.load('../../test_data/lep/lep_sol.json')
 
-vrfc231 = 12.65 # qs=0.6
-method = '6d'
+# Make sure anomalous magnetic moment is set:
+line.particle_ref.anomalous_magnetic_moment # is 0.00115965
 
-line = xt.load('lep_sol.json')
-line.particle_ref.anomalous_magnetic_moment=0.00115965218128
-line.particle_ref.gamma0 = 89207.78287659843 # to have a spin tune of 103.45
-spin_tune = line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0]
-line['vrfc231'] = vrfc231
+# Set solenoids and compensation bumps off
+line['on_solenoids'] = 0
+line['on_spin_bumps'] = 0
+line['on_coupling_corrections'] = 0
 
+# Twiss with spin and polarization calculation
+tw_no_sol = line.twiss4d(spin=True, polarization=True)
+
+# Inspect equilibrium polarization
+tw_no_sol.spin_polarization_eq # is 0.92376
+
+# Enable solenoids and corresponding coupling corrections
+line['on_solenoids'] = 1
+line['on_spin_bumps'] = 0
+line['on_coupling_corrections'] = 1
+
+# Twiss with spin and polarization calculation
+tw_sol = line.twiss4d(spin=True, polarization=True)
+
+# Inspect equilibrium polarization
+tw_sol.spin_polarization_eq # is 0.018617
+
+# Enable also spin bumps
 line['on_solenoids'] = 1
 line['on_spin_bumps'] = 1
 line['on_coupling_corrections'] = 1
 
+# Twiss with spin and polarization calculation
 tw = line.twiss4d(spin=True, polarization=True)
 
-print('Xsuite polarization: ', tw.spin_polarization_eq)
+# Inspect equilibrium polarization
+tw.spin_polarization_eq # is 0.89160
 
-import matplotlib.pyplot as plt
-plt.close('all')
-
-
-plt.figure(1, figsize=(8, 6))
+# Plot spin closed solution (n_0)
+plt.figure(figsize=(6.4, 4.8*1.3))
 ax1 = plt.subplot(3, 1, 1)
-plt.plot(tw.s, tw.x, label='x')
-plt.plot(tw.s, tw.y, label='y')
-plt.ylabel('Closed orbit [m]')
-plt.legend()
-ax2 = plt.subplot(3, 1, 2, sharex=ax1)
-plt.plot(tw.s, tw.spin_y, label='y')
-plt.ylabel('spin_y')
-plt.ylim(top=1)
-plt.legend()
+tw.plot('y', ax=ax1)
+ax2 = plt.subplot(3, 1, 2)
+tw.plot('spin_x spin_z', ax=ax2)
+plt.ylabel(r'$n_{0,x}, n_{0,z}$')
 ax3 = plt.subplot(3, 1, 3, sharex=ax1)
-plt.xlabel('s [m]')
-plt.plot(tw.s, tw.spin_z, label='z')
-plt.plot(tw.s, tw.spin_x, label='x')
-plt.ylabel('spin_z')
-plt.legend()
-plt.suptitle(f'Equilibrium polarization: {tw.spin_polarization_eq*100:.2f} %')
-
-plt.figure(3, figsize=(8, 6))
-ax1 = plt.subplot(3, 1, 1)
-tw.plot(lattice_only=True, ax=ax1)
-plt.plot(tw.s, tw.spin_dn_ddelta_x)
-plt.ylabel('dn_ddelta_x')
-ax2 = plt.subplot(3, 1, 2, sharex=ax1)
-tw.plot(lattice_only=True, ax=ax2)
-plt.plot(tw.s, tw.spin_dn_ddelta_y)
-plt.ylabel('dn_ddelta_y')
-ax3 = plt.subplot(3, 1, 3, sharex=ax1)
-tw.plot(lattice_only=True, ax=ax3)
-plt.plot(tw.s, tw.spin_dn_ddelta_z)
-plt.ylabel('dn_ddelta_z')
-plt.xlabel('s [m]')
-
-tw_ir4_right = tw.rows['ip4':'ip5']
-plt.figure(4)
-plt.axis('equal')
-plt.plot(tw_ir4_right.spin_z*1e3, tw_ir4_right.spin_x*1e3)
-plt.ylabel('spin_x [mrad]')
-plt.xlabel('spin_z [mrad]')
-plt.title('Spin precession in between IP4 and IP5')
-plt.grid(alpha=0.5)
+tw.plot('spin_y', ax=ax3)
+plt.ylabel(r'$n_{0,y}$')
+plt.ylim(0.998, 1.001)
 
 plt.show()

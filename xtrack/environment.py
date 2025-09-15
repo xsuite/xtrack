@@ -360,7 +360,16 @@ class Environment:
                 parent = xt.Particles
                 needs_instantiation = True
             else:
-                raise ValueError(f'Element type {parent} not found')
+                 self.particles[name] = xt.particles.reference_from_pdg_id(parent)
+                 parent = xt.Particles
+                 needs_instantiation = False
+
+        # Make lists where needed
+        for kk in kwargs:
+            if not np.isscalar(kwargs[kk]):
+                continue
+            if kk in xt.Particles._xofields and 'Arr' in xt.Particles._xofields[kk].__name__:
+                kwargs[kk] = [kwargs[kk]]
 
         ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
 
@@ -433,6 +442,14 @@ class Environment:
         if np.array([isinstance(ss, str) for ss in flattened_components]).all():
             # All elements provided by name
             element_names = [str(ss) for ss in flattened_components]
+            if length is not None:
+                length_all_elements = self.new_line(components=element_names).get_length()
+                if length_all_elements > length + s_tol:
+                    raise ValueError(f'Line length {length_all_elements} is '
+                                     f'greater than the requested length {length}')
+                elif length_all_elements < length - s_tol:
+                    element_names.append(self.new(self._get_a_drift_name(), xt.Drift,
+                                                  length=length-length_all_elements))
         else:
             seq_all_places = _all_places(flattened_components)
             tab_unsorted = _resolve_s_positions(seq_all_places, self, refer=refer)
@@ -659,9 +676,13 @@ class Environment:
         else:
             xt.Line.__setitem__(self, key, value)
 
-    def to_dict(self, include_var_management=True):
+    def to_dict(self, include_var_management=True, include_version=True):
 
         out = {}
+
+        if include_version:
+            out["xtrack_version"] = xt.__version__
+
         out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
 
         if self._particle_ref is not None:
@@ -710,6 +731,16 @@ class Environment:
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         cls = xt.Environment
+
+        if "xtrack_version" in dct:
+            version = dct["xtrack_version"]
+            if xt.general._compare_versions(version, xt.__version__) > 0:
+                print(f'Warning: The environment you are loading was created '
+                      f'with xtrack version {version}, which is more recent '
+                      f'than the current version {xt.__version__}. '
+                      'Some features may not be available or '
+                      f'may not work correctly. Please update your xsuite '
+                      f'package to the latest version.')
 
         elements = _deserialize_elements(dct=dct, classes=classes,
                                          _buffer=_buffer, _context=_context)
@@ -792,6 +823,9 @@ class Environment:
 
         '''
 
+        if 'include_version' not in kwargs:
+            kwargs['include_version'] = True
+
         xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
 
     @classmethod
@@ -818,6 +852,38 @@ class Environment:
     @property
     def particles(self):
         return self._particles
+
+    def set_particle_ref(self, *args, lines=True, **kwargs):
+
+        if lines is True:
+            lines = self.lines.keys()
+        elif lines is False or lines is None:
+            lines = []
+        elif isinstance(lines, str):
+            lines = [lines]
+        elif isinstance(lines, Iterable):
+            lines = list(lines)
+        else:
+            raise ValueError('lines must be True, False, None, a string or an iterable of strings')
+
+        if len(args)==1 and isinstance(args[0], xt.Particles):
+            self.particle_ref = args[0].copy()
+            for ln in lines:
+                self.lines[ln].particle_ref = self.particle_ref.copy()
+        elif len(args)==1 and isinstance(args[0], str):
+            name = args[0]
+            if name in self.particles:
+                self.particle_ref = name
+                for ln in lines:
+                    self.lines[ln].particle_ref = name
+            else:
+                self.particle_ref = xt.Particles(*args, **kwargs)
+                for ln in lines:
+                    self.lines[ln].particle_ref = self.particle_ref.copy()
+        else:
+            self.particle_ref = xt.Particles(*args, **kwargs)
+            for ln in lines:
+                self.lines[ln].particle_ref = self.particle_ref.copy()
 
     @property
     def particle_ref(self):
