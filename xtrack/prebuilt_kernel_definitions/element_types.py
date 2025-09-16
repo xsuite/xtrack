@@ -8,7 +8,6 @@ from ..monitors import *
 from ..random import *
 from ..multisetter import MultiSetter
 
-
 ONLY_XTRACK_ELEMENTS = [
     Drift,
     Multipole,
