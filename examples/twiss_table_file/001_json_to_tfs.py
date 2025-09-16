@@ -156,46 +156,34 @@ def _build_scalar_section(scalar: Dict[str, float]) -> List[str]:
     return lines
 
 
-def write_tfs_from_json(json_path: Path, output_path: Path) -> None:
-    data = json.loads(json_path.read_text())
-    scalar = data.get("scalar", {})
-    columns = data.get("col", {})
+json_path = Path('./twiss_lhcb1_xtrack.json')
+output_path = Path('./twiss_lhcb1.tfs')
 
-    if not isinstance(columns, dict) or not columns:
-        raise ValueError("JSON file does not contain column data under 'col'.")
+data = json.loads(json_path.read_text())
+scalar = data.get("scalar", {})
+columns = data.get("col", {})
 
-    column_lengths = {key: len(values) for key, values in columns.items()}
-    if column_lengths:
-        lengths = set(column_lengths.values())
-        if len(lengths) != 1:
-            raise ValueError(f"Inconsistent column sizes detected: {column_lengths}")
-        row_count = lengths.pop()
-    else:
-        row_count = 0
+if not isinstance(columns, dict) or not columns:
+    raise ValueError("JSON file does not contain column data under 'col'.")
 
-    specs = _build_column_specs(columns)
-    headers = _build_scalar_section(scalar)
+column_lengths = {key: len(values) for key, values in columns.items()}
+if column_lengths:
+    lengths = set(column_lengths.values())
+    if len(lengths) != 1:
+        raise ValueError(f"Inconsistent column sizes detected: {column_lengths}")
+    row_count = lengths.pop()
+else:
+    row_count = 0
 
-    lines: List[str] = []
-    lines.extend(headers)
-    if specs:
-        lines.extend(_build_table_header(specs))
-        lines.extend(_build_table_rows(specs, row_count))
+specs = _build_column_specs(columns)
+headers = _build_scalar_section(scalar)
 
-    output_path.write_text("\n".join(lines) + "\n")
+lines: List[str] = []
+lines.extend(headers)
+if specs:
+    lines.extend(_build_table_header(specs))
+    lines.extend(_build_table_rows(specs, row_count))
 
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Convert XSuite TWISS JSON output into a MAD-X TFS table.")
-    parser.add_argument("json", type=Path, help="Path to the JSON file produced by XSuite Twiss output.")
-    parser.add_argument("output", type=Path, help="Destination path for the generated TFS file.")
-    return parser.parse_args()
+output_path.write_text("\n".join(lines) + "\n")
 
 
-def main() -> None:
-    args = parse_args()
-    write_tfs_from_json(args.json, args.output)
-
-
-if __name__ == "__main__":
-    main()
