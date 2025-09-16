@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -154,32 +153,48 @@ def _build_scalar_section(scalar: Dict[str, float]) -> List[str]:
     return lines
 
 
-json_path = Path('./twiss_lhcb1_xtrack.json')
-output_path = Path('./twiss_lhcb1_xtrack.tfs')
+def _validate_column_lengths(columns: Dict[str, List]) -> int:
+    column_lengths = {key: len(values) for key, values in columns.items()}
+    if not column_lengths:
+        return 0
 
-data = json.loads(json_path.read_text())
-scalar = data.get("scalar", {})
-columns = data.get("col", {})
-
-if not isinstance(columns, dict) or not columns:
-    raise ValueError("JSON file does not contain column data under 'col'.")
-
-column_lengths = {key: len(values) for key, values in columns.items()}
-if column_lengths:
-    lengths = set(column_lengths.values())
-    if len(lengths) != 1:
+    unique_lengths = set(column_lengths.values())
+    if len(unique_lengths) != 1:
         raise ValueError(f"Inconsistent column sizes detected: {column_lengths}")
-    row_count = lengths.pop()
-else:
-    row_count = 0
+    return unique_lengths.pop()
 
-specs = _build_column_specs(columns)
-headers = _build_scalar_section(scalar)
 
-lines: List[str] = []
-lines.extend(headers)
-if specs:
-    lines.extend(_build_table_header(specs))
-    lines.extend(_build_table_rows(specs, row_count))
+def prepare_tfs_lines(
+    scalar: Dict[str, float],
+    columns: Dict[str, List],
+) -> tuple[List[str], List[str], List[ColumnSpec]]:
+    row_count = _validate_column_lengths(columns)
+    specs = _build_column_specs(columns)
+    headers = _build_scalar_section(scalar)
 
-output_path.write_text("\n".join(lines) + "\n")
+    lines: List[str] = []
+    lines.extend(headers)
+    if specs:
+        lines.extend(_build_table_header(specs))
+        lines.extend(_build_table_rows(specs, row_count))
+
+    return lines, headers, specs
+
+
+def write_tfs_from_json(json_path: Path, output_path: Path) -> None:
+    data = json.loads(json_path.read_text())
+    scalar = data.get("scalar", {})
+    columns = data.get("col", {})
+
+    if not isinstance(columns, dict) or not columns:
+        raise ValueError("JSON file does not contain column data under 'col'.")
+
+    lines, _, _ = prepare_tfs_lines(scalar, columns)
+
+    output_path.write_text("\n".join(lines) + "\n")
+
+if __name__ == "__main__":
+    input_json = Path(__file__).parent / "twiss_lhcb1_xtrack.json"
+    output_tfs = Path(__file__).parent / "twiss_lhcb1_xtrack.tfs"
+
+    write_tfs_from_json(input_json, output_tfs)
