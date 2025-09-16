@@ -137,7 +137,10 @@ def _build_table_header(specs: List[ColumnSpec]) -> List[str]:
         f"{spec.header:<{spec.width}}" if spec.type_code == "%s" else f"{spec.header:>{spec.width}}"
         for spec in specs
     ]
-    type_cells = [f"{spec.type_code:>{spec.width}}" for spec in specs]
+    type_cells = [
+        f"{spec.type_code:<{spec.width}}" if spec.type_code == "%s" else f"{spec.type_code:>{spec.width}}"
+        for spec in specs
+    ]
     header_line = "* " + " ".join(header_cells)
     type_line = "$ " + " ".join(type_cells)
     return [header_line.rstrip(), type_line.rstrip()]
