@@ -6,14 +6,14 @@ from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional
 
 
-SCALAR_LABEL_MAP: Dict[str, str] = {
+SCALAR_LABEL_MAP_DEFAULT: Dict[str, str] = {
     "qx": "Q1",
     "qy": "Q2",
     "dqx": "DQ1",
     "dqy": "DQ2",
 }
 
-FLOAT_COLUMN_FORMAT: Dict[str, Dict[str, int]] = {
+FLOAT_COLUMN_FORMAT_DEFAULT: Dict[str, Dict[str, int]] = {
     "s": {"width": 15, "precision": 6},
     "betx": {"width": 18, "precision": 8},
     "bety": {"width": 18, "precision": 8},
@@ -76,7 +76,13 @@ def _format_scalar_line(label: str, value: Optional[float]) -> str:
     return f"@ {label:<16} %le {value_str}"
 
 
-def _build_column_specs(columns: Dict[str, List]) -> List[ColumnSpec]:
+def _build_column_specs(
+    columns: Dict[str, List],
+    *,
+    float_column_format: Dict[str, Dict[str, int]],
+    default_float_width: int,
+    default_float_precision: int,
+) -> List[ColumnSpec]:
     specs: List[ColumnSpec] = []
     names: List[str] = [str(value) for value in columns.get("name", [])]
 
@@ -99,9 +105,9 @@ def _build_column_specs(columns: Dict[str, List]) -> List[ColumnSpec]:
         normalized = column_name.lower()
 
         if all((v is None or isinstance(v, (int, float))) for v in values):
-            config = FLOAT_COLUMN_FORMAT.get(normalized)
-            width = config["width"] if config else DEFAULT_FLOAT_WIDTH
-            precision = config["precision"] if config else DEFAULT_FLOAT_PRECISION
+            config = float_column_format.get(normalized)
+            width = config["width"] if config else default_float_width
+            precision = config["precision"] if config else default_float_precision
             formatter = _make_float_formatter(values, width, precision)
             specs.append(
                 ColumnSpec(
@@ -145,10 +151,12 @@ def _build_table_rows(specs: List[ColumnSpec], row_count: int) -> List[str]:
     return rows
 
 
-def _build_scalar_section(scalar: Dict[str, float]) -> List[str]:
+def _build_scalar_section(
+    scalar: Dict[str, float], *, scalar_label_map: Dict[str, str]
+) -> List[str]:
     lines: List[str] = []
     for key, value in scalar.items():
-        label = SCALAR_LABEL_MAP.get(key.lower(), key.upper())
+        label = scalar_label_map.get(key.lower(), key.upper())
         lines.append(_format_scalar_line(label, value))
     return lines
 
@@ -167,10 +175,23 @@ def _validate_column_lengths(columns: Dict[str, List]) -> int:
 def prepare_tfs_lines(
     scalar: Dict[str, float],
     columns: Dict[str, List],
+    *,
+    scalar_label_map: Optional[Dict[str, str]] = None,
+    float_column_format: Optional[Dict[str, Dict[str, int]]] = None,
+    default_float_width: int = DEFAULT_FLOAT_WIDTH,
+    default_float_precision: int = DEFAULT_FLOAT_PRECISION,
 ) -> tuple[List[str], List[str], List[ColumnSpec]]:
     row_count = _validate_column_lengths(columns)
-    specs = _build_column_specs(columns)
-    headers = _build_scalar_section(scalar)
+    scalar_label_map = scalar_label_map or SCALAR_LABEL_MAP_DEFAULT
+    float_column_format = float_column_format or FLOAT_COLUMN_FORMAT_DEFAULT
+
+    specs = _build_column_specs(
+        columns,
+        float_column_format=float_column_format,
+        default_float_width=default_float_width,
+        default_float_precision=default_float_precision,
+    )
+    headers = _build_scalar_section(scalar, scalar_label_map=scalar_label_map)
 
     lines: List[str] = []
     lines.extend(headers)
