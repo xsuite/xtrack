@@ -133,8 +133,11 @@ def _build_column_specs(columns: Dict[str, List]) -> List[ColumnSpec]:
 
 
 def _build_table_header(specs: List[ColumnSpec]) -> List[str]:
-    header_cells = [f"{spec.header:<{spec.width}}" for spec in specs]
-    type_cells = [f"{spec.type_code:<{spec.width}}" for spec in specs]
+    header_cells = [
+        f"{spec.header:<{spec.width}}" if spec.type_code == "%s" else f"{spec.header:>{spec.width}}"
+        for spec in specs
+    ]
+    type_cells = [f"{spec.type_code:>{spec.width}}" for spec in specs]
     header_line = "* " + " ".join(header_cells)
     type_line = "$ " + " ".join(type_cells)
     return [header_line.rstrip(), type_line.rstrip()]
@@ -157,7 +160,7 @@ def _build_scalar_section(scalar: Dict[str, float]) -> List[str]:
 
 
 json_path = Path('./twiss_lhcb1_xtrack.json')
-output_path = Path('./twiss_lhcb1.tfs')
+output_path = Path('./twiss_lhcb1_xtrack.tfs')
 
 data = json.loads(json_path.read_text())
 scalar = data.get("scalar", {})
@@ -185,5 +188,4 @@ if specs:
     lines.extend(_build_table_rows(specs, row_count))
 
 output_path.write_text("\n".join(lines) + "\n")
-
 
