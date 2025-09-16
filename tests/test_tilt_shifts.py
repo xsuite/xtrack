@@ -44,7 +44,8 @@ def test_test_tilt_shifts_vs_sandwich(test_context, slice_mode, element_type):
         xt.XYShift(dx=-shift_x, dy=-shift_y),
         xt.DriftExact(length=-shift_s)
     ])
-    line_ref.config.XTRACK_GLOBAL_XY_LIMIT = 1000
+    line_ref.build_tracker()
+    line_ref.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
 
     if slice_mode is not None:
         line_test.slice_thick_elements(

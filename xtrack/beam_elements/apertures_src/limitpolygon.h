@@ -16,6 +16,10 @@ GPUFUN
 void LimitPolygon_track_local_particle(LimitPolygonData el,
 		LocalParticle* part0){
 
+    if(LocalParticle_check_track_flag(part0, XS_FLAG_IGNORE_LOCAL_APERTURE)){
+        return;
+    }
+
     int64_t N_edg = LimitPolygonData_len_x_vertices(el);
 
     START_PER_PARTICLE_BLOCK(part0, part);

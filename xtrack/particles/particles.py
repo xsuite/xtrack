@@ -119,6 +119,7 @@ class Particles(xo.HybridClass):
 
     def __init__(
             self,
+            pdg_id_0=None,
             _capacity=None,
             _no_reorganize=False,
             **kwargs,
@@ -136,6 +137,8 @@ class Particles(xo.HybridClass):
 
         Parameters
         ----------
+        pdg_id_0 : int or str, optional, define reference mass and charge from
+            PDG id or particle name.
         _capacity: int
             The maximum number of particles that can be stored in the object.
             If not provided, it is inferred from the size of the provided
@@ -226,6 +229,9 @@ class Particles(xo.HybridClass):
         if set(kwargs.keys()) - accepted_args:
             raise NameError(f'Invalid argument(s) provided: '
                             f'{set(kwargs.keys()) - accepted_args}')
+
+        if pdg_id_0 is not None:
+            _update_kwargs0_from_pdg_id(pdg_id_0, kwargs)
 
         per_part_input_vars = (
             self.per_particle_vars +
@@ -1271,6 +1277,8 @@ class Particles(xo.HybridClass):
     def gamma0(self, value):
         self.gamma0[:] = value
 
+    
+
     def update_beta0(self, new_beta0):
 
         """
@@ -1317,19 +1325,48 @@ class Particles(xo.HybridClass):
             self._rpp, mode='readonly',
             container=self)
 
+    def _energy0_setitem(self, indx, val):
+        ctx = self._buffer.context
+        temp_gamma0 = ctx.zeros(shape=self._gamma0.shape, dtype=np.float64)
+        temp_gamma0[:] = np.nan
+        temp_gamma0[indx] = val / self.mass0
+        self.update_gamma0(temp_gamma0)
+
     @property
     def energy0(self):
         energy0 = (self.p0c * self.p0c + self.mass0 * self.mass0) ** 0.5
-        return self._buffer.context.linked_array_type.from_array(
-            energy0, mode='readonly',
-            container=self)
+        out  = self._buffer.context.linked_array_type.from_array(
+            energy0,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_energy0_setitem')
+        return out
+
+    @energy0.setter
+    def energy0(self, value):
+        self.energy0[:] = value
+
+
+    def _kinetic_energy0_setitem(self, indx, val):
+        ctx = self._buffer.context
+        temp_gamma0 = ctx.zeros(shape=self._gamma0.shape, dtype=np.float64)
+        temp_gamma0[:] = np.nan
+        temp_gamma0[indx] = val / self.mass0 + 1
+        self.update_gamma0(temp_gamma0)
 
     @property
     def kinetic_energy0(self):
         kene0 = self.energy0 - self.mass0
-        return self._buffer.context.linked_array_type.from_array(
-            kene0, mode='readonly',
-            container=self)
+        out  = self._buffer.context.linked_array_type.from_array(
+            kene0,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_kinetic_energy0_setitem')
+        return out
+
+    @kinetic_energy0.setter
+    def kinetic_energy0(self, value):
+        self.kinetic_energy0[:] = value
 
     @property
     def energy(self):
@@ -1874,6 +1911,11 @@ class Particles(xo.HybridClass):
 
                     /*gpufun*/
                     void global_aperture_check(LocalParticle* part0) {
+                        if (LocalParticle_check_track_flag(
+                            part0, XS_FLAG_IGNORE_GLOBAL_APERTURE)){
+                            return;
+                        }
+
                         //start_per_particle_block (part0->part)
                             double const x = LocalParticle_get_x(part);
                             double const y = LocalParticle_get_y(part);
@@ -1992,15 +2034,8 @@ class Particles(xo.HybridClass):
 
     @classmethod
     def reference_from_pdg_id(cls, pdg_id, **kwargs):
-        pdg_id = get_pdg_id_from_name(pdg_id)
-        kwargs['pdg_id'] = pdg_id
-        q0 = kwargs.get('q0')
-        mass0 = kwargs.get('mass0')
-        if q0 is None:
-            q, _, _, _ = get_properties_from_pdg_id(pdg_id)
-            kwargs['q0'] = q
-        if mass0 is None:
-            kwargs['mass0'] = get_mass_from_pdg_id(pdg_id)
+
+        _update_kwargs0_from_pdg_id(pdg_id, kwargs)
 
         particle_ref = cls(**kwargs)
         if particle_ref._capacity > 1:
@@ -2260,3 +2295,14 @@ def _mask_to_where(mask, ctx):
 
 def reference_from_pdg_id(pdg_id, **kwargs):
     return Particles.reference_from_pdg_id(pdg_id, **kwargs)
+
+def _update_kwargs0_from_pdg_id(pdg_id, kwargs):
+        pdg_id = get_pdg_id_from_name(pdg_id)
+        kwargs['pdg_id'] = pdg_id
+        q0 = kwargs.get('q0')
+        mass0 = kwargs.get('mass0')
+        if q0 is None:
+            q, _, _, _ = get_properties_from_pdg_id(pdg_id)
+            kwargs['q0'] = q
+        if mass0 is None:
+            kwargs['mass0'] = get_mass_from_pdg_id(pdg_id)
