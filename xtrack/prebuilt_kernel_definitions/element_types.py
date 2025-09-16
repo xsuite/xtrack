@@ -36,8 +36,10 @@ ONLY_XTRACK_ELEMENTS = [
     LineSegmentMap,
     FirstOrderTaylorMap,
     NonLinearLens,
+    DriftExact,
     # Drift Slices
     DriftSlice,
+    DriftExactSlice,
     DriftSliceBend,
     DriftSliceRBend,
     DriftSliceOctupole,
