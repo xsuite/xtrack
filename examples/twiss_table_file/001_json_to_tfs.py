@@ -14,6 +14,15 @@ SCALAR_LABEL_MAP: Dict[str, str] = {
     "dqy": "DQ2",
 }
 
+FLOAT_COLUMN_FORMAT: Dict[str, Dict[str, int]] = {
+    "s": {"width": 15, "precision": 6},
+    "betx": {"width": 18, "precision": 8},
+    "bety": {"width": 18, "precision": 8},
+}
+
+DEFAULT_FLOAT_WIDTH = 18
+DEFAULT_FLOAT_PRECISION = 10
+
 
 @dataclass
 class ColumnSpec:
@@ -88,27 +97,13 @@ def _build_column_specs(columns: Dict[str, List]) -> List[ColumnSpec]:
             continue
 
         values = columns[column_name]
-        width = 18
-        precision = 8
-        formatter: Callable[[int], str]
         normalized = column_name.lower()
 
         if all((v is None or isinstance(v, (int, float))) for v in values):
-            if normalized == "s":
-                width = 15
-                precision = 6
-                formatter = _make_float_formatter(values, width, precision)
-            elif normalized in {"betx", "bety"}:
-                width = 18
-                precision = 8
-                formatter = _make_float_formatter(values, width, precision)
-            elif normalized in {"mux", "muy"}:
-                width = 18
-                precision = 10
-                formatter = _make_float_formatter(values, width, precision)
-            else:
-                formatter = _make_generic_float_formatter(values, width)
-
+            config = FLOAT_COLUMN_FORMAT.get(normalized)
+            width = config["width"] if config else DEFAULT_FLOAT_WIDTH
+            precision = config["precision"] if config else DEFAULT_FLOAT_PRECISION
+            formatter = _make_float_formatter(values, width, precision)
             specs.append(
                 ColumnSpec(
                     header=normalized.upper(),
@@ -188,4 +183,3 @@ if specs:
     lines.extend(_build_table_rows(specs, row_count))
 
 output_path.write_text("\n".join(lines) + "\n")
-
