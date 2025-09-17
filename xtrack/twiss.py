@@ -3320,6 +3320,15 @@ class TwissTable(Table):
             df.set_index(index, inplace=True)
         return df
 
+    def to_dict(self):
+        out = self._data.copy()
+        out['_col_names'] = self._col_names.copy()
+        for nn in self._data.keys():
+            if isinstance(self._data[nn], xt.Particles):
+                out[nn] = self._data[nn].to_dict()
+        out.pop('_action', None)
+        return out
+
     def get_twiss_init(self, at_element):
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
