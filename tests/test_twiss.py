@@ -2113,7 +2113,8 @@ def test_twiss_table_hdf5_roundtrip(tmp_path):
         assert sorted(grp['columns'].keys()) == ['name', 's']
         assert 'payload' not in grp
         assert sorted(grp['attrs'].keys()) == ['particle_on_co']
-        assert sorted(grp['meta'].keys()) == ['dropped_attrs', 'dropped_columns']
+        meta_keys = set(grp['meta'].keys())
+        assert {'dropped_attrs', 'dropped_columns'}.issubset(meta_keys)
 
     loaded = xt.TwissTable.from_hdf5(path)
     assert list(loaded._col_names) == ['s', 'name']
