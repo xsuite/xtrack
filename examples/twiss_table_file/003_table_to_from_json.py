@@ -6,7 +6,8 @@ lhc.set_particle_ref('proton', energy0=450e9)
 
 tw1 = lhc.lhcb1.twiss4d()
 
-dd = tw1.to_dict()
+# Check json round trip
+tw1.to_json('test.json')
+tw2 = xt.TwissTable.from_json('test.json')
 
-dd_out = {kk: dd[kk] for kk in tw1._col_names}
 

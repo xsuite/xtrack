@@ -3348,7 +3348,12 @@ class TwissTable(Table):
             if isinstance(attrs[nn], dict) and attrs[nn].get('__class__', None) == 'Particles':
                 attrs[nn] = xt.Particles.from_dict(attrs[nn])
 
-        out = cls(data=columns|attrs, _col_names=list(columns.keys()))
+        # cast all columns to numpy arrays
+        for nn in columns:
+            if not isinstance(columns[nn], np.ndarray):
+                columns[nn] = np.array(columns[nn])
+
+        out = cls(data=columns|attrs, col_names=list(columns.keys()))
         return out
 
     def to_json(self, file, indent=1, **kwargs):
