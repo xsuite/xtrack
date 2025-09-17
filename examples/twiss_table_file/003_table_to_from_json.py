@@ -5,3 +5,9 @@ lhc.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 lhc.set_particle_ref('proton', energy0=450e9)
 
 tw1 = lhc.lhcb1.twiss4d()
+
+dd = tw1.to_dict()
+
+dd_out = {kk: dd[kk] for kk in tw1._col_names}
+
+xt.json.dump(dd_out, 'test.json')
