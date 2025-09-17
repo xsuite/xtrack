@@ -65,7 +65,7 @@ def test_simplification_methods():
     line.remove_zero_length_drifts(inplace=True)
 
     # Test merging of multipoles
-    line._var_management = None
+    line.env._var_management = None
     line.insert_element(element=xt.Multipole(knl=[1, 0, 3], ksl=[0, 20, 0]), name='m1', at_s=3.3)
     line.insert_element(element=xt.Multipole(knl=[4, 2], ksl=[10, 40]), name='m2', at_s=3.3)
     line.insert_element(element=xt.Multipole(knl=[0, 3, 8], ksl=[2, 0, 17]), name='m3', at_s=3.3)

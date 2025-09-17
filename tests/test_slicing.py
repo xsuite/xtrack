@@ -457,7 +457,6 @@ def test_slicing_xdeps_consistency():
         elements=[xt.Bend(k0=1, length=100)] * num_elements,
         element_names=[f'bend{ii}' for ii in range(num_elements)],
     )
-    line._init_var_management()
 
     for ii in range(num_elements):
         line.vars[f'k{ii}'] = 1

@@ -95,8 +95,8 @@ line_ref2 = xt.Line(elements=ele_ref2)
 line_ref1.append_element(element=xt.Marker(), name='endmarker')
 line_ref2.append_element(element=xt.Marker(), name='endmarker')
 
-line_ref1.config.XTRACK_USE_EXACT_DRIFTS = True
-line_ref2.config.XTRACK_USE_EXACT_DRIFTS = True
+line_ref1.configure_drift_model(model='exact')
+line_ref2.configure_drift_model(model='exact')
 
 line_ref1.build_tracker()
 line_ref2.build_tracker()

@@ -149,6 +149,15 @@ class TrackerData:
                 this_parent._movable = True
                 assert self._element_dict[nn]._parent._offset == self._element_dict[nn]._xobject._parent._offset
 
+    def __del__(self):
+        # Free the element ref data
+        if hasattr(self, '_element_ref_data'):
+            offset = self._element_ref_data._offset
+            buffer = self._element_ref_data._buffer
+            size = self._element_ref_data._size
+            del self._element_ref_data
+            buffer.free(offset, size)
+
     def common_buffer_for_elements(self):
         """If all `self.elements` elements are in the same buffer,
         returns said buffer, otherwise returns `None`."""

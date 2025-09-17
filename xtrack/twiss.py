@@ -30,6 +30,7 @@ from xdeps import Table
 from . import linear_normal_form as lnf
 from .general import _print
 from .twissplot import TwissPlot
+from . import json as json_utils
 
 import xtrack as xt  # To avoid circular imports
 
@@ -112,6 +113,7 @@ def twiss_line(line, particle_ref=None, method=None,
         zero_at=None,
         co_search_at=None,
         include_collective=False,
+        disable_apertures=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -320,6 +322,8 @@ def twiss_line(line, particle_ref=None, method=None,
     """
     input_kwargs = locals().copy()
 
+
+
     # defaults
     r_sigma=(r_sigma or 0.01)
     nemitt_x=(nemitt_x or 1e-6)
@@ -350,6 +354,16 @@ def twiss_line(line, particle_ref=None, method=None,
     compute_chromatic_properties=(compute_chromatic_properties
                         if compute_chromatic_properties is not None else None)
     num_turns = (num_turns or 1)
+    disable_apertures = (disable_apertures if disable_apertures is not None else True)
+
+    if disable_apertures:
+        if not (line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE
+                and line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE):
+            with xt.line._preserve_track_flags(line):
+                line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
+                line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE = True
+                out = twiss_line(**input_kwargs)
+                return _add_action_in_res(out, input_kwargs)
 
     if only_markers:
         raise NotImplementedError('`only_markers` not supported anymore')
@@ -2127,6 +2141,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     if method == '4d' and delta0 is None:
         delta0 = 0
 
+    if method == '6d' and delta0 is not None:
+        raise ValueError('delta0 should be None when method is "6d"')
+
     if periodic_mode == 'periodic_symmetric':
         raise ValueError('`periodic_symmetric` not supported anymore')
         assert R_matrix is None, 'R_matrix must be None for `periodic_symmetric`'
@@ -2916,7 +2933,7 @@ class TwissInit:
         out['particle_on_co'] = out['particle_on_co'].to_dict()
         return out
 
-    def to_json(self, file, **kwargs):
+    def to_json(self, file, indent=1, **kwargs):
 
         '''
         Convert to JSON representation.
@@ -2927,8 +2944,7 @@ class TwissInit:
 
         '''
 
-        # Can reuse the one from the Line (it is general enough)
-        return xt.Line.to_json(self, file, **kwargs)
+        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
     @classmethod
     def from_dict(cls, dct):

@@ -3,7 +3,6 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
-import math
 import json
 import logging
 from collections import defaultdict
@@ -15,6 +14,7 @@ from copy import deepcopy
 from pprint import pformat
 from typing import List, Literal, Optional, Dict
 from pathlib import Path
+from .functions import Functions
 
 import numpy as np
 from scipy.constants import c as clight
@@ -27,7 +27,7 @@ import xtrack as xt
 import xdeps as xd
 from .beam_elements.elements import (
     MagnetEdge, _MODEL_TO_INDEX_CURVED,
-    _EDGE_MODEL_TO_INDEX,
+    _EDGE_MODEL_TO_INDEX, _MODEL_TO_INDEX_DRIFT
 )
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
@@ -101,10 +101,9 @@ class Line:
     corresponding beam element object.
     """
 
-    _element_dict = None
     config = None
 
-    def __init__(self, elements=(), element_names=None, particle_ref=None,
+    def __init__(self, elements=None, element_names=None, particle_ref=None,
                  energy_program=None, env=None):
         """
         Parameters
@@ -157,34 +156,36 @@ class Line:
         self._extra_config['corrector_limits_x'] = None
         self._extra_config['corrector_limits_y'] = None
 
-        if env is None:
-            env = xt.Environment()
+        if elements is None and env is None:
+            elements = []
+
+        if env is not None:
+            assert elements is None, "If env is provided, elements must be None"
+        else:
+            if isinstance(elements, dict):
+                element_dict = elements
+                if element_names is None:
+                    element_names = list(element_dict.keys())
+            else:
+                if element_names is None:
+                    element_names = [f"e{ii}" for ii in range(len(elements))]
+
+                assert len(element_names) == len(elements), (
+                    "`elements` and `element_names` should have the same length"
+                )
+                element_dict = dict(zip(element_names, elements))
+            env = xt.Environment(element_dict=element_dict)
 
         self.env = env
-        self._element_dict = env.element_dict # Avoid copying (the property setter would do that)
-        self._var_management = env._var_management
+
         self.env._lines_weakrefs.add(self)
 
         if particle_ref is None:
-            particle_ref = env.particle_ref
+            particle_ref = self.env._particle_ref
 
-        if isinstance(elements, dict):
-            element_dict = elements
-            if element_names is None:
-                element_names = list(element_dict.keys())
-        else:
-            if element_names is None:
-                element_names = [f"e{ii}" for ii in range(len(elements))]
-
-            assert len(element_names) == len(elements), (
-                "`elements` and `element_names` should have the same length"
-            )
-            element_dict = dict(zip(element_names, elements))
-
-        self.element_dict.update(element_dict)
         self.element_names = list(element_names).copy()
 
-        self.particle_ref = particle_ref
+        self._particle_ref = particle_ref
 
         if energy_program is not None:
             self.energy_program = energy_program # setter will take care of completing
@@ -199,7 +200,7 @@ class Line:
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
-                  env=None, verbose=True):
+                  verbose=True, _env=None):
 
         """
         Create a Line object from a dictionary.
@@ -225,41 +226,62 @@ class Line:
 
         """
 
-        class_dict = mk_class_namespace(classes)
+        if "xtrack_version" in dct:
+            version = dct["xtrack_version"]
+            if xt.general._compare_versions(version, xt.__version__) > 0:
+                print(f'Warning: The line you are loading was created '
+                      f'with xtrack version {version}, which is more recent '
+                      f'than the current version {xt.__version__}. '
+                      'Some features may not be available or '
+                      f'may not work correctly. Please update your xsuite '
+                      f'package to the latest version.')
+
+        # When env is given it means that the line is being reloaded as part of
+        # and env. In that case the element_dict, vars and xdeps stuff come through
+        # the environment and should not be in the dictionary
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
-        if env is not None:
-            elements = env.element_dict
-        elif isinstance(dct['elements'], dict):
-            elements = {}
-            for ii, (kk, ee) in enumerate(
-                    progress(dct['elements'].items(), desc='Loading line from dict')):
-                elements[kk] = _deserialize_element(ee, class_dict, _buffer)
-        elif isinstance(dct['elements'], list):
-            elements = []
-            for ii, ee in enumerate(
-                    progress(dct['elements'], desc='Loading line from dict')):
-                elements.append(_deserialize_element(ee, class_dict, _buffer))
+        if '_var_manager' in dct.keys():
+            var_management_dict = dct
         else:
-            raise ValueError('Field `elements` must be a dict or a list')
+            var_management_dict = None
+
+        if _env is not None:
+            assert 'elements' not in dct.keys(), (
+                'When _env is provided, elements should not be in the dictionary')
+            assert '_var_manager' not in dct.keys(), (
+                'When _env is provided, _var_manager should not be in the dictionary')
+            env = _env
+        else:
+
+            if isinstance(dct['elements'], list):
+                # Ancient format
+                assert 'element_names' in dct
+                assert len(dct['elements']) == len(dct['element_names'])
+                ele_list = dct['elements']
+                dct['elements'] = {
+                    nn: ee for nn, ee in zip(dct['element_names'], ele_list)}
+
+            elements = xt.environment._deserialize_elements(dct=dct, classes=classes,
+                                             _buffer=_buffer, _context=_context)
+            env = xt.Environment(
+                element_dict=elements,
+                _var_management_dct=var_management_dict)
+
+            if 'env_particles' in dct:
+                for nn, ppd in dct['env_particles'].items():
+                   env._particles[nn] = xt.Particles.from_dict(ppd, _context=_context)
 
         element_names = dct.get('element_names', [])
-        self = cls(elements=elements, element_names=element_names)
+        self = cls(env=env, element_names=element_names)
 
         if 'particle_ref' in dct.keys():
-            self.particle_ref = xt.Particles.from_dict(dct['particle_ref'],
-                                    _context=_buffer.context)
-
-        if env is not None:
-            self.env = env
-            self._var_management = env._var_management
-            self._element_dict = env.element_dict # __init__ makes a copy of the dict
-        elif '_var_manager' in dct.keys():
-            # reinit env and var management
-            self.env = None
-            self._var_management = None
-            self._init_var_management(dct=dct)
+            particle_ref = dct['particle_ref']
+            if not isinstance(particle_ref, str):
+                particle_ref = xt.Particles.from_dict(particle_ref,
+                                                      _context=_buffer.context)
+            self.particle_ref = particle_ref
 
         if 'config' in dct.keys():
             self.config.clear()
@@ -571,7 +593,8 @@ class Line:
         line = loader.make_line()
         return line
 
-    def to_dict(self, include_var_management=True, include_element_dict=True):
+    def to_dict(self, include_var_management=True, include_element_dict=True,
+                include_version=False):
 
         '''
         Returns a dictionary representation of the line.
@@ -589,6 +612,10 @@ class Line:
         '''
 
         out = {}
+
+        if include_version:
+            out["xtrack_version"] = xt.__version__
+
         if include_element_dict:
             out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
         out["element_names"] = self.element_names[:]
@@ -598,9 +625,12 @@ class Line:
         if self._element_names_before_slicing is not None:
             out['_element_names_before_slicing'] = self._element_names_before_slicing
 
-        if self.particle_ref is not None:
-            out['particle_ref'] = self.particle_ref.to_dict()
-        if self._var_management is not None and include_var_management:
+        if self._particle_ref is not None:
+            if isinstance(self._particle_ref, str):
+                out['particle_ref'] = self._particle_ref
+            else:
+                out['particle_ref'] = self._particle_ref.to_dict()
+        if self.env._var_management is not None and include_var_management:
             if hasattr(self, '_in_multiline') and self._in_multiline is not None:
                 raise ValueError('The line is part ot a MultiLine object. '
                     'To save without expressions please use '
@@ -608,7 +638,9 @@ class Line:
                     'To save also the deferred expressions please save the '
                     'entire multiline.\n ')
 
-            out.update(self._var_management_to_dict())
+            out.update(self.env._var_management_to_dict())
+
+        out['env_particles'] = {k: pp.to_dict() for k, pp in self.env._particles.items()}
 
         out["metadata"] = deepcopy(self.metadata)
 
@@ -687,6 +719,9 @@ class Line:
             Additional keyword arguments are passed to the `Line.to_dict` method.
 
         '''
+
+        if 'inlude_version' not in kwargs:
+            kwargs['include_version'] = True
 
         json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
@@ -873,18 +908,26 @@ class Line:
             elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
                                         for nn, ee in self.element_dict.items()}
             element_names = [nn for nn in self.element_names]
-            out = self.__class__(elements=elements, element_names=element_names)
 
-            if self._var_management is not None:
-                # reinit env and var management
-                out.env = None
-                out._var_management = None
-                out._init_var_management(dct=self._var_management_to_dict())
-                out._env_if_needed()
+            var_management_dict = None
+            if hasattr(self.env, '_var_management'):
+                var_management_dict = self.env._var_management_to_dict()
 
-        if self.particle_ref is not None:
-            out.particle_ref = self.particle_ref.copy(
-                                        _context=_context, _buffer=_buffer)
+            env = xt.Environment(element_dict=elements,
+                                  _var_management_dct=var_management_dict)
+
+            if isinstance(self._particle_ref, str):
+                env.particles[self._particle_ref] = self.particle_ref.copy()
+
+            out = self.__class__(element_names=element_names,
+                                 env=env)
+
+        if self._particle_ref is not None:
+            if isinstance(self._particle_ref, str):
+                out._particle_ref = self._particle_ref
+            else:
+                out._particle_ref = self._particle_ref.copy(
+                                            _context=_context, _buffer=_buffer)
 
         out.config.clear()
         out.config.update(self.config.copy())
@@ -977,13 +1020,32 @@ class Line:
 
         return self.tracker._tracker_data_base.cache['attr']
 
+    def set_particle_ref(self, *args, **kwargs):
+        """
+        Set the reference particle of the line. See `particle_ref` property.
+        """
+        if len(args)==1 and isinstance(args[0], xt.Particles):
+            self.particle_ref = args[0].copy()
+        elif len(args)==1 and isinstance(args[0], str):
+            name = args[0]
+            if name in self.env.particles:
+                self.particle_ref = name
+            else:
+                self.particle_ref = xt.Particles(*args, **kwargs)
+        else:
+            self.particle_ref = xt.Particles(*args, **kwargs)
+
     @property
     def particle_ref(self):
-        return self._particle_ref
+        if self._particle_ref is None:
+            return None
+        return LineParticleRef(self)
 
     @particle_ref.setter
     def particle_ref(self, particle_ref):
         self._particle_ref = particle_ref
+        # This looks a bit dangerous, when working with coasting beams in environments.
+        # If the particle is shared with other lines, t_sim might be wrong.
         if self.particle_ref is not None and self.particle_ref.t_sim == 0:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
@@ -1505,6 +1567,7 @@ class Line:
         zero_at=None,
         co_search_at=None,
         include_collective=None,
+        disable_apertures=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -3109,6 +3172,28 @@ class Line:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
+    def configure_drift_model(self, model=None):
+
+        """
+        Configure the method used to track drifts.
+
+        See documentation of ``xt.Drift`` for more details on the values of the
+        models used below.
+
+        Parameters
+        ----------
+        model: str
+            Model to be used for the drifts. Can be 'adaptive', 'exact' or
+            'expanded'.
+        """
+
+        if model is not None and model not in _MODEL_TO_INDEX_DRIFT:
+            raise ValueError(f'Unknown drift model {model}')
+
+        for ee in self.element_dict.values():
+            if model is not None and isinstance(ee, xt.Drift):
+                ee.model = model
+
     def configure_bend_model(
             self,
             core=None,
@@ -3451,7 +3536,7 @@ class Line:
         self.tracker.track_kernel.clear() # Remove all kernels
 
         if verbose: _print("Disable xdeps expressions")
-        self._var_management = None # Disable expressions
+        self.env._var_management = None # Disable expressions for the entire env
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             self._in_multiline._var_sharing = None
 
@@ -4222,7 +4307,6 @@ class Line:
         return self.mirror(inplace=False)
 
     def __rmul__(self, other):
-        self._env_if_needed()
         assert isinstance(other, int), 'Only integer multiplication is supported'
         assert other > 0, 'Only positive integer multiplication is supported'
         ele_names = list(self.element_names)
@@ -4231,7 +4315,6 @@ class Line:
         return out
 
     def __add__(self, other):
-        self._env_if_needed
         #assert isinstance(other, Line), 'Only Line can be added to Line'
         assert other.__class__.__name__=="Line", 'Only Line can be added to Line'
         assert other.env is self.env, 'Lines must be in the same environment'
@@ -4243,8 +4326,6 @@ class Line:
         return self + (-other)
 
     def replicate(self, name, mirror=False):
-
-        self._env_if_needed()
 
         new_element_names = []
         for nn in self.element_names:
@@ -4321,7 +4402,6 @@ class Line:
 
     def replace_all_repeated_elements(self, separator='.', mode='clone'):
 
-        self._env_if_needed()
         env = self.env
 
         self.discard_tracker()
@@ -4351,8 +4431,6 @@ class Line:
         if tt.name[-1] == '_end_point':
             tt = tt.rows[:-1]
 
-        self._env_if_needed()
-
         out = self.env.new_line(components=list(tt.env_name), name=name)
         out.particle_ref = self.particle_ref.copy() if self.particle_ref else None
 
@@ -4366,111 +4444,7 @@ class Line:
 
         return out
 
-    def set(self, name, *args, **kwargs):
-        '''
-        Set the values or expressions of variables or element properties.
 
-        Parameters
-        ----------
-        name : str
-            Name(s) of the variable or element.
-        value: float or str
-            Value or expression of the variable to set. Can be provided only
-            if the name is associated to a variable.
-        **kwargs, float or str
-            Attributes to set. Can be provided only if the name is associated
-            to an element.
-
-        Examples
-        --------
-        >>> line.set('a', 0.1)
-        >>> line.set('k1', '3*a')
-        >>> line.set('quad', k1=0.1, k2='3*a')
-        >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
-        >>> line.set(['c', 'd'], 0.1)
-        >>> line.set(['e', 'f'], '3*a')
-
-        '''
-        if hasattr(name, 'env_name'):
-            name = name.env_name
-        elif hasattr(name, 'name'):
-            name = name.name
-
-        if isinstance(name, Iterable) and not isinstance(name, str):
-            for nn in name:
-                self.set(nn, *args, **kwargs)
-            return
-
-        _eval = self._xdeps_eval.eval
-
-        if hasattr(self, 'lines') and name in self.lines:
-            raise ValueError('Cannot set a line')
-
-        if name in self.element_dict:
-            if len(args) > 0:
-                raise ValueError(f'Only kwargs are allowed when setting element attributes')
-
-            extra = kwargs.pop('extra', None)
-
-            ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
-                type(self.element_dict[name]), kwargs, _eval)
-            xt.environment._set_kwargs(
-                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                element_dict=self.element_dict, element_refs=self.element_refs)
-            if extra is not None:
-                assert isinstance(extra, dict), (
-                    'Description must be a dictionary')
-                if (not hasattr(self.element_dict[name], 'extra')
-                    or not isinstance(self.element_dict[name].extra, dict)):
-                    self.element_dict[name].extra = {}
-                self.element_dict[name].extra.update(extra)
-        else:
-            if len(kwargs) > 0:
-                raise ValueError(f'Only a single value is allowed when setting variable')
-            if len(args) != 1:
-                raise ValueError(f'A value must be provided when setting a variable')
-            value = args[0]
-            if 'extra' in kwargs and kwargs['extra'] is not None:
-                raise ValueError(f'Extra is only allowed for elements')
-            if isinstance(value, str):
-                self.vars[name] = _eval(value)
-            else:
-                self.vars[name] = value
-
-    def get(self, key):
-        '''
-        Get an element or the value of a variable.
-
-        Parameters
-        ----------
-        key : str
-            Name of the element or variable.
-
-        Returns
-        -------
-        element : Element or float
-            Element or value of the variable.
-
-        '''
-
-        if key in self.element_dict:
-            return self.element_dict[key]
-        elif key in self.vars:
-            return self._xdeps_vref._owner[key]
-        else:
-            raise KeyError(f'Element or variable {key} not found')
-
-    def info(self, key, limit=30):
-        """
-            Get information about an element or a variable.
-        """
-
-        if key in self.element_dict:
-            return self[key].get_info()
-        elif key in self.vars:
-            return self.vars.info(key, limit=limit)
-        else:
-            raise KeyError(f'Element or variable {key} not found')
 
 #    def get_value(self, key):
 #        if key in self.element_dict:
@@ -4479,10 +4453,6 @@ class Line:
 #            return self.vars.get_value(key)
 #        else:
 #            raise KeyError(f'Element or variable {key} not found')
-
-    @property
-    def ref_manager(self):
-        return self._xdeps_manager
 
     def eval(self, expr):
         '''
@@ -4501,52 +4471,6 @@ class Line:
 
         return self.vars.eval(expr)
 
-    def new_expr(self, expr):
-        '''
-        Create a new expression
-
-        Parameters
-        ----------
-        expr : str
-            Expression to create.
-
-        Returns
-        -------
-        expr : Expression
-            New expression.
-        '''
-        return self.vars.new_expr(expr)
-
-    def get_expr(self, var):
-        '''
-        Get expression associated to a variable
-
-        Parameters
-        ----------
-        var: str
-            Name of the variable
-
-        Returns
-        -------
-        expr : Expression
-            Expression associated to the variable
-        '''
-
-        return self.vars.get_expr(var)
-
-    def _env_if_needed(self):
-        if not hasattr(self, 'env') or self.env is None:
-            self.env = xt.Environment(element_dict=self.element_dict,
-                                      particle_ref=self.particle_ref,
-                                      _var_management=self._var_management)
-            self.env._lines_weakrefs.add(self)
-
-            # Temporary solution to keep consistency in multiline
-            if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-                self.env._var_management = None
-                self.env._in_multiline = self._in_multiline
-                self.env._name_in_multiline = self._name_in_multiline
-
     def extend(self, line):
         self.element_names.extend(line.element_names)
 
@@ -4556,16 +4480,6 @@ class Line:
     def items(self):
         for name in self.element_names:
             yield name, self.element_dict[name]
-
-    def _var_management_to_dict(self):
-        out = {}
-        out['_var_management_data'] = deepcopy(self._var_management['data'])
-        for kk in out['_var_management_data'].keys():
-            if hasattr(out['_var_management_data'][kk], 'to_dict'):
-                out['_var_management_data'][kk] = (
-                    out['_var_management_data'][kk].to_dict())
-        out['_var_manager'] = self._var_management['manager'].dump()
-        return out
 
     def _has_valid_tracker(self):
 
@@ -4614,15 +4528,6 @@ class Line:
                 '`Line._context` con only be called after `Line.build_tracker`')
         return self.tracker._context
 
-    def _init_var_management(self, dct=None):
-
-        self._var_management = _make_var_management(element_dict=self.element_dict,
-                                               dct=dct)
-
-        if not hasattr(self, 'env') or self.env is None:
-            self._env_if_needed()
-            self.env._line_vars = LineVars(self.env)
-
     @property
     def _line_vars(self):
         return self.env._line_vars
@@ -4637,7 +4542,7 @@ class Line:
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline.vars
         else:
-            return self._line_vars
+            return self.env.vars
 
     @property
     def varval(self):
@@ -4647,43 +4552,32 @@ class Line:
     def vv(self): # Shorter alias
         return self.vars.val
 
+    def set(self, name, *args, **kwargs):
+        self.env.set(name, *args, **kwargs)
+
+    def get(self, key):
+        return self.env.get(key)
+
+    def info(self, key, limit=30):
+        return self.env.info(key, limit=limit)
+
+    def get_expr(self, var):
+        return self.env.get_expr(var)
+
+    def new_expr(self, var):
+        return self.env.new_expr(var)
+
+    @property
+    def ref_manager(self):
+        return self.env.ref_manager
+
     @property
     def functions(self):
         return self._xdeps_fref
 
     @property
-    def _xdeps_vref(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_vref
-        if self._var_management is not None:
-            return self._var_management['vref']
-
-    @property
-    def _xdeps_fref(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_fref
-        if self._var_management is not None:
-            return self._var_management['fref']
-
-    @property
-    def _xdeps_manager(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_manager
-        if self._var_management is not None:
-            return self._var_management['manager']
-
-    @property
-    def _xdeps_eval(self):
-        try:
-            eva_obj = self._xdeps_eval_obj
-        except AttributeError:
-            eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
-                                            functions=self._xdeps_fref,
-                                            elements=self.element_dict,
-                                            get='attr')
-            self._xdeps_eval_obj = eva_obj
-
-        return eva_obj
+    def element_dict(self):
+        return self.env.element_dict
 
     @property
     def element_refs(self):
@@ -4691,19 +4585,28 @@ class Line:
             var_sharing = self._in_multiline._var_sharing
             if var_sharing is not None:
                 return var_sharing._eref[self._name_in_multiline]
-        if self._var_management is not None:
-            return self._var_management['lref']
+        if self.env._var_management is not None:
+            return self.env.element_refs
 
     @property
-    def element_dict(self):
-        return self._element_dict
+    def _xdeps_vref(self):
+        return self.env._xdeps_vref
 
-    @element_dict.setter
-    def element_dict(self, value):
-        if self._element_dict is None:
-            self._element_dict = {}
-        self._element_dict.clear()
-        self._element_dict.update(value)
+    @property
+    def _xdeps_fref(self):
+        return self.env._xdeps_fref
+
+    @property
+    def _xdeps_manager(self):
+        return self.env._xdeps_manager
+
+    @property
+    def _xdeps_eval(self):
+        return self.env._xdeps_eval
+
+    @property
+    def vv(self):  # Shorter alias
+        return self.vars.val
 
     @property
     def element_names(self):
@@ -4908,12 +4811,11 @@ class Line:
                 evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
             return self.vv[key]
-        elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
-            return self.lines[key]
         elif "::" in key and (env_name := key.split("::")[0]) in self.element_dict:
             return self[env_name]
         else:
             raise KeyError(f'Name {key} not found')
+
 
     def __setitem__(self, key, value):
 
@@ -4936,14 +4838,19 @@ class Line:
             out = Line.__new__(Line)
             out.__dict__.update(self.__dict__)
 
-            # Change the element dict (beware of the element_dict property)
-            out._element_dict = self.tracker._element_dict_non_collective
-
             # Shallow copy of the tracker
             out.tracker = self.tracker.__new__(self.tracker.__class__)
             out.tracker.__dict__.update(self.tracker.__dict__)
             out.tracker.iscollective = False
             out.tracker.line = out
+
+            # Shallow copy of the environment
+            out.env = self.env.__new__(self.env.__class__)
+            out.env.__dict__.update(self.env.__dict__)
+
+            # Change the element dict (beware of the element_dict property)
+            out.env._element_dict = self.tracker._element_dict_non_collective
+            out.env._lines_weakrefs.add(out)
 
             return out
 
@@ -5319,81 +5226,6 @@ class Line:
                 '`Line._element_names_unique` con only be called after `Line.build_tracker`')
         return self.tracker._tracker_data_base._element_names_unique
 
-def frac(x):
-    return x % 1
-
-def sinc(x):
-    return np.sinc(x / np.pi)
-
-class Functions:
-
-    _mathfunctions = dict(
-        sqrt = math.sqrt,
-        log = math.log,
-        log10 = math.log10,
-        exp = math.exp,
-        sin = math.sin,
-        cos = math.cos,
-        tan = math.tan,
-        asin = math.asin,
-        acos = math.acos,
-        atan = math.atan,
-        atan2 = math.atan2,
-        sinh = math.sinh,
-        cosh = math.cosh,
-        tanh = math.tanh,
-        sinc = sinc,
-        abs = math.fabs,
-        erf = math.erf,
-        erfc = math.erfc,
-        floor = math.floor,
-        ceil = math.ceil,
-        round = np.round,
-        frac = frac,
-    )
-
-    def __init__(self):
-        object.__setattr__(self, '_funcs', {})
-
-    def __setitem__(self, name, value):
-        self._funcs[name] = value
-
-    def __getitem__(self, name):
-        if name in self._funcs:
-            return self._funcs[name]
-        elif name in self._mathfunctions:
-            return self._mathfunctions[name]
-        else:
-            raise KeyError(f'Unknown function {name}')
-
-    def __getattr__(self, name):
-        if name == '_funcs':
-            return object.__getattribute__(self, '_funcs')
-        try:
-            return self[name]
-        except KeyError:
-            raise AttributeError(f'Unknown function {name}')
-
-    def update(self, other):
-        self._funcs.update(other._funcs)
-
-    def to_dict(self):
-        fdict = {}
-        for kk, ff in self._funcs.items():
-            fdict[kk] = ff.to_dict()
-            fdict[kk]['__class__'] = ff.__class__.__name__
-        out = {'_funcs': fdict}
-        return out
-
-    @classmethod
-    def from_dict(cls, dct):
-        _funcs = {}
-        for kk, ff in dct['_funcs'].items():
-            ffcls = getattr(xd, ff.pop('__class__'))
-            _funcs[kk] = ffcls.from_dict(ff)
-        out = cls()
-        out._funcs.update(_funcs)
-        return out
 
 
 def _deserialize_element(el, class_dict, _buffer):
@@ -6386,40 +6218,27 @@ def _rot_s_from_attr(attr):
 
     return rot_s_rad
 
+class LineParticleRef:
 
-def _make_var_management(element_dict, dct=None):
+    def __init__(self, line):
+        self.line = line
 
-    from collections import defaultdict
+    @property
+    def _resolved(self):
+        _particle_ref = self.line._particle_ref
+        if isinstance(_particle_ref, str):
+            return self.line.env[_particle_ref]
+        else:
+            return _particle_ref
 
-    _var_values = defaultdict(lambda: 0)
-    _var_values.default_factory = None
+    def __getattr__(self, key):
+        return getattr(self._resolved, key)
 
-    functions = Functions()
+    def __setattr__(self, key, value):
+        if key == 'line':
+            object.__setattr__(self, key, value)
+        else:
+            setattr(self._resolved, key, value)
 
-    manager = xd.Manager()
-    _vref = manager.ref(_var_values, 'vars')
-    _fref = manager.ref(functions, 'f')
-    _lref = manager.ref(element_dict, 'element_refs')
-
-    _var_management = {}
-    _var_management['data'] = {}
-    _var_management['data']['var_values'] = _var_values
-    _var_management['data']['functions'] = functions
-
-    _var_management['manager'] = manager
-    _var_management['lref'] = _lref
-    _var_management['vref'] = _vref
-    _var_management['fref'] = _fref
-
-    _vref['t_turn_s'] = 0.0
-
-    if dct is not None:
-        manager = _var_management['manager']
-        for kk in dct['_var_management_data'].keys():
-            data_item = dct['_var_management_data'][kk]
-            if kk == 'functions':
-                data_item = Functions.from_dict(data_item)
-            _var_management['data'][kk].update(data_item)
-        manager.load(dct['_var_manager'])
-
-    return _var_management
+    def copy(self, **kwargs):
+        return self._resolved.copy(**kwargs)
