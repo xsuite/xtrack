@@ -2121,3 +2121,44 @@ def test_twiss_table_hdf5_roundtrip(tmp_path):
 
     subset = xt.TwissTable.from_hdf5(path, columns=['s'])
     assert list(subset._col_names) == ['s']
+
+
+def test_twiss_table_csv_roundtrip(tmp_path):
+    data = {
+        's': np.array([0.0, 1.0]),
+        'betx': np.array([1.0, 2.0]),
+        'alfx': np.array([0.0, 0.1]),
+        'name': np.array(['e0', 'e1'], dtype=object),
+        'W_matrix': np.array([np.eye(6), np.eye(6)]),
+        'particle_on_co': 'co',
+        'reference_frame': 'lab'
+    }
+
+    table = xt.TwissTable(data=data, col_names=['s', 'betx', 'alfx', 'name', 'W_matrix'])
+
+    path = tmp_path / 'twiss.csv'
+    table.to_csv(path, columns=['s', 'name', 'W_matrix'], exclude_attrs=['reference_frame'])
+
+    with open(path, 'r') as fh:
+        lines = [line.strip() for line in fh.readlines()]
+
+    assert lines[0] == '# TwissTable'
+    attrs_line = next(line for line in lines if line.startswith('# attrs='))
+    meta_line = next(line for line in lines if line.startswith('# meta='))
+
+    attrs_json = xt.json.load(string=attrs_line[len('# attrs='):])
+    meta_json = xt.json.load(string=meta_line[len('# meta='):])
+
+    assert 'particle_on_co' in attrs_json
+    assert 'column_dtypes' in meta_json
+    assert 'column_serialization' in meta_json
+    assert meta_json['column_serialization']['W_matrix'] == 'json'
+    assert meta_json['column_dtypes']['s'].startswith('<')
+
+    loaded = xt.TwissTable.from_csv(path)
+    assert list(loaded._col_names) == ['s', 'name', 'W_matrix']
+    assert loaded._data['particle_on_co'] == 'co'
+    assert isinstance(loaded._data['W_matrix'][0], np.ndarray)
+
+    subset = xt.TwissTable.from_csv(path, columns=['s'])
+    assert list(subset._col_names) == ['s']
