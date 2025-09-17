@@ -612,6 +612,7 @@ class Line:
         '''
 
         out = {}
+        out['__class__'] = self.__class__.__name__
 
         if include_version:
             out["xtrack_version"] = xt.__version__
