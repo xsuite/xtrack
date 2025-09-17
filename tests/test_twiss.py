@@ -2114,11 +2114,14 @@ def test_twiss_table_hdf5_roundtrip(tmp_path):
         assert 'payload' not in grp
         assert sorted(grp['attrs'].keys()) == ['particle_on_co']
         meta_keys = set(grp['meta'].keys())
-        assert {'dropped_attrs', 'dropped_columns'}.issubset(meta_keys)
+        assert {'dropped_attrs', 'dropped_columns', 'table_class'}.issubset(meta_keys)
+        class_value = json.loads(grp['meta']['table_class'].asstr()[()])
+        assert class_value == 'TwissTable'
 
     loaded = xt.TwissTable.from_hdf5(path)
     assert list(loaded._col_names) == ['s', 'name']
     assert loaded._data['particle_on_co'] == 'co'
+    assert loaded._data['_table_class'] == 'TwissTable'
 
     subset = xt.TwissTable.from_hdf5(path, columns=['s'])
     assert list(subset._col_names) == ['s']
@@ -2153,12 +2156,14 @@ def test_twiss_table_csv_roundtrip(tmp_path):
     assert 'particle_on_co' in attrs_json
     assert 'column_dtypes' in meta_json
     assert 'column_serialization' in meta_json
+    assert meta_json['table_class'] == 'TwissTable'
     assert meta_json['column_serialization']['W_matrix'] == 'json'
     assert meta_json['column_dtypes']['s'].startswith('<')
 
     loaded = xt.TwissTable.from_csv(path)
     assert list(loaded._col_names) == ['s', 'name', 'W_matrix']
     assert loaded._data['particle_on_co'] == 'co'
+    assert loaded._data['_table_class'] == 'TwissTable'
     assert isinstance(loaded._data['W_matrix'][0], np.ndarray)
 
     subset = xt.TwissTable.from_csv(path, columns=['s'])
