@@ -2929,6 +2929,7 @@ class TwissInit:
         '''
         Convert to dictionary representation.
         '''
+
         out = self.__dict__.copy()
         out['particle_on_co'] = out['particle_on_co'].to_dict()
         return out
@@ -2965,6 +2966,8 @@ class TwissInit:
         # Need the values as numpy types, in particular arrays
         numpy_dct = {}
         for key, value in dct.items():
+            if key == 'particle_on_co':
+                continue
             if isinstance(value, int):
                 numpy_dct[key] = np.int64(value)
             elif isinstance(value, float):
@@ -3298,6 +3301,57 @@ class TwissInit:
 
 class TwissTable(Table):
 
+    @staticmethod
+    def _normalize_name_selection(names):
+        if names is None:
+            return None
+        if isinstance(names, str):
+            return {names}
+        try:
+            return set(names)
+        except TypeError as exc:  # pragma: no cover - defensive programming
+            raise TypeError(
+                f"Selection must be iterable of names or a single string, got {names!r}"
+            ) from exc
+
+    @classmethod
+    def _resolve_name_selection(cls, all_names, *, include=None, exclude=None,
+                                missing='error', kind='item'):
+        if missing not in ('error', 'ignore'):
+            raise ValueError(
+                f"Invalid missing policy {missing!r} (expected 'error' or 'ignore')"
+            )
+
+        include_set = cls._normalize_name_selection(include)
+        exclude_set = cls._normalize_name_selection(exclude)
+        available = set(all_names)
+
+        if include_set is not None:
+            missing_include = include_set - available
+            if missing == 'error' and missing_include:
+                raise KeyError(
+                    f"Unknown {kind}(s) in include selection: {sorted(missing_include)}"
+                )
+            include_set &= available
+
+        if exclude_set:
+            missing_exclude = exclude_set - available
+            if missing == 'error' and missing_exclude:
+                raise KeyError(
+                    f"Unknown {kind}(s) in exclude selection: {sorted(missing_exclude)}"
+                )
+            exclude_set &= available
+
+        selected = []
+        for name in all_names:
+            if include_set is not None and name not in include_set:
+                continue
+            if exclude_set and name in exclude_set:
+                continue
+            selected.append(name)
+
+        return selected
+
     def __init__(self, *args, **kwargs):
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
         super().__init__(*args, **kwargs)
@@ -3320,40 +3374,82 @@ class TwissTable(Table):
             df.set_index(index, inplace=True)
         return df
 
-    def to_dict(self):
+    def to_dict(self, *, columns=None, exclude_columns=None,
+                attrs=None, exclude_attrs=None, missing='error',
+                include_meta=True):
 
         out = {}
         out['__class__'] = 'TwissTable'
         out['xtrack_version'] = xt.__version__
 
-        out['columns'] = {col: self._data[col] for col in self._col_names}
-        out['attrs'] = {kk: vv for kk, vv in self._data.items() if kk not in self._col_names}
+        column_order = list(self._col_names)
+        selected_columns = self._resolve_name_selection(
+            column_order, include=columns, exclude=exclude_columns,
+            missing=missing, kind='column')
 
-        out['attrs'].pop('_action', None)
-        out['attrs'].pop('_col_names', None)
+        raw_attrs = {kk: vv for kk, vv in self._data.items() if kk not in self._col_names}
+        raw_attrs.pop('_action', None)
+        raw_attrs.pop('_col_names', None)
+        attr_order = list(raw_attrs.keys())
+        selected_attrs = self._resolve_name_selection(
+            attr_order, include=attrs, exclude=exclude_attrs,
+            missing=missing, kind='attribute')
 
-        for nn in out['attrs']:
-            if isinstance(out['attrs'][nn], xt.Particles):
-                out['attrs'][nn] = out['attrs'][nn].to_dict()
+        out['columns'] = {col: self._data[col] for col in selected_columns}
+        out['attrs'] = {name: raw_attrs[name] for name in selected_attrs}
+
+        for name, value in list(out['attrs'].items()):
+            if isinstance(value, xt.Particles):
+                out['attrs'][name] = value.to_dict()
+
+        if include_meta:
+            dropped_columns = [name for name in column_order if name not in selected_columns]
+            dropped_attrs = [name for name in attr_order if name not in selected_attrs]
+            meta = {}
+            if dropped_columns:
+                meta['dropped_columns'] = dropped_columns
+            if dropped_attrs:
+                meta['dropped_attrs'] = dropped_attrs
+            if meta:
+                out['meta'] = meta
 
         return out
 
     @classmethod
-    def from_dict(cls, dct):
+    def from_dict(cls, dct, *, columns=None, exclude_columns=None,
+                  attrs=None, exclude_attrs=None, missing='error'):
 
-        columns = dct['columns']
-        attrs = dct['attrs']
+        columns_src = dict(dct['columns'])
+        attrs_src = dict(dct.get('attrs', {}))
 
-        for nn in attrs:
-            if isinstance(attrs[nn], dict) and attrs[nn].get('__class__', None) == 'Particles':
-                attrs[nn] = xt.Particles.from_dict(attrs[nn])
+        column_order = list(columns_src.keys())
+        selected_columns = cls._resolve_name_selection(
+            column_order, include=columns, exclude=exclude_columns,
+            missing=missing, kind='column')
 
-        # cast all columns to numpy arrays
-        for nn in columns:
-            if not isinstance(columns[nn], np.ndarray):
-                columns[nn] = np.array(columns[nn])
+        attr_order = list(attrs_src.keys())
+        selected_attrs = cls._resolve_name_selection(
+            attr_order, include=attrs, exclude=exclude_attrs,
+            missing=missing, kind='attribute')
 
-        out = cls(data=columns|attrs, col_names=list(columns.keys()))
+        converted_columns = {}
+        for name in selected_columns:
+            value = columns_src[name]
+            if not isinstance(value, np.ndarray):
+                converted_columns[name] = np.array(value)
+            else:
+                converted_columns[name] = value
+
+        converted_attrs = {}
+        for name in selected_attrs:
+            value = attrs_src[name]
+            if isinstance(value, dict) and value.get('__class__', None) == 'Particles':
+                converted_attrs[name] = xt.Particles.from_dict(value)
+            else:
+                converted_attrs[name] = value
+
+        out = cls(data=converted_columns | converted_attrs,
+                  col_names=list(selected_columns))
         return out
 
     def to_json(self, file, indent=1, **kwargs):
