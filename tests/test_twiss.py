@@ -2059,3 +2059,65 @@ def test_twiss_disable_apertures():
     xo.assert_allclose(tw.x[-1], 0.2)
     with pytest.raises(AssertionError):
         line.twiss(betx=1, bety=1, x=0.2, y=0, disable_apertures=False)
+
+
+def test_twiss_table_dict_selection():
+    data = {
+        's': np.array([0.0, 1.0]),
+        'betx': np.array([1.0, 2.0]),
+        'alfx': np.array([0.0, 0.1]),
+        'name': np.array(['e0', 'e1'], dtype=object),
+        'particle_on_co': 'co',
+        'reference_frame': 'lab'
+    }
+
+    table = xt.TwissTable(data=data, col_names=['s', 'betx', 'alfx', 'name'])
+
+    filtered = table.to_dict(columns=['s', 'name'], exclude_attrs=['reference_frame'])
+    assert list(filtered['columns'].keys()) == ['s', 'name']
+    assert 'betx' not in filtered['columns']
+    assert 'alfx' not in filtered['columns']
+    assert 'reference_frame' not in filtered['attrs']
+    assert 'meta' in filtered
+    assert 'betx' in filtered['meta']['dropped_columns']
+    assert 'alfx' in filtered['meta']['dropped_columns']
+    assert 'reference_frame' in filtered['meta']['dropped_attrs']
+
+    rebuilt = xt.TwissTable.from_dict(filtered)
+    assert list(rebuilt._col_names) == ['s', 'name']
+    assert rebuilt._data['particle_on_co'] == 'co'
+
+    reduced = xt.TwissTable.from_dict(table.to_dict(), columns=['s'])
+    assert list(reduced._col_names) == ['s']
+
+
+def test_twiss_table_hdf5_roundtrip(tmp_path):
+    h5py = pytest.importorskip('h5py')
+
+    data = {
+        's': np.array([0.0, 1.0]),
+        'betx': np.array([1.0, 2.0]),
+        'alfx': np.array([0.0, 0.1]),
+        'name': np.array(['e0', 'e1'], dtype=object),
+        'particle_on_co': 'co',
+        'reference_frame': 'lab'
+    }
+
+    table = xt.TwissTable(data=data, col_names=['s', 'betx', 'alfx', 'name'])
+
+    path = tmp_path / 'twiss.h5'
+    table.to_hdf5(path, columns=['s', 'name'], exclude_attrs=['reference_frame'])
+
+    with h5py.File(path, 'r') as h5:
+        grp = h5['twiss_table']
+        assert sorted(grp['columns'].keys()) == ['name', 's']
+        assert 'payload' not in grp
+        assert sorted(grp['attrs'].keys()) == ['particle_on_co']
+        assert sorted(grp['meta'].keys()) == ['dropped_attrs', 'dropped_columns']
+
+    loaded = xt.TwissTable.from_hdf5(path)
+    assert list(loaded._col_names) == ['s', 'name']
+    assert loaded._data['particle_on_co'] == 'co'
+
+    subset = xt.TwissTable.from_hdf5(path, columns=['s'])
+    assert list(subset._col_names) == ['s']

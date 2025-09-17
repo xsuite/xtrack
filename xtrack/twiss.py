@@ -7,6 +7,7 @@ import logging
 
 import io
 import json
+import os
 from functools import partial
 from typing import Literal
 
@@ -3352,6 +3353,41 @@ class TwissTable(Table):
 
         return selected
 
+    @staticmethod
+    def _resolve_hdf5_target(file, mode, group):
+        try:
+            import h5py  # noqa: F401
+        except ModuleNotFoundError as exc:  # pragma: no cover - import guard
+            raise ModuleNotFoundError(
+                "h5py is required for TwissTable HDF5 serialization"
+            ) from exc
+
+        import h5py
+
+        close_file = False
+        if isinstance(file, (str, os.PathLike)):
+            h5file = h5py.File(file, mode)
+            close_file = True
+            base = h5file
+        elif isinstance(file, h5py.File):
+            h5file = file
+            base = h5file
+        elif isinstance(file, h5py.Group):
+            h5file = None
+            base = file
+        else:  # pragma: no cover - defensive programming
+            raise TypeError(
+                "Unsupported file type for HDF5 serialization: "
+                f"{type(file)!r}"
+            )
+
+        if group is None:
+            target = base
+        else:
+            target = base.require_group(group)
+
+        return target, h5file, close_file
+
     def __init__(self, *args, **kwargs):
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
         super().__init__(*args, **kwargs)
@@ -3490,6 +3526,194 @@ class TwissTable(Table):
                 dct = json.load(fid)
 
         return cls.from_dict(dct)
+
+    def to_hdf5(self, file, *, columns=None, exclude_columns=None,
+                attrs=None, exclude_attrs=None, missing='error',
+                include_meta=True, group='twiss_table'):
+
+        target, h5file, close_file = self._resolve_hdf5_target(
+            file, mode='w', group=group)
+
+        try:
+            column_order = list(self._col_names)
+            selected_columns = self._resolve_name_selection(
+                column_order, include=columns, exclude=exclude_columns,
+                missing=missing, kind='column')
+
+            raw_attrs = {kk: vv for kk, vv in self._data.items()
+                         if kk not in self._col_names}
+            raw_attrs.pop('_action', None)
+            raw_attrs.pop('_col_names', None)
+            attr_order = list(raw_attrs.keys())
+            selected_attrs = self._resolve_name_selection(
+                attr_order, include=attrs, exclude=exclude_attrs,
+                missing=missing, kind='attribute')
+
+            data_attrs = {name: raw_attrs[name] for name in selected_attrs}
+            for name, value in list(data_attrs.items()):
+                if isinstance(value, xt.Particles):
+                    data_attrs[name] = value.to_dict()
+
+            include_meta = include_meta and (
+                len(selected_columns) != len(column_order) or
+                len(selected_attrs) != len(attr_order)
+            )
+            meta = {}
+            if include_meta:
+                dropped_columns = [name for name in column_order
+                                   if name not in selected_columns]
+                dropped_attrs = [name for name in attr_order
+                                 if name not in selected_attrs]
+                if dropped_columns:
+                    meta['dropped_columns'] = dropped_columns
+                if dropped_attrs:
+                    meta['dropped_attrs'] = dropped_attrs
+
+            import h5py
+            string_dtype = h5py.string_dtype(encoding='utf-8')
+
+            for key in ['columns', 'attrs', 'meta']:
+                if key in target:
+                    del target[key]
+
+            columns_grp = target.create_group('columns')
+            columns_grp.attrs['order'] = np.array(selected_columns, dtype='S')
+
+            for name in selected_columns:
+                array = self._data[name]
+                if not isinstance(array, np.ndarray):
+                    array = np.array(array)
+                if array.dtype == object:
+                    if array.size == 0:
+                        array = np.array([], dtype='object')
+                    else:
+                        sample = array.flat[0]
+                        if isinstance(sample, str):
+                            array = array.astype('object')
+                        else:
+                            raise TypeError(
+                                f"Column '{name}' contains unsupported object dtype"
+                            )
+                if array.dtype.kind in ('U', 'S') or array.dtype == object:
+                    str_values = [None if val is None else str(val)
+                                  for val in array.tolist()]
+                    columns_grp.create_dataset(name, data=str_values,
+                                               dtype=string_dtype)
+                else:
+                    columns_grp.create_dataset(name, data=array)
+
+            attrs_grp = target.create_group('attrs') if data_attrs else None
+            if attrs_grp is not None:
+                attrs_grp.attrs['order'] = np.array(selected_attrs, dtype='S')
+                for name, value in data_attrs.items():
+                    buffer = io.StringIO()
+                    json_utils.dump(value, buffer, indent=None)
+                    attrs_grp.create_dataset(
+                        name,
+                        data=buffer.getvalue(), dtype=string_dtype)
+
+            if meta:
+                meta_grp = target.create_group('meta')
+                for name, value in meta.items():
+                    buffer = io.StringIO()
+                    json_utils.dump(value, buffer, indent=None)
+                    meta_grp.create_dataset(
+                        name,
+                        data=buffer.getvalue(), dtype=string_dtype)
+        finally:
+            if close_file and h5file is not None:
+                h5file.close()
+
+    @classmethod
+    def from_hdf5(cls, file, *, columns=None, exclude_columns=None,
+                  attrs=None, exclude_attrs=None, missing='error',
+                  group='twiss_table'):
+
+        target, h5file, close_file = cls._resolve_hdf5_target(
+            file, mode='r', group=group)
+
+        try:
+            if 'columns' not in target:
+                raise KeyError("HDF5 group does not contain 'columns' subgroup")
+
+            import h5py
+
+            columns_grp = target['columns']
+            if 'order' in columns_grp.attrs:
+                order_raw = columns_grp.attrs['order']
+                column_order = [
+                    item.decode('utf-8') if isinstance(item, (bytes, bytearray))
+                    else str(item)
+                    for item in order_raw
+                ]
+            else:
+                column_order = list(columns_grp.keys())
+
+            columns_data = {}
+            for name in column_order:
+                ds = columns_grp[name]
+                if isinstance(ds, h5py.Dataset) and ds.dtype.kind in ('S', 'O'):
+                    data = ds.asstr()[()]
+                else:
+                    data = ds[()]
+                if isinstance(data, np.ndarray):
+                    array = data
+                else:
+                    array = np.array(data)
+                columns_data[name] = array
+
+            attrs_data = {}
+            if 'attrs' in target:
+                attrs_grp = target['attrs']
+                if 'order' in attrs_grp.attrs:
+                    attr_order_raw = attrs_grp.attrs['order']
+                    attr_order = [
+                        item.decode('utf-8') if isinstance(item, (bytes, bytearray))
+                        else str(item)
+                        for item in attr_order_raw
+                    ]
+                else:
+                    attr_order = list(attrs_grp.keys())
+
+                for name in attr_order:
+                    ds = attrs_grp[name]
+                    if isinstance(ds, h5py.Dataset) and ds.dtype.kind in ('S', 'O'):
+                        serialized = ds.asstr()[()]
+                    else:
+                        serialized = ds[()]
+                    if isinstance(serialized, np.ndarray) and serialized.shape == ():
+                        serialized = serialized.item()
+                    if isinstance(serialized, bytes):
+                        serialized = serialized.decode('utf-8')
+                    attrs_data[name] = json_utils.load(string=serialized)
+
+            meta_data = {}
+            if 'meta' in target:
+                meta_grp = target['meta']
+                for name in meta_grp.keys():
+                    ds = meta_grp[name]
+                    serialized = ds.asstr()[()] if isinstance(ds, h5py.Dataset) else ds[()]
+                    if isinstance(serialized, np.ndarray) and serialized.shape == ():
+                        serialized = serialized.item()
+                    if isinstance(serialized, bytes):
+                        serialized = serialized.decode('utf-8')
+                    meta_data[name] = json_utils.load(string=serialized)
+
+            data = {
+                'columns': columns_data,
+                'attrs': attrs_data,
+            }
+            if meta_data:
+                data['meta'] = meta_data
+
+            return cls.from_dict(
+                data,
+                columns=columns, exclude_columns=exclude_columns,
+                attrs=attrs, exclude_attrs=exclude_attrs,
+                missing=missing)
+        finally:
+            if close_file and h5file is not None:
+                h5file.close()
 
     def get_twiss_init(self, at_element):
 
