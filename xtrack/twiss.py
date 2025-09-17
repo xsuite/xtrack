@@ -3321,13 +3321,74 @@ class TwissTable(Table):
         return df
 
     def to_dict(self):
-        out = self._data.copy()
-        out['_col_names'] = self._col_names.copy()
-        for nn in self._data.keys():
-            if isinstance(self._data[nn], xt.Particles):
-                out[nn] = self._data[nn].to_dict()
-        out.pop('_action', None)
+
+        out = {}
+        out['__class__'] = 'TwissTable'
+        out['xtrack_version'] = xt.__version__
+
+        out['columns'] = {col: self._data[col] for col in self._col_names}
+        out['attrs'] = {kk: vv for kk, vv in self._data.items() if kk not in self._col_names}
+
+        out['attrs'].pop('_action', None)
+        out['attrs'].pop('_col_names', None)
+
+        for nn in out['attrs']:
+            if isinstance(out['attrs'][nn], xt.Particles):
+                out['attrs'][nn] = out['attrs'][nn].to_dict()
+
         return out
+
+    @classmethod
+    def from_dict(cls, dct):
+
+        columns = dct['columns']
+        attrs = dct['attrs']
+
+        for nn in attrs:
+            if isinstance(attrs[nn], dict) and attrs[nn].get('__class__', None) == 'Particles':
+                attrs[nn] = xt.Particles.from_dict(attrs[nn])
+
+        out = cls(data=columns|attrs, _col_names=list(columns.keys()))
+        return out
+
+    def to_json(self, file, indent=1, **kwargs):
+
+        '''
+        Convert to JSON representation.
+
+        Parameters
+        ----------
+        file : str or file-like
+
+        '''
+
+        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
+
+    @classmethod
+    def from_json(cls, file):
+
+        '''
+        Convert from JSON representation.
+
+        Parameters
+        ----------
+        file : str or file-like
+            File name or file-like object.
+
+        Returns
+        -------
+        out : TwissTable
+            TwissTable instance.
+
+        '''
+
+        if isinstance(file, io.IOBase):
+            dct = json.load(file)
+        else:
+            with open(file, 'r') as fid:
+                dct = json.load(fid)
+
+        return cls.from_dict(dct)
 
     def get_twiss_init(self, at_element):
 

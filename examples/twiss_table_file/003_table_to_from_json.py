@@ -10,4 +10,3 @@ dd = tw1.to_dict()
 
 dd_out = {kk: dd[kk] for kk in tw1._col_names}
 
-xt.json.dump(dd_out, 'test.json')
