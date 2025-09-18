@@ -932,15 +932,18 @@ class Table(_XdepsTable):
 
         column_arrays = []
         column_types = []
+        column_kinds = []
         column_serialization = {}
         for name in selected_columns:
+            original_array = np.asarray(self._data[name])
             array = np.asarray(self._data[name], dtype=object)
             if array.ndim == 0:
                 array = np.array([array])
             if self._needs_json_serialization(array):
                 column_serialization[name] = 'json'
             column_arrays.append(array)
-            column_types.append(self._tfs_type_token(array))
+            column_types.append(self._tfs_type_token(original_array))
+            column_kinds.append(original_array.dtype.kind)
 
         meta_data = {}
         if include_meta:
@@ -997,7 +1000,8 @@ class Table(_XdepsTable):
 
             column_cells = []
             column_align_left = []
-            for name, array, token in zip(selected_columns, column_arrays, column_types):
+            for name, array, token, kind in zip(selected_columns, column_arrays,
+                                                column_types, column_kinds):
                 align_left = token.lower() == '%s'
                 column_align_left.append(align_left)
                 cells = []
@@ -1011,19 +1015,34 @@ class Table(_XdepsTable):
                         cells.append('')
                         continue
 
-                    if token == '%le':
+                    if token == '%le' or kind in {'f'}:
                         cells.append(f"{float(value):.16g}")
                         continue
 
-                    if token == '%d':
+                    if token == '%d' or kind in {'i', 'u'}:
                         cells.append(str(int(float(value))))
                         continue
 
+                    if kind == 'b' or isinstance(value, (bool, np.bool_)):
+                        if token == '%d':
+                            cells.append('1' if bool(value) else '0')
+                        else:
+                            cells.append('True' if bool(value) else 'False')
+                        continue
+
+                    if isinstance(value, (str, np.str_)):
+                        string_value = str(value)
+                        if not (
+                            string_value.startswith('"') and string_value.endswith('"')
+                        ):
+                            string_value = f'"{string_value}"'
+                        cells.append(string_value)
+                        continue
+
                     string_value = str(value)
-                    if string_value and not (
+                    if ' ' in string_value and not (
                         string_value.startswith('"') and string_value.endswith('"')
                     ):
-                        # Enclose string fields in quotes for clarity
                         string_value = f'"{string_value}"'
                     cells.append(string_value)
                 column_cells.append(cells)
