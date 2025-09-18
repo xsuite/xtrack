@@ -2,16 +2,52 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
-import xtrack as xt
-from typing import Literal
+
+from __future__ import annotations
+
+import io
+import json
 from pathlib import Path
+from typing import Literal, Optional
+
+import xtrack as xt
+
+
+_SUPPORTED_FORMATS = {'json', 'madx', 'python', 'csv', 'hdf5'}
+
+
+def _resolve_table_instance(table: xt.Table):
+    table_class = getattr(table, '_data', {}).get('_table_class')
+    if not table_class:
+        return table
+
+    cls = getattr(xt, table_class, None)
+    if cls is None or cls is xt.Table:
+        return table
+
+    return cls.from_dict(table.to_dict())
+
+
+def _guess_format_from_path(path: str) -> Optional[str]:
+    lower = path.lower()
+    if lower.endswith(('.json', '.json.gz')):
+        return 'json'
+    if lower.endswith(('.seq', '.madx')):
+        return 'madx'
+    if lower.endswith('.py'):
+        return 'python'
+    if lower.endswith(('.h5', '.hdf5')):
+        return 'hdf5'
+    if lower.endswith('.csv'):
+        return 'csv'
+    return None
 
 
 def load(
         file=None,
         string=None,
-        format: Literal['json', 'madx', 'python'] = None,
-        timeout=5.,
+        format: Literal['json', 'madx', 'python', 'csv', 'hdf5'] = None,
+        timeout=5.0,
         reverse_lines=None,
 ):
     if isinstance(file, Path):
@@ -20,30 +56,13 @@ def load(
     if (file is None) == (string is None):
         raise ValueError('Must specify either file or string, but not both')
 
-    if file is not None and string is not None:
-        raise ValueError('Cannot specify both file and string')
+    if string is not None and format not in _SUPPORTED_FORMATS:
+        raise ValueError(
+            f'Format must be specified to be one of {_SUPPORTED_FORMATS} when using string input'
+        )
 
-    tt = None
-    if file is not None and (file.endswith('hdf5') or file.endswith('h5')):
-        tt = xt.Table.from_hdf5(file)
-    elif file.endswith('csv'):
-        tt = xt.Table.from_csv(file)
-    if tt is not None:
-        cls = getattr(xt, tt['_table_class'])
-        return cls(data=tt._data, col_names=tt._col_names)
-
-    FORMATS = {'json', 'madx', 'python'}
-    if string and format not in FORMATS:
-        raise ValueError(f'Format must be specified to be one of {FORMATS} when '
-                         f'using string input')
-
-    if format is None and file is not None:
-        if str(file).endswith('.json') or str(file).endswith('.json.gz'):
-            format = 'json'
-        elif str(file).endswith('.seq') or str(file).endswith('.madx'):
-            format = 'madx'
-        elif str(file).endswith('.py'):
-            format = 'python'
+    if format is None and file is not None and isinstance(file, str):
+        format = _guess_format_from_path(file)
 
     if format is None:
         raise ValueError('format could not be determined, please specify it explicitly')
@@ -51,30 +70,58 @@ def load(
     if reverse_lines and format != 'madx':
         raise ValueError('`reverse_lines` is only supported for madx input.')
 
-    if file and (file.startswith('http://') or file.startswith('https://')):
-        string = xt.general.read_url(file, timeout=timeout)
+    if file and isinstance(file, str) and (file.startswith('http://') or file.startswith('https://')):
+        binary = format == 'hdf5'
+        string = xt.general.read_url(file, timeout=timeout, binary=binary)
         file = None
 
     if format == 'json':
-        ddd = xt.json.load(file=file, string=string)
-        if '__class__' in ddd:
-            cls_name = ddd.pop('__class__')
-            cls = getattr(xt, cls_name)
-            return cls.from_dict(ddd)
-        elif 'lines' in ddd: # is environment
-            return xt.Environment.from_dict(ddd)
-        elif 'element_names' in ddd or 'line' in ddd:
-            if 'line' in ddd: # very old format
-                ddd = ddd['line']
-            return xt.Line.from_dict(ddd)
-        else:
-            raise ValueError('Cannot determine class from json data')
-    elif format == 'madx':
-        return xt.load_madx_lattice(file=file, string=string,
-                                    reverse_lines=reverse_lines)
-    elif format == 'python':
+        payload = xt.json.load(file=file, string=string)
+        cls_name = payload.pop('__class__', None) or payload.get('table_class')
+        if cls_name is not None:
+            cls = getattr(xt, cls_name, None)
+            if cls is None:
+                raise ValueError(f'Unknown class {cls_name!r} in json data')
+            return cls.from_dict(payload)
+        if 'lines' in payload:
+            return xt.Environment.from_dict(payload)
+        if 'element_names' in payload or 'line' in payload:
+            if 'line' in payload:
+                payload = payload['line']
+            return xt.Line.from_dict(payload)
+        raise ValueError('Cannot determine class from json data')
+
+    if format == 'madx':
+        return xt.load_madx_lattice(file=file, string=string, reverse_lines=reverse_lines)
+
+    if format == 'python':
         if string is not None:
             raise NotImplementedError('Loading from string not implemented for python format')
         env = xt.Environment()
         env.call(file)
         return env
+
+    if format == 'csv':
+        if string is not None:
+            text = string.decode() if isinstance(string, bytes) else string
+            buffer = io.StringIO(text)
+            base_table = xt.Table.from_csv(buffer)
+        else:
+            if hasattr(file, 'seek'):
+                file.seek(0)
+            base_table = xt.Table.from_csv(file)
+        return _resolve_table_instance(base_table)
+
+    if format == 'hdf5':
+        if string is not None:
+            if not isinstance(string, (bytes, bytearray)):
+                raise TypeError('HDF5 string input must be bytes-like')
+            buffer = io.BytesIO(string)
+            base_table = xt.Table.from_hdf5(buffer)
+        else:
+            if hasattr(file, 'seek'):
+                file.seek(0)
+            base_table = xt.Table.from_hdf5(file)
+        return _resolve_table_instance(base_table)
+
+    raise ValueError(f'Unsupported format {format!r}')

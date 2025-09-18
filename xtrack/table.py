@@ -248,6 +248,12 @@ class Table(_XdepsTable):
             h5file = h5py.File(file, mode)
             close_file = True
             base = h5file
+        elif hasattr(file, 'read') or hasattr(file, 'write'):
+            if hasattr(file, 'seek'):
+                file.seek(0)
+            h5file = h5py.File(file, mode)
+            close_file = True
+            base = h5file
         elif isinstance(file, h5py.File):
             h5file = file
             base = h5file
