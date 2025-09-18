@@ -7,6 +7,7 @@ import csv
 import io
 import json
 import math
+import numbers
 import os
 import shlex
 from typing import Any, Dict, Iterable, Optional
@@ -408,23 +409,70 @@ class Table(_XdepsTable):
         return np.array(values)
 
     @staticmethod
-    def _tfs_type_token(array):
-        arr = np.asarray(array)
+    def _determine_tfs_column_type(values):
+        arr = np.asarray(values)
         kind = arr.dtype.kind
         if kind in 'f':
-            return '%le'
+            return '%le', 'float'
         if kind in 'i':
-            return '%d'
+            return '%d', 'int'
         if kind in 'u':
-            return '%d'
+            return '%d', 'int'
         if kind == 'b':
-            return '%d'
-        return '%s'
+            return '%b', 'bool'
+        if kind == 'c':
+            return '%s', 'string'
+
+        arr_obj = np.asarray(values, dtype=object).ravel()
+        non_null = []
+        for val in arr_obj:
+            if val is None:
+                continue
+            if isinstance(val, (float, np.floating)) and math.isnan(val):
+                continue
+            if isinstance(val, str) and val == '':
+                continue
+            non_null.append(val)
+
+        if not non_null:
+            return '%le', 'float'
+
+        if all(isinstance(val, (bool, np.bool_)) for val in non_null):
+            return '%b', 'bool'
+
+        all_number_like = True
+        treat_as_float = False
+        for val in non_null:
+            if isinstance(val, (bool, np.bool_)):
+                continue
+            if isinstance(val, numbers.Real):
+                fval = float(val)
+                if math.isnan(fval) or math.isinf(fval):
+                    treat_as_float = True
+                elif not math.isclose(fval, round(fval), rel_tol=0.0, abs_tol=1e-12):
+                    treat_as_float = True
+                if isinstance(val, (float, np.floating)):
+                    treat_as_float = True
+            else:
+                all_number_like = False
+                break
+
+        if all_number_like:
+            if treat_as_float:
+                return '%le', 'float'
+            return '%d', 'int'
+
+        return '%s', 'string'
+
+    @staticmethod
+    def _tfs_type_token(values):
+        token, _ = Table._determine_tfs_column_type(values)
+        return token
 
     @staticmethod
     def _format_tfs_header_value(value):
         if isinstance(value, (bool, np.bool_)):
-            return '%d', '1' if bool(value) else '0'
+            return '%b', '1' if bool(value) else '0'
         if isinstance(value, (int, np.integer)):
             return '%d', str(int(value))
         if isinstance(value, (float, np.floating)):
@@ -956,18 +1004,21 @@ class Table(_XdepsTable):
 
         column_arrays = []
         column_types = []
-        column_kinds = []
+        column_categories = []
         column_serialization = {}
         for name in selected_columns:
-            original_array = np.asarray(self._data[name])
-            array = np.asarray(self._data[name], dtype=object)
+            values = self._data[name]
+            array = np.asarray(values, dtype=object)
             if array.ndim == 0:
-                array = np.array([array])
+                array = np.array([array], dtype=object)
+            column_arrays.append(array)
             if self._needs_json_serialization(array):
                 column_serialization[name] = 'json'
-            column_arrays.append(array)
-            column_types.append(self._tfs_type_token(original_array))
-            column_kinds.append(original_array.dtype.kind)
+                token, category = '%s', 'string'
+            else:
+                token, category = self._determine_tfs_column_type(values)
+            column_types.append(token)
+            column_categories.append(category)
 
         meta_data = {}
         if include_meta:
@@ -1024,8 +1075,8 @@ class Table(_XdepsTable):
 
             column_cells = []
             column_align_left = []
-            for name, array, token, kind in zip(selected_columns, column_arrays,
-                                                column_types, column_kinds):
+            for name, array, token, category in zip(selected_columns, column_arrays,
+                                                    column_types, column_categories):
                 align_left = token.lower() == '%s'
                 column_align_left.append(align_left)
                 cells = []
@@ -1039,19 +1090,20 @@ class Table(_XdepsTable):
                         cells.append('')
                         continue
 
-                    if token == '%le' or kind in {'f'}:
+                    if category == 'float':
                         cells.append(f"{float(value):.{float_precision}g}")
                         continue
 
-                    if token == '%d' or kind in {'i', 'u'}:
-                        cells.append(str(int(float(value))))
+                    if category == 'int':
+                        try:
+                            int_value = int(value)
+                        except (TypeError, ValueError):
+                            int_value = int(float(value))
+                        cells.append(str(int_value))
                         continue
 
-                    if kind == 'b' or isinstance(value, (bool, np.bool_)):
-                        if token == '%d':
-                            cells.append('1' if bool(value) else '0')
-                        else:
-                            cells.append('True' if bool(value) else 'False')
+                    if category == 'bool':
+                        cells.append('1' if bool(value) else '0')
                         continue
 
                     if isinstance(value, (str, np.str_)):
