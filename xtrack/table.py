@@ -21,9 +21,6 @@ _PARTICLES_CLS: Optional[type] = None
 
 
 def _get_particles_cls():
-    global _PARTICLES_CLS
-    if _PARTICLES_CLS is not None:
-        return _PARTICLES_CLS
 
     try:
         import xtrack as xt  # noqa: F401
@@ -98,6 +95,7 @@ class Table(_XdepsTable):
     # ------------------------------------------------------------------
     @staticmethod
     def _serialize_attr_value(value):
+        """Return a serialization-friendly version of an attribute value."""
         particles_cls = _get_particles_cls()
         if particles_cls is not None and isinstance(value, particles_cls):
             out = value.to_dict()
@@ -107,6 +105,7 @@ class Table(_XdepsTable):
 
     @staticmethod
     def _deserialize_attr_value(value):
+        """Rebuild runtime objects from serialized attribute data."""
         if not isinstance(value, dict):
             return value
         if value.get('__class__', None) != 'Particles':
@@ -123,6 +122,7 @@ class Table(_XdepsTable):
     # Generic dictionary export/import
     # ------------------------------------------------------------------
     def _extra_metadata(self) -> Dict[str, Any]:
+        """Return metadata fields always attached to serialized tables."""
         class_name = self.__class__.__name__
         return {
             '__class__': class_name,
@@ -131,12 +131,14 @@ class Table(_XdepsTable):
 
     @classmethod
     def _strip_extra_metadata(cls, payload: Dict[str, Any]) -> None:
+        """Remove helper metadata keys prior to table reconstruction."""
         payload.pop('__class__', None)
         payload.pop('xtrack_version', None)
 
     def to_dict(self, *, columns=None, exclude_columns=None,
                 attrs=None, exclude_attrs=None, missing='error',
                 include_meta=True):
+        """Serialize the table to a dictionary, applying optional filters."""
 
         column_order = list(self._col_names)
         selected_columns = self._resolve_name_selection(
@@ -182,6 +184,7 @@ class Table(_XdepsTable):
     def from_dict(cls, dct: Dict[str, Any], *, columns=None,
                   exclude_columns=None, attrs=None,
                   exclude_attrs=None, missing='error'):
+        """Construct a table from a serialized dictionary payload."""
 
         payload = dict(dct)
         table_class_name = payload.get('__class__')
@@ -224,10 +227,12 @@ class Table(_XdepsTable):
     # JSON helpers
     # ------------------------------------------------------------------
     def to_json(self, file, indent=1, **kwargs):
+        """Dump the table to JSON using the xtrack JSON utilities."""
         json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
 
     @classmethod
     def from_json(cls, file):
+        """Load a serialized table from a JSON file or file-like object."""
         if isinstance(file, io.IOBase):
             dct = json.load(file)
         else:
@@ -240,6 +245,7 @@ class Table(_XdepsTable):
     # ------------------------------------------------------------------
     @staticmethod
     def _resolve_hdf5_target(file, mode, group):
+        """Return the HDF5 target object and owning file handle."""
         try:
             import h5py  # noqa: F401
         except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency
@@ -281,6 +287,7 @@ class Table(_XdepsTable):
 
     @staticmethod
     def _needs_json_serialization(column_array):
+        """Determine whether column values require JSON encoding."""
         for val in column_array:
             if isinstance(val, np.ndarray):
                 if val.ndim > 0:
@@ -291,6 +298,7 @@ class Table(_XdepsTable):
 
     @staticmethod
     def _serialize_json_value(value):
+        """Serialize complex objects to a JSON string payload."""
         buffer = io.StringIO()
         if isinstance(value, np.ndarray):
             json_utils.dump(value.tolist(), buffer, indent=None)
@@ -300,6 +308,7 @@ class Table(_XdepsTable):
 
     @staticmethod
     def _serialize_csv_value(value):
+        """Convert a value into a CSV-friendly scalar."""
         if isinstance(value, np.generic):
             value = value.item()
         if value is None:
@@ -313,6 +322,7 @@ class Table(_XdepsTable):
 
     @staticmethod
     def _cast_csv_column(values, dtype_str):
+        """Convert CSV column strings back into numpy arrays."""
         if dtype_str is None:
             return np.array(values)
 
@@ -372,6 +382,7 @@ class Table(_XdepsTable):
     def to_hdf5(self, file, *, columns=None, exclude_columns=None,
                 attrs=None, exclude_attrs=None, missing='error',
                 include_meta=True, group=None):
+        """Persist the table into an HDF5 file or group."""
 
         target, h5file, close_file = self._resolve_hdf5_target(
             file, mode='w', group=group)
@@ -489,6 +500,7 @@ class Table(_XdepsTable):
     def from_hdf5(cls, file, *, columns=None, exclude_columns=None,
                   attrs=None, exclude_attrs=None, missing='error',
                   group=None):
+        """Load a table from an HDF5 file or group."""
 
         if group is None:
             try:
@@ -638,6 +650,7 @@ class Table(_XdepsTable):
     def to_csv(self, file, *, columns=None, exclude_columns=None,
                attrs=None, exclude_attrs=None, missing='error',
                include_meta=True):
+        """Write the table to CSV, embedding metadata as comments."""
 
         column_order = list(self._col_names)
         selected_columns = self._resolve_name_selection(
@@ -736,6 +749,7 @@ class Table(_XdepsTable):
     @classmethod
     def from_csv(cls, file, *, columns=None, exclude_columns=None,
                  attrs=None, exclude_attrs=None, missing='error'):
+        """Reconstruct a table instance from CSV data."""
 
         if isinstance(file, io.IOBase):
             content = file.read().splitlines()
