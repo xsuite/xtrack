@@ -194,6 +194,10 @@ class Table(_XdepsTable):
         selected_attrs = self._resolve_name_selection(
             attr_order, include=include_attrs, exclude=exclude_attrs,
             missing=missing, kind='attribute')
+        if include_attrs is None and exclude_attrs is None:
+            selected_attrs = attr_order
+        if include_attrs is None and exclude_attrs is None:
+            selected_attrs = attr_order
 
         out = {
             'columns': {name: self._data[name] for name in selected_columns},
