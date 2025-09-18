@@ -1235,7 +1235,8 @@ class Table(_XdepsTable):
             column_widths = []
             column_width_override_flags = []
             for idx, name in enumerate(selected_columns):
-                width_candidates = [len(name.upper()), len(column_types[idx])]
+                upper_name = name.upper()
+                width_candidates = [len(upper_name), len(column_types[idx])]
                 width_candidates.extend(len(val) for val in column_cells[idx])
                 min_width = default_column_width or 0
                 computed_width = max(width_candidates + [min_width])
@@ -1266,7 +1267,8 @@ class Table(_XdepsTable):
             column_widths = []
             for idx, (name, token) in enumerate(zip(selected_columns, column_types)):
                 min_width = default_column_width or 0
-                base_width = max(len(name.upper()), len(token), min_width)
+                upper_name = name.upper()
+                base_width = max(len(upper_name), len(token), min_width)
                 override_width = column_width_overrides.get(name)
                 if override_width is not None:
                     base_width = max(base_width, override_width)
@@ -1312,11 +1314,12 @@ class Table(_XdepsTable):
                 header_types = []
                 for idx, name in enumerate(selected_columns):
                     width = column_widths[idx]
+                    upper_name = name.upper()
                     if column_align_left[idx]:
-                        header_names.append(name.upper().ljust(width))
+                        header_names.append(upper_name.ljust(width))
                         header_types.append(column_types[idx].ljust(width))
                     else:
-                        header_names.append(name.upper().rjust(width))
+                        header_names.append(upper_name.rjust(width))
                         header_types.append(column_types[idx].rjust(width))
                 fh.write('* ' + ' '.join(header_names).rstrip() + '\n')
                 fh.write('$ ' + ' '.join(header_types).rstrip() + '\n')
@@ -1364,7 +1367,7 @@ class Table(_XdepsTable):
         if data_start_index is None:
             raise ValueError('TFS file missing column definition line')
 
-        column_names = shlex.split(lines[data_start_index][1:].strip())
+        column_names = [name.lower() for name in shlex.split(lines[data_start_index][1:].strip())]
         type_tokens = shlex.split(lines[data_start_index + 1][1:].strip())
         if len(type_tokens) != len(column_names):
             raise ValueError('Column type line does not match column names')
@@ -1404,11 +1407,11 @@ class Table(_XdepsTable):
 
         column_serialization = _decode_mapping(
             meta_payload.get('column_serialization') if isinstance(meta_payload, dict) else {})
-        column_serialization = {str(key): value for key, value in column_serialization.items()}
+        column_serialization = {str(key).lower(): value for key, value in column_serialization.items()}
 
         attrs_serialization = _decode_mapping(
             meta_payload.get('attrs_serialization') if isinstance(meta_payload, dict) else {})
-        attrs_serialization = {str(key): value for key, value in attrs_serialization.items()}
+        attrs_serialization = {str(key).lower(): value for key, value in attrs_serialization.items()}
 
         columns_values = {name: [] for name in column_names}
         for line in lines[data_start_index + 2:]:
@@ -1423,7 +1426,7 @@ class Table(_XdepsTable):
 
         dtype_info = _decode_mapping(
             meta_payload.get('column_dtypes') if isinstance(meta_payload, dict) else {})
-        dtype_info = {str(key): value for key, value in dtype_info.items()}
+        dtype_info = {str(key).lower(): value for key, value in dtype_info.items()}
 
         columns_data = {}
         for name in column_names:
