@@ -183,7 +183,7 @@ class Table(_XdepsTable):
         attr_order = list(raw_attrs.keys())
 
         meta_filterable_keys = {
-            'dropped_columns', 'dropped_attrs', 'column_dtypes',
+            'dropped_columns', 'dropped_attrs',
             '__class__', 'xtrack_version'
         }
 
@@ -1157,11 +1157,6 @@ class Table(_XdepsTable):
             if dropped_attrs:
                 meta_data['dropped_attrs'] = dropped_attrs
 
-        dtype_info = {
-            name: np.asarray(self._data[name]).dtype.str
-            for name in selected_columns
-        }
-        meta_data['column_dtypes'] = dtype_info
         if column_serialization:
             meta_data['column_serialization'] = column_serialization
 
@@ -1199,8 +1194,18 @@ class Table(_XdepsTable):
                 filtered_meta[key] = value
             meta_data = filtered_meta
 
+        ordered_meta_keys = ['__class__', 'xtrack_version']
         meta_lines = []
+        append_seen = set()
+        for ordered_key in ordered_meta_keys:
+            if ordered_key in meta_data:
+                dtype_token, formatted = self._format_tfs_header_value(meta_data[ordered_key])
+                meta_lines.append((ordered_key.upper(), dtype_token, formatted))
+                append_seen.add(ordered_key)
         for key, value in meta_data.items():
+            key_lower = key.lower()
+            if key_lower in append_seen:
+                continue
             dtype_token, formatted = self._format_tfs_header_value(value)
             meta_lines.append((key.upper(), dtype_token, formatted))
 
@@ -1387,13 +1392,13 @@ class Table(_XdepsTable):
             close_file = True
 
         try:
-            for name, token, formatted in attr_lines:
+            for name, token, formatted in meta_lines:
                 fh.write(
                     f"@ {name:<{name_width}} {token:<{token_width}} {formatted}\n"
                     if name_width and token_width else f"@ {name} {token} {formatted}\n"
                 )
 
-            for name, token, formatted in meta_lines:
+            for name, token, formatted in attr_lines:
                 fh.write(
                     f"@ {name:<{name_width}} {token:<{token_width}} {formatted}\n"
                     if name_width and token_width else f"@ {name} {token} {formatted}\n"
