@@ -181,10 +181,8 @@ class Table(_XdepsTable):
         return out
 
     @classmethod
-    def from_dict(cls, dct: Dict[str, Any], *, columns=None,
-                  exclude_columns=None, attrs=None,
-                  exclude_attrs=None, missing='error'):
-        """Construct a table from a serialized dictionary payload."""
+    def from_dict(cls, dct: Dict[str, Any]):
+        """Construct a table from its dictionary representation."""
 
         payload = dict(dct)
         table_class_name = payload.get('__class__')
@@ -194,33 +192,24 @@ class Table(_XdepsTable):
         columns_src = dict(payload['columns'])
         attrs_src = dict(payload.get('attrs', {}))
 
-        column_order = list(columns_src.keys())
-        selected_columns = cls._resolve_name_selection(
-            column_order, include=columns, exclude=exclude_columns,
-            missing=missing, kind='column')
-
-        attr_order = list(attrs_src.keys())
-        selected_attrs = cls._resolve_name_selection(
-            attr_order, include=attrs, exclude=exclude_attrs,
-            missing=missing, kind='attribute')
-
         converted_columns = {}
-        for name in selected_columns:
-            value = columns_src[name]
+        for name, value in columns_src.items():
             if not isinstance(value, np.ndarray):
                 converted_columns[name] = np.array(value)
             else:
                 converted_columns[name] = value
 
         converted_attrs = {}
-        for name in selected_attrs:
-            converted_attrs[name] = cls._deserialize_attr_value(attrs_src[name])
+        for name, value in attrs_src.items():
+            converted_attrs[name] = cls._deserialize_attr_value(value)
 
         data = converted_columns | converted_attrs
-        instance = cls(data=data, col_names=list(selected_columns))
+        instance = cls(data=data, col_names=list(columns_src.keys()))
 
-        instance._data['__class__'] = table_class_name
-        instance._data['xtrack_version'] = xtrack_version
+        if table_class_name is not None:
+            instance._data['__class__'] = table_class_name
+        if xtrack_version is not None:
+            instance._data['xtrack_version'] = xtrack_version
         return instance
 
     # ------------------------------------------------------------------
