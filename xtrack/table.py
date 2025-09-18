@@ -99,7 +99,9 @@ class Table(_XdepsTable):
     def _serialize_attr_value(value):
         particles_cls = _get_particles_cls()
         if particles_cls is not None and isinstance(value, particles_cls):
-            return value.to_dict()
+            out = value.to_dict()
+            out['__class__'] = 'Particles'
+            return out
         return value
 
     @staticmethod
@@ -109,6 +111,7 @@ class Table(_XdepsTable):
         if value.get('__class__', None) != 'Particles':
             return value
 
+        value.pop('__class__', None)
         particles_cls = _get_particles_cls()
         if particles_cls is None:
             return value
@@ -210,6 +213,7 @@ class Table(_XdepsTable):
 
         data = converted_columns | converted_attrs
         instance = cls(data=data, col_names=list(selected_columns))
+
         if table_class_name:
             instance._data['_table_class'] = table_class_name
         return instance
