@@ -3355,13 +3355,21 @@ class TwissTable(Table):
         )
 
     def to_tfs(self, file, *, include=None, exclude=None,
-               missing='error', include_meta=True):
+               missing='error', include_meta=True,
+               default_column_width=None, float_precision=8,
+               numeric_column_width=16, column_formats=None,
+               column_widths=None):
         super().to_tfs(
             file,
             include=include,
             exclude=exclude,
             missing=missing,
             include_meta=include_meta,
+            default_column_width=default_column_width,
+            float_precision=float_precision,
+            numeric_column_width=numeric_column_width,
+            column_formats=column_formats,
+            column_widths=column_widths,
         )
 
     @classmethod

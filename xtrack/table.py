@@ -10,7 +10,7 @@ import math
 import numbers
 import os
 import shlex
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Mapping, Optional
 
 import numpy as np
 
@@ -982,7 +982,8 @@ class Table(_XdepsTable):
     def to_tfs(self, file, *, include=None, exclude=None,
                missing='error', include_meta=True,
                default_column_width=None, float_precision=8,
-               numeric_column_width=16):
+               numeric_column_width=16, column_formats=None,
+               column_widths=None):
         """Write the table in TFS format.
 
         Parameters
@@ -999,6 +1000,13 @@ class Table(_XdepsTable):
             If provided, enforces this uniform width for all numeric columns.
             When omitted, numeric columns still share a common width derived
             from the widest numeric entry.
+        column_formats : Mapping[str, str], optional
+            Per-column Python/C-style format specifiers (e.g. '.3f', '10.4g').
+            Applied to data cells while falling back to ``float_precision``
+            defaults when unspecified.
+        column_widths : Mapping[str, int], optional
+            Per-column minimum widths overriding the defaults. Non-numeric
+            columns stay left-aligned; numeric ones keep right alignment.
         """
 
         if float_precision <= 0:
@@ -1006,6 +1014,28 @@ class Table(_XdepsTable):
 
         if numeric_column_width is not None and numeric_column_width <= 0:
             raise ValueError('numeric_column_width must be a positive integer')
+
+        if column_formats is None:
+            column_format_overrides: Dict[str, str] = {}
+        elif isinstance(column_formats, Mapping):
+            column_format_overrides = {
+                str(key): str(value) for key, value in column_formats.items()
+            }
+        else:
+            raise TypeError('column_formats must be a mapping of column names to format strings')
+
+        if column_widths is None:
+            column_width_overrides: Dict[str, int] = {}
+        elif isinstance(column_widths, Mapping):
+            column_width_overrides = {}
+            for key, value in column_widths.items():
+                if not isinstance(value, numbers.Integral):
+                    raise TypeError('column_widths values must be integers')
+                if value <= 0:
+                    raise ValueError('column_widths values must be positive integers')
+                column_width_overrides[str(key)] = int(value)
+        else:
+            raise TypeError('column_widths must be a mapping of column names to integer widths')
 
         column_order = list(self._col_names)
         raw_attrs = {kk: vv for kk, vv in self._data.items() if kk not in column_order}
@@ -1033,6 +1063,7 @@ class Table(_XdepsTable):
         column_types = []
         column_categories = []
         column_serialization = {}
+        column_format_specs = []
         for name in selected_columns:
             values = self._data[name]
             array = np.asarray(values, dtype=object)
@@ -1046,6 +1077,7 @@ class Table(_XdepsTable):
                 token, category = self._determine_tfs_column_type(values)
             column_types.append(token)
             column_categories.append(category)
+            column_format_specs.append(column_format_overrides.get(name))
 
         meta_data = {}
         if include_meta:
@@ -1102,8 +1134,9 @@ class Table(_XdepsTable):
 
             column_cells = []
             column_align_left = []
-            for name, array, token, category in zip(selected_columns, column_arrays,
-                                                    column_types, column_categories):
+            for name, array, token, category, fmt_spec in zip(
+                    selected_columns, column_arrays, column_types,
+                    column_categories, column_format_specs):
                 align_left = token.lower() == '%s'
                 column_align_left.append(align_left)
                 cells = []
@@ -1118,7 +1151,13 @@ class Table(_XdepsTable):
                         continue
 
                     if category == 'float':
-                        cells.append(f"{float(value):.{float_precision}g}")
+                        if fmt_spec:
+                            try:
+                                cells.append(format(float(value), fmt_spec))
+                            except (ValueError, TypeError):
+                                cells.append(f"{float(value):.{float_precision}g}")
+                        else:
+                            cells.append(f"{float(value):.{float_precision}g}")
                         continue
 
                     if category == 'int':
@@ -1126,23 +1165,49 @@ class Table(_XdepsTable):
                             int_value = int(value)
                         except (TypeError, ValueError):
                             int_value = int(float(value))
-                        cells.append(str(int_value))
+                        if fmt_spec:
+                            try:
+                                cells.append(format(int_value, fmt_spec))
+                            except (ValueError, TypeError):
+                                cells.append(str(int_value))
+                        else:
+                            cells.append(str(int_value))
                         continue
 
                     if category == 'bool':
-                        cells.append('1' if bool(value) else '0')
+                        bool_int = 1 if bool(value) else 0
+                        if fmt_spec:
+                            try:
+                                cells.append(format(bool_int, fmt_spec))
+                            except (ValueError, TypeError):
+                                cells.append('1' if bool(value) else '0')
+                        else:
+                            cells.append('1' if bool(value) else '0')
                         continue
 
                     if category == 'complex':
                         comp_val = complex(value)
-                        real_part = f"{comp_val.real:.{float_precision}g}"
-                        imag_part = f"{abs(comp_val.imag):.{float_precision}g}"
+                        if fmt_spec:
+                            try:
+                                real_part = format(comp_val.real, fmt_spec)
+                                imag_part = format(abs(comp_val.imag), fmt_spec)
+                            except (ValueError, TypeError):
+                                real_part = f"{comp_val.real:.{float_precision}g}"
+                                imag_part = f"{abs(comp_val.imag):.{float_precision}g}"
+                        else:
+                            real_part = f"{comp_val.real:.{float_precision}g}"
+                            imag_part = f"{abs(comp_val.imag):.{float_precision}g}"
                         sign = '+' if comp_val.imag >= 0 else '-'
                         cells.append(f"{real_part}{sign}{imag_part}i")
                         continue
 
                     if category == 'string':
                         string_value = str(value)
+                        if fmt_spec:
+                            try:
+                                string_value = format(string_value, fmt_spec)
+                            except (ValueError, TypeError):
+                                pass
                         if not (
                             string_value.startswith('"') and string_value.endswith('"')
                         ):
@@ -1168,41 +1233,59 @@ class Table(_XdepsTable):
                 column_cells.append(cells)
 
             column_widths = []
+            column_width_override_flags = []
             for idx, name in enumerate(selected_columns):
                 width_candidates = [len(name.upper()), len(column_types[idx])]
                 width_candidates.extend(len(val) for val in column_cells[idx])
                 min_width = default_column_width or 0
                 computed_width = max(width_candidates + [min_width])
+                override_width = column_width_overrides.get(name)
+                if override_width is not None:
+                    computed_width = max(computed_width, override_width)
                 if not column_align_left[idx] and numeric_column_width is not None:
                     computed_width = max(computed_width, numeric_column_width)
                 column_widths.append(computed_width)
+                column_width_override_flags.append(override_width is not None)
 
             if numeric_column_width is None:
-                numeric_widths = [w for w, left in zip(column_widths, column_align_left)
-                                  if not left]
+                numeric_widths = [w for w, left, overridden in zip(
+                    column_widths, column_align_left, column_width_override_flags)
+                    if not left and not overridden]
                 if numeric_widths:
                     uniform_width = max(numeric_widths)
-                    column_widths = [uniform_width if not left else w
-                                     for w, left in zip(column_widths, column_align_left)]
+                    column_widths = [
+                        uniform_width if (not left and not overridden) else w
+                        for w, left, overridden in zip(
+                            column_widths, column_align_left, column_width_override_flags)
+                    ]
         else:
             row_count = 0
             column_cells = []
-            column_align_left = []
+            column_align_left = [token.lower() == '%s' for token in column_types]
+            column_width_override_flags = []
             column_widths = []
             for idx, (name, token) in enumerate(zip(selected_columns, column_types)):
                 min_width = default_column_width or 0
                 base_width = max(len(name.upper()), len(token), min_width)
+                override_width = column_width_overrides.get(name)
+                if override_width is not None:
+                    base_width = max(base_width, override_width)
                 if token.lower() != '%s' and numeric_column_width is not None:
                     base_width = max(base_width, numeric_column_width)
                 column_widths.append(base_width)
+                column_width_override_flags.append(override_width is not None)
 
             if numeric_column_width is None:
-                numeric_widths = [w for w, token in zip(column_widths, column_types)
-                                  if token.lower() != '%s']
+                numeric_widths = [w for w, token, overridden in zip(
+                    column_widths, column_types, column_width_override_flags)
+                    if token.lower() != '%s' and not overridden]
                 if numeric_widths:
                     uniform_width = max(numeric_widths)
-                    column_widths = [uniform_width if token.lower() != '%s' else w
-                                     for w, token in zip(column_widths, column_types)]
+                    column_widths = [
+                        uniform_width if (token.lower() != '%s' and not overridden) else w
+                        for w, token, overridden in zip(
+                            column_widths, column_types, column_width_override_flags)
+                    ]
 
         if isinstance(file, io.IOBase):
             fh = file
