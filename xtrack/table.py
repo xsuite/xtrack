@@ -1390,8 +1390,25 @@ class Table(_XdepsTable):
             else:
                 attrs_payload[name.lower()] = value
 
-        column_serialization = meta_payload.get('column_serialization', {}) if isinstance(meta_payload, dict) else {}
-        attrs_serialization = meta_payload.get('attrs_serialization', {}) if isinstance(meta_payload, dict) else {}
+        def _decode_mapping(payload_value):
+            if isinstance(payload_value, Mapping):
+                return dict(payload_value)
+            if isinstance(payload_value, str):
+                try:
+                    loaded = json.loads(payload_value)
+                except json.JSONDecodeError:
+                    return {}
+                if isinstance(loaded, Mapping):
+                    return dict(loaded)
+            return {}
+
+        column_serialization = _decode_mapping(
+            meta_payload.get('column_serialization') if isinstance(meta_payload, dict) else {})
+        column_serialization = {str(key): value for key, value in column_serialization.items()}
+
+        attrs_serialization = _decode_mapping(
+            meta_payload.get('attrs_serialization') if isinstance(meta_payload, dict) else {})
+        attrs_serialization = {str(key): value for key, value in attrs_serialization.items()}
 
         columns_values = {name: [] for name in column_names}
         for line in lines[data_start_index + 2:]:
@@ -1404,7 +1421,9 @@ class Table(_XdepsTable):
             for name, token, value in zip(column_names, type_tokens, parts):
                 columns_values[name].append(cls._parse_tfs_value(token, value))
 
-        dtype_info = meta_payload.get('column_dtypes', {}) if isinstance(meta_payload, dict) else {}
+        dtype_info = _decode_mapping(
+            meta_payload.get('column_dtypes') if isinstance(meta_payload, dict) else {})
+        dtype_info = {str(key): value for key, value in dtype_info.items()}
 
         columns_data = {}
         for name in column_names:
