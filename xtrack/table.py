@@ -421,7 +421,7 @@ class Table(_XdepsTable):
         if kind == 'b':
             return '%b', 'bool'
         if kind == 'c':
-            return '%s', 'string'
+            return '%lz', 'complex'
 
         arr_obj = np.asarray(values, dtype=object).ravel()
         non_null = []
@@ -442,6 +442,7 @@ class Table(_XdepsTable):
 
         all_number_like = True
         treat_as_float = False
+        treat_as_complex = False
         for val in non_null:
             if isinstance(val, (bool, np.bool_)):
                 continue
@@ -453,9 +454,14 @@ class Table(_XdepsTable):
                     treat_as_float = True
                 if isinstance(val, (float, np.floating)):
                     treat_as_float = True
+            elif isinstance(val, numbers.Complex):
+                treat_as_complex = True
             else:
                 all_number_like = False
                 break
+
+        if treat_as_complex:
+            return '%lz', 'complex'
 
         if all_number_like:
             if treat_as_float:
@@ -477,6 +483,13 @@ class Table(_XdepsTable):
             return '%d', str(int(value))
         if isinstance(value, (float, np.floating)):
             return '%le', f"{float(value):.16g}"
+        if isinstance(value, (complex, np.complexfloating)):
+            real = float(value.real)
+            imag = float(value.imag)
+            real_part = f"{real:.16g}"
+            imag_part = f"{abs(imag):.16g}"
+            sign = '+' if imag >= 0 else '-'
+            return '%lz', f"{real_part}{sign}{imag_part}i"
         if isinstance(value, str):
             if ' ' in value:
                 return '%s', f'"{value}"'
@@ -499,6 +512,20 @@ class Table(_XdepsTable):
             return int(float(value))
         if token == '%b':
             return bool(int(value))
+        if token == '%lz':
+            if isinstance(value, str):
+                stripped = value.strip().replace(' ', '')
+                if stripped.endswith(('i', 'I')):
+                    converted = stripped[:-1] + 'j'
+                    try:
+                        return complex(converted)
+                    except ValueError:
+                        pass
+                try:
+                    return complex(value)
+                except ValueError:
+                    return complex(stripped)
+            return complex(value)
         if token == '%s':
             if isinstance(value, str) and len(value) >= 2 and value[0] == value[-1] == '"':
                 return value[1:-1]
@@ -1104,6 +1131,23 @@ class Table(_XdepsTable):
 
                     if category == 'bool':
                         cells.append('1' if bool(value) else '0')
+                        continue
+
+                    if category == 'complex':
+                        comp_val = complex(value)
+                        real_part = f"{comp_val.real:.{float_precision}g}"
+                        imag_part = f"{abs(comp_val.imag):.{float_precision}g}"
+                        sign = '+' if comp_val.imag >= 0 else '-'
+                        cells.append(f"{real_part}{sign}{imag_part}i")
+                        continue
+
+                    if category == 'string':
+                        string_value = str(value)
+                        if not (
+                            string_value.startswith('"') and string_value.endswith('"')
+                        ):
+                            string_value = f'"{string_value}"'
+                        cells.append(string_value)
                         continue
 
                     if isinstance(value, (str, np.str_)):
