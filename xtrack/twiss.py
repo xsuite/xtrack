@@ -4152,9 +4152,6 @@ class TwissTable(Table):
         if yr is None:
             yr=""
 
-        if not hasattr(self,"_action"):
-            lattice=False
-
         if lattice and 'k2l' not in self.keys():
             self.add_strengths()
 
