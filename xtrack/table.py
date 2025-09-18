@@ -1080,14 +1080,16 @@ class Table(_XdepsTable):
                 )
 
             if selected_columns:
-                header_names = [
-                    name.upper().ljust(column_widths[idx])
-                    for idx, name in enumerate(selected_columns)
-                ]
-                header_types = [
-                    column_types[idx].ljust(column_widths[idx])
-                    for idx in range(len(selected_columns))
-                ]
+                header_names = []
+                header_types = []
+                for idx, name in enumerate(selected_columns):
+                    width = column_widths[idx]
+                    if column_align_left[idx]:
+                        header_names.append(name.upper().ljust(width))
+                        header_types.append(column_types[idx].ljust(width))
+                    else:
+                        header_names.append(name.upper().rjust(width))
+                        header_types.append(column_types[idx].rjust(width))
                 fh.write('* ' + ' '.join(header_names).rstrip() + '\n')
                 fh.write('$ ' + ' '.join(header_types).rstrip() + '\n')
 
