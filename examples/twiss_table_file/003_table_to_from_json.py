@@ -8,14 +8,14 @@ tw1 = lhc.lhcb1.twiss4d()
 
 # Check json round trip
 tw1.to_json('test.json')
-twjson = xt.TwissTable.from_json('test.json')
+twjson = xt.load('test.json')
 
 # Check csv round trip
 tw1.to_csv('test.csv')
-twcsv = xt.TwissTable.from_csv('test.csv')
+twcsv = xt.load('test.csv')
 
 # Check hdf5 round trip
 tw1.to_hdf5('test.h5')
-twh5 = xt.TwissTable.from_hdf5('test.h5')
+twh5 = xt.load('test.h5')
 
 

@@ -19,7 +19,7 @@ def _resolve_table_instance(table: xt.Table):
     table_class = getattr(table, '_data', {}).get('__class__')
     cls = getattr(xt, table_class, None)
     if cls is not None and cls is not xt.Table:
-        return cls(data=table._data, col_names=table.col_names)
+        return cls(data=table._data, col_names=table._col_names)
     else:
         return table
 
