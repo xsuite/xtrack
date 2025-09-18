@@ -452,14 +452,25 @@ class Table(_XdepsTable):
             if column_serialization:
                 meta_data['column_serialization'] = column_serialization
 
+            attrs_serialization = {}
+
             attrs_grp = target.create_group('attrs') if data_attrs else None
             if attrs_grp is not None:
                 attrs_grp.attrs['order'] = np.array(selected_attrs, dtype='S')
                 for name, value in data_attrs.items():
-                    buffer = io.StringIO()
-                    json_utils.dump(value, buffer, indent=None)
-                    attrs_grp.create_dataset(name, data=buffer.getvalue(),
-                                             dtype=string_dtype)
+                    if isinstance(value, (bool, int, float, np.bool_, np.integer, np.floating)):
+                        attrs_grp.create_dataset(name, data=value)
+                    elif isinstance(value, (str, np.str_)):
+                        attrs_grp.create_dataset(name, data=np.array(value, dtype='S'), dtype=string_dtype)
+                    elif isinstance(value, np.ndarray):
+                        attrs_grp.create_dataset(name, data=value)
+                    else:
+                        serialized = self._serialize_json_value(value)
+                        attrs_serialization[name] = 'json'
+                        attrs_grp.create_dataset(name, data=serialized, dtype=string_dtype)
+
+            if attrs_serialization:
+                meta_data['attrs_serialization'] = attrs_serialization
 
             if meta_data:
                 meta_grp = target.create_group('meta')
@@ -573,6 +584,8 @@ class Table(_XdepsTable):
                             raw_list = list(values)
                         columns_data[name] = cls._cast_csv_column(raw_list, dtype_info.get(name))
 
+            attrs_serialization = meta_data.get('attrs_serialization', {}) if isinstance(meta_data, dict) else {}
+
             attrs_data = {}
             if 'attrs' in target:
                 attrs_grp = target['attrs']
@@ -588,15 +601,17 @@ class Table(_XdepsTable):
 
                 for name in attr_order:
                     ds = attrs_grp[name]
-                    if isinstance(ds, h5py.Dataset) and ds.dtype.kind in ('S', 'O'):
+                    if attrs_serialization.get(name) == 'json':
                         serialized = ds.asstr()[()]
-                    else:
-                        serialized = ds[()]
-                    if isinstance(serialized, np.ndarray) and serialized.shape == ():
-                        serialized = serialized.item()
-                    if isinstance(serialized, bytes):
-                        serialized = serialized.decode('utf-8')
-                    attrs_data[name] = json_utils.load(string=serialized)
+                        attrs_data[name] = json_utils.load(string=serialized)
+                        continue
+
+                    value = ds[()]
+                    if isinstance(value, bytes):
+                        value = value.decode('utf-8')
+                    if isinstance(value, np.ndarray) and value.shape == ():
+                        value = value.item()
+                    attrs_data[name] = value
 
             data = {
                 'columns': columns_data,
