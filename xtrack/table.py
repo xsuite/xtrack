@@ -905,8 +905,32 @@ class Table(_XdepsTable):
         return instance
 
     def to_tfs(self, file, *, include=None, exclude=None,
-               missing='error', include_meta=True):
-        """Write the table in TFS format."""
+               missing='error', include_meta=True,
+               default_column_width=None, float_precision=8,
+               numeric_column_width=16):
+        """Write the table in TFS format.
+
+        Parameters
+        ----------
+        file : path-like or file-like
+            Output target.
+        include, exclude, missing, include_meta
+            See :meth:`Table.to_dict` for details.
+        default_column_width : int, optional
+            Minimum column width to enforce for headers and data cells.
+        float_precision : int, optional
+            Significant digits used when writing floating-point values.
+        numeric_column_width : int, optional
+            If provided, enforces this uniform width for all numeric columns.
+            When omitted, numeric columns still share a common width derived
+            from the widest numeric entry.
+        """
+
+        if float_precision <= 0:
+            raise ValueError('float_precision must be a positive integer')
+
+        if numeric_column_width is not None and numeric_column_width <= 0:
+            raise ValueError('numeric_column_width must be a positive integer')
 
         column_order = list(self._col_names)
         raw_attrs = {kk: vv for kk, vv in self._data.items() if kk not in column_order}
@@ -1016,7 +1040,7 @@ class Table(_XdepsTable):
                         continue
 
                     if token == '%le' or kind in {'f'}:
-                        cells.append(f"{float(value):.16g}")
+                        cells.append(f"{float(value):.{float_precision}g}")
                         continue
 
                     if token == '%d' or kind in {'i', 'u'}:
@@ -1051,13 +1075,38 @@ class Table(_XdepsTable):
             for idx, name in enumerate(selected_columns):
                 width_candidates = [len(name.upper()), len(column_types[idx])]
                 width_candidates.extend(len(val) for val in column_cells[idx])
-                column_widths.append(max(width_candidates))
+                min_width = default_column_width or 0
+                computed_width = max(width_candidates + [min_width])
+                if not column_align_left[idx] and numeric_column_width is not None:
+                    computed_width = max(computed_width, numeric_column_width)
+                column_widths.append(computed_width)
+
+            if numeric_column_width is None:
+                numeric_widths = [w for w, left in zip(column_widths, column_align_left)
+                                  if not left]
+                if numeric_widths:
+                    uniform_width = max(numeric_widths)
+                    column_widths = [uniform_width if not left else w
+                                     for w, left in zip(column_widths, column_align_left)]
         else:
             row_count = 0
             column_cells = []
             column_align_left = []
-            column_widths = [max(len(name.upper()), len(token))
-                             for name, token in zip(selected_columns, column_types)]
+            column_widths = []
+            for idx, (name, token) in enumerate(zip(selected_columns, column_types)):
+                min_width = default_column_width or 0
+                base_width = max(len(name.upper()), len(token), min_width)
+                if token.lower() != '%s' and numeric_column_width is not None:
+                    base_width = max(base_width, numeric_column_width)
+                column_widths.append(base_width)
+
+            if numeric_column_width is None:
+                numeric_widths = [w for w, token in zip(column_widths, column_types)
+                                  if token.lower() != '%s']
+                if numeric_widths:
+                    uniform_width = max(numeric_widths)
+                    column_widths = [uniform_width if token.lower() != '%s' else w
+                                     for w, token in zip(column_widths, column_types)]
 
         if isinstance(file, io.IOBase):
             fh = file
