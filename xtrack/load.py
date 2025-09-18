@@ -20,6 +20,18 @@ def load(
     if (file is None) == (string is None):
         raise ValueError('Must specify either file or string, but not both')
 
+    if file is not None and string is not None:
+        raise ValueError('Cannot specify both file and string')
+
+    tt = None
+    if file is not None and (file.endswith('hdf5') or file.endswith('h5')):
+        tt = xt.Table.from_hdf5(file)
+    elif file.endswith('csv'):
+        tt = xt.Table.from_csv(file)
+    if tt is not None:
+        cls = getattr(xt, tt['_table_class'])
+        return cls(data=tt._data, col_names=tt._col_names)
+
     FORMATS = {'json', 'madx', 'python'}
     if string and format not in FORMATS:
         raise ValueError(f'Format must be specified to be one of {FORMATS} when '

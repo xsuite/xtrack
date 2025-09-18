@@ -465,7 +465,26 @@ class Table(_XdepsTable):
     @classmethod
     def from_hdf5(cls, file, *, columns=None, exclude_columns=None,
                   attrs=None, exclude_attrs=None, missing='error',
-                  group='table'):
+                  group=None):
+
+        if group is None:
+            try:
+                import h5py  # noqa: F401
+            except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency
+                raise ModuleNotFoundError(
+                    'h5py is required for Table HDF5 deserialization'
+                ) from exc
+
+            with h5py.File(file, 'r') as h5:
+                group_candidates = [
+                    name for name, obj in h5.items()
+                    if isinstance(obj, h5py.Group)
+                ]
+                if len(group_candidates) != 1:
+                    raise ValueError(
+                        'HDF5 file must contain exactly one group when `group` is not provided'
+                    )
+                group = group_candidates[0]
 
         target, h5file, close_file = cls._resolve_hdf5_target(
             file, mode='r', group=group)
