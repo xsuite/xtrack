@@ -282,8 +282,6 @@ class Table(_XdepsTable):
                 "h5py is required for Table HDF5 serialization"
             ) from exc
 
-        import h5py
-
         close_file = False
         if isinstance(file, (str, os.PathLike)):
             h5file = h5py.File(file, mode)
@@ -535,12 +533,7 @@ class Table(_XdepsTable):
         """Load a table from an HDF5 file or group."""
 
         if group is None:
-            try:
-                import h5py  # noqa: F401
-            except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency
-                raise ModuleNotFoundError(
-                    'h5py is required for Table HDF5 deserialization'
-                ) from exc
+            import h5py
 
             with h5py.File(file, 'r') as h5:
                 group_candidates = [
@@ -659,18 +652,14 @@ class Table(_XdepsTable):
                         value = value.item()
                     attrs_data[name] = value
 
-            data = {
-                'columns': columns_data,
-                'attrs': attrs_data,
-            }
+            data = columns_data | attrs_data
             if isinstance(meta_data, dict) and meta_data:
-                data['meta'] = meta_data
                 table_class_name = meta_data.get('__class__')
                 xtrack_version = meta_data.get('xtrack_version')
                 data['__class__'] = table_class_name
                 data['xtrack_version'] = xtrack_version
 
-            return cls.from_dict(data)
+            return cls(data=data, col_names=column_order)
         finally:
             if close_file and h5file is not None:
                 h5file.close()
@@ -849,15 +838,11 @@ class Table(_XdepsTable):
             else:
                 columns_data[name] = cls._cast_csv_column(columns_values[name], dtype_str)
 
-        data = {
-            'columns': columns_data,
-            'attrs': attrs_payload,
-        }
+        data = columns_data | attrs_payload
         if isinstance(meta_payload, dict) and meta_payload:
-            data['meta'] = meta_payload
             table_class_name = meta_payload.get('__class__')
             xtrack_version = meta_payload.get('xtrack_version')
             data['__class__'] = table_class_name
             data['xtrack_version'] = xtrack_version
 
-        return cls.from_dict(data)
+        return cls(data=data, col_names=header)
