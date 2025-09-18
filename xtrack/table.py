@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, Optional
 import numpy as np
 
 from xdeps import Table as _XdepsTable
+import xtrack as xt
 
 from . import json as json_utils
 
@@ -125,11 +126,13 @@ class Table(_XdepsTable):
         class_name = self.__class__.__name__
         return {
             '__class__': class_name,
+            'xtrack_version': xt.__version__,
         }
 
     @classmethod
     def _strip_extra_metadata(cls, payload: Dict[str, Any]) -> None:
         payload.pop('__class__', None)
+        payload.pop('xtrack_version', None)
 
     def to_dict(self, *, columns=None, exclude_columns=None,
                 attrs=None, exclude_attrs=None, missing='error',
@@ -182,6 +185,7 @@ class Table(_XdepsTable):
 
         payload = dict(dct)
         table_class_name = payload.get('__class__')
+        xtrack_version = payload.get('xtrack_version')
         cls._strip_extra_metadata(payload)
 
         columns_src = dict(payload['columns'])
@@ -212,8 +216,8 @@ class Table(_XdepsTable):
         data = converted_columns | converted_attrs
         instance = cls(data=data, col_names=list(selected_columns))
 
-        if table_class_name:
-            instance._data['__class__'] = table_class_name
+        instance._data['__class__'] = table_class_name
+        instance._data['xtrack_version'] = xtrack_version
         return instance
 
     # ------------------------------------------------------------------
@@ -618,8 +622,9 @@ class Table(_XdepsTable):
             if isinstance(meta_data, dict) and meta_data:
                 data['meta'] = meta_data
                 table_class_name = meta_data.get('__class__')
-                if table_class_name:
-                    data['__class__'] = table_class_name
+                xtrack_version = meta_data.get('xtrack_version')
+                data['__class__'] = table_class_name
+                data['xtrack_version'] = xtrack_version
 
             return cls.from_dict(
                 data,
@@ -805,8 +810,9 @@ class Table(_XdepsTable):
         if isinstance(meta_payload, dict) and meta_payload:
             data['meta'] = meta_payload
             table_class_name = meta_payload.get('__class__')
-            if table_class_name:
-                data['__class__'] = table_class_name
+            xtrack_version = meta_payload.get('xtrack_version')
+            data['__class__'] = table_class_name
+            data['xtrack_version'] = xtrack_version
 
         return cls.from_dict(
             data,
