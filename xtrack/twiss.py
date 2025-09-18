@@ -3351,16 +3351,9 @@ class TwissTable(Table):
         )
 
     @classmethod
-    def from_hdf5(cls, file, *, columns=None, exclude_columns=None,
-                  attrs=None, exclude_attrs=None, missing='error',
-                  group='twiss_table'):
+    def from_hdf5(cls, file, *, group='twiss_table'):
         return super().from_hdf5(
             file,
-            columns=columns,
-            exclude_columns=exclude_columns,
-            attrs=attrs,
-            exclude_attrs=exclude_attrs,
-            missing=missing,
             group=group,
         )
 

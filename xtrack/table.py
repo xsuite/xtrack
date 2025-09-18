@@ -497,9 +497,7 @@ class Table(_XdepsTable):
                 h5file.close()
 
     @classmethod
-    def from_hdf5(cls, file, *, columns=None, exclude_columns=None,
-                  attrs=None, exclude_attrs=None, missing='error',
-                  group=None):
+    def from_hdf5(cls, file, *, group=None):
         """Load a table from an HDF5 file or group."""
 
         if group is None:
@@ -638,11 +636,7 @@ class Table(_XdepsTable):
                 data['__class__'] = table_class_name
                 data['xtrack_version'] = xtrack_version
 
-            return cls.from_dict(
-                data,
-                columns=columns, exclude_columns=exclude_columns,
-                attrs=attrs, exclude_attrs=exclude_attrs,
-                missing=missing)
+            return cls.from_dict(data)
         finally:
             if close_file and h5file is not None:
                 h5file.close()
@@ -747,8 +741,7 @@ class Table(_XdepsTable):
                 fh.close()
 
     @classmethod
-    def from_csv(cls, file, *, columns=None, exclude_columns=None,
-                 attrs=None, exclude_attrs=None, missing='error'):
+    def from_csv(cls, file):
         """Reconstruct a table instance from CSV data."""
 
         if isinstance(file, io.IOBase):
@@ -828,8 +821,4 @@ class Table(_XdepsTable):
             data['__class__'] = table_class_name
             data['xtrack_version'] = xtrack_version
 
-        return cls.from_dict(
-            data,
-            columns=columns, exclude_columns=exclude_columns,
-            attrs=attrs, exclude_attrs=exclude_attrs,
-            missing=missing)
+        return cls.from_dict(data)

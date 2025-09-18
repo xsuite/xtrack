@@ -17,11 +17,14 @@ _SUPPORTED_FORMATS = {'json', 'madx', 'python', 'csv', 'hdf5'}
 
 def _resolve_table_instance(table: xt.Table):
     table_class = getattr(table, '_data', {}).get('__class__')
-    cls = getattr(xt, table_class, None)
-    if cls is not None and cls is not xt.Table:
-        return cls(data=table._data, col_names=table._col_names)
-    else:
+    if not isinstance(table_class, str):
         return table
+
+    cls = getattr(xt, table_class, None)
+    if cls is None or cls is xt.Table:
+        return table
+
+    return cls.from_dict(table.to_dict())
 
 def _guess_format_from_path(path: str) -> Optional[str]:
     lower = path.lower()

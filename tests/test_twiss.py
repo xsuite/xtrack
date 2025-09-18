@@ -2121,10 +2121,7 @@ def test_twiss_table_hdf5_roundtrip(tmp_path):
     loaded = xt.TwissTable.from_hdf5(path)
     assert list(loaded._col_names) == ['s', 'name']
     assert loaded._data['particle_on_co'] == 'co'
-    assert loaded._data['_table_class'] == 'TwissTable'
-
-    subset = xt.TwissTable.from_hdf5(path, columns=['s'])
-    assert list(subset._col_names) == ['s']
+    assert loaded._data['__class__'] == 'TwissTable'
 
 
 def test_twiss_table_csv_roundtrip(tmp_path):
@@ -2163,8 +2160,8 @@ def test_twiss_table_csv_roundtrip(tmp_path):
     loaded = xt.TwissTable.from_csv(path)
     assert list(loaded._col_names) == ['s', 'name', 'W_matrix']
     assert loaded._data['particle_on_co'] == 'co'
-    assert loaded._data['_table_class'] == 'TwissTable'
+    assert loaded._data['__class__'] == 'TwissTable'
     assert isinstance(loaded._data['W_matrix'][0], np.ndarray)
 
-    subset = xt.TwissTable.from_csv(path, columns=['s'])
-    assert list(subset._col_names) == ['s']
+    subset_dict = xt.TwissTable.from_csv(path).to_dict(columns=['s'])
+    assert list(subset_dict['columns'].keys()) == ['s']
