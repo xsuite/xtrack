@@ -182,8 +182,38 @@ class Table(_XdepsTable):
         raw_attrs.pop('_col_names', None)
         attr_order = list(raw_attrs.keys())
 
+        meta_filterable_keys = {
+            'dropped_columns', 'dropped_attrs', 'column_dtypes',
+            '__class__', 'xtrack_version'
+        }
+
+        raw_include_set = self._normalize_name_selection(include)
+        raw_exclude_set = self._normalize_name_selection(exclude)
+
+        if raw_include_set is not None:
+            include_meta = {name.lower() for name in raw_include_set
+                            if name.lower() in meta_filterable_keys}
+            include_for_split = {name for name in raw_include_set
+                                 if name.lower() not in meta_filterable_keys}
+            include_arg = include_for_split if include_for_split else None
+            if not include_meta:
+                include_meta = None
+        else:
+            include_meta = None
+            include_arg = None
+
+        if raw_exclude_set:
+            exclude_meta = {name.lower() for name in raw_exclude_set
+                            if name.lower() in meta_filterable_keys}
+            exclude_for_split = {name for name in raw_exclude_set
+                                 if name.lower() not in meta_filterable_keys}
+            exclude_arg = exclude_for_split
+        else:
+            exclude_meta = set()
+            exclude_arg = None
+
         include_cols, include_attrs, exclude_cols, exclude_attrs = (
-            self._split_include_exclude(include, exclude,
+            self._split_include_exclude(include_arg, exclude_arg,
                                         column_order, attr_order, missing)
         )
 
@@ -1051,8 +1081,37 @@ class Table(_XdepsTable):
         raw_attrs.pop('_col_names', None)
         attr_order = list(raw_attrs.keys())
 
+        meta_filterable_keys = {
+            'dropped_columns', 'dropped_attrs', 'column_dtypes',
+            '__class__', 'xtrack_version'
+        }
+
+        raw_include_set = self._normalize_name_selection(include)
+        raw_exclude_set = self._normalize_name_selection(exclude)
+
+        if raw_include_set is not None:
+            include_meta_set = {name.lower() for name in raw_include_set
+                                if name.lower() in meta_filterable_keys}
+            include_for_split = {name for name in raw_include_set
+                                 if name.lower() not in meta_filterable_keys}
+            include_arg = include_for_split if include_for_split else None
+            include_meta = include_meta_set if include_meta_set else None
+        else:
+            include_meta = None
+            include_arg = None
+
+        if raw_exclude_set:
+            exclude_meta = {name.lower() for name in raw_exclude_set
+                            if name.lower() in meta_filterable_keys}
+            exclude_for_split = {name for name in raw_exclude_set
+                                 if name.lower() not in meta_filterable_keys}
+            exclude_arg = exclude_for_split
+        else:
+            exclude_meta = set()
+            exclude_arg = None
+
         include_cols, include_attrs, exclude_cols, exclude_attrs = (
-            self._split_include_exclude(include, exclude,
+            self._split_include_exclude(include_arg, exclude_arg,
                                         column_order, attr_order, missing)
         )
 
@@ -1120,6 +1179,25 @@ class Table(_XdepsTable):
 
         if attrs_serialization:
             meta_data['attrs_serialization'] = attrs_serialization
+
+        if include_meta is not None:
+            filtered_meta = {}
+            for key, value in meta_data.items():
+                key_lower = key.lower()
+                if key_lower in meta_filterable_keys:
+                    if key_lower in include_meta:
+                        filtered_meta[key] = value
+                else:
+                    filtered_meta[key] = value
+            meta_data = filtered_meta
+        elif exclude_meta:
+            filtered_meta = {}
+            for key, value in meta_data.items():
+                key_lower = key.lower()
+                if key_lower in meta_filterable_keys and key_lower in exclude_meta:
+                    continue
+                filtered_meta[key] = value
+            meta_data = filtered_meta
 
         meta_lines = []
         for key, value in meta_data.items():
