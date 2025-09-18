@@ -2165,3 +2165,28 @@ def test_twiss_table_csv_roundtrip(tmp_path):
 
     subset_dict = xt.TwissTable.from_csv(path).to_dict(include={'s'})
     assert list(subset_dict['columns'].keys()) == ['s']
+
+
+def test_twiss_table_tfs_roundtrip(tmp_path):
+    data = {
+        's': np.array([0.0, 1.0]),
+        'betx': np.array([1.0, 2.0]),
+        'alfx': np.array([0.0, 0.1]),
+        'name': np.array(['e0', 'e1'], dtype=object),
+        'particle_on_co': 'co',
+        'reference_frame': 'lab'
+    }
+
+    table = xt.TwissTable(data=data, col_names=['s', 'betx', 'alfx', 'name'])
+
+    path = tmp_path / 'twiss.tfs'
+    table.to_tfs(path, include={'s', 'name'}, exclude={'reference_frame'})
+
+    with open(path, 'r') as fh:
+        lines = [line.strip() for line in fh.readlines() if line.startswith('@')]
+    assert any(line.startswith('@ __CLASS__') for line in lines)
+
+    loaded = xt.TwissTable.from_tfs(path)
+    assert list(loaded._col_names) == ['s', 'name']
+    assert loaded._data['__class__'] == 'TwissTable'
+    assert loaded._data['particle_on_co'] == 'co'

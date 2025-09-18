@@ -8,6 +8,7 @@ import io
 import json
 import math
 import os
+import shlex
 from typing import Any, Dict, Iterable, Optional
 
 import numpy as np
@@ -21,7 +22,7 @@ _PARTICLES_CLS: Optional[type] = None
 
 
 def _get_particles_cls():
-
+    global _PARTICLES_CLS
     try:
         import xtrack as xt  # noqa: F401
     except Exception:  # pragma: no cover - optional dependency during import
@@ -405,6 +406,56 @@ class Table(_XdepsTable):
             return np.array(converted, dtype=np_dtype)
 
         return np.array(values)
+
+    @staticmethod
+    def _tfs_type_token(array):
+        arr = np.asarray(array)
+        kind = arr.dtype.kind
+        if kind in 'f':
+            return '%le'
+        if kind in 'i':
+            return '%d'
+        if kind in 'u':
+            return '%d'
+        if kind == 'b':
+            return '%d'
+        return '%s'
+
+    @staticmethod
+    def _format_tfs_header_value(value):
+        if isinstance(value, (bool, np.bool_)):
+            return '%d', '1' if bool(value) else '0'
+        if isinstance(value, (int, np.integer)):
+            return '%d', str(int(value))
+        if isinstance(value, (float, np.floating)):
+            return '%le', f"{float(value):.16g}"
+        if isinstance(value, str):
+            if ' ' in value:
+                return '%s', f'"{value}"'
+            return '%s', value
+        if isinstance(value, np.ndarray):
+            serialized = Table._serialize_json_value(value)
+            return '%s', f'"{serialized}"'
+        if isinstance(value, (list, dict)):
+            serialized = Table._serialize_json_value(value)
+            return '%s', f'"{serialized}"'
+        serialized = Table._serialize_json_value(value)
+        return '%s', f'"{serialized}"'
+
+    @staticmethod
+    def _parse_tfs_value(token, value):
+        token = token.lower()
+        if token in ('%le', '%lf', '%e', '%f'):
+            return float(value)
+        if token in ('%d', '%hd', '%ld', '%i', '%u'):
+            return int(float(value))
+        if token == '%b':
+            return bool(int(value))
+        if token == '%s':
+            if isinstance(value, str) and len(value) >= 2 and value[0] == value[-1] == '"':
+                return value[1:-1]
+            return value
+        return value
 
     def to_hdf5(self, file, *, include=None, exclude=None,
                 missing='error', include_meta=True, group=None):
@@ -838,11 +889,304 @@ class Table(_XdepsTable):
             else:
                 columns_data[name] = cls._cast_csv_column(columns_values[name], dtype_str)
 
-        data = columns_data | attrs_payload
+        payload = {
+            'columns': columns_data,
+            'attrs': attrs_payload,
+        }
         if isinstance(meta_payload, dict) and meta_payload:
-            table_class_name = meta_payload.get('__class__')
-            xtrack_version = meta_payload.get('xtrack_version')
-            data['__class__'] = table_class_name
-            data['xtrack_version'] = xtrack_version
+            payload['meta'] = meta_payload
+            if '__class__' in meta_payload:
+                payload['__class__'] = meta_payload['__class__']
+            if 'xtrack_version' in meta_payload:
+                payload['xtrack_version'] = meta_payload['xtrack_version']
 
-        return cls(data=data, col_names=header)
+        instance = cls.from_dict(payload)
+        instance._col_names = header
+        return instance
+
+    def to_tfs(self, file, *, include=None, exclude=None,
+               missing='error', include_meta=True):
+        """Write the table in TFS format."""
+
+        column_order = list(self._col_names)
+        raw_attrs = {kk: vv for kk, vv in self._data.items() if kk not in column_order}
+        raw_attrs.pop('_action', None)
+        raw_attrs.pop('_col_names', None)
+        attr_order = list(raw_attrs.keys())
+
+        include_cols, include_attrs, exclude_cols, exclude_attrs = (
+            self._split_include_exclude(include, exclude,
+                                        column_order, attr_order, missing)
+        )
+
+        selected_columns = self._resolve_name_selection(
+            column_order, include=include_cols, exclude=exclude_cols,
+            missing=missing, kind='column')
+
+        selected_attrs = self._resolve_name_selection(
+            attr_order, include=include_attrs, exclude=exclude_attrs,
+            missing=missing, kind='attribute')
+
+        data_attrs = {name: self._serialize_attr_value(raw_attrs[name])
+                      for name in selected_attrs}
+
+        column_arrays = []
+        column_types = []
+        column_serialization = {}
+        for name in selected_columns:
+            array = np.asarray(self._data[name], dtype=object)
+            if array.ndim == 0:
+                array = np.array([array])
+            if self._needs_json_serialization(array):
+                column_serialization[name] = 'json'
+            column_arrays.append(array)
+            column_types.append(self._tfs_type_token(array))
+
+        meta_data = {}
+        if include_meta:
+            dropped_columns = [name for name in column_order
+                               if name not in selected_columns]
+            dropped_attrs = [name for name in attr_order
+                             if name not in selected_attrs]
+            if dropped_columns:
+                meta_data['dropped_columns'] = dropped_columns
+            if dropped_attrs:
+                meta_data['dropped_attrs'] = dropped_attrs
+
+        dtype_info = {
+            name: np.asarray(self._data[name]).dtype.str
+            for name in selected_columns
+        }
+        meta_data['column_dtypes'] = dtype_info
+        if column_serialization:
+            meta_data['column_serialization'] = column_serialization
+
+        attrs_serialization = {}
+        extra = self._extra_metadata()
+        if extra:
+            meta_data.update(extra)
+
+        attr_lines = []
+        for name, value in data_attrs.items():
+            dtype_token, formatted = self._format_tfs_header_value(value)
+            if dtype_token == '%s' and not isinstance(value, (str, np.str_)):
+                attrs_serialization[name] = 'json'
+            attr_lines.append((name.upper(), dtype_token, formatted))
+
+        if attrs_serialization:
+            meta_data['attrs_serialization'] = attrs_serialization
+
+        meta_lines = []
+        for key, value in meta_data.items():
+            dtype_token, formatted = self._format_tfs_header_value(value)
+            meta_lines.append((key.upper(), dtype_token, formatted))
+
+        header_entries = attr_lines + meta_lines
+        if header_entries:
+            name_width = max(len(name) for name, _, _ in header_entries)
+            token_width = max(len(token) for _, token, _ in header_entries)
+        else:
+            name_width = 0
+            token_width = 0
+
+        if column_arrays:
+            row_count = len(column_arrays[0])
+            for array in column_arrays[1:]:
+                if len(array) != row_count:
+                    raise ValueError('All column arrays must have the same length')
+
+            column_cells = []
+            column_align_left = []
+            for name, array, token in zip(selected_columns, column_arrays, column_types):
+                align_left = token.lower() == '%s'
+                column_align_left.append(align_left)
+                cells = []
+                use_json = column_serialization.get(name) == 'json'
+                for value in array:
+                    if use_json:
+                        cells.append(self._serialize_json_value(value))
+                        continue
+
+                    if value is None:
+                        cells.append('')
+                        continue
+
+                    if token == '%le':
+                        cells.append(f"{float(value):.16g}")
+                        continue
+
+                    if token == '%d':
+                        cells.append(str(int(float(value))))
+                        continue
+
+                    string_value = str(value)
+                    if string_value and not (
+                        string_value.startswith('"') and string_value.endswith('"')
+                    ):
+                        # Enclose string fields in quotes for clarity
+                        string_value = f'"{string_value}"'
+                    cells.append(string_value)
+                column_cells.append(cells)
+
+            column_widths = []
+            for idx, name in enumerate(selected_columns):
+                width_candidates = [len(name.upper()), len(column_types[idx])]
+                width_candidates.extend(len(val) for val in column_cells[idx])
+                column_widths.append(max(width_candidates))
+        else:
+            row_count = 0
+            column_cells = []
+            column_align_left = []
+            column_widths = [max(len(name.upper()), len(token))
+                             for name, token in zip(selected_columns, column_types)]
+
+        if isinstance(file, io.IOBase):
+            fh = file
+            close_file = False
+        else:
+            fh = open(file, 'w')
+            close_file = True
+
+        try:
+            for name, token, formatted in attr_lines:
+                fh.write(
+                    f"@ {name:<{name_width}} {token:<{token_width}} {formatted}\n"
+                    if name_width and token_width else f"@ {name} {token} {formatted}\n"
+                )
+
+            for name, token, formatted in meta_lines:
+                fh.write(
+                    f"@ {name:<{name_width}} {token:<{token_width}} {formatted}\n"
+                    if name_width and token_width else f"@ {name} {token} {formatted}\n"
+                )
+
+            if selected_columns:
+                header_names = [
+                    name.upper().ljust(column_widths[idx])
+                    for idx, name in enumerate(selected_columns)
+                ]
+                header_types = [
+                    column_types[idx].ljust(column_widths[idx])
+                    for idx in range(len(selected_columns))
+                ]
+                fh.write('* ' + ' '.join(header_names).rstrip() + '\n')
+                fh.write('$ ' + ' '.join(header_types).rstrip() + '\n')
+
+            for row_idx in range(row_count):
+                row_cells = []
+                for col_idx in range(len(selected_columns)):
+                    value = column_cells[col_idx][row_idx]
+                    width = column_widths[col_idx]
+                    if column_align_left[col_idx]:
+                        row_cells.append(value.ljust(width))
+                    else:
+                        row_cells.append(value.rjust(width))
+                fh.write(' ' + ' '.join(row_cells).rstrip() + '\n')
+        finally:
+            if close_file:
+                fh.close()
+
+    @classmethod
+    def from_tfs(cls, file):
+        """Load a table from a TFS file."""
+
+        if isinstance(file, io.IOBase):
+            lines = file.read().splitlines()
+        else:
+            with open(file, 'r') as fh:
+                lines = fh.read().splitlines()
+
+        header_entries = {}
+        data_start_index = None
+        for idx, line in enumerate(lines):
+            stripped = line.strip()
+            if not stripped or stripped.startswith('#'):
+                continue
+            if stripped.startswith('@'):
+                parts = shlex.split(stripped[1:].strip())
+                if len(parts) < 3:
+                    raise ValueError('Invalid TFS header line')
+                name, token, value = parts[0], parts[1], parts[2]
+                header_entries[name] = cls._parse_tfs_value(token, value)
+            elif stripped.startswith('*'):
+                data_start_index = idx
+                break
+
+        if data_start_index is None:
+            raise ValueError('TFS file missing column definition line')
+
+        column_names = shlex.split(lines[data_start_index][1:].strip())
+        type_tokens = shlex.split(lines[data_start_index + 1][1:].strip())
+        if len(type_tokens) != len(column_names):
+            raise ValueError('Column type line does not match column names')
+
+        meta_keys = {
+            'dropped_columns', 'dropped_attrs', 'column_dtypes',
+            'column_serialization', 'attrs_serialization',
+            '__class__', 'xtrack_version'
+        }
+
+        meta_payload = {}
+        attrs_payload = {}
+        for name, value in header_entries.items():
+            key_lower = name.lower()
+            if key_lower in meta_keys:
+                if isinstance(value, str):
+                    try:
+                        meta_payload[key_lower] = json.loads(value)
+                    except json.JSONDecodeError:
+                        meta_payload[key_lower] = value
+                else:
+                    meta_payload[key_lower] = value
+            else:
+                attrs_payload[name.lower()] = value
+
+        column_serialization = meta_payload.get('column_serialization', {}) if isinstance(meta_payload, dict) else {}
+        attrs_serialization = meta_payload.get('attrs_serialization', {}) if isinstance(meta_payload, dict) else {}
+
+        columns_values = {name: [] for name in column_names}
+        for line in lines[data_start_index + 2:]:
+            stripped = line.strip()
+            if not stripped or stripped.startswith('#'):
+                continue
+            parts = shlex.split(stripped)
+            if len(parts) != len(column_names):
+                raise ValueError('Data row does not match column definition')
+            for name, token, value in zip(column_names, type_tokens, parts):
+                columns_values[name].append(cls._parse_tfs_value(token, value))
+
+        dtype_info = meta_payload.get('column_dtypes', {}) if isinstance(meta_payload, dict) else {}
+
+        columns_data = {}
+        for name in column_names:
+            values = columns_values[name]
+            if column_serialization.get(name) == 'json':
+                parsed = []
+                for val in values:
+                    if val in ('', None):
+                        parsed.append(None)
+                    else:
+                        parsed.append(json.loads(val))
+                columns_data[name] = np.array(parsed, dtype=object)
+            else:
+                columns_data[name] = cls._cast_csv_column(values, dtype_info.get(name))
+
+        attrs_data = {}
+        for name, value in attrs_payload.items():
+            if attrs_serialization.get(name) == 'json':
+                attrs_data[name] = json.loads(value)
+            else:
+                attrs_data[name] = value
+
+        data = {
+            'columns': columns_data,
+            'attrs': attrs_data,
+        }
+        if isinstance(meta_payload, dict) and meta_payload:
+            data['meta'] = meta_payload
+            if '__class__' in meta_payload:
+                data['__class__'] = meta_payload['__class__']
+            if 'xtrack_version' in meta_payload:
+                data['xtrack_version'] = meta_payload['xtrack_version']
+
+        return cls.from_dict(data)

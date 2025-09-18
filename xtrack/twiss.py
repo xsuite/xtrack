@@ -3354,6 +3354,20 @@ class TwissTable(Table):
             group=group,
         )
 
+    def to_tfs(self, file, *, include=None, exclude=None,
+               missing='error', include_meta=True):
+        super().to_tfs(
+            file,
+            include=include,
+            exclude=exclude,
+            missing=missing,
+            include_meta=include_meta,
+        )
+
+    @classmethod
+    def from_tfs(cls, file):
+        return super().from_tfs(file)
+
     def get_twiss_init(self, at_element):
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
