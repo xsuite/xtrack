@@ -345,7 +345,7 @@ class Table(_XdepsTable):
         if isinstance(value, np.generic):
             value = value.item()
         if value is None:
-            return ''
+            return 'null'
         if isinstance(value, float) or isinstance(value, np.floating):
             if math.isnan(value):
                 return 'nan'
@@ -386,7 +386,7 @@ class Table(_XdepsTable):
         if kind == 'c':
             converted = []
             for val in values:
-                if val == '' or (isinstance(val, str) and val.lower() == 'nan'):
+                if val in ('', None) or (isinstance(val, str) and val.lower() in ('nan', 'null')):
                     converted.append(complex(np.nan, np.nan))
                 else:
                     converted.append(complex(val))
@@ -396,7 +396,7 @@ class Table(_XdepsTable):
             converted = []
             has_missing = False
             for val in values:
-                if val == '' or (isinstance(val, str) and val.lower() == 'nan'):
+                if val in ('', None) or (isinstance(val, str) and val.lower() in ('nan', 'null')):
                     has_missing = True
                     converted.append(np.nan)
                 else:
@@ -406,7 +406,7 @@ class Table(_XdepsTable):
             return np.array(converted, dtype=np_dtype)
 
         if kind == 'f':
-            converted = [np.nan if (val == '' or (isinstance(val, str) and val.lower() == 'nan'))
+            converted = [np.nan if (val in ('', None) or (isinstance(val, str) and val.lower() in ('nan', 'null')))
                          else float(val) for val in values]
             return np.array(converted, dtype=np_dtype)
 
@@ -481,6 +481,8 @@ class Table(_XdepsTable):
 
     @staticmethod
     def _format_tfs_header_value(value):
+        if value is None:
+            return '%s', 'null'
         if isinstance(value, (bool, np.bool_)):
             return '%b', '1' if bool(value) else '0'
         if isinstance(value, (int, np.integer)):
@@ -510,6 +512,8 @@ class Table(_XdepsTable):
     @staticmethod
     def _parse_tfs_value(token, value):
         token = token.lower()
+        if isinstance(value, str) and value.lower() == 'null':
+            return None
         if token in ('%le', '%lf', '%e', '%f'):
             return float(value)
         if token in ('%d', '%hd', '%ld', '%i', '%u'):
@@ -1147,11 +1151,15 @@ class Table(_XdepsTable):
                 use_json = column_serialization.get(name) == 'json'
                 for value in array:
                     if use_json:
-                        cells.append(self._serialize_json_value(value))
+                        if value is None:
+                            cells.append('null')
+                        else:
+                            json_string = self._serialize_json_value(value)
+                            cells.append(json.dumps(json_string))
                         continue
 
                     if value is None:
-                        cells.append('')
+                        cells.append('null')
                         continue
 
                     if category == 'float':
