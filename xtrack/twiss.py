@@ -3336,15 +3336,12 @@ class TwissTable(Table):
         payload.pop('xtrack_version', None)
         super()._strip_extra_metadata(payload)
 
-    def to_hdf5(self, file, *, columns=None, exclude_columns=None,
-                attrs=None, exclude_attrs=None, missing='error',
-                include_meta=True, group='twiss_table'):
+    def to_hdf5(self, file, *, include=None, exclude=None,
+                missing='error', include_meta=True, group='twiss_table'):
         super().to_hdf5(
             file,
-            columns=columns,
-            exclude_columns=exclude_columns,
-            attrs=attrs,
-            exclude_attrs=exclude_attrs,
+            include=include,
+            exclude=exclude,
             missing=missing,
             include_meta=include_meta,
             group=group,

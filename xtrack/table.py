@@ -121,6 +121,41 @@ class Table(_XdepsTable):
     # ------------------------------------------------------------------
     # Generic dictionary export/import
     # ------------------------------------------------------------------
+    @classmethod
+    def _split_include_exclude(cls, include, exclude, column_order,
+                               attr_order, missing):
+        """Split unified include/exclude selectors into column and attr sets."""
+
+        column_names = set(column_order)
+        attr_names = set(attr_order)
+        all_names = column_names | attr_names
+
+        include_set = cls._normalize_name_selection(include)
+        if include_set is not None:
+            unknown = include_set - all_names
+            if unknown and missing == 'error':
+                raise KeyError(
+                    f"Unknown name(s) in include selection: {sorted(unknown)}"
+                )
+            include_set &= all_names
+
+        exclude_set = cls._normalize_name_selection(exclude)
+        if exclude_set:
+            unknown = exclude_set - all_names
+            if unknown and missing == 'error':
+                raise KeyError(
+                    f"Unknown name(s) in exclude selection: {sorted(unknown)}"
+                )
+            exclude_set &= all_names
+
+        include_cols = include_set & column_names if include_set is not None else None
+        include_attrs = include_set & attr_names if include_set is not None else None
+
+        exclude_cols = exclude_set & column_names if exclude_set else None
+        exclude_attrs = exclude_set & attr_names if exclude_set else None
+
+        return include_cols, include_attrs, exclude_cols, exclude_attrs
+
     def _extra_metadata(self) -> Dict[str, Any]:
         """Return metadata fields always attached to serialized tables."""
         class_name = self.__class__.__name__
@@ -135,22 +170,27 @@ class Table(_XdepsTable):
         payload.pop('__class__', None)
         payload.pop('xtrack_version', None)
 
-    def to_dict(self, *, columns=None, exclude_columns=None,
-                attrs=None, exclude_attrs=None, missing='error',
-                include_meta=True):
+    def to_dict(self, *, include=None, exclude=None,
+                missing='error', include_meta=True):
         """Serialize the table to a dictionary, applying optional filters."""
 
         column_order = list(self._col_names)
-        selected_columns = self._resolve_name_selection(
-            column_order, include=columns, exclude=exclude_columns,
-            missing=missing, kind='column')
-
         raw_attrs = {kk: vv for kk, vv in self._data.items() if kk not in column_order}
         raw_attrs.pop('_action', None)
         raw_attrs.pop('_col_names', None)
         attr_order = list(raw_attrs.keys())
+
+        include_cols, include_attrs, exclude_cols, exclude_attrs = (
+            self._split_include_exclude(include, exclude,
+                                        column_order, attr_order, missing)
+        )
+
+        selected_columns = self._resolve_name_selection(
+            column_order, include=include_cols, exclude=exclude_cols,
+            missing=missing, kind='column')
+
         selected_attrs = self._resolve_name_selection(
-            attr_order, include=attrs, exclude=exclude_attrs,
+            attr_order, include=include_attrs, exclude=exclude_attrs,
             missing=missing, kind='attribute')
 
         out = {
@@ -368,9 +408,8 @@ class Table(_XdepsTable):
 
         return np.array(values)
 
-    def to_hdf5(self, file, *, columns=None, exclude_columns=None,
-                attrs=None, exclude_attrs=None, missing='error',
-                include_meta=True, group=None):
+    def to_hdf5(self, file, *, include=None, exclude=None,
+                missing='error', include_meta=True, group=None):
         """Persist the table into an HDF5 file or group."""
 
         target, h5file, close_file = self._resolve_hdf5_target(
@@ -378,17 +417,23 @@ class Table(_XdepsTable):
 
         try:
             column_order = list(self._col_names)
-            selected_columns = self._resolve_name_selection(
-                column_order, include=columns, exclude=exclude_columns,
-                missing=missing, kind='column')
-
             raw_attrs = {kk: vv for kk, vv in self._data.items()
                          if kk not in column_order}
             raw_attrs.pop('_action', None)
             raw_attrs.pop('_col_names', None)
             attr_order = list(raw_attrs.keys())
+
+            include_cols, include_attrs, exclude_cols, exclude_attrs = (
+                self._split_include_exclude(include, exclude,
+                                            column_order, attr_order, missing)
+            )
+
+            selected_columns = self._resolve_name_selection(
+                column_order, include=include_cols, exclude=exclude_cols,
+                missing=missing, kind='column')
+
             selected_attrs = self._resolve_name_selection(
-                attr_order, include=attrs, exclude=exclude_attrs,
+                attr_order, include=include_attrs, exclude=exclude_attrs,
                 missing=missing, kind='attribute')
 
             data_attrs = {name: self._serialize_attr_value(raw_attrs[name])
@@ -630,23 +675,28 @@ class Table(_XdepsTable):
             if close_file and h5file is not None:
                 h5file.close()
 
-    def to_csv(self, file, *, columns=None, exclude_columns=None,
-               attrs=None, exclude_attrs=None, missing='error',
-               include_meta=True):
+    def to_csv(self, file, *, include=None, exclude=None,
+               missing='error', include_meta=True):
         """Write the table to CSV, embedding metadata as comments."""
 
         column_order = list(self._col_names)
-        selected_columns = self._resolve_name_selection(
-            column_order, include=columns, exclude=exclude_columns,
-            missing=missing, kind='column')
-
         raw_attrs = {kk: vv for kk, vv in self._data.items()
                      if kk not in column_order}
         raw_attrs.pop('_action', None)
         raw_attrs.pop('_col_names', None)
         attr_order = list(raw_attrs.keys())
+
+        include_cols, include_attrs, exclude_cols, exclude_attrs = (
+            self._split_include_exclude(include, exclude,
+                                        column_order, attr_order, missing)
+        )
+
+        selected_columns = self._resolve_name_selection(
+            column_order, include=include_cols, exclude=exclude_cols,
+            missing=missing, kind='column')
+
         selected_attrs = self._resolve_name_selection(
-            attr_order, include=attrs, exclude=exclude_attrs,
+            attr_order, include=include_attrs, exclude=exclude_attrs,
             missing=missing, kind='attribute')
 
         data_attrs = {name: self._serialize_attr_value(raw_attrs[name])

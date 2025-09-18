@@ -2073,7 +2073,7 @@ def test_twiss_table_dict_selection():
 
     table = xt.TwissTable(data=data, col_names=['s', 'betx', 'alfx', 'name'])
 
-    filtered = table.to_dict(columns=['s', 'name'], exclude_attrs=['reference_frame'])
+    filtered = table.to_dict(include={'s', 'name'}, exclude={'reference_frame'})
     assert list(filtered['columns'].keys()) == ['s', 'name']
     assert 'betx' not in filtered['columns']
     assert 'alfx' not in filtered['columns']
@@ -2087,7 +2087,7 @@ def test_twiss_table_dict_selection():
     assert list(rebuilt._col_names) == ['s', 'name']
     assert rebuilt._data['particle_on_co'] == 'co'
 
-    reduced = xt.TwissTable.from_dict(table.to_dict(), columns=['s'])
+    reduced = xt.TwissTable.from_dict(table.to_dict(include={'s'}))
     assert list(reduced._col_names) == ['s']
 
 
@@ -2106,7 +2106,7 @@ def test_twiss_table_hdf5_roundtrip(tmp_path):
     table = xt.TwissTable(data=data, col_names=['s', 'betx', 'alfx', 'name'])
 
     path = tmp_path / 'twiss.h5'
-    table.to_hdf5(path, columns=['s', 'name'], exclude_attrs=['reference_frame'])
+    table.to_hdf5(path, include={'s', 'name'}, exclude={'reference_frame'})
 
     with h5py.File(path, 'r') as h5:
         grp = h5['twiss_table']
@@ -2138,7 +2138,7 @@ def test_twiss_table_csv_roundtrip(tmp_path):
     table = xt.TwissTable(data=data, col_names=['s', 'betx', 'alfx', 'name', 'W_matrix'])
 
     path = tmp_path / 'twiss.csv'
-    table.to_csv(path, columns=['s', 'name', 'W_matrix'], exclude_attrs=['reference_frame'])
+    table.to_csv(path, include={'s', 'name', 'W_matrix'}, exclude={'reference_frame'})
 
     with open(path, 'r') as fh:
         lines = [line.strip() for line in fh.readlines()]
@@ -2163,5 +2163,5 @@ def test_twiss_table_csv_roundtrip(tmp_path):
     assert loaded._data['__class__'] == 'TwissTable'
     assert isinstance(loaded._data['W_matrix'][0], np.ndarray)
 
-    subset_dict = xt.TwissTable.from_csv(path).to_dict(columns=['s'])
+    subset_dict = xt.TwissTable.from_csv(path).to_dict(include={'s'})
     assert list(subset_dict['columns'].keys()) == ['s']
