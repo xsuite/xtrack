@@ -124,13 +124,11 @@ class Table(_XdepsTable):
     def _extra_metadata(self) -> Dict[str, Any]:
         class_name = self.__class__.__name__
         return {
-            'table_class': class_name,
             '__class__': class_name,
         }
 
     @classmethod
     def _strip_extra_metadata(cls, payload: Dict[str, Any]) -> None:
-        payload.pop('table_class', None)
         payload.pop('__class__', None)
 
     def to_dict(self, *, columns=None, exclude_columns=None,
@@ -183,7 +181,7 @@ class Table(_XdepsTable):
                   exclude_attrs=None, missing='error'):
 
         payload = dict(dct)
-        table_class_name = payload.get('table_class') or payload.get('__class__')
+        table_class_name = payload.get('__class__')
         cls._strip_extra_metadata(payload)
 
         columns_src = dict(payload['columns'])
@@ -215,7 +213,7 @@ class Table(_XdepsTable):
         instance = cls(data=data, col_names=list(selected_columns))
 
         if table_class_name:
-            instance._data['_table_class'] = table_class_name
+            instance._data['__class__'] = table_class_name
         return instance
 
     # ------------------------------------------------------------------
@@ -369,7 +367,7 @@ class Table(_XdepsTable):
 
     def to_hdf5(self, file, *, columns=None, exclude_columns=None,
                 attrs=None, exclude_attrs=None, missing='error',
-                include_meta=True, group='table'):
+                include_meta=True, group=None):
 
         target, h5file, close_file = self._resolve_hdf5_target(
             file, mode='w', group=group)
@@ -619,9 +617,9 @@ class Table(_XdepsTable):
             }
             if isinstance(meta_data, dict) and meta_data:
                 data['meta'] = meta_data
-                table_class_name = meta_data.get('table_class') or meta_data.get('__class__')
+                table_class_name = meta_data.get('__class__')
                 if table_class_name:
-                    data['table_class'] = table_class_name
+                    data['__class__'] = table_class_name
 
             return cls.from_dict(
                 data,
@@ -806,9 +804,9 @@ class Table(_XdepsTable):
         }
         if isinstance(meta_payload, dict) and meta_payload:
             data['meta'] = meta_payload
-            table_class_name = meta_payload.get('table_class') or meta_payload.get('__class__')
+            table_class_name = meta_payload.get('__class__')
             if table_class_name:
-                data['table_class'] = table_class_name
+                data['__class__'] = table_class_name
 
         return cls.from_dict(
             data,

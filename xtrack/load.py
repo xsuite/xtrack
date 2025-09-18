@@ -17,16 +17,12 @@ _SUPPORTED_FORMATS = {'json', 'madx', 'python', 'csv', 'hdf5'}
 
 
 def _resolve_table_instance(table: xt.Table):
-    table_class = getattr(table, '_data', {}).get('_table_class')
-    if not table_class:
-        return table
-
+    table_class = getattr(table, '_data', {}).get('__class__')
     cls = getattr(xt, table_class, None)
-    if cls is None or cls is xt.Table:
+    if cls is not None and cls is not xt.Table:
+        return cls(data=table._data, col_names=table.col_names)
+    else:
         return table
-
-    return cls.from_dict(table.to_dict())
-
 
 def _guess_format_from_path(path: str) -> Optional[str]:
     lower = path.lower()
@@ -77,7 +73,7 @@ def load(
 
     if format == 'json':
         payload = xt.json.load(file=file, string=string)
-        cls_name = payload.pop('__class__', None) or payload.get('table_class')
+        cls_name = payload.pop('__class__', None)
         if cls_name is not None:
             cls = getattr(xt, cls_name, None)
             if cls is None:
