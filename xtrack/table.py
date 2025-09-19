@@ -999,7 +999,7 @@ class Table(_XdepsTable):
                             parsed_vals.append(np.array(obj))
                         else:
                             parsed_vals.append(obj)
-                columns_data[name] = np.array(parsed_vals, dtype=object)
+                columns_data[name] = np.array(parsed_vals)
             else:
                 columns_data[name] = cls._cast_csv_column(columns_values[name], dtype_str)
 
