@@ -124,7 +124,7 @@ tw1.to_hdf5('test.h5')
 twh5 = xt.load('test.h5')
 
 # Check tfs round trip
-tw1.to_tfs('test.tfs'include=include)
+tw1.to_tfs('test.tfs', include=include)
 twtfs = xt.TwissTable.from_tfs('test.tfs')
 
 

@@ -1508,34 +1508,119 @@ class Table(_XdepsTable):
             meta_payload.get('attrs_serialization') if isinstance(meta_payload, dict) else {})
         attrs_serialization = {str(key).lower(): value for key, value in attrs_serialization.items()}
 
-        columns_values = {name: [] for name in column_names}
-        for line in lines[data_start_index + 2:]:
-            stripped = line.strip()
-            if not stripped or stripped.startswith('#'):
-                continue
-            parts = shlex.split(stripped)
-            if len(parts) != len(column_names):
-                raise ValueError('Data row does not match column definition')
-            for name, token, value in zip(column_names, type_tokens, parts):
-                columns_values[name].append(cls._parse_tfs_value(token, value))
+        columns_data = None
 
-        dtype_info = _decode_mapping(
-            meta_payload.get('column_dtypes') if isinstance(meta_payload, dict) else {})
-        dtype_info = {str(key).lower(): value for key, value in dtype_info.items()}
+        data_lines = [
+            line.strip()
+            for line in lines[data_start_index + 2:]
+            if line.strip() and not line.lstrip().startswith('#')
+        ]
 
-        columns_data = {}
-        for name in column_names:
-            values = columns_values[name]
-            if column_serialization.get(name) == 'json':
-                parsed = []
-                for val in values:
-                    if val in ('', None):
-                        parsed.append(None)
-                    else:
-                        parsed.append(json.loads(val))
-                columns_data[name] = np.array(parsed, dtype=object)
+        try:
+            import pandas as _pd
+        except ImportError:  # pragma: no cover - optional dependency
+            _pd = None
+
+        if _pd is not None and data_lines:
+            table_buffer = io.StringIO('\n'.join(data_lines))
+            try:
+                df = _pd.read_csv(
+                    table_buffer,
+                    sep=r'\s+',
+                    names=column_names,
+                    engine='python',
+                    quotechar='"',
+                    na_filter=False,
+                    skipinitialspace=True,
+                )
+            except Exception:  # pragma: no cover - fallback on parse failure
+                df = None
             else:
-                columns_data[name] = cls._cast_csv_column(values, dtype_info.get(name))
+                columns_data = {}
+                for name, token in zip(column_names, type_tokens):
+                    token_lower = token.lower()
+                    series = df[name]
+                    if column_serialization.get(name) == 'json':
+                        parsed = []
+                        for val in series:
+                            if isinstance(val, str):
+                                if val == '' or val.lower() == 'null':
+                                    parsed.append(None)
+                                else:
+                                    parsed.append(json.loads(val))
+                            elif val in (None, ''):
+                                parsed.append(None)
+                            else:
+                                parsed.append(val)
+                        columns_data[name] = np.array(parsed, dtype=object)
+                        continue
+
+                    values = []
+                    for val in series:
+                        if isinstance(val, str):
+                            raw = val
+                        elif val is None:
+                            raw = 'null'
+                        else:
+                            if isinstance(val, (float, np.floating)) and math.isnan(val):
+                                raw = 'nan'
+                            else:
+                                raw = str(val)
+                        converted = cls._parse_tfs_value(token, raw)
+                        values.append(converted)
+
+                    if token_lower in ('%le', '%lf', '%e', '%f'):
+                        columns_data[name] = np.array([
+                            np.nan if v is None else float(v)
+                            for v in values
+                        ], dtype=float)
+                    elif token_lower in ('%d', '%hd', '%ld', '%i', '%u'):
+                        if any(v is None for v in values):
+                            columns_data[name] = np.array([
+                                np.nan if v is None else int(v)
+                                for v in values
+                            ], dtype=float)
+                        else:
+                            columns_data[name] = np.array([int(v) for v in values], dtype=int)
+                    elif token_lower == '%b':
+                        columns_data[name] = np.array([
+                            False if v is None else bool(v)
+                            for v in values
+                        ], dtype=bool)
+                    elif token_lower == '%lz':
+                        columns_data[name] = np.array([
+                            complex(np.nan, np.nan) if v is None else complex(v)
+                            for v in values
+                        ], dtype=complex)
+                    else:
+                        columns_data[name] = np.array(values, dtype=object)
+
+        if columns_data is None:
+            columns_values = {name: [] for name in column_names}
+            for line in data_lines:
+                parts = shlex.split(line)
+                if len(parts) != len(column_names):
+                    raise ValueError('Data row does not match column definition')
+                for name, token, value in zip(column_names, type_tokens, parts):
+                    columns_values[name].append(cls._parse_tfs_value(token, value))
+
+            dtype_info = _decode_mapping(
+                meta_payload.get('column_dtypes') if isinstance(meta_payload, dict) else {})
+            dtype_info = {str(key).lower(): value for key, value in dtype_info.items()}
+
+            columns_data = {}
+            for name in column_names:
+                values = columns_values[name]
+                if column_serialization.get(name) == 'json':
+                    parsed = []
+                    for val in values:
+                        if val in ('', None):
+                            parsed.append(None)
+                        else:
+                            parsed.append(json.loads(val))
+                    columns_data[name] = np.array(parsed, dtype=object)
+                else:
+                    columns_data[name] = cls._cast_csv_column(values, dtype_info.get(name))
 
         attrs_data = {}
         for name, value in attrs_payload.items():
