@@ -1447,8 +1447,14 @@ class Table(_XdepsTable):
 
         data = {}
         col_names = []
+
+        contain_capital = ["W_matrix", "R_matrix", "R_matrix_ebe", "T_rev0"]
+        rename_dict = {cc.lower(): cc for cc in contain_capital}
+
         for cc in tfs_table.columns:
             cc_lower = cc.lower()
+            if cc_lower in rename_dict:
+                cc_lower = rename_dict[cc_lower]
             col_names.append(cc_lower)
             data[cc_lower] = tfs_table[cc].to_numpy()
 
