@@ -13,6 +13,7 @@ import shlex
 from typing import Any, Dict, Iterable, Mapping, Optional
 
 import numpy as np
+import pandas as pd
 
 from xdeps import Table as _XdepsTable
 import xtrack as xt
@@ -1508,119 +1509,121 @@ class Table(_XdepsTable):
             meta_payload.get('attrs_serialization') if isinstance(meta_payload, dict) else {})
         attrs_serialization = {str(key).lower(): value for key, value in attrs_serialization.items()}
 
-        columns_data = None
-
         data_lines = [
             line.strip()
             for line in lines[data_start_index + 2:]
             if line.strip() and not line.lstrip().startswith('#')
         ]
 
-        try:
-            import pandas as _pd
-        except ImportError:  # pragma: no cover - optional dependency
-            _pd = None
-
-        if _pd is not None and data_lines:
+        if data_lines:
             table_buffer = io.StringIO('\n'.join(data_lines))
             try:
-                df = _pd.read_csv(
+                df = pd.read_csv(
                     table_buffer,
                     sep=r'\s+',
                     names=column_names,
+                    na_filter=False,
                     engine='python',
                     quotechar='"',
-                    na_filter=False,
                     skipinitialspace=True,
+                    keep_default_na=False,
+                    dtype=str,
                 )
-            except Exception:  # pragma: no cover - fallback on parse failure
-                df = None
-            else:
-                columns_data = {}
-                for name, token in zip(column_names, type_tokens):
-                    token_lower = token.lower()
-                    series = df[name]
-                    if column_serialization.get(name) == 'json':
-                        parsed = []
-                        for val in series:
-                            if isinstance(val, str):
-                                if val == '' or val.lower() == 'null':
-                                    parsed.append(None)
-                                else:
-                                    parsed.append(json.loads(val))
-                            elif val in (None, ''):
-                                parsed.append(None)
-                            else:
-                                parsed.append(val)
-                        columns_data[name] = np.array(parsed, dtype=object)
-                        continue
+            except pd.errors.EmptyDataError:
+                df = pd.DataFrame(columns=column_names)
+        else:
+            df = pd.DataFrame(columns=column_names)
 
-                    values = []
-                    for val in series:
-                        if isinstance(val, str):
-                            raw = val
-                        elif val is None:
-                            raw = 'null'
-                        else:
-                            if isinstance(val, (float, np.floating)) and math.isnan(val):
-                                raw = 'nan'
-                            else:
-                                raw = str(val)
-                        converted = cls._parse_tfs_value(token, raw)
-                        values.append(converted)
+        columns_data = {}
+        for name, token in zip(column_names, type_tokens):
+            token_lower = token.lower()
+            series = df[name] if name in df.columns else pd.Series([], dtype=object)
 
-                    if token_lower in ('%le', '%lf', '%e', '%f'):
-                        columns_data[name] = np.array([
-                            np.nan if v is None else float(v)
-                            for v in values
-                        ], dtype=float)
-                    elif token_lower in ('%d', '%hd', '%ld', '%i', '%u'):
-                        if any(v is None for v in values):
-                            columns_data[name] = np.array([
-                                np.nan if v is None else int(v)
-                                for v in values
-                            ], dtype=float)
-                        else:
-                            columns_data[name] = np.array([int(v) for v in values], dtype=int)
-                    elif token_lower == '%b':
-                        columns_data[name] = np.array([
-                            False if v is None else bool(v)
-                            for v in values
-                        ], dtype=bool)
-                    elif token_lower == '%lz':
-                        columns_data[name] = np.array([
-                            complex(np.nan, np.nan) if v is None else complex(v)
-                            for v in values
-                        ], dtype=complex)
-                    else:
-                        columns_data[name] = np.array(values, dtype=object)
-
-        if columns_data is None:
-            columns_values = {name: [] for name in column_names}
-            for line in data_lines:
-                parts = shlex.split(line)
-                if len(parts) != len(column_names):
-                    raise ValueError('Data row does not match column definition')
-                for name, token, value in zip(column_names, type_tokens, parts):
-                    columns_values[name].append(cls._parse_tfs_value(token, value))
-
-            dtype_info = _decode_mapping(
-                meta_payload.get('column_dtypes') if isinstance(meta_payload, dict) else {})
-            dtype_info = {str(key).lower(): value for key, value in dtype_info.items()}
-
-            columns_data = {}
-            for name in column_names:
-                values = columns_values[name]
-                if column_serialization.get(name) == 'json':
-                    parsed = []
-                    for val in values:
-                        if val in ('', None):
+            if column_serialization.get(name) == 'json':
+                parsed = []
+                for val in series:
+                    if isinstance(val, str):
+                        raw = val.strip()
+                        if raw == '' or raw.lower() == 'null':
                             parsed.append(None)
                         else:
-                            parsed.append(json.loads(val))
-                    columns_data[name] = np.array(parsed, dtype=object)
+                            parsed.append(json.loads(raw))
+                    elif val in (None, ''):
+                        parsed.append(None)
+                    else:
+                        parsed.append(val)
+                columns_data[name] = np.array(parsed, dtype=object)
+                continue
+
+            stripped_series = series.astype(str).str.strip()
+            lower_series = stripped_series.str.lower()
+
+            mask_empty = stripped_series.eq('')
+            mask_null = lower_series.isin({'null', 'none'})
+            mask_nan = lower_series.eq('nan')
+            mask_missing = mask_empty | mask_null
+            mask_special = mask_missing | mask_nan
+
+            if token_lower in ('%le', '%lf', '%e', '%f'):
+                numeric = pd.to_numeric(
+                    stripped_series.where(~mask_special, np.nan),
+                    errors='coerce'
+                )
+                columns_data[name] = numeric.to_numpy(dtype=float)
+                continue
+
+            if token_lower in ('%d', '%hd', '%ld', '%i', '%u'):
+                numeric = pd.to_numeric(
+                    stripped_series.where(~mask_special, np.nan),
+                    errors='coerce'
+                )
+                if numeric.isna().any():
+                    columns_data[name] = numeric.to_numpy(dtype=float)
                 else:
-                    columns_data[name] = cls._cast_csv_column(values, dtype_info.get(name))
+                    columns_data[name] = numeric.astype(np.int64).to_numpy(dtype=int)
+                continue
+
+            if token_lower == '%s':
+                result = stripped_series.where(~mask_missing, None)
+                columns_data[name] = result.to_numpy(dtype=object)
+                continue
+
+            if token_lower == '%b':
+                truthy = {'1', 'true', 'yes', 't'}
+                falsy = {'0', 'false', 'no', 'f'}
+                bool_values = []
+                for raw in lower_series:
+                    if raw in truthy:
+                        bool_values.append(True)
+                    elif raw in falsy or raw in ('', 'null', 'none', 'nan'):
+                        bool_values.append(False)
+                    else:
+                        try:
+                            bool_values.append(bool(int(float(raw))))
+                        except ValueError:
+                            bool_values.append(bool(raw))
+                columns_data[name] = np.array(bool_values, dtype=bool)
+                continue
+
+            if token_lower == '%lz':
+                complex_values = []
+                for raw in stripped_series:
+                    lower = raw.lower()
+                    if raw == '' or lower in ('null', 'none'):
+                        complex_values.append(complex(np.nan, np.nan))
+                    else:
+                        complex_values.append(cls._parse_tfs_value(token, raw))
+                columns_data[name] = np.array(complex_values, dtype=complex)
+                continue
+
+            default_values = []
+            for raw in stripped_series:
+                lower = raw.lower()
+                if raw == '' or lower in ('null', 'none'):
+                    default_values.append(None)
+                else:
+                    default_values.append(cls._parse_tfs_value(token, raw))
+            columns_data[name] = np.array(default_values, dtype=object)
 
         attrs_data = {}
         for name, value in attrs_payload.items():
