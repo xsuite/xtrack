@@ -1008,7 +1008,10 @@ class Table(_XdepsTable):
             if 'xtrack_version' in meta_payload:
                 attrs_payload['xtrack_version'] = meta_payload['xtrack_version']
 
-        instance = cls(data=columns_data | attrs_payload, col_names=header)
+        instance = cls.from_dict({
+            'columns': columns_data,
+            'attrs': attrs_payload,
+        })
         return instance
 
     def to_tfs(self, file, *, include=None, exclude=None,

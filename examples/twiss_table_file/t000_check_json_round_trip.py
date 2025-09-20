@@ -16,6 +16,8 @@ tw.to_csv(tmp_path / 'twiss_test.csv')
 
 tw_test = xt.load(tmp_path / 'twiss_test.csv')
 
+assert isinstance(tw_test, xt.TwissTable)
+
 assert np.all(np.array(tw_test._col_names) == np.array(tw._col_names))
 assert set(tw_test.keys()) - set(tw.keys()) == {'__class__', 'xtrack_version'}
 assert set(tw.keys()) - set(tw_test.keys()) == {'_action'}
@@ -23,9 +25,12 @@ assert set(tw.keys()) - set(tw_test.keys()) == {'_action'}
 for kk in tw._data:
     if kk == '_action':
         continue
-    if kk in ['particle_on_co', 'steps_r_matrix', 'R_matrix_ebe', 'radiation_method',
+    if kk in ['particle_on_co', 'steps_r_matrix',
               'line_config', 'completed_init']:
         continue # To be checked separately
+    if tw[kk] is None:
+        assert tw_test[kk] is None
+        continue
     if isinstance(tw[kk], np.ndarray) and isinstance(tw[kk][0], str):
         assert np.all(tw[kk] == tw_test[kk])
         continue
@@ -33,3 +38,23 @@ for kk in tw._data:
         assert tw[kk] == tw_test[kk]
         continue
     xo.assert_allclose(tw[kk], tw_test[kk], rtol=1e-10, atol=1e-15)
+
+# Check particle_on_co
+assert isinstance(tw.particle_on_co, xt.Particles)
+assert isinstance(tw_test.particle_on_co, xt.Particles)
+dct_ref = line.particle_ref.to_dict()
+dct_test = tw_test.particle_on_co.to_dict()
+for kk in dct_ref:
+    if isinstance(dct_ref[kk], np.ndarray):
+        xo.assert_allclose(dct_ref[kk], dct_test[kk], rtol=1e-10, atol=1e-15)
+    else:
+        assert dct_ref[kk] == dct_test[kk]
+
+# Check steps_r_matrix
+assert isinstance(tw.steps_r_matrix, dict)
+assert isinstance(tw_test.steps_r_matrix, dict)
+assert set(tw.steps_r_matrix.keys()) == set(tw_test.steps_r_matrix.keys())
+for kk in tw.steps_r_matrix:
+    rmat_ref = tw.steps_r_matrix[kk]
+    rmat_test = tw_test.steps_r_matrix[kk]
+    xo.assert_allclose(rmat_ref, rmat_test, rtol=1e-10, atol=1e-15)
