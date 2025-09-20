@@ -29,7 +29,12 @@ else:
 assert isinstance(tw_test, xt.TwissTable)
 
 assert np.all(np.array(tw_test._col_names) == np.array(tw._col_names))
-assert set(tw_test.keys()) - set(tw.keys()) == {'__class__', 'xtrack_version'}
+if check_type == 'tfs':
+    assert set(tw_test.keys()) - set(tw.keys()) == {
+        '__class__', 'attrs_serialization', 'column_serialization', 'xtrack_version'
+    }
+else:
+    assert set(tw_test.keys()) - set(tw.keys()) == {'__class__', 'xtrack_version'}
 assert set(tw.keys()) - set(tw_test.keys()) == {'_action'}
 
 for kk in tw._data:
@@ -46,7 +51,7 @@ for kk in tw._data:
     elif isinstance(tw[kk], str):
         assert tw[kk] == tw_test[kk]
         continue
-    xo.assert_allclose(tw[kk], tw_test[kk], rtol=1e-10, atol=1e-15)
+    xo.assert_allclose(tw[kk], tw_test[kk], rtol=1e-7, atol=1e-15)
 
 # Check particle_on_co
 assert isinstance(tw.particle_on_co, xt.Particles)

@@ -10,6 +10,7 @@ import math
 import numbers
 import os
 import shlex
+import tempfile
 from typing import Any, Dict, Iterable, Mapping, Optional
 
 import numpy as np
@@ -1439,7 +1440,15 @@ class Table(_XdepsTable):
         except ImportError:
             raise ImportError('Please install tfs-pandas to read TFS files.')
 
-        tfs_table = tfs.read(file)
+        # If I get a StringIO I need to make a temporary file (to be fixed in tfs)
+        if isinstance(file, io.StringIO):
+            with tempfile.NamedTemporaryFile(mode='w+', delete=False) as tmp:
+                tmp.write(file.getvalue())
+                tmp_path = tmp.name
+            tfs_table = tfs.read(tmp_path)
+            os.remove(tmp_path)
+        else:
+            tfs_table = tfs.read(file)
 
         data = {}
         col_names = []
@@ -1455,12 +1464,15 @@ class Table(_XdepsTable):
             data[cc_lower] = tfs_table[cc].to_numpy()
 
         for kk in tfs_table.headers:
-            if kk.lower() in col_names:
+            kk_lower = kk.lower()
+            if kk_lower in col_names:
                 continue # There is a clash in legacy madx files
-            data[kk.lower()] = tfs_table.headers[kk]
+            if kk_lower in rename_dict:
+                kk_lower = rename_dict[kk_lower]
+            data[kk_lower] = tfs_table.headers[kk]
 
-        if nmad :=tfs_table.headers.get('NAME', None):
-            if nmad == 'TWISS':
+        if tmad :=tfs_table.headers.get('TYPE', None):
+            if tmad == 'TWISS':
                 data['__class__'] = 'TwissTable'
 
         out = cls(data=data, col_names=col_names)
