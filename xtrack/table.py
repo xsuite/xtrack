@@ -775,7 +775,7 @@ class Table(_XdepsTable):
                                 parsed.append(np.array(obj))
                             else:
                                 parsed.append(obj)
-                    columns_data[name] = np.array(parsed, dtype=object)
+                    columns_data[name] = np.array(parsed)
                 else:
                     if isinstance(values, np.ndarray) and values.dtype.kind not in ('S', 'O'):
                         columns_data[name] = values
@@ -821,10 +821,10 @@ class Table(_XdepsTable):
             if isinstance(meta_data, dict) and meta_data:
                 table_class_name = meta_data.get('__class__')
                 xtrack_version = meta_data.get('xtrack_version')
-                data['__class__'] = table_class_name
-                data['xtrack_version'] = xtrack_version
+                attrs_data['__class__'] = table_class_name
+                attrs_data['xtrack_version'] = xtrack_version
 
-            return cls(data=data, col_names=column_order)
+            return cls.from_dict({'columns': columns_data, 'attrs': attrs_data})
         finally:
             if close_file and h5file is not None:
                 h5file.close()

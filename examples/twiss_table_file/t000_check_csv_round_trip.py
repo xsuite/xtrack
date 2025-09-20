@@ -6,15 +6,23 @@ import xobjects as xo
 
 tmp_path = Path('./')
 
+check_type = 'hdf5'
+
 env = xt.load('../../test_data/sps_thick/sps.seq')
 env.vars.load('../../test_data/sps_thick/lhc_q20.str')
 line = env.sps
 line.set_particle_ref('p', energy0=26e9)
 
 tw = line.twiss4d()
-tw.to_csv(tmp_path / 'twiss_test.csv')
 
-tw_test = xt.load(tmp_path / 'twiss_test.csv')
+if check_type == 'csv':
+    tw.to_csv(tmp_path / 'twiss_test.csv')
+    tw_test = xt.load(tmp_path / 'twiss_test.csv')
+elif check_type == 'hdf5':
+    tw.to_hdf5(tmp_path / 'twiss_test.h5')
+    tw_test = xt.load(tmp_path / 'twiss_test.h5')
+else:
+    raise ValueError(f'check_type {check_type} not supported')
 
 assert isinstance(tw_test, xt.TwissTable)
 
