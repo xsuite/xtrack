@@ -36,6 +36,106 @@ def _get_particles_cls():
     return _PARTICLES_CLS
 
 
+def _prepare_header_source(source):
+    if isinstance(source, (str, os.PathLike)):
+        path = os.fspath(source)
+        with open(path, 'r') as fh:
+            content = fh.read()
+        return content, source
+
+    if isinstance(source, io.StringIO):
+        return source.getvalue(), source
+
+    if isinstance(source, io.IOBase):
+        original_pos = None
+        if source.seekable():
+            original_pos = source.tell()
+            source.seek(0)
+            content = source.read()
+            source.seek(original_pos)
+        else:
+            content = source.read()
+
+        if isinstance(content, bytes):
+            content = content.decode('utf-8', errors='replace')
+
+        if source.seekable():
+            return content, source
+
+        return content, io.StringIO(content)
+
+    if hasattr(source, 'read'):
+        content = source.read()
+        if isinstance(content, bytes):
+            content = content.decode('utf-8', errors='replace')
+        return content, io.StringIO(content)
+
+    raise TypeError(
+        f"Unsupported TFS input type {type(source)!r} for header parsing"
+    )
+
+
+def _strip_outer_quotes(value):
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+        return value[1:-1]
+    return value
+
+
+def _convert_header_value(type_token, raw_value):
+    value = raw_value.strip()
+    if value.lower() == 'null':
+        return None
+
+    token_letters = ''.join(ch for ch in type_token.lower() if ch.isalpha())
+
+    if token_letters.endswith('b'):
+        lower = value.lower()
+        if lower in ('true', 't', 'yes', 'y', '1'):
+            return True
+        if lower in ('false', 'f', 'no', 'n', '0'):
+            return False
+        try:
+            return bool(int(value))
+        except ValueError:
+            try:
+                return bool(float(value))
+            except ValueError:
+                return value
+
+    if token_letters.endswith(('d', 'i')):
+        try:
+            return int(value)
+        except ValueError:
+            try:
+                return int(float(value))
+            except ValueError:
+                return value
+
+    if token_letters.endswith(('e', 'f', 'g')):
+        try:
+            return float(value)
+        except ValueError:
+            return value
+
+    return _strip_outer_quotes(value)
+
+
+def _parse_headers(text):
+    headers = {}
+    for line in text.splitlines():
+        if not line.startswith('@'):
+            continue
+        stripped = line[1:].lstrip()
+        if not stripped:
+            continue
+        parts = stripped.split(None, 2)
+        if len(parts) != 3:
+            continue
+        name, type_token, raw_value = parts
+        headers[name] = _convert_header_value(type_token, raw_value)
+    return headers
+
+
 class Table(_XdepsTable):
     """Extension of :class:`xdeps.Table` with export/import helpers."""
 
@@ -1434,103 +1534,6 @@ class Table(_XdepsTable):
     @classmethod
     def from_tfs(cls, file):
         """Load a table from a TFS file."""
-
-        def _prepare_header_source(source):
-            if isinstance(source, (str, os.PathLike)):
-                path = os.fspath(source)
-                with open(path, 'r') as fh:
-                    content = fh.read()
-                return content, source
-
-            if isinstance(source, io.StringIO):
-                return source.getvalue(), source
-
-            if isinstance(source, io.IOBase):
-                original_pos = None
-                if source.seekable():
-                    original_pos = source.tell()
-                    source.seek(0)
-                    content = source.read()
-                    source.seek(original_pos)
-                else:
-                    content = source.read()
-
-                if isinstance(content, bytes):
-                    content = content.decode('utf-8', errors='replace')
-
-                if source.seekable():
-                    return content, source
-
-                return content, io.StringIO(content)
-
-            if hasattr(source, 'read'):
-                content = source.read()
-                if isinstance(content, bytes):
-                    content = content.decode('utf-8', errors='replace')
-                return content, io.StringIO(content)
-
-            raise TypeError(
-                f"Unsupported TFS input type {type(source)!r} for header parsing"
-            )
-
-        def _strip_outer_quotes(value):
-            if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
-                return value[1:-1]
-            return value
-
-        def _convert_header_value(type_token, raw_value):
-            value = raw_value.strip()
-            if value.lower() == 'null':
-                return None
-
-            token_letters = ''.join(ch for ch in type_token.lower() if ch.isalpha())
-
-            if token_letters.endswith('b'):
-                lower = value.lower()
-                if lower in ('true', 't', 'yes', 'y', '1'):
-                    return True
-                if lower in ('false', 'f', 'no', 'n', '0'):
-                    return False
-                try:
-                    return bool(int(value))
-                except ValueError:
-                    try:
-                        return bool(float(value))
-                    except ValueError:
-                        return value
-
-            if token_letters.endswith(('d', 'i')):
-                try:
-                    return int(value)
-                except ValueError:
-                    try:
-                        return int(float(value))
-                    except ValueError:
-                        return value
-
-            if token_letters.endswith(('e', 'f', 'g')):
-                try:
-                    return float(value)
-                except ValueError:
-                    return value
-
-            return _strip_outer_quotes(value)
-
-        def _parse_headers(text):
-            headers = {}
-            for line in text.splitlines():
-                if not line.startswith('@'):
-                    continue
-                stripped = line[1:].lstrip()
-                if not stripped:
-                    continue
-                parts = stripped.split(None, 2)
-                if len(parts) != 3:
-                    continue
-                name, type_token, raw_value = parts
-                headers[name] = _convert_header_value(type_token, raw_value)
-            return headers
-
         header_text, file = _prepare_header_source(file)
         parsed_headers = _parse_headers(header_text)
 
