@@ -51,8 +51,6 @@ for kk in tw._data:
     elif isinstance(tw[kk], str):
         assert tw[kk] == tw_test[kk]
         continue
-    if check_type == 'tfs' and kk in ['eigenvalues', 'rotation_matrix']:
-        continue # known issue
     xo.assert_allclose(tw[kk], tw_test[kk], rtol=1e-7, atol=1e-15)
 
 # Check particle_on_co

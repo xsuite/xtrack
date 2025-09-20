@@ -1583,13 +1583,20 @@ class Table(_XdepsTable):
                 continue
             data[kk] = np.array(
                 list(map(lambda ss: json_utils.load(string=ss), data[kk])))
-        if 'R_matrix' in data:
-            data['R_matrix'] = np.array(json_utils.load(string=data['R_matrix']))
+
+        if 'attrs_serialization' in data:
+            attrs_serialization = json_utils.load(string=data['attrs_serialization'])
+            for kk, ss in attrs_serialization.items():
+                if data[kk] is None:
+                    continue
+                assert ss == 'json'
+                data[kk] = json_utils.load(string=data[kk])
 
         if tmad :=tfs_table.headers.get('TYPE', None):
             if tmad == 'TWISS':
                 data['__class__'] = 'TwissTable'
 
-        out = cls(data=data, col_names=col_names)
-
+        attr_names_set = set(data.keys()) - set(col_names)
+        out = cls.from_dict({'columns': {kk: data[kk] for kk in col_names},
+                                'attrs': {kk: data[kk] for kk in attr_names_set}})
         return out
