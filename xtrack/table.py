@@ -1470,6 +1470,19 @@ class Table(_XdepsTable):
             if kk_lower in rename_dict:
                 kk_lower = rename_dict[kk_lower]
             data[kk_lower] = tfs_table.headers[kk]
+            if data[kk_lower] == 'null':
+                data[kk_lower] = None
+
+        # Temporary solution for multidimensional arrays
+        for kk in ['W_matrix', 'R_matrix_ebe']:
+            if isinstance(data[kk], str) and data[kk] == 'null':
+                data[kk] = None
+            if kk not in data or data[kk] is None:
+                continue
+            data[kk] = np.array(
+                list(map(lambda ss: json_utils.load(string=ss), data[kk])))
+        if 'R_matrix' in data:
+            data['R_matrix'] = np.array(json_utils.load(string=data['R_matrix']))
 
         if tmad :=tfs_table.headers.get('TYPE', None):
             if tmad == 'TWISS':
