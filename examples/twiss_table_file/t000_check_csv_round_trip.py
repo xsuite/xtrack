@@ -25,8 +25,7 @@ assert set(tw.keys()) - set(tw_test.keys()) == {'_action'}
 for kk in tw._data:
     if kk == '_action':
         continue
-    if kk in ['particle_on_co', 'steps_r_matrix',
-              'line_config', 'completed_init']:
+    if kk in ['particle_on_co', 'steps_r_matrix', 'line_config']:
         continue # To be checked separately
     if tw[kk] is None:
         assert tw_test[kk] is None
@@ -58,3 +57,10 @@ for kk in tw.steps_r_matrix:
     rmat_ref = tw.steps_r_matrix[kk]
     rmat_test = tw_test.steps_r_matrix[kk]
     xo.assert_allclose(rmat_ref, rmat_test, rtol=1e-10, atol=1e-15)
+
+# Check line_config
+assert isinstance(tw.line_config, dict)
+assert isinstance(tw_test.line_config, dict)
+assert set(tw.line_config.keys()) == set(tw_test.line_config.keys())
+for kk in tw.line_config:
+    assert tw.line_config[kk] == tw_test.line_config[kk]
