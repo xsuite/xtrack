@@ -936,7 +936,6 @@ class Table(_XdepsTable):
     @classmethod
     def from_csv(cls, file):
         """Reconstruct a table instance from CSV data."""
-
         if isinstance(file, io.IOBase):
             content = file.read().splitlines()
         else:
@@ -1003,19 +1002,13 @@ class Table(_XdepsTable):
             else:
                 columns_data[name] = cls._cast_csv_column(columns_values[name], dtype_str)
 
-        payload = {
-            'columns': columns_data,
-            'attrs': attrs_payload,
-        }
         if isinstance(meta_payload, dict) and meta_payload:
-            payload['meta'] = meta_payload
             if '__class__' in meta_payload:
-                payload['__class__'] = meta_payload['__class__']
+                attrs_payload['__class__'] = meta_payload['__class__']
             if 'xtrack_version' in meta_payload:
-                payload['xtrack_version'] = meta_payload['xtrack_version']
+                attrs_payload['xtrack_version'] = meta_payload['xtrack_version']
 
-        instance = cls.from_dict(payload)
-        instance._col_names = header
+        instance = cls(data=columns_data | attrs_payload, col_names=header)
         return instance
 
     def to_tfs(self, file, *, include=None, exclude=None,

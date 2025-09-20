@@ -27,7 +27,7 @@ for kk in tw._data:
         continue
     if kk in ['particle_on_co', 'steps_r_matrix', 'R_matrix_ebe', 'radiation_method',
               'line_config', 'completed_init']:
-        continue
+        continue # To be checked separately
     if isinstance(tw[kk], np.ndarray) and isinstance(tw[kk][0], str):
         assert np.all(tw[kk] == tw_test[kk])
         continue
