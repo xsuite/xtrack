@@ -21,8 +21,6 @@ assert set(tw_test.keys()) - set(tw.keys()) == {'__class__', 'xtrack_version'}
 assert set(tw.keys()) - set(tw_test.keys()) == {'_action'}
 
 for kk in tw._data:
-    if kk == 'periodic':
-        continue # known bug
     if kk == '_action':
         continue
     if kk in ['particle_on_co', 'steps_r_matrix', 'R_matrix_ebe', 'radiation_method',
