@@ -6,7 +6,7 @@ import xobjects as xo
 
 tmp_path = Path('./')
 
-check_type = 'tfs'
+check_type = 'json'  # 'csv', 'hdf5', 'tfs'
 
 env = xt.load('../../test_data/sps_thick/sps.seq')
 env.vars.load('../../test_data/sps_thick/lhc_q20.str')
@@ -23,6 +23,9 @@ elif check_type == 'hdf5':
 elif check_type == 'tfs':
     tw.to_tfs(tmp_path / 'twiss_test.tfs')
     tw_test = xt.load(tmp_path / 'twiss_test.tfs')
+elif check_type == 'json':
+    tw.to_json(tmp_path / 'twiss_test.json')
+    tw_test = xt.load(tmp_path / 'twiss_test.json')
 else:
     raise ValueError(f'check_type {check_type} not supported')
 
@@ -33,6 +36,8 @@ if check_type == 'tfs':
     assert set(tw_test.keys()) - set(tw.keys()) == {
         '__class__', 'attrs_serialization', 'column_serialization', 'xtrack_version'
     }
+elif check_type == 'json':
+    assert set(tw_test.keys()) - set(tw.keys()) == {'xtrack_version'}
 else:
     assert set(tw_test.keys()) - set(tw.keys()) == {'__class__', 'xtrack_version'}
 assert set(tw.keys()) - set(tw_test.keys()) == {'_action'}
