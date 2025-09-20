@@ -3304,7 +3304,7 @@ class TwissTable(Table):
     def __init__(self, *args, **kwargs):
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
         super().__init__(*args, **kwargs)
-        self['periodic'] = False
+        self['periodic'] = kwargs.get('periodic', kwargs.get('data', {}).get('periodic', False))
 
     _error_on_row_not_found = True
 

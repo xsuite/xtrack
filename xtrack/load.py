@@ -24,7 +24,9 @@ def _resolve_table_instance(table: xt.Table):
     if cls is None or cls is xt.Table:
         return table
 
-    return cls.from_dict(table.to_dict())
+    out = cls(data=table._data, col_names=table._col_names)
+
+    return out
 
 def _guess_format_from_path(path: str) -> Optional[str]:
     lower = path.lower()
