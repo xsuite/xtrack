@@ -1577,6 +1577,8 @@ class Table(_XdepsTable):
 
         # Temporary solution for multidimensional arrays
         for kk in ['W_matrix', 'R_matrix_ebe']:
+            if kk not in data:
+                continue
             if isinstance(data[kk], str) and data[kk] == 'null':
                 data[kk] = None
             if kk not in data or data[kk] is None:
