@@ -12,7 +12,7 @@ from typing import Literal, Optional
 import xtrack as xt
 
 
-_SUPPORTED_FORMATS = {'json', 'madx', 'python', 'csv', 'hdf5'}
+_SUPPORTED_FORMATS = {'json', 'madx', 'python', 'csv', 'hdf5', 'tfs'}
 
 
 def _resolve_table_instance(table: xt.Table):
@@ -40,13 +40,15 @@ def _guess_format_from_path(path: str) -> Optional[str]:
         return 'hdf5'
     if lower.endswith('.csv'):
         return 'csv'
+    if lower.endswith('.tfs'):
+        return 'tfs'
     return None
 
 
 def load(
         file=None,
         string=None,
-        format: Literal['json', 'madx', 'python', 'csv', 'hdf5'] = None,
+        format: Literal['json', 'madx', 'python', 'csv', 'hdf5', 'tfs'] = None,
         timeout=5.0,
         reverse_lines=None,
 ):
@@ -122,6 +124,17 @@ def load(
             if hasattr(file, 'seek'):
                 file.seek(0)
             base_table = xt.Table.from_hdf5(file)
+        return _resolve_table_instance(base_table)
+
+    if format == 'tfs':
+        if string is not None:
+            text = string.decode() if isinstance(string, bytes) else string
+            buffer = io.StringIO(text)
+            base_table = xt.Table.from_tfs(buffer)
+        else:
+            if hasattr(file, 'seek'):
+                file.seek(0)
+            base_table = xt.Table.from_tfs(file)
         return _resolve_table_instance(base_table)
 
     raise ValueError(f'Unsupported format {format!r}')
