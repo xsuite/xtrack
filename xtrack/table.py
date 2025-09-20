@@ -1455,7 +1455,13 @@ class Table(_XdepsTable):
             data[cc_lower] = tfs_table[cc].to_numpy()
 
         for kk in tfs_table.headers:
+            if kk.lower() in col_names:
+                continue # There is a clash in legacy madx files
             data[kk.lower()] = tfs_table.headers[kk]
+
+        if nmad :=tfs_table.headers.get('NAME', None):
+            if nmad == 'TWISS':
+                data['__class__'] = 'TwissTable'
 
         out = cls(data=data, col_names=col_names)
 
