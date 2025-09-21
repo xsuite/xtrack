@@ -203,6 +203,8 @@ class MadxLoader:
             if build:
                 builder.build()
 
+            self.env._last_loaded_builders = builders
+
         return builders
 
     def _parse_parameters(self, parameters: Dict[str, Dict[str, str]]):
