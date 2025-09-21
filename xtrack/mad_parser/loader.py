@@ -624,7 +624,7 @@ class MadxLoader:
         return self._mad_base_type(element_name) in _APERTURE_TYPES
 
 
-def load_madx_lattice(file=None, string=None, reverse_lines=None):
+def load_madx_lattice(file=None, string=None, reverse_lines=None, build=True):
 
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
@@ -635,9 +635,9 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
     loader = MadxLoader()
 
     if file is not None:
-        loader.load_file(file)
+        loader.load_file(file, build=build)
     elif string is not None:
-        loader.load_string(string)
+        loader.load_string(string, build=build)
     else:
         raise ValueError('Something went wrong!')
 
