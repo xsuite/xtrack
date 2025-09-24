@@ -45,6 +45,8 @@ def test_constructor(test_context):
         xt.Wire(_context=test_context, current=3.),
         xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3,4],
                    sampling_frequency=1e3),
+        xt.LongitudinalExciter(_context=test_context, voltage=1000., samples=[1,2,3,4],
+                   sampling_frequency=1e3),
         xt.Bend(_context=test_context, length=1.),
         xt.Quadrupole(_context=test_context, length=1.),
         xt.ElectronCooler(_context=test_context,current=2.4,length=1.5,radius_e_beam=25*1e-3,
@@ -139,6 +141,8 @@ def test_backtrack(test_context):
                         y_vertices=[1,1,-1,-1]),
         xt.Elens(_context=test_context, inner_radius=0.1),
         xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3],
+                   sampling_frequency=1e3),
+        xt.LongitudinalExciter(_context=test_context, voltage=1000., samples=[1,2,3,4],
                    sampling_frequency=1e3),
     ]
 
