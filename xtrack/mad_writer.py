@@ -415,7 +415,7 @@ def bend_to_mad_str(name, line, bend_type='sbend', mad_type=MadType.MADX, substi
     tokens.append(bend_type)
     if mad_type == MadType.MADNG:
         tokens.append(f"'{name.replace(':', '__')}'")  # replace ':' with '__' for MADNG
-    if bend_type == 'sbend':
+    if bend_type == 'sbend' or mad_type == MadType.MADNG: # in MAD-NG all bends use the arc length
         tokens.append(mad_assignment('l', _ge(bend.length), mad_type, substituted_vars=substituted_vars))
     elif bend_type == 'rbend':
         tokens.append(mad_assignment('l', _ge(bend.length_straight), mad_type, substituted_vars=substituted_vars))
