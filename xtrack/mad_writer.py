@@ -265,7 +265,7 @@ def multipole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
 
     # Special case for kicker
     if (len(eref.knl._value) == 1 and len(eref.ksl._value) == 1
-        and (hasattr(_ge(eref), 'hxl') or eref.hxl._value == 0)):
+        and (not hasattr(_ge(eref), 'hxl') or eref.hxl._value == 0)):
         # It is a dipole corrector
         tokens = []
         tokens.append('kicker')
@@ -572,9 +572,6 @@ def element_to_mad_str(
     if el.__class__ not in xsuite_to_mad_converters:
         if isinstance(el, xt.beam_elements.slice_elements_drift._DriftSliceElementBase):
             tokens = drift_slice_to_mad_str(eref, mad_type=mad_type, substituted_vars=substituted_vars)
-        #elif isinstance(el, xt.beam_elements.slice_elements_edge._ThinSliceEdgeBase):
-            #tokens = multipole_to_mad_str(eref, mad_type=mad_type, substituted_vars=substituted_vars)
-            #tokens.append(mad_assignment('kill_body', True, mad_type, substituted_vars=substituted_vars))
         elif parent_flag and el._parent.__class__ in xsuite_to_mad_converters:
             tokens = xsuite_to_mad_converters[el._parent.__class__](eref, mad_type=mad_type, substituted_vars=substituted_vars)
             if isinstance(el, xt.beam_elements.slice_elements_edge._ThinSliceEdgeBase):
@@ -582,7 +579,6 @@ def element_to_mad_str(
     else:
         tokens = xsuite_to_mad_converters[el.__class__](eref, mad_type=mad_type, substituted_vars=substituted_vars)
 
-    # wenn kein Drift oder Driftslice
     if el.__class__ not in [xt.Drift, xt.DriftSlice]:
         _handle_transforms(tokens, eref, mad_type=mad_type, substituted_vars=substituted_vars)
 
@@ -612,8 +608,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
     elif mode == 'sequence':
         tt = line.get_table()
         line_length = tt['s', -1]
-        seq_str = f'{name}: sequence, l={line_length};\n' #, refer=entry;\n'
-        # s_dict = {nn:ss for nn, ss in zip(tt.name, tt.s)}
+        seq_str = f'{name}: sequence, l={line_length};\n'
 
         s_dict = {}
         tt_name = tt.name
@@ -690,11 +685,8 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
 
         el = line.element_dict[nn]
 
-        # Check for edge entry/edge exits,
-
         el_str = element_to_mad_str(nn, line, mad_type=MadType.MADNG, substituted_vars=substituted_vars)
 
-        #el_str = xsuite_to_mad_converters[el.__class__](nn, line, mad_type=MadType.MADNG, substituted_vars=substituted_vars)
         if el_str is None:
             continue
 
