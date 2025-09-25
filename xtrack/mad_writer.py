@@ -384,21 +384,21 @@ def bend_to_mad_str(eref, bend_type='sbend', mad_type=MadType.MADX, substituted_
     tokens = []
     tokens.append(bend_type)
     if bend_type == 'sbend' or mad_type == MadType.MADNG: # in MAD-NG all bends use the arc length
-        tokens.append(mad_assignment('l', _ge(bend.length) * weight, mad_type, substituted_vars=substituted_vars))
+        tokens.append(mad_assignment('l', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
     elif bend_type == 'rbend':
-        tokens.append(mad_assignment('l', _ge(bend.length_straight) * weight, mad_type, substituted_vars=substituted_vars))
+        tokens.append(mad_assignment('l', _ge(eref.length_straight) * weight, mad_type, substituted_vars=substituted_vars))
     else:
         raise ValueError(f"bend_type {bend_type} not recognized")
-    tokens.append(mad_assignment('angle', _ge(bend.h) * _ge(bend.length) * weight, mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('k0', _ge(bend.k0), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('e1', _ge(bend.edge_entry_angle), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('e2', _ge(bend.edge_exit_angle), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('fint', _ge(bend.edge_entry_fint), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('fintx', _ge(bend.edge_exit_fint), mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('hgap', _ge(bend.edge_entry_hgap), mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('angle', _ge(eref.h) * _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('k0', _ge(eref.k0), mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('e1', _ge(eref.edge_entry_angle), mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('e2', _ge(eref.edge_exit_angle), mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('fint', _ge(eref.edge_entry_fint), mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('fintx', _ge(eref.edge_exit_fint), mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('hgap', _ge(eref.edge_entry_hgap), mad_type, substituted_vars=substituted_vars))
     if mad_type == MadType.MADNG:
-        edge_entry_active_val = "false" if _ge(bend.edge_entry_active) == 1 else "true"
-        edge_exit_active_val = "false" if _ge(bend.edge_exit_active) == 1 else "true"
+        edge_entry_active_val = "false" if _ge(eref.edge_entry_active) == 1 else "true"
+        edge_exit_active_val = "false" if _ge(eref.edge_exit_active) == 1 else "true"
         tokens.append(mad_assignment('kill_ent_fringe', edge_entry_active_val, mad_type, substituted_vars=substituted_vars))
         tokens.append(mad_assignment('kill_exi_fringe', edge_exit_active_val, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k1', _ge(eref.k1), mad_type, substituted_vars=substituted_vars))
