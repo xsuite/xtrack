@@ -45,20 +45,33 @@ def regen_madng_model(line):
 
 def _tw_ng(line, rdts=(), normal_form=True,
            mapdef_twiss=2, mapdef_normal_form=4,
-           nslice=3):
+           nslice=3, xsuite_tw=True, **kwargs):
 
     tw_kwargs = locals()
     del tw_kwargs['line']
+    del tw_kwargs['xsuite_tw']
+    tw_kwargs.update(kwargs)
     _action = ActionTwissMadng(line, tw_kwargs)
 
     if not hasattr(line.tracker, '_madng'):
         line.build_madng_model()
     mng = line.tracker._madng
 
-    tw = line.twiss(method='4d', reverse=False)
-    tw._action = _action
+    X0 = kwargs.get('X0', None)
+    start = tw_kwargs.get('start', None)
+    end = tw_kwargs.get('end', None)
 
-    tw_columns = ['s', 'beta11', 'beta22', 'alfa11', 'alfa22',
+    if X0 is not None:
+        X0 = kwargs.pop('X0')
+
+    if start is not None and end is not None:
+        tw_columns = ['s', 'beta11', 'beta22', 'alfa11', 'alfa22',
+                'x', 'px', 'y', 'py', 't', 'pt',
+                'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2']
+        if X0 is None:
+            X0 = madng_get_init(line, at=start)
+    else:
+        tw_columns = ['s', 'beta11', 'beta22', 'alfa11', 'alfa22',
                 'x', 'px', 'y', 'py', 't', 'pt',
                 'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2',
                 'beta12', 'beta21', 'alfa12', 'alfa21',
@@ -78,7 +91,6 @@ def _tw_ng(line, rdts=(), normal_form=True,
         mng_script = (
             f'''
             local damap in MAD
-            local seq = MADX.{mng._sequence_name}
             -- list of RDTs
             '''
             + rdt_cmd +
@@ -87,29 +99,47 @@ def _tw_ng(line, rdts=(), normal_form=True,
             local X0 = damap {nv=6, mo=4}
 
             -- twiss with RDTs
-            local mtbl = twiss {sequence=seq, X0=X0, trkrdt=rdts, info=2, saverdt=true, coupling=true, chrom=true}
+            local mtbl = twiss {sequence=''' f'{mng._sequence_name}, '
+            '''X0=X0, trkrdt=rdts, info=2, saverdt=true, coupling=true, chrom=true}
 
             -- send columns to Python
             '''
             + send_cmd
         )
     else:
-        mng_script = ('''
-        local damap in MAD
-        '''
-        f'local seq = MADX.{mng._sequence_name}'
-        '''
+        X0 = tw_kwargs.get('X0', None)
+        X0_str = ''
+        if X0 is not None:
+            X0_str = f'X0={X0}, '
+        start = tw_kwargs.get('start', None)
+        end = tw_kwargs.get('end', None)
 
-        -- twiss with RDTs
-        local mtbl = twiss {sequence=seq, method=4,'''
-        f'mapdef={mapdef_twiss}'
-        ''', implicit=true, '''
-        f'nslice={nslice}, misalgn=true, coupling=true, chrom=true'
-        '''}
+        range_str = ''
+        if start is not None and end is not None:
+            normal_form = False
+            # Range Twiss
+            range_str = f"range = '{start}/{end}', "
+            mng_script = (f'''
+            -- twiss without RDTs
+            mtbl = twiss {{ sequence={mng._sequence_name},
+            {X0_str}{range_str} }}
 
-        -- send columns to Python
-        '''
-        + send_cmd)
+            -- send columns to Python
+            '''
+            + send_cmd)
+
+        else:
+            mng_script = ('''
+            local damap in MAD
+
+            -- twiss with RDTs
+            local mtbl = twiss {sequence=''' f'{mng._sequence_name}, method=4,\
+            mapdef={mapdef_twiss}, implicit=true, nslice={nslice}, misalgn=true, coupling=true, chrom=true'
+            '''}
+
+            -- send columns to Python
+            '''
+            + send_cmd)
 
     mng.send(mng_script)
 
@@ -117,28 +147,42 @@ def _tw_ng(line, rdts=(), normal_form=True,
     out_dct = {k: v for k, v in zip(columns, out)}
 
     # Add to table
+    if xsuite_tw:
+        tw = line.twiss(method='4d', reverse=False, **kwargs)
+    else:
+        i_start = line._element_names_unique.index(start) if start is not None else 0
+        i_end = line._element_names_unique.index(end) if end is not None else len(line._element_names_unique) - 1
+        if i_start > i_end:
+            name_co = np.array(line._element_names_unique[i_start:] + line._element_names_unique[:i_end+1] + ('_end_point',))
+        else:
+            name_co = np.array(line._element_names_unique[i_start:i_end+1] + ('_end_point',))
+
+        tw = xt.TwissTable({"name": name_co})
+    tw._action = _action
+
     assert len(out[0]) == len(tw) + 1
+
     for nn in tw_columns:
         tw[nn+'_ng'] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
     for nn in rdts:
         tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
 
-    temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng)
-    tw['ax_ng'] = np.imag(temp_x)
-    tw['bx_ng'] = np.real(temp_x)
-    temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng)
-    tw['ay_ng'] = np.imag(temp_y)
-    tw['by_ng'] = np.real(temp_y)
-    del tw['phix_ng']
-    del tw['phiy_ng']
+    if start is None or end is None:
+        temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng)
+        tw['ax_ng'] = np.imag(temp_x)
+        tw['bx_ng'] = np.real(temp_x)
+        temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng)
+        tw['ay_ng'] = np.imag(temp_y)
+        tw['by_ng'] = np.real(temp_y)
+        del tw['phix_ng']
+        del tw['phiy_ng']
 
     if normal_form:
         mng_script_nf = (
-            f'local seq = MADX.{mng._sequence_name}'
             '''
             local track in MAD  -- like "from MAD import track"
-            local mytrktable, mytrkflow = MAD.track{sequence=seq, method=4,'''
-            f'mapdef={mapdef_normal_form}, nslice={nslice}'
+            local mytrktable, mytrkflow = MAD.track{sequence='''
+            f'{mng._sequence_name}, method=4, mapdef={mapdef_normal_form}, nslice={nslice}'
             '''}
 
             local normal in MAD.gphys  -- like "from MAD.gphys import normal"
@@ -192,6 +236,20 @@ def _tw_ng(line, rdts=(), normal_form=True,
 
     return tw
 
+def madng_get_init(line, at):
+    if not hasattr(line.tracker, '_madng'):
+        line.build_madng_model()
+    mng = line.tracker._madng
+
+    mng.send(f"""
+        local observed in MAD.element.flags
+        {mng._sequence_name}:select(observed, {{list = {{'{at}'}}}})
+        twpart, mf = twiss {{sequence = {mng._sequence_name}, observe = 1, savemap = true, info = 2}}
+        {mng._sequence_name}.X0 = twpart['{at}'].__map
+        {mng._sequence_name}.X0.status = "Aset" ! Bug corrected in next version
+    """)
+    return f"{mng._sequence_name}.X0"
+
 def _survey_ng(line):
     if not hasattr(line.tracker, '_madng'):
         line.build_madng_model()
@@ -243,12 +301,28 @@ def _survey_ng(line):
 
 
 class ActionTwissMadng(Action):
-    def __init__(self, line, tw_kwargs):
+    def __init__(self, line, tw_kwargs={}, **kwargs):
         self.line = line
         self.tw_kwargs = tw_kwargs
+        self.tw_kwargs.update(kwargs)
+        self._alredy_prepared = False
+
+    def prepare(self, force=False):
+
+        if self._alredy_prepared and not force:
+            return
+
+        init = self.tw_kwargs.get('init', None)
+        start = self.tw_kwargs.get('start', None)
+        end = self.tw_kwargs.get('end', None)
+
+        if init is not None and start is not None and end is not None:
+            assert isinstance(init, xt.TwissTable)
+            self.tw_kwargs['X0'] = madng_get_init(self.line, at=start)
+        self._alredy_prepared = True
 
     def run(self):
-        return self.line.madng_twiss(**self.tw_kwargs)
+        return self.line.madng_twiss(xsuite_tw = False, **self.tw_kwargs)
 
 
 def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
