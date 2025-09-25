@@ -620,19 +620,19 @@ def test_assemble_ring():
     assert 'cell3_copy' in env.lines
     assert cell3_select.particle_ref is not None
     assert env.lines['cell3_copy'] is cell3_select
-    assert cell3_select._element_dict is env.element_dict
+    assert cell3_select.element_dict is env.element_dict
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
     assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
     assert (np.array(cell3_select.element_names) == np.array(
         tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
 
-    # Check that they share the _element_dict
-    assert cell._element_dict is env.element_dict
-    assert halfcell._element_dict is env.element_dict
-    assert halfcell_ss._element_dict is env.element_dict
-    assert cell_ss._element_dict is env.element_dict
-    assert insertion._element_dict is env.element_dict
-    assert ring2._element_dict is env.element_dict
+    # Check that they share the element_dict
+    assert cell.element_dict is env.element_dict
+    assert halfcell.element_dict is env.element_dict
+    assert halfcell_ss.element_dict is env.element_dict
+    assert cell_ss.element_dict is env.element_dict
+    assert insertion.element_dict is env.element_dict
+    assert ring2.element_dict is env.element_dict
 
     cell3_select.twiss4d()
 
@@ -1039,19 +1039,19 @@ def test_assemble_ring_builders():
                                 name='cell3_copy')
     assert 'cell3_copy' in env.lines
     assert env.lines['cell3_copy'] is cell3_select
-    assert cell3_select._element_dict is env.element_dict
+    assert cell3_select.element_dict is env.element_dict
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
     assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
     assert (np.array(cell3_select.element_names) == np.array(
         tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
 
-    # Check that they share the _element_dict
-    assert cell._element_dict is env.element_dict
-    assert halfcell._element_dict is env.element_dict
-    assert halfcell_ss._element_dict is env.element_dict
-    assert cell_ss._element_dict is env.element_dict
-    assert insertion._element_dict is env.element_dict
-    assert ring2._element_dict is env.element_dict
+    # Check that they share the element_dict
+    assert cell.element_dict is env.element_dict
+    assert halfcell.element_dict is env.element_dict
+    assert halfcell_ss.element_dict is env.element_dict
+    assert cell_ss.element_dict is env.element_dict
+    assert insertion.element_dict is env.element_dict
+    assert ring2.element_dict is env.element_dict
 
     cell3_select.twiss4d()
 
@@ -1393,13 +1393,13 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(tw_ring2.betx[0], tw_cell.betx[0], atol=0, rtol=5e-4)
     xo.assert_allclose(tw_ring2.bety[0], tw_cell.bety[0], atol=0, rtol=5e-4)
 
-    # Check that they share the _element_dict
-    assert cell._element_dict is env.element_dict
-    assert halfcell._element_dict is env.element_dict
-    assert halfcell_ss._element_dict is env.element_dict
-    assert cell_ss._element_dict is env.element_dict
-    assert insertion._element_dict is env.element_dict
-    assert ring2._element_dict is env.element_dict
+    # Check that they share the element_dict
+    assert cell.element_dict is env.element_dict
+    assert halfcell.element_dict is env.element_dict
+    assert halfcell_ss.element_dict is env.element_dict
+    assert cell_ss.element_dict is env.element_dict
+    assert insertion.element_dict is env.element_dict
+    assert ring2.element_dict is env.element_dict
 
     xo.assert_allclose(tw_ring2['betx', 'ip::0'], tw_half_insertion['betx', 'ip'], atol=0, rtol=5e-4)
     xo.assert_allclose(tw_ring2['bety', 'ip::0'], tw_half_insertion['bety', 'ip'], atol=0, rtol=5e-4)
@@ -3193,3 +3193,236 @@ def test_enviroment_from_two_lines():
     assert np.allclose(tw2.s, tw2i.s, atol=0, rtol=1e-15)
     assert np.allclose(tw2.betx, tw2i.betx, atol=0, rtol=1e-15)
     assert np.allclose(tw2.bety, tw2i.bety, atol=0, rtol=1e-15)
+
+def test_particle_ref_from_particles_container():
+
+    env = xt.Environment()
+    env['a'] = 4.
+
+    env.new_particle('my_particle', p0c=['1e12 * a'])
+    assert 'my_particle' in env.particles
+    xo.assert_allclose(env['my_particle'].p0c, 4e12, rtol=0, atol=1e-9)
+    env['a'] = 5.
+    xo.assert_allclose(env['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+
+    env.particle_ref = 'my_particle'
+
+    xo.assert_allclose(env.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+    assert env.particle_ref.__class__.__name__ == 'EnvParticleRef'
+    assert env._particle_ref == 'my_particle'
+    assert env.ref['my_particle']._value is env.get('my_particle')
+    env.particle_ref.p0c = '2e12 * a'
+    xo.assert_allclose(env.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
+    env['my_particle'].p0c = '1e12 * a'
+    xo.assert_allclose(env.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+
+    env2 = xt.Environment.from_dict(env.to_dict())
+    assert 'my_particle' in env2.particles
+    assert isinstance(env2.get('my_particle'), xt.Particles)
+    assert env2.get('my_particle') is not env.get('my_particle')
+    assert env2._particle_ref == "my_particle"
+    assert env2.ref['my_particle']._value is env2.get('my_particle')
+    xo.assert_allclose(env2['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+    env2['a'] = 6.
+    xo.assert_allclose(env2['my_particle'].p0c, 6e12, rtol=0, atol=1e-9)
+    env2['a'] = 5.
+
+    assert env2.particle_ref.__class__.__name__ == 'EnvParticleRef'
+    env2.particle_ref.p0c = '2e12 * a'
+    xo.assert_allclose(env2.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
+    env2['my_particle'].p0c = '1e12 * a'
+    xo.assert_allclose(env2.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+
+    env2 = env.copy()
+    assert 'my_particle' in env2.particles
+    assert env2._particle_ref == "my_particle"
+    assert env.ref['my_particle']._value is env.get('my_particle')
+    assert isinstance(env2.get('my_particle'), xt.Particles)
+    assert env2.get('my_particle') is not env.get('my_particle')
+    xo.assert_allclose(env2['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+    env2['a'] = 6.
+    xo.assert_allclose(env2['my_particle'].p0c, 6e12, rtol=0, atol=1e-9)
+    env2['a'] = 5.
+
+    assert env2.particle_ref.__class__.__name__ == 'EnvParticleRef'
+    env2.particle_ref.p0c = '2e12 * a'
+    xo.assert_allclose(env2.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
+    env2['my_particle'].p0c = '1e12 * a'
+    xo.assert_allclose(env2.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+
+    ll = env.new_line(name='my_line', components=[])
+    assert ll._particle_ref == 'my_particle'
+
+    xo.assert_allclose(ll.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+    assert ll.particle_ref.__class__.__name__ == 'LineParticleRef'
+    ll.particle_ref.p0c = '2e12 * a'
+    xo.assert_allclose(env.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
+    env['my_particle'].p0c = '1e12 * a'
+    xo.assert_allclose(ll.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+
+    ll2 = xt.Line.from_dict(ll.to_dict())
+    assert 'my_particle' in ll2.env.particles
+    assert ll2.env.particle_ref is None
+    assert ll2.particle_ref.__class__.__name__ == 'LineParticleRef'
+    assert ll2._particle_ref == 'my_particle'
+    xo.assert_allclose(ll2.env['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+    ll2['a'] = 7.
+    xo.assert_allclose(ll2.env['my_particle'].p0c, 7e12, rtol=0, atol=1e-9)
+    ll2['a'] = 5.
+
+    ll2.particle_ref.p0c = '2e12 * a'
+    xo.assert_allclose(ll2.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
+    ll2.env['my_particle'].p0c = '1e12 * a'
+    xo.assert_allclose(ll2.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+
+
+    ll2 = ll.copy()
+    assert 'my_particle' in ll2.env.particles
+    assert ll2.env.particle_ref is None
+    assert ll2.particle_ref.__class__.__name__ == 'LineParticleRef'
+    assert ll2._particle_ref == 'my_particle'
+    xo.assert_allclose(ll2.env['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+    ll2['a'] = 7.
+    xo.assert_allclose(ll2.env['my_particle'].p0c, 7e12, rtol=0, atol=1e-9)
+    ll2['a'] = 5.
+
+    ll2.particle_ref.p0c = '2e12 * a'
+    xo.assert_allclose(ll2.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
+    ll2.env['my_particle'].p0c = '1e12 * a'
+    xo.assert_allclose(ll2.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+
+def test_particle_ref_as_object():
+
+    env = xt.Environment()
+    env['a'] = 4.
+
+    env.new_particle('my_particle', p0c=['1e12 * a'])
+    assert 'my_particle' in env.particles
+    xo.assert_allclose(env['my_particle'].p0c, 4e12, rtol=0, atol=1e-9)
+    env['a'] = 5.
+    xo.assert_allclose(env['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
+
+    part = env['my_particle'].copy()
+    env.particle_ref = part
+
+    xo.assert_allclose(env.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+    assert env.particle_ref.__class__.__name__ == 'EnvParticleRef'
+    assert env._particle_ref is part
+    env['my_particle'].p0c = '2e12 * a'
+    xo.assert_allclose(env.eval('2e12 * a'), 10e12, rtol=0, atol=1e-9)
+    xo.assert_allclose(env.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+
+    env2 = xt.Environment.from_dict(env.to_dict())
+    assert 'my_particle' in env2.particles
+    assert isinstance(env2.get('my_particle'), xt.Particles)
+    assert env2.get('my_particle') is not env.get('my_particle')
+    assert isinstance(env2._particle_ref, xt.Particles)
+    assert env2.particle_ref.__class__.__name__ == 'EnvParticleRef'
+
+    env2 = env.copy()
+    assert 'my_particle' in env2.particles
+    assert isinstance(env2._particle_ref, xt.Particles)
+    assert isinstance(env2.get('my_particle'), xt.Particles)
+    assert env2.get('my_particle') is not env.get('my_particle')
+    assert env2.particle_ref.__class__.__name__ == 'EnvParticleRef'
+
+    ll = env.new_line(name='my_line', components=[])
+    assert isinstance(ll._particle_ref, xt.Particles)
+    assert ll._particle_ref is env._particle_ref
+    xo.assert_allclose(ll.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
+    assert ll.particle_ref.__class__.__name__ == 'LineParticleRef'
+
+    ll2 = xt.Line.from_dict(ll.to_dict())
+    assert ll2.env.particle_ref is None
+    assert ll2.particle_ref.__class__.__name__ == 'LineParticleRef'
+    assert isinstance(ll2._particle_ref, xt.Particles)
+    assert ll2._particle_ref is not ll._particle_ref
+
+
+    ll2 = ll.copy()
+    assert ll2.env.particle_ref is None
+    assert ll2.particle_ref.__class__.__name__ == 'LineParticleRef'
+    assert isinstance(ll2._particle_ref, xt.Particles)
+    assert ll2._particle_ref is not ll._particle_ref
+
+def test_line_set_particle_ref():
+
+    line = xt.Line()
+    line.set_particle_ref('electron', beta0=0.9)
+
+    xo.assert_allclose(line.particle_ref.q0 , -1, rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.mass0 , xt.ELECTRON_MASS_EV)
+    xo.assert_allclose(line.particle_ref.beta0 , 0.9, rtol=0, atol=1e-14)
+
+    env = xt.Environment()
+    env['my_beta0'] = 0.1
+    env.new_particle('my_part', 'proton', beta0='my_beta0')
+
+    line = env.new_line()
+    line.set_particle_ref('my_part')
+    line['my_beta0'] = 0.6
+
+    xo.assert_allclose(line.particle_ref.q0 , 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.mass0 , xt.PROTON_MASS_EV)
+    xo.assert_allclose(line.particle_ref.beta0 , 0.6, rtol=0, atol=1e-14)
+
+    p_ref = xt.Particles('Pb208', p0c=7e12/82)
+    line = xt.Line()
+    line.set_particle_ref(p_ref)
+
+    xo.assert_allclose(line.particle_ref.q0 , 82, rtol=0, atol=1e-14)
+    xo.assert_allclose(line.particle_ref.mass0, xt.particles.masses.Pb208_MASS_EV)
+    xo.assert_allclose(line.particle_ref.p0c , 7e12/82, rtol=0, atol=1e-14)
+
+
+def test_env_set_particle_ref():
+
+    env = xt.Environment()
+    env.set_particle_ref('electron', beta0=0.9)
+
+    xo.assert_allclose(env.particle_ref.q0 , -1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.particle_ref.mass0 , xt.ELECTRON_MASS_EV)
+    xo.assert_allclose(env.particle_ref.beta0 , 0.9, rtol=0, atol=1e-14)
+
+    env.new_line(name='line1', components=[env.new('d1', 'Drift', length=1)])
+    env.line1.set_particle_ref('electron', beta0=0.9)
+
+    xo.assert_allclose(env.line1.particle_ref.q0 , -1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.mass0 , xt.ELECTRON_MASS_EV)
+    xo.assert_allclose(env.line1.particle_ref.beta0 , 0.9, rtol=0, atol=1e-14)
+
+    env.set_particle_ref('proton', beta0=0.8)
+    xo.assert_allclose(env.particle_ref.q0 , 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.particle_ref.mass0 , xt.PROTON_MASS_EV)
+    xo.assert_allclose(env.particle_ref.beta0 , 0.8, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.q0 , 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.mass0 , xt.PROTON_MASS_EV)
+    xo.assert_allclose(env.line1.particle_ref.beta0 , 0.8, rtol=0, atol=1e-14)
+
+    env['my_beta0'] = 0.1
+    env.new_particle('my_part', 'proton', beta0='my_beta0')
+    env.set_particle_ref('my_part')
+
+    env['my_beta0'] = 0.6
+    xo.assert_allclose(env.line1.particle_ref.q0 , 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.mass0 , xt.PROTON_MASS_EV)
+    xo.assert_allclose(env.line1.particle_ref.beta0 , 0.6, rtol=0, atol=1e-14)
+
+    p_ref = xt.Particles('Pb208', p0c=7e12/82)
+    env.set_particle_ref(p_ref)
+
+    xo.assert_allclose(env.particle_ref.q0 , 82, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.particle_ref.mass0, xt.particles.masses.Pb208_MASS_EV)
+    xo.assert_allclose(env.particle_ref.p0c , 7e12/82, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.q0 , 82, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.mass0, xt.particles.masses.Pb208_MASS_EV)
+    xo.assert_allclose(env.line1.particle_ref.p0c , 7e12/82, rtol=0, atol=1e-14)
+
+    env.set_particle_ref('positron', beta0=0.7, lines=None)
+    xo.assert_allclose(env.particle_ref.q0 , 1, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.particle_ref.mass0 , xt.ELECTRON_MASS_EV)
+    xo.assert_allclose(env.particle_ref.beta0 , 0.7, rtol=0, atol=1e-14)
+    # line unchanged
+    xo.assert_allclose(env.line1.particle_ref.q0 , 82, rtol=0, atol=1e-14)
+    xo.assert_allclose(env.line1.particle_ref.mass0, xt.particles.masses.Pb208_MASS_EV)
+    xo.assert_allclose(env.line1.particle_ref.p0c , 7e12/82, rtol=0, atol=1e-14)

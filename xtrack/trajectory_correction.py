@@ -326,8 +326,10 @@ class OrbitCorrectionSinglePlane:
                             element_name=self.start)
         else:
             twinit = None
-        tw_orbit = self.line.twiss4d(only_orbit=True, start=self.start, end=self.end,
-                                     init=twinit, reverse=False, delta0=delta0)
+        method = '4d' if delta0 is not None else None
+        tw_orbit = self.line.twiss(only_orbit=True, start=self.start, end=self.end,
+                                   init=twinit, reverse=False, delta0=delta0,
+                                   method=method)
         return tw_orbit
 
     def _measure_position(self, tw_orbit=None):

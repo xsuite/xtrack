@@ -16,10 +16,10 @@ void YRotation_track_local_particle(YRotationData el, LocalParticle* part0){
     double cos_angle = YRotationData_get_cos_angle(el);
     double tan_angle = YRotationData_get_tan_angle(el);
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         sin_angle = -sin_angle;
         tan_angle = -tan_angle;
-    #endif
+    }
 
     START_PER_PARTICLE_BLOCK(part0, part);
         YRotation_single_particle(part, sin_angle, cos_angle, tan_angle);

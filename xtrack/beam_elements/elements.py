@@ -18,6 +18,13 @@ from xtrack.internal_record import RecordIndex
 
 DEFAULT_MULTIPOLE_ORDER = 5
 
+_INDEX_TO_MODEL_DRIFT = {
+    0: 'adaptive',
+    1: 'expanded',
+    2: 'exact'
+}
+_MODEL_TO_INDEX_DRIFT = {k: v for v, k in _INDEX_TO_MODEL_DRIFT.items()}
+
 _INDEX_TO_MODEL_CURVED = {
     0: 'adaptive',
     1: 'full',
@@ -95,6 +102,48 @@ class _HasIntegrator:
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
+    @staticmethod
+    def get_available_integrators():
+        """Get list of available integrators for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available integrators.
+        """
+        out = [kk for kk in _INTEGRATOR_TO_INDEX.keys()]
+        return out
+
+class _HasModelDrift:
+
+    """
+    Mixin class adding properties and methods for beam elements
+    with drift model fields.
+    """
+
+    @property
+    def model(self):
+        return _INDEX_TO_MODEL_DRIFT[self._model]
+
+    @model.setter
+    def model(self, value):
+        try:
+            self._model = _MODEL_TO_INDEX_DRIFT[value]
+        except KeyError:
+            raise ValueError(f'Invalid model: {value}')
+
+    @staticmethod
+    def get_available_models():
+        """Get list of available models for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available models.
+        """
+        out = [kk for kk in _MODEL_TO_INDEX_DRIFT.keys()]
+        return out
+
 class _HasModelStraight:
 
     """
@@ -112,6 +161,18 @@ class _HasModelStraight:
             self._model = _MODEL_TO_INDEX_STRAIGHT[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
+
+    @staticmethod
+    def get_available_models():
+        """Get list of available models for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available models.
+        """
+        out = [kk for kk in _MODEL_TO_INDEX_STRAIGHT.keys() if kk != 'full']
+        return out
 
 class _HasModelCurved:
 
@@ -131,6 +192,19 @@ class _HasModelCurved:
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
+    @staticmethod
+    def get_available_models():
+        """Get list of available models for this element.
+
+        Returns
+        -------
+        List[str]
+            List of available models.
+        """
+        out = [kk for kk in _MODEL_TO_INDEX_CURVED.keys()
+               if kk not in ('full', 'expanded')]
+        return out
+
 
 class _HasModelRF:
 
@@ -140,13 +214,13 @@ class _HasModelRF:
     """
 
     @property
-    def rf_model(self):
-        return _INDEX_TO_MODEL_RF[self._rf_model]
+    def model(self):
+        return _INDEX_TO_MODEL_RF[self._model]
 
-    @rf_model.setter
-    def rf_model(self, value):
+    @model.setter
+    def model(self, value):
         try:
-            self._rf_model = _MODEL_TO_INDEX_RF[value]
+            self._model = _MODEL_TO_INDEX_RF[value]
         except KeyError:
             raise ValueError(f'Invalid RF model: {value}')
 
@@ -315,7 +389,7 @@ class Marker(BeamElement):
     ]
 
 
-class Drift(BeamElement):
+class Drift(_HasModelDrift, BeamElement):
     """Beam element modeling a drift section.
 
     Parameters
@@ -326,7 +400,8 @@ class Drift(BeamElement):
     """
 
     _xofields = {
-        'length': xo.Float64
+        'length': xo.Float64,
+        'model': xo.Int64
     }
 
     isthick = True
@@ -339,7 +414,13 @@ class Drift(BeamElement):
         '#include <beam_elements/elements_src/drift.h>',
     ]
 
-    def __init__(self, length=None, **kwargs):
+    _rename = {
+        'model': '_model',
+    }
+
+    _noexpr_fields = {'model'}
+
+    def __init__(self, length=None, model=None, **kwargs):
 
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -348,6 +429,10 @@ class Drift(BeamElement):
         if length:  # otherwise length cannot be set as a positional argument
             kwargs['length'] = length
         super().__init__(**kwargs)
+
+        # Trigger properties
+        if model is not None:
+            self.model = model
 
     @property
     def _thin_slice_class(self):
@@ -1362,11 +1447,9 @@ class Bend(_BendCommon, BeamElement):
     length : float, optional
         Length of the element in meters along the reference trajectory.
     knl : array, optional
-        Integrated strength of the high-order normal multipolar components
-        (knl[0] and knl[1] should not be used).
+        Integrated strength of the high-order normal multipolar components.
     ksl : array, optional
-        Integrated strength of the high-order skew multipolar components
-        (ksl[0] and ksl[1] should not be used).
+        Integrated strength of the high-order skew multipolar components.
     order : int, optional
         Maximum order of multipole expansion for this magnet. Defaults to 5.
     model : str, optional
@@ -1612,11 +1695,9 @@ class RBend(_BendCommon, BeamElement):
         Length of the element in units of m along a straight line. Changes to
         `length_straight` will update `length` and `h`.
     knl : array, optional
-        Integrated strength of the high-order normal multipolar components
-        (`knl[0]` and `knl[1]` should not be used).
+        Integrated strength of the high-order normal multipolar components.
     ksl : array, optional
-        Integrated strength of the high-order skew multipolar components
-        (`ksl[0]` and `ksl[1]` should not be used).
+        Integrated strength of the high-order skew multipolar components.
     model : str, optional
         Drift model to be used in kick-splitting. See `Bend` for details.
     integrator : str, optional

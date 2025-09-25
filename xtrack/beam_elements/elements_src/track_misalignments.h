@@ -42,9 +42,11 @@ void track_misalignment_entry_straight(
     double ds,  // misalignment in s
     double theta, // rotation around y, yaw, positive s to x
     double phi,  // rotation around x, pitch, positive s to y
-    double psi,  // rotation around s, roll, positive y to x
+    double psi_no_frame,  // rotation around s, roll, positive y to x
     double anchor, // anchor of the misalignment as offset in m from entry
-    double length  // length of the misaligned element
+    double length,  // length of the misaligned element
+    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    int8_t backtrack
 ) {
     // Silence the warning about unused variable length
     (void)length; // kept for API consistency with track_misalignment_exit_straight
@@ -54,11 +56,21 @@ void track_misalignment_entry_straight(
     const double mis_s = ds - anchor * (cos(phi) * cos(theta) - 1);
 
     // Apply transformations
-    XY_SHIFT(part0, mis_x, mis_y);
-    S_SHIFT(part0, mis_s);
-    Y_ROTATE(part0, theta);
-    X_ROTATE(part0, phi);
-    S_ROTATE(part0, psi);
+    if (!backtrack){
+        XY_SHIFT(part0, mis_x, mis_y);
+        S_SHIFT(part0, mis_s);
+        Y_ROTATE(part0, theta);
+        X_ROTATE(part0, phi);
+        S_ROTATE(part0, psi_no_frame);
+        S_ROTATE(part0, psi_with_frame);
+    } else {
+        S_ROTATE(part0, -psi_with_frame);
+        S_ROTATE(part0, -psi_no_frame);
+        X_ROTATE(part0, -phi);
+        Y_ROTATE(part0, -theta);
+        S_SHIFT(part0, -mis_s);
+        XY_SHIFT(part0, -mis_x, -mis_y);
+    }
 }
 
 
@@ -70,9 +82,11 @@ void track_misalignment_exit_straight(
     double ds,  // misalignment in s
     double theta, // rotation around y, yaw, positive s to x
     double phi,  // rotation around x, pitch, positive s to y
-    double psi,  // rotation around s, roll, positive y to x
+    double psi_no_frame,  // rotation around s, roll, positive y to x
     double anchor, // anchor of the misalignment as offset in m from entry
-    double length  // length of the misaligned element
+    double length,  // length of the misaligned element
+    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    int8_t backtrack
 ) {
     const double neg_part_length = anchor - length;
     const double mis_x = neg_part_length * cos(phi) * sin(theta) - dx;
@@ -80,11 +94,21 @@ void track_misalignment_exit_straight(
     const double mis_s = neg_part_length * (cos(phi) * cos(theta) - 1) - ds;
 
     // Apply transformations
-    S_ROTATE(part0, -psi);
-    X_ROTATE(part0, -phi);
-    Y_ROTATE(part0, -theta);
-    S_SHIFT(part0, mis_s);
-    XY_SHIFT(part0, mis_x, mis_y);
+    if (!backtrack){
+        S_ROTATE(part0, -psi_with_frame);
+        S_ROTATE(part0, -psi_no_frame);
+        X_ROTATE(part0, -phi);
+        Y_ROTATE(part0, -theta);
+        S_SHIFT(part0, mis_s);
+        XY_SHIFT(part0, mis_x, mis_y);
+    } else {
+        XY_SHIFT(part0, -mis_x, -mis_y);
+        S_SHIFT(part0, -mis_s);
+        Y_ROTATE(part0, theta);
+        X_ROTATE(part0, phi);
+        S_ROTATE(part0, psi_no_frame);
+        S_ROTATE(part0, psi_with_frame);
+    }
 }
 
 
@@ -96,20 +120,22 @@ void track_misalignment_entry_curved(
     double ds,  // misalignment in s
     double theta, // rotation around y, yaw, positive s to x
     double phi,  // rotation around x, pitch, positive s to y
-    double psi,  // rotation around s, roll, positive y to x
+    double psi_no_frame,  // rotation around s, roll, positive y to x
     double anchor, // anchor of the misalignment as offset in m from entry
     double length,  // length of the misaligned element
     double angle,  // angle by which the element bends the reference frame
-    double tilt  // tilt of the element, positive s to x
+    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    int8_t backtrack
 ) {
     if (angle == 0.0) {
-        track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi, psi, anchor, length);
+        track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi,
+            psi_no_frame, anchor, length, psi_with_frame, backtrack);
         return;
     }
     // Precompute trigonometric functions
     const double s_phi = sin(phi), c_phi = cos(phi);
     const double s_theta = sin(theta), c_theta = cos(theta);
-    const double s_psi = sin(psi), c_psi = cos(psi);
+    const double s_psi = sin(psi_no_frame), c_psi = cos(psi_no_frame);
 
     /* We need to compute the transformation that takes us from the aligned
        frame to the entry of the element in the misaligned frame:
@@ -149,26 +175,26 @@ void track_misalignment_entry_curved(
     double anchor_frac = length == 0.0 ? 0 : anchor / length;
     const double part_angle = angle * anchor_frac;
     const double rho = length / angle;
-    const double delta_x_first_part = rho * (cos(part_angle) - 1) * cos(tilt);
-    const double delta_y_first_part = rho * (cos(part_angle) - 1) * sin(tilt);
+    const double delta_x_first_part = rho * (cos(part_angle) - 1) * cos(psi_with_frame);
+    const double delta_y_first_part = rho * (cos(part_angle) - 1) * sin(psi_with_frame);
     const double delta_s_first_part = rho * sin(part_angle);
 
     const double matrix_first_part[4][4] = {
             {
-                (cos(part_angle) - 1) * POW2(cos(tilt)) + 1,
-                (cos(part_angle) - 1) * cos(tilt) * sin(tilt),
-                -cos(tilt) * sin(part_angle),
+                (cos(part_angle) - 1) * POW2(cos(psi_with_frame)) + 1,
+                (cos(part_angle) - 1) * cos(psi_with_frame) * sin(psi_with_frame),
+                -cos(psi_with_frame) * sin(part_angle),
                 delta_x_first_part
             },
             {
-                (cos(part_angle) - 1) * cos(tilt) * sin(tilt),
-                (cos(part_angle) - 1) * POW2(sin(tilt)) + 1,
-                -sin(part_angle) * sin(tilt),
+                (cos(part_angle) - 1) * cos(psi_with_frame) * sin(psi_with_frame),
+                (cos(part_angle) - 1) * POW2(sin(psi_with_frame)) + 1,
+                -sin(part_angle) * sin(psi_with_frame),
                 delta_y_first_part
             },
             {
-                cos(tilt) * sin(part_angle),
-                sin(part_angle) * sin(tilt),
+                cos(psi_with_frame) * sin(part_angle),
+                sin(part_angle) * sin(psi_with_frame),
                 cos(part_angle),
                 delta_s_first_part
             },
@@ -194,11 +220,21 @@ void track_misalignment_entry_curved(
     const double rot_psi = atan2(misaligned_entry[1][0], misaligned_entry[1][1]);
 
     // Apply transformations
-    XY_SHIFT(part0, mis_x, mis_y);
-    S_SHIFT(part0, mis_s);
-    Y_ROTATE(part0, rot_theta);
-    X_ROTATE(part0, rot_phi);
-    S_ROTATE(part0, rot_psi);
+    if (!backtrack) {
+        XY_SHIFT(part0, mis_x, mis_y);
+        S_SHIFT(part0, mis_s);
+        Y_ROTATE(part0, rot_theta);
+        X_ROTATE(part0, rot_phi);
+        S_ROTATE(part0, rot_psi);
+        S_ROTATE(part0, psi_with_frame);
+    } else {
+        S_ROTATE(part0, -psi_with_frame);
+        S_ROTATE(part0, -rot_psi);
+        X_ROTATE(part0, -rot_phi);
+        Y_ROTATE(part0, -rot_theta);
+        S_SHIFT(part0, -mis_s);
+        XY_SHIFT(part0, -mis_x, -mis_y);
+    }
 }
 
 
@@ -210,21 +246,23 @@ void track_misalignment_exit_curved(
     double ds,  // misalignment in s
     double theta, // rotation around y, yaw, positive s to x
     double phi,  // rotation around x, pitch, positive s to y
-    double psi,  // rotation around s, roll, positive y to x
+    double psi_no_frame,  // rotation around s, roll, positive y to x
     double anchor, // anchor of the misalignment as a fraction of the length
     double length,  // length of the misaligned element
     double angle,  // angle by which the element bends the reference frame
-    double tilt  // tilt of the element, positive s to x
+    double psi_with_frame,  // psi_with_frame of the element, positive s to x
+    int8_t backtrack  // whether to backtrack the particle
 ) {
     if (angle == 0.0) {
         track_misalignment_exit_straight(
-            part0, dx, dy, ds, theta, phi, psi, anchor, length);
+            part0, dx, dy, ds, theta, phi, psi_no_frame, anchor, length,
+            psi_with_frame, backtrack);
         return;
     }
     // Precompute trigonometric functions
     double s_phi = sin(phi), c_phi = cos(phi);
     double s_theta = sin(theta), c_theta = cos(theta);
-    double s_psi = sin(psi), c_psi = cos(psi);
+    double s_psi = sin(psi_no_frame), c_psi = cos(psi_no_frame);
 
     /* We need to compute the transformation that takes us from the misaligned
        frame to the aligned frame:
@@ -272,7 +310,7 @@ void track_misalignment_exit_curved(
     const double rho = length / angle;
 
     const double s_part_angle = sin(part_angle), c_part_angle = cos(part_angle);
-    const double s_tilt = sin(tilt), c_tilt = cos(tilt);
+    const double s_tilt = sin(psi_with_frame), c_tilt = cos(psi_with_frame);
 
     const double delta_x_second_part = rho * (c_part_angle - 1) * c_tilt;
     const double delta_y_second_part = rho * (c_part_angle - 1) * s_tilt;
@@ -318,11 +356,21 @@ void track_misalignment_exit_curved(
     double rot_psi = atan2(realign[1][0], realign[1][1]);
 
     // Apply transformations
-    XY_SHIFT(part0, mis_x, mis_y);
-    S_SHIFT(part0, mis_s);
-    Y_ROTATE(part0, rot_theta);
-    X_ROTATE(part0, rot_phi);
-    S_ROTATE(part0, rot_psi);
+    if (!backtrack){
+        S_ROTATE(part0, -psi_with_frame);
+        XY_SHIFT(part0, mis_x, mis_y);
+        S_SHIFT(part0, mis_s);
+        Y_ROTATE(part0, rot_theta);
+        X_ROTATE(part0, rot_phi);
+        S_ROTATE(part0, rot_psi);
+    } else {
+        S_ROTATE(part0, -rot_psi);
+        X_ROTATE(part0, -rot_phi);
+        Y_ROTATE(part0, -rot_theta);
+        S_SHIFT(part0, -mis_s);
+        XY_SHIFT(part0, -mis_x, -mis_y);
+        S_ROTATE(part0, psi_with_frame);
+    }
 }
 
 

@@ -23,22 +23,19 @@ void Misalignment_track_local_particle(MisalignmentData el, LocalParticle* part0
     const double angle = MisalignmentData_get_angle(el);
     const double tilt = MisalignmentData_get_tilt(el);
     const double is_exit = MisalignmentData_get_is_exit(el);
-
-    #ifdef XSUITE_BACKTRACK
-        voltage = -voltage;
-    #endif
+    const int8_t backtrack = 0;
 
     if (!is_exit) {
         if (NONZERO(angle)) {
-            track_misalignment_entry_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle, tilt);
+            track_misalignment_entry_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle, tilt, backtrack);
         } else {
-            track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi, psi, anchor, length);
+            track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi, psi, anchor, length, tilt, backtrack);
         }
     } else {
         if (NONZERO(angle)) {
-            track_misalignment_exit_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle, tilt);
+            track_misalignment_exit_curved(part0, dx, dy, ds, theta, phi, psi, anchor, length, angle, tilt, backtrack);
         } else {
-            track_misalignment_exit_straight(part0, dx, dy, ds, theta, phi, psi, anchor, length);
+            track_misalignment_exit_straight(part0, dx, dy, ds, theta, phi, psi, anchor, length, tilt, backtrack);
         }
     }
 }
