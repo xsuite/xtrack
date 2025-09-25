@@ -50,8 +50,8 @@ from .load import load
 
 from .multiline import Multiline
 
-from xdeps import Table, FunctionPieceWiseLinear
+from xdeps import FunctionPieceWiseLinear
+from .table import Table
 
 from ._version import __version__
-
 

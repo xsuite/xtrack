@@ -25,12 +25,12 @@ else:
 
 import xobjects as xo
 import xdeps as xd
-from xdeps import Table
 
 from . import linear_normal_form as lnf
 from .general import _print
 from .twissplot import TwissPlot
 from . import json as json_utils
+from .table import Table
 
 import xtrack as xt  # To avoid circular imports
 
@@ -2929,6 +2929,7 @@ class TwissInit:
         '''
         Convert to dictionary representation.
         '''
+
         out = self.__dict__.copy()
         out['particle_on_co'] = out['particle_on_co'].to_dict()
         return out
@@ -2965,6 +2966,8 @@ class TwissInit:
         # Need the values as numpy types, in particular arrays
         numpy_dct = {}
         for key, value in dct.items():
+            if key == 'particle_on_co':
+                continue
             if isinstance(value, int):
                 numpy_dct[key] = np.int64(value)
             elif isinstance(value, float):
@@ -3301,7 +3304,7 @@ class TwissTable(Table):
     def __init__(self, *args, **kwargs):
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
         super().__init__(*args, **kwargs)
-        self['periodic'] = False
+        self['periodic'] = kwargs.get('periodic', kwargs.get('data', {}).get('periodic', False))
 
     _error_on_row_not_found = True
 
@@ -3319,6 +3322,59 @@ class TwissTable(Table):
         if index is not None:
             df.set_index(index, inplace=True)
         return df
+
+    def _extra_metadata(self):
+        extra = super()._extra_metadata()
+        extra = dict(extra) if extra else {}
+        extra['__class__'] = 'TwissTable'
+        extra['xtrack_version'] = xt.__version__
+        return extra
+
+    @classmethod
+    def _strip_extra_metadata(cls, payload):
+        payload.pop('__class__', None)
+        payload.pop('xtrack_version', None)
+        super()._strip_extra_metadata(payload)
+
+    def to_hdf5(self, file, *, include=None, exclude=None,
+                missing='error', include_meta=True, group='twiss_table'):
+        super().to_hdf5(
+            file,
+            include=include,
+            exclude=exclude,
+            missing=missing,
+            include_meta=include_meta,
+            group=group,
+        )
+
+    @classmethod
+    def from_hdf5(cls, file, *, group='twiss_table'):
+        return super().from_hdf5(
+            file,
+            group=group,
+        )
+
+    def to_tfs(self, file, *, include=None, exclude=None,
+               missing='error', include_meta=True,
+               default_column_width=None, float_precision=8,
+               numeric_column_width=16, column_formats=None,
+               column_widths=None):
+        super().to_tfs(
+            file,
+            include=include,
+            exclude=exclude,
+            missing=missing,
+            include_meta=include_meta,
+            default_column_width=default_column_width,
+            float_precision=float_precision,
+            numeric_column_width=numeric_column_width,
+            column_formats=column_formats,
+            column_widths=column_widths,
+        )
+
+    @classmethod
+    def from_tfs(cls, file):
+        return super().from_tfs(file)
 
     def get_twiss_init(self, at_element):
 
@@ -3963,7 +4019,8 @@ class TwissTable(Table):
     def add_strengths(self, line=None):
         if line is None and hasattr(self,"_action"):
             line = self._action.line
-        _add_strengths_to_twiss_res(self, line)
+        if line is not None:
+            _add_strengths_to_twiss_res(self, line)
         return self
 
     @classmethod
@@ -4095,9 +4152,6 @@ class TwissTable(Table):
             yl=""
         if yr is None:
             yr=""
-
-        if not hasattr(self,"_action"):
-            lattice=False
 
         if lattice and 'k2l' not in self.keys():
             self.add_strengths()

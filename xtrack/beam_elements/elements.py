@@ -1447,11 +1447,9 @@ class Bend(_BendCommon, BeamElement):
     length : float, optional
         Length of the element in meters along the reference trajectory.
     knl : array, optional
-        Integrated strength of the high-order normal multipolar components
-        (knl[0] and knl[1] should not be used).
+        Integrated strength of the high-order normal multipolar components.
     ksl : array, optional
-        Integrated strength of the high-order skew multipolar components
-        (ksl[0] and ksl[1] should not be used).
+        Integrated strength of the high-order skew multipolar components.
     order : int, optional
         Maximum order of multipole expansion for this magnet. Defaults to 5.
     model : str, optional
@@ -1697,11 +1695,9 @@ class RBend(_BendCommon, BeamElement):
         Length of the element in units of m along a straight line. Changes to
         `length_straight` will update `length` and `h`.
     knl : array, optional
-        Integrated strength of the high-order normal multipolar components
-        (`knl[0]` and `knl[1]` should not be used).
+        Integrated strength of the high-order normal multipolar components.
     ksl : array, optional
-        Integrated strength of the high-order skew multipolar components
-        (`ksl[0]` and `ksl[1]` should not be used).
+        Integrated strength of the high-order skew multipolar components.
     model : str, optional
         Drift model to be used in kick-splitting. See `Bend` for details.
     integrator : str, optional

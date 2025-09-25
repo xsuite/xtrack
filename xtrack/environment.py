@@ -658,11 +658,10 @@ class Environment:
 
     def _get_a_drift_name(self):
         self._drift_counter += 1
-        nn = f'drift_{self._drift_counter}'
-        if nn not in self.element_dict:
-            return nn
-        else:
-            return self._get_a_drift_name()
+        while nn := f'drift_{self._drift_counter}':
+            if nn not in self.element_dict:
+                return nn
+            self._drift_counter += 1
 
     def __setitem__(self, key, value):
 
@@ -679,6 +678,7 @@ class Environment:
     def to_dict(self, include_var_management=True, include_version=True):
 
         out = {}
+        out['__class__'] = self.__class__.__name__
 
         if include_version:
             out["xtrack_version"] = xt.__version__

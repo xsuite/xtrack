@@ -23,7 +23,7 @@ class _LOC:
 START = _LOC('START')
 END = _LOC('END')
 
-def read_url(url, timeout=0.1):
+def read_url(url, timeout=0.1, binary=False):
     """
     Read content from a URL.
     """
@@ -31,9 +31,16 @@ def read_url(url, timeout=0.1):
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()  # Raise an error for bad responses
         if url.endswith('.gz'):
-            return gzip.decompress(response.content).decode("utf-8")
+            out = gzip.decompress(response.content)
+            if binary:
+                return out
+            else:
+                return out.decode("utf-8")
         else:
-            return response.text
+            if binary:
+                return response.content
+            else:
+                return response.text
     except requests.exceptions.RequestException as e:
         raise RuntimeError(f"Failed to read from URL {url}: {e}")
 

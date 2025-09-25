@@ -9,7 +9,7 @@
 
 import numpy as np
 
-from xdeps import Table
+from .table import Table
 
 # Required functions
 # ==================================================
@@ -526,4 +526,3 @@ def _compute_survey_quantities_from_v_w(V, W):
         'p0': p0,
         'W': W
     }
-
