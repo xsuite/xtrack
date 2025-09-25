@@ -164,3 +164,30 @@ def test_madng_conversion_drift_slice():
 
     xo.assert_allclose(tw_ng.beta11_ng, tw.betx, rtol=1e-8)
     xo.assert_allclose(tw_ng.beta22_ng, tw.bety, rtol=1e-8)
+
+def test_madng_interface_with_slicing():
+    line = xt.load(test_data_folder /
+                            'hllhc15_thick/lhc_thick_with_knobs.json')
+
+    # Cut line at every 1 up to s = 1000
+    line.cut_at_s(np.arange(1000))
+
+    tw_xs = line.twiss4d()
+    tw = line.madng_twiss()
+
+    assert len(tw) == len(tw_xs)
+
+    xo.assert_allclose(tw.x, 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.y, 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.betx2, 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.bety1, 0, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.x, tw.x_ng, atol=1e-8, rtol=0)
+    xo.assert_allclose(tw.y, tw.y_ng, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.betx2, tw.beta12_ng, atol=1e-10, rtol=0)
+    xo.assert_allclose(tw.bety1, tw.beta21_ng, atol=1e-19, rtol=0)
+    xo.assert_allclose(tw.wx_chrom, tw.wx_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
+    xo.assert_allclose(tw.wy_chrom, tw.wy_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
+    xo.assert_allclose(tw.ax_chrom, tw.ax_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
+    xo.assert_allclose(tw.ay_chrom, tw.ay_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
+    xo.assert_allclose(tw.bx_chrom, tw.bx_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
+    xo.assert_allclose(tw.by_chrom, tw.by_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
