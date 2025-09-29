@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
-from scipy.constants import epsilon_0 as eps0
 
 import xobjects as xo
 import xtrack as xt
