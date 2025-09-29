@@ -20,9 +20,7 @@ p = p0.copy()
 
 sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
 
-from integrator_ds import BorisSpatialIntegrator
-
-integrator = BorisSpatialIntegrator(fieldmap_callable=sf.get_field,
+integrator = xt.BorisSpatialIntegrator(fieldmap_callable=sf.get_field,
                                         s_start=0,
                                         s_end=30,
                                         n_steps=15000)

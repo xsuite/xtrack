@@ -160,7 +160,6 @@ beta_x_log = np.array(beta_x_log)
 beta_y_log = np.array(beta_y_log)
 beta_z_log = np.array(beta_z_log)
 
-from integrator_ds import BorisSpatialIntegrator
 
 integrator = BorisSpatialIntegrator(fieldmap_callable=sf.get_field,
                                         s_start=0,
