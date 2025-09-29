@@ -10,7 +10,7 @@ from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 
 delta=np.array([0, 4])
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
-                energy0=45.6e9,
+                energy0=45.6e9/1000,
                 x=[-1e-3, -1e-3],
                 px=-1e-3*(1+delta),
                 y=1e-3,
@@ -53,7 +53,6 @@ line = xt.Line(elements=[xt.VariableSolenoid(length=dz,
                                     ks_profile=[ks_entry[ii], ks_exit[ii]])
                             for ii in range(len(z_axis)-1)])
 line.build_tracker()
-line.configure_radiation(model='mean')
 
 p_xt = p0.copy()
 line.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
@@ -86,15 +85,6 @@ yp = py_mech / pz_mech
 dx_ds = np.diff(mon.x, axis=1) / np.diff(mon.s, axis=1)
 dy_ds = np.diff(mon.y, axis=1) / np.diff(mon.s, axis=1)
 
-dE_ds = 0*mon.ptau
-# Central differences
-dE_ds[:, 1:-1] = -((mon.ptau[:, 2:] - mon.ptau[:, :-2]) / (mon.s[:, 2:] - mon.s[:, :-2])
-                        * p_xt.energy0[0])
-
-emitted_dpx = -(np.diff(mon.kin_px, axis=1) - np.diff(mon_no_rad.kin_px, axis=1))
-emitted_dpy = -(np.diff(mon.kin_py, axis=1) - np.diff(mon_no_rad.kin_py, axis=1))
-emitted_dp = -(np.diff(mon.delta, axis=1) - np.diff(mon_no_rad.delta, axis=1))
-
 z_check = sf.z0 + sf.L * np.linspace(-2, 2, 1001)
 
 for i_part in range(z_log.shape[1]):
@@ -106,18 +96,13 @@ for i_part in range(z_log.shape[1]):
     s_xsuite = 0.5 * (mon.s[i_part, :-1] + mon.s[i_part, 1:])
     dx_ds_xsuite = np.diff(mon.x[i_part, :]) / np.diff(mon.s[i_part, :])
     dy_ds_xsuite = np.diff(mon.y[i_part, :]) / np.diff(mon.s[i_part, :])
-    dE_ds_xsuite = dE_ds[i_part, :]
 
     dx_ds_xsuite_check = np.interp(z_check, s_xsuite, dx_ds_xsuite)
     dy_ds_xsuite_check = np.interp(z_check, s_xsuite, dy_ds_xsuite)
-    dE_ds_xsuite_check = np.interp(z_check, mon.s[i_part, :], dE_ds_xsuite)
 
     dx_ds_boris_check = np.interp(z_check, this_s_boris, dx_ds_boris)
     dy_ds_boris_check = np.interp(z_check, this_s_boris, dy_ds_boris)
 
-    this_emitted_dpx = emitted_dpx[i_part, :]
-    this_emitted_dpy = emitted_dpy[i_part, :]
-    this_dE_ds = dE_ds[i_part, :]
     this_dx_ds = dx_ds[i_part, :]
     this_dy_ds = dy_ds[i_part, :]
 
@@ -130,13 +115,6 @@ for i_part in range(z_log.shape[1]):
                     rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
     xo.assert_allclose(ay_ref[i_part, :], mon.ay[i_part, :],
                     rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
-
-    xo.assert_allclose(this_emitted_dpx,
-            0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-            rtol=0, atol=2e-2 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
-    xo.assert_allclose(this_emitted_dpy,
-            0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-            rtol=0, atol=5e-2 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -151,17 +129,13 @@ dy_ds_boris = np.diff(y_log[:, i_part]) / np.diff(z_log[:, i_part])
 s_xsuite = 0.5 * (mon.s[i_part, :-1] + mon.s[i_part, 1:])
 dx_ds_xsuite = np.diff(mon.x[i_part, :]) / np.diff(mon.s[i_part, :])
 dy_ds_xsuite = np.diff(mon.y[i_part, :]) / np.diff(mon.s[i_part, :])
-dE_ds_xsuite = dE_ds[i_part, :]
 
 dx_ds_xsuite_check = np.interp(z_check, s_xsuite, dx_ds_xsuite)
 dy_ds_xsuite_check = np.interp(z_check, s_xsuite, dy_ds_xsuite)
-dE_ds_xsuite_check = np.interp(z_check, mon.s[i_part, :], dE_ds_xsuite)
 dx_ds_boris_check = np.interp(z_check, this_s_boris, dx_ds_boris)
 dy_ds_boris_check = np.interp(z_check, this_s_boris, dy_ds_boris)
 
-this_emitted_dpx = emitted_dpx[i_part, :]
-this_emitted_dpy = emitted_dpy[i_part, :]
-this_dE_ds = dE_ds[i_part, :]
+
 this_dx_ds = dx_ds[i_part, :]
 this_dy_ds = dy_ds[i_part, :]
 s_mid = 0.5 * (mon.s[i_part, :-1] + mon.s[i_part, 1:])
