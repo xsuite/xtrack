@@ -7,12 +7,13 @@ class BorisSpatialIntegrator:
 
     isthick = True
 
-    def __init__(self, fieldmap_callable, s_start, s_end, n_steps):
+    def __init__(self, fieldmap_callable, s_start, s_end, n_steps, verbose=False):
         self.fieldmap_callable = fieldmap_callable
         self.s_start = s_start
         self.s_end = s_end
         self.ds = (s_end - s_start) / n_steps
         self.n_steps = n_steps
+        self.verbose = verbose
         self.length = s_end - s_start
 
     def track(self, p):
@@ -25,7 +26,8 @@ class BorisSpatialIntegrator:
 
         for ii in range(self.n_steps):
 
-            print(f's = {p.s[0]:.3f}           ', end='\r', flush=True)
+            if self.verbose:
+                print(f's = {p.s[0]:.3f}           ', end='\r', flush=True)
 
             q0 = p.q0
             x = p.x.copy()
