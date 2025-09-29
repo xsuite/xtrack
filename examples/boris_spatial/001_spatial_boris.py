@@ -19,20 +19,20 @@ p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
 
 p = p0.copy()
 
-# sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
+sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
 
-class UniformField:
-    def __init__(self, B0):
-        self.B0 = B0
-        self.L = 30
-        self.z0 = 15
+# class UniformField:
+#     def __init__(self, B0):
+#         self.B0 = B0
+#         self.L = 30
+#         self.z0 = 15
 
-    def get_field(self, x, y, z):
-        Bx = 0 * x
-        By = 0 * x
-        Bz = 0 * x + self.B0
-        return np.array([Bx, By, Bz])
-sf = UniformField(B0=1.5)
+#     def get_field(self, x, y, z):
+#         Bx = 0 * x
+#         By = 0 * x
+#         Bz = 0 * x + self.B0
+#         return np.array([Bx, By, Bz])
+# sf = UniformField(B0=1.5)
 
 from integrator_ds import BorisSpatialIntegrator
 
