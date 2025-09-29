@@ -1044,6 +1044,8 @@ class Line:
 
     @particle_ref.setter
     def particle_ref(self, particle_ref):
+        if isinstance(particle_ref, LineParticleRef):
+            particle_ref = particle_ref.line._particle_ref
         self._particle_ref = particle_ref
         # This looks a bit dangerous, when working with coasting beams in environments.
         # If the particle is shared with other lines, t_sim might be wrong.
