@@ -1596,13 +1596,13 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     periodic=False,
                     periodic_mode=None,
                     include_collective=False,
-                    twiss_chrom_res=None
+                    tw_chrom_res=None
                     ):
 
     if only_markers:
         raise NotImplementedError('only_markers not supported anymore')
 
-    if twiss_chrom_res is None:
+    if tw_chrom_res is None:
         tw_chrom_res = []
         for dd in [-delta_chrom, delta_chrom]:
             tw_init_chrom = init.copy()
