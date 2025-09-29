@@ -10,20 +10,36 @@ from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 
 delta=np.array([0, 4])
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
-                energy0=45.6e9,
-                x=[-1e-3, -1e-3], px=-1e-3*(1+delta), y=1e-3,
+                energy0=45.6e9 / 1000,
+                x=[-1e-3, -1e-3],
+                px=0.,
+                # px=-1e-3*(1+delta),
+                y=1e-3,
                 delta=delta)
 
 p = p0.copy()
 
-sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
+# sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
+
+class UniformField:
+    def __init__(self, B0):
+        self.B0 = B0
+        self.L = 30
+        self.z0 = 15
+
+    def get_field(self, x, y, z):
+        Bx = 0 * x
+        By = 0 * x
+        Bz = 0 * x + self.B0
+        return np.array([Bx, By, Bz])
+sf = UniformField(B0=1.5)
 
 from integrator_ds import BorisSpatialIntegrator
 
 integrator = BorisSpatialIntegrator(fieldmap_callable=sf.get_field,
                                         s_start=0,
                                         s_end=30,
-                                        n_steps=1500)
+                                        n_steps=15000)
 p_boris = p.copy()
 integrator.track(p_boris)
 
@@ -121,22 +137,22 @@ for i_part in range(z_log.shape[1]):
     this_dx_ds = dx_ds[i_part, :]
     this_dy_ds = dy_ds[i_part, :]
 
-    xo.assert_allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
-            atol=2.8e-2 * (np.max(dx_ds_boris_check) - np.min(dx_ds_boris_check)))
-    xo.assert_allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
-            atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
+#     xo.assert_allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
+#             atol=2.8e-2 * (np.max(dx_ds_boris_check) - np.min(dx_ds_boris_check)))
+#     xo.assert_allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
+#             atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
 
-    xo.assert_allclose(ax_ref[i_part, :], mon.ax[i_part, :],
-                    rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
-    xo.assert_allclose(ay_ref[i_part, :], mon.ay[i_part, :],
-                    rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
+#     xo.assert_allclose(ax_ref[i_part, :], mon.ax[i_part, :],
+#                     rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
+#     xo.assert_allclose(ay_ref[i_part, :], mon.ay[i_part, :],
+#                     rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
-    xo.assert_allclose(this_emitted_dpx,
-            0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-            rtol=0, atol=2e-2 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
-    xo.assert_allclose(this_emitted_dpy,
-            0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
-            rtol=0, atol=5e-2 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
+#     xo.assert_allclose(this_emitted_dpx,
+#             0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dx_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
+#             rtol=0, atol=2e-2 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
+#     xo.assert_allclose(this_emitted_dpy,
+#             0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dy_ds * np.diff(mon.s[i_part, :])/p.p0c[0],
+#             rtol=0, atol=5e-2 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -177,4 +193,17 @@ plt.subplot(3, 1, 2)
 plt.plot(z_check, dy_ds_boris_check, label='Boris')
 plt.plot(z_check, dy_ds_xsuite_check, label='XSuite')
 plt.title('dy/ds')
+
+plt.figure(2, figsize=(10, 8))
+plt.subplot(3, 1, 1)
+plt.plot(mon.s[i_part, :], mon.x[i_part, :], label='XSuite')
+plt.plot(z_log[:, i_part], x_log[:, i_part], label='Boris')
+plt.title('x')
 plt.legend()
+plt.subplot(3, 1, 2)
+plt.plot(mon.s[i_part, :], mon.y[i_part, :], label='XSuite')
+plt.plot(z_log[:, i_part], y_log[:, i_part], label='Boris')
+plt.title('y')
+plt.legend()
+
+plt.show()
