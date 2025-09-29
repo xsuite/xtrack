@@ -132,8 +132,10 @@ def step_spatial_boris_B(x, y, z, w, q, dz, field_fn):
     s = 2.0 * t / (1.0 + t2)
     c0 = (1.0 - t2) / (1.0 + t2)
 
-    pxp = c0 * pxm - s * pym
-    pyp = s * pxm + c0 * pym
+    # pxp = c0 * pxm - s * pym
+    # pyp = s * pxm + c0 * pym
+    pxp = c0 * pxm + s * pym
+    pyp = -s * pxm + c0 * pym
 
     # ============================================
     # (3) SECOND HALF-KICK from (Bx, By)
