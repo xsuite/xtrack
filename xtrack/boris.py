@@ -27,7 +27,7 @@ class BorisSpatialIntegrator:
         for ii in range(self.n_steps):
 
             if self.verbose:
-                print(f's = {p.s[0]:.3f}           ', end='\r', flush=True)
+                print(f's_in = {s_in[0]:.3f} s_in_map = {p.s[0]:.3f}', end='\r', flush=True)
 
             q0 = p.q0
             x = p.x.copy()
