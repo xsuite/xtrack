@@ -108,28 +108,6 @@ def _build_beta0_block_string(tw_kwargs):
         beta0_str = ''
     return beta0_str
 
-def _build_dict_from_init(init):
-    init_dict = {}
-    init_dict['betx'] = init.betx
-    init_dict['bety'] = init.bety
-    init_dict['alfx'] = init.alfx
-    init_dict['alfy'] = init.alfy
-    init_dict['x'] = init.x
-    init_dict['px'] = init.px
-    init_dict['y'] = init.y
-    init_dict['py'] = init.py
-    init_dict['mu1'] = init.mux
-    init_dict['mu2'] = init.muy
-    init_dict['dx'] = init.dx
-    init_dict['dpx'] = init.dpx
-    init_dict['dy'] = init.dy
-    init_dict['dpy'] = init.dpy
-    init_dict['ddx'] = init.ddx
-    init_dict['ddpx'] = init.ddpx
-    init_dict['ddy'] = init.ddy
-    init_dict['ddpy'] = init.ddpy
-    return init_dict
-
 def _tw_ng(line, rdts=(), normal_form=True,
            mapdef_twiss=2, mapdef_normal_form=4,
            nslice=3, xsuite_tw=True, X0=None, **tw_kwargs):
@@ -153,9 +131,7 @@ def _tw_ng(line, rdts=(), normal_form=True,
 
     if X0 is None:
         if init is not None and isinstance(init, xt.TwissTable):
-            tw_init = init.get_twiss_init(at_element=0 if start is None else start)
-            init_dict = _build_dict_from_init(tw_init)
-            tw_kwargs.update(init_dict)
+            raise NotImplementedError('TwissTable as init not implemented.')
         X0_str = _build_beta0_block_string(tw_kwargs)
     else:
         X0_str = f'X0={X0}, '
@@ -199,8 +175,6 @@ def _tw_ng(line, rdts=(), normal_form=True,
         '''}
         '''
         + send_cmd)
-
-    print(mng_script)
     mng.send(mng_script)
 
     out = mng.recv('columns')
