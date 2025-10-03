@@ -11,6 +11,8 @@ NG_XS_MAP = {
     'beta22': 'bety',
     'alfa11': 'alfx',
     'alfa22': 'alfy',
+    'mu1': 'mux',
+    'mu2': 'muy',
 }
 
 BETA0_COLUMNS = ['x', 'px', 'y', 'py', 't', 'pt',
@@ -151,7 +153,8 @@ def _tw_ng(line, rdts=(), normal_form=True,
 
     if X0 is None:
         if init is not None and isinstance(init, xt.TwissTable):
-            init_dict = _build_dict_from_init(init)
+            tw_init = init.get_twiss_init(at_element=0 if start is None else start)
+            init_dict = _build_dict_from_init(tw_init)
             tw_kwargs.update(init_dict)
         X0_str = _build_beta0_block_string(tw_kwargs)
     else:
@@ -226,8 +229,8 @@ def _tw_ng(line, rdts=(), normal_form=True,
 
     # enforce marker
     for nn in tw_columns:
-        if start is None:
-            tw[nn+'_ng'] = np.concatenate(np.squeeze((np.array([out_dct[nn][0]])), np.atleast_1d(np.squeeze(out_dct[nn]))[:-2]))
+        if start is not None:
+            tw[nn+'_ng'] = np.concatenate((out_dct[nn][0],np.atleast_1d(np.squeeze(out_dct[nn])[:-2])))
         else:
             tw[nn+'_ng'] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
     for nn in rdts:
