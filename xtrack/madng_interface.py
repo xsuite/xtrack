@@ -181,32 +181,59 @@ def _tw_ng(line, rdts=(), normal_form=True,
     out_dct = {k: v for k, v in zip(columns, out)}
 
     # Add to table
+    names = line._element_names_unique
+    i_start = names.index(start) if start is not None else 0
+    i_end = names.index(end) if end is not None else len(names) - 1
+    marker_nums = 2 if i_start > i_end else 0 # MAD-NG wrap-around markers
+
     if xsuite_tw:
-        xs_tw_kwargs = tw_kwargs.copy()
-        for k in list(xs_tw_kwargs.keys()):
-            if k in NG_XS_MAP.keys():
-                xs_tw_kwargs[NG_XS_MAP[k]] = xs_tw_kwargs[k]
-                del xs_tw_kwargs[k]
+        xs_tw_kwargs = {
+            NG_XS_MAP.get(k, k): v for k, v in tw_kwargs.items()
+        }
         tw = line.twiss(method='4d', reverse=False, **xs_tw_kwargs)
     else:
-        i_start = line._element_names_unique.index(start) if start is not None else 0
-        i_end = line._element_names_unique.index(end) if end is not None else len(line._element_names_unique) - 1
+        # Handle wrap-around range
         if i_start > i_end:
-            name_co = np.array(line._element_names_unique[i_start:] + line._element_names_unique[:i_end+1] + ('_end_point',))
+            name_co = np.array(names[i_start:] + names[:i_end + 1] + ('_end_point',))
         else:
-            name_co = np.array(line._element_names_unique[i_start:i_end+1] + ('_end_point',))
+            name_co = np.array(names[i_start:i_end + 1] + ('_end_point',))
 
         tw = xt.TwissTable({"name": name_co})
     tw._action = _action
 
-    assert len(out[0]) == len(tw) + 1
+    # Consistency check
+    if start is None and end is None:
+        assert len(out[0]) == len(tw) + 1
+    else:
+        assert len(out[0]) == len(tw) + marker_nums - 1
+
+    if start is None and end is None:
+        mode = "full"
+    elif i_start > i_end and i_end > 1:
+        mode = "wrap"
+        end_idx = len(line.element_names) - list(line.element_names).index(start)
+    elif marker_nums > 0:
+        mode = "marker"
+    else:
+        mode = "range"
+
+    def _process_data(data):
+        data = np.atleast_1d(np.squeeze(data))
+        if mode == "full":
+            return data[:-1]
+        elif mode == "wrap":
+            return np.concatenate((data[0:1], data[0:end_idx], data[end_idx + 2:]))
+        elif mode == "marker":
+            return np.concatenate((data[0:1], data[:-marker_nums]))
+        elif mode == "range":
+            return np.concatenate((data[0:1], data))
+        else:
+            raise ValueError(f"Unexpected mode: {mode}")
 
     # enforce marker
     for nn in tw_columns:
-        if start is not None:
-            tw[nn+'_ng'] = np.concatenate((out_dct[nn][0],np.atleast_1d(np.squeeze(out_dct[nn])[:-2])))
-        else:
-            tw[nn+'_ng'] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
+        tw[f"{nn}_ng"] = _process_data(out_dct[nn])
+
     for nn in rdts:
         tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
 
