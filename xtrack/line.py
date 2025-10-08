@@ -1182,6 +1182,10 @@ class Line:
         twiss=None,
         x_offset: float = 0.0,
         y_offset: float = 0.0,
+        x_norm_offset: float | None = None,
+        y_norm_offset: float | None = None,
+        nemitt_x: float | None = None,
+        nemitt_y: float | None = None,
         delta_negative_limit: float = -0.10,
         delta_positive_limit: float = +0.10,
         delta_step_size: float = 0.01,
@@ -1200,10 +1204,27 @@ class Line:
         """
         Local momentum aperture (LMA).
 
+        Parameters
+        ----------
+        x_offset : float, optional
+            Horizontal offset in [m].
+        y_offset : float, optional
+            Vertical offset in [m].
+        x_norm_offset : float, optional
+            Horizontal normalized offset in [σx]. Mutually exclusive with x_offset.
+            Requires `nemitt_x` to compute σx.
+        y_norm_offset : float, optional
+            Vertical normalized offset in [σy]. Mutually exclusive with y_offset.
+            Requires `nemitt_y` to compute σy.
+        nemitt_x : float, optional
+            Normalized emittance in x [m·rad] (rms). Required if `x_norm_offset` is used.
+        nemitt_y : float, optional
+            Normalized emittance in y [m·rad] (rms). Required if `y_norm_offset` is used.
+
         Returns
         -------
         xt.Table with columns:
-        - s:       element entrance position (m)  <-- entrance by default
+        - s:       element entrance position (m)
         - deltan:  largest surviving -δ
         - deltap:  largest surviving +δ
         """
@@ -1211,6 +1232,18 @@ class Line:
 
         if forbid_resonance_crossing:
             raise NotImplementedError("forbid_resonance_crossing is not implemented yet.")
+        
+        # Mutual exclusivity: physical vs normalized offsets
+        if x_offset != 0.0 and x_norm_offset is not None:
+            raise ValueError("Provide either x_offset or x_norm_offset, not both.")
+        if y_offset != 0.0 and y_norm_offset is not None:
+            raise ValueError("Provide either y_offset or y_norm_offset, not both.")
+
+        # If normalized offsets are used, require the corresponding normalized emittance
+        if x_norm_offset is not None and nemitt_x is None:
+            raise ValueError("nemitt_x must be provided when x_norm_offset is used.")
+        if y_norm_offset is not None and nemitt_y is None:
+            raise ValueError("nemitt_y must be provided when y_norm_offset is used.")
 
         if delta_negative_limit >= 0:
             raise ValueError("delta_negative_limit must be < 0")
@@ -1239,6 +1272,14 @@ class Line:
             twiss_method = kwargs.pop('method', '6d')
             twiss = self.twiss(method=twiss_method)
 
+        gemitt_x = None
+        gemitt_y = None
+        if (nemitt_x is not None) or (nemitt_y is not None):
+            beta0 = float(self.particle_ref.beta0[0])
+            gamma0 = float(self.particle_ref.gamma0[0])
+            gemitt_x = (nemitt_x / (beta0 * gamma0)) if nemitt_x is not None else None
+            gemitt_y = (nemitt_y / (beta0 * gamma0)) if nemitt_y is not None else None
+
         # By default, we scan at the ENTRANCE of each element
         s_entr = np.array(list(self.get_s_elements(mode="upstream")))
         elem_names = np.array(self.element_names)
@@ -1246,9 +1287,9 @@ class Line:
 
         candidates: list[int] = []
         for i, (nm, tp, s_en) in enumerate(zip(elem_names, elem_types, s_entr)):
-            if not (s_start <= s_en <= s_end):
+            if not (s_start <= s_en < s_end):
                 continue
-            # If patterns are given, enforce them; otherwise keep default (all entrances)
+            # If patterns are given, enforce them
             if include_name_pattern and not fnmatch.fnmatch(nm, include_name_pattern):
                 continue
             if include_type_pattern and not fnmatch.fnmatch(tp, include_type_pattern):
@@ -1266,14 +1307,13 @@ class Line:
         elements = elem_names[candidates]
 
         # Delta grid
-        deltas = np.arange(delta_negative_limit, delta_positive_limit + 0.5*delta_step_size,
+        deltas = np.arange(delta_negative_limit, delta_positive_limit + 0.5 * delta_step_size,
                         delta_step_size)
         n_part = len(deltas)
 
         rows = []
         seen_s = set()
 
-        # --- restored xsuite progress bar here ---
         iterable = progress(elements, desc="Momentum aperture") if with_progress else elements
 
         for ii, ee in enumerate(iterable):
@@ -1291,16 +1331,28 @@ class Line:
             zeta_co = twiss['zeta', ee]
             delta_co= twiss['delta', ee]
 
-            # Prepare test particles at the chosen reference (entrance of ee)
+            # Compute physical offsets
+            x_add = x_offset
+            y_add = y_offset
+
+            if x_norm_offset is not None:
+                sigmx = np.sqrt(gemitt_x * twiss['betx', ee])
+                x_add = x_norm_offset * sigmx
+
+            if y_norm_offset is not None:
+                sigmy = np.sqrt(gemitt_y * twiss['bety', ee])
+                y_add = y_norm_offset * sigmy
+
+            # Prepare test particles
             particles = xt.Particles(
                 _context=self._context,
                 p0c=self.particle_ref.p0c[0],
                 mass0=self.particle_ref.mass0,
                 q0=self.particle_ref.q0,
                 pdg_id=self.particle_ref.pdg_id,
-                x=np.full(n_part, x_co) + x_offset,
+                x=np.full(n_part, x_co) + x_add,
                 px=np.full(n_part, px_co),
-                y=np.full(n_part, y_co) + y_offset,
+                y=np.full(n_part, y_co) + y_add,
                 py=np.full(n_part, py_co),
                 zeta=np.full(n_part, zeta_co),
                 delta=np.full(n_part, delta_co) + deltas,
@@ -1323,7 +1375,6 @@ class Line:
                 deltan = float(np.min(initial_deltas[surviving_pids]))
                 deltap = float(np.max(initial_deltas[surviving_pids]))
             else:
-                # No survivors → report NaNs
                 deltan = float('nan')
                 deltap = float('nan')
 
@@ -1334,7 +1385,7 @@ class Line:
             })
 
         cols = {k: np.array([r[k] for r in rows]) for k in rows[0].keys()}
-
+        
         return xt.Table(cols, index='s')
 
     def slice_thick_elements(self, slicing_strategies):
