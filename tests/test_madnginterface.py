@@ -196,8 +196,8 @@ def test_madng_twiss_with_initial_conditions():
     line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
     #pytest.set_trace()
-    tw_xs = line.twiss(betx=120, bety=150)
-    tw = line.madng_twiss(beta11=120, beta22=150)
+    tw_xs = line.twiss(betx=120, bety=150, alfx=0, alfy=0, dx=0, dy=0)
+    tw = line.madng_twiss(beta11=120, beta22=150, alfa11=0, alfa22=0, dx=0, dy=0)
 
     assert len(tw) == len(tw_xs)
     assert len(tw.betx) == len(tw.beta11_ng)
@@ -213,8 +213,9 @@ def test_madng_twiss_with_initial_conditions():
     xo.assert_allclose(tw.x, tw.x_ng, rtol=1e-8, atol=1e-6)
     xo.assert_allclose(tw.y, tw.y_ng, rtol=1e-8, atol=1e-6)
 
-    tw2_xs = line.twiss(start='s.ds.l8.b1', end='ip1', betx=100, bety=34)
-    tw2_xsng = line.madng_twiss(start='s.ds.l8.b1', end='ip1', beta11=100, beta22=34, xsuite_tw=False)
+    tw2_xs = line.twiss(start='s.ds.l8.b1', end='ip1', betx=100, bety=34, alfx=0, alfy=0, dx=0, dy=0)
+    tw2_xsng = line.madng_twiss(start='s.ds.l8.b1', end='ip1', beta11=100, beta22=34,
+                                alfa_11=0, alfa_22=0, dx=0, dy=0, xsuite_tw=False)
 
     assert len(tw2_xs.betx) == len(tw2_xsng.beta11_ng)
     xo.assert_allclose(tw2_xs.betx, tw2_xsng.beta11_ng, rtol=1e-8, atol=1e-6)
