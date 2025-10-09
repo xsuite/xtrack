@@ -128,8 +128,7 @@ def cavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     Convert a cavity element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - name: Name of the cavity element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -156,8 +155,7 @@ def crabcavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     Convert a cavity element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - name: Name of the cavity element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -178,8 +176,7 @@ def marker_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
     """Convert a marker element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - name: Name of the marker element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -208,8 +205,7 @@ def drift_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     Convert a drift element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - name: Name of the drift element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -228,8 +224,7 @@ def drift_slice_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     Convert a drift element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - name: Name of the drift element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -249,8 +244,7 @@ def multipole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """ Convert a multipole element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - name: Name of the multipole element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -313,8 +307,7 @@ def rfmultipole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     Convert an RF multipole element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - name: Name of the rfmultipole element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -363,8 +356,7 @@ def bend_to_mad_str(eref, bend_type='sbend', mad_type=MadType.MADX, substituted_
     """ Convert a bend element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - name: Name of the bend element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - bend_type: Type of bend ('sbend' or 'rbend').
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
@@ -442,8 +434,7 @@ def octupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """ Convert a octupole element to a MADX/MAD-NG string representation.
 
     Parameters:
-    - name: Name of the octupole element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -469,8 +460,7 @@ def quadrupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """ Convert a quadrupole element to a MADX string representation.
 
     Parameters:
-    - name: Name of the quadrupole element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
@@ -499,8 +489,7 @@ def solenoid_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """ Convert a solenoid element to a MADX string representation.
 
     Parameters:
-    - name: Name of the solenoid element.
-    - line: The line containing the element.
+    - eref: The element reference.
     - mad_type: Type of MAD (MADX or MADNG).
     - substituted_vars: List of substituted variables for MADNG.
 
