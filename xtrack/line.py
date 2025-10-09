@@ -1044,6 +1044,8 @@ class Line:
 
     @particle_ref.setter
     def particle_ref(self, particle_ref):
+        if isinstance(particle_ref, LineParticleRef):
+            particle_ref = particle_ref.line._particle_ref
         self._particle_ref = particle_ref
         # This looks a bit dangerous, when working with coasting beams in environments.
         # If the particle is shared with other lines, t_sim might be wrong.
@@ -2514,7 +2516,7 @@ class Line:
         s_cuts = list(tab_insertions['s_start']) + list(tab_insertions['s_end'])
         s_cuts = list(set(s_cuts))
 
-        self.cut_at_s(s_cuts, s_tol=1e-06, return_slices=True)
+        self.cut_at_s(s_cuts, s_tol=s_tol, return_slices=True)
 
         tt_after_cut = self.get_table()
         tt_after_cut['length'] = np.diff(tt_after_cut.s, append=tt_after_cut.s[-1])

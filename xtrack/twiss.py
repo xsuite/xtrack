@@ -1595,105 +1595,108 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     only_markers=False,
                     periodic=False,
                     periodic_mode=None,
-                    include_collective=False):
+                    include_collective=False,
+                    tw_chrom_res=None
+                    ):
 
     if only_markers:
         raise NotImplementedError('only_markers not supported anymore')
 
-    tw_chrom_res = []
-    for dd in [-delta_chrom, delta_chrom]:
-        tw_init_chrom = init.copy()
+    if tw_chrom_res is None:
+        tw_chrom_res = []
+        for dd in [-delta_chrom, delta_chrom]:
+            tw_init_chrom = init.copy()
 
-        if periodic:
-            import xpart
-            part_guess = xpart.build_particles(
-                _context=line._context,
-                x_norm=0,
-                zeta=tw_init_chrom.zeta,
-                delta=tw_init_chrom.delta+ dd,
-                particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
-                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                W_matrix=tw_init_chrom.W_matrix,
-                include_collective=include_collective)
-            part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
-                                    start=start, end=end, num_turns=num_turns,
-                                    symmetrize=False,
-                                    include_collective=include_collective,
-                                    )
-            tw_init_chrom.particle_on_co = part_chrom
-            RR_chrom = line.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=tw_init_chrom.particle_on_co.copy(),
+            if periodic:
+                import xpart
+                part_guess = xpart.build_particles(
+                    _context=line._context,
+                    x_norm=0,
+                    zeta=tw_init_chrom.zeta,
+                    delta=tw_init_chrom.delta+ dd,
+                    particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
+                    nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                    W_matrix=tw_init_chrom.W_matrix,
+                    include_collective=include_collective)
+                part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
                                         start=start, end=end, num_turns=num_turns,
-                                        steps_r_matrix=steps_r_matrix,
                                         symmetrize=False,
                                         include_collective=include_collective,
-                                        )['R_matrix']
-            (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
-                                    only_4d_block=True,
-                                    responsiveness_tol=matrix_responsiveness_tol,
-                                    stability_tol=matrix_stability_tol,
-                                    symplectify=symplectify)
-            tw_init_chrom.W_matrix = WW_chrom
-        else:
-            alfx = init.alfx
-            betx = init.betx
-            alfy = init.alfy
-            bety = init.bety
-            dx = init.dx
-            dy = init.dy
-            dpx = init.dpx
-            dpy = init.dpy
-            ddx = init.ddx
-            ddpx = init.ddpx
-            ddy = init.ddy
-            ddpy = init.ddpy
-            ax_chrom = init.ax_chrom
-            bx_chrom = init.bx_chrom
-            ay_chrom = init.ay_chrom
-            by_chrom = init.by_chrom
+                                        )
+                tw_init_chrom.particle_on_co = part_chrom
+                RR_chrom = line.compute_one_turn_matrix_finite_differences(
+                                            particle_on_co=tw_init_chrom.particle_on_co.copy(),
+                                            start=start, end=end, num_turns=num_turns,
+                                            steps_r_matrix=steps_r_matrix,
+                                            symmetrize=False,
+                                            include_collective=include_collective,
+                                            )['R_matrix']
+                (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
+                                        only_4d_block=True,
+                                        responsiveness_tol=matrix_responsiveness_tol,
+                                        stability_tol=matrix_stability_tol,
+                                        symplectify=symplectify)
+                tw_init_chrom.W_matrix = WW_chrom
+            else:
+                alfx = init.alfx
+                betx = init.betx
+                alfy = init.alfy
+                bety = init.bety
+                dx = init.dx
+                dy = init.dy
+                dpx = init.dpx
+                dpy = init.dpy
+                ddx = init.ddx
+                ddpx = init.ddpx
+                ddy = init.ddy
+                ddpy = init.ddpy
+                ax_chrom = init.ax_chrom
+                bx_chrom = init.bx_chrom
+                ay_chrom = init.ay_chrom
+                by_chrom = init.by_chrom
 
-            dbetx_dpzeta = bx_chrom * betx
-            dbety_dpzeta = by_chrom * bety
-            dalfx_dpzeta = ax_chrom + bx_chrom * alfx
-            dalfy_dpzeta = ay_chrom + by_chrom * alfy
+                dbetx_dpzeta = bx_chrom * betx
+                dbety_dpzeta = by_chrom * bety
+                dalfx_dpzeta = ax_chrom + bx_chrom * alfx
+                dalfy_dpzeta = ay_chrom + by_chrom * alfy
 
-            tw_init_chrom.particle_on_co.x += dx * dd + 1/2 * ddx * dd**2
-            tw_init_chrom.particle_on_co.px += dpx * dd + 1/2 * ddpx * dd**2
-            tw_init_chrom.particle_on_co.y += dy * dd + 1/2 * ddy * dd**2
-            tw_init_chrom.particle_on_co.py += dpy * dd + 1/2 * ddpy * dd**2
-            tw_init_chrom.particle_on_co.delta += dd
+                tw_init_chrom.particle_on_co.x += dx * dd + 1/2 * ddx * dd**2
+                tw_init_chrom.particle_on_co.px += dpx * dd + 1/2 * ddpx * dd**2
+                tw_init_chrom.particle_on_co.y += dy * dd + 1/2 * ddy * dd**2
+                tw_init_chrom.particle_on_co.py += dpy * dd + 1/2 * ddpy * dd**2
+                tw_init_chrom.particle_on_co.delta += dd
 
-            twinit_aux = TwissInit(
-                alfx=alfx + dalfx_dpzeta * dd,
-                betx=betx + dbetx_dpzeta * dd,
-                alfy=alfy + dalfy_dpzeta * dd,
-                bety=bety + dbety_dpzeta * dd,
-                dx=dx + ddx * dd,
-                dpx=dpx + ddpx * dd,
-                dy=dy + ddy * dd,
-                dpy=dpy + ddpy * dd)
-            twinit_aux._complete(line, element_name=init.element_name)
-            tw_init_chrom.W_matrix = twinit_aux.W_matrix
+                twinit_aux = TwissInit(
+                    alfx=alfx + dalfx_dpzeta * dd,
+                    betx=betx + dbetx_dpzeta * dd,
+                    alfy=alfy + dalfy_dpzeta * dd,
+                    bety=bety + dbety_dpzeta * dd,
+                    dx=dx + ddx * dd,
+                    dpx=dpx + ddpx * dd,
+                    dy=dy + ddy * dd,
+                    dpy=dpy + ddpy * dd)
+                twinit_aux._complete(line, element_name=init.element_name)
+                tw_init_chrom.W_matrix = twinit_aux.W_matrix
 
-        tw_chrom_res.append(
-            _twiss_open(
-                line=line,
-                init=tw_init_chrom,
-                start=start, end=end,
-                nemitt_x=nemitt_x,
-                nemitt_y=nemitt_y,
-                r_sigma=r_sigma,
-                delta_disp=delta_disp,
-                use_full_inverse=use_full_inverse,
-                hide_thin_groups=hide_thin_groups,
-                only_markers=only_markers,
-                _continue_if_lost=False,
-                _keep_tracking_data=False,
-                _keep_initial_particles=False,
-                _initial_particles=None,
-                _ebe_monitor=None,
+            tw_chrom_res.append(
+                _twiss_open(
+                    line=line,
+                    init=tw_init_chrom,
+                    start=start, end=end,
+                    nemitt_x=nemitt_x,
+                    nemitt_y=nemitt_y,
+                    r_sigma=r_sigma,
+                    delta_disp=delta_disp,
+                    use_full_inverse=use_full_inverse,
+                    hide_thin_groups=hide_thin_groups,
+                    only_markers=only_markers,
+                    _continue_if_lost=False,
+                    _keep_tracking_data=False,
+                    _keep_initial_particles=False,
+                    _initial_particles=None,
+                    _ebe_monitor=None,
+                )
             )
-        )
 
     dmux = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
     dmuy = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
