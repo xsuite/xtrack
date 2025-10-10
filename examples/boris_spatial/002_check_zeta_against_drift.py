@@ -11,7 +11,7 @@ integrator = xt.BorisSpatialIntegrator(fieldmap_callable=zero_field,
 
 drift = xt.Drift(length=10, model='exact')
 
-p0 = xt.Particles('proton', x=1e-2, px=15e-3, p0c=1e9, zeta=1)
+p0 = xt.Particles('proton', x=[1e-2, -1e-2], px=[15e-3, 0], delta=[0, 2], p0c=1e9, zeta=1)
 
 p_integ = p0.copy()
 integrator.track(p_integ)
