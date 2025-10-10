@@ -140,6 +140,7 @@ class MadxLoader:
         self._new_builtin("xrotation", "XRotation")
         self._new_builtin("yrotation", "YRotation")
         self._new_builtin("srotation", "SRotation")
+        self._new_builtin("translation", "XYShift")
 
         for mad_apertype in _APERTURE_TYPES:
             self._new_builtin(mad_apertype, 'Marker')
