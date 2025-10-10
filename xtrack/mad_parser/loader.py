@@ -473,6 +473,10 @@ class MadxLoader:
         elif parent_name in {'srotation', 'xrotation', 'yrotation'}:
             if (angle := params.pop('angle', None)):
                 params['angle'] = (angle * 180) / np.pi
+        elif parent_name == 'translation':
+            if (ds := params.pop('ds', None)):
+                raise NotImplementedError('`ds` parameter not supported yet for '
+                                          '`translation` elements.')
 
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']
