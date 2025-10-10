@@ -18,13 +18,13 @@ class BorisSpatialIntegrator:
 
     def track(self, p):
 
+        mask_alive = p.state > 0
+
         x_log = []
         y_log = []
         z_log = []
-        s_in = p.s.copy()
-        p.s=self.s_start
-
-        mask_alive = p.state > 0
+        s_in = p.s[mask_alive].copy()
+        p.s[mask_alive] = self.s_start
 
         for ii in range(self.n_steps):
 
@@ -71,7 +71,7 @@ class BorisSpatialIntegrator:
             x_log.append(p.x.copy())
             y_log.append(p.y.copy())
             z_log.append(p.s.copy())
-        p.s = s_in + self.length
+        p.s[mask_alive] = s_in + self.length
         self.x_log = np.array(x_log)
         self.y_log = np.array(y_log)
         self.z_log = np.array(z_log)
