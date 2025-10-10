@@ -3,9 +3,9 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-mad = Madx()
 
-mad.input("""
+
+seq_src = ("""
 
     on_srot = 1;
     pi = 3.14159265358979323846;
@@ -24,7 +24,6 @@ mad.input("""
     bv1: sbend, tilt=pi/2, angle=0.2, k0=1e-22, l=0.1;
     bv2: sbend, tilt=pi/2, angle=-0.2, k0=1e-22, l=0.1;
 
-    beam;
     ss: sequence,l=20;
         rs2, at=5.5;
         rx1, at=6;
@@ -37,7 +36,15 @@ mad.input("""
         bv2, at=14;
         end: marker, at=16;
     endsequence;
+""")
 
+
+
+mad = Madx()
+mad.input(seq_src)
+
+mad.input("""
+    beam;
     use,sequence=ss;
     twiss,betx=1,bety=1,x=1e-3,y=2e-3;
     survey;
