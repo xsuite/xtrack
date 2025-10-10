@@ -66,7 +66,7 @@ class BorisSpatialIntegrator:
             p.s[mask_alive] = z_new
             p.px[mask_alive] = w_new[:, 0] / P0
             p.py[mask_alive] = w_new[:, 1] / P0
-            p.zeta[mask_alive] -= dt * clight * beta0
+            p.zeta[mask_alive] += (self.ds - dt * clight * beta0)
 
             x_log.append(p.x.copy())
             y_log.append(p.y.copy())
