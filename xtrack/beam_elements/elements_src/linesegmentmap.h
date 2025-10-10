@@ -204,6 +204,8 @@ void longitudinal_motion(LocalParticle *part0,
         double const bucket_length = LineSegmentMapData_get_bucket_length(el)*LocalParticle_get_beta0(part0)*C_LIGHT;
         double const sin_s = sin(2 * PI * qs);
         double const cos_s = cos(2 * PI * qs);
+        uint8_t kill_energy_kick = LocalParticle_check_track_flag(
+                    part0, XS_FLAG_KILL_CAVITY_KICK);
         START_PER_PARTICLE_BLOCK(part0, part);
             // We set cos_s = 999 if long map is to be skipped
             double shift = 0.0;
@@ -215,7 +217,9 @@ void longitudinal_motion(LocalParticle *part0,
             double const new_pzeta = sin_s * LocalParticle_get_zeta(part) / bets + cos_s * LocalParticle_get_pzeta(part);
 
             LocalParticle_set_zeta(part, new_zeta+shift);
-            LocalParticle_update_pzeta(part, new_pzeta);
+            if (!kill_energy_kick){
+                LocalParticle_update_pzeta(part, new_pzeta);
+            }
         END_PER_PARTICLE_BLOCK;
     }
     else if (mode_flag==2){ // non-linear motion
@@ -325,6 +329,8 @@ GPUFUN
 void correlated_radiation_damping(LocalParticle *part0,
             LineSegmentMapData el){
 
+    uint8_t kill_energy_kick = LocalParticle_check_track_flag(
+                    part0, XS_FLAG_KILL_CAVITY_KICK);
     START_PER_PARTICLE_BLOCK(part0, part);
         double in[6];
         in[0] = LocalParticle_get_x(part);
@@ -345,7 +351,8 @@ void correlated_radiation_damping(LocalParticle *part0,
         LocalParticle_set_y(part, out[2]);
         LocalParticle_set_py(part, out[3]);
         LocalParticle_set_zeta(part, out[4]);
-        LocalParticle_update_pzeta(part,out[5]);
+        if (!kill_energy_kick){
+            LocalParticle_update_pzeta(part,out[5]);}
     END_PER_PARTICLE_BLOCK;
 }
 

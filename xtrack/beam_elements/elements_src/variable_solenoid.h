@@ -8,29 +8,22 @@
 
 #include <headers/track.h>
 #include <beam_elements/elements_src/track_magnet.h>
+#include <beam_elements/elements_src/default_magnet_config.h>
 
 GPUFUN
 void VariableSolenoid_track_local_particle(
         VariableSolenoidData el,
         LocalParticle* part0
 ) {
-    int64_t integrator = VariableSolenoidData_get_integrator(el);
-    int64_t num_multipole_kicks = VariableSolenoidData_get_num_multipole_kicks(el);
-
-    if (integrator == 0) {  // adaptive
-        integrator = 3;  // uniform
-    }
-    if (num_multipole_kicks == 0) {
-        num_multipole_kicks = 1;
-    }
-
     double ks_entry = VariableSolenoidData_get_ks_profile(el, 0);
     double ks_exit = VariableSolenoidData_get_ks_profile(el, 1);
     double const length = VariableSolenoidData_get_length(el);
+    double const x0 = VariableSolenoidData_get_x0(el);
+    double const y0 = VariableSolenoidData_get_y0(el);
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         VSWAP(ks_entry, ks_exit);
-    #endif
+    }
 
     double ks, dks_ds;
     if (length != 0){
@@ -44,24 +37,27 @@ void VariableSolenoid_track_local_particle(
 
     START_PER_PARTICLE_BLOCK(part0, part);
         // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)
-        double const new_ax = -0.5 * ks_entry * LocalParticle_get_y(part);
-        double const new_ay = 0.5 * ks_entry * LocalParticle_get_x(part);
+        double const new_ax = -0.5 * ks_entry * (LocalParticle_get_y(part) - y0);
+        double const new_ay = 0.5 * ks_entry * (LocalParticle_get_x(part) - x0);
         LocalParticle_set_ax(part, new_ax);
         LocalParticle_set_ay(part, new_ay);
     END_PER_PARTICLE_BLOCK;
 
     track_magnet_particles(
+        /*weight*/                1.,
         /*part0*/                 part0,
         /*length*/                length,
         /*order*/                 VariableSolenoidData_get_order(el),
         /*inv_factorial_order*/   VariableSolenoidData_get_inv_factorial_order(el),
         /*knl*/                   VariableSolenoidData_getp1_knl(el, 0),
         /*ksl*/                   VariableSolenoidData_getp1_ksl(el, 0),
-        /*factor_knl_ksl*/        1.,
-        /*num_multipole_kicks*/   num_multipole_kicks,
+        /*num_multipole_kicks*/   VariableSolenoidData_get_num_multipole_kicks(el),
         /*model*/                 -2, // sol-kick-sol
-        /*integrator*/            integrator,
+        /*default_model*/         0, // unused
+        /*integrator*/            VariableSolenoidData_get_integrator(el),
+        /*default_integrator*/    SOLENOID_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        VariableSolenoidData_get_radiation_flag(el),
+        /*radiation_flag_parent*/ 0, // not used here
         /*radiation_record*/      NULL,
         /*delta_taper*/           VariableSolenoidData_get_delta_taper(el),
         /*h*/                     0.,
@@ -76,6 +72,11 @@ void VariableSolenoid_track_local_particle(
         /*k3s*/                   0.,
         /*ks*/                    ks,
         /*dks_ds*/                dks_ds,
+        /*x0_solenoid*/           x0,
+        /*y0_solenoid*/           y0,
+        /*rbend_model*/           -1, // not rbend
+        /*rbend_shift*/           0.,
+        /*body_active*/           1,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,
         /*edge_entry_model*/      1,
@@ -92,8 +93,8 @@ void VariableSolenoid_track_local_particle(
 
     START_PER_PARTICLE_BLOCK(part0, part);
         // Update ax and ay (Wolsky Eq. 3.114 and Eq. 2.74)
-        double const new_ax = -0.5 * ks_exit * LocalParticle_get_y(part);
-        double const new_ay = 0.5 * ks_exit * LocalParticle_get_x(part);
+        double const new_ax = -0.5 * ks_exit * (LocalParticle_get_y(part) - y0);
+        double const new_ay = 0.5 * ks_exit * (LocalParticle_get_x(part) - x0);
         LocalParticle_set_ax(part, new_ax);
         LocalParticle_set_ay(part, new_ay);
     END_PER_PARTICLE_BLOCK;

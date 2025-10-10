@@ -1,7 +1,7 @@
 import xtrack as xt
 import numpy as np
 
-lhc = xt.Environment.from_json('mddata/step2.json')
+lhc = xt.load('mddata/step2.json')
 
 line = lhc.b1
 line.twiss_default.update({'strengths': False, 'method': '4d'})

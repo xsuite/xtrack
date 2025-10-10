@@ -5,7 +5,7 @@ from scipy.constants import hbar
 from scipy.constants import electron_volt
 from scipy.constants import c as clight
 
-line = xt.Line.from_json('line_thick_P4_H6BA_v4.2.4.json')
+line = xt.load('line_thick_P4_H6BA_v4.2.4.json')
 line.particle_ref = xt.Particles(energy0=6e9, mass0=xt.ELECTRON_MASS_EV)
 
 tw4d = line.twiss4d()

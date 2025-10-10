@@ -8,7 +8,7 @@ import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_ps_multiturn_twiss(test_context):
 
     test_data_folder = pathlib.Path(

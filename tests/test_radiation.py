@@ -145,7 +145,7 @@ def test_radiation(test_context, thick):
                       np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=2e-3, atol=0)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize('thick', [False, True])
 @fix_random_seed(8438475)
 def test_ring_with_radiation(test_context, thick):

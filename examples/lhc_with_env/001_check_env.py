@@ -2,7 +2,7 @@ import numpy as np
 import xtrack as xt
 import xobjects as xo
 
-env = xt.Environment.from_json('lhc.json')
+env = xt.load('lhc.json')
 
 assert env.lhcb1.element_dict is env.element_dict
 assert env.lhcb2.element_dict is env.element_dict

@@ -98,7 +98,22 @@ class TrackerData:
         if not check_passed:
             raise RuntimeError('The elements are not in the same buffer')
 
-        line_element_classes = set(ee._XoStruct for ee in self._elements)
+        line_element_classes = set()
+        for ee in self._elements:
+            if ee._XoStruct in line_element_classes:
+                continue
+            line_element_classes.add(ee._XoStruct)
+            if hasattr(ee, '_drift_slice_class') and ee._drift_slice_class:
+                line_element_classes.add(ee._drift_slice_class._XoStruct)
+            if hasattr(ee, '_thick_slice_class') and ee._thick_slice_class:
+                line_element_classes.add(ee._thick_slice_class._XoStruct)
+            if hasattr(ee, '_thin_slice_class') and ee._thin_slice_class:
+                line_element_classes.add(ee._thin_slice_class._XoStruct)
+            if hasattr(ee, '_entry_slice_class') and ee._entry_slice_class:
+                line_element_classes.add(ee._entry_slice_class._XoStruct)
+            if hasattr(ee, '_exit_slice_class') and ee._exit_slice_class:
+                line_element_classes.add(ee._exit_slice_class._XoStruct)
+
         self.line_element_classes = line_element_classes
         self.element_s_locations = tuple(element_s_locations)
         self.line_length = line_length
@@ -133,6 +148,15 @@ class TrackerData:
                 self._element_dict[nn]._parent = this_parent
                 this_parent._movable = True
                 assert self._element_dict[nn]._parent._offset == self._element_dict[nn]._xobject._parent._offset
+
+    def __del__(self):
+        # Free the element ref data
+        if hasattr(self, '_element_ref_data'):
+            offset = self._element_ref_data._offset
+            buffer = self._element_ref_data._buffer
+            size = self._element_ref_data._size
+            del self._element_ref_data
+            buffer.free(offset, size)
 
     def common_buffer_for_elements(self):
         """If all `self.elements` elements are in the same buffer,

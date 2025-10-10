@@ -5,7 +5,7 @@
 
 import xtrack as xt
 
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/psb_injection/line_and_particle.json')
 line.particle_ref = xt.Particles(mass0=(xt.PROTON_MASS_EV), q0=1, energy0=(2*160.+938.)*1.e6)
 line.build_tracker()

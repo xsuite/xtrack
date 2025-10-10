@@ -385,7 +385,7 @@ def test_quadrupole(case, atol):
 
 
 def test_polarization_lep_base():
-    line = xt.Line.from_json(BMAD_REF_FILES / 'lep_lattice_to_bmad.json')
+    line = xt.load(BMAD_REF_FILES / 'lep_lattice_to_bmad.json')
 
     line['on_sol.2'] = 1
     line['on_sol.4'] = 1
@@ -460,7 +460,7 @@ def test_polarization_lep_base():
 
 
 def test_polarization_lep_spin_bump():
-    line = xt.Line.from_json(BMAD_REF_FILES / 'lep_lattice_to_bmad.json')
+    line = xt.load(BMAD_REF_FILES / 'lep_lattice_to_bmad.json')
 
     line['on_sol.2'] = 1
     line['on_sol.4'] = 1
@@ -535,7 +535,7 @@ def test_polarization_lep_spin_bump():
 
 
 def test_polarization_lep_sext_corr():
-    line = xt.Line.from_json(BMAD_REF_FILES / 'lep_lattice_to_bmad.json')
+    line = xt.load(BMAD_REF_FILES / 'lep_lattice_to_bmad.json')
 
     line['on_sol.2'] = 1
     line['on_sol.4'] = 1

@@ -24,10 +24,10 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
     int64_t radiation_flag = SolenoidData_get_radiation_flag(el);
     double factor_knl_ksl = 1;
 
-    #ifdef XSUITE_BACKTRACK
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         length = -length;
         factor_knl_ksl = -1;
-    #endif
+    }
 
     #ifndef XTRACK_SOLENOID_NO_SYNRAD
         double dp_record_entry = 0.;
@@ -92,7 +92,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
             XRotation_single_particle(part, sin_x_rot, cos_x_rot, tan_x_rot);
         }
         if (sin_y_rot != 0) {
-            YRotation_single_particle(part, sin_y_rot, cos_y_rot, tan_y_rot);
+            YRotation_single_particle(part, -sin_y_rot, cos_y_rot, -tan_y_rot);
         }
 
         track_multipolar_kick_bend(
@@ -100,7 +100,7 @@ void Solenoid_track_local_particle(SolenoidData el, LocalParticle* part0) {
                     kick_weight, 0, 0, 0, 0);
 
         if (sin_y_rot != 0) {
-            YRotation_single_particle(part, -sin_y_rot, cos_y_rot, -tan_y_rot);
+            YRotation_single_particle(part, sin_y_rot, cos_y_rot, tan_y_rot);
         }
         if (sin_x_rot != 0) {
             XRotation_single_particle(part, -sin_x_rot, cos_x_rot, -tan_x_rot);

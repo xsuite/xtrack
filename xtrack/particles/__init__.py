@@ -4,7 +4,8 @@
 # ######################################### #
 
 from .masses import PROTON_MASS_EV, ELECTRON_MASS_EV, MUON_MASS_EV, Pb208_MASS_EV
-from .particles import Particles, reference_from_pdg_id, LAST_INVALID_STATE
+from .particles import (Particles, reference_from_pdg_id, LAST_INVALID_STATE,
+                        _update_kwargs0_from_pdg_id)
 
 
 def enable_pyheadtail_interface():

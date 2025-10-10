@@ -1,7 +1,7 @@
 import xtrack as xt
 import numpy as np
 
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 tt = line.get_table()
 

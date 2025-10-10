@@ -5,8 +5,6 @@ import xtrack as xt
 
 import matplotlib.pyplot as plt
 
-from cpymad.madx import Madx
-
 mad = Madx()
 
 # Load mad model and apply element shifts

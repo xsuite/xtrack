@@ -9,7 +9,7 @@ test_data_folder = pathlib.Path(
 
 @for_all_test_contexts
 def test_cavity_absolute_time(test_context):
-    line = xt.Line.from_json(test_data_folder /
+    line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
     line.build_tracker(_context=test_context)
     line.vv['vrf400'] = 16

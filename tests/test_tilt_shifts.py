@@ -8,106 +8,102 @@ from cpymad.madx import Madx
 
 assert_allclose = np.testing.assert_allclose
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize(
     'slice_mode',
     [None, 'thin', 'thick'],
     ids=['no_slice', 'thin_slice', 'thick_slice'])
-def test_test_tilt_shifts_vs_sandwtch(test_context, slice_mode):
+@pytest.mark.parametrize(
+    'element_type',
+    ['Quadrupole', 'Sextupole', 'Octupole', 'Multipole'],
+)
+def test_test_tilt_shifts_vs_sandwich(test_context, slice_mode, element_type):
+    ele_test = {
+        'Quadrupole': xt.Quadrupole(k1=0.2, k1s=-0.3, length=3.),
+        'Sextupole': xt.Sextupole(k2=0.1, k2s=0.2, length=0.3),
+        'Octupole': xt.Octupole(k3=0.1, k3s=0.2, length=0.4),
+        'Multipole': xt.Multipole(knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4],
+                                  length=0.4, hxl=0.1)
+    }
 
-    ele_test = [
-        xt.Bend(k0=0.04, h=0.03, length=1,
-                k1=0.1,
-                knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4],
-                edge_entry_angle=0.05, edge_exit_angle=0.06,
-                edge_entry_hgap=0.06, edge_exit_hgap=0.07,
-                edge_entry_fint=0.08, edge_exit_fint=0.09,
-                ),
-        xt.Quadrupole(k1=2., k1s=-3., length=3.),
-        xt.Sextupole(k2=0.1, k2s=0.2, length=0.3),
-        xt.Octupole(k3=0.1, k3s=0.2, length=0.4),
-        xt.Multipole(knl=[0.7, 0.8, 0.9, 1.0], ksl=[0.1, 0.2, 0.3, 0.4],
-                            length=0.4, hxl=0.1)
-    ]
+    elem = ele_test[element_type]
 
-    for elem in ele_test:
-        print('ele type:', elem.__class__.__name__)
+    shift_x = 1e-3
+    shift_y = 2e-3
+    shift_s = 10e-3
+    rot_s_rad = -0.4
 
-        shift_x = 1e-3
-        shift_y = 2e-3
-        shift_s = 10e-3
-        rot_s_rad = -0.4
+    line_test = xt.Line(elements=[elem.copy()])
 
-        line_test = xt.Line(elements=[elem.copy()])
+    line_ref = xt.Line(elements=[
+        xt.DriftExact(length=shift_s),
+        xt.XYShift(dx=shift_x, dy=shift_y),
+        xt.SRotation(angle=np.rad2deg(rot_s_rad)),
+        elem.copy(),
+        xt.SRotation(angle=np.rad2deg(-rot_s_rad)),
+        xt.XYShift(dx=-shift_x, dy=-shift_y),
+        xt.DriftExact(length=-shift_s)
+    ])
+    line_ref.build_tracker()
+    line_ref.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
 
-        line_ref = xt.Line(elements=[
-            xt.Drift(length=shift_s),
-            xt.XYShift(dx=shift_x, dy=shift_y),
-            xt.SRotation(angle=np.rad2deg(rot_s_rad)),
-            elem.copy(),
-            xt.SRotation(angle=np.rad2deg(-rot_s_rad)),
-            xt.XYShift(dx=-shift_x, dy=-shift_y),
-            xt.Drift(length=-shift_s)
-        ])
-        line_ref.config.XTRACK_GLOBAL_XY_LIMIT = 1000
+    if slice_mode is not None:
+        line_test.slice_thick_elements(
+            slicing_strategies=[xt.Strategy(xt.Teapot(3, mode=slice_mode))])
+        line_ref.slice_thick_elements(
+            slicing_strategies=[xt.Strategy(xt.Teapot(3, mode=slice_mode))])
 
-        if slice_mode is not None:
-            line_test.slice_thick_elements(
-                slicing_strategies=[xt.Strategy(xt.Teapot(3, mode=slice_mode))])
-            line_ref.slice_thick_elements(
-                slicing_strategies=[xt.Strategy(xt.Teapot(3, mode=slice_mode))])
+    line_test['e0'].rot_s_rad = rot_s_rad
+    line_test['e0'].shift_x = shift_x
+    line_test['e0'].shift_y = shift_y
+    line_test['e0'].shift_s = shift_s
 
-        line_test['e0'].rot_s_rad = rot_s_rad
-        line_test['e0'].shift_x = shift_x
-        line_test['e0'].shift_y = shift_y
-        line_test['e0'].shift_s = shift_s
+    p_test = xt.Particles(p0c=10e9, x=0.1, px=0.02, y=0.3, py=0.04, delta=0.03,
+                          _context=test_context)
+    p_ref = p_test.copy()
+    p0 = p_test.copy()
 
-        p_test = xt.Particles(p0c=10e9, x=0.1, px=0.2, y=0.3, py=0.4, delta=0.03,
-                              _context=test_context)
-        p_ref = p_test.copy()
-        p0 = p_test.copy()
+    line_test.build_tracker(_context=test_context)
+    line_ref.build_tracker(_context=test_context)
 
-        line_test.build_tracker(_context=test_context)
-        line_ref.build_tracker(_context=test_context)
+    line_test.track(p_test)
+    line_ref.track(p_ref)
 
-        line_test.track(p_test)
-        line_ref.track(p_ref)
+    p_test.move(_context=xo.context_default)
+    p_ref.move(_context=xo.context_default)
 
-        p_test.move(_context=xo.context_default)
-        p_ref.move(_context=xo.context_default)
+    assert not np.any(np.isnan(p_test.x))
+    xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=5e-12)
+    xo.assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-13)
 
-        assert_allclose = np.testing.assert_allclose
-        assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-13)
-        assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
-        assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
-        assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
-        assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=5e-12)
-        assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-13)
+    # Test backtrack
+    p_test.move(_context=test_context)
+    p_ref.move(_context=test_context)
 
-        # Test backtrack
-        p_test.move(_context=test_context)
-        p_ref.move(_context=test_context)
+    line_test.track(p_test, backtrack=True)
+    line_ref.track(p_ref, backtrack=True)
 
-        line_test.track(p_test, backtrack=True)
-        line_ref.track(p_ref, backtrack=True)
+    p_test.move(_context=xo.context_default)
+    p_ref.move(_context=xo.context_default)
 
-        p_test.move(_context=xo.context_default)
-        p_ref.move(_context=xo.context_default)
+    assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-11)
+    assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-11)
+    assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-11)
+    assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-11)
+    assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-7)
+    assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-11)
 
-        assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-11)
-        assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-11)
-        assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-11)
-        assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-11)
-        assert_allclose(p_test.zeta, p_ref.zeta, rtol=0, atol=1e-7)
-        assert_allclose(p_test.delta, p_ref.delta, rtol=0, atol=1e-11)
-
-        p0.move(_context=xo.context_default)
-        assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-11)
-        assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-11)
-        assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-11)
-        assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-11)
-        assert_allclose(p_test.zeta, p0.zeta, rtol=0, atol=1e-7)
-        assert_allclose(p_test.delta, p0.delta, rtol=0, atol=1e-11)
+    p0.move(_context=xo.context_default)
+    assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-11)
+    assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-11)
+    assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-11)
+    assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-11)
+    assert_allclose(p_test.zeta, p0.zeta, rtol=0, atol=1e-7)
+    assert_allclose(p_test.delta, p0.delta, rtol=0, atol=1e-11)
 
 def test_tilt_shifts_vs_madx():
 

@@ -3,7 +3,7 @@ import json
 import xtrack as xt
 
 # import a line and add reference particle
-line = xt.Line.from_json(
+line = xt.load(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7e12)
 

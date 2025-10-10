@@ -12,7 +12,7 @@ collider_file = '../../test_data/hllhc15_collider/collider_00_from_mad.json'
 
 
 # Load the machine and select line
-collider= xt.Environment.from_json(collider_file)
+collider= xt.load(collider_file)
 collider.vars['test_vars'] = 3.1416
 line   = collider[seq]
 line_sel    = line.select(s_marker,e_marker)

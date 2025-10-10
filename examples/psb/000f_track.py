@@ -1,7 +1,7 @@
 import numpy as np
 import xtrack as xt
 
-line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
+line = xt.load('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()
 
 line.vars['on_chicane_k0'] = 1

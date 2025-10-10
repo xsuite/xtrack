@@ -7,7 +7,7 @@ import numpy as np
 import xtrack as xt
 from scipy.constants import c as clight
 
-line = xt.Line.from_json('../../test_data/sps_w_spacecharge/line_no_spacecharge.json')
+line = xt.load('../../test_data/sps_w_spacecharge/line_no_spacecharge.json')
 line.build_tracker()
 tw0 = line.twiss4d()
 

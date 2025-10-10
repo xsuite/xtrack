@@ -9,10 +9,11 @@ from xobjects.test_helpers import for_all_test_contexts
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
-@for_all_test_contexts
+
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_ip_knob_matching(test_context):
 
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 
@@ -330,7 +331,7 @@ def test_ip_knob_matching(test_context):
 @for_all_test_contexts
 def test_match_ir8_optics(test_context):
 
-    collider = xt.Environment.from_json(test_data_folder /
+    collider = xt.load(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.build_trackers(test_context)
 

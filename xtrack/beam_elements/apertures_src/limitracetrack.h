@@ -12,6 +12,10 @@
 GPUFUN
 void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* part0){
 
+    if(LocalParticle_check_track_flag(part0, XS_FLAG_IGNORE_LOCAL_APERTURE)){
+        return;
+    }
+
     double const min_x = LimitRacetrackData_get_min_x(el);
     double const max_x = LimitRacetrackData_get_max_x(el);
     double const min_y = LimitRacetrackData_get_min_y(el);

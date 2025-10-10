@@ -110,9 +110,9 @@ void magnet_spin(
 
     if (spin_x_0 != 0. || spin_y_0 != 0. || spin_z_0 != 0.){
 
-        #ifdef XSUITE_BACKTRACK
+        if (LocalParticle_check_track_flag(part, XS_FLAG_BACKTRACK)) {
             LocalParticle_set_state(part, -33);
-        #else
+        } else {
 
             double const ptau = LocalParticle_get_ptau(part);
             double const delta = LocalParticle_get_delta(part);
@@ -220,7 +220,7 @@ void magnet_spin(
                 LocalParticle_set_spin_y(part, spin_y_3);
                 LocalParticle_set_spin_z(part, spin_z_3);
             }
-        #endif
+        }
     }
 }
 

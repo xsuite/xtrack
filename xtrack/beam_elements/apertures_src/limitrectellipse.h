@@ -12,13 +12,15 @@
 GPUFUN
 void LimitRectEllipse_track_local_particle(LimitRectEllipseData el, LocalParticle* part0){
 
+    if(LocalParticle_check_track_flag(part0, XS_FLAG_IGNORE_LOCAL_APERTURE)){
+        return;
+    }
     double const max_x = LimitRectEllipseData_get_max_x(el);
     double const max_y = LimitRectEllipseData_get_max_y(el);
     double const a_squ = LimitRectEllipseData_get_a_squ(el);
     double const b_squ = LimitRectEllipseData_get_b_squ(el);
     double const a_b_squ = LimitRectEllipseData_get_a_b_squ(el);
-    
-    
+
     START_PER_PARTICLE_BLOCK(part0, part);
 
         double const x = LocalParticle_get_x(part);

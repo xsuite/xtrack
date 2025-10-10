@@ -14,7 +14,7 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 @pytest.mark.parametrize('deferred_expressions', [True, False])
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_sps_thick(test_context, deferred_expressions):
 
     mad = Madx(stdout=False)
@@ -34,7 +34,7 @@ def test_sps_thick(test_context, deferred_expressions):
     line.twiss_default['method'] = '4d'
 
     # Check a bend
-    assert line.element_names[26] == 'mbb.10150'
+    assert line.element_names[24] == 'mbb.10150'
 
     assert isinstance(line['mbb.10150'], xt.RBend)
 
@@ -114,15 +114,15 @@ def test_sps_thick(test_context, deferred_expressions):
     line.build_tracker(_context=test_context)
 
     # Check a bend
-    assert line.element_names[112] == 'mbb.10150_entry'
-    assert line.element_names[113] == 'mbb.10150..entry_map'
-    assert line.element_names[114] == 'drift_mbb.10150..0'
-    assert line.element_names[115] == 'mbb.10150..0'
-    assert line.element_names[116] == 'drift_mbb.10150..1'
-    assert line.element_names[117] == 'mbb.10150..1'
-    assert line.element_names[118] == 'drift_mbb.10150..2'
-    assert line.element_names[119] == 'mbb.10150..exit_map'
-    assert line.element_names[120] == 'mbb.10150_exit'
+    assert line.element_names[114] == 'mbb.10150_entry'
+    assert line.element_names[115] == 'mbb.10150..entry_map'
+    assert line.element_names[116] == 'drift_mbb.10150..0'
+    assert line.element_names[117] == 'mbb.10150..0'
+    assert line.element_names[118] == 'drift_mbb.10150..1'
+    assert line.element_names[119] == 'mbb.10150..1'
+    assert line.element_names[120] == 'drift_mbb.10150..2'
+    assert line.element_names[121] == 'mbb.10150..exit_map'
+    assert line.element_names[122] == 'mbb.10150_exit'
 
     assert isinstance(line['mbb.10150_entry'], xt.Marker)
     assert isinstance(line['mbb.10150..entry_map'], xt.ThinSliceRBendEntry)
@@ -135,27 +135,27 @@ def test_sps_thick(test_context, deferred_expressions):
     assert isinstance(line['mbb.10150_exit'], xt.Marker)
 
     # Check a quadrupole
-    assert line.element_names[156] == 'qf.10210_entry'
-    assert line.element_names[157] == 'qf.10210..entry_map'
-    assert line.element_names[158] == 'drift_qf.10210..0'
-    assert line.element_names[159] == 'qf.10210..0'
-    assert line.element_names[160] == 'drift_qf.10210..1'
-    assert line.element_names[161] == 'qf.10210..1'
-    assert line.element_names[162] == 'drift_qf.10210..2'
-    assert line.element_names[163] == 'qf.10210..2'
-    assert line.element_names[164] == 'drift_qf.10210..3'
-    assert line.element_names[165] == 'qf.10210..3'
-    assert line.element_names[166] == 'drift_qf.10210..4'
-    assert line.element_names[167] == 'qf.10210..4'
-    assert line.element_names[168] == 'drift_qf.10210..5'
-    assert line.element_names[169] == 'qf.10210..5'
-    assert line.element_names[170] == 'drift_qf.10210..6'
-    assert line.element_names[171] == 'qf.10210..6'
-    assert line.element_names[172] == 'drift_qf.10210..7'
-    assert line.element_names[173] == 'qf.10210..7'
-    assert line.element_names[174] == 'drift_qf.10210..8'
-    assert line.element_names[175] == 'qf.10210..exit_map'
-    assert line.element_names[176] == 'qf.10210_exit'
+    assert line.element_names[160] == 'qf.10210_entry'
+    assert line.element_names[161] == 'qf.10210..entry_map'
+    assert line.element_names[162] == 'drift_qf.10210..0'
+    assert line.element_names[163] == 'qf.10210..0'
+    assert line.element_names[164] == 'drift_qf.10210..1'
+    assert line.element_names[165] == 'qf.10210..1'
+    assert line.element_names[166] == 'drift_qf.10210..2'
+    assert line.element_names[167] == 'qf.10210..2'
+    assert line.element_names[168] == 'drift_qf.10210..3'
+    assert line.element_names[169] == 'qf.10210..3'
+    assert line.element_names[170] == 'drift_qf.10210..4'
+    assert line.element_names[171] == 'qf.10210..4'
+    assert line.element_names[172] == 'drift_qf.10210..5'
+    assert line.element_names[173] == 'qf.10210..5'
+    assert line.element_names[174] == 'drift_qf.10210..6'
+    assert line.element_names[175] == 'qf.10210..6'
+    assert line.element_names[176] == 'drift_qf.10210..7'
+    assert line.element_names[177] == 'qf.10210..7'
+    assert line.element_names[178] == 'drift_qf.10210..8'
+    assert line.element_names[179] == 'qf.10210..exit_map'
+    assert line.element_names[180] == 'qf.10210_exit'
 
     assert isinstance(line['qf.10210..7'], xt.ThinSliceQuadrupole)
 

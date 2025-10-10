@@ -1,7 +1,7 @@
 import xtrack as xt
 
 # Load a line and build a tracker
-collider = xt.Environment.from_json(
+collider = xt.load(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.build_trackers()
 

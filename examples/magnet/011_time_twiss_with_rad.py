@@ -3,7 +3,7 @@ from pathlib import Path
 
 line_path = (Path(xt.__file__).parent / '../test_data/fcc_ee/fccee_h_thin.json').absolute()
 
-line = xt.Line.from_json(line_path)
+line = xt.load(line_path)
 line.build_tracker()
 
 import time
