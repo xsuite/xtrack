@@ -56,7 +56,9 @@ env = xt.load(string=madx_src, format='madx')
 line = env.myseq
 line.particle_ref = xt.Particles('positron', p0c=10e9, q0=-1)
 twxs = line.twiss()
-
+mng_xs = line.to_madng()
+mng_xs.seq.dumpseq()
+tw = mng_xs.twiss(sequence=mng_xs.seq)[0].to_df()
 
 import pymadng as pg
 mng = pg.MAD()
@@ -66,3 +68,11 @@ mng.send('''
     MADX.myseq:dumpseq()
 ''')
 twng = mng.twiss(sequence='MADX.myseq')[0].to_df()
+
+madx2 = Madx()
+madx2.input(line.to_madx_sequence(sequence_name='myseq'))
+madx2.input('beam, particle=positron, pc=10;')
+madx2.use(sequence='myseq')
+twmadx2 = madx2.twiss()
+
+
