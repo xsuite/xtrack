@@ -1717,7 +1717,7 @@ class EnvElements:
     def __repr__(self):
         names = list(self.env.element_dict.keys())
         n = len(names)
-        preview = ', '.join(names[:5]) + ('...' if n > 5 else '')
+        preview = ', '.join(names[:5]) + (', ...' if n > 5 else '')
         return f'EnvElements({n} elements: {preview})'
 
     def get_table(self):
@@ -1892,10 +1892,10 @@ class EnvLines(UserDict):
         return tt
 
     def __repr__(self):
-        out = 'EnvLines({'
-        out += ', '.join(list(self.keys()))
-        out += '})'
-        return out
+        names = list(self.keys())
+        n = len(names)
+        preview = ', '.join(names[:5]) + (', ...' if n > 5 else '')
+        return f'EnvLines({n} lines: {preview})'
 
 def get_environment(verbose=False):
     import xtrack
