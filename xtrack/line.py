@@ -1446,8 +1446,17 @@ class Line:
         """
         Compute the 4D Twiss parameters. Equivalent to `twiss` with `method='4d'`.
         """
-
+        assert 'method' not in kwargs, 'method cannot be provided as argument to twiss4d'
         kwargs['method'] = '4d'
+        return self.twiss(**kwargs)
+
+    def twiss6d(self, **kwargs):
+
+        """
+        Compute the 6D Twiss parameters. Equivalent to `twiss` with `method='6d'`.
+        """
+        assert 'method' not in kwargs, 'method cannot be provided as argument to twiss6d'
+        kwargs['method'] = '6d'
         return self.twiss(**kwargs)
 
     def match(self, vary, targets, solve=True, assert_within_tol=True,

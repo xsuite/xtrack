@@ -141,6 +141,7 @@ class Environment:
         self._lines_weakrefs = WeakSet()
         self._drift_counter = 0
         self.ref = EnvRef(self)
+        self._elements = EnvElements(self)
 
         if lines is not None:
 
@@ -850,6 +851,10 @@ class Environment:
                              return_lines=return_lines, **kwargs)
 
     @property
+    def elements(self):
+        return self._elements
+
+    @property
     def particles(self):
         return self._particles
 
@@ -894,10 +899,6 @@ class Environment:
     @particle_ref.setter
     def particle_ref(self, particle_ref):
         self._particle_ref = particle_ref
-
-    @property
-    def elements(self):
-        return self.element_dict
 
     @property
     def line_names(self):
@@ -1696,6 +1697,41 @@ def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
             setattr(element_refs[name], kk, ref_kwargs[kk])
         else:
             setattr(element_dict[name], kk, value_kwargs[kk])
+
+class EnvElements:
+    def __init__(self, env):
+        self.env = env
+
+    def __getitem__(self, name):
+        if name in self.env.element_dict:
+            return self.env.element_dict[name]
+        else:
+            raise KeyError(f'Element {name} not found.')
+
+    def __setitem__(self, key, value):
+        self.env[key] = value
+
+    def __getattr__(self, name):
+        return getattr(self.env.element_dict, name)
+
+    def __repr__(self):
+        return repr(self.env.element_dict)
+
+    def get_table(self):
+        names = sorted(list(self.env.element_dict.keys()))
+        dumline = self.env.new_line(components=names)
+        tt = dumline.get_table()
+        assert tt.name[-1] == '_end_point'
+        tt = tt.rows[:-1] # Remove endpoint
+        del tt['s']
+        del tt['s_start']
+        del tt['s_center']
+        del tt['s_end']
+        del tt['env_name']
+        tt['length'] = np.array(
+            [getattr(self.env.element_dict[nn], 'length', 0) for nn in tt.name])
+        return tt
+
 
 class EnvRef:
     def __init__(self, env):
