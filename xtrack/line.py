@@ -1179,13 +1179,14 @@ class Line:
     def momentum_aperture(
         self,
         *,
+        particle_ref=None,
         twiss=None,
         x_offset: float = 0.0,
         y_offset: float = 0.0,
-        x_norm_offset: float | None = None,
-        y_norm_offset: float | None = None,
-        nemitt_x: float | None = None,
-        nemitt_y: float | None = None,
+        x_norm_offset: float = 0.0,
+        y_norm_offset: float = 0.0,
+        nemitt_x=None,
+        nemitt_y=None,
         delta_negative_limit: float = -0.10,
         delta_positive_limit: float = +0.10,
         delta_step_size: float = 0.01,
@@ -1230,20 +1231,24 @@ class Line:
         """
         import fnmatch
 
+        if particle_ref is None:
+            if hasattr(self, 'particle_ref'):
+                particle_ref = self.particle_ref
+            else:
+                raise ValueError(
+                    "If the line has no particle_ref, a particle_ref must be provided.")
+
         if forbid_resonance_crossing:
             raise NotImplementedError("forbid_resonance_crossing is not implemented yet.")
         
         # Mutual exclusivity: physical vs normalized offsets
-        if x_offset != 0.0 and x_norm_offset is not None:
+        if x_offset != 0.0 and x_norm_offset != 0.0:
             raise ValueError("Provide either x_offset or x_norm_offset, not both.")
-        if y_offset != 0.0 and y_norm_offset is not None:
+        if y_offset != 0.0 and y_norm_offset != 0.0:
             raise ValueError("Provide either y_offset or y_norm_offset, not both.")
 
-        # If normalized offsets are used, require the corresponding normalized emittance
-        if x_norm_offset is not None and nemitt_x is None:
-            raise ValueError("nemitt_x must be provided when x_norm_offset is used.")
-        if y_norm_offset is not None and nemitt_y is None:
-            raise ValueError("nemitt_y must be provided when y_norm_offset is used.")
+        if nemitt_x is None or nemitt_y is None:
+            raise ValueError("nemitt_x and nemitt_y must be provided.")
 
         if delta_negative_limit >= 0:
             raise ValueError("delta_negative_limit must be < 0")
@@ -1268,17 +1273,9 @@ class Line:
             self.build_tracker()
 
         # Compute twiss (use 6D by default, overridable via kwargs['method'])
+        twiss_method = kwargs.pop('method', '6d')
         if twiss is None:
-            twiss_method = kwargs.pop('method', '6d')
             twiss = self.twiss(method=twiss_method)
-
-        gemitt_x = None
-        gemitt_y = None
-        if (nemitt_x is not None) or (nemitt_y is not None):
-            beta0 = float(self.particle_ref.beta0[0])
-            gamma0 = float(self.particle_ref.gamma0[0])
-            gemitt_x = (nemitt_x / (beta0 * gamma0)) if nemitt_x is not None else None
-            gemitt_y = (nemitt_y / (beta0 * gamma0)) if nemitt_y is not None else None
 
         # By default, we scan at the ENTRANCE of each element
         s_entr = np.array(list(self.get_s_elements(mode="upstream")))
@@ -1324,41 +1321,37 @@ class Line:
                 continue
             seen_s.add(s_here)
 
-            x_co    = twiss['x', ee]
-            px_co   = twiss['px', ee]
-            y_co    = twiss['y', ee]
-            py_co   = twiss['py', ee]
+            ## Prepare test particles
+            # The longitudinal closed orbit need to be manually supplied
             zeta_co = twiss['zeta', ee]
             delta_co= twiss['delta', ee]
 
-            # Compute physical offsets
-            x_add = x_offset
-            y_add = y_offset
-
-            if x_norm_offset is not None:
-                sigmx = np.sqrt(gemitt_x * twiss['betx', ee])
-                x_add = x_norm_offset * sigmx
-
-            if y_norm_offset is not None:
-                sigmy = np.sqrt(gemitt_y * twiss['bety', ee])
-                y_add = y_norm_offset * sigmy
-
-            # Prepare test particles
-            particles = xt.Particles(
+            # On-momentum, matched, test particles
+            particles = self.build_particles(
                 _context=self._context,
-                p0c=self.particle_ref.p0c[0],
-                mass0=self.particle_ref.mass0,
-                q0=self.particle_ref.q0,
-                pdg_id=self.particle_ref.pdg_id,
-                x=np.full(n_part, x_co) + x_add,
-                px=np.full(n_part, px_co),
-                y=np.full(n_part, y_co) + y_add,
-                py=np.full(n_part, py_co),
-                zeta=np.full(n_part, zeta_co),
-                delta=np.full(n_part, delta_co) + deltas,
+                num_particles=n_part,
+                particle_ref=particle_ref,
+                x_norm=x_norm_offset,
+                y_norm=y_norm_offset,
+                zeta=zeta_co,
+                delta=delta_co,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                at_element=ee,
+                method=twiss_method
             )
+            particles.start_tracking_at_element = -1
+
+            # Add the delta grid
+            delta_temp = particles.delta.copy()
+            delta_temp += deltas
+            particles.update_delta(delta_temp)
 
             initial_deltas = particles.delta.copy()
+
+            # Apply absolute offsets, if any
+            particles.x += x_offset
+            particles.y += y_offset
 
             print(f"\nTrack test particles from reference point #{ii}")
             self.track(
