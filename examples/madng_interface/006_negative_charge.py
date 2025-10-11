@@ -1,25 +1,25 @@
 import xtrack as xt
 
-env = xt.Environment()
+# env = xt.Environment()
 
-line = env.new_line(length=10, components=[
-    env.new('b1', 'Bend', length=1, angle=0.1, k0_from_h=True, at=1),
-    env.new('q1', 'Quadrupole', length=1, k1=0.01, at=2.5),
-    env.new('q2', 'Quadrupole', length=1, k1=-0.01, at=7.5),
-    env.new('c1', 'Cavity', length=0.1, lag=180, voltage=4e6, frequency=400e6, at=4),
-    env.new('c2', 'Cavity', length=0.1, lag=-20, voltage=3e6, frequency=400e6, at=5),
-    env.new('c3', 'Cavity', length=0.1, lag=180-20, voltage=3e6, frequency=400e6, at=6),
-    env.new('marker', 'Marker', at=10),
-])
-line.set_particle_ref('positron', p0c=10e9)
+# line = env.new_line(length=10, components=[
+#     env.new('b1', 'Bend', length=1, angle=0.1, k0_from_h=True, at=1),
+#     env.new('q1', 'Quadrupole', length=1, k1=0.01, at=2.5),
+#     env.new('q2', 'Quadrupole', length=1, k1=-0.01, at=7.5),
+#     env.new('c1', 'Cavity', length=0.1, lag=180, voltage=4e6, frequency=400e6, at=4),
+#     env.new('c2', 'Cavity', length=0.1, lag=-20, voltage=3e6, frequency=400e6, at=5),
+#     env.new('c3', 'Cavity', length=0.1, lag=180-20, voltage=3e6, frequency=400e6, at=6),
+#     env.new('marker', 'Marker', at=10),
+# ])
+# line.set_particle_ref('positron', p0c=10e9)
 
 # tw = line.twiss(betx=100, bety=20)
 # twng = line.madng_twiss(betx=100, bety=20)
 
-tw = line.twiss()
-twng = line.madng_twiss()
+# tw = line.twiss()
+# twng = line.madng_twiss()
 
-madx_src = line.to_madx_sequence(sequence_name='myseq')
+# madx_src = line.to_madx_sequence(sequence_name='myseq')
 
 madx_src ='''
 b1: sbend, l=1, angle=0.1;
@@ -28,7 +28,7 @@ q2: quadrupole, l=1, k1=-0.01;
 c1: rfcavity, l=0.1, lag=180/360, volt=4, freq=400;
 c2: rfcavity, l=0.1, lag=-20/360, volt=3, freq=400;
 c3: rfcavity, l=0.1, lag=(180-20)/360, volt=3, freq=400;
-marker: marker;
+mm: marker;
 myseq: sequence, l=10;
     b1, at=1;
     q1, at=2.5;
@@ -36,9 +36,13 @@ myseq: sequence, l=10;
     c2, at=5;
     c3, at=6;
     q2, at=7.5;
-    marker, at=10;
+    mm, at=10;
 endsequence;
 '''
+
+# write to file
+with open('temp_seq.madx', 'w') as fid:
+    fid.write(madx_src)
 
 from cpymad.madx import Madx
 madx = Madx()
@@ -48,4 +52,17 @@ madx.input('beam, particle=positron, pc=10;')
 madx.use(sequence='myseq')
 twmadx = madx.twiss()
 
+env = xt.load(string=madx_src, format='madx')
+line = env.myseq
+line.particle_ref = xt.Particles('positron', p0c=10e9, q0=-1)
+twxs = line.twiss()
 
+
+import pymadng as pg
+mng = pg.MAD()
+mng.send('''
+    MADX:load('temp_seq.madx')
+    MADX.myseq.beam = MAD.beam{particle='positron', pc=10};
+    MADX.myseq:dumpseq()
+''')
+twng = mng.twiss(sequence='MADX.myseq')[0].to_df()
