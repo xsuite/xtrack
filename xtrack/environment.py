@@ -1882,6 +1882,18 @@ class EnvLines(UserDict):
         self.env._lines_weakrefs.add(value)
         UserDict.__setitem__(self, key, value)
 
+    def get_table(self):
+        names = np.array(list(self.keys()))
+        num_elements = np.array([len(self.env.lines[nn]) for nn in names])
+        tt = xt.Table({'name': names, 'num_elements': num_elements})
+        return tt
+
+    def __repr__(self):
+        out = 'EnvLines({'
+        out += ', '.join(list(self.keys()))
+        out += '})'
+        return out
+
 def get_environment(verbose=False):
     import xtrack
     if hasattr(xtrack, '_passed_env') and xtrack._passed_env is not None:
