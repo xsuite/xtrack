@@ -1720,6 +1720,9 @@ class EnvElements:
         preview = ', '.join(names[:5]) + (', ...' if n > 5 else '')
         return f'EnvElements({n} elements: {preview})'
 
+    def __len__(self):
+        return len(self.env.element_dict)
+
     def get_table(self):
         names = sorted(list(self.env.element_dict.keys()))
         dumline = self.env.new_line(components=names)
