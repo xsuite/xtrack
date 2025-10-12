@@ -4136,13 +4136,6 @@ class Line:
                 'This action is not allowed as the line is frozen! '
                 'You can unfreeze the line by calling the `discard_tracker()` method.')
 
-    def transform_compound(self, *args, **kwargs):
-        raise NotImplementedError('`transform_compound` is not anymore supported. '
-            'Tilt and shifts can be applied directly to the elements.\n'
-            'For more details, see: '
-            'https://xsuite.readthedocs.io/en/latest/line.html#apply-transformations-tilt-shift-to-elements'
-        )
-
     def mirror(self, inplace=True):
         assert inplace in [True, False]
         if inplace == False:
