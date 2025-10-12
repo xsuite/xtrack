@@ -328,7 +328,7 @@ class Environment:
             self.element_dict[name] = parent(**value_kwargs)
 
         _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    element_dict=self.element_dict, element_refs=self.element_refs)
+                    element_dict=self.element_dict, elem_refs=self._xdeps_eref)
 
         if extra is not None:
             assert isinstance(extra, dict)
@@ -395,7 +395,7 @@ class Environment:
             self.particles[name] = parent(**value_kwargs)
 
         _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    element_dict=self._particles, element_refs=self._xdeps_pref)
+                    element_dict=self._particles, elem_refs=self._xdeps_pref)
 
         self.particles[name].prototype = prototype
 
@@ -928,7 +928,7 @@ class Environment:
     def _remove_element(self, name):
 
         pars_with_expr = list(
-            self._xdeps_manager.tartasks[self.element_refs[name]].keys())
+            self._xdeps_manager.tartasks[self._xdeps_eref[name]].keys())
 
         # Kill all references
         for rr in pars_with_expr:
@@ -1052,6 +1052,13 @@ class Environment:
             return self._var_management['vref']
 
     @property
+    def _xdeps_eref(self):
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            return self._in_multiline.element_refs
+        if self._var_management is not None:
+            return self._var_management['lref']
+
+    @property
     def _xdeps_fref(self):
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline._xdeps_fref
@@ -1123,10 +1130,10 @@ class Environment:
             key = self.element_names[key]
         assert isinstance(key, str)
         if key in self.element_dict:
-            if self.element_refs is None:
+            if self.ref_manager is None:
                 return self.element_dict[key]
             return xd.madxutils.View(
-                self.element_dict[key], self.element_refs[key],
+                self.element_dict[key], self._xdeps_eref[key],
                 evaluator=self._xdeps_eval.eval)
         elif key in self.particles:
             if self._xdeps_pref is None:
@@ -1211,7 +1218,7 @@ class Environment:
                 type(self.element_dict[name]), kwargs, _eval)
             xt.environment._set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                element_dict=self.element_dict, element_refs=self.element_refs)
+                element_dict=self.element_dict, elem_refs=self._xdeps_eref)
             if extra is not None:
                 assert isinstance(extra, dict), (
                     'Description must be a dictionary')
@@ -1402,8 +1409,8 @@ def _all_places(seq):
 #     if not line[name].isthick:
 #         return 0
 
-#     if line.element_refs[name]._expr is not None:
-#         return line.element_refs[name]._expr
+#     if line._xdeps_eref[name]._expr is not None:
+#         return line._xdeps_eref[name]._expr
 #     else:
 #         return line[name].length
 
@@ -1701,7 +1708,7 @@ def _parse_kwargs(cls, kwargs, _eval):
 
     return ref_kwargs, value_kwargs
 
-def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
+def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, elem_refs):
     for kk in value_kwargs:
         if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
             len_value = len(value_kwargs[kk])
@@ -1709,9 +1716,9 @@ def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, element_refs):
             if kk in ref_kwargs:
                 for ii, vvv in enumerate(value_kwargs[kk]):
                     if ref_kwargs[kk][ii] is not None:
-                        getattr(element_refs[name], kk)[ii] = ref_kwargs[kk][ii]
+                        getattr(elem_refs[name], kk)[ii] = ref_kwargs[kk][ii]
         elif kk in ref_kwargs:
-            setattr(element_refs[name], kk, ref_kwargs[kk])
+            setattr(elem_refs[name], kk, ref_kwargs[kk])
         else:
             setattr(element_dict[name], kk, value_kwargs[kk])
 
@@ -1722,10 +1729,10 @@ class EnvElements:
     def __getitem__(self, key):
 
         if key in self.env.element_dict:
-            if self.env.element_refs is None:
+            if self.env.ref_manager is None:
                 return self.env.element_dict[key]
             return xd.madxutils.View(
-                self.env.element_dict[key], self.env.element_refs[key],
+                self.env.element_dict[key], self.env._xdeps_eref[key],
                 evaluator=self.env._xdeps_eval.eval)
         else:
             raise KeyError(f'Element {key} not found.')
@@ -1770,7 +1777,7 @@ class EnvRef:
         if hasattr(self.env, 'lines') and name in self.env.lines:
             return self.env.lines[name].ref
         elif name in self.env.element_dict:
-            return self.env.element_refs[name]
+            return self.env._xdeps_eref[name]
         elif name in self.env.vars:
             return self.env._xdeps_vref[name]
         elif name in self.env.particles:
@@ -1801,7 +1808,7 @@ class EnvRef:
         else:
             if key in self.env.vars:
                 raise ValueError(f'There is already a variable with name {key}')
-            self.element_refs[key] = val_ref
+            self.env._xdeps_eref[key] = val_ref
 
 
 class Builder:
