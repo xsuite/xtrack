@@ -111,7 +111,7 @@ def _knl_ksl_to_mad(mult):
     return knl_token, ksl_token
 
 def _get_eref(line, name):
-    return line.element_refs[name]
+    return line.ref.elements[name]
 
 def _handle_transforms(tokens, el, mad_type=MadType.MADX, substituted_vars=None):
     if el.shift_x._expr is not None or el.shift_x._value:

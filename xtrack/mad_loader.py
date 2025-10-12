@@ -342,7 +342,7 @@ class ElementBuilderWithExpr(ElementBuilder):
         if name_associated_aperture:
             xtel.name_associated_aperture = name_associated_aperture
         line.append_element(xtel, name)
-        elref = line.element_refs[name]
+        elref = line.ref.elements[name]
         for k, p in self.attrs.items():
             set_expr(elref, k, p)
         return xtel

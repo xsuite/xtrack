@@ -397,10 +397,11 @@ class Tracker:
         self._check_invalidated()
         return self.line.vars
 
-    @property
-    def element_refs(self):
-        self._check_invalidated()
-        return self.line.element_refs
+    # Not really used, we try to take it away, let's see if anybody complains
+    # @property
+    # def element_refs(self):
+    #     self._check_invalidated()
+    #     return self.line.element_refs
 
     @property
     def enable_pipeline_hold(self):
