@@ -1810,9 +1810,21 @@ class EnvRef:
                 raise ValueError(f'There is already a variable with name {key}')
             self.env._xdeps_eref[key] = val_ref
 
+    @property
+    def elements(self):
+        return self.env._xdeps_eref
+
+    @property
+    def particles(self):
+        return self.env._xdeps_pref
+
+    @property
+    def vars(self):
+        return self.env._xdeps_vref
+
 
 class Builder:
-    def __init__(self, env, components=None, name=None, length=None, 
+    def __init__(self, env, components=None, name=None, length=None,
                  refer: ReferType = 'center', s_tol=1e-6):
         self.env = env
         self.components = components or []

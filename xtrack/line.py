@@ -527,8 +527,7 @@ class Line:
         sequence : madx.Sequence
             MAD-X sequence object or name of the sequence
         deferred_expressions : bool, optional
-            If true, deferred expressions from MAD-X are imported and can be
-            accessed in `Line.vars` and `Line.element_refs`.
+            If true, deferred expressions from MAD-X are imported.
         install_apertures : bool, optional
             If true, aperture information is installed in the line.
         apply_madx_errors : bool, optional
@@ -4228,7 +4227,7 @@ class Line:
         self.element_dict[new_name] = source.element_dict[name].copy()
 
         pars_with_expr = list(
-            source._xdeps_manager.tartasks[source.element_refs[name]].keys())
+            source._xdeps_manager.tartasks[source._xdeps_eref[name]].keys())
 
         formatter = xd.refs.CompactFormatter(scope=None)
 
@@ -4444,6 +4443,10 @@ class Line:
         return self.env._xdeps_vref
 
     @property
+    def _xdeps_eref(self):
+        return self.env._xdeps_eref
+
+    @property
     def _xdeps_fref(self):
         return self.env._xdeps_fref
 
@@ -4600,7 +4603,7 @@ class Line:
         if self.energy_program.needs_complete:
             self.energy_program.complete_init(self)
         self.energy_program.line = self
-        self.element_refs['energy_program'].t_turn_s_line = self.vars['t_turn_s']
+        self._xdeps_eref['energy_program'].t_turn_s_line = self.vars['t_turn_s']
 
     @property
     def steering_monitors_x(self):
@@ -4655,10 +4658,10 @@ class Line:
             key = self.element_names[key]
         assert isinstance(key, str)
         if key in self.element_dict:
-            if self.element_refs is None:
+            if self.ref_manager is None:
                 return self.element_dict[key]
             return xd.madxutils.View(
-                self.element_dict[key], self.element_refs[key],
+                self.element_dict[key], self._xdeps_eref[key],
                 evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
             return self.vv[key]
@@ -5420,12 +5423,6 @@ class EnvVars:
         preview = ', '.join(names_preview)
         return f'EnvVars({n} vars: {{{preview}}})'
 
-    def __len__(self):
-        if self.line._xdeps_vref is None:
-            raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        return len(self.line._xdeps_vref._owner) - 1
-
     def keys(self):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
@@ -5436,6 +5433,12 @@ class EnvVars:
     def __iter__(self):
         raise NotImplementedError('Use keys() method') # Untested
         return self.line._xdeps_vref._owner.__iter__()
+
+    def __len__(self):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        return len(self.line._xdeps_vref._owner) - 1
 
     def update(self, *args, **kwargs):
         default_to_zero = kwargs.pop('default_to_zero', None)
