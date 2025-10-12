@@ -149,8 +149,8 @@ class Tracker:
 
     def _init_io_buffer(self, io_buffer=None):
         if io_buffer is None:
-            io_bufs = [ee.io_buffer for ee in self.line.elements
-                       if getattr(ee, 'io_buffer', None) is not None]
+            io_bufs = [self.line[nn].io_buffer for nn in self.line.element_names
+                       if getattr(self.line[nn], 'io_buffer', None) is not None]
             if len(io_bufs) == 0:
                 io_buffer = new_io_buffer(_context=self._context)
             elif len(np.unique([id(buf) for buf in io_bufs])) > 1:
@@ -171,7 +171,8 @@ class Tracker:
         ii_in_part = 0
         i_part = 0
         idx = 0
-        for nn, ee in zip(line.element_names, line.elements):
+        for nn in line.element_names:
+            ee = line._element_dict[nn]
             if not _is_collective(ee, line):
                 this_part.append_element(ee, nn)
                 _element_part.append(i_part)
@@ -179,7 +180,7 @@ class Tracker:
                 ii_in_part += 1
                 _part_element_index[i_part].append(idx)
             else:
-                if len(this_part.elements) > 0:
+                if len(this_part) > 0:
                     parts.append(this_part)
                     part_names.append(f'part_{i_part}_non_collective')
                     i_part += 1
@@ -192,7 +193,7 @@ class Tracker:
                 this_part = Line(elements=[], element_names=[])
                 ii_in_part = 0
             idx += 1
-        if len(this_part.elements) > 0:
+        if len(this_part) > 0:
             parts.append(this_part)
             part_names.append(f'part_{i_part}_non_collective')
 
@@ -200,7 +201,8 @@ class Tracker:
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
             if isinstance(pp, Line):
-                noncollective_xelements += pp.elements
+                noncollective_xelements += [
+                    pp._element_dict[nn] for nn in pp.element_names]
             else:
                 if _is_thick(pp, line):
                     ldrift = pp.length
