@@ -5409,10 +5409,16 @@ class EnvVars:
         self.vars_to_update = WeakSet()
 
     def __repr__(self):
-        names = list(self.keys())
-        n = len(names)
-        preview = ', '.join(names[:5]) + (', ...' if n > 5 else '')
-        return f'EnvVars({n} vars: {preview})'
+        n = len(self.line._xdeps_vref._owner) - 1
+        names_preview = []
+        for ii, kk in enumerate(self.line._xdeps_vref._owner.keys()):
+            if kk != '__vary_default':
+                names_preview.append(str(kk))
+            if ii == 5:
+                names_preview.append('...')
+                break
+        preview = ', '.join(names_preview)
+        return f'EnvVars({n} vars: {{{preview}}})'
 
     def keys(self):
         if self.line._xdeps_vref is None:

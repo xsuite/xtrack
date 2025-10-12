@@ -1725,7 +1725,7 @@ class EnvElements:
         names = list(self.env.element_dict.keys())
         n = len(names)
         preview = ', '.join(names[:5]) + (', ...' if n > 5 else '')
-        return f'EnvElements({n} elements: {preview})'
+        return f'EnvElements({n} elements: {{{preview}}})'
 
     def __len__(self):
         return len(self.env.element_dict)
@@ -1905,7 +1905,7 @@ class EnvLines(UserDict):
         names = list(self.keys())
         n = len(names)
         preview = ', '.join(names[:5]) + (', ...' if n > 5 else '')
-        return f'EnvLines({n} lines: {preview})'
+        return f'EnvLines({n} lines: {{{preview}}})'
 
 def get_environment(verbose=False):
     import xtrack
