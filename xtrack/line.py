@@ -5420,6 +5420,12 @@ class EnvVars:
         preview = ', '.join(names_preview)
         return f'EnvVars({n} vars: {{{preview}}})'
 
+    def __len__(self):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        return len(self.line._xdeps_vref._owner) - 1
+
     def keys(self):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
