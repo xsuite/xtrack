@@ -1909,6 +1909,10 @@ class Builder:
         return self.env.element_dict
 
     @property
+    def _element_dict(self):
+        return self.env._element_dict
+
+    @property
     def ref(self):
         return self.env.ref
 

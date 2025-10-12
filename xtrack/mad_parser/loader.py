@@ -293,7 +293,7 @@ class MadxLoader:
             self._place_element(name, el_params, builder)
 
         if aperture:
-            builder.env._element_dict[name].name_associated_aperture = aperture
+            builder._element_dict[name].name_associated_aperture = aperture
 
     def _place_element(self, name, el_params, builder):
         """Place an element in the sequence.
