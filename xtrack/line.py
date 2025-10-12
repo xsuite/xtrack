@@ -4217,7 +4217,7 @@ class Line:
                 f'allowed in `copy_from_env` for now.'
             )
 
-        self.env.elements[new_name] = source._element_dict[name].copy()
+        self._element_dict[new_name] = source._element_dict[name].copy()
 
         pars_with_expr = list(
             source._xdeps_manager.tartasks[source._xdeps_eref[name]].keys())
