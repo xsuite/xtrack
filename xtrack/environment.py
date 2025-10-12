@@ -170,6 +170,22 @@ class Environment:
 
         self.metadata = {}
 
+    def __repr__(self):
+        line_names = list(self.lines.keys())
+        n_lines = len(line_names)
+        n_elements = len(self.elements)
+        n_vars = len(self.vars)
+        n_particles = len(self.particles)
+        preview_tokens = []
+        for ii, nn in enumerate(line_names):
+            preview_tokens.append(nn)
+            if ii >= 2:
+                preview_tokens.append('...')
+                break
+        preview_lines = ', '.join(preview_tokens)
+        return (f"Environment({n_lines} lines: {{{preview_lines}}}, "
+                f"{n_elements} elements, {n_vars} variables, {n_particles} particles)")
+
     def __getstate__(self):
         out = self.__dict__.copy()
         out.pop('_lines_weakrefs')
