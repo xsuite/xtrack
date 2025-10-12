@@ -2804,9 +2804,9 @@ class Line:
             element = element._get_viewed_object()
 
         self.discard_tracker()
-        if element in self.element_dict and element is not self.element_dict[name]:
+        if element in self._element_dict and element is not self._element_dict[name]:
             raise ValueError('Element already present in the line')
-        self.element_dict[name] = element
+        self.env.elements[name] = element
         self.element_names.append(name)
         return self
 
@@ -2841,11 +2841,11 @@ class Line:
             mask = [not(ee.__class__.__name__.startswith(exclude_types_starting_with))
                     for ee in self.elements]
 
-        new_elements = self.element_dict.copy()
+        new_elements = self._element_dict.copy()
         assert len(mask) == len(self.elements)
         for ff, nn in zip(mask, self.element_names):
             if not ff:
-                ee = self.element_dict[nn]
+                ee = self._element_dict[nn]
                 if hasattr(ee, '_buffer'):
                     _buffer = ee._buffer
                 else:
@@ -2929,7 +2929,7 @@ class Line:
             new_line = self
         else:
             new_line = self.__class__(
-                elements=self.element_dict,
+                elements=self._element_dict,
                 element_names=new_element_names,
                 particle_ref=self.particle_ref,
             )
@@ -3040,7 +3040,7 @@ class Line:
         if model is not None and model not in _MODEL_TO_INDEX_DRIFT:
             raise ValueError(f'Unknown drift model {model}')
 
-        for ee in self.element_dict.values():
+        for ee in self._element_dict.values():
             if model is not None and isinstance(ee, xt.Drift):
                 ee.model = model
 
@@ -3080,7 +3080,7 @@ class Line:
         if edge is not None and edge not in _EDGE_MODEL_TO_INDEX:
             raise ValueError(f'Unknown bend edge model {edge}')
 
-        for ee in self.element_dict.values():
+        for ee in self._element_dict.values():
             if core is not None and isinstance(ee, (xt.Bend, xt.RBend)):
                 ee.model = core
 
@@ -3123,7 +3123,7 @@ class Line:
 
         enable_fringes = edge == 'full'
 
-        for ee in self.element_dict.values():
+        for ee in self._element_dict.values():
             if not isinstance(ee, element_type):
                 continue
             if edge is not None:
@@ -3233,11 +3233,11 @@ class Line:
             bhabha_flag = 0
             self._bhabha_model = None
 
-        for kk, ee in self.element_dict.items():
+        for kk, ee in self._element_dict.items():
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
 
-        for kk, ee in self.element_dict.items():
+        for kk, ee in self._element_dict.items():
             if hasattr(ee, 'flag_beamstrahlung'):
                 ee.flag_beamstrahlung = beamstrahlung_flag
             if hasattr(ee, 'flag_bhabha'):
@@ -3561,7 +3561,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict.update(newline.element_dict)
+            self._element_dict.update(newline._element_dict)
             return self
         else:
             return newline
@@ -3611,7 +3611,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict.update(newline.element_dict)
+            self._element_dict.update(newline._element_dict)
             return self
         else:
             return newline
@@ -3658,7 +3658,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict.update(newline.element_dict)
+            self._element_dict.update(newline._element_dict)
             return self
         else:
             return newline
@@ -3703,7 +3703,7 @@ class Line:
             this_ee = ee if inplace else ee.copy()
             if _is_drift(ee, self) and not nn in keep:
                 prev_nn = newline.element_names[-1]
-                prev_ee = newline.element_dict[prev_nn]
+                prev_ee = newline._element_dict[prev_nn]
                 if _is_drift(prev_ee, self) and not prev_nn in keep:
                     prev_ee.length += ee.length
                 else:
@@ -3713,7 +3713,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict.update(newline.element_dict)
+            self._element_dict.update(newline._element_dict)
             return self
         else:
             return newline
@@ -3784,9 +3784,9 @@ class Line:
                 aper_m2 = None
             if (aper_m2 is not None
                 and _apertures_equal(
-                    self.element_dict[aper_0], self.element_dict[aper_m1], self)
+                    self._element_dict[aper_0], self._element_dict[aper_m1], self)
                 and _apertures_equal(
-                    self.element_dict[aper_m1], self.element_dict[aper_m2], self)
+                    self._element_dict[aper_m1], self._element_dict[aper_m2], self)
                 ):
                 # We found three consecutive apertures (with only Drifts and Markers
                 # in between) that are the same, hence the middle one can be removed
@@ -3814,13 +3814,13 @@ class Line:
         '''
         self._frozen_check()
 
-        for name, element in self.element_dict.items():
+        for name, element in self._element_dict.items():
             if _is_simple_quadrupole(element):
                 fast_quad = beam_elements.SimpleThinQuadrupole(
                     knl=element.knl[:2],
                     _context=element._context,
                 )
-                self.element_dict[name] = fast_quad
+                self._element_dict[name] = fast_quad
 
     def use_simple_bends(self):
         '''
@@ -3830,7 +3830,7 @@ class Line:
         '''
         self._frozen_check()
 
-        for name, element in self.element_dict.items():
+        for name, element in self._element_dict.items():
             if _is_simple_dipole(element):
                 fast_di = beam_elements.SimpleThinBend(
                     knl=element.knl[:1],
@@ -3838,7 +3838,7 @@ class Line:
                     length=element.length,
                     _context=element._context,
                 )
-                self.element_dict[name] = fast_di
+                self._element_dict[name] = fast_di
 
     def get_elements_of_type(self, types):
 
@@ -3893,7 +3893,7 @@ class Line:
 
         elements_df['is_aperture'] = elements_df.name.map(
                 lambda nn: nn == '_end_point'
-                    or  _is_aperture(self.element_dict[nn], self))
+                    or  _is_aperture(self._element_dict[nn], self))
 
         if not elements_df.name.values[-1] == '_end_point':
             elements_df['is_aperture'][-1] = False
@@ -3909,7 +3909,7 @@ class Line:
         for name in elements_df['name']:
             if name == '_end_point':
                 continue
-            ee = self.element_dict[name]
+            ee = self._element_dict[name]
             if isinstance(ee, xt.Replica):
                 ee = ee.resolve(self)
             if _allow_loss_refinement(ee, self) and not name in needs_aperture:
@@ -4025,7 +4025,7 @@ class Line:
 
             if isinstance(ee, Multipole) and nn not in keep and not ee.isthick:
                 prev_nn = newline.element_names[-1]
-                prev_ee = newline.element_dict[prev_nn]
+                prev_ee = newline._element_dict[prev_nn]
                 if (isinstance(prev_ee, Multipole)
                     and not prev_ee.isthick
                     and prev_ee.hxl==ee.hxl==0
@@ -4049,7 +4049,7 @@ class Line:
                             length=prev_ee.length,
                             radiation_flag=prev_ee.radiation_flag)
                     prev_nn += ('_' + nn)
-                    newline.element_dict[prev_nn] = newee
+                    newline._element_dict[prev_nn] = newee
                     newline.element_names[-1] = prev_nn
                 else:
                     newline.append_element(ee, nn)
@@ -4058,7 +4058,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict.update(newline.element_dict)
+            self._element_dict.update(newline._element_dict)
             return self
         else:
             return newline
@@ -4173,7 +4173,7 @@ class Line:
         new_element_names = []
         for nn in self.element_names:
             new_nn = nn + '.' + name
-            self.element_dict[new_nn] = xt.Replica(nn)
+            self.env.elements[new_nn] = xt.Replica(nn)
             new_element_names.append(new_nn)
 
         out = self.env.new_line(components=new_element_names, name=name)
@@ -4189,7 +4189,7 @@ class Line:
         return out
 
     def replace_replica(self, name):
-        name_parent = self.element_dict[name].resolve(self, get_name=True)
+        name_parent = self._element_dict[name].resolve(self, get_name=True)
         self.copy_element_from(name_parent, self, new_name=name)
 
     def copy_element_from(self, name, source, new_name=None):
@@ -4207,7 +4207,7 @@ class Line:
         """
         new_name_input = new_name if new_name != name else None
         new_name = new_name or name
-        cls = type(source.element_dict[name])
+        cls = type(source._element_dict[name])
 
         if (cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge] # No issue in copying DipoleEdge while creating it requires handling properties which are strings.
             and 'ThickSlice' not in cls.__name__ and 'ThinSlice' not in cls.__name__
@@ -4217,7 +4217,7 @@ class Line:
                 f'allowed in `copy_from_env` for now.'
             )
 
-        self.element_dict[new_name] = source.element_dict[name].copy()
+        self.env.elements[new_name] = source._element_dict[name].copy()
 
         pars_with_expr = list(
             source._xdeps_manager.tartasks[source._xdeps_eref[name]].keys())
@@ -4240,7 +4240,7 @@ class Line:
 
     def replace_all_replicas(self):
         for nn in self.element_names:
-            if isinstance(self.element_dict[nn], xt.Replica):
+            if isinstance(self._element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
 
     def replace_all_repeated_elements(self, separator='.', mode='clone'):
@@ -4257,7 +4257,7 @@ class Line:
             if len(aux_dict[nn]) > 1:
                 i_rep = 0
                 for ii in aux_dict[nn]:
-                    while (new_name := nn + separator + str(i_rep)) in self.element_dict:
+                    while (new_name := nn + separator + str(i_rep)) in self._element_dict:
                         i_rep += 1
                     env.new(new_name, nn, mode=mode)
                     self.element_names[ii] = new_name
@@ -4322,7 +4322,7 @@ class Line:
 
     def items(self):
         for name in self.element_names:
-            yield name, self.element_dict[name]
+            yield name, self.env.elements[name]
 
     def _has_valid_tracker(self):
 
@@ -4583,7 +4583,7 @@ class Line:
     @property
     def energy_program(self):
         try:
-            out = self.element_dict['energy_program']
+            out = self._element_dict['energy_program']
         except KeyError:
             out = None
         return out
@@ -4594,7 +4594,7 @@ class Line:
             if 'energy_program' in self._element_dict:
                 del self._element_dict['energy_program']
             return
-        self.element_dict['energy_program'] = value
+        self.env.elements['energy_program'] = value
         assert self.vars is not None, (
             'Xdeps expression need to be enabled to use `energy_program`')
         if self.energy_program.needs_complete:
