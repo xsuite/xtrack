@@ -1718,7 +1718,7 @@ class EnvElements:
         self.env.element_dict[key] = value
 
     def __getattr__(self, name):
-        env = object.__getattr__(self, 'env')
+        env = object.__getattribute__(self, 'env')
         return getattr(env.element_dict, name)
 
     def __repr__(self):
