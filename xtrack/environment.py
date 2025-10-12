@@ -152,12 +152,12 @@ class Environment:
                 # Extract names of all elements and parents
                 elems_and_parents = set(ll.element_names)
                 for nn in ll.element_names:
-                    if hasattr(ll.element_dict[nn], 'parent_name'):
-                        elems_and_parents.add(ll.element_dict[nn].parent_name)
+                    if hasattr(ll._element_dict[nn], 'parent_name'):
+                        elems_and_parents.add(ll._element_dict[nn].parent_name)
                 # Count if it is not a marker or a drift, which will be handled by
                 # `import_line`
                 for nn in elems_and_parents:
-                    if (not (isinstance(ll.element_dict[nn], (xt.Marker))) and
+                    if (not (isinstance(ll._element_dict[nn], (xt.Marker))) and
                         not bool(re.match(r'^drift_\d+$', nn))):
                         counts[nn] += 1
             common_elements = [nn for nn, cc in counts.items() if cc>1]
@@ -234,7 +234,7 @@ class Environment:
             provided.
         '''
 
-        if name in self.element_dict and not force:
+        if name in self.elements and not force:
             raise ValueError(f'Element `{name}` already exists')
 
         if from_ is not None or at is not None:
@@ -269,16 +269,16 @@ class Environment:
         assert mirror is False, 'mirror=True only allowed when cloning lines.'
 
         if parent is xt.Line or (parent=='Line' and (
-            'Line' not in self.lines and 'Line' not in self.element_dict)):
+            'Line' not in self.lines and 'Line' not in self.elements)):
             assert mode is None, 'Mode not allowed when cls is Line'
             return self.new_line(name=name, **kwargs)
 
         if mode == 'replica':
-            assert parent in self.element_dict, f'Element {parent} not found, cannot replicate'
+            assert parent in self.elements, f'Element {parent} not found, cannot replicate'
             kwargs['parent_name'] = xo.String(parent)
             parent = xt.Replica
         elif mode == 'clone':
-            assert parent in self.element_dict, f'Element {parent} not found, cannot clone'
+            assert parent in self.elements, f'Element {parent} not found, cannot clone'
         else:
             assert mode is None, f'Unknown mode {mode}'
 
@@ -298,13 +298,13 @@ class Environment:
         parent_element = None
         prototype = None
         if isinstance(parent, str):
-            if parent in self.element_dict:
+            if parent in self.elements:
                 # Clone an existing element
                 prototype = parent
-                self.element_dict[name] = xt.Replica(parent_name=parent)
+                self.elements[name] = xt.Replica(parent_name=parent)
                 xt.Line.replace_replica(self, name)
 
-                parent_element = self.element_dict[name]
+                parent_element = self._element_dict[name]
                 parent = type(parent_element)
                 needs_instantiation = False
             elif parent in _ALLOWED_ELEMENT_TYPES_DICT:
@@ -325,16 +325,16 @@ class Environment:
         ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
 
         if needs_instantiation: # Parent is a class and not another element
-            self.element_dict[name] = parent(**value_kwargs)
+            self.elements[name] = parent(**value_kwargs)
 
         _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    element_dict=self.element_dict, elem_refs=self._xdeps_eref)
+                    element_dict=self._element_dict, elem_refs=self._xdeps_eref)
 
         if extra is not None:
             assert isinstance(extra, dict)
-            self.element_dict[name].extra = extra
+            self._element_dict[name].extra = extra
 
-        self.element_dict[name].prototype = prototype
+        self._element_dict[name].prototype = prototype
 
         return name
 
@@ -371,7 +371,7 @@ class Environment:
                 self.particles[name] = xt.Replica(parent_name=parent)
                 xt.Line.replace_replica(self, name)
 
-                parent_element = self.element_dict[name]
+                parent_element = self._element_dict[name]
                 parent = type(parent_element)
                 needs_instantiation = False
             elif parent == 'Particles':
@@ -515,8 +515,8 @@ class Environment:
 
         if obj is not None:
             assert not isinstance(name, xt.Line)
-            assert name not in self.element_dict
-            self.element_dict[name] = obj
+            assert name not in self.elements
+            self.elements[name] = obj
 
         # if list of strings, create a line
         if (isinstance(name, Iterable) and not isinstance(name, str)
@@ -588,19 +588,19 @@ class Environment:
         elif (bool(re.match(r'^drift_\d+$', name))
             and line.ref[name].length._expr is None):
             new_name = self._get_a_drift_name()
-        elif (name in self.element_dict and
+        elif (name in self.elements and
                 not (isinstance(line[name], xt.Marker) and
-                    isinstance(self.element_dict.get(name), xt.Marker))):
+                    isinstance(self._element_dict.get(name), xt.Marker))):
             new_name += suffix_for_common_elements
 
         self.copy_element_from(name, line, new_name=new_name)
         already_imported[name] = new_name
-        if hasattr(line.element_dict[name], 'parent_name'):
-            parent_name = line.element_dict[name].parent_name
+        if hasattr(line._element_dict[name], 'parent_name'):
+            parent_name = line._element_dict[name].parent_name
             if parent_name not in already_imported:
                 self._import_element(line, parent_name, rename_elements,
                                      suffix_for_common_elements, already_imported)
-            self.element_dict[new_name].parent_name = already_imported[parent_name]
+            self._element_dict[new_name].parent_name = already_imported[parent_name]
 
         return new_name
 
@@ -677,7 +677,7 @@ class Environment:
     def _get_a_drift_name(self):
         self._drift_counter += 1
         while nn := f'drift_{self._drift_counter}':
-            if nn not in self.element_dict:
+            if nn not in self.elements:
                 return nn
             self._drift_counter += 1
 
@@ -687,7 +687,7 @@ class Environment:
             assert value.env is self, 'Line must be in the same environment'
             if key in self.lines:
                 raise ValueError(f'There is already a line with name {key}')
-            if key in self.element_dict:
+            if key in self.elements:
                 raise ValueError(f'There is already an element with name {key}')
             self.lines[key] = value
         else:
@@ -701,7 +701,7 @@ class Environment:
         if include_version:
             out["xtrack_version"] = xt.__version__
 
-        out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
+        out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
 
         if self._particle_ref is not None:
             if isinstance(self._particle_ref, str):
@@ -939,7 +939,7 @@ class Environment:
             else:
                 raise ValueError('Only AttrRef and ItemRef are supported for now')
 
-        self.element_dict.pop(name)
+        self._element_dict.pop(name)
 
     def __getattr__(self, key):
         if key == 'lines':
@@ -1079,7 +1079,7 @@ class Environment:
         except AttributeError:
             eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
                                             functions=self._xdeps_fref,
-                                            elements=self.element_dict,
+                                            elements=self._element_dict,
                                             get='attr')
             self._xdeps_eval_obj = eva_obj
 
@@ -1129,11 +1129,11 @@ class Environment:
         if np.issubdtype(key.__class__, np.integer):
             key = self.element_names[key]
         assert isinstance(key, str)
-        if key in self.element_dict:
+        if key in self.elements:
             if self.ref_manager is None:
-                return self.element_dict[key]
+                return self._element_dict[key]
             return xd.madxutils.View(
-                self.element_dict[key], self._xdeps_eref[key],
+                self._element_dict[key], self._xdeps_eref[key],
                 evaluator=self._xdeps_eval.eval)
         elif key in self.particles:
             if self._xdeps_pref is None:
@@ -1145,7 +1145,7 @@ class Environment:
             return self.vv[key]
         elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
             return self.lines[key]
-        elif "::" in key and (env_name := key.split("::")[0]) in self.element_dict:
+        elif "::" in key and (env_name := key.split("::")[0]) in self._element_dict:
             return self[env_name]
         else:
             raise KeyError(f'Name {key} not found')
@@ -1157,11 +1157,11 @@ class Environment:
             assert value.env is self, 'Line must be in the same environment'
             if key in self.lines:
                 raise ValueError(f'There is already a line with name {key}')
-            if key in self.element_dict:
+            if key in self.elements:
                 raise ValueError(f'There is already an element with name {key}')
             self.lines[key] = value
         elif np.isscalar(value) or xd.refs.is_ref(value):
-            if key in self.element_dict:
+            if key in self.elements:
                 raise ValueError(f'There is already an element with name {key}')
             self.vars[key] = value
         else:
@@ -1208,24 +1208,24 @@ class Environment:
         if hasattr(self, 'lines') and name in self.lines:
             raise ValueError('Cannot set a line')
 
-        if name in self.element_dict:
+        if name in self.elements:
             if len(args) > 0:
                 raise ValueError(f'Only kwargs are allowed when setting element attributes')
 
             extra = kwargs.pop('extra', None)
 
             ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
-                type(self.element_dict[name]), kwargs, _eval)
+                type(self._element_dict[name]), kwargs, _eval)
             xt.environment._set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                element_dict=self.element_dict, elem_refs=self._xdeps_eref)
+                element_dict=self._element_dict, elem_refs=self._xdeps_eref)
             if extra is not None:
                 assert isinstance(extra, dict), (
                     'Description must be a dictionary')
-                if (not hasattr(self.element_dict[name], 'extra')
-                    or not isinstance(self.element_dict[name].extra, dict)):
-                    self.element_dict[name].extra = {}
-                self.element_dict[name].extra.update(extra)
+                if (not hasattr(self._element_dict[name], 'extra')
+                    or not isinstance(self._element_dict[name].extra, dict)):
+                    self._element_dict[name].extra = {}
+                self._element_dict[name].extra.update(extra)
         else:
             if len(kwargs) > 0:
                 raise ValueError(f'Only a single value is allowed when setting variable')
@@ -1255,8 +1255,8 @@ class Environment:
 
         '''
 
-        if key in self.element_dict:
-            return self.element_dict[key]
+        if key in self._element_dict:
+            return self._element_dict[key]
         elif key in self.particles:
             return self.particles[key]
         elif key in self.vars:
@@ -1269,7 +1269,7 @@ class Environment:
             Get information about an element or a variable.
         """
 
-        if key in self.element_dict:
+        if key in self.elements:
             return self[key].get_info()
         elif key in self.vars:
             return self.vars.info(key, limit=limit)
@@ -1728,36 +1728,36 @@ class EnvElements:
 
     def __getitem__(self, key):
 
-        if key in self.env.element_dict:
+        if key in self.env._element_dict:
             if self.env.ref_manager is None:
-                return self.env.element_dict[key]
+                return self.env._element_dict[key]
             return xd.madxutils.View(
-                self.env.element_dict[key], self.env._xdeps_eref[key],
+                self.env._element_dict[key], self.env._xdeps_eref[key],
                 evaluator=self.env._xdeps_eval.eval)
         else:
             raise KeyError(f'Element {key} not found.')
 
     def __setitem__(self, key, value):
-        self.env.element_dict[key] = value
+        self.env._element_dict[key] = value
 
     def __contains__(self, key):
-        return key in self.env.element_dict
+        return key in self.env._element_dict
 
     def __getattr__(self, name):
         env = object.__getattribute__(self, 'env')
-        return getattr(env.element_dict, name)
+        return getattr(env._element_dict, name)
 
     def __repr__(self):
-        names = list(self.env.element_dict.keys())
+        names = list(self.env._element_dict.keys())
         n = len(names)
         preview = ', '.join(names[:5]) + (', ...' if n > 5 else '')
         return f'EnvElements({n} elements: {{{preview}}})'
 
     def __len__(self):
-        return len(self.env.element_dict)
+        return len(self.env._element_dict)
 
     def get_table(self):
-        names = sorted(list(self.env.element_dict.keys()))
+        names = sorted(list(self.env._element_dict.keys()))
         dumline = self.env.new_line(components=names)
         tt = dumline.get_table()
         assert tt.name[-1] == '_end_point'
@@ -1768,7 +1768,7 @@ class EnvElements:
         del tt['s_end']
         del tt['env_name']
         tt['length'] = np.array(
-            [getattr(self.env.element_dict[nn], 'length', 0) for nn in tt.name])
+            [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
         return tt
 
 
@@ -1779,7 +1779,7 @@ class EnvRef:
     def __getitem__(self, name):
         if hasattr(self.env, 'lines') and name in self.env.lines:
             return self.env.lines[name].ref
-        elif name in self.env.element_dict:
+        elif name in self.env._element_dict:
             return self.env._xdeps_eref[name]
         elif name in self.env.vars:
             return self.env._xdeps_vref[name]
@@ -1793,7 +1793,7 @@ class EnvRef:
             assert value.env is self.env, 'Line must be in the same environment'
             if key in self.env.lines:
                 raise ValueError(f'There is already a line with name {key}')
-            if key in self.env.element_dict:
+            if key in self.env._element_dict:
                 raise ValueError(f'There is already an element with name {key}')
             self.env.lines[key] = value
 
@@ -1805,7 +1805,7 @@ class EnvRef:
             val_value = value
 
         if np.isscalar(val_value):
-            if key in self.env.element_dict:
+            if key in self.env._element_dict:
                 raise ValueError(f'There is already an element with name {key}')
             self.env.vars[key] = val_ref
         else:
