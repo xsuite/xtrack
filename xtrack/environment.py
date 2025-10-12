@@ -1740,6 +1740,9 @@ class EnvElements:
     def __setitem__(self, key, value):
         self.env.element_dict[key] = value
 
+    def __contains__(self, key):
+        return key in self.env.element_dict
+
     def __getattr__(self, name):
         env = object.__getattribute__(self, 'env')
         return getattr(env.element_dict, name)

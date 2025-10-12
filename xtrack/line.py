@@ -296,8 +296,8 @@ class Line:
         self._element_names_before_slicing = dct.get(
             '_element_names_before_slicing', None)
 
-        if ('energy_program' in self.element_dict
-             and self.element_dict['energy_program'] is not None):
+        if ('energy_program' in self._element_dict
+             and self._element_dict['energy_program'] is not None):
             self.energy_program.line = self
 
         if verbose:
@@ -617,7 +617,7 @@ class Line:
             out["xtrack_version"] = xt.__version__
 
         if include_element_dict:
-            out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
+            out["elements"] = {k: el.to_dict() for k, el in self._element_dict.items()}
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
@@ -906,7 +906,7 @@ class Line:
             out = self.select()
         else:
             elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
-                                        for nn, ee in self.element_dict.items()}
+                                        for nn, ee in self._element_dict.items()}
             element_names = [nn for nn in self.element_names]
 
             var_management_dict = None
@@ -2388,9 +2388,9 @@ class Line:
 
         if obj is not None:
             assert isinstance(what, str)
-            self.env.element_dict[what] = obj
+            self.env.elements[what] = obj
 
-        if isinstance(what, str) in self.element_dict:
+        if isinstance(what, str) in self._element_dict:
             # Is an element and not a line or an iterable
             self.element_names.append(what)
             return
@@ -2636,8 +2636,8 @@ class Line:
 
         tt_replace = self._name_match(name)
 
-        if _is_thick(self.element_dict[new_name], self):
-            l_new = _length(self.element_dict[new_name], self)
+        if _is_thick(self._element_dict[new_name], self):
+            l_new = _length(self._element_dict[new_name], self)
         else:
             l_new = 0
 
@@ -2720,13 +2720,13 @@ class Line:
                     raise ValueError(f'Element {index} not found in the line.')
 
         if element is None:
-            if name not in self.element_dict.keys():
+            if name not in self._element_dict.keys():
                 raise ValueError(
                     f'Element {name} not found in the line. You must either '
                     f'give an `element` or a name of an element already '
                     f'present in the line.'
                 )
-            element = self.element_dict[name]
+            element = self._element_dict[name]
 
         if isinstance(element, xd.madxutils.View):
             element = element._get_viewed_object()
@@ -2744,7 +2744,7 @@ class Line:
         # Insert by name or index
         if index is not None:
             self.element_names.insert(index, name)
-            self.element_dict[name] = element
+            self.env.elements[name] = element
             return
 
         # Insert by s position
@@ -2779,9 +2779,9 @@ class Line:
             self.element_names.insert(i_closest, name)
 
         if element is None:
-            assert name in self.element_dict.keys()
+            assert name in self.env.elements
         else:
-            self.element_dict[name] = element
+            self.env.elements[name] = element
 
         return self
 
@@ -4423,6 +4423,10 @@ class Line:
         return self.env.element_dict
 
     @property
+    def _element_dict(self):
+        return self.env._element_dict
+
+    @property
     def element_refs(self):
         if hasattr(self, '_in_multiline'):
             var_sharing = self._in_multiline._var_sharing
@@ -4468,7 +4472,7 @@ class Line:
 
     @property
     def elements(self):
-        return tuple([self.element_dict[nn] for nn in self.element_names])
+        return tuple([self.env.elements[nn] for nn in self.element_names])
 
     @property
     def skip_end_turn_actions(self):
@@ -4587,8 +4591,8 @@ class Line:
     @energy_program.setter
     def energy_program(self, value):
         if value is None:
-            if 'energy_program' in self.element_dict:
-                del self.element_dict['energy_program']
+            if 'energy_program' in self._element_dict:
+                del self._element_dict['energy_program']
             return
         self.element_dict['energy_program'] = value
         assert self.vars is not None, (
@@ -4650,15 +4654,15 @@ class Line:
         if np.issubdtype(key.__class__, np.integer):
             key = self.element_names[key]
         assert isinstance(key, str)
-        if key in self.element_dict:
+        if key in self._element_dict:
             if self.ref_manager is None:
-                return self.element_dict[key]
+                return self._element_dict[key]
             return xd.madxutils.View(
-                self.element_dict[key], self._xdeps_eref[key],
+                self._element_dict[key], self._xdeps_eref[key],
                 evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
             return self.vv[key]
-        elif "::" in key and (env_name := key.split("::")[0]) in self.element_dict:
+        elif "::" in key and (env_name := key.split("::")[0]) in self._element_dict:
             return self[env_name]
         else:
             raise KeyError(f'Name {key} not found')
@@ -4671,7 +4675,7 @@ class Line:
             # Would need to make sure they refer to the same environment
 
         if np.isscalar(value) or xd.refs.is_ref(value):
-            if key in self.element_dict:
+            if key in self._element_dict:
                 raise ValueError(f'There is already an element with name {key}')
             self.vars[key] = value
         else:
@@ -4953,11 +4957,11 @@ class Line:
             ele_name_insertions.append(tt_after_cut['name'][ii_ins])
             assert np.abs(s_insert - tt_after_cut['s'][ii_ins]) < s_tol
 
-        # Add all elements to self.element_dict
+        # Add all elements to self._element_dict
         for s_insert, ee in elements_to_insert:
             for nn, el in ee:
-                assert nn not in self.element_dict
-                self.element_dict[nn] = el
+                assert nn not in self.env.elements
+                self.env.elements[nn] = el
 
         # Insert elements
         for i_ins, (s_insert, ee) in enumerate(
@@ -5039,7 +5043,7 @@ class Line:
                 new_element_names.append(nn)
 
         for new_nn, new_ee in zip(name_insert_sorted, ele_insert_sorted):
-            self.element_dict[new_nn] = new_ee
+            self.elements[new_nn] = new_ee
 
         self.element_names = new_element_names
 
@@ -5063,10 +5067,10 @@ class Line:
         self._frozen_check()
 
         for nn in self.element_names:
-            ee = self.element_dict[nn]
+            ee = self._element_dict[nn]
             if hasattr(ee, 'get_equivalent_element'):
                 new_ee = ee.get_equivalent_element()
-                self.element_dict[nn] = new_ee
+                self.elements[nn] = new_ee
 
     @property
     def _element_names_unique(self):
@@ -5148,7 +5152,7 @@ def _length(element, line):
     if hasattr(element, 'length'):
         return element.length
     assert hasattr(element, 'parent_name')
-    return line.element_dict[element.parent_name].length * element.weight
+    return line._element_dict[element.parent_name].length * element.weight
 
 def _is_drift(element, line):
     if isinstance(element, xt.Replica):
@@ -5729,10 +5733,10 @@ class LineAttrItem:
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
         for ii, nn in enumerate(all_names):
-            ee = line.element_dict[nn]
+            ee = line._element_dict[nn]
             if isinstance(ee, xt.Replica):
                 nn = ee.resolve(line, get_name=True)
-                ee = line.element_dict[nn]
+                ee = line._element_dict[nn]
             if isinstance(name, (list, tuple)):
                 inner_obj = ee
                 inner_name = name[-1]
@@ -5817,7 +5821,7 @@ class LineAttr:
         _inherit_strengths = np.zeros(len(line.element_names), dtype=np.float64)
         _rot_and_shift_from_parent = np.zeros(len(line.element_names), dtype=np.float64)
         for ii, nn in enumerate(line.element_names):
-            ee = line.element_dict[nn]
+            ee = line._element_dict[nn]
             if hasattr(ee, '_inherit_strengths') and ee._inherit_strengths:
                 _inherit_strengths[ii] = 1.
             if hasattr(ee, 'rot_and_shift_from_parent') and ee.rot_and_shift_from_parent:
