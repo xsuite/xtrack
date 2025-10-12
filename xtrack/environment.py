@@ -1718,7 +1718,8 @@ class EnvElements:
         self.env.element_dict[key] = value
 
     def __getattr__(self, name):
-        return getattr(self.env.element_dict, name)
+        env = object.__getattr__(self, 'env')
+        return getattr(env.element_dict, name)
 
     def __repr__(self):
         names = list(self.env.element_dict.keys())
@@ -1755,7 +1756,7 @@ class EnvRef:
         elif name in self.env.element_dict:
             return self.env.element_refs[name]
         elif name in self.env.vars:
-            return self.env.vars[name]
+            return self.env._xdeps_vref[name]
         elif name in self.env.particles:
             return self.env._xdeps_pref[name]
         else:

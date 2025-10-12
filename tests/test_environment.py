@@ -166,7 +166,7 @@ def test_vars_and_element_access_modes(container_type):
     assert line['a'] == 333
     assert lcp['a'] == 444
 
-    assert env.elements is env.element_dict
+    assert env.elements.env is env
 
     # Check set with multiple targets
     env['x0'] = 0
