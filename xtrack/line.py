@@ -5043,7 +5043,7 @@ class Line:
                 new_element_names.append(nn)
 
         for new_nn, new_ee in zip(name_insert_sorted, ele_insert_sorted):
-            self.elements[new_nn] = new_ee
+            self.env.elements[new_nn] = new_ee
 
         self.element_names = new_element_names
 

@@ -428,10 +428,13 @@ def test_line_import_from_madx(test_context, mad_with_errors):
 
     assert (ltest.get_length() - lref.get_length()) < 1e-6
 
-    for ii, (ee_test, ee_six, nn_test, nn_six) in enumerate(
-        zip(ltest.elements, lref.elements,
-            ltest.element_names, lref.element_names)
+    for ii, (nn_test, nn_six) in enumerate(
+        zip(ltest.element_names, lref.element_names)
     ):
+
+        ee_test = ltest.get(nn_test)
+        ee_six = lref.get(nn_six)
+
         assert type(ee_test) == type(ee_six)
 
         dtest = ee_test.to_dict()
