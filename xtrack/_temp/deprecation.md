@@ -10,6 +10,5 @@
 | from_sequence | Environment.new_line |
 | insert_element | insert |
 | items | presently returns underlying object, will return views |
-| skip_end_turn_actions |  |
 | slice_thick_elements | slice_elements (missing) |
 | to_pandas | remove ? |
