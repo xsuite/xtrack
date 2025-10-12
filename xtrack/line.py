@@ -5070,7 +5070,7 @@ class Line:
             ee = self._element_dict[nn]
             if hasattr(ee, 'get_equivalent_element'):
                 new_ee = ee.get_equivalent_element()
-                self.elements[nn] = new_ee
+                self.env.elements[nn] = new_ee
 
     @property
     def _element_names_unique(self):

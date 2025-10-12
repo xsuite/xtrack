@@ -512,7 +512,7 @@ def test_from_dict_current():
     assert isinstance(d1, xt.Drift)
     assert d1.length == 4
 
-    assert d2 is d1
+    assert d2._obj is d1._obj  # they are views
 
     assert line.metadata == test_dict['metadata']
 
