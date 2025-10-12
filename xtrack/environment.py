@@ -1,6 +1,7 @@
 from collections import Counter, UserDict
 from collections.abc import Iterable
 from functools import cmp_to_key
+from os import name
 from typing import Literal
 from weakref import WeakSet
 from copy import deepcopy
@@ -1702,14 +1703,19 @@ class EnvElements:
     def __init__(self, env):
         self.env = env
 
-    def __getitem__(self, name):
-        if name in self.env.element_dict:
-            return self.env.element_dict[name]
+    def __getitem__(self, key):
+
+        if key in self.env.element_dict:
+            if self.env.element_refs is None:
+                return self.env.element_dict[key]
+            return xd.madxutils.View(
+                self.env.element_dict[key], self.env.element_refs[key],
+                evaluator=self.env._xdeps_eval.eval)
         else:
-            raise KeyError(f'Element {name} not found.')
+            raise KeyError(f'Element {key} not found.')
 
     def __setitem__(self, key, value):
-        self.env[key] = value
+        self.env.element_dict[key] = value
 
     def __getattr__(self, name):
         return getattr(self.env.element_dict, name)
