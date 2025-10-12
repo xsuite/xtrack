@@ -136,7 +136,7 @@ class Environment:
             element_dict=self._element_dict,
             particles=self._particles,
             dct=_var_management_dct)
-        self._line_vars = xt.line.LineVars(self)
+        self._line_vars = xt.line.EnvVars(self)
 
         self.lines = EnvLines(self)
         self._lines_weakrefs = WeakSet()

@@ -5399,7 +5399,7 @@ class _DefaultFactory:
     def __call__(self):
         return self.default
 
-class LineVars:
+class EnvVars:
 
     def __init__(self, line):
         self.line = line
@@ -5407,6 +5407,12 @@ class LineVars:
             self.line._xdeps_vref._owner['__vary_default'] = {}
         self.val = VarValues(self)
         self.vars_to_update = WeakSet()
+
+    def __repr__(self):
+        names = list(self.keys())
+        n = len(names)
+        preview = ', '.join(names[:5]) + (', ...' if n > 5 else '')
+        return f'EnvVars({n} vars: {preview})'
 
     def keys(self):
         if self.line._xdeps_vref is None:
