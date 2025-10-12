@@ -4699,8 +4699,10 @@ class Line:
             out.env = self.env.__new__(self.env.__class__)
             out.env.__dict__.update(self.env.__dict__)
 
-            # Change the element dict (beware of the element_dict property)
+            # Change the element dict (beware of the element_dict property
+            # and of ef the env.elements container
             out.env._element_dict = self.tracker._element_dict_non_collective
+            out.env._elements = xt.environment.EnvElements(out.env)
             out.env._lines_weakrefs.add(out)
 
             return out
