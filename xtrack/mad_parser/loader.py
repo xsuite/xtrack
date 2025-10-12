@@ -259,7 +259,7 @@ class MadxLoader:
         return components
 
     def _new_builtin(self, name, xt_type, **kwargs):
-        if name not in self.env.element_dict:
+        if name not in self.env.elements:
             self.env.new(name, xt_type, **kwargs)
         self._builtin_types.add(name)
 
@@ -273,7 +273,7 @@ class MadxLoader:
         self._parameter_cache[name].update(kwargs)
 
         aperture = self._build_aperture(name, f'{name}_aper', kwargs)
-        if not aperture and name in self.env.element_dict:
+        if not aperture and name in self.env.elements:
             aperture = self.env[name].name_associated_aperture
         if not aperture and parent:
             aperture = self.env[parent].name_associated_aperture
@@ -293,7 +293,7 @@ class MadxLoader:
             self._place_element(name, el_params, builder)
 
         if aperture:
-            builder.element_dict[name].name_associated_aperture = aperture
+            builder.env._element_dict[name].name_associated_aperture = aperture
 
     def _place_element(self, name, el_params, builder):
         """Place an element in the sequence.

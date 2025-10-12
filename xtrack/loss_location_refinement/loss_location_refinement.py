@@ -86,7 +86,7 @@ class LossLocationRefinement:
                                           y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
-        elm_gen = self.line.element_dict.copy()
+        elm_gen = self.line._element_dict.copy()
         elm_gen['_xtrack_temp_poly_'] = temp_poly
         elm_gen['_xtrack_temp_marker_'] = xt.Marker(_buffer=self.line._buffer)
         ln_gen = Line(elements=elm_gen,
@@ -196,10 +196,10 @@ class LossLocationRefinement:
                     interp_line.discard_tracker() # Free tracker data
                     del interp_line
                     for nn in elements_to_delete:
-                        sz = self.line.env.element_dict[nn]._xobject._size
-                        oo = self.line.env.element_dict[nn]._xobject._offset
+                        sz = self.line.env._element_dict[nn]._xobject._size
+                        oo = self.line.env._element_dict[nn]._xobject._offset
                         self.line._buffer.free(oo, sz)
-                        del self.line.env.element_dict[nn]
+                        del self.line.env._element_dict[nn]
 
 
 def check_for_active_shifts_and_rotations(line, i_aper_0, i_aper_1):

@@ -153,9 +153,9 @@ def eval_list(par, madeval):
 
 
 def generate_repeated_name(line, name):
-    if name in line.element_dict:
+    if name in line.env.elements:
         ii = 0
-        while f"{name}:{ii}" in line.element_dict:
+        while f"{name}:{ii}" in line._element_dict:
             ii += 1
         return f"{name}:{ii}"
     else:

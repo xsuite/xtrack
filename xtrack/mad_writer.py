@@ -185,11 +185,11 @@ def marker_to_mad_str(name, line, mad_type=MadType.MADX, substituted_vars=None):
     """
     # if name.endswith('_entry'):
     #      parent_name = name.replace('_entry', '')
-    #      if (parent_name in line.element_dict):
+    #      if (parent_name in line._element_dict):
     #          return None
     # if name.endswith('_exit'):
     #     parent_name = name.replace('_exit', '')
-    #     if (parent_name in line.element_dict):
+    #     if (parent_name in line._element_dict):
     #         return None
     if mad_type == MadType.MADX:
         return 'marker'
@@ -551,7 +551,7 @@ def element_to_mad_str(
     Generic converter for elements to MADX/MAD-NG.
     """
 
-    el = line.element_dict[name]
+    el = line._element_dict[name]
     eref = _get_eref(line, name)
     parent_flag = hasattr(el, '_parent')
 
@@ -612,10 +612,9 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
 
         for nn in line.element_names:
 
-
-            el = line.element_dict[nn]
+            el = line._element_dict[nn]
             el_str = element_to_mad_str(nn, line, mad_type=MadType.MADX)
-            if nn + '_tilt_entry' in line.element_dict:
+            if nn + '_tilt_entry' in line._element_dict:
                 el_str += ", " + mad_assignment('tilt',
                             _ge(line.element_refs[nn + '_tilt_entry'].angle) / 180. * np.pi,
                             mad_type=MadType.MADX)
@@ -672,7 +671,7 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
         else:
             s_dict[nn] = 0.5 * (tt.s[ii] + tt.s[ii+1])
 
-        el = line.element_dict[nn]
+        el = line._element_dict[nn]
 
         el_str = element_to_mad_str(nn, line, mad_type=MadType.MADNG, substituted_vars=substituted_vars)
 

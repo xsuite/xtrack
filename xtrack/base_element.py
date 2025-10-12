@@ -797,8 +797,8 @@ class Replica:
         return Replica(parent_name=self.parent_name)
 
     def resolve(self, element_container, get_name=False):
-        if hasattr(element_container, 'element_dict'):
-            element_container = element_container.element_dict
+        if hasattr(element_container, '_element_dict'):
+            element_container = element_container._element_dict
         target_name = self.parent_name
         visited = {target_name}
         while isinstance(element := element_container[target_name], Replica):
