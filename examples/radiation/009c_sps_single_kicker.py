@@ -89,7 +89,7 @@ line.build_tracker(_context=xo.ContextCpu())
 line.configure_radiation(model=None)
 
 line.vv['vkick'] = 1e-6
-line.element_refs['mdv.10107'].ksl[0] = line.vars['vkick']
+line['mdv.10107'].ksl[0] = line.vars['vkick']
 
 match_chrom = True
 
