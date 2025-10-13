@@ -460,7 +460,7 @@ def test_slicing_xdeps_consistency():
 
     for ii in range(num_elements):
         line.vars[f'k{ii}'] = 1
-        line.element_refs[f'bend{ii}'].k0 = line.vars[f'k{ii}']
+        line[f'bend{ii}'].k0 = line.vars[f'k{ii}']
 
     sgy = xt.slicing.Strategy(
         element_type=xt.Bend,

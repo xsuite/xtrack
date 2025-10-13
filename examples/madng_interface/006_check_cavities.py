@@ -42,6 +42,7 @@ mng = pg.MAD()
 mng.send('''
     MADX:load('temp_seq.madx')
     MADX.myseq.beam = MAD.beam{particle='positron', gamma=20000};
+    MAD.element.rfcavity.method = 2;
 ''')
 twng_from_madx_df = mng.twiss(sequence='MADX.myseq')[0].to_df()
 twng_from_madx = xt.Table({nn: twng_from_madx_df[nn].values for nn in ['name', 's', 'pt']}, _copy_cols=True)

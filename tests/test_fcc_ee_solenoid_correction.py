@@ -124,8 +124,8 @@ def test_fcc_ee_solenoid_correction():
     line.vars['on_sol_'+ip_sol] = 0
     for ii in range(len(s_sol_slices_entry)):
         nn = f'sol_slice_{ii}_{ip_sol}'
-        line.element_refs[nn].ks_profile[0] = ks_entry[ii] * line.vars['on_sol_'+ip_sol]
-        line.element_refs[nn].ks_profile[1] = ks_exit[ii] * line.vars['on_sol_'+ip_sol]
+        line[nn].ks_profile[0] = ks_entry[ii] * line.vars['on_sol_'+ip_sol]
+        line[nn].ks_profile[1] = ks_exit[ii] * line.vars['on_sol_'+ip_sol]
 
     tt = line.get_table()
 
@@ -143,14 +143,14 @@ def test_fcc_ee_solenoid_correction():
     line.vars['ks3.l1'] = 0
     line.vars['ks4.l1'] = 0
 
-    line.element_refs['qc1r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.r1']
-    line.element_refs['qc2r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.r1']
-    line.element_refs['qc2r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.r1']
-    line.element_refs['qc1r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.r1']
-    line.element_refs['qc1l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.l1']
-    line.element_refs['qc2l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.l1']
-    line.element_refs['qc2l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.l1']
-    line.element_refs['qc1l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.l1']
+    line['qc1r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.r1']
+    line['qc2r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.r1']
+    line['qc2r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.r1']
+    line['qc1r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.r1']
+    line['qc1l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.l1']
+    line['qc2l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.l1']
+    line['qc2l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.l1']
+    line['qc1l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.l1']
 
     line.vars['corr_k0.r1'] = 0
     line.vars['corr_k1.r1'] = 0
@@ -163,15 +163,14 @@ def test_fcc_ee_solenoid_correction():
     line.vars['corr_k3.l1'] = 0
     line.vars['corr_k4.l1'] = 0
 
-    line.element_refs['qc1r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.r1']
-    line.element_refs['qc2r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.r1']
-    line.element_refs['qc2r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.r1']
-    line.element_refs['qc1r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.r1']
-    line.element_refs['qc1l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.l1']
-    line.element_refs['qc2l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.l1']
-    line.element_refs['qc2l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.l1']
-    line.element_refs['qc1l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.l1']
-
+    line['qc1r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.r1']
+    line['qc2r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.r1']
+    line['qc2r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.r1']
+    line['qc1r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.r1']
+    line['qc1l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.l1']
+    line['qc2l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.l1']
+    line['qc2l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.l1']
+    line['qc1l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.l1']
 
     Strategy = xt.Strategy
     Teapot = xt.Teapot
@@ -220,14 +219,14 @@ def test_fcc_ee_solenoid_correction():
     line.vars['acb2h.l1'] = 0
     line.vars['acb2v.l1'] = 0
 
-    line.element_refs['mcb1.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.r1']
-    line.element_refs['mcb2.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.r1']
-    line.element_refs['mcb1.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.r1']
-    line.element_refs['mcb2.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.r1']
-    line.element_refs['mcb1.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.l1']
-    line.element_refs['mcb2.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.l1']
-    line.element_refs['mcb1.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.l1']
-    line.element_refs['mcb2.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.l1']
+    line['mcb1.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.r1']
+    line['mcb2.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.r1']
+    line['mcb1.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.r1']
+    line['mcb2.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.r1']
+    line['mcb1.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.l1']
+    line['mcb2.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.l1']
+    line['mcb1.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.l1']
+    line['mcb2.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.l1']
 
     tw_thick_no_rad = line.twiss(method='4d')
 

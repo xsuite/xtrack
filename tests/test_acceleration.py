@@ -256,12 +256,12 @@ def test_acceleration_transverse_shrink(test_context):
 
     # Build a function with these samples and link it to the cavity
     line.functions['fun_f_rf'] = xt.FunctionPieceWiseLinear(x=t_rf, y=f_rf)
-    line.element_refs['br1.acwf5l1.1'].frequency = line.functions['fun_f_rf'](
+    line['br1.acwf5l1.1'].frequency = line.functions['fun_f_rf'](
                                                             line.vars['t_turn_s'])
 
     # Setup voltage and lag
-    line.element_refs['br1.acwf5l1.1'].voltage = 3000 # V
-    line.element_refs['br1.acwf5l1.1'].lag = 0 # degrees (below transition energy)
+    line['br1.acwf5l1.1'].voltage = 3000 # V
+    line['br1.acwf5l1.1'].lag = 0 # degrees (below transition energy)
 
     # When setting line.vars['t_turn_s'] the reference energy and the rf frequency
     # are updated automatically
