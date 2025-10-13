@@ -82,19 +82,19 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
     sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
 
-    line.elements['sol_start_tilt_'+ip_sol] = sol_start_tilt
-    line.elements['sol_end_tilt_'+ip_sol] = sol_end_tilt
-    line.elements['sol_start_shift_'+ip_sol] = sol_start_shift
-    line.elements['sol_end_shift_'+ip_sol] = sol_end_shift
+    line.env.elements['sol_start_tilt_'+ip_sol] = sol_start_tilt
+    line.env.elements['sol_end_tilt_'+ip_sol] = sol_end_tilt
+    line.env.elements['sol_start_shift_'+ip_sol] = sol_start_shift
+    line.env.elements['sol_end_shift_'+ip_sol] = sol_end_shift
 
-    line.elements['sol_entry_'+ip_sol] = xt.Marker()
-    line.elements['sol_exit_'+ip_sol] = xt.Marker()
+    line.env.elements['sol_entry_'+ip_sol] = xt.Marker()
+    line.env.elements['sol_exit_'+ip_sol] = xt.Marker()
 
     sol_slice_names = []
     sol_slice_names.append('sol_entry_'+ip_sol)
     for ii in range(len(s_sol_slices_entry)):
         nn = f'sol_slice_{ii}_{ip_sol}'
-        line.elements[nn] = sol_slices[ii]
+        line.env.elements[nn] = sol_slices[ii]
         sol_slice_names.append(nn)
     sol_slice_names.append('sol_exit_'+ip_sol)
 
@@ -111,7 +111,7 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     line.element_names = element_names
 
     # re-insert the ip
-    line.elements.pop(ip_sol)
+    line.env.elements.pop(ip_sol)
     tt = line.get_table()
     line.insert_element(name=ip_sol, element=xt.Marker(),
             at_s = 0.5 * (tt['s', 'sol_start_'+ip_sol] + tt['s', 'sol_end_'+ip_sol]))
