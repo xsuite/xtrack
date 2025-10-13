@@ -143,6 +143,7 @@ class Environment:
         self._drift_counter = 0
         self.ref = EnvRef(self)
         self._elements = EnvElements(self)
+        self._particles_container = EnvParticles(self)
 
         if lines is not None:
 
@@ -184,7 +185,7 @@ class Environment:
                 break
         preview_lines = ', '.join(preview_tokens)
         return (f"Environment({n_lines} lines: {{{preview_lines}}}, "
-                f"{n_elements} elements, {n_vars} variables, {n_particles} particles)")
+                f"{n_elements} elements, {n_vars} vars, {n_particles} particles)")
 
     def __getstate__(self):
         out = self.__dict__.copy()
@@ -873,7 +874,7 @@ class Environment:
 
     @property
     def particles(self):
-        return self._particles
+        return self._particles_container
 
     def set_particle_ref(self, *args, lines=True, **kwargs):
 
@@ -1769,6 +1770,65 @@ class EnvElements:
         del tt['env_name']
         tt['length'] = np.array(
             [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
+        return tt
+
+class EnvParticles:
+    def __init__(self, env):
+        self.env = env
+
+    def __getitem__(self, key):
+
+        if key in self.env._particles:
+            if self.env.ref_manager is None:
+                return self.env._particles[key]
+            return xd.madxutils.View(
+                self.env._particles[key], self.env._xdeps_pref[key],
+                evaluator=self.env._xdeps_eval.eval)
+        else:
+            raise KeyError(f'Element {key} not found.')
+
+    def __setitem__(self, key, value):
+        self.env._particles[key] = value
+
+    def __contains__(self, key):
+        return key in self.env._particles
+
+    def __getattr__(self, name):
+        env = object.__getattribute__(self, 'env')
+        return getattr(env._particles, name)
+
+    def __repr__(self):
+        names = list(self.env._particles.keys())
+        n = len(names)
+        preview = ', '.join(names[:5]) + (', ...' if n > 5 else '')
+        return f'EnvParticles({n} particles: {{{preview}}})'
+
+    def __len__(self):
+        return len(self.env._particles)
+
+    def get_table(self):
+        names = sorted(list(self.env._particles.keys()))
+        mass0 = np.array(
+            [self.env._particles[nn].mass0[0] for nn in names])
+        charge0 = np.array(
+            [self.env._particles[nn].charge0[0] for nn in names])
+        energy0 = np.array(
+            [self.env._particles[nn].energy0[0] for nn in names])
+        p0c = np.array(
+            [self.env._particles[nn].p0c[0] for nn in names])
+        gamma0 = np.array(
+            [self.env._particles[nn].gamma0[0] for nn in names])
+        beta0 = np.array(
+            [self.env._particles[nn].beta0[0] for nn in names])
+        tt = xt.Table({
+            'name': names,
+            'mass0': mass0,
+            'charge0': charge0,
+            'energy0': energy0,
+            'p0c': p0c,
+            'gamma0': gamma0,
+            'beta0': beta0
+        })
         return tt
 
 
