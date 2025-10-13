@@ -327,7 +327,7 @@ line.vars['k2xrr_b'] = line.vars['k2xrr_b_extr'] * line.functions['fun_xsext'](l
 
 line.functions['fun_gain'] = xt.FunctionPieceWiseLinear(x=[0, 0.25e-3, 0.5e-3], y=[0, 0, .001])
 line.vars['gain'] = line.functions['fun_gain'](line.vars['t_turn_s'])
-line.element_refs['spill_exc'].gain = line.vars['gain']
+line['spill_exc'].gain = line.vars['gain']
 
 line['septum'].max_x = 0.04
 

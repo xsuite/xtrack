@@ -28,7 +28,7 @@ line.insert_element(
 
 
 line.vars['k2mysext'] = 0
-line.element_refs['mysext'].k2 = line.vars['k2mysext']
+line['mysext'].k2 = line.vars['k2mysext']
 
 tw0 = line.twiss(method='4d')
 
