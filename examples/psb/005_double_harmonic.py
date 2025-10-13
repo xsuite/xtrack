@@ -49,14 +49,14 @@ line.vars['phi_rad_h1'] = line.functions['fun_phi_rad_h1'](line.vars['t_turn_s']
 line.vars['phi_rad_h2'] = line.functions['fun_phi_rad_h2'](line.vars['t_turn_s'])
 
 # Setup cavities
-line.element_refs['br1.acwf5l1.1'].voltage = line.vars['volt_mv_h1'] * 1e6
-line.element_refs['br1.acwf5l1.2'].voltage = line.vars['volt_mv_h2'] * 1e6
+line['br1.acwf5l1.1'].voltage = line.vars['volt_mv_h1'] * 1e6
+line['br1.acwf5l1.2'].voltage = line.vars['volt_mv_h2'] * 1e6
 
-line.element_refs['br1.acwf5l1.1'].lag = line.vars['phi_rad_h1'] * 360 / 2 / np.pi
-line.element_refs['br1.acwf5l1.2'].lag = line.vars['phi_rad_h2'] * 360 / 2 / np.pi
+line['br1.acwf5l1.1'].lag = line.vars['phi_rad_h1'] * 360 / 2 / np.pi
+line['br1.acwf5l1.2'].lag = line.vars['phi_rad_h2'] * 360 / 2 / np.pi
 
-line.element_refs['br1.acwf5l1.1'].frequency = line.vars['freq_h1']
-line.element_refs['br1.acwf5l1.2'].frequency = line.vars['freq_h2']
+line['br1.acwf5l1.1'].frequency = line.vars['freq_h1']
+line['br1.acwf5l1.2'].frequency = line.vars['freq_h2']
 
 
 # tw6d = line.twiss(method='6d')

@@ -35,7 +35,7 @@ f_rev = line.energy_program.get_frev_at_t_s(t_s)
 
 line.functions['fun_f_rev'] = xd.FunctionPieceWiseLinear(x=t_s, y=f_rev)
 line.vars['f_rev'] = line.functions['fun_f_rev'](line.vars['t_turn_s'])
-line.element_refs['br1.acwf7l1.1'].frequency = line.vars['f_rev'] # cavity on h=1
+line['br1.acwf7l1.1'].frequency = line.vars['f_rev'] # cavity on h=1
 
 tw6d = line.twiss(method='6d')
 
@@ -65,7 +65,7 @@ phis_1_deg = 2 * np.pi * f1 * zeta_co / beta0 / clight * 360 / 2 / np.pi
 line.functions['fun_phi1'] = xd.FunctionPieceWiseLinear(x=t_s, y=-phis_1_deg)
 line.vars['phi1_deg'] = line.functions['fun_phi1'](line.vars['t_turn_s'])
 
-line.element_refs['br1.acwf7l1.1'].lag = line.vars['phi1_deg']
+line['br1.acwf7l1.1'].lag = line.vars['phi1_deg']
 
 tw = line.twiss()
 

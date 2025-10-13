@@ -16,7 +16,7 @@ tw0.qx, tw0.qy
 # A few checks on the imported model
 line.vars['k0bi1bsw1l11']._info() # Check that the knob controls k0 and the edges
 
-line.element_refs['bi1.bsw1l1.1'].h._info() # Check no reference system curvature
+line.ref['bi1.bsw1l1.1'].h._info() # Check no reference system curvature
 
 # Build chicane knob (k0)
 line.vars['bsw_k0l'] = 0
@@ -30,10 +30,10 @@ line.vars['k0bi1bsw1l11']._info()
 
 # Build knob to model eddy currents (k2)
 line.vars['bsw_k2l'] = 0
-line.element_refs['bi1.bsw1l1.1'].knl[2] = line.vars['bsw_k2l']
-line.element_refs['bi1.bsw1l1.2'].knl[2] = -line.vars['bsw_k2l']
-line.element_refs['bi1.bsw1l1.3'].knl[2] = -line.vars['bsw_k2l']
-line.element_refs['bi1.bsw1l1.4'].knl[2] = line.vars['bsw_k2l']
+line['bi1.bsw1l1.1'].knl[2] = line.vars['bsw_k2l']
+line['bi1.bsw1l1.2'].knl[2] = -line.vars['bsw_k2l']
+line['bi1.bsw1l1.3'].knl[2] = -line.vars['bsw_k2l']
+line['bi1.bsw1l1.4'].knl[2] = line.vars['bsw_k2l']
 
 # Save to file
 line.to_json('psb_01_with_chicane.json')
