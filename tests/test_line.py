@@ -668,11 +668,11 @@ def test_optimize_multipoles(test_context):
 
     for nn in test_line.element_names:
         if nn in ('d1', 'd2'):
-            assert type(test_line.element_dict[nn]) is xt.SimpleThinBend
+            assert type(test_line.get(nn)) is xt.SimpleThinBend
         elif nn == 'q1' or nn == 'q3':
-            assert type(test_line.element_dict[nn]) is xt.SimpleThinQuadrupole
+            assert type(test_line.get(nn)) is xt.SimpleThinQuadrupole
         else:
-            assert type(test_line.element_dict[nn]) is xt.Multipole
+            assert type(test_line.get(nn)) is xt.Multipole
 
 def test_from_json_to_json(tmp_path):
 
@@ -691,7 +691,7 @@ def test_from_json_to_json(tmp_path):
     line.metadata = example_metadata
 
     def asserts():
-        assert len(result.element_dict.keys()) == 2
+        assert len(result.elements) == 2
         assert result.element_names == ['m', 'd', 'm', 'd']
 
         assert isinstance(result['m'], xt.Multipole)

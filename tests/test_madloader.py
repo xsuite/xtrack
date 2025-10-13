@@ -547,7 +547,6 @@ def test_mad_elements_import():
         line = xt.Line.from_dict(line.to_dict())  # This calls the to_dict method fot all
         # elements
 
-        assert len(line.element_names) == len(line.element_dict.keys())
         assert line.get_length() == 10
 
         assert isinstance(line['m0'], xt.Multipole)

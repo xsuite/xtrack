@@ -156,7 +156,7 @@ def test_vars_and_element_access_modes(container_type):
     tt_new['length', 'drift_2'] == tt['length', 'drift_2']
 
     lcp = line.copy()
-    assert lcp.element_dict is not line.element_dict
+    assert lcp._element_dict is not line._element_dict
     assert lcp.env is not line.env
     assert lcp._xdeps_vref._ownerr is not line._xdeps_vref._owner
 
@@ -620,19 +620,19 @@ def test_assemble_ring():
     assert 'cell3_copy' in env.lines
     assert cell3_select.particle_ref is not None
     assert env.lines['cell3_copy'] is cell3_select
-    assert cell3_select.element_dict is env.element_dict
+    assert cell3_select._element_dict is env._element_dict
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
     assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
     assert (np.array(cell3_select.element_names) == np.array(
         tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
 
-    # Check that they share the element_dict
-    assert cell.element_dict is env.element_dict
-    assert halfcell.element_dict is env.element_dict
-    assert halfcell_ss.element_dict is env.element_dict
-    assert cell_ss.element_dict is env.element_dict
-    assert insertion.element_dict is env.element_dict
-    assert ring2.element_dict is env.element_dict
+    # Check that they share the _element_dict
+    assert cell._element_dict is env._element_dict
+    assert halfcell._element_dict is env._element_dict
+    assert halfcell_ss._element_dict is env._element_dict
+    assert cell_ss._element_dict is env._element_dict
+    assert insertion._element_dict is env._element_dict
+    assert ring2._element_dict is env._element_dict
 
     cell3_select.twiss4d()
 
@@ -970,13 +970,13 @@ def test_assemble_ring_builders():
 
     select_whole = ring2.select()
     assert select_whole.env is ring2.env
-    assert select_whole.element_dict is ring2.element_dict
+    assert select_whole._element_dict is ring2._element_dict
     assert np.all(np.array(select_whole.element_names)
                   == np.array(ring2.element_names))
 
     shallow_copy = ring2.copy(shallow=True)
     assert shallow_copy.env is ring2.env
-    assert shallow_copy.element_dict is ring2.element_dict
+    assert shallow_copy._element_dict is ring2._element_dict
     assert np.all(np.array(shallow_copy.element_names)
                     == np.array(ring2.element_names))
 
@@ -1039,19 +1039,19 @@ def test_assemble_ring_builders():
                                 name='cell3_copy')
     assert 'cell3_copy' in env.lines
     assert env.lines['cell3_copy'] is cell3_select
-    assert cell3_select.element_dict is env.element_dict
+    assert cell3_select._element_dict is env._element_dict
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
     assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
     assert (np.array(cell3_select.element_names) == np.array(
         tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
 
-    # Check that they share the element_dict
-    assert cell.element_dict is env.element_dict
-    assert halfcell.element_dict is env.element_dict
-    assert halfcell_ss.element_dict is env.element_dict
-    assert cell_ss.element_dict is env.element_dict
-    assert insertion.element_dict is env.element_dict
-    assert ring2.element_dict is env.element_dict
+    # Check that they share the _element_dict
+    assert cell._element_dict is env._element_dict
+    assert halfcell._element_dict is env._element_dict
+    assert halfcell_ss._element_dict is env._element_dict
+    assert cell_ss._element_dict is env._element_dict
+    assert insertion._element_dict is env._element_dict
+    assert ring2._element_dict is env._element_dict
 
     cell3_select.twiss4d()
 
@@ -1393,13 +1393,13 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(tw_ring2.betx[0], tw_cell.betx[0], atol=0, rtol=5e-4)
     xo.assert_allclose(tw_ring2.bety[0], tw_cell.bety[0], atol=0, rtol=5e-4)
 
-    # Check that they share the element_dict
-    assert cell.element_dict is env.element_dict
-    assert halfcell.element_dict is env.element_dict
-    assert halfcell_ss.element_dict is env.element_dict
-    assert cell_ss.element_dict is env.element_dict
-    assert insertion.element_dict is env.element_dict
-    assert ring2.element_dict is env.element_dict
+    # Check that they share the _element_dict
+    assert cell._element_dict is env._element_dict
+    assert halfcell._element_dict is env._element_dict
+    assert halfcell_ss._element_dict is env._element_dict
+    assert cell_ss._element_dict is env._element_dict
+    assert insertion._element_dict is env._element_dict
+    assert ring2._element_dict is env._element_dict
 
     xo.assert_allclose(tw_ring2['betx', 'ip::0'], tw_half_insertion['betx', 'ip'], atol=0, rtol=5e-4)
     xo.assert_allclose(tw_ring2['bety', 'ip::0'], tw_half_insertion['bety', 'ip'], atol=0, rtol=5e-4)
@@ -1822,7 +1822,7 @@ def test_select_in_multiline():
     line   = collider[seq]
     line_sel    = line.select(s_marker,e_marker)
 
-    assert line_sel.element_dict is line.element_dict
+    assert line_sel._element_dict is line._element_dict
     assert line.get('ip1') is line_sel.get('ip1')
 
     line_sel['aaa'] = 1e-6
@@ -1857,7 +1857,7 @@ def test_inpection_methods(container_type):
 
     # Line/Env methods (get, set, eval, get_expr, new_expr, info)
     assert ee.get('b') == 2 * 2 + 1
-    assert ee.get('bb') is env.element_dict['bb']
+    assert ee.get('bb') is env._element_dict['bb']
 
     assert str(ee.get_expr('b')) == "((2.0 * vars['a']) + vars['k.1'])"
 
@@ -2601,7 +2601,7 @@ def test_remove_element_from_env():
     env.new('q1', 'Quadrupole', length='2.0 + b', knl=[0, '3*a'])
     env.new('q2', 'q1', length='2.0 + b', knl=[0, '3*a'])
 
-    assert 'q1' in env.element_dict
+    assert 'q1' in env.elements
     assert len(env.ref['a']._find_dependant_targets()) == 7
     # is:
     # [vars['a'],
@@ -2613,7 +2613,7 @@ def test_remove_element_from_env():
     #  element_refs['q1'].knl]
 
     env._remove_element('q1')
-    assert 'q1' not in env.element_dict
+    assert 'q1' not in env.elements
     assert len(env.ref['a']._find_dependant_targets()) == 4
     # is:
     # [vars['a'],
@@ -3162,14 +3162,14 @@ def test_enviroment_from_two_lines():
        'qq_shared_thin/line2', 'qq_shared_thin/line2',
        'qq_shared_thin/line2', None, None]))
 
-    assert 'qq1_thick' in env.element_dict
-    assert 'qq1_thin' in env.element_dict
-    assert 'qq_shared_thick/line1' in env.element_dict
-    assert 'qq_shared_thin/line1' in env.element_dict
-    assert 'qq2_thick' in env.element_dict
-    assert 'qq2_thin' in env.element_dict
-    assert 'qq_shared_thick/line2' in env.element_dict
-    assert 'qq_shared_thin/line2' in env.element_dict
+    assert 'qq1_thick' in env.elements
+    assert 'qq1_thin' in env.elements
+    assert 'qq_shared_thick/line1' in env.elements
+    assert 'qq_shared_thin/line1' in env.elements
+    assert 'qq2_thick' in env.elements
+    assert 'qq2_thin' in env.elements
+    assert 'qq_shared_thick/line2' in env.elements
+    assert 'qq_shared_thin/line2' in env.elements
 
     line1['kk'] = 1e-1
     line2['kk'] = 1e-1
