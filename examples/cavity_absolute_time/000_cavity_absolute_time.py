@@ -26,8 +26,8 @@ delta_expected = -df_rev / f_rev / eta
 line.vars['f_rf'] = 400789598.9858259 + df_hz
 tt = line.get_table()
 for nn in tt.rows[tt.element_type=='Cavity'].name:
-    line.element_refs[nn].absolute_time = 1
-    line.element_refs[nn].frequency = line.vars['f_rf']
+    line[nn].absolute_time = 1
+    line[nn].frequency = line.vars['f_rf']
 
 
 def merit_function(x, num_turns=10):
