@@ -523,16 +523,16 @@ def test_line_import_from_madx(test_context, mad_with_errors):
     line.vars['kqtf.b1'] = -2e-4
     xo.assert_allclose(line.twiss()['qx'], 62.2834, rtol=0, atol=1e-4)
 
-    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].voltage,
+    xo.assert_allclose(line['acsca.b5l4.b1'].voltage,
                       2e6, rtol=0, atol=1e-14)
     line.vars['vrf400'] = 8
-    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].voltage,
+    xo.assert_allclose(line['acsca.b5l4.b1'].voltage,
                       1e6, rtol=0, atol=1e-14)
 
-    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].lag, 180,
+    xo.assert_allclose(line['acsca.b5l4.b1'].lag, 180,
                     rtol=0, atol=1e-14)
     line.vars['lagrf400.b1'] = 0.75
-    xo.assert_allclose(line.element_dict['acsca.b5l4.b1'].lag, 270,
+    xo.assert_allclose(line['acsca.b5l4.b1'].lag, 270,
                     rtol=0, atol=1e-14)
 
     assert np.abs(line['acfcav.bl5.b1'].crab_voltage) > 0
