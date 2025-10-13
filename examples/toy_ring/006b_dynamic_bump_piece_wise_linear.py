@@ -43,9 +43,9 @@ tw = line.twiss(method='4d')
 
 # Power the correctors to make a closed orbit bump
 line.vars['bumper_strength'] = 0.
-line.element_refs['bumper_0'].k0 = -line.vars['bumper_strength']
-line.element_refs['bumper_1'].k0 = 2 * line.vars['bumper_strength']
-line.element_refs['bumper_2'].k0 = -line.vars['bumper_strength']
+line['bumper_0'].k0 = -line.vars['bumper_strength']
+line['bumper_1'].k0 = 2 * line.vars['bumper_strength']
+line['bumper_2'].k0 = -line.vars['bumper_strength']
 
 #!start-doc-part
 
@@ -66,7 +66,7 @@ tw_list = []
 bumper_0_list = []
 for tt in t_test:
     line.vars['t_turn_s'] = tt
-    bumper_0_list.append(line.element_refs['bumper_0'].k0) # Inspect bumper
+    bumper_0_list.append(line['bumper_0'].k0) # Inspect bumper
     tw_list.append(line.twiss(method='4d')) # Twiss
 
 # Plot
