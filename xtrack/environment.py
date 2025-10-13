@@ -333,7 +333,10 @@ class Environment:
 
         if extra is not None:
             assert isinstance(extra, dict)
-            self._element_dict[name].extra = extra
+            if not hasattr(self[name], 'extra'):
+                self[name].extra = {}
+            for kk in extra:
+                self[name].extra[kk] = extra[kk]
 
         self._element_dict[name].prototype = prototype
 
