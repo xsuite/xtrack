@@ -282,7 +282,7 @@ def test_slicing_strategy_matching():
     assert line.element_names == expected_names
 
     # Check types:
-    for name, element in line.elements.items():
+    for name, element in line.env.elements.items():
         if name == 'keep_this':
             assert isinstance(element, xt.Quadrupole)
         elif name == 'keep_drifts':

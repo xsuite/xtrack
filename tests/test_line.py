@@ -691,7 +691,7 @@ def test_from_json_to_json(tmp_path):
     line.metadata = example_metadata
 
     def asserts():
-        assert len(result.elements) == 2
+        assert len(result.env.elements) == 2
         assert result.element_names == ['m', 'd', 'm', 'd']
 
         assert isinstance(result['m'], xt.Multipole)
