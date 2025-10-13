@@ -29,8 +29,8 @@ f_rf = f_rf0 + df_hz
 line.vars['f_rf'] = f_rf
 tt = line.get_table()
 for nn in tt.rows[tt.element_type=='Cavity'].name:
-    line.element_refs[nn].absolute_time = 1 # Need property
-    line.element_refs[nn].frequency = line.vars['f_rf']
+    line[nn].absolute_time = 1 # Need property
+    line[nn].frequency = line.vars['f_rf']
 
 tw1 = line.twiss(search_for_t_rev=True)
 
