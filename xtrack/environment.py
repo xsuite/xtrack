@@ -1999,6 +1999,12 @@ class EnvLines(UserDict):
         self.env = env
 
     def __setitem__(self, key, value):
+        if key in self.env._xdeps_vref._owner:
+            raise ValueError(f'There is already a variable with name {key}')
+        if key in self.env._xdeps_eref._owner:
+            raise ValueError(f'There is already an element with name {key}')
+        if key in self.env._xdeps_pref._owner:
+            raise ValueError(f'There is already a particle with name {key}')
         self.env._lines_weakrefs.add(value)
         UserDict.__setitem__(self, key, value)
 
@@ -2413,6 +2419,8 @@ class EnvVars:
             raise ValueError(f'There is already an element with name {key}')
         if key in self.env._xdeps_pref._owner:
             raise ValueError(f'There is already a particle with name {key}')
+        if key in self.env.lines:
+            raise ValueError(f'There is already a line with name {key}')
         if isinstance(value, str):
             value = self.env._xdeps_eval.eval(value)
         self.env._xdeps_vref[key] = value
