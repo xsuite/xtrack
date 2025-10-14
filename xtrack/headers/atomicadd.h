@@ -142,7 +142,7 @@ DEF_ATOMIC_ADD(double  , f64)
     #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
     #pragma OPENCL EXTENSION cl_khr_fp64 : enable
     #define __XT_CAS_U32(ptr, exp, val) atomic_cmpxchg((GPUVOLATILE uint32_t*)(ptr), (uint32_t)(exp), (uint32_t)(val))
-    #define __XT_CAS_U64(ptr, exp, val) atomic_cmpxchg((GPUVOLATILE uint64_t*)(ptr), (uint64_t)(exp), (uint64_t)(val))
+    #define __XT_CAS_U64(ptr, exp, val) atom_cmpxchg((GPUVOLATILE uint64_t*)(ptr), (uint64_t)(exp), (uint64_t)(val))
     #define __XT_AS_U32_FROM_F32(x) as_uint(x)
     #define __XT_AS_F32_FROM_U32(x) as_float(x)
     #define __XT_AS_U64_FROM_F64(x) as_ulong(x)
@@ -257,7 +257,7 @@ DEF_ATOMIC_ADD(double  , f64)
     #ifdef XO_CONTEXT_CUDA
         return atomicAdd(addr, val);
     #else // XO_CONTEXT_CL
-        return atomic_add(addr, val);
+        return atom_add(addr, val);
     #endif // XO_CONTEXT_CUDA / XO_CONTEXT_CL
     }
 
@@ -344,7 +344,7 @@ DEF_ATOMIC_ADD(double  , f64)
     // Existing type definitions: forward to OpenCL built-ins
     GPUFUN int32_t  OCL_OVERLOAD atomicAdd(GPUVOLATILE int32_t* p, int32_t v)   { return atomic_add(p, v); }
     GPUFUN uint32_t OCL_OVERLOAD atomicAdd(GPUVOLATILE uint32_t* p, uint32_t v) { return atomic_add(p, v); }
-    GPUFUN uint64_t OCL_OVERLOAD atomicAdd(GPUVOLATILE uint64_t* p, uint64_t v) { return atomic_add(p, v); }
+    GPUFUN uint64_t OCL_OVERLOAD atomicAdd(GPUVOLATILE uint64_t* p, uint64_t v) { return atom_add(p, v); }
 #endif // XO_CONTEXT_CL
 
 #endif //_ATOMICADD_H_
