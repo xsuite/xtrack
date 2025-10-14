@@ -2234,17 +2234,17 @@ class EnvParticleRef:
 
 class EnvVars:
 
-    def __init__(self, line):
-        self.line = line
-        if '__vary_default' not in self.line._xdeps_vref._owner.keys():
-            self.line._xdeps_vref._owner['__vary_default'] = {}
+    def __init__(self, env):
+        self.env = env
+        if '__vary_default' not in self.env._xdeps_vref._owner.keys():
+            self.env._xdeps_vref._owner['__vary_default'] = {}
         self.val = VarValues(self)
         self.vars_to_update = WeakSet()
 
     def __repr__(self):
-        n = len(self.line._xdeps_vref._owner) - 1
+        n = len(self.env._xdeps_vref._owner) - 1
         names_preview = []
-        for ii, kk in enumerate(self.line._xdeps_vref._owner.keys()):
+        for ii, kk in enumerate(self.env._xdeps_vref._owner.keys()):
             if kk != '__vary_default':
                 names_preview.append(str(kk))
             if ii == 5:
@@ -2254,21 +2254,21 @@ class EnvVars:
         return f'EnvVars({n} vars: {{{preview}}})'
 
     def keys(self):
-        if self.line._xdeps_vref is None:
+        if self.env._xdeps_vref is None:
             raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        out = list(self.line._xdeps_vref._owner.keys()).copy()
+                f'Cannot access variables as the environment has no xdeps manager')
+        out = list(self.env._xdeps_vref._owner.keys()).copy()
         return out
 
     def __iter__(self):
         raise NotImplementedError('Use keys() method') # Untested
-        return self.line._xdeps_vref._owner.__iter__()
+        return self.env._xdeps_vref._owner.__iter__()
 
     def __len__(self):
-        if self.line._xdeps_vref is None:
+        if self.env._xdeps_vref is None:
             raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        return len(self.line._xdeps_vref._owner) - 1
+                f'Cannot access variables as the environment has no xdeps manager')
+        return len(self.env._xdeps_vref._owner) - 1
 
     def update(self, *args, **kwargs):
         default_to_zero = kwargs.pop('default_to_zero', None)
@@ -2276,9 +2276,9 @@ class EnvVars:
         if default_to_zero is not None:
             self.default_to_zero = default_to_zero
         try:
-            if self.line._xdeps_vref is None:
+            if self.env._xdeps_vref is None:
                 raise RuntimeError(
-                    f'Cannot access variables as the line has no xdeps manager')
+                    f'Cannot access variables as the environment has no xdeps manager')
             if len(args) > 0:
                 assert len(args) == 1, 'update expected at most 1 positional argument'
                 other = args[0]
@@ -2339,29 +2339,29 @@ class EnvVars:
 
     @property
     def vary_default(self):
-        if self.line._xdeps_vref is None:
+        if self.env._xdeps_vref is None:
             raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        return self.line._xdeps_vref._owner['__vary_default']
+                f'Cannot access variables as the environment has no xdeps manager')
+        return self.env._xdeps_vref._owner['__vary_default']
 
     def get_table(self, compact=True):
-        if self.line._xdeps_vref is None:
+        if self.env._xdeps_vref is None:
             raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
+                f'Cannot access variables as the environment has no xdeps manager')
         name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'], dtype=object)
-        value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
+        value = np.array([self.env._xdeps_vref[kk]._value for kk in name])
 
         if compact:
             formatter = xd.refs.CompactFormatter(scope=None)
             expr = []
             for kk in name:
-                ee = self.line._xdeps_vref[kk]._expr
+                ee = self.env._xdeps_vref[kk]._expr
                 if ee is None:
                     expr.append(None)
                 else:
                     expr.append(ee._formatted(formatter))
         else:
-            expr  = [self.line._xdeps_vref[str(kk)]._expr for kk in name]
+            expr  = [self.env._xdeps_vref[str(kk)]._expr for kk in name]
             for ii, ee in enumerate(expr):
                 if ee is not None:
                     expr[ii] = str(ee)
@@ -2371,7 +2371,7 @@ class EnvVars:
         return VarsTable({'name': name, 'value': value, 'expr': expr})
 
     def new_expr(self, expr):
-        return self.line._xdeps_eval.eval(expr)
+        return self.env._xdeps_eval.eval(expr)
 
     def eval(self, expr):
         expr_or_value = self.new_expr(expr)
@@ -2386,15 +2386,15 @@ class EnvVars:
         return self[var]._expr
 
     def __contains__(self, key):
-        if self.line._xdeps_vref is None:
+        if self.env._xdeps_vref is None:
             raise RuntimeError(
-                f'Cannot access variables as the line has no xdeps manager')
-        return key in self.line._xdeps_vref._owner
+                f'Cannot access variables as the environment has no xdeps manager')
+        return key in self.env._xdeps_vref._owner
 
     def get_independent_vars(self):
 
         """
-        Returns the list of independent variables in the line.
+        Returns the list of independent variables in the environment.
         """
 
         out = []
@@ -2406,12 +2406,12 @@ class EnvVars:
     def __getitem__(self, key):
         if key not in self: # uses __contains__ method
             raise KeyError(f'Variable `{key}` not found')
-        return self.line._xdeps_vref[key]
+        return self.env._xdeps_vref[key]
 
     def __setitem__(self, key, value):
         if isinstance(value, str):
-            value = self.line._xdeps_eval.eval(value)
-        self.line._xdeps_vref[key] = value
+            value = self.env._xdeps_eval.eval(value)
+        self.env._xdeps_vref[key] = value
         for cc in self.vars_to_update:
             cc[key] = value
 
@@ -2434,7 +2434,7 @@ class EnvVars:
         filename : str or list of str
             Path to the MAD-X file(s) to load.
         '''
-        loader = xt.mad_parser.MadxLoader(env=self.line)
+        loader = xt.mad_parser.MadxLoader(env=self.env)
         if filename is not None:
             assert string is None, 'Cannot specify both filename and string'
             loader.load_file(filename)
@@ -2458,11 +2458,11 @@ class EnvVars:
         self.default_to_zero = _old_default_to_zero
 
     def target(self, tar, value, **kwargs):
-        action = ActionVars(self.line)
+        action = ActionVars(self.env)
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        _eval = self.line._xdeps_eval.eval
+        _eval = self.env._xdeps_eval.eval
         if len(args) > 0:
             assert len(kwargs) == 0
             assert len(args) == 1
@@ -2480,7 +2480,7 @@ class EnvVars:
 
     def set(self, name, value):
         if isinstance(value, str):
-            self[name] = self.line._xdeps_eval.eval(value)
+            self[name] = self.env._xdeps_eval.eval(value)
         else:
             self[name] = value
 
@@ -2489,7 +2489,7 @@ class EnvVars:
 
     @property
     def default_to_zero(self):
-        default_factory = self.line._xdeps_vref._owner.default_factory
+        default_factory = self.env._xdeps_vref._owner.default_factory
         if default_factory is None:
             return False
         return default_factory.default == 0
@@ -2498,9 +2498,9 @@ class EnvVars:
     def default_to_zero(self, value):
         assert value in (True, False)
         if value:
-            self.line._xdeps_vref._owner.default_factory = _DefaultFactory(0.)
+            self.env._xdeps_vref._owner.default_factory = _DefaultFactory(0.)
         else:
-            self.line._xdeps_vref._owner.default_factory = None
+            self.env._xdeps_vref._owner.default_factory = None
 
 class VarsTable(xd.Table):
 
