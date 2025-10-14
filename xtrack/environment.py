@@ -5,6 +5,7 @@ from os import name
 from typing import Literal
 from weakref import WeakSet
 from copy import deepcopy
+import json
 import re
 import importlib.util
 import uuid
@@ -20,6 +21,7 @@ from xdeps.refs import is_ref
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 from .progress_indicator import progress
 from .functions import Functions
+from .match import Action
 
 ReferType = Literal['start', 'center', 'centre', 'end']
 
@@ -136,7 +138,7 @@ class Environment:
             element_dict=self._element_dict,
             particles=self._particles,
             dct=_var_management_dct)
-        self._line_vars = xt.line.EnvVars(self)
+        self._line_vars = EnvVars(self)
 
         self.lines = EnvLines(self)
         self._lines_weakrefs = WeakSet()
@@ -2228,3 +2230,318 @@ class EnvParticleRef:
 
     def copy(self, **kwargs):
         return self._resolved.copy(**kwargs)
+
+
+class EnvVars:
+
+    def __init__(self, line):
+        self.line = line
+        if '__vary_default' not in self.line._xdeps_vref._owner.keys():
+            self.line._xdeps_vref._owner['__vary_default'] = {}
+        self.val = VarValues(self)
+        self.vars_to_update = WeakSet()
+
+    def __repr__(self):
+        n = len(self.line._xdeps_vref._owner) - 1
+        names_preview = []
+        for ii, kk in enumerate(self.line._xdeps_vref._owner.keys()):
+            if kk != '__vary_default':
+                names_preview.append(str(kk))
+            if ii == 5:
+                names_preview.append('...')
+                break
+        preview = ', '.join(names_preview)
+        return f'EnvVars({n} vars: {{{preview}}})'
+
+    def keys(self):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        out = list(self.line._xdeps_vref._owner.keys()).copy()
+        return out
+
+    def __iter__(self):
+        raise NotImplementedError('Use keys() method') # Untested
+        return self.line._xdeps_vref._owner.__iter__()
+
+    def __len__(self):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        return len(self.line._xdeps_vref._owner) - 1
+
+    def update(self, *args, **kwargs):
+        default_to_zero = kwargs.pop('default_to_zero', None)
+        old_default_to_zero = self.default_to_zero
+        if default_to_zero is not None:
+            self.default_to_zero = default_to_zero
+        try:
+            if self.line._xdeps_vref is None:
+                raise RuntimeError(
+                    f'Cannot access variables as the line has no xdeps manager')
+            if len(args) > 0:
+                assert len(args) == 1, 'update expected at most 1 positional argument'
+                other = args[0]
+                for kk in other.keys():
+                    self[kk] = other[kk]
+            for kk, vv in kwargs.items():
+                self[kk] = vv
+        except Exception as ee:
+            if default_to_zero is not None:
+                self.default_to_zero = old_default_to_zero
+            raise ee
+        if default_to_zero is not None:
+            self.default_to_zero = old_default_to_zero
+
+    def load(
+            self,
+            file=None,
+            string=None,
+            format: Literal['json', 'madx', 'python'] = None,
+            timeout=5.,
+        ):
+
+        if isinstance(file, Path):
+            file = str(file)
+
+        if (file is None) == (string is None):
+            raise ValueError('Must specify either file or string, but not both')
+
+        FORMATS = {'json', 'madx', 'python'}
+        if string and format not in FORMATS:
+            raise ValueError(f'Format must be specified to be one of {FORMATS} when '
+                            f'using string input')
+
+        if format is None and file is not None:
+            if file.endswith('.json') or file.endswith('.json.gz'):
+                format = 'json'
+            elif file.endswith('.str') or file.endswith('.madx'):
+                format = 'madx'
+            elif file.endswith('.py'):
+                format = 'python'
+
+        if file and (file.startswith('http://') or file.startswith('https://')):
+            string = xt.general.read_url(file, timeout=timeout)
+            file = None
+
+        if format == 'json':
+            ddd = xt.json.load(file=file, string=string)
+            self.update(ddd, default_to_zero=True)
+        elif format == 'madx':
+            return self.load_madx(file, string)
+        elif format == 'python':
+            if string is not None:
+                raise NotImplementedError('Loading from string not implemented for python format')
+            env = xt.Environment()
+            env.call(file)
+            self.update(env.vars.get_table().to_dict(), default_to_zero=True)
+            return env
+
+    @property
+    def vary_default(self):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        return self.line._xdeps_vref._owner['__vary_default']
+
+    def get_table(self, compact=True):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'], dtype=object)
+        value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
+
+        if compact:
+            formatter = xd.refs.CompactFormatter(scope=None)
+            expr = []
+            for kk in name:
+                ee = self.line._xdeps_vref[kk]._expr
+                if ee is None:
+                    expr.append(None)
+                else:
+                    expr.append(ee._formatted(formatter))
+        else:
+            expr  = [self.line._xdeps_vref[str(kk)]._expr for kk in name]
+            for ii, ee in enumerate(expr):
+                if ee is not None:
+                    expr[ii] = str(ee)
+
+        expr = np.array(expr)
+
+        return VarsTable({'name': name, 'value': value, 'expr': expr})
+
+    def new_expr(self, expr):
+        return self.line._xdeps_eval.eval(expr)
+
+    def eval(self, expr):
+        expr_or_value = self.new_expr(expr)
+        if is_ref(expr_or_value):
+            return expr_or_value._get_value()
+        return expr_or_value
+
+    def info(self, var, limit=10):
+        return self[var]._info(limit=limit)
+
+    def get_expr(self, var):
+        return self[var]._expr
+
+    def __contains__(self, key):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        return key in self.line._xdeps_vref._owner
+
+    def get_independent_vars(self):
+
+        """
+        Returns the list of independent variables in the line.
+        """
+
+        out = []
+        for kk in self.keys():
+            if self[kk]._expr is None:
+                out.append(kk)
+        return out
+
+    def __getitem__(self, key):
+        if key not in self: # uses __contains__ method
+            raise KeyError(f'Variable `{key}` not found')
+        return self.line._xdeps_vref[key]
+
+    def __setitem__(self, key, value):
+        if isinstance(value, str):
+            value = self.line._xdeps_eval.eval(value)
+        self.line._xdeps_vref[key] = value
+        for cc in self.vars_to_update:
+            cc[key] = value
+
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        out['vars_to_update'] = None
+        return out
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.vars_to_update = WeakSet()
+
+    def set_from_madx_file(self, filename=None, string=None):
+
+        '''
+        Set variables veluas of expression from a MAD-X file.
+
+        Parameters
+        ----------
+        filename : str or list of str
+            Path to the MAD-X file(s) to load.
+        '''
+        loader = xt.mad_parser.MadxLoader(env=self.line)
+        if filename is not None:
+            assert string is None, 'Cannot specify both filename and string'
+            loader.load_file(filename)
+        elif string is not None:
+            assert filename is None, 'Cannot specify both filename and string'
+            loader.load_string(string)
+
+    def load_madx_optics_file(self, filename=None, string=None):
+        self.set_from_madx_file(filename, string)
+
+    load_madx = load_madx_optics_file
+
+    def load_json(self, filename):
+
+        with open(filename, 'r') as fid:
+            data = json.load(fid)
+
+        _old_default_to_zero = self.default_to_zero
+        self.default_to_zero = True
+        self.update(data)
+        self.default_to_zero = _old_default_to_zero
+
+    def target(self, tar, value, **kwargs):
+        action = ActionVars(self.line)
+        return xt.Target(action=action, tar=tar, value=value, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        _eval = self.line._xdeps_eval.eval
+        if len(args) > 0:
+            assert len(kwargs) == 0
+            assert len(args) == 1
+            if isinstance(args[0], str):
+                return self[args[0]]
+            elif isinstance(args[0], dict):
+                kwargs.update(args[0])
+            else:
+                raise ValueError('Invalid argument')
+        for kk in kwargs:
+            if isinstance(kwargs[kk], str):
+                self[kk] = _eval(kwargs[kk])
+            else:
+                self[kk] = kwargs[kk]
+
+    def set(self, name, value):
+        if isinstance(value, str):
+            self[name] = self.line._xdeps_eval.eval(value)
+        else:
+            self[name] = value
+
+    def get(self, name):
+        return self[name]._value
+
+    @property
+    def default_to_zero(self):
+        default_factory = self.line._xdeps_vref._owner.default_factory
+        if default_factory is None:
+            return False
+        return default_factory.default == 0
+
+    @default_to_zero.setter
+    def default_to_zero(self, value):
+        assert value in (True, False)
+        if value:
+            self.line._xdeps_vref._owner.default_factory = _DefaultFactory(0.)
+        else:
+            self.line._xdeps_vref._owner.default_factory = None
+
+class VarsTable(xd.Table):
+
+    def to_dict(self):
+        out = {}
+        for nn, ee, vv in zip(self['name'], self['expr'], self['value']):
+            if ee is not None:
+                out[nn] = ee
+            else:
+                out[nn] = vv
+        return out
+
+class ActionVars(Action):
+
+    def __init__(self, line):
+        self.line = line
+
+    def run(self, **kwargs):
+        return self.line._xdeps_vref._owner
+
+class ActionLine(Action):
+
+    def __init__(self, line):
+        self.line = line
+
+    def run(self):
+        return self.line
+
+class VarValues:
+
+    def __init__(self, vars):
+        self.vars = vars
+
+    def __getitem__(self, key):
+        return self.vars[key]._value
+
+    def __setitem__(self, key, value):
+        self.vars[key] = value
+
+    def get(self,key, default=0):
+        if key in self.vars:
+            return self.vars[key]._value
+        else:
+            return default
