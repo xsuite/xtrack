@@ -1744,6 +1744,14 @@ class EnvElements:
             raise KeyError(f'Element {key} not found.')
 
     def __setitem__(self, key, value):
+        if key in self.env.lines:
+            raise ValueError(f'There is already a line with name {key}')
+        if key in self.env._xdeps_eref:
+            raise ValueError(f'There is already a reference with name {key}')
+        if key in self.env._xdeps_vref:
+            raise ValueError(f'There is already a variable with name {key}')
+        if key in self.env._xdeps_pref:
+            raise ValueError(f'There is already a particle with name {key}')
         self.env._element_dict[key] = value
 
     def __contains__(self, key):
@@ -1793,6 +1801,14 @@ class EnvParticles:
             raise KeyError(f'Element {key} not found.')
 
     def __setitem__(self, key, value):
+        if key in self.env.lines:
+            raise ValueError(f'There is already a line with name {key}')
+        if key in self.env._xdeps_eref._owner:
+            raise ValueError(f'There is already a reference with name {key}')
+        if key in self.env._xdeps_vref._owner:
+            raise ValueError(f'There is already a variable with name {key}')
+        if key in self.env._xdeps_pref._owner:
+            raise ValueError(f'There is already a particle with name {key}')
         self.env._particles[key] = value
 
     def __contains__(self, key):
@@ -2005,6 +2021,8 @@ class EnvLines(UserDict):
             raise ValueError(f'There is already an element with name {key}')
         if key in self.env._xdeps_pref._owner:
             raise ValueError(f'There is already a particle with name {key}')
+        if key in self.env.lines:
+            raise ValueError(f'There is already a line with name {key}')
         self.env._lines_weakrefs.add(value)
         UserDict.__setitem__(self, key, value)
 
