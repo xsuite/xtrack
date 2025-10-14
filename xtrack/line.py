@@ -44,7 +44,7 @@ from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
 from xtrack.aperture_meas import measure_aperture
-from .match import match_line, closed_orbit_correction, match_knob_line
+from .match import match_line, closed_orbit_correction, match_knob_line, Action
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
@@ -5793,3 +5793,11 @@ class LineParticleRef:
 
     def copy(self, **kwargs):
         return self._resolved.copy(**kwargs)
+
+class ActionLine(Action):
+
+    def __init__(self, line):
+        self.line = line
+
+    def run(self):
+        return self.line

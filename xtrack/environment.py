@@ -2521,14 +2521,6 @@ class ActionVars(Action):
     def run(self, **kwargs):
         return self.line._xdeps_vref._owner
 
-class ActionLine(Action):
-
-    def __init__(self, line):
-        self.line = line
-
-    def run(self):
-        return self.line
-
 class VarValues:
 
     def __init__(self, vars):
