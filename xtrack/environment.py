@@ -2545,3 +2545,10 @@ class VarValues:
             return self.vars[key]._value
         else:
             return default
+
+class _DefaultFactory:
+    def __init__(self, default):
+        self.default = default
+
+    def __call__(self):
+        return self.default

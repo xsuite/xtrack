@@ -5392,12 +5392,6 @@ def _temp_knobs(line_or_trk, knobs: dict):
         for kk, vv in old_values.items():
             line_or_trk.vars[kk] = vv
 
-class _DefaultFactory:
-    def __init__(self, default):
-        self.default = default
-
-    def __call__(self):
-        return self.default
 
 class LineAttrItem:
 
