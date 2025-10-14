@@ -42,13 +42,30 @@ mng.send(r'''
 
     MADX.myseq:select(obs_flag, {list={'C1', 'MM'}})
 
-    local X0 = MAD.damap{nv=6, m0=3}
+    local X0 = MAD.damap{
+         nv=6, -- number of variables
+         mo=3, -- max order of variables
+         np=2, -- number of parameters
+         pn={'kf', 'kd'}, -- parameter names
+         }
+    X0.x = 1e-3
+    MADX.kf = MADX.kf + X0.kf
+    MADX.kd = MADX.kd + X0.kd
     local trk, mflw = MAD.track{sequence=MADX.myseq, X0=X0, savemap=true}
     trk:print({'name', 's', 'x', 'px', 'y', 'py', 't', 'pt'})
 
     -- mflw[1]:print() -- map at the end
 
-    trk['MM'].__map:print() -- map at the end
+    trk['MM'].__map:print() -- map at MM
+
+    local nf = MAD.gphys.normal(mflw[1])
+    nf.a:print() -- normal form at the end
+    local B0 = MAD.gphys.map2bet(nf.a:real())
+    print(B0.beta11)
+
+    local a_re = nf.a:real()
+    print(a_re.x:get("100000")^2 + a_re.x:get("010000")^2)
+    print(a_re.x:get("1000001")^2)
 ''')
 
 # twng_from_madx_df = mng.twiss(sequence='MADX.myseq')[0].to_df()

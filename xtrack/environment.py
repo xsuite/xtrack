@@ -1161,14 +1161,8 @@ class Environment:
 
         if isinstance(value, xt.Line):
             assert value.env is self, 'Line must be in the same environment'
-            if key in self.lines:
-                raise ValueError(f'There is already a line with name {key}')
-            if key in self.elements:
-                raise ValueError(f'There is already an element with name {key}')
             self.lines[key] = value
         elif np.isscalar(value) or xd.refs.is_ref(value):
-            if key in self.elements:
-                raise ValueError(f'There is already an element with name {key}')
             self.vars[key] = value
         else:
             raise ValueError('Only lines, scalars or references are allowed')
@@ -1329,6 +1323,16 @@ class Environment:
                     out['_var_management_data'][kk].to_dict())
         out['_var_manager'] = self._var_management['manager'].dump()
         return out
+
+    def _check_name_clashes(self, name, check_vars=True):
+        if name in self._xdeps_eref._owner:
+            raise ValueError(f'There is already an element with name {name}')
+        if name in self.lines:
+            raise ValueError(f'There is already a line with name {name}')
+        if name in self._xdeps_pref._owner:
+            raise ValueError(f'There is already a particle with name {name}')
+        if check_vars and name in self._xdeps_vref._owner:
+            raise ValueError(f'There is already a variable with name {name}')
 
     twiss = MultilineLegacy.twiss
     discard_trackers = MultilineLegacy.discard_trackers
@@ -1744,14 +1748,7 @@ class EnvElements:
             raise KeyError(f'Element {key} not found.')
 
     def __setitem__(self, key, value):
-        if key in self.env.lines:
-            raise ValueError(f'There is already a line with name {key}')
-        if key in self.env._xdeps_eref:
-            raise ValueError(f'There is already a reference with name {key}')
-        if key in self.env._xdeps_vref:
-            raise ValueError(f'There is already a variable with name {key}')
-        if key in self.env._xdeps_pref:
-            raise ValueError(f'There is already a particle with name {key}')
+        self.env._check_name_clashes(key)
         self.env._element_dict[key] = value
 
     def __contains__(self, key):
@@ -1801,14 +1798,7 @@ class EnvParticles:
             raise KeyError(f'Element {key} not found.')
 
     def __setitem__(self, key, value):
-        if key in self.env.lines:
-            raise ValueError(f'There is already a line with name {key}')
-        if key in self.env._xdeps_eref._owner:
-            raise ValueError(f'There is already a reference with name {key}')
-        if key in self.env._xdeps_vref._owner:
-            raise ValueError(f'There is already a variable with name {key}')
-        if key in self.env._xdeps_pref._owner:
-            raise ValueError(f'There is already a particle with name {key}')
+        self.env._check_name_clashes(key)
         self.env._particles[key] = value
 
     def __contains__(self, key):
@@ -2015,14 +2005,7 @@ class EnvLines(UserDict):
         self.env = env
 
     def __setitem__(self, key, value):
-        if key in self.env._xdeps_vref._owner:
-            raise ValueError(f'There is already a variable with name {key}')
-        if key in self.env._xdeps_eref._owner:
-            raise ValueError(f'There is already an element with name {key}')
-        if key in self.env._xdeps_pref._owner:
-            raise ValueError(f'There is already a particle with name {key}')
-        if key in self.env.lines:
-            raise ValueError(f'There is already a line with name {key}')
+        self.env._check_name_clashes(key)
         self.env._lines_weakrefs.add(value)
         UserDict.__setitem__(self, key, value)
 
@@ -2433,14 +2416,7 @@ class EnvVars:
         return self.env._xdeps_vref[key]
 
     def __setitem__(self, key, value):
-        if key in self.env._xdeps_eref._owner:
-            raise ValueError(f'There is already an element with name {key}')
-        if key in self.env._xdeps_pref._owner:
-            raise ValueError(f'There is already a particle with name {key}')
-        if key in self.env.lines:
-            raise ValueError(f'There is already a line with name {key}')
-        if isinstance(value, str):
-            value = self.env._xdeps_eval.eval(value)
+        self.env._check_name_clashes(key, check_vars=False)
         self.env._xdeps_vref[key] = value
         for cc in self.vars_to_update:
             cc[key] = value
