@@ -37,6 +37,7 @@ mng.send(r'''
 
     local tw = MAD.twiss{sequence=MADX.myseq}
     tw:print({'name', 's', 'beta11'})
+    MADX.mmm = tw
 
     local obs_flag = MAD.element.flags.observed
 
@@ -54,18 +55,18 @@ mng.send(r'''
     local trk, mflw = MAD.track{sequence=MADX.myseq, X0=X0, savemap=true}
     trk:print({'name', 's', 'x', 'px', 'y', 'py', 't', 'pt'})
 
-    -- mflw[1]:print() -- map at the end
+    mflw[1]:print() -- map at the end
 
-    trk['MM'].__map:print() -- map at MM
+    !trk['MM'].__map:print() -- map at MM
 
-    local nf = MAD.gphys.normal(mflw[1])
-    nf.a:print() -- normal form at the end
-    local B0 = MAD.gphys.map2bet(nf.a:real())
-    print(B0.beta11)
+    !local nf = MAD.gphys.normal(mflw[1])
+    !nf.a:print() -- normal form at the end
+    !local B0 = MAD.gphys.map2bet(nf.a:real())
+    !print(B0.beta11)
 
-    local a_re = nf.a:real()
-    print(a_re.x:get("100000")^2 + a_re.x:get("010000")^2)
-    print(a_re.x:get("1000001")^2)
+    !local a_re = nf.a:real()
+    !print(a_re.x:get("100000")^2 + a_re.x:get("010000")^2)
+    !print(a_re.x:get("1000001")^2)
 ''')
 
 # twng_from_madx_df = mng.twiss(sequence='MADX.myseq')[0].to_df()

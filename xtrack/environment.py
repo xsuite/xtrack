@@ -32,7 +32,7 @@ DEFAULT_REF_STRENGTH_NAME = {
     'Octupole': 'k3',
 }
 
-def _flatten_components(components, refer: ReferType = 'center'):
+def _flatten_components(env, components, refer: ReferType = 'center'):
     if refer not in ['start', 'center', 'centre', 'end']:
         raise ValueError(
             f'Allowed values for refer are "start", "center" and "end". Got "{refer}".'
@@ -40,13 +40,23 @@ def _flatten_components(components, refer: ReferType = 'center'):
 
     flatt_components = []
     for nn in components:
-        if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
+        if nn == 'arc.1':
+            breakpoint()
+        if ((is_line_from_place := (isinstance(nn, Place) and isinstance(nn.name, xt.Line)))
+            or (is_line_from_str := (isinstance(nn, str) and isinstance(env[nn], xt.Line)))):
 
-            anchor = nn.anchor
+            if is_line_from_place:
+                anchor = nn.anchor
+                line = nn.name
+            elif is_line_from_str:
+                anchor = None
+                line = env[nn]
+            else:
+                raise RuntimeError('This should never happen')
+
             if anchor is None:
                 anchor = refer or 'center'
 
-            line = nn.name
             if not line.element_names:
                 continue
             sub_components = list(line.element_names).copy()
@@ -69,7 +79,7 @@ def _flatten_components(components, refer: ReferType = 'center'):
         elif isinstance(nn, xt.Line):
             flatt_components += nn.element_names
         elif isinstance(nn, Iterable) and not isinstance(nn, str):
-            flatt_components += _flatten_components(nn, refer=refer)
+            flatt_components += _flatten_components(env, nn, refer=refer)
         else:
             flatt_components.append(nn)
 
@@ -263,11 +273,13 @@ class Environment:
             assert len(kwargs) == 0, 'No kwargs allowed when creating a line'
             if mode == 'replica':
                 assert name is not None, 'Name must be provided when replicating a line'
-                return parent.replicate(suffix=name, mirror=mirror)
+                self.lines[name] = parent.replicate(suffix=name, mirror=mirror)
+                return name
             else:
                 assert mode in [None, 'clone'], f'Unknown mode {mode}'
                 assert name is not None, 'Name must be provided when cloning a line'
-                return parent.clone(suffix=name, mirror=mirror)
+                self.lines[name] = parent.clone(suffix=name, mirror=mirror)
+                return name
 
         assert mirror is False, 'mirror=True only allowed when cloning lines.'
 
@@ -461,7 +473,7 @@ class Environment:
             length = self.eval(length)
 
         components = _resolve_lines_in_components(components, self)
-        flattened_components = _flatten_components(components, refer=refer)
+        flattened_components = _flatten_components(self, components, refer=refer)
 
         if np.array([isinstance(ss, str) for ss in flattened_components]).all():
             # All elements provided by name
@@ -1955,7 +1967,7 @@ class Builder:
             components = []
 
         components = _resolve_lines_in_components(components, self.env)
-        flattened_components = _flatten_components(components, refer=self.refer)
+        flattened_components = _flatten_components(self.env, components, refer=self.refer)
 
         seq_all_places = _all_places(flattened_components)
         tab_unsorted = _resolve_s_positions(seq_all_places, self.env, refer=self.refer)
@@ -1970,7 +1982,7 @@ class Builder:
         out.__dict__.update(self.__dict__)
 
         components = _resolve_lines_in_components(self.components, self.env)
-        out.components = _flatten_components(components, refer=self.refer)
+        out.components = _flatten_components(self.env,components, refer=self.refer)
         out.components = _all_places(out.components)
         return out
 

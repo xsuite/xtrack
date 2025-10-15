@@ -121,10 +121,11 @@ arc.new('cell.3', cell, mode='replica')
 arc = arc.build()
 
 ss = env.new_builder()
-ss.new('cell.1', cell_ss, mode='replica')
-ss.new('cell.2', cell_ss, mode='replica')
+ss.new('ss.cell.1', cell_ss, mode='replica')
+ss.new('ss.cell.2', cell_ss, mode='replica')
 ss = ss.build()
 
+breakpoint()
 ring = env.new_builder()
 ring.new('arc.1', arc, mode='replica')
 ring.new('ss.1', ss, mode='replica')
