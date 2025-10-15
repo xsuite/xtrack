@@ -2502,7 +2502,7 @@ class Line:
             what = [what]
 
         # Resolve s positions of insertions and sort them
-        what = _flatten_components(what)
+        what = _flatten_components(self.env, what)
         what = _all_places(what)
         what = [ww.copy() for ww in what]
 
