@@ -299,8 +299,8 @@ def test_assemble_ring():
         atol=1e-14, rtol=0)
 
 
-    girder_f = girder.clone(name='f')
-    girder_d = girder.clone(name='d', mirror=True)
+    girder_f = girder.clone(suffix='f')
+    girder_d = girder.clone(suffix='d', mirror=True)
     env.set('mq.f', k1='kqf')
     env.set('mq.d', k1='kqd')
 
@@ -387,8 +387,8 @@ def test_assemble_ring():
                     atol=1e-14, rtol=0)
 
 
-    hcell_left = halfcell.replicate(name='l', mirror=True)
-    hcell_right = halfcell.replicate(name='r')
+    hcell_left = halfcell.replicate(suffix='l', mirror=True)
+    hcell_right = halfcell.replicate(suffix='r')
 
     cell = env.new_line(components=[
         env.new('start', xt.Marker),
@@ -454,8 +454,8 @@ def test_assemble_ring():
         env.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
     ])
 
-    hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
-    hcell_right_ss = halfcell_ss.replicate(name='r')
+    hcell_left_ss = halfcell_ss.replicate(suffix='l', mirror=True)
+    hcell_right_ss = halfcell_ss.replicate(suffix='r')
     cell_ss = env.new_line(components=[
         env.new('start.ss', xt.Marker),
         hcell_left_ss,
@@ -463,11 +463,11 @@ def test_assemble_ring():
         env.new('end.ss', xt.Marker),
     ])
 
-
+    env.lines['cell.2'] = cell.replicate(suffix='cell.2')
     arc = env.new_line(components=[
-        cell.replicate(name='cell.1'),
-        cell.replicate(name='cell.2'),
-        cell.replicate(name='cell.3'),
+        cell.replicate(suffix='cell.1'),
+        'cell.2',
+        cell.replicate(suffix='cell.3'),
     ])
 
     assert 'cell.2' in env.lines
@@ -494,13 +494,20 @@ def test_assemble_ring():
         cell_ss.replicate('cell.2'),
     ])
 
+    env.lines['arc.1'] =  arc.replicate(suffix='arc.1')
+    env.lines['ss.1'] =  ss.replicate(suffix='ss.1')
+    env.lines['arc.2'] =  arc.replicate(suffix='arc.2')
+    env.lines['ss.2'] =  ss.replicate(suffix='ss.2')
+    env.lines['arc.3'] =  arc.replicate(suffix='arc.3')
+    env.lines['ss.3'] =  ss.replicate(suffix='ss.3')
+
     ring = env.new_line(components=[
-        arc.replicate(name='arc.1'),
-        ss.replicate(name='ss.1'),
-        arc.replicate(name='arc.2'),
-        ss.replicate(name='ss.2'),
-        arc.replicate(name='arc.3'),
-        ss.replicate(name='ss.3'),
+        env['arc.1'],
+        env['ss.1'],
+        env['arc.2'],
+        env['ss.2'],
+        env['arc.3'],
+        env['ss.3'],
     ])
     tt_ring = ring.get_table(attr=True)
     # Check length
@@ -714,8 +721,8 @@ def test_assemble_ring_builders():
         atol=1e-14, rtol=0)
 
 
-    girder_f = girder.clone(name='f')
-    girder_d = girder.clone(name='d', mirror=True)
+    girder_f = girder.clone(suffix='f')
+    girder_d = girder.clone(suffix='d', mirror=True)
     env.set('mq.f', k1='kqf')
     env.set('mq.d', k1='kqd')
 
@@ -799,8 +806,8 @@ def test_assemble_ring_builders():
                     atol=1e-14, rtol=0)
 
 
-    hcell_left = halfcell.replicate(name='l', mirror=True)
-    hcell_right = halfcell.replicate(name='r')
+    hcell_left = halfcell.replicate(suffix='l', mirror=True)
+    hcell_right = halfcell.replicate(suffix='r')
 
     cell = env.new_builder()
     cell.new('start', xt.Marker)
@@ -866,8 +873,8 @@ def test_assemble_ring_builders():
         env.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
     ])
 
-    hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
-    hcell_right_ss = halfcell_ss.replicate(name='r')
+    hcell_left_ss = halfcell_ss.replicate(suffix='l', mirror=True)
+    hcell_right_ss = halfcell_ss.replicate(suffix='r')
     cell_ss = env.new_builder()
     cell_ss.new('start.ss', xt.Marker)
     cell_ss.place(hcell_left_ss)
@@ -901,8 +908,8 @@ def test_assemble_ring_builders():
         assert arc.get(nn) is env['cell.2'].get(nn)
 
     ss = env.new_builder()
-    ss.new('cell.1', cell_ss, mode='replica')
-    ss.new('cell.2', cell_ss, mode='replica')
+    ss.new('ss.cell.1', cell_ss, mode='replica')
+    ss.new('ss.cell.2', cell_ss, mode='replica')
     ss = ss.build()
 
     ring = env.new_builder()
@@ -1134,8 +1141,8 @@ def test_assemble_ring_repeated_elements():
         atol=1e-14, rtol=0)
 
 
-    girder_f = girder.clone(name='f')
-    girder_d = girder.clone(name='d', mirror=True)
+    girder_f = girder.clone(suffix='f')
+    girder_d = girder.clone(suffix='d', mirror=True)
     env.set('mq.f', k1='kqf')
     env.set('mq.d', k1='kqd')
 
@@ -1703,7 +1710,7 @@ def test_builder_new():
     assert isinstance(bdr['e2.ll2'], xt.Bend)
     assert bdr.ref['e1.ll2'].k0._expr == "(3.0 * vars['a'])"
     assert len(bdr.components) == 9
-    assert bdr.components[-1] is bdr['ll2']
+    assert bdr.components[-1] == 'll2'
 
     bdr.new('ll3', 'll', mode='replica')
     assert isinstance(bdr['ll3'], xt.Line)
@@ -1713,7 +1720,7 @@ def test_builder_new():
     assert bdr['e1.ll3'].parent_name == 'e1'
     assert bdr['e2.ll3'].parent_name == 'e2'
     assert len(bdr.components) == 10
-    assert bdr.components[-1] is bdr['ll3']
+    assert bdr.components[-1] == 'll3'
 
     ret = bdr.new('ll4', 'll', at='5*a', from_='m')
     assert isinstance(ret, xt.environment.Place)
