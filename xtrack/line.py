@@ -3535,7 +3535,8 @@ class Line:
             dct['ksl'] = new_ksl
 
             new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
-            self.env.elements[nn] = new_ee
+            # Need to bypass the check on element redefinition
+            self.env._xdeps_eref._owner[nn] = new_ee
 
     def remove_markers(self, inplace=True, keep=None):
         """
