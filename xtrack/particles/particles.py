@@ -228,7 +228,7 @@ class Particles(xo.HybridClass):
 
         accepted_args = set(self._xofields.keys()) | {
             'energy0', 'tau', 'pzeta', 'mass_ratio', 'mass', 'kinetic_energy0',
-            '_context', '_buffer', '_offset', 'p0', 'name', 'rigidity0',
+            '_context', '_buffer', '_offset', 'name', 'rigidity0',
         }
         if set(kwargs.keys()) - accepted_args:
             raise NameError(f'Invalid argument(s) provided: '
@@ -240,6 +240,8 @@ class Particles(xo.HybridClass):
         per_part_input_vars = (
             self.per_particle_vars +
             ((xo.Float64, 'energy0'),
+             (xo.Float64, 'kinetic_energy0'),
+             (xo.Float64, 'rigidity0'),
              (xo.Float64, 'tau'),
              (xo.Float64, 'pzeta'),
              (xo.Float64, 'mass_ratio'))
@@ -1540,13 +1542,13 @@ class Particles(xo.HybridClass):
         src_lines.append('if (set_scalar){')
         for _, vv in cls.size_vars + cls.scalar_vars:
             src_lines.append(
-                f'  ParticlesData_set_' + vv + '(dest,'
+                '  ParticlesData_set_' + vv + '(dest,'
                                                f'      LocalParticle_get_{vv}(source));')
         src_lines.append('}')
 
         for _, vv in cls.per_particle_vars:
             src_lines.append(
-                f'  ParticlesData_set_' + vv + '(dest, id, '
+                '  ParticlesData_set_' + vv + '(dest, id, '
                                                f'      LocalParticle_get_{vv}(source));')
         src_lines.append('}')
         src_local_to_particles = '\n'.join(src_lines)
@@ -1596,7 +1598,7 @@ class Particles(xo.HybridClass):
         for tt, vv in cls.size_vars + cls.scalar_vars:
             src_lines.append('/*gpufun*/')
             src_lines.append(f'{tt._c_type} LocalParticle_get_' + vv
-                             + f'(LocalParticle* part)'
+                             + '(LocalParticle* part)'
                              + '{')
             src_lines.append(f'  return part->{vv};')
             src_lines.append('}')
@@ -1604,7 +1606,7 @@ class Particles(xo.HybridClass):
         for tt, vv in cls.per_particle_vars:
             src_lines.append('/*gpufun*/')
             src_lines.append(f'{tt._c_type} LocalParticle_get_' + vv
-                             + f'(LocalParticle* part)'
+                             + '(LocalParticle* part)'
                              + '{')
             src_lines.append(f'  return part->{vv}[part->ipart];')
             src_lines.append('}')
@@ -1622,13 +1624,13 @@ class Particles(xo.HybridClass):
                 src_angles_lines.append(f'    double const p{xx} = LocalParticle_get_p{xx}(part);')
                 if exact == 'exact_':
                     src_angles_lines.append(f'    double const p{yy} = LocalParticle_get_p{yy}(part);')
-                    src_angles_lines.append(f'    double const one_plus_delta = 1. + LocalParticle_get_delta(part);')
+                    src_angles_lines.append('    double const one_plus_delta = 1. + LocalParticle_get_delta(part);')
                     src_angles_lines.append(
-                        f'    double const rpp = 1./sqrt(one_plus_delta*one_plus_delta - px*px - py*py);')
+                        '    double const rpp = 1./sqrt(one_plus_delta*one_plus_delta - px*px - py*py);')
                 else:
-                    src_angles_lines.append(f'    double const rpp = LocalParticle_get_rpp(part);')
-                src_angles_lines.append(f'    // INFO: this is not the angle, but sin(angle)')
-                src_angles_lines.append(f'    return p{xx}*rpp;')
+                    src_angles_lines.append('    double const rpp = LocalParticle_get_rpp(part);')
+                src_angles_lines.append('    // INFO: this is not the angle, but sin(angle)')
+                src_angles_lines.append('    return p{xx}*rpp;')
                 src_angles_lines.append('}')
                 src_angles_lines.append('')
 
@@ -1637,15 +1639,15 @@ class Particles(xo.HybridClass):
                 src_angles_lines.append('/*gpufun*/')
                 src_angles_lines.append(f'void LocalParticle_set_{exact}{xx}p(LocalParticle* part, double {xx}p){{')
                 src_angles_lines.append(f'#ifndef FREEZE_VAR_p{xx}')
-                src_angles_lines.append(f'    double rpp = LocalParticle_get_rpp(part);')
+                src_angles_lines.append('    double rpp = LocalParticle_get_rpp(part);')
                 if exact == 'exact_':
                     src_angles_lines.append(
                         f'    // Careful! If {yy}p also changes, use LocalParticle_set_{exact}xp_yp!')
                     src_angles_lines.append(f'    double const {yy}p = LocalParticle_get_{exact}{yy}p(part);')
-                    src_angles_lines.append(f'    rpp *= sqrt(1 + xp*xp + yp*yp);')
+                    src_angles_lines.append('    rpp *= sqrt(1 + xp*xp + yp*yp);')
                 src_angles_lines.append(f'    // INFO: {xx}p is not the angle, but sin(angle)')
                 src_angles_lines.append(f'    LocalParticle_set_p{xx}(part, {xx}p/rpp);')
-                src_angles_lines.append(f'#endif')
+                src_angles_lines.append('#endif')
                 src_angles_lines.append('}')
                 src_angles_lines.append('')
 
@@ -1656,7 +1658,7 @@ class Particles(xo.HybridClass):
                 src_angles_lines.append(f'#ifndef FREEZE_VAR_p{xx}')
                 src_angles_lines.append(f'    LocalParticle_set_{exact}{xx}p(part, '
                                         + f'LocalParticle_get_{exact}{xx}p(part) + {xx}p);')
-                src_angles_lines.append(f'#endif')
+                src_angles_lines.append('#endif')
                 src_angles_lines.append('}')
                 src_angles_lines.append('')
                 # Scaler
@@ -1665,19 +1667,19 @@ class Particles(xo.HybridClass):
                 src_angles_lines.append(f'#ifndef FREEZE_VAR_p{xx}')
                 src_angles_lines.append(f'    LocalParticle_set_{exact}{xx}p(part, '
                                         + f'LocalParticle_get_{exact}{xx}p(part) * value);')
-                src_angles_lines.append(f'#endif')
+                src_angles_lines.append('#endif')
                 src_angles_lines.append('}')
                 src_angles_lines.append('')
             # Double setter, adder, scaler
             src_angles_lines.append('/*gpufun*/')
             src_angles_lines.append(f'void LocalParticle_set_{exact}xp_yp(LocalParticle* part, double xp, double yp){{')
-            src_angles_lines.append(f'    double rpp = LocalParticle_get_rpp(part);')
+            src_angles_lines.append('    double rpp = LocalParticle_get_rpp(part);')
             if exact == 'exact_':
-                src_angles_lines.append(f'    rpp *= sqrt(1 + xp*xp + yp*yp);')
+                src_angles_lines.append('    rpp *= sqrt(1 + xp*xp + yp*yp);')
             for xx in ['x', 'y']:
                 src_angles_lines.append(f'#ifndef FREEZE_VAR_p{xx}')
                 src_angles_lines.append(f'    LocalParticle_set_p{xx}(part, {xx}p/rpp);')
-                src_angles_lines.append(f'#endif')
+                src_angles_lines.append('#endif')
             src_angles_lines.append('}')
             src_angles_lines.append('')
             src_angles_lines.append('/*gpufun*/')
