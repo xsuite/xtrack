@@ -179,6 +179,10 @@ class Particles(xo.HybridClass):
             Reference relativistic gamma
         beta0 : array_like of float, optional
             Reference relativistic beta
+        rigidity0 : array_like of float, optional
+            Reference magnetic rigidity [T.m]
+        kinetic_energy0 : array_like of float, optional
+            Reference kinetic energy [eV]
         mass_ratio : array_like of float, optional
             mass/mass0 (this is used to track particles of
             different species. Note that mass is the rest mass
@@ -224,7 +228,7 @@ class Particles(xo.HybridClass):
 
         accepted_args = set(self._xofields.keys()) | {
             'energy0', 'tau', 'pzeta', 'mass_ratio', 'mass', 'kinetic_energy0',
-            '_context', '_buffer', '_offset', 'p0', 'name',
+            '_context', '_buffer', '_offset', 'p0', 'name', 'rigidity0',
         }
         if set(kwargs.keys()) - accepted_args:
             raise NameError(f'Invalid argument(s) provided: '
@@ -322,11 +326,6 @@ class Particles(xo.HybridClass):
         self.start_tracking_at_element = kwargs.get(
                             'start_tracking_at_element', -1)
 
-        # Init refs
-        if 'kinetic_energy0' in kwargs.keys():
-            assert kwargs.get('energy0') is None
-            kwargs['energy0'] = kwargs.pop('kinetic_energy0') + self.mass0
-
         # Ensure that all per particle inputs are numpy arrays of the same
         # length, and move them to the target context
         for xotype, field in per_part_input_vars:
@@ -351,20 +350,22 @@ class Particles(xo.HybridClass):
         # Init independent per particle vars
         self.init_independent_per_part_vars(kwargs)
 
-
-        self._update_refs(
-            p0c=kwargs.get('p0c'),
-            energy0=kwargs.get('energy0'),
-            gamma0=kwargs.get('gamma0'),
-            beta0=kwargs.get('beta0'),
-            mask=input_mask,
-        )
-
         # Init chi and charge ratio
         self._update_chi_charge_ratio(
             chi=kwargs.get('chi'),
             charge_ratio=kwargs.get('charge_ratio'),
             mass_ratio=kwargs.get('mass_ratio'),
+            mask=input_mask,
+        )
+
+        # Init reference momentum and related vars
+        self._update_refs(
+            p0c=kwargs.get('p0c'),
+            energy0=kwargs.get('energy0'),
+            gamma0=kwargs.get('gamma0'),
+            beta0=kwargs.get('beta0'),
+            kinetic_energy0=kwargs.get('kinetic_energy0'),
+            rigidity0=kwargs.get('rigidity0'),
             mask=input_mask,
         )
 
@@ -1235,13 +1236,25 @@ class Particles(xo.HybridClass):
     def p0c(self, value):
         self.p0c[:] = value
 
+    def _rigidity0_setitem(self, indx, val):
+        ctx = self._buffer.context
+        temp_rigidity0 = ctx.zeros(shape=self._p0c.shape, dtype=np.float64)
+        temp_rigidity0[:] = np.nan
+        temp_rigidity0[indx] = val
+        self.update_p0c(temp_rigidity0 * clight * self.q0)
+
     @property
     def rigidity0(self):
         rigidity0 = self.p0c / clight / self.q0
         return self._buffer.context.linked_array_type.from_array(
             rigidity0,
-            mode='readonly',
-            container=self)
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_rigidity0_setitem')
+
+    @rigidity0.setter
+    def rigidity0(self, value):
+        self.rigidity0[:] = value
 
     def update_gamma0(self, new_gamma0):
 
@@ -1277,7 +1290,6 @@ class Particles(xo.HybridClass):
     def gamma0(self, value):
         self.gamma0[:] = value
 
-    
 
     def update_beta0(self, new_beta0):
 
@@ -2099,8 +2111,10 @@ class Particles(xo.HybridClass):
         getattr(self, varname)[mask] = target_val[mask]
 
     def _update_refs(self, p0c=None, energy0=None, gamma0=None, beta0=None,
+                     kinetic_energy0=None, rigidity0=None,
                      mask=None):
-        if not any(ff is not None for ff in (p0c, energy0, gamma0, beta0)):
+        if not any(ff is not None for ff in (p0c, energy0, gamma0, beta0, 
+                                            kinetic_energy0, rigidity0)):
             self._p0c = 1e9
             p0c = self._p0c
 
@@ -2125,6 +2139,16 @@ class Particles(xo.HybridClass):
             _energy0 = self.mass0 * _gamma0
             _p0c = _energy0 * beta0
             _beta0 = beta0
+        elif kinetic_energy0 is not None:
+            _energy0 = kinetic_energy0 + self.mass0
+            _p0c = _sqrt(_energy0 ** 2 - self.mass0 ** 2)
+            _beta0 = _p0c / _energy0
+            _gamma0 = _energy0 / self.mass0
+        elif rigidity0 is not None:
+            _p0c = rigidity0 * abs(self.q0) * clight
+            _energy0 = _sqrt(_p0c ** 2 + self.mass0 ** 2)
+            _beta0 = _p0c / _energy0
+            _gamma0 = _energy0 / self.mass0
         else:
             raise RuntimeError('This statement is unreachable.')
 
