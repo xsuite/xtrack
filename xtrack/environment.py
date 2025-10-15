@@ -2427,7 +2427,8 @@ class EnvVars:
         return self.env._xdeps_vref[key]
 
     def __setitem__(self, key, value):
-
+        if isinstance(value, str):
+            value = self.env._xdeps_eval.eval(value)
         self.env._xdeps_vref[key] = value
         for cc in self.vars_to_update:
             cc[key] = value
