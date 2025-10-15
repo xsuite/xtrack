@@ -2806,7 +2806,10 @@ class Line:
         self.discard_tracker()
         if element in self._element_dict and element is not self._element_dict[name]:
             raise ValueError('Element already present in the line')
-        self.env.elements[name] = element
+        if name in self.env.elements:
+            assert self.env.elements[name] == element
+        else:
+            self.env.elements[name] = element
         self.element_names.append(name)
         return self
 
