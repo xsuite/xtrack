@@ -4168,23 +4168,23 @@ class Line:
     def __sub__(self, other):
         return self + (-other)
 
-    def replicate(self, name, mirror=False):
+    def replicate(self, suffix, mirror=False):
 
         new_element_names = []
         for nn in self.element_names:
-            new_nn = nn + '.' + name
+            new_nn = nn + '.' + suffix
             self.env.elements[new_nn] = xt.Replica(nn)
             new_element_names.append(new_nn)
 
-        out = self.env.new_line(components=new_element_names, name=name)
+        out = self.env.new_line(components=new_element_names)
 
         if mirror:
             out.mirror()
 
         return out
 
-    def clone(self, name, mirror=False):
-        out = self.replicate(name=name, mirror=mirror)
+    def clone(self, suffix, mirror=False):
+        out = self.replicate(suffix=suffix, mirror=mirror)
         out.replace_all_replicas()
         return out
 

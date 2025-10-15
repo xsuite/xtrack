@@ -57,8 +57,8 @@ halfcell = env.new_line(components=[
 
 ])
 
-hcell_left = halfcell.replicate(name='l', mirror=True)
-hcell_right = halfcell.replicate(name='r')
+hcell_left = halfcell.replicate(suffix='l', mirror=True)
+hcell_right = halfcell.replicate(suffix='r')
 
 cell = env.new_line(components=[
     env.new('start', xt.Marker),
@@ -93,8 +93,8 @@ halfcell_ss = env.new_line(components=[
     env.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
 ])
 
-hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
-hcell_right_ss = halfcell_ss.replicate(name='r')
+hcell_left_ss = halfcell_ss.replicate(suffix='l', mirror=True)
+hcell_right_ss = halfcell_ss.replicate(suffix='r')
 cell_ss = env.new_line(components=[
     env.new('start.ss', xt.Marker),
     hcell_left_ss,
@@ -112,24 +112,31 @@ opt = cell_ss.match(
 
 
 arc = env.new_line(components=[
-    cell.replicate(name='cell.1'),
-    cell.replicate(name='cell.2'),
-    cell.replicate(name='cell.3'),
+    cell.replicate(suffix='cell.1'),
+    cell.replicate(suffix='cell.2'),
+    cell.replicate(suffix='cell.3'),
 ])
 
 
 ss = env.new_line(components=[
-    cell_ss.replicate('cell.1'),
-    cell_ss.replicate('cell.2'),
+    cell_ss.replicate(suffix='cell.1'),
+    cell_ss.replicate(suffix='cell.2'),
 ])
 
+env['arc.1'] = arc.replicate(suffix='arc.1')
+env['ss.1'] = ss.replicate(suffix='ss.1')
+env['arc.2'] = arc.replicate(suffix='arc.2')
+env['ss.2'] = ss.replicate(suffix='ss.2')
+env['arc.3'] = arc.replicate(suffix='arc.3')
+env['ss.3'] = ss.replicate(suffix='ss.3')
+
 ring = env.new_line(components=[
-    arc.replicate(name='arc.1'),
-    ss.replicate(name='ss.1'),
-    arc.replicate(name='arc.2'),
-    ss.replicate(name='ss.2'),
-    arc.replicate(name='arc.3'),
-    ss.replicate(name='ss.3'),
+    'arc.1',
+    'ss.1',
+    'arc.2',
+    'ss.2',
+    'arc.3',
+    'ss.3',
 ])
 
 ## Insertion
