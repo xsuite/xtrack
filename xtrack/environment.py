@@ -263,11 +263,11 @@ class Environment:
             assert len(kwargs) == 0, 'No kwargs allowed when creating a line'
             if mode == 'replica':
                 assert name is not None, 'Name must be provided when replicating a line'
-                return parent.replicate(name=name, mirror=mirror)
+                return parent.replicate(suffix=name, mirror=mirror)
             else:
                 assert mode in [None, 'clone'], f'Unknown mode {mode}'
                 assert name is not None, 'Name must be provided when cloning a line'
-                return parent.clone(name=name, mirror=mirror)
+                return parent.clone(suffix=name, mirror=mirror)
 
         assert mirror is False, 'mirror=True only allowed when cloning lines.'
 
@@ -1798,7 +1798,6 @@ class EnvParticles:
             raise KeyError(f'Element {key} not found.')
 
     def __setitem__(self, key, value):
-        self.env._check_name_clashes(key)
         self.env._particles[key] = value
 
     def __contains__(self, key):
@@ -2416,7 +2415,7 @@ class EnvVars:
         return self.env._xdeps_vref[key]
 
     def __setitem__(self, key, value):
-        self.env._check_name_clashes(key, check_vars=False)
+
         self.env._xdeps_vref[key] = value
         for cc in self.vars_to_update:
             cc[key] = value

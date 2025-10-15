@@ -57,8 +57,8 @@ halfcell.new('corrector.h', 'corrector', at=-0.75, from_='mq.f')
 
 halfcell = halfcell.build() # The builder can be found in halfcell.builder
 
-hcell_left = halfcell.replicate(name='l', mirror=True)
-hcell_right = halfcell.replicate(name='r')
+hcell_left = halfcell.replicate(suffix='l', mirror=True)
+hcell_right = halfcell.replicate(suffix='r')
 
 cell = env.new_builder()
 
@@ -96,8 +96,8 @@ halfcell_ss.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
 
 halfcell_ss = halfcell_ss.build()
 
-hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
-hcell_right_ss = halfcell_ss.replicate(name='r')
+hcell_left_ss = halfcell_ss.replicate(suffix='l', mirror=True)
+hcell_right_ss = halfcell_ss.replicate(suffix='r')
 
 cell_ss = env.new_builder()
 cell_ss.new('start.ss', xt.Marker)
