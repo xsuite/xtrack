@@ -40,8 +40,6 @@ def _flatten_components(env, components, refer: ReferType = 'center'):
 
     flatt_components = []
     for nn in components:
-        if nn == 'arc.1':
-            breakpoint()
         if ((is_line_from_place := (isinstance(nn, Place) and isinstance(nn.name, xt.Line)))
             or (is_line_from_str := (isinstance(nn, str) and isinstance(env[nn], xt.Line)))):
 
@@ -156,6 +154,7 @@ class Environment:
         self.ref = EnvRef(self)
         self._elements = EnvElements(self)
         self._particles_container = EnvParticles(self)
+        self._enable_name_clash_check = True
 
         if lines is not None:
 
@@ -1337,6 +1336,8 @@ class Environment:
         return out
 
     def _check_name_clashes(self, name, check_vars=True):
+        if not self._enable_name_clash_check:
+            return
         if name in self._element_dict:
             raise ValueError(f'There is already an element with name {name}')
         if name in self.lines:
