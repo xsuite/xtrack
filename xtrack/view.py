@@ -1,3 +1,4 @@
+import numpy as np
 
 class View:
     def __init__(self, obj, ref, evaluator):

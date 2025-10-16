@@ -1384,7 +1384,6 @@ class Environment:
                 self.ref_manager.unregister(task)
 
     twiss = MultilineLegacy.twiss
-    discard_trackers = MultilineLegacy.discard_trackers
     build_trackers = MultilineLegacy.build_trackers
     match = MultilineLegacy.match
     match_knob = MultilineLegacy.match_knob
