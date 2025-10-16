@@ -1050,6 +1050,8 @@ def test_insert_thick_element_reuse_marker_name():
                 element_names=list(elements.keys()))
 
     # Note that the name is reused
+    line.remove('m1') # remove from the line
+    line.env.remove('m1') # remove from the environment
     line.insert_element(element=xt.Bend(length=1.), name='m1', at_s=0.5)
 
     tt = line.get_table()

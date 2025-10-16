@@ -1147,7 +1147,7 @@ class Environment:
         if np.issubdtype(key.__class__, np.integer):
             key = self.element_names[key]
         assert isinstance(key, str)
-        if key in self.elements:
+        if key in self._element_dict:
             if self.ref_manager is None:
                 return self._element_dict[key]
             return xd.madxutils.View(
@@ -1168,6 +1168,18 @@ class Environment:
         else:
             raise KeyError(f'Name {key} not found')
 
+    def remove(self, key):
+
+        if key in self._element_dict:
+            self.elements.remove(key)
+        elif key in self.particles:
+            self.particles.remove(key)
+        elif key in self.lines:
+            self.lines.remove(key)
+        elif key in self.vars:
+            self.vars.remove(key)
+        else:
+            raise KeyError(f'Name {key} not found')
 
     def __setitem__(self, key, value):
 
