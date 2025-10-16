@@ -5070,11 +5070,12 @@ class Line:
 
         self._frozen_check()
 
-        for nn in self.element_names:
-            ee = self._element_dict[nn]
-            if hasattr(ee, 'get_equivalent_element'):
-                new_ee = ee.get_equivalent_element()
-                self.env.elements[nn] = new_ee
+        with xt.environment._disable_name_clash_checks(self.env):
+            for nn in self.element_names:
+                ee = self._element_dict[nn]
+                if hasattr(ee, 'get_equivalent_element'):
+                    new_ee = ee.get_equivalent_element()
+                    self.env.elements[nn] = new_ee
 
     @property
     def _element_names_unique(self):
