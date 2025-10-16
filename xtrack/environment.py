@@ -23,6 +23,7 @@ from .multiline_legacy.multiline_legacy import MultilineLegacy
 from .progress_indicator import progress
 from .functions import Functions
 from .match import Action
+from .view import View
 
 ReferType = Literal['start', 'center', 'centre', 'end']
 
@@ -692,6 +693,12 @@ class Environment:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
                 ln.discard_tracker()
 
+    def discard_trackers(self):
+        '''Discard all trackers in all lines of the environment.'''
+        for ln in self._lines_weakrefs:
+            if ln._has_valid_tracker():
+                ln.discard_tracker()
+
     def _get_a_drift_name(self):
         self._drift_counter += 1
         while nn := f'drift_{self._drift_counter}':
@@ -1150,15 +1157,13 @@ class Environment:
         if key in self._element_dict:
             if self.ref_manager is None:
                 return self._element_dict[key]
-            return xd.madxutils.View(
-                self._element_dict[key], self._xdeps_eref[key],
-                evaluator=self._xdeps_eval.eval)
+            return View(self._element_dict[key], self._xdeps_eref[key],
+                        evaluator=self._xdeps_eval.eval)
         elif key in self.particles:
             if self._xdeps_pref is None:
                 return self.particles[key]
-            return xd.madxutils.View(
-                self.particles[key], self._xdeps_pref[key],
-                evaluator=self._xdeps_eval.eval)
+            return View(self.particles[key], self._xdeps_pref[key],
+                        evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
             return self.vv[key]
         elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
@@ -1180,6 +1185,9 @@ class Environment:
             self.vars.remove(key)
         else:
             raise KeyError(f'Name {key} not found')
+
+    def __delitem__(self, key):
+        self.remove(key)
 
     def __setitem__(self, key, value):
 
@@ -1782,9 +1790,8 @@ class EnvElements:
         if key in self.env._element_dict:
             if self.env.ref_manager is None:
                 return self.env._element_dict[key]
-            return xd.madxutils.View(
-                self.env._element_dict[key], self.env._xdeps_eref[key],
-                evaluator=self.env._xdeps_eval.eval)
+            return View(self.env._element_dict[key], self.env._xdeps_eref[key],
+                        evaluator=self.env._xdeps_eval.eval)
         else:
             raise KeyError(f'Element {key} not found.')
 
@@ -1830,6 +1837,7 @@ class EnvElements:
 
             self.env._unregister_object(name)
 
+        self.discard_trackers()
         del self.env._element_dict[name]
 
     def __delitem__(self, name):
@@ -1845,9 +1853,8 @@ class EnvParticles:
         if key in self.env._particles:
             if self.env.ref_manager is None:
                 return self.env._particles[key]
-            return xd.madxutils.View(
-                self.env._particles[key], self.env._xdeps_pref[key],
-                evaluator=self.env._xdeps_eval.eval)
+            return View(self.env._particles[key], self.env._xdeps_pref[key],
+                        evaluator=self.env._xdeps_eval.eval)
         else:
             raise KeyError(f'Element {key} not found.')
 
