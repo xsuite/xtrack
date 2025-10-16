@@ -6,7 +6,7 @@ import xtrack as xt
 from xtrack import BeamElement
 from xtrack.environment import Builder
 from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType
-from xtrack.environment import _reverse_element
+from xtrack.environment import _reverse_element, _disable_name_clash_checks
 
 EXTRA_PARAMS = {
     "slot_id",
@@ -147,26 +147,29 @@ class MadxLoader:
 
     def load_file(self, file, build=True) -> Optional[List[Builder]]:
         """Load a MAD-X file and generate/update the environment."""
-        parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
-        parsed_dict = parser.parse_file(file)
-        return self.load_parsed_dict(parsed_dict, build=build)
+        with _disable_name_clash_checks(self.env):
+            parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
+            parsed_dict = parser.parse_file(file)
+            return self.load_parsed_dict(parsed_dict, build=build)
 
     def load_string(self, string, build=True) -> Optional[List[Builder]]:
         """Load a MAD-X string and generate/update the environment."""
-        parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
-        parsed_dict = parser.parse_string(string)
-        return self.load_parsed_dict(parsed_dict, build=build)
+        with _disable_name_clash_checks(self.env):
+            parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
+            parsed_dict = parser.parse_string(string)
+            return self.load_parsed_dict(parsed_dict, build=build)
 
     def load_parsed_dict(self, parsed_dict: MadxOutputType, build=True) -> Optional[List[Builder]]:
-        hierarchy = self._collect_hierarchy(parsed_dict)
-        self._madx_elem_hierarchy.update(hierarchy)
+        with _disable_name_clash_checks(self.env):
+            hierarchy = self._collect_hierarchy(parsed_dict)
+            self._madx_elem_hierarchy.update(hierarchy)
 
-        self._parse_elements(parsed_dict["elements"])
-        builders = self._parse_lines(parsed_dict["lines"], build=build)
-        self._parse_parameters(parsed_dict["parameters"])
+            self._parse_elements(parsed_dict["elements"])
+            builders = self._parse_lines(parsed_dict["lines"], build=build)
+            self._parse_parameters(parsed_dict["parameters"])
 
-        if not build:
-            return builders
+            if not build:
+                return builders
 
     def _parse_elements(self, elements: Dict[str, ElementType]):
         for name, el_params in elements.items():
@@ -619,7 +622,6 @@ class MadxLoader:
             _descend_into_line(line_params)
 
         return hierarchy
-
 
     def _mad_base_type(self, element_name: str):
 

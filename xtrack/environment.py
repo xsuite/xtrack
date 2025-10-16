@@ -2565,3 +2565,12 @@ class _DefaultFactory:
 
     def __call__(self):
         return self.default
+
+@contextmanager
+def _disable_name_clash_checks(env):
+    old_value = env._enable_name_clash_check
+    env._enable_name_clash_check = False
+    try:
+        yield
+    finally:
+        env._enable_name_clash_check = old_value
