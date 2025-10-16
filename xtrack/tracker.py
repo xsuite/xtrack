@@ -100,12 +100,14 @@ class Tracker:
         else:
             ele_dict_non_collective = line._element_dict
 
+        tt = line.get_table()
+
         if _prebuilding_kernels:
             element_s_locations = np.zeros(len(line.element_names))
             line_length = 0.
         else:
-            element_s_locations = line.get_s_elements()
-            line_length = line.get_length()
+            element_s_locations = tt.s[:-1]  # remove _end_point
+            line_length = tt.s[-1]
 
         tracker_data_base = TrackerData(
             allow_move=True, # Will move elements to the same buffer
@@ -118,8 +120,9 @@ class Tracker:
             _context=_context,
             _buffer=_buffer,
             _no_resolve_parents=_prebuilding_kernels)
+
         if not _prebuilding_kernels:
-            tracker_data_base._line_table = line.get_table()
+            tracker_data_base._line_table = tt
             tracker_data_base._element_names_unique = tuple(
                     tracker_data_base._line_table.name[:-1]) # remove _endpoint
         line._freeze()
@@ -1381,7 +1384,7 @@ class Tracker:
     def _get_twiss_mask_markers(self):
         if hasattr(self._tracker_data_base, 'mask_markers_for_twiss'):
             return self._tracker_data_base.mask_markers_for_twiss
-        tt = self.line.get_table()
+        tt = self._tracker_data_base._line_table
         mask_twiss = np.ones(len(tt) + 1, dtype=bool)
         if len(tt) == 0: return mask_twiss
         mask_twiss[:-1] = tt.element_type == 'Marker'
