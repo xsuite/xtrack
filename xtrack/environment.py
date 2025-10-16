@@ -1349,6 +1349,20 @@ class Environment:
             and name in self._xdeps_vref._owner):
             raise ValueError(f'There is already a variable with name {name}')
 
+    def _unregister_object(self,name):
+
+        rr = self.ref[name]
+
+        revdeps = self.ref_manager.find_deps([rr])
+        if len(revdeps) > 1:
+            raise ValueError(f'Cannot remove object {name} because it is used '
+                            f'to control: {revdeps[1:]}')
+
+        for task in list(self.ref_manager.tasks):
+            deps = task._get_dependencies()
+            if rr in deps:
+                self.ref_manager.unregister(task)
+
     twiss = MultilineLegacy.twiss
     discard_trackers = MultilineLegacy.discard_trackers
     build_trackers = MultilineLegacy.build_trackers
@@ -1799,24 +1813,15 @@ class EnvElements:
 
     def remove(self, name):
 
-        needs_unregister = (self.env.ref_manager is not None
-                            and not isinstance(self.env._element_dict[name], xt.Marker))
+        if (self.env.ref_manager is not None
+            and not isinstance(self.env._element_dict[name], xt.Marker)):
 
-        if needs_unregister:
-            env = self.env
-            rr = env.ref[name]
-
-            revdeps = env.ref_manager.find_deps([rr])
-            if len(revdeps) > 1:
-                raise ValueError(f'Cannot remove element {name} because it is used '
-                                f'to control: {revdeps[1:]}')
-
-            for task in list(env.ref_manager.tasks):
-                deps = task._get_dependencies()
-                if rr in deps:
-                    env.ref_manager.unregister(task)
+            self.env._unregister_object(name)
 
         del self.env._element_dict[name]
+
+    def __delitem__(self, name):
+        self.remove(name)
 
 
 class EnvParticles:
@@ -1877,6 +1882,16 @@ class EnvParticles:
             'beta0': beta0
         })
         return tt
+
+    def remove(self, name):
+
+        if self.env.ref_manager is not None:
+            self.env._unregister_object(name)
+
+        del self.env._particles[name]
+
+    def __delitem__(self, name):
+        self.remove(name)
 
 
 class EnvRef:
@@ -2056,6 +2071,10 @@ class EnvLines(UserDict):
         n = len(names)
         preview = ', '.join(names[:5]) + (', ...' if n > 5 else '')
         return f'EnvLines({n} lines: {{{preview}}})'
+
+    def remove(self, name):
+
+        del self.env.lines[name]
 
 def get_environment(verbose=False):
     import xtrack
@@ -2546,6 +2565,16 @@ class EnvVars:
             self.env._xdeps_vref._owner.default_factory = _DefaultFactory(0.)
         else:
             self.env._xdeps_vref._owner.default_factory = None
+
+    def remove(self, name):
+
+        if self.env.ref_manager is not None:
+            self.env._unregister_object(name)
+
+        del self.env._xdeps_vref._owner[name]
+
+    def __delitem__(self, name):
+        self.remove(name)
 
 class VarsTable(xd.Table):
 
