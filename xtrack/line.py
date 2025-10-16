@@ -2728,7 +2728,7 @@ class Line:
                 )
             element = self._element_dict[name]
 
-        if isinstance(element, xd.madxutils.View):
+        if isinstance(element, xt.view.View):
             element = element._get_viewed_object()
 
         self.discard_tracker()
@@ -2800,7 +2800,7 @@ class Line:
             Name of the element to append
         """
 
-        if isinstance(element, xd.madxutils.View):
+        if isinstance(element, xt.view.View):
             element = element._get_viewed_object()
 
         self.discard_tracker()
