@@ -1555,7 +1555,7 @@ def test_element_views(container_type):
     assert ee.get('mb').knl[2] == 240
 
     # Some interesting behavior
-    assert type(ee['mb']) is xd.madxutils.View
+    assert type(ee['mb']) is xt.view.View
     assert ee['mb'].__class__ is xt.Bend
     assert isinstance(ee['mb'], xt.Bend)
     assert type(ee.ref['mb']._value) is xt.Bend

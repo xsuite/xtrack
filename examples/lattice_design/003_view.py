@@ -87,7 +87,7 @@ assert ee.get('mb').knl[1] == 200
 assert ee.get('mb').knl[2] == 240
 
 # Some interesting behavior
-assert type(ee['mb']) is xd.madxutils.View
+assert type(ee['mb']) is xt.view.View
 assert ee['mb'].__class__ is xt.Bend
 assert type(ee.ref['mb']._value) is xt.Bend
 assert type(ee.get('mb')) is xt.Bend

@@ -4665,7 +4665,7 @@ class Line:
         if key in self._element_dict:
             if self.ref_manager is None:
                 return self._element_dict[key]
-            return xd.madxutils.View(
+            return xt.view.View(
                 self._element_dict[key], self._xdeps_eref[key],
                 evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
