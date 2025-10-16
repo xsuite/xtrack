@@ -1,4 +1,5 @@
 import numpy as np
+from .table import Table
 
 class View:
     def __init__(self, obj, ref, evaluator):

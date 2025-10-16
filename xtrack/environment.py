@@ -1836,7 +1836,7 @@ class EnvElements:
 
             self.env._unregister_object(name)
 
-        self.discard_trackers()
+        self.env.discard_trackers()
         del self.env._element_dict[name]
 
     def __delitem__(self, name):
