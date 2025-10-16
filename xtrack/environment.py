@@ -1797,6 +1797,28 @@ class EnvElements:
             [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
         return tt
 
+    def remove(self, name):
+
+        needs_unregister = (self.env.ref_manager is not None
+                            and not isinstance(self.env._element_dict[name], xt.Marker))
+
+        if needs_unregister:
+            env = self.env
+            rr = env.ref[name]
+
+            revdeps = env.ref_manager.find_deps([rr])
+            if len(revdeps) > 1:
+                raise ValueError(f'Cannot remove element {name} because it is used '
+                                f'to control: {revdeps[1:]}')
+
+            for task in list(env.ref_manager.tasks):
+                deps = task._get_dependencies()
+                if rr in deps:
+                    env.ref_manager.unregister(task)
+
+        del self.env._element_dict[name]
+
+
 class EnvParticles:
     def __init__(self, env):
         self.env = env
