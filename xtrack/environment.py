@@ -1345,7 +1345,8 @@ class Environment:
             raise ValueError(f'There is already a line with name {name}')
         if name in self._particles:
             raise ValueError(f'There is already a particle with name {name}')
-        if check_vars and name in self._xdeps_vref._owner:
+        if (check_vars and self._xdeps_vref is not None
+            and name in self._xdeps_vref._owner):
             raise ValueError(f'There is already a variable with name {name}')
 
     twiss = MultilineLegacy.twiss
