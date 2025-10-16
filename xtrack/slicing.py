@@ -5,13 +5,13 @@
 
 import abc
 import re
-from abc import ABC
 
 from itertools import zip_longest
 from typing import List, Tuple, Iterator, Optional, Literal
 
 import numpy as np
 
+from .beam_elements.slice_elements_drift import _DriftSliceElementBase
 from .progress_indicator import progress
 
 import xtrack as xt
@@ -242,11 +242,10 @@ class Slicer:
         tt = tt.rows[:-1]
         slices = {}
         for ii, nn in enumerate(progress(tt.name, desc='Slicing line')):
+            env_name = tt.env_name[ii]
+            element = self._line.element_dict[env_name]
 
-            enn=tt.env_name[ii]
-            element = self._line.element_dict[enn]
-
-            subsequence = [enn]
+            subsequence = [env_name]
             # Don't slice already thin elements and drifts
             if (not xt.line._is_thick(element, self._line)
                 or (hasattr(element, 'length') and element.length == 0)):
@@ -255,10 +254,10 @@ class Slicer:
                 chosen_slicing = self._scheme_for_element(element, nn, self._line)
                 if chosen_slicing is not None:
                     subsequence = self._slice_element(
-                        enn, element, _edge_markers=_edge_markers,
+                        env_name, element, _edge_markers=_edge_markers,
                         chosen_slicing=chosen_slicing)
                 if subsequence is None:
-                    subsequence = [enn]
+                    subsequence = [env_name]
 
             thin_names += subsequence
             slices[nn] = subsequence
@@ -366,6 +365,7 @@ class Slicer:
             ee = element._entry_slice_class(
                     _parent=element, _buffer=element._buffer)
             ee.parent_name = parent_name
+            ee.slice_offset = 0  # Entry slice at beginning
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)
 
@@ -377,48 +377,61 @@ class Slicer:
             elem_weight = element.weight
             slice_parent_name = element.parent_name
             slice_parent = element._parent
-            isdriftslice = type(element).__name__.startswith('DriftSlice')
+            is_drift_slice = isinstance(element, _DriftSliceElementBase)
         else:
             elem_length = element.length
             elem_weight = 1.
             slice_parent_name = parent_name
             slice_parent = element
-            isdriftslice = False
+            is_drift_slice = False
 
-        if chosen_slicing.mode == 'thin' or isdriftslice:
+        if chosen_slicing.mode == 'thin' or is_drift_slice:
+            slice_offset = 0
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
-                prename = "" if isdriftslice else "drift_"
+                prename = "" if is_drift_slice else "drift_"
                 if is_drift:
                     while (nn := f'{prename}{name}..{drift_idx}') in self._line.element_dict:
                         drift_idx += 1
                     ee = slice_parent._drift_slice_class(
-                            _parent=slice_parent, _buffer=element._buffer,
-                            weight=weight * elem_weight)
+                        _parent=slice_parent,
+                        weight=weight * elem_weight,
+                        slice_offset=slice_offset,
+                        _buffer=element._buffer,
+                    )
                     ee.parent_name = slice_parent_name
                     self._line.element_dict[nn] = ee
                     slices_to_append.append(nn)
+                    slice_offset += elem_length * weight * elem_weight
                 else:
-                    if isdriftslice:
+                    if is_drift_slice:
                         continue
                     while (nn := f'{name}..{element_idx}') in self._line.element_dict:
                         element_idx += 1
                     if slice_parent._thin_slice_class is not None:
                         ee = slice_parent._thin_slice_class(
-                                _parent=slice_parent, _buffer=element._buffer,
-                                weight=weight * elem_weight)
+                            _parent=slice_parent,
+                            weight=weight * elem_weight,
+                            slice_offset=slice_offset,
+                            _buffer=element._buffer,
+                        )
                         ee.parent_name = slice_parent_name
                         self._line.element_dict[nn] = ee
                         slices_to_append.append(nn)
         elif chosen_slicing.mode == 'thick':
+            slice_offset = 0
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
                 while (nn := f'{name}..{element_idx}') in self._line.element_dict:
                     element_idx += 1
                 ee = slice_parent._thick_slice_class(
-                        _parent=slice_parent, _buffer=element._buffer,
-                        weight=weight * elem_weight)
+                    _parent=slice_parent,
+                    weight=weight * elem_weight,
+                    slice_offset=slice_offset,
+                    _buffer=element._buffer,
+                )
                 ee.parent_name = slice_parent_name
                 self._line.element_dict[nn] = ee
                 slices_to_append.append(nn)
+                slice_offset += elem_length * weight * elem_weight
         else:
             raise ValueError(f'Unknown slicing mode: {chosen_slicing.mode}')
 
@@ -431,6 +444,7 @@ class Slicer:
             ee = element._exit_slice_class(
                     _parent=element, _buffer=element._buffer)
             ee.parent_name = parent_name
+            ee.slice_offset = elem_length  # Entry slice at the end
             self._line.element_dict[nn] = ee
             slices_to_append.append(nn)
 

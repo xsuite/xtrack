@@ -733,3 +733,51 @@ def test_slice_repeated_elements():
        30.  , 35.5 , 40.  , 40.  , 40.  , 40.  , 40.  , 40.85, 41.75,
        41.9 , 42.  , 42.  , 42.5 , 46.5 , 50.  , 50.  ]),
         rtol=0., atol=1e-8)
+
+
+def test_slicing_thick_correctly_set_slice_offsets():
+    bend = xt.Bend(
+        length=3.0,
+        angle=0.3,
+    )
+    line = xt.Line(elements=[bend], element_names=['bend'])
+    line.slice_thick_elements([Strategy(slicing=Uniform(3, mode='thick'))])
+
+    assert len(line) == 7  # 2 markers + 2 edges + 3 thick slices
+
+    assert line['bend..entry_map'].slice_offset == 0
+    assert line['bend..0'].slice_offset == 0
+    assert line['bend..0'].weight == 1/3
+    assert line['bend..1'].slice_offset == 1
+    assert line['bend..1'].weight == 1/3
+    assert line['bend..2'].slice_offset == 2
+    assert line['bend..2'].weight == 1/3
+    assert line['bend..exit_map'].slice_offset == 3
+
+
+def test_slicing_thin_correctly_set_slice_offsets():
+    bend = xt.Bend(
+        length=3.0,
+        angle=0.3,
+    )
+    line = xt.Line(elements=[bend], element_names=['bend'])
+    line.slice_thick_elements([Strategy(slicing=Uniform(3, mode='thin'))])
+
+    assert len(line) == 11  # 2 markers + 2 edges + 3 thin slices + 4 drift slices
+
+    tt = line.get_table()
+    slice_names = [
+        'bend..entry_map',
+        'drift_bend..0',
+        'bend..0',
+        'drift_bend..1',
+        'bend..1',
+        'drift_bend..2',
+        'bend..2',
+        'drift_bend..3',
+        'bend..exit_map',
+    ]
+    slice_offsets = [line[name].slice_offset for name in slice_names]
+    slice_s_positions = [tt.rows[name].s for name in slice_names]
+
+    assert np.all(slice_offsets == slice_s_positions)
