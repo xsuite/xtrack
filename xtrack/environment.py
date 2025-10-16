@@ -1271,7 +1271,7 @@ class Environment:
             return self._element_dict[key]
         elif key in self.particles:
             return self._particles[key]
-        elif key in self.vars:
+        elif self._xdeps_vref and key in self._xdeps_vref._owner:
             return self._xdeps_vref._owner[key]
         else:
             raise KeyError(f'Element or variable {key} not found')
@@ -1337,11 +1337,11 @@ class Environment:
         return out
 
     def _check_name_clashes(self, name, check_vars=True):
-        if name in self._xdeps_eref._owner:
+        if name in self._element_dict:
             raise ValueError(f'There is already an element with name {name}')
         if name in self.lines:
             raise ValueError(f'There is already a line with name {name}')
-        if name in self._xdeps_pref._owner:
+        if name in self._particles:
             raise ValueError(f'There is already a particle with name {name}')
         if check_vars and name in self._xdeps_vref._owner:
             raise ValueError(f'There is already a variable with name {name}')
@@ -2260,6 +2260,8 @@ class EnvVars:
         self.vars_to_update = WeakSet()
 
     def __repr__(self):
+        if self.env._xdeps_vref is None:
+            return 'EnvVars(inactive, no xdeps manager)'
         n = len(self.env._xdeps_vref._owner) - 1
         names_preview = []
         for ii, kk in enumerate(self.env._xdeps_vref._owner.keys()):
