@@ -5047,6 +5047,8 @@ class Line:
                 new_element_names.append(nn)
 
         for new_nn, new_ee in zip(name_insert_sorted, ele_insert_sorted):
+            if new_nn in self.env.elements:
+                del self.env.elements[new_nn]
             self.env.elements[new_nn] = new_ee
 
         self.element_names = new_element_names

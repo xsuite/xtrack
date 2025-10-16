@@ -1053,7 +1053,7 @@ class Environment:
 
     @property
     def element_dict(self):
-        return self._element_dict
+        return self.elements
 
     @element_dict.setter
     def element_dict(self, value):
