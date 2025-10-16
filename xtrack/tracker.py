@@ -53,7 +53,7 @@ class Tracker:
 
         # Check if there are collective elements
         self.iscollective = False
-        for ee in line.elements:
+        for ee in line._elements:
             if _is_collective(ee, line):
                 self.iscollective = True
                 break
@@ -124,7 +124,7 @@ class Tracker:
                     tracker_data_base._line_table.name[:-1]) # remove _endpoint
         line._freeze()
 
-        if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line.elements]):
+        if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line._elements]):
             line._needs_rng = True
 
         _buffer = tracker_data_base._buffer

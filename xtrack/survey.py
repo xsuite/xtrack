@@ -313,7 +313,7 @@ def survey_from_line(
         element0 = line.element_names.index(element0)
 
     V, W = compute_survey(
-        elements        = line.elements,
+        elements        = line._elements,
         X0              = X0,
         Y0              = Y0,
         Z0              = Z0,

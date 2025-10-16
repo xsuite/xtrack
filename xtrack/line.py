@@ -727,7 +727,7 @@ class Line:
 
     def _to_table_dict(self):
 
-        elements = list(self.elements)
+        elements = list(self._elements)
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
         length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
         s_start = s_elements
@@ -2185,7 +2185,7 @@ class Line:
         '''Get total length of the line'''
 
         ll = 0
-        for ee in self.elements:
+        for ee in self._elements:
             if _is_thick(ee, self):
                 this_length = _length(ee, self)
                 ll += this_length
@@ -2230,7 +2230,7 @@ class Line:
         assert mode in ["upstream", "downstream"]
         s_prev = 0.
         s = []
-        for ee in self.elements:
+        for ee in self._elements:
             if mode == "upstream":
                 s.append(s_prev)
             if _is_thick(ee, line=self):
@@ -2842,10 +2842,10 @@ class Line:
         if exclude_types_starting_with is not None:
             assert mask is None
             mask = [not(ee.__class__.__name__.startswith(exclude_types_starting_with))
-                    for ee in self.elements]
+                    for ee in self._elements]
 
         new_elements = self._element_dict.copy()
-        assert len(mask) == len(self.elements)
+        assert len(mask) == len(self._elements)
         for ff, nn in zip(mask, self.element_names):
             if not ff:
                 ee = self._element_dict[nn]
@@ -3473,7 +3473,7 @@ class Line:
 
         """
         self._check_valid_tracker()
-        stop_internal_logging(elements=self.elements)
+        stop_internal_logging(elements=self._elements)
 
         if reinitialize_io_buffer:
             self.tracker._init_io_buffer()
@@ -3558,7 +3558,7 @@ class Line:
 
         newline = Line(elements=[], element_names=[])
 
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             if isinstance(ee, Marker) and nn not in keep:
                 continue
             newline.append_element(ee, nn)
@@ -3604,7 +3604,7 @@ class Line:
 
         newline = Line(elements=[], element_names=[])
 
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             if isinstance(ee, Multipole) and nn not in keep:
                 ctx2np = ee._context.nparray_from_context_array
                 aux = ([ee.hxl]
@@ -3654,7 +3654,7 @@ class Line:
 
         newline = Line(elements=[], element_names=[])
 
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             if _is_drift(ee, self) and nn not in keep:
                 if _length(ee, self) == 0.0:
                     continue
@@ -3699,7 +3699,7 @@ class Line:
 
         newline = Line(elements=[], element_names=[])
 
-        for ii, (ee, nn) in enumerate(zip(self.elements, self.element_names)):
+        for ii, (ee, nn) in enumerate(zip(self._elements, self.element_names)):
             if ii == 0:
                 newline.append_element(ee, nn)
                 continue
@@ -3773,7 +3773,7 @@ class Line:
         # aperture before previous in loop (-2)
         aper_m2 = None
 
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             if _is_aperture(ee, self):
             # We encountered a new aperture, shift all previous
                 aper_m2 = aper_m1
@@ -3869,7 +3869,7 @@ class Line:
 
         names = []
         elements = []
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             for tt in type_list:
                 if isinstance(ee, tt):
                     names.append(nn)
@@ -4022,7 +4022,7 @@ class Line:
 
         newline = Line(elements=[], element_names=[])
 
-        for ee, nn in zip(self.elements, self.element_names):
+        for ee, nn in zip(self._elements, self.element_names):
             if len(newline.element_names) == 0:
                 newline.append_element(ee, nn)
                 continue
@@ -4477,6 +4477,10 @@ class Line:
     @property
     def elements(self):
         return tuple([self.env.elements[nn] for nn in self.element_names])
+
+    @property
+    def _elements(self):
+        return [self.env._element_dict[nn] for nn in self.element_names]
 
     @property
     def skip_end_turn_actions(self):
