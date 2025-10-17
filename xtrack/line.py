@@ -4199,7 +4199,6 @@ class Line:
     def copy_element_from(self, name, source, new_name=None):
         return self.env.copy_element_from(name, source, new_name)
 
-
     def replace_all_replicas(self):
         for nn in self.element_names:
             if isinstance(self._element_dict[nn], xt.Replica):
