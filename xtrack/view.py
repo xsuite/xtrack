@@ -91,7 +91,7 @@ class View:
 
     def __getattr__(self, key):
         val = getattr(self._obj, key)
-        if hasattr(val, "__setitem__"):
+        if hasattr(val, "__setitem__") and key != "extra": # extra is handled with no view
             return View(val, getattr(self._ref, key), self._eval)
         else:
             return val

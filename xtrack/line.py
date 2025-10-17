@@ -4197,50 +4197,8 @@ class Line:
         self.copy_element_from(name_parent, self, new_name=name)
 
     def copy_element_from(self, name, source, new_name=None):
-        """Copy an element from another environment.
+        return self.env.copy_element_from(name, source, new_name)
 
-        Parameters
-        ----------
-        name: str
-            Name of the element to copy.
-        source: Environment | Line
-            Environment or line where the element is located.
-        new_name: str, optional
-            Rename the element in the new line/environment. If not provided, the
-            element is copied with the same name.
-        """
-        new_name_input = new_name if new_name != name else None
-        new_name = new_name or name
-        cls = type(source._element_dict[name])
-
-        if (cls not in _ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge] # No issue in copying DipoleEdge while creating it requires handling properties which are strings.
-            and 'ThickSlice' not in cls.__name__ and 'ThinSlice' not in cls.__name__
-            and 'DriftSlice' not in cls.__name__):
-            raise ValueError(
-                f'Only {_STR_ALLOWED_ELEMENT_TYPES_IN_NEW} elements are '
-                f'allowed in `copy_from_env` for now.'
-            )
-
-        self._element_dict[new_name] = source._element_dict[name].copy()
-
-        pars_with_expr = list(
-            source._xdeps_manager.tartasks[source._xdeps_eref[name]].keys())
-
-        formatter = xd.refs.CompactFormatter(scope=None)
-
-        for rr in pars_with_expr:
-            # Assign expressions by string to avoid having to deal with the
-            # fact that they come from a different manager!
-            expr_string = rr._expr._formatted(formatter)
-
-            if isinstance(rr, xd.refs.AttrRef):
-                setattr(self[new_name], rr._key, expr_string)
-            elif isinstance(rr, xd.refs.ItemRef):
-                getattr(self[new_name], rr._owner._key)[rr._key] = expr_string
-            else:
-                raise ValueError('Only AttrRef and ItemRef are supported for now')
-
-        return new_name
 
     def replace_all_replicas(self):
         for nn in self.element_names:

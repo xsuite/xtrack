@@ -24,6 +24,8 @@ env.lhcb2.particle_ref = xt.Particles(p0c=7e12)
 env.lhcb1.twiss4d().plot()
 env.lhcb2.twiss4d(reverse=True).plot()
 
+prrrr
+
 # Check builder
 env.lhcb2.builder.name = None # Not to overwrite the line
 lb2 = env.lhcb2.builder.build()
