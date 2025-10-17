@@ -47,6 +47,10 @@ def _elem_to_tokens(env, nn, formatter):
             continue
         if kk in SKIP_PARAMS:
             continue
+        if kk == 'extra':
+            continue
+        if kk == 'prototype':
+            continue
         if kk == 'knl' or kk == 'ksl':
             arr_ref = getattr(ee_ref, kk)
             vv = _repr_arr_ref(arr_ref, formatter)

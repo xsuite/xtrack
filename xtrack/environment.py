@@ -2043,7 +2043,7 @@ class Builder:
         self.components.append(out)
         return out
 
-    def build(self, name=None, s_tol=1e-6):
+    def build(self, name=None, s_tol=None):
 
         if s_tol is None:
             s_tol = self.s_tol
