@@ -2062,3 +2062,6 @@ class EnvParticleRef:
 
     def copy(self, **kwargs):
         return self._resolved.copy(**kwargs)
+
+    def __repr__(self):
+        return repr(self._resolved)
