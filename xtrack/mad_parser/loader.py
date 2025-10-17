@@ -390,8 +390,17 @@ class MadxLoader:
             kwargs['apertype'] = self._parameter_cache[name]['apertype']
         aperture = self._build_aperture(name, f'{name}_aper', kwargs, force=True)
 
+        extra = kwargs.pop('extra', None)
+
         el_params = self._convert_element_params(name, kwargs)
         builder.set(name, **el_params)
+
+        if extra:
+            if not hasattr(builder.element_dict[name], 'extra'):
+                builder.element_dict[name].extra = {}
+            for kk, vv in extra.items():
+                builder.ref[name].extra[kk] = vv
+
         builder.element_dict[name].name_associated_aperture = aperture
 
     def _convert_element_params(self, name, params):
