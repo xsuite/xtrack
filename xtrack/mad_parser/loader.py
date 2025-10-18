@@ -94,6 +94,7 @@ class MadxLoader:
             self,
             env: xt.Environment = None,
             default_to_zero: bool = False,
+            rbend_use_straight_length: bool = True,
     ):
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._both_direction_elements: Set[str] = set()
@@ -102,6 +103,7 @@ class MadxLoader:
 
         self.env = env or xt.Environment()
         self.env.default_to_zero = default_to_zero
+        self.rbend_use_straight_length = rbend_use_straight_length
 
         self._init_environment()
 
@@ -407,7 +409,7 @@ class MadxLoader:
         if parent_name in {'sbend', 'rbend'}:
             length = params.get('length', 0)
 
-            if parent_name == 'rbend':
+            if parent_name == 'rbend' and self.rbend_use_straight_length:
                 if 'length' in params:
                     params['length_straight'] = params.pop('length')
 
@@ -642,7 +644,8 @@ class MadxLoader:
         return self._mad_base_type(element_name) in _APERTURE_TYPES
 
 
-def load_madx_lattice(file=None, string=None, reverse_lines=None, build=True):
+def load_madx_lattice(file=None, string=None, reverse_lines=None, build=True,
+                      rbend_use_straight_length=True):
 
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
@@ -650,7 +653,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None, build=True):
     if file is None and string is None:
         raise ValueError('Either `file` or `string` must be provided!')
 
-    loader = MadxLoader()
+    loader = MadxLoader(rbend_use_straight_length=rbend_use_straight_length)
 
     if file is not None:
         loader.load_file(file, build=build)
