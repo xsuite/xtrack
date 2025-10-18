@@ -94,7 +94,6 @@ class MadxLoader:
             self,
             env: xt.Environment = None,
             default_to_zero: bool = False,
-            rbend_use_straight_length: bool = True,
     ):
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._both_direction_elements: Set[str] = set()
@@ -103,7 +102,7 @@ class MadxLoader:
 
         self.env = env or xt.Environment()
         self.env.default_to_zero = default_to_zero
-        self.rbend_use_straight_length = rbend_use_straight_length
+        self.builders = {}
 
         self._init_environment()
 
@@ -145,31 +144,29 @@ class MadxLoader:
         for mad_apertype in _APERTURE_TYPES:
             self._new_builtin(mad_apertype, 'Marker')
 
-    def load_file(self, file, build=True) -> Optional[List[Builder]]:
+    def load_file(self, file) -> Optional[List[Builder]]:
         """Load a MAD-X file and generate/update the environment."""
         with _disable_name_clash_checks(self.env):
             parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
             parsed_dict = parser.parse_file(file)
-            return self.load_parsed_dict(parsed_dict, build=build)
+            return self.load_parsed_dict(parsed_dict)
 
-    def load_string(self, string, build=True) -> Optional[List[Builder]]:
+    def load_string(self, string) -> Optional[List[Builder]]:
         """Load a MAD-X string and generate/update the environment."""
         with _disable_name_clash_checks(self.env):
             parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
             parsed_dict = parser.parse_string(string)
-            return self.load_parsed_dict(parsed_dict, build=build)
+            return self.load_parsed_dict(parsed_dict)
 
-    def load_parsed_dict(self, parsed_dict: MadxOutputType, build=True) -> Optional[List[Builder]]:
+    def load_parsed_dict(self, parsed_dict: MadxOutputType) -> Optional[List[Builder]]:
         with _disable_name_clash_checks(self.env):
             hierarchy = self._collect_hierarchy(parsed_dict)
             self._madx_elem_hierarchy.update(hierarchy)
 
             self._parse_elements(parsed_dict["elements"])
-            builders = self._parse_lines(parsed_dict["lines"], build=build)
+            builders = self._parse_lines(parsed_dict["lines"])
             self._parse_parameters(parsed_dict["parameters"])
-
-            if not build:
-                return builders
+            self.builders.update(builders)
 
     def _parse_elements(self, elements: Dict[str, ElementType]):
         for name, el_params in elements.items():
@@ -178,8 +175,8 @@ class MadxLoader:
             params, extras = get_params(el_params, parent=parent)
             self._new_element(name, parent, self.env, **params, extra=extras)
 
-    def _parse_lines(self, lines: Dict[str, LineType], build=True) -> List[Builder]:
-        builders = []
+    def _parse_lines(self, lines: Dict[str, LineType]) -> List[Builder]:
+        builders = {}
 
         for name, line_params in lines.items():
             params = line_params.copy()
@@ -197,7 +194,6 @@ class MadxLoader:
                                                length=length,
                                                s_tol=1e-6)
                 self._parse_components(builder, params.pop('elements'))
-                builders.append(builder)
             elif line_type == 'line':
                 components = self._parse_line_components(params.pop('elements'))
                 builder = self.env.new_builder(name=name, components=components)
@@ -207,8 +203,7 @@ class MadxLoader:
                     f'a line, but got: {line_type}!'
                 )
 
-            if build:
-                builder.build()
+            builders[name] = builder
 
             self.env._last_loaded_builders = builders
 
@@ -409,7 +404,7 @@ class MadxLoader:
         if parent_name in {'sbend', 'rbend'}:
             length = params.get('length', 0)
 
-            if parent_name == 'rbend' and self.rbend_use_straight_length:
+            if parent_name == 'rbend':
                 if 'length' in params:
                     params['length_straight'] = params.pop('length')
 
@@ -644,8 +639,7 @@ class MadxLoader:
         return self._mad_base_type(element_name) in _APERTURE_TYPES
 
 
-def load_madx_lattice(file=None, string=None, reverse_lines=None, build=True,
-                      rbend_use_straight_length=True):
+def load_madx_lattice(file=None, string=None, reverse_lines=None):
 
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
@@ -653,14 +647,17 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None, build=True,
     if file is None and string is None:
         raise ValueError('Either `file` or `string` must be provided!')
 
-    loader = MadxLoader(rbend_use_straight_length=rbend_use_straight_length)
+    loader = MadxLoader()
 
     if file is not None:
-        loader.load_file(file, build=build)
+        loader.load_file(file)
     elif string is not None:
-        loader.load_string(string, build=build)
+        loader.load_string(string)
     else:
         raise ValueError('Something went wrong!')
+
+    for nn, bb in loader.builders.items():
+        bb.build()
 
     env = loader.env
 

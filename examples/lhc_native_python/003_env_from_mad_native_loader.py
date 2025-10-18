@@ -1,7 +1,8 @@
 import xtrack as xt
 
-env = xt.load('../../test_data/lhc_2024/lhc.seq', reverse_lines=['lhcb2'],
-              rbend_use_straight_length=False)
+env = xt.load('../../test_data/lhc_2024/lhc.seq',
+               reverse_lines=['lhcb2'],
+)
 env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
 
