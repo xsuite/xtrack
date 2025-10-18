@@ -478,7 +478,6 @@ class Environment:
 
         components = _resolve_lines_in_components(components, self)
         flattened_components = _flatten_components(self, components, refer=refer)
-        breakpoint()
 
         if np.array([isinstance(ss, str) for ss in flattened_components]).all():
             # All elements provided by name
@@ -2019,14 +2018,33 @@ class EnvRef:
 
 class Builder:
     def __init__(self, env, components=None, name=None, length=None,
-                 refer: ReferType = 'center', s_tol=1e-6):
+                 refer: ReferType = 'center', s_tol=1e-6,
+                 mirror=False):
         self.env = env
         self.components = components or []
         self.name = name
         self.refer = refer
         self.length = length
         self.s_tol = s_tol
+        self.mirror = mirror
 
+    def copy(self):
+        out = self.__class__(self.env)
+        out.__dict__.update(self.__dict__)
+        out.components = self.components.copy()
+        return out
+
+    def __neg__(self):
+        out = self.copy()
+        out.mirror = not out.mirror
+        return out
+
+    def __rmul__(self, other):
+        assert isinstance(other, int), 'Only integer multiplication is supported'
+        assert other > 0, 'Only positive integer multiplication is supported'
+        out = self.__class__(self.env, components=other * self.components,
+                             refer=self.refer, s_tol=self.s_tol)
+        return out
 
     def __repr__(self):
         parts = [f'name={self.name!r}']
@@ -2051,17 +2069,33 @@ class Builder:
         self.components.append(out)
         return out
 
-    def build(self, name=None, inplace=True,s_tol=None):
+    def build(self, name=None, inplace=None, s_tol=None):
+
+        if inplace is None and name is None and self.name is not None:
+            inplace = True
+
+        if inplace and self.name is None:
+            raise ValueError('Inplace build requires the Builder to have a name')
+
+        if inplace:
+            name = self.name
 
         if s_tol is None:
             s_tol = self.s_tol
 
-        if name is None and inplace:
-            name = self.name
         with _disable_name_clash_checks(self.env):
-            out =  self.env.new_line(components=self.components, name=name, refer=self.refer,
+            out =  self.env.new_line(components=self.components, refer=self.refer,
                                     length=self.length, s_tol=s_tol)
+        if self.mirror:
+            out = -out
+
+        if name is not None:
+            if name in self.env.lines:
+                del self.env.lines[name]
+            self.env.lines[name] = out
+
         out.builder = self
+
         return out
 
     def set(self, *args, **kwargs):
@@ -2069,7 +2103,6 @@ class Builder:
 
     def get(self, *args, **kwargs):
         return self.env.get(*args, **kwargs)
-
 
     def resolve_s_positions(self):
         components = self.components

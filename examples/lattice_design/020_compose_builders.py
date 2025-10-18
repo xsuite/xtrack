@@ -11,7 +11,7 @@ env['l1'].new('q2', 'q1', at='a', from_='q1@center')
 env.new_builder(name='l_compose',
                 components=[
                     env.place('l1', at='3*a'),
-                    # env.place(-env['l1'], at='10*a'),
+                    env.place(-env['l1'], at='10*a'),
                 ])
 env['l_compose'].build()
 
