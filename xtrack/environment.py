@@ -42,8 +42,8 @@ def _flatten_components(env, components, refer: ReferType = 'center'):
 
     flatt_components = []
     for nn in components:
-        if ((is_line_from_place := (isinstance(nn, Place) and isinstance(nn.name, xt.Line)))
-            or (is_line_from_str := (isinstance(nn, str) and isinstance(env[nn], xt.Line)))):
+        if ((is_line_from_place := (isinstance(nn, Place) and isinstance(nn.name, (xt.Line, xt.Builder))))
+            or (is_line_from_str := (isinstance(nn, str) and isinstance(env[nn], (xt.Line, xt.Builder))))):
 
             if is_line_from_place:
                 anchor = nn.anchor
@@ -53,6 +53,9 @@ def _flatten_components(env, components, refer: ReferType = 'center'):
                 line = env[nn]
             else:
                 raise RuntimeError('This should never happen')
+
+            if isinstance(line, xt.Builder):
+                line = line.build(name=None, inplace=False)
 
             if anchor is None:
                 anchor = refer or 'center'
@@ -475,6 +478,7 @@ class Environment:
 
         components = _resolve_lines_in_components(components, self)
         flattened_components = _flatten_components(self, components, refer=refer)
+        breakpoint()
 
         if np.array([isinstance(ss, str) for ss in flattened_components]).all():
             # All elements provided by name
@@ -1501,8 +1505,8 @@ def _all_places(seq):
             ss_aux = _all_places(ss)
             seq_all_places.extend(ss_aux)
         else:
-            assert isinstance(ss, str) or isinstance(ss, xt.Line), (
-                'Only places, elements, strings or Lines are allowed in sequences')
+            assert isinstance(ss, str) or isinstance(ss, (xt.Line, xt.Builder)), (
+                'Only places, elements, strings, Lines, or Builders are allowed in sequences')
             seq_all_places.append(Place(ss, at=None, from_=None))
     return seq_all_places
 
@@ -2047,12 +2051,12 @@ class Builder:
         self.components.append(out)
         return out
 
-    def build(self, name=None, s_tol=None):
+    def build(self, name=None, inplace=True,s_tol=None):
 
         if s_tol is None:
             s_tol = self.s_tol
 
-        if name is None:
+        if name is None and inplace:
             name = self.name
         with _disable_name_clash_checks(self.env):
             out =  self.env.new_line(components=self.components, name=name, refer=self.refer,
