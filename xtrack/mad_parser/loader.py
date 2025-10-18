@@ -195,7 +195,7 @@ class MadxLoader:
                 length = params.get('l', None)
                 builder = self.env.new_builder(name=name, refer=refer,
                                                length=length,
-                                               s_tol=1e-5) # to accommodate rbend small length changes
+                                               s_tol=1e-6)
                 self._parse_components(builder, params.pop('elements'))
                 builders.append(builder)
             elif line_type == 'line':
