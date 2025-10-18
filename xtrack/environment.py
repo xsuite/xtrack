@@ -571,8 +571,12 @@ class Environment:
             The new builder.
         '''
 
-        return Builder(env=self, components=components, name=name, refer=refer,
+        out = Builder(env=self, components=components, name=name, refer=refer,
                        length=length, s_tol=s_tol)
+        if name is not None:
+            self.lines[name] = out
+
+        return out
 
     def call(self, filename):
         '''
@@ -2050,8 +2054,9 @@ class Builder:
 
         if name is None:
             name = self.name
-        out =  self.env.new_line(components=self.components, name=name, refer=self.refer,
-                                 length=self.length, s_tol=s_tol)
+        with _disable_name_clash_checks(self.env):
+            out =  self.env.new_line(components=self.components, name=name, refer=self.refer,
+                                    length=self.length, s_tol=s_tol)
         out.builder = self
         return out
 

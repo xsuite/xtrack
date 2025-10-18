@@ -156,7 +156,7 @@ class MadxLoader:
         with _disable_name_clash_checks(self.env):
             parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
             parsed_dict = parser.parse_string(string)
-            return self.load_parsed_dict(parsed_dict)
+            self.load_parsed_dict(parsed_dict)
 
     def load_parsed_dict(self, parsed_dict: MadxOutputType) -> Optional[List[Builder]]:
         with _disable_name_clash_checks(self.env):
