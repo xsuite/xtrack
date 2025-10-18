@@ -100,8 +100,6 @@ class MadxLoader:
         self._builtin_types = set()
         self._parameter_cache = {}
 
-        self.rbarc = True
-
         self.env = env or xt.Environment()
         self.env.default_to_zero = default_to_zero
 
@@ -407,14 +405,10 @@ class MadxLoader:
         parent_name = self._mad_base_type(name)
 
         if parent_name in {'sbend', 'rbend'}:
-            # We need to keep the rbarc parameter from the parent element.
-            # If rbarc = True, then rbend length is the straight length.
-            # If rbarc = False, then the length is the arc length, as for sbend.
             length = params.get('length', 0)
 
             if parent_name == 'rbend':
-                rbarc = self._parameter_cache[name].get('rbarc', self.rbarc)
-                if rbarc and 'length' in params:
+                if 'length' in params:
                     params['length_straight'] = params.pop('length')
 
             # Default MAD-X behaviour is to take k0 from h only if k0 is not
