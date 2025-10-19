@@ -829,6 +829,13 @@ def test_line_syntax():
     loader.load_string(sequence)
     env = loader.env
 
+    env['l1'].build()
+    env['l2'].build()
+    env['l3'].build()
+    env['l4'].build()
+    env['l5'].build()
+    env['l6'].build()
+
     l1 = env['l1']
     assert l1.name == 'l1'
     assert l1.element_names == ['el1', 'el2', 'el3']

@@ -2094,6 +2094,7 @@ class Builder:
         if name is not None:
             if name in self.env.lines:
                 del self.env.lines[name]
+            out._name = name
             self.env.lines[name] = out
 
         out.builder = self
