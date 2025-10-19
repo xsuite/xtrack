@@ -882,11 +882,11 @@ def test_refer_and_thin_elements():
     loader.load_string(sequence)
     env = loader.env
 
-    seq1 = env['seq1']
+    seq1 = env['seq1'].build()
     seq1.merge_consecutive_drifts()
     tt1 = seq1.get_table()
 
-    seq2 = env['seq2']
+    seq2 = env['seq2'].build()
     seq2.merge_consecutive_drifts()
     tt2 = seq2.get_table()
 
