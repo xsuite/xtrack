@@ -79,6 +79,8 @@ def _flatten_components(env, components, refer: ReferType = 'center'):
                 sub_components[0] = Place(sub_components[0], at=at_of_start_first_element,
                         anchor='start', from_=nn.from_, from_anchor=nn.from_anchor)
             flatt_components += sub_components
+        elif isinstance(nn, xt.Builder):
+            flatt_components += nn.build(inplace=False).element_names
         elif isinstance(nn, xt.Line):
             flatt_components += nn.element_names
         elif isinstance(nn, Iterable) and not isinstance(nn, str):

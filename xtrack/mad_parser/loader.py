@@ -227,8 +227,6 @@ class MadxLoader:
 
         for name, body in elements:
 
-            breakpoint()
-
             # Parent is None if the element already exists and is referred to,
             # by name, otherwise we expect a line nested in the current one.
             parent = body.get('parent', None)
