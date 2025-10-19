@@ -2054,6 +2054,8 @@ class Builder:
             parts.append(f'length={self.length!r}')
         if self.refer not in {'center', 'centre'}:
             parts.append(f'refer={self.refer!r}')
+        if self.mirror:
+            parts.append(f'mirror={self.mirror!r}')
         parts.append(f'components={self.components!r}')
         args_str = ', '.join(parts)
         return f'Builder({args_str})'

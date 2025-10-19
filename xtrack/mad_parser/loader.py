@@ -226,6 +226,9 @@ class MadxLoader:
         components = []
 
         for name, body in elements:
+
+            breakpoint()
+
             # Parent is None if the element already exists and is referred to,
             # by name, otherwise we expect a line nested in the current one.
             parent = body.get('parent', None)
@@ -233,7 +236,7 @@ class MadxLoader:
             invert = body.get('_invert', False)
             instance = self.env[name] if name else None
 
-            if parent is None and isinstance(instance, xt.Line):
+            if parent is None and isinstance(instance, (xt.Line, xt.Builder)):
                 # If it's a line, we use __mul__ and __neg__ directly
                 element = instance
                 if invert:
@@ -656,6 +659,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
     else:
         raise ValueError('Something went wrong!')
 
+    breakpoint()
     for nn, bb in loader.builders.items():
         bb.build()
 
