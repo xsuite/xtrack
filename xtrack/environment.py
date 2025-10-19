@@ -740,6 +740,8 @@ class Environment:
 
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
+            if isinstance(ln, xt.Builder):
+                continue
             if ln._has_valid_tracker() and ln._buffer is not buffer:
                 ln.discard_tracker()
 

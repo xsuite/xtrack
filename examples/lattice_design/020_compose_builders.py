@@ -12,9 +12,7 @@ b_compose = env.new_builder(components=[
                     env.place('l1', at='7.5*a'),
                     env.place(-env['l1'], at='17.5*a'),
                 ])
-l1 = b_compose.build()
-tt1 = l1.twiss4d()
+tt1 = b_compose.build().get_table()
 
 env['a'] = 2.
-l2 = b_compose.build()
-tt2 = l2.twiss4d()
+tt2 = b_compose.build().get_table()
