@@ -385,8 +385,8 @@ def test_rbend_two_step(example_sequence):
 def test_rbend_set_params_after_lattice(example_sequence):
     env, positions, _ = example_sequence
     rb1 = env['rx2']
-    assert positions['rx2'] < 35 # When changing the angle the position changes
-                                 # (the magnet shortens)
+    # When changing the angle the position of the center does not move
+    xo.assert_allclose(positions['rx2'], 35, atol=1e-12)
     assert isinstance(rb1, xt.RBend)
 
     angle = 1.5
