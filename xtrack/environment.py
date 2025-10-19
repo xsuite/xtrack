@@ -2044,7 +2044,7 @@ class Builder:
     def __rmul__(self, other):
         assert isinstance(other, int), 'Only integer multiplication is supported'
         assert other > 0, 'Only positive integer multiplication is supported'
-        out = self.__class__(self.env, components=other * self.components,
+        out = self.__class__(self.env, components=other * [self],
                              refer=self.refer, s_tol=self.s_tol)
         return out
 
