@@ -657,7 +657,6 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
     else:
         raise ValueError('Something went wrong!')
 
-    breakpoint()
     for nn, bb in loader.builders.items():
         bb.build()
 
