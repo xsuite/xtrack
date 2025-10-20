@@ -2408,7 +2408,6 @@ class EnvParticleRef:
         return getattr(self._resolved, key)
 
     def __setattr__(self, key, value):
-        self.env._check_name_clashes(key)
         if key == 'env':
             object.__setattr__(self, key, value)
         else:
