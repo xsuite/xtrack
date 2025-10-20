@@ -84,6 +84,11 @@ d5: drift, L:=5*a;
 l1: line=(q1,d1,q2);
 l2: line=(d5, l1, d5, -l1);
 
+s1: sequence, refer=centre, l:=5*a;
+    q1, at:=0.5*a;
+    q2, at:=4.5*a;
+endsequence;
+
 a=2;
 
 """
