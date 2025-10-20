@@ -1433,8 +1433,8 @@ class Environment:
 
         revdeps = self.ref_manager.find_deps([rr])
         if len(revdeps) > 1:
-            raise ValueError(f'Cannot remove object {name} because it is used '
-                            f'to control: {revdeps[1:]}')
+            raise RuntimeError(f'Cannot remove object {name} because it is used '
+                               f'to control: {revdeps[1:]}')
 
         for task in list(self.ref_manager.tasks):
             deps = task._get_dependencies()

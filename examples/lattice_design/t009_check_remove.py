@@ -63,10 +63,37 @@ env.remove('p2')
 assert 'p2' not in env.particles
 assert 'p2' not in env
 
+env['a'] = 5.
+env.new('e', 'Quadrupole', length='3*a')
+with pytest.raises(RuntimeError):
+    env.remove('a') # a is used by element e
+env.remove('e')
+env.remove('a')
+assert 'e' not in env.elements
+assert 'a' not in env.vars
 
+env.new('e', 'Quadrupole', length=2)
+env['a'] = 3 * env.ref['e'].length
+assert env['a'] == 6.
+assert str(env.ref['a']._expr) == "(3 * element_refs['e'].length)"
+with pytest.raises(RuntimeError):
+    env.remove('e') # e is used by variable a
+env.remove('a')
+env.remove('e')
 
+env['a'] = 4.
+env.new_particle('p', p0c='2*a*1e12')
+assert env['p'].p0c == 8e12
+with pytest.raises(RuntimeError):
+    env.remove('a') # a is used by particle p
+env.remove('p')
+env.remove('a')
 
-
-
-
-
+env.new_particle('p', p0c=1e12)
+env['a'] = env.ref['p'].p0c
+assert env['a'] == 1e12
+assert str(env.ref['a']._expr) == "particles['p'].p0c"
+with pytest.raises(RuntimeError):
+    env.remove('p') # p is used by variable a
+env.remove('a')
+env.remove('p')
