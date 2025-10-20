@@ -477,6 +477,8 @@ class Environment:
 
         if isinstance(length, str):
             length = self.eval(length)
+        elif is_ref(length):
+            length = length._value
 
         components = _resolve_lines_in_components(components, self)
         flattened_components = _flatten_components(self, components, refer=refer)
@@ -1613,6 +1615,8 @@ def _resolve_s_positions(seq_all_places, env, refer: ReferType = 'center',
             else:
                 if isinstance(ss.at, str):
                     at = aux_line._xdeps_eval.eval(ss.at)
+                elif is_ref(ss.at):
+                    at = ss.at._value
                 else:
                     at = ss.at
 
