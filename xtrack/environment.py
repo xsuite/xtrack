@@ -1207,8 +1207,6 @@ class Environment:
             return self._var_management['pref']
 
     def __getitem__(self, key):
-        if np.issubdtype(key.__class__, np.integer):
-            key = self.element_names[key]
         assert isinstance(key, str)
         if key in self._element_dict:
             if self.ref_manager is None:
@@ -1222,12 +1220,16 @@ class Environment:
                         evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
             return self.vv[key]
-        elif hasattr(self, 'lines') and key in self.lines: # Want to reuse the method for the env
+        elif key in self.lines: # Want to reuse the method for the env
             return self.lines[key]
-        elif "::" in key and (env_name := key.split("::")[0]) in self._element_dict:
-            return self[env_name]
         else:
             raise KeyError(f'Name {key} not found')
+
+    def __contains__(self, key):
+        return (key in self._element_dict or
+                key in self.particles or
+                key in self.vars or
+                key in self.lines)
 
     def remove(self, key):
 
