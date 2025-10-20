@@ -14,15 +14,23 @@ assert 'a' not in env.elements
 assert 'a' not in env.particles
 assert 'a' not in env.lines
 
+assert 'e1' in env
 assert 'e1' in env.elements
 assert 'e1' not in env.vars
 assert 'e1' not in env.particles
 assert 'e1' not in env.lines
 
+assert 'p1' in env
 assert 'p1' in env.particles
 assert 'p1' not in env.vars
 assert 'p1' not in env.elements
 assert 'p1' not in env.lines
+
+assert 'l1' in env
+assert 'l1' in env.lines
+assert 'l1' not in env.vars
+assert 'l1' not in env.elements
+assert 'l1' not in env.particles
 
 
 
