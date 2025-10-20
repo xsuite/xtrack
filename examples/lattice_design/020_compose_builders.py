@@ -121,3 +121,4 @@ assert np.all(tt_xs_mad.element_type ==
 assert np.all(tt_xs_mad.env_name ==
     ['d5', 'q1', 'd1', 'q2', 'd5',
      'q2', 'd1', 'q1', '_end_point'])
+xo.assert_allclose(tt_mad.s[:-1], tt_xs_mad.s, atol=1e-12, rtol=0)
