@@ -88,6 +88,14 @@ s1: sequence, refer=centre, l:=5*a;
     q1, at:=0.5*a;
     q2, at:=4.5*a;
 endsequence;
+sm1: sequence, refer=centre, l:=5*a;
+    q2, at:=0.5*a;
+    q1, at:=4.5*a;
+endsequence;
+s2: sequence, refer=centre, l:=20*a;
+    s1, at:=2.5*a;
+    sm1, at:=17.5*a;
+endsequence;
 
 a=2;
 
@@ -97,7 +105,9 @@ madx = Madx()
 madx.input(mad_src)
 madx.beam()
 madx.use('l2')
-tt_mad = xt.Table(madx.twiss(betx=1, bety=1), _copy_cols=True)
+tt_mad_l2 = xt.Table(madx.twiss(betx=1, bety=1), _copy_cols=True)
+madx.use('s2')
+tt_mad_s2 = xt.Table(madx.twiss(betx=1, bety=1), _copy_cols=True)
 
 env_mad = xt.load(string=mad_src, format='madx')
 tt_xs_mad = env_mad['l2'].get_table()
@@ -126,4 +136,4 @@ assert np.all(tt_xs_mad.element_type ==
 assert np.all(tt_xs_mad.env_name ==
     ['d5', 'q1', 'd1', 'q2', 'd5',
      'q2', 'd1', 'q1', '_end_point'])
-xo.assert_allclose(tt_mad.s[:-1], tt_xs_mad.s, atol=1e-12, rtol=0)
+xo.assert_allclose(tt_mad_l2.s[:-1], tt_xs_mad.s, atol=1e-12, rtol=0)
