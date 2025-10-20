@@ -93,7 +93,7 @@ sm1: sequence, refer=centre, l:=5*a;
     q1, at:=4.5*a;
 endsequence;
 s2: sequence, refer=centre, l:=20*a;
-    s1, at:=2.5*a;
+    s1, at:=7.5*a;
     sm1, at:=17.5*a;
 endsequence;
 
@@ -110,8 +110,8 @@ madx.use('s2')
 tt_mad_s2 = xt.Table(madx.twiss(betx=1, bety=1), _copy_cols=True)
 
 env_mad = xt.load(string=mad_src, format='madx')
-tt_xs_mad = env_mad['l2'].get_table()
-# tt_xs_mad.cols['s', 'name', 'element_type', 'env_name'] is:
+tt_xs_mad_l2 = env_mad['l2'].get_table()
+# tt_xs_mad_l2.cols['s', 'name', 'element_type', 'env_name'] is:
 # Table: 9 rows, 4 cols
 # name                   s element_type env_name
 # d5::0                  0 Drift        d5
@@ -124,16 +124,44 @@ tt_xs_mad = env_mad['l2'].get_table()
 # q1::1                 38 Quadrupole   q1
 # _end_point            40              _end_point
 
-assert np.all(tt_xs_mad.name ==
+tt_xs_mad_s2 = env_mad['s2'].get_table()
+# tt_xs_mad_s2.cols['s', 'name', 'element_type', 'env_name'] is:
+# Table: 9 rows, 4 cols
+# Table: 9 rows, 4 cols
+# name                   s element_type env_name
+# drift_3                0 Drift        drift_3
+# q1::0                 10 Quadrupole   q1
+# drift_1               12 Drift        drift_1
+# q2::0                 18 Quadrupole   q2
+# drift_4               20 Drift        drift_4
+# q2::1                 30 Quadrupole   q2
+# drift_2               32 Drift        drift_2
+# q1::1                 38 Quadrupole   q1
+# _end_point            40              _end_point
+
+assert np.all(tt_xs_mad_l2.name ==
     ['d5::0', 'q1::0', 'd1::0', 'q2::0', 'd5::1', 'q2::1',
        'd1::1', 'q1::1', '_end_point'])
-xo.assert_allclose(tt_xs_mad.s,
+xo.assert_allclose(tt_xs_mad_l2.s,
         2 * tt1.s,
         rtol=0, atol=1e-12)
-assert np.all(tt_xs_mad.element_type ==
+assert np.all(tt_xs_mad_l2.element_type ==
     ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
      'Quadrupole', 'Drift', 'Quadrupole', ''])
-assert np.all(tt_xs_mad.env_name ==
+assert np.all(tt_xs_mad_l2.env_name ==
     ['d5', 'q1', 'd1', 'q2', 'd5',
      'q2', 'd1', 'q1', '_end_point'])
-xo.assert_allclose(tt_mad_l2.s[:-1], tt_xs_mad.s, atol=1e-12, rtol=0)
+xo.assert_allclose(tt_mad_l2.s[:-1], tt_xs_mad_l2.s, atol=1e-12, rtol=0)
+
+assert np.all(tt_xs_mad_s2.name ==
+    ['drift_3', 'q1::0', 'drift_1', 'q2::0', 'drift_4', 'q2::1',
+       'drift_2', 'q1::1', '_end_point'])
+xo.assert_allclose(tt_xs_mad_s2.s,
+        2 * tt1.s,
+        rtol=0, atol=1e-12)
+assert np.all(tt_xs_mad_s2.element_type ==
+    ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
+     'Quadrupole', 'Drift', 'Quadrupole', ''])
+assert np.all(tt_xs_mad_s2.env_name ==
+    ['drift_3', 'q1', 'drift_1', 'q2', 'drift_4',
+     'q2', 'drift_2', 'q1', '_end_point'])
