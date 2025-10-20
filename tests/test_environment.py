@@ -3599,3 +3599,56 @@ def test_compose_builders():
     assert np.all(tt_xs_mad_s2.env_name ==
         ['drift_3', 'q1', 'drift_1', 'q2', 'drift_4',
         'q2', 'drift_2', 'q1', '_end_point'])
+
+def test_expr_in_builder():
+
+    env = xt.Environment()
+
+    env['a'] = 1.0
+
+    b1 = env.new_builder(name='b1', length='3*a')
+    b1.new('q1', 'Quadrupole', length='a', at='1.5*a')
+
+    b2 = env.new_builder(name='b2', length=3*env.ref['a'])
+    b2.new('q2', 'Quadrupole', length=env.ref['a'], at=1.5*env.ref['a'])
+
+    env['a'] = 2.0
+    b1.build()
+    b2.build()
+
+    assert isinstance(env['b1'], xt.Line)
+    assert isinstance(env['b2'], xt.Line)
+
+    tt1 = env['b1'].get_table()
+    tt2 = env['b2'].get_table()
+
+    # tt1.cols['s', 'name', 'element_type'] is:
+    # Table: 4 rows, 3 cols
+    # name                   s element_type
+    # drift_1                0 Drift
+    # q1                     2 Quadrupole
+    # drift_2                4 Drift
+    # _end_point             6
+
+    # tt2.cols['s', 'name', 'element_type'] is:
+    # Table: 4 rows, 3 cols
+    # name                   s element_type
+    # drift_1                0 Drift
+    # q2                     2 Quadrupole
+    # drift_2                4 Drift
+    # _end_point             6
+
+    assert np.all(tt1.name == np.array([
+        'drift_1', 'q1', 'drift_2', '_end_point']))
+    xo.assert_allclose(tt1.s,
+            np.array([0., 2., 4., 6.]),
+            rtol=0, atol=1e-12)
+    assert np.all(tt1.element_type == np.array([
+        'Drift', 'Quadrupole', 'Drift', '']))
+    assert np.all(tt2.name == np.array([
+        'drift_3', 'q2', 'drift_4', '_end_point']))
+    xo.assert_allclose(tt2.s,
+            np.array([0., 2., 4., 6.]),
+            rtol=0, atol=1e-12)
+    assert np.all(tt2.element_type == np.array([
+        'Drift', 'Quadrupole', 'Drift', '']))
