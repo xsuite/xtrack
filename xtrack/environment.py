@@ -1223,7 +1223,7 @@ class Environment:
         elif key in self.lines: # Want to reuse the method for the env
             return self.lines[key]
         else:
-            raise KeyError(f'Name {key} not found')
+            raise KeyError(f'Name `{key}` not found')
 
     def __contains__(self, key):
         return (key in self._element_dict or
@@ -1852,7 +1852,7 @@ class EnvElements:
             return View(self.env._element_dict[key], self.env._xdeps_eref[key],
                         evaluator=self.env._xdeps_eval.eval)
         else:
-            raise KeyError(f'Element {key} not found.')
+            raise KeyError(f'Element `{key}` not found.')
 
     def __setitem__(self, key, value):
         self.env._check_name_clashes(key)
@@ -1891,6 +1891,9 @@ class EnvElements:
 
     def remove(self, name):
 
+        if name not in self.env._element_dict:
+            raise KeyError(f'Element `{name}` not found.')
+
         if (self.env.ref_manager is not None
             and not isinstance(self.env._element_dict[name], xt.Marker)):
 
@@ -1915,7 +1918,7 @@ class EnvParticles:
             return View(self.env._particles[key], self.env._xdeps_pref[key],
                         evaluator=self.env._xdeps_eval.eval)
         else:
-            raise KeyError(f'Element {key} not found.')
+            raise KeyError(f'Particle `{key}` not found.')
 
     def __setitem__(self, key, value):
         self.env._check_name_clashes(key)
@@ -1963,6 +1966,9 @@ class EnvParticles:
         return tt
 
     def remove(self, name):
+
+        if name not in self.env._particles:
+            raise KeyError(f'Particle `{name}` not found.')
 
         if self.env.ref_manager is not None:
             self.env._unregister_object(name)
@@ -2686,6 +2692,9 @@ class EnvVars:
             self.env._xdeps_vref._owner.default_factory = None
 
     def remove(self, name):
+
+        if name not in self:
+            raise KeyError(f'Variable `{name}` not found')
 
         if self.env.ref_manager is not None:
             self.env._unregister_object(name)

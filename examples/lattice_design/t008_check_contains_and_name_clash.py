@@ -32,7 +32,26 @@ assert 'l1' not in env.vars
 assert 'l1' not in env.elements
 assert 'l1' not in env.particles
 
+assert 'zz' not in env
+assert 'zz' not in env.vars
+assert 'zz' not in env.elements
+assert 'zz' not in env.particles
+assert 'zz' not in env.lines
 
+with pytest.raises(KeyError):
+    _ = env['zz']
+
+with pytest.raises(KeyError):
+    _ = env.vars['zz']
+
+with pytest.raises(KeyError):
+    _ = env.elements['zz']
+
+with pytest.raises(KeyError):
+    _ = env.particles['zz']
+
+with pytest.raises(KeyError):
+    _ = env.lines['zz']
 
 # ----- Check behavior of vars container -----
 
