@@ -2399,6 +2399,7 @@ class EnvParticleRef:
         return getattr(self._resolved, key)
 
     def __setattr__(self, key, value):
+        self.env._check_name_clashes(key)
         if key == 'env':
             object.__setattr__(self, key, value)
         else:
@@ -2587,6 +2588,7 @@ class EnvVars:
         return self.env._xdeps_vref[key]
 
     def __setitem__(self, key, value):
+        self.env._check_name_clashes(key, check_vars=False)
         if isinstance(value, str):
             value = self.env._xdeps_eval.eval(value)
         self.env._xdeps_vref[key] = value
