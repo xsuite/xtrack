@@ -1916,6 +1916,7 @@ class EnvParticles:
             raise KeyError(f'Element {key} not found.')
 
     def __setitem__(self, key, value):
+        self.env._check_name_clashes(key)
         self.env._particles[key] = value
 
     def __contains__(self, key):

@@ -8,6 +8,8 @@ env.elements['e1'] = xt.Quadrupole(length=1.)
 env.particles['p1'] = xt.Particles(p0c=1e12)
 env.lines['l1'] = env.new_line(length=3)
 
+# ----- Check behavior of vars container -----
+
 # Updating the variable should be possible
 env.vars['a'] = 3.
 assert env['a'] == 3.
@@ -20,3 +22,46 @@ with pytest.raises(ValueError):
 
 with pytest.raises(ValueError):
     env.vars['l1'] = 5.  # Clash with line name
+
+with pytest.raises(ValueError):
+    env.elements['a'] = xt.Marker()
+
+# ----- Check behavior of elements container -----
+
+with pytest.raises(ValueError):
+    env.elements['a'] = xt.Marker()  # Clash with var name
+
+with pytest.raises(ValueError):
+    env.elements['e1'] = xt.Marker()  # Clash with existing element name
+
+with pytest.raises(ValueError):
+    env.elements['p1'] = xt.Marker()  # Clash with particle name
+
+with pytest.raises(ValueError):
+    env.elements['l1'] = xt.Marker()  # Clash with line name
+
+# ----- Check behavior of particles container -----
+with pytest.raises(ValueError):
+    env.particles['a'] = xt.Particles()  # Clash with var name
+
+with pytest.raises(ValueError):
+    env.particles['e1'] = xt.Particles()  # Clash with element name
+
+with pytest.raises(ValueError):
+    env.particles['p1'] = xt.Particles()  # Clash with existing particle name
+
+with pytest.raises(ValueError):
+    env.particles['l1'] = xt.Particles()  # Clash with line name
+
+# ----- Check behavior of lines container -----
+with pytest.raises(ValueError):
+    env.lines['a'] = env.new_line()  # Clash with var name
+
+with pytest.raises(ValueError):
+    env.lines['e1'] = env.new_line()  # Clash with element name
+
+with pytest.raises(ValueError):
+    env.lines['p1'] = env.new_line()  # Clash with particle name
+
+with pytest.raises(ValueError):
+    env.lines['l1'] = env.new_line()  # Clash with existing line name
