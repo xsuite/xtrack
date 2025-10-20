@@ -8,6 +8,24 @@ env.elements['e1'] = xt.Quadrupole(length=1.)
 env.particles['p1'] = xt.Particles(p0c=1e12)
 env.lines['l1'] = env.new_line(length=3)
 
+assert 'a' in env
+assert 'a' in env.vars
+assert 'a' not in env.elements
+assert 'a' not in env.particles
+assert 'a' not in env.lines
+
+assert 'e1' in env.elements
+assert 'e1' not in env.vars
+assert 'e1' not in env.particles
+assert 'e1' not in env.lines
+
+assert 'p1' in env.particles
+assert 'p1' not in env.vars
+assert 'p1' not in env.elements
+assert 'p1' not in env.lines
+
+
+
 # ----- Check behavior of vars container -----
 
 # Updating the variable should be possible
