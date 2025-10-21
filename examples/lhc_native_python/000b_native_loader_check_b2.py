@@ -158,7 +158,11 @@ assert env.ref['mb.a8r1.b2'].extra['polarity']._expr is None
 for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
     assert kk in env['mb.a8r1.b2'].extra
 
+
+
+
 prrrr
+
 # from cpymad.madx import Madx
 # madx = Madx()
 # madx.call('../../test_data/lhc_2024/lhc.seq')
