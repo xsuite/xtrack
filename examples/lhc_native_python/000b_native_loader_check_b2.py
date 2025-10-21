@@ -275,98 +275,68 @@ line2_ref = xt.Line.from_madx_sequence(
     )
 line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
-lref = line2_ref
-ltest = env.lhcb2
+for lref, ltest, beam in [(line1_ref, env.lhcb1, 1), (line2_ref, env.lhcb2, 2)]:
 
-tt_ref = lref.get_table()
-tt_test = ltest.get_table()
+    tt_ref = lref.get_table()
+    tt_test = ltest.get_table()
 
-tt_ref_nodr = tt_ref.rows[tt_ref.element_type != 'Drift']
-tt_test_nodr = tt_test.rows[tt_test.element_type != 'Drift']
+    tt_ref_nodr = tt_ref.rows[tt_ref.element_type != 'Drift']
+    tt_test_nodr = tt_test.rows[tt_test.element_type != 'Drift']
 
-# Check s
-lref_names = list(tt_ref_nodr.name)
-ltest_names = list(tt_test_nodr.name)
+    # Check s
+    lref_names = list(tt_ref_nodr.name)
+    ltest_names = list(tt_test_nodr.name)
 
-lref_names.remove('lhcb2$start')
-lref_names.remove('lhcb2$end')
+    for nn in ['lhcb1$start', 'lhcb1$end', 'lhcb2$start', 'lhcb2$end']:
+        if nn in lref_names:
+            lref_names.remove(nn)
 
-assert lref_names == [
-    nn[:-len('/lhcb2')] if nn.endswith('/lhcb2') else nn for nn in ltest_names]
+    assert lref_names == [
+        nn[:-len(f'/lhcb{beam}')] if nn.endswith(f'/lhcb{beam}') else nn for nn in ltest_names]
 
-xo.assert_allclose(
-    tt_ref_nodr.rows[lref_names].s_center, tt_test_nodr.rows[ltest_names].s_center,
-    rtol=0, atol=5e-9)
+    xo.assert_allclose(
+        tt_ref_nodr.rows[lref_names].s_center, tt_test_nodr.rows[ltest_names].s_center,
+        rtol=0, atol=5e-9)
 
-for nn in ltest_names:
-    print(f'Checking: {nn}                     ', end='\r', flush=True)
-    if nn == '_end_point':
-        continue
-    nn_straight = nn[:-len('/lhcb2')] if nn.endswith('/lhcb2') else nn
-    e2 = lref[nn_straight]
-    e4 = ltest[nn]
-    d2 = e2.to_dict()
-    d4 = e4.to_dict()
-    is_rbend = isinstance(e4, xt.RBend)
-
-    for kk in d2.keys():
-        if kk in ('__class__', 'model', 'side'):
-            assert d2[kk] == d4[kk]
+    for nn in ltest_names:
+        print(f'Checking: {nn}                     ', end='\r', flush=True)
+        if nn == '_end_point':
             continue
+        nn_straight = nn[:-len(f'/lhcb{beam}')] if nn.endswith(f'/lhcb{beam}') else nn
+        e2 = lref[nn_straight]
+        e4 = ltest[nn]
+        d2 = e2.to_dict()
+        d4 = e4.to_dict()
+        is_rbend = isinstance(e4, xt.RBend)
 
-        if kk == '_isthick' and e2.length == 0:
-            continue  # Skip the check for zero-length elements
+        for kk in d2.keys():
+            if kk in ('__class__', 'model', 'side'):
+                assert d2[kk] == d4[kk]
+                continue
 
-        if kk in {
-            'order',  # Always assumed to be 5, not always the same
-            'frequency',  # If not specified, depends on the beam,
-                            # so for now we ignore it
-        }:
-            continue
+            if kk == '_isthick' and e2.length == 0:
+                continue  # Skip the check for zero-length elements
 
-        if kk in {'knl', 'ksl'}:
-            maxlen = max(len(d2[kk]), len(d4[kk]))
-            lhs = np.pad(d2[kk], (0, maxlen - len(d2[kk])), mode='constant')
-            rhs = np.pad(d4[kk], (0, maxlen - len(d4[kk])), mode='constant')
-            xo.assert_allclose(lhs, rhs, rtol=1e-10, atol=1e-16)
-            continue
+            if kk in {
+                'order',  # Always assumed to be 5, not always the same
+                'frequency',  # If not specified, depends on the beam,
+                                # so for now we ignore it
+            }:
+                continue
 
-        if is_rbend and kk in ('length', 'length_straight'):
-            xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=1e-6)
-            continue
+            if kk in {'knl', 'ksl'}:
+                maxlen = max(len(d2[kk]), len(d4[kk]))
+                lhs = np.pad(d2[kk], (0, maxlen - len(d2[kk])), mode='constant')
+                rhs = np.pad(d4[kk], (0, maxlen - len(d4[kk])), mode='constant')
+                xo.assert_allclose(lhs, rhs, rtol=1e-10, atol=1e-16)
+                continue
 
-        if is_rbend and kk in ('h', 'k0'):
-            xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=5e-10)
-            continue
+            if is_rbend and kk in ('length', 'length_straight'):
+                xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=1e-6)
+                continue
 
-        xo.assert_allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)
+            if is_rbend and kk in ('h', 'k0'):
+                xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=5e-10)
+                continue
 
-
-# --------------------------
-
-# from cpymad.madx import Madx
-# madx = Madx()
-# madx.call('../../test_data/lhc_2024/lhc.seq')
-# madx.call('../../test_data/lhc_2024/injection_optics.madx')
-# madx.beam()
-# madx.use('lhcb1')
-# twmad = madx.twiss()
-# lmad = xt.Line.from_madx_sequence(madx.sequence.lhcb1)
-
-env.lhcb1.particle_ref = xt.Particles(p0c=7e12)
-env.lhcb2.particle_ref = xt.Particles(p0c=7e12)
-
-env.lhcb1.twiss4d()
-env.lhcb2.twiss4d(reverse=True)
-
-
-# Check builder
-env.lhcb2.builder.name = None # Not to overwrite the line
-env.lhcb1.builder.name = None # Not to overwrite the line
-lb1 = env.lhcb1.builder.build()
-lb2 = env.lhcb2.builder.build()
-lb1.particle_ref = xt.Particles(p0c=7e12)
-lb2.particle_ref = xt.Particles(p0c=7e12)
-tb1 = lb1.twiss4d()
-tb2 = lb2.twiss4d(reverse=True)
-
+            xo.assert_allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)
