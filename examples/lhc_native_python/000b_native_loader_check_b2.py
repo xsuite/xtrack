@@ -5,6 +5,7 @@ from cpymad.madx import Madx
 import numpy as np
 
 fpath = '../../test_data/lhc_2024/lhc.seq'
+mode = 'direct' # 'direct' / 'dict' / 'copy'
 
 with open(fpath, 'r') as fid:
     seq_text = fid.read()
@@ -20,9 +21,14 @@ env.lhcb2.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
 env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
-# env = xt.Environment.from_dict(env.to_dict())
+if mode == 'dict':
+    env = xt.Environment.from_dict(env.to_dict())
+elif mode == 'copy':
+    env = env.copy()
+else:
+    assert mode == 'direct'
 
-# Some checks based on direct inpection of MAD-X file
+# Some checks based on direct inspection of MAD-X file
 xo.assert_allclose(env['ip8ofs.b2'],  -154, atol=1e-12)
 assert str(env.ref['aip2']._expr) == "f['atan'](((vars['sep_arc'] / 2.0) / vars['dsep2']))"
 
@@ -214,18 +220,19 @@ for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polar
     assert kk in env['mb.a8r1.b2'].extra
 
 # Check builder
-assert not env.lhcb1.builder.mirror
-assert env.lhcb2.builder.mirror
+if mode == 'direct': # other cases not yet implemented
+    assert not env.lhcb1.builder.mirror
+    assert env.lhcb2.builder.mirror
 
-assert env.lhcb1.builder.components[1000].name == 'mco.b14r2.b1'
-assert xd.refs.is_ref(env.lhcb1.builder.components[1000].at)
-assert str(env.lhcb1.builder.components[1000].at) == "(578.4137 + ((138.0 - vars['ip2ofs.b1']) * vars['ds']))"
-assert env.lhcb1.builder.components[1000].from_ == 'ip2'
+    assert env.lhcb1.builder.components[1000].name == 'mco.b14r2.b1'
+    assert xd.refs.is_ref(env.lhcb1.builder.components[1000].at)
+    assert str(env.lhcb1.builder.components[1000].at) == "(578.4137 + ((138.0 - vars['ip2ofs.b1']) * vars['ds']))"
+    assert env.lhcb1.builder.components[1000].from_ == 'ip2'
 
-assert env.lhcb2.builder.components[1000].name == 'mcbv.14r2.b2'
-assert xd.refs.is_ref(env.lhcb2.builder.components[1000].at)
-assert str(env.lhcb2.builder.components[1000].at) == "(599.4527 + ((-137.0 - vars['ip2ofs.b2']) * vars['ds']))"
-assert env.lhcb2.builder.components[1000].from_ == 'ip2'
+    assert env.lhcb2.builder.components[1000].name == 'mcbv.14r2.b2'
+    assert xd.refs.is_ref(env.lhcb2.builder.components[1000].at)
+    assert str(env.lhcb2.builder.components[1000].at) == "(599.4527 + ((-137.0 - vars['ip2ofs.b2']) * vars['ds']))"
+    assert env.lhcb2.builder.components[1000].from_ == 'ip2'
 
 # Check again cpymad line
 settings = {}
