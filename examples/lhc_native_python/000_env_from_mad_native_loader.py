@@ -83,6 +83,17 @@ assert type(env['mb']).__name__ == 'View'
 assert type(env['mb'].knl).__name__ == 'View'
 assert type(env['mb'].extra).__name__ == 'dict'
 
+assert env['adtkv'].prototype == 'tkicker'
+assert env['tkicker'].prototype is None
+assert isinstance(env['adtkv'], xt.Multipole)
+assert env['adtkv'].isthick
+assert not env['tkicker'].isthick
+assert str(env.ref['adtkv'].length._expr) == "vars['l.adtkv']"
+assert type(env['adtkv']).__name__ == 'View'
+assert type(env['adtkv'].knl).__name__ == 'View'
+assert type(env['adtkv'].extra).__name__ == 'dict'
+
+
 
 
 prrrr
