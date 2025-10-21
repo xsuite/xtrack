@@ -62,6 +62,16 @@ assert type(env['mqm']).__name__ == 'View'
 assert type(env['mqm'].knl).__name__ == 'View'
 assert type(env['mqm'].extra).__name__ == 'dict'
 
+assert env['mbrs'].prototype == 'rbend'
+assert env['rbend'].prototype is None
+assert isinstance(env['mbrs'], xt.RBend)
+assert isinstance(env['rbend'], xt.RBend)
+assert env.ref['mbrs'].length._expr is None
+assert str(env.ref['mbrs'].length_straight._expr) == "vars['l.mbrs']"
+assert str(env.ref['mbrs'].extra['calib']._expr) == "(vars['kmax_mbrs_4.5k'] / vars['imax_mbrs_4.5k'])"
+assert type(env['mbrs']).__name__ == 'View'
+assert type(env['mbrs'].knl).__name__ == 'View'
+assert type(env['mbrs'].extra).__name__ == 'dict'
 
 
 prrrr
