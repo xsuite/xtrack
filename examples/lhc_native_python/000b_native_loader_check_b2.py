@@ -222,6 +222,30 @@ assert xd.refs.is_ref(env.lhcb2.builder.components[1000].at)
 assert str(env.lhcb2.builder.components[1000].at) == "(599.4527 + ((-137.0 - vars['ip2ofs.b2']) * vars['ds']))"
 assert env.lhcb2.builder.components[1000].from_ == 'ip2'
 
+# Check again cpymad line
+settings = {}
+settings['vrf400'] = 16  # Check voltage expressions
+settings['lagrf400.b2'] = 0.02  # Check lag expressions
+settings['on_x1'] = 100  # Check kicker expressions
+settings['on_sep2h'] = 2  # Check kicker expressions
+settings['on_x5'] = 123  # Check kicker expressions
+settings['kqtf.b2'] = 1e-5  # Check quad expressions
+settings['ksf.b2'] = 1e-3  # Check sext expressions
+settings['kqs.l3b2'] = 1e-4  # Check skew expressions
+settings['kss.a45b2'] = 1e-4  # Check skew sext expressions
+settings['kof.a34b2'] = 3  # Check oct expressions
+settings['on_sol_atlas'] = 1  # Check solenoid expressions
+settings['kcdx3.r1'] = 1e-4  # Check thin decapole expressions
+settings['kcdsx3.r1'] = 1e-4  # Check thin skew decapole expressions
+settings['kctx3.l1'] = 1e-5  # Check thin dodecapole expressions
+settings['kctsx3.r1'] = 1e-5  # Check thin skew dodecapole expressions
+
+for kk in settings:
+    assert len(env.ref[kk]._find_dependant_targets())>1
+
+
+# --------------------------
+
 # from cpymad.madx import Madx
 # madx = Madx()
 # madx.call('../../test_data/lhc_2024/lhc.seq')
