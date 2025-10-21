@@ -1,4 +1,5 @@
 import pytest
+import xobjects as xo
 import xpart as xp
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -7,7 +8,7 @@ import xtrack as xt
 
 def _create_fodo_line(test_context) -> xt.Line:
     """Helper function to create a FODO line for testing."""
-    n = 6
+    n = 3  # Number of FODO cells
     fodo = [
         xt.Multipole(length=0.2, knl=[0, +0.2], ksl=[0, 0]),
         xt.Drift(length=1.0),
@@ -52,5 +53,5 @@ def test_thin_ac_dipole(test_context, qx_shift, qy_shift):
     line.build_tracker(_context=test_context)
     tws_both = line.twiss(method="4d")
 
-    assert tws_both["qx"] == pytest.approx(drv_qx, rel=1e-5)
-    assert tws_both["qy"] == pytest.approx(drv_qy, rel=1e-5)
+    xo.assert_allclose(tws_both["qx"], drv_qx, rtol=1e-10, atol=1e-15)
+    xo.assert_allclose(tws_both["qy"], drv_qy, rtol=1e-10, atol=1e-15)
