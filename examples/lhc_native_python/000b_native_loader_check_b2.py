@@ -146,6 +146,18 @@ assert env.ref['mcssx.3r1/lhcb2'].extra['polarity']._expr is None
 for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
     assert kk in env['mcssx.3r1/lhcb2'].extra
 
+assert env['mb.a8r1.b2'].prototype == 'mb'
+# inherited from mb
+assert str(env.ref['mb'].length._expr) == "vars['l.mb']"
+assert env.ref['mb.a8r1.b2'].extra['calib']._expr == "(vars['kmax_mb'] / vars['imax_mb'])" # inherited from mb
+# set after element definition in MAD-X and reversed
+assert str(env.ref['mb.a8r1.b2'].angle._expr) == "(-vars['ab.a12'])"
+assert str(env.ref['mb.a8r1.b2'].k0._expr) == "(-vars['kb.a12'])"
+assert env.ref['mb.a8r1.b2'].extra['polarity']._value == 1.
+assert env.ref['mb.a8r1.b2'].extra['polarity']._expr is None
+for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
+    assert kk in env['mb.a8r1.b2'].extra
+
 prrrr
 # from cpymad.madx import Madx
 # madx = Madx()
