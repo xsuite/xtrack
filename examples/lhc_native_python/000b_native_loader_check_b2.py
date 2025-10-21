@@ -1,5 +1,6 @@
 import xtrack as xt
 import xobjects as xo
+import xdeps as xd
 
 fpath = '../../test_data/lhc_2024/lhc.seq'
 
@@ -129,6 +130,45 @@ assert str(env.ref['mbas2'].length._expr) == "vars['l.mbas2']"
 assert type(env['mbas2']).__name__ == 'View'
 assert type(env['mbas2'].extra).__name__ == 'dict'
 
+# Check some B1 elements
+
+assert env['mqxa.1r1/lhcb1'].prototype == 'mqxa'
+assert env['mqxa'].prototype == 'quadrupole'
+# inherited from mqxa
+assert str(env.ref['mqxa'].length._expr) == "vars['l.mqxa']"
+assert env.ref['mqxa.1r1/lhcb1'].extra['calib']._expr == "(vars['kmax_mqxa'] / vars['imax_mqxa'])" # inherited from mqxa
+# set after element definition in MAD-X
+assert str(env.ref['mqxa.1r1/lhcb1'].k1._expr) == "(vars['kqx.r1'] + vars['ktqx1.r1'])"
+assert env.ref['mqxa.1r1/lhcb1'].extra['polarity']._value == 1.
+assert env.ref['mqxa.1r1/lhcb1'].extra['polarity']._expr is None
+for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
+    assert kk in env['mqxa.1r1/lhcb1'].extra
+
+assert env['mcssx.3r1/lhcb1'].prototype == 'mcssx'
+assert env['mcssx'].prototype == 'multipole'
+assert env['multipole'].prototype is None
+# inherited from mcssx
+assert str(env.ref['mcssx'].length._expr) == "vars['l.mcssx']"
+assert env.ref['mcssx.3r1/lhcb1'].extra['calib']._expr == "(vars['kmax_mcssx'] / vars['imax_mcssx'])" # inherited from mcssx
+# set after element definition in MAD-X
+assert str(env.ref['mcssx.3r1/lhcb1'].ksl[2]._expr) == "(vars['kcssx3.r1'] * vars['l.mcssx'])"
+assert env.ref['mcssx.3r1/lhcb1'].extra['polarity']._value == -1.
+assert env.ref['mcssx.3r1/lhcb1'].extra['polarity']._expr is None
+for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
+    assert kk in env['mcssx.3r1/lhcb1'].extra
+
+assert env['mb.a8r1.b1'].prototype == 'mb'
+# inherited from mb
+assert str(env.ref['mb'].length._expr) == "vars['l.mb']"
+assert env.ref['mb.a8r1.b1'].extra['calib']._expr == "(vars['kmax_mb'] / vars['imax_mb'])" # inherited from mb
+# set after element definition in MAD-X and reversed
+assert str(env.ref['mb.a8r1.b1'].angle._expr) == "vars['ab.a12']"
+assert str(env.ref['mb.a8r1.b1'].k0._expr) == "vars['kb.a12']"
+assert env.ref['mb.a8r1.b1'].extra['polarity']._value == 1.
+assert env.ref['mb.a8r1.b1'].extra['polarity']._expr is None
+for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
+    assert kk in env['mb.a8r1.b1'].extra
+
 # Check some B2 elements
 
 assert env['mqxa.1r1/lhcb2'].prototype == 'mqxa'
@@ -168,7 +208,14 @@ assert env.ref['mb.a8r1.b2'].extra['polarity']._expr is None
 for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
     assert kk in env['mb.a8r1.b2'].extra
 
+# Check builder
+assert not env.lhcb1.builder.mirror
+assert env.lhcb2.builder.mirror
 
+assert env.lhcb1.builder.components[1000].name == 'mco.b14r2.b1'
+assert xd.refs.is_ref(env.lhcb1.builder.components[1000].at)
+assert str(env.lhcb1.builder.components[1000].at) == "(578.4137 + ((138.0 - vars['ip2ofs.b1']) * vars['ds']))"
+assert env.lhcb1.builder.components[1000].from_ == 'ip2'
 
 
 # from cpymad.madx import Madx
@@ -184,7 +231,7 @@ env.lhcb1.particle_ref = xt.Particles(p0c=7e12)
 env.lhcb2.particle_ref = xt.Particles(p0c=7e12)
 
 env.lhcb1.twiss4d().plot()
-env.lhcb2.twiss4d(reverse=True).plot()
+env.lhcb2.twiss4d(reverse=True)
 
 
 # Check builder
@@ -197,4 +244,3 @@ lb2.particle_ref = xt.Particles(p0c=7e12)
 tb1 = lb1.twiss4d()
 tb2 = lb2.twiss4d(reverse=True)
 
-# lb2 is wrong!!!!!!!!!!!!!!!
