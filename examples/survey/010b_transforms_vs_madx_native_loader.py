@@ -41,8 +41,6 @@ seq_src = ("""
     endsequence;
 """)
 
-
-
 mad = Madx()
 mad.input(seq_src)
 
@@ -59,7 +57,7 @@ mad.input("""
 
     """)
 
-line = xt.Line.from_madx_sequence(mad.sequence.ss)
+line = xt.load(string=seq_src, format='madx').ss
 line.particle_ref = xt.Particles(p0c=1E9)
 
 line['bh1'].k0_from_h = False
@@ -83,11 +81,11 @@ X = p[:, 0]
 Y = p[:, 1]
 Z = p[:, 2]
 
-assert (tw.name == np.array(['ss$start', 'drift_0', 'tr1', 'drift_1', 'rs2', 'drift_2', 'rx1',
-       'drift_3', 'rx2', 'drift_4', 'r3', 'drift_5', 'r4', 'drift_6',
-       'bh1', 'drift_7', 'bh2', 'drift_8', 'bv1', 'drift_9', 'bv2',
-       'drift_10', 'end', 'drift_11', 'ss$end', '_end_point'],
-       dtype=object)).all()
+assert (tw.name == np.array(
+      ['drift_1', 'tr1', 'drift_2', 'rs2', 'drift_3', 'rx1', 'drift_4',
+       'rx2', 'drift_5', 'r3', 'drift_6', 'r4', 'drift_7', 'bh1',
+       'drift_8', 'bh2', 'drift_9', 'bv1', 'drift_10', 'bv2', 'drift_11',
+       'end', 'drift_12', '_end_point'], dtype=object)).all()
 
 assert (tw_ptc.name == np.array(['ss$start:1', 'drift_0:0', 'tr1:1', 'drift_1:0', 'rs2:1',
        'drift_2:0', 'rx1:1', 'drift_3:0', 'rx2:1', 'drift_4:0', 'r3:1',
@@ -96,14 +94,14 @@ assert (tw_ptc.name == np.array(['ss$start:1', 'drift_0:0', 'tr1:1', 'drift_1:0'
        'drift_11:0', 'ss$end:1'], dtype=object)).all()
 
 # MAD gives results at the end of the element
-xo.assert_allclose(tw.x[1:], tw_ptc.x, atol=1e-14, rtol=0)
-xo.assert_allclose(tw.y[1:], tw_ptc.y, atol=1e-14, rtol=0)
+xo.assert_allclose(tw.x[1:], tw_ptc.x[1:-1], atol=1e-14, rtol=0)
+xo.assert_allclose(tw.y[1:], tw_ptc.y[1:-1], atol=1e-14, rtol=0)
 
-xo.assert_allclose(sv.X[1:], sv_mad.x, atol=1e-14, rtol=0)
-xo.assert_allclose(sv.Y[1:], sv_mad.y, atol=1e-14, rtol=0)
-xo.assert_allclose(sv.Z[1:], sv_mad.z, atol=1e-14, rtol=0)
+xo.assert_allclose(sv.X[1:], sv_mad.x[1:-1], atol=1e-14, rtol=0)
+xo.assert_allclose(sv.Y[1:], sv_mad.y[1:-1], atol=1e-14, rtol=0)
+xo.assert_allclose(sv.Z[1:], sv_mad.z[1:-1], atol=1e-14, rtol=0)
 
-xo.assert_allclose(sv.s[1:], sv_mad.s, atol=1e-14, rtol=0)
+xo.assert_allclose(sv.s[1:], sv_mad.s[1:-1], atol=1e-14, rtol=0)
 
 xo.assert_allclose(p[:, 0], 1e-3, atol=1e-14)
 xo.assert_allclose(p[:, 1], 2e-3, atol=1e-14)
