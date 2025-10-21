@@ -1,6 +1,8 @@
 import xtrack as xt
 import xobjects as xo
 import xdeps as xd
+from cpymad.madx import Madx
+import numpy as np
 
 fpath = '../../test_data/lhc_2024/lhc.seq'
 
@@ -225,23 +227,120 @@ assert env.lhcb2.builder.components[1000].from_ == 'ip2'
 # Check again cpymad line
 settings = {}
 settings['vrf400'] = 16  # Check voltage expressions
+settings['lagrf400.b1'] = 0.02  # Check lag expressions
 settings['lagrf400.b2'] = 0.02  # Check lag expressions
 settings['on_x1'] = 100  # Check kicker expressions
 settings['on_sep2h'] = 2  # Check kicker expressions
 settings['on_x5'] = 123  # Check kicker expressions
-settings['kqtf.b2'] = 1e-5  # Check quad expressions
-settings['ksf.b2'] = 1e-3  # Check sext expressions
+settings['dqx.b2'] = 3e-3  # Check quad expressions
+settings['dqx.b1'] = 2e-3  # Check quad expressions
+settings['dqpx.b1'] = 2.  # Check sext expressions
+settings['dqpx.b2'] = 3.  # Check sext expressions
 settings['kqs.l3b2'] = 1e-4  # Check skew expressions
 settings['kss.a45b2'] = 1e-4  # Check skew sext expressions
 settings['kof.a34b2'] = 3  # Check oct expressions
 settings['on_sol_atlas'] = 1  # Check solenoid expressions
-settings['kcdx3.r1'] = 1e-4  # Check thin decapole expressions
-settings['kcdsx3.r1'] = 1e-4  # Check thin skew decapole expressions
+settings['kcd.a34b2'] = 1e-4  # Check decapole expressions
+settings['kcd.a34b1'] = 1e-4  # Check decapole expressions
 settings['kctx3.l1'] = 1e-5  # Check thin dodecapole expressions
-settings['kctsx3.r1'] = 1e-5  # Check thin skew dodecapole expressions
 
 for kk in settings:
     assert len(env.ref[kk]._find_dependant_targets())>1
+
+mad = Madx()
+mad.call(fpath)
+mad.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
+mad.use('lhcb1')
+mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
+mad.use('lhcb2')
+mad.call('../../test_data/lhc_2024/injection_optics.madx')
+
+for kk, vv in settings.items():
+    mad.globals[kk] = vv
+    env[kk] = vv
+
+line1_ref = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.lhcb1,
+        allow_thick=True,
+        deferred_expressions=True,
+        replace_in_expr={'bv_aux': 'bvaux_b2'},
+)
+line1_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
+
+line2_ref = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.lhcb2,
+        allow_thick=True,
+        deferred_expressions=True,
+        replace_in_expr={'bv_aux': 'bvaux_b2'},
+    )
+line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
+
+lref = line2_ref
+ltest = env.lhcb2
+
+tt2 = lref.get_table()
+tt4 = ltest.get_table()
+
+tt2nodr = tt2.rows[tt2.element_type != 'Drift']
+tt4nodr = tt4.rows[tt4.element_type != 'Drift']
+
+# Check s
+l2names = list(tt2nodr.name)
+l4names = list(tt4nodr.name)
+
+l2names.remove('lhcb2$start')
+l2names.remove('lhcb2$end')
+
+assert l2names == [nn[:-len('/lhcb2')] if nn.endswith('/lhcb2') else nn for nn in l4names]
+
+# The tolerance is higher than usual, due to the difference in handling
+# rbend lengths between MAD-X and Xtrack (RBends' straight length is
+# the invariant in Xtrack when changing the angle, which is not the case
+# for MAD-X with `rbarc` == False).
+xo.assert_allclose(tt2nodr.rows[l2names].s, tt4nodr.rows[l4names].s, rtol=0, atol=1.5e-6)
+
+for nn in l4names:
+    print(f'Checking: {nn}                     ', end='\r', flush=True)
+    if nn == '_end_point':
+        continue
+    nn_straight = nn[:-len('/lhcb2')] if nn.endswith('/lhcb2') else nn
+    e2 = lref[nn_straight]
+    e4 = ltest[nn]
+    d2 = e2.to_dict()
+    d4 = e4.to_dict()
+    is_rbend = isinstance(e4, xt.RBend)
+
+    for kk in d2.keys():
+        if kk in ('__class__', 'model', 'side'):
+            assert d2[kk] == d4[kk]
+            continue
+
+        if kk == '_isthick' and e2.length == 0:
+            continue  # Skip the check for zero-length elements
+
+        if kk in {
+            'order',  # Always assumed to be 5, not always the same
+            'frequency',  # If not specified, depends on the beam,
+                            # so for now we ignore it
+        }:
+            continue
+
+        if kk in {'knl', 'ksl'}:
+            maxlen = max(len(d2[kk]), len(d4[kk]))
+            lhs = np.pad(d2[kk], (0, maxlen - len(d2[kk])), mode='constant')
+            rhs = np.pad(d4[kk], (0, maxlen - len(d4[kk])), mode='constant')
+            xo.assert_allclose(lhs, rhs, rtol=1e-10, atol=1e-16)
+            continue
+
+        if is_rbend and kk in ('length', 'length_straight'):
+            xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=1e-6)
+            continue
+
+        if is_rbend and kk in ('h', 'k0'):
+            xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=5e-10)
+            continue
+
+        xo.assert_allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)
 
 
 # --------------------------
@@ -258,7 +357,7 @@ for kk in settings:
 env.lhcb1.particle_ref = xt.Particles(p0c=7e12)
 env.lhcb2.particle_ref = xt.Particles(p0c=7e12)
 
-env.lhcb1.twiss4d().plot()
+env.lhcb1.twiss4d()
 env.lhcb2.twiss4d(reverse=True)
 
 
