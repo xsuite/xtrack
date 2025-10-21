@@ -217,6 +217,10 @@ assert xd.refs.is_ref(env.lhcb1.builder.components[1000].at)
 assert str(env.lhcb1.builder.components[1000].at) == "(578.4137 + ((138.0 - vars['ip2ofs.b1']) * vars['ds']))"
 assert env.lhcb1.builder.components[1000].from_ == 'ip2'
 
+assert env.lhcb2.builder.components[1000].name == 'mcbv.14r2.b2'
+assert xd.refs.is_ref(env.lhcb2.builder.components[1000].at)
+assert str(env.lhcb2.builder.components[1000].at) == "(599.4527 + ((-137.0 - vars['ip2ofs.b2']) * vars['ds']))"
+assert env.lhcb2.builder.components[1000].from_ == 'ip2'
 
 # from cpymad.madx import Madx
 # madx = Madx()
