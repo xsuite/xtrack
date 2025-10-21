@@ -14,8 +14,9 @@ assert ',at=' not in seq_text
 assert 'at =' not in seq_text
 seq_text = seq_text.replace(' at=', 'at:=')
 
-
 env = xt.load(string=seq_text, format='madx', reverse_lines=['lhcb2'])
+env.lhcb1.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
+env.lhcb2.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
 env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
@@ -227,7 +228,7 @@ assert env.lhcb2.builder.components[1000].from_ == 'ip2'
 # Check again cpymad line
 settings = {}
 settings['vrf400'] = 16  # Check voltage expressions
-settings['lagrf400.b1'] = 0.02  # Check lag expressions
+settings['lagrf400.b1'] = 0.5 + 0.02  # Check lag expressions
 settings['lagrf400.b2'] = 0.02  # Check lag expressions
 settings['on_x1'] = 100  # Check kicker expressions
 settings['on_sep2h'] = 2  # Check kicker expressions
@@ -340,3 +341,19 @@ for lref, ltest, beam in [(line1_ref, env.lhcb1, 1), (line2_ref, env.lhcb2, 2)]:
                 continue
 
             xo.assert_allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)
+
+    twref = lref.twiss4d()
+    twtest = ltest.twiss4d()
+
+    xo.assert_allclose(twref.rows['ip.*'].betx, twtest.rows['ip.*'].betx, rtol=1e-6,
+                       atol=0)
+    xo.assert_allclose(twref.rows['ip.*'].bety, twtest.rows['ip.*'].bety, rtol=1e-6,
+                       atol=0)
+    xo.assert_allclose(twref.rows['ip.*'].dx, twtest.rows['ip.*'].dx, rtol=0,
+                       atol=1e-6)
+    xo.assert_allclose(twref.rows['ip.*'].dy, twtest.rows['ip.*'].dy, rtol=1e-6,
+                       atol=1e-6)
+    xo.assert_allclose(twref.rows['ip.*'].ax_chrom, twtest.rows['ip.*'].ax_chrom,
+                       rtol=1e-4, atol=1e-5)
+    xo.assert_allclose(twref.rows['ip.*'].ay_chrom, twtest.rows['ip.*'].ay_chrom,
+                       rtol=1e-4, atol=1e-5)
