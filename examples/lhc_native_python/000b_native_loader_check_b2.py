@@ -278,28 +278,27 @@ line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 lref = line2_ref
 ltest = env.lhcb2
 
-tt2 = lref.get_table()
-tt4 = ltest.get_table()
+tt_ref = lref.get_table()
+tt_test = ltest.get_table()
 
-tt2nodr = tt2.rows[tt2.element_type != 'Drift']
-tt4nodr = tt4.rows[tt4.element_type != 'Drift']
+tt_ref_nodr = tt_ref.rows[tt_ref.element_type != 'Drift']
+tt_test_nodr = tt_test.rows[tt_test.element_type != 'Drift']
 
 # Check s
-l2names = list(tt2nodr.name)
-l4names = list(tt4nodr.name)
+lref_names = list(tt_ref_nodr.name)
+ltest_names = list(tt_test_nodr.name)
 
-l2names.remove('lhcb2$start')
-l2names.remove('lhcb2$end')
+lref_names.remove('lhcb2$start')
+lref_names.remove('lhcb2$end')
 
-assert l2names == [nn[:-len('/lhcb2')] if nn.endswith('/lhcb2') else nn for nn in l4names]
+assert lref_names == [
+    nn[:-len('/lhcb2')] if nn.endswith('/lhcb2') else nn for nn in ltest_names]
 
-# The tolerance is higher than usual, due to the difference in handling
-# rbend lengths between MAD-X and Xtrack (RBends' straight length is
-# the invariant in Xtrack when changing the angle, which is not the case
-# for MAD-X with `rbarc` == False).
-xo.assert_allclose(tt2nodr.rows[l2names].s, tt4nodr.rows[l4names].s, rtol=0, atol=1.5e-6)
+xo.assert_allclose(
+    tt_ref_nodr.rows[lref_names].s_center, tt_test_nodr.rows[ltest_names].s_center,
+    rtol=0, atol=5e-9)
 
-for nn in l4names:
+for nn in ltest_names:
     print(f'Checking: {nn}                     ', end='\r', flush=True)
     if nn == '_end_point':
         continue
