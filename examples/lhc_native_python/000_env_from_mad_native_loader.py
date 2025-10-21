@@ -93,8 +93,31 @@ assert type(env['adtkv']).__name__ == 'View'
 assert type(env['adtkv'].knl).__name__ == 'View'
 assert type(env['adtkv'].extra).__name__ == 'dict'
 
+assert env['mcbv'].prototype == 'vcorrector'
+assert env['vcorrector'].prototype == 'vkicker'
+assert env['vkicker'].prototype is None
+assert isinstance(env['mcbv'], xt.Multipole)
+assert isinstance(env['vcorrector'], xt.Multipole)
+assert isinstance(env['vkicker'], xt.Multipole)
+assert env['mcbv'].isthick
+assert str(env.ref['mcbv'].length._expr) == "vars['l.mcbv']"
+assert str(env.ref['mcbv'].extra['calib']._expr) == "(vars['kmax_mcbv'] / vars['imax_mcbv'])"
 
+assert env['acsca'].prototype == 'rfcavity'
+assert env['rfcavity'].prototype is None
+assert isinstance(env['acsca'], xt.Cavity)
+assert isinstance(env['rfcavity'], xt.Cavity)
+assert str(env.ref['acsca'].length._expr) == "vars['l.acsca']"
+assert type(env['acsca']).__name__ == 'View'
+assert type(env['acsca'].extra).__name__ == 'dict'
 
+assert env['mbas2'].prototype == 'solenoid'
+assert env['solenoid'].prototype is None
+assert isinstance(env['mbas2'], xt.UniformSolenoid)
+assert isinstance(env['solenoid'], xt.UniformSolenoid)
+assert str(env.ref['mbas2'].length._expr) == "vars['l.mbas2']"
+assert type(env['mbas2']).__name__ == 'View'
+assert type(env['mbas2'].extra).__name__ == 'dict'
 
 prrrr
 # from cpymad.madx import Madx
