@@ -1,9 +1,19 @@
 import xtrack as xt
 import xobjects as xo
 
-env = xt.load('../../test_data/lhc_2024/lhc.seq',
-               reverse_lines=['lhcb2'],
-)
+fpath = '../../test_data/lhc_2024/lhc.seq'
+
+with open(fpath, 'r') as fid:
+    seq_text = fid.read()
+
+assert ' at=' in seq_text
+assert ',at=' not in seq_text
+assert 'at =' not in seq_text
+seq_text = seq_text.replace(' at=', 'at:=')
+
+
+env = xt.load(string=seq_text, format='madx', reverse_lines=['lhcb2'])
+
 env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
 # Some checks based on direct inpection of MAD-X file
@@ -161,8 +171,6 @@ for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polar
 
 
 
-prrrr
-
 # from cpymad.madx import Madx
 # madx = Madx()
 # madx.call('../../test_data/lhc_2024/lhc.seq')
@@ -188,3 +196,5 @@ lb1.particle_ref = xt.Particles(p0c=7e12)
 lb2.particle_ref = xt.Particles(p0c=7e12)
 tb1 = lb1.twiss4d()
 tb2 = lb2.twiss4d(reverse=True)
+
+# lb2 is wrong!!!!!!!!!!!!!!!

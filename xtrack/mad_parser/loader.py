@@ -697,15 +697,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
                 cc.from_ = this_rename.get(cc.from_, cc.from_)
 
             if nn in reverse_lines:
-                length = env.lines[nn].get_length()
-                bb.components = bb.components[::-1]
-                for cc in bb.components:
-                    if cc.at is not None:
-                        if isinstance(cc.at, str) or isinstance(cc.at, float):
-                            if cc.from_ is not None:
-                                cc.at = -cc.at
-                            else:
-                                cc.at = length - cc.at
+                bb.mirror = True
             new_env.lines[nn].builder = bb
 
         # Add to new environment elements that were not in any line
