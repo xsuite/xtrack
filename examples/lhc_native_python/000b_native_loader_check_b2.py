@@ -20,6 +20,8 @@ env.lhcb2.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
 env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
+# env = xt.Environment.from_dict(env.to_dict())
+
 # Some checks based on direct inpection of MAD-X file
 xo.assert_allclose(env['ip8ofs.b2'],  -154, atol=1e-12)
 assert str(env.ref['aip2']._expr) == "f['atan'](((vars['sep_arc'] / 2.0) / vars['dsep2']))"
