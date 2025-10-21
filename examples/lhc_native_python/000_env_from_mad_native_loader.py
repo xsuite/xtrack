@@ -28,31 +28,41 @@ assert type(env['mcbch']).__name__ == 'View'
 assert type(env['mcbch'].knl).__name__ == 'View'
 assert type(env['mcbch'].extra).__name__ == 'dict'
 
-
 assert env['bctfr'].prototype == 'instrument'
 assert env['instrument'].prototype is None
 assert isinstance(env['bctfr'], xt.Drift)
 assert isinstance(env['instrument'], xt.Drift)
+assert str(env.ref['bctfr'].length._expr) == "vars['l.bctfr']"
 
 assert env['bpmwt'].prototype == 'monitor'
 assert env['monitor'].prototype is None
 assert isinstance(env['bpmwt'], xt.Drift)
 assert isinstance(env['monitor'], xt.Drift)
+assert str(env.ref['bpmwt'].length._expr) == "vars['l.bpmwt']"
 
 assert env['dfbaj'].prototype == 'placeholder'
 assert env['placeholder'].prototype is None
 assert isinstance(env['dfbaj'], xt.Drift)
 assert isinstance(env['placeholder'], xt.Drift)
+assert str(env.ref['dfbaj'].length._expr) == "vars['l.dfbaj']"
 
 assert env['mcd_unplugged'].prototype == 'placeholder'
 assert env['placeholder'].prototype is None
 assert isinstance(env['mcd_unplugged'], xt.Drift)
 assert isinstance(env['placeholder'], xt.Drift)
+assert env.ref['mcd_unplugged'].length._expr is None # The MAD-X file sets lrad not l
 
 assert env['mqm'].prototype == 'quadrupole'
 assert env['quadrupole'].prototype is None
 assert isinstance(env['mqm'], xt.Quadrupole)
 assert isinstance(env['quadrupole'], xt.Quadrupole)
+assert str(env.ref['mqm'].length._expr) == "vars['l.mqm']"
+assert str(env.ref['mqm'].extra['calib']._expr) == "(vars['kmax_mqm'] / vars['imax_mqm'])"
+assert type(env['mqm']).__name__ == 'View'
+assert type(env['mqm'].knl).__name__ == 'View'
+assert type(env['mqm'].extra).__name__ == 'dict'
+
+
 
 prrrr
 # from cpymad.madx import Madx
