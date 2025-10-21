@@ -73,6 +73,17 @@ assert type(env['mbrs']).__name__ == 'View'
 assert type(env['mbrs'].knl).__name__ == 'View'
 assert type(env['mbrs'].extra).__name__ == 'dict'
 
+assert env['mb'].prototype == 'sbend'
+assert env['sbend'].prototype is None
+assert isinstance(env['mb'], xt.Bend)
+assert isinstance(env['sbend'], xt.Bend)
+assert str(env.ref['mb'].length._expr) == "vars['l.mb']"
+assert str(env.ref['mb'].extra['calib']._expr) == "(vars['kmax_mb'] / vars['imax_mb'])"
+assert type(env['mb']).__name__ == 'View'
+assert type(env['mb'].knl).__name__ == 'View'
+assert type(env['mb'].extra).__name__ == 'dict'
+
+
 
 prrrr
 # from cpymad.madx import Madx
