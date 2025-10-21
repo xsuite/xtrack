@@ -119,6 +119,22 @@ assert str(env.ref['mbas2'].length._expr) == "vars['l.mbas2']"
 assert type(env['mbas2']).__name__ == 'View'
 assert type(env['mbas2'].extra).__name__ == 'dict'
 
+# Check some B2 elements
+
+assert env['mqxa.1r1/lhcb2'].prototype == 'mqxa'
+assert env['mqxa'].prototype == 'quadrupole'
+# inherited from mqxa
+assert str(env.ref['mqxa'].length._expr) == "vars['l.mqxa']"
+assert env.ref['mqxa.1r1/lhcb2'].extra['calib']._expr == "(vars['kmax_mqxa'] / vars['imax_mqxa'])" # inherited from mqxa
+# set after element definition in MAD-X and reversed by the loader
+assert str(env.ref['mqxa.1r1/lhcb2'].k1._expr) == "(-(vars['kqx.r1'] + vars['ktqx1.r1']))"
+assert env.ref['mqxa.1r1/lhcb2'].extra['polarity']._value == 1.
+assert env.ref['mqxa.1r1/lhcb2'].extra['polarity']._expr is None
+for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
+    assert kk in env['mqxa.1r1/lhcb2'].extra
+
+
+
 prrrr
 # from cpymad.madx import Madx
 # madx = Madx()
