@@ -8,7 +8,7 @@ import xtrack as xt
 
 def _create_fodo_line(test_context) -> xt.Line:
     """Helper function to create a FODO line for testing."""
-    n = 3  # Number of FODO cells
+    n = 6  # Number of FODO cells
     fodo = [
         xt.Multipole(length=0.2, knl=[0, +0.2], ksl=[0, 0]),
         xt.Drift(length=1.0),
