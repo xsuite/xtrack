@@ -7,22 +7,52 @@ env = xt.load('../../test_data/lhc_2024/lhc.seq',
 env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
 # Some checks based on direct inpection of MAD-X file
-
 xo.assert_allclose(env['ip8ofs.b2'],  -154, atol=1e-12)
 assert str(env.ref['aip2']._expr) == "f['atan'](((vars['sep_arc'] / 2.0) / vars['dsep2']))"
 
 assert env['tanb'].prototype == 'collimator'
 assert env['collimator'].prototype is None
 assert isinstance(env['collimator'], xt.Drift)
+assert str(env.ref['tanb'].length._expr) == "vars['l.tanb']"
 
 assert env['mcbch'].prototype == 'hcorrector'
 assert env['hcorrector'].prototype == 'hkicker'
-env['hkicker'].prototype is None
+assert env['hkicker'].prototype is None
 assert isinstance(env['mcbch'], xt.Multipole)
 assert isinstance(env['hcorrector'], xt.Multipole)
 assert isinstance(env['hkicker'], xt.Multipole)
+assert env['mcbch'].isthick
+assert str(env.ref['mcbch'].length._expr) == "vars['l.mcbch']"
+assert str(env.ref['mcbch'].extra['calib']._expr) == "(vars['kmax_mcbch'] / vars['imax_mcbch'])"
+assert type(env['mcbch']).__name__ == 'View'
+assert type(env['mcbch'].knl).__name__ == 'View'
+assert type(env['mcbch'].extra).__name__ == 'dict'
 
 
+assert env['bctfr'].prototype == 'instrument'
+assert env['instrument'].prototype is None
+assert isinstance(env['bctfr'], xt.Drift)
+assert isinstance(env['instrument'], xt.Drift)
+
+assert env['bpmwt'].prototype == 'monitor'
+assert env['monitor'].prototype is None
+assert isinstance(env['bpmwt'], xt.Drift)
+assert isinstance(env['monitor'], xt.Drift)
+
+assert env['dfbaj'].prototype == 'placeholder'
+assert env['placeholder'].prototype is None
+assert isinstance(env['dfbaj'], xt.Drift)
+assert isinstance(env['placeholder'], xt.Drift)
+
+assert env['mcd_unplugged'].prototype == 'placeholder'
+assert env['placeholder'].prototype is None
+assert isinstance(env['mcd_unplugged'], xt.Drift)
+assert isinstance(env['placeholder'], xt.Drift)
+
+assert env['mqm'].prototype == 'quadrupole'
+assert env['quadrupole'].prototype is None
+assert isinstance(env['mqm'], xt.Quadrupole)
+assert isinstance(env['quadrupole'], xt.Quadrupole)
 
 prrrr
 # from cpymad.madx import Madx
