@@ -104,7 +104,7 @@ class Line:
     config = None
 
     def __init__(self, elements=None, element_names=None, particle_ref=None,
-                 energy_program=None, env=None):
+                 energy_program=None, env=None, composing=False):
         """
         Parameters
         ----------
@@ -158,6 +158,14 @@ class Line:
 
         if elements is None and env is None:
             elements = []
+
+        if composing:
+            assert element_names is None, (
+                "If composing=True, element_names must be None")
+            self.element_names = '__COMPOSING__'
+            self.composer = xt.Builder(env)
+        else:
+            self.composer = None
 
         if env is not None:
             assert elements is None, "If env is provided, elements must be None"
@@ -940,6 +948,9 @@ class Line:
 
         return out
 
+    def compose(self):
+        ...
+
     def build_tracker(
             self,
             _context=None,
@@ -1007,6 +1018,34 @@ class Line:
 
         temp = self.builder.build()
         self.element_names = temp.element_names
+
+    @property
+    def builder(self):
+        env = getattr(self, 'env', None)
+        if env is not None and hasattr(env, '_get_line_builder'):
+            builder = env._get_line_builder(self)
+            if builder is not None:
+                return builder
+            if '_builder_fallback' not in self.__dict__:
+                return None
+        return self.__dict__.get('_builder_fallback', None)
+
+    @builder.setter
+    def builder(self, value):
+        env = getattr(self, 'env', None)
+        if env is not None and hasattr(env, '_set_line_builder'):
+            env._set_line_builder(self, value)
+            self.__dict__.pop('_builder_fallback', None)
+            return
+
+        if value is None:
+            self.__dict__.pop('_builder_fallback', None)
+        else:
+            self.__dict__['_builder_fallback'] = value
+
+    @builder.deleter
+    def builder(self):
+        self.builder = None
 
     @property
     def attr(self):

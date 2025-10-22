@@ -4,7 +4,7 @@ from functools import cmp_to_key
 from contextlib import contextmanager
 from os import name
 from typing import Literal
-from weakref import WeakSet
+from weakref import WeakKeyDictionary, WeakSet
 from copy import deepcopy
 import json
 import re
@@ -157,6 +157,7 @@ class Environment:
 
         self.lines = EnvLines(self)
         self._lines_weakrefs = WeakSet()
+        self._line_builders = WeakKeyDictionary()
         self._drift_counter = 0
         self.ref = EnvRef(self)
         self._elements = EnvElements(self)
@@ -208,12 +209,32 @@ class Environment:
     def __getstate__(self):
         out = self.__dict__.copy()
         out.pop('_lines_weakrefs')
+        out.pop('_line_builders', None)
         out.pop('_xdeps_eval_obj', None)
         return out
 
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._lines_weakrefs = WeakSet()
+        self._line_builders = WeakKeyDictionary()
+
+    def _set_line_builder(self, line, builder):
+        if line is None:
+            return
+
+        if builder is None:
+            self._line_builders.pop(line, None)
+            return
+
+        if isinstance(line, xt.Line):
+            # Ensure the line is tracked in the weak set for consistency
+            if line not in self._lines_weakrefs:
+                self._lines_weakrefs.add(line)
+
+        self._line_builders[line] = builder
+
+    def _get_line_builder(self, line):
+        return self._line_builders.get(line)
 
     def new(self, name, parent, mode=None, at=None, from_=None,
             anchor=None, from_anchor=None,
@@ -427,7 +448,7 @@ class Environment:
 
 
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
-                 length=None, s_tol=1e-6):
+                 length=None, mirror=False, s_tol=1e-6):
 
         '''
         Create a new line.
@@ -470,15 +491,15 @@ class Environment:
                 ])
         '''
 
-        out = xt.Line(env=self, element_names=[])
+        builder = Builder(env=self, components=components, length=length,
+                              name=name, refer=refer, s_tol=s_tol, mirror=mirror)
+
+        out = builder.build(inplace=False)
+
         self._lines_weakrefs.add(out) # Weak references
 
-        self._line_from_components(out, components=components,
-                                   refer=refer, length=length, s_tol=s_tol)
-
         out._name = name
-        out.builder = Builder(env=self, components=components, length=length,
-                              name=name, refer=refer, s_tol=s_tol)
+        out.builder = builder
 
         # Temporary solution to keep consistency in multiline
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
@@ -490,85 +511,6 @@ class Environment:
             self.lines[name] = out
 
         return out
-
-
-    def _line_from_components(self, line, components=None, refer: ReferType = 'center',
-                       length=None, s_tol=1e-6):
-
-        '''
-        Create a new line.
-
-        Parameters
-        ----------
-        components : list, optional
-            List of components to be added to the line. It can include strings,
-            place objects, and lines.
-        name : str, optional
-            Name of the new line.
-        refer : str, optional
-            Specifies which part of the component the ``at`` position will refer
-            to. Allowed values are ``start``, ``center`` (default; also allowed
-            is ``centre```), and ``end``.
-        length : float | str, optional
-            Length of the line to be built by the builder. Can be an expression.
-            If not specified, the length will be the minimum length that can
-            fit all the components.
-
-        Returns
-        -------
-        line
-            The new line.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            env = xt.Environment()
-            env['a'] = 3 # Define a variable
-            env.new('mq1', xt.Quadrupole, length=0.3, k1='a')  # Create an element
-            env.new('mq2', xt.Quadrupole, length=0.3, k1='-a')  # Create another element
-
-            ln = env.new_line(name='myline', components=[
-                'mq',  # Add the element 'mq' at the start of the line
-                env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
-                env.new('mq1_clone', 'mq1', k1='2a'),   # Clone 'mq1' with a different k1
-                env.place('mq2', at=20.0, from='mymark'),  # Place 'mq2' at s=20
-                ])
-        '''
-
-        if components is None:
-            components = []
-
-        if isinstance(length, str):
-            length = self.eval(length)
-        elif is_ref(length):
-            length = length._value
-
-        components = _resolve_lines_in_components(components, self)
-        flattened_components = _flatten_components(self, components, refer=refer)
-
-        if np.array([isinstance(ss, str) for ss in flattened_components]).all():
-            # All elements provided by name
-            element_names = [str(ss) for ss in flattened_components]
-            if length is not None:
-                length_all_elements = self.new_line(components=element_names).get_length()
-                if length_all_elements > length + s_tol:
-                    raise ValueError(f'Line length {length_all_elements} is '
-                                     f'greater than the requested length {length}')
-                elif length_all_elements < length - s_tol:
-                    element_names.append(self.new(self._get_a_drift_name(), xt.Drift,
-                                                  length=length-length_all_elements))
-        else:
-            seq_all_places = _all_places(flattened_components)
-            tab_unsorted = _resolve_s_positions(seq_all_places, self, refer=refer)
-            tab_sorted = _sort_places(tab_unsorted)
-            element_names = _generate_element_names_with_drifts(self, tab_sorted,
-                                                                length=length,
-                                                                s_tol=s_tol)
-
-        line.element_names = element_names
-
-        return line
 
     def place(self, name, obj=None, at=None, from_=None, anchor=None, from_anchor=None):
         '''
@@ -2153,7 +2095,7 @@ class Builder:
         self.components.append(out)
         return out
 
-    def build(self, name=None, inplace=None, s_tol=None):
+    def build(self, name=None, inplace=None, s_tol=None, line=None):
 
         if inplace is None and name is None and self.name is not None:
             inplace = True
@@ -2167,21 +2109,53 @@ class Builder:
         if s_tol is None:
             s_tol = self.s_tol
 
-        with _disable_name_clash_checks(self.env):
-            out =  self.env.new_line(components=self.components, refer=self.refer,
-                                    length=self.length, s_tol=s_tol)
+        components = self.components
+        length = self.length
+
+        if isinstance(length, str):
+            length = self.env.eval(length)
+        elif is_ref(length):
+            length = length._value
+
+        refer = self.refer
+
+        components = _resolve_lines_in_components(components, self.env)
+        flattened_components = _flatten_components(self.env, components, refer=refer)
+
+        if np.array([isinstance(ss, str) for ss in flattened_components]).all():
+            # All elements provided by name
+            element_names = [str(ss) for ss in flattened_components]
+            if length is not None:
+                length_all_elements = self.env.new_line(components=element_names).get_length()
+                if length_all_elements > length + s_tol:
+                    raise ValueError(f'Line length {length_all_elements} is '
+                                     f'greater than the requested length {length}')
+                elif length_all_elements < length - s_tol:
+                    element_names.append(self.env.new(self.env._get_a_drift_name(), xt.Drift,
+                                                  length=length-length_all_elements))
+        else:
+            seq_all_places = _all_places(flattened_components)
+            tab_unsorted = _resolve_s_positions(seq_all_places, self.env, refer=refer)
+            tab_sorted = _sort_places(tab_unsorted)
+            element_names = _generate_element_names_with_drifts(self.env, tab_sorted,
+                                                                length=length,
+                                                                s_tol=s_tol)
+
+        if line is None:
+            line = xt.Line(env=self.env, element_names=element_names)
+
         if self.mirror:
-            out = -out
+            line.mirror(inplace=True)
 
         if name is not None:
             if name in self.env.lines:
                 del self.env.lines[name]
-            out._name = name
-            self.env.lines[name] = out
+            line._name = name
+            self.env.lines[name] = line
 
-        out.builder = self
+        self.env._set_line_builder(line, self)
 
-        return out
+        return line
 
     def set(self, *args, **kwargs):
         self.components.append(self.env.set(*args, **kwargs))
