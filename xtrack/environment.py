@@ -471,6 +471,70 @@ class Environment:
         '''
 
         out = xt.Line(env=self, element_names=[])
+        self._lines_weakrefs.add(out) # Weak references
+
+        self._line_from_components(out, components=components,
+                                   refer=refer, length=length, s_tol=s_tol)
+
+        out._name = name
+        out.builder = Builder(env=self, components=components, length=length,
+                              name=name, refer=refer, s_tol=s_tol)
+
+        # Temporary solution to keep consistency in multiline
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            out._var_management = None
+            out._in_multiline = self._in_multiline
+            out._name_in_multiline = self._name_in_multiline
+
+        if name is not None:
+            self.lines[name] = out
+
+        return out
+
+
+    def _line_from_components(self, line, components=None, refer: ReferType = 'center',
+                       length=None, s_tol=1e-6):
+
+        '''
+        Create a new line.
+
+        Parameters
+        ----------
+        components : list, optional
+            List of components to be added to the line. It can include strings,
+            place objects, and lines.
+        name : str, optional
+            Name of the new line.
+        refer : str, optional
+            Specifies which part of the component the ``at`` position will refer
+            to. Allowed values are ``start``, ``center`` (default; also allowed
+            is ``centre```), and ``end``.
+        length : float | str, optional
+            Length of the line to be built by the builder. Can be an expression.
+            If not specified, the length will be the minimum length that can
+            fit all the components.
+
+        Returns
+        -------
+        line
+            The new line.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            env = xt.Environment()
+            env['a'] = 3 # Define a variable
+            env.new('mq1', xt.Quadrupole, length=0.3, k1='a')  # Create an element
+            env.new('mq2', xt.Quadrupole, length=0.3, k1='-a')  # Create another element
+
+            ln = env.new_line(name='myline', components=[
+                'mq',  # Add the element 'mq' at the start of the line
+                env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
+                env.new('mq1_clone', 'mq1', k1='2a'),   # Clone 'mq1' with a different k1
+                env.place('mq2', at=20.0, from='mymark'),  # Place 'mq2' at s=20
+                ])
+        '''
 
         if components is None:
             components = []
@@ -502,22 +566,9 @@ class Environment:
                                                                 length=length,
                                                                 s_tol=s_tol)
 
-        out.element_names = element_names
-        out._name = name
-        out.builder = Builder(env=self, components=components, length=length,
-                              name=name, refer=refer, s_tol=s_tol)
+        line.element_names = element_names
 
-        # Temporary solution to keep consistency in multiline
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            out._var_management = None
-            out._in_multiline = self._in_multiline
-            out._name_in_multiline = self._name_in_multiline
-
-        self._lines_weakrefs.add(out) # Weak references
-        if name is not None:
-            self.lines[name] = out
-
-        return out
+        return line
 
     def place(self, name, obj=None, at=None, from_=None, anchor=None, from_anchor=None):
         '''
