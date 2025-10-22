@@ -745,16 +745,12 @@ class Environment:
 
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
-            if isinstance(ln, xt.Builder):
-                continue
             if ln._has_valid_tracker() and ln._buffer is not buffer:
                 ln.discard_tracker()
 
     def discard_trackers(self):
         '''Discard all trackers in all lines of the environment.'''
         for ln in self._lines_weakrefs:
-            if isinstance(ln, xt.Builder):
-                continue
             if ln._has_valid_tracker():
                 ln.discard_tracker()
 
@@ -821,9 +817,7 @@ class Environment:
 
         out['lines'] = {}
         for nn, ll in self.lines.items():
-            if isinstance(ll, xt.Builder):
-                out['lines'][nn] = ll.to_dict()
-            elif isinstance(ll, xt.Line):
+            if isinstance(ll, xt.Line):
                 out['lines'][nn] = ll.to_dict(include_element_dict=False,
                                             include_var_management=False)
             else:
@@ -872,9 +866,7 @@ class Environment:
         for nn in dct['lines'].keys():
             ddll = dct_lines['lines'][nn]
             llcls = ddll.get('__class__', 'Line') # For backward compatibility
-            if llcls == 'Builder':
-                ll = xt.Builder.from_dict(ddll, env=out)
-            elif llcls == 'Line':
+            if llcls == 'Line':
                 ll = xt.Line.from_dict(ddll, _env=out, verbose=False)
             else:
                 raise ValueError(f'Unknown line type {type(ll)}')
@@ -1265,13 +1257,13 @@ class Environment:
 
     def __setitem__(self, key, value):
 
-        if isinstance(value, (xt.Line, xt.Builder)):
+        if isinstance(value, xt.Line):
             assert value.env is self, 'Line must be in the same environment'
             self.lines[key] = value
         elif np.isscalar(value) or xd.refs.is_ref(value):
             self.vars[key] = value
         else:
-            raise ValueError('Only lines, builders, scalars or references are allowed')
+            raise ValueError('Only lines, scalars or references are allowed')
 
 
     def set(self, name, *args, **kwargs):
@@ -1528,8 +1520,8 @@ def _all_places(seq):
             ss_aux = _all_places(ss)
             seq_all_places.extend(ss_aux)
         else:
-            assert isinstance(ss, str) or isinstance(ss, (xt.Line, xt.Builder)), (
-                'Only places, elements, strings, Lines, or Builders are allowed in sequences')
+            assert isinstance(ss, str) or isinstance(ss, xt.Line), (
+                'Only places, elements, strings or Lines are allowed in sequences')
             seq_all_places.append(Place(ss, at=None, from_=None))
     return seq_all_places
 

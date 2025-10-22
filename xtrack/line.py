@@ -963,9 +963,14 @@ class Line:
         return out
 
     def end_compose(self):
-        assert self.element_names == '__COMPOSE__', (
-            'Line is not in compose mode')
-        self.composer.build(line=self, inplace=False)
+        if self.element_names == '__COMPOSE__':
+            self.composer.build(line=self, inplace=False)
+
+    def restore_composer(self):
+        self.discard_tracker()
+        assert self.element_names != '__COMPOSE__', (
+            'Line is already in compose mode')
+        self.element_names = '__COMPOSE__'
 
     def place(self, *args, **kwargs):
         assert self.element_names == '__COMPOSE__', (
@@ -1014,6 +1019,8 @@ class Line:
             If True, the pipeline hold mechanism is enabled.
 
         """
+
+        self.end_compose()
 
         if self.tracker is not None:
             _print('The line already has an associated tracker')

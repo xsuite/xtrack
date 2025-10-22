@@ -5,7 +5,8 @@ env['a'] = 1.
 
 env.new('qd', 'Quadrupole', length=1, k1='-0.05 * a')
 
-# ----- Inline component definition -----
+# ----- Line with inline component definition -----
+
 l1 = env.new_line(name='l1', length=10.0,
         components=[
             env.new('qf1', 'Quadrupole', length=1, k1=0.05, at=2.5),
@@ -14,11 +15,11 @@ l1.set_particle_ref('proton', p0c=7000e9)
 l1.twiss_default['method'] = '4d'
 
 
-
 # ----- Line composed in multiple instructions -----
 
 l2 = env.new_line(name='l2', length=10.0, compose=True)
 
+# Optionally set properties while in compose mode
 l2.set_particle_ref('proton', p0c=7000e9)
 l2.twiss_default['method'] = '4d'
 
@@ -26,6 +27,12 @@ l2.twiss_default['method'] = '4d'
 l2.new('qf2', 'Quadrupole', at=2.5, length=1, k1=0.05)
 l2.place('qd', at=7.5)
 
-l2.end_compose() # (one day we can do it automatically on twiss, track, etc.)
+tw2 = l2.twiss() # ends the compose mode
 
-tw2 = l2.twiss()
+# l2.place('qd', at=8.5)  # --> ERROR: line not in compose mode
+
+l2.restore_composer()  # Back to compose mode
+l2.place('qd', at=8.5)    # OK
+l2.place('qf1', at=1.5)  # OK
+
+tw3 = l2.twiss()
