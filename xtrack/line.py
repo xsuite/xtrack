@@ -935,6 +935,9 @@ class Line:
             assert _context is None and _buffer is None, (
                 'Shallow copy with _context or _buffer is not supported')
             out = self.select()
+            if self.mode == 'compose':
+                out.mode = 'compose'
+                out.composer = self.composer.copy()
         else:
             elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
                                         for nn, ee in self._element_dict.items()}
@@ -4232,12 +4235,18 @@ class Line:
     def mirror(self, inplace=True):
         assert inplace in [True, False]
         if inplace == False:
-            out = self.select()
+            out = self.copy(shallow=True)
             out.mirror(inplace=True)
             return out
-        else:
-            self._frozen_check()
+
+        if self.mode == 'normal':
+            self.discard_tracker()
             self.element_names = list(reversed(self.element_names))
+        elif self.mode == 'compose':
+            self.discard_tracker()
+            self.composer.mirror = not self.composer.mirror
+        else:
+            raise ValueError("mode must be 'normal' or 'compose'")
 
     def __neg__(self):
         return self.mirror(inplace=False)
@@ -4313,6 +4322,9 @@ class Line:
                     self.element_names[ii] = new_name
 
     def select(self, start=None, end=None, name=None):
+
+        if mode == 'compose':
+            self._full_elements_from_composer()
 
         if start is xt.START:
             start = None
