@@ -29,6 +29,3 @@ l2.place('qd', at=7.5)
 l2.end_compose() # (one day we can do it automatically on twiss, track, etc.)
 
 tw2 = l2.twiss()
-
-
-
