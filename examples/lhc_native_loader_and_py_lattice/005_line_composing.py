@@ -29,10 +29,21 @@ l2.place('qd', at=7.5)
 
 tw2 = l2.twiss() # ends the compose mode
 
-# l2.place('qd', at=8.5)  # --> ERROR: line not in compose mode
-
-l2.restore_composer()  # Back to compose mode
 l2.place('qd', at=8.5)    # OK
 l2.place('qf1', at=1.5)  # OK
 
 tw3 = l2.twiss()
+
+# ----- more details -----
+
+l2.mode # is 'compose'
+# The topology of the line is given by line.composer
+# line.element_names cannot be edited (if it is there, it's a tuple)
+
+l2.end_compose()
+
+l2.mode # is 'normal'
+# The topology of the line is given by line.element_names
+# As usual, after line.discard_tracker(), line.element_names is a list
+# and can be edited
+

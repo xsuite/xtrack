@@ -6,6 +6,7 @@
 import json
 import logging
 from collections import defaultdict
+from turtle import mode
 from weakref import WeakSet
 from collections.abc import Iterable
 
@@ -164,6 +165,7 @@ class Line:
             assert element_names is None, (
                 "If compose=True, element_names must be None")
             element_names = '__COMPOSE__'
+            self.mode = 'compose'
         else:
             self.composer = None
             assert length is None, (
@@ -174,6 +176,10 @@ class Line:
                 "mirror can be provided only if compose=True")
             assert s_tol is None, (
                 "s_tol can be provided only if compose=True")
+            assert components is None, (
+                "components can be provided only if compose=True")
+            self.compose = 'normal'
+            self.mode='normal'
 
         if env is not None:
             assert elements is None, "If env is provided, elements must be None"
@@ -204,7 +210,8 @@ class Line:
             self.element_names = list(element_names).copy()
         else:
             self.composer = xt.Builder(env, mirror=mirror, length=length,
-                                        refer=refer, s_tol=s_tol or 1e-6)
+                                        refer=refer, s_tol=s_tol or 1e-6,
+                                        components=components)
             self.element_names = element_names
 
         self._particle_ref = particle_ref
@@ -965,21 +972,22 @@ class Line:
     def end_compose(self):
         if self.element_names == '__COMPOSE__':
             self.composer.build(line=self, inplace=False)
+        self.mode = 'normal'
 
-    def restore_composer(self):
+    def regenerate_from_composer(self):
+        self._element_names = '__COMPOSE__'
         self.discard_tracker()
-        assert self.element_names != '__COMPOSE__', (
-            'Line is already in compose mode')
-        self.element_names = '__COMPOSE__'
 
     def place(self, *args, **kwargs):
-        assert self.element_names == '__COMPOSE__', (
-            'Line is not in compose mode')
+        if self.mode != 'compose':
+            raise ValueError('Line is not in compose mode')
+        self.discard_tracker()
         self.composer.place(*args, **kwargs)
 
     def new(self, *args, **kwargs):
-        assert self.element_names == '__COMPOSE__', (
-            'Line is not in compose mode')
+        if self.mode != 'compose':
+            raise ValueError('Line is not in compose mode')
+        self.discard_tracker()
         return self.composer.new(*args, **kwargs)
 
     def build_tracker(
@@ -1020,7 +1028,8 @@ class Line:
 
         """
 
-        self.end_compose()
+        if self.mode == 'compose':
+            self.end_compose()
 
         if self.tracker is not None:
             _print('The line already has an associated tracker')
@@ -1152,7 +1161,11 @@ class Line:
         (elements can be inserted or removed again).
 
         """
-        if not isinstance(self._element_names, list):
+        if self.mode == 'compose' and self.element_names != '__COMPOSE__':
+            self.regenerate_from_composer()
+
+        if (not isinstance(self._element_names, list)
+                and self._element_names != '__COMPOSE__'):
             self._element_names = list(self._element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
