@@ -26,11 +26,7 @@ FLATTOP_START = 100  # Turn number when flattop phase begins
 # Turn numbers defining ramp phases: [start, end_ramp_up, start_ramp_down, end]:
 RAMP_SCHEDULE = [0, RAMP_LENGTH, FLATTOP_START, FLATTOP_START + RAMP_LENGTH]
 
-# Orientation definitions: (name, class, kick_attribute)
-ORIENTATIONS = [
-    ("vertical", xt.ACDipoleThickVertical, "py"),
-    ("horizontal", xt.ACDipoleThickHorizontal, "px"),
-]
+PLANES = ["x", "y"]
 
 
 def _create_test_particles(at_turn: int) -> xp.Particles:
@@ -57,8 +53,8 @@ def _create_test_particles(at_turn: int) -> xp.Particles:
 
 def get_acdipole_results(
     test_context: Any,
-    acdipole_class: type[xt.BeamElement],
     turn: int,
+    plane: str,
     test_voltage: float = 1.5,
     test_freq: float = 0.25,
     test_lag: float = 0.0,
@@ -79,13 +75,16 @@ def get_acdipole_results(
     """
     particles = _create_test_particles(at_turn=turn)
 
-    acdipole = acdipole_class(
+    acdipole = xt.ACDipole(
         volt=test_voltage,
         freq=test_freq,
         lag=test_lag,
         ramp=RAMP_SCHEDULE,
         _context=test_context,
+        plane='h'
     )
+    # Test the setter
+    acdipole.plane = plane
 
     acdipole.track(particles)
     return particles.x[0], particles.px[0], particles.y[0], particles.py[0]
@@ -94,12 +93,11 @@ def get_acdipole_results(
 def assert_acdipole_kick(
     *,
     test_context: Any,
-    acdipole_class: type[xt.BeamElement],
     test_turn: int,
+    test_plane: str,
     test_volt: float,
     test_freq: float,
     test_lag: float,
-    kick_attr: str,
     expected_kick: float,
 ) -> None:
     """
@@ -123,11 +121,11 @@ def assert_acdipole_kick(
         AssertionError: If the kick is not applied correctly.
     """
     x, px, y, py = get_acdipole_results(
-        test_context, acdipole_class, test_turn, test_volt, test_freq, test_lag
+        test_context, test_turn, test_plane, test_volt, test_freq, test_lag
     )
     vals = {"x": x, "px": px, "y": y, "py": py}  # Map coordinate names to values
     for coord in vals:
-        if coord == kick_attr:
+        if coord == f"p{test_plane}":
             assert abs(vals[coord] - expected_kick) < TOLERANCE, (
                 f"Turn {test_turn}: Expected {coord}={expected_kick}, but got {coord}={vals[coord]}"
             )
@@ -182,12 +180,12 @@ def _calculate_flattop_kick(test_volt: float, test_turn: int) -> float:
 # Flattop Tests
 # =====================
 @for_all_test_contexts
-@pytest.mark.parametrize("orientation", ORIENTATIONS, ids=lambda o: o[0])
+@pytest.mark.parametrize("plane", PLANES , ids=lambda o: o.upper())
 @pytest.mark.parametrize("case", FLATTOP_CASES, ids=lambda c: c.desc)
 def test_acdipole_flattop(
     test_context: Any,
     case: FlattopCase,
-    orientation: tuple[str, type[xt.BeamElement], str],
+    plane: str,
 ) -> None:
     """
     Test ACDipole behavior during flattop phase for both orientations.
@@ -196,16 +194,14 @@ def test_acdipole_flattop(
     phase (constant amplitude) for vertical and horizontal orientations.
     The test is parametrized over different voltage, frequency, and lag settings.
     """
-    orient_name, acdipole_class, kick_attr = orientation
     expected_kick = _calculate_flattop_kick(case.volt, case.turn)
     assert_acdipole_kick(
         test_context=test_context,
-        acdipole_class=acdipole_class,
         test_turn=case.turn,
+        test_plane=plane,
         test_volt=case.volt,
         test_freq=case.freq,
         test_lag=case.lag,
-        kick_attr=kick_attr,
         expected_kick=expected_kick,
     )
 
@@ -264,12 +260,12 @@ def _calculate_ramp_kick(test_volt: float, test_turn: int) -> float:
 # Ramp Tests
 # =====================
 @for_all_test_contexts
-@pytest.mark.parametrize("orientation", ORIENTATIONS, ids=lambda o: o[0])
+@pytest.mark.parametrize("plane", PLANES, ids=lambda o: o.upper())
 @pytest.mark.parametrize("case", ACDIPOLE_RAMP_CASES, ids=lambda c: c.desc)
 def test_acdipole_ramp(
     test_context: Any,
     case: AcdipoleRampCase,
-    orientation: tuple[str, type[xt.BeamElement], str],
+    plane: str,
 ) -> None:
     """
     Test ACDipole behavior during ramp phases for both orientations.
@@ -278,15 +274,13 @@ def test_acdipole_ramp(
     during ramp-up and ramp-down phases, with alternating signs to simulate
     AC field oscillations. Only the appropriate coordinate receives the kick.
     """
-    _, acdipole_class, kick_attr = orientation
     expected_kick = _calculate_ramp_kick(case.volt, case.turn)
     assert_acdipole_kick(
         test_context=test_context,
-        acdipole_class=acdipole_class,
         test_turn=case.turn,
+        test_plane=plane,
         test_volt=case.volt,
         test_freq=case.freq,
         test_lag=case.lag,
-        kick_attr=kick_attr,
         expected_kick=expected_kick,
     )
