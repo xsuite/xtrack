@@ -35,6 +35,7 @@ DEFAULT_REF_STRENGTH_NAME = {
 }
 
 def _flatten_components(env, components, refer: ReferType = 'center'):
+
     if refer not in ['start', 'center', 'centre', 'end']:
         raise ValueError(
             f'Allowed values for refer are "start", "center" and "end". Got "{refer}".'
@@ -448,7 +449,7 @@ class Environment:
 
 
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
-                 length=None, mirror=False, s_tol=1e-6):
+                 length=None, mirror=False, s_tol=1e-6, compose=False):
 
         '''
         Create a new line.
@@ -491,15 +492,23 @@ class Environment:
                 ])
         '''
 
-        builder = Builder(env=self, components=components, length=length,
-                              name=name, refer=refer, s_tol=s_tol, mirror=mirror)
+        # builder = Builder(env=self, components=components, length=length,
+        #                       name=name, refer=refer, s_tol=s_tol, mirror=mirror)
 
-        out = builder.build(inplace=False)
+        # out = builder.build(inplace=False)
+
+        out = xt.Line(env=self, compose=True, length=length, refer=refer,
+                      s_tol=s_tol, mirror=mirror)
+
+        if components is not None:
+            out.composer.components += list(components)
+
+        if not compose:
+            out.end_compose()
 
         self._lines_weakrefs.add(out) # Weak references
 
         out._name = name
-        out.builder = builder
 
         # Temporary solution to keep consistency in multiline
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
@@ -2044,6 +2053,9 @@ class Builder:
     def __init__(self, env, components=None, name=None, length=None,
                  refer: ReferType = 'center', s_tol=1e-6,
                  mirror=False):
+
+        if refer is None:
+            refer = 'center'
         self.env = env
         self.components = components or []
         self.name = name
@@ -2109,6 +2121,10 @@ class Builder:
         if s_tol is None:
             s_tol = self.s_tol
 
+        if line is not None:
+            if line.env is not self.env:
+                raise ValueError('Line must belong to the same environment as the Builder')
+
         components = self.components
         length = self.length
 
@@ -2143,6 +2159,8 @@ class Builder:
 
         if line is None:
             line = xt.Line(env=self.env, element_names=element_names)
+        else:
+            line.element_names = element_names
 
         if self.mirror:
             line.mirror(inplace=True)

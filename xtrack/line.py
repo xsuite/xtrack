@@ -104,7 +104,8 @@ class Line:
     config = None
 
     def __init__(self, elements=None, element_names=None, particle_ref=None,
-                 energy_program=None, env=None, composing=False):
+                 energy_program=None, env=None, compose=False,
+                 components=None, length=None, refer=None, mirror=None, s_tol=None):
         """
         Parameters
         ----------
@@ -159,22 +160,30 @@ class Line:
         if elements is None and env is None:
             elements = []
 
-        if composing:
+        if compose:
             assert element_names is None, (
-                "If composing=True, element_names must be None")
-            self.element_names = '__COMPOSING__'
-            self.composer = xt.Builder(env)
+                "If compose=True, element_names must be None")
+            element_names = '__COMPOSE__'
         else:
             self.composer = None
+            assert length is None, (
+                "length can be provided only if compose=True")
+            assert refer is None, (
+                "refer can be provided only if compose=True")
+            assert mirror is None, (
+                "mirror can be provided only if compose=True")
+            assert s_tol is None, (
+                "s_tol can be provided only if compose=True")
 
         if env is not None:
             assert elements is None, "If env is provided, elements must be None"
         else:
+            element_dict = None
             if isinstance(elements, dict):
                 element_dict = elements
                 if element_names is None:
                     element_names = list(element_dict.keys())
-            else:
+            elif element_names != '__COMPOSE__':
                 if element_names is None:
                     element_names = [f"e{ii}" for ii in range(len(elements))]
 
@@ -191,7 +200,12 @@ class Line:
         if particle_ref is None:
             particle_ref = self.env._particle_ref
 
-        self.element_names = list(element_names).copy()
+        if not compose:
+            self.element_names = list(element_names).copy()
+        else:
+            self.composer = xt.Builder(env, mirror=mirror, length=length,
+                                        refer=refer, s_tol=s_tol or 1e-6)
+            self.element_names = element_names
 
         self._particle_ref = particle_ref
 
@@ -948,8 +962,20 @@ class Line:
 
         return out
 
-    def compose(self):
-        ...
+    def end_compose(self):
+        assert self.element_names == '__COMPOSE__', (
+            'Line is not in compose mode')
+        self.composer.build(line=self, inplace=False)
+
+    def place(self, *args, **kwargs):
+        assert self.element_names == '__COMPOSE__', (
+            'Line is not in compose mode')
+        self.composer.place(*args, **kwargs)
+
+    def new(self, *args, **kwargs):
+        assert self.element_names == '__COMPOSE__', (
+            'Line is not in compose mode')
+        return self.composer.new(*args, **kwargs)
 
     def build_tracker(
             self,
@@ -1085,11 +1111,6 @@ class Line:
         if isinstance(particle_ref, LineParticleRef):
             particle_ref = particle_ref.line._particle_ref
         self._particle_ref = particle_ref
-        # This looks a bit dangerous, when working with coasting beams in environments.
-        # If the particle is shared with other lines, t_sim might be wrong.
-        if self.particle_ref is not None and self.particle_ref.t_sim == 0:
-            self.particle_ref.t_sim = (
-                self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
     @property
     def scattering(self):
@@ -2500,7 +2521,7 @@ class Line:
             ## Insertion of elements instantiated by the user using the class
             ## constructor
 
-            # Instantiate elements using the class directly
+            # Instantiate elements using the 
             mysext =  xt.Sextupole(length=0.1, k2=0.2)
             myaperture =  xt.LimitEllipse(a=0.01, b=0.02)
 
