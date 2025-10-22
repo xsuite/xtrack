@@ -21,71 +21,26 @@ env.lhcb2.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
 env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
-builder = env.lhcb2.builder
+# Keep only builders in the environment
+for nn in ['lhcb1', 'lhcb2']:
+    bb = env.lines[nn].builder
+    del env.lines[nn]
+    env.lines[nn] = bb
 
-def to_dict(self):
-    dct = {'__class__': self.__class__.__name__}
-    dct['components'] = []
+print('Remove drifts:')
+# Remove all drifts
+tt_elems = env.elements.get_table()
+tt_drift = tt_elems.rows['drift_.*']
+drift_names = tt_drift.name
+for ii, dn in enumerate(drift_names):
+    print(f'Removing drift {ii+1}/{len(drift_names)}', end='\r', flush=True)
+    # I bypass the xdeps checks, I know there are no expressions in drifts
+    del env._element_dict[dn]
 
-    formatter = xd.refs.CompactFormatter(scope=None)
+print('To dict:')
+ddd = env.to_dict()
 
-    for cc in self.components:
-        if not isinstance(cc, xt.environment.Place):
-            raise NotImplementedError('Only Place components are implemented for now')
-        if not isinstance(cc.name, str):
-            raise NotImplementedError('Only str places are implemented for now')
+env2 = xt.Environment.from_dict(ddd)
 
-        cc_dct = {}
-        cc_dct['name'] = cc.name
-
-        if cc.at is not None:
-            if xd.refs.is_ref(cc.at):
-                cc_dct['at'] = cc.at._formatted(formatter)
-            else:
-                cc_dct['at'] = cc.at
-
-        if cc.from_ is not None:
-            cc_dct['from_'] = cc.from_
-
-        if cc.anchor is not None:
-            cc_dct['anchor'] = cc.anchor
-
-        if cc.from_anchor is not None:
-            cc_dct['from_anchor'] = cc.from_anchor
-
-        dct['components'].append(cc_dct)
-
-    if self.refer is not None:
-        dct['refer'] = self.refer
-
-    if self.length is not None:
-        if xd.refs.is_ref(self.length):
-            dct['length'] = self.length._formatted(formatter)
-        else:
-            dct['l'] = self.length
-
-    if self.s_tol is not None:
-        dct['s_tol'] = self.s_tol
-
-    if self.mirror:
-        dct['mirror'] = self.mirror
-
-    return dct
-
-def from_dict(cls, dct, env):
-
-    dct = dct.copy()
-    dct.pop('__class__', None)
-
-    out = cls(env=env)
-    components = dct.pop('components')
-    for cc in components:
-        out.place(**cc)
-    for kk, vv in dct.items():
-        setattr(out, kk, vv)
-
-    return out
-
-
-dct = to_dict(builder)
-bb = from_dict(xt.Builder, dct, env)
+# dct = to_dict(builder)
+# bb = from_dict(xt.Builder, dct, env)

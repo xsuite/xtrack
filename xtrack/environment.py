@@ -741,7 +741,6 @@ class Environment:
         if out.energy_program is not None:
             out.energy_program.line = out
 
-
     def _ensure_tracker_consistency(self, buffer):
         for ln in self._lines_weakrefs:
             if isinstance(ln, xt.Builder):
@@ -752,6 +751,8 @@ class Environment:
     def discard_trackers(self):
         '''Discard all trackers in all lines of the environment.'''
         for ln in self._lines_weakrefs:
+            if isinstance(ln, xt.Builder):
+                continue
             if ln._has_valid_tracker():
                 ln.discard_tracker()
 
@@ -818,8 +819,13 @@ class Environment:
 
         out['lines'] = {}
         for nn, ll in self.lines.items():
-            out['lines'][nn] = ll.to_dict(include_element_dict=False,
-                                        include_var_management=False)
+            if isinstance(ll, xt.Builder):
+                out['lines'][nn] = ll.to_dict()
+            elif isinstance(ll, xt.Line):
+                out['lines'][nn] = ll.to_dict(include_element_dict=False,
+                                            include_var_management=False)
+            else:
+                raise ValueError(f'Unknown line type {type(ll)}')
 
         out['particles'] = {}
         for nn, pp in self.particles.items():
@@ -862,7 +868,15 @@ class Environment:
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)
         for nn in dct['lines'].keys():
-            ll = xt.Line.from_dict(dct_lines['lines'][nn], _env=out, verbose=False)
+            ddll = dct_lines['lines'][nn]
+            llcls = ddll.get('__class__', 'Line') # For backward compatibility
+            if llcls == 'Builder':
+                ll = xt.Builder.from_dict(ddll, env=out)
+            elif llcls == 'Line':
+                ll = xt.Line.from_dict(ddll, _env=out, verbose=False)
+            else:
+                raise ValueError(f'Unknown line type {type(ll)}')
+
             out[nn] = ll
 
         if '_bb_config' in dct:
@@ -1249,13 +1263,13 @@ class Environment:
 
     def __setitem__(self, key, value):
 
-        if isinstance(value, xt.Line):
+        if isinstance(value, (xt.Line, xt.Builder)):
             assert value.env is self, 'Line must be in the same environment'
             self.lines[key] = value
         elif np.isscalar(value) or xd.refs.is_ref(value):
             self.vars[key] = value
         else:
-            raise ValueError('Only lines, scalars or references are allowed')
+            raise ValueError('Only lines, builders, scalars or references are allowed')
 
 
     def set(self, name, *args, **kwargs):
@@ -2124,6 +2138,9 @@ class Builder:
     def get(self, *args, **kwargs):
         return self.env.get(*args, **kwargs)
 
+    def __len__(self):
+        return len(self.components)
+
     def resolve_s_positions(self):
         components = self.components
         if components is None:
@@ -2147,6 +2164,73 @@ class Builder:
         components = _resolve_lines_in_components(self.components, self.env)
         out.components = _flatten_components(self.env,components, refer=self.refer)
         out.components = _all_places(out.components)
+        return out
+
+    def to_dict(self):
+        dct = {'__class__': self.__class__.__name__}
+        dct['components'] = []
+
+        formatter = xd.refs.CompactFormatter(scope=None)
+
+        for cc in self.components:
+            if not isinstance(cc, xt.environment.Place):
+                raise NotImplementedError('Only Place components are implemented for now')
+            if not isinstance(cc.name, str):
+                raise NotImplementedError('Only str places are implemented for now')
+
+            cc_dct = {}
+            cc_dct['name'] = cc.name
+
+            if cc.at is not None:
+                if xd.refs.is_ref(cc.at):
+                    cc_dct['at'] = cc.at._formatted(formatter)
+                else:
+                    cc_dct['at'] = cc.at
+
+            if cc.from_ is not None:
+                cc_dct['from_'] = cc.from_
+
+            if cc.anchor is not None:
+                cc_dct['anchor'] = cc.anchor
+
+            if cc.from_anchor is not None:
+                cc_dct['from_anchor'] = cc.from_anchor
+
+            dct['components'].append(cc_dct)
+
+        if self.name is not None:
+            dct['name'] = self.name
+
+        if self.refer is not None:
+            dct['refer'] = self.refer
+
+        if self.length is not None:
+            if xd.refs.is_ref(self.length):
+                dct['length'] = self.length._formatted(formatter)
+            else:
+                dct['l'] = self.length
+
+        if self.s_tol is not None:
+            dct['s_tol'] = self.s_tol
+
+        if self.mirror:
+            dct['mirror'] = self.mirror
+
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct, env):
+
+        dct = dct.copy()
+        dct.pop('__class__', None)
+
+        out = cls(env=env)
+        components = dct.pop('components')
+        for cc in components:
+            out.place(**cc)
+        for kk, vv in dct.items():
+            setattr(out, kk, vv)
+
         return out
 
     @property
