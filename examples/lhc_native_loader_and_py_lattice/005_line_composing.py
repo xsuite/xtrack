@@ -1,6 +1,7 @@
 import xtrack as xt
 
 env = xt.Environment()
+env.set_particle_ref('proton', p0c=7000e9)
 env['a'] = 1.
 
 env.new('qd', 'Quadrupole', length=1, k1='-0.05 * a')
@@ -27,7 +28,7 @@ l2.twiss_default['method'] = '4d'
 l2.new('qf2', 'Quadrupole', at=2.5, length=1, k1=0.05)
 l2.place('qd', at=7.5)
 
-tw2 = l2.twiss() # ends the compose mode
+tw2 = l2.twiss()
 
 l2.place('qd', at=8.5)    # OK
 l2.place('qf1', at=1.5)  # OK
@@ -46,4 +47,39 @@ l2.mode # is 'normal'
 # The topology of the line is given by line.element_names
 # As usual, after line.discard_tracker(), line.element_names is a list
 # and can be edited
+
+# ---- pitfall (unavoidable?) -----
+
+env['a'] = 1.
+
+l3 = env.new_line(name='l3', length=10.0, compose=True)
+l3.new('qf3', 'Quadrupole', anchor='start', at='a')
+
+l3.twiss4d(betx=1, bety=1).show(cols='s')
+# name                   s
+# drift_13               0
+# qf3                    1
+# drift_14               1
+# _end_point            10
+
+env['a'] = 2.
+l3.twiss4d(betx=1, bety=1).show(cols='s')
+# name                   s
+# drift_13               0
+# qf3                    1 # <---- !!!!!!!!!! wrong as the tracker is cached
+# drift_14               1
+# _end_point            10
+
+l3.regenerate_from_composer()
+l3.twiss4d(betx=1, bety=1).show(cols='s')
+# name                   s
+# drift_15               0
+# qf3                    2 # <---- now it's correct
+# drift_16               2
+# _end_point            10
+
+
+
+
+
 

@@ -178,7 +178,6 @@ class Line:
                 "s_tol can be provided only if compose=True")
             assert components is None, (
                 "components can be provided only if compose=True")
-            self.compose = 'normal'
             self.mode='normal'
 
         if env is not None:
@@ -756,6 +755,9 @@ class Line:
 
     def _to_table_dict(self):
 
+        if self.element_names == '__COMPOSE__':
+            self._full_elements_from_composer()
+
         elements = list(self._elements)
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
         length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
@@ -970,9 +972,16 @@ class Line:
         return out
 
     def end_compose(self):
-        if self.element_names == '__COMPOSE__':
-            self.composer.build(line=self, inplace=False)
+        if self.mode != 'compose':
+            raise ValueError('Line is not in compose mode')
+        self.discard_tracker()
+        self._full_elements_from_composer()
         self.mode = 'normal'
+
+    def _full_elements_from_composer(self):
+        if self.mode != 'compose':
+            raise ValueError('Line is not in compose mode')
+        self.composer.build(line=self, inplace=False)
 
     def regenerate_from_composer(self):
         self._element_names = '__COMPOSE__'
@@ -1029,7 +1038,7 @@ class Line:
         """
 
         if self.mode == 'compose':
-            self.end_compose()
+            self._full_elements_from_composer()
 
         if self.tracker is not None:
             _print('The line already has an associated tracker')
