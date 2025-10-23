@@ -657,10 +657,12 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
     else:
         raise ValueError('Something went wrong!')
 
-    for nn, bb in loader.builders.items():
-        bb.build()
-
     env = loader.env
+
+    for nn, bb in loader.builders.items():
+        ll = bb.build(inplace=False)
+        env.lines[nn] = ll
+        env.lines[nn].composer = bb
 
     if reverse_lines:
         print('Reversing lines:', reverse_lines)

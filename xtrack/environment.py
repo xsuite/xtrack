@@ -575,8 +575,6 @@ class Environment:
 
         out = Builder(env=self, components=components, name=name, refer=refer,
                        length=length, s_tol=s_tol)
-        if name is not None:
-            self.lines[name] = out
 
         return out
 
