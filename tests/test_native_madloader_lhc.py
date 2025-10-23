@@ -91,6 +91,12 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
         for nn in list(env.elements.keys()):
             if nn.startswith('drift_'):
                 del env._element_dict[nn]
+        assert env.lhcb1.mode == 'compose'
+        assert env.lhcb2.mode == 'compose'
+        assert env.lhcb1.composer.mirror is False
+        assert env.lhcb2.composer.mirror is True
+        assert env.lhcb1.element_names == '__COMPOSE__'
+        assert env.lhcb2.element_names == '__COMPOSE__'
 
     if data_mode == 'json':
         env.to_json(tmpdir / f'lhc_{line_mode}.json')

@@ -21,6 +21,12 @@ env.lhcb2.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
 env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
+env.lhcb1.regenerate_from_composer()
+env.lhcb2.regenerate_from_composer()
+for nn in list(env.elements.keys()):
+    if nn.startswith('drift_'):
+        del env._element_dict[nn]
+
 if mode == 'dict':
     env = xt.Environment.from_dict(env.to_dict())
 elif mode == 'copy':
