@@ -137,6 +137,10 @@ class MadxLoader:
         self._new_builtin("multipole", "Multipole", knl=6 * [0])
         self._new_builtin("solenoid", "UniformSolenoid")
         self._new_builtin("crabcavity", "CrabCavity")
+        self._new_builtin("xrotation", "XRotation")
+        self._new_builtin("yrotation", "YRotation")
+        self._new_builtin("srotation", "SRotation")
+        self._new_builtin("translation", "XYShift")
 
         for mad_apertype in _APERTURE_TYPES:
             self._new_builtin(mad_apertype, 'Marker')
@@ -466,6 +470,13 @@ class MadxLoader:
         elif parent_name == 'marker':
             params.pop('isthick', None)
             params.pop('length', None)
+        elif parent_name in {'srotation', 'xrotation', 'yrotation'}:
+            if (angle := params.pop('angle', None)):
+                params['angle'] = (angle * 180) / np.pi
+        elif parent_name == 'translation':
+            if (ds := params.pop('ds', None)):
+                raise NotImplementedError('`ds` parameter not supported yet for '
+                                          '`translation` elements.')
 
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']
