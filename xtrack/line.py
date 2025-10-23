@@ -328,6 +328,10 @@ class Line:
              and self._element_dict['energy_program'] is not None):
             self.energy_program.line = self
 
+        if 'composer' in dct.keys() and dct['composer'] is not None:
+            self.composer = xt.Builder.from_dict(
+                dct['composer'])
+
         if verbose:
             _print('Done loading line from dict.           ')
 
@@ -649,6 +653,9 @@ class Line:
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
+        out['mode'] = self.mode
+        if self.composer is not None:
+            out['composer'] = self.composer.to_dict()
 
         if self._element_names_before_slicing is not None:
             out['_element_names_before_slicing'] = self._element_names_before_slicing
