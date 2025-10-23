@@ -190,13 +190,15 @@ class MadxLoader:
                 elif refer == 'exit':
                     refer = 'end'
                 length = params.get('l', None)
-                builder = self.env.new_builder(name=name, refer=refer,
+                builder = self.env.new_line(name=name, refer=refer,
                                                length=length,
-                                               s_tol=1e-6)
+                                               s_tol=1e-6,
+                                               compose=True)
                 self._parse_components(builder, params.pop('elements'))
             elif line_type == 'line':
                 components = self._parse_line_components(params.pop('elements'))
-                builder = self.env.new_builder(name=name, components=components)
+                builder = self.env.new_line(name=name, components=components,
+                                            compose=True)
             else:
                 raise ValueError(
                     f'Only a MAD-X sequence or a line type can be used to build'
@@ -659,10 +661,10 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
 
     env = loader.env
 
-    for nn, bb in loader.builders.items():
-        ll = bb.build(inplace=False)
-        env.lines[nn] = ll
-        env.lines[nn].composer = bb
+    for nn in env.lines:
+        ll = env.lines[nn]
+        if ll.mode == 'compose':
+            ll.end_compose()
 
     if reverse_lines:
         print('Reversing lines:', reverse_lines)

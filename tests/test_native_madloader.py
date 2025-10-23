@@ -829,12 +829,12 @@ def test_line_syntax():
     loader.load_string(sequence)
     env = loader.env
 
-    env['l1'].build()
-    env['l2'].build()
-    env['l3'].build()
-    env['l4'].build()
-    env['l5'].build()
-    env['l6'].build()
+    env['l1'].end_compose()
+    env['l2'].end_compose()
+    env['l3'].end_compose()
+    env['l4'].end_compose()
+    env['l5'].end_compose()
+    env['l6'].end_compose()
 
     l1 = env['l1']
     assert l1.name == 'l1'
@@ -878,15 +878,13 @@ def test_refer_and_thin_elements():
     endsequence;
     """
 
-    loader = MadxLoader()
-    loader.load_string(sequence)
-    env = loader.env
+    env = xt.load(string=sequence, format='madx')
 
-    seq1 = env['seq1'].build()
+    seq1 = env['seq1']
     seq1.merge_consecutive_drifts()
     tt1 = seq1.get_table()
 
-    seq2 = env['seq2'].build()
+    seq2 = env['seq2']
     seq2.merge_consecutive_drifts()
     tt2 = seq2.get_table()
 

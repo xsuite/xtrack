@@ -3766,6 +3766,10 @@ class Line:
 
         assert inplace is True, 'Only inplace is supported for now'
 
+        if self.mode == 'compose':
+            raise NotImplementedError('Merging drifts not implemented for'
+                                      ' `compose` mode. Please call line.end_compose().')
+
         self._frozen_check()
         self.replace_all_repeated_elements()
 
@@ -4239,9 +4243,13 @@ class Line:
     def __rmul__(self, other):
         assert isinstance(other, int), 'Only integer multiplication is supported'
         assert other > 0, 'Only positive integer multiplication is supported'
-        ele_names = list(self.element_names)
-        out = self.env.new_line()
-        out.element_names = ele_names * other
+        if self.mode == 'compose':
+            out = self.copy(shallow=True)
+            out.composer.components = list(out.composer.components) * other
+        elif self.mode == 'normal':
+            ele_names = list(self.element_names)
+            out = self.env.new_line()
+            out.element_names = ele_names * other
         return out
 
     def __add__(self, other):

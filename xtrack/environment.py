@@ -2142,8 +2142,8 @@ class Builder:
 
         if line is None:
             line = xt.Line(env=self.env, element_names=element_names)
-        else:
-            line.element_names = element_names
+
+        line.element_names = element_names
 
         if self.mirror:
             line.mirror(inplace=True)
