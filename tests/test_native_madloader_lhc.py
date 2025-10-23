@@ -9,8 +9,65 @@ import pytest
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
-@pytest.mark.parametrize("mode", ['direct', 'json', 'copy'])
-def test_native_loader_lhc(mode, tmpdir):
+@pytest.fixture(scope='module')
+def lines_ref():
+    fpath = test_data_folder / 'lhc_2024/lhc.seq'
+
+    settings = {}
+    settings['vrf400'] = 16  # Check voltage expressions
+    settings['lagrf400.b1'] = 0.5 + 0.02  # Check lag expressions
+    settings['lagrf400.b2'] = 0.02  # Check lag expressions
+    settings['on_x1'] = 100  # Check kicker expressions
+    settings['on_sep2h'] = 2  # Check kicker expressions
+    settings['on_x5'] = 123  # Check kicker expressions
+    settings['dqx.b2'] = 3e-3  # Check quad expressions
+    settings['dqx.b1'] = 2e-3  # Check quad expressions
+    settings['dqpx.b1'] = 2.  # Check sext expressions
+    settings['dqpx.b2'] = 3.  # Check sext expressions
+    settings['kqs.l3b2'] = 1e-4  # Check skew expressions
+    settings['kss.a45b2'] = 1e-4  # Check skew sext expressions
+    settings['kof.a34b2'] = 3  # Check oct expressions
+    settings['on_sol_atlas'] = 1  # Check solenoid expressions
+    settings['kcd.a34b2'] = 1e-4  # Check decapole expressions
+    settings['kcd.a34b1'] = 1e-4  # Check decapole expressions
+    settings['kctx3.l1'] = 1e-5  # Check thin dodecapole expressions
+
+    mad = Madx()
+    mad.call(str(fpath))
+    mad.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
+    mad.use('lhcb1')
+    mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
+    mad.use('lhcb2')
+    mad.call(str(test_data_folder / 'lhc_2024/injection_optics.madx'))
+
+    for kk, vv in settings.items():
+        mad.globals[kk] = vv
+
+    line1_ref = xt.Line.from_madx_sequence(
+            sequence=mad.sequence.lhcb1,
+            allow_thick=True,
+            deferred_expressions=True,
+            replace_in_expr={'bv_aux': 'bvaux_b2'},
+    )
+    line1_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9,
+                                          _context=xo.ContextCpu())
+    line1_ref.build_tracker(_context=xo.ContextCpu())
+
+    line2_ref = xt.Line.from_madx_sequence(
+            sequence=mad.sequence.lhcb2,
+            allow_thick=True,
+            deferred_expressions=True,
+            replace_in_expr={'bv_aux': 'bvaux_b2'},
+        )
+    line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9,
+                                          _context=xo.ContextCpu())
+    line2_ref.build_tracker(_context=xo.ContextCpu())
+
+    return settings, line1_ref, line2_ref
+
+@pytest.mark.parametrize("line_mode", ['normal', 'compose'])
+@pytest.mark.parametrize("data_mode", ['direct', 'json', 'copy'])
+def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
 
     fpath = test_data_folder / 'lhc_2024/lhc.seq'
 
@@ -28,13 +85,20 @@ def test_native_loader_lhc(mode, tmpdir):
 
     env.vars.load(test_data_folder / 'lhc_2024/injection_optics.madx')
 
-    if mode == 'json':
-        env.to_json(tmpdir / 'lhc.json')
-        env = xt.load(tmpdir / 'lhc.json', format='json')
-    elif mode == 'copy':
+    if line_mode == 'compose':
+        env.lhcb1.regenerate_from_composer()
+        env.lhcb2.regenerate_from_composer()
+        for nn in list(env.elements.keys()):
+            if nn.startswith('drift_'):
+                del env._element_dict[nn]
+
+    if data_mode == 'json':
+        env.to_json(tmpdir / f'lhc_{line_mode}.json')
+        env = xt.load(tmpdir / f'lhc_{line_mode}.json', format='json')
+    elif data_mode == 'copy':
         env = env.copy()
     else:
-        assert mode == 'direct'
+        assert data_mode == 'direct'
 
     # Some checks based on direct inspection of MAD-X file
     xo.assert_allclose(env['ip8ofs.b2'],  -154, atol=1e-12)
@@ -228,7 +292,7 @@ def test_native_loader_lhc(mode, tmpdir):
         assert kk in env['mb.a8r1.b2'].extra
 
     # Check composer
-    if mode == 'direct': # other cases not yet implemented
+    if data_mode == 'direct': # other cases not yet implemented
         assert not env.lhcb1.composer.mirror
         assert env.lhcb2.composer.mirror
 
@@ -242,56 +306,14 @@ def test_native_loader_lhc(mode, tmpdir):
         assert str(env.lhcb2.composer.components[1000].at) == "(599.4527 + ((-137.0 - vars['ip2ofs.b2']) * vars['ds']))"
         assert env.lhcb2.composer.components[1000].from_ == 'ip2'
 
-    # Check again cpymad line
-    settings = {}
-    settings['vrf400'] = 16  # Check voltage expressions
-    settings['lagrf400.b1'] = 0.5 + 0.02  # Check lag expressions
-    settings['lagrf400.b2'] = 0.02  # Check lag expressions
-    settings['on_x1'] = 100  # Check kicker expressions
-    settings['on_sep2h'] = 2  # Check kicker expressions
-    settings['on_x5'] = 123  # Check kicker expressions
-    settings['dqx.b2'] = 3e-3  # Check quad expressions
-    settings['dqx.b1'] = 2e-3  # Check quad expressions
-    settings['dqpx.b1'] = 2.  # Check sext expressions
-    settings['dqpx.b2'] = 3.  # Check sext expressions
-    settings['kqs.l3b2'] = 1e-4  # Check skew expressions
-    settings['kss.a45b2'] = 1e-4  # Check skew sext expressions
-    settings['kof.a34b2'] = 3  # Check oct expressions
-    settings['on_sol_atlas'] = 1  # Check solenoid expressions
-    settings['kcd.a34b2'] = 1e-4  # Check decapole expressions
-    settings['kcd.a34b1'] = 1e-4  # Check decapole expressions
-    settings['kctx3.l1'] = 1e-5  # Check thin dodecapole expressions
+    # Check against cpymad line
+    settings, line1_ref, line2_ref = lines_ref
 
     for kk in settings:
         assert len(env.ref[kk]._find_dependant_targets())>1
 
-    mad = Madx()
-    mad.call(str(fpath))
-    mad.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
-    mad.use('lhcb1')
-    mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
-    mad.use('lhcb2')
-    mad.call(str(test_data_folder / 'lhc_2024/injection_optics.madx'))
-
     for kk, vv in settings.items():
-        mad.globals[kk] = vv
         env[kk] = vv
-
-    line1_ref = xt.Line.from_madx_sequence(
-            sequence=mad.sequence.lhcb1,
-            allow_thick=True,
-            deferred_expressions=True,
-            replace_in_expr={'bv_aux': 'bvaux_b2'},
-    )
-    line1_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
-
-    line2_ref = xt.Line.from_madx_sequence(
-            sequence=mad.sequence.lhcb2,
-            allow_thick=True,
-            deferred_expressions=True,
-            replace_in_expr={'bv_aux': 'bvaux_b2'},
-        )
-    line2_ref.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
     for lref, ltest, beam in [(line1_ref, env.lhcb1, 1), (line2_ref, env.lhcb2, 2)]:
 
