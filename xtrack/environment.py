@@ -2142,7 +2142,7 @@ class Builder:
         line.element_names = element_names
 
         if self.mirror:
-            line.mirror(inplace=True)
+            line.element_names = line.element_names[::-1]
 
         if name is not None:
             if name in self.env.lines:

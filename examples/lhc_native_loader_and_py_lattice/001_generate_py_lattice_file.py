@@ -70,7 +70,17 @@ def _elem_to_tokens(env, nn, formatter):
 # Load the lattice #
 ####################
 
-env = xt.load('../../test_data/lhc_2024/lhc.seq', reverse_lines=['lhcb2'])
+fpath = '../../test_data/lhc_2024/lhc.seq'
+
+with open(fpath, 'r') as fid:
+    seq_text = fid.read()
+
+assert ' at=' in seq_text
+assert ',at=' not in seq_text
+assert 'at =' not in seq_text
+seq_text = seq_text.replace(' at=', 'at:=') # to have the expressions in the at
+
+env = xt.load(string=seq_text, format='madx', reverse_lines=['lhcb2'])
 
 ###################
 # Handle elements #
@@ -201,21 +211,25 @@ elem_def_part = '\n'.join(elem_def_lines)
 
 builder_lines = []
 for lname in env.lines.keys():
-    builder_lines.append(f'# Builder for line: {lname}')
+    builder_lines.append(f'# Line: {lname}')
     bb = env.lines[lname].builder.flatten()
-    builder_lines.append(f'{lname} = env.new_builder(name="{lname}")')
+    mirror_token=''
+    if bb.mirror:
+        mirror_token=f', mirror={bb.mirror}'
+    builder_lines.append(f'{lname} = env.new_line(name="{lname}", compose=True{mirror_token})')
+    builder_lines.append(f'{lname} = env["{lname}"]')
     for cc in bb.components:
         cc_tokens=[]
         for kk, vv in cc.__dict__.items():
             if vv is None or kk == 'name':
                 continue
-            if hasattr(vv, '_expr'): # is expression
+            if hasattr(vv, '_expr'): # has expression
                 # Get string representation of expression
                 env['__temp__'] = vv
                 vv = env.ref["__temp__"]._expr._formatted(formatter)
             cc_tokens.append(f'{kk}="{vv}"')
         builder_lines.append(f'{lname}.place("{cc.name}", ' + ', '.join(cc_tokens) + ')')
-    builder_lines.append(f'{lname}.build()')
+    builder_lines.append(f'{lname}.end_compose()')
     builder_lines.append('')
 
 builder_part = '\n'.join(builder_lines)
