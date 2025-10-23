@@ -1052,8 +1052,8 @@ class Line:
             _print('The line already has an associated tracker')
             return self.tracker
 
-        if (len(self.element_names) == 0 and hasattr(self, 'builder')
-            and self.builder is not None):
+        if (len(self.element_names) == 0 and hasattr(self, 'composer')
+            and self.composer is not None):
             self.rebuild()
 
         self.tracker = xt.Tracker(

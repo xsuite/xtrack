@@ -555,6 +555,13 @@ class Environment:
             and all(isinstance(item, str) for item in name)):
             name = self.new_line(components=name)
 
+        if isinstance(name, xt.Line):
+            if hasattr(name, 'name') and name.name is not None:
+                assert name.name in self.lines
+                name = name.name
+            else:
+                name = name.copy(shallow=True)
+
         return Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',
@@ -1485,13 +1492,6 @@ class Place:
 
         assert anchor in [None, 'center', 'centre', 'start', 'end']
         assert from_anchor in [None, 'center', 'centre', 'start', 'end']
-
-        if isinstance(name, xt.Line):
-            if hasattr(name, 'name') and name.name is not None:
-                assert name in name.env.lines
-                name = name.name
-            else:
-                name = name.copy(shallow=True)
 
         self.name = name
         self.at = at

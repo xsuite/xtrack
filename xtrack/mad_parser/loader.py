@@ -698,7 +698,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
 
             if nn in reverse_lines:
                 bb.mirror = True
-            new_env.lines[nn].builder = bb
+            new_env.lines[nn].composer = bb
 
         # Add to new environment elements that were not in any line
         elems_not_in_lines = set(env.elements.keys())
