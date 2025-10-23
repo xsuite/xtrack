@@ -205,6 +205,8 @@ class Line:
             particle_ref = self.env._particle_ref
 
         if not compose:
+            if element_names is None:
+                element_names = []
             self.element_names = list(element_names).copy()
         else:
             self.composer = xt.Builder(env, mirror=mirror, length=length,

@@ -478,11 +478,6 @@ class Environment:
                 ])
         '''
 
-        # builder = Builder(env=self, components=components, length=length,
-        #                       name=name, refer=refer, s_tol=s_tol, mirror=mirror)
-
-        # out = builder.build(inplace=False)
-
         out = xt.Line(env=self, compose=True, length=length, refer=refer,
                       s_tol=s_tol, mirror=mirror)
 
@@ -491,6 +486,7 @@ class Environment:
 
         if not compose:
             out.end_compose()
+            out.composer = None
 
         self._lines_weakrefs.add(out) # Weak references
 
