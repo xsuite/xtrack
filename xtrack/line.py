@@ -156,6 +156,7 @@ class Line:
         self._extra_config['steering_correctors_y'] = None
         self._extra_config['corrector_limits_x'] = None
         self._extra_config['corrector_limits_y'] = None
+        self._extra_config['end_compose_on_reload'] = True
 
         if elements is None and env is None:
             elements = []
@@ -331,6 +332,10 @@ class Line:
 
         if 'composer' in dct.keys() and dct['composer'] is not None:
             self.composer = xt.Builder.from_dict(dct['composer'], env=self.env)
+
+        if (self._extra_config.get('end_compose_on_reload', True)
+            and self.mode == 'compose'):
+            self.end_compose()
 
         if verbose:
             _print('Done loading line from dict.           ')
