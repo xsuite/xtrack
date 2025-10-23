@@ -270,6 +270,8 @@ class Line:
         # and env. In that case the element_dict, vars and xdeps stuff come through
         # the environment and should not be in the dictionary
 
+        breakpoint()
+
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
         if '_var_manager' in dct.keys():
@@ -316,6 +318,9 @@ class Line:
         if 'config' in dct.keys():
             self.config.clear()
             self.config.data.update(dct['config'])
+
+        if 'mode' in dct.keys():
+            self.mode = dct['mode']
 
         if '_extra_config' in dct.keys():
             self._extra_config.update(dct['_extra_config'])
@@ -1000,6 +1005,7 @@ class Line:
 
     def regenerate_from_composer(self):
         self._element_names = '__COMPOSE__'
+        self.mode = 'compose'
         self.discard_tracker()
 
     def place(self, *args, **kwargs):

@@ -21,11 +21,8 @@ env.lhcb2.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
 
 env.vars.load('../../test_data/lhc_2024/injection_optics.madx')
 
-# Keep only builders in the environment
-for nn in ['lhcb1', 'lhcb2']:
-    bb = env.lines[nn].builder
-    del env.lines[nn]
-    env.lines[nn] = bb
+env.lhcb1.regenerate_from_composer()
+env.lhcb2.regenerate_from_composer()
 
 print('Remove drifts:')
 # Remove all drifts
@@ -37,10 +34,6 @@ for ii, dn in enumerate(drift_names):
     # I bypass the xdeps checks, I know there are no expressions in drifts
     del env._element_dict[dn]
 
-print('To dict:')
-ddd = env.to_dict()
+env.to_json('lhc_composers.json')
 
-env2 = xt.Environment.from_dict(ddd)
-
-# dct = to_dict(builder)
-# bb = from_dict(xt.Builder, dct, env)
+env2 = xt.load('lhc_composers.json')
