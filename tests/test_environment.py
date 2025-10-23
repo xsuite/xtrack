@@ -3434,21 +3434,22 @@ def test_env_set_particle_ref():
     xo.assert_allclose(env.line1.particle_ref.mass0, xt.particles.masses.Pb208_MASS_EV)
     xo.assert_allclose(env.line1.particle_ref.p0c , 7e12/82, rtol=0, atol=1e-14)
 
-def test_compose_builders():
+def test_compose_parametric_lines():
 
     env = xt.Environment()
 
     env['a'] = 1.
 
-    env.new_builder(name='l1')
+    env.new_line(name='l1', compose=True)
     env['l1'].new('q1', 'Quadrupole', length='a', at='0.5*a')
     env['l1'].new('q2', 'q1', at='4*a', from_='q1@center')
 
-    b_compose = env.new_builder(components=[
+    l2 = env.new_line(compose=True,
+                        components=[
                         env.place('l1', at='7.5*a'),
                         env.place(-env['l1'], at='17.5*a'),
                     ])
-    tt1 = b_compose.build().get_table()
+    tt1 = l2.get_table()
     # tt1.cols['s', 'name', 'element_type', 'env_name'] is:
     # Table: 9 rows, 4 cols
     # name                   s element_type env_name
@@ -3463,7 +3464,8 @@ def test_compose_builders():
     # _end_point            20              _end_point
 
     env['a'] = 2.
-    tt2 = b_compose.build().get_table()
+    l2.regenerate_from_composer()
+    tt2 = l2.get_table()
     # tt2.cols['s', 'name', 'element_type', 'env_name'] is:
     # Table: 9 rows, 4 cols
     # name                   s element_type env_name
