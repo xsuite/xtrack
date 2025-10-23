@@ -1080,31 +1080,11 @@ class Line:
 
     @property
     def builder(self):
-        env = getattr(self, 'env', None)
-        if env is not None and hasattr(env, '_get_line_builder'):
-            builder = env._get_line_builder(self)
-            if builder is not None:
-                return builder
-            if '_builder_fallback' not in self.__dict__:
-                return None
-        return self.__dict__.get('_builder_fallback', None)
+       return self.composer
 
     @builder.setter
     def builder(self, value):
-        env = getattr(self, 'env', None)
-        if env is not None and hasattr(env, '_set_line_builder'):
-            env._set_line_builder(self, value)
-            self.__dict__.pop('_builder_fallback', None)
-            return
-
-        if value is None:
-            self.__dict__.pop('_builder_fallback', None)
-        else:
-            self.__dict__['_builder_fallback'] = value
-
-    @builder.deleter
-    def builder(self):
-        self.builder = None
+        self.composer = value
 
     @property
     def attr(self):

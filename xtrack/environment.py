@@ -223,24 +223,6 @@ class Environment:
         self._lines_weakrefs = WeakSet()
         self._line_builders = WeakKeyDictionary()
 
-    def _set_line_builder(self, line, builder):
-        if line is None:
-            return
-
-        if builder is None:
-            self._line_builders.pop(line, None)
-            return
-
-        if isinstance(line, xt.Line):
-            # Ensure the line is tracked in the weak set for consistency
-            if line not in self._lines_weakrefs:
-                self._lines_weakrefs.add(line)
-
-        self._line_builders[line] = builder
-
-    def _get_line_builder(self, line):
-        return self._line_builders.get(line)
-
     def new(self, name, parent, mode=None, at=None, from_=None,
             anchor=None, from_anchor=None,
             extra=None,
@@ -2173,8 +2155,6 @@ class Builder:
                 del self.env.lines[name]
             line._name = name
             self.env.lines[name] = line
-
-        self.env._set_line_builder(line, self)
 
         return line
 
