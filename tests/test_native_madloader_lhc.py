@@ -9,8 +9,8 @@ import pytest
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
-@pytest.mark.parametrize("mode", ['direct', 'dict', 'copy'])
-def test_native_loader_lhc(mode):
+@pytest.mark.parametrize("mode", ['direct', 'json', 'copy'])
+def test_native_loader_lhc(mode, tmpdir):
 
     fpath = test_data_folder / 'lhc_2024/lhc.seq'
 
@@ -28,8 +28,9 @@ def test_native_loader_lhc(mode):
 
     env.vars.load(test_data_folder / 'lhc_2024/injection_optics.madx')
 
-    if mode == 'dict':
-        env = xt.Environment.from_dict(env.to_dict())
+    if mode == 'json':
+        env.to_json(tmpdir / 'lhc.json')
+        env = xt.load(tmpdir / 'lhc.json', format='json')
     elif mode == 'copy':
         env = env.copy()
     else:
@@ -226,20 +227,20 @@ def test_native_loader_lhc(mode):
     for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
         assert kk in env['mb.a8r1.b2'].extra
 
-    # Check builder
+    # Check composer
     if mode == 'direct': # other cases not yet implemented
-        assert not env.lhcb1.builder.mirror
-        assert env.lhcb2.builder.mirror
+        assert not env.lhcb1.composer.mirror
+        assert env.lhcb2.composer.mirror
 
-        assert env.lhcb1.builder.components[1000].name == 'mco.b14r2.b1'
-        assert xd.refs.is_ref(env.lhcb1.builder.components[1000].at)
-        assert str(env.lhcb1.builder.components[1000].at) == "(578.4137 + ((138.0 - vars['ip2ofs.b1']) * vars['ds']))"
-        assert env.lhcb1.builder.components[1000].from_ == 'ip2'
+        assert env.lhcb1.composer.components[1000].name == 'mco.b14r2.b1'
+        assert xd.refs.is_ref(env.lhcb1.composer.components[1000].at)
+        assert str(env.lhcb1.composer.components[1000].at) == "(578.4137 + ((138.0 - vars['ip2ofs.b1']) * vars['ds']))"
+        assert env.lhcb1.composer.components[1000].from_ == 'ip2'
 
-        assert env.lhcb2.builder.components[1000].name == 'mcbv.14r2.b2'
-        assert xd.refs.is_ref(env.lhcb2.builder.components[1000].at)
-        assert str(env.lhcb2.builder.components[1000].at) == "(599.4527 + ((-137.0 - vars['ip2ofs.b2']) * vars['ds']))"
-        assert env.lhcb2.builder.components[1000].from_ == 'ip2'
+        assert env.lhcb2.composer.components[1000].name == 'mcbv.14r2.b2'
+        assert xd.refs.is_ref(env.lhcb2.composer.components[1000].at)
+        assert str(env.lhcb2.composer.components[1000].at) == "(599.4527 + ((-137.0 - vars['ip2ofs.b2']) * vars['ds']))"
+        assert env.lhcb2.composer.components[1000].from_ == 'ip2'
 
     # Check again cpymad line
     settings = {}
