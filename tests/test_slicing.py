@@ -491,12 +491,13 @@ def test_slice_twice():
 
     assert np.all(tt_first_slice.name == np.array(
         ['el_entry', 'el..entry_map', 'el..0', 'el..1', 'el..2', 'el..3',
-        'el..exit_map', 'el_exit', '_end_point']))
+         'el..exit_map', 'el_exit', '_end_point'])
+    )
 
     assert np.all(tt_first_slice.element_type == np.array(
         ['Marker', 'ThinSliceBendEntry', 'ThickSliceBend', 'ThickSliceBend',
-        'ThickSliceBend', 'ThickSliceBend', 'ThinSliceBendExit', 'Marker',
-        '']))
+         'ThickSliceBend', 'ThickSliceBend', 'ThinSliceBendExit', 'Marker', ''])
+    )
 
     # Check first table
 
@@ -521,73 +522,74 @@ def test_slice_twice():
 
     assert np.all(tt_second_slice.name == np.array(
         ['el_entry', 'el..entry_map', 'el..0_entry', 'drift_el..0..0',
-        'el..0..0', 'drift_el..0..1', 'el..0..1', 'drift_el..0..2',
-        'el..0..2', 'drift_el..0..3', 'el..0..3', 'drift_el..0..4',
-        'el..0_exit', 'el..1_entry', 'drift_el..1..0', 'el..1..0',
-        'drift_el..1..1', 'el..1..1', 'drift_el..1..2', 'el..1..2',
-        'drift_el..1..3', 'el..1..3', 'drift_el..1..4', 'el..1_exit',
-        'el..2_entry', 'drift_el..2..0', 'el..2..0', 'drift_el..2..1',
-        'el..2..1', 'drift_el..2..2', 'el..2..2', 'drift_el..2..3',
-        'el..2..3', 'drift_el..2..4', 'el..2_exit', 'el..3_entry',
-        'drift_el..3..0', 'el..3..0', 'drift_el..3..1', 'el..3..1',
-        'drift_el..3..2', 'el..3..2', 'drift_el..3..3', 'el..3..3',
-        'drift_el..3..4', 'el..3_exit', 'el..exit_map', 'el_exit',
-        '_end_point']))
+         'el..0..0', 'drift_el..0..1', 'el..0..1', 'drift_el..0..2',
+         'el..0..2', 'drift_el..0..3', 'el..0..3', 'drift_el..0..4',
+         'el..0_exit', 'el..1_entry', 'drift_el..1..0', 'el..1..0',
+         'drift_el..1..1', 'el..1..1', 'drift_el..1..2', 'el..1..2',
+         'drift_el..1..3', 'el..1..3', 'drift_el..1..4', 'el..1_exit',
+         'el..2_entry', 'drift_el..2..0', 'el..2..0', 'drift_el..2..1',
+         'el..2..1', 'drift_el..2..2', 'el..2..2', 'drift_el..2..3',
+         'el..2..3', 'drift_el..2..4', 'el..2_exit', 'el..3_entry',
+         'drift_el..3..0', 'el..3..0', 'drift_el..3..1', 'el..3..1',
+         'drift_el..3..2', 'el..3..2', 'drift_el..3..3', 'el..3..3',
+         'drift_el..3..4', 'el..3_exit', 'el..exit_map', 'el_exit',
+         '_end_point'])
+    )
 
     assert np.all(tt_second_slice.element_type == np.array(
         ['Marker', 'ThinSliceBendEntry', 'Marker', 'DriftSliceBend',
-        'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
-        'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
-        'ThinSliceBend', 'DriftSliceBend', 'Marker', 'Marker',
-        'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
-        'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
-        'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
-        'Marker', 'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
-        'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
-        'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
-        'Marker', 'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
-        'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
-        'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
-        'ThinSliceBendExit', 'Marker', ''
-        ]))
+         'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
+         'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
+         'ThinSliceBend', 'DriftSliceBend', 'Marker', 'Marker',
+         'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
+         'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
+         'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
+         'Marker', 'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
+         'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
+         'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
+         'Marker', 'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
+         'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
+         'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
+         'ThinSliceBendExit', 'Marker', ''])
+    )
 
     xo.assert_allclose(tt_second_slice.angle_rad, np.array(
         [0.    , 0.    , 0.    , 0.    , 0.0125, 0.    , 0.0125, 0.    ,
-            0.0125, 0.    , 0.0125, 0.    , 0.    , 0.    , 0.    , 0.0375,
-            0.    , 0.0375, 0.    , 0.0375, 0.    , 0.0375, 0.    , 0.    ,
-            0.    , 0.    , 0.0375, 0.    , 0.0375, 0.    , 0.0375, 0.    ,
-            0.0375, 0.    , 0.    , 0.    , 0.    , 0.0125, 0.    , 0.0125,
-            0.    , 0.0125, 0.    , 0.0125, 0.    , 0.    , 0.    , 0.    ,
-            0.    ]), rtol=0, atol=1e-12)
+         0.0125, 0.    , 0.0125, 0.    , 0.    , 0.    , 0.    , 0.0375,
+         0.    , 0.0375, 0.    , 0.0375, 0.    , 0.0375, 0.    , 0.    ,
+         0.    , 0.    , 0.0375, 0.    , 0.0375, 0.    , 0.0375, 0.    ,
+         0.0375, 0.    , 0.    , 0.    , 0.    , 0.0125, 0.    , 0.0125,
+         0.    , 0.0125, 0.    , 0.0125, 0.    , 0.    , 0.    , 0.    ,
+         0.    ]), rtol=0, atol=1e-12)
     xo.assert_allclose(np.sum(tt_second_slice.angle_rad), 0.4, rtol=0, atol=1e-12)
 
     xo.assert_allclose(tt_second_slice.k0l, np.array(
         [0. , 0. , 0. , 0. , 0.1, 0. , 0.1, 0. , 0.1, 0. , 0.1, 0. , 0. ,
-        0. , 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0. , 0. , 0. ,
-        0.3, 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0. , 0. , 0. , 0.1, 0. ,
-        0.1, 0. , 0.1, 0. , 0.1, 0. , 0. , 0. , 0. , 0. ]), rtol=0, atol=1e-12)
+         0. , 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0. , 0. , 0. ,
+         0.3, 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0. , 0. , 0. , 0.1, 0. ,
+         0.1, 0. , 0.1, 0. , 0.1, 0. , 0. , 0. , 0. , 0. ]), rtol=0, atol=1e-12)
     xo.assert_allclose(np.sum(tt_second_slice.k0l), 3.2, rtol=0, atol=1e-12)
 
     xo.assert_allclose(tt_second_slice.k1l, np.array(
         [0.    , 0.    , 0.    , 0.    , 0.0625, 0.    , 0.0625, 0.    ,
-        0.0625, 0.    , 0.0625, 0.    , 0.    , 0.    , 0.    , 0.1875,
-        0.    , 0.1875, 0.    , 0.1875, 0.    , 0.1875, 0.    , 0.    ,
-        0.    , 0.    , 0.1875, 0.    , 0.1875, 0.    , 0.1875, 0.    ,
-        0.1875, 0.    , 0.    , 0.    , 0.    , 0.0625, 0.    , 0.0625,
-        0.    , 0.0625, 0.    , 0.0625, 0.    , 0.    , 0.    , 0.    ,
-        0.    ]), rtol=0, atol=1e-12)
+         0.0625, 0.    , 0.0625, 0.    , 0.    , 0.    , 0.    , 0.1875,
+         0.    , 0.1875, 0.    , 0.1875, 0.    , 0.1875, 0.    , 0.    ,
+         0.    , 0.    , 0.1875, 0.    , 0.1875, 0.    , 0.1875, 0.    ,
+         0.1875, 0.    , 0.    , 0.    , 0.    , 0.0625, 0.    , 0.0625,
+         0.    , 0.0625, 0.    , 0.0625, 0.    , 0.    , 0.    , 0.    ,
+         0.    ]), rtol=0, atol=1e-12)
     xo.assert_allclose(np.sum(tt_second_slice.k1l), 2, rtol=0, atol=1e-12)
 
     xo.assert_allclose(tt_second_slice.k2l, np.array(
         [0.       , 0.       , 0.       , 0.       , 0.0009375, 0.       ,
-        0.0009375, 0.       , 0.0009375, 0.       , 0.0009375, 0.       ,
-        0.       , 0.       , 0.       , 0.0028125, 0.       , 0.0028125,
-        0.       , 0.0028125, 0.       , 0.0028125, 0.       , 0.       ,
-        0.       , 0.       , 0.0028125, 0.       , 0.0028125, 0.       ,
-        0.0028125, 0.       , 0.0028125, 0.       , 0.       , 0.       ,
-        0.       , 0.0009375, 0.       , 0.0009375, 0.       , 0.0009375,
-        0.       , 0.0009375, 0.       , 0.       , 0.       , 0.       ,
-        0.       ]),
+         0.0009375, 0.       , 0.0009375, 0.       , 0.0009375, 0.       ,
+         0.       , 0.       , 0.       , 0.0028125, 0.       , 0.0028125,
+         0.       , 0.0028125, 0.       , 0.0028125, 0.       , 0.       ,
+         0.       , 0.       , 0.0028125, 0.       , 0.0028125, 0.       ,
+         0.0028125, 0.       , 0.0028125, 0.       , 0.       , 0.       ,
+         0.       , 0.0009375, 0.       , 0.0009375, 0.       , 0.0009375,
+         0.       , 0.0009375, 0.       , 0.       , 0.       , 0.       ,
+         0.       ]),
         rtol=0, atol=1e-12)
     xo.assert_allclose(np.sum(tt_second_slice.k2l), 0.03, rtol=0, atol=1e-12)
 
@@ -638,16 +640,16 @@ def test_slice_repeated_elements():
        '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5       ,  5.        ,  5.        ,  5.0625    ,  5.125     ,
-        5.3125    ,  5.5       ,  5.6875    ,  5.875     ,  5.9375    ,
-        6.        ,  6.        ,  7.5       , 10.        , 15.        ,
-       19.        , 19.        , 19.16666667, 19.33333333, 20.        ,
-       20.66666667, 20.83333333, 21.        , 21.        , 25.        ,
-       30.        , 35.5       , 40.        , 40.        , 40.        ,
-       40.        , 40.        , 40.16666667, 40.33333333, 41.        ,
-       41.66666667, 41.83333333, 42.        , 42.        , 42.        ,
-       42.        , 42.0625    , 42.125     , 42.3125    , 42.5       ,
-       42.6875    , 42.875     , 42.9375    , 43.        , 43.        ,
-       46.5       , 50.        , 50.        ]),
+          5.3125    ,  5.5       ,  5.6875    ,  5.875     ,  5.9375    ,
+          6.        ,  6.        ,  7.5       , 10.        , 15.        ,
+         19.        , 19.        , 19.16666667, 19.33333333, 20.        ,
+         20.66666667, 20.83333333, 21.        , 21.        , 25.        ,
+         30.        , 35.5       , 40.        , 40.        , 40.        ,
+         40.        , 40.        , 40.16666667, 40.33333333, 41.        ,
+         41.66666667, 41.83333333, 42.        , 42.        , 42.        ,
+         42.        , 42.0625    , 42.125     , 42.3125    , 42.5       ,
+         42.6875    , 42.875     , 42.9375    , 43.        , 43.        ,
+         46.5       , 50.        , 50.        ]),
         rtol=0., atol=1e-8)
 
     line = line0.copy()
@@ -672,12 +674,12 @@ def test_slice_repeated_elements():
 
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5       ,  5.5       ,  7.5       , 10.        , 15.        ,
-          19.        , 19.        , 19.16666667, 19.33333333, 20.        ,
-          20.66666667, 20.83333333, 21.        , 21.        , 25.        ,
-          30.        , 35.5       , 40.        , 40.        , 40.        ,
-          41.        , 42.        , 42.        , 42.0625    , 42.125     ,
-          42.3125    , 42.5       , 42.6875    , 42.875     , 42.9375    ,
-          43.        , 43.        , 46.5       , 50.        , 50.        ]),
+         19.        , 19.        , 19.16666667, 19.33333333, 20.        ,
+         20.66666667, 20.83333333, 21.        , 21.        , 25.        ,
+         30.        , 35.5       , 40.        , 40.        , 40.        ,
+         41.        , 42.        , 42.        , 42.0625    , 42.125     ,
+         42.3125    , 42.5       , 42.6875    , 42.875     , 42.9375    ,
+         43.        , 43.        , 46.5       , 50.        , 50.        ]),
         rtol=0., atol=1e-8)
 
     line = line0.copy()
@@ -704,12 +706,12 @@ def test_slice_repeated_elements():
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5       ,  5.        ,  5.        ,  5.08333333,  5.5       ,
           5.91666667,  6.        ,  6.        ,  7.5       , 10.        ,
-          15.        , 19.        , 19.        , 19.5       , 20.5       ,
-          21.        , 21.        , 25.        , 30.        , 35.5       ,
-          40.        , 40.        , 40.        , 40.        , 40.        ,
-          40.5       , 41.5       , 42.        , 42.        , 42.        ,
-          42.        , 42.08333333, 42.5       , 42.91666667, 43.        ,
-          43.        , 46.5       , 50.        , 50.        ]),
+         15.        , 19.        , 19.        , 19.5       , 20.5       ,
+         21.        , 21.        , 25.        , 30.        , 35.5       ,
+         40.        , 40.        , 40.        , 40.        , 40.        ,
+         40.5       , 41.5       , 42.        , 42.        , 42.        ,
+         42.        , 42.08333333, 42.5       , 42.91666667, 43.        ,
+         43.        , 46.5       , 50.        , 50.        ]),
         rtol=0., atol=1e-8)
 
     line = line0.copy()
@@ -729,9 +731,9 @@ def test_slice_repeated_elements():
 
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5 ,  5.  ,  5.  ,  5.25,  5.75,  6.  ,  6.  ,  7.5 , 10.  ,
-       15.  , 19.  , 19.  , 19.55, 20.15, 20.6 , 21.  , 21.  , 25.  ,
-       30.  , 35.5 , 40.  , 40.  , 40.  , 40.  , 40.  , 40.85, 41.75,
-       41.9 , 42.  , 42.  , 42.5 , 46.5 , 50.  , 50.  ]),
+         15.  , 19.  , 19.  , 19.55, 20.15, 20.6 , 21.  , 21.  , 25.  ,
+         30.  , 35.5 , 40.  , 40.  , 40.  , 40.  , 40.  , 40.85, 41.75,
+         41.9 , 42.  , 42.  , 42.5 , 46.5 , 50.  , 50.  ]),
         rtol=0., atol=1e-8)
 
 

@@ -8,7 +8,7 @@ import pytest
 import xobjects as xo
 import xtrack as xt
 import pymadng as ng
-
+from typing import Literal
 from xobjects.test_helpers import for_all_test_contexts
 
 
@@ -415,7 +415,7 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
     xo.assert_allclose(p_ref.zeta, p_test.zeta, atol=1e-15, rtol=1e-15)
     xo.assert_allclose(p_ref.s, p_test.s, atol=1e-15, rtol=1e-15)
 
-    # Check backtrak
+    # Check backtrack
     line_test.track(p_test, backtrack=True)
     xo.assert_allclose(p_test.x, p0.x, atol=1e-14, rtol=1e-14)
     xo.assert_allclose(p_test.px, p0.px, atol=1e-14, rtol=1e-14)
@@ -425,39 +425,62 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
     xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=1e-14)
     xo.assert_allclose(p_test.s, p0.s, atol=1e-14, rtol=1e-14)
 
-def test_errors_on_slices():
 
-    env = xt.Environment()
-    line = env.new_line(components=[
-        env.new('b', 'Bend', angle=0.1, length=2)
-    ])
+@pytest.mark.parametrize('mode', ['thin', 'thick'])
+def test_slice_misaligned_bend(mode: Literal['thin', 'thick']):
+    length = 3
+    angle = 0.3
+    dx = 0.1
+    dy = 0.2
+    ds = 0.3
+    theta = 0.1  # rad
+    phi = 0.2  # rad
+    psi = 0.5  # rad
+    tilt = 0.1
+    anchor = 1  # m
 
-    p = xt.Particles(p0c=1e9)
-    line.track(p)
-    assert p.state[0] == 1
+    bend = xt.Bend(
+        length=length,
+        angle=angle,
+        shift_x=dx,
+        shift_y=dy,
+        shift_s=ds,
+        rot_x_rad=phi,
+        rot_y_rad=theta,
+        rot_s_rad_no_frame=psi,
+        rot_s_rad=tilt,
+        rot_shift_anchor=anchor,
+        k0_from_h=True,
+        edge_entry_active=True,
+        edge_entry_model='full',
+        edge_entry_angle=0.05,
+        edge_entry_hgap=0.06,
+        edge_entry_fint=0.08,
+        edge_exit_active=False,
+        edge_exit_model='full',
+        edge_exit_angle=-0.05,
+        edge_exit_hgap=0.06,
+        edge_exit_fint=0.08,
+    )
+    line_test = xt.Line(elements=[bend], element_names=['bend'])
+    line_test.slice_thick_elements([xt.Strategy(slicing=xt.Teapot(5, mode=mode))])
 
-    line['b'].shift_x = 0.1
-    line.track(p)
-    assert p.state[0] == 1
+    line_ref = xt.Line(elements=[bend], element_names=['bend'])
 
-    line.cut_at_s([0.5])
-    line.track(p)
-    assert p.state[0] == -41
+    assert {f'bend..{i}' for i in range(3)} <= set(line_test.element_names)
 
-    p = xt.Particles(p0c=1e9)
-    line['b'].angle = 0
-    line.track(p)
-    assert p.state[0] == 1
+    p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
 
-    line['b'].angle = 0.1
-    line.track(p)
-    assert p.state[0] == -41
+    p_ref = p0.copy()
+    line_ref.track(p_ref)
 
-    line['b'].angle = 0
-    p = xt.Particles(p0c=1e9)
-    line.track(p)
-    assert p.state[0] == 1
+    p_test = p0.copy()
+    line_test.track(p_test)
 
-    line['b'].rot_x_rad = 0.1
-    line.track(p)
-    assert p.state[0] == -40
+    xo.assert_allclose(p_test.x, p_ref.x, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.px, p_ref.px, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.y, p_ref.y, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.py, p_ref.py, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.delta, p_ref.delta, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.s, p_ref.s, atol=5e-14, rtol=8e-14)

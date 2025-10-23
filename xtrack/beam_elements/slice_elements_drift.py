@@ -8,10 +8,9 @@ from ..survey import advance_element as survey_advance_element
 
 
 class _DriftSliceElementBase(_SliceBase):
-
-    rot_and_shift_from_parent = False
+    rot_and_shift_from_parent = True
     allow_loss_refinement = True
-    isthick=True
+    isthick = True
     _inherit_strengths = False
 
 class DriftSliceBend(_DriftSliceElementBase, BeamElement):
@@ -144,6 +143,9 @@ class DriftSliceCrabCavity(_DriftSliceElementBase, BeamElement):
         return out
 
 class DriftSlice(_DriftSliceElementBase, BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = False
+
     _xofields = {'_parent': xo.Ref(Drift), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
@@ -156,6 +158,9 @@ class DriftSlice(_DriftSliceElementBase, BeamElement):
         return out
 
 class DriftExactSlice(_DriftSliceElementBase, BeamElement):
+    allow_rot_and_shift = False
+    rot_and_shift_from_parent = False
+
     _xofields = {'_parent': xo.Ref(DriftExact), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [

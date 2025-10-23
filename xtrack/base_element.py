@@ -98,73 +98,79 @@ def _generate_track_local_particle_with_transformations(
     )
 
     if rot_and_shift_from_parent:
-        add_to_call = '__parent'
+        add_to_transform_call = '__parent'
     else:
-        add_to_call = ''
+        add_to_transform_call = ''
 
     if allow_rot_and_shift:
-        if ('angle' in xofields or
-           (('ThickSlice' in element_name) and ('Bend' in element_name)) or
-           (('ThinSlice' in element_name) and ('Bend' in element_name))
-        ):
+        parent_with_angle = (
+            rot_and_shift_from_parent and
+            hasattr(xofields['_parent']._reftype, 'angle')
+        )
+
+        if rot_and_shift_from_parent:
+            source += (
+                f'double const weight = {element_name}Data_get_weight(el);\n'
+            )
+        else:
+            source += (
+                'double const weight = 1.0;\n'
+            )
+
+        if 'angle' in xofields or parent_with_angle:
             element_shape = 'curved'
-            misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length, angle, rot_s_rad'
-            get_angle = f'double const angle = {element_name}Data_get{add_to_call}_angle(el)'
+            misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length * weight, angle * weight, h, rot_s_rad'
+            get_angle = f'double const angle = {element_name}Data_get{add_to_transform_call}_angle(el)'
         else:
             element_shape = 'straight'
-            misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length, rot_s_rad'
-            get_angle = ''
-            get_rot_s_rad = ''
+            misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length * weight, rot_s_rad'
+            get_angle = 'double const angle = 0'
         get_rot_s_rad = 'double const rot_s_rad = atan2(_sin_rot_s, _cos_rot_s)'
 
         if 'isthick' in xofields:
             get_length = (
-                f'double const length = {element_name}Data_get{add_to_call}_isthick(el)'
-                f' ? {element_name}Data_get{add_to_call}_length(el)'
+                f'double const length = {element_name}Data_get{add_to_transform_call}_isthick(el)'
+                f' ? {element_name}Data_get{add_to_transform_call}_length(el)'
                 f' : 0.0'
             )
-        elif 'length' in xofields and isthick:
-            get_length = f'double const length = {element_name}Data_get{add_to_call}_length(el)'
+        elif isthick:
+            get_length = f'double const length = {element_name}Data_get{add_to_transform_call}_length(el)'
         else:
             get_length = 'double const length = 0.'
 
         source += (
             '    // Transform to local frame\n'
-            f'double const _sin_rot_s = {element_name}Data_get{add_to_call}__sin_rot_s(el);\n'
+            f'double const _sin_rot_s = {element_name}Data_get{add_to_transform_call}__sin_rot_s(el);\n'
             'if (_sin_rot_s > -2.) {\n'
-            f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
+            f'    double const _cos_rot_s = {element_name}Data_get{add_to_transform_call}__cos_rot_s(el);\n'
             f'    {get_rot_s_rad};\n'
-            f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
-            f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
-            f'    double const shift_s = {element_name}Data_get{add_to_call}__shift_s(el);\n'
-            f'    double const rot_x_rad = {element_name}Data_get{add_to_call}__rot_x_rad(el);\n'
-            f'    double const rot_y_rad = {element_name}Data_get{add_to_call}__rot_y_rad(el);\n'
-            f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_call}__rot_s_rad_no_frame(el);\n'
+            f'    double const shift_x = {element_name}Data_get{add_to_transform_call}__shift_x(el);\n'
+            f'    double const shift_y = {element_name}Data_get{add_to_transform_call}__shift_y(el);\n'
+            f'    double const shift_s = {element_name}Data_get{add_to_transform_call}__shift_s(el);\n'
+            f'    double const rot_x_rad = {element_name}Data_get{add_to_transform_call}__rot_x_rad(el);\n'
+            f'    double const rot_y_rad = {element_name}Data_get{add_to_transform_call}__rot_y_rad(el);\n'
+            f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_transform_call}__rot_s_rad_no_frame(el);\n'
             f'    {get_length};\n'
             f'    {get_angle};\n'
-            f'    double const anchor = {element_name}Data_get{add_to_call}_rot_shift_anchor(el);\n'
+            f'    double h = 0;\n'
+            f'    double anchor = {element_name}Data_get{add_to_transform_call}_rot_shift_anchor(el);\n'
             f'    int8_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);\n'
             '\n')
 
-        if rot_and_shift_from_parent:
+        if element_name.startswith('ThinSlice') and 'Bend' in element_name:
             source += (
-                "if (rot_x_rad != 0 || rot_y_rad != 0) {\n"
-                " //start_per_particle_block (part0->part)\n"
-                "    LocalParticle_set_state(part, XT_INVALID_SLICE_TRANSFORM);\n"
-                " //end_per_particle_block\n"
-                "}\n"
+                f'double const slice_offset = {element_name}Data_get_slice_offset(el);\n'
+                f'anchor = anchor - slice_offset;\n'
+                f'h = {element_name}Data_get{add_to_transform_call}_h(el);\n'
             )
-            if element_shape == 'curved':
-                source += (
-                    "if (angle != 0 && (shift_x != 0 || shift_y != 0 || shift_s != 0"
-                    "                   || rot_x_rad !=0 || rot_y_rad != 0 || rot_s_rad_no_frame != 0)) {\n"
-                    " //start_per_particle_block (part0->part)\n"
-                    "    LocalParticle_set_state(part, XT_INVALID_CURVED_SLICE_TRANSFORM);\n"
-                    " //end_per_particle_block\n"
-                "}\n"
+        elif rot_and_shift_from_parent:
+            source += (
+                f'double const slice_offset = {element_name}Data_get_slice_offset(el);\n'
+                f'anchor = anchor - slice_offset;\n'
             )
 
         source += (
+            f'printf("====> transform {element_name}: T = [%f, %f, %f, %f, %f, %f, %f], L = %f, weight = %f, alpha = %f, anchor = %f\\n", shift_x, shift_y, shift_s, rot_x_rad, rot_y_rad, rot_s_rad_no_frame, atan2(_sin_rot_s, _cos_rot_s), length, weight, angle, anchor);'
             '     if (!backtrack) {\n'
             f'      track_misalignment_entry_{element_shape}(part0, {misalign_arguments}, backtrack);'
             '     } else {\n'
@@ -190,17 +196,18 @@ def _generate_track_local_particle_with_transformations(
             f'    {local_particle_function_name}(el, part0);\n'
             '    // Transform back to global frame\n'
             'if (_sin_rot_s > -2.) {\n'
-            f'    double const _cos_rot_s = {element_name}Data_get{add_to_call}__cos_rot_s(el);\n'
+            f'    double const _cos_rot_s = {element_name}Data_get{add_to_transform_call}__cos_rot_s(el);\n'
             f'    {get_rot_s_rad};\n'
-            f'    double const shift_x = {element_name}Data_get{add_to_call}__shift_x(el);\n'
-            f'    double const shift_y = {element_name}Data_get{add_to_call}__shift_y(el);\n'
-            f'    double const shift_s = {element_name}Data_get{add_to_call}__shift_s(el);\n'
-            f'    double const rot_x_rad = {element_name}Data_get{add_to_call}__rot_x_rad(el);\n'
-            f'    double const rot_y_rad = {element_name}Data_get{add_to_call}__rot_y_rad(el);\n'
-            f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_call}__rot_s_rad_no_frame(el);\n'
+            f'    double const shift_x = {element_name}Data_get{add_to_transform_call}__shift_x(el);\n'
+            f'    double const shift_y = {element_name}Data_get{add_to_transform_call}__shift_y(el);\n'
+            f'    double const shift_s = {element_name}Data_get{add_to_transform_call}__shift_s(el);\n'
+            f'    double const rot_x_rad = {element_name}Data_get{add_to_transform_call}__rot_x_rad(el);\n'
+            f'    double const rot_y_rad = {element_name}Data_get{add_to_transform_call}__rot_y_rad(el);\n'
+            f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_transform_call}__rot_s_rad_no_frame(el);\n'
             f'    {get_length};\n'
             f'    {get_angle};\n'
-            f'    double const anchor = {element_name}Data_get{add_to_call}_rot_shift_anchor(el);\n'
+            f'    double h = 0;\n'
+            f'    double anchor = {element_name}Data_get{add_to_transform_call}_rot_shift_anchor(el);\n'
             f'    int8_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);\n'
             '\n'
             '    /* Spin tracking is disabled by the synrad compile flag */\n'
@@ -217,7 +224,19 @@ def _generate_track_local_particle_with_transformations(
             '          }\n'
             '       //end_per_particle_block\n'
             '    #endif\n'
-            '\n'
+        )
+        if element_name.startswith('ThinSlice') and 'Bend' in element_name:
+            source += (
+                f'double const slice_offset = {element_name}Data_get_slice_offset(el);\n'
+                f'anchor = anchor - slice_offset;\n'
+                f'h = {element_name}Data_get{add_to_transform_call}_h(el);\n'
+            )
+        elif rot_and_shift_from_parent:
+            source += (
+                f'double const slice_offset = {element_name}Data_get_slice_offset(el);\n'
+                f'anchor = anchor - slice_offset;\n'
+            )
+        source += (
             '     if (!backtrack) {\n'
             f'       track_misalignment_exit_{element_shape}(part0, {misalign_arguments}, backtrack);'
             '     } else {\n'
@@ -435,7 +454,13 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         allow_rot_and_shift = data.get('allow_rot_and_shift', True)
 
-        if allow_rot_and_shift:
+        # For now assume that when there is a parent, the element inherits the parent's transformations
+        rot_and_shift_from_parent = False
+        if '_parent' in xofields.keys():
+            assert 'rot_and_shift_from_parent' in data.keys()
+            rot_and_shift_from_parent = data['rot_and_shift_from_parent']
+
+        if allow_rot_and_shift and not rot_and_shift_from_parent:
             xofields['_sin_rot_s'] = xo.Field(xo.Float64, default=-999.)
             xofields['_cos_rot_s'] = xo.Field(xo.Float64, default=-999.)
             xofields['_shift_x'] = xo.Field(xo.Float64, 0)
@@ -485,12 +510,6 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         # Add dependency on Particles class
         depends_on.append(Particles._XoStruct)
-
-        # For now I assume that when there is a parent, the element inherits the parent's transformations
-        rot_and_shift_from_parent = False
-        if '_parent' in xofields.keys():
-            assert 'rot_and_shift_from_parent' in data.keys()
-            rot_and_shift_from_parent = data['rot_and_shift_from_parent']
 
         track_kernel_name = None
         if ('allow_track' not in data.keys() or data['allow_track']):
