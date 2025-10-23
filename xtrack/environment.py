@@ -1486,6 +1486,13 @@ class Place:
         assert anchor in [None, 'center', 'centre', 'start', 'end']
         assert from_anchor in [None, 'center', 'centre', 'start', 'end']
 
+        if isinstance(name, xt.Line):
+            if hasattr(name, 'name') and name.name is not None:
+                assert name in name.env.lines
+                name = name.name
+            else:
+                name = name.copy(shallow=True)
+
         self.name = name
         self.at = at
         self.from_ = from_
@@ -2214,11 +2221,14 @@ class Builder:
         for cc in self.components:
             if not isinstance(cc, xt.environment.Place):
                 raise NotImplementedError('Only Place components are implemented for now')
-            if not isinstance(cc.name, str):
-                raise NotImplementedError('Only str places are implemented for now')
+
+            name = cc.name
+            if hasattr(name, 'to_dict'):
+                name = name.to_dict(include_element_dict=False,
+                                    include_var_management=False)
 
             cc_dct = {}
-            cc_dct['name'] = cc.name
+            cc_dct['name'] = name
 
             if cc.at is not None:
                 if xd.refs.is_ref(cc.at):
@@ -2266,6 +2276,10 @@ class Builder:
         out = cls(env=env)
         components = dct.pop('components')
         for cc in components:
+            if isinstance(cc['name'], dict):
+                assert cc['name']['__class__'] == 'Line'
+                name = xt.Line.from_dict(cc['name'], _env=env)
+                cc['name'] = name
             out.place(**cc)
         for kk, vv in dct.items():
             setattr(out, kk, vv)

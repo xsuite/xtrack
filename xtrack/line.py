@@ -6,12 +6,11 @@
 import json
 import logging
 from collections import defaultdict
-from turtle import mode
 from weakref import WeakSet
 from collections.abc import Iterable
 
 from contextlib import contextmanager
-from copy import deepcopy
+import copy
 from pprint import pformat
 from typing import List, Literal, Optional, Dict
 from pathlib import Path
@@ -329,8 +328,7 @@ class Line:
             self.energy_program.line = self
 
         if 'composer' in dct.keys() and dct['composer'] is not None:
-            self.composer = xt.Builder.from_dict(
-                dct['composer'])
+            self.composer = xt.Builder.from_dict(dct['composer'], env=self.env)
 
         if verbose:
             _print('Done loading line from dict.           ')
@@ -677,7 +675,7 @@ class Line:
 
         out['env_particles'] = {k: pp.to_dict() for k, pp in self.env._particles.items()}
 
-        out["metadata"] = deepcopy(self.metadata)
+        out["metadata"] = copy.deepcopy(self.metadata)
 
         return out
 
@@ -941,7 +939,7 @@ class Line:
         if shallow==True:
             assert _context is None and _buffer is None, (
                 'Shallow copy with _context or _buffer is not supported')
-            out = self.select()
+            out = xt.Line(env=self.env, element_names=copy.copy(self.element_names))
             if self.mode == 'compose':
                 out.mode = 'compose'
                 out.composer = self.composer.copy()
@@ -4330,7 +4328,7 @@ class Line:
 
     def select(self, start=None, end=None, name=None):
 
-        if mode == 'compose':
+        if self.mode == 'compose':
             self._full_elements_from_composer()
 
         if start is xt.START:
