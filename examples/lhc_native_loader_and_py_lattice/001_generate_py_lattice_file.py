@@ -1,5 +1,5 @@
 import xtrack as xt
-import lattice_py_generation as lpg
+from xtrack._temp.python_lattice_writer import lattice_py_generation as lpg
 
 from xtrack.mad_parser.loader import CONSTANTS
 

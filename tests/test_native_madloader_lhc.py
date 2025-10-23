@@ -6,6 +6,8 @@ import numpy as np
 import pathlib
 import pytest
 
+from xtrack._temp.python_lattice_writer import lattice_py_generation as lpg
+
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
@@ -66,8 +68,11 @@ def lines_ref():
     return settings, line1_ref, line2_ref
 
 @pytest.mark.parametrize("line_mode", ['normal', 'compose'])
-@pytest.mark.parametrize("data_mode", ['direct', 'json', 'copy'])
+@pytest.mark.parametrize("data_mode", ['direct', 'json', 'copy', 'py'])
 def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
+
+    if line_mode == 'normal' and data_mode == 'py':
+        pytest.skip("Export only compose mode to py lattice")
 
     fpath = test_data_folder / 'lhc_2024/lhc.seq'
 
@@ -103,6 +108,11 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
         env = xt.load(tmpdir / f'lhc_{line_mode}.json', format='json')
     elif data_mode == 'copy':
         env = env.copy()
+    elif data_mode == 'py':
+        lpg.write_py_lattice_file(env,
+                                  output_fname=tmpdir / f'lhc_{line_mode}.py')
+        env = xt.Environment()
+        env.call(tmpdir / f'lhc_{line_mode}.py')
     else:
         assert data_mode == 'direct'
 
