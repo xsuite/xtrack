@@ -133,3 +133,80 @@ assert np.all(tmm2.element_type ==
      'Quadrupole', 'Drift', 'Quadrupole',
      'Quadrupole', 'Drift', 'Quadrupole',
      ''])
+
+l1.regenerate_from_composer()
+assert l1.mode == 'compose'
+assert l1.composer.mirror == False
+
+ml1 = -l1
+assert ml1.mode == 'compose'
+assert ml1.composer.mirror == True
+tml1 = ml1.get_table()
+# tml1.cols['s element_type env_name'] is:
+# Table: 4 rows, 4 cols
+# Table: 4 rows, 4 cols
+# name                   s element_type env_name
+# q2                     0 Quadrupole   q2
+# drift_14               1 Drift        drift_14
+# q1                     4 Quadrupole   q1
+# _end_point             5              _end_point
+assert np.all(tml1.name == np.array(
+    ['q2', 'drift_14', 'q1', '_end_point']))
+xo.assert_allclose(tml1.s,
+        [0., 1., 4., 5.],
+        rtol=0, atol=1e-12)
+assert np.all(tml1.element_type ==
+    ['Quadrupole', 'Drift', 'Quadrupole', ''])
+
+l1.end_compose()
+ml2 = -l1
+assert ml2.mode == 'normal'
+tml2 = ml2.get_table()
+# tml2.cols['s element_type env_name'] is:
+# Table: 4 rows, 4 cols
+# name                   s element_type env_name
+# q2                     0 Quadrupole   q2
+# drift_15               1 Drift        drift_15
+# q1                     4 Quadrupole   q1
+# _end_point             5              _end_point
+assert np.all(tml2.name == np.array(
+    ['q2', 'drift_15', 'q1', '_end_point']))
+xo.assert_allclose(tml2.s,
+        [0., 1., 4., 5.],
+        rtol=0, atol=1e-12)
+assert np.all(tml2.element_type ==
+    ['Quadrupole', 'Drift', 'Quadrupole', ''])
+
+l1.regenerate_from_composer()
+
+m3l1 = -(3*l1)
+assert m3l1.mode == 'compose'
+assert len(m3l1.composer.components) == 3
+assert m3l1.composer.mirror == True
+tm3l1 = m3l1.get_table()
+# tm3l1.cols['s element_type env_name'] is:
+# Table: 10 rows, 4 cols
+# name                   s element_type env_name
+# q2::0                  0 Quadrupole   q2
+# drift_18               1 Drift        drift_18
+# q1::0                  4 Quadrupole   q1
+# q2::1                  5 Quadrupole   q2
+# drift_17               6 Drift        drift_17
+# q1::1                  9 Quadrupole   q1
+# q2::2                 10 Quadrupole   q2
+# drift_16              11 Drift        drift_16
+# q1::2                 14 Quadrupole   q1
+# _end_point            15              _end_point
+assert np.all(tm3l1.name == np.array(
+    ['q2::0', 'drift_18', 'q1::0',
+     'q2::1', 'drift_17', 'q1::1',
+     'q2::2', 'drift_16', 'q1::2',
+     '_end_point']))
+xo.assert_allclose(tm3l1.s,
+        [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
+        rtol=0, atol=1e-12)
+assert np.all(tm3l1.element_type ==
+    ['Quadrupole', 'Drift', 'Quadrupole',
+     'Quadrupole', 'Drift', 'Quadrupole',
+     'Quadrupole', 'Drift', 'Quadrupole',
+     ''])
