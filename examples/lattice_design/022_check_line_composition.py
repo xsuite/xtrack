@@ -210,3 +210,21 @@ assert np.all(tm3l1.element_type ==
      'Quadrupole', 'Drift', 'Quadrupole',
      'Quadrupole', 'Drift', 'Quadrupole',
      ''])
+
+l1.end_compose()
+m3l1 = -(3*l1)
+assert m3l1.mode == 'normal'
+tm3l1 = m3l1.get_table()
+# tm3l1.cols['s element_type env_name'] is:
+# Table: 10 rows, 4 cols
+# name                    s element_type env_name
+# q2::0                   0 Quadrupole   q2
+# drift_19::0             1 Drift        drift_19
+# q1::0                   4 Quadrupole   q1
+# q2::1                   5 Quadrupole   q2
+# drift_19::1             6 Drift        drift_19
+# q1::1                   9 Quadrupole   q1
+# q2::2                  10 Quadrupole   q2
+# drift_19::2            11 Drift        drift_19
+# q1::2                  14 Quadrupole   q1
+# _end_point             15              _end_point
