@@ -26,18 +26,6 @@ class Builder:
         out.components = self.components.copy()
         return out
 
-    def __neg__(self):
-        out = self.copy()
-        out.mirror = not out.mirror
-        return out
-
-    def __rmul__(self, other):
-        assert isinstance(other, int), 'Only integer multiplication is supported'
-        assert other > 0, 'Only positive integer multiplication is supported'
-        out = self.__class__(self.env, components=other * [self],
-                             refer=self.refer, s_tol=self.s_tol)
-        return out
-
     def __repr__(self):
         parts = [f'name={self.name!r}']
         if self.length is not None:
@@ -129,12 +117,6 @@ class Builder:
 
         return line
 
-    def set(self, *args, **kwargs):
-        self.components.append(self.env.set(*args, **kwargs))
-
-    def get(self, *args, **kwargs):
-        return self.env.get(*args, **kwargs)
-
     def __len__(self):
         return len(self.components)
 
@@ -170,7 +152,7 @@ class Builder:
         formatter = xd.refs.CompactFormatter(scope=None)
 
         for cc in self.components:
-            if not isinstance(cc, xt.environment.Place):
+            if not isinstance(cc, xt.Place):
                 raise NotImplementedError('Only Place components are implemented for now')
 
             name = cc.name
@@ -237,27 +219,6 @@ class Builder:
 
         return out
 
-    @property
-    def element_dict(self):
-        return self.env.element_dict
-
-    @property
-    def _element_dict(self):
-        return self.env._element_dict
-
-    @property
-    def ref(self):
-        return self.env.ref
-
-    @property
-    def vars(self):
-        return self.env.vars
-
-    def __getitem__(self, key):
-        return self.env[key]
-
-    def __setitem__(self, key, value):
-        self.env[key] = value
 
 
 def _flatten_components(env, components, refer='center'):
@@ -269,8 +230,8 @@ def _flatten_components(env, components, refer='center'):
 
     flatt_components = []
     for nn in components:
-        if ((is_line_from_place := (isinstance(nn, Place) and isinstance(nn.name, (xt.Line, xt.Builder))))
-            or (is_line_from_str := (isinstance(nn, str) and isinstance(env[nn], (xt.Line, xt.Builder))))):
+        if ((is_line_from_place := (isinstance(nn, Place) and isinstance(nn.name, xt.Line)))
+            or (is_line_from_str := (isinstance(nn, str) and isinstance(env[nn], xt.Line)))):
 
             if is_line_from_place:
                 anchor = nn.anchor
