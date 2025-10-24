@@ -4266,8 +4266,14 @@ class Line:
         #assert isinstance(other, Line), 'Only Line can be added to Line'
         assert other.__class__.__name__=="Line", 'Only Line can be added to Line'
         assert other.env is self.env, 'Lines must be in the same environment'
-        out = self.env.new_line(
-            components=list(self.element_names) + list(other.element_names))
+
+        out = self.env.new_line(compose=True)
+        out.place(self)
+        out.place(other)
+
+        if self.mode == 'normal' and other.mode == 'normal':
+            out.end_compose()
+
         return out
 
     def __sub__(self, other):
