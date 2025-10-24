@@ -54,3 +54,18 @@ xo.assert_allclose(tss2.s,
 assert np.all(tss2.element_type ==
     ['Quadrupole', 'Drift', 'Quadrupole', 'Drift', 'Sextupole',
      'Drift', 'Sextupole', ''])
+
+l1.end_compose()
+l2.end_compose()
+ss2 = l1 + l2
+assert ss2.mode == 'normal'
+tss3 = ss2.get_table()
+# is the same as tss apart from different drift names
+assert np.all(tss3.name == np.array(
+    ['q1', 'drift_7', 'q2', 'drift_8', 's1', 'drift_9', 's2', '_end_point']))
+xo.assert_allclose(tss3.s,
+        [ 0.,  1.,  4.,  5.,  6.,  7., 11., 12.],
+        rtol=0, atol=1e-12)
+assert np.all(tss3.element_type ==
+    ['Quadrupole', 'Drift', 'Quadrupole', 'Drift', 'Sextupole',
+     'Drift', 'Sextupole', ''])
