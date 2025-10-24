@@ -241,9 +241,9 @@ class MadxLoader:
             if parent is None and isinstance(instance, xt.Line):
                 # If it's a line, we use __mul__ and __neg__ directly
                 element = instance
+                element = repeat * element
                 if invert:
                     element = -element
-                element = repeat * element
                 components.append(element)
             elif parent == 'line':
                 # If it's a nested line, we parse it recursively
