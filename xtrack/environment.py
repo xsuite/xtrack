@@ -66,9 +66,7 @@ class Environment:
          - get_expr(...): returns the expression for a variable.
          - new(...): creates a new element.
          - new_line(...): creates a new line.
-         - new_builder(...): creates a new builder.
-         - place(...): creates a place object, which can be user in new_line(...)
-           or by a Builder object.
+         - place(...): creates a place object, which can be user in new_line(...).
 
         Examples
         --------
