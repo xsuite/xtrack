@@ -249,11 +249,8 @@ def write_py_lattice_file(env, output_fname):
     # Handle variables #
     ####################
 
-    ttvars = env.vars.get_table()
-    const = set(CONSTANTS.keys())
-    lattice_parameters = [nn for nn in ttvars.name if nn not in const]
+    tt_lattice_pars_all = env.vars.get_table()
 
-    tt_lattice_pars_all = ttvars.rows[lattice_parameters]
     mask_keep = (tt_lattice_pars_all['expr'] != None) | (tt_lattice_pars_all['value'] != 0)
     tt_lattice_pars = tt_lattice_pars_all.rows[mask_keep]
 
