@@ -113,6 +113,8 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
                                   output_fname=tmpdir / f'lhc_{line_mode}.py')
         env = xt.Environment()
         env.call(tmpdir / f'lhc_{line_mode}.py')
+        env.lhcb1.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
+        env.lhcb2.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
     else:
         assert data_mode == 'direct'
 
