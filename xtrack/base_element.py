@@ -746,7 +746,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         dct = xo.HybridClass.to_dict(self, **kwargs)
         if self.name_associated_aperture is not None:
             dct['name_associated_aperture'] = self.name_associated_aperture
-        if hasattr(self, 'extra'):
+        if hasattr(self, 'extra') and self.extra:
             dct['extra'] = self.extra.copy()
         if hasattr(self, 'prototype'):
             dct['prototype'] = self.prototype

@@ -118,7 +118,8 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
 
     # Some checks based on direct inspection of MAD-X file
     xo.assert_allclose(env['ip8ofs.b2'],  -154, atol=1e-12)
-    assert str(env.ref['aip2']._expr) == "f['atan'](((vars['sep_arc'] / 2.0) / vars['dsep2']))"
+    assert (str(env.ref['aip2']._expr) == "f['atan'](((vars['sep_arc'] / 2.0) / vars['dsep2']))"
+        or str(env.ref['aip2']._expr) == "f.atan(((vars['sep_arc'] / 2.0) / vars['dsep2']))")
 
     assert env['tanb'].prototype == 'collimator'
     assert env['collimator'].prototype is None
@@ -201,7 +202,7 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     assert str(env.ref['adtkv'].length._expr) == "vars['l.adtkv']"
     assert type(env['adtkv']).__name__ == 'View'
     assert type(env['adtkv'].knl).__name__ == 'View'
-    assert type(env['adtkv'].extra).__name__ == 'dict'
+    assert not hasattr(env['adtkv'], 'extra')
 
     assert env['mcbv'].prototype == 'vcorrector'
     assert env['vcorrector'].prototype == 'vkicker'
@@ -212,6 +213,7 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     assert env['mcbv'].isthick
     assert str(env.ref['mcbv'].length._expr) == "vars['l.mcbv']"
     assert str(env.ref['mcbv'].extra['calib']._expr) == "(vars['kmax_mcbv'] / vars['imax_mcbv'])"
+    assert type(env['mcbv'].extra).__name__ == 'dict'
 
     assert env['acsca'].prototype == 'rfcavity'
     assert env['rfcavity'].prototype is None
@@ -219,7 +221,7 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     assert isinstance(env['rfcavity'], xt.Cavity)
     assert str(env.ref['acsca'].length._expr) == "vars['l.acsca']"
     assert type(env['acsca']).__name__ == 'View'
-    assert type(env['acsca'].extra).__name__ == 'dict'
+    assert not hasattr(env['acsca'], 'extra')
 
     assert env['mbas2'].prototype == 'solenoid'
     assert env['solenoid'].prototype is None
@@ -227,7 +229,7 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     assert isinstance(env['solenoid'], xt.UniformSolenoid)
     assert str(env.ref['mbas2'].length._expr) == "vars['l.mbas2']"
     assert type(env['mbas2']).__name__ == 'View'
-    assert type(env['mbas2'].extra).__name__ == 'dict'
+    assert not hasattr(env['mbas2'], 'extra')
 
     # Check some B1 elements
 
@@ -242,6 +244,9 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     assert env.ref['mqxa.1r1/lhcb1'].extra['polarity']._expr is None
     for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
         assert kk in env['mqxa.1r1/lhcb1'].extra
+    assert type(env['mqxa.1r1/lhcb1']).__name__ == 'View'
+    assert type(env['mqxa.1r1/lhcb1'].knl).__name__ == 'View'
+    assert type(env['mqxa.1r1/lhcb1'].extra).__name__ == 'dict'
 
     assert env['mcssx.3r1/lhcb1'].prototype == 'mcssx'
     assert env['mcssx'].prototype == 'multipole'
@@ -255,6 +260,9 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     assert env.ref['mcssx.3r1/lhcb1'].extra['polarity']._expr is None
     for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
         assert kk in env['mcssx.3r1/lhcb1'].extra
+    assert type(env['mcssx.3r1/lhcb1']).__name__ == 'View'
+    assert type(env['mcssx.3r1/lhcb1'].knl).__name__ == 'View'
+    assert type(env['mcssx.3r1/lhcb1'].extra).__name__ == 'dict'
 
     assert env['mb.a8r1.b1'].prototype == 'mb'
     # inherited from mb
@@ -267,6 +275,9 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     assert env.ref['mb.a8r1.b1'].extra['polarity']._expr is None
     for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
         assert kk in env['mb.a8r1.b1'].extra
+    assert type(env['mb.a8r1.b1']).__name__ == 'View'
+    assert type(env['mb.a8r1.b1'].knl).__name__ == 'View'
+    assert type(env['mb.a8r1.b1'].extra).__name__ == 'dict'
 
     # Check some B2 elements
 
@@ -281,6 +292,9 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     assert env.ref['mqxa.1r1/lhcb2'].extra['polarity']._expr is None
     for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
         assert kk in env['mqxa.1r1/lhcb2'].extra
+    assert type(env['mqxa.1r1/lhcb2']).__name__ == 'View'
+    assert type(env['mqxa.1r1/lhcb2'].knl).__name__ == 'View'
+    assert type(env['mqxa.1r1/lhcb2'].extra).__name__ == 'dict'
 
     assert env['mcssx.3r1/lhcb2'].prototype == 'mcssx'
     assert env['mcssx'].prototype == 'multipole'
@@ -294,6 +308,9 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     assert env.ref['mcssx.3r1/lhcb2'].extra['polarity']._expr is None
     for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
         assert kk in env['mcssx.3r1/lhcb2'].extra
+    assert type(env['mcssx.3r1/lhcb2']).__name__ == 'View'
+    assert type(env['mcssx.3r1/lhcb2'].knl).__name__ == 'View'
+    assert type(env['mcssx.3r1/lhcb2'].extra).__name__ == 'dict'
 
     assert env['mb.a8r1.b2'].prototype == 'mb'
     # inherited from mb
@@ -306,6 +323,9 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     assert env.ref['mb.a8r1.b2'].extra['polarity']._expr is None
     for kk in ['kmax', 'kmin', 'calib', 'mech_sep', 'slot_id', 'assembly_id', 'polarity']:
         assert kk in env['mb.a8r1.b2'].extra
+    assert type(env['mb.a8r1.b2']).__name__ == 'View'
+    assert type(env['mb.a8r1.b2'].knl).__name__ == 'View'
+    assert type(env['mb.a8r1.b2'].extra).__name__ == 'dict'
 
     # Check composer
     if data_mode == 'direct': # other cases not yet implemented

@@ -173,7 +173,10 @@ class MadxLoader:
             parent = el_params.pop('parent')
             assert parent != 'sequence'
             params, extras = get_params(el_params, parent=parent)
-            self._new_element(name, parent, self.env, **params, extra=extras)
+            params = params.copy()
+            if extras:
+                params['extra'] = extras
+            self._new_element(name, parent, self.env, **params)
 
     def _parse_lines(self, lines: Dict[str, LineType]) -> List[Builder]:
         builders = {}
