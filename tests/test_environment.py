@@ -1578,14 +1578,14 @@ def test_env_new():
     str(env.ref['m2'].k0._expr) == "(3.0 * vars['a'])"
 
     ret = env.new('mm', xt.Bend, k0='3*a', at='4*a', from_='m')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret, xt.Place)
     assert ret.name == 'mm'
     assert ret.at == '4*a'
     assert ret.from_ == 'm'
     assert isinstance(env['mm'], xt.Bend)
 
     ret = env.new('mm1', 'mm', mode='replica', at='5*a', from_='m1')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret,xt.Place)
     assert isinstance(env['mm1'], xt.Replica)
     assert ret.name == 'mm1'
     assert ret.at == '5*a'
@@ -1593,7 +1593,7 @@ def test_env_new():
     assert env['mm1'].parent_name == 'mm'
 
     ret = env.new('mm2', 'mm', mode='clone', at='6*a', from_='m2')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret,xt.Place)
     assert isinstance(env['mm2'], xt.Bend)
     assert ret.name == 'mm2'
     assert ret.at == '6*a'
@@ -1626,7 +1626,7 @@ def test_env_new():
     assert env['e2.ll3'].parent_name == 'e2'
 
     ret = env.new('ll4', 'll', at='5*a', from_='m')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret,xt.Place)
     assert ret.at == '5*a'
     assert ret.from_ == 'm'
     assert isinstance(env['ll4'], xt.Line)
@@ -1661,7 +1661,7 @@ def test_builder_new():
     assert len(bdr.components) == 3
 
     ret = bdr.new('mm', xt.Bend, k0='3*a', at='4*a', from_='m')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret,xt.Place)
     assert ret.name == 'mm'
     assert ret.at == '4*a'
     assert ret.from_ == 'm'
@@ -1670,7 +1670,7 @@ def test_builder_new():
     assert bdr.components[-1] is ret
 
     ret = bdr.new('mm1', 'mm', mode='replica', at='5*a', from_='m1')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret,xt.Place)
     assert isinstance(bdr['mm1'], xt.Replica)
     assert ret.name == 'mm1'
     assert ret.at == '5*a'
@@ -1680,7 +1680,7 @@ def test_builder_new():
     assert bdr.components[-1] is ret
 
     ret = bdr.new('mm2', 'mm', mode='clone', at='6*a', from_='m2')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret,xt.Place)
     assert isinstance(bdr['mm2'], xt.Bend)
     assert ret.name == 'mm2'
     assert ret.at == '6*a'
@@ -1723,7 +1723,7 @@ def test_builder_new():
     assert bdr.components[-1] == 'll3'
 
     ret = bdr.new('ll4', 'll', at='5*a', from_='m')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret,xt.Place)
     assert ret.at == '5*a'
     assert ret.from_ == 'm'
     assert isinstance(bdr['ll4'], xt.Line)

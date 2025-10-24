@@ -2562,15 +2562,14 @@ class Line:
 
         """
 
-
         self.discard_tracker()
         env = self.env
 
-        _all_places = xt.environment._all_places
-        _resolve_s_positions = xt.environment._resolve_s_positions
-        _flatten_components = xt.environment._flatten_components
-        _sort_places = xt.environment._sort_places
-        _generate_element_names_with_drifts = xt.environment._generate_element_names_with_drifts
+        _all_places = xt.builder._all_places
+        _resolve_s_positions = xt.builder._resolve_s_positions
+        _flatten_components = xt.builder._flatten_components
+        _sort_places = xt.builder._sort_places
+        _generate_element_names_with_drifts = xt.builder._generate_element_names_with_drifts
 
         need_place_instantiation = False
         for nn, vv in {'at': at, 'from_': from_, 'anchor': anchor,

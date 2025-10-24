@@ -4,7 +4,6 @@ import numpy as np
 
 import xtrack as xt
 from xtrack import BeamElement
-from xtrack.environment import Builder
 from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType
 from xtrack.environment import _reverse_element, _disable_name_clash_checks
 
@@ -144,21 +143,21 @@ class MadxLoader:
         for mad_apertype in _APERTURE_TYPES:
             self._new_builtin(mad_apertype, 'Marker')
 
-    def load_file(self, file) -> Optional[List[Builder]]:
+    def load_file(self, file):
         """Load a MAD-X file and generate/update the environment."""
         with _disable_name_clash_checks(self.env):
             parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
             parsed_dict = parser.parse_file(file)
             return self.load_parsed_dict(parsed_dict)
 
-    def load_string(self, string) -> Optional[List[Builder]]:
+    def load_string(self, string):
         """Load a MAD-X string and generate/update the environment."""
         with _disable_name_clash_checks(self.env):
             parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
             parsed_dict = parser.parse_string(string)
             self.load_parsed_dict(parsed_dict)
 
-    def load_parsed_dict(self, parsed_dict: MadxOutputType) -> Optional[List[Builder]]:
+    def load_parsed_dict(self, parsed_dict: MadxOutputType):
         with _disable_name_clash_checks(self.env):
             hierarchy = self._collect_hierarchy(parsed_dict)
             self._madx_elem_hierarchy.update(hierarchy)
@@ -178,7 +177,7 @@ class MadxLoader:
                 params['extra'] = extras
             self._new_element(name, parent, self.env, **params)
 
-    def _parse_lines(self, lines: Dict[str, LineType]) -> List[Builder]:
+    def _parse_lines(self, lines: Dict[str, LineType]):
         builders = {}
 
         for name, line_params in lines.items():
@@ -239,7 +238,7 @@ class MadxLoader:
             invert = body.get('_invert', False)
             instance = self.env[name] if name else None
 
-            if parent is None and isinstance(instance, (xt.Line, xt.Builder)):
+            if parent is None and isinstance(instance, xt.Line):
                 # If it's a line, we use __mul__ and __neg__ directly
                 element = instance
                 if invert:
