@@ -4255,7 +4255,8 @@ class Line:
         assert other > 0, 'Only positive integer multiplication is supported'
         if self.mode == 'compose':
             out = self.copy(shallow=True)
-            out.composer.components = [self] * other
+            if other > 1:
+                out.composer.components = [self] * other
         elif self.mode == 'normal':
             ele_names = list(self.element_names)
             out = self.env.new_line()
