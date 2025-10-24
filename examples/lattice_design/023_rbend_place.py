@@ -16,6 +16,7 @@ t1 = l.get_table()
 # drift_2          5.50525       7.75262       5.50525            10
 # _end_point            10            10            10            10
 xo.assert_allclose(t1['s_center', 'rbend1'], 5, rtol=0, atol=1e-12)
+xo.assert_allclose(l.get_length(), 10, rtol=0, atol=1e-12)
 xo.assert_allclose(t1.s, [0, 4.49475287, 5.50524713, 10],
         rtol=0, atol=1e-5)
 xo.assert_allclose(t1.s_center, [2.24737644, 5, 7.75262356, 10],
@@ -37,6 +38,7 @@ t2 = l.get_table()
 # drift_4          5.50335       7.75167       5.50335            10
 # _end_point            10            10            10            10
 xo.assert_allclose(t2['s_center', 'rbend1'], 5, rtol=0, atol=1e-12)
+xo.assert_allclose(l.get_length(), 10, rtol=0, atol=1e-12)
 xo.assert_allclose(t2.s, [0, 4.49665277, 5.50334723, 10],
         rtol=0, atol=1e-5)
 xo.assert_allclose(t2.s_center, [2.24832639, 5, 7.75167361, 10],
@@ -45,3 +47,4 @@ xo.assert_allclose(t2.s_start, [0, 4.49665277, 5.50334723, 10],
         rtol=0, atol=1e-5)
 xo.assert_allclose(t2.s_end, [4.49665277, 5.50334723, 10, 10],
         rtol=0, atol=1e-5)
+
