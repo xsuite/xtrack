@@ -61,9 +61,21 @@ def _elem_to_tokens(env, nn, formatter):
         else:
             params.append(f'{kk}={getattr(ee_ref, kk)._value:g}')
 
+    extra_params = None
+    if hasattr(ee, 'extra') and ee.extra is not None:
+        extra_params = {}
+        for kextra, vextra in ee.extra.items():
+            if ee_ref.extra[kextra]._expr is not None:
+                expr = ee_ref.extra[kextra]._expr._formatted(formatter)
+                extra_params[kextra] = f'"{kextra}": expr("{expr}")'
+            elif isinstance(vextra, str):
+                extra_params[kextra] = f'"{kextra}": "{vextra}"'
+            else:
+                extra_params[kextra] = f'"{kextra}": {vextra}'
+
     out = {'name': nn, 'element_type': ee.__class__.__name__, 'params': params,
            'prototype': getattr(ee, 'prototype', None),
-           'extra': getattr(ee, 'extra', None)}
+           'extra': extra_params}
     return out
 
 def write_py_lattice_file(env, output_fname):
@@ -111,8 +123,23 @@ def write_py_lattice_file(env, output_fname):
             for pp in elem_params:
                 if pp not in parent_params:
                     diff_params.append(pp)
+            if elem_tokens[nn]['extra'] is not None:
+                diff_extra = []
+                parent_extra = elem_tokens[parent_name]['extra']
+                for kk in elem_tokens[nn]['extra']:
+                    if (parent_extra is None) or (kk not in parent_extra) or \
+                       (elem_tokens[nn]['extra'][kk] != parent_extra[kk]):
+                        diff_extra.append(elem_tokens[nn]["extra"][kk])
         else:
             diff_params = elem_tokens[nn]['params']
+            if elem_tokens[nn]['extra'] is not None:
+                diff_extra = []
+                for kk in elem_tokens[nn]['extra']:
+                    diff_extra.append(elem_tokens[nn]["extra"][kk])
+
+        if elem_tokens[nn]['extra'] is not None and len(diff_extra) > 0:
+            diff_params.append('extra={' + ', '.join(diff_extra) + '}')
+
         elem_tokens[nn]['diff_params'] = diff_params
 
     # Build def instruction
@@ -125,8 +152,6 @@ def write_py_lattice_file(env, output_fname):
             out_parts.append(f'"{elem_tokens[nn]["element_type"]}"')
         if len(elem_tokens[nn]['diff_params']) > 0:
             out_parts += elem_tokens[nn]['diff_params']
-        if elem_tokens[nn]['extra'] is not None:
-            out_parts.append(f'extra={elem_tokens[nn]["extra"]}')
         elem_tokens[nn]['def_instruction'] = ', '.join(out_parts) + ')'
 
     # Sort based on hierarchy
@@ -251,6 +276,8 @@ def write_py_lattice_file(env, output_fname):
     'import xtrack as xt',
     'env = xt.get_environment()',
     'env.vars.default_to_zero=True',
+    'expr = env.new_expr # used in extra, where expressions cannot be defined as strings',
+    ''
     ])
 
     postamble = '\n'.join([
