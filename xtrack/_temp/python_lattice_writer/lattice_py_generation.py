@@ -36,6 +36,10 @@ def _elem_to_tokens(env, nn, formatter):
     if hasattr(ee, 'ksl'):
         fields += ['ksl']
 
+    if isinstance(ee, xt.RBend):
+        assert 'length_straight' in fields
+        fields = [ff for ff in fields if ff != 'length']
+
     tt = env[nn].get_table()
     for kk in tt.name:
         if tt['expr', kk] is not None and tt['expr', kk] != 'None':
@@ -107,11 +111,6 @@ def write_py_lattice_file(env, output_fname):
 
     # Some customizations
     elem_tokens['multipole']['params'].append('knl=[0,0,0,0,0,0]')
-
-    # remove length when length_straight is present
-    for nn in elem_tokens:
-        if 'length_straight' in elem_tokens[nn]['params']:
-            elem_tokens[nn]['params'] = [pp for pp in elem_tokens[nn]['params'] if pp != 'length']
 
     # populate diff params
     for nn in elem_tokens:
