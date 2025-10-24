@@ -228,3 +228,16 @@ tm3l1 = m3l1.get_table()
 # drift_19::2            11 Drift        drift_19
 # q1::2                  14 Quadrupole   q1
 # _end_point             15              _end_point
+assert np.all(tm3l1.name == np.array([
+    'q2::0', 'drift_19::0', 'q1::0',
+     'q2::1', 'drift_19::1', 'q1::1',
+     'q2::2', 'drift_19::2', 'q1::2',
+     '_end_point']))
+xo.assert_allclose(tm3l1.s,
+        [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
+        rtol=0, atol=1e-12)
+assert np.all(tm3l1.element_type ==
+    ['Quadrupole', 'Drift', 'Quadrupole',
+     'Quadrupole', 'Drift', 'Quadrupole',
+     'Quadrupole', 'Drift', 'Quadrupole',
+     ''])
