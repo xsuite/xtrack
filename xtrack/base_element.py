@@ -335,6 +335,7 @@ def _tranformations_active(self):
 def _disable_transformations_if_needed(self):
     if not _tranformations_active(self):
         self._sin_rot_s = -999.
+        self._cos_rot_s = -999.
     elif self._sin_rot_s < -2.:
         self._sin_rot_s = 0.
         self._cos_rot_s = 1.

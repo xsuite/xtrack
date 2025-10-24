@@ -59,7 +59,7 @@ def _elem_to_tokens(env, nn, formatter):
         elif getattr(ee_ref, kk)._expr is not None:
             params.append(f'{kk}="{getattr(ee_ref, kk)._expr._formatted(formatter)}"')
         else:
-            params.append(f'{kk}={getattr(ee_ref, kk)._value:g}')
+            params.append(f'{kk}={getattr(ee_ref, kk)._value:.20g}')
 
     extra_params = None
     if hasattr(ee, 'extra') and ee.extra is not None:
