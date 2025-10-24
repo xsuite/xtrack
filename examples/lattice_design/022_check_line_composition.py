@@ -69,3 +69,36 @@ xo.assert_allclose(tss3.s,
 assert np.all(tss3.element_type ==
     ['Quadrupole', 'Drift', 'Quadrupole', 'Drift', 'Sextupole',
      'Drift', 'Sextupole', ''])
+
+l1.regenerate_from_composer()
+l2.regenerate_from_composer()
+
+mm = 3*l1
+assert len(mm.composer.components) == 3
+tmm = mm.get_table()
+# tmm.cols['s element_type env_name'] is:
+# Table: 10 rows, 4 cols
+# name                   s element_type env_name
+# q1::0                  0 Quadrupole   q1
+# drift_10               1 Drift        drift_10
+# q2::0                  4 Quadrupole   q2
+# q1::1                  5 Quadrupole   q1
+# drift_11               6 Drift        drift_11
+# q2::1                  9 Quadrupole   q2
+# q1::2                 10 Quadrupole   q1
+# drift_12              11 Drift        drift_12
+# q2::2                 14 Quadrupole   q2
+# _end_point            15              _end_point
+assert np.all(tmm.name == np.array(
+    ['q1::0', 'drift_10', 'q2::0',
+     'q1::1', 'drift_11', 'q2::1',
+     'q1::2', 'drift_12', 'q2::2',
+     '_end_point']))
+xo.assert_allclose(tmm.s,
+        [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
+        rtol=0, atol=1e-12)
+assert np.all(tmm.element_type ==
+    ['Quadrupole', 'Drift', 'Quadrupole',
+     'Quadrupole', 'Drift', 'Quadrupole',
+     'Quadrupole', 'Drift', 'Quadrupole',
+     ''])

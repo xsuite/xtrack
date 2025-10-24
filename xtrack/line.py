@@ -770,7 +770,7 @@ class Line:
 
     def _to_table_dict(self):
 
-        if self.element_names == '__COMPOSE__':
+        if self.mode == 'compose':
             self._full_elements_from_composer()
 
         elements = list(self._elements)
@@ -4255,7 +4255,7 @@ class Line:
         assert other > 0, 'Only positive integer multiplication is supported'
         if self.mode == 'compose':
             out = self.copy(shallow=True)
-            out.composer.components = list(out.composer.components) * other
+            out.composer.components = [self] * other
         elif self.mode == 'normal':
             ele_names = list(self.element_names)
             out = self.env.new_line()
