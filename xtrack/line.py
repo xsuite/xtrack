@@ -740,7 +740,17 @@ class Line:
             name = self._name
         else:
             name = ''
-        return f'<{self.__class__.__name__} {name} at {id(self)}>'
+        tokens = []
+        if hasattr(self, '_name') and self._name:
+            tokens.append(f'name={self._name}')
+        tokens.append(f'mode={self.mode}')
+        if self.mode == 'normal':
+            tokens.append(f'{len(self.element_names)} elements')
+        elif self.mode == 'compose':
+            tokens.append(f'{len(self.composer.components)} components')
+
+        out = 'Line(' + ', '.join(tokens) + ')'
+        return out
 
     def __getstate__(self):
         out = self.__dict__.copy()
@@ -4387,6 +4397,8 @@ class Line:
         self.element_names.extend(line.element_names)
 
     def __len__(self):
+        if self.mode == 'compose':
+            return 0
         return len(self.element_names)
 
     def items(self):
