@@ -47,7 +47,7 @@ line['mqd.2'].k1 = 'k1l.qd.2 / l.quad'
 
 # When a variable is changed, the corresponding element property is automatically
 # updated:
-line.vars['k1l.qf.1'] = 0.1
+line['k1l.qf.1'] = 0.1
 line['mqf.1'].k1 # is 0.333, i.e. 0.1 / lquad
 
 # Expressions can be modified after the creation of the line. For example, we can

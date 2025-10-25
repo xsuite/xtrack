@@ -42,10 +42,10 @@ line.particle_ref = xt.Particles(energy0=kin_energy_0 + xt.PROTON_MASS_EV, # tot
 tw = line.twiss(method='4d')
 
 # Power the correctors to make a closed orbit bump
-line.vars['bumper_strength'] = 0.
-line['bumper_0'].k0 = -line.vars['bumper_strength']
-line['bumper_1'].k0 = 2 * line.vars['bumper_strength']
-line['bumper_2'].k0 = -line.vars['bumper_strength']
+line['bumper_strength'] = 0.
+line['bumper_0'].k0 = '-bumper_strength'
+line['bumper_1'].k0 = '2 * bumper_strength'
+line['bumper_2'].k0 = '-bumper_strength'
 
 #!start-doc-part
 
@@ -55,7 +55,7 @@ line.functions['my_fun'] = xt.FunctionPieceWiseLinear(
     x=np.array([10,    40,     70,   100]) * 1e-6, # time in s
     y=np.array([0,    0.5,    0.5,   1.0])        # value
 )
-line.vars['bumper_strength'] = 0.1 * line.functions['my_fun'](line.vars['t_turn_s'])
+line['bumper_strength'] = 0.1 * line.functions['my_fun'](line.ref['t_turn_s'])
 
 #!end-doc-part
 
@@ -65,7 +65,7 @@ t_test = np.linspace(0, 120e-6, 15)
 tw_list = []
 bumper_0_list = []
 for tt in t_test:
-    line.vars['t_turn_s'] = tt
+    line['t_turn_s'] = tt
     bumper_0_list.append(line['bumper_0'].k0) # Inspect bumper
     tw_list.append(line.twiss(method='4d')) # Twiss
 
