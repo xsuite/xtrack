@@ -19,8 +19,8 @@ target_qy = 60.325
 tw = line.twiss()
 
 # Try to measure and match coupling
-line.vars['cmrskew'] = 1e-3
-line.vars['cmiskew'] = 1e-3
+line['cmrskew'] = 1e-3
+line['cmiskew'] = 1e-3
 
 # Match coupling
 line.match(

@@ -5,21 +5,21 @@
 
 import xtrack as xt
 
-collider = xt.load(
+env = xt.load(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
-collider.build_trackers()
+env.build_trackers()
 
-collider.lhcb1.twiss_default['method'] = '4d'
-collider.lhcb2.twiss_default['method'] = '4d'
-collider.lhcb2.twiss_default['reverse'] = True
+env.lhcb1.twiss_default['method'] = '4d'
+env.lhcb2.twiss_default['method'] = '4d'
+env.lhcb2.twiss_default['reverse'] = True
 
-collider.vars['on_x1vs'] = 123
-collider.vars['on_sep1h'] = 2
-collider.vars['on_x1vs'] = 200
-collider.vars['on_sep1v'] = -3
+env['on_x1vs'] = 123
+env['on_sep1h'] = 2
+env['on_x1vs'] = 200
+env['on_sep1v'] = -3
 
-# tw = collider.lhcb1.twiss()                  # Fails on closed orbit search
-tw = collider.lhcb1.twiss(co_search_at='ip7') # Successful closed orbit search
+# tw = env.lhcb1.twiss()                  # Fails on closed orbit search
+tw = env.lhcb1.twiss(co_search_at='ip7') # Successful closed orbit search
 
 import matplotlib.pyplot as plt
 plt.close('all')

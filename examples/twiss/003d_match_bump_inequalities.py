@@ -94,7 +94,7 @@ assert opt.targets[2].value.upper == 3e-3
 # Remove the bump
 
 for kk in ['acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1', 'acbv22.l8b1']:
-    line.vars[kk] = 0
+    line[kk] = 0
 
 tw_before = line.twiss()
 assert tw_before['y', 'mb.b26l8.b1'] < 1e-7
