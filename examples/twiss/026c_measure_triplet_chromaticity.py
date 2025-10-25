@@ -12,7 +12,7 @@ tw = line.twiss()
 
 
 # Measure chromaticities of ITL5
-start_range = 'mbxf.4l5_entry'
+start_range = 'mbxf.4l5/lhcb1'
 end_range = 'ip5'
 init = tw.get_twiss_init(start_range)
 init.ax_chrom = 0
@@ -25,7 +25,7 @@ tw_l5 = line.twiss(start=start_range, end=end_range,
 
 # Measure chromaticities of ITR5
 start_range = 'ip5'
-end_range = 'mbxf.4r5_exit'
+end_range = 'mbxf.4r5/lhcb1'
 init = tw.get_twiss_init(end_range)
 init.ax_chrom = 0
 init.bx_chrom = 0
