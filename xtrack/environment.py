@@ -1648,7 +1648,8 @@ class EnvLines(UserDict):
     def get_table(self):
         names = np.array(list(self.keys()))
         num_elements = np.array([len(self.env.lines[nn]) for nn in names])
-        tt = xt.Table({'name': names, 'num_elements': num_elements})
+        mode = np.array([self.env.lines[nn].mode for nn in names])
+        tt = xt.Table({'name': names, 'num_elements': num_elements, 'mode':mode})
         return tt
 
     def __repr__(self):
