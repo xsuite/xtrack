@@ -165,7 +165,7 @@ class Line:
             assert element_names is None, (
                 "If compose=True, element_names must be None")
             element_names = '__COMPOSE__'
-            self.mode = 'compose'
+            self._mode = 'compose'
         else:
             self.composer = None
             assert length is None, (
@@ -178,7 +178,7 @@ class Line:
                 "s_tol can be provided only if compose=True")
             assert components is None, (
                 "components can be provided only if compose=True")
-            self.mode='normal'
+            self._mode='normal'
 
         if env is not None:
             assert elements is None, "If env is provided, elements must be None"
@@ -318,7 +318,7 @@ class Line:
             self.config.data.update(dct['config'])
 
         if 'mode' in dct.keys():
-            self.mode = dct['mode']
+            self._mode = dct['mode']
 
         if '_extra_config' in dct.keys():
             self._extra_config.update(dct['_extra_config'])
@@ -951,7 +951,7 @@ class Line:
                 'Shallow copy with _context or _buffer is not supported')
             out = xt.Line(env=self.env, element_names=copy.copy(self.element_names))
             if self.mode == 'compose':
-                out.mode = 'compose'
+                out._mode = 'compose'
                 out.composer = self.composer.copy()
         else:
             elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
@@ -994,16 +994,16 @@ class Line:
             raise ValueError('Line is not in compose mode')
         self.discard_tracker()
         self._full_elements_from_composer()
-        self.mode = 'normal'
+        self._mode = 'normal'
 
     def _full_elements_from_composer(self):
-        if self.mode != 'compose':
+        if self._mode != 'compose':
             raise ValueError('Line is not in compose mode')
         self.composer.build(line=self, inplace=False)
 
     def regenerate_from_composer(self):
         self._element_names = '__COMPOSE__'
-        self.mode = 'compose'
+        self._mode = 'compose'
         self.discard_tracker()
 
     def place(self, *args, **kwargs):
@@ -1082,12 +1082,9 @@ class Line:
 
         return self.tracker
 
-    def rebuild(self):
-        if not hasattr(self, 'builder') or self.builder is None:
-            raise ValueError('The line does not have a builder')
-
-        temp = self.builder.build()
-        self.element_names = temp.element_names
+    @property
+    def mode(self):
+        return self._mode
 
     @property
     def builder(self):
