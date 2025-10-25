@@ -27,14 +27,16 @@ class Builder:
         return out
 
     def __repr__(self):
-        parts = [f'name={self.name!r}']
+        parts = []
+        if self.name:
+            parts.append(f'name={self.name!r}')
         if self.length is not None:
             parts.append(f'length={self.length!r}')
         if self.refer not in {'center', 'centre'}:
             parts.append(f'refer={self.refer!r}')
         if self.mirror:
             parts.append(f'mirror={self.mirror!r}')
-        parts.append(f'components={self.components!r}')
+        parts.append(f'{len(self.components)} components')
         args_str = ', '.join(parts)
         return f'Builder({args_str})'
 
