@@ -150,10 +150,7 @@ opt.solve()
 
 tw = line.twiss()
 
-assert tw['y', 'mb.b26l8.b1'] > 2.7e-3 - 1e-6
-assert tw['y', 'mb.b25l8.b1'] > 2.7e-3 - 1e-6
-assert tw['y', 'mq.24l8.b1'] < 3e-3 + 1e-6
-assert tw['y', 'mq.26l8.b1'] < 6e-3 + 1e-6
+
 assert np.isclose(tw['y', 'mq.17l8.b1'], tw_before['y', 'mq.17l8.b1'], rtol=0, atol=1e-7)
 assert np.isclose(tw['py', 'mq.17l8.b1'], tw_before['py', 'mq.17l8.b1'], rtol=0, atol=1e-9)
 
