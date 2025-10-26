@@ -5,6 +5,10 @@ env = xt.load(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 env.build_trackers()
 
+# Add name to lines (temporary patch...)
+env.lhcb1._name = 'lhcb1'
+env.lhcb2._name = 'lhcb2'
+
 tw0 = env.twiss(method='4d')
 
 twb1 = env.lhcb1.twiss(start='e.ds.l5.b1', end='s.ds.r5.b1', init=tw0.lhcb1)
@@ -116,9 +120,9 @@ for ii in range(4, 8):
     assert isinstance(opt.targets[ii].action, xt.match.ActionTwiss)
     assert opt.targets[ii].action.line.name == 'lhcb2'
 
-assert isinstance(opt.targets[8].action, xt.line.ActionVars)
-assert isinstance(opt.targets[9].action, xt.line.ActionVars)
-assert isinstance(opt.targets[10].action, xt.line.ActionVars)
+assert isinstance(opt.targets[8].action, xt.environment.ActionVars)
+assert isinstance(opt.targets[9].action, xt.environment.ActionVars)
+assert isinstance(opt.targets[10].action, xt.environment.ActionVars)
 assert isinstance(opt.targets[11].action, xt.line.ActionLine)
 assert isinstance(opt.targets[12].action, xt.line.ActionLine)
 
