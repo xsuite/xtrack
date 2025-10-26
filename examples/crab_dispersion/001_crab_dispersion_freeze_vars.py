@@ -7,9 +7,9 @@ collider = xt.load(
 )
 collider.build_trackers()
 
-collider.vars['vrf400'] = 16
-collider.vars['on_crab1'] = -190
-collider.vars['on_crab5'] = -190
+collider['vrf400'] = 16
+collider['on_crab1'] = -190
+collider['on_crab5'] = -190
 
 line = collider.lhcb1
 
