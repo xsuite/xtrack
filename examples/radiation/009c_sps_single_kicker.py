@@ -93,13 +93,6 @@ line['mdv.10107'].ksl[0] = line.vars['vkick']
 
 match_chrom = True
 
-# line.vars['klsda'] = 0.0
-# line.vars['klsdb'] = 0.0
-# line.vars['klsfa'] = 0.0
-# line.vars['klsfb'] = 0.0
-# line.vars['klsfc'] = 0.0
-# match_chrom = False
-
 opt = line.match(
     solve=False,
     vary=[

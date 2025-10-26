@@ -91,22 +91,22 @@ line.configure_radiation(model=None)
 
 match_chrom = True
 
-# line.vars['klsda'] = 0.0
-# line.vars['klsdb'] = 0.0
-# line.vars['klsfa'] = 0.0
-# line.vars['klsfb'] = 0.0
-# line.vars['klsfc'] = 0.0
+# line['klsda'] = 0.0
+# line['klsdb'] = 0.0
+# line['klsfa'] = 0.0
+# line['klsfb'] = 0.0
+# line['klsfc'] = 0.0
 # match_chrom = False
 
-line.vars['mdv.52907.ksl0'] = 0.0
-line.vars['mdv.53107.ksl0'] = 0.0
-line.vars['mdv.53307.ksl0'] = 0.0
-line.vars['mdv.53507.ksl0'] = 0.0
+line['mdv.52907.ksl0'] = 0.0
+line['mdv.53107.ksl0'] = 0.0
+line['mdv.53307.ksl0'] = 0.0
+line['mdv.53507.ksl0'] = 0.0
 
-line['mdv.52907'].ksl[0] = line.vars['mdv.52907.ksl0']
-line['mdv.53107'].ksl[0] = line.vars['mdv.53107.ksl0']
-line['mdv.53307'].ksl[0] = line.vars['mdv.53307.ksl0']
-line['mdv.53507'].ksl[0] = line.vars['mdv.53507.ksl0']
+line['mdv.52907'].ksl[0] = line.ref['mdv.52907.ksl0']
+line['mdv.53107'].ksl[0] = line.ref['mdv.53107.ksl0']
+line['mdv.53307'].ksl[0] = line.ref['mdv.53307.ksl0']
+line['mdv.53507'].ksl[0] = line.ref['mdv.53507.ksl0']
 
 # Kill sextupoles in the bump
 line['lsf.53205'].k2l = 0
