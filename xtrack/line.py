@@ -759,7 +759,6 @@ class Line:
     def __setstate__(self, state):
         self.__dict__.update(state)
 
-
     def to_json(self, file, indent=1, **kwargs):
         '''Save the line to a json file.
 
@@ -872,6 +871,8 @@ class Line:
 
     def get_strengths(self, reverse=None):
 
+        self._method_incompatible_with_compose()
+
         if reverse is None:
             reverse = self.twiss_default.get('reverse', False)
 
@@ -931,6 +932,8 @@ class Line:
             Table with the horizontal and vertical aperture at all elements
             of the line.
         '''
+
+        self._method_incompatible_with_compose()
 
         return xt.aperture_meas.measure_aperture(self,
             dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1), y_range=(-0.1, 0.1))
@@ -1302,6 +1305,8 @@ class Line:
             ])
 
         """
+
+        self._method_incompatible_with_compose()
 
         self.build_tracker(compile=False) # ensure elements are in the same buffer
         self.discard_tracker()
@@ -1824,6 +1829,9 @@ class Line:
 
         '''
 
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         correction = TrajectoryCorrection(line=self,
                  start=start, end=end, twiss_table=twiss_table,
                  monitor_names_x=monitor_names_x,
@@ -1902,6 +1910,7 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
 
         closed_orbit_correction(self, reference, correction_config,
                                 solver=solver, verbose=verbose,
@@ -2099,6 +2108,8 @@ class Line:
 
         '''
 
+        self._method_incompatible_with_compose()
+
         kwargs = locals()
         kwargs.pop('self')
         kwargs.pop('linear_rescale_on_knobs')
@@ -2154,6 +2165,8 @@ class Line:
         det_yx : float
             Amplitude detuning coefficient dQy / dJx.
         '''
+
+        self._method_incompatible_with_compose()
 
         import nafflib as nl
 
@@ -2271,6 +2284,8 @@ class Line:
             Table containing the non-linear chromaticity information.
 
         '''
+
+        self._method_incompatible_with_compose()
 
         return get_non_linear_chromaticity(self, delta0_range, num_delta,
                                            fit_order, **kwargs)
@@ -2416,6 +2431,8 @@ class Line:
     def cut_at_s(self, s: List[float], s_tol=1e-6, return_slices=False):
         """Slice the line so that positions in s never fall inside an element."""
 
+        self._method_incompatible_with_compose()
+
         if not self._has_valid_tracker():
             self.build_tracker(compile=False) # To resolve replicas and slices
 
@@ -2475,6 +2492,8 @@ class Line:
             line.append('o1', myoct)
 
         """
+
+        self._method_incompatible_with_compose()
 
         self.discard_tracker()
 
@@ -2568,6 +2587,8 @@ class Line:
             line.insert('ap1', at='start@q0')
 
         """
+
+        self._method_incompatible_with_compose()
 
         self.discard_tracker()
         env = self.env
@@ -2678,6 +2699,8 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
+
         self.discard_tracker()
 
         tt_remove = self._name_match(name)
@@ -2725,6 +2748,8 @@ class Line:
             error is raised.error is raised. Default is 1e-10.
 
         """
+
+        self._method_incompatible_with_compose()
 
         self.discard_tracker()
 
@@ -2795,6 +2820,8 @@ class Line:
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
         """
+
+        self._method_incompatible_with_compose()
 
         if at is not None:
             assert index is None
@@ -2894,6 +2921,8 @@ class Line:
             Name of the element to append
         """
 
+        self._method_incompatible_with_compose()
+
         if isinstance(element, xt.view.View):
             element = element._get_viewed_object()
 
@@ -2929,6 +2958,8 @@ class Line:
             elements are replaced with Drifts.
 
         """
+
+        self._method_incompatible_with_compose()
 
         if mask is None:
             assert exclude_types_starting_with is not None
@@ -2986,6 +3017,8 @@ class Line:
             A new line with the elements cycled.
 
         """
+
+        self._method_incompatible_with_compose()
 
         if not inplace:
             raise ValueError('`inplace=False` is not anymore supported')
@@ -3050,6 +3083,8 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
+
         assert state in (True, False)
         if not force:
             assert self.iscollective is False, ('Cannot freeze energy '
@@ -3077,6 +3112,7 @@ class Line:
             If True, longitudinal coordinates are frozen. If False, they are unfrozen.
 
         """
+        self._method_incompatible_with_compose()
 
         assert state in (True, False)
         assert self.iscollective is False, ('Cannot freeze longitudinal '
@@ -3098,6 +3134,8 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
+
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = True
 
@@ -3116,6 +3154,8 @@ class Line:
 
         """
 
+        self._method_incompatible_with_compose()
+
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
@@ -3133,6 +3173,8 @@ class Line:
             Model to be used for the drifts. Can be 'adaptive', 'exact' or
             'expanded'.
         """
+
+        self._method_incompatible_with_compose()
 
         if model is not None and model not in _MODEL_TO_INDEX_DRIFT:
             raise ValueError(f'Unknown drift model {model}')
@@ -3170,6 +3212,8 @@ class Line:
             Integration scheme to be used. Can be 'adaptive', 'teapot',
             'yoshida4', or 'uniform'.
         """
+
+        self._method_incompatible_with_compose()
 
         if core is not None and core not in _MODEL_TO_INDEX_CURVED:
             raise ValueError(f'Unknown bend model {core}')
@@ -3214,6 +3258,9 @@ class Line:
             Integration scheme to be used. Can be 'adaptive', 'teapot',
             'yoshida4', or 'uniform'.
         """
+
+        self._method_incompatible_with_compose()
+
         if edge not in [None, 'full', 'suppressed']:
             raise ValueError(f'Unknown edge model {edge}: only None or '
                              f'"full" are supported.')
@@ -3239,6 +3286,8 @@ class Line:
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
+
+        self._method_incompatible_with_compose()
         self._configure_mult(
             xt.Quadrupole,
             model=model,
@@ -3254,6 +3303,7 @@ class Line:
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
+        self._method_incompatible_with_compose()
         self._configure_mult(
             xt.Sextupole,
             model=model,
@@ -3269,6 +3319,7 @@ class Line:
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
+        self._method_incompatible_with_compose()
         self._configure_mult(
             xt.Octupole,
             model=model,
@@ -3292,6 +3343,8 @@ class Line:
         model_bhabha: str
             Bhabha model to use. Can be 'quantum' or None.
         """
+
+        self._method_incompatible_with_compose()
 
         if mode != 'deprecated':
             raise NameError('mode is deprecated, use model instead')
@@ -3365,6 +3418,7 @@ class Line:
         spin_model: str
             Spin model to use. Can be None, 'auto', 'True', 'False'
         """
+        self._method_incompatible_with_compose()
 
         assert spin_model in [None, 'auto', 'True', 'False']
         if spin_model is False:
@@ -3421,6 +3475,7 @@ class Line:
             If the element is an `IBSSimpleKick` and the line is operating
             below transition energy.
         """
+        self._method_incompatible_with_compose()
         try:
             from xfields.ibs import configure_intrabeam_scattering
         except ImportError as error:
@@ -3450,6 +3505,7 @@ class Line:
             Additional keyword arguments passed to the twiss method.
 
         """
+        self._method_incompatible_with_compose
 
         all_kwargs = locals().copy()
         all_kwargs.pop('self')
@@ -3475,6 +3531,7 @@ class Line:
             If True, all markers are kept.
 
         """
+        self._method_incompatible_with_compose()
 
         if self.iscollective:
             raise NotImplementedError("Optimization is not implemented for "
@@ -3552,6 +3609,7 @@ class Line:
             Record object containing the elements internal logging.
 
         """
+        self._method_incompatible_with_compose()
         self._check_valid_tracker()
         return start_internal_logging_for_elements_of_type(self.tracker,
                                                     element_type, capacity)
@@ -3566,6 +3624,7 @@ class Line:
             If True, the IO buffer is reinitialized (default: False).
 
         """
+        self._method_incompatible_with_compose()
         self._check_valid_tracker()
         stop_internal_logging(elements=self._elements)
 
@@ -3583,7 +3642,7 @@ class Line:
             Type of the elements for which internal logging is stopped.
 
         """
-
+        self._method_incompatible_with_compose()
         self._check_valid_tracker()
         stop_internal_logging_for_elements_of_type(self.tracker, element_type)
 
@@ -3601,7 +3660,7 @@ class Line:
             and `ksl` attributes are extended.
 
         """
-
+        self._method_incompatible_with_compose()
         self.discard_tracker()
 
         if element_names is None:
@@ -3643,6 +3702,7 @@ class Line:
         keep : str or list of str
             Name of the markers to keep (default: None)
         """
+        self._method_incompatible_with_compose()
         self._frozen_check()
 
         if keep is None:
@@ -3683,7 +3743,7 @@ class Line:
             Line with inactive multipoles removed
 
         '''
-
+        self._method_incompatible_with_compose()
         if not _vars_unused(self):
             raise NotImplementedError('`remove_inactive_multipoles` not'
                                       ' available when deferred expressions are'
@@ -3733,7 +3793,7 @@ class Line:
             Line with zero length drifts removed
 
         '''
-
+        self._method_incompatible_with_compose()
         if not _vars_unused(self):
             raise NotImplementedError('`remove_zero_length_drifts` not'
                                       ' available when deferred expressions are'
@@ -3780,7 +3840,7 @@ class Line:
             Line with consecutive drifts merged
 
         '''
-
+        self._method_incompatible_with_compose()
         assert inplace is True, 'Only inplace is supported for now'
 
         if self.mode == 'compose':
@@ -3842,6 +3902,7 @@ class Line:
             Line with redundant apertures removed
 
         '''
+        self._method_incompatible_with_compose()
 
         if not inplace:
             raise NotImplementedError('`remove_redundant_apertures` only'
@@ -3914,6 +3975,7 @@ class Line:
         with quadrupole elements. The element is not replaced when synchrotron
         radiation is active.
         '''
+        self._method_incompatible_with_compose()
         self._frozen_check()
 
         for name, element in self._element_dict.items():
@@ -3930,6 +3992,7 @@ class Line:
         with dipole elements. The element is not replaced when synchrotron
         radiation is active.
         '''
+        self._method_incompatible_with_compose()
         self._frozen_check()
 
         for name, element in self._element_dict.items():
@@ -3959,7 +4022,7 @@ class Line:
             List of names of elements of given type(s)
 
         '''
-
+        self._method_incompatible_with_compose()
         if not hasattr(types, "__iter__"):
             type_list = [types]
         else:
@@ -3990,7 +4053,7 @@ class Line:
             DataFrame with information about the apertures associated with
             each active element.
         '''
-
+        self._method_incompatible_with_compose()
         elements_df = self.to_pandas()
 
         elements_df['is_aperture'] = elements_df.name.map(
@@ -4104,6 +4167,7 @@ class Line:
         line : Line
             The modified line.
         '''
+        self._method_incompatible_with_compose()
 
         if not _vars_unused(self):
             raise NotImplementedError('`merge_consecutive_multipoles` not'
@@ -4181,6 +4245,7 @@ class Line:
         line_maps : Line
             Line with segments replaced by second order maps.
         '''
+        self._method_incompatible_with_compose()
 
         ele_cut_ext = split_at.copy()
         if self.element_names[0] not in ele_cut_ext:
@@ -4289,6 +4354,8 @@ class Line:
 
     def replicate(self, suffix, mirror=False):
 
+        self._method_incompatible_with_compose()
+
         new_element_names = []
         for nn in self.element_names:
             new_nn = nn + '.' + suffix
@@ -4303,24 +4370,26 @@ class Line:
         return out
 
     def clone(self, suffix, mirror=False):
+        self._method_incompatible_with_compose()
         out = self.replicate(suffix=suffix, mirror=mirror)
         out.replace_all_replicas()
         return out
 
     def replace_replica(self, name):
-        name_parent = self._element_dict[name].resolve(self, get_name=True)
-        self.copy_element_from(name_parent, self, new_name=name)
+        self._method_incompatible_with_compose()
+        self.env.replace_replica(name)
 
     def copy_element_from(self, name, source, new_name=None):
         return self.env.copy_element_from(name, source, new_name)
 
     def replace_all_replicas(self):
+        self._method_incompatible_with_compose()
         for nn in self.element_names:
             if isinstance(self._element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
 
     def replace_all_repeated_elements(self, separator='.', mode='clone'):
-
+        self._method_incompatible_with_compose()
         env = self.env
 
         self.discard_tracker()
@@ -4339,6 +4408,8 @@ class Line:
                     self.element_names[ii] = new_name
 
     def select(self, start=None, end=None, name=None):
+
+        self._method_incompatible_with_compose()
 
         if self.mode == 'compose':
             self._full_elements_from_composer()
@@ -4394,6 +4465,7 @@ class Line:
         return self.vars.eval(expr)
 
     def extend(self, line):
+        self._method_incompatible_with_compose()
         self.element_names.extend(line.element_names)
 
     def __len__(self):
@@ -4402,6 +4474,7 @@ class Line:
         return len(self.element_names)
 
     def items(self):
+        self._method_incompatible_with_compose()
         for name in self.element_names:
             yield name, self.env.elements[name]
 
@@ -5024,6 +5097,7 @@ class Line:
         ]
 
         '''
+        self._method_incompatible_with_compose()
 
         self._frozen_check()
 
@@ -5071,6 +5145,8 @@ class Line:
 
     def _insert_thick_elements_at_s(self, element_names, elements,
                                     at_s, s_tol=1e-6):
+
+        self._method_incompatible_with_compose()
 
         assert isinstance(element_names, (list, tuple))
         assert isinstance(elements, (list, tuple))
@@ -5151,6 +5227,8 @@ class Line:
 
     def _replace_with_equivalent_elements(self):
 
+        self._method_incompatible_with_compose()
+
         self._frozen_check()
 
         with xt.environment._disable_name_clash_checks(self.env):
@@ -5166,6 +5244,13 @@ class Line:
             raise RuntimeError(
                 '`Line._element_names_unique` con only be called after `Line.build_tracker`')
         return self.tracker._tracker_data_base._element_names_unique
+
+    def _method_incompatible_with_compose(self):
+        if self.mode == 'compose':
+            raise RuntimeError(
+                'This method is incompatible with the line in `compose` mode. '
+                'To exit the compose mode, use `line.end_compose()`.'
+            )
 
 
 

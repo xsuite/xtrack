@@ -267,7 +267,7 @@ class Environment:
                 # Clone an existing element
                 prototype = parent
                 self.elements[name] = xt.Replica(parent_name=parent)
-                xt.Line.replace_replica(self, name)
+                self.replace_replica(name)
 
                 parent_element = self._element_dict[name]
                 parent = type(parent_element)
@@ -337,7 +337,7 @@ class Environment:
                 raise NotImplementedError # To be sorted out
                 prototype = parent
                 self.particles[name] = xt.Replica(parent_name=parent)
-                xt.Line.replace_replica(self, name)
+                self.replace_replica(self, name)
 
                 parent_element = self._element_dict[name]
                 parent = type(parent_element)
@@ -577,6 +577,10 @@ class Environment:
                 raise ValueError('Only AttrRef and ItemRef are supported for now')
 
         return new_name
+
+    def replace_replica(self, name):
+        name_parent = self._element_dict[name].resolve(self, get_name=True)
+        self.copy_element_from(name_parent, self, new_name=name)
 
     def _import_element(self, line, name, rename_elements, suffix_for_common_elements,
                         already_imported):
