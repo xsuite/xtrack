@@ -1,18 +1,16 @@
 import xtrack as xt
 
 # Load a line and build a tracker
-collider = xt.load(
+env = xt.load(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
-collider.build_trackers()
+env.build_trackers()
 
-tw0 = collider.twiss(method='4d')
+tw0 = env.twiss(method='4d')
 
-twb1 = collider.lhcb1.twiss(start='e.ds.l5.b1', end='s.ds.r5.b1', init=tw0.lhcb1)
-twb2 = collider.lhcb2.twiss(start='e.ds.l5.b2', end='s.ds.r5.b2', init=tw0.lhcb2)
-vars = collider.vars
-line_b1 = collider.lhcb1
+twb1 = env.lhcb1.twiss(start='e.ds.l5.b1', end='s.ds.r5.b1', init=tw0.lhcb1)
+twb2 = env.lhcb2.twiss(start='e.ds.l5.b2', end='s.ds.r5.b2', init=tw0.lhcb2)
 
-opt = collider.match(
+opt = env.match(
     solve=False,
     vary=xt.VaryList([
         'acbxv1.r5', 'acbxv1.l5', # <-- common elements
@@ -28,12 +26,12 @@ opt = collider.match(
         twb2.target(y=0, py=-10e-6, at='ip5'),
         twb2.target(['y', 'py'], at=xt.END), # <-- preserve
         # Targets from vars
-        vars.target('acbxv1.l5', xt.LessThan(1e-3)),
-        vars.target('acbxv1.l5', xt.GreaterThan(1e-6)),
-        vars.target(lambda vv: vv['acbxv1.l5'] + vv['acbxv1.r5'], xt.LessThan(1e-9)),
+        env.vars.target('acbxv1.l5', xt.LessThan(1e-3)),
+        env.vars.target('acbxv1.l5', xt.GreaterThan(1e-6)),
+        env.vars.target(lambda vv: vv['acbxv1.l5'] + vv['acbxv1.r5'], xt.LessThan(1e-9)),
         # Targets from line
-        line_b1.target(lambda ll: ll['mcbrdv.4r5.b1'].ksl[0], xt.GreaterThan(1e-6)),
-        line_b1.target(lambda ll: ll['mcbxfbv.a2r5'].ksl[0] + ll['mcbxfbv.a2l5'].ksl[0],
+        env.lhcb1.target(lambda ll: ll['mcbrdv.4r5.b1'].ksl[0], xt.GreaterThan(1e-6)),
+        env.lhcb1.target(lambda ll: ll['mcbxfbv.a2r5/lhcb1'].ksl[0] + ll['mcbxfbv.a2l5/lhcb1'].ksl[0],
                                 xt.LessThan(1e-9)),
     ])
 opt.solve()
@@ -61,7 +59,7 @@ opt.target_status()
 
 import matplotlib.pyplot as plt
 
-tw = collider.twiss()
+tw = env.twiss()
 
 plt.close('all')
 fig = plt.figure(1, figsize=(6.4*1.3, 4.8))
@@ -71,7 +69,7 @@ plt.xlabel('s [m]')
 plt.ylabel('y [mm]')
 plt.legend()
 
-for nn in ['mcbxfbv.a2r5', 'mcbxfbv.a2l5', 'ip5',
+for nn in ['mcbxfbv.a2r5/lhcb1', 'mcbxfbv.a2l5/lhcb1', 'ip5',
            'mcbyv.a4l5.b1', 'mcbrdv.4r5.b1', 'mcbcv.5l5.b1',
            'mcbyv.4l5.b2', 'mcbrdv.4r5.b2', 'mcbcv.5r5.b2']:
     if nn.endswith('b2'):
