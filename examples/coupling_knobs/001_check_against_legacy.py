@@ -12,7 +12,7 @@ line.twiss_default['method'] = '4d'
 
 # Flat machine and skew quadrupoles off
 for nn in line.vars.get_table().rows['on_.*|acb.*|cm.*'].name:
-    line.vars[nn] = 0
+    line[nn] = 0
 
 # see Eq. 47 in https://cds.cern.ch/record/522049/files/lhc-project-report-501.pdf
 class ActionCmin(xt.Action):
@@ -38,12 +38,12 @@ act_cmin = ActionCmin(line)
 #       xt.VaryList(['kqs.l4b1', 'kqs.l8b1','kqs.r3b1', 'kqs.r7b1'], weight=2,
 #                   step=5e-5)]
 
-line.vars['kqs.a34b1'] = 0
-line.vars['kqs.a78b1'] = 0
-line.vars['kqs.l4b1'] = line.vars['kqs.a34b1']
-line.vars['kqs.l8b1'] = line.vars['kqs.a78b1']
-line.vars['kqs.r3b1'] = line.vars['kqs.a34b1']
-line.vars['kqs.r7b1'] = line.vars['kqs.a78b1']
+line['kqs.a34b1'] = 0
+line['kqs.a78b1'] = 0
+line.ref['kqs.l4b1'] = 'kqs.a34b1'
+line.ref['kqs.l8b1'] = 'kqs.a78b1'
+line.ref['kqs.r3b1'] = 'kqs.a34b1'
+line.ref['kqs.r7b1'] = 'kqs.a78b1'
 vary=xt.VaryList(['kqs.a23b1', 'kqs.a34b1', 'kqs.a67b1', 'kqs.a78b1'], step=5e-5)
 
 
@@ -71,17 +71,17 @@ opt_im = line.match_knob(knob_name='c_minus_im.b1',
 opt_im.solve()
 opt_im.generate_knob()
 
-line.vars['c_minus_re.b1'] = 5e-3
-line.vars['c_minus_im.b1'] = 0
+line['c_minus_re.b1'] = 5e-3
+line['c_minus_im.b1'] = 0
 tt_re = line.get_table(attr=True)
 
-line.vars['c_minus_re.b1'] = 0
-line.vars['c_minus_im.b1'] = 5e-3
+line['c_minus_re.b1'] = 0
+line['c_minus_im.b1'] = 5e-3
 tt_im = line.get_table(attr=True)
 
 # Check orthogonality
-line.vars['c_minus_re.b1'] = 1e-3
-line.vars['c_minus_im.b1'] = 1e-3
+line['c_minus_re.b1'] = 1e-3
+line['c_minus_im.b1'] = 1e-3
 assert np.isclose(line.twiss().c_minus/np.sqrt(2), 1e-3, rtol=0, atol=1.5e-5)
 
 # Compare against "legacy" knobs
@@ -91,16 +91,16 @@ line_legacy.cycle('ip1', inplace=True)
 
 # Flat machine and skew quadrupoles off
 for nn in line_legacy.vars.get_table().rows['on_.*|acb.*|cm.*'].name:
-    line_legacy.vars[nn] = 0
+    line_legacy[nn] = 0
 
 tw_leg = line_legacy.twiss()
 
-line_legacy.vars['cmrskew'] = 5e-3
-line_legacy.vars['cmiskew'] = 0
+line_legacy['cmrskew'] = 5e-3
+line_legacy['cmiskew'] = 0
 tt_re_leg = line_legacy.get_table(attr=True)
 
-line_legacy.vars['cmrskew'] = 0
-line_legacy.vars['cmiskew'] = 5e-3
+line_legacy['cmrskew'] = 0
+line_legacy['cmiskew'] = 5e-3
 tt_im_leg = line_legacy.get_table(attr=True)
 
 # Withing 12% of the maximum value
