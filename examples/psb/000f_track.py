@@ -4,10 +4,10 @@ import xtrack as xt
 line = xt.load('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()
 
-line.vars['on_chicane_k0'] = 1
-line.vars['on_chicane_k2'] = 1
-line.vars['on_chicane_beta_corr'] = 1
-line.vars['on_chicane_tune_corr'] = 1
+line['on_chicane_k0'] = 1
+line['on_chicane_k2'] = 1
+line['on_chicane_beta_corr'] = 1
+line['on_chicane_tune_corr'] = 1
 
 # Install monitor at foil
 monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=6000, num_particles=1)
