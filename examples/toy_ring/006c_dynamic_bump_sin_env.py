@@ -67,7 +67,7 @@ t_test = np.linspace(10e-6, 80e-6, 200)
 tw_list = []
 bumper_0_list = []
 for tt in t_test:
-    line.vars['t_turn_s'] = tt
+    line['t_turn_s'] = tt
     bumper_0_list.append(line['bumper_0'].k0) # Inspect bumper
     tw_list.append(line.twiss(method='4d')) # Twiss
 
