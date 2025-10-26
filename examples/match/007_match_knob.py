@@ -13,10 +13,10 @@ opt = line.match_knob('dqx.b1', knob_value_start=tw0.dqx, knob_value_end=3.0,
             targets=xt.TargetSet(dqx=3.0, dqy=tw0, tol=1e-6))
 
 # New terms have been added to knobs to vary
-line.vars['ksf.b1']._expr # is: (0.0 + vars['ksf.b1_from_dqx.b1'])
-line.vars['ksd.b1']._expr # is: (0.0 + vars['ksd.b1_from_dqx.b1'])
-line.vars['ksf.b1_from_dqx.b1']._expr # is None
-line.vars['ksd.b1_from_dqx.b1']._expr # is None
+line.ref['ksf.b1']._expr # is: (0.0 + vars['ksf.b1_from_dqx.b1'])
+line.ref['ksd.b1']._expr # is: (0.0 + vars['ksd.b1_from_dqx.b1'])
+line.ref['ksf.b1_from_dqx.b1']._expr # is None
+line.ref['ksd.b1_from_dqx.b1']._expr # is None
 
 # optimized acts on newly created terms
 opt.vary_status(); opt.target_status()
