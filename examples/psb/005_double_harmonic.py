@@ -24,9 +24,9 @@ line.energy_program = ep
 # Frequency program
 freq_rev = line.energy_program.get_frev_at_t_s(t_s)
 line.functions['fun_freq_rev'] = xd.FunctionPieceWiseLinear(x=t_s, y=freq_rev)
-line.vars['freq_rev'] = line.functions['fun_freq_rev'](line.vars['t_turn_s'])
-line.vars['freq_h1'] = line.vars['freq_rev']
-line.vars['freq_h2'] = 2 * line.vars['freq_rev']
+line['freq_rev'] = line.functions['fun_freq_rev'](line.ref['t_turn_s'])
+line['freq_h1'] = 'freq_rev'
+line['freq_h2'] = '2 * freq_rev'
 
 # voltage programs
 
@@ -39,24 +39,24 @@ phi2_rad = df.phi2_rad.values - np.pi
 
 line.functions['fun_volt_mv_h1'] = xd.FunctionPieceWiseLinear(x=t_s, y=V1_MV)
 line.functions['fun_volt_mv_h2'] = xd.FunctionPieceWiseLinear(x=t_s, y=V2_MV)
-line.vars['volt_mv_h1'] = line.functions['fun_volt_mv_h1'](line.vars['t_turn_s'])
-line.vars['volt_mv_h2'] = line.functions['fun_volt_mv_h2'](line.vars['t_turn_s'])
+line['volt_mv_h1'] = line.functions['fun_volt_mv_h1'](line.ref['t_turn_s'])
+line['volt_mv_h2'] = line.functions['fun_volt_mv_h2'](line.ref['t_turn_s'])
 
 # phase programs
 line.functions['fun_phi_rad_h1'] = xd.FunctionPieceWiseLinear(x=t_s, y=phi1_rad)
 line.functions['fun_phi_rad_h2'] = xd.FunctionPieceWiseLinear(x=t_s, y=phi2_rad)
-line.vars['phi_rad_h1'] = line.functions['fun_phi_rad_h1'](line.vars['t_turn_s'])
-line.vars['phi_rad_h2'] = line.functions['fun_phi_rad_h2'](line.vars['t_turn_s'])
+line['phi_rad_h1'] = line.functions['fun_phi_rad_h1'](line.ref['t_turn_s'])
+line['phi_rad_h2'] = line.functions['fun_phi_rad_h2'](line.ref['t_turn_s'])
 
 # Setup cavities
-line['br1.acwf5l1.1'].voltage = line.vars['volt_mv_h1'] * 1e6
-line['br1.acwf5l1.2'].voltage = line.vars['volt_mv_h2'] * 1e6
+line['br1.acwf5l1.1'].voltage = 'volt_mv_h1 * 1e6'
+line['br1.acwf5l1.2'].voltage = 'volt_mv_h2 * 1e6'
 
-line['br1.acwf5l1.1'].lag = line.vars['phi_rad_h1'] * 360 / 2 / np.pi
-line['br1.acwf5l1.2'].lag = line.vars['phi_rad_h2'] * 360 / 2 / np.pi
+line['br1.acwf5l1.1'].lag = line.ref['phi_rad_h1'] * 360 / 2 / np.pi
+line['br1.acwf5l1.2'].lag = line.ref['phi_rad_h2'] * 360 / 2 / np.pi
 
-line['br1.acwf5l1.1'].frequency = line.vars['freq_h1']
-line['br1.acwf5l1.2'].frequency = line.vars['freq_h2']
+line['br1.acwf5l1.1'].frequency = line.ref['freq_h1']
+line['br1.acwf5l1.2'].frequency = line.ref['freq_h2']
 
 
 # tw6d = line.twiss(method='6d')
@@ -72,7 +72,7 @@ volt_h1 = []
 volt_h2 = []
 for ii in range(len(t_s)):
     print(f'Computing twiss at t_s = {t_s[ii]:.4} s    ', end='\r', flush=True)
-    line.vars['t_turn_s'] = t_s[ii]
+    line['t_turn_s'] = t_s[ii]
     tt = line.twiss(method='4d')
     t_rev.append(tt.T_rev0)
     beta0.append(tt.beta0)
@@ -85,7 +85,7 @@ for ii in range(len(t_s)):
     volt_h2.append(line['br1.acwf5l1.2'].voltage)
 
 
-line.vars['t_turn_s'] = 0
+line['t_turn_s'] = 0
 
 
 # Test tracking
