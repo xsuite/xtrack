@@ -20,8 +20,6 @@ def test_cavity_absolute_time(test_context):
         'on_x.*|on_sep.*|on_crab.*|on_alice|on_lhcb|corr_.*'].name:
         line.vars[vv] = 0
 
-    line.particle_ref.t_sim = line.get_length()/ line.particle_ref.beta0[0] / clight
-
     tw = line.twiss()
 
     df_hz = -50
