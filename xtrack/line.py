@@ -1145,6 +1145,12 @@ class Line:
         if isinstance(particle_ref, LineParticleRef):
             particle_ref = particle_ref.line._particle_ref
         self._particle_ref = particle_ref
+        # This looks a bit dangerous, when working with coasting beams in environments.
+        # If the particle is shared with other lines, t_sim might be wrong.
+        if (self.particle_ref is not None and self.particle_ref.t_sim == 0.
+            and self.mode == 'normal'):
+            self.particle_ref.t_sim = (
+                self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
     @property
     def scattering(self):

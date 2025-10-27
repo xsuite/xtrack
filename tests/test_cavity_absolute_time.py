@@ -4,6 +4,8 @@ import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
+from scipy.constants import c as clight
+
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
@@ -17,6 +19,8 @@ def test_cavity_absolute_time(test_context):
     for vv in line.vars.get_table().rows[
         'on_x.*|on_sep.*|on_crab.*|on_alice|on_lhcb|corr_.*'].name:
         line.vars[vv] = 0
+
+    line.particle_ref.t_sim = line.get_length()/ line.particle_ref.beta0[0] / clight
 
     tw = line.twiss()
 
