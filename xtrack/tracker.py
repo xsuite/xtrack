@@ -100,12 +100,12 @@ class Tracker:
         else:
             ele_dict_non_collective = line._element_dict
 
-        tt = line.get_table()
-
         if _prebuilding_kernels:
+            tt = None
             element_s_locations = np.zeros(len(line.element_names))
             line_length = 0.
         else:
+            tt = line.get_table()
             element_s_locations = tt.s[:-1]  # remove _end_point
             line_length = tt.s[-1]
 
