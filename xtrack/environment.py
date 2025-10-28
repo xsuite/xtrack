@@ -1051,7 +1051,7 @@ class Environment:
 
     @property
     def element_dict(self):
-        return self.elements
+        return self._element_dict
 
     @element_dict.setter
     def element_dict(self, value):
