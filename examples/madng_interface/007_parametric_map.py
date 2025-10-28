@@ -57,14 +57,24 @@ mng.send(r'''
 
     mflw[1]:print() -- map at the end
 
-    !trk['MM'].__map:print() -- map at MM
+    trk['MM'].__map:print() -- map at MM
 
-    !local nf = MAD.gphys.normal(mflw[1])
-    !nf.a:print() -- normal form at the end
-    !local B0 = MAD.gphys.map2bet(nf.a:real())
-    !print(B0.beta11)
+    local nf = MAD.gphys.normal(mflw[1])
+     -- nf.a.x:print() -- normal form at the end
+     -- local B0 = MAD.gphys.map2bet(nf.a:real())
+     -- print(B0.beta11)
 
-    !local a_re = nf.a:real()
+    local a_re = nf.a:real():set0(nf.x0)
+    a_re.x:print()
+
+    local trk2, mflw2 = MAD.track{sequence=MADX.myseq, X0=a_re}
+
+    local a_re_exit = mflw2[1]
+
+    print(nf.a.status)
+    print(a_re.status)
+    print(a_re_exit.status)
+
     !print(a_re.x:get("100000")^2 + a_re.x:get("010000")^2)
     !print(a_re.x:get("1000001")^2)
 ''')
