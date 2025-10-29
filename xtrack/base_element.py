@@ -87,167 +87,173 @@ def _generate_track_local_particle_with_transformations(
     rot_and_shift_from_parent,
     local_particle_function_name,
     isthick,
-    xofields
+    xofields,
+    is_thin_slice,
 ):
     source = (
         '#include <headers/track.h>\n'
         '#include <headers/particle_states.h>\n'
         '#include <beam_elements/elements_src/track_misalignments.h>\n'
         f'GPUFUN void {local_particle_function_name}_with_transformations({element_name}Data el, LocalParticle* part0)'
-        '{\n'
     )
+    if not allow_rot_and_shift:
+        source += f'{{ {local_particle_function_name}(el, part0); }}\n'
+        return source
 
     if rot_and_shift_from_parent:
         add_to_transform_call = '__parent'
+        curves_reference_frame = hasattr(xofields['_parent']._reftype, 'h')
     else:
         add_to_transform_call = ''
+        curves_reference_frame = 'h' in xofields
 
-    if allow_rot_and_shift:
-        parent_with_angle = (
-            rot_and_shift_from_parent and
-            hasattr(xofields['_parent']._reftype, 'angle')
-        )
+    parent_with_angle = (
+        rot_and_shift_from_parent and
+        hasattr(xofields['_parent']._reftype, 'angle')
+    )
 
-        if rot_and_shift_from_parent:
-            source += (
-                f'double const weight = {element_name}Data_get_weight(el);\n'
-            )
-        else:
-            source += (
-                'double const weight = 1.0;\n'
-            )
+    source += '{\n'
 
-        if 'angle' in xofields or parent_with_angle:
-            element_shape = 'curved'
-            misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length * weight, angle * weight, h, rot_s_rad'
-            get_angle = f'double const angle = {element_name}Data_get{add_to_transform_call}_angle(el)'
-        else:
-            element_shape = 'straight'
-            misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length * weight, rot_s_rad'
-            get_angle = 'double const angle = 0'
-        get_rot_s_rad = 'double const rot_s_rad = atan2(_sin_rot_s, _cos_rot_s)'
-
-        if 'isthick' in xofields:
-            get_length = (
-                f'double const length = {element_name}Data_get{add_to_transform_call}_isthick(el)'
-                f' ? {element_name}Data_get{add_to_transform_call}_length(el)'
-                f' : 0.0'
-            )
-        elif isthick:
-            get_length = f'double const length = {element_name}Data_get{add_to_transform_call}_length(el)'
-        else:
-            get_length = 'double const length = 0.'
-
+    if rot_and_shift_from_parent:
         source += (
-            '    // Transform to local frame\n'
-            f'double const _sin_rot_s = {element_name}Data_get{add_to_transform_call}__sin_rot_s(el);\n'
-            'if (_sin_rot_s > -2.) {\n'
-            f'    double const _cos_rot_s = {element_name}Data_get{add_to_transform_call}__cos_rot_s(el);\n'
-            f'    {get_rot_s_rad};\n'
-            f'    double const shift_x = {element_name}Data_get{add_to_transform_call}__shift_x(el);\n'
-            f'    double const shift_y = {element_name}Data_get{add_to_transform_call}__shift_y(el);\n'
-            f'    double const shift_s = {element_name}Data_get{add_to_transform_call}__shift_s(el);\n'
-            f'    double const rot_x_rad = {element_name}Data_get{add_to_transform_call}__rot_x_rad(el);\n'
-            f'    double const rot_y_rad = {element_name}Data_get{add_to_transform_call}__rot_y_rad(el);\n'
-            f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_transform_call}__rot_s_rad_no_frame(el);\n'
-            f'    {get_length};\n'
-            f'    {get_angle};\n'
-            f'    double h = 0;\n'
-            f'    double anchor = {element_name}Data_get{add_to_transform_call}_rot_shift_anchor(el);\n'
-            f'    int8_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);\n'
-            '\n')
-
-        if element_name.startswith('ThinSlice') and 'Bend' in element_name:
-            source += (
-                f'double const slice_offset = {element_name}Data_get_slice_offset(el);\n'
-                f'anchor = anchor - slice_offset;\n'
-                f'h = {element_name}Data_get{add_to_transform_call}_h(el);\n'
-            )
-        elif rot_and_shift_from_parent:
-            source += (
-                f'double const slice_offset = {element_name}Data_get_slice_offset(el);\n'
-                f'anchor = anchor - slice_offset;\n'
-            )
-
-        source += (
-            f'printf("====> transform {element_name}: T = [%f, %f, %f, %f, %f, %f, %f], L = %f, weight = %f, alpha = %f, anchor = %f\\n", shift_x, shift_y, shift_s, rot_x_rad, rot_y_rad, rot_s_rad_no_frame, atan2(_sin_rot_s, _cos_rot_s), length, weight, angle, anchor);'
-            '     if (!backtrack) {\n'
-            f'      track_misalignment_entry_{element_shape}(part0, {misalign_arguments}, backtrack);'
-            '     } else {\n'
-            f'      track_misalignment_exit_{element_shape}(part0, {misalign_arguments}, backtrack);\n'
-            '     }\n'
-            '\n'
-            '    /* Spin tracking is disabled by the synrad compile flag */\n'
-            '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
-            '       // Rotate spin\n'
-            '       //start_per_particle_block (part0->part)\n'
-            '           double const spin_x_0 = LocalParticle_get_spin_x(part);\n'
-            '           double const spin_y_0 = LocalParticle_get_spin_y(part);\n'
-            '           if ((spin_x_0 != 0) || (spin_y_0 != 0)){\n'
-            '               double const spin_x_1 = _cos_rot_s*spin_x_0 + _sin_rot_s*spin_y_0;\n'
-            '               double const spin_y_1 = -_sin_rot_s*spin_x_0 + _cos_rot_s*spin_y_0;\n'
-            '               LocalParticle_set_spin_x(part, spin_x_1);\n'
-            '               LocalParticle_set_spin_y(part, spin_y_1);\n'
-            '          }\n'
-            '       //end_per_particle_block\n'
-            '    #endif\n'
-            '\n'
-            '}\n'
-            f'    {local_particle_function_name}(el, part0);\n'
-            '    // Transform back to global frame\n'
-            'if (_sin_rot_s > -2.) {\n'
-            f'    double const _cos_rot_s = {element_name}Data_get{add_to_transform_call}__cos_rot_s(el);\n'
-            f'    {get_rot_s_rad};\n'
-            f'    double const shift_x = {element_name}Data_get{add_to_transform_call}__shift_x(el);\n'
-            f'    double const shift_y = {element_name}Data_get{add_to_transform_call}__shift_y(el);\n'
-            f'    double const shift_s = {element_name}Data_get{add_to_transform_call}__shift_s(el);\n'
-            f'    double const rot_x_rad = {element_name}Data_get{add_to_transform_call}__rot_x_rad(el);\n'
-            f'    double const rot_y_rad = {element_name}Data_get{add_to_transform_call}__rot_y_rad(el);\n'
-            f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_transform_call}__rot_s_rad_no_frame(el);\n'
-            f'    {get_length};\n'
-            f'    {get_angle};\n'
-            f'    double h = 0;\n'
-            f'    double anchor = {element_name}Data_get{add_to_transform_call}_rot_shift_anchor(el);\n'
-            f'    int8_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);\n'
-            '\n'
-            '    /* Spin tracking is disabled by the synrad compile flag */\n'
-            '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
-            '       // Rotate spin\n'
-            '       //start_per_particle_block (part0->part)\n'
-            '           double const spin_x_0 = LocalParticle_get_spin_x(part);\n'
-            '           double const spin_y_0 = LocalParticle_get_spin_y(part);\n'
-            '           if ((spin_x_0 != 0) || (spin_y_0 != 0)){\n'
-            '               double const spin_x_1 = _cos_rot_s*spin_x_0 - _sin_rot_s*spin_y_0;\n'
-            '               double const spin_y_1 = _sin_rot_s*spin_x_0 + _cos_rot_s*spin_y_0;\n'
-            '               LocalParticle_set_spin_x(part, spin_x_1);\n'
-            '               LocalParticle_set_spin_y(part, spin_y_1);\n'
-            '          }\n'
-            '       //end_per_particle_block\n'
-            '    #endif\n'
-        )
-        if element_name.startswith('ThinSlice') and 'Bend' in element_name:
-            source += (
-                f'double const slice_offset = {element_name}Data_get_slice_offset(el);\n'
-                f'anchor = anchor - slice_offset;\n'
-                f'h = {element_name}Data_get{add_to_transform_call}_h(el);\n'
-            )
-        elif rot_and_shift_from_parent:
-            source += (
-                f'double const slice_offset = {element_name}Data_get_slice_offset(el);\n'
-                f'anchor = anchor - slice_offset;\n'
-            )
-        source += (
-            '     if (!backtrack) {\n'
-            f'       track_misalignment_exit_{element_shape}(part0, {misalign_arguments}, backtrack);'
-            '     } else {\n'
-            f'       track_misalignment_entry_{element_shape}(part0, {misalign_arguments}, backtrack);\n'
-            '     }\n'
-            '}\n'
+            f'double const weight = {element_name}Data_get_weight(el);\n'
         )
     else:
         source += (
-            f'    {local_particle_function_name}(el, part0);\n'
+            'double const weight = 1.0;\n'
         )
+
+    if 'angle' in xofields or parent_with_angle:
+        element_shape = 'curved'
+        misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length * weight, angle * weight, h, rot_s_rad'
+        get_angle = f'double const angle = {element_name}Data_get{add_to_transform_call}_angle(el)'
+    else:
+        element_shape = 'straight'
+        misalign_arguments = 'shift_x, shift_y, shift_s, rot_y_rad, rot_x_rad, rot_s_rad_no_frame, anchor, length * weight, rot_s_rad'
+        get_angle = 'double const angle = 0'
+    get_rot_s_rad = 'double const rot_s_rad = atan2(_sin_rot_s, _cos_rot_s)'
+
+    if 'isthick' in xofields:
+        get_length = (
+            f'double const length = {element_name}Data_get{add_to_transform_call}_isthick(el)'
+            f' ? {element_name}Data_get{add_to_transform_call}_length(el)'
+            f' : 0.0'
+        )
+    elif isthick:
+        get_length = f'double const length = {element_name}Data_get{add_to_transform_call}_length(el)'
+    else:
+        get_length = 'double const length = 0.'
+
+    source += (
+        '// Transform to local frame\n'
+        f'double const _sin_rot_s = {element_name}Data_get{add_to_transform_call}__sin_rot_s(el);\n'
+        'if (_sin_rot_s > -2.) {\n'
+        f'    double const _cos_rot_s = {element_name}Data_get{add_to_transform_call}__cos_rot_s(el);\n'
+        f'    {get_rot_s_rad};\n'
+        f'    double const shift_x = {element_name}Data_get{add_to_transform_call}__shift_x(el);\n'
+        f'    double const shift_y = {element_name}Data_get{add_to_transform_call}__shift_y(el);\n'
+        f'    double const shift_s = {element_name}Data_get{add_to_transform_call}__shift_s(el);\n'
+        f'    double const rot_x_rad = {element_name}Data_get{add_to_transform_call}__rot_x_rad(el);\n'
+        f'    double const rot_y_rad = {element_name}Data_get{add_to_transform_call}__rot_y_rad(el);\n'
+        f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_transform_call}__rot_s_rad_no_frame(el);\n'
+        f'    {get_length};\n'
+        f'    {get_angle};\n'
+        f'    double h = 0;\n'
+        f'    double anchor = {element_name}Data_get{add_to_transform_call}_rot_shift_anchor(el);\n'
+        f'    int8_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);\n'
+        '\n')
+
+    if is_thin_slice and element_shape == 'curved':
+        source += (
+            "if (_sin_rot_s > -2.) {\n"
+            "   START_PER_PARTICLE_BLOCK(part0, part);\n"
+            "       LocalParticle_set_state(part, XT_INVALID_THIN_SLICE_TRANSFORM);\n"
+            "   END_PER_PARTICLE_BLOCK;\n"
+            "}\n"
+        )
+
+    if rot_and_shift_from_parent:
+        source += (
+            f'double const slice_offset = {element_name}Data_get_slice_offset(el);\n'
+            f'anchor = anchor - slice_offset;\n'
+        )
+
+    if curves_reference_frame:
+        source += f'h = {element_name}Data_get{add_to_transform_call}_h(el);\n'
+
+    source += (
+        '     if (!backtrack) {\n'
+        f'      track_misalignment_entry_{element_shape}(part0, {misalign_arguments}, backtrack);'
+        '     } else {\n'
+        f'      track_misalignment_exit_{element_shape}(part0, {misalign_arguments}, backtrack);\n'
+        '     }\n'
+        '\n'
+        '    /* Spin tracking is disabled by the synrad compile flag */\n'
+        '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
+        '       // Rotate spin\n'
+        '       //start_per_particle_block (part0->part)\n'
+        '           double const spin_x_0 = LocalParticle_get_spin_x(part);\n'
+        '           double const spin_y_0 = LocalParticle_get_spin_y(part);\n'
+        '           if ((spin_x_0 != 0) || (spin_y_0 != 0)){\n'
+        '               double const spin_x_1 = _cos_rot_s*spin_x_0 + _sin_rot_s*spin_y_0;\n'
+        '               double const spin_y_1 = -_sin_rot_s*spin_x_0 + _cos_rot_s*spin_y_0;\n'
+        '               LocalParticle_set_spin_x(part, spin_x_1);\n'
+        '               LocalParticle_set_spin_y(part, spin_y_1);\n'
+        '          }\n'
+        '       //end_per_particle_block\n'
+        '    #endif\n'
+        '\n'
+        '}\n'
+        f'    {local_particle_function_name}(el, part0);\n'
+        '    // Transform back to global frame\n'
+        'if (_sin_rot_s > -2.) {\n'
+        f'    double const _cos_rot_s = {element_name}Data_get{add_to_transform_call}__cos_rot_s(el);\n'
+        f'    {get_rot_s_rad};\n'
+        f'    double const shift_x = {element_name}Data_get{add_to_transform_call}__shift_x(el);\n'
+        f'    double const shift_y = {element_name}Data_get{add_to_transform_call}__shift_y(el);\n'
+        f'    double const shift_s = {element_name}Data_get{add_to_transform_call}__shift_s(el);\n'
+        f'    double const rot_x_rad = {element_name}Data_get{add_to_transform_call}__rot_x_rad(el);\n'
+        f'    double const rot_y_rad = {element_name}Data_get{add_to_transform_call}__rot_y_rad(el);\n'
+        f'    double const rot_s_rad_no_frame = {element_name}Data_get{add_to_transform_call}__rot_s_rad_no_frame(el);\n'
+        f'    {get_length};\n'
+        f'    {get_angle};\n'
+        f'    double h = 0;\n'
+        f'    double anchor = {element_name}Data_get{add_to_transform_call}_rot_shift_anchor(el);\n'
+        f'    int8_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);\n'
+        '\n'
+        '    /* Spin tracking is disabled by the synrad compile flag */\n'
+        '    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD\n'
+        '       // Rotate spin\n'
+        '       //start_per_particle_block (part0->part)\n'
+        '           double const spin_x_0 = LocalParticle_get_spin_x(part);\n'
+        '           double const spin_y_0 = LocalParticle_get_spin_y(part);\n'
+        '           if ((spin_x_0 != 0) || (spin_y_0 != 0)){\n'
+        '               double const spin_x_1 = _cos_rot_s*spin_x_0 - _sin_rot_s*spin_y_0;\n'
+        '               double const spin_y_1 = _sin_rot_s*spin_x_0 + _cos_rot_s*spin_y_0;\n'
+        '               LocalParticle_set_spin_x(part, spin_x_1);\n'
+        '               LocalParticle_set_spin_y(part, spin_y_1);\n'
+        '          }\n'
+        '       //end_per_particle_block\n'
+        '    #endif\n'
+    )
+    if rot_and_shift_from_parent:
+        source += (
+            f'double const slice_offset = {element_name}Data_get_slice_offset(el);\n'
+            f'anchor = anchor - slice_offset;\n'
+        )
+
+    if curves_reference_frame:
+        source += f'h = {element_name}Data_get{add_to_transform_call}_h(el);\n'
+
+    source += (
+        '     if (!backtrack) {\n'
+        f'       track_misalignment_exit_{element_shape}(part0, {misalign_arguments}, backtrack);'
+        '     } else {\n'
+        f'       track_misalignment_entry_{element_shape}(part0, {misalign_arguments}, backtrack);\n'
+        '     }\n'
+        '}\n'
+    )
+
     source += '}\n'
     return source
 
@@ -521,6 +527,8 @@ class MetaBeamElement(xo.MetaHybridClass):
                     local_particle_function_name=name+'_track_local_particle',
                     isthick=data['_isthick'],
                     xofields=xofields,
+                    is_thin_slice=(
+                        '_ThinSliceElementBase' in (base.__name__ for base in bases)),
                 )
             )
 

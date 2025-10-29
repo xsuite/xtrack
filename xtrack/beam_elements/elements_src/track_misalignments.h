@@ -128,11 +128,6 @@ void track_misalignment_entry_curved(
     double psi_with_frame,  // psi_with_frame of the element, positive s to x
     int8_t backtrack
 ) {
-    printf("track_misalignment_entry_curved:\n");
-    printf("    dx = %f, dy = %f, ds = %f\n", dx, dy, ds);
-    printf("    theta = %f, phi = %f, psi_no_frame = %f\n", theta, phi, psi_no_frame);
-    printf("    anchor = %f, length = %f, angle = %f, h = %f, psi_with_frame = %f\n", anchor, length, angle, h, psi_with_frame);
-    printf("    backtrack = %d\n", backtrack);
     if (angle == 0.0 && length != 0.0) {
         track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi,
             psi_no_frame, anchor, length, psi_with_frame, backtrack);
@@ -259,12 +254,6 @@ void track_misalignment_exit_curved(
     double psi_with_frame,  // psi_with_frame of the element, positive s to x
     int8_t backtrack  // whether to backtrack the particle
 ) {
-    printf("track_misalignment_exit_curved:\n");
-    printf("    dx = %f, dy = %f, ds = %f\n", dx, dy, ds);
-    printf("    theta = %f, phi = %f, psi_no_frame = %f\n", theta, phi, psi_no_frame);
-    printf("    anchor = %f, length = %f, angle = %f, h = %f, psi_with_frame = %f\n", anchor, length, angle, h, psi_with_frame);
-    printf("    backtrack = %d\n", backtrack);
-
     if (angle == 0.0 && length != 0.0) {
         track_misalignment_exit_straight(
             part0, dx, dy, ds, theta, phi, psi_no_frame, anchor, length,

@@ -385,7 +385,7 @@ class Environment:
 
 
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
-                 length=None, s_tol=1e-6):
+                 length=None, s_tol=1e-6) -> xt.Line:
 
         '''
         Create a new line.

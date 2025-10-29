@@ -19,13 +19,13 @@ flag_defaults = {
 }
 
 c_header_flag_mapping = """
-#ifndef XSTUITE_TRACK_FLAGS_H
-#define XSTUITE_TRACK_FLAGS_H
+#ifndef XSUITE_TRACK_FLAGS_H
+#define XSUITE_TRACK_FLAGS_H
 """
 for flag_name, bit_pos in flag_mapping.items():
     c_header_flag_mapping += f"#define {flag_name} ({bit_pos})\n"
 c_header_flag_mapping += """
-#endif // XSTUITE_TRACK_FLAGS_H
+#endif // XSUITE_TRACK_FLAGS_H
 """
 
 class TrackFlags:
