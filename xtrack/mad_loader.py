@@ -810,8 +810,8 @@ class MadLoader:
 
         if self.enable_field_errors:
             kwargs = _prepare_field_errors_thick_elem(mad_el)
-            knl = kwargs['knl']
-            ksl = kwargs['ksl']
+            knl = kwargs.get('knl', [0, 0, 0])
+            ksl = kwargs.get('ksl', [0, 0, 0])
             num_multipole_kicks = 1
         else:
             knl = [0] * 3
