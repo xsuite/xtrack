@@ -1630,7 +1630,7 @@ class Particles(xo.HybridClass):
                 else:
                     src_angles_lines.append('    double const rpp = LocalParticle_get_rpp(part);')
                 src_angles_lines.append('    // INFO: this is not the angle, but sin(angle)')
-                src_angles_lines.append('    return p{xx}*rpp;')
+                src_angles_lines.append(f'    return p{xx}*rpp;')
                 src_angles_lines.append('}')
                 src_angles_lines.append('')
 
