@@ -988,6 +988,7 @@ class MadLoader:
     convert_vmonitor = convert_drift_like
     convert_collimator = convert_drift_like
     convert_rcollimator = convert_drift_like
+    convert_ecollimator = convert_drift_like
     convert_elseparator = convert_drift_like
     convert_instrument = convert_drift_like
 
