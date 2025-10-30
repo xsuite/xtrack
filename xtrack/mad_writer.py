@@ -565,6 +565,8 @@ def element_to_mad_str(
             tokens = xsuite_to_mad_converters[el._parent.__class__](eref, mad_type=mad_type, substituted_vars=substituted_vars)
             if isinstance(el, xt.beam_elements.slice_elements_edge._ThinSliceEdgeBase):
                 tokens.append(mad_assignment('kill_body', True, mad_type, substituted_vars=substituted_vars))
+        else:
+            raise NotImplementedError(f"Element of type {el.__class__} not supported yet in MAD writer")
     else:
         tokens = xsuite_to_mad_converters[el.__class__](eref, mad_type=mad_type, substituted_vars=substituted_vars)
 
