@@ -1,7 +1,8 @@
 import numpy as np
 import scipy
-
-# https://par.nsf.gov/servlets/purl/10220882
+# Hampton et al., Closed-form expressions for the magnetic fields of rectangular
+# and circular finite-length solenoids and current loops
+# https://pubs.aip.org/aip/adv/article/10/6/065320/997382/
 
 def ellipp(n, m):
     """

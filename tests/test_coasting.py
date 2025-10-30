@@ -21,7 +21,7 @@ def test_coasting():
     tt = line.get_table()
     ttcav = tt.rows[tt.element_type == 'Cavity']
     for nn in ttcav.name:
-        line.element_refs[nn].voltage=0
+        line[nn].voltage=0
 
     line.configure_bend_model(core='bend-kick-bend', edge='full')
     line.twiss_default['method'] = '4d'

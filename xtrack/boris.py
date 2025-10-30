@@ -18,27 +18,34 @@ class BorisSpatialIntegrator:
 
     def track(self, p):
 
+        mask_alive = p.state > 0
+
         x_log = []
         y_log = []
         z_log = []
-        s_in = p.s.copy()
-        p.s=self.s_start
+        s_in = p.s[mask_alive].copy()
+        p.s[mask_alive] = self.s_start
 
         for ii in range(self.n_steps):
 
             if self.verbose:
                 print(f's_in = {s_in[0]:.3f} s_in_map = {p.s[0]:.3f}', end='\r', flush=True)
 
-            q0 = p.q0
-            x = p.x.copy()
-            y = p.y.copy()
-            z = p.s.copy()
-            px = p.px.copy()
-            py = p.py.copy()
-            delta = p.delta.copy()
-            p0c = p.p0c
+            x = p.x[mask_alive].copy()
+            y = p.y[mask_alive].copy()
+            z = p.s[mask_alive].copy()
+            px = p.px[mask_alive].copy()
+            py = p.py[mask_alive].copy()
+            delta = p.delta[mask_alive].copy()
+            energy = p.energy[mask_alive].copy()
+            p0c = p.p0c[mask_alive].copy()
+            beta0 = p.beta0[mask_alive].copy()
+            charge = p.charge[mask_alive].copy()
+            mass = p.mass[mask_alive].copy()
 
-            charge0_coulomb = q0 * qe
+            charge_coulomb = charge * qe
+            mass_kg = mass * qe / clight**2
+            gamma = energy / mass
 
             P0 = p0c * qe / clight # in kg m/s
             P = P0 * (1 + delta)
@@ -51,19 +58,20 @@ class BorisSpatialIntegrator:
             w[:, 1] = Py
             w[:, 2] = P
 
-            x_new, y_new, z_new, w_new = step_spatial_boris_B(x, y, z, w,
-                charge0_coulomb, self.ds,
-                field_fn=self.fieldmap_callable)
-            p.x = x_new.copy()
-            p.y = y_new.copy()
-            p.s = z_new.copy()
-            p.px = w_new[:, 0] / P0
-            p.py = w_new[:, 1] / P0
+            x_new, y_new, z_new, w_new, dt = step_spatial_boris_B(x, y, z, w,
+                charge_coulomb, self.ds,
+                field_fn=self.fieldmap_callable, m_kg=mass_kg, gamma=gamma)
+            p.x[mask_alive] = x_new
+            p.y[mask_alive] = y_new
+            p.s[mask_alive] = z_new
+            p.px[mask_alive] = w_new[:, 0] / P0
+            p.py[mask_alive] = w_new[:, 1] / P0
+            p.zeta[mask_alive] += (self.ds - dt * clight * beta0)
 
             x_log.append(p.x.copy())
             y_log.append(p.y.copy())
             z_log.append(p.s.copy())
-        p.s = s_in + self.length
+        p.s[mask_alive] = s_in + self.length
         self.x_log = np.array(x_log)
         self.y_log = np.array(y_log)
         self.z_log = np.array(z_log)
@@ -72,7 +80,7 @@ class BorisSpatialIntegrator:
 import numpy as np
 c = 299_792_458.0  # m/s
 
-def step_spatial_boris_B(x, y, z, w, q, dz, field_fn):
+def step_spatial_boris_B(x, y, z, w, q, dz, field_fn, m_kg, gamma):
     """
     Spatial Boris step for magnetic fields only (E = 0),
     using constant total momentum magnitude P = w[:,2].
@@ -99,6 +107,8 @@ def step_spatial_boris_B(x, y, z, w, q, dz, field_fn):
         Updated momentum state (px, py, P).
     """
 
+    dt = 0.
+
     # --- Unpack and ensure arrays
     x = np.asarray(x)
     y = np.asarray(y)
@@ -113,6 +123,7 @@ def step_spatial_boris_B(x, y, z, w, q, dz, field_fn):
     xh = x + (px / pz) * (dz * 0.5)
     yh = y + (py / pz) * (dz * 0.5)
     zh = z + dz * 0.5
+    dt += (dz * 0.5) / pz * gamma * m_kg #  s
 
     # --- Evaluate magnetic field at mid-step
     Bx, By, Bz = field_fn(xh, yh, zh)
@@ -154,8 +165,9 @@ def step_spatial_boris_B(x, y, z, w, q, dz, field_fn):
     x1 = xh + (px1 / pz1) * (dz * 0.5)
     y1 = yh + (py1 / pz1) * (dz * 0.5)
     z1 = z + dz
+    dt += (dz * 0.5) / pz1 * gamma * m_kg #  s
 
     # --- Pack updated (px, py, P)
     w1 = np.stack([px1, py1, P], axis=1)
 
-    return x1, y1, z1, w1
+    return x1, y1, z1, w1, dt

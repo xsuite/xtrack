@@ -1474,7 +1474,7 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
     line_test = xt.Line(elements=[solenoid])
     line_test.build_tracker(_context=test_context)
 
-    elements_ref = [solenoid_no_kick] + 3 * [
+    elements_sol = [solenoid_no_kick] + 3 * [
         xt.XYShift(dx=mult_shift_x),
         xt.YRotation(angle=np.rad2deg(-mult_rot_y_rad)),
         kick,
@@ -1482,7 +1482,7 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
         xt.XYShift(dx=-mult_shift_x),
         solenoid_no_kick
     ]
-    line_ref = xt.Line(elements=elements_ref)
+    line_ref = xt.Line(elements=elements_sol)
     line_ref.build_tracker(_context=test_context)
 
     p0 = xt.Particles(x=1e-2, px=-2e-4, y=-2e-2, py=3e-4, zeta=1e-2, delta=1e-3)

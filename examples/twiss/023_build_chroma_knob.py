@@ -44,8 +44,8 @@ tw = line.twiss()
 assert np.isclose(tw.dqx, 2.0, atol=1e-6)
 assert np.isclose(tw.dqy, 2.0, atol=1e-6)
 
-line.vars['dqx.b1'] = 6.0
-line.vars['dqy.b1'] = 7.0
+line['dqx.b1'] = 6.0
+line['dqy.b1'] = 7.0
 
 tw = line.twiss()
 assert np.isclose(tw.dqx, 6.0, atol=1e-4)

@@ -43,16 +43,15 @@ line.particle_ref = xt.Particles(energy0=kin_energy_0 + xt.PROTON_MASS_EV, # tot
 tw = line.twiss(method='4d')
 
 # Power the correctors to make a closed orbit bump
-line.vars['bumper_strength'] = 0.
-line.element_refs['bumper_0'].k0 = -line.vars['bumper_strength']
-line.element_refs['bumper_1'].k0 = 2 * line.vars['bumper_strength']
-line.element_refs['bumper_2'].k0 = -line.vars['bumper_strength']
+line['bumper_strength'] = 0.
+line['bumper_0'].k0 = '-bumper_strength'
+line['bumper_1'].k0 = '2 * bumper_strength'
+line['bumper_2'].k0 = '-bumper_strength'
 
 # Drive the correctors with a sinusoidal function
 T_sin = 100e-6
 sin = line.functions.sin
-line.vars['bumper_strength'] = (0.1 * sin(2 * np.pi / T_sin * line.vars['t_turn_s']))
-
+line['bumper_strength'] = (0.1 * sin(2 * np.pi / T_sin * line.ref['t_turn_s']))
 
 # --- Probe behavior with twiss at different t_turn_s ---
 
@@ -60,8 +59,8 @@ t_test = np.linspace(0, 100e-6, 15)
 tw_list = []
 bumper_0_list = []
 for tt in t_test:
-    line.vars['t_turn_s'] = tt
-    bumper_0_list.append(line.element_refs['bumper_0'].k0) # Inspect bumper
+    line['t_turn_s'] = tt
+    bumper_0_list.append(line['bumper_0'].k0) # Inspect bumper
     tw_list.append(line.twiss(method='4d')) # Twiss
 
 # Plot

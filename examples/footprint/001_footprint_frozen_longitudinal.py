@@ -14,7 +14,7 @@ line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7e12)
 line.build_tracker()
 
 # Some octupoles and chromaticity to see the footprint moving
-line.vars['i_oct_b1'] = 500
+line['i_oct_b1'] = 500
 line.match(
     targets=[xt.TargetList(['dqx', 'dqy'], value=10, tol=0.01)],
     vary=[xt.VaryList(['ksf.b1', 'ksd.b1'], step=1e-3)])

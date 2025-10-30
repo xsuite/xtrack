@@ -57,8 +57,8 @@ halfcell.new('corrector.h', 'corrector', at=-0.75, from_='mq.f')
 
 halfcell = halfcell.build() # The builder can be found in halfcell.builder
 
-hcell_left = halfcell.replicate(name='l', mirror=True)
-hcell_right = halfcell.replicate(name='r')
+hcell_left = halfcell.replicate(suffix='l', mirror=True)
+hcell_right = halfcell.replicate(suffix='r')
 
 cell = env.new_builder()
 
@@ -96,8 +96,8 @@ halfcell_ss.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
 
 halfcell_ss = halfcell_ss.build()
 
-hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
-hcell_right_ss = halfcell_ss.replicate(name='r')
+hcell_left_ss = halfcell_ss.replicate(suffix='l', mirror=True)
+hcell_right_ss = halfcell_ss.replicate(suffix='r')
 
 cell_ss = env.new_builder()
 cell_ss.new('start.ss', xt.Marker)
@@ -121,10 +121,11 @@ arc.new('cell.3', cell, mode='replica')
 arc = arc.build()
 
 ss = env.new_builder()
-ss.new('cell.1', cell_ss, mode='replica')
-ss.new('cell.2', cell_ss, mode='replica')
+ss.new('ss.cell.1', cell_ss, mode='replica')
+ss.new('ss.cell.2', cell_ss, mode='replica')
 ss = ss.build()
 
+breakpoint()
 ring = env.new_builder()
 ring.new('arc.1', arc, mode='replica')
 ring.new('ss.1', ss, mode='replica')

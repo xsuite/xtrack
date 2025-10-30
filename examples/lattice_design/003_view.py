@@ -38,7 +38,7 @@ assert ee.get('b1') == 9
 assert ee.get('b2') == 9
 assert ee.get('c') == 12
 
-eenv.new('mb', 'Bend', extra={'description': 'Hello Riccarco'},
+eenv.new('mb', 'Bend', extra={'kmax': '3*a'},
         k1='3*a', h=4*ee.ref['a'], knl=[0, '5*a', 6*ee.ref['a']])
 assert isinstance(ee['mb'].k1, float)
 assert isinstance(ee['mb'].h, float)
@@ -87,7 +87,7 @@ assert ee.get('mb').knl[1] == 200
 assert ee.get('mb').knl[2] == 240
 
 # Some interesting behavior
-assert type(ee['mb']) is xd.madxutils.View
+assert type(ee['mb']) is xt.view.View
 assert ee['mb'].__class__ is xt.Bend
 assert type(ee.ref['mb']._value) is xt.Bend
 assert type(ee.get('mb')) is xt.Bend

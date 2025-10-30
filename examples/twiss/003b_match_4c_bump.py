@@ -79,10 +79,10 @@ assert np.isclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=10
 # Now I match the bump including the horizontal plane
 
 # I start from scratch
-line.vars['acbv30.l8b1'] = 0
-line.vars['acbv28.l8b1'] = 0
-line.vars['acbv26.l8b1'] = 0
-line.vars['acbv24.l8b1'] = 0
+line['acbv30.l8b1'] = 0
+line['acbv28.l8b1'] = 0
+line['acbv26.l8b1'] = 0
+line['acbv24.l8b1'] = 0
 
 line.match(
     start='mq.33l8.b1',

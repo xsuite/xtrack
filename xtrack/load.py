@@ -51,6 +51,7 @@ def load(
         format: Literal['json', 'madx', 'python', 'csv', 'hdf5', 'tfs'] = None,
         timeout=5.0,
         reverse_lines=None,
+        **kwargs
 ):
     if isinstance(file, Path):
         file = str(file)
@@ -84,22 +85,24 @@ def load(
             cls = getattr(xt, cls_name, None)
             if cls is None:
                 raise ValueError(f'Unknown class {cls_name!r} in json data')
-            return cls.from_dict(payload)
+            return cls.from_dict(payload, **kwargs)
         if 'lines' in payload:
-            return xt.Environment.from_dict(payload)
+            return xt.Environment.from_dict(payload, **kwargs)
         if 'element_names' in payload or 'line' in payload:
             if 'line' in payload:
                 payload = payload['line']
-            return xt.Line.from_dict(payload)
+            return xt.Line.from_dict(payload, **kwargs)
         raise ValueError('Cannot determine class from json data')
 
     if format == 'madx':
-        return xt.load_madx_lattice(file=file, string=string, reverse_lines=reverse_lines)
+        return xt.load_madx_lattice(file=file, string=string,
+                                    reverse_lines=reverse_lines,
+                                    **kwargs)
 
     if format == 'python':
         if string is not None:
             raise NotImplementedError('Loading from string not implemented for python format')
-        env = xt.Environment()
+        env = xt.Environment(**kwargs)
         env.call(file)
         return env
 
@@ -107,11 +110,11 @@ def load(
         if string is not None:
             text = string.decode() if isinstance(string, bytes) else string
             buffer = io.StringIO(text)
-            base_table = xt.Table.from_csv(buffer)
+            base_table = xt.Table.from_csv(buffer, **kwargs)
         else:
             if hasattr(file, 'seek'):
                 file.seek(0)
-            base_table = xt.Table.from_csv(file)
+            base_table = xt.Table.from_csv(file, **kwargs)
         return _resolve_table_instance(base_table)
 
     if format == 'hdf5':
@@ -130,11 +133,11 @@ def load(
         if string is not None:
             text = string.decode() if isinstance(string, bytes) else string
             buffer = io.StringIO(text)
-            base_table = xt.Table.from_tfs(buffer)
+            base_table = xt.Table.from_tfs(buffer, **kwargs)
         else:
             if hasattr(file, 'seek'):
                 file.seek(0)
-            base_table = xt.Table.from_tfs(file)
+            base_table = xt.Table.from_tfs(file, **kwargs)
         return _resolve_table_instance(base_table)
 
     raise ValueError(f'Unsupported format {format!r}')
