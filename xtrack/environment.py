@@ -1861,8 +1861,7 @@ class EnvParticleRef:
 
     def copy(self, **kwargs):
         return self._resolved.copy(**kwargs)
-
-
+   
 class EnvVars:
 
     def __init__(self, env):
@@ -2200,3 +2199,4 @@ def _disable_name_clash_checks(env):
         yield
     finally:
         env._enable_name_clash_check = old_value
+

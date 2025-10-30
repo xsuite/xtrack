@@ -697,3 +697,14 @@ def test_LocalParticle_angles(test_context):
     particles.move(_context=xo.ContextCpu())
     xo.assert_allclose(particles.px, [23.99302e-3, 18.01805e-3], atol=1e-14, rtol=5e-7)
     xo.assert_allclose(particles.py, [-1.81976e-3, -4.73529e-3], atol=1e-14, rtol=5e-7)
+
+
+@for_all_test_contexts
+def test_update_rigidity0(test_context):
+    p = xt.Particles("proton",p0c=7000e9)
+    pb82 = xt.Particles("Pb208",q0=82,rigidity0=p.rigidity0)
+    assert np.allclose(pb82.p0c/82,p.p0c)
+    pb82.rigidity0=p.rigidity0
+    assert np.allclose(pb82.p0c/82,p.p0c)
+
+
