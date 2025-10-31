@@ -86,6 +86,13 @@ def _elem_to_tokens(env, nn, formatter):
 
 def write_py_lattice_file(env, output_fname):
 
+    file_content = gen_py_lattice(env)
+
+    with open(output_fname, 'w') as ff:
+        ff.write(file_content)
+
+def gen_py_lattice(env):
+
     ###################
     # Handle elements #
     ###################
@@ -303,5 +310,6 @@ def write_py_lattice_file(env, output_fname):
     builder_part,
     postamble])
 
-    with open(output_fname, 'w') as ff:
-        ff.write(file_content)
+    return file_content
+
+
