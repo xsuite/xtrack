@@ -36,14 +36,16 @@ def _elem_to_tokens(env, nn, formatter):
     if hasattr(ee, 'ksl'):
         fields += ['ksl']
 
+    tt = env[nn].get_table()
+    for kk in tt.name:
+        if kk in fields:
+            continue
+        if tt['expr', kk] is not None and tt['expr', kk] != 'None':
+            fields.append(kk)
+
     if isinstance(ee, xt.RBend):
         assert 'length_straight' in fields
         fields = [ff for ff in fields if ff != 'length']
-
-    tt = env[nn].get_table()
-    for kk in tt.name:
-        if tt['expr', kk] is not None and tt['expr', kk] != 'None':
-            fields.append(kk)
 
     params = []
     for kk in fields:
