@@ -511,8 +511,8 @@ def test_thick_slice_misaligned_quad():
         rot_s_rad_no_frame=psi,
         rot_s_rad=tilt,
         rot_shift_anchor=anchor,
-        edge_entry_active=False,
-        edge_exit_active=False,
+        edge_entry_active=True,
+        edge_exit_active=True,
     )
     line_test = xt.Line(elements=[quad], element_names=['quad'])
     line_test.slice_thick_elements([xt.Strategy(slicing=xt.Teapot(n_slices, mode='thick'))])
@@ -520,6 +520,56 @@ def test_thick_slice_misaligned_quad():
     line_ref = xt.Line(elements=[quad], element_names=['quad'])
 
     assert {f'quad..{i}' for i in range(n_slices)} <= set(line_test.element_names)
+
+    p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
+
+    p_ref = p0.copy()
+    line_ref.track(p_ref)
+
+    p_test = p0.copy()
+    line_test.track(p_test)
+
+    assert p_test.state > 0
+    xo.assert_allclose(p_test.x, p_ref.x, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.px, p_ref.px, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.y, p_ref.y, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.py, p_ref.py, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.delta, p_ref.delta, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.s, p_ref.s, atol=5e-14, rtol=8e-14)
+
+
+def test_thick_slice_misaligned_uniform_solenoid():
+    length = 3
+    ks = 0.7
+    dx = 0.1
+    dy = 0.2
+    ds = 0.3
+    theta = 0.1  # rad
+    phi = 0.2  # rad
+    psi = 0.5  # rad
+    tilt = 0.1
+    anchor = 1  # m
+    n_slices = 5
+
+    sol = xt.UniformSolenoid(
+        length=length,
+        ks=ks,
+        shift_x=dx,
+        shift_y=dy,
+        shift_s=ds,
+        rot_x_rad=phi,
+        rot_y_rad=theta,
+        rot_s_rad_no_frame=psi,
+        rot_s_rad=tilt,
+        rot_shift_anchor=anchor,
+    )
+    line_test = xt.Line(elements=[sol], element_names=['sol'])
+    line_test.slice_thick_elements([xt.Strategy(slicing=xt.Teapot(n_slices, mode='thick'))])
+
+    line_ref = xt.Line(elements=[sol], element_names=['sol'])
+
+    assert {f'sol..{i}' for i in range(n_slices)} <= set(line_test.element_names)
 
     p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
 
@@ -551,4 +601,5 @@ def test_thin_slice_misaligned_bend_invalid():
 
     p = xt.Particles(p0c=1e9)
     line.track(p)
+
     assert p.state[0] == -42

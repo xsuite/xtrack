@@ -1572,14 +1572,14 @@ def test_solenoid_multipole_shifts(shift_x, shift_y, test_element_name):
     test_sol.mult_shift_y = shift_y
 
     tw = line.twiss(
-        _continue_if_lost=True,
+        #_continue_if_lost=True,
         start=xt.START,
         end=xt.END,
         betx=BETX,
         bety=BETY,
         px=PX0)
     tw_sol = sol_line.twiss(
-        _continue_if_lost=True,
+        #_continue_if_lost=True,
         start=xt.START,
         end=xt.END,
         betx=BETX,
