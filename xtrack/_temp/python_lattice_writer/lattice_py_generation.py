@@ -6,7 +6,7 @@ from xtrack.mad_parser.loader import CONSTANTS
 
 formatter = xd.refs.CompactFormatter(scope=None)
 SKIP_PARAMS = ['order', 'model', '_edge_entry_model', '_edge_exit_model',
-               'k0_from_h', 'h']
+               'h']
 
 
 def _repr_arr_ref(arr_ref, formatter):
@@ -56,6 +56,8 @@ def _elem_to_tokens(env, nn, formatter):
         if kk == 'extra':
             continue
         if kk == 'prototype':
+            continue
+        if kk == 'k0_from_h' and not ee.k0_from_h:
             continue
         if kk == 'knl' or kk == 'ksl':
             arr_ref = getattr(ee_ref, kk)
