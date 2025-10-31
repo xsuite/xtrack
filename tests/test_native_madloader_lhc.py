@@ -109,6 +109,10 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
     elif data_mode == 'copy':
         env = env.copy()
     elif data_mode == 'py':
+        # Force k0_from_h to False (they are all provided)
+        for nn in list(env.elements.keys()):
+            if hasattr(env.elements[nn], 'k0_from_h'):
+                env.elements[nn].k0_from_h = False
         lpg.write_py_lattice_file(env,
                                   output_fname=tmpdir / f'lhc_{line_mode}.py')
         env = xt.Environment()
@@ -381,18 +385,18 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
             if nn == '_end_point':
                 continue
             nn_straight = nn[:-len(f'/lhcb{beam}')] if nn.endswith(f'/lhcb{beam}') else nn
-            e2 = lref[nn_straight]
-            e4 = ltest[nn]
-            d2 = e2.to_dict()
-            d4 = e4.to_dict()
-            is_rbend = isinstance(e4, xt.RBend)
+            eref = lref[nn_straight]
+            etest = ltest[nn]
+            dref = eref.to_dict()
+            dtest = etest.to_dict()
+            is_rbend = isinstance(etest, xt.RBend)
 
-            for kk in d2.keys():
+            for kk in dref.keys():
                 if kk in ('__class__', 'model', 'side'):
-                    assert d2[kk] == d4[kk]
+                    assert dref[kk] == dtest[kk]
                     continue
 
-                if kk == '_isthick' and e2.length == 0:
+                if kk == '_isthick' and eref.length == 0:
                     continue  # Skip the check for zero-length elements
 
                 if kk in {
@@ -403,21 +407,21 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
                     continue
 
                 if kk in {'knl', 'ksl'}:
-                    maxlen = max(len(d2[kk]), len(d4[kk]))
-                    lhs = np.pad(d2[kk], (0, maxlen - len(d2[kk])), mode='constant')
-                    rhs = np.pad(d4[kk], (0, maxlen - len(d4[kk])), mode='constant')
+                    maxlen = max(len(dref[kk]), len(dtest[kk]))
+                    lhs = np.pad(dref[kk], (0, maxlen - len(dref[kk])), mode='constant')
+                    rhs = np.pad(dtest[kk], (0, maxlen - len(dtest[kk])), mode='constant')
                     xo.assert_allclose(lhs, rhs, rtol=1e-10, atol=1e-16)
                     continue
 
                 if is_rbend and kk in ('length', 'length_straight'):
-                    xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=1e-6)
+                    xo.assert_allclose(dref[kk], dtest[kk], rtol=1e-7, atol=1e-6)
                     continue
 
                 if is_rbend and kk in ('h', 'k0'):
-                    xo.assert_allclose(d2[kk], d4[kk], rtol=1e-7, atol=5e-10)
+                    xo.assert_allclose(dref[kk], dtest[kk], rtol=1e-7, atol=5e-10)
                     continue
 
-                xo.assert_allclose(d2[kk], d4[kk], rtol=1e-10, atol=1e-16)
+                xo.assert_allclose(dref[kk], dtest[kk], rtol=1e-10, atol=1e-16)
 
         twref = lref.twiss4d()
         twtest = ltest.twiss4d()
