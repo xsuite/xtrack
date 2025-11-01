@@ -292,7 +292,7 @@ class Environment:
         if needs_instantiation: # Parent is a class and not another element
             self.elements[name] = parent(**value_kwargs)
 
-        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+        self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                     container=self._element_dict, container_refs=self._xdeps_eref)
 
         if extra is not None:
@@ -362,7 +362,7 @@ class Environment:
         if needs_instantiation: # Parent is a class and not another particle
             self.particles[name] = parent(**value_kwargs)
 
-        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+        self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                     container=self._particles, container_refs=self._xdeps_pref)
 
         self.particles[name].prototype = prototype
@@ -1241,7 +1241,7 @@ class Environment:
 
             ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
                 type(self._element_dict[name]), kwargs, _eval)
-            _set_kwargs(
+            self._set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                 container=self._element_dict, container_refs=self._xdeps_eref)
             if extra is not None:
@@ -1376,6 +1376,20 @@ class Environment:
             if rr in deps:
                 self.ref_manager.unregister(task)
 
+    def _set_kwargs(self, name, ref_kwargs, value_kwargs, container, container_refs):
+        for kk in value_kwargs:
+            if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
+                len_value = len(value_kwargs[kk])
+                getattr(container[name], kk)[:len_value] = value_kwargs[kk]
+                if kk in ref_kwargs:
+                    for ii, vvv in enumerate(value_kwargs[kk]):
+                        if ref_kwargs[kk][ii] is not None:
+                            getattr(container_refs[name], kk)[ii] = ref_kwargs[kk][ii]
+            elif kk in ref_kwargs:
+                setattr(container_refs[name], kk, ref_kwargs[kk])
+            else:
+                setattr(container[name], kk, value_kwargs[kk])
+
     twiss = MultilineLegacy.twiss
     build_trackers = MultilineLegacy.build_trackers
     match = MultilineLegacy.match
@@ -1431,19 +1445,7 @@ def _parse_kwargs(cls, kwargs, _eval):
 
     return ref_kwargs, value_kwargs
 
-def _set_kwargs(name, ref_kwargs, value_kwargs, container, container_refs):
-    for kk in value_kwargs:
-        if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
-            len_value = len(value_kwargs[kk])
-            getattr(container[name], kk)[:len_value] = value_kwargs[kk]
-            if kk in ref_kwargs:
-                for ii, vvv in enumerate(value_kwargs[kk]):
-                    if ref_kwargs[kk][ii] is not None:
-                        getattr(container_refs[name], kk)[ii] = ref_kwargs[kk][ii]
-        elif kk in ref_kwargs:
-            setattr(container_refs[name], kk, ref_kwargs[kk])
-        else:
-            setattr(container[name], kk, value_kwargs[kk])
+
 
 class EnvElements:
     def __init__(self, env):
