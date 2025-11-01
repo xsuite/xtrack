@@ -1,6 +1,7 @@
 import xtrack as xt
 from cpymad.madx import Madx
 
+# Make a simple line:
 env = xt.Environment()
 line = env.new_line(length=4.0, name='seq',
     components=[
