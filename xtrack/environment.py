@@ -1335,6 +1335,52 @@ class Environment:
         '''
         return self.vars.new_expr(expr)
 
+    def extend_knl_ksl(self, order, element_names=None):
+
+        """
+        Extend the order of the knl and ksl attributes of the elements.
+
+        Parameters
+        ----------
+        order: int
+            New order of the knl and ksl attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl`
+            and `ksl` attributes are extended.
+
+        """
+
+        if element_names is None:
+            raise NotImplementedError(
+                'Extending knl and ksl for all elements is not implemented yet.')
+
+        if isinstance(element_names, str):
+            element_names = [element_names]
+
+        self.discard_trackers()
+
+        for nn in element_names:
+            if self.get(nn).order > order:
+                raise ValueError(f'Order of element {nn} is smaller than {order}')
+
+        for nn in element_names:
+            ee = self.get(nn)
+
+            if ee.order == order:
+                continue
+
+            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
+            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+
+            dct = ee.to_dict()
+            dct.pop('order', None)
+            dct['knl'] = new_knl
+            dct['ksl'] = new_ksl
+
+            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
+            # Need to bypass the check on element redefinition
+            self._xdeps_eref._owner[nn] = new_ee
+
     @property
     def ref_manager(self):
         return self._xdeps_manager
@@ -1380,7 +1426,16 @@ class Environment:
         for kk in value_kwargs:
             if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
                 len_value = len(value_kwargs[kk])
-                getattr(container[name], kk)[:len_value] = value_kwargs[kk]
+                target = getattr(container[name], kk)
+                if len(target) < len_value:
+                    if kk=='knl' or kk=='ksl' and name in self._element_dict:
+                        self.extend_knl_ksl(len_value-1, element_names=[name])
+                        target = getattr(container[name], kk)
+                    else:
+                        raise ValueError(
+                            f'Cannot set attribute {kk} of element {name}: '
+                            f'length mismatch ({len(target)} vs {len_value})')
+                target[:len_value] = value_kwargs[kk]
                 if kk in ref_kwargs:
                     for ii, vvv in enumerate(value_kwargs[kk]):
                         if ref_kwargs[kk][ii] is not None:

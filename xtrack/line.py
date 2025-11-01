@@ -3667,7 +3667,6 @@ class Line:
 
         """
         self._method_incompatible_with_compose()
-        self.discard_tracker()
 
         if element_names is None:
             element_names = []
@@ -3675,27 +3674,7 @@ class Line:
                 if hasattr(self.get(nn), 'knl'):
                     element_names.append(nn)
 
-        for nn in element_names:
-            if self.get(nn).order > order:
-                raise ValueError(f'Order of element {nn} is smaller than {order}')
-
-        for nn in element_names:
-            ee = self.get(nn)
-
-            if ee.order == order:
-                continue
-
-            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
-            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
-
-            dct = ee.to_dict()
-            dct.pop('order', None)
-            dct['knl'] = new_knl
-            dct['ksl'] = new_ksl
-
-            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
-            # Need to bypass the check on element redefinition
-            self.env._xdeps_eref._owner[nn] = new_ee
+        self.env.extend_knl_ksl(order, element_names)
 
     def remove_markers(self, inplace=True, keep=None):
         """
