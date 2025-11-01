@@ -293,7 +293,7 @@ class Environment:
             self.elements[name] = parent(**value_kwargs)
 
         _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    element_dict=self._element_dict, elem_refs=self._xdeps_eref)
+                    container=self._element_dict, container_refs=self._xdeps_eref)
 
         if extra is not None:
             assert isinstance(extra, dict)
@@ -363,7 +363,7 @@ class Environment:
             self.particles[name] = parent(**value_kwargs)
 
         _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    element_dict=self._particles, elem_refs=self._xdeps_pref)
+                    container=self._particles, container_refs=self._xdeps_pref)
 
         self.particles[name].prototype = prototype
 
@@ -1241,9 +1241,9 @@ class Environment:
 
             ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
                 type(self._element_dict[name]), kwargs, _eval)
-            xt.environment._set_kwargs(
+            _set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                element_dict=self._element_dict, elem_refs=self._xdeps_eref)
+                container=self._element_dict, container_refs=self._xdeps_eref)
             if extra is not None:
                 assert isinstance(extra, dict), (
                     'Description must be a dictionary')
@@ -1431,19 +1431,19 @@ def _parse_kwargs(cls, kwargs, _eval):
 
     return ref_kwargs, value_kwargs
 
-def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, elem_refs):
+def _set_kwargs(name, ref_kwargs, value_kwargs, container, container_refs):
     for kk in value_kwargs:
         if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
             len_value = len(value_kwargs[kk])
-            getattr(element_dict[name], kk)[:len_value] = value_kwargs[kk]
+            getattr(container[name], kk)[:len_value] = value_kwargs[kk]
             if kk in ref_kwargs:
                 for ii, vvv in enumerate(value_kwargs[kk]):
                     if ref_kwargs[kk][ii] is not None:
-                        getattr(elem_refs[name], kk)[ii] = ref_kwargs[kk][ii]
+                        getattr(container_refs[name], kk)[ii] = ref_kwargs[kk][ii]
         elif kk in ref_kwargs:
-            setattr(elem_refs[name], kk, ref_kwargs[kk])
+            setattr(container_refs[name], kk, ref_kwargs[kk])
         else:
-            setattr(element_dict[name], kk, value_kwargs[kk])
+            setattr(container[name], kk, value_kwargs[kk])
 
 class EnvElements:
     def __init__(self, env):
