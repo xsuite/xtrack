@@ -33,8 +33,8 @@ twmad = mad.twiss(rmatrix=True, chrom=True)
 
 line = xt.Line.from_madx_sequence(
         mad.sequence['lhcb1'], apply_madx_errors=True)
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1,
-                        gamma0=mad.sequence.lhcb1.beam.gamma)
+line.set_particle_ref('proton', gamma0=mad.sequence.lhcb1.beam.gamma)
+
 
 context = xo.ContextCpu()
 line.build_tracker(_context=context)

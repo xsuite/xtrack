@@ -8,8 +8,7 @@ import xtrack as xt
 # Load a line and build tracker
 line = xt.load(
     '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
-line.build_tracker()
+line.set_particle_ref('proton', energy0=7e12)
 
 # Periodic twiss
 tw_p = line.twiss()

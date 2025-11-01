@@ -29,10 +29,10 @@ print(f"Qx = {tw_before['qx']:.5f} Qy = {tw_before['qy']:.5f} "
       f"Q'x = {tw_before['dqx']:.5f} Q'y = {tw_before['dqy']:.5f}")
 
 # Initial value of the knobs correcting tunes an chromaticities
-print(f"kqtf.b1 = {line['kqtf.b1']}")
-print(f"kqtd.b1 = {line['kqtd.b1']}")
-print(f"ksf.b1 = {line['ksf.b1']}")
-print(f"ksd.b1 = {line['ksd.b1']}")
+print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")
+print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")
+print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
+print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 
 #####################################################
 # Match tunes and chromaticities to assigned values #
@@ -41,10 +41,10 @@ print(f"ksd.b1 = {line['ksd.b1']}")
 t1 = time.time()                                                                #!skip-doc
 line.match(
     vary=[
-        xt.Vary('kqtf.b1', step=1e-6),
-        xt.Vary('kqtd.b1', step=1e-6),
-        xt.Vary('ksf.b1', step=1e-5),
-        xt.Vary('ksd.b1', step=1e-5),
+        xt.Vary('kqtf.b1', step=1e-8),
+        xt.Vary('kqtd.b1', step=1e-8),
+        xt.Vary('ksf.b1', step=1e-8),
+        xt.Vary('ksd.b1', step=1e-8),
     ],
     targets = [
         xt.Target('qx', 62.315, tol=1e-4),
@@ -62,10 +62,10 @@ tw_final = line.twiss()
 print('\nFinal twiss parameters')                                               #!skip-doc
 print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
       f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
-print(f"kqtf.b1 = {line['kqtf.b1']}")
-print(f"kqtd.b1 = {line['kqtd.b1']}")
-print(f"ksf.b1 = {line['ksf.b1']}")
-print(f"ksd.b1 = {line['ksd.b1']}")
+print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")
+print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")
+print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
+print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 
 #####################################
 # Match with specific twiss options #
@@ -77,10 +77,10 @@ print(f"ksd.b1 = {line['ksd.b1']}")
 t1 = time.time()                                                                #!skip-doc
 line.match(method='4d', # <-- 4d matching
     vary=[
-        xt.Vary('kqtf.b1', step=1e-6),
-        xt.Vary('kqtd.b1', step=1e-6),
-        xt.Vary('ksf.b1', step=1e-5),
-        xt.Vary('ksd.b1', step=1e-5),
+        xt.Vary('kqtf.b1', step=1e-8),
+        xt.Vary('kqtd.b1', step=1e-8),
+        xt.Vary('ksf.b1', step=1e-6),
+        xt.Vary('ksd.b1', step=1e-6),
     ],
     targets = [
         xt.Target('qx', 62.29, tol=1e-4),
@@ -95,10 +95,10 @@ tw_final = line.twiss(method='4d')                                              
 print('\nFinal twiss parameters')                                               #!skip-doc
 print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "                   #!skip-doc
       f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")               #!skip-doc
-print(f"kqtf.b1 = {line['kqtf.b1']}")                               #!skip-doc
-print(f"kqtd.b1 = {line['kqtd.b1']}")                               #!skip-doc
-print(f"ksf.b1 = {line['ksf.b1']}")                                 #!skip-doc
-print(f"ksd.b1 = {line['ksd.b1']}")                                 #!skip-doc
+print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")                               #!skip-doc
+print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")                               #!skip-doc
+print(f"ksf.b1 = {line.vars['ksf.b1']._value}")                                 #!skip-doc
+print(f"ksd.b1 = {line.vars['ksd.b1']._value}")                                 #!skip-doc
 
 ##############################################
 # Match custom function of the twiss results #
@@ -111,10 +111,10 @@ print(f"ksd.b1 = {line['ksd.b1']}")                                 #!skip-doc
 t1 = time.time()                                                                #!skip-doc
 line.match(
     vary=[
-        xt.Vary('kqtf.b1', step=1e-6),
-        xt.Vary('kqtd.b1', step=1e-6),
-        xt.Vary('ksf.b1', step=1e-5),
-        xt.Vary('ksd.b1', step=1e-5),
+        xt.Vary('kqtf.b1', step=1e-10),
+        xt.Vary('kqtd.b1', step=1e-10),
+        xt.Vary('ksf.b1', step=1e-10),
+        xt.Vary('ksd.b1', step=1e-10),
     ],
     targets = [
         xt.Target('qx', 62.27, tol=1e-4),
@@ -127,10 +127,10 @@ print('\nTime match with function: ', t2-t1)                                    
 print('\nFinal twiss parameters')                                               #!skip-doc
 print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "                   #!skip-doc
       f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")               #!skip-doc
-print(f"kqtf.b1 = {line['kqtf.b1']}")                               #!skip-doc
-print(f"kqtd.b1 = {line['kqtd.b1']}")                               #!skip-doc
-print(f"ksf.b1 = {line['ksf.b1']}")                                 #!skip-doc
-print(f"ksd.b1 = {line['ksd.b1']}")                                 #!skip-doc
+print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")                               #!skip-doc
+print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")                               #!skip-doc
+print(f"ksf.b1 = {line.vars['ksf.b1']._value}")                                 #!skip-doc
+print(f"ksd.b1 = {line.vars['ksd.b1']._value}")                                 #!skip-doc
 
 #!end-doc-part
 
