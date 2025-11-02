@@ -2,20 +2,12 @@ import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
 
-# We get the model from MAD-X
-mad = Madx()
-folder = ('../../test_data/elena')
-mad.call(folder + '/elena.seq')
-mad.call(folder + '/highenergy.str')
-mad.call(folder + '/highenergy.beam')
-mad.use('elena')
-
-# Build xsuite line
-seq = mad.sequence.elena
-line = xt.Line.from_madx_sequence(seq)
-line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-                                    mass0=seq.beam.mass * 1e9,
-                                    q0=seq.beam.charge)
+# We load the model from MAD-X lattice and strengths
+env = xt.load('../../test_data/elena/elena.seq')
+env.vars.load('../../test_data/elena/highenergy.str')
+line = env.elena
+line.set_particle_ref('antiproton', p0c=0.1e9)
+line['beam_p_gev_c'] = line.particle_ref.p0c[0]/1e9 # Used by the optics
 
 # Inspect one bend
 line['lnr.mbhek.0135']
@@ -92,11 +84,11 @@ plt.ylabel(r'$W_y$')
 plt.xlabel('s [m]')
 
 # Highlight the bends
-tt_sliced = line.get_table()
+tt_sliced = line.get_table(attr=True)
 tbends = tt_sliced.rows[tt_sliced.element_type == 'ThickSliceBend']
 for ax in [ax1, ax2, ax3, ax4]:
     for nn in tbends.name:
-        ax.axvspan(tbends['s', nn], tbends['s', nn] + line[nn].length,
+        ax.axvspan(tbends['s', nn], tbends['s', nn] + tbends['length', nn],
                    color='b', alpha=0.2, linewidth=0)
 
 plt.show()
