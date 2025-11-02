@@ -3135,6 +3135,9 @@ class Line:
         """
         self._method_incompatible_with_compose()
 
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         assert state in (True, False)
         assert self.iscollective is False, ('Cannot freeze longitudinal '
                         'variables in collective mode (not yet implemented)')
