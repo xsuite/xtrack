@@ -55,7 +55,7 @@ plt.xlabel('s [m]')
 plt.ylabel('y [mm]')
 plt.legend()
 
-for nn in ['mcbxfbv.a2r5', 'mcbxfbv.a2l5', 'ip5',
+for nn in ['mcbxfbv.a2r5/lhcb1', 'mcbxfbv.a2l5/lhcb1', 'ip5',
            'mcbyv.a4l5.b1', 'mcbrdv.4r5.b1', 'mcbcv.5l5.b1',
            'mcbyv.4l5.b2', 'mcbrdv.4r5.b2', 'mcbcv.5r5.b2']:
     if nn.endswith('b2'):
