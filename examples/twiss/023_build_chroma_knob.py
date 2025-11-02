@@ -6,7 +6,7 @@ import xtrack as xt
 ###############
 
 line = xt.load('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-line.set_particle_ref(xt.Particles.from_dict(dct['particle']))
+line.set_particle_ref('proton', p0c=7e12)
 line.twiss_default['method'] = '4d'
 
 vary=[xt.Vary('ksf.b1', step=1e-8),  xt.Vary('ksd.b1', step=1e-8)]
