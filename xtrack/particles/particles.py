@@ -91,6 +91,9 @@ class Particles(xo.HybridClass):
         **{nn: tt[:] for tt, nn in per_particle_vars},
     }
 
+    _repr_fields = [vv[1] for vv in scalar_vars + per_particle_vars + size_vars
+                    if (not vv[1].startswith('_') and vv[1] != 't_sim')] + ['t_sim']
+
     _extra_c_sources = [
         Path(__file__).parent.joinpath('rng_src', 'base_rng.h'),
         Path(__file__).parent.joinpath('rng_src', 'particles_rng.h'),
