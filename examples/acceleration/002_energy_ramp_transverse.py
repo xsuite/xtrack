@@ -1,26 +1,11 @@
 import numpy as np
-from cpymad.madx import Madx
 import xtrack as xt
 
 # Import a line and build a tracker
-
-test_data_folder = '../../test_data'
-
-mad = Madx(stdout=False)
-
-# Load mad model and apply element shifts
-mad.input(f'''
-call, file = '{str(test_data_folder)}/psb_chicane/psb.seq';
-call, file = '{str(test_data_folder)}/psb_chicane/psb_fb_lhc.str';
-beam;
-use, sequence=psb1;
-''')
-
-line = xt.Line.from_madx_sequence(mad.sequence.psb1,
-                                    deferred_expressions=True)
-e_kin_start_eV = 160e6
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,
-                                 energy0=xt.PROTON_MASS_EV + e_kin_start_eV)
+env = xt.load('../../test_data/psb_chicane/psb.seq')
+env.vars.load('../../test_data/psb_chicane/psb_fb_lhc.str')
+line = env.psb1
+line.set_particle_ref('proton', kinetic_energy0=160e6)
 
 # Slice to gain some tracking speed
 line.slice_thick_elements(
