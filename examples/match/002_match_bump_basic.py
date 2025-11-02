@@ -1,8 +1,7 @@
 import xtrack as xt
 
-# Load a line and build a tracker
+# Load a line
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-line.build_tracker()
 
 opt = line.match(
     start='mq.30l8.b1', end='mq.23l8.b1',

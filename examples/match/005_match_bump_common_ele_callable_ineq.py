@@ -1,9 +1,7 @@
 import xtrack as xt
 
-# Load a line and build a tracker
-collider = xt.load(
-    '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
-collider.build_trackers()
+# Load a line
+collider = xt.load('../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 
 tw0 = collider.twiss(method='4d')
 
