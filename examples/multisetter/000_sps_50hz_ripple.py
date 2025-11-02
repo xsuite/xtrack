@@ -6,18 +6,6 @@ import xtrack as xt
 import xpart as xp
 
 # Choose a context
-ctx = xo.ContextCpu()
-
-# # Import SPS lattice and build a tracker
-# mad = Madx()
-# seq_name = 'sps'
-# mad.call('../../test_data/sps_w_spacecharge/sps_thin.seq')
-# mad.use(seq_name)
-# madtw = mad.twiss()
-
-# line = xt.Line.from_madx_sequence(mad.sequence[seq_name])
-# line.particle_ref = xt.Particles(p0c=400e9, mass0=xt.PROTON_MASS_EV)
-# line.build_tracker(_context=ctx)
 
 env = xt.load('../../test_data/sps_w_spacecharge/sps_thin.seq')
 line = env.sps
