@@ -24,9 +24,9 @@ line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, deferred_expressions=True)
 # for nn in tt_sol.name:
 #     line.element_dict[nn] = xt.Drift(length=line[nn].length)
 
-line.particle_ref = xt.Particles(mass0=mad.sequence.lhcb1.beam.mass*1e9,
-                                    q0=mad.sequence.lhcb1.beam.charge,
-                                    gamma0=mad.sequence.lhcb1.beam.gamma)
+line.set_particle_ref(mass0=mad.sequence.lhcb1.beam.mass*1e9,
+                      q0=mad.sequence.lhcb1.beam.charge,
+                      gamma0=mad.sequence.lhcb1.beam.gamma)
 
 tw = line.twiss(method='4d')
 nlchr = line.get_non_linear_chromaticity(delta0_range=(-1e-4, 1e-4),

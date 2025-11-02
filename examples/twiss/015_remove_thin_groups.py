@@ -15,8 +15,7 @@ import matplotlib.pyplot as plt
 
 line = xt.load(
     '../../test_data/lhc_no_bb/line_and_particle.json')
-line.particle_ref = xt.Particles(
-                    mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
+line.set_particle_ref('proton', p0c=7e12)
 line.build_tracker()
 
 tw = line.twiss()
