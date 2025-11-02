@@ -19,11 +19,6 @@ twm = xt.Table(tw_chr)
 
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, deferred_expressions=True)
 
-# tt = line.get_table()
-# tt_sol = tt.rows[tt.element_type == 'Solenoid']
-# for nn in tt_sol.name:
-#     line.element_dict[nn] = xt.Drift(length=line[nn].length)
-
 line.set_particle_ref(mass0=mad.sequence.lhcb1.beam.mass*1e9,
                       q0=mad.sequence.lhcb1.beam.charge,
                       gamma0=mad.sequence.lhcb1.beam.gamma)
