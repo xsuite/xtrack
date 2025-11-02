@@ -34,7 +34,6 @@ slicing_strategies = [
     xt.Strategy(slicing=xt.Teapot(2), element_type=xt.Quadrupole),
 ]
 line.slice_thick_elements(slicing_strategies)
-line.build_tracker()
 
 # Inspect
 tt = line.get_table(attr=True)
