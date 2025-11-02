@@ -16,11 +16,13 @@ line = xt.Line(
 line.set_particle_ref('proton', p0c=6.5e12)
 
 ## Choose a context
-context = xo.ContextCpu()         # For CPU
-# context = xo.ContextCupy()      # For CUDA GPUs
-# context = xo.ContextPyopencl()  # For OpenCL GPUs
+context = xo.ContextCpu()                         # For CPU (single thread)
+# context = xo.ContextCpu(omp_num_threads=4)      # For CPU (4 thread)
+# context = xo.ContextCpu(omp_num_threads='auto') # For CPU (max. thread)
+# context = xo.ContextCupy()                      # For CUDA GPUs
+# context = xo.ContextPyopencl()                  # For OpenCL GPUs
 
-## Transfer lattice on context and compile tracking code
+## Transfer lattice on context and compile tracking code if necessary
 line.build_tracker(_context=context)
 
 ## Build particle object on context
