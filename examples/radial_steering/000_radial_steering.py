@@ -6,11 +6,9 @@
 import numpy as np
 import xtrack as xt
 
-# Load a line and build a tracker
-line = xt.load(
-    '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
-line.build_tracker()
+# Load a line
+line = xt.load('../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
+line.set_particle_ref('proton', p0c=7e12)
 
 # Frequency trim to make
 df_hz = 50 # Frequency trim
@@ -33,9 +31,7 @@ beta0 = line.particle_ref.beta0[0]
 dzeta = tw0.circumference * df_hz / f_rf
 
 # Append delay element to the line
-line.unfreeze()
-line.append_element(element=xt.ZetaShift(dzeta=dzeta), name='zeta_shift')
-line.build_tracker()
+line.append('zeta_shift', xt.ZetaShift(dzeta=dzeta))
 
 # Twiss
 tw1 = line.twiss()
