@@ -18,8 +18,7 @@ particles = xp.generate_matched_gaussian_bunch(line=line,
                                                sigma_z=9e-2)
 
 num_turns = 100
-monitor = xt.ParticlesMonitor(_context=context,
-                              start_at_turn=5, stop_at_turn=10,
+monitor = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=10,
                               n_repetitions=3,      # <--
                               repetition_period=20, # <--
                               num_particles=num_particles)
