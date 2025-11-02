@@ -139,6 +139,7 @@ class MadxLoader:
         self._new_builtin("yrotation", "YRotation")
         self._new_builtin("srotation", "SRotation")
         self._new_builtin("translation", "XYShift")
+        self._new_builtin("dipedge", "DipoleEdge")
 
         for mad_apertype in _APERTURE_TYPES:
             self._new_builtin(mad_apertype, 'Marker')
@@ -545,7 +546,11 @@ class MadxLoader:
                 f'`{apertype}`) is not recognised.'
             )
 
-        x_offset, y_offset = params.pop('aper_offset', (0, 0))
+        aper_offsets = params.pop('aper_offset', (0, 0))
+        if len(aper_offsets) == 1:
+            x_offset = y_offset = aper_offsets[0]
+        else:
+            x_offset, y_offset = aper_offsets
         if params.pop('aper_tol', None):
             _warn(f'Aperture tolerance (`{name}`) is not supported, ignoring.')
         aper_params = {
