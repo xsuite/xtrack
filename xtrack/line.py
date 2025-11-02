@@ -1067,6 +1067,20 @@ class Line:
         enable_pipeline_hold: bool, optional
             If True, the pipeline hold mechanism is enabled.
 
+        Examples
+        --------
+
+        .. code-block:: python
+
+            ## Choose a context
+            context = xo.ContextCpu()                         # For CPU (single thread)
+            # context = xo.ContextCpu(omp_num_threads=4)      # For CPU (4 thread)
+            # context = xo.ContextCpu(omp_num_threads='auto') # For CPU (max. thread)
+            # context = xo.ContextCupy()                      # For CUDA GPUs
+            # context = xo.ContextPyopencl()                  # For OpenCL GPUs
+
+            line.build_tracker(_context=context)
+
         """
 
         if self.mode == 'compose':

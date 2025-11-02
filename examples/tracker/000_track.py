@@ -13,8 +13,7 @@ line = xt.Line(
 
 ## Attach a reference particle to the line (optional)
 ## (defines the reference mass, charge and energy)
-line.particle_ref = xt.Particles(p0c=6500e9, #eV
-                                 q0=1, mass0=xt.PROTON_MASS_EV)
+line.set_particle_ref('proton', p0c=6.5e12)
 
 ## Choose a context
 context = xo.ContextCpu()         # For CPU
