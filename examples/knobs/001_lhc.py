@@ -17,9 +17,7 @@ mad.use(sequence="lhcb1")
 line = xt.Line.from_madx_sequence(mad.sequence['lhcb1'],
                                   deferred_expressions=True # <--
                                   )
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1,
-                                 gamma0=mad.sequence.lhcb1.beam.gamma)
-line.build_tracker()
+line.set_particle_ref('proton', p0c=7e12)
 
 # MAD-X variables can be found in in the imported line. They can be
 # used to change properties in the beamline.
