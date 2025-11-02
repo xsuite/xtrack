@@ -464,6 +464,10 @@ class MadxLoader:
                     if len(params['knl']) <= order:
                         params['knl'] += [0] * (order - len(params['knl']) + 1)
                     params['knl'][order] = params.pop(kk)
+            if angle := params.pop('angle', None):
+                params['hxl'] = angle
+            elif knl and len(knl) > 0:
+                params['hxl'] = knl[0]
 
         elif parent_name == 'vkicker':
             if (kick := params.pop('kick', None)):
