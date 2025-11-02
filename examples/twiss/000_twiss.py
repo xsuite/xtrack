@@ -6,13 +6,10 @@
 import numpy as np
 import xtrack as xt
 
-# Load a line and build tracker
-line = xt.load(
-    '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+# Load a line
+line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 line.set_particle_ref('proton', energy0=7e12)
-line['vrf400'] = 16
-line.build_tracker()
-
+line['vrf400'] = 16 # set rf voltage
 
 # Twiss
 tw = line.twiss()

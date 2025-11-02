@@ -5,9 +5,7 @@
 
 import xtrack as xt
 
-env = xt.load(
-    '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
-env.build_trackers()
+env = xt.load('../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 
 env.lhcb1.twiss_default['method'] = '4d'
 env.lhcb2.twiss_default['method'] = '4d'

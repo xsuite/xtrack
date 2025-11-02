@@ -5,11 +5,9 @@
 
 import xtrack as xt
 
-# Load a line and build tracker
-line = xt.load(
-    '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
+# Load a line
+line = xt.load('../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
 line.set_particle_ref('proton', energy0=7e12)
-line.build_tracker()
 
 # Twiss (built-in defaults)
 tw_a = line.twiss()

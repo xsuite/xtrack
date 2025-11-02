@@ -1,17 +1,11 @@
-import json
 import time
 import xtrack as xt
 
-###################################
-# Load a line and build a tracker #
-####################################
-
-with open('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json') as f:
-    dct = json.load(f)
-
-line = xt.Line.from_dict(dct['line'])
+###############
+# Load a line #
+###############
+line = xt.load('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.set_particle_ref(xt.Particles.from_dict(dct['particle']))
-line.build_tracker()
 
 #########
 # Twiss #

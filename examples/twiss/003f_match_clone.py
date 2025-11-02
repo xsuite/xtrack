@@ -1,15 +1,8 @@
-import json
-
 import numpy as np
 import xtrack as xt
 import xobjects as xo
 
-with open('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json',
-            'r') as fid:
-    dct = json.load(fid)
-line = xt.Line.from_dict(dct)
-
-line.build_tracker()
+line = xt.load('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 
 tw_before = line.twiss()
 

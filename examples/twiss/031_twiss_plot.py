@@ -7,7 +7,7 @@ import xtrack as xt
 
 import matplotlib.pyplot as plt
 
-# Load a line and build tracker
+# Load a line
 line = xt.load("../../test_data/hllhc15_thick/lhc_thick_with_knobs.json")
 line.set_particle_ref('proton', p0c=7e12)
 

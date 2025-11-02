@@ -5,11 +5,10 @@
 
 import xtrack as xt
 
-# Load a line and build tracker
+# Load a line
 line = xt.load(
     '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
 line.set_particle_ref('proton', p0c=7e12)
-line.build_tracker()
 
 # We consider a case in which all RF cavities are off
 tab = line.get_table()

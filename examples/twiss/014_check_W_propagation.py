@@ -10,9 +10,6 @@ import xtrack as xt
 fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json'
 line = xt.load(fname_line_particles)
 line.set_particle_ref('proton', p0c=7e12)
-line.build_tracker()
-
-
 
 tw= line.twiss()
 W_before_propagation, _, _, _= xt.linear_normal_form.compute_linear_normal_form(tw.R_matrix)

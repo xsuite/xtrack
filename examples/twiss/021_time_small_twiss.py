@@ -9,8 +9,6 @@ line = xt.load(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.set_particle_ref('proton', p0c=7e12)
 collider = xt.Environment(lines={'lhcb1': line})
-collider.build_trackers()
-
 
 tw_ref = collider.lhcb1.twiss()
 

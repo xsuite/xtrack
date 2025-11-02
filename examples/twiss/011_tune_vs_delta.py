@@ -10,8 +10,6 @@ mad.use('lhcb1')
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
 line.set_particle_ref('proton', p0c=7000e9)
 
-line.build_tracker()
-
 tw = line.twiss()
 
 delta_values = np.linspace(-5e-3, 5e-3, 100)
