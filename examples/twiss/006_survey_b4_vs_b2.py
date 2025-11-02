@@ -19,7 +19,7 @@ line_b4 = xt.Line.from_madx_sequence(
     mad_b4.sequence["lhcb2"],
     # deferred_expressions=True
 )
-line_b4.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7000e9)
+line_b4.set_particle_ref('proton', p0c=7000e9)
 
 
 line_b4.build_tracker()

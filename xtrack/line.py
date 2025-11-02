@@ -5952,6 +5952,15 @@ class LineParticleRef:
     def copy(self, **kwargs):
         return self._resolved.copy(**kwargs)
 
+    def __repr__(self):
+        name = None
+        if isinstance(self.line._particle_ref, str):
+            name = self.line._particle_ref
+        return ('LineParticleRef('
+                f'name={name}, '
+                f'{str(self._resolved)}'
+                ')')
+
 class ActionLine(Action):
 
     def __init__(self, line):
