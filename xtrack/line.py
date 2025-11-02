@@ -2266,7 +2266,8 @@ class Line:
 
         '''
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         if self.iscollective and not include_collective:
             log.warning(

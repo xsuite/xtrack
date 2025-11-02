@@ -181,7 +181,6 @@ dz = z_axis[1]-z_axis[0]
 line = xt.Line(elements=[xt.VariableSolenoid(length=dz,
                                     ks_profile=[ks_entry[ii], ks_exit[ii]])
                             for ii in range(len(z_axis)-1)])
-line.build_tracker()
 line.configure_radiation(model='mean')
 
 p_xt = p0.copy()
