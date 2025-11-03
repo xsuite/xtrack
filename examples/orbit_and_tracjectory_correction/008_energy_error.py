@@ -12,7 +12,7 @@ line.steering_monitors_x = tt_monitors.name
 line.steering_monitors_y = tt_monitors.name
 
 # Define elements to be used as correctors for orbit correction
-# (for LHC all element namesstarting by "mcb.", containing "h." or "v.")
+# (for LHC all element names starting by "mcb.", containing "h." or "v.")
 tt_h_correctors = tt.rows['mcb.*'].rows['.*h\..*']
 line.steering_correctors_x = tt_h_correctors.name
 tt_v_correctors = tt.rows['mcb.*'].rows['.*v\..*']
