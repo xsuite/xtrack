@@ -589,17 +589,58 @@ def test_thick_slice_misaligned_uniform_solenoid():
     xo.assert_allclose(p_test.s, p_ref.s, atol=5e-14, rtol=8e-14)
 
 
-def test_thin_slice_misaligned_bend_invalid():
+@pytest.mark.parametrize(
+    'transformations,valid',
+    [
+        ({'rot_x_rad': 0.1}, False),
+        ({'rot_y_rad': -0.2}, False),
+        ({'rot_s_rad_no_frame': 0.3}, False),
+        ({'shift_x': 0.2}, True),
+        ({'shift_y': -0.3}, True),
+        ({'shift_s': 0.1}, True),
+        ({'rot_s_rad': 0.2}, True),
+    ],
+    ids=[
+        'rot_x_rad',
+        'rot_y_rad',
+        'rot_s_rad_no_frame',
+        'shift_x',
+        'shift_y',
+        'shift_s',
+        'rot_s_rad',
+    ]
+)
+def test_thin_slice_misaligned_bend_valid_invalid(transformations, valid):
     env = xt.Environment()
     line = env.new_line(components=[
-        env.new('b', 'Bend', angle=0.1, length=2, rot_s_rad=0.3),
+        env.new(
+            name='b',
+            parent='Bend',
+            angle=0.1,
+            length=2,
+            model='drift-kick-drift-expanded',  # compare to a similar model
+            **transformations,
+        ),
     ])
 
     line.slice_thick_elements([
-        xt.Strategy(slicing=xt.Teapot(1, mode='thin')),
+        xt.Strategy(slicing=xt.Teapot(50, mode='thin')),
     ])
 
-    p = xt.Particles(p0c=1e9)
-    line.track(p)
+    p0 = xt.Particles(x=0.01, py=0.03, p0c=1e9)
+    p_test = p0.copy()
+    line.track(p_test)
 
-    assert p.state[0] == -42
+    if not valid:
+        assert p_test.state[0] == -42
+        return
+
+    p_ref = p0.copy()
+    line['b'].track(p_ref)
+
+    xo.assert_allclose(p_test.x, p_ref.x, atol=1e-6, rtol=1e-5)
+    xo.assert_allclose(p_test.y, p_ref.y, atol=1e-6, rtol=1e-5)
+    xo.assert_allclose(p_test.px, p_ref.px, atol=1e-14, rtol=1e-14)
+    xo.assert_allclose(p_test.py, p_ref.py, atol=1e-14, rtol=1e-14)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-7, rtol=1e-5)
+    xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-14, rtol=1e-14)

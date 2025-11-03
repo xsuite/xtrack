@@ -112,7 +112,7 @@ def _generate_track_local_particle_with_transformations(
         defines['IS_THICK'] = 1
 
     if is_thin_slice and curves_reference_frame:
-        defines['KILL_ON_MISALIGNMENT'] = 'XT_INVALID_THIN_SLICE_TRANSFORM'
+        defines['THIN_SLICE_OF_CURVED_ELEMENT'] = 1
 
     preamble_lines = []
     epilogue_lines = []

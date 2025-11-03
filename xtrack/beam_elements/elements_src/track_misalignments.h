@@ -128,7 +128,9 @@ void track_misalignment_entry_curved(
     double psi_with_frame,  // psi_with_frame of the element, positive s to x
     int8_t backtrack
 ) {
-    if (angle == 0.0 && length != 0.0) {
+    // Handle as a straight case if a thick element has no bending.
+    // For a thin element, we still perform the curved calculation if h is given.
+    if (angle == 0.0 && (length != 0.0 || h == 0.0)) {
         track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi,
             psi_no_frame, anchor, length, psi_with_frame, backtrack);
         return;
@@ -254,7 +256,9 @@ void track_misalignment_exit_curved(
     double psi_with_frame,  // psi_with_frame of the element, positive s to x
     int8_t backtrack  // whether to backtrack the particle
 ) {
-    if (angle == 0.0 && length != 0.0) {
+    // Handle as a straight case if a thick element has no bending.
+    // For a thin element, we still perform the curved calculation if h is given.
+    if (angle == 0.0 && (length != 0.0 || h == 0.0)) {
         track_misalignment_exit_straight(
             part0, dx, dy, ds, theta, phi, psi_no_frame, anchor, length,
             psi_with_frame, backtrack);

@@ -8,9 +8,8 @@
    - IS_SLICE: Whether to get parameters from the parent element (if slice)
    - IS_THICK: Whether the element has a length
    - IS_THICK_DYNAMIC: Whether the element has a isthick parameter
-   - KILL_ON_MISALIGNMENT: If the element does not support misalignments, this
-        variable should be defined and denotes the state the particles
-        will be set to if misalignments are set.
+   - THIN_SLICE_OF_CURVED_ELEMENT: Special handling for thin slices of curved
+     elements where we disallow some transformations.
 */
 
 #ifndef ELEMENT_NAME
@@ -98,14 +97,6 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
     ELEMENT_DATA el,
     LocalParticle* part0
 ) {
-    // If the element does not support misalignments, kill the particles
-    #ifdef KILL_ON_MISALIGNMENT
-        START_PER_PARTICLE_BLOCK(part0, part);
-            LocalParticle_set_state(part, KILL_ON_MISALIGNMENT);
-        END_PER_PARTICLE_BLOCK;
-        return;
-    #endif
-
     // Retrieve the weight
     const double weight = GET_WEIGHT(el);
 
@@ -121,8 +112,8 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
 
     // Retrieve the `angle` and `h` if available
     #ifdef CURVED
-        const double angle = GET_PARAM(el, angle);
-        const double h = GET_PARAM(el, h);
+        double angle = GET_PARAM(el, angle);
+        double h = GET_PARAM(el, h);
     #endif
 
     // Retrieve misalignment parameters
@@ -136,6 +127,15 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
     double const rot_y_rad = GET_PARAM(el, _rot_y_rad);
     double const rot_s_rad_no_frame = GET_PARAM(el, _rot_s_rad_no_frame);
     double anchor = GET_PARAM(el, rot_shift_anchor);
+
+    #ifdef THIN_SLICE_OF_CURVED_ELEMENT
+        if (rot_x_rad != 0.0 || rot_y_rad != 0.0 || rot_s_rad_no_frame != 0.0) {
+            START_PER_PARTICLE_BLOCK(part0, part);
+                LocalParticle_set_state(part, XT_INVALID_THIN_SLICE_TRANSFORM);
+            END_PER_PARTICLE_BLOCK;
+            return;
+        }
+    #endif
 
     int8_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
 
@@ -193,7 +193,6 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
 }
 
 #endif /* ALLOW_ROT_AND_SHIFT */
-
 
 /* This is the main function defined in this file. It checks whether
    transformations are enabled for the element, and calls either the
