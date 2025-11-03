@@ -2,7 +2,7 @@ import xtrack as xt
 import xobjects as xo
 
 env = xt.Environment()
-env.particle_ref = xt.Particles(p0c=450e9, mass0=xt.PROTON_MASS_EV, q0=1)
+env.set_particle_ref('proton', p0c=450e9)
 env.vars.default_to_zero = True
 
 env.new('mq', 'Quadrupole', length=0.8)
