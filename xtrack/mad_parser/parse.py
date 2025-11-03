@@ -84,6 +84,8 @@ class MadxTransformer(Transformer):
             statement = ''
         if statement.startswith('return'):
             return
+        if statement.startswith('beam'):
+            return
         if statement == '':
             return
         warn(f'Ignoring statement: `{statement}`')
