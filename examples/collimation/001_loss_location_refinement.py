@@ -17,20 +17,17 @@ logger.setLevel(logging.DEBUG)        #!skip-doc
 # Build test line #
 ###################
 
-ctx = xo.context_default
-buf = ctx.new_buffer()
-
 # We build a test line having two aperture elements which are shifted and
 # rotated w.r.t. the accelerator reference frame.
 
 # Define aper_0
-aper_0 = xt.LimitEllipse(_buffer=buf, a=2e-2, b=1e-2)
+aper_0 = xt.LimitEllipse(a=2e-2, b=1e-2)
 shift_aper_0 = (1e-2, 0.5e-2)
 rot_deg_aper_0 = 10.
 
 # Define aper_1
-aper_1 = xt.LimitRect(_buffer=buf, min_x=-1e-2, max_x=1e-2,
-                                   min_y=-2e-2, max_y=2e-2)
+aper_1 = xt.LimitRect(min_x=-1e-2, max_x=1e-2,
+                      min_y=-2e-2, max_y=2e-2)
 shift_aper_1 = (-5e-3, 1e-2)
 rot_deg_aper_1 = 10.
 aper_1.shift_x = shift_aper_1[0]
@@ -40,39 +37,38 @@ aper_1.rot_s_rad = np.deg2rad(rot_deg_aper_1)
 
 # aper_0_sandwitch
 line_aper_0 = xt.Line(
-    elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
-              xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
+    elements=[xt.XYShift(dx=shift_aper_0[0], dy=shift_aper_0[1]),
+              xt.SRotation(angle=rot_deg_aper_0),
               aper_0,
-              xt.Multipole(_buffer=buf, knl=[0.001]),
-              xt.SRotation(_buffer=buf, angle=-rot_deg_aper_0),
-              xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
-line_aper_0.build_tracker(_buffer=buf)
+              xt.Multipole(knl=[0.001]),
+              xt.SRotation(angle=-rot_deg_aper_0),
+              xt.XYShift(dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
+line_aper_0.build_tracker()
 
 # aper_1_sandwitch
 line_aper_1 = xt.Line(
     elements=[aper_1,
-              xt.Multipole(_buffer=buf, knl=[0.001])
+              xt.Multipole(knl=[0.001])
         ])
-line_aper_1.build_tracker(_buffer=buf)
+line_aper_1.build_tracker()
 
 #################
 # Build tracker #
 #################
 
 line=xt.Line(
-    elements = ((xt.Drift(_buffer=buf, length=0.5),)
+    elements = ((xt.Drift(length=0.5),)
                 + line_aper_0.elements
-                + (xt.Drift(_buffer=buf, length=1),
-                   xt.Drift(_buffer=buf, length=1),
-                   xt.Drift(_buffer=buf, length=1.),)
+                + (xt.Drift(length=1),
+                   xt.Drift(length=1),
+                   xt.Drift(length=1.),)
                 + line_aper_1.elements))
-line.build_tracker(_buffer=buf)
+line.build_tracker()
 num_elements = len(line.element_names)
 
 # Generate test particles
-particles = xt.Particles(_context=ctx,
-            px=np.random.uniform(-0.01, 0.01, 10000),
-            py=np.random.uniform(-0.01, 0.01, 10000))
+particles = xt.Particles(px=np.random.uniform(-0.01, 0.01, 10000),
+                         py=np.random.uniform(-0.01, 0.01, 10000))
 
 #########
 # Track #
@@ -111,8 +107,8 @@ interp_line = loss_loc_refinement.refine_lines[
                                 loss_loc_refinement.i_apertures[1]]
 s0 = interp_line.s0
 s1 = interp_line.s1
-polygon_0 = interp_line.elements[0]
-polygon_1 = interp_line.elements[-1]
+polygon_0 = interp_line._elements[0]
+polygon_1 = interp_line._elements[-1]
 for ii, (ln, poly) in enumerate(
                          zip([line_aper_0, line_aper_1],
                              [polygon_0, polygon_1])):
@@ -126,7 +122,6 @@ for ii, (ln, poly) in enumerate(
 
     ln.track(pp)
     ids = pp.particle_id
-
 
     fig = plt.figure(ii+1)
     ax = fig.add_subplot(111)

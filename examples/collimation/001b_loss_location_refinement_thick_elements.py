@@ -17,20 +17,17 @@ logger.setLevel(logging.DEBUG)        #!skip-doc
 # Build test line #
 ###################
 
-ctx = xo.context_default
-buf = ctx.new_buffer()
-
 # We build a test line having two aperture elements which are shifted and
 # rotated w.r.t. the accelerator reference frame.
 
 # Define aper_0
-aper_0 = xt.LimitEllipse(_buffer=buf, a=2e-2, b=1e-2)
+aper_0 = xt.LimitEllipse(a=2e-2, b=1e-2)
 shift_aper_0 = (1e-2, 0.5e-2)
 rot_deg_aper_0 = 10.
 
 # Define aper_1
-aper_1 = xt.LimitRect(_buffer=buf, min_x=-1e-2, max_x=1e-2,
-                                   min_y=-2e-2, max_y=2e-2)
+aper_1 = xt.LimitRect(min_x=-1e-2, max_x=1e-2,
+                      min_y=-2e-2, max_y=2e-2)
 shift_aper_1 = (-5e-3, 1e-2)
 rot_deg_aper_1 = 10.
 aper_1.shift_x = shift_aper_1[0]
