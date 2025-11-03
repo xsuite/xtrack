@@ -36,38 +36,36 @@ line['on_sol'] = 1.
 
 # I flip the bumps (Jorg had probably opposite solenoids)
 line['on_spin_bumps'] = 1.
-line.vars['kcv32.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.l2'] = ' 6.28933e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.r2'] = '-3.14467e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.r2'] = '-6.28933e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.r2'] = '-3.14467e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.l4'] = ' 5.21432e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.l4'] = ' 0.000104286 * on_spin_bumps * (-1)'
-line.vars['kcv20.l4'] = ' 5.21432e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.r4'] = '-5.21432e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.r4'] = '-0.000104286 * on_spin_bumps * (-1)'
-line.vars['kcv32.r4'] = '-5.21432e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.l6'] = '  1.3513e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.l6'] = '  2.7026e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.l6'] = '  1.3513e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.r6'] = ' -1.3513e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.r6'] = ' -2.7026e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.r6'] = ' -1.3513e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.l8'] = ' 4.67179e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.l8'] = ' 9.34358e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.l8'] = ' 4.67179e-05 * on_spin_bumps * (-1)'
-line.vars['kcv20.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
-line.vars['kcv26.r8'] = '-9.34358e-05 * on_spin_bumps * (-1)'
-line.vars['kcv32.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
+line['kcv32.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
+line['kcv26.l2'] = ' 6.28933e-05 * on_spin_bumps * (-1)'
+line['kcv20.l2'] = ' 3.14467e-05 * on_spin_bumps * (-1)'
+line['kcv20.r2'] = '-3.14467e-05 * on_spin_bumps * (-1)'
+line['kcv26.r2'] = '-6.28933e-05 * on_spin_bumps * (-1)'
+line['kcv32.r2'] = '-3.14467e-05 * on_spin_bumps * (-1)'
+line['kcv32.l4'] = ' 5.21432e-05 * on_spin_bumps * (-1)'
+line['kcv26.l4'] = ' 0.000104286 * on_spin_bumps * (-1)'
+line['kcv20.l4'] = ' 5.21432e-05 * on_spin_bumps * (-1)'
+line['kcv20.r4'] = '-5.21432e-05 * on_spin_bumps * (-1)'
+line['kcv26.r4'] = '-0.000104286 * on_spin_bumps * (-1)'
+line['kcv32.r4'] = '-5.21432e-05 * on_spin_bumps * (-1)'
+line['kcv32.l6'] = '  1.3513e-05 * on_spin_bumps * (-1)'
+line['kcv26.l6'] = '  2.7026e-05 * on_spin_bumps * (-1)'
+line['kcv20.l6'] = '  1.3513e-05 * on_spin_bumps * (-1)'
+line['kcv20.r6'] = ' -1.3513e-05 * on_spin_bumps * (-1)'
+line['kcv26.r6'] = ' -2.7026e-05 * on_spin_bumps * (-1)'
+line['kcv32.r6'] = ' -1.3513e-05 * on_spin_bumps * (-1)'
+line['kcv32.l8'] = ' 4.67179e-05 * on_spin_bumps * (-1)'
+line['kcv26.l8'] = ' 9.34358e-05 * on_spin_bumps * (-1)'
+line['kcv20.l8'] = ' 4.67179e-05 * on_spin_bumps * (-1)'
+line['kcv20.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
+line['kcv26.r8'] = '-9.34358e-05 * on_spin_bumps * (-1)'
+line['kcv32.r8'] = '-4.67179e-05 * on_spin_bumps * (-1)'
 
 line['on_spin_bumps'] = 1; line['on_sol'] = 0
 tw_off = line.twiss4d(spin=True, radiation_integrals=True)
 line['on_spin_bumps'] = 1; line['on_sol'] = 1
 tw = line.twiss4d(spin=True, radiation_integrals=True)
 tw_ir4 = tw.rows[9997:11200:'s']
-
-prrrr
 
 for ttww in [tw_off, tw]:
 

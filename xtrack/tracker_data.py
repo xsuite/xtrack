@@ -278,9 +278,9 @@ class TrackerData:
         self.line_element_classes = [cc._XoStruct for cc in self.line_element_classes]
         self.extra_element_classes = [cc._XoStruct for cc in self.extra_element_classes]
 
-        element_refs_cls = xt.tracker._element_ref_data_class_from_element_classes(
+        element_ref_cls = xt.tracker._element_ref_data_class_from_element_classes(
                                             kernel_element_classes)
-        self._element_ref_data = element_refs_cls._from_buffer(
+        self._element_ref_data = element_ref_cls._from_buffer(
             buffer=buffer,
             offset=offset,
         )

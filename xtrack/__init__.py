@@ -6,14 +6,15 @@
 from .general import _pkg_root, _print, START, END
 
 from .particles import (Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
-                        enable_pyheadtail_interface, disable_pyheadtail_interface)
+                        enable_pyheadtail_interface, disable_pyheadtail_interface, masses)
 
 from .base_element import BeamElement, Replica
 from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData
 from .line import Line, Node, freeze_longitudinal, _temp_knobs, EnergyProgram
-from .environment import Environment, Place, get_environment
+from .environment import Environment, get_environment
+from .builder import Builder, Place
 from .tracker import Tracker, Log
 from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action,
                     TargetRelPhaseAdvance, TargetSet, GreaterThan, LessThan,

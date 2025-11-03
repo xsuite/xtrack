@@ -385,8 +385,8 @@ def test_rbend_two_step(example_sequence):
 def test_rbend_set_params_after_lattice(example_sequence):
     env, positions, _ = example_sequence
     rb1 = env['rx2']
-    assert positions['rx2'] < 35 # When changing the angle the position changes
-                                 # (the magnet shortens)
+    # When changing the angle the position of the center does not move
+    xo.assert_allclose(positions['rx2'], 35, atol=1e-12)
     assert isinstance(rb1, xt.RBend)
 
     angle = 1.5
@@ -829,6 +829,13 @@ def test_line_syntax():
     loader.load_string(sequence)
     env = loader.env
 
+    env['l1'].end_compose()
+    env['l2'].end_compose()
+    env['l3'].end_compose()
+    env['l4'].end_compose()
+    env['l5'].end_compose()
+    env['l6'].end_compose()
+
     l1 = env['l1']
     assert l1.name == 'l1'
     assert l1.element_names == ['el1', 'el2', 'el3']
@@ -871,9 +878,7 @@ def test_refer_and_thin_elements():
     endsequence;
     """
 
-    loader = MadxLoader()
-    loader.load_string(sequence)
-    env = loader.env
+    env = xt.load(string=sequence, format='madx')
 
     seq1 = env['seq1']
     seq1.merge_consecutive_drifts()

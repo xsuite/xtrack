@@ -232,6 +232,7 @@ def _tranformations_active(self):
 def _disable_transformations_if_needed(self):
     if not _tranformations_active(self):
         self._sin_rot_s = -999.
+        self._cos_rot_s = -999.
     elif self._sin_rot_s < -2.:
         self._sin_rot_s = 0.
         self._cos_rot_s = 1.
@@ -644,6 +645,10 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         dct = xo.HybridClass.to_dict(self, **kwargs)
         if self.name_associated_aperture is not None:
             dct['name_associated_aperture'] = self.name_associated_aperture
+        if hasattr(self, 'extra') and self.extra:
+            dct['extra'] = self.extra.copy()
+        if hasattr(self, 'prototype'):
+            dct['prototype'] = self.prototype
         return dct
 
     @classmethod
@@ -655,6 +660,11 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
         instance = xo.HybridClass._static_from_dict(cls, dct, **kwargs)
         instance.name_associated_aperture = name_associated_aperture
+
+        if 'extra' in dct.keys():
+            instance.extra = dct['extra'].copy()
+        if 'prototype' in dct.keys():
+            instance.prototype = dct['prototype']
         return instance
 
     def copy(self, **kwargs):
@@ -695,8 +705,8 @@ class Replica:
         return Replica(parent_name=self.parent_name)
 
     def resolve(self, element_container, get_name=False):
-        if hasattr(element_container, 'element_dict'):
-            element_container = element_container.element_dict
+        if hasattr(element_container, '_element_dict'):
+            element_container = element_container._element_dict
         target_name = self.parent_name
         visited = {target_name}
         while isinstance(element := element_container[target_name], Replica):

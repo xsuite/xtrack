@@ -4,7 +4,7 @@ import xtrack as xt
 
 from scipy.constants import c as clight
 
-delta0 = 0 #-1e-2
+delta0 = -1e-2
 delta_range = 0
 num_turns=100
 num_particles = 100_000
@@ -26,7 +26,7 @@ line = xt.load('../../test_data/psb_injection/line_and_particle.json')
 tt = line.get_table()
 ttcav = tt.rows[tt.element_type == 'Cavity']
 for nn in ttcav.name:
-    line.element_refs[nn].voltage=0
+    line[nn].voltage=0
 
 line.configure_bend_model(core='bend-kick-bend', edge='full')
 line.twiss_default['method'] = '4d'

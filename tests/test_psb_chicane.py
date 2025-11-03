@@ -59,10 +59,10 @@ def test_psb_chicane(test_context):
 
     # Build knob to model eddy currents (k2)
     line.vars['bsw_k2l'] = 0
-    line.element_refs['bi1.bsw1l1.1'].knl[2] = line.vars['bsw_k2l']
-    line.element_refs['bi1.bsw1l1.2'].knl[2] = -line.vars['bsw_k2l']
-    line.element_refs['bi1.bsw1l1.3'].knl[2] = -line.vars['bsw_k2l']
-    line.element_refs['bi1.bsw1l1.4'].knl[2] = line.vars['bsw_k2l']
+    line['bi1.bsw1l1.1'].knl[2] = line.vars['bsw_k2l']
+    line['bi1.bsw1l1.2'].knl[2] = -line.vars['bsw_k2l']
+    line['bi1.bsw1l1.3'].knl[2] = -line.vars['bsw_k2l']
+    line['bi1.bsw1l1.4'].knl[2] = line.vars['bsw_k2l']
 
     # Test to_dict roundtrip
     line = xt.Line.from_dict(line.to_dict())

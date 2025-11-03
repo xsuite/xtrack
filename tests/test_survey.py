@@ -57,24 +57,24 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
     line.vars['tilt_bend_deg'] = 999.
 
 
-    line.element_refs['e0'].length = line.vars['l_drift']
-    line.element_refs['e1'].length = line.vars['l_bend']
-    line.element_refs['e2'].length = line.vars['l_drift']
-    line.element_refs['e3'].length = line.vars['l_bend']
-    line.element_refs['e4'].length = line.vars['l_drift']
-    line.element_refs['e5'].length = line.vars['l_bend']
-    line.element_refs['e6'].length = line.vars['l_drift']
-    line.element_refs['e7'].length = line.vars['l_bend']
+    line['e0'].length = line.vars['l_drift']
+    line['e1'].length = line.vars['l_bend']
+    line['e2'].length = line.vars['l_drift']
+    line['e3'].length = line.vars['l_bend']
+    line['e4'].length = line.vars['l_drift']
+    line['e5'].length = line.vars['l_bend']
+    line['e6'].length = line.vars['l_drift']
+    line['e7'].length = line.vars['l_bend']
 
-    line.element_refs['e1'].h = line.vars['h_bend']
-    line.element_refs['e3'].h = line.vars['h_bend']
-    line.element_refs['e5'].h = line.vars['h_bend']
-    line.element_refs['e7'].h = line.vars['h_bend']
+    line['e1'].h = line.vars['h_bend']
+    line['e3'].h = line.vars['h_bend']
+    line['e5'].h = line.vars['h_bend']
+    line['e7'].h = line.vars['h_bend']
 
-    line.element_refs['e1'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
-    line.element_refs['e3'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
-    line.element_refs['e5'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
-    line.element_refs['e7'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line['e1'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line['e3'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line['e5'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
+    line['e7'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
 
     if slice_mode is not None:
         line.slice_thick_elements(

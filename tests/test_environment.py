@@ -156,7 +156,7 @@ def test_vars_and_element_access_modes(container_type):
     tt_new['length', 'drift_2'] == tt['length', 'drift_2']
 
     lcp = line.copy()
-    assert lcp.element_dict is not line.element_dict
+    assert lcp._element_dict is not line._element_dict
     assert lcp.env is not line.env
     assert lcp._xdeps_vref._ownerr is not line._xdeps_vref._owner
 
@@ -166,7 +166,7 @@ def test_vars_and_element_access_modes(container_type):
     assert line['a'] == 333
     assert lcp['a'] == 444
 
-    assert env.elements is env.element_dict
+    assert env.elements.env is env
 
     # Check set with multiple targets
     env['x0'] = 0
@@ -299,8 +299,8 @@ def test_assemble_ring():
         atol=1e-14, rtol=0)
 
 
-    girder_f = girder.clone(name='f')
-    girder_d = girder.clone(name='d', mirror=True)
+    girder_f = girder.clone(suffix='f')
+    girder_d = girder.clone(suffix='d', mirror=True)
     env.set('mq.f', k1='kqf')
     env.set('mq.d', k1='kqd')
 
@@ -387,8 +387,8 @@ def test_assemble_ring():
                     atol=1e-14, rtol=0)
 
 
-    hcell_left = halfcell.replicate(name='l', mirror=True)
-    hcell_right = halfcell.replicate(name='r')
+    hcell_left = halfcell.replicate(suffix='l', mirror=True)
+    hcell_right = halfcell.replicate(suffix='r')
 
     cell = env.new_line(components=[
         env.new('start', xt.Marker),
@@ -454,8 +454,8 @@ def test_assemble_ring():
         env.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
     ])
 
-    hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
-    hcell_right_ss = halfcell_ss.replicate(name='r')
+    hcell_left_ss = halfcell_ss.replicate(suffix='l', mirror=True)
+    hcell_right_ss = halfcell_ss.replicate(suffix='r')
     cell_ss = env.new_line(components=[
         env.new('start.ss', xt.Marker),
         hcell_left_ss,
@@ -463,11 +463,11 @@ def test_assemble_ring():
         env.new('end.ss', xt.Marker),
     ])
 
-
+    env.lines['cell.2'] = cell.replicate(suffix='cell.2')
     arc = env.new_line(components=[
-        cell.replicate(name='cell.1'),
-        cell.replicate(name='cell.2'),
-        cell.replicate(name='cell.3'),
+        cell.replicate(suffix='cell.1'),
+        'cell.2',
+        cell.replicate(suffix='cell.3'),
     ])
 
     assert 'cell.2' in env.lines
@@ -494,13 +494,20 @@ def test_assemble_ring():
         cell_ss.replicate('cell.2'),
     ])
 
+    env.lines['arc.1'] =  arc.replicate(suffix='arc.1')
+    env.lines['ss.1'] =  ss.replicate(suffix='ss.1')
+    env.lines['arc.2'] =  arc.replicate(suffix='arc.2')
+    env.lines['ss.2'] =  ss.replicate(suffix='ss.2')
+    env.lines['arc.3'] =  arc.replicate(suffix='arc.3')
+    env.lines['ss.3'] =  ss.replicate(suffix='ss.3')
+
     ring = env.new_line(components=[
-        arc.replicate(name='arc.1'),
-        ss.replicate(name='ss.1'),
-        arc.replicate(name='arc.2'),
-        ss.replicate(name='ss.2'),
-        arc.replicate(name='arc.3'),
-        ss.replicate(name='ss.3'),
+        env['arc.1'],
+        env['ss.1'],
+        env['arc.2'],
+        env['ss.2'],
+        env['arc.3'],
+        env['ss.3'],
     ])
     tt_ring = ring.get_table(attr=True)
     # Check length
@@ -620,19 +627,19 @@ def test_assemble_ring():
     assert 'cell3_copy' in env.lines
     assert cell3_select.particle_ref is not None
     assert env.lines['cell3_copy'] is cell3_select
-    assert cell3_select.element_dict is env.element_dict
+    assert cell3_select._element_dict is env._element_dict
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
     assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
     assert (np.array(cell3_select.element_names) == np.array(
         tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
 
-    # Check that they share the element_dict
-    assert cell.element_dict is env.element_dict
-    assert halfcell.element_dict is env.element_dict
-    assert halfcell_ss.element_dict is env.element_dict
-    assert cell_ss.element_dict is env.element_dict
-    assert insertion.element_dict is env.element_dict
-    assert ring2.element_dict is env.element_dict
+    # Check that they share the _element_dict
+    assert cell._element_dict is env._element_dict
+    assert halfcell._element_dict is env._element_dict
+    assert halfcell_ss._element_dict is env._element_dict
+    assert cell_ss._element_dict is env._element_dict
+    assert insertion._element_dict is env._element_dict
+    assert ring2._element_dict is env._element_dict
 
     cell3_select.twiss4d()
 
@@ -714,8 +721,8 @@ def test_assemble_ring_builders():
         atol=1e-14, rtol=0)
 
 
-    girder_f = girder.clone(name='f')
-    girder_d = girder.clone(name='d', mirror=True)
+    girder_f = girder.clone(suffix='f')
+    girder_d = girder.clone(suffix='d', mirror=True)
     env.set('mq.f', k1='kqf')
     env.set('mq.d', k1='kqd')
 
@@ -799,8 +806,8 @@ def test_assemble_ring_builders():
                     atol=1e-14, rtol=0)
 
 
-    hcell_left = halfcell.replicate(name='l', mirror=True)
-    hcell_right = halfcell.replicate(name='r')
+    hcell_left = halfcell.replicate(suffix='l', mirror=True)
+    hcell_right = halfcell.replicate(suffix='r')
 
     cell = env.new_builder()
     cell.new('start', xt.Marker)
@@ -866,8 +873,8 @@ def test_assemble_ring_builders():
         env.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
     ])
 
-    hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
-    hcell_right_ss = halfcell_ss.replicate(name='r')
+    hcell_left_ss = halfcell_ss.replicate(suffix='l', mirror=True)
+    hcell_right_ss = halfcell_ss.replicate(suffix='r')
     cell_ss = env.new_builder()
     cell_ss.new('start.ss', xt.Marker)
     cell_ss.place(hcell_left_ss)
@@ -901,8 +908,8 @@ def test_assemble_ring_builders():
         assert arc.get(nn) is env['cell.2'].get(nn)
 
     ss = env.new_builder()
-    ss.new('cell.1', cell_ss, mode='replica')
-    ss.new('cell.2', cell_ss, mode='replica')
+    ss.new('ss.cell.1', cell_ss, mode='replica')
+    ss.new('ss.cell.2', cell_ss, mode='replica')
     ss = ss.build()
 
     ring = env.new_builder()
@@ -970,13 +977,13 @@ def test_assemble_ring_builders():
 
     select_whole = ring2.select()
     assert select_whole.env is ring2.env
-    assert select_whole.element_dict is ring2.element_dict
+    assert select_whole._element_dict is ring2._element_dict
     assert np.all(np.array(select_whole.element_names)
                   == np.array(ring2.element_names))
 
     shallow_copy = ring2.copy(shallow=True)
     assert shallow_copy.env is ring2.env
-    assert shallow_copy.element_dict is ring2.element_dict
+    assert shallow_copy._element_dict is ring2._element_dict
     assert np.all(np.array(shallow_copy.element_names)
                     == np.array(ring2.element_names))
 
@@ -1039,19 +1046,19 @@ def test_assemble_ring_builders():
                                 name='cell3_copy')
     assert 'cell3_copy' in env.lines
     assert env.lines['cell3_copy'] is cell3_select
-    assert cell3_select.element_dict is env.element_dict
+    assert cell3_select._element_dict is env._element_dict
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
     assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
     assert (np.array(cell3_select.element_names) == np.array(
         tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
 
-    # Check that they share the element_dict
-    assert cell.element_dict is env.element_dict
-    assert halfcell.element_dict is env.element_dict
-    assert halfcell_ss.element_dict is env.element_dict
-    assert cell_ss.element_dict is env.element_dict
-    assert insertion.element_dict is env.element_dict
-    assert ring2.element_dict is env.element_dict
+    # Check that they share the _element_dict
+    assert cell._element_dict is env._element_dict
+    assert halfcell._element_dict is env._element_dict
+    assert halfcell_ss._element_dict is env._element_dict
+    assert cell_ss._element_dict is env._element_dict
+    assert insertion._element_dict is env._element_dict
+    assert ring2._element_dict is env._element_dict
 
     cell3_select.twiss4d()
 
@@ -1134,8 +1141,8 @@ def test_assemble_ring_repeated_elements():
         atol=1e-14, rtol=0)
 
 
-    girder_f = girder.clone(name='f')
-    girder_d = girder.clone(name='d', mirror=True)
+    girder_f = girder.clone(suffix='f')
+    girder_d = girder.clone(suffix='d', mirror=True)
     env.set('mq.f', k1='kqf')
     env.set('mq.d', k1='kqd')
 
@@ -1393,13 +1400,13 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(tw_ring2.betx[0], tw_cell.betx[0], atol=0, rtol=5e-4)
     xo.assert_allclose(tw_ring2.bety[0], tw_cell.bety[0], atol=0, rtol=5e-4)
 
-    # Check that they share the element_dict
-    assert cell.element_dict is env.element_dict
-    assert halfcell.element_dict is env.element_dict
-    assert halfcell_ss.element_dict is env.element_dict
-    assert cell_ss.element_dict is env.element_dict
-    assert insertion.element_dict is env.element_dict
-    assert ring2.element_dict is env.element_dict
+    # Check that they share the _element_dict
+    assert cell._element_dict is env._element_dict
+    assert halfcell._element_dict is env._element_dict
+    assert halfcell_ss._element_dict is env._element_dict
+    assert cell_ss._element_dict is env._element_dict
+    assert insertion._element_dict is env._element_dict
+    assert ring2._element_dict is env._element_dict
 
     xo.assert_allclose(tw_ring2['betx', 'ip::0'], tw_half_insertion['betx', 'ip'], atol=0, rtol=5e-4)
     xo.assert_allclose(tw_ring2['bety', 'ip::0'], tw_half_insertion['bety', 'ip'], atol=0, rtol=5e-4)
@@ -1499,7 +1506,7 @@ def test_element_views(container_type):
     assert ee.get('b2') == 9
     assert ee.get('c') == 12
 
-    env.new('mb', 'Bend', extra={'description': 'Hello Riccarco'},
+    env.new('mb', 'Bend', extra={'kmax': '6*a'},
             k1='3*a', h=4*ee.ref['a'], knl=[0, '5*a', 6*ee.ref['a']])
     assert isinstance(ee['mb'].k1, float)
     assert isinstance(ee['mb'].h, float)
@@ -1548,7 +1555,7 @@ def test_element_views(container_type):
     assert ee.get('mb').knl[2] == 240
 
     # Some interesting behavior
-    assert type(ee['mb']) is xd.madxutils.View
+    assert type(ee['mb']) is xt.view.View
     assert ee['mb'].__class__ is xt.Bend
     assert isinstance(ee['mb'], xt.Bend)
     assert type(ee.ref['mb']._value) is xt.Bend
@@ -1571,14 +1578,14 @@ def test_env_new():
     str(env.ref['m2'].k0._expr) == "(3.0 * vars['a'])"
 
     ret = env.new('mm', xt.Bend, k0='3*a', at='4*a', from_='m')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret, xt.Place)
     assert ret.name == 'mm'
     assert ret.at == '4*a'
     assert ret.from_ == 'm'
     assert isinstance(env['mm'], xt.Bend)
 
     ret = env.new('mm1', 'mm', mode='replica', at='5*a', from_='m1')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret,xt.Place)
     assert isinstance(env['mm1'], xt.Replica)
     assert ret.name == 'mm1'
     assert ret.at == '5*a'
@@ -1586,7 +1593,7 @@ def test_env_new():
     assert env['mm1'].parent_name == 'mm'
 
     ret = env.new('mm2', 'mm', mode='clone', at='6*a', from_='m2')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret,xt.Place)
     assert isinstance(env['mm2'], xt.Bend)
     assert ret.name == 'mm2'
     assert ret.at == '6*a'
@@ -1619,7 +1626,7 @@ def test_env_new():
     assert env['e2.ll3'].parent_name == 'e2'
 
     ret = env.new('ll4', 'll', at='5*a', from_='m')
-    assert isinstance(ret, xt.environment.Place)
+    assert isinstance(ret,xt.Place)
     assert ret.at == '5*a'
     assert ret.from_ == 'm'
     assert isinstance(env['ll4'], xt.Line)
@@ -1631,100 +1638,6 @@ def test_env_new():
     assert ret == 'aper'
     assert env[ret].a == 6
     assert env[ret].b == 3
-
-
-def test_builder_new():
-
-    env = xt.Environment()
-    bdr = env.new_builder()
-    bdr['a'] = 3.
-
-    bdr.new('m', xt.Bend, k0='3*a')
-    assert isinstance(bdr['m'], xt.Bend)
-    assert len(bdr.components) == 1
-
-    bdr.new('m1', 'm', mode='replica')
-    assert isinstance(bdr['m1'], xt.Replica)
-    assert bdr.get('m1').parent_name == 'm'
-    assert len(bdr.components) == 2
-
-    bdr.new('m2', 'm', mode='clone')
-    assert isinstance(bdr['m2'], xt.Bend)
-    str(bdr.ref['m2'].k0._expr) == "(3.0 * vars['a'])"
-    assert len(bdr.components) == 3
-
-    ret = bdr.new('mm', xt.Bend, k0='3*a', at='4*a', from_='m')
-    assert isinstance(ret, xt.environment.Place)
-    assert ret.name == 'mm'
-    assert ret.at == '4*a'
-    assert ret.from_ == 'm'
-    assert isinstance(bdr['mm'], xt.Bend)
-    assert len(bdr.components) == 4
-    assert bdr.components[-1] is ret
-
-    ret = bdr.new('mm1', 'mm', mode='replica', at='5*a', from_='m1')
-    assert isinstance(ret, xt.environment.Place)
-    assert isinstance(bdr['mm1'], xt.Replica)
-    assert ret.name == 'mm1'
-    assert ret.at == '5*a'
-    assert ret.from_ == 'm1'
-    assert bdr['mm1'].parent_name == 'mm'
-    assert len(bdr.components) == 5
-    assert bdr.components[-1] is ret
-
-    ret = bdr.new('mm2', 'mm', mode='clone', at='6*a', from_='m2')
-    assert isinstance(ret, xt.environment.Place)
-    assert isinstance(bdr['mm2'], xt.Bend)
-    assert ret.name == 'mm2'
-    assert ret.at == '6*a'
-    assert ret.from_ == 'm2'
-    assert str(bdr.ref['mm2'].k0._expr) == "(3.0 * vars['a'])"
-    assert len(bdr.components) == 6
-    assert bdr.components[-1] is ret
-
-    env.new('e1', xt.Bend, k0='3*a')
-    env.new('e2', xt.Bend)
-    line = bdr.new('ll', xt.Line, components=['e1', 'e2'])
-    assert isinstance(line, xt.Line)
-    assert line.element_names == ['e1', 'e2']
-    assert len(bdr.components) == 7
-    assert bdr.components[-1] is line
-
-    line = bdr.new('ll1', 'Line', components=['e1', 'e2'])
-    assert isinstance(line, xt.Line)
-    assert line.element_names == ['e1', 'e2']
-    assert len(bdr.components) == 8
-    assert bdr.components[-1] is line
-
-    bdr.new('ll2', 'll') # Should be a clone
-    assert isinstance(bdr['ll2'], xt.Line)
-    assert bdr['ll2'].element_names == ['e1.ll2', 'e2.ll2']
-    assert isinstance(bdr['e1.ll2'], xt.Bend)
-    assert isinstance(bdr['e2.ll2'], xt.Bend)
-    assert bdr.ref['e1.ll2'].k0._expr == "(3.0 * vars['a'])"
-    assert len(bdr.components) == 9
-    assert bdr.components[-1] is bdr['ll2']
-
-    bdr.new('ll3', 'll', mode='replica')
-    assert isinstance(bdr['ll3'], xt.Line)
-    assert bdr['ll3'].element_names == ['e1.ll3', 'e2.ll3']
-    assert isinstance(bdr['e1.ll3'], xt.Replica)
-    assert isinstance(bdr['e2.ll3'], xt.Replica)
-    assert bdr['e1.ll3'].parent_name == 'e1'
-    assert bdr['e2.ll3'].parent_name == 'e2'
-    assert len(bdr.components) == 10
-    assert bdr.components[-1] is bdr['ll3']
-
-    ret = bdr.new('ll4', 'll', at='5*a', from_='m')
-    assert isinstance(ret, xt.environment.Place)
-    assert ret.at == '5*a'
-    assert ret.from_ == 'm'
-    assert isinstance(bdr['ll4'], xt.Line)
-    assert bdr['ll4'].element_names == ['e1.ll4', 'e2.ll4']
-    assert isinstance(bdr['e1.ll4'], xt.Bend)
-    assert isinstance(bdr['e2.ll4'], xt.Bend)
-    assert len(bdr.components) == 11
-    assert bdr.components[-1] is ret
 
 
 def test_neg_line():
@@ -1822,7 +1735,7 @@ def test_select_in_multiline():
     line   = collider[seq]
     line_sel    = line.select(s_marker,e_marker)
 
-    assert line_sel.element_dict is line.element_dict
+    assert line_sel._element_dict is line._element_dict
     assert line.get('ip1') is line_sel.get('ip1')
 
     line_sel['aaa'] = 1e-6
@@ -1857,7 +1770,7 @@ def test_inpection_methods(container_type):
 
     # Line/Env methods (get, set, eval, get_expr, new_expr, info)
     assert ee.get('b') == 2 * 2 + 1
-    assert ee.get('bb') is env.element_dict['bb']
+    assert ee.get('bb') is env._element_dict['bb']
 
     assert str(ee.get_expr('b')) == "((2.0 * vars['a']) + vars['k.1'])"
 
@@ -2601,7 +2514,7 @@ def test_remove_element_from_env():
     env.new('q1', 'Quadrupole', length='2.0 + b', knl=[0, '3*a'])
     env.new('q2', 'q1', length='2.0 + b', knl=[0, '3*a'])
 
-    assert 'q1' in env.element_dict
+    assert 'q1' in env.elements
     assert len(env.ref['a']._find_dependant_targets()) == 7
     # is:
     # [vars['a'],
@@ -2613,7 +2526,7 @@ def test_remove_element_from_env():
     #  element_refs['q1'].knl]
 
     env._remove_element('q1')
-    assert 'q1' not in env.element_dict
+    assert 'q1' not in env.elements
     assert len(env.ref['a']._find_dependant_targets()) == 4
     # is:
     # [vars['a'],
@@ -3162,14 +3075,14 @@ def test_enviroment_from_two_lines():
        'qq_shared_thin/line2', 'qq_shared_thin/line2',
        'qq_shared_thin/line2', None, None]))
 
-    assert 'qq1_thick' in env.element_dict
-    assert 'qq1_thin' in env.element_dict
-    assert 'qq_shared_thick/line1' in env.element_dict
-    assert 'qq_shared_thin/line1' in env.element_dict
-    assert 'qq2_thick' in env.element_dict
-    assert 'qq2_thin' in env.element_dict
-    assert 'qq_shared_thick/line2' in env.element_dict
-    assert 'qq_shared_thin/line2' in env.element_dict
+    assert 'qq1_thick' in env.elements
+    assert 'qq1_thin' in env.elements
+    assert 'qq_shared_thick/line1' in env.elements
+    assert 'qq_shared_thin/line1' in env.elements
+    assert 'qq2_thick' in env.elements
+    assert 'qq2_thin' in env.elements
+    assert 'qq_shared_thick/line2' in env.elements
+    assert 'qq_shared_thin/line2' in env.elements
 
     line1['kk'] = 1e-1
     line2['kk'] = 1e-1
@@ -3426,3 +3339,814 @@ def test_env_set_particle_ref():
     xo.assert_allclose(env.line1.particle_ref.q0 , 82, rtol=0, atol=1e-14)
     xo.assert_allclose(env.line1.particle_ref.mass0, xt.particles.masses.Pb208_MASS_EV)
     xo.assert_allclose(env.line1.particle_ref.p0c , 7e12/82, rtol=0, atol=1e-14)
+
+def test_compose_parametric_lines():
+
+    env = xt.Environment()
+
+    env['a'] = 1.
+
+    env.new_line(name='l1', compose=True)
+    env['l1'].new('q1', 'Quadrupole', length='a', at='0.5*a')
+    env['l1'].new('q2', 'q1', at='4*a', from_='q1@center')
+
+    l2 = env.new_line(compose=True,
+                        components=[
+                        env.place('l1', at='7.5*a'),
+                        env.place(-env['l1'], at='17.5*a'),
+                    ])
+    tt1 = l2.get_table()
+    # tt1.cols['s', 'name', 'element_type', 'env_name'] is:
+    # Table: 9 rows, 4 cols
+    # name                   s element_type env_name
+    # drift_3                0 Drift        drift_3
+    # q1::0                  5 Quadrupole   q1
+    # drift_1                6 Drift        drift_1
+    # q2::0                  9 Quadrupole   q2
+    # drift_4               10 Drift        drift_4
+    # q2::1                 15 Quadrupole   q2
+    # drift_2               16 Drift        drift_2
+    # q1::1                 19 Quadrupole   q1
+    # _end_point            20              _end_point
+
+    env['a'] = 2.
+    l2.regenerate_from_composer()
+    tt2 = l2.get_table()
+    # tt2.cols['s', 'name', 'element_type', 'env_name'] is:
+    # Table: 9 rows, 4 cols
+    # name                   s element_type env_name
+    # drift_7                0 Drift        drift_7
+    # q1::0                 10 Quadrupole   q1
+    # drift_5               12 Drift        drift_5
+    # q2::0                 18 Quadrupole   q2
+    # drift_8               20 Drift        drift_8
+    # q2::1                 30 Quadrupole   q2
+    # drift_6               32 Drift        drift_6
+    # q1::1                 38 Quadrupole   q1
+    # _end_point            40              _end_point
+
+    # Check tt1
+    assert np.all(tt1.name ==
+        ['drift_3', 'q1::0', 'drift_1', 'q2::0', 'drift_4', 'q2::1',
+        'drift_2', 'q1::1', '_end_point'])
+    xo.assert_allclose(tt1.s,
+            [ 0.,  5.,  6.,  9., 10., 15., 16., 19., 20.],
+            rtol=0, atol=1e-12)
+    assert np.all(tt1.element_type ==
+        ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
+        'Quadrupole', 'Drift', 'Quadrupole', ''])
+    assert np.all(tt1.env_name ==
+        ['drift_3', 'q1', 'drift_1', 'q2', 'drift_4',
+        'q2', 'drift_2', 'q1', '_end_point'])
+
+    # Check tt2
+    assert np.all(tt2.name ==
+        ['drift_7', 'q1::0', 'drift_5', 'q2::0', 'drift_8', 'q2::1',
+        'drift_6', 'q1::1', '_end_point'])
+    xo.assert_allclose(tt2.s, 2 * tt1.s, rtol=0, atol=1e-12)
+    assert np.all(tt2.element_type ==
+        ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
+        'Quadrupole', 'Drift', 'Quadrupole', ''])
+    assert np.all(tt2.env_name ==
+        ['drift_7', 'q1', 'drift_5', 'q2', 'drift_8',
+        'q2', 'drift_6', 'q1', '_end_point'])
+
+
+
+    # Same in MAD-X
+
+    mad_src = """
+    a = 1;
+    q1: quadrupole, L:=a;
+    q2: q1;
+    d1: drift, L:=3*a;
+
+    d5: drift, L:=5*a;
+
+    l1: line=(q1,d1,q2);
+    l2: line=(d5, l1, d5, -l1);
+
+    s1: sequence, refer=centre, l:=5*a;
+        q1, at:=0.5*a;
+        q2, at:=4.5*a;
+    endsequence;
+    sm1: sequence, refer=centre, l:=5*a;
+        q2, at:=0.5*a;
+        q1, at:=4.5*a;
+    endsequence;
+    s2: sequence, refer=centre, l:=20*a;
+        s1, at:=7.5*a;
+        sm1, at:=17.5*a;
+    endsequence;
+
+    a=2;
+
+    """
+    from cpymad.madx import Madx
+    madx = Madx()
+    madx.input(mad_src)
+    madx.beam()
+    madx.use('l2')
+    tt_mad_l2 = xt.Table(madx.twiss(betx=1, bety=1), _copy_cols=True)
+    madx.use('s2')
+    tt_mad_s2 = xt.Table(madx.twiss(betx=1, bety=1), _copy_cols=True)
+
+    env_mad = xt.load(string=mad_src, format='madx')
+    tt_xs_mad_l2 = env_mad['l2'].get_table()
+    # tt_xs_mad_l2.cols['s', 'name', 'element_type', 'env_name'] is:
+    # Table: 9 rows, 4 cols
+    # name                   s element_type env_name
+    # d5::0                  0 Drift        d5
+    # q1::0                 10 Quadrupole   q1
+    # d1::0                 12 Drift        d1
+    # q2::0                 18 Quadrupole   q2
+    # d5::1                 20 Drift        d5
+    # q2::1                 30 Quadrupole   q2
+    # d1::1                 32 Drift        d1
+    # q1::1                 38 Quadrupole   q1
+    # _end_point            40              _end_point
+
+    tt_xs_mad_s2 = env_mad['s2'].get_table()
+    # tt_xs_mad_s2.cols['s', 'name', 'element_type', 'env_name'] is:
+    # Table: 9 rows, 4 cols
+    # Table: 9 rows, 4 cols
+    # name                   s element_type env_name
+    # drift_3                0 Drift        drift_3
+    # q1::0                 10 Quadrupole   q1
+    # drift_1               12 Drift        drift_1
+    # q2::0                 18 Quadrupole   q2
+    # drift_4               20 Drift        drift_4
+    # q2::1                 30 Quadrupole   q2
+    # drift_2               32 Drift        drift_2
+    # q1::1                 38 Quadrupole   q1
+    # _end_point            40              _end_point
+
+    assert np.all(tt_xs_mad_l2.name ==
+        ['d5::0', 'q1::0', 'd1::0', 'q2::0', 'd5::1', 'q2::1',
+        'd1::1', 'q1::1', '_end_point'])
+    xo.assert_allclose(tt_xs_mad_l2.s,
+            2 * tt1.s,
+            rtol=0, atol=1e-12)
+    assert np.all(tt_xs_mad_l2.element_type ==
+        ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
+        'Quadrupole', 'Drift', 'Quadrupole', ''])
+    assert np.all(tt_xs_mad_l2.env_name ==
+        ['d5', 'q1', 'd1', 'q2', 'd5',
+        'q2', 'd1', 'q1', '_end_point'])
+    xo.assert_allclose(tt_mad_l2.s[:-1], tt_xs_mad_l2.s, atol=1e-12, rtol=0)
+
+    assert np.all(tt_xs_mad_s2.name ==
+        ['drift_3', 'q1::0', 'drift_1', 'q2::0', 'drift_4', 'q2::1',
+        'drift_2', 'q1::1', '_end_point'])
+    xo.assert_allclose(tt_xs_mad_s2.s,
+            2 * tt1.s,
+            rtol=0, atol=1e-12)
+    assert np.all(tt_xs_mad_s2.element_type ==
+        ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
+        'Quadrupole', 'Drift', 'Quadrupole', ''])
+    assert np.all(tt_xs_mad_s2.env_name ==
+        ['drift_3', 'q1', 'drift_1', 'q2', 'drift_4',
+        'q2', 'drift_2', 'q1', '_end_point'])
+
+def test_expr_in_builder():
+
+    env = xt.Environment()
+
+    env['a'] = 1.0
+
+    b1 = env.new_builder(name='b1', length='3*a')
+    b1.new('q1', 'Quadrupole', length='a', at='1.5*a')
+
+    b2 = env.new_builder(name='b2', length=3*env.ref['a'])
+    b2.new('q2', 'Quadrupole', length=env.ref['a'], at=1.5*env.ref['a'])
+
+    env['a'] = 2.0
+    b1.build()
+    b2.build()
+
+    assert isinstance(env['b1'], xt.Line)
+    assert isinstance(env['b2'], xt.Line)
+
+    tt1 = env['b1'].get_table()
+    tt2 = env['b2'].get_table()
+
+    # tt1.cols['s', 'name', 'element_type'] is:
+    # Table: 4 rows, 3 cols
+    # name                   s element_type
+    # drift_1                0 Drift
+    # q1                     2 Quadrupole
+    # drift_2                4 Drift
+    # _end_point             6
+
+    # tt2.cols['s', 'name', 'element_type'] is:
+    # Table: 4 rows, 3 cols
+    # name                   s element_type
+    # drift_1                0 Drift
+    # q2                     2 Quadrupole
+    # drift_2                4 Drift
+    # _end_point             6
+
+    assert np.all(tt1.name == np.array([
+        'drift_1', 'q1', 'drift_2', '_end_point']))
+    xo.assert_allclose(tt1.s,
+            np.array([0., 2., 4., 6.]),
+            rtol=0, atol=1e-12)
+    assert np.all(tt1.element_type == np.array([
+        'Drift', 'Quadrupole', 'Drift', '']))
+    assert np.all(tt2.name == np.array([
+        'drift_3', 'q2', 'drift_4', '_end_point']))
+    xo.assert_allclose(tt2.s,
+            np.array([0., 2., 4., 6.]),
+            rtol=0, atol=1e-12)
+    assert np.all(tt2.element_type == np.array([
+        'Drift', 'Quadrupole', 'Drift', '']))
+
+def test_contains_and_name_clash():
+
+    env = xt.Environment()
+
+    env.vars['a'] = 2.
+    env.elements['e1'] = xt.Quadrupole(length=1.)
+    env.particles['p1'] = xt.Particles(p0c=1e12)
+    env.lines['l1'] = env.new_line(length=3)
+
+    assert 'a' in env
+    assert 'a' in env.vars
+    assert 'a' not in env.elements
+    assert 'a' not in env.particles
+    assert 'a' not in env.lines
+
+    assert 'e1' in env
+    assert 'e1' in env.elements
+    assert 'e1' not in env.vars
+    assert 'e1' not in env.particles
+    assert 'e1' not in env.lines
+
+    assert 'p1' in env
+    assert 'p1' in env.particles
+    assert 'p1' not in env.vars
+    assert 'p1' not in env.elements
+    assert 'p1' not in env.lines
+
+    assert 'l1' in env
+    assert 'l1' in env.lines
+    assert 'l1' not in env.vars
+    assert 'l1' not in env.elements
+    assert 'l1' not in env.particles
+
+    assert 'zz' not in env
+    assert 'zz' not in env.vars
+    assert 'zz' not in env.elements
+    assert 'zz' not in env.particles
+    assert 'zz' not in env.lines
+
+    with pytest.raises(KeyError):
+        _ = env['zz']
+
+    with pytest.raises(KeyError):
+        _ = env.vars['zz']
+
+    with pytest.raises(KeyError):
+        _ = env.elements['zz']
+
+    with pytest.raises(KeyError):
+        _ = env.particles['zz']
+
+    with pytest.raises(KeyError):
+        _ = env.lines['zz']
+
+    # ----- Check behavior of vars container -----
+
+    # Updating the variable should be possible
+    env.vars['a'] = 3.
+    assert env['a'] == 3.
+
+    with pytest.raises(ValueError):
+        env.vars['e1'] = 5.  # Clash with element name
+
+    with pytest.raises(ValueError):
+        env.vars['p1'] = 5.  # Clash with particle name
+
+    with pytest.raises(ValueError):
+        env.vars['l1'] = 5.  # Clash with line name
+
+    with pytest.raises(ValueError):
+        env.elements['a'] = xt.Marker()
+
+    # ----- Check behavior of elements container -----
+
+    with pytest.raises(ValueError):
+        env.elements['a'] = xt.Marker()  # Clash with var name
+
+    with pytest.raises(ValueError):
+        env.elements['e1'] = xt.Marker()  # Clash with existing element name
+
+    with pytest.raises(ValueError):
+        env.elements['p1'] = xt.Marker()  # Clash with particle name
+
+    with pytest.raises(ValueError):
+        env.elements['l1'] = xt.Marker()  # Clash with line name
+
+    # ----- Check behavior of particles container -----
+    with pytest.raises(ValueError):
+        env.particles['a'] = xt.Particles()  # Clash with var name
+
+    with pytest.raises(ValueError):
+        env.particles['e1'] = xt.Particles()  # Clash with element name
+
+    with pytest.raises(ValueError):
+        env.particles['p1'] = xt.Particles()  # Clash with existing particle name
+
+    with pytest.raises(ValueError):
+        env.particles['l1'] = xt.Particles()  # Clash with line name
+
+    # ----- Check behavior of lines container -----
+    with pytest.raises(ValueError):
+        env.lines['a'] = env.new_line()  # Clash with var name
+
+    with pytest.raises(ValueError):
+        env.lines['e1'] = env.new_line()  # Clash with element name
+
+    with pytest.raises(ValueError):
+        env.lines['p1'] = env.new_line()  # Clash with particle name
+
+    with pytest.raises(ValueError):
+        env.lines['l1'] = env.new_line()  # Clash with existing line name
+
+def test_remove():
+    env = xt.Environment()
+
+    env.vars['a1'] = 2.
+    env.vars['a2'] = 3.
+    env.vars['a3'] = 4.
+    env.vars['a4'] = 5.
+    env.elements['e1'] = xt.Quadrupole(length=1.)
+    env.elements['e2'] = xt.Quadrupole(length=2.)
+    env.elements['e3'] = xt.Quadrupole(length=3.)
+    env.elements['e4'] = xt.Quadrupole(length=4.)
+    env.particles['p1'] = xt.Particles(p0c=1e12)
+    env.particles['p2'] = xt.Particles(p0c=2e12)
+    env.particles['p3'] = xt.Particles(p0c=3e12)
+    env.particles['p4'] = xt.Particles(p0c=4e12)
+    env.lines['l1'] = env.new_line(length=3)
+    env.lines['l2'] = env.new_line(length=4)
+    env.lines['l3'] = env.new_line(length=5)
+    env.lines['l4'] = env.new_line(length=6)
+
+    with pytest.raises(KeyError):
+        env.vars.remove('zz')
+
+    with pytest.raises(KeyError):
+        env.elements.remove('zz')
+
+    with pytest.raises(KeyError):
+        env.particles.remove('zz')
+
+    with pytest.raises(KeyError):
+        env.lines.remove('zz')
+
+    with pytest.raises(KeyError):
+        env.remove('zz')
+
+    assert 'a1' in env.vars
+    assert 'a1' in env
+    env.vars.remove('a1')
+    assert 'a1' not in env.vars
+    assert 'a1' not in env
+
+    assert 'a2' in env.vars
+    assert 'a2' in env
+    env.remove('a2')
+    assert 'a2' not in env.vars
+    assert 'a2' not in env
+
+    assert 'a3' in env.vars
+    assert 'a3' in env
+    del env.vars['a3']
+    assert 'a3' not in env.vars
+    assert 'a3' not in env
+
+    assert 'a4' in env.vars
+    assert 'a4' in env
+    del env['a4']
+    assert 'a4' not in env.vars
+    assert 'a4' not in env
+
+    assert 'e1' in env.elements
+    assert 'e1' in env
+    env.elements.remove('e1')
+    assert 'e1' not in env.elements
+    assert 'e1' not in env
+
+    assert 'e2' in env.elements
+    assert 'e2' in env
+    env.remove('e2')
+    assert 'e2' not in env.elements
+    assert 'e2' not in env
+
+    assert 'e3' in env.elements
+    assert 'e3' in env
+    del env.elements['e3']
+    assert 'e3' not in env.elements
+    assert 'e3' not in env
+
+    assert 'e4' in env.elements
+    assert 'e4' in env
+    del env['e4']
+    assert 'e4' not in env.elements
+    assert 'e4' not in env
+
+    assert 'p1' in env.particles
+    assert 'p1' in env
+    env.particles.remove('p1')
+    assert 'p1' not in env.particles
+    assert 'p1' not in env
+
+    assert 'p2' in env.particles
+    assert 'p2' in env
+    env.remove('p2')
+    assert 'p2' not in env.particles
+    assert 'p2' not in env
+
+    assert 'p3' in env.particles
+    assert 'p3' in env
+    del env.particles['p3']
+    assert 'p3' not in env.particles
+    assert 'p3' not in env
+
+    assert 'p4' in env.particles
+    assert 'p4' in env
+    del env['p4']
+    assert 'p4' not in env.particles
+    assert 'p4' not in env
+
+    assert 'l1' in env.lines
+    assert 'l1' in env
+    env.lines.remove('l1')
+    assert 'l1' not in env.lines
+    assert 'l1' not in env
+
+    assert 'l2' in env.lines
+    assert 'l2' in env
+    env.remove('l2')
+    assert 'l2' not in env.lines
+    assert 'l2' not in env
+
+    assert 'l3' in env.lines
+    assert 'l3' in env
+    del env.lines['l3']
+    assert 'l3' not in env.lines
+    assert 'l3' not in env
+
+    assert 'l4' in env.lines
+    assert 'l4' in env
+    del env['l4']
+    assert 'l4' not in env.lines
+    assert 'l4' not in env
+
+    env['a'] = 5.
+    env.new('e', 'Quadrupole', length='3*a')
+    with pytest.raises(RuntimeError):
+        env.remove('a') # a is used by element e
+    env.remove('e')
+    env.remove('a')
+    assert 'e' not in env.elements
+    assert 'a' not in env.vars
+
+    env.new('e', 'Quadrupole', length=2)
+    env['a'] = 3 * env.ref['e'].length
+    assert env['a'] == 6.
+    assert str(env.ref['a']._expr) == "(3 * element_refs['e'].length)"
+    with pytest.raises(RuntimeError):
+        env.remove('e') # e is used by variable a
+    env.remove('a')
+    env.remove('e')
+
+    env['a'] = 4.
+    env.new_particle('p', p0c='2*a*1e12')
+    assert env['p'].p0c == 8e12
+    with pytest.raises(RuntimeError):
+        env.remove('a') # a is used by particle p
+    env.remove('p')
+    env.remove('a')
+
+    env.new_particle('p', p0c=1e12)
+    env['a'] = env.ref['p'].p0c
+    assert env['a'] == 1e12
+    assert str(env.ref['a']._expr) == "particles['p'].p0c"
+    with pytest.raises(RuntimeError):
+        env.remove('p') # p is used by variable a
+    env.remove('a')
+    env.remove('p')
+
+def test_line_algebra():
+
+    env = xt.Environment()
+
+    env['a'] = 1.
+
+    l1 = env.new_line(compose=True)
+    l1.new('q1', 'Quadrupole', length='a', at='0.5*a')
+    l1.new('q2', 'q1', at='4*a', from_='q1@center')
+
+    l2 = env.new_line(compose=True)
+    l2.new('s1', 'Sextupole', length='a', at='1.5*a')
+    l2.new('s2', 's1', at='5*a', from_='s1@center')
+
+    assert l1.mode == 'compose'
+    assert l2.mode == 'compose'
+
+    ss = l1 + l2
+    assert ss.mode == 'compose'
+    assert len(ss.composer.components) == 2
+    tss = ss.get_table()
+    tss.cols['s element_type env_name']
+    # Table: 8 rows, 4 cols
+    # name                   s element_type env_name
+    # q1                     0 Quadrupole   q1
+    # drift_1                1 Drift        drift_1
+    # q2                     4 Quadrupole   q2
+    # drift_2                5 Drift        drift_2
+    # s1                     6 Sextupole    s1
+    # drift_3                7 Drift        drift_3
+    # s2                    11 Sextupole    s2
+    # _end_point            12              _end_point
+
+    assert np.all(tss.name == np.array(
+        ['q1', 'drift_1', 'q2', 'drift_2', 's1', 'drift_3', 's2', '_end_point']))
+    xo.assert_allclose(tss.s,
+            [ 0.,  1.,  4.,  5.,  6.,  7., 11., 12.],
+            rtol=0, atol=1e-12)
+    assert np.all(tss.element_type ==
+        ['Quadrupole', 'Drift', 'Quadrupole', 'Drift', 'Sextupole',
+        'Drift', 'Sextupole', ''])
+
+    ss.end_compose()
+    assert ss.mode == 'normal'
+    tss2 = ss.get_table()
+    # is the same as tss apart from different drift names
+    assert np.all(tss2.name == np.array(
+        ['q1', 'drift_4', 'q2', 'drift_5', 's1', 'drift_6', 's2', '_end_point']))
+    xo.assert_allclose(tss2.s,
+            [ 0.,  1.,  4.,  5.,  6.,  7., 11., 12.],
+            rtol=0, atol=1e-12)
+    assert np.all(tss2.element_type ==
+        ['Quadrupole', 'Drift', 'Quadrupole', 'Drift', 'Sextupole',
+        'Drift', 'Sextupole', ''])
+
+    l1.end_compose()
+    l2.end_compose()
+    ss2 = l1 + l2
+    assert ss2.mode == 'normal'
+    tss3 = ss2.get_table()
+    # is the same as tss apart from different drift names
+    assert np.all(tss3.name == np.array(
+        ['q1', 'drift_7', 'q2', 'drift_8', 's1', 'drift_9', 's2', '_end_point']))
+    xo.assert_allclose(tss3.s,
+            [ 0.,  1.,  4.,  5.,  6.,  7., 11., 12.],
+            rtol=0, atol=1e-12)
+    assert np.all(tss3.element_type ==
+        ['Quadrupole', 'Drift', 'Quadrupole', 'Drift', 'Sextupole',
+        'Drift', 'Sextupole', ''])
+
+    l1.regenerate_from_composer()
+    l2.regenerate_from_composer()
+
+    mm = 3*l1
+    assert len(mm.composer.components) == 3
+    tmm = mm.get_table()
+    # tmm.cols['s element_type env_name'] is:
+    # Table: 10 rows, 4 cols
+    # name                   s element_type env_name
+    # q1::0                  0 Quadrupole   q1
+    # drift_10               1 Drift        drift_10
+    # q2::0                  4 Quadrupole   q2
+    # q1::1                  5 Quadrupole   q1
+    # drift_11               6 Drift        drift_11
+    # q2::1                  9 Quadrupole   q2
+    # q1::2                 10 Quadrupole   q1
+    # drift_12              11 Drift        drift_12
+    # q2::2                 14 Quadrupole   q2
+    # _end_point            15              _end_point
+    assert np.all(tmm.name == np.array(
+        ['q1::0', 'drift_10', 'q2::0',
+        'q1::1', 'drift_11', 'q2::1',
+        'q1::2', 'drift_12', 'q2::2',
+        '_end_point']))
+    xo.assert_allclose(tmm.s,
+            [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
+            rtol=0, atol=1e-12)
+    assert np.all(tmm.element_type ==
+        ['Quadrupole', 'Drift', 'Quadrupole',
+        'Quadrupole', 'Drift', 'Quadrupole',
+        'Quadrupole', 'Drift', 'Quadrupole',
+        ''])
+
+    l1.end_compose()
+    mm2 = 3*l1
+    assert mm2.mode == 'normal'
+    tmm2 = mm2.get_table()
+    # tmm2.cols['s element_type env_name'] is:
+    # Table: 10 rows, 4 cols
+    # name                    s element_type env_name
+    # q1::0                   0 Quadrupole   q1
+    # drift_13::0             1 Drift        drift_13
+    # q2::0                   4 Quadrupole   q2
+    # q1::1                   5 Quadrupole   q1
+    # drift_13::1             6 Drift        drift_13
+    # q2::1                   9 Quadrupole   q2
+    # q1::2                  10 Quadrupole   q1
+    # drift_13::2            11 Drift        drift_13
+    # q2::2                  14 Quadrupole   q2
+    # _end_point             15              _end_point
+    assert np.all(tmm2.name == np.array([
+        'q1::0', 'drift_13::0', 'q2::0',
+        'q1::1', 'drift_13::1', 'q2::1',
+        'q1::2', 'drift_13::2', 'q2::2',
+        '_end_point']))
+    xo.assert_allclose(tmm2.s,
+            [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
+            rtol=0, atol=1e-12)
+    assert np.all(tmm2.element_type ==
+        ['Quadrupole', 'Drift', 'Quadrupole',
+        'Quadrupole', 'Drift', 'Quadrupole',
+        'Quadrupole', 'Drift', 'Quadrupole',
+        ''])
+
+    l1.regenerate_from_composer()
+    assert l1.mode == 'compose'
+    assert l1.composer.mirror == False
+
+    ml1 = -l1
+    assert ml1.mode == 'compose'
+    assert ml1.composer.mirror == True
+    tml1 = ml1.get_table()
+    # tml1.cols['s element_type env_name'] is:
+    # Table: 4 rows, 4 cols
+    # Table: 4 rows, 4 cols
+    # name                   s element_type env_name
+    # q2                     0 Quadrupole   q2
+    # drift_14               1 Drift        drift_14
+    # q1                     4 Quadrupole   q1
+    # _end_point             5              _end_point
+    assert np.all(tml1.name == np.array(
+        ['q2', 'drift_14', 'q1', '_end_point']))
+    xo.assert_allclose(tml1.s,
+            [0., 1., 4., 5.],
+            rtol=0, atol=1e-12)
+    assert np.all(tml1.element_type ==
+        ['Quadrupole', 'Drift', 'Quadrupole', ''])
+
+    l1.end_compose()
+    ml2 = -l1
+    assert ml2.mode == 'normal'
+    tml2 = ml2.get_table()
+    # tml2.cols['s element_type env_name'] is:
+    # Table: 4 rows, 4 cols
+    # name                   s element_type env_name
+    # q2                     0 Quadrupole   q2
+    # drift_15               1 Drift        drift_15
+    # q1                     4 Quadrupole   q1
+    # _end_point             5              _end_point
+    assert np.all(tml2.name == np.array(
+        ['q2', 'drift_15', 'q1', '_end_point']))
+    xo.assert_allclose(tml2.s,
+            [0., 1., 4., 5.],
+            rtol=0, atol=1e-12)
+    assert np.all(tml2.element_type ==
+        ['Quadrupole', 'Drift', 'Quadrupole', ''])
+
+    l1.regenerate_from_composer()
+
+    m3l1 = -(3*l1)
+    assert m3l1.mode == 'compose'
+    assert len(m3l1.composer.components) == 3
+    assert m3l1.composer.mirror == True
+    tm3l1 = m3l1.get_table()
+    # tm3l1.cols['s element_type env_name'] is:
+    # Table: 10 rows, 4 cols
+    # name                   s element_type env_name
+    # q2::0                  0 Quadrupole   q2
+    # drift_18               1 Drift        drift_18
+    # q1::0                  4 Quadrupole   q1
+    # q2::1                  5 Quadrupole   q2
+    # drift_17               6 Drift        drift_17
+    # q1::1                  9 Quadrupole   q1
+    # q2::2                 10 Quadrupole   q2
+    # drift_16              11 Drift        drift_16
+    # q1::2                 14 Quadrupole   q1
+    # _end_point            15              _end_point
+    assert np.all(tm3l1.name == np.array(
+        ['q2::0', 'drift_18', 'q1::0',
+        'q2::1', 'drift_17', 'q1::1',
+        'q2::2', 'drift_16', 'q1::2',
+        '_end_point']))
+    xo.assert_allclose(tm3l1.s,
+            [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
+            rtol=0, atol=1e-12)
+    assert np.all(tm3l1.element_type ==
+        ['Quadrupole', 'Drift', 'Quadrupole',
+        'Quadrupole', 'Drift', 'Quadrupole',
+        'Quadrupole', 'Drift', 'Quadrupole',
+        ''])
+
+    l1.end_compose()
+    m3l1 = -(3*l1)
+    assert m3l1.mode == 'normal'
+    tm3l1 = m3l1.get_table()
+    # tm3l1.cols['s element_type env_name'] is:
+    # Table: 10 rows, 4 cols
+    # name                    s element_type env_name
+    # q2::0                   0 Quadrupole   q2
+    # drift_19::0             1 Drift        drift_19
+    # q1::0                   4 Quadrupole   q1
+    # q2::1                   5 Quadrupole   q2
+    # drift_19::1             6 Drift        drift_19
+    # q1::1                   9 Quadrupole   q1
+    # q2::2                  10 Quadrupole   q2
+    # drift_19::2            11 Drift        drift_19
+    # q1::2                  14 Quadrupole   q1
+    # _end_point             15              _end_point
+    assert np.all(tm3l1.name == np.array([
+        'q2::0', 'drift_19::0', 'q1::0',
+        'q2::1', 'drift_19::1', 'q1::1',
+        'q2::2', 'drift_19::2', 'q1::2',
+        '_end_point']))
+    xo.assert_allclose(tm3l1.s,
+            [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
+            rtol=0, atol=1e-12)
+    assert np.all(tm3l1.element_type ==
+        ['Quadrupole', 'Drift', 'Quadrupole',
+        'Quadrupole', 'Drift', 'Quadrupole',
+        'Quadrupole', 'Drift', 'Quadrupole',
+        ''])
+
+def test_place_rbend():
+    env = xt.Environment()
+    env['angle'] = 0.5
+
+    l = env.new_line(compose=True, length=10.0)
+    l.new('rbend1', 'RBend', length_straight=1, angle='angle', at=5.0)
+
+    t1a = l.get_table()
+    # t1a.cols['s s_center s_start s_end'] is:
+    # Table: 4 rows, 5 cols
+    # name                   s      s_center       s_start         s_end
+    # drift_1                0       2.24738             0       4.49475
+    # rbend1           4.49475             5       4.49475       5.50525
+    # drift_2          5.50525       7.75262       5.50525            10
+    # _end_point            10            10            10            10
+    xo.assert_allclose(t1a['s_center', 'rbend1'], 5, rtol=0, atol=1e-12)
+    xo.assert_allclose(l.get_length(), 10, rtol=0, atol=1e-12)
+    xo.assert_allclose(t1a.s, [0, 4.49475287, 5.50524713, 10],
+            rtol=0, atol=1e-5)
+    xo.assert_allclose(t1a.s_center, [2.24737644, 5, 7.75262356, 10],
+            rtol=0, atol=1e-5)
+    xo.assert_allclose(t1a.s_start, [0, 4.49475287, 5.50524713, 10],
+            rtol=0, atol=1e-5)
+    xo.assert_allclose(t1a.s_end, [4.49475287, 5.50524713, 10, 10],
+            rtol=0, atol=1e-5)
+
+    env['angle'] = 0.4
+    l.regenerate_from_composer()
+
+    t1b = l.get_table()
+    # t1b.cols['s s_center s_start s_end'] is:
+    # Table: 4 rows, 5 cols
+    # name                   s      s_center       s_start         s_end
+    # drift_3                0       2.24833             0       4.49665
+    # rbend1           4.49665             5       4.49665       5.50335
+    # drift_4          5.50335       7.75167       5.50335            10
+    # _end_point            10            10            10            10
+    xo.assert_allclose(t1b['s_center', 'rbend1'], 5, rtol=0, atol=1e-12)
+    xo.assert_allclose(l.get_length(), 10, rtol=0, atol=1e-12)
+    xo.assert_allclose(t1b.s, [0, 4.49665277, 5.50334723, 10],
+            rtol=0, atol=1e-5)
+    xo.assert_allclose(t1b.s_center, [2.24832639, 5, 7.75167361, 10],
+            rtol=0, atol=1e-5)
+    xo.assert_allclose(t1b.s_start, [0, 4.49665277, 5.50334723, 10],
+            rtol=0, atol=1e-5)
+    xo.assert_allclose(t1b.s_end, [4.49665277, 5.50334723, 10, 10],
+            rtol=0, atol=1e-5)
+
+    l2 = env.new_line(compose=True, length=10.0)
+    l2.new('rbend2', 'RBend', length_straight=1, angle='angle', anchor='end', at=5.0)
+    t2a = l2.get_table()
+    # t2a.cols['s s_center s_start s_end'] is:
+    # Table: 4 rows, 5 cols
+    # name                   s      s_center       s_start         s_end
+    # drift_5                0       1.99665             0        3.9933
+    # rbend2            3.9933       4.49665        3.9933             5
+    # drift_6                5           7.5             5            10
+    # _end_point            10            10            10            10
+    xo.assert_allclose(t2a['s_end', 'rbend2'], 5, rtol=0, atol=1e-12)
+    xo.assert_allclose(l2.get_length(), 10, rtol=0, atol=1e-12)
+    xo.assert_allclose(t2a.s, [ 0.,  3.99330209,  5., 10.],
+            rtol=0, atol=1e-5)
+    xo.assert_allclose(t2a.s_center, [ 1.99665105, 4.49665105, 7.5, 10.],
+            rtol=0, atol=1e-5)
+    xo.assert_allclose(t2a.s_start, [0. , 3.993302, 5., 10.],
+            rtol=0, atol=1e-5)
+    xo.assert_allclose(t2a.s_end, [3.99330209, 5, 10, 10],
+            rtol=0, atol=1e-5)
+

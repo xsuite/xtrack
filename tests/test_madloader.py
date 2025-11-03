@@ -547,7 +547,6 @@ def test_mad_elements_import():
         line = xt.Line.from_dict(line.to_dict())  # This calls the to_dict method fot all
         # elements
 
-        assert len(line.element_names) == len(line.element_dict.keys())
         assert line.get_length() == 10
 
         assert isinstance(line['m0'], xt.Multipole)
@@ -678,8 +677,8 @@ def test_selective_expr_import_and_replace_in_expr():
     assert len(line.vars['bv_aux_lhcb1']._find_dependant_targets()) > 1
     assert 'bv_aux' not in line.vars
 
-    assert line.element_refs['mqxfa.b3r5..1'].knl[1]._expr is None  # multipole
-    assert line.element_refs['mcbxfbv.b2r1'].ksl[0]._expr is not None  # kicker
+    assert line.ref['mqxfa.b3r5..1'].knl[1]._expr is None  # multipole
+    assert line.ref['mcbxfbv.b2r1'].ksl[0]._expr is not None  # kicker
 
 
 def test_load_madx_optics_file():

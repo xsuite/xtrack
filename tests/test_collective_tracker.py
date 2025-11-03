@@ -36,6 +36,7 @@ def test_get_non_collective_line(test_context):
         elements=[xt.Drift(length=1) for i in range(8)],
         element_names=[f'e{i}' for i in range(8)]
     )
+
     line['e3'].iscollective = True
     e3_buffer = line['e3']._buffer
     e3 = line.get('e3')
