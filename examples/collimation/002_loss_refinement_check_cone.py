@@ -71,7 +71,6 @@ particles = xt.Particles(
 
 line.track(particles)
 
-
 loss_loc_refinement = xt.LossLocationRefinement(line,
                                             n_theta = 360,
                                             r_max = 0.5, # m
