@@ -168,6 +168,12 @@ class MadxLoader:
             self._parse_parameters(parsed_dict["parameters"])
             self.builders.update(builders)
 
+        # Handle variables obtained from arrow operations
+        for var_name in self.env._xdeps_vref._owner.keys():
+            if var_name.startswith('_length__'):
+                elem_name = var_name[len('_length__') :]
+                self.env.vars[var_name] = self.env.ref[elem_name].length
+
     def _parse_elements(self, elements: Dict[str, ElementType]):
         for name, el_params in elements.items():
             parent = el_params.pop('parent')
