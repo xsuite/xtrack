@@ -37,39 +37,38 @@ aper_1.rot_s_rad = np.deg2rad(rot_deg_aper_1)
 
 # aper_0_sandwitch
 line_aper_0 = xt.Line(
-    elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
-              xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
+    elements=[xt.XYShift(dx=shift_aper_0[0], dy=shift_aper_0[1]),
+              xt.SRotation(angle=rot_deg_aper_0),
               aper_0,
-              xt.Multipole(_buffer=buf, knl=[0.001]),
-              xt.SRotation(_buffer=buf, angle=-rot_deg_aper_0),
-              xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
-line_aper_0.build_tracker(_buffer=buf)
+              xt.Multipole(knl=[0.001]),
+              xt.SRotation(angle=-rot_deg_aper_0),
+              xt.XYShift(dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
+line_aper_0.build_tracker()
 
 # aper_1_sandwitch
 line_aper_1 = xt.Line(
     elements=[aper_1,
-              xt.Multipole(_buffer=buf, knl=[0.001])
+              xt.Multipole(knl=[0.001])
         ])
-line_aper_1.build_tracker(_buffer=buf)
+line_aper_1.build_tracker()
 
 #################
 # Build tracker #
 #################
 
 line=xt.Line(
-    elements = ((xt.Drift(_buffer=buf, length=0.5),)
+    elements = ((xt.Drift(length=0.5),)
                 + line_aper_0.elements
-                + (xt.Quadrupole(_buffer=buf, length=1),
-                   xt.Quadrupole(_buffer=buf, length=1),
-                   xt.Quadrupole(_buffer=buf, length=1.),)
+                + (xt.Quadrupole(length=1),
+                   xt.Quadrupole(length=1),
+                   xt.Quadrupole(length=1.),)
                 + line_aper_1.elements))
-line.build_tracker(_buffer=buf)
+line.build_tracker()
 num_elements = len(line.element_names)
 
 # Generate test particles
-particles = xt.Particles(_context=ctx,
-            px=np.random.uniform(-0.01, 0.01, 10000),
-            py=np.random.uniform(-0.01, 0.01, 10000))
+particles = xt.Particles(px=np.random.uniform(-0.01, 0.01, 10000),
+                         py=np.random.uniform(-0.01, 0.01, 10000))
 
 #########
 # Track #
@@ -108,8 +107,8 @@ interp_line = loss_loc_refinement.refine_lines[
                                 loss_loc_refinement.i_apertures[1]]
 s0 = interp_line.s0
 s1 = interp_line.s1
-polygon_0 = interp_line.elements[0]
-polygon_1 = interp_line.elements[-1]
+polygon_0 = interp_line._elements[0]
+polygon_1 = interp_line._elements[-1]
 for ii, (ln, poly) in enumerate(
                          zip([line_aper_0, line_aper_1],
                              [polygon_0, polygon_1])):
