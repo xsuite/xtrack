@@ -9,7 +9,7 @@ start:  stmt*
     | command_stmt      -> top_level_command
     | clone             -> top_level_clone
 
-?new_val: equal_scalar ";"    -> set_var
+?new_val: "const"i? equal_scalar ";"    -> set_var
 
 ?new_def: defer_scalar ";"    -> set_var
 
