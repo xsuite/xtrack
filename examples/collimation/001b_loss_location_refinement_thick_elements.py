@@ -43,14 +43,12 @@ line_aper_0 = xt.Line(
               xt.Multipole(knl=[0.001]),
               xt.SRotation(angle=-rot_deg_aper_0),
               xt.XYShift(dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
-line_aper_0.build_tracker()
 
 # aper_1_sandwitch
 line_aper_1 = xt.Line(
     elements=[aper_1,
               xt.Multipole(knl=[0.001])
         ])
-line_aper_1.build_tracker()
 
 #################
 # Build tracker #
@@ -63,7 +61,6 @@ line=xt.Line(
                    xt.Quadrupole(length=1),
                    xt.Quadrupole(length=1.),)
                 + line_aper_1.elements))
-line.build_tracker()
 num_elements = len(line.element_names)
 
 # Generate test particles
