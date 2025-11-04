@@ -132,14 +132,12 @@ class ACDipole(xt.BeamElement):
         if natural_q is None:
             natural_q = 0
 
-        if not (
-            (isinstance(ramp, (list, tuple)) or hasattr(ramp, "__iter__"))
-            and len(ramp) == 4
-            and all(isinstance(int(x), int) for x in ramp)
-        ):
+        if not (len(ramp) == 4 and all(v == int(v) and v >= 0 for v in ramp) and ramp == sorted(ramp)):
             raise ValueError(
-                "The ramp parameter must be a list of four integers: [ramp1, ramp2, ramp3, ramp4]."
+                "The ramp parameter must be an increasing list of four positive integers:"
+                "[ramp_up_start_turn, ramp_up_end_turn, ramp_down_start_turn, ramp_down_end_turn]."
             )
+
         super().__init__(
             volt=volt,
             freq=freq,

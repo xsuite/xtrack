@@ -1,7 +1,7 @@
 """
-Test suite for ACDipole elements in XTrack.
+Test suite for ACDipole elements in Xtrack.
 
-This module tests the behavior of ACDipoleThickVertical and ACDipoleThickHorizontal
+This module tests the behavior of the ACDipole
 elements, focusing on their kick effects during ramp-up, flattop, and ramp-down phases.
 Tests verify that only the appropriate coordinate (py for vertical, px for horizontal)
 receives the expected kick while others remain zero.
@@ -11,7 +11,6 @@ from collections import namedtuple
 from typing import Any
 
 import pytest
-import xpart as xp
 from xobjects.test_helpers import for_all_test_contexts
 
 import xtrack as xt
@@ -27,29 +26,6 @@ FLATTOP_START = 100  # Turn number when flattop phase begins
 RAMP_SCHEDULE = [0, RAMP_LENGTH, FLATTOP_START, FLATTOP_START + RAMP_LENGTH]
 
 PLANES = ["x", "y"]
-
-
-def _create_test_particles(at_turn: int) -> xp.Particles:
-    """
-    Create test particles initialised at the specified turn.
-
-    Args:
-        at_turn: The turn number to initialize particles at.
-
-    Returns:
-        Particles object with initial conditions verified (x=y=px=py=0).
-    """
-    particles = xp.Particles(at_turn=at_turn)
-    assert particles.x[0] == 0.0, f"Expected initial x=0, but got x={particles.x[0]}"
-    assert particles.y[0] == 0.0, f"Expected initial y=0, but got y={particles.y[0]}"
-    assert particles.py[0] == 0.0, (
-        f"Expected initial py=0, but got py={particles.py[0]}"
-    )
-    assert particles.px[0] == 0.0, (
-        f"Expected initial px=0, but got px={particles.px[0]}"
-    )
-    return particles
-
 
 def get_acdipole_results(
     test_context: Any,
@@ -73,7 +49,7 @@ def get_acdipole_results(
     Returns:
         Tuple of (x, px, y, py) coordinates after tracking.
     """
-    particles = _create_test_particles(at_turn=turn)
+    particles = xt.Particles(at_turn=turn) # Must be 0.
 
     acdipole = xt.ACDipole(
         volt=test_voltage,
@@ -180,7 +156,7 @@ def _calculate_flattop_kick(test_volt: float, test_turn: int) -> float:
 # Flattop Tests
 # =====================
 @for_all_test_contexts
-@pytest.mark.parametrize("plane", PLANES , ids=lambda o: o.upper())
+@pytest.mark.parametrize("plane", PLANES, ids=lambda o: o.upper())
 @pytest.mark.parametrize("case", FLATTOP_CASES, ids=lambda c: c.desc)
 def test_acdipole_flattop(
     test_context: Any,

@@ -31,8 +31,6 @@ def test_ac_dipole_twiss(test_context: Any, qx_shift: float, qy_shift: float):
 
     drv_qx, drv_qy = nat_qx + qx_shift, nat_qy + qy_shift
 
-    # Copy the line before inserting elements
-
     # Define AC dipole elements
     line.env.elements["e5_hacd"] = xt.ACDipole(
         natural_q=nat_qx,
