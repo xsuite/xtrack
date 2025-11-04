@@ -27,6 +27,7 @@ RAMP_SCHEDULE = [0, RAMP_LENGTH, FLATTOP_START, FLATTOP_START + RAMP_LENGTH]
 
 PLANES = ["x", "y"]
 
+
 def get_acdipole_results(
     test_context: Any,
     turn: int,
@@ -49,7 +50,7 @@ def get_acdipole_results(
     Returns:
         Tuple of (x, px, y, py) coordinates after tracking.
     """
-    particles = xt.Particles(at_turn=turn) # Must be 0.
+    particles = xt.Particles(at_turn=turn)  # Must be 0.
 
     acdipole = xt.ACDipole(
         volt=test_voltage,
@@ -57,7 +58,7 @@ def get_acdipole_results(
         lag=test_lag,
         ramp=RAMP_SCHEDULE,
         _context=test_context,
-        plane='h'
+        plane="h",
     )
     # Test the setter
     acdipole.plane = plane

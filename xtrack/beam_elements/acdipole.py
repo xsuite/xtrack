@@ -93,9 +93,9 @@ class ACDipole(xt.BeamElement):
     _int_to_plane = {0: None, 1: "h", 2: "v"}
 
     _rename = {
-        'freq': '_freq',
-        'plane': '_plane',
-        'twiss_mode': '_twiss_mode',
+        "freq": "_freq",
+        "plane": "_plane",
+        "twiss_mode": "_twiss_mode",
     }
 
     def __init__(
@@ -132,7 +132,11 @@ class ACDipole(xt.BeamElement):
         if natural_q is None:
             natural_q = 0
 
-        if not (len(ramp) == 4 and all(v == int(v) and v >= 0 for v in ramp) and ramp == sorted(ramp)):
+        if not (
+            len(ramp) == 4
+            and all(v == int(v) and v >= 0 for v in ramp)
+            and ramp == sorted(ramp)
+        ):
             raise ValueError(
                 "The ramp parameter must be an increasing list of four positive integers:"
                 "[ramp_up_start_turn, ramp_up_end_turn, ramp_down_start_turn, ramp_down_end_turn]."
