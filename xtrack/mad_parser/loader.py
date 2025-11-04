@@ -558,7 +558,8 @@ class MadxLoader:
 
         aper_offsets = params.pop('aper_offset', (0, 0))
         if len(aper_offsets) == 1:
-            x_offset = y_offset = aper_offsets[0]
+            x_offset = aper_offsets[0]
+            y_offset = 0.
         else:
             x_offset, y_offset = aper_offsets
         if params.pop('aper_tol', None):
