@@ -90,34 +90,34 @@ def _generate_track_local_particle_with_transformations(
     xofields,
     is_thin_slice,
 ):
-    defines = {
+    options = {
         'ELEMENT_NAME': element_name,
     }
 
     if allow_rot_and_shift:
-        defines['ALLOW_ROT_AND_SHIFT'] = 1
+        options['ALLOW_ROT_AND_SHIFT'] = 1
 
     if rot_and_shift_from_parent:
+        options['IS_SLICE'] = 1
         curves_reference_frame = hasattr(xofields['_parent']._reftype, 'h')
-        defines['IS_SLICE'] = 1
     else:
         curves_reference_frame = 'h' in xofields
 
     if curves_reference_frame:
-        defines['CURVED'] = 1
+        options['CURVED'] = 1
 
     if 'isthick' in xofields:
-        defines['IS_THICK_DYNAMIC'] = 1
+        options['IS_THICK_DYNAMIC'] = 1
     elif isthick:
-        defines['IS_THICK'] = 1
+        options['IS_THICK'] = 1
 
     if is_thin_slice and curves_reference_frame:
-        defines['THIN_SLICE_OF_CURVED_ELEMENT'] = 1
+        options['THIN_SLICE_OF_CURVED_ELEMENT'] = 1
 
     preamble_lines = []
     epilogue_lines = []
 
-    for flag, value in defines.items():
+    for flag, value in options.items():
         preamble_lines.append(f'#define {flag} {value}')
         epilogue_lines.append(f'#undef {flag}')
 
@@ -216,7 +216,8 @@ def _generate_per_particle_kernel_from_local_particle_function(
 ''')
     return source
 
-def _tranformations_active(self):
+
+def _transformations_active(self):
     no_shift = self.shift_x == 0 and self.shift_y == 0 and self.shift_s == 0
     no_rot = (
         self.rot_x_rad == 0 and self.rot_y_rad == 0 and self.rot_s_rad == 0 and
@@ -229,66 +230,72 @@ def _tranformations_active(self):
     return True
 
 
-def _disable_transformations_if_needed(self):
-    if not _tranformations_active(self):
-        self._sin_rot_s = -999.
-        self._cos_rot_s = -999.
-    elif self._sin_rot_s < -2.:
-        self._sin_rot_s = 0.
-        self._cos_rot_s = 1.
+def _update_rot_shift_active_flag(self):
+    self.rot_shift_active = _transformations_active(self)
 
 
 def _rot_s_property(self):
-    if self._sin_rot_s < -2.:
-        return 0.
-    return np.arctan2(self._sin_rot_s, self._cos_rot_s)
+    return self._rot_s_rad
+
 
 def _set_rot_s_property_setter(self, value):
-    self._sin_rot_s = np.sin(value)
-    self._cos_rot_s = np.cos(value)
-    _disable_transformations_if_needed(self)
+    self._rot_s_rad = value
+    _update_rot_shift_active_flag(self)
+
 
 def _shiftx_property(self):
     return self._shift_x
 
+
 def _set_shiftx_property_setter(self, value):
     self._shift_x = value
-    _disable_transformations_if_needed(self)
+    _update_rot_shift_active_flag(self)
+
 
 def _shifty_property(self):
     return self._shift_y
 
+
 def _set_shifty_property_setter(self, value):
     self._shift_y = value
-    _disable_transformations_if_needed(self)
+    _update_rot_shift_active_flag(self)
+
 
 def _shifts_property(self):
     return self._shift_s
 
+
 def _set_shifts_property_setter(self, value):
     self._shift_s = value
-    _disable_transformations_if_needed(self)
+    _update_rot_shift_active_flag(self)
+
 
 def _rot_x_property(self):
     return self._rot_x_rad
 
+
 def _set_rot_x_property_setter(self, value):
     self._rot_x_rad = value
-    _disable_transformations_if_needed(self)
+    _update_rot_shift_active_flag(self)
+
 
 def _rot_y_property(self):
     return self._rot_y_rad
 
+
 def _set_rot_y_property_setter(self, value):
     self._rot_y_rad = value
-    _disable_transformations_if_needed(self)
+    _update_rot_shift_active_flag(self)
+
 
 def _rot_s_no_frame_property(self):
     return self._rot_s_rad_no_frame
 
+
 def _set_rot_s_no_frame_property_setter(self, value):
     self._rot_s_rad_no_frame = value
-    _disable_transformations_if_needed(self)
+    _update_rot_shift_active_flag(self)
+
 
 class MetaBeamElement(xo.MetaHybridClass):
 
@@ -340,11 +347,11 @@ class MetaBeamElement(xo.MetaHybridClass):
             rot_and_shift_from_parent = data['rot_and_shift_from_parent']
 
         if allow_rot_and_shift and not rot_and_shift_from_parent:
-            xofields['_sin_rot_s'] = xo.Field(xo.Float64, default=-999.)
-            xofields['_cos_rot_s'] = xo.Field(xo.Float64, default=-999.)
+            xofields['rot_shift_active'] = xo.Field(xo.Int64, 0)
             xofields['_shift_x'] = xo.Field(xo.Float64, 0)
             xofields['_shift_y'] = xo.Field(xo.Float64, 0)
             xofields['_shift_s'] = xo.Field(xo.Float64, 0)
+            xofields['_rot_s_rad'] = xo.Field(xo.Float64)
             xofields['_rot_x_rad'] = xo.Field(xo.Float64, 0)
             xofields['_rot_y_rad'] = xo.Field(xo.Float64, 0)
             xofields['_rot_s_rad_no_frame'] = xo.Field(xo.Float64, 0)
@@ -496,6 +503,29 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     name_associated_aperture = None
 
     def __init__(self, *args, **kwargs):
+        rot_s_rad_legacy_from_trig = False
+        sin_s_rad = 0
+        cos_s_rad = 1
+
+        if '_sin_rot_s' in kwargs:
+            rot_s_rad_legacy_from_trig = True
+            sin_s_rad = kwargs.pop('_sin_rot_s')
+        if '_cos_rot_s' in kwargs:
+            rot_s_rad_legacy_from_trig = True
+            cos_s_rad = kwargs.pop('_cos_rot_s')
+
+        if rot_s_rad_legacy_from_trig:
+            computed_rot_s_rad = np.arctan2(sin_s_rad, cos_s_rad)
+            if 'rot_s_rad' in kwargs:
+                if not np.isclose(kwargs['rot_s_rad'], computed_rot_s_rad, atol=1e-14, rtol=1e-14):
+                    raise ValueError(
+                        f'{type(self).__name__} initialised with both `rot_s_rad` '
+                        f'and `_sin_rot_s` or `_cos_rot_s` arguments, but they are '
+                        f'inconsistent with each other.'
+                    )
+            else:
+                kwargs['rot_s_rad'] = computed_rot_s_rad
+
         xo.HybridClass.__init__(self, *args, **kwargs)
 
     @property

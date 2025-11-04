@@ -117,14 +117,12 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
     #endif
 
     // Retrieve misalignment parameters
-    double const _sin_rot_s = GET_PARAM(el, _sin_rot_s);
-    double const _cos_rot_s = GET_PARAM(el, _cos_rot_s);
-    double const rot_s_rad = atan2(_sin_rot_s, _cos_rot_s);
     double const shift_x = GET_PARAM(el, _shift_x);
     double const shift_y = GET_PARAM(el, _shift_y);
     double const shift_s = GET_PARAM(el, _shift_s);
     double const rot_x_rad = GET_PARAM(el, _rot_x_rad);
     double const rot_y_rad = GET_PARAM(el, _rot_y_rad);
+    double const rot_s_rad = GET_PARAM(el, _rot_s_rad);
     double const rot_s_rad_no_frame = GET_PARAM(el, _rot_s_rad_no_frame);
     double anchor = GET_PARAM(el, rot_shift_anchor);
 
@@ -152,18 +150,20 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
 
     // Spin tracking is disabled by the synrad compile flag
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-       // Rotate spin
-       // TODO: Handle in the transformation functions instead of here
-       START_PER_PARTICLE_BLOCK(part0, part);
-           double const spin_x_0 = LocalParticle_get_spin_x(part);
-           double const spin_y_0 = LocalParticle_get_spin_y(part);
-           if ((spin_x_0 != 0) || (spin_y_0 != 0)){
-               double const spin_x_1 = _cos_rot_s*spin_x_0 + _sin_rot_s*spin_y_0;
-               double const spin_y_1 = -_sin_rot_s*spin_x_0 + _cos_rot_s*spin_y_0;
-               LocalParticle_set_spin_x(part, spin_x_1);
-               LocalParticle_set_spin_y(part, spin_y_1);
-          }
-       END_PER_PARTICLE_BLOCK;
+        // Rotate spin
+        // TODO: Handle in the transformation functions instead of here
+        START_PER_PARTICLE_BLOCK(part0, part);
+            double const spin_x_0 = LocalParticle_get_spin_x(part);
+            double const spin_y_0 = LocalParticle_get_spin_y(part);
+            if ((spin_x_0 != 0) || (spin_y_0 != 0)) {
+                double const _sin_rot_s = sin(rot_s_rad);
+                double const _cos_rot_s = cos(rot_s_rad);
+                double const spin_x_1 = _cos_rot_s*spin_x_0 + _sin_rot_s*spin_y_0;
+                double const spin_y_1 = -_sin_rot_s*spin_x_0 + _cos_rot_s*spin_y_0;
+                LocalParticle_set_spin_x(part, spin_x_1);
+                LocalParticle_set_spin_y(part, spin_y_1);
+            }
+        END_PER_PARTICLE_BLOCK;
     #endif
 
     // Track the particle in the local frame
@@ -171,18 +171,20 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
 
     // Spin tracking is disabled by the synrad compile flag
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-       // Rotate spin
-       // TODO: Handle in the transformation functions instead of here
-       START_PER_PARTICLE_BLOCK(part0, part);
-           double const spin_x_0 = LocalParticle_get_spin_x(part);
-           double const spin_y_0 = LocalParticle_get_spin_y(part);
-           if ((spin_x_0 != 0) || (spin_y_0 != 0)){
-               double const spin_x_1 = _cos_rot_s*spin_x_0 - _sin_rot_s*spin_y_0;
-               double const spin_y_1 = _sin_rot_s*spin_x_0 + _cos_rot_s*spin_y_0;
-               LocalParticle_set_spin_x(part, spin_x_1);
-               LocalParticle_set_spin_y(part, spin_y_1);
-          }
-       END_PER_PARTICLE_BLOCK;
+        // Rotate spin
+        // TODO: Handle in the transformation functions instead of here
+        START_PER_PARTICLE_BLOCK(part0, part);
+            double const spin_x_0 = LocalParticle_get_spin_x(part);
+            double const spin_y_0 = LocalParticle_get_spin_y(part);
+            if ((spin_x_0 != 0) || (spin_y_0 != 0)) {
+                double const _sin_rot_s = sin(rot_s_rad);
+                double const _cos_rot_s = cos(rot_s_rad);
+                double const spin_x_1 = _cos_rot_s*spin_x_0 - _sin_rot_s*spin_y_0;
+                double const spin_y_1 = _sin_rot_s*spin_x_0 + _cos_rot_s*spin_y_0;
+                LocalParticle_set_spin_x(part, spin_x_1);
+                LocalParticle_set_spin_y(part, spin_y_1);
+           }
+        END_PER_PARTICLE_BLOCK;
     #endif
 
     if (!backtrack) {
@@ -206,10 +208,9 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_transformations)(
     #ifndef ALLOW_ROT_AND_SHIFT
         CONCAT(ELEMENT_NAME, _track_local_particle)(el, part0);
     #else
-        const double _sin_rot_s = GET_PARAM(el, _sin_rot_s);
-        const int8_t transformations_enabled = (_sin_rot_s > -2.0);
+        const int64_t rot_shift_active = GET_PARAM(el, rot_shift_active);
 
-        if (transformations_enabled) {
+        if (rot_shift_active) {
             CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(el, part0);
         } else {
             CONCAT(ELEMENT_NAME, _track_local_particle)(el, part0);
