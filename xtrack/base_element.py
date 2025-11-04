@@ -503,29 +503,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     name_associated_aperture = None
 
     def __init__(self, *args, **kwargs):
-        rot_s_rad_legacy_from_trig = False
-        sin_s_rad = 0
-        cos_s_rad = 1
-
-        if '_sin_rot_s' in kwargs:
-            rot_s_rad_legacy_from_trig = True
-            sin_s_rad = kwargs.pop('_sin_rot_s')
-        if '_cos_rot_s' in kwargs:
-            rot_s_rad_legacy_from_trig = True
-            cos_s_rad = kwargs.pop('_cos_rot_s')
-
-        if rot_s_rad_legacy_from_trig:
-            computed_rot_s_rad = np.arctan2(sin_s_rad, cos_s_rad)
-            if 'rot_s_rad' in kwargs:
-                if not np.isclose(kwargs['rot_s_rad'], computed_rot_s_rad, atol=1e-14, rtol=1e-14):
-                    raise ValueError(
-                        f'{type(self).__name__} initialised with both `rot_s_rad` '
-                        f'and `_sin_rot_s` or `_cos_rot_s` arguments, but they are '
-                        f'inconsistent with each other.'
-                    )
-            else:
-                kwargs['rot_s_rad'] = computed_rot_s_rad
-
         xo.HybridClass.__init__(self, *args, **kwargs)
 
     @property
@@ -652,6 +629,29 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
         if rot_s_rad is not None:
             self.rot_s_rad = rot_s_rad
+
+        rot_s_rad_legacy_from_trig = False
+        sin_s_rad = 0
+        cos_s_rad = 1
+
+        if '_sin_rot_s' in kwargs:
+            rot_s_rad_legacy_from_trig = True
+            sin_s_rad = kwargs.pop('_sin_rot_s')
+        if '_cos_rot_s' in kwargs:
+            rot_s_rad_legacy_from_trig = True
+            cos_s_rad = kwargs.pop('_cos_rot_s')
+
+        if rot_s_rad_legacy_from_trig:
+            computed_rot_s_rad = np.arctan2(sin_s_rad, cos_s_rad)
+            if rot_s_rad is not None:
+                if not np.isclose(rot_s_rad, computed_rot_s_rad, atol=1e-14, rtol=1e-14):
+                    raise ValueError(
+                        f'{type(self).__name__} initialised with both `rot_s_rad` '
+                        f'and `_sin_rot_s` or `_cos_rot_s` arguments, but they are '
+                        f'inconsistent with each other.'
+                    )
+            else:
+                self.rot_s_rad = computed_rot_s_rad
 
         if shift_x is not None:
             self.shift_x = shift_x
