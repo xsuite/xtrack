@@ -1306,34 +1306,95 @@ class Line:
         forbid_resonance_crossing: int = 0,
         with_progress: bool | int = False,
         verbose: bool = False,
-        **kwargs
-    ):
+        **kwargs):
         """
-        Local momentum aperture (LMA).
+        Compute the local momentum aperture (LMA) along the line by tracking a
+        grid of momentum offsets (δ) from the **entrance** of selected
+        elements and reporting the largest surviving negative and positive δ.
+
+        The δ grid is centered on the local closed orbit at each element, and offsets
+        can be applied (either physical x/y or normalized x/y in σ units).
 
         Parameters
         ----------
-        x_offset : float, optional
-            Horizontal offset in [m].
-        y_offset : float, optional
-            Vertical offset in [m].
-        x_norm_offset : float, optional
-            Horizontal normalized offset in [σx]. Mutually exclusive with x_offset.
-            Requires `nemitt_x` to compute σx.
-        y_norm_offset : float, optional
-            Vertical normalized offset in [σy]. Mutually exclusive with y_offset.
-            Requires `nemitt_y` to compute σy.
-        nemitt_x : float, optional
-            Normalized emittance in x [m·rad] (rms). Required if `x_norm_offset` is used.
-        nemitt_y : float, optional
-            Normalized emittance in y [m·rad] (rms). Required if `y_norm_offset` is used.
+        particle_ref : xt.Particles, optional
+            Reference particle. If not given, uses `self.particle_ref` (must exist).
+        twiss : xt.TwissTable, optional
+            Twiss table to define the closed orbit and optics. By default,
+            a 6D solution is computed with `self.twiss(method='6d')`. You can
+            override the method with `method=...` in `**kwargs`.
+        x_offset : float, default 0.0
+            Horizontal physical offset in meters. Mutually exclusive with
+            `x_norm_offset`.
+        y_offset : float, default 0.0
+            Vertical physical offset in meters. Mutually exclusive with
+            `y_norm_offset`.
+        x_norm_offset : float, default 0.0
+            Horizontal normalized offset in units of σx (rms). Mutually exclusive
+            with `x_offset`.
+        y_norm_offset : float, default 0.0
+            Vertical normalized offset in units of σy (rms). Mutually exclusive
+            with `y_offset`.
+        nemitt_x : float
+            Horizontal normalized emittance (m·rad, rms).
+        nemitt_y : float
+            Vertical normalized emittance (m·rad, rms).
+        delta_negative_limit : float, default -0.10
+            Lower bound of the δ scan (inclusive). Must be < 0.
+        delta_positive_limit : float, default +0.10
+            Upper bound of the δ scan (inclusive). Must be > 0.
+        delta_step_size : float, default 0.01
+            Step for the δ grid. Must be > 0. The positive end is included
+            with a half-step guard to reduce floating-point exclusion.
+        skip_elements : int, default 0
+            Number of selected elements to skip from the start.
+        process_elements : int, default 2**31 - 1
+            Maximum number of selected elements to process.
+        s_start : float, default 0.0
+            Start of the longitudinal selection window (m), inclusive.
+        s_end : float, optional
+            End of the selection window (m), exclusive. Defaults to ∞.
+        include_name_pattern : str, optional
+            Shell-style wildcard pattern (fnmatch) to include element names.
+        include_type_pattern : str, optional
+            Shell-style wildcard pattern (fnmatch) to include element types.
+        n_turns : int, default 512
+            Number of turns to track.
+        forbid_resonance_crossing : int, default 0
+            Reserved. Not implemented; using a non-zero value raises
+            NotImplementedError.
+        with_progress : bool | int, default False
+            If truthy, shows a per-element progress bar.
+        verbose : bool, default False
+            If True, enables tracker progress for each element scan.
+        **kwargs
+            Passed through to `self.twiss` and `build_particles`.
+
+        Selection semantics
+        -------------------
+        - LMA is evaluated at the **entrance** of each element.
+        - If multiple elements share the same `s`, only the first encountered is used.
+        - Elements are filtered by `s_start <= s < s_end`, then by optional
+        `include_name_pattern` and/or `include_type_pattern`, then by
+        `skip_elements`/`process_elements`.
+
+        Algorithm (per selected element)
+        --------------------------------
+        1. Build particles on closed orbit with the requested (normalized or physical) offsets.
+        2. Apply the δ grid by shifting the initial δ around `delta_co`.
+        3. Track for `n_turns` turns from the element to itself.
+        4. Among surviving particles, report:
+        - `deltan` = min of the *initial* δ of survivors,
+        - `deltap` = max of the *initial* δ of survivors.
+        If none survive, `deltan` = `deltap` = 0.0
 
         Returns
         -------
-        xt.Table with columns:
-        - s:       element entrance position (m)
-        - deltan:  largest surviving -δ
-        - deltap:  largest surviving +δ
+        xt.Table
+            Table indexed by `'s'` with columns:
+            - `s` (float): Element entrance position (m).
+            - `deltan` (float): Largest surviving negative δ (may be 0).
+            - `deltap` (float): Largest surviving positive δ (may be 0).
         """
         import fnmatch
 
@@ -1474,8 +1535,8 @@ class Line:
                 deltan = float(np.min(initial_deltas[surviving_pids]))
                 deltap = float(np.max(initial_deltas[surviving_pids]))
             else:
-                deltan = float('nan')
-                deltap = float('nan')
+                deltan = float(0.0)
+                deltap = float(0.0)
 
             rows.append({
                 's': s_here,
