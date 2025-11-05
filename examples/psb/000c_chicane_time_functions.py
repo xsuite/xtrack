@@ -21,12 +21,12 @@ line.functions['fun_bsw_k2l'] = xd.FunctionPieceWiseLinear(
     x=df['time'].values, y=df['bsw_k2l'].values)
 
 # Control knob with function
-line.vars['on_chicane_k0'] = 1
-line.vars['on_chicane_k2'] = 1
-line.vars['bsw_k0l'] = (line.functions.fun_bsw_k0l(line.vars['t_turn_s'])
-                        * line.vars['on_chicane_k0'])
-line.vars['bsw_k2l'] = (line.functions.fun_bsw_k2l(line.vars['t_turn_s'])
-                        * line.vars['on_chicane_k2'])
+line['on_chicane_k0'] = 1
+line['on_chicane_k2'] = 1
+line['bsw_k0l'] = (line.functions.fun_bsw_k0l(line.ref['t_turn_s'])
+                        * line.ref['on_chicane_k0'])
+line['bsw_k2l'] = (line.functions.fun_bsw_k2l(line.ref['t_turn_s'])
+                        * line.ref['on_chicane_k2'])
 
 line.to_json('psb_02_with_chicane_time_functions.json')
 
@@ -41,7 +41,7 @@ qy = []
 bety_at_qde3 = []
 for ii, tt in enumerate(t_test):
     print(f'Twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
-    line.vars['t_turn_s'] = tt
+    line['t_turn_s'] = tt
 
     tw = line.twiss()
 

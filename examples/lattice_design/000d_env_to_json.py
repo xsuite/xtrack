@@ -36,8 +36,8 @@ girder = env.new_line(components=[
     env.place('corrector', at=-0.8, from_='mq'),
 ])
 
-girder_f = girder.clone(name='f')
-girder_d = girder.clone(name='d', mirror=True)
+girder_f = girder.clone(suffix='f')
+girder_d = girder.clone(suffix='d', mirror=True)
 env.set('mq.f', k1='kqf')
 env.set('mq.d', k1='kqd')
 
@@ -58,8 +58,8 @@ halfcell = env.new_line(components=[
 ])
 
 
-hcell_left = halfcell.replicate(name='l', mirror=True)
-hcell_right = halfcell.replicate(name='r')
+hcell_left = halfcell.replicate(suffix='l', mirror=True)
+hcell_right = halfcell.replicate(suffix='r')
 
 cell = env.new_line(components=[
     env.new('start', xt.Marker),
@@ -94,8 +94,8 @@ halfcell_ss = env.new_line(components=[
     env.new('corrector.ss.h', 'corrector', at=-0.75, from_='mq.ss.f')
 ])
 
-hcell_left_ss = halfcell_ss.replicate(name='l', mirror=True)
-hcell_right_ss = halfcell_ss.replicate(name='r')
+hcell_left_ss = halfcell_ss.replicate(suffix='l', mirror=True)
+hcell_right_ss = halfcell_ss.replicate(suffix='r')
 cell_ss = env.new_line(components=[
     env.new('start.ss', xt.Marker),
     hcell_left_ss,
@@ -114,9 +114,9 @@ opt.solve()
 
 
 arc = env.new_line(components=[
-    cell.replicate(name='cell.1'),
-    cell.replicate(name='cell.2'),
-    cell.replicate(name='cell.3'),
+    cell.replicate(suffix='cell.1'),
+    cell.replicate(suffix='cell.2'),
+    cell.replicate(suffix='cell.3'),
 ])
 
 
@@ -126,12 +126,12 @@ ss = env.new_line(components=[
 ])
 
 ring = env.new_line(components=[
-    arc.replicate(name='arc.1'),
-    ss.replicate(name='ss.1'),
-    arc.replicate(name='arc.2'),
-    ss.replicate(name='ss.2'),
-    arc.replicate(name='arc.3'),
-    ss.replicate(name='ss.3'),
+    arc.replicate(suffix='arc.1'),
+    ss.replicate(suffix='ss.1'),
+    arc.replicate(suffix='arc.2'),
+    ss.replicate(suffix='ss.2'),
+    arc.replicate(suffix='arc.3'),
+    ss.replicate(suffix='ss.3'),
 ])
 
 ## Insertion
@@ -192,12 +192,12 @@ insertion = env.new_line([
     half_insertion.replicate('r')])
 
 ring2 = env.new_line(components=[
-    arc.replicate(name='arcc.1'),
-    ss.replicate(name='sss.2'),
-    arc.replicate(name='arcc.2'),
+    arc.replicate(suffix='arcc.1'),
+    ss.replicate(suffix='sss.2'),
+    arc.replicate(suffix='arcc.2'),
     insertion,
-    arc.replicate(name='arcc.3'),
-    ss.replicate(name='sss.3')
+    arc.replicate(suffix='arcc.3'),
+    ss.replicate(suffix='sss.3')
 ])
 
 

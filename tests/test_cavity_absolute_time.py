@@ -4,6 +4,8 @@ import xobjects as xo
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 
+from scipy.constants import c as clight
+
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
@@ -32,8 +34,8 @@ def test_cavity_absolute_time(test_context):
     line.vars['f_rf'] = f_rf
     tt = line.get_table()
     for nn in tt.rows[tt.element_type=='Cavity'].name:
-        line.element_refs[nn].absolute_time = 1 # Need property
-        line.element_refs[nn].frequency = line.vars['f_rf']
+        line[nn].absolute_time = 1 # Need property
+        line[nn].frequency = line.vars['f_rf']
 
     tw1 = line.twiss(search_for_t_rev=True)
 

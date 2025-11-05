@@ -11,7 +11,7 @@ line.twiss_default['method'] = '4d'
 
 # Flat machine
 for nn in line.vars.get_table().rows['on_.*|corr_.*'].name:
-    line.vars[nn] = 0
+    line[nn] = 0
 
 line['cmrskew'] = 0
 line['cmiskew'] = 0

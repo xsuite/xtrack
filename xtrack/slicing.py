@@ -244,7 +244,7 @@ class Slicer:
         for ii, nn in enumerate(progress(tt.name, desc='Slicing line')):
 
             enn=tt.env_name[ii]
-            element = self._line.element_dict[enn]
+            element = self._line._element_dict[enn]
 
             subsequence = [enn]
             # Don't slice already thin elements and drifts
@@ -288,8 +288,8 @@ class Slicer:
             _buffer = element._buffer
 
             entry_marker, exit_marker = f'{name}_entry', f'{name}_exit'
-            self._line.element_dict[entry_marker] = xt.Marker(_buffer=_buffer)
-            self._line.element_dict[exit_marker] = xt.Marker(_buffer=_buffer)
+            self._line._element_dict[entry_marker] = xt.Marker(_buffer=_buffer)
+            self._line._element_dict[exit_marker] = xt.Marker(_buffer=_buffer)
             slices_to_add = [entry_marker] + slices_to_add + [exit_marker]
 
         # Handle aperture
@@ -300,11 +300,11 @@ class Slicer:
             new_slices_to_add = []
             aper_index = 0
             for nn in slices_to_add:
-                ee = self._line.element_dict[nn]
+                ee = self._line._element_dict[nn]
                 if (type(ee).__name__.startswith('ThinSlice')
                     or type(ee).__name__.startswith('ThickSlice')):
                     aper_name = f'{name}_aper..{aper_index}'
-                    self._line.element_dict[aper_name] = xt.Replica(
+                    self._line._element_dict[aper_name] = xt.Replica(
                         parent_name=element.name_associated_aperture)
                     new_slices_to_add += [aper_name]
                     aper_index += 1
@@ -359,14 +359,14 @@ class Slicer:
 
         if hasattr(element, '_entry_slice_class'):
             nn = f'{name}..entry_map'
-            if nn in self._line.element_dict:
+            if nn in self._line._element_dict:
                 i_entry = 0
-                while (nn := f'{name}..entry_map_{i_entry}') in self._line.element_dict:
+                while (nn := f'{name}..entry_map_{i_entry}') in self._line._element_dict:
                     i_entry += 1
             ee = element._entry_slice_class(
                     _parent=element, _buffer=element._buffer)
             ee.parent_name = parent_name
-            self._line.element_dict[nn] = ee
+            self._line._element_dict[nn] = ee
             slices_to_append.append(nn)
 
         if not hasattr(element, 'length'):
@@ -389,49 +389,49 @@ class Slicer:
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
                 prename = "" if isdriftslice else "drift_"
                 if is_drift:
-                    while (nn := f'{prename}{name}..{drift_idx}') in self._line.element_dict:
+                    while (nn := f'{prename}{name}..{drift_idx}') in self._line._element_dict:
                         drift_idx += 1
                     ee = slice_parent._drift_slice_class(
                             _parent=slice_parent, _buffer=element._buffer,
                             weight=weight * elem_weight)
                     ee.parent_name = slice_parent_name
-                    self._line.element_dict[nn] = ee
+                    self._line._element_dict[nn] = ee
                     slices_to_append.append(nn)
                 else:
                     if isdriftslice:
                         continue
-                    while (nn := f'{name}..{element_idx}') in self._line.element_dict:
+                    while (nn := f'{name}..{element_idx}') in self._line._element_dict:
                         element_idx += 1
                     if slice_parent._thin_slice_class is not None:
                         ee = slice_parent._thin_slice_class(
                                 _parent=slice_parent, _buffer=element._buffer,
                                 weight=weight * elem_weight)
                         ee.parent_name = slice_parent_name
-                        self._line.element_dict[nn] = ee
+                        self._line._element_dict[nn] = ee
                         slices_to_append.append(nn)
         elif chosen_slicing.mode == 'thick':
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
-                while (nn := f'{name}..{element_idx}') in self._line.element_dict:
+                while (nn := f'{name}..{element_idx}') in self._line._element_dict:
                     element_idx += 1
                 ee = slice_parent._thick_slice_class(
                         _parent=slice_parent, _buffer=element._buffer,
                         weight=weight * elem_weight)
                 ee.parent_name = slice_parent_name
-                self._line.element_dict[nn] = ee
+                self._line._element_dict[nn] = ee
                 slices_to_append.append(nn)
         else:
             raise ValueError(f'Unknown slicing mode: {chosen_slicing.mode}')
 
         if hasattr(element, '_exit_slice_class'):
             nn = f'{name}..exit_map'
-            if nn in self._line.element_dict:
+            if nn in self._line._element_dict:
                 i_exit = 0
-                while (nn := f'{name}..exit_map_{i_exit}') in self._line.element_dict:
+                while (nn := f'{name}..exit_map_{i_exit}') in self._line._element_dict:
                     i_exit += 1
             ee = element._exit_slice_class(
                     _parent=element, _buffer=element._buffer)
             ee.parent_name = parent_name
-            self._line.element_dict[nn] = ee
+            self._line._element_dict[nn] = ee
             slices_to_append.append(nn)
 
         slice_parent._movable = True # Force movable
@@ -442,9 +442,9 @@ class Slicer:
     def _make_copies(self, element_names, index):
         new_names = []
         for element_name in element_names:
-            element = self._line.element_dict[element_name]
+            element = self._line._element_dict[element_name]
             new_element_name = f'{element_name}..{index}'
-            self._line.element_dict[new_element_name] = element.copy()
+            self._line._element_dict[new_element_name] = element.copy()
             new_names.append(new_element_name)
 
         return new_names

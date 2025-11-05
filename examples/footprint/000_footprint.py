@@ -21,12 +21,12 @@ fp0 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 fp0.plot(color='k', label='I_oct=0')
 
 # Change octupoles strength and compute footprint again
-line.vars['i_oct_b1'] = 500
+line['i_oct_b1'] = 500
 fp1 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 fp1.plot(color='r', label='I_oct=500')
 
 # Change octupoles strength and compute footprint again
-line.vars['i_oct_b1'] = -250
+line['i_oct_b1'] = -250
 fp2 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 fp2.plot(color='b', label='I_oct=-250')
 
@@ -34,19 +34,19 @@ plt.legend()
 
 plt.figure(2)
 
-line.vars['i_oct_b1'] = 0
+line['i_oct_b1'] = 0
 fp0_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                          mode='uniform_action_grid')
 fp0_jgrid.plot(color='k', label='I_oct=0')
 
 # Change octupoles strength and compute footprint again
-line.vars['i_oct_b1'] = 500
+line['i_oct_b1'] = 500
 fp1_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                             mode='uniform_action_grid')
 fp1_jgrid.plot(color='r', label='I_oct=500')
 
 # Change octupoles strength and compute footprint again
-line.vars['i_oct_b1'] = -250
+line['i_oct_b1'] = -250
 fp2_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                          mode='uniform_action_grid')
 fp2_jgrid.plot(color='b', label='I_oct=-250')

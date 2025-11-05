@@ -21,15 +21,15 @@ line.build_tracker()
 tt = line.get_table()
 
 # Save voltage values
-line.vars['voltca1_ref'] = line.vv['voltca1']
+line['voltca1_ref'] = line['voltca1']
 if 'voltca2' in line.vars.keys():
-    line.vars['voltca2_ref'] = line.vv['voltca2']
+    line['voltca2_ref'] = line['voltca2']
 else:
-    line.vars['voltca2_ref'] = 0
+    line['voltca2_ref'] = 0
 
 # Switch off the cavities
-line.vars['voltca1'] = 0
-line.vars['voltca2'] = 0
+line['voltca1'] = 0
+line['voltca2'] = 0
 
 # Load solenoid Bz data
 bz_data_file = '../../test_data/fcc_ee/Bz_closed_before_quads.dat'
@@ -78,21 +78,21 @@ sol_end_tilt = xt.YRotation(angle=+theta_tilt * 180 / np.pi)
 sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
 sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
 
-line.element_dict['sol_start_tilt_'+ip_sol] = sol_start_tilt
-line.element_dict['sol_end_tilt_'+ip_sol] = sol_end_tilt
-line.element_dict['sol_start_shift_'+ip_sol] = sol_start_shift
-line.element_dict['sol_end_shift_'+ip_sol] = sol_end_shift
+line.env.elements['sol_start_tilt_'+ip_sol] = sol_start_tilt
+line.env.elements['sol_end_tilt_'+ip_sol] = sol_end_tilt
+line.env.elements['sol_start_shift_'+ip_sol] = sol_start_shift
+line.env.elements['sol_end_shift_'+ip_sol] = sol_end_shift
 
-line.element_dict['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-line.element_dict['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-line.element_dict['sol_zeta_shift_'+ip_sol] = xt.ZetaShift(dzeta=-(l_beam - l_solenoid))
+line.env.elements['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
+line.env.elements['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
+line.env.elements['sol_zeta_shift_'+ip_sol] = xt.ZetaShift(dzeta=-(l_beam - l_solenoid))
 
 # Add slices to the elements pot
 sol_slice_names = []
 sol_slice_names.append('sol_entry_'+ip_sol)
 for ii in range(len(s_sol_slices_entry)):
     nn = f'sol_slice_{ii}_{ip_sol}'
-    line.element_dict[nn] = sol_slices[ii]
+    line.env.elements[nn] = sol_slices[ii]
     sol_slice_names.append(nn)
 sol_slice_names.append('sol_exit_'+ip_sol)
 
@@ -109,19 +109,18 @@ element_names = (names_upstream
 line.element_names = element_names
 
 # re-insert the ip
-line.element_dict.pop(ip_sol)
 tt = line.get_table()
-line.insert(ip_sol, xt.Marker(),
-        at = 0.5 * (tt['s', 'sol_start_'+ip_sol] + tt['s', 'sol_end_'+ip_sol]))
+line.insert(ip_sol,
+        at=0.5 * (tt['s', 'sol_start_'+ip_sol] + tt['s', 'sol_end_'+ip_sol]))
 
 line.build_tracker()
 
 # Set strength
-line.vars['on_sol_'+ip_sol] = 0
+line['on_sol_'+ip_sol] = 0
 for ii in range(len(s_sol_slices_entry)):
     nn = f'sol_slice_{ii}_{ip_sol}'
-    line.element_refs[nn].ks_profile[0] = ks_entry[ii] * line.vars['on_sol_'+ip_sol]
-    line.element_refs[nn].ks_profile[1] = ks_exit[ii] * line.vars['on_sol_'+ip_sol]
+    line[nn].ks_profile[0] = ks_entry[ii] * line.ref['on_sol_'+ip_sol]
+    line[nn].ks_profile[1] = ks_exit[ii] * line.ref['on_sol_'+ip_sol]
 
 tt = line.get_table()
 
@@ -129,47 +128,47 @@ tt = line.get_table()
 tt.rows['sol_start_ip.1':'sol_end_ip.1'].show()
 
 # Add skew quadrupole knobs to the final focus quadrupoles
-line.vars['on_corr_ip.1'] = 1
-line.vars['ks0.r1'] = 0
-line.vars['ks1.r1'] = 0
-line.vars['ks2.r1'] = 0
-line.vars['ks3.r1'] = 0
-line.vars['ks4.r1'] = 0
-line.vars['ks0.l1'] = 0
-line.vars['ks1.l1'] = 0
-line.vars['ks2.l1'] = 0
-line.vars['ks3.l1'] = 0
-line.vars['ks4.l1'] = 0
+line['on_corr_ip.1'] = 1
+line['ks0.r1'] = 0
+line['ks1.r1'] = 0
+line['ks2.r1'] = 0
+line['ks3.r1'] = 0
+line['ks4.r1'] = 0
+line['ks0.l1'] = 0
+line['ks1.l1'] = 0
+line['ks2.l1'] = 0
+line['ks3.l1'] = 0
+line['ks4.l1'] = 0
 
-line.element_refs['qc1r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.r1']
-line.element_refs['qc2r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.r1']
-line.element_refs['qc2r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.r1']
-line.element_refs['qc1r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.r1']
-line.element_refs['qc1l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.l1']
-line.element_refs['qc2l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.l1']
-line.element_refs['qc2l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.l1']
-line.element_refs['qc1l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.l1']
+line['qc1r1.1'].k1s = line.ref['on_corr_ip.1'] * line.ref['ks0.r1']
+line['qc2r1.1'].k1s = line.ref['on_corr_ip.1'] * line.ref['ks1.r1']
+line['qc2r2.1'].k1s = line.ref['on_corr_ip.1'] * line.ref['ks2.r1']
+line['qc1r2.1'].k1s = line.ref['on_corr_ip.1'] * line.ref['ks3.r1']
+line['qc1l1.4'].k1s = line.ref['on_corr_ip.1'] * line.ref['ks0.l1']
+line['qc2l1.4'].k1s = line.ref['on_corr_ip.1'] * line.ref['ks1.l1']
+line['qc2l2.4'].k1s = line.ref['on_corr_ip.1'] * line.ref['ks2.l1']
+line['qc1l2.4'].k1s = line.ref['on_corr_ip.1'] * line.ref['ks3.l1']
 
 # Add correction knobs normal strength of the final focus quadrupoles
-line.vars['corr_k0.r1'] = 0
-line.vars['corr_k1.r1'] = 0
-line.vars['corr_k2.r1'] = 0
-line.vars['corr_k3.r1'] = 0
-line.vars['corr_k4.r1'] = 0
-line.vars['corr_k0.l1'] = 0
-line.vars['corr_k1.l1'] = 0
-line.vars['corr_k2.l1'] = 0
-line.vars['corr_k3.l1'] = 0
-line.vars['corr_k4.l1'] = 0
+line['corr_k0.r1'] = 0
+line['corr_k1.r1'] = 0
+line['corr_k2.r1'] = 0
+line['corr_k3.r1'] = 0
+line['corr_k4.r1'] = 0
+line['corr_k0.l1'] = 0
+line['corr_k1.l1'] = 0
+line['corr_k2.l1'] = 0
+line['corr_k3.l1'] = 0
+line['corr_k4.l1'] = 0
 
-line.element_refs['qc1r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.r1']
-line.element_refs['qc2r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.r1']
-line.element_refs['qc2r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.r1']
-line.element_refs['qc1r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.r1']
-line.element_refs['qc1l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.l1']
-line.element_refs['qc2l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.l1']
-line.element_refs['qc2l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.l1']
-line.element_refs['qc1l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.l1']
+line.ref['qc1r1.1'].k1 += line.ref['on_corr_ip.1'] * line.ref['corr_k0.r1']
+line.ref['qc2r1.1'].k1 += line.ref['on_corr_ip.1'] * line.ref['corr_k1.r1']
+line.ref['qc2r2.1'].k1 += line.ref['on_corr_ip.1'] * line.ref['corr_k2.r1']
+line.ref['qc1r2.1'].k1 += line.ref['on_corr_ip.1'] * line.ref['corr_k3.r1']
+line.ref['qc1l1.4'].k1 += line.ref['on_corr_ip.1'] * line.ref['corr_k0.l1']
+line.ref['qc2l1.4'].k1 += line.ref['on_corr_ip.1'] * line.ref['corr_k1.l1']
+line.ref['qc2l2.4'].k1 += line.ref['on_corr_ip.1'] * line.ref['corr_k2.l1']
+line.ref['qc1l2.4'].k1 += line.ref['on_corr_ip.1'] * line.ref['corr_k3.l1']
 
 tw_thick_no_rad = line.twiss(method='4d')
 
@@ -180,23 +179,23 @@ line.insert('mcb2.r1', xt.Multipole(knl=[0]), at='qc1r2.1@end')
 line.insert('mcb1.l1', xt.Multipole(knl=[0]), at='qc1l1.4@start')
 line.insert('mcb2.l1', xt.Multipole(knl=[0]), at='qc1l2.4@start')
 
-line.vars['acb1h.r1'] = 0
-line.vars['acb1v.r1'] = 0
-line.vars['acb2h.r1'] = 0
-line.vars['acb2v.r1'] = 0
-line.vars['acb1h.l1'] = 0
-line.vars['acb1v.l1'] = 0
-line.vars['acb2h.l1'] = 0
-line.vars['acb2v.l1'] = 0
+line['acb1h.r1'] = 0
+line['acb1v.r1'] = 0
+line['acb2h.r1'] = 0
+line['acb2v.r1'] = 0
+line['acb1h.l1'] = 0
+line['acb1v.l1'] = 0
+line['acb2h.l1'] = 0
+line['acb2v.l1'] = 0
 
-line.element_refs['mcb1.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.r1']
-line.element_refs['mcb2.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.r1']
-line.element_refs['mcb1.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.r1']
-line.element_refs['mcb2.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.r1']
-line.element_refs['mcb1.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.l1']
-line.element_refs['mcb2.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.l1']
-line.element_refs['mcb1.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.l1']
-line.element_refs['mcb2.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.l1']
+line.ref['mcb1.r1'].knl[0] = line.ref['on_corr_ip.1'] * line.ref['acb1h.r1']
+line.ref['mcb2.r1'].knl[0] = line.ref['on_corr_ip.1'] * line.ref['acb2h.r1']
+line.ref['mcb1.r1'].ksl[0] = line.ref['on_corr_ip.1'] * line.ref['acb1v.r1']
+line.ref['mcb2.r1'].ksl[0] = line.ref['on_corr_ip.1'] * line.ref['acb2v.r1']
+line.ref['mcb1.l1'].knl[0] = line.ref['on_corr_ip.1'] * line.ref['acb1h.l1']
+line.ref['mcb2.l1'].knl[0] = line.ref['on_corr_ip.1'] * line.ref['acb2h.l1']
+line.ref['mcb1.l1'].ksl[0] = line.ref['on_corr_ip.1'] * line.ref['acb1v.l1']
+line.ref['mcb2.l1'].ksl[0] = line.ref['on_corr_ip.1'] * line.ref['acb2v.l1']
 
 assert line.element_names[-1] == 'ip.4.l'
 assert line.element_names[0] == 'ip.4'
@@ -217,8 +216,8 @@ tw_thin_no_rad = line.twiss(method='4d')
 # Check partition numbers
 line.to_json(fname + '_thick_with_sol.json')
 
-line.vars['voltca1'] = line.vars['voltca1_ref']
-line.vars['voltca2'] = line.vars['voltca2_ref']
+line['voltca1'] = line['voltca1_ref']
+line['voltca2'] = line['voltca2_ref']
 
 line.build_tracker()
 

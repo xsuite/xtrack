@@ -25,12 +25,12 @@ else:
 
 import xobjects as xo
 import xdeps as xd
-from xdeps import Table
 
 from . import linear_normal_form as lnf
 from .general import _print
 from .twissplot import TwissPlot
 from . import json as json_utils
+from .table import Table
 
 import xtrack as xt  # To avoid circular imports
 
@@ -1595,105 +1595,108 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     only_markers=False,
                     periodic=False,
                     periodic_mode=None,
-                    include_collective=False):
+                    include_collective=False,
+                    tw_chrom_res=None
+                    ):
 
     if only_markers:
         raise NotImplementedError('only_markers not supported anymore')
 
-    tw_chrom_res = []
-    for dd in [-delta_chrom, delta_chrom]:
-        tw_init_chrom = init.copy()
+    if tw_chrom_res is None:
+        tw_chrom_res = []
+        for dd in [-delta_chrom, delta_chrom]:
+            tw_init_chrom = init.copy()
 
-        if periodic:
-            import xpart
-            part_guess = xpart.build_particles(
-                _context=line._context,
-                x_norm=0,
-                zeta=tw_init_chrom.zeta,
-                delta=tw_init_chrom.delta+ dd,
-                particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
-                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                W_matrix=tw_init_chrom.W_matrix,
-                include_collective=include_collective)
-            part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
-                                    start=start, end=end, num_turns=num_turns,
-                                    symmetrize=False,
-                                    include_collective=include_collective,
-                                    )
-            tw_init_chrom.particle_on_co = part_chrom
-            RR_chrom = line.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=tw_init_chrom.particle_on_co.copy(),
+            if periodic:
+                import xpart
+                part_guess = xpart.build_particles(
+                    _context=line._context,
+                    x_norm=0,
+                    zeta=tw_init_chrom.zeta,
+                    delta=tw_init_chrom.delta+ dd,
+                    particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
+                    nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                    W_matrix=tw_init_chrom.W_matrix,
+                    include_collective=include_collective)
+                part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
                                         start=start, end=end, num_turns=num_turns,
-                                        steps_r_matrix=steps_r_matrix,
                                         symmetrize=False,
                                         include_collective=include_collective,
-                                        )['R_matrix']
-            (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
-                                    only_4d_block=True,
-                                    responsiveness_tol=matrix_responsiveness_tol,
-                                    stability_tol=matrix_stability_tol,
-                                    symplectify=symplectify)
-            tw_init_chrom.W_matrix = WW_chrom
-        else:
-            alfx = init.alfx
-            betx = init.betx
-            alfy = init.alfy
-            bety = init.bety
-            dx = init.dx
-            dy = init.dy
-            dpx = init.dpx
-            dpy = init.dpy
-            ddx = init.ddx
-            ddpx = init.ddpx
-            ddy = init.ddy
-            ddpy = init.ddpy
-            ax_chrom = init.ax_chrom
-            bx_chrom = init.bx_chrom
-            ay_chrom = init.ay_chrom
-            by_chrom = init.by_chrom
+                                        )
+                tw_init_chrom.particle_on_co = part_chrom
+                RR_chrom = line.compute_one_turn_matrix_finite_differences(
+                                            particle_on_co=tw_init_chrom.particle_on_co.copy(),
+                                            start=start, end=end, num_turns=num_turns,
+                                            steps_r_matrix=steps_r_matrix,
+                                            symmetrize=False,
+                                            include_collective=include_collective,
+                                            )['R_matrix']
+                (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
+                                        only_4d_block=True,
+                                        responsiveness_tol=matrix_responsiveness_tol,
+                                        stability_tol=matrix_stability_tol,
+                                        symplectify=symplectify)
+                tw_init_chrom.W_matrix = WW_chrom
+            else:
+                alfx = init.alfx
+                betx = init.betx
+                alfy = init.alfy
+                bety = init.bety
+                dx = init.dx
+                dy = init.dy
+                dpx = init.dpx
+                dpy = init.dpy
+                ddx = init.ddx
+                ddpx = init.ddpx
+                ddy = init.ddy
+                ddpy = init.ddpy
+                ax_chrom = init.ax_chrom
+                bx_chrom = init.bx_chrom
+                ay_chrom = init.ay_chrom
+                by_chrom = init.by_chrom
 
-            dbetx_dpzeta = bx_chrom * betx
-            dbety_dpzeta = by_chrom * bety
-            dalfx_dpzeta = ax_chrom + bx_chrom * alfx
-            dalfy_dpzeta = ay_chrom + by_chrom * alfy
+                dbetx_dpzeta = bx_chrom * betx
+                dbety_dpzeta = by_chrom * bety
+                dalfx_dpzeta = ax_chrom + bx_chrom * alfx
+                dalfy_dpzeta = ay_chrom + by_chrom * alfy
 
-            tw_init_chrom.particle_on_co.x += dx * dd + 1/2 * ddx * dd**2
-            tw_init_chrom.particle_on_co.px += dpx * dd + 1/2 * ddpx * dd**2
-            tw_init_chrom.particle_on_co.y += dy * dd + 1/2 * ddy * dd**2
-            tw_init_chrom.particle_on_co.py += dpy * dd + 1/2 * ddpy * dd**2
-            tw_init_chrom.particle_on_co.delta += dd
+                tw_init_chrom.particle_on_co.x += dx * dd + 1/2 * ddx * dd**2
+                tw_init_chrom.particle_on_co.px += dpx * dd + 1/2 * ddpx * dd**2
+                tw_init_chrom.particle_on_co.y += dy * dd + 1/2 * ddy * dd**2
+                tw_init_chrom.particle_on_co.py += dpy * dd + 1/2 * ddpy * dd**2
+                tw_init_chrom.particle_on_co.delta += dd
 
-            twinit_aux = TwissInit(
-                alfx=alfx + dalfx_dpzeta * dd,
-                betx=betx + dbetx_dpzeta * dd,
-                alfy=alfy + dalfy_dpzeta * dd,
-                bety=bety + dbety_dpzeta * dd,
-                dx=dx + ddx * dd,
-                dpx=dpx + ddpx * dd,
-                dy=dy + ddy * dd,
-                dpy=dpy + ddpy * dd)
-            twinit_aux._complete(line, element_name=init.element_name)
-            tw_init_chrom.W_matrix = twinit_aux.W_matrix
+                twinit_aux = TwissInit(
+                    alfx=alfx + dalfx_dpzeta * dd,
+                    betx=betx + dbetx_dpzeta * dd,
+                    alfy=alfy + dalfy_dpzeta * dd,
+                    bety=bety + dbety_dpzeta * dd,
+                    dx=dx + ddx * dd,
+                    dpx=dpx + ddpx * dd,
+                    dy=dy + ddy * dd,
+                    dpy=dpy + ddpy * dd)
+                twinit_aux._complete(line, element_name=init.element_name)
+                tw_init_chrom.W_matrix = twinit_aux.W_matrix
 
-        tw_chrom_res.append(
-            _twiss_open(
-                line=line,
-                init=tw_init_chrom,
-                start=start, end=end,
-                nemitt_x=nemitt_x,
-                nemitt_y=nemitt_y,
-                r_sigma=r_sigma,
-                delta_disp=delta_disp,
-                use_full_inverse=use_full_inverse,
-                hide_thin_groups=hide_thin_groups,
-                only_markers=only_markers,
-                _continue_if_lost=False,
-                _keep_tracking_data=False,
-                _keep_initial_particles=False,
-                _initial_particles=None,
-                _ebe_monitor=None,
+            tw_chrom_res.append(
+                _twiss_open(
+                    line=line,
+                    init=tw_init_chrom,
+                    start=start, end=end,
+                    nemitt_x=nemitt_x,
+                    nemitt_y=nemitt_y,
+                    r_sigma=r_sigma,
+                    delta_disp=delta_disp,
+                    use_full_inverse=use_full_inverse,
+                    hide_thin_groups=hide_thin_groups,
+                    only_markers=only_markers,
+                    _continue_if_lost=False,
+                    _keep_tracking_data=False,
+                    _keep_initial_particles=False,
+                    _initial_particles=None,
+                    _ebe_monitor=None,
+                )
             )
-        )
 
     dmux = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
     dmuy = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
@@ -2811,7 +2814,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         else:
             algorithm = 'regen_all_drifts'
 
-    auxline = xt.Line(elements=tracker.line.element_dict.copy(),
+    auxline = xt.Line(elements=tracker.line._element_dict.copy(),
                       element_names=list(tracker.line.element_names).copy())
     if tracker.line.particle_ref is not None:
         auxline.particle_ref = tracker.line.particle_ref.copy()
@@ -2929,6 +2932,7 @@ class TwissInit:
         '''
         Convert to dictionary representation.
         '''
+
         out = self.__dict__.copy()
         out['particle_on_co'] = out['particle_on_co'].to_dict()
         return out
@@ -2965,6 +2969,8 @@ class TwissInit:
         # Need the values as numpy types, in particular arrays
         numpy_dct = {}
         for key, value in dct.items():
+            if key == 'particle_on_co':
+                continue
             if isinstance(value, int):
                 numpy_dct[key] = np.int64(value)
             elif isinstance(value, float):
@@ -3301,7 +3307,7 @@ class TwissTable(Table):
     def __init__(self, *args, **kwargs):
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
         super().__init__(*args, **kwargs)
-        self['periodic'] = False
+        self['periodic'] = kwargs.get('periodic', kwargs.get('data', {}).get('periodic', False))
 
     _error_on_row_not_found = True
 
@@ -3319,6 +3325,59 @@ class TwissTable(Table):
         if index is not None:
             df.set_index(index, inplace=True)
         return df
+
+    def _extra_metadata(self):
+        extra = super()._extra_metadata()
+        extra = dict(extra) if extra else {}
+        extra['__class__'] = 'TwissTable'
+        extra['xtrack_version'] = xt.__version__
+        return extra
+
+    @classmethod
+    def _strip_extra_metadata(cls, payload):
+        payload.pop('__class__', None)
+        payload.pop('xtrack_version', None)
+        super()._strip_extra_metadata(payload)
+
+    def to_hdf5(self, file, *, include=None, exclude=None,
+                missing='error', include_meta=True, group='twiss_table'):
+        super().to_hdf5(
+            file,
+            include=include,
+            exclude=exclude,
+            missing=missing,
+            include_meta=include_meta,
+            group=group,
+        )
+
+    @classmethod
+    def from_hdf5(cls, file, *, group='twiss_table'):
+        return super().from_hdf5(
+            file,
+            group=group,
+        )
+
+    def to_tfs(self, file, *, include=None, exclude=None,
+               missing='error', include_meta=True,
+               default_column_width=None, float_precision=8,
+               numeric_column_width=16, column_formats=None,
+               column_widths=None):
+        super().to_tfs(
+            file,
+            include=include,
+            exclude=exclude,
+            missing=missing,
+            include_meta=include_meta,
+            default_column_width=default_column_width,
+            float_precision=float_precision,
+            numeric_column_width=numeric_column_width,
+            column_formats=column_formats,
+            column_widths=column_widths,
+        )
+
+    @classmethod
+    def from_tfs(cls, file):
+        return super().from_tfs(file)
 
     def get_twiss_init(self, at_element):
 
@@ -3963,7 +4022,8 @@ class TwissTable(Table):
     def add_strengths(self, line=None):
         if line is None and hasattr(self,"_action"):
             line = self._action.line
-        _add_strengths_to_twiss_res(self, line)
+        if line is not None:
+            _add_strengths_to_twiss_res(self, line)
         return self
 
     @classmethod
@@ -4095,9 +4155,6 @@ class TwissTable(Table):
             yl=""
         if yr is None:
             yr=""
-
-        if not hasattr(self,"_action"):
-            lattice=False
 
         if lattice and 'k2l' not in self.keys():
             self.add_strengths()

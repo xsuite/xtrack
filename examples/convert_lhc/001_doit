@@ -1,2 +1,0 @@
-python 000_convert.py >lhc.py
-ruff format lhc.py --line-length 300

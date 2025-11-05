@@ -14,26 +14,26 @@ tw0 = line.twiss()
 tw0.qx, tw0.qy
 
 # A few checks on the imported model
-line.vars['k0bi1bsw1l11']._info() # Check that the knob controls k0 and the edges
+line.ref['k0bi1bsw1l11']._info() # Check that the knob controls k0 and the edges
 
-line.element_refs['bi1.bsw1l1.1'].h._info() # Check no reference system curvature
+line.ref['bi1.bsw1l1.1'].h._info() # Check no reference system curvature
 
 # Build chicane knob (k0)
-line.vars['bsw_k0l'] = 0
-line.vars['k0bi1bsw1l11'] = (line.vars['bsw_k0l'] / line['bi1.bsw1l1.1'].length)
-line.vars['k0bi1bsw1l12'] = (-line.vars['bsw_k0l'] / line['bi1.bsw1l1.2'].length)
-line.vars['k0bi1bsw1l13'] = (-line.vars['bsw_k0l'] / line['bi1.bsw1l1.3'].length)
-line.vars['k0bi1bsw1l14'] = (line.vars['bsw_k0l'] / line['bi1.bsw1l1.4'].length)
+line['bsw_k0l'] = 0
+line['k0bi1bsw1l11'] = (line.ref['bsw_k0l'] / line['bi1.bsw1l1.1'].length)
+line['k0bi1bsw1l12'] = (-line.ref['bsw_k0l'] / line['bi1.bsw1l1.2'].length)
+line['k0bi1bsw1l13'] = (-line.ref['bsw_k0l'] / line['bi1.bsw1l1.3'].length)
+line['k0bi1bsw1l14'] = (line.ref['bsw_k0l'] / line['bi1.bsw1l1.4'].length)
 
 # Inspect:
-line.vars['k0bi1bsw1l11']._info()
+line.ref['k0bi1bsw1l11']._info()
 
 # Build knob to model eddy currents (k2)
-line.vars['bsw_k2l'] = 0
-line.element_refs['bi1.bsw1l1.1'].knl[2] = line.vars['bsw_k2l']
-line.element_refs['bi1.bsw1l1.2'].knl[2] = -line.vars['bsw_k2l']
-line.element_refs['bi1.bsw1l1.3'].knl[2] = -line.vars['bsw_k2l']
-line.element_refs['bi1.bsw1l1.4'].knl[2] = line.vars['bsw_k2l']
+line['bsw_k2l'] = 0
+line['bi1.bsw1l1.1'].knl[2] = 'bsw_k2l'
+line['bi1.bsw1l1.2'].knl[2] = '-bsw_k2l'
+line['bi1.bsw1l1.3'].knl[2] = '-bsw_k2l'
+line['bi1.bsw1l1.4'].knl[2] = 'bsw_k2l'
 
 # Save to file
 line.to_json('psb_01_with_chicane.json')
@@ -64,7 +64,7 @@ sp3 = plt.subplot(3,1,3, sharex=sp1)
 colors = plt.cm.rainbow(np.linspace(0,1,len(bsw_k0l_values)))
 
 for ii, vv in enumerate(bsw_k0l_values[::-1]):
-    line.vars['bsw_k0l'] = vv
+    line['bsw_k0l'] = vv
     tw = line.twiss()
 
     sp1.plot(tw.s, tw.x, color=colors[ii])
@@ -77,7 +77,7 @@ sp3.set_ylabel('bety [m]')
 sp3.set_xlabel('s [m]')
 
 # Inspect eddy currents effect (at start chicane ramp)
-line.vars['bsw_k0l'] = bsw_k0l_ref * 0.95
+line['bsw_k0l'] = bsw_k0l_ref * 0.95
 
 bsw_k2l_ref = -9.7429e-2 # Maximum ramp rate
 
@@ -86,7 +86,7 @@ sp1 = plt.subplot(3,1,1)
 sp2 = plt.subplot(3,1,2, sharex=sp1)
 sp3 = plt.subplot(3,1,3, sharex=sp1)
 for ii, vv in enumerate([bsw_k2l_ref, 0]):
-    line.vars['bsw_k2l'] = vv
+    line['bsw_k2l'] = vv
     tw = line.twiss()
 
     sp1.plot(tw.s, tw.x)
@@ -99,8 +99,8 @@ sp3.set_ylabel('bety [m]')
 sp3.set_xlabel('s [m]')
 
 
-line.vars['bsw_k2l'] = bsw_k2l_ref
-line.vars['bsw_k0l'] = bsw_k0l_ref
+line['bsw_k2l'] = bsw_k2l_ref
+line['bsw_k0l'] = bsw_k0l_ref
 assert np.isclose(line['bi1.bsw1l1.1'].knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
 assert np.isclose(line['bi1.bsw1l1.2'].knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
 assert np.isclose(line['bi1.bsw1l1.3'].knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
@@ -116,7 +116,7 @@ assert np.isclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-4)
 assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.203667, rtol=1e-3)
 assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.902887, rtol=1e-3)
 
-line.vars['bsw_k2l'] = bsw_k2l_ref / 3
+line['bsw_k2l'] = bsw_k2l_ref / 3
 assert np.isclose(line['bi1.bsw1l1.1'].knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
 assert np.isclose(line['bi1.bsw1l1.2'].knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
 assert np.isclose(line['bi1.bsw1l1.3'].knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
@@ -133,8 +133,8 @@ assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.266456, rtol=1e-3)
 assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.320286, rtol=1e-3)
 
 # Switch off bsws
-line.vars['bsw_k0l'] = 0
-line.vars['bsw_k2l'] = 0
+line['bsw_k0l'] = 0
+line['bsw_k2l'] = 0
 assert np.isclose(line['bi1.bsw1l1.1'].knl[2], 0, rtol=0, atol=1e-10)
 assert np.isclose(line['bi1.bsw1l1.2'].knl[2], 0, rtol=0, atol=1e-10)
 assert np.isclose(line['bi1.bsw1l1.3'].knl[2], 0, rtol=0, atol=1e-10)

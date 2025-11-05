@@ -50,7 +50,7 @@ setup(
     ],
     extras_require={
         'tests': ['cpymad', 'nafflib', 'PyHEADTAIL', 'pytest', 'pytest-mock',
-                  'pymadng', 'requests-mock'],
+                  'pymadng', 'requests-mock', 'tfs-pandas'],
         'notebooks': ['jupyter', 'ipympl', 'xplt'],
     },
 )

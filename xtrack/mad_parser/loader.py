@@ -4,9 +4,8 @@ import numpy as np
 
 import xtrack as xt
 from xtrack import BeamElement
-from xtrack.environment import Builder
 from xtrack.mad_parser.parse import ElementType, LineType, MadxParser, VarType, MadxOutputType
-from xtrack.environment import _reverse_element
+from xtrack.environment import _reverse_element, _disable_name_clash_checks
 
 EXTRA_PARAMS = {
     "slot_id",
@@ -100,10 +99,9 @@ class MadxLoader:
         self._builtin_types = set()
         self._parameter_cache = {}
 
-        self.rbarc = True
-
         self.env = env or xt.Environment()
         self.env.default_to_zero = default_to_zero
+        self.builders = {}
 
         self._init_environment()
 
@@ -137,42 +135,50 @@ class MadxLoader:
         self._new_builtin("multipole", "Multipole", knl=6 * [0])
         self._new_builtin("solenoid", "UniformSolenoid")
         self._new_builtin("crabcavity", "CrabCavity")
+        self._new_builtin("xrotation", "XRotation")
+        self._new_builtin("yrotation", "YRotation")
+        self._new_builtin("srotation", "SRotation")
+        self._new_builtin("translation", "XYShift")
 
         for mad_apertype in _APERTURE_TYPES:
             self._new_builtin(mad_apertype, 'Marker')
 
-    def load_file(self, file, build=True) -> Optional[List[Builder]]:
+    def load_file(self, file):
         """Load a MAD-X file and generate/update the environment."""
-        parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
-        parsed_dict = parser.parse_file(file)
-        return self.load_parsed_dict(parsed_dict, build=build)
+        with _disable_name_clash_checks(self.env):
+            parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
+            parsed_dict = parser.parse_file(file)
+            return self.load_parsed_dict(parsed_dict)
 
-    def load_string(self, string, build=True) -> Optional[List[Builder]]:
+    def load_string(self, string):
         """Load a MAD-X string and generate/update the environment."""
-        parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
-        parsed_dict = parser.parse_string(string)
-        return self.load_parsed_dict(parsed_dict, build=build)
+        with _disable_name_clash_checks(self.env):
+            parser = MadxParser(vars=self.env.vars, functions=self.env.functions)
+            parsed_dict = parser.parse_string(string)
+            self.load_parsed_dict(parsed_dict)
 
-    def load_parsed_dict(self, parsed_dict: MadxOutputType, build=True) -> Optional[List[Builder]]:
-        hierarchy = self._collect_hierarchy(parsed_dict)
-        self._madx_elem_hierarchy.update(hierarchy)
+    def load_parsed_dict(self, parsed_dict: MadxOutputType):
+        with _disable_name_clash_checks(self.env):
+            hierarchy = self._collect_hierarchy(parsed_dict)
+            self._madx_elem_hierarchy.update(hierarchy)
 
-        self._parse_elements(parsed_dict["elements"])
-        builders = self._parse_lines(parsed_dict["lines"], build=build)
-        self._parse_parameters(parsed_dict["parameters"])
-
-        if not build:
-            return builders
+            self._parse_elements(parsed_dict["elements"])
+            builders = self._parse_lines(parsed_dict["lines"])
+            self._parse_parameters(parsed_dict["parameters"])
+            self.builders.update(builders)
 
     def _parse_elements(self, elements: Dict[str, ElementType]):
         for name, el_params in elements.items():
             parent = el_params.pop('parent')
             assert parent != 'sequence'
             params, extras = get_params(el_params, parent=parent)
-            self._new_element(name, parent, self.env, **params, extra=extras)
+            params = params.copy()
+            if extras:
+                params['extra'] = extras
+            self._new_element(name, parent, self.env, **params)
 
-    def _parse_lines(self, lines: Dict[str, LineType], build=True) -> List[Builder]:
-        builders = []
+    def _parse_lines(self, lines: Dict[str, LineType]):
+        builders = {}
 
         for name, line_params in lines.items():
             params = line_params.copy()
@@ -186,22 +192,24 @@ class MadxLoader:
                 elif refer == 'exit':
                     refer = 'end'
                 length = params.get('l', None)
-                builder = self.env.new_builder(name=name, refer=refer,
+                builder = self.env.new_line(name=name, refer=refer,
                                                length=length,
-                                               s_tol=1e-4) # to accommodate rbend small length changes
+                                               s_tol=1e-6,
+                                               compose=True)
                 self._parse_components(builder, params.pop('elements'))
-                builders.append(builder)
             elif line_type == 'line':
                 components = self._parse_line_components(params.pop('elements'))
-                builder = self.env.new_builder(name=name, components=components)
+                builder = self.env.new_line(name=name, components=components,
+                                            compose=True)
             else:
                 raise ValueError(
                     f'Only a MAD-X sequence or a line type can be used to build'
                     f'a line, but got: {line_type}!'
                 )
 
-            if build:
-                builder.build()
+            builders[name] = builder
+
+            self.env._last_loaded_builders = builders
 
         return builders
 
@@ -222,6 +230,7 @@ class MadxLoader:
         components = []
 
         for name, body in elements:
+
             # Parent is None if the element already exists and is referred to,
             # by name, otherwise we expect a line nested in the current one.
             parent = body.get('parent', None)
@@ -232,9 +241,9 @@ class MadxLoader:
             if parent is None and isinstance(instance, xt.Line):
                 # If it's a line, we use __mul__ and __neg__ directly
                 element = instance
+                element = repeat * element
                 if invert:
                     element = -element
-                element = repeat * element
                 components.append(element)
             elif parent == 'line':
                 # If it's a nested line, we parse it recursively
@@ -253,7 +262,7 @@ class MadxLoader:
         return components
 
     def _new_builtin(self, name, xt_type, **kwargs):
-        if name not in self.env.element_dict:
+        if name not in self.env.elements:
             self.env.new(name, xt_type, **kwargs)
         self._builtin_types.add(name)
 
@@ -267,7 +276,7 @@ class MadxLoader:
         self._parameter_cache[name].update(kwargs)
 
         aperture = self._build_aperture(name, f'{name}_aper', kwargs)
-        if not aperture and name in self.env.element_dict:
+        if not aperture and name in self.env.elements:
             aperture = self.env[name].name_associated_aperture
         if not aperture and parent:
             aperture = self.env[parent].name_associated_aperture
@@ -287,7 +296,7 @@ class MadxLoader:
             self._place_element(name, el_params, builder)
 
         if aperture:
-            builder.element_dict[name].name_associated_aperture = aperture
+            builder._element_dict[name].name_associated_aperture = aperture
 
     def _place_element(self, name, el_params, builder):
         """Place an element in the sequence.
@@ -381,26 +390,31 @@ class MadxLoader:
             kwargs['apertype'] = self._parameter_cache[name]['apertype']
         aperture = self._build_aperture(name, f'{name}_aper', kwargs, force=True)
 
+        extra = kwargs.pop('extra', None)
+
         el_params = self._convert_element_params(name, kwargs)
         builder.set(name, **el_params)
+
+        if extra:
+            if not hasattr(builder.element_dict[name], 'extra'):
+                builder.element_dict[name].extra = {}
+            for kk, vv in extra.items():
+                builder.ref[name].extra[kk] = vv
+
         builder.element_dict[name].name_associated_aperture = aperture
 
     def _convert_element_params(self, name, params):
         parent_name = self._mad_base_type(name)
 
         if parent_name in {'sbend', 'rbend'}:
-            # We need to keep the rbarc parameter from the parent element.
-            # If rbarc = True, then rbend length is the straight length.
-            # If rbarc = False, then the length is the arc length, as for sbend.
             length = params.get('length', 0)
 
             if parent_name == 'rbend':
-                rbarc = self._parameter_cache[name].get('rbarc', self.rbarc)
-                if rbarc and 'length' in params:
+                if 'length' in params:
                     params['length_straight'] = params.pop('length')
 
-            # Default MAD-X behaviour is to take k0 from h only if k0 is not
-            # given. We need to replicate this behaviour. Ideally we should
+            # Default MAD-X behaviour is to take k0 from h only if k0 is zero.
+            # We need to replicate this behaviour. Ideally we should
             # evaluate expressions here, but that's tricky.
             if self._parameter_cache[name].get('k0', 0) == 0:
                 params['k0_from_h'] = True
@@ -464,6 +478,13 @@ class MadxLoader:
         elif parent_name == 'marker':
             params.pop('isthick', None)
             params.pop('length', None)
+        elif parent_name in {'srotation', 'xrotation', 'yrotation'}:
+            if (angle := params.pop('angle', None)):
+                params['angle'] = (angle * 180) / np.pi
+        elif parent_name == 'translation':
+            if (ds := params.pop('ds', None)):
+                raise NotImplementedError('`ds` parameter not supported yet for '
+                                          '`translation` elements.')
 
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']
@@ -607,7 +628,6 @@ class MadxLoader:
 
         return hierarchy
 
-
     def _mad_base_type(self, element_name: str):
 
         if element_name in self._madx_elem_hierarchy:
@@ -642,6 +662,11 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
         raise ValueError('Something went wrong!')
 
     env = loader.env
+
+    for nn in env.lines:
+        ll = env.lines[nn]
+        if ll.mode == 'compose':
+            ll.end_compose()
 
     if reverse_lines:
         print('Reversing lines:', reverse_lines)
@@ -678,16 +703,8 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
                 cc.from_ = this_rename.get(cc.from_, cc.from_)
 
             if nn in reverse_lines:
-                length = env.lines[nn].get_length()
-                bb.components = bb.components[::-1]
-                for cc in bb.components:
-                    if cc.at is not None:
-                        if isinstance(cc.at, str) or isinstance(cc.at, float):
-                            if cc.from_ is not None:
-                                cc.at = -cc.at
-                            else:
-                                cc.at = length - cc.at
-            new_env.lines[nn].builder = bb
+                bb.mirror = True
+            new_env.lines[nn].composer = bb
 
         # Add to new environment elements that were not in any line
         elems_not_in_lines = set(env.elements.keys())

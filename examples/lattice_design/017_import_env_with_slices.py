@@ -98,62 +98,84 @@ tt2.show(cols='name element_type parent_name')
 # qq_shared_thin_exit           Marker               None
 # _end_point                                         None
 
-assert np.all(tt1.name == np.array([
-       'drift_1', 'qq1_thick_entry', 'qq1_thick..0', 'qq1_thick..1',
-       'qq1_thick_exit', 'drift_2', 'qq1_thin_entry', 'drift_qq1_thin..0',
-       'qq1_thin..0', 'drift_qq1_thin..1', 'qq1_thin..1',
-       'drift_qq1_thin..2', 'qq1_thin_exit', 'drift_3',
-       'qq_shared_thick_entry', 'qq_shared_thick..0/line1',
-       'qq_shared_thick..1/line1', 'qq_shared_thick_exit', 'drift_4',
-       'qq_shared_thin_entry', 'drift_qq_shared_thin..0/line1',
+assert np.all(tt1.name == np.array(['drift_1', 'qq1_thick_entry', 'qq1_thick..entry_map',
+       'qq1_thick..0', 'qq1_thick..1', 'qq1_thick..exit_map',
+       'qq1_thick_exit', 'drift_2', 'qq1_thin_entry',
+       'qq1_thin..entry_map', 'drift_qq1_thin..0', 'qq1_thin..0',
+       'drift_qq1_thin..1', 'qq1_thin..1', 'drift_qq1_thin..2',
+       'qq1_thin..exit_map', 'qq1_thin_exit', 'drift_3',
+       'qq_shared_thick_entry', 'qq_shared_thick..entry_map/line1',
+       'qq_shared_thick..0/line1', 'qq_shared_thick..1/line1',
+       'qq_shared_thick..exit_map/line1', 'qq_shared_thick_exit',
+       'drift_4', 'qq_shared_thin_entry',
+       'qq_shared_thin..entry_map/line1', 'drift_qq_shared_thin..0/line1',
        'qq_shared_thin..0/line1', 'drift_qq_shared_thin..1/line1',
        'qq_shared_thin..1/line1', 'drift_qq_shared_thin..2/line1',
-       'qq_shared_thin_exit', '_end_point']))
+       'qq_shared_thin..exit_map/line1', 'qq_shared_thin_exit',
+       '_end_point']))
 
-assert np.all(tt1.element_type == np.array([
-       'Drift', 'Marker', 'ThickSliceQuadrupole', 'ThickSliceQuadrupole',
-       'Marker', 'Drift', 'Marker', 'DriftSliceQuadrupole',
+assert np.all(tt1.element_type == np.array(['Drift', 'Marker', 'ThinSliceQuadrupoleEntry',
+       'ThickSliceQuadrupole', 'ThickSliceQuadrupole',
+       'ThinSliceQuadrupoleExit', 'Marker', 'Drift', 'Marker',
+       'ThinSliceQuadrupoleEntry', 'DriftSliceQuadrupole',
        'ThinSliceQuadrupole', 'DriftSliceQuadrupole',
-       'ThinSliceQuadrupole', 'DriftSliceQuadrupole', 'Marker', 'Drift',
-       'Marker', 'ThickSliceQuadrupole', 'ThickSliceQuadrupole', 'Marker',
-       'Drift', 'Marker', 'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
+       'ThinSliceQuadrupole', 'DriftSliceQuadrupole',
+       'ThinSliceQuadrupoleExit', 'Marker', 'Drift', 'Marker',
+       'ThinSliceQuadrupoleEntry', 'ThickSliceQuadrupole',
+       'ThickSliceQuadrupole', 'ThinSliceQuadrupoleExit', 'Marker',
+       'Drift', 'Marker', 'ThinSliceQuadrupoleEntry',
        'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
-       'DriftSliceQuadrupole', 'Marker', '']))
+       'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
+       'DriftSliceQuadrupole', 'ThinSliceQuadrupoleExit', 'Marker', '']))
 
-assert np.all(tt1.parent_name == np.array([
-       None, None, 'qq1_thick', 'qq1_thick', None, None, None, 'qq1_thin',
-       'qq1_thin', 'qq1_thin', 'qq1_thin', 'qq1_thin', None, None, None,
+assert np.all(tt1.parent_name == np.array([None, None, 'qq1_thick', 'qq1_thick', 'qq1_thick', 'qq1_thick',
+       None, None, None, 'qq1_thin', 'qq1_thin', 'qq1_thin', 'qq1_thin',
+       'qq1_thin', 'qq1_thin', 'qq1_thin', None, None, None,
+       'qq_shared_thick/line1', 'qq_shared_thick/line1',
        'qq_shared_thick/line1', 'qq_shared_thick/line1', None, None, None,
+       'qq_shared_thin/line1', 'qq_shared_thin/line1',
        'qq_shared_thin/line1', 'qq_shared_thin/line1',
        'qq_shared_thin/line1', 'qq_shared_thin/line1',
        'qq_shared_thin/line1', None, None]))
 
 assert np.all(tt2.name == np.array([
-       'drift_5', 'qq2_thick_entry', 'qq2_thick..0', 'qq2_thick..1',
-       'qq2_thick_exit', 'drift_6', 'qq2_thin_entry', 'drift_qq2_thin..0',
-       'qq2_thin..0', 'drift_qq2_thin..1', 'qq2_thin..1',
-       'drift_qq2_thin..2', 'qq2_thin_exit', 'drift_7',
-       'qq_shared_thick_entry', 'qq_shared_thick..0/line2',
-       'qq_shared_thick..1/line2', 'qq_shared_thick_exit', 'drift_8',
-       'qq_shared_thin_entry', 'drift_qq_shared_thin..0/line2',
+       'drift_5', 'qq2_thick_entry', 'qq2_thick..entry_map',
+       'qq2_thick..0', 'qq2_thick..1', 'qq2_thick..exit_map',
+       'qq2_thick_exit', 'drift_6', 'qq2_thin_entry',
+       'qq2_thin..entry_map', 'drift_qq2_thin..0', 'qq2_thin..0',
+       'drift_qq2_thin..1', 'qq2_thin..1', 'drift_qq2_thin..2',
+       'qq2_thin..exit_map', 'qq2_thin_exit', 'drift_7',
+       'qq_shared_thick_entry', 'qq_shared_thick..entry_map/line2',
+       'qq_shared_thick..0/line2', 'qq_shared_thick..1/line2',
+       'qq_shared_thick..exit_map/line2', 'qq_shared_thick_exit',
+       'drift_8', 'qq_shared_thin_entry',
+       'qq_shared_thin..entry_map/line2', 'drift_qq_shared_thin..0/line2',
        'qq_shared_thin..0/line2', 'drift_qq_shared_thin..1/line2',
        'qq_shared_thin..1/line2', 'drift_qq_shared_thin..2/line2',
-       'qq_shared_thin_exit', '_end_point']))
+       'qq_shared_thin..exit_map/line2', 'qq_shared_thin_exit',
+       '_end_point']))
 
-assert np.all(tt2.element_type == np.array([
-       'Drift', 'Marker', 'ThickSliceQuadrupole', 'ThickSliceQuadrupole',
-       'Marker', 'Drift', 'Marker', 'DriftSliceQuadrupole',
+assert np.all(tt2.element_type == np.array(['Drift', 'Marker', 'ThinSliceQuadrupoleEntry',
+       'ThickSliceQuadrupole', 'ThickSliceQuadrupole',
+       'ThinSliceQuadrupoleExit', 'Marker', 'Drift', 'Marker',
+       'ThinSliceQuadrupoleEntry', 'DriftSliceQuadrupole',
        'ThinSliceQuadrupole', 'DriftSliceQuadrupole',
-       'ThinSliceQuadrupole', 'DriftSliceQuadrupole', 'Marker', 'Drift',
-       'Marker', 'ThickSliceQuadrupole', 'ThickSliceQuadrupole', 'Marker',
-       'Drift', 'Marker', 'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
+       'ThinSliceQuadrupole', 'DriftSliceQuadrupole',
+       'ThinSliceQuadrupoleExit', 'Marker', 'Drift', 'Marker',
+       'ThinSliceQuadrupoleEntry', 'ThickSliceQuadrupole',
+       'ThickSliceQuadrupole', 'ThinSliceQuadrupoleExit', 'Marker',
+       'Drift', 'Marker', 'ThinSliceQuadrupoleEntry',
        'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
-       'DriftSliceQuadrupole', 'Marker', '']))
+       'DriftSliceQuadrupole', 'ThinSliceQuadrupole',
+       'DriftSliceQuadrupole', 'ThinSliceQuadrupoleExit', 'Marker', '']))
 
 assert np.all(tt2.parent_name == np.array([
-       None, None, 'qq2_thick', 'qq2_thick', None, None, None, 'qq2_thin',
-       'qq2_thin', 'qq2_thin', 'qq2_thin', 'qq2_thin', None, None, None,
+       None, None, 'qq2_thick', 'qq2_thick', 'qq2_thick', 'qq2_thick',
+       None, None, None, 'qq2_thin', 'qq2_thin', 'qq2_thin', 'qq2_thin',
+       'qq2_thin', 'qq2_thin', 'qq2_thin', None, None, None,
+       'qq_shared_thick/line2', 'qq_shared_thick/line2',
        'qq_shared_thick/line2', 'qq_shared_thick/line2', None, None, None,
+       'qq_shared_thin/line2', 'qq_shared_thin/line2',
        'qq_shared_thin/line2', 'qq_shared_thin/line2',
        'qq_shared_thin/line2', 'qq_shared_thin/line2',
        'qq_shared_thin/line2', None, None]))

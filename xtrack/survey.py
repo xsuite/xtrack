@@ -9,7 +9,7 @@
 
 import numpy as np
 
-from xdeps import Table
+from .table import Table
 
 # Required functions
 # ==================================================
@@ -313,7 +313,7 @@ def survey_from_line(
         element0 = line.element_names.index(element0)
 
     V, W = compute_survey(
-        elements        = line.elements,
+        elements        = line._elements,
         X0              = X0,
         Y0              = Y0,
         Z0              = Z0,
@@ -526,4 +526,3 @@ def _compute_survey_quantities_from_v_w(V, W):
         'p0': p0,
         'W': W
     }
-

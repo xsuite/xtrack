@@ -282,7 +282,7 @@ def test_slicing_strategy_matching():
     assert line.element_names == expected_names
 
     # Check types:
-    for name, element in line.element_dict.items():
+    for name, element in line.env.elements.items():
         if name == 'keep_this':
             assert isinstance(element, xt.Quadrupole)
         elif name == 'keep_drifts':
@@ -460,7 +460,7 @@ def test_slicing_xdeps_consistency():
 
     for ii in range(num_elements):
         line.vars[f'k{ii}'] = 1
-        line.element_refs[f'bend{ii}'].k0 = line.vars[f'k{ii}']
+        line[f'bend{ii}'].k0 = line.vars[f'k{ii}']
 
     sgy = xt.slicing.Strategy(
         element_type=xt.Bend,

@@ -20,14 +20,22 @@ XTRACK_DEFAULT_WEIGHTS = {
     'ptau': 100,
     'alfx': 10.,
     'alfy': 10.,
+    'alfa11_ng': 10.,
+    'alfa22_ng': 10.,
     'mux': 10.,
     'muy': 10.,
+    'mu1_ng': 10.,
+    'mu2_ng': 10.,
     'qx': 10.,
     'qy': 10.,
     'dx' : 10.,
     'dpx': 100.,
+    'dx_ng' : 10.,
+    'dpx_ng': 100.,
     'dy' : 10.,
     'dpy': 100.,
+    'dy_ng' : 10.,
+    'dpy_ng': 100.,
 }
 
 ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
@@ -44,7 +52,9 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta',
                         'spin_x', 'spin_y', 'spin_z',
                         'c_minus_re_0', 'c_minus_im_0',
-                        'c_minus_re', 'c_minus_im']
+                        'c_minus_re', 'c_minus_im',
+                        'beta11_ng', 'beta22_ng', 'alfa11_ng', 'alfa22_ng',
+                        'dx_ng', 'dpx_ng']
 
 
 # Alternative transitions functions
@@ -512,7 +522,7 @@ class TargetRelPhaseAdvance(Target):
 
         Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
-        assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
+        assert tar in ['mux', 'muy', 'mu1_ng', 'mu2_ng'], 'Only mux and muy are supported'
         self.var = tar
         if end is None:
             end = '__ele_stop__'
@@ -810,7 +820,7 @@ class OptimizeLine(xd.Optimize):
                     restore_if_fail=True, verbose=False,
                     n_steps_max=20, default_tol=None,
                     solver=None, check_limits=True,
-                    action_twiss=None,
+                    action_twiss=None, action_twiss_ng=None,
                     name="",
                     **kwargs):
 
@@ -834,13 +844,22 @@ class OptimizeLine(xd.Optimize):
 
             # Handle action
             if tt.action is None:
-                if action_twiss is None:
-                    action_twiss = ActionTwiss(
-                        line, allow_twiss_failure=allow_twiss_failure,
-                        compensate_radiation_energy_loss=compensate_radiation_energy_loss,
-                        **kwargs)
-                    action_twiss.prepare()
-                tt.action = action_twiss
+                if (isinstance(tt.tar, tuple) and tt.tar[0].endswith('_ng')) or (
+                    isinstance(tt, TargetRelPhaseAdvance) and tt.var.endswith('_ng')):
+                    if action_twiss_ng is None:
+                        from .madng_interface import ActionTwissMadng
+                        action_twiss_ng = ActionTwissMadng(
+                                line, {}, **kwargs)
+                        action_twiss_ng.prepare()
+                    tt.action = action_twiss_ng
+                else:
+                    if action_twiss is None:
+                        action_twiss = ActionTwiss(
+                            line, allow_twiss_failure=allow_twiss_failure,
+                            compensate_radiation_energy_loss=compensate_radiation_energy_loss,
+                            **kwargs)
+                        action_twiss.prepare()
+                    tt.action = action_twiss
 
             # Handle at
             if isinstance(tt.tar, tuple):

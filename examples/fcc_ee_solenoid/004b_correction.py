@@ -10,9 +10,9 @@ fname = 'fccee_t'; pc_gev = 182.5
 
 line = xt.load(fname + '_with_sol.json')
 
-line.vars['on_sol_ip.1'] = 0
+line['on_sol_ip.1'] = 0
 tw_sol_off = line.twiss(method='4d')
-line.vars['on_sol_ip.1'] = 1
+line['on_sol_ip.1'] = 1
 tw_sol_on = line.twiss(method='4d')
 tw_local = line.twiss(start='ip.7', end='ip.2', init_at='ip.1',
                       init=tw_sol_off)
@@ -180,8 +180,8 @@ Bz = tt.ks * brho
 line_rad = line.copy()
 line_rad.build_tracker()
 line_rad.configure_radiation(model='mean')
-line_rad.vars['voltca1'] = line.vv['voltca1_ref']
-line_rad.vars['voltca2'] = line.vv['voltca2_ref']
+line_rad['voltca1'] = line['voltca1_ref']
+line_rad['voltca2'] = line['voltca2_ref']
 line_rad.compensate_radiation_energy_loss()
 tw_sol_on_corr_rad = line_rad.twiss()
 mask_len = tt.length > 0
