@@ -1061,6 +1061,34 @@ class OptimizeLine(xd.Optimize):
     def plot(self, *args, **kwargs):
         return self.action_twiss.run().plot(*args, **kwargs)
 
+    def step(
+        self,
+        n_steps=1,
+        take_best=True,
+        enable_target=None,
+        enable_vary=None,
+        enable_vary_name=None,
+        disable_target=None,
+        disable_vary=None,
+        disable_vary_name=None,
+        rcond=None,
+        sing_val_cutoff=None,
+        verbose=None,
+        broyden=False,
+        cleanup_madng_tpsa=False,
+    ):
+        super().step(n_steps, take_best, enable_target, enable_vary, enable_vary_name, disable_target,
+                     disable_vary, disable_vary_name, rcond, sing_val_cutoff, verbose, broyden)
+
+        if cleanup_madng_tpsa and self._err.use_tpsa:
+            self.actions[0].cleanup()
+
+    def solve(self, n_steps=None, verbose=None, take_best=True, rcond=None, sing_val_cutoff=None, broyden=False, cleanup_madng_tpsa=True):
+        super().solve(n_steps, verbose, take_best, rcond, sing_val_cutoff, broyden)
+
+        if cleanup_madng_tpsa and self._err.use_tpsa:
+            self.actions[0].cleanup()
+
 def _flatten_vary(vary):
     vary_flatten = []
     for vv in vary:

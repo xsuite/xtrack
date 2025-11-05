@@ -1,11 +1,10 @@
 import numpy as np
 
-from tpsa_util import TPSA
+from .tpsa import TPSA
 from .match import Action
 import os
 import uuid
 
-from .mad_writer import mad_str_or_value
 import xtrack as xt
 
 NG_XS_MAP = {
@@ -162,7 +161,7 @@ def _tw_ng(line, rdts=(), normal_form=True,
                 'wx', 'wy', 'phix', 'phiy', 'dmu1', 'dmu2',
                 'f1001', 'f1010', 'r11', 'r12', 'r21', 'r22',
         ]
-        full_twiss_str = f"mapdef={mapdef_twiss}, implicit=true, nslice={nslice}, misalgn=true, coupling=true, chrom=true"
+        full_twiss_str = f"implicit=true, nslice={nslice}, misalgn=true, coupling=true, chrom=true"
         tw_columns += extended_tw_columns
 
     columns = tw_columns + list(rdts)
@@ -202,8 +201,13 @@ def _tw_ng(line, rdts=(), normal_form=True,
         xs_tw_kwargs = {
             NG_XS_MAP.get(k, k): v for k, v in tw_kwargs.items()
         }
-        tw = line.twiss(method='4d', reverse=False, **xs_tw_kwargs)
-    else:
+        try:
+            tw = line.twiss(method='4d', reverse=False, **xs_tw_kwargs)
+        except Exception as e:
+            print(f"Error occurred while getting twiss: {e}\nContinuing without Xsuite Twiss")
+            xsuite_tw = False
+
+    if not xsuite_tw:
         # Handle wrap-around range
         if i_start > i_end:
             name_co = np.array(names[i_start:] + names[:i_end + 1] + ('_end_point',))
@@ -512,6 +516,9 @@ class ActionTwissMadngTPSA(Action):
         self._already_prepared = True
 
     def run(self):
+        if self._already_prepared is False:
+            self.prepare()
+
         start = self.tw_kwargs.get('start', None)
         end = self.tw_kwargs.get('end', None)
 
@@ -531,7 +538,6 @@ class ActionTwissMadngTPSA(Action):
         res = xt.TwissTable({"name": np.array(self.target_locations)})
 
         param_matrix = np.zeros((6, len(self.target_locations)), dtype=float)
-
 
         for i, tar_loc in enumerate(self.target_locations):
             loc_map_str = f"local a_re_exit = {self.mng._sequence_name}.trk['{tar_loc}'].__map\n"
@@ -567,6 +573,14 @@ class ActionTwissMadngTPSA(Action):
 
         # Track and create twiss table
         return res
+
+    def cleanup(self):
+        # Need to reconvert TPSAs to normal values
+        mng_str = ''
+        for var_name in self.vary_names:
+            mng_str += f"MADX['{var_name}'] = MADX['{var_name}']:get0()\n"
+        self.mng.send(mng_str)
+        self._already_prepared = False
 
 def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
                   **kwargs):
