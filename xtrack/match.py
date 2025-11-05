@@ -812,6 +812,61 @@ class ActionTwiss(xd.Action):
         out.line = self.line
         return out
 
+class MeritFunctionLine(xd.MeritFunctionForMatch):
+    def __init__(
+            self,
+            merit_function_match,
+            use_tpsa=False,
+    ):
+
+        self.vary = merit_function_match.vary
+        self.targets = merit_function_match.targets
+        self.actions = merit_function_match.actions
+        self.return_scalar = merit_function_match.return_scalar
+        self.call_counter = merit_function_match.call_counter
+        self.verbose = merit_function_match.verbose
+        self.tw_kwargs = merit_function_match.tw_kwargs
+        self.steps_for_jacobian = merit_function_match.steps_for_jacobian
+        self.found_point_within_tol = merit_function_match.found_point_within_tol
+        self.zero_if_met = merit_function_match.zero_if_met
+        self.show_call_counter = merit_function_match.show_call_counter
+        self.check_limits = merit_function_match.check_limits
+        self.use_tpsa = use_tpsa
+
+    def get_jacobian(self, x, f0=None):
+        if self.use_tpsa:
+            from .madng_interface import ActionTwissMadngTPSA
+            assert isinstance(self.actions[0], ActionTwissMadngTPSA)
+            last_tpsa_dict = self.actions[0].tpsa_dict
+            jacobian = np.zeros((len(self.targets), len(self.vary)))
+
+            for i, tar in enumerate(self.targets):
+                loc = ''
+                if isinstance(tar.tar, tuple):
+                    param = tar.tar[0]
+                    loc = tar.tar[1]
+                else:
+                    param = tar.tar
+                tpsa = last_tpsa_dict[loc]
+
+                for j, vv in enumerate(self.vary):
+                    if param[0] == 'd':
+                        plane = param[1:3] if param[1] == 'p' else param[1]
+                        deriv = tpsa.calc_dispersion_deriv(plane, j + tpsa.num_variables)
+                    elif param[:3] == 'bet':
+                        plane = 'x' if '11' in param or 'x' in param else 'y'
+                        deriv = tpsa.calc_beta_deriv(plane, j + tpsa.num_variables)
+                    elif param[:3] == 'alf':
+                        plane = 'x' if '11' in param or 'x' in param else 'y'
+                        deriv = tpsa.calc_alpha_deriv(plane, j + tpsa.num_variables)
+
+                    jacobian[i, j] = deriv
+
+            return jacobian
+
+        else:
+            return super().get_jacobian(x, f0=f0)
+
 class OptimizeLine(xd.Optimize):
 
     def __init__(self, line, vary, targets, assert_within_tol=True,
@@ -821,7 +876,7 @@ class OptimizeLine(xd.Optimize):
                     n_steps_max=20, default_tol=None,
                     solver=None, check_limits=True,
                     action_twiss=None, action_twiss_ng=None,
-                    name="",
+                    use_tpsa=False, name="",
                     **kwargs):
 
         if hasattr(targets, 'values'): # dict like
@@ -847,10 +902,22 @@ class OptimizeLine(xd.Optimize):
                 if (isinstance(tt.tar, tuple) and tt.tar[0].endswith('_ng')) or (
                     isinstance(tt, TargetRelPhaseAdvance) and tt.var.endswith('_ng')):
                     if action_twiss_ng is None:
-                        from .madng_interface import ActionTwissMadng
-                        action_twiss_ng = ActionTwissMadng(
-                                line, {}, **kwargs)
-                        action_twiss_ng.prepare()
+                        if use_tpsa:
+                            # do tpsa
+                            tar_locations = {t.tar[1] for t in targets_flatten
+                                             if isinstance(t.tar, tuple)}
+                            from .madng_interface import ActionTwissMadngTPSA
+
+                            action_twiss_ng = ActionTwissMadngTPSA(
+                                    line, [v.name for v in _flatten_vary(vary)], tar_locations, {}, **kwargs)
+                            # prepare
+
+                            action_twiss_ng.prepare()
+                        else:
+                            from .madng_interface import ActionTwissMadng
+                            action_twiss_ng = ActionTwissMadng(
+                                    line, {}, **kwargs)
+                            action_twiss_ng.prepare()
                     tt.action = action_twiss_ng
                 else:
                     if action_twiss is None:
@@ -931,9 +998,12 @@ class OptimizeLine(xd.Optimize):
                         restore_if_fail=restore_if_fail,
                         check_limits=check_limits,
                         name=name)
+
+        _err = MeritFunctionLine(self._err, use_tpsa=use_tpsa)
         self.line = line
         self.action_twiss = action_twiss
         self.default_tol = default_tol
+        self._err = _err
 
     def clone(self, add_targets=None, add_vary=None,
               remove_targets=None, remove_vary=None,
