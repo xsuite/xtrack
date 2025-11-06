@@ -346,8 +346,6 @@ class MadxLoader:
             # is retained: we do not simulate this behaviour here.
             builder.new(name, parent, force=True, **el_params)
 
-        return length
-
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
 
