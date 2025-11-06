@@ -117,13 +117,13 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
     #endif
 
     // Retrieve misalignment parameters
-    double const shift_x = GET_PARAM(el, _shift_x);
-    double const shift_y = GET_PARAM(el, _shift_y);
-    double const shift_s = GET_PARAM(el, _shift_s);
-    double const rot_x_rad = GET_PARAM(el, _rot_x_rad);
-    double const rot_y_rad = GET_PARAM(el, _rot_y_rad);
-    double const rot_s_rad = GET_PARAM(el, _rot_s_rad);
-    double const rot_s_rad_no_frame = GET_PARAM(el, _rot_s_rad_no_frame);
+    double const shift_x = GET_PARAM(el, shift_x);
+    double const shift_y = GET_PARAM(el, shift_y);
+    double const shift_s = GET_PARAM(el, shift_s);
+    double const rot_x_rad = GET_PARAM(el, rot_x_rad);
+    double const rot_y_rad = GET_PARAM(el, rot_y_rad);
+    double const rot_s_rad = GET_PARAM(el, rot_s_rad);
+    double const rot_s_rad_no_frame = GET_PARAM(el, rot_s_rad_no_frame);
     double anchor = GET_PARAM(el, rot_shift_anchor);
 
     #ifdef THIN_SLICE_OF_CURVED_ELEMENT
@@ -172,7 +172,22 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_transformations)(
     #ifndef ALLOW_ROT_AND_SHIFT
         CONCAT(ELEMENT_NAME, _track_local_particle)(el, part0);
     #else
-        const int64_t rot_shift_active = GET_PARAM(el, rot_shift_active);
+        double const shift_x = GET_PARAM(el, shift_x);
+        double const shift_y = GET_PARAM(el, shift_y);
+        double const shift_s = GET_PARAM(el, shift_s);
+        double const rot_x_rad = GET_PARAM(el, rot_x_rad);
+        double const rot_y_rad = GET_PARAM(el, rot_y_rad);
+        double const rot_s_rad = GET_PARAM(el, rot_s_rad);
+        double const rot_s_rad_no_frame = GET_PARAM(el, rot_s_rad_no_frame);
+
+        const int64_t rot_shift_active = \
+            NONZERO(shift_x) ||
+            NONZERO(shift_y) ||
+            NONZERO(shift_s) ||
+            NONZERO(rot_x_rad) ||
+            NONZERO(rot_y_rad) ||
+            NONZERO(rot_s_rad) ||
+            NONZERO(rot_s_rad_no_frame);
 
         if (rot_shift_active) {
             CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(el, part0);
