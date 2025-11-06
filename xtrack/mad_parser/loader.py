@@ -20,7 +20,7 @@ EXTRA_PARAMS = {
 
 TRANSLATE_PARAMS = {
     "l": "length",
-    "lrad": "length",
+    "lrad": "lrad",
     "tilt": "rot_s_rad",
     "from": "from_",
     "e1": "edge_entry_angle",
@@ -323,16 +323,7 @@ class MadxLoader:
 
         if (extras := el_params.pop('extra', None)):
             _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
-        # element = self.env[name]
 
-        # length = self._element_length(name, el_params)
-        # is_not_thick = isinstance(element, BeamElement) and not element.isthick
-        # if is_not_thick and length and not isinstance(element, xt.Marker):
-        #     # Handle the thin elements that have a length in MAD-X: sandwich
-        #     line = self._make_thick_sandwich(name, length)
-        #     builder.place(line, **el_params)
-        # else:
-        #     builder.place(name, **el_params)
         builder.place(name, **el_params)
 
     def _clone_element(self, name, parent, builder, el_params):
@@ -340,23 +331,6 @@ class MadxLoader:
 
         Here `parent` is not None.
         """
-        # length = self._element_length(name, el_params)
-        # element = self.env[parent]
-        # is_not_thick = isinstance(element, BeamElement) and not element.isthick
-
-        # if is_not_thick and length and not isinstance(element, xt.Marker):
-        #     # Handle the thin elements that have a length in MAD-X: sandwich
-        #     at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
-        #     if name not in self.env.element_dict:
-        #         make_drifts = True
-        #         self.env.new(name, parent, **el_params)
-        #     else:
-        #         make_drifts = False
-        #         _warn(f'Element `{name}` already exists, this definition '
-        #               f'will be ignored (for compatibility with MAD-X)')
-        #     name = self._make_thick_sandwich(name, length, make_drifts)
-        #     builder.place(name, at=at, from_=from_)
-        # elif name == parent:
         if name == parent:
             # This happens when the element is cloned with the same name, which
             # is allowed inside MAD-X sequences, e.g.: `el: el, at = 42;`.
@@ -372,25 +346,7 @@ class MadxLoader:
             # is retained: we do not simulate this behaviour here.
             builder.new(name, parent, force=True, **el_params)
 
-    def _element_length(self, name, el_params):
-        """Given the definition and params of the element, return its length."""
-        length = el_params.get('length', self._parameter_cache[name].get('length', 0))
-        THIN_ELEMENTS = {'vkicker', 'hkicker', 'kicker', 'tkicker', 'multipole'}
-        if self._mad_base_type(name) in THIN_ELEMENTS:
-            # Workaround for the elements that are thin despite having a
-            # ``length`` parameter.
-            length = 0
-
         return length
-
-    # def _make_thick_sandwich(self, name, length, make_drifts=True):
-    #     """Make a sandwich of two drifts around the element."""
-    #     drift_name = f'{name}_drift'
-    #     if make_drifts:
-    #         self.env.new(drift_name + '_0', 'Drift', length=length / 2)
-    #         self.env.new(drift_name + '_1', 'Drift', length=length / 2)
-    #     line = self.env.new_line([drift_name + '_0', name, drift_name + '_1'])
-    #     return line
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
@@ -414,6 +370,12 @@ class MadxLoader:
 
     def _convert_element_params(self, name, params):
         parent_name = self._mad_base_type(name)
+
+        if parent_name in {'multipole', 'hkicker', 'vkicker', 'kicker', 'tkicker'}:
+            if 'length' not in params and 'lrad' in 'params':
+                params['length'] = params.pop('lrad', None)
+        else:
+            params.pop('lrad', None)
 
         if parent_name in {'sbend', 'rbend'}:
             length = params.get('length', 0)
@@ -458,8 +420,6 @@ class MadxLoader:
                 params['knl'] = knl
             if (ksl := params.pop('ksl', None)):
                 params['ksl'] = ksl
-            if params.pop('lrad', None):
-                _warn(f'Multipole `{name}` was specified with a length, ignoring!')
             for kk in list(params.keys()):
                 if kk.startswith('k') and kk.endswith('l'):
                     if kk == 'ksl' or kk == 'knl':
