@@ -124,10 +124,13 @@ void track_misalignment_entry_curved(
     double anchor, // anchor of the misalignment as offset in m from entry
     double length,  // length of the misaligned element
     double angle,  // angle by which the element bends the reference frame
+    double h,  // curvature, only used when length == 0
     double psi_with_frame,  // psi_with_frame of the element, positive s to x
     int8_t backtrack
 ) {
-    if (angle == 0.0) {
+    // Handle as a straight case if a thick element has no bending.
+    // For a thin element, we still perform the curved calculation if h is given.
+    if (angle == 0.0 && (length != 0.0 || h == 0.0)) {
         track_misalignment_entry_straight(part0, dx, dy, ds, theta, phi,
             psi_no_frame, anchor, length, psi_with_frame, backtrack);
         return;
@@ -172,12 +175,11 @@ void track_misalignment_entry_curved(
 
     // Compute matrix that takes us from the reference point of the misalignment
     // to the entry of the element
-    double anchor_frac = length == 0.0 ? 0 : anchor / length;
-    const double part_angle = angle * anchor_frac;
-    const double rho = length / angle;
-    const double delta_x_first_part = rho * (cos(part_angle) - 1) * cos(psi_with_frame);
-    const double delta_y_first_part = rho * (cos(part_angle) - 1) * sin(psi_with_frame);
-    const double delta_s_first_part = rho * sin(part_angle);
+    if (length != 0.0) h = angle / length;
+    const double part_angle = anchor * h;
+    const double delta_x_first_part = (cos(part_angle) - 1) * cos(psi_with_frame) / h;
+    const double delta_y_first_part = (cos(part_angle) - 1) * sin(psi_with_frame) / h;
+    const double delta_s_first_part = sin(part_angle) / h;
 
     const double matrix_first_part[4][4] = {
             {
@@ -250,10 +252,13 @@ void track_misalignment_exit_curved(
     double anchor, // anchor of the misalignment as a fraction of the length
     double length,  // length of the misaligned element
     double angle,  // angle by which the element bends the reference frame
+    double h,  // curvature, only used when length == 0
     double psi_with_frame,  // psi_with_frame of the element, positive s to x
     int8_t backtrack  // whether to backtrack the particle
 ) {
-    if (angle == 0.0) {
+    // Handle as a straight case if a thick element has no bending.
+    // For a thin element, we still perform the curved calculation if h is given.
+    if (angle == 0.0 && (length != 0.0 || h == 0.0)) {
         track_misalignment_exit_straight(
             part0, dx, dy, ds, theta, phi, psi_no_frame, anchor, length,
             psi_with_frame, backtrack);
@@ -304,17 +309,15 @@ void track_misalignment_exit_curved(
 
     // Compute the inverse of the matrix that takes us from the point of the
     // misalignment to the exit of the element.
-    double anchor_frac = length == 0.0 ? 0.0 : anchor / length;
-    const double anchor_compl = 1 - anchor_frac;
-    const double part_angle = angle * anchor_compl;
-    const double rho = length / angle;
+    if (length != 0.0) h = angle / length;
+    const double part_angle = angle - h * anchor;
 
     const double s_part_angle = sin(part_angle), c_part_angle = cos(part_angle);
     const double s_tilt = sin(psi_with_frame), c_tilt = cos(psi_with_frame);
 
-    const double delta_x_second_part = rho * (c_part_angle - 1) * c_tilt;
-    const double delta_y_second_part = rho * (c_part_angle - 1) * s_tilt;
-    const double delta_s_second_part = rho * s_part_angle;
+    const double delta_x_second_part = (c_part_angle - 1) * c_tilt / h;
+    const double delta_y_second_part = (c_part_angle - 1) * s_tilt / h;
+    const double delta_s_second_part = s_part_angle / h;
 
     const double matrix_second_part[4][4] = {
         {

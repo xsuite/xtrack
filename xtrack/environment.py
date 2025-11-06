@@ -371,9 +371,8 @@ class Environment:
 
 
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
-                 length=None, mirror=False, s_tol=1e-6, compose=False):
-
-        '''
+                 length=None, mirror=False, s_tol=1e-6, compose=False) -> xt.Line:
+        """
         Create a new line.
 
         Parameters
@@ -412,7 +411,7 @@ class Environment:
                 env.new('mq1_clone', 'mq1', k1='2a'),   # Clone 'mq1' with a different k1
                 env.place('mq2', at=20.0, from='mymark'),  # Place 'mq2' at s=20
                 ])
-        '''
+        """
 
         out = xt.Line(env=self, compose=True, length=length, refer=refer,
                       s_tol=s_tol, mirror=mirror)

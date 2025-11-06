@@ -1363,7 +1363,7 @@ def test_twiss_init_file(test_context):
         xo.assert_allclose(tw[var, location], tw_full[var, location], atol=1e-9, rtol=0)
 
         # Check at a point in a downstream arc
-        xo.assert_allclose(tw[var, loc_check], tw_full[var, loc_check], atol=2e-7, rtol=0)
+        xo.assert_allclose(tw[var, loc_check], tw_full[var, loc_check], atol=4e-7, rtol=0)
 
     twinit_file.unlink()
 

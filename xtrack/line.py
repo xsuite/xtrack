@@ -4878,8 +4878,7 @@ class Line:
 
                 '_own_length': 'length',
 
-                '_own_sin_rot_s': '_sin_rot_s',
-                '_own_cos_rot_s': '_cos_rot_s',
+                '_own_rot_s_rad': '_rot_s_rad',
                 '_own_shift_x': '_shift_x',
                 '_own_shift_y': '_shift_y',
                 '_own_shift_s': '_shift_s',
@@ -4933,8 +4932,7 @@ class Line:
                 '_own_ref_rot_cos_z':       'cos_z',
 
                 '_parent_length': (('_parent', 'length'), None),
-                '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
-                '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
+                '_parent_rot_s_rad': (('_parent', '_rot_s_rad'), None),
                 '_parent_shift_x': (('_parent', '_shift_x'), None),
                 '_parent_shift_y': (('_parent', '_shift_y'), None),
                 '_parent_shift_s': (('_parent', '_shift_s'), None),
@@ -4994,7 +4992,9 @@ class Line:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
                 '_angle_force_body': _angle_force_body_from_attr,
                 'angle_rad': _angle_rbend_correction_from_attr,
-                'rot_s_rad': _rot_s_from_attr,
+                'rot_s_rad': lambda attr:
+                    attr['_own_rot_s_rad'] + attr['_parent_rot_s_rad']
+                    * attr._rot_and_shift_from_parent,
                 'shift_x': lambda attr:
                     attr['_own_shift_x'] + attr['_parent_shift_x']
                     * attr._rot_and_shift_from_parent,
@@ -5920,30 +5920,6 @@ def _angle_rbend_correction_from_attr(attr):
 
     return angle
 
-def _rot_s_from_attr(attr):
-
-    own_sin_rot_s = attr['_own_sin_rot_s'].copy()
-    own_cos_rot_s = attr['_own_cos_rot_s'].copy()
-    parent_sin_rot_s = attr['_parent_sin_rot_s'].copy()
-    parent_cos_rot_s = attr['_parent_cos_rot_s'].copy()
-
-    has_own_rot = (own_cos_rot_s !=0) | (own_sin_rot_s != 0)
-    mask_own_rot_inactive = own_sin_rot_s < -2.
-    own_cos_rot_s[mask_own_rot_inactive] = 1.
-    own_sin_rot_s[mask_own_rot_inactive] = 0.
-
-    has_parent_rot = (parent_cos_rot_s !=0) | (parent_sin_rot_s != 0)
-    mask_parent_rot_inactive = parent_sin_rot_s < -2.
-    parent_cos_rot_s[mask_parent_rot_inactive] = 1.
-    parent_sin_rot_s[mask_parent_rot_inactive] = 0.
-
-    rot_s_rad = 0. * own_sin_rot_s
-    rot_s_rad[has_own_rot] = np.arctan2(own_sin_rot_s[has_own_rot],
-                                        own_cos_rot_s[has_own_rot])
-    rot_s_rad[has_parent_rot] = np.arctan2(parent_sin_rot_s[has_parent_rot],
-        parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
-
-    return rot_s_rad
 
 class LineParticleRef:
 

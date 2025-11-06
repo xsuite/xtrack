@@ -10,6 +10,7 @@ COMMON_SLICE_XO_FIELDS = {
     'radiation_flag': xo.Field(xo.Int64, default=ID_RADIATION_FROM_PARENT),
     'delta_taper': xo.Float64,
     'weight': xo.Float64,
+    'slice_offset': xo.Float64,
 }
 
 class _SliceBase:
