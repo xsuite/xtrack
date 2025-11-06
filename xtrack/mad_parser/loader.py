@@ -370,9 +370,11 @@ class MadxLoader:
         parent_name = self._mad_base_type(name)
 
         if parent_name in {'multipole', 'hkicker', 'vkicker', 'kicker', 'tkicker'}:
+            # Elements using 'lrad'
             if 'length' not in params and 'lrad' in 'params':
                 params['length'] = params.pop('lrad', None)
         else:
+            # Elements not using 'lrad'
             params.pop('lrad', None)
 
         if parent_name in {'sbend', 'rbend'}:
