@@ -171,7 +171,6 @@ def _tw_ng(line, rdts=(), normal_form=True,
     if len(rdts) > 0:
         mng_script = _build_rdt_script(mng._sequence_name, rdts, columns)
     else:
-        # If start/end -> range, if only start: cycle - twiss - cycle back
         range_str = ''
 
         if start is not None and end is not None:
@@ -481,12 +480,14 @@ class ActionTwissMadngTPSA(Action):
 
                 ''' + mng._sequence_name + r''':select(obs_flag, {list=pts})
 
+                local params = ''' + param_list_str + r'''
+
                 local X0 = MAD.damap {
                     nv=6, -- number of variables
                     mo=2, -- max order of variables
-                    np=''' + str(len(self.vary_names)) + r''', -- number of parameters
+                    np=#params, -- number of parameters
                     po=1, -- max order of parameters
-                    pn=''' + param_list_str + r''', -- parameter names
+                    pn=params, -- parameter names
                 }
 
                 ''' + coord_str + r'''
