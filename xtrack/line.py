@@ -4873,10 +4873,10 @@ class Line:
 
                 '_own_length': 'length',
 
-                '_own_rot_s_rad': '_rot_s_rad',
-                '_own_shift_x': '_shift_x',
-                '_own_shift_y': '_shift_y',
-                '_own_shift_s': '_shift_s',
+                '_own_rot_s_rad': 'rot_s_rad',
+                '_own_shift_x': 'shift_x',
+                '_own_shift_y': 'shift_y',
+                '_own_shift_s': 'shift_s',
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
@@ -4927,10 +4927,10 @@ class Line:
                 '_own_ref_rot_cos_z':       'cos_z',
 
                 '_parent_length': (('_parent', 'length'), None),
-                '_parent_rot_s_rad': (('_parent', '_rot_s_rad'), None),
-                '_parent_shift_x': (('_parent', '_shift_x'), None),
-                '_parent_shift_y': (('_parent', '_shift_y'), None),
-                '_parent_shift_s': (('_parent', '_shift_s'), None),
+                '_parent_rot_s_rad': (('_parent', 'rot_s_rad'), None),
+                '_parent_shift_x': (('_parent', 'shift_x'), None),
+                '_parent_shift_y': (('_parent', 'shift_y'), None),
+                '_parent_shift_s': (('_parent', 'shift_s'), None),
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),

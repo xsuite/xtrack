@@ -217,86 +217,6 @@ def _generate_per_particle_kernel_from_local_particle_function(
     return source
 
 
-def _transformations_active(self):
-    no_shift = self.shift_x == 0 and self.shift_y == 0 and self.shift_s == 0
-    no_rot = (
-        self.rot_x_rad == 0 and self.rot_y_rad == 0 and self.rot_s_rad == 0 and
-        self.rot_s_rad_no_frame == 0
-    )
-
-    if no_shift and no_rot:
-        return False
-
-    return True
-
-
-def _update_rot_shift_active_flag(self):
-    self.rot_shift_active = _transformations_active(self)
-
-
-def _rot_s_property(self):
-    return self._rot_s_rad
-
-
-def _set_rot_s_property_setter(self, value):
-    self._rot_s_rad = value
-    _update_rot_shift_active_flag(self)
-
-
-def _shiftx_property(self):
-    return self._shift_x
-
-
-def _set_shiftx_property_setter(self, value):
-    self._shift_x = value
-    _update_rot_shift_active_flag(self)
-
-
-def _shifty_property(self):
-    return self._shift_y
-
-
-def _set_shifty_property_setter(self, value):
-    self._shift_y = value
-    _update_rot_shift_active_flag(self)
-
-
-def _shifts_property(self):
-    return self._shift_s
-
-
-def _set_shifts_property_setter(self, value):
-    self._shift_s = value
-    _update_rot_shift_active_flag(self)
-
-
-def _rot_x_property(self):
-    return self._rot_x_rad
-
-
-def _set_rot_x_property_setter(self, value):
-    self._rot_x_rad = value
-    _update_rot_shift_active_flag(self)
-
-
-def _rot_y_property(self):
-    return self._rot_y_rad
-
-
-def _set_rot_y_property_setter(self, value):
-    self._rot_y_rad = value
-    _update_rot_shift_active_flag(self)
-
-
-def _rot_s_no_frame_property(self):
-    return self._rot_s_rad_no_frame
-
-
-def _set_rot_s_no_frame_property_setter(self, value):
-    self._rot_s_rad_no_frame = value
-    _update_rot_shift_active_flag(self)
-
-
 class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
@@ -347,14 +267,13 @@ class MetaBeamElement(xo.MetaHybridClass):
             rot_and_shift_from_parent = data['rot_and_shift_from_parent']
 
         if allow_rot_and_shift and not rot_and_shift_from_parent:
-            xofields['rot_shift_active'] = xo.Field(xo.Int64, 0)
-            xofields['_shift_x'] = xo.Field(xo.Float64, 0)
-            xofields['_shift_y'] = xo.Field(xo.Float64, 0)
-            xofields['_shift_s'] = xo.Field(xo.Float64, 0)
-            xofields['_rot_s_rad'] = xo.Field(xo.Float64)
-            xofields['_rot_x_rad'] = xo.Field(xo.Float64, 0)
-            xofields['_rot_y_rad'] = xo.Field(xo.Float64, 0)
-            xofields['_rot_s_rad_no_frame'] = xo.Field(xo.Float64, 0)
+            xofields['shift_x'] = xo.Field(xo.Float64, 0)
+            xofields['shift_y'] = xo.Field(xo.Float64, 0)
+            xofields['shift_s'] = xo.Field(xo.Float64, 0)
+            xofields['rot_s_rad'] = xo.Field(xo.Float64)
+            xofields['rot_x_rad'] = xo.Field(xo.Float64, 0)
+            xofields['rot_y_rad'] = xo.Field(xo.Float64, 0)
+            xofields['rot_s_rad_no_frame'] = xo.Field(xo.Float64, 0)
             xofields['rot_shift_anchor'] = xo.Field(xo.Float64, 0)
 
         data = data.copy()
@@ -477,15 +396,6 @@ class MetaBeamElement(xo.MetaHybridClass):
                 kernel_name=nn,
                 additional_arg_names=tuple(arg.name for arg in desc.args),
             ))
-
-        if allow_rot_and_shift:
-            new_class.rot_s_rad = property(_rot_s_property, _set_rot_s_property_setter)
-            new_class.shift_x = property(_shiftx_property, _set_shiftx_property_setter)
-            new_class.shift_y = property(_shifty_property, _set_shifty_property_setter)
-            new_class.shift_s = property(_shifts_property, _set_shifts_property_setter)
-            new_class.rot_x_rad = property(_rot_x_property, _set_rot_x_property_setter)
-            new_class.rot_y_rad = property(_rot_y_property, _set_rot_y_property_setter)
-            new_class.rot_s_rad_no_frame = property(_rot_s_no_frame_property, _set_rot_s_no_frame_property_setter)
 
         return new_class
 

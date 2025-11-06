@@ -222,11 +222,6 @@ void magnet_spin(
             double const spin_y_3 = spin_y_2;
             double const spin_z_3 = -spin_x_2 * sin_hxl2 + spin_z_2 * cos_hxl2;
 
-            printf("spin_x_0=%e spin_y_0=%e spin_z_0=%e\n", spin_x_0, spin_y_0, spin_z_0);
-            printf("spin_x_1=%e spin_y_1=%e spin_z_1=%e\n", spin_x_1, spin_y_1, spin_z_1);
-            printf("spin_x_2=%e spin_y_2=%e spin_z_2=%e\n", spin_x_2, spin_y_2, spin_z_2);
-            printf("spin_x_3=%e spin_y_3=%e spin_z_3=%e\n", spin_x_3, spin_y_3, spin_z_3);
-
             LocalParticle_set_spin_x(part, spin_x_3);
             LocalParticle_set_spin_y(part, spin_y_3);
             LocalParticle_set_spin_z(part, spin_z_3);
