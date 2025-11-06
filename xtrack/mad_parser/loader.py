@@ -369,7 +369,7 @@ class MadxLoader:
 
         if parent_name in {'multipole', 'hkicker', 'vkicker', 'kicker', 'tkicker'}:
             # Elements using 'lrad'
-            if 'length' not in params and 'lrad' in 'params':
+            if 'length' not in params and 'lrad' in params:
                 params['length'] = params.pop('lrad', None)
         else:
             # Elements not using 'lrad'
