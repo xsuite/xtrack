@@ -968,7 +968,7 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
         gamma0 = opt_tw.particle_on_co.gamma0[0]
 
         twiss_derivs = {}
-        for place in self.target_places: # ip1, ip8 in order of appearance
+        for place in self.target_places: # in order of appearance
             # Calc derivative for all quadrupoles for target place
             # Source point = qqnn, Observation point = target
             twiss_derivs[place] = {}
@@ -982,6 +982,8 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
                     nonzero_qqn.append(qqnn)
                     nonzero_qq.append(self.actions[0].line.element_dict[qqnn]) # first elements
                     # add to list to be calculated
+            if len(nonzero_qq) == 0:
+                continue
             nonzero_deriv, _ = compute_param_derivatives(trunc_elements, nonzero_qq, init_cond, beta0, gamma0)
 
             for i, qqn in enumerate(nonzero_qqn):
