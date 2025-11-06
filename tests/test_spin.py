@@ -338,6 +338,42 @@ def test_bend(case, atol):
     xo.assert_allclose(p.spin_z[0], ref['spin_z'], atol=atol, rtol=0)
 
 
+@pytest.mark.parametrize('h', [0.0, 0.1], ids=['straight', 'polar'])
+def test_spin_drift(h):
+    bend = xt.Bend(
+        length=2,
+        h=h,
+        k0=0,
+    )
+    bend.integrator = 'uniform'
+    bend.num_multipole_kicks = 1
+
+    line_test = xt.Line(elements=[bend], element_names=['bend'])
+    line_test.configure_spin('auto')
+
+    p0 = xt.Particles(
+        x=0.2,
+        y=-0.6,
+        spin_z=1.,
+        mass0=xt.ELECTRON_MASS_EV,
+        anomalous_magnetic_moment=0.00115965218128,
+    )
+
+    p = p0.copy()
+    line_test.track(p)
+
+    # Check that spin norm is preserved
+    expected_norm = 1
+    result_norm = np.linalg.norm([p.spin_x, p.spin_y, p.spin_z])
+    xo.assert_allclose(result_norm, expected_norm, atol=1e-15, rtol=1e-15)
+
+    # In the absence of magnetic field, spin should follow momentum
+    xo.assert_allclose(p.spin_x, p.px, atol=1e-15, rtol=1e-15)
+    xo.assert_allclose(p.spin_y, p.py, atol=1e-15, rtol=1e-15)
+    ps = np.sqrt(1 - p.px**2 - p.py**2)
+    xo.assert_allclose(p.spin_z, ps, atol=1e-15, rtol=1e-15)
+
+
 @pytest.mark.parametrize(
     'case,atol',
     zip(
@@ -629,3 +665,222 @@ def test_polarization_lep_sext_corr():
         line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0],
         103.45, rtol=0, atol=1e-9)
     xo.assert_allclose(tw.spin_tune_fractional, 0.45, rtol=0, atol=1e-6)
+
+
+def test_spin_y_rotation():
+    env = xt.Environment()
+    env.particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
+        q0=1,
+        p0c=700e9,
+        anomalous_magnetic_moment=0.00115965218128
+    )
+
+    line = env.new_line(
+        length=1., components=[
+            env.new('yrot', xt.YRotation, angle=12, at=0.2),
+            env.new('inv_yrot', xt.YRotation, angle=-12, at=0.4),
+        ]
+    )
+
+    def _assert(a, b):
+        xo.assert_allclose(a, b, rtol=0, atol=1e-9)
+
+    # Test twiss with spin initialised along z (spin_x follows px, spin_y = 0)
+    tw_spin_z = line.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        spin_z=1.
+    )
+    _assert(tw_spin_z.s, [0., 0.2, 0.2, 0.4, 0.4, 1.])
+
+    _assert(tw_spin_z.px, tw_spin_z.spin_x)
+    _assert(tw_spin_z.spin_x, np.sin(np.deg2rad([0., 0., -12, -12, 0., 0.])))
+    _assert(tw_spin_z.spin_y, 0)
+    spin_norm = np.linalg.norm([tw_spin_z.spin_x, tw_spin_z.spin_y, tw_spin_z.spin_z], axis=0)
+    _assert(spin_norm, 1.)
+
+    # Test twiss with spin initialised along y (unchanged by the rotations)
+    tw_spin_y = line.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        spin_y=1.
+    )
+    _assert(tw_spin_y.spin_y, 1)
+    _assert(tw_spin_y.spin_x, 0)
+    _assert(tw_spin_y.spin_z, 0)
+
+    # Test twiss with spin initialised along x (spin is 90° away from momentum)
+    tw_spin_x = line.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        spin_x=1.
+    )
+
+    _assert(tw_spin_x.spin_z, -tw_spin_x.px)
+    _assert(tw_spin_x.spin_z, np.sin(np.deg2rad([0., 0., 12, 12, 0., 0.])))
+    _assert(tw_spin_x.spin_y, 0)
+    spin_norm = np.linalg.norm([tw_spin_z.spin_x, tw_spin_z.spin_y, tw_spin_z.spin_z], axis=0)
+    _assert(spin_norm, 1.)
+
+
+def test_spin_x_rotation():
+    env = xt.Environment()
+    env.particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
+        q0=1,
+        p0c=700e9,
+        anomalous_magnetic_moment=0.00115965218128
+    )
+
+    line = env.new_line(
+        length=1., components=[
+            env.new('xrot', xt.XRotation, angle=12, at=0.2),
+            env.new('inv_xrot', xt.XRotation, angle=-12, at=0.4),
+        ]
+    )
+
+    def _assert(a, b):
+        xo.assert_allclose(a, b, rtol=0, atol=1e-9)
+
+    # Test twiss with spin initialised along z (spin_y follows py, spin_x = 0)
+    tw_spin_z = line.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        spin_z=1.
+    )
+    _assert(tw_spin_z.s, [0., 0.2, 0.2, 0.4, 0.4, 1.])
+
+    _assert(tw_spin_z.py, tw_spin_z.spin_y)
+    _assert(tw_spin_z.spin_y, np.sin(np.deg2rad([0., 0., 12, 12, 0., 0.])))
+    _assert(tw_spin_z.spin_x, 0)
+    spin_norm = np.linalg.norm([tw_spin_z.spin_x, tw_spin_z.spin_y, tw_spin_z.spin_z], axis=0)
+    _assert(spin_norm, 1.)
+
+    # Test twiss with spin initialised along x (unchanged by the rotations)
+    tw_spin_x = line.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        spin_x=1.
+    )
+    _assert(tw_spin_x.spin_x, 1)
+    _assert(tw_spin_x.spin_y, 0)
+    _assert(tw_spin_x.spin_z, 0)
+
+    # Test twiss with spin initialised along y (spin is 90° away from momentum)
+    tw_spin_y = line.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        spin_y=1.
+    )
+
+    _assert(tw_spin_y.spin_z, -tw_spin_y.py)
+    _assert(tw_spin_y.spin_z, np.sin(np.deg2rad([0., 0., -12, -12, 0., 0.])))
+    _assert(tw_spin_y.spin_x, 0)
+    spin_norm = np.linalg.norm([tw_spin_z.spin_x, tw_spin_z.spin_y, tw_spin_z.spin_z], axis=0)
+    _assert(spin_norm, 1.)
+
+
+def test_spin_s_rotation():
+    env = xt.Environment()
+    env.particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
+        q0=1,
+        p0c=700e9,
+        anomalous_magnetic_moment=0.00115965218128
+    )
+
+    line = env.new_line(
+        length=1., components=[
+            env.new('srot', xt.SRotation, angle=12, at=0.2),
+            env.new('inv_srot', xt.SRotation, angle=-12, at=0.4),
+        ]
+    )
+
+    def _assert(a, b):
+        xo.assert_allclose(a, b, rtol=0, atol=1e-9)
+
+    # Test twiss with spin initialised along x
+    tw_spin_x = line.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        spin_x=1.
+    )
+    _assert(tw_spin_x.s, [0., 0.2, 0.2, 0.4, 0.4, 1.])
+
+    _assert(tw_spin_x.spin_y, np.sin(np.deg2rad([0., 0., -12, -12, 0., 0.])))
+    _assert(tw_spin_x.spin_x, np.cos(np.deg2rad([0., 0., -12, -12, 0., 0.])))
+    _assert(tw_spin_x.spin_z, 0)
+
+    # Test twiss with spin initialised along s (unchanged by the rotations)
+    tw_spin_z = line.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        spin_z=1.
+    )
+    _assert(tw_spin_z.spin_x, 0)
+    _assert(tw_spin_z.spin_y, 0)
+    _assert(tw_spin_z.spin_z, 1)
+
+    # Test twiss with spin initialised along y (note opposite sign of y-rotation)
+    tw_spin_y = line.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        spin_y=1.
+    )
+
+    _assert(tw_spin_y.spin_x, np.sin(np.deg2rad([0., 0., 12, 12, 0., 0.])))
+    _assert(tw_spin_y.spin_y, np.cos(np.deg2rad([0., 0., 12, 12, 0., 0.])))
+    _assert(tw_spin_y.spin_z, 0)
+
+
+def test_spin_rot_s_rad():
+    env = xt.Environment()
+    env.particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
+        q0=1,
+        p0c=700e9,
+        anomalous_magnetic_moment=0.00115965218128
+    )
+
+    line_test = env.new_line(
+        length=1., components=[
+            env.new('m', xt.Magnet, k0=0.1, length=0.2, rot_s_rad=0.1)
+        ]
+    )
+
+    line_ref = env.new_line(
+        length=1., components=[
+            env.new('srot', xt.SRotation, angle=np.rad2deg(0.1)),
+            env.new('mref', xt.Magnet, k0=0.1, length=0.2),
+            env.new('inv_srot', xt.SRotation, angle=np.rad2deg(-0.1))]
+    )
+
+    tw_test = line_test.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        px=0.1,
+        spin_x=0.1
+    )
+    tw_ref = line_ref.twiss(
+        spin=True,
+        betx=10,
+        bety=10,
+        px=0.1,
+        spin_x=0.1
+    )
+
+    xo.assert_allclose(tw_test.px[-1], tw_ref.px[-1], rtol=0, atol=1e-9)
+    xo.assert_allclose(tw_test.spin_x[-1], tw_ref.spin_x[-1], rtol=0, atol=1e-9)
+    xo.assert_allclose(tw_test.py[-1], tw_ref.py[-1], rtol=0, atol=1e-9)
+    xo.assert_allclose(tw_test.spin_y[-1], tw_ref.spin_y[-1], rtol=0, atol=1e-9)
