@@ -64,8 +64,6 @@ def _warn(msg):
 
 def get_params(params, parent):
     params = params.copy()
-    if parent in {'placeholder', 'instrument'}:
-        _ = params.pop('lrad', None)
 
     def _normalise_single(param):
         lower = param.lower()
