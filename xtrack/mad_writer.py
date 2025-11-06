@@ -1,9 +1,9 @@
 import numpy as np
 import xtrack as xt
-import xdeps as xd
 from enum import Enum
 
 from xdeps.refs import is_ref
+from xtrack.functions import Functions
 
 
 LUA_VARS_PER_CHUNK = 200
@@ -16,7 +16,7 @@ def expr_to_mad_str(expr):
 
     expr_str = str(expr)
 
-    fff = xt.line.Functions()
+    fff = Functions()
     for nn in fff._mathfunctions:
         expr_str = expr_str.replace(f'f.{nn}(', f'{nn}(')
         expr_str = expr_str.replace(f'f[\'{nn}\'](', f'{nn}(')

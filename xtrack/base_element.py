@@ -634,11 +634,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         sin_s_rad = 0
         cos_s_rad = 1
 
-        if '_sin_rot_s' in kwargs:
+        if '_sin_rot_s' in kwargs or '_cos_rot_s' in kwargs:
             rot_s_rad_legacy_from_trig = True
             sin_s_rad = kwargs.pop('_sin_rot_s')
-        if '_cos_rot_s' in kwargs:
-            rot_s_rad_legacy_from_trig = True
             cos_s_rad = kwargs.pop('_cos_rot_s')
 
         if rot_s_rad_legacy_from_trig:

@@ -3,18 +3,14 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
-import json
 import logging
 from collections import defaultdict
-from weakref import WeakSet
 from collections.abc import Iterable
 
 from contextlib import contextmanager
 import copy
 from pprint import pformat
 from typing import List, Literal, Optional, Dict
-from pathlib import Path
-from .functions import Functions
 
 import numpy as np
 from scipy.constants import c as clight
@@ -26,7 +22,7 @@ import xobjects as xo
 import xtrack as xt
 import xdeps as xd
 from .beam_elements.elements import (
-    MagnetEdge, _MODEL_TO_INDEX_CURVED,
+    _MODEL_TO_INDEX_CURVED,
     _EDGE_MODEL_TO_INDEX, _MODEL_TO_INDEX_DRIFT
 )
 from .progress_indicator import progress
@@ -3432,15 +3428,14 @@ class Line:
         else:
             self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
 
-    def configure_spin(self, spin_model=None):
-
+    def configure_spin(self, spin_model: Literal[True, False, None, 'auto'] = None):
         """
         Configure the spin model for the line.
 
         Parameters
         ----------
         spin_model: str
-            Spin model to use. Can be None, 'auto', 'True', 'False'
+            Spin model to use. Can be None, 'auto', True, False.
         """
         self._method_incompatible_with_compose()
 
