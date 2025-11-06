@@ -1075,7 +1075,7 @@ class OptimizeLine(xd.Optimize):
         sing_val_cutoff=None,
         verbose=None,
         broyden=False,
-        cleanup_madng_tpsa=False,
+        cleanup_madng_tpsa=True,
     ):
         super().step(n_steps, take_best, enable_target, enable_vary, enable_vary_name, disable_target,
                      disable_vary, disable_vary_name, rcond, sing_val_cutoff, verbose, broyden)
