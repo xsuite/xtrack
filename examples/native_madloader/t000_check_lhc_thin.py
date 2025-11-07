@@ -1,8 +1,12 @@
 from cpymad.madx import Madx
 import xtrack as xt
+import xobjects as xo
+import numpy as np
 
 env = xt.load('../../test_data/hllhc15_noerrors_nobb/sequence.madx',
               reverse_lines=['lhcb2'])
+env.lhcb1.set_particle_ref('proton', p0c=7000e9)
+env.lhcb2.set_particle_ref('proton', p0c=7000e9)
 
 mad = Madx()
 mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
@@ -12,13 +16,20 @@ mad.use('lhcb2')
 lb1_ref = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
 lb2_ref = xt.Line.from_madx_sequence(mad.sequence.lhcb2)
 
+lb1_ref.set_particle_ref('proton', p0c=7000e9)
+lb2_ref.set_particle_ref('proton', p0c=7000e9)
+
 for lref, ltest, beam in [(lb1_ref, env.lhcb1, 1), (lb2_ref, env.lhcb2, 2)]:
 
     tt_ref = lref.get_table()
     tt_test = ltest.get_table()
 
-    tt_ref_nodr = tt_ref.rows[tt_ref.element_type != 'Drift']
-    tt_test_nodr = tt_test.rows[tt_test.element_type != 'Drift']
+    tt_ref_nodr = tt_ref.rows[
+        (tt_ref.element_type != 'Drift') & (tt_ref.element_type != 'UniformSolenoid')
+        & (tt_ref.rows.mask['.*_aper'] == False)]
+    tt_test_nodr = tt_test.rows[
+        (tt_test.element_type != 'Drift') & (tt_test.element_type != 'UniformSolenoid')
+        & (tt_test.rows.mask['.*_aper'] == False)]
 
     # Check s
     lref_names = list(tt_ref_nodr.name)
