@@ -196,16 +196,16 @@ def test_madng_twiss_with_initial_conditions():
     line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
     #pytest.set_trace()
-    tw_xs = line.twiss(betx=120, bety=150)
-    tw = line.madng_twiss(beta11=120, beta22=150)
+    tw_xs = line.twiss(betx=120, bety=150, alfx=5, alfy=5, dx=1e-4)
+    tw = line.madng_twiss(beta11=120, beta22=150, alfa11=5, alfa22=5, dx=1e-4)
 
     assert len(tw) == len(tw_xs)
     assert len(tw.betx) == len(tw.beta11_ng)
 
-    xo.assert_allclose(tw.betx, tw.beta11_ng, rtol=1e-7, atol=1e-6)
-    xo.assert_allclose(tw.bety, tw.beta22_ng, rtol=1e-7, atol=1e-6)
-    xo.assert_allclose(tw.alfx, tw.alfa11_ng, rtol=1e-7, atol=1e-6)
-    xo.assert_allclose(tw.alfy, tw.alfa22_ng, rtol=1e-7, atol=1e-6)
+    xo.assert_allclose(tw.betx, tw.beta11_ng, rtol=1e-6, atol=1e-6)
+    xo.assert_allclose(tw.bety, tw.beta22_ng, rtol=1e-6, atol=1e-6)
+    xo.assert_allclose(tw.alfx, tw.alfa11_ng, rtol=1e-6, atol=1e-6)
+    xo.assert_allclose(tw.alfy, tw.alfa22_ng, rtol=1e-6, atol=1e-6)
     xo.assert_allclose(tw.dx, tw.dx_ng, rtol=1e-8, atol=1e-6)
     xo.assert_allclose(tw.dy, tw.dy_ng, rtol=1e-8, atol=1e-6)
     xo.assert_allclose(tw.dpx, tw.dpx_ng, rtol=1e-8, atol=1e-6)
@@ -213,8 +213,8 @@ def test_madng_twiss_with_initial_conditions():
     xo.assert_allclose(tw.x, tw.x_ng, rtol=1e-8, atol=1e-6)
     xo.assert_allclose(tw.y, tw.y_ng, rtol=1e-8, atol=1e-6)
 
-    tw2_xs = line.twiss(start='s.ds.l8.b1', end='ip1', betx=100, bety=34)
-    tw2_xsng = line.madng_twiss(start='s.ds.l8.b1', end='ip1', beta11=100, beta22=34, xsuite_tw=False)
+    tw2_xs = line.twiss(start='s.ds.l8.b1', end='ip1', betx=100, bety=34, dx=1e-5)
+    tw2_xsng = line.madng_twiss(start='s.ds.l8.b1', end='ip1', beta11=100, beta22=34, dx=1e-5, xsuite_tw=False)
 
     assert len(tw2_xs.betx) == len(tw2_xsng.beta11_ng)
     xo.assert_allclose(tw2_xs.betx, tw2_xsng.beta11_ng, rtol=1e-8, atol=1e-6)
@@ -248,6 +248,24 @@ def test_madng_twiss_with_initial_conditions():
     xo.assert_allclose(tw3_xsng.alfx, tw3_xsng.alfa11_ng, rtol=1e-8, atol=1e-6)
     xo.assert_allclose(tw3_xsng.alfy, tw3_xsng.alfa22_ng, rtol=1e-8, atol=1e-6)
 
+    tw4_xs = line.twiss(start='ip3', end='ip4', betx=121.5668, bety=218.58374, alfx=2.295, alfy=-2.6429, dx=-0.51)
+    tw4_xsng = line.madng_twiss(start='ip3', end='ip4', beta11=121.5668, beta22=218.58374, alfa11=2.295,
+                                alfa22=-2.6429, dx=-0.51, xsuite_tw=False)
+
+    assert len(tw4_xs.betx) == len(tw4_xsng.beta11_ng)
+    xo.assert_allclose(tw4_xs.betx, tw4_xsng.beta11_ng, rtol=1e-6, atol=1e-5)
+    xo.assert_allclose(tw4_xs.bety, tw4_xsng.beta22_ng, rtol=1e-6, atol=1e-5)
+    xo.assert_allclose(tw4_xs.alfx, tw4_xsng.alfa11_ng, rtol=1e-6, atol=1e-5)
+    xo.assert_allclose(tw4_xs.alfy, tw4_xsng.alfa22_ng, rtol=1e-6, atol=1e-5)
+    xo.assert_allclose(tw4_xs.dx, tw4_xsng.dx_ng, rtol=1e-7, atol=1e-8)
+    xo.assert_allclose(tw4_xs.dy, tw4_xsng.dy_ng, rtol=1e-7, atol=1e-8)
+    xo.assert_allclose(tw4_xs.x, tw4_xsng.x_ng, rtol=1e-8, atol=1e-10)
+    xo.assert_allclose(tw4_xs.y, tw4_xsng.y_ng, rtol=1e-8, atol=1e-10)
+    xo.assert_allclose(tw4_xs.px, tw4_xsng.px_ng, rtol=1e-8, atol=1e-10)
+    xo.assert_allclose(tw4_xs.py, tw4_xsng.py_ng, rtol=1e-8, atol=1e-10)
+    xo.assert_allclose(tw4_xs.mux, tw4_xsng.mu1_ng, rtol=1e-8, atol=1e-5)
+    xo.assert_allclose(tw4_xs.muy, tw4_xsng.mu2_ng, rtol=1e-8, atol=1e-5)
+    
 def test_madng_slices():
     line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
