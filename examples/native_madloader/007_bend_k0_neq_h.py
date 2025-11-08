@@ -3,9 +3,9 @@ from cpymad.madx import Madx
 
 mad_src = """
     a = 0.1;
-    b1: sbend, l=1.0, angle:=a, k0:=a/2;
-    seq: sequence, l=1.0;
-    b1: b1, at=0.5;
+    b1: sbend, l=2.0, angle:=a, k0:=0.2*a;
+    seq: sequence, l=2.0;
+    b1: b1, at=1;
     endsequence;
 """
 
