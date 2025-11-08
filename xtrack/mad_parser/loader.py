@@ -220,8 +220,6 @@ class MadxLoader:
 
     def _parse_parameters(self, parameters: Dict[str, Dict[str, str]]):
         for element, el_params in parameters.items():
-            # if element == 'beam': # We ignore beam commands for now
-            #     continue
             params, extras = get_params(el_params, parent=element)
             self._set_element(element, self.env, **params, extra=extras)
 
