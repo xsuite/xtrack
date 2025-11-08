@@ -172,6 +172,30 @@ class MadxLoader:
                 elem_name = var_name[len('_length__') :]
                 self.env.vars[var_name] = self.env.ref[elem_name].length
 
+        # Handle edge angle feed-downs
+        for ename, elem in self.env._xdeps_eref._owner.items():
+            if isinstance(elem, (xt.RBend)):
+                if elem.k0_from_h:
+                    continue
+                # I know it came from madx, so the expression is on angle not h
+                aa = self.env.ref[ename].angle._expr or self.env.ref[ename].angle._value
+                kk0 = self.env.ref[ename].k0._expr or self.env.ref[ename].k0._value
+                lstraight = self.env.ref[ename].length_straight._expr or self.env.ref[ename].length_straight._value
+                lcurv = lstraight / self.env._xdeps_fref.sinc(aa / 2)
+                angle_fdown = 0.5 * (kk0 * lcurv - aa)
+                self.env.ref[ename].edge_entry_angle_fdown = angle_fdown
+                self.env.ref[ename].edge_exit_angle_fdown = angle_fdown
+            elif isinstance(elem, xt.Bend):
+                if elem.k0_from_h:
+                    continue
+                # I know it came from madx, so the expression is on angle not h
+                aa = self.env.ref[ename].angle._expr or self.env.ref[ename].angle._value
+                kk0 = self.env.ref[ename].k0._expr or self.env.ref[ename].k0._value
+                lcurv = self.env.ref[ename].length._expr or self.env.ref[ename].length._value
+                angle_fdown = 0.5 * (kk0 * lcurv - aa)
+                self.env.ref[ename].edge_entry_angle_fdown = angle_fdown
+                self.env.ref[ename].edge_exit_angle_fdown = angle_fdown
+
     def _parse_elements(self, elements: Dict[str, ElementType]):
         for name, el_params in elements.items():
             parent = el_params.pop('parent')
