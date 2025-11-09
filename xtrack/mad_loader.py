@@ -35,8 +35,10 @@ import xobjects
 import xtrack
 from .general import _print
 from .progress_indicator import progress
+from .functions import Functions
 
-# Generic functions
+
+_default_functions = Functions()
 
 clight = 299792458
 
@@ -648,8 +650,7 @@ class MadLoader:
     def math(self):
         if issubclass(self.Assembler, ElementAssemblerWithExpr):
             return self.line._xdeps_fref
-
-        return np
+        return _default_functions
 
     def _assert_element_is_thin(self, mad_el):
         if value_if_expr(mad_el.l) != 0:
