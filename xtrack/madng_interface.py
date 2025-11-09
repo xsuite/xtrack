@@ -411,11 +411,14 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
 
         from pymadng import MAD
 
+        nocharge = str(kwargs.pop('nocharge', True)).lower()
+
         mng = MAD(**kwargs)
         mng.send(f"""
                  local mad_func = loadfile('{temp_fname}.mad', nil, MADX)
                  assert(mad_func)
                  mad_func()
+                 MAD.option.nocharge = {nocharge}
                  """)
         mng._init_madx_data = madx_seq
 

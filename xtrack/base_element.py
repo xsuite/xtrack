@@ -617,6 +617,24 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         return out
 
     @property
+    def transformations_active(self):
+        if not self.allow_rot_and_shift:
+            return False
+        if hasattr(self, '_parent') and self.rot_and_shift_from_parent:
+            return self._parent.transformations_active()
+        if np.any([
+            self.shift_x,
+            self.shift_y,
+            self.shift_s,
+            self.rot_s_rad,
+            self.rot_x_rad,
+            self.rot_y_rad,
+            self.rot_s_rad_no_frame,
+        ]):
+            return True
+        return False
+
+    @property
     def _add_to_repr(self):
         out = []
         if hasattr(self, 'parent_name'):
