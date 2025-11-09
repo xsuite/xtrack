@@ -178,8 +178,8 @@ class MadxLoader:
                 if elem.k0_from_h:
                     continue
                 # I know it came from madx, so the expression is on angle not h
-                aa = self.env.ref[ename].angle._expr or self.env.ref[ename].angle._value
-                kk0 = self.env.ref[ename].k0._expr or self.env.ref[ename].k0._value
+                aa = self.env.ref[ename].angle._expr or float(self.env.ref[ename].angle._value)
+                kk0 = self.env.ref[ename].k0._expr or float(self.env.ref[ename].k0._value)
                 if isinstance(elem, xt.RBend):
                     lstraight = self.env.ref[ename].length_straight._expr or self.env.ref[ename].length_straight._value
                     lcurv = lstraight / self.env._xdeps_fref.sinc(aa / 2)
