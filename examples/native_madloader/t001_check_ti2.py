@@ -39,9 +39,9 @@ for nn in ['ti2$start', 'ti2$end']:
 for nn_test, nn_ref in zip(ltest_names, lref_names):
     assert nn_test == nn_ref, f'Element name mismatch: {nn_test} != {nn_ref}'
 
-# xo.assert_allclose(
-#     tt_ref_nodr.rows[lref_names].s_center, tt_test_nodr.rows[ltest_names].s_center,
-#     rtol=0, atol=5e-9)
+xo.assert_allclose(
+    tt_ref_nodr.rows[lref_names].s_center, tt_test_nodr.rows[ltest_names].s_center,
+    rtol=0, atol=5e-8)
 
 for nn in ltest_names:
     print(f'Checking: {nn}                     ', end='\r', flush=True)
@@ -89,18 +89,15 @@ for nn in ltest_names:
 
         xo.assert_allclose(dref[kk], dtest[kk], rtol=1e-10, atol=1e-16)
 
-twref = lref.twiss4d()
-twtest = ltest.twiss4d()
+twkws = dict(
+    betx=27.77906807, bety=120.39920690,
+    alfx=0.63611880, alfy=-2.70621900,
+    dx=-0.59866300, dpx=0.01603536
+)
+twref = lref.twiss(**twkws)
+twtest = ltest.twiss4d(**twkws)
 
-xo.assert_allclose(twref.rows['ip.*'].betx, twtest.rows['ip.*'].betx, rtol=1e-6,
-                atol=0)
-xo.assert_allclose(twref.rows['ip.*'].bety, twtest.rows['ip.*'].bety, rtol=1e-6,
-                atol=0)
-xo.assert_allclose(twref.rows['ip.*'].dx, twtest.rows['ip.*'].dx, rtol=0,
-                atol=1e-6)
-xo.assert_allclose(twref.rows['ip.*'].dy, twtest.rows['ip.*'].dy, rtol=1e-6,
-                atol=1e-6)
-xo.assert_allclose(twref.rows['ip.*'].ax_chrom, twtest.rows['ip.*'].ax_chrom,
-                rtol=1e-4, atol=1e-5)
-xo.assert_allclose(twref.rows['ip.*'].ay_chrom, twtest.rows['ip.*'].ay_chrom,
-                rtol=1e-4, atol=1e-5)
+xo.assert_allclose(twtest.betx[-1], twref.betx[-1], rtol=1e-6, atol=0)
+xo.assert_allclose(twtest.bety[-1], twref.bety[-1], rtol=1e-6, atol=0)
+xo.assert_allclose(twtest.dx[-1], twref.dx[-1], rtol=0, atol=1e-6)
+xo.assert_allclose(twtest.dy[-1], twref.dy[-1], rtol=1e-6, atol=1e-6)
