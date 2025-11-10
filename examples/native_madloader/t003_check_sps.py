@@ -3,20 +3,20 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-env = xt.load('../../test_data/ps_sftpro/ps.seq')
-env.vars.load('../../test_data/ps_sftpro/ps_hs_sftpro.str')
-env.ps.set_particle_ref('proton', p0c=450e9)
+env = xt.load('../../test_data/sps_thick/sps.seq')
+env.vars.load('../../test_data/sps_thick/lhc_q20.str')
+env.sps.set_particle_ref('proton', p0c=450e9)
 
 mad = Madx()
-mad.call('../../test_data/ps_sftpro/ps.seq')
-mad.call('../../test_data/ps_sftpro/ps_hs_sftpro.str')
+mad.call('../../test_data/sps_thick/sps.seq')
+mad.call('../../test_data/sps_thick/lhc_q20.str')
 mad.beam()
-mad.use('ps')
+mad.use('sps')
 
-lref = xt.Line.from_madx_sequence(mad.sequence.ps, deferred_expressions=True)
+lref = xt.Line.from_madx_sequence(mad.sequence.sps, deferred_expressions=True)
 lref.set_particle_ref('proton', p0c=450e9)
 
-ltest = env.ps
+ltest = env.sps
 
 tt_ref = lref.get_table()
 tt_test = ltest.get_table()
