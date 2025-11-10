@@ -4,8 +4,8 @@ import numpy as np
 
 tilt = True
 
-env = xt.load('../../test_data/sps_thick/sps.seq')
-env.vars.load('../../test_data/sps_thick/lhc_q20.str')
+env = xt.load(['../../test_data/sps_thick/sps.seq',
+               '../../test_data/sps_thick/lhc_q20.str'])
 line = env.sps
 
 line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=10e9)

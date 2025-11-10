@@ -3,8 +3,8 @@ import numpy as np
 
 import xobjects as xo
 
-env = xt.load('../../test_data/sps_thick/sps.seq')
-env.vars.load('../../test_data/sps_thick/lhc_q20.str')
+env = xt.load(['../../test_data/sps_thick/sps.seq',
+               '../../test_data/sps_thick/lhc_q20.str'])
 line = env.sps
 
 line['actcse.31632'].voltage = 4.2e+08
