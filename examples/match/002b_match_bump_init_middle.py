@@ -1,12 +1,13 @@
 import xtrack as xt
 
-# Load a line and build a tracker
+# Load a line
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-line.build_tracker()
+
+line.insert('mymarker', xt.Marker(), at='mb.c28l8.b1@start')
 
 opt = line.match(
     start='mq.30l8.b1', end='mq.23l8.b1',
-    init_at='mb.b28l8.b1', betx=1, bety=1, y=3e-3, py=0, # <-- conditions at point inside the range
+    init_at='mymarker', betx=1, bety=1, y=3e-3, py=0, # <-- conditions at point inside the range
     vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1'],
                     step=1e-10, limits=[-1e-3, 1e-3]),
     targets = [

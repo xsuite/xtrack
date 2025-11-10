@@ -20,7 +20,7 @@ EXTRA_PARAMS = {
 
 TRANSLATE_PARAMS = {
     "l": "length",
-    "lrad": "length",
+    "lrad": "lrad",
     "tilt": "rot_s_rad",
     "from": "from_",
     "e1": "edge_entry_angle",
@@ -64,8 +64,6 @@ def _warn(msg):
 
 def get_params(params, parent):
     params = params.copy()
-    if parent in {'placeholder', 'instrument'}:
-        _ = params.pop('lrad', None)
 
     def _normalise_single(param):
         lower = param.lower()
@@ -139,6 +137,7 @@ class MadxLoader:
         self._new_builtin("yrotation", "YRotation")
         self._new_builtin("srotation", "SRotation")
         self._new_builtin("translation", "XYShift")
+        self._new_builtin("dipedge", "DipoleEdge")
 
         for mad_apertype in _APERTURE_TYPES:
             self._new_builtin(mad_apertype, 'Marker')
@@ -166,6 +165,29 @@ class MadxLoader:
             builders = self._parse_lines(parsed_dict["lines"])
             self._parse_parameters(parsed_dict["parameters"])
             self.builders.update(builders)
+
+        # Handle variables obtained from arrow operations
+        for var_name in self.env._xdeps_vref._owner.keys():
+            if var_name.startswith('_length__'):
+                elem_name = var_name[len('_length__') :]
+                self.env.vars[var_name] = self.env.ref[elem_name].length
+
+        # Handle edge angle feed-downs
+        for ename, elem in self.env._xdeps_eref._owner.items():
+            if isinstance(elem, (xt.RBend, xt.Bend)):
+                if elem.k0_from_h:
+                    continue
+                # I know it came from madx, so the expression is on angle not h
+                aa = self.env.ref[ename].angle._expr or float(self.env.ref[ename].angle._value)
+                kk0 = self.env.ref[ename].k0._expr or float(self.env.ref[ename].k0._value)
+                if isinstance(elem, xt.RBend):
+                    lstraight = self.env.ref[ename].length_straight._expr or self.env.ref[ename].length_straight._value
+                    lcurv = lstraight / self.env._xdeps_fref.sinc(aa / 2)
+                else:
+                    lcurv = self.env.ref[ename].length._expr or self.env.ref[ename].length._value
+                angle_fdown = 0.5 * (kk0 * lcurv - aa)
+                self.env.ref[ename].edge_entry_angle_fdown = angle_fdown
+                self.env.ref[ename].edge_exit_angle_fdown = angle_fdown
 
     def _parse_elements(self, elements: Dict[str, ElementType]):
         for name, el_params in elements.items():
@@ -314,16 +336,7 @@ class MadxLoader:
 
         if (extras := el_params.pop('extra', None)):
             _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
-        # element = self.env[name]
 
-        # length = self._element_length(name, el_params)
-        # is_not_thick = isinstance(element, BeamElement) and not element.isthick
-        # if is_not_thick and length and not isinstance(element, xt.Marker):
-        #     # Handle the thin elements that have a length in MAD-X: sandwich
-        #     line = self._make_thick_sandwich(name, length)
-        #     builder.place(line, **el_params)
-        # else:
-        #     builder.place(name, **el_params)
         builder.place(name, **el_params)
 
     def _clone_element(self, name, parent, builder, el_params):
@@ -331,23 +344,6 @@ class MadxLoader:
 
         Here `parent` is not None.
         """
-        # length = self._element_length(name, el_params)
-        # element = self.env[parent]
-        # is_not_thick = isinstance(element, BeamElement) and not element.isthick
-
-        # if is_not_thick and length and not isinstance(element, xt.Marker):
-        #     # Handle the thin elements that have a length in MAD-X: sandwich
-        #     at, from_ = el_params.pop('at', None), el_params.pop('from_', None)
-        #     if name not in self.env.element_dict:
-        #         make_drifts = True
-        #         self.env.new(name, parent, **el_params)
-        #     else:
-        #         make_drifts = False
-        #         _warn(f'Element `{name}` already exists, this definition '
-        #               f'will be ignored (for compatibility with MAD-X)')
-        #     name = self._make_thick_sandwich(name, length, make_drifts)
-        #     builder.place(name, at=at, from_=from_)
-        # elif name == parent:
         if name == parent:
             # This happens when the element is cloned with the same name, which
             # is allowed inside MAD-X sequences, e.g.: `el: el, at = 42;`.
@@ -362,26 +358,6 @@ class MadxLoader:
             # when an element name is repeated between lines, the first one
             # is retained: we do not simulate this behaviour here.
             builder.new(name, parent, force=True, **el_params)
-
-    def _element_length(self, name, el_params):
-        """Given the definition and params of the element, return its length."""
-        length = el_params.get('length', self._parameter_cache[name].get('length', 0))
-        THIN_ELEMENTS = {'vkicker', 'hkicker', 'kicker', 'tkicker', 'multipole'}
-        if self._mad_base_type(name) in THIN_ELEMENTS:
-            # Workaround for the elements that are thin despite having a
-            # ``length`` parameter.
-            length = 0
-
-        return length
-
-    # def _make_thick_sandwich(self, name, length, make_drifts=True):
-    #     """Make a sandwich of two drifts around the element."""
-    #     drift_name = f'{name}_drift'
-    #     if make_drifts:
-    #         self.env.new(drift_name + '_0', 'Drift', length=length / 2)
-    #         self.env.new(drift_name + '_1', 'Drift', length=length / 2)
-    #     line = self.env.new_line([drift_name + '_0', name, drift_name + '_1'])
-    #     return line
 
     def _set_element(self, name, builder, **kwargs):
         self._parameter_cache[name].update(kwargs)
@@ -406,8 +382,19 @@ class MadxLoader:
     def _convert_element_params(self, name, params):
         parent_name = self._mad_base_type(name)
 
+        if parent_name in {'multipole', 'hkicker', 'vkicker', 'kicker', 'tkicker'}:
+            # Elements using 'lrad'
+            if 'length' not in params and 'lrad' in params:
+                params['length'] = params.pop('lrad', None)
+        else:
+            # Elements not using 'lrad'
+            params.pop('lrad', None)
+
         if parent_name in {'sbend', 'rbend'}:
-            length = params.get('length', 0)
+            if 'k1s' in params:
+                raise ValueError(
+                    f'Cannot set `k1s` for element `{name}`: use `ksl` instead.'
+                )
 
             if parent_name == 'rbend':
                 if 'length' in params:
@@ -421,10 +408,6 @@ class MadxLoader:
             else:
                 params['k0_from_h'] = False
 
-            if (k2 := params.pop('k2', None)) and length:
-                params['knl'] = [0, 0, k2 * length]
-            if (k1s := params.pop('k1s', None)) and length:
-                params['ksl'] = [0, k1s * length]
             if (hgap := params.pop('hgap', None)):
                 params['edge_entry_hgap'] = hgap
                 params['edge_exit_hgap'] = hgap
@@ -449,8 +432,6 @@ class MadxLoader:
                 params['knl'] = knl
             if (ksl := params.pop('ksl', None)):
                 params['ksl'] = ksl
-            if params.pop('lrad', None):
-                _warn(f'Multipole `{name}` was specified with a length, ignoring!')
             for kk in list(params.keys()):
                 if kk.startswith('k') and kk.endswith('l'):
                     if kk == 'ksl' or kk == 'knl':
@@ -461,6 +442,10 @@ class MadxLoader:
                     if len(params['knl']) <= order:
                         params['knl'] += [0] * (order - len(params['knl']) + 1)
                     params['knl'][order] = params.pop(kk)
+            if angle := params.pop('angle', None):
+                params['hxl'] = angle
+            elif knl and len(knl) > 0:
+                params['hxl'] = knl[0]
 
         elif parent_name == 'vkicker':
             if (kick := params.pop('kick', None)):
@@ -543,7 +528,12 @@ class MadxLoader:
                 f'`{apertype}`) is not recognised.'
             )
 
-        x_offset, y_offset = params.pop('aper_offset', (0, 0))
+        aper_offsets = params.pop('aper_offset', (0, 0))
+        if len(aper_offsets) == 1:
+            x_offset = aper_offsets[0]
+            y_offset = 0.
+        else:
+            x_offset, y_offset = aper_offsets
         if params.pop('aper_tol', None):
             _warn(f'Aperture tolerance (`{name}`) is not supported, ignoring.')
         aper_params = {

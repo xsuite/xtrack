@@ -158,8 +158,8 @@ def example_sequence(temp_context_default_mod):
     in: instrument, l=2;
     mo: monitor, l=1;
     pl: placeholder, l=1;
-    sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;
-    rb: rbend, l=1.5, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;
+    sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;
+    rb: rbend, l=1.5, angle=2, tilt=-2, k0=3, k1=1, k2=2, e1=2, e2=1, fint=3, fintx=2, hgap=1, h1=3, h2=2;
     qu: quadrupole, l=2, k1=3, k1s=4, tilt=2;  ! ignore thick and ktap
     se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
     oc: octupole, L=2, K3=3, K3S=2, TILT=2;
@@ -167,7 +167,7 @@ def example_sequence(temp_context_default_mod):
     rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2, NO_CAVITY_TOTALPATH;  ! ignore N_BESSEL
     mu: multipole, LRAD=1, TILT=2, KNL={3, 4, 5, 6}, KSL={1, 2, 3, 4};
     so: solenoid, l=2, ks=3;  ! ignore ksi
-    
+
     rb_stage1: rbend, l=1;
     rb_stage2: rb_stage1, angle=2;
 
@@ -312,7 +312,7 @@ def test_placeholder(example_sequence):
 
 def test_sbend(example_sequence):
     env, positions, _ = example_sequence
-    # sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    # sb: sbend, l=2, angle=2, tilt=-2, k0=3, k1=1, k2=2, e1=2, e2=1,
     #   fint=3, fintx=2, hgap=1;  ! thick, ktap, h1, h2 we ignore
     sb1 = env['sb1/line']
     xo.assert_allclose(positions['sb1/line'], 15, atol=1e-14)
@@ -321,11 +321,12 @@ def test_sbend(example_sequence):
     assert sb1.k0 == 3
     assert sb1.h == 2 / 2  # angle / l
     assert sb1.k1 == 1
+    assert sb1.k2 == 2.
     assert sb1.knl[0] == 0
     assert sb1.knl[1] == 0
-    assert sb1.knl[2] == 2 * 2  # k2 * l
+    assert sb1.knl[2] == 0
     assert sb1.ksl[0] == 0
-    assert sb1.ksl[1] == 3 * 2  # k1s * l
+    assert sb1.ksl[1] == 0
     assert sb1.edge_entry_angle == 2
     assert sb1.edge_exit_angle == 1
     assert sb1.edge_entry_fint == 3
@@ -336,7 +337,7 @@ def test_sbend(example_sequence):
 
 def test_rbend(example_sequence):
     env, positions, _ = example_sequence
-    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2 e1=2, e2=1,
     #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
     rb1 = env['rb1/line']
     xo.assert_allclose(positions['rb1/line'], 17, atol=1e-14)
@@ -352,11 +353,12 @@ def test_rbend(example_sequence):
     assert rb1.k0 == 3
     assert rb1.h == h
     assert rb1.k1 == 1
+    assert rb1.k2 == 2.
     assert rb1.knl[0] == 0
     assert rb1.knl[1] == 0
-    assert rb1.knl[2] == 2 * l  # k2 * l
+    assert rb1.knl[2] == 0
     assert rb1.ksl[0] == 0
-    assert rb1.ksl[1] == 3 * l  # k1s * l
+    assert rb1.ksl[1] == 0
     assert rb1.edge_entry_angle == 2
     assert rb1.edge_exit_angle == 1
     assert rb1.edge_entry_fint == 3
@@ -564,11 +566,12 @@ def test_reversed_sbend(example_sequence):
     assert sb1.k0 == 3
     assert sb1.h == 2 / 2  # angle / l
     assert sb1.k1 == -1
+    assert sb1.k2 == 2.
     assert sb1.knl[0] == 0
     assert sb1.knl[1] == 0
-    assert sb1.knl[2] == 2 * 2  # k2 * l
+    assert sb1.knl[2] == 0
     assert sb1.ksl[0] == 0
-    assert sb1.ksl[1] == 3 * 2  # k1s * l
+    assert sb1.ksl[1] == 0
     assert sb1.edge_entry_angle == 1
     assert sb1.edge_exit_angle == 2
     assert sb1.edge_entry_fint == 2
@@ -578,7 +581,7 @@ def test_reversed_sbend(example_sequence):
 
 
 def test_reversed_rbend(example_sequence):
-    env, _, positions_reversed = example_sequence    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, k1s=3, e1=2, e2=1,
+    env, _, positions_reversed = example_sequence    # rb: rbend, l=2, angle=1.5, tilt=-2, k0=3, k1=1, k2=2, e1=2, e2=1,
     #   fint=3, fintx=2, hgap=1, h1=3, h2=2;  ! ditto
     rb1 = env['rb1/line_reversed']
     xo.assert_allclose(positions_reversed['rb1/line_reversed'], 36 - 17, atol=1e-14)
@@ -594,11 +597,12 @@ def test_reversed_rbend(example_sequence):
     assert rb1.k0 == 3
     assert rb1.h == h
     assert rb1.k1 == -1
+    assert rb1.k2 == 2.
     assert rb1.knl[0] == 0
     assert rb1.knl[1] == 0
-    assert rb1.knl[2] == 2 * l  # k2 * l
+    assert rb1.knl[2] == 0
     assert rb1.ksl[0] == 0
-    assert rb1.ksl[1] == 3 * l  # k1s * l
+    assert rb1.ksl[1] == 0
     assert rb1.edge_entry_angle == 1
     assert rb1.edge_exit_angle == 2
     assert rb1.edge_entry_fint == 2
@@ -1140,3 +1144,31 @@ def test_import_thick_with_apertures_and_slice():
 
     for i in range(2):
         _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)
+
+def test_solenoid_zero_length():
+
+    mad_str = """
+        sol1: solenoid, l=1.0, ks=0.5;
+        sol2: sol1, lrad=0.2;
+        sol3: sol2;
+
+        sol4: solenoid, l=0, ks=1.0;
+        sol5: sol4, lrad=0.1;
+        sol6: sol5;
+    """
+
+    env = xt.load(string=mad_str, format='madx')
+
+    assert isinstance(env['sol1'], xt.UniformSolenoid)
+    assert isinstance(env['sol2'], xt.UniformSolenoid)
+    assert isinstance(env['sol3'], xt.UniformSolenoid)
+    assert isinstance(env['sol4'], xt.UniformSolenoid)
+    assert isinstance(env['sol5'], xt.UniformSolenoid)
+    assert isinstance(env['sol6'], xt.UniformSolenoid)
+
+    xo.assert_allclose(env['sol1'].length, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(env['sol2'].length, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(env['sol3'].length, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(env['sol4'].length, 0.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(env['sol5'].length, 0.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(env['sol6'].length, 0.0, rtol=0, atol=1e-12)

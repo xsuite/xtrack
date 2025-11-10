@@ -9,7 +9,7 @@ start:  stmt*
     | command_stmt      -> top_level_command
     | clone             -> top_level_clone
 
-?new_val: equal_scalar ";"    -> set_var
+?new_val: "const"i? equal_scalar ";"    -> set_var
 
 ?new_def: defer_scalar ";"    -> set_var
 
@@ -91,12 +91,13 @@ array: "{" sum ( "," sum )* "}"  -> build_list
 
 string_literal: STRING
 
-ignored: if | return | select | remove
+ignored: if | return | select | remove | beam
 
 !if: "if"i /[^\n]+/
 !return: "return"i /[^\n]+/
 !select: "select"i /[^\n]+/
 !remove: "remove"i /[^\n]+/
+!beam: "beam"i /[^;]*;/
 
 _SEQUENCE: "sequence"i
 _ENDSEQUENCE: "endsequence"i

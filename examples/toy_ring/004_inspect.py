@@ -27,7 +27,7 @@ line = env.new_line(components=[
     env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     env.new('d4.2',  xt.Drift, length=1),
 ])
-line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
+line.set_particle_ref('proton', p0c=1.2e9)
 
 # Quick access to an element and its attributes (by name)
 line['mqf.1'] # is Quadrupole(length=0.3, k1=0.1, ...)

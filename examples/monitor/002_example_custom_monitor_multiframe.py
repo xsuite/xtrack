@@ -3,20 +3,12 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import json
-
 import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-context = xo.ContextCpu()
-
-with open('../../test_data/hllhc15_noerrors_nobb/line_and_particle.json') as f:
-    dct = json.load(f)
-line = xt.Line.from_dict(dct['line'])
-line.particle_ref = xt.Particles.from_dict(dct['particle'])
-
-line.build_tracker()
+line = xt.load('../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
+line.set_particle_ref('proton', p0c=7e12)
 
 num_particles = 50
 particles = xp.generate_matched_gaussian_bunch(line=line,
@@ -26,8 +18,7 @@ particles = xp.generate_matched_gaussian_bunch(line=line,
                                                sigma_z=9e-2)
 
 num_turns = 100
-monitor = xt.ParticlesMonitor(_context=context,
-                              start_at_turn=5, stop_at_turn=10,
+monitor = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=10,
                               n_repetitions=3,      # <--
                               repetition_period=20, # <--
                               num_particles=num_particles)

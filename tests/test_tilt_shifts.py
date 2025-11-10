@@ -202,8 +202,7 @@ def test_shift_x(test_context):
 
     assert quad.shift_x == 1e-3
     assert quad.shift_y == 0
-    assert quad._sin_rot_s == 0.0
-    assert quad._cos_rot_s == 1.0
+    assert quad.rot_s_rad == 0.0
 
     p = xt.Particles(x=0, p0c=1e12, _context=test_context)
     quad.track(p)
@@ -253,8 +252,7 @@ def test_shift_y(test_context):
 
     assert quad.shift_x == 0
     assert quad.shift_y == 1e-3
-    assert quad._sin_rot_s == 0.0
-    assert quad._cos_rot_s == 1.0
+    assert quad.rot_s_rad == 0.0
 
     p = xt.Particles(y=0, p0c=1e12, _context=test_context)
     quad.track(p)
@@ -305,8 +303,7 @@ def test_rot_s(test_context):
 
     assert bend.shift_x == 0
     assert bend.shift_y == 0
-    assert_allclose(bend._sin_rot_s, np.sin(rot_s_rad), rtol=0, atol=1e-14)
-    assert_allclose(bend._cos_rot_s, np.cos(rot_s_rad), rtol=0, atol=1e-14)
+    assert_allclose(bend.rot_s_rad, rot_s_rad, rtol=0, atol=1e-14)
 
     p = xt.Particles(x=0, p0c=1e12, _context=test_context)
     bend.track(p)

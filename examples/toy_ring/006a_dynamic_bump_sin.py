@@ -34,10 +34,7 @@ line = env.new_line(components=[
     env.new('d3.2',  xt.Drift, length=1),
     env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
 ])
-
-kin_energy_0 = 50e6 # 50 MeV
-line.particle_ref = xt.Particles(energy0=kin_energy_0 + xt.PROTON_MASS_EV, # total energy
-                                 mass0=xt.PROTON_MASS_EV)
+line.set_particle_ref('proton', kinetic_energy0=50e6)
 
 # Twiss
 tw = line.twiss(method='4d')
@@ -90,9 +87,7 @@ num_turns = 1000
 monitor = xt.ParticlesMonitor(num_particles=num_particles,
                               start_at_turn=0,
                               stop_at_turn =num_turns)
-line.discard_tracker()
 line.insert('monitor', monitor, at='bumper_1@start')
-line.build_tracker()
 
 # Generate particles
 particles = line.build_particles(

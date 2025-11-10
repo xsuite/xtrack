@@ -19,10 +19,9 @@ line = xt.Line(
         q2,
         ])
 
-line.build_tracker()
 line.config.XTRACK_GLOBAL_XY_LIMIT = 1e10
 
-line.particle_ref = xt.Particles(p0c=6500e9)
+line.set_particle_ref('proton', energy0=7e12)
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure()

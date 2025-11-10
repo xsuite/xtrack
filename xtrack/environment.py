@@ -292,8 +292,8 @@ class Environment:
         if needs_instantiation: # Parent is a class and not another element
             self.elements[name] = parent(**value_kwargs)
 
-        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    element_dict=self._element_dict, elem_refs=self._xdeps_eref)
+        self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                    container=self._element_dict, container_refs=self._xdeps_eref)
 
         if extra is not None:
             assert isinstance(extra, dict)
@@ -362,8 +362,8 @@ class Environment:
         if needs_instantiation: # Parent is a class and not another particle
             self.particles[name] = parent(**value_kwargs)
 
-        _set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    element_dict=self._particles, elem_refs=self._xdeps_pref)
+        self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
+                    container=self._particles, container_refs=self._xdeps_pref)
 
         self.particles[name].prototype = prototype
 
@@ -371,9 +371,8 @@ class Environment:
 
 
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
-                 length=None, mirror=False, s_tol=1e-6, compose=False):
-
-        '''
+                 length=None, mirror=False, s_tol=1e-6, compose=False) -> xt.Line:
+        """
         Create a new line.
 
         Parameters
@@ -412,7 +411,7 @@ class Environment:
                 env.new('mq1_clone', 'mq1', k1='2a'),   # Clone 'mq1' with a different k1
                 env.place('mq2', at=20.0, from='mymark'),  # Place 'mq2' at s=20
                 ])
-        '''
+        """
 
         out = xt.Line(env=self, compose=True, length=length, refer=refer,
                       s_tol=s_tol, mirror=mirror)
@@ -1241,9 +1240,9 @@ class Environment:
 
             ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
                 type(self._element_dict[name]), kwargs, _eval)
-            xt.environment._set_kwargs(
+            self._set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                element_dict=self._element_dict, elem_refs=self._xdeps_eref)
+                container=self._element_dict, container_refs=self._xdeps_eref)
             if extra is not None:
                 assert isinstance(extra, dict), (
                     'Description must be a dictionary')
@@ -1335,6 +1334,52 @@ class Environment:
         '''
         return self.vars.new_expr(expr)
 
+    def extend_knl_ksl(self, order, element_names=None):
+
+        """
+        Extend the order of the knl and ksl attributes of the elements.
+
+        Parameters
+        ----------
+        order: int
+            New order of the knl and ksl attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl`
+            and `ksl` attributes are extended.
+
+        """
+
+        if element_names is None:
+            raise NotImplementedError(
+                'Extending knl and ksl for all elements is not implemented yet.')
+
+        if isinstance(element_names, str):
+            element_names = [element_names]
+
+        self.discard_trackers()
+
+        for nn in element_names:
+            if self.get(nn).order > order:
+                raise ValueError(f'Order of element {nn} is smaller than {order}')
+
+        for nn in element_names:
+            ee = self.get(nn)
+
+            if ee.order == order:
+                continue
+
+            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
+            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+
+            dct = ee.to_dict()
+            dct.pop('order', None)
+            dct['knl'] = new_knl
+            dct['ksl'] = new_ksl
+
+            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
+            # Need to bypass the check on element redefinition
+            self._xdeps_eref._owner[nn] = new_ee
+
     @property
     def ref_manager(self):
         return self._xdeps_manager
@@ -1375,6 +1420,29 @@ class Environment:
             deps = task._get_dependencies()
             if rr in deps:
                 self.ref_manager.unregister(task)
+
+    def _set_kwargs(self, name, ref_kwargs, value_kwargs, container, container_refs):
+        for kk in value_kwargs:
+            if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
+                len_value = len(value_kwargs[kk])
+                target = getattr(container[name], kk)
+                if len(target) < len_value:
+                    if kk=='knl' or kk=='ksl' and name in self._element_dict:
+                        self.extend_knl_ksl(len_value-1, element_names=[name])
+                        target = getattr(container[name], kk)
+                    else:
+                        raise ValueError(
+                            f'Cannot set attribute {kk} of element {name}: '
+                            f'length mismatch ({len(target)} vs {len_value})')
+                target[:len_value] = value_kwargs[kk]
+                if kk in ref_kwargs:
+                    for ii, vvv in enumerate(value_kwargs[kk]):
+                        if ref_kwargs[kk][ii] is not None:
+                            getattr(container_refs[name], kk)[ii] = ref_kwargs[kk][ii]
+            elif kk in ref_kwargs:
+                setattr(container_refs[name], kk, ref_kwargs[kk])
+            else:
+                setattr(container[name], kk, value_kwargs[kk])
 
     twiss = MultilineLegacy.twiss
     build_trackers = MultilineLegacy.build_trackers
@@ -1431,19 +1499,7 @@ def _parse_kwargs(cls, kwargs, _eval):
 
     return ref_kwargs, value_kwargs
 
-def _set_kwargs(name, ref_kwargs, value_kwargs, element_dict, elem_refs):
-    for kk in value_kwargs:
-        if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
-            len_value = len(value_kwargs[kk])
-            getattr(element_dict[name], kk)[:len_value] = value_kwargs[kk]
-            if kk in ref_kwargs:
-                for ii, vvv in enumerate(value_kwargs[kk]):
-                    if ref_kwargs[kk][ii] is not None:
-                        getattr(elem_refs[name], kk)[ii] = ref_kwargs[kk][ii]
-        elif kk in ref_kwargs:
-            setattr(elem_refs[name], kk, ref_kwargs[kk])
-        else:
-            setattr(element_dict[name], kk, value_kwargs[kk])
+
 
 class EnvElements:
     def __init__(self, env):

@@ -10,9 +10,7 @@ mad.globals.on_crab1 = -190
 mad.globals.on_crab5 = -190
 
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
-line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)
-
-line.build_tracker()
+line.set_particle_ref('proton', p0c=7000e9)
 
 # Measure crabbing angle at IP1 and IP5
 z1 = 1e-4

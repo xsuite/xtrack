@@ -1,4 +1,3 @@
-import json
 import numpy as np
 import xtrack as xt
 
@@ -6,11 +5,7 @@ import xtrack as xt
 # Load line and twiss with no radiation #
 #########################################
 
-filename = '../../test_data/clic_dr/line_for_taper.json'
-
-with open(filename, 'r') as f:
-    line = xt.Line.from_dict(json.load(f))
-line.build_tracker()
+line = xt.load('../../test_data/clic_dr/line_for_taper.json')
 
 line.configure_radiation(model=None)
 tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
