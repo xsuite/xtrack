@@ -2,6 +2,7 @@
 #define XTRACK_TRACK_H
 
 #include "xobjects/headers/common.h"
+#include "xobjects/headers/atomicadd.h"
 #include "xtrack/headers/constants.h"
 
 /*

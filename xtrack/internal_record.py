@@ -34,6 +34,7 @@ GPUGLMEM int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalP
 
 _RecordIndex_get_slot_source = r'''
 #include "xobjects/headers/common.h"
+#include "xobjects/headers/atomicadd.h"
 
 GPUFUN
 int64_t RecordIndex_get_slot(RecordIndex record_index){
