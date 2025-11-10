@@ -3,8 +3,8 @@ from cpymad.madx import Madx
 import xtrack as xt
 
 # Load transfer line lattice
-env = xt.load('../../test_data/sps_to_lhc_ti2/ti2.seq')
-env.vars.load('../../test_data/sps_to_lhc_ti2/ti2_liu.str')
+env = xt.load(['../../test_data/sps_to_lhc_ti2/ti2.seq',
+               '../../test_data/sps_to_lhc_ti2/ti2_liu.str'])
 line = env['ti2']
 line.set_particle_ref('proton', p0c=450e9)
 

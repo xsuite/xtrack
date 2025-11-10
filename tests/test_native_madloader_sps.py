@@ -9,8 +9,8 @@ test_data_folder = pathlib.Path(
 
 def test_native_madloader_sps():
 
-    env = xt.load(test_data_folder / 'sps_thick/sps.seq')
-    env.vars.load(test_data_folder / 'sps_thick/lhc_q20.str')
+    env = xt.load([test_data_folder / 'sps_thick/sps.seq',
+                   test_data_folder / 'sps_thick/lhc_q20.str'])
     env.sps.set_particle_ref('proton', p0c=450e9)
     env.sps.regenerate_from_composer() # needed because the angles a set in the strength file
 

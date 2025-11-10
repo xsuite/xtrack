@@ -29,7 +29,7 @@ def _resolve_table_instance(table: xt.Table):
     return out
 
 def _guess_format_from_path(path: str) -> Optional[str]:
-    lower = path.lower()
+    lower = str(path).lower()
     if lower.endswith(('.json', '.json.gz')):
         return 'json'
     if lower.endswith(('.seq', '.madx', '.str')):

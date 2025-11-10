@@ -8,8 +8,8 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 def test_native_madloader_ps():
-    env = xt.load(test_data_folder / 'ps_sftpro/ps.seq')
-    env.vars.load(test_data_folder / 'ps_sftpro/ps_hs_sftpro.str')
+    env = xt.load([test_data_folder / 'ps_sftpro/ps.seq',
+                   test_data_folder / 'ps_sftpro/ps_hs_sftpro.str'])
     env.ps.set_particle_ref('proton', p0c=450e9)
 
     mad = Madx()

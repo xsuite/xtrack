@@ -3,8 +3,8 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-env = xt.load('../../test_data/ps_sftpro/ps.seq')
-env.vars.load('../../test_data/ps_sftpro/ps_hs_sftpro.str')
+env = xt.load(['../../test_data/ps_sftpro/ps.seq',
+              '../../test_data/ps_sftpro/ps_hs_sftpro.str'])
 env.ps.set_particle_ref('proton', p0c=450e9)
 
 mad = Madx()

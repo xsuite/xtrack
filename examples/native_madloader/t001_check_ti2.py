@@ -3,8 +3,8 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-env = xt.load('../../test_data/sps_to_lhc_ti2/ti2.seq')
-env.vars.load('../../test_data/sps_to_lhc_ti2/ti2_liu.str')
+env = xt.load(['../../test_data/sps_to_lhc_ti2/ti2.seq',
+               '../../test_data/sps_to_lhc_ti2/ti2_liu.str'])
 env.ti2.set_particle_ref('proton', p0c=450e9)
 
 mad = Madx()
@@ -41,7 +41,7 @@ for nn_test, nn_ref in zip(ltest_names, lref_names):
 
 xo.assert_allclose(
     tt_ref_nodr.rows[lref_names].s_center, tt_test_nodr.rows[ltest_names].s_center,
-    rtol=0, atol=5e-8)
+    rtol=0, atol=1e-9)
 
 for nn in ltest_names:
     print(f'Checking: {nn}                     ', end='\r', flush=True)
