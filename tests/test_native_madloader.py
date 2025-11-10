@@ -321,9 +321,10 @@ def test_sbend(example_sequence):
     assert sb1.k0 == 3
     assert sb1.h == 2 / 2  # angle / l
     assert sb1.k1 == 1
+    assert sb1.k2 == 2.
     assert sb1.knl[0] == 0
     assert sb1.knl[1] == 0
-    assert sb1.knl[2] == 2 * 2  # k2 * l
+    assert sb1.knl[2] == 0
     assert sb1.ksl[0] == 0
     assert sb1.ksl[1] == 3 * 2  # k1s * l
     assert sb1.edge_entry_angle == 2
