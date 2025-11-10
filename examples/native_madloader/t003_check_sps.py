@@ -3,10 +3,9 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-env = xt.load('../../test_data/sps_thick/sps.seq')
-env.vars.load('../../test_data/sps_thick/lhc_q20.str')
+env = xt.load(['../../test_data/sps_thick/sps.seq',
+               '../../test_data/sps_thick/lhc_q20.str'])
 env.sps.set_particle_ref('proton', p0c=450e9)
-env.sps.regenerate_from_composer()
 
 mad = Madx()
 mad.call('../../test_data/sps_thick/sps.seq')

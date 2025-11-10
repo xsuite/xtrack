@@ -32,7 +32,7 @@ def _guess_format_from_path(path: str) -> Optional[str]:
     lower = path.lower()
     if lower.endswith(('.json', '.json.gz')):
         return 'json'
-    if lower.endswith(('.seq', '.madx')):
+    if lower.endswith(('.seq', '.madx', '.str')):
         return 'madx'
     if lower.endswith('.py'):
         return 'python'
@@ -64,11 +64,17 @@ def load(
             f'Format must be specified to be one of {_SUPPORTED_FORMATS} when using string input'
         )
 
-    if format is None and file is not None and isinstance(file, str):
-        format = _guess_format_from_path(file)
+    if format is None and file is not None:
+        if isinstance(file, str):
+            format = _guess_format_from_path(file)
+        elif isinstance(file, (list, tuple)):
+            format_files = list(map(_guess_format_from_path, file))
+            if len(set(format_files)) == 1:
+                format = format_files[0]
 
     if format is None:
-        raise ValueError('format could not be determined, please specify it explicitly')
+        raise ValueError('format could not be determined, please specify it explicitly. '
+                'Available formats are "json", "madx", "python", "csv", "hdf5", "tfs".')
 
     if reverse_lines and format != 'madx':
         raise ValueError('`reverse_lines` is only supported for madx input.')

@@ -645,7 +645,10 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
     loader = MadxLoader()
 
     if file is not None:
-        loader.load_file(file)
+        if not isinstance(file, (tuple, list)):
+            file = [file]
+        for ff in file:
+            loader.load_file(ff)
     elif string is not None:
         loader.load_string(string)
     else:
