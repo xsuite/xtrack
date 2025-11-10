@@ -6,8 +6,8 @@
 #ifndef XTRACK_ATOMICADD_H_DEPRECATED
 #define XTRACK_ATOMICADD_H_DEPRECATED
 
-#include "xobjects/headers/atomicadd.h"
+// The xtrack/headers/atomicadd.h header is deprecated. Use xobjects/headers/atomicadd.h instead.
 
-#warning "The xtrack/headers/atomicadd.h header is deprecated. Use xobjects/headers/atomicadd.h instead."
+#include "xobjects/headers/atomicadd.h"
 
 #endif // XTRACK_ATOMICADD_H_DEPRECATED
