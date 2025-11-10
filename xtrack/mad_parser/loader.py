@@ -405,9 +405,6 @@ class MadxLoader:
             else:
                 params['k0_from_h'] = False
 
-            if name == 'pr.bht01.f':
-                breakpoint()
-
             if (hgap := params.pop('hgap', None)):
                 params['edge_entry_hgap'] = hgap
                 params['edge_exit_hgap'] = hgap
