@@ -1917,7 +1917,7 @@ class EnvParticleRef:
 
     def copy(self, **kwargs):
         return self._resolved.copy(**kwargs)
-   
+
 class EnvVars:
 
     def __init__(self, env):
@@ -2072,6 +2072,31 @@ class EnvVars:
 
     def get_expr(self, var):
         return self[var]._expr
+
+    def rename(self, old, new, verbose=False):
+
+        env = self.env
+
+        mgr = env.ref_manager
+        old_expr = env.ref[old]._expr
+        old_expr_or_value = old_expr if old_expr is not None else env.ref[old]._value
+        env.vars[new] = old_expr_or_value
+        r_old = env.ref[old]
+        r_new = env.ref[new]
+        t_old = mgr.tasks.get(r_old)
+        if t_old is not None:
+            if verbose:
+                print(f"replacing target in {t_old}")
+            mgr.set_value(r_new, t_old.expr)
+        for rt in list(env.ref_manager.rdeps[r_old]):
+            tt = mgr.tasks[rt]
+            old_expr = str(tt.expr)
+            new_expr = old_expr.replace(str(r_old), str(r_new))
+            if verbose:
+                print(f"replacing {old_expr} with {new_expr}")
+            mgr.set_value(rt, eval(new_expr, mgr.containers))
+
+        env.vars.remove(old)
 
     def __contains__(self, key):
         if self.env._xdeps_vref is None:
