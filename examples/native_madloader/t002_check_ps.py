@@ -13,7 +13,7 @@ mad.call('../../test_data/ps_sftpro/ps_hs_sftpro.str')
 mad.beam()
 mad.use('ps')
 
-lref = xt.Line.from_madx_sequence(mad.sequence.ps)
+lref = xt.Line.from_madx_sequence(mad.sequence.ps, deferred_expressions=True)
 lref.set_particle_ref('proton', p0c=450e9)
 
 ltest = env.ps

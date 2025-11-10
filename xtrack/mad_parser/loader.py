@@ -405,6 +405,9 @@ class MadxLoader:
             else:
                 params['k0_from_h'] = False
 
+            if name == 'pr.bht01.f':
+                breakpoint()
+
             if (k2 := params.pop('k2', None)) and length:
                 params['knl'] = [0, 0, k2 * length]
             if (k1s := params.pop('k1s', None)) and length:
