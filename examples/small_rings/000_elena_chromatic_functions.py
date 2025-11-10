@@ -3,8 +3,8 @@ from cpymad.madx import Madx
 import xtrack as xt
 
 # We load the model from MAD-X lattice and strengths
-env = xt.load('../../test_data/elena/elena.seq')
-env.vars.load('../../test_data/elena/highenergy.str')
+env = xt.load(['../../test_data/elena/elena.seq',
+               '../../test_data/elena/highenergy.str'])
 line = env.elena
 line.set_particle_ref('antiproton', p0c=0.1e9)
 line['beam_p_gev_c'] = line.particle_ref.p0c[0]/1e9 # Used by the optics
