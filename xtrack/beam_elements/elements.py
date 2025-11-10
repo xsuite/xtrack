@@ -1312,6 +1312,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     _common_xofields = {
         'k0': xo.Float64,
         'k1': xo.Float64,
+        'k2': xo.Float64,
         'h': xo.Float64,
         'angle': xo.Float64,
         'length': xo.Float64,

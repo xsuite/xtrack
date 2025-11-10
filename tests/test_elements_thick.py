@@ -633,14 +633,11 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     # we assume k0_from_h=False, even if its value evaluates to zero. In MAD-X
     # k0 = h if k0 is zero, but this is not feasible to implement in Xtrack now.
     xo.assert_allclose(elem.k0, 0 if with_knobs else 0.05, atol=1e-14)
+    xo.assert_allclose(elem.k2, 0.4, atol=1e-14)
     xo.assert_allclose(elem.h, 0.05, atol=1e-14)  # h = angle / L
+    xo.assert_allclose(elem.knl, 0.0, atol=1e-14)
     xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
 
-    xo.assert_allclose(
-        elem.knl,
-        np.array([0, 0, 0.8, 0, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
-        atol=1e-14,
-    )
 
     # Edges:
     xo.assert_allclose(elem.edge_entry_fint, 0.5, atol=1e-14)
@@ -667,14 +664,10 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     # Element:
     xo.assert_allclose(elem.length, 3.0, atol=1e-14)
     xo.assert_allclose(elem.k0, 0.4, atol=1e-14)
+    xo.assert_allclose(elem.k2, 0.8, atol=1e-14)
     xo.assert_allclose(elem.h, 0.2 / 3.0, atol=1e-14)  # h = angle / length
     xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
-
-    xo.assert_allclose(
-        elem.knl,
-        np.array([0, 0, 2.4, 0, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
-        atol=1e-14,
-    )
+    xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
 
     # Edges:
     xo.assert_allclose(elem.edge_entry_fint, 1.0, atol=1e-14)
@@ -779,7 +772,8 @@ def test_import_thick_bend_from_madx_and_slice(
         xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
         xo.assert_allclose(elem._parent.length, 2.0, atol=1e-14)
         xo.assert_allclose(elem._parent.k0, 0.2, atol=1e-14)
-        xo.assert_allclose(elem._parent.knl, [0., 0, 0.8, 0, 0, 0], atol=1e-14)
+        xo.assert_allclose(elem._parent.k2, 0.4, atol=1e-14)
+        xo.assert_allclose(elem._parent.knl, 0, atol=1e-14)
         xo.assert_allclose(elem._parent.ksl, 0, atol=1e-14)
         xo.assert_allclose(elem._parent.h, 0.05, atol=1e-14)
 
@@ -803,14 +797,16 @@ def test_import_thick_bend_from_madx_and_slice(
         xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
         xo.assert_allclose(elem._parent.length, 3.0, atol=1e-14)
         xo.assert_allclose(elem._parent.k0, 0.4, atol=1e-14)
-        xo.assert_allclose(elem._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-14)
+        xo.assert_allclose(elem._parent.k2, 0.8, atol=1e-14)
+        xo.assert_allclose(elem._parent.knl, 0, atol=1e-14)
         xo.assert_allclose(elem._parent.ksl, 0, atol=1e-14)
         xo.assert_allclose(elem._parent.h, 0.2/3, atol=1e-14)
 
         xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-14)
         xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-14)
         xo.assert_allclose(elem._xobject._parent.k0, 0.4, atol=1e-14)
-        xo.assert_allclose(elem._xobject._parent.knl, [0., 0, 2.4, 0, 0, 0], atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k2, 0.8, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.knl, 0, atol=1e-14)
         xo.assert_allclose(elem._xobject._parent.ksl, 0, atol=1e-14)
         xo.assert_allclose(elem._xobject._parent.h, 0.2/3, atol=1e-14)
 

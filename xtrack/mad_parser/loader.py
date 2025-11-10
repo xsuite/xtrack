@@ -172,6 +172,23 @@ class MadxLoader:
                 elem_name = var_name[len('_length__') :]
                 self.env.vars[var_name] = self.env.ref[elem_name].length
 
+        # Handle edge angle feed-downs
+        for ename, elem in self.env._xdeps_eref._owner.items():
+            if isinstance(elem, (xt.RBend, xt.Bend)):
+                if elem.k0_from_h:
+                    continue
+                # I know it came from madx, so the expression is on angle not h
+                aa = self.env.ref[ename].angle._expr or float(self.env.ref[ename].angle._value)
+                kk0 = self.env.ref[ename].k0._expr or float(self.env.ref[ename].k0._value)
+                if isinstance(elem, xt.RBend):
+                    lstraight = self.env.ref[ename].length_straight._expr or self.env.ref[ename].length_straight._value
+                    lcurv = lstraight / self.env._xdeps_fref.sinc(aa / 2)
+                else:
+                    lcurv = self.env.ref[ename].length._expr or self.env.ref[ename].length._value
+                angle_fdown = 0.5 * (kk0 * lcurv - aa)
+                self.env.ref[ename].edge_entry_angle_fdown = angle_fdown
+                self.env.ref[ename].edge_exit_angle_fdown = angle_fdown
+
     def _parse_elements(self, elements: Dict[str, ElementType]):
         for name, el_params in elements.items():
             parent = el_params.pop('parent')
@@ -220,8 +237,6 @@ class MadxLoader:
 
     def _parse_parameters(self, parameters: Dict[str, Dict[str, str]]):
         for element, el_params in parameters.items():
-            # if element == 'beam': # We ignore beam commands for now
-            #     continue
             params, extras = get_params(el_params, parent=element)
             self._set_element(element, self.env, **params, extra=extras)
 
@@ -376,7 +391,10 @@ class MadxLoader:
             params.pop('lrad', None)
 
         if parent_name in {'sbend', 'rbend'}:
-            length = params.get('length', 0)
+            if 'k1s' in params:
+                raise ValueError(
+                    f'Cannot set `k1s` for element `{name}`: use `ksl` instead.'
+                )
 
             if parent_name == 'rbend':
                 if 'length' in params:
@@ -390,10 +408,6 @@ class MadxLoader:
             else:
                 params['k0_from_h'] = False
 
-            if (k2 := params.pop('k2', None)) and length:
-                params['knl'] = [0, 0, k2 * length]
-            if (k1s := params.pop('k1s', None)) and length:
-                params['ksl'] = [0, k1s * length]
             if (hgap := params.pop('hgap', None)):
                 params['edge_entry_hgap'] = hgap
                 params['edge_exit_hgap'] = hgap
