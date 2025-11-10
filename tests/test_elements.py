@@ -223,7 +223,7 @@ def test_drift_exact_and_expanded(test_context):
 
     assert line['e2'].model == 'adaptive'
 
-    p0 = xp.Particles(p0c=1e9, px=0.3, _context=test_context)
+    p0 = xp.Particles(p0c=1e9, px=0.3)
     x_prime_expanded = p0.px / (1 + p0.delta)
     x_prime_exact = p0.px / np.sqrt((1 + p0.delta)**2 - p0.px**2)
 
