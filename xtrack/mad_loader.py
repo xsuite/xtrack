@@ -819,8 +819,6 @@ class MadLoader:
             ksl = []
             num_multipole_kicks = 0
 
-        knl[2] += mad_el.k2 * l_curv
-
         if mad_el.k0:
             k0_from_h = False
             bend_kwargs['k0'] = mad_el.k0
@@ -833,6 +831,7 @@ class MadLoader:
             element_type,
             k0_from_h=k0_from_h,
             k1=self.bv * mad_el.k1,
+            k2=mad_el.k2,
             edge_entry_angle=e1,
             edge_exit_angle=e2,
             edge_entry_angle_fdown=angle_fdown,
