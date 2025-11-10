@@ -10,8 +10,8 @@ test_data_folder = pathlib.Path(
 @pytest.mark.parametrize("check_type", ['csv', 'hdf5', 'tfs', 'json'])
 def test_twiss_table_file(check_type, tmp_path):
 
-    env = xt.load(test_data_folder / 'sps_thick/sps.seq')
-    env.vars.load(test_data_folder / 'sps_thick/lhc_q20.str')
+    env = xt.load([test_data_folder / 'sps_thick/sps.seq',
+                   test_data_folder / 'sps_thick/lhc_q20.str'])
     line = env.sps
     line.set_particle_ref('p', energy0=26e9)
     tw = line.twiss4d()

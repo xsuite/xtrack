@@ -159,8 +159,8 @@ def test_rbend_straight_body_edge_linear(test_context):
 
 def test_rbend_straight_sps():
 
-    env = xt.load(test_data_folder / 'sps_thick/sps.seq')
-    env.vars.load(test_data_folder / 'sps_thick/lhc_q20.str')
+    env = xt.load([test_data_folder / 'sps_thick/sps.seq',
+                   test_data_folder / 'sps_thick/lhc_q20.str'])
 
     line = env['sps']
     line.particle_ref = xt.Particles(p0c=26e9, mass0=xt.PROTON_MASS_EV)

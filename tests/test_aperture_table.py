@@ -14,9 +14,8 @@ def test_aperture_table():
         'vtaf.51632.b_aper', 'vbrta.51633.a_aper', 'vbrta.51633.b_aper',
         'bgiha.51634.a_aper', 'bgiva.51674.a_aper']
 
-    env = xt.load(test_data_folder /
-                               'sps_with_apertures/EYETS 2024-2025.seq')
-    env.vars.load(str(test_data_folder / 'sps_with_apertures/lhc_q20.str'))
+    env = xt.load([test_data_folder / 'sps_with_apertures/EYETS 2024-2025.seq',
+                   test_data_folder / 'sps_with_apertures/lhc_q20.str'])
     line = env.sps
     line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=26e9)
 
