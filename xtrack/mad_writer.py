@@ -403,6 +403,7 @@ def bend_to_mad_str(eref, bend_type='sbend', mad_type=MadType.MADX, substituted_
         tokens.append(mad_assignment('kill_ent_fringe', edge_entry_active_val, mad_type, substituted_vars=substituted_vars))
         tokens.append(mad_assignment('kill_exi_fringe', edge_exit_active_val, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k1', _ge(eref.k1), mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('k2', _ge(eref.k2), mad_type, substituted_vars=substituted_vars))
     knl_token, ksl_token = _knl_ksl_to_mad(eref)
     tokens.append(knl_token)
     tokens.append(ksl_token)
