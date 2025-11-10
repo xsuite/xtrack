@@ -40,7 +40,7 @@ void ThinSliceRBend_track_local_particle(
         /*hxl*/                   0.,
         /*k0*/                    ThinSliceRBendData_get__parent_k0(el),
         /*k1*/                    ThinSliceRBendData_get__parent_k1(el),
-        /*k2*/                    0.,
+        /*k2*/                    ThinSliceRBendData_get__parent_k2(el),
         /*k3*/                    0.,
         /*k0s*/                   0.,
         /*k1s*/                   0.,
