@@ -391,7 +391,10 @@ class MadxLoader:
             params.pop('lrad', None)
 
         if parent_name in {'sbend', 'rbend'}:
-            length = params.get('length', 0)
+            if 'k1s' in params:
+                raise ValueError(
+                    f'Cannot set `k1s` for element `{name}`: use `ksl` instead.'
+                )
 
             if parent_name == 'rbend':
                 if 'length' in params:
