@@ -2076,25 +2076,27 @@ class EnvVars:
     def rename(self, old, new, verbose=False):
 
         env = self.env
-
         mgr = env.ref_manager
-        old_expr = env.ref[old]._expr
-        old_expr_or_value = old_expr if old_expr is not None else env.ref[old]._value
-        env.vars[new] = old_expr_or_value
+        env.vars[new] = env.vv[old]
         r_old = env.ref[old]
         r_new = env.ref[new]
         t_old = mgr.tasks.get(r_old)
         if t_old is not None:
             if verbose:
-                print(f"replacing target in {t_old}")
+                print(f"replacing target {t_old} with {r_new}={t_old.expr}")
             mgr.set_value(r_new, t_old.expr)
         for rt in list(env.ref_manager.rdeps[r_old]):
-            tt = mgr.tasks[rt]
-            old_expr = str(tt.expr)
-            new_expr = old_expr.replace(str(r_old), str(r_new))
-            if verbose:
-                print(f"replacing {old_expr} with {new_expr}")
-            mgr.set_value(rt, eval(new_expr, mgr.containers))
+            if rt in mgr.tasks:
+                tt = mgr.tasks[rt]
+                old_expr = str(tt.expr)
+                new_expr = old_expr.replace(str(r_old), str(r_new))
+                if verbose:
+                    print(f"replancing {old_expr} with {new_expr}")
+                mgr.set_value(rt, eval(new_expr, mgr.containers))
+
+        if verbose:
+            env.info(old, limit=None)
+            env.info(new, limit=None)
 
         env.vars.remove(old)
 
