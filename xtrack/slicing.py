@@ -430,7 +430,6 @@ class Slicer:
                 else:
                     while (nn := f'{name}..{element_idx}') in self._line._element_dict:
                         element_idx += 1
-                    slice_parent = element._parent
                     ee = slice_parent._thick_slice_class(
                         _parent=slice_parent,
                         weight=weight * elem_weight,
