@@ -5,6 +5,7 @@ line = env.new_line(length=10)
 
 # line.cut_at_s([2,5,7])
 
+breakpoint()
 line.slice_thick_elements(
         slicing_strategies=[
             # Slicing with thin elements
