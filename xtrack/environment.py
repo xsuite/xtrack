@@ -107,6 +107,10 @@ class Environment:
         self._last_context = None
         self._drift_cache = {}
 
+        for nn, ee in self._element_dict.items():
+            if nn.startswith('||drift_') and isinstance(ee, xt.Drift):
+                self._drift_cache[ee.length] = nn
+
         if lines is not None:
 
             # Identify common elements
