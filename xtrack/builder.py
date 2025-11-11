@@ -543,8 +543,7 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
         ds_upstream = tt_sorted['ds_upstream', ii]
         if np.abs(ds_upstream) > s_tol:
             assert ds_upstream > 0, f'Negative drift length: {ds_upstream}, upstream of {nn}'
-            drift_name = env._get_a_drift_name()
-            env.new(drift_name, xt.Drift, length=ds_upstream)
+            drift_name = env._get_drift(ds_upstream)
             names_with_drifts.append(drift_name)
         names_with_drifts.append(nn)
 
@@ -553,8 +552,7 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
         if length_line > length + s_tol:
             raise ValueError(f'Line length {length_line} is greater than the requested length {length}')
         if length_line < length - s_tol:
-            drift_name = env._get_a_drift_name()
-            env.new(drift_name, xt.Drift, length=length - length_line)
+            drift_name = env._get_drift(length - length_line)
             names_with_drifts.append(drift_name)
 
     return list(map(str, names_with_drifts))

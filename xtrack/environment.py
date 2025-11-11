@@ -105,6 +105,7 @@ class Environment:
         self._particles_container = EnvParticles(self)
         self._enable_name_clash_check = True
         self._last_context = None
+        self._drift_cache = {}
 
         if lines is not None:
 
@@ -587,7 +588,7 @@ class Environment:
         new_name = name
         if name in rename_elements:
             new_name = rename_elements[name]
-        elif (bool(re.match(r'^drift_\d+$', name))
+        elif (bool(re.match(r'^\|\|drift_\d+$', name))
             and line.ref[name].length._expr is None):
             new_name = self._get_a_drift_name()
         elif (name in self.elements and
@@ -683,10 +684,18 @@ class Environment:
 
     def _get_a_drift_name(self):
         self._drift_counter += 1
-        while nn := f'drift_{self._drift_counter}':
+        while nn := f'||drift_{self._drift_counter}':
             if nn not in self.elements:
                 return nn
             self._drift_counter += 1
+
+    def _get_drift(self, length):
+        if length in self._drift_cache:
+            return self._drift_cache[length]
+        nn = self._get_a_drift_name()
+        self.elements[nn] = xt.Drift(length=length)
+        self._drift_cache[length] = nn
+        return nn
 
     def __setitem__(self, key, value):
 

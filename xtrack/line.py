@@ -4361,8 +4361,11 @@ class Line:
 
         new_element_names = []
         for nn in self.element_names:
-            new_nn = nn + '.' + suffix
-            self.env.elements[new_nn] = xt.Replica(nn)
+            if nn.startswith('||drift_'):
+                new_nn = nn
+            else:
+                new_nn = nn + '.' + suffix
+                self.env.elements[new_nn] = xt.Replica(nn)
             new_element_names.append(new_nn)
 
         out = self.env.new_line(components=new_element_names)
