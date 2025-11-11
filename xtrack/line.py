@@ -1090,6 +1090,9 @@ class Line:
             and self.composer is not None):
             self.rebuild()
 
+        if _context is None and _buffer is None:
+            _context = self.env._last_context
+
         self.tracker = xt.Tracker(
                                 line=self,
                                 _context=_context,
@@ -1102,6 +1105,8 @@ class Line:
 
         if hasattr(self, 'env') and self.env is not None:
             self.env._ensure_tracker_consistency(buffer=self._buffer)
+
+        self.env._last_context = self._context
 
         return self.tracker
 

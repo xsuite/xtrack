@@ -104,6 +104,7 @@ class Environment:
         self._elements = EnvElements(self)
         self._particles_container = EnvParticles(self)
         self._enable_name_clash_check = True
+        self._last_context = None
 
         if lines is not None:
 
