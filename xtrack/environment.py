@@ -121,7 +121,7 @@ class Environment:
                 # `import_line`
                 for nn in elems_and_parents:
                     if (not (isinstance(ll._element_dict[nn], (xt.Marker))) and
-                        not bool(re.match(r'^drift_\d+$', nn))):
+                        not bool(re.match(r'^\|\|drift_\d+$', nn))):
                         counts[nn] += 1
             common_elements = [nn for nn, cc in counts.items() if cc>1]
 
