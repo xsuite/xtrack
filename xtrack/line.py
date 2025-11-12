@@ -4394,7 +4394,8 @@ class Line:
             if isinstance(self._element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
 
-    def replace_all_repeated_elements(self, separator='.', mode='clone'):
+    def replace_all_repeated_elements(self, separator='.', mode='clone',
+                                      replace_generated_drifts=False):
         self._method_incompatible_with_compose()
         env = self.env
 
@@ -4405,10 +4406,13 @@ class Line:
             aux_dict[nn].append(ii)
 
         for nn in unique_names:
+            if not replace_generated_drifts and nn.startswith('||drift_'):
+                continue
             if len(aux_dict[nn]) > 1:
                 i_rep = 0
                 for ii in aux_dict[nn]:
-                    while (new_name := nn + separator + str(i_rep)) in self._element_dict:
+                    while ((new_name := nn.replace('||drift_', 'drift_') + separator + str(i_rep))
+                           in self._element_dict):
                         i_rep += 1
                     env.new(new_name, nn, mode=mode)
                     self.element_names[ii] = new_name
