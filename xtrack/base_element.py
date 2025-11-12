@@ -418,6 +418,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     skip_in_loss_location_refinement = False
     needs_rng = False
     name_associated_aperture = None
+    prototype = None
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
