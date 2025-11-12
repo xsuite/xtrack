@@ -626,18 +626,19 @@ def test_slice_repeated_elements():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0_entry::0', 'b0..entry_map', 'drift_b0..0', 'b0..0',
-       'drift_b0..1', 'b0..1', 'drift_b0..2', 'b0..2', 'drift_b0..3',
-       'b0..exit_map', 'b0_exit::0', 'drift_2', 'ql', 'drift_3',
-       'q0_entry::0', 'q0..entry_map', 'drift_q0..0', 'q0..0',
-       'drift_q0..1', 'q0..1', 'drift_q0..2', 'q0..exit_map',
-       'q0_exit::0', 'drift_4', 'qr', 'drift_5', 'mk1', 'mk2', 'mk3',
-       'q0_entry::1', 'q0..entry_map_0', 'drift_q0..3', 'q0..2',
+        ['||drift_1', 'b0_entry::0', 'b0..entry_map', 'drift_b0..0',
+       'b0..0', 'drift_b0..1', 'b0..1', 'drift_b0..2', 'b0..2',
+       'drift_b0..3', 'b0..exit_map', 'b0_exit::0', '||drift_2', 'ql',
+       '||drift_3::0', 'q0_entry::0', 'q0..entry_map', 'drift_q0..0',
+       'q0..0', 'drift_q0..1', 'q0..1', 'drift_q0..2', 'q0..exit_map',
+       'q0_exit::0', '||drift_3::1', 'qr', '||drift_4', 'mk1', 'mk2',
+       'mk3', 'q0_entry::1', 'q0..entry_map_0', 'drift_q0..3', 'q0..2',
        'drift_q0..4', 'q0..3', 'drift_q0..5', 'q0..exit_map_0',
        'q0_exit::1', 'b0_entry::1', 'b0..entry_map_0', 'drift_b0..4',
        'b0..3', 'drift_b0..5', 'b0..4', 'drift_b0..6', 'b0..5',
-       'drift_b0..7', 'b0..exit_map_0', 'b0_exit::1', 'drift_6', 'end',
+       'drift_b0..7', 'b0..exit_map_0', 'b0_exit::1', '||drift_5', 'end',
        '_end_point']))
+
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5       ,  5.        ,  5.        ,  5.0625    ,  5.125     ,
           5.3125    ,  5.5       ,  5.6875    ,  5.875     ,  5.9375    ,
@@ -664,13 +665,13 @@ def test_slice_repeated_elements():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0', 'drift_2', 'ql', 'drift_3', 'q0_entry',
+        ['||drift_1', 'b0', '||drift_2', 'ql', '||drift_3::0', 'q0_entry',
        'q0..entry_map', 'drift_q0..0', 'q0..0', 'drift_q0..1', 'q0..1',
-       'drift_q0..2', 'q0..exit_map', 'q0_exit', 'drift_4', 'qr',
-       'drift_5', 'mk1', 'mk2', 'mk3', 'q0', 'b0_entry', 'b0..entry_map',
-       'drift_b0..0', 'b0..0', 'drift_b0..1', 'b0..1', 'drift_b0..2',
-       'b0..2', 'drift_b0..3', 'b0..exit_map', 'b0_exit', 'drift_6',
-       'end', '_end_point']))
+       'drift_q0..2', 'q0..exit_map', 'q0_exit', '||drift_3::1', 'qr',
+       '||drift_4', 'mk1', 'mk2', 'mk3', 'q0', 'b0_entry',
+       'b0..entry_map', 'drift_b0..0', 'b0..0', 'drift_b0..1', 'b0..1',
+       'drift_b0..2', 'b0..2', 'drift_b0..3', 'b0..exit_map', 'b0_exit',
+       '||drift_5', 'end', '_end_point']))
 
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5       ,  5.5       ,  7.5       , 10.        , 15.        ,
@@ -695,14 +696,14 @@ def test_slice_repeated_elements():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0_entry::0', 'b0..entry_map', 'b0..0', 'b0..1',
-       'b0..2', 'b0..exit_map', 'b0_exit::0', 'drift_2', 'ql', 'drift_3',
-       'q0_entry::0', 'q0..entry_map', 'q0..0', 'q0..1', 'q0..exit_map',
-       'q0_exit::0', 'drift_4', 'qr', 'drift_5', 'mk1', 'mk2', 'mk3',
-       'q0_entry::1', 'q0..entry_map_0', 'q0..2', 'q0..3',
-       'q0..exit_map_0', 'q0_exit::1', 'b0_entry::1', 'b0..entry_map_0',
-       'b0..3', 'b0..4', 'b0..5', 'b0..exit_map_0', 'b0_exit::1',
-       'drift_6', 'end', '_end_point']))
+        ['||drift_1', 'b0_entry::0', 'b0..entry_map', 'b0..0', 'b0..1',
+       'b0..2', 'b0..exit_map', 'b0_exit::0', '||drift_2', 'ql',
+       '||drift_3::0', 'q0_entry::0', 'q0..entry_map', 'q0..0', 'q0..1',
+       'q0..exit_map', 'q0_exit::0', '||drift_3::1', 'qr', '||drift_4',
+       'mk1', 'mk2', 'mk3', 'q0_entry::1', 'q0..entry_map_0', 'q0..2',
+       'q0..3', 'q0..exit_map_0', 'q0_exit::1', 'b0_entry::1',
+       'b0..entry_map_0', 'b0..3', 'b0..4', 'b0..5', 'b0..exit_map_0',
+       'b0_exit::1', '||drift_5', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5       ,  5.        ,  5.        ,  5.08333333,  5.5       ,
           5.91666667,  6.        ,  6.        ,  7.5       , 10.        ,
@@ -721,13 +722,13 @@ def test_slice_repeated_elements():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0_entry', 'b0..entry_map', 'b0..0', 'b0..1',
-       'b0..exit_map', 'b0_exit', 'drift_2', 'ql', 'drift_3',
+        ['||drift_1', 'b0_entry', 'b0..entry_map', 'b0..0', 'b0..1',
+       'b0..exit_map', 'b0_exit', '||drift_2', 'ql', '||drift_3::0',
        'q0_entry::0', 'q0..entry_map', 'q0..0', 'q0..1', 'q0..2',
-       'q0..exit_map', 'q0_exit::0', 'drift_4', 'qr', 'drift_5', 'mk1',
-       'mk2', 'mk3', 'q0_entry::1', 'q0..entry_map_0', 'q0..3', 'q0..4',
-       'q0..5', 'q0..exit_map_0', 'q0_exit::1', 'b0', 'drift_6', 'end',
-       '_end_point']))
+       'q0..exit_map', 'q0_exit::0', '||drift_3::1', 'qr', '||drift_4',
+       'mk1', 'mk2', 'mk3', 'q0_entry::1', 'q0..entry_map_0', 'q0..3',
+       'q0..4', 'q0..5', 'q0..exit_map_0', 'q0_exit::1', 'b0',
+       '||drift_5', 'end', '_end_point']))
 
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5 ,  5.  ,  5.  ,  5.25,  5.75,  6.  ,  6.  ,  7.5 , 10.  ,
