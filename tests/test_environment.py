@@ -2764,9 +2764,9 @@ def test_append_to_line():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0::0', 'drift_2', 'ql', 'drift_3', 'q0::0', 'drift_4',
-        'qr', 'drift_5', 'mk1', 'mk2', 'mk3', 'q0::1', 'b0::1', 'drift_6',
-        'end', 'qnew', '_end_point']))
+        ['||drift_1', 'b0::0', '||drift_2', 'ql', '||drift_3::0', 'q0::0',
+       '||drift_3::1', 'qr', '||drift_4', 'mk1', 'mk2', 'mk3', 'q0::1',
+       'b0::1', '||drift_5', 'end', 'qnew', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5,  5.5,  7.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. ,
         40. , 41. , 42.5, 46.5, 50. , 51. , 52. ]),
@@ -2788,9 +2788,9 @@ def test_append_to_line():
     tt.show(cols=['name', 'element_type', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0::0', 'drift_2', 'ql', 'drift_3', 'q0::0', 'drift_4',
-        'qr', 'drift_5', 'mk1', 'mk2', 'mk3', 'q0::1', 'b0::1', 'drift_6',
-        'end', 'myname', '_end_point']))
+        ['||drift_1', 'b0::0', '||drift_2', 'ql', '||drift_3::0', 'q0::0',
+       '||drift_3::1', 'qr', '||drift_4', 'mk1', 'mk2', 'mk3', 'q0::1',
+       'b0::1', '||drift_5', 'end', 'myname', '_end_point']))
 
     assert np.all(tt.element_type == np.array(
         ['Drift', 'Bend', 'Drift', 'Quadrupole', 'Drift', 'Quadrupole',
@@ -2811,9 +2811,9 @@ def test_append_to_line():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0::0', 'drift_2', 'ql', 'drift_3', 'q0::0', 'drift_4',
-        'qr', 'drift_5', 'mk1', 'mk2', 'mk3', 'q0::1', 'b0::1', 'drift_6',
-        'end', 'qnew1', 'qnew2', '_end_point']))
+        ['||drift_1', 'b0::0', '||drift_2', 'ql', '||drift_3::0', 'q0::0',
+       '||drift_3::1', 'qr', '||drift_4', 'mk1', 'mk2', 'mk3', 'q0::1',
+       'b0::1', '||drift_5', 'end', 'qnew1', 'qnew2', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5,  5.5,  7.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. ,
         40. , 41. , 42.5, 46.5, 50. , 51. , 53. , 54. ]),
@@ -2830,9 +2830,10 @@ def test_append_to_line():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0::0', 'drift_2', 'ql::0', 'drift_3', 'q0::0', 'drift_4',
-        'qr', 'drift_5', 'mk1', 'mk2', 'mk3', 'q0::1', 'b0::1', 'drift_6',
-        'end', 'qnew1', 'qnew2', 'ql::1', '_end_point']))
+        ['||drift_1', 'b0::0', '||drift_2', 'ql::0', '||drift_3::0',
+         'q0::0', '||drift_3::1', 'qr', '||drift_4', 'mk1', 'mk2', 'mk3',
+         'q0::1', 'b0::1', '||drift_5', 'end', 'qnew1', 'qnew2', 'ql::1',
+         '_end_point'],))
 
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5,  5.5,  7.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. ,
@@ -2850,9 +2851,10 @@ def test_append_to_line():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0::0', 'drift_2', 'ql::0', 'drift_3', 'q0::0', 'drift_4',
-        'qr::0', 'drift_5', 'mk1', 'mk2', 'mk3', 'q0::1', 'b0::1', 'drift_6',
-        'end', 'qnew1', 'qnew2', 'ql::1', 'qr::1', '_end_point']))
+        ['||drift_1', 'b0::0', '||drift_2', 'ql::0', '||drift_3::0',
+       'q0::0', '||drift_3::1', 'qr::0', '||drift_4', 'mk1', 'mk2', 'mk3',
+       'q0::1', 'b0::1', '||drift_5', 'end', 'qnew1', 'qnew2', 'ql::1',
+       'qr::1', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5,  5.5,  7.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. ,
         40. , 41. , 42.5, 46.5, 50. , 51. , 53. , 55. , 57. , 58. ]),
@@ -2916,7 +2918,7 @@ def test_builder_length():
 
     tt = env['l1'].get_table()
 
-    assert np.all(tt.name == np.array(['drift_1', 'mq', 'drift_2', '_end_point']))
+    assert np.all(tt.name == np.array(['||drift_1::0', 'mq', '||drift_1::1', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array([ 4.75, 10.  , 15.25, 20.  ]),
                     rtol=0, atol=1e-10)
 
@@ -3020,16 +3022,16 @@ def test_enviroment_from_two_lines():
     # _end_point                                         None
 
     assert np.all(tt1.name == np.array([
-       'drift_1', 'qq1_thick_entry', 'qq1_thick..entry_map',
+       '||drift_1', 'qq1_thick_entry', 'qq1_thick..entry_map',
        'qq1_thick..0', 'qq1_thick..1', 'qq1_thick..exit_map',
-       'qq1_thick_exit', 'drift_2', 'qq1_thin_entry',
+       'qq1_thick_exit', '||drift_2', 'qq1_thin_entry',
        'qq1_thin..entry_map', 'drift_qq1_thin..0', 'qq1_thin..0',
        'drift_qq1_thin..1', 'qq1_thin..1', 'drift_qq1_thin..2',
-       'qq1_thin..exit_map', 'qq1_thin_exit', 'drift_3',
+       'qq1_thin..exit_map', 'qq1_thin_exit', '||drift_3',
        'qq_shared_thick_entry', 'qq_shared_thick..entry_map/line1',
        'qq_shared_thick..0/line1', 'qq_shared_thick..1/line1',
        'qq_shared_thick..exit_map/line1', 'qq_shared_thick_exit',
-       'drift_4', 'qq_shared_thin_entry',
+       '||drift_4', 'qq_shared_thin_entry',
        'qq_shared_thin..entry_map/line1', 'drift_qq_shared_thin..0/line1',
        'qq_shared_thin..0/line1', 'drift_qq_shared_thin..1/line1',
        'qq_shared_thin..1/line1', 'drift_qq_shared_thin..2/line1',
@@ -3062,17 +3064,16 @@ def test_enviroment_from_two_lines():
        'qq_shared_thin/line1', 'qq_shared_thin/line1',
        'qq_shared_thin/line1', None, None]))
 
-    assert np.all(tt2.name == np.array([
-        'drift_5', 'qq2_thick_entry', 'qq2_thick..entry_map',
+    assert np.all(tt2.name == np.array(['||drift_5', 'qq2_thick_entry', 'qq2_thick..entry_map',
        'qq2_thick..0', 'qq2_thick..1', 'qq2_thick..exit_map',
-       'qq2_thick_exit', 'drift_6', 'qq2_thin_entry',
+       'qq2_thick_exit', '||drift_6', 'qq2_thin_entry',
        'qq2_thin..entry_map', 'drift_qq2_thin..0', 'qq2_thin..0',
        'drift_qq2_thin..1', 'qq2_thin..1', 'drift_qq2_thin..2',
-       'qq2_thin..exit_map', 'qq2_thin_exit', 'drift_7',
+       'qq2_thin..exit_map', 'qq2_thin_exit', '||drift_7',
        'qq_shared_thick_entry', 'qq_shared_thick..entry_map/line2',
        'qq_shared_thick..0/line2', 'qq_shared_thick..1/line2',
        'qq_shared_thick..exit_map/line2', 'qq_shared_thick_exit',
-       'drift_8', 'qq_shared_thin_entry',
+       '||drift_8', 'qq_shared_thin_entry',
        'qq_shared_thin..entry_map/line2', 'drift_qq_shared_thin..0/line2',
        'qq_shared_thin..0/line2', 'drift_qq_shared_thin..1/line2',
        'qq_shared_thin..1/line2', 'drift_qq_shared_thin..2/line2',
@@ -3417,8 +3418,8 @@ def test_compose_parametric_lines():
 
     # Check tt1
     assert np.all(tt1.name ==
-        ['drift_3', 'q1::0', 'drift_1', 'q2::0', 'drift_4', 'q2::1',
-        'drift_2', 'q1::1', '_end_point'])
+        ['||drift_2::0', 'q1::0', '||drift_1::0', 'q2::0', '||drift_2::1',
+       'q2::1', '||drift_1::1', 'q1::1', '_end_point'])
     xo.assert_allclose(tt1.s,
             [ 0.,  5.,  6.,  9., 10., 15., 16., 19., 20.],
             rtol=0, atol=1e-12)
@@ -3426,20 +3427,20 @@ def test_compose_parametric_lines():
         ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
         'Quadrupole', 'Drift', 'Quadrupole', ''])
     assert np.all(tt1.env_name ==
-        ['drift_3', 'q1', 'drift_1', 'q2', 'drift_4',
-        'q2', 'drift_2', 'q1', '_end_point'])
+        ['||drift_2', 'q1', '||drift_1', 'q2', '||drift_2', 'q2',
+       '||drift_1', 'q1', '_end_point'])
 
     # Check tt2
     assert np.all(tt2.name ==
-        ['drift_7', 'q1::0', 'drift_5', 'q2::0', 'drift_8', 'q2::1',
-        'drift_6', 'q1::1', '_end_point'])
+        ['||drift_4::0', 'q1::0', '||drift_3::0', 'q2::0', '||drift_4::1',
+         'q2::1', '||drift_3::1', 'q1::1', '_end_point'])
     xo.assert_allclose(tt2.s, 2 * tt1.s, rtol=0, atol=1e-12)
     assert np.all(tt2.element_type ==
         ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
         'Quadrupole', 'Drift', 'Quadrupole', ''])
     assert np.all(tt2.env_name ==
-        ['drift_7', 'q1', 'drift_5', 'q2', 'drift_8',
-        'q2', 'drift_6', 'q1', '_end_point'])
+        ['||drift_4', 'q1', '||drift_3', 'q2', '||drift_4', 'q2',
+         '||drift_3', 'q1', '_end_point'])
 
 
 
@@ -3526,8 +3527,8 @@ def test_compose_parametric_lines():
     xo.assert_allclose(tt_mad_l2.s[:-1], tt_xs_mad_l2.s, atol=1e-12, rtol=0)
 
     assert np.all(tt_xs_mad_s2.name ==
-        ['drift_3', 'q1::0', 'drift_1', 'q2::0', 'drift_4', 'q2::1',
-        'drift_2', 'q1::1', '_end_point'])
+        ['||drift_2::0', 'q1::0', '||drift_1::0', 'q2::0', '||drift_2::1',
+         'q2::1', '||drift_1::1', 'q1::1', '_end_point'])
     xo.assert_allclose(tt_xs_mad_s2.s,
             2 * tt1.s,
             rtol=0, atol=1e-12)
@@ -3535,8 +3536,8 @@ def test_compose_parametric_lines():
         ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
         'Quadrupole', 'Drift', 'Quadrupole', ''])
     assert np.all(tt_xs_mad_s2.env_name ==
-        ['drift_3', 'q1', 'drift_1', 'q2', 'drift_4',
-        'q2', 'drift_2', 'q1', '_end_point'])
+        ['||drift_2', 'q1', '||drift_1', 'q2', '||drift_2', 'q2',
+       '||drift_1', 'q1', '_end_point'])
 
 def test_expr_in_builder():
 
@@ -3576,15 +3577,15 @@ def test_expr_in_builder():
     # drift_2                4 Drift
     # _end_point             6
 
-    assert np.all(tt1.name == np.array([
-        'drift_1', 'q1', 'drift_2', '_end_point']))
+    assert np.all(tt1.name == np.array(
+        ['||drift_1::0', 'q1', '||drift_1::1', '_end_point']))
     xo.assert_allclose(tt1.s,
             np.array([0., 2., 4., 6.]),
             rtol=0, atol=1e-12)
     assert np.all(tt1.element_type == np.array([
         'Drift', 'Quadrupole', 'Drift', '']))
     assert np.all(tt2.name == np.array([
-        'drift_3', 'q2', 'drift_4', '_end_point']))
+        '||drift_1::0', 'q2', '||drift_1::1', '_end_point']))
     xo.assert_allclose(tt2.s,
             np.array([0., 2., 4., 6.]),
             rtol=0, atol=1e-12)
@@ -3903,7 +3904,8 @@ def test_line_algebra():
     # _end_point            12              _end_point
 
     assert np.all(tss.name == np.array(
-        ['q1', 'drift_1', 'q2', 'drift_2', 's1', 'drift_3', 's2', '_end_point']))
+        ['q1', '||drift_1', 'q2', '||drift_2', 's1', '||drift_3', 's2',
+       '_end_point']))
     xo.assert_allclose(tss.s,
             [ 0.,  1.,  4.,  5.,  6.,  7., 11., 12.],
             rtol=0, atol=1e-12)
@@ -3916,7 +3918,8 @@ def test_line_algebra():
     tss2 = ss.get_table()
     # is the same as tss apart from different drift names
     assert np.all(tss2.name == np.array(
-        ['q1', 'drift_4', 'q2', 'drift_5', 's1', 'drift_6', 's2', '_end_point']))
+        ['q1', '||drift_1', 'q2', '||drift_2', 's1', '||drift_3', 's2',
+       '_end_point']))
     xo.assert_allclose(tss2.s,
             [ 0.,  1.,  4.,  5.,  6.,  7., 11., 12.],
             rtol=0, atol=1e-12)
@@ -3931,7 +3934,8 @@ def test_line_algebra():
     tss3 = ss2.get_table()
     # is the same as tss apart from different drift names
     assert np.all(tss3.name == np.array(
-        ['q1', 'drift_7', 'q2', 'drift_8', 's1', 'drift_9', 's2', '_end_point']))
+        ['q1', '||drift_1', 'q2', '||drift_2', 's1', '||drift_3', 's2',
+       '_end_point']))
     xo.assert_allclose(tss3.s,
             [ 0.,  1.,  4.,  5.,  6.,  7., 11., 12.],
             rtol=0, atol=1e-12)
@@ -3959,10 +3963,8 @@ def test_line_algebra():
     # q2::2                 14 Quadrupole   q2
     # _end_point            15              _end_point
     assert np.all(tmm.name == np.array(
-        ['q1::0', 'drift_10', 'q2::0',
-        'q1::1', 'drift_11', 'q2::1',
-        'q1::2', 'drift_12', 'q2::2',
-        '_end_point']))
+        ['q1::0', '||drift_1::0', 'q2::0', 'q1::1', '||drift_1::1', 'q2::1',
+       'q1::2', '||drift_1::2', 'q2::2', '_end_point']))
     xo.assert_allclose(tmm.s,
             [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
             rtol=0, atol=1e-12)
@@ -3990,10 +3992,8 @@ def test_line_algebra():
     # q2::2                  14 Quadrupole   q2
     # _end_point             15              _end_point
     assert np.all(tmm2.name == np.array([
-        'q1::0', 'drift_13::0', 'q2::0',
-        'q1::1', 'drift_13::1', 'q2::1',
-        'q1::2', 'drift_13::2', 'q2::2',
-        '_end_point']))
+        'q1::0', '||drift_1::0', 'q2::0', 'q1::1', '||drift_1::1', 'q2::1',
+       'q1::2', '||drift_1::2', 'q2::2', '_end_point']))
     xo.assert_allclose(tmm2.s,
             [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
             rtol=0, atol=1e-12)
@@ -4020,7 +4020,7 @@ def test_line_algebra():
     # q1                     4 Quadrupole   q1
     # _end_point             5              _end_point
     assert np.all(tml1.name == np.array(
-        ['q2', 'drift_14', 'q1', '_end_point']))
+        ['q2', '||drift_1', 'q1', '_end_point']))
     xo.assert_allclose(tml1.s,
             [0., 1., 4., 5.],
             rtol=0, atol=1e-12)
@@ -4039,7 +4039,7 @@ def test_line_algebra():
     # q1                     4 Quadrupole   q1
     # _end_point             5              _end_point
     assert np.all(tml2.name == np.array(
-        ['q2', 'drift_15', 'q1', '_end_point']))
+        ['q2', '||drift_1', 'q1', '_end_point']))
     xo.assert_allclose(tml2.s,
             [0., 1., 4., 5.],
             rtol=0, atol=1e-12)
@@ -4067,10 +4067,8 @@ def test_line_algebra():
     # q1::2                 14 Quadrupole   q1
     # _end_point            15              _end_point
     assert np.all(tm3l1.name == np.array(
-        ['q2::0', 'drift_18', 'q1::0',
-        'q2::1', 'drift_17', 'q1::1',
-        'q2::2', 'drift_16', 'q1::2',
-        '_end_point']))
+        ['q2::0', '||drift_1::0', 'q1::0', 'q2::1', '||drift_1::1', 'q1::1',
+         'q2::2', '||drift_1::2', 'q1::2', '_end_point']))
     xo.assert_allclose(tm3l1.s,
             [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
             rtol=0, atol=1e-12)
@@ -4098,10 +4096,8 @@ def test_line_algebra():
     # q1::2                  14 Quadrupole   q1
     # _end_point             15              _end_point
     assert np.all(tm3l1.name == np.array([
-        'q2::0', 'drift_19::0', 'q1::0',
-        'q2::1', 'drift_19::1', 'q1::1',
-        'q2::2', 'drift_19::2', 'q1::2',
-        '_end_point']))
+        'q2::0', '||drift_1::0', 'q1::0', 'q2::1', '||drift_1::1', 'q1::1',
+       'q2::2', '||drift_1::2', 'q1::2', '_end_point']))
     xo.assert_allclose(tm3l1.s,
             [ 0.,  1.,  4.,  5.,  6.,  9., 10., 11., 14., 15.],
             rtol=0, atol=1e-12)
@@ -4191,20 +4187,8 @@ def test_rename_var():
     assert str(env.ref['mb'].angle._expr) == "(vars['bb'] * 0.001)"
     assert str(env.ref['mb'].knl[1]._expr) == "(3.0 * vars['bb'])"
 
-    assert str(env.ref_manager.tasks) == "{vars['bb']: vars['bb'] = (2.0 * vars['aa']), element_refs['mb'].angle: element_refs['mb'].angle = (vars['bb'] * 0.001), element_refs['mb'].knl[1]: element_refs['mb'].knl[1] = (3.0 * vars['bb'])}"
-    assert str(env.ref_manager.rdeps) == "defaultdict(<class 'xdeps.refs.RefCount'>, {vars['aa']: {vars['bb']: 1}, vars['bb']: {element_refs['mb'].angle: 1, element_refs['mb']: 2, element_refs['mb'].knl[1]: 1, element_refs['mb'].knl: 1}})"
-    assert str(env.ref_manager.rtasks) == "defaultdict(<class 'xdeps.refs.RefCount'>, {vars['bb']: {element_refs['mb'].angle: 1, element_refs['mb'].knl[1]: 1}})"
-    assert str(env.ref_manager.deptasks) == "defaultdict(<class 'xdeps.refs.RefCount'>, {vars['t_turn_s']: {}, vars['aa']: {vars['bb']: 1}, vars['bb']: {element_refs['mb'].angle: 1, element_refs['mb'].knl[1]: 1}, element_refs['mb'].angle: {}, element_refs['mb']: {}, element_refs['mb'].knl[1]: {}, element_refs['mb'].knl: {}})"
-    assert str(env.ref_manager.tartasks) == "defaultdict(<class 'xdeps.refs.RefCount'>, {vars['aa']: {}, vars['bb']: {vars['bb']: 1}, element_refs['mb'].angle: {element_refs['mb'].angle: 1}, element_refs['mb']: {element_refs['mb'].angle: 1, element_refs['mb'].knl[1]: 1}, element_refs['mb'].knl[1]: {element_refs['mb'].knl[1]: 1}, element_refs['mb'].knl: {element_refs['mb'].knl[1]: 1}})"
-
     env.vars.rename('bb', 'cc', verbose=True)
 
     assert str(env.ref['cc']._expr) == "(2.0 * vars['aa'])"
     assert str(env.ref['mb'].angle._expr) == "(vars['cc'] * 0.001)"
     assert str(env.ref['mb'].knl[1]._expr) == "(3.0 * vars['cc'])"
-
-    assert str(env.ref_manager.tasks) == "{vars['cc']: vars['cc'] = (2.0 * vars['aa']), element_refs['mb'].angle: element_refs['mb'].angle = (vars['cc'] * 0.001), element_refs['mb'].knl[1]: element_refs['mb'].knl[1] = (3.0 * vars['cc'])}"
-    assert str(env.ref_manager.rdeps) == "defaultdict(<class 'xdeps.refs.RefCount'>, {vars['aa']: {vars['cc']: 1}, vars['bb']: {}, vars['cc']: {element_refs['mb'].angle: 1, element_refs['mb']: 2, element_refs['mb'].knl[1]: 1, element_refs['mb'].knl: 1}})"
-    assert str(env.ref_manager.rtasks) == "defaultdict(<class 'xdeps.refs.RefCount'>, {vars['cc']: {element_refs['mb'].angle: 1, element_refs['mb'].knl[1]: 1}, vars['aa']: {}})"
-    assert str(env.ref_manager.deptasks) == "defaultdict(<class 'xdeps.refs.RefCount'>, {vars['t_turn_s']: {}, vars['aa']: {vars['cc']: 1}, vars['bb']: {}, element_refs['mb'].angle: {}, element_refs['mb']: {}, element_refs['mb'].knl[1]: {}, element_refs['mb'].knl: {}, vars['cc']: {element_refs['mb'].angle: 1, element_refs['mb'].knl[1]: 1}})"
-    assert str(env.ref_manager.tartasks) == "defaultdict(<class 'xdeps.refs.RefCount'>, {vars['aa']: {}, vars['bb']: {}, element_refs['mb'].angle: {element_refs['mb'].angle: 1}, element_refs['mb']: {element_refs['mb'].angle: 1, element_refs['mb'].knl[1]: 1}, element_refs['mb'].knl[1]: {element_refs['mb'].knl[1]: 1}, element_refs['mb'].knl: {element_refs['mb'].knl[1]: 1}, vars['cc']: {vars['cc']: 1}})"
