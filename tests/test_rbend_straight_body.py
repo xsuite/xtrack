@@ -356,19 +356,19 @@ def test_rbend_straight_body_survey_h():
     # end                       5 Marker                          0
     # _end_point                5                                 0
 
-    assert np.all(sv_straight['name'] == [
-        'start', 'drift_1..0', 'drift_1..1', 'mb_entry', 'mb..entry_map',
-        'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
-        'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', 'drift_2..0',
-        'drift_2..1', 'end', '_end_point'
-    ])
+    assert np.all(sv_straight['name'] ==[
+        'start', '||drift_3::0', '||drift_4', 'mb_entry', 'mb..entry_map',
+       'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
+       'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', '||drift_5',
+       '||drift_3::1', 'end', '_end_point'])
 
     # Assert entire columns using np.all
-    assert np.all(sv_straight['element_type'] == ['Marker', 'DriftSlice', 'DriftSlice', 'Marker',
+    assert np.all(sv_straight['element_type'] == [
+        'Marker', 'Drift', 'Drift', 'Marker',
         'ThinSliceRBendEntry', 'ThickSliceRBend', 'ThickSliceRBend',
         'ThickSliceRBend', 'ThickSliceRBend', 'Marker', 'ThickSliceRBend',
         'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
-        'ThinSliceRBendExit', 'Marker', 'DriftSlice', 'DriftSlice',
+        'ThinSliceRBendExit', 'Marker', 'Drift', 'Drift',
         'Marker', ''])
 
     xo.assert_allclose(
@@ -487,18 +487,17 @@ def test_rbend_straight_body_survey_h():
     # _end_point                5                                 0
 
     assert np.all(sv_curved['name'] == [
-        'start', 'drift_1..0', 'drift_1..1', 'mb_entry', 'mb..entry_map',
-        'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
-        'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', 'drift_2..0',
-        'drift_2..1', 'end', '_end_point'
-    ])
+        'start', '||drift_3::0', '||drift_4', 'mb_entry', 'mb..entry_map',
+       'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
+       'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', '||drift_5',
+       '||drift_3::1', 'end', '_end_point'])
 
     assert np.all(sv_curved['element_type'] == [
-        'Marker', 'DriftSlice', 'DriftSlice', 'Marker',
+        'Marker', 'Drift', 'Drift', 'Marker',
         'ThinSliceRBendEntry', 'ThickSliceRBend', 'ThickSliceRBend',
         'ThickSliceRBend', 'ThickSliceRBend', 'Marker', 'ThickSliceRBend',
         'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
-        'ThinSliceRBendExit', 'Marker', 'DriftSlice', 'DriftSlice',
+        'ThinSliceRBendExit', 'Marker', 'Drift', 'Drift',
         'Marker', ''])
 
     xo.assert_allclose(
@@ -832,18 +831,18 @@ def test_rbend_straight_body_survey_v():
     # _end_point                5                                 0
 
     assert np.all(sv_straight['name'] == [
-        'start', 'drift_1..0', 'drift_1..1', 'mb_entry', 'mb..entry_map',
-        'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
-        'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', 'drift_2..0',
-        'drift_2..1', 'end', '_end_point'
-    ])
+        'start', '||drift_3::0', '||drift_4', 'mb_entry', 'mb..entry_map',
+       'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
+       'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', '||drift_5',
+       '||drift_3::1', 'end', '_end_point'])
 
     # Assert entire columns using np.all
-    assert np.all(sv_straight['element_type'] == ['Marker', 'DriftSlice', 'DriftSlice', 'Marker',
+    assert np.all(sv_straight['element_type'] == [
+        'Marker', 'Drift', 'Drift', 'Marker',
         'ThinSliceRBendEntry', 'ThickSliceRBend', 'ThickSliceRBend',
         'ThickSliceRBend', 'ThickSliceRBend', 'Marker', 'ThickSliceRBend',
         'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
-        'ThinSliceRBendExit', 'Marker', 'DriftSlice', 'DriftSlice',
+        'ThinSliceRBendExit', 'Marker', 'Drift', 'Drift',
         'Marker', ''])
 
     xo.assert_allclose(
@@ -967,19 +966,18 @@ def test_rbend_straight_body_survey_v():
     # end                       5 Marker                          0
     # _end_point                5                                 0
 
-    assert np.all(sv_curved['name'] == [
-        'start', 'drift_1..0', 'drift_1..1', 'mb_entry', 'mb..entry_map',
-        'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
-        'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', 'drift_2..0',
-        'drift_2..1', 'end', '_end_point'
-    ])
+    assert np.all(sv_curved['name'] == 
+        ['start', '||drift_3::0', '||drift_4', 'mb_entry', 'mb..entry_map',
+       'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
+       'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', '||drift_5',
+       '||drift_3::1', 'end', '_end_point'])
 
     assert np.all(sv_curved['element_type'] == [
-        'Marker', 'DriftSlice', 'DriftSlice', 'Marker',
+        'Marker', 'Drift', 'Drift', 'Marker',
         'ThinSliceRBendEntry', 'ThickSliceRBend', 'ThickSliceRBend',
         'ThickSliceRBend', 'ThickSliceRBend', 'Marker', 'ThickSliceRBend',
         'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
-        'ThinSliceRBendExit', 'Marker', 'DriftSlice', 'DriftSlice',
+        'ThinSliceRBendExit', 'Marker', 'Drift', 'Drift',
         'Marker', ''])
 
     xo.assert_allclose(
@@ -1239,13 +1237,13 @@ def test_rbend_straight_body_thin_slices_coarse():
     tw_curved['Z'] = p_curved[:, 2]
 
     assert np.all(sv_straight['name'] == [
-        'start', 'drift_1', 'mb_entry', 'mb..entry_map', 'drift_mb..0',
-        'mb..0', 'drift_mb..1', 'mb..1', 'drift_mb..2', 'mb..2',
-        'drift_mb..3', 'mb..3', 'drift_mb..4', 'mb..4', 'drift_mb..5..0',
-        'mid', 'drift_mb..5..1', 'mb..5', 'drift_mb..6', 'mb..6',
-        'drift_mb..7', 'mb..7', 'drift_mb..8', 'mb..8', 'drift_mb..9',
-        'mb..9', 'drift_mb..10', 'mb..exit_map', 'mb_exit', 'drift_2',
-        'end', '_end_point'])
+        'start', '||drift_1', 'mb_entry', 'mb..entry_map', 'drift_mb..0',
+       'mb..0', 'drift_mb..1', 'mb..1', 'drift_mb..2', 'mb..2',
+       'drift_mb..3', 'mb..3', 'drift_mb..4', 'mb..4', 'drift_mb..5..0',
+       'mid', 'drift_mb..5..1', 'mb..5', 'drift_mb..6', 'mb..6',
+       'drift_mb..7', 'mb..7', 'drift_mb..8', 'mb..8', 'drift_mb..9',
+       'mb..9', 'drift_mb..10', 'mb..exit_map', 'mb_exit', '||drift_2',
+       'end', '_end_point'])
 
     # Assert entire columns using np.all
     assert np.all(sv_straight['element_type'] == [
