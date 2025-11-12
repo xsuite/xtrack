@@ -911,7 +911,7 @@ def test_import_seq_length():
     env = xt.load(string=sequence, format='madx')
 
     tt = env.line.get_table()
-    assert np.all(tt.name == np.array(['drift_1', 'qu1', 'drift_2', '_end_point']))
+    assert np.all(tt.name == np.array(['||drift_1', 'qu1', '||drift_2', '_end_point']))
     xo.assert_allclose(tt['s'], np.array([ 0., 18., 20., 30.]), rtol=0, atol=1e-15)
     assert env.line.builder.length == 30
 
