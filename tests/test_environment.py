@@ -2395,9 +2395,9 @@ def test_anchors_in_new_and_place_compact():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'm1', 'q1', 'drift_2', 's2', 'drift_3', 'm2_0', 'm2',
-        'm2_1_0', 'm2_1_1', 'm2_1', 'q2', 'drift_4', 'q3', 'm3', 'm4',
-        'q4', 'q5', '_end_point']))
+        ['||drift_1::0', 'm1', 'q1', '||drift_2', 's2', '||drift_1::1',
+         'm2_0', 'm2', 'm2_1_0', 'm2_1_1', 'm2_1', 'q2', '||drift_3', 'q3',
+         'm3', 'm4', 'q4', 'q5', '_end_point']))
     xo.assert_allclose(tt.s, np.array(
         [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
         13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
@@ -2463,8 +2463,8 @@ def test_place_lines_with_anchors():
     tt_l1 = env['l1'].get_table()
     tt_test = tt_l1
     assert np.all(tt_test.name == np.array(
-        ['q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4', 'drift_4',
-        'q5', '_end_point']))
+        ['q1', '||drift_1::0', 'q2', '||drift_1::1', 'q3', '||drift_1::2',
+       'q4', '||drift_1::3', 'q5', '_end_point']))
     xo.assert_allclose(tt_test.s, np.array(
         [ 0.,  2.,  7.,  9., 14., 16., 21., 23., 28., 30.]),
         rtol=0., atol=1e-15)
@@ -2481,8 +2481,8 @@ def test_place_lines_with_anchors():
     tt_lstart = env['lstart'].get_table()
     tt_test = tt_lstart
     assert np.all(tt_test.name == np.array(
-        ['drift_5', 'q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4',
-        'drift_4', 'q5', '_end_point']))
+        ['||drift_2', 'q1', '||drift_1::0', 'q2', '||drift_1::1', 'q3',
+       '||drift_1::2', 'q4', '||drift_1::3', 'q5', '_end_point']))
     xo.assert_allclose(tt_test.s, np.array(
         [ 0., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
         rtol=0., atol=1e-15)
@@ -2490,8 +2490,8 @@ def test_place_lines_with_anchors():
     tt_lend = env['lend'].get_table()
     tt_test = tt_lend
     assert np.all(tt_test.name == np.array(
-        ['drift_6', 'q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4',
-        'drift_4', 'q5', '_end_point']))
+        ['||drift_2', 'q1', '||drift_1::0', 'q2', '||drift_1::1', 'q3',
+         '||drift_1::2', 'q4', '||drift_1::3', 'q5', '_end_point']))
     xo.assert_allclose(tt_test.s, np.array(
         [ 0., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
         rtol=0., atol=1e-15)
@@ -2499,8 +2499,8 @@ def test_place_lines_with_anchors():
     tt_lcenter = env['lcenter'].get_table()
     tt_test = tt_lcenter
     assert np.all(tt_test.name == np.array(
-        ['drift_7', 'q1', 'drift_1', 'q2', 'drift_2', 'q3', 'drift_3', 'q4',
-        'drift_4', 'q5', '_end_point']))
+        ['||drift_2', 'q1', '||drift_1::0', 'q2', '||drift_1::1', 'q3',
+       '||drift_1::2', 'q4', '||drift_1::3', 'q5', '_end_point']))
     xo.assert_allclose(tt_test.s, np.array(
         [ 0., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
         rtol=0., atol=1e-15)
@@ -2508,8 +2508,9 @@ def test_place_lines_with_anchors():
     tt_lstcnt = env['lstcnt'].get_table()
     tt_test = tt_lstcnt
     assert np.all(tt_test.name == np.array(
-        ['drift_8', 'q0', 'drift_9', 'q1', 'drift_1', 'q2', 'drift_2', 'q3',
-        'drift_3', 'q4', 'drift_4', 'q5', '_end_point']))
+        ['||drift_3::0', 'q0', '||drift_3::1', 'q1', '||drift_1::0', 'q2',
+         '||drift_1::1', 'q3', '||drift_1::2', 'q4', '||drift_1::3', 'q5',
+         '_end_point']))
     xo.assert_allclose(tt_test.s, np.array(
         [ 0.,  4.,  6., 10., 12., 17., 19., 24., 26., 31., 33., 38., 40.]),
         rtol=0., atol=1e-15)
@@ -2517,14 +2518,16 @@ def test_place_lines_with_anchors():
     tt_lstst = env['lstst'].get_table()
     tt_test = tt_lstst
     assert np.all(tt_test.name == np.array(
-        ['drift_10', 'q0', 'drift_11', 'q1', 'drift_1', 'q2', 'drift_2', 'q3',
-        'drift_3', 'q4', 'drift_4', 'q5', '_end_point']))
+        ['||drift_3', 'q0', '||drift_4', 'q1', '||drift_1::0', 'q2',
+         '||drift_1::1', 'q3', '||drift_1::2', 'q4', '||drift_1::3', 'q5',
+         '_end_point']))
 
     tt_lstend = env['lstend'].get_table()
     tt_test = tt_lstend
     assert np.all(tt_test.name == np.array(
-        ['drift_12', 'q0', 'drift_13', 'q1', 'drift_1', 'q2', 'drift_2', 'q3',
-        'drift_3', 'q4', 'drift_4', 'q5', '_end_point']))
+        ['||drift_3::0', 'q0', '||drift_3::1', 'q1', '||drift_1::0', 'q2',
+       '||drift_1::1', 'q3', '||drift_1::2', 'q4', '||drift_1::3', 'q5',
+       '_end_point']))
 
 def test_remove_element_from_env():
 
@@ -2577,8 +2580,9 @@ def test_remove_element_from_line():
     tt1.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt1.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3', 'qr', 'drift_4',
-        'mk1', 'mk2', 'mk3', 'drift_6', 'drift_5', 'end', '_end_point']))
+        ['||drift_1::0', 'ql', '||drift_2::0', 'q0', '||drift_2::1', 'qr',
+       '||drift_1::1', 'mk1', 'mk2', 'mk3', '||drift_3', '||drift_2::2',
+       'end', '_end_point']))
     xo.assert_allclose(tt1.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
         46. , 50. , 50. ]), rtol=0., atol=1e-14)
@@ -2589,8 +2593,9 @@ def test_remove_element_from_line():
     tt2.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt2.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'drift_6', 'drift_3', 'qr', 'drift_4',
-        'mk1', 'mk2', 'mk3', 'drift_7', 'drift_5', 'end', '_end_point']))
+        ['||drift_1::0', 'ql', '||drift_2::0', '||drift_3', '||drift_2::1',
+       'qr', '||drift_1::1', 'mk1', 'mk2', 'mk3', '||drift_4',
+       '||drift_2::2', 'end', '_end_point']))
     xo.assert_allclose(tt2.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
         46. , 50. , 50. ]), rtol=0., atol=1e-14)
@@ -2601,9 +2606,9 @@ def test_remove_element_from_line():
     tt3.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt3.name == np.array(
-        ['drift_1', 'drift_6', 'drift_2', 'drift_7', 'drift_3', 'drift_8',
-        'drift_4', 'mk1', 'mk2', 'mk3', 'drift_9', 'drift_5', 'end',
-        '_end_point']))
+        ['||drift_1::0', '||drift_3', '||drift_2::0', '||drift_4',
+       '||drift_2::1', '||drift_5', '||drift_1::1', 'mk1', 'mk2', 'mk3',
+       '||drift_6', '||drift_2::2', 'end', '_end_point']))
     xo.assert_allclose(tt3.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
         46. , 50. , 50. ]), rtol=0., atol=1e-14)
@@ -2614,8 +2619,9 @@ def test_remove_element_from_line():
     tt4.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt4.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'q0::0', 'drift_3', 'qr', 'drift_4',
-        'mk1', 'mk3', 'q0::1', 'drift_5', 'end', '_end_point']))
+        ['||drift_1::0', 'ql', '||drift_2::0', 'q0::0', '||drift_2::1',
+       'qr', '||drift_1::1', 'mk1', 'mk3', 'q0::1', '||drift_2::2', 'end',
+       '_end_point']))
     xo.assert_allclose(tt4.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 41. , 46. ,
         50. , 50. ]), rtol=0., atol=1e-14)
@@ -2626,8 +2632,8 @@ def test_remove_element_from_line():
     tt5.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt5.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'q0::0', 'drift_3', 'qr', 'drift_4',
-        'q0::1', 'drift_5', 'end', '_end_point']))
+        ['||drift_1::0', 'ql', '||drift_2::0', 'q0::0', '||drift_2::1',
+       'qr', '||drift_1::1', 'q0::1', '||drift_2::2', 'end', '_end_point']))
     xo.assert_allclose(tt5.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 41. , 46. , 50. , 50. ]),
         rtol=0., atol=1e-14)
@@ -2639,9 +2645,9 @@ def test_remove_element_from_line():
     tt6.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt6.name == np.array(
-        ['drift_1', 'drift_6', 'drift_2', 'drift_7', 'drift_3', 'drift_8',
-        'drift_4', 'mk1', 'mk2', 'mk3', 'drift_9', 'drift_5', 'end',
-        '_end_point']))
+        ['||drift_1::0', '||drift_3', '||drift_2::0', '||drift_4',
+       '||drift_2::1', '||drift_5', '||drift_1::1', 'mk1', 'mk2', 'mk3',
+       '||drift_6', '||drift_2::2', 'end', '_end_point']))
     xo.assert_allclose(tt6.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
         46. , 50. , 50. ]), rtol=0., atol=1e-14)
@@ -2672,8 +2678,9 @@ def test_replace_element():
     tt1.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt1.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3', 'qr', 'drift_4',
-        'mk1', 'mk2', 'mk3', 'qnew', 'drift_5', 'end', '_end_point']))
+        ['||drift_1::0', 'ql', '||drift_2::0', 'q0', '||drift_2::1', 'qr',
+       '||drift_1::1', 'mk1', 'mk2', 'mk3', 'qnew', '||drift_2::2', 'end',
+       '_end_point']))
     xo.assert_allclose(tt1.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
         46. , 50. , 50. ]), rtol=0., atol=1e-14)
@@ -2684,8 +2691,9 @@ def test_replace_element():
     tt2.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt2.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'qnew::0', 'drift_3', 'qr', 'drift_4',
-        'mk1', 'mk2', 'mk3', 'qnew::1', 'drift_5', 'end', '_end_point']))
+        ['||drift_1::0', 'ql', '||drift_2::0', 'qnew::0', '||drift_2::1',
+        'qr', '||drift_1::1', 'mk1', 'mk2', 'mk3', 'qnew::1',
+        '||drift_2::2', 'end', '_end_point']))
     xo.assert_allclose(tt2.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
         46. , 50. , 50. ]), rtol=0., atol=1e-14)
@@ -2695,10 +2703,10 @@ def test_replace_element():
     tt3 = line3.get_table()
     tt3.show(cols=['name', 's_start', 's_end', 's_center'])
 
-    assert np.all(tt3.name == np.array(
-        ['drift_1', 'qnew::0', 'drift_2', 'qnew::1', 'drift_3', 'qnew::2',
-        'drift_4', 'mk1', 'mk2', 'mk3', 'qnew::3', 'drift_5', 'end',
-        '_end_point']))
+    assert np.all(tt3.name == np.array([
+        '||drift_1::0', 'qnew::0', '||drift_2::0', 'qnew::1',
+       '||drift_2::1', 'qnew::2', '||drift_1::1', 'mk1', 'mk2', 'mk3',
+       'qnew::3', '||drift_2::2', 'end', '_end_point']))
     xo.assert_allclose(tt3.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40. , 41. ,
         46. , 50. , 50. ]), rtol=0., atol=1e-14)
@@ -2708,9 +2716,10 @@ def test_replace_element():
     tt4 = line4.get_table()
     tt4.show(cols=['name', 's_start', 's_end', 's_center'])
 
-    assert np.all(tt4.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'q0::0', 'drift_3', 'qr', 'drift_4',
-        'mk1', 'mnew', 'mk3', 'q0::1', 'drift_5', 'end', '_end_point']))
+    assert np.all(tt4.name == np.array([
+        '||drift_1::0', 'ql', '||drift_2::0', 'q0::0', '||drift_2::1',
+       'qr', '||drift_1::1', 'mk1', 'mnew', 'mk3', 'q0::1',
+       '||drift_2::2', 'end', '_end_point']))
     xo.assert_allclose(tt4.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40., 41. , 46. ,
         50. , 50. ]), rtol=0., atol=1e-14)
@@ -2721,8 +2730,9 @@ def test_replace_element():
     tt5.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt5.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'q0::0', 'drift_3', 'qr', 'drift_4',
-        'mnew::0', 'mnew::1', 'mnew::2', 'q0::1', 'drift_5', 'end', '_end_point']))
+        ['||drift_1::0', 'ql', '||drift_2::0', 'q0::0', '||drift_2::1',
+       'qr', '||drift_1::1', 'mnew::0', 'mnew::1', 'mnew::2', 'q0::1',
+       '||drift_2::2', 'end', '_end_point']))
     xo.assert_allclose(tt5.s_center, np.array(
         [ 4.5, 10. , 15. , 20. , 25. , 30. , 35.5, 40. , 40. , 40., 41. , 46. ,
         50. , 50. ]), rtol=0., atol=1e-14)
