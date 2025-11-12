@@ -3904,7 +3904,7 @@ class TwissTable(Table):
             itake = slice(1, None, None)
 
         for kk in self._col_names:
-            if (kk == 'name' or kk == 'name_env'
+            if (kk == 'name' or kk == 'env_name'
                     or kk in NORMAL_STRENGTHS_FROM_ATTR
                     or kk in SKEW_STRENGTHS_FROM_ATTR
                     or kk in OTHER_FIELDS_FROM_ATTR
