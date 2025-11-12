@@ -133,7 +133,7 @@ def test_vars_and_element_access_modes(container_type):
     tt = line.get_table(attr=True)
     tt['s_center'] = tt['s'] + tt['length']/2
 
-    assert np.all(tt.name ==  np.array(['drift_1', 'bb1', 'drift_2', 'bb', '_end_point']))
+    assert np.all(tt.name ==  np.array(['||drift_1', 'bb1', '||drift_2', 'bb', '_end_point']))
 
     assert tt['s_center', 'bb1'] == 2*a
     assert tt['s_center', 'bb'] - tt['s_center', 'bb1'] == 10*a
@@ -152,8 +152,8 @@ def test_vars_and_element_access_modes(container_type):
     tt_new = line.get_table(attr=True)
 
     # Drifts are not changed:
-    tt_new['length', 'drift_1'] == tt['length', 'drift_1']
-    tt_new['length', 'drift_2'] == tt['length', 'drift_2']
+    tt_new['length', '||drift_1'] == tt['length', '||drift_1']
+    tt_new['length', '||drift_2'] == tt['length', '||drift_2']
 
     lcp = line.copy()
     assert lcp._element_dict is not line._element_dict
@@ -219,9 +219,10 @@ def test_element_placing_at_s():
     tt = line.get_table(attr=True)
     tt['s_center'] = tt['s'] + tt['length']/2
     assert np.all(tt.name == np.array([
-        'b1', 'q1', 'drift_1', 'left', 'after_left', 'after_left2',
-        'drift_2', 'ip', 'drift_3', 'before_before_right', 'before_right',
-        'right', 'after_right', 'after_right2', '_end_point']))
+        'b1', 'q1', '||drift_1', 'left', 'after_left', 'after_left2',
+       '||drift_2', 'ip', '||drift_3', 'before_before_right',
+       'before_right', 'right', 'after_right', 'after_right2',
+       '_end_point']))
 
     xo.assert_allclose(env['b1'].length, 1.0, rtol=0, atol=1e-14)
     xo.assert_allclose(env['q1'].length, 0.5, rtol=0, atol=1e-14)
@@ -288,7 +289,8 @@ def test_assemble_ring():
 
     tt_girder = girder.get_table(attr=True)
     assert np.all(tt_girder.name == np.array(
-        ['drift_1', 'corrector', 'drift_2', 'mq', 'drift_3', 'ms', '_end_point']))
+        ['||drift_1', 'corrector', '||drift_2', 'mq', '||drift_3', 'ms',
+       '_end_point']))
     tt_girder['s_center'] = tt_girder['s'] + \
         tt_girder['length']/2 * np.float64(tt_girder['isthick'])
     xo.assert_allclose(tt_girder['s_center', 'mq'], 1., atol=1e-14, rtol=0)
@@ -308,7 +310,8 @@ def test_assemble_ring():
     tt_girder_f = girder_f.get_table(attr=True)
     assert (~(tt_girder_f.isreplica)).all()
     assert np.all(tt_girder_f.name == np.array(
-        ['drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f', 'drift_3.f', 'ms.f', '_end_point']))
+        ['||drift_1', 'corrector.f', '||drift_2', 'mq.f', '||drift_3',
+         'ms.f', '_end_point']))
     tt_girder_f['s_center'] = (tt_girder_f['s']
                             + tt_girder_f['length']/2 * np.float64(tt_girder_f['isthick']))
     xo.assert_allclose(tt_girder_f['s_center', 'mq.f'], 1., atol=1e-14, rtol=0)
@@ -324,7 +327,8 @@ def test_assemble_ring():
     assert (~(tt_girder_d.isreplica)).all()
     len_girder = tt_girder_d.s[-1]
     assert np.all(tt_girder_d.name == np.array(
-        ['ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d', 'drift_1.d', '_end_point']))
+        ['ms.d', '||drift_3', 'mq.d', '||drift_2', 'corrector.d',
+       '||drift_1', '_end_point']))
     tt_girder_d['s_center'] = (tt_girder_d['s']
                             + tt_girder_d['length']/2 * np.float64(tt_girder_d['isthick']))
     xo.assert_allclose(tt_girder_d['s_center', 'mq.d'],
@@ -355,10 +359,11 @@ def test_assemble_ring():
     xo.assert_allclose(l_hc, l_hc, atol=1e-14, rtol=0)
     tt_hc = halfcell.get_table(attr=True)
     assert np.all(tt_hc.name == np.array(
-        ['drift_4', 'ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d',
-        'drift_1.d', 'drift_5', 'mb.1', 'drift_6', 'mb.2', 'drift_7',
-        'mb.3', 'drift_8', 'drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f',
-        'drift_3.f', 'ms.f', 'drift_9', 'mid', '_end_point']))
+        ['||drift_4', 'ms.d', '||drift_3::0', 'mq.d', '||drift_2::0',
+       'corrector.d', '||drift_1::0', '||drift_5', 'mb.1', '||drift_6::0',
+       'mb.2', '||drift_6::1', 'mb.3', '||drift_7', '||drift_1::1',
+       'corrector.f', '||drift_2::1', 'mq.f', '||drift_3::1', 'ms.f',
+       '||drift_8', 'mid', '_end_point']))
     assert np.all(tt_hc.element_type == np.array(
         ['Drift', 'Sextupole', 'Drift', 'Quadrupole', 'Drift', 'Multipole',
         'Drift', 'Drift', 'Bend', 'Drift', 'Bend', 'Drift', 'Bend',
@@ -401,16 +406,17 @@ def test_assemble_ring():
     tt_cell['s_center'] = (
         tt_cell['s'] + tt_cell['length'] / 2 * np.float64(tt_cell['isthick']))
     assert np.all(tt_cell.name == np.array(
-        ['start', 'mid.l', 'drift_9.l', 'ms.f.l', 'drift_3.f.l', 'mq.f.l',
-        'drift_2.f.l', 'corrector.f.l', 'drift_1.f.l', 'drift_8.l',
-        'mb.3.l', 'drift_7.l', 'mb.2.l', 'drift_6.l', 'mb.1.l',
-        'drift_5.l', 'drift_1.d.l', 'corrector.d.l', 'drift_2.d.l',
-        'mq.d.l', 'drift_3.d.l', 'ms.d.l', 'drift_4.l', 'drift_4.r',
-        'ms.d.r', 'drift_3.d.r', 'mq.d.r', 'drift_2.d.r', 'corrector.d.r',
-        'drift_1.d.r', 'drift_5.r', 'mb.1.r', 'drift_6.r', 'mb.2.r',
-        'drift_7.r', 'mb.3.r', 'drift_8.r', 'drift_1.f.r', 'corrector.f.r',
-        'drift_2.f.r', 'mq.f.r', 'drift_3.f.r', 'ms.f.r', 'drift_9.r',
-        'mid.r', 'end', '_end_point']))
+        ['start', 'mid.l', '||drift_8::0', 'ms.f.l', '||drift_3::0',
+       'mq.f.l', '||drift_2::0', 'corrector.f.l', '||drift_1::0',
+       '||drift_7::0', 'mb.3.l', '||drift_6::0', 'mb.2.l', '||drift_6::1',
+       'mb.1.l', '||drift_5::0', '||drift_1::1', 'corrector.d.l',
+       '||drift_2::1', 'mq.d.l', '||drift_3::1', 'ms.d.l', '||drift_4::0',
+       '||drift_4::1', 'ms.d.r', '||drift_3::2', 'mq.d.r', '||drift_2::2',
+       'corrector.d.r', '||drift_1::2', '||drift_5::1', 'mb.1.r',
+       '||drift_6::2', 'mb.2.r', '||drift_6::3', 'mb.3.r', '||drift_7::1',
+       '||drift_1::3', 'corrector.f.r', '||drift_2::3', 'mq.f.r',
+       '||drift_3::3', 'ms.f.r', '||drift_8::1', 'mid.r', 'end',
+       '_end_point']))
     assert np.all(tt_cell.element_type == np.array(
         ['Marker', 'Marker', 'Drift', 'Sextupole', 'Drift', 'Quadrupole',
         'Drift', 'Multipole', 'Drift', 'Drift', 'Bend', 'Drift', 'Bend',
@@ -421,12 +427,12 @@ def test_assemble_ring():
         'Multipole', 'Drift', 'Quadrupole', 'Drift', 'Sextupole', 'Drift',
         'Marker', 'Marker', '']))
     assert np.all(tt_cell.isreplica == np.array(
-        [False,  True,  True,  True,  True,  True,  True,  True,  True,
-        True,  True,  True,  True,  True,  True,  True,  True,  True,
-        True,  True,  True,  True,  True,  True,  True,  True,  True,
-        True,  True,  True,  True,  True,  True,  True,  True,  True,
-        True,  True,  True,  True,  True,  True,  True,  True,  True,
-        False, False]))
+        [False,  True, False,  True, False,  True, False,  True, False,
+       False,  True, False,  True, False,  True, False, False,  True,
+       False,  True, False,  True, False, False,  True, False,  True,
+       False,  True, False, False,  True, False,  True, False,  True,
+       False, False,  True, False,  True, False,  True, False,  True,
+       False, False]))
 
     tt_cell_stripped = tt_cell.rows[1:-2] # Remove _end_point and markers added in cell
     tt_cell_second_half = tt_cell_stripped.rows[len(tt_cell_stripped)//2 :]
@@ -472,10 +478,12 @@ def test_assemble_ring():
 
     assert 'cell.2' in env.lines
     tt_cell2 = env.lines['cell.2'].get_table(attr=True)
-    assert np.all(tt_cell2.name[:-1] == np.array([
-        nn+'.cell.2' for nn in tt_cell.name[:-1]]))
+    assert np.all([nn for nn in tt_cell2.name[:-1] if not nn.startswith('||drift')]
+                   == np.array([nn+'.cell.2' for nn in tt_cell.name[:-1]
+                                if not nn.startswith('||drift')]))
     assert np.all(tt_cell2.s == tt_cell.s)
-    assert tt_cell2.isreplica[:-1].all()
+    tt_cell2_nodrift = tt_cell2.rows[~tt_cell2.rows.mask['\|\|drift.*']]
+    assert tt_cell2_nodrift.isreplica[:-1].all()
     assert tt_cell2['parent_name', 'mq.d.l.cell.2'] == 'mq.d.l'
     assert tt_cell2['parent_name', 'mq.f.l.cell.2'] == 'mq.f.l'
     assert tt_cell['parent_name', 'mq.d.l'] == 'mq.d'
@@ -484,8 +492,9 @@ def test_assemble_ring():
     tt_arc = arc.get_table(attr=True)
     assert len(tt_arc) == 3 * (len(tt_cell)-1) + 1
     n_cell = len(tt_cell) - 1
-    assert np.all(tt_arc.name[n_cell:2*n_cell] == tt_cell2.name[:-1])
-    for nn in tt_cell2.name[:-1]:
+    assert np.all(tt_arc.env_name[n_cell:2*n_cell]
+                  == tt_cell2.env_name[:-1])
+    for nn in tt_cell2.env_name[:-1]:
         assert arc.get(nn) is env.get(nn)
         assert arc.get(nn) is env['cell.2'].get(nn)
 
@@ -631,7 +640,7 @@ def test_assemble_ring():
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
     assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
     assert (np.array(cell3_select.element_names) == np.array(
-        tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
+        tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].env_name)).all()
 
     # Check that they share the _element_dict
     assert cell._element_dict is env._element_dict
@@ -710,7 +719,8 @@ def test_assemble_ring_builders():
 
     tt_girder = girder.get_table(attr=True)
     assert np.all(tt_girder.name == np.array(
-        ['drift_1', 'corrector', 'drift_2', 'mq', 'drift_3', 'ms', '_end_point']))
+        ['||drift_1', 'corrector', '||drift_2', 'mq', '||drift_3', 'ms',
+       '_end_point']))
     tt_girder['s_center'] = tt_girder['s'] + \
         tt_girder['length']/2 * np.float64(tt_girder['isthick'])
     xo.assert_allclose(tt_girder['s_center', 'mq'], 1., atol=1e-14, rtol=0)
@@ -730,7 +740,8 @@ def test_assemble_ring_builders():
     tt_girder_f = girder_f.get_table(attr=True)
     assert (~(tt_girder_f.isreplica)).all()
     assert np.all(tt_girder_f.name == np.array(
-        ['drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f', 'drift_3.f', 'ms.f', '_end_point']))
+        ['||drift_1', 'corrector.f', '||drift_2', 'mq.f', '||drift_3',
+       'ms.f', '_end_point']))
     tt_girder_f['s_center'] = (tt_girder_f['s']
                             + tt_girder_f['length']/2 * np.float64(tt_girder_f['isthick']))
     xo.assert_allclose(tt_girder_f['s_center', 'mq.f'], 1., atol=1e-14, rtol=0)
@@ -746,7 +757,8 @@ def test_assemble_ring_builders():
     assert (~(tt_girder_d.isreplica)).all()
     len_girder = tt_girder_d.s[-1]
     assert np.all(tt_girder_d.name == np.array(
-        ['ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d', 'drift_1.d', '_end_point']))
+        ['ms.d', '||drift_3', 'mq.d', '||drift_2', 'corrector.d',
+       '||drift_1', '_end_point']))
     tt_girder_d['s_center'] = (tt_girder_d['s']
                             + tt_girder_d['length']/2 * np.float64(tt_girder_d['isthick']))
     xo.assert_allclose(tt_girder_d['s_center', 'mq.d'],
@@ -774,10 +786,11 @@ def test_assemble_ring_builders():
     xo.assert_allclose(l_hc, l_hc, atol=1e-14, rtol=0)
     tt_hc = halfcell.get_table(attr=True)
     assert np.all(tt_hc.name == np.array(
-        ['drift_4', 'ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d',
-        'drift_1.d', 'drift_5', 'mb.1', 'drift_6', 'mb.2', 'drift_7',
-        'mb.3', 'drift_8', 'drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f',
-        'drift_3.f', 'ms.f', 'drift_9', 'mid', '_end_point']))
+        ['||drift_4', 'ms.d', '||drift_3::0', 'mq.d', '||drift_2::0',
+       'corrector.d', '||drift_1::0', '||drift_5', 'mb.1', '||drift_6::0',
+       'mb.2', '||drift_6::1', 'mb.3', '||drift_7', '||drift_1::1',
+       'corrector.f', '||drift_2::1', 'mq.f', '||drift_3::1', 'ms.f',
+       '||drift_8', 'mid', '_end_point']))
     assert np.all(tt_hc.element_type == np.array(
         ['Drift', 'Sextupole', 'Drift', 'Quadrupole', 'Drift', 'Multipole',
         'Drift', 'Drift', 'Bend', 'Drift', 'Bend', 'Drift', 'Bend',
@@ -820,16 +833,17 @@ def test_assemble_ring_builders():
     tt_cell['s_center'] = (
         tt_cell['s'] + tt_cell['length'] / 2 * np.float64(tt_cell['isthick']))
     assert np.all(tt_cell.name == np.array(
-        ['start', 'mid.l', 'drift_9.l', 'ms.f.l', 'drift_3.f.l', 'mq.f.l',
-        'drift_2.f.l', 'corrector.f.l', 'drift_1.f.l', 'drift_8.l',
-        'mb.3.l', 'drift_7.l', 'mb.2.l', 'drift_6.l', 'mb.1.l',
-        'drift_5.l', 'drift_1.d.l', 'corrector.d.l', 'drift_2.d.l',
-        'mq.d.l', 'drift_3.d.l', 'ms.d.l', 'drift_4.l', 'drift_4.r',
-        'ms.d.r', 'drift_3.d.r', 'mq.d.r', 'drift_2.d.r', 'corrector.d.r',
-        'drift_1.d.r', 'drift_5.r', 'mb.1.r', 'drift_6.r', 'mb.2.r',
-        'drift_7.r', 'mb.3.r', 'drift_8.r', 'drift_1.f.r', 'corrector.f.r',
-        'drift_2.f.r', 'mq.f.r', 'drift_3.f.r', 'ms.f.r', 'drift_9.r',
-        'mid.r', 'end', '_end_point']))
+        ['start', 'mid.l', '||drift_8::0', 'ms.f.l', '||drift_3::0',
+       'mq.f.l', '||drift_2::0', 'corrector.f.l', '||drift_1::0',
+       '||drift_7::0', 'mb.3.l', '||drift_6::0', 'mb.2.l', '||drift_6::1',
+       'mb.1.l', '||drift_5::0', '||drift_1::1', 'corrector.d.l',
+       '||drift_2::1', 'mq.d.l', '||drift_3::1', 'ms.d.l', '||drift_4::0',
+       '||drift_4::1', 'ms.d.r', '||drift_3::2', 'mq.d.r', '||drift_2::2',
+       'corrector.d.r', '||drift_1::2', '||drift_5::1', 'mb.1.r',
+       '||drift_6::2', 'mb.2.r', '||drift_6::3', 'mb.3.r', '||drift_7::1',
+       '||drift_1::3', 'corrector.f.r', '||drift_2::3', 'mq.f.r',
+       '||drift_3::3', 'ms.f.r', '||drift_8::1', 'mid.r', 'end',
+       '_end_point']))
     assert np.all(tt_cell.element_type == np.array(
         ['Marker', 'Marker', 'Drift', 'Sextupole', 'Drift', 'Quadrupole',
         'Drift', 'Multipole', 'Drift', 'Drift', 'Bend', 'Drift', 'Bend',
@@ -840,12 +854,12 @@ def test_assemble_ring_builders():
         'Multipole', 'Drift', 'Quadrupole', 'Drift', 'Sextupole', 'Drift',
         'Marker', 'Marker', '']))
     assert np.all(tt_cell.isreplica == np.array(
-        [False,  True,  True,  True,  True,  True,  True,  True,  True,
-        True,  True,  True,  True,  True,  True,  True,  True,  True,
-        True,  True,  True,  True,  True,  True,  True,  True,  True,
-        True,  True,  True,  True,  True,  True,  True,  True,  True,
-        True,  True,  True,  True,  True,  True,  True,  True,  True,
-        False, False]))
+        [False,  True, False,  True, False,  True, False,  True, False,
+       False,  True, False,  True, False,  True, False, False,  True,
+       False,  True, False,  True, False, False,  True, False,  True,
+       False,  True, False, False,  True, False,  True, False,  True,
+       False, False,  True, False,  True, False,  True, False,  True,
+       False, False]))
 
     tt_cell_stripped = tt_cell.rows[1:-2] # Remove _end_point and markers added in cell
     tt_cell_second_half = tt_cell_stripped.rows[len(tt_cell_stripped)//2 :]
@@ -890,10 +904,11 @@ def test_assemble_ring_builders():
 
     assert 'cell.2' in env.lines
     tt_cell2 = env.lines['cell.2'].get_table(attr=True)
-    assert np.all(tt_cell2.name[:-1] == np.array([
-        nn+'.cell.2' for nn in tt_cell.name[:-1]]))
+    assert np.all([nn for nn in tt_cell2.name[:-1] if not nn.startswith('||drift')]
+                  == np.array([nn + '.cell.2' for nn in tt_cell.name[:-1] if not nn.startswith('||drift')]))
     assert np.all(tt_cell2.s == tt_cell.s)
-    assert tt_cell2.isreplica[:-1].all()
+    tt_cell2_nodrift = tt_cell2.rows[~tt_cell2.rows.mask['\|\|drift.*']]
+    assert tt_cell2_nodrift.isreplica[:-1].all()
     assert tt_cell2['parent_name', 'mq.d.l.cell.2'] == 'mq.d.l'
     assert tt_cell2['parent_name', 'mq.f.l.cell.2'] == 'mq.f.l'
     assert tt_cell['parent_name', 'mq.d.l'] == 'mq.d'
@@ -902,8 +917,8 @@ def test_assemble_ring_builders():
     tt_arc = arc.get_table(attr=True)
     assert len(tt_arc) == 3 * (len(tt_cell)-1) + 1
     n_cell = len(tt_cell) - 1
-    assert np.all(tt_arc.name[n_cell:2*n_cell] == tt_cell2.name[:-1])
-    for nn in tt_cell2.name[:-1]:
+    assert np.all(tt_arc.env_name[n_cell:2*n_cell] == tt_cell2.env_name[:-1])
+    for nn in tt_cell2.env_name[:-1]:
         assert arc.get(nn) is env.get(nn)
         assert arc.get(nn) is env['cell.2'].get(nn)
 
@@ -1050,7 +1065,7 @@ def test_assemble_ring_builders():
     assert cell3_select.element_names[0] == 'start.cell.3.arc.2'
     assert cell3_select.element_names[-1] == 'end.cell.3.arc.2'
     assert (np.array(cell3_select.element_names) == np.array(
-        tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].name)).all()
+        tw.rows['start.cell.3.arc.2':'end.cell.3.arc.2'].env_name)).all()
 
     # Check that they share the _element_dict
     assert cell._element_dict is env._element_dict
@@ -1130,7 +1145,8 @@ def test_assemble_ring_repeated_elements():
 
     tt_girder = girder.get_table(attr=True)
     assert np.all(tt_girder.name == np.array(
-        ['drift_1', 'corrector', 'drift_2', 'mq', 'drift_3', 'ms', '_end_point']))
+        ['||drift_1', 'corrector', '||drift_2', 'mq', '||drift_3', 'ms',
+       '_end_point']))
     tt_girder['s_center'] = tt_girder['s'] + \
         tt_girder['length']/2 * np.float64(tt_girder['isthick'])
     xo.assert_allclose(tt_girder['s_center', 'mq'], 1., atol=1e-14, rtol=0)
@@ -1150,7 +1166,8 @@ def test_assemble_ring_repeated_elements():
     tt_girder_f = girder_f.get_table(attr=True)
     assert (~(tt_girder_f.isreplica)).all()
     assert np.all(tt_girder_f.name == np.array(
-        ['drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f', 'drift_3.f', 'ms.f', '_end_point']))
+        ['||drift_1', 'corrector.f', '||drift_2', 'mq.f', '||drift_3',
+       'ms.f', '_end_point']))
     tt_girder_f['s_center'] = (tt_girder_f['s']
                             + tt_girder_f['length']/2 * np.float64(tt_girder_f['isthick']))
     xo.assert_allclose(tt_girder_f['s_center', 'mq.f'], 1., atol=1e-14, rtol=0)
@@ -1166,7 +1183,8 @@ def test_assemble_ring_repeated_elements():
     assert (~(tt_girder_d.isreplica)).all()
     len_girder = tt_girder_d.s[-1]
     assert np.all(tt_girder_d.name == np.array(
-        ['ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d', 'drift_1.d', '_end_point']))
+        ['ms.d', '||drift_3', 'mq.d', '||drift_2', 'corrector.d',
+       '||drift_1', '_end_point']))
     tt_girder_d['s_center'] = (tt_girder_d['s']
                             + tt_girder_d['length']/2 * np.float64(tt_girder_d['isthick']))
     xo.assert_allclose(tt_girder_d['s_center', 'mq.d'],
@@ -1197,10 +1215,11 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(l_hc, l_hc, atol=1e-14, rtol=0)
     tt_hc = halfcell.get_table(attr=True)
     assert np.all(tt_hc.name == np.array(
-        ['drift_4', 'ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d',
-        'drift_1.d', 'drift_5', 'mb.1', 'drift_6', 'mb.2', 'drift_7',
-        'mb.3', 'drift_8', 'drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f',
-        'drift_3.f', 'ms.f', 'drift_9', 'mid', '_end_point']))
+        ['||drift_4', 'ms.d', '||drift_3::0', 'mq.d', '||drift_2::0',
+       'corrector.d', '||drift_1::0', '||drift_5', 'mb.1', '||drift_6::0',
+       'mb.2', '||drift_6::1', 'mb.3', '||drift_7', '||drift_1::1',
+       'corrector.f', '||drift_2::1', 'mq.f', '||drift_3::1', 'ms.f',
+       '||drift_8', 'mid', '_end_point']))
     assert np.all(tt_hc.element_type == np.array(
         ['Drift', 'Sextupole', 'Drift', 'Quadrupole', 'Drift', 'Multipole',
         'Drift', 'Drift', 'Bend', 'Drift', 'Bend', 'Drift', 'Bend',
@@ -1238,14 +1257,15 @@ def test_assemble_ring_repeated_elements():
     tt_cell['s_center'] = (
         tt_cell['s'] + tt_cell['length'] / 2 * np.float64(tt_cell['isthick']))
     assert np.all(tt_cell.env_name == np.array(
-        ['mid', 'drift_9', 'ms.f', 'drift_3.f', 'mq.f', 'drift_2.f',
-       'corrector.f', 'drift_1.f', 'drift_8', 'mb.3', 'drift_7', 'mb.2',
-       'drift_6', 'mb.1', 'drift_5', 'drift_1.d', 'corrector.d',
-       'drift_2.d', 'mq.d', 'drift_3.d', 'ms.d', 'drift_4', 'drift_4',
-       'ms.d', 'drift_3.d', 'mq.d', 'drift_2.d', 'corrector.d',
-       'drift_1.d', 'drift_5', 'mb.1', 'drift_6', 'mb.2', 'drift_7',
-       'mb.3', 'drift_8', 'drift_1.f', 'corrector.f', 'drift_2.f', 'mq.f',
-       'drift_3.f', 'ms.f', 'drift_9', 'mid', '_end_point']))
+        ['mid', '||drift_8', 'ms.f', '||drift_3', 'mq.f', '||drift_2',
+       'corrector.f', '||drift_1', '||drift_7', 'mb.3', '||drift_6',
+       'mb.2', '||drift_6', 'mb.1', '||drift_5', '||drift_1',
+       'corrector.d', '||drift_2', 'mq.d', '||drift_3', 'ms.d',
+       '||drift_4', '||drift_4', 'ms.d', '||drift_3', 'mq.d', '||drift_2',
+       'corrector.d', '||drift_1', '||drift_5', 'mb.1', '||drift_6',
+       'mb.2', '||drift_6', 'mb.3', '||drift_7', '||drift_1',
+       'corrector.f', '||drift_2', 'mq.f', '||drift_3', 'ms.f',
+       '||drift_8', 'mid', '_end_point']))
     assert np.all(tt_cell.element_type == np.array(
         ['Marker', 'Drift', 'Sextupole', 'Drift', 'Quadrupole', 'Drift',
        'Multipole', 'Drift', 'Drift', 'Bend', 'Drift', 'Bend', 'Drift',
@@ -1676,9 +1696,9 @@ def test_repeated_elements():
     ])
 
     tt = line.get_table()
-    assert np.all(tt.env_name == np.array(['mb', 'mb', 'drift_1', 'ip1', 'mb',
-                                    'mb', 'drift_2', 'mb', 'ip2', 'mb',
-                                    'mb', '_end_point']))
+    assert np.all(tt.env_name == np.array([
+        'mb', 'mb', '||drift_1', 'ip1', 'mb', 'mb', '||drift_2', 'mb',
+       'ip2', 'mb', 'mb', '_end_point']))
     assert np.all(tt.s == np.array([
         0. ,  0.5,  1. , 10. , 10. , 10.5, 11. , 19.5, 20. , 20. , 20.5, 21. ]))
 
@@ -1698,8 +1718,8 @@ def test_repeated_elements():
     ])
     tt_twol1 = l_twol1.get_table()
     assert np.all(tt_twol1.env_name == np.array(
-        ['drift_3', 'mb', 'mb', 'mid', 'mb', 'mb', 'drift_4', 'ip',
-        'drift_5', 'mb', 'mb', 'mid', 'mb', 'mb', '_end_point']))
+        ['||drift_1', 'mb', 'mb', 'mid', 'mb', 'mb', '||drift_1', 'ip',
+       '||drift_1', 'mb', 'mb', 'mid', 'mb', 'mb', '_end_point']))
     assert np.all(tt_twol1.s == np.array(
         [ 0. ,  9. ,  9.5, 10. , 10. , 10.5, 11. , 20. , 20. , 29. , 29.5,
         30. , 30. , 30.5, 31. ]))
@@ -2017,10 +2037,10 @@ def test_insert_repeated_elements():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1..0', 'q0::0', 'ss::0', 'drift_1..3', 'ql', 'drift_2..0',
-        'q0::1', 'ss::1', 'drift_2..3', 'q0::2', 'drift_3', 'qr',
-        'drift_4', 'mk1', 'q0::3', 'mk2', 'ss::2', 'drift_6..1', 'end',
-        '_end_point']))
+        ['||drift_4', 'q0::0', 'ss::0', '||drift_6::0', 'ql', '||drift_7',
+       'q0::1', 'ss::1', '||drift_6::1', 'q0::2', '||drift_2', 'qr',
+       '||drift_1', 'mk1', 'q0::3', 'mk2', 'ss::2', '||drift_8', 'end',
+       '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.  ,  5.  ,  6.05,  7.55, 10.  , 12.5 , 15.  , 16.05, 17.55,
         20.  , 25.  , 30.  , 35.5 , 40.  , 41.  , 42.  , 42.05, 46.05,
@@ -2059,10 +2079,10 @@ def test_insert_with_anchors():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1..0', 'q1', 'ss::0', 'drift_1..3', 'ql', 'drift_2..0',
-        'q2', 'ss::1', 'drift_2..3', 'q0', 'drift_3', 'qr',
-        'drift_4', 'mk1', 'q3', 'mk2', 'ss::2', 'drift_6..1', 'end',
-        '_end_point']))
+        ['||drift_4', 'q1', 'ss::0', '||drift_6::0', 'ql', '||drift_7',
+       'q2', 'ss::1', '||drift_6::1', 'q0', '||drift_2', 'qr',
+       '||drift_1', 'mk1', 'q3', 'mk2', 'ss::2', '||drift_8', 'end',
+       '_end_point'],))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.  ,  5.  ,  6.05,  7.55, 10.  , 12.5 , 15.  , 16.05, 17.55,
         20.  , 25.  , 30.  , 35.5 , 40.  , 41.  , 42.  , 42.05, 46.05,
@@ -2102,9 +2122,9 @@ def test_insert_anchors_special_cases():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'm5.0', 'm5.1', 'q5', 'm5.2', 'm5.3', 'drift_2',
-       'q0_entry', 'q0..entry_map', 'q0..0', 'q4', 'drift_3..1', 'mr.0',
-       'mr.1', 'q6', 'mr.2', 'mr.3', 'drift_4', 'end', '_end_point']))
+        ['||drift_1', 'm5.0', 'm5.1', 'q5', 'm5.2', 'm5.3', '||drift_2',
+       'q0_entry', 'q0..entry_map', 'q0..0', 'q4', '||drift_5', 'mr.0',
+       'mr.1', 'q6', 'mr.2', 'mr.3', '||drift_3', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         np.array([ 4.5,  9. ,  9. , 10. , 11. , 11. , 15. , 19. , 19. , 19.5, 21. ,
                    25.5, 29. , 29. , 30. , 31. , 31. , 40.5, 50. , 50. ])),
@@ -2138,8 +2158,8 @@ def test_insert_providing_object():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3', 'qr', 'myname',
-        'drift_4', 'end', '_end_point']))
+        ['||drift_1', 'ql', '||drift_2::0', 'q0', '||drift_2::1', 'qr',
+       'myname', '||drift_3', 'end', '_end_point']))
     assert np.all(tt.element_type == np.array(
         ['Drift', 'Quadrupole', 'Drift', 'Quadrupole', 'Drift',
         'Quadrupole', 'MyElement', 'Drift', 'Marker', '']))
@@ -2178,9 +2198,9 @@ def test_individual_insertions():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1..0', 'q1', 'drift_1..2', 'ql', 'drift_2..0', 'q2',
-        'drift_2..2', 'q0', 'drift_3', 'qr', 'drift_4', 'mk1', 'q3', 'mk2',
-        'drift_6', 'end', '_end_point']))
+        ['||drift_4', 'q1', '||drift_5::0', 'ql', '||drift_5::1', 'q2',
+       '||drift_5::2', 'q0', '||drift_2::0', 'qr', '||drift_1', 'mk1',
+       'q3', 'mk2', '||drift_2::1', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2. ,  5. ,  7.5, 10. , 12.5, 15. , 17.5, 20. , 25. , 30. , 35.5,
         40. , 41. , 42. , 46. , 50. , 50. ]), rtol=0., atol=1e-14)
@@ -2223,9 +2243,9 @@ def test_individual_insertions_anchors():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'm5.0', 'm5.1', 'q5', 'm5.2', 'm5.3', 'drift_2',
-       'q0_entry', 'q0..entry_map', 'q0..0', 'q4', 'drift_3..1', 'mr.0',
-       'mr.1', 'q6', 'mr.2', 'mr.3', 'drift_4', 'end', '_end_point']))
+        ['||drift_1', 'm5.0', 'm5.1', 'q5', 'm5.2', 'm5.3', '||drift_2',
+       'q0_entry', 'q0..entry_map', 'q0..0', 'q4', '||drift_5', 'mr.0',
+       'mr.1', 'q6', 'mr.2', 'mr.3', '||drift_3', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         np.array([ 4.5,  9. ,  9. , 10. , 11. , 11. , 15. , 19., 19. , 19.5, 21. , 25.5,
         29. , 29. , 30. , 31. , 31. , 40.5, 50. , 50.])),
@@ -2256,9 +2276,9 @@ def test_insert_line():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3..0', 's1', 'drift_5',
-        's2', 'drift_6', 's3', 'drift_3..6', 'qr', 'drift_4', 'end',
-        '_end_point']))
+        ['||drift_1', 'ql', '||drift_2', 'q0', '||drift_5', 's1',
+       '||drift_4::0', 's2', '||drift_4::1', 's3', '||drift_8', 'qr',
+       '||drift_3', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 4.5 , 10.  , 15.  , 20.  , 21.5 , 22.05, 22.25, 22.45, 22.65,
         22.85, 25.95, 30.  , 40.5 , 50.  , 50.  ]),
@@ -2285,8 +2305,8 @@ def test_insert_list():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'ql', 'drift_2', 'q0', 'drift_3..0', 's1', 's2', 's3',
-        'drift_3..4', 'qr', 'drift_4', 'end', '_end_point']))
+        ['||drift_1', 'ql', '||drift_2', 'q0', '||drift_4', 's1', 's2',
+       's3', '||drift_6', 'qr', '||drift_3', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 4.5 , 10.  , 15.  , 20.  , 21.5 , 22.05, 22.15, 22.25, 25.65,
         30.  , 40.5 , 50.  , 50.  ]),
@@ -2324,9 +2344,9 @@ def test_anchors_in_new_and_place():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'm1', 'q1', 'drift_2', 's2', 'drift_3', 'm2_0', 'm2',
-        'm2_1_0', 'm2_1_1', 'm2_1', 'q2', 'drift_4', 'q3', 'm3', 'm4',
-        'q4', 'q5', '_end_point']))
+        ['||drift_1::0', 'm1', 'q1', '||drift_2', 's2', '||drift_1::1',
+       'm2_0', 'm2', 'm2_1_0', 'm2_1_1', 'm2_1', 'q2', '||drift_3', 'q3',
+       'm3', 'm4', 'q4', 'q5', '_end_point']))
     xo.assert_allclose(tt.s, np.array(
         [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
         13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),

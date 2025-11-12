@@ -1153,7 +1153,7 @@ def _twiss_open(
         'kin_ps': kin_ps_co,
         'kin_xprime': kin_xprime_co,
         'kin_yprime': kin_yprime_co,
-        'name_env': name_co_env,
+        'env_name': name_co_env,
     })
     if spin:
         twiss_res_element_by_element.update({
