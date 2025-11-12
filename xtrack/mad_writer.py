@@ -623,7 +623,8 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
                 s_dict[nn] = 0.5 * (tt_s[ii] + tt_s[ii+1])
 
         for nn in line.element_names:
-
+            if nn.startswith("||drift_"):
+                continue
             el = line._element_dict[nn]
             el_str = element_to_mad_str(nn, line, mad_type=MadType.MADX)
             if nn + '_tilt_entry' in line._element_dict:
