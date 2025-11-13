@@ -9,6 +9,8 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 from xobjects.test_helpers import for_all_test_contexts
+import pytest
+from cpymad.madx import Madx
 
 
 @for_all_test_contexts
@@ -115,14 +117,10 @@ def test_aperture_polygon(test_context):
     aper.track(parttest)
     xo.assert_allclose(ctx2np(parttest.state), 0)
 
+@pytest.mark.parametrize("loader", ['cpymad', 'native'])
+def test_mad_import(loader):
 
-def test_mad_import():
-
-    from cpymad.madx import Madx
-
-    mad = Madx(stdout=False)
-
-    mad.input("""
+    mad_src = """
         m_circle: marker, apertype="circle", aperture={.2};
         m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
         m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
@@ -140,14 +138,16 @@ def test_mad_import():
             m_octagon, at=0.05;
             m_polygon, at=0.06;
         endsequence;
-
-        use,sequence=ss;
-        twiss,betx=1,bety=1;
         """
-        )
-
-    line = xt.Line.from_madx_sequence(mad.sequence.ss, install_apertures=True)
-
+    if loader == 'cpymad':
+        mad = Madx()
+        mad.input(mad_src)
+        mad.beam()
+        mad.use('ss')
+        line = xt.Line.from_madx_sequence(mad.sequence.ss, install_apertures=True)
+    elif loader == 'native':
+        env = xt.load(string=mad_src, format='madx')
+        line = env.ss
     apertures = [ee for ee in line.elements if ee.__class__.__name__.startswith('Limit')]
 
     circ = apertures[0]
