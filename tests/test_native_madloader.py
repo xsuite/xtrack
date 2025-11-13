@@ -783,6 +783,10 @@ def test_load_b2_with_bv_minus_one(tmp_path):
         is_rbend = isinstance(e4, xt.RBend)
 
         for kk in d2.keys():
+
+            if kk == 'prototype':
+                continue  # is always None from cpymad
+
             if kk in ('__class__', 'model', 'side'):
                 assert d2[kk] == d4[kk]
                 continue
