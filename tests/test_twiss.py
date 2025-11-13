@@ -58,14 +58,19 @@ def test_coupled_beta(test_context):
     mad.use('lhcb1')
 
     # introduce coupling
-    mad.sequence.lhcb1.expanded_elements[7].ksl = [0, 1e-4]
+    mad.sequence.lhcb1.expanded_elements['mqwa.a4r3.b1..1'].ksl = [0, 1e-4]
     mad.twiss() # I see to need to do it twice to get the right coupling in madx?!
 
     tw_mad_coupling = mad.twiss(ripken=True).dframe()
     tw_mad_coupling.set_index('name', inplace=True)
 
-    line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
-    line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
+    env = xt.load(test_data_folder / 'hllhc15_noerrors_nobb/sequence.madx')
+    line = env['lhcb1']
+    line.set_particle_ref('proton', p0c=7e12)
+    line['mqwa.a4r3.b1..1'].ksl[1] = 1e-4
+    tt_cav = line.get_table().rows.match('Cavity', 'element_type')
+    for nn in tt_cav.name:
+        line[nn].frequency = 400.79e6
 
     line.build_tracker(_context=test_context)
 
