@@ -2,39 +2,30 @@ import pathlib
 
 import numpy as np
 import pytest
-from cpymad.madx import Madx
 
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
 from xtrack.slicing import Strategy, Teapot
+from cpymad.madx import Madx
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
-@pytest.mark.parametrize('deferred_expressions', [True, False])
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
-def test_sps_thick(test_context, deferred_expressions):
+def test_sps_thick_native_loader(test_context):
 
-    mad = Madx(stdout=False)
-    mad.call(str(test_data_folder) + '/sps_thick/sps.seq')
-    mad.input('beam, particle=proton, pc=26;')
-    mad.call(str(test_data_folder) + '/sps_thick/lhc_q20.str')
-    mad.use(sequence='sps')
-    twmad = mad.twiss()
-
-    line = xt.Line.from_madx_sequence(
-        sequence=mad.sequence.sps,
-        deferred_expressions=deferred_expressions,
-        allow_thick=True)
-    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
-                                    gamma0=mad.sequence.sps.beam.gamma)
+    env = xt.load([test_data_folder / 'sps_thick/sps.seq',
+                   test_data_folder / 'sps_thick/lhc_q20.str'])
+    env.sps.set_particle_ref('proton', p0c=26e9)
+    line = env.sps
     line.build_tracker(_context=test_context)
+
     line.twiss_default['method'] = '4d'
 
     # Check a bend
-    assert line.element_names[24] == 'mbb.10150'
+    assert line.element_names[23] == 'mbb.10150'
 
     assert isinstance(line['mbb.10150'], xt.RBend)
 
@@ -47,6 +38,14 @@ def test_sps_thick(test_context, deferred_expressions):
     xo.assert_allclose(line['mbb.10150'].edge_exit_angle, 0, atol=1e-11, rtol=0)
 
     tw = line.twiss()
+
+    mad = Madx(stdout=False)
+    mad.call(str(test_data_folder) + '/sps_thick/sps.seq')
+    mad.input('beam, particle=proton, pc=26;')
+    mad.call(str(test_data_folder) + '/sps_thick/lhc_q20.str')
+    mad.use(sequence='sps')
+    twmad = mad.twiss()
+
     xo.assert_allclose(twmad.s[-1], tw.s[-1], atol=1e-9, rtol=0)
     xo.assert_allclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
     xo.assert_allclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
@@ -114,15 +113,15 @@ def test_sps_thick(test_context, deferred_expressions):
     line.build_tracker(_context=test_context)
 
     # Check a bend
-    assert line.element_names[114] == 'mbb.10150_entry'
-    assert line.element_names[115] == 'mbb.10150..entry_map'
-    assert line.element_names[116] == 'drift_mbb.10150..0'
-    assert line.element_names[117] == 'mbb.10150..0'
-    assert line.element_names[118] == 'drift_mbb.10150..1'
-    assert line.element_names[119] == 'mbb.10150..1'
-    assert line.element_names[120] == 'drift_mbb.10150..2'
-    assert line.element_names[121] == 'mbb.10150..exit_map'
-    assert line.element_names[122] == 'mbb.10150_exit'
+    assert line.element_names[113] == 'mbb.10150_entry'
+    assert line.element_names[114] == 'mbb.10150..entry_map'
+    assert line.element_names[115] == 'drift_mbb.10150..0'
+    assert line.element_names[116] == 'mbb.10150..0'
+    assert line.element_names[117] == 'drift_mbb.10150..1'
+    assert line.element_names[118] == 'mbb.10150..1'
+    assert line.element_names[119] == 'drift_mbb.10150..2'
+    assert line.element_names[120] == 'mbb.10150..exit_map'
+    assert line.element_names[121] == 'mbb.10150_exit'
 
     assert isinstance(line['mbb.10150_entry'], xt.Marker)
     assert isinstance(line['mbb.10150..entry_map'], xt.ThinSliceRBendEntry)
@@ -135,27 +134,27 @@ def test_sps_thick(test_context, deferred_expressions):
     assert isinstance(line['mbb.10150_exit'], xt.Marker)
 
     # Check a quadrupole
-    assert line.element_names[160] == 'qf.10210_entry'
-    assert line.element_names[161] == 'qf.10210..entry_map'
-    assert line.element_names[162] == 'drift_qf.10210..0'
-    assert line.element_names[163] == 'qf.10210..0'
-    assert line.element_names[164] == 'drift_qf.10210..1'
-    assert line.element_names[165] == 'qf.10210..1'
-    assert line.element_names[166] == 'drift_qf.10210..2'
-    assert line.element_names[167] == 'qf.10210..2'
-    assert line.element_names[168] == 'drift_qf.10210..3'
-    assert line.element_names[169] == 'qf.10210..3'
-    assert line.element_names[170] == 'drift_qf.10210..4'
-    assert line.element_names[171] == 'qf.10210..4'
-    assert line.element_names[172] == 'drift_qf.10210..5'
-    assert line.element_names[173] == 'qf.10210..5'
-    assert line.element_names[174] == 'drift_qf.10210..6'
-    assert line.element_names[175] == 'qf.10210..6'
-    assert line.element_names[176] == 'drift_qf.10210..7'
-    assert line.element_names[177] == 'qf.10210..7'
-    assert line.element_names[178] == 'drift_qf.10210..8'
-    assert line.element_names[179] == 'qf.10210..exit_map'
-    assert line.element_names[180] == 'qf.10210_exit'
+    assert line.element_names[159] == 'qf.10210_entry'
+    assert line.element_names[160] == 'qf.10210..entry_map'
+    assert line.element_names[161] == 'drift_qf.10210..0'
+    assert line.element_names[162] == 'qf.10210..0'
+    assert line.element_names[163] == 'drift_qf.10210..1'
+    assert line.element_names[164] == 'qf.10210..1'
+    assert line.element_names[165] == 'drift_qf.10210..2'
+    assert line.element_names[166] == 'qf.10210..2'
+    assert line.element_names[167] == 'drift_qf.10210..3'
+    assert line.element_names[168] == 'qf.10210..3'
+    assert line.element_names[169] == 'drift_qf.10210..4'
+    assert line.element_names[170] == 'qf.10210..4'
+    assert line.element_names[171] == 'drift_qf.10210..5'
+    assert line.element_names[172] == 'qf.10210..5'
+    assert line.element_names[173] == 'drift_qf.10210..6'
+    assert line.element_names[174] == 'qf.10210..6'
+    assert line.element_names[175] == 'drift_qf.10210..7'
+    assert line.element_names[176] == 'qf.10210..7'
+    assert line.element_names[177] == 'drift_qf.10210..8'
+    assert line.element_names[178] == 'qf.10210..exit_map'
+    assert line.element_names[179] == 'qf.10210_exit'
 
     assert isinstance(line['qf.10210..7'], xt.ThinSliceQuadrupole)
 
@@ -194,8 +193,6 @@ def test_sps_thick(test_context, deferred_expressions):
                 compute_chromatic_properties=True)
 
     assert_allclose = np.testing.assert_allclose
-
-    line.to_json('sps_cpymad.json')
 
     assert_allclose(tw_backwards.s, tw_edge_linear.s, rtol=0, atol=1e-10)
     assert_allclose(tw_backwards.x, tw_edge_linear.x, rtol=0, atol=1e-10)
