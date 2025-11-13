@@ -3851,7 +3851,7 @@ class Line:
                                       ' `compose` mode. Please call line.end_compose().')
 
         self._frozen_check()
-        self.replace_all_repeated_elements()
+        self.replace_all_repeated_elements(replace_generated_drifts=True)
 
         if keep is None:
             keep = []
