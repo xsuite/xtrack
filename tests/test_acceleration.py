@@ -8,7 +8,6 @@ import pathlib
 
 import numpy as np
 import pandas as pd
-from cpymad.madx import Madx
 from scipy.constants import c as clight
 
 import xobjects as xo
@@ -166,21 +165,10 @@ def test_energy_program(test_context):
 @for_all_test_contexts(excluding=('ContextPyopencl',))
 def test_acceleration_transverse_shrink(test_context):
 
-    mad = Madx(stdout=False)
-
-    # Load mad model and apply element shifts
-    mad.input(f'''
-    call, file = '{str(test_data_folder)}/psb_chicane/psb.seq';
-    call, file = '{str(test_data_folder)}/psb_chicane/psb_fb_lhc.str';
-    beam;
-    use, sequence=psb1;
-    ''')
-
-    line = xt.Line.from_madx_sequence(mad.sequence.psb1,
-                                        deferred_expressions=True)
-    e_kin_start_eV = 160e6
-    line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,
-                                    energy0=xt.PROTON_MASS_EV + e_kin_start_eV)
+    env = xt.load([test_data_folder / 'psb_chicane/psb.seq',
+                   test_data_folder / 'psb_chicane/psb_fb_lhc.str'])
+    env.psb1.set_particle_ref('proton', p0c=0.5708301551893517e9)
+    line = env.psb1
 
     # Slice to gain some tracking speed
     line.slice_thick_elements(
