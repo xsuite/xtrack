@@ -67,6 +67,10 @@ def test_native_madloader_lhc_thin():
             is_rbend = isinstance(etest, xt.RBend)
 
             for kk in dref.keys():
+
+                if kk == 'prototype':
+                    continue  # prototype is always None from cpymad
+
                 if kk in ('__class__', 'model', 'side'):
                     assert dref[kk] == dtest[kk]
                     continue
