@@ -101,15 +101,18 @@ def test_coupled_beta(test_context):
 
 @for_all_test_contexts
 def test_twiss_zeta0_delta0(test_context):
-    mad = Madx(stdout=False)
-    mad.call(str(test_data_folder
-                 / 'hllhc15_noerrors_nobb/sequence_with_crabs.madx'))
-    mad.use('lhcb1')
-    mad.globals.on_crab1 = -190
-    mad.globals.on_crab5 = -190
 
-    line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
-    line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
+    env = xt.load(test_data_folder
+                  / 'hllhc15_noerrors_nobb/sequence_with_crabs.madx')
+    line = env['lhcb1']
+    line.set_particle_ref('proton', p0c=7e12)
+
+    tt_cav = line.get_table().rows.match('Cavity', 'element_type')
+    for nn in tt_cav.name:
+        line[nn].frequency = 400.79e6
+
+    env['on_crab1'] = -190
+    env['on_crab5'] = -190
 
     line.build_tracker(_context=test_context)
 
