@@ -864,7 +864,7 @@ def test_import_thick_quad_from_madx_native():
     ids=['with knobs', 'no knobs'],
 )
 @pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
-def test_import_thick_bend_from_madx_and_slice(
+def test_import_thick_bend_from_madx_and_slice_cpymad(
         with_knobs,
         bend_type,
 ):
@@ -954,6 +954,95 @@ def test_import_thick_bend_from_madx_and_slice(
         assert drift._parent._buffer is line._buffer
         assert drift._xobject._parent._buffer is line._buffer
 
+@pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
+def test_import_thick_bend_from_madx_and_slice_native(
+        bend_type,
+):
+    mad_src = (f"""
+    knob_a := 1.0;
+    knob_b := 2.0;
+    ! Make the sequence a bit longer to accommodate rbends
+    ss: sequence, l:=2 * knob_b, refer=entry;
+        elem: {bend_type}, at=0, angle:=0.1 * knob_a, l:=knob_b,
+            k0:=0.2 * knob_a, k1=0, k2:=0.4 * knob_a,
+            fint:=0.5 * knob_a, hgap:=0.6 * knob_a,
+            e1:=0.7 * knob_a, e2:=0.8 * knob_a;
+    endsequence;
+    """)
+    env = xt.load(string=mad_src, format='madx')
+    line = env['ss']
+
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+    line.build_tracker(compile=False)
+
+    elems = [line[f'elem..{ii}'] for ii in range(2)]
+    drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]
+
+    # Verify that the slices are correct
+    for elem in elems:
+        slice_class = {
+            'rbend': xt.ThinSliceRBend,
+            'sbend': xt.ThinSliceBend,
+        }[bend_type]
+        assert isinstance(elem, slice_class)
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
+        if bend_type == 'rbend':
+            xo.assert_allclose(elem._parent.length_straight, 2.0, atol=1e-14)
+        else:
+            xo.assert_allclose(elem._parent.length, 2.0, atol=1e-14)
+        xo.assert_allclose(elem._parent.angle, 0.1, atol=1e-14)
+        xo.assert_allclose(elem._parent.k2, 0.4, atol=1e-14)
+        xo.assert_allclose(elem._parent.knl, 0, atol=1e-14)
+        xo.assert_allclose(elem._parent.ksl, 0, atol=1e-14)
+
+    for drift in drifts:
+        if bend_type == 'rbend':
+            xo.assert_allclose(drift._parent.length_straight, 2., atol=1e-14)
+        else:
+            xo.assert_allclose(drift._parent.length, 2., atol=1e-14)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-14)
+
+    assert 'knob_a' in line.vars
+
+    # Change the knob values
+    line.vars['knob_a'] = 2.0
+    line.vars['knob_b'] = 3.0
+
+    # Verify that the line has been adjusted correctly
+    for elem in elems:
+        xo.assert_allclose(elem.weight, 0.5, atol=1e-14)
+        if bend_type == 'rbend':
+            xo.assert_allclose(elem._parent.length_straight, 3.0, atol=1e-14)
+        else:
+            xo.assert_allclose(elem._parent.length, 3.0, atol=1e-14)
+        xo.assert_allclose(elem._parent.k2, 0.8, atol=1e-14)
+        xo.assert_allclose(elem._parent.knl, 0, atol=1e-14)
+        xo.assert_allclose(elem._parent.ksl, 0, atol=1e-14)
+        xo.assert_allclose(elem._parent.h, 0.2/elem._parent.length, atol=1e-14)
+
+        xo.assert_allclose(elem._xobject.weight, 0.5, atol=1e-14)
+        if bend_type == 'rbend':
+            xo.assert_allclose(elem._xobject._parent.length_straight, 3.0, atol=1e-14)
+        else:
+            xo.assert_allclose(elem._xobject._parent.length, 3.0, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k0, 0.4, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.k2, 0.8, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.knl, 0, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.ksl, 0, atol=1e-14)
+        xo.assert_allclose(elem._xobject._parent.h, 0.2/elem._parent.length, atol=1e-14)
+
+        assert elem._parent._buffer is line._buffer
+        assert elem._xobject._parent._buffer is line._buffer
+
+    for drift in drifts:
+        if bend_type == 'rbend':
+            xo.assert_allclose(drift._parent.length_straight, 3, atol=1e-14)
+        else:
+            xo.assert_allclose(drift._parent.length, 3, atol=1e-14)
+        xo.assert_allclose(drift.weight, 1./3., atol=1e-14)
+
+        assert drift._parent._buffer is line._buffer
+        assert drift._xobject._parent._buffer is line._buffer
 
 @pytest.mark.parametrize(
     'with_knobs',
