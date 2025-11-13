@@ -64,20 +64,10 @@ def test_energy_program(test_context):
     # Shift the time scale for testing purposes
     t_s = t_s
 
-    # Load mad model and apply element shifts
-    mad = Madx(stdout=False)
-    mad.call(str(test_data_folder / 'psb_chicane/psb.seq'))
-    mad.call(str(test_data_folder / 'psb_chicane/psb_fb_lhc.str'))
-    mad.input('''
-        beam, particle=PROTON, pc=0.5708301551893517;
-        use, sequence=psb1;
-        twiss;
-    ''')
-
-    line = xt.Line.from_madx_sequence(mad.sequence.psb1, allow_thick=True,
-                                      deferred_expressions=True)
-    line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
-                                     gamma0=mad.sequence.psb1.beam.gamma)
+    env = xt.load([test_data_folder / 'psb_chicane/psb.seq',
+                   test_data_folder / 'psb_chicane/psb_fb_lhc.str'])
+    env.psb1.set_particle_ref('proton', p0c=0.5708301551893517e9)
+    line = env.psb1
 
     line.build_tracker(_context=test_context)
 
