@@ -112,9 +112,6 @@ def test_twiss_psb(test_context):
             xo.assert_allclose(dref[kk], dtest[kk], rtol=1e-10, atol=1e-16)
 
 
-
-
-
     tw = line.twiss()
 
     # With the approximation beta ~= beta0 we have delta ~= pzeta ~= 1/beta0 ptau
