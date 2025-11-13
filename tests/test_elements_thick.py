@@ -783,7 +783,7 @@ def test_import_thick_bend_from_madx_native(use_true_thick_bends, bend_type):
 
 
 @pytest.mark.parametrize('with_knobs', [False, True])
-def test_import_thick_quad_from_madx(with_knobs):
+def test_import_thick_quad_from_madx_cpymad(with_knobs):
     mad = Madx(stdout=False)
 
     mad.input(f"""
@@ -1127,7 +1127,7 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
     xo.assert_allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
-def test_import_thick_with_apertures_and_slice():
+def test_import_thick_with_apertures_and_slice_cpymad():
     mad = Madx(stdout=False)
 
     mad.input("""
@@ -1159,6 +1159,77 @@ def test_import_thick_with_apertures_and_slice():
         install_apertures=True,
         deferred_expressions=True,
     )
+
+
+    def _assert_eq(a, b):
+        xo.assert_allclose(a, b, atol=1e-14)
+
+    _assert_eq(line[f'elm_aper'].rot_s_rad, 0.1)
+    _assert_eq(line[f'elm_aper'].shift_x, 0.2)
+    _assert_eq(line[f'elm_aper'].shift_y, 0.3)
+    _assert_eq(line[f'elm_aper'].max_x, 0.1)
+    _assert_eq(line[f'elm_aper'].max_y, 0.2)
+    _assert_eq(line[f'elm_aper'].a_squ, 0.11 ** 2)
+    _assert_eq(line[f'elm_aper'].b_squ, 0.22 ** 2)
+
+    _assert_eq(line[f'elm'].rot_s_rad, 0.2)
+
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+
+    assert np.all(line.get_table().rows['elm_entry':'elm_exit'].name == [
+        'elm_entry',                    # entry marker
+        'elm_aper..0',                  # entry edge aperture
+        'elm..entry_map',               # entry edge (+transform)
+        'drift_elm..0',                 # drift 0
+        'elm_aper..1',                  # slice 1 aperture
+        'elm..0',                       # slice 0 (+transform)
+        'drift_elm..1',                 # drift 1
+        'elm_aper..2',                  # slice 2 aperture
+        'elm..1',                       # slice 2 (+transform)
+        'drift_elm..2',                 # drift 2
+        'elm_aper..3',                  # exit edge aperture
+        'elm..exit_map',                # exit edge (+transform)
+        'elm_exit',                     # exit marker
+    ])
+
+    line.build_tracker(compile=False) # To resolve parents
+
+    for i in range(4):
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).rot_s_rad, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_x, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).shift_y, 0.3)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).max_x, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).max_y, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).a_squ, 0.11 ** 2)
+        _assert_eq(line[f'elm_aper..{i}'].resolve(line).b_squ, 0.22 ** 2)
+
+    for i in range(2):
+        _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)
+
+
+def test_import_thick_with_apertures_and_slice_native():
+
+    mad_src = """
+    k1=0.2;
+    tilt=0.1;
+
+    elm: sbend,
+        k1:=k1,
+        l=1,
+        angle=0.1,
+        tilt=0.2,
+        apertype="rectellipse",
+        aperture={0.1,0.2,0.11,0.22},
+        aper_tol={0.1,0.2,0.3},
+        aper_tilt:=tilt,
+        aper_offset={0.2, 0.3};
+
+    seq: sequence, l=1;
+    elm: elm, at=0.5;
+    endsequence;
+    """
+    env = xt.load(string=mad_src, format='madx')
+    line = env['seq']
 
 
     def _assert_eq(a, b):
