@@ -826,6 +826,38 @@ def test_import_thick_quad_from_madx_cpymad(with_knobs):
     xo.assert_allclose(elem.k1s, 1.2, atol=1e-14)
 
 
+def test_import_thick_quad_from_madx_native():
+    mad = Madx(stdout=False)
+
+    mad_src = f"""
+    knob_a := 0.0;
+    knob_b := 2.0;
+    ss: sequence, l:=knob_b, refer=entry;
+        elem: quadrupole, at=0, k1:=0.1 + knob_a, k1s:=0.2 + knob_a, l:=knob_b;
+    endsequence;
+    """
+    env = xt.load(string=mad_src, format='madx')
+    line = env['ss']
+
+    elem = line['elem']
+
+    # Verify that the line has been imported correctly
+    xo.assert_allclose(elem.length, 2.0, atol=1e-14)
+    xo.assert_allclose(elem.k1, 0.1, atol=1e-14)
+    xo.assert_allclose(elem.k1s, 0.2, atol=1e-14)
+
+    assert 'knob_a' in line.vars
+
+    # Change the knob values
+    line.vars['knob_a'] = 1.0
+    line.vars['knob_b'] = 3.0
+
+    # Verify that the line has been adjusted correctly
+    xo.assert_allclose(elem.length, 3.0, atol=1e-14)
+    xo.assert_allclose(elem.k1, 1.1, atol=1e-14)
+    xo.assert_allclose(elem.k1s, 1.2, atol=1e-14)
+
+
 @pytest.mark.parametrize(
     'with_knobs',
     [True, False],
