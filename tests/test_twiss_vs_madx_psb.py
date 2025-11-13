@@ -32,8 +32,7 @@ def test_twiss_psb(test_context):
     line.build_tracker(_context=test_context)
     beta0 = line.particle_ref.beta0[0]
 
-
-
+    # Check consistency of element parameters
     lref = line_ref
     ltest = line
 

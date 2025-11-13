@@ -447,6 +447,12 @@ class MadxLoader:
             elif knl and len(knl) > 0:
                 params['hxl'] = knl[0]
 
+        elif parent_name == 'dipedge':
+            if edge_angle := params.pop('edge_entry_angle', None):
+                params['e1'] = edge_angle
+            if h := params.pop('h', None):
+                params['k'] = h
+
         elif parent_name == 'vkicker':
             if (kick := params.pop('kick', None)):
                 params['ksl'] = [kick]
