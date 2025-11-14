@@ -1,22 +1,17 @@
 def test_hvkick():
     import xtrack as xt
-    from cpymad.madx import Madx
 
-    # Load a very simple sequence from MAD-X
-    mad = Madx()
-    mad.input("""
+    mad_src ="""
         seq: sequence, l=4;
         b1: sbend, at=0.5, angle=0.2, l=1;
         b2: sbend, at=2.5, angle=0.3, k0=0.15, l=1;
         m1: multipole, at=3, knl={0.1};
         k1: kicker, at=3, hkick=0.3, vkick=0.4;
         endsequence;
-        beam;
-        use,sequence=seq;
-    """)
+    """
 
-    line = xt.Line.from_madx_sequence(mad.sequence.seq)
-    line.build_tracker()
+    env = xt.load(string=mad_src, format='madx')
+    line = env['seq']
 
     print('The line as imported from MAD-X:')
     line.get_table().show()
