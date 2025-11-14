@@ -15,6 +15,7 @@ def test_coupling_edwards_teng():
     mad = Madx()
     mad.call(str(test_data_folder / 'lhc_2024/lhc.seq'))
     mad.call(str(test_data_folder / 'lhc_2024/injection_optics.madx'))
+    mad.options.rbarc = True # override setting in lhc.seq to be compatible with Xsuite
 
     mad.beam()
     mad.use('lhcb1')
