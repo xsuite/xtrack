@@ -19,31 +19,32 @@ def test_coupling_edwards_teng():
     mad.beam()
     mad.use('lhcb1')
 
-    mad.globals.on_x1 = 0
-    mad.globals.on_x2h = 0
-    mad.globals.on_x2v = 0
-    mad.globals.on_x5 = 0
-    mad.globals.on_x8h = 0
-    mad.globals.on_x8v = 0
+    settings = dict(
+        on_x1 = 0,
+        on_x2h = 0,
+        on_x2v = 0,
+        on_x5 = 0,
+        on_x8h = 0,
+        on_x8v = 0,
+        on_sep1 = 0,
+        on_sep2h = 0,
+        on_sep2v = 0,
+        on_sep5 = 0,
+        on_sep8h = 0,
+        on_sep8v = 0,
+        on_a2 = 0,
+        on_a8 = 0,
+    )
+    settings['kqs.a67b1'] = 1e-4
 
-    mad.globals.on_sep1 = 0
-    mad.globals.on_sep2h = 0
-    mad.globals.on_sep2v = 0
-    mad.globals.on_sep5 = 0
-    mad.globals.on_sep8h = 0
-    mad.globals.on_sep8v = 0
-
-    mad.globals.on_a2 = 0
-    mad.globals.on_a8 = 0
-
-    mad.globals['kqs.a67b1'] = 1e-4
+    for kk, vv in settings.items():
+        mad.globals[kk] = vv
 
     twmad = mad.twiss()
 
     line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, deferred_expressions=True)
     line.particle_ref = xt.Particles(p0c=450e9)
     tw = line.twiss4d(coupling_edw_teng=True)
-
 
     r11_mad, r12_mad, r21_mad, r22_mad = twmad.r11, twmad.r12, twmad.r21, twmad.r22
 
