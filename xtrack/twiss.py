@@ -2837,7 +2837,6 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         io_buffer=tracker.io_buffer,
         line=auxline,
         particles_monitor_class=None,
-        local_particle_src=tracker.local_particle_src
     )
     auxtracker.line.config = tracker.line.config.copy()
     auxtracker.line._extra_config = tracker.line._extra_config.copy()

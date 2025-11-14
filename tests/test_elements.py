@@ -542,34 +542,36 @@ def test_exciter(test_context):
 
 
 test_source = r"""
-/*gpufun*/
+#include "xtrack/headers/track.h"
+
+GPUFUN
 void test_function(TestElementData el,
                 LocalParticle* part0,
-                /*gpuglmem*/ double* b){
+                GPUGLMEM double* b){
 
     double const a = TestElementData_get_a(el);
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
 
         const int64_t ipart = part->ipart;
         double const val = b[ipart];
 
         LocalParticle_add_to_s(part, val + a);
 
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
-/*gpufun*/
+GPUFUN
 void TestElement_track_local_particle(TestElementData el,
                 LocalParticle* part0){
 
     double const a = TestElementData_get_a(el);
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
 
         LocalParticle_set_s(part, a);
 
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 
 """

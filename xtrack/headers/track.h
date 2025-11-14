@@ -1,3 +1,8 @@
+// copyright ############################### //
+// This file is part of the Xtrack Package.  //
+// Copyright (c) CERN, 2025.                 //
+// ######################################### //
+
 #ifndef XTRACK_TRACK_H
 #define XTRACK_TRACK_H
 

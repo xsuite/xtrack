@@ -27,12 +27,15 @@ class TestElement(xt.BeamElement):
 
     _extra_c_sources = [
         '''
-        /*gpufun*/
-        void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
-            //start_per_particle_block (part0->part)
+        #include "xtrack/headers/track.h"
+        
+        GPUFUN
+        void TestElement_track_local_particle(TestElementData el, LocalParticle* part0)
+        {
+            START_PER_PARTICLE_BLOCK(part0, part);
                 double rr = !!GENERATOR!!_generate(part);
                 LocalParticle_set_x(part, rr);
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         '''.replace('!!GENERATOR!!', generator_to_test)
         ]

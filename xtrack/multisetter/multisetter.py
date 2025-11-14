@@ -3,75 +3,6 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-source = """
-
-/*gpukern*/
-void get_values_at_offsets_float64(
-    MultiSetterData data,
-    /*gpuglmem*/ int8_t* buffer,
-    /*gpuglmem*/ double* out){
-
-    int64_t num_offsets = MultiSetterData_len_offsets(data);
-
-    for (int64_t ii = 0; ii < num_offsets; ii++) { //vectorize_over ii num_offsets
-        int64_t offs = MultiSetterData_get_offsets(data, ii);
-
-        double val = *((/*gpuglmem*/ double*)(buffer + offs));
-        out[ii] = val;
-    } //end_vectorize
-}
-
-/*gpukern*/
-void get_values_at_offsets_int64(
-    MultiSetterData data,
-    /*gpuglmem*/ int8_t* buffer,
-    /*gpuglmem*/ int64_t* out){
-
-    int64_t num_offsets = MultiSetterData_len_offsets(data);
-
-    for (int64_t ii = 0; ii < num_offsets; ii++) { //vectorize_over ii num_offsets
-        int64_t offs = MultiSetterData_get_offsets(data, ii);
-
-        int64_t val = *((/*gpuglmem*/ int64_t*)(buffer + offs));
-        out[ii] = val;
-    } //end_vectorize
-}
-
-/*gpukern*/
-void set_values_at_offsets_float64(
-    MultiSetterData data,
-    /*gpuglmem*/ int8_t* buffer,
-    /*gpuglmem*/ double* input){
-
-    int64_t num_offsets = MultiSetterData_len_offsets(data);
-
-    for (int64_t ii = 0; ii < num_offsets; ii++) {  //vectorize_over ii num_offsets
-        int64_t offs = MultiSetterData_get_offsets(data, ii);
-
-        double val = input[ii];
-        *((/*gpuglmem*/ double*)(buffer + offs)) = val;
-    } //end_vectorize
-}
-
-/*gpukern*/
-void set_values_at_offsets_int64(
-    MultiSetterData data,
-    /*gpuglmem*/ int8_t* buffer,
-    /*gpuglmem*/ int64_t* input){
-
-    int64_t num_offsets = MultiSetterData_len_offsets(data);
-
-    for (int64_t ii = 0; ii < num_offsets; ii++) {  //vectorize_over ii num_offsets
-        int64_t offs = MultiSetterData_get_offsets(data, ii);
-
-        int64_t val = input[ii];
-        *((/*gpuglmem*/ int64_t*)(buffer + offs)) = val;
-    } //end_vectorize
-}
-
-
-
-"""
 
 class MultiSetter(xo.HybridClass):
     _xofields = {
@@ -79,7 +10,7 @@ class MultiSetter(xo.HybridClass):
     }
 
     _extra_c_sources = [
-        source,
+        '#include "xtrack/multisetter/multisetter.h"',
     ]
 
     _kernels = {
