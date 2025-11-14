@@ -42,8 +42,13 @@ def test_coupling_edwards_teng():
 
     twmad = mad.twiss()
 
-    line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, deferred_expressions=True)
-    line.particle_ref = xt.Particles(p0c=450e9)
+    env = xt.load([test_data_folder / 'lhc_2024/lhc.seq',
+                   test_data_folder / 'lhc_2024/injection_optics.madx'])
+    line = env['lhcb1']
+    line.set_particle_ref('proton', p0c=450e9)
+    for kk, vv in settings.items():
+        line[kk] = vv
+
     tw = line.twiss4d(coupling_edw_teng=True)
 
     r11_mad, r12_mad, r21_mad, r22_mad = twmad.r11, twmad.r12, twmad.r21, twmad.r22
