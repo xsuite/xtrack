@@ -40,7 +40,9 @@ class TestElementRecord(xo.HybridClass):
 # code of the beam element.
 
 TestElement_track_method_source = r'''
-    /*gpufun*/
+    #include "xtrack/headers/track.h"
+    
+    GPUFUN
     void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
         // Extract the record and record_index
@@ -59,7 +61,7 @@ TestElement_track_method_source = r'''
         int64_t n_kicks = TestElementData_get_n_kicks(el);
         // printf("n_kicks %d\n", (int)n_kicks);
 
-        //start_per_particle_block (part0->part)
+        START_PER_PARTICLE_BLOCK(part0, part);
 
             // Record in table1 info about the ingoing particle
             if (record){
@@ -105,7 +107,7 @@ TestElement_track_method_source = r'''
                 }
             }
 
-        //end_per_particle_block
+        END_PER_PARTICLE_BLOCK;
     }
     '''
 

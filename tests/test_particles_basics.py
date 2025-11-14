@@ -345,14 +345,16 @@ def test_LocalParticle_add_to_energy(test_context):
             'pz_only': xo.Int64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
                 double const value = TestElementData_get_value(el);
                 int const pz_only = (int) TestElementData_get_pz_only(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_add_to_energy(part, value, pz_only);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -419,13 +421,15 @@ def test_LocalParticle_update_delta(test_context):
             }
 
         _extra_c_sources =['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
                 double const value = TestElementData_get_value(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_update_delta(part, value);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -460,13 +464,15 @@ def test_LocalParticle_update_ptau(test_context):
             }
 
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
                 double const value = TestElementData_get_value(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_update_ptau(part, value);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -500,14 +506,16 @@ def test_LocalParticle_update_pzeta(test_context):
             'value': xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
                 double const value = TestElementData_get_value(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     double const pzeta = LocalParticle_get_pzeta(part);
                     LocalParticle_update_pzeta(part, pzeta+value);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -543,13 +551,15 @@ def test_LocalParticle_update_p0c(test_context):
             'value': xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
                 double const value = TestElementData_get_value(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_update_p0c(part, value);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -590,18 +600,20 @@ def test_LocalParticle_angles(test_context):
             'scale_y2':  xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void ScaleAng_track_local_particle(
                     ScaleAngData el, LocalParticle* part0){
                 double const scale_x = ScaleAngData_get_scale_x(el);
                 double const scale_y = ScaleAngData_get_scale_y(el);
                 double const scale_x2 = ScaleAngData_get_scale_x2(el);
                 double const scale_y2 = ScaleAngData_get_scale_y2(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_scale_xp(part, scale_x);
                     LocalParticle_scale_yp(part, scale_y);
                     LocalParticle_scale_xp_yp(part, scale_x2, scale_y2);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -613,18 +625,20 @@ def test_LocalParticle_angles(test_context):
             'kick_y2': xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void KickAng_track_local_particle(
                     KickAngData el, LocalParticle* part0){
                 double const kick_x = KickAngData_get_kick_x(el);
                 double const kick_y = KickAngData_get_kick_y(el);
                 double const kick_x2 = KickAngData_get_kick_x2(el);
                 double const kick_y2 = KickAngData_get_kick_y2(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_add_to_xp(part, kick_x);
                     LocalParticle_add_to_yp(part, kick_y);
                     LocalParticle_add_to_xp_yp(part, kick_x2, kick_y2);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -648,18 +662,20 @@ def test_LocalParticle_angles(test_context):
             'scale_y2':  xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void ScaleAngExact_track_local_particle(
                     ScaleAngExactData el, LocalParticle* part0){
                 double const scale_x = ScaleAngExactData_get_scale_x(el);
                 double const scale_y = ScaleAngExactData_get_scale_y(el);
                 double const scale_x2 = ScaleAngExactData_get_scale_x2(el);
                 double const scale_y2 = ScaleAngExactData_get_scale_y2(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_scale_exact_xp(part, scale_x);
                     LocalParticle_scale_exact_yp(part, scale_y);
                     LocalParticle_scale_exact_xp_yp(part, scale_x2, scale_y2);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 
@@ -671,18 +687,20 @@ def test_LocalParticle_angles(test_context):
             'kick_y2': xo.Float64,
             }
         _extra_c_sources = ['''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void KickAngExact_track_local_particle(
                     KickAngExactData el, LocalParticle* part0){
                 double const kick_x = KickAngExactData_get_kick_x(el);
                 double const kick_y = KickAngExactData_get_kick_y(el);
                 double const kick_x2 = KickAngExactData_get_kick_x2(el);
                 double const kick_y2 = KickAngExactData_get_kick_y2(el);
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     LocalParticle_add_to_exact_xp(part, kick_x);
                     LocalParticle_add_to_exact_yp(part, kick_y);
                     LocalParticle_add_to_exact_xp_yp(part, kick_x2, kick_y2);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             ''']
 

@@ -381,12 +381,14 @@ def test_tracker_config(test_context):
             'dummy': xo.Float64,
         }
         _extra_c_sources = ["""
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el,
                     LocalParticle* part0)
             {
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
 
                     #if TEST_FLAG == 2
                     LocalParticle_set_x(part, 7);
@@ -396,7 +398,7 @@ def test_tracker_config(test_context):
                     LocalParticle_set_y(part, 42);
                     #endif
 
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             """]
 
@@ -745,7 +747,9 @@ def test_init_io_buffer(test_context):
 
         _extra_c_sources = [
             r'''
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+            
+            GPUFUN
             void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
                 // Extract the record and record_index
                 TestElementRecordData record = TestElementData_getp_internal_record(el, part0);
@@ -756,7 +760,7 @@ def test_init_io_buffer(test_context):
 
                 int64_t elem_field = TestElementData_get_element_field(el);
 
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     if (record) {  // Record exists
                         // Get a slot in the record (this is thread safe)
                         int64_t i_slot = RecordIndex_get_slot(record_index);
@@ -774,7 +778,7 @@ def test_init_io_buffer(test_context):
                             );
                         }
                     }
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
             '''
         ]
