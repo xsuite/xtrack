@@ -9,7 +9,7 @@ name = "xtrack"
 dynamic = ["version"]
 description = "Tracking library for particle accelerators"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 license = { text = "Apache-2.0" }
 authors = [
   { name = "G. Iadarola et al." }
