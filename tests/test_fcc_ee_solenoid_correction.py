@@ -14,21 +14,12 @@ test_data_folder = pathlib.Path(
 def test_fcc_ee_solenoid_correction():
     fname = 'fccee_t'; pc_gev = 182.5
 
-    # mad = Madx(stdout=False)
-    # mad.call(str(test_data_folder) + '/fcc_ee/' + fname + '.seq')
-    # mad.beam(particle='positron', pc=pc_gev)
-    # mad.use('fccee_p_ring')
-
-    # line = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=True,
-    #                                 deferred_expressions=True)
-    # line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
-    #                                 gamma0=mad.sequence.fccee_p_ring.beam.gamma)
     env = xt.load([test_data_folder / 'fcc_ee/' / (fname + '.seq')])
     line = env['fccee_p_ring']
     line.set_particle_ref('positron', p0c=pc_gev*1e9)
 
     line.cycle('ip.4', inplace=True)
-    line.append_element(element=xt.Marker(), name='ip.4.l')
+    line.append('ip.4.l', xt.Marker())
 
     tt = line.get_table()
     bz_data_file = test_data_folder / 'fcc_ee/Bz_closed_before_quads.dat'
