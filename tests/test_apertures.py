@@ -117,6 +117,7 @@ def test_aperture_polygon(test_context):
     aper.track(parttest)
     xo.assert_allclose(ctx2np(parttest.state), 0)
 
+
 @pytest.mark.parametrize("loader", ['cpymad', 'native'])
 def test_mad_import(loader):
 
