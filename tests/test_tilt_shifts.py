@@ -105,7 +105,7 @@ def test_test_tilt_shifts_vs_sandwich(test_context, slice_mode, element_type):
     assert_allclose(p_test.zeta, p0.zeta, rtol=0, atol=1e-7)
     assert_allclose(p_test.delta, p0.delta, rtol=0, atol=1e-11)
 
-def test_tilt_shifts_vs_madx():
+def test_tilt_shifts_vs_madx_cpymad_loader():
 
     mad = Madx()
 
