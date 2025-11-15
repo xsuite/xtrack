@@ -15,7 +15,7 @@ test_data_folder = pathlib.Path(
 
 @pytest.mark.parametrize('deferred_expressions', [True, False])
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
-def test_sps_thick(test_context, deferred_expressions):
+def test_sps_thick_cpymad_loader(test_context, deferred_expressions):
 
     mad = Madx(stdout=False)
     mad.call(str(test_data_folder) + '/sps_thick/sps.seq')
