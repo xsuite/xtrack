@@ -636,7 +636,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
         tt_name = tt.name
         tt_s = tt.s
         tt_isthick = tt.isthick
-        for ii in range(len(tt.name)):
+        for ii, nn in enumerate(tt.name):
             if nn.startswith("||drift_"):
                 continue
             nn = tt_name[ii]
