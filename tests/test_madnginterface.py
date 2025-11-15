@@ -13,6 +13,7 @@ def test_madng_twiss():
     line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
 
+    line['on_disp'] = 0
     line['test_dk1'] = 0
     line['mb.b32l8.b1'].knl[1] = 'test_dk1'
 

@@ -556,11 +556,14 @@ xsuite_to_mad_converters = {
     xt.RFMultipole: rfmultipole_to_mad_str,
     xt.CrabCavity: crabcavity_to_mad_str,
     xt.DriftSlice: drift_slice_to_mad_str,
-    xt.LimitEllipse: generic_to_marker_mad_str,
-    xt.LimitPolygon: generic_to_marker_mad_str,
-    xt.LimitRacetrack: generic_to_marker_mad_str,
-    xt.LimitRect: generic_to_marker_mad_str,
-    xt.LimitRectEllipse: generic_to_marker_mad_str,
+}
+
+element_types_converted_to_markers = {
+    xt.LimitEllipse,
+    xt.LimitPolygon,
+    xt.LimitRacetrack,
+    xt.LimitRect,
+    xt.LimitRectEllipse,
 }
 
 def element_to_mad_str(
@@ -577,7 +580,8 @@ def element_to_mad_str(
     eref = _get_eref(line, name)
     parent_flag = hasattr(el, '_parent')
 
-    if el.__class__ == xt.Marker or parent_flag and el._parent.__class__ == xt.Marker:
+    if (el.__class__ == xt.Marker or el.__class__ in element_types_converted_to_markers
+        or parent_flag and el._parent.__class__ == xt.Marker):
         return marker_to_mad_str(name, line, mad_type=mad_type, substituted_vars=substituted_vars)
 
     if el.__class__ not in xsuite_to_mad_converters:
@@ -628,6 +632,8 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
         tt_s = tt.s
         tt_isthick = tt.isthick
         for ii in range(len(tt.name)):
+            if nn.startswith("||drift_"):
+                continue
             nn = tt_name[ii]
             if not(tt_isthick[ii]):
                 s_dict[nn] = tt_s[ii]
@@ -656,7 +662,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
     mad_input = vars_str + '\n' + machine_str + '\n'
     return mad_input
 
-def to_madng_sequence(line, name='seq', mode='sequence'):
+def to_madng_sequence(line, name='seq'):
     code_str = ""
     chunk_start = "(function()\t -- Begin chunk\n"
     chunk_end = "end)();\t -- End chunk\n"
@@ -690,7 +696,7 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
     s_dict = {}
     el_strs = []
 
-    for ii, nn in enumerate(tt.name[:-1]): # ignore "_end_point"
+    for ii, nn in enumerate(tt.env_name[:-1]): # ignore "_end_point"
         if not(tt.isthick[ii]):
             s_dict[nn] = tt.s[ii]
         else:
@@ -704,7 +710,8 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
             continue
 
         # Misalignments
-        if hasattr(el, 'shift_x') and hasattr(el, 'shift_y'):
+        if (hasattr(el, 'shift_x') and hasattr(el, 'shift_y')
+            and el.__class__ not in element_types_converted_to_markers):
             el_str += f", misalign =\\ {{dx={mad_str_or_value(_ge(line.ref[nn].shift_x))}, dy={mad_str_or_value(_ge(line.ref[nn].shift_y))}}}"
         el_strs.append(el_str)
 
