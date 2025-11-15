@@ -440,6 +440,13 @@ def sextupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
 
     return tokens
 
+def generic_to_marker_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
+
+    tokens = []
+    tokens.append('marker')
+
+    return tokens
+
 def octupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """ Convert a octupole element to a MADX/MAD-NG string representation.
 
@@ -548,7 +555,12 @@ xsuite_to_mad_converters = {
     xt.SRotation: srotation_to_mad_str,
     xt.RFMultipole: rfmultipole_to_mad_str,
     xt.CrabCavity: crabcavity_to_mad_str,
-    xt.DriftSlice: drift_slice_to_mad_str
+    xt.DriftSlice: drift_slice_to_mad_str,
+    xt.LimitEllipse: generic_to_marker_mad_str,
+    xt.LimitPolygon: generic_to_marker_mad_str,
+    xt.LimitRacetrack: generic_to_marker_mad_str,
+    xt.LimitRect: generic_to_marker_mad_str,
+    xt.LimitRectEllipse: generic_to_marker_mad_str,
 }
 
 def element_to_mad_str(
