@@ -194,6 +194,7 @@ class MadxLoader:
                 self.env.ref[ename].edge_exit_angle_fdown = angle_fdown
 
         if self._rbend_correct_k0:
+            # needed for sequences (e.g. LHC) defined with rbarc=False in MAD-X
             sinc = self.env.functions['sinc']
             tt_rbend = self.env.elements.get_table().rows.match('RBend', 'element_type')
             for nn in tt_rbend.name:
