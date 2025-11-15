@@ -91,7 +91,8 @@ class MadxLoader:
             self,
             env: xt.Environment = None,
             default_to_zero: bool = False,
-            s_tol: float = 1e-9
+            s_tol: float = 1e-9,
+            _rbend_correct_k0: bool = False,
     ):
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._both_direction_elements: Set[str] = set()
@@ -102,6 +103,7 @@ class MadxLoader:
         self.env.default_to_zero = default_to_zero
         self.builders = {}
         self.s_tol = s_tol
+        self._rbend_correct_k0 = _rbend_correct_k0
 
         self._init_environment()
 
@@ -190,6 +192,18 @@ class MadxLoader:
                 angle_fdown = 0.5 * (kk0 * lcurv - aa)
                 self.env.ref[ename].edge_entry_angle_fdown = angle_fdown
                 self.env.ref[ename].edge_exit_angle_fdown = angle_fdown
+
+        if self._rbend_correct_k0:
+            sinc = self.env.functions['sinc']
+            tt_rbend = self.env.elements.get_table().rows.match('RBend', 'element_type')
+            for nn in tt_rbend.name:
+                ee_ref = self.env.ref[nn]
+                ee = self.env.get(nn)
+                if ee.k0_from_h:
+                    continue
+                k0 = ee_ref.k0._expr or float(ee_ref.k0._value)
+                angle = ee_ref.angle._expr or float(ee_ref.angle._value)
+                self.env[nn].k0 = k0 * sinc(angle / 2)
 
     def _parse_elements(self, elements: Dict[str, ElementType]):
         for name, el_params in elements.items():
@@ -642,7 +656,8 @@ class MadxLoader:
         return self._mad_base_type(element_name) in _APERTURE_TYPES
 
 
-def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6):
+def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
+                      _rbend_correct_k0=False) -> xt.Environment:
 
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
@@ -650,7 +665,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6):
     if file is None and string is None:
         raise ValueError('Either `file` or `string` must be provided!')
 
-    loader = MadxLoader(s_tol=s_tol)
+    loader = MadxLoader(s_tol=s_tol, _rbend_correct_k0=_rbend_correct_k0)
 
     if file is not None:
         if not isinstance(file, (tuple, list)):

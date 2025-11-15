@@ -28,7 +28,7 @@ save, file="temp_lhc_thick.seq";
 #             allow_thick=True, deferred_expressions=True)
 # line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
 
-env = xt.load('temp_lhc_thick.seq', s_tol=5e-6)
+env = xt.load('temp_lhc_thick.seq', s_tol=5e-6, _rbend_correct_k0=True)
 line = env.lhcb1
 line.set_particle_ref('proton', gamma0=mad.sequence.lhcb1.beam.gamma)
 
