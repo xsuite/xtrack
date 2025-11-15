@@ -20,25 +20,12 @@ twiss;
 save, file="temp_lhc_thick.seq";
 """)
 
-# mad.use(sequence="lhcb1")
-# seq = mad.sequence.lhcb1
-# mad.twiss()
-
-# line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
-#             allow_thick=True, deferred_expressions=True)
-# line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
-
 env = xt.load('temp_lhc_thick.seq', s_tol=5e-6, _rbend_correct_k0=True)
 line = env.lhcb1
 line.set_particle_ref('proton', gamma0=mad.sequence.lhcb1.beam.gamma)
 
-tt_cav = line.get_table().rows.match('Cavity', 'element_type')
+tt_cav = line.get_table().rows.match(element_type='Cavity')
 for nn in tt_cav.name:
     line[nn].frequency = 400.79e6  # Hz
-
-tt = line.get_table()
-for nn in tt.rows[tt.element_type=='Solenoid'].name:
-    ee_elen = line[nn].length
-    line.element_dict[nn] = xt.Drift(length=ee_elen)
 
 line.to_json('lhc_thick_with_knobs.json', include_var_management=True)
