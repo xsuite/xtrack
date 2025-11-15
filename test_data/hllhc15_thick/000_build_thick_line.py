@@ -15,15 +15,22 @@ seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
 seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
 beam, sequence=lhcb1, particle=proton, pc=7000;
 call,file="opt_round_150_1500.madx";
+use, sequence=lhcb1;
+twiss;
+save, file="temp_lhc_thick.seq";
 """)
 
-mad.use(sequence="lhcb1")
-seq = mad.sequence.lhcb1
-mad.twiss()
+# mad.use(sequence="lhcb1")
+# seq = mad.sequence.lhcb1
+# mad.twiss()
 
-line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
-            allow_thick=True, deferred_expressions=True)
-line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
+# line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
+#             allow_thick=True, deferred_expressions=True)
+# line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
+
+env = xt.load('temp_lhc_thick.seq', s_tol=5e-6)
+line = env.lhcb1
+line.set_particle_ref('proton', gamma0=mad.sequence.lhcb1.beam.gamma)
 
 tt = line.get_table()
 for nn in tt.rows[tt.element_type=='Solenoid'].name:
