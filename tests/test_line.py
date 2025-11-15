@@ -947,9 +947,9 @@ def test_insert_thin_elements_at_s_lhc(test_context):
             == np.array(
                 ['m1_at_c', 'm2_at_c', 'mq.29r3.b1..exit_map', 'mq.29r3.b1_exit']))
 
-    assert np.all(tt.rows['m0_at_d':'m0_at_d>>4'].name
+    assert np.all(tt.rows['m0_at_d':'m0_at_d>>3'].name
                 == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
-                            'lhcb1ip7_p_', '_end_point']))
+                            '_end_point']))
 
     xo.assert_allclose(line.get_length(), tw0.s[-1], atol=1e-6)
 
