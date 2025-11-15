@@ -286,6 +286,7 @@ def test_madng_slices():
         'Cavity',
         'Drift',
         'DriftSlice',
+        'LimitRectEllipse',
         'Marker',
         'Multipole',
         'Octupole',
