@@ -91,6 +91,7 @@ class MadxLoader:
             self,
             env: xt.Environment = None,
             default_to_zero: bool = False,
+            s_tol: float = 1e-9
     ):
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._both_direction_elements: Set[str] = set()
@@ -100,6 +101,7 @@ class MadxLoader:
         self.env = env or xt.Environment()
         self.env.default_to_zero = default_to_zero
         self.builders = {}
+        self.s_tol = s_tol
 
         self._init_environment()
 
@@ -216,7 +218,7 @@ class MadxLoader:
                 length = params.get('l', None)
                 builder = self.env.new_line(name=name, refer=refer,
                                                length=length,
-                                               s_tol=1e-6,
+                                               s_tol=self.s_tol,
                                                compose=True)
                 self._parse_components(builder, params.pop('elements'))
             elif line_type == 'line':
@@ -640,7 +642,7 @@ class MadxLoader:
         return self._mad_base_type(element_name) in _APERTURE_TYPES
 
 
-def load_madx_lattice(file=None, string=None, reverse_lines=None):
+def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6):
 
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
@@ -648,7 +650,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None):
     if file is None and string is None:
         raise ValueError('Either `file` or `string` must be provided!')
 
-    loader = MadxLoader()
+    loader = MadxLoader(s_tol=s_tol)
 
     if file is not None:
         if not isinstance(file, (tuple, list)):
