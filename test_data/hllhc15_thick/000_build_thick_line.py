@@ -32,6 +32,10 @@ env = xt.load('temp_lhc_thick.seq', s_tol=5e-6)
 line = env.lhcb1
 line.set_particle_ref('proton', gamma0=mad.sequence.lhcb1.beam.gamma)
 
+tt_cav = line.get_table().rows.match('Cavity', 'element_type')
+for nn in tt_cav.name:
+    line[nn].frequency = 400.79e6  # Hz
+
 tt = line.get_table()
 for nn in tt.rows[tt.element_type=='Solenoid'].name:
     ee_elen = line[nn].length
