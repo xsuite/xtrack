@@ -29,25 +29,15 @@ mad.beam()
 mad.use('lhcb1') # check no negative drifts in madx
 
 
-env = xt.load('temp_lhc_thick.seq', s_tol=1e-6, _rbend_correct_k0=True,
+env = xt.load('temp_lhc_thick.seq', s_tol=1e-6,
+              _rbend_correct_k0=True, # LHC sequences are defined with rbarc=False
               reverse_lines=['lhcb2'])
 
 
 env.lhcb1.set_particle_ref('proton', p0c=7000e9)
 env.lhcb2.set_particle_ref('proton', p0c=7000e9)
 
-# tt_rbend = env.elements.get_table().rows.match(element_type='RBend')
-# for nn in tt_rbend.name:
-#     ll = env[nn].length_straight
-#     env[nn].length_straight = 0
-#     env[nn].length = ll
-#     env[nn].k0=0
-#     env[nn].k0_from_h=True
-
-# env.lhcb1.composer.s_tol = 1e-6
-# env.lhcb1.regenerate_from_composer()
-# env.lhcb1.end_compose()
-
+# Set cavity frequency
 tt_cav = env.elements.get_table().rows.match(element_type='Cavity')
 for nn in tt_cav.name:
     env[nn].frequency = 400.79e6  # Hz
