@@ -563,8 +563,11 @@ class Environment:
 
         self._element_dict[new_name] = source._element_dict[name].copy()
 
-        pars_with_expr = list(
-            source._xdeps_manager.tartasks[source._xdeps_eref[name]].keys())
+        if self.ref_manager is not None:
+            pars_with_expr = list(
+                source._xdeps_manager.tartasks[source._xdeps_eref[name]].keys())
+        else:
+            pars_with_expr = []
 
         formatter = xd.refs.CompactFormatter(scope=None)
 
