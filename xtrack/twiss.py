@@ -2824,16 +2824,13 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
     if tracker.line.particle_ref is not None:
         auxline.particle_ref = tracker.line.particle_ref.copy()
 
+    insertions = []
     names_inserted_markers = []
-    markers = []
     for ii, ss in enumerate(at_s):
         nn = marker_prefix + f'{ii}'
+        insertions.append(auxline.env.new(nn, 'Marker', at=ss))
         names_inserted_markers.append(nn)
-        markers.append(xt.Drift(length=0))
-
-    auxline.cut_at_s(at_s)
-    for nn, mm, ss in zip(names_inserted_markers, markers, at_s):
-        auxline.insert_element(element=mm, name=nn, at_s=ss)
+    auxline.insert(insertions)
 
     auxtracker = xt.Tracker(
         _buffer=tracker._buffer,
