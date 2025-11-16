@@ -1,9 +1,10 @@
 import numpy as np
+
+from .tpsa import TPSA
 from .match import Action
 import os
 import uuid
 
-from .mad_writer import mad_str_or_value
 import xtrack as xt
 
 NG_XS_MAP = {
@@ -30,7 +31,17 @@ class MadngVars:
         self.mad = mad
 
     def __setitem__(self, key, value):
-        setattr(self.mad.MADX, key.replace('.', '_'), value)
+        #setattr(self.mad.MADX, key.replace('.', '_'), value)
+        # Check for key if it's a ctpsa or tpsa
+
+        var = f"MADX['{key.replace('.', '_')}']"
+        is_tpsa = self.mad.send(f"py:send(MAD.typeid.is_tpsa({var}) or MAD.typeid.is_ctpsa({var}))").recv()
+        if is_tpsa:
+            self.mad.send(f"{var}:set0(py:recv())").send(value)
+        else:
+            self.mad[var] = value
+
+
         #Expressions still to be handled, could use the following:
         # mng.send(
         #     MADX:open_env()
@@ -151,7 +162,7 @@ def _tw_ng(line, rdts=(), normal_form=True,
                 'wx', 'wy', 'phix', 'phiy', 'dmu1', 'dmu2',
                 'f1001', 'f1010', 'r11', 'r12', 'r21', 'r22',
         ]
-        full_twiss_str = f"mapdef={mapdef_twiss}, implicit=true, nslice={nslice}, misalgn=true, coupling=true, chrom=true"
+        full_twiss_str = f"implicit=true, nslice={nslice}, misalgn=true, coupling=true, chrom=true"
         tw_columns += extended_tw_columns
 
     columns = tw_columns + list(rdts)
@@ -161,7 +172,6 @@ def _tw_ng(line, rdts=(), normal_form=True,
     if len(rdts) > 0:
         mng_script = _build_rdt_script(mng._sequence_name, rdts, columns)
     else:
-        # If start/end -> range, if only start: cycle - twiss - cycle back
         range_str = ''
 
         if start is not None and end is not None:
@@ -191,8 +201,13 @@ def _tw_ng(line, rdts=(), normal_form=True,
         xs_tw_kwargs = {
             NG_XS_MAP.get(k, k): v for k, v in tw_kwargs.items()
         }
-        tw = line.twiss(method='4d', reverse=False, **xs_tw_kwargs)
-    else:
+        try:
+            tw = line.twiss(method='4d', reverse=False, **xs_tw_kwargs)
+        except Exception as e:
+            print(f"Error occurred while getting twiss: {e}\nContinuing without Xsuite Twiss")
+            xsuite_tw = False
+
+    if not xsuite_tw:
         # Handle wrap-around range
         if i_start > i_end:
             name_co = np.array(names[i_start:] + names[:i_end + 1] + ('_end_point',))
@@ -396,6 +411,178 @@ class ActionTwissMadng(Action):
     def run(self):
         return self.line.madng_twiss(xsuite_tw = False, X0=self.X0, **self.tw_kwargs)
 
+class ActionTwissMadngTPSA(Action):
+    def __init__(self, line, vary_names, target_locations = {}, tw_kwargs={}, **kwargs):
+        self.line = line
+        self.vary_names = vary_names
+        self.target_locations = list(target_locations)
+        self.tw_kwargs = tw_kwargs
+        self.tw_kwargs.update(kwargs)
+        self._already_prepared = False
+        self.X0 = None
+        self.tpsa_dict = {}
+
+    def prepare(self, force=False):
+
+        if self._already_prepared and not force:
+            return
+
+        init = self.tw_kwargs.get('init', None)
+        start = self.tw_kwargs.get('start', None)
+        end = self.tw_kwargs.get('end', None)
+
+        if init is not None and start is not None and end is not None:
+            assert isinstance(init, xt.TwissTable)
+            #self.X0 = madng_get_init(self.line, at=start)
+            if not hasattr(self.line.tracker, '_madng'):
+                self.line.build_madng_model()
+            mng = self.line.tracker._madng
+            self.mng = mng
+
+            # set coords (TODO: delta)
+            beta0 = self.line.particle_ref.beta0[0]
+            init_coord = np.array([init['x', start],
+                                    init['px', start],
+                                    init['y', start],
+                                    init['py', start],
+                                    init['zeta', start] * beta0,
+                                    0])
+
+            coord_str = ''
+            part_order = ['x', 'px', 'y', 'py', 't', 'pt']
+            for part, val in zip(part_order, init_coord):
+                if np.abs(val) > 1e-12:
+                    coord_str += f'X0.{part} = {val} '
+
+            param_assignment_str = ''
+            param_list_str = '{'
+            for name in self.vary_names:
+                param_assignment_str += f"MADX['{name}'] = MADX['{name}'] + X0['{name}'] \n"
+                param_list_str += f"'{name}', "
+            param_list_str = param_list_str[:-2] + '}'
+
+            observables_str = '{' + f"'{start}', '{end}', "
+            if self.target_locations is not None:
+                for loc in self.target_locations:
+                    if loc != start and loc != end:
+                        observables_str += f"'{loc}', "
+            observables_str = observables_str[:-2] + '}'
+
+            init_cond_str = f"local beta11 = {init['betx', start]}\n" + f"local beta22 = {init['bety', start]}\n"\
+            + f"local alfa11 = {init['alfx', start]}\n" + f"local alfa22 = {init['alfy', start]}\n"\
+            + f"local dx = {init['dx', start]}\n" + f"local dpx = {init['dpx', start]}\n"\
+            + f"local dy = {init['dy', start]}\n" + f"local dpy = {init['dpy', start]}\n"\
+            + f"local betas = 1\n"
+
+            mng_init_str = r'''
+                local obs_flag = MAD.element.flags.observed
+
+                local pts=''' + observables_str + r'''
+
+                ''' + mng._sequence_name + r''':select(obs_flag, {list=pts})
+
+                local params = ''' + param_list_str + r'''
+
+                local X0 = MAD.damap {
+                    nv=6, -- number of variables
+                    mo=2, -- max order of variables
+                    np=#params, -- number of parameters
+                    po=1, -- max order of parameters
+                    pn=params, -- parameter names
+                }
+
+                ''' + coord_str + r'''
+
+                -- Converting to TPSA (mutating type)
+                ''' + param_assignment_str + r'''
+
+                ''' + init_cond_str + r'''
+
+                local mat = {
+                    {math.sqrt(beta11), 0, 0, 0, 0, dx},
+                    {-alfa11/math.sqrt(beta11), 1/math.sqrt(beta11), 0, 0, 0, dpx},
+                    {0, 0, math.sqrt(beta22), 0, 0, dy},
+                    {0, 0, -alfa22/math.sqrt(beta22), 1/math.sqrt(beta22), 0, dpy},
+                    {0, 0, 0, 0, betas, 0},
+                    {0, 0, 0, 0, 0, 1/betas},
+                }
+
+                local mat = MAD.matrix(mat)
+
+
+                ''' + mng._sequence_name + r'''.X0 = X0:set1(mat)
+                '''
+
+            mng.send(mng_init_str)
+
+        self._already_prepared = True
+
+    def run(self):
+        if self._already_prepared is False:
+            self.prepare()
+
+        start = self.tw_kwargs.get('start', None)
+        end = self.tw_kwargs.get('end', None)
+
+        range_str = f"range = '{start}/{end}', "
+        mng_track_str = (
+            f"local trk, mflw = MAD.track{{\n"
+            f"    sequence={self.mng._sequence_name},\n"
+            f"    X0={self.mng._sequence_name}.X0,\n"
+            f"    savemap=true,\n"
+            f"    {range_str}\n"
+            f"}}\n"
+            f"{self.mng._sequence_name}.trk = trk\n"
+        )
+
+        self.mng.send(mng_track_str)
+
+        res = xt.TwissTable({"name": np.array(self.target_locations)})
+
+        param_matrix = np.zeros((6, len(self.target_locations)), dtype=float)
+
+        for i, tar_loc in enumerate(self.target_locations):
+            loc_map_str = f"local a_re_exit = {self.mng._sequence_name}.trk['{tar_loc}'].__map\n"
+
+            mng_map_str = loc_map_str + r'''
+                local clearkeys in MAD.utility
+                py:send(clearkeys(a_re_exit.__vn), true) -- Send keys as a list (ordered)
+
+                for i, v in ipairs(a_re_exit.__vn) do
+                    py:send(a_re_exit[v]) -- Send TPSAs (Normal Forms) over in order
+                end
+            '''
+
+            self.mng.send(mng_map_str)
+
+            tpsas = {k: self.mng.recv() for k in self.mng.recv()} # Create dict out of TPSAs
+            tpsa = TPSA(tpsas, num_variables=6) # Create TPSA object out of madng-dict
+            self.tpsa_dict[tar_loc] = tpsa
+
+            param_matrix[0, i] = tpsa.calc_beta('x')
+            param_matrix[1, i] = tpsa.calc_beta('y')
+            param_matrix[2, i] = tpsa.calc_alpha('x')
+            param_matrix[3, i] = tpsa.calc_alpha('y')
+            param_matrix[4, i] = tpsa.calc_dispersion('x')
+            param_matrix[5, i] = tpsa.calc_dispersion('px')
+
+        res['beta11_ng'] = param_matrix[0]
+        res['beta22_ng'] = param_matrix[1]
+        res['alfa11_ng'] = param_matrix[2]
+        res['alfa22_ng'] = param_matrix[3]
+        res['dx_ng'] = param_matrix[4]
+        res['dpx_ng'] = param_matrix[5]
+
+        # Track and create twiss table
+        return res
+
+    def cleanup(self):
+        # Need to reconvert TPSAs to normal values
+        mng_str = ''
+        for var_name in self.vary_names:
+            mng_str += f"MADX['{var_name}'] = MADX['{var_name}']:get0()\n"
+        self.mng.send(mng_str)
+        self._already_prepared = False
 
 def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
                   **kwargs):
