@@ -1365,7 +1365,7 @@ def test_twiss_init_file(test_context):
                     'mux', 'muy', 'x', 'y', 'px', 'py']
 
     # check at a location downsteam
-    loc_check = line.element_names[line.element_names.index(location) + 300]
+    loc_check = 'bpm.30r6.b1'
     for var in check_vars:
         # Check at starting point
         xo.assert_allclose(tw[var, location], tw_full[var, location], atol=1e-9, rtol=0)
