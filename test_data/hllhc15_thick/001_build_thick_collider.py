@@ -27,7 +27,7 @@ mad.beam()
 mad.use('lhcb1') # check no negative drifts in madx
 
 
-env = xt.load('temp_lhc_thick.seq', s_tol=1e-6, # _rbend_correct_k0=True,
+env = xt.load('temp_lhc_thick.seq', s_tol=1e-6, _rbend_correct_k0=True,
               reverse_lines=['lhcb2'])
 
 
