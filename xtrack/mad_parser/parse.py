@@ -125,8 +125,8 @@ class MadxTransformer(Transformer):
         field = name_token.value.lower()
         return self.functions[field]
 
-    def command(self, name_token, arglist):
-        command = name_token.value
+    def command(self, name, arglist):
+        command = name.value
         arglist = arglist if isinstance(arglist, list) else [arglist]
         return command.lower(), arglist
 
@@ -140,8 +140,8 @@ class MadxTransformer(Transformer):
     def reset_flag(self, name_token):
         return name_token.value.lower(), False
 
-    def sequence(self, name_token, arglist, *clones) -> Tuple[str, LineType]:
-        return name_token.value.lower(), {
+    def sequence(self, name, arglist, *clones) -> Tuple[str, LineType]:
+        return name.lower(), {
             'parent': 'sequence',
             **dict(arglist),
             'elements': list(clones),
@@ -172,11 +172,11 @@ class MadxTransformer(Transformer):
         name, body = sequence
         self.lines[name] = body
 
-    def clone(self, name_token, command_token, arglist) -> Tuple[str, ElementType]:
+    def clone(self, name, command, arglist) -> Tuple[str, ElementType]:
         args = dict(arglist)
-        parent = command_token.value.lower()
+        parent = command.lower()
 
-        return name_token.value.lower(), {
+        return name.lower(), {
             'parent': parent,
             **args,
         }
@@ -185,8 +185,8 @@ class MadxTransformer(Transformer):
         name, body = clone
         self.elements[name] = body
 
-    def command_stmt(self, command_token, arglist):
-        return command_token.value.lower(), dict(arglist)
+    def command_stmt(self, command, arglist):
+        return command.lower(), dict(arglist)
 
     def top_level_command(self, command):
         name, arglist = command
@@ -211,8 +211,8 @@ class MadxTransformer(Transformer):
     def line_element(self, modifiers, line_item) -> Tuple[str, ElementType]:
         name = None
         body = modifiers.to_dict()
-        if isinstance(line_item, Token):
-            name = line_item.value.lower()
+        if isinstance(line_item, str):
+            name = line_item.lower()
         elif isinstance(line_item, dict):
             body.update(line_item)
         else:
@@ -225,8 +225,8 @@ class MadxTransformer(Transformer):
             'elements': elements,
         }
 
-    def line(self, name_token, anonymous_line) -> Tuple[str, LineType]:
-        return name_token.value.lower(), anonymous_line
+    def line(self, name, anonymous_line) -> Tuple[str, LineType]:
+        return name.lower(), anonymous_line
 
     def top_level_line(self, line):
         name, body = line

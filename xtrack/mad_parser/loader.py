@@ -122,7 +122,9 @@ class MadxLoader:
         self._new_builtin("monitor", "Drift")
         self._new_builtin("hmonitor", "Drift")
         self._new_builtin("vmonitor", "Drift")
+        self._new_builtin("imonitor", "Drift")
         self._new_builtin("placeholder", "Drift")
+        self._new_builtin("wire", "Drift")
         self._new_builtin("sbend", "Bend")
         self._new_builtin("rbend", "RBend")
         self._new_builtin("quadrupole", "Quadrupole")
@@ -138,9 +140,6 @@ class MadxLoader:
         self._new_builtin("srotation", "SRotation")
         self._new_builtin("translation", "XYShift")
         self._new_builtin("dipedge", "DipoleEdge")
-
-        for mad_apertype in _APERTURE_TYPES:
-            self._new_builtin(mad_apertype, 'Marker')
 
     def load_file(self, file):
         """Load a MAD-X file and generate/update the environment."""
@@ -519,14 +518,22 @@ class MadxLoader:
             apertype = 'polygon'
             aperture = None
         else:
-            apertype = params.pop('apertype', None) or self._mad_base_type(name)
+            apertype = params.pop('apertype', 'circle')
             aperture = params.pop('aperture', None)
+
+        if 'apertype' not in self._parameter_cache[name]:
+            # Save the aperture type, as it might have been inferred (polygon, circle)
+            self._parameter_cache[name]['apertype'] = apertype
 
         if apertype not in _APERTURE_TYPES:
             raise ValueError(
                 f'The aperture type for the element `{name}` (inferred to be '
                 f'`{apertype}`) is not recognised.'
             )
+
+        if aperture is not None and not isinstance(aperture, list):
+            # Ensure if defined, aperture is a list
+            aperture = [aperture]
 
         aper_offsets = params.pop('aper_offset', (0, 0))
         if len(aper_offsets) == 1:
