@@ -5109,49 +5109,14 @@ class Line:
         '''
         self._method_incompatible_with_compose()
 
-        self._frozen_check()
+        env = self.env
+        insertions = []
+        for ins in elements_to_insert:
+            ss = ins[0]
+            for nn, ee in ins[1]:
+                insertions.append(env.place(nn, ee, at=ss))
 
-        s_cuts = [ee[0] for ee in elements_to_insert]
-        s_cuts = np.sort(s_cuts)
-
-        self.cut_at_s(s_cuts, s_tol=s_tol)
-
-        tt_after_cut = self.get_table()
-
-        # Names for insertions
-        ele_name_insertions = []
-        for s_insert, ee in progress(elements_to_insert, desc="Locate insertion points"):
-            # Find element_name for insertion
-            ii_ins = np.where(tt_after_cut['s'] >= s_insert - s_tol)[0][0]
-            ele_name_insertions.append(tt_after_cut['name'][ii_ins])
-            assert np.abs(s_insert - tt_after_cut['s'][ii_ins]) < s_tol
-
-        # Add all elements to self._element_dict
-        for s_insert, ee in elements_to_insert:
-            for nn, el in ee:
-                assert nn not in self.env.elements
-                self.env.elements[nn] = el
-
-        # Insert elements
-        for i_ins, (s_insert, ee) in enumerate(
-                    progress(elements_to_insert, desc="Inserting elements")):
-            ele_name_ins = ele_name_insertions[i_ins]
-
-            if ele_name_ins not in self.element_names:
-                assert ele_name_ins == '_end_point'
-                insert_at = None
-            else:
-                insert_at = self.element_names.index(ele_name_ins)
-            for nn, el in ee:
-
-                assert el.isthick == False
-                if insert_at is None:
-                    self.element_names.append(nn)
-                else:
-                    self.element_names.insert(insert_at, nn)
-
-                if insert_at is not None:
-                    insert_at += 1
+        self.insert(insertions)
 
     def _insert_thick_elements_at_s(self, element_names, elements,
                                     at_s, s_tol=1e-6):
