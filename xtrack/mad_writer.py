@@ -440,13 +440,6 @@ def sextupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
 
     return tokens
 
-def generic_to_marker_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
-
-    tokens = []
-    tokens.append('marker')
-
-    return tokens
-
 def octupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """ Convert a octupole element to a MADX/MAD-NG string representation.
 
