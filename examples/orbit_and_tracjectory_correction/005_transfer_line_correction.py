@@ -2,14 +2,16 @@ import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
 
-mad_ti2 = Madx()
-mad_ti2.call('../../test_data/sps_to_lhc_ti2/ti2.seq')
-mad_ti2.call('../../test_data/sps_to_lhc_ti2/ti2_liu.str')
-mad_ti2.beam()
-mad_ti2.use('ti2')
+# Load transfer line lattice
+env = xt.load(['../../test_data/sps_to_lhc_ti2/ti2.seq',
+               '../../test_data/sps_to_lhc_ti2/ti2_liu.str'])
+line = env['ti2']
+line.set_particle_ref('proton', p0c=450e9)
 
-line = xt.Line.from_madx_sequence(mad_ti2.sequence['ti2'])
-line.particle_ref = xt.Particles(p0c=450e9, mass0=xt.PROTON_MASS_EV, q0=1)
+line.insert('start.ti2', xt.Marker(), at=0)
+line.append('end.ti2', xt.Marker())
+
+# Get table of elements in the line
 tt = line.get_table()
 
 # Define elements to be used as monitors for orbit correction
@@ -31,7 +33,7 @@ init = xt.TwissInit(betx=27.77906807, bety=120.39920690,
                      dx=-0.59866300, dpx=0.01603536)
 
 # Reference twiss (no misalignments)
-tw_ref = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
+tw_ref = line.twiss4d(start='start.ti2', end='end.ti2', init=init)
 
 # Introduce misalignments on all quadrupoles
 tt = line.get_table()
@@ -44,17 +46,17 @@ for nn_quad, sx, sy in zip(tt_quad.name, shift_x, shift_y):
     line[nn_quad].shift_y = sy
 
 # Twiss before correction
-tw_before = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
+tw_before = line.twiss4d(start='start.ti2', end='end.ti2', init=init)
 
 # Correct trajectory
-correction = line.correct_trajectory(twiss_table=tw_ref, start='ti2$start', end='ti2$end')
+correction = line.correct_trajectory(twiss_table=tw_ref, start='start.ti2', end='end.ti2')
 # prints:
 #
 # Iteration 0, x_rms: 2.01e-03 -> 1.80e-04, y_rms: 6.94e-04 -> 1.23e-04
 # Iteration 1, x_rms: 1.80e-04 -> 1.80e-04, y_rms: 1.23e-04 -> 1.23e-04
 
 # Twiss after correction
-tw_after = line.twiss4d(start='ti2$start', end='ti2$end', init=init)
+tw_after = line.twiss4d(start='start.ti2', end='end.ti2', init=init)
 
 # Extract correction strength
 s_x_correctors = correction.x_correction.s_correctors

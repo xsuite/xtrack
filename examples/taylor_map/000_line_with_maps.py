@@ -3,7 +3,6 @@ import xtrack as xt
 
 # Get a line and build a tracker
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-line.build_tracker()
 
 # Switch RF on
 line['vrf400'] = 16
@@ -18,7 +17,6 @@ line['on_x8'] = 30
 # Generate line made on maps (splitting at defined markers)
 ele_cut = ['ip1', 'ip2', 'ip5', 'ip8'] # markers where to split the line
 line_maps = line.get_line_with_second_order_maps(split_at=ele_cut)
-line_maps.build_tracker()
 
 line_maps.get_table().show()
 # prints:

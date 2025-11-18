@@ -392,6 +392,10 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
             is_rbend = isinstance(etest, xt.RBend)
 
             for kk in dref.keys():
+
+                if kk == 'prototype':
+                    continue  # prototype is always None from cpymad
+
                 if kk in ('__class__', 'model', 'side'):
                     assert dref[kk] == dtest[kk]
                     continue
@@ -438,3 +442,26 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
                         rtol=1e-4, atol=1e-5)
         xo.assert_allclose(twref.rows['ip.*'].ay_chrom, twtest.rows['ip.*'].ay_chrom,
                         rtol=1e-4, atol=1e-5)
+
+def test_load_multipoles_long_knl_ksl():
+
+    mad_src = '''
+        m1: multipole, knl={0, 0.01, 0.0, 0,0, 0.1, 0.3, 0.7};
+
+        seq: sequence, l=10.0;
+        m1a: m1, at=2.0;
+        endsequence;
+    '''
+
+    env = xt.load(string=mad_src, format='madx')
+    xo.assert_allclose(env.elements['m1'].knl,
+                    [0, 0.01, 0.0, 0, 0, 0.1, 0.3, 0.7], rtol=0, atol=1e-12)
+
+
+    mad = Madx()
+    mad.input(mad_src)
+    mad.beam()
+    mad.use('seq')
+    line = xt.Line.from_madx_sequence(mad.sequence.seq)
+    xo.assert_allclose(line['m1a'].knl,
+                    [0, 0.01, 0.0, 0, 0, 0.1, 0.3, 0.7], rtol=0, atol=1e-12)

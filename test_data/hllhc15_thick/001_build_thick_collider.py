@@ -1,51 +1,47 @@
+from cpymad.madx import Madx
 import xtrack as xt
 import xpart as xp
 
-from cpymad.madx import Madx
+import numpy as np
 
-mad1=Madx()
-mad1.call('../../test_data/hllhc15_thick/lhc.seq')
-mad1.call('../../test_data/hllhc15_thick/hllhc_sequence.madx')
-mad1.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
-mad1.use('lhcb1')
-mad1.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
-mad1.twiss()
+# hllhc15 can be found at git@github.com:lhcopt/hllhc15.git
 
-mad4=Madx()
-mad4.input('mylhcbeam=4')
-mad4.call('../../test_data/hllhc15_thick/lhcb4.seq')
-mad4.call('../../test_data/hllhc15_thick/hllhc_sequence.madx')
-mad4.input('beam, sequence=lhcb2, particle=proton, energy=7000;')
-mad4.use('lhcb2')
-mad4.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
-mad4.twiss()
+mad = Madx()
+
+mad.input(f"""
+call,file="lhc.seq";
+call,file="hllhc_sequence.madx";
+beam, sequence=lhcb1, particle=proton, pc=7000;
+beam, sequence=lhcb2, particle=proton, pc=7000, bv=-1;
+call,file="opt_round_150_1500.madx";
+use, sequence=lhcb1;
+use, sequence=lhcb2;
+twiss;
+set, format="12d", "-18.12e", "25s";
+save, file="temp_lhc_thick.seq";
+""")
+
+mad2 = Madx()
+mad.call('temp_lhc_thick.seq')
+mad.beam()
+mad.use('lhcb1') # check no negative drifts in madx
 
 
-line1=xt.Line.from_madx_sequence(mad1.sequence.lhcb1,
-                                 allow_thick=True,
-                                 deferred_expressions=True,
-                                 replace_in_expr={'bv_aux':'bvaux_b1'})
-line1.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
+env = xt.load('temp_lhc_thick.seq', s_tol=1e-6,
+              _rbend_correct_k0=True, # LHC sequences are defined with rbarc=False
+              reverse_lines=['lhcb2'])
 
-line4=xt.Line.from_madx_sequence(mad4.sequence.lhcb2,
-                                 allow_thick=True,
-                                 deferred_expressions=True,
-                                 replace_in_expr={'bv_aux':'bvaux_b2'})
-line4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
+env.lhcb1.set_particle_ref('proton', p0c=7000e9)
+env.lhcb2.set_particle_ref('proton', p0c=7000e9)
 
-# Remove solenoids (cannot backtwiss for now)
-for ll in [line1, line4]:
-    tt = ll.get_table()
-    for nn in tt.rows[tt.element_type=='Solenoid'].name:
-        ee_elen = ll[nn].length
-        ll.element_dict[nn] = xt.Drift(length=ee_elen)
+# Set cavity frequency
+tt_cav = env.elements.get_table().rows.match(element_type='Cavity')
+for nn in tt_cav.name:
+    env[nn].frequency = 400.79e6  # Hz
 
-collider = xt.Environment(lines={'lhcb1':line1,'lhcb2':line4})
-collider.lhcb1.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
-collider.lhcb2.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 
-collider.lhcb1.twiss_default['method'] = '4d'
-collider.lhcb2.twiss_default['method'] = '4d'
-collider.lhcb2.twiss_default['reverse'] = True
+env.lhcb1.twiss_default['method'] = '4d'
+env.lhcb2.twiss_default['method'] = '4d'
+env.lhcb2.twiss_default['reverse'] = True
 
-collider.to_json('hllhc15_collider_thick.json')
+env.to_json('hllhc15_collider_thick.json')

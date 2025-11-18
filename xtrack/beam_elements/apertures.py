@@ -292,15 +292,12 @@ class LimitPolygon(BeamElement):
 
             assert np.all(lengths > 0)
 
-            if self.area < 0:
-                self.x_vertices = self.x_vertices[::-1]
-                self.y_vertices = self.y_vertices[::-1]
-                # raise ValueError(
-                #        "The area of the polygon is negative!\n"
-                #        "Vertices must be provided with counter-clockwise order!")
-
             Nx = -np.diff(self.y_closed)
             Ny = np.diff(self.x_closed)
+
+            if self.get_area(signed=True) < 0:
+                Nx = -Nx
+                Ny = -Ny
 
             norm_N = np.sqrt(Nx**2 + Ny**2)
             Nx = Nx / norm_N
@@ -382,10 +379,16 @@ class LimitPolygon(BeamElement):
 
     @property
     def area(self):
-        return -0.5 * np.sum(
+        return self.get_area()
+
+    def get_area(self, signed=False):
+        out = -0.5 * np.sum(
             (self.y_closed[1:] + self.y_closed[:-1])
             * (self.x_closed[1:] - self.x_closed[:-1])
         )
+        if not signed:
+            out = np.abs(out)
+        return out
 
     @property
     def centroid(self):

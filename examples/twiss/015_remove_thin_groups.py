@@ -9,15 +9,9 @@ import xtrack as xt
 
 import matplotlib.pyplot as plt
 
-#################################
-# Load a line and build tracker #
-#################################
-
 line = xt.load(
     '../../test_data/lhc_no_bb/line_and_particle.json')
-line.particle_ref = xt.Particles(
-                    mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
-line.build_tracker()
+line.set_particle_ref('proton', p0c=7e12)
 
 tw = line.twiss()
 tw_htg = line.twiss(hide_thin_groups=True)

@@ -8,7 +8,7 @@ import pytest
 import xobjects as xo
 import xtrack as xt
 import pymadng as ng
-
+from typing import Literal
 from xobjects.test_helpers import for_all_test_contexts
 
 
@@ -415,7 +415,7 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
     xo.assert_allclose(p_ref.zeta, p_test.zeta, atol=1e-15, rtol=1e-15)
     xo.assert_allclose(p_ref.s, p_test.s, atol=1e-15, rtol=1e-15)
 
-    # Check backtrak
+    # Check backtrack
     line_test.track(p_test, backtrack=True)
     xo.assert_allclose(p_test.x, p0.x, atol=1e-14, rtol=1e-14)
     xo.assert_allclose(p_test.px, p0.px, atol=1e-14, rtol=1e-14)
@@ -425,39 +425,266 @@ def test_misalign_dedicated_vs_beam_element(test_context, element_type):
     xo.assert_allclose(p_test.zeta, p0.zeta, atol=1e-14, rtol=1e-14)
     xo.assert_allclose(p_test.s, p0.s, atol=1e-14, rtol=1e-14)
 
-def test_errors_on_slices():
 
+def test_thick_slice_misaligned_bend():
+    length = 3
+    angle = 0.3
+    dx = 0.1
+    dy = 0.2
+    ds = 0.3
+    theta = 0.1  # rad
+    phi = 0.2  # rad
+    psi = 0.5  # rad
+    tilt = 0.1
+    anchor = 1  # m
+    n_slices = 5
+
+    bend = xt.Bend(
+        length=length,
+        angle=angle,
+        shift_x=dx,
+        shift_y=dy,
+        shift_s=ds,
+        rot_x_rad=phi,
+        rot_y_rad=theta,
+        rot_s_rad_no_frame=psi,
+        rot_s_rad=tilt,
+        rot_shift_anchor=anchor,
+        k0_from_h=True,
+        edge_entry_active=False,
+        edge_entry_model='full',
+        edge_entry_angle=0.05,
+        edge_entry_hgap=0.06,
+        edge_entry_fint=0.08,
+        edge_exit_active=False,
+        edge_exit_model='full',
+        edge_exit_angle=-0.05,
+        edge_exit_hgap=0.06,
+        edge_exit_fint=0.08,
+    )
+    line_test = xt.Line(elements=[bend], element_names=['bend'])
+    line_test.slice_thick_elements([xt.Strategy(slicing=xt.Teapot(n_slices, mode='thick'))])
+
+    line_ref = xt.Line(elements=[bend], element_names=['bend'])
+
+    assert {f'bend..{i}' for i in range(n_slices)} <= set(line_test.element_names)
+
+    p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
+
+    p_ref = p0.copy()
+    line_ref.track(p_ref)
+
+    p_test = p0.copy()
+    line_test.track(p_test)
+
+    assert p_test.state > 0
+    xo.assert_allclose(p_test.x, p_ref.x, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.px, p_ref.px, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.y, p_ref.y, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.py, p_ref.py, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.delta, p_ref.delta, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.s, p_ref.s, atol=5e-14, rtol=8e-14)
+
+
+def test_thick_slice_misaligned_quad():
+    length = 3
+    k1 = 0.07
+    dx = 0.1
+    dy = 0.2
+    ds = 0.3
+    theta = 0.1  # rad
+    phi = 0.2  # rad
+    psi = 0.5  # rad
+    tilt = 0.1
+    anchor = 1  # m
+    n_slices = 5
+
+    quad = xt.Quadrupole(
+        length=length,
+        k1=k1,
+        shift_x=dx,
+        shift_y=dy,
+        shift_s=ds,
+        rot_x_rad=phi,
+        rot_y_rad=theta,
+        rot_s_rad_no_frame=psi,
+        rot_s_rad=tilt,
+        rot_shift_anchor=anchor,
+        edge_entry_active=True,
+        edge_exit_active=True,
+    )
+    line_test = xt.Line(elements=[quad], element_names=['quad'])
+    line_test.slice_thick_elements([xt.Strategy(slicing=xt.Teapot(n_slices, mode='thick'))])
+
+    line_ref = xt.Line(elements=[quad], element_names=['quad'])
+
+    assert {f'quad..{i}' for i in range(n_slices)} <= set(line_test.element_names)
+
+    p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
+
+    p_ref = p0.copy()
+    line_ref.track(p_ref)
+
+    p_test = p0.copy()
+    line_test.track(p_test)
+
+    assert p_test.state > 0
+    xo.assert_allclose(p_test.x, p_ref.x, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.px, p_ref.px, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.y, p_ref.y, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.py, p_ref.py, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.delta, p_ref.delta, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.s, p_ref.s, atol=5e-14, rtol=8e-14)
+
+
+def test_thick_slice_misaligned_uniform_solenoid():
+    length = 3
+    ks = 0.7
+    dx = 0.1
+    dy = 0.2
+    ds = 0.3
+    theta = 0.1  # rad
+    phi = 0.2  # rad
+    psi = 0.5  # rad
+    tilt = 0.1
+    anchor = 1  # m
+    n_slices = 5
+
+    sol = xt.UniformSolenoid(
+        length=length,
+        ks=ks,
+        shift_x=dx,
+        shift_y=dy,
+        shift_s=ds,
+        rot_x_rad=phi,
+        rot_y_rad=theta,
+        rot_s_rad_no_frame=psi,
+        rot_s_rad=tilt,
+        rot_shift_anchor=anchor,
+    )
+    line_test = xt.Line(elements=[sol], element_names=['sol'])
+    line_test.slice_thick_elements([xt.Strategy(slicing=xt.Teapot(n_slices, mode='thick'))])
+
+    line_ref = xt.Line(elements=[sol], element_names=['sol'])
+
+    assert {f'sol..{i}' for i in range(n_slices)} <= set(line_test.element_names)
+
+    p0 = xt.Particles(x=0.2, y=-0.6, px=-0.01, py=0.02, zeta=0.5, delta=0.9)
+
+    p_ref = p0.copy()
+    line_ref.track(p_ref)
+
+    p_test = p0.copy()
+    line_test.track(p_test)
+
+    assert p_test.state > 0
+    xo.assert_allclose(p_test.x, p_ref.x, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.px, p_ref.px, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.y, p_ref.y, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.py, p_ref.py, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.delta, p_ref.delta, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=5e-14, rtol=8e-14)
+    xo.assert_allclose(p_test.s, p_ref.s, atol=5e-14, rtol=8e-14)
+
+
+@pytest.mark.parametrize(
+    'transformations,valid',
+    [
+        ({'rot_x_rad': 0.1}, False),
+        ({'rot_y_rad': -0.2}, False),
+        ({'rot_s_rad_no_frame': 0.3}, False),
+        ({'shift_x': 0.2}, True),
+        ({'shift_y': -0.3}, True),
+        ({'shift_s': 0.1}, True),
+        ({'rot_s_rad': 0.2}, True),
+    ],
+    ids=[
+        'rot_x_rad',
+        'rot_y_rad',
+        'rot_s_rad_no_frame',
+        'shift_x',
+        'shift_y',
+        'shift_s',
+        'rot_s_rad',
+    ]
+)
+def test_thin_slice_misaligned_bend_valid_invalid(transformations, valid):
     env = xt.Environment()
     line = env.new_line(components=[
-        env.new('b', 'Bend', angle=0.1, length=2)
+        env.new(
+            name='b',
+            parent='Bend',
+            angle=0.1,
+            length=2,
+            model='drift-kick-drift-expanded',  # compare to a similar model
+            **transformations,
+        ),
     ])
 
-    p = xt.Particles(p0c=1e9)
-    line.track(p)
-    assert p.state[0] == 1
+    line.slice_thick_elements([
+        xt.Strategy(slicing=xt.Teapot(50, mode='thin')),
+    ])
 
-    line['b'].shift_x = 0.1
-    line.track(p)
-    assert p.state[0] == 1
+    p0 = xt.Particles(x=0.01, py=0.03, p0c=1e9)
+    p_test = p0.copy()
+    line.track(p_test)
 
-    line.cut_at_s([0.5])
-    line.track(p)
-    assert p.state[0] == -41
+    if not valid:
+        assert p_test.state[0] == -42
+        return
 
-    p = xt.Particles(p0c=1e9)
-    line['b'].angle = 0
-    line.track(p)
-    assert p.state[0] == 1
+    p_ref = p0.copy()
+    line['b'].track(p_ref)
 
-    line['b'].angle = 0.1
-    line.track(p)
-    assert p.state[0] == -41
+    xo.assert_allclose(p_test.x, p_ref.x, atol=1e-6, rtol=1e-5)
+    xo.assert_allclose(p_test.y, p_ref.y, atol=1e-6, rtol=1e-5)
+    xo.assert_allclose(p_test.px, p_ref.px, atol=1e-14, rtol=1e-14)
+    xo.assert_allclose(p_test.py, p_ref.py, atol=1e-14, rtol=1e-14)
+    xo.assert_allclose(p_test.zeta, p_ref.zeta, atol=1e-7, rtol=1e-5)
+    xo.assert_allclose(p_test.delta, p_ref.delta, atol=1e-14, rtol=1e-14)
 
-    line['b'].angle = 0
-    p = xt.Particles(p0c=1e9)
-    line.track(p)
-    assert p.state[0] == 1
 
-    line['b'].rot_x_rad = 0.1
-    line.track(p)
-    assert p.state[0] == -40
+@pytest.mark.parametrize('h', [0.0, 0.1], ids=['straight', 'polar'])
+def test_spin_drift(h):
+    bend = xt.Bend(
+        length=2,
+        h=h,
+        k0=0,
+        shift_x=0.01,
+        shift_y=-0.03,
+        shift_s=0.02,
+        rot_x_rad=-0.03,
+        rot_y_rad=0.02,
+        rot_s_rad_no_frame=0.01,
+        rot_s_rad=0.04,
+        rot_shift_anchor=0.2,
+    )
+    bend.integrator = 'uniform'
+    bend.num_multipole_kicks = 1
+
+    line_test = xt.Line(elements=[bend], element_names=['bend'])
+    line_test.configure_spin('auto')
+
+    p0 = xt.Particles(
+        x=0.2,
+        y=-0.6,
+        spin_z=1.,
+        mass0=xt.ELECTRON_MASS_EV,
+        anomalous_magnetic_moment=0.00115965218128,
+    )
+
+    p = p0.copy()
+    line_test.track(p)
+
+    # Check that spin norm is preserved
+    expected_norm = 1
+    result_norm = np.linalg.norm([p.spin_x, p.spin_y, p.spin_z])
+    xo.assert_allclose(result_norm, expected_norm, atol=1e-15, rtol=1e-15)
+
+    # In the absence of magnetic field, spin should follow momentum
+    xo.assert_allclose(p.spin_x, p.px, atol=1e-15, rtol=1e-15)
+    xo.assert_allclose(p.spin_y, p.py, atol=1e-15, rtol=1e-15)
+    ps = np.sqrt(1 - p.px**2 - p.py**2)
+    xo.assert_allclose(p.spin_z, ps, atol=1e-15, rtol=1e-15)

@@ -5,37 +5,50 @@
 
 import time
 import numpy as np
-
-from cpymad.madx import Madx
+from scipy.constants import c as clight
 
 import xtrack as xt
 
-# Import a thick sequence
-mad = Madx()
-mad.call('../../test_data/clic_dr/sequence.madx')
-mad.use('ring')
+###################
+# Load ring model #
+###################
 
-# Makethin
-mad.input(f'''
-select, flag=MAKETHIN, SLICE=4, thick=false;
-select, flag=MAKETHIN, pattern=wig, slice=1;
-select, flag=makethin, class=rfcavity, slice=1;
-MAKETHIN, SEQUENCE=ring, MAKEDIPEDGE=true;
-use, sequence=RING;
-''')
-mad.use('ring')
+env = xt.load('../../test_data/clic_dr/sequence.madx')
+line = env.ring
+line.set_particle_ref('electron', energy0=2.86e9)
+line['rf'].frequency = 2852 / line.get_length() * clight
 
-# Build xtrack line
-print('Build xtrack line...')
-line = xt.Line.from_madx_sequence(mad.sequence['RING'])
-line.particle_ref = xt.Particles(
-        mass0=xt.ELECTRON_MASS_EV,
-        q0=-1,
-        gamma0=mad.sequence.ring.beam.gamma)
+##############################
+# Configure element modeling #
+##############################
 
-# Build tracker
-print('Build tracker ...')
-line.build_tracker()
+# Inspect line table
+tt = line.get_table()
+tt_quad = tt.rows[tt.element_type=='Quadrupole']
+tt_bend = tt.rows[tt.element_type=='Bend']
+tt_sext = tt.rows[tt.element_type=='Sextupole']
+tt_wig = tt.rows['wig.*']
+
+# Set models and integrators
+line.set(tt_quad, model='mat-kick-mat', integrator='uniform', num_multipole_kicks=2)
+line.set(tt_sext, model='drift-kick-drift-expanded', integrator='uniform', num_multipole_kicks=2)
+line.set(tt_bend, model='drift-kick-drift-expanded', integrator='uniform', num_multipole_kicks=4)
+line.set(tt_wig, model='drift-kick-drift-expanded', integrator='uniform', num_multipole_kicks=2)
+
+########################
+# Slice thick elements #
+########################
+
+# Slice thick elements to have more points in twiss table (better radiation integrals)
+line.slice_thick_elements(
+    slicing_strategies=[
+        xt.Strategy(slicing=None), # default, no slicing
+        xt.Strategy(slicing=xt.Uniform(4, mode='thick'), element_type=xt.Bend),
+        xt.Strategy(slicing=xt.Uniform(2, mode='thick'), element_type=xt.Quadrupole),
+        xt.Strategy(slicing=xt.Uniform(2, mode='thick'), element_type=xt.Sextupole),
+        xt.Strategy(slicing=xt.Uniform(2, mode='thick'), name='wig.*')
+])
+
 
 ################################
 # Enable synchrotron radiation #
@@ -76,7 +89,8 @@ particles_0 = particles.copy()
 
 # Track
 num_turns = 5000
-line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
+line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True,
+           with_progress=10)
 
 # Save monitor
 mon_mean_mode = line.record_last_track
@@ -98,7 +112,8 @@ line.configure_radiation(model='quantum')
 particles = particles_0.copy()
 
 num_turns = 5000
-line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
+line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True,
+           with_progress=10)
 mon_quantum_mode = line.record_last_track
 
 import matplotlib.pyplot as plt

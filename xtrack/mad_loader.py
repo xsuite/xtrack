@@ -35,8 +35,10 @@ import xobjects
 import xtrack
 from .general import _print
 from .progress_indicator import progress
+from .functions import Functions
 
-# Generic functions
+
+_default_functions = Functions()
 
 clight = 299792458
 
@@ -648,8 +650,7 @@ class MadLoader:
     def math(self):
         if issubclass(self.Assembler, ElementAssemblerWithExpr):
             return self.line._xdeps_fref
-
-        return np
+        return _default_functions
 
     def _assert_element_is_thin(self, mad_el):
         if value_if_expr(mad_el.l) != 0:
@@ -818,8 +819,6 @@ class MadLoader:
             ksl = []
             num_multipole_kicks = 0
 
-        knl[2] += mad_el.k2 * l_curv
-
         if mad_el.k0:
             k0_from_h = False
             bend_kwargs['k0'] = mad_el.k0
@@ -832,6 +831,7 @@ class MadLoader:
             element_type,
             k0_from_h=k0_from_h,
             k1=self.bv * mad_el.k1,
+            k2=mad_el.k2,
             edge_entry_angle=e1,
             edge_exit_angle=e2,
             edge_entry_angle_fdown=angle_fdown,

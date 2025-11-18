@@ -9,15 +9,17 @@ from .particles import Particles
 
 
 _RecordIdentifier_getp_record_source = r'''
-/*gpufun*/
-/*gpuglmem*/ int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
-    /*gpuglmem*/ int8_t* io_buffer = LocalParticle_get_io_buffer(part);
+#include <headers/track.h>
+
+GPUFUN
+GPUGLMEM int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
+    GPUGLMEM int8_t* io_buffer = LocalParticle_get_io_buffer(part);
     if (io_buffer == NULL){
         return NULL;
     }
 
     int64_t buffer_id = RecordIdentifier_get_buffer_id(record_id);
-    /*gpuglmem*/ int64_t* found_id = (/*gpuglmem*/ int64_t*)io_buffer;
+    GPUGLMEM int64_t* found_id = (GPUGLMEM int64_t*)io_buffer;
     if (buffer_id != (*found_id)){
         printf("Error: buffer_id mismatch!\n");
         return NULL;
@@ -31,15 +33,17 @@ _RecordIdentifier_getp_record_source = r'''
 '''
 
 _RecordIndex_get_slot_source = r'''
+#include <headers/track.h>
+#include <headers/atomicadd.h>
 
-/*gpufun*/
+GPUFUN
 int64_t RecordIndex_get_slot(RecordIndex record_index){
 
     if (record_index == NULL){
         return -2;
     }
     int64_t capacity = RecordIndex_get_capacity(record_index);
-    /*gpuglmem*/ uint32_t* num_recorded = RecordIndex_getp_num_recorded(record_index);
+    GPUGLMEM uint32_t* num_recorded = RecordIndex_getp_num_recorded(record_index);
 
     if(*num_recorded >= capacity){
         return -1;
@@ -47,11 +51,7 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
 
     uint32_t slot;
 
-    slot = atomic_add(num_recorded, 1);   //only_for_context opencl
-    slot = atomicAdd(num_recorded, 1);    //only_for_context cuda
-
-    #pragma omp atomic capture            //only_for_context cpu_openmp
-    slot = (*num_recorded)++;             //only_for_context cpu_serial cpu_openmp
+    slot = atomicAdd(num_recorded, 1);
 
     if (slot >= capacity){
         *num_recorded = capacity;
@@ -199,7 +199,9 @@ def stop_internal_logging_for_elements_of_type(tracker, element_type):
 def generate_get_record(ele_classname, record_classname):
     content = '''
 /*---GENERATED GET RECORD FUNCTION---*/
-/*gpufun*/
+#include <headers/track.h>
+
+GPUFUN
 RECORDCLASSNAME ELECLASSNAME_getp_internal_record(ELECLASSNAME el, LocalParticle* part){
     RecordIdentifier record_id = ELECLASSNAME_getp__internal_record_id(el);
     if (RecordIdentifier_get_buffer_id(record_id) <= 0){

@@ -121,7 +121,8 @@ def gen_py_lattice(env):
             break
 
     # Some customizations
-    elem_tokens['multipole']['params'].append('knl=[0,0,0,0,0,0]')
+    if 'multipole' in elem_tokens:
+        elem_tokens['multipole']['params'].append('knl=[0,0,0,0,0,0]')
 
     # populate diff params
     for nn in elem_tokens:

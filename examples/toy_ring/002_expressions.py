@@ -35,7 +35,7 @@ line = env.new_line(components=[
     env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     env.new('d4.2',  xt.Drift, length=1),
 ])
-line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
+line.set_particle_ref('proton', p0c=1.2e9)
 
 # Expressions can also be assigned after the creation of the line. For example, we
 # can set the integrated strength of the defocusing quadrupoles (note that line[...]

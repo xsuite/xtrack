@@ -1,23 +1,15 @@
-import json
-
 import numpy as np
-
 import xtrack as xt
 
-###################################
-# Load a line and build a tracker #
-####################################
+###############
+# Load a line #
+###############
 
-with open('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json') as f:
-    dct = json.load(f)
-
-line = xt.Line.from_dict(dct['line'])
-line.particle_ref = xt.Particles.from_dict(dct['particle'])
+line = xt.load('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+line.set_particle_ref('proton', p0c=7e12)
 line.twiss_default['method'] = '4d'
-line.twiss_default['freeze_longitudinal'] = True
-line.build_tracker()
 
-vary=[ xt.Vary('ksf.b1', step=1e-8),  xt.Vary('ksd.b1', step=1e-8)]
+vary=[xt.Vary('ksf.b1', step=1e-8),  xt.Vary('ksd.b1', step=1e-8)]
 line.match(
     vary=vary,
     targets = [xt.Target('dqx', 2.0, tol=1e-6),

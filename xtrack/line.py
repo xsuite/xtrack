@@ -3,18 +3,14 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
-import json
 import logging
 from collections import defaultdict
-from weakref import WeakSet
 from collections.abc import Iterable
 
 from contextlib import contextmanager
 import copy
 from pprint import pformat
 from typing import List, Literal, Optional, Dict
-from pathlib import Path
-from .functions import Functions
 
 import numpy as np
 from scipy.constants import c as clight
@@ -26,7 +22,7 @@ import xobjects as xo
 import xtrack as xt
 import xdeps as xd
 from .beam_elements.elements import (
-    MagnetEdge, _MODEL_TO_INDEX_CURVED,
+    _MODEL_TO_INDEX_CURVED,
     _EDGE_MODEL_TO_INDEX, _MODEL_TO_INDEX_DRIFT
 )
 from .progress_indicator import progress
@@ -69,7 +65,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW   = [
     xt.Cavity, xt.RFMultipole, xt.CrabCavity, xt.ReferenceEnergyIncrease,
     xt.XYShift, xt.XRotation, xt.YRotation, xt.SRotation, xt.ZetaShift,
     xt.LimitRacetrack, xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
-    xt.LimitPolygon]
+    xt.LimitPolygon, xt.DipoleEdge]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {
     cc.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
@@ -1067,6 +1063,20 @@ class Line:
         enable_pipeline_hold: bool, optional
             If True, the pipeline hold mechanism is enabled.
 
+        Examples
+        --------
+
+        .. code-block:: python
+
+            ## Choose a context
+            context = xo.ContextCpu()                         # For CPU (single thread)
+            # context = xo.ContextCpu(omp_num_threads=4)      # For CPU (4 thread)
+            # context = xo.ContextCpu(omp_num_threads='auto') # For CPU (max. thread)
+            # context = xo.ContextCupy()                      # For CUDA GPUs
+            # context = xo.ContextPyopencl()                  # For OpenCL GPUs
+
+            line.build_tracker(_context=context)
+
         """
 
         if self.mode == 'compose':
@@ -1080,6 +1090,9 @@ class Line:
             and self.composer is not None):
             self.rebuild()
 
+        if _context is None and _buffer is None:
+            _context = self.env._last_context
+
         self.tracker = xt.Tracker(
                                 line=self,
                                 _context=_context,
@@ -1092,6 +1105,8 @@ class Line:
 
         if hasattr(self, 'env') and self.env is not None:
             self.env._ensure_tracker_consistency(buffer=self._buffer)
+
+        self.env._last_context = self._context
 
         return self.tracker
 
@@ -2518,7 +2533,8 @@ class Line:
 
         '''
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         if self.iscollective and not include_collective:
             log.warning(
@@ -3386,6 +3402,9 @@ class Line:
         """
         self._method_incompatible_with_compose()
 
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
         assert state in (True, False)
         assert self.iscollective is False, ('Cannot freeze longitudinal '
                         'variables in collective mode (not yet implemented)')
@@ -3680,15 +3699,14 @@ class Line:
         else:
             self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
 
-    def configure_spin(self, spin_model=None):
-
+    def configure_spin(self, spin_model: Literal[True, False, None, 'auto'] = None):
         """
         Configure the spin model for the line.
 
         Parameters
         ----------
         spin_model: str
-            Spin model to use. Can be None, 'auto', 'True', 'False'
+            Spin model to use. Can be None, 'auto', True, False.
         """
         self._method_incompatible_with_compose()
 
@@ -3933,7 +3951,6 @@ class Line:
 
         """
         self._method_incompatible_with_compose()
-        self.discard_tracker()
 
         if element_names is None:
             element_names = []
@@ -3941,27 +3958,7 @@ class Line:
                 if hasattr(self.get(nn), 'knl'):
                     element_names.append(nn)
 
-        for nn in element_names:
-            if self.get(nn).order > order:
-                raise ValueError(f'Order of element {nn} is smaller than {order}')
-
-        for nn in element_names:
-            ee = self.get(nn)
-
-            if ee.order == order:
-                continue
-
-            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
-            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
-
-            dct = ee.to_dict()
-            dct.pop('order', None)
-            dct['knl'] = new_knl
-            dct['ksl'] = new_ksl
-
-            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
-            # Need to bypass the check on element redefinition
-            self.env._xdeps_eref._owner[nn] = new_ee
+        self.env.extend_knl_ksl(order, element_names)
 
     def remove_markers(self, inplace=True, keep=None):
         """
@@ -4120,7 +4117,7 @@ class Line:
                                       ' `compose` mode. Please call line.end_compose().')
 
         self._frozen_check()
-        self.replace_all_repeated_elements()
+        self.replace_all_repeated_elements(replace_generated_drifts=True)
 
         if keep is None:
             keep = []
@@ -4630,8 +4627,11 @@ class Line:
 
         new_element_names = []
         for nn in self.element_names:
-            new_nn = nn + '.' + suffix
-            self.env.elements[new_nn] = xt.Replica(nn)
+            if nn.startswith('||drift_'):
+                new_nn = nn
+            else:
+                new_nn = nn + '.' + suffix
+                self.env.elements[new_nn] = xt.Replica(nn)
             new_element_names.append(new_nn)
 
         out = self.env.new_line(components=new_element_names)
@@ -4660,7 +4660,8 @@ class Line:
             if isinstance(self._element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
 
-    def replace_all_repeated_elements(self, separator='.', mode='clone'):
+    def replace_all_repeated_elements(self, separator='.', mode='clone',
+                                      replace_generated_drifts=False):
         self._method_incompatible_with_compose()
         env = self.env
 
@@ -4671,10 +4672,13 @@ class Line:
             aux_dict[nn].append(ii)
 
         for nn in unique_names:
+            if not replace_generated_drifts and nn.startswith('||drift_'):
+                continue
             if len(aux_dict[nn]) > 1:
                 i_rep = 0
                 for ii in aux_dict[nn]:
-                    while (new_name := nn + separator + str(i_rep)) in self._element_dict:
+                    while ((new_name := nn.replace('||drift_', 'drift_') + separator + str(i_rep))
+                           in self._element_dict):
                         i_rep += 1
                     env.new(new_name, nn, mode=mode)
                     self.element_names[ii] = new_name
@@ -5147,11 +5151,10 @@ class Line:
 
                 '_own_length': 'length',
 
-                '_own_sin_rot_s': '_sin_rot_s',
-                '_own_cos_rot_s': '_cos_rot_s',
-                '_own_shift_x': '_shift_x',
-                '_own_shift_y': '_shift_y',
-                '_own_shift_s': '_shift_s',
+                '_own_rot_s_rad': 'rot_s_rad',
+                '_own_shift_x': 'shift_x',
+                '_own_shift_y': 'shift_y',
+                '_own_shift_s': 'shift_s',
 
                 '_own_h': 'h',
                 '_own_hxl': 'hxl',
@@ -5202,11 +5205,10 @@ class Line:
                 '_own_ref_rot_cos_z':       'cos_z',
 
                 '_parent_length': (('_parent', 'length'), None),
-                '_parent_sin_rot_s': (('_parent', '_sin_rot_s'), None),
-                '_parent_cos_rot_s': (('_parent', '_cos_rot_s'), None),
-                '_parent_shift_x': (('_parent', '_shift_x'), None),
-                '_parent_shift_y': (('_parent', '_shift_y'), None),
-                '_parent_shift_s': (('_parent', '_shift_s'), None),
+                '_parent_rot_s_rad': (('_parent', 'rot_s_rad'), None),
+                '_parent_shift_x': (('_parent', 'shift_x'), None),
+                '_parent_shift_y': (('_parent', 'shift_y'), None),
+                '_parent_shift_s': (('_parent', 'shift_s'), None),
 
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
@@ -5263,7 +5265,9 @@ class Line:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
                 '_angle_force_body': _angle_force_body_from_attr,
                 'angle_rad': _angle_rbend_correction_from_attr,
-                'rot_s_rad': _rot_s_from_attr,
+                'rot_s_rad': lambda attr:
+                    attr['_own_rot_s_rad'] + attr['_parent_rot_s_rad']
+                    * attr._rot_and_shift_from_parent,
                 'shift_x': lambda attr:
                     attr['_own_shift_x'] + attr['_parent_shift_x']
                     * attr._rot_and_shift_from_parent,
@@ -6189,30 +6193,6 @@ def _angle_rbend_correction_from_attr(attr):
 
     return angle
 
-def _rot_s_from_attr(attr):
-
-    own_sin_rot_s = attr['_own_sin_rot_s'].copy()
-    own_cos_rot_s = attr['_own_cos_rot_s'].copy()
-    parent_sin_rot_s = attr['_parent_sin_rot_s'].copy()
-    parent_cos_rot_s = attr['_parent_cos_rot_s'].copy()
-
-    has_own_rot = (own_cos_rot_s !=0) | (own_sin_rot_s != 0)
-    mask_own_rot_inactive = own_sin_rot_s < -2.
-    own_cos_rot_s[mask_own_rot_inactive] = 1.
-    own_sin_rot_s[mask_own_rot_inactive] = 0.
-
-    has_parent_rot = (parent_cos_rot_s !=0) | (parent_sin_rot_s != 0)
-    mask_parent_rot_inactive = parent_sin_rot_s < -2.
-    parent_cos_rot_s[mask_parent_rot_inactive] = 1.
-    parent_sin_rot_s[mask_parent_rot_inactive] = 0.
-
-    rot_s_rad = 0. * own_sin_rot_s
-    rot_s_rad[has_own_rot] = np.arctan2(own_sin_rot_s[has_own_rot],
-                                        own_cos_rot_s[has_own_rot])
-    rot_s_rad[has_parent_rot] = np.arctan2(parent_sin_rot_s[has_parent_rot],
-        parent_cos_rot_s[has_parent_rot]) * attr._rot_and_shift_from_parent[has_parent_rot]
-
-    return rot_s_rad
 
 class LineParticleRef:
 
@@ -6238,6 +6218,15 @@ class LineParticleRef:
 
     def copy(self, **kwargs):
         return self._resolved.copy(**kwargs)
+
+    def __repr__(self):
+        name = None
+        if isinstance(self.line._particle_ref, str):
+            name = self.line._particle_ref
+        return ('LineParticleRef('
+                f'name={name}, '
+                f'{str(self._resolved)}'
+                ')')
 
 class ActionLine(Action):
 

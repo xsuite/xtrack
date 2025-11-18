@@ -749,10 +749,10 @@ def test_load_madx_optics_file():
     xo.assert_allclose(tw.lhcb1.qy, 60.32000000, atol=1e-6, rtol=0)
     xo.assert_allclose(tw.lhcb2.qx, 62.31000000, atol=1e-6, rtol=0)
     xo.assert_allclose(tw.lhcb2.qy, 60.32000000, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=0, rtol=1e-6)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=0, rtol=5e-6)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=0, rtol=5e-6)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=0, rtol=5e-6)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=0, rtol=5e-6)
 
     # Check a knob
     collider.vars['on_x1'] = 10

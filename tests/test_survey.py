@@ -154,11 +154,12 @@ def test_survey_with_ref_transformations():
 
     sv_no_arg = line.survey()
     assert np.all(sv_no_arg.name == np.array([
-        'drift_1', 'r1', 'drift_2', 'r2', 'drift_3', 'rx1', 'drift_4',
-        'rx2', 'drift_5', 'rs1', 'drift_6', 'sxy1', 'drift_7', 'mid',
-        'drift_8', 'sxy2', 'drift_9', 'rs2', 'drift_10', 'rx3', 'drift_11',
-        'rx4', 'drift_12', 'r3', 'drift_13', 'r4', 'drift_14', 'right',
-        'drift_15', '_end_point']))
+        '||drift_1::0', 'r1', '||drift_1::1', 'r2', '||drift_1::2', 'rx1',
+       '||drift_1::3', 'rx2', '||drift_2::0', 'rs1', '||drift_3::0',
+       'sxy1', '||drift_4::0', 'mid', '||drift_4::1', 'sxy2',
+       '||drift_3::1', 'rs2', '||drift_2::1', 'rx3', '||drift_1::4',
+       'rx4', '||drift_1::5', 'r3', '||drift_1::6', 'r4', '||drift_2::2',
+       'right', '||drift_2::3', '_end_point']))
 
     xo.assert_allclose(sv_no_arg.ref_shift_x, np.array([
         0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
@@ -293,11 +294,12 @@ def test_survey_with_h_and_v_bends():
     sv_no_arg = line.survey()
 
     assert np.all(sv_no_arg.name == np.array([
-        'drift_1', 'r1', 'drift_2', 'r2', 'drift_3', 'rx1', 'drift_4',
-        'rx2', 'drift_5', 'rs1', 'drift_6', 'sxy1', 'drift_7', 'mid',
-        'drift_8', 'sxy2', 'drift_9', 'rs2', 'drift_10', 'rx3', 'drift_11',
-        'rx4', 'drift_12', 'r3', 'drift_13', 'r4', 'drift_14', 'right',
-        'drift_15', '_end_point']))
+        '||drift_1', 'r1', '||drift_2::0', 'r2', '||drift_3::0', 'rx1',
+       '||drift_2::1', 'rx2', '||drift_4::0', 'rs1', '||drift_5::0',
+       'sxy1', '||drift_6::0', 'mid', '||drift_6::1', 'sxy2',
+       '||drift_5::1', 'rs2', '||drift_4::1', 'rx3', '||drift_3::1',
+       'rx4', '||drift_3::2', 'r3', '||drift_7', 'r4', '||drift_8',
+       'right', '||drift_9', '_end_point']))
 
     xo.assert_allclose(sv_no_arg.ref_shift_x, np.array([
         0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
@@ -400,7 +402,7 @@ def test_survey_with_h_and_v_bends():
     xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
 
-def test_survey_against_madx():
+def test_survey_against_madx_cpymad_loader():
     from cpymad.madx import Madx
 
     mad = Madx()
@@ -576,10 +578,11 @@ def test_survey_transforms_native_loader():
     Z = p[:, 2]
 
     assert (tw.name == np.array(
-        ['drift_1', 'tr1', 'drift_2', 'rs2', 'drift_3', 'rx1', 'drift_4',
-        'rx2', 'drift_5', 'r3', 'drift_6', 'r4', 'drift_7', 'bh1',
-        'drift_8', 'bh2', 'drift_9', 'bv1', 'drift_10', 'bv2', 'drift_11',
-        'end', 'drift_12', '_end_point'], dtype=object)).all()
+       ['||drift_1', 'tr1', '||drift_2::0', 'rs2', '||drift_2::1', 'rx1',
+       '||drift_3::0', 'rx2', '||drift_3::1', 'r3', '||drift_3::2', 'r4',
+       '||drift_4', 'bh1', '||drift_5::0', 'bh2', '||drift_5::1', 'bv1',
+       '||drift_6', 'bv2', '||drift_7', 'end', '||drift_8', '_end_point'],
+       dtype=object)).all()
 
     assert (tw_ptc.name == np.array(['ss$start:1', 'drift_0:0', 'tr1:1', 'drift_1:0', 'rs2:1',
         'drift_2:0', 'rx1:1', 'drift_3:0', 'rx2:1', 'drift_4:0', 'r3:1',

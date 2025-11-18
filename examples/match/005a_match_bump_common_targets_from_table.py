@@ -1,9 +1,8 @@
 import xtrack as xt
 
-# Load a line and build a tracker
+# Load a line
 env = xt.load(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
-env.build_trackers()
 
 # Add name to lines (temporary patch...)
 env.lhcb1._name = 'lhcb1'

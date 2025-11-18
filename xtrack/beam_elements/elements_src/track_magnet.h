@@ -173,7 +173,6 @@ void track_magnet_body_single_particle(
     }
     else{
 
-        
     // START GENERATED INTEGRATION CODE
 
     if (integrator == 1){ // TEAPOT

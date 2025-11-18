@@ -53,11 +53,7 @@ line.particle_ref = xt.Particles(
         q0=-1,
         gamma0=mad.sequence.ring.beam.gamma)
 
-context = xo.ContextCpu()
 
-# Build tracker
-print('Build tracker ...')
-line.build_tracker(_context=context)
 line.matrix_stability_tol = 1e-2
 
 line.configure_radiation(model='mean')

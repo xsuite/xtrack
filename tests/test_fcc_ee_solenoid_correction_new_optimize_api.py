@@ -14,17 +14,13 @@ test_data_folder = pathlib.Path(
 def test_fcc_ee_solenoid_correction_new_optimizer_api():
     fname = 'fccee_t'; pc_gev = 182.5
 
-    mad = Madx(stdout=False)
-    mad.call(str(test_data_folder) + '/fcc_ee/' + fname + '.seq')
-    mad.beam(particle='positron', pc=pc_gev)
-    mad.use('fccee_p_ring')
+    env = xt.load([test_data_folder / 'fcc_ee/' / (fname + '.seq')])
+    line = env['fccee_p_ring']
+    line.set_particle_ref('positron', p0c=pc_gev*1e9)
 
-    line = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=True,
-                                    deferred_expressions=True)
-    line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
-                                    gamma0=mad.sequence.fccee_p_ring.beam.gamma)
     line.cycle('ip.4', inplace=True)
-    line.append_element(element=xt.Marker(), name='ip.4.l')
+    line.append('ip.4.l', xt.Marker())
+
 
     tt = line.get_table()
     bz_data_file = test_data_folder / 'fcc_ee/Bz_closed_before_quads.dat'
@@ -99,8 +95,8 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     sol_slice_names.append('sol_exit_'+ip_sol)
 
     tt = line.get_table()
-    names_upstream = list(tt.rows[:'sol_start_'+ip_sol].name)
-    names_downstream = list(tt.rows['sol_end_'+ip_sol:].name[:-1]) # -1 to exclude '_end_point' added by the table
+    names_upstream = list(tt.rows[:'sol_start_'+ip_sol].env_name)
+    names_downstream = list(tt.rows['sol_end_'+ip_sol:].env_name[:-1]) # -1 to exclude '_end_point' added by the table
 
     element_names = (names_upstream
                     + ['sol_start_tilt_'+ip_sol, 'sol_start_shift_'+ip_sol]

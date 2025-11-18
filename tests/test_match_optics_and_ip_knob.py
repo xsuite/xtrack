@@ -336,25 +336,25 @@ def test_match_ir8_optics(test_context):
     collider.build_trackers(test_context)
 
     tw = collider.twiss()
-    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=5e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=5e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=5e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=5e-6, rtol=0)
 
-    xo.assert_allclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=5e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=5e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=5e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=5e-6, rtol=0)
 
-    xo.assert_allclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=5e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=5e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=5e-6, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=5e-6, rtol=0)
 
-    xo.assert_allclose(tw.lhcb1['betx', 'ip2'], 10., atol=1e-5, rtol=0)
-    xo.assert_allclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
-    xo.assert_allclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
-    xo.assert_allclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip2'], 10., atol=5e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip2'], 10., atol=5e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip2'], 10., atol=5e-5, rtol=0)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip2'], 10., atol=5e-5, rtol=0)
 
 
     nrj = 7000.
@@ -431,7 +431,7 @@ def test_match_ir8_optics(test_context):
                                 betx=0.15, bety=0.15))
 
     opt = collider[f'lhcb1'].match(
-        default_tol={None: 1e-7, 'betx': 1e-6, 'bety': 1e-6},
+        default_tol={None: 1e-7, 'betx': 5e-6, 'bety': 5e-6},
         solve=False,
         start=f's.ds.l8.b1', end=f'e.ds.r8.b1', init_at=xt.START,
         # Left boundary

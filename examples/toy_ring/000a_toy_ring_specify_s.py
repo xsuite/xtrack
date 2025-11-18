@@ -29,7 +29,7 @@ line = env.new_line(components=[
 ])
 
 # Define reference particle
-line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
+line.set_particle_ref('proton', p0c=1.2e9)
 
 # Print the line table
 line.get_table().show()

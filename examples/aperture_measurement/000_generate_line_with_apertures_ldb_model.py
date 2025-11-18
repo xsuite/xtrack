@@ -8,8 +8,8 @@ aper_blacklist = [
        'bgiha.51634.a_aper', 'bgiva.51674.a_aper']
 
 # Load lattice and optics
-env = xt.load('../../test_data/sps_with_apertures/EYETS 2024-2025.seq')
-env.vars.load('../../test_data/sps_with_apertures/lhc_q20.str')
+env = xt.load(['../../test_data/sps_with_apertures/EYETS 2024-2025.seq',
+               '../../test_data/sps_with_apertures/lhc_q20.str'])
 line = env.sps
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=26e9)
 

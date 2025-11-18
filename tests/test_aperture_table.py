@@ -14,9 +14,8 @@ def test_aperture_table():
         'vtaf.51632.b_aper', 'vbrta.51633.a_aper', 'vbrta.51633.b_aper',
         'bgiha.51634.a_aper', 'bgiva.51674.a_aper']
 
-    env = xt.load(test_data_folder /
-                               'sps_with_apertures/EYETS 2024-2025.seq')
-    env.vars.load(str(test_data_folder / 'sps_with_apertures/lhc_q20.str'))
+    env = xt.load([test_data_folder / 'sps_with_apertures/EYETS 2024-2025.seq',
+                   test_data_folder / 'sps_with_apertures/lhc_q20.str'])
     line = env.sps
     line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=26e9)
 
@@ -62,9 +61,9 @@ def test_aperture_table():
     aper_check = aper.rows['veba.20250.a_aper' : 'vebb.20270.b_aper']
 
     assert np.all(aper_check.name == np.array(
-        ['veba.20250.a_aper', 'drift_333..2', 'mba.20250', 'drift_334..0',
-        'veba.20250.b_aper', 'drift_334..1', 'vebb.20270.a_aper',
-        'drift_334..2', 'mbb.20270', 'drift_335..0', 'vebb.20270.b_aper']))
+        ['veba.20250.a_aper', '||drift_979', 'mba.20250', '||drift_991',
+       'veba.20250.b_aper', '||drift_671', 'vebb.20270.a_aper',
+       '||drift_992', 'mbb.20270', '||drift_993', 'vebb.20270.b_aper']))
     xo.assert_allclose(aper_check.s, np.array([
        1225.8247   , 1225.8247   , 1226.0176907, 1232.2777093,
        1232.4827   , 1232.4827   , 1232.4847   , 1232.4847   ,
@@ -133,8 +132,8 @@ def test_aperture_table_aper_at_same_s():
 
     import numpy as np
     import xobjects as xo
-    assert np.all(tt.name == ['drift_1', 'lrect', 'lellipse', 'drift_2', 'm', 'lellipse',
-        '_end_point'])
+    assert np.all(tt.name == ['||drift_1', 'lrect', 'lellipse', '||drift_2', 'm', 'lellipse',
+       '_end_point'])
     xo.assert_allclose(tt.s, np.array([0., 3., 3., 3., 5., 5., 5.]), rtol=0, atol=1e-6)
     xo.assert_allclose(tt.x_aper_low, np.array([-0.0505, -0.0505, -0.0205, -0.0205, -0.0205,
         -0.0205, -0.0205]), rtol=0, atol=1e-6)

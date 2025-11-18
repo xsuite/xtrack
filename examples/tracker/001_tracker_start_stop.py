@@ -23,7 +23,6 @@ import xtrack as xt
 
 elements = [xt.Drift(length=1.) for _ in range(10)]
 line=xt.Line(elements=elements)
-line.build_tracker()
 line.reset_s_at_end_turn = False
 
 # Standard mode

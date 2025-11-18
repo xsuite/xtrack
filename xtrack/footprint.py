@@ -138,6 +138,9 @@ class Footprint():
     def _compute_footprint(self, line, freeze_longitudinal=False,
                            delta0=None, zeta0=None):
 
+        if not line._has_valid_tracker():
+            line.build_tracker()
+
         if freeze_longitudinal is None:
             # In future we could detect if the line has frozen longitudinal plane
             freeze_longitudinal = False

@@ -166,10 +166,10 @@ def propagate_optics_from_beta_star(collider, ip_name, line_name,
 
     assert collider.lhcb1.twiss_default.get('reverse', False) is False
     assert collider.lhcb2.twiss_default['reverse'] is True
-    assert collider.lhcb1.element_names[1] == 'ip1'
-    assert collider.lhcb2.element_names[1] == 'ip1.l1'
-    assert collider.lhcb1.element_names[-2] == 'ip1.l1'
-    assert collider.lhcb2.element_names[-2] == 'ip1'
+    assert collider.lhcb1.element_names[0] == 'ip1'
+    assert collider.lhcb2.element_names[0] == 'ip1.l1'
+    assert collider.lhcb1.element_names[-1] == 'ip1.l1'
+    assert collider.lhcb2.element_names[-1] == 'ip1'
 
     if ip_name == 'ip1':
         ele_stop_left = 'ip1.l1'

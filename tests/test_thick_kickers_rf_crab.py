@@ -193,9 +193,8 @@ def test_thick_hkicker_native_loader():
     # _end_point             3                False     False
 
 
-    assert np.all(tt.name == np.array([
-        'drift_1', 'hk1', 'drift_2', '_end_point'
-    ]))
+    assert np.all(tt.name == np.array(
+        ['||drift_1', 'hk1', '||drift_2', '_end_point']))
     xo.assert_allclose(tt.s, np.array([0, 0.5, 1.5, 3]))
     assert np.all(tt.element_type == np.array([
         'Drift', 'Multipole', 'Drift', ''
@@ -229,9 +228,8 @@ def test_thick_hkicker_native_loader():
     # _end_point             3                       False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        'drift_1', 'hk1_entry', 'hk1..0', 'hk1..1', 'hk1..2', 'hk1_exit',
-        'drift_2', '_end_point'
-    ]))
+        '||drift_1', 'hk1_entry', 'hk1..0', 'hk1..1', 'hk1..2', 'hk1_exit',
+        '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thick.s, np.array([
         0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
@@ -275,10 +273,9 @@ def test_thick_hkicker_native_loader():
     # _end_point               3                       False     False
 
     assert np.all(tt_slice_thin.name == np.array([
-        'drift_1', 'hk1_entry', 'drift_hk1..0', 'hk1..3', 'drift_hk1..1',
-        'hk1..4', 'drift_hk1..2', 'hk1..5', 'drift_hk1..3', 'hk1_exit',
-        'drift_2', '_end_point'
-    ]))
+        '||drift_1', 'hk1_entry', 'drift_hk1..0', 'hk1..3', 'drift_hk1..1',
+       'hk1..4', 'drift_hk1..2', 'hk1..5', 'drift_hk1..3', 'hk1_exit',
+       '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thin.s, np.array([
         0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
@@ -317,9 +314,8 @@ def test_thick_hkicker_native_loader():
     # _end_point               3                  False     False None
 
     assert np.all(tt_opt.name == np.array([
-        'drift_1', 'hk1..3', 'drift_hk1..1', 'hk1..4', 'drift_hk1..2',
-        'hk1..5', 'drift_hk1..3', '_end_point'
-    ]))
+        '||drift_1', 'hk1..3', 'drift_hk1..1', 'hk1..4', 'drift_hk1..2',
+        'hk1..5', 'drift_hk1..3', '_end_point']))
     xo.assert_allclose(tt_opt.s, np.array([
         0, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 3
     ]), rtol=0, atol=1e-7)
@@ -532,7 +528,7 @@ def test_thick_vkicker_native_loader():
     # _end_point             3                False     False
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'vk1', 'drift_2', '_end_point']))
+        ['||drift_1', 'vk1', '||drift_2', '_end_point']))
     xo.assert_allclose(tt.s, np.array([0, 0.5, 1.5, 3]))
     assert np.all(tt.element_type == np.array(
         ['Drift', 'Multipole', 'Drift', '']))
@@ -565,9 +561,8 @@ def test_thick_vkicker_native_loader():
     # _end_point             3                       False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        'drift_1', 'vk1_entry', 'vk1..0', 'vk1..1', 'vk1..2', 'vk1_exit',
-        'drift_2', '_end_point'
-    ]))
+        '||drift_1', 'vk1_entry', 'vk1..0', 'vk1..1', 'vk1..2', 'vk1_exit',
+       '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thick.s, np.array([
         0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
@@ -610,10 +605,9 @@ def test_thick_vkicker_native_loader():
     # drift_2                1.5 Drift                  True     False
     # _end_point               3                       False     False
     assert np.all(tt_slice_thin.name == np.array([
-        'drift_1', 'vk1_entry', 'drift_vk1..0', 'vk1..3', 'drift_vk1..1',
-        'vk1..4', 'drift_vk1..2', 'vk1..5', 'drift_vk1..3', 'vk1_exit',
-        'drift_2', '_end_point'
-    ]))
+        '||drift_1', 'vk1_entry', 'drift_vk1..0', 'vk1..3', 'drift_vk1..1',
+       'vk1..4', 'drift_vk1..2', 'vk1..5', 'drift_vk1..3', 'vk1_exit',
+       '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thin.s, np.array([
         0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
@@ -650,10 +644,9 @@ def test_thick_vkicker_native_loader():
     # drift_vk1..3          1.25 Drift           True     False None
     # _end_point               3                False     False None
 
-    assert np.all(tt_opt.name == np.array([
-        'drift_1', 'vk1..3', 'drift_vk1..1', 'vk1..4', 'drift_vk1..2',
-        'vk1..5', 'drift_vk1..3', '_end_point'
-    ]))
+    assert np.all(tt_opt.name == np.array(
+        ['||drift_1', 'vk1..3', 'drift_vk1..1', 'vk1..4', 'drift_vk1..2',
+       'vk1..5', 'drift_vk1..3', '_end_point']))
     xo.assert_allclose(tt_opt.s, np.array([
         0, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 3
     ]), rtol=0, atol=1e-7)
@@ -873,7 +866,7 @@ def test_thick_kicker_native_loader():
     # _end_point             3                False     False
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'kk1', 'drift_2', '_end_point']))
+        ['||drift_1', 'kk1', '||drift_2', '_end_point']))
     xo.assert_allclose(tt.s, np.array([0, 0.5, 1.5, 3]))
     assert np.all(tt.element_type == np.array(
         ['Drift', 'Multipole', 'Drift', '']))
@@ -906,9 +899,8 @@ def test_thick_kicker_native_loader():
     # _end_point             3                       False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        'drift_1', 'kk1_entry', 'kk1..0', 'kk1..1', 'kk1..2', 'kk1_exit',
-        'drift_2', '_end_point'
-    ]))
+        '||drift_1', 'kk1_entry', 'kk1..0', 'kk1..1', 'kk1..2', 'kk1_exit',
+        '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thick.s, np.array([
         0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
@@ -954,10 +946,9 @@ def test_thick_kicker_native_loader():
     # drift_2                1.5 Drift                  True     False
     # _end_point               3                       False     False
     assert np.all(tt_slice_thin.name == np.array([
-        'drift_1', 'kk1_entry', 'drift_kk1..0', 'kk1..3', 'drift_kk1..1',
-        'kk1..4', 'drift_kk1..2', 'kk1..5', 'drift_kk1..3', 'kk1_exit',
-        'drift_2', '_end_point'
-    ]))
+       '||drift_1', 'kk1_entry', 'drift_kk1..0', 'kk1..3', 'drift_kk1..1',
+       'kk1..4', 'drift_kk1..2', 'kk1..5', 'drift_kk1..3', 'kk1_exit',
+       '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thin.s, np.array([
         0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
@@ -1214,7 +1205,7 @@ def test_thick_tkicker_native_loader():
     # _end_point             3                False     False
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'kk1', 'drift_2', '_end_point']))
+        ['||drift_1', 'kk1', '||drift_2', '_end_point']))
     xo.assert_allclose(tt.s, np.array([0, 0.5, 1.5, 3]))
     assert np.all(tt.element_type == np.array(
         ['Drift', 'Multipole', 'Drift', '']))
@@ -1246,9 +1237,8 @@ def test_thick_tkicker_native_loader():
     # drift_2              1.5 Drift                  True     False
     # _end_point             3                       False     False
     assert np.all(tt_slice_thick.name == np.array([
-        'drift_1', 'kk1_entry', 'kk1..0', 'kk1..1', 'kk1..2',
-        'kk1_exit', 'drift_2', '_end_point'
-    ]))
+        '||drift_1', 'kk1_entry', 'kk1..0', 'kk1..1', 'kk1..2', 'kk1_exit',
+        '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thick.s, np.array([
         0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
@@ -1294,10 +1284,9 @@ def test_thick_tkicker_native_loader():
     # drift_2                1.5 Drift                  True     False
     # _end_point               3                       False     False
     assert np.all(tt_slice_thin.name == np.array([
-        'drift_1', 'kk1_entry', 'drift_kk1..0', 'kk1..3', 'drift_kk1..1',
-        'kk1..4', 'drift_kk1..2', 'kk1..5', 'drift_kk1..3', 'kk1_exit',
-        'drift_2', '_end_point'
-    ]))
+        '||drift_1', 'kk1_entry', 'drift_kk1..0', 'kk1..3', 'drift_kk1..1',
+       'kk1..4', 'drift_kk1..2', 'kk1..5', 'drift_kk1..3', 'kk1_exit',
+       '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thin.s, np.array([
         0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
@@ -1558,7 +1547,7 @@ def test_thick_cavity_native_loader():
     # _end_point             3                False     False
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'cav1', 'drift_2', '_end_point']))
+        ['||drift_1', 'cav1', '||drift_2', '_end_point']))
     xo.assert_allclose(tt.s, np.array([0, 0.5, 1.5, 3]))
     assert np.all(tt.element_type == np.array(
         ['Drift', 'Cavity', 'Drift', '']))
@@ -1592,9 +1581,8 @@ def test_thick_cavity_native_loader():
     # _end_point             3                    False     False
 
     assert np.all(tt_slice_thick.name == np.array([
-        'drift_1', 'cav1_entry', 'cav1..0', 'cav1..1', 'cav1..2',
-        'cav1_exit', 'drift_2', '_end_point'
-    ]))
+        '||drift_1', 'cav1_entry', 'cav1..0', 'cav1..1', 'cav1..2',
+       'cav1_exit', '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thick.s, np.array([
         0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
@@ -1639,9 +1627,9 @@ def test_thick_cavity_native_loader():
     # drift_2                 1.5 Drift               True     False
     # _end_point                3                    False     False
     assert np.all(tt_slice_thin.name == np.array([
-        'drift_1', 'cav1_entry', 'drift_cav1..0', 'cav1..3', 'drift_cav1..1',
-        'cav1..4', 'drift_cav1..2', 'cav1..5', 'drift_cav1..3', 'cav1_exit',
-        'drift_2', '_end_point'
+        '||drift_1', 'cav1_entry', 'drift_cav1..0', 'cav1..3',
+       'drift_cav1..1', 'cav1..4', 'drift_cav1..2', 'cav1..5',
+       'drift_cav1..3', 'cav1_exit', '||drift_2', '_end_point'
     ]))
     xo.assert_allclose(tt_slice_thin.s, np.array([
         0, 0.5, 0.5, 0.75, 0.75, 1, 1, 1.25, 1.25, 1.5, 1.5, 3
@@ -1684,9 +1672,8 @@ def test_thick_cavity_native_loader():
     # _end_point                3                False     False None
 
     assert np.all(tt_opt.name == np.array([
-        'drift_1', 'cav1..3', 'drift_cav1..1', 'cav1..4', 'drift_cav1..2',
-        'cav1..5', 'drift_cav1..3', '_end_point'
-    ]))
+        '||drift_1', 'cav1..3', 'drift_cav1..1', 'cav1..4',
+       'drift_cav1..2', 'cav1..5', 'drift_cav1..3', '_end_point']))
     assert np.all(tt_opt.s == np.array([
         0, 0.75, 0.75, 1, 1, 1.25, 1.25, 3
     ]))
@@ -1891,9 +1878,8 @@ def test_crabcavity_thick_native_loader():
     # drift_2              1.5 Drift           True     False
     # _end_point             3                False     False
 
-    assert np.all(tt.name == np.array([
-        'drift_1', 'cc1', 'drift_2', '_end_point'
-    ]))
+    assert np.all(tt.name == np.array(
+        ['||drift_1', 'cc1', '||drift_2', '_end_point']))
     xo.assert_allclose(tt.s, np.array([0, 0.5, 1.5, 3]), rtol=0, atol=1e-7)
     assert np.all(tt.element_type == np.array([
         'Drift', 'CrabCavity', 'Drift', ''
@@ -1926,9 +1912,8 @@ def test_crabcavity_thick_native_loader():
     # drift_2              1.5 Drift                   True     False
     # _end_point             3                        False     False
     assert np.all(tt_slice_thick.name == np.array([
-        'drift_1', 'cc1_entry', 'cc1..0', 'cc1..1', 'cc1..2',
-        'cc1_exit', 'drift_2', '_end_point'
-    ]))
+        '||drift_1', 'cc1_entry', 'cc1..0', 'cc1..1', 'cc1..2', 'cc1_exit',
+        '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thick.s, np.array([
         0, 0.5, 0.5, 0.83333333, 1.16666667, 1.5, 1.5, 3
     ]), rtol=0, atol=1e-7)
@@ -1970,11 +1955,10 @@ def test_crabcavity_thick_native_loader():
     # cc1_exit               1.5 Marker                 False     False
     # drift_2                1.5 Drift                   True     False
     # _end_point               3                        False     False
-    assert np.all(tt_slice_thin.name == np.array([
-        'drift_1', 'cc1_entry', 'drift_cc1..0', 'cc1..3', 'drift_cc1..1',
-        'cc1..4', 'drift_cc1..2', 'cc1..5', 'drift_cc1..3', 'cc1_exit',
-        'drift_2', '_end_point'
-    ]))
+    assert np.all(tt_slice_thin.name == np.array(
+        ['||drift_1', 'cc1_entry', 'drift_cc1..0', 'cc1..3', 'drift_cc1..1',
+       'cc1..4', 'drift_cc1..2', 'cc1..5', 'drift_cc1..3', 'cc1_exit',
+       '||drift_2', '_end_point']))
     xo.assert_allclose(tt_slice_thin.s, np.array([
         0, 0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.25, 1.25,
         1.5, 1.5, 3
@@ -2010,9 +1994,8 @@ def test_crabcavity_thick_native_loader():
     # _end_point               3                False     False None
 
     assert np.all(tt_opt.name == np.array([
-        'drift_1', 'cc1..3', 'drift_cc1..1', 'cc1..4', 'drift_cc1..2',
-        'cc1..5', 'drift_cc1..3', '_end_point'
-    ]))
+        '||drift_1', 'cc1..3', 'drift_cc1..1', 'cc1..4', 'drift_cc1..2',
+        'cc1..5', 'drift_cc1..3', '_end_point']))
     xo.assert_allclose(tt_opt.s, np.array([
         0, 0.75, 0.75, 1, 1, 1.25, 1.25, 3
     ]), rtol=0, atol=1e-7)

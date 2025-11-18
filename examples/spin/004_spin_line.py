@@ -7,8 +7,8 @@ from scipy.constants import e as qe
 from scipy.constants import c as clight
 from scipy.constants import hbar
 
-# env = xt.load('../../test_data/sps_thick/sps.seq')
-# env.vars.load('../../test_data/sps_thick/lhc_q20.str')
+# env = xt.load(['../../test_data/sps_thick/sps.seq',
+#                '../../test_data/sps_thick/lhc_q20.str'])
 # line = env.sps
 # line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=20e9,
 #                                  )

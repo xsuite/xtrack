@@ -1,7 +1,7 @@
 import xtrack as xt
 
-env = xt.load('../../test_data/leir/leir.seq')
-env.vars.load('../../test_data/leir/leir_inj_nominal.str')
+env = xt.load(['../../test_data/leir/leir.seq',
+               '../../test_data/leir/leir_inj_nominal.str'])
 
 line = env.leir
 line.configure_bend_model(edge='full', core='adaptive')

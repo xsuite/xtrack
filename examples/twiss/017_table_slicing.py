@@ -7,12 +7,9 @@ import numpy as np
 
 import xtrack as xt
 
-# Load a line and build tracker
-line = xt.load(
-    '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-line.particle_ref = xt.Particles(
-                    mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
-line.build_tracker()
+# Load a line
+line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line.set_particle_ref('proton', p0c=7e12)
 
 # Twiss
 tw = line.twiss(method='4d')

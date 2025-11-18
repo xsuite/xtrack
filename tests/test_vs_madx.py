@@ -466,6 +466,9 @@ def test_line_import_from_madx(test_context, mad_with_errors):
 
         for kk in dtest.keys():
 
+            if kk == 'prototype':
+                continue # always None from cpymad
+
             if skip_order and kk in ('order', 'knl', 'ksl'):
                 continue
 
