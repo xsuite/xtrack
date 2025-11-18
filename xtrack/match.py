@@ -809,8 +809,6 @@ class ActionTwiss(xd.Action):
                 else:
                     raise ee
         out.line = self.line
-        # import gc
-        # gc.collect()
         return out
 
 class MeritFunctionLine(xd.MeritFunctionForMatch):
