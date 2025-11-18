@@ -458,10 +458,7 @@ class ActionTwissMadngTPSA(Action):
         start = self.tw_kwargs.get('start', None)
         end = self.tw_kwargs.get('end', None)
 
-        # Init should always be there, but start and end might not if full line
-        # 1. Extract first name from init twiss
-
-        if init is not None and start is not None and end is not None:
+        if init is not None:
             assert isinstance(init, xt.TwissTable)
 
             if not hasattr(self.line.tracker, '_madng'):
@@ -494,12 +491,20 @@ class ActionTwissMadngTPSA(Action):
 
             # set coords (TODO: delta)
             beta0 = self.line.particle_ref.beta0[0]
-            init_coord = np.array([init['x', start],
-                                    init['px', start],
-                                    init['y', start],
-                                    init['py', start],
-                                    init['zeta', start] * beta0,
-                                    0])
+            if start is not None:
+                init_coord = np.array([init['x', start],
+                                        init['px', start],
+                                        init['y', start],
+                                        init['py', start],
+                                        init['zeta', start] * beta0,
+                                        0])
+            else:
+                init_coord = np.array([init['x', 0],
+                                        init['px', 0],
+                                        init['y', 0],
+                                        init['py', 0],
+                                        init['zeta', 0] * beta0,
+                                        0])
 
             coord_str = ''
             part_order = ['x', 'px', 'y', 'py', 't', 'pt']
@@ -514,17 +519,24 @@ class ActionTwissMadngTPSA(Action):
                 param_list_str += f"'{name}', "
             param_list_str = param_list_str[:-2] + '}'
 
-            observables_str = '{' + f"'{start}', '{end}', "
+            observables_str = '{'
+            if start is not None and end is not None:
+                observables_str += f"'{start}', '{end}', "
+
             if self.target_locations is not None:
                 for loc in self.target_locations:
                     if loc != start and loc != end:
                         observables_str += f"'{loc}', "
-            observables_str = observables_str[:-2] + '}'
+            if observables_str.endswith(', '):
+                observables_str = observables_str[:-2] + '}'
+            else:
+                observables_str += '}'
 
-            init_cond_str = f"local B0 = MAD.beta0 {{ beta11 = {init['betx', start]},\n" + f"beta22 = {init['bety', start]},\n"\
-            + f"alfa11 = {init['alfx', start]},\n" + f"alfa22 = {init['alfy', start]},\n"\
-            + f"dx = {init['dx', start]},\n" + f"dpx = {init['dpx', start]},\n"\
-            + f"dy = {init['dy', start]},\n" + f"dpy = {init['dpy', start]}\n }}"
+            start_loc = start if start is not None else 0
+            init_cond_str = f"local B0 = MAD.beta0 {{ beta11 = {init['betx', start_loc]},\n" + f"beta22 = {init['bety', start_loc]},\n"\
+            + f"alfa11 = {init['alfx', start_loc]},\n" + f"alfa22 = {init['alfy', start_loc]},\n"\
+            + f"dx = {init['dx', start_loc]},\n" + f"dpx = {init['dpx', start_loc]},\n"\
+            + f"dy = {init['dy', start_loc]},\n" + f"dpy = {init['dpy', start_loc]}\n }}"
 
             mng_init_str = r'''
                 ''' + XSUITE_MADNG_ENV_NAME + r''' = {} -- to avoid variable name clashes
@@ -598,7 +610,9 @@ class ActionTwissMadngTPSA(Action):
         start = self.tw_kwargs.get('start', None)
         end = self.tw_kwargs.get('end', None)
 
-        range_str = f"range = '{start}/{end}', "
+        range_str = ''
+        if start is not None and end is not None:
+            range_str = f"range = '{start}/{end}', "
         mng_track_str = (
             f"local trk, mflw = MAD.track{{\n"
             f"    sequence={self.mng._sequence_name},\n"
