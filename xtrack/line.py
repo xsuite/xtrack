@@ -5113,8 +5113,11 @@ class Line:
         insertions = []
         for ins in elements_to_insert:
             ss = ins[0]
+            this_ins = []
             for nn, ee in ins[1]:
-                insertions.append(env.place(nn, ee, at=ss))
+                env.elements[nn] = ee
+                this_ins.append(nn)
+            insertions.append(env.place(this_ins, at=ss))
 
         self.insert(insertions)
 
