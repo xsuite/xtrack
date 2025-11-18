@@ -1863,7 +1863,8 @@ class RBend(_BendCommon, BeamElement):
             self._k0 = self.h
 
     @staticmethod
-    def compute_bend_params(length=None, length_straight=None, h=None, angle=None):
+    def compute_bend_params(length=None, length_straight=None, h=None, angle=None,
+                            theta_mid=0):
         """Compute the bend parameters (length, h) from the given arguments.
 
         The arguments are checked for consistency and the missing ones are
@@ -1905,18 +1906,47 @@ class RBend(_BendCommon, BeamElement):
             else:
                 length = length or length_straight
                 length_straight = length
-        elif 'length' in given and 'h' in given:
+        elif 'length' in given and 'h' in given: # case 3
             angle = length * h
-            length_straight = length * np.sinc(0.5 * angle / np.pi)
-        elif 'length' in given and 'angle' in given:
+            theta_in = 0.5 * angle - theta_mid
+            theta_out = 0.5 * angle + theta_mid
+            if abs(angle) < 1e-10:
+                length_straight = length
+            else:
+                length_straight = (1/h) * (np.sin(theta_in) + np.sin(theta_out))
+        elif 'length' in given and 'angle' in given: # case 2
             h = angle / length
-            length_straight = length * np.sinc(0.5 * angle / np.pi)
-        elif 'length_straight' in given and 'h' in given:
-            angle = 2 * np.arcsin(length_straight * h / 2)
-            length = length_straight / np.sinc(0.5 * angle / np.pi)
-        elif 'length_straight' in given and 'angle' in given:
-            h = 2 * np.sin(angle / 2) / length_straight
-            length = length_straight / np.sinc(0.5 * angle / np.pi)
+            theta_in = 0.5 * angle - theta_mid
+            theta_out = 0.5 * angle + theta_mid
+            if abs(angle) < 1e-10:
+                length_straight = length
+            else:
+                length_straight = (1/h) * (np.sin(theta_in) + np.sin(theta_out))
+        elif 'length_straight' in given and 'h' in given: # case 4
+            angle = 2 * np.arcsin(length_straight * h / 2 / np.cos(theta_mid))
+            if abs(angle) < 1e-10:
+                length = length_straight
+            else:
+                length = angle / h
+        elif 'length_straight' in given and 'angle' in given: # case 1
+            theta_in = 0.5 * angle - theta_mid
+            theta_out = 0.5 * angle + theta_mid
+            if abs(angle) < 1e-10:
+                length = length_straight
+                h = 0
+            else:
+                h = (np.sin(theta_in) + np.sin(theta_out)) / length_straight
+                length = angle / h
+        elif 'h' in given and 'angle' in given:
+            theta_in = 0.5 * angle - theta_mid
+            theta_out = 0.5 * angle + theta_mid
+            if abs(angle) < 1e-10:
+                length = length_straight = 0
+            else:
+                length = angle / h
+                length_straight = (1/h) * (np.sin(theta_in) + np.sin(theta_out))
+        else:
+            raise RuntimeError("Internal error in RBend parameter computation.")
 
         # Verify consistency
         errors = []
