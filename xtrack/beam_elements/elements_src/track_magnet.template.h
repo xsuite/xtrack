@@ -191,6 +191,7 @@ void track_magnet_body_single_particle(
 
 }
 
+
 GPUFUN
 void track_magnet_particles(
     double const weight,
@@ -225,6 +226,8 @@ void track_magnet_particles(
     double y0_solenoid,
     int64_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
     double rbend_shift,
+    double rbend_mid_angle,
+    double length_straight,
     int64_t body_active,
     int64_t edge_entry_active,
     int64_t edge_exit_active,
@@ -243,9 +246,12 @@ void track_magnet_particles(
     double factor_knl_ksl = 1.0;
 
     // Used only for rbend-straight-body
-    double rbend_half_angle = 0.;
-    double cos_rbha = 0.;
-    double sin_rbha = 0.;
+    double theta_in = 0.;
+    double theta_out = 0.;
+    double cos_theta_in = 1.;
+    double sin_theta_in = 0.;
+    double cos_theta_out = 1.;
+    double sin_theta_out = 0.;
     double length_curved = 0.;
     double dx_rb = 0.;
 
@@ -255,25 +261,38 @@ void track_magnet_particles(
         rbend_model = 1;
     }
 
+    double theta_mid = 0; // TEMPORARY!!!!
+    double const angle = h * length;
     if (rbend_model == 1){
         // curved body
-        double const angle = h * length;
-        edge_entry_angle += angle / 2.0;
-        edge_exit_angle += angle / 2.0;
+        edge_entry_angle += angle / 2.0 - theta_mid;
+        edge_exit_angle += angle / 2.0 + theta_mid;
     }
     else if (rbend_model == 2){
         // straight body
-        double sinc_rbha;
-        rbend_half_angle = h * length / 2;
+
+        theta_in = angle / 2 - theta_mid;
+        if (fabs(theta_in) > 1e-10){
+            sin_theta_in = sin(theta_in);
+            cos_theta_in = cos(theta_in);
+        }
+        theta_out = angle / 2 + theta_mid;
+        if (fabs(theta_out) > 1e-10){
+            sin_theta_out = sin(theta_out);
+            cos_theta_out = cos(theta_out);
+        }
+
+        // TEMPORARY!!!!
+        double rbend_half_angle = angle / 2.0;
+        double sin_rbha = 0.;
+        double cos_rbha = 1.;
+        double sinc_rbha = 1.;
         if (fabs(rbend_half_angle) > 1e-10){
             sin_rbha = sin(rbend_half_angle);
             cos_rbha = cos(rbend_half_angle);
             sinc_rbha = sin_rbha / rbend_half_angle;
         }
-        else {
-            sinc_rbha = 1.;
-            cos_rbha = 1.;
-        }
+
         length_curved = length;
         length = length_curved * sinc_rbha;
         if (fabs(rbend_half_angle) > 1e-10){
@@ -283,8 +302,8 @@ void track_magnet_particles(
         h = 0; // treat magnet as straight
         // We are entering the fringe with an angle, the linear fringe
         // needs to come from the  expansion around the right angle
-        edge_entry_angle_fdown += rbend_half_angle;
-        edge_exit_angle_fdown += rbend_half_angle;
+        edge_entry_angle_fdown += theta_in;
+        edge_exit_angle_fdown += theta_out;
     }
 
     double core_length, core_length_curved,factor_knl_ksl_body,
@@ -303,8 +322,10 @@ void track_magnet_particles(
         VSWAP(edge_entry_angle_fdown, edge_exit_angle_fdown);
         VSWAP(edge_entry_fint, edge_exit_fint);
         VSWAP(edge_entry_hgap, edge_exit_hgap);
-        rbend_half_angle = -rbend_half_angle;
-        sin_rbha = -sin_rbha;
+        theta_in = -theta_in;
+        theta_out = -theta_out;
+        sin_theta_in = -sin_theta_in;
+        sin_theta_out = -sin_theta_out;
     }
     else {
         core_length = length * weight;
@@ -350,7 +371,8 @@ void track_magnet_particles(
         if (rbend_model == 2){
             // straight body --> curvature in the edges
             START_PER_PARTICLE_BLOCK(part0, part);
-                YRotation_single_particle(part, -sin_rbha, cos_rbha, -sin_rbha/cos_rbha);
+                YRotation_single_particle(part, -sin_theta_in, cos_theta_in,
+                                          -sin_theta_in/cos_theta_in);
                 LocalParticle_add_to_x(part, -dx_rb);
             END_PER_PARTICLE_BLOCK;
         }
@@ -502,7 +524,8 @@ void track_magnet_particles(
             // straight body --> curvature in the edges
             START_PER_PARTICLE_BLOCK(part0, part);
                 LocalParticle_add_to_x(part, dx_rb); // shift by half sagitta
-                YRotation_single_particle(part, -sin_rbha, cos_rbha, -sin_rbha/cos_rbha);
+                YRotation_single_particle(part, -sin_theta_out, cos_theta_out,
+                    -sin_theta_out/cos_theta_out);
             END_PER_PARTICLE_BLOCK;
         }
     }

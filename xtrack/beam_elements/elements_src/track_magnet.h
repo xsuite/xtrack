@@ -173,6 +173,7 @@ void track_magnet_body_single_particle(
     }
     else{
 
+        
     // START GENERATED INTEGRATION CODE
 
     if (integrator == 1){ // TEAPOT
@@ -271,6 +272,7 @@ void track_magnet_body_single_particle(
 
 }
 
+
 GPUFUN
 void track_magnet_particles(
     double const weight,
@@ -305,6 +307,8 @@ void track_magnet_particles(
     double y0_solenoid,
     int64_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
     double rbend_shift,
+    double rbend_mid_angle,
+    double length_straight,
     int64_t body_active,
     int64_t edge_entry_active,
     int64_t edge_exit_active,
@@ -338,7 +342,7 @@ void track_magnet_particles(
         rbend_model = 1;
     }
 
-    double theta_mid = 0;
+    double theta_mid = 0; // TEMPORARY!!!!
     double const angle = h * length;
     if (rbend_model == 1){
         // curved body
