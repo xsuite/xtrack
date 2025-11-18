@@ -1868,11 +1868,6 @@ class RBend(_BendCommon, BeamElement):
         ) = self.compute_bend_params(length, length_straight, h, angle,
                                      rbend_mid_angle=rbend_mid_angle)
 
-        assert length is not None
-        assert length_straight is not None
-        assert h is not None
-        assert angle is not None
-
         if length is not None:
             self._length = length
         if length_straight is not None:
