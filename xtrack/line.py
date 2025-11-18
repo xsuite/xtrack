@@ -2691,7 +2691,7 @@ class Line:
         tt_keep = tt_keep.rows[:-1]
 
         # Unsorted table with all elements for the new line
-        tab_unsorted_with_insertions = xt.Table.concatenate([tt_keep, tab_insertions])
+        tab_unsorted_with_insertions = xt.Table.concatenate([tab_insertions,  tt_keep])
 
         # Sort elements
         tab_sorted = _sort_places(tab_unsorted_with_insertions,
