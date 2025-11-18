@@ -411,6 +411,7 @@ def test_rbend_param_handling(kwargs, scenario):
 
         if scenario == 'env':
             env = xt.Environment()
+            breakpoint()
             env.new('bend', 'RBend', **kwargs)
             return env['bend']
 
