@@ -49,6 +49,8 @@ void RBend_track_local_particle(
         /*y0_solenoid*/           0.,
         /*rbend_model*/           RBendData_get_rbend_model(el),
         /*rbend_shift*/           RBendData_get_rbend_shift(el),
+        /*rbend_mid_angle*/       0.,
+        /*length_straight*/       RBendData_get_length_straight(el),
         /*body_active*/           1,
         /*edge_entry_active*/     RBendData_get_edge_entry_active(el),
         /*edge_exit_active*/      RBendData_get_edge_exit_active(el),

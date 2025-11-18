@@ -52,6 +52,8 @@ void ThickSliceRBend_track_local_particle(
         /*y0_solenoid*/           0.,
         /*rbend_model*/           ThickSliceRBendData_get__parent_rbend_model(el),
         /*rbend_shift*/           ThickSliceRBendData_get__parent_rbend_shift(el),
+        /*rbend_mid_angle*/       0.,
+        /*length_straight*/       ThickSliceRBendData_get__parent_length_straight(el),
         /*body_active*/           1,
         /*edge_entry_active*/     0,
         /*edge_exit_active*/      0,

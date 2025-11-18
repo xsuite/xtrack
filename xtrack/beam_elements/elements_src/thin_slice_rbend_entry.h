@@ -52,6 +52,8 @@ void ThinSliceRBendEntry_track_local_particle(
         /*y0_solenoid*/           0.,
         /*rbend_model*/           ThinSliceRBendEntryData_get__parent_rbend_model(el),
         /*rbend_shift*/           ThinSliceRBendEntryData_get__parent_rbend_shift(el),
+        /*rbend_mid_angle*/       0.,
+        /*length_straight*/       ThinSliceRBendEntryData_get__parent_length_straight(el),
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     ThinSliceRBendEntryData_get__parent_edge_entry_active(el),
         /*edge_exit_active*/      0,

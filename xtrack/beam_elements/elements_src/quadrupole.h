@@ -48,7 +48,9 @@ void Quadrupole_track_local_particle(
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,
         /*rbend_model*/           -1, // not rbend
-        /*rbend_shift*/           0.,
+        /*rbend_shift*/           0., // not rbend
+        /*rbend_mid_angle*/       0., // not rbend
+        /*length_straight*/       0., // not rbend
         /*body_active*/           1,
         /*edge_entry_active*/     QuadrupoleData_get_edge_entry_active(el),
         /*edge_exit_active*/      QuadrupoleData_get_edge_exit_active(el),
