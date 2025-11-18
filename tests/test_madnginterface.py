@@ -68,7 +68,7 @@ def test_madng_interface_with_multipole_errors_and_misalignments():
         line[nn_quad].shift_y = sy * line.ref['on_error']
         line[nn_quad].rot_s_rad = rr * line.ref['on_error']
         line[nn_quad].knl[2] = kkk * line.ref['on_error']
-    tw = line.madng_twiss()
+    tw = line.madng_twiss(coupling_edw_teng=True, compute_chromatic_properties=True)
 
     xo.assert_allclose(tw.x, tw.x_ng, atol=5e-4*tw.x.std(), rtol=0)
     xo.assert_allclose(tw.y, tw.y_ng, atol=5e-4*tw.y.std(), rtol=0)
@@ -82,7 +82,7 @@ def test_madng_interface_with_multipole_errors_and_misalignments():
     xo.assert_allclose(tw.by_chrom, tw.by_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
 
     line['on_error'] = 0
-    tw = line.madng_twiss()
+    tw = line.madng_twiss(coupling_edw_teng=True, compute_chromatic_properties=True)
     xo.assert_allclose(tw.x, 0, atol=1e-10, rtol=0)
     xo.assert_allclose(tw.y, 0, atol=1e-10, rtol=0)
     xo.assert_allclose(tw.betx2, 0, atol=1e-10, rtol=0)
@@ -173,7 +173,7 @@ def test_madng_interface_with_slicing():
     line.cut_at_s(np.arange(1000))
 
     tw_xs = line.twiss4d()
-    tw = line.madng_twiss()
+    tw = line.madng_twiss(coupling_edw_teng=True, compute_chromatic_properties=True)
 
     assert len(tw) == len(tw_xs)
 
@@ -271,11 +271,11 @@ def test_madng_slices():
                             'hllhc15_thick/lhc_thick_with_knobs.json')
     tw = line.twiss4d()
 
-    twng = line.madng_twiss()
+    twng = line.madng_twiss(compute_chromatic_properties=True)
 
     line.cut_at_s(np.linspace(0, line.get_length(), 5000))
     tw_sliced = line.twiss4d()
-    twng_sliced = line.madng_twiss()
+    twng_sliced = line.madng_twiss(compute_chromatic_properties=True)
     tt_sliced = line.get_table()
 
     assert np.all(np.array(sorted(list(set(tt_sliced.element_type)))) ==

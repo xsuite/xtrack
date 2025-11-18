@@ -535,7 +535,6 @@ class TargetRelPhaseAdvance(Target):
         return f'TargetPhaseAdv({self.var}({self.end} - {self.start}), val={self.value}, tol={self.tol}, weight={self.weight})'
 
     def compute(self, tw):
-
         if self.end == '__ele_stop__':
             mu_1 = tw[self.var, -1]
         else:
@@ -810,6 +809,8 @@ class ActionTwiss(xd.Action):
                 else:
                     raise ee
         out.line = self.line
+        # import gc
+        # gc.collect()
         return out
 
 class MeritFunctionLine(xd.MeritFunctionForMatch):
@@ -833,39 +834,57 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
         self.check_limits = merit_function_match.check_limits
         self.use_tpsa = use_tpsa
 
-    def get_jacobian(self, x, f0=None):
+    def get_jacobian(self, x=None, f0=None):
         if self.use_tpsa:
-            from .madng_interface import ActionTwissMadngTPSA
-            assert isinstance(self.actions[0], ActionTwissMadngTPSA)
-            last_tpsa_dict = self.actions[0].tpsa_dict
-            jacobian = np.zeros((len(self.targets), len(self.vary)))
-
-            for i, tar in enumerate(self.targets):
-                loc = ''
-                if isinstance(tar.tar, tuple):
-                    param = tar.tar[0]
-                    loc = tar.tar[1]
-                else:
-                    param = tar.tar
-                tpsa = last_tpsa_dict[loc]
-
-                for j, vv in enumerate(self.vary):
-                    if param[0] == 'd':
-                        plane = param[1:3] if param[1] == 'p' else param[1]
-                        deriv = tpsa.calc_dispersion_deriv(plane, j + tpsa.num_variables)
-                    elif param[:3] == 'bet':
-                        plane = 'x' if '11' in param or 'x' in param else 'y'
-                        deriv = tpsa.calc_beta_deriv(plane, j + tpsa.num_variables)
-                    elif param[:3] == 'alf':
-                        plane = 'x' if '11' in param or 'x' in param else 'y'
-                        deriv = tpsa.calc_alpha_deriv(plane, j + tpsa.num_variables)
-
-                    jacobian[i, j] = deriv
-
-            return jacobian
-
+            return self.get_jacobian_tpsa()
         else:
             return super().get_jacobian(x, f0=f0)
+
+    def get_jacobian_tpsa(self):
+        from .madng_interface import ActionTwissMadngTPSA
+        assert isinstance(self.actions[0], ActionTwissMadngTPSA)
+        last_tpsa_dict = self.actions[0].tpsa_dict
+        jacobian = np.zeros((len(self.targets), len(self.vary)))
+
+        for i, tar in enumerate(self.targets):
+            tar_place = ''
+            if isinstance(tar.tar, tuple):
+                tar_quantity = tar.tar[0]
+                tar_place = tar.tar[1]
+            else:
+                assert isinstance(tar, TargetRelPhaseAdvance), (
+                    f'Target type {type(tar)} not supported for TPSA jacobian')
+                tar_quantity = tar
+                tar_place = self.actions[0].tw_kwargs['end'] if tar.end == '__ele_stop__' else tar.end
+                tar_start = None if tar.start == '__ele_start__' else tar.start
+
+            tpsa = last_tpsa_dict[tar_place]
+
+            for j, vv in enumerate(self.vary):
+                if isinstance(tar_quantity, TargetRelPhaseAdvance):
+                    # Special case for relative phase advance
+                    plane = 'x' if tar_quantity.var == 'mu1_ng' else 'y'
+                    mu_end = tpsa.calc_phase_advance_deriv(plane, j + tpsa.num_variables)
+                    if tar_start is None:
+                        mu_start = 0
+                    else:
+                        tpsa_start = last_tpsa_dict[tar_start]
+                        mu_start = tpsa_start.calc_phase_advance_deriv(plane, j + tpsa.num_variables)
+                    deriv = mu_end - mu_start
+                elif tar_quantity[0] == 'd':
+                    plane = tar_quantity[1:3] if tar_quantity[1] == 'p' else tar_quantity[1]
+                    deriv = tpsa.calc_dispersion_deriv(plane, j + tpsa.num_variables)
+                elif tar_quantity[:3] == 'bet':
+                    plane = 'x' if '11' in tar_quantity or 'x' in tar_quantity else 'y'
+                    deriv = tpsa.calc_beta_deriv(plane, j + tpsa.num_variables)
+                elif tar_quantity[:3] == 'alf':
+                    plane = 'x' if '11' in tar_quantity or 'x' in tar_quantity else 'y'
+                    deriv = tpsa.calc_alpha_deriv(plane, j + tpsa.num_variables)
+
+                jacobian[i, j] = deriv
+            jacobian[i] *= tar.weight
+
+        return jacobian
 
 class OptimizeLine(xd.Optimize):
 
@@ -904,12 +923,22 @@ class OptimizeLine(xd.Optimize):
                     if action_twiss_ng is None:
                         if use_tpsa:
                             # do tpsa
-                            tar_locations = {t.tar[1] for t in targets_flatten
-                                             if isinstance(t.tar, tuple)}
+
+                            # tar_locations = {t.tar[1] for t in targets_flatten
+                            #                  if isinstance(t.tar, tuple)}
+
+                            fallback_action_twiss = None
+
+                            if any(isinstance(tar, xt.TargetRelPhaseAdvance) for tar in targets_flatten):
+                                # Need to create (hidden) Twiss Action too for ActionTwissTPSA
+                                from .madng_interface import ActionTwissMadng
+                                fallback_action_twiss = ActionTwissMadng(line, {}, **kwargs)
+                                fallback_action_twiss.prepare()
+
                             from .madng_interface import ActionTwissMadngTPSA
 
                             action_twiss_ng = ActionTwissMadngTPSA(
-                                    line, [v.name for v in _flatten_vary(vary)], tar_locations, {}, **kwargs)
+                                    line, [v.name for v in _flatten_vary(vary)], targets_flatten, {}, fallback_action=fallback_action_twiss, **kwargs)
                             # prepare
 
                             action_twiss_ng.prepare()

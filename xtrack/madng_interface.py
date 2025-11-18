@@ -17,13 +17,27 @@ NG_XS_MAP = {
 }
 
 BETA0_COLUMNS = ['x', 'px', 'y', 'py', 't', 'pt',
-                'dx', 'dy', 'dpx', 'dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'phix',
-                'wy', 'phiy', 'mu1', 'mu2', 'mu3', 'dmu1', 'dmu2', 'dmu3', 'r11',
-                'r12', 'r21', 'r22', 'alfa11', 'alfa12', 'alfa13', 'alfa21',
-                'alfa22', 'alfa23', 'alfa31', 'alfa32', 'alfa33', 'beta11',
-                'beta12', 'beta13', 'beta21', 'beta22', 'beta23', 'beta31',
-                'beta32', 'beta33', 'gama11', 'gama12', 'gama13', 'gama21',
-                'gama22', 'gama23', 'gama31', 'gama32', 'gama33']
+                 'dx', 'dy', 'dpx', 'dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'phix',
+                 'wy', 'phiy', 'mu1', 'mu2', 'mu3', 'dmu1', 'dmu2', 'dmu3', 'r11',
+                 'r12', 'r21', 'r22', 'alfa11', 'alfa12', 'alfa13', 'alfa21',
+                 'alfa22', 'alfa23', 'alfa31', 'alfa32', 'alfa33', 'beta11',
+                 'beta12', 'beta13', 'beta21', 'beta22', 'beta23', 'beta31',
+                 'beta32', 'beta33', 'gama11', 'gama12', 'gama13', 'gama21',
+                 'gama22', 'gama23', 'gama31', 'gama32', 'gama33']
+
+TW_BASE_COLUMNS = ['s', 'beta11', 'beta22', 'beta33', 'alfa11', 'alfa22', 'alfa33',
+                   'gama11', 'gama22', 'gama33', 'x', 'px', 'y', 'py', 't', 'pt',
+                   'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2', 'mu3']
+
+CHROM_COLUMNS = ['dmu1', 'dmu2', 'dmu3', 'Dx', 'Dpx', 'Dy',
+                 'Dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'wy', 'phix', 'phiy']
+
+COUPLING_COLUMNS = ['alfa12', 'alfa13', 'alfa21', 'alfa23', 'alfa31', 'alfa32',
+                    'beta12', 'beta13', 'beta21', 'beta23', 'beta31', 'beta32',
+                    'gama12', 'gama13', 'gama21', 'gama23', 'gama31', 'gama32',
+                    'f1001', 'f1010', 'r11', 'r12', 'r21', 'r22']
+
+XSUITE_MADNG_ENV_NAME = "_xsuite_matching_env"
 
 class MadngVars:
 
@@ -119,9 +133,10 @@ def _build_beta0_block_string(tw_kwargs):
         beta0_str = ''
     return beta0_str
 
-def _tw_ng(line, rdts=(), normal_form=True,
+def _tw_ng(line, rdts=(), normal_form=False,
            mapdef_twiss=2, mapdef_normal_form=4,
-           nslice=3, xsuite_tw=True, X0=None, **tw_kwargs):
+           nslice=3, xsuite_tw=True, X0=None, compute_chromatic_properties=False,
+           coupling_edw_teng=False, **tw_kwargs):
 
     _action = ActionTwissMadng(line, {
         "rdts": rdts,
@@ -147,23 +162,26 @@ def _tw_ng(line, rdts=(), normal_form=True,
     else:
         X0_str = f'X0={X0}, '
 
-    if not (start is None and end is None and init is None) \
-        and not (start is not None and end is not None and X0_str != ''):
-        raise ValueError('Start and end must be specified together, as well as initial conditions, if open twiss is used.')
+    if start is not None and end is None or start is None and end is not None:
+        raise ValueError('Start and end must be specified together.')
+
+    if start is not None and end is not None and X0_str == '':
+        raise ValueError('Initial conditions must be specified when start and end are given.')
+
+    # if not (start is None and end is None and init is None) \
+    #     and not (start is not None and end is not None and X0_str != ''):
+    #     raise ValueError('Start and end must be specified together, as well as initial conditions, if open twiss is used.')
 
     full_twiss_str = ''
 
-    tw_columns = ['s', 'beta11', 'beta22', 'alfa11', 'alfa22',
-                'x', 'px', 'y', 'py', 't', 'pt',
-                'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2']
-    if start is None and end is None:
-        extended_tw_columns = ['beta12', 'beta21', 'alfa12', 'alfa21',
-                'wx', 'wy', 'phix', 'phiy', 'dmu1', 'dmu2',
-                'f1001', 'f1010', 'r11', 'r12', 'r21', 'r22',
-        ]
-        full_twiss_str = f"implicit=true, nslice={nslice}, misalgn=true, coupling=true, chrom=true"
-        tw_columns += extended_tw_columns
+    tw_columns = TW_BASE_COLUMNS.copy()
 
+    full_twiss_str = f"implicit=true, nslice={nslice}, misalign=true, coupling={str(coupling_edw_teng).lower()}, chrom={str(compute_chromatic_properties).lower()}"
+
+    if coupling_edw_teng:
+        tw_columns += COUPLING_COLUMNS
+    if compute_chromatic_properties:
+        tw_columns += CHROM_COLUMNS
     columns = tw_columns + list(rdts)
 
     send_cmd = _build_column_send_script(columns)
@@ -185,6 +203,7 @@ def _tw_ng(line, rdts=(), normal_form=True,
         '''}
         '''
         + send_cmd)
+
     mng.send(mng_script)
 
     out = mng.recv('columns')
@@ -252,7 +271,7 @@ def _tw_ng(line, rdts=(), normal_form=True,
     for nn in rdts:
         tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
 
-    if start is None or end is None:
+    if compute_chromatic_properties:
         temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng)
         tw['ax_ng'] = np.imag(temp_x)
         tw['bx_ng'] = np.real(temp_x)
@@ -325,15 +344,18 @@ def madng_get_init(line, at):
     if not hasattr(line.tracker, '_madng'):
         line.build_madng_model()
     mng = line.tracker._madng
+    if at == xt.START:
+        at = "1"
+    else:
+        at = f"'{at}'"
 
     mng.send(f"""
         local observed in MAD.element.flags
-        {mng._sequence_name}:select(observed, {{list = {{'{at}'}}}})
+        {mng._sequence_name}:select(observed, {{list = {{{at}}}}})
         twpart, mf = twiss {{sequence = {mng._sequence_name}, observe = 1, savemap = true, info = 2}}
-        {mng._sequence_name}.X0 = twpart['{at}'].__map
-        {mng._sequence_name}.X0.status = "Aset" ! Bug corrected in next version
+        {XSUITE_MADNG_ENV_NAME}.X0 = twpart[{at}].__map
     """)
-    return f"{mng._sequence_name}.X0"
+    return f"{XSUITE_MADNG_ENV_NAME}.X0"
 
 def _survey_ng(line):
     if not hasattr(line.tracker, '_madng'):
@@ -405,18 +427,24 @@ class ActionTwissMadng(Action):
         if init is not None and start is not None and end is not None:
             assert isinstance(init, xt.TwissTable)
             self.X0 = madng_get_init(self.line, at=start)
+        elif init is not None:
+            assert isinstance(init, xt.TwissTable)
+            self.X0 = madng_get_init(self.line, at=xt.START)
+
         self._alredy_prepared = True
 
     def run(self):
         return self.line.madng_twiss(xsuite_tw = False, X0=self.X0, **self.tw_kwargs)
 
 class ActionTwissMadngTPSA(Action):
-    def __init__(self, line, vary_names, target_locations = {}, tw_kwargs={}, **kwargs):
+    def __init__(self, line, vary_names, targets = [], tw_kwargs={}, fallback_action=None, **kwargs):
         self.line = line
         self.vary_names = vary_names
-        self.target_locations = list(target_locations)
+        self.targets = targets
+        self.target_locations = None # set in prepare
         self.tw_kwargs = tw_kwargs
         self.tw_kwargs.update(kwargs)
+        self.fallback_action = fallback_action
         self._already_prepared = False
         self.X0 = None
         self.tpsa_dict = {}
@@ -430,13 +458,39 @@ class ActionTwissMadngTPSA(Action):
         start = self.tw_kwargs.get('start', None)
         end = self.tw_kwargs.get('end', None)
 
+        # Init should always be there, but start and end might not if full line
+        # 1. Extract first name from init twiss
+
         if init is not None and start is not None and end is not None:
             assert isinstance(init, xt.TwissTable)
-            #self.X0 = madng_get_init(self.line, at=start)
+
             if not hasattr(self.line.tracker, '_madng'):
                 self.line.build_madng_model()
             mng = self.line.tracker._madng
             self.mng = mng
+
+            self.target_locations = set()
+            targets_map_str = ''
+
+            for i, target in enumerate(self.targets):
+                if isinstance(target.tar, tuple):
+                    self.target_locations.add(target.tar[1])
+                    # set string for quantity mapping + loc to save in madng
+                    targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{target.tar[1]}', qty = '{target.tar[0][:-3]}' }}\n"
+
+                elif hasattr(target, "start") and hasattr(target, "end"):
+                    start_loc_str = 'nil'
+                    end_loc_str = end
+                    if target.start != '__ele_start__':
+                        self.target_locations.add(target.start)
+                        start_loc_str = target.start
+                    if target.end != '__ele_stop__':
+                        self.target_locations.add(target.end)
+                        end_loc_str = target.end
+
+                    targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{end_loc_str}', qty = '{target.var[:-3]}', loc_start = '{start_loc_str}' }}\n"
+
+            self.target_locations = list(self.target_locations)
 
             # set coords (TODO: delta)
             beta0 = self.line.particle_ref.beta0[0]
@@ -467,13 +521,13 @@ class ActionTwissMadngTPSA(Action):
                         observables_str += f"'{loc}', "
             observables_str = observables_str[:-2] + '}'
 
-            init_cond_str = f"local beta11 = {init['betx', start]}\n" + f"local beta22 = {init['bety', start]}\n"\
-            + f"local alfa11 = {init['alfx', start]}\n" + f"local alfa22 = {init['alfy', start]}\n"\
-            + f"local dx = {init['dx', start]}\n" + f"local dpx = {init['dpx', start]}\n"\
-            + f"local dy = {init['dy', start]}\n" + f"local dpy = {init['dpy', start]}\n"\
-            + f"local betas = 1\n"
+            init_cond_str = f"local B0 = MAD.beta0 {{ beta11 = {init['betx', start]},\n" + f"beta22 = {init['bety', start]},\n"\
+            + f"alfa11 = {init['alfx', start]},\n" + f"alfa22 = {init['alfy', start]},\n"\
+            + f"dx = {init['dx', start]},\n" + f"dpx = {init['dpx', start]},\n"\
+            + f"dy = {init['dy', start]},\n" + f"dpy = {init['dpy', start]}\n }}"
 
             mng_init_str = r'''
+                ''' + XSUITE_MADNG_ENV_NAME + r''' = {} -- to avoid variable name clashes
                 local obs_flag = MAD.element.flags.observed
 
                 local pts=''' + observables_str + r'''
@@ -493,11 +547,26 @@ class ActionTwissMadngTPSA(Action):
                 ''' + coord_str + r'''
 
                 -- Converting to TPSA (mutating type)
-                ''' + param_assignment_str + r'''
+                for i, v in ipairs(params) do
+                    MADX[v] = MADX[v] + X0[v]
+                end
 
                 ''' + init_cond_str + r'''
 
-                local mat = {
+                --[[ local B0 = MAD.beta0 {
+                    beta11=beta11,
+                    beta22=beta22,
+                    alfa11=alfa11,
+                    alfa22=alfa22,
+                    dx=dx,
+                    dpx=dpx,
+                    dy=dy,
+                    dpy=dpy
+                } --]]
+
+                local map1 = MAD.gphys.bet2map(B0, X0)
+
+                --[[ local mat = {
                     {math.sqrt(beta11), 0, 0, 0, 0, dx},
                     {-alfa11/math.sqrt(beta11), 1/math.sqrt(beta11), 0, 0, 0, dpx},
                     {0, 0, math.sqrt(beta22), 0, 0, dy},
@@ -506,13 +575,19 @@ class ActionTwissMadngTPSA(Action):
                     {0, 0, 0, 0, 0, 1/betas},
                 }
 
-                local mat = MAD.matrix(mat)
+                local mat = MAD.matrix(mat) --]]
 
+                ''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map = table.new(0, ''' + str(len(self.target_locations)) + r''')
+                ''' + XSUITE_MADNG_ENV_NAME + r'''.targets_map = table.new(''' + str(len(self.targets)) + r''', 0)
 
-                ''' + mng._sequence_name + r'''.X0 = X0:set1(mat)
+                ''' + XSUITE_MADNG_ENV_NAME + r'''.init_X0_map = map1 -- X0:set1(mat)
+                ''' + XSUITE_MADNG_ENV_NAME + r'''.X0 = map1:copy()
+                ''' + targets_map_str + r'''
                 '''
 
             mng.send(mng_init_str)
+        else:
+            raise NotImplementedError('Full Twiss Matching not yet implemented.')
 
         self._already_prepared = True
 
@@ -527,21 +602,24 @@ class ActionTwissMadngTPSA(Action):
         mng_track_str = (
             f"local trk, mflw = MAD.track{{\n"
             f"    sequence={self.mng._sequence_name},\n"
-            f"    X0={self.mng._sequence_name}.X0,\n"
+            f"    X0={XSUITE_MADNG_ENV_NAME}.init_X0_map,\n"
             f"    savemap=true,\n"
             f"    {range_str}\n"
             f"}}\n"
-            f"{self.mng._sequence_name}.trk = trk\n"
+            f"{XSUITE_MADNG_ENV_NAME}.trk = trk\n"
         )
 
         self.mng.send(mng_track_str)
 
-        res = xt.TwissTable({"name": np.array(self.target_locations)})
-
-        param_matrix = np.zeros((6, len(self.target_locations)), dtype=float)
+        if self.fallback_action is not None:
+            res = self.fallback_action.run()
+        else:
+            res = xt.TwissTable({"name": np.array(self.target_locations)})
+            param_matrix = np.zeros((6, len(self.target_locations)), dtype=float)
 
         for i, tar_loc in enumerate(self.target_locations):
-            loc_map_str = f"local a_re_exit = {self.mng._sequence_name}.trk['{tar_loc}'].__map\n"
+            loc_map_str = (f"local a_re_exit = {XSUITE_MADNG_ENV_NAME}.trk['{tar_loc}'].__map\n"
+                           f"{XSUITE_MADNG_ENV_NAME}.target_loc_map['{tar_loc}'] = a_re_exit")
 
             mng_map_str = loc_map_str + r'''
                 local clearkeys in MAD.utility
@@ -558,19 +636,20 @@ class ActionTwissMadngTPSA(Action):
             tpsa = TPSA(tpsas, num_variables=6) # Create TPSA object out of madng-dict
             self.tpsa_dict[tar_loc] = tpsa
 
-            param_matrix[0, i] = tpsa.calc_beta('x')
-            param_matrix[1, i] = tpsa.calc_beta('y')
-            param_matrix[2, i] = tpsa.calc_alpha('x')
-            param_matrix[3, i] = tpsa.calc_alpha('y')
-            param_matrix[4, i] = tpsa.calc_dispersion('x')
-            param_matrix[5, i] = tpsa.calc_dispersion('px')
-
-        res['beta11_ng'] = param_matrix[0]
-        res['beta22_ng'] = param_matrix[1]
-        res['alfa11_ng'] = param_matrix[2]
-        res['alfa22_ng'] = param_matrix[3]
-        res['dx_ng'] = param_matrix[4]
-        res['dpx_ng'] = param_matrix[5]
+            if self.fallback_action is None:
+                param_matrix[0, i] = tpsa.calc_beta('x')
+                param_matrix[1, i] = tpsa.calc_beta('y')
+                param_matrix[2, i] = tpsa.calc_alpha('x')
+                param_matrix[3, i] = tpsa.calc_alpha('y')
+                param_matrix[4, i] = tpsa.calc_dispersion('x')
+                param_matrix[5, i] = tpsa.calc_dispersion('px')
+        if self.fallback_action is None:
+            res['beta11_ng'] = param_matrix[0]
+            res['beta22_ng'] = param_matrix[1]
+            res['alfa11_ng'] = param_matrix[2]
+            res['alfa22_ng'] = param_matrix[3]
+            res['dx_ng'] = param_matrix[4]
+            res['dpx_ng'] = param_matrix[5]
 
         # Track and create twiss table
         return res
@@ -580,6 +659,7 @@ class ActionTwissMadngTPSA(Action):
         mng_str = ''
         for var_name in self.vary_names:
             mng_str += f"MADX['{var_name}'] = MADX['{var_name}']:get0()\n"
+        mng_str += f"{self.mng._sequence_name}.X0 = nil\n"
         self.mng.send(mng_str)
         self._already_prepared = False
 
@@ -605,6 +685,7 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
                  assert(mad_func)
                  mad_func()
                  MAD.option.nocharge = {nocharge}
+                 {XSUITE_MADNG_ENV_NAME} = {{}} -- to avoid variable name clashes
                  """)
         mng._init_madx_data = madx_seq
 
