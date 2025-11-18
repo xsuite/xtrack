@@ -342,7 +342,7 @@ void track_magnet_particles(
         rbend_model = 1;
     }
 
-    double theta_mid = 0; // TEMPORARY!!!!
+    double theta_mid = rbend_mid_angle;
     double const angle = h * length;
     if (rbend_model == 1){
         // curved body
@@ -363,21 +363,12 @@ void track_magnet_particles(
             cos_theta_out = cos(theta_out);
         }
 
-        // TEMPORARY!!!!
-        double rbend_half_angle = angle / 2.0;
-        double sin_rbha = 0.;
-        double cos_rbha = 1.;
-        double sinc_rbha = 1.;
-        if (fabs(rbend_half_angle) > 1e-10){
-            sin_rbha = sin(rbend_half_angle);
-            cos_rbha = cos(rbend_half_angle);
-            sinc_rbha = sin_rbha / rbend_half_angle;
-        }
 
         length_curved = length;
-        length = length_curved * sinc_rbha;
-        if (fabs(rbend_half_angle) > 1e-10){
+        length = length_straight;
+        if (fabs(angle) > 1e-10){
             // shift by half the sagitta
+            double cos_rbha = cos(angle / 2.);
             dx_rb = 0.5 / h * (1 - cos_rbha) + rbend_shift;
         };
         h = 0; // treat magnet as straight
