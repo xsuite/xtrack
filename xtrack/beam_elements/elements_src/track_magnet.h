@@ -334,8 +334,9 @@ void track_magnet_particles(
     double cos_theta_out = 1.;
     double sin_theta_out = 0.;
     double length_curved = 0.;
-    double dx_rb = 0.;
-
+    double x0_mid = 0.;
+    double x0_in = 0.;
+    double x0_out = 0.;
 
     if (rbend_model == 0){
         // auto mode, curved body
@@ -363,14 +364,26 @@ void track_magnet_particles(
             cos_theta_out = cos(theta_out);
         }
 
-
         length_curved = length;
         length = length_straight;
+
         if (fabs(angle) > 1e-10){
             // shift by half the sagitta
             double cos_rbha = cos(angle / 2.);
-            dx_rb = 0.5 / h * (1 - cos_rbha) + rbend_shift;
-        };
+            x0_mid = 0.5 / h * (1 - cos_rbha) + rbend_shift;
+        }
+
+
+        x0_in = x0_mid;
+        x0_out = x0_mid;
+        if (fabs(angle) > 1e-10){
+            double const px0_in = sin(theta_in);
+            double const px0_mid = px0_in - h * length_straight / 2;
+            double const sqrt_mid = sqrt(1 - px0_mid * px0_mid);
+            x0_in -= 1/h *(sqrt_mid - cos_theta_in);
+            x0_out += 1/h * (cos_theta_out - sqrt_mid);
+        }
+        ;
         h = 0; // treat magnet as straight
         // We are entering the fringe with an angle, the linear fringe
         // needs to come from the  expansion around the right angle
@@ -445,7 +458,7 @@ void track_magnet_particles(
             START_PER_PARTICLE_BLOCK(part0, part);
                 YRotation_single_particle(part, -sin_theta_in, cos_theta_in,
                                           -sin_theta_in/cos_theta_in);
-                LocalParticle_add_to_x(part, -dx_rb);
+                LocalParticle_add_to_x(part, -x0_in);
             END_PER_PARTICLE_BLOCK;
         }
 
@@ -595,7 +608,7 @@ void track_magnet_particles(
         if (rbend_model == 2){
             // straight body --> curvature in the edges
             START_PER_PARTICLE_BLOCK(part0, part);
-                LocalParticle_add_to_x(part, dx_rb); // shift by half sagitta
+                LocalParticle_add_to_x(part, x0_out); // shift by half sagitta
                 YRotation_single_particle(part, -sin_theta_out, cos_theta_out,
                     -sin_theta_out/cos_theta_out);
             END_PER_PARTICLE_BLOCK;
