@@ -861,7 +861,7 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
             for j, vv in enumerate(self.vary):
                 if isinstance(tar_quantity, TargetRelPhaseAdvance):
                     # Special case for relative phase advance
-                    plane = 'x' if tar_quantity.var == 'mu1_ng' else 'y'
+                    plane = 'x' if tar_quantity.var in ['mu1_ng', 'mux'] else 'y'
                     mu_end = tpsa.calc_phase_advance_deriv(plane, j + tpsa.num_variables)
                     if tar_start is None:
                         mu_start = 0
@@ -917,7 +917,7 @@ class OptimizeLine(xd.Optimize):
             # Handle action
             if tt.action is None:
                 if (isinstance(tt.tar, tuple) and tt.tar[0].endswith('_ng')) or (
-                    isinstance(tt, TargetRelPhaseAdvance) and tt.var.endswith('_ng')):
+                    isinstance(tt, TargetRelPhaseAdvance) and tt.var.endswith('_ng')) or use_tpsa:
                     if action_twiss_ng is None:
                         if use_tpsa:
                             # do tpsa

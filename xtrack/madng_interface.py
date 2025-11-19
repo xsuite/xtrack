@@ -16,6 +16,17 @@ NG_XS_MAP = {
     'mu2': 'muy',
 }
 
+XS_NG_MAP = {
+    'betx': 'beta11',
+    'bety': 'beta22',
+    'alfx': 'alfa11',
+    'alfy': 'alfa22',
+    'mux': 'mu1',
+    'muy': 'mu2',
+    'dx': 'dx',
+    'dpx': 'dpx',
+}
+
 BETA0_COLUMNS = ['x', 'px', 'y', 'py', 't', 'pt',
                  'dx', 'dy', 'dpx', 'dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'phix',
                  'wy', 'phiy', 'mu1', 'mu2', 'mu3', 'dmu1', 'dmu2', 'dmu3', 'r11',
@@ -36,6 +47,9 @@ COUPLING_COLUMNS = ['alfa12', 'alfa13', 'alfa21', 'alfa23', 'alfa31', 'alfa32',
                     'beta12', 'beta13', 'beta21', 'beta23', 'beta31', 'beta32',
                     'gama12', 'gama13', 'gama21', 'gama23', 'gama31', 'gama32',
                     'f1001', 'f1010', 'r11', 'r12', 'r21', 'r22']
+
+TPSA_ALLOWED_TARGETS = { 'beta11_ng', 'beta22_ng', 'alfa11_ng', 'alfa22_ng', 'dx_ng', 'dpx_ng', 'dy_ng', 'dpy_ng',
+                         'mu1_ng', 'mu2_ng', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx', 'dy', 'dpy', 'mux', 'muy' }
 
 XSUITE_MADNG_ENV_NAME = "_xsuite_matching_env"
 
@@ -500,11 +514,14 @@ class ActionTwissMadngTPSA(Action):
 
         for i, target in enumerate(self.targets):
             if isinstance(target.tar, tuple):
+                assert target.tar[0] in TPSA_ALLOWED_TARGETS, f"Target quantity '{target.tar[0]}' not allowed with TPSA matching."
+                qty = target.tar[0][:-3] if target.tar[0].endswith('_ng') else XS_NG_MAP[target.tar[0]]
                 self.target_locations.add(target.tar[1])
                 # set string for quantity mapping + loc to save in madng
-                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{target.tar[1]}', qty = '{target.tar[0][:-3]}' }}\n"
+                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{target.tar[1]}', qty = '{qty}' }}\n"
 
             elif hasattr(target, "start") and hasattr(target, "end"):
+                assert target.var in TPSA_ALLOWED_TARGETS, f"Target quantity '{target.var}' not allowed with TPSA matching."
                 start_loc_str = 'nil'
                 end_loc_str = end
                 if target.start != '__ele_start__':
@@ -514,8 +531,8 @@ class ActionTwissMadngTPSA(Action):
                     self.target_locations.add(target.end)
                     end_loc_str = target.end
 
-                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{end_loc_str}', qty = '{target.var[:-3]}', loc_start = '{start_loc_str}' }}\n"
-
+                qty = target.var[:-3] if target.var.endswith('_ng') else XS_NG_MAP[target.var]
+                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{end_loc_str}', qty = '{qty}', loc_start = '{start_loc_str}' }}\n"
         self.target_locations = list(self.target_locations)
 
         # set coords (TODO: delta)
@@ -552,10 +569,7 @@ class ActionTwissMadngTPSA(Action):
             for loc in self.target_locations:
                 if loc != start and loc != end:
                     observables_str += f"'{loc}', "
-        if observables_str.endswith(', '):
-            observables_str = observables_str[:-2] + '}'
-        else:
-            observables_str += '}'
+        observables_str += '}'
 
         init_cond_str = ''
         if madng_init_flag:
@@ -690,13 +704,27 @@ class ActionTwissMadngTPSA(Action):
                 param_matrix[5, i] = tpsa.calc_dispersion('px')
         if self.fallback_action is None:
             res['beta11_ng'] = param_matrix[0]
+            res['betx'] = param_matrix[0]
             res['beta22_ng'] = param_matrix[1]
+            res['bety'] = param_matrix[1]
             res['alfa11_ng'] = param_matrix[2]
+            res['alfx'] = param_matrix[2]
             res['alfa22_ng'] = param_matrix[3]
+            res['alfy'] = param_matrix[3]
             res['dx_ng'] = param_matrix[4]
+            res['dx'] = param_matrix[4]
             res['dpx_ng'] = param_matrix[5]
+            res['dpx'] = param_matrix[5]
+        else:
+            res['betx'] = res['beta11_ng']
+            res['bety'] = res['beta22_ng']
+            res['alfx'] = res['alfa11_ng']
+            res['alfy'] = res['alfa22_ng']
+            res['dx'] = res['dx_ng']
+            res['dpx'] = res['dpx_ng']
+            res['mux'] = res['mu1_ng']
+            res['muy'] = res['mu2_ng']
 
-        # Track and create twiss table
         return res
 
     def cleanup(self):
