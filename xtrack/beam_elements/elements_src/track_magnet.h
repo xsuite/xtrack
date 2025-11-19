@@ -352,7 +352,6 @@ void track_magnet_particles(
     }
     else if (rbend_model == 2){
         // straight body
-
         theta_in = angle / 2 - theta_mid;
         if (fabs(theta_in) > 1e-10){
             sin_theta_in = sin(theta_in);
@@ -370,9 +369,8 @@ void track_magnet_particles(
         if (fabs(angle) > 1e-10){
             // shift by half the sagitta
             double cos_rbha = cos(angle / 2.);
-            x0_mid = 0.5 / h * (1 - cos_rbha) + rbend_shift;
+            x0_mid = 0.; //0.5 / h * (1 - cos_rbha) + rbend_shift;
         }
-
 
         x0_in = x0_mid;
         x0_out = x0_mid;
@@ -458,7 +456,7 @@ void track_magnet_particles(
             START_PER_PARTICLE_BLOCK(part0, part);
                 YRotation_single_particle(part, -sin_theta_in, cos_theta_in,
                                           -sin_theta_in/cos_theta_in);
-                LocalParticle_add_to_x(part, -x0_in);
+                LocalParticle_add_to_x(part, x0_in);
             END_PER_PARTICLE_BLOCK;
         }
 
@@ -608,7 +606,7 @@ void track_magnet_particles(
         if (rbend_model == 2){
             // straight body --> curvature in the edges
             START_PER_PARTICLE_BLOCK(part0, part);
-                LocalParticle_add_to_x(part, x0_out); // shift by half sagitta
+                LocalParticle_add_to_x(part, -x0_out); // shift by half sagitta
                 YRotation_single_particle(part, -sin_theta_out, cos_theta_out,
                     -sin_theta_out/cos_theta_out);
             END_PER_PARTICLE_BLOCK;
