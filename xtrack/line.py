@@ -4518,21 +4518,21 @@ class Line:
     def iscollective(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line.iscollective` con only be called after `Line.build_tracker`')
+                '`Line.iscollective` can only be called after `Line.build_tracker`')
         return self.tracker.iscollective
 
     @property
     def _buffer(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line._buffer` con only be called after `Line.build_tracker`')
+                '`Line._buffer` can only be called after `Line.build_tracker`')
         return self.tracker._buffer
 
     @property
     def _context(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line._context` con only be called after `Line.build_tracker`')
+                '`Line._context` can only be called after `Line.build_tracker`')
         return self.tracker._context
 
     @property
@@ -5252,7 +5252,7 @@ class Line:
     def _element_names_unique(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                '`Line._element_names_unique` con only be called after `Line.build_tracker`')
+                '`Line._element_names_unique` can only be called after `Line.build_tracker`')
         return self.tracker._tracker_data_base._element_names_unique
 
     def _method_incompatible_with_compose(self):
