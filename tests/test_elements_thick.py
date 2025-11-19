@@ -1830,6 +1830,7 @@ def test_solenoid_against_madx_native(test_context, ks, ksi, length):
     line_thick = env['ss']
 
     line_thick.configure_drift_model('exact')  # to be consistent with madx
+    line_thick.build_tracker(_context=test_context)
 
     mad = Madx(stdout=False)
     mad.input(mad_src)
