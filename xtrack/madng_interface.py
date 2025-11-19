@@ -704,7 +704,7 @@ class ActionTwissMadngTPSA(Action):
         mng_str = ''
         for var_name in self.vary_names:
             mng_str += f"MADX['{var_name}'] = MADX['{var_name}']:get0()\n"
-        mng_str += f"{self.mng._sequence_name}.X0 = nil\n"
+        mng_str += f"{XSUITE_MADNG_ENV_NAME}.X0 = nil\n"
         self.mng.send(mng_str)
         self._already_prepared = False
 
