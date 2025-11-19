@@ -39,6 +39,25 @@ COUPLING_COLUMNS = ['alfa12', 'alfa13', 'alfa21', 'alfa23', 'alfa31', 'alfa32',
 
 XSUITE_MADNG_ENV_NAME = "_xsuite_matching_env"
 
+def dp2pt(dp, beta0):
+    """Convert relative momentum deviation dp/p to transverse momentum pt/p.
+
+    Parameters
+    ----------
+    dp : float
+        Relative momentum deviation (dp/p, dimensionless).
+    beta0 : float
+        Particle relativistic beta (v/c).
+
+    Returns
+    -------
+    float
+        Transverse momentum relative to total momentum (pt/p, dimensionless).
+    """
+
+    _beta0 = 1 / beta0
+    return np.sqrt((1 + dp) ** 2 + (_beta0**2 - 1)) - _beta0
+
 class MadngVars:
 
     def __init__(self, mad):
@@ -446,7 +465,6 @@ class ActionTwissMadngTPSA(Action):
         self.tw_kwargs.update(kwargs)
         self.fallback_action = fallback_action
         self._already_prepared = False
-        self.X0 = None
         self.tpsa_dict = {}
 
     def prepare(self, force=False):
@@ -458,149 +476,162 @@ class ActionTwissMadngTPSA(Action):
         start = self.tw_kwargs.get('start', None)
         end = self.tw_kwargs.get('end', None)
 
-        if init is not None:
-            assert isinstance(init, xt.TwissTable)
-
-            if not hasattr(self.line.tracker, '_madng'):
-                self.line.build_madng_model()
-            mng = self.line.tracker._madng
-            self.mng = mng
-
-            self.target_locations = set()
-            targets_map_str = ''
-
-            for i, target in enumerate(self.targets):
-                if isinstance(target.tar, tuple):
-                    self.target_locations.add(target.tar[1])
-                    # set string for quantity mapping + loc to save in madng
-                    targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{target.tar[1]}', qty = '{target.tar[0][:-3]}' }}\n"
-
-                elif hasattr(target, "start") and hasattr(target, "end"):
-                    start_loc_str = 'nil'
-                    end_loc_str = end
-                    if target.start != '__ele_start__':
-                        self.target_locations.add(target.start)
-                        start_loc_str = target.start
-                    if target.end != '__ele_stop__':
-                        self.target_locations.add(target.end)
-                        end_loc_str = target.end
-
-                    targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{end_loc_str}', qty = '{target.var[:-3]}', loc_start = '{start_loc_str}' }}\n"
-
-            self.target_locations = list(self.target_locations)
-
-            # set coords (TODO: delta)
-            beta0 = self.line.particle_ref.beta0[0]
-            if start is not None:
-                init_coord = np.array([init['x', start],
-                                        init['px', start],
-                                        init['y', start],
-                                        init['py', start],
-                                        init['zeta', start] * beta0,
-                                        0])
-            else:
-                init_coord = np.array([init['x', 0],
-                                        init['px', 0],
-                                        init['y', 0],
-                                        init['py', 0],
-                                        init['zeta', 0] * beta0,
-                                        0])
-
-            coord_str = ''
-            part_order = ['x', 'px', 'y', 'py', 't', 'pt']
-            for part, val in zip(part_order, init_coord):
-                if np.abs(val) > 1e-12:
-                    coord_str += f'X0.{part} = {val} '
-
-            param_assignment_str = ''
-            param_list_str = '{'
-            for name in self.vary_names:
-                param_assignment_str += f"MADX['{name}'] = MADX['{name}'] + X0['{name}'] \n"
-                param_list_str += f"'{name}', "
-            param_list_str = param_list_str[:-2] + '}'
-
-            observables_str = '{'
+        if init is None:
             if start is not None and end is not None:
-                observables_str += f"'{start}', '{end}', "
-
-            if self.target_locations is not None:
-                for loc in self.target_locations:
-                    if loc != start and loc != end:
-                        observables_str += f"'{loc}', "
-            if observables_str.endswith(', '):
-                observables_str = observables_str[:-2] + '}'
+                raise ValueError('If start and end are specified, init must be provided as TwissTable.')
+            if self.fallback_action is not None:
+                self.fallback_action.prepare(force=force)
+                init = self.fallback_action.run()
             else:
-                observables_str += '}'
+                init = self.line.madng_twiss(**self.tw_kwargs)
+            self.tw_kwargs.update({'init': init})
 
-            start_loc = start if start is not None else 0
+        assert isinstance(init, xt.TwissTable)
+        madng_init_flag = "x_ng" in init.cols
+        quantity_appendix = "_ng" if madng_init_flag else ""
+
+        if not hasattr(self.line.tracker, '_madng'):
+            self.line.build_madng_model()
+        mng = self.line.tracker._madng
+        self.mng = mng
+
+        self.target_locations = set()
+        targets_map_str = ''
+
+        for i, target in enumerate(self.targets):
+            if isinstance(target.tar, tuple):
+                self.target_locations.add(target.tar[1])
+                # set string for quantity mapping + loc to save in madng
+                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{target.tar[1]}', qty = '{target.tar[0][:-3]}' }}\n"
+
+            elif hasattr(target, "start") and hasattr(target, "end"):
+                start_loc_str = 'nil'
+                end_loc_str = end
+                if target.start != '__ele_start__':
+                    self.target_locations.add(target.start)
+                    start_loc_str = target.start
+                if target.end != '__ele_stop__':
+                    self.target_locations.add(target.end)
+                    end_loc_str = target.end
+
+                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{end_loc_str}', qty = '{target.var[:-3]}', loc_start = '{start_loc_str}' }}\n"
+
+        self.target_locations = list(self.target_locations)
+
+        # set coords (TODO: delta)
+        beta0 = self.line.particle_ref.beta0[0]
+
+        start_loc = 0 if start is None else start
+        init_coord = np.array([init['x' + quantity_appendix, start_loc],
+                                init['px' + quantity_appendix, start_loc],
+                                init['y' + quantity_appendix, start_loc],
+                                init['py' + quantity_appendix, start_loc],
+                                0,
+                                0])
+        init_coord[4] = init['t' + quantity_appendix, start_loc] if madng_init_flag else init['zeta', start_loc] * beta0
+        init_coord[5] = init['pt' + quantity_appendix, start_loc] if madng_init_flag else dp2pt(init['delta', start_loc], beta0)
+
+        coord_str = ''
+        part_order = ['x', 'px', 'y', 'py', 't', 'pt']
+        for part, val in zip(part_order, init_coord):
+            if np.abs(val) > 1e-12:
+                coord_str += f'X0.{part} = {val} '
+
+        param_assignment_str = ''
+        param_list_str = '{'
+        for name in self.vary_names:
+            param_assignment_str += f"MADX['{name}'] = MADX['{name}'] + X0['{name}'] \n"
+            param_list_str += f"'{name}', "
+        param_list_str = param_list_str[:-2] + '}'
+
+        observables_str = '{'
+        if start is not None and end is not None:
+            observables_str += f"'{start}', '{end}', "
+
+        if self.target_locations is not None:
+            for loc in self.target_locations:
+                if loc != start and loc != end:
+                    observables_str += f"'{loc}', "
+        if observables_str.endswith(', '):
+            observables_str = observables_str[:-2] + '}'
+        else:
+            observables_str += '}'
+
+        init_cond_str = ''
+        if madng_init_flag:
+            init_cond_str = f"local B0 = MAD.beta0 {{ beta11 = {init['beta11' + quantity_appendix, start_loc]},\n" + f"beta22 = {init['beta22' + quantity_appendix, start_loc]},\n"\
+            + f"alfa11 = {init['alfa11' + quantity_appendix, start_loc]},\n" + f"alfa22 = {init['alfa22' + quantity_appendix, start_loc]},\n"\
+            + f"dx = {init['dx' + quantity_appendix, start_loc]},\n" + f"dpx = {init['dpx' + quantity_appendix, start_loc]},\n"\
+            + f"dy = {init['dy' + quantity_appendix, start_loc]},\n" + f"dpy = {init['dpy' + quantity_appendix, start_loc]}\n }}"
+        else:
             init_cond_str = f"local B0 = MAD.beta0 {{ beta11 = {init['betx', start_loc]},\n" + f"beta22 = {init['bety', start_loc]},\n"\
             + f"alfa11 = {init['alfx', start_loc]},\n" + f"alfa22 = {init['alfy', start_loc]},\n"\
             + f"dx = {init['dx', start_loc]},\n" + f"dpx = {init['dpx', start_loc]},\n"\
             + f"dy = {init['dy', start_loc]},\n" + f"dpy = {init['dpy', start_loc]}\n }}"
 
-            mng_init_str = r'''
-                ''' + XSUITE_MADNG_ENV_NAME + r''' = {} -- to avoid variable name clashes
-                local obs_flag = MAD.element.flags.observed
+        mng_init_str = r'''
+            ''' + XSUITE_MADNG_ENV_NAME + r''' = {} -- to avoid variable name clashes
+            local obs_flag = MAD.element.flags.observed
 
-                local pts=''' + observables_str + r'''
+            local pts=''' + observables_str + r'''
 
-                ''' + mng._sequence_name + r''':select(obs_flag, {list=pts})
+            ''' + mng._sequence_name + r''':select(obs_flag, {list=pts})
 
-                local params = ''' + param_list_str + r'''
+            local params = ''' + param_list_str + r'''
 
-                local X0 = MAD.damap {
-                    nv=6, -- number of variables
-                    mo=2, -- max order of variables
-                    np=#params, -- number of parameters
-                    po=1, -- max order of parameters
-                    pn=params, -- parameter names
-                }
+            local X0 = MAD.damap {
+                nv=6, -- number of variables
+                mo=2, -- max order of variables
+                np=#params, -- number of parameters
+                po=1, -- max order of parameters
+                pn=params, -- parameter names
+            }
 
-                ''' + coord_str + r'''
+            ''' + coord_str + r'''
 
-                -- Converting to TPSA (mutating type)
-                for i, v in ipairs(params) do
-                    MADX[v] = MADX[v] + X0[v]
-                end
+            -- Converting to TPSA (mutating type)
+            for i, v in ipairs(params) do
+                MADX[v] = MADX[v] + X0[v]
+            end
 
-                ''' + init_cond_str + r'''
+            ''' + init_cond_str + r'''
 
-                --[[ local B0 = MAD.beta0 {
-                    beta11=beta11,
-                    beta22=beta22,
-                    alfa11=alfa11,
-                    alfa22=alfa22,
-                    dx=dx,
-                    dpx=dpx,
-                    dy=dy,
-                    dpy=dpy
-                } --]]
+            --[[ local B0 = MAD.beta0 {
+                beta11=beta11,
+                beta22=beta22,
+                alfa11=alfa11,
+                alfa22=alfa22,
+                dx=dx,
+                dpx=dpx,
+                dy=dy,
+                dpy=dpy
+            } --]]
 
-                local map1 = MAD.gphys.bet2map(B0, X0)
+            local map1 = MAD.gphys.bet2map(B0, X0)
 
-                --[[ local mat = {
-                    {math.sqrt(beta11), 0, 0, 0, 0, dx},
-                    {-alfa11/math.sqrt(beta11), 1/math.sqrt(beta11), 0, 0, 0, dpx},
-                    {0, 0, math.sqrt(beta22), 0, 0, dy},
-                    {0, 0, -alfa22/math.sqrt(beta22), 1/math.sqrt(beta22), 0, dpy},
-                    {0, 0, 0, 0, betas, 0},
-                    {0, 0, 0, 0, 0, 1/betas},
-                }
+            --[[ local mat = {
+                {math.sqrt(beta11), 0, 0, 0, 0, dx},
+                {-alfa11/math.sqrt(beta11), 1/math.sqrt(beta11), 0, 0, 0, dpx},
+                {0, 0, math.sqrt(beta22), 0, 0, dy},
+                {0, 0, -alfa22/math.sqrt(beta22), 1/math.sqrt(beta22), 0, dpy},
+                {0, 0, 0, 0, betas, 0},
+                {0, 0, 0, 0, 0, 1/betas},
+            }
 
-                local mat = MAD.matrix(mat) --]]
+            local mat = MAD.matrix(mat) --]]
 
-                ''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map = table.new(0, ''' + str(len(self.target_locations)) + r''')
-                ''' + XSUITE_MADNG_ENV_NAME + r'''.targets_map = table.new(''' + str(len(self.targets)) + r''', 0)
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map = table.new(0, ''' + str(len(self.target_locations)) + r''')
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.targets_map = table.new(''' + str(len(self.targets)) + r''', 0)
 
-                ''' + XSUITE_MADNG_ENV_NAME + r'''.init_X0_map = map1 -- X0:set1(mat)
-                ''' + XSUITE_MADNG_ENV_NAME + r'''.X0 = map1:copy()
-                ''' + targets_map_str + r'''
-                '''
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.init_X0_map = map1 -- X0:set1(mat)
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.X0 = map1:copy()
+            ''' + targets_map_str + r'''
+            '''
 
-            mng.send(mng_init_str)
-        else:
-            raise NotImplementedError('Full Twiss Matching not yet implemented.')
+        mng.send(mng_init_str)
 
+        if self.fallback_action is not None:
+            self.fallback_action.X0 = f"{XSUITE_MADNG_ENV_NAME}.init_X0_map"
         self._already_prepared = True
 
     def run(self):
