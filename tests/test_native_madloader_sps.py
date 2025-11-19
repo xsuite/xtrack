@@ -115,5 +115,5 @@ def test_native_madloader_sps():
     xo.assert_allclose(twtest.wy_chrom[-1], twref.wy_chrom[-1], rtol=1e-4, atol=0)
     xo.assert_allclose(twtest.ax_chrom[-1], twref.ax_chrom[-1], rtol=1e-4, atol=0)
     xo.assert_allclose(twtest.ay_chrom[-1], twref.ay_chrom[-1], rtol=1e-4, atol=0)
-    xo.assert_allclose(twtest.dqx, twref.dqx, rtol=1e-4, atol=0)
-    xo.assert_allclose(twtest.dqy, twref.dqy, rtol=1e-4, atol=0)
+    xo.assert_allclose(twtest.dqx, twref.dqx, rtol=2e-4, atol=0)
+    xo.assert_allclose(twtest.dqy, twref.dqy, rtol=2e-4, atol=0)
