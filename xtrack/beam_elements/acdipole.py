@@ -135,10 +135,9 @@ class ACDipole(xt.BeamElement):
         if not (
             len(ramp) == 4
             and all(v == int(v) and v >= 0 for v in ramp)
-            and ramp == sorted(ramp)
         ):
             raise ValueError(
-                "The ramp parameter must be an increasing list of four positive integers:"
+                "The ramp parameter must be a sequence of four positive integers:"
                 "[ramp_up_start_turn, ramp_up_end_turn, ramp_down_start_turn, ramp_down_end_turn]."
             )
 

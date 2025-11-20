@@ -19,7 +19,7 @@ import xtrack as xt
 KICK_FACTOR = 300e-3  # Conversion factor for kick strength (mrad/V)
 TOLERANCE = 1e-10  # Numerical tolerance for kick comparisons
 
-RAMP_LENGTH = 10  # Number of turns for ramp up/down phases
+RAMP_LENGTH = 10.0  # Number of turns for ramp up/down phases
 FLATTOP_START = 100  # Turn number when flattop phase begins
 
 # Turn numbers defining ramp phases: [start, end_ramp_up, start_ramp_down, end]:
