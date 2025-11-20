@@ -285,10 +285,12 @@ void track_magnet_particles(
         length_curved = length;
         length = length_straight;
 
+        x0_mid -= rbend_shift;
+
         if (fabs(angle) > 1e-10){
             // shift by half the sagitta
             double cos_rbha = cos(angle / 2.);
-            x0_mid = 0.5 / h * (1 - cos_rbha) + rbend_shift;
+            x0_mid += 0.5 / h * (1 - cos_rbha);
         }
 
         x0_in = x0_mid;
