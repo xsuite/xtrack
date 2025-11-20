@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+from .acdipole import ACDipole
 from .elements import *
 from .exciter import Exciter
 from .apertures import *
@@ -29,7 +30,7 @@ from .slice_elements_drift import (DriftSliceOctupole, DriftSliceSextupole,
                                    DriftSliceRBend, DriftSlice, DriftSliceCavity,
                                    DriftSliceCrabCavity, DriftSliceMultipole,
                                    DriftExactSlice)
-      
+
 from .rft_element import RFT_Element
 from ..base_element import BeamElement
 
