@@ -14,6 +14,8 @@ import pytest
 from xobjects.test_helpers import for_all_test_contexts
 
 import xtrack as xt
+import xobjects as xo
+
 
 # Constants
 KICK_FACTOR = 300e-3  # Conversion factor for kick strength (mrad/V)
@@ -50,7 +52,7 @@ def get_acdipole_results(
     Returns:
         Tuple of (x, px, y, py) coordinates after tracking.
     """
-    particles = xt.Particles(at_turn=turn)  # Must be 0.
+    particles = xt.Particles(at_turn=turn, _context=test_context)  # Must be 0.
 
     acdipole = xt.ACDipole(
         volt=test_voltage,
@@ -103,9 +105,7 @@ def assert_acdipole_kick(
     vals = {"x": x, "px": px, "y": y, "py": py}  # Map coordinate names to values
     for coord in vals:
         if coord == f"p{test_plane}":
-            assert abs(vals[coord] - expected_kick) < TOLERANCE, (
-                f"Turn {test_turn}: Expected {coord}={expected_kick}, but got {coord}={vals[coord]}"
-            )
+            xo.assert_allclose(vals[coord], expected_kick, atol=TOLERANCE, rtol=0)
         else:
             assert vals[coord] == 0.0, (
                 f"Turn {test_turn}: Expected {coord}=0, but got {coord}={vals[coord]}"
