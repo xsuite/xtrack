@@ -458,7 +458,7 @@ void track_magnet_particles(
         if (rbend_model == 2){
             // straight body --> curvature in the edges
             START_PER_PARTICLE_BLOCK(part0, part);
-                printf("sin_theta_in=%e cos_theta_in=%e\n", sin_theta_in, cos_theta_in);
+                // printf("sin_theta_in=%e cos_theta_in=%e\n", sin_theta_in, cos_theta_in);
                 YRotation_single_particle(part, -sin_theta_in, cos_theta_in,
                                           -sin_theta_in/cos_theta_in);
                 LocalParticle_add_to_x(part, x0_in);
@@ -491,16 +491,16 @@ void track_magnet_particles(
         );
     }
 
-    printf("After edge entry\n");
-    printf("part0 x=%e y=%e px=%e py=%e s=%e zeta=%e delta=%e\n",
-        LocalParticle_get_x(part0),
-        LocalParticle_get_y(part0),
-        LocalParticle_get_px(part0),
-        LocalParticle_get_py(part0),
-        LocalParticle_get_s(part0),
-        LocalParticle_get_zeta(part0),
-        LocalParticle_get_delta(part0)
-    );
+    // printf("After edge entry\n");
+    // printf("part0 x=%e y=%e px=%e py=%e s=%e zeta=%e delta=%e\n",
+    //     LocalParticle_get_x(part0),
+    //     LocalParticle_get_y(part0),
+    //     LocalParticle_get_px(part0),
+    //     LocalParticle_get_py(part0),
+    //     LocalParticle_get_s(part0),
+    //     LocalParticle_get_zeta(part0),
+    //     LocalParticle_get_delta(part0)
+    // );
 
     if (body_active){
 
@@ -593,16 +593,16 @@ void track_magnet_particles(
         }
     }
 
-    printf("After body\n");
-    printf("part0 x=%e y=%e px=%e py=%e s=%e zeta=%e delta=%e\n",
-        LocalParticle_get_x(part0),
-        LocalParticle_get_y(part0),
-        LocalParticle_get_px(part0),
-        LocalParticle_get_py(part0),
-        LocalParticle_get_s(part0),
-        LocalParticle_get_zeta(part0),
-        LocalParticle_get_delta(part0)
-    );
+    // printf("After body\n");
+    // printf("part0 x=%e y=%e px=%e py=%e s=%e zeta=%e delta=%e\n",
+    //     LocalParticle_get_x(part0),
+    //     LocalParticle_get_y(part0),
+    //     LocalParticle_get_px(part0),
+    //     LocalParticle_get_py(part0),
+    //     LocalParticle_get_s(part0),
+    //     LocalParticle_get_zeta(part0),
+    //     LocalParticle_get_delta(part0)
+    // );
 
     if (edge_exit_active){
         double knorm[] = {k0, k1, k2, k3};
@@ -632,7 +632,7 @@ void track_magnet_particles(
 
         if (rbend_model == 2){
             // straight body --> curvature in the edges
-            printf("sin_theta_out=%e cos_theta_out=%e\n", sin_theta_out, cos_theta_out);
+            // printf("sin_theta_out=%e cos_theta_out=%e\n", sin_theta_out, cos_theta_out);
             START_PER_PARTICLE_BLOCK(part0, part);
                 LocalParticle_add_to_x(part, -x0_out); // shift by half sagitta
                 YRotation_single_particle(part, -sin_theta_out, cos_theta_out,
@@ -641,16 +641,16 @@ void track_magnet_particles(
         }
     }
 
-    printf("After edge exit\n");
-    printf("part0 x=%e y=%e px=%e py=%e s=%e zeta=%e delta=%e\n",
-        LocalParticle_get_x(part0),
-        LocalParticle_get_y(part0),
-        LocalParticle_get_px(part0),
-        LocalParticle_get_py(part0),
-        LocalParticle_get_s(part0),
-        LocalParticle_get_zeta(part0),
-        LocalParticle_get_delta(part0)
-    );
+    // printf("After edge exit\n");
+    // printf("part0 x=%e y=%e px=%e py=%e s=%e zeta=%e delta=%e\n",
+    //     LocalParticle_get_x(part0),
+    //     LocalParticle_get_y(part0),
+    //     LocalParticle_get_px(part0),
+    //     LocalParticle_get_py(part0),
+    //     LocalParticle_get_s(part0),
+    //     LocalParticle_get_zeta(part0),
+    //     LocalParticle_get_delta(part0)
+    // );
 
 }
 
