@@ -2691,7 +2691,7 @@ class Line:
         tt_keep = tt_keep.rows[:-1]
 
         # Unsorted table with all elements for the new line
-        tab_unsorted_with_insertions = xt.Table.concatenate([tt_keep, tab_insertions])
+        tab_unsorted_with_insertions = xt.Table.concatenate([tab_insertions,  tt_keep])
 
         # Sort elements
         tab_sorted = _sort_places(tab_unsorted_with_insertions,
@@ -5109,49 +5109,17 @@ class Line:
         '''
         self._method_incompatible_with_compose()
 
-        self._frozen_check()
+        env = self.env
+        insertions = []
+        for ins in elements_to_insert:
+            ss = ins[0]
+            this_ins = []
+            for nn, ee in ins[1]:
+                env.elements[nn] = ee
+                this_ins.append(nn)
+            insertions.append(env.place(this_ins, at=ss))
 
-        s_cuts = [ee[0] for ee in elements_to_insert]
-        s_cuts = np.sort(s_cuts)
-
-        self.cut_at_s(s_cuts, s_tol=s_tol)
-
-        tt_after_cut = self.get_table()
-
-        # Names for insertions
-        ele_name_insertions = []
-        for s_insert, ee in progress(elements_to_insert, desc="Locate insertion points"):
-            # Find element_name for insertion
-            ii_ins = np.where(tt_after_cut['s'] >= s_insert - s_tol)[0][0]
-            ele_name_insertions.append(tt_after_cut['name'][ii_ins])
-            assert np.abs(s_insert - tt_after_cut['s'][ii_ins]) < s_tol
-
-        # Add all elements to self._element_dict
-        for s_insert, ee in elements_to_insert:
-            for nn, el in ee:
-                assert nn not in self.env.elements
-                self.env.elements[nn] = el
-
-        # Insert elements
-        for i_ins, (s_insert, ee) in enumerate(
-                    progress(elements_to_insert, desc="Inserting elements")):
-            ele_name_ins = ele_name_insertions[i_ins]
-
-            if ele_name_ins not in self.element_names:
-                assert ele_name_ins == '_end_point'
-                insert_at = None
-            else:
-                insert_at = self.element_names.index(ele_name_ins)
-            for nn, el in ee:
-
-                assert el.isthick == False
-                if insert_at is None:
-                    self.element_names.append(nn)
-                else:
-                    self.element_names.insert(insert_at, nn)
-
-                if insert_at is not None:
-                    insert_at += 1
+        self.insert(insertions)
 
     def _insert_thick_elements_at_s(self, element_names, elements,
                                     at_s, s_tol=1e-6):
@@ -5163,62 +5131,15 @@ class Line:
         assert isinstance(at_s, (list, tuple, np.ndarray))
         assert len(element_names) == len(elements) == len(at_s)
 
-        self._frozen_check()
+        insertions = []
+        for nn, ee, ss in zip(element_names, elements, at_s):
+            if nn in self.env.elements:
+                self.remove(nn, s_tol=s_tol) # replaces it with a drift if needed
+                del self.env.elements[nn]
+            self.env.elements[nn] = ee
+            insertions.append(self.env.place(nn, at=ss, anchor='start'))
 
-        s_insert = np.array(at_s)
-        l_insert = np.array([_length(ee, None) for ee in elements])
-        ele_insert = list(elements).copy()
-        name_insert = list(element_names).copy()
-
-        end_insert = np.array(s_insert) + np.array(l_insert)
-
-        self.cut_at_s(list(s_insert) + list(end_insert))
-
-        i_sorted = np.argsort(s_insert)
-        s_insert_sorted = s_insert[i_sorted]
-        ele_insert_sorted = [ele_insert[i] for i in i_sorted]
-        name_insert_sorted = [name_insert[i] for i in i_sorted]
-        end_insert_sorted = end_insert[i_sorted]
-
-        assert np.all(s_insert_sorted[:-1] < end_insert_sorted[1:]), (
-                    'Overlapping insertions')
-
-        old_element_names = self.element_names
-
-        s_tol = 1e-6
-
-        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
-
-        i_replace = np.zeros(len(s_vect_upstream), dtype=int)
-        mask_remove = np.zeros(len(s_vect_upstream), dtype=bool)
-
-        i_replace[:] = -1
-
-        for ii in range(len(s_insert_sorted)):
-            ss_start = s_insert_sorted[ii]
-            ss_end = end_insert_sorted[ii]
-
-            i_first_removal = np.where(np.abs(s_vect_upstream - ss_start) < s_tol)[0][-1]
-            i_last_removal = np.where(np.abs(s_vect_upstream - ss_end) < s_tol)[0][0] - 1
-
-            i_replace[i_first_removal] = ii
-            mask_remove[i_first_removal+1:i_last_removal+1] = True
-
-        new_element_names = []
-        for ii, nn in enumerate(old_element_names):
-            if mask_remove[ii]:
-                continue
-            if i_replace[ii] != -1:
-                new_element_names.append(name_insert_sorted[i_replace[ii]])
-            else:
-                new_element_names.append(nn)
-
-        for new_nn, new_ee in zip(name_insert_sorted, ele_insert_sorted):
-            if new_nn in self.env.elements:
-                del self.env.elements[new_nn]
-            self.env.elements[new_nn] = new_ee
-
-        self.element_names = new_element_names
+        self.insert(insertions, s_tol=s_tol)
 
     @property
     def _line_before_slicing(self):
