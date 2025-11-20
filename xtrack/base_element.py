@@ -536,9 +536,10 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def xoinitialize(self, **kwargs):
         rot_s_rad = kwargs.pop('rot_s_rad', None)
-        shift_x = kwargs.pop('shift_x', None)
-        shift_y = kwargs.pop('shift_y', None)
-        shift_s = kwargs.pop('shift_s', None)
+        # For the shifts we accept both shift_x and _shift_x for backward compatibility
+        shift_x = kwargs.pop('shift_x', kwargs.pop('_shift_x', None))
+        shift_y = kwargs.pop('shift_y', kwargs.pop('_shift_y', None))
+        shift_s = kwargs.pop('shift_s', kwargs.pop('_shift_s', None))
         rot_x_rad = kwargs.pop('rot_x_rad', None)
         rot_y_rad = kwargs.pop('rot_y_rad', None)
         rot_s_rad_no_frame = kwargs.pop('rot_s_rad_no_frame', None)
