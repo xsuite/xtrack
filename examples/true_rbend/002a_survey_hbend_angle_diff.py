@@ -21,7 +21,7 @@ line.cut_at_s(np.linspace(0, line.get_length(), 11))
 line.insert('mid', xt.Marker(), at=2.5)
 
 line['mb'].rbend_model = 'straight-body'
-sv_straight = line.survey(element0='mid', X0=-line['mb'].sagitta/2)
+sv_straight = line.survey()
 tt_straight = line.get_table(attr=True)
 tw_straight = line.twiss(betx=1, bety=1)
 p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
@@ -62,7 +62,7 @@ sv_no_slice_end = line_no_slice.survey(element0='end',
 tw_no_slice_straight = line_no_slice.twiss(betx=1, bety=1)
 
 line['mb'].rbend_model = 'curved-body'
-sv_curved = line.survey(element0='mid')
+sv_curved = line.survey()
 tt_curved = line.get_table(attr=True)
 tw_curved = line.twiss(betx=1, bety=1)
 p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
