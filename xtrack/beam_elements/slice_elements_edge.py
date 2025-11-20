@@ -273,7 +273,6 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
     def _propagate_survey(self, v, w, backtrack):
 
         if self._parent.rbend_model == "straight-body":
-            rbend_shift_tot = self._parent.sagitta / 2  + self._parent.rbend_shift
             if backtrack:
                 if abs(self._parent.angle) > 1e-10:  # avoid numerical issues
                     v, w = survey_advance_element(
@@ -282,8 +281,8 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
                         length          = 0,
                         angle           = 0,
                         tilt            = 0,
-                        ref_shift_x     = -rbend_shift_tot * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = -rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_shift_x     = self._parent._x0_in * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = self._parent._x0_in * np.sin(self._parent.rot_s_rad),
                         ref_rot_x_rad   = 0,
                         ref_rot_y_rad   = 0,
                         ref_rot_s_rad   = 0,
@@ -320,8 +319,8 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
                         length          = 0,
                         angle           = 0,
                         tilt            = 0,
-                        ref_shift_x     = rbend_shift_tot * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_shift_x     = -self._parent._x0_in * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = -self._parent._x0_in * np.sin(self._parent.rot_s_rad),
                         ref_rot_x_rad   = 0,
                         ref_rot_y_rad   = 0,
                         ref_rot_s_rad   = 0,
@@ -359,7 +358,6 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
     def _propagate_survey(self, v, w, backtrack):
 
         if self._parent.rbend_model == "straight-body":
-            rbend_shift_tot = self._parent.sagitta / 2  + self._parent.rbend_shift
             if backtrack:
                 v, w = survey_advance_element(
                     v               = v,
@@ -380,8 +378,8 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
                         length          = 0,
                         angle           = 0,
                         tilt            = 0,
-                        ref_shift_x     = rbend_shift_tot * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_shift_x     = -self._parent._x0_out * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = -self._parent._x0_out * np.sin(self._parent.rot_s_rad),
                         ref_rot_x_rad   = 0,
                         ref_rot_y_rad   = 0,
                         ref_rot_s_rad   = 0,
@@ -394,8 +392,8 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
                         length          = 0,
                         angle           = 0,
                         tilt            = 0,
-                        ref_shift_x     = -rbend_shift_tot * np.cos(self._parent.rot_s_rad),
-                        ref_shift_y     = -rbend_shift_tot * np.sin(self._parent.rot_s_rad),
+                        ref_shift_x     = self._parent._x0_out * np.cos(self._parent.rot_s_rad),
+                        ref_shift_y     = self._parent._x0_out * np.sin(self._parent.rot_s_rad),
                         ref_rot_x_rad   = 0,
                         ref_rot_y_rad   = 0,
                         ref_rot_s_rad   = 0,
