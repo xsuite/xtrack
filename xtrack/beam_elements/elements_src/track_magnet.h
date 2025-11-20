@@ -351,12 +351,12 @@ void track_magnet_particles(
     }
     else if (rbend_model == 2){
         // straight body
-        theta_in = angle / 2 - rbend_angle_diff / 2.;
+        theta_in = (angle - rbend_angle_diff) / 2.0;
         if (fabs(theta_in) > 1e-10){
             sin_theta_in = sin(theta_in);
             cos_theta_in = cos(theta_in);
         }
-        theta_out = angle / 2 + rbend_angle_diff / 2.;
+        theta_out = (angle + rbend_angle_diff) / 2.0;
         if (fabs(theta_out) > 1e-10){
             sin_theta_out = sin(theta_out);
             cos_theta_out = cos(theta_out);
