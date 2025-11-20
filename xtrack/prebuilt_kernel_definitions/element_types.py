@@ -5,8 +5,8 @@
 
 from ..beam_elements import *
 from ..monitors import *
-from ..random import *
 from ..multisetter import MultiSetter
+from ..random import *
 
 ONLY_XTRACK_ELEMENTS = [
     Drift,
@@ -79,7 +79,6 @@ ONLY_XTRACK_ELEMENTS = [
     ThinSliceUniformSolenoidExit,
     ThinSliceOctupoleEntry,
     ThinSliceOctupoleExit,
-
     # Transformations
     XYShift,
     ZetaShift,
@@ -99,6 +98,7 @@ ONLY_XTRACK_ELEMENTS = [
     BeamProfileMonitor,
     LastTurnsMonitor,
     ParticlesMonitor,
+    ACDipole,
 ]
 
 NO_SYNRAD_ELEMENTS = [

@@ -1302,3 +1302,48 @@ def test_beam_element_sin_cos_rot_backwards_compatible():
 
     assert rot_s_rad == mb_init.rot_s_rad
     assert rot_s_rad == mb_dict.rot_s_rad
+
+
+def test_beam_element_shifts_backwards_compatible():
+    legacy_dict = {
+        "__class__": "Sextupole",
+        "_shift_x": 0.00007058877711752774,
+        "radiation_flag": 1,
+        "_sin_rot_s": 0.00004888621240909204,
+        "knl": [
+            0.0,
+            -0.00014884500249789793,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "_cos_rot_s": 0.9999999988050691,
+        "_model": 0,
+        "length": 0.225,
+        "ksl": [
+            0.0,
+            0.0000071942270887898105,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "_shift_s": 0.00008144130256271475,
+        "_integrator": 2,
+        "_shift_y": 0.000025474011284299616,
+        "num_multipole_kicks": 1,
+        "k2": -9.682796465792052,
+        "delta_taper": 0.0003145021963558703
+    }
+
+    sext = xt.Sextupole.from_dict(legacy_dict)
+
+    computed_rot_s_rad = np.atan2(legacy_dict['_sin_rot_s'], legacy_dict['_cos_rot_s'])
+    xo.assert_allclose(sext.rot_s_rad, computed_rot_s_rad, rtol=1e-14, atol=1e-14)
+
+    assert sext.rot_x_rad == 0
+    assert sext.rot_y_rad == 0
+    assert sext.shift_x == legacy_dict['_shift_x']
+    assert sext.shift_y == legacy_dict['_shift_y']
+    assert sext.shift_s == legacy_dict['_shift_s']
