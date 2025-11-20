@@ -127,19 +127,18 @@ sv_straight.cols['s element_type angle']
 # _end_point                5                                 0
 
 assert np.all(sv_straight['name'] == [
-       'start', 'drift_1..0', 'drift_1..1', 'mb_entry', 'mb..entry_map',
+       'start', '||drift_3::0', '||drift_4', 'mb_entry', 'mb..entry_map',
        'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
-       'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', 'drift_2..0',
-       'drift_2..1', 'end', '_end_point'
-])
+       'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', '||drift_5',
+       '||drift_3::1', 'end', '_end_point'])
 
 # Assert entire columns using np.all
-assert np.all(sv_straight['element_type'] == ['Marker', 'DriftSlice', 'DriftSlice', 'Marker',
-       'ThinSliceRBendEntry', 'ThickSliceRBend', 'ThickSliceRBend',
-       'ThickSliceRBend', 'ThickSliceRBend', 'Marker', 'ThickSliceRBend',
+assert np.all(sv_straight['element_type'] == [
+       'Marker', 'Drift', 'Drift', 'Marker', 'ThinSliceRBendEntry',
        'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
-       'ThinSliceRBendExit', 'Marker', 'DriftSlice', 'DriftSlice',
-       'Marker', ''])
+       'ThickSliceRBend', 'Marker', 'ThickSliceRBend', 'ThickSliceRBend',
+       'ThickSliceRBend', 'ThickSliceRBend', 'ThinSliceRBendExit',
+       'Marker', 'Drift', 'Drift', 'Marker', ''])
 
 xo.assert_allclose(
     sv_straight['angle'],
@@ -257,19 +256,17 @@ sv_curved.cols['s element_type angle']
 # _end_point                5                                 0
 
 assert np.all(sv_curved['name'] == [
-    'start', 'drift_1..0', 'drift_1..1', 'mb_entry', 'mb..entry_map',
-    'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
-    'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', 'drift_2..0',
-    'drift_2..1', 'end', '_end_point'
-])
+       'start', '||drift_3::0', '||drift_4', 'mb_entry', 'mb..entry_map',
+       'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
+       'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', '||drift_5',
+       '||drift_3::1', 'end', '_end_point'])
 
 assert np.all(sv_curved['element_type'] == [
-    'Marker', 'DriftSlice', 'DriftSlice', 'Marker',
-    'ThinSliceRBendEntry', 'ThickSliceRBend', 'ThickSliceRBend',
-    'ThickSliceRBend', 'ThickSliceRBend', 'Marker', 'ThickSliceRBend',
-    'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
-    'ThinSliceRBendExit', 'Marker', 'DriftSlice', 'DriftSlice',
-    'Marker', ''])
+       'Marker', 'Drift', 'Drift', 'Marker', 'ThinSliceRBendEntry',
+       'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
+       'ThickSliceRBend', 'Marker', 'ThickSliceRBend', 'ThickSliceRBend',
+       'ThickSliceRBend', 'ThickSliceRBend', 'ThinSliceRBendExit',
+       'Marker', 'Drift', 'Drift', 'Marker', ''])
 
 xo.assert_allclose(
     sv_curved['angle'],

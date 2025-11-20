@@ -1995,6 +1995,43 @@ class RBend(_BendCommon, BeamElement):
     def hxl(self): return self.h * self.length
 
     @property
+    def _angle_in(self):
+        return 0.5 * self.angle - self._rbend_angle_diff / 2
+
+    @property
+    def _angle_out(self):
+        return 0.5 * self.angle + self._rbend_angle_diff / 2
+
+    @property
+    def _x0_mid(self):
+        out = -self.rbend_shift
+        if abs(self.angle) > 1e-10:
+            out += 0.5 / self.h * (1 - np.cos(self.angle / 2))
+        return out
+
+    @property
+    def _x0_in(self):
+        out = self._x0_mid
+        if abs(self.angle) > 1e-10:
+            px0_in = np.sin(self._angle_in)
+            px0_mid = px0_in - self.h * self.length_straight / 2
+            sqrt_mid = np.sqrt(1 - px0_mid * px0_mid)
+            cos_theta_in = np.cos(self._angle_in)
+            out -= 1 / self.h * (sqrt_mid - cos_theta_in)
+        return out
+
+    @property
+    def _x0_out(self):
+        out = self._x0_mid
+        if abs(self.angle) > 1e-10:
+            px0_out = np.sin(self._angle_out)
+            px0_mid = px0_out - self.h * self.length_straight / 2
+            sqrt_mid = np.sqrt(1 - px0_mid * px0_mid)
+            cos_theta_out = np.cos(self._angle_out)
+            out += 1 / self.h * (cos_theta_out - sqrt_mid)
+        return out
+
+    @property
     def radiation_flag(self): return 0.0
 
     @property
