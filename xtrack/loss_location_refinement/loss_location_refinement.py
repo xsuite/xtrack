@@ -86,7 +86,7 @@ class LossLocationRefinement:
                                           y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
-        elm_gen = self.line.element_dict.copy()
+        elm_gen = self.line._element_dict.copy()
         elm_gen['_xtrack_temp_poly_'] = temp_poly
         elm_gen['_xtrack_temp_marker_'] = xt.Marker(_buffer=self.line._buffer)
         ln_gen = Line(elements=elm_gen,
@@ -196,10 +196,10 @@ class LossLocationRefinement:
                     interp_line.discard_tracker() # Free tracker data
                     del interp_line
                     for nn in elements_to_delete:
-                        sz = self.line.env.element_dict[nn]._xobject._size
-                        oo = self.line.env.element_dict[nn]._xobject._offset
+                        sz = self.line.env._element_dict[nn]._xobject._size
+                        oo = self.line.env._element_dict[nn]._xobject._offset
                         self.line._buffer.free(oo, sz)
-                        del self.line.env.element_dict[nn]
+                        del self.line.env._element_dict[nn]
 
 
 def check_for_active_shifts_and_rotations(line, i_aper_0, i_aper_1):
@@ -217,6 +217,37 @@ def check_for_active_shifts_and_rotations(line, i_aper_0, i_aper_1):
                 break
     return presence_shifts_rotations
 
+def fields_equal(a, b, atol=1e-15):
+    # Check if exactly the same object
+    if a is b:
+        return True
+
+    # Check for type mismatch
+    if type(a) is not type(b):
+        return False
+
+    # Numpy array checks
+    if isinstance(a, np.ndarray):
+        if a.shape != b.shape:
+            return False
+        return np.allclose(a, b, rtol=0, atol=atol)
+
+    # Scalar check
+    if np.isscalar(a):
+        return abs(a - b) <= atol
+
+    # List/tuple check
+    if isinstance(a, (list, tuple)):
+        if len(a) != len(b):
+            return False
+        try:
+            return np.allclose(a, b, rtol=0, atol=atol)
+        except Exception:
+            return all(fields_equal(x, y, atol) for x, y in zip(a, b))
+
+    # Fallback check
+    return a == b
+
 
 def apertures_are_identical(aper1, aper2, line):
 
@@ -231,9 +262,7 @@ def apertures_are_identical(aper1, aper2, line):
 
     identical = True
     for ff in aper1._fields:
-        tt = np.allclose(getattr(aper1, ff), getattr(aper2, ff),
-                        rtol=0, atol=1e-15)
-        if not tt:
+        if not fields_equal(getattr(aper1, ff), getattr(aper2, ff)):
             identical = False
             break
     return identical

@@ -39,9 +39,9 @@ tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
 assert np.all(tt.name == np.array(
     ['drift_1', 'm5.0', 'm5.1', 'q5', 'm5.2', 'm5.3', 'drift_2',
-       'q0_entry', 'q0..0', 'q4', 'drift_3..1', 'mr.0', 'mr.1', 'q6',
-       'mr.2', 'mr.3', 'drift_4', 'end', '_end_point']))
+       'q0_entry', 'q0..entry_map', 'q0..0', 'q4', 'drift_3..1', 'mr.0',
+       'mr.1', 'q6', 'mr.2', 'mr.3', 'drift_4', 'end', '_end_point']))
 xo.assert_allclose(tt.s_center, np.array(
-    np.array([ 4.5,  9. ,  9. , 10. , 11. , 11. , 15. , 19. , 19.5, 21. , 25.5,
-       29. , 29. , 30. , 31. , 31. , 40.5, 50. , 50.])),
+    np.array([ 4.5,  9. ,  9. , 10. , 11. , 11. , 15. , 19. , 19. , 19.5, 21. ,
+       25.5, 29. , 29. , 30. , 31. , 31. , 40.5, 50. , 50. ])),
     rtol=0., atol=1e-14)

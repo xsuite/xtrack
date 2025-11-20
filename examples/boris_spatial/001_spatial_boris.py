@@ -51,7 +51,6 @@ dz = z_axis[1]-z_axis[0]
 line = xt.Line(elements=[xt.VariableSolenoid(length=dz,
                                     ks_profile=[ks_entry[ii], ks_exit[ii]])
                             for ii in range(len(z_axis)-1)])
-line.build_tracker()
 
 p_xt = p0.copy()
 line.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')

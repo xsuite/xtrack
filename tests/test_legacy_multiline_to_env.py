@@ -12,11 +12,11 @@ def test_legacy_multiline_to_env_conversion():
     assert isinstance(env, xt.Environment)
     env.lhcb2.twiss_default['reverse'] = True
 
-    assert env.lhcb1.element_dict is env.element_dict
-    assert env.lhcb2.element_dict is env.element_dict
+    assert env.lhcb1._element_dict is env._element_dict
+    assert env.lhcb2._element_dict is env._element_dict
 
-    assert 'drift_1' in env.lhcb1.element_names
-    assert 'drift_1' not in env.lhcb2.element_names
+    assert 'drift_1/lhcb1' in env.lhcb1.element_names
+    assert 'drift_1/lhcb2' in env.lhcb2.element_names
 
     assert 'ip1' in env.lhcb1.element_names
     assert 'ip1' in env.lhcb2.element_names

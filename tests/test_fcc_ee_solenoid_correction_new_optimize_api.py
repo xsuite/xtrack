@@ -14,17 +14,13 @@ test_data_folder = pathlib.Path(
 def test_fcc_ee_solenoid_correction_new_optimizer_api():
     fname = 'fccee_t'; pc_gev = 182.5
 
-    mad = Madx(stdout=False)
-    mad.call(str(test_data_folder) + '/fcc_ee/' + fname + '.seq')
-    mad.beam(particle='positron', pc=pc_gev)
-    mad.use('fccee_p_ring')
+    env = xt.load([test_data_folder / 'fcc_ee/' / (fname + '.seq')])
+    line = env['fccee_p_ring']
+    line.set_particle_ref('positron', p0c=pc_gev*1e9)
 
-    line = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=True,
-                                    deferred_expressions=True)
-    line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
-                                    gamma0=mad.sequence.fccee_p_ring.beam.gamma)
     line.cycle('ip.4', inplace=True)
-    line.append_element(element=xt.Marker(), name='ip.4.l')
+    line.append('ip.4.l', xt.Marker())
+
 
     tt = line.get_table()
     bz_data_file = test_data_folder / 'fcc_ee/Bz_closed_before_quads.dat'
@@ -82,25 +78,25 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
     sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
 
-    line.element_dict['sol_start_tilt_'+ip_sol] = sol_start_tilt
-    line.element_dict['sol_end_tilt_'+ip_sol] = sol_end_tilt
-    line.element_dict['sol_start_shift_'+ip_sol] = sol_start_shift
-    line.element_dict['sol_end_shift_'+ip_sol] = sol_end_shift
+    line.env.elements['sol_start_tilt_'+ip_sol] = sol_start_tilt
+    line.env.elements['sol_end_tilt_'+ip_sol] = sol_end_tilt
+    line.env.elements['sol_start_shift_'+ip_sol] = sol_start_shift
+    line.env.elements['sol_end_shift_'+ip_sol] = sol_end_shift
 
-    line.element_dict['sol_entry_'+ip_sol] = xt.Marker()
-    line.element_dict['sol_exit_'+ip_sol] = xt.Marker()
+    line.env.elements['sol_entry_'+ip_sol] = xt.Marker()
+    line.env.elements['sol_exit_'+ip_sol] = xt.Marker()
 
     sol_slice_names = []
     sol_slice_names.append('sol_entry_'+ip_sol)
     for ii in range(len(s_sol_slices_entry)):
         nn = f'sol_slice_{ii}_{ip_sol}'
-        line.element_dict[nn] = sol_slices[ii]
+        line.env.elements[nn] = sol_slices[ii]
         sol_slice_names.append(nn)
     sol_slice_names.append('sol_exit_'+ip_sol)
 
     tt = line.get_table()
-    names_upstream = list(tt.rows[:'sol_start_'+ip_sol].name)
-    names_downstream = list(tt.rows['sol_end_'+ip_sol:].name[:-1]) # -1 to exclude '_end_point' added by the table
+    names_upstream = list(tt.rows[:'sol_start_'+ip_sol].env_name)
+    names_downstream = list(tt.rows['sol_end_'+ip_sol:].env_name[:-1]) # -1 to exclude '_end_point' added by the table
 
     element_names = (names_upstream
                     + ['sol_start_tilt_'+ip_sol, 'sol_start_shift_'+ip_sol]
@@ -111,7 +107,7 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     line.element_names = element_names
 
     # re-insert the ip
-    line.element_dict.pop(ip_sol)
+    line.env.elements.pop(ip_sol)
     tt = line.get_table()
     line.insert_element(name=ip_sol, element=xt.Marker(),
             at_s = 0.5 * (tt['s', 'sol_start_'+ip_sol] + tt['s', 'sol_end_'+ip_sol]))
@@ -124,8 +120,8 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     line.vars['on_sol_'+ip_sol] = 0
     for ii in range(len(s_sol_slices_entry)):
         nn = f'sol_slice_{ii}_{ip_sol}'
-        line.element_refs[nn].ks_profile[0] = ks_entry[ii] * line.vars['on_sol_'+ip_sol]
-        line.element_refs[nn].ks_profile[1] = ks_exit[ii] * line.vars['on_sol_'+ip_sol]
+        line[nn].ks_profile[0] = ks_entry[ii] * line.vars['on_sol_'+ip_sol]
+        line[nn].ks_profile[1] = ks_exit[ii] * line.vars['on_sol_'+ip_sol]
 
 
     tt = line.get_table()
@@ -144,14 +140,14 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     line.vars['ks3.l1'] = 0
     line.vars['ks4.l1'] = 0
 
-    line.element_refs['qc1r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.r1']
-    line.element_refs['qc2r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.r1']
-    line.element_refs['qc2r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.r1']
-    line.element_refs['qc1r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.r1']
-    line.element_refs['qc1l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.l1']
-    line.element_refs['qc2l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.l1']
-    line.element_refs['qc2l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.l1']
-    line.element_refs['qc1l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.l1']
+    line['qc1r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.r1']
+    line['qc2r1.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.r1']
+    line['qc2r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.r1']
+    line['qc1r2.1'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.r1']
+    line['qc1l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks0.l1']
+    line['qc2l1.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks1.l1']
+    line['qc2l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks2.l1']
+    line['qc1l2.4'].k1s = line.vars['on_corr_ip.1'] * line.vars['ks3.l1']
 
     line.vars['corr_k0.r1'] = 0
     line.vars['corr_k1.r1'] = 0
@@ -164,14 +160,14 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     line.vars['corr_k3.l1'] = 0
     line.vars['corr_k4.l1'] = 0
 
-    line.element_refs['qc1r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.r1']
-    line.element_refs['qc2r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.r1']
-    line.element_refs['qc2r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.r1']
-    line.element_refs['qc1r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.r1']
-    line.element_refs['qc1l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.l1']
-    line.element_refs['qc2l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.l1']
-    line.element_refs['qc2l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.l1']
-    line.element_refs['qc1l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.l1']
+    line['qc1r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.r1']
+    line['qc2r1.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.r1']
+    line['qc2r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.r1']
+    line['qc1r2.1'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.r1']
+    line['qc1l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k0.l1']
+    line['qc2l1.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k1.l1']
+    line['qc2l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k2.l1']
+    line['qc1l2.4'].k1 += line.vars['on_corr_ip.1'] * line.vars['corr_k3.l1']
 
 
     Strategy = xt.Strategy
@@ -221,14 +217,14 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     line.vars['acb2h.l1'] = 0
     line.vars['acb2v.l1'] = 0
 
-    line.element_refs['mcb1.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.r1']
-    line.element_refs['mcb2.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.r1']
-    line.element_refs['mcb1.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.r1']
-    line.element_refs['mcb2.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.r1']
-    line.element_refs['mcb1.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.l1']
-    line.element_refs['mcb2.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.l1']
-    line.element_refs['mcb1.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.l1']
-    line.element_refs['mcb2.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.l1']
+    line['mcb1.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.r1']
+    line['mcb2.r1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.r1']
+    line['mcb1.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.r1']
+    line['mcb2.r1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.r1']
+    line['mcb1.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb1h.l1']
+    line['mcb2.l1'].knl[0] = line.vars['on_corr_ip.1']*line.vars['acb2h.l1']
+    line['mcb1.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb1v.l1']
+    line['mcb2.l1'].ksl[0] = line.vars['on_corr_ip.1']*line.vars['acb2v.l1']
 
     tw_thick_no_rad = line.twiss(method='4d')
 

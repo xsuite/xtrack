@@ -20,15 +20,12 @@ line.twiss_default['method'] = '4d'
 
 tw = line.twiss()
 
-# Initialize deferred expressions
-line._init_var_management()
-
 # attach knobs to the quads
 line.vars['knl_f'] = 1.
 line.vars['knl_d'] = -1.
 
-line.element_refs['quad_0'].knl[1] = line.vars['knl_f']
-line.element_refs['quad_1'].knl[1] = line.vars['knl_d']
+line['quad_0'].knl[1] = line.vars['knl_f']
+line['quad_1'].knl[1] = line.vars['knl_d']
 
 # Match tunes
 line.match(

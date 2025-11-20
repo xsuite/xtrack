@@ -29,10 +29,10 @@ def _resolve_table_instance(table: xt.Table):
     return out
 
 def _guess_format_from_path(path: str) -> Optional[str]:
-    lower = path.lower()
+    lower = str(path).lower()
     if lower.endswith(('.json', '.json.gz')):
         return 'json'
-    if lower.endswith(('.seq', '.madx')):
+    if lower.endswith(('.seq', '.madx', '.str')):
         return 'madx'
     if lower.endswith('.py'):
         return 'python'
@@ -51,6 +51,7 @@ def load(
         format: Literal['json', 'madx', 'python', 'csv', 'hdf5', 'tfs'] = None,
         timeout=5.0,
         reverse_lines=None,
+        **kwargs
 ):
     if isinstance(file, Path):
         file = str(file)
@@ -63,11 +64,17 @@ def load(
             f'Format must be specified to be one of {_SUPPORTED_FORMATS} when using string input'
         )
 
-    if format is None and file is not None and isinstance(file, str):
-        format = _guess_format_from_path(file)
+    if format is None and file is not None:
+        if isinstance(file, str):
+            format = _guess_format_from_path(file)
+        elif isinstance(file, (list, tuple)):
+            format_files = list(map(_guess_format_from_path, file))
+            if len(set(format_files)) == 1:
+                format = format_files[0]
 
     if format is None:
-        raise ValueError('format could not be determined, please specify it explicitly')
+        raise ValueError('format could not be determined, please specify it explicitly. '
+                'Available formats are "json", "madx", "python", "csv", "hdf5", "tfs".')
 
     if reverse_lines and format != 'madx':
         raise ValueError('`reverse_lines` is only supported for madx input.')
@@ -84,22 +91,24 @@ def load(
             cls = getattr(xt, cls_name, None)
             if cls is None:
                 raise ValueError(f'Unknown class {cls_name!r} in json data')
-            return cls.from_dict(payload)
+            return cls.from_dict(payload, **kwargs)
         if 'lines' in payload:
-            return xt.Environment.from_dict(payload)
+            return xt.Environment.from_dict(payload, **kwargs)
         if 'element_names' in payload or 'line' in payload:
             if 'line' in payload:
                 payload = payload['line']
-            return xt.Line.from_dict(payload)
+            return xt.Line.from_dict(payload, **kwargs)
         raise ValueError('Cannot determine class from json data')
 
     if format == 'madx':
-        return xt.load_madx_lattice(file=file, string=string, reverse_lines=reverse_lines)
+        return xt.load_madx_lattice(file=file, string=string,
+                                    reverse_lines=reverse_lines,
+                                    **kwargs)
 
     if format == 'python':
         if string is not None:
             raise NotImplementedError('Loading from string not implemented for python format')
-        env = xt.Environment()
+        env = xt.Environment(**kwargs)
         env.call(file)
         return env
 
@@ -107,11 +116,11 @@ def load(
         if string is not None:
             text = string.decode() if isinstance(string, bytes) else string
             buffer = io.StringIO(text)
-            base_table = xt.Table.from_csv(buffer)
+            base_table = xt.Table.from_csv(buffer, **kwargs)
         else:
             if hasattr(file, 'seek'):
                 file.seek(0)
-            base_table = xt.Table.from_csv(file)
+            base_table = xt.Table.from_csv(file, **kwargs)
         return _resolve_table_instance(base_table)
 
     if format == 'hdf5':
@@ -130,11 +139,11 @@ def load(
         if string is not None:
             text = string.decode() if isinstance(string, bytes) else string
             buffer = io.StringIO(text)
-            base_table = xt.Table.from_tfs(buffer)
+            base_table = xt.Table.from_tfs(buffer, **kwargs)
         else:
             if hasattr(file, 'seek'):
                 file.seek(0)
-            base_table = xt.Table.from_tfs(file)
+            base_table = xt.Table.from_tfs(file, **kwargs)
         return _resolve_table_instance(base_table)
 
     raise ValueError(f'Unsupported format {format!r}')

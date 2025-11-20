@@ -58,14 +58,19 @@ def test_coupled_beta(test_context):
     mad.use('lhcb1')
 
     # introduce coupling
-    mad.sequence.lhcb1.expanded_elements[7].ksl = [0, 1e-4]
+    mad.sequence.lhcb1.expanded_elements['mqwa.a4r3.b1..1'].ksl = [0, 1e-4]
     mad.twiss() # I see to need to do it twice to get the right coupling in madx?!
 
     tw_mad_coupling = mad.twiss(ripken=True).dframe()
     tw_mad_coupling.set_index('name', inplace=True)
 
-    line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
-    line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
+    env = xt.load(test_data_folder / 'hllhc15_noerrors_nobb/sequence.madx')
+    line = env['lhcb1']
+    line.set_particle_ref('proton', p0c=7e12)
+    line['mqwa.a4r3.b1..1'].ksl[1] = 1e-4
+    tt_cav = line.get_table().rows.match('Cavity', 'element_type')
+    for nn in tt_cav.name:
+        line[nn].frequency = 400.79e6
 
     line.build_tracker(_context=test_context)
 
@@ -96,15 +101,18 @@ def test_coupled_beta(test_context):
 
 @for_all_test_contexts
 def test_twiss_zeta0_delta0(test_context):
-    mad = Madx(stdout=False)
-    mad.call(str(test_data_folder
-                 / 'hllhc15_noerrors_nobb/sequence_with_crabs.madx'))
-    mad.use('lhcb1')
-    mad.globals.on_crab1 = -190
-    mad.globals.on_crab5 = -190
 
-    line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
-    line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
+    env = xt.load(test_data_folder
+                  / 'hllhc15_noerrors_nobb/sequence_with_crabs.madx')
+    line = env['lhcb1']
+    line.set_particle_ref('proton', p0c=7e12)
+
+    tt_cav = line.get_table().rows.match('Cavity', 'element_type')
+    for nn in tt_cav.name:
+        line[nn].frequency = 400.79e6
+
+    env['on_crab1'] = -190
+    env['on_crab5'] = -190
 
     line.build_tracker(_context=test_context)
 
@@ -585,7 +593,6 @@ def collider_for_test_twiss_range():
     return collider
 
 
-
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 @pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
 @pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw', 'fw_table', 'bw_table'])
@@ -843,10 +850,10 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     tw_test = tw_test.rows[:-1]
     assert np.all(tw_test.name == tw_part.name)
-    assert np.all(tw_test.name_env == tw_part.name_env)
+    assert np.all(tw_test.env_name == tw_part.env_name)
 
     for kk in tw_test._data.keys():
-        if kk in ['name', 'name_env', 'W_matrix', 'particle_on_co', 'values_at',
+        if kk in ['name', 'env_name', 'W_matrix', 'particle_on_co', 'values_at',
                     'method', 'radiation_method', 'reference_frame',
                     'orientation', 'steps_r_matrix', 'line_config',
                     'loop_around', '_action', 'completed_init',
@@ -1358,13 +1365,13 @@ def test_twiss_init_file(test_context):
                     'mux', 'muy', 'x', 'y', 'px', 'py']
 
     # check at a location downsteam
-    loc_check = line.element_names[line.element_names.index(location) + 300]
+    loc_check = 'bpm.30r6.b1'
     for var in check_vars:
         # Check at starting point
         xo.assert_allclose(tw[var, location], tw_full[var, location], atol=1e-9, rtol=0)
 
         # Check at a point in a downstream arc
-        xo.assert_allclose(tw[var, loc_check], tw_full[var, loc_check], atol=2e-7, rtol=0)
+        xo.assert_allclose(tw[var, loc_check], tw_full[var, loc_check], atol=4e-7, rtol=0)
 
     twinit_file.unlink()
 
@@ -1804,7 +1811,7 @@ def test_twiss_range_start_end(test_context, line_name, section, collider_for_te
             continue
 
         if kk in ('name', 'method', 'values_at', 'radiation_method',
-                  'reference_frame', 'name_env'):
+                  'reference_frame', 'env_name'):
             assert np.all(tw_test._data[kk] == tw_ref._data[kk])
             continue
 

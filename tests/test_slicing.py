@@ -282,7 +282,7 @@ def test_slicing_strategy_matching():
     assert line.element_names == expected_names
 
     # Check types:
-    for name, element in line.element_dict.items():
+    for name, element in line.env.elements.items():
         if name == 'keep_this':
             assert isinstance(element, xt.Quadrupole)
         elif name == 'keep_drifts':
@@ -460,7 +460,7 @@ def test_slicing_xdeps_consistency():
 
     for ii in range(num_elements):
         line.vars[f'k{ii}'] = 1
-        line.element_refs[f'bend{ii}'].k0 = line.vars[f'k{ii}']
+        line[f'bend{ii}'].k0 = line.vars[f'k{ii}']
 
     sgy = xt.slicing.Strategy(
         element_type=xt.Bend,
@@ -491,12 +491,13 @@ def test_slice_twice():
 
     assert np.all(tt_first_slice.name == np.array(
         ['el_entry', 'el..entry_map', 'el..0', 'el..1', 'el..2', 'el..3',
-        'el..exit_map', 'el_exit', '_end_point']))
+         'el..exit_map', 'el_exit', '_end_point'])
+    )
 
     assert np.all(tt_first_slice.element_type == np.array(
         ['Marker', 'ThinSliceBendEntry', 'ThickSliceBend', 'ThickSliceBend',
-        'ThickSliceBend', 'ThickSliceBend', 'ThinSliceBendExit', 'Marker',
-        '']))
+         'ThickSliceBend', 'ThickSliceBend', 'ThinSliceBendExit', 'Marker', ''])
+    )
 
     # Check first table
 
@@ -521,73 +522,74 @@ def test_slice_twice():
 
     assert np.all(tt_second_slice.name == np.array(
         ['el_entry', 'el..entry_map', 'el..0_entry', 'drift_el..0..0',
-        'el..0..0', 'drift_el..0..1', 'el..0..1', 'drift_el..0..2',
-        'el..0..2', 'drift_el..0..3', 'el..0..3', 'drift_el..0..4',
-        'el..0_exit', 'el..1_entry', 'drift_el..1..0', 'el..1..0',
-        'drift_el..1..1', 'el..1..1', 'drift_el..1..2', 'el..1..2',
-        'drift_el..1..3', 'el..1..3', 'drift_el..1..4', 'el..1_exit',
-        'el..2_entry', 'drift_el..2..0', 'el..2..0', 'drift_el..2..1',
-        'el..2..1', 'drift_el..2..2', 'el..2..2', 'drift_el..2..3',
-        'el..2..3', 'drift_el..2..4', 'el..2_exit', 'el..3_entry',
-        'drift_el..3..0', 'el..3..0', 'drift_el..3..1', 'el..3..1',
-        'drift_el..3..2', 'el..3..2', 'drift_el..3..3', 'el..3..3',
-        'drift_el..3..4', 'el..3_exit', 'el..exit_map', 'el_exit',
-        '_end_point']))
+         'el..0..0', 'drift_el..0..1', 'el..0..1', 'drift_el..0..2',
+         'el..0..2', 'drift_el..0..3', 'el..0..3', 'drift_el..0..4',
+         'el..0_exit', 'el..1_entry', 'drift_el..1..0', 'el..1..0',
+         'drift_el..1..1', 'el..1..1', 'drift_el..1..2', 'el..1..2',
+         'drift_el..1..3', 'el..1..3', 'drift_el..1..4', 'el..1_exit',
+         'el..2_entry', 'drift_el..2..0', 'el..2..0', 'drift_el..2..1',
+         'el..2..1', 'drift_el..2..2', 'el..2..2', 'drift_el..2..3',
+         'el..2..3', 'drift_el..2..4', 'el..2_exit', 'el..3_entry',
+         'drift_el..3..0', 'el..3..0', 'drift_el..3..1', 'el..3..1',
+         'drift_el..3..2', 'el..3..2', 'drift_el..3..3', 'el..3..3',
+         'drift_el..3..4', 'el..3_exit', 'el..exit_map', 'el_exit',
+         '_end_point'])
+    )
 
     assert np.all(tt_second_slice.element_type == np.array(
         ['Marker', 'ThinSliceBendEntry', 'Marker', 'DriftSliceBend',
-        'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
-        'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
-        'ThinSliceBend', 'DriftSliceBend', 'Marker', 'Marker',
-        'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
-        'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
-        'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
-        'Marker', 'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
-        'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
-        'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
-        'Marker', 'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
-        'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
-        'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
-        'ThinSliceBendExit', 'Marker', ''
-        ]))
+         'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
+         'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
+         'ThinSliceBend', 'DriftSliceBend', 'Marker', 'Marker',
+         'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
+         'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
+         'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
+         'Marker', 'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
+         'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
+         'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
+         'Marker', 'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend',
+         'ThinSliceBend', 'DriftSliceBend', 'ThinSliceBend',
+         'DriftSliceBend', 'ThinSliceBend', 'DriftSliceBend', 'Marker',
+         'ThinSliceBendExit', 'Marker', ''])
+    )
 
     xo.assert_allclose(tt_second_slice.angle_rad, np.array(
         [0.    , 0.    , 0.    , 0.    , 0.0125, 0.    , 0.0125, 0.    ,
-            0.0125, 0.    , 0.0125, 0.    , 0.    , 0.    , 0.    , 0.0375,
-            0.    , 0.0375, 0.    , 0.0375, 0.    , 0.0375, 0.    , 0.    ,
-            0.    , 0.    , 0.0375, 0.    , 0.0375, 0.    , 0.0375, 0.    ,
-            0.0375, 0.    , 0.    , 0.    , 0.    , 0.0125, 0.    , 0.0125,
-            0.    , 0.0125, 0.    , 0.0125, 0.    , 0.    , 0.    , 0.    ,
-            0.    ]), rtol=0, atol=1e-12)
+         0.0125, 0.    , 0.0125, 0.    , 0.    , 0.    , 0.    , 0.0375,
+         0.    , 0.0375, 0.    , 0.0375, 0.    , 0.0375, 0.    , 0.    ,
+         0.    , 0.    , 0.0375, 0.    , 0.0375, 0.    , 0.0375, 0.    ,
+         0.0375, 0.    , 0.    , 0.    , 0.    , 0.0125, 0.    , 0.0125,
+         0.    , 0.0125, 0.    , 0.0125, 0.    , 0.    , 0.    , 0.    ,
+         0.    ]), rtol=0, atol=1e-12)
     xo.assert_allclose(np.sum(tt_second_slice.angle_rad), 0.4, rtol=0, atol=1e-12)
 
     xo.assert_allclose(tt_second_slice.k0l, np.array(
         [0. , 0. , 0. , 0. , 0.1, 0. , 0.1, 0. , 0.1, 0. , 0.1, 0. , 0. ,
-        0. , 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0. , 0. , 0. ,
-        0.3, 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0. , 0. , 0. , 0.1, 0. ,
-        0.1, 0. , 0.1, 0. , 0.1, 0. , 0. , 0. , 0. , 0. ]), rtol=0, atol=1e-12)
+         0. , 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0. , 0. , 0. ,
+         0.3, 0. , 0.3, 0. , 0.3, 0. , 0.3, 0. , 0. , 0. , 0. , 0.1, 0. ,
+         0.1, 0. , 0.1, 0. , 0.1, 0. , 0. , 0. , 0. , 0. ]), rtol=0, atol=1e-12)
     xo.assert_allclose(np.sum(tt_second_slice.k0l), 3.2, rtol=0, atol=1e-12)
 
     xo.assert_allclose(tt_second_slice.k1l, np.array(
         [0.    , 0.    , 0.    , 0.    , 0.0625, 0.    , 0.0625, 0.    ,
-        0.0625, 0.    , 0.0625, 0.    , 0.    , 0.    , 0.    , 0.1875,
-        0.    , 0.1875, 0.    , 0.1875, 0.    , 0.1875, 0.    , 0.    ,
-        0.    , 0.    , 0.1875, 0.    , 0.1875, 0.    , 0.1875, 0.    ,
-        0.1875, 0.    , 0.    , 0.    , 0.    , 0.0625, 0.    , 0.0625,
-        0.    , 0.0625, 0.    , 0.0625, 0.    , 0.    , 0.    , 0.    ,
-        0.    ]), rtol=0, atol=1e-12)
+         0.0625, 0.    , 0.0625, 0.    , 0.    , 0.    , 0.    , 0.1875,
+         0.    , 0.1875, 0.    , 0.1875, 0.    , 0.1875, 0.    , 0.    ,
+         0.    , 0.    , 0.1875, 0.    , 0.1875, 0.    , 0.1875, 0.    ,
+         0.1875, 0.    , 0.    , 0.    , 0.    , 0.0625, 0.    , 0.0625,
+         0.    , 0.0625, 0.    , 0.0625, 0.    , 0.    , 0.    , 0.    ,
+         0.    ]), rtol=0, atol=1e-12)
     xo.assert_allclose(np.sum(tt_second_slice.k1l), 2, rtol=0, atol=1e-12)
 
     xo.assert_allclose(tt_second_slice.k2l, np.array(
         [0.       , 0.       , 0.       , 0.       , 0.0009375, 0.       ,
-        0.0009375, 0.       , 0.0009375, 0.       , 0.0009375, 0.       ,
-        0.       , 0.       , 0.       , 0.0028125, 0.       , 0.0028125,
-        0.       , 0.0028125, 0.       , 0.0028125, 0.       , 0.       ,
-        0.       , 0.       , 0.0028125, 0.       , 0.0028125, 0.       ,
-        0.0028125, 0.       , 0.0028125, 0.       , 0.       , 0.       ,
-        0.       , 0.0009375, 0.       , 0.0009375, 0.       , 0.0009375,
-        0.       , 0.0009375, 0.       , 0.       , 0.       , 0.       ,
-        0.       ]),
+         0.0009375, 0.       , 0.0009375, 0.       , 0.0009375, 0.       ,
+         0.       , 0.       , 0.       , 0.0028125, 0.       , 0.0028125,
+         0.       , 0.0028125, 0.       , 0.0028125, 0.       , 0.       ,
+         0.       , 0.       , 0.0028125, 0.       , 0.0028125, 0.       ,
+         0.0028125, 0.       , 0.0028125, 0.       , 0.       , 0.       ,
+         0.       , 0.0009375, 0.       , 0.0009375, 0.       , 0.0009375,
+         0.       , 0.0009375, 0.       , 0.       , 0.       , 0.       ,
+         0.       ]),
         rtol=0, atol=1e-12)
     xo.assert_allclose(np.sum(tt_second_slice.k2l), 0.03, rtol=0, atol=1e-12)
 
@@ -624,30 +626,31 @@ def test_slice_repeated_elements():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0_entry::0', 'b0..entry_map', 'drift_b0..0', 'b0..0',
-       'drift_b0..1', 'b0..1', 'drift_b0..2', 'b0..2', 'drift_b0..3',
-       'b0..exit_map', 'b0_exit::0', 'drift_2', 'ql', 'drift_3',
-       'q0_entry::0', 'q0..entry_map', 'drift_q0..0', 'q0..0',
-       'drift_q0..1', 'q0..1', 'drift_q0..2', 'q0..exit_map',
-       'q0_exit::0', 'drift_4', 'qr', 'drift_5', 'mk1', 'mk2', 'mk3',
-       'q0_entry::1', 'q0..entry_map_0', 'drift_q0..3', 'q0..2',
+        ['||drift_1', 'b0_entry::0', 'b0..entry_map', 'drift_b0..0',
+       'b0..0', 'drift_b0..1', 'b0..1', 'drift_b0..2', 'b0..2',
+       'drift_b0..3', 'b0..exit_map', 'b0_exit::0', '||drift_2', 'ql',
+       '||drift_3::0', 'q0_entry::0', 'q0..entry_map', 'drift_q0..0',
+       'q0..0', 'drift_q0..1', 'q0..1', 'drift_q0..2', 'q0..exit_map',
+       'q0_exit::0', '||drift_3::1', 'qr', '||drift_4', 'mk1', 'mk2',
+       'mk3', 'q0_entry::1', 'q0..entry_map_0', 'drift_q0..3', 'q0..2',
        'drift_q0..4', 'q0..3', 'drift_q0..5', 'q0..exit_map_0',
        'q0_exit::1', 'b0_entry::1', 'b0..entry_map_0', 'drift_b0..4',
        'b0..3', 'drift_b0..5', 'b0..4', 'drift_b0..6', 'b0..5',
-       'drift_b0..7', 'b0..exit_map_0', 'b0_exit::1', 'drift_6', 'end',
+       'drift_b0..7', 'b0..exit_map_0', 'b0_exit::1', '||drift_5', 'end',
        '_end_point']))
+
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5       ,  5.        ,  5.        ,  5.0625    ,  5.125     ,
-        5.3125    ,  5.5       ,  5.6875    ,  5.875     ,  5.9375    ,
-        6.        ,  6.        ,  7.5       , 10.        , 15.        ,
-       19.        , 19.        , 19.16666667, 19.33333333, 20.        ,
-       20.66666667, 20.83333333, 21.        , 21.        , 25.        ,
-       30.        , 35.5       , 40.        , 40.        , 40.        ,
-       40.        , 40.        , 40.16666667, 40.33333333, 41.        ,
-       41.66666667, 41.83333333, 42.        , 42.        , 42.        ,
-       42.        , 42.0625    , 42.125     , 42.3125    , 42.5       ,
-       42.6875    , 42.875     , 42.9375    , 43.        , 43.        ,
-       46.5       , 50.        , 50.        ]),
+          5.3125    ,  5.5       ,  5.6875    ,  5.875     ,  5.9375    ,
+          6.        ,  6.        ,  7.5       , 10.        , 15.        ,
+         19.        , 19.        , 19.16666667, 19.33333333, 20.        ,
+         20.66666667, 20.83333333, 21.        , 21.        , 25.        ,
+         30.        , 35.5       , 40.        , 40.        , 40.        ,
+         40.        , 40.        , 40.16666667, 40.33333333, 41.        ,
+         41.66666667, 41.83333333, 42.        , 42.        , 42.        ,
+         42.        , 42.0625    , 42.125     , 42.3125    , 42.5       ,
+         42.6875    , 42.875     , 42.9375    , 43.        , 43.        ,
+         46.5       , 50.        , 50.        ]),
         rtol=0., atol=1e-8)
 
     line = line0.copy()
@@ -662,22 +665,22 @@ def test_slice_repeated_elements():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0', 'drift_2', 'ql', 'drift_3', 'q0_entry',
+        ['||drift_1', 'b0', '||drift_2', 'ql', '||drift_3::0', 'q0_entry',
        'q0..entry_map', 'drift_q0..0', 'q0..0', 'drift_q0..1', 'q0..1',
-       'drift_q0..2', 'q0..exit_map', 'q0_exit', 'drift_4', 'qr',
-       'drift_5', 'mk1', 'mk2', 'mk3', 'q0', 'b0_entry', 'b0..entry_map',
-       'drift_b0..0', 'b0..0', 'drift_b0..1', 'b0..1', 'drift_b0..2',
-       'b0..2', 'drift_b0..3', 'b0..exit_map', 'b0_exit', 'drift_6',
-       'end', '_end_point']))
+       'drift_q0..2', 'q0..exit_map', 'q0_exit', '||drift_3::1', 'qr',
+       '||drift_4', 'mk1', 'mk2', 'mk3', 'q0', 'b0_entry',
+       'b0..entry_map', 'drift_b0..0', 'b0..0', 'drift_b0..1', 'b0..1',
+       'drift_b0..2', 'b0..2', 'drift_b0..3', 'b0..exit_map', 'b0_exit',
+       '||drift_5', 'end', '_end_point']))
 
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5       ,  5.5       ,  7.5       , 10.        , 15.        ,
-          19.        , 19.        , 19.16666667, 19.33333333, 20.        ,
-          20.66666667, 20.83333333, 21.        , 21.        , 25.        ,
-          30.        , 35.5       , 40.        , 40.        , 40.        ,
-          41.        , 42.        , 42.        , 42.0625    , 42.125     ,
-          42.3125    , 42.5       , 42.6875    , 42.875     , 42.9375    ,
-          43.        , 43.        , 46.5       , 50.        , 50.        ]),
+         19.        , 19.        , 19.16666667, 19.33333333, 20.        ,
+         20.66666667, 20.83333333, 21.        , 21.        , 25.        ,
+         30.        , 35.5       , 40.        , 40.        , 40.        ,
+         41.        , 42.        , 42.        , 42.0625    , 42.125     ,
+         42.3125    , 42.5       , 42.6875    , 42.875     , 42.9375    ,
+         43.        , 43.        , 46.5       , 50.        , 50.        ]),
         rtol=0., atol=1e-8)
 
     line = line0.copy()
@@ -693,23 +696,23 @@ def test_slice_repeated_elements():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0_entry::0', 'b0..entry_map', 'b0..0', 'b0..1',
-       'b0..2', 'b0..exit_map', 'b0_exit::0', 'drift_2', 'ql', 'drift_3',
-       'q0_entry::0', 'q0..entry_map', 'q0..0', 'q0..1', 'q0..exit_map',
-       'q0_exit::0', 'drift_4', 'qr', 'drift_5', 'mk1', 'mk2', 'mk3',
-       'q0_entry::1', 'q0..entry_map_0', 'q0..2', 'q0..3',
-       'q0..exit_map_0', 'q0_exit::1', 'b0_entry::1', 'b0..entry_map_0',
-       'b0..3', 'b0..4', 'b0..5', 'b0..exit_map_0', 'b0_exit::1',
-       'drift_6', 'end', '_end_point']))
+        ['||drift_1', 'b0_entry::0', 'b0..entry_map', 'b0..0', 'b0..1',
+       'b0..2', 'b0..exit_map', 'b0_exit::0', '||drift_2', 'ql',
+       '||drift_3::0', 'q0_entry::0', 'q0..entry_map', 'q0..0', 'q0..1',
+       'q0..exit_map', 'q0_exit::0', '||drift_3::1', 'qr', '||drift_4',
+       'mk1', 'mk2', 'mk3', 'q0_entry::1', 'q0..entry_map_0', 'q0..2',
+       'q0..3', 'q0..exit_map_0', 'q0_exit::1', 'b0_entry::1',
+       'b0..entry_map_0', 'b0..3', 'b0..4', 'b0..5', 'b0..exit_map_0',
+       'b0_exit::1', '||drift_5', 'end', '_end_point']))
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5       ,  5.        ,  5.        ,  5.08333333,  5.5       ,
           5.91666667,  6.        ,  6.        ,  7.5       , 10.        ,
-          15.        , 19.        , 19.        , 19.5       , 20.5       ,
-          21.        , 21.        , 25.        , 30.        , 35.5       ,
-          40.        , 40.        , 40.        , 40.        , 40.        ,
-          40.5       , 41.5       , 42.        , 42.        , 42.        ,
-          42.        , 42.08333333, 42.5       , 42.91666667, 43.        ,
-          43.        , 46.5       , 50.        , 50.        ]),
+         15.        , 19.        , 19.        , 19.5       , 20.5       ,
+         21.        , 21.        , 25.        , 30.        , 35.5       ,
+         40.        , 40.        , 40.        , 40.        , 40.        ,
+         40.5       , 41.5       , 42.        , 42.        , 42.        ,
+         42.        , 42.08333333, 42.5       , 42.91666667, 43.        ,
+         43.        , 46.5       , 50.        , 50.        ]),
         rtol=0., atol=1e-8)
 
     line = line0.copy()
@@ -719,17 +722,65 @@ def test_slice_repeated_elements():
     tt.show(cols=['name', 's_start', 's_end', 's_center'])
 
     assert np.all(tt.name == np.array(
-        ['drift_1', 'b0_entry', 'b0..entry_map', 'b0..0', 'b0..1',
-       'b0..exit_map', 'b0_exit', 'drift_2', 'ql', 'drift_3',
+        ['||drift_1', 'b0_entry', 'b0..entry_map', 'b0..0', 'b0..1',
+       'b0..exit_map', 'b0_exit', '||drift_2', 'ql', '||drift_3::0',
        'q0_entry::0', 'q0..entry_map', 'q0..0', 'q0..1', 'q0..2',
-       'q0..exit_map', 'q0_exit::0', 'drift_4', 'qr', 'drift_5', 'mk1',
-       'mk2', 'mk3', 'q0_entry::1', 'q0..entry_map_0', 'q0..3', 'q0..4',
-       'q0..5', 'q0..exit_map_0', 'q0_exit::1', 'b0', 'drift_6', 'end',
-       '_end_point']))
+       'q0..exit_map', 'q0_exit::0', '||drift_3::1', 'qr', '||drift_4',
+       'mk1', 'mk2', 'mk3', 'q0_entry::1', 'q0..entry_map_0', 'q0..3',
+       'q0..4', 'q0..5', 'q0..exit_map_0', 'q0_exit::1', 'b0',
+       '||drift_5', 'end', '_end_point']))
 
     xo.assert_allclose(tt.s_center, np.array(
         [ 2.5 ,  5.  ,  5.  ,  5.25,  5.75,  6.  ,  6.  ,  7.5 , 10.  ,
-       15.  , 19.  , 19.  , 19.55, 20.15, 20.6 , 21.  , 21.  , 25.  ,
-       30.  , 35.5 , 40.  , 40.  , 40.  , 40.  , 40.  , 40.85, 41.75,
-       41.9 , 42.  , 42.  , 42.5 , 46.5 , 50.  , 50.  ]),
+         15.  , 19.  , 19.  , 19.55, 20.15, 20.6 , 21.  , 21.  , 25.  ,
+         30.  , 35.5 , 40.  , 40.  , 40.  , 40.  , 40.  , 40.85, 41.75,
+         41.9 , 42.  , 42.  , 42.5 , 46.5 , 50.  , 50.  ]),
         rtol=0., atol=1e-8)
+
+
+def test_slicing_thick_correctly_set_slice_offsets():
+    bend = xt.Bend(
+        length=3.0,
+        angle=0.3,
+    )
+    line = xt.Line(elements=[bend], element_names=['bend'])
+    line.slice_thick_elements([Strategy(slicing=Uniform(3, mode='thick'))])
+
+    assert len(line) == 7  # 2 markers + 2 edges + 3 thick slices
+
+    assert line['bend..entry_map'].slice_offset == 0
+    assert line['bend..0'].slice_offset == 0
+    assert line['bend..0'].weight == 1/3
+    assert line['bend..1'].slice_offset == 1
+    assert line['bend..1'].weight == 1/3
+    assert line['bend..2'].slice_offset == 2
+    assert line['bend..2'].weight == 1/3
+    assert line['bend..exit_map'].slice_offset == 3
+
+
+def test_slicing_thin_correctly_set_slice_offsets():
+    bend = xt.Bend(
+        length=3.0,
+        angle=0.3,
+    )
+    line = xt.Line(elements=[bend], element_names=['bend'])
+    line.slice_thick_elements([Strategy(slicing=Uniform(3, mode='thin'))])
+
+    assert len(line) == 11  # 2 markers + 2 edges + 3 thin slices + 4 drift slices
+
+    tt = line.get_table()
+    slice_names = [
+        'bend..entry_map',
+        'drift_bend..0',
+        'bend..0',
+        'drift_bend..1',
+        'bend..1',
+        'drift_bend..2',
+        'bend..2',
+        'drift_bend..3',
+        'bend..exit_map',
+    ]
+    slice_offsets = [line[name].slice_offset for name in slice_names]
+    slice_s_positions = [tt.rows[name].s for name in slice_names]
+
+    assert np.all(slice_offsets == slice_s_positions)

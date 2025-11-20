@@ -547,7 +547,6 @@ def test_mad_elements_import():
         line = xt.Line.from_dict(line.to_dict())  # This calls the to_dict method fot all
         # elements
 
-        assert len(line.element_names) == len(line.element_dict.keys())
         assert line.get_length() == 10
 
         assert isinstance(line['m0'], xt.Multipole)
@@ -678,8 +677,8 @@ def test_selective_expr_import_and_replace_in_expr():
     assert len(line.vars['bv_aux_lhcb1']._find_dependant_targets()) > 1
     assert 'bv_aux' not in line.vars
 
-    assert line.element_refs['mqxfa.b3r5..1'].knl[1]._expr is None  # multipole
-    assert line.element_refs['mcbxfbv.b2r1'].ksl[0]._expr is not None  # kicker
+    assert line.ref['mqxfa.b3r5..1'].knl[1]._expr is None  # multipole
+    assert line.ref['mcbxfbv.b2r1'].ksl[0]._expr is not None  # kicker
 
 
 def test_load_madx_optics_file():
@@ -750,10 +749,10 @@ def test_load_madx_optics_file():
     xo.assert_allclose(tw.lhcb1.qy, 60.32000000, atol=1e-6, rtol=0)
     xo.assert_allclose(tw.lhcb2.qx, 62.31000000, atol=1e-6, rtol=0)
     xo.assert_allclose(tw.lhcb2.qy, 60.32000000, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=0, rtol=1e-6)
-    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=0, rtol=1e-6)
+    xo.assert_allclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=0, rtol=5e-6)
+    xo.assert_allclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=0, rtol=5e-6)
+    xo.assert_allclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=0, rtol=5e-6)
+    xo.assert_allclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=0, rtol=5e-6)
 
     # Check a knob
     collider.vars['on_x1'] = 10

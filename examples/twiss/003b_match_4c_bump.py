@@ -1,14 +1,7 @@
-import json
-
 import numpy as np
 import xtrack as xt
 
-with open('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json',
-            'r') as fid:
-    dct = json.load(fid)
-line = xt.Line.from_dict(dct)
-
-line.build_tracker()
+line = xt.load('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 
 tw_before = line.twiss()
 
@@ -79,10 +72,10 @@ assert np.isclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=10
 # Now I match the bump including the horizontal plane
 
 # I start from scratch
-line.vars['acbv30.l8b1'] = 0
-line.vars['acbv28.l8b1'] = 0
-line.vars['acbv26.l8b1'] = 0
-line.vars['acbv24.l8b1'] = 0
+line['acbv30.l8b1'] = 0
+line['acbv28.l8b1'] = 0
+line['acbv26.l8b1'] = 0
+line['acbv24.l8b1'] = 0
 
 line.match(
     start='mq.33l8.b1',

@@ -5,10 +5,8 @@
 
 import xtrack as xt
 
-line = xt.load(
-    '../../test_data/psb_injection/line_and_particle.json')
-line.particle_ref = xt.Particles(mass0=(xt.PROTON_MASS_EV), q0=1, energy0=(2*160.+938.)*1.e6)
-line.build_tracker()
+line = xt.load('../../test_data/psb_injection/line_and_particle.json')
+line.set_particle_ref('proton', energy0=(2*160.+938.)*1.e6)
 
 df_hz = 180 # Frequency trim
 
@@ -28,9 +26,7 @@ beta0 = line.particle_ref.beta0[0]
 
 dzeta = tw.circumference * df_hz / f_rf
 
-line.unfreeze()
-line.append_element(element=xt.ZetaShift(dzeta=dzeta), name='zeta_shift')
-line.build_tracker()
+line.append('zeta_shift', xt.ZetaShift(dzeta=dzeta))
 
 tw_6d_offmom = line.twiss()
 

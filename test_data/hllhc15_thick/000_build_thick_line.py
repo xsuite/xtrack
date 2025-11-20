@@ -14,20 +14,34 @@ call,file="hllhc_sequence.madx";
 seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
 seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
 beam, sequence=lhcb1, particle=proton, pc=7000;
+beam, sequence=lhcb2, particle=proton, pc=7000, bv=-1;
 call,file="opt_round_150_1500.madx";
+use, sequence=lhcb1;
+use, sequence=lhcb2;
+twiss;
+set, format="12d", "-18.12e", "25s";
+save, file="temp_lhc_thick.seq";
 """)
 
-mad.use(sequence="lhcb1")
-seq = mad.sequence.lhcb1
-mad.twiss()
+mad2 = Madx()
+mad.call('temp_lhc_thick.seq')
+mad.beam()
+mad.use('lhcb1') # check no negative drifts in madx
 
-line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
-            allow_thick=True, deferred_expressions=True)
-line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
 
-tt = line.get_table()
-for nn in tt.rows[tt.element_type=='Solenoid'].name:
-    ee_elen = line[nn].length
-    line.element_dict[nn] = xt.Drift(length=ee_elen)
+env = xt.load('temp_lhc_thick.seq', s_tol=1e-6,
+              _rbend_correct_k0=True, # LHC sequences are defined with rbarc=False
+              reverse_lines=['lhcb2'])
+
+
+env.lhcb1.set_particle_ref('proton', p0c=7000e9)
+env.lhcb2.set_particle_ref('proton', p0c=7000e9)
+
+# Set cavity frequency
+tt_cav = env.elements.get_table().rows.match(element_type='Cavity')
+for nn in tt_cav.name:
+    env[nn].frequency = 400.79e6  # Hz
+
+line = env.lhcb1
 
 line.to_json('lhc_thick_with_knobs.json', include_var_management=True)

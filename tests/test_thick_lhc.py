@@ -13,7 +13,7 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 @for_all_test_contexts
-def test_madloader_lhc_thick(test_context):
+def test_cpymad_madloader_lhc_thick(test_context):
     mad = Madx(stdout=False)
 
     mad.input(f"""

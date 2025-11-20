@@ -16,24 +16,13 @@ def test_ps_against_ptc(test_context):
     # Verify correct result with Yoshida integration in CombinedFunctionMagnet
 
     mad = Madx(stdout=False)
-
     mad.call(str(test_data_folder / 'ps_sftpro/ps.seq'))
     mad.call(str(test_data_folder / 'ps_sftpro/ps_hs_sftpro.str'))
     mad.input('beam, particle=proton, pc = 14.0; BRHO = BEAM->PC * 3.3356;')
     mad.use('ps')
     seq = mad.sequence.ps
 
-    line = xt.Line.from_madx_sequence(seq, deferred_expressions=True)
-    line.particle_ref = xt.Particles(gamma0=seq.beam.gamma,
-                                    mass0=seq.beam.mass * 1e9,
-                                    q0=seq.beam.charge)
-    line.build_tracker(_context=test_context)
 
-    assert isinstance(line['pr.bhr00.f'], xt.Bend)
-    assert line['pr.bhr00.f'].model == 'adaptive'
-    assert line['pr.bhr00.f'].num_multipole_kicks == 0
-
-    tw = line.twiss(method='4d')
 
     delta_chrom = 1e-4
     mad.input(f'''
@@ -97,6 +86,18 @@ def test_ps_against_ptc(test_context):
     ay_ptc = d_alfy - d_bety * alfy / bety
     wx_ptc = np.sqrt(ax_ptc**2 + bx_ptc**2)
     wy_ptc = np.sqrt(ay_ptc**2 + by_ptc**2)
+
+    env = xt.load([test_data_folder / 'ps_sftpro/ps.seq',
+                   test_data_folder / 'ps_sftpro/ps_hs_sftpro.str'])
+    line = env.ps
+    line.set_particle_ref('proton', p0c=14e9)
+    line.build_tracker(_context=test_context)
+
+    assert isinstance(line['pr.bhr00.f'], xt.Bend)
+    assert line['pr.bhr00.f'].model == 'adaptive'
+    assert line['pr.bhr00.f'].num_multipole_kicks == 0
+
+    tw = line.twiss(method='4d')
 
     xo.assert_allclose(tw.qx, qx_ptc, atol=1e-4, rtol=0)
     xo.assert_allclose(tw.qy, qy_ptc, atol=1e-4, rtol=0)

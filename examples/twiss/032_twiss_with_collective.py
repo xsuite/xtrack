@@ -2,7 +2,7 @@ import xtrack as xt
 import xobjects as xo
 
 env = xt.Environment()
-env.particle_ref = xt.Particles(p0c=7e12)
+env.set_particle_ref('proton', p0c=7e12)
 
 class MyKicker:
     def __init__(self, kickx=0, kicky=0):

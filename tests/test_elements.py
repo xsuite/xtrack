@@ -223,7 +223,7 @@ def test_drift_exact_and_expanded(test_context):
 
     assert line['e2'].model == 'adaptive'
 
-    p0 = xp.Particles(p0c=1e9, px=0.3, _context=test_context)
+    p0 = xp.Particles(p0c=1e9, px=0.3)
     x_prime_expanded = p0.px / (1 + p0.delta)
     x_prime_exact = p0.px / np.sqrt((1 + p0.delta)**2 - p0.px**2)
 
@@ -1288,3 +1288,17 @@ def test_multipole_tilt_90_deg(test_context):
     xo.assert_allclose(pf.ptau, pfy.ptau, rtol=0, atol=1e-14)
 
 
+def test_beam_element_sin_cos_rot_backwards_compatible():
+    rot_s_rad = 0.13
+    sin_rot_s = np.sin(rot_s_rad)
+    cos_rot_s = np.cos(rot_s_rad)
+
+    mb_init = xt.Bend(length=1, _sin_rot_s=sin_rot_s, _cos_rot_s=cos_rot_s)
+    mb_dict = xt.Bend.from_dict({
+        'length': 1,
+        '_sin_rot_s': sin_rot_s,
+        '_cos_rot_s': cos_rot_s,
+    })
+
+    assert rot_s_rad == mb_init.rot_s_rad
+    assert rot_s_rad == mb_dict.rot_s_rad

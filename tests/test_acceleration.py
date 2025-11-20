@@ -8,7 +8,6 @@ import pathlib
 
 import numpy as np
 import pandas as pd
-from cpymad.madx import Madx
 from scipy.constants import c as clight
 
 import xobjects as xo
@@ -64,20 +63,10 @@ def test_energy_program(test_context):
     # Shift the time scale for testing purposes
     t_s = t_s
 
-    # Load mad model and apply element shifts
-    mad = Madx(stdout=False)
-    mad.call(str(test_data_folder / 'psb_chicane/psb.seq'))
-    mad.call(str(test_data_folder / 'psb_chicane/psb_fb_lhc.str'))
-    mad.input('''
-        beam, particle=PROTON, pc=0.5708301551893517;
-        use, sequence=psb1;
-        twiss;
-    ''')
-
-    line = xt.Line.from_madx_sequence(mad.sequence.psb1, allow_thick=True,
-                                      deferred_expressions=True)
-    line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
-                                     gamma0=mad.sequence.psb1.beam.gamma)
+    env = xt.load([test_data_folder / 'psb_chicane/psb.seq',
+                   test_data_folder / 'psb_chicane/psb_fb_lhc.str'])
+    env.psb1.set_particle_ref('proton', p0c=0.5708301551893517e9)
+    line = env.psb1
 
     line.build_tracker(_context=test_context)
 
@@ -176,21 +165,10 @@ def test_energy_program(test_context):
 @for_all_test_contexts(excluding=('ContextPyopencl',))
 def test_acceleration_transverse_shrink(test_context):
 
-    mad = Madx(stdout=False)
-
-    # Load mad model and apply element shifts
-    mad.input(f'''
-    call, file = '{str(test_data_folder)}/psb_chicane/psb.seq';
-    call, file = '{str(test_data_folder)}/psb_chicane/psb_fb_lhc.str';
-    beam;
-    use, sequence=psb1;
-    ''')
-
-    line = xt.Line.from_madx_sequence(mad.sequence.psb1,
-                                        deferred_expressions=True)
-    e_kin_start_eV = 160e6
-    line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,
-                                    energy0=xt.PROTON_MASS_EV + e_kin_start_eV)
+    env = xt.load([test_data_folder / 'psb_chicane/psb.seq',
+                   test_data_folder / 'psb_chicane/psb_fb_lhc.str'])
+    env.psb1.set_particle_ref('proton', p0c=0.5708301551893517e9)
+    line = env.psb1
 
     # Slice to gain some tracking speed
     line.slice_thick_elements(
@@ -256,12 +234,12 @@ def test_acceleration_transverse_shrink(test_context):
 
     # Build a function with these samples and link it to the cavity
     line.functions['fun_f_rf'] = xt.FunctionPieceWiseLinear(x=t_rf, y=f_rf)
-    line.element_refs['br1.acwf5l1.1'].frequency = line.functions['fun_f_rf'](
+    line['br1.acwf5l1.1'].frequency = line.functions['fun_f_rf'](
                                                             line.vars['t_turn_s'])
 
     # Setup voltage and lag
-    line.element_refs['br1.acwf5l1.1'].voltage = 3000 # V
-    line.element_refs['br1.acwf5l1.1'].lag = 0 # degrees (below transition energy)
+    line['br1.acwf5l1.1'].voltage = 3000 # V
+    line['br1.acwf5l1.1'].lag = 0 # degrees (below transition energy)
 
     # When setting line.vars['t_turn_s'] the reference energy and the rf frequency
     # are updated automatically

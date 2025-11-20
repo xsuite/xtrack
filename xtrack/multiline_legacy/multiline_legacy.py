@@ -32,7 +32,7 @@ class MultilineLegacy:
         if link_vars:
             self._var_sharing = xt.multiline_legacy.VarSharing(
                 lines=line_list, names=line_names)
-            self._multiline_vars = xt.line.LineVars(self)
+            self._multiline_vars = xt.line.EnvVars(self)
         else:
             self._var_sharing = None
 

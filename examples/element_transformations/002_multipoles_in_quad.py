@@ -12,8 +12,6 @@ m = xt.Multipole(length=1, knl=knl, ksl=ksl)
 d2 = xt.Drift(length=0.5)
 
 l2 = xt.Line(elements=[d1, m, d2])
-l2.build_tracker()
-
 
 p0 = xt.Particles(p0c=7000e9, x=1e-3, px=0)
 

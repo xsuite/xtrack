@@ -110,7 +110,8 @@ def _build_beta0_block_string(tw_kwargs):
 
 def _tw_ng(line, rdts=(), normal_form=True,
            mapdef_twiss=2, mapdef_normal_form=4,
-           nslice=3, xsuite_tw=True, X0=None, **tw_kwargs):
+           nslice=3, xsuite_tw=True, X0=None,
+           method=4, **tw_kwargs):
 
     _action = ActionTwissMadng(line, {
         "rdts": rdts,
@@ -170,7 +171,7 @@ def _tw_ng(line, rdts=(), normal_form=True,
 
         mng_script = ('''
         -- twiss without RDTs
-        local mtbl = twiss {sequence=''' f'{mng._sequence_name}, method=4,\
+        local mtbl = twiss {sequence=''' f'{mng._sequence_name}, method={method},\
         {X0_str} {range_str} {full_twiss_str}'
         '''}
         '''
@@ -252,7 +253,7 @@ def _tw_ng(line, rdts=(), normal_form=True,
             '''
             local track in MAD  -- like "from MAD import track"
             local mytrktable, mytrkflow = MAD.track{sequence='''
-            f'{mng._sequence_name}, method=4, mapdef={mapdef_normal_form}, nslice={nslice}'
+            f'{mng._sequence_name}, method={method},mapdef={mapdef_normal_form}, nslice={nslice}'
             '''}
 
             local normal in MAD.gphys  -- like "from MAD.gphys import normal"
@@ -410,11 +411,14 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
 
         from pymadng import MAD
 
+        nocharge = str(kwargs.pop('nocharge', True)).lower()
+
         mng = MAD(**kwargs)
         mng.send(f"""
                  local mad_func = loadfile('{temp_fname}.mad', nil, MADX)
                  assert(mad_func)
                  mad_func()
+                 MAD.option.nocharge = {nocharge}
                  """)
         mng._init_madx_data = madx_seq
 

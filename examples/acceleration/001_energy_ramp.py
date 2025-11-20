@@ -2,13 +2,9 @@ import numpy as np
 from cpymad.madx import Madx
 import xtrack as xt
 
-# Import a line and build a tracker
-line = xt.load(
-    '../../test_data/psb_injection/line_and_particle.json')
-e_kin_start_eV = 160e6
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1.,
-                                 energy0=xt.PROTON_MASS_EV + e_kin_start_eV)
-line.build_tracker()
+# Import a line
+line = xt.load('../../test_data/psb_injection/line_and_particle.json')
+line.set_particle_ref('proton', kinetic_energy0=160e6)
 
 tw0 = line.twiss4d()
 
@@ -49,25 +45,24 @@ f_rf = h_rf * f_rev # frequency program
 
 # Build a function with these samples and link it to the cavity
 line.functions['fun_f_rf'] = xt.FunctionPieceWiseLinear(x=t_rf, y=f_rf)
-line.element_refs['br.c02'].frequency = line.functions['fun_f_rf'](
-                                                        line.vars['t_turn_s'])
+line['br.c02'].frequency = line.functions['fun_f_rf'](line.ref['t_turn_s'])
 
 # Setup voltage and lag
-line.element_refs['br.c02'].voltage = 3000 # V
-line.element_refs['br.c02'].lag = 0 # degrees (below transition energy)
+line['br.c02'].voltage = 3000 # V
+line['br.c02'].lag = 0 # degrees (below transition energy)
 
-# When setting line.vars['t_turn_s'] the reference energy and the rf frequency
+# When setting line['t_turn_s'] the reference energy and the rf frequency
 # are updated automatically
-line.vars['t_turn_s'] = 0
+line['t_turn_s'] = 0
 line.particle_ref.kinetic_energy0 # is 160.00000 MeV
 line['br.c02'].frequency # is 1983931.935 Hz
 
-line.vars['t_turn_s'] = 3e-3
+line['t_turn_s'] = 3e-3
 line.particle_ref.kinetic_energy0 # is 160.56165 MeV
 line['br.c02'].frequency # is 1986669.0559674294
 
 # Back to zero for tracking!
-line.vars['t_turn_s'] = 0
+line['t_turn_s'] = 0
 
 # Track a few particles to visualize the longitudinal phase space
 p_test = line.build_particles(x_norm=0, zeta=np.linspace(0, line.get_length(), 101))

@@ -512,7 +512,7 @@ def test_from_dict_current():
     assert isinstance(d1, xt.Drift)
     assert d1.length == 4
 
-    assert d2 is d1
+    assert d2._obj is d1._obj  # they are views
 
     assert line.metadata == test_dict['metadata']
 
@@ -668,11 +668,11 @@ def test_optimize_multipoles(test_context):
 
     for nn in test_line.element_names:
         if nn in ('d1', 'd2'):
-            assert type(test_line.element_dict[nn]) is xt.SimpleThinBend
+            assert type(test_line.get(nn)) is xt.SimpleThinBend
         elif nn == 'q1' or nn == 'q3':
-            assert type(test_line.element_dict[nn]) is xt.SimpleThinQuadrupole
+            assert type(test_line.get(nn)) is xt.SimpleThinQuadrupole
         else:
-            assert type(test_line.element_dict[nn]) is xt.Multipole
+            assert type(test_line.get(nn)) is xt.Multipole
 
 def test_from_json_to_json(tmp_path):
 
@@ -691,7 +691,7 @@ def test_from_json_to_json(tmp_path):
     line.metadata = example_metadata
 
     def asserts():
-        assert len(result.element_dict.keys()) == 2
+        assert len(result.env.elements) == 2
         assert result.element_names == ['m', 'd', 'm', 'd']
 
         assert isinstance(result['m'], xt.Multipole)
@@ -947,9 +947,9 @@ def test_insert_thin_elements_at_s_lhc(test_context):
             == np.array(
                 ['m1_at_c', 'm2_at_c', 'mq.29r3.b1..exit_map', 'mq.29r3.b1_exit']))
 
-    assert np.all(tt.rows['m0_at_d':'m0_at_d>>4'].name
+    assert np.all(tt.rows['m0_at_d':'m0_at_d>>3'].name
                 == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
-                            'lhcb1ip7_p_', '_end_point']))
+                            '_end_point']))
 
     xo.assert_allclose(line.get_length(), tw0.s[-1], atol=1e-6)
 
@@ -1050,6 +1050,8 @@ def test_insert_thick_element_reuse_marker_name():
                 element_names=list(elements.keys()))
 
     # Note that the name is reused
+    line.remove('m1') # remove from the line
+    line.env.remove('m1') # remove from the environment
     line.insert_element(element=xt.Bend(length=1.), name='m1', at_s=0.5)
 
     tt = line.get_table()

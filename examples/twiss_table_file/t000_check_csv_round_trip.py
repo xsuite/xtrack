@@ -8,8 +8,8 @@ tmp_path = Path('./')
 
 check_type = 'json'  # 'csv', 'hdf5', 'tfs'
 
-env = xt.load('../../test_data/sps_thick/sps.seq')
-env.vars.load('../../test_data/sps_thick/lhc_q20.str')
+env = xt.load(['../../test_data/sps_thick/sps.seq',
+                '../../test_data/sps_thick/lhc_q20.str'])
 line = env.sps
 line.set_particle_ref('p', energy0=26e9)
 tw = line.twiss4d()

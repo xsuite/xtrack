@@ -584,33 +584,16 @@ def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x
     xo.assert_allclose(recorded_x, expected_x, atol=1e-16)
 
 
-@pytest.fixture
-def pimms_mad():
-    pimms_path = test_data_folder / 'pimms/PIMMS.seq'
-    mad = Madx(stdout=False)
-    mad.option(echo=False)
-    mad.call(str(pimms_path))
-    mad.beam()
-    mad.use('pimms')
-    return mad
-
-
 @for_all_test_contexts
 @fix_random_seed(784239)
-def test_track_log_and_merit_function(pimms_mad, test_context):
-    line = xt.Line.from_madx_sequence(
-        pimms_mad.sequence.pimms,
-        deferred_expressions=True,
-    )
-    line.particle_ref = xt.Particles(
-        q0=1,
-        mass0=xt.PROTON_MASS_EV,
-        kinetic_energy0=200e6, # eV
-    )
-    line.insert_element(
-        name='septum_aperture',
-        element=xt.LimitRect(min_x=-0.1, max_x=0.1, min_y=-0.1, max_y=0.1),
-        at='extr_septum',
+def test_track_log_and_merit_function(test_context):
+    env = xt.load(test_data_folder / 'pimms/PIMMS.seq')
+    line = env.pimms
+    line.set_particle_ref('proton', kinetic_energy0=200e6)
+    line.insert(
+        'septum_aperture',
+        xt.LimitRect(min_x=-0.1, max_x=0.1, min_y=-0.1, max_y=0.1),
+        at=0, from_='extr_septum',
     )
     line['septum_aperture'].max_x = 0.035
     line.configure_bend_model(edge='full', core='adaptive', num_multipole_kicks=1)

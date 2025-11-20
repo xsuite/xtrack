@@ -1,15 +1,8 @@
-import json
-
 import numpy as np
 import xtrack as xt
 import xobjects as xo
 
-with open('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json',
-            'r') as fid:
-    dct = json.load(fid)
-line = xt.Line.from_dict(dct)
-
-line.build_tracker()
+line = xt.load('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 
 tw_before = line.twiss()
 
@@ -91,4 +84,4 @@ assert np.isclose(tw['y', 'mb.b26l8.b1'], 3e-3, atol=1e-6, rtol=0)
 assert np.isclose(tw['py', 'mb.b26l8.b1'], 0, atol=1e-8, rtol=0)
 
 assert np.isclose(tw['y', 'mq.30l8.b1'], -1e-3, atol=1e-6, rtol=0)
-assert np.isclose(line.vars['acbv22.l8b1']._value, 38e-6, atol=0, rtol=0.02)
+assert np.isclose(line['acbv22.l8b1'], 38e-6, atol=0, rtol=0.02)

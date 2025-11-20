@@ -6,20 +6,11 @@
 import xtrack as xt
 import xobjects as xo
 
-from cpymad.madx import Madx
-
-# Load sequence in MAD-X
-mad = Madx()
-mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
-mad.use(sequence="lhcb1")
-
-# Build Xtrack line importing MAD-X expressions
-line = xt.Line.from_madx_sequence(mad.sequence['lhcb1'],
-                                  deferred_expressions=True # <--
-                                  )
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1,
-                                 gamma0=mad.sequence.lhcb1.beam.gamma)
-line.build_tracker()
+# Load a line from a MAD-X sequence file
+env = xt.load('../../test_data/hllhc15_noerrors_nobb/sequence.madx',
+               reverse_lines=['lhcb2'])
+line = env.lhcb1
+line.set_particle_ref('proton', p0c=7e12)
 
 # MAD-X variables can be found in in the imported line. They can be
 # used to change properties in the beamline.
@@ -32,7 +23,7 @@ line['on_x1']
 # returns 1 (as defined in the import)
 
 # Measure vertical angle at the interaction point 1 (IP1)
-line.twiss()['px', 'ip1']
+line.twiss4d()['px', 'ip1']
 # ---> returns 1e-6
 
 
@@ -40,7 +31,7 @@ line.twiss()['px', 'ip1']
 line['on_x1'] = 100
 
 # Measure vertical angle at the interaction point 1 (IP1)
-print(line.twiss(at_elements=['ip1'])['px'])
+line.twiss4d()['px', 'ip1']
 # ---> returns 100e-6
 
 #!end-doc-part
@@ -52,12 +43,12 @@ print(line.twiss(at_elements=['ip1'])['px'])
 
 # For example we can see how the dipole corrector 'mcbyv.4r1.b1' is controlled,
 # by inspecting the expression of its normal dipole component knl[0]
-line['mcbxfah.3r1'].get_expr('knl', 0)
+line.ref['mcbxfah.3r1/lhcb1'].knl[0]._expr
 # ---> returns "(-vars['acbxh3.r1'])"
 
 # We can see that the variable controlling the corrector is in turn controlled
 # by an expression involving several other variables:
-line.get_expr('acbxh3.r1')
+line.ref['acbxh3.r1']._expr
 # ---> returns
 #         (((((((-3.529000650090648e-07*vars['on_x1hs'])
 #          -(1.349958221397232e-07*vars['on_x1hl']))
@@ -69,7 +60,7 @@ line.get_expr('acbxh3.r1')
 
 # The _info() method can be used to get on overview of the information related
 # to a given variable:
-line.info('acbxh3.r1')
+line.ref['acbxh3.r1']._info()
 # ---> prints:
 #          #  vars['acbxh3.r1']._get_value()
 #             vars['acbxh3.r1'] = 0.00010587001950271944
@@ -114,9 +105,9 @@ line_reloaded = xt.Line.from_dict(dct)
 
 import numpy as np
 line.vars['on_x1'] = 250
-assert np.isclose(line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
+assert np.isclose(line.twiss4d()['px', 'ip1'], 250e-6,
                   atol=1e-6, rtol=0)
 
 line.vars['on_x1'] = -300
-assert np.isclose(line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
+assert np.isclose(line.twiss4d()['px', 'ip1'], -300e-6,
                   atol=1e-6, rtol=0)

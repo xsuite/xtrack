@@ -84,6 +84,8 @@ class MadxTransformer(Transformer):
             statement = ''
         if statement.startswith('return'):
             return
+        if statement.startswith('beam'):
+            return
         if statement == '':
             return
         warn(f'Ignoring statement: `{statement}`')
@@ -243,9 +245,10 @@ class MadxTransformer(Transformer):
 
     def op_arrow(self, a, b):
         a, b = a.lower(), b.lower()
-        if b == 'l':
-            b = 'length'
-        return f'{a}->{b}'
+        if b != 'l':
+            raise ValueError(f'Unsupported arrow operation: {a}->{b}')
+        self.vars['_length__' + a] = 999.
+        return self.vars['_length__' + a]
 
     op_lt = staticmethod(operator.lt)
     op_gt = staticmethod(operator.gt)

@@ -15,7 +15,8 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     assert line.particle_ref is not None, "Particle reference is not set"
     assert np.abs(line.particle_ref.q0) == 1, "Only |q0| = 1 is supported (for now)"
 
-    if len(set(line.element_names)) != len(line.element_names):
+    enames_no_autodrift = [nn for nn in line.element_names if not nn.startswith('||drift_')]
+    if len(set(enames_no_autodrift)) != len(enames_no_autodrift):
         raise ValueError("Line must not contain repeated elements to use "
                          "`compensate_radiation_energy_loss(...)`. ")
 

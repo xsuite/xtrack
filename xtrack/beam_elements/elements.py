@@ -1082,6 +1082,11 @@ class Misalignment(BeamElement):
         Angle by which the element bends the reference frame in the x-s plane.
         Direction follows the convention of the bend element, i.e. positive
         value bends x to s (opposite of phi), in radians.
+    h : float
+        Curvature of the element in 1/m, to be specified only for thin slices,
+        i.e. when element length is zero (and therefore angle is also zero), but
+        which represent slices of a curved element: in such a case curvature
+        matters for the cases when ``anchor`` is not zero.
     tilt : float
         Angle (in radians) by which the element body is tilted (rolled) around
         the s-axis. Direction follows the convention of psi.
@@ -1100,6 +1105,7 @@ class Misalignment(BeamElement):
         'anchor': xo.Float64,
         'length': xo.Float64,
         'angle': xo.Float64,
+        'h': xo.Float64,
         'tilt': xo.Float64,
         'is_exit': xo.Int64,
     }
@@ -1306,6 +1312,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     _common_xofields = {
         'k0': xo.Float64,
         'k1': xo.Float64,
+        'k2': xo.Float64,
         'h': xo.Float64,
         'angle': xo.Float64,
         'length': xo.Float64,

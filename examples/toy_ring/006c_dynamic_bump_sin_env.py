@@ -34,18 +34,16 @@ line = env.new_line(components=[
     env.new('d3.2',  xt.Drift, length=1),
     env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
 ])
-kin_energy_0 = 50e6 # 50 MeV
-line.particle_ref = xt.Particles(energy0=kin_energy_0 + xt.PROTON_MASS_EV, # total energy
-                                 mass0=xt.PROTON_MASS_EV)
+line.set_particle_ref('proton', kinetic_energy0=50e6)
 
 # Twiss
 tw = line.twiss(method='4d')
 
 # Power the correctors to make a closed orbit bump
-line.vars['bumper_strength'] = 0.
-line.element_refs['bumper_0'].k0 = -line.vars['bumper_strength']
-line.element_refs['bumper_1'].k0 = 2 * line.vars['bumper_strength']
-line.element_refs['bumper_2'].k0 = -line.vars['bumper_strength']
+line['bumper_strength'] = 0.
+line['bumper_0'].k0 = '-bumper_strength'
+line['bumper_1'].k0 = '2 * bumper_strength'
+line['bumper_2'].k0 = '-bumper_strength'
 
 #!start-doc-part
 
@@ -57,8 +55,8 @@ line.functions['pulse'] = xt.FunctionPieceWiseLinear(
 
 T_sin = 10e-6
 sin = line.functions.sin
-line.vars['bumper_strength'] = (0.1 * line.functions['pulse'](line.vars['t_turn_s'])
-                                * sin(2 * np.pi / T_sin * line.vars['t_turn_s']))
+line['bumper_strength'] = (0.1 * line.functions['pulse'](line.ref['t_turn_s'])
+                                * sin(2 * np.pi / T_sin * line.ref['t_turn_s']))
 #!end-doc-part
 
 # --- Probe behavior with twiss at different t_turn_s ---
@@ -67,8 +65,8 @@ t_test = np.linspace(10e-6, 80e-6, 200)
 tw_list = []
 bumper_0_list = []
 for tt in t_test:
-    line.vars['t_turn_s'] = tt
-    bumper_0_list.append(line.element_refs['bumper_0'].k0) # Inspect bumper
+    line['t_turn_s'] = tt
+    bumper_0_list.append(line['bumper_0'].k0) # Inspect bumper
     tw_list.append(line.twiss(method='4d')) # Twiss
 
 # Plot
@@ -98,9 +96,7 @@ num_turns = 1000
 monitor = xt.ParticlesMonitor(num_particles=num_particles,
                               start_at_turn=0,
                               stop_at_turn =num_turns)
-line.discard_tracker()
 line.insert('monitor', monitor, at='bumper_1@start')
-line.build_tracker()
 
 # Generate particles
 particles = line.build_particles(

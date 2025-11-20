@@ -182,10 +182,7 @@ def test_ring_with_radiation(test_context, thick):
 
     # Build xtrack line
     line = xt.Line.from_madx_sequence(mad.sequence['RING'])
-    line.particle_ref = xp.Particles(
-            mass0=xp.ELECTRON_MASS_EV,
-            q0=-1,
-            gamma0=mad.sequence.ring.beam.gamma)
+    line.set_particle_ref('electron', gamma0=mad.sequence.ring.beam.gamma)
 
     # Build tracker
     line.matrix_stability_tol = 1e-2

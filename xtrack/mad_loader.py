@@ -15,11 +15,11 @@ but returns as attributes a value, or an expression if present.
 - Use `if MadElem(mad).l: to check for no zero value and NOT `if MadElem(mad).l!=0:` because if l is an expression it will create the expression l!=0 and return True
 
 
-- ElementBuilder, is a class that builds an xtrack element from a definition. If a values is expression, the value calculated from the expression, the expression if present is attached to the line.
+- ElementAssembler, is a class that builds an xtrack element from a definition. If a values is expression, the value calculated from the expression, the expression if present is attached to the line.
 
 
 Developer should write
-Loader.convert_<name>(mad_elem)->List[ElementBuilder] to convert new element in a list
+Loader.convert_<name>(mad_elem)->List[ElementAssembler] to convert new element in a list
 
 or in alternative
 
@@ -35,8 +35,10 @@ import xobjects
 import xtrack
 from .general import _print
 from .progress_indicator import progress
+from .functions import Functions
 
-# Generic functions
+
+_default_functions = Functions()
 
 clight = 299792458
 
@@ -153,9 +155,9 @@ def eval_list(par, madeval):
 
 
 def generate_repeated_name(line, name):
-    if name in line.element_dict:
+    if name in line.env.elements:
         ii = 0
-        while f"{name}:{ii}" in line.element_dict:
+        while f"{name}:{ii}" in line._element_dict:
             ii += 1
         return f"{name}:{ii}"
     else:
@@ -294,7 +296,7 @@ class MadElem:
             return False
 
 
-class ElementBuilder:
+class ElementAssembler:
     """
     init  is a dictionary of element data passed to the __init__ function of the element class
     attrs is a dictionary of extra data to be added to the element data after creation
@@ -327,7 +329,7 @@ class ElementBuilder:
         line.append_element(xtel, name)
 
 
-class ElementBuilderWithExpr(ElementBuilder):
+class ElementAssemblerWithExpr(ElementAssembler):
     def add_to_line(self, line, buffer):
 
         if self.type is xtrack.Drift:
@@ -342,7 +344,7 @@ class ElementBuilderWithExpr(ElementBuilder):
         if name_associated_aperture:
             xtel.name_associated_aperture = name_associated_aperture
         line.append_element(xtel, name)
-        elref = line.element_refs[name]
+        elref = line.ref.elements[name]
         for k, p in self.attrs.items():
             set_expr(elref, k, p)
         return xtel
@@ -365,11 +367,11 @@ class Aperture:
         self.apertype = self.mad_el.apertype
         self.loader = loader
         self.classes = loader.classes
-        self.Builder = loader.Builder
+        self.Assembler = loader.Assembler
 
     def aperture(self):
         if len(self.mad_el.aper_vx) > 2:
-            builder = self.Builder(
+            builder = self.Assembler(
                     self.name + "_aper",
                     self.classes.LimitPolygon,
                     x_vertices=self.mad_el.aper_vx,
@@ -394,7 +396,7 @@ class Aperture:
 
 
 class Alignment:
-    def __init__(self, mad_el, enable_errors, classes, Builder, bv, custom_tilt=None):
+    def __init__(self, mad_el, enable_errors, classes, Assembler, bv, custom_tilt=None):
         self.mad_el = mad_el
         self.bv = bv
         self.tilt = bv * mad_el.get("tilt", 0)  # some elements do not have tilt
@@ -415,7 +417,7 @@ class Alignment:
             self.dy = self.align_errors.dy
             self.tilt += self.align_errors.dpsi
         self.classes = classes
-        self.Builder = Builder
+        self.Assembler = Assembler
 
 class Dummy:
     type = "None"
@@ -570,10 +572,10 @@ class MadLoader:
         if self.enable_expressions:
             madeval = MadLoader.init_line_expressions(line, mad,
                                                       self.replace_in_expr)
-            self.Builder = ElementBuilderWithExpr
+            self.Assembler = ElementAssemblerWithExpr
         else:
             madeval = None
-            self.Builder = ElementBuilder
+            self.Assembler = ElementAssembler
 
         bv = self.sequence.beam.bv
         assert bv==1 or bv==-1, f"bv should be 1 or -1, not {bv}"
@@ -594,10 +596,10 @@ class MadLoader:
             adder = getattr(self, "add_" + el.type, None)
             if self.expressions_for_element_types is not None:
                if el.type in self.expressions_for_element_types:
-                   self.Builder = ElementBuilderWithExpr
+                   self.Assembler = ElementAssemblerWithExpr
                    el.madeval = madeval
                else:
-                    self.Builder = ElementBuilder
+                    self.Assembler = ElementAssembler
                     el.madeval = None
             if adder:
                 adder(el, line, buffer)
@@ -634,7 +636,7 @@ class MadLoader:
 
     def add_elements(
         self,
-        elements: List[Union[ElementBuilder]],
+        elements: List[Union[ElementAssembler]],
         line,
         buffer,
     ):
@@ -646,10 +648,9 @@ class MadLoader:
 
     @property
     def math(self):
-        if issubclass(self.Builder, ElementBuilderWithExpr):
+        if issubclass(self.Assembler, ElementAssemblerWithExpr):
             return self.line._xdeps_fref
-
-        return np
+        return _default_functions
 
     def _assert_element_is_thin(self, mad_el):
         if value_if_expr(mad_el.l) != 0:
@@ -667,7 +668,7 @@ class MadLoader:
                 )
 
     def _make_drift_slice(self, mad_el, weight, name_pattern):
-        return self.Builder(
+        return self.Assembler(
             name_pattern.format(mad_el.name),
             self.classes.Drift,
             length=mad_el.l * weight,
@@ -697,7 +698,7 @@ class MadLoader:
         # TODO: Implement permanent alignment
 
         align = Alignment(
-            mad_el, self.enable_align_errors, self.classes, self.Builder,
+            mad_el, self.enable_align_errors, self.classes, self.Assembler,
             self.bv, custom_tilt)
 
         aperture_seq = []
@@ -753,7 +754,7 @@ class MadLoader:
 
         return self.make_composite_element(
             [
-                self.Builder(
+                self.Assembler(
                     mad_el.name,
                     self.classes.Quadrupole,
                     k1=self.bv * mad_el.k1,
@@ -810,15 +811,13 @@ class MadLoader:
 
         if self.enable_field_errors:
             kwargs = _prepare_field_errors_thick_elem(mad_el)
-            knl = kwargs['knl']
-            ksl = kwargs['ksl']
+            knl = kwargs.get('knl', [0, 0, 0])
+            ksl = kwargs.get('ksl', [0, 0, 0])
             num_multipole_kicks = 1
         else:
             knl = [0] * 3
             ksl = []
             num_multipole_kicks = 0
-
-        knl[2] += mad_el.k2 * l_curv
 
         if mad_el.k0:
             k0_from_h = False
@@ -827,11 +826,12 @@ class MadLoader:
             k0_from_h = True
 
         # Convert bend core
-        bend_core = self.Builder(
+        bend_core = self.Assembler(
             mad_el.name,
             element_type,
             k0_from_h=k0_from_h,
             k1=self.bv * mad_el.k1,
+            k2=mad_el.k2,
             edge_entry_angle=e1,
             edge_exit_angle=e2,
             edge_entry_angle_fdown=angle_fdown,
@@ -859,7 +859,7 @@ class MadLoader:
 
         return self.make_composite_element(
             [
-                self.Builder(
+                self.Assembler(
                     mad_el.name,
                     self.classes.Sextupole,
                     k2=mad_el.k2,
@@ -879,7 +879,7 @@ class MadLoader:
 
         return self.make_composite_element(
             [
-                self.Builder(
+                self.Assembler(
                     mad_el.name,
                     self.classes.Octupole,
                     k3=self.bv*mad_el.k3,
@@ -895,7 +895,7 @@ class MadLoader:
     def convert_rectangle(self, mad_el):
         h, v = mad_el.aperture[:2]
         return [
-            self.Builder(
+            self.Assembler(
                 mad_el.name + "_aper",
                 self.classes.LimitRect,
                 min_x=-h,
@@ -908,7 +908,7 @@ class MadLoader:
     def convert_racetrack(self, mad_el):
         h, v, a, b = mad_el.aperture[:4]
         return [
-            self.Builder(
+            self.Assembler(
                 mad_el.name + "_aper",
                 self.classes.LimitRacetrack,
                 min_x=-h,
@@ -923,19 +923,19 @@ class MadLoader:
     def convert_ellipse(self, mad_el):
         a, b = mad_el.aperture[:2]
         return [
-            self.Builder(mad_el.name + "_aper", self.classes.LimitEllipse, a=a, b=b)
+            self.Assembler(mad_el.name + "_aper", self.classes.LimitEllipse, a=a, b=b)
         ]
 
     def convert_circle(self, mad_el):
         a = mad_el.aperture[0]
         return [
-            self.Builder(mad_el.name + "_aper", self.classes.LimitEllipse, a=a, b=a)
+            self.Assembler(mad_el.name + "_aper", self.classes.LimitEllipse, a=a, b=a)
         ]
 
     def convert_rectellipse(self, mad_el):
         h, v, a, b = mad_el.aperture[:4]
         return [
-            self.Builder(
+            self.Assembler(
                 mad_el.name + "_aper",
                 self.classes.LimitRectEllipse,
                 max_x=h,
@@ -953,7 +953,7 @@ class MadLoader:
         a3 = ee.aperture[3]  # angle between the other point and the X axis
         V1 = (a0, a0 * self.math.tan(a2))
         V2 = (a1 / self.math.tan(a3), a1)
-        el = self.Builder(
+        el = self.Assembler(
             ee.name + "_aper",
             self.classes.LimitPolygon,
             x_vertices=[V1[0], V2[0], -V2[0], -V1[0], -V1[0], -V2[0], V2[0], V1[0]],
@@ -964,7 +964,7 @@ class MadLoader:
     def convert_polygon(self, ee):
         x_vertices = ee.aper_vx[0::2]
         y_vertices = ee.aper_vy[1::2]
-        el = self.Builder(
+        el = self.Assembler(
             ee.name + "_aper",
             self.classes.LimitPolygon,
             x_vertices=x_vertices,
@@ -973,14 +973,14 @@ class MadLoader:
         return [el]
 
     def convert_drift(self, mad_elem):
-        return [self.Builder(mad_elem.name, self._drift, length=mad_elem.l)]
+        return [self.Assembler(mad_elem.name, self._drift, length=mad_elem.l)]
 
     def convert_marker(self, mad_elem):
-        el = self.Builder(mad_elem.name, self.classes.Marker)
+        el = self.Assembler(mad_elem.name, self.classes.Marker)
         return self.make_composite_element([el], mad_elem)
 
     def convert_drift_like(self, mad_elem):
-        el = self.Builder(mad_elem.name, self._drift, length=mad_elem.l)
+        el = self.Assembler(mad_elem.name, self._drift, length=mad_elem.l)
         return self.make_composite_element([el], mad_elem)
 
     convert_monitor = convert_drift_like
@@ -988,6 +988,7 @@ class MadLoader:
     convert_vmonitor = convert_drift_like
     convert_collimator = convert_drift_like
     convert_rcollimator = convert_drift_like
+    convert_ecollimator = convert_drift_like
     convert_elseparator = convert_drift_like
     convert_instrument = convert_drift_like
 
@@ -1002,7 +1003,7 @@ class MadLoader:
         if self.enable_field_errors:
             kwargs = _prepare_field_errors_thick_elem(mad_elem)
 
-        el = self.Builder(
+        el = self.Assembler(
             mad_elem.name,
             self.classes.UniformSolenoid,
             length=mad_elem.l,
@@ -1034,7 +1035,7 @@ class MadLoader:
         if hasattr(mad_elem, 'hyl') and mad_elem.hyl:
             raise NotImplementedError("Multipole with hyl is not supported.")
 
-        el = self.Builder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
+        el = self.Assembler(mad_elem.name, self.classes.Multipole, order=lmax - 1)
         el.knl = knl[:lmax]
         el.ksl = ksl[:lmax]
 
@@ -1055,7 +1056,7 @@ class MadLoader:
             length = mad_el.lrad
 
 
-        kicker = self.Builder(
+        kicker = self.Assembler(
             mad_el.name,
             self.classes.Multipole,
             knl=hkick,
@@ -1104,7 +1105,7 @@ class MadLoader:
         if self.bv == -1:
             raise NotImplementedError("Dipole edges for bv=-1 are not yet supported.")
         # TODO LRAD
-        el = self.Builder(
+        el = self.Assembler(
             mad_elem.name,
             self.classes.DipoleEdge,
             h=mad_elem.h,
@@ -1133,7 +1134,7 @@ class MadLoader:
             lag_deg = ee.lag * 360
         else:
             raise ValueError(f"bv should be 1 or -1, not {self.bv}")
-        el = self.Builder(
+        el = self.Assembler(
             ee.name,
             self.classes.Cavity,
             voltage=scale_voltage * ee.volt * 1e6,
@@ -1159,7 +1160,7 @@ class MadLoader:
         #     raise NotImplementedError
         # if ee.l:
         #     raise NotImplementedError
-        # el = self.Builder(
+        # el = self.Assembler(
         #     ee.name,
         #     self.classes.RFMultipole,
         #     voltage=ee.volt * 1e6,
@@ -1179,7 +1180,7 @@ class MadLoader:
         if len(ee.L_phy) == 1:
             # the index [0] is present because in MAD-X multiple wires can
             # be defined within the same element
-            el = self.Builder(
+            el = self.Assembler(
                 ee.name,
                 self.classes.Wire,
                 L_phy=ee.L_phy[0],
@@ -1199,7 +1200,7 @@ class MadLoader:
         else:
             lll = ee.lag * 360
 
-        el = self.Builder(
+        el = self.Assembler(
                 ee.name,
                 self.classes.CrabCavity,
                 length=ee.l,
@@ -1216,8 +1217,8 @@ class MadLoader:
         import xfields as xf
 
         if ee.slot_id == 6 or ee.slot_id == 60:
-            # force no expression by using ElementBuilder and not self.Builder
-            el = ElementBuilder(
+            # force no expression by using ElementAssembler and not self.Assembler
+            el = ElementAssembler(
                 ee.name,
                 xf.BeamBeamBiGaussian3D,
                 old_interface={
@@ -1253,8 +1254,8 @@ class MadLoader:
             )
         else:
             # BB interaction is 4D
-            # force no expression by using ElementBuilder and not self.Builder
-            el = ElementBuilder(
+            # force no expression by using ElementAssembler and not self.Assembler
+            el = ElementAssembler(
                 ee.name,
                 xf.BeamBeamBiGaussian2D,
                 n_particles=0.0,
@@ -1293,9 +1294,9 @@ class MadLoader:
             #     sigma_y=1.)
 
         elif ee.slot_id == 3:
-            el = self.Builder(ee.name, self.classes.SCInterpolatedProfile)
+            el = self.Assembler(ee.name, self.classes.SCInterpolatedProfile)
         else:
-            el = self.Builder(ee.name, self._drift, length=ee.l)
+            el = self.Assembler(ee.name, self._drift, length=ee.l)
         return self.make_composite_element([el], ee)
 
     def convert_matrix(self, ee):
@@ -1313,7 +1314,7 @@ class MadLoader:
                 att_name = f"rm{m1_i+1}{m1_j+1}"
                 if hasattr(ee, att_name):
                     m1[m1_i, m1_j] = getattr(ee, att_name)
-        el = self.Builder(
+        el = self.Assembler(
             ee.name, self.classes.FirstOrderTaylorMap, length=length, m0=m0, m1=m1
         )
         return self.make_composite_element([el], ee)
@@ -1322,7 +1323,7 @@ class MadLoader:
         if self.bv == -1:
             raise NotImplementedError("SRotation for bv=-1 are not yet supported.")
         angle = ee.angle*180/np.pi
-        el = self.Builder(
+        el = self.Assembler(
             ee.name, self.classes.SRotation, angle=angle
         )
         return self.make_composite_element([el], ee)
@@ -1331,7 +1332,7 @@ class MadLoader:
         if self.bv == -1:
             raise NotImplementedError("XRotation for bv=-1 are not yet supported.")
         angle = ee.angle*180/np.pi
-        el = self.Builder(
+        el = self.Assembler(
             ee.name, self.classes.XRotation, angle=angle
         )
         return self.make_composite_element([el], ee)
@@ -1340,7 +1341,7 @@ class MadLoader:
         if self.bv == -1:
             raise NotImplementedError("YRotation for bv=-1 are not yet supported.")
         angle = ee.angle*180/np.pi
-        el = self.Builder(
+        el = self.Assembler(
             ee.name, self.classes.YRotation, angle=angle
         )
         return self.make_composite_element([el], ee)
@@ -1348,7 +1349,7 @@ class MadLoader:
     def convert_translation(self, ee):
         if self.bv == -1:
             raise NotImplementedError("Translation for bv=-1 are not yet supported.")
-        el_transverse = self.Builder(
+        el_transverse = self.Assembler(
             ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
         )
         if ee.ds:
@@ -1361,7 +1362,7 @@ class MadLoader:
     def convert_nllens(self, mad_elem):
         if self.bv == -1:
             raise NotImplementedError("Non-linear lens for bv=-1 are not yet supported.")
-        el = self.Builder(
+        el = self.Assembler(
             mad_elem.name,
             self.classes.NonLinearLens,
             knll=mad_elem.knll,

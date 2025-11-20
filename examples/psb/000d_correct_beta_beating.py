@@ -11,11 +11,11 @@ line = xt.load('psb_02_with_chicane_time_functions.json')
 line.insert_element(element=xt.Marker(), name='mker_match', at_s=79.874)
 line.build_tracker()
 
-line.vars['on_chicane_k0'] = 0
-line.vars['on_chicane_k2'] = 0
+line['on_chicane_k0'] = 0
+line['on_chicane_k2'] = 0
 tw0 = line.twiss()
-line.vars['on_chicane_k0'] = 1
-line.vars['on_chicane_k2'] = 1
+line['on_chicane_k0'] = 1
+line['on_chicane_k2'] = 1
 
 ###############################
 # Correct tunes and beta beat #
@@ -23,16 +23,13 @@ line.vars['on_chicane_k2'] = 1
 
 t_correct = np.linspace(0, 5.5e-3, 30)
 
-# LInk vars
-# line.vars['kbrqd14corr'] = line.vars['kbrqd3corr']
-
 kbrqf_corr_list = []
 kbrqd_corr_list = []
 kbrqd3corr_list = []
 kbrqd14corr_list = []
 for ii, tt in enumerate(t_correct):
     print(f'Correct tune at t = {tt * 1e3:.2f} ms   \n')
-    line.vars['t_turn_s'] = tt
+    line['t_turn_s'] = tt
 
     line.match(
         #verbose=True,
@@ -52,10 +49,10 @@ for ii, tt in enumerate(t_correct):
         ]
     )
 
-    kbrqf_corr_list.append(line.vars['kbrqfcorr']._value)
-    kbrqd_corr_list.append(line.vars['kbrqdcorr']._value)
-    kbrqd3corr_list.append(line.vars['kbrqd3corr']._value)
-    kbrqd14corr_list.append(line.vars['kbrqd14corr']._value)
+    kbrqf_corr_list.append(line['kbrqfcorr'])
+    kbrqd_corr_list.append(line['kbrqdcorr'])
+    kbrqd3corr_list.append(line['kbrqd3corr'])
+    kbrqd14corr_list.append(line['kbrqd14corr'])
 
 line.functions['fun_kqf_corr'] = xd.FunctionPieceWiseLinear(
     x=t_correct, y=kbrqf_corr_list)
@@ -66,20 +63,20 @@ line.functions['fun_qd3_corr'] = xd.FunctionPieceWiseLinear(
 line.functions['fun_qd14_corr'] = xd.FunctionPieceWiseLinear(
     x=t_correct, y=kbrqd14corr_list)
 
-line.vars['on_chicane_tune_corr'] = 1
-line.vars['kbrqfcorr'] = (line.vars['on_chicane_tune_corr']
-                            * line.functions.fun_kqf_corr(line.vars['t_turn_s']))
-line.vars['kbrqdcorr'] = (line.vars['on_chicane_tune_corr']
-                            * line.functions.fun_kqd_corr(line.vars['t_turn_s']))
+line['on_chicane_tune_corr'] = 1
+line['kbrqfcorr'] = (line.ref['on_chicane_tune_corr']
+                            * line.functions.fun_kqf_corr(line.ref['t_turn_s']))
+line['kbrqdcorr'] = (line.ref['on_chicane_tune_corr']
+                            * line.functions.fun_kqd_corr(line.ref['t_turn_s']))
 
-line.vars['on_chicane_beta_corr'] = 1
-line.vars['kbrqd3corr'] = (line.vars['on_chicane_beta_corr']
-                         * line.functions.fun_qd3_corr(line.vars['t_turn_s']))
-line.vars['kbrqd14corr'] = (line.vars['on_chicane_beta_corr']
-                        * line.functions.fun_qd14_corr(line.vars['t_turn_s']))
+line['on_chicane_beta_corr'] = 1
+line['kbrqd3corr'] = (line.ref['on_chicane_beta_corr']
+                         * line.functions.fun_qd3_corr(line.ref['t_turn_s']))
+line['kbrqd14corr'] = (line.ref['on_chicane_beta_corr']
+                        * line.functions.fun_qd14_corr(line.ref['t_turn_s']))
 
 # Save
-line.vars['t_turn_s'] = 0
+line['t_turn_s'] = 0
 line.to_json('psb_03_with_chicane_corrected.json')
 
 
@@ -96,10 +93,10 @@ bety_at_mker_uncorrected = []
 qy_uncorrected = []
 for ii, tt in enumerate(t_test):
     print(f'Twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
-    line.vars['t_turn_s'] = tt
+    line['t_turn_s'] = tt
 
-    line.vars['on_chicane_beta_corr'] = 1
-    line.vars['on_chicane_tune_corr'] = 1
+    line['on_chicane_beta_corr'] = 1
+    line['on_chicane_tune_corr'] = 1
     tw = line.twiss()
 
     qx.append(tw.qx)
@@ -110,8 +107,8 @@ for ii, tt in enumerate(t_test):
     k0_bsw2.append(line['bi1.bsw1l1.2'].k0)
     k2l_bsw2.append(line['bi1.bsw1l1.2'].knl[2])
 
-    line.vars['on_chicane_beta_corr'] = 0
-    line.vars['on_chicane_tune_corr'] = 0
+    line['on_chicane_beta_corr'] = 0
+    line['on_chicane_tune_corr'] = 0
     tw_uncorr = line.twiss()
     bety_at_mker_uncorrected.append(tw_uncorr['bety', 'mker_match'])
     qy_uncorrected.append(tw_uncorr.qy)

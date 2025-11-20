@@ -16,8 +16,9 @@ mad.use(sequence="lhcb1")
 mad.input('select, flag=twiss, column=name, keyword, s, betx, bety, mux, muy;')
 mad.twiss(file=str(BASE_DIR / "twiss_lhcb1.tfs"))
 
-lhc= xt.load('../../test_data/lhc_2024/lhc.seq')
-lhc.vars.load('../../test_data/lhc_2024/injection_optics.madx')
+lhc= xt.load(['../../test_data/lhc_2024/lhc.seq',
+                '../../test_data/lhc_2024/injection_optics.madx'],
+                  reverse_lines=['lhcb2'])
 lhc.set_particle_ref('proton', energy0=450e9)
 
 tw1 = lhc.lhcb1.twiss4d()

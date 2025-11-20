@@ -7,12 +7,9 @@ import numpy as np
 
 import xtrack as xt
 
-# Load a line and build tracker
-line = xt.load(
-    '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-line.particle_ref = xt.Particles(
-                    mass0=xt.PROTON_MASS_EV, q0=1, energy0=7e12)
-line.build_tracker()
+# Load a line
+line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line.set_particle_ref('proton', p0c=7e12)
 
 # Twiss
 tw = line.twiss(method='4d')
@@ -21,19 +18,29 @@ tw = line.twiss(method='4d')
 tw.show()
 # prints:
 #
-# name                       s x px y py zeta delta ptau    betx    bety    alfx ...
-# ip7                           0 0  0 0  0    0     0    0 120.813 149.431
-# drift_0                       0 0  0 0  0    0     0    0 120.813 149.431
-# tcsg.a4r7.b1_entry          0.5 0  0 0  0    0     0    0 119.542 150.821
-# tcsg.a4r7.b1                0.5 0  0 0  0    0     0    0 119.542 150.821
-# tcsg.a4r7.b1_exit           1.5 0  0 0  0    0     0    0 117.031  153.63
-# drift_1                     1.5 0  0 0  0    0     0    0 117.031  153.63
+# TwissTable: 13401 rows, 70 cols
+# name                     s             x            px             y ...
+# ip7                      0             0             0             0
+# drift_0                  0             0             0             0
+# tcsg.a4r7.b1           0.5             0             0             0
+# drift_1                1.5             0             0             0
+# mcbwv.4r7.b1        53.341             0             0             0
+# drift_2             55.041             0             0             0
+# bpmw.4r7.b1        57.9855             0             0             0
+# drift_3            57.9855             0             0             0
+# mqwa.a4r7.b1        58.622             0             0             0
+# drift_4              61.73             0             0             0
 # ...
-# tcsg.a4l7.b1             26655.4 0  0 0  0    0     0    0 130.019 139.974
-# tcsg.a4l7.b1_exit        26656.4 0  0 0  0    0     0    0 127.334 142.627
-# drift_6661               26656.4 0  0 0  0    0     0    0 127.334 142.627
-# lhcb1ip7_p_              26658.9 0  0 0  0    0     0    0 120.813 149.431
-# _end_point               26658.9 0  0 0  0    0     0    0 120.813 149.431
+# bpmw.4l7.b1        26600.8  -4.24811e-16   3.18642e-18  -5.00664e-33
+# drift_6658         26600.8  -4.24811e-16   3.18642e-18  -5.00664e-33
+# mcbwh.4l7.b1       26601.5  -4.22611e-16   3.18642e-18  -5.01626e-33
+# drift_6659         26603.2  -4.17194e-16   3.18642e-18  -5.03996e-33
+# tcsg.b4l7.b1       26651.4  -2.63701e-16   3.18642e-18  -5.71147e-33
+# drift_6660         26652.4  -2.60515e-16   3.18642e-18  -5.72541e-33
+# tcsg.a4l7.b1       26655.4  -2.50955e-16   3.18642e-18  -5.76723e-33
+# drift_6661         26656.4  -2.47769e-16   3.18642e-18  -5.78118e-33
+# lhcb1ip7_p_        26658.9  -2.39803e-16   3.18642e-18  -5.81603e-33
+# _end_point         26658.9  -2.39803e-16   3.18642e-18  -5.81603e-33
 
 # Access to scalar quantities
 tw.qx    # is : 62.31000
@@ -62,73 +69,59 @@ tw.rows['ip.*']
 # ip6                      23326.4 0  0 0  0    0     0    0 273.434  183.74
 
 # A section of the ring can be selected using names
-tw.rows['ip5':'mqxfa.a1r5_exit']
+tw.rows['ip5':'mqxfa.a1r5']
 # returns:
 #
-# TwissTable: 16 rows, 41 cols
-# name                           s x px y py zeta delta ptau    betx    bety ...
-# ip5                        19994 0  0 0  0    0     0    0    0.15    0.15
-# mbcs2.1r5_entry            19994 0  0 0  0    0     0    0    0.15    0.15
-# mbcs2.1r5                  19994 0  0 0  0    0     0    0    0.15    0.15
-# mbcs2.1r5_exit           20000.5 0  0 0  0    0     0    0 281.817 281.817
-# drift_5020               20000.5 0  0 0  0    0     0    0 281.817 281.817
-# taxs.1r5_entry           20013.1 0  0 0  0    0     0    0  2419.5  2419.5
-# taxs.1r5                 20013.1 0  0 0  0    0     0    0  2419.5  2419.5
-# taxs.1r5_exit            20014.9 0  0 0  0    0     0    0  2898.3  2898.3
-# drift_5021               20014.9 0  0 0  0    0     0    0  2898.3  2898.3
-# bpmqstza.1r5.b1_entry    20015.9 0  0 0  0    0     0    0 3189.09 3189.09
-# bpmqstza.1r5.b1          20015.9 0  0 0  0    0     0    0 3189.09 3189.09
-# bpmqstza.1r5.b1_exit     20015.9 0  0 0  0    0     0    0 3189.09 3189.09
-# drift_5022               20015.9 0  0 0  0    0     0    0 3189.09 3189.09
-# mqxfa.a1r5_entry         20016.9 0  0 0  0    0     0    0 3504.46 3504.47
-# mqxfa.a1r5               20016.9 0  0 0  0    0     0    0 3504.46 3504.47
-# mqxfa.a1r5_exit          20021.1 0  0 0  0    0     0    0 4478.55 5360.39
+# TwissTable: 8 rows, 70 cols
+# name                        s             x            px ...
+# ip5                     19994   5.14781e-18  -8.47233e-17
+# mbcs2.1r5               19994   5.14781e-18  -8.47233e-17
+# drift_5020            20000.5  -5.45553e-16  -8.47233e-17
+# taxs.1r5              20013.1  -1.60883e-15  -8.47233e-17
+# drift_5021            20014.9  -1.76133e-15  -8.47233e-17
+# bpmqstza.1r5.b1       20015.9  -1.84783e-15  -8.47233e-17
+# drift_5022            20015.9  -1.84783e-15  -8.47233e-17
+# mqxfa.a1r5            20016.9   -1.9373e-15  -8.47233e-17
 
 # A section of the ring can be selected using the s coordinate
 tw.rows[300:305:'s']
 # returns:
 #
-# TwissTable: 10 rows, 41 cols
-# name                           s x px y py zeta delta ptau    betx    bety ...
-# bpm.8r7.b1_entry         300.698 0  0 0  0    0     0    0 22.6944     174
-# bpm.8r7.b1               300.698 0  0 0  0    0     0    0 22.6944     174
-# bpm.8r7.b1_exit          300.698 0  0 0  0    0     0    0 22.6944     174
-# drift_52                 300.698 0  0 0  0    0     0    0 22.6944     174
-# mq.8r7.b1_entry          301.695 0  0 0  0    0     0    0 21.8586 178.331
-# mq.8r7.b1                301.695 0  0 0  0    0     0    0 21.8586 178.331
-# mq.8r7.b1_exit           304.795 0  0 0  0    0     0    0 21.6904 176.923
-# drift_53                 304.795 0  0 0  0    0     0    0 21.6904 176.923
-# mqtli.8r7.b1_entry       304.964 0  0 0  0    0     0    0 21.8057 176.036
-# mqtli.8r7.b1             304.964 0  0 0  0    0     0    0 21.8057 176.036
+# TwissTable: 5 rows, 70 cols
+# name                     s             x            px             y ...
+# bpm.8r7.b1         300.698  -1.46744e-16  -9.41823e-18             0
+# drift_52           300.698  -1.46744e-16  -9.41823e-18             0
+# mq.8r7.b1          301.695  -1.56134e-16  -9.41823e-18             0
+# drift_53           304.795  -1.92329e-16  -1.40959e-17             0
+# mqtli.8r7.b1       304.964  -1.94711e-16  -1.40959e-17             0
 
 # A section of the ring can be selected using indexes relative one element
-# (e.g. to get from three elements upstream of 'ip1' to two elements
-# downstream of 'ip1')
-tw.rows['ip<<3':'ip5>>2']
+# (e.g. to get from three elements upstream of 'ip5' to two elements
+# downstream of 'ip5')
+tw.rows['ip5<<3':'ip5>>2']
 # returns:
 #
-# TwissTable: 6 rows, 41 cols
-# name                           s x px y py zeta delta ptau    betx    bety ...
-# mbcs2.1l5_entry          19987.5 0  0 0  0    0     0    0 281.817 281.817
-# mbcs2.1l5                19987.5 0  0 0  0    0     0    0 281.817 281.817
-# mbcs2.1l5_exit             19994 0  0 0  0    0     0    0    0.15    0.15
-# ip5                        19994 0  0 0  0    0     0    0    0.15    0.15
-# mbcs2.1r5_entry            19994 0  0 0  0    0     0    0    0.15    0.15
-# mbcs2.1r5                  19994 0  0 0  0    0     0    0    0.15    0.15
+# TwissTable: 6 rows, 70 cols
+# name                   s             x            px             y ...
+# taxs.1l5         19973.2   1.77163e-15  -8.47233e-17   5.46514e-33
+# drift_5019         19975   1.61913e-15  -8.47233e-17    5.0159e-33
+# mbcs2.1l5        19987.5   5.55849e-16  -8.47233e-17   1.88372e-33
+# ip5                19994   5.14781e-18  -8.47233e-17   2.61468e-34
+# mbcs2.1r5          19994   5.14781e-18  -8.47233e-17   2.61468e-34
+# drift_5020       20000.5  -5.45553e-16  -8.47233e-17  -1.36078e-33
 
 # Columns can be selected as well (and defined on the fly with simple mathematical
 # expressions)
 tw.cols['betx dx/sqrt(betx)']
 # returns:
 #
-# TwissTable: 30699 rows, 3 cols
-# TwissTable: 10 rows, 3 cols
-# name                        betx dx/sqrt(betx)
-# ip7                      120.813    -0.0185459
-# drift_0                  120.813    -0.0185459
-# tcsg.a4r7.b1_entry       119.542    -0.0186442
-# tcsg.a4r7.b1             119.542    -0.0186442
-# tcsg.a4r7.b1_exit        117.031    -0.0188431
+# TwissTable: 13401 rows, 3 cols
+# name                  betx dx/sqrt(betx)
+# ip7                120.813    -0.0185459
+# drift_0            120.813    -0.0185459
+# tcsg.a4r7.b1       119.542    -0.0186442
+# drift_1            117.031    -0.0188431
+# mcbwv.4r7.b1       46.5375    -0.0298815
 # ...
 
 # Each of the selection methods above returns a valid table, hence selections

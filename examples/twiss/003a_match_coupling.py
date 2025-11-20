@@ -1,26 +1,16 @@
-import json
-
 import xtrack as xt
 import xobjects as xo
 
-with open('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json',
-            'r') as fid:
-    dct_b1 = json.load(fid)
-line = xt.Line.from_dict(dct_b1)
+line = xt.load('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 
-context = xo.ContextCpu()
-# context = xo.ContextCupy()
-# context = xo.ContextPyopencl()
-
-line.build_tracker(_context=context)
 target_qx = 62.315
 target_qy = 60.325
 
 tw = line.twiss()
 
 # Try to measure and match coupling
-line.vars['cmrskew'] = 1e-3
-line.vars['cmiskew'] = 1e-3
+line['cmrskew'] = 1e-3
+line['cmiskew'] = 1e-3
 
 # Match coupling
 line.match(

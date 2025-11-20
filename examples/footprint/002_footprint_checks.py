@@ -10,17 +10,16 @@ nemitt_y = 1e-6
 
 line = xt.load(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, p0c=7e12)
-line.build_tracker()
+line.set_particle_ref('proton', p0c=7e12)
 
 plt.close('all')
 plt.figure(1)
 
-line.vars['i_oct_b1'] = 0
+line['i_oct_b1'] = 0
 fp0 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 fp0.plot(color='k', label='I_oct=0')
 
-line.vars['i_oct_b1'] = 500
+line['i_oct_b1'] = 500
 fp1 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                          n_r=11, n_theta=7, r_range=[0.05, 7],
                          theta_range=[0.01, np.pi/2-0.01])
@@ -69,7 +68,7 @@ assert np.isclose(np.max(fp1.qx[:]) - np.min(fp1.qx[:]), 4.4e-3, rtol=0, atol=1e
 assert np.isclose(np.max(fp1.qy[:]) - np.min(fp1.qy[:]), 4.4e-3, rtol=0, atol=1e-4)
 
 
-line.vars['i_oct_b1'] = 0
+line['i_oct_b1'] = 0
 fp0_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                          mode='uniform_action_grid')
 fp0_jgrid.plot(color='k', label='I_oct=0')
@@ -97,7 +96,7 @@ assert np.isclose(np.max(fp0.qy[:]) - np.min(fp0.qy[:]), 0.0003, rtol=0, atol=2e
 
 plt.figure(2)
 
-line.vars['i_oct_b1'] = 500
+line['i_oct_b1'] = 500
 fp1_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                             x_norm_range=[0.01, 6], y_norm_range=[0.01, 6],
                             n_x_norm=9, n_y_norm=8,
@@ -142,7 +141,7 @@ assert np.isclose(np.max(fp1_jgrid.qy[:]) - np.min(fp1_jgrid.qy[:]), 0.0032,
 
 x_norm_range = [1, 6]
 y_norm_range = [1, 6]
-line.vars['i_oct_b1'] = 50000 # Particles are lost for such high octupole current
+line['i_oct_b1'] = 50000 # Particles are lost for such high octupole current
 fp50k = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                             x_norm_range=x_norm_range, y_norm_range=y_norm_range,
                             n_x_norm=9, n_y_norm=8,
@@ -151,7 +150,7 @@ fp50k = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                                 knob_name='i_oct_b1', v0=500, dv=100))
 
 
-line.vars['i_oct_b1'] = 60000 # Particles are lost for such high octupole current
+line['i_oct_b1'] = 60000 # Particles are lost for such high octupole current
 fp60k = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                             x_norm_range=x_norm_range, y_norm_range=y_norm_range,
                             n_x_norm=9, n_y_norm=8,
@@ -159,13 +158,13 @@ fp60k = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                             linear_rescale_on_knobs=xt.LinearRescale(
                             knob_name='i_oct_b1', v0=500, dv=100))
 
-line.vars['i_oct_b1'] = 500
+line['i_oct_b1'] = 500
 fp500 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                             x_norm_range=x_norm_range, y_norm_range=y_norm_range,
                             n_x_norm=9, n_y_norm=8,
                             mode='uniform_action_grid')
 
-line.vars['i_oct_b1'] = 600
+line['i_oct_b1'] = 600
 fp600 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                             x_norm_range=x_norm_range, y_norm_range=y_norm_range,
                             n_x_norm=9, n_y_norm=8,

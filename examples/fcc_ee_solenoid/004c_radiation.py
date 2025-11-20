@@ -16,8 +16,8 @@ tw_no_rad = line.twiss(method='4d')
 line.configure_radiation(model='mean')
 tt = line.get_table(attr=True)
 
-line.vars['on_corr_ip.1'] = 1
-line.vars['on_sol_ip.1'] = 1
+line['on_corr_ip.1'] = 1
+line['on_sol_ip.1'] = 1
 
 # # Radiation only in solenoid
 # ttmult = tt.rows[tt.element_type == 'Multipole']
@@ -25,8 +25,8 @@ line.vars['on_sol_ip.1'] = 1
 #     line[nn].radiation_flag=0
 
 # RF on
-line.vars['voltca1'] = line.vv['voltca1_ref']
-line.vars['voltca2'] = line.vv['voltca2_ref']
+line['voltca1'] = line['voltca1_ref']
+line['voltca2'] = line['voltca2_ref']
 line.compensate_radiation_energy_loss()
 tw = line.twiss()
 

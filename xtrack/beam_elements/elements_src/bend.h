@@ -37,7 +37,7 @@ void Bend_track_local_particle(
         /*hxl*/                   0.,
         /*k0*/                    BendData_get_k0(el),
         /*k1*/                    BendData_get_k1(el),
-        /*k2*/                    0.,
+        /*k2*/                    BendData_get_k2(el),
         /*k3*/                    0.,
         /*k0s*/                   0.,
         /*k1s*/                   0.,

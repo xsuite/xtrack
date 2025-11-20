@@ -53,7 +53,7 @@ class Tracker:
 
         # Check if there are collective elements
         self.iscollective = False
-        for ee in line.elements:
+        for ee in line._elements:
             if _is_collective(ee, line):
                 self.iscollective = True
                 break
@@ -94,18 +94,20 @@ class Tracker:
         if self.iscollective:
             # Build tracker for all non-collective elements
             # (with collective elements replaced by Drifts)
-            ele_dict_non_collective = line.element_dict.copy() # need to keep the parents
+            ele_dict_non_collective = line._element_dict.copy() # need to keep the parents
             for nn, ee in zip(line.element_names, noncollective_xelements):
                 ele_dict_non_collective[nn] = ee
         else:
-            ele_dict_non_collective = line.element_dict
+            ele_dict_non_collective = line._element_dict
 
         if _prebuilding_kernels:
+            tt = None
             element_s_locations = np.zeros(len(line.element_names))
             line_length = 0.
         else:
-            element_s_locations = line.get_s_elements()
-            line_length = line.get_length()
+            tt = line.get_table()
+            element_s_locations = tt.s[:-1]  # remove _end_point
+            line_length = tt.s[-1]
 
         tracker_data_base = TrackerData(
             allow_move=True, # Will move elements to the same buffer
@@ -118,13 +120,14 @@ class Tracker:
             _context=_context,
             _buffer=_buffer,
             _no_resolve_parents=_prebuilding_kernels)
+
         if not _prebuilding_kernels:
-            tracker_data_base._line_table = line.get_table()
+            tracker_data_base._line_table = tt
             tracker_data_base._element_names_unique = tuple(
                     tracker_data_base._line_table.name[:-1]) # remove _endpoint
         line._freeze()
 
-        if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line.elements]):
+        if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line._elements]):
             line._needs_rng = True
 
         _buffer = tracker_data_base._buffer
@@ -149,8 +152,8 @@ class Tracker:
 
     def _init_io_buffer(self, io_buffer=None):
         if io_buffer is None:
-            io_bufs = [ee.io_buffer for ee in self.line.elements
-                       if getattr(ee, 'io_buffer', None) is not None]
+            io_bufs = [self.line[nn].io_buffer for nn in self.line.element_names
+                       if getattr(self.line[nn], 'io_buffer', None) is not None]
             if len(io_bufs) == 0:
                 io_buffer = new_io_buffer(_context=self._context)
             elif len(np.unique([id(buf) for buf in io_bufs])) > 1:
@@ -171,7 +174,8 @@ class Tracker:
         ii_in_part = 0
         i_part = 0
         idx = 0
-        for nn, ee in zip(line.element_names, line.elements):
+        for nn in line.element_names:
+            ee = line._element_dict[nn]
             if not _is_collective(ee, line):
                 this_part.append_element(ee, nn)
                 _element_part.append(i_part)
@@ -179,7 +183,7 @@ class Tracker:
                 ii_in_part += 1
                 _part_element_index[i_part].append(idx)
             else:
-                if len(this_part.elements) > 0:
+                if len(this_part) > 0:
                     parts.append(this_part)
                     part_names.append(f'part_{i_part}_non_collective')
                     i_part += 1
@@ -192,7 +196,7 @@ class Tracker:
                 this_part = Line(elements=[], element_names=[])
                 ii_in_part = 0
             idx += 1
-        if len(this_part.elements) > 0:
+        if len(this_part) > 0:
             parts.append(this_part)
             part_names.append(f'part_{i_part}_non_collective')
 
@@ -200,7 +204,8 @@ class Tracker:
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
             if isinstance(pp, Line):
-                noncollective_xelements += pp.elements
+                noncollective_xelements += [
+                    pp._element_dict[nn] for nn in pp.element_names]
             else:
                 if _is_thick(pp, line):
                     ldrift = pp.length
@@ -397,10 +402,11 @@ class Tracker:
         self._check_invalidated()
         return self.line.vars
 
-    @property
-    def element_refs(self):
-        self._check_invalidated()
-        return self.line.element_refs
+    # Not really used, we try to take it away, let's see if anybody complains
+    # @property
+    # def element_refs(self):
+    #     self._check_invalidated()
+    #     return self.line.element_refs
 
     @property
     def enable_pipeline_hold(self):
@@ -1378,7 +1384,7 @@ class Tracker:
     def _get_twiss_mask_markers(self):
         if hasattr(self._tracker_data_base, 'mask_markers_for_twiss'):
             return self._tracker_data_base.mask_markers_for_twiss
-        tt = self.line.get_table()
+        tt = self._tracker_data_base._line_table
         mask_twiss = np.ones(len(tt) + 1, dtype=bool)
         if len(tt) == 0: return mask_twiss
         mask_twiss[:-1] = tt.element_type == 'Marker'

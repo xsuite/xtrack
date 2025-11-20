@@ -1,8 +1,8 @@
 import xtrack as xt
 import xobjects as xo
 
-env = xt.load('../../test_data/sps_thick/sps.seq')
-env.vars.load('../../test_data/sps_thick/lhc_q20.str')
+env = xt.load(['../../test_data/sps_thick/sps.seq',
+               '../../test_data/sps_thick/lhc_q20.str'])
 
 line = env['sps']
 line.particle_ref = xt.Particles(p0c=26e9, mass0=xt.PROTON_MASS_EV)
