@@ -4,7 +4,7 @@ import xobjects as xo
 
 edge_model = 'linear'
 
-# b_ref = xt.RBend(angle=0.1, k0_from_h=True, length_straight=3., rbend_mid_angle=0.1/2)
+# b_ref = xt.RBend(angle=0.1, k0_from_h=True, length_straight=3., rbend_angle_diff=0.1/2)
 # b_ref.edge_entry_model = edge_model
 # b_ref.edge_exit_model = edge_model
 # b_ref.model = 'rot-kick-rot'
@@ -16,7 +16,7 @@ edge_model = 'linear'
 # tw_ref = l_ref.twiss(betx=1, bety=1, x=2e-3, px=1e-3, y=2e-3, py=2e-3, delta=1e-3)
 
 b_test = xt.RBend(
-    angle=0.1, k0_from_h=True, length_straight=3, rbend_mid_angle=0.1/2)
+    angle=0.1, k0_from_h=True, length_straight=3, rbend_angle_diff=0.1/2)
 b_test.rbend_model = 'straight-body'
 b_test.model = 'bend-kick-bend'
 b_test.num_multipole_kicks = 100

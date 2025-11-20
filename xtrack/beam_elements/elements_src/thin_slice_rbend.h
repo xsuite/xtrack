@@ -52,7 +52,7 @@ void ThinSliceRBend_track_local_particle(
         /*y0_solenoid*/           0.,
         /*rbend_model*/           ThinSliceRBendData_get__parent_rbend_model(el),
         /*rbend_shift*/           ThinSliceRBendData_get__parent_rbend_shift(el),
-        /*rbend_mid_angle*/       ThinSliceRBendData_get__parent_rbend_mid_angle(el),
+        /*rbend_angle_diff*/       ThinSliceRBendData_get__parent_rbend_angle_diff(el),
         /*length_straight*/       ThinSliceRBendData_get__parent_length_straight(el),
         /*body_active*/           1,
         /*edge_entry_active*/     0,

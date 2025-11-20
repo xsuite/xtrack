@@ -52,7 +52,7 @@ void ThinSliceSextupoleExit_track_local_particle(
         /*y0_solenoid*/           0.,
         /*rbend_model*/           -1, // not rbend
         /*rbend_shift*/           0., // not rbend
-        /*rbend_mid_angle*/       0., // not rbend
+        /*rbend_angle_diff*/       0., // not rbend
         /*length_straight*/       0., // not rbend
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     0,
