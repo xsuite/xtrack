@@ -338,6 +338,8 @@ void track_magnet_particles(
     double x0_in = 0.;
     double x0_out = 0.;
 
+    printf("rbend_angle_diff=%e\n", rbend_angle_diff);
+
     rbend_angle_diff = rbend_angle_diff * 2;
 
     if (rbend_model == 0){
