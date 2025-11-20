@@ -1747,6 +1747,7 @@ class RBend(_BendCommon, BeamElement):
         **_BendCommon._common_xofields,
         'length_straight': xo.Float64,
         'rbend_model': xo.Int64,
+        'rbend_compensate_sagitta': xo.Field(xo.Int64, default=True),
         'rbend_shift': xo.Float64,
         'rbend_angle_diff': xo.Float64,
     }
@@ -1758,6 +1759,7 @@ class RBend(_BendCommon, BeamElement):
         'length_straight': '_length_straight',
         'rbend_model': '_rbend_model',
         'rbend_angle_diff': '_rbend_angle_diff',
+        'rbend_compensate_sagitta': '_rbend_compensate_sagitta',
     }
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -1860,6 +1862,14 @@ class RBend(_BendCommon, BeamElement):
             self._rbend_model = _RBEND_MODEL_TO_INDEX[value]
         except KeyError:
             raise ValueError(f'Invalid rbend_model: {value}')
+
+    @property
+    def rbend_compensate_sagitta(self):
+        return bool(self._rbend_compensate_sagitta)
+
+    @rbend_compensate_sagitta.setter
+    def rbend_compensate_sagitta(self, value):
+        self._rbend_compensate_sagitta = int(bool(value))
 
     def set_bend_params(self, length=None, length_straight=None, h=None, angle=None,
                         rbend_angle_diff=None):

@@ -225,6 +225,7 @@ void track_magnet_particles(
     double x0_solenoid,
     double y0_solenoid,
     int64_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
+    int64_t rbend_compensate_sagitta,
     double rbend_shift,
     double rbend_angle_diff,
     double length_straight,

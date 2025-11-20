@@ -47,8 +47,9 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,
         /*rbend_model*/           -1, // not rbend
+     /*rbend_compensate_sagitta*/ 0,  // not rbend
         /*rbend_shift*/           0., // not rbend
-        /*rbend_angle_diff*/       0., // not rbend
+        /*rbend_angle_diff*/      0., // not rbend
         /*length_straight*/       0., // not rbend
         /*body_active*/           1,
         /*edge_entry_active*/     0,

@@ -51,8 +51,9 @@ void ThinSliceRBendExit_track_local_particle(
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,
         /*rbend_model*/           ThinSliceRBendExitData_get__parent_rbend_model(el),
+     /*rbend_compensate_sagitta*/ ThinSliceRBendExitData_get__parent_rbend_compensate_sagitta(el),
         /*rbend_shift*/           ThinSliceRBendExitData_get__parent_rbend_shift(el),
-        /*rbend_angle_diff*/       ThinSliceRBendExitData_get__parent_rbend_angle_diff(el),
+        /*rbend_angle_diff*/      ThinSliceRBendExitData_get__parent_rbend_angle_diff(el),
         /*length_straight*/       ThinSliceRBendExitData_get__parent_length_straight(el),
         /*body_active*/           0, // disabled
         /*edge_entry_active*/     0,

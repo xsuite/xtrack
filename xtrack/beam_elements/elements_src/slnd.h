@@ -48,8 +48,9 @@ void UniformSolenoid_track_local_particle(
         /*x0_solenoid*/           UniformSolenoidData_get_x0(el),
         /*y0_solenoid*/           UniformSolenoidData_get_y0(el),
         /*rbend_model*/           -1, // not rbend
+     /*rbend_compensate_sagitta*/ 0,  // not rbend
         /*rbend_shift*/           0., // not rbend
-        /*rbend_angle_diff*/       0., // not rbend
+        /*rbend_angle_diff*/      0., // not rbend
         /*length_straight*/       0., // not rbend
         /*body_active*/           1,
         /*edge_entry_active*/     UniformSolenoidData_get_edge_entry_active(el),
