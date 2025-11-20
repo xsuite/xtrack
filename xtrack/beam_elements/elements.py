@@ -1926,29 +1926,29 @@ class RBend(_BendCommon, BeamElement):
                 length_straight = length
         elif 'length' in given and 'h' in given: # case 3
             angle = length * h
-            theta_in = 0.5 * angle - rbend_angle_diff
-            theta_out = 0.5 * angle + rbend_angle_diff
+            theta_in = 0.5 * angle - rbend_angle_diff / 2
+            theta_out = 0.5 * angle + rbend_angle_diff / 2
             if abs(angle) < 1e-10:
                 length_straight = length
             else:
                 length_straight = (1/h) * (np.sin(theta_in) + np.sin(theta_out))
         elif 'length' in given and 'angle' in given: # case 2
             h = angle / length
-            theta_in = 0.5 * angle - rbend_angle_diff
-            theta_out = 0.5 * angle + rbend_angle_diff
+            theta_in = 0.5 * angle - rbend_angle_diff / 2
+            theta_out = 0.5 * angle + rbend_angle_diff / 2
             if abs(angle) < 1e-10:
                 length_straight = length
             else:
                 length_straight = (1/h) * (np.sin(theta_in) + np.sin(theta_out))
         elif 'length_straight' in given and 'h' in given: # case 4
-            angle = 2 * np.arcsin(length_straight * h / 2 / np.cos(rbend_angle_diff))
+            angle = 2 * np.arcsin(length_straight * h / 2 / np.cos(rbend_angle_diff / 2))
             if abs(angle) < 1e-10:
                 length = length_straight
             else:
                 length = angle / h
         elif 'length_straight' in given and 'angle' in given: # case 1
-            theta_in = 0.5 * angle - rbend_angle_diff
-            theta_out = 0.5 * angle + rbend_angle_diff
+            theta_in = 0.5 * angle - rbend_angle_diff / 2
+            theta_out = 0.5 * angle + rbend_angle_diff / 2
             if abs(angle) < 1e-10:
                 length = length_straight
                 h = 0
@@ -1956,8 +1956,8 @@ class RBend(_BendCommon, BeamElement):
                 h = (np.sin(theta_in) + np.sin(theta_out)) / length_straight
                 length = angle / h
         elif 'h' in given and 'angle' in given:
-            theta_in = 0.5 * angle - rbend_angle_diff
-            theta_out = 0.5 * angle + rbend_angle_diff
+            theta_in = 0.5 * angle - rbend_angle_diff / 2
+            theta_out = 0.5 * angle + rbend_angle_diff / 2
             if abs(angle) < 1e-10:
                 length = length_straight = 0
             else:

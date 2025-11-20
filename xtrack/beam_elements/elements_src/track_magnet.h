@@ -338,10 +338,6 @@ void track_magnet_particles(
     double x0_in = 0.;
     double x0_out = 0.;
 
-    printf("rbend_angle_diff=%e\n", rbend_angle_diff);
-
-    rbend_angle_diff = rbend_angle_diff * 2;
-
     if (rbend_model == 0){
         // auto mode, curved body
         rbend_model = 1;
@@ -350,8 +346,8 @@ void track_magnet_particles(
     double const angle = h * length;
     if (rbend_model == 1){
         // curved body
-        edge_entry_angle += angle / 2.0 - rbend_angle_diff / 2.;
-        edge_exit_angle += angle / 2.0 + rbend_angle_diff / 2.;
+        edge_entry_angle += (angle - rbend_angle_diff) / 2.0;
+        edge_exit_angle += (angle + rbend_angle_diff) / 2.0;
     }
     else if (rbend_model == 2){
         // straight body
