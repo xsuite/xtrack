@@ -257,6 +257,8 @@ void track_magnet_particles(
     double x0_in = 0.;
     double x0_out = 0.;
 
+    rbend_angle_diff = rbend_angle_diff * 2;
+
     if (rbend_model == 0){
         // auto mode, curved body
         rbend_model = 1;
@@ -265,17 +267,17 @@ void track_magnet_particles(
     double const angle = h * length;
     if (rbend_model == 1){
         // curved body
-        edge_entry_angle += angle / 2.0 - rbend_angle_diff;
-        edge_exit_angle += angle / 2.0 + rbend_angle_diff;
+        edge_entry_angle += angle / 2.0 - rbend_angle_diff / 2.;
+        edge_exit_angle += angle / 2.0 + rbend_angle_diff / 2.;
     }
     else if (rbend_model == 2){
         // straight body
-        theta_in = angle / 2 - rbend_angle_diff;
+        theta_in = angle / 2 - rbend_angle_diff / 2.;
         if (fabs(theta_in) > 1e-10){
             sin_theta_in = sin(theta_in);
             cos_theta_in = cos(theta_in);
         }
-        theta_out = angle / 2 + rbend_angle_diff;
+        theta_out = angle / 2 + rbend_angle_diff / 2.;
         if (fabs(theta_out) > 1e-10){
             sin_theta_out = sin(theta_out);
             cos_theta_out = cos(theta_out);
