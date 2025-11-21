@@ -17,12 +17,15 @@ tw_ref = l_ref.twiss(betx=1, bety=1, x=2e-3, px=1e-3, y=2e-3, py=2e-3, delta=1e-
 
 b_test = xt.RBend(
     angle=0.1, k0_from_h=True, length_straight=3, rbend_angle_diff=0.1,
-    rbend_shift=-b_ref.sagitta/2)
+    rbend_shift=0, rbend_compensate_sagitta=False)
 b_test.rbend_model = 'straight-body'
 b_test.model = 'bend-kick-bend'
 b_test.num_multipole_kicks = 100
 b_test.edge_entry_model = edge_model
 b_test.edge_exit_model = edge_model
+
+b_test.rbend_shift += b_test._x0_in
+
 l_test = xt.Line([b_test])
 l_test.append('end', xt.Marker())
 l_test.particle_ref = xt.Particles(p0c=10e9)
