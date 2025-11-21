@@ -4947,6 +4947,7 @@ class Line:
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
                 '_parent_rbend_model': (('_parent', 'rbend_model'), None),
+                '_parent_rbend_angle_diff': (('_parent', 'rbend_angle_diff'), None),
 
                 '_parent_voltage': (('_parent', 'voltage'), None),
                 '_parent_lag': (('_parent', 'lag'), None),
@@ -5912,18 +5913,28 @@ def _angle_rbend_correction_from_attr(attr):
     # Retrieve element_type from tracker cache (remove _end_point)
     element_type = attr.line.tracker._tracker_data_base._line_table.element_type[:-1]
 
-    mask_rbend_edges = ((element_type == 'ThinSliceRBendEntry')
-                        | (element_type == 'ThinSliceRBendExit'))
+    mask_rbend_edge_entry = (element_type == 'ThinSliceRBendEntry')
+    mask_rbend_edge_exit = (element_type == 'ThinSliceRBendExit')
+
     mask_rbend_body_slices = ((element_type == 'ThinSliceRBend')
                             | (element_type == 'ThickSliceRBend'))
     mask_parent_is_rbend_straigth_body = (attr['_parent_rbend_model'] == 2)
-    mask_rbend_edges_straight_body = (mask_rbend_edges
-                                      & mask_parent_is_rbend_straigth_body)
+    mask_rbend_edges_entry_straight_body = (mask_rbend_edge_entry
+                                            & mask_parent_is_rbend_straigth_body)
+    mask_rbend_edges_exit_straight_body = (mask_rbend_edge_exit
+                                            & mask_parent_is_rbend_straigth_body)
 
     angle[mask_parent_is_rbend_straigth_body & mask_rbend_body_slices] = 0
-    angle[mask_rbend_edges_straight_body] = 0.5 * (
-        attr['_parent_h'][mask_rbend_edges_straight_body]
-        * attr['_parent_length'][mask_rbend_edges_straight_body])
+
+    angle[mask_rbend_edges_entry_straight_body] = 0.5 * ((
+        attr['_parent_h'][mask_rbend_edges_entry_straight_body]
+        * attr['_parent_length'][mask_rbend_edges_entry_straight_body])
+        - attr['_parent_rbend_angle_diff'][mask_rbend_edges_entry_straight_body])
+
+    angle[mask_rbend_edges_exit_straight_body] = 0.5 * ((
+        attr['_parent_h'][mask_rbend_edges_exit_straight_body]
+        * attr['_parent_length'][mask_rbend_edges_exit_straight_body])
+        + attr['_parent_rbend_angle_diff'][mask_rbend_edges_exit_straight_body])
 
     return angle
 
