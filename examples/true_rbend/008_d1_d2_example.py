@@ -10,8 +10,8 @@ line = env.new_line(length=10., components=[
 ])
 line.set_particle_ref('proton', p0c=1e9)
 
-l_thick =line.copy(shallow=True)
-line.slice_thick_elements(
+l_sliced =line.copy(shallow=True)
+l_sliced.slice_thick_elements(
         slicing_strategies=[
             xt.Strategy(slicing=xt.Uniform(6, mode='thick'))
         ])
