@@ -217,6 +217,13 @@ def _generate_per_particle_kernel_from_local_particle_function(
     return source
 
 
+def _tranformations_active(beam_element):
+    """This internal function is provided for backward compatibility but
+    should not be used and will beb removed soon. Use the following instead:"""
+    return beam_element.transformations_active
+
+
+
 class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
