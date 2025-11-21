@@ -840,47 +840,60 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
 
     def get_jacobian_tpsa(self):
         from .madng_interface import ActionTwissMadngTPSA
-        assert isinstance(self.actions[0], ActionTwissMadngTPSA)
-        last_tpsa_dict = self.actions[0].tpsa_dict
-        jacobian = np.zeros((len(self.targets), len(self.vary)))
+        action = None
+        for a in self.actions:
+            if isinstance(a, ActionTwissMadngTPSA):
+                action = a
+                break
+        if action is None:
+            raise RuntimeError('No ActionTwissMadngTPSA found in actions for TPSA jacobian computation')
+
+
+
+        jacobian = action.acquire_jacobian()
 
         for i, tar in enumerate(self.targets):
-            tar_place = ''
-            if isinstance(tar.tar, tuple):
-                tar_quantity = tar.tar[0]
-                tar_place = tar.tar[1]
-            else:
-                assert isinstance(tar, TargetRelPhaseAdvance), (
-                    f'Target type {type(tar)} not supported for TPSA jacobian')
-                tar_quantity = tar
-                tar_place = self.actions[0].tw_kwargs['end'] if tar.end == '__ele_stop__' else tar.end
-                tar_start = None if tar.start == '__ele_start__' else tar.start
-
-            tpsa = last_tpsa_dict[tar_place]
-
-            for j, vv in enumerate(self.vary):
-                if isinstance(tar_quantity, TargetRelPhaseAdvance):
-                    # Special case for relative phase advance
-                    plane = 'x' if tar_quantity.var in ['mu1_ng', 'mux'] else 'y'
-                    mu_end = tpsa.calc_phase_advance_deriv(plane, j + tpsa.num_variables)
-                    if tar_start is None:
-                        mu_start = 0
-                    else:
-                        tpsa_start = last_tpsa_dict[tar_start]
-                        mu_start = tpsa_start.calc_phase_advance_deriv(plane, j + tpsa.num_variables)
-                    deriv = mu_end - mu_start
-                elif tar_quantity[0] == 'd':
-                    plane = tar_quantity[1:3] if tar_quantity[1] == 'p' else tar_quantity[1]
-                    deriv = tpsa.calc_dispersion_deriv(plane, j + tpsa.num_variables)
-                elif tar_quantity[:3] == 'bet':
-                    plane = 'x' if '11' in tar_quantity or 'x' in tar_quantity else 'y'
-                    deriv = tpsa.calc_beta_deriv(plane, j + tpsa.num_variables)
-                elif tar_quantity[:3] == 'alf':
-                    plane = 'x' if '11' in tar_quantity or 'x' in tar_quantity else 'y'
-                    deriv = tpsa.calc_alpha_deriv(plane, j + tpsa.num_variables)
-
-                jacobian[i, j] = deriv
             jacobian[i] *= tar.weight
+
+        # last_tpsa_dict = action.tpsa_dict
+        # jacobian = np.zeros((len(self.targets), len(self.vary)))
+        # for i, tar in enumerate(self.targets):
+        #     tar_place = ''
+        #     if isinstance(tar.tar, tuple):
+        #         tar_quantity = tar.tar[0]
+        #         tar_place = tar.tar[1]
+        #     else:
+        #         assert isinstance(tar, TargetRelPhaseAdvance), (
+        #             f'Target type {type(tar)} not supported for TPSA jacobian')
+        #         tar_quantity = tar
+        #         tar_place = action.tw_kwargs['end'] if tar.end == '__ele_stop__' else tar.end
+        #         tar_start = None if tar.start == '__ele_start__' else tar.start
+
+        #     tpsa = last_tpsa_dict[tar_place]
+
+        #     for j, vv in enumerate(self.vary):
+        #         if isinstance(tar_quantity, TargetRelPhaseAdvance):
+        #             # Special case for relative phase advance
+        #             plane = 'x' if tar_quantity.var in ['mu1_ng', 'mux'] else 'y'
+        #             mu_end = tpsa.calc_phase_advance_deriv(plane, j + tpsa.num_variables)
+        #             if tar_start is None:
+        #                 mu_start = 0
+        #             else:
+        #                 tpsa_start = last_tpsa_dict[tar_start]
+        #                 mu_start = tpsa_start.calc_phase_advance_deriv(plane, j + tpsa.num_variables)
+        #             deriv = mu_end - mu_start
+        #         elif tar_quantity[0] == 'd':
+        #             plane = tar_quantity[1:3] if tar_quantity[1] == 'p' else tar_quantity[1]
+        #             deriv = tpsa.calc_dispersion_deriv(plane, j + tpsa.num_variables)
+        #         elif tar_quantity[:3] == 'bet':
+        #             plane = 'x' if '11' in tar_quantity or 'x' in tar_quantity else 'y'
+        #             deriv = tpsa.calc_beta_deriv(plane, j + tpsa.num_variables)
+        #         elif tar_quantity[:3] == 'alf':
+        #             plane = 'x' if '11' in tar_quantity or 'x' in tar_quantity else 'y'
+        #             deriv = tpsa.calc_alpha_deriv(plane, j + tpsa.num_variables)
+
+        #         jacobian[i, j] = deriv
+        #     jacobian[i] *= tar.weight
 
         return jacobian
 
@@ -912,6 +925,23 @@ class OptimizeLine(xd.Optimize):
 
         aux_vary = []
 
+        # part of the `auxvar` experimental code
+        # if isinstance(tt.value, (GreaterThan, LessThan)):
+        #     if tt.value.mode == 'auxvar':
+        #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
+        #         aux_vary_container[aux_vary[-1].name] = 0
+        #         val = tt.runeval()
+        #         if val > 0:
+        #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
+
+        if not isinstance(vary, (list, tuple)):
+            vary = [vary]
+
+        vary = list(vary) + aux_vary
+
+        vary_flatten = _flatten_vary(vary)
+        _complete_vary_with_info_from_line(vary_flatten, line)
+
         for tt in targets_flatten:
 
             # Handle action
@@ -925,18 +955,12 @@ class OptimizeLine(xd.Optimize):
                             # tar_locations = {t.tar[1] for t in targets_flatten
                             #                  if isinstance(t.tar, tuple)}
 
-                            fallback_action_twiss = None
-
-                            if any(isinstance(tar, xt.TargetRelPhaseAdvance) for tar in targets_flatten):
-                                # Need to create (hidden) Twiss Action too for ActionTwissTPSA
-                                from .madng_interface import ActionTwissMadng
-                                fallback_action_twiss = ActionTwissMadng(line, {}, **kwargs)
-                                fallback_action_twiss.prepare()
+                            twiss_flag_ng = any(isinstance(tar, xt.TargetRelPhaseAdvance) for tar in targets_flatten)
 
                             from .madng_interface import ActionTwissMadngTPSA
 
                             action_twiss_ng = ActionTwissMadngTPSA(
-                                    line, [v.name for v in _flatten_vary(vary)], targets_flatten, {}, fallback_action=fallback_action_twiss, **kwargs)
+                                    line, [v.name for v in _flatten_vary(vary)], targets_flatten, {}, twiss_flag=twiss_flag_ng, **kwargs)
                             # prepare
 
                             action_twiss_ng.prepare()
@@ -1000,22 +1024,6 @@ class OptimizeLine(xd.Optimize):
                 else:
                     tt.tol = default_tol
 
-            # part of the `auxvar` experimental code
-            # if isinstance(tt.value, (GreaterThan, LessThan)):
-            #     if tt.value.mode == 'auxvar':
-            #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
-            #         aux_vary_container[aux_vary[-1].name] = 0
-            #         val = tt.runeval()
-            #         if val > 0:
-            #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
-
-        if not isinstance(vary, (list, tuple)):
-            vary = [vary]
-
-        vary = list(vary) + aux_vary
-
-        vary_flatten = _flatten_vary(vary)
-        _complete_vary_with_info_from_line(vary_flatten, line)
 
         xd.Optimize.__init__(self,
                         vary=vary_flatten, targets=targets_flatten, solver=solver,
@@ -1108,13 +1116,19 @@ class OptimizeLine(xd.Optimize):
                      disable_vary, disable_vary_name, rcond, sing_val_cutoff, verbose, broyden)
 
         if cleanup_madng_tpsa and self._err.use_tpsa:
-            self.actions[0].cleanup()
+            for a in self.actions:
+                if hasattr(a, "cleanup"):
+                    a.cleanup()
+                    break
 
     def solve(self, n_steps=None, verbose=None, take_best=True, rcond=None, sing_val_cutoff=None, broyden=False, cleanup_madng_tpsa=True):
         super().solve(n_steps, verbose, take_best, rcond, sing_val_cutoff, broyden)
 
         if cleanup_madng_tpsa and self._err.use_tpsa:
-            self.actions[0].cleanup()
+            for a in self.actions:
+                if hasattr(a, "cleanup"):
+                    a.cleanup()
+                    break
 
 def _flatten_vary(vary):
     vary_flatten = []
