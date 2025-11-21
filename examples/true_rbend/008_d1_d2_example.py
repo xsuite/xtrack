@@ -40,34 +40,37 @@ d1a_angle_out = -d1b_angle_in
 d1b_angle_out = -d2_angle_in
 d2_angle_out  = -np.arcsin(tw0['px', 'end'])
 
-line['d1a'].k0 = 0
-line['d1b'].k0 = 0
-line['d2'].k0  = 0
-line['d1a'].k0_from_h = True
-line['d1b'].k0_from_h = True
-line['d2'].k0_from_h = True
-line['d1a'].rbend_compensate_sagitta = False
-line['d1b'].rbend_compensate_sagitta = False
-line['d2'].rbend_compensate_sagitta = False
+for nn in ['d1a', 'd1b', 'd2']:
+    line[nn].k0 = 0
+    line[nn].k0_from_h = True
+    line[nn].rbend_compensate_sagitta = False
+    line[nn].rbend_model = 'straight-body'
+
 
 line['d1a'].angle = d1a_angle_in + d1a_angle_out
 line['d1b'].angle = d1b_angle_in + d1b_angle_out
 line['d2'].angle  = d2_angle_in  + d2_angle_out
 
-line['d1a'].angle_diff = d1a_angle_out - d1a_angle_in
-line['d1b'].angle_diff = d1b_angle_out - d1b_angle_in
-line['d2'].angle_diff  = d2_angle_out  - d2_angle_in
+line['d1a'].rbend_angle_diff = d1a_angle_out - d1a_angle_in
+line['d1b'].rbend_angle_diff = d1b_angle_out - d1b_angle_in
+line['d2'].rbend_angle_diff  = d2_angle_out  - d2_angle_in
 
 # d1a enters at zero
 line['d1a'].rbend_shift += line['d1a']._x0_in
-# d2 exits at zero
-line['d2'].rbend_shift += line['d1a']._x0_out
 
-sv = line.survey()
+# d2b enters at x defined by twiss
+line['d1b'].rbend_shift += line['d1b']._x0_in - tw0['x', 'd1b']
+
+# d2 exits at 1
+line['d2'].rbend_shift += line['d1a']._x0_out - 1.
+
+sv = l_sliced.survey()
+
 
 
 import matplotlib.pyplot as plt
 plt.close('all')
 tw0.plot('x')
+sv.plot(element_width=4.)
 
 plt.show()
