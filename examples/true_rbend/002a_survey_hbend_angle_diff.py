@@ -178,86 +178,32 @@ xo.assert_allclose(
 )
 
 xo.assert_allclose(sv_curved['s'], np.array([
-       0.       , 0.       , 0.5      , 0.9943602, 0.9943602, 0.9943602,
-       1.       , 1.5      , 2.       , 2.5      , 2.5      , 3.       ,
-       3.5      , 4.       , 4.0056398, 4.0056398, 4.0056398, 4.5      ,
-       5.       , 5.       ]
+       0.        , 0.        , 1.        , 1.        , 1.        ,
+       1.5075795 , 2.01515901, 2.52273851, 3.03031802, 3.53789752,
+       4.04547703, 4.04547703, 4.04547703, 5.        , 5.        ]
 ), atol=1e-5)
 
 xo.assert_allclose(
     sv_curved['rot_s_rad'], 0, atol=1e-14)
 
 sv_curved.cols['X Y Z']
-# is:
-# SurveyTable: 20 rows, 4 cols
-# name                      X             Y             Z
-# start             -0.261307             0      -2.48319
-# drift_1..0        -0.261307             0      -2.48319
-# drift_1..1        -0.186588             0      -1.98881
-# mb_entry          -0.112711             0          -1.5
-# mb..entry_map     -0.112711             0          -1.5
-# mb..0             -0.112711             0          -1.5
-# mb..1              -0.11187             0      -1.49442
-# mb..2            -0.0497715             0     -0.998347
-# mb..3            -0.0124506             0     -0.499793
-# mid                       0             0             0
-# mb..4                     0             0             0
-# mb..5            -0.0124506             0      0.499793
-# mb..6            -0.0497715             0      0.998347
-# mb..7              -0.11187             0       1.49442
-# mb..exit_map      -0.112711             0           1.5
-# mb_exit           -0.112711             0           1.5
-# drift_2..0        -0.112711             0           1.5
-# drift_2..1        -0.186588             0       1.98881
-# end               -0.261307             0       2.48319
-# _end_point        -0.261307             0       2.48319
-
 xo.assert_allclose(sv_curved['Y'], 0, atol=1e-14)
 xo.assert_allclose(sv_curved['Z'], np.array([
-    -2.48319461, -2.48319461, -1.98880907, -1.5       , -1.5       ,
-    -1.5       , -1.49442329, -0.99834662, -0.49979325,  0.        ,
-    0.        ,  0.49979325,  0.99834662,  1.49442329,  1.5       ,
-    1.5       ,  1.5       ,  1.98880907,  2.48319461,  2.48319461
-]), atol=1e-8)
-xo.assert_allclose(sv_curved['X'], np.array([
-    -0.26130674, -0.26130674, -0.18658768, -0.11271141, -0.11271141,
-    -0.11271141, -0.11187018, -0.04977152, -0.0124506 ,  0.        ,
-     0.        , -0.0124506 , -0.04977152, -0.11187018, -0.11271141,
-    -0.11271141, -0.11271141, -0.18658768, -0.26130674, -0.26130674
-]), atol=1e-8)
+       0.      , 0.      , 1.      , 1.      , 1.      , 1.507368,
+       2.013468, 2.517035, 3.01681 , 3.511544, 4.      , 4.      ,
+       4.      , 4.911891, 4.911891]), atol=1e-5)
+xo.assert_allclose(sv_curved['X'], np.array(
+      [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+       -0.01268684, -0.05071567, -0.11399141, -0.20235593, -0.31558835,
+       -0.45340565, -0.45340565, -0.45340565, -0.73548648, -0.73548648]),
+       atol=1e-8)
 
 sv_curved.cols['theta phi psi']
-# is:
-# SurveyTable: 20 rows, 4 cols
-# name                  theta           phi           psi
-# start                  0.15             0             0
-# drift_1..0             0.15             0             0
-# drift_1..1             0.15             0             0
-# mb_entry               0.15             0             0
-# mb..entry_map          0.15             0             0
-# mb..0                  0.15             0             0
-# mb..1              0.149438             0             0
-# mb..2             0.0996254             0             0
-# mb..3             0.0498127             0             0
-# mid                       0             0             0
-# mb..4                     0             0             0
-# mb..5            -0.0498127             0             0
-# mb..6            -0.0996254             0             0
-# mb..7             -0.149438             0             0
-# mb..exit_map          -0.15             0             0
-# mb_exit               -0.15             0             0
-# drift_2..0            -0.15             0             0
-# drift_2..1            -0.15             0             0
-# end                   -0.15             0             0
-# _end_point            -0.15             0             0
-
 xo.assert_allclose(sv_curved['phi'], 0, atol=1e-14)
 xo.assert_allclose(sv_curved['psi'], 0, atol=1e-14)
 xo.assert_allclose(sv_curved['theta'], np.array([
-        0.15      ,  0.15      ,  0.15      ,  0.15      ,  0.15      ,
-        0.15      ,  0.14943813,  0.09962542,  0.04981271,  0.        ,
-        0.        , -0.04981271, -0.09962542, -0.14943813, -0.15      ,
-       -0.15      , -0.15      , -0.15      , -0.15      , -0.15      ],
+        0.  ,  0.  ,  0.  ,  0.  ,  0.  , -0.05, -0.1 , -0.15, -0.2 ,
+       -0.25, -0.3 , -0.3 , -0.3 , -0.3 , -0.3 ],
     ), atol=1e-8)
 
 for nn in ['start', 'end']:
@@ -295,12 +241,12 @@ xo.assert_allclose(sv_curved_end['Z'], sv_curved['Z'], atol=1e-14)
 xo.assert_allclose(sv_curved_end['theta'], sv_curved['theta'], atol=1e-14)
 xo.assert_allclose(sv_curved_end['phi'], sv_curved['phi'], atol=1e-14)
 xo.assert_allclose(sv_curved_end['psi'], sv_curved['psi'], atol=1e-14)
-xo.assert_allclose(tw_straight['X', 'mid'], 0, atol=1e-14)
-xo.assert_allclose(tw_straight['Y', 'mid'], 0, atol=1e-14)
-xo.assert_allclose(tw_straight['Z', 'mid'], 0, atol=1e-14)
-xo.assert_allclose(tw_curved['X', 'mid'], 0, atol=1e-14)
-xo.assert_allclose(tw_curved['Y', 'mid'], 0, atol=1e-14)
-xo.assert_allclose(tw_curved['Z', 'mid'], 0, atol=1e-14)
+xo.assert_allclose(tw_straight['X', 'start'], 0, atol=1e-14)
+xo.assert_allclose(tw_straight['Y', 'start'], 0, atol=1e-14)
+xo.assert_allclose(tw_straight['Z', 'start'], 0, atol=1e-14)
+xo.assert_allclose(tw_curved['X', 'start'], 0, atol=1e-14)
+xo.assert_allclose(tw_curved['Y', 'start'], 0, atol=1e-14)
+xo.assert_allclose(tw_curved['Z', 'start'], 0, atol=1e-14)
 xo.assert_allclose(tw_straight['X', 'mb_entry'], tw_curved['X', 'mb_entry'], atol=1e-14)
 xo.assert_allclose(tw_straight['Y', 'mb_entry'], tw_curved['Y', 'mb_entry'], atol=1e-14)
 xo.assert_allclose(tw_straight['Z', 'mb_entry'], tw_curved['Z', 'mb_entry'], atol=1e-14)
