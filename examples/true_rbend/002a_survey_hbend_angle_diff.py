@@ -120,138 +120,60 @@ assert np.all(sv_straight['element_type'] == [
 xo.assert_allclose(
     sv_straight['angle'],
     np.array([
-        0.  , 0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
-        0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  ]),
+       0. , 0. , 0. , 0. , 0. , 0. , 0. , 0. , 0. , 0. , 0.3, 0. , 0. ,
+       0. , 0. ]),
     atol=1e-12
 )
 
 xo.assert_allclose(sv_straight['s'], np.array([
-       0.       , 0.       , 0.5      , 0.9943602, 0.9943602, 0.9943602,
-       1.       , 1.5      , 2.       , 2.5      , 2.5      , 3.       ,
-       3.5      , 4.       , 4.0056398, 4.0056398, 4.0056398, 4.5      ,
-       5.       , 5.       ]
+       0.        , 0.        , 1.        , 1.        , 1.        ,
+       1.5075795 , 2.01515901, 2.52273851, 3.03031802, 3.53789752,
+       4.04547703, 4.04547703, 4.04547703, 5.        , 5.        ]
 ), atol=1e-5)
 
 xo.assert_allclose(
     sv_straight['rot_s_rad'], 0, atol=1e-14)
 
 sv_straight.cols['X Y Z']
-# is:
-# SurveyTable: 20 rows, 4 cols
-# name                      X             Y             Z
-# start          -1.25496e-17     -0.261307      -2.48319
-# drift_1..0     -1.25496e-17     -0.261307      -2.48319
-# drift_1..1     -7.97441e-18     -0.186588      -1.98881
-# mb_entry       -3.45079e-18     -0.112711          -1.5
-# mb..entry_map  -3.45079e-18     -0.112711          -1.5
-# mb..0                     0    -0.0563557          -1.5
-# mb..1                     0    -0.0563557      -1.49438
-# mb..2                     0    -0.0563557     -0.996254
-# mb..3                     0    -0.0563557     -0.498127
-# mid                       0    -0.0563557             0
-# mb..4                     0    -0.0563557             0
-# mb..5                     0    -0.0563557      0.498127
-# mb..6                     0    -0.0563557      0.996254
-# mb..7                     0    -0.0563557       1.49438
-# mb..exit_map              0    -0.0563557           1.5
-# mb_exit        -3.45079e-18     -0.112711           1.5
-# drift_2..0     -3.45079e-18     -0.112711           1.5
-# drift_2..1     -7.97441e-18     -0.186588       1.98881
-# end            -1.25496e-17     -0.261307       2.48319
-
 xo.assert_allclose(sv_straight['Y'], 0, atol=1e-14)
-xo.assert_allclose(sv_straight['Z'], np.array([
-       -2.48319461, -2.48319461, -1.98880907, -1.5       , -1.5       ,
-       -1.5       , -1.49438132, -0.99625422, -0.49812711,  0.        ,
-        0.        ,  0.49812711,  0.99625422,  1.49438132,  1.5       ,
-        1.5       ,  1.5       ,  1.98880907,  2.48319461,  2.48319461]),
-        atol=1e-8)
+xo.assert_allclose(sv_straight['Z'], np.array(
+      [0.        , 0.        , 1.        , 1.        , 1.        ,
+       1.5       , 2.        , 2.5       , 3.        , 3.5       ,
+       4.        , 4.        , 4.        , 4.91189063, 4.91189063]),
+       atol=1e-8)
 xo.assert_allclose(sv_straight['X'], np.array([
-       -0.26130674, -0.26130674, -0.18658768, -0.11271141, -0.11271141,
-       -0.05635571, -0.05635571, -0.05635571, -0.05635571, -0.05635571,
-       -0.05635571, -0.05635571, -0.05635571, -0.05635571, -0.05635571,
-       -0.11271141, -0.11271141, -0.18658768, -0.26130674, -0.26130674]),
+        0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+       -1.38777878e-17, -1.38777878e-17, -1.38777878e-17, -1.38777878e-17,
+       -1.38777878e-17, -1.38777878e-17, -1.38777878e-17, -4.53405654e-01,
+       -4.53405654e-01, -7.35486481e-01, -7.35486481e-01]),
        atol=1e-8)
 
 
 sv_straight.cols['theta phi psi']
-# is:
-# SurveyTable: 20 rows, 4 cols
-# name                  theta           phi           psi
-# start                  0.15             0             0
-# drift_1..0             0.15             0             0
-# drift_1..1             0.15             0             0
-# mb_entry               0.15             0             0
-# mb..entry_map          0.15             0             0
-# mb..0                     0             0             0
-# mb..1                     0             0             0
-# mb..2                     0             0             0
-# mb..3                     0             0             0
-# mid                       0             0             0
-# mb..4                     0             0             0
-# mb..5                     0             0             0
-# mb..6                     0             0             0
-# mb..7                     0             0             0
-# mb..exit_map              0             0             0
-# mb_exit               -0.15             0             0
-# drift_2..0            -0.15             0             0
-# drift_2..1            -0.15             0             0
-# end                   -0.15             0             0
-# _end_point            -0.15             0             0
-
 xo.assert_allclose(sv_straight['phi'], 0, atol=1e-14)
 xo.assert_allclose(sv_straight['psi'], 0, atol=1e-14)
 xo.assert_allclose(sv_straight['theta'], np.array([
-        0.15,  0.15,  0.15,  0.15,  0.15,  0.  ,  0.  ,  0.  ,  0.  ,
-        0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  , -0.15, -0.15, -0.15,
-       -0.15, -0.15]))
+          0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
+       -0.3, -0.3, -0.3, -0.3]))
 
 
 sv_curved.cols['s element_type angle']
-# is:
-# Table: 20 rows, 4 cols
-# name                      s element_type            angle
-# start                     0 Marker                          0
-# drift_1..0                0 DriftSlice                      0
-# drift_1..1              0.5 DriftSlice                      0
-# mb_entry            0.99436 Marker                          0
-# mb..entry_map       0.99436 ThinSliceRBendEntry             0
-# mb..0               0.99436 ThickSliceRBend       0.000561868
-# mb..1                     1 ThickSliceRBend         0.0498127
-# mb..2                   1.5 ThickSliceRBend         0.0498127
-# mb..3                     2 ThickSliceRBend         0.0498127
-# mid                     2.5 Marker                          0
-# mb..4                   2.5 ThickSliceRBend         0.0498127
-# mb..5                     3 ThickSliceRBend         0.0498127
-# mb..6                   3.5 ThickSliceRBend         0.0498127
-# mb..7                     4 ThickSliceRBend       0.000561868
-# mb..exit_map        4.00564 ThinSliceRBendExit              0
-# mb_exit             4.00564 Marker                          0
-# drift_2..0          4.00564 DriftSlice                      0
-# drift_2..1              4.5 DriftSlice                      0
-# end                       5 Marker                          0
-# _end_point                5                                 0
-
 assert np.all(sv_curved['name'] == [
-       'start', '||drift_3::0', '||drift_4', 'mb_entry', 'mb..entry_map',
-       'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
-       'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', '||drift_5',
-       '||drift_3::1', 'end', '_end_point'])
+       'start', '||drift_1', 'mb_entry', 'mb..entry_map', 'mb..0',
+       'mb..1', 'mb..2', 'mb..3', 'mb..4', 'mb..5', 'mb..exit_map',
+       'mb_exit', '||drift_2', 'end', '_end_point'])
 
 assert np.all(sv_curved['element_type'] == [
-       'Marker', 'Drift', 'Drift', 'Marker', 'ThinSliceRBendEntry',
+       'Marker', 'Drift', 'Marker', 'ThinSliceRBendEntry',
        'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
-       'ThickSliceRBend', 'Marker', 'ThickSliceRBend', 'ThickSliceRBend',
-       'ThickSliceRBend', 'ThickSliceRBend', 'ThinSliceRBendExit',
-       'Marker', 'Drift', 'Drift', 'Marker', ''])
+       'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
+       'ThinSliceRBendExit', 'Marker', 'Drift', 'Marker', ''])
 
 xo.assert_allclose(
     sv_curved['angle'],
     np.array([
-       0.        , 0.        , 0.        , 0.        , 0.        ,
-       0.00056187, 0.04981271, 0.04981271, 0.04981271, 0.        ,
-       0.04981271, 0.04981271, 0.04981271, 0.00056187, 0.        ,
-       0.        , 0.        , 0.        , 0.        , 0.        ]),
+       0.  , 0.  , 0.  , 0.  , 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.  ,
+       0.  , 0.  , 0.  , 0.  ]),
     atol=1e-8
 )
 
