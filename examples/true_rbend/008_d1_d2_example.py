@@ -4,11 +4,13 @@ import numpy as np
 env = xt.Environment()
 env.vars.default_to_zero = True
 line = env.new_line(compose=True)
-line.new('start', 'Marker', at=0.),
-line.new('d1a', 'RBend', length_straight=1.0, k0='k0d1a', anchor='start', at='dz_d1a'),
-line.new('d1b', 'RBend', length_straight=1.0, k0='k0d1b', anchor='start', at='dz_d1b'),
-line.new('d2',  'RBend', length_straight=1.0, k0='k0d2',  anchor='start', at='dz_d2'),
-line.new('end', 'Marker', at='dz_end'),
+line.new('start', 'Marker', at=0.)
+line.new('d1a', 'RBend', length_straight=1.0, k0='k0d1a', anchor='start', at='dz_d1a')
+line.new('d1b', 'RBend', length_straight=1.0, k0='k0d1b', anchor='start', at='dz_d1b')
+line.new('d2',  'RBend', length_straight=1.0, k0='k0d2',  anchor='start', at='dz_d2')
+line.new('end', 'Marker', at='dz_end')
+
+ # ------ measure geometry in the straight reference frame ------
 
 # Positions in the straight reference frame
 env['dz_d1a'] = 1.
@@ -30,6 +32,8 @@ opt = line.match(
     targets=xt.TargetSet(x=1., px=0.0, at='end'),
 )
 opt.solve()
+
+# ---- build geometry with curved reference frame ----
 
 # Twiss in the straight reference system
 tw0 = line.twiss(betx=1, bety=1, strengths=True)
