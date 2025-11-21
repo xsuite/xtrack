@@ -151,16 +151,22 @@ def _build_rdt_script(mng_sequence_name, rdts, columns):
 def _build_beta0_block_string(tw_kwargs):
     flag_init = False
     beta0_keys = []
+    beta0_vals = []
     for k in tw_kwargs.keys():
         if k in BETA0_COLUMNS:
             beta0_keys.append(k)
+            beta0_vals.append(tw_kwargs[k])
+            flag_init = True
+        elif k in XS_NG_MAP:
+            beta0_keys.append(XS_NG_MAP[k])
+            beta0_vals.append(tw_kwargs[k])
             flag_init = True
 
     if flag_init:
         # Construct beta0 string
         beta0_str = 'X0 = beta0 {'
-        for k in beta0_keys:
-            beta0_str += f'{k} = {tw_kwargs[k]}, '
+        for k, v in zip(beta0_keys, beta0_vals):
+            beta0_str += f'{k} = {v}, '
         beta0_str = beta0_str[:-2] + '}, '
     else:
         beta0_str = ''
@@ -193,7 +199,7 @@ def _tw_ng(line, rdts=(), normal_form=False,
             raise NotImplementedError('TwissTable as init not implemented.')
         X0_str = _build_beta0_block_string(tw_kwargs)
     else:
-        X0_str = f'X0={X0}, '
+        X0_str = f'X0 = {X0}, '
 
     if start is not None and end is None or start is None and end is not None:
         raise ValueError('Start and end must be specified together.')
@@ -470,14 +476,14 @@ class ActionTwissMadng(Action):
         return self.line.madng_twiss(xsuite_tw = False, X0=self.X0, **self.tw_kwargs)
 
 class ActionTwissMadngTPSA(Action):
-    def __init__(self, line, vary_names, targets = [], tw_kwargs={}, fallback_action=None, **kwargs):
+    def __init__(self, line, vary_names, targets = [], tw_kwargs={}, twiss_flag=True, **kwargs):
         self.line = line
         self.vary_names = vary_names
         self.targets = targets
         self.target_locations = None # set in prepare
         self.tw_kwargs = tw_kwargs
         self.tw_kwargs.update(kwargs)
-        self.fallback_action = fallback_action
+        self.twiss_flag = twiss_flag
         self._already_prepared = False
         self.tpsa_dict = {}
 
@@ -493,9 +499,6 @@ class ActionTwissMadngTPSA(Action):
         if init is None:
             if start is not None and end is not None:
                 raise ValueError('If start and end are specified, init must be provided as TwissTable.')
-            if self.fallback_action is not None:
-                self.fallback_action.prepare(force=force)
-                init = self.fallback_action.run()
             else:
                 init = self.line.madng_twiss(**self.tw_kwargs)
             self.tw_kwargs.update({'init': init})
@@ -511,6 +514,9 @@ class ActionTwissMadngTPSA(Action):
 
         self.target_locations = set()
         targets_map_str = ''
+        self.target_quantities = set()
+
+        xs_ng_target_map = XSUITE_MADNG_ENV_NAME + '.xs_ng_target_map = {}\n'
 
         for i, target in enumerate(self.targets):
             if isinstance(target.tar, tuple):
@@ -518,7 +524,9 @@ class ActionTwissMadngTPSA(Action):
                 qty = target.tar[0][:-3] if target.tar[0].endswith('_ng') else XS_NG_MAP[target.tar[0]]
                 self.target_locations.add(target.tar[1])
                 # set string for quantity mapping + loc to save in madng
-                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{target.tar[1]}', qty = '{qty}' }}\n"
+                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i+1}] = {{ loc = '{target.tar[1]}', qty = '{qty}' }}\n"
+                self.target_quantities.add(target.tar[0])
+                xs_ng_target_map += f"{XSUITE_MADNG_ENV_NAME}.xs_ng_target_map['{target.tar[0]}'] = '{qty}'\n"
 
             elif hasattr(target, "start") and hasattr(target, "end"):
                 assert target.var in TPSA_ALLOWED_TARGETS, f"Target quantity '{target.var}' not allowed with TPSA matching."
@@ -532,7 +540,9 @@ class ActionTwissMadngTPSA(Action):
                     end_loc_str = target.end
 
                 qty = target.var[:-3] if target.var.endswith('_ng') else XS_NG_MAP[target.var]
-                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i}] = {{ loc = '{end_loc_str}', qty = '{qty}', loc_start = '{start_loc_str}' }}\n"
+                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_map[{i+1}] = {{ loc = '{end_loc_str}', qty = '{qty}', loc_start = '{start_loc_str}' }}\n"
+                self.target_quantities.add(target.var)
+                xs_ng_target_map += f"{XSUITE_MADNG_ENV_NAME}.xs_ng_target_map['{target.var}'] = '{qty}'\n"
         self.target_locations = list(self.target_locations)
 
         # set coords (TODO: delta)
@@ -571,7 +581,13 @@ class ActionTwissMadngTPSA(Action):
                     observables_str += f"'{loc}', "
         observables_str += '}'
 
-        init_cond_str = ''
+        qty_str = '{'
+        for qty in self.target_quantities:
+            qty_str += f"'{qty}', "
+        qty_str += '}'
+
+        init_cond_str = 'local B0 = MAD.beta0 {'
+
         if madng_init_flag:
             init_cond_str = f"local B0 = MAD.beta0 {{ beta11 = {init['beta11' + quantity_appendix, start_loc]},\n" + f"beta22 = {init['beta22' + quantity_appendix, start_loc]},\n"\
             + f"alfa11 = {init['alfa11' + quantity_appendix, start_loc]},\n" + f"alfa22 = {init['alfa22' + quantity_appendix, start_loc]},\n"\
@@ -582,6 +598,8 @@ class ActionTwissMadngTPSA(Action):
             + f"alfa11 = {init['alfx', start_loc]},\n" + f"alfa22 = {init['alfy', start_loc]},\n"\
             + f"dx = {init['dx', start_loc]},\n" + f"dpx = {init['dpx', start_loc]},\n"\
             + f"dy = {init['dy', start_loc]},\n" + f"dpy = {init['dpy', start_loc]}\n }}"
+
+        # init_cond_str += '}'
 
         mng_init_str = r'''
             ''' + XSUITE_MADNG_ENV_NAME + r''' = {} -- to avoid variable name clashes
@@ -610,42 +628,23 @@ class ActionTwissMadngTPSA(Action):
 
             ''' + init_cond_str + r'''
 
-            --[[ local B0 = MAD.beta0 {
-                beta11=beta11,
-                beta22=beta22,
-                alfa11=alfa11,
-                alfa22=alfa22,
-                dx=dx,
-                dpx=dpx,
-                dy=dy,
-                dpy=dpy
-            } --]]
-
             local map1 = MAD.gphys.bet2map(B0, X0)
 
-            --[[ local mat = {
-                {math.sqrt(beta11), 0, 0, 0, 0, dx},
-                {-alfa11/math.sqrt(beta11), 1/math.sqrt(beta11), 0, 0, 0, dpx},
-                {0, 0, math.sqrt(beta22), 0, 0, dy},
-                {0, 0, -alfa22/math.sqrt(beta22), 1/math.sqrt(beta22), 0, dpy},
-                {0, 0, 0, 0, betas, 0},
-                {0, 0, 0, 0, 0, 1/betas},
-            }
-
-            local mat = MAD.matrix(mat) --]]
 
             ''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map = table.new(0, ''' + str(len(self.target_locations)) + r''')
             ''' + XSUITE_MADNG_ENV_NAME + r'''.targets_map = table.new(''' + str(len(self.targets)) + r''', 0)
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.tar_qtys = ''' + qty_str + r'''
 
-            ''' + XSUITE_MADNG_ENV_NAME + r'''.init_X0_map = map1 -- X0:set1(mat)
-            ''' + XSUITE_MADNG_ENV_NAME + r'''.X0 = map1:copy()
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.init_X0_map = map1
+            --''' + XSUITE_MADNG_ENV_NAME + r'''.X0 = map1:copy()
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.params = params
             ''' + targets_map_str + r'''
+            ''' + xs_ng_target_map + r'''
             '''
+        print(mng_init_str)
 
         mng.send(mng_init_str)
 
-        if self.fallback_action is not None:
-            self.fallback_action.X0 = f"{XSUITE_MADNG_ENV_NAME}.init_X0_map"
         self._already_prepared = True
 
     def run(self):
@@ -655,14 +654,17 @@ class ActionTwissMadngTPSA(Action):
         start = self.tw_kwargs.get('start', None)
         end = self.tw_kwargs.get('end', None)
 
+        operation = 'twiss' if self.twiss_flag else 'track'
+
         range_str = ''
         if start is not None and end is not None:
             range_str = f"range = '{start}/{end}', "
         mng_track_str = (
-            f"local trk, mflw = MAD.track{{\n"
+            f"local trk, mflw = MAD.{operation}{{\n"
             f"    sequence={self.mng._sequence_name},\n"
             f"    X0={XSUITE_MADNG_ENV_NAME}.init_X0_map,\n"
             f"    savemap=true,\n"
+            f"    observe=1,\n"
             f"    {range_str}\n"
             f"}}\n"
             f"{XSUITE_MADNG_ENV_NAME}.trk = trk\n"
@@ -670,62 +672,70 @@ class ActionTwissMadngTPSA(Action):
 
         self.mng.send(mng_track_str)
 
-        if self.fallback_action is not None:
-            res = self.fallback_action.run()
-        else:
-            res = xt.TwissTable({"name": np.array(self.target_locations)})
-            param_matrix = np.zeros((6, len(self.target_locations)), dtype=float)
+        # Instead of taking TPSAs, we could enrich the table and send it over while calculating things inside?
 
-        for i, tar_loc in enumerate(self.target_locations):
-            loc_map_str = (f"local a_re_exit = {XSUITE_MADNG_ENV_NAME}.trk['{tar_loc}'].__map\n"
-                           f"{XSUITE_MADNG_ENV_NAME}.target_loc_map['{tar_loc}'] = a_re_exit")
+        loc_map_str = ''
+        for i, loc in enumerate(self.target_locations):
+            loc_map_str += f"{XSUITE_MADNG_ENV_NAME}.target_loc_map['{loc}'] = {XSUITE_MADNG_ENV_NAME}.trk['{loc}'].__map\n"
 
-            mng_map_str = loc_map_str + r'''
-                local clearkeys in MAD.utility
-                py:send(clearkeys(a_re_exit.__vn), true) -- Send keys as a list (ordered)
 
-                for i, v in ipairs(a_re_exit.__vn) do
-                    py:send(a_re_exit[v]) -- Send TPSAs (Normal Forms) over in order
-                end
+        if self.twiss_flag:
+            mng_table_str = r'''
+            local trk = ''' + XSUITE_MADNG_ENV_NAME + r'''.trk
+            ''' + loc_map_str + r'''
+            py:send(trk)
             '''
 
-            self.mng.send(mng_map_str)
+            res = self.mng.send(mng_table_str).recv(XSUITE_MADNG_ENV_NAME + '.trk').to_df()
+            res = xt.TwissTable(res)
 
-            tpsas = {k: self.mng.recv() for k in self.mng.recv()} # Create dict out of TPSAs
-            tpsa = TPSA(tpsas, num_variables=6) # Create TPSA object out of madng-dict
-            self.tpsa_dict[tar_loc] = tpsa
-
-            if self.fallback_action is None:
-                param_matrix[0, i] = tpsa.calc_beta('x')
-                param_matrix[1, i] = tpsa.calc_beta('y')
-                param_matrix[2, i] = tpsa.calc_alpha('x')
-                param_matrix[3, i] = tpsa.calc_alpha('y')
-                param_matrix[4, i] = tpsa.calc_dispersion('x')
-                param_matrix[5, i] = tpsa.calc_dispersion('px')
-        if self.fallback_action is None:
-            res['beta11_ng'] = param_matrix[0]
-            res['betx'] = param_matrix[0]
-            res['beta22_ng'] = param_matrix[1]
-            res['bety'] = param_matrix[1]
-            res['alfa11_ng'] = param_matrix[2]
-            res['alfx'] = param_matrix[2]
-            res['alfa22_ng'] = param_matrix[3]
-            res['alfy'] = param_matrix[3]
-            res['dx_ng'] = param_matrix[4]
-            res['dx'] = param_matrix[4]
-            res['dpx_ng'] = param_matrix[5]
-            res['dpx'] = param_matrix[5]
+            for qty in self.target_quantities:
+                if qty not in res.cols:
+                    res[qty] = res[qty[:-3] if qty.endswith('_ng') else XS_NG_MAP[qty]]
+            pass
+            # Twiss Logic names
         else:
-            res['betx'] = res['beta11_ng']
-            res['bety'] = res['beta22_ng']
-            res['alfx'] = res['alfa11_ng']
-            res['alfy'] = res['alfa22_ng']
-            res['dx'] = res['dx_ng']
-            res['dpx'] = res['dpx_ng']
-            res['mux'] = res['mu1_ng']
-            res['muy'] = res['mu2_ng']
+            loc_map_str = ''
+            for i, loc in enumerate(self.target_locations):
+                loc_map_str += f"{XSUITE_MADNG_ENV_NAME}.target_loc_map['{loc}'] = {XSUITE_MADNG_ENV_NAME}.trk['{loc}'].__map\n"
+
+            mng_table_str = r'''
+            local trk = ''' + XSUITE_MADNG_ENV_NAME + r'''.trk
+            for i, tar in ipairs( ''' + XSUITE_MADNG_ENV_NAME + r'''.tar_qtys ) do
+                if not trk[''' + XSUITE_MADNG_ENV_NAME + r'''.xs_ng_target_map[tar]] then
+                    trk:addcol(tar, \ri -> MAD.gphys.optfun(trk[ri].__map, ''' + XSUITE_MADNG_ENV_NAME + r'''.xs_ng_target_map[tar] .. '_'))
+                end
+            end
+            ''' + loc_map_str + r'''
+            py:send(trk)
+            '''
+
+            res = self.mng.send(mng_table_str).recv(XSUITE_MADNG_ENV_NAME + '.trk').to_df()
+            res = xt.TwissTable(res)
 
         return res
+
+    def acquire_jacobian(self):
+        tar_len_str = f"local tarlen = {len(self.targets)}\n"
+        vary_len_str = f"local varylen = {len(self.vary_names)}\n"
+        jac_decl_str = f"{XSUITE_MADNG_ENV_NAME}.jac = MAD.matrix(tarlen, varylen)\n"
+
+        mng_str = tar_len_str + vary_len_str + jac_decl_str + r'''
+        -- Compute Jacobian
+        for i, target in ipairs(  ''' + XSUITE_MADNG_ENV_NAME + r'''.targets_map ) do
+            for j, var_name in ipairs(  ''' + XSUITE_MADNG_ENV_NAME + r'''.params ) do
+                ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = MAD.gphys.optfun(''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map[target.loc], target.qty .. "_", j, 1)
+            end
+        end
+
+        py:send(''' + XSUITE_MADNG_ENV_NAME + r'''.jac)
+        '''
+
+        self.mng.send(mng_str)
+
+        jac = np.array(self.mng.recv())
+
+        return jac
 
     def cleanup(self):
         # Need to reconvert TPSAs to normal values
@@ -752,7 +762,7 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
 
         nocharge = str(kwargs.pop('nocharge', True)).lower()
 
-        mng = MAD(**kwargs)
+        mng = MAD(mad_path = '/home/babreufi/git/MAD-NG-1.1.5/bin/mad', **kwargs)
         mng.send(f"""
                  local mad_func = loadfile('{temp_fname}.mad', nil, MADX)
                  assert(mad_func)
