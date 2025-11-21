@@ -20,8 +20,6 @@ line.end_compose()
 line.set_particle_ref('proton', p0c=1e9)
 line.configure_drift_model('exact')
 
-
-
 env['k0d1a'] = 'k0d1'
 env['k0d1b'] = 'k0d1'
 
@@ -33,29 +31,30 @@ opt = line.match(
 )
 opt.solve()
 
+# Twiss in the straight reference system
 tw0 = line.twiss(betx=1, bety=1, strengths=True)
 
 line.regenerate_from_composer()
 
+# Update positions according to path length
 env['dz_d1a'] = tw0['s', 'd1a'] - tw0['zeta', 'd1a']
 env['dz_d1b'] = tw0['s', 'd1b'] - tw0['zeta', 'd1b']
 env['dz_d2'] = tw0['s', 'd2'] - tw0['zeta', 'd2']
 env['dz_end'] = tw0['s', 'end'] - tw0['zeta', 'end']
 
 # Introduce magnet curvatures
-d1a_angle_in = np.arcsin(tw0['px', 'd1a'])
-d1b_angle_in = np.arcsin(tw0['px', 'd1b'])
-d2_angle_in  = np.arcsin(tw0['px', 'd2'])
-d1a_angle_out = -d1b_angle_in
-d1b_angle_out = -d2_angle_in
-d2_angle_out  = -np.arcsin(tw0['px', 'end'])
-
 for nn in ['d1a', 'd1b', 'd2']:
     line[nn].k0 = 0
     line[nn].k0_from_h = True
     line[nn].rbend_compensate_sagitta = False
     line[nn].rbend_model = 'straight-body'
 
+d1a_angle_in = np.arcsin(tw0['px', 'd1a'])
+d1b_angle_in = np.arcsin(tw0['px', 'd1b'])
+d2_angle_in  = np.arcsin(tw0['px', 'd2'])
+d1a_angle_out = -d1b_angle_in
+d1b_angle_out = -d2_angle_in
+d2_angle_out  = -np.arcsin(tw0['px', 'end'])
 
 line['d1a'].angle = d1a_angle_in + d1a_angle_out
 line['d1b'].angle = d1b_angle_in + d1b_angle_out
@@ -65,17 +64,14 @@ line['d1a'].rbend_angle_diff = d1a_angle_out - d1a_angle_in
 line['d1b'].rbend_angle_diff = d1b_angle_out - d1b_angle_in
 line['d2'].rbend_angle_diff  = d2_angle_out  - d2_angle_in
 
-# d1a enters at zero
-line['d1a'].rbend_shift += line['d1a']._x0_in
-
-# d2b enters at x defined by twiss
+# Set rbend shifts
+line['d1a'].rbend_shift += line['d1a']._x0_in - tw0['x', 'd1a']
 line['d1b'].rbend_shift += line['d1b']._x0_in - tw0['x', 'd1b']
-
-# d2 exits at 1
-line['d2'].rbend_shift += line['d1a']._x0_out - 1.
+line['d2'].rbend_shift += line['d1a']._x0_out - tw0['x', 'end'] # to illustrate that out can be set as well
 
 line.end_compose()
 
+# slice for plot
 l_sliced =line.copy(shallow=True)
 l_sliced.slice_thick_elements(
         slicing_strategies=[
@@ -83,10 +79,15 @@ l_sliced.slice_thick_elements(
         ])
 
 sv = l_sliced.survey()
+tw = l_sliced.twiss(betx=1, bety=1)
+
+# Combine twiss and survey to get actual trajectory
+trajectory = sv.p0 + tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey
 
 import matplotlib.pyplot as plt
 plt.close('all')
 tw0.plot('x')
 sv.plot(element_width=4.)
+plt.plot(trajectory[:, 2], trajectory[:, 0], color='C1', linestyle='--')
 
 plt.show()
