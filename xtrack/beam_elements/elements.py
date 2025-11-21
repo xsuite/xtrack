@@ -2015,7 +2015,7 @@ class RBend(_BendCommon, BeamElement):
     @property
     def _x0_mid(self):
         out = -self.rbend_shift
-        if abs(self.angle) > 1e-10:
+        if abs(self.angle) > 1e-10 and self.rbend_compensate_sagitta:
             out += 0.5 / self.h * (1 - np.cos(self.angle / 2))
         return out
 

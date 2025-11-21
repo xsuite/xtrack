@@ -305,8 +305,8 @@ void track_magnet_particles(
     double dks_ds,
     double x0_solenoid,
     double y0_solenoid,
-    int32_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
-    int32_t rbend_compensate_sagitta,
+    int64_t rbend_model, // -1: not used, 0: auto, 1: curved body, 2: straight body
+    int64_t rbend_compensate_sagitta,
     double rbend_shift,
     double rbend_angle_diff,
     double length_straight,
@@ -368,7 +368,7 @@ void track_magnet_particles(
 
         x0_mid -= rbend_shift;
 
-        if (fabs(angle) > 1e-10){
+        if (rbend_compensate_sagitta && fabs(angle) > 1e-10){
             // shift by half the sagitta
             double cos_rbha = cos(angle / 2.);
             x0_mid += 0.5 / h * (1 - cos_rbha);

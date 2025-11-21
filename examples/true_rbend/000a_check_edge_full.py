@@ -20,6 +20,7 @@ b_test = xt.RBend(
 b_test.rbend_model = 'straight-body'
 b_test.model = 'bend-kick-bend'
 b_test.num_multipole_kicks = 100
+b_test.rbend_compensate_sagitta = True
 b_test.edge_entry_model = edge_model
 b_test.edge_exit_model = edge_model
 l_test = xt.Line([b_test])

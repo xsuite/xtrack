@@ -287,7 +287,7 @@ void track_magnet_particles(
 
         x0_mid -= rbend_shift;
 
-        if (fabs(angle) > 1e-10){
+        if (rbend_compensate_sagitta && fabs(angle) > 1e-10){
             // shift by half the sagitta
             double cos_rbha = cos(angle / 2.);
             x0_mid += 0.5 / h * (1 - cos_rbha);
