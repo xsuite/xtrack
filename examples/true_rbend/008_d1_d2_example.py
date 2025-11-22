@@ -1,5 +1,6 @@
 import xtrack as xt
 import numpy as np
+import xobjects as xo
 
 env = xt.Environment()
 env.vars.default_to_zero = True
@@ -75,6 +76,9 @@ line['d2'].rbend_shift += line['d1a']._x0_out - tw0['x', 'end'] # to illustrate 
 
 line.end_compose()
 
+sv = line.survey()
+tw = line.twiss(betx=1, bety=1)
+
 # slice for plot
 l_sliced =line.copy(shallow=True)
 l_sliced.slice_thick_elements(
@@ -82,16 +86,26 @@ l_sliced.slice_thick_elements(
             xt.Strategy(slicing=xt.Uniform(6, mode='thick'))
         ])
 
-sv = l_sliced.survey()
-tw = l_sliced.twiss(betx=1, bety=1)
+sv_sliced = l_sliced.survey()
+tw_sliced = l_sliced.twiss(betx=1, bety=1)
 
 # Combine twiss and survey to get actual trajectory
-trajectory = sv.p0 + tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey
+trajectory = sv_sliced.p0 + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
 
-import matplotlib.pyplot as plt
-plt.close('all')
-tw0.plot('x')
-sv.plot(element_width=4.)
-plt.plot(trajectory[:, 2], trajectory[:, 0], color='C1', linestyle='--')
 
-plt.show()
+tw0['path_length'] = tw0.s - tw0.zeta
+tw0['diff_path_length'] = np.diff(tw0.path_length, append=tw0.path_length[-1])
+
+xo.assert_allclose(tw0['diff_path_length', 'd1a'], line['d1a'].length, atol=3e-8)
+xo.assert_allclose(tw0['diff_path_length', 'd1b'], line['d1b'].length, atol=3e-8)
+xo.assert_allclose(tw0['diff_path_length', 'd2'], line['d2'].length, atol=3e-8)
+
+xo.assert_allclose(sv.Z, tw0.s, atol=1e-9, rtol=5e-9)
+
+# import matplotlib.pyplot as plt
+# plt.close('all')
+# tw0.plot('x')
+# sv_sliced.plot(element_width=4.)
+# plt.plot(trajectory[:, 2], trajectory[:, 0], color='C1', linestyle='--')
+
+# plt.show()
