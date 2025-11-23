@@ -99,9 +99,9 @@ tw0['diff_path_length'] = np.diff(tw0.path_length, append=tw0.path_length[-1])
 
 xo.assert_allclose(tw0.path_length, tw.s, atol=1e-14)
 
-xo.assert_allclose(tw0['diff_path_length', 'd1a'], line['d1a'].length, atol=3e-8)
-xo.assert_allclose(tw0['diff_path_length', 'd1b'], line['d1b'].length, atol=3e-8)
-xo.assert_allclose(tw0['diff_path_length', 'd2'], line['d2'].length, atol=3e-8)
+xo.assert_allclose(tw0['diff_path_length', 'd1a'], line['d1a'].length, atol=1e-14)
+xo.assert_allclose(tw0['diff_path_length', 'd1b'], line['d1b'].length, atol=1e-14)
+xo.assert_allclose(tw0['diff_path_length', 'd2'], line['d2'].length, atol=1e-14)
 
 xo.assert_allclose(tw0['px', 'd1a'], 0, atol=1e-14)
 xo.assert_allclose(tw0['px', 'd1b'], np.sin(line['d1b']._angle_in), atol=1e-14)
@@ -119,7 +119,7 @@ xo.assert_allclose(tw.x, 0, atol=1e-14)
 xo.assert_allclose(tw.zeta, 0, atol=1e-14)
 xo.assert_allclose(tw0.y, 0, atol=1e-14)
 
-xo.assert_allclose(tw0['x', 'd2'], line['d2']._x0_in, atol=3e-8) # ?!
+xo.assert_allclose(tw0['x', 'd2'], line['d2']._x0_in, atol=1e-14)
 
 import matplotlib.pyplot as plt
 plt.close('all')
