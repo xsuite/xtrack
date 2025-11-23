@@ -100,7 +100,10 @@ xo.assert_allclose(tw0['diff_path_length', 'd1a'], line['d1a'].length, atol=3e-8
 xo.assert_allclose(tw0['diff_path_length', 'd1b'], line['d1b'].length, atol=3e-8)
 xo.assert_allclose(tw0['diff_path_length', 'd2'], line['d2'].length, atol=3e-8)
 
-xo.assert_allclose(sv.Z, tw0.s, atol=1e-9, rtol=5e-9)
+xo.assert_allclose(sv.Z, tw0.s, atol=0, rtol=5e-9)
+xo.assert_allclose(sv.X, tw0.x, atol=0, rtol=3e-8)
+xo.assert_allclose(sv.Y, tw0.y, atol=0, rtol=1e-14)
+xo.assert_allclose(tw0.y, 0, atol=0, rtol=1e-14)
 
 # import matplotlib.pyplot as plt
 # plt.close('all')
