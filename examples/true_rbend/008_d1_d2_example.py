@@ -85,7 +85,7 @@ tw = line.twiss(betx=1, bety=1)
 l_sliced =line.copy(shallow=True)
 l_sliced.slice_thick_elements(
         slicing_strategies=[
-            xt.Strategy(slicing=xt.Uniform(6, mode='thick'))
+            xt.Strategy(slicing=xt.Uniform(3, mode='thick'))
         ])
 
 sv_sliced = l_sliced.survey()
@@ -120,6 +120,39 @@ xo.assert_allclose(tw.zeta, 0, atol=1e-14)
 xo.assert_allclose(tw0.y, 0, atol=1e-14)
 
 xo.assert_allclose(tw0['x', 'd2'], line['d2']._x0_in, atol=1e-14)
+
+sv_sliced.cols['s angle theta X'].show()
+# name                       s         angle         theta             X
+# start                      0             0             0             0
+# ||drift_1                  0             0             0             0
+# d1a_entry                  1             0             0             0
+# d1a..entry_map             1             0             0             0
+# d1a..0                     1             0             0             0
+# d1a..1               1.33371             0             0             0
+# d1a..2               1.66742             0             0             0
+# d1a..exit_map        2.00114    -0.0824999             0             0
+# d1a_exit             2.00114             0     0.0824999     0.0412734
+# ||drift_3            2.00114             0     0.0824999     0.0412734
+# d1b_entry            3.00455             0     0.0824999      0.123961
+# d1b..entry_map       3.00455     0.0824999     0.0824999      0.123961
+# d1b..0               3.00455             0  -1.14732e-17  -1.38778e-17
+# d1b..1               3.34056             0  -1.14732e-17  -1.77022e-17
+# d1b..2               3.67657             0  -1.14732e-17  -2.15266e-17
+# d1b..exit_map        4.01258     -0.165568  -1.14732e-17   -2.5351e-17
+# d1b_exit             4.01258             0      0.165568      0.248635
+# ||drift_4            4.01258             0      0.165568      0.248635
+# d2_entry             8.06804             0      0.165568      0.917026
+# d2..entry_map        8.06804      0.165568      0.165568      0.917026
+# d2..0                8.06804             0  -9.64632e-18   1.11022e-16
+# d2..1                 8.4029             0  -9.64632e-18   1.07807e-16
+# d2..2                8.73776             0  -9.64632e-18   1.04591e-16
+# d2..exit_map         9.07262   1.38778e-17  -9.64632e-18   1.01376e-16
+# d2_exit              9.07262             0  -9.64632e-18             1
+# ||drift_5            9.07262             0  -9.64632e-18             1
+# end                  10.0726             0  -9.64632e-18             1
+# _end_point           10.0726             0  -9.64632e-18             1
+
+CHECKS TO BE WRITTEN
 
 import matplotlib.pyplot as plt
 plt.close('all')
