@@ -74,7 +74,7 @@ line['d2'].rbend_angle_diff  = d2_angle_out  - d2_angle_in
 # Set rbend shifts
 line['d1a'].rbend_shift += line['d1a']._x0_in - tw0['x', 'd1a']
 line['d1b'].rbend_shift += line['d1b']._x0_in - tw0['x', 'd1b']
-line['d2'].rbend_shift += line['d1a']._x0_out - tw0['x', 'end'] # to illustrate that out can be set as well
+line['d2'].rbend_shift += line['d2']._x0_out - tw0['x', 'end'] # to illustrate that out can be set as well
 
 line.end_compose()
 
@@ -126,5 +126,6 @@ plt.close('all')
 tw0.plot('x')
 sv_sliced.plot(element_width=4.)
 plt.plot(trajectory[:, 2], trajectory[:, 0], color='C1', linestyle='--')
+plt.plot(tw0.s, tw0.x, ':', color='C2')
 
 plt.show()
