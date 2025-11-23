@@ -22,6 +22,8 @@ env['dz_end'] = 10.
 line.end_compose()
 line.set_particle_ref('proton', p0c=1e9)
 line.configure_drift_model('exact')
+line.set(env.elements.get_table().rows.match(element_type='RBend'),
+         model='bend-kick-bend')
 
 env['k0d1a'] = 'k0d1'
 env['k0d1b'] = 'k0d1'
@@ -108,11 +110,13 @@ xo.assert_allclose(tw0['px', 'd1b'], -np.sin(line['d1a']._angle_out), atol=1e-14
 xo.assert_allclose(tw0['px', 'd2'], -np.sin(line['d1b']._angle_out), atol=1e-14)
 xo.assert_allclose(tw0['px', 'end'], -np.sin(line['d2']._angle_out), atol=1e-14)
 
-
 xo.assert_allclose(sv.Z, tw0.s, atol=0, rtol=5e-9)
 xo.assert_allclose(sv.X, tw0.x, atol=0, rtol=3e-8)
-xo.assert_allclose(sv.Y, tw0.y, atol=0, rtol=1e-14)
-xo.assert_allclose(tw0.y, 0, atol=0, rtol=1e-14)
+xo.assert_allclose(sv.Y, tw0.y, atol=1e-14)
+
+xo.assert_allclose(tw.x, 0, atol=1e-14)
+xo.assert_allclose(tw.zeta, 0, atol=1e-14)
+xo.assert_allclose(tw0.y, 0, atol=1e-14)
 
 # import matplotlib.pyplot as plt
 # plt.close('all')
