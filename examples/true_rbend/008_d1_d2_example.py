@@ -100,6 +100,15 @@ xo.assert_allclose(tw0['diff_path_length', 'd1a'], line['d1a'].length, atol=3e-8
 xo.assert_allclose(tw0['diff_path_length', 'd1b'], line['d1b'].length, atol=3e-8)
 xo.assert_allclose(tw0['diff_path_length', 'd2'], line['d2'].length, atol=3e-8)
 
+xo.assert_allclose(tw0['px', 'd1a'], 0, atol=1e-14)
+xo.assert_allclose(tw0['px', 'd1b'], np.sin(line['d1b']._angle_in), atol=1e-14)
+xo.assert_allclose(tw0['px', 'd2'], np.sin(line['d2']._angle_in), atol=1e-14)
+
+xo.assert_allclose(tw0['px', 'd1b'], -np.sin(line['d1a']._angle_out), atol=1e-14)
+xo.assert_allclose(tw0['px', 'd2'], -np.sin(line['d1b']._angle_out), atol=1e-14)
+xo.assert_allclose(tw0['px', 'end'], -np.sin(line['d2']._angle_out), atol=1e-14)
+
+
 xo.assert_allclose(sv.Z, tw0.s, atol=0, rtol=5e-9)
 xo.assert_allclose(sv.X, tw0.x, atol=0, rtol=3e-8)
 xo.assert_allclose(sv.Y, tw0.y, atol=0, rtol=1e-14)
