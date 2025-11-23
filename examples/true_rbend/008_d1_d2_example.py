@@ -94,9 +94,10 @@ tw_sliced = l_sliced.twiss(betx=1, bety=1)
 # Combine twiss and survey to get actual trajectory
 trajectory = sv_sliced.p0 + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
 
-
 tw0['path_length'] = tw0.s - tw0.zeta
 tw0['diff_path_length'] = np.diff(tw0.path_length, append=tw0.path_length[-1])
+
+xo.assert_allclose(tw0.path_length, tw.s, atol=1e-14)
 
 xo.assert_allclose(tw0['diff_path_length', 'd1a'], line['d1a'].length, atol=3e-8)
 xo.assert_allclose(tw0['diff_path_length', 'd1b'], line['d1b'].length, atol=3e-8)
@@ -118,10 +119,12 @@ xo.assert_allclose(tw.x, 0, atol=1e-14)
 xo.assert_allclose(tw.zeta, 0, atol=1e-14)
 xo.assert_allclose(tw0.y, 0, atol=1e-14)
 
-# import matplotlib.pyplot as plt
-# plt.close('all')
-# tw0.plot('x')
-# sv_sliced.plot(element_width=4.)
-# plt.plot(trajectory[:, 2], trajectory[:, 0], color='C1', linestyle='--')
+xo.assert_allclose(tw0['x', 'd2'], line['d2']._x0_in, atol=3e-8) # ?!
 
-# plt.show()
+import matplotlib.pyplot as plt
+plt.close('all')
+tw0.plot('x')
+sv_sliced.plot(element_width=4.)
+plt.plot(trajectory[:, 2], trajectory[:, 0], color='C1', linestyle='--')
+
+plt.show()
