@@ -15,9 +15,9 @@ start:  stmt*
 
 ?sequence: _sequence_body _ENDSEQUENCE ";"
 
-_sequence_body: NAME ":" _SEQUENCE command_arglist ";" (clone | command_stmt)*
+_sequence_body: name_or_string ":" _SEQUENCE command_arglist ";" (clone | command_stmt)*
 
-?line: NAME ":" _LINE "=" anonymous_line ";"
+?line: name_or_string ":" _LINE "=" anonymous_line ";"
 
 anonymous_line: "(" line_elements ")"
 
@@ -25,17 +25,17 @@ modifiers: /-/? ( NUMBER "*" )?
 
 ?line_elements: line_element ("," line_element)*    -> build_list
 
-?line_element: modifiers (NAME | anonymous_line)
+?line_element: modifiers (name_or_string | anonymous_line)
 
 ?seqedit: _seqedit_body _ENDEDIT ";"
 
 _seqedit_body: _SEQEDIT command_arglist ";" command_stmt*
 
-?clone: NAME ":" _command
+?clone: name_or_string ":" _command
 
 ?command_stmt: _command
 
-_command: NAME command_arglist ";"
+_command: name_or_string command_arglist ";"
 
 command_arglist: ( "," ( equal_scalar | defer_scalar | equal_array | defer_array | equal_string | flag | equal_token ) )*
 
@@ -52,9 +52,9 @@ command_arglist: ( "," ( equal_scalar | defer_scalar | equal_array | defer_array
 
 ?equal_string: NAME "=" string_literal -> assign_value
 
-?equal_token: REFER "=" special_token -> assign_value
-    | FROM "=" special_token -> assign_value
-    | APERTYPE "=" special_token  -> assign_value
+?equal_token: REFER "=" name_or_string -> assign_value
+    | FROM "=" name_or_string -> assign_value
+    | APERTYPE "=" name_or_string  -> assign_value
 
 array: "{" sum ( "," sum )* "}"  -> build_list
 
@@ -86,18 +86,19 @@ array: "{" sum ( "," sum )* "}"  -> build_list
 
 !function: NAME
 
-?special_token: STRING -> string_literal  // MAD-X accepts both `"circle"`...
+?name_or_string: STRING -> string_literal  // MAD-X accepts both `"circle"`...
     | NAME -> special_token_name  // ...and `circle` for `apertype`.
 
 string_literal: STRING
 
-ignored: if | return | select | remove | beam
+ignored: if | return | select | remove | beam | assign
 
 !if: "if"i /[^\n]+/
 !return: "return"i /[^\n]+/
 !select: "select"i /[^\n]+/
 !remove: "remove"i /[^\n]+/
 !beam: "beam"i /[^;]*;/
+!assign: "assign"i /[^\n]+/
 
 _SEQUENCE: "sequence"i
 _ENDSEQUENCE: "endsequence"i
@@ -112,7 +113,7 @@ APERTYPE: "apertype"i
 _COMMENT: "!" /[^\n]*/
        | "//" /[^\n]*/
        | "/*" /.*?/s "*/"
-_NEWLINE: ( /\r?\n[\t ]*/ )+
+_NEWLINE: ( /&?\r?\n[\t ]*/ )+  // include line continuations with '&'
 
 %import common.NUMBER
 %import common.WS_INLINE

@@ -22,22 +22,18 @@ sigma_z = 22.5e-2/3 # Short bunch to avoid probing bucket non-linearity
 nemitt_x=2.5e-6
 nemitt_y=2.5e-6
 
-mad = Madx()
-mad.call('sps_thin.seq')
-mad.use(seq_name)
+env = xt.load('sps_thin.seq')
+line = env.sps
+line.set_particle_ref('proton', energy0=26e9)
 
-line = xt.Line.from_madx_sequence(
-                                            mad.sequence[seq_name],
-                                            install_apertures=True)
 # enable RF
 V_RF = 3e6
 line['acta.31637'].voltage = V_RF
 line['acta.31637'].lag = 180.
+line['acta.31637'].frequency = 200.266e6
 
 # A test particle
-part = xp.Particles(gamma0=mad.sequence[seq_name].beam.gamma,
-                    mass0=xp.PROTON_MASS_EV)
-line.particle_ref = part.copy()
+part = line.particle_ref.copy()
 part.x += 2e-3
 part.y += 3e-3
 part.zeta += 20e-2

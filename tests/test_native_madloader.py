@@ -941,32 +941,18 @@ def test_repeated_element_mad_behaviour():
     assert env.seq2['ee'] == element
 
 
-@pytest.mark.parametrize('aper_config', ['attached_to_marker', 'standalone'])
-def test_apertures_on_markers(aper_config):
-    if aper_config == 'attached_to_marker':
-        sequence = """
-            ! Attached to a marker
-            m_circle: marker, apertype="circle", aperture={.2};
-            m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
-            m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
-            m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
-            m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
-            m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
-            m_polygon: marker, apertype="circle", aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
-            """
-    else:
-        sequence = """
-            ! Standalone
-            m_circle: circle, aperture={.2};
-            m_ellipse: ellipse, aperture={.2, .1};
-            m_rectangle: rectangle, aperture={.07, .05};
-            m_rectellipse: rectellipse, aperture={.2, .4, .25, .45};
-            m_racetrack: racetrack, aperture={.6,.4,.2,.1};
-            m_octagon: octagon, aperture={.4, .5, 0.5, 1.};
-            m_polygon: circle, aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
-            """
+def test_apertures_on_markers():
 
-    sequence += """
+    sequence = """
+        ! Attached to a marker
+        m_circle: marker, apertype="circle", aperture={.2};
+        m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
+        m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
+        m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
+        m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
+        m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
+        m_polygon: marker, apertype="circle", aper_vx={+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy={+3.500e-2,-3.500e-2,+0.000e+0};
+
         line: sequence, l=1;
             m_circle, at=0;
             m_ellipse, at=0.01;
@@ -1060,14 +1046,17 @@ def test_aperture_setting():
     sequence = """
     m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
     m_aper: marker, apertype="rectangle", aperture={.3, .4};
+    m_inferred: marker, aperture=.5;  ! no apertype, should infer circle
 
     line: sequence, l=1;
         m_ellipse, at=0;
         m_aper, at=0.1;
+        m_inferred, at=0.2;
     endsequence;
 
     m_ellipse, aperture={.3, .2};  ! no apertype
     m_aper, apertype="ellipse", aperture={.5, .6};  ! change apertype
+    m_inferred, aperture={.8};
     """
 
     env = xt.load(string=sequence, format='madx')
@@ -1078,6 +1067,8 @@ def test_aperture_setting():
 
     assert line['m_aper_aper'].a == .5
     assert line['m_aper_aper'].b == .6
+
+    assert line['m_inferred_aper'].a == .8
 
 
 def test_import_thick_with_apertures_and_slice():
