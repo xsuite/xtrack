@@ -164,8 +164,12 @@ sv_sliced.cols['s angle theta X'].show()
 xo.assert_allclose(sv_sliced.s[-1], tw0.path_length[-1], atol=0, rtol=1e-14)
 xo.assert_allclose(sv_sliced.X[-1], tw0.x[-1], atol=0, rtol=1e-14)
 xo.assert_allclose(sv_sliced.Y, 0, atol=1e-14)
-xo.assert_allclose(
-
+xo.assert_allclose(sv_sliced['theta', 'd1a..entry_map'], sv['theta', 'd1a'], atol=1e-14)
+xo.assert_allclose(sv_sliced['theta', 'd1b..entry_map'], sv['theta', 'd1b'], atol=1e-14)
+xo.assert_allclose(sv_sliced['theta', 'd2..entry_map'],  sv['theta', 'd2'],  atol=1e-14)
+xo.assert_allclose(sv_sliced['theta', 'd1a..exit_map>>1'], sv['theta', 'd1a>>1'], atol=1e-14)
+xo.assert_allclose(sv_sliced['theta', 'd1b..exit_map>>1'], sv['theta', 'd1b>>1'], atol=1e-14)
+xo.assert_allclose(sv_sliced['theta', 'd2..exit_map>>1'],  sv['theta', 'd2>>1'],  atol=1e-14)
 
 
 
