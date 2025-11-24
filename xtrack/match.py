@@ -855,46 +855,6 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
         for i, tar in enumerate(self.targets):
             jacobian[i] *= tar.weight
 
-        # last_tpsa_dict = action.tpsa_dict
-        # jacobian = np.zeros((len(self.targets), len(self.vary)))
-        # for i, tar in enumerate(self.targets):
-        #     tar_place = ''
-        #     if isinstance(tar.tar, tuple):
-        #         tar_quantity = tar.tar[0]
-        #         tar_place = tar.tar[1]
-        #     else:
-        #         assert isinstance(tar, TargetRelPhaseAdvance), (
-        #             f'Target type {type(tar)} not supported for TPSA jacobian')
-        #         tar_quantity = tar
-        #         tar_place = action.tw_kwargs['end'] if tar.end == '__ele_stop__' else tar.end
-        #         tar_start = None if tar.start == '__ele_start__' else tar.start
-
-        #     tpsa = last_tpsa_dict[tar_place]
-
-        #     for j, vv in enumerate(self.vary):
-        #         if isinstance(tar_quantity, TargetRelPhaseAdvance):
-        #             # Special case for relative phase advance
-        #             plane = 'x' if tar_quantity.var in ['mu1_ng', 'mux'] else 'y'
-        #             mu_end = tpsa.calc_phase_advance_deriv(plane, j + tpsa.num_variables)
-        #             if tar_start is None:
-        #                 mu_start = 0
-        #             else:
-        #                 tpsa_start = last_tpsa_dict[tar_start]
-        #                 mu_start = tpsa_start.calc_phase_advance_deriv(plane, j + tpsa.num_variables)
-        #             deriv = mu_end - mu_start
-        #         elif tar_quantity[0] == 'd':
-        #             plane = tar_quantity[1:3] if tar_quantity[1] == 'p' else tar_quantity[1]
-        #             deriv = tpsa.calc_dispersion_deriv(plane, j + tpsa.num_variables)
-        #         elif tar_quantity[:3] == 'bet':
-        #             plane = 'x' if '11' in tar_quantity or 'x' in tar_quantity else 'y'
-        #             deriv = tpsa.calc_beta_deriv(plane, j + tpsa.num_variables)
-        #         elif tar_quantity[:3] == 'alf':
-        #             plane = 'x' if '11' in tar_quantity or 'x' in tar_quantity else 'y'
-        #             deriv = tpsa.calc_alpha_deriv(plane, j + tpsa.num_variables)
-
-        #         jacobian[i, j] = deriv
-        #     jacobian[i] *= tar.weight
-
         return jacobian
 
 class OptimizeLine(xd.Optimize):
@@ -950,20 +910,14 @@ class OptimizeLine(xd.Optimize):
                     isinstance(tt, TargetRelPhaseAdvance) and tt.var.endswith('_ng')) or use_tpsa:
                     if action_twiss_ng is None:
                         if use_tpsa:
-                            # do tpsa
-
-                            # tar_locations = {t.tar[1] for t in targets_flatten
-                            #                  if isinstance(t.tar, tuple)}
-
                             twiss_flag_ng = any(isinstance(tar, xt.TargetRelPhaseAdvance) for tar in targets_flatten)
 
                             from .madng_interface import ActionTwissMadngTPSA
 
                             action_twiss_ng = ActionTwissMadngTPSA(
-                                    line, [v.name for v in _flatten_vary(vary)], targets_flatten, {}, twiss_flag=twiss_flag_ng, **kwargs)
-                            # prepare
-
+                                    line, [v.name for v in vary_flatten], targets_flatten, {}, twiss_flag=twiss_flag_ng, **kwargs)
                             action_twiss_ng.prepare()
+
                         else:
                             from .madng_interface import ActionTwissMadng
                             action_twiss_ng = ActionTwissMadng(
