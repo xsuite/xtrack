@@ -152,7 +152,10 @@ sv_sliced.cols['s angle theta X'].show()
 # end                  10.0726             0  -9.64632e-18             1
 # _end_point           10.0726             0  -9.64632e-18             1
 
-CHECKS TO BE WRITTEN
+xo.assert_allclose(tw_sliced.s[-1], tw0.path_length[-1], atol=0, rtol=1e-14)
+xo.assert_allclose(sv_sliced.s[-1], tw0.path_length[-1], atol=0, rtol=1e-14)
+xo.assert_allclose(sv_sliced.X[-1], tw0.x[-1], atol=0, rtol=1e-14)
+xo.assert_allclose(sv_sliced.Y, 0, atol=1e-14)
 
 import matplotlib.pyplot as plt
 plt.close('all')
