@@ -2,7 +2,7 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
-edge_model = 'full'  # 'linear'
+edge_model = 'linear'
 
 env = xt.Environment()
 env.vars.default_to_zero = True
@@ -43,6 +43,15 @@ opt.solve()
 
 # Twiss in the straight reference system
 tw0 = line.twiss(betx=1, bety=1, strengths=True)
+
+if edge_model == 'linear':
+    for nn in ['d1a', 'd1b', 'd2']:
+        line[nn].edge_entry_angle_fdown = np.arcsin(tw0['px', nn])
+        line[nn].edge_exit_angle_fdown = -np.arcsin(tw0['px', nn + '>>1'])
+    tw0 = line.twiss(betx=1, bety=1, strengths=True)
+    for nn in ['d1a', 'd1b', 'd2']:
+        line[nn].edge_entry_angle_fdown = 0
+        line[nn].edge_exit_angle_fdown = 0
 
 line.regenerate_from_composer()
 
