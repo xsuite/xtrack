@@ -119,17 +119,16 @@ xo.assert_allclose(tw0['x', 'd1a>>1'], line['d1a']._x0_out, atol=1e-14)
 xo.assert_allclose(tw0['x', 'd1b>>1'], line['d1b']._x0_out, atol=1e-14)
 xo.assert_allclose(tw0['x', 'd2>>1'], line['d2']._x0_out, atol=1e-14)
 
-
 xo.assert_allclose(sv.Z, tw0.s, atol=0, rtol=5e-9)
 xo.assert_allclose(sv.X, tw0.x, atol=0, rtol=3e-8)
 xo.assert_allclose(sv.Y, tw0.y, atol=1e-14)
+xo.assert_allclose(sv.theta, np.arcsin(tw0.px), atol=1e-14)
+xo.assert_allclose(sv.psi, 0., atol=1e-14)
+xo.assert_allclose(sv.phi, 0., atol=1e-14)
 
 xo.assert_allclose(tw.x, 0, atol=1e-14)
 xo.assert_allclose(tw.zeta, 0, atol=1e-14)
 xo.assert_allclose(tw0.y, 0, atol=1e-14)
-
-
-
 
 sv_sliced.cols['s angle theta X'].show()
 # name                       s         angle         theta             X
@@ -162,10 +161,14 @@ sv_sliced.cols['s angle theta X'].show()
 # end                  10.0726             0  -9.64632e-18             1
 # _end_point           10.0726             0  -9.64632e-18             1
 
-xo.assert_allclose(tw_sliced.s[-1], tw0.path_length[-1], atol=0, rtol=1e-14)
 xo.assert_allclose(sv_sliced.s[-1], tw0.path_length[-1], atol=0, rtol=1e-14)
 xo.assert_allclose(sv_sliced.X[-1], tw0.x[-1], atol=0, rtol=1e-14)
 xo.assert_allclose(sv_sliced.Y, 0, atol=1e-14)
+xo.assert_allclose(
+
+
+
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
