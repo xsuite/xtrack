@@ -164,6 +164,14 @@ sv_sliced.cols['s angle theta X'].show()
 xo.assert_allclose(sv_sliced.s[-1], tw0.path_length[-1], atol=0, rtol=1e-14)
 xo.assert_allclose(sv_sliced.X[-1], tw0.x[-1], atol=0, rtol=1e-14)
 xo.assert_allclose(sv_sliced.Y, 0, atol=1e-14)
+
+xo.assert_allclose(sv_sliced['s', 'd1a..entry_map'], sv['s', 'd1a'], atol=1e-14)
+xo.assert_allclose(sv_sliced['s', 'd1b..entry_map'], sv['s', 'd1b'], atol=1e-14)
+xo.assert_allclose(sv_sliced['s', 'd2..entry_map'],  sv['s', 'd2'],  atol=1e-14)
+xo.assert_allclose(sv_sliced['s', 'd1a..exit_map>>1'], sv['s', 'd1a>>1'], atol=1e-14)
+xo.assert_allclose(sv_sliced['s', 'd1b..exit_map>>1'], sv['s', 'd1b>>1'], atol=1e-14)
+xo.assert_allclose(sv_sliced['s', 'd2..exit_map>>1'],  sv['s', 'd2>>1'],  atol=1e-14)
+
 xo.assert_allclose(sv_sliced['theta', 'd1a..entry_map'], sv['theta', 'd1a'], atol=1e-14)
 xo.assert_allclose(sv_sliced['theta', 'd1b..entry_map'], sv['theta', 'd1b'], atol=1e-14)
 xo.assert_allclose(sv_sliced['theta', 'd2..entry_map'],  sv['theta', 'd2'],  atol=1e-14)
@@ -199,6 +207,30 @@ xo.assert_allclose(sv_sliced['X', 'd1a..exit_map'], 0., atol=1e-14)
 xo.assert_allclose(sv_sliced['X', 'd1b..exit_map'], 0., atol=1e-14)
 xo.assert_allclose(sv_sliced['X', 'd2..exit_map'],  0.,  atol=1e-14)
 
+# Twiss checks
+
+xo.assert_allclose(tw_sliced.s, sv_sliced.s, atol=0, rtol=1e-14)
+
+xo.assert_allclose(tw_sliced['x', 'd1a..entry_map'], 0, atol=1e-14)
+xo.assert_allclose(tw_sliced['x', 'd1b..entry_map'], 0, atol=1e-14)
+xo.assert_allclose(tw_sliced['x', 'd2..entry_map'],  0,  atol=1e-14)
+xo.assert_allclose(tw_sliced['x', 'd1a..exit_map>>1'], 0, atol=1e-14)
+xo.assert_allclose(tw_sliced['x', 'd1b..exit_map>>1'], 0, atol=1e-14)
+xo.assert_allclose(tw_sliced['x', 'd2..exit_map>>1'],  0,  atol=1e-14)
+
+xo.assert_allclose(tw_sliced['px', 'd1a..entry_map'], 0, atol=1e-14)
+xo.assert_allclose(tw_sliced['px', 'd1b..entry_map'], 0, atol=1e-14)
+xo.assert_allclose(tw_sliced['px', 'd2..entry_map'],  0,  atol=1e-14)
+xo.assert_allclose(tw_sliced['px', 'd1a..exit_map>>1'], 0, atol=1e-14)
+xo.assert_allclose(tw_sliced['px', 'd1b..exit_map>>1'], 0, atol=1e-14)
+xo.assert_allclose(tw_sliced['px', 'd2..exit_map>>1'],  0,  atol=1e-14)
+
+xo.assert_allclose(tw_sliced['x', 'd1a..entry_map>>1'], tw0['x','d1a'], atol=1e-14)
+xo.assert_allclose(tw_sliced['x', 'd1b..entry_map>>1'], tw0['x','d1b'], atol=1e-14)
+xo.assert_allclose(tw_sliced['x', 'd2..entry_map>>1'],  tw0['x','d2'],  atol=1e-14)
+xo.assert_allclose(tw_sliced['x', 'd1a..exit_map'], tw0['x','d1a>>1'], atol=1e-14)
+xo.assert_allclose(tw_sliced['x', 'd1b..exit_map'], tw0['x','d1b>>1'], atol=1e-14)
+xo.assert_allclose(tw_sliced['x', 'd2..exit_map'],  tw0['x','d2>>1'],  atol=1e-14)
 
 
 import matplotlib.pyplot as plt
