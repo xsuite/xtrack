@@ -242,6 +242,13 @@ xo.assert_allclose(tw_sliced['x', 'd1a..exit_map'], tw0['x','d1a>>1'], atol=1e-1
 xo.assert_allclose(tw_sliced['x', 'd1b..exit_map'], tw0['x','d1b>>1'], atol=1e-14)
 xo.assert_allclose(tw_sliced['x', 'd2..exit_map'],  tw0['x','d2>>1'],  atol=1e-14)
 
+xo.assert_allclose(tw_sliced.betx[-1], tw0.betx[-1], rtol=1e-10)
+xo.assert_allclose(tw_sliced.bety[-1], tw0.bety[-1], rtol=1e-10)
+xo.assert_allclose(tw_sliced.alfx[-1], tw0.alfx[-1], rtol=1e-10)
+xo.assert_allclose(tw_sliced.alfy[-1], tw0.alfy[-1], rtol=1e-10)
+xo.assert_allclose(tw_sliced.dx[-1], tw0.dx[-1], rtol=1e-10)
+xo.assert_allclose(tw_sliced.dpx[-1], tw0.dpx[-1], atol=1e-10)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 tw0.plot('x')
