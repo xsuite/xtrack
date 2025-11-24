@@ -1369,7 +1369,8 @@ class Line:
         particle_ref : Particle object
             Reference particle defining the reference quantities (mass0, q0, p0c,
             gamma0, etc.). Its coordinates (x, py, y, py, zeta, delta) are ignored
-            unless `mode`='shift' is selected.
+            unless `mode`='shift' is selected. If this is None (default), the
+            reference particle associated with this line is used.
         num_particles : int
             Number of particles to be generated (used if provided coordinates are
             all scalar).
