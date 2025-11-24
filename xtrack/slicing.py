@@ -301,12 +301,20 @@ class Slicer:
             for nn in slices_to_add:
                 ee = self._line._element_dict[nn]
                 if (type(ee).__name__.startswith('ThinSlice')
-                    or type(ee).__name__.startswith('ThickSlice')):
+                    or type(ee).__name__.startswith('ThickSlice')
+                    or (_edge_markers and nn==exit_marker)):
                     aper_name = f'{name}_aper..{aper_index}'
                     self._line._element_dict[aper_name] = xt.Replica(
                         parent_name=element.name_associated_aperture)
                     new_slices_to_add += [aper_name]
                     aper_index += 1
+                if not _edge_markers:
+                    # If no edge markers, we need to manually add an
+                    # aperture after the last slice.
+                    aper_name = f'{name}_aper..{aper_index}'
+                    self._line._element_dict[aper_name] = xt.Replica(
+                        parent_name=element.name_associated_aperture)
+                    new_slices_to_add += [aper_name]
                 new_slices_to_add += [nn]
             slices_to_add = new_slices_to_add
 
