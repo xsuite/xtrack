@@ -2,6 +2,8 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
+edge_model = 'full'  # 'linear'
+
 env = xt.Environment()
 env.vars.default_to_zero = True
 line = env.new_line(compose=True)
@@ -23,7 +25,8 @@ line.end_compose()
 line.set_particle_ref('proton', p0c=1e9)
 line.configure_drift_model('exact')
 line.set(env.elements.get_table().rows.match(element_type='RBend'),
-         model='bend-kick-bend')
+         model='bend-kick-bend', edge_entry_model=edge_model,
+         edge_exit_model=edge_model)
 
 env['k0d1a'] = 'k0d1'
 env['k0d1b'] = 'k0d1'
@@ -132,6 +135,10 @@ xo.assert_allclose(tw.y, 0, atol=1e-14)
 
 xo.assert_allclose(tw.betx[-1], tw0.betx[-1], rtol=1e-10)
 xo.assert_allclose(tw.bety[-1], tw0.bety[-1], rtol=1e-10)
+xo.assert_allclose(tw.alfx[-1], tw0.alfx[-1], rtol=1e-10)
+xo.assert_allclose(tw.alfy[-1], tw0.alfy[-1], rtol=1e-10)
+xo.assert_allclose(tw.dx[-1], tw0.dx[-1], rtol=1e-10)
+xo.assert_allclose(tw.dpx[-1], tw0.dpx[-1], atol=1e-10)
 
 sv_sliced.cols['s angle theta X'].show()
 # name                       s         angle         theta             X
