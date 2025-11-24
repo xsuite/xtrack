@@ -185,7 +185,19 @@ xo.assert_allclose(sv_sliced['Z', 'd1a..exit_map>>1'], sv['Z', 'd1a>>1'], atol=1
 xo.assert_allclose(sv_sliced['Z', 'd1b..exit_map>>1'], sv['Z', 'd1b>>1'], atol=1e-14)
 xo.assert_allclose(sv_sliced['Z', 'd2..exit_map>>1'],  sv['Z', 'd2>>1'],  atol=1e-14)
 
+xo.assert_allclose(sv_sliced['theta', 'd1a..entry_map>>1'], 0., atol=1e-14)
+xo.assert_allclose(sv_sliced['theta', 'd1b..entry_map>>1'], 0., atol=1e-14)
+xo.assert_allclose(sv_sliced['theta', 'd2..entry_map>>1'],  0.,  atol=1e-14)
+xo.assert_allclose(sv_sliced['theta', 'd1a..exit_map'], 0., atol=1e-14)
+xo.assert_allclose(sv_sliced['theta', 'd1b..exit_map'], 0., atol=1e-14)
+xo.assert_allclose(sv_sliced['theta', 'd2..exit_map'],  0.,  atol=1e-14)
 
+xo.assert_allclose(sv_sliced['X', 'd1a..entry_map>>1'], 0., atol=1e-14)
+xo.assert_allclose(sv_sliced['X', 'd1b..entry_map>>1'], 0., atol=1e-14)
+xo.assert_allclose(sv_sliced['X', 'd2..entry_map>>1'],  0.,  atol=1e-14)
+xo.assert_allclose(sv_sliced['X', 'd1a..exit_map'], 0., atol=1e-14)
+xo.assert_allclose(sv_sliced['X', 'd1b..exit_map'], 0., atol=1e-14)
+xo.assert_allclose(sv_sliced['X', 'd2..exit_map'],  0.,  atol=1e-14)
 
 
 
