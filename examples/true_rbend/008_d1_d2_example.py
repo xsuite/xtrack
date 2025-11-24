@@ -45,6 +45,7 @@ opt.solve()
 tw0 = line.twiss(betx=1, bety=1, strengths=True)
 
 if edge_model == 'linear':
+    # For linewar edges, set fdown angles to match the trajectory (used only for linear edges)
     for nn in ['d1a', 'd1b', 'd2']:
         line[nn].edge_entry_angle_fdown = np.arcsin(tw0['px', nn])
         line[nn].edge_exit_angle_fdown = -np.arcsin(tw0['px', nn + '>>1'])
