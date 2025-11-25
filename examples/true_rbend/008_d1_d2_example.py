@@ -4,6 +4,8 @@ import xobjects as xo
 
 edge_model = 'linear'
 
+# TODO check angle column in survey
+
 env = xt.Environment()
 env.vars.default_to_zero = True
 line = env.new_line(compose=True)
@@ -93,6 +95,8 @@ line.end_compose()
 
 sv = line.survey()
 tw = line.twiss(betx=1, bety=1)
+sv_back = line.survey(element0='end', X0=sv.X[-1], Y0=sv.Y[-1], Z0=sv.Z[-1],
+                     theta0=sv.theta[-1], phi0=sv.phi[-1], psi0=sv.psi[-1])
 tw_back = line.twiss(init_at='end', init=tw.get_twiss_init('end'))
 
 # slice for plot
@@ -160,6 +164,14 @@ xo.assert_allclose(tw_back.alfx, tw.alfx, atol=1e-8)
 xo.assert_allclose(tw_back.alfy, tw.alfy, atol=1e-8)
 xo.assert_allclose(tw_back.dx, tw.dx, atol=1e-9)
 xo.assert_allclose(tw_back.dpx, tw.dpx, atol=1e-9)
+
+xo.assert_allclose(sv_back.s, sv.s, atol=1e-14)
+xo.assert_allclose(sv_back.X, sv.X, atol=1e-14)
+xo.assert_allclose(sv_back.Y, sv.Y, atol=1e-14)
+xo.assert_allclose(sv_back.Z, sv.Z, atol=1e-14)
+xo.assert_allclose(sv_back.theta, sv.theta, atol=1e-14)
+xo.assert_allclose(sv_back.phi, sv.phi, atol=1e-14)
+xo.assert_allclose(sv_back.psi, sv.psi, atol=1e-14)
 
 sv_sliced.cols['s angle theta X'].show()
 # name                       s         angle         theta             X
