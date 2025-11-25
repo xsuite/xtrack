@@ -45,7 +45,7 @@ opt.solve()
 tw0 = line.twiss(betx=1, bety=1, strengths=True)
 
 if edge_model == 'linear':
-    # For linewar edges, set fdown angles to match the trajectory (used only for linear edges)
+    # Set fdown angles to match the trajectory (used only for linear edges)
     for nn in ['d1a', 'd1b', 'd2']:
         line[nn].edge_entry_angle_fdown = np.arcsin(tw0['px', nn])
         line[nn].edge_exit_angle_fdown = -np.arcsin(tw0['px', nn + '>>1'])
@@ -93,6 +93,7 @@ line.end_compose()
 
 sv = line.survey()
 tw = line.twiss(betx=1, bety=1)
+tw_back = line.twiss(init_at='end', init=tw.get_twiss_init('end'))
 
 # slice for plot
 l_sliced =line.copy(shallow=True)
@@ -149,6 +150,16 @@ xo.assert_allclose(tw.alfx[-1], tw0.alfx[-1], rtol=1e-10)
 xo.assert_allclose(tw.alfy[-1], tw0.alfy[-1], rtol=1e-10)
 xo.assert_allclose(tw.dx[-1], tw0.dx[-1], rtol=1e-10)
 xo.assert_allclose(tw.dpx[-1], tw0.dpx[-1], atol=1e-10)
+
+xo.assert_allclose(tw_back.s, tw.s, atol=1e-14)
+xo.assert_allclose(tw_back.x, tw.x, atol=1e-14)
+xo.assert_allclose(tw_back.y, tw.y, atol=1e-14)
+xo.assert_allclose(tw_back.betx, tw.betx, rtol=1e-10)
+xo.assert_allclose(tw_back.bety, tw.bety, rtol=1e-10)
+xo.assert_allclose(tw_back.alfx, tw.alfx, atol=1e-8)
+xo.assert_allclose(tw_back.alfy, tw.alfy, atol=1e-8)
+xo.assert_allclose(tw_back.dx, tw.dx, atol=1e-9)
+xo.assert_allclose(tw_back.dpx, tw.dpx, atol=1e-9)
 
 sv_sliced.cols['s angle theta X'].show()
 # name                       s         angle         theta             X
