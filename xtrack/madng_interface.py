@@ -1,6 +1,5 @@
 import numpy as np
 
-from .tpsa import TPSA
 from .match import Action
 import os
 import uuid
@@ -840,7 +839,7 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
 
         nocharge = str(kwargs.pop('nocharge', True)).lower()
 
-        mng = MAD(**kwargs)
+        mng = MAD(mad_path="/home/babreufi/git/MAD-NG-1.1.5/bin/mad", **kwargs)
         mng.send(f"""
                  local mad_func = loadfile('{temp_fname}.mad', nil, MADX)
                  assert(mad_func)
