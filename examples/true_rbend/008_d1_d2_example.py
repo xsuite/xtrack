@@ -222,6 +222,16 @@ xo.assert_allclose(sv_sliced.s[-1], tw0.path_length[-1], atol=0, rtol=1e-14)
 xo.assert_allclose(sv_sliced.X[-1], tw0.x[-1], atol=0, rtol=1e-14)
 xo.assert_allclose(sv_sliced.Y, 0, atol=1e-14)
 
+assert np.all(sv_sliced.element_type ==
+    np.array(['Marker', 'Drift', 'Marker', 'ThinSliceRBendEntry',
+       'ThickSliceRBend', 'ThickSliceRBend', 'ThickSliceRBend',
+       'ThinSliceRBendExit', 'Marker', 'Drift', 'Marker',
+       'ThinSliceRBendEntry', 'ThickSliceRBend', 'ThickSliceRBend',
+       'ThickSliceRBend', 'ThinSliceRBendExit', 'Marker', 'Drift',
+       'Marker', 'ThinSliceRBendEntry', 'ThickSliceRBend',
+       'ThickSliceRBend', 'ThickSliceRBend', 'ThinSliceRBendExit',
+       'Marker', 'Drift', 'Marker', '']))
+
 xo.assert_allclose(sv_sliced['s', 'd1a..entry_map'], sv['s', 'd1a'], atol=1e-14)
 xo.assert_allclose(sv_sliced['s', 'd1b..entry_map'], sv['s', 'd1b'], atol=1e-14)
 xo.assert_allclose(sv_sliced['s', 'd2..entry_map'],  sv['s', 'd2'],  atol=1e-14)
