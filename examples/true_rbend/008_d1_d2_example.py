@@ -143,6 +143,14 @@ xo.assert_allclose(tw0['x', 'd1a>>1'], line['d1a']._x0_out, atol=1e-14)
 xo.assert_allclose(tw0['x', 'd1b>>1'], line['d1b']._x0_out, atol=1e-14)
 xo.assert_allclose(tw0['x', 'd2>>1'], line['d2']._x0_out, atol=1e-14)
 
+assert np.all(sv.element_type ==
+        ['Marker', 'Drift', 'RBend', 'Drift', 'RBend', 'Drift', 'RBend',
+       'Drift', 'Marker', ''])
+xo.assert_allclose(sv.angle, np.array([
+        0.        ,  0.        , -0.08249992,  0.        , -0.08306823,
+        0.        ,  0.16556815,  0.        ,  0.        ,  0.        ]),
+        rtol=1e-7)
+
 xo.assert_allclose(sv.Z, tw0.s, atol=0, rtol=5e-9)
 xo.assert_allclose(sv.X, tw0.x, atol=0, rtol=3e-8)
 xo.assert_allclose(sv.Y, tw0.y, atol=1e-14)
