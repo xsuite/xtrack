@@ -816,12 +816,13 @@ class ActionTwissMadngTPSA(Action):
 
     def cleanup(self):
         # Need to reconvert TPSAs to normal values
-        mng_str = ''
-        for var_name in self.vary_names:
-            mng_str += f"MADX['{var_name}'] = MADX['{var_name}']:get0()\n"
-        mng_str += f"{XSUITE_MADNG_ENV_NAME}.X0 = nil\n"
-        self.mng.send(mng_str)
-        self._already_prepared = False
+        if self._already_prepared is True:
+            mng_str = ''
+            for var_name in self.vary_names:
+                mng_str += f"MADX['{var_name}'] = MADX['{var_name}']:get0()\n"
+            mng_str += f"{XSUITE_MADNG_ENV_NAME}.X0 = nil\n"
+            self.mng.send(mng_str)
+            self._already_prepared = False
 
 def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
                   **kwargs):
