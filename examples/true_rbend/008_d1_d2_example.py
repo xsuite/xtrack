@@ -108,6 +108,12 @@ l_sliced.slice_thick_elements(
 
 sv_sliced = l_sliced.survey()
 tw_sliced = l_sliced.twiss(betx=1, bety=1)
+sv_sliced_back = l_sliced.survey(element0='end',
+                                 X0=sv_sliced.X[-1], Y0=sv_sliced.Y[-1], Z0=sv_sliced.Z[-1],
+                                 theta0=sv_sliced.theta[-1], phi0=sv_sliced.phi[-1],
+                                 psi0=sv_sliced.psi[-1])
+tw_sliced_back = l_sliced.twiss(init_at='end',
+                                init=tw_sliced.get_twiss_init('end'))
 
 # Combine twiss and survey to get actual trajectory
 trajectory = sv_sliced.p0 + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
@@ -250,6 +256,14 @@ xo.assert_allclose(sv_sliced['X', 'd1a..exit_map'], 0., atol=1e-14)
 xo.assert_allclose(sv_sliced['X', 'd1b..exit_map'], 0., atol=1e-14)
 xo.assert_allclose(sv_sliced['X', 'd2..exit_map'],  0.,  atol=1e-14)
 
+xo.assert_allclose(sv_sliced_back.s, sv_sliced.s, atol=1e-14)
+xo.assert_allclose(sv_sliced_back.X, sv_sliced.X, atol=1e-14)
+xo.assert_allclose(sv_sliced_back.Y, sv_sliced.Y, atol=1e-14)
+xo.assert_allclose(sv_sliced_back.Z, sv_sliced.Z, atol=1e-14)
+xo.assert_allclose(sv_sliced_back.theta, sv_sliced.theta, atol=1e-14)
+xo.assert_allclose(sv_sliced_back.phi, sv_sliced.phi, atol=1e-14)
+xo.assert_allclose(sv_sliced_back.psi, sv_sliced.psi, atol=1e-14)
+
 # Twiss checks
 
 xo.assert_allclose(tw_sliced.s, sv_sliced.s, atol=0, rtol=1e-14)
@@ -281,6 +295,18 @@ xo.assert_allclose(tw_sliced.alfx[-1], tw0.alfx[-1], rtol=1e-10)
 xo.assert_allclose(tw_sliced.alfy[-1], tw0.alfy[-1], rtol=1e-10)
 xo.assert_allclose(tw_sliced.dx[-1], tw0.dx[-1], rtol=1e-10)
 xo.assert_allclose(tw_sliced.dpx[-1], tw0.dpx[-1], atol=1e-10)
+
+xo.assert_allclose(tw_sliced_back.s, tw_sliced.s, atol=1e-14)
+xo.assert_allclose(tw_sliced_back.x, tw_sliced.x, atol=1e-14)
+xo.assert_allclose(tw_sliced_back.y, tw_sliced.y, atol=1e-14)
+xo.assert_allclose(tw_sliced_back.betx, tw_sliced.betx, rtol=1e-8)
+xo.assert_allclose(tw_sliced_back.bety, tw_sliced.bety, rtol=1e-8)
+xo.assert_allclose(tw_sliced_back.alfx, tw_sliced.alfx, atol=1e-8)
+xo.assert_allclose(tw_sliced_back.alfy, tw_sliced.alfy, atol=1e-8)
+xo.assert_allclose(tw_sliced_back.dx, tw_sliced.dx, atol=1e-9)
+xo.assert_allclose(tw_sliced_back.dpx, tw_sliced.dpx, atol=1e-9)
+
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
