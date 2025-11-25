@@ -5926,11 +5926,13 @@ def _angle_rbend_correction_from_attr(attr):
 
     angle[mask_parent_is_rbend_straigth_body & mask_rbend_body_slices] = 0
 
+    # angle_in
     angle[mask_rbend_edges_entry_straight_body] = 0.5 * ((
         attr['_parent_h'][mask_rbend_edges_entry_straight_body]
         * attr['_parent_length'][mask_rbend_edges_entry_straight_body])
         - attr['_parent_rbend_angle_diff'][mask_rbend_edges_entry_straight_body])
 
+    # angle_out
     angle[mask_rbend_edges_exit_straight_body] = 0.5 * ((
         attr['_parent_h'][mask_rbend_edges_exit_straight_body]
         * attr['_parent_length'][mask_rbend_edges_exit_straight_body])
