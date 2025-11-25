@@ -4,7 +4,7 @@ import xobjects as xo
 
 edge_model = 'linear'
 
-b_ref = xt.RBend(angle=0.1, k0_from_h=True, length_straight=3., rbend_angle_diff=0.1/2)
+b_ref = xt.RBend(angle=0.1, k0_from_h=True, length_straight=3., rbend_angle_diff=0.1)
 b_ref.edge_entry_model = edge_model
 b_ref.edge_exit_model = edge_model
 b_ref.model = 'rot-kick-rot'
@@ -16,12 +16,16 @@ tw_ref0 = l_ref.twiss(betx=1, bety=1)
 tw_ref = l_ref.twiss(betx=1, bety=1, x=2e-3, px=1e-3, y=2e-3, py=2e-3, delta=1e-3)
 
 b_test = xt.RBend(
-    angle=0.1, k0_from_h=True, length_straight=3, rbend_angle_diff=0.1/2)
+    angle=0.1, k0_from_h=True, length_straight=3, rbend_angle_diff=0.1,
+    rbend_shift=0, rbend_compensate_sagitta=False)
 b_test.rbend_model = 'straight-body'
 b_test.model = 'bend-kick-bend'
 b_test.num_multipole_kicks = 100
 b_test.edge_entry_model = edge_model
 b_test.edge_exit_model = edge_model
+
+b_test.rbend_shift += b_test._x0_in
+
 l_test = xt.Line([b_test])
 l_test.append('end', xt.Marker())
 l_test.particle_ref = xt.Particles(p0c=10e9)
@@ -39,9 +43,9 @@ xo.assert_allclose(tw_ref0.py,   tw_test0.py, rtol=0, atol=1e-12)
 
 xo.assert_allclose(tw_ref.betx, tw_test.betx, rtol=5e-6, atol=0.0)
 xo.assert_allclose(tw_ref.bety, tw_test.bety, rtol=5e-6, atol=0.0)
-xo.assert_allclose(tw_ref.x,    tw_test.x, rtol=0, atol=1e-8)
-xo.assert_allclose(tw_ref.y,    tw_test.y, rtol=0, atol=3e-8)
-xo.assert_allclose(tw_ref.s,    tw_test.s, rtol=0, atol=1e-12)
+xo.assert_allclose(tw_ref.x,    tw_test.x, rtol=0, atol=2e-8)
+xo.assert_allclose(tw_ref.y,    tw_test.y, rtol=0, atol=2e-8)
+xo.assert_allclose(tw_ref.s,    tw_test.s, rtol=0, atol=2e-12)
 xo.assert_allclose(tw_ref.zeta, tw_test.zeta, rtol=0, atol=1e-1)
 xo.assert_allclose(tw_ref.px,   tw_test.px, rtol=0, atol=5e-9)
 xo.assert_allclose(tw_ref.py,   tw_test.py, rtol=0, atol=5e-9)
