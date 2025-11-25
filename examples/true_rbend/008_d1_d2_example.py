@@ -232,6 +232,16 @@ assert np.all(sv_sliced.element_type ==
        'ThickSliceRBend', 'ThickSliceRBend', 'ThinSliceRBendExit',
        'Marker', 'Drift', 'Marker', '']))
 
+xo.assert_allclose(sv_sliced.angle, np.array([
+        0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+        0.00000000e+00,  0.00000000e+00,  0.00000000e+00, -8.24999219e-02,
+        0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  8.24999219e-02,
+        0.00000000e+00,  0.00000000e+00,  0.00000000e+00, -1.65568148e-01,
+        0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.65568148e-01,
+        0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+        0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00]),
+        rtol=1e-8, atol=1e-14)
+
 xo.assert_allclose(sv_sliced['s', 'd1a..entry_map'], sv['s', 'd1a'], atol=1e-14)
 xo.assert_allclose(sv_sliced['s', 'd1b..entry_map'], sv['s', 'd1b'], atol=1e-14)
 xo.assert_allclose(sv_sliced['s', 'd2..entry_map'],  sv['s', 'd2'],  atol=1e-14)
