@@ -2,7 +2,7 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
-edge_model = 'linear'
+edge_model = 'full' # linear of full
 
 # TODO check angle column in survey
 
@@ -97,7 +97,8 @@ sv = line.survey()
 tw = line.twiss(betx=1, bety=1)
 sv_back = line.survey(element0='end', X0=sv.X[-1], Y0=sv.Y[-1], Z0=sv.Z[-1],
                      theta0=sv.theta[-1], phi0=sv.phi[-1], psi0=sv.psi[-1])
-tw_back = line.twiss(init_at='end', init=tw.get_twiss_init('end'))
+if edge_model == 'linear':
+    tw_back = line.twiss(init_at='end', init=tw.get_twiss_init('end'))
 
 # slice for plot
 l_sliced =line.copy(shallow=True)
@@ -112,8 +113,9 @@ sv_sliced_back = l_sliced.survey(element0='end',
                                  X0=sv_sliced.X[-1], Y0=sv_sliced.Y[-1], Z0=sv_sliced.Z[-1],
                                  theta0=sv_sliced.theta[-1], phi0=sv_sliced.phi[-1],
                                  psi0=sv_sliced.psi[-1])
-tw_sliced_back = l_sliced.twiss(init_at='end',
-                                init=tw_sliced.get_twiss_init('end'))
+if edge_model == 'linear':
+    tw_sliced_back = l_sliced.twiss(init_at='end',
+                                    init=tw_sliced.get_twiss_init('end'))
 
 # Combine twiss and survey to get actual trajectory
 trajectory = sv_sliced.p0 + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
@@ -169,15 +171,16 @@ xo.assert_allclose(tw.alfy[-1], tw0.alfy[-1], rtol=1e-10)
 xo.assert_allclose(tw.dx[-1], tw0.dx[-1], rtol=1e-10)
 xo.assert_allclose(tw.dpx[-1], tw0.dpx[-1], atol=1e-10)
 
-xo.assert_allclose(tw_back.s, tw.s, atol=1e-14)
-xo.assert_allclose(tw_back.x, tw.x, atol=1e-14)
-xo.assert_allclose(tw_back.y, tw.y, atol=1e-14)
-xo.assert_allclose(tw_back.betx, tw.betx, rtol=1e-10)
-xo.assert_allclose(tw_back.bety, tw.bety, rtol=1e-10)
-xo.assert_allclose(tw_back.alfx, tw.alfx, atol=1e-8)
-xo.assert_allclose(tw_back.alfy, tw.alfy, atol=1e-8)
-xo.assert_allclose(tw_back.dx, tw.dx, atol=1e-9)
-xo.assert_allclose(tw_back.dpx, tw.dpx, atol=1e-9)
+if edge_model == 'linear':
+    xo.assert_allclose(tw_back.s, tw.s, atol=1e-14)
+    xo.assert_allclose(tw_back.x, tw.x, atol=1e-14)
+    xo.assert_allclose(tw_back.y, tw.y, atol=1e-14)
+    xo.assert_allclose(tw_back.betx, tw.betx, rtol=1e-10)
+    xo.assert_allclose(tw_back.bety, tw.bety, rtol=1e-10)
+    xo.assert_allclose(tw_back.alfx, tw.alfx, atol=1e-8)
+    xo.assert_allclose(tw_back.alfy, tw.alfy, atol=1e-8)
+    xo.assert_allclose(tw_back.dx, tw.dx, atol=1e-9)
+    xo.assert_allclose(tw_back.dpx, tw.dpx, atol=1e-9)
 
 xo.assert_allclose(sv_back.s, sv.s, atol=1e-14)
 xo.assert_allclose(sv_back.X, sv.X, atol=1e-14)
@@ -186,6 +189,7 @@ xo.assert_allclose(sv_back.Z, sv.Z, atol=1e-14)
 xo.assert_allclose(sv_back.theta, sv.theta, atol=1e-14)
 xo.assert_allclose(sv_back.phi, sv.phi, atol=1e-14)
 xo.assert_allclose(sv_back.psi, sv.psi, atol=1e-14)
+xo.assert_allclose(sv.angle, sv.angle, atol=1e-14)
 
 sv_sliced.cols['s angle theta X'].show()
 # name                       s         angle         theta             X
@@ -291,6 +295,7 @@ xo.assert_allclose(sv_sliced_back.Z, sv_sliced.Z, atol=1e-14)
 xo.assert_allclose(sv_sliced_back.theta, sv_sliced.theta, atol=1e-14)
 xo.assert_allclose(sv_sliced_back.phi, sv_sliced.phi, atol=1e-14)
 xo.assert_allclose(sv_sliced_back.psi, sv_sliced.psi, atol=1e-14)
+xo.assert_allclose(sv_sliced_back.angle, sv_sliced.angle, atol=1e-14)
 
 # Twiss checks
 
@@ -324,15 +329,16 @@ xo.assert_allclose(tw_sliced.alfy[-1], tw0.alfy[-1], rtol=1e-10)
 xo.assert_allclose(tw_sliced.dx[-1], tw0.dx[-1], rtol=1e-10)
 xo.assert_allclose(tw_sliced.dpx[-1], tw0.dpx[-1], atol=1e-10)
 
-xo.assert_allclose(tw_sliced_back.s, tw_sliced.s, atol=1e-14)
-xo.assert_allclose(tw_sliced_back.x, tw_sliced.x, atol=1e-14)
-xo.assert_allclose(tw_sliced_back.y, tw_sliced.y, atol=1e-14)
-xo.assert_allclose(tw_sliced_back.betx, tw_sliced.betx, rtol=1e-8)
-xo.assert_allclose(tw_sliced_back.bety, tw_sliced.bety, rtol=1e-8)
-xo.assert_allclose(tw_sliced_back.alfx, tw_sliced.alfx, atol=1e-8)
-xo.assert_allclose(tw_sliced_back.alfy, tw_sliced.alfy, atol=1e-8)
-xo.assert_allclose(tw_sliced_back.dx, tw_sliced.dx, atol=1e-9)
-xo.assert_allclose(tw_sliced_back.dpx, tw_sliced.dpx, atol=1e-9)
+if edge_model == 'linear':
+    xo.assert_allclose(tw_sliced_back.s, tw_sliced.s, atol=1e-14)
+    xo.assert_allclose(tw_sliced_back.x, tw_sliced.x, atol=1e-14)
+    xo.assert_allclose(tw_sliced_back.y, tw_sliced.y, atol=1e-14)
+    xo.assert_allclose(tw_sliced_back.betx, tw_sliced.betx, rtol=1e-8)
+    xo.assert_allclose(tw_sliced_back.bety, tw_sliced.bety, rtol=1e-8)
+    xo.assert_allclose(tw_sliced_back.alfx, tw_sliced.alfx, atol=1e-8)
+    xo.assert_allclose(tw_sliced_back.alfy, tw_sliced.alfy, atol=1e-8)
+    xo.assert_allclose(tw_sliced_back.dx, tw_sliced.dx, atol=1e-9)
+    xo.assert_allclose(tw_sliced_back.dpx, tw_sliced.dpx, atol=1e-9)
 
 
 
