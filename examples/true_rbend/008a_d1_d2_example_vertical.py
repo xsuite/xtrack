@@ -5,8 +5,6 @@ import numpy as np
 
 edge_model = 'full' # linear of full
 
-# TODO check angle column in survey
-
 env = xt.Environment()
 env.vars.default_to_zero = True
 line = env.new_line(compose=True)
