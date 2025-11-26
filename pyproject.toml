@@ -50,7 +50,7 @@ notebooks = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["xtrack", "ducktrack"]
+include = ["xtrack*", "ducktrack*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "xtrack._version.__version__" }
