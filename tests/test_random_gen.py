@@ -31,13 +31,15 @@ def test_random_generation(test_context, generator):
 
         _extra_c_sources = [
             '''
-                /*gpufun*/
+                #include "xtrack/headers/track.h"
+
+                GPUFUN
                 void TestElement_track_local_particle(
                         TestElementData el, LocalParticle* part0){
-                    //start_per_particle_block (part0->part)
+                    START_PER_PARTICLE_BLOCK(part0, part);
                         double rr = !!GENERATOR!!_generate(part);
                         LocalParticle_set_x(part, rr);
-                    //end_per_particle_block
+                    END_PER_PARTICLE_BLOCK;
                 }
             '''.replace('!!GENERATOR!!', generator)
         ]

@@ -1747,7 +1747,9 @@ class RBend(_BendCommon, BeamElement):
         **_BendCommon._common_xofields,
         'length_straight': xo.Float64,
         'rbend_model': xo.Int64,
+        'rbend_compensate_sagitta': xo.Field(xo.Int64, default=True),
         'rbend_shift': xo.Float64,
+        'rbend_angle_diff': xo.Float64,
     }
 
     allow_loss_refinement = True
@@ -1755,7 +1757,9 @@ class RBend(_BendCommon, BeamElement):
     _rename = {
         **_BendCommon._common_rename,
         'length_straight': '_length_straight',
-        'rbend_model': '_rbend_model'
+        'rbend_model': '_rbend_model',
+        'rbend_angle_diff': '_rbend_angle_diff',
+        'rbend_compensate_sagitta': '_rbend_compensate_sagitta',
     }
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -1786,6 +1790,7 @@ class RBend(_BendCommon, BeamElement):
             kwargs.get('length_straight'),
             kwargs.get('h'),
             kwargs.get('angle'),
+            rbend_angle_diff=kwargs.get('rbend_angle_diff', 0.0),
         )
 
         if self.k0_from_h:
@@ -1802,12 +1807,23 @@ class RBend(_BendCommon, BeamElement):
             self.rbend_model = rbend_model
 
     @property
+    def rbend_angle_diff(self):
+        return self._rbend_angle_diff
+
+    @rbend_angle_diff.setter
+    def rbend_angle_diff(self, value):
+        self._rbend_angle_diff = value
+        self.set_bend_params(length_straight=self._length_straight, angle=self._angle,
+                             rbend_angle_diff=value)
+
+    @property
     def length(self):
         return self._length
 
     @length.setter
     def length(self, value):
-        self.set_bend_params(length=value, angle=self.angle)
+        self.set_bend_params(length=value, angle=self.angle,
+                             rbend_angle_diff=self._rbend_angle_diff)
 
     @property
     def h(self):
@@ -1815,7 +1831,8 @@ class RBend(_BendCommon, BeamElement):
 
     @h.setter
     def h(self, value):
-        self.set_bend_params(h=value, length_straight=self.length_straight)
+        self.set_bend_params(h=value, length_straight=self._length_straight,
+                             rbend_angle_diff=self._rbend_angle_diff)
 
     @property
     def angle(self):
@@ -1823,7 +1840,8 @@ class RBend(_BendCommon, BeamElement):
 
     @angle.setter
     def angle(self, value):
-        self.set_bend_params(angle=value, length_straight=self.length_straight)
+        self.set_bend_params(angle=value, length_straight=self.length_straight,
+                             rbend_angle_diff=self._rbend_angle_diff)
 
     @property
     def length_straight(self):
@@ -1831,7 +1849,8 @@ class RBend(_BendCommon, BeamElement):
 
     @length_straight.setter
     def length_straight(self, value):
-        self.set_bend_params(length_straight=value, angle=self.angle)
+        self.set_bend_params(length_straight=value, angle=self.angle,
+                             rbend_angle_diff=self._rbend_angle_diff)
 
     @property
     def rbend_model(self):
@@ -1844,12 +1863,21 @@ class RBend(_BendCommon, BeamElement):
         except KeyError:
             raise ValueError(f'Invalid rbend_model: {value}')
 
-    def set_bend_params(self, length=None, length_straight=None, h=None, angle=None):
+    @property
+    def rbend_compensate_sagitta(self):
+        return bool(self._rbend_compensate_sagitta)
+
+    @rbend_compensate_sagitta.setter
+    def rbend_compensate_sagitta(self, value):
+        self._rbend_compensate_sagitta = int(bool(value))
+
+    def set_bend_params(self, length=None, length_straight=None, h=None, angle=None,
+                        rbend_angle_diff=None):
         (
             length, length_straight, h, angle
-        ) = self.compute_bend_params(length, length_straight, h, angle)
+        ) = self.compute_bend_params(length, length_straight, h, angle,
+                                     rbend_angle_diff=rbend_angle_diff)
 
-        # None becomes NaN in numpy buffers
         if length is not None:
             self._length = length
         if length_straight is not None:
@@ -1858,12 +1886,12 @@ class RBend(_BendCommon, BeamElement):
             self._h = h
         if angle is not None:
             self._angle = angle
-
         if self.k0_from_h:
             self._k0 = self.h
 
     @staticmethod
-    def compute_bend_params(length=None, length_straight=None, h=None, angle=None):
+    def compute_bend_params(length=None, length_straight=None, h=None, angle=None,
+                            rbend_angle_diff=None):
         """Compute the bend parameters (length, h) from the given arguments.
 
         The arguments are checked for consistency and the missing ones are
@@ -1873,6 +1901,7 @@ class RBend(_BendCommon, BeamElement):
         `angle`. If both are missing for each pair, zero will be assumed for the
         length and for `h`.
         """
+        assert rbend_angle_diff is not None
         kwargs = locals()
         given = {
             arg_name: arg_value
@@ -1905,18 +1934,47 @@ class RBend(_BendCommon, BeamElement):
             else:
                 length = length or length_straight
                 length_straight = length
-        elif 'length' in given and 'h' in given:
+        elif 'length' in given and 'h' in given: # case 3
             angle = length * h
-            length_straight = length * np.sinc(0.5 * angle / np.pi)
-        elif 'length' in given and 'angle' in given:
+            theta_in = 0.5 * angle - rbend_angle_diff / 2
+            theta_out = 0.5 * angle + rbend_angle_diff / 2
+            if abs(angle) < 1e-10:
+                length_straight = length
+            else:
+                length_straight = (1/h) * (np.sin(theta_in) + np.sin(theta_out))
+        elif 'length' in given and 'angle' in given: # case 2
             h = angle / length
-            length_straight = length * np.sinc(0.5 * angle / np.pi)
-        elif 'length_straight' in given and 'h' in given:
-            angle = 2 * np.arcsin(length_straight * h / 2)
-            length = length_straight / np.sinc(0.5 * angle / np.pi)
-        elif 'length_straight' in given and 'angle' in given:
-            h = 2 * np.sin(angle / 2) / length_straight
-            length = length_straight / np.sinc(0.5 * angle / np.pi)
+            theta_in = 0.5 * angle - rbend_angle_diff / 2
+            theta_out = 0.5 * angle + rbend_angle_diff / 2
+            if abs(angle) < 1e-10:
+                length_straight = length
+            else:
+                length_straight = (1/h) * (np.sin(theta_in) + np.sin(theta_out))
+        elif 'length_straight' in given and 'h' in given: # case 4
+            angle = 2 * np.arcsin(length_straight * h / 2 / np.cos(rbend_angle_diff / 2))
+            if abs(angle) < 1e-10:
+                length = length_straight
+            else:
+                length = angle / h
+        elif 'length_straight' in given and 'angle' in given: # case 1
+            theta_in = 0.5 * angle - rbend_angle_diff / 2
+            theta_out = 0.5 * angle + rbend_angle_diff / 2
+            if abs(angle) < 1e-10:
+                length = length_straight
+                h = 0
+            else:
+                h = (np.sin(theta_in) + np.sin(theta_out)) / length_straight
+                length = angle / h
+        elif 'h' in given and 'angle' in given:
+            theta_in = 0.5 * angle - rbend_angle_diff / 2
+            theta_out = 0.5 * angle + rbend_angle_diff / 2
+            if abs(angle) < 1e-10:
+                length = length_straight = 0
+            else:
+                length = angle / h
+                length_straight = (1/h) * (np.sin(theta_in) + np.sin(theta_out))
+        else:
+            raise RuntimeError("Internal error in RBend parameter computation.")
 
         # Verify consistency
         errors = []
@@ -1937,14 +1995,51 @@ class RBend(_BendCommon, BeamElement):
         # By this point the given values are proved to be consistent, prefer
         # the values given by the user, not to accumulate numerical noise.
         return (
-            length,
+            given.get('length', length),
             given.get('length_straight', length_straight),
-            h,
+            given.get('h', h),
             given.get('angle', angle),
         )
 
     @property
     def hxl(self): return self.h * self.length
+
+    @property
+    def _angle_in(self):
+        return 0.5 * self.angle - self._rbend_angle_diff / 2
+
+    @property
+    def _angle_out(self):
+        return 0.5 * self.angle + self._rbend_angle_diff / 2
+
+    @property
+    def _x0_mid(self):
+        out = -self.rbend_shift
+        if abs(self.angle) > 1e-10 and self.rbend_compensate_sagitta:
+            out += 0.5 / self.h * (1 - np.cos(self.angle / 2))
+        return out
+
+    @property
+    def _x0_in(self):
+        out = self._x0_mid
+        if abs(self.angle) > 1e-10:
+            px0_in = np.sin(self._angle_in)
+            px0_mid = px0_in - self.h * self.length_straight / 2
+            sqrt_mid = np.sqrt(1 - px0_mid * px0_mid)
+            cos_theta_in = np.cos(self._angle_in)
+            out -= 1 / self.h * (sqrt_mid - cos_theta_in)
+        return out
+
+    @property
+    def _x0_out(self):
+        out = self._x0_mid
+        if abs(self.angle) > 1e-10:
+            px0_out = np.sin(self._angle_out)
+            px0_mid = px0_out - self.h * self.length_straight / 2
+            sqrt_mid = np.sqrt(1 - px0_mid * px0_mid)
+            cos_theta_out = np.cos(self._angle_out)
+            out += 1 / self.h * (cos_theta_out - sqrt_mid)
+        return out
 
     @property
     def radiation_flag(self): return 0.0

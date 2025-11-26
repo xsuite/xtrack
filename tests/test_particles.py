@@ -20,18 +20,19 @@ def test_check_is_active_sorting_openmp():
         }
 
         _extra_c_sources = ["""
+            #include "xtrack/headers/track.h"
             #define XT_OMP_SKIP_REORGANIZE
 
-            /*gpufun*/
+            GPUFUN
             void TestElement_track_local_particle(
                 TestElementData el,
                 LocalParticle* part0
             ) {
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     int64_t state = check_is_active(part);
                     int64_t id = LocalParticle_get_particle_id(part);
                     TestElementData_set_states(el, id, state);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
         """]
 
@@ -96,16 +97,18 @@ def test_check_is_active_sorting_cpu_default(test_context):
         }
 
         _extra_c_sources = ["""
-            /*gpufun*/
+            #include "xtrack/headers/track.h"
+
+            GPUFUN
             void TestElement_track_local_particle(
                 TestElementData el,
                 LocalParticle* part0
             ) {
-                //start_per_particle_block (part0->part)
+                START_PER_PARTICLE_BLOCK(part0, part);
                     int64_t state = check_is_active(part);
                     int64_t id = LocalParticle_get_particle_id(part);
                     TestElementData_set_states(el, id, state);
-                //end_per_particle_block
+                END_PER_PARTICLE_BLOCK;
             }
         """]
 

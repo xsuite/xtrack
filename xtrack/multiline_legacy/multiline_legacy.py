@@ -479,7 +479,7 @@ class MultilineLegacy:
 
         # Trackers need to be invalidated to add elements
         for nn, ll in self.lines.items():
-            ll.unfreeze()
+            ll.discard_tracker()
 
         if clockwise_line is not None and anticlockwise_line is not None:
             circumference_cw = self.lines[clockwise_line].get_length()

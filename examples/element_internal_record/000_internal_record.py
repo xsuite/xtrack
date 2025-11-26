@@ -36,20 +36,22 @@ class TestElementRecord(xo.HybridClass):
 # element number.
 
 track_method_source = r'''
-/*gpufun*/
-void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
+#include "xtrack/headers/track.h"
 
+GPUFUN
+void TestElement_track_local_particle(TestElementData el, LocalParticle* part0)
+{
     // Extract the record and record_index
     TestElementRecordData record = TestElementData_getp_internal_record(el, part0);
     RecordIndex record_index = NULL;
-    if (record){
+    if (record) {
         record_index = TestElementRecordData_getp__index(record);
     }
 
     int64_t n_kicks = TestElementData_get_n_kicks(el);
     printf("n_kicks %d\n", (int)n_kicks);
 
-    //start_per_particle_block (part0->part)
+    START_PER_PARTICLE_BLOCK(part0, part);
 
         for (int64_t i = 0; i < n_kicks; i++) {
             double rr = 1e-6 * RandomUniform_generate(part);
@@ -72,8 +74,7 @@ void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
             }
         }
 
-
-    //end_per_particle_block
+    END_PER_PARTICLE_BLOCK;
 }
 '''
 
