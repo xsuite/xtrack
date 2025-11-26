@@ -280,20 +280,10 @@ class Slicer:
             name=name,
         )
 
-        if _edge_markers:
-
-            if isinstance(element, xt.Replica):
-                element = element.resolve(self._line)
-            _buffer = element._buffer
-
-            entry_marker, exit_marker = f'{name}_entry', f'{name}_exit'
-            self._line._element_dict[entry_marker] = xt.Marker(_buffer=_buffer)
-            self._line._element_dict[exit_marker] = xt.Marker(_buffer=_buffer)
-            slices_to_add = [entry_marker] + slices_to_add + [exit_marker]
-
-        # Handle aperture
         if isinstance(element, xt.Replica):
             element = element.resolve(self._line)
+
+        # Handle aperture
         if (hasattr(element, 'name_associated_aperture')
             and element.name_associated_aperture is not None):
             new_slices_to_add = []
@@ -301,22 +291,26 @@ class Slicer:
             for nn in slices_to_add:
                 ee = self._line._element_dict[nn]
                 if (type(ee).__name__.startswith('ThinSlice')
-                    or type(ee).__name__.startswith('ThickSlice')
-                    or (_edge_markers and nn==exit_marker)):
+                    or type(ee).__name__.startswith('ThickSlice')):
                     aper_name = f'{name}_aper..{aper_index}'
                     self._line._element_dict[aper_name] = xt.Replica(
                         parent_name=element.name_associated_aperture)
                     new_slices_to_add += [aper_name]
                     aper_index += 1
-                if not _edge_markers:
-                    # If no edge markers, we need to manually add an
-                    # aperture after the last slice.
-                    aper_name = f'{name}_aper..{aper_index}'
-                    self._line._element_dict[aper_name] = xt.Replica(
-                        parent_name=element.name_associated_aperture)
-                    new_slices_to_add += [aper_name]
                 new_slices_to_add += [nn]
-            slices_to_add = new_slices_to_add
+            # Final aperture
+            aper_name = f'{name}_aper..{aper_index}'
+            self._line._element_dict[aper_name] = xt.Replica(
+                parent_name=element.name_associated_aperture)
+
+            slices_to_add = new_slices_to_add + [aper_name]
+
+        if _edge_markers:
+            _buffer = element._buffer
+            entry_marker, exit_marker = f'{name}_entry', f'{name}_exit'
+            self._line._element_dict[entry_marker] = xt.Marker(_buffer=_buffer)
+            self._line._element_dict[exit_marker] = xt.Marker(_buffer=_buffer)
+            slices_to_add = [entry_marker] + slices_to_add + [exit_marker]
 
         return slices_to_add
 
