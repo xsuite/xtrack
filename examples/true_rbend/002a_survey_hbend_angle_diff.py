@@ -12,7 +12,7 @@ line = env.new_line(length=5, components=[
             model='bend-kick-bend',
             rbend_model='straight-body', edge_entry_model=edge_model, edge_exit_model=edge_model,
             anchor='start', at=1.)])
-line['mb'].compensate_sagitta = False
+line['mb'].rbend_compensate_sagitta = False
 line['mb'].rbend_shift = line['mb']._x0_in
 line.insert('start', xt.Marker(), at=0)
 line.append('end', xt.Marker())
