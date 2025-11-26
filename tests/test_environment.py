@@ -482,7 +482,7 @@ def test_assemble_ring():
                    == np.array([nn+'.cell.2' for nn in tt_cell.name[:-1]
                                 if not nn.startswith('||drift')]))
     assert np.all(tt_cell2.s == tt_cell.s)
-    tt_cell2_nodrift = tt_cell2.rows[~tt_cell2.rows.mask['\|\|drift.*']]
+    tt_cell2_nodrift = tt_cell2.rows[~tt_cell2.rows.mask[r'\|\|drift.*']]
     assert tt_cell2_nodrift.isreplica[:-1].all()
     assert tt_cell2['parent_name', 'mq.d.l.cell.2'] == 'mq.d.l'
     assert tt_cell2['parent_name', 'mq.f.l.cell.2'] == 'mq.f.l'
@@ -907,7 +907,7 @@ def test_assemble_ring_builders():
     assert np.all([nn for nn in tt_cell2.name[:-1] if not nn.startswith('||drift')]
                   == np.array([nn + '.cell.2' for nn in tt_cell.name[:-1] if not nn.startswith('||drift')]))
     assert np.all(tt_cell2.s == tt_cell.s)
-    tt_cell2_nodrift = tt_cell2.rows[~tt_cell2.rows.mask['\|\|drift.*']]
+    tt_cell2_nodrift = tt_cell2.rows[~tt_cell2.rows.mask[r'\|\|drift.*']]
     assert tt_cell2_nodrift.isreplica[:-1].all()
     assert tt_cell2['parent_name', 'mq.d.l.cell.2'] == 'mq.d.l'
     assert tt_cell2['parent_name', 'mq.f.l.cell.2'] == 'mq.f.l'

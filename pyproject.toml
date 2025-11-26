@@ -1,7 +1,7 @@
 [build-system]
 build-backend = 'setuptools.build_meta'
 requires = [
-    'setuptools >= 61.0.0',
+    'setuptools>=77.0.0',
 ]
 
 [project]
@@ -10,7 +10,7 @@ dynamic = ["version"]
 description = "Tracking library for particle accelerators"
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 authors = [
   { name = "G. Iadarola et al." }
 ]
@@ -60,3 +60,8 @@ include-package-data = true
 
 [project.entry-points.xobjects]
 include = "xtrack"
+
+[pytest]
+markers = [
+    "context_dependent: marks test as one that depends on the execution context",
+]
