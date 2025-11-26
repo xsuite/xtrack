@@ -493,7 +493,6 @@ class ActionTwissMadngTPSA(Action):
         self.tw_kwargs.update(kwargs)
         self.twiss_flag = twiss_flag
         self._already_prepared = False
-        self.tpsa_dict = {}
 
     def prepare(self, force=False):
         '''
