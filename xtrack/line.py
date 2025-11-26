@@ -3076,7 +3076,7 @@ class Line:
             track_kernel = None
 
         if inplace:
-            self.unfreeze()
+            self.discard_tracker()
             self.element_names = new_element_names
             new_line = self
         else:
@@ -4294,10 +4294,11 @@ class Line:
         self.element_names = tuple(self.element_names)
 
     def unfreeze(self):
-
-        # Unfreeze the line. This is useful if you want to modify the line
-        # after it has been frozen (most likely by calling `build_tracker`).
-
+        """See `Line.discard_tracker()`. This function is deprecated."""
+        _print(
+            '`Line.unfreeze()` is deprecated and will be removed in future '
+            'versions. Please use `Line.discard_tracker()` instead.'
+        )
         self.discard_tracker()
 
     def _frozen_check(self):
