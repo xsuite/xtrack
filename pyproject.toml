@@ -21,7 +21,7 @@ dependencies = [
   "tqdm",
   "requests",
   "xobjects",
-  "xdeps"
+  "xdeps",
 ]
 
 [project.urls]
@@ -39,7 +39,8 @@ tests = [
   "pytest",
   "pytest-mock",
   "pymadng",
-  "requests-mock"
+  "requests-mock",
+  "tfs-pandas",
 ]
 notebooks = [
   "jupyter",
