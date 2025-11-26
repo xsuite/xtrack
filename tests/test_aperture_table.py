@@ -61,9 +61,9 @@ def test_aperture_table():
     aper_check = aper.rows['veba.20250.a_aper' : 'vebb.20270.b_aper']
 
     assert np.all(aper_check.name == np.array(
-        ['veba.20250.a_aper', '||drift_979', 'mba.20250', '||drift_991',
-       'veba.20250.b_aper', '||drift_671', 'vebb.20270.a_aper',
-       '||drift_992', 'mbb.20270', '||drift_993', 'vebb.20270.b_aper']))
+        ['veba.20250.a_aper', '||drift_976', 'mba.20250', '||drift_988',
+       'veba.20250.b_aper', '||drift_668', 'vebb.20270.a_aper',
+       '||drift_989', 'mbb.20270', '||drift_990', 'vebb.20270.b_aper']))
     xo.assert_allclose(aper_check.s, np.array([
        1225.8247   , 1225.8247   , 1226.0176907, 1232.2777093,
        1232.4827   , 1232.4827   , 1232.4847   , 1232.4847   ,
