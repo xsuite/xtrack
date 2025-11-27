@@ -651,7 +651,7 @@ class ActionTwissMadngTPSA(Action):
             ''' + coord_str + r'''
 
             -- Converting to TPSA (mutating type)
-            for i, v in ipairs(params) do
+            for _, v in ipairs(params) do
                 MADX[v] = MADX[v] + X0[v]
             end
 
@@ -667,8 +667,6 @@ class ActionTwissMadngTPSA(Action):
             ''' + XSUITE_MADNG_ENV_NAME + r'''.tar_qtys = ''' + qty_str + r'''
             -- Initial map for tracking/twiss
             ''' + XSUITE_MADNG_ENV_NAME + r'''.init_X0_map = map1
-            -- Knob names
-            ''' + XSUITE_MADNG_ENV_NAME + r'''.params = params
             -- Defining targets array
             ''' + targets_map_str + r'''
             -- Mapping from xsuite quantity names to madng quantity names
@@ -739,14 +737,14 @@ class ActionTwissMadngTPSA(Action):
                     res[qty] = res[qty[:-3] if qty.endswith('_ng') else XS_NG_MAP[qty]]
         else:
             loc_map_str = ''
-            for i, loc in enumerate(self.target_locations):
+            for loc in self.target_locations:
                 loc_map_str += f"{XSUITE_MADNG_ENV_NAME}.target_loc_map['{loc}'] = {XSUITE_MADNG_ENV_NAME}.trk['{loc}'].__map\n"
 
             mng_table_str = r'''
             local trk = ''' + XSUITE_MADNG_ENV_NAME + r'''.trk
             -- Add derived columns which are not present due to Track calculation
             -- and use target names as defined from the user (Xsuite)
-            for i, tar in ipairs( ''' + XSUITE_MADNG_ENV_NAME + r'''.tar_qtys ) do
+            for _, tar in ipairs( ''' + XSUITE_MADNG_ENV_NAME + r'''.tar_qtys ) do
                 if not trk[''' + XSUITE_MADNG_ENV_NAME + r'''.xs_ng_target_map[tar]] then
                     trk:addcol(tar, \ri -> MAD.gphys.optfun(trk[ri].__map, ''' + XSUITE_MADNG_ENV_NAME + r'''.xs_ng_target_map[tar] .. '_'))
                 end
@@ -785,21 +783,22 @@ class ActionTwissMadngTPSA(Action):
         mng_str = tar_len_str + vary_len_str + jac_decl_str + r'''
         -- Compute Jacobian
         for i, target in ipairs(  ''' + XSUITE_MADNG_ENV_NAME + r'''.targets_map ) do
-            for j, var_name in ipairs(  ''' + XSUITE_MADNG_ENV_NAME + r'''.params ) do
+            local map = ''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map[target.loc]
+            for j = 1, map.np(map), 1 do
                 -- Quantity which can be calculated with optfun
                 if target.optfun then
                     -- If loc_start (phase advance) is defined, we provide initial map
                     if target.loc_start then
                         local a0 = ''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map[target.loc_start]
-                        ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = MAD.gphys.optfun(''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map[target.loc], target.qty .. "_", j, 1, a0)
+                        ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = MAD.gphys.optfun(map, target.qty .. "_", j, 1, a0)
                     else
-                        ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = MAD.gphys.optfun(''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map[target.loc], target.qty .. "_", j, 1)
+                        ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = MAD.gphys.optfun(map, target.qty .. "_", j, 1)
                     end
 
                 -- Orbit Quantity
                 elseif target.orbit then
                     -- Index 7 + j corresponds to one index of order 0 plus six (for x,px,y,py,t,pt) of order 1 plus parameter index
-                    ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = ''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map[target.loc][target.orbit]:get(7 + j)
+                    ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = map[target.orbit]:get(7 + j)
                 end
             end
         end
