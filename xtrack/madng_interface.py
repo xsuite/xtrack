@@ -844,6 +844,7 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
                  assert(mad_func)
                  mad_func()
                  MAD.option.nocharge = {nocharge}
+                 MADX.option.rbarc = true
                  {XSUITE_MADNG_ENV_NAME} = {{}} -- to avoid variable name clashes
                  """)
         mng._init_madx_data = madx_seq
