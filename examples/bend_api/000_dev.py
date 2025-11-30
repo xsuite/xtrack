@@ -26,3 +26,6 @@ bend2.k0_from_h = False
 assert bend2.k0 == 0.1
 assert bend2.h == 0.1
 assert bend2.k0_from_h == False
+
+breakpoint()
+dd1 = bend1.to_dict()

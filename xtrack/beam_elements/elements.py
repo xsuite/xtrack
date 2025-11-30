@@ -1409,25 +1409,25 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
                 'edge_entry_fint', 'edge_exit_fint', 'edge_entry_hgap',
                 'edge_exit_hgap', 'shift_x', 'shift_y', 'rot_s_rad']
 
-    def to_dict(self, copy_to_cpu=True):
-        out = super().to_dict(copy_to_cpu=copy_to_cpu)
+    # def to_dict(self, copy_to_cpu=True):
+    #     out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
-        for kk in ('model', 'k0', 'h', 'length', 'k0_from_h', 'angle'):
-            if f'_{kk}' in out:
-                out.pop(f'_{kk}')
-            out[kk] = getattr(self, kk)
+    #     for kk in ('model', 'k0', 'h', 'length', 'k0_from_h', 'angle'):
+    #         if f'_{kk}' in out:
+    #             out.pop(f'_{kk}')
+    #         out[kk] = getattr(self, kk)
 
-        # See the comment in Multiple.to_dict about knl/ksl/order dumping
-        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
-            out.pop('knl', None)
+    #     # See the comment in Multiple.to_dict about knl/ksl/order dumping
+    #     if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
+    #         out.pop('knl', None)
 
-        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
-            out.pop('ksl', None)
+    #     if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
+    #         out.pop('ksl', None)
 
-        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
-            out['order'] = self.order
+    #     if self.order != 0 and 'knl' not in out and 'ksl' not in out:
+    #         out['order'] = self.order
 
-        return out
+    #     return out
 
     @property
     def sagitta(self):
