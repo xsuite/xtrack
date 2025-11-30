@@ -1337,7 +1337,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
-        'k0_from_h': xo.UInt64,
+        'k0_from_h': xo.Field(xo.UInt64, default=1),
     }
 
     _common_rename = {
@@ -1355,13 +1355,18 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
 
     @property
     def k0(self):
+        if self.k0_from_h:
+            return 'from_h'
         return self._k0
 
     @k0.setter
     def k0(self, value):
-        if self.k0_from_h and not np.isclose(value, self.h, atol=1e-13):
-            self.k0_from_h = False
+        if isinstance(value, str):
+            if value != 'from_h':
+                raise ValueError("k0 can only be set to 'from_h' as a string")
+            self.k0_from_h = True
         self._k0 = value
+        self.k0_from_h = False
 
     @property
     def k0_from_h(self):
@@ -1557,11 +1562,15 @@ class Bend(_BendCommon, BeamElement):
             self.xoinitialize(**kwargs)
             return
 
+        if 'h' in kwargs:
+            raise ValueError("Setting `h` directly is not allowed. "
+                                "Set `length` and `angle` instead.")
+
         edge_entry_model = kwargs.pop('edge_entry_model', None)
         edge_exit_model = kwargs.pop('edge_exit_model', None)
 
         to_be_set_with_properties = []
-        for nn in ['length', 'h', 'angle', 'k0_from_h']:
+        for nn in ['length', 'angle', 'k0_from_h']:
             if nn in kwargs:
                 to_be_set_with_properties.append((nn, kwargs.pop(nn)))
 
@@ -1610,50 +1619,6 @@ class Bend(_BendCommon, BeamElement):
             self._h = self.angle / self.length
             if self.k0_from_h:
                 self._k0 = self.h
-
-    # def set_bend_params(self, length=None, h=None, angle=None):
-    #     length, h, angle = self.compute_bend_params(
-    #         length, h, angle,
-    #     )
-
-    #     # None becomes NaN in numpy buffers
-    #     if length is not None:
-    #         self._length = length
-    #     if h is not None:
-    #         self._h = h
-    #     if angle is not None:
-    #         self._angle = angle
-
-    #     if self.k0_from_h:
-    #         self._k0 = self.h
-
-    # @staticmethod
-    # def compute_bend_params(length=None, h=None, angle=None):
-    #     if not length:
-    #         # If no length, then we cannot meaningfully calculate anything
-    #         return length, h, angle
-
-    #     if angle is not None:
-    #         computed_h = angle / length
-
-    #         if h is not None and not np.isclose(h, computed_h, rtol=0, atol=1e-13):
-    #             raise ValueError('Given `h` and `angle` are inconsistent!')
-
-    #         h = h or computed_h
-    #         return length, h, angle
-
-    #     if h is not None:
-    #         computed_angle = h * length
-
-    #         if angle is not None and not np.isclose(angle, computed_angle, rtol=0, atol=1e-13):
-    #             raise ValueError('Given `h` and `angle` are inconsistent!')
-
-    #         angle = angle or computed_angle
-    #         return length, h, angle
-
-    #     # Both `h` and `angle` are None
-    #     return length, h, angle
-
 
     @property
     def _thin_slice_class(self):
@@ -2803,7 +2768,7 @@ class Magnet(_HasKnlKsl, _HasIntegrator, _HasModelCurved, BeamElement):
         'k3s': xo.Float64,
         'angle': xo.Float64,
         'h': xo.Float64,
-        'k0_from_h': xo.UInt64,
+        'k0_from_h': xo.Field(xo.UInt64, default=1),
         'edge_entry_active': xo.Field(xo.Int64, default=1),
         'edge_exit_active': xo.Field(xo.Int64, default=1),
         'edge_entry_model': xo.Int64,
