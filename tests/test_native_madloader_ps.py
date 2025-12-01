@@ -71,7 +71,7 @@ def test_native_madloader_ps():
             if kk == 'k0_from_h' and dref['k0'] == 0 and dref['h'] == 0:
                 continue  # Skip the check when k0 is computed from h (for now)
 
-            if kk == '_isthick' and eref.length == 0:
+            if kk in ('isthick', '_isthick') and eref.length == 0:
                 continue  # Skip the check for zero-length elements
 
             if kk in {

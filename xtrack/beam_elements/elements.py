@@ -2430,7 +2430,7 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceUniformSolenoidExit
 
-class VariableSolenoid(_HasKnlKsl, BeamElement):
+class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
 
     """
     Solenoid element.
