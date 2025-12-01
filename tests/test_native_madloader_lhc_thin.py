@@ -75,7 +75,7 @@ def test_native_madloader_lhc_thin():
                     assert dref[kk] == dtest[kk]
                     continue
 
-                if kk == '_isthick' and eref.length == 0:
+                if kk in ('isthick', '_isthick') and eref.length == 0:
                     continue  # Skip the check for zero-length elements
 
                 if kk in {
