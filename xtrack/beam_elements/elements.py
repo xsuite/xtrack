@@ -1390,6 +1390,8 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     def k0_from_h(self, value):
         if value:
             self._k0 = self.h
+        else:
+            self._k0 = 0.
         self._k0_from_h = value
 
     @property
