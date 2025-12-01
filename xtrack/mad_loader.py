@@ -819,6 +819,9 @@ class MadLoader:
             ksl = []
             num_multipole_kicks = 0
 
+        if mad_el.name == 'mb.a8r1.b1':
+            breakpoint()
+
         if mad_el.k0:
             k0_from_h = False
             bend_kwargs['k0'] = mad_el.k0

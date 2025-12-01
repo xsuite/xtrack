@@ -251,8 +251,6 @@ class _HasKnlKsl:
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
-    _default_order = DEFAULT_MULTIPOLE_ORDER
-
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
@@ -262,7 +260,7 @@ class _HasKnlKsl:
         if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
             out.pop('ksl', None)
 
-        if self.order != self._default_order and 'knl' not in out and 'ksl' not in out:
+        if self.order != 0 and 'knl' not in out and 'ksl' not in out:
             out['order'] = self.order
 
         return out
@@ -1390,7 +1388,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     def k0_from_h(self, value):
         if value:
             self._k0 = self.h
-        else:
+        elif self.k0_from_h: # was true before
             self._k0 = 0.
         self._k0_from_h = value
 
