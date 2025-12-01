@@ -104,6 +104,7 @@ def test_native_loader_lhc(line_mode, data_mode, tmpdir, lines_ref):
         assert env.lhcb2.element_names == '__COMPOSE__'
 
     if data_mode == 'json':
+        env_orig = env
         env.to_json(tmpdir / f'lhc_{line_mode}.json')
         env = xt.load(tmpdir / f'lhc_{line_mode}.json', format='json')
     elif data_mode == 'copy':
