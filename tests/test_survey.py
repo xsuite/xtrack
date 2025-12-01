@@ -53,7 +53,7 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
 
     line.vars['l_drift'] = 999.
     line.vars['l_bend'] = 999.
-    line.vars['h_bend'] = 999.
+    line.vars['angle_bend'] = 999.
     line.vars['tilt_bend_deg'] = 999.
 
 
@@ -66,10 +66,10 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
     line['e6'].length = line.vars['l_drift']
     line['e7'].length = line.vars['l_bend']
 
-    line['e1'].h = line.vars['h_bend']
-    line['e3'].h = line.vars['h_bend']
-    line['e5'].h = line.vars['h_bend']
-    line['e7'].h = line.vars['h_bend']
+    line['e1'].angle = line.vars['angle_bend']
+    line['e3'].angle = line.vars['angle_bend']
+    line['e5'].angle = line.vars['angle_bend']
+    line['e7'].angle = line.vars['angle_bend']
 
     line['e1'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
     line['e3'].rot_s_rad = line.vars['tilt_bend_deg'] * np.pi / 180
@@ -84,9 +84,9 @@ def test_survey_slicing(test_context, slice_mode, tilted, orientation,
     line.vars['l_drift'] = 1
     line.vars['l_bend'] = 1
     if orientation == 'cw':
-        line.vars['h_bend'] = np.pi/2 / line.vars['l_bend']
+        line.vars['angle_bend'] = np.pi/2
     elif orientation == 'acw':
-        line.vars['h_bend'] = -np.pi/2 / line.vars['l_bend']
+        line.vars['angle_bend'] = -np.pi/2
 
     if tilted:
         line.vars['tilt_bend_deg'] = 90

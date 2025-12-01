@@ -177,7 +177,7 @@ class ThinSliceBend(_ThinSliceElementBase, BeamElement):
         knl = self._parent.knl.copy() * self.weight
         ksl = self._parent.ksl.copy() * self.weight
 
-        knl[0] += self._parent.k0 * self._parent.length * self.weight
+        knl[0] += self._parent._k0 * self._parent.length * self.weight
         knl[1] += self._parent.k1 * self._parent.length * self.weight
 
         length = self._parent.length * self.weight
@@ -210,7 +210,7 @@ class ThinSliceRBend(_ThinSliceElementBase, BeamElement):
         knl = self._parent.knl.copy() * self.weight
         ksl = self._parent.ksl.copy() * self.weight
 
-        knl[0] += self._parent.k0 * self._parent.length * self.weight
+        knl[0] += self._parent._k0 * self._parent.length * self.weight
         knl[1] += self._parent.k1 * self._parent.length * self.weight
 
         length = self._parent.length * self.weight
