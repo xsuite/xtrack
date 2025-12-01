@@ -102,6 +102,8 @@ class _HasIntegrator:
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
+    _default_integrator = 'adaptive'
+
     @staticmethod
     def get_available_integrators():
         """Get list of available integrators for this element.
