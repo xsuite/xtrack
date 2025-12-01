@@ -102,7 +102,7 @@ class _HasIntegrator:
         except KeyError:
             raise ValueError(f'Invalid integrator: {value}')
 
-    _default_integrator = 'adaptive'
+    _default_integrator = _INDEX_TO_INTEGRATOR[0]
 
     @staticmethod
     def get_available_integrators():
@@ -134,6 +134,8 @@ class _HasModelDrift:
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
+    _default_model = _INDEX_TO_MODEL_DRIFT[0]
+
     @staticmethod
     def get_available_models():
         """Get list of available models for this element.
@@ -164,6 +166,8 @@ class _HasModelStraight:
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
+    _default_model = _INDEX_TO_MODEL_STRAIGHT[0]
+
     @staticmethod
     def get_available_models():
         """Get list of available models for this element.
@@ -193,6 +197,8 @@ class _HasModelCurved:
             self._model = _MODEL_TO_INDEX_CURVED[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
+
+    _default_model = _INDEX_TO_MODEL_CURVED[0]
 
     @staticmethod
     def get_available_models():
@@ -225,6 +231,8 @@ class _HasModelRF:
             self._model = _MODEL_TO_INDEX_RF[value]
         except KeyError:
             raise ValueError(f'Invalid RF model: {value}')
+
+    _default_model = _INDEX_TO_MODEL_RF[0]
 
 
 class _HasKnlKsl:
@@ -1391,6 +1399,8 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
 
+    _default_edge_entry_model = _INDEX_TO_EDGE_MODEL[0]
+
     @property
     def edge_exit_model(self):
         return _INDEX_TO_EDGE_MODEL[self._edge_exit_model]
@@ -1401,6 +1411,8 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
             self._edge_exit_model = _EDGE_MODEL_TO_INDEX[value]
         except KeyError:
             raise ValueError(f'Invalid model: {value}')
+
+    _default_edge_exit_model = _INDEX_TO_EDGE_MODEL[0]
 
     @property
     def _repr_fields(self):
