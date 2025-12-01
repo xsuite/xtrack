@@ -1434,6 +1434,17 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         else:
             return 1. / self.h * (1 - np.cos(0.5 * self.angle))
 
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+
+        dct = dct.copy()
+
+        if 'h' in dct:
+            assert 'angle' in dct
+            dct.pop('h')
+
+        return super().from_dict(dct, **kwargs)
+
 
 class Bend(_BendCommon, BeamElement):
     """Implementation of combined function magnet (i.e. a bending magnet with
@@ -1595,7 +1606,7 @@ class Bend(_BendCommon, BeamElement):
             if self.k0_from_h:
                 self._k0 = self.h
         else:
-            self.h = 0.0
+            self._h = 0.0
 
     @property
     def h(self):
