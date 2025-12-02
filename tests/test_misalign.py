@@ -617,6 +617,7 @@ def test_thin_slice_misaligned_bend_valid_invalid(transformations, valid):
             name='b',
             parent='Bend',
             angle=0.1,
+            k0=0,
             length=2,
             model='drift-kick-drift-expanded',  # compare to a similar model
             **transformations,
