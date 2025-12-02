@@ -25,7 +25,8 @@ from .view import View
 ReferType = Literal['start', 'center', 'centre', 'end']
 
 DEFAULT_REF_STRENGTH_NAME = {
-    'Bend': 'k0',
+    'Bend': '_k0', # using underscored to get the value also when k0_from_h is True
+    'RBend': '_k0',
     'Quadrupole': 'k1',
     'Sextupole': 'k2',
     'Octupole': 'k3',

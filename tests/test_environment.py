@@ -276,7 +276,7 @@ def test_assemble_ring():
         'l.halfcell': 38,
     })
 
-    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', h='k0.mb')
+    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', angle='k0.mb * l.mb')
     env.new('mq', xt.Quadrupole, length='l.mq')
     env.new('ms', xt.Sextupole, length='l.ms')
     env.new('corrector', xt.Multipole, knl=[0], length=0.1)
@@ -706,7 +706,7 @@ def test_assemble_ring_builders():
         'l.halfcell': 38,
     })
 
-    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', h='k0.mb')
+    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', angle='k0.mb * l.mb')
     env.new('mq', xt.Quadrupole, length='l.mq')
     env.new('ms', xt.Sextupole, length='l.ms')
     env.new('corrector', xt.Multipole, knl=[0], length=0.1)
@@ -1132,7 +1132,7 @@ def test_assemble_ring_repeated_elements():
         'l.halfcell': 38,
     })
 
-    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', h='k0.mb')
+    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', angle='k0.mb * l.mb')
     env.new('mq', xt.Quadrupole, length='l.mq')
     env.new('ms', xt.Sextupole, length='l.ms')
     env.new('corrector', xt.Multipole, knl=[0], length=0.1)
@@ -1527,12 +1527,12 @@ def test_element_views(container_type):
     assert ee.get('c') == 12
 
     env.new('mb', 'Bend', extra={'kmax': '6*a'},
-            k1='3*a', h=4*ee.ref['a'], knl=[0, '5*a', 6*ee.ref['a']])
+            k1='3*a', angle=1e-3 * 4*ee.ref['a'], knl=[0, '5*a', 6*ee.ref['a']])
     assert isinstance(ee['mb'].k1, float)
-    assert isinstance(ee['mb'].h, float)
+    assert isinstance(ee['mb'].angle, float)
     assert isinstance(ee['mb'].knl[0], float)
     assert ee['mb'].k1 == 9
-    assert ee['mb'].h == 12
+    assert ee['mb'].angle == 12e-3
     assert ee['mb'].knl[0] == 0
     assert ee['mb'].knl[1] == 15
     assert ee['mb'].knl[2] == 18
@@ -1783,7 +1783,7 @@ def test_inpection_methods(container_type):
 
     line = env.new_line([
         env.new('bb', xt.Bend, k0='2 * b', length=3+env.vars['a'] + env.vars['b'],
-            h=5., ksl=[0, '3*b']),
+            angle=0.1, ksl=[0, '3*b']),
     ])
 
     ee = {'env': env, 'line': line}[container_type]
