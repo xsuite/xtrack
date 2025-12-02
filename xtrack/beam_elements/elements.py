@@ -1363,6 +1363,28 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'h': '_h',
     }
 
+
+    @property
+    def angle(self):
+        return self._angle
+
+    @angle.setter
+    def angle(self, value):
+        self._angle = value
+        if self.length != 0:
+            self._h = self.angle / self.length
+            if self.k0_from_h:
+                self._k0 = self.h
+
+    @property
+    def h(self):
+        return self._h
+
+    @h.setter
+    def h(self, value):
+        raise RuntimeError("Setting `h` directly is not allowed. "
+                           "Set `length` and `angle` instead.")
+
     @property
     def k0(self):
         if self.k0_from_h:
@@ -1607,27 +1629,6 @@ class Bend(_BendCommon, BeamElement):
                 self._k0 = self.h
         else:
             self._h = 0.0
-
-    @property
-    def h(self):
-        return self._h
-
-    @h.setter
-    def h(self, value):
-        raise RuntimeError("Setting `h` directly is not allowed. "
-                           "Set `length` and `angle` instead.")
-
-    @property
-    def angle(self):
-        return self._angle
-
-    @angle.setter
-    def angle(self, value):
-        self._angle = value
-        if self.length != 0:
-            self._h = self.angle / self.length
-            if self.k0_from_h:
-                self._k0 = self.h
 
     @property
     def _thin_slice_class(self):
