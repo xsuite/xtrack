@@ -1788,15 +1788,8 @@ class RBend(_BendCommon, BeamElement):
 
     @angle.setter
     def angle(self, value):
-
         self._angle = value
-
-        _angle = value
-        _length_straight = self._length_straight
-        _rbend_angle_diff = self._rbend_angle_diff
-
-        self._update_rbend_h_length_k0(_angle, _length_straight,
-                                      _rbend_angle_diff)
+        self._update_rbend_h_length_k0()
 
     @property
     def rbend_angle_diff(self):
@@ -1804,15 +1797,8 @@ class RBend(_BendCommon, BeamElement):
 
     @rbend_angle_diff.setter
     def rbend_angle_diff(self, value):
-
         self._rbend_angle_diff = value
-
-        _rbend_angle_diff = value
-        _angle = self._angle
-        _length_straight = self._length_straight
-
-        self._update_rbend_h_length_k0(_angle, _length_straight,
-                                      _rbend_angle_diff)
+        self._update_rbend_h_length_k0()
 
     @property
     def length_straight(self):
@@ -1820,17 +1806,14 @@ class RBend(_BendCommon, BeamElement):
 
     @length_straight.setter
     def length_straight(self, value):
-
         self._length_straight = value
+        self._update_rbend_h_length_k0()
 
-        _length_straight = value
+    def _update_rbend_h_length_k0(self):
         _angle = self._angle
+        _length_straight = self._length_straight
         _rbend_angle_diff = self._rbend_angle_diff
 
-        self._update_rbend_h_length_k0(_angle, _length_straight,
-                                      _rbend_angle_diff)
-
-    def _update_rbend_h_length_k0(self, _angle, _length_straight, _rbend_angle_diff):
         theta_in = 0.5 * _angle - _rbend_angle_diff / 2
         theta_out = 0.5 * _angle + _rbend_angle_diff / 2
         if abs(_angle) < 1e-10:
