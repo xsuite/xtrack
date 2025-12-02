@@ -651,7 +651,7 @@ def test_thin_slice_misaligned_bend_valid_invalid(transformations, valid):
 def test_spin_drift(h):
     bend = xt.Bend(
         length=2,
-        h=h,
+        angle=h * 2,
         k0=0,
         shift_x=0.01,
         shift_y=-0.03,
