@@ -1411,8 +1411,9 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
             if value != 'from_h':
                 raise ValueError("k0 can only be set to 'from_h' as a string")
             self.k0_from_h = True
-        self.k0_from_h = False
-        self._k0 = value
+        else:
+            self.k0_from_h = False
+            self._k0 = value
 
     _default_k0 = 'from_h'
 
