@@ -1611,26 +1611,16 @@ class Bend(_BendCommon, BeamElement):
             raise ValueError("Setting `h` directly is not allowed. "
                                 "Set `length` and `angle` instead.")
 
-        edge_entry_model = kwargs.pop('edge_entry_model', None)
-        edge_exit_model = kwargs.pop('edge_exit_model', None)
-
         to_be_set_with_properties = []
-        for nn in ['length', 'angle', 'k0_from_h']:
+        for nn in ['length', 'angle', 'k0_from_h', 'edge_entry_model',
+                   'edge_exit_model']:
             if nn in kwargs:
                 to_be_set_with_properties.append((nn, kwargs.pop(nn)))
 
         _HasKnlKsl.__init__(self, **kwargs)
 
-        if edge_entry_model is not None:
-            self.edge_entry_model = edge_entry_model
-
-        if edge_exit_model is not None:
-            self.edge_exit_model = edge_exit_model
-
         for nn, val in to_be_set_with_properties:
             setattr(self, nn, val)
-
-
 
     @property
     def _thin_slice_class(self):
