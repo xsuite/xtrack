@@ -33,7 +33,6 @@ def test_sps_thick_native_loader(test_context):
     assert line['mbb.10150'].edge_exit_model == 'linear'
     assert line['mbb.10150'].model == 'adaptive'
 
-    ang = line['mbb.10150'].k0 * line['mbb.10150'].length
     xo.assert_allclose(line['mbb.10150'].edge_entry_angle, 0, atol=1e-11, rtol=0)
     xo.assert_allclose(line['mbb.10150'].edge_exit_angle, 0, atol=1e-11, rtol=0)
 
