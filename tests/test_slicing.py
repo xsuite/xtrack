@@ -389,7 +389,7 @@ def test_slicing_thick_bend_simple():
     bend = xt.Bend(
         length=3.0,
         k0=0.1,
-        h=0.2,
+        angle=0.2*3.0,
         **additional_kwargs
     )
     line = xt.Line(elements=[bend], element_names=['bend'])
@@ -414,7 +414,7 @@ def test_slicing_thick_bend_into_thick_bends_simple():
 
     additional_kwargs = {}
     additional_kwargs['k0'] = 0.1
-    additional_kwargs['h'] = 0.2
+    additional_kwargs['angle'] = 0.2 * 3.0
     additional_kwargs['k1'] = 0.2
 
     bend = xt.Bend(
@@ -431,9 +431,12 @@ def test_slicing_thick_bend_into_thick_bends_simple():
     bend0, bend1 = line['bend..0'], line['bend..1']
     assert bend0.weight == bend1.weight == 0.5
 
-    assert bend0._parent.k0 == bend1._parent.k0 == 0.1
-    assert bend0._parent.h == bend1._parent.h == 0.2
-    assert bend0._parent.k1 == bend1._parent.k1 == 0.2
+    xo.assert_allclose(bend0._parent.k0, 0.1, atol=1e-14)
+    xo.assert_allclose(bend1._parent.k0, 0.1, atol=1e-14)
+    xo.assert_allclose(bend0._parent.h, 0.2, atol=1e-14)
+    xo.assert_allclose(bend1._parent.h, 0.2, atol=1e-14)
+    xo.assert_allclose(bend0._parent.k1, 0.2, atol=1e-14)
+    xo.assert_allclose(bend1._parent.k1, 0.2, atol=1e-14)
 
     expected_knl = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6])
     xo.assert_allclose(bend0._parent.knl, expected_knl, atol=1e-16)
@@ -472,7 +475,7 @@ def test_slicing_xdeps_consistency():
 def test_slice_twice():
     env = xt.Environment()
     line = env.new_line(components=[
-        env.new('el', xt.Bend, length=4, k1=0.5, h=0.1, k0=0.8, knl=[0, 0, 0.03]),
+        env.new('el', xt.Bend, length=4, k1=0.5, angle=0.4, k0=0.8, knl=[0, 0, 0.03]),
     ])
 
     line.slice_thick_elements(
