@@ -561,7 +561,7 @@ def test_import_thick_bend_from_madx_cpymad(use_true_thick_bends, with_knobs, be
     # k0 = h if k0 is zero, but this is not feasible to implement in Xtrack now.
     xo.assert_allclose(elem.k2, 0.4, atol=1e-14)
     xo.assert_allclose(elem.h, elem.angle / elem.length, atol=1e-14)  # h = angle / L
-    xo.assert_allclose(elem.k0, 0 if with_knobs else elem.h, atol=1e-14)
+    xo.assert_allclose(elem.k0, 0 if with_knobs else 'from_h', atol=1e-14)
     xo.assert_allclose(elem.knl, 0.0, atol=1e-14)
     xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
 
