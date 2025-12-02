@@ -382,7 +382,7 @@ def test_rbend_two_step(example_sequence):
     assert rb1.h == h
     assert rb1.edge_entry_angle == 0
     assert rb1.edge_exit_angle == 0
-    assert rb1.k0 == h
+    assert rb1._k0 == h
 
 def test_rbend_set_params_after_lattice(example_sequence):
     env, positions, _ = example_sequence
