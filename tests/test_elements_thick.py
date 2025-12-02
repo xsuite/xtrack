@@ -139,7 +139,7 @@ def test_combined_function_dipole_expanded(test_context):
         _context=test_context,
     )
 
-    bend = xt.Bend(k0=1e-3, h=0.9e-3, length=1, k1=0.001, knl=[0, 0, 0.02])
+    bend = xt.Bend(k0=1e-3, angle=0.9e-3, length=1, k1=0.001, knl=[0, 0, 0.02])
     line_thick = xt.Line(elements=[bend], element_names=['b'])
     line_thick.build_tracker(_context=test_context)
 
@@ -238,7 +238,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
     # Bend with a multipolar component
     bend_with_mult = element_type(
         k0=k0,
-        h=h,
+        angle=h * bend_length,
         length=bend_length,
         knl=knl,
         ksl=ksl,
@@ -249,7 +249,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
     # Separate bend and a corresponding multipole
     bend_no_mult = element_type(
         k0=k0,
-        h=h,
+        angle=h * bend_length / num_kicks / 2,
         length=bend_length / num_kicks / 2,
         num_multipole_kicks=0,
     )
@@ -299,14 +299,11 @@ def test_thick_multipolar_component(test_context, element_type, h):
     'kwargs',
     [
         {},
-        {'length': 2, 'angle': 0.1, 'h': 0.05},
-        {'length': 2, 'angle': 0.1, 'h': 0.1},
         {'length': 2, 'angle': 0.1},
-        {'length': 2, 'h': 0.1},
         {'length': 2},
-        {'angle': 0.1, 'h': 0.05},
+        {'angle': 0.1},
     ],
-    ids=['none', 'all', 'inconsistent', 'no_h', 'no_angle', 'only_length', 'no_length'],
+    ids=['none', 'all', 'length', 'angle'],
 )
 @pytest.mark.parametrize('scenario', ['vanilla', 'env'])
 def test_bend_param_handling(kwargs, scenario):
@@ -319,17 +316,7 @@ def test_bend_param_handling(kwargs, scenario):
             env.new('bend', 'Bend', **kwargs)
             return env['bend']
 
-    input_is_consistent = True
-    if len(kwargs) == 3 and not np.isclose(
-            kwargs['angle'], kwargs['length'] * kwargs['h'], rtol=0, atol=1e-13):
-        input_is_consistent = False
-
-    if not input_is_consistent:
-        with pytest.raises(ValueError):
-            _ = make_bend()
-        return
-    else:
-        bend = make_bend()
+    bend = make_bend()
 
     for key, value in kwargs.items():
         assert getattr(bend, key) == value
@@ -339,24 +326,18 @@ def test_bend_param_handling(kwargs, scenario):
     if 'angle' in kwargs:
         assert bend.angle == kwargs['angle']
 
-    if 'h' in kwargs:
-        assert bend.h == kwargs['h']
-
     assert bend.angle == bend.length * bend.h or bend.length == 0
 
 
 @pytest.mark.parametrize(
     'kwargs, expected',
     [
-        ({}, {'length': 10, 'angle': 0.2, 'h': 0.02}),
-        ({'length': 2, 'angle': 0.1, 'h': 0.05}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
-        ({'length': 2, 'angle': 0.1, 'h': 0.1}, {'length': 2, 'angle': 0.2, 'h': 0.1}),  # order matters
-        ({'length': 2, 'angle': 0.1}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
-        ({'length': 2, 'h': 0.05}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
-        ({'length': 2}, {'length': 2, 'angle': 0.2, 'h': 0.1}),  # keeps angle
-        ({'h': 0.05, 'angle': 0.1}, {'length': 10, 'angle': 0.1, 'h': 0.01}),  # order matters
+        ({}, {'length': 10, 'angle': 0.2}),
+        ({'length': 2, 'angle': 0.1}, {'length': 2, 'angle': 0.1}),
+        ({'length': 2}, {'length': 2, 'angle': 0.2}),
+        ({'angle': 0.2}, {'length': 10, 'angle': 0.2}),
     ],
-    ids=['none', 'all', 'h_after_angle', 'no_h', 'no_angle', 'only_length', 'angle_after_h'],
+    ids=['none', 'all', 'only_length', 'only_angle'],
 )
 def test_bend_param_handling_set_after(kwargs, expected):
     bend = xt.Bend(length=10, angle=0.2)
@@ -1218,7 +1199,7 @@ def test_fringe_implementations(test_context):
 def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
     # Check bend
-    b = xt.Bend(k0=0.2, h=0.1, length=1.0)
+    b = xt.Bend(k0=0.2, angle=0.1, length=1.0)
     line = xt.Line(elements=[b])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
@@ -1283,7 +1264,7 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     assert np.all(p2.state == -32)
 
     # Same for combined function magnet
-    cfm = xt.Bend(length=1.0, k1=0.2, h=0.1)
+    cfm = xt.Bend(length=1.0, k1=0.2, angle=0.1)
     line = xt.Line(elements=[cfm])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
