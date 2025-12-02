@@ -90,7 +90,7 @@ def test_rf_track_lattice():
     print('RF-Track tracking ends')
 
     ele_xt = elements.copy()
-    b_xt = xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend)
+    b_xt = xt.Bend(length=lbend, k0=pi / 2 / lbend, angle=pi / 2)
     ele_xt['mb1.1'] = b_xt
     ele_xt['mb1.2'] = b_xt
     ele_xt['mb2.1'] = b_xt
