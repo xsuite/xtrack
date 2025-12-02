@@ -1377,6 +1377,20 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
                 self._k0 = self.h
 
     @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self._length = value
+        if self.length != 0:
+            self._h = self.angle / self.length
+            if self.k0_from_h:
+                self._k0 = self.h
+        else:
+            self._h = 0.0
+
+    @property
     def h(self):
         return self._h
 
@@ -1616,19 +1630,7 @@ class Bend(_BendCommon, BeamElement):
         for nn, val in to_be_set_with_properties:
             setattr(self, nn, val)
 
-    @property
-    def length(self):
-        return self._length
 
-    @length.setter
-    def length(self, value):
-        self._length = value
-        if self.length != 0:
-            self._h = self.angle / self.length
-            if self.k0_from_h:
-                self._k0 = self.h
-        else:
-            self._h = 0.0
 
     @property
     def _thin_slice_class(self):
