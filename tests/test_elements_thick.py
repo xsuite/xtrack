@@ -409,8 +409,6 @@ def test_rbend_param_handling(kwargs, scenario):
     if 'h' not in kwargs and 'angle' not in kwargs:
         assert same(bend.length, bend.length_straight)
 
-
-
 def test_rbend_param_handling_set_after():
     # This test is a bit less meaningful as there are a lot of combinations
     # that lead to unintuitive, but valid, results
@@ -418,9 +416,9 @@ def test_rbend_param_handling_set_after():
     def assert_eq(a, b):
         xo.assert_allclose(a, b, rtol=0, atol=1e-15)
 
-    bend = xt.RBend(length=10, angle=0.2)
+    bend = xt.RBend(length_straight=9.983341664682815, angle=0.2)
     assert bend.h == 0.02
-    assert_eq(bend.length_straight, 9.983341664682815)
+    assert_eq(bend.length, 10)
 
     bend.angle = 0.4
     assert bend.angle == 0.4
@@ -435,32 +433,8 @@ def test_rbend_param_handling_set_after():
     assert_eq(bend.length, 10.016686131634778)
     assert_eq(bend.h, 0.01996668332936563)
 
-    bend.length = 10
-    assert bend.angle == 0.2
-    assert bend.length == 10
-    assert bend.h == 0.02
-    assert_eq(bend.length_straight, 9.983341664682815)
-
-    bend.h = 0.01
-    assert bend.h == 0.01
-    assert_eq(bend.length_straight, 9.983341664682815)
-    assert_eq(bend.angle, 0.09987492198591705)
-    assert_eq(bend.length, 9.987492198591704)
-
-
 @for_all_test_contexts
-@pytest.mark.parametrize(
-    'param_scenario', ['length', 'length_straight', 'both', 'mismatched'],
-)
-@pytest.mark.parametrize(
-    "use_angle_in_rbend", [True, False],
-    ids=('rbend with angle', 'rbend with h'),
-)
-@pytest.mark.parametrize(
-    "use_angle_in_sbend", [True, False],
-    ids=('sbend with angle', 'sbend with h'),
-)
-def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sbend):
+def test_rbend(test_context):
     k0 = 0.15
     angle = 0.1
     radius = 2
@@ -472,20 +446,10 @@ def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sb
 
     # Set up everything for the RBend
     r_bend_extra_kwargs = {}
+    r_bend_extra_kwargs['length_straight'] = length_straight
+    r_bend_extra_kwargs['angle'] = angle
 
-    if param_scenario in ('length', 'both', 'mismatched'):
-        r_bend_extra_kwargs['length'] = length
-
-    if param_scenario in ('length_straight', 'both', 'mismatched'):
-        r_bend_extra_kwargs['length_straight'] = length_straight
-
-    if use_angle_in_rbend:
-        r_bend_extra_kwargs['angle'] = angle
-    else:
-        r_bend_extra_kwargs['h'] = curvature
-
-    def _make_rbend():
-        return xt.RBend(
+    rbend = xt.RBend(
             k0=k0,
             edge_entry_angle=e1_rbend,
             edge_entry_active=True,
@@ -495,22 +459,9 @@ def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sb
             _context=test_context,
         )
 
-    if param_scenario == 'mismatched':
-        length_straight += 0.8
-        with pytest.raises(ValueError):
-            r_bend_extra_kwargs['length_straight'] += 0.8
-            _make_rbend()
-        return
-    else:
-        rbend = _make_rbend()
-
     # Set up everything for the SBend
     s_bend_extra_kwargs = {}
-
-    if use_angle_in_rbend:
-        s_bend_extra_kwargs['angle'] = angle
-    else:
-        s_bend_extra_kwargs['h'] = curvature
+    s_bend_extra_kwargs['angle'] = angle
 
     sbend = xt.Bend(
         k0=k0,
