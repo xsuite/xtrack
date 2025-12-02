@@ -2628,7 +2628,7 @@ def test_octupole_num_kicks():
 def test_configure_model():
     line = xt.Line(elements={
         'b1': xt.Bend(k0=10, length=4, knl=[1, 2, 3]),
-        'r1': xt.RBend(k0=7, length=3, knl=[4, 5, 6]),
+        'r1': xt.RBend(k0=7, length_straight=3, knl=[4, 5, 6]),
         'q1': xt.Quadrupole(k1=20, length=4),
         's1': xt.Sextupole(k2=50, length=8),
         'o1': xt.Octupole(k3=100, length=9),
