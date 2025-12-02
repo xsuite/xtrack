@@ -9,9 +9,9 @@ assert_allclose = xo.assert_allclose
 def test_slice_thin_and_insert_with_replicas(test_context):
 
     elements = {
-        'e0': xt.Bend(k0=0.3, h=0.31, length=1),
+        'e0': xt.Bend(k0=0.3, angle=0.31, length=1),
         'e1': xt.Replica(parent_name='e0'),
-        'e2': xt.Bend(k0=-0.4, h=-0.41, length=1),
+        'e2': xt.Bend(k0=-0.4, angle=-0.41, length=1),
         'e3': xt.Replica(parent_name='e2'),
         'e4': xt.Replica(parent_name='e3'), # Replica of replica
     }
@@ -20,11 +20,11 @@ def test_slice_thin_and_insert_with_replicas(test_context):
     line.build_tracker(_context=test_context)
 
     element_no_repl={
-        'e0': xt.Bend(k0=0.3, h=0.31, length=1),
-        'e1': xt.Bend(k0=0.3, h=0.31, length=1),
-        'e2': xt.Bend(k0=-0.4, h=-0.41, length=1),
-        'e3': xt.Bend(k0=-0.4, h=-0.41, length=1),
-        'e4': xt.Bend(k0=-0.4, h=-0.41, length=1),
+        'e0': xt.Bend(k0=0.3, angle=0.31, length=1),
+        'e1': xt.Bend(k0=0.3, angle=0.31, length=1),
+        'e2': xt.Bend(k0=-0.4, angle=-0.41, length=1),
+        'e3': xt.Bend(k0=-0.4, angle=-0.41, length=1),
+        'e4': xt.Bend(k0=-0.4, angle=-0.41, length=1),
     }
 
     line_no_repl = xt.Line(elements=element_no_repl,
@@ -228,9 +228,9 @@ def test_slice_thin_and_insert_with_replicas(test_context):
 def test_slice_thick_and_insert_with_replicas(test_context):
 
     elements = {
-        'e0': xt.Bend(k0=0.3, h=0.31, length=1),
+        'e0': xt.Bend(k0=0.3, angle=0.31, length=1),
         'e1': xt.Replica(parent_name='e0'),
-        'e2': xt.Bend(k0=-0.4, h=-0.41, length=1),
+        'e2': xt.Bend(k0=-0.4, angle=-0.41, length=1),
         'e3': xt.Replica(parent_name='e2'),
         'e4': xt.Replica(parent_name='e3'), # Replica of replica
     }
@@ -241,11 +241,11 @@ def test_slice_thick_and_insert_with_replicas(test_context):
     assert line['e2']._movable
 
     element_no_repl={
-        'e0': xt.Bend(k0=0.3, h=0.31, length=1),
-        'e1': xt.Bend(k0=0.3, h=0.31, length=1),
-        'e2': xt.Bend(k0=-0.4, h=-0.41, length=1),
-        'e3': xt.Bend(k0=-0.4, h=-0.41, length=1),
-        'e4': xt.Bend(k0=-0.4, h=-0.41, length=1),
+        'e0': xt.Bend(k0=0.3, angle=0.31, length=1),
+        'e1': xt.Bend(k0=0.3, angle=0.31, length=1),
+        'e2': xt.Bend(k0=-0.4, angle=-0.41, length=1),
+        'e3': xt.Bend(k0=-0.4, angle=-0.41, length=1),
+        'e4': xt.Bend(k0=-0.4, angle=-0.41, length=1),
     }
 
     line_no_repl = xt.Line(elements=element_no_repl,
