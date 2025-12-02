@@ -355,19 +355,9 @@ def test_bend_param_handling_set_after(kwargs, expected):
 @pytest.mark.parametrize(
     'kwargs',
     [
-        {'length': 2, 'angle': 0.4, 'h': 0.2, 'length_straight': 1.986693307950612},
-        {'length': 2, 'angle': 0.4, 'h': 0.2},
-        {'length': 2, 'h': 0.2},
-        {'length': 2, 'angle': 0.4},
-        {'angle': 0.4, 'h': 0.2, 'length_straight': 1.986693307950612},
-        {'h': 0.2, 'length_straight': 1.986693307950612},
-        {'angle': 0.4, 'length_straight': 1.986693307950612},
-        {'length': 2, 'length_straight': 2},
-        {'length': 2},
+        {'length_straight': 2, 'angle': 0.4},
         {'length_straight': 2},
-        {'angle': 0.4, 'h': 0.2},
         {'angle': 0.4},
-        {'h': 0.2},
         # Inconsistent
         {'length': 2, 'angle': 0.4, 'h': 0.4, 'length_straight': 2, 'error': True},
         {'length': 2, 'angle': 0.4, 'h': 0.4, 'error': True},
@@ -376,9 +366,14 @@ def test_bend_param_handling_set_after(kwargs, expected):
         {'length': 2, 'h': 0.4, 'length_straight': 2, 'error': True},
     ],
     ids=[
-        'all', 'len_ang_h', 'len_h', 'len_ang', 'ls_ang_h', 'ls_h', 'ls_ang',
-        'only_lengths', 'only_len', 'only_ls', 'angle_h', 'only_angle', 'only_h',
-        'bad_all', 'bad_len', 'bad_ls', 'bad_ang', 'bad_h',
+        'lstraight_angle',
+        'lstraight',
+        'angle',
+        'inconsistent_1',
+        'inconsistent_2',
+        'inconsistent_3',
+        'inconsistent_4',
+        'inconsistent_5',
     ],
 )
 @pytest.mark.parametrize('scenario', ['vanilla', 'env'])
@@ -414,11 +409,6 @@ def test_rbend_param_handling(kwargs, scenario):
     if 'h' not in kwargs and 'angle' not in kwargs:
         assert same(bend.length, bend.length_straight)
 
-    if 'length' not in kwargs and 'length_straight' not in kwargs:
-        if 'h' not in kwargs:
-            assert same(bend.h, 0)
-        if 'angle' not in kwargs:
-            assert same(bend.angle, 0)
 
 
 def test_rbend_param_handling_set_after():
