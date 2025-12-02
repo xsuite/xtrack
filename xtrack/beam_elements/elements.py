@@ -2520,7 +2520,7 @@ class Solenoid(_HasKnlKsl, BeamElement):
         self.xoinitialize(**kwargs)
 
 
-class Magnet(_HasKnlKsl, _HasIntegrator, _HasModelCurved, BeamElement):
+class Magnet(_BendCommon, BeamElement):
     """General transverse field magnet with curvature and fringe fields.
 
     A beam element representing a magnet with transverse fields, curvature, and
@@ -2698,140 +2698,26 @@ class Magnet(_HasKnlKsl, _HasIntegrator, _HasModelCurved, BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
-    def __init__(self, order=None, knl: List[float]=None, ksl: List[float]=None, **kwargs):
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+    def __init__(self, **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
 
-        order = order or DEFAULT_MULTIPOLE_ORDER
-        multipolar_kwargs = self._prepare_multipolar_params(order, knl=knl, ksl=ksl)
-        kwargs.update(multipolar_kwargs)
+        if 'h' in kwargs:
+            raise ValueError("Setting `h` directly is not allowed. "
+                                "Set `length` and `angle` instead.")
 
-        model = kwargs.pop('model', None)
-        integrator = kwargs.pop('integrator', None)
-        edge_entry_model = kwargs.pop('edge_entry_model', None)
-        edge_exit_model = kwargs.pop('edge_exit_model', None)
+        to_be_set_with_properties = []
+        for nn in ['length', 'angle', 'k0_from_h', 'edge_entry_model',
+                   'edge_exit_model', 'k0']:
+            if nn in kwargs:
+                to_be_set_with_properties.append((nn, kwargs.pop(nn)))
 
-        self.xoinitialize(**kwargs)
+        _HasKnlKsl.__init__(self, **kwargs)
 
-        # Calculate length and h in the event length_straight and/or angle given
-        self.set_magnet_bend_params(
-            kwargs.get('length'),
-            kwargs.get('h'),
-            kwargs.get('angle'),
-        )
-
-        if self.k0_from_h:
-            self.k0 = self.h
-
-        # Trigger properties
-        if model is not None:
-            self.model = model
-
-        if integrator is not None:
-            self.integrator = integrator
-
-        if edge_entry_model is not None:
-            self.edge_entry_model = edge_entry_model
-
-        if edge_exit_model is not None:
-            self.edge_exit_model = edge_exit_model
-
-    def set_magnet_bend_params(self, length=None, h=None, angle=None):
-        length, h, angle = self.compute_bend_params(
-            length, h, angle,
-        )
-
-        # None becomes NaN in numpy buffers
-        if length is not None:
-            self._length = length
-        if h is not None:
-            self._h = h
-        if angle is not None:
-            self._angle = angle
-
-        if self.k0_from_h:
-            self._k0 = self.h
-
-    @staticmethod
-    def compute_bend_params(length=None, h=None, angle=None):
-        if not length:
-            # If no length, then we cannot meaningfully calculate anything
-            return length, h, angle
-
-        if angle is not None:
-            computed_h = angle / length
-
-            if h is not None and not np.isclose(h, computed_h, rtol=0, atol=1e-13):
-                raise ValueError('Given `h` and `angle` are inconsistent!')
-
-            h = h or computed_h
-            return length, h, angle
-
-        if h is not None:
-            computed_angle = h * length
-
-            if angle is not None and not np.isclose(angle, computed_angle, rtol=0, atol=1e-13):
-                raise ValueError('Given `h` and `angle` are inconsistent!')
-
-            angle = angle or computed_angle
-            return length, h, angle
-
-        # Both `h` and `angle` are None
-        return length, h, angle
-
-    @property
-    def k0(self):
-        return self._k0
-
-    @k0.setter
-    def k0(self, value):
-        if self.k0_from_h and not np.isclose(value, self.h, atol=1e-13):
-            self.k0_from_h = False
-        self._k0 = value
-
-    @property
-    def k0_from_h(self):
-        return bool(self._k0_from_h)
-
-    @k0_from_h.setter
-    def k0_from_h(self, value):
-        if value:
-            self._k0 = self.h
-        self._k0_from_h = value
-
-    @property
-    def length(self):
-        return self._length
-
-    @length.setter
-    def length(self, value):
-        self.set_magnet_bend_params(length=value, angle=self.angle)
-
-    @property
-    def h(self):
-        return self._h
-
-    @h.setter
-    def h(self, value):
-        self.set_magnet_bend_params(length=self.length, h=value)
-
-    @property
-    def angle(self):
-        return self._angle
-
-    @angle.setter
-    def angle(self, value):
-        self.set_magnet_bend_params(length=self.length, angle=value)
-
-    @property
-    def order(self):
-        return self._order
-
-    @order.setter
-    def order(self, value):
-        self._order = value
-        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
+        for nn, val in to_be_set_with_properties:
+            setattr(self, nn, val)
 
     @property
     def edge_entry_model(self):
