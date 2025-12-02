@@ -2512,7 +2512,7 @@ def test_knl_knl_kick_present_with_default_num_kicks():
     assert np.abs(p.px[0]) > 1e-7
 
     l5 = env.new_line(components=[
-        env.new('rb1', 'RBend', length=0.1)])
+        env.new('rb1', 'RBend', length_straight=0.1)])
     p0 = l5.build_particles(x=3e-3)
     p = p0.copy()
     l5.track(p)
