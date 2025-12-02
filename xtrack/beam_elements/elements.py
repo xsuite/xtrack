@@ -1773,6 +1773,17 @@ class RBend(_BendCommon, BeamElement):
         for nn, val in to_be_set_with_properties:
             setattr(self, nn, val)
 
+    @classmethod
+    def from_dict(cls, dct, **kwargs):
+
+        dct = dct.copy()
+
+        if 'length' in dct:
+            assert 'length_straight' in dct
+            dct.pop('length')
+
+        return super().from_dict(dct, **kwargs)
+
     @property
     def length(self):
         return self._length
