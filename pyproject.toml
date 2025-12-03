@@ -38,7 +38,7 @@ tests = [
   "PyHEADTAIL",
   "pytest",
   "pytest-mock",
-  "pymadng",
+  "pymadng==0.8.1",
   "requests-mock",
   "tfs-pandas",
 ]
