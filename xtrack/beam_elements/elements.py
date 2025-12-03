@@ -1478,7 +1478,9 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
 
         # Backward compatibility
         if 'h' in dct:
-            assert 'angle' in dct
+            if 'angle' not in dct:
+                assert 'length' in dct
+                dct['angle'] = dct['h'] * dct['length']
             dct.pop('h')
 
         if 'k0_from_h' in dct and dct['k0_from_h']:
