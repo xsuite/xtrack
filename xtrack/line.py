@@ -4293,6 +4293,8 @@ class Line:
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
 
     def _freeze(self):
+        if self._isfrozen():
+            return
         self.element_names = tuple(self.element_names)
 
     def unfreeze(self):
@@ -4302,6 +4304,9 @@ class Line:
             'versions. Please use `Line.discard_tracker()` instead.'
         )
         self.discard_tracker()
+
+    def _isfrozen(self):
+        return isinstance(self.element_names, tuple)
 
     def _frozen_check(self):
         if isinstance(self.element_names, tuple):
