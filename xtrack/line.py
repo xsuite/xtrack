@@ -1082,7 +1082,8 @@ class Line:
         if self.mode == 'compose':
             self._full_elements_from_composer()
 
-        if self.tracker is not None:
+        if self.tracker is not None and (_context is None or _context == self._context) \
+           and (_buffer is None or _buffer == self._buffer):
             _print('The line already has an associated tracker')
             return self.tracker
 
