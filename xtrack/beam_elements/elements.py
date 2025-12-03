@@ -1838,6 +1838,9 @@ class RBend(_BendCommon, BeamElement):
         if abs(_angle) < 1e-10:
             length = _length_straight
             h = 0
+        elif abs(_length_straight) < 1e-10:
+            length = 0.0
+            h = 0
         else:
             h = (np.sin(theta_in) + np.sin(theta_out)) / _length_straight
             length = _angle / h
