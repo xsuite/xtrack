@@ -2228,15 +2228,23 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                 gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
                 betx_at_start = W[0, 0]**2 + W[0, 1]**2
                 bety_at_start = W[2, 2]**2 + W[2, 3]**2
+                gamx_at_start = W[1, 0]**2 + W[1, 1]**2
+                gamy_at_start = W[3, 2]**2 + W[3, 3]**2
                 sigma_x_start = np.sqrt(betx_at_start * gemitt_x)
                 sigma_y_start = np.sqrt(bety_at_start * gemitt_y)
+                sigma_px_start = np.sqrt(gamx_at_start * gemitt_x)
+                sigma_py_start = np.sqrt(gamy_at_start * gemitt_y)
 
                 if ((steps_r_matrix['dx'] < 0.3 * sigma_x_start)
-                    and (steps_r_matrix['dy'] < 0.3 * sigma_y_start)):
+                    and (steps_r_matrix['dy'] < 0.3 * sigma_y_start)
+                    and (steps_r_matrix['dpx'] < 0.3 * sigma_px_start)
+                    and (steps_r_matrix['dpy'] < 0.3 * sigma_py_start)):
                     break # sufficient accuracy
                 else:
                     steps_r_matrix['dx'] = 0.01 * sigma_x_start
                     steps_r_matrix['dy'] = 0.01 * sigma_y_start
+                    steps_r_matrix['dpx'] = 0.01 * sigma_px_start
+                    steps_r_matrix['dpy'] = 0.01 * sigma_py_start
                     steps_r_matrix['adapted'] = True
 
     # Check on R matrix
