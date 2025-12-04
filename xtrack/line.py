@@ -4539,8 +4539,7 @@ class Line:
     @property
     def _context(self):
         if not self._has_valid_tracker():
-            raise RuntimeError(
-                '`Line._context` can only be called after `Line.build_tracker`')
+            return None
         return self.tracker._context
 
     @property
