@@ -790,9 +790,8 @@ def twiss_line(line, particle_ref=None, method=None,
         assert 'R_matrix' in twiss_res._data
         if method == '4d':
             raise ValueError('method="4d" not supported for eneloss_and_damping=True')
-        if radiation_method != 'full' or twiss_res._data['R_matrix_ebe'] is None:
-            with xt.line._preserve_config(line):
-              with xt.line._preserve_track_flags(line):
+        with xt.line._preserve_config(line):
+            with xt.line._preserve_track_flags(line):
                 line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
                 _, RR, _, _, _, RR_ebe = _find_periodic_solution(
@@ -811,10 +810,9 @@ def twiss_line(line, particle_ref=None, method=None,
                     delta_disp=None,
                     compute_R_element_by_element=True,
                     only_markers=only_markers,
+                    factor_adapt_steps=0.03 # 10 times smaller than for optics
+                                            # to campture small damping effects
                     )
-        else:
-            RR = twiss_res._data['R_matrix']
-            RR_ebe = twiss_res._data['R_matrix_ebe']
 
         eneloss_damp_res = _compute_eneloss_and_damping_rates(
                 particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
@@ -2128,7 +2126,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             only_markers=False,
                             only_orbit=False,
                             periodic_mode='periodic',
-                            include_collective=False):
+                            include_collective=False,
+                            factor_adapt_steps=0.3
+                            ):
 
     eigenvalues = None
     Rot = None
@@ -2235,10 +2235,10 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                 sigma_px_start = np.sqrt(gamx_at_start * gemitt_x)
                 sigma_py_start = np.sqrt(gamy_at_start * gemitt_y)
 
-                if ((steps_r_matrix['dx'] < 0.3 * sigma_x_start)
-                    and (steps_r_matrix['dy'] < 0.3 * sigma_y_start)
-                    and (steps_r_matrix['dpx'] < 0.3 * sigma_px_start)
-                    and (steps_r_matrix['dpy'] < 0.3 * sigma_py_start)):
+                if ((steps_r_matrix['dx'] < factor_adapt_steps * sigma_x_start)
+                    and (steps_r_matrix['dy'] < factor_adapt_steps * sigma_y_start)
+                    and (steps_r_matrix['dpx'] < factor_adapt_steps * sigma_px_start)
+                    and (steps_r_matrix['dpy'] < factor_adapt_steps * sigma_py_start)):
                     break # sufficient accuracy
                 else:
                     steps_r_matrix['dx'] = 0.01 * sigma_x_start
