@@ -391,7 +391,8 @@ def bend_to_mad_str(eref, bend_type='sbend', mad_type=MadType.MADX, substituted_
     else:
         raise ValueError(f"bend_type {bend_type} not recognized")
     tokens.append(mad_assignment('angle', _ge(eref.h) * _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('k0', _ge(eref.k0), mad_type, substituted_vars=substituted_vars))
+    if not eref.k0_from_h._value: 
+        tokens.append(mad_assignment('k0', _ge(eref.k0), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('e1', _ge(eref.edge_entry_angle), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('e2', _ge(eref.edge_exit_angle), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('fint', _ge(eref.edge_entry_fint), mad_type, substituted_vars=substituted_vars))
