@@ -3764,7 +3764,8 @@ class Line:
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self._elements, self.element_names):
-            if isinstance(ee, Multipole) and nn not in keep:
+            if (isinstance(ee, Multipole) and nn not in keep and
+                not(ee.isthick and ee.length != 0)):
                 ctx2np = ee._context.nparray_from_context_array
                 aux = ([ee.hxl]
                         + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
@@ -5202,7 +5203,7 @@ def _deserialize_element(el, class_dict, _buffer):
         return eltype.from_dict(eldct)
 
 def _is_simple_quadrupole(el):
-    if not isinstance(el, Multipole):
+    if not isinstance(el, Multipole) or el.isthick:
         return False
     return (el.radiation_flag == 0
             and (el.order == 1 or len(el.knl) == 2 or not any(el.knl[2:]))
@@ -5213,7 +5214,7 @@ def _is_simple_quadrupole(el):
             and np.abs(el.rot_s_rad) < 1e-12)
 
 def _is_simple_dipole(el):
-    if not isinstance(el, Multipole):
+    if not isinstance(el, Multipole) or el.isthick:
         return False
     return (el.radiation_flag == 0
             and (el.order == 0 or len(el.knl) == 1 or not any(el.knl[1:]))
