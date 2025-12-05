@@ -547,7 +547,6 @@ class TargetRelPhaseAdvance(Target):
 
         return mu_1 - mu_0
 
-
 class TargetRmatrixTerm(Target):
 
     def __init__(self, tar, value, start=None, end=None, tag='',  **kwargs):
@@ -605,6 +604,9 @@ class TargetRmatrixTerm(Target):
         assert len(self.term) == 3, (
             'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
             ' are supported')
+
+        if hasattr(tw, '_data') and hasattr(tw._data, 'attrs') and self.tag in tw._data.attrs:
+            return tw._data.attrs[self.tag]
 
         if self.start is xt.START:
             self.start = tw.name[0]
@@ -875,7 +877,29 @@ class OptimizeLine(xd.Optimize):
         if not isinstance(targets, (list, tuple)):
             targets = [targets]
 
+        # Flatten targets and assign tags for TargetRMatrixTerms if multiple
         targets_flatten = []
+        sum_rmat_targets = sum(1 for item in targets if isinstance(item, (TargetRmatrixTerm, TargetRmatrix)) for lst in targets)
+        start_end_tuple_set = list()
+        rmat_index = 0
+        if sum_rmat_targets > 0:
+            for tt in targets:
+                if isinstance(tt, TargetRmatrixTerm):
+                    if (tt.start, tt.end) in start_end_tuple_set:
+                        rmat_index = start_end_tuple_set.index((tt.start, tt.end))
+                    else:
+                        rmat_index = len(start_end_tuple_set)
+                        start_end_tuple_set.append((tt.start, tt.end))
+                    tt.tag = f'{rmat_index}_{tt.term}'
+                elif isinstance(tt, TargetRmatrix):
+                    if (tt.targets[0].start, tt.targets[0].end) in start_end_tuple_set:
+                        rmat_index = start_end_tuple_set.index((tt.targets[0].start, tt.targets[0].end))
+                    else:
+                        rmat_index = len(start_end_tuple_set)
+                        start_end_tuple_set.append((tt.targets[0].start, tt.targets[0].end))
+                    for sub_tt in tt.targets:
+                        sub_tt.tag = f'{rmat_index}_{sub_tt.term}'
+
         for tt in targets:
             if isinstance(tt, xd.TargetList):
                 for tt1 in tt.targets:
@@ -910,12 +934,14 @@ class OptimizeLine(xd.Optimize):
                     isinstance(tt, TargetRelPhaseAdvance) and tt.var.endswith('_ng')) or use_tpsa:
                     if action_twiss_ng is None:
                         if use_tpsa:
-                            twiss_flag_ng = any(isinstance(tar, xt.TargetRelPhaseAdvance) for tar in targets_flatten)
+                            twiss_flag_ng = any(isinstance(tar, (xt.TargetRelPhaseAdvance)) for tar in targets_flatten)
 
                             from .madng_interface import ActionTwissMadngTPSA
 
                             action_twiss_ng = ActionTwissMadngTPSA(
-                                    line, [v.name for v in vary_flatten], targets_flatten, {}, twiss_flag=twiss_flag_ng, **kwargs)
+                                    line, [v.name for v in vary_flatten], targets_flatten, {},
+                                        twiss_flag=twiss_flag_ng, sum_rmat_tar=len(start_end_tuple_set), **kwargs
+                            )
                             action_twiss_ng.prepare()
 
                         else:

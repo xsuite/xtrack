@@ -543,6 +543,7 @@ xsuite_to_mad_converters = {
 
 def element_to_mad_str(
     name,
+    env_name,
     line,
     mad_type=MadType.MADX,
     substituted_vars=None,
@@ -551,8 +552,9 @@ def element_to_mad_str(
     Generic converter for elements to MADX/MAD-NG.
     """
 
-    el = line.element_dict[name]
-    eref = _get_eref(line, name)
+    el = line.element_dict[env_name]
+    eref = _get_eref(line, env_name)
+
     parent_flag = hasattr(el, '_parent')
 
     if el.__class__ == xt.Marker or parent_flag and el._parent.__class__ == xt.Marker:
@@ -572,7 +574,7 @@ def element_to_mad_str(
         _handle_transforms(tokens, eref, mad_type=mad_type, substituted_vars=substituted_vars)
 
     if mad_type == MadType.MADNG:
-        tokens = [tokens[0]] + [f"'{name.replace(':', '__')}'"] + tokens[1:]
+        tokens = [tokens[0]] + [f"'{name}'"] + tokens[1:]
         tokens = _handle_tokens_madng(tokens, substituted_vars)
 
     return ', '.join(tokens)
@@ -603,18 +605,15 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
         tt_name = tt.name
         tt_s = tt.s
         tt_isthick = tt.isthick
-        for ii in range(len(tt.name)):
+        for ii in range(len(tt.name[:-1])):
             nn = tt_name[ii]
             if not(tt_isthick[ii]):
                 s_dict[nn] = tt_s[ii]
             else:
                 s_dict[nn] = 0.5 * (tt_s[ii] + tt_s[ii+1])
 
-        for nn in line.element_names:
-
-
-            el = line.element_dict[nn]
-            el_str = element_to_mad_str(nn, line, mad_type=MadType.MADX)
+            el = line.element_dict[tt.env_name[ii]]
+            el_str = element_to_mad_str(nn, tt.env_name[ii], line, mad_type=MadType.MADX)
             if nn + '_tilt_entry' in line.element_dict:
                 el_str += ", " + mad_assignment('tilt',
                             _ge(line.element_refs[nn + '_tilt_entry'].angle) / 180. * np.pi,
@@ -672,16 +671,16 @@ def to_madng_sequence(line, name='seq', mode='sequence'):
         else:
             s_dict[nn] = 0.5 * (tt.s[ii] + tt.s[ii+1])
 
-        el = line.element_dict[nn]
+        el = line.element_dict[tt.env_name[ii]]
 
-        el_str = element_to_mad_str(nn, line, mad_type=MadType.MADNG, substituted_vars=substituted_vars)
+        el_str = element_to_mad_str(nn, tt.env_name[ii], line, mad_type=MadType.MADNG, substituted_vars=substituted_vars)
 
         if el_str is None:
             continue
 
         # Misalignments
         if hasattr(el, 'shift_x') and hasattr(el, 'shift_y'):
-            el_str += f", misalign =\\ {{dx={mad_str_or_value(_ge(line.ref[nn].shift_x))}, dy={mad_str_or_value(_ge(line.ref[nn].shift_y))}}}"
+            el_str += f", misalign =\\ {{dx={mad_str_or_value(_ge(line.ref[tt.env_name[ii]].shift_x))}, dy={mad_str_or_value(_ge(line.ref[tt.env_name[ii]].shift_y))}}}"
         el_strs.append(el_str)
 
     # Chunking sequence
