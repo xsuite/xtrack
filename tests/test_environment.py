@@ -2003,6 +2003,50 @@ def test_copy_element_from_other_env():
     assert env2['quad/env2'].knl[0] == 0
     assert env2['quad/env2'].knl[1] == 8
 
+def test_import_line_matrix_attribute():
+
+    apert = xt.LongitudinalLimitRect(
+        min_zeta = -1e-3,
+        max_zeta = 1e-3,
+        min_pzeta = -1e-3,
+        max_pzeta = 1e-3)
+    tmap = xt.FirstOrderTaylorMap(
+        length=0,
+        m0=[ 2.3e-3,  3.07e-04,  0,  0,
+            -2.06e-5,  0],
+        m1=[[ 1, -6.1e-5,  0,
+            0,  0, -2.3e-3],
+            [ 5.2e-7,  9.9e-1,  0,
+            0,  0,  1.0e-7],
+            [ 0,  0,  1,
+            2.0e-5,  0,  0],
+            [ 0,  0,  0,
+            1,  0,  0],
+            [-1.0e-7, -2.3e-3,  0,
+            0,  1,  4.1e-5],
+            [ 0,  0,  0,
+            0,  0,  1]]
+    )
+    line = xt.Line(
+        elements=[apert, tmap],
+        element_names=['apert', 'taylor_map']
+    )
+
+    line['a'] = 10
+    line['taylor_map'].m1[2, 1]= 'a'
+
+    assert line['taylor_map'].m1[2, 1] == 10
+    line['a'] = 15
+    assert line['taylor_map'].m1[2, 1] == 15
+
+    env = xt.Environment()
+    env.import_line(line, suffix_for_common_elements='', line_name='line_env')
+    assert env['a'] == 15
+    assert env['taylor_map'].m1[2, 1] == 15
+
+    env['a'] = 20
+    assert env['taylor_map'].m1[2, 1] == 20
+
 
 def test_insert_repeated_elements():
 

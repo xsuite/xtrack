@@ -57,7 +57,7 @@ from .general import _print
 
 log = logging.getLogger(__name__)
 
-_ALLOWED_ELEMENT_TYPES_IN_NEW   = [
+_ALLOWED_ELEMENT_TYPES_IN_NEW = [
     xt.Drift, xt.DriftExact,
     xt.Magnet, xt.Replica, xt.Marker,
     xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole,
@@ -65,7 +65,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW   = [
     xt.Cavity, xt.RFMultipole, xt.CrabCavity, xt.ReferenceEnergyIncrease,
     xt.XYShift, xt.XRotation, xt.YRotation, xt.SRotation, xt.ZetaShift,
     xt.LimitRacetrack, xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
-    xt.LimitPolygon, xt.DipoleEdge]
+    xt.LimitPolygon, xt.DipoleEdge, xt.LongitudinalLimitRect, xt.FirstOrderTaylorMap]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {
     cc.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
