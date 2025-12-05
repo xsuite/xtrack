@@ -794,6 +794,31 @@ class Wire(BeamElement):
     ]
 
 
+class SietseTestElement(BeamElement):
+    '''Beam element for testing purposes.
+
+    Parameters
+    ----------
+
+    kick_x : float
+        Horizontal kick in radians. Default is ``0``.
+    kick_y : float
+        Vertical kick in radians. Default is ``0``.
+    delta_energy : float
+        Energy change in eV. Default is ``0``.
+    '''
+
+    _xofields={
+               'kick_x'       : xo.Float64,
+               'kick_y'       : xo.Float64,
+               'delta_energy' : xo.Float64,
+              }
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/sietsetestelement.h>',
+    ]
+
+
 class SRotation(BeamElement):
     """Beam element modeling a rotation of the reference system around the s-axis.
     Positive angle is defined as x to y, i.e. counter-clockwise when looking
