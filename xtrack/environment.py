@@ -428,7 +428,6 @@ class Environment:
 
         if not compose:
             out.end_compose()
-            out.composer = None
 
         self._lines_weakrefs.add(out) # Weak references
 
