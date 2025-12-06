@@ -4236,3 +4236,85 @@ def test_rename_var():
     assert str(env.ref['cc']._expr) == "(2.0 * vars['aa'])"
     assert str(env.ref['mb'].angle._expr) == "(vars['cc'] * 0.001)"
     assert str(env.ref['mb'].knl[1]._expr) == "(3.0 * vars['cc'])"
+
+def test_parametric_line_update():
+
+    env = xt.Environment()
+    env.particle_ref = xt.Particles(kinetic_energy0=2.86e9, mass0 = xt.ELECTRON_MASS_EV)
+
+    env['l_cell']  = 5.00  # cell length is 5 m
+    env['l_bend']  = 1.50  # length of bend (along arc using sector bends)
+    env['l_quad']  = 0.40  # length of quads
+    env['l_drift'] = '(l_cell - 2*l_bend - 2*l_quad)/4.'  # remaining length for drifts
+    print( f"Initial value of env['l_drift'] ={env['l_drift']:6.3f}" )
+
+    env['alfB'] =  np.pi/20 # 20 cells each with two bends in 100 m ring
+    env['kQf']  =  0.7
+    env['kQd']  = -0.7
+
+    # Definition of elements and two ways to define a FODO cell
+    env.new('drift', xt.Drift, length='l_drift')
+    env.new('mb',    xt.Bend, length='l_bend', angle='alfB', k0_from_h=True,
+            edge_entry_angle='alfB/2', edge_exit_angle='alfB/2') # shoild be kind of RBend
+
+    env.new('mQf', xt.Quadrupole, length='l_quad', k1='kQf')
+    env.new('mQd', xt.Quadrupole, length='l_quad', k1='kQd')
+
+    cell_line = env.new_line( components =[  # analogeous to MAD LINE
+        env.place('mQf'), env.place('drift'), env.place('mb'), env.place('drift'),
+        env.place('mQd'), env.place('drift'), env.place('mb'), env.place('drift'),
+        ])
+
+    cell_sequ1 = env.new_line( length='l_cell', components =[  # analogeous to MAD Sequence
+        env.place('mQf', at='0*l_drift + 0.5*l_quad + 0.0*l_bend'),
+        env.place('mb',  at='1*l_drift + 1.0*l_quad + 0.5*l_bend'),
+        env.place('mQd', at='2*l_drift + 1.5*l_quad + 1.0*l_bend'),
+        env.place('mb',  at='3*l_drift + 2.0*l_quad + 1.5*l_bend'),
+        ])
+
+    cell_sequ2 = env.new_line( length='l_cell', components =[  # analogeous to MAD Sequence
+        env.place('mQf', at='0*(l_cell - 2*l_bend - 2*l_quad)/4. + 0.5*l_quad + 0.0*l_bend'),
+        env.place('mb',  at='1*(l_cell - 2*l_bend - 2*l_quad)/4. + 1.0*l_quad + 0.5*l_bend'),
+        env.place('mQd', at='2*(l_cell - 2*l_bend - 2*l_quad)/4. + 1.5*l_quad + 1.0*l_bend'),
+        env.place('mb',  at='3*(l_cell - 2*l_bend - 2*l_quad)/4. + 2.0*l_quad + 1.5*l_bend'),
+        ])
+
+    t_cell_line = cell_line.get_table()
+    t_cell_sequ1 = cell_sequ1.get_table()
+    t_cell_sequ2 = cell_sequ2.get_table()
+    for tt in [t_cell_line, t_cell_sequ1, t_cell_sequ2]:
+        xo.assert_allclose(tt.s, [0. , 0.4, 0.7, 2.2, 2.5, 2.9, 3.2, 4.7, 5. ],
+                           atol=1e-14)
+
+    env['l_quad'] = 0.30
+    cell_sequ1.regenerate_from_composer()
+    cell_sequ2.regenerate_from_composer()
+    t_cell_line = cell_line.get_table()
+    t_cell_sequ1 = cell_sequ1.get_table()
+    t_cell_sequ2 = cell_sequ2.get_table()
+    for tt in [t_cell_line, t_cell_sequ1, t_cell_sequ2]:
+        xo.assert_allclose(tt.s, [0.  , 0.3 , 0.65, 2.15, 2.5 , 2.8 , 3.15, 4.65, 5.],
+                           atol=1e-14)
+
+    # back to original
+    env['l_quad'] = 0.40
+    cell_sequ1.regenerate_from_composer()
+    cell_sequ2.regenerate_from_composer()
+    t_cell_line = cell_line.get_table()
+    t_cell_sequ1 = cell_sequ1.get_table()
+    t_cell_sequ2 = cell_sequ2.get_table()
+    for tt in [t_cell_line, t_cell_sequ1, t_cell_sequ2]:
+        xo.assert_allclose(tt.s, [0. , 0.4, 0.7, 2.2, 2.5, 2.9, 3.2, 4.7, 5. ],
+                           atol=1e-14)
+
+    # increased cell length
+    env['l_cell'] = 5.50
+    cell_sequ1.regenerate_from_composer()
+    cell_sequ2.regenerate_from_composer()
+    t_cell_line = cell_line.get_table()
+    t_cell_sequ1 = cell_sequ1.get_table()
+    t_cell_sequ2 = cell_sequ2.get_table()
+    for tt in [t_cell_line, t_cell_sequ1, t_cell_sequ2]:
+        xo.assert_allclose(tt.s,
+                [0.   , 0.4  , 0.825, 2.325, 2.75 , 3.15 , 3.575, 5.075, 5.5  ],
+                atol=1e-14)
