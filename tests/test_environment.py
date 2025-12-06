@@ -4318,3 +4318,24 @@ def test_parametric_line_update():
         xo.assert_allclose(tt.s,
                 [0.   , 0.4  , 0.825, 2.325, 2.75 , 3.15 , 3.575, 5.075, 5.5  ],
                 atol=1e-14)
+
+def test_str_in_composer_to_dict_from_dict():
+    env = xt.Environment()
+
+    line = env.new_line(components=[
+        env.new('q1', 'Quadrupole', length=1.0, at=2),
+        'q1',
+        'q1']
+    )
+    assert isinstance(line.composer.components[0], xt.Place)
+    assert line.composer.components[0].name == 'q1'
+    assert line.composer.components[0].at == 2
+    assert line.composer.components[1] == 'q1'
+    assert line.composer.components[2] == 'q1'
+
+    line2 = xt.Line.from_dict(line.to_dict())
+    assert isinstance(line2.composer.components[0], xt.Place)
+    assert line2.composer.components[0].name == 'q1'
+    assert line2.composer.components[0].at == 2
+    assert line2.composer.components[1] == 'q1'
+    assert line2.composer.components[2] == 'q1'
