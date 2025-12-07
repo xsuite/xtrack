@@ -420,6 +420,9 @@ class Environment:
                 ])
         """
 
+        if isinstance(components, str):
+            raise ValueError('components must be a list or tuple, not a string')
+
         out = xt.Line(env=self, compose=True, length=length, refer=refer,
                       s_tol=s_tol, mirror=mirror)
 
