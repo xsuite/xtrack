@@ -1555,19 +1555,18 @@ class EnvElements:
     def __len__(self):
         return len(self.env._element_dict)
 
-    def get_table(self):
+    def get_table(self, attr=False):
         names = sorted(list(self.env._element_dict.keys()))
         dumline = self.env.new_line(components=names)
-        tt = dumline.get_table()
+        tt = dumline.get_table(attr=attr)
         assert tt.name[-1] == '_end_point'
         tt = tt.rows[:-1] # Remove endpoint
-        del tt['s']
-        del tt['s_start']
-        del tt['s_center']
-        del tt['s_end']
-        del tt['env_name']
-        tt['length'] = np.array(
-            [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
+        if not attr:
+            for cc in ['s', 's_start', 's_center', 's_end', 'env_name']:
+                if cc in tt._col_names:
+                    del tt[cc]
+            tt['length'] = np.array(
+                [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
         return tt
 
     def remove(self, name):
@@ -2302,4 +2301,3 @@ def _disable_name_clash_checks(env):
         yield
     finally:
         env._enable_name_clash_check = old_value
-
