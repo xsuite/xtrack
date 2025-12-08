@@ -794,28 +794,28 @@ class Wire(BeamElement):
     ]
 
 
-class SietseTestElement(BeamElement):
+class Sietse(BeamElement):
     '''Beam element for testing purposes.
 
     Parameters
     ----------
 
-    kick_x : float
-        Horizontal kick in radians. Default is ``0``.
-    kick_y : float
-        Vertical kick in radians. Default is ``0``.
-    delta_energy : float
-        Energy change in eV. Default is ``0``.
+    Bs     : float
+    length : float
     '''
 
     _xofields={
-               'kick_x'       : xo.Float64,
-               'kick_y'       : xo.Float64,
-               'delta_energy' : xo.Float64,
-              }
+        'Bs'     : xo.Float64,
+        'length' : xo.Float64,
+    }
+
+    #def __init__(self, Bs=0, length=0, **kwargs):
+    #    kwargs['Bs'] = Bs
+    #    kwargs['length'] = length
+    #    super().__init__(**kwargs)
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/sietsetestelement.h>',
+        '#include <beam_elements/elements_src/sietse.h>',
     ]
 
 

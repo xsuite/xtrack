@@ -3,18 +3,18 @@
 // Copyright (c) CERN, 2021.                 //
 // ######################################### //
 
-#ifndef XTRACK_SIETSETESTEELEMENT_H
-#define XTRACK_SIETSETESTEELEMENT_H
+#ifndef XTRACK_SIETSE_H
+#define XTRACK_SIETSE_H
 
 #include <headers/track.h>
-#include <beam_elements/elements_src/track_sietsetestelement.h>
+#include <beam_elements/elements_src/track_sietse.h>
 
 
 GPUFUN
-void Sietse_track_local_particle(SRotationData el, LocalParticle* part0){
+void Sietse_track_local_particle(SietseData el, LocalParticle* part0){
 
-    double sin_z = SRotationData_get_sin_z(el);
-    double cos_z = SRotationData_get_cos_z(el);
+    double Bs = SietseData_get_Bs(el);
+    double length = SietseData_get_length(el);
 
     if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         Bs = -Bs;
@@ -25,4 +25,4 @@ void Sietse_track_local_particle(SRotationData el, LocalParticle* part0){
     END_PER_PARTICLE_BLOCK;
 }
 
-#endif /* XTRACK_SIETSETESTEELEMENT_H */
+#endif /* XTRACK_SIETSE_H */
