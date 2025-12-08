@@ -17,22 +17,22 @@ line = env.new_line(components=[
 
 line.get_table()
 # is:
-# Table: 17 rows, 8 cols
+# Table: 17 rows, 11 cols
 # name                       s element_type isthick isreplica parent_name ...
-# drift_4                    0 Drift           True     False None
+# ||drift_3                  0 Drift           True     False None
 # bb                       1.5 Bend            True     False None
-# drift_5                  2.5 Drift           True     False None
-# drift_1::0             4.175 Drift           True     False None
+# ||drift_4                2.5 Drift           True     False None
+# ||drift_1::0           4.175 Drift           True     False None
 # mq1_subline::0         4.525 Quadrupole      True     False None
-# drift_2::0             4.825 Drift           True     False None
+# ||drift_2::0           4.825 Drift           True     False None
 # mid_subline::0         5.175 Marker         False     False None
-# drift_3::0             5.175 Drift           True     False None
+# ||drift_2::1           5.175 Drift           True     False None
 # mq2_subline::0         5.525 Quadrupole      True     False None
-# drift_6                5.825 Drift           True     False None
-# drift_1::1             7.175 Drift           True     False None
+# ||drift_5              5.825 Drift           True     False None
+# ||drift_1::1           7.175 Drift           True     False None
 # mq1_subline::1         7.525 Quadrupole      True     False None
-# drift_2::1             7.825 Drift           True     False None
+# ||drift_2::2           7.825 Drift           True     False None
 # mid_subline::1         8.175 Marker         False     False None
-# drift_3::1             8.175 Drift           True     False None
+# ||drift_2::3           8.175 Drift           True     False None
 # mq2_subline::1         8.525 Quadrupole      True     False None
 # _end_point             8.825                False     False None
