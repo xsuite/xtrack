@@ -819,6 +819,17 @@ class Sietse(BeamElement):
     ]
 
 
+class BPMethElement(BeamElement):
+    # _xofields should contain:
+    # 1. The fit parameters
+    # 2. The indices that define the boundaries of each field
+
+    # TODO: Investigate xo types for dynamic arrays.
+    # TODO: Think about how to implement the field calculator C function.
+    _xofields={'start_idxs' : xo.Int64[:],
+               'fit_pars'   : xo.Float64[:],}
+
+
 class SRotation(BeamElement):
     """Beam element modeling a rotation of the reference system around the s-axis.
     Positive angle is defined as x to y, i.e. counter-clockwise when looking
