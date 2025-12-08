@@ -1561,10 +1561,11 @@ class EnvElements:
         tt = dumline.get_table(attr=attr)
         assert tt.name[-1] == '_end_point'
         tt = tt.rows[:-1] # Remove endpoint
-        if not attr:
-            for cc in ['s', 's_start', 's_center', 's_end', 'env_name']:
-                if cc in tt._col_names:
-                    del tt[cc]
+        for cc in ['s', 's_start', 's_center', 's_end', 'env_name']:
+            if cc in tt._col_names:
+                tt._col_names.remove(cc)
+                del tt._data[cc]
+        if 'length' not in tt._col_names:
             tt['length'] = np.array(
                 [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
         return tt
