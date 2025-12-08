@@ -25,7 +25,7 @@ env.vars({
     'l.halfcell': 38,
 })
 
-env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', h='k0.mb')
+env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', angle='angle.mb')
 env.new('mq', xt.Quadrupole, length='l.mq')
 env.new('ms', xt.Sextupole, length='l.ms')
 env.new('corrector', xt.Multipole, knl=[0], length=0.1)
