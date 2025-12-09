@@ -1624,9 +1624,9 @@ class EnvParticles:
     def get_table(self):
         names = sorted(list(self.env._particles.keys()))
         mass0 = np.array(
-            [self.env._particles[nn].mass0[0] for nn in names])
+            [self.env._particles[nn].mass0 for nn in names])
         charge0 = np.array(
-            [self.env._particles[nn].charge0[0] for nn in names])
+            [self.env._particles[nn].charge0 for nn in names])
         energy0 = np.array(
             [self.env._particles[nn].energy0[0] for nn in names])
         p0c = np.array(
