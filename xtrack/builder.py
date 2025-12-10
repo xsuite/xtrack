@@ -563,39 +563,6 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
 
         tt_group = tt_group.rows[i_subgroup_sorted]
 
-        # for ff in tt_group.from_:
-        #     if ff is None:
-        #         continue
-        #     if ff not in ind_name:
-        #         if allow_non_existent_from:
-        #             continue
-        #         else:
-        #             raise ValueError(f'Element {ff} not found in the line')
-        #     i_from_global = ind_name[ff] - i_start_group
-        #     key_sort = np.zeros(n_group, dtype=int)
-
-        #     if i_from_global < 0:
-        #         key_sort[:] = 2
-        #     elif i_from_global >= n_group:
-        #         key_sort[:] = -2
-        #     else:
-        #         i_local = tt_group.rows.indices[ff][0] # I need to use this because it might change in the group resortings
-        #         key_sort[i_local] = 0
-        #         key_sort[:i_local] = -2
-        #         key_sort[i_local+1:] = 2
-
-        #     from_present = tt_group['from_']
-        #     from_anchor_present = tt_group['from_anchor']
-
-        #     mask_pack_before = (from_present == ff) & (from_anchor_present == 'start')
-        #     mask_pack_after = (from_present == ff) & (from_anchor_present == 'end')
-        #     key_sort[mask_pack_before] = -1
-        #     key_sort[mask_pack_after] = 1
-
-        #     if np.all(np.diff(key_sort) >=0):
-        #         continue # already sorted
-        #     tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
-
         i_place_sorted.extend(list(tt_group.i_place))
         i_start_group = i_end_group
 
