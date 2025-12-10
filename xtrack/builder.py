@@ -499,6 +499,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
         if np.all(tt_s_sorted.from_anchor[i_start_group:i_end_group] == None): # Nothing to do
             i_place_sorted.extend(list(tt_s_sorted.i_place[i_start_group:i_end_group]))
             i_start_group = i_end_group
+            continue
 
         tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
         # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
@@ -522,6 +523,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
                 if ff not in ind_name:
                     if allow_non_existent_from:
                         subgroup_no_from.append(ii)
+                        continue
                     else:
                         raise ValueError(f'Element {ff} not found in the line')
                 i_from_global = ind_name[ff]
