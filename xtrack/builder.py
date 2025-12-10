@@ -544,15 +544,20 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
 
         while len(insertion_before) > 0 or len(insertion_after) > 0:
             new_i_subgroup_sorted = []
-            for ii in i_subgroup_sorted.copy():
-                ff = tt_group.from_[ii]
-                if ff in insertion_before:
-                    new_i_subgroup_sorted.extend(insertion_before[ff])
-                    insertion_before.pop(ff)
+            for ii in i_subgroup_sorted:
+                nn = tt_group.name[ii]
+                if nn in insertion_before:
+                    new_i_subgroup_sorted.extend(insertion_before[nn])
+                    insertion_before.pop(nn)
                 new_i_subgroup_sorted.append(ii)
-                if ff in insertion_after:
-                    new_i_subgroup_sorted.extend(insertion_after[ff])
-                    insertion_after.pop(ff)
+                if nn in insertion_after:
+                    new_i_subgroup_sorted.extend(insertion_after[nn])
+                    insertion_after.pop(nn)
+
+            if len(new_i_subgroup_sorted) == len(i_subgroup_sorted):
+                # No changes -> done
+                raise ValueError('Could not sort elements within group; possible circular '
+                                 'dependency in from_ specifications')
 
             i_subgroup_sorted = new_i_subgroup_sorted
 
