@@ -4339,3 +4339,146 @@ def test_str_in_composer_to_dict_from_dict():
     assert line2.composer.components[0].at == 2
     assert line2.composer.components[1] == 'q1'
     assert line2.composer.components[2] == 'q1'
+
+def test_sandwitch_thin_elements():
+
+    # Create an environment
+    env = xt.Environment()
+
+    env.new('m0', xt.Marker)
+    env.new('m1', xt.Marker)
+    env.new('m2', xt.Marker)
+    env.new('m3', xt.Marker)
+    env.new('m4', xt.Marker)
+    env.new('m5', xt.Marker)
+    env.new('m6', xt.Marker)
+    env.new('m7', xt.Marker)
+    env.new('m8', xt.Marker)
+    env.new('m9', xt.Marker)
+    env.new('m10', xt.Marker)
+
+    env.new_line(name='myline', compose=True)
+    composer = env['myline'].composer
+
+    composer.components.extend([
+        env.place('m0'),
+        env.place('m3', at=10.),
+        env.place(['m1', 'm2']),
+        env.place(['m6', 'm7'], at='m3@end'),
+        env.place(['m4', 'm5'], at='m3@start'),
+        env.place('m8', at=10, from_='m0'),
+        env.place('m9', at=20.),
+        env.place('m10', at=-10, from_='m9'),
+    ])
+
+    tt_unsorted = composer.resolve_s_positions(sort=False)
+    tt_unsorted.cols['s from_ from_anchor'].show()
+    # prints:
+    # name             s from_ from_anchor
+    # m0               0 None  None
+    # m3              10 None  None
+    # m1              10 m3    end
+    # m2              10 m1    end
+    # m6              10 m3    end
+    # m7              10 m6    end
+    # m4              10 m3    start
+    # m5              10 m4    end
+    # m8              10 m0    None
+    # m9              20 None  None
+    # m10             10 m9    None
+
+    assert np.all(tt_unsorted.name == [
+        'm0', 'm3', 'm1', 'm2', 'm6', 'm7', 'm4', 'm5', 'm8', 'm9', 'm10'
+    ])
+    xo.assert_allclose(tt_unsorted.s, [
+        0., 10., 10., 10., 10., 10., 10., 10., 10., 20., 10.])
+    assert np.all(tt_unsorted.from_ == [
+        None, None, 'm3', 'm1', 'm3', 'm6', 'm3', 'm4', 'm0', None, 'm9'
+    ])
+    assert np.all(tt_unsorted.from_anchor == [
+        None, None, 'end', 'end', 'end', 'end', 'start', 'end', None, None, None
+    ])
+
+    tt_sorted = composer.resolve_s_positions(sort=True)
+    tt_sorted.cols['s from_ from_anchor'].show()
+    # prints:
+    # name             s from_ from_anchor
+    # m0               0 None  None
+    # m8              10 m0    None
+    # m4              10 m3    start
+    # m5              10 m4    end
+    # m3              10 None  None
+    # m1              10 m3    end
+    # m2              10 m1    end
+    # m6              10 m3    end
+    # m7              10 m6    end
+    # m10             10 m9    None
+    # m9              20 None  None
+
+    assert np.all(tt_sorted.name == [
+        'm0', 'm8', 'm4', 'm5', 'm3', 'm1', 'm2', 'm6', 'm7', 'm10', 'm9'
+    ])
+    xo.assert_allclose(tt_sorted.s, [
+        0., 10., 10., 10., 10., 10., 10., 10., 10., 10., 20.])
+    assert np.all(tt_sorted.from_ == [
+        None, 'm0', 'm3', 'm4', None, 'm3', 'm1', 'm3', 'm6', 'm9', None
+    ])
+    assert np.all(tt_sorted.from_anchor == [
+        None, None, 'start', 'end', None, 'end', 'end', 'end', 'end', None, None
+    ])
+
+def test_sandwitch_thin_elements_insert():
+
+    env = xt.Environment()
+
+    # Create a line with two quadrupoles and a marker
+    line = env.new_line(name='myline', components=[
+        env.new('q0', xt.Quadrupole, length=2.0, at=10.),
+        env.new('q1', xt.Quadrupole, length=2.0, at=20.),
+        env.new('m0', xt.Marker, at=40.),
+        ])
+
+    # Create a set of new elements to be placed
+    env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
+    env.new('s2', xt.Sextupole, length=0.1, k2=-0.2)
+    env.new('m1', xt.Marker)
+    env.new('m2', xt.Marker)
+    env.new('m3', xt.Marker)
+
+    # Insert the new elements in the line
+    line.insert([
+        env.place('s1', at=5.),
+        env.place('s2', anchor='end', at=-5., from_='q1@start'),
+        env.place(['m1', 'm2'], at='m0@start'),
+        env.place('m3', at='m0@end'),
+        ])
+
+    tt = line.get_table()
+    tt.show(cols=['s_start', 's_center', 's_end'])
+    # is:
+    # name             s_start      s_center         s_end
+    # ||drift_4              0         2.475          4.95
+    # s1                  4.95             5          5.05
+    # ||drift_6           5.05         7.025             9
+    # q0                     9            10            11
+    # ||drift_7             11         12.45          13.9
+    # s2                  13.9         13.95            14
+    # ||drift_8             14          16.5            19
+    # q1                    19            20            21
+    # ||drift_3             21          30.5            40
+    # m1                    40            40            40
+    # m2                    40            40            40
+    # m0                    40            40            40
+    # m3                    40            40            40
+    # _end_point            40            40            40
+
+    assert np.all(tt.name == [
+        '||drift_4', 's1', '||drift_6', 'q0', '||drift_7', 's2',
+        '||drift_8', 'q1', '||drift_3', 'm1', 'm2', 'm0', 'm3', '_end_point'
+    ])
+    xo.assert_allclose(tt.s_start, [
+        0., 4.95, 5.05, 9., 11., 13.9, 14., 19., 21., 40., 40., 40., 40., 40.])
+    xo.assert_allclose(tt.s_center, [
+        2.475, 5., 7.025, 10., 12.45, 13.95, 16.5, 20., 30.5, 40., 40., 40., 40., 40.])
+    xo.assert_allclose(tt.s_end, [
+        4.95, 5.05, 9., 11., 13.9, 14., 19., 21., 40., 40., 40., 40., 40., 40.])
