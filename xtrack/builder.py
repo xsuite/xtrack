@@ -122,7 +122,7 @@ class Builder:
     def __len__(self):
         return len(self.components)
 
-    def resolve_s_positions(self):
+    def resolve_s_positions(self, sort=True):
         components = self.components
         if components is None:
             components = []
@@ -132,6 +132,8 @@ class Builder:
 
         seq_all_places = _all_places(flattened_components)
         tab_unsorted = _resolve_s_positions(seq_all_places, self.env, refer=self.refer)
+        if not sort:
+            return tab_unsorted
         tab_sorted = _sort_places(tab_unsorted)
         return tab_sorted
 
