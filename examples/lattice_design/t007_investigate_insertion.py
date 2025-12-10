@@ -11,8 +11,9 @@ env.new('m4', xt.Marker)
 env.new('m5', xt.Marker)
 env.new('m6', xt.Marker)
 env.new('m7', xt.Marker)
-
-
+env.new('m8', xt.Marker)
+env.new('m9', xt.Marker)
+env.new('m10', xt.Marker)
 
 env.new_line(name='myline', compose=True)
 composer = env['myline'].composer
@@ -22,7 +23,10 @@ composer.components.extend([
     env.place('m3', at=10.),
     env.place(['m1', 'm2']),
     env.place(['m4', 'm5'], at='m3@start'),
-    env.place(['m6', 'm7'], at='m3@end'),
+    env.place('m8', at=10, from_='m0'),
+    env.place('m9', at=20.),
+    env.place('m10', at=-10, from_='m9'),
+
 ])
 
 tt_unsorted = composer.resolve_s_positions(sort=False)

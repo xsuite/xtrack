@@ -498,38 +498,98 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
         tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
         # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
-        for ff in tt_group.from_:
+        subgroup_from_is_before = []
+        subgroup_from_is_after = []
+        subgroup_from_is_inside = []
+        subgroup_no_from = []
+
+        for ii in range(n_group):
+            ff = tt_group.from_[ii]
             if ff is None:
-                continue
-            if ff not in ind_name:
-                if allow_non_existent_from:
-                    continue
-                else:
-                    raise ValueError(f'Element {ff} not found in the line')
-            i_from_global = ind_name[ff] - i_start_group
-            key_sort = np.zeros(n_group, dtype=int)
-
-            if i_from_global < 0:
-                key_sort[:] = 2
-            elif i_from_global >= n_group:
-                key_sort[:] = -2
+                subgroup_no_from.append(ii)
             else:
-                i_local = tt_group.rows.indices[ff][0] # I need to use this because it might change in the group resortings
-                key_sort[i_local] = 0
-                key_sort[:i_local] = -2
-                key_sort[i_local+1:] = 2
+                if ff not in ind_name:
+                    if allow_non_existent_from:
+                        subgroup_no_from.append(ii)
+                    else:
+                        raise ValueError(f'Element {ff} not found in the line')
+                i_from_global = ind_name[ff]
+                if i_from_global < i_start_group:
+                    subgroup_from_is_before.append(ii)
+                elif i_from_global >= i_end_group:
+                    subgroup_from_is_after.append(ii)
+                else:
+                    subgroup_from_is_inside.append(ii)
 
-            from_present = tt_group['from_']
-            from_anchor_present = tt_group['from_anchor']
+        insertion_before = {}
+        insertion_after = {}
+        for ii in subgroup_from_is_inside:
+            from_ = tt_group.from_[ii]
+            from_anchor = tt_group.from_anchor[ii]
+            if from_anchor == 'start' or from_anchor == None:
+                if from_ not in insertion_before:
+                    insertion_before[from_] = []
+                insertion_before[from_].append(ii)
+            elif from_anchor == 'end':
+                if from_ not in insertion_after:
+                    insertion_after[from_] = []
+                insertion_after[from_].append(ii)
+            else:
+                raise ValueError(f'Unknown from_anchor {from_anchor}')
 
-            mask_pack_before = (from_present == ff) & (from_anchor_present == 'start')
-            mask_pack_after = (from_present == ff) & (from_anchor_present == 'end')
-            key_sort[mask_pack_before] = -1
-            key_sort[mask_pack_after] = 1
+        subgroup_from_is_not_inside = (subgroup_from_is_before +
+                                subgroup_no_from +
+                                subgroup_from_is_after)
+        i_subgroup_sorted = subgroup_from_is_not_inside.copy()
 
-            if np.all(np.diff(key_sort) >=0):
-                continue # already sorted
-            tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
+        while len(insertion_before) > 0 or len(insertion_after) > 0:
+            new_i_subgroup_sorted = []
+            for ii in i_subgroup_sorted.copy():
+                ff = tt_group.from_[ii]
+                if ff in insertion_before:
+                    new_i_subgroup_sorted.extend(insertion_before[ff])
+                    insertion_before.pop(ff)
+                new_i_subgroup_sorted.append(ii)
+                if ff in insertion_after:
+                    new_i_subgroup_sorted.extend(insertion_after[ff])
+                    insertion_after.pop(ff)
+
+            i_subgroup_sorted = new_i_subgroup_sorted
+
+        tt_group = tt_group.rows[i_subgroup_sorted]
+
+        # for ff in tt_group.from_:
+        #     if ff is None:
+        #         continue
+        #     if ff not in ind_name:
+        #         if allow_non_existent_from:
+        #             continue
+        #         else:
+        #             raise ValueError(f'Element {ff} not found in the line')
+        #     i_from_global = ind_name[ff] - i_start_group
+        #     key_sort = np.zeros(n_group, dtype=int)
+
+        #     if i_from_global < 0:
+        #         key_sort[:] = 2
+        #     elif i_from_global >= n_group:
+        #         key_sort[:] = -2
+        #     else:
+        #         i_local = tt_group.rows.indices[ff][0] # I need to use this because it might change in the group resortings
+        #         key_sort[i_local] = 0
+        #         key_sort[:i_local] = -2
+        #         key_sort[i_local+1:] = 2
+
+        #     from_present = tt_group['from_']
+        #     from_anchor_present = tt_group['from_anchor']
+
+        #     mask_pack_before = (from_present == ff) & (from_anchor_present == 'start')
+        #     mask_pack_after = (from_present == ff) & (from_anchor_present == 'end')
+        #     key_sort[mask_pack_before] = -1
+        #     key_sort[mask_pack_after] = 1
+
+        #     if np.all(np.diff(key_sort) >=0):
+        #         continue # already sorted
+        #     tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
 
         i_place_sorted.extend(list(tt_group.i_place))
         i_start_group = i_end_group
