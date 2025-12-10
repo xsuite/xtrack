@@ -504,11 +504,11 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
             i_start_group = i_end_group
             continue
 
-        # Geneal case:
+        # Geneal case to sort thin sandwiches:
         #  - elements with from_ before the group go first (in order of appearance)
         #  - elements with no from_ go next (in order of appearance)
         #  - elements with from_ after the group go last (in order of appearance)
-        #  - elements with from_ inside the group get inserted one based on their from_/from_anchor
+        #  - elements with from_ inside the group get inserted based on their from_/from_anchor
 
         tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
 
