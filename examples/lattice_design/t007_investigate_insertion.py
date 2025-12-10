@@ -27,3 +27,6 @@ composer.components.extend([
 
 tt_unsorted = composer.resolve_s_positions(sort=False)
 tt_unsorted.cols['s from_ from_anchor'].show()
+
+tt_sorted = composer.resolve_s_positions(sort=True)
+tt_sorted.cols['s from_ from_anchor'].show()
