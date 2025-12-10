@@ -40,16 +40,18 @@ line.insert([
 tt = line.get_table()
 tt.show(cols=['s_start', 's_center', 's_end'])
 # is:
-# name             s_start      s_center         s_end
-# drift_1..0             0         2.475          4.95
-# s1                  4.95             5          5.05
-# drift_1..2          5.05         7.025             9
-# q0                     9            10            11
-# drift_2..0            11         12.45          13.9
-# s2                  13.9         13.95            14
-# drift_2..2            14          16.5            19
-# q1                    19            20            21
-# drift_3               21          30.5            40
-# m1                    40            40            40
-# m0                    40            40            40
-# m3                    40            40            40
+# name                   s element_type isthick isreplica parent_name ...
+# ||drift_4              0 Drift           True     False None
+# s1                  4.95 Sextupole       True     False None
+# ||drift_6           5.05 Drift           True     False None
+# q0                     9 Quadrupole      True     False None
+# ||drift_7             11 Drift           True     False None
+# s2                  13.9 Sextupole       True     False None
+# ||drift_8             14 Drift           True     False None
+# q1                    19 Quadrupole      True     False None
+# ||drift_3             21 Drift           True     False None
+# m2                    40 Marker         False     False None
+# m1                    40 Marker         False     False None
+# m0                    40 Marker         False     False None
+# m3                    40 Marker         False     False None
+# _end_point            40                False     False None
