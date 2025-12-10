@@ -574,13 +574,16 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
 
             i_subgroup_sorted = new_i_subgroup_sorted
 
+        # Sort the group subtable
         tt_group = tt_group.rows[i_subgroup_sorted]
 
+        # Append the sorted indices
         i_place_sorted.extend(list(tt_group.i_place))
+
+        # Move to next group
         i_start_group = i_end_group
 
-        # end of loop over groups
-
+    # Sort the entire table according to i_place_sorted
     tt_sorted = tt_unsorted.rows[i_place_sorted]
 
     tt_sorted['s_center'] = tt_sorted['s_start'] + tt_sorted['length'] / 2
