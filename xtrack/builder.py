@@ -458,6 +458,7 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
     tt_s_sorted = tt_unsorted.rows[iii]
 
     # Identify groups of elements with s_center with the same s position
+    # (basically thin elements, if not overlapping)
     group_id = np.zeros(len(tt_s_sorted), dtype=int)
     group_id[0] = 0
     for ii in range(1, len(tt_s_sorted)):
@@ -487,6 +488,8 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
         i_end_group = i_start_group + 1
         while i_end_group < n_places and tt_s_sorted['group_id', i_end_group] == i_group:
             i_end_group += 1
+
+        # Debug
         # print(f'Group {i_group}: {tt_s_sorted.name[i_start_group:i_end_group]}')
 
         n_group = i_end_group - i_start_group
@@ -501,14 +504,16 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
             i_start_group = i_end_group
             continue
 
-        tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
-        # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
-
         # Geneal case:
         #  - elements with from_ before the group go first (in order of appearance)
         #  - elements with no from_ go next (in order of appearance)
         #  - elements with from_ after the group go last (in order of appearance)
         #  - elements with from_ inside the group get inserted one based on their from_/from_anchor
+
+        tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
+
+        # Debug
+        # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
         # Identify subgroups
         subgroup_from_is_before = []
