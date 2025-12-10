@@ -324,7 +324,7 @@ def test_bend(case, atol):
     env = xt.Environment()
     line = env.new_line(
         components=[
-            env.new('mybend', xt.Bend, k0=0.01, h=0.01, length=0.02),
+            env.new('mybend', xt.Bend, k0=0.01, angle=0.01*0.02, length=0.02),
             env.new('mymarker', xt.Marker),
         ]
     )
@@ -342,7 +342,7 @@ def test_bend(case, atol):
 def test_spin_drift(h):
     bend = xt.Bend(
         length=2,
-        h=h,
+        angle=h*2,
         k0=0,
     )
     bend.integrator = 'uniform'

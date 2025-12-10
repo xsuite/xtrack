@@ -8,7 +8,8 @@ class ACDipole(xt.BeamElement):
     """
     ACDipole is a thin element that applies an oscillating kick to the beam in the x or y direction.
     It is used for beam excitations in circular machines for optics measurements. The kick is
-    defined by the voltages, frequencies,1 and phase lags.
+    a sinusoidal function defined by a voltage amplitude (with ramped up and down), a fixed frequency
+    (small compared to the revolution frequency) and fixed phase lag.
 
     If the dipole is not in twiss mode (typically used for tracking simulations):
         The kick is applied as a function of the turn number, and it can be ramped up and down
@@ -34,6 +35,7 @@ class ACDipole(xt.BeamElement):
     freq : float | None
         The driven frequency of the AC dipole, in units of 2π per turn. This is
         equivalent to the fractional driven tune. If `None`, freq is set to zero.
+        Note that freq must be small compared to the revolution frequency.
         _This is the only parameter that is used in _both_ tracking and twiss modes._
     lag : float | None
         The phase lag of the AC dipole, in units of radians. This is only used in

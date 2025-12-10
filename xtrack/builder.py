@@ -154,6 +154,11 @@ class Builder:
         formatter = xd.refs.CompactFormatter(scope=None)
 
         for cc in self.components:
+
+            if isinstance(cc, str):
+                dct['components'].append(cc)
+                continue
+
             if not isinstance(cc, xt.Place):
                 raise NotImplementedError('Only Place components are implemented for now')
 
@@ -211,6 +216,10 @@ class Builder:
         out = cls(env=env)
         components = dct.pop('components')
         for cc in components:
+            if isinstance(cc, str):
+                out.components.append(cc)
+                continue
+
             if isinstance(cc['name'], dict):
                 assert cc['name']['__class__'] == 'Line'
                 name = xt.Line.from_dict(cc['name'], _env=env)

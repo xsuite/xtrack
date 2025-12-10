@@ -790,9 +790,8 @@ def twiss_line(line, particle_ref=None, method=None,
         assert 'R_matrix' in twiss_res._data
         if method == '4d':
             raise ValueError('method="4d" not supported for eneloss_and_damping=True')
-        if radiation_method != 'full' or twiss_res._data['R_matrix_ebe'] is None:
-            with xt.line._preserve_config(line):
-              with xt.line._preserve_track_flags(line):
+        with xt.line._preserve_config(line):
+            with xt.line._preserve_track_flags(line):
                 line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
                 _, RR, _, _, _, RR_ebe = _find_periodic_solution(
@@ -811,10 +810,9 @@ def twiss_line(line, particle_ref=None, method=None,
                     delta_disp=None,
                     compute_R_element_by_element=True,
                     only_markers=only_markers,
+                    factor_adapt_steps=0.03 # 10 times smaller than for optics
+                                            # to campture small damping effects
                     )
-        else:
-            RR = twiss_res._data['R_matrix']
-            RR_ebe = twiss_res._data['R_matrix_ebe']
 
         eneloss_damp_res = _compute_eneloss_and_damping_rates(
                 particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
@@ -2128,7 +2126,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             only_markers=False,
                             only_orbit=False,
                             periodic_mode='periodic',
-                            include_collective=False):
+                            include_collective=False,
+                            factor_adapt_steps=0.3
+                            ):
 
     eigenvalues = None
     Rot = None
@@ -2228,15 +2228,23 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                 gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
                 betx_at_start = W[0, 0]**2 + W[0, 1]**2
                 bety_at_start = W[2, 2]**2 + W[2, 3]**2
+                gamx_at_start = W[1, 0]**2 + W[1, 1]**2
+                gamy_at_start = W[3, 2]**2 + W[3, 3]**2
                 sigma_x_start = np.sqrt(betx_at_start * gemitt_x)
                 sigma_y_start = np.sqrt(bety_at_start * gemitt_y)
+                sigma_px_start = np.sqrt(gamx_at_start * gemitt_x)
+                sigma_py_start = np.sqrt(gamy_at_start * gemitt_y)
 
-                if ((steps_r_matrix['dx'] < 0.3 * sigma_x_start)
-                    and (steps_r_matrix['dy'] < 0.3 * sigma_y_start)):
+                if ((steps_r_matrix['dx'] < factor_adapt_steps * sigma_x_start)
+                    and (steps_r_matrix['dy'] < factor_adapt_steps * sigma_y_start)
+                    and (steps_r_matrix['dpx'] < factor_adapt_steps * sigma_px_start)
+                    and (steps_r_matrix['dpy'] < factor_adapt_steps * sigma_py_start)):
                     break # sufficient accuracy
                 else:
                     steps_r_matrix['dx'] = 0.01 * sigma_x_start
                     steps_r_matrix['dy'] = 0.01 * sigma_y_start
+                    steps_r_matrix['dpx'] = 0.01 * sigma_px_start
+                    steps_r_matrix['dpy'] = 0.01 * sigma_py_start
                     steps_r_matrix['adapted'] = True
 
     # Check on R matrix
@@ -2837,7 +2845,6 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         io_buffer=tracker.io_buffer,
         line=auxline,
         particles_monitor_class=None,
-        local_particle_src=tracker.local_particle_src
     )
     auxtracker.line.config = tracker.line.config.copy()
     auxtracker.line._extra_config = tracker.line._extra_config.copy()

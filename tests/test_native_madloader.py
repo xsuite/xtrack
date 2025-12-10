@@ -382,7 +382,7 @@ def test_rbend_two_step(example_sequence):
     assert rb1.h == h
     assert rb1.edge_entry_angle == 0
     assert rb1.edge_exit_angle == 0
-    assert rb1.k0 == h
+    assert rb1._k0 == h
 
 def test_rbend_set_params_after_lattice(example_sequence):
     env, positions, _ = example_sequence
@@ -401,7 +401,7 @@ def test_rbend_set_params_after_lattice(example_sequence):
     assert rb1.h == h
     assert rb1.edge_entry_angle == 0
     assert rb1.edge_exit_angle == 0
-    assert rb1.k0 == h
+    assert rb1._k0 == h
 
 
 def test_quadrupole(example_sequence):
@@ -791,7 +791,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
                 assert d2[kk] == d4[kk]
                 continue
 
-            if kk == '_isthick' and e2.length == 0:
+            if kk in ('isthick', '_isthick') and e2.length == 0:
                 continue  # Skip the check for zero-length elements
 
             if kk in {

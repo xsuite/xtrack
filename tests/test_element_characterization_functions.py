@@ -5,7 +5,7 @@ from xobjects.test_helpers import for_all_test_contexts
 @for_all_test_contexts
 def test_is_aperture(test_context):
     elements={
-        'e0': xt.Bend(k0=0.4, h=0.3, length=1),
+        'e0': xt.Bend(k0=0.4, angle=0.3, length=1),
         'e1': xt.Replica(parent_name='e0'),
         'e2': xt.Replica(parent_name='e1'),
         'a0': xt.LimitRect(),
@@ -29,7 +29,7 @@ def test_is_aperture(test_context):
 @for_all_test_contexts
 def test_has_backtrack(test_context):
     elements={
-        'e0': xt.Bend(k0=0.4, h=0.3, length=1),
+        'e0': xt.Bend(k0=0.4, angle=0.3, length=1),
         'e1': xt.Replica(parent_name='e0'),
         'e2': xt.Replica(parent_name='e1'),
         'a0': xt.Drift(),
@@ -59,7 +59,7 @@ def test_has_backtrack(test_context):
 
 def test_is_drift_behaves_like_drift():
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1)
+    bend = xt.Bend(k0=0.4, angle=0.3, length=1)
 
     line = xt.Line(
         elements=[bend, xt.Replica(parent_name='e0'), xt.Replica(parent_name='e1'),
@@ -165,7 +165,7 @@ def test_is_drift_behaves_like_drift():
 
 def test_replica_loops():
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1)
+    bend = xt.Bend(k0=0.4, angle=0.3, length=1)
 
     elements = {
         # correct case

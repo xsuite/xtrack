@@ -276,7 +276,7 @@ def test_assemble_ring():
         'l.halfcell': 38,
     })
 
-    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', h='k0.mb')
+    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', angle='k0.mb * l.mb')
     env.new('mq', xt.Quadrupole, length='l.mq')
     env.new('ms', xt.Sextupole, length='l.ms')
     env.new('corrector', xt.Multipole, knl=[0], length=0.1)
@@ -482,7 +482,7 @@ def test_assemble_ring():
                    == np.array([nn+'.cell.2' for nn in tt_cell.name[:-1]
                                 if not nn.startswith('||drift')]))
     assert np.all(tt_cell2.s == tt_cell.s)
-    tt_cell2_nodrift = tt_cell2.rows[~tt_cell2.rows.mask['\|\|drift.*']]
+    tt_cell2_nodrift = tt_cell2.rows[~tt_cell2.rows.mask[r'\|\|drift.*']]
     assert tt_cell2_nodrift.isreplica[:-1].all()
     assert tt_cell2['parent_name', 'mq.d.l.cell.2'] == 'mq.d.l'
     assert tt_cell2['parent_name', 'mq.f.l.cell.2'] == 'mq.f.l'
@@ -706,7 +706,7 @@ def test_assemble_ring_builders():
         'l.halfcell': 38,
     })
 
-    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', h='k0.mb')
+    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', angle='k0.mb * l.mb')
     env.new('mq', xt.Quadrupole, length='l.mq')
     env.new('ms', xt.Sextupole, length='l.ms')
     env.new('corrector', xt.Multipole, knl=[0], length=0.1)
@@ -907,7 +907,7 @@ def test_assemble_ring_builders():
     assert np.all([nn for nn in tt_cell2.name[:-1] if not nn.startswith('||drift')]
                   == np.array([nn + '.cell.2' for nn in tt_cell.name[:-1] if not nn.startswith('||drift')]))
     assert np.all(tt_cell2.s == tt_cell.s)
-    tt_cell2_nodrift = tt_cell2.rows[~tt_cell2.rows.mask['\|\|drift.*']]
+    tt_cell2_nodrift = tt_cell2.rows[~tt_cell2.rows.mask[r'\|\|drift.*']]
     assert tt_cell2_nodrift.isreplica[:-1].all()
     assert tt_cell2['parent_name', 'mq.d.l.cell.2'] == 'mq.d.l'
     assert tt_cell2['parent_name', 'mq.f.l.cell.2'] == 'mq.f.l'
@@ -1132,7 +1132,7 @@ def test_assemble_ring_repeated_elements():
         'l.halfcell': 38,
     })
 
-    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', h='k0.mb')
+    env.new('mb', xt.Bend, length='l.mb', k0='k0.mb', angle='k0.mb * l.mb')
     env.new('mq', xt.Quadrupole, length='l.mq')
     env.new('ms', xt.Sextupole, length='l.ms')
     env.new('corrector', xt.Multipole, knl=[0], length=0.1)
@@ -1527,12 +1527,12 @@ def test_element_views(container_type):
     assert ee.get('c') == 12
 
     env.new('mb', 'Bend', extra={'kmax': '6*a'},
-            k1='3*a', h=4*ee.ref['a'], knl=[0, '5*a', 6*ee.ref['a']])
+            k1='3*a', angle=1e-3 * 4*ee.ref['a'], knl=[0, '5*a', 6*ee.ref['a']])
     assert isinstance(ee['mb'].k1, float)
-    assert isinstance(ee['mb'].h, float)
+    assert isinstance(ee['mb'].angle, float)
     assert isinstance(ee['mb'].knl[0], float)
     assert ee['mb'].k1 == 9
-    assert ee['mb'].h == 12
+    assert ee['mb'].angle == 12e-3
     assert ee['mb'].knl[0] == 0
     assert ee['mb'].knl[1] == 15
     assert ee['mb'].knl[2] == 18
@@ -1543,17 +1543,17 @@ def test_element_views(container_type):
     assert ee['b2'] == 12
     assert ee['c'] == 16
     assert ee['mb'].k1 == 12
-    assert ee['mb'].h == 16
+    assert ee['mb'].angle == 16e-3
     assert ee['mb'].knl[0] == 0
     assert ee['mb'].knl[1] == 20
     assert ee['mb'].knl[2] == 24
 
     ee['mb'].k1 = '30*a'
-    ee['mb'].h = 40 * ee.ref['a']
+    ee['mb'].angle = 1e-3* 40 * ee.ref['a']
     ee['mb'].knl[1] = '50*a'
     ee['mb'].knl[2] = 60 * ee.ref['a']
     assert ee['mb'].k1 == 120
-    assert ee['mb'].h == 160
+    assert ee['mb'].angle == 160e-3
     assert ee['mb'].knl[0] == 0
     assert ee['mb'].knl[1] == 200
     assert ee['mb'].knl[2] == 240
@@ -1563,13 +1563,13 @@ def test_element_views(container_type):
     assert isinstance(ee['mb'].knl[0], float)
 
     assert ee.ref['mb'].k1._value == 120
-    assert ee.ref['mb'].h._value == 160
+    assert ee.ref['mb'].angle._value == 160e-3
     assert ee.ref['mb'].knl[0]._value == 0
     assert ee.ref['mb'].knl[1]._value == 200
     assert ee.ref['mb'].knl[2]._value == 240
 
     assert ee.get('mb').k1 == 120
-    assert ee.get('mb').h == 160
+    assert ee.get('mb').angle == 160e-3
     assert ee.get('mb').knl[0] == 0
     assert ee.get('mb').knl[1] == 200
     assert ee.get('mb').knl[2] == 240
@@ -1783,7 +1783,7 @@ def test_inpection_methods(container_type):
 
     line = env.new_line([
         env.new('bb', xt.Bend, k0='2 * b', length=3+env.vars['a'] + env.vars['b'],
-            h=5., ksl=[0, '3*b']),
+            angle=0.1, ksl=[0, '3*b']),
     ])
 
     ee = {'env': env, 'line': line}[container_type]
@@ -2002,6 +2002,50 @@ def test_copy_element_from_other_env():
     assert env2['quad/env2'].length == 4
     assert env2['quad/env2'].knl[0] == 0
     assert env2['quad/env2'].knl[1] == 8
+
+def test_import_line_matrix_attribute():
+
+    apert = xt.LongitudinalLimitRect(
+        min_zeta = -1e-3,
+        max_zeta = 1e-3,
+        min_pzeta = -1e-3,
+        max_pzeta = 1e-3)
+    tmap = xt.FirstOrderTaylorMap(
+        length=0,
+        m0=[ 2.3e-3,  3.07e-04,  0,  0,
+            -2.06e-5,  0],
+        m1=[[ 1, -6.1e-5,  0,
+            0,  0, -2.3e-3],
+            [ 5.2e-7,  9.9e-1,  0,
+            0,  0,  1.0e-7],
+            [ 0,  0,  1,
+            2.0e-5,  0,  0],
+            [ 0,  0,  0,
+            1,  0,  0],
+            [-1.0e-7, -2.3e-3,  0,
+            0,  1,  4.1e-5],
+            [ 0,  0,  0,
+            0,  0,  1]]
+    )
+    line = xt.Line(
+        elements=[apert, tmap],
+        element_names=['apert', 'taylor_map']
+    )
+
+    line['a'] = 10
+    line['taylor_map'].m1[2, 1]= 'a'
+
+    assert line['taylor_map'].m1[2, 1] == 10
+    line['a'] = 15
+    assert line['taylor_map'].m1[2, 1] == 15
+
+    env = xt.Environment()
+    env.import_line(line, suffix_for_common_elements='', line_name='line_env')
+    assert env['a'] == 15
+    assert env['taylor_map'].m1[2, 1] == 15
+
+    env['a'] = 20
+    assert env['taylor_map'].m1[2, 1] == 20
 
 
 def test_insert_repeated_elements():
@@ -4192,3 +4236,106 @@ def test_rename_var():
     assert str(env.ref['cc']._expr) == "(2.0 * vars['aa'])"
     assert str(env.ref['mb'].angle._expr) == "(vars['cc'] * 0.001)"
     assert str(env.ref['mb'].knl[1]._expr) == "(3.0 * vars['cc'])"
+
+def test_parametric_line_update():
+
+    env = xt.Environment()
+    env.particle_ref = xt.Particles(kinetic_energy0=2.86e9, mass0 = xt.ELECTRON_MASS_EV)
+
+    env['l_cell']  = 5.00  # cell length is 5 m
+    env['l_bend']  = 1.50  # length of bend (along arc using sector bends)
+    env['l_quad']  = 0.40  # length of quads
+    env['l_drift'] = '(l_cell - 2*l_bend - 2*l_quad)/4.'  # remaining length for drifts
+    print( f"Initial value of env['l_drift'] ={env['l_drift']:6.3f}" )
+
+    env['alfB'] =  np.pi/20 # 20 cells each with two bends in 100 m ring
+    env['kQf']  =  0.7
+    env['kQd']  = -0.7
+
+    # Definition of elements and two ways to define a FODO cell
+    env.new('drift', xt.Drift, length='l_drift')
+    env.new('mb',    xt.Bend, length='l_bend', angle='alfB', k0_from_h=True,
+            edge_entry_angle='alfB/2', edge_exit_angle='alfB/2') # shoild be kind of RBend
+
+    env.new('mQf', xt.Quadrupole, length='l_quad', k1='kQf')
+    env.new('mQd', xt.Quadrupole, length='l_quad', k1='kQd')
+
+    cell_line = env.new_line( components =[  # analogeous to MAD LINE
+        env.place('mQf'), env.place('drift'), env.place('mb'), env.place('drift'),
+        env.place('mQd'), env.place('drift'), env.place('mb'), env.place('drift'),
+        ])
+
+    cell_sequ1 = env.new_line( length='l_cell', components =[  # analogeous to MAD Sequence
+        env.place('mQf', at='0*l_drift + 0.5*l_quad + 0.0*l_bend'),
+        env.place('mb',  at='1*l_drift + 1.0*l_quad + 0.5*l_bend'),
+        env.place('mQd', at='2*l_drift + 1.5*l_quad + 1.0*l_bend'),
+        env.place('mb',  at='3*l_drift + 2.0*l_quad + 1.5*l_bend'),
+        ])
+
+    cell_sequ2 = env.new_line( length='l_cell', components =[  # analogeous to MAD Sequence
+        env.place('mQf', at='0*(l_cell - 2*l_bend - 2*l_quad)/4. + 0.5*l_quad + 0.0*l_bend'),
+        env.place('mb',  at='1*(l_cell - 2*l_bend - 2*l_quad)/4. + 1.0*l_quad + 0.5*l_bend'),
+        env.place('mQd', at='2*(l_cell - 2*l_bend - 2*l_quad)/4. + 1.5*l_quad + 1.0*l_bend'),
+        env.place('mb',  at='3*(l_cell - 2*l_bend - 2*l_quad)/4. + 2.0*l_quad + 1.5*l_bend'),
+        ])
+
+    t_cell_line = cell_line.get_table()
+    t_cell_sequ1 = cell_sequ1.get_table()
+    t_cell_sequ2 = cell_sequ2.get_table()
+    for tt in [t_cell_line, t_cell_sequ1, t_cell_sequ2]:
+        xo.assert_allclose(tt.s, [0. , 0.4, 0.7, 2.2, 2.5, 2.9, 3.2, 4.7, 5. ],
+                           atol=1e-14)
+
+    env['l_quad'] = 0.30
+    cell_sequ1.regenerate_from_composer()
+    cell_sequ2.regenerate_from_composer()
+    t_cell_line = cell_line.get_table()
+    t_cell_sequ1 = cell_sequ1.get_table()
+    t_cell_sequ2 = cell_sequ2.get_table()
+    for tt in [t_cell_line, t_cell_sequ1, t_cell_sequ2]:
+        xo.assert_allclose(tt.s, [0.  , 0.3 , 0.65, 2.15, 2.5 , 2.8 , 3.15, 4.65, 5.],
+                           atol=1e-14)
+
+    # back to original
+    env['l_quad'] = 0.40
+    cell_sequ1.regenerate_from_composer()
+    cell_sequ2.regenerate_from_composer()
+    t_cell_line = cell_line.get_table()
+    t_cell_sequ1 = cell_sequ1.get_table()
+    t_cell_sequ2 = cell_sequ2.get_table()
+    for tt in [t_cell_line, t_cell_sequ1, t_cell_sequ2]:
+        xo.assert_allclose(tt.s, [0. , 0.4, 0.7, 2.2, 2.5, 2.9, 3.2, 4.7, 5. ],
+                           atol=1e-14)
+
+    # increased cell length
+    env['l_cell'] = 5.50
+    cell_sequ1.regenerate_from_composer()
+    cell_sequ2.regenerate_from_composer()
+    t_cell_line = cell_line.get_table()
+    t_cell_sequ1 = cell_sequ1.get_table()
+    t_cell_sequ2 = cell_sequ2.get_table()
+    for tt in [t_cell_line, t_cell_sequ1, t_cell_sequ2]:
+        xo.assert_allclose(tt.s,
+                [0.   , 0.4  , 0.825, 2.325, 2.75 , 3.15 , 3.575, 5.075, 5.5  ],
+                atol=1e-14)
+
+def test_str_in_composer_to_dict_from_dict():
+    env = xt.Environment()
+
+    line = env.new_line(components=[
+        env.new('q1', 'Quadrupole', length=1.0, at=2),
+        'q1',
+        'q1']
+    )
+    assert isinstance(line.composer.components[0], xt.Place)
+    assert line.composer.components[0].name == 'q1'
+    assert line.composer.components[0].at == 2
+    assert line.composer.components[1] == 'q1'
+    assert line.composer.components[2] == 'q1'
+
+    line2 = xt.Line.from_dict(line.to_dict())
+    assert isinstance(line2.composer.components[0], xt.Place)
+    assert line2.composer.components[0].name == 'q1'
+    assert line2.composer.components[0].at == 2
+    assert line2.composer.components[1] == 'q1'
+    assert line2.composer.components[2] == 'q1'

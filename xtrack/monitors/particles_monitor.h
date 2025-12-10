@@ -48,8 +48,11 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
         }
         else if (n_repetitions > 1){
             if (at_turn < start_at_turn){
-                return; //only_for_context cuda opencl
-                break; //only_for_context cpu_serial cpu_openmp
+                #ifdef XO_CONTEXT_CPU
+                    break;
+                #else
+                    return;
+                #endif
             }
             int64_t const i_frame = (at_turn - start_at_turn) / repetition_period;
             if (i_frame < n_repetitions

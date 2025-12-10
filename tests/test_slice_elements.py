@@ -12,9 +12,15 @@ assert_allclose = xo.assert_allclose
 @for_all_test_contexts
 def test_thin_slice_bend(test_context, bend_type):
 
-    bend = bend_type(k0=0.4, h=0.3, length=1,
-                    edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
-                    edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+    if bend_type is xt.Bend:
+        bend = bend_type(k0=0.4, angle=0.3, length=1,
+                        edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
+                        edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+    elif bend_type is xt.RBend:
+        bend = bend_type(angle=0.3, length_straight=1 * np.sinc(1/np.pi*0.3/2),
+                        edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
+                        edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+        xo.assert_allclose(bend.length, 1, rtol=0, atol=1e-12)
 
     line = xt.Line(elements=[bend])
 
@@ -440,9 +446,15 @@ def test_thin_slice_drift(test_context):
 @for_all_test_contexts
 def test_thick_slice_bend(test_context, bend_type):
 
-    bend = bend_type(k0=0.4, h=0.3, length=1,
-                     edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
-                     edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+    if bend_type is xt.Bend:
+        bend = bend_type(k0=0.4, angle=0.3, length=1,
+                        edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
+                        edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+    elif bend_type is xt.RBend:
+        bend = bend_type(angle=0.3, length_straight=1 * np.sinc(1/np.pi*0.3/2),
+                        edge_entry_angle=0.05, edge_entry_hgap=0.06, edge_entry_fint=0.08,
+                        edge_exit_angle=0.05, edge_exit_hgap=0.06, edge_exit_fint=0.08)
+        xo.assert_allclose(bend.length, 1, rtol=0, atol=1e-12)
 
     line = xt.Line(elements=[bend])
 
@@ -825,7 +837,7 @@ def test_bend_edge_slice_exit(test_context, model):
 @for_all_test_contexts
 def test_thin_slice_bend_with_multipoles(test_context):
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1,
+    bend = xt.Bend(k0=0.4, angle=0.3, length=1,
                    k1=0.003,
                    knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
                    ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
@@ -933,7 +945,7 @@ def test_thin_slice_bend_with_multipoles(test_context):
 @for_all_test_contexts
 def test_thick_slice_bend_with_multipoles(test_context):
 
-    bend = xt.Bend(k0=0.4, h=0.3, length=1,
+    bend = xt.Bend(k0=0.4, angle=0.3, length=1,
                    k1=0.003,
                    knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
                    ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
@@ -1007,7 +1019,7 @@ def test_thin_slice_bend_with_multipoles_bend_off(test_context):
 
     num_slices = 10
 
-    bend = xt.Bend(k0=0, h=0, length=1,
+    bend = xt.Bend(k0=0, angle=0, length=1,
                    knl=[0, 0.001, 0.01, 0.02, 0.04, 0.6],
                    ksl=[0, 0.002, 0.03, 0.03, 0.05, 0.7],
                    num_multipole_kicks=num_slices,

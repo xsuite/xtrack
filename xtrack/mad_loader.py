@@ -787,9 +787,13 @@ class MadLoader:
 
         bend_kwargs = {}
 
-        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc:
-            l_curv = mad_el.l / self.math.sinc(0.5 * mad_el.angle)
-            bend_kwargs['length_straight'] = mad_el.l
+        if mad_el.type == 'rbend':
+            if self.sequence._madx.options.rbarc:
+                l_curv = mad_el.l / self.math.sinc(0.5 * mad_el.angle)
+                bend_kwargs['length_straight'] = mad_el.l
+            else:
+                l_curv = mad_el.l
+                bend_kwargs['length_straight'] = mad_el.l * self.math.sinc(0.5 * mad_el.angle)
         else:
             l_curv = mad_el.l
             bend_kwargs['length'] = l_curv

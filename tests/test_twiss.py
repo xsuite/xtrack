@@ -675,10 +675,10 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     line = collider[line_name]
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
@@ -1783,10 +1783,10 @@ def test_twiss_range_start_end(test_context, line_name, section, collider_for_te
     if collider.lhcb2.element_names[0] != 'ip3':
         collider.lhcb2.cycle('ip3', inplace=True)
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
@@ -1836,10 +1836,10 @@ def test_arbitrary_start(test_context, collider_for_test_twiss_range):
     assert line.twiss_default['method'] == '4d'
     assert line.twiss_default['reverse']
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
@@ -1882,10 +1882,10 @@ def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
     assert line.twiss_default['method'] == '4d'
     assert line.twiss_default['reverse']
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
