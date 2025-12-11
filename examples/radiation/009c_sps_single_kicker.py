@@ -33,9 +33,7 @@ mad.use(sequence='sps')
 mad.input('twiss, table=tw4d;')
 twm4d = mad.table.tw4d
 
-n_cav = 6
-
-mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10 / n_cav   # To stay in the linear region
+mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10   # To stay in the linear region
 mad.sequence.sps.elements['actcse.31632'].freq = 0.3
 mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
@@ -52,16 +50,11 @@ line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
 line.cycle('bpv.11706', inplace=True)
 
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.11706',
-                    name='cav1')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.21508',
-                    name='cav2')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.41508',
-                    name='cav4')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508',
-                    name='cav5')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508',
-                    name='cav6')
+# line.insert('cav1', obj=line['actcse.31632'].copy(), at='bpv.11706')
+# line.insert('cav2', obj=line['actcse.31632'].copy(), at='bpv.21508')
+# line.insert('cav4', obj=line['actcse.31632'].copy(), at='bpv.41508')
+# line.insert('cav5', obj=line['actcse.31632'].copy(), at='bpv.51508')
+# line.insert('cav6', obj=line['actcse.31632'].copy(), at='bpv.61508')
 
 tt = line.get_table()
 
@@ -76,7 +69,7 @@ Teapot = xt.slicing.Teapot
 
 line.discard_tracker()
 slicing_strategies = [
-    Strategy(slicing=Teapot(1)),  # Default
+    Strategy(slicing=None),  # Default
     Strategy(slicing=Teapot(2), element_type=xt.Bend),
     Strategy(slicing=Teapot(8), element_type=xt.Quadrupole),
 ]
