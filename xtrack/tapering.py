@@ -38,7 +38,8 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     if verbose: _print("Compensating energy loss.")
 
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-    with xt.freeze_longitudinal(line):
+    with xt.line._preserve_track_flags(line):
+        line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
         particle_on_co = line.find_closed_orbit(co_search_at=co_search_at)
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
