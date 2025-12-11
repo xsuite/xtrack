@@ -30,6 +30,7 @@ XS_NG_MAP = {
     'py': 'py',
     'zeta': 't',
     'delta': 'pt',
+    'ptau': 'pt',
 }
 
 BETA0_COLUMNS = ['x', 'px', 'y', 'py', 't', 'pt',
@@ -84,15 +85,51 @@ def dp2pt(dp, beta0):
     _beta0 = 1 / beta0
     return np.sqrt((1 + dp) ** 2 + (_beta0**2 - 1)) - _beta0
 
+def pt2dp(pt, beta0):
+    """Convert transverse momentum pt/p to relative momentum deviation dp/p.
+
+    Parameters
+    ----------
+    pt : float
+        Transverse momentum relative to total momentum (pt/p, dimensionless).
+    beta0 : float
+        Particle relativistic beta (v/c).
+
+    Returns
+    -------
+    float
+        Relative momentum deviation (dp/p, dimensionless).
+    """
+
+    _beta0 = 1 / beta0
+    return np.sqrt(1 + 2*pt*_beta0 + pt**2) - 1
+
+def dpt2ddp(pt, beta0):
+    """Calculate derivative of relative momentum deviation dp/p with respect to pt.
+
+    Parameters
+    ----------
+    pt : float
+        Transverse momentum relative to total momentum (pt/p, dimensionless).
+    beta0 : float
+        Particle relativistic beta (v/c).
+
+    Returns
+    -------
+    float
+        Derivative of relative momentum deviation (d(dp/p), dimensionless).
+    """
+
+    _beta0 = 1 / beta0
+    return (_beta0 + pt) / np.sqrt(1 + 2*pt*_beta0 + pt**2)
+
 class MadngVars:
 
     def __init__(self, mad):
         self.mad = mad
 
     def __setitem__(self, key, value):
-        #setattr(self.mad.MADX, key.replace('.', '_'), value)
         # Check for key if it's a ctpsa or tpsa
-
         var = f"MADX['{key.replace('.', '_')}']"
         is_tpsa = self.mad.send(f"py:send(MAD.typeid.is_tpsa({var}) or MAD.typeid.is_ctpsa({var}))").recv()
         if is_tpsa:
@@ -323,10 +360,10 @@ def _tw_ng(line, rdts=(), normal_form=False,
         tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
 
     if compute_chromatic_properties:
-        temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng) # potentially multiply phix_ng by 2 (MAD-NG 1.1.8)
+        temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng)
         tw['ax_ng'] = np.imag(temp_x)
         tw['bx_ng'] = np.real(temp_x)
-        temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng) # potentially multiply phiy_ng by 2 (MAD-NG 1.1.8)
+        temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng)
         tw['ay_ng'] = np.imag(temp_y)
         tw['by_ng'] = np.real(temp_y)
         del tw['phix_ng']
@@ -492,7 +529,8 @@ class ActionTwissMadngTPSA(Action):
         self.line = line
         self.vary_names = vary_names
         self.targets = targets
-        self.optics_target_locations = None # set in prepare
+        self.optics_target_locations = None
+        self.optics_target_quantities = None
         self.tw_kwargs = tw_kwargs
         self.tw_kwargs.update(kwargs)
         self.twiss_flag = twiss_flag
@@ -502,6 +540,9 @@ class ActionTwissMadngTPSA(Action):
         self.sum_rmat_tar = sum_rmat_tar
         self.rmat_start_end_list = None
         self.rmat_tags = None
+        self._last_res = None
+        self._needs_zeta_scale = []
+        self._needs_delta_scale = []
 
     def prepare(self, force=False):
         '''
@@ -549,7 +590,6 @@ class ActionTwissMadngTPSA(Action):
         self.mng = self.line.tracker._madng
 
         # Collect initial coordinates
-        # set coords (TODO: delta)
         beta0 = self.line.particle_ref.beta0[0]
 
         start_loc = 0 if start is None else start
@@ -563,8 +603,8 @@ class ActionTwissMadngTPSA(Action):
             init_coord[4] = init['t' + quantity_appendix, start_loc]
             init_coord[5] = init['pt' + quantity_appendix, start_loc]
         else:
-            init_coord[4] = init['zeta', start_loc] * beta0
-            init_coord[5] = dp2pt(init['delta', start_loc], beta0)
+            init_coord[4] = init['zeta', start_loc] / beta0
+            init_coord[5] = init['ptau', start_loc] # ptau corresponds to pt
 
         # Build small Lua snippet: map1.x = val ...
         coord_assign = " ".join(
@@ -602,6 +642,11 @@ class ActionTwissMadngTPSA(Action):
                     aux = 'optfun = true'
                 elif qty in ['x', 'px', 'y', 'py', 't', 'pt']:
                     aux = f'orbit = {['x', 'px', 'y', 'py', 't', 'pt'].index(qty) + 1}'
+
+                if qty_orig == 'zeta':
+                    self._needs_zeta_scale.append(i)
+                elif qty_orig == 'delta':
+                    self._needs_delta_scale.append(i)
 
                 # set string for quantity mapping + loc to save in madng
                 targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_arr[{i+1}] = {{ loc = '{loc}', qty = '{qty}', {aux} }}\n"
@@ -795,6 +840,11 @@ class ActionTwissMadngTPSA(Action):
                 if qty not in res.cols:
                     res[qty] = res[qty[:-3] if qty.endswith('_ng') else XS_NG_MAP[qty]]
 
+            if 'zeta' in res.cols:
+                res._data.loc[:, 'zeta'] *= self.line.particle_ref.beta0[0]
+            if 'delta' in res.cols:
+                res._data.loc[:, 'delta'] = pt2dp(res['delta'], self.line.particle_ref.beta0[0])
+
         # ===== TRACK =====
         else:
             mng_table_str = r'''
@@ -815,6 +865,10 @@ class ActionTwissMadngTPSA(Action):
             res_ng = self.mng.send(mng_table_str).recv(XSUITE_MADNG_ENV_NAME + '.trk')
             res_tab = res_ng.to_df()
             res = xt.TwissTable(res_tab)
+            if 'zeta' in self.optics_target_quantities:
+                res._data.loc[:, 'zeta'] *= self.line.particle_ref.beta0[0]
+            if 'delta' in self.optics_target_quantities:
+                res._data.loc[:, 'delta'] = pt2dp(res['pt'], self.line.particle_ref.beta0[0])
 
             rmat_str = ''
             rmatrices = []
@@ -850,6 +904,7 @@ class ActionTwissMadngTPSA(Action):
                     jj = int(term[2]) - 1
                     res._data.attrs[tag] = rmatrices[int(t0)][ii, jj]
 
+        self._last_res = res
         return res
 
     def acquire_jacobian(self):
@@ -920,6 +975,10 @@ class ActionTwissMadngTPSA(Action):
 
         jac = np.array(self.mng.recv())
 
+        for i in self._needs_zeta_scale:
+            jac[i, :] *= self.line.particle_ref.beta0[0]
+        for i in self._needs_delta_scale:
+            jac[i, :] *= dpt2ddp(self._last_res['delta', self.targets[i].tar[1]], self.line.particle_ref.beta0[0])
         return jac
 
     def cleanup(self):
@@ -948,7 +1007,7 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
 
         nocharge = str(kwargs.pop('nocharge', True)).lower()
 
-        mng = MAD(mad_path="/home/babreufi/git/MAD-NG-1.1.5/bin/mad", **kwargs)
+        mng = MAD(**kwargs)
         mng.send(f"""
                  local mad_func = loadfile('{temp_fname}.mad', nil, MADX)
                  assert(mad_func)

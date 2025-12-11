@@ -36,9 +36,11 @@ XTRACK_DEFAULT_WEIGHTS = {
     'dpy': 100.,
     'dy_ng' : 10.,
     'dpy_ng': 100.,
+    't_ng': 10.,
+    'pt_ng': 100.,
 }
 
-ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
+ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta', 'ptau',
                         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
                         'mux', 'muy', 'dx', 'dpx', 'dy', 'dpy',
                         'qx', 'qy', 'dqx', 'dqy',
@@ -54,7 +56,8 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'c_minus_re_0', 'c_minus_im_0',
                         'c_minus_re', 'c_minus_im',
                         'beta11_ng', 'beta22_ng', 'alfa11_ng', 'alfa22_ng',
-                        'dx_ng', 'dpx_ng']
+                        'dx_ng', 'dpx_ng', 'dy_ng', 'dpy_ng',
+                        'x_ng', 'px_ng', 'y_ng', 'py_ng', 't_ng', 'pt_ng',]
 
 
 # Alternative transitions functions
