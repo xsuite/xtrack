@@ -6,39 +6,226 @@
 #define XTRACK_TRACK_BPMETHELEMENT_H
 
 #include <headers/track.h>
-// Here, include:
-// 1. Header that contains the magnetic field callable.
-// 2. Header that contains the Boris integrator?
+//#include "_bpmeth_B_field_eval.h"  // evaluate_B for Bx, By, Bs (array version)
+#include "_bpmeth_B_field_eval_scalar.h" // evaluate_B for Bx, By, Bs (scalar version)
+#include "_get_fit_pars.h"        //
 
-
+// Spatial Boris integrator for BPMethElement, using a fitted field map.
+//
+// Arguments:
+//   part           : LocalParticle pointer (single particle tracking kernel)
+//   params    : pointer to the flat parameter array for THIS ELEMENT
+//                    (start of the block corresponding to this element)
+//   multipole_order: multipole order used in evaluate_B
+//   s_start        : starting s-position of this element [m]
+//   s_end          : ending s-position of this element [m]
+//   n_steps        : number of Boris substeps along the element
+//
+// Internally:
+//   - Uses physical momenta px, py, ps, P in SI units (kg m / s)
+//   - P0 is derived from p0c (eV) via P0 = p0c * QELEM / C_LIGHT
+//   - px, py in the particle object are dimensionless (px_phys / P0)
+//   - Bs from evaluate_B is used as Bs
+//   - zeta is updated as in the Python version: sum over steps of
+//       zeta += (ds - dt * c * beta0)
+//     -> equivalent to zeta += (L - total_dt * c * beta0)
+//        where L = s_end - s_start
 GPUFUN
-void BPMethElement_single_particle(LocalParticle* part, double Bs, double length)
-{
-    double const x  = LocalParticle_get_x(part);
-    double const y  = LocalParticle_get_y(part);
-    double const px = LocalParticle_get_px(part);
-    double const py = LocalParticle_get_py(part);
+void BPMethElement_single_particle(
+    LocalParticle* part,
+    const double* const* params,
+    const int      multipole_order,
+    const double   s_start,
+    const double   s_end,
+    const int      n_steps
+){
+    // Skip dead particles (state <= 0)
+    if (LocalParticle_get_state(part) <= 0){
+        return;
+    }
 
-    double const q0 = LocalParticle_get_q0(part);
-    double const mass = LocalParticle_get_mass0(part);
-    double const beta = LocalParticle_get_beta0(part);
-    double const gamma = LocalParticle_get_gamma0(part);
-    double const c = C_LIGHT;
-    double const q_elem = QELEM;
+    // ----------------------------------------------------------------------
+    //  Extract particle/reference parameters
+    // ----------------------------------------------------------------------
+    const double c      = C_LIGHT;   // [m/s]
+    const double qe     = QELEM;     // [C], elementary charge (absolute value)
 
-    double const q0_coulomb = q0 * q_elem;
-    double const mass_kg = mass * q_elem / c / c;
+    const double q0     = LocalParticle_get_q0(part);      // charge in units of e
+    const double mass0  = LocalParticle_get_mass0(part);   // [eV]
+    const double delta  = LocalParticle_get_delta(part);   // relative momentum deviation
+    const double p0c_ev = LocalParticle_get_p0c(part);     // reference p0 c [eV]
+    const double beta0  = LocalParticle_get_beta0(part);   // reference beta
 
-    // Simple Euler integration for now, it's just a test.
-    double const x_hat  = x + px * length / beta / c / gamma / mass_kg;
-    double const y_hat  = y + py * length / beta / c / gamma / mass_kg;
-    double const px_hat = px + q0_coulomb / beta / c / gamma / mass_kg * Bs * py * length;
-    double const py_hat = py - q0_coulomb / beta / c / gamma / mass_kg * Bs * px * length;
+    // Positions and momenta (dimensionless px, py)
+    double x    = LocalParticle_get_x(part);   // [m]
+    double y    = LocalParticle_get_y(part);   // [m]
+    double s    = LocalParticle_get_s(part);   // [m]
+    double px_r = LocalParticle_get_px(part);  // dimensionless px / p0
+    double py_r = LocalParticle_get_py(part);  // dimensionless py / p0
+    double zeta = LocalParticle_get_zeta(part);
 
-    LocalParticle_set_x(part, x_hat);
-    LocalParticle_set_y(part, y_hat);
-    LocalParticle_set_px(part, px_hat);
-    LocalParticle_set_py(part, py_hat);
+    // ----------------------------------------------------------------------
+    //  Convert to physical units (kg, m, s)
+    // ----------------------------------------------------------------------
+    // mass_kg = mass[eV] * qe [J/eV] / c^2
+    const double mass_kg = mass0 * qe / (c * c);  // [kg]
+
+    // Reference momentum P0 in SI units:
+    //   p0c [eV] * qe [J/eV] / c [m/s] = kg m / s
+    const double P0 = p0c_ev * qe / c;  // [kg m / s]
+
+    // Total momentum magnitude for this particle:
+    const double P = P0 * (1.0 + delta);  // [kg m / s]
+
+    // gamma = sqrt(1 + (P / (m c))^2)  (relativistic)
+    const double P_over_mc = P / (mass_kg * c);
+    const double gamma     = sqrt(1.0 + P_over_mc * P_over_mc);
+
+    // Physical transverse momenta
+    double px = px_r * P0;  // [kg m / s]
+    double py = py_r * P0;  // [kg m / s]
+
+    const double q_coulomb = q0 * qe;  // [C]
+
+    // ----------------------------------------------------------------------
+    //  Set up longitudinal stepping
+    // ----------------------------------------------------------------------
+    const double s_in = s;             // remember incoming s
+    const double L    = s_end - s_start;
+    const double ds   = L / (double) n_steps;
+
+    // As in the Python class, reset s to element start during tracking
+    s = s_start;
+
+    double total_dt = 0.0;  // accumulated time [s] over all substeps
+
+    // ----------------------------------------------------------------------
+    //  Loop over Boris substeps
+    // ----------------------------------------------------------------------
+    for (int istep = 0; istep < n_steps; ++istep){
+
+        // --------------------------------------------------------------
+        //  (0) Longitudinal momentum from constant |p| = P
+        // --------------------------------------------------------------
+        double tmp  = P * P - px * px - py * py;
+        if (tmp < 0.0) tmp = 0.0;
+        double ps   = sqrt(tmp);     // [kg m / s]
+        if (ps == 0.0) {
+            // If ps is zero, drift/rotation is ill-defined; we just skip.
+            // Should not occur in practice.
+            break;
+        }
+
+        // --------------------------------------------------------------
+        //  (1) FIRST HALF-DRIFT in x, y, and time
+        // --------------------------------------------------------------
+        const double half_ds = 0.5 * ds;
+        const double inv_ps  = 1.0 / ps;
+
+        const double xh = x + (px * inv_ps) * half_ds;
+        const double yh = y + (py * inv_ps) * half_ds;
+        const double zh = s + half_ds;
+
+        double dt = half_ds * inv_ps * gamma * mass_kg; // [s]
+
+        // --------------------------------------------------------------
+        //  Evaluate B-field at mid-step (xh, yh, zh)
+        //  Using evaluate_B from _bpmeth_B_field_eval.h
+        // --------------------------------------------------------------
+        double Bx;
+        double By;
+        double Bs;
+
+        evaluate_B(
+            xh, yh, zh,
+            *params,
+            multipole_order,
+            &Bx, &By, &Bs
+        );
+
+        params++;  // move to next particle's params if needed in future
+
+        // --------------------------------------------------------------
+        //  (2) FIRST HALF-KICK from (Bx, By)
+        // --------------------------------------------------------------
+        const double half_qds = 0.5 * q_coulomb * ds;
+
+        double pxm = px - half_qds * By;
+        double pym = py + half_qds * Bx;
+
+        // Enforce |p| = P
+        tmp = P * P - pxm * pxm - pym * pym;
+        if (tmp < 0.0) tmp = 0.0;
+        double ps_mid = sqrt(tmp);
+        if (ps_mid == 0.0) {
+            // Same caveat: if ps vanishes, rotation is undefined.
+            break;
+        }
+
+        // --------------------------------------------------------------
+        //  (3) ROTATION around Bs
+        // --------------------------------------------------------------
+        double t  = 0.5 * q_coulomb * Bs * ds / ps_mid;
+        double t2 = t * t;
+        double inv_den = 1.0 / (1.0 + t2);
+
+        double sR = 2.0 * t * inv_den;
+        double c0 = (1.0 - t2) * inv_den;
+
+        double pxp = c0 * pxm + sR * pym;
+        double pyp = -sR * pxm + c0 * pym;
+
+        // --------------------------------------------------------------
+        //  (4) SECOND HALF-KICK from (Bx, By)
+        // --------------------------------------------------------------
+        double px1 = pxp - half_qds * By;
+        double py1 = pyp + half_qds * Bx;
+
+        tmp = P * P - px1 * px1 - py1 * py1;
+        if (tmp < 0.0) tmp = 0.0;
+        double ps1 = sqrt(tmp);
+        if (ps1 == 0.0) {
+            break;
+        }
+        double inv_ps1 = 1.0 / ps1;
+
+        // --------------------------------------------------------------
+        //  (5) SECOND HALF-DRIFT in x, y and time
+        // --------------------------------------------------------------
+        x = xh + (px1 * inv_ps1) * half_ds;
+        y = yh + (py1 * inv_ps1) * half_ds;
+        s = s + ds;
+
+        dt += half_ds * inv_ps1 * gamma * mass_kg;  // [s]
+
+        // Store updated momenta for next step
+        px = px1;
+        py = py1;
+
+        // Accumulate time
+        total_dt += dt;
+    }
+
+    // ------------------------------------------------------------------
+    //  Write back to LocalParticle
+    // ------------------------------------------------------------------
+    // Positions:
+    LocalParticle_set_x(part, x);
+    LocalParticle_set_y(part, y);
+
+    // s: like in the Python integrator, the element is "thick" of length L,
+    // but the external trajectory sees s advanced by L from the incoming s.
+    LocalParticle_set_s(part, s_in + L);
+
+    // Convert physical momenta back to dimensionless px, py (relative to p0)
+    LocalParticle_set_px(part, px / P0);
+    LocalParticle_set_py(part, py / P0);
+
+    // Update longitudinal coordinate zeta:
+    // Python: per step zeta += (ds - dt * c * beta0)
+    // -> here we do it once, using total_dt = sum(dt) over all substeps.
+    const double delta_zeta = L - total_dt * c * beta0;
+    LocalParticle_set_zeta(part, zeta + delta_zeta);
 }
 
-#endif
+#endif // XTRACK_TRACK_BPMETHELEMENT_H :contentReference[oaicite:1]{index=1}

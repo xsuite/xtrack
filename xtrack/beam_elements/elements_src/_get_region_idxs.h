@@ -4,6 +4,10 @@
 // It provides a function to find the indices of regions for given values based on specified boundaries.
 // It is part of the bpmeth field generator + Boris integrator sequence.
 
+// Possibly: Instead of passing indices that set in which region the particle is,
+// we can: Decide where each particle is, assign a set of parameters for each particle,
+// pass that to the field evaluation function.
+
 #include <stddef.h>
 
 #ifndef XSUITE_GET_REGION_IDXS_H

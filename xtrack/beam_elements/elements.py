@@ -826,9 +826,15 @@ class BPMethElement(BeamElement):
 
     # TODO: Investigate xo types for dynamic arrays.
     # TODO: Think about how to implement the field calculator C function.
-    _xofields={'start_idxs' : xo.Int64[:],
-               'fit_pars'   : xo.Float64[:],}
+    _xofields={'params'             : xo.Float64[:][:],
+               'multipole_order'    : xo.Int64,
+               's_start'            : xo.Float64,
+               's_end'              : xo.Float64,
+               'n_steps'            : xo.Int64,}
 
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/bpmethelement.h>',
+    ]
 
 class SRotation(BeamElement):
     """Beam element modeling a rotation of the reference system around the s-axis.

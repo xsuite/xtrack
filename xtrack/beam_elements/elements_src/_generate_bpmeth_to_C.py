@@ -145,7 +145,7 @@ def start_to_finish(multipole_order=multipole_order, poly_order=4, field='B'):
 # Writes the C code for field evaluation to a file.
 # Currently, max_order is set to correspond to a 14-pole (multipole_order=7).
 # Multipole orders follow 1 for dipole, 2 for quadrupole, 3 for sextupole, etc., just like bpmeth.
-def write_to_c(max_order=multipole_order, poly_order=4, field='B'):
+def write_to_c_array(max_order=multipole_order, poly_order=4, field='B'):
     from sympy.printing.c import C99CodePrinter
 
     class MulPowerPrinter(C99CodePrinter):
@@ -225,7 +225,74 @@ def write_to_c(max_order=multipole_order, poly_order=4, field='B'):
 
         f.write(f"#endif // XSUITE{filename[:-2].upper()}_H\n")
 
+def write_to_C_scalar(max_order=multipole_order, poly_order=4, field='B'):
+    from sympy.printing.c import C99CodePrinter
+
+    class MulPowerPrinter(C99CodePrinter):
+        def _print_Pow(self, expr):
+            base, exp = expr.as_base_exp()
+
+            # Only rewrite integer positive powers
+            if exp.is_integer and exp.is_positive:
+                n = int(exp)
+                return "*".join([self._print(base)] * n)
+
+            # Fallback to default handling
+            return super()._print_Pow(expr)
+
+    printer = MulPowerPrinter()
+
+    if field == 'A':
+        filename = '_bpmeth_A_field_eval_scalar.h'
+    else:
+        filename = '_bpmeth_B_field_eval_scalar.h'
+
+    with open(filename, 'w') as f:
+        f.write(f"#include <stddef.h>\n")
+        f.write(f"#include <stdio.h>\n\n")
+
+        f.write(f"#ifndef XSUITE{filename[:-2].upper()}_H\n")
+        f.write(f"#define XSUITE{filename[:-2].upper()}_H\n\n")
+
+        f.write(f"// Auto-generated symbolic field expressions for {field}\n")
+        f.write(
+            f"void evaluate_{field}_scalar(const double x, const double y, const double s, const double *params, const int multipole_order, double *{field}x_out, double *{field}y_out, double *{field}s_out){{\n\n")
+        names = [f'{field}x_out', f'{field}y_out', f'{field}s_out']
+
+        f.write(f"\tswitch (multipole_order) {{\n")
+
+        for order in range(1, multipole_order+1):
+
+            param_names, cse_subs, reduced_exprs = start_to_finish(multipole_order=order, poly_order=poly_order, field=field)
+
+            f.write(f"\tcase {order}:\n")
+
+            f.write("\t\t// Parameter List\n")
+            for j, name in enumerate(param_names):
+                f.write(f"\t\tconst double {name} = params[{j}];\n")
+            f.write("\n")
+
+            f.write("\t\t// Common sub-expressions\n")
+            for lhs, rhs in cse_subs:
+                f.write(f"\t\tconst double {lhs} = {printer.doprint(rhs)};\n")
+            f.write("\n")
+            f.write("\t\t// Reduced expressions\n")
+            for order, expr in enumerate(reduced_exprs):
+                f.write(f"\t\t*{names[order]} = {printer.doprint(expr)};\n")
+            f.write(f"\t\treturn;\n\n")
+        f.write(f"\tdefault:\n")
+        f.write("\t\tprintf(\"Error: Unsupported multipole order %d\\n\", multipole_order);\n")
+        f.write(f"\t\tprintf(\"Supported orders are 0 to {multipole_order}\\n\");\n")
+        f.write(f"\t\tprintf(\"Setting field values to zero.\\n\");\n")
+        f.write("\t\t// Reduced expressions\n")
+        for order in range(3):
+            f.write(f"\t\t*{names[order]} = 0;\n")
+        f.write(f"\t\treturn;\n")
+        f.write(f"\t}}\n")
+        f.write(f"}}\n\n")
+        f.write(f"#endif // XSUITE{filename[:-2].upper()}_H\n")
+
 multipole_order = 7
 poly_order = 4
 field = 'B'
-write_to_c(max_order=multipole_order, poly_order=poly_order, field=field)
+write_to_C_scalar(max_order=multipole_order, poly_order=poly_order, field=field)

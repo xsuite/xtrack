@@ -20,21 +20,30 @@ s_start = df.reset_index()['s_start'].values
 s_end = df.reset_index()['s_end'].values
 s_boundaries = np.unique(np.concatenate((s_start, s_end)))
 
-def create_flattened_fit_pars(df):
-    max_params = df.groupby(['field_component', 'derivative_x', 'region_name']).size().max()
-    n_regions = df.reset_index()['region_name'].nunique()
-    n_field_components = df.reset_index()['field_component'].nunique()
-    flattened_fit_pars = np.zeros((n_regions * n_field_components, max_params))
-    for i, ((field_component, derivative_x, region_name), group) in enumerate(df.groupby(['field_component', 'derivative_x', 'region_name'])):
-        params = group.sort_values('param_index')['param_value'].values
-        flattened_fit_pars[i, :len(params)] = params
-    return flattened_fit_pars
+n_steps = 1000
 
-flattened_fit_pars = create_flattened_fit_pars(df)
-print("Flattened fit parameters:", flattened_fit_pars)
-prrrrr
-# TODO: Insert the proper element here.
-test_element = xt.Sietse(Bs=0.5, length=1)
+s_vals = np.linspace(s_boundaries[0], s_boundaries[-1], n_steps)
+
+param_names  = df["param_name"].to_numpy()
+param_values = df["param_value"].to_numpy()
+
+def _contruct_par_table(s_vals, n_steps, s_start, s_end, param_names, param_values):
+    par_dicts = []
+    par_table = []
+    for i in range(n_steps):
+        s_val_i = s_vals[i]
+        mask = (s_start <= s_val_i) & (s_end > s_val_i)
+        names = param_names[mask]
+        vals = param_values[mask]
+        par_dicts.append(dict(zip(names, vals)))
+        par_table.append(list(vals))
+    return par_dicts, par_table
+
+par_dicts, par_table = _contruct_par_table(s_vals, n_steps, s_start, s_end, param_names, param_values)
+
+multipole_order = 3 # Corresponds to sextupolar component.
+
+bpmeth_element = xt.BPMethElement(params=par_table, multipole_order=3, s_start=s_start, s_end=s_end, n_steps=n_steps)
 
 particles = xt.Particles(
     x=np.linspace(-1e-3, 1e-3, n_part),
@@ -45,19 +54,4 @@ particles = xt.Particles(
     delta=np.zeros(n_part),
 )
 
-initial_x = particles.x.copy()
-initial_y = particles.y.copy()
-initial_px = particles.px.copy()
-initial_py = particles.py.copy()
-initial_zeta = particles.zeta.copy()
-initial_delta = particles.delta.copy()
-
-print("Initial State:")
-print(f"initial_x = {initial_x}")
-print(f"initial_y = {initial_y}")
-print(f"initial_px = {initial_px}")
-print(f"initial_py = {initial_py}")
-print(f"initial_zeta = {initial_zeta}")
-print(f"initial_delta = {initial_delta}")
-
-test_element.track(particles)
+bpmeth_element.track(particles)
