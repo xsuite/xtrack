@@ -2,10 +2,10 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-env = xt.Environment()
-env.particle_ref = xt.Particles(
-    mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9
-)
+# env = xt.Environment()
+# env.particle_ref = xt.Particles(
+#     mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9
+#)
 
 n_part = 20
 

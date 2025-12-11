@@ -794,7 +794,7 @@ class Wire(BeamElement):
     ]
 
 
-class Sietse(BeamElement):
+class Sietse(xt.BeamElement):
     '''Beam element for testing purposes.
 
     Parameters
@@ -820,12 +820,7 @@ class Sietse(BeamElement):
 
 
 class BPMethElement(BeamElement):
-    # _xofields should contain:
-    # 1. The fit parameters
-    # 2. The indices that define the boundaries of each field
 
-    # TODO: Investigate xo types for dynamic arrays.
-    # TODO: Think about how to implement the field calculator C function.
     _xofields={'params'             : xo.Float64[:][:],
                'multipole_order'    : xo.Int64,
                's_start'            : xo.Float64,
@@ -836,7 +831,26 @@ class BPMethElement(BeamElement):
         '#include <beam_elements/elements_src/bpmethelement.h>',
     ]
 
-class SRotation(BeamElement):
+    def __init__(self,
+                 params=None,
+                 multipole_order=1,
+                 s_start=None,
+                 s_end=None,
+                 n_steps=None,
+                 **kwargs,
+    ):
+        if params is not None:
+            kwargs['params'] = params
+        kwargs['multipole_order'] = multipole_order
+        if s_start is not None:
+            kwargs['s_start'] = s_start
+        if s_end is not None:
+            kwargs['s_end'] = s_end
+        if n_steps is not None:
+            kwargs['n_steps'] = n_steps
+        super().__init__(**kwargs)
+
+class SRotation(xt.BeamElement):
     """Beam element modeling a rotation of the reference system around the s-axis.
     Positive angle is defined as x to y, i.e. counter-clockwise when looking
     from the end of the s-axis towards the origin.
@@ -861,7 +875,7 @@ class SRotation(BeamElement):
     ]
 
     _store_in_to_dict = ['angle']
-    _skip_in_to_dict = ['sin_z', 'cos_s']
+    _skip_in_to_dict = ['sin_z', 'cos_z']
 
     def __init__(self, angle=None, cos_z=None, sin_z=None, **kwargs):
         """
