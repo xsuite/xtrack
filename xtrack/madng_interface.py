@@ -866,7 +866,7 @@ class ActionTwissMadngTPSA(Action):
             res_tab = res_ng.to_df()
             res = xt.TwissTable(res_tab)
             if 'zeta' in self.optics_target_quantities:
-                res._data.loc[:, 'zeta'] *= self.line.particle_ref.beta0[0]
+                res._data.loc[:, 'zeta'] = res['t'] * self.line.particle_ref.beta0[0]
             if 'delta' in self.optics_target_quantities:
                 res._data.loc[:, 'delta'] = pt2dp(res['pt'], self.line.particle_ref.beta0[0])
 
