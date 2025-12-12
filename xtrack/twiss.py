@@ -70,7 +70,7 @@ log = logging.getLogger(__name__)
 
 def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
-        delta0=None, zeta0=None,
+        delta0=None, zeta0=None, zeta_shift=None,
         r_sigma=None, nemitt_x=None, nemitt_y=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_r_matrix=None,
@@ -322,8 +322,6 @@ def twiss_line(line, particle_ref=None, method=None,
     """
     input_kwargs = locals().copy()
 
-
-
     # defaults
     r_sigma=(r_sigma or 0.01)
     nemitt_x=(nemitt_x or 1e-6)
@@ -331,6 +329,7 @@ def twiss_line(line, particle_ref=None, method=None,
     delta_disp=(delta_disp or 1e-5)
     delta_chrom=(delta_chrom or 5e-5)
     zeta_disp=(zeta_disp or 1e-3)
+    zeta_shift=(zeta_shift or 0.0)
     values_at_element_exit=(values_at_element_exit or False)
     continue_on_closed_orbit_error=(continue_on_closed_orbit_error or False)
     freeze_longitudinal=(freeze_longitudinal or False)
@@ -683,7 +682,8 @@ def twiss_line(line, particle_ref=None, method=None,
             particle_ref=particle_ref, method=method,
             co_search_settings=co_search_settings,
             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-            delta0=delta0, zeta0=zeta0, steps_r_matrix=steps_r_matrix,
+            delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
+            steps_r_matrix=steps_r_matrix,
             W_matrix=W_matrix, R_matrix=R_matrix,
             co_guess=co_guess,
             delta_disp=delta_disp, symplectify=symplectify,
@@ -802,7 +802,8 @@ def twiss_line(line, particle_ref=None, method=None,
                     matrix_stability_tol=None,
                     start=start, end=end,
                     nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
-                    delta0=None, zeta0=None, W_matrix=None, R_matrix=None,
+                    delta0=None, zeta0=None, zeta_shift=zeta_shift,
+                    W_matrix=None, R_matrix=None,
                     delta_disp=None,
                     compute_R_element_by_element=True,
                     only_markers=only_markers,
@@ -1646,7 +1647,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     include_collective=include_collective)
                 part_chrom = line.find_closed_orbit(
                     delta0=(dd if method == '4d' else None),
-                    delta_zeta=-(dzeta if method == '6d' else 0),
+                    zeta_shift=-(dzeta if method == '6d' else 0),
                     co_guess=part_guess,
                     start=start, end=end, num_turns=num_turns,
                     symmetrize=False,
@@ -2171,7 +2172,9 @@ class ClosedOrbitSearchError(Exception):
 
 def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             co_search_settings, continue_on_closed_orbit_error,
-                            delta0, zeta0, steps_r_matrix, W_matrix,
+                            delta0, zeta0,
+                            zeta_shift,
+                            steps_r_matrix, W_matrix,
                             R_matrix, co_guess,
                             delta_disp, symplectify,
                             matrix_responsiveness_tol,
@@ -2230,6 +2233,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                 delta0=delta0,
                                 zeta0=zeta0,
+                                zeta_shift=zeta_shift,
                                 start=start,
                                 end=end,
                                 num_turns=num_turns,
@@ -2515,7 +2519,7 @@ def _handle_init_inside_range(kwargs):
 
 
 def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
-                      co_search_settings=None, delta_zeta=0,
+                      co_search_settings=None, zeta_shift=0,
                       delta0=None, zeta0=None,
                       start=None, end=None, num_turns=1,
                       co_search_at=None,
@@ -2529,7 +2533,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
         assert line.particle_ref is not None
         assert co_guess is None, '`co_guess` not supported when `search_for_t_rev` is True'
         assert co_search_settings is None, '`co_search_settings` not supported when `search_for_t_rev` is True'
-        assert delta_zeta == 0, '`delta_zeta` not supported when `search_for_t_rev` is True'
+        assert zeta_shift == 0, '`zeta_shift` not supported when `search_for_t_rev` is True'
         assert delta0 is None, '`delta0` not supported when `search_for_t_rev` is True'
         assert zeta0 is None, '`zeta0` not supported when `search_for_t_rev` is True'
         assert start is None, '`start` not supported when `search_for_t_rev` is True'
@@ -2624,7 +2628,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
         if zeta0 is not None:
             x0[4] = zeta0
         if np.all(np.abs(_error_for_co(
-                x0, co_guess, line, delta_zeta, delta0, zeta0,
+                x0, co_guess, line, zeta_shift, delta0, zeta0,
                 start=start, end=end,
                 num_turns=num_turns,
                 symmetrize=symmetrize)) < DEFAULT_CO_SEARCH_TOL):
@@ -2635,7 +2639,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
 
         opt = xt.match.opt_from_callable(
             lambda p: _error_for_co(p, co_guess, line,
-                            delta_zeta, delta0, zeta0, start=start,
+                            zeta_shift, delta0, zeta0, start=start,
                             end=end, num_turns=num_turns,
                             symmetrize=symmetrize),
                 x0=x0, steps=[1e-8, 1e-9, 1e-8, 1e-9, 1e-7, 1e-8],
@@ -2660,7 +2664,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
     particle_on_co.px = res[1]
     particle_on_co.y = res[2]
     particle_on_co.py = res[3]
-    particle_on_co.zeta = res[4] - delta_zeta
+    particle_on_co.zeta = res[4] - zeta_shift
     particle_on_co.delta = res[5]
 
     particle_on_co._fsolve_info = fsolve_info
@@ -2673,13 +2677,13 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
 
     return particle_on_co
 
-def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns, symmetrize):
+def _one_turn_map(p, particle_ref, line, zeta_shift, start, end, num_turns, symmetrize):
     part = particle_ref.copy()
     part.x = p[0]
     part.px = p[1]
     part.y = p[2]
     part.py = p[3]
-    part.zeta = p[4] - delta_zeta
+    part.zeta = p[4] - zeta_shift
     part.delta = p[5]
     part.at_turn = AT_TURN_FOR_TWISS
 
@@ -2706,11 +2710,11 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns, symm
            part._xobject.delta[0]])
     return p_res
 
-def _error_for_co_search_6d(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
-    return p - _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
+def _error_for_co_search_6d(p, co_guess, line, zeta_shift, delta0, zeta0, start, end, num_turns, symmetrize):
+    return p - _one_turn_map(p, co_guess, line, zeta_shift, start, end, num_turns, symmetrize)
 
-def _error_for_co_search_4d_delta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
-    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
+def _error_for_co_search_4d_delta0(p, co_guess, line, zeta_shift, delta0, zeta0, start, end, num_turns, symmetrize):
+    one_turn_res = _one_turn_map(p, co_guess, line, zeta_shift, start, end, num_turns, symmetrize)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -2719,8 +2723,8 @@ def _error_for_co_search_4d_delta0(p, co_guess, line, delta_zeta, delta0, zeta0,
         0,
         p[5] - delta0])
 
-def _error_for_co_search_4d_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
-    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
+def _error_for_co_search_4d_zeta0(p, co_guess, line, zeta_shift, delta0, zeta0, start, end, num_turns, symmetrize):
+    one_turn_res = _one_turn_map(p, co_guess, line, zeta_shift, start, end, num_turns, symmetrize)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -2729,8 +2733,8 @@ def _error_for_co_search_4d_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, 
         p[4] - zeta0,
         0])
 
-def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, start, end, num_turns, symmetrize):
-    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, start, end, num_turns, symmetrize)
+def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, zeta_shift, delta0, zeta0, start, end, num_turns, symmetrize):
+    one_turn_res = _one_turn_map(p, co_guess, line, zeta_shift, start, end, num_turns, symmetrize)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],

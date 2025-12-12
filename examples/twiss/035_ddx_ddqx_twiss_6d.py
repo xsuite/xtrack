@@ -39,14 +39,14 @@ slip_factor_4d = -dz_test / delta_test / tw4d.circumference
 
 dzeta = slip_factor * ddelta * tw6d.circumference
 
-p_co_plus = line.find_closed_orbit(delta_zeta=-dzeta)
-p_co_minus = line.find_closed_orbit(delta_zeta=dzeta)
+# p_co_plus = line.find_closed_orbit(delta_zeta=-dzeta)
+# p_co_minus = line.find_closed_orbit(delta_zeta=dzeta)
 
 # p_co_plus.zeta -= dzeta
 # p_co_minus.zeta += dzeta
 
-tw_plus = line.twiss6d(particle_on_co=p_co_plus, compute_chromatic_properties=False)
-tw_minus = line.twiss6d(particle_on_co=p_co_minus, compute_chromatic_properties=False)
+tw_plus = line.twiss6d(zeta_shift=-dzeta, compute_chromatic_properties=False)
+tw_minus = line.twiss6d(zeta_shift=dzeta, compute_chromatic_properties=False)
 
 
 
@@ -86,13 +86,13 @@ ddpx = (dpx_plus - dpx_minus) / (delta_dxdy_plus - delta_dxdy_minus)
 ddy = (dy_plus - dy_minus) / (delta_dxdy_plus - delta_dxdy_minus)
 ddpy = (dpy_plus - dpy_minus) / (delta_dxdy_plus - delta_dxdy_minus)
 
-from cpymad.madx import Madx
-mad = Madx()
-mad.call('../../test_data/sps_thick/sps.seq')
-mad.call('../../test_data/sps_thick/lhc_q20.str')
-mad.beam(particle='proton', pc=26e9)
-mad.use('sps')
-tw = mad.twiss(chrom=True)
+# from cpymad.madx import Madx
+# mad = Madx()
+# mad.call('../../test_data/sps_thick/sps.seq')
+# mad.call('../../test_data/sps_thick/lhc_q20.str')
+# mad.beam(particle='proton', pc=26e9)
+# mad.use('sps')
+# twmad = mad.twiss(chrom=True)
 
 
 # ddqx = (tw_plus.dqx - tw_minus.dqx) / (delta_plus_ave - delta_minus_ave)

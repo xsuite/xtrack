@@ -1487,7 +1487,7 @@ class Line:
 
     def twiss(self, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
-        delta0=None, zeta0=None,
+        delta0=None, zeta0=None, zeta_shift=None,
         r_sigma=None, nemitt_x=None, nemitt_y=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_r_matrix=None,
@@ -1940,8 +1940,8 @@ class Line:
                                 restore_if_fail=restore_if_fail)
 
     def find_closed_orbit(self, co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0,
-                          delta0=None, zeta0=None,
+                          co_search_settings={},
+                          delta0=None, zeta0=None, zeta_shift=None,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False,
                           start=None, end=None,
@@ -2020,8 +2020,9 @@ class Line:
             line = self
 
         return find_closed_orbit_line(line, co_guess=co_guess,
-                                 particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
-                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta,
+                                 particle_ref=particle_ref,
+                                 delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
+                                 co_search_settings=co_search_settings,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                  start=start, end=end, num_turns=num_turns,
                                  co_search_at=co_search_at,
