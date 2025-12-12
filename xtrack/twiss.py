@@ -1722,13 +1722,15 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                 )
             )
 
-    dmux = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
-    dmuy = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
+    ddelta_local = tw_chrom_res[1].delta - tw_chrom_res[0].delta
 
-    dbetx = (tw_chrom_res[1].betx - tw_chrom_res[0].betx)/(2*delta_chrom)
-    dbety = (tw_chrom_res[1].bety - tw_chrom_res[0].bety)/(2*delta_chrom)
-    dalfx = (tw_chrom_res[1].alfx - tw_chrom_res[0].alfx)/(2*delta_chrom)
-    dalfy = (tw_chrom_res[1].alfy - tw_chrom_res[0].alfy)/(2*delta_chrom)
+    dmux = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/ddelta_local
+    dmuy = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/ddelta_local
+
+    dbetx = (tw_chrom_res[1].betx - tw_chrom_res[0].betx)/ddelta_local
+    dbety = (tw_chrom_res[1].bety - tw_chrom_res[0].bety)/ddelta_local
+    dalfx = (tw_chrom_res[1].alfx - tw_chrom_res[0].alfx)/ddelta_local
+    dalfy = (tw_chrom_res[1].alfy - tw_chrom_res[0].alfy)/ddelta_local
     betx = (tw_chrom_res[1].betx + tw_chrom_res[0].betx)/2
     bety = (tw_chrom_res[1].bety + tw_chrom_res[0].bety)/2
     alfx = (tw_chrom_res[1].alfx + tw_chrom_res[0].alfx)/2
@@ -1750,7 +1752,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     dqx = dmux[-1]
     dqy = dmuy[-1]
 
-    dzeta = (tw_chrom_res[1].zeta - tw_chrom_res[0].zeta)/(2*delta_chrom)
+    dzeta = (tw_chrom_res[1].zeta - tw_chrom_res[0].zeta)/ddelta_local
     dzeta -= dzeta[0]
     dzeta = np.array(dzeta)
 
