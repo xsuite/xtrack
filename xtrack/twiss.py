@@ -751,36 +751,31 @@ def twiss_line(line, particle_ref=None, method=None,
         (compute_chromatic_properties is True)
         or (compute_chromatic_properties is None and periodic))):
 
-        with xt.line._preserve_config(line):
-            with xt.line._preserve_track_flags(line):
-                line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
-                line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
-                cols_chrom, scalars_chrom = _compute_chromatic_functions(
-                    line=line,
-                    init=init,
-                    delta_chrom=delta_chrom,
-                    steps_r_matrix=steps_r_matrix,
-                    matrix_responsiveness_tol=matrix_responsiveness_tol,
-                    matrix_stability_tol=matrix_stability_tol,
-                    symplectify=symplectify,
-                    method=method,
-                    use_full_inverse=use_full_inverse,
-                    nemitt_x=nemitt_x,
-                    nemitt_y=nemitt_y,
-                    on_momentum_twiss_res=twiss_res,
-                    r_sigma=r_sigma,
-                    delta_disp=delta_disp,
-                    zeta_disp=zeta_disp,
-                    start=start,
-                    end=end,
-                    num_turns=num_turns,
-                    hide_thin_groups=hide_thin_groups,
-                    only_markers=only_markers,
-                    periodic=periodic,
-                    periodic_mode=periodic_mode,
-                    include_collective=include_collective,
-                )
+        cols_chrom, scalars_chrom = _compute_chromatic_functions(
+            line=line,
+            init=init,
+            delta_chrom=delta_chrom,
+            steps_r_matrix=steps_r_matrix,
+            matrix_responsiveness_tol=matrix_responsiveness_tol,
+            matrix_stability_tol=matrix_stability_tol,
+            symplectify=symplectify,
+            method=method,
+            use_full_inverse=use_full_inverse,
+            nemitt_x=nemitt_x,
+            nemitt_y=nemitt_y,
+            on_momentum_twiss_res=twiss_res,
+            r_sigma=r_sigma,
+            delta_disp=delta_disp,
+            zeta_disp=zeta_disp,
+            start=start,
+            end=end,
+            num_turns=num_turns,
+            hide_thin_groups=hide_thin_groups,
+            only_markers=only_markers,
+            periodic=periodic,
+            periodic_mode=periodic_mode,
+            include_collective=include_collective,
+        )
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
@@ -1516,24 +1511,27 @@ def _compute_global_quantities(line, twiss_res, method):
         bets0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
 
         # compute slip factor
-        if circumference > 0:
-            if method == '6d':
-                RR = twiss_res['R_matrix']
-                dz_test = 1e-3 # All linear, so the value does not matter
-                xx = np.linalg.solve(RR - np.eye(6), np.array([0,0,0,0,dz_test,0]))
-                delta_test = xx[5]
-            elif method == '4d':
-                RR = twiss_res['R_matrix'].copy()
-                solve_mat = RR - np.eye(6)
-                solve_mat[4, :] = np.array([0,0,0,0,1,0]) # dummy
-                solve_mat[5, :] = np.array([0,0,0,0,0,1]) # delta
-                delta_test = 1e-3 # All linear, so the value does not matter
-                xx = np.linalg.solve(solve_mat, np.array([0,0,0,0,0,delta_test]))
-                # measure slippage on original matrix
-                xx_out = twiss_res['R_matrix'] @ xx
-                dz_test = xx_out[4] - xx[4]
 
-            slip_factor = -dz_test / delta_test / circumference
+        if method == '6d':
+            RR = twiss_res['R_matrix']
+            dz_test = 1e-3 # All linear, so the value does not matter
+            xx = np.linalg.solve(RR - np.eye(6), np.array([0,0,0,0,dz_test,0]))
+            delta_test = xx[5]
+        elif method == '4d':
+            RR = twiss_res['R_matrix'].copy()
+            solve_mat = RR - np.eye(6)
+            solve_mat[4, :] = np.array([0,0,0,0,1,0]) # dummy
+            solve_mat[5, :] = np.array([0,0,0,0,0,1]) # delta
+            delta_test = 1e-3 # All linear, so the value does not matter
+            xx = np.linalg.solve(solve_mat, np.array([0,0,0,0,0,delta_test]))
+            # measure slippage on original matrix
+            xx_out = twiss_res['R_matrix'] @ xx
+            dz_test = xx_out[4] - xx[4]
+
+        slip_factor_dz_ddelta = dz_test / delta_test
+
+        if circumference > 0:
+            slip_factor = slip_factor_dz_ddelta / circumference
             momentum_compaction_factor = (slip_factor + 1/gamma0**2)
         else:
             slip_factor = np.nan
@@ -1551,7 +1549,9 @@ def _compute_global_quantities(line, twiss_res, method):
             'p0c': part_on_co._xobject.p0c[0],
             'slip_factor': slip_factor,
             'momentum_compaction_factor': momentum_compaction_factor,
+            'slip_factor_dz_ddelta': slip_factor_dz_ddelta,
         })
+
         if hasattr(part_on_co, '_fsolve_info'):
             twiss_res.particle_on_co._fsolve_info = part_on_co._fsolve_info
         else:
@@ -1632,21 +1632,27 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
             tw_init_chrom = init.copy()
 
             if periodic:
+                slip_factor_dz_ddelta = on_momentum_twiss_res.slip_factor_dz_ddelta
+                dzeta = dd * slip_factor_dz_ddelta
                 import xpart
                 part_guess = xpart.build_particles(
                     _context=line._context,
                     x_norm=0,
                     zeta=tw_init_chrom.zeta,
-                    delta=tw_init_chrom.delta+ dd,
+                    delta=tw_init_chrom.delta + dd,
                     particle_on_co=on_momentum_twiss_res.particle_on_co.copy(),
                     nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                     W_matrix=tw_init_chrom.W_matrix,
                     include_collective=include_collective)
-                part_chrom = line.find_closed_orbit(delta0=dd, co_guess=part_guess,
-                                        start=start, end=end, num_turns=num_turns,
-                                        symmetrize=False,
-                                        include_collective=include_collective,
-                                        )
+                part_chrom = line.find_closed_orbit(
+                    delta0=(dd if method == '4d' else None),
+                    delta_zeta=-(dzeta if method == '6d' else 0),
+                    co_guess=part_guess,
+                    start=start, end=end, num_turns=num_turns,
+                    symmetrize=False,
+                    include_collective=include_collective,
+                    )
+                part_chrom.zeta -= dzeta
                 tw_init_chrom.particle_on_co = part_chrom
                 RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                             particle_on_co=tw_init_chrom.particle_on_co.copy(),
@@ -1656,7 +1662,7 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                                             include_collective=include_collective,
                                             )['R_matrix']
                 (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
-                                        only_4d_block=True,
+                                        only_4d_block=(method == '4d'),
                                         responsiveness_tol=matrix_responsiveness_tol,
                                         stability_tol=matrix_stability_tol,
                                         symplectify=symplectify)

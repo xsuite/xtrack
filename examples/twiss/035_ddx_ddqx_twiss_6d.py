@@ -29,7 +29,7 @@ solve_mat = RR - np.eye(6)
 solve_mat[4, :] = np.array([0,0,0,0,1,0]) # dummy
 solve_mat[5, :] = np.array([0,0,0,0,0,1]) # delta
 
-delta_test = 1e-3
+delta_test = 5e-5
 xx = np.linalg.solve(solve_mat, np.array([0,0,0,0,0,delta_test]))
 # measure slippage on original matrix
 xx_out = tw4d.R_matrix @ xx
@@ -39,11 +39,11 @@ slip_factor_4d = dz_test / delta_test / tw4d.circumference
 
 dzeta = slip_factor * ddelta * tw6d.circumference
 
-p_co_plus = line.find_closed_orbit(delta_zeta=dzeta)
-p_co_minus = line.find_closed_orbit(delta_zeta=-dzeta)
+p_co_plus = line.find_closed_orbit(delta_zeta=-dzeta)
+p_co_minus = line.find_closed_orbit(delta_zeta=dzeta)
 
-p_co_plus.zeta += dzeta
-p_co_minus.zeta -= dzeta
+p_co_plus.zeta -= dzeta
+p_co_minus.zeta += dzeta
 
 tw_plus = line.twiss6d(particle_on_co=p_co_plus, compute_chromatic_properties=False)
 tw_minus = line.twiss6d(particle_on_co=p_co_minus, compute_chromatic_properties=False)
