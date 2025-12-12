@@ -1531,7 +1531,7 @@ def _compute_global_quantities(line, twiss_res, method):
         slip_factor_dz_ddelta = dz_test / delta_test
 
         if circumference > 0:
-            slip_factor = slip_factor_dz_ddelta / circumference
+            slip_factor = -slip_factor_dz_ddelta / circumference
             momentum_compaction_factor = (slip_factor + 1/gamma0**2)
         else:
             slip_factor = np.nan
