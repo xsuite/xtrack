@@ -13,7 +13,7 @@ line['actcse.31632'].lag = 180
 tw6d = line.twiss6d()
 tw4d = line.twiss4d()
 
-ddelta = 1e-5
+ddelta = 5e-4
 
 # 6d calculation
 RR = tw6d.R_matrix
@@ -51,6 +51,25 @@ delta_plus_ave = np.trapezoid(tw_plus.delta, tw_plus.s) / tw_plus.s[-1]
 delta_minus_ave = np.trapezoid(tw_minus.delta, tw_minus.s) / tw_minus.s[-1]
 
 ddx = (tw_plus.dx - tw_minus.dx) / (tw_plus.delta - tw_minus.delta)
+
+tw_center = tw6d
+
+delta_plus_mean = np.trapezoid(tw_plus.delta, tw_plus.s) / tw_plus.s[-1]
+delta_minus_mean = np.trapezoid(tw_minus.delta, tw_minus.s) / tw_minus.s[-1]
+delta_center_mean = np.trapezoid(tw_center.delta, tw_center.s) / tw_center.s[-1]
+
+
+
+
+dqx_plus = (tw_plus.mux[-1] - tw_center.mux[-1]) / (delta_plus_mean - delta_center_mean)
+dqx_minus = (tw_center.mux[-1] - tw_minus.mux[-1]) / (delta_center_mean - delta_minus_mean)
+dqy_plus = (tw_plus.muy[-1] - tw_center.muy[-1]) / (delta_plus_mean - delta_center_mean)
+dqy_minus = (tw_center.muy[-1] - tw_minus.muy[-1]) / (delta_center_mean - delta_minus_mean)
+ddqx = (dqx_plus - dqx_minus) / (0.5*(delta_plus_mean - delta_minus_mean))
+ddqy = (dqy_plus - dqy_minus) / (0.5*(delta_plus_mean - delta_minus_mean))
+
+
+
 
 # ddqx = (tw_plus.dqx - tw_minus.dqx) / (delta_plus_ave - delta_minus_ave)
 
