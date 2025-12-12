@@ -1652,7 +1652,6 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     symmetrize=False,
                     include_collective=include_collective,
                     )
-                part_chrom.zeta -= dzeta
                 tw_init_chrom.particle_on_co = part_chrom
                 RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                             particle_on_co=tw_init_chrom.particle_on_co.copy(),
@@ -2661,7 +2660,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
     particle_on_co.px = res[1]
     particle_on_co.y = res[2]
     particle_on_co.py = res[3]
-    particle_on_co.zeta = res[4]
+    particle_on_co.zeta = res[4] - delta_zeta
     particle_on_co.delta = res[5]
 
     particle_on_co._fsolve_info = fsolve_info
@@ -2680,7 +2679,7 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, start, end, num_turns, symm
     part.px = p[1]
     part.y = p[2]
     part.py = p[3]
-    part.zeta = p[4] + delta_zeta
+    part.zeta = p[4] - delta_zeta
     part.delta = p[5]
     part.at_turn = AT_TURN_FOR_TWISS
 

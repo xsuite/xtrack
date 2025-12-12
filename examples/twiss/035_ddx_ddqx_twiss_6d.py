@@ -42,8 +42,8 @@ dzeta = slip_factor * ddelta * tw6d.circumference
 p_co_plus = line.find_closed_orbit(delta_zeta=-dzeta)
 p_co_minus = line.find_closed_orbit(delta_zeta=dzeta)
 
-p_co_plus.zeta -= dzeta
-p_co_minus.zeta += dzeta
+# p_co_plus.zeta -= dzeta
+# p_co_minus.zeta += dzeta
 
 tw_plus = line.twiss6d(particle_on_co=p_co_plus, compute_chromatic_properties=False)
 tw_minus = line.twiss6d(particle_on_co=p_co_minus, compute_chromatic_properties=False)
