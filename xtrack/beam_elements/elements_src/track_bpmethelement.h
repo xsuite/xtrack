@@ -8,7 +8,6 @@
 #include <headers/track.h>
 //#include "_bpmeth_B_field_eval.h"  // evaluate_B for Bx, By, Bs (array version)
 #include "_bpmeth_B_field_eval_scalar.h" // evaluate_B for Bx, By, Bs (scalar version)
-#include "_get_fit_pars.h"        //
 
 // Spatial Boris integrator for BPMethElement, using a fitted field map.
 //
@@ -59,7 +58,8 @@ void BPMethElement_single_particle(
     // Positions and momenta (dimensionless px, py)
     double x    = LocalParticle_get_x(part);   // [m]
     double y    = LocalParticle_get_y(part);   // [m]
-    double s    = LocalParticle_get_s(part);   // [m]
+    double s    = s_start;
+    LocalParticle_set_s(part, s_start);
     double px_r = LocalParticle_get_px(part);  // dimensionless px / p0
     double py_r = LocalParticle_get_py(part);  // dimensionless py / p0
     double zeta = LocalParticle_get_zeta(part);
@@ -90,19 +90,15 @@ void BPMethElement_single_particle(
     // ----------------------------------------------------------------------
     //  Set up longitudinal stepping
     // ----------------------------------------------------------------------
-    const double s_in = s;             // remember incoming s
     const double L    = s_end - s_start;
     const double ds   = L / (double) n_steps;
-
-    // As in the Python class, reset s to element start during tracking
-    s = s_start;
 
     double total_dt = 0.0;  // accumulated time [s] over all substeps
 
     // ----------------------------------------------------------------------
     //  Loop over Boris substeps
     // ----------------------------------------------------------------------
-    for (int istep = 0; istep < n_steps; ++istep){
+    for (int istep = 0; istep < n_steps; ++istep, ++params, s += ds) {
 
         // --------------------------------------------------------------
         //  (0) Longitudinal momentum from constant |p| = P
@@ -124,26 +120,24 @@ void BPMethElement_single_particle(
 
         const double xh = x + (px * inv_ps) * half_ds;
         const double yh = y + (py * inv_ps) * half_ds;
-        const double zh = s + half_ds;
+        const double sh = s + half_ds;
 
         double dt = half_ds * inv_ps * gamma * mass_kg; // [s]
 
         // --------------------------------------------------------------
-        //  Evaluate B-field at mid-step (xh, yh, zh)
+        //  Evaluate B-field at mid-step (xh, yh, sh)
         //  Using evaluate_B from _bpmeth_B_field_eval.h
         // --------------------------------------------------------------
         double Bx;
         double By;
         double Bs;
 
-        evaluate_B(
-            xh, yh, zh,
+        evaluate_B_scalar(
+            xh, yh, sh,
             *params,
             multipole_order,
             &Bx, &By, &Bs
         );
-
-        params++;  // move to next particle's params if needed in future
 
         // --------------------------------------------------------------
         //  (2) FIRST HALF-KICK from (Bx, By)
@@ -194,7 +188,6 @@ void BPMethElement_single_particle(
         // --------------------------------------------------------------
         x = xh + (px1 * inv_ps1) * half_ds;
         y = yh + (py1 * inv_ps1) * half_ds;
-        s = s + ds;
 
         dt += half_ds * inv_ps1 * gamma * mass_kg;  // [s]
 
@@ -215,7 +208,7 @@ void BPMethElement_single_particle(
 
     // s: like in the Python integrator, the element is "thick" of length L,
     // but the external trajectory sees s advanced by L from the incoming s.
-    LocalParticle_set_s(part, s_in + L);
+    LocalParticle_set_s(part, s_end);
 
     // Convert physical momenta back to dimensionless px, py (relative to p0)
     LocalParticle_set_px(part, px / P0);
@@ -228,4 +221,4 @@ void BPMethElement_single_particle(
     LocalParticle_set_zeta(part, zeta + delta_zeta);
 }
 
-#endif // XTRACK_TRACK_BPMETHELEMENT_H :contentReference[oaicite:1]{index=1}
+#endif // XTRACK_TRACK_BPMETHELEMENT_H

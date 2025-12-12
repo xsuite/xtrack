@@ -195,7 +195,7 @@ def write_to_c_array(max_order=multipole_order, poly_order=4, field='B'):
             f.write("\t\t\t// Parameter List\n")
             f.write(f"\t\t\tconst double *p = params_flat + ii * {(2*order+1)*(poly_order+1)};\n") # Adjusted for number of parameters
             for j, name in enumerate(param_names):
-                f.write(f"\t\t\tconst double {name} = p[{j}];\n")
+                f.write(f"\t\t\tdouble {name} = p[{j}];\n")
             f.write("\n")
 
             f.write("\t\t\t// Common sub-expressions\n")
@@ -265,7 +265,7 @@ def write_to_C_scalar(max_order=multipole_order, poly_order=4, field='B'):
 
             param_names, cse_subs, reduced_exprs = start_to_finish(multipole_order=order, poly_order=poly_order, field=field)
 
-            f.write(f"\tcase {order}:\n")
+            f.write(f"\tcase {order}:{{\n")
 
             f.write("\t\t// Parameter List\n")
             for j, name in enumerate(param_names):
@@ -280,7 +280,8 @@ def write_to_C_scalar(max_order=multipole_order, poly_order=4, field='B'):
             for order, expr in enumerate(reduced_exprs):
                 f.write(f"\t\t*{names[order]} = {printer.doprint(expr)};\n")
             f.write(f"\t\treturn;\n\n")
-        f.write(f"\tdefault:\n")
+            f.write(f"\t}}\n")
+        f.write(f"\tdefault:{{\n")
         f.write("\t\tprintf(\"Error: Unsupported multipole order %d\\n\", multipole_order);\n")
         f.write(f"\t\tprintf(\"Supported orders are 0 to {multipole_order}\\n\");\n")
         f.write(f"\t\tprintf(\"Setting field values to zero.\\n\");\n")
@@ -288,6 +289,7 @@ def write_to_C_scalar(max_order=multipole_order, poly_order=4, field='B'):
         for order in range(3):
             f.write(f"\t\t*{names[order]} = 0;\n")
         f.write(f"\t\treturn;\n")
+        f.write(f"\t}}\n")
         f.write(f"\t}}\n")
         f.write(f"}}\n\n")
         f.write(f"#endif // XSUITE{filename[:-2].upper()}_H\n")

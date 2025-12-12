@@ -7,8 +7,8 @@
 // Auto-generated symbolic field expressions for B
 void evaluate_B_scalar(const double x, const double y, const double s, const double *params, const int multipole_order, double *Bx_out, double *By_out, double *Bs_out){
 
-		switch (multipole_order) {
-	case 1:
+	switch (multipole_order) {
+	case 1:{
 		// Parameter List
 		const double a_1_0 = params[0];
 		const double a_1_1 = params[1];
@@ -37,7 +37,8 @@ void evaluate_B_scalar(const double x, const double y, const double s, const dou
 		*Bs_out = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2;
 		return;
 
-	case 2:
+	}
+	case 2:{
 		// Parameter List
 		const double a_1_0 = params[0];
 		const double a_1_1 = params[1];
@@ -77,7 +78,8 @@ void evaluate_B_scalar(const double x, const double y, const double s, const dou
 		*Bs_out = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2;
 		return;
 
-	case 3:
+	}
+	case 3:{
 		// Parameter List
 		const double a_1_0 = params[0];
 		const double a_1_1 = params[1];
@@ -133,7 +135,8 @@ void evaluate_B_scalar(const double x, const double y, const double s, const dou
 		*Bs_out = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2;
 		return;
 
-	case 4:
+	}
+	case 4:{
 		// Parameter List
 		const double a_1_0 = params[0];
 		const double a_1_1 = params[1];
@@ -209,7 +212,8 @@ void evaluate_B_scalar(const double x, const double y, const double s, const dou
 		*Bs_out = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2;
 		return;
 
-	case 5:
+	}
+	case 5:{
 		// Parameter List
 		const double a_1_0 = params[0];
 		const double a_1_1 = params[1];
@@ -306,7 +310,8 @@ void evaluate_B_scalar(const double x, const double y, const double s, const dou
 		*Bs_out = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2;
 		return;
 
-	case 6:
+	}
+	case 6:{
 		// Parameter List
 		const double a_1_0 = params[0];
 		const double a_1_1 = params[1];
@@ -426,7 +431,8 @@ void evaluate_B_scalar(const double x, const double y, const double s, const dou
 		*Bs_out = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2;
 		return;
 
-	case 7:
+	}
+	case 7:{
 		// Parameter List
 		const double a_1_0 = params[0];
 		const double a_1_1 = params[1];
@@ -572,7 +578,8 @@ void evaluate_B_scalar(const double x, const double y, const double s, const dou
 		*Bs_out = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2;
 		return;
 
-	default:
+	}
+	default:{
 		printf("Error: Unsupported multipole order %d\n", multipole_order);
 		printf("Supported orders are 0 to 7\n");
 		printf("Setting field values to zero.\n");
@@ -581,6 +588,7 @@ void evaluate_B_scalar(const double x, const double y, const double s, const dou
 		*By_out = 0;
 		*Bs_out = 0;
 		return;
+	}
 	}
 }
 
