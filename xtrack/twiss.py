@@ -1764,20 +1764,59 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     scalars_chrom = {'dqx': dqx, 'dqy': dqy}
 
     if on_momentum_twiss_res is not None:
-        mux = on_momentum_twiss_res.mux
-        muy = on_momentum_twiss_res.muy
-        x = on_momentum_twiss_res.x
-        px = on_momentum_twiss_res.px
-        y = on_momentum_twiss_res.y
-        py = on_momentum_twiss_res.py
-        ddqx = (tw_chrom_res[1].mux[-1] - 2 * mux[-1] + tw_chrom_res[0].mux[-1]
-                ) / delta_chrom**2
-        ddqy = (tw_chrom_res[1].muy[-1] - 2 * muy[-1] + tw_chrom_res[0].muy[-1]
-                ) / delta_chrom**2
-        ddx = (tw_chrom_res[1].x - 2 * x + tw_chrom_res[0].x) / delta_chrom**2
-        ddpx = (tw_chrom_res[1].px - 2 * px + tw_chrom_res[0].px) / delta_chrom**2
-        ddy = (tw_chrom_res[1].y - 2 * y + tw_chrom_res[0].y) / delta_chrom**2
-        ddpy = (tw_chrom_res[1].py - 2 * py + tw_chrom_res[0].py) / delta_chrom**2
+
+        tw_plus = tw_chrom_res[1]
+        tw_minus = tw_chrom_res[0]
+        tw_center = on_momentum_twiss_res
+
+        delta_plus_mean = np.trapezoid(tw_plus.delta, tw_plus.s) / tw_plus.s[-1]
+        delta_minus_mean = np.trapezoid(tw_minus.delta, tw_minus.s) / tw_minus.s[-1]
+        delta_center_mean = np.trapezoid(tw_center.delta, tw_center.s) / tw_center.s[-1]
+
+        dqx_plus = (tw_plus.mux[-1] - tw_center.mux[-1]) / (delta_plus_mean - delta_center_mean)
+        dqx_minus = (tw_center.mux[-1] - tw_minus.mux[-1]) / (delta_center_mean - delta_minus_mean)
+        dqy_plus = (tw_plus.muy[-1] - tw_center.muy[-1]) / (delta_plus_mean - delta_center_mean)
+        dqy_minus = (tw_center.muy[-1] - tw_minus.muy[-1]) / (delta_center_mean - delta_minus_mean)
+
+        delta_dqxy_plus = 0.5 * (delta_plus_mean + delta_center_mean)
+        delta_dqxy_minus = 0.5 * (delta_center_mean + delta_minus_mean)
+        ddqx = (dqx_plus - dqx_minus) / (delta_dqxy_plus - delta_dqxy_minus)
+        ddqy = (dqy_plus - dqy_minus) / (delta_dqxy_plus - delta_dqxy_minus)
+
+        delta_dxdy_plus = 0.5 * (tw_plus.delta + tw_center.delta)
+        delta_dxdy_minus = 0.5 * (tw_center.delta + tw_minus.delta)
+
+        dx_plus = (tw_plus.x - tw_center.x) / (tw_plus.delta - tw_center.delta)
+        dpx_plus = (tw_plus.px - tw_center.px) / (tw_plus.delta - tw_center.delta)
+        dy_plus = (tw_plus.y - tw_center.y) / (tw_plus.delta - tw_center.delta)
+        dpy_plus = (tw_plus.py - tw_center.py) / (tw_plus.delta - tw_center.delta)
+
+        dx_minus = (tw_center.x - tw_minus.x) / (tw_center.delta - tw_minus.delta)
+        dpx_minus = (tw_center.px - tw_minus.px) / (tw_center.delta - tw_minus.delta)
+        dy_minus = (tw_center.y - tw_minus.y) / (tw_center.delta - tw_minus.delta)
+        dpy_minus = (tw_center.py - tw_minus.py) / (tw_center.delta - tw_minus.delta)
+
+        ddx = (dx_plus - dx_minus) / (delta_dxdy_plus - delta_dxdy_minus)
+        ddpx = (dpx_plus - dpx_minus) / (delta_dxdy_plus - delta_dxdy_minus)
+        ddy = (dy_plus - dy_minus) / (delta_dxdy_plus - delta_dxdy_minus)
+        ddpy = (dpy_plus - dpy_minus) / (delta_dxdy_plus - delta_dxdy_minus)
+
+
+
+        # mux = on_momentum_twiss_res.mux
+        # muy = on_momentum_twiss_res.muy
+        # x = on_momentum_twiss_res.x
+        # px = on_momentum_twiss_res.px
+        # y = on_momentum_twiss_res.y
+        # py = on_momentum_twiss_res.py
+        # ddqx = (tw_chrom_res[1].mux[-1] - 2 * mux[-1] + tw_chrom_res[0].mux[-1]
+        #         ) / delta_chrom**2
+        # ddqy = (tw_chrom_res[1].muy[-1] - 2 * muy[-1] + tw_chrom_res[0].muy[-1]
+        #         ) / delta_chrom**2
+        # ddx = (tw_chrom_res[1].x - 2 * x + tw_chrom_res[0].x) / delta_chrom**2
+        # ddpx = (tw_chrom_res[1].px - 2 * px + tw_chrom_res[0].px) / delta_chrom**2
+        # ddy = (tw_chrom_res[1].y - 2 * y + tw_chrom_res[0].y) / delta_chrom**2
+        # ddpy = (tw_chrom_res[1].py - 2 * py + tw_chrom_res[0].py) / delta_chrom**2
 
         cols_chrom.update({'ddx': ddx, 'ddpx': ddpx,
                            'ddy': ddy, 'ddpy': ddpy})

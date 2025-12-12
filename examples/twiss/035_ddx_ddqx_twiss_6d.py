@@ -81,7 +81,6 @@ dpx_minus = (tw_center.px - tw_minus.px) / (tw_center.delta - tw_minus.delta)
 dy_minus = (tw_center.y - tw_minus.y) / (tw_center.delta - tw_minus.delta)
 dpy_minus = (tw_center.py - tw_minus.py) / (tw_center.delta - tw_minus.delta)
 
-# Note unusual definition inherited from MAD-X (ddx = 1/2 d^2 x / d delta^2)
 ddx = (dx_plus - dx_minus) / (delta_dxdy_plus - delta_dxdy_minus)
 ddpx = (dpx_plus - dpx_minus) / (delta_dxdy_plus - delta_dxdy_minus)
 ddy = (dy_plus - dy_minus) / (delta_dxdy_plus - delta_dxdy_minus)
