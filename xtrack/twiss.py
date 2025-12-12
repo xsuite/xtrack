@@ -1510,21 +1510,34 @@ def _compute_global_quantities(line, twiss_res):
         W_matrix = twiss_res['W_matrix']
 
         beta0 = part_on_co._xobject.beta0[0]
+        gamma0 = part_on_co._xobject.gamma0[0]
         T_rev0 = circumference/clight/beta0
         bets0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
-        if 'slip_factor' in twiss_res:
-            if twiss_res['slip_factor'] < 0: # below transition
-                bets0 = -bets0
+
+        # compute slip factor
+        if circumference > 0:
+            RR = twiss_res['R_matrix']
+            dz_test = 1e-3
+            xx = np.linalg.solve(RR - np.eye(6), np.array([0,0,0,0,dz_test,0]))
+            delta_test = xx[5]
+            slip_factor = -dz_test / delta_test / circumference
+            momentum_compaction_factor = (slip_factor + 1/gamma0**2)
         else:
-            bets0 = 0
+            slip_factor = np.nan
+            momentum_compaction_factor = np.nan
+
+        if slip_factor < 0: # below transition
+            bets0 = -bets0
 
         twiss_res._data.update({
             'bets0': bets0,
             'circumference': circumference, 'T_rev0': T_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
-            'gamma0': part_on_co._xobject.gamma0[0],
-            'beta0': part_on_co._xobject.beta0[0],
+            'gamma0': gamma0,
+            'beta0': beta0,
             'p0c': part_on_co._xobject.p0c[0],
+            'slip_factor': slip_factor,
+            'momentum_compaction_factor': momentum_compaction_factor,
         })
         if hasattr(part_on_co, '_fsolve_info'):
             twiss_res.particle_on_co._fsolve_info = part_on_co._fsolve_info
@@ -1728,23 +1741,12 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
     dzeta -= dzeta[0]
     dzeta = np.array(dzeta)
 
-    circumference = tw_chrom_res[0].circumference
-    if circumference > 0:
-        slip_factor = -dzeta[-1] / tw_chrom_res[0].circumference
-        momentum_compaction_factor = (slip_factor
-                            + 1/tw_chrom_res[0].particle_on_co._xobject.gamma0[0]**2)
-    else:
-        slip_factor = np.nan
-        momentum_compaction_factor = np.nan
-
     cols_chrom = {'dmux': dmux, 'dmuy': dmuy, 'dzeta': dzeta,
                   'bx_chrom': bx_chrom, 'by_chrom': by_chrom,
                   'ax_chrom': ax_chrom, 'ay_chrom': ay_chrom,
                   'wx_chrom': wx_chrom, 'wy_chrom': wy_chrom,
                   }
-    scalars_chrom = {'dqx': dqx, 'dqy': dqy, 'slip_factor': slip_factor,
-                     'momentum_compaction_factor': momentum_compaction_factor,
-                     }
+    scalars_chrom = {'dqx': dqx, 'dqy': dqy}
 
     if on_momentum_twiss_res is not None:
         mux = on_momentum_twiss_res.mux
