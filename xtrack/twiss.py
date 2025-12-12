@@ -1537,7 +1537,7 @@ def _compute_global_quantities(line, twiss_res, method):
             slip_factor = np.nan
             momentum_compaction_factor = np.nan
 
-        if slip_factor < 0: # below transition
+        if slip_factor_dz_ddelta > 0: # below transition
             bets0 = -bets0
 
         twiss_res._data.update({
