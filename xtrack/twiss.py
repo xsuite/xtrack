@@ -737,6 +737,16 @@ def twiss_line(line, particle_ref=None, method=None,
         _initial_particles=_initial_particles,
         _ebe_monitor=_ebe_monitor)
 
+    if not skip_global_quantities and not only_orbit:
+        twiss_res._data['R_matrix'] = R_matrix
+        twiss_res._data['steps_r_matrix'] = steps_r_matrix
+        twiss_res._data['R_matrix_ebe'] = RR_ebe
+
+        _compute_global_quantities(line=line, twiss_res=twiss_res, method=method)
+
+        twiss_res._data['eigenvalues'] = eigenvalues.copy()
+        twiss_res._data['rotation_matrix'] = Rot.copy()
+
     if (not only_orbit and (
         (compute_chromatic_properties is True)
         or (compute_chromatic_properties is None and periodic))):
@@ -775,15 +785,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
 
-    if not skip_global_quantities and not only_orbit:
-        twiss_res._data['R_matrix'] = R_matrix
-        twiss_res._data['steps_r_matrix'] = steps_r_matrix
-        twiss_res._data['R_matrix_ebe'] = RR_ebe
 
-        _compute_global_quantities(line=line, twiss_res=twiss_res, method=method)
-
-        twiss_res._data['eigenvalues'] = eigenvalues.copy()
-        twiss_res._data['rotation_matrix'] = Rot.copy()
 
     if eneloss_and_damping and not only_orbit:
         assert 'R_matrix' in twiss_res._data
