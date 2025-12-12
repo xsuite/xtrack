@@ -1941,7 +1941,7 @@ class Line:
 
     def find_closed_orbit(self, co_guess=None, particle_ref=None,
                           co_search_settings={},
-                          delta0=None, zeta0=None, zeta_shift=None,
+                          delta0=None, zeta0=None, zeta_shift=0,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False,
                           start=None, end=None,
