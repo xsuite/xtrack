@@ -15,11 +15,29 @@ tw4d = line.twiss4d()
 
 ddelta = 1e-5
 
+# 6d calculation
 RR = tw6d.R_matrix
 dz_test = 1e-3
 xx = np.linalg.solve(RR - np.eye(6), np.array([0,0,0,0,dz_test,0]))
 delta_test = xx[5]
 slip_factor = dz_test / delta_test / tw6d.circumference
+
+# 4d calculation
+RR = tw4d.R_matrix.copy()
+solve_mat = RR - np.eye(6)
+solve_mat[4, :] = np.array([0,0,0,0,1,0]) # dummy
+solve_mat[5, :] = np.array([0,0,0,0,0,1]) # delta
+
+delta_test = 1e-3
+xx = np.linalg.solve(solve_mat, np.array([0,0,0,0,0,delta_test]))
+# measure slippage on original matric
+xx_out = tw4d.R_matrix @ xx
+dz_test = xx_out[4] - xx[4]
+slip_factor_4d = dz_test / delta_test / tw4d.circumference
+
+
+
+
 
 dzeta = slip_factor * ddelta * tw6d.circumference
 
