@@ -780,8 +780,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['steps_r_matrix'] = steps_r_matrix
         twiss_res._data['R_matrix_ebe'] = RR_ebe
 
-        _compute_global_quantities(
-                            line=line, twiss_res=twiss_res)
+        _compute_global_quantities(line=line, twiss_res=twiss_res, method=method)
 
         twiss_res._data['eigenvalues'] = eigenvalues.copy()
         twiss_res._data['rotation_matrix'] = Rot.copy()
@@ -1502,7 +1501,7 @@ def _conj_mat(mm):
     return np.array([[d, -b], [-c, a]])
 
 
-def _compute_global_quantities(line, twiss_res):
+def _compute_global_quantities(line, twiss_res, method):
 
         s_vect = twiss_res['s']
         circumference = line.tracker._tracker_data_base.line_length
@@ -1516,10 +1515,22 @@ def _compute_global_quantities(line, twiss_res):
 
         # compute slip factor
         if circumference > 0:
-            RR = twiss_res['R_matrix']
-            dz_test = 1e-3
-            xx = np.linalg.solve(RR - np.eye(6), np.array([0,0,0,0,dz_test,0]))
-            delta_test = xx[5]
+            if method == '6d':
+                RR = twiss_res['R_matrix']
+                dz_test = 1e-3 # All linear, so the value does not matter
+                xx = np.linalg.solve(RR - np.eye(6), np.array([0,0,0,0,dz_test,0]))
+                delta_test = xx[5]
+            elif method == '4d':
+                RR = twiss_res['R_matrix'].copy()
+                solve_mat = RR - np.eye(6)
+                solve_mat[4, :] = np.array([0,0,0,0,1,0]) # dummy
+                solve_mat[5, :] = np.array([0,0,0,0,0,1]) # delta
+                delta_test = 1e-3 # All linear, so the value does not matter
+                xx = np.linalg.solve(solve_mat, np.array([0,0,0,0,0,delta_test]))
+                # measure slippage on original matrix
+                xx_out = twiss_res['R_matrix'] @ xx
+                dz_test = xx_out[4] - xx[4]
+
             slip_factor = -dz_test / delta_test / circumference
             momentum_compaction_factor = (slip_factor + 1/gamma0**2)
         else:

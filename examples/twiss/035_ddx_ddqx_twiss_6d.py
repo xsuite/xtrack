@@ -30,13 +30,10 @@ solve_mat[5, :] = np.array([0,0,0,0,0,1]) # delta
 
 delta_test = 1e-3
 xx = np.linalg.solve(solve_mat, np.array([0,0,0,0,0,delta_test]))
-# measure slippage on original matric
+# measure slippage on original matrix
 xx_out = tw4d.R_matrix @ xx
 dz_test = xx_out[4] - xx[4]
 slip_factor_4d = dz_test / delta_test / tw4d.circumference
-
-
-
 
 
 dzeta = slip_factor * ddelta * tw6d.circumference
