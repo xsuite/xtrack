@@ -21,6 +21,7 @@ void ThinSliceCavity_track_local_particle(ThinSliceCavityData el, LocalParticle*
         /*voltage*/               ThinSliceCavityData_get__parent_voltage(el),
         /*frequency*/             ThinSliceCavityData_get__parent_frequency(el),
         /*lag*/                   ThinSliceCavityData_get__parent_lag(el),
+        /*harmonic_number*/       0,
         /*transverse_voltage*/    0.,
         /*transverse_lag*/        0.,
         /*absolute_time*/         ThinSliceCavityData_get__parent_absolute_time(el),

@@ -20,6 +20,7 @@ void track_rf_kick_single_particle(
     double voltage,
     double frequency,
     double lag,
+    double harmonic_number,
     double transverse_voltage,
     double transverse_lag,
     int64_t absolute_time,
@@ -34,13 +35,20 @@ void track_rf_kick_single_particle(
 
     double phase0 = 0;
 
+    double const beta0 = LocalParticle_get_beta0(part);
+
+    if (harmonic_number != 0) {
+        double const line_length = LocalParticle_get_line_length(part);
+        double const t_rev0 = line_length / (beta0 * C_LIGHT);
+        frequency += (harmonic_number / t_rev0);
+    }
+
     if (absolute_time == 1) {
         double const t_sim = LocalParticle_get_t_sim(part);
         int64_t const at_turn = LocalParticle_get_at_turn(part);
         phase0 += 2 * PI * at_turn * frequency * t_sim;
     }
 
-    double const beta0 = LocalParticle_get_beta0(part);
     double const zeta  = LocalParticle_get_zeta(part);
     double const q = fabs(LocalParticle_get_q0(part)) * LocalParticle_get_charge_ratio(part);
     double const tau = zeta / beta0;
@@ -159,6 +167,7 @@ void track_rf_body_single_particle(
     double voltage,
     double frequency,
     double lag,
+    double harmonic_number,
     double transverse_voltage,
     double transverse_lag,
     int64_t absolute_time,
@@ -176,7 +185,7 @@ void track_rf_body_single_particle(
 
     #define RF_KICK(part, kick_weight) \
         track_rf_kick_single_particle(\
-            part, voltage * (kick_weight), frequency, lag,\
+            part, voltage * (kick_weight), frequency, lag, harmonic_number,\
             transverse_voltage * (kick_weight), transverse_lag,\
             absolute_time, order, \
             factor_knl_ksl * (kick_weight), knl, ksl, pn, ps,\
@@ -301,6 +310,7 @@ void track_rf_particles(
     double voltage,
     double frequency,
     double lag,
+    double harmonic_number,
     double transverse_voltage,
     double transverse_lag,
     int64_t absolute_time,
@@ -396,6 +406,7 @@ void track_rf_particles(
                 voltage * weight,
                 frequency,
                 lag + lag_taper,
+                harmonic_number,
                 transverse_voltage * weight,
                 transverse_lag,
                 absolute_time,
