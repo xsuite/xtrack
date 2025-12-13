@@ -1649,8 +1649,12 @@ def _compute_chromatic_functions(line, init, delta_chrom,
                     nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                     W_matrix=tw_init_chrom.W_matrix,
                     include_collective=include_collective)
+
+                dd0=delta0
+                if method == '4d':
+                    dd0 = delta0 + dd if delta0 is not None else dd
                 part_chrom = line.find_closed_orbit(
-                    delta0=(dd + delta0 if method == '4d' else delta0),
+                    delta0=dd0,
                     zeta0=zeta0,
                     zeta_shift=-(dzeta if method == '6d' else 0),
                     co_guess=part_guess,

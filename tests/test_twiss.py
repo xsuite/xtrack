@@ -1592,7 +1592,8 @@ def test_longitudinal_beam_sizes(test_context):
         beam_sizes.sigma_zeta / beam_sizes.sigma_pzeta, tw.bets0, atol=0, rtol=5e-5)
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
-def test_second_order_chromaticity_and_dispersion(test_context):
+@pytest.mark.parametrize('method', ['6d', '4d'])
+def test_second_order_chromaticity_and_dispersion(test_context, method):
 
     line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
@@ -1601,7 +1602,7 @@ def test_second_order_chromaticity_and_dispersion(test_context):
 
     line.build_tracker(_context=test_context)
 
-    tw = line.twiss(method='6d')
+    tw = line.twiss(method=method)
     tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
                 x=tw['x', 'ip4'], px=tw['px', 'ip4'],
                 y=tw['y', 'ip4'], py=tw['py', 'ip4'],
