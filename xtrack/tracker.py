@@ -528,6 +528,7 @@ class Tracker:
             LocalParticle lpart;
             lpart.io_buffer = io_buffer;
             lpart.track_flags = track_flags;
+            lpart.line_length = line_length;
 
             /*gpuglmem*/ int8_t* tbt_mon_pointer =
                             buffer_tbt_monitor + offset_tbt_monitor;
