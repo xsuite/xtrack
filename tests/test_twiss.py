@@ -1597,9 +1597,11 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
     line.vars['on_x5'] = 300
+    line.vars['vrf400'] = 16
+
     line.build_tracker(_context=test_context)
 
-    tw = line.twiss(method='4d')
+    tw = line.twiss(method='6d')
     tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
                 x=tw['x', 'ip4'], px=tw['px', 'ip4'],
                 y=tw['y', 'ip4'], py=tw['py', 'ip4'],
@@ -1643,14 +1645,14 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     pxs_qy = np.polyfit(delta, qy_xs, 3)
 
     xo.assert_allclose(delta, nlchr.delta0, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['dpx', location], pxs_px[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['dy', location], pxs_y[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['dpy', location], pxs_py[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddx', location], 2*pxs_x[-3], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddpx', location], 2*pxs_px[-3], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=1e-4)
+    xo.assert_allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['dpx', location], pxs_px[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['dy', location], pxs_y[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['dpy', location], pxs_py[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddx', location], 2*pxs_x[-3], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddpx', location], 2*pxs_px[-3], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=5e-4)
     xo.assert_allclose(tw['dqx'], pxs_qx[-2], atol=0, rtol=1e-3)
     xo.assert_allclose(tw['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-2)
     xo.assert_allclose(tw['dqy'], pxs_qy[-2], atol=0, rtol=1e-3)

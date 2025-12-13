@@ -755,6 +755,8 @@ def twiss_line(line, particle_ref=None, method=None,
             line=line,
             init=init,
             delta_chrom=delta_chrom,
+            delta0=delta0,
+            zeta0=zeta0,
             steps_r_matrix=steps_r_matrix,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
@@ -1609,7 +1611,9 @@ def _compute_global_quantities(line, twiss_res, method):
             twiss_res['c_phi1'] = c_phi1
             twiss_res['c_phi2'] = c_phi2
 
-def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
+def _compute_chromatic_functions(line, init, delta_chrom,
+                    delta0, zeta0,
+                    steps_r_matrix,
                     matrix_responsiveness_tol, matrix_stability_tol, symplectify,
                     method='6d', use_full_inverse=False,
                     nemitt_x=None, nemitt_y=None,
@@ -1646,7 +1650,8 @@ def _compute_chromatic_functions(line, init, delta_chrom, steps_r_matrix,
                     W_matrix=tw_init_chrom.W_matrix,
                     include_collective=include_collective)
                 part_chrom = line.find_closed_orbit(
-                    delta0=(dd if method == '4d' else None),
+                    delta0=(dd + delta0 if method == '4d' else delta0),
+                    zeta0=zeta0,
                     zeta_shift=-(dzeta if method == '6d' else 0),
                     co_guess=part_guess,
                     start=start, end=end, num_turns=num_turns,
