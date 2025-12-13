@@ -38,7 +38,7 @@ void track_rf_kick_single_particle(
     double const beta0 = LocalParticle_get_beta0(part);
 
     if (harmonic_number != 0) {
-        double const line_length = LocalParticle_get_line_length(part);
+        double const line_length = part->line_length;
         double const t_rev0 = line_length / (beta0 * C_LIGHT);
         frequency += (harmonic_number / t_rev0);
     }
