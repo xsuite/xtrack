@@ -4,6 +4,7 @@ import xtrack as xt
 # grep for frequency and generalize (tapering, particle generation, ...)
 # forbid isolated element in harmonic mode
 # forbid harmonic and frequency at the same time
+# MAD loaders
 
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 
