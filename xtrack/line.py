@@ -4906,6 +4906,7 @@ class Line:
                 '_own_lag': 'lag',
                 '_own_lag_taper': 'lag_taper',
                 '_own_frequency': 'frequency',
+                '_own_harmonic': 'harmonic',
 
                 '_own_radiation_flag': 'radiation_flag',
 
@@ -4962,6 +4963,7 @@ class Line:
                 '_parent_lag': (('_parent', 'lag'), None),
                 '_parent_lag_taper': (('_parent', 'lag_taper'), None),
                 '_parent_frequency': (('_parent', 'frequency'), None),
+                '_parent_harmonic': (('_parent', 'harmonic'), None),
 
                 '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
@@ -5029,6 +5031,8 @@ class Line:
                     attr['_own_lag_taper'] + attr['_parent_lag_taper'] * attr._inherit_strengths,
                 'frequency': lambda attr:
                     attr['_own_frequency'] + attr['_parent_frequency'] * attr._inherit_strengths,
+                'harmonic': lambda attr:
+                    attr['_own_harmonic'] + attr['_parent_harmonic'] * attr._inherit_strengths,
                 'radiation_flag': lambda attr:
                     attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
                   + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
