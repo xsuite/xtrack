@@ -544,6 +544,9 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         'harmonic': '_harmonic',
     }
 
+    _default_frequency = 0.0
+    _default_harmonic = 0.0
+
     _noexpr_fields = _NOEXPR_FIELDS
 
     def __init__(self, **kwargs):

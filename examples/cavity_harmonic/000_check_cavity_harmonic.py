@@ -57,3 +57,8 @@ xo.assert_allclose(tt1_cav.frequency, 400.79e6, rtol=1e-3)
 xo.assert_allclose(tt2_cav.frequency, 0, rtol=1e-15)
 xo.assert_allclose(tt1_cav.harmonic, 0, rtol=1e-15)
 xo.assert_allclose(tt2_cav.harmonic, 35640, rtol=1e-15)
+
+c = xt.Cavity()
+
+breakpoint()
+dd = c.to_dict()
