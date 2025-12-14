@@ -17,7 +17,7 @@ void CrabCavity_track_local_particle(CrabCavityData el, LocalParticle* part0)
         /*length*/                CrabCavityData_get_length(el),
         /*voltage*/               0,
         /*frequency*/             CrabCavityData_get_frequency(el),
-        /*harmonic_number*/       0.,
+        /*harmonic*/              0.,
         /*lag*/                   0.,
         /*transverse_voltage*/    CrabCavityData_get_crab_voltage(el),
         /*transverse_lag*/        CrabCavityData_get_lag(el),

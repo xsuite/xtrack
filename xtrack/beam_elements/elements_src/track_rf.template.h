@@ -20,7 +20,7 @@ void track_rf_kick_single_particle(
     double voltage,
     double frequency,
     double lag,
-    double harmonic_number,
+    double harmonic,
     double transverse_voltage,
     double transverse_lag,
     int64_t absolute_time,
@@ -37,10 +37,10 @@ void track_rf_kick_single_particle(
 
     double const beta0 = LocalParticle_get_beta0(part);
 
-    if (harmonic_number != 0) {
+    if (harmonic != 0) {
         double const line_length = part->line_length;
         double const t_rev0 = line_length / (beta0 * C_LIGHT);
-        frequency += (harmonic_number / t_rev0);
+        frequency += (harmonic / t_rev0);
     }
 
     if (absolute_time == 1) {
@@ -167,7 +167,7 @@ void track_rf_body_single_particle(
     double voltage,
     double frequency,
     double lag,
-    double harmonic_number,
+    double harmonic,
     double transverse_voltage,
     double transverse_lag,
     int64_t absolute_time,
@@ -185,7 +185,7 @@ void track_rf_body_single_particle(
 
     #define RF_KICK(part, kick_weight) \
         track_rf_kick_single_particle(\
-            part, voltage * (kick_weight), frequency, lag, harmonic_number,\
+            part, voltage * (kick_weight), frequency, lag, harmonic,\
             transverse_voltage * (kick_weight), transverse_lag,\
             absolute_time, order, \
             factor_knl_ksl * (kick_weight), knl, ksl, pn, ps,\
@@ -229,7 +229,7 @@ void track_rf_particles(
     double voltage,
     double frequency,
     double lag,
-    double harmonic_number,
+    double harmonic,
     double transverse_voltage,
     double transverse_lag,
     int64_t absolute_time,
@@ -325,7 +325,7 @@ void track_rf_particles(
                 voltage * weight,
                 frequency,
                 lag + lag_taper,
-                harmonic_number,
+                harmonic,
                 transverse_voltage * weight,
                 transverse_lag,
                 absolute_time,

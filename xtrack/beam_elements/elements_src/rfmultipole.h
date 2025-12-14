@@ -18,7 +18,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
         /*voltage*/               RFMultipoleData_get_voltage(el),
         /*frequency*/             RFMultipoleData_get_frequency(el),
         /*lag*/                   RFMultipoleData_get_lag(el),
-        /*harmonic_number*/       0.,
+        /*harmonic*/              0.,
         /*transverse_voltage*/    0.,
         /*transverse_lag*/        0.,
         /*absolute_time*/         0, // not used here

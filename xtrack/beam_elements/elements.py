@@ -523,7 +523,7 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
-        'harmonic_number': xo.Float64,
+        'harmonic': xo.Float64,
         'lag_taper': xo.Float64,
         'absolute_time': xo.Int64,
         'num_kicks': xo.Int64,
