@@ -55,3 +55,17 @@ xo.assert_allclose(tt1_cav.frequency, 400.79e6, rtol=1e-3)
 xo.assert_allclose(tt2_cav.frequency, 0, rtol=1e-15)
 xo.assert_allclose(tt1_cav.harmonic, 0, rtol=1e-15)
 xo.assert_allclose(tt2_cav.harmonic, 35640, rtol=1e-15)
+
+mad_src = line.to_madx_sequence('seq')
+
+env2 = xt.load(string=mad_src, format='madx')
+line2 = env2['seq']
+
+tt3 = line2.get_table(attr=True)
+tt3_cav = tt3.rows.match(element_type='Cavity')
+xo.assert_allclose(tt3_cav.frequency, 0, rtol=1e-15)
+xo.assert_allclose(tt3_cav.harmonic, 35640, rtol=1e-15)
+
+line2.set_particle_ref('proton', p0c=7e12)
+tw3 = line2.twiss6d()
+xo.assert_allclose(tw1.qs, tw3.qs, rtol=0, atol=1e-7)
