@@ -27,6 +27,7 @@ TRANSLATE_PARAMS = {
     "e2": "edge_exit_angle",
     "fint": "edge_entry_fint",
     "fintx": "edge_exit_fint",
+    "harmon": "harmonic",
 }
 
 CONSTANTS = {
@@ -438,10 +439,6 @@ class MadxLoader:
                     params['voltage'] = volt * 1e6
             if (freq := params.pop('freq', None)):
                 params['frequency'] = freq * 1e6
-            if 'harmon' in params:
-                # harmon * beam.beta * clight / sequence.length
-                # raise NotImplementedError
-                pass
 
         elif parent_name == 'multipole':
             if (knl := params.pop('knl', None)):

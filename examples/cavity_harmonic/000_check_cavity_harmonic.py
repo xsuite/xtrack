@@ -3,10 +3,8 @@ import xpart as xp
 import xobjects as xo
 
 # TODO:
-# grep for frequency and generalize (tapering, particle generation, ...)
-# forbid isolated element in harmonic mode
-# forbid harmonic and frequency at the same time
 # MAD loaders
+# MAD/MAD-NG writers
 # Check slicing (thin and thick)
 
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
@@ -57,8 +55,3 @@ xo.assert_allclose(tt1_cav.frequency, 400.79e6, rtol=1e-3)
 xo.assert_allclose(tt2_cav.frequency, 0, rtol=1e-15)
 xo.assert_allclose(tt1_cav.harmonic, 0, rtol=1e-15)
 xo.assert_allclose(tt2_cav.harmonic, 35640, rtol=1e-15)
-
-c = xt.Cavity()
-
-breakpoint()
-dd = c.to_dict()
