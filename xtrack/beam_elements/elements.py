@@ -540,6 +540,8 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
     _rename = {
         'model': '_model',
         'integrator': '_integrator',
+        'frequency': '_frequency',
+        'harmonic': '_harmonic',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -561,6 +563,26 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
 
         if integrator is not None:
             self.integrator = integrator
+
+    @property
+    def frequency(self):
+        return self._frequency
+
+    @frequency.setter
+    def frequency(self, value):
+        if self._harmonic != 0 and value != 0:
+            raise ValueError("Cannot set non-zero frequency when harmonic is not zero.")
+        self._frequency = value
+
+    @property
+    def harmonic(self):
+        return self._harmonic
+
+    @harmonic.setter
+    def harmonic(self, value):
+        if self._frequency != 0 and value != 0:
+            raise ValueError("Cannot set non-zero harmonic when frequency is not zero.")
+        self._harmonic = value
 
     @property
     def _thin_slice_class(self):
