@@ -557,6 +557,8 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
 
         model = kwargs.pop('model', None)
         integrator = kwargs.pop('integrator', None)
+        frequency = kwargs.pop('frequency', None)
+        harmonic = kwargs.pop('harmonic', None)
 
         self.xoinitialize(**kwargs)
 
@@ -566,6 +568,21 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
 
         if integrator is not None:
             self.integrator = integrator
+
+        if frequency is not None:
+            self.frequency = frequency
+
+        if harmonic is not None:
+            self.harmonic = harmonic
+
+    def track(self, particles, *args, **kwargs):
+
+        if self.harmonic != 0:
+            raise RuntimeError("Cavity cannot be used in standalone tracking "
+                               "when harmonic is not zero. Please use the "
+                               "cavity within a Line or set frequency instead"
+                               " of harmonic.")
+        return super().track(particles, *args, **kwargs)
 
     @property
     def frequency(self):
