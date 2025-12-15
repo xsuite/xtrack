@@ -28,8 +28,9 @@ def test_tapering_and_twiss_with_radiation():
 
     # Use harmonic for one of the cavities
     t_rev = line.get_length() / clight
-    line['rf1'].harmonic = line['rf1'].frequency * t_rev
+    harm = line['rf1'].frequency * t_rev
     line['rf1'].frequency = 0
+    line['rf1'].harmonic = harm
 
     line.build_tracker()
 
@@ -150,8 +151,9 @@ def test_tapering_zero_mean():
 
     # Use harmonic for one of the cavities
     t_rev = line.get_length() / clight
-    line['rf1'].harmonic = line['rf1'].frequency * t_rev
+    harm = line['rf1'].frequency * t_rev
     line['rf1'].frequency = 0
+    line['rf1'].harmonic = line['rf1'].frequency * t_rev
 
     line.particle_ref.p0c = 4e9  # eV
 
