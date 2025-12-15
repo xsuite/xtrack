@@ -3,6 +3,7 @@ import pathlib
 from itertools import product
 
 import numpy as np
+from scipy.constants import c as clight
 import pytest
 from cpymad.madx import Madx
 
@@ -1026,7 +1027,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dx=tw.dx[0], dpx=tw.dpx[0],
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
-                frequency_rf=line[cavity_name].frequency,
+                frequency_rf=line[cavity_name].harmonic / (line.get_length() / tw.beta0 / clight),
                 lag_rf=line[cavity_name].lag,
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
@@ -1040,7 +1041,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dx=tw.dx[0], dpx=tw.dpx[0],
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
-                frequency_rf=line[cavity_name].frequency,
+                frequency_rf=line[cavity_name].harmonic / (line.get_length() / tw.beta0 / clight),
                 lag_rf=line[cavity_name].lag,
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
