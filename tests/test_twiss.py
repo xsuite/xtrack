@@ -68,9 +68,6 @@ def test_coupled_beta(test_context):
     line = env['lhcb1']
     line.set_particle_ref('proton', p0c=7e12)
     line['mqwa.a4r3.b1..1'].ksl[1] = 1e-4
-    tt_cav = line.get_table().rows.match('Cavity', 'element_type')
-    for nn in tt_cav.name:
-        line[nn].frequency = 400.79e6
 
     line.build_tracker(_context=test_context)
 
