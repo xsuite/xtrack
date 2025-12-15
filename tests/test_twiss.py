@@ -107,10 +107,6 @@ def test_twiss_zeta0_delta0(test_context):
     line = env['lhcb1']
     line.set_particle_ref('proton', p0c=7e12)
 
-    tt_cav = line.get_table().rows.match('Cavity', 'element_type')
-    for nn in tt_cav.name:
-        line[nn].frequency = 400.79e6
-
     env['on_crab1'] = -190
     env['on_crab5'] = -190
 
