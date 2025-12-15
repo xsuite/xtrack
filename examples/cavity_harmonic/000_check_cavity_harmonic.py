@@ -86,3 +86,32 @@ xo.assert_allclose(tt3_cav.harmonic, [35640, 0, 35640, 0, 35640, 0, 35640, 0], r
 line2.set_particle_ref('proton', p0c=7e12)
 tw3 = line2.twiss6d()
 xo.assert_allclose(tw_harm.qs, tw3.qs, rtol=0, atol=1e-7)
+
+line_slice_thick = line.copy()
+line_slice_thick.slice_thick_elements([
+    xt.Strategy(slicing=None),
+    xt.Strategy(slicing=xt.Uniform(2, mode='thick'), name='acsca.*'),
+])
+
+tt_sliced = line_slice_thick.get_table(attr=True)
+tt_sliced_cav = tt_sliced.rows.match(element_type='ThickSliceCav.*')
+tt_sliced_cav
+# is (WRONG!!!!)
+Table: 16 rows, 4 cols
+name                   voltage     frequency      harmonic
+acsca.d5l4.b1..0         1e+06             0         35640
+acsca.d5l4.b1..1         1e+06             0         35640
+acsca.c5l4.b1..0         1e+06    4.0079e+08             0
+acsca.c5l4.b1..1         1e+06    4.0079e+08             0
+acsca.b5l4.b1..0         1e+06             0         35640
+acsca.b5l4.b1..1         1e+06             0         35640
+acsca.a5l4.b1..0         1e+06    4.0079e+08             0
+acsca.a5l4.b1..1         1e+06    4.0079e+08             0
+acsca.a5r4.b1..0         1e+06             0         35640
+acsca.a5r4.b1..1         1e+06             0         35640
+acsca.b5r4.b1..0         1e+06    4.0079e+08             0
+acsca.b5r4.b1..1         1e+06    4.0079e+08             0
+acsca.c5r4.b1..0         1e+06             0         35640
+acsca.c5r4.b1..1         1e+06             0         35640
+acsca.d5r4.b1..0         1e+06    4.0079e+08             0
+acsca.d5r4.b1..1         1e+06    4.0079e+08             0
