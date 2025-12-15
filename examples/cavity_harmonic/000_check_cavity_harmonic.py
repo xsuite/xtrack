@@ -3,9 +3,11 @@ import xpart as xp
 import xobjects as xo
 
 # TODO:
+# Tests
 # MAD loaders
 # MAD/MAD-NG writers
 # Check slicing (thin and thick)
+# Regenerate json
 
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 

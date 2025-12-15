@@ -34,12 +34,6 @@ env = xt.load('temp_lhc_thick.seq', s_tol=1e-6,
 env.lhcb1.set_particle_ref('proton', p0c=7000e9)
 env.lhcb2.set_particle_ref('proton', p0c=7000e9)
 
-# Set cavity frequency
-tt_cav = env.elements.get_table().rows.match(element_type='Cavity')
-for nn in tt_cav.name:
-    env[nn].frequency = 400.79e6  # Hz
-
-
 env.lhcb1.twiss_default['method'] = '4d'
 env.lhcb2.twiss_default['method'] = '4d'
 env.lhcb2.twiss_default['reverse'] = True
