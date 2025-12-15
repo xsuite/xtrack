@@ -1018,6 +1018,11 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         tw = line.twiss()
         circumference = tw.circumference
 
+        if line[cavity_name].harmonic:
+            frequency_rf = line[cavity_name].harmonic / (line.get_length() / tw.beta0 / clight)
+        else:
+            frequency_rf = line[cavity_name].frequency
+
         if longitudinal_mode == 'nonlinear':
             matrix = xt.LineSegmentMap(
                 qx=tw.qx, qy=tw.qy,
@@ -1027,7 +1032,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dx=tw.dx[0], dpx=tw.dpx[0],
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
-                frequency_rf=line[cavity_name].harmonic / (line.get_length() / tw.beta0 / clight),
+                frequency_rf=frequency_rf,
                 lag_rf=line[cavity_name].lag,
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
@@ -1041,7 +1046,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dx=tw.dx[0], dpx=tw.dpx[0],
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
-                frequency_rf=line[cavity_name].harmonic / (line.get_length() / tw.beta0 / clight),
+                frequency_rf=frequency_rf,
                 lag_rf=line[cavity_name].lag,
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
