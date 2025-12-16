@@ -465,7 +465,8 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
     for ii in range(1, len(tt_s_sorted)):
         if abs(tt_s_sorted.s_center[ii] - tt_s_sorted.s_center[ii-1]) > s_tol:
             group_id[ii] = group_id[ii-1] + 1
-        elif tt_s_sorted.isthick[ii]: # Needed in Line.insert (on the first sorting pass there can be overlapping elements)
+        elif tt_s_sorted.isthick[ii] and (tt_s_sorted.s_end[ii] - tt_s_sorted.s_start[ii-1]) > 0:
+            # Needed in Line.insert (on the first sorting pass there can be overlapping elements)
             group_id[ii] = group_id[ii-1] + 1
         else:
             group_id[ii] = group_id[ii-1]
