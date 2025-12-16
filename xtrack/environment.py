@@ -552,7 +552,6 @@ class Environment:
             Rename the element in the new line/environment. If not provided, the
             element is copied with the same name.
         """
-        new_name_input = new_name if new_name != name else None
         new_name = new_name or name
         cls = type(source._element_dict[name])
 
@@ -716,8 +715,10 @@ class Environment:
             if key in self.elements:
                 raise ValueError(f'There is already an element with name {key}')
             self.lines[key] = value
+        elif np.isscalar(value) or xd.refs.is_ref(value):
+            self.vars[key] = value
         else:
-            xt.Line.__setitem__(self, key, value)
+            raise ValueError('Only lines, scalars or references are allowed')
 
     def to_dict(self, include_var_management=True, include_version=True):
 
@@ -1200,17 +1201,6 @@ class Environment:
 
     def __delitem__(self, key):
         self.remove(key)
-
-    def __setitem__(self, key, value):
-
-        if isinstance(value, xt.Line):
-            assert value.env is self, 'Line must be in the same environment'
-            self.lines[key] = value
-        elif np.isscalar(value) or xd.refs.is_ref(value):
-            self.vars[key] = value
-        else:
-            raise ValueError('Only lines, scalars or references are allowed')
-
 
     def set(self, name, *args, **kwargs):
         '''
