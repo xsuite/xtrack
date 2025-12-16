@@ -608,7 +608,7 @@ class TargetRmatrixTerm(Target):
             'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
             ' are supported')
 
-        if hasattr(tw, '_data') and hasattr(tw._data, 'attrs') and self.tag in tw._data.attrs:
+        if hasattr(tw._data, 'attrs') and self.tag in tw._data.attrs:
             return tw._data.attrs[self.tag]
 
         if self.start is xt.START:
@@ -882,10 +882,9 @@ class OptimizeLine(xd.Optimize):
 
         # Flatten targets and assign tags for TargetRMatrixTerms if multiple
         targets_flatten = []
-        sum_rmat_targets = sum(1 for item in targets if isinstance(item, (TargetRmatrixTerm, TargetRmatrix)) for lst in targets)
         start_end_tuple_set = list()
         rmat_index = 0
-        if sum_rmat_targets > 0:
+        if any(isinstance(tt, (TargetRmatrixTerm, TargetRmatrix)) for tt in targets):
             for tt in targets:
                 if isinstance(tt, TargetRmatrixTerm):
                     if (tt.start, tt.end) in start_end_tuple_set:
