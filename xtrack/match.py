@@ -933,25 +933,15 @@ class OptimizeLine(xd.Optimize):
 
             # Handle action
             if tt.action is None:
-                if (isinstance(tt.tar, tuple) and tt.tar[0].endswith('_ng')) or (
-                    isinstance(tt, TargetRelPhaseAdvance) and tt.var.endswith('_ng')) or use_tpsa:
+                if use_tpsa:
                     if action_twiss_ng is None:
-                        if use_tpsa:
-                            twiss_flag_ng = any(isinstance(tar, (xt.TargetRelPhaseAdvance)) for tar in targets_flatten)
+                        from .madng_interface import ActionTwissMadngTPSA
 
-                            from .madng_interface import ActionTwissMadngTPSA
-
-                            action_twiss_ng = ActionTwissMadngTPSA(
-                                    line, [v.name for v in vary_flatten], targets_flatten, {},
-                                        twiss_flag=twiss_flag_ng, sum_rmat_tar=len(start_end_tuple_set), **kwargs
-                            )
-                            action_twiss_ng.prepare()
-
-                        else:
-                            from .madng_interface import ActionTwissMadng
-                            action_twiss_ng = ActionTwissMadng(
-                                    line, {}, **kwargs)
-                            action_twiss_ng.prepare()
+                        action_twiss_ng = ActionTwissMadngTPSA(
+                                line, [v.name for v in vary_flatten], targets_flatten, {},
+                                    sum_rmat_tar=len(start_end_tuple_set), **kwargs
+                        )
+                        action_twiss_ng.prepare()
                     tt.action = action_twiss_ng
                 else:
                     if action_twiss is None:
