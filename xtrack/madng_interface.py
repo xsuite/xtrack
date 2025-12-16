@@ -824,18 +824,26 @@ class ActionTwissMadngTPSA(Action):
             res._data.loc[:, 'delta'] = ptau2delta(res['pt'], self.line.particle_ref.beta0[0])
 
         if self.match_rmat:
-            rmat_str = ''
-            rmatrices = []
-            for i in range(self.sum_rmat_tar):
-                start_rmat = self.rmat_start_end_list[i][0]
-                end_rmat = self.rmat_start_end_list[i][1]
-                if start_rmat == '__ele_start__':
-                    start_rmat = start
-                if end_rmat == '__ele_stop__':
-                    end_rmat = end
+            res = self.handle_rmatrices(res)
 
+        self._last_res = res
+        return res
+
+    def handle_rmatrices(self, res):
+        rmat_str = ''
+        rmatrices = []
+        for i in range(self.sum_rmat_tar):
+            start_rmat = self.rmat_start_end_list[i][0]
+            end_rmat = self.rmat_start_end_list[i][1]
+            if start_rmat == '__ele_start__':
+                start_rmat = self.tw_kwargs.get('start', None)
+            if end_rmat == '__ele_stop__':
+                end_rmat = self.tw_kwargs.get('end', None)
+
+            range_str = ''
+            if start_rmat is not None and end_rmat is not None:
                 range_str = f"range = '{start_rmat}/{end_rmat}', "
-                rmat_str = (
+            rmat_str = (
                     f"local trkid, mflwid = MAD.track{{\n"
                     f"    sequence={self.mng._sequence_name},\n"
                     f"    X0={XSUITE_MADNG_ENV_NAME}.empty_X0,\n"
@@ -848,16 +856,15 @@ class ActionTwissMadngTPSA(Action):
                     f"py:send(rmat)\n"
                 )
 
-                rmat_res = self.mng.send(rmat_str).recv('rmat')
-                rmatrices.append(rmat_res)
+            rmat_res = self.mng.send(rmat_str).recv('rmat')
+            rmatrices.append(rmat_res)
 
-            for tag in self.rmat_tags:
-                t0, term = tag.split("_")
-                ii = int(term[1]) - 1
-                jj = int(term[2]) - 1
-                res._data.attrs[tag] = rmatrices[int(t0)][ii, jj]
+        for tag in self.rmat_tags:
+            t0, term = tag.split("_")
+            ii = int(term[1]) - 1
+            jj = int(term[2]) - 1
+            res._data.attrs[tag] = rmatrices[int(t0)][ii, jj]
 
-        self._last_res = res
         return res
 
     def acquire_jacobian(self):
@@ -961,7 +968,7 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
 
         nocharge = str(kwargs.pop('nocharge', True)).lower()
 
-        mng = MAD(mad_path='/home/babreufi/git/MAD-NG-1.1.5/bin/mad', **kwargs)
+        mng = MAD(**kwargs)
         mng.send(f"""
                  local mad_func = loadfile('{temp_fname}.mad', nil, MADX)
                  assert(mad_func)
