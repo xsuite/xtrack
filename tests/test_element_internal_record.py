@@ -26,7 +26,9 @@ def test_record_single_table(test_context):
     extra_src = []
 
     extra_src.append(r'''
-        /*gpufun*/
+        #include "xtrack/headers/track.h"
+
+        GPUFUN
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
             // Extract the record and record_index
@@ -39,8 +41,7 @@ def test_record_single_table(test_context):
             int64_t n_kicks = TestElementData_get_n_kicks(el);
             //printf("n_kicks %d\n", (int)n_kicks);
 
-            //start_per_particle_block (part0->part)
-
+            START_PER_PARTICLE_BLOCK(part0, part);
                 for (int64_t i = 0; i < n_kicks; i++) {
                     double rr = 1e-6 * RandomUniform_generate(part);
                     LocalParticle_add_to_px(part, rr);
@@ -61,9 +62,7 @@ def test_record_single_table(test_context):
                         }
                     }
                 }
-
-
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         ''')
 
@@ -205,7 +204,9 @@ def test_record_with_twiss(test_context):
     extra_src = []
 
     extra_src.append(r'''
-        /*gpufun*/
+        #include "xtrack/headers/track.h"
+        
+        GPUFUN
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
             // Extract the record and record_index
@@ -218,8 +219,7 @@ def test_record_with_twiss(test_context):
             int64_t n_kicks = TestElementData_get_n_kicks(el);
             //printf("n_kicks %d\n", (int)n_kicks);
 
-            //start_per_particle_block (part0->part)
-
+            START_PER_PARTICLE_BLOCK(part0, part);
                 for (int64_t i = 0; i < n_kicks; i++) {
                     // We don't apply the kick, otherwise the twiss fails
                     double rr = 1e-6 * RandomUniform_generate(part);
@@ -240,9 +240,7 @@ def test_record_with_twiss(test_context):
                         }
                     }
                 }
-
-
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         ''')
 
@@ -308,7 +306,9 @@ def test_record_multiple_tables(test_context):
     extra_src = []
 
     extra_src.append(r'''
-        /*gpufun*/
+        #include "xtrack/headers/track.h"
+
+        GPUFUN
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
             // Extract the record and record_index
@@ -327,8 +327,7 @@ def test_record_multiple_tables(test_context):
             int64_t n_kicks = TestElementData_get_n_kicks(el);
             // printf("n_kicks %d\n", (int)n_kicks);
 
-            //start_per_particle_block (part0->part)
-
+            START_PER_PARTICLE_BLOCK(part0, part);
                 // Record in table1 info about the ingoing particle
                 if (record){
                     // Get a slot in table1
@@ -372,8 +371,7 @@ def test_record_multiple_tables(test_context):
                         }
                     }
                 }
-
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         ''')
 
@@ -565,7 +563,9 @@ def test_record_standalone_mode(test_context):
     extra_src = []
 
     extra_src.append(r'''
-        /*gpufun*/
+        #include "xtrack/headers/track.h"
+
+        GPUFUN
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
             // Extract the record and record_index
@@ -584,8 +584,7 @@ def test_record_standalone_mode(test_context):
             int64_t n_kicks = TestElementData_get_n_kicks(el);
             // printf("n_kicks %d\n", (int)n_kicks);
 
-            //start_per_particle_block (part0->part)
-
+            START_PER_PARTICLE_BLOCK(part0, part);
                 // Record in table1 info about the ingoing particle
                 if (record){
                     // Get a slot in table1
@@ -629,8 +628,7 @@ def test_record_standalone_mode(test_context):
                         }
                     }
                 }
-
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         ''')
 

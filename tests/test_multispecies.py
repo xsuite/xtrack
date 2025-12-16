@@ -185,10 +185,10 @@ def test_multispecies_bend(model, B_T, hxl, G_Tm, S_Tm2):
     n_slices = 10
 
     dipole_ref1 = xt.Bend(k0=theta_bend_ref1/L_bend, length=L_bend / n_slices,
-                        h=hxl/L_bend, k1=k1l_ref1/n_slices/L_bend,
+                        angle=hxl, k1=k1l_ref1/n_slices/L_bend,
                         knl=[0, 0, k2l_ref1/n_slices])
     dipole_ref2 = xt.Bend(k0=theta_bend_ref2/L_bend, length=L_bend / n_slices,
-                        h=hxl/L_bend, k1=k1l_ref2/n_slices/L_bend,
+                        angle=hxl, k1=k1l_ref2/n_slices/L_bend,
                         knl=[0, 0, k2l_ref2/n_slices])
 
     if model == 'expanded':

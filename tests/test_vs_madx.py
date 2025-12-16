@@ -472,8 +472,8 @@ def test_line_import_from_madx(test_context, mad_with_errors):
             if skip_order and kk in ('order', 'knl', 'ksl'):
                 continue
 
-            if kk == '_isthick':
-                continue # the one with an expression on the length is loaded 
+            if kk in ['_isthick', 'isthick']:
+                continue # the one with an expression on the length is loaded
 
             # Check if they are identical
             if np.isscalar(dref[kk]) and dtest[kk] == dref[kk]:

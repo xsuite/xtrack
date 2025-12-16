@@ -57,7 +57,7 @@ from .general import _print
 
 log = logging.getLogger(__name__)
 
-_ALLOWED_ELEMENT_TYPES_IN_NEW   = [
+_ALLOWED_ELEMENT_TYPES_IN_NEW = [
     xt.Drift, xt.DriftExact,
     xt.Magnet, xt.Replica, xt.Marker,
     xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole,
@@ -65,7 +65,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW   = [
     xt.Cavity, xt.RFMultipole, xt.CrabCavity, xt.ReferenceEnergyIncrease,
     xt.XYShift, xt.XRotation, xt.YRotation, xt.SRotation, xt.ZetaShift,
     xt.LimitRacetrack, xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
-    xt.LimitPolygon, xt.DipoleEdge]
+    xt.LimitPolygon, xt.DipoleEdge, xt.LongitudinalLimitRect, xt.FirstOrderTaylorMap]
 
 _ALLOWED_ELEMENT_TYPES_DICT = {
     cc.__name__: cc for cc in _ALLOWED_ELEMENT_TYPES_IN_NEW}
@@ -1082,7 +1082,8 @@ class Line:
         if self.mode == 'compose':
             self._full_elements_from_composer()
 
-        if self.tracker is not None:
+        if self.tracker is not None and (_context is None or _context == self._context) \
+           and (_buffer is None or _buffer == self._buffer):
             _print('The line already has an associated tracker')
             return self.tracker
 
@@ -1369,7 +1370,8 @@ class Line:
         particle_ref : Particle object
             Reference particle defining the reference quantities (mass0, q0, p0c,
             gamma0, etc.). Its coordinates (x, py, y, py, zeta, delta) are ignored
-            unless `mode`='shift' is selected.
+            unless `mode`='shift' is selected. If this is None (default), the
+            reference particle associated with this line is used.
         num_particles : int
             Number of particles to be generated (used if provided coordinates are
             all scalar).
@@ -1485,7 +1487,7 @@ class Line:
 
     def twiss(self, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
-        delta0=None, zeta0=None,
+        delta0=None, zeta0=None, zeta_shift=None,
         r_sigma=None, nemitt_x=None, nemitt_y=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_r_matrix=None,
@@ -1938,8 +1940,8 @@ class Line:
                                 restore_if_fail=restore_if_fail)
 
     def find_closed_orbit(self, co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0,
-                          delta0=None, zeta0=None,
+                          co_search_settings={},
+                          delta0=None, zeta0=None, zeta_shift=0,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False,
                           start=None, end=None,
@@ -2018,8 +2020,9 @@ class Line:
             line = self
 
         return find_closed_orbit_line(line, co_guess=co_guess,
-                                 particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
-                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta,
+                                 particle_ref=particle_ref,
+                                 delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
+                                 co_search_settings=co_search_settings,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                  start=start, end=end, num_turns=num_turns,
                                  co_search_at=co_search_at,
@@ -3076,7 +3079,7 @@ class Line:
             track_kernel = None
 
         if inplace:
-            self.unfreeze()
+            self.discard_tracker()
             self.element_names = new_element_names
             new_line = self
         else:
@@ -3762,7 +3765,8 @@ class Line:
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self._elements, self.element_names):
-            if isinstance(ee, Multipole) and nn not in keep:
+            if (isinstance(ee, Multipole) and nn not in keep and
+                not(ee.isthick and ee.length != 0)):
                 ctx2np = ee._context.nparray_from_context_array
                 aux = ([ee.hxl]
                         + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
@@ -4291,14 +4295,20 @@ class Line:
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
 
     def _freeze(self):
+        if self._isfrozen():
+            return
         self.element_names = tuple(self.element_names)
 
     def unfreeze(self):
-
-        # Unfreeze the line. This is useful if you want to modify the line
-        # after it has been frozen (most likely by calling `build_tracker`).
-
+        """See `Line.discard_tracker()`. This function is deprecated."""
+        _print(
+            '`Line.unfreeze()` is deprecated and will be removed in future '
+            'versions. Please use `Line.discard_tracker()` instead.'
+        )
         self.discard_tracker()
+
+    def _isfrozen(self):
+        return isinstance(self.element_names, tuple)
 
     def _frozen_check(self):
         if isinstance(self.element_names, tuple):
@@ -4531,8 +4541,7 @@ class Line:
     @property
     def _context(self):
         if not self._has_valid_tracker():
-            raise RuntimeError(
-                '`Line._context` can only be called after `Line.build_tracker`')
+            return None
         return self.tracker._context
 
     @property
@@ -4897,6 +4906,7 @@ class Line:
                 '_own_lag': 'lag',
                 '_own_lag_taper': 'lag_taper',
                 '_own_frequency': 'frequency',
+                '_own_harmonic': 'harmonic',
 
                 '_own_radiation_flag': 'radiation_flag',
 
@@ -4947,11 +4957,13 @@ class Line:
                 '_parent_h': (('_parent', 'h'), None),
                 '_parent_hxl': (('_parent', 'hxl'), None),
                 '_parent_rbend_model': (('_parent', 'rbend_model'), None),
+                '_parent_rbend_angle_diff': (('_parent', 'rbend_angle_diff'), None),
 
                 '_parent_voltage': (('_parent', 'voltage'), None),
                 '_parent_lag': (('_parent', 'lag'), None),
                 '_parent_lag_taper': (('_parent', 'lag_taper'), None),
                 '_parent_frequency': (('_parent', 'frequency'), None),
+                '_parent_harmonic': (('_parent', 'harmonic'), None),
 
                 '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
 
@@ -5019,6 +5031,8 @@ class Line:
                     attr['_own_lag_taper'] + attr['_parent_lag_taper'] * attr._inherit_strengths,
                 'frequency': lambda attr:
                     attr['_own_frequency'] + attr['_parent_frequency'] * attr._inherit_strengths,
+                'harmonic': lambda attr:
+                    attr['_own_harmonic'] + attr['_parent_harmonic'] * attr._inherit_strengths,
                 'radiation_flag': lambda attr:
                     attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
                   + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
@@ -5194,7 +5208,7 @@ def _deserialize_element(el, class_dict, _buffer):
         return eltype.from_dict(eldct)
 
 def _is_simple_quadrupole(el):
-    if not isinstance(el, Multipole):
+    if not isinstance(el, Multipole) or el.isthick:
         return False
     return (el.radiation_flag == 0
             and (el.order == 1 or len(el.knl) == 2 or not any(el.knl[2:]))
@@ -5205,7 +5219,7 @@ def _is_simple_quadrupole(el):
             and np.abs(el.rot_s_rad) < 1e-12)
 
 def _is_simple_dipole(el):
-    if not isinstance(el, Multipole):
+    if not isinstance(el, Multipole) or el.isthick:
         return False
     return (el.radiation_flag == 0
             and (el.order == 0 or len(el.knl) == 1 or not any(el.knl[1:]))
@@ -5833,18 +5847,30 @@ def _angle_rbend_correction_from_attr(attr):
     # Retrieve element_type from tracker cache (remove _end_point)
     element_type = attr.line.tracker._tracker_data_base._line_table.element_type[:-1]
 
-    mask_rbend_edges = ((element_type == 'ThinSliceRBendEntry')
-                        | (element_type == 'ThinSliceRBendExit'))
+    mask_rbend_edge_entry = (element_type == 'ThinSliceRBendEntry')
+    mask_rbend_edge_exit = (element_type == 'ThinSliceRBendExit')
+
     mask_rbend_body_slices = ((element_type == 'ThinSliceRBend')
                             | (element_type == 'ThickSliceRBend'))
     mask_parent_is_rbend_straigth_body = (attr['_parent_rbend_model'] == 2)
-    mask_rbend_edges_straight_body = (mask_rbend_edges
-                                      & mask_parent_is_rbend_straigth_body)
+    mask_rbend_edges_entry_straight_body = (mask_rbend_edge_entry
+                                            & mask_parent_is_rbend_straigth_body)
+    mask_rbend_edges_exit_straight_body = (mask_rbend_edge_exit
+                                            & mask_parent_is_rbend_straigth_body)
 
     angle[mask_parent_is_rbend_straigth_body & mask_rbend_body_slices] = 0
-    angle[mask_rbend_edges_straight_body] = 0.5 * (
-        attr['_parent_h'][mask_rbend_edges_straight_body]
-        * attr['_parent_length'][mask_rbend_edges_straight_body])
+
+    # angle_in
+    angle[mask_rbend_edges_entry_straight_body] = 0.5 * ((
+        attr['_parent_h'][mask_rbend_edges_entry_straight_body]
+        * attr['_parent_length'][mask_rbend_edges_entry_straight_body])
+        - attr['_parent_rbend_angle_diff'][mask_rbend_edges_entry_straight_body])
+
+    # angle_out
+    angle[mask_rbend_edges_exit_straight_body] = 0.5 * ((
+        attr['_parent_h'][mask_rbend_edges_exit_straight_body]
+        * attr['_parent_length'][mask_rbend_edges_exit_straight_body])
+        + attr['_parent_rbend_angle_diff'][mask_rbend_edges_exit_straight_body])
 
     return angle
 

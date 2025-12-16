@@ -829,7 +829,7 @@ def test_line_attr():
         elements=[
             xt.Drift(length=1),
             xt.Multipole(knl=[2, 3, 4], hxl=8),
-            xt.Bend(k0=5, h=0.5, length=6, knl=[7, 8, 9]),
+            xt.Bend(k0=5, angle=0.5 * 6, length=6, knl=[7, 8, 9]),
             xt.Drift(length=10),
             xt.Quadrupole(k1=11, length=12),
         ]

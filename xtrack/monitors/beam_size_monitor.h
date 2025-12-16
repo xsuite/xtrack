@@ -13,8 +13,8 @@
 
 
 GPUFUN
-void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle* part0){
-
+void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle* part0)
+{
     // get parameters
     int64_t const start_at_turn = BeamSizeMonitorData_get_start_at_turn(el);
     int64_t particle_id_start = BeamSizeMonitorData_get_particle_id_start(el);
@@ -44,19 +44,19 @@ void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle*
                 double x = LocalParticle_get_x(part);
                 double y = LocalParticle_get_y(part);
 
-                /*gpuglmem*/ double* count = BeamSizeMonitorRecord_getp1_count(record, slot);
+                GPUGLMEM double* count = BeamSizeMonitorRecord_getp1_count(record, slot);
                 atomicAdd(count, 1);
 
-                /*gpuglmem*/ double * x_sum = BeamSizeMonitorRecord_getp1_x_sum(record, slot);
+                GPUGLMEM double * x_sum = BeamSizeMonitorRecord_getp1_x_sum(record, slot);
                 atomicAdd(x_sum, x);
 
-                /*gpuglmem*/ double * y_sum = BeamSizeMonitorRecord_getp1_y_sum(record, slot);
+                GPUGLMEM double * y_sum = BeamSizeMonitorRecord_getp1_y_sum(record, slot);
                 atomicAdd(y_sum, y);
 
-                /*gpuglmem*/ double * x2_sum = BeamSizeMonitorRecord_getp1_x2_sum(record, slot);
+                GPUGLMEM double * x2_sum = BeamSizeMonitorRecord_getp1_x2_sum(record, slot);
                 atomicAdd(x2_sum, x*x);
 
-                /*gpuglmem*/ double * y2_sum = BeamSizeMonitorRecord_getp1_y2_sum(record, slot);
+                GPUGLMEM double * y2_sum = BeamSizeMonitorRecord_getp1_y2_sum(record, slot);
                 atomicAdd(y2_sum, y*y);
             }
         }

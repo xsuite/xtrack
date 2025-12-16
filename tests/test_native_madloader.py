@@ -164,7 +164,7 @@ def example_sequence(temp_context_default_mod):
     se: sextupole, L=1, K2=2, K2S=3, TILT=2;  ! ignore ktap
     oc: octupole, L=2, K3=3, K3S=2, TILT=2;
     ma: marker;
-    rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2, NO_CAVITY_TOTALPATH;  ! ignore N_BESSEL
+    rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, NO_CAVITY_TOTALPATH;  ! ignore N_BESSEL
     mu: multipole, LRAD=1, TILT=2, KNL={3, 4, 5, 6}, KSL={1, 2, 3, 4};
     so: solenoid, l=2, ks=3;  ! ignore ksi
 
@@ -382,7 +382,7 @@ def test_rbend_two_step(example_sequence):
     assert rb1.h == h
     assert rb1.edge_entry_angle == 0
     assert rb1.edge_exit_angle == 0
-    assert rb1.k0 == h
+    assert rb1._k0 == h
 
 def test_rbend_set_params_after_lattice(example_sequence):
     env, positions, _ = example_sequence
@@ -401,7 +401,7 @@ def test_rbend_set_params_after_lattice(example_sequence):
     assert rb1.h == h
     assert rb1.edge_entry_angle == 0
     assert rb1.edge_exit_angle == 0
-    assert rb1.k0 == h
+    assert rb1._k0 == h
 
 
 def test_quadrupole(example_sequence):
@@ -450,7 +450,7 @@ def test_marker(example_sequence):
 
 def test_rfcavity(example_sequence):
     env, positions, _ = example_sequence
-    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
+    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
     rf1 = env['rf1/line']
     xo.assert_allclose(positions['rf1/line'], 27, atol=1e-14)
     assert isinstance(rf1, xt.Cavity)
@@ -655,7 +655,7 @@ def test_reversed_marker(example_sequence):
 
 
 def test_reversed_rfcavity(example_sequence):
-    env, _, positions_reversed = example_sequence    # ma: marker;    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3, HARMON=2;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
+    env, _, positions_reversed = example_sequence    # ma: marker;    # rf: rfcavity, L=2, VOLT=1, LAG=2, FREQ=3;  ! ignore N_BESSEL, NO_CAVITY_TOTALPATH
     rf1 = env['rf1/line_reversed']
     xo.assert_allclose(positions_reversed['rf1/line_reversed'], 36 - 27, atol=1e-14)
     assert isinstance(rf1, xt.Cavity)
@@ -791,7 +791,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
                 assert d2[kk] == d4[kk]
                 continue
 
-            if kk == '_isthick' and e2.length == 0:
+            if kk in ('isthick', '_isthick') and e2.length == 0:
                 continue  # Skip the check for zero-length elements
 
             if kk in {

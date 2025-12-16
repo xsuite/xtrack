@@ -69,7 +69,7 @@ tw.rows['ip.*']
 # ip6                      23326.4 0  0 0  0    0     0    0 273.434  183.74
 
 # A section of the ring can be selected using names
-tw.rows['ip5':'mqxfa.a1r5']
+tw.rows['ip5':'mqxfa.a1r5/lhcb1']
 # returns:
 #
 # TwissTable: 8 rows, 70 cols

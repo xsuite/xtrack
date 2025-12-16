@@ -47,7 +47,6 @@ class Tracker:
         track_kernel=None,
         particles_monitor_class=None,
         extra_headers=(),
-        local_particle_src=None,
         _prebuilding_kernels=False,
     ):
 
@@ -62,16 +61,12 @@ class Tracker:
             raise ValueError("`enable_pipeline_hold` is not implemented in "
                              "non-collective mode")
 
-        if local_particle_src is None:
-            local_particle_src = xt.Particles.gen_local_particle_api()
-
         if not particles_monitor_class:
             particles_monitor_class = self._get_default_monitor_class()
 
         self.line = line
         self.particles_monitor_class = particles_monitor_class
         self.extra_headers = extra_headers
-        self.local_particle_src = local_particle_src
         self._enable_pipeline_hold = enable_pipeline_hold
         self.use_prebuilt_kernels = use_prebuilt_kernels
         self.track_flags = TrackFlags()
@@ -533,6 +528,7 @@ class Tracker:
             LocalParticle lpart;
             lpart.io_buffer = io_buffer;
             lpart.track_flags = track_flags;
+            lpart.line_length = line_length;
 
             /*gpuglmem*/ int8_t* tbt_mon_pointer =
                             buffer_tbt_monitor + offset_tbt_monitor;
@@ -684,9 +680,7 @@ class Tracker:
             kernel_descriptions=kernels,
             extra_headers=self._config_to_headers() + headers,
             extra_classes=kernel_element_classes + extra_classes,
-            apply_to_source=[
-                partial(_handle_per_particle_blocks,
-                        local_particle_src=self.local_particle_src)],
+            apply_to_source=[_handle_per_particle_blocks],
             specialize=True,
             compile=compile,
             save_source_as=f'{module_name}.c' if module_name else None,
@@ -1127,8 +1121,6 @@ class Tracker:
             with xt.line._preserve_track_flags(self.line):
                 self.track_flags.XS_FLAG_BACKTRACK = True
                 return self._track_no_collective(**kwargs)
-
-        self.local_particle_src = particles.gen_local_particle_api()
 
         if freeze_longitudinal:
             kwargs = locals().copy()

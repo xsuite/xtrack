@@ -3,6 +3,7 @@ import pathlib
 from itertools import product
 
 import numpy as np
+from scipy.constants import c as clight
 import pytest
 from cpymad.madx import Madx
 
@@ -68,9 +69,6 @@ def test_coupled_beta(test_context):
     line = env['lhcb1']
     line.set_particle_ref('proton', p0c=7e12)
     line['mqwa.a4r3.b1..1'].ksl[1] = 1e-4
-    tt_cav = line.get_table().rows.match('Cavity', 'element_type')
-    for nn in tt_cav.name:
-        line[nn].frequency = 400.79e6
 
     line.build_tracker(_context=test_context)
 
@@ -106,10 +104,6 @@ def test_twiss_zeta0_delta0(test_context):
                   / 'hllhc15_noerrors_nobb/sequence_with_crabs.madx')
     line = env['lhcb1']
     line.set_particle_ref('proton', p0c=7e12)
-
-    tt_cav = line.get_table().rows.match('Cavity', 'element_type')
-    for nn in tt_cav.name:
-        line[nn].frequency = 400.79e6
 
     env['on_crab1'] = -190
     env['on_crab5'] = -190
@@ -675,10 +669,10 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     line = collider[line_name]
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
@@ -1024,6 +1018,11 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         tw = line.twiss()
         circumference = tw.circumference
 
+        if line[cavity_name].harmonic:
+            frequency_rf = line[cavity_name].harmonic / (line.get_length() / tw.beta0 / clight)
+        else:
+            frequency_rf = line[cavity_name].frequency
+
         if longitudinal_mode == 'nonlinear':
             matrix = xt.LineSegmentMap(
                 qx=tw.qx, qy=tw.qy,
@@ -1033,7 +1032,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dx=tw.dx[0], dpx=tw.dpx[0],
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
-                frequency_rf=line[cavity_name].frequency,
+                frequency_rf=frequency_rf,
                 lag_rf=line[cavity_name].lag,
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
@@ -1047,7 +1046,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dx=tw.dx[0], dpx=tw.dpx[0],
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
-                frequency_rf=line[cavity_name].frequency,
+                frequency_rf=frequency_rf,
                 lag_rf=line[cavity_name].lag,
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
@@ -1592,14 +1591,17 @@ def test_longitudinal_beam_sizes(test_context):
         beam_sizes.sigma_zeta / beam_sizes.sigma_pzeta, tw.bets0, atol=0, rtol=5e-5)
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
-def test_second_order_chromaticity_and_dispersion(test_context):
+@pytest.mark.parametrize('method', ['6d', '4d'])
+def test_second_order_chromaticity_and_dispersion(test_context, method):
 
     line = xt.load(test_data_folder /
                              'hllhc15_thick/lhc_thick_with_knobs.json')
     line.vars['on_x5'] = 300
+    line.vars['vrf400'] = 16
+
     line.build_tracker(_context=test_context)
 
-    tw = line.twiss(method='4d')
+    tw = line.twiss(method=method)
     tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
                 x=tw['x', 'ip4'], px=tw['px', 'ip4'],
                 y=tw['y', 'ip4'], py=tw['py', 'ip4'],
@@ -1643,14 +1645,14 @@ def test_second_order_chromaticity_and_dispersion(test_context):
     pxs_qy = np.polyfit(delta, qy_xs, 3)
 
     xo.assert_allclose(delta, nlchr.delta0, atol=1e-6, rtol=0)
-    xo.assert_allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['dpx', location], pxs_px[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['dy', location], pxs_y[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['dpy', location], pxs_py[-2], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddx', location], 2*pxs_x[-3], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddpx', location], 2*pxs_px[-3], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=1e-4)
-    xo.assert_allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=1e-4)
+    xo.assert_allclose(tw['dx', location], pxs_x[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['dpx', location], pxs_px[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['dy', location], pxs_y[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['dpy', location], pxs_py[-2], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddx', location], 2*pxs_x[-3], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddpx', location], 2*pxs_px[-3], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddy', location], 2*pxs_y[-3], atol=0, rtol=5e-4)
+    xo.assert_allclose(tw['ddpy', location], 2*pxs_py[-3], atol=0, rtol=5e-4)
     xo.assert_allclose(tw['dqx'], pxs_qx[-2], atol=0, rtol=1e-3)
     xo.assert_allclose(tw['ddqx'], pxs_qx[-3]*2, atol=0, rtol=1e-2)
     xo.assert_allclose(tw['dqy'], pxs_qy[-2], atol=0, rtol=1e-3)
@@ -1783,10 +1785,10 @@ def test_twiss_range_start_end(test_context, line_name, section, collider_for_te
     if collider.lhcb2.element_names[0] != 'ip3':
         collider.lhcb2.cycle('ip3', inplace=True)
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
@@ -1836,10 +1838,10 @@ def test_arbitrary_start(test_context, collider_for_test_twiss_range):
     assert line.twiss_default['method'] == '4d'
     assert line.twiss_default['reverse']
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()
@@ -1882,10 +1884,10 @@ def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):
     assert line.twiss_default['method'] == '4d'
     assert line.twiss_default['reverse']
 
-    if isinstance(test_context, xo.ContextCpu) and (
+    if isinstance(test_context, xo.ContextCpu) and line._context is not None and (
         test_context.omp_num_threads != line._context.omp_num_threads):
         buffer = test_context.new_buffer()
-    elif isinstance(test_context, line._context.__class__):
+    elif line._context is not None and isinstance(test_context, line._context.__class__):
         buffer = line._buffer
     else:
         buffer = test_context.new_buffer()

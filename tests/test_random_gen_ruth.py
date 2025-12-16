@@ -36,14 +36,16 @@ def test_random_generation(test_context):
 
         _extra_c_sources = [
             '''
-                /*gpufun*/
+                #include "xtrack/headers/track.h"
+                
+                GPUFUN
                 void TestElement_track_local_particle(
                         TestElementData el, LocalParticle* part0){
                     RandomRutherfordData rng = TestElementData_getp_rng(el);
-                    //start_per_particle_block (part0->part)
+                    START_PER_PARTICLE_BLOCK(part0, part);
                         double rr = RandomRutherford_generate(rng, part);
                         LocalParticle_set_x(part, rr);
-                    //end_per_particle_block
+                    END_PER_PARTICLE_BLOCK;
                 }
             '''
         ]

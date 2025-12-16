@@ -132,10 +132,10 @@ class ThinSliceCavity(_ThinSliceElementBase, BeamElement):
 
     def get_equivalent_element(self):
 
-
         out = Cavity(length=0,
                      voltage=self._parent.voltage * self.weight,
                      frequency=self._parent.frequency,
+                     harmonic=self._parent.harmonic,
                      lag=self._parent.lag,
                      lag_taper=self._parent.lag_taper,
                      absolute_time=self._parent.absolute_time,
@@ -177,7 +177,7 @@ class ThinSliceBend(_ThinSliceElementBase, BeamElement):
         knl = self._parent.knl.copy() * self.weight
         ksl = self._parent.ksl.copy() * self.weight
 
-        knl[0] += self._parent.k0 * self._parent.length * self.weight
+        knl[0] += self._parent._k0 * self._parent.length * self.weight
         knl[1] += self._parent.k1 * self._parent.length * self.weight
 
         length = self._parent.length * self.weight
@@ -210,7 +210,7 @@ class ThinSliceRBend(_ThinSliceElementBase, BeamElement):
         knl = self._parent.knl.copy() * self.weight
         ksl = self._parent.ksl.copy() * self.weight
 
-        knl[0] += self._parent.k0 * self._parent.length * self.weight
+        knl[0] += self._parent._k0 * self._parent.length * self.weight
         knl[1] += self._parent.k1 * self._parent.length * self.weight
 
         length = self._parent.length * self.weight

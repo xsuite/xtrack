@@ -43,7 +43,7 @@ end_part_part_block = """
     }
 """
 
-def _handle_per_particle_blocks(sources, local_particle_src):
+def _handle_per_particle_blocks(sources):
 
     if isinstance(sources, str):
         sources = (sources, )
@@ -59,8 +59,6 @@ def _handle_per_particle_blocks(sources, local_particle_src):
         else:
             strss = ss
 
-        strss = strss.replace('/*placeholder_for_local_particle_src*/',
-                                local_particle_src)
         if '//start_per_particle_block' in strss:
 
             lines = strss.splitlines()
@@ -73,7 +71,7 @@ def _handle_per_particle_blocks(sources, local_particle_src):
             # TODO: this is very dirty, just for check!!!!!
             out.append('\n'.join(lines))
         else:
-            out.append(ss)
+            out.append(strss)
 
 
     if wasstring:
@@ -441,9 +439,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     def compile_kernels(self, extra_classes=(), *args, **kwargs):
         if 'apply_to_source' not in kwargs.keys():
             kwargs['apply_to_source'] = []
-        kwargs['apply_to_source'].append(
-            partial(_handle_per_particle_blocks,
-                    local_particle_src=Particles.gen_local_particle_api()))
+        kwargs['apply_to_source'].append(_handle_per_particle_blocks)
         context = self._context
         cls = self.__class__
 
@@ -535,14 +531,13 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             raise ValueError("Invalid array type")
 
     def xoinitialize(self, **kwargs):
-        rot_s_rad = kwargs.pop('rot_s_rad', None)
-        # For the shifts we accept both shift_x and _shift_x for backward compatibility
+        rot_s_rad = kwargs.pop('rot_s_rad', kwargs.pop('_rot_s_rad', None))
         shift_x = kwargs.pop('shift_x', kwargs.pop('_shift_x', None))
         shift_y = kwargs.pop('shift_y', kwargs.pop('_shift_y', None))
         shift_s = kwargs.pop('shift_s', kwargs.pop('_shift_s', None))
-        rot_x_rad = kwargs.pop('rot_x_rad', None)
-        rot_y_rad = kwargs.pop('rot_y_rad', None)
-        rot_s_rad_no_frame = kwargs.pop('rot_s_rad_no_frame', None)
+        rot_x_rad = kwargs.pop('rot_x_rad', kwargs.pop('_rot_x_rad', None))
+        rot_y_rad = kwargs.pop('rot_y_rad', kwargs.pop('_rot_y_rad', None))
+        rot_s_rad_no_frame = kwargs.pop('rot_s_rad_no_frame', kwargs.pop('_rot_s_rad_no_frame', None))
 
         xo.HybridClass.xoinitialize(self, **kwargs)
 
@@ -594,7 +589,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             dct['name_associated_aperture'] = self.name_associated_aperture
         if hasattr(self, 'extra') and self.extra:
             dct['extra'] = self.extra.copy()
-        if hasattr(self, 'prototype'):
+        if hasattr(self, 'prototype') and self.prototype is not None:
             dct['prototype'] = self.prototype
         return dct
 

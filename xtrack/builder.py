@@ -122,7 +122,7 @@ class Builder:
     def __len__(self):
         return len(self.components)
 
-    def resolve_s_positions(self):
+    def resolve_s_positions(self, sort=True):
         components = self.components
         if components is None:
             components = []
@@ -132,6 +132,8 @@ class Builder:
 
         seq_all_places = _all_places(flattened_components)
         tab_unsorted = _resolve_s_positions(seq_all_places, self.env, refer=self.refer)
+        if not sort:
+            return tab_unsorted
         tab_sorted = _sort_places(tab_unsorted)
         return tab_sorted
 
@@ -154,6 +156,11 @@ class Builder:
         formatter = xd.refs.CompactFormatter(scope=None)
 
         for cc in self.components:
+
+            if isinstance(cc, str):
+                dct['components'].append(cc)
+                continue
+
             if not isinstance(cc, xt.Place):
                 raise NotImplementedError('Only Place components are implemented for now')
 
@@ -211,6 +218,10 @@ class Builder:
         out = cls(env=env)
         components = dct.pop('components')
         for cc in components:
+            if isinstance(cc, str):
+                out.components.append(cc)
+                continue
+
             if isinstance(cc['name'], dict):
                 assert cc['name']['__class__'] == 'Line'
                 name = xt.Line.from_dict(cc['name'], _env=env)
@@ -431,6 +442,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center',
     tt_out['s_start'] = aux_s_start
     tt_out['s_center'] = aux_s_center
     tt_out['s_end'] = aux_s_end
+    tt_out['s']= aux_s_start
 
     tt_out['from_'] = np.array([ss.from_ for ss in seq_all_places])
     tt_out['from_anchor'] = np.array([ss.from_anchor for ss in seq_all_places])
@@ -446,6 +458,8 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
     iii = _argsort_s(tt_unsorted.s_center, tol=s_tol)
     tt_s_sorted = tt_unsorted.rows[iii]
 
+    # Identify groups of elements with s_center with the same s position
+    # (basically thin elements, if not overlapping)
     group_id = np.zeros(len(tt_s_sorted), dtype=int)
     group_id[0] = 0
     for ii in range(1, len(tt_s_sorted)):
@@ -464,17 +478,23 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
     # at each iteration.
     ind_name = {nn: ii for ii, nn in enumerate(tt_s_sorted.name)}
 
+    # Sort elements within each group
     n_places = len(tt_s_sorted)
     i_start_group = 0
     i_place_sorted = []
     while i_start_group < n_places:
+
+        # Identify group edges
         i_group = tt_s_sorted['group_id', i_start_group]
         i_end_group = i_start_group + 1
         while i_end_group < n_places and tt_s_sorted['group_id', i_end_group] == i_group:
             i_end_group += 1
+
+        # Debug
         # print(f'Group {i_group}: {tt_s_sorted.name[i_start_group:i_end_group]}')
 
         n_group = i_end_group - i_start_group
+
         if n_group == 1: # Single element
             i_place_sorted.append(tt_s_sorted.i_place[i_start_group])
             i_start_group = i_end_group
@@ -483,46 +503,95 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
         if np.all(tt_s_sorted.from_anchor[i_start_group:i_end_group] == None): # Nothing to do
             i_place_sorted.extend(list(tt_s_sorted.i_place[i_start_group:i_end_group]))
             i_start_group = i_end_group
+            continue
+
+        # Geneal case to sort thin sandwiches:
+        #  - elements with from_ before the group go first (in order of appearance)
+        #  - elements with no from_ go next (in order of appearance)
+        #  - elements with from_ after the group go last (in order of appearance)
+        #  - elements with from_ inside the group get inserted based on their from_/from_anchor
 
         tt_group = tt_s_sorted.rows[i_start_group:i_end_group]
+
+        # Debug
         # tt_group.show(cols=['s_center', 'name', 'from_', 'from_anchor'])
 
-        for ff in tt_group.from_:
+        # Identify subgroups
+        subgroup_from_is_before = []
+        subgroup_from_is_after = []
+        subgroup_from_is_inside = []
+        subgroup_no_from = []
+        for ii in range(n_group):
+            ff = tt_group.from_[ii]
             if ff is None:
-                continue
-            if ff not in ind_name:
-                if allow_non_existent_from:
-                    continue
-                else:
-                    raise ValueError(f'Element {ff} not found in the line')
-            i_from_global = ind_name[ff] - i_start_group
-            key_sort = np.zeros(n_group, dtype=int)
-
-            if i_from_global < 0:
-                key_sort[:] = 2
-            elif i_from_global >= n_group:
-                key_sort[:] = -2
+                subgroup_no_from.append(ii)
             else:
-                i_local = tt_group.rows.indices[ff][0] # I need to use this because it might change in the group resortings
-                key_sort[i_local] = 0
-                key_sort[:i_local] = -2
-                key_sort[i_local+1:] = 2
+                if ff not in ind_name:
+                    if allow_non_existent_from:
+                        subgroup_no_from.append(ii)
+                        continue
+                    else:
+                        raise ValueError(f'Element {ff} not found in the line')
+                i_from_global = ind_name[ff]
+                if i_from_global < i_start_group:
+                    subgroup_from_is_before.append(ii)
+                elif i_from_global >= i_end_group:
+                    subgroup_from_is_after.append(ii)
+                else:
+                    subgroup_from_is_inside.append(ii)
 
-            from_present = tt_group['from_']
-            from_anchor_present = tt_group['from_anchor']
+        # Build dicts with insertions from subgroup_from_is_inside
+        # (dictionary keys are the from_ names)
+        insertion_before = {}
+        insertion_after = {}
+        for ii in subgroup_from_is_inside:
+            from_ = tt_group.from_[ii]
+            from_anchor = tt_group.from_anchor[ii]
+            if from_anchor == 'start' or from_anchor == None:
+                if from_ not in insertion_before:
+                    insertion_before[from_] = []
+                insertion_before[from_].append(ii)
+            elif from_anchor == 'end':
+                if from_ not in insertion_after:
+                    insertion_after[from_] = []
+                insertion_after[from_].append(ii)
+            else:
+                raise ValueError(f'Unknown from_anchor {from_anchor}')
 
-            mask_pack_before = (from_present == ff) & (from_anchor_present == 'start')
-            mask_pack_after = (from_present == ff) & (from_anchor_present == 'end')
-            key_sort[mask_pack_before] = -1
-            key_sort[mask_pack_after] = 1
+        # Make insertions
+        subgroup_from_is_not_inside = (subgroup_from_is_before +
+                                subgroup_no_from +
+                                subgroup_from_is_after)
+        i_subgroup_sorted = subgroup_from_is_not_inside.copy()
+        while len(insertion_before) > 0 or len(insertion_after) > 0:
+            new_i_subgroup_sorted = []
+            for ii in i_subgroup_sorted:
+                nn = tt_group.name[ii]
+                if nn in insertion_before:
+                    new_i_subgroup_sorted.extend(insertion_before[nn])
+                    insertion_before.pop(nn)
+                new_i_subgroup_sorted.append(ii)
+                if nn in insertion_after:
+                    new_i_subgroup_sorted.extend(insertion_after[nn])
+                    insertion_after.pop(nn)
 
-            if np.all(np.diff(key_sort) >=0):
-                continue # already sorted
-            tt_group = tt_group.rows[np.argsort(key_sort, kind='stable')]
+            if len(new_i_subgroup_sorted) == len(i_subgroup_sorted):
+                # No changes -> done
+                raise ValueError('Could not sort elements within group; possible circular '
+                                 'dependency in from_ specifications')
 
+            i_subgroup_sorted = new_i_subgroup_sorted
+
+        # Sort the group subtable
+        tt_group = tt_group.rows[i_subgroup_sorted]
+
+        # Append the sorted indices
         i_place_sorted.extend(list(tt_group.i_place))
+
+        # Move to next group
         i_start_group = i_end_group
 
+    # Sort the entire table according to i_place_sorted
     tt_sorted = tt_unsorted.rows[i_place_sorted]
 
     tt_sorted['s_center'] = tt_sorted['s_start'] + tt_sorted['length'] / 2

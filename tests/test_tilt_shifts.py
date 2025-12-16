@@ -64,7 +64,7 @@ def test_test_tilt_shifts_vs_sandwich(test_context, slice_mode, element_type):
     p0 = p_test.copy()
 
     line_test.build_tracker(_context=test_context)
-    line_ref.build_tracker(_context=test_context)
+    line_ref.build_tracker()
 
     line_test.track(p_test)
     line_ref.track(p_ref)

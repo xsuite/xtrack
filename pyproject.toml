@@ -1,6 +1,67 @@
 [build-system]
 build-backend = 'setuptools.build_meta'
 requires = [
-    'setuptools >= 43.0.0',
-    'numpy',
+    'setuptools>=77.0.0',
+]
+
+[project]
+name = "xtrack"
+dynamic = ["version"]
+description = "Tracking library for particle accelerators"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+authors = [
+  { name = "G. Iadarola et al." }
+]
+dependencies = [
+  "numpy>=1.0",
+  "pandas>=2.0",
+  "scipy",
+  "tqdm",
+  "requests",
+  "xobjects",
+  "xdeps",
+]
+
+[project.urls]
+"Homepage" = "https://xsuite.readthedocs.io/"
+"Bug Tracker" = "https://github.com/xsuite/xsuite/issues"
+"Documentation" = "https://xsuite.readthedocs.io/"
+"Source Code" = "https://github.com/xsuite/xtrack"
+"Download" = "https://pypi.python.org/pypi/xtrack"
+
+[project.optional-dependencies]
+tests = [
+  "cpymad",
+  "nafflib",
+  "PyHEADTAIL",
+  "pytest",
+  "pytest-mock",
+  "pymadng==0.8.1",
+  "requests-mock",
+  "tfs-pandas",
+]
+notebooks = [
+  "jupyter",
+  "ipympl",
+  "xplt"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["xtrack*", "ducktrack*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "xtrack._version.__version__" }
+
+[tool.setuptools]
+include-package-data = true
+
+[project.entry-points.xobjects]
+include = "xtrack"
+
+[pytest]
+markers = [
+    "context_dependent: marks test as one that depends on the execution context",
 ]

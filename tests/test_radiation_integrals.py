@@ -315,36 +315,36 @@ class Wiggler:
                 if i != 0 and i != self.wiggler_num_periods:
                     wiggler += [
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=-self.wiggler_amplitude, h=0,
+                                k0=-self.wiggler_amplitude, angle=0,
                                 rot_s_rad=self.angle_rad),
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=-self.wiggler_amplitude, h=0,
+                                k0=-self.wiggler_amplitude, angle=0,
                                 rot_s_rad=self.angle_rad),
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=self.wiggler_amplitude, h=0,
+                                k0=self.wiggler_amplitude, angle=0,
                                 rot_s_rad=self.angle_rad),
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=self.wiggler_amplitude, h=0,
+                                k0=self.wiggler_amplitude, angle=0,
                                 rot_s_rad=self.angle_rad)
                     ]
 
                 elif i == 0:
                     wiggler += [
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=self.wiggler_amplitude, h=0,
+                                k0=self.wiggler_amplitude, angle=0,
                                 rot_s_rad=self.angle_rad)
                     ]
 
                 else:
                     wiggler += [
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=-self.wiggler_amplitude, h=0,
+                                k0=-self.wiggler_amplitude, angle=0,
                                 rot_s_rad=self.angle_rad),
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=-self.wiggler_amplitude, h=0,
+                                k0=-self.wiggler_amplitude, angle=0,
                                 rot_s_rad=self.angle_rad),
                         xt.Bend(length=self.wiggler_period / 4,
-                                k0=self.wiggler_amplitude, h=0,
+                                k0=self.wiggler_amplitude, angle=0,
                                 rot_s_rad=self.angle_rad)
                     ]
 
@@ -353,16 +353,16 @@ class Wiggler:
                 sign = 1 if i % 2 == 0 else -1
                 wiggler += [
                     xt.Bend(length=self.wiggler_period / 4,
-                            k0=-sign * self.wiggler_amplitude, h=0,
+                            k0=-sign * self.wiggler_amplitude, angle=0,
                             rot_s_rad=self.angle_rad),
                     xt.Bend(length=self.wiggler_period / 4,
-                            k0=sign * self.wiggler_amplitude, h=0,
+                            k0=sign * self.wiggler_amplitude, angle=0,
                             rot_s_rad=self.angle_rad),
                     xt.Bend(length=self.wiggler_period / 4,
-                            k0=sign * self.wiggler_amplitude, h=0,
+                            k0=sign * self.wiggler_amplitude, angle=0,
                             rot_s_rad=self.angle_rad),
                     xt.Bend(length=self.wiggler_period / 4,
-                            k0=-sign * self.wiggler_amplitude, h=0,
+                            k0=-sign * self.wiggler_amplitude, angle=0,
                             rot_s_rad=self.angle_rad)
                 ]
 

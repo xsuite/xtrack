@@ -19,22 +19,22 @@ class VerticalChirpKicker(xt.BeamElement):
 
     _extra_c_sources =['''
 
-        #include <headers/track.h>
-        #include <beam_elements/elements_src/track_magnet.h>
+        #include "xtrack/headers/track.h"
+        #include "xtrack/beam_elements/elements_src/track_magnet.h"
 
-        /*gpufun*/
+        GPUFUN
         void VerticalChirpKicker_track_local_particle(
-                VerticalChirpKickerData el, LocalParticle* part0){
-
+                VerticalChirpKickerData el, LocalParticle* part0)
+        {
             double const k0sl = VerticalChirpKickerData_get_k0sl(el);
             double const q_start = VerticalChirpKickerData_get_q_start(el);
             double const q_end = q_start + VerticalChirpKickerData_get_q_span(el);
             double const num_turns = VerticalChirpKickerData_get_num_turns(el);
             double const length = VerticalChirpKickerData_get_length(el);
 
-            //start_per_particle_block (part0->part)
+            START_PER_PARTICLE_BLOCK(part0, part);
                 double const at_turn = LocalParticle_get_at_turn(part);
-                if (at_turn < num_turns){
+                if (at_turn < num_turns) {
                     // integrating to get the instantaneous phase
                     double const phi = 2 * PI * q_start * at_turn
                        + PI * (q_end - q_start) / ((double) num_turns) * ((double) at_turn * at_turn);
@@ -60,9 +60,9 @@ class VerticalChirpKicker(xt.BeamElement):
                         0, // frame curvature
                         length,
                         length // lpath - same for a thin element
-                       );
-                    #endif
+                    );
+                #endif
                 }
-            //end_per_particle_block
+            END_PER_PARTICLE_BLOCK;
         }
         ''']

@@ -297,10 +297,10 @@ def _tw_ng(line, rdts=(), normal_form=True,
             d4q2 = out_nf[9],
             d5q1 = out_nf[10],
             d5q2 = out_nf[11],
-            dqxdjx = out_nf[6]*2.,
-            dqydjy = out_nf[7]*2.,
-            dqxdjy = out_nf[8]*2.,
-            dqydjx = out_nf[9]*2.,
+            dqxdjx = out_nf[12]*2.,
+            dqydjy = out_nf[13]*2.,
+            dqxdjy = out_nf[14]*2.,
+            dqydjx = out_nf[15]*2.,
         )
         for nn in dct_nf:
             tw[nn+'_nf_ng'] = dct_nf[nn]

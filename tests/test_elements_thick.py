@@ -139,7 +139,7 @@ def test_combined_function_dipole_expanded(test_context):
         _context=test_context,
     )
 
-    bend = xt.Bend(k0=1e-3, h=0.9e-3, length=1, k1=0.001, knl=[0, 0, 0.02])
+    bend = xt.Bend(k0=1e-3, angle=0.9e-3, length=1, k1=0.001, knl=[0, 0, 0.02])
     line_thick = xt.Line(elements=[bend], element_names=['b'])
     line_thick.build_tracker(_context=test_context)
 
@@ -238,7 +238,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
     # Bend with a multipolar component
     bend_with_mult = element_type(
         k0=k0,
-        h=h,
+        angle=h * bend_length,
         length=bend_length,
         knl=knl,
         ksl=ksl,
@@ -249,7 +249,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
     # Separate bend and a corresponding multipole
     bend_no_mult = element_type(
         k0=k0,
-        h=h,
+        angle=h * bend_length / num_kicks / 2,
         length=bend_length / num_kicks / 2,
         num_multipole_kicks=0,
     )
@@ -299,14 +299,11 @@ def test_thick_multipolar_component(test_context, element_type, h):
     'kwargs',
     [
         {},
-        {'length': 2, 'angle': 0.1, 'h': 0.05},
-        {'length': 2, 'angle': 0.1, 'h': 0.1},
         {'length': 2, 'angle': 0.1},
-        {'length': 2, 'h': 0.1},
         {'length': 2},
-        {'angle': 0.1, 'h': 0.05},
+        {'angle': 0.1},
     ],
-    ids=['none', 'all', 'inconsistent', 'no_h', 'no_angle', 'only_length', 'no_length'],
+    ids=['none', 'all', 'length', 'angle'],
 )
 @pytest.mark.parametrize('scenario', ['vanilla', 'env'])
 def test_bend_param_handling(kwargs, scenario):
@@ -319,17 +316,7 @@ def test_bend_param_handling(kwargs, scenario):
             env.new('bend', 'Bend', **kwargs)
             return env['bend']
 
-    input_is_consistent = True
-    if len(kwargs) == 3 and not np.isclose(
-            kwargs['angle'], kwargs['length'] * kwargs['h'], rtol=0, atol=1e-13):
-        input_is_consistent = False
-
-    if not input_is_consistent:
-        with pytest.raises(ValueError):
-            _ = make_bend()
-        return
-    else:
-        bend = make_bend()
+    bend = make_bend()
 
     for key, value in kwargs.items():
         assert getattr(bend, key) == value
@@ -339,24 +326,18 @@ def test_bend_param_handling(kwargs, scenario):
     if 'angle' in kwargs:
         assert bend.angle == kwargs['angle']
 
-    if 'h' in kwargs:
-        assert bend.h == kwargs['h']
-
     assert bend.angle == bend.length * bend.h or bend.length == 0
 
 
 @pytest.mark.parametrize(
     'kwargs, expected',
     [
-        ({}, {'length': 10, 'angle': 0.2, 'h': 0.02}),
-        ({'length': 2, 'angle': 0.1, 'h': 0.05}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
-        ({'length': 2, 'angle': 0.1, 'h': 0.1}, {'length': 2, 'angle': 0.2, 'h': 0.1}),  # order matters
-        ({'length': 2, 'angle': 0.1}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
-        ({'length': 2, 'h': 0.05}, {'length': 2, 'angle': 0.1, 'h': 0.05}),
-        ({'length': 2}, {'length': 2, 'angle': 0.2, 'h': 0.1}),  # keeps angle
-        ({'h': 0.05, 'angle': 0.1}, {'length': 10, 'angle': 0.1, 'h': 0.01}),  # order matters
+        ({}, {'length': 10, 'angle': 0.2}),
+        ({'length': 2, 'angle': 0.1}, {'length': 2, 'angle': 0.1}),
+        ({'length': 2}, {'length': 2, 'angle': 0.2}),
+        ({'angle': 0.2}, {'length': 10, 'angle': 0.2}),
     ],
-    ids=['none', 'all', 'h_after_angle', 'no_h', 'no_angle', 'only_length', 'angle_after_h'],
+    ids=['none', 'all', 'only_length', 'only_angle'],
 )
 def test_bend_param_handling_set_after(kwargs, expected):
     bend = xt.Bend(length=10, angle=0.2)
@@ -374,19 +355,9 @@ def test_bend_param_handling_set_after(kwargs, expected):
 @pytest.mark.parametrize(
     'kwargs',
     [
-        {'length': 2, 'angle': 0.4, 'h': 0.2, 'length_straight': 1.986693307950612},
-        {'length': 2, 'angle': 0.4, 'h': 0.2},
-        {'length': 2, 'h': 0.2},
-        {'length': 2, 'angle': 0.4},
-        {'angle': 0.4, 'h': 0.2, 'length_straight': 1.986693307950612},
-        {'h': 0.2, 'length_straight': 1.986693307950612},
-        {'angle': 0.4, 'length_straight': 1.986693307950612},
-        {'length': 2, 'length_straight': 2},
-        {'length': 2},
+        {'length_straight': 2, 'angle': 0.4},
         {'length_straight': 2},
-        {'angle': 0.4, 'h': 0.2},
         {'angle': 0.4},
-        {'h': 0.2},
         # Inconsistent
         {'length': 2, 'angle': 0.4, 'h': 0.4, 'length_straight': 2, 'error': True},
         {'length': 2, 'angle': 0.4, 'h': 0.4, 'error': True},
@@ -395,9 +366,14 @@ def test_bend_param_handling_set_after(kwargs, expected):
         {'length': 2, 'h': 0.4, 'length_straight': 2, 'error': True},
     ],
     ids=[
-        'all', 'len_ang_h', 'len_h', 'len_ang', 'ls_ang_h', 'ls_h', 'ls_ang',
-        'only_lengths', 'only_len', 'only_ls', 'angle_h', 'only_angle', 'only_h',
-        'bad_all', 'bad_len', 'bad_ls', 'bad_ang', 'bad_h',
+        'lstraight_angle',
+        'lstraight',
+        'angle',
+        'inconsistent_1',
+        'inconsistent_2',
+        'inconsistent_3',
+        'inconsistent_4',
+        'inconsistent_5',
     ],
 )
 @pytest.mark.parametrize('scenario', ['vanilla', 'env'])
@@ -433,13 +409,6 @@ def test_rbend_param_handling(kwargs, scenario):
     if 'h' not in kwargs and 'angle' not in kwargs:
         assert same(bend.length, bend.length_straight)
 
-    if 'length' not in kwargs and 'length_straight' not in kwargs:
-        if 'h' not in kwargs:
-            assert same(bend.h, 0)
-        if 'angle' not in kwargs:
-            assert same(bend.angle, 0)
-
-
 def test_rbend_param_handling_set_after():
     # This test is a bit less meaningful as there are a lot of combinations
     # that lead to unintuitive, but valid, results
@@ -447,9 +416,9 @@ def test_rbend_param_handling_set_after():
     def assert_eq(a, b):
         xo.assert_allclose(a, b, rtol=0, atol=1e-15)
 
-    bend = xt.RBend(length=10, angle=0.2)
+    bend = xt.RBend(length_straight=9.983341664682815, angle=0.2)
     assert bend.h == 0.02
-    assert_eq(bend.length_straight, 9.983341664682815)
+    assert_eq(bend.length, 10)
 
     bend.angle = 0.4
     assert bend.angle == 0.4
@@ -464,32 +433,8 @@ def test_rbend_param_handling_set_after():
     assert_eq(bend.length, 10.016686131634778)
     assert_eq(bend.h, 0.01996668332936563)
 
-    bend.length = 10
-    assert bend.angle == 0.2
-    assert bend.length == 10
-    assert bend.h == 0.02
-    assert_eq(bend.length_straight, 9.983341664682815)
-
-    bend.h = 0.01
-    assert bend.h == 0.01
-    assert_eq(bend.length_straight, 9.983341664682815)
-    assert_eq(bend.angle, 0.09987492198591705)
-    assert_eq(bend.length, 9.987492198591704)
-
-
 @for_all_test_contexts
-@pytest.mark.parametrize(
-    'param_scenario', ['length', 'length_straight', 'both', 'mismatched'],
-)
-@pytest.mark.parametrize(
-    "use_angle_in_rbend", [True, False],
-    ids=('rbend with angle', 'rbend with h'),
-)
-@pytest.mark.parametrize(
-    "use_angle_in_sbend", [True, False],
-    ids=('sbend with angle', 'sbend with h'),
-)
-def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sbend):
+def test_rbend(test_context):
     k0 = 0.15
     angle = 0.1
     radius = 2
@@ -501,20 +446,10 @@ def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sb
 
     # Set up everything for the RBend
     r_bend_extra_kwargs = {}
+    r_bend_extra_kwargs['length_straight'] = length_straight
+    r_bend_extra_kwargs['angle'] = angle
 
-    if param_scenario in ('length', 'both', 'mismatched'):
-        r_bend_extra_kwargs['length'] = length
-
-    if param_scenario in ('length_straight', 'both', 'mismatched'):
-        r_bend_extra_kwargs['length_straight'] = length_straight
-
-    if use_angle_in_rbend:
-        r_bend_extra_kwargs['angle'] = angle
-    else:
-        r_bend_extra_kwargs['h'] = curvature
-
-    def _make_rbend():
-        return xt.RBend(
+    rbend = xt.RBend(
             k0=k0,
             edge_entry_angle=e1_rbend,
             edge_entry_active=True,
@@ -524,22 +459,9 @@ def test_rbend(test_context, param_scenario, use_angle_in_rbend, use_angle_in_sb
             _context=test_context,
         )
 
-    if param_scenario == 'mismatched':
-        length_straight += 0.8
-        with pytest.raises(ValueError):
-            r_bend_extra_kwargs['length_straight'] += 0.8
-            _make_rbend()
-        return
-    else:
-        rbend = _make_rbend()
-
     # Set up everything for the SBend
     s_bend_extra_kwargs = {}
-
-    if use_angle_in_rbend:
-        s_bend_extra_kwargs['angle'] = angle
-    else:
-        s_bend_extra_kwargs['h'] = curvature
+    s_bend_extra_kwargs['angle'] = angle
 
     sbend = xt.Bend(
         k0=k0,
@@ -639,7 +561,7 @@ def test_import_thick_bend_from_madx_cpymad(use_true_thick_bends, with_knobs, be
     # k0 = h if k0 is zero, but this is not feasible to implement in Xtrack now.
     xo.assert_allclose(elem.k2, 0.4, atol=1e-14)
     xo.assert_allclose(elem.h, elem.angle / elem.length, atol=1e-14)  # h = angle / L
-    xo.assert_allclose(elem.k0, 0 if with_knobs else elem.h, atol=1e-14)
+    xo.assert_allclose(elem.k0, 0 if with_knobs else 'from_h', atol=1e-14)
     xo.assert_allclose(elem.knl, 0.0, atol=1e-14)
     xo.assert_allclose(elem.ksl, 0.0, atol=1e-14)
 
@@ -1218,7 +1140,7 @@ def test_fringe_implementations(test_context):
 def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
     # Check bend
-    b = xt.Bend(k0=0.2, h=0.1, length=1.0)
+    b = xt.Bend(k0=0.2, angle=0.1, length=1.0)
     line = xt.Line(elements=[b])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
@@ -1283,7 +1205,7 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     assert np.all(p2.state == -32)
 
     # Same for combined function magnet
-    cfm = xt.Bend(length=1.0, k1=0.2, h=0.1)
+    cfm = xt.Bend(length=1.0, k1=0.2, angle=0.1)
     line = xt.Line(elements=[cfm])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
@@ -2590,7 +2512,7 @@ def test_knl_knl_kick_present_with_default_num_kicks():
     assert np.abs(p.px[0]) > 1e-7
 
     l5 = env.new_line(components=[
-        env.new('rb1', 'RBend', length=0.1)])
+        env.new('rb1', 'RBend', length_straight=0.1)])
     p0 = l5.build_particles(x=3e-3)
     p = p0.copy()
     l5.track(p)
@@ -2706,7 +2628,7 @@ def test_octupole_num_kicks():
 def test_configure_model():
     line = xt.Line(elements={
         'b1': xt.Bend(k0=10, length=4, knl=[1, 2, 3]),
-        'r1': xt.RBend(k0=7, length=3, knl=[4, 5, 6]),
+        'r1': xt.RBend(k0=7, length_straight=3, knl=[4, 5, 6]),
         'q1': xt.Quadrupole(k1=20, length=4),
         's1': xt.Sextupole(k2=50, length=8),
         'o1': xt.Octupole(k3=100, length=9),
@@ -3069,3 +2991,69 @@ def test_variable_solenoid_x0y0(test_context):
     xo.assert_allclose(tw_test_rad.kin_px, tw_ref_rad.kin_px, rtol=0, atol=1e-14)
     xo.assert_allclose(tw_test_rad.kin_py, tw_ref_rad.kin_py, rtol=0, atol=1e-14)
     xo.assert_allclose(tw_test_rad.delta, tw_ref_rad.delta, rtol=0, atol=1e-14)
+
+def test_api_rbend():
+    bend1 = xt.RBend()
+    bend1.angle = 0.1
+    bend1.length_straight= 1.0
+
+    bend2 = xt.RBend()
+    bend2.length_straight= 1.0
+    bend2.angle = 0.1
+
+    bend3 = xt.RBend(angle=0.1, length_straight=1.0)
+
+    bend1d = xt.RBend.from_dict(bend1.to_dict())
+    bend2d = xt.RBend.from_dict(bend2.to_dict())
+    bend3d = xt.RBend.from_dict(bend3.to_dict())
+
+    for bb in [bend1, bend2, bend3, bend1d, bend2d, bend3d]:
+        assert bb.h == 0.1 / bb.length
+        assert bb.k0 == 'from_h'
+        assert bb.k0_from_h == True
+        assert bb.length_straight == 1.0
+        assert bb.length > 1.0
+        assert bb.angle == 0.1
+
+    bend1.k0 = 0.2
+    assert bend1.k0 == 0.2
+    assert bend1.h == 0.1 / bend1.length
+    assert bend1.k0_from_h == False
+
+    bend2.k0_from_h = False
+    assert bend2.k0 == 0.
+    assert bend2.h == 0.1 / bend2.length
+    assert bend2.k0_from_h == False
+
+def test_api_bend():
+
+    bend1 = xt.Bend()
+    bend1.angle = 0.1
+    bend1.length = 1.0
+
+    bend2 = xt.Bend()
+    bend2.length = 1.0
+    bend2.angle = 0.1
+
+    bend3 = xt.Bend(angle=0.1, length=1.0)
+
+    bend1d = xt.Bend.from_dict(bend1.to_dict())
+    bend2d = xt.Bend.from_dict(bend2.to_dict())
+    bend3d = xt.Bend.from_dict(bend3.to_dict())
+
+    for bb in [bend1, bend2, bend3, bend1d, bend2d, bend3d]:
+        assert bb.h == 0.1
+        assert bb.k0 == 'from_h'
+        assert bb.k0_from_h == True
+        assert bb.length == 1.0
+        assert bb.angle == 0.1
+
+    bend1.k0 = 0.2
+    assert bend1.k0 == 0.2
+    assert bend1.h == 0.1
+    assert bend1.k0_from_h == False
+
+    bend2.k0_from_h = False
+    assert bend2.k0 == 0.
+    assert bend2.h == 0.1
+    assert bend2.k0_from_h == False

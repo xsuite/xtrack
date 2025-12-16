@@ -1,7 +1,14 @@
+// copyright ############################### //
+// This file is part of the Xtrack Package.  //
+// Copyright (c) CERN, 2025.                 //
+// ######################################### //
+
 #ifndef XTRACK_TRACK_H
 #define XTRACK_TRACK_H
 
-#include <headers/constants.h>
+#include "xobjects/headers/common.h"
+#include "xobjects/headers/atomicadd.h"
+#include "xtrack/headers/constants.h"
 
 /*
     The particle tracking "decorators" for all the contexts.
@@ -21,12 +28,6 @@
 
     #define END_PER_PARTICLE_BLOCK \
             } \
-        }
-
-    #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
-        for (int INDEX_NAME = 0; INDEX_NAME < (COUNT); INDEX_NAME++) {
-
-    #define END_VECTORIZE \
         }
 #endif  // XO_CONTEXT_CPU_SERIAL
 
@@ -48,14 +49,6 @@
                 } \
             } \
         }
-
-    #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
-        _Pragma("omp parallel for") \
-        for (int INDEX_NAME = 0; INDEX_NAME < (COUNT); INDEX_NAME++) {
-
-    #define END_VECTORIZE \
-        }
-
 #endif  // XO_CONTEXT_CPU_OPENMP
 
 
@@ -67,14 +60,6 @@
 
     #define END_PER_PARTICLE_BLOCK \
             }
-
-    #define VECTORIZE_OVER(INDEX_NAME, COUNT) { \
-            int INDEX_NAME = blockDim.x * blockIdx.x + threadIdx.x; \
-            if (INDEX_NAME < (COUNT)) {
-
-    #define END_VECTORIZE \
-            } \
-        }
 #endif  // XO_CONTEXT_CUDA
 
 
@@ -86,52 +71,7 @@
 
     #define END_PER_PARTICLE_BLOCK \
             }
-
-    #define VECTORIZE_OVER(INDEX_NAME, COUNT) \
-        { \
-            int INDEX_NAME = get_global_id(0);
-
-    #define END_VECTORIZE \
-        }
 #endif  // XO_CONTEXT_CL
-
-
-/*
-    Qualifier keywords for GPU and optimisation
-*/
-
-#ifdef XO_CONTEXT_CPU // for both serial and OpenMP
-    #define GPUKERN
-    #define GPUFUN      static inline
-    #define GPUGLMEM
-    #define RESTRICT    restrict
-#endif
-
-
-#ifdef XO_CONTEXT_CUDA
-    #define GPUKERN     __global__
-    #define GPUFUN      __device__
-    #define GPUGLMEM
-    #define RESTRICT
-#endif // XO_CONTEXT_CUDA
-
-
-#ifdef XO_CONTEXT_CL
-    #define GPUKERN     __kernel
-    #define GPUFUN
-    #define GPUGLMEM    __global
-    #define RESTRICT
-#endif // XO_CONTEXT_CL
-
-
-/*
-    Common maths-related macros
-*/
-
-#define POW2(X) ((X)*(X))
-#define POW3(X) ((X)*(X)*(X))
-#define POW4(X) ((X)*(X)*(X)*(X))
-#define NONZERO(X) ((X) != 0.0)
 
 
 #ifndef START_PER_PARTICLE_BLOCK

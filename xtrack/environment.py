@@ -25,7 +25,8 @@ from .view import View
 ReferType = Literal['start', 'center', 'centre', 'end']
 
 DEFAULT_REF_STRENGTH_NAME = {
-    'Bend': 'k0',
+    'Bend': '_k0', # using underscored to get the value also when k0_from_h is True
+    'RBend': '_k0',
     'Quadrupole': 'k1',
     'Sextupole': 'k2',
     'Octupole': 'k3',
@@ -419,6 +420,9 @@ class Environment:
                 ])
         """
 
+        if isinstance(components, str):
+            raise ValueError('components must be a list or tuple, not a string')
+
         out = xt.Line(env=self, compose=True, length=length, refer=refer,
                       s_tol=s_tol, mirror=mirror)
 
@@ -427,7 +431,6 @@ class Environment:
 
         if not compose:
             out.end_compose()
-            out.composer = None
 
         self._lines_weakrefs.add(out) # Weak references
 
@@ -1552,19 +1555,19 @@ class EnvElements:
     def __len__(self):
         return len(self.env._element_dict)
 
-    def get_table(self):
+    def get_table(self, attr=False):
         names = sorted(list(self.env._element_dict.keys()))
         dumline = self.env.new_line(components=names)
-        tt = dumline.get_table()
+        tt = dumline.get_table(attr=attr)
         assert tt.name[-1] == '_end_point'
         tt = tt.rows[:-1] # Remove endpoint
-        del tt['s']
-        del tt['s_start']
-        del tt['s_center']
-        del tt['s_end']
-        del tt['env_name']
-        tt['length'] = np.array(
-            [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
+        for cc in ['s', 's_start', 's_center', 's_end', 'env_name']:
+            if cc in tt._col_names:
+                tt._col_names.remove(cc)
+                del tt._data[cc]
+        if 'length' not in tt._col_names:
+            tt['length'] = np.array(
+                [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
         return tt
 
     def remove(self, name):
@@ -1619,11 +1622,11 @@ class EnvParticles:
         return len(self.env._particles)
 
     def get_table(self):
-        names = sorted(list(self.env._particles.keys()))
+        names = np.array(sorted(list(self.env._particles.keys())))
         mass0 = np.array(
-            [self.env._particles[nn].mass0[0] for nn in names])
+            [self.env._particles[nn].mass0 for nn in names])
         charge0 = np.array(
-            [self.env._particles[nn].charge0[0] for nn in names])
+            [self.env._particles[nn].q0 for nn in names])
         energy0 = np.array(
             [self.env._particles[nn].energy0[0] for nn in names])
         p0c = np.array(
@@ -2299,4 +2302,3 @@ def _disable_name_clash_checks(env):
         yield
     finally:
         env._enable_name_clash_check = old_value
-
