@@ -295,10 +295,10 @@ def _tw_ng(line, rdts=(), normal_form=False,
         tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
 
     if compute_chromatic_properties:
-        temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng*2)
+        temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng)
         tw['ax_ng'] = np.imag(temp_x)
         tw['bx_ng'] = np.real(temp_x)
-        temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng*2)
+        temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng)
         tw['ay_ng'] = np.imag(temp_y)
         tw['by_ng'] = np.real(temp_y)
         del tw['phix_ng']
