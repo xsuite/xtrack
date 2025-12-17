@@ -7,6 +7,17 @@ import time
 
 import numpy as np
 
+def _in_jupyter_notebook():
+    try:
+        from IPython import get_ipython
+        ip = get_ipython()
+        if ip is None:
+            return False
+        # Jupyter notebook or JupyterLab
+        return 'IPKernelApp' in ip.config
+    except Exception:
+        return False
+
 
 def _mylbl(d, x):
     return d.get(x, r"%s" % x)
@@ -243,7 +254,11 @@ class TwissPlot(object):
             self.lines, self.legends, loc="upper right", bbox_to_anchor=(1.35, 1.)
         )
         self.ax.grid(self.grid)
-        self.figure.canvas.draw()
+        if _in_jupyter_notebook():
+             self.figure.show()
+        else:
+            self.figure.canvas.draw()
+
         if hasattr(self, "on_run"):
             self.on_run(self)
 
