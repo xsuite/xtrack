@@ -255,7 +255,7 @@ class TwissPlot(object):
         )
         self.ax.grid(self.grid)
         if _in_jupyter_notebook():
-             self.figure.show()
+             self.figure.draw_without_rendering()
         else:
             self.figure.canvas.draw()
 
