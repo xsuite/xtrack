@@ -1784,9 +1784,9 @@ def _compute_chromatic_functions(line, init, delta_chrom,
         tw_minus = tw_chrom_res[0]
         tw_center = on_momentum_twiss_res
 
-        delta_plus_mean = np.trapezoid(tw_plus.delta, tw_plus.s) / tw_plus.s[-1]
-        delta_minus_mean = np.trapezoid(tw_minus.delta, tw_minus.s) / tw_minus.s[-1]
-        delta_center_mean = np.trapezoid(tw_center.delta, tw_center.s) / tw_center.s[-1]
+        delta_plus_mean = trapz(tw_plus.delta, tw_plus.s) / tw_plus.s[-1]
+        delta_minus_mean = trapz(tw_minus.delta, tw_minus.s) / tw_minus.s[-1]
+        delta_center_mean = trapz(tw_center.delta, tw_center.s) / tw_center.s[-1]
 
         dqx_plus = (tw_plus.mux[-1] - tw_center.mux[-1]) / (delta_plus_mean - delta_center_mean)
         dqx_minus = (tw_center.mux[-1] - tw_minus.mux[-1]) / (delta_center_mean - delta_minus_mean)
