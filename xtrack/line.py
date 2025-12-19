@@ -325,12 +325,12 @@ class Line:
         self._element_names_before_slicing = dct.get(
             '_element_names_before_slicing', None)
 
+        if 'composer' in dct.keys() and dct['composer'] is not None:
+            self.composer = xt.Builder.from_dict(dct['composer'], env=self.env)
+
         if ('energy_program' in self._element_dict
              and self._element_dict['energy_program'] is not None):
             self.energy_program.line = self
-
-        if 'composer' in dct.keys() and dct['composer'] is not None:
-            self.composer = xt.Builder.from_dict(dct['composer'], env=self.env)
 
         if (self._extra_config.get('end_compose_on_reload', True)
             and self.mode == 'compose'):
