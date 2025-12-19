@@ -1428,10 +1428,10 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         self._length = value
         if self.length != 0:
             self._h = self.angle / self.length
-            if self.k0_from_h:
-                self._k0 = self.h
         else:
             self._h = 0.0
+        if self.k0_from_h:
+            self._k0 = self.h
 
     @property
     def h(self):
