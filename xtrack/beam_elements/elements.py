@@ -1445,7 +1445,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     @property
     def k0(self):
         if self.k0_from_h:
-            return 'from_h'
+            return self.h
         return self._k0
 
     @k0.setter
