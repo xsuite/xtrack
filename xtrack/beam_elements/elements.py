@@ -102,6 +102,15 @@ _for_docstring_alignment = '''
         Given in meters from the element entrance. Default is ``0``.
 '''.strip()
 
+_docstring_general_notes = '''
+    Notes
+    -----
+
+    Additional information on the definition of element properties and the
+    implemented physics and models can be found in the Xsuite physics guide
+    (https://xsuite.readthedocs.io/en/latest/physicsguide.html).
+'''.strip()
+
 class SynchrotronRadiationRecord(xo.HybridClass):
     _xofields = {
         '_index': RecordIndex,
@@ -2058,7 +2067,8 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
-               _for_docstring_edge_straight, _for_docstring_alignment, '\n'])
+               _for_docstring_edge_straight, _for_docstring_alignment, '\n',
+               _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
@@ -2137,7 +2147,8 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
-               _for_docstring_edge_straight, _for_docstring_alignment, '\n'])
+               _for_docstring_edge_straight, _for_docstring_alignment, '\n',
+               _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
@@ -2216,7 +2227,8 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
-               _for_docstring_edge_straight, _for_docstring_alignment, '\n'])
+               _for_docstring_edge_straight, _for_docstring_alignment, '\n',
+               _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
