@@ -155,6 +155,13 @@ class _HasModelStraight:
     with model fields.
     """
 
+    _for_docstring = '''
+    model : str
+        Model used for the element. Available models are: ''' + \
+        ', '.join([f'"{k}"' for k in _MODEL_TO_INDEX_STRAIGHT.keys() if k != 'full']) + \
+    '''. Default is "adaptive".
+    '''
+
     @property
     def model(self):
         return _INDEX_TO_MODEL_STRAIGHT[self._model]
@@ -2204,7 +2211,8 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters along the reference trajectory.
     """
 
-    __doc__ = _docstring_start + _HasKnlKsl._for_docstring.strip()
+    __doc__ = '\n    '.join([_docstring_start.strip(), _HasKnlKsl._for_docstring.strip(),
+               _HasModelStraight._for_docstring.strip()])
 
     isthick = True
     has_backtrack = True
