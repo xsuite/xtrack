@@ -73,6 +73,12 @@ _INDEX_TO_RBEND_MODEL = {
 
 _RBEND_MODEL_TO_INDEX = {k: v for v, k in _INDEX_TO_RBEND_MODEL.items()}
 
+_for_docstring_edge_straight = ('''
+    edge_entry_active: bool
+        Fringe field at the entrance edge is active if True. Default is False.
+    edge_exit_active: bool
+        Fringe field at the exit edge is active if True. Default is False.
+    ''').strip()
 
 class SynchrotronRadiationRecord(xo.HybridClass):
     _xofields = {
@@ -93,9 +99,8 @@ class _HasIntegrator:
 
     _for_docstring = ('''
     integrator : str
-        Integrator used for the element. Available integrators are: ''' + \
-        ', '.join([f'"{k}"' for k in _INTEGRATOR_TO_INDEX.keys()]) + \
-    '''. Default is "adaptive".
+        Integrator used for the element. Available integrators are: "adaptive", 
+        "teapot", "yoshida4", "uniform". Default is "adaptive".
     ''').strip()
 
     @property
@@ -164,9 +169,8 @@ class _HasModelStraight:
 
     _for_docstring = ('''
     model : str
-        Model used for the element. Available models are: \n    ''' + \
-        ', '.join([f'"{k}"' for k in _MODEL_TO_INDEX_STRAIGHT.keys() if k != 'full']) + \
-    '''.\n    Default is "adaptive".
+        Model used for the element. Available models are: "adaptive", "mat-kick-mat",
+        "drift-kick-drift-exact", "drift-kick-drift-expanded". Default is "adaptive".
     ''').strip()
 
     @property
@@ -2215,11 +2219,12 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     k1s : float
         Strength of the skew quadrupole component in m^-2.
     length : float
-        Length of the element in meters along the reference trajectory.
+        Length of the element in meters.
     """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
-               _HasModelStraight._for_docstring, _HasIntegrator._for_docstring])
+               _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
+               _for_docstring_edge_straight, '\n'])
 
     isthick = True
     has_backtrack = True
