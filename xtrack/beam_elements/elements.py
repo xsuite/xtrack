@@ -91,6 +91,13 @@ class _HasIntegrator:
     with integrator fields.
     """
 
+    _for_docstring = ('''
+    integrator : str
+        Integrator used for the element. Available integrators are: ''' + \
+        ', '.join([f'"{k}"' for k in _INTEGRATOR_TO_INDEX.keys()]) + \
+    '''. Default is "adaptive".
+    ''').strip()
+
     @property
     def integrator(self):
         return _INDEX_TO_INTEGRATOR[self._integrator]
@@ -155,12 +162,12 @@ class _HasModelStraight:
     with model fields.
     """
 
-    _for_docstring = '''
+    _for_docstring = ('''
     model : str
-        Model used for the element. Available models are: ''' + \
+        Model used for the element. Available models are: \n    ''' + \
         ', '.join([f'"{k}"' for k in _MODEL_TO_INDEX_STRAIGHT.keys() if k != 'full']) + \
-    '''. Default is "adaptive".
-    '''
+    '''.\n    Default is "adaptive".
+    ''').strip()
 
     @property
     def model(self):
@@ -249,14 +256,14 @@ class _HasKnlKsl:
     with knl and ksl fields.
     """
 
-    _for_docstring = '''
+    _for_docstring = ('''
     knl : array-like, optional
         Integrated strengths of additional normal multipole components in m^(-order).
     ksl : array-like, optional
         Integrated strengths of additional skew multipole components in m^(-order).
     order : int, optional
         Maximum order of additional multipole components. Default is ``5``.
-    '''
+    ''').strip()
 
     @property
     def order(self):
@@ -2209,10 +2216,10 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Strength of the skew quadrupole component in m^-2.
     length : float
         Length of the element in meters along the reference trajectory.
-    """
+    """.strip()
 
-    __doc__ = '\n    '.join([_docstring_start.strip(), _HasKnlKsl._for_docstring.strip(),
-               _HasModelStraight._for_docstring.strip()])
+    __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _HasModelStraight._for_docstring, _HasIntegrator._for_docstring])
 
     isthick = True
     has_backtrack = True
