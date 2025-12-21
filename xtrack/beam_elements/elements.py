@@ -132,6 +132,11 @@ class _HasIntegrator:
     integrator : str
         Integrator used for the element. Available integrators are: "adaptive",
         "teapot", "yoshida4", "uniform". Default is "adaptive".
+    num_multipole_kicks : int
+        Number of multipole kicks to be used. For the yoshida integrator, this
+        is rounded up to the nearest number compatible with the integrator scheme.
+        Default is ``0``, for which the number of kicks is chosen automatically
+        based on the element length and strength.
     ''').strip()
 
     @property
@@ -458,14 +463,21 @@ class Marker(BeamElement):
 
 
 class Drift(_HasModelDrift, BeamElement):
-    """Beam element modeling a drift section.
+
+    _docstring_start = """Beam element modeling a drift section.
 
     Parameters
     ----------
 
     length : float
         Length of the drift section in meters. Default is ``0``.
+    model : str
+        Model used for the drift element. Available models are: "adaptive",
+        "expanded", "exact". Default is "adaptive".
+
     """
+
+    __doc__ = '\n    '.join([_docstring_start, _docstring_general_notes])
 
     _xofields = {
         'length': xo.Float64,
