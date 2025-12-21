@@ -80,6 +80,28 @@ _for_docstring_edge_straight = ('''
         Fringe field at the exit edge is active if True. Default is False.
     ''').strip()
 
+_for_docstring_alignment = '''
+    shift_x : float
+        Horizontal shift of the element in meters. Default is ``0``.
+    shift_y : float
+        Vertical shift of the element in meters. Default is ``0``.
+    shift_s : float
+        Longitudinal shift of the element in meters. Default is ``0``.
+    rot_s_rad : float
+        Rotation around the longitudinal axis in radians. Default is ``0``.
+    rot_x_rad : float
+        Rotation around the horizontal axis in radians. Default is ``0``.
+    rot_y_rad : float
+        Rotation around the vertical axis in radians. Default is ``0``.
+    rot_s_rad_no_frame : float
+        Additional rotation around the longitudinal axis in radians. In this case
+        the element field is rotated, but the reference frame at the interfaces
+        is not changed. Default is ``0``.
+    rot_shift_anchor : float
+        Position along the element length where the rotations and shifts are applied.
+        Given in meters from the element entrance. Default is ``0``.
+'''.strip()
+
 class SynchrotronRadiationRecord(xo.HybridClass):
     _xofields = {
         '_index': RecordIndex,
@@ -99,7 +121,7 @@ class _HasIntegrator:
 
     _for_docstring = ('''
     integrator : str
-        Integrator used for the element. Available integrators are: "adaptive", 
+        Integrator used for the element. Available integrators are: "adaptive",
         "teapot", "yoshida4", "uniform". Default is "adaptive".
     ''').strip()
 
@@ -261,11 +283,11 @@ class _HasKnlKsl:
     """
 
     _for_docstring = ('''
-    knl : array-like, optional
+    knl : array-like
         Integrated strengths of additional normal multipole components in m^(-order).
-    ksl : array-like, optional
+    ksl : array-like
         Integrated strengths of additional skew multipole components in m^(-order).
-    order : int, optional
+    order : int
         Maximum order of additional multipole components. Default is ``5``.
     ''').strip()
 
@@ -2224,7 +2246,7 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
-               _for_docstring_edge_straight, '\n'])
+               _for_docstring_edge_straight, _for_docstring_alignment, '\n'])
 
     isthick = True
     has_backtrack = True
