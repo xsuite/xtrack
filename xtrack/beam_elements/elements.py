@@ -242,6 +242,15 @@ class _HasKnlKsl:
     with knl and ksl fields.
     """
 
+    _for_docstring = '''
+    knl : array-like, optional
+        Integrated strengths of additional normal multipole components in m^(-order).
+    ksl : array-like, optional
+        Integrated strengths of additional skew multipole components in m^(-order).
+    order : int, optional
+        Maximum order of additional multipole components. Default is ``5``.
+    '''
+
     @property
     def order(self):
         return self._order
@@ -2180,6 +2189,8 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
 
 class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
+
+    _docstring_start = \
     """
     Quadrupole element.
 
@@ -2191,28 +2202,10 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Strength of the skew quadrupole component in m^-2.
     length : float
         Length of the element in meters along the reference trajectory.
-    order : int, optional
-        Maximum order of multipole expansion for this magnet. Defaults to 5.
-    knl : list of floats, optional
-        Normal multipole integrated strengths. If not provided, defaults to zeroes.
-    ksl : list of floats, optional
-        Skew multipole integrated strengths. If not provided, defaults to zeroes.
-    model : str, optional
-        Drift model to be used in kick-splitting. See ``Magnet`` for details.
-    integrator : str, optional
-        Integration scheme to be used. See ``Magnet`` for details.
-    num_multipole_kicks : int, optional
-        The number of kicks to be used in thin kick splitting. The default value
-        of zero implies a single kick in the middle of the element.
-    edge_entry_active : bool, optional
-        Whether to include the edge effect at entry. Enabled by default.
-    edge_exit_active : bool, optional
-        Whether to include the edge effect at exit. Enabled by default.
-    radiation_flag : int, optional
-        Whether to enable radiation. See ``Magnet`` for details.
-    delta_taper : float, optional
-        A value added to delta for the purposes of tapering. Default is 0.
     """
+
+    __doc__ = _docstring_start + _HasKnlKsl._for_docstring.strip()
+
     isthick = True
     has_backtrack = True
     allow_loss_refinement = True
