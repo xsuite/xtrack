@@ -2041,7 +2041,10 @@ class RBend(_BendCommon, BeamElement):
 
 
 class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
-    """Sextupole element.
+
+    _docstring_start = \
+    """
+    Sextupole element.
 
     Parameters
     ----------
@@ -2050,29 +2053,12 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     k2s : float
         Strength of the skew sextupole component in m^-3.
     length : float
-        Length of the element in meters along the reference trajectory.
-    order : int, optional
-        Maximum order of multipole expansion for this magnet. Defaults to 5.
-    knl : list of floats, optional
-        Normal multipole integrated strengths. If not provided, defaults to zeroes.
-    ksl : list of floats, optional
-        Skew multipole integrated strengths. If not provided, defaults to zeroes.
-    model : str, optional
-        Drift model to be used in kick-splitting. See ``Magnet`` for details.
-    integrator : str, optional
-        Integration scheme to be used. See ``Magnet`` for details.
-    num_multipole_kicks : int, optional
-        The number of kicks to be used in thin kick splitting. The default value
-        of zero implies a single kick in the middle of the element.
-    edge_entry_active : bool, optional
-        Whether to include the edge effect at entry. Enabled by default.
-    edge_exit_active : bool, optional
-        Whether to include the edge effect at exit. Enabled by default.
-    radiation_flag : int, optional
-        Whether to enable radiation. See ``Magnet`` for details.
-    delta_taper : float, optional
-        A value added to delta for the purposes of tapering. Default is 0.
-    """
+        Length of the element in meters.
+    """.strip()
+
+    __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
+               _for_docstring_edge_straight, _for_docstring_alignment, '\n'])
 
     isthick = True
     has_backtrack = True
@@ -2135,39 +2121,23 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
 class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
+    _docstring_start = \
     """
     Octupole element.
 
     Parameters
     ----------
     k3 : float
-        Strength of the octupole component in m^-3.
+        Strength of the octupole component in m^-4.
     k3s : float
-        Strength of the skew octupole component in m^-3.
+        Strength of the skew octupole component in m^-4.
     length : float
-        Length of the element in meters along the reference trajectory.
-    order : int, optional
-        Maximum order of multipole expansion for this magnet. Defaults to 5.
-    knl : list of floats, optional
-        Normal multipole integrated strengths. If not provided, defaults to zeroes.
-    ksl : list of floats, optional
-        Skew multipole integrated strengths. If not provided, defaults to zeroes.
-    model : str, optional
-        Drift model to be used in kick-splitting. See ``Magnet`` for details.
-    integrator : str, optional
-        Integration scheme to be used. See ``Magnet`` for details.
-    num_multipole_kicks : int, optional
-        The number of kicks to be used in thin kick splitting. The default value
-        of zero implies a single kick in the middle of the element.
-    edge_entry_active : bool, optional
-        Whether to include the edge effect at entry. Enabled by default.
-    edge_exit_active : bool, optional
-        Whether to include the edge effect at exit. Enabled by default.
-    radiation_flag : int, optional
-        Whether to enable radiation. See ``Magnet`` for details.
-    delta_taper : float, optional
-        A value added to delta for the purposes of tapering. Default is 0.
-    """
+        Length of the element in meters.
+    """.strip()
+
+    __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
+               _for_docstring_edge_straight, _for_docstring_alignment, '\n'])
 
     isthick = True
     has_backtrack = True
