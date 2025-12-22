@@ -1765,12 +1765,20 @@ class RBend(_BendCommon, BeamElement):
         Model used for the rectangular bend. Possible values are:
         "adaptive', "curved-body", "straight-body". Default is "adaptive',
         which falls back to "curved-body".
+    rbend_angle_diff : float
+        Difference in radians between the angle of the reference trajectory
+        with respect to the magnet axis at the entrance and exit of the magnet.
+        See drawing on Xsuite Physics Guide. Default is 0.0.
     rbend_shift : float
         Shift of the magnet body, in meters, defined as the displacement
         of the reference trajectory with respect to the magnet axis at the center
-        of the magnet.
+        of the magnet. This parameter has effect only when `rbend_model` is
+        "straight-body". Default is 0.0.
     rbend_compensate_sagitta : bool
-        If True, 
+        If True, the magnet body is shifted by half of the trajectory sagitta,
+        defined as (1 / h) * (1 - cos(angle / 2)). The shift is added to `rbend_shift`.
+        This parameter has effect only when `rbend_model` is "straight-body".
+        Default is True.
     """
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
