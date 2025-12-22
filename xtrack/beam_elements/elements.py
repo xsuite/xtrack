@@ -1761,6 +1761,9 @@ class RBend(_BendCommon, BeamElement):
         If True, `k0` is computed from the curvature defined by `angle` and
         `length` (i.e. `k0 = h = angle/length`). Default is True. The flag
         becomes false when `k0` is set directly to a numeric value.
+    rbend_model : str, optional
+        Model used for the rectangular bend. Possible values are:
+        
     """
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
