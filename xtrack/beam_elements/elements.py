@@ -1279,25 +1279,38 @@ class Misalignment(BeamElement):
 
 class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
 
-    '''Beam element modeling a thin magnetic multipole.
+    _docstring_start = \
+    """Beam element modeling a magnetic multipole.
 
     Parameters
     ----------
 
     knl : array
-        Normalized integrated strength of the normal components in units of m^-n.
+        Integrated strength of the normal components in units of m^-n.
     ksl : array
-        Normalized integrated strength of the skew components in units of m^-n.
+        Integrated strength of the skew components in units of m^-n.
     order : int
-        Order of the multipole. Default is ``0``.
+        Order of the multipole. By default it is inferred from the length of
+        knl and ksl.
     hxl : float
-        Rotation angle of the reference trajectory in the horizontal plane in radians. Default is ``0``.
+        Rotation angle in radians applied to the reference trajectory in the
+        horizontal plane. Default is ``0``.
     length : float
         Length of the originating thick multipole. Default is ``0``.
+    isthick : bool
+        Whether the multipole is to be treated as thick (True) or thin (False).
+        Default is ``False``.
+    """
 
-    '''
+    __doc__ = '\n    '.join([_docstring_start.strip(),
+                             _HasModelCurved._for_docstring,
+                             _HasIntegrator._for_docstring,
+                             _for_docstring_edge_straight,
+                             _for_docstring_alignment, '\n',
+                             _docstring_general_notes, '\n\n'])
 
     #isthick can be changed dynamically for this element
+
     has_backtrack = True
 
     _xofields={
