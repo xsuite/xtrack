@@ -1734,76 +1734,39 @@ class Bend(_BendCommon, BeamElement):
 
 
 class RBend(_BendCommon, BeamElement):
-    """
-    Implementation of a straight combined function magnet (i.e. a rectangular
-    bending magnet with a quadrupole component).
+    _docstring_start = \
+    """Rectangular bending magnet element.
 
     Parameters
     ----------
+    length_straith : float
+        Length of the element in meters along the axis of the magnet (straight line
+        between entry and exit points). This is different from the length of the
+        reference trajectory, i.e. the increase of the `s` coordinate through the
+        element, which is computed internally and can be inspected via the
+        `length` property.
+    angle : float
+        Angle of the bend in radians. This is the angle by which the reference
+        trajectory is bent in the horizontal plane.
     k0 : float, optional
         Strength of the horizontal dipolar component in units of m^-1.
+        It can be set to the string value 'from_h', in which case `k0` is
+        computed from the curvature defined by `angle` and `length`
+        (i.e. `k0 = h = angle/length`) and `k0_from_h` is set to True.
     k1 : float, optional
-        Strength of the horizontal quadrupolar component in units of m^-2.
-    h : float, optional
-        Curvature of the reference trajectory in units of m^-1. Will be
-        computed from angle and `length_straight` if not given, otherwise will
-        be checked for consistency. Changes to `h` will update `angle` and
-        `length`.
-    angle : float, optional
-        Angle of the bend in radians. Will be computed from `h` and
-        `length_straight` if not given, otherwise will be checked for
-        consistency. Changes to `angle` will update `h` and `length`.
+        Strength of the quadrupolar component in units of m^-2.
+    k2 : float, optional
+        Strength of the sextupolar component in units of m^-3.
     k0_from_h : bool, optional
-        If True, `k0` will assume the value of `h` and its value will be updated
-        when `h` is changed.
-    length : float, optional
-        Length of the element in units of m along the reference trajectory.
-        Will be computed from `angle` and `length_straight` if not given.
-        Changes to `length` will update `h` and `length_straight`.
-    length_straight : float, optional
-        Length of the element in units of m along a straight line. Changes to
-        `length_straight` will update `length` and `h`.
-    knl : array, optional
-        Integrated strength of the high-order normal multipolar components.
-    ksl : array, optional
-        Integrated strength of the high-order skew multipolar components.
-    model : str, optional
-        Drift model to be used in kick-splitting. See `Bend` for details.
-    integrator : str, optional
-        Integration scheme to be used. See `Bend` for details.
-    num_multipole_kicks : int, optional
-        Number of multipole kicks used to model high order multipolar
-        components. By default, switched off.
-    order : int, optional
-        Order of `knl` and `ksl`. If not given, it will be inferred from `knl`
-        and `ksl`, but will be at least `DEFAULT_MULTIPOLE_ORDER` = 5.
-    edge_entry_active : bool, optional
-        Whether to model the entry edge. Disabled by default.
-    edge_exit_active : bool, optional
-        Same as `edge_entry_active`, but for the exit.
-    edge_entry_model : LiteralUnion['linear', 'full', 'suppressed']
-        Type of edge model to use at the entry. Default is 'full'.
-    edge_exit_model : LiteralUnion['linear', 'full', 'suppressed']
-        Same as `edge_entry_model`, but for the exit.
-    edge_entry_angle : float, optional
-        The angle of the entry edge in radians. Default is 0.
-    edge_exit_angle : float, optional
-        Same as `edge_entry_angle`, but for the exit.
-    edge_entry_angle_fdown : float, optional
-        Term added to the entry angle only for the linear mode and only in
-        the vertical plane to account for non-zero angle in the closed orbit
-        when entering the fringe field (feed down effect). Default is 0.
-    edge_exit_angle_fdown : float, optional
-        Same as `edge_entry_angle_fdown`, but for the exit. Default is 0.
-    edge_entry_fint: float, optional
-        Fringe integral value at entry.
-    edge_exit_fint : float, optional
-        Same as `edge_entry_fint`, but for the exit. Default is 0.
-    edge_entry_hgap : float, optional
-        Equivalent gap at entry in meters. Default is 0.
-    edge_exit_hgap : float, optional
-        Same as `edge_entry_hgap`, but for the exit.
+        If True, `k0` is computed from the curvature defined by `angle` and
+        `length` (i.e. `k0 = h = angle/length`). Default is True. The flag
+        becomes false when `k0` is set directly to a numeric value.
     """
+
+    __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+            _HasModelCurved._for_docstring, _HasIntegrator._for_docstring,
+            _for_docstring_edge_bend, _for_docstring_alignment, '\n',
+            _docstring_general_notes, '\n\n'])
 
     _xofields = {
         **_BendCommon._common_xofields,
