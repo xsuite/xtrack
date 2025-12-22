@@ -1349,6 +1349,9 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
 
     @property
     def allow_loss_refinement(self):
+        '''
+        Loss refinement is allowed only for thick multipoles with non-zero length.
+        '''
         # Allow refinement only when thick (to keep old behavior when thin and
         # have consistency with other thick elements otherwise)
         return self.isthick and self.length != 0
