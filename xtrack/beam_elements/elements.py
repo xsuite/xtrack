@@ -1748,22 +1748,29 @@ class RBend(_BendCommon, BeamElement):
     angle : float
         Angle of the bend in radians. This is the angle by which the reference
         trajectory is bent in the horizontal plane.
-    k0 : float, optional
+    k0 : float
         Strength of the horizontal dipolar component in units of m^-1.
         It can be set to the string value 'from_h', in which case `k0` is
         computed from the curvature defined by `angle` and `length`
         (i.e. `k0 = h = angle/length`) and `k0_from_h` is set to True.
-    k1 : float, optional
+    k1 : float
         Strength of the quadrupolar component in units of m^-2.
-    k2 : float, optional
+    k2 : float
         Strength of the sextupolar component in units of m^-3.
-    k0_from_h : bool, optional
+    k0_from_h : bool
         If True, `k0` is computed from the curvature defined by `angle` and
         `length` (i.e. `k0 = h = angle/length`). Default is True. The flag
         becomes false when `k0` is set directly to a numeric value.
-    rbend_model : str, optional
+    rbend_model : str
         Model used for the rectangular bend. Possible values are:
-        
+        "adaptive', "curved-body", "straight-body". Default is "adaptive',
+        which falls back to "curved-body".
+    rbend_shift : float
+        Shift of the magnet body, in meters, defined as the displacement
+        of the reference trajectory with respect to the magnet axis at the center
+        of the magnet.
+    rbend_compensate_sagitta : bool
+        If True, 
     """
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
