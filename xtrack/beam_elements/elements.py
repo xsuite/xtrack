@@ -755,18 +755,28 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
 
 
 class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
-    '''Beam element modeling an RF CrabCavity.
+    _docstring_start = \
+    '''Crab cavity element.
 
     Parameters
     ----------
-    voltage : float
-        Voltage of the RF CrabCavity in Volts. Default is ``0``.
+    length : float
+        Length of the RF cavity in meters. Default is ``0``.
+    crab_voltage : float
+        Voltage associated to the horizontal RF deflection in Volts. Default is ``0``.
     frequency : float
-        Frequency of the RF CrabCavity in Hertz. Default is ``0``.
+        Frequency of the cavity in Hertz. It can be set only if harmonic is zero.
+        Default is ``0``.
     lag : float
-        Phase seen by the reference particle in degrees. Default is ``0``.
+        Phase in degrees seen at the arrival time of the reference particle (zeta = 0).
+    '''.strip()
 
-    '''
+    __doc__ = '\n    '.join([_docstring_start,
+        _HasModelStraight._for_docstring,
+        _HasIntegrator._for_docstring.replace(
+            'num_multipole_kicks', 'num_kicks').replace('multipole kicks', 'kicks'),
+        _for_docstring_alignment, '\n',
+        _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
