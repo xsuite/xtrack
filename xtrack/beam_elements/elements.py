@@ -325,6 +325,13 @@ class _HasModelRF:
 
     _default_model = _INDEX_TO_MODEL_RF[0]
 
+    @staticmethod
+    def get_available_models():
+        """Get list of available RF models for this element.
+        """
+        out = [kk for kk in _MODEL_TO_INDEX_RF.keys() if kk != 'full']
+        return out
+
 
 class _HasKnlKsl:
 
@@ -638,9 +645,11 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
     '''.strip()
 
     __doc__ = '\n    '.join([_docstring_start,
-            _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
-            _for_docstring_alignment, '\n',
-            _docstring_general_notes, '\n\n'])
+        _HasModelStraight._for_docstring,
+        _HasIntegrator._for_docstring.replace(
+            'num_multipole_kicks', 'num_kicks').replace('multipole kicks', 'kicks'),
+        _for_docstring_alignment, '\n',
+        _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
