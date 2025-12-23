@@ -2269,13 +2269,17 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
 class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
 
+    _docstring_start = \
     """
-    Solenoid element.
+    Uniform solenoid element with hard-edge fringe field. The axis of the
+    solenoid is assumed parallel to the `s` axis. Radiation and spin
+    precession are take place only in the solenoid body (no radiation and
+    precession in the fringe field).
 
     Parameters
     ----------
     ks : float
-        Strength of the solenoid component.
+        Strength of the solenoid component (defined as B_s / reference_rigidity)
     length : float
         Length of the element in meters along the reference trajectory.
     x0 : float, optional
@@ -2288,20 +2292,11 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
         Normal multipole integrated strengths. If not provided, defaults to zeroes.
     ksl : list of floats, optional
         Skew multipole integrated strengths. If not provided, defaults to zeroes.
-    integrator : str, optional
-        Integration scheme to be used. See ``Magnet`` for details.
-    num_multipole_kicks : int, optional
-        The number of kicks to be used in thin kick splitting. The default value
-        of zero implies a single kick in the middle of the element.
-    edge_entry_active : bool, optional
-        Whether to include the edge effect at entry. Enabled by default.
-    edge_exit_active : bool, optional
-        Whether to include the edge effect at exit. Enabled by default.
-    radiation_flag : int, optional
-        Whether to enable radiation. See ``Magnet`` for details.
-    delta_taper : float, optional
-        A value added to delta for the purposes of tapering. Default is 0.
     """
+
+    __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+            _HasIntegrator._for_docstring, _for_docstring_edge_straight,
+            _for_docstring_alignment, '\n', _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
