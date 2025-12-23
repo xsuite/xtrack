@@ -3056,30 +3056,33 @@ class SimpleThinBend(BeamElement):
 
 
 class RFMultipole(_HasKnlKsl, BeamElement):
+
+    _docstring_start = \
     """Beam element modeling a thin modulated multipole, with strengths
     dependent on the z coordinate:
 
     Parameters
     ----------
-    order : int
-        Order of the multipole. Default is ``0``.
+    frequency : float
+        Frequency in Hertz. Default is ``0``.
     knl : array
-        Normalized integrated strength of the normal components in units of m^-n.
-        Must be of length ``order+1``.
+        Integrated strength of the normal rf-multipole components in units of m^-n.
     ksl : array
-        Normalized integrated strength of the skew components in units of m^-n.
-        Must be of length ``order+1``.
+        Integrated strength of the skew rf-multipole components in units of m^-n.
+    order : int
+        Order of the multipole. If not provided, it will be inferred from knl and/or ksl.
     pn : array
-        Phase of the normal components in degrees. Must be of length ``order+1``.
+        Phase of the normal components in degrees.
     ps : array
-        Phase of the skew components in degrees. Must be of length ``order+1``.
+        Phase of the skew components in degrees.
     voltage : float
         Longitudinal voltage. Default is ``0``.
     lag : float
         Longitudinal phase seen by the reference particle. Default is ``0``.
-    frequency : float
-        Frequency in Hertz. Default is ``0``.
-    """
+    """.strip()
+
+    __doc__ = '\n    '.join([_docstring_start, _for_docstring_alignment, '\n',
+                             _docstring_general_notes, '\n\n'])
 
     _xofields={
         'voltage': xo.Float64,
