@@ -2370,8 +2370,8 @@ class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
-        _HasIntegrator._for_docstring, _for_docstring_edge_straight,
-        _for_docstring_alignment, '\n', _docstring_general_notes, '\n\n'])
+        _HasIntegrator._for_docstring, _for_docstring_alignment, '\n',
+        _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
