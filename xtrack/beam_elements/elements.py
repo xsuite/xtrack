@@ -608,18 +608,39 @@ class DriftExact(BeamElement):
 
 
 class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
-    '''Beam element modeling an RF cavity.
+
+    _docstring_start = \
+    '''RF cavity element.
 
     Parameters
     ----------
+    length : float
+        Length of the RF cavity in meters. Default is ``0``.
     voltage : float
         Voltage of the RF cavity in Volts. Default is ``0``.
     frequency : float
-        Frequency of the RF cavity in Hertz. Default is ``0``.
+        Frequency of the RF cavity in Hertz. It can be set only if harmonic is zero.
+        Default is ``0``.
+    harmonic : float
+        Harmonic number of the RF cavity. It can be set only if frequency is zero.
+        If `harmonic` is non-zero, the frequency is computed from the length of the
+        beam_line and the speed of the reference particle (beta0 * clight).
+        When `harmonic` is set, the cavity can only be used within a Line and not
+        in standalone tracking (i.e. Cavity.track(...) will raise an error).
+        Default is ``0``.
     lag : float
-        Phase seen by the reference particle in degrees. Default is ``0``.
+        Phase in degrees seen at the arrival time of the reference particle (zeta = 0).
+        When `absolute_time` is True `lag` is the phase at time zero. Default is ``0``.
+    absolute_time : bool
+        If True, the cavity phase is computed from the absolute time of the
+        simulation, otherwise the cavity is synchronized with the arrival time of
+        the reference particle (zeta=0). Default is False.
+    '''.strip()
 
-    '''
+    __doc__ = '\n    '.join([_docstring_start,
+            _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
+            _for_docstring_alignment, '\n',
+            _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
