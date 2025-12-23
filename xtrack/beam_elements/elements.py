@@ -2281,18 +2281,12 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     ks : float
         Strength of the solenoid component (defined as B_s / reference_rigidity)
     length : float
-        Length of the element in meters along the reference trajectory.
+        Length of the element in meters.
     x0 : float, optional
         Horizontal offset of the solenoid center in meters. Defaults to 0.
     y0 : float, optional
         Vertical offset of the solenoid center in meters. Defaults to 0.
-    order : int, optional
-        Maximum order of multipole expansion for this magnet. Defaults to 5.
-    knl : list of floats, optional
-        Normal multipole integrated strengths. If not provided, defaults to zeroes.
-    ksl : list of floats, optional
-        Skew multipole integrated strengths. If not provided, defaults to zeroes.
-    """
+    """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
             _HasIntegrator._for_docstring, _for_docstring_edge_straight,
@@ -2356,35 +2350,28 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
 
 class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
 
+    _docstring_start = \
     """
-    Solenoid element.
+    Solenoid with linearly varying lingitudinal field. The transverse fields
+    arising form the derivative of the longitudinal fields are taken into account
+    in particle dynamics, radiation, spin precession.
 
     Parameters
     ----------
-    ks_profile : float
-        Strength of the solenoid component.
+    ks_profile : array-like of 2 floats
+        Solenoid strength at entry and exit of the element (defined as
+        B_s / reference_rigidity).
     length : float
         Length of the element in meters along the reference trajectory.
-    order : int, optional
-        Maximum order of multipole expansion for this magnet. Defaults to 5.
-    knl : list of floats, optional
-        Normal multipole integrated strengths. If not provided, defaults to zeroes.
-    ksl : list of floats, optional
-        Skew multipole integrated strengths. If not provided, defaults to zeroes.
-    integrator : str, optional
-        Integration scheme to be used. See ``Magnet`` for details.
-    num_multipole_kicks : int, optional
-        The number of kicks to be used in thin kick splitting. The default value
-        of zero implies a single kick in the middle of the element.
-    edge_entry_active : bool, optional
-        Whether to include the edge effect at entry. Enabled by default.
-    edge_exit_active : bool, optional
-        Whether to include the edge effect at exit. Enabled by default.
-    radiation_flag : int, optional
-        Whether to enable radiation. See ``Magnet`` for details.
-    delta_taper : float, optional
-        A value added to delta for the purposes of tapering. Default is 0.
-    """
+    x0 : float, optional
+        Horizontal offset of the solenoid center in meters. Defaults to 0.
+    y0 : float, optional
+        Vertical offset of the solenoid center in meters. Defaults to 0.
+    """.strip()
+
+    __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+        _HasIntegrator._for_docstring, _for_docstring_edge_straight,
+        _for_docstring_alignment, '\n', _docstring_general_notes, '\n\n'])
 
     isthick = True
     has_backtrack = True
@@ -2398,8 +2385,6 @@ class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
-        'edge_entry_active': xo.Field(xo.UInt64, default=False),
-        'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
