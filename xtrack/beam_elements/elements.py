@@ -840,7 +840,12 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
 
 
 class XYShift(BeamElement):
-    '''Beam element modeling an transverse shift of the reference system.
+    '''
+    Beam element modeling an transverse shift of the reference system, by applying
+    the following transformation to the particle coordinates:
+
+        x_new = x_old - dx
+        y_new = y_old - dy
 
     Parameters
     ----------
