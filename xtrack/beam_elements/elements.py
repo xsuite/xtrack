@@ -985,9 +985,12 @@ class Wire(BeamElement):
 
 
 class SRotation(BeamElement):
-    """Beam element modeling a rotation of the reference system around the s-axis.
-    Positive angle is defined as x to y, i.e. counter-clockwise when looking
-    from the end of the s-axis towards the origin.
+    """
+    Beam element modeling a rotation of the reference system around the s-axis.
+    The sign convention is such that:
+
+            px_out = px_in * cos(angle) - py_in * sin(angle)
+
 
     Parameters
     ----------
@@ -1053,9 +1056,11 @@ class SRotation(BeamElement):
 
 
 class XRotation(BeamElement):
-    """Beam element modeling a rotation of the reference system around the x-axis.
-    Positive angle is defined as y to s, i.e. counter-clockwise when looking
-    from the end of the x-axis towards the origin.
+    """
+    Beam element modeling a rotation of the reference system around the x-axis.
+    The sign convention is such that:
+
+          py_out = py_in * cos(angle) + pz_in * sin(angle)
 
     Parameters
     ----------
@@ -1142,9 +1147,11 @@ class XRotation(BeamElement):
 
 
 class YRotation(BeamElement):
-    """Beam element modeling a rotation of the reference system around the y-axis.
-    Positive angle is defined as s to x, i.e. counter-clockwise when looking
-    from the end of the y-axis towards the origin.
+    """
+    Beam element modeling a rotation of the reference system around the y-axis.
+    The sign convention is such that:
+
+            px_out = px_in * cos(angle) - pz_in * sin(angle)
 
     Parameters
     ----------
@@ -1182,8 +1189,6 @@ class YRotation(BeamElement):
         calculate the missing values from the others. If more than necessary
         parameters are given, their consistency will be checked.
         """
-        #Note MAD-X node_value('other_bv ') is ignored
-        #     minus sign follows MAD-X convention
 
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
