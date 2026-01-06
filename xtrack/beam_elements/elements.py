@@ -800,6 +800,7 @@ class BPMethElement(BeamElement):
                'multipole_order'    : xo.Int64,
                's_start'            : xo.Float64,
                's_end'              : xo.Float64,
+               'length'             : xo.Float64,
                'n_steps'            : xo.Int64,}
 
     _extra_c_sources = [
@@ -811,7 +812,8 @@ class BPMethElement(BeamElement):
                  multipole_order=1,
                  s_start=None,
                  s_end=None,
-                 n_steps=None,
+                 length=None,
+                 n_steps=1000,
                  **kwargs,
     ):
         if params is not None:
@@ -821,6 +823,8 @@ class BPMethElement(BeamElement):
             kwargs['s_start'] = s_start
         if s_end is not None:
             kwargs['s_end'] = s_end
+        if length is not None:
+            kwargs['length'] = length
         if n_steps is not None:
             kwargs['n_steps'] = n_steps
         super().__init__(**kwargs)

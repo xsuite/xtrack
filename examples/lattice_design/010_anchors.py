@@ -40,13 +40,13 @@ xo.assert_allclose(tt.s, np.array(
     [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
        13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
     rtol=0., atol=1e-14)
-xo.assert_allclose(tt.s_start, np.array(
+xo.assert_allclose(tt.s_starts, np.array(
     [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
        13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
-    rtol=0., atol=1e-14)
-xo.assert_allclose(tt.s_end, np.array(
+                   rtol=0., atol=1e-14)
+xo.assert_allclose(tt.s_ends, np.array(
     [ 1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. , 13. ,
        15. , 19. , 21. , 21. , 21. , 23. , 25. , 25. ]),
-    rtol=0., atol=1e-14)
-xo.assert_allclose(tt.s_center, 0.5*(tt.s_start + tt.s_end),
-    rtol=0., atol=1e-14)
+                   rtol=0., atol=1e-14)
+xo.assert_allclose(tt.s_center, 0.5 * (tt.s_starts + tt.s_ends),
+                   rtol=0., atol=1e-14)

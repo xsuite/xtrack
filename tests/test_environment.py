@@ -2351,16 +2351,16 @@ def test_anchors_in_new_and_place():
         [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
         13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
         rtol=0., atol=1e-14)
-    xo.assert_allclose(tt.s_start, np.array(
+    xo.assert_allclose(tt.s_starts, np.array(
         [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
         13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
-        rtol=0., atol=1e-14)
-    xo.assert_allclose(tt.s_end, np.array(
+                       rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_ends, np.array(
         [ 1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. , 13. ,
         15. , 19. , 21. , 21. , 21. , 23. , 25. , 25. ]),
-        rtol=0., atol=1e-14)
-    xo.assert_allclose(tt.s_center, 0.5*(tt.s_start + tt.s_end),
-        rtol=0., atol=1e-14)
+                       rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_center, 0.5 * (tt.s_starts + tt.s_ends),
+                       rtol=0., atol=1e-14)
 
 def test_anchors_in_new_and_place_compact():
 
@@ -2402,16 +2402,16 @@ def test_anchors_in_new_and_place_compact():
         [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
         13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
         rtol=0., atol=1e-14)
-    xo.assert_allclose(tt.s_start, np.array(
+    xo.assert_allclose(tt.s_starts, np.array(
         [ 0. ,  1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. ,
         13. , 15. , 19. , 21. , 21. , 21. , 23. , 25. ]),
-        rtol=0., atol=1e-14)
-    xo.assert_allclose(tt.s_end, np.array(
+                       rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_ends, np.array(
         [ 1. ,  1. ,  3. , 11.9, 12. , 13. , 13. , 13. , 13. , 13. , 13. ,
         15. , 19. , 21. , 21. , 21. , 23. , 25. , 25. ]),
-        rtol=0., atol=1e-14)
-    xo.assert_allclose(tt.s_center, 0.5*(tt.s_start + tt.s_end),
-        rtol=0., atol=1e-14)
+                       rtol=0., atol=1e-14)
+    xo.assert_allclose(tt.s_center, 0.5 * (tt.s_starts + tt.s_ends),
+                       rtol=0., atol=1e-14)
 
 def test_place_lines_with_anchors():
 
@@ -2468,15 +2468,15 @@ def test_place_lines_with_anchors():
     xo.assert_allclose(tt_test.s, np.array(
         [ 0.,  2.,  7.,  9., 14., 16., 21., 23., 28., 30.]),
         rtol=0., atol=1e-15)
-    xo.assert_allclose(tt_test.s_start, np.array(
+    xo.assert_allclose(tt_test.s_starts, np.array(
         [ 0.,  2.,  7.,  9., 14., 16., 21., 23., 28., 30.]),
-        rtol=0., atol=1e-15)
+                       rtol=0., atol=1e-15)
     xo.assert_allclose(tt_test.s_center, np.array(
         [ 1. ,  4.5,  8. , 11.5, 15. , 18.5, 22. , 25.5, 29. , 30. ]),
         rtol=0., atol=1e-15)
-    xo.assert_allclose(tt_test.s_end, np.array(
+    xo.assert_allclose(tt_test.s_ends, np.array(
         [ 2.,  7.,  9., 14., 16., 21., 23., 28., 30., 30.]),
-        rtol=0., atol=1e-15)
+                       rtol=0., atol=1e-15)
 
     tt_lstart = env['lstart'].get_table()
     tt_test = tt_lstart
@@ -4128,10 +4128,10 @@ def test_place_rbend():
             rtol=0, atol=1e-5)
     xo.assert_allclose(t1a.s_center, [2.24737644, 5, 7.75262356, 10],
             rtol=0, atol=1e-5)
-    xo.assert_allclose(t1a.s_start, [0, 4.49475287, 5.50524713, 10],
-            rtol=0, atol=1e-5)
-    xo.assert_allclose(t1a.s_end, [4.49475287, 5.50524713, 10, 10],
-            rtol=0, atol=1e-5)
+    xo.assert_allclose(t1a.s_starts, [0, 4.49475287, 5.50524713, 10],
+                       rtol=0, atol=1e-5)
+    xo.assert_allclose(t1a.s_ends, [4.49475287, 5.50524713, 10, 10],
+                       rtol=0, atol=1e-5)
 
     env['angle'] = 0.4
     l.regenerate_from_composer()
@@ -4150,10 +4150,10 @@ def test_place_rbend():
             rtol=0, atol=1e-5)
     xo.assert_allclose(t1b.s_center, [2.24832639, 5, 7.75167361, 10],
             rtol=0, atol=1e-5)
-    xo.assert_allclose(t1b.s_start, [0, 4.49665277, 5.50334723, 10],
-            rtol=0, atol=1e-5)
-    xo.assert_allclose(t1b.s_end, [4.49665277, 5.50334723, 10, 10],
-            rtol=0, atol=1e-5)
+    xo.assert_allclose(t1b.s_starts, [0, 4.49665277, 5.50334723, 10],
+                       rtol=0, atol=1e-5)
+    xo.assert_allclose(t1b.s_ends, [4.49665277, 5.50334723, 10, 10],
+                       rtol=0, atol=1e-5)
 
     l2 = env.new_line(compose=True, length=10.0)
     l2.new('rbend2', 'RBend', length_straight=1, angle='angle', anchor='end', at=5.0)
@@ -4171,10 +4171,10 @@ def test_place_rbend():
             rtol=0, atol=1e-5)
     xo.assert_allclose(t2a.s_center, [ 1.99665105, 4.49665105, 7.5, 10.],
             rtol=0, atol=1e-5)
-    xo.assert_allclose(t2a.s_start, [0. , 3.993302, 5., 10.],
-            rtol=0, atol=1e-5)
-    xo.assert_allclose(t2a.s_end, [3.99330209, 5, 10, 10],
-            rtol=0, atol=1e-5)
+    xo.assert_allclose(t2a.s_starts, [0. , 3.993302, 5., 10.],
+                       rtol=0, atol=1e-5)
+    xo.assert_allclose(t2a.s_ends, [3.99330209, 5, 10, 10],
+                       rtol=0, atol=1e-5)
 
 def test_rename_var():
     env = xt.Environment()

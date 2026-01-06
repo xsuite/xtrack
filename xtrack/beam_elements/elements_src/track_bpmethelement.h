@@ -59,7 +59,7 @@ void BPMethElement_single_particle(
     double x    = LocalParticle_get_x(part);   // [m]
     double y    = LocalParticle_get_y(part);   // [m]
     double s    = s_start;
-    LocalParticle_set_s(part, s_start);
+    LocalParticle_set_s(part, s);
     double px_r = LocalParticle_get_px(part);  // dimensionless px / p0
     double py_r = LocalParticle_get_py(part);  // dimensionless py / p0
     double zeta = LocalParticle_get_zeta(part);
@@ -92,13 +92,14 @@ void BPMethElement_single_particle(
     // ----------------------------------------------------------------------
     const double L    = s_end - s_start;
     const double ds   = L / (double) n_steps;
+	const double half_ds = 0.5 * ds;
 
     double total_dt = 0.0;  // accumulated time [s] over all substeps
 
     // ----------------------------------------------------------------------
     //  Loop over Boris substeps
     // ----------------------------------------------------------------------
-    for (int istep = 0; istep < n_steps; ++istep, ++params, s += ds) {
+    for (int istep = 0; istep < n_steps; ++istep, ++params) {
 
         // --------------------------------------------------------------
         //  (0) Longitudinal momentum from constant |p| = P
@@ -115,7 +116,6 @@ void BPMethElement_single_particle(
         // --------------------------------------------------------------
         //  (1) FIRST HALF-DRIFT in x, y, and time
         // --------------------------------------------------------------
-        const double half_ds = 0.5 * ds;
         const double inv_ps  = 1.0 / ps;
 
         const double xh = x + (px * inv_ps) * half_ds;
@@ -142,7 +142,7 @@ void BPMethElement_single_particle(
         // --------------------------------------------------------------
         //  (2) FIRST HALF-KICK from (Bx, By)
         // --------------------------------------------------------------
-        const double half_qds = 0.5 * q_coulomb * ds;
+        const double half_qds = q_coulomb * half_ds;
 
         double pxm = px - half_qds * By;
         double pym = py + half_qds * Bx;
@@ -159,7 +159,7 @@ void BPMethElement_single_particle(
         // --------------------------------------------------------------
         //  (3) ROTATION around Bs
         // --------------------------------------------------------------
-        double t  = 0.5 * q_coulomb * Bs * ds / ps_mid;
+        double t  = q_coulomb * Bs * half_ds / ps_mid;
         double t2 = t * t;
         double inv_den = 1.0 / (1.0 + t2);
 
@@ -188,6 +188,7 @@ void BPMethElement_single_particle(
         // --------------------------------------------------------------
         x = xh + (px1 * inv_ps1) * half_ds;
         y = yh + (py1 * inv_ps1) * half_ds;
+		s = sh + half_ds;
 
         dt += half_ds * inv_ps1 * gamma * mass_kg;  // [s]
 
@@ -208,7 +209,7 @@ void BPMethElement_single_particle(
 
     // s: like in the Python integrator, the element is "thick" of length L,
     // but the external trajectory sees s advanced by L from the incoming s.
-    LocalParticle_set_s(part, s_end);
+    LocalParticle_set_s(part, s);
 
     // Convert physical momenta back to dimensionless px, py (relative to p0)
     LocalParticle_set_px(part, px / P0);

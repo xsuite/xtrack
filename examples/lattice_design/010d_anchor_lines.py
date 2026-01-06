@@ -56,15 +56,15 @@ assert np.all(tt_test.name == np.array(
 xo.assert_allclose(tt_test.s, np.array(
     [ 0.,  2.,  7.,  9., 14., 16., 21., 23., 28., 30.]),
     rtol=0., atol=1e-15)
-xo.assert_allclose(tt_test.s_start, np.array(
+xo.assert_allclose(tt_test.s_starts, np.array(
     [ 0.,  2.,  7.,  9., 14., 16., 21., 23., 28., 30.]),
-    rtol=0., atol=1e-15)
+                   rtol=0., atol=1e-15)
 xo.assert_allclose(tt_test.s_center, np.array(
     [ 1. ,  4.5,  8. , 11.5, 15. , 18.5, 22. , 25.5, 29. , 30. ]),
     rtol=0., atol=1e-15)
-xo.assert_allclose(tt_test.s_end, np.array(
+xo.assert_allclose(tt_test.s_ends, np.array(
     [ 2.,  7.,  9., 14., 16., 21., 23., 28., 30., 30.]),
-    rtol=0., atol=1e-15)
+                   rtol=0., atol=1e-15)
 
 tt_lstart = env['lstart'].get_table()
 tt_test = tt_lstart

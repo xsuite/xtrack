@@ -21,10 +21,10 @@ xo.assert_allclose(t1a.s, [0, 4.49475287, 5.50524713, 10],
         rtol=0, atol=1e-5)
 xo.assert_allclose(t1a.s_center, [2.24737644, 5, 7.75262356, 10],
         rtol=0, atol=1e-5)
-xo.assert_allclose(t1a.s_start, [0, 4.49475287, 5.50524713, 10],
-        rtol=0, atol=1e-5)
-xo.assert_allclose(t1a.s_end, [4.49475287, 5.50524713, 10, 10],
-        rtol=0, atol=1e-5)
+xo.assert_allclose(t1a.s_starts, [0, 4.49475287, 5.50524713, 10],
+                   rtol=0, atol=1e-5)
+xo.assert_allclose(t1a.s_ends, [4.49475287, 5.50524713, 10, 10],
+                   rtol=0, atol=1e-5)
 
 env['angle'] = 0.4
 l.regenerate_from_composer()
@@ -43,10 +43,10 @@ xo.assert_allclose(t1b.s, [0, 4.49665277, 5.50334723, 10],
         rtol=0, atol=1e-5)
 xo.assert_allclose(t1b.s_center, [2.24832639, 5, 7.75167361, 10],
         rtol=0, atol=1e-5)
-xo.assert_allclose(t1b.s_start, [0, 4.49665277, 5.50334723, 10],
-        rtol=0, atol=1e-5)
-xo.assert_allclose(t1b.s_end, [4.49665277, 5.50334723, 10, 10],
-        rtol=0, atol=1e-5)
+xo.assert_allclose(t1b.s_starts, [0, 4.49665277, 5.50334723, 10],
+                   rtol=0, atol=1e-5)
+xo.assert_allclose(t1b.s_ends, [4.49665277, 5.50334723, 10, 10],
+                   rtol=0, atol=1e-5)
 
 l2 = env.new_line(compose=True, length=10.0)
 l2.new('rbend2', 'RBend', length_straight=1, angle='angle', anchor='end', at=5.0)
@@ -64,7 +64,7 @@ xo.assert_allclose(t2a.s, [ 0.,  3.99330209,  5., 10.],
         rtol=0, atol=1e-5)
 xo.assert_allclose(t2a.s_center, [ 1.99665105, 4.49665105, 7.5, 10.],
         rtol=0, atol=1e-5)
-xo.assert_allclose(t2a.s_start, [0. , 3.993302, 5., 10.],
-        rtol=0, atol=1e-5)
-xo.assert_allclose(t2a.s_end, [3.99330209, 5, 10, 10],
-        rtol=0, atol=1e-5)
+xo.assert_allclose(t2a.s_starts, [0. , 3.993302, 5., 10.],
+                   rtol=0, atol=1e-5)
+xo.assert_allclose(t2a.s_ends, [3.99330209, 5, 10, 10],
+                   rtol=0, atol=1e-5)

@@ -2673,14 +2673,14 @@ class Line:
         for ii in range(len(tab_insertions)):
             s_ins_start = tab_insertions['s_start', ii]
             s_ins_end = tab_insertions['s_end', ii]
-            entry_is_inside = ((tt_after_cut.s_start >= s_ins_start - s_tol)
-                            & (tt_after_cut.s_start <= s_ins_end - s_tol))
-            exit_is_inside = ((tt_after_cut.s_end >= s_ins_start + s_tol)
-                            & (tt_after_cut.s_end <= s_ins_end + s_tol))
-            thin_at_entry = ((tt_after_cut.s_start >= s_ins_start - s_tol)
-                            & (tt_after_cut.s_end <= s_ins_start + s_tol))
-            thin_at_exit = ((tt_after_cut.s_start >= s_ins_end - s_tol)
-                        & (tt_after_cut.s_end <= s_ins_end + s_tol))
+            entry_is_inside = ((tt_after_cut.s_starts >= s_ins_start - s_tol)
+                               & (tt_after_cut.s_starts <= s_ins_end - s_tol))
+            exit_is_inside = ((tt_after_cut.s_ends >= s_ins_start + s_tol)
+                              & (tt_after_cut.s_ends <= s_ins_end + s_tol))
+            thin_at_entry = ((tt_after_cut.s_starts >= s_ins_start - s_tol)
+                             & (tt_after_cut.s_ends <= s_ins_start + s_tol))
+            thin_at_exit = ((tt_after_cut.s_starts >= s_ins_end - s_tol)
+                            & (tt_after_cut.s_ends <= s_ins_end + s_tol))
             remove = (entry_is_inside | exit_is_inside) & (~thin_at_entry) & (~thin_at_exit)
             idx_remove.extend(list(np.where(remove)[0]))
 
@@ -2729,7 +2729,7 @@ class Line:
 
         tt_remove = self._name_match(name)
 
-        mask_thick = tt_remove.isthick & (tt_remove.s_end - tt_remove.s_start > s_tol)
+        mask_thick = tt_remove.isthick & (tt_remove.s_ends - tt_remove.s_starts > s_tol)
         if mask_thick.any():
             tt_remove_thick = tt_remove.rows[mask_thick]
         else:
