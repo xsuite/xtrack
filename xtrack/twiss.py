@@ -164,8 +164,12 @@ def twiss_line(line, particle_ref=None, method=None,
         If True, the radiation integrals are computed.
     eneloss_and_damping : bool, optional
         If True, the energy loss and radiation damping constants are computed.
+    co_guess : xpart.Particles or dict, optional
+        Initial guess for the closed orbit. If not provided, zero is assumed.
     strengths : bool, optional
         If True, the strengths of the multipoles are added to the table.
+    delta_chrom : float, optional
+        Momentum deviation for the chromaticity computation.
     search_for_t_rev : bool, optional
         If True, the revolution period is searched for, otherwise the revolution
         period computed from the circumference is assumed.
@@ -286,8 +290,6 @@ def twiss_line(line, particle_ref=None, method=None,
         - W_matrix : np.ndarray, optional
             W matrix to be used for the computation. If not provided, the
             W matrix is computed from the R matrix.
-        - co_guess : xpart.Particles or dict, optional
-            Initial guess for the closed orbit. If not provided, zero is assumed.
         - co_search_settings : dict, optional
             Settings to be used for the closed orbit search.
             If not provided, the default values are used.
@@ -299,8 +301,6 @@ def twiss_line(line, particle_ref=None, method=None,
             search fails.
         - delta_disp : float, optional
             Momentum deviation for the dispersion computation.
-        - delta_chrom : float, optional
-            Momentum deviation for the chromaticity computation.
         - skip_global_quantities : bool, optional
             If True, the global quantities are not computed.
         - use_full_inverse : bool, optional
