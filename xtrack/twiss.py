@@ -233,87 +233,104 @@ def twiss_line(line, particle_ref=None, method=None,
     Notes
     -----
 
-    The output object contains the following element-by-element quantities:
-        - s: position of the element in meters
-        - name: name of the element
-        - x: horizontal position in meters (closed orbit for periodic solution)
-        - px: horizontal momentum (closed orbit for periodic solution)
-        - y: vertical position in meters (closed orbit for periodic solution)
-        - py: vertical momentum (closed orbit for periodic solution)
-        - zeta: longitudinal position in meters (closed orbit for periodic solution)
-        - delta: longitudinal momentum deviation (closed orbit for periodic solution)
-        - ptau: longitudinal momentum deviation (closed orbit for periodic solution)
-        - betx: horizontal beta function in meters
-        - bety: vertical beta function in meters
-        - alfx: horizontal alpha function
-        - alfy: vertical alpha function
-        - gamx: horizontal gamma function in 1/meters
-        - gamy: vertical gamma function in 1/meters
-        - mux: horizontal phase advance in tune units (angle/2/pi)
-        - muy: vertical phase advance in tune units (angle/2/pi)
-        - muzeta: longitudinal phase advance in tune units (angle/2/pi)
-        - dx: horizontal dispersion (d x / d delta) in meters
-        - dy: vertical dispersion (d y / d delta) in meters
-        - dzeta: longitudinal dispersion (d zeta / d delta) in meters
-        - dpx: horizontal momentum dispersion (d px / d delta)
-        - dpy: vertical momentum dispersion (d py / d delta)
-        - ddx: horizontal second order dispersion (d^2 x / d delta^2) in meters
-        - ddy: vertical second order dispersion (d^2 y / d delta^2) in meters
-        - ddpx: horizontal second order dispersion (d^2 px / d delta^2)
-        - ddpy: vertical second order dispersion (d^2 py / d delta^2)
-        - dx_zeta: horizontal crab dispersion (d x / d zeta)
-        - dy_zeta: vertical crab dispersion (d y / d zeta)
-        - dpx_zeta: horizontal momentum crab dispersion (d px / d zeta)
-        - dpy_zeta: vertical momentum crab dispersion (d py / d zeta)
-        - ax_chrom: chromatic function (d alfx / d delta - alfx / betx d betx / d delta)
-        - ay_chrom: chromatic function (d alfy / d delta - alfy / bety d bety / d delta)
-        - bx_chrom: chromatic function (d betx / d delta)
-        - by_chrom: chromatic function (d bety / d delta)
-        - wx_chrom: sqrt(ax_chrom**2 + bx_chrom**2)
-        - wy_chrom: sqrt(ay_chrom**2 + by_chrom**2)
-        - W_matrix: W matrix of the linear normal form
-        - betx1: computed horizontal beta function (Mais-Ripken) in meters
-        - bety1: computed vertical beta function (Mais-Ripken) in meters
-        - betx2: computed horizontal beta function (Mais-Ripken) in meters
-        - bety2: computed vertical beta function (Mais-Ripken) in meters
-        - alfx1: computed horizontal alpha function (Mais-Ripken) in meters
-        - alfy1: computed vertical alpha function (Mais-Ripken) in meters
-        - alfx2: computed horizontal alpha function (Mais-Ripken) in meters
-        - alfy2: computed vertical alpha function (Mais-Ripken) in meters
-        - c_minus_re: real part of the closest tune approach coefficient
-        - c_minus_im: imaginary part of the closest tune approach coefficient
-        - c_r1: horizontal r1 coefficient for betatron coupling
-        - c_r2: vertical r2 coefficient for betatron coupling
-        - c_phi1: phase advance of the closest tune approach coefficient
-        - c_phi2: phase advance of the closest tune approach coefficient
-        - r11_edw_teng, r12_edw_teng, r21_edw_teng, r22_edw_teng: the Edwards-Teng
-            coupling matrix elements
+    Output fields depend on the options chosen:
 
-    The table also contains the following global quantities:
-        - qx: horizontal tune
-        - qy: vertical tune
-        - qs: synchrotron tune
-        - dqx: horizontal chromaticity (d qx / d delta)
-        - dqy: vertical chromaticity (d qy / d delta)
-        - ddqx: horizontal second order chromaticity (d^2 qx / d delta^2)
-        - ddqy: vertical second order chromaticity (d^2 qy / d delta^2)
-        - c_minus: closest tune approach coefficient
-        - c_minus_re_0: real part of the closest tune approach coefficient (at start of the ring)
-        - c_minus_im_0: imaginary part of the closest tune approach coefficient (at start of the ring)
-        - slip_factor: slip factor (-1 / f_ref * d f_ref / d delta) (positive above transition)
-        - momentum_compaction_factor: momentum compaction factor (slip_factor + 1/gamma_0^2)
-        - T_rev0: reference revolution period in seconds
-        - circumference: reference trajectory length in meters
-        - particle_on_co: particle on closed orbit
-        - R_matrix: R matrix (if calculated or provided)
-        - eneloss_turn, energy loss per turn in electron volts (if
-            eneloss_and_damping is True)
-        - damping_constants_turns, radiation damping constants per turn
-            (if ``eneloss_and_damping`` is True)
-        - damping_constants_s:
-            radiation damping constants per second (if ``eneloss_and_damping`` is True)
-        - partition_numbers:
-            radiation partition numbers (if ``eneloss_and_damping`` is True)
+    - Always returned (baseline):
+        - ``name``: element name
+        - ``s``: element position [m]
+        - ``x``, ``px``, ``y``, ``py``, ``zeta``: closed-orbit coordinates
+        - ``delta``, ``ptau``: momentum deviation
+        - ``W_matrix``: linear normal-form matrix
+        - ``kin_px``, ``kin_py``, ``kin_ps``: kinetic momenta
+        - ``kin_xprime``, ``kin_yprime``: transverse slopes
+        - ``env_name``: element names with groups expanded
+        - ``particle_on_co``: closed-orbit particle
+        - ``circumference``: reference trajectory length
+        - ``orientation``: forward/backward computation direction
+        - ``values_at``: whether values are at entry/exit
+        - ``method``, ``radiation_method``, ``reference_frame``, ``line_config``,
+          ``periodic``, ``completed_init``: bookkeeping
+    - With ``compute_lattice_functions=True`` and ``only_orbit=False``:
+        - ``betx``, ``bety``, ``alfx``, ``alfy``, ``gamx``, ``gamy``: Twiss functions
+        - ``dx``, ``dpx``, ``dy``, ``dpy``: dispersion
+        - ``dx_zeta``, ``dpx_zeta``, ``dy_zeta``, ``dpy_zeta``: crab dispersion
+        - ``betx1``, ``bety1``, ``betx2``, ``bety2``, ``alfx1``, ``alfy1``, ``alfx2``,
+          ``alfy2``, ``gamx1``, ``gamy1``, ``gamx2``, ``gamy2``: Mais-Ripken optics
+        - ``mux``, ``muy``, ``muzeta``: phase advances [turns]
+        - ``nux``, ``nuy``, ``nuzeta``: tunes
+        - ``phix``, ``phiy``, ``phizeta``: eigenvector phases [rad]
+    - With global quantities enabled (default unless ``skip_global_quantities`` or
+        ``only_orbit``):
+        - ``R_matrix``, ``steps_r_matrix``, ``R_matrix_ebe``: transfer matrices
+        - ``eigenvalues``, ``rotation_matrix``: linear-normal-form data
+        - ``bets0``: longitudinal beta at start
+        - ``T_rev0``: reference revolution period [s]
+        - ``gamma0``, ``beta0``, ``p0c``: reference kinematics
+        - ``slip_factor``, ``momentum_compaction_factor``, ``slip_factor_dz_ddelta``:
+          longitudinal dynamics
+        - ``qx``, ``qy``, ``qs``: tunes (when lattice functions are present)
+        - ``c_minus``, ``c_minus_re_0``, ``c_minus_im_0``: closest tune approach
+        - ``c_minus_re``, ``c_minus_im``, ``c_r1``, ``c_r2``, ``c_phi1``, ``c_phi2``:
+          coupling coefficients
+    - With ``compute_chromatic_properties`` True (or None in periodic mode) and
+        ``only_orbit=False``:
+        - ``dmux``, ``dmuy``: phase-advance derivatives vs delta
+        - ``dzeta``: longitudinal dispersion vs delta
+        - ``bx_chrom``, ``by_chrom``: d bet / d delta
+        - ``ax_chrom``, ``ay_chrom``: chromatic alpha combinations
+        - ``wx_chrom``, ``wy_chrom``: chromatic amplitude
+        - ``dqx``, ``dqy``: chromaticities
+        - ``ddx``, ``ddpx``, ``ddy``, ``ddpy``: second-order dispersion
+        - ``ddqx``, ``ddqy``: second-order chromaticities
+    - With ``strengths=True`` (or ``radiation_integrals=True`` which implies strengths):
+        - ``k0l``–``k5l``, ``k0sl``–``k5sl``: normal/skew multipole strengths
+        - ``angle_rad``, ``rot_s_rad``, ``hkick``, ``vkick``, ``ks``, ``length``,
+          ``_angle_force_body``: element geometry/fields
+        - ``element_type``, ``isthick``, ``parent_name``: element metadata
+    - With ``eneloss_and_damping=True``:
+        - ``eneloss_turn``: energy loss per turn [eV]
+        - ``damping_constants_turns``, ``damping_constants_s``: damping constants
+        - ``partition_numbers``: radiation partition numbers
+        - ``angle_rad``, ``rot_s_rad``, ``length``, ``radiation_flag``: ensured geometry
+        - Equilibrium data (depend on ``radiation_method``): ``eq_gemitt_x``,
+          ``eq_gemitt_y``, ``eq_gemitt_zeta``, ``eq_nemitt_x``, ``eq_nemitt_y``,
+          ``eq_nemitt_zeta``, ``eq_beam_covariance_matrix``, ``dl_radiation``,
+          ``n_dot_delta_kick_sq_ave``, ``hx_rad``, ``hy_rad``, ``h0x_rad``, ``h0y_rad``.
+    - With ``radiation_integrals=True``:
+        - ``rad_int_curly_hx``, ``rad_int_curly_hy``: curly-H terms
+        - ``rad_int_i1x_integrand``, ``rad_int_i1y_integrand``, ``rad_int_l2_integrand``,
+          ``rad_int_i3_integrand``, ``rad_int_i4_integrand``, ``rad_int_i4x_integrand``,
+          ``rad_int_i4y_integrand``, ``rad_int_i5x_integrand``, ``rad_int_i5y_integrand``:
+          integrands
+        - ``rad_int_kappa0_x``, ``rad_int_kappa0_y``, ``rad_int_kappa0``: reference curvature
+        - ``rad_int_kappa_x``, ``rad_int_kappa_y``, ``rad_int_kappa``: particle curvature
+        - ``rad_int_iv_x``, ``rad_int_iv_y``, ``rad_int_iv_z``: velocity direction cosines
+        - ``rad_int_i1x``, ``rad_int_i1y``, ``rad_int_i2``, ``rad_int_i3``, ``rad_int_i4``,
+          ``rad_int_i4x``, ``rad_int_i4y``, ``rad_int_i5x``, ``rad_int_i5y``: integrated
+          radiation integrals
+        - ``rad_int_eq_gemitt_x``, ``rad_int_eq_gemitt_y``: equilibrium emittances from integrals
+        - ``rad_int_damping_constant_x_s``, ``rad_int_damping_constant_y_s``,
+          ``rad_int_damping_constant_zeta_s``: damping constants from integrals
+    - With ``polarization=True``:
+        - ``spin_dn_ddelta_x``, ``spin_dn_ddelta_y``, ``spin_dn_ddelta_z``: spin derivative vs delta
+        - ``spin_eigenvectors``: spin eigenvectors element-by-element
+        - ``spin_n_matrix``: spin transfer matrix in Frenet-Serret frame
+        - ``spin_n0_iv``, ``spin_n0_ib``: projections of equilibrium spin
+        - ``spin_tune_fractional``: fractional spin tune
+        - ``spin_polarization_eq``, ``spin_polarization_inf_no_depol``: equilibrium/infinite-time polarization
+        - ``spin_t_pol_buildup_s``, ``spin_t_pol_component_s``, ``spin_t_depol_component_s``:
+          polarization/depolarization times
+        - ``spin_alpha_plus_co``, ``spin_alpha_minus_co``, ``spin_alpha_plus``, ``spin_alpha_minus``:
+          Sokolov-Ternov rates
+        - ``spin_int_kappa3_n0_ib``, ``spin_int_kappa3_dn_ddelta_ib``,
+          ``spin_int_kappa3_11_18_dn_ddelta_sq``: curvature-weighted spin integrals
+        - Diagnostic data stored with ``_spin_*`` keys
+    - With ``coupling_edw_teng=True``:
+        - ``r11_edw_teng``, ``r12_edw_teng``, ``r21_edw_teng``, ``r22_edw_teng``: Edwards-Teng coupling
+    - With ``search_for_t_rev=True``:
+        - ``T_rev``: measured revolution period [s]
+    - With ``num_turns>1``:
+        - Multi-turn concatenated table; initial turn stored in ``_tw0`` within ``_data``
 
 
 
