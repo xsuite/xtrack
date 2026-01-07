@@ -196,7 +196,9 @@ def twiss_line(line, particle_ref=None, method=None,
     symplectify : bool, optional
         If True, the R matrix is symplectified before computing the linear normal
         form. Dafault is False.
-
+    reverse : bool, optional
+        If True, the output is computed in the reversed reference frame, i.e.
+        s = -s, x = -x, y = y, zeta = -zeta, px=px, py=-py, delta=delta.
 
     Returns
     -------
