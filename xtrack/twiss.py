@@ -178,6 +178,10 @@ def twiss_line(line, particle_ref=None, method=None,
         If True, the output is computed in the reversed reference frame, i.e.
         s = -s, x = -x, y = y, zeta = -zeta, px=px, py=-py, delta=delta.
         Default is False.
+    compute_chromatic_properties : bool, optional
+        If True, compute chromatic properties. Default is None, which means
+        chromatic properties are computed only for the periodic solution, but
+        not for open twiss.
     eneloss_and_damping : bool, optional
         If True, the energy loss, radiation damping constants, and equilibrium
         emittances are computed. Default is False.
