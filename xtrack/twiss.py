@@ -146,6 +146,9 @@ def twiss_line(line, particle_ref=None, method=None,
         ``dzeta``, ``mux``, ``muy``, ``muzeta``, ``ax_chrom``, ``bx_chrom``,
         ``ay_chrom``, ``by_chrom``, ``ddx``, ``ddpx``, ``ddy``, ``ddpy``, ``spin_x``,
         ``spin_y``, ``spin_z``.
+    init_at : str, optional
+        Element name at which the initial conditions are defined. If not provided,
+        the initial conditions are defined at ``start``.
     delta0 : float, optional
         Closed-orbit ``delta`` at the start of the beam line, used when solving
         the closed orbit in ``method='4d'``. Mutually exclusive with ``zeta0``.
