@@ -233,14 +233,20 @@ def twiss_line(line, particle_ref=None, method=None,
     Notes
     -----
 
-    Output fields depend on the options chosen:
+    Output fields depending on selected options (for detailed definitions and
+    explanations refer to the Xsuite Physics Guide (https://xsuite.readthedocs.io/en/latest/physicsguide.html):
+    Fields marked as "ebe" are element-by-element quantities.
 
-    - Always returned (baseline):
-        - ``name``: element name
-        - ``s``: element position [m]
-        - ``x``, ``px``, ``y``, ``py``, ``zeta``: closed-orbit coordinates
-        - ``delta``, ``ptau``: momentum deviation
-        - ``W_matrix``: linear normal-form matrix
+    - Default output fields:
+        - ``name``: element name (ebe)
+        - ``s``: element position [m] (ebe)
+        - ``x``, ``px``, ``y``, ``py``, ``zeta``, ``delta``, ``ptau``: coordinates
+          of closed orbit for periodic twiss or beam trajectory for open twiss. (ebe)
+        - ``betx``, ``bety``, ``alfx``, ``alfy``, ``gamx``, ``gamy``: Twiss parameters (ebe)
+        - ``dx``, ``dpx``, ``dy``, ``dpy``: dispersion (ebe)
+        - ``dx_zeta``, ``dpx_zeta``, ``dy_zeta``, ``dpy_zeta``: crab dispersion (ebe)
+        - ``bets0``: longitudinal beta function at start ring.
+        - ``W_matrix``: linear normal-form matrix. (ebe)
         - ``kin_px``, ``kin_py``, ``kin_ps``: kinetic momenta
         - ``kin_xprime``, ``kin_yprime``: transverse slopes
         - ``env_name``: element names with groups expanded
@@ -250,10 +256,6 @@ def twiss_line(line, particle_ref=None, method=None,
         - ``values_at``: whether values are at entry/exit
         - ``method``, ``radiation_method``, ``reference_frame``, ``line_config``,
           ``periodic``, ``completed_init``: bookkeeping
-    - With ``compute_lattice_functions=True`` and ``only_orbit=False``:
-        - ``betx``, ``bety``, ``alfx``, ``alfy``, ``gamx``, ``gamy``: Twiss functions
-        - ``dx``, ``dpx``, ``dy``, ``dpy``: dispersion
-        - ``dx_zeta``, ``dpx_zeta``, ``dy_zeta``, ``dpy_zeta``: crab dispersion
         - ``betx1``, ``bety1``, ``betx2``, ``bety2``, ``alfx1``, ``alfy1``, ``alfx2``,
           ``alfy2``, ``gamx1``, ``gamy1``, ``gamx2``, ``gamy2``: Mais-Ripken optics
         - ``mux``, ``muy``, ``muzeta``: phase advances [turns]
