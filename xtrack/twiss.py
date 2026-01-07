@@ -162,6 +162,11 @@ def twiss_line(line, particle_ref=None, method=None,
         momenta are scaled by radiation as much as the closed orbit.
     radiation_integrals : bool, optional
         If True, the radiation integrals are computed.
+    spin : bool, optional
+        If True, for periodic twiss compute spin closed solution (n0);
+        for open twiss, propagate spin components.
+    polarization : bool, optional
+        If True, compute quantititis related to spin polarization.
     eneloss_and_damping : bool, optional
         If True, the energy loss and radiation damping constants are computed.
     co_guess : xpart.Particles or dict, optional
