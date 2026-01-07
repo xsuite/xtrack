@@ -155,8 +155,6 @@ def twiss_line(line, particle_ref=None, method=None,
         s = -s, x = -x, y = y, zeta = -zeta, px=px, py=-py, delta=delta. Default
         is False.
     zero_at : str, optional
-        Element name at which to zero the longitudinal coordinate in the output.
-    zero_at : str, optional
         Element name at which the s coordinate and the phase advances are set to
         zero.
     delta0 : float, optional
