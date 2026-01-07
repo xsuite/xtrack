@@ -154,14 +154,6 @@ def twiss_line(line, particle_ref=None, method=None,
         Closed-orbit ``zeta`` at the start of the beam line, used when solving
         the closed orbit in ``method='4d'``. Mutually exclusive with ``delta0``.
         Cannot be used in 6d mode.
-    freeze_longitudinal : bool, optional
-        If True, the longitudinal motion is frozen.
-    at_elements : list, optional
-        List of elements at which the Twiss parameters are computed.
-        If not provided, the Twiss parameters are computed at all elements.
-    at_s : list, optional
-        List of positions in meters at which the Twiss parameters are computed.
-        If not provided, the Twiss parameters are computed at all positions.
     radiation_method : {'full', 'kick_as_co', 'scale_as_co'}, optional
         Method to be used for the computation of twiss parameters in the presence
         of radiation. If 'full' the method described in E. Forest, "From tracking
