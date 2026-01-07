@@ -166,19 +166,12 @@ def twiss_line(line, particle_ref=None, method=None,
         If True, the energy loss and radiation damping constants are computed.
     strengths : bool, optional
         If True, the strengths of the multipoles are added to the table.
-    hide_thin_groups : bool, optional
-        If True, values associate to elements in thin groups are replacede with
-        NaNs.
     search_for_t_rev : bool, optional
         If True, the revolution period is searched for, otherwise the revolution
         period computed from the circumference is assumed.
     num_turns_search_t_rev : int, optional
         Number of turns used for the search of the revolution period. Used only
         if ``search_for_t_rev`` is True.
-    values_at_element_exit : bool, optional (False)
-        If True, the Twiss parameters are computed at the exit of the
-        elements. If False (default), the Twiss parameters are computed at the
-        entrance of the elements.
     matrix_responsiveness_tol : float, optional
         Tolerance to be used tp check the responsiveness of the R matrix.
         If not provided, the default value is used.
@@ -313,6 +306,9 @@ def twiss_line(line, particle_ref=None, method=None,
         - use_full_inverse : bool, optional
             If True, the full inverse of the W matrik is used. If False, the inverse
             is computed from the symplectic condition.
+        - hide_thin_groups : bool, optional
+            If True, values associated to elements in thin groups are replaced
+            with NaNs.
         - steps_r_matrix : dict, optional
             Steps to be used for the finite difference computation of the R matrix.
             If not provided, the default values are used.
