@@ -170,6 +170,9 @@ def twiss_line(line, particle_ref=None, method=None,
         If True, the strengths of the multipoles are added to the table.
     delta_chrom : float, optional
         Momentum deviation for the chromaticity computation.
+    steps_r_matrix : dict, optional
+        Steps to be used for the finite difference computation of the R matrix.
+        If not provided, the default values are used.
     search_for_t_rev : bool, optional
         If True, the revolution period is searched for, otherwise the revolution
         period computed from the circumference is assumed.
@@ -309,9 +312,6 @@ def twiss_line(line, particle_ref=None, method=None,
         - hide_thin_groups : bool, optional
             If True, values associated to elements in thin groups are replaced
             with NaNs.
-        - steps_r_matrix : dict, optional
-            Steps to be used for the finite difference computation of the R matrix.
-            If not provided, the default values are used.
         - r_sigma : float, optional
             Deviation in sigmas used for the propagation of the W matrix.
             Initial value for the r_sigma parameter.
