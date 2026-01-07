@@ -132,18 +132,20 @@ def twiss_line(line, particle_ref=None, method=None,
         normal form is used. If '4d' the 4D normal form is used.
     start : int or str, optional
         Index of the element at which the computation starts. If not provided,
-        the periodic solution is computed. `init` must be provided if
-        `start` is provided.
+        the periodic solution is computed. ``init`` must be provided if
+        ``start`` is provided.
     end : int or str, optional
         Index of the element at which the computation stops.
     init : TwissInit object, optional
-        Initial values for the Twiss parameters. If `init="periodic"` is
+        Initial values for the Twiss parameters. If ``init="periodic"`` is
         passed, the periodic solution for the selected range is computed.
-        Instead of passing `init`, initial conditions can be provided directly
+        Instead of passing ``init``, initial conditions can be provided directly
         as keyword arguments, e.g. ``line.twiss(betx=1, bety=2, x=1e-3)``.
-        Accepted fields: x, px, y, py, zeta, delta, betx, alfx, bety, alfy, bets, dx,
-        dpx, dy, dpy, dzeta, mux, muy, muzeta, ax_chrom, bx_chrom, ay_chrom,
-        by_chrom, ddx, ddpx, ddy, ddpy, spin_x, spin_y, spin_z.
+        Accepted fields: ``x``, ``px``, ``y``, ``py``, ``zeta``, ``delta``, ``betx``,
+        ``alfx``, ``bety``, ``alfy``, ``bets``, ``dx``, ``dpx``, ``dy``, ``dpy``,
+        ``dzeta``, ``mux``, ``muy``, ``muzeta``, ``ax_chrom``, ``bx_chrom``,
+        ``ay_chrom``, ``by_chrom``, ``ddx``, ``ddpx``, ``ddy``, ``ddpy``, ``spin_x``,
+        ``spin_y``, ``spin_z``.
     delta0 : float, optional
         Initial value for the delta parameter.
     zeta0 : float, optional
@@ -176,7 +178,7 @@ def twiss_line(line, particle_ref=None, method=None,
         period computed from the circumference is assumed.
     num_turns_search_t_rev : int, optional
         Number of turns used for the search of the revolution period. Used only
-        if `search_for_t_rev` is True.
+        if ``search_for_t_rev`` is True.
     values_at_element_exit : bool, optional (False)
         If True, the Twiss parameters are computed at the exit of the
         elements. If False (default), the Twiss parameters are computed at the
@@ -271,11 +273,11 @@ def twiss_line(line, particle_ref=None, method=None,
             - eneloss_turn, energy loss per turn in electron volts (if
               eneloss_and_damping is True)
             - damping_constants_turns, radiation damping constants per turn
-              (if `eneloss_and_damping` is True)
+              (if ``eneloss_and_damping`` is True)
             - damping_constants_s:
-              radiation damping constants per second (if `eneloss_and_damping` is True)
+              radiation damping constants per second (if ``eneloss_and_damping`` is True)
             - partition_numbers:
-              radiation partition numbers (if `eneloss_and_damping` is True)
+              radiation partition numbers (if ``eneloss_and_damping`` is True)
 
     Notes
     -----
@@ -370,7 +372,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 return _add_action_in_res(out, input_kwargs)
 
     if only_markers:
-        raise NotImplementedError('`only_markers` not supported anymore')
+        raise NotImplementedError('``only_markers`` not supported anymore')
 
     if polarization:
         spin = True
@@ -475,12 +477,12 @@ def twiss_line(line, particle_ref=None, method=None,
     else:
         periodic = True
         periodic_mode = init or 'periodic'
-        assert x is None, '`x` not supported for periodic twiss'
-        assert px is None, '`px` not supported for periodic twiss'
-        assert y is None, '`y` not supported for periodic twiss'
-        assert py is None, '`py` not supported for periodic twiss'
-        assert zeta is None, '`zeta` not supported for periodic twiss'
-        assert delta is None, '`delta` not supported for periodic twiss'
+        assert x is None, '``x`` not supported for periodic twiss'
+        assert px is None, '``px`` not supported for periodic twiss'
+        assert y is None, '``y`` not supported for periodic twiss'
+        assert py is None, '``py`` not supported for periodic twiss'
+        assert zeta is None, '``zeta`` not supported for periodic twiss'
+        assert delta is None, '``delta`` not supported for periodic twiss'
 
     if freeze_longitudinal:
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
@@ -505,7 +507,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if at_s is not None:
         if reverse:
-            raise NotImplementedError('`at_s` not implemented for `reverse`=True')
+            raise NotImplementedError('``at_s`` not implemented for ``reverse``=True')
         # Get all arguments
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         if np.isscalar(at_s):
@@ -532,7 +534,7 @@ def twiss_line(line, particle_ref=None, method=None,
     if radiation_method is None and line._radiation_model is not None:
         if line._radiation_model == 'quantum':
             raise ValueError(
-                'twiss cannot be called when the radiation model is `quantum`')
+                'twiss cannot be called when the radiation model is ``quantum``')
         if method == '4d':
             raise RuntimeError('4d twiss cannot be called when radiation is present')
         radiation_method = 'kick_as_co'
@@ -659,12 +661,12 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if particle_ref is None and co_guess is None:
         raise ValueError(
-            "Either `particle_ref` or `co_guess` must be provided")
+            "Either ``particle_ref`` or ``co_guess`` must be provided")
 
     if method is None:
         method = '6d'
 
-    assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
+    assert method in ['6d', '4d'], 'Method must be ``6d`` or ``4d``'
 
     if isinstance(init, str):
         if init in ['preserve', 'preserve_start', 'preserve_end']:
@@ -712,7 +714,7 @@ def twiss_line(line, particle_ref=None, method=None,
         skip_global_quantities = True
 
     if only_twiss_init:
-        assert periodic, '`only_twiss_init` can only be used in periodic mode'
+        assert periodic, '``only_twiss_init`` can only be used in periodic mode'
         if reverse:
             return init.reverse()
         else:
@@ -720,7 +722,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if only_markers and eneloss_and_damping:
         raise NotImplementedError(
-            '`only_markers` not implemented for `eneloss_and_damping`')
+            '``only_markers`` not implemented for ``eneloss_and_damping``')
 
     twiss_res = _twiss_open(
         line=line,
@@ -1001,7 +1003,7 @@ def _twiss_open(
         twiss_orientation = 'backward'
     else:
         raise ValueError(
-            '`init` must be given at the start or end of the specified element range.')
+            '``init`` must be given at the start or end of the specified element range.')
 
     ctx2np = line._context.nparray_from_context_array
 
@@ -2215,7 +2217,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     assert periodic_mode in ['periodic', 'periodic_symmetric']
 
     if periodic_mode == 'periodic_symmetric':
-        raise ValueError('`periodic_symmetric` not supported anymore')
+        raise ValueError('``periodic_symmetric`` not supported anymore')
 
     if start is not None or end is not None:
         assert start is not None and end is not None, (
@@ -2231,15 +2233,15 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         raise ValueError('delta0 should be None when method is "6d"')
 
     if periodic_mode == 'periodic_symmetric':
-        raise ValueError('`periodic_symmetric` not supported anymore')
-        assert R_matrix is None, 'R_matrix must be None for `periodic_symmetric`'
-        assert W_matrix is None, 'W_matrix must be None for `periodic_symmetric`'
+        raise ValueError('``periodic_symmetric`` not supported anymore')
+        assert R_matrix is None, 'R_matrix must be None for ``periodic_symmetric``'
+        assert W_matrix is None, 'W_matrix must be None for ``periodic_symmetric``'
 
     if particle_on_co is not None:
         part_on_co = particle_on_co
     else:
         if search_for_t_rev:
-            assert method == '6d', 'search_for_t_rev possible when `method` is "6d"'
+            assert method == '6d', 'search_for_t_rev possible when ``method`` is "6d"'
         part_on_co = line.find_closed_orbit(
                                 co_guess=co_guess,
                                 particle_ref=particle_ref,
@@ -2545,17 +2547,17 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
 
     if search_for_t_rev:
         assert line.particle_ref is not None
-        assert co_guess is None, '`co_guess` not supported when `search_for_t_rev` is True'
-        assert co_search_settings is None, '`co_search_settings` not supported when `search_for_t_rev` is True'
-        assert zeta_shift == 0, '`zeta_shift` not supported when `search_for_t_rev` is True'
-        assert delta0 is None, '`delta0` not supported when `search_for_t_rev` is True'
-        assert zeta0 is None, '`zeta0` not supported when `search_for_t_rev` is True'
-        assert start is None, '`start` not supported when `search_for_t_rev` is True'
-        assert end is None, '`end` not supported when `search_for_t_rev` is True'
-        assert num_turns == 1, '`num_turns` not supported when `search_for_t_rev` is True'
-        assert co_search_at is None, '`co_search_at` not supported when `search_for_t_rev` is True'
-        assert continue_on_closed_orbit_error is False, '`continue_on_closed_orbit_error` not supported when `search_for_t_rev` is True'
-        assert symmetrize is False, '`symmetrize` not supported when `search_for_t_rev` is True'
+        assert co_guess is None, '``co_guess`` not supported when ``search_for_t_rev`` is True'
+        assert co_search_settings is None, '``co_search_settings`` not supported when ``search_for_t_rev`` is True'
+        assert zeta_shift == 0, '``zeta_shift`` not supported when ``search_for_t_rev`` is True'
+        assert delta0 is None, '``delta0`` not supported when ``search_for_t_rev`` is True'
+        assert zeta0 is None, '``zeta0`` not supported when ``search_for_t_rev`` is True'
+        assert start is None, '``start`` not supported when ``search_for_t_rev`` is True'
+        assert end is None, '``end`` not supported when ``search_for_t_rev`` is True'
+        assert num_turns == 1, '``num_turns`` not supported when ``search_for_t_rev`` is True'
+        assert co_search_at is None, '``co_search_at`` not supported when ``search_for_t_rev`` is True'
+        assert continue_on_closed_orbit_error is False, '``continue_on_closed_orbit_error`` not supported when ``search_for_t_rev`` is True'
+        assert symmetrize is False, '``symmetrize`` not supported when ``search_for_t_rev`` is True'
 
         out = _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev)
         return out
@@ -2568,7 +2570,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
         co_search_at = None # needs to be implemented
 
     if co_search_at is not None:
-        assert not symmetrize, 'Symmetrize not supported when `co_search_at` is provided'
+        assert not symmetrize, 'Symmetrize not supported when ``co_search_at`` is provided'
         kwargs = locals().copy()
         kwargs.pop('start')
         kwargs.pop('end')
@@ -2594,7 +2596,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                 particle_ref = line.particle_ref
             else:
                 raise ValueError(
-                    "Either `co_guess` or `particle_ref` must be provided")
+                    "Either ``co_guess`` or ``particle_ref`` must be provided")
 
         co_guess = particle_ref.copy()
         co_guess.x = 0
@@ -2962,17 +2964,17 @@ class TwissInit:
                 spin_z=(spin_z or 0.)
             )
         else:
-            assert x is None, "`x` must be None if `particle_on_co` is provided"
-            assert px is None, "`px` must be None if `particle_on_co` is provided"
-            assert y is None, "`y` must be None if `particle_on_co` is provided"
-            assert py is None, "`py` must be None if `particle_on_co` is provided"
-            assert zeta is None, "`zeta` must be None if `particle_on_co` is provided"
-            assert delta is None, "`delta` must be None if `particle_on_co` is provided"
-            assert spin_x is None, "`spin_x` must be None if `particle_on_co` is provided"
-            assert spin_y is None, "`spin_y` must be None if `particle_on_co` is provided"
-            assert spin_z is None, "`spin_z` must be None if `particle_on_co` is provided"
+            assert x is None, "``x`` must be None if ``particle_on_co`` is provided"
+            assert px is None, "``px`` must be None if ``particle_on_co`` is provided"
+            assert y is None, "``y`` must be None if ``particle_on_co`` is provided"
+            assert py is None, "``py`` must be None if ``particle_on_co`` is provided"
+            assert zeta is None, "``zeta`` must be None if ``particle_on_co`` is provided"
+            assert delta is None, "``delta`` must be None if ``particle_on_co`` is provided"
+            assert spin_x is None, "``spin_x`` must be None if ``particle_on_co`` is provided"
+            assert spin_y is None, "``spin_y`` must be None if ``particle_on_co`` is provided"
+            assert spin_z is None, "``spin_z`` must be None if ``particle_on_co`` is provided"
             assert particle_ref is None, (
-                "`particle_ref` must be None if `particle_on_co` is provided")
+                "``particle_ref`` must be None if ``particle_on_co`` is provided")
             self.__dict__['particle_on_co'] = particle_on_co
 
         if W_matrix is None:
@@ -2990,11 +2992,11 @@ class TwissInit:
                 betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
                 dx=dx, dpx=dpx, dy=dy, dpy=dpy)
         else:
-            assert betx is None, "`betx` must be None if `W_matrix` is provided"
-            assert alfx is None, "`alfx` must be None if `W_matrix` is provided"
-            assert bety is None, "`bety` must be None if `W_matrix` is provided"
-            assert alfy is None, "`alfy` must be None if `W_matrix` is provided"
-            assert bets is None, "`bets` must be None if `W_matrix` is provided"
+            assert betx is None, "``betx`` must be None if ``W_matrix`` is provided"
+            assert alfx is None, "``alfx`` must be None if ``W_matrix`` is provided"
+            assert bety is None, "``bety`` must be None if ``W_matrix`` is provided"
+            assert alfy is None, "``alfy`` must be None if ``W_matrix`` is provided"
+            assert bets is None, "``bets`` must be None if ``W_matrix`` is provided"
             self._temp_co_data = None
 
         self.element_name = element_name
@@ -3107,15 +3109,15 @@ class TwissInit:
         if (line is not None and 'reverse' in line.twiss_default
             and line.twiss_default['reverse']):
             input_reversed = True
-            assert self.reference_frame is None, ("`reference_frame` must be None "
-                "if `twiss_default['reverse']` is True")
+            assert self.reference_frame is None, ("``reference_frame`` must be None "
+                "if ``twiss_default['reverse']`` is True")
         else:
             input_reversed = False
 
         if self._temp_co_data is not None:
             import xpart
             assert line is not None, (
-                "`line` must be provided if `particle_on_co` is None")
+                "``line`` must be provided if ``particle_on_co`` is None")
 
             i_ele_in_line = _str_to_index(line, element_name, allow_end_point=False)
             s_ele_in_line = line.tracker._tracker_data_base.element_s_locations[i_ele_in_line]
@@ -3609,30 +3611,30 @@ class TwissTable(Table):
             Which formalism to use for the computation. Can be ``Nagaitsev``
             or ``Bjorken-Mtingwa`` (also accepts ``B&M``), case-insensitively.
         total_beam_intensity : int, optional
-            The beam intensity. Required if `particles` is not provided.
+            The beam intensity. Required if ``particles`` is not provided.
         gemitt_x : float, optional
-            Horizontal geometric emittance in [m]. If `particles` is not
-            provided, either this parameter or `nemitt_x` is required.
+            Horizontal geometric emittance in [m]. If ``particles`` is not
+            provided, either this parameter or ``nemitt_x`` is required.
         nemitt_x : float, optional
-            Horizontal normalized emittance in [m]. If `particles` is not
-            provided, either this parameter or `gemitt_x` is required.
+            Horizontal normalized emittance in [m]. If ``particles`` is not
+            provided, either this parameter or ``gemitt_x`` is required.
         gemitt_y : float, optional
-            Vertical geometric emittance in [m]. If `particles` is not
-            provided, either this parameter or `nemitt_y` is required.
+            Vertical geometric emittance in [m]. If ``particles`` is not
+            provided, either this parameter or ``nemitt_y`` is required.
         nemitt_y : float, optional
-            Vertical normalized emittance in [m]. If `particles` is not
-            provided, either this parameter or `gemitt_y` is required.
+            Vertical normalized emittance in [m]. If ``particles`` is not
+            provided, either this parameter or ``gemitt_y`` is required.
         sigma_delta : float, optional
-            The momentum spread. Required if `particles` is not provided.
+            The momentum spread. Required if ``particles`` is not provided.
         bunch_length : float, optional
-            The bunch length in [m]. Required if `particles` is not provided.
+            The bunch length in [m]. Required if ``particles`` is not provided.
         bunched : bool, optional
-            Whether the beam is bunched or not (coasting). Defaults to `True`.
-            Required if `particles` is not provided.
+            Whether the beam is bunched or not (coasting). Defaults to ``True``.
+            Required if ``particles`` is not provided.
         **kwargs : dict
             Keyword arguments are passed to the growth rates computation method of
             the chosen IBS formalism implementation. See the IBS details from the
-            `xfields` package directly.
+            ``xfields`` package directly.
 
         Returns
         -------
@@ -3691,17 +3693,17 @@ class TwissTable(Table):
         Notes
         -----
             It is required that radiation has been configured in the line,
-            and that this `TwissTable` holds information on the equilibrium
+            and that this ``TwissTable`` holds information on the equilibrium
             state from Synchrotron Radiation. This means calling first
-            `line.configure_radiation(model="mean")` and then the `.twiss()`
-            method with `eneloss_and_damping=True`.
+            ``line.configure_radiation(model="mean")`` and then the ``.twiss()``
+            method with ``eneloss_and_damping=True``.
 
         Warning
         -------
             If the user does not provide a starting emittance, the program
-            defaults to using the SR equilibrium value from this `TwissTable`,
+            defaults to using the SR equilibrium value from this ``TwissTable``,
             which is a reasonable defaults for light sources. If a constraint
-            is provided via `emittance_constraint`  the starting emittances are
+            is provided via ``emittance_constraint``  the starting emittances are
             re-computed to respect that constraint (this is logged to the user).
 
             If the user does provide starting emittances **and** a constraint, it
@@ -3719,27 +3721,27 @@ class TwissTable(Table):
         gemitt_x : float, optional
             Starting horizontal geometric emittance, in [m]. If neither this nor
             the normalized one is provided, the SR equilibrium value from this
-            `TwissTable` is used.
+            ``TwissTable`` is used.
         nemitt_x : float, optional
             Starting horizontal normalized emittance, in [m]. If neither this nor
             the geometric one is provided, the SR equilibrium value from this
-            `TwissTable` is used.
+            ``TwissTable`` is used.
         gemitt_y : float, optional
             Starting vertical geometric emittance, in [m]. If neither this nor
             the normalized one is provided, the SR equilibrium value from this
-            `TwissTable` is used.
+            ``TwissTable`` is used.
         nemitt_y : float, optional
             Starting vertical normalized emittance, in [m]. If neither this nor
             the geometric one is provided, the SR equilibrium value from this
-            `TwissTable` is used.
+            ``TwissTable`` is used.
         gemitt_zeta : float, optional
             Starting longitudinal geometric emittance, in [m]. If neither this
             nor the normalized one is provided, the SR equilibrium value from
-            this `TwissTable` is used.
+            this ``TwissTable`` is used.
         nemitt_zeta : float, optional
             Starting longitudinal normalized emittance, in [m]. If neither this
             nor the geometric one is provided, the SR equilibrium value from this
-            `TwissTable` is used.
+            ``TwissTable`` is used.
         emittance_coupling_factor : float, optional
             The ratio of perturbed transverse emittances due to betatron coupling.
             If a value is provided, it is taken into account for the evolution of
@@ -3750,41 +3752,41 @@ class TwissTable(Table):
             If an accepted value is provided, enforces constraints on the transverse
             emittances. Can be either "coupling" or "excitation", case-insensitively.
             Defaults to "coupling".
-            - If `coupling`, vertical emittance is the result of linear coupling. In
+            - If ``coupling``, vertical emittance is the result of linear coupling. In
                 this case both the vertical and horizontal emittances are altered and
-                determined based on the value of `emittance_coupling_factor` and the
+                determined based on the value of ``emittance_coupling_factor`` and the
                 damping partition numbers. If the horizontal and vertical partition
                 numbers are equal then the total transverse emittance is preserved.
-            - If `excitation`, vertical emittance is the result of an excitation
+            - If ``excitation``, vertical emittance is the result of an excitation
                 (e.g. from a feedback system) and is determined from the horizontal
-                emittance based on the value of `emittance_coupling_factor`. In this
+                emittance based on the value of ``emittance_coupling_factor``. In this
                 case the total transverse emittance is NOT preserved.
-            Providing `None` allows one to study a scenario without constraint. Note
-            that as `emittance_coupling_factor` defaults to 0, the constraint has no
+            Providing ``None`` allows one to study a scenario without constraint. Note
+            that as ``emittance_coupling_factor`` defaults to 0, the constraint has no
             effect unless a non-zero factor is provided.
         overwrite_sigma_zeta : float, optional
             The RMS bunch length, in [m]. If provided, overwrites the one computed from
             the longitudinal emittance and forces a recompute of the longitudinal
-            emittance. Defaults to `None`.
+            emittance. Defaults to ``None``.
         overwrite_sigma_delta : float, optional
             The RMS momentum spread of the bunch. If provided, overwrites the one
             computed from the longitudinal emittance and forces a recompute of the
-            longitudinal emittance. Defaults to `None`.
+            longitudinal emittance. Defaults to ``None``.
         rtol : float, optional
             Relative tolerance to determine when convergence is reached: if the relative
             difference between the computed emittances and those at the previous step is
-            below `rtol`, then convergence is considered achieved. Defaults to 1e-6.
+            below ``rtol``, then convergence is considered achieved. Defaults to 1e-6.
         tstep : float, optional
             Time step to use for each iteration, in [s]. If not provided, an
             adaptive time step is computed based on the IBS growth rates and
-            the damping constants. Defaults to `None`.
+            the damping constants. Defaults to ``None``.
         max_steps : float, optional
             The maximum number of iterations to perform before stopping the iterative
             process. If not provided, the process continues until it reaches convergence
-            (according to the provided `rtol`). Defaults to `None`.
+            (according to the provided ``rtol``). Defaults to ``None``.
         verbose : bool, optional
             Whether to print out information on the current iteration step and estimated
-            convergence progress. Defaults to `True`.
+            convergence progress. Defaults to ``True``.
         **kwargs : dict
             Keyword arguments are passed to the growth rates computation method of
             the chosen IBS formalism implementation. See the formalism classes in
@@ -4492,11 +4494,11 @@ def _complete_twiss_init(start, end, init_at, init,
 
         if reverse is not None:
             if init.reference_frame == 'proper':
-                assert not(reverse), ('`init` needs to be given in the '
-                    'proper reference frame when `reverse` is False')
+                assert not(reverse), ('``init`` needs to be given in the '
+                    'proper reference frame when ``reverse`` is False')
             elif init is not None and init.reference_frame == 'reverse':
-                assert reverse is True, ('`init` needs to be given in the '
-                    'reverse reference frame when `reverse` is True')
+                assert reverse is True, ('``init`` needs to be given in the '
+                    'reverse reference frame when ``reverse`` is True')
 
     return init
 
@@ -4505,7 +4507,7 @@ def _complete_steps_r_matrix_with_default(steps_r_matrix):
         steps_in = steps_r_matrix.copy()
         for nn in steps_in.keys():
             assert nn in list(DEFAULT_STEPS_R_MATRIX.keys()) + ['adapted'], (
-                '`steps_r_matrix` can contain only ' +
+                '``steps_r_matrix`` can contain only ' +
                 ' '.join(DEFAULT_STEPS_R_MATRIX.keys())
             )
         steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
