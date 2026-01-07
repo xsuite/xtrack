@@ -209,6 +209,16 @@ def twiss_line(line, particle_ref=None, method=None,
     coupling_edw_teng : bool, optional
         If True, use Edwards-Teng coupling quantities are computed. Default is
         False.
+    co_search_at : str, optional
+        Element name at which the closed orbit is searched when provided.
+    zero_at : str, optional
+        Element name at which to zero the longitudinal coordinate in the output.
+    co_search_at : str, optional
+        Element name at which the closed orbit is searched. If not provided,
+        the closed orbit is searched at the start of the line.
+    zero_at : str, optional
+        Element name at which the s coordinate and the phase advances are set to
+        zero.
 
     Returns
     -------
