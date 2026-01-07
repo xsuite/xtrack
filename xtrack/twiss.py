@@ -238,101 +238,101 @@ def twiss_line(line, particle_ref=None, method=None,
     Fields marked as "ebe" are element-by-element quantities.
 
     - Default output fields:
-        - ``name``: element name (ebe)
-        - ``s``: element position [m] (ebe)
-        - ``x``, ``px``, ``y``, ``py``, ``zeta``, ``delta``, ``ptau``: coordinates
-          of closed orbit for periodic twiss or beam trajectory for open twiss. (ebe)
-        - ``betx``, ``bety``, ``alfx``, ``alfy``, ``gamx``, ``gamy``: Twiss parameters (ebe)
-        - ``dx``, ``dpx``, ``dy``, ``dpy``: dispersion (ebe)
-        - ``dx_zeta``, ``dpx_zeta``, ``dy_zeta``, ``dpy_zeta``: crab dispersion (ebe)
-        - ``bets0``: longitudinal beta function at start ring.
-        - ``W_matrix``: linear normal-form matrix. (ebe)
-        - ``kin_px``, ``kin_py``, ``kin_ps``: kinetic momenta
-        - ``kin_xprime``, ``kin_yprime``: transverse slopes
-        - ``env_name``: element names with groups expanded
-        - ``particle_on_co``: closed-orbit particle
-        - ``circumference``: reference trajectory length
-        - ``orientation``: forward/backward computation direction
-        - ``values_at``: whether values are at entry/exit
-        - ``method``, ``radiation_method``, ``reference_frame``, ``line_config``,
-          ``periodic``, ``completed_init``: bookkeeping
-        - ``betx1``, ``bety1``, ``betx2``, ``bety2``, ``alfx1``, ``alfy1``, ``alfx2``,
-          ``alfy2``, ``gamx1``, ``gamy1``, ``gamx2``, ``gamy2``: Mais-Ripken optics
-        - ``mux``, ``muy``, ``muzeta``: phase advances [turns]
-        - ``nux``, ``nuy``, ``nuzeta``: tunes
-        - ``phix``, ``phiy``, ``phizeta``: eigenvector phases [rad]
-    - With global quantities enabled (default unless ``skip_global_quantities`` or
-        ``only_orbit``):
-        - ``R_matrix``, ``steps_r_matrix``, ``R_matrix_ebe``: transfer matrices
-        - ``eigenvalues``, ``rotation_matrix``: linear-normal-form data
-        - ``bets0``: longitudinal beta at start
-        - ``T_rev0``: reference revolution period [s]
-        - ``gamma0``, ``beta0``, ``p0c``: reference kinematics
-        - ``slip_factor``, ``momentum_compaction_factor``, ``slip_factor_dz_ddelta``:
+        - `name`: element name (ebe)
+        - `s`: element position [m] (ebe)
+        - `x`, `px`, `y`, `py`, `zeta`, `delta`, `ptau`: coordinates
+          of the closed orbit for the periodic twiss and of the  beam trajectory 
+          for the open twiss. (ebe)
+        - `betx`, `bety`, `alfx`, `alfy`, `gamx`, `gamy`: Twiss parameters (ebe)
+        - `dx`, `dpx`, `dy`, `dpy`: dispersion functions (ebe)
+        - `dx_zeta`, `dpx_zeta`, `dy_zeta`, `dpy_zeta`: crab dispersion functions(ebe)
+        - `bets0`: longitudinal beta function at start ring.
+        - `W_matrix`: linear normal-form matrix. (ebe)
+        - `kin_px`, `kin_py`, `kin_ps`: kinetic momenta (px, py are canonical momenta). (ebe)
+        - `kin_xprime`, `kin_yprime`: transverse slopes dx/ds, dy/ds. (ebe)
+        - `mux`, `muy`, `muzeta`: phase advances in units of 2 pi. (ebe)
+        - `qx`, `qy`, `qs`: tunes, present only for periodic twiss.
+        - `nux`, `nuy`, `nuzeta`: eigenvector shrink factors. (ebe)
+        - `betx1`, `bety1`, `betx2`, `bety2`, `alfx1`, `alfy1`, `alfx2`,
+          `alfy2`, `gamx1`, `gamy1`, `gamx2`, `gamy2`: Mais-Ripken optics functions (ebe)
+
+        - `particle_on_co`: closed-orbit particle
+        - `circumference`: reference trajectory length
+        - `orientation`: forward/backward computation direction
+        - `values_at`: whether values are at entry/exit
+        - `method`, `radiation_method`, `reference_frame`, `line_config`,
+          `periodic`, `completed_init`: bookkeeping
+ 
+        - `env_name`: element names with groups expanded
+        - `R_matrix`, `steps_r_matrix`, `R_matrix_ebe`: transfer matrices
+        - `eigenvalues`, `rotation_matrix`: linear-normal-form data
+        - `bets0`: longitudinal beta at start
+        - `T_rev0`: reference revolution period [s]
+        - `gamma0`, `beta0`, `p0c`: reference kinematics
+        - `slip_factor`, `momentum_compaction_factor`, `slip_factor_dz_ddelta`:
           longitudinal dynamics
-        - ``qx``, ``qy``, ``qs``: tunes (when lattice functions are present)
-        - ``c_minus``, ``c_minus_re_0``, ``c_minus_im_0``: closest tune approach
-        - ``c_minus_re``, ``c_minus_im``, ``c_r1``, ``c_r2``, ``c_phi1``, ``c_phi2``:
+        - `c_minus`, `c_minus_re_0`, `c_minus_im_0`: closest tune approach
+        - `c_minus_re`, `c_minus_im`, `c_r1`, `c_r2`, `c_phi1`, `c_phi2`:
           coupling coefficients
-    - With ``compute_chromatic_properties`` True (or None in periodic mode) and
-        ``only_orbit=False``:
-        - ``dmux``, ``dmuy``: phase-advance derivatives vs delta
-        - ``dzeta``: longitudinal dispersion vs delta
-        - ``bx_chrom``, ``by_chrom``: d bet / d delta
-        - ``ax_chrom``, ``ay_chrom``: chromatic alpha combinations
-        - ``wx_chrom``, ``wy_chrom``: chromatic amplitude
-        - ``dqx``, ``dqy``: chromaticities
-        - ``ddx``, ``ddpx``, ``ddy``, ``ddpy``: second-order dispersion
-        - ``ddqx``, ``ddqy``: second-order chromaticities
-    - With ``strengths=True`` (or ``radiation_integrals=True`` which implies strengths):
-        - ``k0l``–``k5l``, ``k0sl``–``k5sl``: normal/skew multipole strengths
-        - ``angle_rad``, ``rot_s_rad``, ``hkick``, ``vkick``, ``ks``, ``length``,
-          ``_angle_force_body``: element geometry/fields
-        - ``element_type``, ``isthick``, ``parent_name``: element metadata
-    - With ``eneloss_and_damping=True``:
-        - ``eneloss_turn``: energy loss per turn [eV]
-        - ``damping_constants_turns``, ``damping_constants_s``: damping constants
-        - ``partition_numbers``: radiation partition numbers
-        - ``angle_rad``, ``rot_s_rad``, ``length``, ``radiation_flag``: ensured geometry
-        - Equilibrium data (depend on ``radiation_method``): ``eq_gemitt_x``,
-          ``eq_gemitt_y``, ``eq_gemitt_zeta``, ``eq_nemitt_x``, ``eq_nemitt_y``,
-          ``eq_nemitt_zeta``, ``eq_beam_covariance_matrix``, ``dl_radiation``,
-          ``n_dot_delta_kick_sq_ave``, ``hx_rad``, ``hy_rad``, ``h0x_rad``, ``h0y_rad``.
-    - With ``radiation_integrals=True``:
-        - ``rad_int_curly_hx``, ``rad_int_curly_hy``: curly-H terms
-        - ``rad_int_i1x_integrand``, ``rad_int_i1y_integrand``, ``rad_int_l2_integrand``,
-          ``rad_int_i3_integrand``, ``rad_int_i4_integrand``, ``rad_int_i4x_integrand``,
-          ``rad_int_i4y_integrand``, ``rad_int_i5x_integrand``, ``rad_int_i5y_integrand``:
+    - With `compute_chromatic_properties` True (or None in periodic mode) and
+        `only_orbit=False`:
+        - `dmux`, `dmuy`: phase-advance derivatives vs delta
+        - `dzeta`: longitudinal dispersion vs delta
+        - `bx_chrom`, `by_chrom`: d bet / d delta
+        - `ax_chrom`, `ay_chrom`: chromatic alpha combinations
+        - `wx_chrom`, `wy_chrom`: chromatic amplitude
+        - `dqx`, `dqy`: chromaticities
+        - `ddx`, `ddpx`, `ddy`, `ddpy`: second-order dispersion
+        - `ddqx`, `ddqy`: second-order chromaticities
+    - With `strengths=True` (or `radiation_integrals=True` which implies strengths):
+        - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole strengths
+        - `angle_rad`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
+          `_angle_force_body`: element geometry/fields
+        - `element_type`, `isthick`, `parent_name`: element metadata
+    - With `eneloss_and_damping=True`:
+        - `eneloss_turn`: energy loss per turn [eV]
+        - `damping_constants_turns`, `damping_constants_s`: damping constants
+        - `partition_numbers`: radiation partition numbers
+        - `angle_rad`, `rot_s_rad`, `length`, `radiation_flag`: ensured geometry
+        - Equilibrium data (depend on `radiation_method`): `eq_gemitt_x`,
+          `eq_gemitt_y`, `eq_gemitt_zeta`, `eq_nemitt_x`, `eq_nemitt_y`,
+          `eq_nemitt_zeta`, `eq_beam_covariance_matrix`, `dl_radiation`,
+          `n_dot_delta_kick_sq_ave`, `hx_rad`, `hy_rad`, `h0x_rad`, `h0y_rad`.
+    - With `radiation_integrals=True`:
+        - `rad_int_curly_hx`, `rad_int_curly_hy`: curly-H terms
+        - `rad_int_i1x_integrand`, `rad_int_i1y_integrand`, `rad_int_l2_integrand`,
+          `rad_int_i3_integrand`, `rad_int_i4_integrand`, `rad_int_i4x_integrand`,
+          `rad_int_i4y_integrand`, `rad_int_i5x_integrand`, `rad_int_i5y_integrand`:
           integrands
-        - ``rad_int_kappa0_x``, ``rad_int_kappa0_y``, ``rad_int_kappa0``: reference curvature
-        - ``rad_int_kappa_x``, ``rad_int_kappa_y``, ``rad_int_kappa``: particle curvature
-        - ``rad_int_iv_x``, ``rad_int_iv_y``, ``rad_int_iv_z``: velocity direction cosines
-        - ``rad_int_i1x``, ``rad_int_i1y``, ``rad_int_i2``, ``rad_int_i3``, ``rad_int_i4``,
-          ``rad_int_i4x``, ``rad_int_i4y``, ``rad_int_i5x``, ``rad_int_i5y``: integrated
+        - `rad_int_kappa0_x`, `rad_int_kappa0_y`, `rad_int_kappa0`: reference curvature
+        - `rad_int_kappa_x`, `rad_int_kappa_y`, `rad_int_kappa`: particle curvature
+        - `rad_int_iv_x`, `rad_int_iv_y`, `rad_int_iv_z`: velocity direction cosines
+        - `rad_int_i1x`, `rad_int_i1y`, `rad_int_i2`, `rad_int_i3`, `rad_int_i4`,
+          `rad_int_i4x`, `rad_int_i4y`, `rad_int_i5x`, `rad_int_i5y`: integrated
           radiation integrals
-        - ``rad_int_eq_gemitt_x``, ``rad_int_eq_gemitt_y``: equilibrium emittances from integrals
-        - ``rad_int_damping_constant_x_s``, ``rad_int_damping_constant_y_s``,
-          ``rad_int_damping_constant_zeta_s``: damping constants from integrals
-    - With ``polarization=True``:
-        - ``spin_dn_ddelta_x``, ``spin_dn_ddelta_y``, ``spin_dn_ddelta_z``: spin derivative vs delta
-        - ``spin_eigenvectors``: spin eigenvectors element-by-element
-        - ``spin_n_matrix``: spin transfer matrix in Frenet-Serret frame
-        - ``spin_n0_iv``, ``spin_n0_ib``: projections of equilibrium spin
-        - ``spin_tune_fractional``: fractional spin tune
-        - ``spin_polarization_eq``, ``spin_polarization_inf_no_depol``: equilibrium/infinite-time polarization
-        - ``spin_t_pol_buildup_s``, ``spin_t_pol_component_s``, ``spin_t_depol_component_s``:
+        - `rad_int_eq_gemitt_x`, `rad_int_eq_gemitt_y`: equilibrium emittances from integrals
+        - `rad_int_damping_constant_x_s`, `rad_int_damping_constant_y_s`,
+          `rad_int_damping_constant_zeta_s`: damping constants from integrals
+    - With `polarization=True`:
+        - `spin_dn_ddelta_x`, `spin_dn_ddelta_y`, `spin_dn_ddelta_z`: spin derivative vs delta
+        - `spin_eigenvectors`: spin eigenvectors element-by-element
+        - `spin_n_matrix`: spin transfer matrix in Frenet-Serret frame
+        - `spin_n0_iv`, `spin_n0_ib`: projections of equilibrium spin
+        - `spin_tune_fractional`: fractional spin tune
+        - `spin_polarization_eq`, `spin_polarization_inf_no_depol`: equilibrium/infinite-time polarization
+        - `spin_t_pol_buildup_s`, `spin_t_pol_component_s`, `spin_t_depol_component_s`:
           polarization/depolarization times
-        - ``spin_alpha_plus_co``, ``spin_alpha_minus_co``, ``spin_alpha_plus``, ``spin_alpha_minus``:
+        - `spin_alpha_plus_co`, `spin_alpha_minus_co`, `spin_alpha_plus`, `spin_alpha_minus`:
           Sokolov-Ternov rates
-        - ``spin_int_kappa3_n0_ib``, ``spin_int_kappa3_dn_ddelta_ib``,
-          ``spin_int_kappa3_11_18_dn_ddelta_sq``: curvature-weighted spin integrals
-        - Diagnostic data stored with ``_spin_*`` keys
-    - With ``coupling_edw_teng=True``:
-        - ``r11_edw_teng``, ``r12_edw_teng``, ``r21_edw_teng``, ``r22_edw_teng``: Edwards-Teng coupling
-    - With ``search_for_t_rev=True``:
-        - ``T_rev``: measured revolution period [s]
-    - With ``num_turns>1``:
-        - Multi-turn concatenated table; initial turn stored in ``_tw0`` within ``_data``
+        - `spin_int_kappa3_n0_ib`, `spin_int_kappa3_dn_ddelta_ib`,
+          `spin_int_kappa3_11_18_dn_ddelta_sq`: curvature-weighted spin integrals
+        - Diagnostic data stored with `_spin_*` keys
+    - With `coupling_edw_teng=True`:
+        - `r11_edw_teng`, `r12_edw_teng`, `r21_edw_teng`, `r22_edw_teng`: Edwards-Teng coupling
+    - With `search_for_t_rev=True`:
+        - `T_rev`: measured revolution period [s]
+    - With `num_turns>1`:
+        - Multi-turn concatenated table; initial turn stored in `_tw0` within `_data`
 
 
 
