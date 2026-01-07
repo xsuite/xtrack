@@ -139,6 +139,11 @@ def twiss_line(line, particle_ref=None, method=None,
     init : TwissInit object, optional
         Initial values for the Twiss parameters. If `init="periodic"` is
         passed, the periodic solution for the selected range is computed.
+        Instead of passing `init`, initial conditions can be provided directly
+        as keyword arguments, e.g. ``line.twiss(betx=1, bety=2, x=1e-3)``.
+        Accepted fields: x, px, y, py, zeta, delta, betx, alfx, bety, alfy, bets, dx,
+        dpx, dy, dpy, dzeta, mux, muy, muzeta, ax_chrom, bx_chrom, ay_chrom,
+        by_chrom, ddx, ddpx, ddy, ddpy, spin_x, spin_y, spin_z.
     delta0 : float, optional
         Initial value for the delta parameter.
     zeta0 : float, optional
