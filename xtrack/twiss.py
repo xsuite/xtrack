@@ -157,6 +157,9 @@ def twiss_line(line, particle_ref=None, method=None,
         Closed-orbit ``zeta`` at the start of the beam line, used when solving
         the closed orbit in ``method='4d'``. Mutually exclusive with ``delta0``.
         Cannot be used in 6d mode.
+    zeta_shift : float, optional
+        Offset applied to ``zeta`` during closed-orbit search (closed orbit is
+        found for ``zeta[out] = zeta[in] - zeta_shift``). Default is 0.
     radiation_method : {'full', 'kick_as_co', 'scale_as_co'}, optional
         Method to be used for the computation of twiss parameters in the presence
         of radiation. If 'full' the method described in E. Forest, "From tracking
