@@ -122,7 +122,8 @@ def twiss_line(line, particle_ref=None, method=None,
         only_markers=None,
     ):
     """
-    Compute the Twiss parameters of the beam line.
+    Compute the Twiss parameters of the beam line. If no initial conditions
+    are provided, the periodic solution is computed.
 
     Parameters
     ----------
