@@ -206,6 +206,9 @@ def twiss_line(line, particle_ref=None, method=None,
         If True, the output is computed in the reversed reference frame, i.e.
         s = -s, x = -x, y = y, zeta = -zeta, px=px, py=-py, delta=delta. Default
         is False.
+    coupling_edw_teng : bool, optional
+        If True, use Edwards-Teng coupling quantities are computed. Default is
+        False.
 
     Returns
     -------
