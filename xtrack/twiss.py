@@ -150,6 +150,15 @@ def twiss_line(line, particle_ref=None, method=None,
     init_at : str, optional
         Element name at which the initial conditions are defined. If not provided,
         the initial conditions are defined at ``start``.
+    reverse : bool, optional
+        If True, the output is computed in the reversed reference frame, i.e.
+        s = -s, x = -x, y = y, zeta = -zeta, px=px, py=-py, delta=delta. Default
+        is False.
+    zero_at : str, optional
+        Element name at which to zero the longitudinal coordinate in the output.
+    zero_at : str, optional
+        Element name at which the s coordinate and the phase advances are set to
+        zero.
     delta0 : float, optional
         Closed-orbit ``delta`` at the start of the beam line, used when solving
         the closed orbit in ``method='4d'``. Mutually exclusive with ``zeta0``.
@@ -161,6 +170,19 @@ def twiss_line(line, particle_ref=None, method=None,
     zeta_shift : float, optional
         Offset applied to ``zeta`` during closed-orbit search (closed orbit is
         found for ``zeta[out] = zeta[in] - zeta_shift``). Default is 0.
+    co_guess : xpart.Particles or dict, optional
+        Initial guess for the closed orbit. If not provided, zero is assumed.
+    co_search_at : str, optional
+        Element name at which the closed orbit is searched when provided.
+    co_search_at : str, optional
+        Element name at which the closed orbit is searched. If not provided,
+        the closed orbit is searched at the start of the line.
+    search_for_t_rev : bool, optional
+        If True, the revolution period is searched for, otherwise the revolution
+        period computed from the circumference is assumed.
+    num_turns_search_t_rev : int, optional
+        Number of turns used for the search of the revolution period. Used only
+        if ``search_for_t_rev`` is True.
     radiation_method : {'full', 'kick_as_co', 'scale_as_co'}, optional
         Method to be used for the computation of twiss parameters in the presence
         of radiation. If 'full' the method described in E. Forest, "From tracking
@@ -169,15 +191,14 @@ def twiss_line(line, particle_ref=None, method=None,
         momenta are scaled by radiation as much as the closed orbit.
     radiation_integrals : bool, optional
         If True, the radiation integrals are computed.
+    eneloss_and_damping : bool, optional
+        If True, the energy loss, radiation damping constants, and equilibrium
+        emittances are computed. Default is False.
     spin : bool, optional
         If True, for periodic twiss compute spin closed solution (n0);
         for open twiss, propagate spin components.
     polarization : bool, optional
         If True, compute quantititis related to spin polarization.
-    eneloss_and_damping : bool, optional
-        If True, the energy loss and radiation damping constants are computed.
-    co_guess : xpart.Particles or dict, optional
-        Initial guess for the closed orbit. If not provided, zero is assumed.
     strengths : bool, optional
         If True, the strengths of the multipoles are added to the table.
     delta_chrom : float, optional
@@ -185,18 +206,6 @@ def twiss_line(line, particle_ref=None, method=None,
     steps_r_matrix : dict, optional
         Steps to be used for the finite difference computation of the R matrix.
         If not provided, the default values are used.
-    include_collective : bool, optional
-        If True, keep collective elements active during the twiss computation.
-        Default is False.
-    disable_apertures : bool, optional
-        If True (default), aperture checks on tracked particles are disabled
-        while computing twiss.
-    search_for_t_rev : bool, optional
-        If True, the revolution period is searched for, otherwise the revolution
-        period computed from the circumference is assumed.
-    num_turns_search_t_rev : int, optional
-        Number of turns used for the search of the revolution period. Used only
-        if ``search_for_t_rev`` is True.
     matrix_responsiveness_tol : float, optional
         Tolerance to be used tp check the responsiveness of the R matrix.
         If not provided, the default value is used.
@@ -206,23 +215,15 @@ def twiss_line(line, particle_ref=None, method=None,
     symplectify : bool, optional
         If True, the R matrix is symplectified before computing the linear normal
         form. Dafault is False.
-    reverse : bool, optional
-        If True, the output is computed in the reversed reference frame, i.e.
-        s = -s, x = -x, y = y, zeta = -zeta, px=px, py=-py, delta=delta. Default
-        is False.
     coupling_edw_teng : bool, optional
         If True, use Edwards-Teng coupling quantities are computed. Default is
         False.
-    co_search_at : str, optional
-        Element name at which the closed orbit is searched when provided.
-    zero_at : str, optional
-        Element name at which to zero the longitudinal coordinate in the output.
-    co_search_at : str, optional
-        Element name at which the closed orbit is searched. If not provided,
-        the closed orbit is searched at the start of the line.
-    zero_at : str, optional
-        Element name at which the s coordinate and the phase advances are set to
-        zero.
+    include_collective : bool, optional
+        If True, keep collective elements active during the twiss computation.
+        Default is False.
+    disable_apertures : bool, optional
+        If True (default), aperture checks on tracked particles are disabled
+        while computing twiss.
 
     Returns
     -------
@@ -321,31 +322,31 @@ def twiss_line(line, particle_ref=None, method=None,
         - particle_on_co : xpart.Particles, optional
             Particle on the closed orbit. If not provided, the closed orbit
             is searched for.
+        - co_search_settings : dict, optional
+            Settings to be used for the closed orbit search.
+            If not provided, the default values are used.
+        - continue_on_closed_orbit_error : bool, optional
+            If True, the computation is continued even if the closed orbit
+            search fails.
         - R_matrix : np.ndarray, optional
             R matrix to be used for the computation. If not provided, the
             R matrix is computed using finite differences.
         - W_matrix : np.ndarray, optional
             W matrix to be used for the computation. If not provided, the
             W matrix is computed from the R matrix.
-        - co_search_settings : dict, optional
-            Settings to be used for the closed orbit search.
-            If not provided, the default values are used.
-        - num_turns: int, optional
-            If specified the periodic solution and the twiss table are computed
-            on multiple turns.
-        - continue_on_closed_orbit_error : bool, optional
-            If True, the computation is continued even if the closed orbit
-            search fails.
-        - delta_disp : float, optional
-            Momentum deviation for the dispersion computation.
-        - skip_global_quantities : bool, optional
-            If True, the global quantities are not computed.
         - use_full_inverse : bool, optional
             If True, the full inverse of the W matrik is used. If False, the inverse
             is computed from the symplectic condition.
+        - num_turns: int, optional
+            If specified the periodic solution and the twiss table are computed
+            on multiple turns.
+        - skip_global_quantities : bool, optional
+            If True, the global quantities are not computed.
         - hide_thin_groups : bool, optional
             If True, values associated to elements in thin groups are replaced
             with NaNs.
+        - delta_disp : float, optional
+            Momentum deviation for the dispersion computation.
         - r_sigma : float, optional
             Deviation in sigmas used for the propagation of the W matrix.
             Initial value for the r_sigma parameter.
