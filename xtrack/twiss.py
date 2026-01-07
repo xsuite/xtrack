@@ -181,6 +181,12 @@ def twiss_line(line, particle_ref=None, method=None,
     steps_r_matrix : dict, optional
         Steps to be used for the finite difference computation of the R matrix.
         If not provided, the default values are used.
+    include_collective : bool, optional
+        If True, keep collective elements active during the twiss computation.
+        Default is False.
+    disable_apertures : bool, optional
+        If True (default), aperture checks on tracked particles are disabled
+        while computing twiss.
     search_for_t_rev : bool, optional
         If True, the revolution period is searched for, otherwise the revolution
         period computed from the circumference is assumed.
@@ -198,7 +204,8 @@ def twiss_line(line, particle_ref=None, method=None,
         form. Dafault is False.
     reverse : bool, optional
         If True, the output is computed in the reversed reference frame, i.e.
-        s = -s, x = -x, y = y, zeta = -zeta, px=px, py=-py, delta=delta.
+        s = -s, x = -x, y = y, zeta = -zeta, px=px, py=-py, delta=delta. Default
+        is False.
 
     Returns
     -------
