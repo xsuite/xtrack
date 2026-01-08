@@ -215,6 +215,9 @@ def twiss_line(line, particle_ref=None, method=None,
     zero_at : str, optional
         Element name at which the s coordinate and the phase advances are set to
         zero.
+    compute_R_element_by_element:
+        If True, the element-by-element R matrices are computed and stored in
+        the output table. Default is False.
     search_for_t_rev : bool, optional
         If True, the revolution period is searched for, otherwise the revolution
         period computed from the circumference is assumed.
@@ -281,15 +284,17 @@ def twiss_line(line, particle_ref=None, method=None,
            where C the closed orbit path length
         - `slip_factor_dz_ddelta`: d (zeta) / ddelta
         - `bets0`: longitudinal beta function at start of the ring.
-
-
- 
-        - `R_matrix`, `steps_r_matrix`, `R_matrix_ebe`: transfer matrices
-        - `eigenvalues`, `rotation_matrix`: linear-normal-form data
-
-        - `c_minus`, `c_minus_re_0`, `c_minus_im_0`: closest tune approach
+        - `c_minus`, `c_minus_re_0`, `c_minus_im_0`: closest tune approach coefficient
+          (absolute, real and imaginary parts). See physics guide for definitions.
         - `c_minus_re`, `c_minus_im`, `c_r1`, `c_r2`, `c_phi1`, `c_phi2`:
-          coupling coefficients
+          element-by-element coupling coefficients. See physics guide for
+          definitions. (ebe)
+        - `R_matrix`: one-turn transfer matrix
+        - `steps_r_matrix`: steps used for the finite-difference computation of the
+           R matrix
+        - `R_matrix_ebe`: element-by-element transfer matrices, from the start of
+          the line to the selected element. (ebe)
+        - `eigenvalues`, `rotation_matrix`: additional linear-normal-form data
     - With `compute_chromatic_properties` True (or None in periodic mode) and
         `only_orbit=False`:
         - `dmux`, `dmuy`: phase-advance derivatives vs delta
