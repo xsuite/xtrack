@@ -331,6 +331,9 @@ def twiss_line(line, particle_ref=None, method=None,
           curvature used in the computation (ebe)
         - `rad_int_iv_x`, `rad_int_iv_y`, `rad_int_iv_z`: velocity direction
           cosines (ebe)
+    Output fields present when `spin=True`:
+        - `spin_x`, `spin_y`, `spin_z`: spin components of the closed spin solution
+          (n0) for periodic twiss, or propagated spin components for open twiss. (ebe)
     - With `polarization=True`:
         - `spin_dn_ddelta_x`, `spin_dn_ddelta_y`, `spin_dn_ddelta_z`: spin derivative vs delta
         - `spin_eigenvectors`: spin eigenvectors element-by-element
