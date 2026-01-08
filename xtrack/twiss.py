@@ -238,7 +238,10 @@ def twiss_line(line, particle_ref=None, method=None,
     Fields marked as "ebe" are element-by-element quantities.
 
     - Default output fields:
-        - `name`: element name (ebe)
+        - `name`: element name, when repeated elements are present "::1", "::2", ...
+          suffixes are added to make the names unique. (ebe)
+        - `env_name`: environment name of the element, i.e. name without suffix
+           for repeated elements. (ebe)
         - `s`: element position [m] (ebe)
         - `x`, `px`, `y`, `py`, `zeta`, `delta`, `ptau`: coordinates
           of the closed orbit for the periodic twiss and of the  beam trajectory
@@ -264,26 +267,26 @@ def twiss_line(line, particle_ref=None, method=None,
         - `reference_frame`: reference frame used for the output (can be `proper`
           or `reversed`)
         - `periodic`: True if periodic twiss, False if open twiss
+        - `method`: method used for the computation (`4d` or `6d`)
     Output fields present only for periodic twiss:
         - `qx`, `qy`: transverse tunes
         - `qs`: synchrotron tune (present only when method is `6d`)
         - `dqx`, `dqy`: linear chromaticities
         - `ddqx`, `ddqy`: second-order chromaticities
         - `circumference`: length of the beam line
+        - `p0c`, `gamma0`, `beta0`: reference momentum and relativistic factors
+        -  `T_rev0`: reference revolution period
+        - `slip_factor`: slip factor -(dfrev / frev) / ddelta
+        - `momentum_compaction_factor`: momentum compaction factor (d C / C) / ddelta
+           where C the closed orbit path length
+        - `slip_factor_dz_ddelta`: d (zeta) / ddelta
+        - `bets0`: longitudinal beta function at start of the ring.
 
-        
-
-        - `method`, `radiation_method`, 
 
  
-        - `env_name`: element names with groups expanded
         - `R_matrix`, `steps_r_matrix`, `R_matrix_ebe`: transfer matrices
         - `eigenvalues`, `rotation_matrix`: linear-normal-form data
-        - `bets0`: longitudinal beta at start
-        - `T_rev0`: reference revolution period [s]
-        - `p0c`, `gamma0`, `beta0`: reference kinematics
-        - `slip_factor`, `momentum_compaction_factor`, `slip_factor_dz_ddelta`:
-          longitudinal dynamics
+
         - `c_minus`, `c_minus_re_0`, `c_minus_im_0`: closest tune approach
         - `c_minus_re`, `c_minus_im`, `c_r1`, `c_r2`, `c_phi1`, `c_phi2`:
           coupling coefficients
