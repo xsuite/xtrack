@@ -204,26 +204,26 @@ def twiss_line(line, particle_ref=None, method=None,
         Steps to be used for the finite difference computation of the R matrix.
         If not provided, the default values are used.
     matrix_responsiveness_tol : float, optional
-        Tolerance to be used tp check the responsiveness of the R matrix.
+        Tolerance to be used to check the responsiveness of the R matrix.
         If not provided, the default value is used.
     matrix_stability_tol : float, optional
-        Tolerance to be used tp check the stability of the R matrix.
+        Tolerance to be used to check the stability of the R matrix.
         If not provided, the default value is used.
     r_sigma : float, optional.
         Deviation in sigmas used for the propagation of the W matrix.
     nemitt_x : float, optional
-        Horizontal emittance assumed for the comutation of the deviation
+        Horizontal emittance assumed for the computation of the deviation
         used for the propagation of the W matrix.
     nemitt_y : float, optional
-        Vertical emittance assumed for the comutation of the deviation
+        Vertical emittance assumed for the computation of the deviation
         used for the propagation of the W matrix.
     coupling_edw_teng : bool, optional
-        If True, use Edwards-Teng coupling quantities are computed. Default is
+        If True, Edwards-Teng coupling quantities are computed. Default is
         False.
     zero_at : str, optional
         Element name at which the s coordinate and the phase advances are set to
         zero.
-    compute_R_element_by_element:
+    compute_R_element_by_element : bool, optional
         If True, the element-by-element R matrices are computed and stored in
         the output table. Default is False.
     num_turns: int, optional
@@ -237,18 +237,21 @@ def twiss_line(line, particle_ref=None, method=None,
         if ``search_for_t_rev`` is True.
     symplectify : bool, optional
         If True, the R matrix is symplectified before computing the linear normal
-        form. Dafault is False.
-    particle_on_co : xpart.Particles, optional. Particle on the closed orbit.
-        If not provided, the closed orbit is searched for.
-    co_search_settings : dict, optional. Settings to be used by the optimizer 
-        for the closed orbit search. If not provided, the default values are used.
-    R_matrix : np.ndarray, optional. R matrix to be used for the computation.
-        If not provided, the R matrix is computed using finite differences.
-    W_matrix : np.ndarray, optional. W matrix to be used for the computation.
-        If not provided, the W matrix is computed from the R matrix.
-    use_full_inverse : bool, optional. If True, the full inverse of the W
-        matrix is used. If False, the inverse is computed from the symplectic
-        condition.
+        form. Default is False.
+    particle_on_co : xpart.Particles, optional
+        Particle on the closed orbit. If not provided, the closed orbit is searched for.
+    co_search_settings : dict, optional
+        Settings to be used by the optimizer for the closed orbit search. If not
+        provided, the default values are used.
+    R_matrix : np.ndarray, optional
+        R matrix to be used for the computation. If not provided, the R matrix is
+        computed using finite differences.
+    W_matrix : np.ndarray, optional
+        W matrix to be used for the computation. If not provided, the W matrix is
+        computed from the R matrix.
+    use_full_inverse : bool, optional
+        If True, the full inverse of the W matrix is used. If False, the inverse is
+        computed from the symplectic condition.
 
     Returns
     -------
@@ -269,18 +272,18 @@ def twiss_line(line, particle_ref=None, method=None,
           for repeated elements. (ebe)
         - `s`: element position [m] (ebe)
         - `x`, `px`, `y`, `py`, `zeta`, `delta`, `ptau`: coordinates
-          of the closed orbit for the periodic twiss and of the  beam trajectory
+          of the closed orbit for the periodic twiss and of the beam trajectory
           for the open twiss. (ebe)
         - `betx`, `bety`, `alfx`, `alfy`, `gamx`, `gamy`: Twiss parameters (ebe)
         - `dx`, `dpx`, `dy`, `dpy`: dispersion functions (ebe)
         - `ddx`, `ddpx`, `ddy`, `ddpy`: second-order dispersion functions (ebe)
-        - `dx_zeta`, `dpx_zeta`, `dy_zeta`, `dpy_zeta`: crab dispersion functions(ebe)
+        - `dx_zeta`, `dpx_zeta`, `dy_zeta`, `dpy_zeta`: crab dispersion functions (ebe)
         - `bets0`: longitudinal beta function at start ring.
         - `W_matrix`: linear normal-form matrix. (ebe)
         - `kin_px`, `kin_py`, `kin_ps`: kinetic momenta (px, py are canonical momenta). (ebe)
         - `kin_xprime`, `kin_yprime`: transverse slopes dx/ds, dy/ds. (ebe)
         - `mux`, `muy`, `muzeta`: phase advances in units of 2 pi. (ebe)
-        - `nux`, `nuy`, `nuzeta`: eigenvector shrink factors. (ebe)
+        - `nux`, `nuy`, `nuzeta`: tunes. (ebe)
         - `betx1`, `bety1`, `betx2`, `bety2`, `alfx1`, `alfy1`, `alfx2`,
           `alfy2`, `gamx1`, `gamy1`, `gamx2`, `gamy2`: Mais-Ripken coupled optics
           functions (ebe)
@@ -358,7 +361,7 @@ def twiss_line(line, particle_ref=None, method=None,
           (n0) for periodic twiss, or propagated spin components for open twiss. (ebe)
     Output fields present when `polarization=True`:
         - `spin_tune_fractional`: fractional spin tune
-        - `spin_polarization_eq`: equilibrimum polarization in the linear approximation
+        - `spin_polarization_eq`: equilibrium polarization in the linear approximation
         - `spin_polarization_inf_no_depol`: infinite-time polarization without
           depolarization effects
         - `spin_t_pol_buildup_s`: polarization buildup time in seconds
@@ -376,9 +379,7 @@ def twiss_line(line, particle_ref=None, method=None,
     Output fields present when `coupling_edw_teng=True`:
         - `r11_edw_teng`, `r12_edw_teng`, `r21_edw_teng`, `r22_edw_teng`:
           Elements of the Edwards-Teng coupling matrix (ebe)
-        - `beta_x_edw_teng`, `alpha_x_edw_teng`, `bety_y_edw_teng`, `alfy_y_edw_teng`:
-          Edwards-Teng Twiss parameters (ebe)
-    Output fields present when `search_for_t_rev=True`:
+        -     Output fields present when `search_for_t_rev=True`:
         - `T_rev`: measured revolution period [s]
 
     """
