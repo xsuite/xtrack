@@ -295,27 +295,21 @@ def twiss_line(line, particle_ref=None, method=None,
         - `R_matrix_ebe`: element-by-element transfer matrices, from the start of
           the line to the selected element. (ebe)
         - `eigenvalues`, `rotation_matrix`: additional linear-normal-form data
-    - With `compute_chromatic_properties` True (or None in periodic mode) and
-        `only_orbit=False`:
         - `dmux`, `dmuy`: phase-advance derivatives vs delta
         - `dzeta`: longitudinal dispersion vs delta
-        - `dqx`, `dqy`: chromaticities
-        - `ddx`, `ddpx`, `ddy`, `ddpy`: second-order dispersion
-        - `ddqx`, `ddqy`: second-order chromaticities
-    - With `strengths=True` (or `radiation_integrals=True` which implies strengths):
-        - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole strengths
+    - With `strengths=True` (or `radiation_integrals=True`):
+        - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole integrated strengths
         - `angle_rad`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
-          `_angle_force_body`: element geometry/fields
-        - `element_type`, `isthick`, `parent_name`: element metadata
+          `element_type`, `isthick`, `parent_name`: element properties
     - With `eneloss_and_damping=True`:
         - `eneloss_turn`: energy loss per turn [eV]
-        - `damping_constants_turns`, `damping_constants_s`: damping constants
+        - `damping_constants_turns`, `damping_constants_s`: damping constants in
+          1/turn or 1/s.
         - `partition_numbers`: radiation partition numbers
-        - `angle_rad`, `rot_s_rad`, `length`, `radiation_flag`: ensured geometry
-        - Equilibrium data (depend on `radiation_method`): `eq_gemitt_x`,
-          `eq_gemitt_y`, `eq_gemitt_zeta`, `eq_nemitt_x`, `eq_nemitt_y`,
-          `eq_nemitt_zeta`, `eq_beam_covariance_matrix`, `dl_radiation`,
-          `n_dot_delta_kick_sq_ave`, `hx_rad`, `hy_rad`, `h0x_rad`, `h0y_rad`.
+        - `eq_gemitt_x`, `eq_gemitt_y`, `eq_gemitt_zeta`: equilibrium geometric
+          emittances.
+        - `eq_nemitt_x`, `eq_nemitt_y`, `eq_nemitt_zeta`: equilibrium normalized
+          emittances.
     - With `radiation_integrals=True`:
         - `rad_int_curly_hx`, `rad_int_curly_hy`: curly-H terms
         - `rad_int_i1x_integrand`, `rad_int_i1y_integrand`, `rad_int_l2_integrand`,
