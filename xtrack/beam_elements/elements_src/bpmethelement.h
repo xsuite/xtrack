@@ -27,13 +27,29 @@ void BPMethElement_track_local_particle(BPMethElementData el, LocalParticle* par
     if (cols != 0 && total / (size_t)cols != (size_t)n_steps) {
         return;
     }
-    double* params_storage = (double*)malloc(total * sizeof(double));
-    double** params_ptrs = (double**)malloc((size_t)n_steps * sizeof(double*));
-    if (!params_storage || !params_ptrs) {
-        free(params_storage);
-        free(params_ptrs);
-        return;
-    }
+    
+    // OPTIMIZATION #1: Use alloca for stack allocation (faster than malloc, auto-freed)
+    // alloca allocates on the stack, so it's automatically freed when function returns
+    // This avoids malloc/free overhead and is much faster for temporary arrays
+    // Note: alloca may not be available on all platforms, but is standard on Linux/Unix
+    #ifdef __GNUC__
+        // Use alloca for stack allocation (GCC/Clang)
+        double* params_storage = (double*)__builtin_alloca(total * sizeof(double));
+        double** params_ptrs = (double**)__builtin_alloca((size_t)n_steps * sizeof(double*));
+    #else
+        // Fall back to malloc for other compilers
+        double* params_storage = (double*)malloc(total * sizeof(double));
+        double** params_ptrs = (double**)malloc((size_t)n_steps * sizeof(double*));
+        if (!params_storage || !params_ptrs) {
+            free(params_storage);
+            free(params_ptrs);
+            return;
+        }
+    #endif
+    
+    // OPTIMIZATION #2: Copy parameters once per element (not per particle)
+    // This is done before the particle loop, so all particles share the same parameter array
+    // The copying happens once per element call, not once per particle
     for (int64_t i = 0; i < n_steps; ++i) {
         params_ptrs[i] = params_storage + i*cols;
         for (int64_t j = 0; j < cols; ++j) {
@@ -42,12 +58,16 @@ void BPMethElement_track_local_particle(BPMethElementData el, LocalParticle* par
     }
     const double* const* params = (const double* const*)params_ptrs;
 
+    // Process all particles using the same parameter array (shared across particles)
     START_PER_PARTICLE_BLOCK(part0, part);
         BPMethElement_single_particle(part, params, multipole_order, s_start, s_end, n_steps);
     END_PER_PARTICLE_BLOCK;
 
-    free(params_storage);
-    free(params_ptrs);
+    // Free only if we used malloc (alloca arrays are auto-freed)
+    #ifndef __GNUC__
+        free(params_storage);
+        free(params_ptrs);
+    #endif
 }
 
 #endif /* XTRACK_BPMETHELEMENT_H */

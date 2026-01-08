@@ -16,8 +16,8 @@
 //   params    : pointer to the flat parameter array for THIS ELEMENT
 //                    (start of the block corresponding to this element)
 //   multipole_order: multipole order used in evaluate_B
-//   s_start        : starting s-position of this element [m]
-//   s_end          : ending s-position of this element [m]
+//   s_start        : starting s-position in field map [m] (absolute, can be negative)
+//   s_end          : ending s-position in field map [m] (absolute)
 //   n_steps        : number of Boris substeps along the element
 //
 // Internally:
@@ -25,6 +25,9 @@
 //   - P0 is derived from p0c (eV) via P0 = p0c * QELEM / C_LIGHT
 //   - px, py in the particle object are dimensionless (px_phys / P0)
 //   - Bs from evaluate_B is used as Bs
+//   - Uses local s coordinate (0 to L) for stepping, converts to absolute s_field
+//     for field evaluation: s_field = s_start + s_local
+//   - Particle's s coordinate is updated by adding element length L
 //   - zeta is updated as in the Python version: sum over steps of
 //       zeta += (ds - dt * c * beta0)
 //     -> equivalent to zeta += (L - total_dt * c * beta0)
@@ -58,8 +61,6 @@ void BPMethElement_single_particle(
     // Positions and momenta (dimensionless px, py)
     double x    = LocalParticle_get_x(part);   // [m]
     double y    = LocalParticle_get_y(part);   // [m]
-    double s    = s_start;
-    LocalParticle_set_s(part, s);
     double px_r = LocalParticle_get_px(part);  // dimensionless px / p0
     double py_r = LocalParticle_get_py(part);  // dimensionless py / p0
     double zeta = LocalParticle_get_zeta(part);
@@ -93,6 +94,9 @@ void BPMethElement_single_particle(
     const double L    = s_end - s_start;
     const double ds   = L / (double) n_steps;
 	const double half_ds = 0.5 * ds;
+    
+    // Local s coordinate (0 to L) for stepping through the element
+    double s_local = 0.0;
 
     double total_dt = 0.0;  // accumulated time [s] over all substeps
 
@@ -120,20 +124,24 @@ void BPMethElement_single_particle(
 
         const double xh = x + (px * inv_ps) * half_ds;
         const double yh = y + (py * inv_ps) * half_ds;
-        const double sh = s + half_ds;
+        const double s_local_h = s_local + half_ds;
 
         double dt = half_ds * inv_ps * gamma * mass_kg; // [s]
 
         // --------------------------------------------------------------
-        //  Evaluate B-field at mid-step (xh, yh, sh)
+        //  Evaluate B-field at mid-step (xh, yh, s_field)
+        //  Convert local s to absolute s in field map for field evaluation
         //  Using evaluate_B from _bpmeth_B_field_eval.h
         // --------------------------------------------------------------
         double Bx;
         double By;
         double Bs;
+        
+        // Convert local s coordinate to absolute s in field map
+        const double s_field = s_start + s_local_h;
 
         evaluate_B_scalar(
-            xh, yh, sh,
+            xh, yh, s_field,
             *params,
             multipole_order,
             &Bx, &By, &Bs
@@ -188,7 +196,7 @@ void BPMethElement_single_particle(
         // --------------------------------------------------------------
         x = xh + (px1 * inv_ps1) * half_ds;
         y = yh + (py1 * inv_ps1) * half_ds;
-		s = sh + half_ds;
+		s_local += ds;  // Advance local s coordinate
 
         dt += half_ds * inv_ps1 * gamma * mass_kg;  // [s]
 
@@ -207,9 +215,9 @@ void BPMethElement_single_particle(
     LocalParticle_set_x(part, x);
     LocalParticle_set_y(part, y);
 
-    // s: like in the Python integrator, the element is "thick" of length L,
-    // but the external trajectory sees s advanced by L from the incoming s.
-    LocalParticle_set_s(part, s);
+    // s: Add element length to particle's s coordinate (like Drift element)
+    // The particle's s coordinate advances by L from its incoming position
+    LocalParticle_add_to_s(part, L);
 
     // Convert physical momenta back to dimensionless px, py (relative to p0)
     LocalParticle_set_px(part, px / P0);
