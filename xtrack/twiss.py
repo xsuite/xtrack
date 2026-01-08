@@ -209,6 +209,14 @@ def twiss_line(line, particle_ref=None, method=None,
     matrix_stability_tol : float, optional
         Tolerance to be used tp check the stability of the R matrix.
         If not provided, the default value is used.
+    r_sigma : float, optional.
+        Deviation in sigmas used for the propagation of the W matrix.
+    nemitt_x : float, optional
+        Horizontal emittance assumed for the comutation of the deviation
+        used for the propagation of the W matrix.
+    nemitt_y : float, optional
+        Vertical emittance assumed for the comutation of the deviation
+        used for the propagation of the W matrix.
     coupling_edw_teng : bool, optional
         If True, use Edwards-Teng coupling quantities are computed. Default is
         False.
@@ -218,6 +226,9 @@ def twiss_line(line, particle_ref=None, method=None,
     compute_R_element_by_element:
         If True, the element-by-element R matrices are computed and stored in
         the output table. Default is False.
+    num_turns: int, optional
+        If specified the periodic solution and the twiss table are computed
+        on multiple turns.
     search_for_t_rev : bool, optional
         If True, the revolution period is searched for, otherwise the revolution
         period computed from the circumference is assumed.
@@ -227,6 +238,17 @@ def twiss_line(line, particle_ref=None, method=None,
     symplectify : bool, optional
         If True, the R matrix is symplectified before computing the linear normal
         form. Dafault is False.
+    particle_on_co : xpart.Particles, optional. Particle on the closed orbit.
+        If not provided, the closed orbit is searched for.
+    co_search_settings : dict, optional. Settings to be used by the optimizer 
+        for the closed orbit search. If not provided, the default values are used.
+    R_matrix : np.ndarray, optional. R matrix to be used for the computation.
+        If not provided, the R matrix is computed using finite differences.
+    W_matrix : np.ndarray, optional. W matrix to be used for the computation.
+        If not provided, the W matrix is computed from the R matrix.
+    use_full_inverse : bool, optional. If True, the full inverse of the W
+        matrix is used. If False, the inverse is computed from the symplectic
+        condition.
 
     Returns
     -------
@@ -358,46 +380,6 @@ def twiss_line(line, particle_ref=None, method=None,
           Edwards-Teng Twiss parameters (ebe)
     Output fields present when `search_for_t_rev=True`:
         - `T_rev`: measured revolution period [s]
-
-    The following additional parameters can also be provided:
-
-        - particle_on_co : xpart.Particles, optional
-            Particle on the closed orbit. If not provided, the closed orbit
-            is searched for.
-        - co_search_settings : dict, optional
-            Settings to be used for the closed orbit search.
-            If not provided, the default values are used.
-        - continue_on_closed_orbit_error : bool, optional
-            If True, the computation is continued even if the closed orbit
-            search fails.
-        - R_matrix : np.ndarray, optional
-            R matrix to be used for the computation. If not provided, the
-            R matrix is computed using finite differences.
-        - W_matrix : np.ndarray, optional
-            W matrix to be used for the computation. If not provided, the
-            W matrix is computed from the R matrix.
-        - use_full_inverse : bool, optional
-            If True, the full inverse of the W matrik is used. If False, the inverse
-            is computed from the symplectic condition.
-        - num_turns: int, optional
-            If specified the periodic solution and the twiss table are computed
-            on multiple turns.
-        - skip_global_quantities : bool, optional
-            If True, the global quantities are not computed.
-        - hide_thin_groups : bool, optional
-            If True, values associated to elements in thin groups are replaced
-            with NaNs.
-        - delta_disp : float, optional
-            Momentum deviation for the dispersion computation.
-        - r_sigma : float, optional
-            Deviation in sigmas used for the propagation of the W matrix.
-            Initial value for the r_sigma parameter.
-        - nemitt_x : float, optional
-            Horizontal emittance assumed for the comutation of the deviation
-            used for the propagation of the W matrix.
-        - nemitt_y : float, optional
-            Vertical emittance assumed for the comutation of the deviation
-            used for the propagation of the W matrix.
 
     """
     input_kwargs = locals().copy()
