@@ -10,13 +10,10 @@ import sys
 np.set_printoptions(threshold=sys.maxsize)
 
 env = xt.Environment()
-env.particle_ref = xt.Particles(
+p0 = xt.Particles(
     mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9
 )
-
-# So given this dataframe, I'd like to do the following.
-# - The data frame is indexed by field component, derivative and region start. The region start may differ per field component or derivative.
-# - I'd like to create one flattened array that contains
+env.particle_ref = p0.copy()
 
 n_part = 1
 
@@ -132,16 +129,17 @@ tw = line.twiss4d(betx=1, bety=1, include_collective=True)
 end_time = time.time()
 print(f"Time taken to compute twiss through BPMethElement: {end_time - start_time} seconds")
 
-tw.plot('x y')
-tw.plot('betx bety', 'dx dy')
-plt.show()
+# tw.plot('x y')
+# tw.plot('betx bety', 'dx dy')
+# plt.show()
 
 
 # list of n_steps wigglers;
-list = []
+wiggler_list = []
 name_list = ['wiggler_'+str(i) for i in range(1,n_steps+1)]
 
 s_vals = np.linspace(s_start, s_end, n_steps)
+l_wig = s_end - s_start
 ds = (s_end - s_start) / n_steps
 
 for i in range(n_steps):
@@ -151,7 +149,7 @@ for i in range(n_steps):
     
     # For each single-step element, s_start and s_end should define the range
     # in the field map that this step covers. Use a small interval around s_val_i.
-    # The s coordinates here are in the field map coordinate system (can be negative).
+    # The s coordinates here are in the field map coordkinate system (can be negative).
     elem_s_start = s_val_i - ds/2
     elem_s_end = s_val_i + ds/2
     
@@ -163,19 +161,184 @@ for i in range(n_steps):
         length=elem_s_end - elem_s_start,
         n_steps=1
     )
-    list.append(wiggler_i)
+    wiggler_list.append(wiggler_i)
     env.elements[name_list[i]] = wiggler_i
 
-new_line = env.new_line(components=name_list)
+piecewise_wiggler = env.new_line(components=name_list)
 
-new_line.build_tracker()
+piecewise_wiggler.build_tracker()
 
 start_time = time.time()
-tw_new = new_line.twiss4d(betx=1, bety=1, include_collective=True)
+tw_new = piecewise_wiggler.twiss4d(betx=1, bety=1, include_collective=True)
 end_time = time.time()
 print(f"Time taken to compute twiss through list of BPMethElements: {end_time - start_time} seconds")
 
-tw_new.plot('x y')
-tw_new.plot('betx bety', 'dx dy')
+# tw_new.plot('x y')
+# tw_new.plot('betx bety', 'dx dy')
+# plt.show()
+
+piecewise_wiggler.particle_ref = line.particle_ref
+
+env['k0l_corr1'] = 0.
+env['k0l_corr2'] = 0.
+env['k0l_corr3'] = 0.
+env['k0l_corr4'] = 0.
+env['k0sl_corr1'] = 0.
+env['k0sl_corr2'] = 0.
+env['k0sl_corr3'] = 0.
+env['k0sl_corr4'] = 0.
+env['on_wig_corr'] = 1.0
+
+env.new('corr1', xt.Multipole, knl=['on_wig_corr * k0l_corr1'], ksl=['on_wig_corr * k0sl_corr1'])
+env.new('corr2', xt.Multipole, knl=['on_wig_corr * k0l_corr2'], ksl=['on_wig_corr * k0sl_corr2'])
+env.new('corr3', xt.Multipole, knl=['on_wig_corr * k0l_corr3'], ksl=['on_wig_corr * k0sl_corr3'])
+env.new('corr4', xt.Multipole, knl=['on_wig_corr * k0l_corr4'], ksl=['on_wig_corr * k0sl_corr4'])
+
+# Note: Use l_wig (line coordinate) for positions, not s_end (field map coordinate)
+# s_end is in the field map coordinate system and can be negative or any value.
+# l_wig = s_end - s_start is the physical length in the line coordinate system.
+
+# Debug: Check the table before insertion
+tt_before = piecewise_wiggler.get_table()
+print(f"\nDebug: Before insertion")
+print(f"  First element name: {tt_before.name[0]}")
+print(f"  First element s_start (table): {tt_before['s_start', tt_before.name[0]]}")
+print(f"  First element s_center (table): {tt_before['s_center', tt_before.name[0]]}")
+first_elem = env.elements[tt_before.env_name[0]]
+if hasattr(first_elem, 's_start'):
+    print(f"  First element s_start (field map): {first_elem.s_start}")
+    print(f"  First element length (element): {first_elem.length}")
+print(f"  Last element s_end (table): {tt_before['s_end', tt_before.name[-2]]}")
+print(f"  Line length: {piecewise_wiggler.get_length()}")
+print(f"  l_wig: {l_wig}")
+
+piecewise_wiggler.insert([
+    env.place('corr1', at=0.02),
+    env.place('corr2', at=0.1),
+    env.place('corr3', at=l_wig - 0.1),
+    env.place('corr4', at=l_wig - 0.02),
+    ], s_tol=5e-3
+)
+
+# Debug: Check the table after insertion
+tt_after = piecewise_wiggler.get_table()
+print(f"\nDebug: After insertion")
+for corr_name in ['corr1', 'corr2', 'corr3', 'corr4']:
+    if corr_name in tt_after.name:
+        print(f"  {corr_name}: s_center = {tt_after['s_center', corr_name]}")
+
+print(f"l_wig = {l_wig}")
+print(f"s_start = {s_start}, s_end = {s_end}, n_steps = {n_steps}")
+
+# Save reference to old environment before loading new one
+env_wiggler = env
+
+env = xt.load('/home/simonfan/projects/xsuite/xtrack/test_data/sls/b075_2024.09.25.madx')
+line_sls = env.ring
+line_no_wiggler = line_sls.copy(shallow=True)
+env['ring_no_wiggler'] = line_sls.copy(shallow=True)
+line_sls.configure_bend_model(core='mat-kick-mat')
+line_sls.particle_ref = p0.copy()
+line_no_wiggler.particle_ref = p0.copy()
+
+# Copy all wiggler elements and correction elements to the new environment
+print("Copying wiggler elements to new environment...")
+
+# Copy variables FIRST (before elements that depend on them)
+for var_name in ['k0l_corr1', 'k0l_corr2', 'k0l_corr3', 'k0l_corr4',
+                 'k0sl_corr1', 'k0sl_corr2', 'k0sl_corr3', 'k0sl_corr4',
+                 'on_wig_corr']:
+    env[var_name] = env_wiggler[var_name]
+
+# Copy wiggler elements
+for name in name_list:
+    # Directly copy the element since copy_element_from doesn't support BPMethElement
+    env.elements[name] = env_wiggler.elements[name].copy()
+
+# Copy correction elements (they depend on the variables, so copy after variables)
+for corr_name in ['corr1', 'corr2', 'corr3', 'corr4']:
+    env.copy_element_from(corr_name, env_wiggler)
+
+# Recreate piecewise_wiggler in the new environment
+piecewise_wiggler = env.new_line(components=name_list)
+piecewise_wiggler.build_tracker()
+piecewise_wiggler.particle_ref = p0.copy()
+
+# Re-insert correction elements
+piecewise_wiggler.insert([
+    env.place('corr1', at=0.02),
+    env.place('corr2', at=0.1),
+    env.place('corr3', at=l_wig - 0.1),
+    env.place('corr4', at=l_wig - 0.02),
+    ], s_tol=5e-3
+)
+
+# tw_sls = line_sls.twiss4d(betx=1, bety=1, include_collective=True)
+
+# tw_sls.plot('x y')
+# tw_sls.plot('betx bety', 'dx dy')
+# plt.show()
+
+# To compute the kicks
+opt = piecewise_wiggler.match(
+    solve=False,
+    betx=0, bety=0,
+    only_orbit=True,
+    include_collective=True,
+    vary=xt.VaryList(['k0l_corr1', 'k0sl_corr1',
+                      'k0l_corr2', 'k0sl_corr2',
+                      'k0l_corr3', 'k0sl_corr3',
+                      'k0l_corr4', 'k0sl_corr4',
+                      ], step=1e-6),
+    targets=[
+        xt.TargetSet(x=0, px=0, y=0, py=0., at=xt.END),
+        xt.TargetSet(x=0., y=0, at='wiggler_167'),
+        xt.TargetSet(x=0., y=0, at='wiggler_833')
+        ],
+)
+opt.step(2)
+
+time_start = time.time()
+tw_corr_wig = piecewise_wiggler.twiss4d(betx=1, bety=1, include_collective=True)
+time_end = time.time()
+print(f"Time taken to compute twiss through piecewise_wiggler: {time_end - time_start} seconds")
+
+
+tw_corr_wig.plot('x y')
+tw_corr_wig.plot('betx bety', 'dx dy')
 plt.show()
 
+wiggler_places = [
+    'ars02_uind_0500_1',
+    'ars03_uind_0380_1',
+    'ars04_uind_0500_1',
+    'ars05_uind_0650_1',
+    'ars06_uind_0500_1',
+    'ars07_uind_0200_1',
+    'ars08_uind_0500_1',
+    'ars09_uind_0790_1',
+    'ars11_uind_0210_1',
+    'ars11_uind_0610_1',
+    'ars12_uind_0500_1',
+]
+
+print(f"Time estimated for total number of wigglers: {len(wiggler_places) * (time_end - time_start)} seconds")
+
+tt = line_sls.get_table()
+for wig_place in wiggler_places:
+    print(f"Inserting piecewise_wiggler {wig_place} at {tt['s', wig_place]}")
+    line_sls.insert(piecewise_wiggler, anchor='start', at=tt['s', wig_place])
+
+time_start = time.time()
+tw_sls = line_sls.twiss4d(include_collective=True)
+time_end = time.time()
+print(f"Time taken to compute twiss through full line: {time_end - time_start} seconds")
+
+time_start = time.time()
+tw_no_wiggler = line_no_wiggler.twiss4d(include_collective=True)
+time_end = time.time()
+print(f"Time taken to compute twiss through full line without wiggler: {time_end - time_start} seconds")
+
+tw_sls.plot('x y')
+tw_sls.plot('betx bety', 'dx dy')
+plt.show()

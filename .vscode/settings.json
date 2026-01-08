@@ -1,0 +1,4 @@
+{
+    "python.defaultInterpreterPath": "/home/simonfan/miniforge3/envs/xsuite/bin/python3",
+    "python.terminal.activateEnvironment": true
+}

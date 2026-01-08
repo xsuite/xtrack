@@ -796,6 +796,8 @@ class Wire(BeamElement):
 
 class BPMethElement(BeamElement):
 
+    isthick = True
+
     _xofields={'params'             : xo.Float64[:][:],
                'multipole_order'    : xo.Int64,
                's_start'            : xo.Float64,
@@ -816,8 +818,13 @@ class BPMethElement(BeamElement):
                  n_steps=1000,
                  **kwargs,
     ):
-        if params is not None:
-            kwargs['params'] = params
+        # Provide default minimal jagged 2D array for params if None (needed for prebuild)
+        if params is None:
+            # Default: minimal list of lists for prebuild compatibility
+            # xo.Float64[:][:] expects a list of lists (jagged array)
+            # This allows the element to be instantiated without arguments
+            params = [[0.0]]
+        kwargs['params'] = params
         kwargs['multipole_order'] = multipole_order
         if s_start is not None:
             kwargs['s_start'] = s_start
