@@ -290,8 +290,8 @@ def twiss_line(line, particle_ref=None, method=None,
           element-by-element coupling coefficients. See physics guide for
           definitions. (ebe)
         - `R_matrix`: one-turn transfer matrix
-        - `steps_r_matrix`: steps used for the finite-difference computation of the
-          R matrix
+        - `steps_r_matrix`: steps used for the finite-difference computation of
+          the R matrix
         - `R_matrix_ebe`: element-by-element transfer matrices, from the start of
           the line to the selected element. (ebe)
         - `eigenvalues`, `rotation_matrix`: additional linear-normal-form data
@@ -310,7 +310,7 @@ def twiss_line(line, particle_ref=None, method=None,
           emittances.
         - `eq_nemitt_x`, `eq_nemitt_y`, `eq_nemitt_zeta`: equilibrium normalized
           emittances.
-     Output fields present when `radiation_integrals=True`:
+    Output fields present when `radiation_integrals=True`:
         - `rad_int_i1x`, `rad_int_i1y`, `rad_int_i2`, `rad_int_i3`, `rad_int_i4`,
           `rad_int_i4x`, `rad_int_i4y`, `rad_int_i5x`, `rad_int_i5y`: radiation
           integrals (see physics guide for definitions)
@@ -318,17 +318,19 @@ def twiss_line(line, particle_ref=None, method=None,
           `rad_int_i3_integrand`, `rad_int_i4_integrand`, `rad_int_i4x_integrand`,
           `rad_int_i4y_integrand`, `rad_int_i5x_integrand`, `rad_int_i5y_integrand`:
           integrands of the radiation integrals (ebe)
-        - `rad_int_curly_hx`, `rad_int_curly_hy`: curly-H functions (see physics guide
-          for definitions) (ebe)
-        - `rad_int_eq_gemitt_x`, `rad_int_eq_gemitt_y`: geometric equilibrium emittances
-          from radiation integrals.
+        - `rad_int_curly_hx`, `rad_int_curly_hy`: curly-H functions (see physics
+          guide for definitions) (ebe)
+        - `rad_int_eq_gemitt_x`, `rad_int_eq_gemitt_y`: geometric equilibrium
+          emittances from radiation integrals.
         - `rad_int_damping_constant_x_s`, `rad_int_damping_constant_y_s`,
-          `rad_int_damping_constant_zeta_s`: damping constants from radiation integrals
-        - `rad_int_kappa0_x`, `rad_int_kappa0_y`, `rad_int_kappa0`: reference curvature
-          used in the computation (ebe)
-        - `rad_int_kappa_x`, `rad_int_kappa_y`, `rad_int_kappa`: closed orbit curvature
-          used in the computation (ebe)
-        - `rad_int_iv_x`, `rad_int_iv_y`, `rad_int_iv_z`: velocity direction cosines (ebe)
+          `rad_int_damping_constant_zeta_s`: damping constants from radiation
+          integrals
+        - `rad_int_kappa0_x`, `rad_int_kappa0_y`, `rad_int_kappa0`: reference
+          curvature used in the computation (ebe)
+        - `rad_int_kappa_x`, `rad_int_kappa_y`, `rad_int_kappa`: closed orbit
+          curvature used in the computation (ebe)
+        - `rad_int_iv_x`, `rad_int_iv_y`, `rad_int_iv_z`: velocity direction
+          cosines (ebe)
     - With `polarization=True`:
         - `spin_dn_ddelta_x`, `spin_dn_ddelta_y`, `spin_dn_ddelta_z`: spin derivative vs delta
         - `spin_eigenvectors`: spin eigenvectors element-by-element
