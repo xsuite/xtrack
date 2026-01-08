@@ -241,34 +241,47 @@ def twiss_line(line, particle_ref=None, method=None,
         - `name`: element name (ebe)
         - `s`: element position [m] (ebe)
         - `x`, `px`, `y`, `py`, `zeta`, `delta`, `ptau`: coordinates
-          of the closed orbit for the periodic twiss and of the  beam trajectory 
+          of the closed orbit for the periodic twiss and of the  beam trajectory
           for the open twiss. (ebe)
         - `betx`, `bety`, `alfx`, `alfy`, `gamx`, `gamy`: Twiss parameters (ebe)
         - `dx`, `dpx`, `dy`, `dpy`: dispersion functions (ebe)
+        - `ddx`, `ddpx`, `ddy`, `ddpy`: second-order dispersion functions (ebe)
         - `dx_zeta`, `dpx_zeta`, `dy_zeta`, `dpy_zeta`: crab dispersion functions(ebe)
         - `bets0`: longitudinal beta function at start ring.
         - `W_matrix`: linear normal-form matrix. (ebe)
         - `kin_px`, `kin_py`, `kin_ps`: kinetic momenta (px, py are canonical momenta). (ebe)
         - `kin_xprime`, `kin_yprime`: transverse slopes dx/ds, dy/ds. (ebe)
         - `mux`, `muy`, `muzeta`: phase advances in units of 2 pi. (ebe)
-        - `qx`, `qy`, `qs`: tunes, present only for periodic twiss.
         - `nux`, `nuy`, `nuzeta`: eigenvector shrink factors. (ebe)
         - `betx1`, `bety1`, `betx2`, `bety2`, `alfx1`, `alfy1`, `alfx2`,
-          `alfy2`, `gamx1`, `gamy1`, `gamx2`, `gamy2`: Mais-Ripken optics functions (ebe)
-
-        - `particle_on_co`: closed-orbit particle
-        - `circumference`: reference trajectory length
+          `alfy2`, `gamx1`, `gamy1`, `gamx2`, `gamy2`: Mais-Ripken coupled optics
+          functions (ebe)
+        - `wx_chrom`, `wy_chrom`, `bx_chrom`, `by_chrom`, `ax_chrom`, `ay_chrom`:
+          chromatic functions, see physics guide for definitions (ebe)
+        - `particle_on_co`: particle on closed orbit or reference trajecory, placed
+          at the first element in the selected range.
         - `orientation`: forward/backward computation direction
-        - `values_at`: whether values are at entry/exit
-        - `method`, `radiation_method`, `reference_frame`, `line_config`,
-          `periodic`, `completed_init`: bookkeeping
+        - `reference_frame`: reference frame used for the output (can be `proper`
+          or `reversed`)
+        - `periodic`: True if periodic twiss, False if open twiss
+    Output fields present only for periodic twiss:
+        - `qx`, `qy`: transverse tunes
+        - `qs`: synchrotron tune (present only when method is `6d`)
+        - `dqx`, `dqy`: linear chromaticities
+        - `ddqx`, `ddqy`: second-order chromaticities
+        - `circumference`: length of the beam line
+
+        
+
+        - `method`, `radiation_method`, 
+
  
         - `env_name`: element names with groups expanded
         - `R_matrix`, `steps_r_matrix`, `R_matrix_ebe`: transfer matrices
         - `eigenvalues`, `rotation_matrix`: linear-normal-form data
         - `bets0`: longitudinal beta at start
         - `T_rev0`: reference revolution period [s]
-        - `gamma0`, `beta0`, `p0c`: reference kinematics
+        - `p0c`, `gamma0`, `beta0`: reference kinematics
         - `slip_factor`, `momentum_compaction_factor`, `slip_factor_dz_ddelta`:
           longitudinal dynamics
         - `c_minus`, `c_minus_re_0`, `c_minus_im_0`: closest tune approach
@@ -278,9 +291,6 @@ def twiss_line(line, particle_ref=None, method=None,
         `only_orbit=False`:
         - `dmux`, `dmuy`: phase-advance derivatives vs delta
         - `dzeta`: longitudinal dispersion vs delta
-        - `bx_chrom`, `by_chrom`: d bet / d delta
-        - `ax_chrom`, `ay_chrom`: chromatic alpha combinations
-        - `wx_chrom`, `wy_chrom`: chromatic amplitude
         - `dqx`, `dqy`: chromaticities
         - `ddx`, `ddpx`, `ddy`, `ddpy`: second-order dispersion
         - `ddqx`, `ddqy`: second-order chromaticities
