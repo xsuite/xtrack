@@ -240,11 +240,11 @@ def twiss_line(line, particle_ref=None, method=None,
     explanations refer to the Xsuite Physics Guide (https://xsuite.readthedocs.io/en/latest/physicsguide.html):
     Fields marked as "ebe" are element-by-element quantities.
 
-    - Default output fields:
+    Default output fields:
         - `name`: element name, when repeated elements are present "::1", "::2", ...
           suffixes are added to make the names unique. (ebe)
         - `env_name`: environment name of the element, i.e. name without suffix
-           for repeated elements. (ebe)
+          for repeated elements. (ebe)
         - `s`: element position [m] (ebe)
         - `x`, `px`, `y`, `py`, `zeta`, `delta`, `ptau`: coordinates
           of the closed orbit for the periodic twiss and of the  beam trajectory
@@ -281,7 +281,7 @@ def twiss_line(line, particle_ref=None, method=None,
         -  `T_rev0`: reference revolution period
         - `slip_factor`: slip factor -(dfrev / frev) / ddelta
         - `momentum_compaction_factor`: momentum compaction factor (d C / C) / ddelta
-           where C the closed orbit path length
+          where C the closed orbit path length
         - `slip_factor_dz_ddelta`: d (zeta) / ddelta
         - `bets0`: longitudinal beta function at start of the ring.
         - `c_minus`, `c_minus_re_0`, `c_minus_im_0`: closest tune approach coefficient
@@ -291,7 +291,7 @@ def twiss_line(line, particle_ref=None, method=None,
           definitions. (ebe)
         - `R_matrix`: one-turn transfer matrix
         - `steps_r_matrix`: steps used for the finite-difference computation of the
-           R matrix
+          R matrix
         - `R_matrix_ebe`: element-by-element transfer matrices, from the start of
           the line to the selected element. (ebe)
         - `eigenvalues`, `rotation_matrix`: additional linear-normal-form data
