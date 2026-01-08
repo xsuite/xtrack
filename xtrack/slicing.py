@@ -422,6 +422,11 @@ class Slicer:
                         self._line._element_dict[nn] = ee
                         slices_to_append.append(nn)
         elif chosen_slicing.mode == 'thick':
+            if not hasattr(slice_parent, '_thick_slice_class') or slice_parent._thick_slice_class is None:
+                raise AttributeError(
+                    f"Element {type(slice_parent).__name__} does not support thick slicing. "
+                    f"It is marked as thick (isthick=True) but does not define a _thick_slice_class property."
+                )
             slice_offset = 0
             for weight, is_drift in chosen_slicing.iter_weights(elem_length):
                 if isinstance(element, xt.Drift) and name.startswith('||drift_'):

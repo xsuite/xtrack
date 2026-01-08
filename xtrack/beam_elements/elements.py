@@ -836,6 +836,11 @@ class BPMethElement(BeamElement):
             kwargs['n_steps'] = n_steps
         super().__init__(**kwargs)
 
+    @property
+    def _thick_slice_class(self):
+        """BPMethElement does not support slicing."""
+        return None
+
 
 class Sietse(xt.BeamElement):
     '''Beam element for testing purposes.

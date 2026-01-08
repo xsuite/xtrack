@@ -436,10 +436,17 @@ class Tracker:
 
         if use_prebuilt_kernels:
             try:
-                from xsuite import (
-                    get_suitable_kernel,
-                    XSK_PREBUILT_KERNELS_LOCATION,
-                )
+                try:
+                    from xsuite import (
+                        get_suitable_kernel,
+                        XSK_PREBUILT_KERNELS_LOCATION,
+                    )
+                except ImportError:
+                    # Fallback for namespace package installations
+                    from xsuite.prebuild_kernels import (
+                        get_suitable_kernel,
+                        XSK_PREBUILT_KERNELS_LOCATION,
+                    )
             except ImportError:
                 kernel_info = None
             else:
@@ -1445,7 +1452,10 @@ class Tracker:
         return state
 
     def check_compatibility_with_prebuilt_kernels(self):
-        from xsuite import get_suitable_kernel
+        try:
+            from xsuite import get_suitable_kernel
+        except ImportError:
+            from xsuite.prebuild_kernels import get_suitable_kernel
         get_suitable_kernel(
             config=self.line.config,
             line_element_classes=self.line_element_classes,
