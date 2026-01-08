@@ -297,11 +297,11 @@ def twiss_line(line, particle_ref=None, method=None,
         - `eigenvalues`, `rotation_matrix`: additional linear-normal-form data
         - `dmux`, `dmuy`: phase-advance derivatives vs delta
         - `dzeta`: longitudinal dispersion vs delta
-    - With `strengths=True` (or `radiation_integrals=True`):
+    Output fields present when `strengths=True` (or `radiation_integrals=True`):
         - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole integrated strengths
         - `angle_rad`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
           `element_type`, `isthick`, `parent_name`: element properties
-    - With `eneloss_and_damping=True`:
+    Output fields present when `eneloss_and_damping=True`:
         - `eneloss_turn`: energy loss per turn [eV]
         - `damping_constants_turns`, `damping_constants_s`: damping constants in
           1/turn or 1/s.
