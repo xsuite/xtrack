@@ -310,21 +310,25 @@ def twiss_line(line, particle_ref=None, method=None,
           emittances.
         - `eq_nemitt_x`, `eq_nemitt_y`, `eq_nemitt_zeta`: equilibrium normalized
           emittances.
-    - With `radiation_integrals=True`:
-        - `rad_int_curly_hx`, `rad_int_curly_hy`: curly-H terms
+     Output fields present when `radiation_integrals=True`:
+        - `rad_int_i1x`, `rad_int_i1y`, `rad_int_i2`, `rad_int_i3`, `rad_int_i4`,
+          `rad_int_i4x`, `rad_int_i4y`, `rad_int_i5x`, `rad_int_i5y`: radiation
+          integrals (see physics guide for definitions)
         - `rad_int_i1x_integrand`, `rad_int_i1y_integrand`, `rad_int_l2_integrand`,
           `rad_int_i3_integrand`, `rad_int_i4_integrand`, `rad_int_i4x_integrand`,
           `rad_int_i4y_integrand`, `rad_int_i5x_integrand`, `rad_int_i5y_integrand`:
-          integrands
-        - `rad_int_kappa0_x`, `rad_int_kappa0_y`, `rad_int_kappa0`: reference curvature
-        - `rad_int_kappa_x`, `rad_int_kappa_y`, `rad_int_kappa`: particle curvature
-        - `rad_int_iv_x`, `rad_int_iv_y`, `rad_int_iv_z`: velocity direction cosines
-        - `rad_int_i1x`, `rad_int_i1y`, `rad_int_i2`, `rad_int_i3`, `rad_int_i4`,
-          `rad_int_i4x`, `rad_int_i4y`, `rad_int_i5x`, `rad_int_i5y`: integrated
-          radiation integrals
-        - `rad_int_eq_gemitt_x`, `rad_int_eq_gemitt_y`: equilibrium emittances from integrals
+          integrands of the radiation integrals (ebe)
+        - `rad_int_curly_hx`, `rad_int_curly_hy`: curly-H functions (see physics guide
+          for definitions) (ebe)
+        - `rad_int_eq_gemitt_x`, `rad_int_eq_gemitt_y`: geometric equilibrium emittances
+          from radiation integrals.
         - `rad_int_damping_constant_x_s`, `rad_int_damping_constant_y_s`,
-          `rad_int_damping_constant_zeta_s`: damping constants from integrals
+          `rad_int_damping_constant_zeta_s`: damping constants from radiation integrals
+        - `rad_int_kappa0_x`, `rad_int_kappa0_y`, `rad_int_kappa0`: reference curvature
+          used in the computation (ebe)
+        - `rad_int_kappa_x`, `rad_int_kappa_y`, `rad_int_kappa`: closed orbit curvature
+          used in the computation (ebe)
+        - `rad_int_iv_x`, `rad_int_iv_y`, `rad_int_iv_z`: velocity direction cosines (ebe)
     - With `polarization=True`:
         - `spin_dn_ddelta_x`, `spin_dn_ddelta_y`, `spin_dn_ddelta_z`: spin derivative vs delta
         - `spin_eigenvectors`: spin eigenvectors element-by-element
