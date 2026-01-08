@@ -259,6 +259,10 @@ void track_rf_particles(
     double body_length;
     double factor_knl_ksl_body;
 
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        lag += lag_taper;
+    #endif
+
     if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         body_length = -length;
         factor_knl_ksl_body = -factor_knl_ksl;
@@ -324,7 +328,7 @@ void track_rf_particles(
                 body_length * weight,
                 voltage * weight,
                 frequency,
-                lag + lag_taper,
+                lag,
                 harmonic,
                 transverse_voltage * weight,
                 transverse_lag,
