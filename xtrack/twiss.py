@@ -334,28 +334,30 @@ def twiss_line(line, particle_ref=None, method=None,
     Output fields present when `spin=True`:
         - `spin_x`, `spin_y`, `spin_z`: spin components of the closed spin solution
           (n0) for periodic twiss, or propagated spin components for open twiss. (ebe)
-    - With `polarization=True`:
-        - `spin_dn_ddelta_x`, `spin_dn_ddelta_y`, `spin_dn_ddelta_z`: spin derivative vs delta
-        - `spin_eigenvectors`: spin eigenvectors element-by-element
-        - `spin_n_matrix`: spin transfer matrix in Frenet-Serret frame
-        - `spin_n0_iv`, `spin_n0_ib`: projections of equilibrium spin
+    Output fields present when `polarization=True`:
         - `spin_tune_fractional`: fractional spin tune
-        - `spin_polarization_eq`, `spin_polarization_inf_no_depol`: equilibrium/infinite-time polarization
-        - `spin_t_pol_buildup_s`, `spin_t_pol_component_s`, `spin_t_depol_component_s`:
-          polarization/depolarization times
-        - `spin_alpha_plus_co`, `spin_alpha_minus_co`, `spin_alpha_plus`, `spin_alpha_minus`:
-          Sokolov-Ternov rates
+        - `spin_polarization_eq`: equilibrimum polarization in the linear approximation
+        - `spin_polarization_inf_no_depol`: infinite-time polarization without
+          depolarization effects
+        - `spin_t_pol_buildup_s`: polarization buildup time in seconds
+        - `spin_t_pol_component_s`: polarization component of the buildup time in seconds
+        - `spin_t_depol_component_s`: depolarization component of the buildup time in seconds
+        - `spin_n_matrix`: invariant spin field matrix in local frame (ebe)
+        - `spin_eigenvectors`: eigenvectors of the spin one-turn matrix (ebe)
+        - `spin_dn_ddelta_x`, `spin_dn_ddelta_y`, `spin_dn_ddelta_z`: derivatives of
+          the invariant spin field w.r.t. delta (ebe)
+        - `spin_n0_iv`, `spin_n0_ib`: projections of equilibrium spin along the
+          closed orbit velocity and magnetic field directions (ebe)
         - `spin_int_kappa3_n0_ib`, `spin_int_kappa3_dn_ddelta_ib`,
-          `spin_int_kappa3_11_18_dn_ddelta_sq`: curvature-weighted spin integrals
-        - Diagnostic data stored with `_spin_*` keys
-    - With `coupling_edw_teng=True`:
-        - `r11_edw_teng`, `r12_edw_teng`, `r21_edw_teng`, `r22_edw_teng`: Edwards-Teng coupling
-    - With `search_for_t_rev=True`:
+          `spin_int_kappa3_11_18_dn_ddelta_sq`: integrals involved in polarization
+          computations
+    Output fields present when `coupling_edw_teng=True`:
+        - `r11_edw_teng`, `r12_edw_teng`, `r21_edw_teng`, `r22_edw_teng`:
+          Elements of the Edwards-Teng coupling matrix (ebe)
+        - `beta_x_edw_teng`, `alpha_x_edw_teng`, `bety_y_edw_teng`, `alfy_y_edw_teng`:
+          Edwards-Teng Twiss parameters (ebe)
+    Output fields present when `search_for_t_rev=True`:
         - `T_rev`: measured revolution period [s]
-    - With `num_turns>1`:
-        - Multi-turn concatenated table; initial turn stored in `_tw0` within `_data`
-
-
 
     The following additional parameters can also be provided:
 
