@@ -1748,29 +1748,40 @@ class Line:
                element0=0, reverse=None):
 
         """
-        Returns a survey of the beamline (based on MAD-X survey command).
+        Compute the geometrical layout, i.e. the coordinates of all beam line
+        elements in the global reference system.
 
         Parameters
         ----------
         X0 : float
-            Initial X coordinate in meters.
+            Initial X coordinate in meters. Default is 0.
         Y0 : float
-            Initial Y coordinate in meters.
+            Initial Y coordinate in meters. Default is 0.
         Z0 : float
-            Initial Z coordinate in meters.
+            Initial Z coordinate in meters. Default is 0.
         theta0 : float
-            Initial theta coordinate in radians.
+            Initial theta coordinate in radians. Default is 0.
         phi0 : float
-            Initial phi coordinate in radians.
+            Initial phi coordinate in radians. Default is 0.
         psi0 : float
-            Initial psi coordinate in radians.
+            Initial psi coordinate in radians. Default is 0.
         element0 : int or str
-            Element at which the given coordinates are defined.
+            Element at which the given coordinates are defined. Default is the
+            first element in the beam line.
+        reverse : bool
+            If True, the survey is computed in the reversed reference frame.
 
         Returns
         -------
         survey : SurveyTable
             Survey table.
+
+        Notes
+        -----
+
+        The output survey table contains the following columns:
+        
+
         """
 
         if not self._has_valid_tracker():
