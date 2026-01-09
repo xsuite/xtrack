@@ -1803,6 +1803,37 @@ class Line:
         - ``ref_rot_x_rad``, ``ref_rot_y_rad``, ``ref_rot_s_rad``: alignment
           rotations applied before the element [rad].
 
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            # Create a simple line
+            env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+            line = env.new_line(length=6, components=[
+                env.new('b1', xt.Bend, length=0.2, angle=0.1, at=1),
+                env.new('q1', xt.Quadrupole, length=0.1, k1=0.5, at=2),
+                env.new('b2', xt.Bend, length=0.2, angle=-0.1, at=3),
+                env.new('q2', xt.Quadrupole, length=0.1, k1=-0.5, at=4),
+            ])
+
+            # Compute the survey
+            sv = line.survey()
+            # sv.X, sv.Y, sv.Z contain the coordinates of the reference
+            # trajectory in the global frame
+
+            # Compute the trajectory of a particle entering with x=1 mm and y=2 mm
+            tw = line.twiss4d(betx=1, bety=1, x=1e-3, y=2e-3)
+            # tw.x, tw.y contain the coordinates of the particle in the local frame
+
+            # Compute the trajectory of the particle in the global frame
+            p_global = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
+
+            X_trajectory = p_global[:, 0]
+            Y_trajectory = p_global[:, 1]
+            Z_trajectory = p_global[:, 2]
+
         """
 
         if not self._has_valid_tracker():
