@@ -1780,6 +1780,7 @@ class Line:
         -----
 
         The output survey table contains the following columns:
+
         - ``name``: element name (with occurrence counts for repeated names).
         - ``element_type``: type of the element (e.g. Drift, Marker, Bend).
         - ``s``: longitudinal coordinate at the element entrance [m].
