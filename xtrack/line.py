@@ -1749,7 +1749,9 @@ class Line:
 
         """
         Compute the geometrical layout, i.e. the coordinates of all beam line
-        elements in the global reference system.
+        elements in the global reference system. (for detailed definitions of
+        the involved quantities please refer to the Xsuite Physics Guide
+        (https://xsuite.readthedocs.io/en/latest/physicsguide.html)
 
         Parameters
         ----------
