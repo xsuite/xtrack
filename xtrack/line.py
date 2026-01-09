@@ -1780,7 +1780,28 @@ class Line:
         -----
 
         The output survey table contains the following columns:
-        
+        - ``name``: element name (with occurrence counts for repeated names).
+        - ``element_type``: type of the element (e.g. Drift, Marker, Bend).
+        - ``s``: longitudinal coordinate at the element entrance [m].
+        - ``X``, ``Y``, ``Z``: position of the element entrance in the global frame [m].
+        - ``theta``, ``phi``, ``psi``: orientation angles of the local frame
+          (azimuth, elevation, roll) unwrapped along the line [rad].
+        - ``ex``, ``ey``, ``ez``: unit vectors of the local frame expressed in
+          the global frame (they are the columns of ``W``).
+        - ``W``: 3x3 rotation matrices describing the local frame at each
+          element entrance.
+        - ``p0``: position vectors stacked as ``[X, Y, Z]``.
+        - ``isthick``: ``True`` for thick elements, ``False`` for markers.
+        - ``drift_length``: length used while advancing the survey (zero for
+          thin elements) [m].
+        - ``length``: physical length of the element [m].
+        - ``angle``: bending angle of the element [rad].
+        - ``rot_s_rad``: rotation around the longitudinal axis applied before
+          the element [rad].
+        - ``ref_shift_x``, ``ref_shift_y``: alignment shifts applied before the
+          element [m].
+        - ``ref_rot_x_rad``, ``ref_rot_y_rad``, ``ref_rot_s_rad``: alignment
+          rotations applied before the element [rad].
 
         """
 
