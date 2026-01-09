@@ -7,7 +7,6 @@ pc_gev = 120.
 line = env.fccee_p_ring
 line.set_particle_ref('positron', p0c=pc_gev*1e9)
 
-
 tw_no_rad = line.twiss6d()
 rfb_no_rad = line._get_bucket()
 
