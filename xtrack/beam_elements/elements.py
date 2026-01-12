@@ -794,7 +794,7 @@ class Wire(BeamElement):
     ]
 
 
-class BPMethElement(BeamElement):
+class SplineBoris(BeamElement):
 
     isthick = True
 
@@ -806,7 +806,7 @@ class BPMethElement(BeamElement):
                'n_steps'            : xo.Int64,}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/bpmethelement.h>',
+        '#include <beam_elements/elements_src/splineboris.h>',
     ]
 
     def __init__(self,

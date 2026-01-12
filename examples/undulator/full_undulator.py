@@ -37,26 +37,32 @@ n_steps = 1000
 
 def _contruct_par_table(n_steps, s_start, s_end, df_flat, multipole_order):
     """
-    Construct parameter table for BPMethElement.
+    Construct parameter table for SplineBoris.
     
     Parameters are ordered as expected by the C code:
-    - For multipole_order=3: a_1_*, a_2_*, a_3_*, b_1_*, b_2_*, b_3_*, bs_*
+    - For multipole_order=3: bs_*, b_1_*, b_2_*, b_3_*, a_1_*, a_2_*, a_3_*
     - Within each group: ordered by polynomial order (0, 1, 2, 3, 4)
+    - b_* maps to kn_* (normal multipole) and a_* maps to ks_* (skew multipole)
     """
     par_dicts = []
     par_table = []
     s_vals = np.linspace(float(s_start), float(s_end), n_steps)
     
     # Expected parameter order for the given multipole_order
-    # Format: prefix_multipole_poly (e.g., a_1_0, a_2_3, bs_0)
+    # C code expects: bs_*, kn_1_*, ..., kn_N_*, ks_1_*, ..., ks_N_*
+    # Which maps to: bs_*, b_1_*, ..., b_N_*, a_1_*, ..., a_N_*
     expected_params = []
-    for prefix in ['a_', 'b_']:
-        for multipole_idx in range(1, multipole_order + 1):
-            for poly_idx in range(5):  # 0 to 4
-                expected_params.append(f"{prefix}{multipole_idx}_{poly_idx}")
-    # Add bs_ parameters (no multipole index)
+    # First: bs_ parameters (no multipole index)
     for poly_idx in range(5):
         expected_params.append(f"bs_{poly_idx}")
+    # Second: b_ parameters (all multipoles) - these map to kn_*
+    for multipole_idx in range(1, multipole_order + 1):
+        for poly_idx in range(5):  # 0 to 4
+            expected_params.append(f"b_{multipole_idx}_{poly_idx}")
+    # Third: a_ parameters (all multipoles) - these map to ks_*
+    for multipole_idx in range(1, multipole_order + 1):
+        for poly_idx in range(5):  # 0 to 4
+            expected_params.append(f"a_{multipole_idx}_{poly_idx}")
     
     for s_val_i in s_vals:
         # Filter rows that contain this s position
@@ -96,7 +102,7 @@ def _contruct_par_table(n_steps, s_start, s_end, df_flat, multipole_order):
     
     return par_dicts, par_table
 
-multipole_order = 3 # The CSV only contains multipole_order=1 parameters (a_1_*, b_1_*, bs_*)
+multipole_order = 3
 
 par_dicts, par_table = _contruct_par_table(n_steps, s_start, s_end, df_reset, multipole_order=multipole_order)
 
@@ -116,9 +122,9 @@ print(f"s_start = {s_start}, s_end = {s_end}, n_steps = {n_steps}")
 #     poly1_df = df[df['region_name'] == 'Poly_1'] if 'region_name' in df.columns else df
 # print(poly1_df.to_string())
 
-bpmeth_element = xt.BPMethElement(params=par_table, multipole_order=multipole_order, s_start=s_start, s_end=s_end, length=s_end-s_start, n_steps=n_steps)
+splineboris_element = xt.SplineBoris(params=par_table, multipole_order=multipole_order, s_start=s_start, s_end=s_end, length=s_end-s_start, n_steps=n_steps)
 
-env.elements['wiggler'] = bpmeth_element
+env.elements['wiggler'] = splineboris_element
 
 line = env.new_line(['wiggler'])
 
@@ -127,7 +133,7 @@ line.build_tracker()
 start_time = time.time()
 tw = line.twiss4d(betx=1, bety=1, include_collective=True)
 end_time = time.time()
-print(f"Time taken to compute twiss through BPMethElement: {end_time - start_time} seconds")
+print(f"Time taken to compute twiss through SplineBoris: {end_time - start_time} seconds")
 
 # tw.plot('x y')
 # tw.plot('betx bety', 'dx dy')
@@ -153,7 +159,7 @@ for i in range(n_steps):
     elem_s_start = s_val_i - ds/2
     elem_s_end = s_val_i + ds/2
     
-    wiggler_i = xt.BPMethElement(
+    wiggler_i = xt.SplineBoris(
         params=params_i, 
         multipole_order=multipole_order, 
         s_start=elem_s_start, 
@@ -171,7 +177,7 @@ piecewise_wiggler.build_tracker()
 start_time = time.time()
 tw_new = piecewise_wiggler.twiss4d(betx=1, bety=1, include_collective=True)
 end_time = time.time()
-print(f"Time taken to compute twiss through list of BPMethElements: {end_time - start_time} seconds")
+print(f"Time taken to compute twiss through list of SplineBoris: {end_time - start_time} seconds")
 
 # tw_new.plot('x y')
 # tw_new.plot('betx bety', 'dx dy')
@@ -236,10 +242,14 @@ env_wiggler = env
 env = xt.load('/home/simonfan/projects/xsuite/xtrack/test_data/sls/b075_2024.09.25.madx')
 line_sls = env.ring
 line_no_wiggler = line_sls.copy(shallow=True)
-env['ring_no_wiggler'] = line_sls.copy(shallow=True)
-line_sls.configure_bend_model(core='mat-kick-mat')
+line_off_wiggler = line_sls.copy(shallow=True)
+env['ring_no_wiggler'] = line_no_wiggler
+env['ring_off_wiggler'] = line_off_wiggler
+line_no_wiggler.configure_bend_model(core='mat-kick-mat')
+line_off_wiggler.configure_bend_model(core='mat-kick-mat')
 line_sls.particle_ref = p0.copy()
 line_no_wiggler.particle_ref = p0.copy()
+line_off_wiggler.particle_ref = p0.copy()
 
 # Copy all wiggler elements and correction elements to the new environment
 print("Copying wiggler elements to new environment...")
@@ -252,8 +262,27 @@ for var_name in ['k0l_corr1', 'k0l_corr2', 'k0l_corr3', 'k0l_corr4',
 
 # Copy wiggler elements
 for name in name_list:
-    # Directly copy the element since copy_element_from doesn't support BPMethElement
+    # Directly copy the element since copy_element_from doesn't support SplineBoris
     env.elements[name] = env_wiggler.elements[name].copy()
+
+# Create offset wiggler elements with x_off = 0.0005 m
+x_off = 0.0005  # 0.0005 m offset in x
+name_list_off = [f'wiggler_off_{i}' for i in range(1, n_steps+1)]
+print(f"Creating offset wiggler elements with x_off = {x_off} m...")
+for i, name in enumerate(name_list):
+    orig_elem = env_wiggler.elements[name]
+    # Create new element with offset
+    wiggler_off_i = xt.SplineBoris(
+        params=orig_elem.params,
+        multipole_order=orig_elem.multipole_order,
+        s_start=orig_elem.s_start,
+        s_end=orig_elem.s_end,
+        length=orig_elem.length,
+        n_steps=orig_elem.n_steps,
+        x_off=0.0,
+        y_off=x_off
+    )
+    env.elements[name_list_off[i]] = wiggler_off_i
 
 # Copy correction elements (they depend on the variables, so copy after variables)
 for corr_name in ['corr1', 'corr2', 'corr3', 'corr4']:
@@ -266,6 +295,20 @@ piecewise_wiggler.particle_ref = p0.copy()
 
 # Re-insert correction elements
 piecewise_wiggler.insert([
+    env.place('corr1', at=0.02),
+    env.place('corr2', at=0.1),
+    env.place('corr3', at=l_wig - 0.1),
+    env.place('corr4', at=l_wig - 0.02),
+    ], s_tol=5e-3
+)
+
+# Create offset wiggler line
+piecewise_wiggler_off = env.new_line(components=name_list_off)
+piecewise_wiggler_off.build_tracker()
+piecewise_wiggler_off.particle_ref = p0.copy()
+
+# Re-insert correction elements into offset wiggler
+piecewise_wiggler_off.insert([
     env.place('corr1', at=0.02),
     env.place('corr2', at=0.1),
     env.place('corr3', at=l_wig - 0.1),
@@ -329,16 +372,167 @@ for wig_place in wiggler_places:
     print(f"Inserting piecewise_wiggler {wig_place} at {tt['s', wig_place]}")
     line_sls.insert(piecewise_wiggler, anchor='start', at=tt['s', wig_place])
 
+# Insert offset wiggler into line_off_wiggler
+for wig_place in wiggler_places:
+    print(f"Inserting piecewise_wiggler_off {wig_place} at {tt['s', wig_place]}")
+    line_off_wiggler.insert(piecewise_wiggler_off, anchor='start', at=tt['s', wig_place])
+
 time_start = time.time()
-tw_sls = line_sls.twiss4d(include_collective=True)
+tw_sls = line_sls.twiss4d(radiation_integrals=True)
 time_end = time.time()
 print(f"Time taken to compute twiss through full line: {time_end - time_start} seconds")
 
 time_start = time.time()
-tw_no_wiggler = line_no_wiggler.twiss4d(include_collective=True)
+tw_no_wiggler = line_no_wiggler.twiss4d(radiation_integrals=True)
 time_end = time.time()
 print(f"Time taken to compute twiss through full line without wiggler: {time_end - time_start} seconds")
 
 tw_sls.plot('x y')
 tw_sls.plot('betx bety', 'dx dy')
 plt.show()
+
+time_start = time.time()
+tw_off_wiggler = line_off_wiggler.twiss4d(radiation_integrals=True)
+time_end = time.time()
+print(f"Time taken to compute twiss through full line with offset wiggler: {time_end - time_start} seconds")
+
+# print(tw_sls.cols.names)
+# print(tw_no_wiggler.cols.name)
+
+#['name', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 'W_matrix', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime',
+# 'kin_yprime', 'env_name', 'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy', 'dx', 'dpx', 'dy', 'dpy', 'dx_zeta', 'dpx_zeta',
+# 'dy_zeta', 'dpy_zeta', 'betx1', 'bety1', 'betx2', 'bety2', 'alfx1', 'alfy1', 'alfx2', 'alfy2', 'gamx1', 'gamy1',
+# 'gamx2', 'gamy2', 'mux', 'muy', 'muzeta', 'nux', 'nuy', 'nuzeta', 'phix', 'phiy', 'phizeta', 'dmux', 'dmuy', 'dzeta',
+# 'bx_chrom', 'by_chrom', 'ax_chrom', 'ay_chrom', 'wx_chrom', 'wy_chrom', 'ddx', 'ddpx', 'ddy', 'ddpy', 'c_minus_re',
+# 'c_minus_im', 'c_r1', 'c_r2', 'c_phi1', 'c_phi2', 'k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l', 'k0sl', 'k1sl', 'k2sl',
+# 'k3sl', 'k4sl', 'k5sl', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length', '_angle_force_body', 'element_type', 'isthick', 'parent_name']
+
+# Write .txt file that contains a table comparing:
+# - Tunes
+# - Chromaticity
+# - Energy loss per turn
+# - Radiation damping constants per second
+# - Radiation partition numbers
+# - Equilibrium emittances
+# - Damping constants per second
+
+# With undulator:
+# Partition numbers
+J_x_with_wiggler = tw_sls.rad_int_partition_number_x
+J_y_with_wiggler = tw_sls.rad_int_partition_number_y
+J_zeta_with_wiggler = tw_sls.rad_int_partition_number_zeta
+
+# Damping constants per second
+alpha_x_with_wiggler = tw_sls.rad_int_damping_constant_x_s
+alpha_y_with_wiggler = tw_sls.rad_int_damping_constant_y_s
+alpha_zeta_with_wiggler = tw_sls.rad_int_damping_constant_zeta_s
+
+# Equilibrium emittances
+eq_gemitt_x_with_wiggler = tw_sls.rad_int_eq_gemitt_x
+eq_gemitt_y_with_wiggler = tw_sls.rad_int_eq_gemitt_y
+eq_gemitt_zeta_with_wiggler = tw_sls.rad_int_eq_gemitt_zeta
+
+# Chromaticity
+chrom_x_with_wiggler = tw_sls.dqx
+chrom_y_with_wiggler = tw_sls.dqy
+
+
+# Tunes
+tune_x_with_wiggler = tw_sls.qx
+tune_y_with_wiggler = tw_sls.qy
+tune_s_with_wiggler = tw_sls.qs
+
+# Energy loss per turn
+eneloss_turn_with_wiggler = tw_sls.rad_int_eneloss_turn
+
+# Without undulator:
+# Partition numbers
+J_x_no_wiggler = tw_no_wiggler.rad_int_partition_number_x
+J_y_no_wiggler = tw_no_wiggler.rad_int_partition_number_y
+J_zeta_no_wiggler = tw_no_wiggler.rad_int_partition_number_zeta
+
+# Damping constants per second
+alpha_x_no_wiggler = tw_no_wiggler.rad_int_damping_constant_x_s
+alpha_y_no_wiggler = tw_no_wiggler.rad_int_damping_constant_y_s
+alpha_zeta_no_wiggler = tw_no_wiggler.rad_int_damping_constant_zeta_s
+
+# Equilibrium emittances
+eq_gemitt_x_no_wiggler = tw_no_wiggler.rad_int_eq_gemitt_x
+eq_gemitt_y_no_wiggler = tw_no_wiggler.rad_int_eq_gemitt_y
+eq_gemitt_zeta_no_wiggler = tw_no_wiggler.rad_int_eq_gemitt_zeta
+
+# Chromaticity
+chrom_x_no_wiggler = tw_no_wiggler.dqx
+chrom_y_no_wiggler = tw_no_wiggler.dqy
+
+# Tunes
+tune_x_no_wiggler = tw_no_wiggler.qx
+tune_y_no_wiggler = tw_no_wiggler.qy
+tune_s_no_wiggler = tw_no_wiggler.qs
+
+# Energy loss per turn
+eneloss_turn_no_wiggler = tw_no_wiggler.rad_int_eneloss_turn
+
+# Offset wiggler:
+J_x_off_wiggler = tw_off_wiggler.rad_int_partition_number_x
+J_y_off_wiggler = tw_off_wiggler.rad_int_partition_number_y
+J_zeta_off_wiggler = tw_off_wiggler.rad_int_partition_number_zeta
+
+alpha_x_off_wiggler = tw_off_wiggler.rad_int_damping_constant_x_s
+alpha_y_off_wiggler = tw_off_wiggler.rad_int_damping_constant_y_s
+alpha_zeta_off_wiggler = tw_off_wiggler.rad_int_damping_constant_zeta_s
+
+eq_gemitt_x_off_wiggler = tw_off_wiggler.rad_int_eq_gemitt_x
+eq_gemitt_y_off_wiggler = tw_off_wiggler.rad_int_eq_gemitt_y
+eq_gemitt_zeta_off_wiggler = tw_off_wiggler.rad_int_eq_gemitt_zeta
+
+chrom_x_off_wiggler = tw_off_wiggler.dqx
+chrom_y_off_wiggler = tw_off_wiggler.dqy
+
+tune_x_off_wiggler = tw_off_wiggler.qx
+tune_y_off_wiggler = tw_off_wiggler.qy
+tune_s_off_wiggler = tw_off_wiggler.qs
+
+eneloss_turn_off_wiggler = tw_off_wiggler.rad_int_eneloss_turn
+
+# Write to .txt file
+with open('full_undulator.txt', 'w') as f:
+    f.write(f"With undulator:\n")
+    f.write(f"  Partition numbers: J_x = {J_x_with_wiggler:.4f}, J_y = {J_y_with_wiggler:.4f}, J_zeta = {J_zeta_with_wiggler:.4f}\n")
+    f.write(f"  Damping constants per second: alpha_x = {alpha_x_with_wiggler:.4f}, alpha_y = {alpha_y_with_wiggler:.4f}, alpha_zeta = {alpha_zeta_with_wiggler:.4f}\n")
+    f.write(f"  Equilibrium emittances: eq_gemitt_x = {eq_gemitt_x_with_wiggler:.4f}, eq_gemitt_y = {eq_gemitt_y_with_wiggler:.4f}, eq_gemitt_zeta = {eq_gemitt_zeta_with_wiggler:.4f}\n")
+    f.write(f"  Chromaticity: chrom_x = {chrom_x_with_wiggler:.4f}, chrom_y = {chrom_y_with_wiggler:.4f}\n")
+    f.write(f"  Tunes: tune_x = {tune_x_with_wiggler:.4f}, tune_y = {tune_y_with_wiggler:.4f}, tune_s = {tune_s_with_wiggler:.4f}\n")
+    f.write(f"  Energy loss per turn: eneloss_turn = {eneloss_turn_with_wiggler:.4f}\n")
+    f.write(f"Without undulator:\n")
+    f.write(f"  Partition numbers: J_x = {J_x_no_wiggler:.4f}, J_y = {J_y_no_wiggler:.4f}, J_zeta = {J_zeta_no_wiggler:.4f}\n")
+    f.write(f"  Damping constants per second: alpha_x = {alpha_x_no_wiggler:.4f}, alpha_y = {alpha_y_no_wiggler:.4f}, alpha_zeta = {alpha_zeta_no_wiggler:.4f}\n")
+    f.write(f"  Equilibrium emittances: eq_gemitt_x = {eq_gemitt_x_no_wiggler:.4f}, eq_gemitt_y = {eq_gemitt_y_no_wiggler:.4f}, eq_gemitt_zeta = {eq_gemitt_zeta_no_wiggler:.4f}\n")
+    f.write(f"  Chromaticity: chrom_x = {chrom_x_no_wiggler:.4f}, chrom_y = {chrom_y_no_wiggler:.4f}\n")
+    f.write(f"  Tunes: tune_x = {tune_x_no_wiggler:.4f}, tune_y = {tune_y_no_wiggler:.4f}, tune_s = {tune_s_no_wiggler:.4f}\n")
+    f.write(f"  Energy loss per turn: eneloss_turn = {eneloss_turn_no_wiggler:.4f}\n")
+
+# Print everything:
+print(f"With undulator:")
+print(f"  Partition numbers: J_x = {J_x_with_wiggler:.4f}, J_y = {J_y_with_wiggler:.4f}, J_zeta = {J_zeta_with_wiggler:.4f}")
+print(f"  Damping constants per second: alpha_x = {alpha_x_with_wiggler:.4f}, alpha_y = {alpha_y_with_wiggler:.4f}, alpha_zeta = {alpha_zeta_with_wiggler:.4f}")
+print(f"  Equilibrium emittances: eq_gemitt_x = {eq_gemitt_x_with_wiggler:.4f}, eq_gemitt_y = {eq_gemitt_y_with_wiggler:.4f}, eq_gemitt_zeta = {eq_gemitt_zeta_with_wiggler:.4f}")
+print(f"  Chromaticity: chrom_x = {chrom_x_with_wiggler:.4f}, chrom_y = {chrom_y_with_wiggler:.4f}")
+print(f"  Tunes: tune_x = {tune_x_with_wiggler:.4f}, tune_y = {tune_y_with_wiggler:.4f}, tune_s = {tune_s_with_wiggler:.4f}")
+print(f"  Energy loss per turn: eneloss_turn = {eneloss_turn_with_wiggler:.4f}\n")
+
+print(f"Without undulator:")
+print(f"  Partition numbers: J_x = {J_x_no_wiggler:.4f}, J_y = {J_y_no_wiggler:.4f}, J_zeta = {J_zeta_no_wiggler:.4f}")
+print(f"  Damping constants per second: alpha_x = {alpha_x_no_wiggler:.4f}, alpha_y = {alpha_y_no_wiggler:.4f}, alpha_zeta = {alpha_zeta_no_wiggler:.4f}")
+print(f"  Equilibrium emittances: eq_gemitt_x = {eq_gemitt_x_no_wiggler:.4f}, eq_gemitt_y = {eq_gemitt_y_no_wiggler:.4f}, eq_gemitt_zeta = {eq_gemitt_zeta_no_wiggler:.4f}")
+print(f"  Chromaticity: chrom_x = {chrom_x_no_wiggler:.4f}, chrom_y = {chrom_y_no_wiggler:.4f}")
+print(f"  Tunes: tune_x = {tune_x_no_wiggler:.4f}, tune_y = {tune_y_no_wiggler:.4f}, tune_s = {tune_s_no_wiggler:.4f}")
+print(f"  Energy loss per turn: eneloss_turn = {eneloss_turn_no_wiggler:.4f}\n")
+
+print(f"Offset wiggler (x_off = 0.0005 m):")
+print(f"  Partition numbers: J_x = {J_x_off_wiggler:.4f}, J_y = {J_y_off_wiggler:.4f}, J_zeta = {J_zeta_off_wiggler:.4f}")
+print(f"  Damping constants per second: alpha_x = {alpha_x_off_wiggler:.4f}, alpha_y = {alpha_y_off_wiggler:.4f}, alpha_zeta = {alpha_zeta_off_wiggler:.4f}")
+print(f"  Equilibrium emittances: eq_gemitt_x = {eq_gemitt_x_off_wiggler:.4f}, eq_gemitt_y = {eq_gemitt_y_off_wiggler:.4f}, eq_gemitt_zeta = {eq_gemitt_zeta_off_wiggler:.4f}")
+print(f"  Chromaticity: chrom_x = {chrom_x_off_wiggler:.4f}, chrom_y = {chrom_y_off_wiggler:.4f}")
+print(f"  Tunes: tune_x = {tune_x_off_wiggler:.4f}, tune_y = {tune_y_off_wiggler:.4f}, tune_s = {tune_s_off_wiggler:.4f}")
+print(f"  Energy loss per turn: eneloss_turn = {eneloss_turn_off_wiggler:.4f}")

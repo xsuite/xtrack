@@ -4284,6 +4284,8 @@ class TwissTable(Table):
                     / mass0 * gamma0**2 * i5x / (i2 - i4x))
         eq_gemitt_y = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
                     / mass0 * gamma0**2 * i5y / (i2 - i4y))
+        eq_gemitt_zeta = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
+                    / mass0 * gamma0**2 * i3 / (2*i2 + i4))
 
         # Damping constants
         damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4x)
@@ -4298,6 +4300,13 @@ class TwissTable(Table):
         iv_x = xp / tempv
         iv_y = yp / tempv
         iv_z = 1 / tempv
+
+        # Radiation partition numbers
+        partition_number_x = 1 - i4x / i2
+        partition_number_y = 1 - i4y / i2
+        partition_number_zeta = 2 + (i4x + i4y) / i2
+
+        rad_int_eneloss_turn = 2/3 * r0 * gamma0**4 * mass0 * i2
 
         cols = {
             'rad_int_curly_hx': Hx_rad,
@@ -4334,9 +4343,14 @@ class TwissTable(Table):
             'rad_int_i5y': i5y,
             'rad_int_eq_gemitt_x': eq_gemitt_x,
             'rad_int_eq_gemitt_y': eq_gemitt_y,
+            'rad_int_eq_gemitt_zeta': eq_gemitt_zeta,
             'rad_int_damping_constant_x_s': damping_constant_x_s,
             'rad_int_damping_constant_y_s': damping_constant_y_s,
             'rad_int_damping_constant_zeta_s': damping_constant_zeta_s,
+            'rad_int_partition_number_x': partition_number_x,
+            'rad_int_partition_number_y': partition_number_y,
+            'rad_int_partition_number_zeta': partition_number_zeta,
+            'rad_int_eneloss_turn': rad_int_eneloss_turn,
         }
 
         out = Table({'name': self.name, 's': self.s, 'length':self.length} | cols)
