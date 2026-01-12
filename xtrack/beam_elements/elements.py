@@ -803,7 +803,10 @@ class SplineBoris(BeamElement):
                's_start'            : xo.Float64,
                's_end'              : xo.Float64,
                'length'             : xo.Float64,
-               'n_steps'            : xo.Int64,}
+               'n_steps'            : xo.Int64,
+               'shift_x'            : xo.Float64,  # Transverse shift in x [m]
+               'shift_y'            : xo.Float64,  # Transverse shift in y [m]
+               }
 
     _extra_c_sources = [
         '#include <beam_elements/elements_src/splineboris.h>',
@@ -816,6 +819,8 @@ class SplineBoris(BeamElement):
                  s_end=None,
                  length=None,
                  n_steps=1000,
+                 shift_x=0.0,
+                 shift_y=0.0,
                  **kwargs,
     ):
         # Provide default minimal jagged 2D array for params if None (needed for prebuild)
@@ -834,37 +839,9 @@ class SplineBoris(BeamElement):
             kwargs['length'] = length
         if n_steps is not None:
             kwargs['n_steps'] = n_steps
+        kwargs['shift_x'] = shift_x
+        kwargs['shift_y'] = shift_y
         super().__init__(**kwargs)
-
-    @property
-    def _thick_slice_class(self):
-        """BPMethElement does not support slicing."""
-        return None
-
-
-class Sietse(xt.BeamElement):
-    '''Beam element for testing purposes.
-
-    Parameters
-    ----------
-
-    Bs     : float
-    length : float
-    '''
-
-    _xofields={
-        'Bs'     : xo.Float64,
-        'length' : xo.Float64,
-    }
-
-    #def __init__(self, Bs=0, length=0, **kwargs):
-    #    kwargs['Bs'] = Bs
-    #    kwargs['length'] = length
-    #    super().__init__(**kwargs)
-
-    _extra_c_sources = [
-        '#include <beam_elements/elements_src/sietse.h>',
-    ]
 
 
 class SRotation(xt.BeamElement):

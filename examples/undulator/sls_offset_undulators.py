@@ -66,9 +66,6 @@ s_vals = np.linspace(s_start, s_end, n_steps)
 l_wig = s_end - s_start
 ds = (s_end - s_start) / n_steps
 
-x_off = 0.0005  # 0.0005 m offset in x
-y_off = 0.0005  # 0.0005 m offset in y
-
 for i in range(n_steps):
     # params should be a 2D array: [[param1, param2, ...]] for n_steps=1
     params_i = [par_table[i]]
@@ -81,7 +78,7 @@ for i in range(n_steps):
     elem_s_end = s_val_i + ds/2
     
     wiggler_i = xt.SplineBoris(
-        params=params_i, 
+        params=params_i,
         multipole_order=multipole_order, 
         s_start=elem_s_start, 
         s_end=elem_s_end, 
@@ -97,10 +94,12 @@ piecewise_undulator.build_tracker()
 
 piecewise_undulator.particle_ref = p0.copy()
 
-# tw_undulator = piecewise_undulator.twiss4d(betx=1, bety=1, include_collective=True)
-# tw_undulator.plot('x y')
-# tw_undulator.plot('betx bety', 'dx dy')
-# plt.show()
+tw_undulator = piecewise_undulator.twiss4d(betx=1, bety=1, include_collective=True)
+tw_undulator.plot('x y')
+tw_undulator.plot('betx bety', 'dx dy')
+plt.show()
+
+piecewise_undulator.discard_tracker()
 
 # The issue: When you use betx=1, bety=1, twiss4d treats the line as OPEN (non-periodic).
 # For an open line, the orbit is computed from initial conditions in particle_on_co.
@@ -151,13 +150,19 @@ opt = piecewise_undulator.match(
 )
 opt.step(2)
 
+x_off = 0  # 0.0005 m offset in x
+y_off = 5e-4  # 0.0005 m offset in y
+
+# Loop through all wigglers and set the shift_x and shift_y to the correct values
+for i in range(n_steps):
+    wiggler_list[i].shift_x = x_off
+    wiggler_list[i].shift_y = y_off
+
 
 # tw_undulator_corr = piecewise_undulator.twiss4d(betx=1, bety=1, include_collective=True)
 # tw_undulator_corr.plot('x y')
 # tw_undulator_corr.plot('betx bety', 'dx dy')
 # plt.show()
-
-piecewise_undulator.discard_tracker()
 
 wiggler_places = [
     'ars02_uind_0500_1',
@@ -182,9 +187,25 @@ line_offset.build_tracker()
 
 tw_offset = line_offset.twiss4d(radiation_integrals=True)
 
+# Plotting:
+import matplotlib.pyplot as plt
+plt.close('all')
+tw_offset.plot('x y')
+tw_offset.plot('betx bety', 'dx dy')
+tw_offset.plot('betx2 bety2')
+plt.show()
+
+#['name', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 'W_matrix', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime',
+# 'kin_yprime', 'env_name', 'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy', 'dx', 'dpx', 'dy', 'dpy', 'dx_zeta', 'dpx_zeta',
+# 'dy_zeta', 'dpy_zeta', 'betx1', 'bety1', 'betx2', 'bety2', 'alfx1', 'alfy1', 'alfx2', 'alfy2', 'gamx1', 'gamy1',
+# 'gamx2', 'gamy2', 'mux', 'muy', 'muzeta', 'nux', 'nuy', 'nuzeta', 'phix', 'phiy', 'phizeta', 'dmux', 'dmuy', 'dzeta',
+# 'bx_chrom', 'by_chrom', 'ax_chrom', 'ay_chrom', 'wx_chrom', 'wy_chrom', 'ddx', 'ddpx', 'ddy', 'ddpy', 'c_minus_re',
+# 'c_minus_im', 'c_r1', 'c_r2', 'c_phi1', 'c_phi2', 'k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l', 'k0sl', 'k1sl', 'k2sl',
+# 'k3sl', 'k4sl', 'k5sl', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length', '_angle_force_body', 'element_type', 'isthick', 'parent_name']
+
 # Extract and print results
 print("=" * 80)
-print("SLS WITH UNDULATORS")
+print("SLS WITH OFFSET UNDULATORS")
 print("=" * 80)
 print(f"Tunes:")
 print(f"  qx = {tw_offset.qx:.4e}")

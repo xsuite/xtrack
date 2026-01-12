@@ -38,7 +38,9 @@ void SplineBoris_single_particle(
     const int      multipole_order,
     const double   s_start,
     const double   s_end,
-    const int      n_steps
+    const int      n_steps,
+    const double   shift_x,
+    const double   shift_y
 ){
     // Skip dead particles (state <= 0)
     if (LocalParticle_get_state(part) <= 0){
@@ -56,7 +58,7 @@ void SplineBoris_single_particle(
     const double delta  = LocalParticle_get_delta(part);   // relative momentum deviation
     const double p0c_ev = LocalParticle_get_p0c(part);     // reference p0 c [eV]
     const double beta0  = LocalParticle_get_beta0(part);   // reference beta
-
+    
     // Positions and momenta (dimensionless px, py)
     double x    = LocalParticle_get_x(part);   // [m]
     double y    = LocalParticle_get_y(part);   // [m]
@@ -140,7 +142,7 @@ void SplineBoris_single_particle(
         const double s_field = s_start + s_local_h;
 
         evaluate_B_scalar(
-            xh, yh, s_field,
+            xh - shift_x, yh - shift_y, s_field,
             *params,
             multipole_order,
             &Bx, &By, &Bs
