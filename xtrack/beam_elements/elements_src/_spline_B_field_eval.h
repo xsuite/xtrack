@@ -1,11 +1,11 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#ifndef XSUITE_SPLINE_B_FIELD_EVAL_SCALAR_H
-#define XSUITE_SPLINE_B_FIELD_EVAL_SCALAR_H
+#ifndef _SPLINE_B_FIELD_EVAL_H
+#define _SPLINE_B_FIELD_EVAL_H
 
 // Auto-generated symbolic field expressions for B
-void evaluate_B_scalar(const double x, const double y, const double s, const double *params, const int multipole_order, double *Bx_out, double *By_out, double *Bs_out){
+void evaluate_B(const double x, const double y, const double s, const double *params, const int multipole_order, double *Bx_out, double *By_out, double *Bs_out){
 
 	switch (multipole_order) {
 	case 1:{
@@ -592,4 +592,4 @@ void evaluate_B_scalar(const double x, const double y, const double s, const dou
 	}
 }
 
-#endif // XSUITE_SPLINE_B_FIELD_EVAL_SCALAR_H
+#endif // XSUITE/USERS/SIETSEBUIJSMAN/PROJECTS/XSUITE/XTRACK/XTRACK/BEAM_ELEMENTS/ELEMENTS_SRC/_SPLINE_B_FIELD_EVAL_H

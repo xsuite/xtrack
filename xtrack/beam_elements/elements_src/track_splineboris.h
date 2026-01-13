@@ -6,31 +6,7 @@
 #define XTRACK_TRACK_SPLINEBORIS_H
 
 #include <headers/track.h>
-#include "_spline_B_field_eval_scalar.h" // evaluate_B for Bx, By, Bs (scalar version)
-
-// Spatial Boris integrator for BPMethElement, using a fitted field map.
-//
-// Arguments:
-//   part           : LocalParticle pointer (single particle tracking kernel)
-//   params    : pointer to the flat parameter array for THIS ELEMENT
-//                    (start of the block corresponding to this element)
-//   multipole_order: multipole order used in evaluate_B
-//   s_start        : starting s-position in field map [m] (absolute, can be negative)
-//   s_end          : ending s-position in field map [m] (absolute)
-//   n_steps        : number of Boris substeps along the element
-//
-// Internally:
-//   - Uses physical momenta px, py, ps, P in SI units (kg m / s)
-//   - P0 is derived from p0c (eV) via P0 = p0c * QELEM / C_LIGHT
-//   - px, py in the particle object are dimensionless (px_phys / P0)
-//   - Bs from evaluate_B is used as Bs
-//   - Uses local s coordinate (0 to L) for stepping, converts to absolute s_field
-//     for field evaluation: s_field = s_start + s_local
-//   - Particle's s coordinate is updated by adding element length L
-//   - zeta is updated as in the Python version: sum over steps of
-//       zeta += (ds - dt * c * beta0)
-//     -> equivalent to zeta += (L - total_dt * c * beta0)
-//        where L = s_end - s_start
+#include "_spline_B_field_eval.h" // evaluate_B for Bx, By, Bs (scalar version)
 GPUFUN
 void SplineBoris_single_particle(
     LocalParticle* part,
@@ -141,7 +117,7 @@ void SplineBoris_single_particle(
         // Convert local s coordinate to absolute s in field map
         const double s_field = s_start + s_local_h;
 
-        evaluate_B_scalar(
+        evaluate_B(
             xh - shift_x, yh - shift_y, s_field,
             *params,
             multipole_order,

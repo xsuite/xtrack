@@ -52,6 +52,8 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
     // OPTIMIZATION #2: Copy parameters once per element (not per particle)
     // This is done before the particle loop, so all particles share the same parameter array
     // The copying happens once per element call, not once per particle
+    // NOTE: For rectangular arrays, xobjects stores them as a flat array with row-major ordering
+    // params[i][j] is accessed as params[i * cols + j] in the flat storage
     for (int64_t i = 0; i < n_steps; ++i) {
         params_ptrs[i] = params_storage + i*cols;
         for (int64_t j = 0; j < cols; ++j) {

@@ -797,6 +797,7 @@ class Wire(BeamElement):
 class SplineBoris(BeamElement):
 
     isthick = True
+    allow_rot_and_shift = False  # Disable base class transformations - we use shift_x/shift_y for field map offsets
 
     _xofields={'params'             : xo.Float64[:][:],
                'multipole_order'    : xo.Int64,
@@ -804,8 +805,8 @@ class SplineBoris(BeamElement):
                's_end'              : xo.Float64,
                'length'             : xo.Float64,
                'n_steps'            : xo.Int64,
-               'shift_x'            : xo.Float64,  # Transverse shift in x [m]
-               'shift_y'            : xo.Float64,  # Transverse shift in y [m]
+               'shift_x'            : xo.Field(xo.Float64, 0),  # Transverse shift in x [m] - used for field map offset
+               'shift_y'            : xo.Field(xo.Float64, 0),  # Transverse shift in y [m] - used for field map offset
                }
 
     _extra_c_sources = [

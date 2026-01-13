@@ -77,6 +77,25 @@ for i in range(n_steps):
     params_i = [par_table[i]]
     s_val_i = s_vals[i]
     
+    # Debug: print parameters for first step to verify order (print to stderr so it's visible)
+    if i == 0:
+        import sys
+        print("\n" + "="*80, file=sys.stderr)
+        print("PYTHON DEBUG: Parameters being passed to SplineBoris (step 0)", file=sys.stderr)
+        print("="*80, file=sys.stderr)
+        print(f"Total parameters: {len(params_i[0])}", file=sys.stderr)
+        print(f"First 10 params: {params_i[0][:10]}", file=sys.stderr)
+        print(f"Last 5 params: {params_i[0][-5:]}", file=sys.stderr)
+        # Print specific indices that should have values based on CSV
+        print(f"\nKey parameter indices:", file=sys.stderr)
+        print(f"  params[0][5] (kn_1_0): {params_i[0][5]}", file=sys.stderr)
+        print(f"  params[0][6] (kn_1_1): {params_i[0][6]}", file=sys.stderr)
+        print(f"  params[0][20] (ks_1_0): {params_i[0][20]}", file=sys.stderr)
+        print(f"  params[0][21] (ks_1_1): {params_i[0][21]}", file=sys.stderr)
+        print(f"  params[0][30] (ks_3_0): {params_i[0][30]}", file=sys.stderr)
+        print(f"  params[0][34] (ks_3_4): {params_i[0][34]}", file=sys.stderr)
+        print("="*80 + "\n", file=sys.stderr)
+    
     # For each single-step element, s_start and s_end should define the range
     # in the field map that this step covers. Use a small interval around s_val_i.
     # The s coordinates here are in the field map coordkinate system (can be negative).

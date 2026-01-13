@@ -1,6 +1,6 @@
+import os
 import sympy as sp
 import bpmeth as bp
-import os
 THIS_DIR = os.path.dirname(__file__)
 ELEMENTS_SRC_DIR = THIS_DIR   # since the script is already in elements_src
 
@@ -174,8 +174,12 @@ def write_to_c_array(max_order=multipole_order, poly_order=4, field='B'):
         f.write(f"#include <stddef.h>\n")
         f.write(f"#include <stdio.h>\n\n")
 
-        f.write(f"#ifndef XSUITE{filename[:-2].upper()}_H\n")
-        f.write(f"#define XSUITE{filename[:-2].upper()}_H\n\n")
+        # Generate header guard from filename only (not full path)
+        # Remove path, extension, and convert to valid macro name
+        basename = os.path.basename(filename)  # Get just the filename
+        guard_name = basename[:-2].upper().replace('.', '_').replace('-', '_')  # Remove .h, convert to macro
+        f.write(f"#ifndef {guard_name}_H\n")
+        f.write(f"#define {guard_name}_H\n\n")
 
         f.write(f"// Auto-generated symbolic field expressions for {field}\n")
         f.write(
@@ -248,14 +252,18 @@ def write_to_C_scalar(max_order=multipole_order, poly_order=4, field='B'):
     if field == 'A':
         filename = os.path.join(ELEMENTS_SRC_DIR, '_spline_A_field_eval.h')
     else:
-        filename = os.path.join(ELEMENTS_SRC_DIR, '_bpmeth_B_field_eval.h')
+        filename = os.path.join(ELEMENTS_SRC_DIR, '_spline_B_field_eval.h')
 
     with open(filename, 'w') as f:
         f.write(f"#include <stddef.h>\n")
         f.write(f"#include <stdio.h>\n\n")
 
-        f.write(f"#ifndef XSUITE{filename[:-2].upper()}_H\n")
-        f.write(f"#define XSUITE{filename[:-2].upper()}_H\n\n")
+        # Generate header guard from filename only (not full path)
+        # Remove path, extension, and convert to valid macro name
+        basename = os.path.basename(filename)  # Get just the filename
+        guard_name = basename[:-2].upper().replace('.', '_').replace('-', '_')  # Remove .h, convert to macro
+        f.write(f"#ifndef {guard_name}_H\n")
+        f.write(f"#define {guard_name}_H\n\n")
 
         f.write(f"// Auto-generated symbolic field expressions for {field}\n")
         f.write(

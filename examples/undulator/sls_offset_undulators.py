@@ -12,7 +12,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 multipole_order = 3
 
 n_steps = 1000
@@ -72,6 +71,10 @@ s_vals = np.linspace(s_start, s_end, n_steps)
 l_wig = s_end - s_start
 ds = (s_end - s_start) / n_steps
 
+# Define offsets early so they can be passed to constructor
+x_off = 0  # 0.0005 m offset in x
+y_off = 5e-4  # 0.0005 m offset in y
+
 for i in range(n_steps):
     # params should be a 2D array: [[param1, param2, ...]] for n_steps=1
     params_i = [par_table[i]]
@@ -89,7 +92,9 @@ for i in range(n_steps):
         s_start=elem_s_start, 
         s_end=elem_s_end, 
         length=elem_s_end - elem_s_start,
-        n_steps=1
+        n_steps=1,
+        shift_x=x_off,  # Set shift values in constructor
+        shift_y=y_off
     )
     wiggler_list.append(wiggler_i)
     env.elements[name_list[i]] = wiggler_i
@@ -155,14 +160,6 @@ opt = piecewise_undulator.match(
         ],
 )
 opt.step(2)
-
-x_off = 0  # 0.0005 m offset in x
-y_off = 5e-4  # 0.0005 m offset in y
-
-# Loop through all wigglers and set the shift_x and shift_y to the correct values
-for i in range(n_steps):
-    wiggler_list[i].shift_x = x_off
-    wiggler_list[i].shift_y = y_off
 
 
 # tw_undulator_corr = piecewise_undulator.twiss4d(betx=1, bety=1, include_collective=True)
