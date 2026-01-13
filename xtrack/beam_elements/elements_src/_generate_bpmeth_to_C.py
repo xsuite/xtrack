@@ -1,5 +1,8 @@
 import sympy as sp
 import bpmeth as bp
+import os
+THIS_DIR = os.path.dirname(__file__)
+ELEMENTS_SRC_DIR = THIS_DIR   # since the script is already in elements_src
 
 # This script generates C code for evaluating magnetic field components
 # based on symbolic expressions derived from the bpmeth formalism.
@@ -22,8 +25,8 @@ def make_symbols(multipole_order=multipole_order, poly_order=4):
     bs_symbols = ()
     for i in range(multipole_order):
         for k in range(poly_order+1):
-            a_symbol = sp.symbols(f'a_{i + 1}_{k}')
-            b_symbol = sp.symbols(f'b_{i + 1}_{k}')
+            a_symbol = sp.symbols(f'ks_{i + 1}_{k}')
+            b_symbol = sp.symbols(f'kn_{i + 1}_{k}')
             a_symbols += (a_symbol,)
             b_symbols += (b_symbol,)
 
@@ -37,8 +40,8 @@ def param_names_list(multipole_order=multipole_order, poly_order=4):
     param_names = []
     for i in range(multipole_order):
         for k in range(poly_order+1):
-            a_name = f'a_{i + 1}_{k}'
-            b_name = f'b_{i + 1}_{k}'
+            a_name = f'ks_{i + 1}_{k}'
+            b_name = f'kn_{i + 1}_{k}'
             param_names.append(a_name)
             param_names.append(b_name)
 
@@ -163,9 +166,9 @@ def write_to_c_array(max_order=multipole_order, poly_order=4, field='B'):
     printer = MulPowerPrinter()
 
     if field == 'A':
-        filename = '_bpmeth_A_field_eval.h'
+        filename = '_spline_A_field_eval.h'
     else:
-        filename = '_bpmeth_B_field_eval.h'
+        filename = '_spline_B_field_eval.h'
 
     with open(filename, 'w') as f:
         f.write(f"#include <stddef.h>\n")
@@ -243,9 +246,9 @@ def write_to_C_scalar(max_order=multipole_order, poly_order=4, field='B'):
     printer = MulPowerPrinter()
 
     if field == 'A':
-        filename = '_bpmeth_A_field_eval_scalar.h'
+        filename = os.path.join(ELEMENTS_SRC_DIR, '_spline_A_field_eval.h')
     else:
-        filename = '_bpmeth_B_field_eval_scalar.h'
+        filename = os.path.join(ELEMENTS_SRC_DIR, '_bpmeth_B_field_eval.h')
 
     with open(filename, 'w') as f:
         f.write(f"#include <stddef.h>\n")
@@ -256,7 +259,7 @@ def write_to_C_scalar(max_order=multipole_order, poly_order=4, field='B'):
 
         f.write(f"// Auto-generated symbolic field expressions for {field}\n")
         f.write(
-            f"void evaluate_{field}_scalar(const double x, const double y, const double s, const double *params, const int multipole_order, double *{field}x_out, double *{field}y_out, double *{field}s_out){{\n\n")
+            f"void evaluate_{field}(const double x, const double y, const double s, const double *params, const int multipole_order, double *Bx_out, double *By_out, double *Bs_out){{\n\n")
         names = [f'{field}x_out', f'{field}y_out', f'{field}s_out']
 
         f.write(f"\tswitch (multipole_order) {{\n")

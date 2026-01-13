@@ -32,7 +32,13 @@ line_sls.configure_bend_model(core='mat-kick-mat')
 line_sls.particle_ref = p0.copy()
 
 BASE_DIR = Path(__file__).resolve().parent
-filepath = BASE_DIR / "fit_parameters.csv"
+# Use the field-fit parameters produced by the spline fitter example
+filepath = (
+    BASE_DIR
+    / "spline_fitter"
+    / "field_maps"
+    / "field_fit_pars.csv"
+)
 
 df = pd.read_csv(filepath, index_col=['field_component', 'derivative_x', 'region_name', 's_start', 's_end', 'idx_start', 'idx_end', 'param_index'])
 

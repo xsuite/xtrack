@@ -19,9 +19,9 @@ def _contruct_par_table(n_steps, s_start, s_end, df_flat, multipole_order):
     Construct parameter table for SplineBoris.
     
     Parameters are ordered as expected by the C code:
-    - For multipole_order=3: bs_*, b_1_*, b_2_*, b_3_*, a_1_*, a_2_*, a_3_*
+    - For multipole_order=3: bs_*, kn_1_*, kn_2_*, kn_3_*, ks_1_*, ks_2_*, ks_3_*
     - Within each group: ordered by polynomial order (0, 1, 2, 3, 4)
-    - b_* maps to kn_* (normal multipole) and a_* maps to ks_* (skew multipole)
+    - kn_* (normal multipole) and ks_* (skew multipole)
     """
     par_dicts = []
     par_table = []
@@ -29,19 +29,18 @@ def _contruct_par_table(n_steps, s_start, s_end, df_flat, multipole_order):
     
     # Expected parameter order for the given multipole_order
     # C code expects: bs_*, kn_1_*, ..., kn_N_*, ks_1_*, ..., ks_N_*
-    # Which maps to: bs_*, b_1_*, ..., b_N_*, a_1_*, ..., a_N_*
     expected_params = []
     # First: bs_ parameters (no multipole index)
     for poly_idx in range(5):
         expected_params.append(f"bs_{poly_idx}")
-    # Second: b_ parameters (all multipoles) - these map to kn_*
+    # Second: kn_ parameters (all multipoles) - normal multipole
     for multipole_idx in range(1, multipole_order + 1):
         for poly_idx in range(5):  # 0 to 4
-            expected_params.append(f"b_{multipole_idx}_{poly_idx}")
-    # Third: a_ parameters (all multipoles) - these map to ks_*
+            expected_params.append(f"kn_{multipole_idx}_{poly_idx}")
+    # Third: ks_ parameters (all multipoles) - skew multipole
     for multipole_idx in range(1, multipole_order + 1):
         for poly_idx in range(5):  # 0 to 4
-            expected_params.append(f"a_{multipole_idx}_{poly_idx}")
+            expected_params.append(f"ks_{multipole_idx}_{poly_idx}")
     
     for s_val_i in s_vals:
         # Filter rows that contain this s position

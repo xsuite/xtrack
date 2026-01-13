@@ -18,7 +18,15 @@ import cProfile
 
 from sympy.utilities.codegen import codegen
 
-from xtrack.beam_elements.elements_src.spline_fitter.fieldmap_parsers import FieldMapParser, StandardFieldMapParser, SolenoidFieldMapParser, get_parser_for_file
+# Import the parsers from the local `fieldmap_parsers` module.
+# This works when running these example scripts directly from their directory
+# (e.g. via an IDE "Run" button), because Python puts this directory on sys.path.
+from fieldmap_parsers import (
+    FieldMapParser,
+    StandardFieldMapParser,
+    SolenoidFieldMapParser,
+    get_parser_for_file,
+)
 
 class FieldFitter:
 
