@@ -174,10 +174,10 @@ opt = piecewise_undulator.match(
 opt.step(2)
 
 
-# tw_undulator_corr = piecewise_undulator.twiss4d(betx=1, bety=1, include_collective=True)
-# tw_undulator_corr.plot('x y')
-# tw_undulator_corr.plot('betx bety', 'dx dy')
-# plt.show()
+tw_undulator_corr = piecewise_undulator.twiss4d(betx=1, bety=1, include_collective=True)
+tw_undulator_corr.plot('x y')
+tw_undulator_corr.plot('betx bety', 'dx dy')
+plt.show()
 
 piecewise_undulator.discard_tracker()
 

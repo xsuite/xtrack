@@ -72,8 +72,8 @@ l_wig = s_end - s_start
 ds = (s_end - s_start) / n_steps
 
 # Define offsets early so they can be passed to constructor
-x_off = 0  # 0.0005 m offset in x
-y_off = 5e-4  # 0.0005 m offset in y
+x_off = 5e-4  # 0.0005 m offset in x
+y_off = 0  # 0.0005 m offset in y
 
 for i in range(n_steps):
     # params should be a 2D array: [[param1, param2, ...]] for n_steps=1
