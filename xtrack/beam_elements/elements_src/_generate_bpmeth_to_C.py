@@ -1,8 +1,20 @@
 import os
+import sys
+from pathlib import Path
+
 import sympy as sp
 import bpmeth as bp
+
 THIS_DIR = os.path.dirname(__file__)
 ELEMENTS_SRC_DIR = THIS_DIR   # since the script is already in elements_src
+
+# Make the parent ``beam_elements`` directory importable so we can use the
+# shared spline parameter schema without requiring an installed xtrack package.
+_BEAM_ELEMENTS_DIR = Path(THIS_DIR).resolve().parent
+if str(_BEAM_ELEMENTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_BEAM_ELEMENTS_DIR))
+
+from spline_param_schema import SplineParameterSchema
 
 # This script generates C code for evaluating magnetic field components
 # based on symbolic expressions derived from the bpmeth formalism.
@@ -18,84 +30,83 @@ def s_power(power):
         str += '*s'
     return str
 
-# Generates the symbols for the a, b and bs coefficients up to the given multipole and polynomial order.
+# Generates the symbols for the ks, kn and bs coefficients up to the given multipole and polynomial order.
 def make_symbols(multipole_order=multipole_order, poly_order=4):
-    a_symbols = ()
-    b_symbols = ()
+    ks_symbols = ()
+    kn_symbols = ()
     bs_symbols = ()
     for i in range(multipole_order):
         for k in range(poly_order+1):
-            a_symbol = sp.symbols(f'ks_{i + 1}_{k}')
-            b_symbol = sp.symbols(f'kn_{i + 1}_{k}')
-            a_symbols += (a_symbol,)
-            b_symbols += (b_symbol,)
+            ks_symbol = sp.symbols(f'ks_{i}_{k}')
+            kn_symbol = sp.symbols(f'kn_{i}_{k}')
+            ks_symbols += (ks_symbol,)
+            kn_symbols += (kn_symbol,)
 
             if i ==0:
                 bs_symbol = sp.symbols(f'bs_{k}')
                 bs_symbols += (bs_symbol,)
 
-    return a_symbols, b_symbols, bs_symbols
+    return ks_symbols, kn_symbols, bs_symbols
 
 def param_names_list(multipole_order=multipole_order, poly_order=4):
-    param_names = []
-    for i in range(multipole_order):
-        for k in range(poly_order+1):
-            a_name = f'ks_{i + 1}_{k}'
-            b_name = f'kn_{i + 1}_{k}'
-            param_names.append(a_name)
-            param_names.append(b_name)
+    """
+    Backwards-compatible wrapper returning the canonical parameter ordering.
 
-            if i ==0:
-                bs_name = f'bs_{k}'
-                param_names.append(bs_name)
+    The actual ordering logic is centralized in :class:`SplineParameterSchema`
+    to ensure consistency between code generation, fitting, and tracking.
+    """
+    return SplineParameterSchema.get_param_names(
+        multipole_order=multipole_order,
+        poly_order=poly_order,
+    )
 
-    param_names.sort()
-
-    return param_names
-
-# Sets strings for the expressions of the a, b and bs coefficients up to the given multipole and polynomial order.
+# Sets strings for the expressions of the ks, kn and bs coefficients up to the given multipole and polynomial order.
 def set_exprs(multipole_order=multipole_order, poly_order=4):
-    a_symbols, b_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
+    ks_symbols, kn_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
 
-    a_exprs = ()
-    b_exprs = ()
+    ks_exprs = ()
+    kn_exprs = ()
     bs_expr = 0
 
     poly_order = 4
     for i in range(multipole_order):
-        a_expr = 0
-        b_expr = 0
+        ks_expr = 0
+        kn_expr = 0
         for k in range(poly_order+1):
-            a_symbol = a_symbols[i * (poly_order + 1) + k]
-            b_symbol = b_symbols[i * (poly_order + 1) + k]
+            ks_symbol = ks_symbols[i * (poly_order + 1) + k]
+            kn_symbol = kn_symbols[i * (poly_order + 1) + k]
 
-            a_expr += a_symbol * sp.Pow(sp.symbols('s'), k)
-            b_expr += b_symbol * sp.Pow(sp.symbols('s'), k)
+            ks_expr += ks_symbol * sp.Pow(sp.symbols('s'), k)
+            kn_expr += kn_symbol * sp.Pow(sp.symbols('s'), k)
 
             if i == 0:
                 bs_symbol = bs_symbols[k]
                 bs_expr += bs_symbol * sp.Pow(sp.symbols('s'), k)
 
-        a_exprs += (a_expr,)
-        b_exprs += (b_expr,)
+        ks_exprs += (ks_expr,)
+        kn_exprs += (kn_expr,)
     bs_expr  = bs_expr
 
-    return a_exprs, b_exprs, bs_expr
+    return ks_exprs, kn_exprs, bs_expr
 
-a_symbols, b_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=4)
+ks_symbols, kn_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=4)
 
-#a_exprs, b_exprs, bs_expr = set_exprs(a_symbols, b_symbols, bs_symbols)
-#print(a_exprs)
-#print(b_exprs)
+#ks_exprs, kn_exprs, bs_expr = set_exprs(ks_symbols, kn_symbols, bs_symbols)
+#print(ks_exprs)
+#print(kn_exprs)
 #print(bs_expr)
 
 # Sets up the generic field expressions for given curvature, multipole and polynomial order.
+# Note: bpmeth uses the naming convention where a_ij corresponds to j-th polynomial coefficient of the (i-1)-th derivative w.r.t x of B_x,
+# and b_ij corresponds to j-th polynomial coefficient of the (i-1)-th derivative w.r.t y of B_y.
+# We use the usual beam-dynamics naming convention where ks_ij corresponds to j-th polynomial coefficient of the i-th derivative w.r.t x of B_x,
+# and kn_ij corresponds to j-th polynomial coefficient of the i-th derivative w.r.t y of B_y.
 def generic_field_exprs(curv, multipole_order=multipole_order, poly_order=4):
-    a_symbols, b_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
+    ks_symbols, kn_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
     s = sp.symbols('s')
-    a_exprs, b_exprs, bs_exprs = set_exprs(multipole_order=multipole_order, poly_order=poly_order)
+    ks_exprs, kn_exprs, bs_exprs = set_exprs(multipole_order=multipole_order, poly_order=poly_order)
 
-    generic_B = bp.GeneralVectorPotential(hs=curv, a=a_exprs, b=b_exprs, bs=bs_exprs, nphi=multipole_order)
+    generic_B = bp.GeneralVectorPotential(hs=curv, a=ks_exprs, b=kn_exprs, bs=bs_exprs, nphi=multipole_order)
     symbolic_Bx, symbolic_By, symbolic_Bs = generic_B.get_Bfield(lambdify=False)
     symbolic_Ax, symbolic_Ay, symbolic_As = generic_B.get_A()
 
@@ -133,9 +144,9 @@ def _get_reduced_expressions(exprs_list):
 #     print(f"Expr {i}: {expr}")
 
 def start_to_finish(multipole_order=multipole_order, poly_order=4, field='B'):
-    #a_symbols, b_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
+    #ks_symbols, kn_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
     param_names = param_names_list(multipole_order=multipole_order, poly_order=poly_order)
-    a_exprs, b_exprs, bs_expr = set_exprs(multipole_order=multipole_order, poly_order=poly_order)
+    ks_exprs, kn_exprs, bs_expr = set_exprs(multipole_order=multipole_order, poly_order=poly_order)
     symbolic_Bx, symbolic_By, symbolic_Bs, symbolic_Ax, symbolic_Ay, symbolic_As = generic_field_exprs(curv='0', multipole_order=multipole_order, poly_order=poly_order)
     if field == 'B':
         exprs = [symbolic_Bx, symbolic_By, symbolic_Bs]

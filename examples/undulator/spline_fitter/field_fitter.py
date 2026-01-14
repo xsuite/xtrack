@@ -28,6 +28,11 @@ from fieldmap_parsers import (
     get_parser_for_file,
 )
 
+from xtrack.beam_elements.spline_param_schema import (
+    SplineParameterSchema,
+    build_parameter_table_from_df,
+)
+
 class FieldFitter:
 
     def __init__(
@@ -150,93 +155,40 @@ class FieldFitter:
     def get_parameter_table(self, n_steps, multipole_order=None):
         """
         Convert fit parameters DataFrame to parameter table format for SplineBoris.
-        
-        Parameters are ordered as expected by the C code:
-        - For multipole_order: bs_*, kn_1_*, ..., kn_N_*, ks_1_*, ..., ks_N_*
-        - Within each group: ordered by polynomial order (0, 1, 2, 3, 4)
-        
+
+        The parameter ordering is defined centrally by :class:`SplineParameterSchema`
+        and matches exactly what the C code expects (via ``param_names_list`` in
+        ``_generate_bpmeth_to_C.py``).
+
         Parameters
         ----------
         n_steps : int
-            Number of steps in the parameter table
+            Number of steps in the parameter table.
         multipole_order : int, optional
-            Multipole order. If None, inferred from self.deg (multipole_order = deg)
-        
+            Multipole order. If ``None``, inferred from ``self.deg``.
+
         Returns
         -------
-        par_table : list
-            List of parameter vectors, each containing all parameters for one step
+        par_table : ndarray
+            Array of shape ``(n_steps, n_params)`` with ordered parameters.
         s_start : float
-            Starting s position
+            Starting s position.
         s_end : float
-            Ending s position
+            Ending s position.
         """
         if self.df_fit_pars is None:
             raise RuntimeError("Fit parameters not available. Call set() first.")
-        
-        # Infer multipole_order from deg if not provided
+
         if multipole_order is None:
             multipole_order = self.deg
-        
-        # Get s boundaries from fit parameters
-        df_reset = self.df_fit_pars.reset_index()
-        s_starts = np.sort(df_reset['s_start'].to_numpy(dtype=np.float64))
-        s_ends = np.sort(df_reset['s_end'].to_numpy(dtype=np.float64))
-        s_boundaries = np.sort(np.unique(np.concatenate((s_starts, s_ends))))
-        s_start = float(s_boundaries[0])
-        s_end = float(s_boundaries[-1])
-        
-        # Build expected parameter order
-        expected_params = []
-        # First: bs_ parameters (no multipole index)
-        for poly_idx in range(5):
-            expected_params.append(f"bs_{poly_idx}")
-        # Second: kn_ parameters (all multipoles)
-        for multipole_idx in range(1, multipole_order + 1):
-            for poly_idx in range(5):  # 0 to 4
-                expected_params.append(f"kn_{multipole_idx}_{poly_idx}")
-        # Third: ks_ parameters (all multipoles)
-        for multipole_idx in range(1, multipole_order + 1):
-            for poly_idx in range(5):  # 0 to 4
-                expected_params.append(f"ks_{multipole_idx}_{poly_idx}")
-        
-        # Create s values
-        s_vals = np.linspace(s_start, s_end, n_steps)
-        
-        # Build parameter table
-        par_table = []
-        for s_val_i in s_vals:
-            # Filter rows that contain this s position
-            # Only use derivative_x=0 (the field itself, not derivatives)
-            mask = ((df_reset['s_start'] <= s_val_i) & 
-                    (df_reset['s_end'] >= s_val_i) & 
-                    (df_reset['derivative_x'] == 0))
-            rows = df_reset[mask]
-            
-            # Create a dictionary from available parameters
-            param_dict = {}
-            if not rows.empty:
-                # Sort by field_component and region to ensure consistent selection
-                rows_sorted = rows.copy()
-                rows_sorted['region_size'] = rows_sorted['s_end'] - rows_sorted['s_start']
-                rows_sorted = rows_sorted.sort_values(['field_component', 'region_size', 'param_name'])
-                
-                # Take the first occurrence of each param_name
-                for _, row in rows_sorted.iterrows():
-                    param_name = row['param_name']
-                    if param_name not in param_dict:
-                        param_dict[param_name] = row['param_value']
-            
-            # Build parameter list in expected order, filling missing values with 0
-            param_values = []
-            for param_name in expected_params:
-                if param_name in param_dict:
-                    param_values.append(float(param_dict[param_name]))
-                else:
-                    param_values.append(0.0)  # Fill missing parameters with 0
-            
-            par_table.append(param_values)
-        
+
+        par_table, s_start, s_end = build_parameter_table_from_df(
+            self.df_fit_pars,
+            n_steps=n_steps,
+            multipole_order=multipole_order,
+            poly_order=self.poly_order,
+        )
+
         return par_table, s_start, s_end
 
     # PRIVATE
@@ -351,9 +303,9 @@ class FieldFitter:
         rows = []
         for i in range(n_pieces):
             if field == "Bx":
-                pars = [f"ks_{der_order+1}_{k}" for k in range(self.poly_order + 1)]
+                pars = [f"ks_{der_order}_{k}" for k in range(self.poly_order + 1)]
             elif field == "By":
-                pars = [f"kn_{der_order+1}_{k}" for k in range(self.poly_order + 1)]
+                pars = [f"kn_{der_order}_{k}" for k in range(self.poly_order + 1)]
             else:  # Bs
                 pars = [f"bs_{k}" for k in range(self.poly_order + 1)]
 

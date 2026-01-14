@@ -7,6 +7,7 @@ from typing import List
 import numpy as np
 from numbers import Number
 from scipy.special import factorial
+import pandas as pd
 
 import xobjects as xo
 import xtrack as xt
@@ -15,6 +16,11 @@ from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 
 from xtrack.internal_record import RecordIndex
+from .spline_param_schema import (
+    FIELD_FIT_INDEX_COLUMNS,
+    SplineParameterSchema,
+    build_parameter_table_from_df,
+)
 
 DEFAULT_MULTIPOLE_ORDER = 5
 
@@ -843,6 +849,149 @@ class SplineBoris(BeamElement):
         kwargs['shift_x'] = shift_x
         kwargs['shift_y'] = shift_y
         super().__init__(**kwargs)
+
+    @classmethod
+    def from_parameter_table(
+        cls,
+        par_table,
+        s_start,
+        s_end,
+        multipole_order,
+        n_steps=None,
+        **kwargs,
+    ):
+        """
+        Construct a ``SplineBoris`` element from an already-built parameter table.
+
+        Parameters
+        ----------
+        par_table :
+            2D array-like of shape ``(n_steps, n_params)`` containing the
+            parameters ordered according to :class:`SplineParameterSchema`.
+        s_start, s_end :
+            Longitudinal range covered by the table.
+        multipole_order :
+            Maximum multipole order used in the table.
+        n_steps :
+            Number of longitudinal steps. If ``None``, inferred from
+            ``par_table.shape[0]``.
+        """
+        par_arr = np.asarray(par_table, dtype=np.float64)
+        if par_arr.ndim != 2:
+            raise ValueError("par_table must be a 2D array-like object")
+
+        n_rows, n_params = par_arr.shape
+
+        if n_steps is None:
+            n_steps = n_rows
+        if n_steps != n_rows:
+            raise ValueError(
+                f"n_steps ({n_steps}) must match number of rows in par_table ({n_rows})"
+            )
+
+        # Validate against the canonical schema
+        SplineParameterSchema.validate_param_array(
+            par_arr, multipole_order=multipole_order
+        )
+
+        length = float(s_end) - float(s_start)
+
+        return cls(
+            params=par_arr.tolist(),
+            multipole_order=int(multipole_order),
+            s_start=float(s_start),
+            s_end=float(s_end),
+            length=length,
+            n_steps=int(n_steps),
+            **kwargs,
+        )
+
+    @classmethod
+    def from_fieldfit_df(
+        cls,
+        df_fit_pars,
+        n_steps,
+        multipole_order=None,
+        poly_order=None,
+        **kwargs,
+    ):
+        """
+        Build a ``SplineBoris`` element directly from a FieldFitter-style DataFrame.
+
+        This uses :func:`build_parameter_table_from_df` and the canonical
+        :class:`SplineParameterSchema` ordering.
+        """
+        par_table, s_start, s_end = build_parameter_table_from_df(
+            df_fit_pars,
+            n_steps=n_steps,
+            multipole_order=multipole_order,
+            poly_order=poly_order,
+        )
+
+        # If multipole_order was not provided, infer it from the table width and
+        # the chosen polynomial order.
+        if multipole_order is None:
+            if poly_order is None:
+                poly_order = SplineParameterSchema.POLY_ORDER
+            n_params = par_table.shape[1]
+            denom = (poly_order + 1)
+            m = (n_params / denom - 1.0) / 2.0
+            m_int = int(round(m))
+            if not np.isclose(m, m_int):
+                raise ValueError(
+                    f"Cannot infer multipole_order from parameter table width "
+                    f"(n_params={n_params}, poly_order={poly_order})"
+                )
+            multipole_order = m_int
+
+        return cls.from_parameter_table(
+            par_table=par_table,
+            s_start=s_start,
+            s_end=s_end,
+            multipole_order=multipole_order,
+            n_steps=n_steps,
+            **kwargs,
+        )
+
+    @classmethod
+    def from_fieldfit_csv(
+        cls,
+        csv_path,
+        n_steps,
+        multipole_order=None,
+        poly_order=None,
+        **kwargs,
+    ):
+        """
+        Build a ``SplineBoris`` element from a CSV file produced by
+        ``FieldFitter.save_fit_pars``.
+        """
+        df = pd.read_csv(csv_path, index_col=list(FIELD_FIT_INDEX_COLUMNS))
+
+        return cls.from_fieldfit_df(
+            df_fit_pars=df,
+            n_steps=n_steps,
+            multipole_order=multipole_order,
+            poly_order=poly_order,
+            **kwargs,
+        )
+
+    def validate_params(self, poly_order=None) -> bool:
+        """
+        Validate the current parameter table against the canonical schema.
+
+        This is a convenience wrapper around
+        :meth:`SplineParameterSchema.validate_param_array`.
+        """
+        if poly_order is None:
+            poly_order = SplineParameterSchema.POLY_ORDER
+
+        par_arr = np.asarray(self.params, dtype=np.float64)
+        return SplineParameterSchema.validate_param_array(
+            par_arr,
+            multipole_order=int(self.multipole_order),
+            poly_order=poly_order,
+        )
 
 
 class SRotation(xt.BeamElement):

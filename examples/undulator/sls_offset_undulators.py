@@ -7,10 +7,11 @@ inserts wigglers at 11 locations, computes twiss with radiation integrals, and p
 
 import xtrack as xt
 from pathlib import Path
-from construct_undulator import _contruct_par_table
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+
+from xtrack.beam_elements.spline_param_schema import build_parameter_table_from_df
 
 multipole_order = 3
 
@@ -39,10 +40,25 @@ filepath = (
     / "field_fit_pars.csv"
 )
 
-df = pd.read_csv(filepath, index_col=['field_component', 'derivative_x', 'region_name', 's_start', 's_end', 'idx_start', 'idx_end', 'param_index'])
+df = pd.read_csv(
+    filepath,
+    index_col=[
+        "field_component",
+        "derivative_x",
+        "region_name",
+        "s_start",
+        "s_end",
+        "idx_start",
+        "idx_end",
+        "param_index",
+    ],
+)
 
-# work with a flat dataframe for easier masking by s
-df_reset = df.reset_index()
+par_table, s_start, s_end = build_parameter_table_from_df(
+    df_fit_pars=df,
+    n_steps=n_steps,
+    multipole_order=multipole_order,
+)
 
 # # Configure pandas to display full DataFrame without truncation
 # pd.set_option('display.max_rows', None)
@@ -52,16 +68,6 @@ df_reset = df.reset_index()
 
 # # Print the full DataFrame
 # print(df_reset)
-
-s_starts = np.sort(df_reset['s_start'].to_numpy(dtype=np.float64))
-s_ends = np.sort(df_reset['s_end'].to_numpy(dtype=np.float64))
-
-s_boundaries = np.sort(np.unique(np.concatenate((s_starts, s_ends))))
-
-s_start = s_boundaries[0]
-s_end = s_boundaries[-1]
-
-par_dicts, par_table = _contruct_par_table(n_steps, s_start, s_end, df_reset, multipole_order=multipole_order)
 
 # list of n_steps wigglers;
 wiggler_list = []
@@ -77,7 +83,7 @@ y_off = 0  # 0.0005 m offset in y
 
 for i in range(n_steps):
     # params should be a 2D array: [[param1, param2, ...]] for n_steps=1
-    params_i = [par_table[i]]
+    params_i = [par_table[i].tolist()]
     s_val_i = s_vals[i]
     
     # For each single-step element, s_start and s_end should define the range
@@ -86,15 +92,14 @@ for i in range(n_steps):
     elem_s_start = s_val_i - ds/2
     elem_s_end = s_val_i + ds/2
     
-    wiggler_i = xt.SplineBoris(
-        params=params_i,
-        multipole_order=multipole_order, 
-        s_start=elem_s_start, 
-        s_end=elem_s_end, 
-        length=elem_s_end - elem_s_start,
+    wiggler_i = xt.SplineBoris.from_parameter_table(
+        par_table=params_i,
+        multipole_order=multipole_order,
+        s_start=elem_s_start,
+        s_end=elem_s_end,
         n_steps=1,
-        shift_x=x_off,  # Set shift values in constructor
-        shift_y=y_off
+        shift_x=x_off,
+        shift_y=y_off,
     )
     wiggler_list.append(wiggler_i)
     env.elements[name_list[i]] = wiggler_i
@@ -235,6 +240,9 @@ print(f"  eq_gemitt_y = {tw_offset.rad_int_eq_gemitt_y:.4e}")
 print(f"  eq_gemitt_zeta = {tw_offset.rad_int_eq_gemitt_zeta:.4e}")
 print()
 print(f"Energy loss per turn: {tw_offset.rad_int_eneloss_turn:.4e} eV")
+print()
+print(f"C^-: {tw_offset.c_minus:.4e}")
+print()
 print("=" * 80)
 
 # Write results to file

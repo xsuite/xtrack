@@ -7,10 +7,11 @@ inserts wigglers at 11 locations, computes twiss with radiation integrals, and p
 
 import xtrack as xt
 from pathlib import Path
-from construct_undulator import _contruct_par_table
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+
+from xtrack.beam_elements.spline_param_schema import build_parameter_table_from_df
 
 
 multipole_order = 3
@@ -40,10 +41,26 @@ filepath = (
     / "field_fit_pars.csv"
 )
 
-df = pd.read_csv(filepath, index_col=['field_component', 'derivative_x', 'region_name', 's_start', 's_end', 'idx_start', 'idx_end', 'param_index'])
+df = pd.read_csv(
+    filepath,
+    index_col=[
+        "field_component",
+        "derivative_x",
+        "region_name",
+        "s_start",
+        "s_end",
+        "idx_start",
+        "idx_end",
+        "param_index",
+    ],
+)
 
-# work with a flat dataframe for easier masking by s
-df_reset = df.reset_index()
+# Build the canonical parameter table directly from the fit-parameter DataFrame.
+par_table, s_start, s_end = build_parameter_table_from_df(
+    df_fit_pars=df,
+    n_steps=n_steps,
+    multipole_order=multipole_order,
+)
 
 # # Configure pandas to display full DataFrame without truncation
 # pd.set_option('display.max_rows', None)
@@ -53,16 +70,6 @@ df_reset = df.reset_index()
 
 # # Print the full DataFrame
 # print(df_reset)
-
-s_starts = np.sort(df_reset['s_start'].to_numpy(dtype=np.float64))
-s_ends = np.sort(df_reset['s_end'].to_numpy(dtype=np.float64))
-
-s_boundaries = np.sort(np.unique(np.concatenate((s_starts, s_ends))))
-
-s_start = s_boundaries[0]
-s_end = s_boundaries[-1]
-
-par_dicts, par_table = _contruct_par_table(n_steps, s_start, s_end, df_reset, multipole_order=multipole_order)
 
 # list of n_steps wigglers;
 wiggler_list = []
@@ -74,7 +81,7 @@ ds = (s_end - s_start) / n_steps
 
 for i in range(n_steps):
     # params should be a 2D array: [[param1, param2, ...]] for n_steps=1
-    params_i = [par_table[i]]
+    params_i = [par_table[i].tolist()]
     s_val_i = s_vals[i]
     
     # Debug: print parameters for first step to verify order (print to stderr so it's visible)
@@ -87,13 +94,14 @@ for i in range(n_steps):
         print(f"First 10 params: {params_i[0][:10]}", file=sys.stderr)
         print(f"Last 5 params: {params_i[0][-5:]}", file=sys.stderr)
         # Print specific indices that should have values based on CSV
-        print(f"\nKey parameter indices:", file=sys.stderr)
-        print(f"  params[0][5] (kn_1_0): {params_i[0][5]}", file=sys.stderr)
-        print(f"  params[0][6] (kn_1_1): {params_i[0][6]}", file=sys.stderr)
-        print(f"  params[0][20] (ks_1_0): {params_i[0][20]}", file=sys.stderr)
-        print(f"  params[0][21] (ks_1_1): {params_i[0][21]}", file=sys.stderr)
-        print(f"  params[0][30] (ks_3_0): {params_i[0][30]}", file=sys.stderr)
-        print(f"  params[0][34] (ks_3_4): {params_i[0][34]}", file=sys.stderr)
+        print("\nKey parameter indices:", file=sys.stderr)
+        # These comments assume multipole_order=3 (indices 0,1,2)
+        print(f"  params[0][5] (kn_0_0): {params_i[0][5]}", file=sys.stderr)
+        print(f"  params[0][6] (kn_0_1): {params_i[0][6]}", file=sys.stderr)
+        print(f"  params[0][20] (ks_0_0): {params_i[0][20]}", file=sys.stderr)
+        print(f"  params[0][21] (ks_0_1): {params_i[0][21]}", file=sys.stderr)
+        print(f"  params[0][30] (ks_2_0): {params_i[0][30]}", file=sys.stderr)
+        print(f"  params[0][34] (ks_2_4): {params_i[0][34]}", file=sys.stderr)
         print("="*80 + "\n", file=sys.stderr)
     
     # For each single-step element, s_start and s_end should define the range
@@ -102,13 +110,12 @@ for i in range(n_steps):
     elem_s_start = s_val_i - ds/2
     elem_s_end = s_val_i + ds/2
     
-    wiggler_i = xt.SplineBoris(
-        params=params_i, 
-        multipole_order=multipole_order, 
-        s_start=elem_s_start, 
-        s_end=elem_s_end, 
-        length=elem_s_end - elem_s_start,
-        n_steps=1
+    wiggler_i = xt.SplineBoris.from_parameter_table(
+        par_table=params_i,
+        multipole_order=multipole_order,
+        s_start=elem_s_start,
+        s_end=elem_s_end,
+        n_steps=1,
     )
     wiggler_list.append(wiggler_i)
     env.elements[name_list[i]] = wiggler_i
