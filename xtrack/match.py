@@ -1011,7 +1011,10 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
                             solver=None, verbose=False, restore_if_fail=True):
 
     if line.env is not line_co_ref.env:
+        old_default_to_zero = line_co_ref.vars.default_to_zero
+        line_co_ref.vars.default_to_zero = True
         line_co_ref.vars.update(line.vars.get_table().to_dict())
+        line_co_ref.vars.default_to_zero = old_default_to_zero
 
     for corr_name, corr in correction_config.items():
         _print('Correcting', corr_name)
