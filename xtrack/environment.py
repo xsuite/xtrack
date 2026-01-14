@@ -91,10 +91,7 @@ class Environment:
         self._particles = {}
         self.particle_ref = particle_ref
 
-        self._var_management = _make_var_management(
-            element_dict=self._element_dict,
-            particles=self._particles,
-            dct=_var_management_dct)
+        self._var_management = self._init_var_management(dct=_var_management_dct)
         self._line_vars = EnvVars(self)
 
         self.lines = EnvLines(self)
@@ -137,6 +134,12 @@ class Environment:
                 self.lines[nn]._renamed_elements = rename_elements
 
         self.metadata = {}
+
+    def _init_var_management(self, dct=None):
+        self._var_management = _make_var_management(
+            element_dict=self._element_dict,
+            particles=self._particles,
+            dct=dct)
 
     def __repr__(self):
         line_names = list(self.lines.keys())
