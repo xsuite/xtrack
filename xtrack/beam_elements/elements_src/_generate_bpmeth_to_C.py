@@ -48,17 +48,6 @@ def make_symbols(multipole_order=multipole_order, poly_order=4):
 
     return ks_symbols, kn_symbols, bs_symbols
 
-def param_names_list(multipole_order=multipole_order, poly_order=4):
-    """
-    Backwards-compatible wrapper returning the canonical parameter ordering.
-
-    The actual ordering logic is centralized in :class:`SplineParameterSchema`
-    to ensure consistency between code generation, fitting, and tracking.
-    """
-    return SplineParameterSchema.get_param_names(
-        multipole_order=multipole_order,
-        poly_order=poly_order,
-    )
 
 # Sets strings for the expressions of the ks, kn and bs coefficients up to the given multipole and polynomial order.
 def set_exprs(multipole_order=multipole_order, poly_order=4):
@@ -143,11 +132,13 @@ def _get_reduced_expressions(exprs_list):
 # for i, expr in enumerate(B_reduced_exprs):
 #     print(f"Expr {i}: {expr}")
 
-def start_to_finish(multipole_order=multipole_order, poly_order=4, field='B'):
+# Currently, curvature is set to '0' for straight sections, but can be set to a non-zero value for curved sections.
+# However, the Boris Integrator does not support curved reference frames yet, so we leave the curvature zero here.
+def start_to_finish(multipole_order=multipole_order, poly_order=4, field='B', curvature='0'):
     #ks_symbols, kn_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
-    param_names = param_names_list(multipole_order=multipole_order, poly_order=poly_order)
+    param_names = SplineParameterSchema.get_param_names(multipole_order=multipole_order, poly_order=poly_order)
     ks_exprs, kn_exprs, bs_expr = set_exprs(multipole_order=multipole_order, poly_order=poly_order)
-    symbolic_Bx, symbolic_By, symbolic_Bs, symbolic_Ax, symbolic_Ay, symbolic_As = generic_field_exprs(curv='0', multipole_order=multipole_order, poly_order=poly_order)
+    symbolic_Bx, symbolic_By, symbolic_Bs, symbolic_Ax, symbolic_Ay, symbolic_As = generic_field_exprs(curv=curvature, multipole_order=multipole_order, poly_order=poly_order)
     if field == 'B':
         exprs = [symbolic_Bx, symbolic_By, symbolic_Bs]
     else:
@@ -156,94 +147,12 @@ def start_to_finish(multipole_order=multipole_order, poly_order=4, field='B'):
 
     return param_names, cse_subs, reduced_exprs
 
+
 # Writes the C code for field evaluation to a file.
 # Currently, max_order is set to correspond to a 14-pole (multipole_order=7).
 # Multipole orders follow 1 for dipole, 2 for quadrupole, 3 for sextupole, etc., just like bpmeth.
-def write_to_c_array(max_order=multipole_order, poly_order=4, field='B'):
-    from sympy.printing.c import C99CodePrinter
-
-    class MulPowerPrinter(C99CodePrinter):
-        def _print_Pow(self, expr):
-            base, exp = expr.as_base_exp()
-
-            # Only rewrite integer positive powers
-            if exp.is_integer and exp.is_positive:
-                n = int(exp)
-                return "*".join([self._print(base)] * n)
-
-            # Fallback to default handling
-            return super()._print_Pow(expr)
-
-    printer = MulPowerPrinter()
-
-    if field == 'A':
-        filename = '_spline_A_field_eval.h'
-    else:
-        filename = '_spline_B_field_eval.h'
-
-    with open(filename, 'w') as f:
-        f.write(f"#include <stddef.h>\n")
-        f.write(f"#include <stdio.h>\n\n")
-
-        # Generate header guard from filename only (not full path)
-        # Remove path, extension, and convert to valid macro name
-        basename = os.path.basename(filename)  # Get just the filename
-        guard_name = basename[:-2].upper().replace('.', '_').replace('-', '_')  # Remove .h, convert to macro
-        f.write(f"#ifndef {guard_name}_H\n")
-        f.write(f"#define {guard_name}_H\n\n")
-
-        f.write(f"// Auto-generated symbolic field expressions for {field}\n")
-        f.write(
-            f"void evaluate_{field}(const double x_array[], const double y_array[], const double s_array[], size_t n, const double *params_flat, const int multipole_order, double {field}x_out[], double {field}y_out[], double {field}s_out[]){{\n\n")
-        names = [f'{field}x_out', f'{field}y_out', f'{field}s_out']
-
-        f.write(f"\tswitch (multipole_order) {{\n")
-
-        for order in range(1, multipole_order+1):
-
-            param_names, cse_subs, reduced_exprs = start_to_finish(multipole_order=order, poly_order=poly_order, field=field)
-
-            f.write(f"\tcase {order}:\n")
-
-            f.write("\t\tfor (size_t ii = 0; ii < n; ++ii, ++x_array, ++y_array, ++s_array, ++Bx_out, ++By_out, ++Bs_out) {\n")
-            f.write("\t\t\tconst double x = *x_array;\n")
-            f.write("\t\t\tconst double y = *y_array;\n")
-            f.write("\t\t\tconst double s = *s_array;\n\n")
-
-            f.write("\t\t\t// Parameter List\n")
-            f.write(f"\t\t\tconst double *p = params_flat + ii * {(2*order+1)*(poly_order+1)};\n") # Adjusted for number of parameters
-            for j, name in enumerate(param_names):
-                f.write(f"\t\t\tdouble {name} = p[{j}];\n")
-            f.write("\n")
-
-            f.write("\t\t\t// Common sub-expressions\n")
-            for lhs, rhs in cse_subs:
-                f.write(f"\t\t\tconst double {lhs} = {printer.doprint(rhs)};\n")
-            f.write("\n")
-
-            f.write("\t\t\t// Reduced expressions\n")
-            for order, expr in enumerate(reduced_exprs):
-                f.write(f"\t\t\t*{names[order]} = {printer.doprint(expr)};\n")
-
-            f.write(f"\t\t}}\n")
-            f.write(f"\t\treturn;\n\n")
-        f.write(f"\tdefault:\n")
-        f.write("\t\tprintf(\"Error: Unsupported multipole order %d\\n\", multipole_order);\n")
-        f.write(f"\t\tprintf(\"Supported orders are 0 to {multipole_order}\\n\");\n")
-        f.write(f"\t\tprintf(\"Setting field values to zero.\\n\");\n")
-        f.write("\t\tfor (size_t ii = 0; ii < n; ++ii, ++Bx_out, ++By_out, ++Bs_out) {\n")
-        f.write("\t\t\t// Reduced expressions\n")
-        for order in range(3):
-            f.write(f"\t\t\t*{names[order]} = 0;\n")
-        f.write(f"\t\t}}\n")
-        f.write(f"\t\treturn;\n")
-
-        f.write(f"\t}}\n")
-        f.write(f"}}\n\n")
-
-        f.write(f"#endif // XSUITE{filename[:-2].upper()}_H\n")
-
-def write_to_C_scalar(max_order=multipole_order, poly_order=4, field='B'):
+# There used to be an array version of this function, but it was not necessary, so we only support scalar evaluation.
+def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'):
     from sympy.printing.c import C99CodePrinter
 
     class MulPowerPrinter(C99CodePrinter):
@@ -285,7 +194,7 @@ def write_to_C_scalar(max_order=multipole_order, poly_order=4, field='B'):
 
         for order in range(1, multipole_order+1):
 
-            param_names, cse_subs, reduced_exprs = start_to_finish(multipole_order=order, poly_order=poly_order, field=field)
+            param_names, cse_subs, reduced_exprs = start_to_finish(multipole_order=order, poly_order=poly_order, field=field, curvature=curvature)
 
             f.write(f"\tcase {order}:{{\n")
 
@@ -316,7 +225,11 @@ def write_to_C_scalar(max_order=multipole_order, poly_order=4, field='B'):
         f.write(f"}}\n\n")
         f.write(f"#endif // XSUITE{filename[:-2].upper()}_H\n")
 
+# Currently, we generate the code for a 14-pole (multipole_order=7), but can be easily extended to higher orders.
+# We also generate the code for a straight section (curvature='0'), but can be easily extended to curved sections.
+# However, the Boris Integrator does not support curved reference frames yet, so we leave the curvature zero here.
 multipole_order = 7
 poly_order = 4
 field = 'B'
-write_to_C_scalar(max_order=multipole_order, poly_order=poly_order, field=field)
+curvature = '0'
+write_to_C(max_order=multipole_order, poly_order=poly_order, field=field, curvature=curvature)

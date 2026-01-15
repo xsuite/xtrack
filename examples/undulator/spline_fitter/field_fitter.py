@@ -4,41 +4,75 @@ import numpy as np
 import pandas as pd
 import scipy as sc
 import sympy as sp
-import xtrack as xt
-import bisect
 import math
-from functools import partial
 
-import bpmeth as bp
-import time
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 
-import cProfile
-
-from sympy.utilities.codegen import codegen
-
-# Import the parsers from the local `fieldmap_parsers` module.
-# This works when running these example scripts directly from their directory
-# (e.g. via an IDE "Run" button), because Python puts this directory on sys.path.
-from fieldmap_parsers import (
-    FieldMapParser,
-    StandardFieldMapParser,
-    SolenoidFieldMapParser,
-    get_parser_for_file,
-)
-
-from xtrack.beam_elements.spline_param_schema import (
-    SplineParameterSchema,
-    build_parameter_table_from_df,
-)
 
 class FieldFitter:
+    """
+    Fit on-axis field data and transverse derivatives using piecewise polynomials.
+
+    This class operates on a standardized field map DataFrame produced by a
+    user-supplied parser. The input DataFrame must have a MultiIndex with
+    levels ``('X', 'Y', 'Z')`` and columns ``('Bx', 'By', 'Bs')``.
+
+    The fitting pipeline extracts on-axis data, identifies longitudinal regions,
+    and fits per-region polynomials to produce spline parameters stored in
+    ``df_fit_pars``.
+
+    Parameters
+    ----------
+    df_raw_data :
+        Parsed field map DataFrame with MultiIndex ``('X', 'Y', 'Z')`` and
+        columns ``('Bx', 'By', 'Bs')``.
+    xy_point :
+        On-axis transverse point ``(X, Y)`` used to select the longitudinal
+        series for fitting.
+    dx, dy, ds :
+        Grid spacing used for derivative calculations and longitudinal scaling.
+    min_region_size :
+        Minimum number of points per longitudinal fitting region.
+    deg :
+        Maximum transverse derivative order to compute and fit.
+
+    Public Methods
+    -------
+    set() :
+        Set the fit parameters and fit the data.
+    save_fit_pars(file_path) :
+        Save the fit parameters to a CSV file.
+    plot_integrated_fields() :
+        Plot the integrated fields for the raw and fit data.
+    plot_fields(der=0) :
+        Plot the fields for the raw and fit data.
+
+    Private Methods
+    ---------------
+    _set_raw_data(df_raw_data) :
+        Set the raw data DataFrame and compute the longitudinal spacing.
+    _set_df_on_axis() :
+        Extract on-axis data and compute transverse derivatives.
+    _find_regions() :
+        Identify regions for polynomial fitting.
+    _set_df_fit_pars(der_order, n_pieces, field, idx_extrema, to_fit=True) :
+        Initialize and append rows to the df_fit_pars DataFrame.
+    _boundary_from_poly(sL, poly) :
+        Compute the boundary conditions from a previously fitted polynomial.
+    _boundary_from_finite_differences(b_region, s_region, get_right_point=True) :
+        Compute the boundary conditions from finite differences in the specified region.
+    _fit_single_poly(field, der_order, sub_df_this, sub_df_prev=None) :
+        Fit a single polynomial piece to the specified region of data.
+    _fit_slices() :
+        Fit polynomials to each region for all fields and derivatives.
+    _fit_transverse_polynomials(der=0) :
+        Fit transverse polynomials using all available X points at Y == 0.
+    """
 
     def __init__(
             self,
-            file_path,
-            parser=None,  # New: parser instance or format name
+            df_raw_data,
             xy_point=(0, 0),
             dx=0.001,
             dy=0.001,
@@ -48,7 +82,6 @@ class FieldFitter:
     ):
 
         # Parameters
-        self.file_path = file_path
         self.xy_point = xy_point
         self.dx, self.dy, self.ds = dx, dy, ds
         self.poly_order = 4  # fixed at 4 for now (5 coefficients)
@@ -58,24 +91,18 @@ class FieldFitter:
         self.deg = deg
         self.field_tol = 1e-3
 
-        # Parser setup
-        if parser is None:
-            self.parser = self._get_default_parser()
-        elif isinstance(parser, FieldMapParser):
-            self.parser = parser
-        else:
-            raise TypeError(f"parser must be a FieldMapParser instance or None, got {type(parser)}")
-
         # DataFrames
         self.df_raw_data = None
         self.df_on_axis_raw  = None
         self.df_on_axis_fit = None
         self.df_fit_pars = None
+        self._set_raw_data(df_raw_data)
 
     # PUBLIC
     # Setter method that calls all the other methods to arrive at a fit.
     def set(self):
-        self._parse_to_dataframe()
+        if self.df_raw_data is None:
+            raise RuntimeError("Raw data must be provided before calling set().")
         self._set_df_on_axis()
         self._find_regions()
         self._fit_slices()
@@ -86,16 +113,20 @@ class FieldFitter:
     # EVALUATION FUNCTIONS
     ####################################################################################################################
 
-    # PRIVATE
-    # Polynomials, which coefficients are determined by the boundary conditions and integral over the interval.
-    # c1 = f(s0)
-    # c2 = f'(s0)
-    # c3 = f(s1)
-    # c4 = f'(s1)
-    # c5 = integral from s0 to s1 of f(s) ds
-    # TODO: Consider making this dynamic in self.poly_order.
     @staticmethod
     def _poly(s0, s1, coeffs):
+        """
+        Build a 5th-order spline polynomial over [s0, s1] from boundary data.
+
+        The coefficients are defined by the boundary conditions and the integral
+        over the interval:
+        - c1 = f(s0)
+        - c2 = f'(s0)
+        - c3 = f(s1)
+        - c4 = f'(s1)
+        - c5 = ∫[s0,s1] f(s) ds
+        """
+
         c1, c2, c3, c4, c5 = coeffs
         L = s1 - s0
         t = np.polynomial.Polynomial([-s0 / L, 1 / L])
@@ -123,10 +154,16 @@ class FieldFitter:
     # IDENTIFYING REGIONS AND SETTING BORDERS IN DATA CLASSES
     ####################################################################################################################
     # PRIVATE
-    # This method reads the data from the file and stores it in a pandas DataFrame.
-    def _parse_to_dataframe(self):
-        # Use parser to parse the file
-        self.df_raw_data = self.parser.parse(self.file_path, dx=self.dx, dy=self.dy)
+    # This method stores raw data and extracts on-axis data.
+    def _set_raw_data(self, df_raw_data: pd.DataFrame):
+        """
+        Set the raw data DataFrame and compute the longitudinal spacing.
+
+        The DataFrame must have a MultiIndex with levels ``('X', 'Y', 'Z')`` and
+        columns ``('Bx', 'By', 'Bs')``.
+        """
+
+        self.df_raw_data = df_raw_data
         self.s_full = np.sort(self.df_raw_data.index.get_level_values("Z").unique()).astype(float) * self.ds
 
         # Check if Bs is much smaller than Bx and By
@@ -137,65 +174,26 @@ class FieldFitter:
         df_on.columns = pd.MultiIndex.from_tuples([(col, der) for col in df_on.columns])
         self.df_on_axis_raw = df_on
 
-    # PRIVATE
-    # Auto-detect format or use standard parser.
-    def _get_default_parser(self):
-        """Auto-detect format or use standard parser."""
-        # Try to auto-detect format
-        try:
-            return get_parser_for_file(self.file_path)
-        except (ValueError, FileNotFoundError):
-            # Fall back to standard parser if auto-detection fails or file not found
-            # The file will be checked again during actual parsing
-            return StandardFieldMapParser()
-
     def save_fit_pars(self, file_path):
+        """
+        Save the fit parameters DataFrame to a CSV file.
+
+        The DataFrame has a MultiIndex with levels ``('field_component', 'derivative_x', 'region_name', 's_start', 's_end', 'idx_start', 'idx_end', 'param_index')``.
+        """
         self.df_fit_pars.to_csv(file_path, index=True)
-
-    def get_parameter_table(self, n_steps, multipole_order=None):
-        """
-        Convert fit parameters DataFrame to parameter table format for SplineBoris.
-
-        The parameter ordering is defined centrally by :class:`SplineParameterSchema`
-        and matches exactly what the C code expects (via ``param_names_list`` in
-        ``_generate_bpmeth_to_C.py``).
-
-        Parameters
-        ----------
-        n_steps : int
-            Number of steps in the parameter table.
-        multipole_order : int, optional
-            Multipole order. If ``None``, inferred from ``self.deg``.
-
-        Returns
-        -------
-        par_table : ndarray
-            Array of shape ``(n_steps, n_params)`` with ordered parameters.
-        s_start : float
-            Starting s position.
-        s_end : float
-            Ending s position.
-        """
-        if self.df_fit_pars is None:
-            raise RuntimeError("Fit parameters not available. Call set() first.")
-
-        if multipole_order is None:
-            multipole_order = self.deg
-
-        par_table, s_start, s_end = build_parameter_table_from_df(
-            self.df_fit_pars,
-            n_steps=n_steps,
-            multipole_order=multipole_order,
-            poly_order=self.poly_order,
-        )
-
-        return par_table, s_start, s_end
 
     # PRIVATE
     # This method extracts on-axis data from the raw DataFrame and fits it to polynomials.
     # It computes the derivatives of said polynomials and stores them in the self.df_on_axis_raw DataFrame.
     # The data is not "raw" in the technical sense, but is used to fit a function of s to.
     def _set_df_on_axis(self):
+        """
+        Extract on-axis data and compute transverse derivatives.
+
+        The on-axis data is extracted from the raw DataFrame and stored in the self.df_on_axis_raw DataFrame.
+        The transverse derivatives are computed and stored in the self.df_on_axis_raw DataFrame.
+        """
+
         # 0th derivative columns
         self.df_on_axis_raw.columns = pd.MultiIndex.from_tuples([
                     (col[0] if isinstance(col, tuple) else col, 0) for col in self.df_on_axis_raw.columns
@@ -220,6 +218,16 @@ class FieldFitter:
     # Then, it cuts regions if they span too wide a range.
     # Finally, it stores the regions in the df_fit_pars DataFrame.
     def _find_regions(self):
+        """
+        Identify regions for polynomial fitting.
+
+        This method first checks if a field/derivative needs fitting based on its maximum value compared to the maximum of the main field.
+        It finds peaks and valleys in the data within the peak_window, with specified width and prominence.
+        It uses these extrema to define regions for polynomial fitting.
+        Then, it cuts regions if they span too wide a range.
+        Finally, it stores the regions in the df_fit_pars DataFrame.
+        """
+
         fields = ["Bx", "By", "Bs"]
 
         abs_max = 0
@@ -300,6 +308,15 @@ class FieldFitter:
     # This method is called by _find_regions to populate the DataFrame.
     # In case the set consists of only one piece, the parameters are initialized to 0.
     def _set_df_fit_pars(self, der_order, n_pieces, field, idx_extrema, to_fit=True):
+        """
+        Initialize and append rows to the df_fit_pars DataFrame.
+
+        Each row corresponds to a polynomial piece for a specific field and derivative.
+        It stores metadata about the piece, including parameter names and initial values.
+        This method is called by _find_regions to populate the DataFrame.
+        In case the set consists of only one piece, the parameters are initialized to 0.
+        """
+
         rows = []
         for i in range(n_pieces):
             if field == "Bx":
@@ -338,17 +355,26 @@ class FieldFitter:
     ####################################################################################################################
     # PIECEWISE POLYNOMIAL FITTING
     ####################################################################################################################
-
-    # PRIVATE
-    # This method computes the boundary conditions from a previously fitted polynomial.
-    # Accepts the polynomial and the position sL where to evaluate it (we fit from left to right, so always the leftmost point).
+    
     def _boundary_from_poly(self, sL, poly):
+        """
+        Compute the boundary conditions from a previously fitted polynomial.
+
+        Because the fitting is done from left to right, this method is used to compute the boundary conditions from the previous polynomial.
+        Accepts the polynomial and the position sL where to evaluate it (we fit from left to right, so always the leftmost point).
+        """
+
         dp = poly.deriv()
         return np.array([poly(sL), dp(sL)], dtype=float)
 
-    # PRIVATE
-    # This method computes the boundary conditions from finite differences in the specified region.
     def _boundary_from_finite_differences(self, b_region, s_region, get_right_point=True):
+        """
+        Compute the boundary conditions from finite differences in the specified region.
+
+        Because the fitting is done from left to right, this method is used to compute the boundary conditions from the data on the rightmost point of the region.
+        Accepts the field values in the region and the longitudinal spacing.
+        """
+
         # Compute actual spacing from s_region (handle non-uniform spacing by using local spacing)
         if get_right_point:
             # Use spacing near the right boundary
@@ -371,9 +397,16 @@ class FieldFitter:
             dbL = (-3 * b_region[0] + 4 * b_region[1] - b_region[2]) / (2 * h)
             return np.array([b_region[0], dbL], dtype=float)
 
-    # PRIVATE
-    # This method fits a single polynomial piece to the specified region of data.
     def _fit_single_poly(self, field, der_order, sub_df_this, sub_df_prev=None):
+        """
+        Fit a single polynomial piece to the specified region of data.
+
+        This method fits a single polynomial piece to the specified region of data.
+        It accepts the field, derivative order, the current region DataFrame, and the previous region DataFrame.
+        It computes the boundary conditions from the previous polynomial and the data on the rightmost point of the region.
+        It then fits a polynomial (see _poly) to the data in the region and stores the coefficients in the df_fit_pars DataFrame.
+        """
+
         idx_left = int(sub_df_this.index.get_level_values('idx_start')[0])
         idx_right = int(sub_df_this.index.get_level_values('idx_end')[0])
         s_left = float(sub_df_this.index.get_level_values('s_start')[0])
@@ -412,6 +445,13 @@ class FieldFitter:
     # PRIVATE
     # This method loops over all fields and derivatives and fits polynomials to each region.
     def _fit_slices(self):
+        """
+        Fit polynomials to each region for all fields and derivatives.
+
+        This method loops over all fields and derivatives and fits polynomials to each region.
+        It skips the derivatives of Bs and the regions that do not need fitting.
+        It then fits a polynomial (see _fit_single_poly) to each region and stores the coefficients in the df_fit_pars DataFrame.
+        """
 
         for field in ["Bx", "By", "Bs"]:
             for der in range(0, self.deg + 1):
@@ -442,11 +482,17 @@ class FieldFitter:
     # TRANSVERSE GRADIENTS
     ####################################################################################################################
 
-    # PRIVATE
-    # This method extracts the data at (x,y) = (-1,0), (0,0), (1,0) and fits parabolas to these points.
-    # This is done because bpmeth needs the derivatives w.r.t. x at each point.
-    # The first derivatives are zero, but can be extracted nevertheless.
+    # TODO: Also allow y derivatives and use Maxwell's Equations to get the right sign.
     def _fit_transverse_polynomials(self, der=0):
+        """
+        Fit transverse polynomials using all available X points at Y == 0.
+
+        This method fits a polynomial of degree ``self.deg`` to the transverse
+        field variation at each longitudinal position, using every X value
+        present in the input data for Y == 0. It then evaluates the requested
+        derivative at X == 0 and stores it in ``df_on_axis_raw``.
+        """
+
         idx = self.df_raw_data.index
         ys = idx.get_level_values("Y")
         xs = idx.get_level_values("X")
@@ -481,67 +527,80 @@ class FieldFitter:
     # PLOTTING
     ####################################################################################################################
 
-    # PUBLIC
-    # Plot the integrated fields.
+    """
+    The plotting methods are used to visualize the fit and the data, just to check that the fit has been done correctly.
+    """
+
     def plot_integrated_fields(self):
-            if self.df_on_axis_raw is None or self.df_on_axis_fit is None:
-                raise RuntimeError("`df_on_axis_raw` and `df_on_axis_fit` must be set before plotting.")
+        """
+        Plot the integrated fields for the raw and fit data.
 
-            s = self.s_full
+        This method plots the integrated fields for the raw and fit data.
+        It accepts the derivative order.
+        It computes the derivatives of the polynomials and stores them in the df_on_axis_raw DataFrame.
+        """
+        if self.df_on_axis_raw is None or self.df_on_axis_fit is None:
+            raise RuntimeError("`df_on_axis_raw` and `df_on_axis_fit` must be set before plotting.")
 
-            Bx_raw = self.df_on_axis_raw[('Bx', 0)].to_numpy()
-            By_raw = self.df_on_axis_raw[('By', 0)].to_numpy()
-            try:
-                Bs_raw = self.df_on_axis_raw[('Bs', 0)].to_numpy()
-            except KeyError:
-                Bs_raw = np.zeros_like(Bx_raw)
+        s = self.s_full
 
-            Bx_fit = self.df_on_axis_fit[('Bx', 0)].to_numpy()
-            By_fit = self.df_on_axis_fit[('By', 0)].to_numpy()
-            try:
-                Bs_fit = self.df_on_axis_fit[('Bs', 0)].to_numpy()
-            except KeyError:
-                Bs_fit = np.zeros_like(Bx_fit)
+        Bx_raw = self.df_on_axis_raw[('Bx', 0)].to_numpy()
+        By_raw = self.df_on_axis_raw[('By', 0)].to_numpy()
+        try:
+            Bs_raw = self.df_on_axis_raw[('Bs', 0)].to_numpy()
+        except KeyError:
+            Bs_raw = np.zeros_like(Bx_raw)
 
-            fig1, (ax1, ax2, ax3) = plt.subplots(3, figsize=(10, 4), constrained_layout=True)
+        Bx_fit = self.df_on_axis_fit[('Bx', 0)].to_numpy()
+        By_fit = self.df_on_axis_fit[('By', 0)].to_numpy()
+        try:
+            Bs_fit = self.df_on_axis_fit[('Bs', 0)].to_numpy()
+        except KeyError:
+            Bs_fit = np.zeros_like(Bx_fit)
 
-            Bx_int_raw = sc.integrate.cumulative_trapezoid(Bx_raw, x=s, initial=0)
-            By_int_raw = sc.integrate.cumulative_trapezoid(By_raw, x=s, initial=0)
-            Bs_int_raw = sc.integrate.cumulative_trapezoid(Bs_raw, x=s, initial=0)
+        fig1, (ax1, ax2, ax3) = plt.subplots(3, figsize=(10, 4), constrained_layout=True)
 
-            Bx_int_fit = sc.integrate.cumulative_trapezoid(Bx_fit, x=s, initial=0)
-            By_int_fit = sc.integrate.cumulative_trapezoid(By_fit, x=s, initial=0)
-            Bs_int_fit = sc.integrate.cumulative_trapezoid(Bs_fit, x=s, initial=0)
+        Bx_int_raw = sc.integrate.cumulative_trapezoid(Bx_raw, x=s, initial=0)
+        By_int_raw = sc.integrate.cumulative_trapezoid(By_raw, x=s, initial=0)
+        Bs_int_raw = sc.integrate.cumulative_trapezoid(Bs_raw, x=s, initial=0)
 
-            ax1.plot(s, Bx_int_raw, label='Raw Data')
-            ax1.plot(s, Bx_int_fit, label='Fit', linestyle='--')
-            ax2.plot(s, By_int_raw, label='Raw Data')
-            ax2.plot(s, By_int_fit, label='Fit', linestyle='--')
-            ax3.plot(s, Bs_int_raw, label='Raw Data')
-            ax3.plot(s, Bs_int_fit, label='Fit', linestyle='--')
+        Bx_int_fit = sc.integrate.cumulative_trapezoid(Bx_fit, x=s, initial=0)
+        By_int_fit = sc.integrate.cumulative_trapezoid(By_fit, x=s, initial=0)
+        Bs_int_fit = sc.integrate.cumulative_trapezoid(Bs_fit, x=s, initial=0)
 
-            # Vertical border lines removed
+        ax1.plot(s, Bx_int_raw, label='Raw Data')
+        ax1.plot(s, Bx_int_fit, label='Fit', linestyle='--')
+        ax2.plot(s, By_int_raw, label='Raw Data')
+        ax2.plot(s, By_int_fit, label='Fit', linestyle='--')
+        ax3.plot(s, Bs_int_raw, label='Raw Data')
+        ax3.plot(s, Bs_int_fit, label='Fit', linestyle='--')
 
-            ax1.set_title(f"Integrated Magnetic Field at (X, Y) = {self.xy_point}")
-            ax1.set_ylabel(r"Integrated Horizontal Field, $\int B_x \, ds$ [T·m]")
-            ax2.set_ylabel(r"Integrated Vertical Field, $\int B_y \, ds$ [T·m]")
-            ax3.set_ylabel(r"Integrated Longitudinal Field, $\int B_s \, ds$ [T·m]")
-            ax3.set_xlabel(r"Longitudinal Position, $s$ [m]")
+        # Vertical border lines removed
 
-            ax1.legend(loc="lower right")
-            ax2.legend(loc="lower right")
-            ax3.legend(loc="upper right")
+        ax1.set_title(f"Integrated Magnetic Field at (X, Y) = {self.xy_point}")
+        ax1.set_ylabel(r"Integrated Horizontal Field, $\int B_x \, ds$ [T·m]")
+        ax2.set_ylabel(r"Integrated Vertical Field, $\int B_y \, ds$ [T·m]")
+        ax3.set_ylabel(r"Integrated Longitudinal Field, $\int B_s \, ds$ [T·m]")
+        ax3.set_xlabel(r"Longitudinal Position, $s$ [m]")
 
-            ax1.grid()
-            ax2.grid()
-            ax3.grid()
+        ax1.legend(loc="lower right")
+        ax2.legend(loc="lower right")
+        ax3.legend(loc="upper right")
 
-            plt.show()
+        ax1.grid()
+        ax2.grid()
+        ax3.grid()
 
-    # PUBLIC
-    # Plot the data against the fit.
-    # der: derivative order to plot (0 = field, 1 = first derivative, etc.)
+        plt.show()
+
     def plot_fields(self, der=0):
+        """
+        Plot the data against the fit.
+
+        This method plots the data against the fit.
+        It accepts the derivative order.
+        It computes the derivatives of the polynomials and stores them in the df_on_axis_raw DataFrame.
+        """
         if self.df_on_axis_raw is None or self.df_on_axis_fit is None:
             raise RuntimeError("`df_on_axis_raw` and `df_on_axis_fit` must be set before plotting.")
 

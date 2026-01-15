@@ -180,7 +180,6 @@ def build_parameter_table_from_df(
 
     This is the shared implementation used by:
 
-    - ``FieldFitter.get_parameter_table()``
     - ``construct_undulator._contruct_par_table()``
     - ``SplineBoris.from_fieldfit_df`` / ``from_fieldfit_csv``
 
