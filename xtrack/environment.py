@@ -37,7 +37,7 @@ DEFAULT_REF_STRENGTH_NAME = {
 class Environment:
 
     def __init__(self, element_dict=None, particle_ref=None, lines=None,
-                 _var_management_dct=None):
+                 _var_management_dct=None, particles=None):
 
         '''
         Create an environment.
@@ -132,6 +132,9 @@ class Environment:
                 self.import_line(line=ll, suffix_for_common_elements='/'+nn,
                     line_name=nn, rename_elements=rename_elements)
                 self.lines[nn]._renamed_elements = rename_elements
+
+        if particles is not None:
+            self._particles.update(particles)
 
         self.metadata = {}
 
@@ -795,6 +798,10 @@ class Environment:
 
         elements = _deserialize_elements(dct=dct, classes=classes,
                                          _buffer=_buffer, _context=_context)
+        particles = {}
+        if 'particles' in dct:
+            for nn, ppd in dct['particles'].items():
+               particles[nn] = xt.Particles.from_dict(ppd)
 
         particle_ref = None
         if 'particle_ref' in dct.keys():
@@ -809,7 +816,7 @@ class Environment:
             _var_management_dct = None
 
         out = cls(element_dict=elements, particle_ref=particle_ref,
-                _var_management_dct=_var_management_dct)
+                _var_management_dct=_var_management_dct, particles=particles)
 
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)
@@ -835,10 +842,6 @@ class Environment:
 
         if "metadata" in dct:
             out.metadata = dct["metadata"]
-
-        if 'particles' in dct:
-            for nn, ppd in dct['particles'].items():
-               out._particles[nn] = xt.Particles.from_dict(ppd)
 
         return out
 
