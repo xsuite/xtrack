@@ -1119,6 +1119,12 @@ class Environment:
         try:
             eva_obj = self._xdeps_eval_obj
         except AttributeError:
+            eva_obj = None
+
+        if eva_obj is not None and eva_obj.variables is not self._xdeps_vref:
+            eva_obj = None
+
+        if eva_obj is None:
             eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
                                             functions=self._xdeps_fref,
                                             elements=self._element_dict,
