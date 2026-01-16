@@ -192,7 +192,7 @@ tw_undulator_corr_spin_rad = piecewise_undulator.twiss4d(
     include_collective=True,
     spin=True,
     spin_x=0.5, spin_y=0.25, spin_z=0.25,
-    radiation_method='kick_as_co'  # Use 'kick_as_co' for average energy loss, or 'full' for full computation
+    radiation_method='full'  # Use 'kick_as_co' for average energy loss, or 'full' for full computation
 )
 
 # Check if there's any energy loss (delta change)
