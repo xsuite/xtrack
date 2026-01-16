@@ -2163,6 +2163,7 @@ class EnvVars:
         filename : str or list of str
             Path to the MAD-X file(s) to load.
         '''
+        old_default_to_zero = self.default_to_zero
         loader = xt.mad_parser.MadxLoader(env=self.env)
         if filename is not None:
             assert string is None, 'Cannot specify both filename and string'
@@ -2170,6 +2171,7 @@ class EnvVars:
         elif string is not None:
             assert filename is None, 'Cannot specify both filename and string'
             loader.load_string(string)
+        self.default_to_zero = old_default_to_zero # restore (in case changed by loader)
 
     def load_madx_optics_file(self, filename=None, string=None):
         self.set_from_madx_file(filename, string)
