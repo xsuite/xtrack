@@ -1121,6 +1121,7 @@ class Environment:
         except AttributeError:
             eva_obj = None
 
+        # in case the var manager has been replaced, invalidate the cached eval obj
         if eva_obj is not None and eva_obj.variables is not self._xdeps_vref:
             eva_obj = None
 
