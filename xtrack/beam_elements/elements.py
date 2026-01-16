@@ -814,6 +814,7 @@ class SplineBoris(BeamElement):
                'shift_x'            : xo.Field(xo.Float64, 0),  # Transverse shift in x [m] - used for field map offset
                'shift_y'            : xo.Field(xo.Float64, 0),  # Transverse shift in y [m] - used for field map offset
                'hx'                 : xo.Field(xo.Float64, 0),  # Horizontal curvature [1/m] - not implemented yet, but is a placeholder for when it will be
+               'radiation_flag'     : xo.Int64,
                }
 
     _extra_c_sources = [

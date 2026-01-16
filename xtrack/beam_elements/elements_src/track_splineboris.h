@@ -27,7 +27,9 @@ void SplineBoris_single_particle(
     const int      n_steps,
     const double   shift_x,
     const double   shift_y,
-    const double   hx
+    const double   hx,
+    const int64_t  radiation_flag,
+    SynchrotronRadiationRecordData radiation_record
 ){
     
     // TODO: When curvature is implemented, remove this check.
@@ -93,10 +95,28 @@ void SplineBoris_single_particle(
 
     double total_dt = 0.0;  // accumulated time [s] over all substeps
 
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    // Variables for radiation tracking (if needed)
+    double old_kin_px = 0.0, old_kin_py = 0.0;
+    double dp_record_exit = 0.0, dpx_record_exit = 0.0, dpy_record_exit = 0.0;
+    #endif
+
     // ----------------------------------------------------------------------
     //  Loop over Boris substeps
     // ----------------------------------------------------------------------
     for (int istep = 0; istep < n_steps; ++istep, ++params) {
+
+        // Save state for radiation tracking
+        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        if (radiation_flag && ds > 0) {
+            // Get kinetic momenta (px/py minus ax/ay)
+            // Convert physical momenta back to dimensionless, then subtract ax/ay
+            double ax_old = LocalParticle_get_ax(part);
+            double ay_old = LocalParticle_get_ay(part);
+            old_kin_px = (px / P0) - ax_old;
+            old_kin_py = (py / P0) - ay_old;
+        }
+        #endif
 
         // --------------------------------------------------------------
         //  (0) Longitudinal momentum from constant |p| = P
@@ -208,6 +228,46 @@ void SplineBoris_single_particle(
             magnet_spin(part, Bx, By, Bs, hx, ds, ds);
         }
         // If hx != 0, skip spin tracking for now (curvature not yet implemented)
+        
+        // Track radiation over this step
+        if (radiation_flag && ds > 0) {
+            // Get new kinetic momenta (px/py minus ax/ay)
+            // Convert physical momenta back to dimensionless, then subtract ax/ay
+            double ax_new = LocalParticle_get_ax(part);
+            double ay_new = LocalParticle_get_ay(part);
+            double new_kin_px = (px / P0) - ax_new;
+            double new_kin_py = (py / P0) - ay_new;
+            
+            // Compute mean kinetic momenta for radiation computation
+            // Note: Bx, By, Bs are already evaluated at midpoint (xh, yh) by the Boris algorithm
+            double mean_kin_px = 0.5 * (old_kin_px + new_kin_px);
+            double mean_kin_py = 0.5 * (old_kin_py + new_kin_py);
+            
+            // Compute perpendicular B field magnitude
+            double const B_perp_T = compute_b_perp_mod(
+                mean_kin_px,
+                mean_kin_py,
+                LocalParticle_get_delta(part),
+                Bx, By, Bs
+            );
+            
+            // Compute path length (ds is the step length)
+            // dzeta per step = ds - dt * c * beta0
+            double const rvv = LocalParticle_get_rvv(part);
+            double const dzeta = ds - dt * c * beta0;
+            double const l_path = rvv * (ds - dzeta);
+            
+            // Apply radiation
+            magnet_radiation(
+                part,
+                B_perp_T,
+                ds,  // length
+                l_path,
+                radiation_flag,
+                radiation_record,
+                &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+            );
+        }
         #endif
     }
 
