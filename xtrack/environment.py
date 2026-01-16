@@ -803,13 +803,12 @@ class Environment:
                 particle_ref = xt.Particles.from_dict(particle_ref,
                                     _context=_context, _buffer=_buffer)
 
-        if '_var_manager' in dct.keys():
-            _var_management_dct = dct
-        else:
-            _var_management_dct = None
-
         out = cls(element_dict=elements, particle_ref=particle_ref,
-                _var_management_dct=_var_management_dct)
+                _var_management_dct=None)
+
+        if 'particles' in dct:
+            for nn, ppd in dct['particles'].items():
+               out._particles[nn] = xt.Particles.from_dict(ppd)
 
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)
@@ -836,9 +835,13 @@ class Environment:
         if "metadata" in dct:
             out.metadata = dct["metadata"]
 
-        if 'particles' in dct:
-            for nn, ppd in dct['particles'].items():
-               out._particles[nn] = xt.Particles.from_dict(ppd)
+
+
+        if '_var_manager' in dct.keys():
+            _var_management_dct = dct
+        else:
+            _var_management_dct = None
+        out._init_var_management(dct=_var_management_dct)
 
         return out
 
