@@ -1975,6 +1975,20 @@ class EnvVars:
         return len(self.env._xdeps_vref._owner) - 1
 
     def update(self, *args, **kwargs):
+        """
+        Update multiple variables at once.
+
+        Parameters
+        ----------
+        default_to_zero : bool, optional
+            If provided, temporarily set `default_to_zero` to this value while updating
+            the variables.
+        *args : dict
+            Dictionary with variable names and values to update.
+        **kwargs : float or str
+            Variable names and values to update.
+        """
+
         default_to_zero = kwargs.pop('default_to_zero', None)
         old_default_to_zero = self.default_to_zero
         if default_to_zero is not None:
