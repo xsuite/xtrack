@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 
 from xtrack.beam_elements.spline_param_schema import build_parameter_table_from_df
 
-
 multipole_order = 3
 
 n_steps = 1000
@@ -24,13 +23,13 @@ p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
 # Load SLS MADX file
 madx_file = Path(__file__).resolve().parent.parent.parent / 'test_data' / 'sls' / 'b075_2024.09.25.madx'
 env = xt.load(str(madx_file))
-line_sls = env.ring
+line_offset = env.ring
 
 # Configure bend model
-line_sls.configure_bend_model(core='mat-kick-mat')
+line_offset.configure_bend_model(core='mat-kick-mat')
 
 # Set particle reference
-line_sls.particle_ref = p0.copy()
+line_offset.particle_ref = p0.copy()
 
 BASE_DIR = Path(__file__).resolve().parent
 # Use the field-fit parameters produced by the spline fitter example
@@ -55,7 +54,6 @@ df = pd.read_csv(
     ],
 )
 
-# Build the canonical parameter table directly from the fit-parameter DataFrame.
 par_table, s_start, s_end = build_parameter_table_from_df(
     df_fit_pars=df,
     n_steps=n_steps,
@@ -79,11 +77,15 @@ s_vals = np.linspace(s_start, s_end, n_steps)
 l_wig = s_end - s_start
 ds = (s_end - s_start) / n_steps
 
+# Define offsets early so they can be passed to constructor
+x_off = 5e-4  # 0.0005 m offset in x
+y_off = 0  # 0.0005 m offset in y
+
 for i in range(n_steps):
     # params should be a 2D array: [[param1, param2, ...]] for n_steps=1
     params_i = [par_table[i].tolist()]
     s_val_i = s_vals[i]
-        
+    
     # For each single-step element, s_start and s_end should define the range
     # in the field map that this step covers. Use a small interval around s_val_i.
     # The s coordinates here are in the field map coordkinate system (can be negative).
@@ -96,6 +98,8 @@ for i in range(n_steps):
         s_start=elem_s_start,
         s_end=elem_s_end,
         n_steps=1,
+        shift_x=x_off,
+        shift_y=y_off,
     )
     wiggler_list.append(wiggler_i)
     env.elements[name_list[i]] = wiggler_i
@@ -110,6 +114,8 @@ piecewise_undulator.particle_ref = p0.copy()
 # tw_undulator.plot('x y')
 # tw_undulator.plot('betx bety', 'dx dy')
 # plt.show()
+
+piecewise_undulator.discard_tracker()
 
 # The issue: When you use betx=1, bety=1, twiss4d treats the line as OPEN (non-periodic).
 # For an open line, the orbit is computed from initial conditions in particle_on_co.
@@ -161,12 +167,10 @@ opt = piecewise_undulator.match(
 opt.step(2)
 
 
-tw_undulator_corr = piecewise_undulator.twiss4d(betx=1, bety=1, include_collective=True)
-tw_undulator_corr.plot('x y')
-tw_undulator_corr.plot('betx bety', 'dx dy')
-plt.show()
-
-piecewise_undulator.discard_tracker()
+# tw_undulator_corr = piecewise_undulator.twiss4d(betx=1, bety=1, include_collective=True)
+# tw_undulator_corr.plot('x y')
+# tw_undulator_corr.plot('betx bety', 'dx dy')
+# plt.show()
 
 wiggler_places = [
     'ars02_uind_0500_1',
@@ -182,21 +186,23 @@ wiggler_places = [
     'ars12_uind_0500_1',
 ]
 
-tt = line_sls.get_table()
+tt = line_offset.get_table()
 for wig_place in wiggler_places:
     print(f"Inserting piecewise_undulator {wig_place} at {tt['s', wig_place]}")
-    line_sls.insert(piecewise_undulator, anchor='start', at=tt['s', wig_place])
+    line_offset.insert(piecewise_undulator, anchor='start', at=tt['s', wig_place])
 
-line_sls.build_tracker()
+line_offset.build_tracker()
 
-tw_sls = line_sls.twiss4d(radiation_integrals=True)
+tw_offset = line_offset.twiss4d(radiation_integrals=True, spin=True, polarization=True)
 
 # Plotting:
 import matplotlib.pyplot as plt
 plt.close('all')
-tw_sls.plot('x y')
-tw_sls.plot('betx bety', 'dx dy')
-tw_sls.plot('betx2 bety2')
+tw_offset.plot('x y')
+tw_offset.plot('betx bety', 'dx dy')
+tw_offset.plot('betx2 bety2')
+tw_offset.plot('spin_x spin_z')
+tw_offset.plot('spin_y')
 plt.show()
 
 #['name', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 'W_matrix', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime',
@@ -209,70 +215,76 @@ plt.show()
 
 # Extract and print results
 print("=" * 80)
-print("SLS WITH UNDULATORS")
+print("SLS WITH OFFSET UNDULATORS")
 print("=" * 80)
 print(f"Tunes:")
-print(f"  qx = {tw_sls.qx:.4e}")
-print(f"  qy = {tw_sls.qy:.4e}")
-print(f"  qs = {tw_sls.qs:.4e}")
+print(f"  qx = {tw_offset.qx:.4e}")
+print(f"  qy = {tw_offset.qy:.4e}")
+print(f"  qs = {tw_offset.qs:.4e}")
 print()
 print(f"Chromaticity:")
-print(f"  dqx = {tw_sls.dqx:.4e}")
-print(f"  dqy = {tw_sls.dqy:.4e}")
+print(f"  dqx = {tw_offset.dqx:.4e}")
+print(f"  dqy = {tw_offset.dqy:.4e}")
 print()
 print(f"Partition numbers:")
-print(f"  J_x = {tw_sls.rad_int_partition_number_x:.4e}")
-print(f"  J_y = {tw_sls.rad_int_partition_number_y:.4e}")
-print(f"  J_zeta = {tw_sls.rad_int_partition_number_zeta:.4e}")
+print(f"  J_x = {tw_offset.rad_int_partition_number_x:.4e}")
+print(f"  J_y = {tw_offset.rad_int_partition_number_y:.4e}")
+print(f"  J_zeta = {tw_offset.rad_int_partition_number_zeta:.4e}")
 print()
 print(f"Damping constants per second:")
-print(f"  alpha_x = {tw_sls.rad_int_damping_constant_x_s:.4e}")
-print(f"  alpha_y = {tw_sls.rad_int_damping_constant_y_s:.4e}")
-print(f"  alpha_zeta = {tw_sls.rad_int_damping_constant_zeta_s:.4e}")
+print(f"  alpha_x = {tw_offset.rad_int_damping_constant_x_s:.4e}")
+print(f"  alpha_y = {tw_offset.rad_int_damping_constant_y_s:.4e}")
+print(f"  alpha_zeta = {tw_offset.rad_int_damping_constant_zeta_s:.4e}")
 print()
 print(f"Equilibrium emittances:")
-print(f"  eq_gemitt_x = {tw_sls.rad_int_eq_gemitt_x:.4e}")
-print(f"  eq_gemitt_y = {tw_sls.rad_int_eq_gemitt_y:.4e}")
-print(f"  eq_gemitt_zeta = {tw_sls.rad_int_eq_gemitt_zeta:.4e}")
+print(f"  eq_gemitt_x = {tw_offset.rad_int_eq_gemitt_x:.4e}")
+print(f"  eq_gemitt_y = {tw_offset.rad_int_eq_gemitt_y:.4e}")
+print(f"  eq_gemitt_zeta = {tw_offset.rad_int_eq_gemitt_zeta:.4e}")
 print()
-print(f"Energy loss per turn: {tw_sls.rad_int_eneloss_turn:.4e} eV")
+print(f"Energy loss per turn: {tw_offset.rad_int_eneloss_turn:.4e} eV")
 print()
-print(f"C^-: {tw_sls.c_minus:.4e}")
+print(f"C^-: {tw_offset.c_minus:.4e}")
+print()
+print(f"Spin polarization: {tw_offset.spin_polarization_eq:.4e}")
 print()
 print("=" * 80)
 
 # Write results to file
 output_dir = Path("/home/simonfan/cernbox/Documents/Presentations/Section_Meeting_Undulators")
 output_dir.mkdir(parents=True, exist_ok=True)
-output_file = output_dir / "SLS_WITH_UNDULATORS.txt"
+output_file = output_dir / "SLS_WITH_OFFSET_UNDULATORS.txt"
 
 with open(output_file, 'w') as f:
     f.write("=" * 80 + "\n")
-    f.write("SLS WITH UNDULATORS\n")
+    f.write("SLS WITH OFFSET UNDULATORS\n")
     f.write("=" * 80 + "\n")
     f.write(f"Tunes:\n")
-    f.write(f"  qx = {tw_sls.qx:.4e}\n")
-    f.write(f"  qy = {tw_sls.qy:.4e}\n")
-    f.write(f"  qs = {tw_sls.qs:.4e}\n")
+    f.write(f"  qx = {tw_offset.qx:.4e}\n")
+    f.write(f"  qy = {tw_offset.qy:.4e}\n")
+    f.write(f"  qs = {tw_offset.qs:.4e}\n")
     f.write("\n")
     f.write(f"Chromaticity:\n")
-    f.write(f"  dqx = {tw_sls.dqx:.4e}\n")
-    f.write(f"  dqy = {tw_sls.dqy:.4e}\n")
+    f.write(f"  dqx = {tw_offset.dqx:.4e}\n")
+    f.write(f"  dqy = {tw_offset.dqy:.4e}\n")
     f.write("\n")
     f.write(f"Partition numbers:\n")
-    f.write(f"  J_x = {tw_sls.rad_int_partition_number_x:.4e}\n")
-    f.write(f"  J_y = {tw_sls.rad_int_partition_number_y:.4e}\n")
-    f.write(f"  J_zeta = {tw_sls.rad_int_partition_number_zeta:.4e}\n")
+    f.write(f"  J_x = {tw_offset.rad_int_partition_number_x:.4e}\n")
+    f.write(f"  J_y = {tw_offset.rad_int_partition_number_y:.4e}\n")
+    f.write(f"  J_zeta = {tw_offset.rad_int_partition_number_zeta:.4e}\n")
     f.write("\n")
     f.write(f"Damping constants per second:\n")
-    f.write(f"  alpha_x = {tw_sls.rad_int_damping_constant_x_s:.4e}\n")
-    f.write(f"  alpha_y = {tw_sls.rad_int_damping_constant_y_s:.4e}\n")
-    f.write(f"  alpha_zeta = {tw_sls.rad_int_damping_constant_zeta_s:.4e}\n")
+    f.write(f"  alpha_x = {tw_offset.rad_int_damping_constant_x_s:.4e}\n")
+    f.write(f"  alpha_y = {tw_offset.rad_int_damping_constant_y_s:.4e}\n")
+    f.write(f"  alpha_zeta = {tw_offset.rad_int_damping_constant_zeta_s:.4e}\n")
     f.write("\n")
     f.write(f"Equilibrium emittances:\n")
-    f.write(f"  eq_gemitt_x = {tw_sls.rad_int_eq_gemitt_x:.4e}\n")
-    f.write(f"  eq_gemitt_y = {tw_sls.rad_int_eq_gemitt_y:.4e}\n")
-    f.write(f"  eq_gemitt_zeta = {tw_sls.rad_int_eq_gemitt_zeta:.4e}\n")
+    f.write(f"  eq_gemitt_x = {tw_offset.rad_int_eq_gemitt_x:.4e}\n")
+    f.write(f"  eq_gemitt_y = {tw_offset.rad_int_eq_gemitt_y:.4e}\n")
+    f.write(f"  eq_gemitt_zeta = {tw_offset.rad_int_eq_gemitt_zeta:.4e}\n")
     f.write("\n")
-    f.write(f"Energy loss per turn: {tw_sls.rad_int_eneloss_turn:.4e} eV\n")
+    f.write(f"Energy loss per turn: {tw_offset.rad_int_eneloss_turn:.4e} eV\n")
+    f.write("\n")
+    f.write(f"C^-: {tw_offset.c_minus:.4e}\n")
+    f.write("\n")
+    f.write(f"Spin polarization: {tw_offset.spin_polarization_eq:.4e}\n")
     f.write("=" * 80 + "\n")

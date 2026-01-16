@@ -813,6 +813,7 @@ class SplineBoris(BeamElement):
                'n_steps'            : xo.Int64,
                'shift_x'            : xo.Field(xo.Float64, 0),  # Transverse shift in x [m] - used for field map offset
                'shift_y'            : xo.Field(xo.Float64, 0),  # Transverse shift in y [m] - used for field map offset
+               'hx'                 : xo.Field(xo.Float64, 0),  # Horizontal curvature [1/m] - not implemented yet, but is a placeholder for when it will be
                }
 
     _extra_c_sources = [
@@ -828,6 +829,7 @@ class SplineBoris(BeamElement):
                  n_steps=1000,
                  shift_x=0.0,
                  shift_y=0.0,
+                 hx=0.0,
                  **kwargs,
     ):
         # Provide default minimal jagged 2D array for params if None (needed for prebuild)
@@ -848,6 +850,7 @@ class SplineBoris(BeamElement):
             kwargs['n_steps'] = n_steps
         kwargs['shift_x'] = shift_x
         kwargs['shift_y'] = shift_y
+        kwargs['hx'] = hx
         super().__init__(**kwargs)
 
     @classmethod

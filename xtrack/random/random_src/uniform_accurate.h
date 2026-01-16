@@ -16,6 +16,14 @@
 
 #define TWO_TO_32 4294967296.0
 
+// Forward declaration - needed when this header is included before the generated code
+// The generated code will redefine this typedef (which is fine if identical) and generate accessors
+#ifndef XOBJ_FWD_RandomUniformAccurateData
+#define XOBJ_FWD_RandomUniformAccurateData
+struct RandomUniformAccurateData_s;
+typedef struct RandomUniformAccurateData_s * RandomUniformAccurateData;
+#endif
+
 
 GPUFUN
 double RandomUniformAccurate_generate(LocalParticle* part){

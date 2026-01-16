@@ -19,6 +19,7 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
     const int n_steps = SplineBorisData_get_n_steps(el);
     const double shift_x = SplineBorisData_get_shift_x(el);
     const double shift_y = SplineBorisData_get_shift_y(el);
+    const double hx = SplineBorisData_get_hx(el);
 
     const int cols = 5*(2*multipole_order+1);
     if (n_steps <= 0 || cols <= 0) {
@@ -64,7 +65,7 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
 
     // Process all particles using the same parameter array (shared across particles)
     START_PER_PARTICLE_BLOCK(part0, part);
-        SplineBoris_single_particle(part, params, multipole_order, s_start, s_end, n_steps, shift_x, shift_y);
+        SplineBoris_single_particle(part, params, multipole_order, s_start, s_end, n_steps, shift_x, shift_y, hx);
     END_PER_PARTICLE_BLOCK;
 
     // Free only if we used malloc (alloca arrays are auto-freed)

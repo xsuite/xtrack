@@ -7,6 +7,16 @@
 
 #include <headers/track.h>
 #include "_spline_B_field_eval.h" // evaluate_B for Bx, By, Bs (scalar version)
+#ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+// Forward declarations for random functions needed by synrad_spectrum.h
+// (These are normally declared in random headers but we avoid including them
+//  directly to prevent issues with generated data types)
+GPUFUN uint32_t RandomUniformUInt32_generate(LocalParticle* part);
+GPUFUN double RandomUniform_generate(LocalParticle* part);
+GPUFUN double RandomExponential_generate(LocalParticle* part);
+#include <beam_elements/elements_src/track_magnet_radiation.h>
+#endif
+
 GPUFUN
 void SplineBoris_single_particle(
     LocalParticle* part,
@@ -16,8 +26,14 @@ void SplineBoris_single_particle(
     const double   s_end,
     const int      n_steps,
     const double   shift_x,
-    const double   shift_y
+    const double   shift_y,
+    const double   hx
 ){
+    
+    // TODO: When curvature is implemented, remove this check.
+    // For now, if hx != 0, we skip spin tracking but continue with particle tracking
+    // (The check is done per-step in the loop below)
+
     // Skip dead particles (state <= 0)
     if (LocalParticle_get_state(part) <= 0){
         return;
@@ -183,6 +199,16 @@ void SplineBoris_single_particle(
 
         // Accumulate time
         total_dt += dt;
+
+        // Track spin over this step
+        // Field is evaluated at midpoint (xh, yh), track over step length ds
+        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        // TODO: When curvature is fully implemented, remove this check
+        if (hx == 0.0) {
+            magnet_spin(part, Bx, By, Bs, hx, ds, ds);
+        }
+        // If hx != 0, skip spin tracking for now (curvature not yet implemented)
+        #endif
     }
 
     // ------------------------------------------------------------------

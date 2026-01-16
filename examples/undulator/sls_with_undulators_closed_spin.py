@@ -189,7 +189,7 @@ for wig_place in wiggler_places:
 
 line_sls.build_tracker()
 
-tw_sls = line_sls.twiss4d(radiation_integrals=True)
+tw_sls = line_sls.twiss4d(radiation_integrals=True, spin=True, polarization=True)
 
 # Plotting:
 import matplotlib.pyplot as plt
@@ -197,6 +197,8 @@ plt.close('all')
 tw_sls.plot('x y')
 tw_sls.plot('betx bety', 'dx dy')
 tw_sls.plot('betx2 bety2')
+tw_sls.plot('spin_x spin_z')
+tw_sls.plot('spin_y')
 plt.show()
 
 #['name', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 'W_matrix', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime',
@@ -239,6 +241,8 @@ print(f"Energy loss per turn: {tw_sls.rad_int_eneloss_turn:.4e} eV")
 print()
 print(f"C^-: {tw_sls.c_minus:.4e}")
 print()
+print(f"Spin polarization: {tw_sls.spin_polarization_eq:.4e}")
+print()
 print("=" * 80)
 
 # Write results to file
@@ -275,4 +279,8 @@ with open(output_file, 'w') as f:
     f.write(f"  eq_gemitt_zeta = {tw_sls.rad_int_eq_gemitt_zeta:.4e}\n")
     f.write("\n")
     f.write(f"Energy loss per turn: {tw_sls.rad_int_eneloss_turn:.4e} eV\n")
+    f.write("\n")
+    f.write(f"C^-: {tw_sls.c_minus:.4e}\n")
+    f.write("\n")
+    f.write(f"Spin polarization: {tw_sls.spin_polarization_eq:.4e}\n")
     f.write("=" * 80 + "\n")
