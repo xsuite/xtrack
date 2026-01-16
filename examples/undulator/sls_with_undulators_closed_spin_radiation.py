@@ -187,6 +187,9 @@ for wig_place in wiggler_places:
     print(f"Inserting piecewise_undulator {wig_place} at {tt['s', wig_place]}")
     line_sls.insert(piecewise_undulator, anchor='start', at=tt['s', wig_place])
 
+
+line_sls.configure_radiation(model='quantum')
+
 line_sls.build_tracker()
 
 tw_sls = line_sls.twiss4d(radiation_integrals=True, spin=True, polarization=True, radiation_method='full')
