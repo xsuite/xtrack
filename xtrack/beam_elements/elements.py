@@ -7,6 +7,7 @@ from typing import List
 import numpy as np
 from numbers import Number
 from scipy.special import factorial
+import json
 
 import xobjects as xo
 import xtrack as xt
@@ -4219,6 +4220,192 @@ class ElectronCooler(BeamElement):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         raise NotImplementedError
 
+class CWLaser(BeamElement):
+    '''Beam element modeling partially stripped ion excitation and emission of photons. Parameters:
+                  Gaussian laser pulse is assumed (en.wikipedia.org/wiki/Gaussian_beam)
+                - laser_direction_nx,..._ny,..._nz: Laser direction vector n. Default is ``0,0,-1``.
+                - laser_x,..._y,..._z [m]: Laser pulse center location at t=0. Default is ``0,0,0``.
+                - laser_waist_shift [m]: How far is the laser waist from the laser pulse center
+                  along the n vector at t=0. Default is ``0``.
+                - laser_waist_radius [m]: Laser waist radius.
+                  Laser intensity vs radius at waist I(r)=exp(-2r^2/w_0^2),
+                  where w_0 is the laser_waist_radius. Default is ``1e-3``.
+                - laser_energy [J]: Total laser pulse energy. Default is ``0``.
+                - laser_duration_sigma [sec]: Laser duration. Default is ``1e-12``.
+                  assuming Fourier-limited pulse so far: sigma_w = 1/sigma_t.
+                - laser_wavelength [m]: Central wavelength of the laser. Default is ``1034.0e-9``.
+                - ion_excitation_energy [eV]: Transition energy in the ion. Default is ``68.6e3``.
+                - ion_excitation_g1,..._g2: Degeneracy factors of the ion levels. Default is ``1,3``.
+                - ion_excited_lifetime [s]: Lifetime of the exited state. Default is ``3.9e-17``.
+    '''
+
+    _xofields={
+               'laser_direction_nx':    xo.Float64,
+               'laser_direction_ny':    xo.Float64,
+               'laser_direction_nz':    xo.Float64,
+               'laser_x':               xo.Float64,
+               'laser_y':               xo.Float64,
+               'laser_z':               xo.Float64,
+               'laser_waist_shift':     xo.Float64,
+               'laser_waist_radius':    xo.Float64,
+               'laser_energy':          xo.Float64,
+               'laser_intensity':       xo.Float64,
+               'laser_wavelength':      xo.Float64,
+               'ion_excitation_energy': xo.Float64,
+               'ion_excitation_g1':     xo.Float64,
+               'ion_excitation_g2':     xo.Float64,
+               'ion_excited_lifetime':  xo.Float64,
+               'cooling_section_length':  xo.Float64,
+               }
+    
+    _depends_on = [RandomUniformAccurate]
+    
+    
+    _extra_c_sources = [
+            _pkg_root.joinpath('headers/constants.h'),
+            _pkg_root.joinpath('beam_elements/elements_src/cw_laser.h')]
+
+    
+    def __init__(self,  laser_direction_nx =  0,
+                        laser_direction_ny =  0,
+                        laser_direction_nz = -1,
+                        laser_x = 0,
+                        laser_y = 0,
+                        laser_z = 0,
+                        laser_waist_radius = 0,
+                        laser_intensity = 0,
+                        laser_wavelength = 0, # m
+                        ion_excitation_energy = 0,
+                        ion_excitation_g1 = 2,
+                        ion_excitation_g2 = 2,
+                        ion_excited_lifetime = 0,
+                        cooling_section_length=0,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.laser_direction_nx     = laser_direction_nx
+        self.laser_direction_ny     = laser_direction_ny
+        self.laser_direction_nz     = laser_direction_nz
+        self.laser_x                = laser_x
+        self.laser_y                = laser_y
+        self.laser_z                = laser_z
+        self.laser_waist_radius     = laser_waist_radius
+        self.laser_intensity        = laser_intensity
+        self.laser_wavelength       = laser_wavelength
+        self.ion_excitation_energy  = ion_excitation_energy
+        self.ion_excitation_g1      = ion_excitation_g1
+        self.ion_excitation_g2      = ion_excitation_g2
+        self.ion_excited_lifetime   = ion_excited_lifetime
+        self.cooling_section_length = cooling_section_length
+
+class PulsedLaserRecord(xo.HybridClass):
+    _xofields = {
+        '_index': RecordIndex,
+        'photon_energy': xo.Float64[:],
+        'emission_time': xo.Float64[:],
+        'particle_id': xo.Float64[:]}
+
+class PulsedLaser(BeamElement):
+    '''Beam element modeling partially stripped ion excitation and emission of photons. Parameters:
+                  Gaussian laser pulse is assumed (en.wikipedia.org/wiki/Gaussian_beam)
+                - laser_direction_nx,..._ny,..._nz: Laser direction vector n. Default is ``0,0,-1``.
+                - laser_x,..._y,..._z [m]: Laser pulse center location at t=0. Default is ``0,0,0``.
+                - laser_waist_shift [m]: How far is the laser waist from the laser pulse center
+                  along the n vector at t=0. Default is ``0``.
+                - laser_waist_radius [m]: Laser waist radius.
+                  Laser intensity vs radius at waist I(r)=exp(-2r^2/w_0^2),
+                  where w_0 is the laser_waist_radius. Default is ``1e-3``.
+                - laser_energy [J]: Total laser pulse energy. Default is ``0``.
+                - laser_duration_sigma [sec]: Laser duration. Default is ``1e-12``.
+                  assuming Fourier-limited pulse so far: sigma_w = 1/sigma_t.
+                - laser_wavelength [m]: Central wavelength of the laser. Default is ``1034.0e-9``.
+                - ion_excitation_energy [eV]: Transition energy in the ion. Default is ``68.6e3``.
+                - ion_excited_lifetime [s]: Lifetime of the exited state. Default is ``3.9e-17``.
+    '''
+
+    # Map of Excitation:
+    fname = _pkg_root.joinpath('beam_elements/elements_src/laser_excitation_maps/pulsed_excitation_map.json')
+    with open(fname, 'r') as f:
+        map_data = json.load(f)
+        excitation_map = np.array(map_data['Excitation probability'])
+
+    _xofields={
+               'laser_direction_nx':    xo.Float64,
+               'laser_direction_ny':    xo.Float64,
+               'laser_direction_nz':    xo.Float64,
+               'laser_x':               xo.Float64,
+               'laser_y':               xo.Float64,
+               'laser_z':               xo.Float64,
+               'laser_waist_shift':     xo.Float64,
+               'laser_waist_radius':    xo.Float64,
+               'laser_energy':          xo.Float64,
+               'laser_duration_sigma':  xo.Float64,
+               'laser_wavelength':      xo.Float64,
+               'ion_excitation_energy': xo.Float64,
+               'ion_excitation_g1':     xo.Float64,
+               'ion_excitation_g2':     xo.Float64,
+               'ion_excited_lifetime':  xo.Float64,
+               'Map_of_Excitation':         xo.Float64[int(excitation_map.size)],
+               'N_OmegaRabiTau_values':     xo.Int64,
+               'N_DeltaDetuningTau_values': xo.Int64,
+               'OmegaRabiTau_max':          xo.Float64,
+               'DeltaDetuningTau_max':      xo.Float64,
+               'record_flag':               xo.Int64,
+              }
+    
+    _depends_on = [RandomUniformAccurate]
+    
+    _extra_c_sources = [
+            _pkg_root.joinpath('headers/constants.h'),
+            _pkg_root.joinpath('beam_elements/elements_src/pulsed_laser.h')]
+    
+    _internal_record_class = PulsedLaserRecord
+
+    
+    def __init__(self,  laser_direction_nx =  0,
+                        laser_direction_ny =  0,
+                        laser_direction_nz = -1,
+                        laser_x = 0,
+                        laser_y = 0,
+                        laser_z = 0,
+                        laser_waist_shift = 0,
+                        laser_waist_radius = 1e-3,
+                        laser_energy = 0,
+                        laser_duration_sigma = 1e-12,
+                        # assuming Fourier-limited pulse so far: sigma_w = 1/sigma_t
+                        laser_wavelength = 1034.0e-9, # m
+                        ion_excitation_energy = 68.6e3,
+                        ion_excitation_g1 = 2,
+                        ion_excitation_g2 = 2,
+                        ion_excited_lifetime = 3.9e-17,
+                        record_flag = 0,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.laser_direction_nx    = laser_direction_nx
+        self.laser_direction_ny    = laser_direction_ny
+        self.laser_direction_nz    = laser_direction_nz
+        self.laser_x               = laser_x
+        self.laser_y               = laser_y
+        self.laser_z               = laser_z
+        self.laser_waist_shift     = laser_waist_shift
+        self.laser_energy          = laser_energy
+        self.laser_waist_radius    = laser_waist_radius
+        self.laser_duration_sigma  = laser_duration_sigma
+        self.laser_wavelength      = laser_wavelength
+        self.ion_excitation_energy = ion_excitation_energy
+        self.ion_excitation_g1     = ion_excitation_g1
+        self.ion_excitation_g2     = ion_excitation_g2
+        self.ion_excited_lifetime  = ion_excited_lifetime
+        self.record_flag           =  record_flag
+        
+        # Map of Excitation:
+        fname = _pkg_root.joinpath('beam_elements/elements_src/laser_excitation_maps/pulsed_excitation_map.json')
+        with open(fname, 'r') as f:
+            map_data = json.load(f)
+            self.Excitation = np.array(map_data['Excitation probability'])
+            self.N_OmegaRabiTau_values, self.N_DeltaDetuningTau_values = np.shape(self.Excitation)
+            self.OmegaRabiTau_max = map_data['OmegaRabi*tau_pulse max']
+            self.DeltaDetuningTau_max  = map_data['Delta_detuning*tau_pulse max']
+            self.Map_of_Excitation = self.Excitation.flatten()      
 class ThinSliceNotNeededError(Exception):
     pass
 
