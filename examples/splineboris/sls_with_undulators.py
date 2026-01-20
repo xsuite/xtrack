@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 
 from xtrack.beam_elements.spline_param_schema import build_parameter_table_from_df
 
-
 multipole_order = 3
 
 n_steps = 1000

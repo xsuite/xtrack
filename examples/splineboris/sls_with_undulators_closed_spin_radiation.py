@@ -188,7 +188,7 @@ for wig_place in wiggler_places:
     line_sls.insert(piecewise_undulator, anchor='start', at=tt['s', wig_place])
 
 
-line_sls.configure_radiation(model='quantum')
+line_sls.configure_radiation(model='mean')
 
 line_sls.build_tracker()
 

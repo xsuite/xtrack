@@ -155,6 +155,98 @@ class SplineParameterSchema:
 
         return True
 
+    # ------------------------------------------------------------------
+    # Convenience constructors
+    # ------------------------------------------------------------------
+    @classmethod
+    def build_param_table_from_spline_coeffs(
+        cls,
+        ks_0: Sequence[float],
+        kn_0: Sequence[float],
+        bs: Sequence[float],
+        n_steps: int,
+        multipole_order: int = 1,
+        poly_order: Optional[int] = None,
+    ) -> np.ndarray:
+        """
+        Build a schema-compliant parameter table from simple spline coefficients.
+
+        This helper is intended for toy problems and tests where the field is
+        represented by a *single* polynomial piece per component, specified via
+        the 0th-order multipole coefficients:
+
+        - ``ks_0`` : coefficients for ``Bx`` (skew, order 0)
+        - ``kn_0`` : coefficients for ``By`` (normal, order 0)
+        - ``bs``   : coefficients for ``Bs`` (longitudinal)
+
+        Parameters
+        ----------
+        ks_0, kn_0, bs :
+            One-dimensional sequences of length ``poly_order + 1`` with the
+            polynomial/spline coefficients as used in the tests, i.e. following
+            the ``FieldFitter._poly`` convention.
+        n_steps :
+            Number of longitudinal steps. The same coefficients are reused at
+            each step, so the resulting table has shape ``(n_steps, n_params)``.
+        multipole_order :
+            Maximum multipole order to include in the schema. Only the
+            ``i = 0`` coefficients are populated by this helper; higher orders
+            are set to zero but still present in the table.
+        poly_order :
+            Polynomial order. If ``None``, inferred from the length of
+            ``ks_0`` (which must match the lengths of ``kn_0`` and ``bs``).
+        """
+        if n_steps <= 0:
+            raise ValueError("n_steps must be a positive integer")
+
+        ks_0 = np.asarray(ks_0, dtype=float)
+        kn_0 = np.asarray(kn_0, dtype=float)
+        bs = np.asarray(bs, dtype=float)
+
+        if poly_order is None:
+            poly_order = ks_0.shape[0] - 1
+
+        expected_len = poly_order + 1
+        if ks_0.shape[0] != expected_len:
+            raise ValueError(
+                f"ks_0 must have length {expected_len} (got {ks_0.shape[0]})"
+            )
+        if kn_0.shape[0] != expected_len:
+            raise ValueError(
+                f"kn_0 must have length {expected_len} (got {kn_0.shape[0]})"
+            )
+        if bs.shape[0] != expected_len:
+            raise ValueError(
+                f"bs must have length {expected_len} (got {bs.shape[0]})"
+            )
+
+        # Canonical parameter ordering
+        param_names = cls.get_param_names(
+            multipole_order=multipole_order, poly_order=poly_order
+        )
+
+        # Map simple coefficients to canonical names
+        param_dict: dict[str, float] = {}
+        for k, value in enumerate(ks_0):
+            param_dict[f"ks_0_{k}"] = float(value)
+        for k, value in enumerate(kn_0):
+            param_dict[f"kn_0_{k}"] = float(value)
+        for k, value in enumerate(bs):
+            param_dict[f"bs_{k}"] = float(value)
+
+        # Single canonical row, with zeros for all unspecified parameters
+        param_row = [param_dict.get(name, 0.0) for name in param_names]
+
+        # Reuse the same row at all longitudinal steps
+        par_arr = np.tile(param_row, (n_steps, 1))
+
+        # Final validation for safety
+        cls.validate_param_array(
+            par_arr, multipole_order=multipole_order, poly_order=poly_order
+        )
+
+        return par_arr
+
 
 def _reset_fieldfit_index(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -167,6 +259,9 @@ def _reset_fieldfit_index(df: pd.DataFrame) -> pd.DataFrame:
         return df.copy()
     # Assume it's a MultiIndex with the expected names
     return df.reset_index()
+
+
+
 
 
 def build_parameter_table_from_df(
