@@ -82,21 +82,6 @@ for i in range(len(s)):
     delta_muy_i += delta_muy_add
     integrand_i = h_pqrt_l * np.exp(1j * ((p - q) * delta_mux_i + (r - t) * delta_muy_i))
 
-    delta_mux_source = -2 * math.pi * mux
-    delta_muy_source = -2 * math.pi * muy
-    delta_mux_obs = 2 * math.pi * mux[i]
-    delta_muy_obs = 2 * math.pi * muy[i]
-
-    delta_mux_turn = -2 * math.pi * qx * np.ones_like(mux)
-    delta_muy_turn = -2 * math.pi * qy * np.ones_like(muy)
-
-    delta_mux_turn[delta_mux_i > 0] = 0
-    delta_muy_turn[delta_muy_i > 0] = 0
-
-    # integrand_i_2 = h_pqrt_l * np.exp(1j * ((p - q) * (delta_mux_source + delta_mux_obs + delta_mux_turn)
-    #                                + (r - t) * (delta_muy_source + delta_muy_obs + delta_muy_turn)))
-
-
     f_pqrt[i] = np.sum(integrand_i) / denominator * np.exp(1j * ((p - q) * (delta_mux[i]) + (r - t) * (delta_muy[i])))
 
 # tw_ng = env.lhcb1.madng_twiss(rdts=[rdt])
