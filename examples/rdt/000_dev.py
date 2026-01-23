@@ -2,6 +2,13 @@ import xtrack as xt
 import numpy as np
 import math
 
+# Based on https://arxiv.org/abs/1711.06589. See in particular: eq. 8 and A8.
+# A. Franchi et al. "Analytic formulas for the rapid evaluation of the orbit
+# response matrix and chromatic functions from lattice parameters in circular 
+# accelerators", 2017
+# Reference implementation by OMC team:
+# https://github.com/pylhc/optics_functions/blob/master/optics_functions/rdt.py
+
 env = xt.load('../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 rdt = 'f1020'
 
@@ -28,11 +35,12 @@ anl = tt[f'k{n-1}sl']
 def omega(idx):
     return 1 if idx % 2 == 0 else 0
 
-factorial_prod = math.factorial(p) * math.factorial(q) * math.factorial(r) * math.factorial(t)
+factorial_prod = (math.factorial(p) * math.factorial(q)
+                * math.factorial(r) * math.factorial(t))
 
-h_pqrt_l = (
+h_pqrt_l = -(
     (bnl * omega(r + t) + 1j * anl * omega(r + t + 1))
-    / factorial_prod
+    / factorial_prod / 2 ** n
     * (1j ** (r + t))
     * betx ** ((p + q) / 2)
     * bety ** ((r + t) / 2)
