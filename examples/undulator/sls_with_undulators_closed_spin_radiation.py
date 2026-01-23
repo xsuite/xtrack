@@ -18,8 +18,10 @@ multipole_order = 3
 
 n_steps = 1000
 
+E0 = 2.7e9
+
 # Particle reference
-p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
+p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=E0)
 
 # Load SLS MADX file
 madx_file = Path(__file__).resolve().parent.parent.parent / 'test_data' / 'sls' / 'b075_2024.09.25.madx'
@@ -188,22 +190,11 @@ for wig_place in wiggler_places:
     line_sls.insert(piecewise_undulator, anchor='start', at=tt['s', wig_place])
 
 
-line_sls.configure_radiation(model='quantum')
+line_sls.configure_radiation(model='mean')
 
 line_sls.build_tracker()
 
 tw_sls = line_sls.twiss4d(radiation_integrals=True, spin=True, polarization=True, radiation_method='full')
-
-# Plotting:
-import matplotlib.pyplot as plt
-plt.close('all')
-tw_sls.plot('x y')
-tw_sls.plot('betx bety', 'dx dy')
-tw_sls.plot('betx2 bety2')
-tw_sls.plot('spin_x spin_z')
-tw_sls.plot('spin_y')
-tw_sls.plot('delta')
-plt.show()
 
 #['name', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 'W_matrix', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime',
 # 'kin_yprime', 'env_name', 'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy', 'dx', 'dpx', 'dy', 'dpy', 'dx_zeta', 'dpx_zeta',
@@ -242,6 +233,7 @@ print(f"  eq_gemitt_y = {tw_sls.rad_int_eq_gemitt_y:.4e}")
 print(f"  eq_gemitt_zeta = {tw_sls.rad_int_eq_gemitt_zeta:.4e}")
 print()
 print(f"Energy loss per turn: {tw_sls.rad_int_eneloss_turn:.4e} eV")
+print(f"Delta after one turn: {(tw_sls.rad_int_eneloss_turn / E0):.4e}")
 print()
 print(f"C^-: {tw_sls.c_minus:.4e}")
 print()
@@ -283,8 +275,20 @@ with open(output_file, 'w') as f:
     f.write(f"  eq_gemitt_zeta = {tw_sls.rad_int_eq_gemitt_zeta:.4e}\n")
     f.write("\n")
     f.write(f"Energy loss per turn: {tw_sls.rad_int_eneloss_turn:.4e} eV\n")
+    f.write(f"Delta after one turn: {(tw_sls.rad_int_eneloss_turn / E0):.4e}\n")
     f.write("\n")
     f.write(f"C^-: {tw_sls.c_minus:.4e}\n")
     f.write("\n")
     f.write(f"Spin polarization: {tw_sls.spin_polarization_eq:.4e}\n")
     f.write("=" * 80 + "\n")
+
+# Plotting:
+import matplotlib.pyplot as plt
+plt.close('all')
+tw_sls.plot('x y')
+tw_sls.plot('betx bety', 'dx dy')
+tw_sls.plot('betx2 bety2')
+tw_sls.plot('spin_x spin_z')
+tw_sls.plot('spin_y')
+tw_sls.plot('delta')
+plt.show()

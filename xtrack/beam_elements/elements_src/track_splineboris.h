@@ -63,19 +63,19 @@ void SplineBoris_single_particle(
     // ----------------------------------------------------------------------
     //  Convert to physical units (kg, m, s)
     // ----------------------------------------------------------------------
+    // Constants that don't change during stepping
+    const double energy0 = LocalParticle_get_energy0(part);  // [eV]
+    const double charge_ratio = LocalParticle_get_charge_ratio(part);
+    const double chi = LocalParticle_get_chi(part);
+    const double mass_ratio = charge_ratio / chi;
+
     // mass_kg = mass[eV] * qe [J/eV] / c^2
-    const double mass_kg = mass0 * qe / (c * c);  // [kg]
+    const double mass = mass_ratio * mass0;  // [eV]
+    const double mass_kg = mass * qe / (c * c);  // [kg]
 
     // Reference momentum P0 in SI units:
     //   p0c [eV] * qe [J/eV] / c [m/s] = kg m / s
     const double P0 = p0c_ev * qe / c;  // [kg m / s]
-
-    // Total momentum magnitude for this particle:
-    const double P = P0 * (1.0 + delta);  // [kg m / s]
-
-    // gamma = sqrt(1 + (P / (m c))^2)  (relativistic)
-    const double P_over_mc = P / (mass_kg * c);
-    const double gamma     = sqrt(1.0 + P_over_mc * P_over_mc);
 
     // Physical transverse momenta
     double px = px_r * P0;  // [kg m / s]
@@ -93,8 +93,6 @@ void SplineBoris_single_particle(
     // Local s coordinate (0 to L) for stepping through the element
     double s_local = 0.0;
 
-    double total_dt = 0.0;  // accumulated time [s] over all substeps
-
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
     // Variables for radiation tracking (if needed)
     double old_kin_px = 0.0, old_kin_py = 0.0;
@@ -105,6 +103,18 @@ void SplineBoris_single_particle(
     //  Loop over Boris substeps
     // ----------------------------------------------------------------------
     for (int istep = 0; istep < n_steps; ++istep, ++params) {
+
+        // Calculate gamma per step (matching Python: gamma = energy / mass)
+        // This is recalculated each step since ptau may change (e.g., from radiation)
+        const double ptau = LocalParticle_get_ptau(part);
+        // energy = (energy0 + ptau * p0c) * mass_ratio  [eV]
+        const double energy = (energy0 + ptau * p0c_ev) * mass_ratio;  // [eV]
+        // gamma = energy / mass  (matching Python implementation)
+        const double gamma = energy / mass;
+
+        // Total momentum magnitude for this particle (delta may have changed)
+        const double delta_current = LocalParticle_get_delta(part);
+        const double P = P0 * (1.0 + delta_current);  // [kg m / s]
 
         // Save state for radiation tracking
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
@@ -159,6 +169,8 @@ void SplineBoris_single_particle(
             multipole_order,
             &Bx, &By, &Bs
         );
+
+        printf("Bx = %f, By = %f, Bs = %f\n", Bx, By, Bs);
 
         // --------------------------------------------------------------
         //  (2) FIRST HALF-KICK from (Bx, By)
@@ -217,8 +229,8 @@ void SplineBoris_single_particle(
         px = px1;
         py = py1;
 
-        // Accumulate time
-        total_dt += dt;
+        // Update zeta per step (matching Python: zeta += (ds - dt * c * beta0))
+        zeta += (ds - dt * c * beta0);
 
         // Track spin over this step
         // Field is evaluated at midpoint (xh, yh), track over step length ds
@@ -286,11 +298,8 @@ void SplineBoris_single_particle(
     LocalParticle_set_px(part, px / P0);
     LocalParticle_set_py(part, py / P0);
 
-    // Update longitudinal coordinate zeta:
-    // Python: per step zeta += (ds - dt * c * beta0)
-    // -> here we do it once, using total_dt = sum(dt) over all substeps.
-    const double delta_zeta = L - total_dt * c * beta0;
-    LocalParticle_set_zeta(part, zeta + delta_zeta);
+    // Update longitudinal coordinate zeta (already updated per step in loop)
+    LocalParticle_set_zeta(part, zeta);
 }
 
 #endif // XTRACK_TRACK_SPLINEBORIS_H
