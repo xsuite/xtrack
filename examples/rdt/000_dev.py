@@ -71,8 +71,8 @@ integrand_two_turns_cumsum = np.cumsum(integrand_two_turns)
 # RTD at all s
 f_pqrt = 0 * integrand
 for i in range(len(s)):
-    delta_mux_i = 2 * math.pi * (mux[i]-mux)
-    delta_muy_i = 2 * math.pi * (muy[i]-muy)
+    delta_mux_i = 2 * math.pi * (-mux)
+    delta_muy_i = 2 * math.pi * (-muy)
     delta_mux_add = 2 * math.pi * qx * np.ones_like(mux)
     delta_muy_add = 2 * math.pi * qy * np.ones_like(muy)
     delta_mux_add[:i] = 0
@@ -97,6 +97,6 @@ for i in range(len(s)):
     #                                + (r - t) * (delta_muy_source + delta_muy_obs + delta_muy_turn)))
 
 
-    f_pqrt[i] = np.sum(integrand_i) / denominator
+    f_pqrt[i] = np.sum(integrand_i) / denominator * np.exp(1j * ((p - q) * (delta_mux[i]) + (r - t) * (delta_muy[i])))
 
 # tw_ng = env.lhcb1.madng_twiss(rdts=[rdt])
