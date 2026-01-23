@@ -75,8 +75,8 @@ for i in range(len(s)):
     delta_muy_i = 2 * math.pi * (muy[i]-muy)
     delta_mux_add = 2 * math.pi * qx * np.ones_like(mux)
     delta_muy_add = 2 * math.pi * qy * np.ones_like(muy)
-    delta_mux_add[delta_mux_i > 0] = 0
-    delta_muy_add[delta_muy_i > 0] = 0
+    delta_mux_add[:i] = 0
+    delta_muy_add[:i] = 0
 
     delta_mux_i += delta_mux_add
     delta_muy_i += delta_muy_add
