@@ -59,6 +59,9 @@ rdt_mad_at_s = compute_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_
 WW = tw.W_matrix
 WW_inv = np.linalg.inv(WW)
 
+lnf = xt.linear_normal_form
+SS2D = lnf.S[:2, :2]
+
 # Rot_e = WW * 0
 # n_elem = len(tw.s)
 # lnf = xt.linear_normal_form
@@ -66,10 +69,51 @@ WW_inv = np.linalg.inv(WW)
 #     Rot_e[ii, 0:2, 0:2] = lnf.Rot2D(tw.mux[ii+1] - tw.mux[ii])
 #     Rot_e[ii, 2:4, 2:4] = lnf.Rot2D(tw.muy[ii+1] - tw.muy[ii])
 
+RR_ET0 = np.array([[tw.r11_edw_teng[0], tw.r12_edw_teng[0]],
+                  [tw.r21_edw_teng[0], tw.r22_edw_teng[0]]])
+
+# Rot = np.zeros(shape=(6, 6), dtype=np.float64)
+
+# Rot[0:2,0:2] = lnf.Rot2D(tw.qx)
+# Rot[2:4,2:4] = lnf.Rot2D(tw.qy)
+
+# RR0 = WW[0, :, :] @ Rot @ WW_inv[0, :, :]
+
+# AA0 = RR0[:2, :2]
+# BB0 = RR0[:2, 2:4]
+# CC0 = RR0[2:4, :2]
+# DD0 = RR0[2:4, 2:4]
+
+
+
+# tr = np.linalg.trace
+
+
+# cbar0 = -SS2D @ CC0.T @ SS2D.T
+# aux0 = BB0 + cbar0
+# det0 = aux0[0,0] * aux0[1,1] - aux0[0,1] * aux0[1,0]
+
+# dtr0 = tr(AA0) - tr(DD0)
+# arg0 = dtr0**2 - 4 * np.linalg.det(aux0)
+
+
+# gammacp0 = sqrt(0.5 + 0.5*sqrt(dtr0**2/arg0))
+
+
+
+# gammacp = gammacp0
+RR_ET = RR_ET0.copy()
+
 betx = [tw.betx[0]]
 alfx = [tw.alfx[0]]
 n_elem = len(tw.s)
+r11 = [tw.r11_edw_teng[0]]
+r12 = [tw.r12_edw_teng[0]]
+r21 = [tw.r21_edw_teng[0]]
+r22 = [tw.r22_edw_teng[0]]
 for ii in range(n_elem - 1):
+
+    # Build R matrix of the element
     WW1 = WW[ii, :, :]
     WW2 = WW[ii+1, :, :]
     Rot_e_ii = np.zeros((6,6), dtype=np.float64)
@@ -77,13 +121,43 @@ for ii in range(n_elem - 1):
     Rot_e_ii[2:4,2:4] = xt.linear_normal_form.Rot2D(tw.muy[ii+1] - tw.muy[ii])
     RRe_ii = WW2 @ Rot_e_ii @ np.linalg.inv(WW1)
 
+    # Blocks of the R matrix of the element
+    AA = RRe_ii[:2, :2]
+    BB = RRe_ii[:2, 2:4]
+    CC = RRe_ii[2:4, :2]
+    DD = RRe_ii[2:4, 2:4]
+
+    # Uncoupled case
+    EE = AA
+    FF = DD
+
+    quarter = 0.25
+    two = 2.0
+
+
+
+    # RR_ET_BAR = SS2D @ RR_ET.T @ SS2D.T
+    # EE = AA - BB @ RR_ET
+    # edet = np.linalg.det(EE)
+    # EEBAR = SS2D @ EE @ SS2D.T
+    # CCDD = CC - DD @ RR_ET
+    # FF = DD + CC @ RR_ET_BAR
+    # RR_ET = -CCDD @ EEBAR / edet
+
+    # r11.append(RR_ET[0, 0])
+    # r12.append(RR_ET[0, 1])
+    # r21.append(RR_ET[1, 0])
+    # r22.append(RR_ET[1, 1])
+
+
     bet1 = betx[-1]
     alfx1 = alfx[-1]
     RRx_ii = RRe_ii[0:2, 0:2]
-    r11x = RRx_ii[0, 0]
-    r12x = RRx_ii[0, 1]
-    r21x = RRx_ii[1, 0]
-    r22x = RRx_ii[1, 1]
+    # RRx_ii = EE
+    r11x = EE[0, 0]
+    r12x = EE[0, 1]
+    r21x = EE[1, 0]
+    r22x = EE[1, 1]
     bet2 = 1/bet1 * ((r11x*bet1 - r12x*alfx1)**2 + r12x**2)
     alfx2 = -1/bet1 * ((r11x*bet1 - r12x*alfx1)*(r21x*bet1 - r22x*alfx1) + r12x*r22x)
 
