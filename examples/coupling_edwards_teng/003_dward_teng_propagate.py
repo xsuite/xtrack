@@ -113,14 +113,12 @@ r21 = [tw.r21_edw_teng[0]]
 r22 = [tw.r22_edw_teng[0]]
 for ii in range(n_elem - 1):
 
-    breakpoint()
-
     # Build R matrix of the element
     WW1 = WW[ii, :, :]
     WW2 = WW[ii+1, :, :]
     Rot_e_ii = np.zeros((6,6), dtype=np.float64)
-    Rot_e_ii[0:2,0:2] = xt.linear_normal_form.Rot2D(tw.mux[ii+1] - tw.mux[ii])
-    Rot_e_ii[2:4,2:4] = xt.linear_normal_form.Rot2D(tw.muy[ii+1] - tw.muy[ii])
+    Rot_e_ii[0:2,0:2] = xt.linear_normal_form.Rot2D(2*np.pi*(tw.mux[ii+1] - tw.mux[ii]))
+    Rot_e_ii[2:4,2:4] = xt.linear_normal_form.Rot2D(2*np.pi*(tw.muy[ii+1] - tw.muy[ii]))
     RRe_ii = WW2 @ Rot_e_ii @ np.linalg.inv(WW1)
 
     # Blocks of the R matrix of the element
