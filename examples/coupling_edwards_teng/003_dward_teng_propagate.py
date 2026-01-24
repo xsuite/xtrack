@@ -128,22 +128,22 @@ for ii in range(n_elem - 1):
     DD = RRe_ii[2:4, 2:4]
 
     # Case in which the matrix is block diagonal
-    EE = AA
-    FF = DD
-    EEBAR = SS2D @ EE.T @ SS2D.T
-    edet = np.linalg.det(EE)
-    CCDD = -FF @ RR_ET
-    RR_ET = -CCDD @ EEBAR / edet
+    if np.allclose(BB, 0, atol=1e-10) and np.allclose(CC, 0, atol=1e-10):
+        EE = AA
+        FF = DD
+        EEBAR = SS2D @ EE.T @ SS2D.T
+        edet = np.linalg.det(EE)
+        CCDD = -FF @ RR_ET
+        RR_ET = -CCDD @ EEBAR / edet
+    else:
+        RR_ET_BAR = SS2D @ RR_ET.T @ SS2D.T
 
-
-    # RR_ET_BAR = SS2D @ RR_ET.T @ SS2D.T
-
-    # EE = AA - BB @ RR_ET
-    # edet = np.linalg.det(EE)
-    # EEBAR = SS2D @ EE @ SS2D.T
-    # CCDD = CC - DD @ RR_ET
-    # FF = DD + CC @ RR_ET_BAR
-    # RR_ET = -CCDD @ EEBAR / edet
+        EE = AA - BB @ RR_ET
+        edet = np.linalg.det(EE)
+        EEBAR = SS2D @ EE.T @ SS2D.T
+        CCDD = CC - DD @ RR_ET
+        FF = DD + CC @ RR_ET_BAR
+        RR_ET = -CCDD @ EEBAR / edet
 
     r11.append(RR_ET[0, 0])
     r12.append(RR_ET[0, 1])
