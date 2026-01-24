@@ -127,8 +127,8 @@ for ii in range(n_elem - 1):
     CC = RRe_ii[2:4, :2]
     DD = RRe_ii[2:4, 2:4]
 
-    # Case in which the matrix is block diagonal
-    if np.allclose(BB, 0, atol=1e-10) and np.allclose(CC, 0, atol=1e-10):
+    if np.allclose(BB, 0, atol=1e-12) and np.allclose(CC, 0, atol=1e-12):
+        # Case in which the matrix is block diagonal (no coupling in the element)
         EE = AA
         FF = DD
         EEBAR = SS2D @ EE.T @ SS2D.T
