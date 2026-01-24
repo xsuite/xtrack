@@ -104,14 +104,16 @@ RR_ET0 = np.array([[tw.r11_edw_teng[0], tw.r12_edw_teng[0]],
 # gammacp = gammacp0
 RR_ET = RR_ET0.copy()
 
-betx = [tw.betx[0]]
-alfx = [tw.alfx[0]]
+betx = [tw.betx_edw_teng[0]]
+alfx = [tw.alfx_edw_teng[0]]
 n_elem = len(tw.s)
 r11 = [tw.r11_edw_teng[0]]
 r12 = [tw.r12_edw_teng[0]]
 r21 = [tw.r21_edw_teng[0]]
 r22 = [tw.r22_edw_teng[0]]
 for ii in range(n_elem - 1):
+
+    breakpoint()
 
     # Build R matrix of the element
     WW1 = WW[ii, :, :]
@@ -127,16 +129,17 @@ for ii in range(n_elem - 1):
     CC = RRe_ii[2:4, :2]
     DD = RRe_ii[2:4, 2:4]
 
-    # Uncoupled case
+    # Case in which the matrix is block diagonal
     EE = AA
     FF = DD
-
-    quarter = 0.25
-    two = 2.0
-
+    EEBAR = SS2D @ EE.T @ SS2D.T
+    edet = np.linalg.det(EE)
+    CCDD = -FF @ RR_ET
+    RR_ET = -CCDD @ EEBAR / edet
 
 
     # RR_ET_BAR = SS2D @ RR_ET.T @ SS2D.T
+
     # EE = AA - BB @ RR_ET
     # edet = np.linalg.det(EE)
     # EEBAR = SS2D @ EE @ SS2D.T
@@ -144,84 +147,38 @@ for ii in range(n_elem - 1):
     # FF = DD + CC @ RR_ET_BAR
     # RR_ET = -CCDD @ EEBAR / edet
 
-    # r11.append(RR_ET[0, 0])
-    # r12.append(RR_ET[0, 1])
-    # r21.append(RR_ET[1, 0])
-    # r22.append(RR_ET[1, 1])
+    r11.append(RR_ET[0, 0])
+    r12.append(RR_ET[0, 1])
+    r21.append(RR_ET[1, 0])
+    r22.append(RR_ET[1, 1])
 
 
-    bet1 = betx[-1]
+    betx1 = betx[-1]
     alfx1 = alfx[-1]
-    RRx_ii = RRe_ii[0:2, 0:2]
-    # RRx_ii = EE
-    r11x = EE[0, 0]
-    r12x = EE[0, 1]
-    r21x = EE[1, 0]
-    r22x = EE[1, 1]
-    bet2 = 1/bet1 * ((r11x*bet1 - r12x*alfx1)**2 + r12x**2)
-    alfx2 = -1/bet1 * ((r11x*bet1 - r12x*alfx1)*(r21x*bet1 - r22x*alfx1) + r12x*r22x)
+    # # RRx_ii = RRe_ii[0:2, 0:2]
+    # # RRx_ii = EE
+    # r11x = EE[0, 0]
+    # r12x = EE[0, 1]
+    # r21x = EE[1, 0]
+    # r22x = EE[1, 1]
+    # det_rx = r11x * r22x - r12x * r21x
+    # bet2 = 1/betx1/abs(det_rx) * ((r11x*betx1 - r12x*alfx1)**2 + r12x**2)
+    # alfx2 = -1/betx1/abs(det_rx) * ((r11x*betx1 - r12x*alfx1)*(r21x*betx1 - r22x*alfx1) + r12x*r22x)
 
-    betx.append(bet2)
+    matx11 = EE[0,0]
+    matx12 = EE[0,1]
+    matx21 = EE[1,0]
+    matx22 = EE[1,1]
+
+    detx = matx11 * matx22 - matx12 * matx21
+
+    tempb = matx11 * betx1 - matx12 * alfx1
+    tempa = matx21 * betx1 - matx22 * alfx1
+    alfx2 = - (tempa * tempb + matx12 * matx22) / (detx*betx1)
+    betx2 =   (tempb * tempb + matx12 * matx12) / (detx*betx1)
+
+    betx.append(betx2)
     alfx.append(alfx2)
 
-
-
-
-
-# Compare results with MAD-X
-plt.close('all')
-fig, ((ax0, ax1), (ax2, ax3), (ax4, ax5)) = plt.subplots(3, 2, figsize=(6.4*1.3, 4.8*1.8), sharex=True)
-ax0.plot(s_mad, r11_mad, label='MAD-X')
-ax0.plot(tw.s, tw.r11_edw_teng, label='Xsuite', linestyle=':')
-ax0.plot(tw.s, np.abs(r11_mad_at_s - tw.r11_edw_teng), label='absolute error')
-ax0.legend()
-
-ax1.plot(s_mad, r12_mad, label='MAD-X')
-ax1.plot(tw.s, tw.r12_edw_teng, label='Xsuite', linestyle=':')
-ax1.plot(tw.s, np.abs(r12_mad_at_s - tw.r12_edw_teng), label='absolute error')
-ax1.legend()
-
-ax2.plot(s_mad, r21_mad, label='MAD-X')
-ax2.plot(tw.s, tw.r21_edw_teng, label='Xsuite', linestyle=':')
-ax2.plot(tw.s, np.abs(r21_mad_at_s - tw.r21_edw_teng), label='absolute error')
-ax2.legend()
-
-ax3.plot(s_mad, r22_mad, label='MAD-X')
-ax3.plot(tw.s, tw.r22_edw_teng, label='Xsuite', linestyle=':')
-ax3.plot(tw.s, np.abs(r22_mad_at_s - tw.r22_edw_teng), label='absolute error')
-ax3.legend()
-
-ax4.plot(tw.s, tw.f1001.real, label='Xsuite')
-ax4.plot(tw.s, rdt_mad_at_s['f1001'].real, label='MAD-X', linestyle=':')
-ax4.legend()
-
-ax5.plot(tw.s, tw.f1010.real, label='Xsuite')
-ax5.plot(tw.s, rdt_mad_at_s['f1010'].real, label='MAD-X', linestyle=':')
-ax5.legend()
-
-
-ax0.set_title('r11')
-ax1.set_title('r12')
-ax2.set_title('r21')
-ax3.set_title('r22')
-plt.show()
-
-xo.assert_allclose(tw.r11_edw_teng, r11_mad_at_s,
-                   rtol=1e-5, atol=1e-5*np.max(np.abs(r11_mad_at_s)))
-xo.assert_allclose(tw.r12_edw_teng, r12_mad_at_s,
-                   rtol=1e-5, atol=1e-5*np.max(np.abs(r12_mad_at_s)))
-xo.assert_allclose(tw.r21_edw_teng, r21_mad_at_s,
-                   rtol=1e-5, atol=1e-5*np.max(np.abs(r21_mad_at_s)))
-xo.assert_allclose(tw.r22_edw_teng, r22_mad_at_s,
-                   rtol=1e-5, atol=1e-5*np.max(np.abs(r22_mad_at_s)))
-xo.assert_allclose(tw.betx_edw_teng, betx_mad_at_s, atol=0, rtol=1e-5)
-
-xo.assert_allclose(tw.betx_edw_teng, betx_mad_at_s, atol=0, rtol=5e-8)
-xo.assert_allclose(tw.alfx_edw_teng, alfx_mad_at_s, atol=1e-4, rtol=1e-8)
-xo.assert_allclose(tw.bety_edw_teng, bety_mad_at_s, atol=0, rtol=5e-8)
-xo.assert_allclose(tw.alfy_edw_teng, alfy_mad_at_s, atol=1e-4, rtol=1e-8)
-
-xo.assert_allclose(tw.f1001, rdt_mad_at_s['f1001'],
-                   atol=1e-5 * np.max(np.abs(rdt_mad_at_s['f1001'])))
-xo.assert_allclose(tw.f1010, rdt_mad_at_s['f1010'],
-                   atol=1e-5 * np.max(np.abs(rdt_mad_at_s['f1010'])))
+betx = np.array(betx)
+alfx = np.array(alfx)
