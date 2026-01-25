@@ -57,62 +57,25 @@ alfy_mad_at_s = np.interp(tw.s, s_mad, twmad.alfy)
 rdt_mad_at_s = compute_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_s,
                            betx_mad_at_s, bety_mad_at_s, alfx_mad_at_s, alfy_mad_at_s)
 
-# Compute element R matrix
+# Extract data from the twiss
 WW = tw.W_matrix
-WW_inv = np.linalg.inv(WW)
+mux = tw.mux
+muy = tw.muy
+qx = tw.qx
+qy = tw.qy
 
 lnf = xt.linear_normal_form
 SS2D = lnf.S[:2, :2]
-
-# Rot_e = WW * 0
-# n_elem = len(tw.s)
-# lnf = xt.linear_normal_form
-# for ii in range(n_elem-1):
-#     Rot_e[ii, 0:2, 0:2] = lnf.Rot2D(tw.mux[ii+1] - tw.mux[ii])
-#     Rot_e[ii, 2:4, 2:4] = lnf.Rot2D(tw.muy[ii+1] - tw.muy[ii])
-
-# RR_ET0 = np.array([[tw.r11_edw_teng[0], tw.r12_edw_teng[0]],
-#                   [tw.r21_edw_teng[0], tw.r22_edw_teng[0]]])
-
-# Rot = np.zeros(shape=(6, 6), dtype=np.float64)
-
-# Rot[0:2,0:2] = lnf.Rot2D(tw.qx)
-# Rot[2:4,2:4] = lnf.Rot2D(tw.qy)
-
-# RR0 = WW[0, :, :] @ Rot @ WW_inv[0, :, :]
-
-# AA0 = RR0[:2, :2]
-# BB0 = RR0[:2, 2:4]
-# CC0 = RR0[2:4, :2]
-# DD0 = RR0[2:4, 2:4]
-
-
-
-# tr = np.linalg.trace
-
-
-# cbar0 = -SS2D @ CC0.T @ SS2D.T
-# aux0 = BB0 + cbar0
-# det0 = aux0[0,0] * aux0[1,1] - aux0[0,1] * aux0[1,0]
-
-# dtr0 = tr(AA0) - tr(DD0)
-# arg0 = dtr0**2 - 4 * np.linalg.det(aux0)
-
-
-# gammacp0 = sqrt(0.5 + 0.5*sqrt(dtr0**2/arg0))
-
-
-
 
 # Starting point
 
 Rot = np.zeros(shape=(6, 6), dtype=np.float64)
 lnf = xt.linear_normal_form
 
-Rot[0:2,0:2] = lnf.Rot2D(2 * np.pi * tw.qx)
-Rot[2:4,2:4] = lnf.Rot2D(2 * np.pi * tw.qy)
+Rot[0:2,0:2] = lnf.Rot2D(2 * np.pi * qx)
+Rot[2:4,2:4] = lnf.Rot2D(2 * np.pi * qy)
 
-WW0 = tw.W_matrix[0, :, :]
+WW0 = WW[0, :, :]
 WW0_inv = lnf.S.T @ WW0.T @ lnf.S
 RR = WW0 @ Rot @ WW0_inv
 
@@ -129,7 +92,7 @@ alfy0 = edw_teng_init['alfy0']
 
 RR_ET = RR_ET0.copy()
 
-n_elem = len(tw.s)
+n_elem = len(mux)
 betx = np.zeros(n_elem)
 alfx = np.zeros(n_elem)
 r11 = np.zeros(n_elem)
@@ -151,8 +114,8 @@ for ii in range(n_elem - 1):
     WW2 = WW[ii+1, :, :]
     WW1_inv = lnf.S.T @ WW1.T @ lnf.S
     Rot_e_ii = np.zeros((6,6), dtype=np.float64)
-    Rot_e_ii[0:2,0:2] = lnf.Rot2D(2*np.pi*(tw.mux[ii+1] - tw.mux[ii]))
-    Rot_e_ii[2:4,2:4] = lnf.Rot2D(2*np.pi*(tw.muy[ii+1] - tw.muy[ii]))
+    Rot_e_ii[0:2,0:2] = lnf.Rot2D(2*np.pi*(mux[ii+1] - mux[ii]))
+    Rot_e_ii[2:4,2:4] = lnf.Rot2D(2*np.pi*(muy[ii+1] - muy[ii]))
     RRe_ii = WW2 @ Rot_e_ii @ WW1_inv
 
     # Blocks of the R matrix of the element
