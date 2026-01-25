@@ -70,7 +70,7 @@ lnf = xt.linear_normal_form
 # Based on MAD-X implementation (see madx/src/twiss.f90, subroutine twcpin)
 
 Rot = np.zeros(shape=(6, 6), dtype=np.float64)
-lnf = xt.linear_normal_form
+
 
 Rot[0:2,0:2] = lnf.Rot2D(2 * np.pi * qx)
 Rot[2:4,2:4] = lnf.Rot2D(2 * np.pi * qy)
