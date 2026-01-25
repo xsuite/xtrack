@@ -134,10 +134,10 @@ RR_ET = RR_ET0.copy()
 betx = [betx0]
 alfx = [alfx0]
 n_elem = len(tw.s)
-r11 = [tw.r11_edw_teng[0]]
-r12 = [tw.r12_edw_teng[0]]
-r21 = [tw.r21_edw_teng[0]]
-r22 = [tw.r22_edw_teng[0]]
+r11 = [RR_ET[0, 0]]
+r12 = [RR_ET[0, 1]]
+r21 = [RR_ET[1, 0]]
+r22 = [RR_ET[1, 1]]
 for ii in range(n_elem - 1):
 
     # Build R matrix of the element
@@ -145,8 +145,8 @@ for ii in range(n_elem - 1):
     WW2 = WW[ii+1, :, :]
     WW1_inv = lnf.S.T @ WW1.T @ lnf.S
     Rot_e_ii = np.zeros((6,6), dtype=np.float64)
-    Rot_e_ii[0:2,0:2] = xt.linear_normal_form.Rot2D(2*np.pi*(tw.mux[ii+1] - tw.mux[ii]))
-    Rot_e_ii[2:4,2:4] = xt.linear_normal_form.Rot2D(2*np.pi*(tw.muy[ii+1] - tw.muy[ii]))
+    Rot_e_ii[0:2,0:2] = lnf.Rot2D(2*np.pi*(tw.mux[ii+1] - tw.mux[ii]))
+    Rot_e_ii[2:4,2:4] = lnf.Rot2D(2*np.pi*(tw.muy[ii+1] - tw.muy[ii]))
     RRe_ii = WW2 @ Rot_e_ii @ WW1_inv
 
     # Blocks of the R matrix of the element
@@ -160,35 +160,21 @@ for ii in range(n_elem - 1):
         EE = AA
         FF = DD
         EEBAR = SS2D @ EE.T @ SS2D.T
-        edet = np.linalg.det(EE)
+        edet = EE[0,0]*EE[1,1] - EE[0,1]*EE[1,0]
         CCDD = -FF @ RR_ET
         RR_ET = -CCDD @ EEBAR / edet
     else:
         RR_ET_BAR = SS2D @ RR_ET.T @ SS2D.T
         EE = AA - BB @ RR_ET
-        edet = np.linalg.det(EE)
+        edet = EE[0,0]*EE[1,1] - EE[0,1]*EE[1,0]
         EEBAR = SS2D @ EE.T @ SS2D.T
         CCDD = CC - DD @ RR_ET
         FF = DD + CC @ RR_ET_BAR
         RR_ET = -CCDD @ EEBAR / edet
 
-    r11.append(RR_ET[0, 0])
-    r12.append(RR_ET[0, 1])
-    r21.append(RR_ET[1, 0])
-    r22.append(RR_ET[1, 1])
-
 
     betx1 = betx[-1]
     alfx1 = alfx[-1]
-    # # RRx_ii = RRe_ii[0:2, 0:2]
-    # # RRx_ii = EE
-    # r11x = EE[0, 0]
-    # r12x = EE[0, 1]
-    # r21x = EE[1, 0]
-    # r22x = EE[1, 1]
-    # det_rx = r11x * r22x - r12x * r21x
-    # bet2 = 1/betx1/abs(det_rx) * ((r11x*betx1 - r12x*alfx1)**2 + r12x**2)
-    # alfx2 = -1/betx1/abs(det_rx) * ((r11x*betx1 - r12x*alfx1)*(r21x*betx1 - r22x*alfx1) + r12x*r22x)
 
     matx11 = EE[0,0]
     matx12 = EE[0,1]
@@ -204,6 +190,10 @@ for ii in range(n_elem - 1):
 
     betx.append(betx2)
     alfx.append(alfx2)
+    r11.append(RR_ET[0, 0])
+    r12.append(RR_ET[0, 1])
+    r21.append(RR_ET[1, 0])
+    r22.append(RR_ET[1, 1])
 
 betx = np.array(betx)
 alfx = np.array(alfx)
