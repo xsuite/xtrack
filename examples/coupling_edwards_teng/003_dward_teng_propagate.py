@@ -127,8 +127,6 @@ bety0 = edw_teng_init['bety0']
 alfy0 = edw_teng_init['alfy0']
 
 
-
-# gammacp = gammacp0
 RR_ET = RR_ET0.copy()
 
 betx = [betx0]
@@ -140,7 +138,7 @@ r21 = [RR_ET[1, 0]]
 r22 = [RR_ET[1, 1]]
 for ii in range(n_elem - 1):
 
-    # Build R matrix of the element
+    # Build 2D R matrix of the element
     WW1 = WW[ii, :, :]
     WW2 = WW[ii+1, :, :]
     WW1_inv = lnf.S.T @ WW1.T @ lnf.S
