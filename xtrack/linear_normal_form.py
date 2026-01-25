@@ -53,9 +53,9 @@ S = np.array([[0., 1., 0., 0., 0., 0.],
 ### Implement Normalization of fully coupled motion ##
 ######################################################
 
-def Rot2D(mu):
-    return np.array([[ np.cos(mu), np.sin(mu)],
-                     [-np.sin(mu), np.cos(mu)]])
+def Rot2D(phi):
+    return np.array([[ np.cos(phi), np.sin(phi)],
+                     [-np.sin(phi), np.cos(phi)]])
 
 def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
                         responsiveness_tol=None,
