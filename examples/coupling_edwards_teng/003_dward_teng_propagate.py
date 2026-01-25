@@ -102,12 +102,7 @@ SS2D = lnf.S[:2, :2]
 # gammacp0 = sqrt(0.5 + 0.5*sqrt(dtr0**2/arg0))
 
 
-def _conj_mat(mm):
-    a = mm[0,0]
-    b = mm[0,1]
-    c = mm[1,0]
-    d = mm[1,1]
-    return np.array([[d, -b], [-c, a]])
+
 
 # Starting point
 
@@ -148,10 +143,11 @@ for ii in range(n_elem - 1):
     # Build R matrix of the element
     WW1 = WW[ii, :, :]
     WW2 = WW[ii+1, :, :]
+    WW1_inv = lnf.S.T @ WW1.T @ lnf.S
     Rot_e_ii = np.zeros((6,6), dtype=np.float64)
     Rot_e_ii[0:2,0:2] = xt.linear_normal_form.Rot2D(2*np.pi*(tw.mux[ii+1] - tw.mux[ii]))
     Rot_e_ii[2:4,2:4] = xt.linear_normal_form.Rot2D(2*np.pi*(tw.muy[ii+1] - tw.muy[ii]))
-    RRe_ii = WW2 @ Rot_e_ii @ np.linalg.inv(WW1)
+    RRe_ii = WW2 @ Rot_e_ii @ WW1_inv
 
     # Blocks of the R matrix of the element
     AA = RRe_ii[:2, :2]
