@@ -129,13 +129,21 @@ alfy0 = edw_teng_init['alfy0']
 
 RR_ET = RR_ET0.copy()
 
-betx = [betx0]
-alfx = [alfx0]
 n_elem = len(tw.s)
-r11 = [RR_ET[0, 0]]
-r12 = [RR_ET[0, 1]]
-r21 = [RR_ET[1, 0]]
-r22 = [RR_ET[1, 1]]
+betx = np.zeros(n_elem)
+alfx = np.zeros(n_elem)
+r11 = np.zeros(n_elem)
+r12 = np.zeros(n_elem)
+r21 = np.zeros(n_elem)
+r22 = np.zeros(n_elem)
+
+betx[0] = betx0
+alfx[0] = alfx0
+r11[0] = RR_ET[0, 0]
+r12[0] = RR_ET[0, 1]
+r21[0] = RR_ET[1, 0]
+r22[0] = RR_ET[1, 1]
+
 for ii in range(n_elem - 1):
 
     # Build 2D R matrix of the element
@@ -170,28 +178,22 @@ for ii in range(n_elem - 1):
         FF = DD + CC @ RR_ET_BAR
         RR_ET = -CCDD @ EEBAR / edet
 
-
-    betx1 = betx[-1]
-    alfx1 = alfx[-1]
+    betx1 = betx[ii]
+    alfx1 = alfx[ii]
 
     matx11 = EE[0,0]
     matx12 = EE[0,1]
     matx21 = EE[1,0]
     matx22 = EE[1,1]
-
     detx = matx11 * matx22 - matx12 * matx21
-
     tempb = matx11 * betx1 - matx12 * alfx1
     tempa = matx21 * betx1 - matx22 * alfx1
     alfx2 = - (tempa * tempb + matx12 * matx22) / (detx*betx1)
     betx2 =   (tempb * tempb + matx12 * matx12) / (detx*betx1)
 
-    betx.append(betx2)
-    alfx.append(alfx2)
-    r11.append(RR_ET[0, 0])
-    r12.append(RR_ET[0, 1])
-    r21.append(RR_ET[1, 0])
-    r22.append(RR_ET[1, 1])
-
-betx = np.array(betx)
-alfx = np.array(alfx)
+    betx[ii+1] = betx2
+    alfx[ii+1] = alfx2
+    r11[ii+1] = RR_ET[0, 0]
+    r12[ii+1] = RR_ET[0, 1]
+    r21[ii+1] = RR_ET[1, 0]
+    r22[ii+1] = RR_ET[1, 1]
