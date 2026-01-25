@@ -95,6 +95,8 @@ RR_ET = RR_ET0.copy()
 n_elem = len(mux)
 betx = np.zeros(n_elem)
 alfx = np.zeros(n_elem)
+bety = np.zeros(n_elem)
+alfy = np.zeros(n_elem)
 r11 = np.zeros(n_elem)
 r12 = np.zeros(n_elem)
 r21 = np.zeros(n_elem)
@@ -102,6 +104,8 @@ r22 = np.zeros(n_elem)
 
 betx[0] = betx0
 alfx[0] = alfx0
+bety[0] = bety0
+alfy[0] = alfy0
 r11[0] = RR_ET[0, 0]
 r12[0] = RR_ET[0, 1]
 r21[0] = RR_ET[1, 0]
@@ -143,16 +147,28 @@ for ii in range(n_elem - 1):
 
     betx1 = betx[ii]
     alfx1 = alfx[ii]
+    bety1 = bety[ii]
+    alfy1 = alfy[ii]
 
-    matx11 = EE[0,0]
-    matx12 = EE[0,1]
-    matx21 = EE[1,0]
-    matx22 = EE[1,1]
-    detx = matx11 * matx22 - matx12 * matx21
-    tempb = matx11 * betx1 - matx12 * alfx1
-    tempa = matx21 * betx1 - matx22 * alfx1
-    alfx2 = - (tempa * tempb + matx12 * matx22) / (detx*betx1)
-    betx2 =   (tempb * tempb + matx12 * matx12) / (detx*betx1)
+    Rx11 = EE[0,0]
+    Rx12 = EE[0,1]
+    Rx21 = EE[1,0]
+    Rx22 = EE[1,1]
+    detx = Rx11 * Rx22 - Rx12 * Rx21
+    tempb = Rx11 * betx1 - Rx12 * alfx1
+    tempa = Rx21 * betx1 - Rx22 * alfx1
+    alfx2 = - (tempa * tempb + Rx12 * Rx22) / (detx*betx1)
+    betx2 =   (tempb * tempb + Rx12 * Rx12) / (detx*betx1)
+
+    Ry11 = FF[0,0]
+    Ry12 = FF[0,1]
+    Ry21 = FF[1,0]
+    Ry22 = FF[1,1]
+    dety = Ry11 * Ry22 - Ry12 * Ry21
+    tempb = Ry11 * bety1 - Ry12 * alfy1
+    tempa = Ry21 * bety1 - Ry22 * alfy1
+    alfy2 = - (tempa * tempb + Ry12 * Ry22) / (dety*bety1)
+    bety2 =   (tempb * tempb + Ry12 * Ry12) / (dety*bety1)
 
     betx[ii+1] = betx2
     alfx[ii+1] = alfx2
@@ -160,3 +176,5 @@ for ii in range(n_elem - 1):
     r12[ii+1] = RR_ET[0, 1]
     r21[ii+1] = RR_ET[1, 0]
     r22[ii+1] = RR_ET[1, 1]
+    bety[ii+1] = bety2
+    alfy[ii+1] = alfy2
