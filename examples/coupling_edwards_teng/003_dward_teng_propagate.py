@@ -67,7 +67,8 @@ qy = tw.qy
 lnf = xt.linear_normal_form
 SS2D = lnf.S[:2, :2]
 
-# Starting point
+# Initial conditions for Edwards-Teng propagation
+# Based on MAD-X implementation (see madx/src/twiss.f90, subroutine twcpin)
 
 Rot = np.zeros(shape=(6, 6), dtype=np.float64)
 lnf = xt.linear_normal_form
@@ -128,6 +129,9 @@ for ii in range(n_elem - 1):
     CC = RRe_ii[2:4, :2]
     DD = RRe_ii[2:4, 2:4]
 
+    # Propagate EE, FF and RR_ET through the element
+    # Bases on MAD-X implementation (see madx/src/twiss.f90, subroutine twcptk)
+
     if np.allclose(BB, 0, atol=1e-12) and np.allclose(CC, 0, atol=1e-12):
         # Case in which the matrix is block diagonal (no coupling in the element)
         EE = AA
@@ -144,6 +148,9 @@ for ii in range(n_elem - 1):
         CCDD = CC - DD @ RR_ET
         FF = DD + CC @ RR_ET_BAR
         RR_ET = -CCDD @ EEBAR / edet
+
+    # Propagate Edwards-Teng Twiss parameters through the element
+    # Based on MAD-X implementation (see madx/src/twiss.f90, subroutine twcptk_twiss)
 
     betx1 = betx[ii]
     alfx1 = alfx[ii]
