@@ -1430,8 +1430,8 @@ def _compute_coupling_elements_edwards_teng(
     Rot = np.zeros(shape=(6, 6), dtype=np.float64)
     lnf = xt.linear_normal_form
 
-    Rot[0:2,0:2] = lnf.Rot2D(qx)
-    Rot[2:4,2:4] = lnf.Rot2D(qy)
+    Rot[0:2,0:2] = lnf.Rot2D(2 * np.pi * qx)
+    Rot[2:4,2:4] = lnf.Rot2D(2 * np.pi * qy)
 
     num_places = W_matrix.shape[0]
     r11 = np.zeros(num_places)
