@@ -122,7 +122,7 @@ print(f"s_start = {s_start}, s_end = {s_end}, n_steps = {n_steps}")
 #     poly1_df = df[df['region_name'] == 'Poly_1'] if 'region_name' in df.columns else df
 # print(poly1_df.to_string())
 
-splineboris_element = xt.SplineBoris(params=par_table, multipole_order=multipole_order, s_start=s_start, s_end=s_end, length=s_end-s_start, n_steps=n_steps)
+splineboris_element = xt.SplineBoris(par_table=par_table, multipole_order=multipole_order, s_start=s_start, s_end=s_end, length=s_end-s_start, n_steps=n_steps)
 
 env.elements['wiggler'] = splineboris_element
 
@@ -160,7 +160,7 @@ for i in range(n_steps):
     elem_s_end = s_val_i + ds/2
     
     wiggler_i = xt.SplineBoris(
-        params=params_i, 
+        par_table=params_i, 
         multipole_order=multipole_order, 
         s_start=elem_s_start, 
         s_end=elem_s_end, 
@@ -273,7 +273,7 @@ for i, name in enumerate(name_list):
     orig_elem = env_wiggler.elements[name]
     # Create new element with offset
     wiggler_off_i = xt.SplineBoris(
-        params=orig_elem.params,
+        par_table=orig_elem.par_table,
         multipole_order=orig_elem.multipole_order,
         s_start=orig_elem.s_start,
         s_end=orig_elem.s_end,

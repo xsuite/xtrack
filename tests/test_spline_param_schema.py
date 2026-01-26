@@ -133,32 +133,42 @@ def test_splineboris_from_fieldfit_df_and_csv(tmp_path):
         poly_order=p,
     )
 
-    # From DataFrame
-    sb_df = xt.SplineBoris.from_fieldfit_df(
-        df_fit_pars=df,
-        n_steps=n_steps,
+    # From DataFrame - use direct constructor with build_parameter_table_from_df
+    sb_df = xt.SplineBoris(
+        par_table=par_table,
+        s_start=s_start,
+        s_end=s_end,
         multipole_order=m,
-        poly_order=p,
+        n_steps=n_steps,
     )
 
     assert sb_df.multipole_order == m
     assert sb_df.n_steps == n_steps
-    np.testing.assert_allclose(np.asarray(sb_df.params), par_table)
+    np.testing.assert_allclose(np.asarray(sb_df.par_table), par_table)
 
-    # Save to CSV and load via from_fieldfit_csv
+    # Save to CSV and load via direct constructor
     csv_path = tmp_path / "fit_pars.csv"
     df.to_csv(csv_path)
-
-    sb_csv = xt.SplineBoris.from_fieldfit_csv(
-        csv_path,
+    
+    df_csv = pd.read_csv(csv_path, index_col=list(FIELD_FIT_INDEX_COLUMNS))
+    par_table_csv, s_start_csv, s_end_csv = build_parameter_table_from_df(
+        df_fit_pars=df_csv,
         n_steps=n_steps,
         multipole_order=m,
         poly_order=p,
     )
 
+    sb_csv = xt.SplineBoris(
+        par_table=par_table_csv,
+        s_start=s_start_csv,
+        s_end=s_end_csv,
+        multipole_order=m,
+        n_steps=n_steps,
+    )
+
     assert sb_csv.multipole_order == m
     assert sb_csv.n_steps == n_steps
-    np.testing.assert_allclose(np.asarray(sb_csv.params), par_table)
+    np.testing.assert_allclose(np.asarray(sb_csv.par_table), par_table)
 
     # Optional validation method should succeed
     assert sb_csv.validate_params(poly_order=p)

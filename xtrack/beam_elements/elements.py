@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 from typing import List
+import warnings
 
 import numpy as np
 from numbers import Number
@@ -801,11 +802,58 @@ class Wire(BeamElement):
 
 
 class SplineBoris(BeamElement):
+    """
+    Beam element for tracking particles through arbitrary magnetic fields using
+    the Boris algorithm with spline-interpolated field maps.
+
+    This element uses a parameter table that defines the magnetic field as a
+    function of longitudinal position using polynomial splines. The field is
+    represented using multipole expansions with polynomial coefficients.
+
+    The primary way to construct a ``SplineBoris`` element is using the direct
+    constructor, which accepts numpy arrays and automatically validates parameters:
+
+    >>> import numpy as np
+    >>> from xtrack.beam_elements.spline_param_schema import SplineParameterSchema
+    >>> 
+    >>> n_steps = 100
+    >>> n_params = SplineParameterSchema.get_num_params(multipole_order=1)
+    >>> par_table = np.zeros((n_steps, n_params))
+    >>> 
+    >>> element = xt.SplineBoris(
+    ...     par_table=par_table,
+    ...     multipole_order=1,
+    ...     s_start=0.0,
+    ...     s_end=1.0,
+    ... )
+
+    For building from FieldFitter DataFrames, use ``build_parameter_table_from_df()``
+    and then the direct constructor:
+
+    >>> from xtrack.beam_elements.spline_param_schema import build_parameter_table_from_df
+    >>> 
+    >>> par_table, s_start, s_end = build_parameter_table_from_df(
+    ...     df_fit_pars=df,
+    ...     n_steps=1000,
+    ...     multipole_order=3,
+    ... )
+    >>> element = xt.SplineBoris(
+    ...     par_table=par_table,
+    ...     s_start=s_start,
+    ...     s_end=s_end,
+    ...     multipole_order=3,
+    ... )
+
+    See Also
+    --------
+    SplineParameterSchema : Defines the canonical parameter ordering
+    build_parameter_table_from_df : Helper to build parameter tables from DataFrames
+    """
 
     isthick = True
     allow_rot_and_shift = False  # Disable base class transformations - we use shift_x/shift_y for field map offsets
 
-    _xofields={'params'             : xo.Float64[:][:],
+    _xofields={'par_table'          : xo.Float64[:][:],
                'multipole_order'    : xo.Int64,
                's_start'            : xo.Float64,
                's_end'              : xo.Float64,
@@ -822,7 +870,7 @@ class SplineBoris(BeamElement):
     ]
 
     def __init__(self,
-                 params=None,
+                 par_table=None,
                  multipole_order=1,
                  s_start=None,
                  s_end=None,
@@ -833,13 +881,88 @@ class SplineBoris(BeamElement):
                  hx=0.0,
                  **kwargs,
     ):
+        """
+        Construct a ``SplineBoris`` element for tracking particles through arbitrary
+        magnetic fields using the Boris algorithm with spline-interpolated field maps.
+
+        This is the primary constructor. It accepts numpy arrays for ``par_table``,
+        automatically validates parameters, and can infer ``n_steps`` and ``length``
+        when appropriate.
+
+        Parameters
+        ----------
+        par_table : array-like, optional
+            2D array-like of shape ``(n_steps, n_params)`` containing the parameters
+            ordered according to :class:`SplineParameterSchema`. Can be a numpy array
+            or list of lists. If ``None``, a minimal default table is created for
+            prebuild compatibility.
+            
+            If provided, ``n_steps`` will be auto-inferred from ``par_table.shape[0]``
+            unless explicitly specified and different from the default (1000).
+        multipole_order : int, default=1
+            Maximum multipole order used in the parameter table. Must match the
+            parameter table structure.
+        s_start : float, optional
+            Starting longitudinal position [m] covered by the parameter table.
+        s_end : float, optional
+            Ending longitudinal position [m] covered by the parameter table.
+        length : float, optional
+            Element length [m]. If ``None`` and both ``s_start`` and ``s_end`` are
+            provided, will be auto-calculated as ``s_end - s_start``.
+        n_steps : int, default=1000
+            Number of longitudinal steps. If ``par_table`` is provided and has a
+            different number of rows, ``n_steps`` will be auto-inferred from
+            ``par_table.shape[0]``.
+        shift_x : float, default=0.0
+            Transverse shift in x [m] - used for field map offset.
+        shift_y : float, default=0.0
+            Transverse shift in y [m] - used for field map offset.
+        hx : float, default=0.0
+            Horizontal curvature [1/m] - placeholder for future implementation.
+
+        Notes
+        -----
+        The parameter table is validated against :class:`SplineParameterSchema` to
+        ensure consistency with the C code expectations. Validation occurs automatically
+        when ``par_table`` is provided.
+        """
         # Provide default minimal jagged 2D array for params if None (needed for prebuild)
-        if params is None:
+        if par_table is None:
             # Default: minimal list of lists for prebuild compatibility
             # xo.Float64[:][:] expects a list of lists (jagged array)
             # This allows the element to be instantiated without arguments
-            params = [[0.0]]
-        kwargs['params'] = params
+            par_table = [[0.0]]
+        else:
+            # Convert numpy array to list if needed (keep backward compatibility with list-of-lists)
+            par_arr = np.asarray(par_table, dtype=np.float64)
+            if par_arr.ndim != 2:
+                raise ValueError("par_table must be a 2D array-like object")
+            
+            n_rows = par_arr.shape[0]
+            
+            # Auto-infer n_steps from par_table.shape[0] if not explicitly provided
+            # Check if n_steps matches the default and par_table has different number of rows
+            # This handles the case where user provides par_table but doesn't specify n_steps
+            if n_steps == 1000 and n_rows != 1000:
+                n_steps = n_rows
+            elif n_steps != n_rows:
+                raise ValueError(
+                    f"n_steps ({n_steps}) must match number of rows in par_table ({n_rows})"
+                )
+            
+            # Validate against the canonical schema
+            SplineParameterSchema.validate_param_array(
+                par_arr, multipole_order=multipole_order
+            )
+            
+            # Convert to list of lists for xobjects compatibility
+            par_table = par_arr.tolist()
+        
+        # Auto-calculate length from s_start and s_end if not provided
+        if length is None and s_start is not None and s_end is not None:
+            length = float(s_end) - float(s_start)
+        
+        kwargs['par_table'] = par_table
         kwargs['multipole_order'] = multipole_order
         if s_start is not None:
             kwargs['s_start'] = s_start
@@ -901,7 +1024,7 @@ class SplineBoris(BeamElement):
         length = float(s_end) - float(s_start)
 
         return cls(
-            params=par_arr.tolist(),
+            par_table=par_arr,
             multipole_order=int(multipole_order),
             s_start=float(s_start),
             s_end=float(s_end),
@@ -948,7 +1071,7 @@ class SplineBoris(BeamElement):
                 )
             multipole_order = m_int
 
-        return cls.from_parameter_table(
+        return cls(
             par_table=par_table,
             s_start=s_start,
             s_end=s_end,
@@ -990,7 +1113,7 @@ class SplineBoris(BeamElement):
         if poly_order is None:
             poly_order = SplineParameterSchema.POLY_ORDER
 
-        par_arr = np.asarray(self.params, dtype=np.float64)
+        par_arr = np.asarray(self.par_table, dtype=np.float64)
         return SplineParameterSchema.validate_param_array(
             par_arr,
             multipole_order=int(self.multipole_order),

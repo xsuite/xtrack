@@ -92,7 +92,7 @@ for i in range(n_steps):
     elem_s_start = s_val_i - ds/2
     elem_s_end = s_val_i + ds/2
     
-    wiggler_i = xt.SplineBoris.from_parameter_table(
+    wiggler_i = xt.SplineBoris(
         par_table=params_i,
         multipole_order=multipole_order,
         s_start=elem_s_start,
