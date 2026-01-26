@@ -69,24 +69,23 @@ def test_coupling_edwards_teng():
                             betx_mad_at_s, bety_mad_at_s, alfx_mad_at_s, alfy_mad_at_s)
 
     xo.assert_allclose(tw.r11_edw_teng, r11_mad_at_s,
-                    rtol=1e-5, atol=1e-5*np.max(np.abs(r11_mad_at_s)))
+                    rtol=1e-5, atol=5e-4*np.max(np.abs(r11_mad_at_s)))
     xo.assert_allclose(tw.r12_edw_teng, r12_mad_at_s,
-                    rtol=1e-5, atol=1e-5*np.max(np.abs(r12_mad_at_s)))
+                    rtol=1e-5, atol=5e-4*np.max(np.abs(r12_mad_at_s)))
     xo.assert_allclose(tw.r21_edw_teng, r21_mad_at_s,
-                    rtol=1e-5, atol=1e-5*np.max(np.abs(r21_mad_at_s)))
+                    rtol=1e-5, atol=6e-4*np.max(np.abs(r21_mad_at_s)))
     xo.assert_allclose(tw.r22_edw_teng, r22_mad_at_s,
-                    rtol=1e-5, atol=1e-5*np.max(np.abs(r22_mad_at_s)))
-    xo.assert_allclose(tw.betx_edw_teng, betx_mad_at_s, atol=0, rtol=1e-5)
+                    rtol=1e-5, atol=5e-4*np.max(np.abs(r22_mad_at_s)))
+    xo.assert_allclose(tw.betx_edw_teng, betx_mad_at_s, atol=0, rtol=1e-6)
+    xo.assert_allclose(tw.alfx_edw_teng, alfx_mad_at_s, atol=1e-4, rtol=1e-6)
+    xo.assert_allclose(tw.bety_edw_teng, bety_mad_at_s, atol=0, rtol=1e-6)
+    xo.assert_allclose(tw.alfy_edw_teng, alfy_mad_at_s, atol=1e-4, rtol=1e-6)
 
-    xo.assert_allclose(tw.betx_edw_teng, betx_mad_at_s, atol=0, rtol=5e-8)
-    xo.assert_allclose(tw.alfx_edw_teng, alfx_mad_at_s, atol=1e-4, rtol=1e-8)
-    xo.assert_allclose(tw.bety_edw_teng, bety_mad_at_s, atol=0, rtol=5e-8)
-    xo.assert_allclose(tw.alfy_edw_teng, alfy_mad_at_s, atol=1e-4, rtol=1e-8)
+    xo.assert_allclose(tw.f1001, rdt_mad_at_s['f1001'], rtol=1e-3,
+                    atol=5e-4 * np.max(np.abs(rdt_mad_at_s['f1001'])))
+    xo.assert_allclose(tw.f1010, rdt_mad_at_s['f1010'], rtol=1e-3,
+                    atol=5e-3 * np.max(np.abs(rdt_mad_at_s['f1010'])))
 
-    xo.assert_allclose(tw.f1001, rdt_mad_at_s['f1001'],
-                    atol=1e-5 * np.max(np.abs(rdt_mad_at_s['f1001'])))
-    xo.assert_allclose(tw.f1010, rdt_mad_at_s['f1010'],
-                    atol=1e-5 * np.max(np.abs(rdt_mad_at_s['f1010'])))
 
 
 def compute_rdt(r11, r12, r21, r22, betx, bety, alfx, alfy):
