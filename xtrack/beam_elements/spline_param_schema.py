@@ -167,16 +167,20 @@ class SplineParameterSchema:
         n_steps: int,
         multipole_order: int = 1,
         poly_order: Optional[int] = None,
+        ks_1: Optional[Sequence[float]] = None,
+        kn_1: Optional[Sequence[float]] = None,
     ) -> np.ndarray:
         """
         Build a schema-compliant parameter table from simple spline coefficients.
 
         This helper is intended for toy problems and tests where the field is
         represented by a *single* polynomial piece per component, specified via
-        the 0th-order multipole coefficients:
+        the multipole coefficients:
 
         - ``ks_0`` : coefficients for ``Bx`` (skew, order 0)
         - ``kn_0`` : coefficients for ``By`` (normal, order 0)
+        - ``ks_1`` : coefficients for ``Bx`` (skew, order 1) [optional]
+        - ``kn_1`` : coefficients for ``By`` (normal, order 1) [optional]
         - ``bs``   : coefficients for ``Bs`` (longitudinal)
 
         Parameters
@@ -185,13 +189,17 @@ class SplineParameterSchema:
             One-dimensional sequences of length ``poly_order + 1`` with the
             polynomial/spline coefficients as used in the tests, i.e. following
             the ``FieldFitter._poly`` convention.
+        ks_1, kn_1 :
+            Optional one-dimensional sequences of length ``poly_order + 1`` with
+            the first-order multipole coefficients. If not provided, these are
+            set to zero.
         n_steps :
             Number of longitudinal steps. The same coefficients are reused at
             each step, so the resulting table has shape ``(n_steps, n_params)``.
         multipole_order :
             Maximum multipole order to include in the schema. Only the
-            ``i = 0`` coefficients are populated by this helper; higher orders
-            are set to zero but still present in the table.
+            ``i = 0`` and ``i = 1`` coefficients are populated by this helper;
+            higher orders are set to zero but still present in the table.
         poly_order :
             Polynomial order. If ``None``, inferred from the length of
             ``ks_0`` (which must match the lengths of ``kn_0`` and ``bs``).
@@ -220,6 +228,25 @@ class SplineParameterSchema:
                 f"bs must have length {expected_len} (got {bs.shape[0]})"
             )
 
+        # Process optional ks_1 and kn_1 parameters
+        if ks_1 is not None:
+            ks_1 = np.asarray(ks_1, dtype=float)
+            if ks_1.shape[0] != expected_len:
+                raise ValueError(
+                    f"ks_1 must have length {expected_len} (got {ks_1.shape[0]})"
+                )
+        else:
+            ks_1 = np.zeros(expected_len)
+
+        if kn_1 is not None:
+            kn_1 = np.asarray(kn_1, dtype=float)
+            if kn_1.shape[0] != expected_len:
+                raise ValueError(
+                    f"kn_1 must have length {expected_len} (got {kn_1.shape[0]})"
+                )
+        else:
+            kn_1 = np.zeros(expected_len)
+
         # Canonical parameter ordering
         param_names = cls.get_param_names(
             multipole_order=multipole_order, poly_order=poly_order
@@ -231,6 +258,10 @@ class SplineParameterSchema:
             param_dict[f"ks_0_{k}"] = float(value)
         for k, value in enumerate(kn_0):
             param_dict[f"kn_0_{k}"] = float(value)
+        for k, value in enumerate(ks_1):
+            param_dict[f"ks_1_{k}"] = float(value)
+        for k, value in enumerate(kn_1):
+            param_dict[f"kn_1_{k}"] = float(value)
         for k, value in enumerate(bs):
             param_dict[f"bs_{k}"] = float(value)
 
