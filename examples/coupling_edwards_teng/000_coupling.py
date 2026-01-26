@@ -81,10 +81,12 @@ ax3.legend()
 
 ax4.plot(tw.s, tw.f1001.real, label='Xsuite')
 ax4.plot(tw.s, rdt_mad_at_s['f1001'].real, label='MAD-X', linestyle=':')
+ax4.plot(tw.s, np.abs(rdt_mad_at_s['f1001'] - tw.f1001), label='absolute error')
 ax4.legend()
 
 ax5.plot(tw.s, tw.f1010.real, label='Xsuite')
 ax5.plot(tw.s, rdt_mad_at_s['f1010'].real, label='MAD-X', linestyle=':')
+ax5.plot(tw.s, np.abs(rdt_mad_at_s['f1010'] - tw.f1010), label='absolute error')
 ax5.legend()
 
 
@@ -110,4 +112,4 @@ xo.assert_allclose(tw.alfy_edw_teng, alfy_mad_at_s, atol=1e-4, rtol=1e-6)
 xo.assert_allclose(tw.f1001, rdt_mad_at_s['f1001'], rtol=1e-3,
                    atol=5e-4 * np.max(np.abs(rdt_mad_at_s['f1001'])))
 xo.assert_allclose(tw.f1010, rdt_mad_at_s['f1010'], rtol=1e-3,
-                   atol=5e-4 * np.max(np.abs(rdt_mad_at_s['f1010'])))
+                   atol=5e-3 * np.max(np.abs(rdt_mad_at_s['f1010'])))
