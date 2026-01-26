@@ -417,9 +417,16 @@ class FieldFitter:
         integral = sc.integrate.trapezoid(b_region, s_region)
 
         if sub_df_prev is not None:
-            coeff_prev = sub_df_prev['param_value'].iloc[:].values
-            poly = np.polynomial.Polynomial(coeff_prev)
-            left_bounds = self._boundary_from_poly(s_left, poly)
+            # Extract coefficients, filtering out None values and sorting by param_index
+            # Only use parameters that have been fitted (param_value is not None)
+            sub_df_prev_fitted = sub_df_prev[sub_df_prev['param_value'].notna()].sort_values('param_index')
+            if len(sub_df_prev_fitted) == 0:
+                # No fitted parameters yet, use finite differences instead
+                left_bounds = self._boundary_from_finite_differences(b_region, s_region, get_right_point=False)
+            else:
+                coeff_prev = sub_df_prev_fitted['param_value'].values
+                poly = np.polynomial.Polynomial(coeff_prev)
+                left_bounds = self._boundary_from_poly(s_left, poly)
         else:
             left_bounds = self._boundary_from_finite_differences(b_region, s_region, get_right_point=False)
 
@@ -440,7 +447,11 @@ class FieldFitter:
         for i in range(self.poly_order + 1):
             param_value = coef[i]  # get coefficient of s^i
             self.df_fit_pars.at[(field, der_order, sub_df_this['region_name'].iloc[0], s_left, s_right, idx_left, idx_right, i), 'param_value'] = param_value
-            self.df_on_axis_fit[(field, der_order)].values[idx_left:idx_right + 1] = poly(s_region)
+        
+        # Use .loc instead of .values to avoid read-only array error
+        # Get the index slice for the region
+        idx_slice = self.df_on_axis_fit.index[idx_left:idx_right + 1]
+        self.df_on_axis_fit.loc[idx_slice, (field, der_order)] = poly(s_region)
 
     # PRIVATE
     # This method loops over all fields and derivatives and fits polynomials to each region.
@@ -649,11 +660,11 @@ class FieldFitter:
 
         if der == 2:
             x_label = r"$\frac{d^2 B_x}{d x^2}$"
-            y_label = r"$\frac{d^2 B_y}{d y^2}$"
+            y_label = r"$\frac{d^2 B_y}{d x^2}$"
             s_label = r"$\frac{d^2 B_s}{d x^2}$"
         elif der == 1:
             x_label = r"$\frac{d B_x}{d x}$"
-            y_label = r"$\frac{d B_y}{d y}$"
+            y_label = r"$\frac{d B_y}{d x}$"
             s_label = r"$\frac{d B_s}{d x}$"
         else:
             x_label = r"$B_x$"

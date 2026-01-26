@@ -324,3 +324,193 @@ def test_splineboris_homogeneous_rbend(field_angle):
     assert np.allclose(y_end_rbend, y_end_splineboris, atol=1e-12)
     assert np.allclose(px_end_rbend, px_final_splineboris, atol=1e-12)
     assert np.allclose(py_end_rbend, py_final_splineboris, atol=1e-12)
+
+
+def test_splineboris_solenoid_boris_integrator():
+    """
+    Test SplineBoris against BorisSpatialIntegrator with SolenoidField.
+    
+    This test:
+    1. Generates field map data from SolenoidField
+    2. Fits the field using FieldFitter (with caching)
+    3. Builds SplineBoris element from fit parameters
+    4. Compares tracking results with BorisSpatialIntegrator
+    """
+    import sys
+    import pandas as pd
+    from pathlib import Path
+    
+    # Add examples directory to path to import FieldFitter
+    examples_path = Path(__file__).parent.parent / "examples" / "undulator" / "spline_fitter"
+    if str(examples_path) not in sys.path:
+        sys.path.insert(0, str(examples_path))
+    from field_fitter import FieldFitter
+    
+    from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
+    from xtrack.beam_elements.spline_param_schema import (
+        build_parameter_table_from_df,
+        FIELD_FIT_INDEX_COLUMNS,
+    )
+    
+    # 1. Setup SolenoidField and particle configuration (matching test_boris_spatial.py)
+    sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
+    
+    delta = np.array([0, 4])
+    p0 = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
+        q0=1,
+        energy0=45.6e9/1000,
+        x=[-1e-3, -1e-3],
+        px=-1e-3*(1+delta),
+        y=1e-3,
+        delta=delta
+    )
+    
+    # 2. Generate field data on grid (X, Y, Z) and convert to DataFrame
+    # Define grid via dx, dy, ds and counts; FieldFitter expects X,Z as indices (s = Z*ds, x_phys = X*dx)
+    dx, dy, ds = 0.001, 0.001, 0.03
+    n_x, n_z = 21, 1001
+    n_x_half = (n_x - 1) // 2
+    x_idx = np.arange(-n_x_half, n_x_half + 1)
+    z_idx = np.arange(n_z)
+    y_vals = np.array([0.0])  # On-axis, FieldFitter computes derivatives from X variation
+
+    x_phys = x_idx.astype(float) * dx
+    z_phys = z_idx.astype(float) * ds
+
+    Zp_grid, Xp_grid, Y_grid = np.meshgrid(z_phys, x_phys, y_vals, indexing='ij')
+    Zi_grid, Xi_grid, _ = np.meshgrid(z_idx, x_idx, y_vals, indexing='ij')
+
+    x_flat = Xp_grid.flatten()
+    y_flat = Y_grid.flatten()
+    z_flat = Zp_grid.flatten()
+    xi_flat = Xi_grid.flatten()
+    zi_flat = Zi_grid.flatten()
+
+    Bx_flat, By_flat, Bs_flat = sf.get_field(x_flat, y_flat, z_flat)
+
+    rows = []
+    for i in range(len(x_flat)):
+        rows.append({
+            'X': float(xi_flat[i]),
+            'Y': float(y_flat[i]),
+            'Z': float(zi_flat[i]),
+            'Bx': float(Bx_flat[i]),
+            'By': float(By_flat[i]),
+            'Bs': float(Bs_flat[i])
+        })
+    
+    df_raw_data = pd.DataFrame(rows)
+    df_raw_data.set_index(['X', 'Y', 'Z'], inplace=True)
+    
+    # Force DataFrame to be fully writable by recreating with explicit array copies
+    # This ensures all underlying arrays are independent and writable
+    # Use to_numpy(copy=True) and ensure arrays are writable
+    bx_arr = df_raw_data['Bx'].to_numpy(copy=True)
+    by_arr = df_raw_data['By'].to_numpy(copy=True)
+    bs_arr = df_raw_data['Bs'].to_numpy(copy=True)
+    x_arr = df_raw_data.index.get_level_values('X').to_numpy(copy=True)
+    y_arr = df_raw_data.index.get_level_values('Y').to_numpy(copy=True)
+    z_arr = df_raw_data.index.get_level_values('Z').to_numpy(copy=True)
+    
+    # Ensure arrays are writable (setflags)
+    bx_arr.setflags(write=True)
+    by_arr.setflags(write=True)
+    bs_arr.setflags(write=True)
+    x_arr.setflags(write=True)
+    y_arr.setflags(write=True)
+    z_arr.setflags(write=True)
+    
+    df_raw_data = pd.DataFrame({
+        'Bx': bx_arr,
+        'By': by_arr,
+        'Bs': bs_arr
+    }, index=pd.MultiIndex.from_arrays([x_arr, y_arr, z_arr], names=['X', 'Y', 'Z']))
+    
+    # 3. Fit parameter caching: check file existence, load or fit and save
+    test_data_dir = Path(__file__).parent.parent / "test_data"
+    test_data_dir.mkdir(exist_ok=True)
+    fit_pars_path = test_data_dir / "solenoid_field_fit_pars.csv"
+    
+    if fit_pars_path.exists():
+        # Load existing fit parameters
+        df_fit_pars = pd.read_csv(fit_pars_path, index_col=list(FIELD_FIT_INDEX_COLUMNS))
+    else:
+        # Create FieldFitter and perform fitting (same dx, dy, ds as grid)
+        fitter = FieldFitter(
+            df_raw_data=df_raw_data,
+            xy_point=(0.0, 0.0),
+            dx=dx,
+            dy=dy,
+            ds=ds,
+            min_region_size=10,
+            deg=2,  # For derivatives
+        )
+        fitter.set()
+        fitter.save_fit_pars(fit_pars_path)
+        df_fit_pars = fitter.df_fit_pars
+    
+    # 4. Build SplineBoris elements from fit parameters (series of elements, one per step)
+    n_steps = 1000
+    multipole_order = 2  # To include derivatives
+    
+    par_table, s_start_fit, s_end_fit = build_parameter_table_from_df(
+        df_fit_pars=df_fit_pars,
+        n_steps=n_steps,
+        multipole_order=multipole_order,
+    )
+    
+    # Create a series of SplineBoris elements, one for each step
+    # This matches the pattern used in examples/undulator/sls_with_undulators_closed_spin_radiation.py
+    splineboris_list = []
+    s_vals = np.linspace(s_start_fit, s_end_fit, n_steps)
+    ds_step = (s_end_fit - s_start_fit) / n_steps
+
+    for i in range(n_steps):
+        # Each element covers a small slice of the field map
+        # params should be a 2D array: [[param1, param2, ...]] for n_steps=1
+        params_i = [par_table[i].tolist()]
+        s_val_i = s_vals[i]
+
+        # For each single-step element, s_start and s_end define the range
+        # in the field map that this step covers. Use a small interval around s_val_i.
+        elem_s_start = s_val_i - ds_step / 2
+        elem_s_end = s_val_i + ds_step / 2
+        
+        splineboris_i = xt.SplineBoris(
+            par_table=params_i,
+            multipole_order=multipole_order,
+            s_start=elem_s_start,
+            s_end=elem_s_end,
+            n_steps=1,
+        )
+        splineboris_list.append(splineboris_i)
+    
+    # 5. Create BorisSpatialIntegrator element and track particles
+    integrator = xt.BorisSpatialIntegrator(
+        fieldmap_callable=sf.get_field,
+        s_start=0,
+        s_end=30,
+        n_steps=n_steps
+    )
+    
+    # Track with both elements
+    p_splineboris = p0.copy()
+    p_boris = p0.copy()
+    
+    line_splineboris = xt.Line(elements=splineboris_list)
+    line_splineboris.particle_ref = p_splineboris
+    line_splineboris.track(p_splineboris)
+    
+    integrator.track(p_boris)
+    
+    # 6. Compare results with appropriate tolerances
+    # Use similar tolerances as in test_boris_spatial.py (relative tolerances around 2-3%)
+    rtol = 0.03  # 3% relative tolerance
+    atol_x = 1e-6  # Absolute tolerance for positions (1 micron)
+    atol_p = 1e-6  # Absolute tolerance for momenta
+    
+    np.testing.assert_allclose(p_splineboris.x, p_boris.x, rtol=rtol, atol=atol_x)
+    np.testing.assert_allclose(p_splineboris.y, p_boris.y, rtol=rtol, atol=atol_x)
+    np.testing.assert_allclose(p_splineboris.px, p_boris.px, rtol=rtol, atol=atol_p)
+    np.testing.assert_allclose(p_splineboris.py, p_boris.py, rtol=rtol, atol=atol_p)
