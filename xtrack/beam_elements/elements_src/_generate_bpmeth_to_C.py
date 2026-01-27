@@ -308,5 +308,5 @@ multipole_order = 7
 poly_order = 4
 field = 'B'
 curvature = '0'
-#write_to_C(max_order=multipole_order, poly_order=poly_order, field=field, curvature=curvature)
+write_to_C(max_order=multipole_order, poly_order=poly_order, field=field, curvature=curvature)
 write_to_python(max_order=multipole_order, poly_order=poly_order, field=field, curvature=curvature)

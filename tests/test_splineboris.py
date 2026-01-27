@@ -429,7 +429,7 @@ def test_splineboris_undulator_vs_boris_spatial():
 
     # This undulator is part of the SLS, so we use the nominal energy of the SLS.
     p_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
-    line_spline.particle_ref = p_ref
+    line_spline.particle_ref = p_ref.copy()
 
     p_spline = line_spline.particle_ref.copy()
     p_spline.x = 1e-3
@@ -482,6 +482,19 @@ def test_splineboris_undulator_vs_boris_spatial():
 
     line_boris.track(p_boris)
 
+    print(f"x_end_spline = {p_spline.x[0]}, x_end_boris = {p_boris.x[0]}")
+    print(f"px_end_spline = {p_spline.px[0]}, px_end_boris = {p_boris.px[0]}")
+    print(f"y_end_spline = {p_spline.y[0]}, y_end_boris = {p_boris.y[0]}")
+    print(f"py_end_spline = {p_spline.py[0]}, py_end_boris = {p_boris.py[0]}")
+    print(f"zeta_end_spline = {p_spline.zeta[0]}, zeta_end_boris = {p_boris.zeta[0]}")
+    print(f"delta_end_spline = {p_spline.delta[0]}, delta_end_boris = {p_boris.delta[0]}")
+
+    print(f"x relative error = {np.abs(p_spline.x[0] - p_boris.x[0]) / np.abs(p_spline.x[0])}")
+    print(f"px relative error = {np.abs(p_spline.px[0] - p_boris.px[0]) / np.abs(p_spline.px[0])}")
+    print(f"y relative error = {np.abs(p_spline.y[0] - p_boris.y[0]) / np.abs(p_spline.y[0])}")
+    print(f"py relative error = {np.abs(p_spline.py[0] - p_boris.py[0]) / np.abs(p_spline.py[0])}")
+    print(f"zeta relative error = {np.abs(p_spline.zeta[0] - p_boris.zeta[0]) / np.abs(p_spline.zeta[0])}")
+
     # ------------------------------------------------------------------
     # Compare end coordinates
     # ------------------------------------------------------------------
@@ -492,6 +505,8 @@ def test_splineboris_undulator_vs_boris_spatial():
     xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-5, atol=5e-5)
     xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-5, atol=5e-5)
     xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-5, atol=5e-5)
+
+test_splineboris_undulator_vs_boris_spatial()
 
 # def test_splineboris_quadrupole_analytic():
 #     import numpy as np
