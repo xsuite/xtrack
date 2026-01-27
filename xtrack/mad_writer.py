@@ -563,6 +563,7 @@ element_types_converted_to_markers = {
 
 def element_to_mad_str(
     name,
+    env_name,
     line,
     mad_type=MadType.MADX,
     substituted_vars=None,
@@ -571,8 +572,9 @@ def element_to_mad_str(
     Generic converter for elements to MADX/MAD-NG.
     """
 
-    el = line._element_dict[name]
-    eref = _get_eref(line, name)
+
+    el = line._element_dict[env_name]
+    eref = _get_eref(line, env_name)
 
     while isinstance(el, xt.Replica):
         eref = line.ref[el.parent_name]
@@ -600,7 +602,7 @@ def element_to_mad_str(
         _handle_transforms(tokens, eref, mad_type=mad_type, substituted_vars=substituted_vars)
 
     if mad_type == MadType.MADNG:
-        tokens = [tokens[0]] + [f"'{name.replace(':', '__')}'"] + tokens[1:]
+        tokens = [tokens[0]] + [f"'{name}'"] + tokens[1:]
         tokens = _handle_tokens_madng(tokens, substituted_vars)
 
     return ', '.join(tokens)
@@ -631,7 +633,7 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
         tt_name = tt.name
         tt_s = tt.s
         tt_isthick = tt.isthick
-        for ii, nn in enumerate(tt.name):
+        for ii, nn in enumerate(tt.name[:-1]):
             if nn.startswith("||drift_"):
                 continue
             nn = tt_name[ii]
@@ -640,11 +642,11 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
             else:
                 s_dict[nn] = 0.5 * (tt_s[ii] + tt_s[ii+1])
 
-        for nn in line.element_names:
             if nn.startswith("||drift_"):
                 continue
-            el = line._element_dict[nn]
-            el_str = element_to_mad_str(nn, line, mad_type=MadType.MADX)
+
+            el_str = element_to_mad_str(nn, tt.env_name[ii], line, mad_type=MadType.MADX)
+
             if nn + '_tilt_entry' in line._element_dict:
                 el_str += ", " + mad_assignment('tilt',
                             _ge(line.element_refs[nn + '_tilt_entry'].angle) / 180. * np.pi,
@@ -653,7 +655,6 @@ def to_madx_sequence(line, name='seq', mode='sequence'):
             if el_str is None:
                 continue
 
-            nn_mad = nn.replace(':', '__')  # : not supported in madx names
             nn_mad = nn.replace('/', '__')  # / not supported in madx names
             seq_str += f"{nn_mad}: {el_str}, at={s_dict[nn]};\n"
         seq_str += 'endsequence;'
@@ -702,17 +703,18 @@ def to_madng_sequence(line, name='seq'):
         else:
             s_dict[nn] = 0.5 * (tt.s[ii] + tt.s[ii+1])
 
-        el = line._element_dict[nn]
+        el = line._element_dict[tt.env_name[ii]]
 
-        el_str = element_to_mad_str(nn, line, mad_type=MadType.MADNG, substituted_vars=substituted_vars)
+        el_str = element_to_mad_str(nn, tt.env_name[ii], line, mad_type=MadType.MADNG, substituted_vars=substituted_vars)
 
         if el_str is None:
             continue
 
         # Misalignments
         if (hasattr(el, 'shift_x') and hasattr(el, 'shift_y')
-            and el.__class__ not in element_types_converted_to_markers):
-            el_str += f", misalign =\\ {{dx={mad_str_or_value(_ge(line.ref[nn].shift_x))}, dy={mad_str_or_value(_ge(line.ref[nn].shift_y))}}}"
+                and el.__class__ not in element_types_converted_to_markers):
+            el_str += f", misalign =\\ {{dx={mad_str_or_value(_ge(line.ref[tt.env_name[ii]].shift_x))}, dy={mad_str_or_value(_ge(line.ref[tt.env_name[ii]].shift_y))}}}"
+
         el_strs.append(el_str)
 
     # Chunking sequence

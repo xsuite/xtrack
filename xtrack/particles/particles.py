@@ -1623,7 +1623,6 @@ class Particles(xo.HybridClass):
     def gamma0(self, value):
         self.gamma0[:] = value
 
-
     def update_beta0(self, new_beta0):
 
         """
@@ -2118,3 +2117,41 @@ def _update_kwargs0_from_pdg_id(pdg_id, kwargs):
             kwargs['q0'] = q
         if mass0 is None:
             kwargs['mass0'] = get_mass_from_pdg_id(pdg_id)
+
+def ptau2delta(ptau, beta0):
+    """Convert transverse momentum pt/p to relative momentum deviation dp/p.
+
+    Parameters
+    ----------
+    ptau : float
+        Transverse momentum relative to total momentum (pt/p, dimensionless).
+    beta0 : float
+        Particle relativistic beta (v/c).
+
+    Returns
+    -------
+    float
+        Relative momentum deviation (dp/p, dimensionless).
+    """
+
+    _beta0 = 1 / beta0
+    return np.sqrt(1 + 2*ptau*_beta0 + ptau**2) - 1
+
+def dptau2ddelta(ptau, beta0):
+    """Calculate derivative of relative momentum deviation dp/p with respect to pt.
+
+    Parameters
+    ----------
+    ptau : float
+        Transverse momentum relative to total momentum (pt/p, dimensionless).
+    beta0 : float
+        Particle relativistic beta (v/c).
+
+    Returns
+    -------
+    float
+        Derivative of relative momentum deviation (d(dp/p), dimensionless).
+    """
+
+    _beta0 = 1 / beta0
+    return (_beta0 + ptau) / np.sqrt(1 + 2*ptau*_beta0 + ptau**2)

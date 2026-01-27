@@ -1,10 +1,12 @@
 import numpy as np
+
 from .match import Action
 import os
 import uuid
 
-from .mad_writer import mad_str_or_value
 import xtrack as xt
+
+from xtrack.particles.particles import ptau2delta, dptau2ddelta
 
 NG_XS_MAP = {
     'beta11': 'betx',
@@ -15,14 +17,56 @@ NG_XS_MAP = {
     'mu2': 'muy',
 }
 
+XS_NG_MAP = {
+    'betx': 'beta11',
+    'bety': 'beta22',
+    'alfx': 'alfa11',
+    'alfy': 'alfa22',
+    'mux': 'mu1',
+    'muy': 'mu2',
+    'dx': 'dx',
+    'dpx': 'dpx',
+    'x': 'x',
+    'px': 'px',
+    'y': 'y',
+    'py': 'py',
+    'zeta': 't',
+    'delta': 'pt',
+    'ptau': 'pt',
+}
+
 BETA0_COLUMNS = ['x', 'px', 'y', 'py', 't', 'pt',
-                'dx', 'dy', 'dpx', 'dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'phix',
-                'wy', 'phiy', 'mu1', 'mu2', 'mu3', 'dmu1', 'dmu2', 'dmu3', 'r11',
-                'r12', 'r21', 'r22', 'alfa11', 'alfa12', 'alfa13', 'alfa21',
-                'alfa22', 'alfa23', 'alfa31', 'alfa32', 'alfa33', 'beta11',
-                'beta12', 'beta13', 'beta21', 'beta22', 'beta23', 'beta31',
-                'beta32', 'beta33', 'gama11', 'gama12', 'gama13', 'gama21',
-                'gama22', 'gama23', 'gama31', 'gama32', 'gama33']
+                 'dx', 'dy', 'dpx', 'dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'phix',
+                 'wy', 'phiy', 'mu1', 'mu2', 'mu3', 'dmu1', 'dmu2', 'dmu3', 'r11',
+                 'r12', 'r21', 'r22', 'alfa11', 'alfa12', 'alfa13', 'alfa21',
+                 'alfa22', 'alfa23', 'alfa31', 'alfa32', 'alfa33', 'beta11',
+                 'beta12', 'beta13', 'beta21', 'beta22', 'beta23', 'beta31',
+                 'beta32', 'beta33', 'gama11', 'gama12', 'gama13', 'gama21',
+                 'gama22', 'gama23', 'gama31', 'gama32', 'gama33']
+
+TW_BASE_COLUMNS = ['s', 'beta11', 'beta22', 'beta33', 'alfa11', 'alfa22', 'alfa33',
+                   'gama11', 'gama22', 'gama33', 'x', 'px', 'y', 'py', 't', 'pt',
+                   'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2', 'mu3']
+
+OPTFUN_QUANTITIES = ['beta11', 'beta22', 'alfa11', 'alfa22', 'gama11', 'gama22',
+                     'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2']
+
+CHROM_COLUMNS = ['dmu1', 'dmu2', 'dmu3', 'Dx', 'Dpx', 'Dy',
+                 'Dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'wy', 'phix', 'phiy']
+
+COUPLING_COLUMNS = ['alfa12', 'alfa13', 'alfa21', 'alfa23', 'alfa31', 'alfa32',
+                    'beta12', 'beta13', 'beta21', 'beta23', 'beta31', 'beta32',
+                    'gama12', 'gama13', 'gama21', 'gama23', 'gama31', 'gama32',
+                    'f1001', 'f1010', 'r11', 'r12', 'r21', 'r22']
+
+TPSA_ALLOWED_TARGETS = { 'beta11', 'beta22', 'alfa11', 'alfa22', 'dx', 'dpx', 'dy', 'dpy',
+                         'mu1', 'mu2', 'x', 'px', 'y', 'py', 't', 'pt' }
+
+XSUITE_MADNG_ENV_NAME = "_xsuite_matching_env"
+
+def _lua_list(strings):
+    """Convert Python list → Lua { 'a', 'b', 'c' }."""
+    return "{ " + ", ".join(f"'{s}'" for s in strings) + " }"
 
 class MadngVars:
 
@@ -30,7 +74,15 @@ class MadngVars:
         self.mad = mad
 
     def __setitem__(self, key, value):
-        setattr(self.mad.MADX, key.replace('.', '_'), value)
+        # Check for key if it's a ctpsa or tpsa
+        var = f"MADX['{key.replace('.', '_')}']"
+        is_tpsa = self.mad.send(f"py:send(MAD.typeid.is_tpsa({var}) or MAD.typeid.is_ctpsa({var}))").recv()
+        if is_tpsa:
+            self.mad.send(f"{var}:set0(py:recv())").send(value)
+        else:
+            self.mad[var] = value
+
+
         #Expressions still to be handled, could use the following:
         # mng.send(
         #     MADX:open_env()
@@ -92,26 +144,30 @@ def _build_rdt_script(mng_sequence_name, rdts, columns):
 
 def _build_beta0_block_string(tw_kwargs):
     flag_init = False
-    beta0_keys = []
+    beta0_dict = {}
     for k in tw_kwargs.keys():
         if k in BETA0_COLUMNS:
-            beta0_keys.append(k)
+            beta0_dict[k] = tw_kwargs[k]
+            flag_init = True
+        elif k in XS_NG_MAP:
+            beta0_dict[XS_NG_MAP[k]] = tw_kwargs[k]
             flag_init = True
 
     if flag_init:
         # Construct beta0 string
         beta0_str = 'X0 = beta0 {'
-        for k in beta0_keys:
-            beta0_str += f'{k} = {tw_kwargs[k]}, '
+        for k, v in beta0_dict.items():
+            beta0_str += f'{k} = {v}, '
         beta0_str = beta0_str[:-2] + '}, '
     else:
         beta0_str = ''
     return beta0_str
 
-def _tw_ng(line, rdts=(), normal_form=True,
+def _tw_ng(line, rdts=(), normal_form=False,
            mapdef_twiss=2, mapdef_normal_form=4,
            nslice=3, xsuite_tw=True, X0=None,
-           method=4, **tw_kwargs):
+           method=4, compute_chromatic_properties=False,
+           coupling_edw_teng=False, **tw_kwargs):
 
     _action = ActionTwissMadng(line, {
         "rdts": rdts,
@@ -135,25 +191,24 @@ def _tw_ng(line, rdts=(), normal_form=True,
             raise NotImplementedError('TwissTable as init not implemented.')
         X0_str = _build_beta0_block_string(tw_kwargs)
     else:
-        X0_str = f'X0={X0}, '
+        X0_str = f'X0 = {X0}, '
 
-    if not (start is None and end is None and init is None) \
-        and not (start is not None and end is not None and X0_str != ''):
-        raise ValueError('Start and end must be specified together, as well as initial conditions, if open twiss is used.')
+    if (start is None) != (end is None):
+        raise ValueError('Start and end must be specified together.')
+
+    if start is not None and end is not None and not X0_str:
+        raise ValueError('Initial conditions must be specified when start and end are given.')
 
     full_twiss_str = ''
 
-    tw_columns = ['s', 'beta11', 'beta22', 'alfa11', 'alfa22',
-                'x', 'px', 'y', 'py', 't', 'pt',
-                'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2']
-    if start is None and end is None:
-        extended_tw_columns = ['beta12', 'beta21', 'alfa12', 'alfa21',
-                'wx', 'wy', 'phix', 'phiy', 'dmu1', 'dmu2',
-                'f1001', 'f1010', 'r11', 'r12', 'r21', 'r22',
-        ]
-        full_twiss_str = f"mapdef={mapdef_twiss}, implicit=true, nslice={nslice}, misalgn=true, coupling=true, chrom=true"
-        tw_columns += extended_tw_columns
+    tw_columns = TW_BASE_COLUMNS.copy()
 
+    full_twiss_str = f"implicit=true, nslice={nslice}, misalign=true, coupling={str(coupling_edw_teng).lower()}, chrom={str(compute_chromatic_properties).lower()}"
+
+    if coupling_edw_teng:
+        tw_columns += COUPLING_COLUMNS
+    if compute_chromatic_properties:
+        tw_columns += CHROM_COLUMNS
     columns = tw_columns + list(rdts)
 
     send_cmd = _build_column_send_script(columns)
@@ -161,7 +216,6 @@ def _tw_ng(line, rdts=(), normal_form=True,
     if len(rdts) > 0:
         mng_script = _build_rdt_script(mng._sequence_name, rdts, columns)
     else:
-        # If start/end -> range, if only start: cycle - twiss - cycle back
         range_str = ''
 
         if start is not None and end is not None:
@@ -176,6 +230,7 @@ def _tw_ng(line, rdts=(), normal_form=True,
         '''}
         '''
         + send_cmd)
+
     mng.send(mng_script)
 
     out = mng.recv('columns')
@@ -191,8 +246,10 @@ def _tw_ng(line, rdts=(), normal_form=True,
         xs_tw_kwargs = {
             NG_XS_MAP.get(k, k): v for k, v in tw_kwargs.items()
         }
+
         tw = line.twiss(method='4d', reverse=False, **xs_tw_kwargs)
-    else:
+
+    if not xsuite_tw:
         # Handle wrap-around range
         if i_start > i_end:
             name_co = np.array(names[i_start:] + names[:i_end + 1] + ('_end_point',))
@@ -238,7 +295,7 @@ def _tw_ng(line, rdts=(), normal_form=True,
     for nn in rdts:
         tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
 
-    if start is None or end is None:
+    if compute_chromatic_properties:
         temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng)
         tw['ax_ng'] = np.imag(temp_x)
         tw['bx_ng'] = np.real(temp_x)
@@ -311,15 +368,18 @@ def madng_get_init(line, at):
     if not hasattr(line.tracker, '_madng'):
         line.build_madng_model()
     mng = line.tracker._madng
+    if at == xt.START:
+        at = "1"
+    else:
+        at = f"'{at}'"
 
     mng.send(f"""
         local observed in MAD.element.flags
-        {mng._sequence_name}:select(observed, {{list = {{'{at}'}}}})
+        {mng._sequence_name}:select(observed, {{list = {{{at}}}}})
         twpart, mf = twiss {{sequence = {mng._sequence_name}, observe = 1, savemap = true, info = 2}}
-        {mng._sequence_name}.X0 = twpart['{at}'].__map
-        {mng._sequence_name}.X0.status = "Aset" ! Bug corrected in next version
+        {XSUITE_MADNG_ENV_NAME}.X0 = twpart[{at}].__map
     """)
-    return f"{mng._sequence_name}.X0"
+    return f"{XSUITE_MADNG_ENV_NAME}.X0"
 
 def _survey_ng(line):
     if not hasattr(line.tracker, '_madng'):
@@ -391,11 +451,507 @@ class ActionTwissMadng(Action):
         if init is not None and start is not None and end is not None:
             assert isinstance(init, xt.TwissTable)
             self.X0 = madng_get_init(self.line, at=start)
+        elif init is not None:
+            assert isinstance(init, xt.TwissTable)
+            self.X0 = madng_get_init(self.line, at=xt.START)
+
         self._alredy_prepared = True
 
     def run(self):
         return self.line.madng_twiss(xsuite_tw = False, X0=self.X0, **self.tw_kwargs)
 
+class ActionTwissMadngTPSA(Action):
+    def __init__(self, line, vary_names, targets = [], tw_kwargs={}, sum_rmat_tar=0, **kwargs):
+        self.line = line
+        self.vary_names = vary_names
+        self.targets = targets
+        self.optics_target_locations = None
+        self.optics_target_quantities = None
+        self.tw_kwargs = tw_kwargs
+        self.tw_kwargs.update(kwargs)
+        self.twiss_flag = None
+        self._already_prepared = False
+        self.match_rmat = False
+        self.match_opt = False
+        self.sum_rmat_tar = sum_rmat_tar
+        self.rmat_start_end_list = None
+        self.rmat_tags = None
+        self._last_res = None
+        self._needs_zeta_scale = []
+        self._needs_delta_scale = []
+
+    def prepare(self, force=False):
+        """
+        Prepare the MAD-NG TPSA matching environment.
+        This method sets up the MAD-NG environment for TPSA matching by
+        configuring the initial conditions, setting target locations, and quantities
+        based on the provided targets.
+        To achieve that, arrays and maps are created within MAD-NG to keep track of
+        the target locations, quantities and differential algebraic maps.
+
+        Parameters
+        ----------
+        force : bool, optional
+            If True, forces re-preparation even if already prepared. Default is False.
+
+        Raises
+        ------
+        ValueError
+            If the target quantity is not allowed with TPSA matching
+            or if start and end are provided without initial conditions.
+        """
+
+        if self._already_prepared and not force:
+            return
+
+        # ------------------------------------------------------------
+        # 1. COLLECT INITIAL CONDITIONS
+        # ------------------------------------------------------------
+
+        init = self.tw_kwargs.get('init', None)
+
+        if init is None:
+            init = self.line.madng_twiss(**self.tw_kwargs)
+            self.tw_kwargs.update({'init': init})
+
+        assert isinstance(init, xt.TwissTable)
+
+        if not hasattr(self.line.tracker, '_madng'):
+            self.line.build_madng_model()
+
+        self.mng = self.line.tracker._madng
+
+        self.twiss_flag = any(isinstance(tar, (xt.TargetRelPhaseAdvance)) for tar in self.targets)
+
+        # Collect initial coordinates
+        coord_assign_str = self._initialize_coordinates_str(init)
+
+        # Process targets
+
+        targets_map_str, xs_ng_target_map = self._process_targets(init)
+
+
+        # Lua script assembly
+        observables = [loc for loc in self.optics_target_locations]
+
+        param_list_str = _lua_list(self.vary_names)
+        observables_str = _lua_list(observables)
+        optics_qty_str = _lua_list(list(self.optics_target_quantities))
+
+        init_cond_str = self._beta_block_str(init)
+
+        rmat_array_str = ''
+        if self.match_rmat:
+            rmat_array_str = f"{XSUITE_MADNG_ENV_NAME}.rmat_map_arr = table.new({self.sum_rmat_tar}, 0)\n"
+
+        mng_init_str = r'''
+            ''' + XSUITE_MADNG_ENV_NAME + r''' = {} -- to avoid variable name clashes
+            local obs_flag = MAD.element.flags.observed
+
+            local pts=''' + observables_str + r'''
+
+            ''' + self.mng._sequence_name + r''':select(obs_flag, {list=pts})
+
+            local params = ''' + param_list_str + r'''
+
+            local X0 = MAD.damap {
+                nv=6, -- number of variables
+                mo=2, -- max order of variables
+                np=#params, -- number of parameters
+                po=1, -- max order of parameters
+                pn=params, -- parameter names
+            }
+
+            -- Converting to TPSA (mutating type)
+            for _, v in ipairs(params) do
+                MADX[v] = MADX[v] + X0[v]
+            end
+
+            ''' + init_cond_str + r'''
+
+            local map1 = MAD.gphys.bet2map(B0, X0:copy())
+
+            ''' + coord_assign_str + r'''
+
+            -- Maps target locations to damaps
+            -- e.g. { 'BPM1' = damap1, 'BPM2' = damap2, ... }
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map = table.new(0, ''' + str(len(self.optics_target_locations)) + r''')
+
+            -- Maps rmat tags to rmat damaps
+            -- e.g. {rmat_damap1, rmat_damap2, ... }
+            ''' + rmat_array_str + r'''
+
+            -- Array of targets with additional info (location, quantity, orbit/optical function)
+            -- e.g. { { loc = 'BPM1', qty = 'beta11', optfun = true }, { loc = 'BPM2', qty = 'x', orbit = 1 }, ... }
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.targets_arr = table.new(''' + str(len(self.targets)) + r''', 0)
+
+            -- List (Array) of target optics/orbit quantities (suitable for MAD-NG),
+            -- e.g. {'beta11', 'alfa11', ...}
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.tar_optics_qtys = ''' + optics_qty_str + r'''
+
+            -- Initial map for tracking/twiss
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.init_X0_map = map1
+
+            -- Identity map
+            ''' + XSUITE_MADNG_ENV_NAME + r'''.empty_X0 = X0
+
+            -- Defining targets array
+            ''' + targets_map_str + r'''
+
+            -- Mapping from xsuite quantity names to madng quantity names
+            ''' + xs_ng_target_map + r'''
+            '''
+
+
+        self.mng.send(mng_init_str)
+
+        self._already_prepared = True
+
+    def _process_targets(self, init):
+        self.optics_target_locations = set()
+        self.optics_target_quantities = set()
+        self.rmat_start_end_list = [None] * self.sum_rmat_tar
+        self.rmat_tags = []
+
+        start = self.tw_kwargs.get('start', None)
+        end = self.tw_kwargs.get('end', None)
+
+        targets_map_str = ''
+        xs_ng_target_map = XSUITE_MADNG_ENV_NAME + '.xs_ng_target_map = {}\n'
+
+        for i, target in enumerate(self.targets):
+            if isinstance(target.tar, tuple):
+                self.match_opt = True
+                qty_orig = target.tar[0]
+                loc = target.tar[1]
+
+                qty = qty_orig[:-3] if qty_orig.endswith('_ng') else XS_NG_MAP[qty_orig]
+                assert qty in TPSA_ALLOWED_TARGETS, f"Target quantity '{qty_orig}' not allowed with TPSA matching."
+
+                self.optics_target_locations.add(loc)
+
+                aux = ''
+                if qty in OPTFUN_QUANTITIES:
+                    aux = 'optfun = true'
+                elif qty in ['x', 'px', 'y', 'py', 't', 'pt']:
+                    aux = f'orbit = {['x', 'px', 'y', 'py', 't', 'pt'].index(qty) + 1}'
+
+                if qty_orig == 'zeta':
+                    self._needs_zeta_scale.append(i)
+                elif qty_orig == 'delta':
+                    self._needs_delta_scale.append(i)
+
+                # set string for quantity mapping + loc to save in madng
+                targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_arr[{i+1}] = {{ loc = '{loc}', qty = '{qty}', {aux} }}\n"
+                xs_ng_target_map += f"{XSUITE_MADNG_ENV_NAME}.xs_ng_target_map['{qty_orig}'] = '{qty}'\n"
+
+                self.optics_target_quantities.add(qty_orig)
+
+
+            elif hasattr(target, "start") and hasattr(target, "end"):
+                if target.start != "__ele_start__":
+                    loc_start = target.start
+                elif start is not None:
+                    loc_start = start
+                else:
+                    loc_start = init.name[0]
+                if target.end != "__ele_stop__":
+                    loc_end = target.end
+                elif end is not None:
+                    loc_end = end
+                else:
+                    loc_end = init.name[-2]
+
+                if isinstance(target, xt.TargetRelPhaseAdvance):
+                    self.match_opt = True
+                    qty_orig = target.var
+                    qty = qty_orig[:-3] if qty_orig.endswith('_ng') else XS_NG_MAP[qty_orig]
+
+                    assert qty in TPSA_ALLOWED_TARGETS, f"Target quantity '{target.var}' not allowed with TPSA matching."
+
+                    self.optics_target_locations.add(loc_start)
+                    self.optics_target_locations.add(loc_end)
+                    self.optics_target_quantities.add(qty_orig)
+
+                    targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_arr[{i+1}] = {{ loc = '{loc_end}', qty = '{qty}', loc_start = '{loc_start}', optfun = true }}\n"
+                    xs_ng_target_map += f"{XSUITE_MADNG_ENV_NAME}.xs_ng_target_map['{target.var}'] = '{qty}'\n"
+
+                elif isinstance(target, xt.TargetRmatrixTerm):
+                    self.match_rmat = True
+                    qty = target.term
+                    tag = target.tag.split('_')[0]
+                    idx = int(tag)
+
+                    self.rmat_start_end_list[idx] = (loc_start, loc_end)
+                    self.rmat_tags.append(target.tag)
+
+                    targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_arr[{i+1}] = {{ loc = '{loc_end}', qty = '{qty}', loc_start = '{loc_start}', rmat = true, tag = {tag} }}\n"
+                    xs_ng_target_map += f"{XSUITE_MADNG_ENV_NAME}.xs_ng_target_map['{target.term}'] = '{qty}'\n"
+
+            else:
+                raise NotImplementedError(f"Target of type {type(target)} not implemented for MAD-NG TPSA matching.")
+
+        self.optics_target_locations = list(self.optics_target_locations)
+
+        return targets_map_str, xs_ng_target_map
+
+    def _beta_block_str(self, init):
+        madng_init_flag = "x_ng" in init.cols
+        quantity_appendix = "_ng" if "x_ng" in init.cols else ""
+        start = self.tw_kwargs.get('start', None)
+        start_loc = 0 if start is None else start
+
+        init_cond_str = f"""local B0 = MAD.beta0 {{
+            beta11 = {init['beta11'+quantity_appendix,start_loc] if madng_init_flag else init['betx',start_loc]},
+            beta22 = {init['beta22'+quantity_appendix,start_loc] if madng_init_flag else init['bety',start_loc]},
+            alfa11 = {init['alfa11'+quantity_appendix,start_loc] if madng_init_flag else init['alfx',start_loc]},
+            alfa22 = {init['alfa22'+quantity_appendix,start_loc] if madng_init_flag else init['alfy',start_loc]},
+            dx     = {init['dx'+quantity_appendix,start_loc] if madng_init_flag else init['dx',start_loc]},
+            dpx    = {init['dpx'+quantity_appendix,start_loc] if madng_init_flag else init['dpx',start_loc]},
+            dy     = {init['dy'+quantity_appendix,start_loc] if madng_init_flag else init['dy',start_loc]},
+            dpy    = {init['dpy'+quantity_appendix,start_loc] if madng_init_flag else init['dpy',start_loc]},
+        }}"""
+
+        return init_cond_str
+
+    def _initialize_coordinates_str(self, init):
+        madng_init_flag = "x_ng" in init.cols
+        quantity_appendix = "_ng" if madng_init_flag else ""
+        beta0 = self.line.particle_ref.beta0[0]
+        start = self.tw_kwargs.get('start', None)
+        start_loc = 0 if start is None else start
+
+        init_coord = np.zeros(6)
+        init_coord[0] = init['x' + quantity_appendix, start_loc]
+        init_coord[1] = init['px' + quantity_appendix, start_loc]
+        init_coord[2] = init['y' + quantity_appendix, start_loc]
+        init_coord[3] = init['py' + quantity_appendix, start_loc]
+
+        if madng_init_flag:
+            init_coord[4] = init['t_ng', start_loc]
+            init_coord[5] = init['pt_ng', start_loc]
+        else:
+            init_coord[4] = init['zeta', start_loc] / beta0
+            init_coord[5] = init['ptau', start_loc] # ptau corresponds to pt
+
+        # Build small Lua snippet: map1.x = val ...
+        coord_assign = " ".join(
+            f"map1.{p} = {v}"
+            for p, v in zip(['x','px','y','py','t','pt'], init_coord)
+            if abs(v) > 1e-12
+        )
+        return coord_assign
+
+    def run(self):
+        """
+        Execute the MAD-NG TPSA matching action.
+        This method performs either a Twiss or Track operation in MAD-NG
+        depending if quantities can be calculated through tracking or not.
+        It retrieves the results and constructs a TwissTable with the requested
+        target quantities at the specified target locations.
+
+        Returns
+        -------
+        xt.TwissTable
+            A TwissTable containing the results of the Twiss or Track operation
+            with the requested target quantities at the specified target locations.
+        """
+
+        if self._already_prepared is False:
+            self.prepare()
+
+        start = self.tw_kwargs.get('start', None)
+        end = self.tw_kwargs.get('end', None)
+
+        operation = "twiss" if self.twiss_flag else "track"
+        range_str = f"range='{start}/{end}', " if (start and end) else ""
+
+        mng_track_str = (
+            f"local trk, mflw = MAD.{operation}{{\n"
+            f"    sequence={self.mng._sequence_name},\n"
+            f"    X0={XSUITE_MADNG_ENV_NAME}.init_X0_map,\n"
+            f"    savemap=true,\n"
+            f"    observe=1,\n"
+            f"    {range_str}\n"
+            f"}}\n"
+            f"{XSUITE_MADNG_ENV_NAME}.trk = trk\n"
+        )
+
+        self.mng.send(mng_track_str)
+
+        loc_map_str = ''
+        loc_map_str = "\n".join(f"{XSUITE_MADNG_ENV_NAME}.target_loc_map['{loc}'] = {XSUITE_MADNG_ENV_NAME}.trk['{loc}'].__map" for loc in self.optics_target_locations)
+
+        # Twiss
+        if self.twiss_flag:
+            mng_table_str = r'''
+            local trk = ''' + XSUITE_MADNG_ENV_NAME + r'''.trk
+            ''' + loc_map_str + r'''
+            py:send(trk)
+            '''
+
+            res = self.mng.send(mng_table_str).recv(XSUITE_MADNG_ENV_NAME + '.trk').to_df()
+            res = xt.TwissTable(res)
+
+            # Add quantities which are not present yet with the name corresponding to the target quantity
+            for qty in self.optics_target_quantities:
+                if qty not in res.cols:
+                    res[qty] = res[qty[:-3] if qty.endswith('_ng') else XS_NG_MAP[qty]]
+
+        # Track
+        else:
+            mng_table_str = r'''
+            local trk = ''' + XSUITE_MADNG_ENV_NAME + r'''.trk
+            -- Add derived columns which are not present due to Track calculation
+            -- and use target names as defined from the user (Xsuite)
+            for _, tar in ipairs( ''' + XSUITE_MADNG_ENV_NAME + r'''.tar_optics_qtys ) do
+                if not trk[''' + XSUITE_MADNG_ENV_NAME + r'''.xs_ng_target_map[tar]] then
+                    trk:addcol(tar, \ri -> MAD.gphys.optfun(trk[ri].__map, ''' + XSUITE_MADNG_ENV_NAME + r'''.xs_ng_target_map[tar] .. '_'))
+                end
+            end
+
+            -- Save damaps
+            ''' + loc_map_str + r'''
+            py:send(trk)
+            '''
+
+            res_ng = self.mng.send(mng_table_str).recv(XSUITE_MADNG_ENV_NAME + '.trk')
+            res_tab = res_ng.to_df()
+            res = xt.TwissTable(res_tab)
+
+        if 'zeta' in self.optics_target_quantities:
+            res._data.loc[:, 'zeta'] = res['t'] * self.line.particle_ref.beta0[0]
+        if 'delta' in self.optics_target_quantities:
+            res._data.loc[:, 'delta'] = ptau2delta(res['pt'], self.line.particle_ref.beta0[0])
+
+        if self.match_rmat:
+            res = self.handle_rmatrices(res)
+
+        self._last_res = res
+        return res
+
+    def handle_rmatrices(self, res):
+        rmat_str = ''
+        rmatrices = []
+        for i in range(self.sum_rmat_tar):
+            start_rmat = self.rmat_start_end_list[i][0]
+            end_rmat = self.rmat_start_end_list[i][1]
+            if start_rmat == '__ele_start__':
+                start_rmat = self.tw_kwargs.get('start', None)
+            if end_rmat == '__ele_stop__':
+                end_rmat = self.tw_kwargs.get('end', None)
+
+            range_str = ''
+            if start_rmat is not None and end_rmat is not None:
+                range_str = f"range = '{start_rmat}/{end_rmat}', "
+            rmat_str = (
+                    f"local trkid, mflwid = MAD.track{{\n"
+                    f"    sequence={self.mng._sequence_name},\n"
+                    f"    X0={XSUITE_MADNG_ENV_NAME}.empty_X0,\n"
+                    f"    savemap=true,\n"
+                    f"    observe=1,\n"
+                    f"    {range_str}\n"
+                    f"}}\n"
+                    f"{XSUITE_MADNG_ENV_NAME}.rmat_map_arr[{i}] = mflwid[1]\n"
+                    f"local rmat = mflwid[1]:get1()\n"
+                    f"py:send(rmat)\n"
+                )
+
+            rmat_res = self.mng.send(rmat_str).recv('rmat')
+            rmatrices.append(rmat_res)
+
+        for tag in self.rmat_tags:
+            t0, term = tag.split("_")
+            ii = int(term[1]) - 1
+            jj = int(term[2]) - 1
+            res._data.attrs[tag] = rmatrices[int(t0)][ii, jj]
+
+        return res
+
+    def acquire_jacobian(self):
+        '''
+        Acquire the Jacobian matrix for the TPSA matching targets and variables.
+        This method computes the Jacobian matrix for the specified targets and
+        variables using MAD-NG's TPSA capabilities. It constructs
+        the Jacobian matrix by evaluating the sensitivity of each target quantity
+        with respect to each variable using MAD-NG's optfun function (optical functions)
+        or by direct extraction from the TPSA (orbit).
+
+        Returns
+        -------
+        np.ndarray
+            A 2D NumPy array representing the Jacobian matrix, where each row
+            corresponds to a target and each column corresponds to a variable.
+        '''
+
+        tar_len_str = f"local tarlen = {len(self.targets)}\n"
+        vary_len_str = f"local varylen = {len(self.vary_names)}\n"
+        jac_decl_str = f"{XSUITE_MADNG_ENV_NAME}.jac = MAD.matrix(tarlen, varylen)\n"
+
+        mng_str = tar_len_str + vary_len_str + jac_decl_str + r'''
+        -- Compute Jacobian
+        for i, target in ipairs(  ''' + XSUITE_MADNG_ENV_NAME + r'''.targets_arr ) do
+            local map = nil
+            local nv = ''' + XSUITE_MADNG_ENV_NAME + r'''.init_X0_map:nv()
+            if target.optfun or target.orbit then
+                map = ''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map[target.loc]
+            elseif target.rmat then
+                map = ''' + XSUITE_MADNG_ENV_NAME + r'''.rmat_map_arr[target.tag]
+            end
+
+            local monom = MAD.monomial(nv + varylen) -- BUILD MONOMIAL
+            for j = 1, map.np(map), 1 do
+                -- Quantity which can be calculated with optfun
+                if target.optfun then
+                    -- If loc_start (phase advance) is defined, we provide initial map
+                    if target.loc_start then
+                        local a0 = ''' + XSUITE_MADNG_ENV_NAME + r'''.target_loc_map[target.loc_start]
+                        ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = MAD.gphys.optfun(map, target.qty .. "_", j, 1, a0)
+                    else
+                        ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = MAD.gphys.optfun(map, target.qty .. "_", j, 1)
+                    end
+
+                -- Orbit Quantity
+                elseif target.orbit then
+                    monom[nv + j] = 1
+                    ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = map[target.orbit]:get(monom)
+                    monom[nv + j] = 0
+
+                elseif target.rmat then
+                    -- rmatrix terms are extracted directly from the damap
+                    local ind_1 = tonumber(target.qty:sub(2,2))
+                    local ind_2 = tonumber(target.qty:sub(3,3))
+                    monom[nv + j] = 1
+                    monom[ind_2] = 1
+                    ''' + XSUITE_MADNG_ENV_NAME + r'''.jac[(i-1)*varylen + j] = map[ind_1]:get(monom)
+                    monom[nv + j] = 0
+                    monom[ind_2] = 0
+                end
+            end
+        end
+
+        py:send(''' + XSUITE_MADNG_ENV_NAME + r'''.jac)
+        '''
+
+        self.mng.send(mng_str)
+
+        jac = np.array(self.mng.recv())
+
+        for i in self._needs_zeta_scale:
+            jac[i, :] *= self.line.particle_ref.beta0[0]
+        for i in self._needs_delta_scale:
+            jac[i, :] *= dptau2ddelta(self._last_res['delta', self.targets[i].tar[1]], self.line.particle_ref.beta0[0])
+        return jac
+
+    def cleanup(self):
+        # Need to reconvert TPSAs to normal values
+        if self._already_prepared is True:
+            mng_str = ''
+            for var_name in self.vary_names:
+                mng_str += f"MADX['{var_name}'] = MADX['{var_name}']:get0()\n"
+            mng_str += f"{XSUITE_MADNG_ENV_NAME}.X0 = nil\n"
+            self.mng.send(mng_str)
+            self._already_prepared = False
 
 def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
                   **kwargs):
@@ -419,6 +975,8 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
                  assert(mad_func)
                  mad_func()
                  MAD.option.nocharge = {nocharge}
+                 MADX.option.rbarc = true
+                 {XSUITE_MADNG_ENV_NAME} = {{}} -- to avoid variable name clashes
                  """)
         mng._init_madx_data = madx_seq
 

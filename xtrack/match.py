@@ -36,9 +36,11 @@ XTRACK_DEFAULT_WEIGHTS = {
     'dpy': 100.,
     'dy_ng' : 10.,
     'dpy_ng': 100.,
+    't_ng': 10.,
+    'pt_ng': 100.,
 }
 
-ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
+ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta', 'ptau',
                         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
                         'mux', 'muy', 'dx', 'dpx', 'dy', 'dpy',
                         'qx', 'qy', 'dqx', 'dqy',
@@ -54,7 +56,8 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'c_minus_re_0', 'c_minus_im_0',
                         'c_minus_re', 'c_minus_im',
                         'beta11_ng', 'beta22_ng', 'alfa11_ng', 'alfa22_ng',
-                        'dx_ng', 'dpx_ng']
+                        'dx_ng', 'dpx_ng', 'dy_ng', 'dpy_ng',
+                        'x_ng', 'px_ng', 'y_ng', 'py_ng', 't_ng', 'pt_ng',]
 
 
 # Alternative transitions functions
@@ -535,7 +538,6 @@ class TargetRelPhaseAdvance(Target):
         return f'TargetPhaseAdv({self.var}({self.end} - {self.start}), val={self.value}, tol={self.tol}, weight={self.weight})'
 
     def compute(self, tw):
-
         if self.end == '__ele_stop__':
             mu_1 = tw[self.var, -1]
         else:
@@ -547,7 +549,6 @@ class TargetRelPhaseAdvance(Target):
             mu_0 = tw[self.var, self.start]
 
         return mu_1 - mu_0
-
 
 class TargetRmatrixTerm(Target):
 
@@ -606,6 +607,9 @@ class TargetRmatrixTerm(Target):
         assert len(self.term) == 3, (
             'Only terms of the R-matrix in the form "r11", "r12", "r21", "r22", etc'
             ' are supported')
+
+        if hasattr(tw._data, 'attrs') and self.tag in tw._data.attrs:
+            return tw._data.attrs[self.tag]
 
         if self.start is xt.START:
             self.start = tw.name[0]
@@ -812,6 +816,52 @@ class ActionTwiss(xd.Action):
         out.line = self.line
         return out
 
+class MeritFunctionLine(xd.MeritFunctionForMatch):
+    def __init__(
+            self,
+            merit_function_match,
+            use_tpsa=False,
+    ):
+
+        self.vary = merit_function_match.vary
+        self.targets = merit_function_match.targets
+        self.actions = merit_function_match.actions
+        self.return_scalar = merit_function_match.return_scalar
+        self.call_counter = merit_function_match.call_counter
+        self.verbose = merit_function_match.verbose
+        self.tw_kwargs = merit_function_match.tw_kwargs
+        self.steps_for_jacobian = merit_function_match.steps_for_jacobian
+        self.found_point_within_tol = merit_function_match.found_point_within_tol
+        self.zero_if_met = merit_function_match.zero_if_met
+        self.show_call_counter = merit_function_match.show_call_counter
+        self.check_limits = merit_function_match.check_limits
+        self.use_tpsa = use_tpsa
+
+    def get_jacobian(self, x=None, f0=None):
+        if self.use_tpsa:
+            return self.get_jacobian_tpsa()
+        else:
+            return super().get_jacobian(x, f0=f0)
+
+    def get_jacobian_tpsa(self):
+        from .madng_interface import ActionTwissMadngTPSA
+        action = None
+        for a in self.actions:
+            if isinstance(a, ActionTwissMadngTPSA):
+                action = a
+                break
+        if action is None:
+            raise RuntimeError('No ActionTwissMadngTPSA found in actions for TPSA jacobian computation')
+
+
+
+        jacobian = action.acquire_jacobian()
+
+        for i, tar in enumerate(self.targets):
+            jacobian[i] *= tar.weight
+
+        return jacobian
+
 class OptimizeLine(xd.Optimize):
 
     def __init__(self, line, vary, targets, assert_within_tol=True,
@@ -821,7 +871,7 @@ class OptimizeLine(xd.Optimize):
                     n_steps_max=20, default_tol=None,
                     solver=None, check_limits=True,
                     action_twiss=None, action_twiss_ng=None,
-                    name="",
+                    use_tpsa=False, name="",
                     **kwargs):
 
         if hasattr(targets, 'values'): # dict like
@@ -830,7 +880,28 @@ class OptimizeLine(xd.Optimize):
         if not isinstance(targets, (list, tuple)):
             targets = [targets]
 
+        # Flatten targets and assign tags for TargetRMatrixTerms if multiple
         targets_flatten = []
+        start_end_tuple_set = list()
+        rmat_index = 0
+        if any(isinstance(tt, (TargetRmatrixTerm, TargetRmatrix)) for tt in targets):
+            for tt in targets:
+                if isinstance(tt, TargetRmatrixTerm):
+                    if (tt.start, tt.end) in start_end_tuple_set:
+                        rmat_index = start_end_tuple_set.index((tt.start, tt.end))
+                    else:
+                        rmat_index = len(start_end_tuple_set)
+                        start_end_tuple_set.append((tt.start, tt.end))
+                    tt.tag = f'{rmat_index}_{tt.term}'
+                elif isinstance(tt, TargetRmatrix):
+                    if (tt.targets[0].start, tt.targets[0].end) in start_end_tuple_set:
+                        rmat_index = start_end_tuple_set.index((tt.targets[0].start, tt.targets[0].end))
+                    else:
+                        rmat_index = len(start_end_tuple_set)
+                        start_end_tuple_set.append((tt.targets[0].start, tt.targets[0].end))
+                    for sub_tt in tt.targets:
+                        sub_tt.tag = f'{rmat_index}_{sub_tt.term}'
+
         for tt in targets:
             if isinstance(tt, xd.TargetList):
                 for tt1 in tt.targets:
@@ -840,16 +911,35 @@ class OptimizeLine(xd.Optimize):
 
         aux_vary = []
 
+        # part of the `auxvar` experimental code
+        # if isinstance(tt.value, (GreaterThan, LessThan)):
+        #     if tt.value.mode == 'auxvar':
+        #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
+        #         aux_vary_container[aux_vary[-1].name] = 0
+        #         val = tt.runeval()
+        #         if val > 0:
+        #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
+
+        if not isinstance(vary, (list, tuple)):
+            vary = [vary]
+
+        vary = list(vary) + aux_vary
+
+        vary_flatten = _flatten_vary(vary)
+        _complete_vary_with_info_from_line(vary_flatten, line)
+
         for tt in targets_flatten:
 
             # Handle action
             if tt.action is None:
-                if (isinstance(tt.tar, tuple) and tt.tar[0].endswith('_ng')) or (
-                    isinstance(tt, TargetRelPhaseAdvance) and tt.var.endswith('_ng')):
+                if use_tpsa:
                     if action_twiss_ng is None:
-                        from .madng_interface import ActionTwissMadng
-                        action_twiss_ng = ActionTwissMadng(
-                                line, {}, **kwargs)
+                        from .madng_interface import ActionTwissMadngTPSA
+
+                        action_twiss_ng = ActionTwissMadngTPSA(
+                                line, [v.name for v in vary_flatten], targets_flatten, {},
+                                    sum_rmat_tar=len(start_end_tuple_set), **kwargs
+                        )
                         action_twiss_ng.prepare()
                     tt.action = action_twiss_ng
                 else:
@@ -906,22 +996,6 @@ class OptimizeLine(xd.Optimize):
                 else:
                     tt.tol = default_tol
 
-            # part of the `auxvar` experimental code
-            # if isinstance(tt.value, (GreaterThan, LessThan)):
-            #     if tt.value.mode == 'auxvar':
-            #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
-            #         aux_vary_container[aux_vary[-1].name] = 0
-            #         val = tt.runeval()
-            #         if val > 0:
-            #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
-
-        if not isinstance(vary, (list, tuple)):
-            vary = [vary]
-
-        vary = list(vary) + aux_vary
-
-        vary_flatten = _flatten_vary(vary)
-        _complete_vary_with_info_from_line(vary_flatten, line)
 
         xd.Optimize.__init__(self,
                         vary=vary_flatten, targets=targets_flatten, solver=solver,
@@ -931,9 +1005,12 @@ class OptimizeLine(xd.Optimize):
                         restore_if_fail=restore_if_fail,
                         check_limits=check_limits,
                         name=name)
+
+        _err = MeritFunctionLine(self._err, use_tpsa=use_tpsa)
         self.line = line
         self.action_twiss = action_twiss
         self.default_tol = default_tol
+        self._err = _err
 
     def clone(self, add_targets=None, add_vary=None,
               remove_targets=None, remove_vary=None,
@@ -990,6 +1067,40 @@ class OptimizeLine(xd.Optimize):
 
     def plot(self, *args, **kwargs):
         return self.action_twiss.run().plot(*args, **kwargs)
+
+    def step(
+        self,
+        n_steps=1,
+        take_best=True,
+        enable_target=None,
+        enable_vary=None,
+        enable_vary_name=None,
+        disable_target=None,
+        disable_vary=None,
+        disable_vary_name=None,
+        rcond=None,
+        sing_val_cutoff=None,
+        verbose=None,
+        broyden=False,
+        cleanup_madng_tpsa=False,
+    ):
+        super().step(n_steps, take_best, enable_target, enable_vary, enable_vary_name, disable_target,
+                     disable_vary, disable_vary_name, rcond, sing_val_cutoff, verbose, broyden)
+
+        if cleanup_madng_tpsa and self._err.use_tpsa:
+            for a in self.actions:
+                if hasattr(a, "cleanup"):
+                    a.cleanup()
+                    break
+
+    def solve(self, n_steps=None, verbose=None, take_best=True, rcond=None, sing_val_cutoff=None, broyden=False, cleanup_madng_tpsa=True):
+        super().solve(n_steps, verbose, take_best, rcond, sing_val_cutoff, broyden)
+
+        if cleanup_madng_tpsa and self._err.use_tpsa:
+            for a in self.actions:
+                if hasattr(a, "cleanup"):
+                    a.cleanup()
+                    break
 
 def _flatten_vary(vary):
     vary_flatten = []
