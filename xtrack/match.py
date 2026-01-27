@@ -4,6 +4,8 @@ from .twiss import VARS_FOR_TWISS_INIT_GENERATION
 from .general import _print, _LOC
 import xtrack as xt
 import xdeps as xd
+import sympy
+from xtrack.autodiff import compute_param_derivatives
 
 XTRACK_DEFAULT_TOL = 1e-9
 XTRACK_DEFAULT_SIGMA_REL = 0.01
@@ -56,6 +58,19 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'beta11_ng', 'beta22_ng', 'alfa11_ng', 'alfa22_ng',
                         'dx_ng', 'dpx_ng']
 
+
+AD_QTY_IDX = {
+    "betx": 0,
+    "bety": 1,
+    "alfx": 2,
+    "alfy": 3,
+    "mux": 4,
+    "muy": 5,
+    "dx": 6,
+    "dy": 7,
+    "dpx": 8,
+    "dpy": 9,
+}
 
 # Alternative transitions functions
 # def _transition_sigmoid_integral(x):
@@ -676,7 +691,7 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
                   solver=None, check_limits=True,
-                  name="",
+                  name="", use_ad=False,
                   **kwargs):
 
     opt = OptimizeLine(line, vary, targets,
@@ -687,7 +702,7 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                         restore_if_fail=restore_if_fail, verbose=verbose,
                         n_steps_max=n_steps_max, default_tol=default_tol,
                         solver=solver, check_limits=check_limits,
-                        name=name,
+                        name=name, use_ad=use_ad,
                         **kwargs)
 
     if solve:
@@ -812,6 +827,205 @@ class ActionTwiss(xd.Action):
         out.line = self.line
         return out
 
+class MeritFunctionLine(xd.MeritFunctionForMatch):
+    def __init__(
+        self,
+        merit_function_match,
+        use_ad=False
+    ):
+
+        self.vary = merit_function_match.vary
+        self.targets = merit_function_match.targets
+        self.actions = merit_function_match.actions
+        self.return_scalar = merit_function_match.return_scalar
+        self.call_counter = merit_function_match.call_counter
+        self.verbose = merit_function_match.verbose
+        self.tw_kwargs = merit_function_match.tw_kwargs
+        self.steps_for_jacobian = merit_function_match.steps_for_jacobian
+        self.found_point_within_tol = merit_function_match.found_point_within_tol
+        self.zero_if_met = merit_function_match.zero_if_met
+        self.show_call_counter = merit_function_match.show_call_counter
+        self.check_limits = merit_function_match.check_limits
+        self.use_ad = use_ad
+
+    def get_derivatives_elements_knobs(self):
+        """
+        Compute the derivatives of quadrupole k1 with respect to knobs.
+        This is done by executing the symbolic expressions for each knob
+        and extracting the derivatives of k1 with respect to the symbolic variable.
+
+        Yields
+        -------
+        dkq_dvv : dict
+            A dictionary mapping knob names to another dictionary that maps
+            quadrupole names to the derivative of the quadrupole k1 with respect
+            to the knob.
+        quad_sources_ord : list
+            An ordered list of quadrupole names that appear in the derivatives.
+        target_places : list
+            An ordered list of target locations used in the optimization.
+        """
+
+        class DummyElement:
+            """Placeholder object for injecting symbolic attributes."""
+            pass
+
+        dkq_dvv = {}  # Mapping: knob name -> {quad name -> d(quad)/d(knob)}
+
+        for vary_entry in self.vary:
+            knob_name = vary_entry.name
+            symbolic_var = sympy.var("a")
+
+            # Find all quadrupole k1 dependencies on this knob
+            quad_exprs = []
+            dummy_quads = {}
+
+            for dep in self.actions[0].line.ref_manager.find_deps([self.actions[0].line.vars[knob_name]]):
+                if dep.__class__.__name__ == "AttrRef" and dep._key == "k1":
+                    quad_name = dep._owner._key
+                    quad_exprs.append((quad_name, dep._expr))
+                    dummy_quads[quad_name] = DummyElement()
+
+            # Build symbolic expression function for the knob
+            func_code = self.actions[0].line.ref_manager.mk_fun("myfun", a=self.actions[0].line.vars[knob_name])
+            func_globals = {
+                "vars": self.actions[0].line.ref_manager.containers["vars"]._owner.copy(),
+                "element_refs": dummy_quads,
+            }
+            func_locals = {}
+
+            ################### myfun ################################
+            # def myfun(a):
+            #    knob_name = a
+            #    element_refs[quad_name].k1 = (1.0 * knob_name) -> SymPy expression
+            #    ...
+            ##########################################################
+
+            exec(func_code, func_globals, func_locals) # Create function, stored in func_locals
+            func_locals["myfun"](symbolic_var) # Execute function
+
+            # Extract derivatives of k1 with respect to this knob
+            k1_derivs = {}
+            for quad_name, _ in quad_exprs:
+                derivative = func_globals["element_refs"][quad_name].k1.diff(symbolic_var)
+                k1_derivs[quad_name] = derivative
+
+            dkq_dvv[knob_name] = k1_derivs
+
+        # Set of all quadrupole names appearing in the derivatives
+        quad_sources = set()
+        for derivs in dkq_dvv.values():
+            quad_sources.update(derivs.keys())
+
+        # Set of all target locations used in optimization and sort them by order
+        target_places = set()
+        for target in self.targets:
+            if isinstance(target.tar, tuple):
+                target_places.add(target.tar[1])
+            elif hasattr(target, "start") and hasattr(target, "end"):
+                if target.start != '__ele_start__':
+                    target_places.add(target.start)
+                if target.end != '__ele_stop__':
+                    target_places.add(target.end)
+                else:
+                    if self.actions[0]._tw0.name[-2] not in target_places:
+                        target_places.add(self.actions[0]._tw0.name[-2])
+                    # Assumption: Point before _end_point is same as endpoint given in opt
+            else:
+                raise ValueError(f"Unknown target type: {type(target)}")
+        # Convert to ordered list based on appearance of name in opt.line
+        index_map = {name: i for i, name in enumerate(self.actions[0]._tw0.name)}
+        target_places = sorted(target_places, key=index_map.get)
+
+        # Ordered list of quadrupole sources (based on their position in the beamline)
+        quad_sources_ordered = [
+            name for name in self.actions[0]._tw0.name if name in quad_sources
+        ]
+
+        self.quad_sources_ord = quad_sources_ordered
+        self.target_places = target_places
+        self.dkq_dvv = dkq_dvv
+
+    def get_jacobian(self, x, f0=None):
+        if self.use_ad:
+            return self.get_jacobian_ad(x)
+        else:
+            return super().get_jacobian(x, f0=f0)
+
+    def get_jacobian_ad(self, x):
+        if not hasattr(self, "quad_sources_ord") or not hasattr(self, "target_places") or not hasattr(self, "dkq_dvv"):
+            self.get_derivatives_elements_knobs()
+        x = np.array(x).copy()
+        #jacobian = get_jac(opt, all_quad_sources, target_places, dkq_dvv)
+
+        opt_tw = self.actions[0].run()
+        #opt_tw = opt.action_twiss._tw0
+        # Initial conditions for first derivative calculation
+        init_cond = np.array([opt_tw.betx[0], opt_tw.bety[0], opt_tw.alfx[0], opt_tw.alfy[0],
+                            opt_tw.mux[0], opt_tw.muy[0], opt_tw.dx[0], opt_tw.dy[0],
+                            opt_tw.dpx[0], opt_tw.dpy[0]])
+        beta0 = opt_tw.particle_on_co.beta0[0]
+        gamma0 = opt_tw.particle_on_co.gamma0[0]
+
+        twiss_derivs = {}
+        for place in self.target_places: # in order of appearance
+            # Calc derivative for all quadrupoles for target place
+            # Source point = qqnn, Observation point = target
+            twiss_derivs[place] = {}
+            trunc_elements = np.array([self.actions[0].line.element_dict[name] for name in opt_tw.rows[:place].name])
+            nonzero_qq = []
+            nonzero_qqn = []
+            for qqnn in self.quad_sources_ord:
+                if opt_tw['s', place] < opt_tw['s', qqnn]:
+                    twiss_derivs[place][qqnn] = np.zeros(10) # batch after
+                else:
+                    nonzero_qqn.append(qqnn)
+                    nonzero_qq.append(self.actions[0].line.element_dict[qqnn]) # first elements
+                    # add to list to be calculated
+            if len(nonzero_qq) == 0:
+                continue
+            nonzero_deriv, _ = compute_param_derivatives(trunc_elements, nonzero_qq, init_cond, beta0, gamma0)
+
+            for i, qqn in enumerate(nonzero_qqn):
+                twiss_derivs[place][qqn] = nonzero_deriv[i]
+            for qqn, deriv in zip(nonzero_qqn, nonzero_deriv.T):
+                twiss_derivs[place][qqn] = deriv
+
+        jac_estim = np.zeros((len(self.targets), len(self.vary)))
+        for itt, tt in enumerate(self.targets):
+
+            tar_start = None
+            if isinstance(tt.tar, tuple):
+                tar_quantity = tt.tar[0]
+                tar_place = tt.tar[1]
+            else:
+                tar_quantity = tt.var
+                tar_place = self.target_places[-1] if tt.end == '__ele_stop__' else tt.end
+                tar_start = None if tt.start == '__ele_start__' else tt.start
+                tar_weight = tt.weight
+
+            tar_weight = tt.weight
+            quantity_idx = AD_QTY_IDX[tar_quantity]
+            for ivv in range(len(self.vary)):
+                vv = self.vary[ivv].name
+                quad_names = self.dkq_dvv[vv].keys()
+
+                dtar_dvv = 0
+                for qqnn in quad_names:
+                    if qqnn in twiss_derivs[tar_place].keys():
+                        dtar_dvv += (twiss_derivs[tar_place][qqnn][quantity_idx]) * float(self.dkq_dvv[vv][qqnn])
+                        if tar_start is not None:
+                            dtar_dvv -= (twiss_derivs[tar_start][qqnn][quantity_idx]) * float(self.dkq_dvv[vv][qqnn])
+
+                dtar_dvv *= tar_weight
+
+                jac_estim[itt, ivv] = dtar_dvv
+
+        #return jac_estim
+
+        self._last_jac = jac_estim
+        return jac_estim
+
 class OptimizeLine(xd.Optimize):
 
     def __init__(self, line, vary, targets, assert_within_tol=True,
@@ -821,7 +1035,7 @@ class OptimizeLine(xd.Optimize):
                     n_steps_max=20, default_tol=None,
                     solver=None, check_limits=True,
                     action_twiss=None, action_twiss_ng=None,
-                    name="",
+                    name="", use_ad=False,
                     **kwargs):
 
         if hasattr(targets, 'values'): # dict like
@@ -861,13 +1075,21 @@ class OptimizeLine(xd.Optimize):
                         action_twiss.prepare()
                     tt.action = action_twiss
 
+
             # Handle at
             if isinstance(tt.tar, tuple):
                 tt_name = tt.tar[0] # `at` is  present
                 tt_at = tt.tar[1]
+                if use_ad == True and tt_name not in ['betx', 'bety', 'alfx', 'alfy', 'mux', 'muy', 'dx', 'dy', 'dpx', 'dpy']:
+                    print("Warning: use_ad is set to True, but the target {} is not supported for automatic differentiation.")
+                    use_ad = False
             else:
                 tt_name = tt.tar
                 tt_at = None
+                if use_ad == True and not isinstance(tt, TargetRelPhaseAdvance):
+                    print("Warning: use_ad is set to True, but the target {} is not supported for automatic differentiation.")
+                    use_ad = False
+
             if tt_at is not None and isinstance(tt_at, _LOC):
                 assert isinstance(tt.action, ActionTwiss)
                 tt.action.prepare() # does nothing if already prepared
@@ -930,10 +1152,13 @@ class OptimizeLine(xd.Optimize):
                         n_steps_max=n_steps_max,
                         restore_if_fail=restore_if_fail,
                         check_limits=check_limits,
-                        name=name)
+                        name=name, line=line)
+
+        _err = MeritFunctionLine(self._err, use_ad=use_ad)
         self.line = line
         self.action_twiss = action_twiss
         self.default_tol = default_tol
+        self._err = _err
 
     def clone(self, add_targets=None, add_vary=None,
               remove_targets=None, remove_vary=None,
