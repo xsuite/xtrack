@@ -342,6 +342,284 @@ def test_splineboris_homogeneous_rbend(field_angle):
     assert np.allclose(py_end_rbend, py_final_splineboris, atol=1e-12)
 
 
+def test_splineboris_uniform_solenoid_analytic():
+    """
+    Test the SplineBoris element with a uniform solenoid field.
+    """
+
+    s_start = 0
+    s_end = 0.25
+    length = s_end - s_start
+    n_steps = 10
+
+    # Field strength and orientation in the transverse plane
+    B_s = 0.01
+
+    # Homogeneous transverse field coefficients on [s_start, s_end]
+    # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
+    Bx_0_coeffs = np.array([0, 0.0, 0.0, 0.0, 0])
+    By_0_coeffs = np.array([0, 0.0, 0.0, 0.0, 0])
+    Bs_coeffs = np.array([B_s, 0.0, B_s, 0.0, B_s * length])
+
+    p_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
+        q0=1.0,
+        energy0=1e9,
+    )
+
+    p_ref.x = 1e-3
+    p_ref.px = 1e-3
+    p_ref.y = 0.5e-3
+    p_ref.py = 0.5e-4
+
+    import sys
+    from pathlib import Path
+
+    # Add examples directory to path to import FieldFitter
+    examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
+    if str(examples_path) not in sys.path:
+        sys.path.insert(0, str(examples_path))
+    from field_fitter import FieldFitter
+
+    # Convert to the basis that the field evaluator uses.
+    Bx_poly = FieldFitter._poly(s_start, s_end, Bx_0_coeffs)
+    By_poly = FieldFitter._poly(s_start, s_end, By_0_coeffs)
+    Bs_poly = FieldFitter._poly(s_start, s_end, Bs_coeffs)
+
+    Bx_values = Bx_poly(np.linspace(s_start, s_end, 100))
+    By_values = By_poly(np.linspace(s_start, s_end, 100))
+    Bs_values = Bs_poly(np.linspace(s_start, s_end, 100))
+
+    degree = 4
+
+    ks_0 = np.zeros(degree + 1)
+    ks_0[:len(Bx_poly.coef)] = Bx_poly.coef
+    kn_0 = np.zeros(degree + 1)
+    kn_0[:len(By_poly.coef)] = By_poly.coef
+    bs = np.zeros(degree + 1)
+    bs[:len(Bs_poly.coef)] = Bs_poly.coef
+
+    # Assert that the field is constant (homogeneous) over the region
+    # This validates that the polynomial representation correctly represents a constant field
+    np.testing.assert_allclose(Bx_values, 0.0, rtol=1e-12, atol=1e-12,
+                                err_msg="Bx field should be zero (homogeneous)")
+    np.testing.assert_allclose(By_values, 0.0, rtol=1e-12, atol=1e-12,
+                                err_msg="By field should be zero (homogeneous)")
+    np.testing.assert_allclose(Bs_values, B_s, rtol=1e-12, atol=1e-12,
+                                err_msg="Bs field should be constant (homogeneous)")
+
+    param_table = SplineParameterSchema.build_param_table_from_spline_coeffs(
+        ks_0=ks_0,
+        kn_0=kn_0,
+        bs=bs,
+        n_steps=n_steps,
+    )
+
+    splineboris = xt.SplineBoris(
+        par_table=param_table,
+        s_start=s_start,
+        s_end=s_end,
+        multipole_order=1,
+        n_steps=n_steps,
+    )
+
+    # Reference and test particle
+    line = xt.Line(elements=[splineboris])
+    line.particle_ref = p_ref
+
+    mass_kg = p_ref.mass0 * qe / clight**2
+    gamma0 = p_ref.gamma0[0]
+
+    # Analytic solution for the helix in the transverse plane
+    kin_xp = p_ref.kin_xprime[0]
+    kin_yp = p_ref.kin_yprime[0]
+    x_0 = p_ref.x[0]
+    y_0 = p_ref.y[0]
+
+    q_C = abs(p_ref.q0) * qe  # Coulomb
+    p0_SI = p_ref.p0c[0] * qe / clight  # (eV/c) -> kg m/s
+    px_SI = p_ref.kin_px[0] * p0_SI
+    py_SI = p_ref.kin_py[0] * p0_SI
+    ps_SI = p_ref.kin_ps[0] * p0_SI
+    v_par = ps_SI / gamma0 / mass_kg
+
+    # Transverse momentum and Larmor parameters in SI
+    p_perp_SI = np.sqrt(px_SI**2 + py_SI**2)
+    omega = q_C * B_s / gamma0 / mass_kg
+    rho = p_perp_SI / (q_C * B_s)
+
+    # Tangent direction ~ (x', y'); radial unit vector from slopes:
+    norm_t = np.hypot(kin_xp, kin_yp)
+    r_hat_x = kin_yp / norm_t
+    r_hat_y = -kin_xp / norm_t
+
+    # Ensure correct rotation sense from sign(q * B_s)
+    rot_sign = np.sign(q_C * B_s)
+    if rot_sign == 0:
+        rot_sign = 1.0
+    r_hat_x *= rot_sign
+    r_hat_y *= rot_sign
+
+    # Circle center consistent with initial position and direction of motion
+    x_c = x_0 - rho * r_hat_x
+    y_c = y_0 - rho * r_hat_y
+
+    # Initial phase from radial vector
+    phi_0 = np.arctan2((y_0 - y_c) / rho, (x_0 - x_c) / rho)
+
+    dphi = omega / v_par * (s_end - s_start)
+    phi_1 = phi_0 + dphi
+
+    x_1 = x_c + rho * np.cos(phi_1)
+    y_1 = y_c + rho * np.sin(phi_1)
+    xp_1 = - rho * omega / v_par * np.sin(phi_1)
+    yp_1 =   rho * omega / v_par * np.cos(phi_1)
+
+    line.track(p_ref)
+    x_end_splineboris = p_ref.x[0]
+    y_end_splineboris = p_ref.y[0]
+    kin_xp_final_splineboris = p_ref.kin_xprime[0]
+    kin_yp_final_splineboris = p_ref.kin_yprime[0]
+
+    print(f"x_1: {x_1}, y_1: {y_1}, xp_1: {xp_1}, yp_1: {yp_1}")
+    print(f"x_end_splineboris: {x_end_splineboris}, y_end_splineboris: {y_end_splineboris}, kin_xp_final_splineboris: {kin_xp_final_splineboris}, kin_yp_final_splineboris: {kin_yp_final_splineboris}")
+
+    assert np.allclose(x_1, x_end_splineboris, rtol=1e-8, atol=1e-10)
+    assert np.allclose(y_1, y_end_splineboris, rtol=1e-8, atol=1e-10)
+    assert np.allclose(xp_1, kin_xp_final_splineboris, rtol=1e-4, atol=1e-6)
+    assert np.allclose(yp_1, kin_yp_final_splineboris, rtol=1e-4, atol=1e-6)
+
+
+
+def test_splineboris_uniform_solenoid_vs_builtin():
+    """
+    Test the SplineBoris element with a uniform solenoid field
+    against the built-in UniformSolenoid element.
+    """
+
+    s_start = 0
+    s_end = 0.25
+    length = s_end - s_start
+    n_steps = 100
+
+    # Choose a solenoid strength ks (1/m) and derive the corresponding
+    # physical longitudinal field B_s used by SplineBoris.
+    ks_sol = 0.8  # [1/m]
+
+    p_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
+        q0=1.0,
+        energy0=1e9,
+    )
+
+    q_C = abs(p_ref.q0) * qe  # Coulomb
+    p0_SI = p_ref.p0c[0] * qe / clight  # (eV/c) -> kg m/s
+
+    # For a solenoid, the phase advance is mu = (q B_s L) / (2 p0),
+    # so ks = q B_s / (2 p0) => B_s = 2 * ks * p0 / q.
+    B_s = 2.0 * ks_sol * p0_SI / q_C
+
+    # Homogeneous longitudinal field coefficients on [s_start, s_end]
+    # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
+    Bx_0_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+    By_0_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+    Bs_coeffs = np.array([B_s, 0.0, B_s, 0.0, B_s * length])
+
+    import sys
+    from pathlib import Path
+
+    # Add examples directory to path to import FieldFitter
+    examples_path = (
+        Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
+    )
+    if str(examples_path) not in sys.path:
+        sys.path.insert(0, str(examples_path))
+    from field_fitter import FieldFitter
+
+    # Convert to the basis that the field evaluator uses.
+    Bx_poly = FieldFitter._poly(s_start, s_end, Bx_0_coeffs)
+    By_poly = FieldFitter._poly(s_start, s_end, By_0_coeffs)
+    Bs_poly = FieldFitter._poly(s_start, s_end, Bs_coeffs)
+
+    Bx_values = Bx_poly(np.linspace(s_start, s_end, 100))
+    By_values = By_poly(np.linspace(s_start, s_end, 100))
+    Bs_values = Bs_poly(np.linspace(s_start, s_end, 100))
+
+    degree = 4
+
+    ks_0 = np.zeros(degree + 1)
+    ks_0[: len(Bx_poly.coef)] = Bx_poly.coef
+    kn_0 = np.zeros(degree + 1)
+    kn_0[: len(By_poly.coef)] = By_poly.coef
+    bs = np.zeros(degree + 1)
+    bs[: len(Bs_poly.coef)] = Bs_poly.coef
+
+    # Assert that the field is constant (homogeneous) over the region
+    np.testing.assert_allclose(
+        Bx_values, 0.0, rtol=1e-12, atol=1e-12,
+        err_msg="Bx field should be zero (homogeneous)",
+    )
+    np.testing.assert_allclose(
+        By_values, 0.0, rtol=1e-12, atol=1e-12,
+        err_msg="By field should be zero (homogeneous)",
+    )
+    np.testing.assert_allclose(
+        Bs_values, B_s, rtol=1e-12, atol=1e-12,
+        err_msg="Bs field should be constant (homogeneous)",
+    )
+
+    param_table = SplineParameterSchema.build_param_table_from_spline_coeffs(
+        ks_0=ks_0,
+        kn_0=kn_0,
+        bs=bs,
+        n_steps=n_steps,
+    )
+
+    splineboris = xt.SplineBoris(
+        par_table=param_table,
+        s_start=s_start,
+        s_end=s_end,
+        multipole_order=1,
+        n_steps=n_steps,
+    )
+
+    # Reference and test particles
+    line_splineboris = xt.Line(elements=[splineboris])
+    line_splineboris.particle_ref = p_ref
+
+    p_spline = line_splineboris.particle_ref.copy()
+    p_spline.x = 1e-3
+    p_spline.px = 1e-3
+    p_spline.y = 0.5e-3
+    p_spline.py = 0.5e-4
+
+    p_sol = p_spline.copy()
+
+    sol = xt.UniformSolenoid(ks=ks_sol, length=length)
+    line_sol = xt.Line(elements=[sol])
+    line_sol.particle_ref = p_sol
+
+    # Track with reference UniformSolenoid
+    line_sol.track(p_sol)
+    x_end_sol = p_sol.x[0]
+    y_end_sol = p_sol.y[0]
+    px_end_sol = p_sol.kin_px[0]
+    py_end_sol = p_sol.kin_py[0]
+
+    # Track with SplineBoris
+    line_splineboris.track(p_spline)
+    x_end_splineboris = p_spline.x[0]
+    y_end_splineboris = p_spline.y[0]
+    px_end_splineboris = p_spline.kin_px[0]
+    py_end_splineboris = p_spline.kin_py[0]
+
+    # Compare end coordinates (tight tolerances, as in the RBend comparison)
+    assert np.allclose(x_end_sol, x_end_splineboris, atol=1e-12)
+    assert np.allclose(y_end_sol, y_end_splineboris, atol=1e-12)
+    assert np.allclose(px_end_sol, px_end_splineboris, atol=1e-12)
+    assert np.allclose(py_end_sol, py_end_splineboris, atol=1e-12)
+
+
 
 def test_splineboris_undulator_vs_boris_spatial():
     """
