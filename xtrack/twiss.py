@@ -985,8 +985,12 @@ def twiss_line(line, particle_ref=None, method=None,
                 twiss_res.muy += init.muy - twiss_res.muy[-1]
 
     if search_for_t_rev:
-        twiss_res._data['T_rev'] = twiss_res.T_rev0 - (
-            twiss_res.zeta[-1] - twiss_res.zeta[0])/(twiss_res.beta0*clight)
+        # Recompute T_rev0 to support case with only_orbit=True
+        circumference = twiss_res.s[-1]
+        beta0 = twiss_res.particle_on_co.beta0[0]
+        t_rev_0 = circumference/clight/beta0
+        twiss_res._data['T_rev'] = t_rev_0 - (
+            twiss_res.zeta[-1] - twiss_res.zeta[0])/(beta0*clight)
 
     if num_turns > 1:
 

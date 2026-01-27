@@ -70,8 +70,10 @@ def compute_rdt_first_order_perturbation(rdt, twiss, strengths):
 
     return f_pqrt
 
-if __name__ == '__main__':
-    rdt = 'f2001'  # Example RDT
-    tw = line.twiss4d()
-    strengths = line.get_table(attr=True)
-    f1002 = compute_rdt_first_order_perturbation(rdt, tw, strengths)
+# line['kqs.a45b1'] = 1e-4  # Example error
+tw = line.twiss4d(coupling_edw_teng=True)
+strengths = line.get_table(attr=True)
+f1020 = compute_rdt_first_order_perturbation('f1020', tw, strengths)
+f1001 = compute_rdt_first_order_perturbation('f1001', tw, strengths)
+
+tw_ng = line.madng_twiss(rdts=['f1020'])
