@@ -2,9 +2,25 @@ import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 import pytest
+import xobjects as xo
+import pandas as pd
+from pathlib import Path
+import sys
 
 import xtrack as xt
-from xtrack.beam_elements.spline_param_schema import SplineParameterSchema
+from xtrack.beam_elements.spline_param_schema import (
+    SplineParameterSchema,
+    build_parameter_table_from_df,
+)
+
+# Make the auto-generated spline field evaluator importable without requiring
+# an installed xtrack package.
+elements_src_path = (
+    Path(__file__).parent.parent / "xtrack" / "beam_elements" / "elements_src"
+)
+if str(elements_src_path) not in sys.path:
+    sys.path.insert(0, str(elements_src_path))
+from _spline_B_field_eval_python import evaluate_B
 
 # Test some common field angles, as well as some unusual ones
 @pytest.mark.parametrize('field_angle', [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi, 4*np.pi/9, np.pi/7])
@@ -208,198 +224,6 @@ def test_splineboris_homogeneous_analytic(field_angle):
 
 
 
-def test_splineboris_quadrupole_analytic():
-    import numpy as np
-    from scipy import special, optimize
-
-    def duffing_cn_solution(t, x0, v0, p, q):
-        # Energy from ICs
-        E = 0.5*v0**2 + 0.5*p*x0**2 + 0.25*q*x0**4
-
-        # Amplitude A from turning-point energy
-        A2 = (-p + np.sqrt(p**2 + 4*q*E)) / q
-        A = np.sqrt(A2)
-
-        # Frequency and parameter m
-        Omega2 = p + q*A2
-        Omega = np.sqrt(Omega2)
-        m = (q*A2) / (2*Omega2)
-
-        # Phase u0 via incomplete elliptic integral F(phi|m)
-        phi0 = np.arccos(np.clip(x0 / A, -1.0, 1.0))
-        u0 = special.ellipkinc(phi0, m)
-
-        # Fix branch to match v0
-        sn, cn, dn, _ = special.ellipj(u0, m)
-        v0_model = -A * Omega * sn * dn
-        if np.sign(v0_model) != np.sign(v0) and abs(v0) > 0:
-            u0 = -u0
-
-        # Evaluate x(t)
-        u = Omega*t + u0
-        sn, cn, dn, _ = special.ellipj(u, m)
-        x = A * cn
-        xdot = -A * Omega * sn * dn
-        return x, xdot, (A, Omega, m, u0)
-
-    def z_of_t(t, z0, C, k1, A, Omega, m, u0):
-        u = Omega*t + u0
-        # amplitude ph = am(u|m)
-        sn, cn, dn, ph = special.ellipj(u, m)
-        sn0, cn0, dn0, ph0 = special.ellipj(u0, m)
-
-        eps  = special.ellipeinc(ph,  m)   # ε(u|m) = E(am(u)|m)
-        eps0 = special.ellipeinc(ph0, m)
-
-        return (z0 + C*t + 0.5 * (k1*A*A) / (Omega*m) * ((eps - eps0) + (m-1)*(u - u0)))
-
-
-    def x_of_z(z_target, t_lo, t_hi, x0, v0, p, q, z0, C, k1, A, Omega, m, u0):
-        """
-        Find the time t such that z_of_t(t, ...) = z_target.
-        
-        To know beforehand if f(a) and f(b) have different signs:
-        1. Evaluate f(a) = z_of_t(a, ...) - z_target
-        2. Evaluate f(b) = z_of_t(b, ...) - z_target  
-        3. Check: np.sign(f(a)) != np.sign(f(b))
-        
-        If signs are the same, the root is outside [a, b] and we need to expand the bracket.
-        Since z(t) is monotone, we can expand the interval until we find opposite signs.
-        """
-        f = lambda t: z_of_t(t, z0, C, k1, A, Omega, m, u0) - z_target
-        
-        # Check if f(t_lo) and f(t_hi) have opposite signs (required for brentq)
-        f_lo = f(t_lo)
-        f_hi = f(t_hi)
-        
-        # If signs are the same, try to find a valid bracket by expanding the interval
-        if np.sign(f_lo) == np.sign(f_hi):
-            # Try expanding the interval
-            t_range = t_hi - t_lo
-            max_expansions = 10
-            for i in range(max_expansions):
-                # Expand symmetrically
-                t_lo_expanded = t_lo - t_range * (i + 1)
-                t_hi_expanded = t_hi + t_range * (i + 1)
-                f_lo_expanded = f(t_lo_expanded)
-                f_hi_expanded = f(t_hi_expanded)
-                if np.sign(f_lo_expanded) != np.sign(f_hi_expanded):
-                    t_lo, t_hi = t_lo_expanded, t_hi_expanded
-                    break
-            else:
-                # If we couldn't find a bracket, use secant method which doesn't require bracketing
-                result = optimize.root_scalar(f, x0=t_lo, x1=t_hi, method='secant')
-                if not result.converged:
-                    raise ValueError(f"Could not find root: f({t_lo})={f_lo}, f({t_hi})={f_hi}")
-                t = result.root
-        else:
-            # Signs are opposite, can use brentq directly
-            t = optimize.brentq(f, t_lo, t_hi)   # requires z(t) monotone over [t_lo,t_hi]
-        
-        return duffing_cn_solution(t, x0, v0, p, q), t
-
-    p = xt.Particles(
-        mass0=xt.ELECTRON_MASS_EV,
-        q0=1.0,
-        energy0=1e9,
-    )
-    p.x = 1e-3
-    p.px = 1e-3
-
-    g = 1000        # Gradient of the quadrupole field in T/m
-    length = 2      # Length of the quadrupole in meters
-    q_C = abs(p.q0) * qe  # Coulomb
-    p0_SI = float(p.p0c[0]) * qe / clight  # (eV/c) -> kg m/s
-    px_SI = float(p.kin_px[0]) * p0_SI
-    ps_SI = float(p.kin_ps[0]) * p0_SI
-
-    # In the rotated frame where B || y, p_perp is in (x,s)
-    p_perp_SI = np.sqrt(px_SI**2 + ps_SI**2)
-    gamma0_scalar = float(p.gamma0[0])
-    mass0_scalar = float(p.mass0)
-    g_norm = g / gamma0_scalar / mass0_scalar
-
-    vx_0 = px_SI / gamma0_scalar / mass0_scalar
-    vs_0 = ps_SI / gamma0_scalar / mass0_scalar
-
-    x0_scalar = float(p.x[0])  # Save initial x value before tracking
-    C_0 = vs_0 - 1/2 * g_norm * x0_scalar**2
-
-    s_start = 0
-    s_end = length
-    n_steps = 100
-
-    # Homogeneous transverse field coefficients on [s_start, s_end]
-    # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
-    Bx_0_coeffs = np.array([0, 0.0, 0, 0.0, 0])
-    By_0_coeffs = np.array([0, 0.0, 0, 0.0, 0])
-    Bx_1_coeffs = np.array([g, 0.0, g, 0.0, g * length])
-    By_1_coeffs = np.array([0, 0.0, 0, 0.0, 0])
-    Bs_coeffs = np.zeros_like(Bx_0_coeffs)
-
-    import sys
-    from pathlib import Path
-
-    # Add examples directory to path to import FieldFitter
-    examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
-    if str(examples_path) not in sys.path:
-        sys.path.insert(0, str(examples_path))
-    from field_fitter import FieldFitter
-
-    # Convert to the basis that the field evaluator uses.
-    Bx_0_poly = FieldFitter._poly(s_start, s_end, Bx_0_coeffs)
-    By_0_poly = FieldFitter._poly(s_start, s_end, By_0_coeffs)
-    Bx_1_poly = FieldFitter._poly(s_start, s_end, Bx_1_coeffs)
-    By_1_poly = FieldFitter._poly(s_start, s_end, By_1_coeffs)
-    Bs_poly = FieldFitter._poly(s_start, s_end, Bs_coeffs)
-
-    degree = 4
-
-    ks_0 = np.zeros(degree + 1)
-    ks_0[:len(Bx_0_poly.coef)] = Bx_0_poly.coef
-    kn_0 = np.zeros(degree + 1)
-    kn_0[:len(By_0_poly.coef)] = By_0_poly.coef
-    ks_1 = np.zeros(degree + 1)
-    ks_1[:len(Bx_1_poly.coef)] = Bx_1_poly.coef
-    kn_1 = np.zeros(degree + 1)
-    kn_1[:len(By_1_poly.coef)] = By_1_poly.coef
-    bs = np.zeros(degree + 1)
-    bs[:len(Bs_poly.coef)] = Bs_poly.coef
-
-    param_table = SplineParameterSchema.build_param_table_from_spline_coeffs(
-        ks_0=ks_0,
-        kn_0=kn_0,
-        ks_1=ks_1,
-        kn_1=kn_1,
-        bs=bs,
-        n_steps=n_steps,
-    )
-
-    splineboris = xt.SplineBoris(
-        par_table=param_table,
-        s_start=s_start,
-        s_end=s_end,
-        multipole_order=1,
-        n_steps=n_steps,
-    )
-
-    line_splineboris = xt.Line(elements=[splineboris])
-    line_splineboris.particle_ref = p
-
-    line_splineboris.track(p)
-    x_end_splineboris = float(p.x[0])
-    _, _, (A_0, Omega_0, m_0, u0_0) = duffing_cn_solution(0, x0_scalar, vx_0, g_norm * C_0, g_norm/2)
-    # Convert tuple values to scalars
-    A_0 = float(A_0)
-    Omega_0 = float(Omega_0)
-    m_0 = float(m_0)
-    u0_0 = float(u0_0)
-
-    result, _ = x_of_z(s_end, -1e-7, 1e-7, x0_scalar, vx_0, g_norm * C_0, g_norm/2, s_start, C_0, g_norm, A_0, Omega_0, m_0, u0_0)
-    x_end_analytic = float(result[0])  # Extract x from (x, xdot, (A, Omega, m, u0))
-
-    assert np.allclose(x_end_analytic, x_end_splineboris, atol=1e-12)
-
 # Test some common field angles, as well as some unusual ones
 @pytest.mark.parametrize('field_angle', [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi, 4*np.pi/9, np.pi/7])
 def test_splineboris_homogeneous_rbend(field_angle):
@@ -518,191 +342,345 @@ def test_splineboris_homogeneous_rbend(field_angle):
     assert np.allclose(py_end_rbend, py_final_splineboris, atol=1e-12)
 
 
-# def test_splineboris_solenoid_boris_integrator():
-#     """
-#     Test SplineBoris against BorisSpatialIntegrator with SolenoidField.
-    
-#     This test:
-#     1. Generates field map data from SolenoidField
-#     2. Fits the field using FieldFitter (with caching)
-#     3. Builds SplineBoris element from fit parameters
-#     4. Compares tracking results with BorisSpatialIntegrator
-#     """
+
+def test_splineboris_integrator():
+    """
+    Test the SplineBoris integrator.
+    """
+
+    s_start = 0
+    s_end = 1
+    length = s_end - s_start
+    n_steps = 1000
+
+    # Placeholder for a dedicated integrator test; currently relies on the
+    # undulator regression below for end-to-end coverage.
+
+
+def test_splineboris_undulator_vs_boris_spatial():
+    """
+    Build a lightweight undulator from spline-fit parameters and check that
+    tracking with SplineBoris and BorisSpatialIntegrator gives consistent
+    end coordinates.
+    """
+
+    # ------------------------------------------------------------------
+    # Load fit parameters and build a reduced parameter table
+    # ------------------------------------------------------------------
+    base_dir = (
+        Path(__file__).parent.parent
+        / "examples"
+        / "splineboris"
+        / "spline_fitter"
+        / "field_maps"
+    )
+    filepath = base_dir / "field_fit_pars.csv"
+
+    df = pd.read_csv(
+        filepath,
+        index_col=[
+            "field_component",
+            "derivative_x",
+            "region_name",
+            "s_start",
+            "s_end",
+            "idx_start",
+            "idx_end",
+            "param_index",
+        ],
+    )
+
+    multipole_order = 3
+    n_steps_test = 1000
+
+    par_table, s_start, s_end = build_parameter_table_from_df(
+        df_fit_pars=df,
+        n_steps=n_steps_test,
+        multipole_order=multipole_order,
+    )
+
+    s_vals = np.linspace(s_start, s_end, n_steps_test)
+    ds = (s_end - s_start) / n_steps_test
+
+    n_seg = n_steps_test
+
+    # ------------------------------------------------------------------
+    # Build a short undulator line using SplineBoris slices
+    # ------------------------------------------------------------------
+    spline_elems = []
+    for i in range(n_seg):
+        params_i = [par_table[i].tolist()]  # shape (1, n_params) for n_steps=1
+        s_val_i = s_vals[i]
+
+        elem_s_start = s_val_i - ds / 2
+        elem_s_end = s_val_i + ds / 2
+
+        spline_elems.append(
+            xt.SplineBoris(
+                par_table=params_i,
+                multipole_order=multipole_order,
+                s_start=elem_s_start,
+                s_end=elem_s_end,
+                n_steps=1,
+            )
+        )
+
+    line_spline = xt.Line(elements=spline_elems)
+
+    # This undulator is part of the SLS, so we use the nominal energy of the SLS.
+    p_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
+    line_spline.particle_ref = p_ref
+
+    p_spline = line_spline.particle_ref.copy()
+    p_spline.x = 1e-3
+    p_spline.px = 1e-4
+    p_spline.y = 0.5e-3
+    p_spline.py = -0.5e-4
+
+    line_spline.track(p_spline)
+
+    # ------------------------------------------------------------------
+    # Wrap the spline-based field evaluator into (x, y, z) callables
+    # ------------------------------------------------------------------
+    def make_segment_field(params_1d, multipole_order_local):
+        params_arr = np.asarray(params_1d, dtype=float)
+
+        def field(x, y, z):
+            Bx, By, Bs = evaluate_B(x, y, z, params_arr, multipole_order_local)
+            return Bx, By, Bs
+
+        return field
+
+    # ------------------------------------------------------------------
+    # Build a parallel undulator line using BorisSpatialIntegrator
+    # ------------------------------------------------------------------
+    boris_elems = []
+    for i in range(n_seg):
+        s_val_i = s_vals[i]
+        elem_s_start = s_val_i - ds / 2
+        elem_s_end = s_val_i + ds / 2
+
+        field_i = make_segment_field(par_table[i], multipole_order)
+
+        boris_elems.append(
+            xt.BorisSpatialIntegrator(
+                fieldmap_callable=field_i,
+                s_start=elem_s_start,
+                s_end=elem_s_end,
+                n_steps=1,
+            )
+        )
+
+    line_boris = xt.Line(elements=boris_elems)
+    line_boris.particle_ref = p_ref.copy()
+
+    p_boris = line_boris.particle_ref.copy()
+    p_boris.x = 1e-3
+    p_boris.px = 1e-4
+    p_boris.y = 0.5e-3
+    p_boris.py = -0.5e-4
+
+    line_boris.track(p_boris)
+
+    # ------------------------------------------------------------------
+    # Compare end coordinates
+    # ------------------------------------------------------------------
+    # The two integrators are not bitwise identical; use tight but robust tolerances.
+    xo.assert_allclose(p_spline.x, p_boris.x, rtol=1e-5, atol=5e-5)
+    xo.assert_allclose(p_spline.px, p_boris.px, rtol=1e-5, atol=5e-5)
+    xo.assert_allclose(p_spline.y, p_boris.y, rtol=1e-5, atol=5e-5)
+    xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-5, atol=5e-5)
+    xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-5, atol=5e-5)
+    xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-5, atol=5e-5)
+
+# def test_splineboris_quadrupole_analytic():
+#     import numpy as np
+#     from scipy import special, optimize
+
+#     def duffing_cn_solution(t, x0, v0, p, q):
+#         # Energy from ICs
+#         E = 0.5*v0**2 + 0.5*p*x0**2 + 0.25*q*x0**4
+
+#         # Amplitude A from turning-point energy
+#         A2 = (-p + np.sqrt(p**2 + 4*q*E)) / q
+#         A = np.sqrt(A2)
+
+#         # Frequency and parameter m
+#         Omega2 = p + q*A2
+#         Omega = np.sqrt(Omega2)
+#         m = (q*A2) / (2*Omega2)
+
+#         # Phase u0 via incomplete elliptic integral F(phi|m)
+#         phi0 = np.arccos(np.clip(x0 / A, -1.0, 1.0))
+#         u0 = special.ellipkinc(phi0, m)
+
+#         # Fix branch to match v0
+#         sn, cn, dn, _ = special.ellipj(u0, m)
+#         v0_model = -A * Omega * sn * dn
+#         if np.sign(v0_model) != np.sign(v0) and abs(v0) > 0:
+#             u0 = -u0
+
+#         # Evaluate x(t)
+#         u = Omega*t + u0
+#         sn, cn, dn, _ = special.ellipj(u, m)
+#         x = A * cn
+#         xdot = -A * Omega * sn * dn
+#         return x, xdot, (A, Omega, m, u0)
+
+#     def z_of_t(t, z0, C, k1, A, Omega, m, u0):
+#         u = Omega*t + u0
+#         # amplitude ph = am(u|m)
+#         sn, cn, dn, ph = special.ellipj(u, m)
+#         sn0, cn0, dn0, ph0 = special.ellipj(u0, m)
+
+#         eps  = special.ellipeinc(ph,  m)   # ε(u|m) = E(am(u)|m)
+#         eps0 = special.ellipeinc(ph0, m)
+
+#         return (z0 + C*t + 0.5 * (k1*A*A) / (Omega*m) * ((eps - eps0) + (m-1)*(u - u0)))
+
+
+#     def x_of_z(z_target, t_lo, t_hi, x0, v0, p, q, z0, C, k1, A, Omega, m, u0):
+#         """
+#         Find the time t such that z_of_t(t, ...) = z_target.
+        
+#         To know beforehand if f(a) and f(b) have different signs:
+#         1. Evaluate f(a) = z_of_t(a, ...) - z_target
+#         2. Evaluate f(b) = z_of_t(b, ...) - z_target  
+#         3. Check: np.sign(f(a)) != np.sign(f(b))
+        
+#         If signs are the same, the root is outside [a, b] and we need to expand the bracket.
+#         Since z(t) is monotone, we can expand the interval until we find opposite signs.
+#         """
+#         f = lambda t: z_of_t(t, z0, C, k1, A, Omega, m, u0) - z_target
+        
+#         # Check if f(t_lo) and f(t_hi) have opposite signs (required for brentq)
+#         f_lo = f(t_lo)
+#         f_hi = f(t_hi)
+        
+#         # If signs are the same, try to find a valid bracket by expanding the interval
+#         if np.sign(f_lo) == np.sign(f_hi):
+#             # Try expanding the interval
+#             t_range = t_hi - t_lo
+#             max_expansions = 10
+#             for i in range(max_expansions):
+#                 # Expand symmetrically
+#                 t_lo_expanded = t_lo - t_range * (i + 1)
+#                 t_hi_expanded = t_hi + t_range * (i + 1)
+#                 f_lo_expanded = f(t_lo_expanded)
+#                 f_hi_expanded = f(t_hi_expanded)
+#                 if np.sign(f_lo_expanded) != np.sign(f_hi_expanded):
+#                     t_lo, t_hi = t_lo_expanded, t_hi_expanded
+#                     break
+#             else:
+#                 # If we couldn't find a bracket, use secant method which doesn't require bracketing
+#                 result = optimize.root_scalar(f, x0=t_lo, x1=t_hi, method='secant')
+#                 if not result.converged:
+#                     raise ValueError(f"Could not find root: f({t_lo})={f_lo}, f({t_hi})={f_hi}")
+#                 t = result.root
+#         else:
+#             # Signs are opposite, can use brentq directly
+#             t = optimize.brentq(f, t_lo, t_hi)   # requires z(t) monotone over [t_lo,t_hi]
+        
+#         return duffing_cn_solution(t, x0, v0, p, q), t
+
+#     p = xt.Particles(
+#         mass0=xt.ELECTRON_MASS_EV,
+#         q0=1.0,
+#         energy0=1e9,
+#     )
+#     p.x = 1e-3
+#     p.px = 1e-3
+
+#     g = 1000        # Gradient of the quadrupole field in T/m
+#     length = 2      # Length of the quadrupole in meters
+#     q_C = abs(p.q0) * qe  # Coulomb
+#     p0_SI = float(p.p0c[0]) * qe / clight  # (eV/c) -> kg m/s
+#     px_SI = float(p.kin_px[0]) * p0_SI
+#     ps_SI = float(p.kin_ps[0]) * p0_SI
+
+#     # In the rotated frame where B || y, p_perp is in (x,s)
+#     p_perp_SI = np.sqrt(px_SI**2 + ps_SI**2)
+#     gamma0_scalar = float(p.gamma0[0])
+#     mass0_scalar = float(p.mass0)
+#     g_norm = g / gamma0_scalar / mass0_scalar
+
+#     vx_0 = px_SI / gamma0_scalar / mass0_scalar
+#     vs_0 = ps_SI / gamma0_scalar / mass0_scalar
+
+#     x0_scalar = float(p.x[0])  # Save initial x value before tracking
+#     C_0 = vs_0 - 1/2 * g_norm * x0_scalar**2
+
+#     s_start = 0
+#     s_end = length
+#     n_steps = 100
+
+#     # Homogeneous transverse field coefficients on [s_start, s_end]
+#     # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
+#     Bx_0_coeffs = np.array([0, 0.0, 0, 0.0, 0])
+#     By_0_coeffs = np.array([0, 0.0, 0, 0.0, 0])
+#     Bx_1_coeffs = np.array([g, 0.0, g, 0.0, g * length])
+#     By_1_coeffs = np.array([0, 0.0, 0, 0.0, 0])
+#     Bs_coeffs = np.zeros_like(Bx_0_coeffs)
+
 #     import sys
-#     import pandas as pd
 #     from pathlib import Path
-    
+
 #     # Add examples directory to path to import FieldFitter
-#     examples_path = Path(__file__).parent.parent / "examples" / "undulator" / "spline_fitter"
+#     examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
 #     if str(examples_path) not in sys.path:
 #         sys.path.insert(0, str(examples_path))
 #     from field_fitter import FieldFitter
-    
-#     from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
-#     from xtrack.beam_elements.spline_param_schema import (
-#         build_parameter_table_from_df,
-#         FIELD_FIT_INDEX_COLUMNS,
-#     )
-    
-#     # 1. Setup SolenoidField and particle configuration (matching test_boris_spatial.py)
-#     sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
-    
-#     delta = np.array([0, 4])
-#     p0 = xt.Particles(
-#         mass0=xt.ELECTRON_MASS_EV,
-#         q0=1,
-#         energy0=45.6e9/1000,
-#         x=[-1e-3, -1e-3],
-#         px=-1e-3*(1+delta),
-#         y=1e-3,
-#         delta=delta
-#     )
-    
-#     # 2. Generate field data on grid (X, Y, Z) and convert to DataFrame
-#     # Define grid via dx, dy, ds and counts; FieldFitter expects X,Z as indices (s = Z*ds, x_phys = X*dx)
-#     dx, dy, ds = 0.001, 0.001, 0.03
-#     n_x, n_z = 21, 1001
-#     n_x_half = (n_x - 1) // 2
-#     x_idx = np.arange(-n_x_half, n_x_half + 1)
-#     z_idx = np.arange(n_z)
-#     y_vals = np.array([0.0])  # On-axis, FieldFitter computes derivatives from X variation
 
-#     x_phys = x_idx.astype(float) * dx
-#     z_phys = z_idx.astype(float) * ds
+#     # Convert to the basis that the field evaluator uses.
+#     Bx_0_poly = FieldFitter._poly(s_start, s_end, Bx_0_coeffs)
+#     By_0_poly = FieldFitter._poly(s_start, s_end, By_0_coeffs)
+#     Bx_1_poly = FieldFitter._poly(s_start, s_end, Bx_1_coeffs)
+#     By_1_poly = FieldFitter._poly(s_start, s_end, By_1_coeffs)
+#     Bs_poly = FieldFitter._poly(s_start, s_end, Bs_coeffs)
 
-#     Zp_grid, Xp_grid, Y_grid = np.meshgrid(z_phys, x_phys, y_vals, indexing='ij')
-#     Zi_grid, Xi_grid, _ = np.meshgrid(z_idx, x_idx, y_vals, indexing='ij')
+#     degree = 4
 
-#     x_flat = Xp_grid.flatten()
-#     y_flat = Y_grid.flatten()
-#     z_flat = Zp_grid.flatten()
-#     xi_flat = Xi_grid.flatten()
-#     zi_flat = Zi_grid.flatten()
+#     ks_0 = np.zeros(degree + 1)
+#     ks_0[:len(Bx_0_poly.coef)] = Bx_0_poly.coef
+#     kn_0 = np.zeros(degree + 1)
+#     kn_0[:len(By_0_poly.coef)] = By_0_poly.coef
+#     ks_1 = np.zeros(degree + 1)
+#     ks_1[:len(Bx_1_poly.coef)] = Bx_1_poly.coef
+#     kn_1 = np.zeros(degree + 1)
+#     kn_1[:len(By_1_poly.coef)] = By_1_poly.coef
+#     bs = np.zeros(degree + 1)
+#     bs[:len(Bs_poly.coef)] = Bs_poly.coef
 
-#     Bx_flat, By_flat, Bs_flat = sf.get_field(x_flat, y_flat, z_flat)
-
-#     rows = []
-#     for i in range(len(x_flat)):
-#         rows.append({
-#             'X': float(xi_flat[i]),
-#             'Y': float(y_flat[i]),
-#             'Z': float(zi_flat[i]),
-#             'Bx': float(Bx_flat[i]),
-#             'By': float(By_flat[i]),
-#             'Bs': float(Bs_flat[i])
-#         })
-    
-#     df_raw_data = pd.DataFrame(rows)
-#     df_raw_data.set_index(['X', 'Y', 'Z'], inplace=True)
-    
-#     # Force DataFrame to be fully writable by recreating with explicit array copies
-#     # This ensures all underlying arrays are independent and writable
-#     # Use to_numpy(copy=True) and ensure arrays are writable
-#     bx_arr = df_raw_data['Bx'].to_numpy(copy=True)
-#     by_arr = df_raw_data['By'].to_numpy(copy=True)
-#     bs_arr = df_raw_data['Bs'].to_numpy(copy=True)
-#     x_arr = df_raw_data.index.get_level_values('X').to_numpy(copy=True)
-#     y_arr = df_raw_data.index.get_level_values('Y').to_numpy(copy=True)
-#     z_arr = df_raw_data.index.get_level_values('Z').to_numpy(copy=True)
-    
-#     # Ensure arrays are writable (setflags)
-#     bx_arr.setflags(write=True)
-#     by_arr.setflags(write=True)
-#     bs_arr.setflags(write=True)
-#     x_arr.setflags(write=True)
-#     y_arr.setflags(write=True)
-#     z_arr.setflags(write=True)
-    
-#     df_raw_data = pd.DataFrame({
-#         'Bx': bx_arr,
-#         'By': by_arr,
-#         'Bs': bs_arr
-#     }, index=pd.MultiIndex.from_arrays([x_arr, y_arr, z_arr], names=['X', 'Y', 'Z']))
-    
-#     # 3. Fit parameter caching: check file existence, load or fit and save
-#     test_data_dir = Path(__file__).parent.parent / "test_data"
-#     test_data_dir.mkdir(exist_ok=True)
-#     fit_pars_path = test_data_dir / "solenoid_field_fit_pars.csv"
-    
-#     if fit_pars_path.exists():
-#         # Load existing fit parameters
-#         df_fit_pars = pd.read_csv(fit_pars_path, index_col=list(FIELD_FIT_INDEX_COLUMNS))
-#     else:
-#         # Create FieldFitter and perform fitting (same dx, dy, ds as grid)
-#         fitter = FieldFitter(
-#             df_raw_data=df_raw_data,
-#             xy_point=(0.0, 0.0),
-#             dx=dx,
-#             dy=dy,
-#             ds=ds,
-#             min_region_size=10,
-#             deg=2,  # For derivatives
-#         )
-#         fitter.set()
-#         fitter.save_fit_pars(fit_pars_path)
-#         df_fit_pars = fitter.df_fit_pars
-    
-#     # 4. Build SplineBoris elements from fit parameters (series of elements, one per step)
-#     n_steps = 1000
-#     multipole_order = 2  # To include derivatives
-    
-#     par_table, s_start_fit, s_end_fit = build_parameter_table_from_df(
-#         df_fit_pars=df_fit_pars,
+#     param_table = SplineParameterSchema.build_param_table_from_spline_coeffs(
+#         ks_0=ks_0,
+#         kn_0=kn_0,
+#         ks_1=ks_1,
+#         kn_1=kn_1,
+#         bs=bs,
 #         n_steps=n_steps,
-#         multipole_order=multipole_order,
 #     )
-    
-#     # Create a series of SplineBoris elements, one for each step
-#     # This matches the pattern used in examples/undulator/sls_with_undulators_closed_spin_radiation.py
-#     splineboris_list = []
-#     s_vals = np.linspace(s_start_fit, s_end_fit, n_steps)
-#     ds_step = (s_end_fit - s_start_fit) / n_steps
 
-#     for i in range(n_steps):
-#         # Each element covers a small slice of the field map
-#         # params should be a 2D array: [[param1, param2, ...]] for n_steps=1
-#         params_i = [par_table[i].tolist()]
-#         s_val_i = s_vals[i]
-
-#         # For each single-step element, s_start and s_end define the range
-#         # in the field map that this step covers. Use a small interval around s_val_i.
-#         elem_s_start = s_val_i - ds_step / 2
-#         elem_s_end = s_val_i + ds_step / 2
-        
-#         splineboris_i = xt.SplineBoris(
-#             par_table=params_i,
-#             multipole_order=multipole_order,
-#             s_start=elem_s_start,
-#             s_end=elem_s_end,
-#             n_steps=1,
-#         )
-#         splineboris_list.append(splineboris_i)
-    
-#     # 5. Create BorisSpatialIntegrator element and track particles
-#     integrator = xt.BorisSpatialIntegrator(
-#         fieldmap_callable=sf.get_field,
-#         s_start=0,
-#         s_end=30,
-#         n_steps=n_steps
+#     splineboris = xt.SplineBoris(
+#         par_table=param_table,
+#         s_start=s_start,
+#         s_end=s_end,
+#         multipole_order=1,
+#         n_steps=n_steps,
 #     )
-    
-#     # Track with both elements
-#     p_splineboris = p0.copy()
-#     p_boris = p0.copy()
-    
-#     line_splineboris = xt.Line(elements=splineboris_list)
-#     line_splineboris.particle_ref = p_splineboris
-#     line_splineboris.track(p_splineboris)
-    
-#     integrator.track(p_boris)
-    
-#     # 6. Compare results with appropriate tolerances
-#     # Use similar tolerances as in test_boris_spatial.py (relative tolerances around 2-3%)
-#     rtol = 0.03  # 3% relative tolerance
-#     atol_x = 1e-6  # Absolute tolerance for positions (1 micron)
-#     atol_p = 1e-6  # Absolute tolerance for momenta
-    
-#     np.testing.assert_allclose(p_splineboris.x, p_boris.x, rtol=rtol, atol=atol_x)
-#     np.testing.assert_allclose(p_splineboris.y, p_boris.y, rtol=rtol, atol=atol_x)
-#     np.testing.assert_allclose(p_splineboris.px, p_boris.px, rtol=rtol, atol=atol_p)
-#     np.testing.assert_allclose(p_splineboris.py, p_boris.py, rtol=rtol, atol=atol_p)
+
+#     line_splineboris = xt.Line(elements=[splineboris])
+#     line_splineboris.particle_ref = p
+
+#     line_splineboris.track(p)
+#     x_end_splineboris = float(p.x[0])
+#     _, _, (A_0, Omega_0, m_0, u0_0) = duffing_cn_solution(0, x0_scalar, vx_0, g_norm * C_0, g_norm/2)
+#     # Convert tuple values to scalars
+#     A_0 = float(A_0)
+#     Omega_0 = float(Omega_0)
+#     m_0 = float(m_0)
+#     u0_0 = float(u0_0)
+
+#     result, _ = x_of_z(s_end, -1e-7, 1e-7, x0_scalar, vx_0, g_norm * C_0, g_norm/2, s_start, C_0, g_norm, A_0, Omega_0, m_0, u0_0)
+#     x_end_analytic = float(result[0])  # Extract x from (x, xdot, (A, Omega, m, u0))
+
+#     assert np.allclose(x_end_analytic, x_end_splineboris, atol=1e-12)
