@@ -60,7 +60,7 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
     for (int64_t i = 0; i < n_steps; ++i) {
         params_ptrs[i] = params_storage + i*cols;
         for (int64_t j = 0; j < cols; ++j) {
-            params_ptrs[i][j] = SplineBorisData_get_params(el, i, j);
+            params_ptrs[i][j] = SplineBorisData_get_par_table(el, i, j);
         }
     }
     const double* const* params = (const double* const*)params_ptrs;

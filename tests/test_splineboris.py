@@ -343,20 +343,6 @@ def test_splineboris_homogeneous_rbend(field_angle):
 
 
 
-def test_splineboris_integrator():
-    """
-    Test the SplineBoris integrator.
-    """
-
-    s_start = 0
-    s_end = 1
-    length = s_end - s_start
-    n_steps = 1000
-
-    # Placeholder for a dedicated integrator test; currently relies on the
-    # undulator regression below for end-to-end coverage.
-
-
 def test_splineboris_undulator_vs_boris_spatial():
     """
     Build a lightweight undulator from spline-fit parameters and check that
@@ -482,29 +468,16 @@ def test_splineboris_undulator_vs_boris_spatial():
 
     line_boris.track(p_boris)
 
-    print(f"x_end_spline = {p_spline.x[0]}, x_end_boris = {p_boris.x[0]}")
-    print(f"px_end_spline = {p_spline.px[0]}, px_end_boris = {p_boris.px[0]}")
-    print(f"y_end_spline = {p_spline.y[0]}, y_end_boris = {p_boris.y[0]}")
-    print(f"py_end_spline = {p_spline.py[0]}, py_end_boris = {p_boris.py[0]}")
-    print(f"zeta_end_spline = {p_spline.zeta[0]}, zeta_end_boris = {p_boris.zeta[0]}")
-    print(f"delta_end_spline = {p_spline.delta[0]}, delta_end_boris = {p_boris.delta[0]}")
-
-    print(f"x relative error = {np.abs(p_spline.x[0] - p_boris.x[0]) / np.abs(p_spline.x[0])}")
-    print(f"px relative error = {np.abs(p_spline.px[0] - p_boris.px[0]) / np.abs(p_spline.px[0])}")
-    print(f"y relative error = {np.abs(p_spline.y[0] - p_boris.y[0]) / np.abs(p_spline.y[0])}")
-    print(f"py relative error = {np.abs(p_spline.py[0] - p_boris.py[0]) / np.abs(p_spline.py[0])}")
-    print(f"zeta relative error = {np.abs(p_spline.zeta[0] - p_boris.zeta[0]) / np.abs(p_spline.zeta[0])}")
-
     # ------------------------------------------------------------------
     # Compare end coordinates
     # ------------------------------------------------------------------
     # The two integrators are not bitwise identical; use tight but robust tolerances.
-    xo.assert_allclose(p_spline.x, p_boris.x, rtol=1e-5, atol=5e-5)
-    xo.assert_allclose(p_spline.px, p_boris.px, rtol=1e-5, atol=5e-5)
-    xo.assert_allclose(p_spline.y, p_boris.y, rtol=1e-5, atol=5e-5)
-    xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-5, atol=5e-5)
-    xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-5, atol=5e-5)
-    xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-5, atol=5e-5)
+    xo.assert_allclose(p_spline.x, p_boris.x, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.px, p_boris.px, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.y, p_boris.y, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-7, atol=5e-7)
 
 test_splineboris_undulator_vs_boris_spatial()
 
