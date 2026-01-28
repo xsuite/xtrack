@@ -8,9 +8,7 @@ PI = np.pi
 
 env = xt.load('../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 
-
 line = env.lhcb1
-
 
 line['kqs.a45b1'] = 1e-4  # Example error
 line['kof.a56b1'] = 1000  # Example error
