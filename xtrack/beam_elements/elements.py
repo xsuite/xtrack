@@ -4222,3 +4222,47 @@ class ElectronCooler(BeamElement):
 class ThinSliceNotNeededError(Exception):
     pass
 
+class NonlinearKicker(BeamElement):
+
+    '''Beam element modeling nonlinear kicker composed of multiple wires (used for beam injection).
+
+    Parameters
+    ----------
+
+    L_phy : float
+        Physical length of the wires in meters. Assumed common for all wires. Default is ``0``.
+    L_int : float
+        Interaction length of the wires in meters. Assumed common for all wires. Default is ``0``.
+    current : array-like
+        Array of currents for each wire in Ampere. Default is ``0``.
+    xma : array-like
+        Array of horizontal positions for each wire in meters. Default is ``0``.
+    yma : array-like
+        Array of vertical positions for each wire in meters. Default is ``0``.
+    '''
+
+    _xofields={
+               'L_phy'  : xo.Float64,
+               'L_int'  : xo.Float64,
+               'current': xo.Float64[:],
+               'xma'    : xo.Float64[:],
+               'yma'    : xo.Float64[:], 
+              }
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/nonlinearkicker.h>',
+    ]
+
+    def __init__(self, **kwargs):
+        
+        # Validation: Ensure all arrays have the same length 
+        c_len = len(kwargs.get('current', []))
+        x_len = len(kwargs.get('xma', []))
+        y_len = len(kwargs.get('yma', []))
+
+        if not (c_len == x_len == y_len):
+            raise ValueError(
+                f"Dimension mismatch: current ({c_len}), xma ({x_len}), and yma ({y_len}) must be equal."
+            )
+        
+        super().__init__(**kwargs)
