@@ -1,22 +1,18 @@
 from __future__ import annotations
 
-import re
 from typing import Mapping, Tuple
 
 import numpy as np
-
-
-_KEY_PATTERN = re.compile(r"f(\d+)(\d+)(\d+)(\d+)", re.IGNORECASE)
 
 
 def _parse_rdt_key(key: str) -> Tuple[int, int, int, int]:
     """
     Extract (p, q, r, t) indices from an RDT key like ``f1020``.
     """
-    match = _KEY_PATTERN.fullmatch(key.strip())
-    if match is None:
-        raise ValueError(f"RDT key '{key}' must match pattern fPQR T (e.g., f1020).")
-    return tuple(int(g) for g in match.groups())
+    key = key.strip()
+    if len(key) != 5 or key[0].lower() != "f" or not key[1:].isdigit():
+        raise ValueError("RDT key must look like 'f1020' (one letter f + four digits).")
+    return int(key[1]), int(key[2]), int(key[3]), int(key[4])
 
 
 def tracking_from_rdt(
