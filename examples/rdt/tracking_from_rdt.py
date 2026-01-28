@@ -23,7 +23,7 @@ def tracking_from_rdt(
     Qy: float | np.ndarray,
     psi_x0: float | np.ndarray = 0.0,
     psi_y0: float | np.ndarray = 0.0,
-    N: float | np.ndarray = 0.0,
+    num_turns: int = 0,
 ):
     """
     Compute the complex Courant-Snyder variables h_{x,-} and h_{y,-} from RDTs.
@@ -48,8 +48,8 @@ def tracking_from_rdt(
         Tunes in the two planes.
     psi_x0, psi_y0 : float or array_like, optional
         Initial phases at the observation point.
-    N : float or array_like, optional
-        Turn index (or array of turns).
+    num_turns : int
+        Number of turns to track.
 
     Returns
     -------
@@ -63,7 +63,7 @@ def tracking_from_rdt(
     Qy = np.asarray(Qy, dtype=np.float64)
     psi_x0 = np.asarray(psi_x0, dtype=np.float64)
     psi_y0 = np.asarray(psi_y0, dtype=np.float64)
-    N = np.asarray(N, dtype=np.float64)
+    N = np.arange(int(num_turns), dtype=np.float64)
 
     Ix, Iy, Qx, Qy, psi_x0, psi_y0, N = np.broadcast_arrays(
         Ix, Iy, Qx, Qy, psi_x0, psi_y0, N
