@@ -9,8 +9,8 @@ env['qf1k1'] =  3.15396e-01
 env['qd1k1'] = -5.24626e-01
 env['qf2k1'] =  5.22717e-01
 
-env['k2xrr_a'] = 1.
-env['k2yrr_b'] = -6.5
+env['k2xrr_a'] = 0.8
+env['k2yrr_b'] = 0
 
 # Generate 20 particles on the x axis
 x_gen = np.linspace(0, 2.5e-2, 20)
@@ -25,6 +25,7 @@ line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
 rec = line.record_last_track
 
 # Plot turn by turn data
+import matplotlib.pyplot as plt
 plt.figure()
 plt.plot(rec.x.T, rec.px.T, '.', markersize=1, color='C0')
 plt.ylabel(r'$p_x$')
