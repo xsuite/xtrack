@@ -18,7 +18,7 @@ tw = line.twiss4d()
 strengths = line.get_table(attr=True)
 
 # Generate 20 particles on the x axis
-x_gen = np.linspace(0, 2.5e-2, 20)
+x_gen = np.linspace(0, 2.5e-2, 10)
 particles = line.build_particles(x=x_gen, px=0, y=0, py=0, zeta=0, delta=0)
 
 # Inspect the particles
@@ -47,28 +47,53 @@ for rr in rdts:
     rdt_vals[rr] = compute_rdt_first_order_perturbation(rr, tw, strengths)
     rdt_vals_ng[rr] = tw_ng[rr]
 
-i_part_analyze = 5
+i_part_analyze = 3
 x_norm = nc.x_norm[i_part_analyze, :]
 px_norm = nc.px_norm[i_part_analyze, :]
 y_norm = nc.y_norm[i_part_analyze, :]
 py_norm = nc.py_norm[i_part_analyze, :]
 
+z_norm = x_norm - 1j * px_norm
 # tracking from RDTs
-Ix = 0.5 * (x_norm**2 + px_norm**2)
-Iy = 0.5 * (y_norm**2 + py_norm**2)
+Ix = 0.5 * (x_norm[0]**2 + px_norm[0]**2)
+Iy = 0.5 * (y_norm[0]**2 + py_norm[0]**2)
+psi_x0 = np.angle(x_norm[0] + 1j * px_norm[0])
+psi_y0 = np.angle(y_norm[0] + 1j * py_norm[0])
+
+rdt_use = rdt_vals
+
+def initial_conditions(Ix, Iy, psi_x0, psi_y0):
+
+    hx_minus, hy_minus = tracking_from_rdt(
+        rdts={rr: (rdt_use[rr][0]) for rr in rdts},
+        Ix=Ix,
+        Iy=Iy,
+        Qx=tw.qx,
+        Qy=tw.qy,
+        psi_x0=psi_x0,
+        psi_y0=psi_y0,
+        num_turns=1
+    )
+    out = {
+        'x_re': np.real(hx_minus),
+        'x_im': np.imag(hx_minus),
+        'y_re': np.real(hy_minus),
+        'y_im': np.imag(hy_minus),
+    }
+    return out
 
 hx_minus, hy_minus = tracking_from_rdt(
-    rdts={rr: (rdt_vals[rr][0]) for rr in rdts},
+    rdts={rr: (rdt_use[rr][0]) for rr in rdts},
     Ix=Ix,
     Iy=Iy,
     Qx=tw.qx,
     Qy=tw.qy,
-    psi_x0=0.0,
-    psi_y0=0.0,
+    psi_x0=psi_x0,
+    psi_y0=psi_y0,
     num_turns=num_turns
 )
 
-z_norm = x_norm - 1j * px_norm
+
 
 z_spectrum = np.fft.fft(z_norm)
 h_spectrum = np.fft.fft(hx_minus)
@@ -89,7 +114,6 @@ mask_search_h = (np.abs(f_h - qx_resonance) < dq_search)
 i_max_h = np.argmax(np.abs(s_h[mask_search_h]))
 f_h_max = f_h[mask_search_h][i_max_h]
 s_h_max = s_h[mask_search_h][i_max_h]
-
 
 # Plot turn by turn data
 import matplotlib.pyplot as plt
