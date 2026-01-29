@@ -18,14 +18,13 @@ tw = line.twiss4d()
 strengths = line.get_table(attr=True)
 
 # Generate 20 particles on the x axis
-x_gen = np.linspace(0, 2.5e-2, 10)
-particles = line.build_particles(x=x_gen, px=5e-4, y=0, py=0, zeta=0, delta=0)
+particles = line.build_particles(x=3e-3, px=5e-4, y=0, py=0, zeta=0, delta=0)
 
 # Inspect the particles
 particles.get_table()
 
 # Track 1000 turns logging turn-by-turn data
-num_turns = 10_000
+num_turns = 100_000
 line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True,
            with_progress=100)
 rec = line.record_last_track
@@ -47,7 +46,7 @@ for rr in rdts:
     rdt_vals[rr] = compute_rdt_first_order_perturbation(rr, tw, strengths)
     rdt_vals_ng[rr] = tw_ng[rr]
 
-i_part_analyze = 3
+i_part_analyze = 0
 x_norm = nc.x_norm[i_part_analyze, :]
 px_norm = nc.px_norm[i_part_analyze, :]
 y_norm = nc.y_norm[i_part_analyze, :]
