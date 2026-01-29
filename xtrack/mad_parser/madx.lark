@@ -91,7 +91,7 @@ array: "{" sum ( "," sum )* "}"  -> build_list
 
 string_literal: STRING
 
-ignored: if | return | select | remove | beam | assign
+ignored: if | return | select | remove | beam | assign | use
 
 !if: "if"i /[^\n]+/
 !return: "return"i /[^\n]+/
@@ -99,6 +99,7 @@ ignored: if | return | select | remove | beam | assign
 !remove: "remove"i /[^\n]+/
 !beam: "beam"i /[^;]*;/
 !assign: "assign"i /[^\n]+/
+!use: "use"i /[^;]*;/
 
 _SEQUENCE: "sequence"i
 _ENDSEQUENCE: "endsequence"i
