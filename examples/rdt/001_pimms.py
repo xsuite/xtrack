@@ -131,22 +131,48 @@ f_hx[f_hx < 0] += 1.0
 f_y[f_y < 0] += 1.0
 f_hy[f_hy < 0] += 1.0
 
-# find strongest line in the resonance region
-qx_resonance = np.mod(2 * tw.qx, 1)
-dq_search = 0.001
-mask_search_x = (np.abs(f_x - qx_resonance) < dq_search)
-i_max_x = np.argmax(np.abs(s_x[mask_search_x]))
-f_x_max = f_x[mask_search_x][i_max_x]
-s_x_max = s_x[mask_search_x][i_max_x]
-mask_search_h = (np.abs(f_hx - qx_resonance) < dq_search)
-i_max_h = np.argmax(np.abs(s_hx[mask_search_h]))
-f_h_max = f_hx[mask_search_h][i_max_h]
-s_h_max = s_hx[mask_search_h][i_max_h]
+f_h = {'x': f_hx, 'y': f_hy}
+s_h = {'x': s_hx, 'y': s_hy}
+f_z = {'x': f_x, 'y': f_y}
+s_z = {'x': s_x, 'y': s_y}
 
+# # find strongest line in the resonance region
+# qx_resonance = np.mod(2 * tw.qx, 1)
+# dq_search = 0.001
+# mask_search_x = (np.abs(f_x - qx_resonance) < dq_search)
+# i_max_x = np.argmax(np.abs(s_x[mask_search_x]))
+# f_x_max = f_x[mask_search_x][i_max_x]
+# s_x_max = s_x[mask_search_x][i_max_x]
+# mask_search_h = (np.abs(f_hx - qx_resonance) < dq_search)
+# i_max_h = np.argmax(np.abs(s_hx[mask_search_h]))
+# f_h_max = f_hx[mask_search_h][i_max_h]
+# s_h_max = s_hx[mask_search_h][i_max_h]
 # print comparison on abs and phase of the strongest line
-print(f'Strongest line near 2qx={qx_resonance:.6f}:')
-print(f' From tracking: tune={f_x_max:.6f}, amp={np.abs(s_x_max):.6e}, phase={np.angle(s_x_max, deg=True):.2f} deg')
-print(f' From RDTs:     tune={f_h_max:.6f}, amp={np.abs(s_h_max):.6e}, phase={np.angle(s_h_max, deg=True):.2f} deg')
+# print(f'Strongest line near 2qx={qx_resonance:.6f}:')
+# print(f' From tracking: tune={f_x_max:.6f}, amp={np.abs(s_x_max):.6e}, phase={np.angle(s_x_max, deg=True):.2f} deg')
+# print(f' From RDTs:     tune={f_h_max:.6f},
+
+dq_search = 0.001
+print()
+for rr in rdts:
+    print(f'Spectral lines excited by {rr}:')
+    for pp in ['x', 'y']:
+        if freq_val_dict[rr + f'_ampl_{pp}_expr'] != '0':
+            print(f'  Expected {pp} freq: {freq_val_dict[rr + f"_freq_{pp}_expr"]} = {freq_val_dict[rr + f"_freq_{pp}"]:.6f}')
+            mask_search_z = (np.abs(f_z[pp] - freq_val_dict[rr + f'_freq_{pp}']) < dq_search)
+            i_max_z = np.argmax(np.abs(s_z[pp][mask_search_z]))
+            f_z_max = f_z[pp][mask_search_z][i_max_z]
+            s_z_max = s_z[pp][mask_search_z][i_max_z]
+            mask_search_h = (np.abs(f_h[pp] - freq_val_dict[rr + f'_freq_{pp}']) < dq_search)
+            i_max_h = np.argmax(np.abs(s_h[pp][mask_search_h]))
+            f_h_max = f_h[pp][mask_search_h][i_max_h]
+            s_h_max = s_h[pp][mask_search_h][i_max_h]
+            print(f'    From tracking: freq={f_z_max:.6f}, amp={np.abs(s_z_max):.6e}, phase={np.angle(s_z_max, deg=True):.2f} deg')
+            print(f'    From RDTs:     freq={f_h_max:.6f}, amp={np.abs(s_h_max):.6e}, phase={np.angle(s_h_max, deg=True):.2f} deg')
+        else:
+            print(f'  Expected {pp} freq: not excited')
+    print('')
+
 
 # Plot turn by turn data
 import matplotlib.pyplot as plt
