@@ -1420,28 +1420,32 @@ def _compute_coupling_elements_edwards_teng(
 
     """
 
-    edw_teng_cols = _edwards_teng_from_one_turn_at_all_locations(W_matrix, qx, qy)
+    # This computes edwards-teng parameters from full one-turn W matrix at all locations
+    # edw_teng_cols = _edwards_teng_from_one_turn_at_all_locations(W_matrix, qx, qy)
+    #
+    # The following instead computes from the one-turn R matrix at one location
+    # and then propagates along the ring:
 
-    # # R matrix of the full ring (4D)
-    # Rot = np.zeros(shape=(6, 6), dtype=np.float64)
-    # Rot[0:2,0:2] = lnf.Rot2D(2 * np.pi * qx)
-    # Rot[2:4,2:4] = lnf.Rot2D(2 * np.pi * qy)
-    # WW0 = W_matrix[0, :, :]
-    # WW0_inv = lnf.S.T @ WW0.T @ lnf.S
-    # RR = WW0 @ Rot @ WW0_inv
+    # R matrix of the full ring (4D)
+    Rot = np.zeros(shape=(6, 6), dtype=np.float64)
+    Rot[0:2,0:2] = lnf.Rot2D(2 * np.pi * qx)
+    Rot[2:4,2:4] = lnf.Rot2D(2 * np.pi * qy)
+    WW0 = W_matrix[0, :, :]
+    WW0_inv = lnf.S.T @ WW0.T @ lnf.S
+    RR = WW0 @ Rot @ WW0_inv
 
-    # # Edwards-Teng initial conditions
-    # edw_teng_init = _compute_edwards_teng_initial(RR)
+    # Edwards-Teng initial conditions
+    edw_teng_init = _compute_edwards_teng_initial(RR)
 
-    # # Edwards-Teng parameters along the ring
-    # edw_teng_cols = _propagate_edwards_teng(
-    #     WW=W_matrix, mux=mux, muy=muy,
-    #     RR_ET0=edw_teng_init['RR_ET0'],
-    #     betx0=edw_teng_init['betx0'],
-    #     alfx0=edw_teng_init['alfx0'],
-    #     bety0=edw_teng_init['bety0'],
-    #     alfy0=edw_teng_init['alfy0']
-    # )
+    # Edwards-Teng parameters along the ring
+    edw_teng_cols = _propagate_edwards_teng(
+        WW=W_matrix, mux=mux, muy=muy,
+        RR_ET0=edw_teng_init['RR_ET0'],
+        betx0=edw_teng_init['betx0'],
+        alfx0=edw_teng_init['alfx0'],
+        bety0=edw_teng_init['bety0'],
+        alfy0=edw_teng_init['alfy0']
+    )
 
     # Coupling RDTs from Edwards-Teng parameters
     rdts = _compute_coupling_rdts(edw_teng_cols['r11'], edw_teng_cols['r12'],
