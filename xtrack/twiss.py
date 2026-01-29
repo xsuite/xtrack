@@ -1420,26 +1420,28 @@ def _compute_coupling_elements_edwards_teng(
 
     """
 
-    # R matrix of the full ring (4D)
-    Rot = np.zeros(shape=(6, 6), dtype=np.float64)
-    Rot[0:2,0:2] = lnf.Rot2D(2 * np.pi * qx)
-    Rot[2:4,2:4] = lnf.Rot2D(2 * np.pi * qy)
-    WW0 = W_matrix[0, :, :]
-    WW0_inv = lnf.S.T @ WW0.T @ lnf.S
-    RR = WW0 @ Rot @ WW0_inv
+    edw_teng_cols = _edwards_teng_from_one_turn_at_all_locations(W_matrix, qx, qy)
 
-    # Edwards-Teng initial conditions
-    edw_teng_init = _compute_edwards_teng_initial(RR)
+    # # R matrix of the full ring (4D)
+    # Rot = np.zeros(shape=(6, 6), dtype=np.float64)
+    # Rot[0:2,0:2] = lnf.Rot2D(2 * np.pi * qx)
+    # Rot[2:4,2:4] = lnf.Rot2D(2 * np.pi * qy)
+    # WW0 = W_matrix[0, :, :]
+    # WW0_inv = lnf.S.T @ WW0.T @ lnf.S
+    # RR = WW0 @ Rot @ WW0_inv
 
-    # Edwards-Teng parameters along the ring
-    edw_teng_cols = _propagate_edwards_teng(
-        WW=W_matrix, mux=mux, muy=muy,
-        RR_ET0=edw_teng_init['RR_ET0'],
-        betx0=edw_teng_init['betx0'],
-        alfx0=edw_teng_init['alfx0'],
-        bety0=edw_teng_init['bety0'],
-        alfy0=edw_teng_init['alfy0']
-    )
+    # # Edwards-Teng initial conditions
+    # edw_teng_init = _compute_edwards_teng_initial(RR)
+
+    # # Edwards-Teng parameters along the ring
+    # edw_teng_cols = _propagate_edwards_teng(
+    #     WW=W_matrix, mux=mux, muy=muy,
+    #     RR_ET0=edw_teng_init['RR_ET0'],
+    #     betx0=edw_teng_init['betx0'],
+    #     alfx0=edw_teng_init['alfx0'],
+    #     bety0=edw_teng_init['bety0'],
+    #     alfy0=edw_teng_init['alfy0']
+    # )
 
     # Coupling RDTs from Edwards-Teng parameters
     rdts = _compute_coupling_rdts(edw_teng_cols['r11'], edw_teng_cols['r12'],
@@ -1559,6 +1561,58 @@ def _conj_mat(mm):
     c = mm[1,0]
     d = mm[1,1]
     return np.array([[d, -b], [-c, a]])
+
+
+def _edwards_teng_from_one_turn_at_all_locations(WW, qx, qy):
+
+    # R matrix of the full ring (4D)
+    Rot = np.zeros(shape=(6, 6), dtype=np.float64)
+    Rot[0:2,0:2] = lnf.Rot2D(2 * np.pi * qx)
+    Rot[2:4,2:4] = lnf.Rot2D(2 * np.pi * qy)
+
+    n_elem = WW.shape[0]
+
+    betx = np.zeros(n_elem)
+    alfx = np.zeros(n_elem)
+    bety = np.zeros(n_elem)
+    alfy = np.zeros(n_elem)
+    r11 = np.zeros(n_elem)
+    r12 = np.zeros(n_elem)
+    r21 = np.zeros(n_elem)
+    r22 = np.zeros(n_elem)
+
+    for ii in range(n_elem):
+
+        WW0 = WW[ii, :, :]
+        WW0_inv = lnf.S.T @ WW0.T @ lnf.S
+        RR = WW0 @ Rot @ WW0_inv
+
+        # Edwards-Teng initial conditions
+        edw_teng_init = _compute_edwards_teng_initial(RR)
+
+        RR_ET=edw_teng_init['RR_ET0']
+
+        r11[ii] = RR_ET[0, 0]
+        r12[ii] = RR_ET[0, 1]
+        r21[ii] = RR_ET[1, 0]
+        r22[ii] = RR_ET[1, 1]
+        betx[ii] = edw_teng_init['betx0']
+        alfx[ii] = edw_teng_init['alfx0']
+        bety[ii] = edw_teng_init['bety0']
+        alfy[ii] = edw_teng_init['alfy0']
+
+    out_dict = {
+        'betx': betx,
+        'alfx': alfx,
+        'bety': bety,
+        'alfy': alfy,
+        'r11': r11,
+        'r12': r12,
+        'r21': r21,
+        'r22': r22
+    }
+
+    return out_dict
 
 def _propagate_edwards_teng(WW, mux, muy, RR_ET0, betx0, alfx0, bety0, alfy0):
 
