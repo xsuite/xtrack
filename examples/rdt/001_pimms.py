@@ -19,6 +19,7 @@ strengths = line.get_table(attr=True)
 
 # Generate 20 particles on the x axis
 particles = line.build_particles(x=3e-3, px=5e-4, y=0, py=0, zeta=0, delta=0)
+# particles = line.build_particles(x=3e-3, px=5e-4, y=2e-3, py=3e-5, zeta=0, delta=0)
 
 # Inspect the particles
 particles.get_table()
