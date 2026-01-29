@@ -16,8 +16,12 @@ env['qf2k1'] =  5.22717e-01
 # rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 
 # Skew sextupole
-env['xrrb'].k2s = 0.8
-rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
+# env['xrrb'].k2s = 0.8
+# rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
+
+# Skew quartupole
+env['xrra'].ksl[1] = 2e-3
+rdts = ['f1001', 'f1010', 'f0110']
 
 tw = line.twiss4d()
 strengths = line.get_table(attr=True)
@@ -42,17 +46,14 @@ nc  = tw.get_normalized_coordinates(rec)
 freq_val_dict = frequency_for_rdt(rdts, tw.qx, tw.qy)
 
 # Mad-ng twiss including RDTs
-tw_ng = line.madng_twiss(rdts=rdts)
+# tw_ng = line.madng_twiss(rdts=rdts)
 
 # Compute RDTs via first-order perturbation theory
-# f3000 = compute_rdt_first_order_perturbation('f3000', tw, strengths)
-# f0300 = compute_rdt_first_order_perturbation('f0300', tw, strengths)
-# f1020 = compute_rdt_first_order_perturbation('f1020', tw, strengths)
 rdt_vals = {}
 rdt_vals_ng = {}
 for rr in rdts:
     rdt_vals[rr] = compute_rdt_first_order_perturbation(rr, tw, strengths)
-    rdt_vals_ng[rr] = tw_ng[rr]
+    # rdt_vals_ng[rr] = tw_ng[rr]
 
 i_part_analyze = 0
 x_norm = nc.x_norm[i_part_analyze, :]
