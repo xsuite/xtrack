@@ -231,15 +231,17 @@ class MadxLoader:
                 elif refer == 'exit':
                     refer = 'end'
                 length = params.get('l', None)
-                builder = self.env.new_line(name=name, refer=refer,
-                                               length=length,
-                                               s_tol=self.s_tol,
-                                               compose=True)
+                builder = self.env.new_line(
+                    name=name,
+                    refer=refer,
+                    length=length,
+                    s_tol=self.s_tol,
+                    compose=True,
+                )
                 self._parse_components(builder, params.pop('elements'))
             elif line_type == 'line':
                 components = self._parse_line_components(params.pop('elements'))
-                builder = self.env.new_line(name=name, components=components,
-                                            compose=True)
+                builder = self.env.new_line(name=name, components=components, compose=True)
             else:
                 raise ValueError(
                     f'Only a MAD-X sequence or a line type can be used to build'
@@ -294,7 +296,10 @@ class MadxLoader:
             elif parent is None:
                 # If it's a reference to a single element, we multiply it and
                 # add it. Reversal will not affect it.
-                components += body.get('_repeat', 1) * [name]
+                element = [name]
+                if aper_name := self.env[name].name_associated_aperture:
+                    element.insert(0, aper_name)
+                components += repeat * element
             else:
                 raise ValueError('Only an element reference or a line is accepted')
 
@@ -331,7 +336,7 @@ class MadxLoader:
             # If parent is None, we must be in a sequence, and so we are
             # placing the element: in MAD-X this requires an `at` param, but
             # we can be a bit more lax, as Xsuite will automatically place the
-            # element after the previous one if there is not `at`.
+            # element after the previous one if there is no `at`.
             self._place_element(name, el_params, builder)
 
         if aperture:
