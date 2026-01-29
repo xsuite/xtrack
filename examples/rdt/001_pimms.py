@@ -172,4 +172,10 @@ plt.plot(f_h, np.rad2deg(np.angle(s_h)), 'x', markersize=4
 plt.xlabel('Tune')
 plt.ylabel('Spectral phase [deg]')
 
+plt.figure(4)
+plt.plot(zx_norm.real, zx_norm.imag, '.', markersize=1, color='C0')
+plt.plot(hx_minus.real, hx_minus.imag, '.', markersize=1, color='C1')
+plt.xlabel('Re(hx_minus)')
+plt.ylabel('Im(hx_minus)')
+
 plt.show()
