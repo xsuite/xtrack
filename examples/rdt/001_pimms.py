@@ -11,8 +11,13 @@ env['qf1k1'] =  3.15396e-01
 env['qd1k1'] = -5.24626e-01
 env['qf2k1'] =  5.22717e-01
 
-env['k2xrr_a'] = 0.8
-env['k2yrr_b'] = 0
+# # Normal sextupole
+# env['xrra'].k2 = 0.8
+# rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
+
+# Skew sextupole
+env['xrrb'].k2s = 0.8
+rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
 
 tw = line.twiss4d()
 strengths = line.get_table(attr=True)
@@ -32,8 +37,7 @@ rec = line.record_last_track
 
 nc  = tw.get_normalized_coordinates(rec)
 
-# rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
-rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
+
 
 freq_val_dict = frequency_for_rdt(rdts, tw.qx, tw.qy)
 
@@ -157,7 +161,11 @@ print()
 for rr in rdts:
     print(f'Spectral lines excited by {rr}:')
     for pp in ['x', 'y']:
-        if freq_val_dict[rr + f'_ampl_{pp}_expr'] != '0':
+        if freq_val_dict[rr + f'_ampl_{pp}_expr'] == '0':
+            print(f'  Expected {pp} freq: not excited')
+        elif freq_val_dict[rr + f"_freq_{pp}"] == 0:
+            print(f'  Expected {pp} freq: zero frequency')
+        else:
             print(f'  Expected {pp} freq: {freq_val_dict[rr + f"_freq_{pp}_expr"]} = {freq_val_dict[rr + f"_freq_{pp}"]:.6f}')
             mask_search_z = (np.abs(f_z[pp] - freq_val_dict[rr + f'_freq_{pp}']) < dq_search)
             i_max_z = np.argmax(np.abs(s_z[pp][mask_search_z]))
@@ -169,8 +177,6 @@ for rr in rdts:
             s_h_max = s_h[pp][mask_search_h][i_max_h]
             print(f'    From tracking: freq={f_z_max:.6f}, amp={np.abs(s_z_max):.6e}, phase={np.angle(s_z_max, deg=True):.2f} deg')
             print(f'    From RDTs:     freq={f_h_max:.6f}, amp={np.abs(s_h_max):.6e}, phase={np.angle(s_h_max, deg=True):.2f} deg')
-        else:
-            print(f'  Expected {pp} freq: not excited')
     print('')
 
 
