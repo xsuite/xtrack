@@ -19,7 +19,7 @@ strengths = line.get_table(attr=True)
 
 # Generate 20 particles on the x axis
 x_gen = np.linspace(0, 2.5e-2, 10)
-particles = line.build_particles(x=x_gen, px=0, y=0, py=0, zeta=0, delta=0)
+particles = line.build_particles(x=x_gen, px=5e-4, y=0, py=0, zeta=0, delta=0)
 
 # Inspect the particles
 particles.get_table()
@@ -108,8 +108,6 @@ hx_minus, hy_minus = tracking_from_rdt(
     num_turns=num_turns
 )
 
-
-
 z_spectrum = np.fft.fft(zx_norm)
 h_spectrum = np.fft.fft(hx_minus)
 freqs = np.fft.fftfreq(num_turns)
@@ -129,6 +127,11 @@ mask_search_h = (np.abs(f_h - qx_resonance) < dq_search)
 i_max_h = np.argmax(np.abs(s_h[mask_search_h]))
 f_h_max = f_h[mask_search_h][i_max_h]
 s_h_max = s_h[mask_search_h][i_max_h]
+
+# print comparison on abs and phase of the strongest line
+print(f'Strongest line near 2qx={qx_resonance:.6f}:')
+print(f' From tracking: tune={f_x_max:.6f}, amp={np.abs(s_x_max):.6e}, phase={np.angle(s_x_max, deg=True):.2f} deg')
+print(f' From RDTs:     tune={f_h_max:.6f}, amp={np.abs(s_h_max):.6e}, phase={np.angle(s_h_max, deg=True):.2f} deg')
 
 # Plot turn by turn data
 import matplotlib.pyplot as plt
