@@ -78,6 +78,19 @@ import nafflib
 f_h, s_h = nafflib.get_tunes_all(hx_minus, N=100)
 f_x, s_x = nafflib.get_tunes_all(z_norm, N=100)
 
+# find sronges line in the resonsne region
+qx_resonance = np.mod(2 * tw.qx, 1)
+dq_search = 0.001
+mask_search_x = (np.abs(f_x - qx_resonance) < dq_search)
+i_max_x = np.argmax(np.abs(s_x[mask_search_x]))
+f_x_max = f_x[mask_search_x][i_max_x]
+s_x_max = s_x[mask_search_x][i_max_x]
+mask_search_h = (np.abs(f_h - qx_resonance) < dq_search)
+i_max_h = np.argmax(np.abs(s_h[mask_search_h]))
+f_h_max = f_h[mask_search_h][i_max_h]
+s_h_max = s_h[mask_search_h][i_max_h]
+
+
 # Plot turn by turn data
 import matplotlib.pyplot as plt
 plt.close('all')
