@@ -623,11 +623,12 @@ class MadLoader:
                     eldata["offset"] = [madel.mech_sep / 2 * self.bv, madel.v_pos]
                     eldata["assembly_id"] = madel.assembly_id
                     eldata["slot_id"] = madel.slot_id
-                    eldata["aperture"] = [
-                        madel.apertype,
-                        list(madel.aperture),
-                        list(madel.aper_tol),
-                    ]
+                    if hasattr(madel, "apertype"):
+                        eldata["aperture"] = [
+                            madel.apertype,
+                            list(madel.aperture),
+                            list(madel.aper_tol),
+                        ]
                     layout_data[nn] = eldata
 
             line.metadata["layout_data"] = layout_data
