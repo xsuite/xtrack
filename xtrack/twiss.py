@@ -1524,7 +1524,7 @@ def _compute_edwards_teng_initial(RR):
         det_bc = np.linalg.det(b_pl_c)
         tr_a_m_tr_d = tr(AA) - tr(DD)
         coeff = - (0.5 * tr_a_m_tr_d
-            + np.sign(det_bc) * np.sqrt(det_bc + 0.25 * tr_a_m_tr_d**2))
+            + np.sign(tr_a_m_tr_d) * np.sqrt(det_bc + 0.25 * tr_a_m_tr_d**2))
         RR_ET0 = 1/coeff * b_pl_c
 
     EE = AA - BB@RR_ET0
