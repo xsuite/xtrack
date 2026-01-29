@@ -19,20 +19,20 @@ strengths = line.get_table(attr=True)
 
 # Generate 20 particles on the x axis
 x_gen = np.linspace(0, 2.5e-2, 20)
-particles = line.build_particles(x=x_gen, px=0, y=x_gen, py=0, zeta=0, delta=0)
+particles = line.build_particles(x=x_gen, px=0, y=0, py=0, zeta=0, delta=0)
 
 # Inspect the particles
 particles.get_table()
 
 # Track 1000 turns logging turn-by-turn data
-num_turns = 50_000
+num_turns = 100_000
 line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True,
            with_progress=100)
 rec = line.record_last_track
 
 nc  = tw.get_normalized_coordinates(rec)
 
-rdts = ['f3000'] #'f1200', 'f1020', 'f0120', 'f0111']
+rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 
 # Mad-ng twiss including RDTs
 tw_ng = line.madng_twiss(rdts=rdts)
@@ -74,6 +74,10 @@ z_spectrum = np.fft.fft(z_norm)
 h_spectrum = np.fft.fft(hx_minus)
 freqs = np.fft.fftfreq(num_turns)
 
+import nafflib
+f_h, s_h = nafflib.get_tunes_all(hx_minus, N=100)
+f_x, s_x = nafflib.get_tunes_all(z_norm, N=100)
+
 # Plot turn by turn data
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -97,5 +101,21 @@ plt.plot(freqs, np.rad2deg(np.angle(h_spectrum)), '.', markersize=4, color='C1')
 plt.xlabel('Frequency [1/turn]')
 plt.ylabel('FFT Phase [deg]')
 plt.subplots_adjust(left=.15)
+
+plt.figure(3)
+plt.subplot(2,1,1)
+plt.plot(f_x, np.abs(s_x), 'o', markersize=4, color='C0', label='x')
+plt.plot(f_h, np.abs(s_h), 'x', markersize=4, color='C1', label='from RDTs')
+plt.xlabel('Tune')
+plt.ylabel('Spectral amplitude')
+plt.yscale('log')
+plt.legend()
+plt.subplot(2,1,2, sharex=plt.gca().axes)
+plt.plot(f_x, np.rad2deg(np.angle(s_x)), 'o', markersize=4
+            , color='C0', label='x')
+plt.plot(f_h, np.rad2deg(np.angle(s_h)), 'x', markersize=4
+            , color='C1', label='from RDTs')
+plt.xlabel('Tune')
+plt.ylabel('Spectral phase [deg]')
 
 plt.show()
