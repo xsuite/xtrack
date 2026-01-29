@@ -1,7 +1,7 @@
 import xtrack as xt
 import numpy as np
 from rdt_first_order import compute_rdt_first_order_perturbation
-from tracking_from_rdt import tracking_from_rdt
+from tracking_from_rdt import tracking_from_rdt, frequency_for_rdt
 
 env = xt.load('../../test_data/pimms/PIMM.seq')
 line = env.pimms
@@ -33,6 +33,8 @@ rec = line.record_last_track
 nc  = tw.get_normalized_coordinates(rec)
 
 rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
+
+freq_val_dict = frequency_for_rdt(rdts, tw.qx, tw.qy)
 
 # Mad-ng twiss including RDTs
 tw_ng = line.madng_twiss(rdts=rdts)

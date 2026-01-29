@@ -100,3 +100,34 @@ def tracking_from_rdt(
     hy_minus = hy_minus - 2j * sum_hy
 
     return hx_minus, hy_minus
+
+def frequency_for_rdt(rdts: list[str], Qx: float, Qy: float) -> float:
+    """
+    Compute the frequency associated to a given RDT.
+
+    Parameters
+    ----------
+    rdts : list of str
+        RDT key like ``"f1020"``.
+    Qx, Qy : float
+        Tunes in the two planes.
+
+    Returns
+    -------
+    freq : float
+        Frequency associated to the RDT.
+    """
+    if isinstance(rdts, str):
+        rdts = [rdts]
+    out = {}
+    for rdt_key in rdts:
+        p, q, r, t = _parse_rdt_key(rdt_key)
+        freq_x_expr = f'{1 - p + q} * Qx + {t - r} * Qy'
+        freq_x = (1 - p + q) * Qx + (t - r) * Qy
+        freq_y_expr = f'{q - p} * Qx + {1 - r + t} * Qy'
+        freq_y = (q - p) * Qx + (1 - r + t) * Qy
+        out[rdt_key + '_freq_x_expr'] = freq_x_expr
+        out[rdt_key + '_freq_x'] = float(freq_x)
+        out[rdt_key + '_freq_y_expr'] = freq_y_expr
+        out[rdt_key + '_freq_y'] = float(freq_y)
+    return out
