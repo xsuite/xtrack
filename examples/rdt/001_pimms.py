@@ -25,7 +25,7 @@ particles = line.build_particles(x=x_gen, px=0, y=0, py=0, zeta=0, delta=0)
 particles.get_table()
 
 # Track 1000 turns logging turn-by-turn data
-num_turns = 100_000
+num_turns = 10_000
 line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True,
            with_progress=100)
 rec = line.record_last_track
@@ -53,12 +53,13 @@ px_norm = nc.px_norm[i_part_analyze, :]
 y_norm = nc.y_norm[i_part_analyze, :]
 py_norm = nc.py_norm[i_part_analyze, :]
 
-z_norm = x_norm - 1j * px_norm
+zx_norm = x_norm - 1j * px_norm
+zy_norm = y_norm - 1j * py_norm
 # tracking from RDTs
-Ix = 0.5 * (x_norm[0]**2 + px_norm[0]**2)
-Iy = 0.5 * (y_norm[0]**2 + py_norm[0]**2)
-psi_x0 = np.angle(x_norm[0] + 1j * px_norm[0])
-psi_y0 = np.angle(y_norm[0] + 1j * py_norm[0])
+Ix = 0.5 * (zx_norm[0].real**2 + zx_norm[0].imag**2)
+Iy = 0.5 * (zy_norm[0].real**2 + zy_norm[0].imag**2)
+psi_x0 = np.angle(zx_norm[0].real + 1j * zx_norm[0].imag)
+psi_y0 = np.angle(zy_norm[0].real + 1j * zy_norm[0].imag)
 
 rdt_use = rdt_vals
 
@@ -74,13 +75,27 @@ def initial_conditions(Ix, Iy, psi_x0, psi_y0):
         psi_y0=psi_y0,
         num_turns=1
     )
-    out = {
-        'x_re': np.real(hx_minus),
-        'x_im': np.imag(hx_minus),
-        'y_re': np.real(hy_minus),
-        'y_im': np.imag(hy_minus),
-    }
-    return out
+
+    return np.array([hx_minus[0].real,
+                     hx_minus[0].imag,
+                     hy_minus[0].real,
+                     hy_minus[0].imag])
+
+opt = xt.match.opt_from_callable(
+        lambda xx: initial_conditions(xx[0], xx[1], xx[2], xx[3]),
+        x0=np.array([Ix, Iy, psi_x0, psi_y0]),
+        steps=np.array([Ix*1e-4, Ix*1e-4, 1e-4, 1e-4]),
+        tar=np.array([zx_norm[0].real, zx_norm[0].imag,
+                         zy_norm[0].real, zy_norm[0].imag]),
+        tols=[1e-10, 1e-10, 1e-10, 1e-10],
+    )
+opt.step()
+res = opt.get_knob_values()
+Ix = res[0]
+Iy = res[1]
+psi_x0 = res[2]
+psi_y0 = res[3]
+
 
 hx_minus, hy_minus = tracking_from_rdt(
     rdts={rr: (rdt_use[rr][0]) for rr in rdts},
@@ -95,13 +110,13 @@ hx_minus, hy_minus = tracking_from_rdt(
 
 
 
-z_spectrum = np.fft.fft(z_norm)
+z_spectrum = np.fft.fft(zx_norm)
 h_spectrum = np.fft.fft(hx_minus)
 freqs = np.fft.fftfreq(num_turns)
 
 import nafflib
 f_h, s_h = nafflib.get_tunes_all(hx_minus, N=100)
-f_x, s_x = nafflib.get_tunes_all(z_norm, N=100)
+f_x, s_x = nafflib.get_tunes_all(zx_norm, N=100)
 
 # find sronges line in the resonsne region
 qx_resonance = np.mod(2 * tw.qx, 1)
