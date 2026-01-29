@@ -126,8 +126,26 @@ def frequency_for_rdt(rdts: list[str], Qx: float, Qy: float) -> float:
         freq_x = (1 - p + q) * Qx + (t - r) * Qy
         freq_y_expr = f'{q - p} * Qx + {1 - r + t} * Qy'
         freq_y = (q - p) * Qx + (1 - r + t) * Qy
+        while freq_x < 0.0:
+            freq_x += 1.0
+        while freq_y < 0.0:
+            freq_y += 1.0
+        while freq_x >= 1.0:
+            freq_x -= 1.0
+        while freq_y >= 1.0:
+            freq_y -= 1.0
+        if p != 0:
+            a_x_expr = f'Ix^{(p + q - 1)/2} * Iy^{(r + t)/2}'
+        else:
+            a_x_expr = '0'
+        if r != 0:
+            a_y_expr = f'Ix^{(p + q)/2} * Iy^{(r + t - 1)/2}'
+        else:
+            a_y_expr = '0'
+        out[rdt_key + '_ampl_x_expr'] = a_x_expr
         out[rdt_key + '_freq_x_expr'] = freq_x_expr
         out[rdt_key + '_freq_x'] = float(freq_x)
+        out[rdt_key + '_ampl_y_expr'] = a_y_expr
         out[rdt_key + '_freq_y_expr'] = freq_y_expr
         out[rdt_key + '_freq_y'] = float(freq_y)
     return out

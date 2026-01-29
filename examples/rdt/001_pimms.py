@@ -32,6 +32,7 @@ rec = line.record_last_track
 
 nc  = tw.get_normalized_coordinates(rec)
 
+# rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 
 freq_val_dict = frequency_for_rdt(rdts, tw.qx, tw.qy)
@@ -110,25 +111,37 @@ hx_minus, hy_minus = tracking_from_rdt(
     num_turns=num_turns
 )
 
-z_spectrum = np.fft.fft(zx_norm)
-h_spectrum = np.fft.fft(hx_minus)
+zx_spectrum = np.fft.fft(zx_norm)
+zy_spectrum = np.fft.fft(zy_norm)
+
+hx_spectrum = np.fft.fft(hx_minus)
+hy_spectrum = np.fft.fft(hy_minus)
+
 freqs = np.fft.fftfreq(num_turns)
+freqs[freqs < 0] += 1.0
 
 import nafflib
-f_h, s_h = nafflib.get_tunes_all(hx_minus, N=100)
+f_hx, s_hx = nafflib.get_tunes_all(hx_minus, N=100)
+f_hy, s_hy = nafflib.get_tunes_all(hy_minus, N=100)
 f_x, s_x = nafflib.get_tunes_all(zx_norm, N=100)
+f_y, s_y = nafflib.get_tunes_all(zy_norm, N=100)
 
-# find sronges line in the resonsne region
+f_x[f_x < 0] += 1.0
+f_hx[f_hx < 0] += 1.0
+f_y[f_y < 0] += 1.0
+f_hy[f_hy < 0] += 1.0
+
+# find strongest line in the resonance region
 qx_resonance = np.mod(2 * tw.qx, 1)
 dq_search = 0.001
 mask_search_x = (np.abs(f_x - qx_resonance) < dq_search)
 i_max_x = np.argmax(np.abs(s_x[mask_search_x]))
 f_x_max = f_x[mask_search_x][i_max_x]
 s_x_max = s_x[mask_search_x][i_max_x]
-mask_search_h = (np.abs(f_h - qx_resonance) < dq_search)
-i_max_h = np.argmax(np.abs(s_h[mask_search_h]))
-f_h_max = f_h[mask_search_h][i_max_h]
-s_h_max = s_h[mask_search_h][i_max_h]
+mask_search_h = (np.abs(f_hx - qx_resonance) < dq_search)
+i_max_h = np.argmax(np.abs(s_hx[mask_search_h]))
+f_h_max = f_hx[mask_search_h][i_max_h]
+s_h_max = s_hx[mask_search_h][i_max_h]
 
 # print comparison on abs and phase of the strongest line
 print(f'Strongest line near 2qx={qx_resonance:.6f}:')
@@ -147,30 +160,60 @@ plt.ylim(-4e-3, 4e-3)
 plt.subplots_adjust(left=.15)
 
 # Plot frequency spectrum
-plt.figure(2)
+plt.figure(20)
+plt.suptitle('X plane')
 ax_mod = plt.subplot(2,1,1)
-plt.plot(freqs, np.abs(z_spectrum), '.',markersize=4, color='C0')
-plt.plot(freqs, np.abs(h_spectrum), '.', markersize=4, color='C1')
+plt.plot(freqs, np.abs(zx_spectrum), '.',markersize=4, color='C0')
+plt.plot(freqs, np.abs(hx_spectrum), '.', markersize=4, color='C1')
 plt.yscale('log')
 ax_phase = plt.subplot(2,1,2, sharex=ax_mod)
-plt.plot(freqs, np.rad2deg(np.angle(z_spectrum)), '.', markersize=4, color='C0')
-plt.plot(freqs, np.rad2deg(np.angle(h_spectrum)), '.', markersize=4, color='C1')
+plt.plot(freqs, np.rad2deg(np.angle(zx_spectrum)), '.', markersize=4, color='C0')
+plt.plot(freqs, np.rad2deg(np.angle(hx_spectrum)), '.', markersize=4, color='C1')
 plt.xlabel('Frequency [1/turn]')
-plt.ylabel('FFT Phase [deg]')
+plt.ylabel('FFT x Phase [deg]')
 plt.subplots_adjust(left=.15)
 
-plt.figure(3)
+plt.figure(21)
+plt.suptitle('Y plane')
+ax_mod = plt.subplot(2,1,1)
+plt.plot(freqs, np.abs(zy_spectrum), '.',markersize=4, color='C0')
+plt.plot(freqs, np.abs(hy_spectrum), '.', markersize=4, color='C1')
+plt.yscale('log')
+ax_phase = plt.subplot(2,1,2, sharex=ax_mod)
+plt.plot(freqs, np.rad2deg(np.angle(zy_spectrum)), '.', markersize=4, color='C0')
+plt.plot(freqs, np.rad2deg(np.angle(hy_spectrum)), '.', markersize=4, color='C1')
+plt.xlabel('Frequency [1/turn]')
+plt.ylabel('FFT y Phase [deg]')
+plt.subplots_adjust(left=.15)
+
+plt.figure(30)
+plt.suptitle('X plane - NAFF')
 plt.subplot(2,1,1)
 plt.plot(f_x, np.abs(s_x), 'o', markersize=4, color='C0', label='x')
-plt.plot(f_h, np.abs(s_h), 'x', markersize=4, color='C1', label='from RDTs')
+plt.plot(f_hx, np.abs(s_hx), 'x', markersize=4, color='C1', label='from RDTs')
 plt.xlabel('Tune')
 plt.ylabel('Spectral amplitude')
 plt.yscale('log')
 plt.legend()
 plt.subplot(2,1,2, sharex=plt.gca().axes)
-plt.plot(f_x, np.rad2deg(np.angle(s_x)), 'o', markersize=4
-            , color='C0', label='x')
-plt.plot(f_h, np.rad2deg(np.angle(s_h)), 'x', markersize=4
+plt.plot(f_x, np.rad2deg(np.angle(s_x)), 'o', markersize=4, color='C0', label='x')
+plt.plot(f_hx, np.rad2deg(np.angle(s_hx)), 'x', markersize=4, color='C1', label='from RDTs')
+plt.xlabel('Tune')
+plt.ylabel('Spectral phase [deg]')
+
+plt.figure(31)
+plt.suptitle('Y plane - NAFF')
+plt.subplot(2,1,1)
+plt.plot(f_y, np.abs(s_y), 'o', markersize=4, color='C0', label='y')
+plt.plot(f_hy, np.abs(s_hy), 'x', markersize=4, color='C1', label='from RDTs')
+plt.xlabel('Tune')
+plt.ylabel('Spectral amplitude')
+plt.yscale('log')
+plt.legend()
+plt.subplot(2,1,2, sharex=plt.gca().axes)
+plt.plot(f_y, np.rad2deg(np.angle(s_y)), 'o', markersize=4
+            , color='C0', label='y')
+plt.plot(f_hy, np.rad2deg(np.angle(s_hy)), 'x', markersize=4
             , color='C1', label='from RDTs')
 plt.xlabel('Tune')
 plt.ylabel('Spectral phase [deg]')
