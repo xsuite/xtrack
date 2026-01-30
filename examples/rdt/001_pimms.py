@@ -2,6 +2,7 @@ import xtrack as xt
 import numpy as np
 from rdt_first_order import compute_rdt_first_order_perturbation
 from tracking_from_rdt import tracking_from_rdt, frequency_for_rdt
+from feed_down import feed_down
 
 env = xt.load('../../test_data/pimms/PIMM.seq')
 line = env.pimms
@@ -28,7 +29,31 @@ tw = line.twiss4d()
 env['skew_quad'].k1s = 0.02
 rdts = ['f1001', 'f1010', 'f0110']
 
+# Compute strengths with feed-down
 strengths = line.get_table(attr=True)
+
+knl = np.zeros(shape=(len(strengths),6))
+ksl = np.zeros(shape=(len(strengths),6))
+for ii in range(5): # up to dodecapole
+    knl[:, ii] = strengths[f'k{ii}l']
+    ksl[:, ii] = strengths[f'k{ii}sl']
+
+knl_eff, kskew_eff = feed_down(
+    kn=knl,
+    kskew=ksl,
+    shift_x=strengths.shift_x,
+    shift_y=strengths.shift_y,
+    psi=strengths.rot_s_rad,
+    x0=tw.x,
+    y0=tw.y,
+    max_output_order=None,
+)
+str_dict = {}
+for ii in range(6):
+    str_dict[f'k{ii}l'] = knl_eff[:, ii]
+    str_dict[f'k{ii}sl'] = kskew_eff[:, ii]
+str_dict['name'] = strengths.name
+strengths_with_fd = xt.Table(data=str_dict)
 
 # Generate 20 particles on the x axis
 # particles = line.build_particles(x=3e-3, px=5e-4, y=0, py=0, zeta=0, delta=0)
@@ -56,7 +81,7 @@ tw4d_et = line.twiss4d(coupling_edw_teng=True)
 rdt_vals = {}
 rdt_vals_ng = {}
 for rr in rdts:
-    rdt_vals[rr] = compute_rdt_first_order_perturbation(rr, tw, strengths)
+    rdt_vals[rr] = compute_rdt_first_order_perturbation(rr, tw, strengths_with_fd)
     if rr in ['f1001', 'f1010', 'f0110']:
         rdt_vals_ng[rr] = tw4d_et[rr]
     else:
