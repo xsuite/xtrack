@@ -11,6 +11,8 @@ env['qf1k1'] =  3.15396e-01
 env['qd1k1'] = -5.24626e-01
 env['qf2k1'] =  5.22717e-01
 
+tw = line.twiss4d()
+
 # # Normal sextupole
 # env['xrra'].k2 = 0.8
 # rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
@@ -19,11 +21,11 @@ env['qf2k1'] =  5.22717e-01
 # env['xrrb'].k2s = 0.8
 # rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
 
-# Skew quartupole
+# Skew quadrupole
 env['xrra'].ksl[1] = 2e-3
 rdts = ['f1001', 'f1010', 'f0110']
 
-tw = line.twiss4d()
+
 strengths = line.get_table(attr=True)
 
 # Generate 20 particles on the x axis
@@ -197,11 +199,11 @@ plt.figure(20)
 plt.suptitle('X plane')
 ax_mod = plt.subplot(2,1,1)
 plt.plot(freqs, np.abs(zx_spectrum), '.',markersize=4, color='C0')
-plt.plot(freqs, np.abs(hx_spectrum), '.', markersize=4, color='C1')
+plt.plot(freqs, np.abs(hx_spectrum), '.', markersize=4, color='C1', alpha=0.5)
 plt.yscale('log')
 ax_phase = plt.subplot(2,1,2, sharex=ax_mod)
 plt.plot(freqs, np.rad2deg(np.angle(zx_spectrum)), '.', markersize=4, color='C0')
-plt.plot(freqs, np.rad2deg(np.angle(hx_spectrum)), '.', markersize=4, color='C1')
+plt.plot(freqs, np.rad2deg(np.angle(hx_spectrum)), '.', markersize=4, color='C1', alpha=0.5)
 plt.xlabel('Frequency [1/turn]')
 plt.ylabel('FFT x Phase [deg]')
 plt.subplots_adjust(left=.15)
@@ -210,11 +212,11 @@ plt.figure(21)
 plt.suptitle('Y plane')
 ax_mod = plt.subplot(2,1,1)
 plt.plot(freqs, np.abs(zy_spectrum), '.',markersize=4, color='C0')
-plt.plot(freqs, np.abs(hy_spectrum), '.', markersize=4, color='C1')
+plt.plot(freqs, np.abs(hy_spectrum), '.', markersize=4, color='C1', alpha=0.5)
 plt.yscale('log')
 ax_phase = plt.subplot(2,1,2, sharex=ax_mod)
 plt.plot(freqs, np.rad2deg(np.angle(zy_spectrum)), '.', markersize=4, color='C0')
-plt.plot(freqs, np.rad2deg(np.angle(hy_spectrum)), '.', markersize=4, color='C1')
+plt.plot(freqs, np.rad2deg(np.angle(hy_spectrum)), '.', markersize=4, color='C1', alpha=0.5)
 plt.xlabel('Frequency [1/turn]')
 plt.ylabel('FFT y Phase [deg]')
 plt.subplots_adjust(left=.15)
