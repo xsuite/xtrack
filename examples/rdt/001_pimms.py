@@ -26,6 +26,10 @@ env['qd.3'].knl[0] = 'kx1'
 env['qf1.3'].knl[0] = 'kx2'
 env['qf1.4'].knl[0] = 'kx3'
 env['qd.4'].knl[0] = 'kx4'
+env['qd.3'].ksl[0] = 'ky1'
+env['qf1.3'].ksl[0] = 'ky2'
+env['qf1.4'].ksl[0] = 'ky3'
+env['qd.4'].ksl[0] = 'ky4'
 line.vars.default_to_zero = False
 
 opt = line.match_knob(
@@ -41,6 +45,18 @@ opt = line.match_knob(
 opt.solve()
 opt.generate_knob()
 
+opt = line.match_knob(
+    method='4d',
+    betx=1, bety=1,
+    knob_name='y_bump_mm',
+    vary=xt.VaryList(['ky1', 'ky2', 'ky3', 'ky4'], step=1e-6),
+    targets=[
+        xt.TargetSet(y=-1e-3, py=0, at='skew_quad'),
+        xt.TargetSet(y=0.0, py=0, at='qd.5')
+    ],
+    run=False)
+opt.solve()
+opt.generate_knob()
 
 tw0 = line.twiss4d()
 
@@ -60,15 +76,26 @@ tw0 = line.twiss4d()
 # env['qd.4'].rot_s_rad = 0.002
 # rdts = ['f1001', 'f1010', 'f0110']
 
-# Shift an octupole
+# Shift an octupole in x
 # env['octup'].k3 = 80.
 # env['octup'].shift_x = 0.005
 # rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 
-# Orbit in octupole
+# Shift an octupole in y
+# env['octup'].k3 = 80.
+# env['octup'].shift_y = -0.005
+# rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
+
+# Orbit in octupole in x
+# env['octup'].k3 = 80.
+# line['x_bump_mm'] = -5.0 # mm
+# rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
+
+# Orbit in octupole in y
 env['octup'].k3 = 80.
-line['x_bump_mm'] = -5.0 # mm
-rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
+line['y_bump_mm'] = 5.0 # mm
+rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
+
 
 tw1 = line.twiss4d()
 
