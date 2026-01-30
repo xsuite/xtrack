@@ -67,8 +67,10 @@ tw0 = line.twiss4d()
 
 # Orbit in octupole
 env['octup'].k3 = 80.
-line['x_bump_mm'] = 5.0 # mm
+line['x_bump_mm'] = -5.0 # mm
 rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
+
+tw1 = line.twiss4d()
 
 # Compute strengths with feed-down
 strengths = line.get_table(attr=True)
@@ -85,8 +87,8 @@ knl_eff, kskew_eff = feed_down(
     shift_x=strengths.shift_x,
     shift_y=strengths.shift_y,
     psi=strengths.rot_s_rad,
-    x0=tw0.x,
-    y0=tw0.y,
+    x0=tw1.x,
+    y0=tw1.y,
     max_output_order=None,
 )
 str_dict = {}
