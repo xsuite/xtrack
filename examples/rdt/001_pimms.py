@@ -92,9 +92,19 @@ tw0 = line.twiss4d()
 # rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 
 # Orbit in octupole in y
-env['octup'].k3 = 80.
-line['y_bump_mm'] = 5.0 # mm
-rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
+# env['octup'].k3 = 80.
+# line['y_bump_mm'] = 5.0 # mm
+# rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
+
+# Orbit in skew octupole in x
+# env['octup'].k3s = 80.
+# line['x_bump_mm'] = 5.0 # mm
+# rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
+
+# Orbit in skew octupole in y
+env['octup'].k3s = 80.
+line['y_bump_mm'] = -5.0 # mm
+rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 
 
 tw1 = line.twiss4d()
