@@ -7,6 +7,9 @@ env = xt.load('../../test_data/pimms/PIMM.seq')
 line = env.pimms
 line.set_particle_ref('proton', kinetic_energy0=100e6)
 
+line.env.new('skew_quad', xt.Quadrupole, length=0.2)
+line.insert('skew_quad', anchor='start', at='xrra@end')
+
 env['qf1k1'] =  3.15396e-01
 env['qd1k1'] = -5.24626e-01
 env['qf2k1'] =  5.22717e-01
@@ -22,9 +25,8 @@ tw = line.twiss4d()
 # rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
 
 # Skew quadrupole
-env['xrra'].ksl[1] = 2e-3
+env['skew_quad'].k1s = 0.02
 rdts = ['f1001', 'f1010', 'f0110']
-
 
 strengths = line.get_table(attr=True)
 
@@ -49,13 +51,14 @@ freq_val_dict = frequency_for_rdt(rdts, tw.qx, tw.qy)
 
 # Mad-ng twiss including RDTs
 # tw_ng = line.madng_twiss(rdts=rdts)
+tw_ng = line.twiss4d(coupling_edw_teng=True)
 
 # Compute RDTs via first-order perturbation theory
 rdt_vals = {}
 rdt_vals_ng = {}
 for rr in rdts:
     rdt_vals[rr] = compute_rdt_first_order_perturbation(rr, tw, strengths)
-    # rdt_vals_ng[rr] = tw_ng[rr]
+    rdt_vals_ng[rr] = tw_ng[rr]
 
 i_part_analyze = 0
 x_norm = nc.x_norm[i_part_analyze, :]
@@ -71,7 +74,7 @@ Iy = 0.5 * (zy_norm[0].real**2 + zy_norm[0].imag**2)
 psi_x0 = np.angle(zx_norm[0].real + 1j * zx_norm[0].imag)
 psi_y0 = np.angle(zy_norm[0].real + 1j * zy_norm[0].imag)
 
-rdt_use = rdt_vals
+rdt_use = rdt_vals_ng
 
 def initial_conditions(Ix, Iy, psi_x0, psi_y0):
 

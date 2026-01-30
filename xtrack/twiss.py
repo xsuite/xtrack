@@ -1516,8 +1516,15 @@ def _compute_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
     denom = 1 / (4 * gamma)
     f1001 = denom * (+c[:, 0, 1] - c[:, 1, 0] + (c[:, 0, 0] + c[:, 1, 1]) * 1j)
     f1010 = denom * (-c[:, 0, 1] - c[:, 1, 0] + (c[:, 0, 0] - c[:, 1, 1]) * 1j)
+    f0110 = np.conj(f1001)
 
-    return {'f1001': f1001, 'f1010': f1010}
+    # To be consistent with RDT definition in the Xsuite physics manual
+    # (checked against tracking):
+    f1001 = -np.conj(f1001)
+    f1010 = -np.conj(f1010)
+    f0110 = -np.conj(f0110)
+
+    return {'f1001': f1001, 'f1010': f1010, 'f0110': f0110}
 
 def _compute_edwards_teng_initial(RR):
 
