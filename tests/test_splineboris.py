@@ -749,7 +749,6 @@ def test_splineboris_undulator_vs_boris_spatial():
     # ------------------------------------------------------------------
     # Compare end coordinates
     # ------------------------------------------------------------------
-    # The two integrators are not bitwise identical; use tight but robust tolerances.
     xo.assert_allclose(p_spline.x, p_boris.x, rtol=1e-7, atol=5e-7)
     xo.assert_allclose(p_spline.px, p_boris.px, rtol=1e-7, atol=5e-7)
     xo.assert_allclose(p_spline.y, p_boris.y, rtol=1e-7, atol=5e-7)
@@ -757,7 +756,7 @@ def test_splineboris_undulator_vs_boris_spatial():
     xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-7, atol=5e-7)
     xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-7, atol=5e-7)
 
-test_splineboris_undulator_vs_boris_spatial()
+    
 
 # def test_splineboris_quadrupole_analytic():
 #     import numpy as np
