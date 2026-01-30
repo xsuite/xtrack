@@ -81,10 +81,12 @@ def test_coupling_edwards_teng():
     xo.assert_allclose(tw.bety_edw_teng, bety_mad_at_s, atol=0, rtol=1e-6)
     xo.assert_allclose(tw.alfy_edw_teng, alfy_mad_at_s, atol=1e-4, rtol=1e-6)
 
-    xo.assert_allclose(tw.f1001, rdt_mad_at_s['f1001'], rtol=1e-3,
+    # Note different convention:
+    xo.assert_allclose(tw.f1001, -np.conj(rdt_mad_at_s['f1001']), rtol=1e-3,
                     atol=5e-4 * np.max(np.abs(rdt_mad_at_s['f1001'])))
-    xo.assert_allclose(tw.f1010, rdt_mad_at_s['f1010'], rtol=1e-3,
+    xo.assert_allclose(tw.f1010, -np.conj(rdt_mad_at_s['f1010']), rtol=1e-3,
                     atol=5e-3 * np.max(np.abs(rdt_mad_at_s['f1010'])))
+    xo.assert_allclose(tw.f0110, np.conj(tw.f1001), rtol=0, atol=1e-12)
 
 
 
