@@ -45,20 +45,22 @@ rec = line.record_last_track
 
 nc  = tw.get_normalized_coordinates(rec)
 
-
-
 freq_val_dict = frequency_for_rdt(rdts, tw.qx, tw.qy)
 
 # Mad-ng twiss including RDTs
-# tw_ng = line.madng_twiss(rdts=rdts)
-tw_ng = line.twiss4d(coupling_edw_teng=True)
+tw_ng = line.madng_twiss(rdts=[
+    rr for rr in rdts if rr not in ['f1001', 'f1010', 'f0110']])
+tw4d_et = line.twiss4d(coupling_edw_teng=True)
 
 # Compute RDTs via first-order perturbation theory
 rdt_vals = {}
 rdt_vals_ng = {}
 for rr in rdts:
     rdt_vals[rr] = compute_rdt_first_order_perturbation(rr, tw, strengths)
-    rdt_vals_ng[rr] = tw_ng[rr]
+    if rr in ['f1001', 'f1010', 'f0110']:
+        rdt_vals_ng[rr] = tw4d_et[rr]
+    else:
+        rdt_vals_ng[rr] = tw_ng[rr]
 
 i_part_analyze = 0
 x_norm = nc.x_norm[i_part_analyze, :]
@@ -74,7 +76,7 @@ Iy = 0.5 * (zy_norm[0].real**2 + zy_norm[0].imag**2)
 psi_x0 = np.angle(zx_norm[0].real + 1j * zx_norm[0].imag)
 psi_y0 = np.angle(zy_norm[0].real + 1j * zy_norm[0].imag)
 
-rdt_use = rdt_vals_ng
+rdt_use = rdt_vals
 
 def initial_conditions(Ix, Iy, psi_x0, psi_y0):
 
