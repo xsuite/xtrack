@@ -10,13 +10,16 @@ line.set_particle_ref('proton', kinetic_energy0=100e6)
 line.replace_all_repeated_elements()
 
 line.env.new('skew_quad', xt.Quadrupole, length=0.2)
+line.env.new('octup', xt.Octupole, length=0.2)
+
 line.insert('skew_quad', anchor='start', at='xrra@end')
+line.insert('octup', anchor='start', at='skew_quad@end')
 
 env['qf1k1'] =  3.15396e-01
 env['qd1k1'] = -5.24626e-01
 env['qf2k1'] =  5.22717e-01
 
-tw = line.twiss4d()
+tw0 = line.twiss4d()
 
 # # Normal sextupole
 # env['xrra'].k2 = 0.8
@@ -31,8 +34,13 @@ tw = line.twiss4d()
 # rdts = ['f1001', 'f1010', 'f0110']
 
 # Tilt a quadrupole
-env['qd.4'].rot_s_rad = 0.002
-rdts = ['f1001', 'f1010', 'f0110']
+# env['qd.4'].rot_s_rad = 0.002
+# rdts = ['f1001', 'f1010', 'f0110']
+
+# Shift an octupole
+env['octup'].k3 = 80.
+env['octup'].shift_x = 0.005
+rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 
 
 # Compute strengths with feed-down
@@ -50,8 +58,8 @@ knl_eff, kskew_eff = feed_down(
     shift_x=strengths.shift_x,
     shift_y=strengths.shift_y,
     psi=strengths.rot_s_rad,
-    x0=tw.x,
-    y0=tw.y,
+    x0=tw0.x,
+    y0=tw0.y,
     max_output_order=None,
 )
 str_dict = {}
@@ -74,9 +82,9 @@ line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True,
            with_progress=100)
 rec = line.record_last_track
 
-nc  = tw.get_normalized_coordinates(rec)
+nc  = tw0.get_normalized_coordinates(rec)
 
-freq_val_dict = frequency_for_rdt(rdts, tw.qx, tw.qy)
+freq_val_dict = frequency_for_rdt(rdts, tw0.qx, tw0.qy)
 
 # Mad-ng twiss including RDTs
 tw_ng = line.madng_twiss(rdts=[
@@ -87,7 +95,7 @@ tw4d_et = line.twiss4d(coupling_edw_teng=True)
 rdt_vals = {}
 rdt_vals_ng = {}
 for rr in rdts:
-    rdt_vals[rr] = compute_rdt_first_order_perturbation(rr, tw, strengths_with_fd)
+    rdt_vals[rr] = compute_rdt_first_order_perturbation(rr, tw0, strengths_with_fd)
     if rr in ['f1001', 'f1010', 'f0110']:
         rdt_vals_ng[rr] = tw4d_et[rr]
     else:
@@ -108,6 +116,7 @@ psi_x0 = np.angle(zx_norm[0].real + 1j * zx_norm[0].imag)
 psi_y0 = np.angle(zy_norm[0].real + 1j * zy_norm[0].imag)
 
 rdt_use = rdt_vals
+# rdt_use = rdt_vals_ng
 
 def initial_conditions(Ix, Iy, psi_x0, psi_y0):
 
@@ -115,8 +124,8 @@ def initial_conditions(Ix, Iy, psi_x0, psi_y0):
         rdts={rr: (rdt_use[rr][0]) for rr in rdts},
         Ix=Ix,
         Iy=Iy,
-        Qx=tw.qx,
-        Qy=tw.qy,
+        Qx=tw0.qx,
+        Qy=tw0.qy,
         psi_x0=psi_x0,
         psi_y0=psi_y0,
         num_turns=1
@@ -147,8 +156,8 @@ hx_minus, hy_minus = tracking_from_rdt(
     rdts={rr: (rdt_use[rr][0]) for rr in rdts},
     Ix=Ix,
     Iy=Iy,
-    Qx=tw.qx,
-    Qy=tw.qy,
+    Qx=tw0.qx,
+    Qy=tw0.qy,
     psi_x0=psi_x0,
     psi_y0=psi_y0,
     num_turns=num_turns
