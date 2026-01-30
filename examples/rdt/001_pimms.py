@@ -7,6 +7,7 @@ from feed_down import feed_down
 env = xt.load('../../test_data/pimms/PIMM.seq')
 line = env.pimms
 line.set_particle_ref('proton', kinetic_energy0=100e6)
+line.replace_all_repeated_elements()
 
 line.env.new('skew_quad', xt.Quadrupole, length=0.2)
 line.insert('skew_quad', anchor='start', at='xrra@end')
@@ -26,8 +27,13 @@ tw = line.twiss4d()
 # rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
 
 # Skew quadrupole
-env['skew_quad'].k1s = 0.02
+# env['skew_quad'].k1s = 0.02
+# rdts = ['f1001', 'f1010', 'f0110']
+
+# Tilt a quadrupole
+env['qd.4'].rot_s_rad = 0.002
 rdts = ['f1001', 'f1010', 'f0110']
+
 
 # Compute strengths with feed-down
 strengths = line.get_table(attr=True)
