@@ -19,6 +19,29 @@ env['qf1k1'] =  3.15396e-01
 env['qd1k1'] = -5.24626e-01
 env['qf2k1'] =  5.22717e-01
 
+# Build knobs to control the orbit in the straight section with the non-linear
+# elements
+line.vars.default_to_zero = True
+env['qd.3'].knl[0] = 'kx1'
+env['qf1.3'].knl[0] = 'kx2'
+env['qf1.4'].knl[0] = 'kx3'
+env['qd.4'].knl[0] = 'kx4'
+line.vars.default_to_zero = False
+
+opt = line.match_knob(
+    method='4d',
+    betx=1, bety=1,
+    knob_name='x_bump_mm',
+    vary=xt.VaryList(['kx1', 'kx2', 'kx3', 'kx4'], step=1e-6),
+    targets=[
+        xt.TargetSet(x=1e-3, px=0, at='skew_quad'),
+        xt.TargetSet(x=0.0, px=0, at='qd.5')
+    ],
+    run=False)
+opt.solve()
+opt.generate_knob()
+
+
 tw0 = line.twiss4d()
 
 # # Normal sextupole
@@ -38,10 +61,14 @@ tw0 = line.twiss4d()
 # rdts = ['f1001', 'f1010', 'f0110']
 
 # Shift an octupole
-env['octup'].k3 = 80.
-env['octup'].shift_x = 0.005
-rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
+# env['octup'].k3 = 80.
+# env['octup'].shift_x = 0.005
+# rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 
+# Orbit in octupole
+env['octup'].k3 = 80.
+line['x_bump_mm'] = 5.0 # mm
+rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 
 # Compute strengths with feed-down
 strengths = line.get_table(attr=True)
