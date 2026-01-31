@@ -1,8 +1,6 @@
 import xtrack as xt
 import numpy as np
-from rdt import rdt_first_order_perturbation
-from tracking_from_rdt import tracking_from_rdt, frequency_for_rdt
-from feed_down import feed_down
+from rdt import rdt_first_order_perturbation, tracking_from_rdt
 
 env = xt.load('../../test_data/pimms/PIMM.seq')
 line = env.pimms
