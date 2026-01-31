@@ -150,8 +150,6 @@ rec = line.record_last_track
 
 nc  = tw0.get_normalized_coordinates(rec)
 
-freq_val_dict = frequency_for_rdt(rdts, tw0.qx, tw0.qy)
-
 # Mad-ng twiss including RDTs
 tw_ng = line.madng_twiss(rdts=[
     rr for rr in rdts if rr not in ['f1001', 'f1010', 'f0110']])
@@ -259,17 +257,17 @@ print()
 for rr in rdts:
     print(f'Spectral lines excited by {rr}:')
     for pp in ['x', 'y']:
-        if freq_val_dict[rr + f'_ampl_{pp}_expr'] == '0':
+        if rdt_vals[rr + f'_ampl_{pp}_expr'] == '0':
             print(f'  Expected {pp} freq: not excited')
-        elif freq_val_dict[rr + f"_freq_{pp}"] == 0:
+        elif rdt_vals[rr + f"_freq_{pp}"] == 0:
             print(f'  Expected {pp} freq: zero frequency')
         else:
-            print(f'  Expected {pp} freq: {freq_val_dict[rr + f"_freq_{pp}_expr"]} = {freq_val_dict[rr + f"_freq_{pp}"]:.6f}')
-            mask_search_z = (np.abs(f_z[pp] - freq_val_dict[rr + f'_freq_{pp}']) < dq_search)
+            print(f'  Expected {pp} freq: {rdt_vals[rr + f"_freq_{pp}_expr"]} = {rdt_vals[rr + f"_freq_{pp}"]:.6f}')
+            mask_search_z = (np.abs(f_z[pp] - rdt_vals[rr + f'_freq_{pp}']) < dq_search)
             i_max_z = np.argmax(np.abs(s_z[pp][mask_search_z]))
             f_z_max = f_z[pp][mask_search_z][i_max_z]
             s_z_max = s_z[pp][mask_search_z][i_max_z]
-            mask_search_h = (np.abs(f_h[pp] - freq_val_dict[rr + f'_freq_{pp}']) < dq_search)
+            mask_search_h = (np.abs(f_h[pp] - rdt_vals[rr + f'_freq_{pp}']) < dq_search)
             i_max_h = np.argmax(np.abs(s_h[pp][mask_search_h]))
             f_h_max = f_h[pp][mask_search_h][i_max_h]
             s_h_max = s_h[pp][mask_search_h][i_max_h]

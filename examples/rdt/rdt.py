@@ -33,6 +33,8 @@ def rdt_first_order_perturbation(rdt, twiss, strengths):
     if isinstance(rdt, str):
         rdt = [rdt]
 
+    
+
     for rr in rdt:
         p,q,r,t = _parse_rdt_key(rr)
 
@@ -77,4 +79,56 @@ def rdt_first_order_perturbation(rdt, twiss, strengths):
     out_data['name'] = twiss.name
     out = xt.Table(data=out_data)
 
+    metadata = rdt_metadata(rdt, tw.qx, tw.qy)
+    out._data.update(metadata)
+
+    return out
+
+def rdt_metadata(rdts: list[str], Qx: float, Qy: float) -> float:
+    """
+    Compute the frequency associated to a given RDT.
+
+    Parameters
+    ----------
+    rdts : list of str
+        RDT key like ``"f1020"``.
+    Qx, Qy : float
+        Tunes in the two planes.
+
+    Returns
+    -------
+    freq : float
+        Frequency associated to the RDT.
+    """
+    if isinstance(rdts, str):
+        rdts = [rdts]
+    out = {}
+    for rdt_key in rdts:
+        p, q, r, t = _parse_rdt_key(rdt_key)
+        freq_x_expr = f'{1 - p + q} * Qx + {t - r} * Qy'
+        freq_x = (1 - p + q) * Qx + (t - r) * Qy
+        freq_y_expr = f'{q - p} * Qx + {1 - r + t} * Qy'
+        freq_y = (q - p) * Qx + (1 - r + t) * Qy
+        while freq_x < 0.0:
+            freq_x += 1.0
+        while freq_y < 0.0:
+            freq_y += 1.0
+        while freq_x >= 1.0:
+            freq_x -= 1.0
+        while freq_y >= 1.0:
+            freq_y -= 1.0
+        if p != 0:
+            a_x_expr = f'Ix^{(p + q - 1)/2} * Iy^{(r + t)/2}'
+        else:
+            a_x_expr = '0'
+        if r != 0:
+            a_y_expr = f'Ix^{(p + q)/2} * Iy^{(r + t - 1)/2}'
+        else:
+            a_y_expr = '0'
+        out[rdt_key + '_ampl_x_expr'] = a_x_expr
+        out[rdt_key + '_freq_x_expr'] = freq_x_expr
+        out[rdt_key + '_freq_x'] = float(freq_x)
+        out[rdt_key + '_ampl_y_expr'] = a_y_expr
+        out[rdt_key + '_freq_y_expr'] = freq_y_expr
+        out[rdt_key + '_freq_y'] = float(freq_y)
     return out
