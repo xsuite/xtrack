@@ -1,6 +1,6 @@
 import xtrack as xt
 import numpy as np
-from rdt import rdt_first_order_perturbation, tracking_from_rdt
+from xtrack.rdt import tracking_from_rdt
 
 env = xt.load('../../test_data/pimms/PIMM.seq')
 line = env.pimms
@@ -131,7 +131,7 @@ tw_ng = line.madng_twiss(rdts=[
 tw4d_et = line.twiss4d(coupling_edw_teng=True)
 
 # Compute RDTs via first-order perturbation theory
-rdt_vals = rdt_first_order_perturbation(rdt=rdts, twiss=tw0,
+rdt_vals = xt.rdt_first_order_perturbation(rdt=rdts, twiss=tw0,
                                         orbit=tw1,
                                         strengths=strengths)
 rdt_vals_ng = {}

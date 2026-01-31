@@ -1,11 +1,9 @@
 import numpy as np
 from math import factorial, pi as PI
-from feed_down import feed_down as feed_down_computation
 
+from .feed_down import feed_down as feed_down_computation
 import xtrack as xt
 
-# TODO:
-# - add feed down
 
 def _parse_rdt_key(key: str):
 
