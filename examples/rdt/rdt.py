@@ -33,8 +33,6 @@ def rdt_first_order_perturbation(rdt, twiss, strengths):
     if isinstance(rdt, str):
         rdt = [rdt]
 
-    
-
     for rr in rdt:
         p,q,r,t = _parse_rdt_key(rr)
 
@@ -43,21 +41,16 @@ def rdt_first_order_perturbation(rdt, twiss, strengths):
         bnl = strengths[f'k{n-1}l']
         anl = strengths[f'k{n-1}sl']
 
-        def omega(idx):
-            return 1 if idx % 2 == 0 else 0
-
         factorial_prod = (factorial(p) * factorial(q)
                         * factorial(r) * factorial(t))
 
         h_pqrt_l = -(
-            (bnl * omega(r + t) + 1j * anl * omega(r + t + 1))
+            (bnl * _omega(r + t) + 1j * anl * _omega(r + t + 1))
             / factorial_prod / 2 ** n
             * (1j ** (r + t))
             * betx ** ((p + q) / 2)
             * bety ** ((r + t) / 2)
         )
-
-        denominator = 1 - np.exp(1j * 2 * PI * ((p - q) * qx + (r - t) * qy))
 
         integrand = h_pqrt_l * np.exp(1j * 2 * PI * ((p - q) * (-mux) + (r - t) * (-muy)))
         integrand_turn_m1 = h_pqrt_l * np.exp(1j * 2 * PI * ((p - q) * (-mux + qx)
@@ -68,13 +61,18 @@ def rdt_first_order_perturbation(rdt, twiss, strengths):
         exp_obs = np.exp(1j * 2 * PI * ((p - q) * mux + (r - t) * muy))
 
         # RTD at all s
-        f_pqrt = 0 * integrand
+        f_pqrt_open = 0 * integrand
         for i in range(len(s)):
-
             integral = cumsum_integrand_two_turns[i + len(s)] - cumsum_integrand_two_turns[i]
-            f_pqrt[i] = integral / denominator * exp_obs[i]
+            f_pqrt_open[i] = integral * exp_obs[i]
+
+        denominator = 1 - np.exp(1j * 2 * PI * ((p - q) * qx + (r - t) * qy))
+        f_pqrt = f_pqrt_open / denominator
 
         out_data[rr] = f_pqrt
+        out_data[rr + '_open'] = f_pqrt_open
+        out_data[rr + '_integrand'] = integrand
+        out_data[rr + '_integrand_previous_turn'] = integrand_turn_m1
 
     out_data['name'] = twiss.name
     out = xt.Table(data=out_data)
@@ -132,3 +130,6 @@ def rdt_metadata(rdts: list[str], Qx: float, Qy: float) -> float:
         out[rdt_key + '_freq_y_expr'] = freq_y_expr
         out[rdt_key + '_freq_y'] = float(freq_y)
     return out
+
+def _omega(idx):
+    return 1 if idx % 2 == 0 else 0
