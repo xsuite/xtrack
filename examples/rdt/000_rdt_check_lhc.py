@@ -41,9 +41,27 @@ for nn in rdt_names:
                        atol=0.1*np.max(np.abs(tw_ng[nn])),
                        max_outliers=0.01*len(tw_ng))
 
+line['on_x1'] = 0
+line['on_x5'] = 250
+line['on_disp'] = 2
+tw1 = line.twiss(method='4d', coupling_edw_teng=True)
+rdt_names = ['f1001', 'f1010', 'f0110']
+rdts = xt.rdt_first_order_perturbation(
+    rdt=rdt_names,
+    twiss=tw0,
+    orbit=tw1,
+    strengths=line.get_table(attr=True)
+)
+for nn in rdt_names:
+    # outliers came from the fact that at the sources the RDT jumps at entry
+    # instead of exit of the element or viceversa
+    xo.assert_allclose(rdts[nn], tw1[nn],
+                       atol=0.06*np.max(np.abs(tw1[nn])),
+                       max_outliers=0.005*len(tw1))
 
 # #   # Example error
 # # line['kof.a56b1'] = 1000  # Example error
+
 
 
 
