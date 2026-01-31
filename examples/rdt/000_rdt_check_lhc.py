@@ -26,6 +26,21 @@ xo.assert_allclose(rdts.f1010, tw_edw_teng.f1010, rtol=0.05, max_outliers=5)
 xo.assert_allclose(rdts.f0110, tw_edw_teng.f0110, rtol=0.05)
 xo.assert_allclose(rdts.f1001, np.conj(rdts.f0110), rtol=1e-12)
 
+# RDTs from chromaticity sextupoles
+rdt_names = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
+rdts = xt.rdt_first_order_perturbation(
+    rdt=rdt_names,
+    twiss=tw0,
+    strengths=line.get_table(attr=True)
+)
+tw_ng = line.madng_twiss(rdts=rdt_names)
+for nn in rdt_names:
+    # outliers came from the fact that at the sources the RDT jumps at entry
+    # instead of exit of the element or viceversa
+    xo.assert_allclose(rdts[nn], tw_ng[nn],
+                       atol=0.1*np.max(np.abs(tw_ng[nn])),
+                       max_outliers=0.01*len(tw_ng))
+
 
 # #   # Example error
 # # line['kof.a56b1'] = 1000  # Example error
