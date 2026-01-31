@@ -1,6 +1,6 @@
 import xtrack as xt
 import numpy as np
-from rdt_first_order import compute_rdt_first_order_perturbation
+from rdt import compute_rdt_first_order_perturbation
 from tracking_from_rdt import tracking_from_rdt, frequency_for_rdt
 from feed_down import feed_down
 
@@ -158,10 +158,10 @@ tw_ng = line.madng_twiss(rdts=[
 tw4d_et = line.twiss4d(coupling_edw_teng=True)
 
 # Compute RDTs via first-order perturbation theory
-rdt_vals = {}
+rdt_vals = compute_rdt_first_order_perturbation(rdt=rdts, twiss=tw0,
+                                                strengths=strengths_with_fd)
 rdt_vals_ng = {}
 for rr in rdts:
-    rdt_vals[rr] = compute_rdt_first_order_perturbation(rr, tw0, strengths_with_fd)
     if rr in ['f1001', 'f1010', 'f0110']:
         rdt_vals_ng[rr] = tw4d_et[rr]
     else:

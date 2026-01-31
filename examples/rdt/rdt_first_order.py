@@ -3,7 +3,7 @@ from math import factorial, pi as PI
 
 # Based on https://arxiv.org/abs/1711.06589. See in particular: eq. 8 and A8.
 # A. Franchi et al. "Analytic formulas for the rapid evaluation of the orbit
-# response matrix and chromatic functions from lattice parameters in circular 
+# response matrix and chromatic functions from lattice parameters in circular
 # accelerators", 2017
 # Reference implementation by OMC team:
 # https://github.com/pylhc/optics_functions/blob/master/optics_functions/rdt.py
