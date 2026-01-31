@@ -58,17 +58,3 @@ for nn in rdt_names:
     xo.assert_allclose(rdts[nn], tw1[nn],
                        atol=0.06*np.max(np.abs(tw1[nn])),
                        max_outliers=0.005*len(tw1))
-
-# #   # Example error
-# # line['kof.a56b1'] = 1000  # Example error
-
-
-
-
-# tw = line.twiss4d(coupling_edw_teng=True)
-# strengths = line.get_table(attr=True)
-# f1020 = compute_rdt_first_order_perturbation('f1020', tw, strengths)
-# f1001 = compute_rdt_first_order_perturbation('f1001', tw, strengths)
-# f2020 = compute_rdt_first_order_perturbation('f2020', tw, strengths)
-
-# tw_ng = line.madng_twiss(rdts=['f1020', 'f2020'])
