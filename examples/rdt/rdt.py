@@ -17,7 +17,7 @@ def _parse_rdt_key(key: str):
     return int(key[1]), int(key[2]), int(key[3]), int(key[4])
 
 
-def compute_rdt_first_order_perturbation(rdt, twiss, strengths):
+def rdt_first_order_perturbation(rdt, twiss, strengths):
 
     tw = twiss
     betx = tw.betx
