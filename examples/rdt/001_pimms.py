@@ -82,9 +82,9 @@ rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
 # rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
 
 # Shift an octupole in y
-# env['octup'].k3 = 80.
-# env['octup'].shift_y = -0.005
-# rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
+env['octup'].k3 = 80.
+env['octup'].shift_y = -0.005
+rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
 
 # Orbit in octupole in x
 # env['octup'].k3 = 80.
@@ -109,31 +109,8 @@ rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
 
 tw1 = line.twiss4d()
 
-# Compute strengths with feed-down
+# Compute strengths
 strengths = line.get_table(attr=True)
-
-knl = np.zeros(shape=(len(strengths),6))
-ksl = np.zeros(shape=(len(strengths),6))
-for ii in range(5): # up to dodecapole
-    knl[:, ii] = strengths[f'k{ii}l']
-    ksl[:, ii] = strengths[f'k{ii}sl']
-
-knl_eff, kskew_eff = feed_down(
-    kn=knl,
-    kskew=ksl,
-    shift_x=strengths.shift_x,
-    shift_y=strengths.shift_y,
-    psi=strengths.rot_s_rad,
-    x0=tw1.x,
-    y0=tw1.y,
-    max_output_order=None,
-)
-str_dict = {}
-for ii in range(6):
-    str_dict[f'k{ii}l'] = knl_eff[:, ii]
-    str_dict[f'k{ii}sl'] = kskew_eff[:, ii]
-str_dict['name'] = strengths.name
-strengths_with_fd = xt.Table(data=str_dict)
 
 # Generate 20 particles on the x axis
 # particles = line.build_particles(x=3e-3, px=5e-4, y=0, py=0, zeta=0, delta=0)
@@ -157,7 +134,8 @@ tw4d_et = line.twiss4d(coupling_edw_teng=True)
 
 # Compute RDTs via first-order perturbation theory
 rdt_vals = rdt_first_order_perturbation(rdt=rdts, twiss=tw0,
-                                                strengths=strengths_with_fd)
+                                        orbit=tw1,
+                                        strengths=strengths)
 rdt_vals_ng = {}
 for rr in rdts:
     if rr in ['f1001', 'f1010', 'f0110']:

@@ -1,5 +1,6 @@
 import numpy as np
 from math import factorial, pi as PI
+from feed_down import feed_down as feed_down_computation
 
 import xtrack as xt
 
@@ -17,7 +18,50 @@ def _parse_rdt_key(key: str):
     return int(key[1]), int(key[2]), int(key[3]), int(key[4])
 
 
-def rdt_first_order_perturbation(rdt, twiss, strengths):
+def rdt_first_order_perturbation(rdt,
+                                 twiss=None,
+                                 strengths=None,
+                                 feed_down=True,
+                                 orbit=None):
+
+    if orbit is None:
+        orbit = twiss
+
+    assert len(orbit) == len(twiss), \
+        "table_orbit and twiss must have the same length."
+    assert len(strengths) == len(twiss), \
+        "strengths and twiss must have the same length."
+    assert np.all(orbit.name == twiss.name), \
+        "table_orbit and twiss must have the same element names."
+    assert np.all(strengths.name == twiss.name), \
+        "strengths table must have the name column."
+
+    # Compile strengths with feed down from orbit and misalignments
+    if feed_down:
+        knl = np.zeros(shape=(len(strengths),6))
+        ksl = np.zeros(shape=(len(strengths),6))
+        for ii in range(6): # up to dodecapole
+            knl[:, ii] = strengths[f'k{ii}l']
+            ksl[:, ii] = strengths[f'k{ii}sl']
+
+        knl_eff, kskew_eff = feed_down_computation(
+            kn=knl,
+            kskew=ksl,
+            shift_x=getattr(strengths, 'shift_x', 0),
+            shift_y=getattr(strengths, 'shift_y', 0),
+            psi=getattr(strengths, 'rot_s_rad', 0),
+            x0=orbit.x,
+            y0=orbit.y,
+            max_output_order=None,
+        )
+        str_dict = {}
+        for ii in range(6):
+            str_dict[f'k{ii}l'] = knl_eff[:, ii]
+            str_dict[f'k{ii}sl'] = kskew_eff[:, ii]
+        str_dict['name'] = strengths.name
+        strengths_with_fd = xt.Table(data=str_dict)
+    else:
+        strengths_with_fd = strengths
 
     tw = twiss
     betx = tw.betx
@@ -38,8 +82,8 @@ def rdt_first_order_perturbation(rdt, twiss, strengths):
 
         n = p + q + r + t
 
-        bnl = strengths[f'k{n-1}l']
-        anl = strengths[f'k{n-1}sl']
+        bnl = strengths_with_fd[f'k{n-1}l']
+        anl = strengths_with_fd[f'k{n-1}sl']
 
         factorial_prod = (factorial(p) * factorial(q)
                         * factorial(r) * factorial(t))
