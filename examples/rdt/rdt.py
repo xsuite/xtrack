@@ -75,7 +75,20 @@ def rdt_first_order_perturbation(rdt, twiss, strengths):
         out_data[rr + '_integrand_previous_turn'] = integrand_turn_m1
 
     out_data['name'] = twiss.name
-    out = xt.Table(data=out_data)
+
+    # Sort keys (fo visualization purposes)
+    out_cols = {}
+    out_cols['name'] = out_data['name']
+    for rr in rdt:
+        out_cols[rr] = out_data[rr]
+    for rr in rdt:
+        out_cols[rr + '_open'] = out_data[rr + '_open']
+    for rr in rdt:
+        out_cols[rr + '_integrand'] = out_data[rr + '_integrand']
+    for rr in rdt:
+        out_cols[rr + '_integrand_previous_turn'] = out_data[rr + '_integrand_previous_turn']
+
+    out = xt.Table(data=out_cols)
 
     metadata = rdt_metadata(rdt, tw.qx, tw.qy)
     out._data.update(metadata)
