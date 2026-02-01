@@ -92,9 +92,3 @@ def test_feed_down_rotation_higher_order():
 
     xo.assert_allclose(p.px, p_fdown.px, atol=1e-15)
     xo.assert_allclose(p.py, p_fdown.py, atol=1e-15)
-
-
-if __name__ == '__main__':
-    test_feed_down_rotation_dipole()
-    test_feed_down_rotation_quadrupole()
-    test_feed_down_rotation_higher_order()
