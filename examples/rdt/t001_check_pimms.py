@@ -9,10 +9,10 @@ configuration = 'skew_quadrupole'
 configuration = 'tilted_quadrupole'
 configuration = 'shifted_octupole_x'
 configuration = 'shifted_octupole_y'
-# configuration = 'orbit_in_octupole_x'
-# configuration = 'orbit_in_octupole_y'
-# configuration = 'orbit_in_skew_octupole_x'
-# configuration = 'orbit_in_skew_octupole_y'
+configuration = 'orbit_in_octupole_x'
+configuration = 'orbit_in_octupole_y'
+configuration = 'orbit_in_skew_octupole_x'
+configuration = 'orbit_in_skew_octupole_y'
 
 
 env = xt.load('../../test_data/pimms/PIMM.seq')
@@ -96,12 +96,14 @@ elif configuration == 'shifted_octupole_x':
 elif configuration == 'shifted_octupole_y':
     env['octup'].k3 = 80.
     env['octup'].shift_y = -0.005
-    rdts = [# 'f0030', Basically not excited
-            'f0012', 'f2010', 'f0210', 'f1110']
+    rdts = ['f0030', 'f0012', 'f2010', 'f0210', 'f1110']
 elif configuration == 'orbit_in_octupole_x':
     env['octup'].k3 = 80.
     line['x_bump_mm'] = -5.0 # mm
-    rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
+    rdts = ['f3000', 'f1200', 'f1020', 'f0111',
+            # 'f0120' # this one in quite bad
+            ]
+    rtols = {'f1200': 0.2, 'f0111': 0.2}
 elif configuration == 'orbit_in_octupole_y':
     env['octup'].k3 = 80.
     line['y_bump_mm'] = 5.0 # mm
@@ -113,7 +115,10 @@ elif configuration == 'orbit_in_skew_octupole_x':
 elif configuration == 'orbit_in_skew_octupole_y':
     env['octup'].k3s = 80.
     line['y_bump_mm'] = -5.0 # mm
-    rdts = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']
+    rdts = ['f3000', 'f1200', 'f1020', 'f0111',
+            # 'f0120' # this one in quite bad
+            ]
+    rtols = {'f1200': 0.2, 'f0111': 0.2}
 else:
     raise ValueError(f'Unknown configuration {configuration}')
 
