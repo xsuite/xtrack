@@ -2,8 +2,6 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
-PI = np.pi
-
 env = xt.load('../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 
 line = env.lhcb1
