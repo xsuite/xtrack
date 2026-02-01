@@ -331,7 +331,7 @@ class Tracker:
                 if ele_stop is None:
                     ele_stop = len(self.line)
 
-                if ele_start >= ele_stop:
+                if ele_start >= ele_stop and num_turns == 1:
                     # we need an additional turn and space in the monitor for
                     # the incomplete turn
                     num_turns += 1
@@ -769,7 +769,7 @@ class Tracker:
             if ele_stop == 0:
                 ele_stop = None
 
-            if ele_stop is not None and ele_stop <= ele_start:
+            if ele_stop is not None and ele_stop <= ele_start and num_turns == 1:
                 num_turns += 1
 
         if ele_stop is not None:
@@ -1192,6 +1192,10 @@ class Tracker:
 
         else:
             # We are using ele_start, ele_stop, and num_turns
+            if isinstance(ele_stop, str):
+                ele_stop = self.line.element_names.index(ele_stop)
+            if ele_stop == 0:
+                ele_stop = None
             if num_turns is None:
                 num_turns = 1
             else:
@@ -1202,11 +1206,9 @@ class Tracker:
                 num_elements_first_turn = self.num_elements - ele_start
                 num_middle_turns = num_turns - 1
             else:
-                if isinstance(ele_stop, str):
-                    ele_stop = self.line.element_names.index(ele_stop)
                 assert ele_stop >= 0
                 assert ele_stop <= self.num_elements
-                if ele_stop <= ele_start:
+                if ele_stop <= ele_start and num_turns == 1:
                     # Correct for overflow:
                     num_turns += 1
                 if num_turns == 1:

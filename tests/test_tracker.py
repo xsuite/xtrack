@@ -297,14 +297,19 @@ def _ele_start_to_ele_stop(line, particles_init):
                 assert line.record_last_track.x.shape==(len(particles.x), expected_num_monitor)
 
 
-# Track from any ele_start until any ele_stop that is smaller than or equal to ele_start (turn increses by one)
+# Track from any ele_start until any ele_stop that is smaller than or equal to ele_start
 # for one, two, and ten turns
 def _ele_start_to_ele_stop_with_overflow(line, particles_init):
     n_elem = len(line.element_names)
     for turns in [1, 2, 10]:
         for start in range(n_elem):
             for stop in range(start+1):
-                expected_end_turn = turns
+                if stop == 0:
+                    # last turn is a complete turn
+                    expected_end_turn = turns
+                else:
+                    # last turn is incomplete, but overflow if turns == 1
+                    expected_end_turn = turns if turns==1 else turns - 1
                 expected_end_element = stop
                 expected_num_monitor = expected_end_turn if expected_end_element==0 else expected_end_turn+1
 
@@ -561,22 +566,25 @@ def test_tracking_with_progress(test_context, with_progress, turns, collective):
 
 @for_all_test_contexts
 @pytest.mark.parametrize(
-    'ele_start,ele_stop,expected_x',
+    'ele_start,ele_stop,num_turns,expected_x',
     [
-        (None, None, [0, 0.005, 0.010, 0.015, 0.020, 0.025]),
-        (None, 3, [0, 0.005, 0.010, 0.015, 0.020, 0.023]),
-        (2, None, [0, 0.003, 0.008, 0.013, 0.018, 0.023]),
-        (2, 3, [0, 0.003, 0.008, 0.013, 0.018, 0.021]),
-        (3, 2, [0, 0.002, 0.007, 0.012, 0.017, 0.022, 0.024]),
+        (None, None, 5, [0, 0.005, 0.010, 0.015, 0.020, 0.025]),
+        (None, 3, 5, [0, 0.005, 0.010, 0.015, 0.020, 0.023]),
+        (2, None, 5, [0, 0.003, 0.008, 0.013, 0.018, 0.023]),
+        (2, 3, 5, [0, 0.003, 0.008, 0.013, 0.018, 0.021]),
+        (3, 2, 5, [0, 0.002, 0.007, 0.012, 0.017, 0.019]),
+        (2, 3, 1, [0, 0.001]),
+        (3, 2, 1, [0, 0.002, 0.004]),
     ],
 )
 @pytest.mark.parametrize('with_progress', [False, True, 1, 2, 3])
-def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x, with_progress):
+def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, num_turns, expected_x, with_progress):
     line = xt.Line(elements=[xt.Drift(length=1, _context=test_context)] * 5)
     line.build_tracker(_context=test_context)
 
     p = xt.Particles(px=0.001, _context=test_context)
-    line.track(p, num_turns=5, turn_by_turn_monitor=True, with_progress=with_progress, ele_start=ele_start, ele_stop=ele_stop)
+    line.track(p, num_turns=num_turns, turn_by_turn_monitor=True,
+               with_progress=with_progress, ele_start=ele_start, ele_stop=ele_stop)
     p.move(_context=xo.context_default)
 
     monitor_recorded_x = line.record_last_track.x
