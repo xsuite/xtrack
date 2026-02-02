@@ -17,7 +17,7 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
     int64_t const part_id_start = MultiElementMonitorData_get_part_id_start(el);
     int64_t const part_id_end = MultiElementMonitorData_get_part_id_end(el);
 
-    mapping_len = MultiElementMonitorData_get_at_element_mapping_len(el);
+    int64_t mapping_len = MultiElementMonitorData_len_at_element_mapping(el);
 
     START_PER_PARTICLE_BLOCK(part0, part);
         int64_t const at_turn = LocalParticle_get_at_turn(part);
@@ -26,12 +26,12 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
             && (particle_id >= part_id_start && particle_id < part_id_end)){
             int64_t const at_element = LocalParticle_get_at_element(part);
 
-            int64 store_at = -1;
+            int64_t store_at = -1;
             if (at_element < mapping_len){
-                store_at = at_element_mapping[at_element];
+                store_at = MultiElementMonitorData_get_at_element_mapping(el, at_element);
             }
 
-            if store_at >=0 {
+            if (store_at >=0) {
                 int64_t const turn_index = at_turn - start_at_turn;
                 int64_t const particle_index = particle_id - part_id_start;
 

@@ -1,5 +1,6 @@
 import xtrack as xt
 import xobjects as xo
+from pathlib import Path
 
 import numpy as np
 
@@ -21,7 +22,7 @@ class MultiElementMonitor(xt.BeamElement):
 
     _extra_c_sources = [
         # _pkg_root.joinpath("monitors/particles_monitor.h")
-        './multi_element_monitor.h'
+        Path('./multi_element_monitor.h')
     ]
 
 tt = line.get_table()
