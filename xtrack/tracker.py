@@ -487,6 +487,8 @@ class Tracker:
                              double line_length,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor,
+                /*gpuglmem*/ int8_t* buffer_multi_element_monitor,
+                             int64_t offset_multi_element_monitor,
                 /*gpuglmem*/ int8_t* io_buffer,
                              uint64_t track_flags
                              ){
@@ -711,6 +713,8 @@ class Tracker:
                     xo.Arg(xo.Float64, name='line_length'),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
+                    xo.Arg(xo.Int8, pointer=True, name="buffer_multi_element_monitor"),
+                    xo.Arg(xo.Int64, name="offset_multi_element_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
                     xo.Arg(xo.UInt64, name="track_flags"),
                 ],
@@ -1239,6 +1243,11 @@ class Tracker:
         (flag_monitor, monitor, buffer_monitor, offset_monitor
             ) = self._get_monitor(particles, turn_by_turn_monitor, monitor_turns)
 
+        # TEMP!!!!!
+        buffer_multi_element_monitor = particles._buffer.buffer  # I just need a valid buffer
+        offset_multi_element_monitor = 0
+        # TEMP!!!!!
+
         if self.line._needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
 
@@ -1261,6 +1270,8 @@ class Tracker:
             line_length=tracker_data.line_length,
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
+            buffer_multi_element_monitor=buffer_multi_element_monitor,
+            offset_multi_element_monitor=offset_multi_element_monitor,
             io_buffer=self.io_buffer.buffer,
             track_flags=track_flags
         )
@@ -1282,6 +1293,8 @@ class Tracker:
                 line_length=tracker_data.line_length,
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
+                buffer_multi_element_monitor=buffer_multi_element_monitor,
+                offset_multi_element_monitor=offset_multi_element_monitor,
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags
             )
@@ -1303,6 +1316,8 @@ class Tracker:
                 line_length=tracker_data.line_length,
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
+                buffer_multi_element_monitor=buffer_multi_element_monitor,
+                offset_multi_element_monitor=offset_multi_element_monitor,
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags
             )

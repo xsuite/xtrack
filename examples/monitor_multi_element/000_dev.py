@@ -54,7 +54,9 @@ multi_elem_monit = MultiElementMonitor(
 
 p = xt.Particles(p0c=7e12, x=np.arange(20),
                            delta=np.arange(20)*1e-4,
-                           at_element=4027)
+                           at_element=4027,
+                           at_turn=5
+)
 
 multi_elem_monit.track(p)
 
