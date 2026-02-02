@@ -538,6 +538,11 @@ class Tracker:
             ParticlesMonitorData tbt_monitor =
                             (ParticlesMonitorData) tbt_mon_pointer;
 
+            /*gpuglmem*/ int8_t* multi_elem_mon_pointer =
+                    buffer_multi_element_monitor + offset_multi_element_monitor;
+            MultiElementMonitorData tbt_multi_elem_monitor =
+                    (MultiElementMonitorData) multi_elem_mon_pointer;
+
             int64_t part_capacity = ParticlesData_get__capacity(particles);
             if (part_id<part_capacity){
             Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
@@ -572,6 +577,11 @@ class Tracker:
                 for (; ((elem_idx >= ele_start) && (elem_idx < ele_stop)); elem_idx+=increm){
                         if (flag_monitor==2){
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                        }
+
+                        if (offset_multi_element_monitor >= 0){
+                            MultiElementMonitor_track_local_particle(
+                                tbt_multi_elem_monitor, &lpart);
                         }
 
                         // Get the pointer to and the type id of the `elem_idx`th
