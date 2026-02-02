@@ -52,51 +52,6 @@ class StandardFieldMapParser(FieldMapParser):
             return False
 
 
-class SolenoidFieldMapParser(FieldMapParser):
-    """Parser for solenoid field map in standard 6-column format: X Y Z Bx By Bs"""
-    
-    def parse(self, file_path: str, **kwargs) -> pd.DataFrame:
-        """
-        Parse solenoid field map file in standard 6-column format.
-        
-        Format: X Y Z Bx By Bs (space-separated, no header)
-        where Bs is the longitudinal component (Bz).
-        """
-        df = pd.read_csv(
-            file_path, sep=r"\s+", header=None, 
-            names=["X", "Y", "Z", "Bx", "By", "Bs"]
-        )
-        df.set_index(["X", "Y", "Z"], inplace=True)
-        return df
-    
-    @classmethod
-    def detect_format(cls, file_path: str) -> bool:
-        """Detect solenoid field map by checking if it has 6 space-separated columns."""
-        try:
-            # Try to open the file (handles both absolute and relative paths)
-            # If relative, it will be resolved relative to current working directory
-            with open(file_path, 'r') as f:
-                first_line = f.readline().strip()
-                if not first_line:
-                    return False
-                parts = first_line.split()
-                # Check if it has exactly 6 columns (X Y Z Bx By Bs)
-                if len(parts) != 6:
-                    return False
-                # Check if all parts are numeric (indicating data, not header)
-                try:
-                    [float(p) for p in parts]
-                    return True
-                except ValueError:
-                    return False
-        except (FileNotFoundError, OSError, IOError):
-            # If file doesn't exist or can't be read, can't detect format
-            # This is expected for relative paths when CWD differs from script location
-            return False
-        except Exception:
-            return False
-
-
 class UE36FieldMapParser(FieldMapParser):
     """Parser for UE36 format: Z, then Bx/By/Bs for each Y position"""
     
