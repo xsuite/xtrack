@@ -51,3 +51,11 @@ multi_elem_monit = MultiElementMonitor(
     at_element_mapping=at_element_mapping,
     data=(n_turns, n_particles, n_coordinates, n_elements)
 )
+
+p = xt.Particles(p0c=7e12, x=np.arange(20),
+                           delta=np.arange(20)*1e-4,
+                           at_element=4027)
+
+multi_elem_monit.track(p)
+
+multi_elem_monit.data[:,:,5,172]  # delta at BPM with index 172
