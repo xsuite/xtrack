@@ -5,8 +5,9 @@ from pathlib import Path
 
 # TODO:
 # - Add new monitor to pre-compiled kernels
-# - Forbid backtrack
-# - Forbit collective mode
+# - Forbid backtrack for now
+# - Forbid collective mode for now
+# - Forbid GPU for now
 
 import numpy as np
 
@@ -48,3 +49,10 @@ p = xt.Particles(p0c=7e12, x=np.arange(20),
 multi_elem_monit.track(p)
 
 multi_elem_monit.data[:,:,5,172]  # delta at BPM with index 172
+
+line._multi_element_monitor = multi_elem_monit
+
+p = xt.Particles(p0c=7e12, x=np.arange(20),
+                           delta=np.arange(20)*1e-4,
+)
+line.track(p, num_turns=10)

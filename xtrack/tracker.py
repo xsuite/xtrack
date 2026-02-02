@@ -1255,8 +1255,13 @@ class Tracker:
             ) = self._get_monitor(particles, turn_by_turn_monitor, monitor_turns)
 
         # TEMP!!!!!
-        buffer_multi_element_monitor = particles._buffer.buffer  # I just need a valid buffer
-        offset_multi_element_monitor = -1
+        if hasattr(self.line, '_multi_element_monitor') and self.line._multi_element_monitor is not None:
+            monitor_me = self.line._multi_element_monitor
+            buffer_multi_element_monitor = monitor_me._buffer.buffer
+            offset_multi_element_monitor = monitor_me._offset
+        else:
+            buffer_multi_element_monitor = particles._buffer.buffer  # I just need a valid buffer
+            offset_multi_element_monitor = -1
         # TEMP!!!!!
 
         if self.line._needs_rng and not particles._has_valid_rng_state():
