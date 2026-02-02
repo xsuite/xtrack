@@ -660,11 +660,11 @@ class FieldFitter:
 
         if der == 2:
             x_label = r"$\frac{d^2 B_x}{d x^2}$"
-            y_label = r"$\frac{d^2 B_y}{d y^2}$"
+            y_label = r"$\frac{d^2 B_y}{d x^2}$"
             s_label = r"$\frac{d^2 B_s}{d x^2}$"
         elif der == 1:
             x_label = r"$\frac{d B_x}{d x}$"
-            y_label = r"$\frac{d B_y}{d y}$"
+            y_label = r"$\frac{d B_y}{d x}$"
             s_label = r"$\frac{d B_s}{d x}$"
         else:
             x_label = r"$B_x$"
