@@ -111,7 +111,8 @@ class Tracker:
             element_s_locations=element_s_locations,
             line_length=line_length,
             kernel_element_classes=None,
-            extra_element_classes=(particles_monitor_class._XoStruct,),
+            extra_element_classes=(particles_monitor_class._XoStruct,
+                                   xt.MultiElementMonitor._XoStruct),
             _context=_context,
             _buffer=_buffer,
             _no_resolve_parents=_prebuilding_kernels)
@@ -1245,7 +1246,7 @@ class Tracker:
 
         # TEMP!!!!!
         buffer_multi_element_monitor = particles._buffer.buffer  # I just need a valid buffer
-        offset_multi_element_monitor = 0
+        offset_multi_element_monitor = -1
         # TEMP!!!!!
 
         if self.line._needs_rng and not particles._has_valid_rng_state():
