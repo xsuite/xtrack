@@ -23,7 +23,6 @@ at_element_mapping = np.zeros(len(tt), dtype=np.int64)
 at_element_mapping[:] = -1
 at_element_mapping[indeces_bpm] = np.arange(len(indeces_bpm), dtype=np.int64)
 
-
 start_at_turn = 0
 stop_at_turn = 10
 part_id_start = 5
