@@ -13,10 +13,6 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from xtrack.beam_elements.spline_param_schema import (
-    SplineParameterSchema,
-    build_parameter_table_from_df,
-)
 
 
 def _contruct_par_table(n_steps, s_start, s_end, df_flat, multipole_order):
@@ -30,7 +26,7 @@ def _contruct_par_table(n_steps, s_start, s_end, df_flat, multipole_order):
     """
     # Build the canonical parameter table using the shared helper to ensure
     # consistency with FieldFitter, SplineBoris, and the C code.
-    par_table, s_start_inferred, s_end_inferred = build_parameter_table_from_df(
+    par_table, s_start_inferred, s_end_inferred = xt.SplineBoris.build_parameter_table_from_df(
         df_flat,
         n_steps=n_steps,
         multipole_order=multipole_order,
@@ -38,7 +34,7 @@ def _contruct_par_table(n_steps, s_start, s_end, df_flat, multipole_order):
 
     # For backwards compatibility, keep returning a list of per-step dictionaries.
     # These are constructed from the ordered parameter table.
-    expected_params = SplineParameterSchema.get_param_names(multipole_order)
+    expected_params = xt.SplineBoris.get_param_names(multipole_order)
     par_dicts = [
         {name: float(value) for name, value in zip(expected_params, row)}
         for row in par_table

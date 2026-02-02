@@ -11,7 +11,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from xtrack.beam_elements.spline_param_schema import build_parameter_table_from_df
 
 multipole_order = 3
 
@@ -54,7 +53,7 @@ df = pd.read_csv(
     ],
 )
 
-par_table, s_start, s_end = build_parameter_table_from_df(
+par_table, s_start, s_end = xt.SplineBoris.build_parameter_table_from_df(
     df_fit_pars=df,
     n_steps=n_steps,
     multipole_order=multipole_order,

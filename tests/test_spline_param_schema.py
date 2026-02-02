@@ -3,12 +3,6 @@ import pandas as pd
 
 import xtrack as xt
 
-from xtrack.beam_elements.spline_param_schema import (
-    FIELD_FIT_INDEX_COLUMNS,
-    SplineParameterSchema,
-    build_parameter_table_from_df,
-)
-
 
 def _reference_param_names(multipole_order=3, poly_order=4):
     """Reference implementation mirroring the original C generator logic."""
@@ -25,7 +19,7 @@ def _reference_param_names(multipole_order=3, poly_order=4):
 
 def _make_synthetic_df(multipole_order=2, poly_order=1):
     """Build a minimal FieldFitter-like DataFrame for testing."""
-    param_names = SplineParameterSchema.get_param_names(
+    param_names = xt.SplineBoris.get_param_names(
         multipole_order=multipole_order, poly_order=poly_order
     )
 
@@ -57,38 +51,38 @@ def _make_synthetic_df(multipole_order=2, poly_order=1):
         )
 
     df = pd.DataFrame(rows)
-    df.set_index(list(FIELD_FIT_INDEX_COLUMNS), inplace=True)
+    df.set_index(list(xt.SplineBoris.FIELD_FIT_INDEX_COLUMNS), inplace=True)
     return df
 
 
 def test_schema_param_names_and_count():
     m = 3
     p = 4
-    names = SplineParameterSchema.get_param_names(multipole_order=m, poly_order=p)
+    names = xt.SplineBoris.get_param_names(multipole_order=m, poly_order=p)
     ref_names = _reference_param_names(multipole_order=m, poly_order=p)
 
     assert names == ref_names
-    assert len(names) == SplineParameterSchema.get_num_params(multipole_order=m, poly_order=p)
+    assert len(names) == xt.SplineBoris.get_num_params(multipole_order=m, poly_order=p)
     assert len(names) == (2 * m + 1) * (p + 1)
 
 
 def test_validate_param_array_shapes():
     m = 2
     p = 1
-    n_params = SplineParameterSchema.get_num_params(multipole_order=m, poly_order=p)
+    n_params = xt.SplineBoris.get_num_params(multipole_order=m, poly_order=p)
 
     # 1D vector (single step)
     vec = np.zeros(n_params)
-    assert SplineParameterSchema.validate_param_array(vec, multipole_order=m, poly_order=p)
+    assert xt.SplineBoris.validate_param_array(vec, multipole_order=m, poly_order=p)
 
     # 2D table (multiple steps)
     table = np.zeros((5, n_params))
-    assert SplineParameterSchema.validate_param_array(table, multipole_order=m, poly_order=p)
+    assert xt.SplineBoris.validate_param_array(table, multipole_order=m, poly_order=p)
 
     # Wrong length should raise
     bad_vec = np.zeros(n_params + 1)
     try:
-        SplineParameterSchema.validate_param_array(bad_vec, multipole_order=m, poly_order=p)
+        xt.SplineBoris.validate_param_array(bad_vec, multipole_order=m, poly_order=p)
     except ValueError:
         pass
     else:
@@ -101,7 +95,7 @@ def test_build_parameter_table_from_df_ordering():
     n_steps = 4
     df = _make_synthetic_df(multipole_order=m, poly_order=p)
 
-    par_table, s_start, s_end = build_parameter_table_from_df(
+    par_table, s_start, s_end = xt.SplineBoris.build_parameter_table_from_df(
         df_fit_pars=df,
         n_steps=n_steps,
         multipole_order=m,
@@ -109,7 +103,7 @@ def test_build_parameter_table_from_df_ordering():
     )
 
     assert par_table.shape[0] == n_steps
-    expected_names = SplineParameterSchema.get_param_names(multipole_order=m, poly_order=p)
+    expected_names = xt.SplineBoris.get_param_names(multipole_order=m, poly_order=p)
     expected_row = np.arange(1, len(expected_names) + 1, dtype=float)
 
     # All rows should be identical to the expected mapping
@@ -122,11 +116,11 @@ def test_build_parameter_table_from_df_ordering():
 
 def test_splineboris_from_fieldfit_df_and_csv(tmp_path):
     m = 2
-    p = 1
+    p = 4  # use default POLY_ORDER so __init__ validation (no poly_order arg) accepts the table
     n_steps = 5
     df = _make_synthetic_df(multipole_order=m, poly_order=p)
 
-    par_table, s_start, s_end = build_parameter_table_from_df(
+    par_table, s_start, s_end = xt.SplineBoris.build_parameter_table_from_df(
         df_fit_pars=df,
         n_steps=n_steps,
         multipole_order=m,
@@ -150,8 +144,8 @@ def test_splineboris_from_fieldfit_df_and_csv(tmp_path):
     csv_path = tmp_path / "fit_pars.csv"
     df.to_csv(csv_path)
     
-    df_csv = pd.read_csv(csv_path, index_col=list(FIELD_FIT_INDEX_COLUMNS))
-    par_table_csv, s_start_csv, s_end_csv = build_parameter_table_from_df(
+    df_csv = pd.read_csv(csv_path, index_col=list(xt.SplineBoris.FIELD_FIT_INDEX_COLUMNS))
+    par_table_csv, s_start_csv, s_end_csv = xt.SplineBoris.build_parameter_table_from_df(
         df_fit_pars=df_csv,
         n_steps=n_steps,
         multipole_order=m,

@@ -8,13 +8,8 @@ import bpmeth as bp
 THIS_DIR = os.path.dirname(__file__)
 ELEMENTS_SRC_DIR = THIS_DIR   # since the script is already in elements_src
 
-# Make the parent ``beam_elements`` directory importable so we can use the
-# shared spline parameter schema without requiring an installed xtrack package.
-_BEAM_ELEMENTS_DIR = Path(THIS_DIR).resolve().parent
-if str(_BEAM_ELEMENTS_DIR) not in sys.path:
-    sys.path.insert(0, str(_BEAM_ELEMENTS_DIR))
-
-from spline_param_schema import SplineParameterSchema
+# SplineBoris.ParameterSchema defines the canonical param order; use repo root on PYTHONPATH.
+from xtrack.beam_elements.elements import SplineBoris
 
 # This script generates C code for evaluating magnetic field components
 # based on symbolic expressions derived from the bpmeth formalism.
@@ -136,7 +131,7 @@ def _get_reduced_expressions(exprs_list):
 # However, the Boris Integrator does not support curved reference frames yet, so we leave the curvature zero here.
 def start_to_finish(multipole_order=multipole_order, poly_order=4, field='B', curvature='0'):
     #ks_symbols, kn_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
-    param_names = SplineParameterSchema.get_param_names(multipole_order=multipole_order, poly_order=poly_order)
+    param_names = SplineBoris.ParameterSchema.get_param_names(multipole_order=multipole_order, poly_order=poly_order)
     ks_exprs, kn_exprs, bs_expr = set_exprs(multipole_order=multipole_order, poly_order=poly_order)
     symbolic_Bx, symbolic_By, symbolic_Bs, symbolic_Ax, symbolic_Ay, symbolic_As = generic_field_exprs(curv=curvature, multipole_order=multipole_order, poly_order=poly_order)
     if field == 'B':

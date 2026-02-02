@@ -8,10 +8,7 @@ from pathlib import Path
 import sys
 
 import xtrack as xt
-from xtrack.beam_elements.spline_param_schema import (
-    SplineParameterSchema,
-    build_parameter_table_from_df,
-)
+from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 
 # Make the auto-generated spline field evaluator importable without requiring
 # an installed xtrack package.
@@ -81,7 +78,7 @@ def test_splineboris_homogeneous_analytic(field_angle):
     np.testing.assert_allclose(By_values, B_y, rtol=1e-12, atol=1e-12,
                                 err_msg="B_y field should be constant (homogeneous)")
 
-    param_table = SplineParameterSchema.build_param_table_from_spline_coeffs(
+    param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
         ks_0=ks_0,
         kn_0=kn_0,
         bs=bs,
@@ -280,7 +277,7 @@ def test_splineboris_homogeneous_rbend(field_angle):
     np.testing.assert_allclose(By_values, B_y, rtol=1e-12, atol=1e-12,
                                 err_msg="B_y field should be constant (homogeneous)")
 
-    param_table = SplineParameterSchema.build_param_table_from_spline_coeffs(
+    param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
         ks_0=ks_0,
         kn_0=kn_0,
         bs=bs,
@@ -364,9 +361,12 @@ def test_splineboris_analytic_solenoid():
     sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
 
     # Generate field map:
+    
 
     x_axis = np.linspace(-1, 1, 1001)
-    
+    y_axis = np.linspace(-1, 1, 1001)
+    Bx_axis, By_axis, Bz_axis = sf.get_field(x_axis, y_axis, z_axis)
+
     z_axis = np.linspace(0, 30, 1001)
     Bz_axis = sf.get_field(0 * z_axis, 0 * z_axis, z_axis)[2]
 
@@ -449,7 +449,7 @@ def test_splineboris_analytic_solenoid():
                         rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
 
-test_splineboris_analytic_solenoid()
+# Run only when SolenoidField is available: test_splineboris_analytic_solenoid()
 
 # def test_splineboris_uniform_solenoid_analytic():
 #     """
@@ -517,7 +517,7 @@ test_splineboris_analytic_solenoid()
 #     np.testing.assert_allclose(Bs_values, B_s, rtol=1e-12, atol=1e-12,
 #                                 err_msg="Bs field should be constant (homogeneous)")
 
-#     param_table = SplineParameterSchema.build_param_table_from_spline_coeffs(
+#     param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
 #         ks_0=ks_0,
 #         kn_0=kn_0,
 #         bs=bs,
@@ -677,7 +677,7 @@ test_splineboris_analytic_solenoid()
 #         err_msg="Bs field should be constant (homogeneous)",
 #     )
 
-#     param_table = SplineParameterSchema.build_param_table_from_spline_coeffs(
+#     param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
 #         ks_0=ks_0,
 #         kn_0=kn_0,
 #         bs=bs,
@@ -766,7 +766,7 @@ def test_splineboris_undulator_vs_boris_spatial():
     multipole_order = 3
     n_steps_test = 1000
 
-    par_table, s_start, s_end = build_parameter_table_from_df(
+    par_table, s_start, s_end = xt.SplineBoris.build_parameter_table_from_df(
         df_fit_pars=df,
         n_steps=n_steps_test,
         multipole_order=multipole_order,
