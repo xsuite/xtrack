@@ -15,6 +15,15 @@ class MultiElementMonitor(xt.BeamElement):
         'data': xo.Float64[:, :, :, :], # turns, particles, coordinate, location
     }
 
+    behaves_like_drift = True
+    has_backtrack = True
+    allow_loss_refinement = True
+
+    _extra_c_sources = [
+        # _pkg_root.joinpath("monitors/particles_monitor.h")
+        './multi_element_monitor.h'
+    ]
+
 tt = line.get_table()
 indeces_bpm = tt.rows.indices.match(name='bpm.*')
 obs_names = tt.name[indeces_bpm]

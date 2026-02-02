@@ -17,41 +17,43 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
     int64_t const part_id_start = MultiElementMonitorData_get_part_id_start(el);
     int64_t const part_id_end = MultiElementMonitorData_get_part_id_end(el);
 
-    ArrNInt64 const at_element_mapping = MultiElementMonitorData_getp_at_element_mapping(el);
-    ArrNxMxOxPFloat64 const data = MultiElementMonitorData_getp_data(el);
-
-    int64_t const map_len = ArrNInt64_len(at_element_mapping);
-    int64_t data_shape[4];
-    ArrNxMxOxPFloat64_shape(data, data_shape);
-    int64_t const n_locations = data_shape[3];
+    mapping_len = MultiElementMonitorData_get_at_element_mapping_len(el);
 
     START_PER_PARTICLE_BLOCK(part0, part);
         int64_t const at_turn = LocalParticle_get_at_turn(part);
-        if (at_turn >= start_at_turn && at_turn < stop_at_turn){
+        int64_t const particle_id = LocalParticle_get_particle_id(part);
+        if ((at_turn >= start_at_turn && at_turn < stop_at_turn)
+            && (particle_id >= part_id_start && particle_id < part_id_end)){
             int64_t const at_element = LocalParticle_get_at_element(part);
-            if (at_element < map_len){
-                int64_t const location_index = ArrNInt64_get(at_element_mapping, at_element);
-                if (location_index >= 0 && location_index < n_locations){
-                    int64_t const particle_id = LocalParticle_get_particle_id(part);
-                    if (particle_id >= part_id_start && particle_id < part_id_end){
-                        int64_t const turn_index = at_turn - start_at_turn;
-                        int64_t const particle_index = particle_id - part_id_start;
 
-                        double const x = LocalParticle_get_x(part);
-                        double const px = LocalParticle_get_px(part);
-                        double const y = LocalParticle_get_y(part);
-                        double const py = LocalParticle_get_py(part);
-                        double const zeta = LocalParticle_get_zeta(part);
-                        double const delta = LocalParticle_get_delta(part);
+            int64 store_at = -1;
+            if (at_element < mapping_len){
+                store_at = at_element_mapping[at_element];
+            }
 
-                        ArrNxMxOxPFloat64_set(data, turn_index, particle_index, 0, location_index, x);
-                        ArrNxMxOxPFloat64_set(data, turn_index, particle_index, 1, location_index, px);
-                        ArrNxMxOxPFloat64_set(data, turn_index, particle_index, 2, location_index, y);
-                        ArrNxMxOxPFloat64_set(data, turn_index, particle_index, 3, location_index, py);
-                        ArrNxMxOxPFloat64_set(data, turn_index, particle_index, 4, location_index, zeta);
-                        ArrNxMxOxPFloat64_set(data, turn_index, particle_index, 5, location_index, delta);
-                    }
-                }
+            if store_at >=0 {
+                int64_t const turn_index = at_turn - start_at_turn;
+                int64_t const particle_index = particle_id - part_id_start;
+
+                double const x = LocalParticle_get_x(part);
+                double const px = LocalParticle_get_px(part);
+                double const y = LocalParticle_get_y(part);
+                double const py = LocalParticle_get_py(part);
+                double const zeta = LocalParticle_get_zeta(part);
+                double const delta = LocalParticle_get_delta(part);
+
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 0, store_at, x);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 1, store_at, px);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 2, store_at, y);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 3, store_at, py);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 4, store_at, zeta);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 5, store_at, delta);
             }
         }
     END_PER_PARTICLE_BLOCK;
