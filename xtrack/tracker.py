@@ -578,9 +578,7 @@ class Tracker:
                         if (flag_monitor==2){
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
-                        printf("tbt_multi_elem_monitor offset: %lld\n", offset_multi_element_monitor);
                         if (offset_multi_element_monitor >= 0){
-                            printf("calling MultiElementMonitor_track_local_particle\n");
                             MultiElementMonitor_track_local_particle(
                                 tbt_multi_elem_monitor, &lpart);
                         }
@@ -1257,7 +1255,6 @@ class Tracker:
 
         # TEMP!!!!!
         if hasattr(self.line, '_multi_element_monitor') and self.line._multi_element_monitor is not None:
-            print('---- Multi-element monitor active!')
             monitor_me = self.line._multi_element_monitor
             buffer_multi_element_monitor = monitor_me._buffer.buffer
             offset_multi_element_monitor = monitor_me._offset
