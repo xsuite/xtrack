@@ -4630,6 +4630,11 @@ class Line:
         return self.tracker.record_last_track
 
     @property
+    def record_multi_element_last_track(self):
+        self._check_valid_tracker()
+        return self.tracker.record_multi_element_last_track
+
+    @property
     def vars(self):
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline.vars
