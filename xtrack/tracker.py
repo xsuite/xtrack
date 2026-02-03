@@ -326,18 +326,21 @@ class Tracker:
                 batch_size = int(with_progress)
                 scaling = with_progress if batch_size > 1 else None
 
-            if kwargs.get('turn_by_turn_monitor') is True:
-                ele_start = kwargs.get('ele_start') or 0
-                ele_stop = kwargs.get('ele_stop')
-                if ele_stop is None:
-                    ele_stop = len(self.line)
+            # Adjust num turns to account for incomplete turn
+            ele_start = kwargs.get('ele_start') or 0
+            ele_stop = kwargs.get('ele_stop')
+            if ele_stop is None:
+                ele_stop = len(self.line)
+            if ele_start >= ele_stop:
+                # we need an additional turn and space in the monitor for
+                # the incomplete turn
+                num_turns += 1
 
-                if ele_start >= ele_stop:
-                    # we need an additional turn and space in the monitor for
-                    # the incomplete turn
-                    num_turns += 1
+            if kwargs.get('turn_by_turn_monitor') is True:
                 _, monitor, _, _ = self._get_monitor(particles, True, num_turns)
                 kwargs['turn_by_turn_monitor'] = monitor
+
+            # !!!!!! TODO: introduce multi-element monitor handling here
 
             for ii in progress(
                     range(0, num_turns, batch_size),
