@@ -854,11 +854,11 @@ def test_splineboris_undulator_vs_boris_spatial():
     line_boris.track(p_boris)
 
     # ------------------------------------------------------------------
-    # Compare end coordinates (SplineBoris vs BorisSpatialIntegrator)
+    # Compare end coordinates
     # ------------------------------------------------------------------
-    xo.assert_allclose(p_spline.x, p_boris.x, rtol=1e-6, atol=1e-6)
-    xo.assert_allclose(p_spline.px, p_boris.px, rtol=1e-6, atol=1e-6)
-    xo.assert_allclose(p_spline.y, p_boris.y, rtol=1e-6, atol=1e-6)
-    xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-6, atol=1e-6)
-    xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-6, atol=1e-6)
-    xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-6, atol=1e-6)
+    xo.assert_allclose(p_spline.x, p_boris.x, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.px, p_boris.px, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.y, p_boris.y, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-7, atol=5e-7)
