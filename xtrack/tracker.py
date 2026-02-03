@@ -296,7 +296,7 @@ class Tracker:
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     def _track(self, particles, *args, with_progress: Union[bool, int] = False,
-               time=False, **kwargs):
+               time=False, multi_element_monitor_at=None, **kwargs):
 
         out = None
 
@@ -1379,6 +1379,48 @@ class Tracker:
             raise ValueError('Please provide a valid monitor object')
 
         return flag_monitor, monitor, buffer_monitor, offset_monitor
+
+    def _get_multi_element_monitor(self, multi_element_monitor_at, particles,
+                                   num_turns):
+
+        if multi_element_monitor_at is None or len(multi_element_monitor_at) == 0:
+            multi_element_monitor = None
+            buffer_multi_element_monitor = particles._buffer.buffer  # I just need a valid buffer
+            offset_multi_element_monitor = -1
+        else:
+            assert isinstance(multi_element_monitor_at, (list, tuple),
+                '`multi_element_monitor_at` must be a list or tuple of element names')
+            tt = self._tracker_data_base._line_table # reuse cached table
+            indeces_obs = tt.rows.indices[multi_element_monitor_at]
+            if len(indeces_obs) != len(multi_element_monitor_at):
+                missing = set(multi_element_monitor_at) - set(
+                    tt.rows.names[indeces_obs])
+                raise ValueError(f'Elements not found in line: {missing}')
+
+            at_element_mapping = np.zeros(len(tt), dtype=np.int64)
+            at_element_mapping[:] = -1
+            at_element_mapping[indeces_obs] = np.arange(len(indeces_obs), dtype=np.int64)
+
+            # Very simple constructor for now, can be made more solid and flexible later
+            part_id_start, part_id_end = particles.get_active_particle_id_range()
+            num_particles = part_id_end - part_id_start
+            num_cooordinates = 6 # hardcoded for now (C code of the monitor
+                                 # needs to be extended if different number
+                                 # of coordinates is needed)
+            num_elements = len(multi_element_monitor_at)
+            multi_element_monitor = xt.MultiElementMonitor(
+                start_at_turn=0,
+                stop_at_turn=num_turns,
+                part_id_start=particles.get_active_particle_id_range()[0],
+                part_id_end=particles.get_active_particle_id_range()[1],
+                at_element_mapping=at_element_mapping,
+                data=(num_turns, num_particles, num_cooordinates, num_elements)
+            )
+
+            buffer_multi_element_monitor = multi_element_monitor._buffer.buffer
+            offset_multi_element_monitor = multi_element_monitor._offset
+
+        return multi_element_monitor, buffer_multi_element_monitor, offset_multi_element_monitor
 
     def to_binary_file(self, path):
 
