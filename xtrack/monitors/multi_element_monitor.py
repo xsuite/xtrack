@@ -25,7 +25,7 @@ class MultiElementMonitor(xt.BeamElement):
                          at_element_mapping=at_element_mapping,
                          data=data,
                          **kwargs)
-        self._obs_names = obs_names
+        self.obs_names = obs_names
 
     behaves_like_drift = True
     has_backtrack = True

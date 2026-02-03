@@ -14,6 +14,7 @@ tt_obs = tt.rows.match(name='bpm.*')
 tt_obs.name # is ['bpmw.4r7.b1', 'bpmwe.4r7.b1', 'bpmw.5r7.b1', ...,
 
 p = xt.Particles(p0c=7e12, x=1e-6*np.arange(20),
-                           delta=0
-)
+                           delta=0)
 line.track(p, num_turns=10, multi_element_monitor_at=tt_obs.name)
+
+line.record_multi_element_last_track

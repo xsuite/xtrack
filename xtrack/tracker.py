@@ -1435,7 +1435,7 @@ class Tracker:
                 part_id_end=particles.get_active_particle_id_range()[1],
                 at_element_mapping=at_element_mapping,
                 data=(num_turns, num_particles, num_cooordinates, num_elements),
-                obs_names=tt.rows.names[indeces_obs] # to ensure the right orde
+                obs_names=tt.name[indeces_obs] # to ensure the right orde
             )
 
         return multi_element_monitor
