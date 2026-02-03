@@ -1347,6 +1347,7 @@ class Tracker:
             )
 
         self.record_last_track = monitor
+        self.record_multi_element_last_track = multi_element_monitor
 
     @staticmethod
     def _get_default_monitor_class():

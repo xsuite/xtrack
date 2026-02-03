@@ -3,12 +3,6 @@ import xobjects as xo
 from pathlib import Path
 
 
-# TODO:
-# - Add new monitor to pre-compiled kernels
-# - Forbid backtrack for now
-# - Forbid collective mode for now
-# - Forbid GPU for now
-
 import numpy as np
 
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
