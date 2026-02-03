@@ -340,7 +340,8 @@ class Tracker:
                 _, monitor, _, _ = self._get_monitor(particles, True, num_turns)
                 kwargs['turn_by_turn_monitor'] = monitor
 
-            # !!!!!! TODO: introduce multi-element monitor handling here
+            multi_element_monitor = self._get_multi_element_monitor(
+                particles, multi_element_monitor_at, num_turns)
 
             for ii in progress(
                     range(0, num_turns, batch_size),
@@ -373,10 +374,12 @@ class Tracker:
                     one_turn_kwargs['ele_stop'] = None
                     one_turn_kwargs['_reset_log'] = False
 
-                tracking_func(particles, *args, **one_turn_kwargs)
+                tracking_func(particles, *args, **one_turn_kwargs,
+                              multi_element_monitor=multi_element_monitor)
                 # particles.reorganize() # could be done in the future to optimize GPU usage
         else:
-            out = tracking_func(particles, *args, **kwargs)
+            out = tracking_func(particles, *args, **kwargs,
+                               multi_element_monitor=multi_element_monitor)
 
         if time:
             t1 = perf_counter()
@@ -915,9 +918,14 @@ class Tracker:
         freeze_longitudinal=False,
         backtrack=False,
         log=None,
+        multi_element_monitor=None,
         _session_to_resume=None,
         _reset_log=True,
     ):
+
+        if multi_element_monitor is not None:
+            raise NotImplementedError('multi_element_monitor not implemented yet'
+                                      ' for collective tracking')
 
         if ele_start is None:
             ele_start = 0
@@ -1114,6 +1122,7 @@ class Tracker:
         freeze_longitudinal=False,
         backtrack=False,
         log=None,
+        multi_element_monitor=None,
         _force_no_end_turn_actions=False,
         _reset_log=True,
     ):
@@ -1256,15 +1265,12 @@ class Tracker:
         (flag_monitor, monitor, buffer_monitor, offset_monitor
             ) = self._get_monitor(particles, turn_by_turn_monitor, monitor_turns)
 
-        # TEMP!!!!!
-        if hasattr(self.line, '_multi_element_monitor') and self.line._multi_element_monitor is not None:
-            monitor_me = self.line._multi_element_monitor
-            buffer_multi_element_monitor = monitor_me._buffer.buffer
-            offset_multi_element_monitor = monitor_me._offset
+        if multi_element_monitor is not None:
+            buffer_multi_element_monitor = multi_element_monitor._buffer.buffer
+            offset_multi_element_monitor = multi_element_monitor._offset
         else:
             buffer_multi_element_monitor = particles._buffer.buffer  # I just need a valid buffer
             offset_multi_element_monitor = -1
-        # TEMP!!!!!
 
         if self.line._needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
@@ -1392,8 +1398,6 @@ class Tracker:
 
         if multi_element_monitor_at is None or len(multi_element_monitor_at) == 0:
             multi_element_monitor = None
-            buffer_multi_element_monitor = particles._buffer.buffer  # I just need a valid buffer
-            offset_multi_element_monitor = -1
         else:
             assert isinstance(multi_element_monitor_at, (list, tuple),
                 '`multi_element_monitor_at` must be a list or tuple of element names')
@@ -1424,10 +1428,7 @@ class Tracker:
                 data=(num_turns, num_particles, num_cooordinates, num_elements)
             )
 
-            buffer_multi_element_monitor = multi_element_monitor._buffer.buffer
-            offset_multi_element_monitor = multi_element_monitor._offset
-
-        return multi_element_monitor, buffer_multi_element_monitor, offset_multi_element_monitor
+        return multi_element_monitor
 
     def to_binary_file(self, path):
 
