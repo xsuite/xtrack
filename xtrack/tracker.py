@@ -378,6 +378,11 @@ class Tracker:
                               multi_element_monitor=multi_element_monitor)
                 # particles.reorganize() # could be done in the future to optimize GPU usage
         else:
+            multi_element_monitor = self._get_multi_element_monitor(
+                particles=particles,
+                multi_element_monitor_at=multi_element_monitor_at,
+                num_turns=kwargs.get('num_turns', 1)
+            )
             out = tracking_func(particles, *args, **kwargs,
                                multi_element_monitor=multi_element_monitor)
 
@@ -1400,8 +1405,8 @@ class Tracker:
         if multi_element_monitor_at is None or len(multi_element_monitor_at) == 0:
             multi_element_monitor = None
         else:
-            assert isinstance(multi_element_monitor_at, (list, tuple),
-                '`multi_element_monitor_at` must be a list or tuple of element names')
+            assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
+                '`multi_element_monitor_at` must be a list, tuple or array of element names'
             tt = self._tracker_data_base._line_table # reuse cached table
             indeces_obs = tt.rows.indices[multi_element_monitor_at]
             if len(indeces_obs) != len(multi_element_monitor_at):
