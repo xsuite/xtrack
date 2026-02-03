@@ -1383,6 +1383,10 @@ class Tracker:
     def _get_multi_element_monitor(self, multi_element_monitor_at, particles,
                                    num_turns):
 
+        if not isinstance(self._context, xo.ContextCpu):
+            raise NotImplementedError(
+                'Multi-element monitor is only supported on CPU trackers for now.')
+
         if multi_element_monitor_at is None or len(multi_element_monitor_at) == 0:
             multi_element_monitor = None
             buffer_multi_element_monitor = particles._buffer.buffer  # I just need a valid buffer
