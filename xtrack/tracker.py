@@ -341,7 +341,10 @@ class Tracker:
                 kwargs['turn_by_turn_monitor'] = monitor
 
             multi_element_monitor = self._get_multi_element_monitor(
-                particles, multi_element_monitor_at, num_turns)
+                particles=particles,
+                multi_element_monitor_at=multi_element_monitor_at,
+                num_turns=num_turns
+            )
 
             for ii in progress(
                     range(0, num_turns, batch_size),

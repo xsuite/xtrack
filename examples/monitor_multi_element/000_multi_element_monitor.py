@@ -2,7 +2,6 @@ import xtrack as xt
 import numpy as np
 
 # TODO:
-# - Add new monitor to pre-compiled kernels
 # - Forbid backtrack for now
 # - Forbid collective mode for now
 # - Forbid GPU for now
