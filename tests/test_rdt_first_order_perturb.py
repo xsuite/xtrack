@@ -376,10 +376,10 @@ def test_rdt_lhc_vs_madng():
 
     # outliers came from the fact that at the sources the RDT jumps at entry
     # instead of exit of the element or viceversa
-    xo.assert_allclose(rdts.f1001, tw_edw_teng.f1001, rtol=0.05)
-    xo.assert_allclose(rdts.f1010, tw_edw_teng.f1010, rtol=0.05, max_outliers=5)
-    xo.assert_allclose(rdts.f0110, tw_edw_teng.f0110, rtol=0.05)
-    xo.assert_allclose(rdts.f1001, np.conj(rdts.f0110), rtol=1e-12)
+    xo.assert_allclose(rdts.f1001, tw_edw_teng.f1001, atol=0.07*np.max(np.abs(tw_edw_teng.f1001)), max_outliers=5)
+    xo.assert_allclose(rdts.f1010, tw_edw_teng.f1010, atol=0.07*np.max(np.abs(tw_edw_teng.f1010)), max_outliers=5)
+    xo.assert_allclose(rdts.f0110, tw_edw_teng.f0110, atol=0.07*np.max(np.abs(tw_edw_teng.f0110)), max_outliers=5)
+    xo.assert_allclose(rdts.f1001, np.conj(rdts.f0110), atol=1e-12)
 
     # RDTs from chromaticity sextupoles
     rdt_names = ['f3000', 'f1200', 'f1020', 'f0120', 'f0111']

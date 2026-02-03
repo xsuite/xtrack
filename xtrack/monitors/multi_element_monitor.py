@@ -12,6 +12,21 @@ class MultiElementMonitor(xt.BeamElement):
         'data': xo.Float64[:, :, :, :], # turns, particles, coordinate, location
     }
 
+    def __init__(self, start_at_turn, stop_at_turn,
+                 part_id_start, part_id_end,
+                 at_element_mapping,
+                 data,
+                 obs_names,
+                 **kwargs):
+        super().__init__(start_at_turn=start_at_turn,
+                         stop_at_turn=stop_at_turn,
+                         part_id_start=part_id_start,
+                         part_id_end=part_id_end,
+                         at_element_mapping=at_element_mapping,
+                         data=data,
+                         **kwargs)
+        self._obs_names = obs_names
+
     behaves_like_drift = True
     has_backtrack = True
     allow_loss_refinement = True
