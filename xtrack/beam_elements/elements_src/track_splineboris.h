@@ -112,8 +112,6 @@ void SplineBoris_single_particle(
         // gamma = energy / mass  (matching Python implementation)
         const double gamma = energy / mass;
 
-        // Total momentum magnitude for this particle (delta may have changed)
-        const double delta_current = LocalParticle_get_delta(part);
         const double P = P0 * (1.0 + delta_current);  // [kg m / s]
 
         // Save state for radiation tracking
@@ -190,7 +188,7 @@ void SplineBoris_single_particle(
         // --------------------------------------------------------------
         //  (3) ROTATION around Bs
         // --------------------------------------------------------------
-        double t  = q_coulomb * Bs * half_ds / ps_mid;
+        double t  = 0.5 * q_coulomb * Bs * half_ds / ps_mid;
         double t2 = t * t;
         double inv_den = 1.0 / (1.0 + t2);
 

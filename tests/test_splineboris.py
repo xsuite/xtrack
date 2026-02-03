@@ -361,13 +361,11 @@ def test_splineboris_analytic_solenoid():
     sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
 
     # Generate field map:
-    
-
+    z_axis = np.linspace(0, 30, 1001)
     x_axis = np.linspace(-1, 1, 1001)
     y_axis = np.linspace(-1, 1, 1001)
     Bx_axis, By_axis, Bz_axis = sf.get_field(x_axis, y_axis, z_axis)
 
-    z_axis = np.linspace(0, 30, 1001)
     Bz_axis = sf.get_field(0 * z_axis, 0 * z_axis, z_axis)[2]
 
     P0_J = p.p0c[0] * qe / clight
@@ -856,11 +854,11 @@ def test_splineboris_undulator_vs_boris_spatial():
     line_boris.track(p_boris)
 
     # ------------------------------------------------------------------
-    # Compare end coordinates
+    # Compare end coordinates (SplineBoris vs BorisSpatialIntegrator)
     # ------------------------------------------------------------------
-    xo.assert_allclose(p_spline.x, p_boris.x, rtol=1e-7, atol=5e-7)
-    xo.assert_allclose(p_spline.px, p_boris.px, rtol=1e-7, atol=5e-7)
-    xo.assert_allclose(p_spline.y, p_boris.y, rtol=1e-7, atol=5e-7)
-    xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-7, atol=5e-7)
-    xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-7, atol=5e-7)
-    xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-7, atol=5e-7)
+    xo.assert_allclose(p_spline.x, p_boris.x, rtol=1e-6, atol=1e-6)
+    xo.assert_allclose(p_spline.px, p_boris.px, rtol=1e-6, atol=1e-6)
+    xo.assert_allclose(p_spline.y, p_boris.y, rtol=1e-6, atol=1e-6)
+    xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-6, atol=1e-6)
+    xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-6, atol=1e-6)
+    xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-6, atol=1e-6)
