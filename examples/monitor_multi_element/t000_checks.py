@@ -2,10 +2,6 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-# TODO:
-# - Forbid backtrack for now
-# - Need to test with and without progress bar...
-
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 
 # Get names of all BPMs in the line

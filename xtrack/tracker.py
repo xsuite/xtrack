@@ -1274,6 +1274,9 @@ class Tracker:
             ) = self._get_monitor(particles, turn_by_turn_monitor, monitor_turns)
 
         if multi_element_monitor is not None:
+            if backtrack:
+                raise NotImplementedError('Multi-element monitor not implemented yet'
+                                          ' for backtracking')
             buffer_multi_element_monitor = multi_element_monitor._buffer.buffer
             offset_multi_element_monitor = multi_element_monitor._offset
         else:
