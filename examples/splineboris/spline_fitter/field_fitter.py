@@ -9,6 +9,8 @@ import math
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 
+import xtrack as xt
+
 
 class FieldFitter:
     """
@@ -321,12 +323,9 @@ class FieldFitter:
         # Zero-pad index so alphabetical sort matches numerical sort
         index_width = len(str(n_pieces - 1)) if n_pieces > 1 else 1
         for i in range(n_pieces):
-            if field == "Bx":
-                pars = [f"ks_{der_order}_{k}" for k in range(self.poly_order + 1)]
-            elif field == "By":
-                pars = [f"kn_{der_order}_{k}" for k in range(self.poly_order + 1)]
-            else:  # Bs
-                pars = [f"bs_{k}" for k in range(self.poly_order + 1)]
+            pars = xt.SplineBoris.ParamFormat.fieldfitter_param_names(
+                field, der_order, self.poly_order
+            )
 
             idx_start = idx_extrema[i]
             idx_end = idx_extrema[i+1]

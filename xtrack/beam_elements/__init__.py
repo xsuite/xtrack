@@ -29,7 +29,7 @@ from .slice_elements_drift import (DriftSliceOctupole, DriftSliceSextupole,
                                    DriftSliceQuadrupole, DriftSliceBend,
                                    DriftSliceRBend, DriftSlice, DriftSliceCavity,
                                    DriftSliceCrabCavity, DriftSliceMultipole,
-                                   DriftExactSlice)
+                                   DriftExactSlice, DriftSliceSplineBoris)
 
 from .rft_element import RFT_Element
 from ..base_element import BeamElement

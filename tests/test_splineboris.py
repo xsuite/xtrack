@@ -79,9 +79,9 @@ def test_splineboris_homogeneous_analytic(field_angle):
                                 err_msg="B_y field should be constant (homogeneous)")
 
     param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
-        ks_0=ks_0,
-        kn_0=kn_0,
         bs=bs,
+        kn={0: kn_0},
+        ks={0: ks_0},
         n_steps=n_steps,
     )
 
@@ -278,9 +278,9 @@ def test_splineboris_homogeneous_rbend(field_angle):
                                 err_msg="B_y field should be constant (homogeneous)")
 
     param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
-        ks_0=ks_0,
-        kn_0=kn_0,
         bs=bs,
+        kn={0: kn_0},
+        ks={0: ks_0},
         n_steps=n_steps,
     )
 

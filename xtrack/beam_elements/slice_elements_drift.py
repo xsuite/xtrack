@@ -1,7 +1,7 @@
 import xobjects as xo
 from .elements import (
     Bend, Quadrupole, Sextupole, Octupole, Drift, RBend, Cavity, CrabCavity,
-    Multipole, DriftExact)
+    Multipole, DriftExact, SplineBoris)
 from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
 from ..base_element import BeamElement
 from ..survey import advance_element as survey_advance_element
@@ -167,4 +167,28 @@ class DriftExactSlice(_DriftSliceElementBase, BeamElement):
     def get_equivalent_element(self):
         out = DriftExact(length=self._parent.length * self.weight,
                          _buffer=self._buffer)
+        return out
+
+
+class DriftSliceSplineBoris(_DriftSliceElementBase, BeamElement):
+    """
+    Drift-based slice for SplineBoris elements.
+    
+    This slice approximates the SplineBoris element as a drift for the purpose
+    of inserting thin elements (like correctors). The field effects are not
+    tracked in this slice - only the drift through the length is computed.
+    
+    For accurate tracking, avoid slicing SplineBoris elements. Instead, insert
+    elements at boundaries between SplineBoris elements in a sequence.
+    """
+
+    _xofields = {'_parent': xo.Ref(SplineBoris), **COMMON_SLICE_XO_FIELDS}
+
+    _extra_c_sources = [
+        '#include <beam_elements/elements_src/drift_slice_splineboris.h>'
+    ]
+
+    def get_equivalent_element(self):
+        out = Drift(length=self._parent.length * self.weight,
+                    _buffer=self._buffer)
         return out

@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
+from spline_fitter.field_fitter import FieldFitter
 
 multipole_order = 3
 
@@ -29,7 +29,43 @@ line_sls.configure_bend_model(core='mat-kick-mat')
 line_sls.particle_ref = p0.copy()
 
 BASE_DIR = Path(__file__).resolve().parent
-# Use the field-fit parameters produced by the spline fitter example
+
+# Load the raw field map data from knot_map_test.txt
+field_map_path = BASE_DIR / "spline_fitter" / "field_maps" / "knot_map_test.txt"
+df_raw_data = pd.read_csv(
+    field_map_path,
+    sep='\t',
+    header=None,
+    names=['X', 'Y', 'Z', 'Bx', 'By', 'Bs'],
+)
+df_raw_data = df_raw_data.set_index(['X', 'Y', 'Z'])
+
+# Determine grid spacing from the data
+x_vals = df_raw_data.index.get_level_values('X').unique().sort_values()
+y_vals = df_raw_data.index.get_level_values('Y').unique().sort_values()
+z_vals = df_raw_data.index.get_level_values('Z').unique().sort_values()
+dx = x_vals[1] - x_vals[0] if len(x_vals) > 1 else 1
+dy = y_vals[1] - y_vals[0] if len(y_vals) > 1 else 1
+ds = z_vals[1] - z_vals[0] if len(z_vals) > 1 else 1
+
+field_fitter = FieldFitter(
+    df_raw_data=df_raw_data,
+    xy_point=(0, 0),
+    dx=dx,
+    dy=dy,
+    ds=ds,
+    min_region_size=10,
+    deg=multipole_order-1,
+)
+
+field_fitter.set()
+field_fitter.save_fit_pars(
+    BASE_DIR
+    / "spline_fitter"
+    / "field_maps"
+    / "field_fit_pars.csv"
+)
+
 filepath = (
     BASE_DIR
     / "spline_fitter"
@@ -59,13 +95,17 @@ seq = xt.SplineBorisSequence(
     steps_per_point=1,
 )
 
-# Get the Line of SplineBoris elements (pass env for insert support)
-piecewise_undulator = seq.to_line(env=env)
+splineborisline = seq.to_line(env=env)
+splineborisline.particle_ref = p0.copy()
+
+tw = splineborisline.twiss4d(betx=1, bety=1, include_collective=True)
+tw.plot('x y')
+tw.plot('betx bety', 'dx dy')
+plt.show()
+
+prrrrr
+
 l_wig = seq.length
-
-piecewise_undulator.build_tracker()
-
-piecewise_undulator.particle_ref = p0.copy()
 
 # Create env variables for corrector strengths (needed for matching)
 env['k0l_corr1'] = 0.
@@ -83,13 +123,57 @@ env.new('corr2', xt.Multipole, knl=['k0l_corr2'], ksl=['k0sl_corr2'])
 env.new('corr3', xt.Multipole, knl=['k0l_corr3'], ksl=['k0sl_corr3'])
 env.new('corr4', xt.Multipole, knl=['k0l_corr4'], ksl=['k0sl_corr4'])
 
-# Insert correctors at nearest element boundary (s_tol avoids slicing)
-piecewise_undulator.insert([
-    env.place('corr1', at=0.02),
-    env.place('corr2', at=0.1),
-    env.place('corr3', at=l_wig - 0.1),
-    env.place('corr4', at=l_wig - 0.02),
-], s_tol=5e-3)
+# Get element boundaries from the sequence
+# Each element has s_start, so boundaries are at s=0 and each element's s_end
+element_boundaries = [0.0]
+for elem in seq.elements:
+    element_boundaries.append(float(elem.s_end) - float(seq.elements[0].s_start))
+
+# Desired corrector positions (relative to undulator start)
+desired_positions = {
+    'corr1': 0.02,
+    'corr2': 0.1,
+    'corr3': l_wig - 0.1,
+    'corr4': l_wig - 0.02,
+}
+
+# Find nearest boundary for each corrector
+def find_nearest_boundary_index(s_target, boundaries):
+    """Find index of boundary closest to s_target."""
+    return min(range(len(boundaries)), key=lambda i: abs(boundaries[i] - s_target))
+
+corrector_insertions = {}  # boundary_index -> list of corrector names
+for corr_name, s_target in desired_positions.items():
+    idx = find_nearest_boundary_index(s_target, element_boundaries)
+    if idx not in corrector_insertions:
+        corrector_insertions[idx] = []
+    corrector_insertions[idx].append(corr_name)
+    print(f"{corr_name}: requested s={s_target:.4f}, inserting at boundary s={element_boundaries[idx]:.4f}")
+
+# Build the line with correctors inserted at element boundaries
+# Register SplineBoris elements in env
+for name, elem in zip(seq.element_names, seq.elements):
+    env.elements[name] = elem
+
+# Build element name list with correctors inserted at boundaries
+element_names_with_correctors = []
+for i, sb_name in enumerate(seq.element_names):
+    # Insert correctors before this element (at boundary i)
+    if i in corrector_insertions:
+        element_names_with_correctors.extend(corrector_insertions[i])
+    element_names_with_correctors.append(sb_name)
+
+# Insert correctors after the last element (at final boundary)
+final_idx = len(seq.element_names)
+if final_idx in corrector_insertions:
+    element_names_with_correctors.extend(corrector_insertions[final_idx])
+
+# Create the line with correctors at element boundaries
+piecewise_undulator = xt.Line(env=env, element_names=element_names_with_correctors)
+
+piecewise_undulator.build_tracker()
+
+piecewise_undulator.particle_ref = p0.copy()
 
 # Matching targets use corrector element names for intermediate positions
 opt = piecewise_undulator.match(
@@ -115,7 +199,7 @@ tw_undulator_corr = piecewise_undulator.twiss4d(betx=1, bety=1, include_collecti
 tw_undulator_corr.plot('x y')
 tw_undulator_corr.plot('betx bety', 'dx dy')
 plt.show()
-
+prrrrrr
 piecewise_undulator.discard_tracker()
 
 wiggler_places = [
