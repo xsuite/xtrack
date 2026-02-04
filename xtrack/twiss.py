@@ -2119,14 +2119,14 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 def _extract_sr_distribution_properties(twiss_res):
 
     radiation_flag = twiss_res['radiation_flag']
-    if np.any(radiation_flag > 1):
+    if np.any(radiation_flag == 2):
         raise ValueError('Incompatible radiation flag')
 
     hx, hy, kappa0_x, kappa0_y = _compute_trajectory_curvatures(twiss_res)
     hh = np.sqrt(hx**2 + hy**2)
 
     ptau_co = twiss_res['ptau']
-    dl = twiss_res['length'] * (twiss_res['radiation_flag'] > 0)
+    dl = twiss_res['length'] * (twiss_res['radiation_flag'] == 1)
 
     pco = twiss_res['particle_on_co']
     mass0 = pco.mass0
