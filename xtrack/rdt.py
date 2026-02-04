@@ -22,6 +22,34 @@ def rdt_first_order_perturbation(rdt,
                                  feed_down=True,
                                  orbit=None):
 
+    """
+    Compute RDTs at first order in perturbation theory.
+
+    Parameters
+    ----------
+    rdt : str or list of str
+        RDT key like ``"f1020"`` or list of such keys.
+    twiss : xt.Table
+        Twiss parameters along the machine to be used for the computation.
+    strengths : xt.Table
+        Table with the strengths of the multipoles. Must have columns like ``k1l``,
+        ``k2l``, etc. for normalmultipoles and ``k1sl``, ``k2sl``, etc. for skew
+        multipoles. Must also have a ``name`` column with the element names.
+    feed_down : bool, optional
+        Whether to include feed down from orbit and misalignments in the calculation.
+        Default is ``True``.
+    orbit : xt.Table, optional
+        Table with the orbit along the machine to be used in the feed down computation.
+        Must have columns ``x`` and ``y`` and a ``name`` column with the element names.
+        If not provided, the feed down computation will uses the orbit from the
+        twiss table.
+
+    Returns
+    -------
+    out : xt.Table
+        Table with the computed RDTs and related data.
+    """
+
     if orbit is None:
         orbit = twiss
 
