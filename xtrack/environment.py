@@ -148,7 +148,7 @@ class Environment:
         line_names = list(self.lines.keys())
         n_lines = len(line_names)
         n_elements = len(self.elements)
-        n_vars = len(self.vars)
+        n_vars = (len(self.vars) if self.ref_manager is not None else 0)
         n_particles = len(self.particles)
         preview_tokens = []
         for ii, nn in enumerate(line_names):
