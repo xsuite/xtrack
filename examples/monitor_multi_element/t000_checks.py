@@ -51,27 +51,79 @@ xo.assert_allclose(mon.get('x', obs_name=nn_check_1), mon_1.x.T, atol=1e-14)
 xo.assert_allclose(mon.get('px', obs_name=nn_check_1), mon_1.px.T, atol=1e-14)
 xo.assert_allclose(mon.get('y', obs_name=nn_check_1), mon_1.y.T, atol=1e-14)
 xo.assert_allclose(mon.get('py', obs_name=nn_check_1), mon_1.py.T, atol=1e-14)
+xo.assert_allclose(mon.get('zeta', obs_name=nn_check_1), mon_1.zeta.T, atol=1e-14)
 xo.assert_allclose(mon.get('delta', obs_name=nn_check_1), mon_1.delta.T, atol=1e-14)
 
 xo.assert_allclose(mon.get('x', obs_name=nn_check_2), mon_2.x.T, atol=1e-14)
 xo.assert_allclose(mon.get('px', obs_name=nn_check_2), mon_2.px.T, atol=1e-14)
 xo.assert_allclose(mon.get('y', obs_name=nn_check_2), mon_2.y.T, atol=1e-14)
 xo.assert_allclose(mon.get('py', obs_name=nn_check_2), mon_2.py.T, atol=1e-14)
+xo.assert_allclose(mon.get('zeta', obs_name=nn_check_2), mon_2.zeta.T, atol=1e-14)
 xo.assert_allclose(mon.get('delta', obs_name=nn_check_2), mon_2.delta.T, atol=1e-14)
 
+# Access all data for a given coordinate
+assert mon.data.shape == (num_turns, len(p0.x), 6, len(tt_obs))
+xo.assert_allclose(mon.get('x'), mon.data[:,:,0,:], atol=1e-14)
+xo.assert_allclose(mon.get('px'), mon.data[:,:,1,:], atol=1e-14)
+xo.assert_allclose(mon.get('y'), mon.data[:,:,2,:], atol=1e-14)
+xo.assert_allclose(mon.get('py'), mon.data[:,:,3,:], atol=1e-14)
+xo.assert_allclose(mon.get('zeta'), mon.data[:,:,4,:], atol=1e-14)
+xo.assert_allclose(mon.get('delta'), mon.data[:,:,5,:], atol=1e-14)
 
-# # Access all data for a given coordinate
-# mon.get('x') # shape is (nom_turns, n_particles, n_obs_points)
+idx = tt_obs.rows.indices['bpm.17r3.b1'][0]
 
 # # Access data for a given coordinate and observation point
-# mon.get('x', obs_name='bpmw.4r7.b1') # shape is (nom_turns, n_particles)
+# mon.get('x', obs_name='bpmw.4r7.b1') # shape ddddis (nom_turns, n_particles)
+xo.assert_allclose(mon.get('x', obs_name=nn_check_1), mon.data[:,:,0,idx], atol=1e-14)
+xo.assert_allclose(mon.get('px', obs_name=nn_check_1), mon.data[:,:,1,idx], atol=1e-14)
+xo.assert_allclose(mon.get('y', obs_name=nn_check_1), mon.data[:,:,2,idx], atol=1e-14)
+xo.assert_allclose(mon.get('py', obs_name=nn_check_1), mon.data[:,:,3,idx], atol=1e-14)
+xo.assert_allclose(mon.get('delta', obs_name=nn_check_1), mon.data[:,:,5,idx], atol=1e-14)
+
 
 # # Access data for a given coordinate, observation point and particle_id
 # mon.get('x', obs_name='bpmw.4r7.b1', particle_id=10) # shape is (nom_turns,)
+particle_id = 10
+xo.assert_allclose(mon.get('x', obs_name=nn_check_1, particle_id=particle_id),
+                   mon.data[:,particle_id - mon.part_id_start,0,idx], atol=1e-14)
+xo.assert_allclose(mon.get('px', obs_name=nn_check_1, particle_id=particle_id),
+                   mon.data[:,particle_id - mon.part_id_start,1,idx], atol=1e-14)
+xo.assert_allclose(mon.get('y', obs_name=nn_check_1, particle_id=particle_id),
+                   mon.data[:,particle_id - mon.part_id_start,2,idx], atol=1e-14)
+xo.assert_allclose(mon.get('py', obs_name=nn_check_1, particle_id=particle_id),
+                   mon.data[:,particle_id - mon.part_id_start,3,idx], atol=1e-14)
+xo.assert_allclose(mon.get('zeta', obs_name=nn_check_1, particle_id=particle_id),
+                   mon.data[:,particle_id - mon.part_id_start,4,idx], atol=1e-14)
+xo.assert_allclose(mon.get('delta', obs_name=nn_check_1, particle_id=particle_id),
+                   mon.data[:,particle_id - mon.part_id_start,5,idx], atol=1e-14)
 
 # # Access data for a given coordinate, observation point, particle_id and turn
 # mon.get('x', obs_name='bpmw.4r7.b1', particle_id=10, turn=5) # is a scalar
+turn = 5
+xo.assert_allclose(mon.get('x', obs_name=nn_check_1, particle_id=particle_id, turn=turn),
+                     mon.data[turn,particle_id - mon.part_id_start,0,idx], atol=1e-14)
+xo.assert_allclose(mon.get('px', obs_name=nn_check_1, particle_id=particle_id, turn=turn),
+                     mon.data[turn,particle_id - mon.part_id_start,1,idx], atol=1e-14)
+xo.assert_allclose(mon.get('y', obs_name=nn_check_1, particle_id=particle_id, turn=turn),
+                     mon.data[turn,particle_id - mon.part_id_start,2,idx], atol=1e-14)
+xo.assert_allclose(mon.get('py', obs_name=nn_check_1, particle_id=particle_id, turn=turn),
+                     mon.data[turn,particle_id - mon.part_id_start,3,idx], atol=1e-14)
+xo.assert_allclose(mon.get('zeta', obs_name=nn_check_1, particle_id=particle_id, turn=turn),
+                   mon.data[turn,particle_id - mon.part_id_start,4,idx], atol=1e-14)
+xo.assert_allclose(mon.get('delta', obs_name=nn_check_1, particle_id=particle_id, turn=turn),
+                     mon.data[turn,particle_id - mon.part_id_start,5,idx], atol=1e-14)
 
 # # Get all BPMs for a given particles and turn
 # mon.get('x', particle_id=10, turn=5) # shape is (n_obs_points,)
-
+xo.assert_allclose(mon.get('x', particle_id=particle_id, turn=turn),
+                   mon.data[turn,particle_id - mon.part_id_start,0,:], atol=1e-14)
+xo.assert_allclose(mon.get('px', particle_id=particle_id, turn=turn),
+                   mon.data[turn,particle_id - mon.part_id_start,1,:], atol=1e-14)
+xo.assert_allclose(mon.get('y', particle_id=particle_id, turn=turn),
+                   mon.data[turn,particle_id - mon.part_id_start,2,:], atol=1e-14)
+xo.assert_allclose(mon.get('py', particle_id=particle_id, turn=turn),
+                   mon.data[turn,particle_id - mon.part_id_start,3,:], atol=1e-14)
+xo.assert_allclose(mon.get('zeta', particle_id=particle_id, turn=turn),
+                   mon.data[turn,particle_id - mon.part_id_start,4,:], atol=1e-14)
+xo.assert_allclose(mon.get('delta', particle_id=particle_id, turn=turn),
+                   mon.data[turn,particle_id - mon.part_id_start,5,:], atol=1e-14)
