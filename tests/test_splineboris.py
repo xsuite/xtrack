@@ -730,13 +730,13 @@ def test_splineboris_analytic_solenoid():
 
 def test_splineboris_undulator_vs_boris_spatial():
     """
-    Build a lightweight undulator from spline-fit parameters and check that
-    tracking with SplineBoris and BorisSpatialIntegrator gives consistent
+    Build a lightweight undulator from spline-fit parameters using SplineBorisSequence
+    and check that tracking with SplineBoris and BorisSpatialIntegrator gives consistent
     end coordinates.
     """
 
     # ------------------------------------------------------------------
-    # Load fit parameters and build a reduced parameter table
+    # Load fit parameters and build undulator using SplineBorisSequence
     # ------------------------------------------------------------------
     base_dir = (
         Path(__file__).parent.parent
@@ -762,41 +762,15 @@ def test_splineboris_undulator_vs_boris_spatial():
     )
 
     multipole_order = 3
-    n_steps_test = 1000
 
-    par_table, s_start, s_end = xt.SplineBoris.build_parameter_table_from_df(
+    # Build undulator using SplineBorisSequence
+    seq = xt.SplineBorisSequence(
         df_fit_pars=df,
-        n_steps=n_steps_test,
         multipole_order=multipole_order,
+        steps_per_point=1,
     )
 
-    s_vals = np.linspace(s_start, s_end, n_steps_test)
-    ds = (s_end - s_start) / n_steps_test
-
-    n_seg = n_steps_test
-
-    # ------------------------------------------------------------------
-    # Build a short undulator line using SplineBoris slices
-    # ------------------------------------------------------------------
-    spline_elems = []
-    for i in range(n_seg):
-        params_i = [par_table[i].tolist()]  # shape (1, n_params) for n_steps=1
-        s_val_i = s_vals[i]
-
-        elem_s_start = s_val_i - ds / 2
-        elem_s_end = s_val_i + ds / 2
-
-        spline_elems.append(
-            xt.SplineBoris(
-                par_table=params_i,
-                multipole_order=multipole_order,
-                s_start=elem_s_start,
-                s_end=elem_s_end,
-                n_steps=1,
-            )
-        )
-
-    line_spline = xt.Line(elements=spline_elems)
+    line_spline = seq.to_line()
 
     # This undulator is part of the SLS, so we use the nominal energy of the SLS.
     p_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
@@ -824,21 +798,21 @@ def test_splineboris_undulator_vs_boris_spatial():
 
     # ------------------------------------------------------------------
     # Build a parallel undulator line using BorisSpatialIntegrator
+    # Extract parameters from SplineBorisSequence elements
     # ------------------------------------------------------------------
     boris_elems = []
-    for i in range(n_seg):
-        s_val_i = s_vals[i]
-        elem_s_start = s_val_i - ds / 2
-        elem_s_end = s_val_i + ds / 2
-
-        field_i = make_segment_field(par_table[i], multipole_order)
+    for elem in seq.elements:
+        # Each element has n_steps rows in par_table, all identical for a single piece
+        # Use the first row to create the field callable
+        params_i = np.asarray(elem.par_table[0], dtype=float)
+        field_i = make_segment_field(params_i, multipole_order)
 
         boris_elems.append(
             xt.BorisSpatialIntegrator(
                 fieldmap_callable=field_i,
-                s_start=elem_s_start,
-                s_end=elem_s_end,
-                n_steps=1,
+                s_start=float(elem.s_start),
+                s_end=float(elem.s_end),
+                n_steps=int(elem.n_steps),
             )
         )
 

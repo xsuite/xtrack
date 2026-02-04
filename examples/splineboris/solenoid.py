@@ -11,11 +11,9 @@ from spline_fitter.fieldmap_parsers import StandardFieldMapParser
 import matplotlib.pyplot as plt
 import pandas as pd
 
-n_steps = 15000
 interval = 30
 dx = 0.001
 dy = 0.001
-ds = interval / n_steps
 multipole_order = 4
 
 delta=np.array([0, 4])
@@ -67,40 +65,17 @@ fitter.save_fit_pars(fit_pars_path)
 #     fitter.plot_fields(der=i)
 #     plt.show()
 
-z_axis = np.linspace(0, interval, n_steps)  # for analytical reference below
+# Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
+# element per polynomial piece with n_steps based on the data point count
 df_fit_pars = pd.read_csv(fit_pars_path)
-par_table, s_start, s_end = xt.SplineBoris.build_parameter_table_from_df(
+seq = xt.SplineBorisSequence(
     df_fit_pars=df_fit_pars,
-    n_steps=n_steps,
     multipole_order=multipole_order,
+    steps_per_point=1,  # one integration step per data point
 )
 
-# NOTE: Parameter table is correct.
-
-# Build solenoid as many successive SplineBoris elements (like in the undulator examples)
-ds_spline = (s_end - s_start) / n_steps
-s_vals = np.linspace(s_start, s_end, n_steps)
-solenoid_elements = []
-for i in range(n_steps):
-    params_i = [par_table[i].tolist()]
-    s_val_i = s_vals[i]
-    elem_s_start = s_val_i - ds_spline / 2
-    elem_s_end = s_val_i + ds_spline / 2
-    elem_i = xt.SplineBoris(
-        par_table=params_i,
-        multipole_order=multipole_order,
-        s_start=elem_s_start,
-        s_end=elem_s_end,
-        n_steps=1,
-    )
-
-    solenoid_elements.append(elem_i)
-
-# NOTE: parameters are correctly passed to the elements. Boris integrator in C is equivalent to the one in Python.
-# To check: If the generated C code is correct.
-# To check: If there is an issue with the s_start and s_end falling outside of the region of validity of the polynomial.
-
-line_splineboris = xt.Line(elements=solenoid_elements)
+# Get the Line of SplineBoris elements
+line_splineboris = seq.to_line()
 line_splineboris.build_tracker()
 p_splineboris = p0.copy()
 p_ref = p0.copy()
@@ -109,16 +84,18 @@ mon_splineboris = line_splineboris.record_last_track
 
 # --- Analytical reference: VariableSolenoid line from on-axis Bz(s) ---
 # Build thin-element representation of the same solenoid (Wolsky / MAD-X).
-Bz_axis = sf.get_field(0 * z_axis, 0 * z_axis, z_axis)[2]
+n_ref_steps = 15000  # number of steps for the analytical reference
+z_axis_ref = np.linspace(0, interval, n_ref_steps)
+Bz_axis = sf.get_field(0 * z_axis_ref, 0 * z_axis_ref, z_axis_ref)[2]
 P0_J = p0.p0c[0] * qe / clight
 brho = P0_J / qe / p0.q0
 ks = Bz_axis / brho
 ks_entry = ks[:-1]
 ks_exit = ks[1:]
-dz = z_axis[1] - z_axis[0]
+dz = z_axis_ref[1] - z_axis_ref[0]
 line_ref = xt.Line(elements=[
     xt.VariableSolenoid(length=dz, ks_profile=[ks_entry[ii], ks_exit[ii]])
-    for ii in range(len(z_axis) - 1)
+    for ii in range(len(z_axis_ref) - 1)
 ])
 line_ref.build_tracker()
 line_ref.track(p_ref, turn_by_turn_monitor='ONE_TURN_EBE')

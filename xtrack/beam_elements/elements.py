@@ -805,16 +805,28 @@ class SplineBoris(BeamElement):
     function of longitudinal position using polynomial splines. The field is
     represented using multipole expansions with polynomial coefficients.
 
-    The primary way to construct a ``SplineBoris`` element is using the direct
-    constructor, which accepts numpy arrays and automatically validates parameters:
+    For building from FieldFitter DataFrames, use ``SplineBorisSequence``, which
+    automatically creates properly piece-aligned SplineBoris elements:
+
+    >>> import xtrack as xt
+    >>> import pandas as pd
+    >>>
+    >>> df_fit_pars = pd.read_csv("fit_parameters.csv")
+    >>> seq = xt.SplineBorisSequence(
+    ...     df_fit_pars=df_fit_pars,
+    ...     multipole_order=3,
+    ... )
+    >>> line = seq.to_line()
+
+    For manual construction with numpy arrays, use the direct constructor:
 
     >>> import numpy as np
     >>> import xtrack as xt
-    >>> 
+    >>>
     >>> n_steps = 100
     >>> n_params = xt.SplineBoris.get_num_params(multipole_order=1)
     >>> par_table = np.zeros((n_steps, n_params))
-    >>> 
+    >>>
     >>> element = xt.SplineBoris(
     ...     par_table=par_table,
     ...     multipole_order=1,
@@ -822,25 +834,10 @@ class SplineBoris(BeamElement):
     ...     s_end=1.0,
     ... )
 
-    For building from FieldFitter DataFrames, use ``SplineBoris.build_parameter_table_from_df()``
-    and then the direct constructor:
-
-    >>> par_table, s_start, s_end = xt.SplineBoris.build_parameter_table_from_df(
-    ...     df_fit_pars=df,
-    ...     n_steps=1000,
-    ...     multipole_order=3,
-    ... )
-    >>> element = xt.SplineBoris(
-    ...     par_table=par_table,
-    ...     s_start=s_start,
-    ...     s_end=s_end,
-    ...     multipole_order=3,
-    ... )
-
     See Also
     --------
+    SplineBorisSequence : Creates a Line of SplineBoris elements from FieldFitter output
     SplineBoris.ParameterSchema : Defines the canonical parameter ordering
-    SplineBoris.build_parameter_table_from_df : Helper to build parameter tables from DataFrames
     """
 
     isthick = True
@@ -1048,77 +1045,6 @@ class SplineBoris(BeamElement):
         return df.reset_index()
 
     @classmethod
-    def build_parameter_table_from_df(
-        cls,
-        df_fit_pars: pd.DataFrame,
-        n_steps: int,
-        multipole_order: Optional[int] = None,
-        poly_order: Optional[int] = None,
-    ) -> Tuple[np.ndarray, float, float]:
-        if df_fit_pars is None or len(df_fit_pars) == 0:
-            raise ValueError("df_fit_pars must be a non-empty DataFrame")
-        if n_steps <= 0:
-            raise ValueError("n_steps must be a positive integer")
-        df_reset = cls._reset_fieldfit_index(df_fit_pars)
-        if "param_name" not in df_reset.columns or "param_value" not in df_reset.columns:
-            raise ValueError(
-                "df_fit_pars must contain 'param_name' and 'param_value' columns"
-            )
-        if poly_order is None:
-            poly_order = cls.ParameterSchema.POLY_ORDER
-        if multipole_order is None:
-            max_i = -1
-            for name in df_reset["param_name"].unique():
-                if isinstance(name, str) and (name.startswith("kn_") or name.startswith("ks_")):
-                    parts = name.split("_")
-                    if len(parts) >= 3:
-                        try:
-                            i_val = int(parts[1])
-                        except ValueError:
-                            continue
-                        if i_val > max_i:
-                            max_i = i_val
-            if max_i < 0:
-                raise ValueError(
-                    "Could not infer multipole_order from df_fit_pars; "
-                    "please provide multipole_order explicitly."
-                )
-            multipole_order = max_i + 1
-        s_starts = np.sort(df_reset["s_start"].to_numpy(dtype=np.float64))
-        s_ends = np.sort(df_reset["s_end"].to_numpy(dtype=np.float64))
-        s_boundaries = np.sort(np.unique(np.concatenate((s_starts, s_ends))))
-        s_start = float(s_boundaries[0])
-        s_end = float(s_boundaries[-1])
-        expected_params = cls.ParameterSchema.get_param_names(
-            multipole_order=multipole_order, poly_order=poly_order
-        )
-        s_vals = np.linspace(s_start, s_end, n_steps)
-        par_table: List[List[float]] = []
-        for s_val_i in s_vals:
-            mask = (df_reset["s_start"] <= s_val_i) & (df_reset["s_end"] >= s_val_i)
-            rows = df_reset[mask]
-            param_dict: dict = {}
-            if not rows.empty:
-                rows_sorted = rows.copy()
-                rows_sorted["region_size"] = (
-                    rows_sorted["s_end"] - rows_sorted["s_start"]
-                )
-                rows_sorted = rows_sorted.sort_values(
-                    ["field_component", "region_size", "param_name"]
-                )
-                for _, row in rows_sorted.iterrows():
-                    pname = row["param_name"]
-                    if pname not in param_dict:
-                        param_dict[pname] = float(row["param_value"])
-            param_values = [param_dict.get(pname, 0.0) for pname in expected_params]
-            par_table.append(param_values)
-        par_arr = np.asarray(par_table, dtype=np.float64)
-        cls.ParameterSchema.validate_param_array(
-            par_arr, multipole_order=multipole_order, poly_order=poly_order
-        )
-        return par_arr, s_start, s_end
-
-    @classmethod
     def get_param_names(cls, multipole_order: int, poly_order: Optional[int] = None) -> List[str]:
         return cls.ParameterSchema.get_param_names(multipole_order=multipole_order, poly_order=poly_order)
 
@@ -1319,76 +1245,6 @@ class SplineBoris(BeamElement):
             **kwargs,
         )
 
-    @classmethod
-    def from_fieldfit_df(
-        cls,
-        df_fit_pars,
-        n_steps,
-        multipole_order=None,
-        poly_order=None,
-        **kwargs,
-    ):
-        """
-        Build a ``SplineBoris`` element directly from a FieldFitter-style DataFrame.
-
-        This uses :meth:`build_parameter_table_from_df` and the canonical
-        :class:`SplineBoris.ParameterSchema` ordering.
-        """
-        par_table, s_start, s_end = cls.build_parameter_table_from_df(
-            df_fit_pars,
-            n_steps=n_steps,
-            multipole_order=multipole_order,
-            poly_order=poly_order,
-        )
-
-        # If multipole_order was not provided, infer it from the table width and
-        # the chosen polynomial order.
-        if multipole_order is None:
-            if poly_order is None:
-                poly_order = cls.ParameterSchema.POLY_ORDER
-            n_params = par_table.shape[1]
-            denom = (poly_order + 1)
-            m = (n_params / denom - 1.0) / 2.0
-            m_int = int(round(m))
-            if not np.isclose(m, m_int):
-                raise ValueError(
-                    f"Cannot infer multipole_order from parameter table width "
-                    f"(n_params={n_params}, poly_order={poly_order})"
-                )
-            multipole_order = m_int
-
-        return cls(
-            par_table=par_table,
-            s_start=s_start,
-            s_end=s_end,
-            multipole_order=multipole_order,
-            n_steps=n_steps,
-            **kwargs,
-        )
-
-    @classmethod
-    def from_fieldfit_csv(
-        cls,
-        csv_path,
-        n_steps,
-        multipole_order=None,
-        poly_order=None,
-        **kwargs,
-    ):
-        """
-        Build a ``SplineBoris`` element from a CSV file produced by
-        ``FieldFitter.save_fit_pars``.
-        """
-        df = pd.read_csv(csv_path, index_col=list(cls.FIELD_FIT_INDEX_COLUMNS))
-
-        return cls.from_fieldfit_df(
-            df_fit_pars=df,
-            n_steps=n_steps,
-            multipole_order=multipole_order,
-            poly_order=poly_order,
-            **kwargs,
-        )
-
     def validate_params(self, poly_order=None) -> bool:
         """
         Validate the current parameter table against the canonical schema.
@@ -1403,6 +1259,298 @@ class SplineBoris(BeamElement):
         return SplineBoris.ParameterSchema.validate_param_array(
             par_arr,
             multipole_order=int(self.multipole_order),
+            poly_order=poly_order,
+        )
+
+
+class SplineBorisSequence:
+    """
+    Create a Line of SplineBoris elements from FieldFitter output.
+
+    Different field components (Bs, Bx, By, derivatives) may have different
+    s-ranges in the FieldFitter output due to:
+
+    - Different extrema locations in the field data
+    - Noise filtering that excludes components with approximately zero fields
+
+    This class automatically handles this by finding all unique s-boundaries
+    and creating "atomic" regions where each region uses all parameters valid
+    for that s-range. For example, if Bs covers [0,10], Bx1 covers [0,5], and
+    Bx2 covers [5,10], three atomic regions are created: [0,5] with Bs+Bx1,
+    [5,10] with Bs+Bx2.
+
+    Each atomic region becomes one SplineBoris element with:
+
+    - ``s_start``, ``s_end`` matching the atomic region boundaries exactly
+    - ``n_steps`` based on interpolated data point density, ensuring
+      consistent integration accuracy across all regions
+
+    This class encapsulates the complexity of building SplineBoris elements
+    from FieldFitter DataFrames, providing a clean user API that avoids
+    the error-prone manual looping code previously required.
+
+    Parameters
+    ----------
+    df_fit_pars : pd.DataFrame
+        DataFrame from FieldFitter containing fit parameters. Must have
+        columns: ``field_component``, ``derivative_x``, ``region_name``,
+        ``s_start``, ``s_end``, ``idx_start``, ``idx_end``, ``param_index``,
+        ``param_name``, ``param_value``.
+    multipole_order : int
+        Number of multipole orders to use.
+    steps_per_point : int, optional
+        Multiplier for the number of integration steps per data point.
+        Default is 1. Higher values give finer integration.
+    shift_x : float, optional
+        Transverse shift in x [m] for field map offset. Default is 0.0.
+    shift_y : float, optional
+        Transverse shift in y [m] for field map offset. Default is 0.0.
+    radiation_flag : int, optional
+        Radiation flag for the SplineBoris elements. Default is 0.
+    poly_order : int, optional
+        Polynomial order for the spline coefficients. If not provided,
+        uses the default from ``SplineBoris.ParameterSchema.POLY_ORDER``.
+
+    Examples
+    --------
+    Basic usage with a FieldFitter DataFrame:
+
+    >>> import pandas as pd
+    >>> import xtrack as xt
+    >>>
+    >>> df_fit_pars = pd.read_csv("fit_parameters.csv")
+    >>> seq = xt.SplineBorisSequence(
+    ...     df_fit_pars=df_fit_pars,
+    ...     multipole_order=3,
+    ... )
+    >>> line = seq.to_line()
+
+    With custom integration resolution:
+
+    >>> seq = xt.SplineBorisSequence(
+    ...     df_fit_pars=df_fit_pars,
+    ...     multipole_order=3,
+    ...     steps_per_point=2,  # double the integration steps
+    ... )
+
+    See Also
+    --------
+    SplineBoris : The underlying beam element
+    SplineBoris.ParameterSchema : Defines the canonical parameter ordering
+    """
+
+    def __init__(
+        self,
+        df_fit_pars: pd.DataFrame,
+        multipole_order: int,
+        steps_per_point: int = 1,
+        shift_x: float = 0.0,
+        shift_y: float = 0.0,
+        radiation_flag: int = 0,
+        poly_order: Optional[int] = None,
+    ):
+        if df_fit_pars is None or len(df_fit_pars) == 0:
+            raise ValueError("df_fit_pars must be a non-empty DataFrame")
+        if multipole_order is None or multipole_order <= 0:
+            raise ValueError("multipole_order must be a positive integer")
+        if not isinstance(steps_per_point, int) or steps_per_point <= 0:
+            raise ValueError("steps_per_point must be a positive integer")
+
+        self._multipole_order = multipole_order
+        self._steps_per_point = int(steps_per_point)
+        self._shift_x = shift_x
+        self._shift_y = shift_y
+        self._radiation_flag = radiation_flag
+        self._poly_order = poly_order if poly_order is not None else SplineBoris.ParameterSchema.POLY_ORDER
+
+        # Reset index if needed to get columns accessible
+        df_reset = SplineBoris._reset_fieldfit_index(df_fit_pars)
+
+        # Validate required columns
+        required_cols = ["param_name", "param_value", "s_start", "s_end", "idx_start", "idx_end"]
+        missing = [c for c in required_cols if c not in df_reset.columns]
+        if missing:
+            raise ValueError(f"df_fit_pars is missing required columns: {missing}")
+
+        # Build elements for each unique piece
+        self._elements = []
+        self._element_names = []
+        self._build_elements(df_reset)
+
+    def _build_elements(self, df_reset: pd.DataFrame) -> None:
+        """Build SplineBoris elements for each atomic s-region.
+
+        Different field components may have different s-ranges due to:
+        - Different extrema in the field data
+        - Noise filtering that excludes some components in certain regions
+
+        This method finds all unique s-boundaries and creates one SplineBoris
+        element per atomic region, collecting all valid parameters for that region.
+        """
+        # 1. Find all unique s-boundaries across all field components
+        s_starts = df_reset["s_start"].unique()
+        s_ends = df_reset["s_end"].unique()
+        all_boundaries = np.sort(np.unique(np.concatenate([s_starts, s_ends])))
+
+        expected_params = SplineBoris.ParameterSchema.get_param_names(
+            multipole_order=self._multipole_order, poly_order=self._poly_order
+        )
+
+        # 2. For each atomic region (between consecutive boundaries)
+        elem_idx = 0
+        for i in range(len(all_boundaries) - 1):
+            region_start = float(all_boundaries[i])
+            region_end = float(all_boundaries[i + 1])
+
+            # 3. Find all parameters valid for this atomic region
+            # A parameter is valid if its s_range fully contains this atomic region
+            mask = (df_reset["s_start"] <= region_start) & (df_reset["s_end"] >= region_end)
+            valid_params = df_reset[mask]
+
+            if valid_params.empty:
+                continue  # No parameters valid for this region (gap in data)
+
+            # 4. Build parameter dictionary from all valid parameters
+            param_dict = {}
+            for _, row in valid_params.iterrows():
+                pname = row["param_name"]
+                if pname not in param_dict:
+                    param_dict[pname] = float(row["param_value"])
+
+            # 5. Calculate n_steps based on interpolated point density
+            # Use the maximum point density among all valid parameter ranges
+            # to ensure sufficient integration resolution
+            max_density = 0.0
+            unique_ranges = valid_params.drop_duplicates(subset=["s_start", "s_end"])
+            for _, row in unique_ranges.iterrows():
+                orig_s_start = float(row["s_start"])
+                orig_s_end = float(row["s_end"])
+                orig_n_points = int(row["idx_end"]) - int(row["idx_start"])
+                orig_length = orig_s_end - orig_s_start
+                if orig_length > 0:
+                    density = orig_n_points / orig_length
+                    max_density = max(max_density, density)
+
+            region_length = region_end - region_start
+            estimated_points = int(round(max_density * region_length))
+            n_steps = max(1, estimated_points * self._steps_per_point)
+
+            # 6. Build parameter row in expected order
+            param_row = [param_dict.get(pname, 0.0) for pname in expected_params]
+            par_arr = np.tile(param_row, (n_steps, 1))
+
+            # 7. Create SplineBoris element for this atomic region
+            elem = SplineBoris(
+                par_table=par_arr,
+                multipole_order=self._multipole_order,
+                s_start=region_start,
+                s_end=region_end,
+                n_steps=n_steps,
+                shift_x=self._shift_x,
+                shift_y=self._shift_y,
+                radiation_flag=self._radiation_flag,
+            )
+
+            self._elements.append(elem)
+            self._element_names.append(f"splineboris_{elem_idx}")
+            elem_idx += 1
+
+    def to_line(self, env: "xt.Environment | None" = None) -> "xt.Line":
+        """
+        Return a Line containing all SplineBoris elements.
+
+        Parameters
+        ----------
+        env : xt.Environment, optional
+            Environment to associate with the line. If provided, enables
+            use of ``line.insert()`` with ``env.place()`` for inserting
+            additional elements like correctors.
+
+        Returns
+        -------
+        xt.Line
+            Line with one SplineBoris element per polynomial piece,
+            ordered by longitudinal position.
+        """
+        if env is not None:
+            # Register elements in env and create line with element names
+            for name, elem in zip(self._element_names, self._elements):
+                env.elements[name] = elem
+            return xt.Line(env=env, element_names=self._element_names)
+        return xt.Line(elements=self._elements)
+
+    @property
+    def length(self) -> float:
+        """Total length of the sequence [m]."""
+        if not self._elements:
+            return 0.0
+        return sum(float(e.length) for e in self._elements)
+
+    @property
+    def elements(self) -> List["SplineBoris"]:
+        """List of SplineBoris elements (one per polynomial piece)."""
+        return list(self._elements)
+
+    @property
+    def n_pieces(self) -> int:
+        """Number of polynomial pieces."""
+        return len(self._elements)
+
+    @property
+    def multipole_order(self) -> int:
+        """Multipole order used for all elements."""
+        return self._multipole_order
+
+    @property
+    def steps_per_point(self) -> int:
+        """Steps per data point multiplier."""
+        return self._steps_per_point
+
+    @classmethod
+    def from_csv(
+        cls,
+        csv_path,
+        multipole_order: int,
+        steps_per_point: int = 1,
+        shift_x: float = 0.0,
+        shift_y: float = 0.0,
+        radiation_flag: int = 0,
+        poly_order: Optional[int] = None,
+    ) -> "SplineBorisSequence":
+        """
+        Build a SplineBorisSequence from a CSV file produced by
+        ``FieldFitter.save_fit_pars``.
+
+        Parameters
+        ----------
+        csv_path : str or Path
+            Path to the CSV file.
+        multipole_order : int
+            Number of multipole orders to use.
+        steps_per_point : int, optional
+            Multiplier for integration steps per data point. Default is 1.
+        shift_x : float, optional
+            Transverse shift in x [m]. Default is 0.0.
+        shift_y : float, optional
+            Transverse shift in y [m]. Default is 0.0.
+        radiation_flag : int, optional
+            Radiation flag. Default is 0.
+        poly_order : int, optional
+            Polynomial order. Default uses ParameterSchema.POLY_ORDER.
+
+        Returns
+        -------
+        SplineBorisSequence
+            A new SplineBorisSequence instance.
+        """
+        df = pd.read_csv(csv_path, index_col=list(SplineBoris.FIELD_FIT_INDEX_COLUMNS))
+        return cls(
+            df_fit_pars=df,
+            multipole_order=multipole_order,
+            steps_per_point=steps_per_point,
+            shift_x=shift_x,
+            shift_y=shift_y,
+            radiation_flag=radiation_flag,
             poly_order=poly_order,
         )
 

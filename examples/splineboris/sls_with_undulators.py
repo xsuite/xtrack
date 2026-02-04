@@ -1,7 +1,7 @@
 """
 SLS simulation with undulators.
 
-This script loads the SLS MADX file, imports matched wiggler from construct_undulator,
+This script loads the SLS MADX file, builds undulator using SplineBorisSequence,
 inserts wigglers at 11 locations, computes twiss with radiation integrals, and prints results.
 """
 
@@ -12,10 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
 multipole_order = 3
-
-n_steps = 1000
 
 # Particle reference
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
@@ -54,70 +51,23 @@ df = pd.read_csv(
     ],
 )
 
-# Build the canonical parameter table directly from the fit-parameter DataFrame.
-par_table, s_start, s_end = xt.SplineBoris.build_parameter_table_from_df(
+# Build undulator using SplineBorisSequence - automatically creates one SplineBoris
+# element per polynomial piece with n_steps based on the data point count
+seq = xt.SplineBorisSequence(
     df_fit_pars=df,
-    n_steps=n_steps,
     multipole_order=multipole_order,
+    steps_per_point=1,
 )
 
-# # Configure pandas to display full DataFrame without truncation
-# pd.set_option('display.max_rows', None)
-# pd.set_option('display.max_columns', None)
-# pd.set_option('display.width', None)
-# pd.set_option('display.max_colwidth', None)
-
-# # Print the full DataFrame
-# print(df_reset)
-
-# list of n_steps wigglers;
-wiggler_list = []
-name_list = ['wiggler_'+str(i) for i in range(1, n_steps+1)]
-
-s_vals = np.linspace(s_start, s_end, n_steps)
-l_wig = s_end - s_start
-ds = (s_end - s_start) / n_steps
-
-for i in range(n_steps):
-    # params should be a 2D array: [[param1, param2, ...]] for n_steps=1
-    params_i = [par_table[i].tolist()]
-    s_val_i = s_vals[i]
-        
-    # For each single-step element, s_start and s_end should define the range
-    # in the field map that this step covers. Use a small interval around s_val_i.
-    # The s coordinates here are in the field map coordkinate system (can be negative).
-    elem_s_start = s_val_i - ds/2
-    elem_s_end = s_val_i + ds/2
-    
-    wiggler_i = xt.SplineBoris(
-        par_table=params_i,
-        multipole_order=multipole_order,
-        s_start=elem_s_start,
-        s_end=elem_s_end,
-        n_steps=1,
-    )
-    wiggler_list.append(wiggler_i)
-    env.elements[name_list[i]] = wiggler_i
-
-piecewise_undulator = env.new_line(components=name_list)
+# Get the Line of SplineBoris elements (pass env for insert support)
+piecewise_undulator = seq.to_line(env=env)
+l_wig = seq.length
 
 piecewise_undulator.build_tracker()
 
 piecewise_undulator.particle_ref = p0.copy()
 
-# tw_undulator = piecewise_undulator.twiss4d(betx=1, bety=1, include_collective=True)
-# tw_undulator.plot('x y')
-# tw_undulator.plot('betx bety', 'dx dy')
-# plt.show()
-
-# The issue: When you use betx=1, bety=1, twiss4d treats the line as OPEN (non-periodic).
-# For an open line, the orbit is computed from initial conditions in particle_on_co.
-# If particle_on_co has zero initial conditions (x=0, px=0, y=0, py=0), the orbit will
-# be zero unless there are kicks from the wiggler.
-#
-# Solution: Use only_orbit=True to explicitly compute the orbit, which should properly
-# propagate through the wiggler and show any kicks/deviations.
-
+# Create env variables for corrector strengths (needed for matching)
 env['k0l_corr1'] = 0.
 env['k0l_corr2'] = 0.
 env['k0l_corr3'] = 0.
@@ -126,21 +76,22 @@ env['k0sl_corr1'] = 0.
 env['k0sl_corr2'] = 0.
 env['k0sl_corr3'] = 0.
 env['k0sl_corr4'] = 0.
-env['on_wig_corr'] = 1.0
 
-env.new('corr1', xt.Multipole, knl=['on_wig_corr * k0l_corr1'], ksl=['on_wig_corr * k0sl_corr1'])
-env.new('corr2', xt.Multipole, knl=['on_wig_corr * k0l_corr2'], ksl=['on_wig_corr * k0sl_corr2'])
-env.new('corr3', xt.Multipole, knl=['on_wig_corr * k0l_corr3'], ksl=['on_wig_corr * k0sl_corr3'])
-env.new('corr4', xt.Multipole, knl=['on_wig_corr * k0l_corr4'], ksl=['on_wig_corr * k0sl_corr4'])
+# Create corrector elements with expressions referencing env variables
+env.new('corr1', xt.Multipole, knl=['k0l_corr1'], ksl=['k0sl_corr1'])
+env.new('corr2', xt.Multipole, knl=['k0l_corr2'], ksl=['k0sl_corr2'])
+env.new('corr3', xt.Multipole, knl=['k0l_corr3'], ksl=['k0sl_corr3'])
+env.new('corr4', xt.Multipole, knl=['k0l_corr4'], ksl=['k0sl_corr4'])
 
+# Insert correctors at nearest element boundary (s_tol avoids slicing)
 piecewise_undulator.insert([
     env.place('corr1', at=0.02),
     env.place('corr2', at=0.1),
     env.place('corr3', at=l_wig - 0.1),
     env.place('corr4', at=l_wig - 0.02),
-    ], s_tol=5e-3
-)
+], s_tol=5e-3)
 
+# Matching targets use corrector element names for intermediate positions
 opt = piecewise_undulator.match(
     solve=False,
     betx=0, bety=0,
@@ -153,8 +104,8 @@ opt = piecewise_undulator.match(
                       ], step=1e-6),
     targets=[
         xt.TargetSet(x=0, px=0, y=0, py=0., at=xt.END),
-        xt.TargetSet(x=0., y=0, at='wiggler_167'),
-        xt.TargetSet(x=0., y=0, at='wiggler_833')
+        xt.TargetSet(x=0., y=0, at='corr2'),
+        xt.TargetSet(x=0., y=0, at='corr3')
         ],
 )
 opt.step(2)
@@ -196,7 +147,7 @@ plt.close('all')
 tw_sls.plot('x y')
 tw_sls.plot('betx bety', 'dx dy')
 tw_sls.plot('betx2 bety2')
-plt.show()
+plt.show(block=False)
 
 #['name', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 'W_matrix', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime',
 # 'kin_yprime', 'env_name', 'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy', 'dx', 'dpx', 'dy', 'dpy', 'dx_zeta', 'dpx_zeta',

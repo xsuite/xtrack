@@ -1,44 +1,88 @@
 """
-Module for constructing and matching undulator wigglers.
+Module for constructing undulator wigglers using SplineBorisSequence.
 
-This module provides functions to:
-- Load and process fit_parameters.csv
-- Construct piecewise wiggler from SplineBoris elements
-- Match wiggler with correction elements
-- Create both standard and offset wiggler lines
+This module provides functions to load field fit parameters and construct
+undulator lines using the SplineBorisSequence class.
 """
 
 import xtrack as xt
-import numpy as np
 import pandas as pd
 from pathlib import Path
 
 
+def load_undulator_sequence(
+    csv_path,
+    multipole_order,
+    steps_per_point=1,
+    shift_x=0.0,
+    shift_y=0.0,
+):
+    """
+    Load a SplineBorisSequence from a field fit parameters CSV file.
 
-def _contruct_par_table(n_steps, s_start, s_end, df_flat, multipole_order):
+    Parameters
+    ----------
+    csv_path : str or Path
+        Path to the CSV file containing fit parameters.
+    multipole_order : int
+        Number of multipole orders to use.
+    steps_per_point : int, optional
+        Multiplier for integration steps per data point. Default is 1.
+    shift_x : float, optional
+        Transverse shift in x [m]. Default is 0.0.
+    shift_y : float, optional
+        Transverse shift in y [m]. Default is 0.0.
+
+    Returns
+    -------
+    xt.SplineBorisSequence
+        A SplineBorisSequence instance ready to use.
     """
-    Construct parameter table for SplineBoris.
-    
-    Parameters are ordered as expected by the C code:
-    - For multipole_order=3: bs_*, kn_0_*, kn_1_*, kn_2_*, ks_0_*, ks_1_*, ks_2_*
-    - Within each group: ordered by polynomial order (0, 1, 2, 3, 4)
-    - kn_* (normal multipole) and ks_* (skew multipole)
-    """
-    # Build the canonical parameter table using the shared helper to ensure
-    # consistency with FieldFitter, SplineBoris, and the C code.
-    par_table, s_start_inferred, s_end_inferred = xt.SplineBoris.build_parameter_table_from_df(
-        df_flat,
-        n_steps=n_steps,
+    return xt.SplineBorisSequence.from_csv(
+        csv_path=csv_path,
         multipole_order=multipole_order,
+        steps_per_point=steps_per_point,
+        shift_x=shift_x,
+        shift_y=shift_y,
     )
 
-    # For backwards compatibility, keep returning a list of per-step dictionaries.
-    # These are constructed from the ordered parameter table.
-    expected_params = xt.SplineBoris.get_param_names(multipole_order)
-    par_dicts = [
-        {name: float(value) for name, value in zip(expected_params, row)}
-        for row in par_table
-    ]
 
-    # Preserve the original return signature.
-    return par_dicts, par_table
+def load_undulator_line(
+    csv_path,
+    multipole_order,
+    steps_per_point=1,
+    shift_x=0.0,
+    shift_y=0.0,
+):
+    """
+    Load an undulator line from a field fit parameters CSV file.
+
+    This is a convenience function that creates a SplineBorisSequence
+    and returns the Line directly.
+
+    Parameters
+    ----------
+    csv_path : str or Path
+        Path to the CSV file containing fit parameters.
+    multipole_order : int
+        Number of multipole orders to use.
+    steps_per_point : int, optional
+        Multiplier for integration steps per data point. Default is 1.
+    shift_x : float, optional
+        Transverse shift in x [m]. Default is 0.0.
+    shift_y : float, optional
+        Transverse shift in y [m]. Default is 0.0.
+
+    Returns
+    -------
+    xt.Line
+        A Line containing SplineBoris elements for the undulator.
+    """
+    seq = load_undulator_sequence(
+        csv_path=csv_path,
+        multipole_order=multipole_order,
+        steps_per_point=steps_per_point,
+        shift_x=shift_x,
+        shift_y=shift_y,
+    )
+    return seq.to_line()
