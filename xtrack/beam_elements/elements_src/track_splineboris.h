@@ -112,7 +112,7 @@ void SplineBoris_single_particle(
         // gamma = energy / mass  (matching Python implementation)
         const double gamma = energy / mass;
 
-        const double P = P0 * (1.0 + delta_current);  // [kg m / s]
+        const double P = P0 * (1.0 + delta);  // [kg m / s]
 
         // Save state for radiation tracking
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
@@ -188,7 +188,7 @@ void SplineBoris_single_particle(
         // --------------------------------------------------------------
         //  (3) ROTATION around Bs
         // --------------------------------------------------------------
-        double t  = 0.5 * q_coulomb * Bs * half_ds / ps_mid;
+        double t  = q_coulomb * Bs * half_ds / ps_mid;
         double t2 = t * t;
         double inv_den = 1.0 / (1.0 + t2);
 

@@ -16,6 +16,7 @@ interval = 30
 dx = 0.001
 dy = 0.001
 ds = interval / n_steps
+multipole_order = 4
 
 delta=np.array([0, 4])
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
@@ -31,42 +32,50 @@ field_maps_dir = Path(__file__).parent / "field_maps"
 field_maps_dir.mkdir(exist_ok=True)
 fit_pars_path = field_maps_dir / "solenoid_fit_pars.csv"
 
-if not fit_pars_path.exists():
-    # Construct field map and fit
-    x_axis = np.linspace(-dx, dx, 5)
-    y_axis = np.linspace(-dy, dy, 5)
-    z_axis = np.linspace(0, interval, 1001)
-    X, Y, Z = np.meshgrid(x_axis, y_axis, z_axis, indexing="ij")
-    Bx, By, Bz = sf.get_field(X.ravel(), Y.ravel(), Z.ravel())
-    Bx = Bx.reshape(X.shape)
-    By = By.reshape(X.shape)
-    Bz = Bz.reshape(X.shape)
-    data = np.column_stack([
-        X.ravel(), Y.ravel(), Z.ravel(),
-        Bx.ravel(), By.ravel(), Bz.ravel(),
-    ])
-    np.savetxt(field_maps_dir / "solenoid_field.dat", data)
-    parser = StandardFieldMapParser()
-    df_raw_data = parser.parse(field_maps_dir / "solenoid_field.dat")
-    # ds=1 so that s_full = Z * ds = Z (meters). Raw Z from the field map is in meters.
-    fitter = FieldFitter(df_raw_data=df_raw_data,
-        xy_point=(0, 0),
-        dx=dx,
-        dy=dy,
-        ds=1,
-        min_region_size=10,
-        deg=4,
-    )
-    fitter.set()
-    fitter.save_fit_pars(fit_pars_path)
+
+# Construct field map and fit
+x_axis = np.linspace(-dx, dx, 5)
+y_axis = np.linspace(-dy, dy, 5)
+z_axis = np.linspace(0, interval, 1001)
+X, Y, Z = np.meshgrid(x_axis, y_axis, z_axis, indexing="ij")
+Bx, By, Bz = sf.get_field(X.ravel(), Y.ravel(), Z.ravel())
+Bx = Bx.reshape(X.shape)
+By = By.reshape(X.shape)
+Bz = Bz.reshape(X.shape)
+data = np.column_stack([
+    X.ravel(), Y.ravel(), Z.ravel(),
+    Bx.ravel(), By.ravel(), Bz.ravel(),
+])
+np.savetxt(field_maps_dir / "solenoid_field.dat", data)
+parser = StandardFieldMapParser()
+df_raw_data = parser.parse(field_maps_dir / "solenoid_field.dat")
+# ds=1 so that s_full = Z * ds = Z (meters). Raw Z from the field map is in meters.
+fitter = FieldFitter(df_raw_data=df_raw_data,
+    xy_point=(0, 0),
+    dx=dx,
+    dy=dy,
+    ds=1,
+    min_region_size=10,
+    deg=multipole_order-1,
+)
+fitter.set()
+fitter.save_fit_pars(fit_pars_path)
+
+# Plot the fit results
+# NOTE: Fit corresponds well with data.
+# for i in range(multipole_order):
+#     fitter.plot_fields(der=i)
+#     plt.show()
 
 z_axis = np.linspace(0, interval, n_steps)  # for analytical reference below
 df_fit_pars = pd.read_csv(fit_pars_path)
 par_table, s_start, s_end = xt.SplineBoris.build_parameter_table_from_df(
     df_fit_pars=df_fit_pars,
     n_steps=n_steps,
-    multipole_order=5,
+    multipole_order=multipole_order,
 )
+
+# NOTE: Parameter table is correct.
 
 # Build solenoid as many successive SplineBoris elements (like in the undulator examples)
 ds_spline = (s_end - s_start) / n_steps
@@ -79,12 +88,17 @@ for i in range(n_steps):
     elem_s_end = s_val_i + ds_spline / 2
     elem_i = xt.SplineBoris(
         par_table=params_i,
-        multipole_order=5,
+        multipole_order=multipole_order,
         s_start=elem_s_start,
         s_end=elem_s_end,
         n_steps=1,
     )
+
     solenoid_elements.append(elem_i)
+
+# NOTE: parameters are correctly passed to the elements. Boris integrator in C is equivalent to the one in Python.
+# To check: If the generated C code is correct.
+# To check: If there is an issue with the s_start and s_end falling outside of the region of validity of the polynomial.
 
 line_splineboris = xt.Line(elements=solenoid_elements)
 line_splineboris.build_tracker()

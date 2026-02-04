@@ -318,6 +318,8 @@ class FieldFitter:
         """
 
         rows = []
+        # Zero-pad index so alphabetical sort matches numerical sort
+        index_width = len(str(n_pieces - 1)) if n_pieces > 1 else 1
         for i in range(n_pieces):
             if field == "Bx":
                 pars = [f"ks_{der_order}_{k}" for k in range(self.poly_order + 1)]
@@ -335,7 +337,7 @@ class FieldFitter:
                 rows.append({
                     "field_component": field,
                     "derivative_x": der_order,
-                    "region_name": f"Poly_{i}",
+                    "region_name": f"Poly_{i:0{index_width}d}",
                     "s_start": s_start,
                     "s_end": s_end,
                     "idx_start": idx_start,
@@ -477,13 +479,14 @@ class FieldFitter:
 
                 sub_df.reset_index(level='region_name', inplace=True)
                 n_regions = sub_df['region_name'].nunique()
+                index_width = len(str(n_regions - 1)) if n_regions > 1 else 1
 
                 for i in range(n_regions):
-                    sub_df_this = sub_df[sub_df['region_name'] == f"Poly_{i}"]
+                    sub_df_this = sub_df[sub_df['region_name'] == f"Poly_{i:0{index_width}d}"]
                     if i == 0:
                         sub_df_prev = None
                     else:
-                        sub_df_prev = sub_df[sub_df['region_name'] == f"Poly_{i - 1}"]
+                        sub_df_prev = sub_df[sub_df['region_name'] == f"Poly_{i - 1:0{index_width}d}"]
 
                     self._fit_single_poly(field, der, sub_df_this, sub_df_prev)
 
