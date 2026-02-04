@@ -15,6 +15,7 @@ interval = 30
 dx = 0.001
 dy = 0.001
 multipole_order = 4
+n_steps = 10000
 
 delta=np.array([0, 4])
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
@@ -34,7 +35,7 @@ fit_pars_path = field_maps_dir / "solenoid_fit_pars.csv"
 # Construct field map and fit
 x_axis = np.linspace(-dx, dx, 5)
 y_axis = np.linspace(-dy, dy, 5)
-z_axis = np.linspace(0, interval, 1001)
+z_axis = np.linspace(0, interval, n_steps+1)
 X, Y, Z = np.meshgrid(x_axis, y_axis, z_axis, indexing="ij")
 Bx, By, Bz = sf.get_field(X.ravel(), Y.ravel(), Z.ravel())
 Bx = Bx.reshape(X.shape)
@@ -56,6 +57,8 @@ fitter = FieldFitter(df_raw_data=df_raw_data,
     min_region_size=10,
     deg=multipole_order-1,
 )
+# Use lower field_tol to include transverse field gradients needed for solenoid focusing
+fitter.field_tol = 1e-4
 fitter.set()
 fitter.save_fit_pars(fit_pars_path)
 
@@ -84,7 +87,7 @@ mon_splineboris = line_splineboris.record_last_track
 
 # --- Analytical reference: VariableSolenoid line from on-axis Bz(s) ---
 # Build thin-element representation of the same solenoid (Wolsky / MAD-X).
-n_ref_steps = 15000  # number of steps for the analytical reference
+n_ref_steps = n_steps  # number of steps for the analytical reference
 z_axis_ref = np.linspace(0, interval, n_ref_steps)
 Bz_axis = sf.get_field(0 * z_axis_ref, 0 * z_axis_ref, z_axis_ref)[2]
 P0_J = p0.p0c[0] * qe / clight

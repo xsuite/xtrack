@@ -516,7 +516,8 @@ class FieldFitter:
         derivs = {"Bx": None, "By": None}
 
         for field in ["Bx", "By"]:
-            x = [p * self.dx for p in points]
+            # points already contains the actual X coordinates in meters from df_raw_data index
+            x = points
             n = len(subsets[points[0]][field])
             derivs[field] = np.zeros(n)
 
