@@ -1186,7 +1186,7 @@ class Environment:
                 return self.particles[key]
             return View(self.particles[key], self._xdeps_pref[key],
                         evaluator=self._xdeps_eval.eval)
-        elif key in self.vars:
+        elif self.ref_manager is not None and key in self.vars:
             return self.vv[key]
         elif key in self.lines: # Want to reuse the method for the env
             return self.lines[key]
@@ -1196,8 +1196,9 @@ class Environment:
     def __contains__(self, key):
         return (key in self._element_dict or
                 key in self.particles or
-                key in self.vars or
-                key in self.lines)
+                key in self.lines or
+                (self.ref_manager is not None and key in self.vars) or
+                )
 
     def remove(self, key):
 
@@ -1207,7 +1208,7 @@ class Environment:
             self.particles.remove(key)
         elif key in self.lines:
             self.lines.remove(key)
-        elif key in self.vars:
+        elif self.ref_manager is not None and key in self.vars:
             self.vars.remove(key)
         else:
             raise KeyError(f'Name {key} not found')
