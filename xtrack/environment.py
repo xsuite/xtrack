@@ -1197,7 +1197,7 @@ class Environment:
         return (key in self._element_dict or
                 key in self.particles or
                 key in self.lines or
-                (self.ref_manager is not None and key in self.vars) or
+                (self.ref_manager is not None and key in self.vars)
                 )
 
     def remove(self, key):
