@@ -985,8 +985,12 @@ def twiss_line(line, particle_ref=None, method=None,
                 twiss_res.muy += init.muy - twiss_res.muy[-1]
 
     if search_for_t_rev:
-        twiss_res._data['T_rev'] = twiss_res.T_rev0 - (
-            twiss_res.zeta[-1] - twiss_res.zeta[0])/(twiss_res.beta0*clight)
+        # Recompute T_rev0 to support case with only_orbit=True
+        circumference = twiss_res.s[-1]
+        beta0 = twiss_res.particle_on_co.beta0[0]
+        t_rev_0 = circumference/clight/beta0
+        twiss_res._data['T_rev'] = t_rev_0 - (
+            twiss_res.zeta[-1] - twiss_res.zeta[0])/(beta0*clight)
 
     if num_turns > 1:
 
@@ -1512,8 +1516,15 @@ def _compute_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
     denom = 1 / (4 * gamma)
     f1001 = denom * (+c[:, 0, 1] - c[:, 1, 0] + (c[:, 0, 0] + c[:, 1, 1]) * 1j)
     f1010 = denom * (-c[:, 0, 1] - c[:, 1, 0] + (c[:, 0, 0] - c[:, 1, 1]) * 1j)
+    f0110 = np.conj(f1001)
 
-    return {'f1001': f1001, 'f1010': f1010}
+    # To be consistent with RDT definition in the Xsuite physics manual
+    # (checked against tracking):
+    f1001 = -np.conj(f1001)
+    f1010 = -np.conj(f1010)
+    f0110 = -np.conj(f0110)
+
+    return {'f1001': f1001, 'f1010': f1010, 'f0110': f0110}
 
 def _compute_edwards_teng_initial(RR):
 

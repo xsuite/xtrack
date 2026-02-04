@@ -111,7 +111,8 @@ class Tracker:
             element_s_locations=element_s_locations,
             line_length=line_length,
             kernel_element_classes=None,
-            extra_element_classes=(particles_monitor_class._XoStruct,),
+            extra_element_classes=(particles_monitor_class._XoStruct,
+                                   xt.MultiElementMonitor._XoStruct),
             _context=_context,
             _buffer=_buffer,
             _no_resolve_parents=_prebuilding_kernels)
@@ -295,7 +296,7 @@ class Tracker:
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     def _track(self, particles, *args, with_progress: Union[bool, int] = False,
-               time=False, **kwargs):
+               time=False, multi_element_monitor_at=None, **kwargs):
 
         out = None
 
@@ -325,18 +326,25 @@ class Tracker:
                 batch_size = int(with_progress)
                 scaling = with_progress if batch_size > 1 else None
 
-            if kwargs.get('turn_by_turn_monitor') is True:
-                ele_start = kwargs.get('ele_start') or 0
-                ele_stop = kwargs.get('ele_stop')
-                if ele_stop is None:
-                    ele_stop = len(self.line)
+            # Adjust num turns to account for incomplete turn
+            ele_start = kwargs.get('ele_start') or 0
+            ele_stop = kwargs.get('ele_stop')
+            if ele_stop is None:
+                ele_stop = len(self.line)
+            if ele_start >= ele_stop:
+                # we need an additional turn and space in the monitor for
+                # the incomplete turn
+                num_turns += 1
 
-                if ele_start >= ele_stop:
-                    # we need an additional turn and space in the monitor for
-                    # the incomplete turn
-                    num_turns += 1
+            if kwargs.get('turn_by_turn_monitor') is True:
                 _, monitor, _, _ = self._get_monitor(particles, True, num_turns)
                 kwargs['turn_by_turn_monitor'] = monitor
+
+            multi_element_monitor = self._get_multi_element_monitor(
+                particles=particles,
+                multi_element_monitor_at=multi_element_monitor_at,
+                num_turns=num_turns
+            )
 
             for ii in progress(
                     range(0, num_turns, batch_size),
@@ -369,10 +377,17 @@ class Tracker:
                     one_turn_kwargs['ele_stop'] = None
                     one_turn_kwargs['_reset_log'] = False
 
-                tracking_func(particles, *args, **one_turn_kwargs)
+                tracking_func(particles, *args, **one_turn_kwargs,
+                              multi_element_monitor=multi_element_monitor)
                 # particles.reorganize() # could be done in the future to optimize GPU usage
         else:
-            out = tracking_func(particles, *args, **kwargs)
+            multi_element_monitor = self._get_multi_element_monitor(
+                particles=particles,
+                multi_element_monitor_at=multi_element_monitor_at,
+                num_turns=kwargs.get('num_turns', 1)
+            )
+            out = tracking_func(particles, *args, **kwargs,
+                               multi_element_monitor=multi_element_monitor)
 
         if time:
             t1 = perf_counter()
@@ -487,6 +502,8 @@ class Tracker:
                              double line_length,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor,
+                /*gpuglmem*/ int8_t* buffer_multi_element_monitor,
+                             int64_t offset_multi_element_monitor,
                 /*gpuglmem*/ int8_t* io_buffer,
                              uint64_t track_flags
                              ){
@@ -535,6 +552,11 @@ class Tracker:
             ParticlesMonitorData tbt_monitor =
                             (ParticlesMonitorData) tbt_mon_pointer;
 
+            /*gpuglmem*/ int8_t* multi_elem_mon_pointer =
+                    buffer_multi_element_monitor + offset_multi_element_monitor;
+            MultiElementMonitorData tbt_multi_elem_monitor =
+                    (MultiElementMonitorData) multi_elem_mon_pointer;
+
             int64_t part_capacity = ParticlesData_get__capacity(particles);
             if (part_id<part_capacity){
             Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
@@ -569,6 +591,10 @@ class Tracker:
                 for (; ((elem_idx >= ele_start) && (elem_idx < ele_stop)); elem_idx+=increm){
                         if (flag_monitor==2){
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                        }
+                        if (offset_multi_element_monitor >= 0){
+                            MultiElementMonitor_track_local_particle(
+                                tbt_multi_elem_monitor, &lpart);
                         }
 
                         // Get the pointer to and the type id of the `elem_idx`th
@@ -711,6 +737,8 @@ class Tracker:
                     xo.Arg(xo.Float64, name='line_length'),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
+                    xo.Arg(xo.Int8, pointer=True, name="buffer_multi_element_monitor"),
+                    xo.Arg(xo.Int64, name="offset_multi_element_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
                     xo.Arg(xo.UInt64, name="track_flags"),
                 ],
@@ -898,9 +926,14 @@ class Tracker:
         freeze_longitudinal=False,
         backtrack=False,
         log=None,
+        multi_element_monitor=None,
         _session_to_resume=None,
         _reset_log=True,
     ):
+
+        if multi_element_monitor is not None:
+            raise NotImplementedError('multi_element_monitor not implemented yet'
+                                      ' for collective tracking')
 
         if ele_start is None:
             ele_start = 0
@@ -1097,6 +1130,7 @@ class Tracker:
         freeze_longitudinal=False,
         backtrack=False,
         log=None,
+        multi_element_monitor=None,
         _force_no_end_turn_actions=False,
         _reset_log=True,
     ):
@@ -1239,6 +1273,16 @@ class Tracker:
         (flag_monitor, monitor, buffer_monitor, offset_monitor
             ) = self._get_monitor(particles, turn_by_turn_monitor, monitor_turns)
 
+        if multi_element_monitor is not None:
+            if backtrack:
+                raise NotImplementedError('Multi-element monitor not implemented yet'
+                                          ' for backtracking')
+            buffer_multi_element_monitor = multi_element_monitor._buffer.buffer
+            offset_multi_element_monitor = multi_element_monitor._offset
+        else:
+            buffer_multi_element_monitor = particles._buffer.buffer  # I just need a valid buffer
+            offset_multi_element_monitor = -1
+
         if self.line._needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
 
@@ -1261,6 +1305,8 @@ class Tracker:
             line_length=tracker_data.line_length,
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
+            buffer_multi_element_monitor=buffer_multi_element_monitor,
+            offset_multi_element_monitor=offset_multi_element_monitor,
             io_buffer=self.io_buffer.buffer,
             track_flags=track_flags
         )
@@ -1282,6 +1328,8 @@ class Tracker:
                 line_length=tracker_data.line_length,
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
+                buffer_multi_element_monitor=buffer_multi_element_monitor,
+                offset_multi_element_monitor=offset_multi_element_monitor,
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags
             )
@@ -1303,11 +1351,14 @@ class Tracker:
                 line_length=tracker_data.line_length,
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
+                buffer_multi_element_monitor=buffer_multi_element_monitor,
+                offset_multi_element_monitor=offset_multi_element_monitor,
                 io_buffer=self.io_buffer.buffer,
                 track_flags=track_flags
             )
 
         self.record_last_track = monitor
+        self.record_multi_element_last_track = multi_element_monitor
 
     @staticmethod
     def _get_default_monitor_class():
@@ -1349,6 +1400,48 @@ class Tracker:
             raise ValueError('Please provide a valid monitor object')
 
         return flag_monitor, monitor, buffer_monitor, offset_monitor
+
+    def _get_multi_element_monitor(self, multi_element_monitor_at, particles,
+                                   num_turns):
+
+        if not isinstance(self._context, xo.ContextCpu):
+            raise NotImplementedError(
+                'Multi-element monitor is only supported on CPU trackers for now.')
+
+        if multi_element_monitor_at is None or len(multi_element_monitor_at) == 0:
+            multi_element_monitor = None
+        else:
+            assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
+                '`multi_element_monitor_at` must be a list, tuple or array of element names'
+            tt = self._tracker_data_base._line_table # reuse cached table
+            indeces_obs = tt.rows.indices[multi_element_monitor_at]
+            if len(indeces_obs) != len(multi_element_monitor_at):
+                missing = set(multi_element_monitor_at) - set(
+                    tt.rows.names[indeces_obs])
+                raise ValueError(f'Elements not found in line: {missing}')
+
+            at_element_mapping = np.zeros(len(tt), dtype=np.int64)
+            at_element_mapping[:] = -1
+            at_element_mapping[indeces_obs] = np.arange(len(indeces_obs), dtype=np.int64)
+
+            # Very simple constructor for now, can be made more solid and flexible later
+            part_id_start, part_id_end = particles.get_active_particle_id_range()
+            num_particles = part_id_end - part_id_start
+            num_cooordinates = 6 # hardcoded for now (C code of the monitor
+                                 # needs to be extended if different number
+                                 # of coordinates is needed)
+            num_elements = len(multi_element_monitor_at)
+            multi_element_monitor = xt.MultiElementMonitor(
+                start_at_turn=0,
+                stop_at_turn=num_turns,
+                part_id_start=particles.get_active_particle_id_range()[0],
+                part_id_end=particles.get_active_particle_id_range()[1],
+                at_element_mapping=at_element_mapping,
+                data=(num_turns, num_particles, num_cooordinates, num_elements),
+                obs_names=tt.name[indeces_obs] # to ensure the right orde
+            )
+
+        return multi_element_monitor
 
     def to_binary_file(self, path):
 

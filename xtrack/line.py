@@ -1219,6 +1219,7 @@ class Line:
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
+        multi_element_monitor_at=None,
         freeze_longitudinal=False,
         time=False,
         with_progress=False,
@@ -1254,6 +1255,10 @@ class Line:
             it is used directly. If the string `ONE_TURN_EBE` is provided, the
             particles coordinates are recorded at each element (one turn).
             The recorded data can be retrieved in `line.record_last_track`.
+        multi_element_monitor_at: list of str, optional
+            If provided, a multi-element monitor is created and coordinates of the
+            trcked particles are recorded at the elements whose names are in the list.
+            The recorded data can be retrieved in `line.record_multi_element_last_track`.
         freeze_longitudinal: bool, optional
             If True, the longitudinal coordinates are frozen during tracking.
         time: bool, optional
@@ -1296,6 +1301,7 @@ class Line:
             freeze_longitudinal=freeze_longitudinal,
             time=time,
             with_progress=with_progress,
+            multi_element_monitor_at=multi_element_monitor_at,
             **kwargs)
 
     def slice_thick_elements(self, slicing_strategies):
@@ -4622,6 +4628,11 @@ class Line:
     def record_last_track(self):
         self._check_valid_tracker()
         return self.tracker.record_last_track
+
+    @property
+    def record_multi_element_last_track(self):
+        self._check_valid_tracker()
+        return self.tracker.record_multi_element_last_track
 
     @property
     def vars(self):

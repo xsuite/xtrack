@@ -37,7 +37,7 @@ DEFAULT_REF_STRENGTH_NAME = {
 class Environment:
 
     def __init__(self, element_dict=None, particle_ref=None, lines=None,
-                 _var_management_dct=None):
+                 _var_management_dct=None, particles=None):
 
         '''
         Create an environment.
@@ -91,10 +91,7 @@ class Environment:
         self._particles = {}
         self.particle_ref = particle_ref
 
-        self._var_management = _make_var_management(
-            element_dict=self._element_dict,
-            particles=self._particles,
-            dct=_var_management_dct)
+        self._init_var_management(dct=_var_management_dct)
         self._line_vars = EnvVars(self)
 
         self.lines = EnvLines(self)
@@ -136,7 +133,16 @@ class Environment:
                     line_name=nn, rename_elements=rename_elements)
                 self.lines[nn]._renamed_elements = rename_elements
 
+        if particles is not None:
+            self._particles.update(particles)
+
         self.metadata = {}
+
+    def _init_var_management(self, dct=None):
+        self._var_management = _make_var_management(
+            element_dict=self._element_dict,
+            particles=self._particles,
+            dct=dct)
 
     def __repr__(self):
         line_names = list(self.lines.keys())
@@ -792,6 +798,10 @@ class Environment:
 
         elements = _deserialize_elements(dct=dct, classes=classes,
                                          _buffer=_buffer, _context=_context)
+        particles = {}
+        if 'particles' in dct:
+            for nn, ppd in dct['particles'].items():
+               particles[nn] = xt.Particles.from_dict(ppd)
 
         particle_ref = None
         if 'particle_ref' in dct.keys():
@@ -806,7 +816,7 @@ class Environment:
             _var_management_dct = None
 
         out = cls(element_dict=elements, particle_ref=particle_ref,
-                _var_management_dct=_var_management_dct)
+                _var_management_dct=_var_management_dct, particles=particles)
 
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)
@@ -832,10 +842,6 @@ class Environment:
 
         if "metadata" in dct:
             out.metadata = dct["metadata"]
-
-        if 'particles' in dct:
-            for nn, ppd in dct['particles'].items():
-               out._particles[nn] = xt.Particles.from_dict(ppd)
 
         return out
 
@@ -1113,6 +1119,13 @@ class Environment:
         try:
             eva_obj = self._xdeps_eval_obj
         except AttributeError:
+            eva_obj = None
+
+        # in case the var manager has been replaced, invalidate the cached eval obj
+        if eva_obj is not None and eva_obj.variables is not self._xdeps_vref:
+            eva_obj = None
+
+        if eva_obj is None:
             eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
                                             functions=self._xdeps_fref,
                                             elements=self._element_dict,
@@ -1824,7 +1837,7 @@ def _reverse_element(env, name):
     _reverse_field('rot_s_rad')
 
     if ee.__class__.__name__ == 'CrabCavity':
-        ee_ref.voltage = -ee_ref.voltage._expr or ee_ref.voltage._value
+        ee_ref.crab_voltage = -(ee_ref.crab_voltage._expr or ee_ref.crab_voltage._value)
 
     if hasattr(ee, 'lag'):
         ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)
@@ -2160,6 +2173,7 @@ class EnvVars:
         filename : str or list of str
             Path to the MAD-X file(s) to load.
         '''
+        old_default_to_zero = self.default_to_zero
         loader = xt.mad_parser.MadxLoader(env=self.env)
         if filename is not None:
             assert string is None, 'Cannot specify both filename and string'
@@ -2167,6 +2181,7 @@ class EnvVars:
         elif string is not None:
             assert filename is None, 'Cannot specify both filename and string'
             loader.load_string(string)
+        self.default_to_zero = old_default_to_zero # restore (in case changed by loader)
 
     def load_madx_optics_file(self, filename=None, string=None):
         self.set_from_madx_file(filename, string)

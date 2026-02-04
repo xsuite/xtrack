@@ -1023,6 +1023,9 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
 
         assert isinstance(corr['start'], str)
 
+        if not line._has_valid_tracker():
+            line.build_tracker()
+
         line.match(
             solver=solver,
             verbose=verbose,
