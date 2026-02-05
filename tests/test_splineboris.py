@@ -447,6 +447,128 @@ def test_splineboris_analytic_solenoid():
                         rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
 
+
+# @pytest.mark.parametrize(
+#     'case,atol',
+#     zip(
+#         [case['case'].copy() for case in COMMON_TEST_CASES],
+#         [3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 2e-5, 1e-5, 2e-8, 1e-5, 2e-5],
+#     ),
+#     ids=[case['id'] for case in COMMON_TEST_CASES],
+# )
+def test_uniform_solenoid():
+
+    atol = 3e-8
+    case = {
+    'x': 0.001,
+    'px': 1e-05,
+    'y': 0.002,
+    'py': 2e-05,
+    'delta': 0.001,
+    'spin_x': 0.1,
+    'spin_z': 0.2,
+    }
+    case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
+
+    
+
+    p = xt.Particles(
+        p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
+        anomalous_magnetic_moment=0.00115965218128,
+        **case,
+    )
+
+    p_splineboris = p.copy()
+    p_ref = p.copy()
+
+    Bz_T = 0.05
+    ks = Bz_T / (p.p0c[0] / clight / p.q0)
+    env = xt.Environment()
+
+    length = 0.25
+    s_start = 0
+    s_end = length
+    n_steps = 100
+
+        # Homogeneous transverse field coefficients on [s_start, s_end]
+    # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
+    Bx_0_coeffs = np.array([0, 0.0, 0.0, 0.0, 0])
+    By_0_coeffs = np.array([0, 0.0, 0.0, 0.0, 0])
+    Bs_coeffs = np.array([Bz_T, 0.0, Bz_T, 0.0, Bz_T * length])
+
+    import sys
+    from pathlib import Path
+
+    # Add examples directory to path to import FieldFitter
+    examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
+    if str(examples_path) not in sys.path:
+        sys.path.insert(0, str(examples_path))
+    from field_fitter import FieldFitter
+
+    # Convert to the basis that the field evaluator uses.
+    Bx_poly = FieldFitter._poly(s_start, s_end, Bx_0_coeffs)
+    By_poly = FieldFitter._poly(s_start, s_end, By_0_coeffs)
+    Bs_poly = FieldFitter._poly(s_start, s_end, Bs_coeffs)
+
+    Bs_values = Bs_poly(np.linspace(s_start, s_end, 100))
+
+
+    degree = 4
+
+    ks_0 = np.zeros(degree + 1)
+    ks_0[:len(Bx_poly.coef)] = Bx_poly.coef
+    kn_0 = np.zeros(degree + 1)
+    kn_0[:len(By_poly.coef)] = By_poly.coef
+    bs = np.zeros(degree + 1)
+    bs[:len(Bs_poly.coef)] = Bs_poly.coef
+
+    # Assert that the field is constant (homogeneous) over the region
+    # This validates that the polynomial representation correctly represents a constant field
+    np.testing.assert_allclose(Bs_values, Bz_T, rtol=1e-12, atol=1e-12,
+                                err_msg="Bs field should be constant (homogeneous)")
+
+    param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
+        bs=bs,
+        kn={0: kn_0},
+        ks={0: ks_0},
+        n_steps=n_steps,
+    )
+
+    splineboris = xt.SplineBoris(
+        par_table=param_table,
+        s_start=s_start,
+        s_end=s_end,
+        multipole_order=1,
+        n_steps=n_steps,
+    )
+
+    # Reference and test particle
+    line_splineboris = xt.Line(elements=[splineboris])
+    line_splineboris.particle_ref = p_splineboris
+
+
+    line = env.new_line(
+        components=[
+            env.new('mysolenoid', xt.UniformSolenoid, length=0.02, ks=ks),
+            env.new('mymarker', xt.Marker),
+        ]
+    )
+
+    line.configure_spin(spin_model='auto')
+    line_splineboris.configure_spin(spin_model='auto')
+
+    line.track(p_ref)
+    line_splineboris.track(p_splineboris)
+
+    print(p_ref.spin_x[0], p_splineboris.spin_x[0])
+    print(p_ref.spin_y[0], p_splineboris.spin_y[0])
+    print(p_ref.spin_z[0], p_splineboris.spin_z[0])
+
+    xo.assert_allclose(p_ref.spin_x[0], p_splineboris.spin_x[0], atol=atol, rtol=1e-12)
+    xo.assert_allclose(p_ref.spin_y[0], p_splineboris.spin_y[0], atol=atol, rtol=1e-12)
+    xo.assert_allclose(p_ref.spin_z[0], p_splineboris.spin_z[0], atol=atol, rtol=1e-12)
+
+
 # Run only when SolenoidField is available: test_splineboris_analytic_solenoid()
 
 # def test_splineboris_uniform_solenoid_analytic():

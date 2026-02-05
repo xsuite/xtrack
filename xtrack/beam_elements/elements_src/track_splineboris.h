@@ -152,7 +152,7 @@ void SplineBoris_single_particle(
         // --------------------------------------------------------------
         //  Evaluate B-field at mid-step (xh, yh, s_field)
         //  Convert local s to absolute s in field map for field evaluation
-        //  Using evaluate_B from _bpmeth_B_field_eval.h
+        //  Using evaluate_B from _spline_B_field_eval.h
         // --------------------------------------------------------------
         double Bx;
         double By;

@@ -90,7 +90,10 @@ def generic_field_exprs(curv, multipole_order=multipole_order, poly_order=4):
     s = sp.symbols('s')
     ks_exprs, kn_exprs, bs_exprs = set_exprs(multipole_order=multipole_order, poly_order=poly_order)
 
-    generic_B = bp.GeneralVectorPotential(hs=curv, a=ks_exprs, b=kn_exprs, bs=bs_exprs, nphi=multipole_order)
+    # nphi must be > multipole_order to include y-dependent terms from dbs/ds
+    # The recursion phi_{n+2} = f(phi_n) means we need at least nphi = multipole_order + 2
+    # to capture the solenoid focusing terms (-y*(dbs/ds + ks_1)) in By
+    generic_B = bp.GeneralVectorPotential(hs=curv, a=ks_exprs, b=kn_exprs, bs=bs_exprs, nphi=multipole_order+2)
     symbolic_Bx, symbolic_By, symbolic_Bs = generic_B.get_Bfield(lambdify=False)
     symbolic_Ax, symbolic_Ay, symbolic_As = generic_B.get_A()
 
