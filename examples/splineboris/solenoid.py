@@ -14,7 +14,7 @@ import pandas as pd
 interval = 30
 dx = 0.001
 dy = 0.001
-multipole_order = 4
+multipole_order = 2
 n_steps = 10000
 
 delta=np.array([0, 4])
@@ -33,8 +33,8 @@ fit_pars_path = field_maps_dir / "solenoid_fit_pars.csv"
 
 
 # Construct field map and fit
-x_axis = np.linspace(-dx, dx, 5)
-y_axis = np.linspace(-dy, dy, 5)
+x_axis = np.linspace(-multipole_order*dx/2, multipole_order*dx/2, multipole_order+1)
+y_axis = np.linspace(-multipole_order*dy/2, multipole_order*dy/2, multipole_order+1)
 z_axis = np.linspace(0, interval, n_steps+1)
 X, Y, Z = np.meshgrid(x_axis, y_axis, z_axis, indexing="ij")
 Bx, By, Bz = sf.get_field(X.ravel(), Y.ravel(), Z.ravel())
@@ -64,9 +64,9 @@ fitter.save_fit_pars(fit_pars_path)
 
 # Plot the fit results
 # NOTE: Fit corresponds well with data.
-# for i in range(multipole_order):
-#     fitter.plot_fields(der=i)
-#     plt.show()
+for i in range(multipole_order):
+    fitter.plot_fields(der=i)
+    plt.show()
 
 # Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
 # element per polynomial piece with n_steps based on the data point count
