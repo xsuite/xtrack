@@ -1404,13 +1404,12 @@ class Tracker:
     def _get_multi_element_monitor(self, multi_element_monitor_at, particles,
                                    num_turns):
 
-        if not isinstance(self._context, xo.ContextCpu):
-            raise NotImplementedError(
-                'Multi-element monitor is only supported on CPU trackers for now.')
-
         if multi_element_monitor_at is None or len(multi_element_monitor_at) == 0:
             multi_element_monitor = None
         else:
+            if not isinstance(self._context, xo.ContextCpu):
+                raise NotImplementedError(
+                    'Multi-element monitor is only supported on CPU trackers for now.')
             assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
                 '`multi_element_monitor_at` must be a list, tuple or array of element names'
             tt = self._tracker_data_base._line_table # reuse cached table
