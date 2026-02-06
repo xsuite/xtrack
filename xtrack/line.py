@@ -222,7 +222,6 @@ class Line:
 
         self._line_before_slicing_cache = None
         self._element_names_before_slicing = None
-        self.ref = xt.environment.EnvRef(self)
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
@@ -4640,6 +4639,10 @@ class Line:
             return self._in_multiline.vars
         else:
             return self.env.vars
+
+    @property
+    def ref(self):
+        return self.env.ref
 
     @property
     def varval(self):
