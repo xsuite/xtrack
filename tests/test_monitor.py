@@ -502,6 +502,7 @@ def test_multi_element_monitor(with_progress_bar, iscollective):
     if iscollective:
         line['mqwa.a4r7.b1'].iscollective = True
         line['mcbwh.4l7.b1'].iscollective = True
+        line['bpm.23l5.b1'].iscollective = True
         line.discard_tracker()
         line.build_tracker()
         assert line.tracker.iscollective
