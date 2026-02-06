@@ -15,14 +15,17 @@ class BorisSpatialIntegrator:
         self.n_steps = n_steps
         self.verbose = verbose
         self.length = s_end - s_start
+        self.log_trajectories = False
 
     def track(self, p):
 
         mask_alive = p.state > 0
 
-        x_log = []
-        y_log = []
-        z_log = []
+        if self.log_trajectories:
+            x_log = []
+            y_log = []
+            z_log = []
+
         s_in = p.s[mask_alive].copy()
         p.s[mask_alive] = self.s_start
 
@@ -68,13 +71,16 @@ class BorisSpatialIntegrator:
             p.py[mask_alive] = w_new[:, 1] / P0
             p.zeta[mask_alive] += (self.ds - dt * clight * beta0)
 
-            x_log.append(p.x.copy())
-            y_log.append(p.y.copy())
-            z_log.append(p.s.copy())
+            if self.log_trajectories:
+                x_log.append(p.x.copy())
+                y_log.append(p.y.copy())
+                z_log.append(p.s.copy())
         p.s[mask_alive] = s_in + self.length
-        self.x_log = np.array(x_log)
-        self.y_log = np.array(y_log)
-        self.z_log = np.array(z_log)
+
+        if self.log_trajectories:
+            self.x_log = np.array(x_log)
+            self.y_log = np.array(y_log)
+            self.z_log = np.array(z_log)
 
 
 import numpy as np

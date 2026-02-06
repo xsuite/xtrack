@@ -494,9 +494,20 @@ def test_beam_position_monitor(test_context):
     assert_allclose(monitor.y_cen, -expected_x_centroid, err_msg="Monitor y centroid does not match expected values")
 
 @pytest.mark.parametrize("with_progress_bar", [False, True])
-def test_multi_element_monitor(with_progress_bar):
+@pytest.mark.parametrize("iscollective", [False, True])
+def test_multi_element_monitor(with_progress_bar, iscollective):
 
     line = xt.load(test_data_folder / 'hllhc15_thick/lhc_thick_with_knobs.json')
+
+    if iscollective:
+        line['mqwa.a4r7.b1'].iscollective = True
+        line['mcbwh.4l7.b1'].iscollective = True
+        line.discard_tracker()
+        line.build_tracker()
+        assert line.tracker.iscollective
+    else:
+        line.build_tracker()
+        assert not line.tracker.iscollective
 
     # Get names of all BPMs in the line
     tt = line.get_table()
@@ -551,7 +562,7 @@ def test_multi_element_monitor(with_progress_bar):
     xo.assert_allclose(mon.get('delta', obs_name=nn_check_2), mon_2.delta.T, atol=1e-14)
 
     # Access all data for a given coordinate
-    assert mon.data.shape == (num_turns, len(p0.x), 6, len(tt_obs))
+    assert mon.data.shape == (num_turns, len(p0.x), 7, len(tt_obs))
     xo.assert_allclose(mon.get('x'), mon.data[:,:,0,:], atol=1e-14)
     xo.assert_allclose(mon.get('px'), mon.data[:,:,1,:], atol=1e-14)
     xo.assert_allclose(mon.get('y'), mon.data[:,:,2,:], atol=1e-14)

@@ -1417,7 +1417,8 @@ class Tracker:
             multi_element_monitor = None
         else:
             tt = self._tracker_data_base._line_table # reuse cached table
-            if multi_element_monitor_at == '_all_':
+            if (isinstance(multi_element_monitor_at, str)
+                and multi_element_monitor_at == '_all_'):
                 multi_element_monitor_at = tt.name[:-1] # exclude _end_point
             if not isinstance(self._context, xo.ContextCpu):
                 raise NotImplementedError(
