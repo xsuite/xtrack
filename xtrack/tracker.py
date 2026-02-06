@@ -1413,6 +1413,8 @@ class Tracker:
             assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
                 '`multi_element_monitor_at` must be a list, tuple or array of element names'
             tt = self._tracker_data_base._line_table # reuse cached table
+            if multi_element_monitor_at == '_all_':
+                multi_element_monitor_at = tt.name
             indeces_obs = tt.rows.indices[multi_element_monitor_at]
             if len(indeces_obs) != len(multi_element_monitor_at):
                 missing = set(multi_element_monitor_at) - set(
