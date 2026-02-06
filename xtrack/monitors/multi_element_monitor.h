@@ -41,6 +41,7 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                 double const py = LocalParticle_get_py(part);
                 double const zeta = LocalParticle_get_zeta(part);
                 double const delta = LocalParticle_get_delta(part);
+                double const s = LocalParticle_get_s(part);
 
                 MultiElementMonitorData_set_data(
                     el, turn_index, particle_index, 0, store_at, x);
@@ -54,6 +55,8 @@ void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,
                     el, turn_index, particle_index, 4, store_at, zeta);
                 MultiElementMonitorData_set_data(
                     el, turn_index, particle_index, 5, store_at, delta);
+                MultiElementMonitorData_set_data(
+                    el, turn_index, particle_index, 6, store_at, s);
             }
         }
     END_PER_PARTICLE_BLOCK;

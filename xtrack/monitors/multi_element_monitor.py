@@ -20,7 +20,8 @@ class MultiElementMonitor(xt.BeamElement):
         '#include "xtrack/monitors/multi_element_monitor.h"',
     ]
 
-    _coord_name_to_index = {'x': 0, 'px': 1, 'y': 2, 'py': 3, 'zeta': 4, 'delta': 5}
+    _coord_name_to_index = {'x': 0, 'px': 1, 'y': 2, 'py': 3,
+                            'zeta': 4, 'delta': 5, 's': 6}
 
     def __init__(self, start_at_turn, stop_at_turn,
                  part_id_start, part_id_end,

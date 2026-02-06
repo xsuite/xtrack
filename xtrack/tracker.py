@@ -857,7 +857,8 @@ class Tracker:
 
         return _need_unhide_lost_particles, moveback_to_buffer, moveback_to_offset
 
-    def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns, monitor):
+    def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns,
+                    monitor, multi_element_monitor):
         ret = None
         skip = False
         stop_tracking = False
@@ -871,6 +872,8 @@ class Tracker:
             i_start_in_part = self._element_index_in_part[ele_start]
             if i_start_in_part is None:
                 # The start part is collective
+                if multi_element_monitor is not None:
+                    multi_element_monitor.track(particles)
                 ret = pp.track(particles)
             else:
                 # The start part is a non-collective tracker
@@ -878,32 +881,40 @@ class Tracker:
                     and tt == num_turns - 1 and self._element_part[ele_stop] == ipp):
                     # The stop element is also in this part, so track until ele_stop
                     i_stop_in_part = self._element_index_in_part[ele_stop]
-                    ret = pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part, turn_by_turn_monitor=monitor)
+                    ret = pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part,
+                                   turn_by_turn_monitor=monitor,
+                                   multi_element_monitor=multi_element_monitor)
                     stop_tracking = True
                 else:
                     # Track until end of part
-                    ret = pp.track(particles, ele_start=i_start_in_part, turn_by_turn_monitor=monitor)
-
+                    ret = pp.track(particles, ele_start=i_start_in_part,
+                                   turn_by_turn_monitor=monitor,
+                                   multi_element_monitor=multi_element_monitor)
         elif (ele_stop is not None and ele_stop < self.num_elements
                 and tt == num_turns-1 and self._element_part[ele_stop] == ipp):
             # We are in the part that contains the stop element
             i_stop_in_part = self._element_index_in_part[ele_stop]
             if i_stop_in_part is not None:
                 # If not collective, track until ele_stop
-                ret = pp.track(particles, num_elements=i_stop_in_part, turn_by_turn_monitor=monitor)
+                ret = pp.track(particles, num_elements=i_stop_in_part,
+                               turn_by_turn_monitor=monitor,
+                               multi_element_monitor=multi_element_monitor)
             stop_tracking = True
 
         else:
             # We are in between the part that contains the start element,
             # and the one that contains the stop element, so track normally
             if isinstance(pp, TrackerPartNonCollective):
-                ret = pp.track(particles, turn_by_turn_monitor=monitor)
+                ret = pp.track(particles, turn_by_turn_monitor=monitor,
+                               multi_element_monitor=multi_element_monitor)
             else:
                 if hasattr(monitor, 'ebe_mode') and monitor.ebe_mode == 1:
                     assert monitor._context is particles._context, (
                         'Element-by-element monitor not supported in multi-context'
                         ' mode')
                     monitor.track(particles)
+                if multi_element_monitor is not None:
+                    multi_element_monitor.track(particles)
                 ret = pp.track(particles)
 
         return stop_tracking, skip, ret
@@ -930,10 +941,6 @@ class Tracker:
         _session_to_resume=None,
         _reset_log=True,
     ):
-
-        if multi_element_monitor is not None:
-            raise NotImplementedError('multi_element_monitor not implemented yet'
-                                      ' for collective tracking')
 
         if ele_start is None:
             ele_start = 0
@@ -1042,7 +1049,8 @@ class Tracker:
 
                 # Track!
                 stop_tracking, skip, returned_by_track = self._track_part(
-                        particles, pp, tt, ipp, ele_start, ele_stop, num_turns, monitor_part)
+                        particles, pp, tt, ipp, ele_start, ele_stop, num_turns, monitor_part,
+                        multi_element_monitor=multi_element_monitor)
 
                 if returned_by_track is not None:
                     if returned_by_track.on_hold:
@@ -1118,6 +1126,7 @@ class Tracker:
                                num_elements=0)
 
         self.record_last_track = monitor
+        self.record_multi_element_last_track = multi_element_monitor
 
     def _track_no_collective(
         self,
@@ -1407,14 +1416,14 @@ class Tracker:
         if multi_element_monitor_at is None or len(multi_element_monitor_at) == 0:
             multi_element_monitor = None
         else:
+            tt = self._tracker_data_base._line_table # reuse cached table
+            if multi_element_monitor_at == '_all_':
+                multi_element_monitor_at = tt.name
             if not isinstance(self._context, xo.ContextCpu):
                 raise NotImplementedError(
                     'Multi-element monitor is only supported on CPU trackers for now.')
             assert isinstance(multi_element_monitor_at, (list, tuple, np.ndarray)), \
                 '`multi_element_monitor_at` must be a list, tuple or array of element names'
-            tt = self._tracker_data_base._line_table # reuse cached table
-            if multi_element_monitor_at == '_all_':
-                multi_element_monitor_at = tt.name
             indeces_obs = tt.rows.indices[multi_element_monitor_at]
             if len(indeces_obs) != len(multi_element_monitor_at):
                 missing = set(multi_element_monitor_at) - set(
@@ -1428,10 +1437,11 @@ class Tracker:
             # Very simple constructor for now, can be made more solid and flexible later
             part_id_start, part_id_end = particles.get_active_particle_id_range()
             num_particles = part_id_end - part_id_start
-            num_cooordinates = 6 # hardcoded for now (C code of the monitor
+            num_cooordinates = 7 # hardcoded for now (C code of the monitor
                                  # needs to be extended if different number
                                  # of coordinates is needed)
             num_elements = len(multi_element_monitor_at)
+            num_turns = num_turns if num_turns is not None else 1
             multi_element_monitor = xt.MultiElementMonitor(
                 start_at_turn=0,
                 stop_at_turn=num_turns,
@@ -1643,7 +1653,8 @@ class TrackerPartNonCollective:
         self.ele_start_in_tracker = ele_start_in_tracker
         self.ele_stop_in_tracker = ele_stop_in_tracker
 
-    def track(self, particles, ele_start=None, ele_stop=None, num_elements=None, turn_by_turn_monitor=None):
+    def track(self, particles, ele_start=None, ele_stop=None, num_elements=None,
+              turn_by_turn_monitor=None, multi_element_monitor=None):
         if ele_start is None:
             temp_ele_start = self.ele_start_in_tracker
         else:
@@ -1661,7 +1672,8 @@ class TrackerPartNonCollective:
 
         self.tracker._track_no_collective(particles, ele_start=temp_ele_start,
                            num_elements=temp_num_elements, turn_by_turn_monitor=turn_by_turn_monitor,
-                           _force_no_end_turn_actions=True)
+                           _force_no_end_turn_actions=True,
+                           multi_element_monitor=multi_element_monitor)
 
     def __repr__(self):
         return (f'TrackerPartNonCollective({self.ele_start_in_tracker}, '
