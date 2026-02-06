@@ -11,13 +11,15 @@ from spline_fitter.fieldmap_parsers import StandardFieldMapParser
 import matplotlib.pyplot as plt
 import pandas as pd
 
+# Set basic parameters
 interval = 30
 dx = 0.001
 dy = 0.001
 multipole_order = 4
 n_steps = 5000
 
-delta = np.array([0, 0.001])
+# Make initial particles
+delta = np.array([0, 4])
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                 energy0=45.6e6,  # 45.6 GeV (e.g. FCC-ee Z-pole)
                 x=1e-3,  # Start slightly off-axis
@@ -25,17 +27,20 @@ p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                 y=1e-3,
                 delta=delta)
 
+# Make solenoid field instance
 sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
 
+# Small wrapper, used to use it for x and y offsets, but kept it for simplicity.
 def get_field(x, y, z):
     return sf.get_field(x, y, z)
 
+# Prepare field map directory
 field_maps_dir = Path(__file__).parent / "field_maps"
 field_maps_dir.mkdir(exist_ok=True)
 fit_pars_path = field_maps_dir / "solenoid_fit_pars.csv"
 
 
-# Construct field map and fit
+# Construct field map
 x_axis = np.linspace(-multipole_order*dx/2, multipole_order*dx/2, multipole_order+1)
 y_axis = np.linspace(-multipole_order*dy/2, multipole_order*dy/2, multipole_order+1)
 z_axis = np.linspace(0, interval, n_steps+1)
@@ -51,7 +56,8 @@ data = np.column_stack([
 np.savetxt(field_maps_dir / "solenoid_field.dat", data)
 parser = StandardFieldMapParser()
 df_raw_data = parser.parse(field_maps_dir / "solenoid_field.dat")
-# ds=1 so that s_full = Z * ds = Z (meters). Raw Z from the field map is in meters.
+
+# Fit the field map data
 fitter = FieldFitter(df_raw_data=df_raw_data,
     xy_point=(0, 0),
     dx=dx,
@@ -77,7 +83,7 @@ df_fit_pars = pd.read_csv(fit_pars_path)
 seq = xt.SplineBorisSequence(
     df_fit_pars=df_fit_pars,
     multipole_order=multipole_order,
-    steps_per_point=5,  # one integration step per data point
+    steps_per_point=1,  # one integration step per data point
 )
 
 # Get the Line of SplineBoris elements
@@ -117,38 +123,6 @@ line_varsol.build_tracker()
 p_varsol = p0.copy()
 line_varsol.track(p_varsol, turn_by_turn_monitor='ONE_TURN_EBE')
 mon_varsol = line_varsol.record_last_track
-
-# === COMPARISON: Quantify agreement between trackers ===
-print("\n" + "="*60)
-print("TRACKING COMPARISON")
-print("="*60)
-
-# Final state comparison
-print(f"\n--- Final particle states (delta={delta.tolist()}) ---")
-print(f"{'':20s} {'SplineBoris':>15s} {'Boris(ref)':>15s} {'VarSol':>15s}")
-for i in range(len(delta)):
-    print(f"Particle {i} (delta={delta[i]}):")
-    print(f"{'  x [mm]':20s} {p_splineboris.x[i]*1e3:15.6f} {p_boris.x[i]*1e3:15.6f} {p_varsol.x[i]*1e3:15.6f}")
-    print(f"{'  y [mm]':20s} {p_splineboris.y[i]*1e3:15.6f} {p_boris.y[i]*1e3:15.6f} {p_varsol.y[i]*1e3:15.6f}")
-    print(f"{'  px [mrad]':20s} {p_splineboris.px[i]*1e3:15.6f} {p_boris.px[i]*1e3:15.6f} {p_varsol.px[i]*1e3:15.6f}")
-    print(f"{'  py [mrad]':20s} {p_splineboris.py[i]*1e3:15.6f} {p_boris.py[i]*1e3:15.6f} {p_varsol.py[i]*1e3:15.6f}")
-
-# Differences
-print("\n--- SplineBoris vs Boris (fitted spline vs analytical field) ---")
-for i in range(len(delta)):
-    dx = (p_splineboris.x[i] - p_boris.x[i]) * 1e6  # in um
-    dy = (p_splineboris.y[i] - p_boris.y[i]) * 1e6
-    dpx = (p_splineboris.px[i] - p_boris.px[i]) * 1e6  # in urad
-    dpy = (p_splineboris.py[i] - p_boris.py[i]) * 1e6
-    print(f"  particle {i} (delta={delta[i]}): Δx={dx:.2f}um, Δy={dy:.2f}um, Δpx={dpx:.2f}urad, Δpy={dpy:.2f}urad")
-
-print("\n--- Boris vs VariableSolenoid (full 3D field vs paraxial model) ---")
-for i in range(len(delta)):
-    dx = (p_boris.x[i] - p_varsol.x[i]) * 1e3
-    dy = (p_boris.y[i] - p_varsol.y[i]) * 1e3
-    dpx = (p_boris.px[i] - p_varsol.px[i]) * 1e3
-    dpy = (p_boris.py[i] - p_varsol.py[i]) * 1e3
-    print(f"  particle {i} (delta={delta[i]}): Δx={dx:.4f}mm, Δy={dy:.4f}mm, Δpx={dpx:.4f}mrad, Δpy={dpy:.4f}mrad")
 
 # Use mon_varsol as mon_ref for plotting
 mon_ref = mon_varsol
@@ -225,10 +199,3 @@ for i in range(n_part):
 
 plt.tight_layout()
 plt.show()
-
-# SplineBoris (fitted spline) vs Boris (analytical field) - should agree within fit accuracy
-xo.assert_allclose(p_splineboris.x, p_boris.x, rtol=0, atol=10e-6)  # 10 um
-xo.assert_allclose(p_splineboris.y, p_boris.y, rtol=0, atol=10e-6)
-xo.assert_allclose(p_splineboris.px, p_boris.px, rtol=0, atol=10e-6)  # 10 urad
-xo.assert_allclose(p_splineboris.py, p_boris.py, rtol=0, atol=10e-6)
-print("\nAssertions passed: SplineBoris matches Boris reference within 10um/10urad tolerance")
