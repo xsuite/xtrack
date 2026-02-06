@@ -1126,6 +1126,66 @@ class SplineBoris(BeamElement):
             multipole_order=multipole_order, poly_order=poly_order,
         )
 
+    @staticmethod
+    def spline_poly(s_start, s_end, coeffs):
+        """
+        Build a 5th-order spline polynomial over [s_start, s_end] from boundary data.
+
+        The coefficients define the polynomial through boundary conditions and
+        the integral over the interval:
+
+        - coeffs[0] = f(s_start)       : function value at start
+        - coeffs[1] = f'(s_start)      : derivative at start
+        - coeffs[2] = f(s_end)         : function value at end
+        - coeffs[3] = f'(s_end)        : derivative at end
+        - coeffs[4] = ∫[s_start,s_end] f(s) ds : integral over interval
+
+        Parameters
+        ----------
+        s_start : float
+            Start of the interval.
+        s_end : float
+            End of the interval.
+        coeffs : array-like
+            5-element array [f(s0), f'(s0), f(s1), f'(s1), integral].
+
+        Returns
+        -------
+        numpy.polynomial.Polynomial
+            Polynomial object that can be evaluated at any s in [s_start, s_end].
+
+        Examples
+        --------
+        >>> import xtrack as xt
+        >>> import numpy as np
+        >>> # Constant field B=0.1 over [0, 1]
+        >>> coeffs = [0.1, 0.0, 0.1, 0.0, 0.1]  # f=0.1, f'=0, integral=0.1
+        >>> poly = xt.SplineBoris.spline_poly(0, 1, coeffs)
+        >>> poly(0.5)  # Evaluate at midpoint
+        0.1
+        """
+        c1, c2, c3, c4, c5 = coeffs
+        L = s_end - s_start
+        t = np.polynomial.Polynomial([-s_start / L, 1 / L])
+
+        # Basis functions on [0, 1]
+        b1_coeffs = [1, 0, -18, 32, -15]
+        b2_coeffs = [0, 1, -4.5, 6, -2.5]
+        b3_coeffs = [0, 0, -12, 28, -15]
+        b4_coeffs = [0, 0, 1.5, -4, 2.5]
+        b5_coeffs = [0, 0, 30, -60, 30]
+        b1_poly = np.polynomial.Polynomial(b1_coeffs)
+        b2_poly = np.polynomial.Polynomial(b2_coeffs)
+        b3_poly = np.polynomial.Polynomial(b3_coeffs)
+        b4_poly = np.polynomial.Polynomial(b4_coeffs)
+        b5_poly = np.polynomial.Polynomial(b5_coeffs)
+
+        # Combine with correct scaling for derivatives/integral
+        poly_t = (c1 * b1_poly + L * c2 * b2_poly + c3 * b3_poly +
+                  L * c4 * b4_poly + (c5 / L) * b5_poly)
+        poly_s = poly_t(t)
+        return poly_s
+
     def __init__(self,
                  par_table=None,
                  multipole_order=1,

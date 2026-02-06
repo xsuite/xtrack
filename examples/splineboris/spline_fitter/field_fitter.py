@@ -120,35 +120,10 @@ class FieldFitter:
         """
         Build a 5th-order spline polynomial over [s0, s1] from boundary data.
 
-        The coefficients are defined by the boundary conditions and the integral
-        over the interval:
-        - c1 = f(s0)
-        - c2 = f'(s0)
-        - c3 = f(s1)
-        - c4 = f'(s1)
-        - c5 = ∫[s0,s1] f(s) ds
+        This is a convenience wrapper around ``xt.SplineBoris.spline_poly``.
+        See that method for full documentation.
         """
-
-        c1, c2, c3, c4, c5 = coeffs
-        L = s1 - s0
-        t = np.polynomial.Polynomial([-s0 / L, 1 / L])
-
-        # basis functions on [0,1]
-        b1_coeffs = [1, 0, -18, 32, -15]
-        b2_coeffs = [0, 1, -4.5, 6, -2.5]
-        b3_coeffs = [0, 0, -12, 28, -15]
-        b4_coeffs = [0, 0, 1.5, -4, 2.5]
-        b5_coeffs = [0, 0, 30, -60, 30]
-        b1_poly = np.polynomial.Polynomial(b1_coeffs)
-        b2_poly = np.polynomial.Polynomial(b2_coeffs)
-        b3_poly = np.polynomial.Polynomial(b3_coeffs)
-        b4_poly = np.polynomial.Polynomial(b4_coeffs)
-        b5_poly = np.polynomial.Polynomial(b5_coeffs)
-
-        # combine with correct scaling for derivatives/integral
-        poly_t = c1 * b1_poly + L * c2 * b2_poly + c3 * b3_poly + L * c4 * b4_poly + (c5 / L) * b5_poly
-        poly_s = poly_t(t)
-        return poly_s
+        return xt.SplineBoris.spline_poly(s0, s1, coeffs)
 
 
 
