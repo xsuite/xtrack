@@ -494,7 +494,7 @@ def test_splineboris_solenoid_vs_variable_solenoid():
     # )
     # # Use lower field_tol to include transverse field gradients needed for solenoid focusing
     # fitter.field_tol = 1e-4
-    # fitter.set()
+    # fitter.fit()
     # fitter.save_fit_pars(fit_pars_path)
 
     # Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
@@ -616,7 +616,7 @@ def test_splineboris_undulator_vs_boris_spatial():
     #     min_region_size=10,
     #     deg=multipole_order-1,
     # )
-    # fitter.set()
+    # fitter.fit()
     # fitter.save_fit_pars(filepath)
 
     # Build undulator using SplineBorisSequence

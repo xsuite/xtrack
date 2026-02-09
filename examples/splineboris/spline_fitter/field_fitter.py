@@ -15,7 +15,7 @@ import xtrack as xt
 
 
 class FieldFitter:
-    """
+    '''
     Fit on-axis field data and transverse derivatives using piecewise polynomials.
 
     The fitting pipeline extracts on-axis data, identifies longitudinal regions,
@@ -39,38 +39,23 @@ class FieldFitter:
     deg :
         Maximum transverse derivative order to compute and fit.
 
-    Public Methods
-    -------
-    set() :
-        Set the fit parameters and fit the data.
-    save_fit_pars(file_path) :
-        Save the fit parameters to a CSV file.
-    plot_integrated_fields() :
-        Plot the integrated fields for the raw and fit data.
-    plot_fields(der=0) :
-        Plot the fields for the raw and fit data.
-
-    Private Methods
-    ---------------
-    _set_raw_data(raw_data) :
-        Set the raw data DataFrame and compute the longitudinal spacing.
-    _set_df_on_axis() :
-        Extract on-axis data and compute transverse derivatives.
-    _find_regions() :
-        Identify regions for polynomial fitting.
-    _set_df_fit_pars(der_order, n_pieces, field, idx_extrema, to_fit=True) :
-        Initialize and append rows to the df_fit_pars DataFrame.
-    _boundary_from_poly(sL, poly) :
-        Compute the boundary conditions from a previously fitted polynomial.
-    _boundary_from_finite_differences(b_region, s_region, get_right_point=True) :
-        Compute the boundary conditions from finite differences in the specified region.
-    _fit_single_poly(field, der_order, sub_df_this, sub_df_prev=None) :
-        Fit a single polynomial piece to the specified region of data.
-    _fit_slices() :
-        Fit polynomials to each region for all fields and derivatives.
-    _fit_transverse_polynomials(der=0) :
-        Fit transverse polynomials using all available X points at Y == 0.
-    """
+    DataFrames
+    ----------
+    df_raw_data :
+        Raw data DataFrame with MultiIndex ``('X', 'Y', 'Z')`` and columns
+        ``('Bx', 'By', 'Bs')``.
+    df_on_axis_raw :
+        On-axis raw data DataFrame with MultiIndex ``('X', 'Y', 'Z')`` and columns
+        ``('Bx', 'By', 'Bs')``. Filled with the on-axis data from the raw data and
+        the on-axis transverse derivatives from fit_transverse_polynomials.
+    df_on_axis_fit :
+        On-axis fit data DataFrame with MultiIndex ``('X', 'Y', 'Z')`` and columns
+        ``('Bx', 'By', 'Bs')``. Filled with the on-axis fit data from the raw data and
+        the on-axis transverse derivatives from fit_transverse_polynomials.
+    df_fit_pars :
+        Fit parameters DataFrame with MultiIndex ``('field_component', 'derivative_x', 'region_name', 's_start', 's_end', 'idx_start', 'idx_end', 'param_index')``.
+        Filled with the fit parameters for each polynomial piece for each field and derivative.
+    '''
 
     def __init__(
             self,
@@ -101,10 +86,10 @@ class FieldFitter:
         self._set_raw_data(raw_data)
 
     # PUBLIC
-    # Setter method that calls all the other methods to arrive at a fit.
-    def set(self):
+    # Method that calls all the other methods to arrive at a fit.
+    def fit(self):
         if self.df_raw_data is None:
-            raise RuntimeError("Raw data must be provided before calling set().")
+            raise RuntimeError("Raw data must be provided before calling fit().")
         self._set_df_on_axis()
         self._find_regions()
         self._fit_slices()

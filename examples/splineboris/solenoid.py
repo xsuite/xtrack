@@ -65,7 +65,7 @@ fitter = FieldFitter(raw_data=fieldmap_path,
 )
 # Use lower field_tol to include transverse field gradients needed for solenoid focusing
 fitter.field_tol = 1e-4
-fitter.set()
+fitter.fit()
 fitter.save_fit_pars(fit_pars_path)
 
 # Plot the fit results

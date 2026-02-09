@@ -56,7 +56,7 @@ field_fitter = FieldFitter(
     deg=multipole_order-1,
 )
 
-field_fitter.set()
+field_fitter.fit()
 field_fitter.save_fit_pars(
     BASE_DIR
     / "field_maps"

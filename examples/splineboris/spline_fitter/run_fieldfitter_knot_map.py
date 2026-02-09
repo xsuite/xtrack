@@ -33,7 +33,7 @@ if __name__ == "__main__":
         deg=2,
     )
 
-    fitter.set()
+    fitter.fit()
     fitter.save_fit_pars(fit_par_path)
 
     print(f"Field map fitted successfully.\nParameters saved to: {fit_par_path}")

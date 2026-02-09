@@ -8,7 +8,6 @@ inserts wigglers at 11 locations, computes twiss with spin tracking.
 import xtrack as xt
 from pathlib import Path
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from spline_fitter.field_fitter import FieldFitter
 
@@ -56,7 +55,7 @@ field_fitter = FieldFitter(
     deg=multipole_order-1,
 )
 
-field_fitter.set()
+field_fitter.fit()
 field_fitter.save_fit_pars(
     BASE_DIR
     / "field_maps"
