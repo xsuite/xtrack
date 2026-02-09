@@ -65,10 +65,8 @@ def test_splineboris_homogeneous_analytic(field_angle):
 
     # Assert that the field is constant (homogeneous) over the region
     # This validates that the polynomial representation correctly represents a constant field
-    np.testing.assert_allclose(Bx_values, B_x, rtol=1e-12, atol=1e-12,
-                                err_msg="B_x field should be constant (homogeneous)")
-    np.testing.assert_allclose(By_values, B_y, rtol=1e-12, atol=1e-12,
-                                err_msg="B_y field should be constant (homogeneous)")
+    xo.assert_allclose(Bx_values, B_x, rtol=1e-12, atol=1e-12)
+    xo.assert_allclose(By_values, B_y, rtol=1e-12, atol=1e-12)
 
     param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
         bs=bs,
@@ -206,10 +204,10 @@ def test_splineboris_homogeneous_analytic(field_angle):
     xp_final_splineboris = p.kin_xprime[0]
     yp_final_splineboris = p.kin_yprime[0]
 
-    assert np.allclose(x_final, x_end_splineboris, atol=1e-12)
-    assert np.allclose(y_final, y_end_splineboris, atol=1e-12)
-    assert np.allclose(xp_final, xp_final_splineboris, atol=1e-12)
-    assert np.allclose(yp_final, yp_final_splineboris, atol=1e-12)
+    xo.assert_allclose(x_final, x_end_splineboris, atol=1e-12, rtol=1e-5)
+    xo.assert_allclose(y_final, y_end_splineboris, atol=1e-12, rtol=1e-5)
+    xo.assert_allclose(xp_final, xp_final_splineboris, atol=1e-12, rtol=1e-5)
+    xo.assert_allclose(yp_final, yp_final_splineboris, atol=1e-12, rtol=1e-5)
 
 
 
@@ -255,10 +253,8 @@ def test_splineboris_homogeneous_rbend(field_angle):
 
     # Assert that the field is constant (homogeneous) over the region
     # This validates that the polynomial representation correctly represents a constant field
-    np.testing.assert_allclose(Bx_values, B_x, rtol=1e-12, atol=1e-12,
-                                err_msg="B_x field should be constant (homogeneous)")
-    np.testing.assert_allclose(By_values, B_y, rtol=1e-12, atol=1e-12,
-                                err_msg="B_y field should be constant (homogeneous)")
+    xo.assert_allclose(Bx_values, B_x, rtol=1e-12, atol=1e-12)
+    xo.assert_allclose(By_values, B_y, rtol=1e-12, atol=1e-12)
 
     param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
         bs=bs,
@@ -316,10 +312,10 @@ def test_splineboris_homogeneous_rbend(field_angle):
     px_final_splineboris = p_splineboris.kin_px[0]
     py_final_splineboris = p_splineboris.kin_py[0]
 
-    assert np.allclose(x_end_rbend, x_end_splineboris, atol=1e-12)
-    assert np.allclose(y_end_rbend, y_end_splineboris, atol=1e-12)
-    assert np.allclose(px_end_rbend, px_final_splineboris, atol=1e-12)
-    assert np.allclose(py_end_rbend, py_final_splineboris, atol=1e-12)
+    xo.assert_allclose(x_end_rbend, x_end_splineboris, atol=1e-12, rtol=1e-5)
+    xo.assert_allclose(y_end_rbend, y_end_splineboris, atol=1e-12, rtol=1e-5)
+    xo.assert_allclose(px_end_rbend, px_final_splineboris, atol=1e-12, rtol=1e-5)
+    xo.assert_allclose(py_end_rbend, py_final_splineboris, atol=1e-12, rtol=1e-5)
 
 
 
@@ -390,8 +386,7 @@ def test_uniform_solenoid():
 
     # Assert that the field is constant (homogeneous) over the region
     # This validates that the polynomial representation correctly represents a constant field
-    np.testing.assert_allclose(Bs_values, Bz_T, rtol=1e-12, atol=1e-12,
-                                err_msg="Bs field should be constant (homogeneous)")
+    xo.assert_allclose(Bs_values, Bz_T, rtol=1e-12, atol=1e-12)
 
     param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
         bs=bs,
@@ -1102,8 +1097,7 @@ def test_splineboris_spin_uniform_solenoid(case, atol):
 
     # Assert that the field is constant (homogeneous) over the region
     # This validates that the polynomial representation correctly represents a constant field
-    np.testing.assert_allclose(Bs_values, Bz_T, rtol=1e-12, atol=1e-12,
-                                err_msg="Bs field should be constant (homogeneous)")
+    xo.assert_allclose(Bs_values, Bz_T, rtol=1e-12, atol=1e-12)
 
     param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
         bs=bs,
@@ -1195,8 +1189,7 @@ def test_splineboris_spin_quadrupole(case, atol):
     bs[:len(Bs_poly.coef)] = Bs_poly.coef
 
     # Assert that the gradient is constant (homogeneous) over the region
-    np.testing.assert_allclose(kn_1_values, quad_gradient, rtol=1e-12, atol=1e-12,
-                                err_msg="kn_1 (normal quad gradient) should be constant")
+    xo.assert_allclose(kn_1_values, quad_gradient, rtol=1e-12, atol=1e-12)
 
     param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
         bs=bs,
@@ -1225,5 +1218,3 @@ def test_splineboris_spin_quadrupole(case, atol):
     xo.assert_allclose(p.spin_x[0], ref['spin_x'], atol=atol, rtol=0)
     xo.assert_allclose(p.spin_y[0], ref['spin_y'], atol=atol, rtol=0)
     xo.assert_allclose(p.spin_z[0], ref['spin_z'], atol=atol, rtol=0)
-
-test_splineboris_spin_quadrupole(case=COMMON_TEST_CASES[0]['case'], atol=6e-8)
