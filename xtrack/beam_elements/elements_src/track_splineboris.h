@@ -233,12 +233,11 @@ void SplineBoris_single_particle(
         // Compute path length for spin and radiation tracking
         // dzeta per step = ds - dt * c * beta0
         double const rvv = LocalParticle_get_rvv(part);
-        double const dzeta = ds - dt * c * beta0;
-        double const l_path = rvv * (ds - dzeta);
+        double const l_path = rvv * dt * c * beta0;
         
         // Track spin over this step
         // Field is evaluated at midpoint (xh, yh), track over step length ds
-        // TODO: When curvature is fully implemented, remove this check
+        // TODO: When curvature is fully implemented, remove the curvature check
         if (hx == 0.0) {
             magnet_spin(part, Bx, By, Bs, hx, ds, l_path);
         }

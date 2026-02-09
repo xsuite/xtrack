@@ -811,17 +811,17 @@ def test_splineboris_radiation():
     )
 
     # Initialize random number generators
-    particles_mean._init_random_number_generator()
-    particles_qntm._init_random_number_generator()
+    particles_mean_0._init_random_number_generator()
+    particles_qntm_0._init_random_number_generator()
 
-    dct_mean_before = particles_mean.to_dict()
+    dct_mean_before = particles_mean_0.to_dict()
 
     # Track particles
-    splineboris_mean.track(particles_mean)
-    splineboris_qntm.track(particles_qntm)
+    splineboris_mean.track(particles_mean_0)
+    splineboris_qntm.track(particles_qntm_0)
 
-    dct_mean = particles_mean.to_dict()
-    dct_qntm = particles_qntm.to_dict()
+    dct_mean = particles_mean_0.to_dict()
+    dct_qntm = particles_qntm_0.to_dict()
 
     # Test 1: Average and stochastic models should give same mean energy loss
     xo.assert_allclose(dct_mean['delta'], np.mean(dct_qntm['delta']),
@@ -906,3 +906,324 @@ def test_splineboris_radiation():
 
     xo.assert_allclose(mean_photon_energy, E_ave_eV, rtol=1e-2, atol=0)
     xo.assert_allclose(std_photon_energy, np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=2e-3, atol=0)
+
+# Use the same test cases as in test_spin.py
+COMMON_TEST_CASES = [
+    {
+        'case': {
+            'x': 0.001,
+            'px': 1e-05,
+            'y': 0.002,
+            'py': 2e-05,
+            'delta': 0.001,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'base'
+    },
+    {
+        'case': {
+            'x': 0.001,
+            'px': 1e-05,
+            'y': 0.002,
+            'py': 2e-05,
+            'delta': -0.01,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'delta=-0.01'
+    },
+    {
+        'case': {
+            'x': 0.001,
+            'px': 1e-05,
+            'y': 0.002,
+            'py': 2e-05,
+            'delta': -0.005,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'delta=-0.005'
+    },
+    {
+        'case': {
+            'x': 0.001,
+            'px': 1e-05,
+            'y': 0.002,
+            'py': 2e-05,
+            'delta': 0,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'delta=0'
+    },
+    {
+        'case': {
+            'x': 0.001,
+            'px': 1e-05,
+            'y': 0.002,
+            'py': 2e-05,
+            'delta': 0.005,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'delta=0.005'
+    },
+    {
+        'case': {
+            'x': 0.001,
+            'px': 1e-05,
+            'y': 0.002,
+            'py': 2e-05,
+            'delta': 0.01,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'delta=0.01'
+    },
+    {
+        'case': {
+            'x': 0.001,
+            'px': -0.03,
+            'y': 0.002,
+            'py': -0.02,
+            'delta': 0.001,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'px=-0.03, py=-0.02'
+    },
+    {
+        'case': {
+            'x': 0.001,
+            'px': -0.015,
+            'y': 0.002,
+            'py': -0.01,
+            'delta': 0.001,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'px=-0.015, py=-0.01'
+    },
+    {
+        'case': {
+            'x': 0.001,
+            'px': 0,
+            'y': 0.002,
+            'py': 0,
+            'delta': 0.001,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'px=0, py=0'
+    },
+    {
+        'case': {
+            'x': 0.001,
+            'px': 0.015,
+            'y': 0.002,
+            'py': 0.01,
+            'delta': 0.001,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'px=0.015, py=0.01'
+    },
+    {
+        'case': {
+            'x': 0.001,
+            'px': 0.03,
+            'y': 0.002,
+            'py': 0.02,
+            'delta': 0.001,
+            'spin_x': 0.1,
+            'spin_z': 0.2,
+        },
+        'id': 'px=0.03, py=0.02'
+    }
+]
+@pytest.mark.parametrize(
+    'case,atol',
+    zip(
+        [case['case'].copy() for case in COMMON_TEST_CASES],
+        [3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 2e-5, 1e-5, 2e-8, 1e-5, 2e-5],
+    ),
+    ids=[case['id'] for case in COMMON_TEST_CASES],
+)
+def test_splineboris_spin_uniform_solenoid(case, atol):
+    case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
+
+    ref_file = Path(xt.__file__).parent / '../test_data/spin_refs_bmad' / 'solenoid_bmad.json'
+    refs = xt.json.load(ref_file)
+
+    ref = None
+    for ref_case in refs:
+        if ref_case['in'] == case:
+            ref = ref_case['out']
+            break
+    if ref is None:
+        raise ValueError(f'Case {case} not found in file {ref_file}')
+
+
+    p = xt.Particles(
+        p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
+        anomalous_magnetic_moment=0.00115965218128,
+        **case,
+    )
+
+    Bz_T = 0.05
+
+    length = 0.02
+    s_start = 0
+    s_end = length
+    n_steps = 1000
+
+    # Homogeneous transverse field coefficients on [s_start, s_end]
+    # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
+    Bx_0_coeffs = np.array([0, 0.0, 0.0, 0.0, 0])
+    By_0_coeffs = np.array([0, 0.0, 0.0, 0.0, 0])
+    Bs_coeffs = np.array([Bz_T, 0.0, Bz_T, 0.0, Bz_T * length])
+
+    # Convert to the basis that the field evaluator uses.
+    Bx_poly = xt.SplineBoris.spline_poly(s_start, s_end, Bx_0_coeffs)
+    By_poly = xt.SplineBoris.spline_poly(s_start, s_end, By_0_coeffs)
+    Bs_poly = xt.SplineBoris.spline_poly(s_start, s_end, Bs_coeffs)
+
+    Bs_values = Bs_poly(np.linspace(s_start, s_end, 100))
+
+    degree = 4
+
+    ks_0 = np.zeros(degree + 1)
+    ks_0[:len(Bx_poly.coef)] = Bx_poly.coef
+    kn_0 = np.zeros(degree + 1)
+    kn_0[:len(By_poly.coef)] = By_poly.coef
+    bs = np.zeros(degree + 1)
+    bs[:len(Bs_poly.coef)] = Bs_poly.coef
+
+    # Assert that the field is constant (homogeneous) over the region
+    # This validates that the polynomial representation correctly represents a constant field
+    np.testing.assert_allclose(Bs_values, Bz_T, rtol=1e-12, atol=1e-12,
+                                err_msg="Bs field should be constant (homogeneous)")
+
+    param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
+        bs=bs,
+        kn={0: kn_0},
+        ks={0: ks_0},
+        n_steps=n_steps,
+    )
+
+    splineboris = xt.SplineBoris(
+        par_table=param_table,
+        s_start=s_start,
+        s_end=s_end,
+        multipole_order=1,
+        n_steps=n_steps,
+    )
+
+    line_splineboris = xt.Line(elements=[splineboris])
+    line_splineboris.particle_ref = p.copy()
+
+    line_splineboris.configure_spin(spin_model='auto')
+
+    line_splineboris.track(p)
+
+    print(p.spin_x[0], p.spin_y[0], p.spin_z[0])
+    print(ref['spin_x'], ref['spin_y'], ref['spin_z'])
+
+    xo.assert_allclose(p.spin_x[0], ref['spin_x'], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_y[0], ref['spin_y'], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_z[0], ref['spin_z'], atol=atol, rtol=0)
+
+
+
+@pytest.mark.parametrize(
+    'case,atol',
+    zip(
+        [case['case'].copy() for case in COMMON_TEST_CASES],
+        [6e-8, 6e-8, 6e-8, 6e-8, 6e-8, 6e-8, 6e-5, 3e-5, 2e-7, 3e-5, 6e-5],
+    ),
+    ids=[case['id'] for case in COMMON_TEST_CASES],
+)
+def test_splineboris_spin_quadrupole(case, atol):
+    case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
+
+    ref_file = Path(xt.__file__).parent / '../test_data/spin_refs_bmad' / 'quadrupole_bmad.json'
+    refs = xt.json.load(ref_file)
+
+    ref = None
+    for ref_case in refs:
+        if ref_case['in'] == case:
+            ref = ref_case['out']
+            break
+    if ref is None:
+        raise ValueError(f'Case {case} not found in file {ref_file}')
+
+    p = xt.Particles(
+        p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
+        anomalous_magnetic_moment=0.00115965218128,
+        **case,
+    )
+
+    k1=0.01
+    quad_gradient = k1 * p.p0c[0] / clight / p.q0
+
+    length = 0.02
+    s_start = 0
+    s_end = length
+    n_steps = 100
+
+    # Spline coefficients on [s_start, s_end]:
+    # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
+    #
+    # For a normal quadrupole, only kn_1 (normal multipole order 1) is needed.
+    # The field evaluator derives both By = kn_1*x and Bx = kn_1*y from
+    # kn_1 via Maxwell's equations. ks_1 (skew quadrupole) must be zero.
+    kn_1_coeffs = np.array([quad_gradient, 0.0, quad_gradient, 0.0, quad_gradient * length])
+    Bs_coeffs = np.array([0, 0.0, 0.0, 0.0, 0])
+
+    # Convert to the basis that the field evaluator uses.
+    kn_1_poly = xt.SplineBoris.spline_poly(s_start, s_end, kn_1_coeffs)
+    Bs_poly = xt.SplineBoris.spline_poly(s_start, s_end, Bs_coeffs)
+
+    kn_1_values = kn_1_poly(np.linspace(s_start, s_end, 100))
+
+    degree = 4
+
+    kn_1 = np.zeros(degree + 1)
+    kn_1[:len(kn_1_poly.coef)] = kn_1_poly.coef
+    bs = np.zeros(degree + 1)
+    bs[:len(Bs_poly.coef)] = Bs_poly.coef
+
+    # Assert that the gradient is constant (homogeneous) over the region
+    np.testing.assert_allclose(kn_1_values, quad_gradient, rtol=1e-12, atol=1e-12,
+                                err_msg="kn_1 (normal quad gradient) should be constant")
+
+    param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
+        bs=bs,
+        kn={1: kn_1},
+        ks={},
+        n_steps=n_steps,
+        multipole_order=2,
+    )
+
+    splineboris = xt.SplineBoris(
+        par_table=param_table,
+        s_start=s_start,
+        s_end=s_end,
+        multipole_order=2,
+        n_steps=n_steps,
+    )
+
+    # Reference and test particle
+    line_splineboris = xt.Line(elements=[splineboris])
+    line_splineboris.particle_ref = p.copy()
+
+    line_splineboris.configure_spin(spin_model='auto')
+
+    line_splineboris.track(p)
+
+    xo.assert_allclose(p.spin_x[0], ref['spin_x'], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_y[0], ref['spin_y'], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_z[0], ref['spin_z'], atol=atol, rtol=0)
+
+test_splineboris_spin_quadrupole(case=COMMON_TEST_CASES[0]['case'], atol=6e-8)
