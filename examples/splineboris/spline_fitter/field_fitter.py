@@ -273,10 +273,10 @@ class FieldFitter:
                         if n_parts <= 1:
                             new_extrema.append(int(right))
                             continue
-                    splits = np.round(np.linspace(left, right, n_parts + 1)).astype(int)
-                    for s_split in splits[1:]:
-                        if s_split > new_extrema[-1]:
-                            new_extrema.append(int(s_split))
+                        splits = np.round(np.linspace(left, right, n_parts + 1)).astype(int)
+                        for s_split in splits[1:]:
+                            if s_split > new_extrema[-1]:
+                                new_extrema.append(int(s_split))
 
                     field_extrema = np.unique(np.asarray(new_extrema, dtype=int))
                     to_fit = True

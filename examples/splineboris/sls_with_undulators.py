@@ -8,7 +8,6 @@ inserts wigglers at 11 locations, computes twiss with radiation integrals, and p
 import xtrack as xt
 from pathlib import Path
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from spline_fitter.field_fitter import FieldFitter
 
@@ -51,7 +50,7 @@ field_fitter = FieldFitter(
     dx=dx,
     dy=dy,
     ds=ds,
-    min_region_size=10,
+    min_region_size=5,
     deg=multipole_order-1,
 )
 
