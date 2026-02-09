@@ -31,7 +31,7 @@ line_sls.particle_ref = p0.copy()
 BASE_DIR = Path(__file__).resolve().parent
 
 # Load the raw field map data from knot_map_test.txt
-field_map_path = BASE_DIR / "spline_fitter" / "field_maps" / "knot_map_test.txt"
+field_map_path = BASE_DIR / "field_maps" / "knot_map_test.txt"
 df_raw_data = pd.read_csv(
     field_map_path,
     sep='\t',
@@ -40,13 +40,10 @@ df_raw_data = pd.read_csv(
 )
 df_raw_data = df_raw_data.set_index(['X', 'Y', 'Z'])
 
-# Determine grid spacing from the data
-x_vals = df_raw_data.index.get_level_values('X').unique().sort_values()
-y_vals = df_raw_data.index.get_level_values('Y').unique().sort_values()
-z_vals = df_raw_data.index.get_level_values('Z').unique().sort_values()
-dx = x_vals[1] - x_vals[0] if len(x_vals) > 1 else 1
-dy = y_vals[1] - y_vals[0] if len(y_vals) > 1 else 1
-ds = z_vals[1] - z_vals[0] if len(z_vals) > 1 else 1
+# Grid spacing in meters (the dataset uses mm, so 1 mm = 0.001 m)
+dx = 0.001
+dy = 0.001
+ds = 0.001
 
 field_fitter = FieldFitter(
     raw_data=df_raw_data,
@@ -61,7 +58,6 @@ field_fitter = FieldFitter(
 field_fitter.set()
 field_fitter.save_fit_pars(
     BASE_DIR
-    / "spline_fitter"
     / "field_maps"
     / "field_fit_pars.csv"
 )
@@ -71,7 +67,7 @@ field_fitter.save_fit_pars(
 seq = xt.SplineBorisSequence(
     df_fit_pars=field_fitter.df_fit_pars,
     multipole_order=multipole_order,
-    steps_per_point=1,
+    steps_per_point=3,
 )
 
 splineborisline = seq.to_line(env=env)
@@ -128,9 +124,7 @@ for corr_name, s_target in desired_positions.items():
     print(f"{corr_name}: requested s={s_target:.4f}, inserting at boundary s={element_boundaries[idx]:.4f}")
 
 # Build the line with correctors inserted at element boundaries
-# Register SplineBoris elements in env
-for name, elem in zip(seq.element_names, seq.elements):
-    env.elements[name] = elem
+# (SplineBoris elements are already registered in env by seq.to_line(env=env))
 
 # Build element name list with correctors inserted at boundaries
 element_names_with_correctors = []

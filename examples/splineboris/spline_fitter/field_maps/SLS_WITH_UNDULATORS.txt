@@ -1,0 +1,29 @@
+================================================================================
+SLS WITH UNDULATORS
+================================================================================
+Tunes:
+  qx = 3.9370e+01
+  qy = 1.5250e+01
+  qs = 0.0000e+00
+
+Chromaticity:
+  dqx = 1.0004e+00
+  dqy = 1.6819e+00
+
+Partition numbers:
+  J_x = 1.7969e+00
+  J_y = 1.0000e+00
+  J_zeta = 1.2031e+00
+
+Damping constants per second:
+  alpha_x = 2.4729e+02
+  alpha_y = 1.3762e+02
+  alpha_zeta = 1.6557e+02
+
+Equilibrium emittances:
+  eq_gemitt_x = 1.6486e-10
+  eq_gemitt_y = 4.0659e-15
+  eq_gemitt_zeta = 1.2788e-06
+
+Energy loss per turn: 7.1392e+05 eV
+================================================================================
