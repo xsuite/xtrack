@@ -1047,4 +1047,4 @@ void evaluate_B(const double x, const double y, const double s, const double *pa
 	}
 }
 
-#endif // XSUITE/HOME/SIMONFAN/PROJECTS/XSUITE/XTRACK/XTRACK/BEAM_ELEMENTS/ELEMENTS_SRC/_SPLINE_B_FIELD_EVAL_H
+#endif // _SPLINE_B_FIELD_EVAL_H

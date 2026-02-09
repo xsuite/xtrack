@@ -477,12 +477,11 @@ def test_splineboris_solenoid_vs_variable_solenoid():
 
     # NOTE: If the fit parameters need to be updated, uncomment the following code.
 
-    # # Add examples directory to path to import FieldFitter and StandardFieldMapParser
+    # # Add examples directory to path to import FieldFitter
     # examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
     # if str(examples_path) not in sys.path:
     #     sys.path.insert(0, str(examples_path))
     # from field_fitter import FieldFitter
-    # from fieldmap_parsers import StandardFieldMapParser
 
     # # Construct field map
     # dx = 0.001
@@ -499,12 +498,11 @@ def test_splineboris_solenoid_vs_variable_solenoid():
     #     X.ravel(), Y.ravel(), Z.ravel(),
     #     Bx.ravel(), By.ravel(), Bz.ravel(),
     # ])
-    # np.savetxt(test_data_dir / "test_solenoid_vs_varsol_fieldmap.dat", data)
-    # parser = StandardFieldMapParser()
-    # df_raw_data = parser.parse(test_data_dir / "test_solenoid_vs_varsol_fieldmap.dat")
+    # fieldmap_path = test_data_dir / "test_solenoid_vs_varsol_fieldmap.dat"
+    # np.savetxt(fieldmap_path, data)
 
-    # # Fit the field map data
-    # fitter = FieldFitter(df_raw_data=df_raw_data,
+    # # Fit the field map data (pass file path directly to FieldFitter)
+    # fitter = FieldFitter(raw_data=fieldmap_path,
     #     xy_point=(0, 0),
     #     dx=dx,
     #     dy=dy,
@@ -618,22 +616,17 @@ def test_splineboris_undulator_vs_boris_spatial():
     multipole_order = 3
 
     # NOTE: If the fit parameters need to be updated, uncomment the following code.
-    # # Add examples directory to path to import FieldFitter and StandardFieldMapParser
+    # # Add examples directory to path to import FieldFitter
     # examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
     # if str(examples_path) not in sys.path:
     #     sys.path.insert(0, str(examples_path))
     # from field_fitter import FieldFitter
-    # from fieldmap_parsers import StandardFieldMapParser
-    
 
     # fieldmap_path = base_dir / "knot_map_test.txt"
     
-    # parser = StandardFieldMapParser()
-    # df_raw_data = parser.parse(fieldmap_path)
-    
-    # # Fit the field map data
+    # # Fit the field map data (pass file path directly to FieldFitter)
     # fitter = FieldFitter(
-    #     df_raw_data=df_raw_data,
+    #     raw_data=fieldmap_path,
     #     xy_point=(0, 0),
     #     dx=0.001,
     #     dy=0.001,

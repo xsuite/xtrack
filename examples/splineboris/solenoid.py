@@ -7,9 +7,7 @@ import xobjects as xo
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 from spline_fitter.field_fitter import FieldFitter
-from spline_fitter.fieldmap_parsers import StandardFieldMapParser
 import matplotlib.pyplot as plt
-import pandas as pd
 
 # Set basic parameters
 interval = 30
@@ -53,12 +51,11 @@ data = np.column_stack([
     X.ravel(), Y.ravel(), Z.ravel(),
     Bx.ravel(), By.ravel(), Bz.ravel(),
 ])
-np.savetxt(field_maps_dir / "solenoid_field.dat", data)
-parser = StandardFieldMapParser()
-df_raw_data = parser.parse(field_maps_dir / "solenoid_field.dat")
+fieldmap_path = field_maps_dir / "solenoid_field.dat"
+np.savetxt(fieldmap_path, data)
 
-# Fit the field map data
-fitter = FieldFitter(df_raw_data=df_raw_data,
+# Fit the field map data (FieldFitter parses the file directly)
+fitter = FieldFitter(raw_data=fieldmap_path,
     xy_point=(0, 0),
     dx=dx,
     dy=dy,
@@ -79,9 +76,8 @@ for i in range(multipole_order):
 
 # Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
 # element per polynomial piece with n_steps based on the data point count
-df_fit_pars = pd.read_csv(fit_pars_path)
 seq = xt.SplineBorisSequence(
-    df_fit_pars=df_fit_pars,
+    df_fit_pars=fitter.df_fit_pars,
     multipole_order=multipole_order,
     steps_per_point=1,  # one integration step per data point
 )

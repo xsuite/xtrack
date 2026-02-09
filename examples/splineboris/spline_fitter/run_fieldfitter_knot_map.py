@@ -2,7 +2,6 @@ from pathlib import Path
 
 # Simple local import so this file can be run directly (e.g. via IDE "Run" button)
 from field_fitter import FieldFitter
-from fieldmap_parsers import StandardFieldMapParser
 
 
 ########################################################################################################################
@@ -23,13 +22,9 @@ output_dir.mkdir(parents=True, exist_ok=True)
 fit_par_path = output_dir / "field_fit_pars.csv"
 
 if __name__ == "__main__":
-    # Parse the field map into the standardized DataFrame
-    parser = StandardFieldMapParser()
-    df_raw_data = parser.parse(file_path)
-
-    # Build and run the fitter
+    # Build and run the fitter (file path is parsed inline by FieldFitter)
     fitter = FieldFitter(
-        df_raw_data=df_raw_data,
+        raw_data=file_path,
         xy_point=(0.0, 0.0),
         dx=dz,
         dy=dz,

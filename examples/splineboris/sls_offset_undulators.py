@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from spline_fitter.field_fitter import FieldFitter
 
 
 multipole_order = 3
@@ -30,26 +31,41 @@ line_offset.configure_bend_model(core='mat-kick-mat')
 line_offset.particle_ref = p0.copy()
 
 BASE_DIR = Path(__file__).resolve().parent
-# Use the field-fit parameters produced by the spline fitter example
-filepath = (
+
+# Load the raw field map data from knot_map_test.txt
+field_map_path = BASE_DIR / "spline_fitter" / "field_maps" / "knot_map_test.txt"
+df_raw_data = pd.read_csv(
+    field_map_path,
+    sep='\t',
+    header=None,
+    names=['X', 'Y', 'Z', 'Bx', 'By', 'Bs'],
+)
+df_raw_data = df_raw_data.set_index(['X', 'Y', 'Z'])
+
+# Determine grid spacing from the data
+x_vals = df_raw_data.index.get_level_values('X').unique().sort_values()
+y_vals = df_raw_data.index.get_level_values('Y').unique().sort_values()
+z_vals = df_raw_data.index.get_level_values('Z').unique().sort_values()
+dx = x_vals[1] - x_vals[0] if len(x_vals) > 1 else 1
+dy = y_vals[1] - y_vals[0] if len(y_vals) > 1 else 1
+ds = z_vals[1] - z_vals[0] if len(z_vals) > 1 else 1
+
+field_fitter = FieldFitter(
+    df_raw_data=df_raw_data,
+    xy_point=(0, 0),
+    dx=dx,
+    dy=dy,
+    ds=ds,
+    min_region_size=10,
+    deg=multipole_order-1,
+)
+
+field_fitter.set()
+field_fitter.save_fit_pars(
     BASE_DIR
     / "spline_fitter"
     / "field_maps"
     / "field_fit_pars.csv"
-)
-
-df = pd.read_csv(
-    filepath,
-    index_col=[
-        "field_component",
-        "derivative_x",
-        "region_name",
-        "s_start",
-        "s_end",
-        "idx_start",
-        "idx_end",
-        "param_index",
-    ],
 )
 
 # Define offsets for the undulator
@@ -58,7 +74,7 @@ y_off = 0  # 0 offset in y
 
 # Build undulator using SplineBorisSequence with offset
 seq = xt.SplineBorisSequence(
-    df_fit_pars=df,
+    df_fit_pars=field_fitter.df_fit_pars,
     multipole_order=multipole_order,
     steps_per_point=1,
     shift_x=x_off,

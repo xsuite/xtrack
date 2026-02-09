@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pathlib
+
 import numpy as np
 import pandas as pd
 import scipy as sc
@@ -16,19 +18,17 @@ class FieldFitter:
     """
     Fit on-axis field data and transverse derivatives using piecewise polynomials.
 
-    This class operates on a standardized field map DataFrame produced by a
-    user-supplied parser. The input DataFrame must have a MultiIndex with
-    levels ``('X', 'Y', 'Z')`` and columns ``('Bx', 'By', 'Bs')``.
-
     The fitting pipeline extracts on-axis data, identifies longitudinal regions,
     and fits per-region polynomials to produce spline parameters stored in
     ``df_fit_pars``.
 
     Parameters
     ----------
-    df_raw_data :
-        Parsed field map DataFrame with MultiIndex ``('X', 'Y', 'Z')`` and
-        columns ``('Bx', 'By', 'Bs')``.
+    raw_data :
+        Either a file path (``str`` or ``pathlib.Path``) to a whitespace-
+        separated file with six columns ``X Y Z Bx By Bs``, or a
+        ``pd.DataFrame`` with MultiIndex ``('X', 'Y', 'Z')`` and columns
+        ``('Bx', 'By', 'Bs')``.
     xy_point :
         On-axis transverse point ``(X, Y)`` used to select the longitudinal
         series for fitting.
@@ -52,7 +52,7 @@ class FieldFitter:
 
     Private Methods
     ---------------
-    _set_raw_data(df_raw_data) :
+    _set_raw_data(raw_data) :
         Set the raw data DataFrame and compute the longitudinal spacing.
     _set_df_on_axis() :
         Extract on-axis data and compute transverse derivatives.
@@ -74,7 +74,7 @@ class FieldFitter:
 
     def __init__(
             self,
-            df_raw_data,
+            raw_data,
             xy_point=(0, 0),
             dx=0.001,
             dy=0.001,
@@ -98,7 +98,7 @@ class FieldFitter:
         self.df_on_axis_raw  = None
         self.df_on_axis_fit = None
         self.df_fit_pars = None
-        self._set_raw_data(df_raw_data)
+        self._set_raw_data(raw_data)
 
     # PUBLIC
     # Setter method that calls all the other methods to arrive at a fit.
@@ -132,13 +132,32 @@ class FieldFitter:
     ####################################################################################################################
     # PRIVATE
     # This method stores raw data and extracts on-axis data.
-    def _set_raw_data(self, df_raw_data: pd.DataFrame):
+    def _set_raw_data(self, raw_data):
         """
         Set the raw data DataFrame and compute the longitudinal spacing.
 
-        The DataFrame must have a MultiIndex with levels ``('X', 'Y', 'Z')`` and
-        columns ``('Bx', 'By', 'Bs')``.
+        Parameters
+        ----------
+        raw_data :
+            Either a file path (``str`` or ``pathlib.Path``) to a whitespace-
+            separated file with six columns ``X Y Z Bx By Bs``, or a
+            ``pd.DataFrame`` with MultiIndex ``('X', 'Y', 'Z')`` and columns
+            ``('Bx', 'By', 'Bs')``.
         """
+
+        if isinstance(raw_data, (str, pathlib.Path)):
+            df_raw_data = pd.read_csv(
+                raw_data, sep=r"\s+", header=None,
+                names=["X", "Y", "Z", "Bx", "By", "Bs"],
+            )
+            df_raw_data.set_index(["X", "Y", "Z"], inplace=True)
+        elif isinstance(raw_data, pd.DataFrame):
+            df_raw_data = raw_data
+        else:
+            raise TypeError(
+                f"raw_data must be a file path (str/Path) or a pd.DataFrame, "
+                f"got {type(raw_data).__name__}"
+            )
 
         self.df_raw_data = df_raw_data
         self.s_full = np.sort(self.df_raw_data.index.get_level_values("Z").unique()).astype(float) * self.ds

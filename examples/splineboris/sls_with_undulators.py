@@ -66,31 +66,10 @@ field_fitter.save_fit_pars(
     / "field_fit_pars.csv"
 )
 
-filepath = (
-    BASE_DIR
-    / "spline_fitter"
-    / "field_maps"
-    / "field_fit_pars.csv"
-)
-
-df = pd.read_csv(
-    filepath,
-    index_col=[
-        "field_component",
-        "derivative_x",
-        "region_name",
-        "s_start",
-        "s_end",
-        "idx_start",
-        "idx_end",
-        "param_index",
-    ],
-)
-
 # Build undulator using SplineBorisSequence - automatically creates one SplineBoris
 # element per polynomial piece with n_steps based on the data point count
 seq = xt.SplineBorisSequence(
-    df_fit_pars=df,
+    df_fit_pars=field_fitter.df_fit_pars,
     multipole_order=multipole_order,
     steps_per_point=1,
 )
