@@ -118,7 +118,7 @@ class FieldFitter:
     @staticmethod
     def _poly(s0, s1, coeffs):
         """
-        Build a 5th-order spline polynomial over [s0, s1] from boundary data.
+        Build a 4th-order spline polynomial over [s0, s1] from boundary data.
 
         This is a convenience wrapper around ``xt.SplineBoris.spline_poly``.
         See that method for full documentation.
@@ -273,10 +273,10 @@ class FieldFitter:
                         if n_parts <= 1:
                             new_extrema.append(int(right))
                             continue
-                        splits = np.round(np.linspace(left, right, n_parts + 1)).astype(int)
-                        for sp in splits[1:]:
-                            if sp > new_extrema[-1]:
-                                new_extrema.append(int(sp))
+                    splits = np.round(np.linspace(left, right, n_parts + 1)).astype(int)
+                    for s_split in splits[1:]:
+                        if s_split > new_extrema[-1]:
+                            new_extrema.append(int(s_split))
 
                     field_extrema = np.unique(np.asarray(new_extrema, dtype=int))
                     to_fit = True

@@ -52,7 +52,7 @@ dy = y_vals[1] - y_vals[0] if len(y_vals) > 1 else 1
 ds = z_vals[1] - z_vals[0] if len(z_vals) > 1 else 1
 
 field_fitter = FieldFitter(
-    df_raw_data=df_raw_data,
+    raw_data=df_raw_data,
     xy_point=(0, 0),
     dx=dx,
     dy=dy,
@@ -215,7 +215,7 @@ print()
 print("=" * 80)
 
 # Write results to file
-output_dir = Path("/home/simonfan/cernbox/Documents/Presentations/Section_Meeting_Undulators")
+output_dir = BASE_DIR / "spline_fitter" / "field_maps"
 output_dir.mkdir(parents=True, exist_ok=True)
 output_file = output_dir / "SLS_WITH_UNDULATORS.txt"
 

@@ -52,7 +52,6 @@ def set_exprs(multipole_order=multipole_order, poly_order=4):
     kn_exprs = ()
     bs_expr = 0
 
-    poly_order = 4
     for i in range(multipole_order):
         ks_expr = 0
         kn_expr = 0
@@ -184,6 +183,7 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
         f.write(f"#define {guard_name}_H\n\n")
 
         f.write(f"// Auto-generated symbolic field expressions for {field}\n")
+        f.write("GPUFUN\n")
         f.write(
             f"void evaluate_{field}(const double x, const double y, const double s, const double *params, const int multipole_order, double *Bx_out, double *By_out, double *Bs_out){{\n\n")
         names = [f'{field}x_out', f'{field}y_out', f'{field}s_out']
@@ -212,7 +212,7 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
             f.write(f"\t}}\n")
         f.write(f"\tdefault:{{\n")
         f.write("\t\tprintf(\"Error: Unsupported multipole order %d\\n\", multipole_order);\n")
-        f.write(f"\t\tprintf(\"Supported orders are 0 to {multipole_order}\\n\");\n")
+        f.write(f"\t\tprintf(\"Supported orders are 1 to {multipole_order}\\n\");\n")
         f.write(f"\t\tprintf(\"Setting field values to zero.\\n\");\n")
         f.write("\t\t// Reduced expressions\n")
         for order in range(3):
@@ -221,7 +221,7 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
         f.write(f"\t}}\n")
         f.write(f"\t}}\n")
         f.write(f"}}\n\n")
-        f.write(f"#endif // XSUITE{filename[:-2].upper()}_H\n")
+        f.write(f"#endif // {guard_name}_H\n")
 
 
 def write_to_python(max_order=multipole_order, poly_order=4, field='B', curvature='0'):

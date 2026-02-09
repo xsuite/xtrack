@@ -20,7 +20,7 @@ GPUFUN double RandomExponential_generate(LocalParticle* part);
 GPUFUN
 void SplineBoris_single_particle(
     LocalParticle* part,
-    const double* const* params,
+    const double* params,
     const int      multipole_order,
     const double   s_start,
     const double   s_end,
@@ -49,7 +49,6 @@ void SplineBoris_single_particle(
 
     const double q0     = LocalParticle_get_q0(part);      // charge in units of e
     const double mass0  = LocalParticle_get_mass0(part);   // [eV]
-    const double delta  = LocalParticle_get_delta(part);   // relative momentum deviation
     const double p0c_ev = LocalParticle_get_p0c(part);     // reference p0 c [eV]
     const double beta0  = LocalParticle_get_beta0(part);   // reference beta
     
@@ -88,7 +87,7 @@ void SplineBoris_single_particle(
     // ----------------------------------------------------------------------
     const double L    = s_end - s_start;
     const double ds   = L / (double) n_steps;
-	const double half_ds = 0.5 * ds;
+    const double half_ds = 0.5 * ds;
     
     // Local s coordinate (0 to L) for stepping through the element
     double s_local = 0.0;
@@ -102,11 +101,12 @@ void SplineBoris_single_particle(
     // ----------------------------------------------------------------------
     //  Loop over Boris substeps
     // ----------------------------------------------------------------------
-    for (int istep = 0; istep < n_steps; ++istep, ++params) {
+    for (int istep = 0; istep < n_steps; ++istep) {
 
-        // Calculate gamma per step (matching Python: gamma = energy / mass)
-        // This is recalculated each step since ptau may change (e.g., from radiation)
+        // Recalculate energy, gamma and total momentum each step
+        // since ptau/delta may change (e.g., from radiation)
         const double ptau = LocalParticle_get_ptau(part);
+        const double delta = LocalParticle_get_delta(part);
         // energy = (energy0 + ptau * p0c) * mass_ratio  [eV]
         const double energy = (energy0 + ptau * p0c_ev) * mass_ratio;  // [eV]
         // gamma = energy / mass  (matching Python implementation)
@@ -163,7 +163,7 @@ void SplineBoris_single_particle(
 
         evaluate_B(
             xh - shift_x, yh - shift_y, s_field,
-            *params,
+            params,
             multipole_order,
             &Bx, &By, &Bs
         );
@@ -217,7 +217,7 @@ void SplineBoris_single_particle(
         // --------------------------------------------------------------
         x = xh + (px1 * inv_ps1) * half_ds;
         y = yh + (py1 * inv_ps1) * half_ds;
-		s_local += ds;  // Advance local s coordinate
+        s_local += ds;  // Advance local s coordinate
 
         dt += half_ds * inv_ps1 * gamma * mass_kg;  // [s]
 

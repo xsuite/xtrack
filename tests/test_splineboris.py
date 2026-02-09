@@ -72,7 +72,6 @@ def test_splineboris_homogeneous_analytic(field_angle):
         bs=bs,
         kn={0: kn_0},
         ks={0: ks_0},
-        n_steps=n_steps,
     )
 
     splineboris = xt.SplineBoris(
@@ -260,7 +259,6 @@ def test_splineboris_homogeneous_rbend(field_angle):
         bs=bs,
         kn={0: kn_0},
         ks={0: ks_0},
-        n_steps=n_steps,
     )
 
     splineboris = xt.SplineBoris(
@@ -392,7 +390,6 @@ def test_uniform_solenoid():
         bs=bs,
         kn={0: kn_0},
         ks={0: ks_0},
-        n_steps=n_steps,
     )
 
     splineboris = xt.SplineBoris(
@@ -420,21 +417,6 @@ def test_uniform_solenoid():
 
     line.track(p_ref)
     line_splineboris.track(p_splineboris)
-
-    # print(p_ref.spin_x[0], p_splineboris.spin_x[0])
-    # print(p_ref.spin_y[0], p_splineboris.spin_y[0])
-    # print(p_ref.spin_z[0], p_splineboris.spin_z[0])
-
-    # xo.assert_allclose(p_ref.spin_x[0], p_splineboris.spin_x[0], atol=atol, rtol=1e-12)
-    # xo.assert_allclose(p_ref.spin_y[0], p_splineboris.spin_y[0], atol=atol, rtol=1e-12)
-    # xo.assert_allclose(p_ref.spin_z[0], p_splineboris.spin_z[0], atol=atol, rtol=1e-12)
-
-    print(p_ref.s, p_splineboris.s)
-    print(p_ref.x, p_splineboris.x)
-    print(p_ref.y, p_splineboris.y)
-    print(p_ref.px, p_splineboris.px)
-    print(p_ref.py, p_splineboris.py)
-    print(p_ref.delta, p_splineboris.delta)
 
     xo.assert_allclose(p_ref.s, p_splineboris.s, atol=atol, rtol=1e-12)
     xo.assert_allclose(p_ref.x, p_splineboris.x, atol=atol, rtol=1e-12)
@@ -676,9 +658,8 @@ def test_splineboris_undulator_vs_boris_spatial():
     # ------------------------------------------------------------------
     boris_elems = []
     for elem in seq.elements:
-        # Each element has n_steps rows in par_table, all identical for a single piece
-        # Use the first row to create the field callable
-        params_i = np.asarray(elem.par_table[0], dtype=float)
+        # par_table is a 1D array of polynomial coefficients for this piece
+        params_i = np.asarray(elem.par_table, dtype=float)
         field_i = make_segment_field(params_i, multipole_order)
 
         boris_elems.append(
@@ -776,7 +757,6 @@ def test_splineboris_radiation():
         bs=bs,
         kn={0: kn_0},
         ks={0: ks_0},
-        n_steps=n_steps,
     )
 
     # Create SplineBoris elements with radiation
@@ -1096,7 +1076,6 @@ def test_splineboris_spin_uniform_solenoid(case, atol):
         bs=bs,
         kn={0: kn_0},
         ks={0: ks_0},
-        n_steps=n_steps,
     )
 
     splineboris = xt.SplineBoris(
@@ -1113,9 +1092,6 @@ def test_splineboris_spin_uniform_solenoid(case, atol):
     line_splineboris.configure_spin(spin_model='auto')
 
     line_splineboris.track(p)
-
-    print(p.spin_x[0], p.spin_y[0], p.spin_z[0])
-    print(ref['spin_x'], ref['spin_y'], ref['spin_z'])
 
     xo.assert_allclose(p.spin_x[0], ref['spin_x'], atol=atol, rtol=0)
     xo.assert_allclose(p.spin_y[0], ref['spin_y'], atol=atol, rtol=0)
@@ -1188,7 +1164,6 @@ def test_splineboris_spin_quadrupole(case, atol):
         bs=bs,
         kn={1: kn_1},
         ks={},
-        n_steps=n_steps,
         multipole_order=2,
     )
 

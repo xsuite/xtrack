@@ -5,6 +5,7 @@
 #define _SPLINE_B_FIELD_EVAL_H
 
 // Auto-generated symbolic field expressions for B
+GPUFUN
 void evaluate_B(const double x, const double y, const double s, const double *params, const int multipole_order, double *Bx_out, double *By_out, double *Bs_out){
 
 	switch (multipole_order) {
@@ -1036,7 +1037,7 @@ void evaluate_B(const double x, const double y, const double s, const double *pa
 	}
 	default:{
 		printf("Error: Unsupported multipole order %d\n", multipole_order);
-		printf("Supported orders are 0 to 7\n");
+		printf("Supported orders are 1 to 7\n");
 		printf("Setting field values to zero.\n");
 		// Reduced expressions
 		*Bx_out = 0;
