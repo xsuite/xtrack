@@ -21,7 +21,8 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
     const double shift_y = SplineBorisData_get_shift_y(el);
     const double hx = SplineBorisData_get_hx(el);
     const int64_t radiation_flag = SplineBorisData_get_radiation_flag(el);
-    SynchrotronRadiationRecordData radiation_record = NULL;
+    SynchrotronRadiationRecordData radiation_record = 
+        (SynchrotronRadiationRecordData) SplineBorisData_getp_internal_record(el, part0);
 
     const int cols = 5*(2*multipole_order+1);
     if (n_steps <= 0 || cols <= 0) {

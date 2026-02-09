@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import e as qe
+from scipy.constants import epsilon_0, hbar
 import pytest
 import xobjects as xo
 import pandas as pd
@@ -603,10 +604,10 @@ def test_splineboris_undulator_vs_boris_spatial():
         / "test_data"
         / "splineboris"
     )
-    filepath = base_dir / "field_fit_pars.csv"
+    fit_pars_path = base_dir / "field_fit_pars.csv"
 
     df = pd.read_csv(
-        filepath,
+        fit_pars_path,
         index_col=[
             "field_component",
             "derivative_x",
@@ -629,17 +630,11 @@ def test_splineboris_undulator_vs_boris_spatial():
     # from field_fitter import FieldFitter
     # from fieldmap_parsers import StandardFieldMapParser
     
-    # # Load the undulator field map from examples
-    # fieldmap_path = (
-    #     Path(__file__).parent.parent
-    #     / "examples"
-    #     / "splineboris"
-    #     / "spline_fitter"
-    #     / "field_maps"
-        
-    # )
+
+    # fieldmap_path = base_dir / "knot_map_test.txt"
+    
     # parser = StandardFieldMapParser()
-    # df_raw_data = parser.parse(filepath + "knot_map_test.txt")
+    # df_raw_data = parser.parse(fieldmap_path)
     
     # # Fit the field map data
     # fitter = FieldFitter(
@@ -727,3 +722,187 @@ def test_splineboris_undulator_vs_boris_spatial():
     xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-12, atol=1e-11)
     xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-12, atol=1e-11)
     xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-12, atol=1e-11)
+
+
+def test_splineboris_radiation():
+    """
+    Test synchrotron radiation in SplineBoris element.
+
+    This test creates a SplineBoris element with a uniform dipole field (constant By),
+    tracks particles with both average and quantum radiation models, and compares
+    the energy loss against theoretical predictions from the Larmor formula.
+    """
+    # Dipole parameters
+    L_bend = 1.0  # [m]
+    B_T = 2.0     # [T] - dipole field strength
+
+    # Create test particles (5 GeV electrons)
+    n_particles = 100000
+    particles_mean = xt.Particles(
+        p0c=5e9,  # 5 GeV
+        x=np.zeros(n_particles),
+        px=1e-4,
+        py=-1e-4,
+        delta=0,
+        mass0=xt.ELECTRON_MASS_EV,
+    )
+
+    particles_mean_0 = particles_mean.copy()
+    gamma = (particles_mean.energy / particles_mean.mass0)[0]
+    gamma0 = particles_mean.gamma0[0]
+    particles_qntm_0 = particles_mean.copy()
+
+    # Calculate bend angle from field
+    P0_J = particles_mean.p0c[0] / clight * qe
+    h_bend = B_T * qe / P0_J
+    theta_bend = h_bend * L_bend
+    rho_0 = L_bend / theta_bend  # bending radius
+
+    # Create SplineBoris element with uniform By field (dipole)
+    # For a dipole, we need constant By = B_T
+    s_start = 0.0
+    s_end = L_bend
+    n_steps = 100
+
+    # Uniform By field: coefficients [f(s0), f'(s0), f(s1), f'(s1), integral]
+    # For constant field B_T: [B_T, 0, B_T, 0, B_T * L]
+    By_coeffs = np.array([B_T, 0.0, B_T, 0.0, B_T * L_bend])
+    Bx_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+    Bs_coeffs = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+
+    # Convert to polynomial coefficients
+    By_poly = xt.SplineBoris.spline_poly(s_start, s_end, By_coeffs)
+    Bx_poly = xt.SplineBoris.spline_poly(s_start, s_end, Bx_coeffs)
+    Bs_poly = xt.SplineBoris.spline_poly(s_start, s_end, Bs_coeffs)
+
+    degree = 4
+    kn_0 = np.zeros(degree + 1)
+    kn_0[:len(By_poly.coef)] = By_poly.coef
+    ks_0 = np.zeros(degree + 1)
+    ks_0[:len(Bx_poly.coef)] = Bx_poly.coef
+    bs = np.zeros(degree + 1)
+    bs[:len(Bs_poly.coef)] = Bs_poly.coef
+
+    # Build parameter table
+    param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
+        bs=bs,
+        kn={0: kn_0},
+        ks={0: ks_0},
+        n_steps=n_steps,
+    )
+
+    # Create SplineBoris elements with radiation
+    splineboris_mean = xt.SplineBoris(
+        par_table=param_table.copy(),
+        s_start=s_start,
+        s_end=s_end,
+        multipole_order=1,
+        n_steps=n_steps,
+        radiation_flag=1,  # Mean energy loss
+    )
+
+    splineboris_qntm = xt.SplineBoris(
+        par_table=param_table.copy(),
+        s_start=s_start,
+        s_end=s_end,
+        multipole_order=1,
+        n_steps=n_steps,
+        radiation_flag=2,  # Quantum radiation
+    )
+
+    # Initialize random number generators
+    particles_mean._init_random_number_generator()
+    particles_qntm._init_random_number_generator()
+
+    dct_mean_before = particles_mean.to_dict()
+
+    # Track particles
+    splineboris_mean.track(particles_mean)
+    splineboris_qntm.track(particles_qntm)
+
+    dct_mean = particles_mean.to_dict()
+    dct_qntm = particles_qntm.to_dict()
+
+    # Test 1: Average and stochastic models should give same mean energy loss
+    xo.assert_allclose(dct_mean['delta'], np.mean(dct_qntm['delta']),
+                       atol=0, rtol=5e-3)
+
+    # Test 2: Compare energy loss against Larmor formula
+    mass0_kg = dct_mean['mass0'] * qe / clight**2
+    r0 = qe**2 / (4 * np.pi * epsilon_0 * mass0_kg * clight**2)
+    Ps = (2 * r0 * clight * mass0_kg * clight**2 * gamma0**2 * gamma**2) / (3 * rho_0**2)  # [W]
+
+    Delta_E_eV = -Ps * (L_bend / clight) / qe  # Theoretical energy loss
+    Delta_E_qntm = (dct_mean['ptau'] - dct_mean_before['ptau']) * dct_mean['p0c']  # Tracked energy loss
+
+    # Allow ~0.5% tolerance due to integration steps
+    xo.assert_allclose(Delta_E_eV, np.mean(Delta_E_qntm), atol=0, rtol=5e-3)
+
+    # Test 3: Check photon statistics using internal logging
+    line = xt.Line(elements=[
+        xt.Drift(length=1.0),
+        xt.SplineBoris(
+            par_table=param_table.copy(),
+            s_start=s_start,
+            s_end=s_end,
+            multipole_order=1,
+            n_steps=n_steps,
+        ),
+        xt.Drift(length=1.0),
+        xt.SplineBoris(
+            par_table=param_table.copy(),
+            s_start=s_start,
+            s_end=s_end,
+            multipole_order=1,
+            n_steps=n_steps,
+        ),
+    ])
+    line.build_tracker()
+    line.configure_radiation(model='quantum')
+
+    sum_photon_energy = 0
+    sum_photon_energy_sq = 0
+    tot_n_recorded = 0
+
+    for _ in range(10):
+        record_capacity = int(10e6)
+        record = line.start_internal_logging_for_elements_of_type(
+            xt.SplineBoris, capacity=record_capacity
+        )
+        particles_test = particles_mean_0.copy()
+        particles_test_before = particles_test.copy()
+        line.track(particles_test)
+
+        Delta_E_test = (particles_test.ptau - particles_test_before.ptau) * particles_test.p0c
+        n_recorded = record._index.num_recorded
+        assert n_recorded < record_capacity
+
+        # Verify energy conservation: particle energy loss = photon energy
+        xo.assert_allclose(
+            -np.sum(Delta_E_test),
+            np.sum(record.photon_energy[:n_recorded]),
+            atol=0, rtol=1e-6,
+        )
+
+        sum_photon_energy += np.sum(record.photon_energy[:n_recorded])
+        sum_photon_energy_sq += np.sum(record.photon_energy[:n_recorded]**2)
+        tot_n_recorded += n_recorded
+
+    # Compute theoretical photon statistics
+    p0_J = particles_mean_0.p0c[0] / clight * qe
+    B_T_actual = p0_J / qe / rho_0
+    mass_0_kg = particles_mean_0.mass0 * qe / clight**2
+    E_crit_J = 3 * qe * hbar * gamma**2 * B_T_actual / (2 * mass_0_kg)
+
+    E_ave_J = 8 * np.sqrt(3) / 45 * E_crit_J
+    E_ave_eV = E_ave_J / qe
+
+    E_sq_ave_J = 11 / 27 * E_crit_J**2
+    E_sq_ave_eV = E_sq_ave_J / qe**2
+
+    mean_photon_energy = sum_photon_energy / tot_n_recorded
+    mean_photon_energy_sq = sum_photon_energy_sq / tot_n_recorded
+    std_photon_energy = np.sqrt(mean_photon_energy_sq - mean_photon_energy**2)
+
+    xo.assert_allclose(mean_photon_energy, E_ave_eV, rtol=1e-2, atol=0)
+    xo.assert_allclose(std_photon_energy, np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=2e-3, atol=0)
