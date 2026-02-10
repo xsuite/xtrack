@@ -33,9 +33,9 @@ def get_field(x, y, z):
     return sf.get_field(x, y, z)
 
 # Prepare field map directory
-field_maps_dir = Path(__file__).parent / "field_maps"
-field_maps_dir.mkdir(exist_ok=True)
-fit_pars_path = field_maps_dir / "solenoid_fit_pars.csv"
+example_data_dir = Path(__file__).parent / "example_data"
+example_data_dir.mkdir(exist_ok=True)
+fit_pars_path = example_data_dir / "solenoid_fit_pars.csv"
 
 
 # Construct field map
@@ -51,7 +51,7 @@ data = np.column_stack([
     X.ravel(), Y.ravel(), Z.ravel(),
     Bx.ravel(), By.ravel(), Bz.ravel(),
 ])
-fieldmap_path = field_maps_dir / "solenoid_field.dat"
+fieldmap_path = example_data_dir / "solenoid_field.dat"
 np.savetxt(fieldmap_path, data)
 
 # Fit the field map data (FieldFitter parses the file directly)

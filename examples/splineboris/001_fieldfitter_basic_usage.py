@@ -19,7 +19,8 @@ file_path = here / "field_maps" / "knot_map_test.txt"
 # Where to write the fitted spline coefficients
 output_dir = here / "field_maps"
 output_dir.mkdir(parents=True, exist_ok=True)
-fit_par_path = output_dir / "field_fit_pars.csv"
+
+deg = 2
 
 if __name__ == "__main__":
     # Build and run the fitter (file path is parsed inline by FieldFitter)
@@ -30,10 +31,11 @@ if __name__ == "__main__":
         dy=dz,
         ds=dz,
         min_region_size=10,
-        deg=2,
+        deg=deg,
     )
 
     fitter.fit()
-    fitter.save_fit_pars(fit_par_path)
+    for der in range(1, deg + 1):
+        fitter.plot_fields(der=der)
 
-    print(f"Field map fitted successfully.\nParameters saved to: {fit_par_path}")
+    fitter.plot_integrated_fields()

@@ -13,6 +13,18 @@ import matplotlib.pyplot as plt
 
 import xtrack as xt
 
+from typing import Dict, Tuple
+from dataclasses import dataclass
+
+
+# @dataclass
+# class RawData:
+#     file_path: str | pathlib.Path
+#     dx: float = 0.001
+#     dy: float = 0.001
+#     ds: float = 0.001
+#     data: Dict[Tuple[float, float, float], Tuple[float, float, float]] = field(default_factory=dict)
+
 
 class FieldFitter:
     '''
@@ -30,10 +42,17 @@ class FieldFitter:
         ``pd.DataFrame`` with MultiIndex ``('X', 'Y', 'Z')`` and columns
         ``('Bx', 'By', 'Bs')``.
     xy_point :
-        On-axis transverse point ``(X, Y)`` used to select the longitudinal
-        series for fitting.
-    dx, dy, ds :
-        Grid spacing used for derivative calculations and longitudinal scaling.
+        On-axis transverse point ``(X, Y)`` in meters, used to select the
+        longitudinal series for fitting. Because the input coordinates are
+        multiplied by ``ds`` at import time, ``xy_point`` must be given in
+        post-scaling (meter) coordinates.
+    dx, dy :
+        Transverse grid spacing in meters, used for derivative tolerance
+        checks.
+    ds :
+        Coordinate scale factor applied to the X, Y, and Z index levels of
+        the input data to convert them to meters.  For example, set
+        ``ds=0.001`` when the input coordinates are in millimetres.
     min_region_size :
         Minimum number of points per longitudinal fitting region.
     deg :
@@ -96,10 +115,6 @@ class FieldFitter:
 
 
 
-    ####################################################################################################################
-    # EVALUATION FUNCTIONS
-    ####################################################################################################################
-
     @staticmethod
     def _poly(s0, s1, coeffs):
         """
@@ -112,14 +127,15 @@ class FieldFitter:
 
 
 
-    ####################################################################################################################
-    # IDENTIFYING REGIONS AND SETTING BORDERS IN DATA CLASSES
-    ####################################################################################################################
     # PRIVATE
     # This method stores raw data and extracts on-axis data.
     def _set_raw_data(self, raw_data):
         """
-        Set the raw data DataFrame and compute the longitudinal spacing.
+        Set the raw data DataFrame, scale coordinates to meters, and compute ``s_full``.
+
+        After loading the DataFrame, the X, Y, and Z index levels are
+        multiplied by ``self.ds`` so that all downstream code operates in
+        metres.
 
         Parameters
         ----------
@@ -145,7 +161,15 @@ class FieldFitter:
             )
 
         self.df_raw_data = df_raw_data
-        self.s_full = np.sort(self.df_raw_data.index.get_level_values("Z").unique()).astype(float) * self.ds
+
+        # Convert coordinates to meters (e.g. ds=1e-3 for mm input)
+        idx = self.df_raw_data.index
+        self.df_raw_data.index = pd.MultiIndex.from_arrays(
+            [idx.get_level_values(lvl).astype(float) * self.ds for lvl in idx.names],
+            names=idx.names,
+        )
+
+        self.s_full = np.sort(self.df_raw_data.index.get_level_values("Z").unique()).astype(float)
 
         # Check if Bs is much smaller than Bx and By
         # Sets an additional index der = 0.
@@ -179,12 +203,8 @@ class FieldFitter:
         self.df_on_axis_raw.columns = pd.MultiIndex.from_tuples([
                     (col[0] if isinstance(col, tuple) else col, 0) for col in self.df_on_axis_raw.columns
                 ])
-        # compute transverse derivatives for der > 0 and add as columns (skip Bs derivatives)
-        for der in range(1, self.deg + 1):
-            derivs = self._fit_transverse_polynomials(der=der)
-            self.df_on_axis_raw[('Bx', der)] = derivs['Bx']
-            self.df_on_axis_raw[('By', der)] = derivs['By']
-            # intentionally do not compute/store Bs_{der}, as we are not using them.
+        # compute transverse derivatives for der 1..deg and add as columns (skip Bs derivatives)
+        self._fit_transverse_polynomials()
 
         # create a zeros-only DataFrame with the same index/columns as the on-axis raw data
         self.df_on_axis_fit = self.df_on_axis_raw.copy(deep=True)
@@ -331,10 +351,6 @@ class FieldFitter:
         self.df_fit_pars = pd.concat([self.df_fit_pars, results])
 
 
-
-    ####################################################################################################################
-    # PIECEWISE POLYNOMIAL FITTING
-    ####################################################################################################################
     
     def _boundary_from_poly(self, sL, poly):
         """
@@ -376,6 +392,8 @@ class FieldFitter:
                 h = self.ds  # Fallback if not enough points
             dbL = (-3 * b_region[0] + 4 * b_region[1] - b_region[2]) / (2 * h)
             return np.array([b_region[0], dbL], dtype=float)
+
+
 
     def _fit_single_poly(self, field, der_order, sub_df_this, sub_df_prev=None):
         """
@@ -470,59 +488,44 @@ class FieldFitter:
 
 
 
-    ####################################################################################################################
-    # TRANSVERSE GRADIENTS
-    ####################################################################################################################
-
     # TODO: Also allow y derivatives and use Maxwell's Equations to get the right sign.
-    def _fit_transverse_polynomials(self, der=0):
+    def _fit_transverse_polynomials(self):
         """
-        Fit transverse polynomials using all available X points at Y == 0.
+        Fit transverse polynomials and compute all derivatives at ``self.xy_point``.
 
         This method fits a polynomial of degree ``self.deg`` to the transverse
         field variation at each longitudinal position, using every X value
-        present in the input data for Y == 0. It then evaluates the requested
-        derivative at X == 0 and stores it in ``df_on_axis_raw``.
+        present in the input data at the Y coordinate of ``self.xy_point``.
+        It then evaluates all derivatives from order 1 to ``self.deg`` at
+        the X coordinate of ``self.xy_point`` and stores them in
+        ``df_on_axis_raw``.
         """
+        x_point, y_point = self.xy_point
 
         idx = self.df_raw_data.index
         ys = idx.get_level_values("Y")
         xs = idx.get_level_values("X")
-        mask = ys == 0
+        mask = ys == y_point
         points = sorted(set(xs[mask]))
 
-        subsets = {px: self.df_raw_data.xs((px, 0), level=["X", "Y"]).sort_index() for px in points}
-        derivs = {"Bx": None, "By": None}
+        subsets = {px: self.df_raw_data.xs((px, y_point), level=["X", "Y"]).sort_index() for px in points}
 
         for field in ["Bx", "By"]:
-            # points already contains the actual X coordinates in meters from df_raw_data index
             x = points
             n = len(subsets[points[0]][field])
-            derivs[field] = np.zeros(n)
+            derivs = {der: np.zeros(n) for der in range(1, self.deg + 1)}
 
             for i in range(n):
-                y = [subsets[px][field].to_numpy()[i] for px in points]
-                coeffs = np.polyfit(x, y, self.deg)
-                # Compute the der-th derivative at x=0
-                d_coeffs = np.polyder(coeffs, m=der)
-                # Evaluate at x=0
-                derivs[field][i] = np.polyval(d_coeffs, 0)
-            # Optionally store the result for later use
-            col_name = (f"{field}", der)
-            # Ensure df_on_axis_raw exists and assign the derivative column
-            self.df_on_axis_raw[col_name] = derivs[field]
+                B_i = [subsets[px][field].to_numpy()[i] for px in points]
+                coeffs = np.polyfit(x, B_i, self.deg)
+                for der in range(1, self.deg + 1):
+                    d_coeffs = np.polyder(coeffs, m=der)
+                    derivs[der][i] = np.polyval(d_coeffs, x_point)
 
-        return derivs
+            for der in range(1, self.deg + 1):
+                self.df_on_axis_raw[(field, der)] = derivs[der]
 
 
-
-    ####################################################################################################################
-    # PLOTTING
-    ####################################################################################################################
-
-    """
-    The plotting methods are used to visualize the fit and the data, just to check that the fit has been done correctly.
-    """
 
     def plot_integrated_fields(self):
         """

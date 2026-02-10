@@ -1,8 +1,8 @@
 """
-SLS simulation with undulators and closed spin tracking.
+SLS simulation with undulators.
 
 This script loads the SLS MADX file, builds undulator using SplineBorisSequence,
-inserts wigglers at 11 locations, computes twiss with spin tracking.
+inserts wigglers at 11 locations, computes twiss with radiation integrals, and prints results.
 """
 
 import xtrack as xt
@@ -10,7 +10,6 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 from spline_fitter.field_fitter import FieldFitter
-
 
 multipole_order = 3
 
@@ -31,7 +30,7 @@ line_sls.particle_ref = p0.copy()
 BASE_DIR = Path(__file__).resolve().parent
 
 # Load the raw field map data from knot_map_test.txt
-field_map_path = BASE_DIR / "field_maps" / "knot_map_test.txt"
+field_map_path = BASE_DIR / "example_data" / "knot_map_test.txt"
 df_raw_data = pd.read_csv(
     field_map_path,
     sep='\t',
@@ -51,14 +50,14 @@ field_fitter = FieldFitter(
     dx=dx,
     dy=dy,
     ds=ds,
-    min_region_size=10,
+    min_region_size=5,
     deg=multipole_order-1,
 )
 
 field_fitter.fit()
 field_fitter.save_fit_pars(
     BASE_DIR
-    / "field_maps"
+    / "example_data"
     / "field_fit_pars.csv"
 )
 
@@ -70,21 +69,15 @@ seq = xt.SplineBorisSequence(
     steps_per_point=1,
 )
 
-# Get the Line of SplineBoris elements (pass env for insert support)
-piecewise_undulator = seq.to_line(env=env)
+splineborisline = seq.to_line(env=env)
+splineborisline.particle_ref = p0.copy()
+
+tw = splineborisline.twiss4d(betx=1, bety=1, include_collective=True)
+tw.plot('x y')
+tw.plot('betx bety', 'dx dy')
+plt.show()
+
 l_wig = seq.length
-
-piecewise_undulator.build_tracker()
-
-piecewise_undulator.particle_ref = p0.copy()
-
-# The issue: When you use betx=1, bety=1, twiss4d treats the line as OPEN (non-periodic).
-# For an open line, the orbit is computed from initial conditions in particle_on_co.
-# If particle_on_co has zero initial conditions (x=0, px=0, y=0, py=0), the orbit will
-# be zero unless there are kicks from the wiggler.
-#
-# Solution: Use only_orbit=True to explicitly compute the orbit, which should properly
-# propagate through the wiggler and show any kicks/deviations.
 
 # Create env variables for corrector strengths (needed for matching)
 env['k0l_corr1'] = 0.
@@ -102,14 +95,57 @@ env.new('corr2', xt.Multipole, knl=['k0l_corr2'], ksl=['k0sl_corr2'])
 env.new('corr3', xt.Multipole, knl=['k0l_corr3'], ksl=['k0sl_corr3'])
 env.new('corr4', xt.Multipole, knl=['k0l_corr4'], ksl=['k0sl_corr4'])
 
-# Insert correctors at nearest element boundary (s_tol avoids slicing)
-piecewise_undulator.insert([
-    env.place('corr1', at=0.02),
-    env.place('corr2', at=0.1),
-    env.place('corr3', at=l_wig - 0.1),
-    env.place('corr4', at=l_wig - 0.02),
-], s_tol=5e-3)
+# Get element boundaries from the sequence
+# Each element has s_start, so boundaries are at s=0 and each element's s_end
+element_boundaries = [0.0]
+for elem in seq.elements:
+    element_boundaries.append(float(elem.s_end) - float(seq.elements[0].s_start))
 
+# Desired corrector positions (relative to undulator start)
+desired_positions = {
+    'corr1': 0.02,
+    'corr2': 0.1,
+    'corr3': l_wig - 0.1,
+    'corr4': l_wig - 0.02,
+}
+
+# Find nearest boundary for each corrector
+def find_nearest_boundary_index(s_target, boundaries):
+    """Find index of boundary closest to s_target."""
+    return min(range(len(boundaries)), key=lambda i: abs(boundaries[i] - s_target))
+
+corrector_insertions = {}  # boundary_index -> list of corrector names
+for corr_name, s_target in desired_positions.items():
+    idx = find_nearest_boundary_index(s_target, element_boundaries)
+    if idx not in corrector_insertions:
+        corrector_insertions[idx] = []
+    corrector_insertions[idx].append(corr_name)
+    print(f"{corr_name}: requested s={s_target:.4f}, inserting at boundary s={element_boundaries[idx]:.4f}")
+
+# Build the line with correctors inserted at element boundaries
+# (SplineBoris elements are already registered in env by seq.to_line(env=env))
+
+# Build element name list with correctors inserted at boundaries
+element_names_with_correctors = []
+for i, sb_name in enumerate(seq.element_names):
+    # Insert correctors before this element (at boundary i)
+    if i in corrector_insertions:
+        element_names_with_correctors.extend(corrector_insertions[i])
+    element_names_with_correctors.append(sb_name)
+
+# Insert correctors after the last element (at final boundary)
+final_idx = len(seq.element_names)
+if final_idx in corrector_insertions:
+    element_names_with_correctors.extend(corrector_insertions[final_idx])
+
+# Create the line with correctors at element boundaries
+piecewise_undulator = xt.Line(env=env, element_names=element_names_with_correctors)
+
+piecewise_undulator.build_tracker()
+
+piecewise_undulator.particle_ref = p0.copy()
+
+# Matching targets use corrector element names for intermediate positions
 opt = piecewise_undulator.match(
     solve=False,
     betx=0, bety=0,
@@ -133,7 +169,6 @@ tw_undulator_corr = piecewise_undulator.twiss4d(betx=1, bety=1, include_collecti
 tw_undulator_corr.plot('x y')
 tw_undulator_corr.plot('betx bety', 'dx dy')
 plt.show()
-
 piecewise_undulator.discard_tracker()
 
 wiggler_places = [
@@ -157,7 +192,7 @@ for wig_place in wiggler_places:
 
 line_sls.build_tracker()
 
-tw_sls = line_sls.twiss4d(radiation_integrals=True, spin=True, polarization=True)
+tw_sls = line_sls.twiss4d(radiation_integrals=True)
 
 # Plotting:
 import matplotlib.pyplot as plt
@@ -165,9 +200,7 @@ plt.close('all')
 tw_sls.plot('x y')
 tw_sls.plot('betx bety', 'dx dy')
 tw_sls.plot('betx2 bety2')
-tw_sls.plot('spin_x spin_z')
-tw_sls.plot('spin_y')
-plt.show()
+plt.show(block=False)
 
 #['name', 's', 'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau', 'W_matrix', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime',
 # 'kin_yprime', 'env_name', 'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy', 'dx', 'dpx', 'dy', 'dpy', 'dx_zeta', 'dpx_zeta',
@@ -209,12 +242,10 @@ print(f"Energy loss per turn: {tw_sls.rad_int_eneloss_turn:.4e} eV")
 print()
 print(f"C^-: {tw_sls.c_minus:.4e}")
 print()
-print(f"Spin polarization: {tw_sls.spin_polarization_eq:.4e}")
-print()
 print("=" * 80)
 
 # Write results to file
-output_dir = BASE_DIR / "spline_fitter" / "field_maps"
+output_dir = BASE_DIR / "spline_fitter" / "example_data"
 output_dir.mkdir(parents=True, exist_ok=True)
 output_file = output_dir / "SLS_WITH_UNDULATORS.txt"
 
@@ -247,8 +278,4 @@ with open(output_file, 'w') as f:
     f.write(f"  eq_gemitt_zeta = {tw_sls.rad_int_eq_gemitt_zeta:.4e}\n")
     f.write("\n")
     f.write(f"Energy loss per turn: {tw_sls.rad_int_eneloss_turn:.4e} eV\n")
-    f.write("\n")
-    f.write(f"C^-: {tw_sls.c_minus:.4e}\n")
-    f.write("\n")
-    f.write(f"Spin polarization: {tw_sls.spin_polarization_eq:.4e}\n")
     f.write("=" * 80 + "\n")
