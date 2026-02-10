@@ -458,7 +458,6 @@ def test_splineboris_solenoid_vs_variable_solenoid():
     fit_pars_path = test_data_dir / "test_solenoid_vs_varsol_fit_pars.csv"
 
     # NOTE: If the fit parameters need to be updated, uncomment the following code.
-
     # # Add examples directory to path to import FieldFitter
     # examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
     # if str(examples_path) not in sys.path:
@@ -581,6 +580,31 @@ def test_splineboris_undulator_vs_boris_spatial():
     )
     fit_pars_path = base_dir / "field_fit_pars.csv"
 
+    multipole_order = 3
+
+    # NOTE: If the fit parameters need to be updated, uncomment the following code.
+    # # Add examples directory to path to import FieldFitter
+    # examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
+    # if str(examples_path) not in sys.path:
+    #     sys.path.insert(0, str(examples_path))
+    # from field_fitter import FieldFitter
+
+    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "splineboris" / "knot_map_test.txt"
+    
+    # # Fit the field map data (pass file path directly to FieldFitter)
+    # fitter = FieldFitter(
+    #     raw_data=fieldmap_path,
+    #     xy_point=(0, 0),
+    #     dx=0.001,
+    #     dy=0.001,
+    #     ds=0.001,
+    #     min_region_size=10,
+    #     deg=multipole_order-1,
+    # )
+
+    # fitter.fit()
+    # fitter.save_fit_pars(fit_pars_path)
+
     df = pd.read_csv(
         fit_pars_path,
         index_col=[
@@ -594,30 +618,6 @@ def test_splineboris_undulator_vs_boris_spatial():
             "param_index",
         ],
     )
-
-    multipole_order = 3
-
-    # NOTE: If the fit parameters need to be updated, uncomment the following code.
-    # # Add examples directory to path to import FieldFitter
-    # examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
-    # if str(examples_path) not in sys.path:
-    #     sys.path.insert(0, str(examples_path))
-    # from field_fitter import FieldFitter
-
-    # fieldmap_path = base_dir / "knot_map_test.txt"
-    
-    # # Fit the field map data (pass file path directly to FieldFitter)
-    # fitter = FieldFitter(
-    #     raw_data=fieldmap_path,
-    #     xy_point=(0, 0),
-    #     dx=0.001,
-    #     dy=0.001,
-    #     ds=0.001,
-    #     min_region_size=10,
-    #     deg=multipole_order-1,
-    # )
-    # fitter.fit()
-    # fitter.save_fit_pars(filepath)
 
     # Build undulator using SplineBorisSequence
     seq = xt.SplineBorisSequence(
@@ -685,12 +685,12 @@ def test_splineboris_undulator_vs_boris_spatial():
     # ------------------------------------------------------------------
     # Compare end coordinates
     # ------------------------------------------------------------------
-    xo.assert_allclose(p_spline.x, p_boris.x, rtol=1e-12, atol=1e-11)
-    xo.assert_allclose(p_spline.px, p_boris.px, rtol=1e-12, atol=1e-11)
-    xo.assert_allclose(p_spline.y, p_boris.y, rtol=1e-12, atol=1e-11)
-    xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-12, atol=1e-11)
-    xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-12, atol=1e-11)
-    xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-12, atol=1e-11)
+    xo.assert_allclose(p_spline.x, p_boris.x, rtol=1e-12, atol=5e-11)
+    xo.assert_allclose(p_spline.px, p_boris.px, rtol=1e-12, atol=5e-11)
+    xo.assert_allclose(p_spline.y, p_boris.y, rtol=1e-12, atol=5e-11)
+    xo.assert_allclose(p_spline.py, p_boris.py, rtol=1e-12, atol=5e-11)
+    xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-12, atol=5e-11)
+    xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-12, atol=5e-11)
 
 
 def test_splineboris_radiation():

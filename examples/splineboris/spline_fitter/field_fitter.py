@@ -5,7 +5,6 @@ import pathlib
 import numpy as np
 import pandas as pd
 import scipy as sc
-import sympy as sp
 import math
 
 from scipy.signal import find_peaks
@@ -16,14 +15,6 @@ import xtrack as xt
 from typing import Dict, Tuple
 from dataclasses import dataclass
 
-
-# @dataclass
-# class RawData:
-#     file_path: str | pathlib.Path
-#     dx: float = 0.001
-#     dy: float = 0.001
-#     ds: float = 0.001
-#     data: Dict[Tuple[float, float, float], Tuple[float, float, float]] = field(default_factory=dict)
 
 
 class FieldFitter:
@@ -342,7 +333,6 @@ class FieldFitter:
                     "idx_end": idx_end,
                     "param_index": idx,
                     "param_name": name,
-                    "param_symbol": sp.Symbol(name),
                     "param_value": 0 if not to_fit else None,
                     "to_fit": to_fit,
                 })
