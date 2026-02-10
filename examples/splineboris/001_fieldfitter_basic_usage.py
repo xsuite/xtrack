@@ -1,7 +1,7 @@
 from pathlib import Path
 
 # Simple local import so this file can be run directly (e.g. via IDE "Run" button)
-from spline_fitter.field_fitter import FieldFitter
+from xtrack._temp.field_fitter import FieldFitter
 
 
 '''

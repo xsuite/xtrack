@@ -6,7 +6,7 @@ from scipy.constants import e as qe
 import xobjects as xo
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
-from spline_fitter.field_fitter import FieldFitter
+from xtrack._temp.field_fitter import FieldFitter
 import matplotlib.pyplot as plt
 
 # Set basic parameters

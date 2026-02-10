@@ -458,11 +458,7 @@ def test_splineboris_solenoid_vs_variable_solenoid():
     fit_pars_path = test_data_dir / "test_solenoid_vs_varsol_fit_pars.csv"
 
     # NOTE: If the fit parameters need to be updated, uncomment the following code.
-    # # Add examples directory to path to import FieldFitter
-    # examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
-    # if str(examples_path) not in sys.path:
-    #     sys.path.insert(0, str(examples_path))
-    # from field_fitter import FieldFitter
+    # from xtrack._temp.field_fitter import FieldFitter
 
     # # Construct field map
     # dx = 0.001
@@ -583,11 +579,7 @@ def test_splineboris_undulator_vs_boris_spatial():
     multipole_order = 3
 
     # NOTE: If the fit parameters need to be updated, uncomment the following code.
-    # # Add examples directory to path to import FieldFitter
-    # examples_path = Path(__file__).parent.parent / "examples" / "splineboris" / "spline_fitter"
-    # if str(examples_path) not in sys.path:
-    #     sys.path.insert(0, str(examples_path))
-    # from field_fitter import FieldFitter
+    # from xtrack._temp.field_fitter import FieldFitter
 
     # fieldmap_path = Path(__file__).parent.parent / "test_data" / "splineboris" / "knot_map_test.txt"
     

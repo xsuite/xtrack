@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from spline_fitter.field_fitter import FieldFitter
+from xtrack._temp.field_fitter import FieldFitter
 
 
 multipole_order = 3
