@@ -684,6 +684,176 @@ def test_splineboris_undulator_vs_boris_spatial():
     xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-12, atol=5e-11)
     xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-12, atol=5e-11)
 
+def test_splineboris_rotated_undulator_vs_boris_spatial():
+    '''
+    Rotate the field map by 90 degrees and check that the fit parameters obey the rotation rule:
+    Bx_rotated == By_original,
+    By_rotated == -Bx_original,
+    Bs_rotated == Bs_original
+    '''
+
+    # ------------------------------------------------------------------
+    # Load fit parameters and build undulator using SplineBorisSequence
+    # ------------------------------------------------------------------
+    base_dir = (
+        Path(__file__).parent.parent
+        / "test_data"
+        / "splineboris"
+    )
+    fit_pars_path = base_dir / "field_fit_pars_rotated.csv"
+
+    multipole_order = 3
+
+    # NOTE: If the fit parameters need to be updated, uncomment the following code.
+    # from xtrack._temp.field_fitter import FieldFitter
+
+    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "splineboris" / "knot_map_test.txt"
+
+    # # Fit the field map data (pass file path directly to FieldFitter)
+    # fitter_rot = FieldFitter(
+    #     raw_data=fieldmap_path,
+    #     xy_point=(0, 0),
+    #     dx=0.001,
+    #     dy=0.001,
+    #     ds=0.001,
+    #     min_region_size=10,
+    #     deg=multipole_order-1,
+    # )
+
+    # # --- Rotate field by 90 degrees (Bx_new = By_old, By_new = -Bx_old) ---
+
+    # # 1. Swap in the full raw data (used by _fit_transverse_polynomials)
+    # old_Bx = fitter_rot.df_raw_data['Bx'].copy()
+    # old_By = fitter_rot.df_raw_data['By'].copy()
+    # fitter_rot.df_raw_data['Bx'] = old_By
+    # fitter_rot.df_raw_data['By'] = -old_Bx
+
+    # # 2. Swap in the on-axis raw data (0th derivative, already extracted in __init__)
+    # old_Bx_on = fitter_rot.df_on_axis_raw[('Bx', 0)].copy()
+    # old_By_on = fitter_rot.df_on_axis_raw[('By', 0)].copy()
+    # fitter_rot.df_on_axis_raw[('Bx', 0)] = old_By_on
+    # fitter_rot.df_on_axis_raw[('By', 0)] = -old_Bx_on
+
+    # # --- Now run the three fit steps manually ---
+    # fitter_rot._set_df_on_axis()
+    # fitter_rot._find_regions()
+    # fitter_rot._fit_slices()
+
+    # fitter_rot.save_fit_pars(fit_pars_path)
+
+    df = pd.read_csv(fit_pars_path, index_col=[
+        "field_component",
+        "derivative_x",
+        "region_name",
+        "s_start",
+        "s_end",
+        "idx_start",
+        "idx_end",
+        "param_index",
+    ])
+
+    # ------------------------------------------------------------------
+    # Check that the fit parameters obey the rotation rule:
+    #   Bx_rotated == By_original,  By_rotated == -Bx_original,
+    #   Bs_rotated == Bs_original
+    # ------------------------------------------------------------------
+    fit_pars_orig_path = base_dir / "field_fit_pars.csv"
+    df_orig = pd.read_csv(fit_pars_orig_path, index_col=_idx_cols)
+
+    # Bx_rotated coefficients should equal By_original coefficients
+    for der in range(multipole_order):
+        rot_vals = np.array(df.loc[('Bx', der), 'param_value'].values, dtype=float)
+        orig_vals = np.array(df_orig.loc[('By', der), 'param_value'].values, dtype=float)
+        assert len(rot_vals) == len(orig_vals), (
+            f"Bx_rot vs By_orig length mismatch for der={der}")
+        xo.assert_allclose(rot_vals, orig_vals, atol=1e-15, rtol=0)
+
+    # By_rotated coefficients should equal -Bx_original coefficients
+    for der in range(multipole_order):
+        rot_vals = np.array(df.loc[('By', der), 'param_value'].values, dtype=float)
+        orig_vals = np.array(df_orig.loc[('Bx', der), 'param_value'].values, dtype=float)
+        assert len(rot_vals) == len(orig_vals), (
+            f"By_rot vs Bx_orig length mismatch for der={der}")
+        xo.assert_allclose(rot_vals, -orig_vals, atol=1e-15, rtol=0)
+
+    # Bs_rotated coefficients should equal Bs_original coefficients
+    rot_vals = np.array(df.loc[('Bs', 0), 'param_value'].values, dtype=float)
+    orig_vals = np.array(df_orig.loc[('Bs', 0), 'param_value'].values, dtype=float)
+    xo.assert_allclose(rot_vals, orig_vals, atol=1e-15, rtol=0)
+
+    # Build undulator using SplineBorisSequence
+    seq = xt.SplineBorisSequence(
+        df_fit_pars=df,
+        multipole_order=multipole_order,
+        steps_per_point=1,
+    )
+
+    line_splineboris = seq.to_line()
+
+    # This undulator is part of the SLS, so we use the nominal energy of the SLS.
+    p_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
+    line_splineboris.particle_ref = p_ref.copy()
+
+    p_splineboris = line_splineboris.particle_ref.copy()
+    p_splineboris.x = 1e-3
+    p_splineboris.px = 1e-4
+    p_splineboris.y = 0.5e-3
+    p_splineboris.py = -0.5e-4
+
+    line_splineboris.track(p_splineboris)
+
+    # ------------------------------------------------------------------
+    # Wrap the spline-based field evaluator into (x, y, z) callables
+    # ------------------------------------------------------------------
+    def make_segment_field(params_1d, multipole_order_local):
+        params_arr = np.asarray(params_1d, dtype=float)
+
+        def field(x, y, z):
+            Bx, By, Bs = evaluate_B(x, y, z, params_arr, multipole_order_local)
+            return Bx, By, Bs
+
+        return field
+
+    # ------------------------------------------------------------------
+    # Build a parallel undulator line using BorisSpatialIntegrator
+    # Extract parameters from SplineBorisSequence elements
+    # ------------------------------------------------------------------
+    boris_elems = []
+    for elem in seq.elements:
+        # par_table is a 1D array of polynomial coefficients for this piece
+        params_i = np.asarray(elem.par_table, dtype=float)
+        field_i = make_segment_field(params_i, multipole_order)
+
+        boris_elems.append(
+            xt.BorisSpatialIntegrator(
+                fieldmap_callable=field_i,
+                s_start=float(elem.s_start),
+                s_end=float(elem.s_end),
+                n_steps=int(elem.n_steps),
+            )
+        )
+
+    line_boris = xt.Line(elements=boris_elems)
+    line_boris.particle_ref = p_ref.copy()
+
+    p_boris = line_boris.particle_ref.copy()
+    p_boris.x = 1e-3
+    p_boris.px = 1e-4
+    p_boris.y = 0.5e-3
+    p_boris.py = -0.5e-4
+
+    line_boris.track(p_boris)
+
+    # ------------------------------------------------------------------
+    # Compare end coordinates
+    # ------------------------------------------------------------------
+    xo.assert_allclose(p_splineboris.x, p_boris.x, rtol=1e-12, atol=5e-11)
+    xo.assert_allclose(p_splineboris.px, p_boris.px, rtol=1e-12, atol=5e-11)
+    xo.assert_allclose(p_splineboris.y, p_boris.y, rtol=1e-12, atol=5e-11)
+    xo.assert_allclose(p_splineboris.py, p_boris.py, rtol=1e-12, atol=5e-11)
+    xo.assert_allclose(p_splineboris.zeta, p_boris.zeta, rtol=1e-12, atol=5e-11)
+    xo.assert_allclose(p_splineboris.delta, p_boris.delta, rtol=1e-12, atol=5e-11)
+
 
 def test_splineboris_radiation():
     """
