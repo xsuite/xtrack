@@ -875,6 +875,8 @@ def test_splineboris_radiation():
     xo.assert_allclose(mean_photon_energy, E_ave_eV, rtol=1e-2, atol=0)
     xo.assert_allclose(std_photon_energy, np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=2e-3, atol=0)
 
+
+
 # Use the same test cases as in test_spin.py
 COMMON_TEST_CASES = [
     {
