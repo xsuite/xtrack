@@ -1023,31 +1023,33 @@ COMMON_TEST_CASES = [
 def test_splineboris_spin_uniform_solenoid(case, atol):
     case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
 
-    ref_file = Path(xt.__file__).parent / '../test_data/spin_refs_bmad' / 'solenoid_bmad.json'
-    refs = xt.json.load(ref_file)
-
-    ref = None
-    for ref_case in refs:
-        if ref_case['in'] == case:
-            ref = ref_case['out']
-            break
-    if ref is None:
-        raise ValueError(f'Case {case} not found in file {ref_file}')
-
-
     p = xt.Particles(
         p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
         anomalous_magnetic_moment=0.00115965218128,
         **case,
     )
+    p_ref = p.copy()
 
     Bz_T = 0.05
+    ks = Bz_T / (p.p0c[0] / clight / p.q0)
 
     length = 0.02
     s_start = 0
     s_end = length
     n_steps = 1000
 
+    # --- xsuite UniformSolenoid reference ---
+    env = xt.Environment()
+    line_ref = env.new_line(
+        components=[
+            env.new('mysolenoid', xt.UniformSolenoid, length=length, ks=ks),
+            env.new('mymarker', xt.Marker),
+        ]
+    )
+    line_ref.configure_spin(spin_model='auto')
+    line_ref.track(p_ref)
+
+    # --- SplineBoris ---
     # Homogeneous transverse field coefficients on [s_start, s_end]
     # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
     Bx_0_coeffs = np.array([0, 0.0, 0.0, 0.0, 0])
@@ -1095,9 +1097,9 @@ def test_splineboris_spin_uniform_solenoid(case, atol):
 
     line_splineboris.track(p)
 
-    xo.assert_allclose(p.spin_x[0], ref['spin_x'], atol=atol, rtol=0)
-    xo.assert_allclose(p.spin_y[0], ref['spin_y'], atol=atol, rtol=0)
-    xo.assert_allclose(p.spin_z[0], ref['spin_z'], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_x[0], p_ref.spin_x[0], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_y[0], p_ref.spin_y[0], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_z[0], p_ref.spin_z[0], atol=atol, rtol=0)
 
 
 
@@ -1112,24 +1114,14 @@ def test_splineboris_spin_uniform_solenoid(case, atol):
 def test_splineboris_spin_quadrupole(case, atol):
     case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
 
-    ref_file = Path(xt.__file__).parent / '../test_data/spin_refs_bmad' / 'quadrupole_bmad.json'
-    refs = xt.json.load(ref_file)
-
-    ref = None
-    for ref_case in refs:
-        if ref_case['in'] == case:
-            ref = ref_case['out']
-            break
-    if ref is None:
-        raise ValueError(f'Case {case} not found in file {ref_file}')
-
     p = xt.Particles(
         p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
         anomalous_magnetic_moment=0.00115965218128,
         **case,
     )
+    p_ref = p.copy()
 
-    k1=0.01
+    k1 = 0.01
     quad_gradient = k1 * p.p0c[0] / clight / p.q0
 
     length = 0.02
@@ -1137,6 +1129,18 @@ def test_splineboris_spin_quadrupole(case, atol):
     s_end = length
     n_steps = 100
 
+    # --- xsuite Quadrupole reference ---
+    env = xt.Environment()
+    line_ref = env.new_line(
+        components=[
+            env.new('myquad', xt.Quadrupole, k1=k1, length=length),
+            env.new('mymarker', xt.Marker),
+        ]
+    )
+    line_ref.configure_spin(spin_model='auto')
+    line_ref.track(p_ref)
+
+    # --- SplineBoris ---
     # Spline coefficients on [s_start, s_end]:
     # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
     #
@@ -1185,6 +1189,6 @@ def test_splineboris_spin_quadrupole(case, atol):
 
     line_splineboris.track(p)
 
-    xo.assert_allclose(p.spin_x[0], ref['spin_x'], atol=atol, rtol=0)
-    xo.assert_allclose(p.spin_y[0], ref['spin_y'], atol=atol, rtol=0)
-    xo.assert_allclose(p.spin_z[0], ref['spin_z'], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_x[0], p_ref.spin_x[0], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_y[0], p_ref.spin_y[0], atol=atol, rtol=0)
+    xo.assert_allclose(p.spin_z[0], p_ref.spin_z[0], atol=atol, rtol=0)
