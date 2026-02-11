@@ -35,6 +35,7 @@ def test_cavity_absolute_time(test_context):
     tt = line.get_table()
     for nn in tt.rows[tt.element_type=='Cavity'].name:
         line[nn].absolute_time = 1 # Need property
+        line[nn].harmonic = 0
         line[nn].frequency = line.vars['f_rf']
 
     tw1 = line.twiss(search_for_t_rev=True)

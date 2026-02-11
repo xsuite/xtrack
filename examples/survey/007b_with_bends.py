@@ -1,3 +1,35 @@
+"""
+Short example:
+
+- Build a minimal line with two bends and two quads interleaved.
+- Compute survey and twiss.
+- Combine twiss and survey to get the particle trajectory in the global frame.
+- Extract ``X_trajectory``, ``Y_trajectory`` and ``Z_trajectory`` from the
+  stacked positions.
+
+.. code-block:: python
+
+   import numpy as np
+   import xtrack as xt
+
+   env = xt.Environment(particle_ref=xt.Particles(p0c=1e9))
+   line = env.new_line(length=6, components=[
+       env.new('b1', xt.Bend, length=0.2, angle=np.deg2rad(20), k0_from_h=False, at=1),
+       env.new('q1', xt.Quadrupole, length=0.1, k1=0.5, at=2),
+       env.new('b2', xt.Bend, length=0.2, angle=-np.deg2rad(20), k0_from_h=False, at=3),
+       env.new('q2', xt.Quadrupole, length=0.1, k1=-0.5, at=4),
+   ])
+
+   survey = line.survey()
+   tw = line.twiss4d(betx=1, bety=1, x=1e-3, y=2e-3)
+
+   # Local transverse coordinates mapped to the global frame
+   p_global = tw.x[:, None] * survey.ex + tw.y[:, None] * survey.ey + survey.p0
+   X_trajectory = p_global[:, 0]
+   Y_trajectory = p_global[:, 1]
+   Z_trajectory = p_global[:, 2]
+"""
+
 import xtrack as xt
 import xobjects as xo
 import numpy as np

@@ -37,7 +37,7 @@ DEFAULT_REF_STRENGTH_NAME = {
 class Environment:
 
     def __init__(self, element_dict=None, particle_ref=None, lines=None,
-                 _var_management_dct=None):
+                 _var_management_dct=None, particles=None):
 
         '''
         Create an environment.
@@ -91,10 +91,7 @@ class Environment:
         self._particles = {}
         self.particle_ref = particle_ref
 
-        self._var_management = _make_var_management(
-            element_dict=self._element_dict,
-            particles=self._particles,
-            dct=_var_management_dct)
+        self._init_var_management(dct=_var_management_dct)
         self._line_vars = EnvVars(self)
 
         self.lines = EnvLines(self)
@@ -136,13 +133,22 @@ class Environment:
                     line_name=nn, rename_elements=rename_elements)
                 self.lines[nn]._renamed_elements = rename_elements
 
+        if particles is not None:
+            self._particles.update(particles)
+
         self.metadata = {}
+
+    def _init_var_management(self, dct=None):
+        self._var_management = _make_var_management(
+            element_dict=self._element_dict,
+            particles=self._particles,
+            dct=dct)
 
     def __repr__(self):
         line_names = list(self.lines.keys())
         n_lines = len(line_names)
         n_elements = len(self.elements)
-        n_vars = len(self.vars)
+        n_vars = (len(self.vars) if self.ref_manager is not None else 0)
         n_particles = len(self.particles)
         preview_tokens = []
         for ii, nn in enumerate(line_names):
@@ -420,6 +426,9 @@ class Environment:
                 ])
         """
 
+        if isinstance(components, str):
+            raise ValueError('components must be a list or tuple, not a string')
+
         out = xt.Line(env=self, compose=True, length=length, refer=refer,
                       s_tol=s_tol, mirror=mirror)
 
@@ -549,7 +558,6 @@ class Environment:
             Rename the element in the new line/environment. If not provided, the
             element is copied with the same name.
         """
-        new_name_input = new_name if new_name != name else None
         new_name = new_name or name
         cls = type(source._element_dict[name])
 
@@ -713,8 +721,10 @@ class Environment:
             if key in self.elements:
                 raise ValueError(f'There is already an element with name {key}')
             self.lines[key] = value
+        elif np.isscalar(value) or xd.refs.is_ref(value):
+            self.vars[key] = value
         else:
-            xt.Line.__setitem__(self, key, value)
+            raise ValueError('Only lines, scalars or references are allowed')
 
     def to_dict(self, include_var_management=True, include_version=True):
 
@@ -788,6 +798,10 @@ class Environment:
 
         elements = _deserialize_elements(dct=dct, classes=classes,
                                          _buffer=_buffer, _context=_context)
+        particles = {}
+        if 'particles' in dct:
+            for nn, ppd in dct['particles'].items():
+               particles[nn] = xt.Particles.from_dict(ppd)
 
         particle_ref = None
         if 'particle_ref' in dct.keys():
@@ -802,7 +816,7 @@ class Environment:
             _var_management_dct = None
 
         out = cls(element_dict=elements, particle_ref=particle_ref,
-                _var_management_dct=_var_management_dct)
+                _var_management_dct=_var_management_dct, particles=particles)
 
         dct_lines = dct.copy()
         dct_lines.pop('elements', None)
@@ -828,10 +842,6 @@ class Environment:
 
         if "metadata" in dct:
             out.metadata = dct["metadata"]
-
-        if 'particles' in dct:
-            for nn, ppd in dct['particles'].items():
-               out._particles[nn] = xt.Particles.from_dict(ppd)
 
         return out
 
@@ -1109,6 +1119,13 @@ class Environment:
         try:
             eva_obj = self._xdeps_eval_obj
         except AttributeError:
+            eva_obj = None
+
+        # in case the var manager has been replaced, invalidate the cached eval obj
+        if eva_obj is not None and eva_obj.variables is not self._xdeps_vref:
+            eva_obj = None
+
+        if eva_obj is None:
             eva_obj = xd.madxutils.MadxEval(variables=self._xdeps_vref,
                                             functions=self._xdeps_fref,
                                             elements=self._element_dict,
@@ -1169,7 +1186,7 @@ class Environment:
                 return self.particles[key]
             return View(self.particles[key], self._xdeps_pref[key],
                         evaluator=self._xdeps_eval.eval)
-        elif key in self.vars:
+        elif self.ref_manager is not None and key in self.vars:
             return self.vv[key]
         elif key in self.lines: # Want to reuse the method for the env
             return self.lines[key]
@@ -1179,8 +1196,9 @@ class Environment:
     def __contains__(self, key):
         return (key in self._element_dict or
                 key in self.particles or
-                key in self.vars or
-                key in self.lines)
+                key in self.lines or
+                (self.ref_manager is not None and key in self.vars)
+                )
 
     def remove(self, key):
 
@@ -1190,24 +1208,13 @@ class Environment:
             self.particles.remove(key)
         elif key in self.lines:
             self.lines.remove(key)
-        elif key in self.vars:
+        elif self.ref_manager is not None and key in self.vars:
             self.vars.remove(key)
         else:
             raise KeyError(f'Name {key} not found')
 
     def __delitem__(self, key):
         self.remove(key)
-
-    def __setitem__(self, key, value):
-
-        if isinstance(value, xt.Line):
-            assert value.env is self, 'Line must be in the same environment'
-            self.lines[key] = value
-        elif np.isscalar(value) or xd.refs.is_ref(value):
-            self.vars[key] = value
-        else:
-            raise ValueError('Only lines, scalars or references are allowed')
-
 
     def set(self, name, *args, **kwargs):
         '''
@@ -1552,19 +1559,19 @@ class EnvElements:
     def __len__(self):
         return len(self.env._element_dict)
 
-    def get_table(self):
+    def get_table(self, attr=False):
         names = sorted(list(self.env._element_dict.keys()))
         dumline = self.env.new_line(components=names)
-        tt = dumline.get_table()
+        tt = dumline.get_table(attr=attr)
         assert tt.name[-1] == '_end_point'
         tt = tt.rows[:-1] # Remove endpoint
-        del tt['s']
-        del tt['s_start']
-        del tt['s_center']
-        del tt['s_end']
-        del tt['env_name']
-        tt['length'] = np.array(
-            [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
+        for cc in ['s', 's_start', 's_center', 's_end', 'env_name']:
+            if cc in tt._col_names:
+                tt._col_names.remove(cc)
+                del tt._data[cc]
+        if 'length' not in tt._col_names:
+            tt['length'] = np.array(
+                [getattr(self.env._element_dict[nn], 'length', 0) for nn in tt.name])
         return tt
 
     def remove(self, name):
@@ -1619,11 +1626,11 @@ class EnvParticles:
         return len(self.env._particles)
 
     def get_table(self):
-        names = sorted(list(self.env._particles.keys()))
+        names = np.array(sorted(list(self.env._particles.keys())))
         mass0 = np.array(
-            [self.env._particles[nn].mass0[0] for nn in names])
+            [self.env._particles[nn].mass0 for nn in names])
         charge0 = np.array(
-            [self.env._particles[nn].charge0[0] for nn in names])
+            [self.env._particles[nn].q0 for nn in names])
         energy0 = np.array(
             [self.env._particles[nn].energy0[0] for nn in names])
         p0c = np.array(
@@ -1831,7 +1838,7 @@ def _reverse_element(env, name):
     _reverse_field('rot_s_rad')
 
     if ee.__class__.__name__ == 'CrabCavity':
-        ee_ref.voltage = -ee_ref.voltage._expr or ee_ref.voltage._value
+        ee_ref.crab_voltage = -(ee_ref.crab_voltage._expr or ee_ref.crab_voltage._value)
 
     if hasattr(ee, 'lag'):
         ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)
@@ -2167,6 +2174,7 @@ class EnvVars:
         filename : str or list of str
             Path to the MAD-X file(s) to load.
         '''
+        old_default_to_zero = self.default_to_zero
         loader = xt.mad_parser.MadxLoader(env=self.env)
         if filename is not None:
             assert string is None, 'Cannot specify both filename and string'
@@ -2174,6 +2182,7 @@ class EnvVars:
         elif string is not None:
             assert filename is None, 'Cannot specify both filename and string'
             loader.load_string(string)
+        self.default_to_zero = old_default_to_zero # restore (in case changed by loader)
 
     def load_madx_optics_file(self, filename=None, string=None):
         self.set_from_madx_file(filename, string)
@@ -2299,4 +2308,3 @@ def _disable_name_clash_checks(env):
         yield
     finally:
         env._enable_name_clash_check = old_value
-

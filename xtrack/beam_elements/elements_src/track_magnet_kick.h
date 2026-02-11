@@ -87,7 +87,7 @@ void track_magnet_kick_single_particle(
         double const hl = h * length * kick_weight + hxl * kick_weight;
         dpx += hl * (1. + LocalParticle_get_delta(part));
         double const rv0v = 1./LocalParticle_get_rvv(part);
-        dzeta += -rv0v * chi * hl * x;
+        dzeta += -rv0v * hl * x;
     }
 
     double htot = h;

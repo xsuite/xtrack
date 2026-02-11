@@ -602,8 +602,7 @@ def test_mad_elements_import():
 
         assert isinstance(line['c1'], xt.Cavity)
         assert line.get_s_position('c1') == 0.2
-        xo.assert_allclose(line['c1'].frequency, clight * line.particle_ref.beta0 / 10. * 8,
-                           rtol=0, atol=1e-7)
+        xo.assert_allclose(line['c1'].harmonic, 8, rtol=0, atol=1e-12)
         assert line['c1'].lag == 180
         assert line['c1'].voltage == 6e6
 
