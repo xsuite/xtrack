@@ -1041,12 +1041,12 @@ def test_splineboris_radiation():
 
 
 
-def test_solenoid_bz_map_vs_boris():
+def test_splineboris_variable_solenoid_radiation():
 
     delta=np.array([0, 4])
     p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                     energy0=45.6e9,
-                    x=[-1e-3, -1e-3], px=-1e-3*(1+delta), y=1e-3,
+                    x=[-5e-3, -5e-3], px=-1e-3*(1+delta), y=5e-3,
                     delta=delta)
 
     sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
@@ -1070,11 +1070,6 @@ def test_solenoid_bz_map_vs_boris():
     line_boris.track(p_boris, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_boris = line_boris.record_last_track
 
-    line_boris.configure_radiation(model=None)
-    p_boris_no_rad = p0.copy()
-    line_boris.track(p_boris_no_rad, turn_by_turn_monitor='ONE_TURN_EBE')
-    mon_boris_no_rad = line_boris.record_last_track
-
     # Compute dE/ds from SplineBoris ptau (central differences)
     dE_ds_boris = 0 * mon_boris.ptau
     dE_ds_boris[:, 1:-1] = -((mon_boris.ptau[:, 2:] - mon_boris.ptau[:, :-2])
@@ -1082,7 +1077,7 @@ def test_solenoid_bz_map_vs_boris():
                               * p_boris.energy0[0])
 
     # --- VariableSolenoid reference ---
-    z_axis = np.linspace(0, 30, 1001)
+    z_axis = np.linspace(0, 30, 5001)
     Bz_axis = sf.get_field(0 * z_axis, 0 * z_axis, z_axis)[2]
 
     P0_J = p0.p0c[0] * qe / clight
@@ -1094,20 +1089,20 @@ def test_solenoid_bz_map_vs_boris():
 
     dz = z_axis[1]-z_axis[0]
 
-    line = xt.Line(elements=[xt.VariableSolenoid(length=dz,
+    line_varsol = xt.Line(elements=[xt.VariableSolenoid(length=dz,
                                         ks_profile=[ks_entry[ii], ks_exit[ii]])
                                 for ii in range(len(z_axis)-1)])
-    line.build_tracker()
-    line.configure_radiation(model='mean')
+    line_varsol.build_tracker()
+    line_varsol.configure_radiation(model='mean')
 
     p_xt = p0.copy()
-    line.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
-    mon = line.record_last_track
+    line_varsol.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon = line_varsol.record_last_track
 
     p_xt = p0.copy()
-    line.configure_radiation(model=None)
-    line.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
-    mon_no_rad = line.record_last_track
+    line_varsol.configure_radiation(model=None)
+    line_varsol.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon_no_rad = line_varsol.record_last_track
 
     Bz_mid = 0.5 * (Bz_axis[:-1] + Bz_axis[1:])
     Bz_mon = 0 * Bz_axis
@@ -1121,13 +1116,6 @@ def test_solenoid_bz_map_vs_boris():
     ax_ref = Ax * p0.q0 * qe / P0_J
     ay_ref = Ay * p0.q0 * qe / P0_J
 
-    px_mech = mon.px - ax_ref
-    py_mech = mon.py - ay_ref
-    pz_mech = np.sqrt((1 + mon.delta)**2 - px_mech**2 - py_mech**2)
-
-    xp = px_mech / pz_mech
-    yp = py_mech / pz_mech
-
     dx_ds = np.diff(mon.x, axis=1) / np.diff(mon.s, axis=1)
     dy_ds = np.diff(mon.y, axis=1) / np.diff(mon.s, axis=1)
 
@@ -1138,7 +1126,6 @@ def test_solenoid_bz_map_vs_boris():
 
     emitted_dpx = -(np.diff(mon.kin_px, axis=1) - np.diff(mon_no_rad.kin_px, axis=1))
     emitted_dpy = -(np.diff(mon.kin_py, axis=1) - np.diff(mon_no_rad.kin_py, axis=1))
-    emitted_dp = -(np.diff(mon.delta, axis=1) - np.diff(mon_no_rad.delta, axis=1))
 
     # --- Comparisons ---
     z_check = sf.z0 + sf.L * np.linspace(-2, 2, 1001)
@@ -1176,7 +1163,7 @@ def test_solenoid_bz_map_vs_boris():
         xo.assert_allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
                 atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
         xo.assert_allclose(dE_ds_xsuite_check, dE_ds_boris_check, rtol=0,
-                atol=3.5e-2 * (np.max(dE_ds_boris_check) - np.min(dE_ds_boris_check)))
+                atol=2.5e-2 * (np.max(dE_ds_boris_check) - np.min(dE_ds_boris_check)))
 
         xo.assert_allclose(ax_ref[i_part, :], mon.ax[i_part, :],
                         rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
