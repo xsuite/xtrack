@@ -684,6 +684,8 @@ def test_splineboris_undulator_vs_boris_spatial():
     xo.assert_allclose(p_spline.zeta, p_boris.zeta, rtol=1e-12, atol=5e-11)
     xo.assert_allclose(p_spline.delta, p_boris.delta, rtol=1e-12, atol=5e-11)
 
+
+
 def test_splineboris_rotated_undulator_vs_boris_spatial():
     '''
     Rotate the field map by 90 degrees and check that the fit parameters obey the rotation rule:
@@ -1036,6 +1038,158 @@ def test_splineboris_radiation():
 
     xo.assert_allclose(mean_photon_energy, E_ave_eV, rtol=1e-2, atol=0)
     xo.assert_allclose(std_photon_energy, np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=2e-3, atol=0)
+
+
+
+def test_solenoid_bz_map_vs_boris():
+
+    delta=np.array([0, 4])
+    p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
+                    energy0=45.6e9,
+                    x=[-1e-3, -1e-3], px=-1e-3*(1+delta), y=1e-3,
+                    delta=delta)
+
+    sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
+
+    # --- SplineBoris tracking ---
+    test_data_dir = Path(__file__).parent.parent / "test_data" / "splineboris"
+    fit_pars_path = test_data_dir / "test_solenoid_vs_varsol_fit_pars.csv"
+    df_fit_pars = pd.read_csv(fit_pars_path)
+
+    seq = xt.SplineBorisSequence(
+        df_fit_pars=df_fit_pars,
+        multipole_order=4,
+        steps_per_point=1,
+    )
+
+    line_boris = seq.to_line()
+    line_boris.build_tracker()
+    line_boris.configure_radiation(model='mean')
+
+    p_boris = p0.copy()
+    line_boris.track(p_boris, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon_boris = line_boris.record_last_track
+
+    line_boris.configure_radiation(model=None)
+    p_boris_no_rad = p0.copy()
+    line_boris.track(p_boris_no_rad, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon_boris_no_rad = line_boris.record_last_track
+
+    # Compute dE/ds from SplineBoris ptau (central differences)
+    dE_ds_boris = 0 * mon_boris.ptau
+    dE_ds_boris[:, 1:-1] = -((mon_boris.ptau[:, 2:] - mon_boris.ptau[:, :-2])
+                              / (mon_boris.s[:, 2:] - mon_boris.s[:, :-2])
+                              * p_boris.energy0[0])
+
+    # --- VariableSolenoid reference ---
+    z_axis = np.linspace(0, 30, 1001)
+    Bz_axis = sf.get_field(0 * z_axis, 0 * z_axis, z_axis)[2]
+
+    P0_J = p0.p0c[0] * qe / clight
+    brho = P0_J / qe / p0.q0
+
+    ks = Bz_axis / brho
+    ks_entry = ks[:-1]
+    ks_exit = ks[1:]
+
+    dz = z_axis[1]-z_axis[0]
+
+    line = xt.Line(elements=[xt.VariableSolenoid(length=dz,
+                                        ks_profile=[ks_entry[ii], ks_exit[ii]])
+                                for ii in range(len(z_axis)-1)])
+    line.build_tracker()
+    line.configure_radiation(model='mean')
+
+    p_xt = p0.copy()
+    line.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon = line.record_last_track
+
+    p_xt = p0.copy()
+    line.configure_radiation(model=None)
+    line.track(p_xt, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon_no_rad = line.record_last_track
+
+    Bz_mid = 0.5 * (Bz_axis[:-1] + Bz_axis[1:])
+    Bz_mon = 0 * Bz_axis
+    Bz_mon[1:] = Bz_mid
+
+    # Wolsky Eq. 3.114
+    Ax = -0.5 * Bz_mon * mon.y
+    Ay =  0.5 * Bz_mon * mon.x
+
+    # Wolsky Eq. 2.74
+    ax_ref = Ax * p0.q0 * qe / P0_J
+    ay_ref = Ay * p0.q0 * qe / P0_J
+
+    px_mech = mon.px - ax_ref
+    py_mech = mon.py - ay_ref
+    pz_mech = np.sqrt((1 + mon.delta)**2 - px_mech**2 - py_mech**2)
+
+    xp = px_mech / pz_mech
+    yp = py_mech / pz_mech
+
+    dx_ds = np.diff(mon.x, axis=1) / np.diff(mon.s, axis=1)
+    dy_ds = np.diff(mon.y, axis=1) / np.diff(mon.s, axis=1)
+
+    dE_ds = 0*mon.ptau
+    # Central differences
+    dE_ds[:, 1:-1] = -((mon.ptau[:, 2:] - mon.ptau[:, :-2]) / (mon.s[:, 2:] - mon.s[:, :-2])
+                            * p_xt.energy0[0])
+
+    emitted_dpx = -(np.diff(mon.kin_px, axis=1) - np.diff(mon_no_rad.kin_px, axis=1))
+    emitted_dpy = -(np.diff(mon.kin_py, axis=1) - np.diff(mon_no_rad.kin_py, axis=1))
+    emitted_dp = -(np.diff(mon.delta, axis=1) - np.diff(mon_no_rad.delta, axis=1))
+
+    # --- Comparisons ---
+    z_check = sf.z0 + sf.L * np.linspace(-2, 2, 1001)
+
+    for i_part in range(len(delta)):
+
+        # SplineBoris data
+        s_boris_mid = 0.5 * (mon_boris.s[i_part, :-1] + mon_boris.s[i_part, 1:])
+        dx_ds_boris = np.diff(mon_boris.x[i_part, :]) / np.diff(mon_boris.s[i_part, :])
+        dy_ds_boris = np.diff(mon_boris.y[i_part, :]) / np.diff(mon_boris.s[i_part, :])
+
+        # VariableSolenoid data
+        s_xsuite = 0.5 * (mon.s[i_part, :-1] + mon.s[i_part, 1:])
+        dx_ds_xsuite = np.diff(mon.x[i_part, :]) / np.diff(mon.s[i_part, :])
+        dy_ds_xsuite = np.diff(mon.y[i_part, :]) / np.diff(mon.s[i_part, :])
+        dE_ds_xsuite = dE_ds[i_part, :]
+
+        dx_ds_xsuite_check = np.interp(z_check, s_xsuite, dx_ds_xsuite)
+        dy_ds_xsuite_check = np.interp(z_check, s_xsuite, dy_ds_xsuite)
+        dE_ds_xsuite_check = np.interp(z_check, mon.s[i_part, :], dE_ds_xsuite)
+
+        dx_ds_boris_check = np.interp(z_check, s_boris_mid, dx_ds_boris)
+        dy_ds_boris_check = np.interp(z_check, s_boris_mid, dy_ds_boris)
+        dE_ds_boris_check = np.interp(z_check, mon_boris.s[i_part, :],
+                                      dE_ds_boris[i_part, :])
+
+        this_emitted_dpx = emitted_dpx[i_part, :]
+        this_emitted_dpy = emitted_dpy[i_part, :]
+        this_dE_ds = dE_ds[i_part, :]
+        this_dx_ds = dx_ds[i_part, :]
+        this_dy_ds = dy_ds[i_part, :]
+
+        xo.assert_allclose(dx_ds_xsuite_check, dx_ds_boris_check, rtol=0,
+                atol=2.8e-2 * (np.max(dx_ds_boris_check) - np.min(dx_ds_boris_check)))
+        xo.assert_allclose(dy_ds_xsuite_check, dy_ds_boris_check, rtol=0,
+                atol=2.8e-2 * (np.max(dy_ds_boris_check) - np.min(dy_ds_boris_check)))
+        xo.assert_allclose(dE_ds_xsuite_check, dE_ds_boris_check, rtol=0,
+                atol=3.5e-2 * (np.max(dE_ds_boris_check) - np.min(dE_ds_boris_check)))
+
+        xo.assert_allclose(ax_ref[i_part, :], mon.ax[i_part, :],
+                        rtol=0, atol=np.max(np.abs(ax_ref)*3e-2))
+        xo.assert_allclose(ay_ref[i_part, :], mon.ay[i_part, :],
+                        rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
+
+        xo.assert_allclose(this_emitted_dpx,
+                0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dx_ds * np.diff(mon.s[i_part, :])/p0.p0c[0],
+                rtol=0, atol=2e-2 * (np.max(this_emitted_dpx) - np.min(this_emitted_dpx)))
+        xo.assert_allclose(this_emitted_dpy,
+                0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dy_ds * np.diff(mon.s[i_part, :])/p0.p0c[0],
+                rtol=0, atol=5e-2 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
+
 
 
 
