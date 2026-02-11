@@ -1303,6 +1303,272 @@ class Line:
             multi_element_monitor_at=multi_element_monitor_at,
             **kwargs)
 
+    def momentum_aperture(
+        self,
+        *,
+        particle_ref=None,
+        twiss=None,
+        x_offset: float = 0.0,
+        y_offset: float = 0.0,
+        x_norm_offset: float = 0.0,
+        y_norm_offset: float = 0.0,
+        nemitt_x=None,
+        nemitt_y=None,
+        delta_negative_limit: float = -0.10,
+        delta_positive_limit: float = +0.10,
+        delta_step_size: float = 0.01,
+        skip_elements: int = 0,
+        process_elements: int = 2**31 - 1,
+        s_start: float = 0.0,
+        s_end: float | None = None,
+        include_name_pattern: str | None = None,
+        include_type_pattern: str | None = None,
+        n_turns: int = 512,
+        forbid_resonance_crossing: int = 0,
+        with_progress: bool | int = False,
+        verbose: bool = False,
+        **kwargs):
+        """
+        Compute the local momentum aperture (LMA) along the line by tracking a
+        grid of momentum offsets (δ) from the **entrance** of selected
+        elements and reporting the largest surviving negative and positive δ.
+
+        The δ grid is centered on the local closed orbit at each element, and offsets
+        can be applied (either physical x/y or normalized x/y in σ units).
+
+        Parameters
+        ----------
+        particle_ref : xt.Particles, optional
+            Reference particle. If not given, uses `self.particle_ref` (must exist).
+        twiss : xt.TwissTable, optional
+            Twiss table to define the closed orbit and optics. By default,
+            a 6D solution is computed with `self.twiss(method='6d')`. You can
+            override the method with `method=...` in `**kwargs`.
+        x_offset : float, default 0.0
+            Horizontal physical offset in meters. Mutually exclusive with
+            `x_norm_offset`.
+        y_offset : float, default 0.0
+            Vertical physical offset in meters. Mutually exclusive with
+            `y_norm_offset`.
+        x_norm_offset : float, default 0.0
+            Horizontal normalized offset in units of σx (rms). Mutually exclusive
+            with `x_offset`.
+        y_norm_offset : float, default 0.0
+            Vertical normalized offset in units of σy (rms). Mutually exclusive
+            with `y_offset`.
+        nemitt_x : float
+            Horizontal normalized emittance (m·rad, rms).
+        nemitt_y : float
+            Vertical normalized emittance (m·rad, rms).
+        delta_negative_limit : float, default -0.10
+            Lower bound of the δ scan (inclusive). Must be < 0.
+        delta_positive_limit : float, default +0.10
+            Upper bound of the δ scan (inclusive). Must be > 0.
+        delta_step_size : float, default 0.01
+            Step for the δ grid. Must be > 0. The positive end is included
+            with a half-step guard to reduce floating-point exclusion.
+        skip_elements : int, default 0
+            Number of selected elements to skip from the start.
+        process_elements : int, default 2**31 - 1
+            Maximum number of selected elements to process.
+        s_start : float, default 0.0
+            Start of the longitudinal selection window (m), inclusive.
+        s_end : float, optional
+            End of the selection window (m), exclusive. Defaults to ∞.
+        include_name_pattern : str, optional
+            Shell-style wildcard pattern (fnmatch) to include element names.
+        include_type_pattern : str, optional
+            Shell-style wildcard pattern (fnmatch) to include element types.
+        n_turns : int, default 512
+            Number of turns to track.
+        forbid_resonance_crossing : int, default 0
+            Reserved. Not implemented; using a non-zero value raises
+            NotImplementedError.
+        with_progress : bool | int, default False
+            If truthy, shows a per-element progress bar.
+        verbose : bool, default False
+            If True, enables tracker progress for each element scan.
+        **kwargs
+            Passed through to `self.twiss` and `build_particles`.
+
+        Selection semantics
+        -------------------
+        - LMA is evaluated at the **entrance** of each element.
+        - If multiple elements share the same `s`, only the first encountered is used.
+        - Elements are filtered by `s_start <= s < s_end`, then by optional
+        `include_name_pattern` and/or `include_type_pattern`, then by
+        `skip_elements`/`process_elements`.
+
+        Algorithm (per selected element)
+        --------------------------------
+        1. Build particles on closed orbit with the requested (normalized or physical) offsets.
+        2. Apply the δ grid by shifting the initial δ around `delta_co`.
+        3. Track for `n_turns` turns from the element to itself.
+        4. Among surviving particles, report:
+        - `deltan` = min of the *initial* δ of survivors,
+        - `deltap` = max of the *initial* δ of survivors.
+        If none survive, `deltan` = `deltap` = 0.0
+
+        Returns
+        -------
+        xt.Table
+            Table indexed by `'s'` with columns:
+            - `s` (float): Element entrance position (m).
+            - `deltan` (float): Largest surviving negative δ (may be 0).
+            - `deltap` (float): Largest surviving positive δ (may be 0).
+        """
+        import fnmatch
+
+        if particle_ref is None:
+            if hasattr(self, 'particle_ref'):
+                particle_ref = self.particle_ref
+            else:
+                raise ValueError(
+                    "If the line has no particle_ref, a particle_ref must be provided.")
+
+        if forbid_resonance_crossing:
+            raise NotImplementedError("forbid_resonance_crossing is not implemented yet.")
+        
+        # Mutual exclusivity: physical vs normalized offsets
+        if x_offset != 0.0 and x_norm_offset != 0.0:
+            raise ValueError("Provide either x_offset or x_norm_offset, not both.")
+        if y_offset != 0.0 and y_norm_offset != 0.0:
+            raise ValueError("Provide either y_offset or y_norm_offset, not both.")
+
+        if nemitt_x is None or nemitt_y is None:
+            raise ValueError("nemitt_x and nemitt_y must be provided.")
+
+        if delta_negative_limit >= 0:
+            raise ValueError("delta_negative_limit must be < 0")
+        if delta_positive_limit <= 0:
+            raise ValueError("delta_positive_limit must be > 0")
+        if delta_step_size <= 0:
+            raise ValueError("delta_step_size must be > 0")
+        if s_end is None:
+            s_end = np.inf
+        if s_start >= s_end:
+            raise ValueError("s_start must be < s_end")
+        if skip_elements < 0:
+            raise ValueError("skip_elements must be >= 0")
+        if process_elements <= 0:
+            raise ValueError("process_elements must be > 0")
+        if n_turns <= 0:
+            raise ValueError("n_turns must be > 0")
+        if self.particle_ref is None:
+            raise ValueError("Line.particle_ref must be set to build probe particles.")
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
+        # Compute twiss (use 6D by default, overridable via kwargs['method'])
+        twiss_method = kwargs.pop('method', '6d')
+        if twiss is None:
+            twiss = self.twiss(method=twiss_method)
+
+        # By default, we scan at the ENTRANCE of each element
+        s_entr = np.array(list(self.get_s_elements(mode="upstream")))
+        elem_names = np.array(self.element_names)
+        elem_types = np.array([ee.__class__.__name__ for ee in self.elements])
+
+        candidates: list[int] = []
+        for i, (nm, tp, s_en) in enumerate(zip(elem_names, elem_types, s_entr)):
+            if not (s_start <= s_en < s_end):
+                continue
+            # If patterns are given, enforce them
+            if include_name_pattern and not fnmatch.fnmatch(nm, include_name_pattern):
+                continue
+            if include_type_pattern and not fnmatch.fnmatch(tp, include_type_pattern):
+                continue
+            candidates.append(i)
+
+        if skip_elements:
+            candidates = candidates[skip_elements:]
+        if process_elements < len(candidates):
+            candidates = candidates[:process_elements]
+
+        if len(candidates) == 0:
+            raise ValueError("No elements selected for momentum aperture computation.")
+
+        elements = elem_names[candidates]
+
+        # Delta grid
+        deltas = np.arange(delta_negative_limit, delta_positive_limit + 0.5 * delta_step_size,
+                        delta_step_size)
+        n_part = len(deltas)
+
+        rows = []
+        seen_s = set()
+
+        iterable = progress(elements, desc="Momentum aperture") if with_progress else elements
+
+        for ii, ee in enumerate(iterable):
+            s_here = float(twiss['s', ee])
+
+            # Some elements may share the same s
+            if s_here in seen_s:
+                continue
+            seen_s.add(s_here)
+
+            ## Prepare test particles
+            # The longitudinal closed orbit need to be manually supplied
+            zeta_co = twiss['zeta', ee]
+            delta_co= twiss['delta', ee]
+
+            # On-momentum, matched, test particles
+            particles = self.build_particles(
+                _context=self._context,
+                num_particles=n_part,
+                particle_ref=particle_ref,
+                x_norm=x_norm_offset,
+                y_norm=y_norm_offset,
+                zeta=zeta_co,
+                delta=delta_co,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                at_element=ee,
+                method=twiss_method
+            )
+            particles.start_tracking_at_element = -1
+
+            # Add the delta grid
+            delta_temp = particles.delta.copy()
+            delta_temp += deltas
+            particles.update_delta(delta_temp)
+
+            initial_deltas = particles.delta.copy()
+
+            # Apply absolute offsets, if any
+            particles.x += x_offset
+            particles.y += y_offset
+
+            print(f"\nTrack test particles from reference point #{ii}")
+            self.track(
+                particles,
+                ele_start=ee,
+                ele_stop=ee,
+                num_turns=n_turns,
+                with_progress=1 if verbose else 0
+            )
+
+            mask_alive = (particles.state == 1)
+            if np.any(mask_alive):
+                surviving_pids = particles.filter(mask_alive).particle_id
+                deltan = float(np.min(initial_deltas[surviving_pids]))
+                deltap = float(np.max(initial_deltas[surviving_pids]))
+            else:
+                deltan = float(0.0)
+                deltap = float(0.0)
+
+            rows.append({
+                's': s_here,
+                'deltan': deltan,
+                'deltap': deltap
+            })
+
+        cols = {k: np.array([r[k] for r in rows]) for k in rows[0].keys()}
+        
+        return xt.Table(cols, index='s')
+
     def slice_thick_elements(self, slicing_strategies):
         """
         Slice thick elements in the line. Slicing is done in place.
