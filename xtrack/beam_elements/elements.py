@@ -870,9 +870,9 @@ class SplineBoris(BeamElement):
         The ordering implemented here is the basis for the parameter names in the FieldFitter output.
         The parameter names are:
 
-        - ``bs_k``      : longitudinal field polynomial coefficients (only for i=1)
-        - ``kn_i_k``    : derivative of Bx w.r.t. x of order ``i`` and polynomial coefficient ``k``
-        - ``ks_i_k``    : derivative of By w.r.t. x of order ``i`` and polynomial coefficient ``k``
+        - ``bs_k``      : longitudinal field polynomial coefficients (only for i=0)
+        - ``kn_i_k``    : derivative of By w.r.t. x of order ``i`` and polynomial coefficient ``k``
+        - ``ks_i_k``    : derivative of Bx w.r.t. x of order ``i`` and polynomial coefficient ``k``
 
         k runs from 0 to poly_order, which is 4 by default.
         i runs from 0 to multipole_order-1.
@@ -1314,8 +1314,9 @@ class SplineBorisSequence:
                 radiation_flag=self.radiation_flag,
             )
 
+            idx_name = len(self._elements_list)
             self._elements_list.append(elem)
-            self._element_names_list.append(f"splineboris_{len(self._elements_list):0{name_width}d}")
+            self._element_names_list.append(f"splineboris_{idx_name:0{name_width}d}")
 
     def to_line(self, env=None):
         '''Return a Line containing all ``SplineBoris`` elements.'''

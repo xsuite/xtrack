@@ -8,12 +8,8 @@ import scipy as sc
 import math
 
 from scipy.signal import find_peaks
-import matplotlib.pyplot as plt
 
 import xtrack as xt
-
-from typing import Dict, Tuple
-from dataclasses import dataclass
 
 
 
@@ -190,10 +186,10 @@ class FieldFitter:
         The transverse derivatives are computed and stored in the self.df_on_axis_raw DataFrame.
         """
 
-        # 0th derivative columns
-        self.df_on_axis_raw.columns = pd.MultiIndex.from_tuples([
-                    (col[0] if isinstance(col, tuple) else col, 0) for col in self.df_on_axis_raw.columns
-                ])
+        # Re-extract on-axis data from raw data so that fit() is idempotent
+        df_on = self.df_raw_data.xs(self.xy_point, level=("X", "Y")).sort_index().copy(deep=True)
+        df_on.columns = pd.MultiIndex.from_tuples([(col, 0) for col in df_on.columns])
+        self.df_on_axis_raw = df_on
         # compute transverse derivatives for der 1..deg and add as columns (skip Bs derivatives)
         self._fit_transverse_polynomials()
 
@@ -525,6 +521,8 @@ class FieldFitter:
         It accepts the derivative order.
         It computes the derivatives of the polynomials and stores them in the df_on_axis_raw DataFrame.
         """
+        import matplotlib.pyplot as plt
+
         if self.df_on_axis_raw is None or self.df_on_axis_fit is None:
             raise RuntimeError("`df_on_axis_raw` and `df_on_axis_fit` must be set before plotting.")
 
@@ -587,6 +585,8 @@ class FieldFitter:
         It accepts the derivative order.
         It computes the derivatives of the polynomials and stores them in the df_on_axis_raw DataFrame.
         """
+        import matplotlib.pyplot as plt
+
         if self.df_on_axis_raw is None or self.df_on_axis_fit is None:
             raise RuntimeError("`df_on_axis_raw` and `df_on_axis_fit` must be set before plotting.")
 
