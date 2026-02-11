@@ -4,6 +4,7 @@ from scipy.constants import e as qe
 from scipy.constants import epsilon_0, hbar
 import pytest
 import xobjects as xo
+from xobjects.test_helpers import fix_random_seed
 import pandas as pd
 from pathlib import Path
 import sys
@@ -760,7 +761,16 @@ def test_splineboris_rotated_undulator_vs_boris_spatial():
     #   Bs_rotated == Bs_original
     # ------------------------------------------------------------------
     fit_pars_orig_path = base_dir / "field_fit_pars.csv"
-    df_orig = pd.read_csv(fit_pars_orig_path, index_col=_idx_cols)
+    df_orig = pd.read_csv(fit_pars_orig_path, index_col=[
+        "field_component",
+        "derivative_x",
+        "region_name",
+        "s_start",
+        "s_end",
+        "idx_start",
+        "idx_end",
+        "param_index",
+    ])
 
     # Bx_rotated coefficients should equal By_original coefficients
     for der in range(multipole_order):
@@ -857,6 +867,7 @@ def test_splineboris_rotated_undulator_vs_boris_spatial():
     xo.assert_allclose(p_splineboris.delta, p_boris.delta, rtol=1e-12, atol=5e-11)
 
 
+@fix_random_seed(645284)
 def test_splineboris_radiation():
     """
     Test synchrotron radiation in SplineBoris element.
