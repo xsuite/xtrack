@@ -101,6 +101,19 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
     int64_t const ndqx = LineSegmentMapData_len_coeffs_dqx(el);
     int64_t const ndqy = LineSegmentMapData_len_coeffs_dqy(el);
 
+    double const c11_0= LineSegmentMapData_get_c11(el,0);
+    double const c12_0= LineSegmentMapData_get_c12(el,0);
+    double const c21_0= LineSegmentMapData_get_c21(el,0);
+    double const c22_0= LineSegmentMapData_get_c22(el,0);
+
+    double const c11_1= LineSegmentMapData_get_c11(el,1);;
+    double const c12_1= LineSegmentMapData_get_c12(el,1);;
+    double const c21_1= LineSegmentMapData_get_c21(el,1);;
+    double const c22_1= LineSegmentMapData_get_c22(el,1);
+
+    double const coupling_0 = c11_0 + c22_0 + c12_0 + c21_0;
+    double const coupling_1 = c11_1 + c22_1 + c12_1 + c21_1;
+
     int64_t detuning;
     double sin_x = 0;
     double cos_x = 0;
@@ -180,17 +193,135 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
                     )/sqrt_betprod_y;
         double const M11_y = (cos_y-alfy_1*sin_y)/sqrt_betratio_y;
 
-        double const x_out = M00_x*LocalParticle_get_x(part) + M01_x * LocalParticle_get_px(part);
-        double const px_out = M10_x*LocalParticle_get_x(part) + M11_x * LocalParticle_get_px(part);
-        double const y_out = M00_y*LocalParticle_get_y(part) + M01_y * LocalParticle_get_py(part);
-        double const py_out = M10_y*LocalParticle_get_y(part) + M11_y * LocalParticle_get_py(part);
+        if (coupling_0 == 0.0 && coupling_1 == 0.0) {
+            // No coupling matrices, use simple transfer matrix
+            double const x_out = M00_x*LocalParticle_get_x(part) + M01_x * LocalParticle_get_px(part);
+            double const px_out = M10_x*LocalParticle_get_x(part) + M11_x * LocalParticle_get_px(part);
+            double const y_out = M00_y*LocalParticle_get_y(part) + M01_y * LocalParticle_get_py(part);
+            double const py_out = M10_y*LocalParticle_get_y(part) + M11_y * LocalParticle_get_py(part);
 
-        LocalParticle_set_x(part, x_out);
-        LocalParticle_set_px(part, px_out);
-        LocalParticle_set_y(part, y_out);
-        LocalParticle_set_py(part, py_out);
-    END_PER_PARTICLE_BLOCK;
+            LocalParticle_set_x(part, x_out);
+            LocalParticle_set_px(part, px_out);
+            LocalParticle_set_y(part, y_out);
+            LocalParticle_set_py(part, py_out);
+        }
+
+        /* Construct 4x4 symplectic matrix R and its inverse from a 2x2 matrix C */
+        void compute_matrices_V(double const c11, double const c12,
+                          double const c21, double const c22,
+                          double const gamma,
+                          double V[16]) 
+        {
+        /* Initialize R and Rinv to zero */
+            for(int i=0;i<16;i++) {
+            V[i] = 0.0;
+            }
+            /* Identity 2x2 blocks (top-left and bottom-right) */
+            V[0] = gamma;  V[5] = gamma;
+            V[10] = gamma; V[15] = gamma;
+            /* C block (top-right) */
+            V[2] = c11;  V[3] = -c12;
+            V[6] = -c21;  V[7] = c22;
+            /* -C^inv block (bottom-left) */
+            V[8]  = -c22; V[9]  =  -c12;
+            V[12] =  -c21; V[13] = -c11;
+        }
+
+        /* Construct 4x4 symplectic matrix R and its inverse from a 2x2 matrix C */
+        void compute_matrices_Vinv(double const c11, double const c12,
+                          double const c21, double const c22,
+                          double const gamma,
+                          double V_inv[16]) 
+        {
+            /* Initialize R and Rinv to zero */
+            for(int i=0;i<16;i++) {
+                V_inv[i] = 0.0;
+            }
+            /* Identity 2x2 blocks (top-left and bottom-right) */
+            V_inv[0] = gamma;  V_inv[5] = gamma;
+            V_inv[10] = gamma; V_inv[15] = gamma;
+            /* -C block (top-right) */
+            V_inv[2] = -c11;  V_inv[3] =  c12;
+            V_inv[6] =  c21;  V_inv[7] = -c22;
+            /*C^inv block (bottom-left) */
+            V_inv[8]  =  c22; V_inv[9]  =  c12;
+            V_inv[12] =  c21; V_inv[13] =  c11;
+        }
+
+
+        if (coupling_0 != 0.0 || coupling_1 != 0.0) {
+        
+            double const det_0 = c11_0 * c22_0 - c12_0 * c21_0;
+            double const det_1 = c11_1 * c22_1 - c12_1 * c21_1;
+
+            double const gamma_0 = sqrt(1 - det_0);
+            double const gamma_1 = sqrt(1 - det_1);
+
+            double V_1[16], V_0inv[16];
+            double M[16];
+            double T[16];
+            double temp[16];
+
+            compute_matrices_V(c11_1, c12_1, c21_1, c22_1, gamma_1, V_1);  
+            compute_matrices_Vinv(c11_0, c12_0, c21_0, c22_0, gamma_0, V_0inv);
+            
+            //the final transformation is V_1 * M * V_0inv
+
+            for(int i=0;i<16;i++) {
+                M[i] = 0.0;
+            }
+            M[0] = M00_x; M[1] = M01_x; M[2]=0.0; M[3]=0.0;
+            M[4] = M10_x; M[5] = M11_x; M[6]=0.0; M[7]=0.0;
+            M[8] = 0.0; M[9] = 0.0; M[10]=M00_y; M[11]=M01_y;
+            M[12]= 0.0; M[13]= 0.0; M[14]=M10_y; M[15]=M11_y;       
+
+            for(int i=0;i<16;i++) {
+                T[i] = 0.0;
+            }
+
+            for(int i=0;i<16;i++) {
+                temp[i] = 0.0;
+            }
+
+            // temp = M * V_0inv
+            for (int i=0;i<4;i++) {
+                for (int j=0;j<4;j++) {
+                    temp[i*4+j] = 0.0;
+                    for (int k=0;k<4;k++)
+                        temp[i*4+j] += M[i*4+k]*V_0inv[k*4+j];
+                }
+            }
+            // T = V_1 * temp
+            for (int i=0;i<4;i++) {
+                for (int j=0;j<4;j++) {
+                    T[i*4+j] = 0.0;
+                    for (int k=0;k<4;k++)
+                        T[i*4+j] += V_1[i*4+k]*temp[k*4+j];
+                }
+            }
+
+                double const old_x = LocalParticle_get_x(part);
+                double const old_px = LocalParticle_get_px(part);
+                double const old_y = LocalParticle_get_y(part);
+                double const old_py = LocalParticle_get_py(part);
+
+                double const x_out = (
+                    T[0]*old_x + T[1]*old_px + T[2]*old_y + T[3]*old_py);
+                double const px_out = (
+                    T[4]*old_x + T[5]*old_px + T[6]*old_y + T[7]*old_py);
+                double const y_out = (
+                    T[8]*old_x + T[9]*old_px + T[10]*old_y + T[11]*old_py);
+                double const py_out = (
+                    T[12]*old_x + T[13]*old_px + T[14]*old_y + T[15]*old_py);
+
+                LocalParticle_set_x(part, x_out);
+                LocalParticle_set_px(part, px_out);
+                LocalParticle_set_y(part, y_out);
+                LocalParticle_set_py(part, py_out);
+            END_PER_PARTICLE_BLOCK;
+    }
 }
+
 
 GPUFUN
 void longitudinal_motion(LocalParticle *part0,

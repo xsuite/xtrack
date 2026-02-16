@@ -3390,6 +3390,11 @@ class LineSegmentMap(BeamElement):
         'alfx': xo.Float64[2],
         'alfy': xo.Float64[2],
 
+        'c11': xo.Float64[2],
+        'c12': xo.Float64[2],
+        'c21': xo.Float64[2],
+        'c22': xo.Float64[2],
+
         'dx': xo.Float64[2],
         'dpx': xo.Float64[2],
         'dy': xo.Float64[2],
@@ -3436,6 +3441,7 @@ class LineSegmentMap(BeamElement):
 
     def __init__(self, length=0., qx=0, qy=0,
             betx=1., bety=1., alfx=0., alfy=0.,
+            c11=0., c12=0., c21=0., c22=0.,
             dx=0., dpx=0., dy=0., dpy=0.,
             x_ref=0.0, px_ref=0.0, y_ref=0.0, py_ref=0.0,
             longitudinal_mode=None,
@@ -3478,6 +3484,18 @@ class LineSegmentMap(BeamElement):
         alfy : tuple of length 2 or float
             Vertical alpha function at the entrance and exit of the segment.
             If a float is given, the same value is used for both entrance and exit.
+        c11 : tuple of length 2 or float
+            Coupling matrix element
+            If a float is given, the same value is used for both entrance and exit
+        c12 : tuple of length 2 or float
+            Coupling matrix element
+            If a float is given, the same value is used for both entrance and exit
+        c21 : tuple of length 2 or float
+            Coupling matrix element
+            If a float is given, the same value is used for both entrance and exit
+        c22 : tuple of length 2 or float
+            Coupling matrix element
+            If a float is given, the same value is used for both entrance and exit
         dx : tuple of length 2 or float
             Horizontal dispersion at the entrance and exit of the segment.
             If a float is given, the same value is used for both entrance and exit.
@@ -3734,6 +3752,18 @@ class LineSegmentMap(BeamElement):
         if np.isscalar(alfy): alfy = [alfy, alfy]
         else: assert len(alfy) == 2
 
+        if np.isscalar(c11): c11 = [c11, c11]
+        else: assert len(c11) == 2    
+
+        if np.isscalar(c12): c12 = [c12, c12]
+        else: assert len(c12) == 2
+
+        if np.isscalar(c21): c21 = [c21, c21]
+        else: assert len(c21) == 2
+
+        if np.isscalar(c22): c22 = [c22, c22]
+        else: assert len(c22) == 2
+
         if np.isscalar(dx): dx = [dx, dx]
         else: assert len(dx) == 2
 
@@ -3762,6 +3792,10 @@ class LineSegmentMap(BeamElement):
         nargs['bety'] = bety
         nargs['alfx'] = alfx
         nargs['alfy'] = alfy
+        nargs['c11'] = c11
+        nargs['c12'] = c12
+        nargs['c21'] = c21
+        nargs['c22'] = c22
         nargs['dx'] = dx
         nargs['dpx'] = dpx
         nargs['dy'] = dy
