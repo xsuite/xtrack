@@ -92,20 +92,22 @@ class MadxLoader:
             self,
             env: xt.Environment = None,
             default_to_zero: bool = False,
+            install_limits: bool = True,
             s_tol: float = 1e-9,
             _rbend_correct_k0: bool = False,
     ):
+        self.env = env or xt.Environment()
+        self.install_limits = install_limits
+        self.s_tol = s_tol
+        self.builders = {}
+
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._both_direction_elements: Set[str] = set()
         self._builtin_types = set()
         self._parameter_cache = {}
-
-        self.env = env or xt.Environment()
-        self.env.default_to_zero = default_to_zero
-        self.builders = {}
-        self.s_tol = s_tol
         self._rbend_correct_k0 = _rbend_correct_k0
 
+        self.env.default_to_zero = default_to_zero
         self._init_environment()
 
     def _init_environment(self):
@@ -297,7 +299,7 @@ class MadxLoader:
                 # If it's a reference to a single element, we multiply it and
                 # add it. Reversal will not affect it.
                 element = [name]
-                if aper_name := self.env[name].name_associated_aperture:
+                if self.install_limits and (aper_name := self.env[name].name_associated_aperture):
                     element.insert(0, aper_name)
                 components += repeat * element
             else:
@@ -327,7 +329,7 @@ class MadxLoader:
 
         el_params = self._convert_element_params(name, kwargs)
 
-        if aperture and 'at' in el_params:  # placing mode
+        if aperture and self.install_limits and 'at' in el_params:  # placing mode
             builder.place(aperture, at=0, from_=f'{name}@start')
 
         if should_clone:
@@ -667,7 +669,7 @@ class MadxLoader:
 
 
 def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
-                      _rbend_correct_k0=False, end_compose=True) -> xt.Environment:
+                      _rbend_correct_k0=False, end_compose=True, **kwargs) -> xt.Environment:
 
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
@@ -675,7 +677,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
     if file is None and string is None:
         raise ValueError('Either `file` or `string` must be provided!')
 
-    loader = MadxLoader(s_tol=s_tol, _rbend_correct_k0=_rbend_correct_k0)
+    loader = MadxLoader(s_tol=s_tol, _rbend_correct_k0=_rbend_correct_k0, **kwargs)
 
     if file is not None:
         if not isinstance(file, (tuple, list)):
