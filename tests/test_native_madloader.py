@@ -869,6 +869,27 @@ def test_line_syntax():
     assert l6.element_names == 4 * ['el1', 'el2']
 
 
+def test_line_syntax_inserts_apertures():
+    sequence = """
+    m1: marker, apertype="circle", aperture={.2};
+    d1: drift, l=1;
+
+    l1: line = (m1, 3 * m1, d1);
+    """
+
+    loader = MadxLoader()
+    loader.load_string(sequence)
+    env = loader.env
+
+    env['l1'].end_compose()
+
+    l1 = env['l1']
+    assert l1.name == 'l1'
+    assert l1.element_names == 4 * ['m1_aper', 'm1'] + ['d1']
+    assert l1['m1'].name_associated_aperture == 'm1_aper'
+    assert isinstance(l1['m1_aper'], xt.LimitEllipse)
+
+
 def test_refer_and_thin_elements():
     sequence = """
     mb: sbend, l = 3;
