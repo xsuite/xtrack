@@ -2,8 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-
-import logging
+from warnings import warn
 
 import io
 import json
@@ -65,8 +64,6 @@ OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'lengt
 OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name']
 SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle_rad']
 
-
-log = logging.getLogger(__name__)
 
 def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
@@ -383,6 +380,8 @@ def twiss_line(line, particle_ref=None, method=None,
         - `T_rev`: measured revolution period [s]
 
     """
+    warn('`at_s` keyword is deprecated and will be removed in future versions.', FutureWarning)
+
     input_kwargs = locals().copy()
 
     # defaults

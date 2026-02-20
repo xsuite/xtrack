@@ -680,7 +680,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
     elif string is not None:
         loader.load_string(string)
     else:
-        raise ValueError('Something went wrong!')
+        raise RuntimeError('Unreachable code: something went wrong!')
 
     env = loader.env
 

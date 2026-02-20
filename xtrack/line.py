@@ -3,57 +3,53 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
+import copy
 import logging
 from collections import defaultdict
 from collections.abc import Iterable
-
 from contextlib import contextmanager
-import copy
 from pprint import pformat
-from typing import List, Literal, Optional, Dict
+from typing import Dict, List, Literal, Optional
+from warnings import warn
 
 import numpy as np
-from scipy.constants import c as clight
-
-from xdeps.refs import is_ref
-from . import json as json_utils
-
-import xobjects as xo
-import xtrack as xt
 import xdeps as xd
-from .beam_elements.elements import (
-    _MODEL_TO_INDEX_CURVED,
-    _EDGE_MODEL_TO_INDEX, _MODEL_TO_INDEX_DRIFT
-)
-from .progress_indicator import progress
-from .slicing import Custom, Slicer, Strategy
-from .mad_writer import to_madx_sequence
-from .madng_interface import (build_madng_model, discard_madng_model,
-                              regen_madng_model, _tw_ng, line_to_madng,
-                              _survey_ng)
+import xobjects as xo
+from scipy.constants import c as clight
+from xdeps.refs import is_ref
 
-from .survey import survey_from_line
-from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
-                          find_closed_orbit_line, twiss_line,
-                          compute_T_matrix_line,
-                          get_non_linear_chromaticity,
-                          DEFAULT_MATRIX_STABILITY_TOL,
-                          DEFAULT_MATRIX_RESPONSIVENESS_TOL)
+import xtrack as xt
 from xtrack.aperture_meas import measure_aperture
-from .match import match_line, closed_orbit_correction, match_knob_line, Action
-from .tapering import compensate_radiation_energy_loss
-from .mad_loader import MadLoader
-from .beam_elements import element_classes
+from xtrack.twiss import (DEFAULT_MATRIX_RESPONSIVENESS_TOL,
+                          DEFAULT_MATRIX_STABILITY_TOL,
+                          compute_one_turn_matrix_finite_differences,
+                          compute_T_matrix_line, find_closed_orbit_line,
+                          get_non_linear_chromaticity, twiss_line)
+
 from . import beam_elements
-from .beam_elements import Drift, BeamElement, Marker, Multipole
+from . import json as json_utils
+from .beam_elements import (BeamElement, Drift, Marker, Multipole,
+                            element_classes)
+from .beam_elements.elements import (_EDGE_MODEL_TO_INDEX,
+                                     _MODEL_TO_INDEX_CURVED,
+                                     _MODEL_TO_INDEX_DRIFT)
 from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
 from .footprint import Footprint, _footprint_with_linear_rescale
-from .internal_record import (start_internal_logging_for_elements_of_type,
-                              stop_internal_logging_for_elements_of_type,
-                              stop_internal_logging)
-from .trajectory_correction import TrajectoryCorrection
-
 from .general import _print
+from .internal_record import (start_internal_logging_for_elements_of_type,
+                              stop_internal_logging,
+                              stop_internal_logging_for_elements_of_type)
+from .mad_loader import MadLoader
+from .mad_writer import to_madx_sequence
+from .madng_interface import (_survey_ng, _tw_ng, build_madng_model,
+                              discard_madng_model, line_to_madng,
+                              regen_madng_model)
+from .match import Action, closed_orbit_correction, match_knob_line, match_line
+from .progress_indicator import progress
+from .slicing import Custom, Slicer, Strategy
+from .survey import survey_from_line
+from .tapering import compensate_radiation_energy_loss
+from .trajectory_correction import TrajectoryCorrection
 
 log = logging.getLogger(__name__)
 
@@ -342,13 +338,12 @@ class Line:
 
     @classmethod
     def from_json(cls, file, **kwargs):
-
-        """Constructs a line from a json file.
+        """Constructs a line from a JSON file.
 
         Parameters
         ----------
         file : str or file-like object
-            Path to the json file or file-like object.
+            Path to the JSON file or file-like object.
             If filename ends with '.gz' file is decompressed.
         **kwargs : dict
             Additional keyword arguments passed to `Line.from_dict`.
@@ -357,8 +352,8 @@ class Line:
         -------
         line : Line
             Line object.
-
         """
+        warn('`Line.from_json` is deprecated. Use `xt.load` instead.', FutureWarning)
 
         dct = json_utils.load(file)
 
@@ -2920,7 +2915,7 @@ class Line:
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
         """
-
+        warn('Line.insert_element is deprecated. Use Line.insert instead.', FutureWarning)
         self._method_incompatible_with_compose()
 
         if at is not None:
@@ -3020,7 +3015,7 @@ class Line:
         name : str
             Name of the element to append
         """
-
+        warn('Line.append_element is deprecated. Use Line.append', FutureWarning)
         self._method_incompatible_with_compose()
 
         if isinstance(element, xt.view.View):
@@ -4376,9 +4371,10 @@ class Line:
 
     def unfreeze(self):
         """See `Line.discard_tracker()`. This function is deprecated."""
-        _print(
+        warn(
             '`Line.unfreeze()` is deprecated and will be removed in future '
-            'versions. Please use `Line.discard_tracker()` instead.'
+            'versions. Please use `Line.discard_tracker()` instead.',
+            FutureWarning,
         )
         self.discard_tracker()
 
