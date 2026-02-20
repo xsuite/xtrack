@@ -60,9 +60,6 @@ def test_quadrupole_wedge_ptc():
 
     p0 = xt.Particles(x=x0,px=px0,y=y0,py=py0,delta=delta0,zeta=zeta0,beta0=beta0)
 
-    ptau0 = float(p0.ptau)
-    tau0 = zeta0/beta0
-
     # XSuite
     quadrupole = xt.Bend(length=length, k0=b1, k1=b2,
                          edge_entry_angle=angle_in, edge_exit_angle=angle_out,
