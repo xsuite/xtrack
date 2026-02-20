@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
 from typing import List
+from warnings import warn
 
 import numpy as np
 from numbers import Number
@@ -2568,6 +2569,11 @@ class Solenoid(_HasKnlKsl, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     def __init__(self, order=None, knl: List[float] = None, ksl: List[float] = None, **kwargs):
+        warn(
+            'The `Solenoid` element is deprecated. Use `VariableSolenoid` or `UniformSolenoid` instead.',
+            FutureWarning
+        )
+
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
@@ -3876,13 +3882,6 @@ class FirstOrderTaylorMap(BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord # not functional,
     # included for compatibility with Multipole
-
-
-class LinearTransferMatrix:
-    def __init__(self, **kwargs):
-        raise NotImplementedError(
-            '`LinearTransferMatrix` is deprecated. Use `LineSegmentMap` instead.'
-        )
 
 
 def _angle_from_trig(cos=None, sin=None, tan=None):
