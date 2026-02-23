@@ -1545,10 +1545,13 @@ class SplineBorisSequence:
         )
 
 
-class SRotation(xt.BeamElement):
-    """Beam element modeling a rotation of the reference system around the s-axis.
-    Positive angle is defined as x to y, i.e. counter-clockwise when looking
-    from the end of the s-axis towards the origin.
+class SRotation(BeamElement):
+    """
+    Beam element modeling a rotation of the reference system around the s-axis.
+    The sign convention is such that:
+
+            px_out = px_in * cos(angle) - py_in * sin(angle)
+
 
     Parameters
     ----------
@@ -1570,7 +1573,7 @@ class SRotation(xt.BeamElement):
     ]
 
     _store_in_to_dict = ['angle']
-    _skip_in_to_dict = ['sin_z', 'cos_z']
+    _skip_in_to_dict = ['sin_z', 'cos_s']
 
     def __init__(self, angle=None, cos_z=None, sin_z=None, **kwargs):
         """
