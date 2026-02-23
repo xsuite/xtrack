@@ -3,6 +3,8 @@ import numpy as np
 import xtrack as xt
 import xobjects as xo
 
+from scipy.constants import c as clight
+
 #########################################
 # Load line and twiss with no radiation #
 #########################################
@@ -20,10 +22,15 @@ line['rf1'].voltage *= 2
 line['rf2b'].voltage *= 2
 line['rf2a'].voltage *= 2
 
+# Use harmonic for one of the cavities
+t_rev = line.get_length() / clight
+line['rf1'].harmonic = line['rf1'].frequency * t_rev
+line['rf1'].frequency = 0
+
 line.particle_ref.p0c = 4e9  # eV
 
 line.configure_radiation(model=None)
-tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
+tw_no_rad = line.twiss(method='4d')
 
 ###############################################
 # Enable radiation and compensate energy loss #

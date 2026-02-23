@@ -57,7 +57,7 @@ class MyElement:
 
     def track(self, particles):
         # Custom tracking logic
-        pass
+        self.px += self.param * particles.x
 
 # Create multiple instances of MyElement and store them in the environment
 env.elements['my_element1'] = MyElement(param=2.0)
