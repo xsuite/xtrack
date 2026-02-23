@@ -482,9 +482,7 @@ def test_splineboris_solenoid_vs_variable_solenoid():
     # # Fit the field map data (pass file path directly to FieldFitter)
     # fitter = FieldFitter(raw_data=fieldmap_path,
     #     xy_point=(0, 0),
-    #     dx=dx,
-    #     dy=dy,
-    #     ds=1,
+    #     distance_unit=1,
     #     min_region_size=10,
     #     deg=multipole_order-1,
     # )
@@ -588,9 +586,7 @@ def test_splineboris_undulator_vs_boris_spatial():
     # fitter = FieldFitter(
     #     raw_data=fieldmap_path,
     #     xy_point=(0, 0),
-    #     dx=0.001,
-    #     dy=0.001,
-    #     ds=0.001,
+    #     distance_unit=0.001,
     #     min_region_size=10,
     #     deg=multipole_order-1,
     # )
@@ -716,9 +712,7 @@ def test_splineboris_rotated_undulator_vs_boris_spatial():
     # fitter_rot = FieldFitter(
     #     raw_data=fieldmap_path,
     #     xy_point=(0, 0),
-    #     dx=0.001,
-    #     dy=0.001,
-    #     ds=0.001,
+    #     distance_unit=0.001,
     #     min_region_size=10,
     #     deg=multipole_order-1,
     # )

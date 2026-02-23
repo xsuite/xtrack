@@ -31,15 +31,12 @@ class FieldFitter:
     xy_point :
         On-axis transverse point ``(X, Y)`` in meters, used to select the
         longitudinal series for fitting. Because the input coordinates are
-        multiplied by ``ds`` at import time, ``xy_point`` must be given in
-        post-scaling (meter) coordinates.
-    dx, dy :
-        Transverse grid spacing in meters, used for derivative tolerance
-        checks.
-    ds :
+        multiplied by ``distance_unit`` at import time, ``xy_point`` must be
+        given in post-scaling (meter) coordinates.
+    distance_unit :
         Coordinate scale factor applied to the X, Y, and Z index levels of
         the input data to convert them to meters.  For example, set
-        ``ds=0.001`` when the input coordinates are in millimetres.
+        ``distance_unit=0.001`` when the input coordinates are in millimetres.
     min_region_size :
         Minimum number of points per longitudinal fitting region.
     deg :
@@ -67,16 +64,13 @@ class FieldFitter:
             self,
             raw_data,
             xy_point=(0, 0),
-            dx=0.001,
-            dy=0.001,
-            ds=0.001,
+            distance_unit=0.001,
             min_region_size=10,
             deg=2,
     ):
-
         # Parameters
         self.xy_point = xy_point
-        self.dx, self.dy, self.ds = dx, dy, ds
+        self.distance_unit = distance_unit
         self.poly_order = 4  # fixed at 4 for now (5 coefficients)
         self.min_region_size = min_region_size
         self.s_full = None
@@ -121,7 +115,7 @@ class FieldFitter:
         Set the raw data DataFrame, scale coordinates to meters, and compute ``s_full``.
 
         After loading the DataFrame, the X, Y, and Z index levels are
-        multiplied by ``self.ds`` so that all downstream code operates in
+        multiplied by ``self.distance_scaler`` so that all downstream code operates in
         metres.
 
         Parameters
@@ -152,7 +146,7 @@ class FieldFitter:
         # Convert coordinates to meters (e.g. ds=1e-3 for mm input)
         idx = self.df_raw_data.index
         self.df_raw_data.index = pd.MultiIndex.from_arrays(
-            [idx.get_level_values(lvl).astype(float) * self.ds for lvl in idx.names],
+            [idx.get_level_values(lvl).astype(float) * self.distance_unit for lvl in idx.names],
             names=idx.names,
         )
 
@@ -225,6 +219,8 @@ class FieldFitter:
             if field_max > abs_max:
                 abs_max = field_max
 
+        x_max = np.max(self.df_on_axis_raw.index.get_level_values("X")) * self.distance_unit
+
         for field in fields:
             # Bs only has der = 0; other fields range 0..deg
             ders = [0] if field == "Bs" else range(0, self.deg + 1)
@@ -234,7 +230,7 @@ class FieldFitter:
 
                 # FIELD TOLERANCE AREA: check if this field/derivative needs fitting
                 field_der_max = np.max(np.abs(series))
-                relative_max = 1 / math.factorial(der) * field_der_max * (self.dx ** der)
+                relative_max = 1 / math.factorial(der) * field_der_max * (x_max ** der)
                 if relative_max < self.field_tol * abs_max:
                     # set to single region with zero parameters and skip expensive processing
                     field_extrema = np.array([0, len(series) - 1], dtype=int)
@@ -357,25 +353,12 @@ class FieldFitter:
         Accepts the field values in the region and the longitudinal spacing.
         """
 
-        # Compute actual spacing from s_region (handle non-uniform spacing by using local spacing)
         if get_right_point:
-            # Use spacing near the right boundary
-            if len(s_region) >= 3:
-                h = s_region[-1] - s_region[-2]  # Local spacing at right boundary
-                if h == 0 and len(s_region) >= 4:
-                    h = s_region[-2] - s_region[-3]  # Fallback to previous spacing
-            else:
-                h = self.ds  # Fallback if not enough points
+            h = s_region[-1] - s_region[-2]
             dbR = (3 * b_region[-1] - 4 * b_region[-2] + b_region[-3]) / (2 * h)
             return np.array([b_region[-1], dbR], dtype=float)
         else:
-            # Use spacing near the left boundary
-            if len(s_region) >= 3:
-                h = s_region[1] - s_region[0]  # Local spacing at left boundary
-                if h == 0 and len(s_region) >= 4:
-                    h = s_region[2] - s_region[1]  # Fallback to next spacing
-            else:
-                h = self.ds  # Fallback if not enough points
+            h = s_region[1] - s_region[0]
             dbL = (-3 * b_region[0] + 4 * b_region[1] - b_region[2]) / (2 * h)
             return np.array([b_region[0], dbL], dtype=float)
 

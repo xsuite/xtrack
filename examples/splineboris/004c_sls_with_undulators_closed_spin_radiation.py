@@ -42,17 +42,13 @@ df_raw_data = pd.read_csv(
 )
 df_raw_data = df_raw_data.set_index(['X', 'Y', 'Z'])
 
-# Grid spacing in meters (the dataset uses mm, so 1 mm = 0.001 m)
-dx = 0.001
-dy = 0.001
-ds = 0.001
+# Distance unit in meters (the dataset uses mm, so 1 mm = 0.001 m)
+distance_unit = 0.001
 
 field_fitter = FieldFitter(
     raw_data=df_raw_data,
     xy_point=(0, 0),
-    dx=dx,
-    dy=dy,
-    ds=ds,
+    distance_unit=distance_unit,
     min_region_size=10,
     deg=multipole_order-1,
 )

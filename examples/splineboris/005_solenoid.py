@@ -57,9 +57,7 @@ np.savetxt(fieldmap_path, data)
 # Fit the field map data (FieldFitter parses the file directly)
 fitter = FieldFitter(raw_data=fieldmap_path,
     xy_point=(0, 0),
-    dx=dx,
-    dy=dy,
-    ds=1,
+    distance_unit=1,
     min_region_size=10,
     deg=multipole_order-1,
 )

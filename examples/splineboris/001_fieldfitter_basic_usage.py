@@ -35,9 +35,7 @@ if __name__ == "__main__":
     fitter = FieldFitter(
         raw_data=file_path,
         xy_point=(0.0, 0.0),
-        dx=dz,
-        dy=dz,
-        ds=dz,
+        distance_unit=dz,
         min_region_size=10,
         deg=deg,
     )
