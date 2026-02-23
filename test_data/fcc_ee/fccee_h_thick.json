@@ -111,7 +111,6 @@
    "__class__": "Quadrupole",
    "k1": -0.01855415377626537,
    "length": 2.9,
-   "k1": -0.01855415377626537,
    "order": 5
   },
   "drift_10": {
@@ -337,10 +336,9 @@
   },
   "mwi.c4ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_30": {
    "__class__": "Drift",
@@ -348,10 +346,9 @@
   },
   "mwi.d4ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_31": {
    "__class__": "Drift",
@@ -359,10 +356,9 @@
   },
   "mwi.e4ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 0.43,
-   "angle": 0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_32": {
    "__class__": "Drift",
@@ -370,10 +366,9 @@
   },
   "mwi.f4ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_33": {
    "__class__": "Drift",
@@ -381,10 +376,9 @@
   },
   "mwi.g4ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_34": {
    "__class__": "Drift",
@@ -392,10 +386,9 @@
   },
   "mwi.h4ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 0.43,
-   "angle": 0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_35": {
    "__class__": "Drift",
@@ -403,10 +396,9 @@
   },
   "mwi.i4ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_36": {
    "__class__": "Drift",
@@ -414,8 +406,8 @@
   },
   "qa5.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.007692176103836754,
+   "length": 2.9,
    "order": 5
   },
   "drift_37": {
@@ -424,10 +416,9 @@
   },
   "mwi.a5ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_38": {
    "__class__": "Drift",
@@ -435,10 +426,9 @@
   },
   "mwi.b5ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 0.43,
-   "angle": 0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_39": {
    "__class__": "Drift",
@@ -446,10 +436,9 @@
   },
   "mwi.c5ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_40": {
    "__class__": "Drift",
@@ -457,10 +446,9 @@
   },
   "mwi.d5ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_41": {
    "__class__": "Drift",
@@ -468,10 +456,9 @@
   },
   "mwi.e5ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 0.43,
-   "angle": 0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_42": {
    "__class__": "Drift",
@@ -479,10 +466,9 @@
   },
   "mwi.f5ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_43": {
    "__class__": "Drift",
@@ -490,10 +476,9 @@
   },
   "mwi.g5ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_44": {
    "__class__": "Drift",
@@ -501,10 +486,9 @@
   },
   "mwi.h5ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 0.43,
-   "angle": 0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_45": {
    "__class__": "Drift",
@@ -512,10 +496,9 @@
   },
   "mwi.i5ra": {
    "__class__": "Bend",
+   "rot_s_rad": 1.5707963267948966,
    "length": 1.29,
-   "angle": -0.0,
-   "order": 5,
-   "rot_s_rad": 1.5707963267948966
+   "order": 5
   },
   "drift_46": {
    "__class__": "Drift",
@@ -523,8 +506,8 @@
   },
   "qa6.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.010244259754216464,
+   "length": 2.9,
    "order": 5
   },
   "drift_47": {
@@ -533,13 +516,11 @@
   },
   "bs1.1": {
    "__class__": "RBend",
+   "angle": 0.003194720723357393,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 32.477189017632405,
    "length_straight": 32.47717520638409,
-   "angle": 0.003194720723357393,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_48": {
    "__class__": "Drift",
@@ -547,8 +528,8 @@
   },
   "qs1.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.001635490199842268,
+   "length": 2.9,
    "order": 5
   },
   "drift_49": {
@@ -557,13 +538,11 @@
   },
   "bs2.1": {
    "__class__": "RBend",
+   "angle": 0.00032560418035799374,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 5.017630884624374,
    "length_straight": 5.017630862459391,
-   "angle": 0.00032560418035799374,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_50": {
    "__class__": "Drift",
@@ -571,8 +550,8 @@
   },
   "qs2.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01399562766406472,
+   "length": 2.9,
    "order": 5
   },
   "drift_51": {
@@ -581,13 +560,11 @@
   },
   "bs3.1": {
    "__class__": "RBend",
+   "angle": -0.00047769241133106854,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 7.917795370920295,
    "length_straight": 7.917795295638544,
-   "angle": -0.00047769241133106854,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_52": {
    "__class__": "Drift",
@@ -595,8 +572,8 @@
   },
   "qs3.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.017062630061168794,
+   "length": 2.9,
    "order": 5
   },
   "drift_53": {
@@ -612,8 +589,8 @@
   },
   "sf1.1": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.05199519158652445,
+   "length": 1.5,
    "order": 5
   },
   "drift_55": {
@@ -622,8 +599,8 @@
   },
   "sf1.2": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.05199519158652445,
+   "length": 1.5,
    "order": 5
   },
   "drift_56": {
@@ -632,8 +609,8 @@
   },
   "qfg2.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.019384848677021775,
+   "length": 2.9,
    "order": 5
   },
   "drift_57": {
@@ -642,13 +619,11 @@
   },
   "bg1.1": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_58": {
    "__class__": "Drift",
@@ -656,8 +631,8 @@
   },
   "qdg1.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01938475656048602,
+   "length": 2.9,
    "order": 5
   },
   "drift_59": {
@@ -666,13 +641,11 @@
   },
   "bg1.2": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_60": {
    "__class__": "Drift",
@@ -680,8 +653,8 @@
   },
   "qfg2.2": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.019384848677021775,
+   "length": 2.9,
    "order": 5
   },
   "drift_61": {
@@ -690,13 +663,11 @@
   },
   "bg1.3": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_62": {
    "__class__": "Drift",
@@ -704,8 +675,8 @@
   },
   "qdg1.2": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01938475656048602,
+   "length": 2.9,
    "order": 5
   },
   "drift_63": {
@@ -714,13 +685,11 @@
   },
   "bg1.4": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_64": {
    "__class__": "Drift",
@@ -728,8 +697,8 @@
   },
   "sf1.3": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.05199519158652445,
+   "length": 1.5,
    "order": 5
   },
   "drift_65": {
@@ -738,8 +707,8 @@
   },
   "sf1.4": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.05199519158652445,
+   "length": 1.5,
    "order": 5
   },
   "drift_66": {
@@ -748,8 +717,8 @@
   },
   "qfg2.3": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.019384848677021775,
+   "length": 2.9,
    "order": 5
   },
   "drift_67": {
@@ -758,13 +727,11 @@
   },
   "bg1.5": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_68": {
    "__class__": "Drift",
@@ -772,8 +739,8 @@
   },
   "sd1.1": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.600354873125953,
+   "length": 1.5,
    "order": 5
   },
   "drift_69": {
@@ -782,8 +749,8 @@
   },
   "sd1.2": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.600354873125953,
+   "length": 1.5,
    "order": 5
   },
   "drift_70": {
@@ -792,8 +759,8 @@
   },
   "qdg1.3": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01938475656048602,
+   "length": 2.9,
    "order": 5
   },
   "drift_71": {
@@ -802,13 +769,11 @@
   },
   "bg1.6": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_72": {
    "__class__": "Drift",
@@ -816,8 +781,8 @@
   },
   "qfg2.4": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.019384848677021775,
+   "length": 2.9,
    "order": 5
   },
   "drift_73": {
@@ -826,13 +791,11 @@
   },
   "bg1.7": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_74": {
    "__class__": "Drift",
@@ -840,8 +803,8 @@
   },
   "qdg1.4": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01938475656048602,
+   "length": 2.9,
    "order": 5
   },
   "drift_75": {
@@ -850,13 +813,11 @@
   },
   "bg1.8": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_76": {
    "__class__": "Drift",
@@ -864,8 +825,8 @@
   },
   "qfg2.5": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.019384848677021775,
+   "length": 2.9,
    "order": 5
   },
   "drift_77": {
@@ -874,13 +835,11 @@
   },
   "bg1.9": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_78": {
    "__class__": "Drift",
@@ -888,8 +847,8 @@
   },
   "sd1.3": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.600354873125953,
+   "length": 1.5,
    "order": 5
   },
   "drift_79": {
@@ -898,8 +857,8 @@
   },
   "sd1.4": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.600354873125953,
+   "length": 1.5,
    "order": 5
   },
   "drift_80": {
@@ -908,8 +867,8 @@
   },
   "qdg1.5": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01938475656048602,
+   "length": 2.9,
    "order": 5
   },
   "drift_81": {
@@ -918,13 +877,11 @@
   },
   "bg1.10": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "fg.2": {
    "__class__": "Marker"
@@ -935,8 +892,8 @@
   },
   "sf2.1": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.625842406676735,
+   "length": 1.5,
    "order": 5
   },
   "drift_83": {
@@ -945,8 +902,8 @@
   },
   "sf2.2": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.625842406676735,
+   "length": 1.5,
    "order": 5
   },
   "drift_84": {
@@ -955,8 +912,8 @@
   },
   "qfg2.6": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.019384848677021775,
+   "length": 2.9,
    "order": 5
   },
   "drift_85": {
@@ -965,13 +922,11 @@
   },
   "bg1.11": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_86": {
    "__class__": "Drift",
@@ -979,8 +934,8 @@
   },
   "qdg1.6": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01938475656048602,
+   "length": 2.9,
    "order": 5
   },
   "drift_87": {
@@ -989,13 +944,11 @@
   },
   "bg1.12": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_88": {
    "__class__": "Drift",
@@ -1003,8 +956,8 @@
   },
   "qfg2.7": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.019384848677021775,
+   "length": 2.9,
    "order": 5
   },
   "drift_89": {
@@ -1013,13 +966,11 @@
   },
   "bg1.13": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_90": {
    "__class__": "Drift",
@@ -1027,8 +978,8 @@
   },
   "qdg1.7": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01938475656048602,
+   "length": 2.9,
    "order": 5
   },
   "drift_91": {
@@ -1037,13 +988,11 @@
   },
   "bg1.14": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_92": {
    "__class__": "Drift",
@@ -1051,8 +1000,8 @@
   },
   "sf2.3": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.625842406676735,
+   "length": 1.5,
    "order": 5
   },
   "drift_93": {
@@ -1061,8 +1010,8 @@
   },
   "sf2.4": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.625842406676735,
+   "length": 1.5,
    "order": 5
   },
   "drift_94": {
@@ -1071,8 +1020,8 @@
   },
   "qfg2.8": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.019384848677021775,
+   "length": 2.9,
    "order": 5
   },
   "drift_95": {
@@ -1081,13 +1030,11 @@
   },
   "bg1.15": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_96": {
    "__class__": "Drift",
@@ -1095,8 +1042,8 @@
   },
   "sd2.1": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -1.2773611422664632,
+   "length": 1.5,
    "order": 5
   },
   "drift_97": {
@@ -1105,8 +1052,8 @@
   },
   "sd2.2": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -1.2773611422664632,
+   "length": 1.5,
    "order": 5
   },
   "drift_98": {
@@ -1115,8 +1062,8 @@
   },
   "qdg1.8": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01938475656048602,
+   "length": 2.9,
    "order": 5
   },
   "drift_99": {
@@ -1125,13 +1072,11 @@
   },
   "bg1.16": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_100": {
    "__class__": "Drift",
@@ -1139,8 +1084,8 @@
   },
   "qfg2.9": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.019384848677021775,
+   "length": 2.9,
    "order": 5
   },
   "drift_101": {
@@ -1149,13 +1094,11 @@
   },
   "bg1.17": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_102": {
    "__class__": "Drift",
@@ -1163,8 +1106,8 @@
   },
   "qdg1.9": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01938475656048602,
+   "length": 2.9,
    "order": 5
   },
   "drift_103": {
@@ -1173,13 +1116,11 @@
   },
   "bg1.18": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_104": {
    "__class__": "Drift",
@@ -1187,8 +1128,8 @@
   },
   "qfg2.10": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.019384848677021775,
+   "length": 2.9,
    "order": 5
   },
   "drift_105": {
@@ -1197,13 +1138,11 @@
   },
   "bg1.19": {
    "__class__": "RBend",
+   "angle": 0.002253880194234697,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.39537344090314,
    "length_straight": 19.395369335568805,
-   "angle": 0.002253880194234697,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_106": {
    "__class__": "Drift",
@@ -1211,8 +1150,8 @@
   },
   "sd2.3": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -1.2773611422664632,
+   "length": 1.5,
    "order": 5
   },
   "drift_107": {
@@ -1221,8 +1160,8 @@
   },
   "sd2.4": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -1.2773611422664632,
+   "length": 1.5,
    "order": 5
   },
   "drift_108": {
@@ -1231,8 +1170,8 @@
   },
   "qg1.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01225309148487128,
+   "length": 2.9,
    "order": 5
   },
   "drift_109": {
@@ -1241,13 +1180,11 @@
   },
   "bg2.1": {
    "__class__": "RBend",
+   "angle": 0.0028375407315242296,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 25.32300785420504,
    "length_straight": 25.322999358719347,
-   "angle": 0.0028375407315242296,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_110": {
    "__class__": "Drift",
@@ -1255,8 +1192,8 @@
   },
   "qg2.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.014923728888522919,
+   "length": 2.9,
    "order": 5
   },
   "drift_111": {
@@ -1265,13 +1202,11 @@
   },
   "bg3.1": {
    "__class__": "RBend",
+   "angle": -0.0014877769512126379,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.36576361590781,
    "length_straight": 19.365761829835545,
-   "angle": -0.0014877769512126379,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_112": {
    "__class__": "Drift",
@@ -1279,8 +1214,8 @@
   },
   "qg3.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.020538769665670895,
+   "length": 2.9,
    "order": 5
   },
   "drift_113": {
@@ -1289,13 +1224,11 @@
   },
   "bg4.1": {
    "__class__": "RBend",
+   "angle": -0.001288753958488073,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 11.045711755676605,
    "length_straight": 11.045710991273435,
-   "angle": -0.001288753958488073,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_114": {
    "__class__": "Drift",
@@ -1303,8 +1236,8 @@
   },
   "qg4.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.02158318620218238,
+   "length": 2.9,
    "order": 5
   },
   "drift_115": {
@@ -1313,13 +1246,11 @@
   },
   "bg5.1": {
    "__class__": "RBend",
+   "angle": -0.0023637123111726246,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 20.35680437953909,
    "length_straight": 20.356799640529736,
-   "angle": -0.0023637123111726246,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_116": {
    "__class__": "Drift",
@@ -1327,8 +1258,8 @@
   },
   "qg5.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.009051516994432865,
+   "length": 2.9,
    "order": 5
   },
   "drift_117": {
@@ -1337,13 +1268,11 @@
   },
   "bg6.1": {
    "__class__": "RBend",
+   "angle": -0.001336473383456801,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 20.706836257302726,
    "length_straight": 20.706834716230027,
-   "angle": -0.001336473383456801,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_118": {
    "__class__": "Drift",
@@ -1351,8 +1280,8 @@
   },
   "qg6.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.023927631391976137,
+   "length": 2.9,
    "order": 5
   },
   "drift_119": {
@@ -1361,13 +1290,11 @@
   },
   "bg7.1": {
    "__class__": "RBend",
+   "angle": -0.000906755054565203,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.00049110272334,
    "length_straight": 22.000490349018857,
-   "angle": -0.000906755054565203,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_120": {
    "__class__": "Drift",
@@ -1375,8 +1302,8 @@
   },
   "qg7.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.021009361119816033,
+   "length": 2.9,
    "order": 5
   },
   "drift_121": {
@@ -1385,13 +1312,11 @@
   },
   "bg8.1": {
    "__class__": "RBend",
+   "angle": -0.0004149978098093243,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.90925038576475,
    "length_straight": 19.909250242896647,
-   "angle": -0.0004149978098093243,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_122": {
    "__class__": "Drift",
@@ -1399,8 +1324,8 @@
   },
   "qg8.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.017744500648434153,
+   "length": 2.9,
    "order": 5
   },
   "drift_123": {
@@ -1409,13 +1334,11 @@
   },
   "bg9.1": {
    "__class__": "RBend",
+   "angle": -0.0007320643427412925,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 6.184459872795337,
    "length_straight": 6.184459734696812,
-   "angle": -0.0007320643427412925,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_124": {
    "__class__": "Drift",
@@ -1423,8 +1346,8 @@
   },
   "qg9.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.0003849525571690625,
+   "length": 2.9,
    "order": 5
   },
   "drift_125": {
@@ -1433,13 +1356,11 @@
   },
   "bga.1": {
    "__class__": "RBend",
+   "angle": -0.0027504503249448473,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 23.19273246479682,
    "length_straight": 23.192725154277202,
-   "angle": -0.0027504503249448473,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "fd0a.1": {
    "__class__": "Marker"
@@ -1450,8 +1371,8 @@
   },
   "sd3.1": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.19585189555028404,
+   "length": 1.5,
    "order": 5
   },
   "drift_127": {
@@ -1460,8 +1381,8 @@
   },
   "sd3.2": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.19585189555028404,
+   "length": 1.5,
    "order": 5
   },
   "drift_128": {
@@ -1470,8 +1391,8 @@
   },
   "qd3.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_129": {
@@ -1480,13 +1401,11 @@
   },
   "b1.1": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_130": {
    "__class__": "Drift",
@@ -1494,8 +1413,8 @@
   },
   "qf4.1": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_131": {
@@ -1504,13 +1423,11 @@
   },
   "b1.2": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_132": {
    "__class__": "Drift",
@@ -1518,8 +1435,8 @@
   },
   "qd3.2": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_133": {
@@ -1528,13 +1445,11 @@
   },
   "b1.3": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_134": {
    "__class__": "Drift",
@@ -1542,8 +1457,8 @@
   },
   "qf4.2": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_135": {
@@ -1552,13 +1467,11 @@
   },
   "b1s.1": {
    "__class__": "RBend",
+   "angle": 0.001942781667749686,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.303765579198426,
    "length_straight": 19.303762543359213,
-   "angle": 0.001942781667749686,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_136": {
    "__class__": "Drift",
@@ -1566,8 +1479,8 @@
   },
   "sd3.3": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.19585189555028404,
+   "length": 1.5,
    "order": 5
   },
   "drift_137": {
@@ -1576,8 +1489,8 @@
   },
   "sd3.4": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.19585189555028404,
+   "length": 1.5,
    "order": 5
   },
   "drift_138": {
@@ -1586,8 +1499,8 @@
   },
   "qd3.3": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_139": {
@@ -1596,13 +1509,11 @@
   },
   "b1s.2": {
    "__class__": "RBend",
+   "angle": 0.001942781667749686,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.303765579198426,
    "length_straight": 19.303762543359213,
-   "angle": 0.001942781667749686,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_140": {
    "__class__": "Drift",
@@ -1610,8 +1521,8 @@
   },
   "sf3.1": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 1.0595588524983497,
+   "length": 1.5,
    "order": 5
   },
   "drift_141": {
@@ -1620,8 +1531,8 @@
   },
   "sf3.2": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 1.0595588524983497,
+   "length": 1.5,
    "order": 5
   },
   "drift_142": {
@@ -1630,8 +1541,8 @@
   },
   "qf4.3": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_143": {
@@ -1640,13 +1551,11 @@
   },
   "b1.4": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_144": {
    "__class__": "Drift",
@@ -1654,8 +1563,8 @@
   },
   "qd3.4": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_145": {
@@ -1664,13 +1573,11 @@
   },
   "b1.5": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_146": {
    "__class__": "Drift",
@@ -1678,8 +1585,8 @@
   },
   "qf4.4": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_147": {
@@ -1688,13 +1595,11 @@
   },
   "b1l.1": {
    "__class__": "RBend",
+   "angle": 0.0021088420013480854,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 20.95376557919843,
    "length_straight": 20.95376169645315,
-   "angle": 0.0021088420013480854,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_148": {
    "__class__": "Drift",
@@ -1702,8 +1607,8 @@
   },
   "qd3.5": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_149": {
@@ -1712,13 +1617,11 @@
   },
   "b1s.3": {
    "__class__": "RBend",
+   "angle": 0.001942781667749686,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.303765579198426,
    "length_straight": 19.303762543359213,
-   "angle": 0.001942781667749686,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_150": {
    "__class__": "Drift",
@@ -1726,8 +1629,8 @@
   },
   "sf3.3": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 1.0595588524983497,
+   "length": 1.5,
    "order": 5
   },
   "drift_151": {
@@ -1736,8 +1639,8 @@
   },
   "sf3.4": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 1.0595588524983497,
+   "length": 1.5,
    "order": 5
   },
   "drift_152": {
@@ -1746,8 +1649,8 @@
   },
   "qf4.5": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_153": {
@@ -1756,13 +1659,11 @@
   },
   "b1s.4": {
    "__class__": "RBend",
+   "angle": 0.001942781667749686,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.303765579198426,
    "length_straight": 19.303762543359213,
-   "angle": 0.001942781667749686,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_154": {
    "__class__": "Drift",
@@ -1770,8 +1671,8 @@
   },
   "sd4.1": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.606832798026713,
+   "length": 1.5,
    "order": 5
   },
   "drift_155": {
@@ -1780,8 +1681,8 @@
   },
   "sd4.2": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.606832798026713,
+   "length": 1.5,
    "order": 5
   },
   "drift_156": {
@@ -1790,8 +1691,8 @@
   },
   "qd3.6": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_157": {
@@ -1800,13 +1701,11 @@
   },
   "b1.6": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_158": {
    "__class__": "Drift",
@@ -1814,8 +1713,8 @@
   },
   "qf4.6": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_159": {
@@ -1824,13 +1723,11 @@
   },
   "b1.7": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_160": {
    "__class__": "Drift",
@@ -1838,8 +1735,8 @@
   },
   "qd3.7": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_161": {
@@ -1848,13 +1745,11 @@
   },
   "b1.8": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_162": {
    "__class__": "Drift",
@@ -1862,8 +1757,8 @@
   },
   "qf4.7": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_163": {
@@ -1872,13 +1767,11 @@
   },
   "b1s.5": {
    "__class__": "RBend",
+   "angle": 0.001942781667749686,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.303765579198426,
    "length_straight": 19.303762543359213,
-   "angle": 0.001942781667749686,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_164": {
    "__class__": "Drift",
@@ -1886,8 +1779,8 @@
   },
   "sd4.3": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.606832798026713,
+   "length": 1.5,
    "order": 5
   },
   "drift_165": {
@@ -1896,8 +1789,8 @@
   },
   "sd4.4": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": -0.606832798026713,
+   "length": 1.5,
    "order": 5
   },
   "drift_166": {
@@ -1906,8 +1799,8 @@
   },
   "qd3.8": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_167": {
@@ -1916,13 +1809,11 @@
   },
   "b1s.6": {
    "__class__": "RBend",
+   "angle": 0.001942781667749686,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.303765579198426,
    "length_straight": 19.303762543359213,
-   "angle": 0.001942781667749686,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_168": {
    "__class__": "Drift",
@@ -1930,8 +1821,8 @@
   },
   "sf4.1": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.6776421255688111,
+   "length": 1.5,
    "order": 5
   },
   "drift_169": {
@@ -1940,8 +1831,8 @@
   },
   "sf4.2": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.6776421255688111,
+   "length": 1.5,
    "order": 5
   },
   "drift_170": {
@@ -1950,8 +1841,8 @@
   },
   "qf4.8": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_171": {
@@ -1960,13 +1851,11 @@
   },
   "b1.9": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_172": {
    "__class__": "Drift",
@@ -1974,8 +1863,8 @@
   },
   "qd3.9": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_173": {
@@ -1984,13 +1873,11 @@
   },
   "b1.10": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_174": {
    "__class__": "Drift",
@@ -1998,8 +1885,8 @@
   },
   "qf4.9": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_175": {
@@ -2008,13 +1895,11 @@
   },
   "b1l.2": {
    "__class__": "RBend",
+   "angle": 0.0021088420013480854,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 20.95376557919843,
    "length_straight": 20.95376169645315,
-   "angle": 0.0021088420013480854,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_176": {
    "__class__": "Drift",
@@ -2022,8 +1907,8 @@
   },
   "qd3.10": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_177": {
@@ -2032,13 +1917,11 @@
   },
   "b1s.7": {
    "__class__": "RBend",
+   "angle": 0.001942781667749686,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.303765579198426,
    "length_straight": 19.303762543359213,
-   "angle": 0.001942781667749686,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_178": {
    "__class__": "Drift",
@@ -2046,8 +1929,8 @@
   },
   "sf4.3": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.6776421255688111,
+   "length": 1.5,
    "order": 5
   },
   "drift_179": {
@@ -2056,8 +1939,8 @@
   },
   "sf4.4": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.6776421255688111,
+   "length": 1.5,
    "order": 5
   },
   "drift_180": {
@@ -2066,8 +1949,8 @@
   },
   "qf4.10": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_181": {
@@ -2076,13 +1959,11 @@
   },
   "b1s.8": {
    "__class__": "RBend",
+   "angle": 0.001942781667749686,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.303765579198426,
    "length_straight": 19.303762543359213,
-   "angle": 0.001942781667749686,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "fdia.1": {
    "__class__": "Marker"
@@ -2093,8 +1974,8 @@
   },
   "sd5.1": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.20216430250637618,
+   "length": 1.5,
    "order": 5
   },
   "drift_183": {
@@ -2103,8 +1984,8 @@
   },
   "sd5.2": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.20216430250637618,
+   "length": 1.5,
    "order": 5
   },
   "drift_184": {
@@ -2113,8 +1994,8 @@
   },
   "qd3.11": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_185": {
@@ -2123,13 +2004,11 @@
   },
   "b1.11": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_186": {
    "__class__": "Drift",
@@ -2137,8 +2016,8 @@
   },
   "qf4.11": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_187": {
@@ -2147,13 +2026,11 @@
   },
   "b1.12": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_188": {
    "__class__": "Drift",
@@ -2161,8 +2038,8 @@
   },
   "qd3.12": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_189": {
@@ -2171,13 +2048,11 @@
   },
   "b1.13": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_190": {
    "__class__": "Drift",
@@ -2185,8 +2060,8 @@
   },
   "qf4.12": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_191": {
@@ -2195,13 +2070,11 @@
   },
   "b1s.9": {
    "__class__": "RBend",
+   "angle": 0.001942781667749686,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.303765579198426,
    "length_straight": 19.303762543359213,
-   "angle": 0.001942781667749686,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_192": {
    "__class__": "Drift",
@@ -2209,8 +2082,8 @@
   },
   "sd5.3": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.20216430250637618,
+   "length": 1.5,
    "order": 5
   },
   "drift_193": {
@@ -2219,8 +2092,8 @@
   },
   "sd5.4": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.20216430250637618,
+   "length": 1.5,
    "order": 5
   },
   "drift_194": {
@@ -2229,8 +2102,8 @@
   },
   "qd3.13": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_195": {
@@ -2239,13 +2112,11 @@
   },
   "b1s.10": {
    "__class__": "RBend",
+   "angle": 0.001942781667749686,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 19.303765579198426,
    "length_straight": 19.303762543359213,
-   "angle": 0.001942781667749686,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_196": {
    "__class__": "Drift",
@@ -2253,8 +2124,8 @@
   },
   "sf5.1": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.999648078513268,
+   "length": 1.5,
    "order": 5
   },
   "drift_197": {
@@ -2263,8 +2134,8 @@
   },
   "sf5.2": {
    "__class__": "Sextupole",
-   "length": 1.5,
    "k2": 0.999648078513268,
+   "length": 1.5,
    "order": 5
   },
   "drift_198": {
@@ -2273,8 +2144,8 @@
   },
   "qf4.13": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_199": {
@@ -2283,13 +2154,11 @@
   },
   "b1.14": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_200": {
    "__class__": "Drift",
@@ -2297,8 +2166,8 @@
   },
   "qd3.14": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": -0.01945510339308968,
+   "length": 2.9,
    "order": 5
   },
   "drift_201": {
@@ -2307,13 +2176,11 @@
   },
   "b1.15": {
    "__class__": "RBend",
+   "angle": 0.0022799344662676477,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 22.653765579198428,
    "length_straight": 22.653760672675187,
-   "angle": 0.0022799344662676477,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_202": {
    "__class__": "Drift",
@@ -2321,8 +2188,8 @@
   },
   "qf4.14": {
    "__class__": "Quadrupole",
-   "length": 2.9,
    "k1": 0.01945518206915246,
+   "length": 2.9,
    "order": 5
   },
   "drift_203": {
@@ -2331,13 +2198,11 @@
   },
   "b1l.3": {
    "__class__": "RBend",
+   "angle": 0.0021088420013480854,
    "rbend_model": "adaptive",
-   "rbend_angle_diff": 0.0,
    "length": 20.95376557919843,
    "length_straight": 20.95376169645315,
-   "angle": 0.0021088420013480854,
-   "order": 5,
-   "rbend_compensate_sagitta": true
+   "order": 5
   },
   "drift_204": {
    "__class__": "Drift",
