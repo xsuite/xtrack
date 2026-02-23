@@ -37,11 +37,6 @@ env = xt.load('temp_lhc_thick.seq', s_tol=1e-6,
 env.lhcb1.set_particle_ref('proton', p0c=7000e9)
 env.lhcb2.set_particle_ref('proton', p0c=7000e9)
 
-# Set cavity frequency
-tt_cav = env.elements.get_table().rows.match(element_type='Cavity')
-for nn in tt_cav.name:
-    env[nn].frequency = 400.79e6  # Hz
-
 line = env.lhcb1
 
 line.to_json('lhc_thick_with_knobs.json', include_var_management=True)

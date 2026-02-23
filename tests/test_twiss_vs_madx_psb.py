@@ -27,7 +27,6 @@ def test_twiss_psb(test_context):
     env = xt.load(test_data_folder / 'psb_injection/psb_injection.seq')
     line = env['psb']
     line.set_particle_ref('proton', gamma0=mad.sequence['psb'].beam.gamma)
-    line['br.c02'].frequency = 1 / line_ref.get_length() * clight * line_ref.particle_ref.beta0[0] # h_rf = 1
 
     line.build_tracker(_context=test_context)
     beta0 = line.particle_ref.beta0[0]

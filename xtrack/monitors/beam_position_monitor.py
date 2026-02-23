@@ -8,6 +8,7 @@ Date: 2023-06-10
 import numpy as np
 
 import xobjects as xo
+import xtrack as xt
 
 from ..base_element import BeamElement
 from ..beam_elements import Marker

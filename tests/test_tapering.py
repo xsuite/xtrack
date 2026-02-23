@@ -2,6 +2,7 @@ import json
 import pathlib
 
 import numpy as np
+from scipy.constants import c as clight
 
 import xobjects as xo
 import xtrack as xt
@@ -24,6 +25,12 @@ def test_tapering_and_twiss_with_radiation():
 
     with open(filename, 'r') as f:
         line = xt.Line.from_dict(json.load(f))
+
+    # Use harmonic for one of the cavities
+    t_rev = line.get_length() / clight
+    harm = line['rf1'].frequency * t_rev
+    line['rf1'].frequency = 0
+    line['rf1'].harmonic = harm
 
     line.build_tracker()
 
@@ -141,6 +148,12 @@ def test_tapering_zero_mean():
     line['rf1'].voltage *= 2
     line['rf2b'].voltage *= 2
     line['rf2a'].voltage *= 2
+
+    # Use harmonic for one of the cavities
+    t_rev = line.get_length() / clight
+    harm = line['rf1'].frequency * t_rev
+    line['rf1'].frequency = 0
+    line['rf1'].harmonic = line['rf1'].frequency * t_rev
 
     line.particle_ref.p0c = 4e9  # eV
 

@@ -38,7 +38,8 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     if verbose: _print("Compensating energy loss.")
 
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-    with xt.freeze_longitudinal(line):
+    with xt.line._preserve_track_flags(line):
+        line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
         particle_on_co = line.find_closed_orbit(co_search_at=co_search_at)
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
@@ -58,19 +59,23 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     # Can do "own" as cavity slices are not supported here (see assert above)
     v_setter = line.attr._cache['_own_voltage'].multisetter
     f_setter = line.attr._cache['_own_frequency'].multisetter
+    h_setter = line.attr._cache['_own_harmonic'].multisetter
     lag_setter = line.attr._cache['_own_lag'].multisetter
     lag_taper_setter = line.attr._cache['_own_lag_taper'].multisetter
 
     v0 = v_setter.get_values()
     f0 = f_setter.get_values()
+    h0 = h_setter.get_values()
     lag_zero = lag_setter.get_values()
 
+    f0_all = f0 + h0 / (line.tracker._tracker_data_base.line_length / beta0 / clight)
     eneloss_partitioning = v0 / v0.sum()
 
     # Put all cavities on crest and at zero frequency
     lag_taper_setter.set_values(90. - lag_zero)
     v_setter.set_values(np.zeros_like(v_setter.get_values()))
     f_setter.set_values(np.zeros_like(f_setter.get_values()))
+    h_setter.set_values(np.zeros_like(h_setter.get_values()))
 
     if verbose: _print("Share energy loss among cavities (repeat until energy loss is zero)")
     with xt.line._preserve_track_flags(line):
@@ -134,12 +139,13 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     assert np.all(np.abs(v_ratio[mask_active_cav]) < 1)
     inst_phase = np.arcsin(v_ratio)
 
-    total_lag = 360.*(inst_phase / (2 * np.pi) - f0 * zeta_at_cav / beta0 / clight)
+    total_lag = 360.*(inst_phase / (2 * np.pi) - f0_all * zeta_at_cav / beta0 / clight)
     total_lag = 180. - total_lag # we are above transition
     lag_taper = total_lag - lag_zero
     lag_taper[~mask_active_cav] = 0
 
     v_setter.set_values(v0)
     f_setter.set_values(f0)
+    h_setter.set_values(h0)
     lag_taper_setter.set_values(lag_taper)
 

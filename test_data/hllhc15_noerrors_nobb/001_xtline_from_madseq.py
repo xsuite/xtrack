@@ -22,12 +22,6 @@ env = xt.load('sequence.madx')
 line = env.lhcb1
 line.set_particle_ref('proton', energy0=7000e9)
 
-tt_cav = line.get_table().rows.match(element_type='Cavity')
-for nn in tt_cav['name']:
-    line[nn].voltage = 1e6
-    line[nn].frequency = 400e6
-
-
 import json
 with open('line_and_particle.json', 'w') as fid:
     json.dump({'line': line.to_dict(), 'particle': line.particle_ref.to_dict()}, fid,

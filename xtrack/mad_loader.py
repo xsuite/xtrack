@@ -1121,12 +1121,11 @@ class MadLoader:
 
     def convert_rfcavity(self, ee): # bv done
         # TODO LRAD
-        if ee.freq == 0 and ee.harmon:
-            frequency = (
-                ee.harmon * self.sequence.beam.beta * clight / self.sequence.length
-            )
+        freq_harm_kwargs = {}
+        if ee.harmon:
+            freq_harm_kwargs['harmonic'] = ee.harmon
         else:
-            frequency = ee.freq * 1e6
+            freq_harm_kwargs['frequency'] = ee.freq * 1e6
         if (hasattr(self.sequence, 'beam')
                 and self.sequence.beam.particle == 'ion'):
             scale_voltage = 1./self.sequence.beam.charge
@@ -1142,9 +1141,9 @@ class MadLoader:
             ee.name,
             self.classes.Cavity,
             voltage=scale_voltage * ee.volt * 1e6,
-            frequency=frequency,
             lag=lag_deg,
-            length=ee.l
+            length=ee.l,
+            **freq_harm_kwargs,
         )
 
         sequence = [el]

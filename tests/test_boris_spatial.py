@@ -24,6 +24,8 @@ def test_boris_spatial_solenoid_map():
                                             s_start=0,
                                             s_end=30,
                                             n_steps=15000)
+    integrator.log_trajectories = True
+
     p_boris = p.copy()
     integrator.track(p_boris)
 

@@ -132,10 +132,10 @@ class ThinSliceCavity(_ThinSliceElementBase, BeamElement):
 
     def get_equivalent_element(self):
 
-
         out = Cavity(length=0,
                      voltage=self._parent.voltage * self.weight,
                      frequency=self._parent.frequency,
+                     harmonic=self._parent.harmonic,
                      lag=self._parent.lag,
                      lag_taper=self._parent.lag_taper,
                      absolute_time=self._parent.absolute_time,

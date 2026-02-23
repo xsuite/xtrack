@@ -27,6 +27,7 @@ TRANSLATE_PARAMS = {
     "e2": "edge_exit_angle",
     "fint": "edge_entry_fint",
     "fintx": "edge_exit_fint",
+    "harmon": "harmonic",
 }
 
 CONSTANTS = {
@@ -438,10 +439,6 @@ class MadxLoader:
                     params['voltage'] = volt * 1e6
             if (freq := params.pop('freq', None)):
                 params['frequency'] = freq * 1e6
-            if 'harmon' in params:
-                # harmon * beam.beta * clight / sequence.length
-                # raise NotImplementedError
-                pass
 
         elif parent_name == 'multipole':
             if (knl := params.pop('knl', None)):
@@ -665,7 +662,7 @@ class MadxLoader:
 
 
 def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
-                      _rbend_correct_k0=False) -> xt.Environment:
+                      _rbend_correct_k0=False, end_compose=True) -> xt.Environment:
 
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
@@ -687,12 +684,17 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
 
     env = loader.env
 
-    for nn in env.lines:
-        ll = env.lines[nn]
-        if ll.mode == 'compose':
-            ll.end_compose()
+    if end_compose:
+        for nn in env.lines:
+            ll = env.lines[nn]
+            if ll.mode == 'compose':
+                ll.end_compose()
 
     if reverse_lines:
+
+        if not end_compose:
+            raise ValueError('`end_compose` must be True when using `reverse_lines`!')
+
         print('Reversing lines:', reverse_lines)
         rlines = {}
         for nn in reverse_lines:
