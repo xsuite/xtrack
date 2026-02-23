@@ -168,5 +168,3 @@ class DriftExactSlice(_DriftSliceElementBase, BeamElement):
         out = DriftExact(length=self._parent.length * self.weight,
                          _buffer=self._buffer)
         return out
-
-
