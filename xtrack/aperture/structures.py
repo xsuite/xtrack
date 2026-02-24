@@ -145,7 +145,7 @@ class ApertureModel(xo.Struct):
         self,
         type_positions: List[TypePosition],
         types: List[ApertureType],
-        profiles: List[Profile],
+        profiles: List[ShapeTypes],
         type_names: List[str],
         profile_names: List[str],
         **kwargs,

@@ -83,17 +83,19 @@ class Aperture:
         self,
         line: Line,
         model: ApertureModel,
-        cross_sections,
-        halo_params=None,
+        num_profile_points: int = 128,
+        halo_params: Optional[dict] = None,
         context: Optional[XContext] = None,
         s_tol=1e-3,
     ):
         self.line = line
         self.model = model  # positioning of types in line frame
-        self.cross_sections = cross_sections
         self.halo_params = self.halo_params.copy()
         self.context = context or xo.ContextCpu()
         self.s_tol = s_tol
+
+        self.num_profile_points = num_profile_points
+        self._cross_sections: Optional[CrossSections] = None
 
         if halo_params is not None:
             self.halo_params.update(halo_params)
@@ -407,7 +409,6 @@ class Aperture:
         aperture = cls(
             line=line,
             model=model,
-            cross_sections=None,
             context=context,
         )
 
@@ -481,8 +482,6 @@ class Aperture:
         line_sliced.cut_at_s(s_positions)
         s_start, s_end = s_positions[0], s_positions[-1]
 
-        self.cross_sections = self._build_cross_sections(cross_sections_num_points)
-
         sliced_twiss = line_sliced.twiss(init=twiss_init).rows[s_start:s_end:'s']
 
         num_slices = len(sliced_twiss.s)
@@ -551,8 +550,6 @@ class Aperture:
         line_sliced.cut_at_s(s_positions)
         s_start, s_end = s_positions[0], s_positions[-1]
 
-        self.cross_sections = self._build_cross_sections(cross_sections_num_points)
-
         sliced_twiss = line_sliced.twiss(init=twiss_init).rows[s_start:s_end:'s']
         num_slices = len(sliced_twiss.s)
         twiss_data = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
@@ -606,6 +603,13 @@ class Aperture:
             sliced=sv_sliced,
         )
         return placeholders, sv_sliced.tangent.to_nparray()
+
+    @property
+    def cross_sections(self) -> CrossSections:
+        if not self._cross_sections:
+            self._cross_sections = self._build_cross_sections(self.num_profile_points)
+
+        return self._cross_sections
 
     def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
