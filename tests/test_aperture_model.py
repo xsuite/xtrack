@@ -58,7 +58,7 @@ def test_aperture_from_line_with_aperture_type_bounds(test_context):
     env = xt.Environment.from_madx(madx=mad, enable_layout_data=True)
     ring = env['ring']
 
-    aperture_model = Aperture.from_line_with_madx_metadata(ring, line_name='ring', context=test_context)
+    aperture_model = Aperture.from_line_with_madx_metadata(ring, context=test_context)
     type_bounds = aperture_model._type_bounds()
     type_name_bounds = [(a, b, aperture_model.model.type_name_for_position(c) if c else None) for a, b, c in type_bounds]
     table_rows = ring.get_table().cols['s_start', 's_end', 'name', 'element_type'].rows[:-1].rows
@@ -88,7 +88,7 @@ def test_aperture_from_line_with_associated_apertures_type_bounds(test_context):
     env.set_particle_ref('proton', p0c=1.2e9)
     ring = env['ring']
 
-    aperture_model = Aperture.from_line_with_associated_apertures(ring, line_name='ring', context=test_context)
+    aperture_model = Aperture.from_line_with_associated_apertures(ring, context=test_context)
     type_bounds = aperture_model._type_bounds()
     type_name_bounds = [(a, b, aperture_model.model.type_name_for_position(c) if c else None) for a, b, c in type_bounds]
     table_rows = ring.get_table().cols['s_start', 's_end', 'name', 'element_type'].rows[:-1].rows
@@ -121,7 +121,7 @@ def test_aperture_from_line_with_limits_type_bounds(test_context):
     env.set_particle_ref('proton', p0c=1.2e9)
     ring = env['ring']
 
-    aperture_model = Aperture.from_line_with_limits(ring, line_name='ring', context=test_context)
+    aperture_model = Aperture.from_line_with_limits(ring, context=test_context)
     type_bounds = aperture_model._type_bounds()
     type_name_bounds_only_limits = [(a, b, aperture_model.model.type_name_for_position(c)) for a, b, c in type_bounds if c]
 
@@ -150,9 +150,9 @@ def test_aperture_find_type_positions_perfect_overlap(test_context):
     env.set_particle_ref('proton', p0c=1.2e9)
     ring = env['ring']
 
-    aperture_model = Aperture.from_line_with_associated_apertures(ring, line_name='ring', context=test_context)
+    aperture_model = Aperture.from_line_with_associated_apertures(ring, context=test_context)
 
-    mqf0, = aperture_model._find_type_positions(1, 1.3, 'ring')
+    mqf0, = aperture_model._find_type_positions(1, 1.3)
     assert mqf0.survey_reference_name == 'mqf::0'
 
     mqf0_name = aperture_model.model.type_name_for_position(mqf0)
@@ -179,9 +179,9 @@ def test_aperture_find_type_positions_partially_spanning_multiple_types(test_con
     env.set_particle_ref('proton', p0c=1.2e9)
     ring = env['ring']
 
-    aperture_model = Aperture.from_line_with_associated_apertures(ring, line_name='ring', context=test_context)
+    aperture_model = Aperture.from_line_with_associated_apertures(ring, context=test_context)
 
-    overlapping = aperture_model._find_type_positions(8, 11.8, 'ring')
+    overlapping = aperture_model._find_type_positions(8, 11.8)
     mb1, ap_ds8, ap_ds9, mqf1 = overlapping
 
     # Check the bend
@@ -563,7 +563,7 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
         dy=beam_params['dy'],
     )
 
-    aperture_model = Aperture.from_line_with_associated_apertures(seq, line_name='seq', context=context)
+    aperture_model = Aperture.from_line_with_associated_apertures(seq, context=context)
     aperture_model.halo_params.update(halo_params)
 
     # Needed as these quantities are not imported by the native madloader
@@ -573,7 +573,6 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
 
     # Compute n1 with Xsuite
     computed_n1, tw, apertures_points, envelope_points = aperture_model.get_aperture_sigmas_at_element(
-        line_name='seq',
         element_name='m1',
         resolution=None,
         twiss=tw,
@@ -636,9 +635,7 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
 
     tw = seq.twiss4d(betx=betx, bety=bety, delta=delta)
 
-    aperture_model = Aperture.from_line_with_associated_apertures(
-        seq, line_name="seq", context=context
-    )
+    aperture_model = Aperture.from_line_with_associated_apertures(seq, context=context)
     aperture_model.halo_params.update(beam_data)
 
     # Needed as these quantities are not imported by the native madloader
@@ -648,7 +645,6 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
 
     computed_n1, tw, apertures_points, envelope_points = (
         aperture_model.get_aperture_sigmas_at_element(
-            line_name="seq",
             element_name="m1",
             resolution=None,
             twiss=tw,
@@ -749,7 +745,7 @@ def test_get_aperture_sigmas_at_element_vs_madx(
     xo.assert_allclose(mad.beam.gamma, seq.particle_ref.gamma0, atol=1e-10)
     xo.assert_allclose(mad.beam.beta, seq.particle_ref.beta0, atol=1e-10)
 
-    aperture_model = Aperture.from_line_with_madx_metadata(seq, line_name='seq', context=context)
+    aperture_model = Aperture.from_line_with_madx_metadata(seq, context=context)
     aperture_model.halo_params.update(halo_params)
 
     # Sanity checks
@@ -769,12 +765,12 @@ def test_get_aperture_sigmas_at_element_vs_madx(
 
     # Compute n1 with Xsuite
     computed_n1, tw, apertures_points, envelope_points = aperture_model.get_aperture_sigmas_at_element(
-        line_name='seq',
         element_name='m1',
         resolution=None,
         twiss=tw,
         cross_sections_num_points=144,
         envelopes_num_points=144,
+        method='bisection',
     )
 
     xo.assert_allclose(madx_n1, computed_n1, rtol=0.01)

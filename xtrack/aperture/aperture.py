@@ -25,7 +25,7 @@ from xtrack.aperture.structures import (
     TwissData,
     TypePosition
 )
-from xtrack.environment import Environment
+from xtrack.line import Line
 from xtrack.progress_indicator import progress
 
 PolygonPoints32 = np.ndarray[Tuple[int, Literal[2]], np.dtype[np.float32]]
@@ -81,14 +81,14 @@ class Aperture:
 
     def __init__(
         self,
-        env,
+        line: Line,
         model: ApertureModel,
         cross_sections,
         halo_params=None,
         context: Optional[XContext] = None,
         s_tol=1e-3,
     ):
-        self.env = env
+        self.line = line
         self.model = model  # positioning of types in line frame
         self.cross_sections = cross_sections
         self.halo_params = self.halo_params.copy()
@@ -105,8 +105,7 @@ class Aperture:
         return self.context.kernels[name](**kwargs)
 
     @classmethod
-    def from_line_with_madx_metadata(cls, line, line_name=None, context=None):
-        env = line.env
+    def from_line_with_madx_metadata(cls, line, context=None):
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
         name_to_sv_index = dict(zip(survey.name, range(len(survey))))
@@ -198,8 +197,7 @@ class Aperture:
             type_positions_list.append(type_position)
 
         aperture = cls._build_aperture_model(
-            env=env,
-            line_name=line_name or line.name,
+            line=line,
             type_indices=aperture_indices,
             type_list=types,
             type_position_list=type_positions_list,
@@ -210,8 +208,7 @@ class Aperture:
         return aperture
 
     @classmethod
-    def from_line_with_associated_apertures(cls, line, line_name=None, context=None):
-        env = line.env
+    def from_line_with_associated_apertures(cls, line, context=None):
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
         name_to_sv_index = dict(zip(survey.name, range(len(survey_names))))
@@ -290,8 +287,7 @@ class Aperture:
             type_positions_list.append(type_position)
 
         aperture = cls._build_aperture_model(
-            env=env,
-            line_name=line_name or line.name,
+            line=line,
             type_indices=aperture_indices,
             type_list=types,
             type_position_list=type_positions_list,
@@ -302,8 +298,7 @@ class Aperture:
         return aperture
 
     @classmethod
-    def from_line_with_limits(cls, line, line_name=None, context=None):
-        env = line.env
+    def from_line_with_limits(cls, line, context=None):
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not a limit
         name_to_sv_index = dict(zip(survey.name, range(len(survey_names))))
@@ -348,8 +343,7 @@ class Aperture:
             aper_idx += 1
 
         aperture = cls._build_aperture_model(
-            env=env,
-            line_name=line_name or line.name,
+            line=line,
             type_indices=indices,
             type_list=type_list,
             type_position_list=type_positions_list,
@@ -367,8 +361,7 @@ class Aperture:
     @classmethod
     def _build_aperture_model(
             cls,
-            env: Environment,
-            line_name: str,
+            line: Line,
             type_indices: Dict[str, int],
             type_list: List[ApertureType],
             type_position_list: List[TypePosition],
@@ -382,8 +375,6 @@ class Aperture:
         ----------
         env
             The environment of the line for which the aperture model is built.
-        line_name
-            The name of the line for which the aperture model is built.
         type_indices
             A mapping between the name of an aperture type and its index in ``type_list``.
         type_list
@@ -405,7 +396,6 @@ class Aperture:
         context = context or xo.ContextCpu()
 
         model = ApertureModel(
-            line_name=line_name,
             type_positions=type_position_list,
             types=type_list,
             profiles=profile_list,
@@ -415,7 +405,7 @@ class Aperture:
         )
 
         aperture = cls(
-            env=env,
+            line=line,
             model=model,
             cross_sections=None,
             context=context,
@@ -425,7 +415,6 @@ class Aperture:
 
     def get_aperture_sigmas_at_element(
             self,
-            line_name: str,
             element_name: str,
             resolution: Optional[float] = None,
             twiss: Optional[TwissTable] = None,
@@ -435,8 +424,6 @@ class Aperture:
 
         Parameters
         ----------
-        line_name
-            The name of the line for which the aperture model is built.
         elment_name
             The name of the element at which the sigmas should be computed.
         resolution
@@ -447,13 +434,12 @@ class Aperture:
         **kwargs
             Other parameters to be forwarded to ``Aperture.get_aperture_sigmas_at_s``.
         """
-        s_positions = self._get_cuts_at_element(element_name, line_name, resolution)
+        s_positions = self._get_cuts_at_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
-        return self.get_aperture_sigmas_at_s(line_name, s_positions, twiss_init, **kwargs)
+        return self.get_aperture_sigmas_at_s(s_positions, twiss_init, **kwargs)
 
     def get_aperture_sigmas_at_s(
             self,
-            line_name: str,
             s_positions: Iterable[float],
             twiss_init: Optional[TwissInit] = None,
             method: Literal['bisection', 'rays'] = 'rays',
@@ -464,8 +450,6 @@ class Aperture:
 
         Parameters
         ----------
-        line_name
-            The name of the line for which the aperture model is built.
         s_positions
             List of s positions at which to calculate the sigmas.
         twiss_init
@@ -493,17 +477,16 @@ class Aperture:
         - ``envelope_at_max_sigma`` are the beam cross-section polygons at the computed ``n1`` if ``bisection`` method
           was selected: a numpy array of the same shape as ``aperture_polygons``.
         """
-        line = self.env[line_name]
-        line_sliced = line.copy()
+        line_sliced = self.line.copy()
         line_sliced.cut_at_s(s_positions)
         s_start, s_end = s_positions[0], s_positions[-1]
 
-        self.cross_sections = self._build_cross_sections(line_name, cross_sections_num_points)
+        self.cross_sections = self._build_cross_sections(cross_sections_num_points)
 
         sliced_twiss = line_sliced.twiss(init=twiss_init).rows[s_start:s_end:'s']
 
         num_slices = len(sliced_twiss.s)
-        twiss_data = TwissData.from_twiss_table(line.particle_ref, sliced_twiss)
+        twiss_data = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
         interpolated_points = np.zeros(shape=(num_slices, self.cross_sections.num_points, 2), dtype=np.float32)
 
@@ -546,36 +529,33 @@ class Aperture:
 
     def get_apertures_and_envelope_at_element(
             self,
-            line_name: str,
             element_name: str,
             sigmas: float,
             resolution: Optional[float] = None,
             twiss: Optional[TwissTable] = None,
             **kwargs,
     ) -> Tuple[np.ndarray, np.ndarray, TwissTable]:
-        s_positions = self._get_cuts_at_element(element_name, line_name, resolution)
+        s_positions = self._get_cuts_at_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
-        return self.get_apertures_and_envelope_at_s(line_name, s_positions, sigmas, twiss_init, **kwargs)
+        return self.get_apertures_and_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
 
     def get_apertures_and_envelope_at_s(
             self,
-            line_name: str,
             s_positions: Iterable[float],
             sigmas: float,
             twiss_init: Optional[TwissInit] = None,
             cross_sections_num_points: int = 128,
             envelopes_num_points: int = 128,
     ) -> Tuple[np.ndarray, np.ndarray, TwissTable]:
-        line = self.env[line_name]
-        line_sliced = line.copy()
+        line_sliced = self.line.copy()
         line_sliced.cut_at_s(s_positions)
         s_start, s_end = s_positions[0], s_positions[-1]
 
-        self.cross_sections = self._build_cross_sections(line_name, cross_sections_num_points)
+        self.cross_sections = self._build_cross_sections(cross_sections_num_points)
 
         sliced_twiss = line_sliced.twiss(init=twiss_init).rows[s_start:s_end:'s']
         num_slices = len(sliced_twiss.s)
-        twiss_data = TwissData.from_twiss_table(line.particle_ref, sliced_twiss)
+        twiss_data = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
         interpolated_points = np.zeros(shape=(num_slices, self.cross_sections.num_points, 2), dtype=np.float32)
 
@@ -595,10 +575,10 @@ class Aperture:
 
         return envelopes, interpolated_points, sliced_twiss
 
-    def tangents_at_s(self, line_name: str, s_positions: Collection[float]) -> HomogenousMatrices32:
+    def tangents_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices32:
         """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
         tangents = np.zeros(shape=(len(s_positions), 4, 4), dtype=np.float32)
-        line = self.env[line_name].copy()
+        line = self.line.copy()
         line.cut_at_s(s_positions)
         survey_sliced = line.survey()
         sv_indices = np.searchsorted(survey_sliced.s, s_positions)
@@ -612,12 +592,12 @@ class Aperture:
 
         return tangents
 
-    def profiles_at_s(self, line_name: str, s_positions: Collection[float]) -> Tuple[PolygonPoints32, HomogenousMatrices32]:
+    def profiles_at_s(self, s_positions: Collection[float]) -> Tuple[PolygonPoints32, HomogenousMatrices32]:
         s_positions = np.array(s_positions, dtype=np.float32)
         shape = np.array([(np.cos(t), np.sin(t)) for t in np.linspace(0, 2 * np.pi, 50)], dtype=np.float32)
         placeholders = cast(PolygonPoints32, np.tile(shape, (len(s_positions), 1, 1)))
 
-        sv_data = SurveyData.from_survey_table(self.env[line_name].survey())
+        sv_data = SurveyData.from_survey_table(self.line.survey())
         sv_sliced = SurveyData.zeros(len(s_positions))
         self.call_kernel(
             'resample_survey_table',
@@ -627,11 +607,10 @@ class Aperture:
         )
         return placeholders, sv_sliced.tangent.to_nparray()
 
-    def _get_cuts_at_element(self, element_name: str, line_name: str, resolution: Optional[float]) -> List[float]:
+    def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
-        line = self.env[line_name]
-        element = line[element_name]
-        s_start = line.get_s_position(element_name)
+        element = self.line[element_name]
+        s_start = self.line.get_s_position(element_name)
         element_length = getattr(element, 'length', 0)
         s_end = s_start + element_length
 
@@ -643,8 +622,8 @@ class Aperture:
 
         return s_positions
 
-    def _build_cross_sections(self, line_name: str, num_points: int) -> CrossSections:
-        survey = self.env[line_name].survey()
+    def _build_cross_sections(self, num_points: int) -> CrossSections:
+        survey = self.line.survey()
         num_cross_sections = sum(len(self.model.type_for_position(type_pos).positions) for type_pos in self.model.type_positions)
 
         # Pre-allocate the cross-sections with the correct sizes
@@ -682,7 +661,7 @@ class Aperture:
         return cross_sections
 
 
-    def _find_type_positions(self, s_start: float, s_end: float, line_name: str) -> List[TypePosition]:
+    def _find_type_positions(self, s_start: float, s_end: float) -> List[TypePosition]:
         type_bounds = self._type_bounds()
 
         bound_idx_start = bisect.bisect_right(type_bounds, s_start, key=lambda bound: bound[0]) - 1
@@ -699,14 +678,12 @@ class Aperture:
         -------
         type_bounds
             List of tuples ``(s_start, s_end, type_position)`` where each entry
-            corresponds to a unique occurrence of a type position along the
-            line ``line_name``. The entries are sorted and contiguous, and if for
-            some range ``(s_start, s_end)`` there is no associated type_position
-            (i.e. there's a gap in the aperture model), ``type_position`` is None.
+            corresponds to a unique occurrence of a type position along the line.
+            The entries are sorted and contiguous, and if for some range
+            ``(s_start, s_end)`` there is no associated type_position (i.e.
+            there's a gap in the aperture model), ``type_position`` is None.
         """
-        line_name = self.model.line_name
-        line = self.env[line_name]
-        survey = line.survey()
+        survey = self.line.survey()
         line_length = survey.s[-1]
 
         type_positions = list(self.model.type_positions)
