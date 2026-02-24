@@ -11,13 +11,12 @@ lhc_with_metadata = xt.load('./lhc_aperture.json')
 b1 = lhc_with_metadata['b1']
 lhc_length = b1.get_length()
 
-aperture_model = Aperture.from_line_with_madx_metadata(b1, line_name='b1', context=context)
+aperture_model = Aperture.from_line_with_madx_metadata(b1, context=context)
 
 mqxfa_name = 'mqy.4r1.b1'
 
 # Calculate n1 with the ``rays`` method
 sig_rays, tw_rays, aper_rays, _ = aperture_model.get_aperture_sigmas_at_element(
-    line_name="b1",
     element_name=mqxfa_name,
     resolution=0.1,
     cross_sections_num_points=100,
@@ -26,7 +25,6 @@ sig_rays, tw_rays, aper_rays, _ = aperture_model.get_aperture_sigmas_at_element(
 
 # Calculate n1's with the ``bisection`` method
 sig_bisect, tw_bisect, aper_bisect, max_envelope = aperture_model.get_aperture_sigmas_at_element(
-    line_name="b1",
     element_name=mqxfa_name,
     resolution=0.1,
     cross_sections_num_points=100,
@@ -35,7 +33,6 @@ sig_bisect, tw_bisect, aper_bisect, max_envelope = aperture_model.get_aperture_s
 
 # Get envelope at arbitrary sigma
 envelopes, aper_envel, tw_envel = aperture_model.get_apertures_and_envelope_at_element(
-    line_name='b1',
     element_name=mqxfa_name,
     resolution=0.1,
     sigmas=1,
