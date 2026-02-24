@@ -143,7 +143,6 @@ class ApertureModel(xo.Struct):
 
     def __init__(
         self,
-        line_name: str,
         type_positions: List[TypePosition],
         types: List[ApertureType],
         profiles: List[Profile],
@@ -151,8 +150,6 @@ class ApertureModel(xo.Struct):
         profile_names: List[str],
         **kwargs,
     ):
-        self.line_name = line_name
-
         if len(type_names) != len(types):
             raise ValueError("Length of type_names and type_names must match.")
 
