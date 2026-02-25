@@ -436,47 +436,16 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         self.name = name
         self.partners_names = partners_names
 
-    def compile_kernels(self, extra_classes=(), *args, **kwargs):
+    def compile_kernels(self, *args, **kwargs):
         if 'apply_to_source' not in kwargs.keys():
             kwargs['apply_to_source'] = []
         kwargs['apply_to_source'].append(_handle_per_particle_blocks)
-        context = self._context
-        cls = self.__class__
 
-        if context.allow_prebuilt_kernels:
-            # Default config is empty (all flags default to not defined, which
-            # enables most behaviours). In the future this has to be looked at
-            # whenever a new flag is needed.
-            _default_config = {}
-            _print_state = Print.suppress
-            Print.suppress = True
-            classes = (cls._XoStruct,) + tuple(extra_classes)
-            try:
-                from xsuite import (
-                    get_suitable_kernel,
-                    XSK_PREBUILT_KERNELS_LOCATION,
-                )
-            except ImportError:
-                kernel_info = None
-            else:
-                kernel_info = get_suitable_kernel(
-                    _default_config, classes
-                )
-
-            Print.suppress = _print_state
-            if kernel_info:
-                module_name, _ = kernel_info
-                kernels = context.kernels_from_file(
-                    module_name=module_name,
-                    containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
-                    kernel_descriptions=self._kernels,
-                )
-                context.kernels.update(kernels)
-                return
         xo.HybridClass.compile_kernels(
             self,
             extra_classes=[Particles._XoStruct],
             extra_compile_args=(),
+            only_if_needed=True,
             *args,
             **kwargs,
         )
