@@ -88,7 +88,7 @@ class ACDipole(xt.BeamElement):
     }
 
     _extra_c_sources = [
-        "#include "xtrack/beam_elements/elements_src/acdipole.h"",
+        '#include "xtrack/beam_elements/elements_src/acdipole.h"',
     ]
 
     _plane_to_int = {None: 0, "h": 1, "v": 2, "x": 1, "y": 2}
