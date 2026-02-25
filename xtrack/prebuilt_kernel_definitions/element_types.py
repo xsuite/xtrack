@@ -18,6 +18,7 @@ ONLY_XTRACK_ELEMENTS = [
     Octupole,
     Magnet,
     MagnetEdge,
+    Wedge,
     SecondOrderTaylorMap,
     Marker,
     ReferenceEnergyIncrease,
