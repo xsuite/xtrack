@@ -13,7 +13,7 @@ import pytest
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
 from xtrack import Line, Node, Multipole
 
 test_data_folder = pathlib.Path(
@@ -328,6 +328,9 @@ def test_insert():
 
 
 def test_insert_omp():
+
+    skip_if_forbid_compile()
+
     ctx = xo.ContextCpu(omp_num_threads='auto')
     buffer = ctx.new_buffer()
 
@@ -737,6 +740,9 @@ def test_from_json_to_json(tmp_path):
 
 @for_all_test_contexts
 def test_config_propagation(test_context):
+
+    skip_if_forbid_compile()
+
     line = xt.Line(elements=10*[xt.Drift(length=1)])
     line.config.TEST1 = True
     line.config.TEST2 = 33.3
