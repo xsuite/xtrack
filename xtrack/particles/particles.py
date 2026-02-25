@@ -1416,7 +1416,7 @@ class Particles(xo.HybridClass):
                 context.kernels.update(kernels)
         self.compile_kernels(
             only_if_needed=True,
-            extra_compile_args=(f"-I{xt.__path__[0]}",),
+            extra_compile_args=(),
         )
 
         if seeds is None:
