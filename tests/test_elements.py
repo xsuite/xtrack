@@ -13,7 +13,8 @@ import ducktrack as dtk
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
+from xobjects.test_helpers import (for_all_test_contexts, fix_random_seed,
+                                   skip_if_forbid_compile)
 from xtrack.beam_elements.elements import _angle_from_trig
 
 test_data_folder = pathlib.Path(
@@ -48,7 +49,7 @@ def test_constructor(test_context):
         xt.Bend(_context=test_context, length=1.),
         xt.Quadrupole(_context=test_context, length=1.),
         xt.ElectronCooler(_context=test_context,current=2.4,length=1.5,radius_e_beam=25*1e-3,
-                                temp_perp=0.01,temp_long=0.001,magnetic_field=0.060) 
+                                temp_perp=0.01,temp_long=0.001,magnetic_field=0.060)
     ]
 
     # test to_dict / from_dict
@@ -579,6 +580,9 @@ void TestElement_track_local_particle(TestElementData el,
 
 @for_all_test_contexts
 def test_per_particle_kernel(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElement(xt.BeamElement):
         _xofields = {
             'a': xo.Float64
