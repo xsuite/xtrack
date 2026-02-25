@@ -34,5 +34,14 @@ XTRACK_ELEMENTS_INIT_DEFAULTS = {
     },
     'Exciter': {
         'samples': [0],
-    }
+    },
+    'MultiElementMonitor': {
+        'start_at_turn': 0,
+        'stop_at_turn': 1,
+        'part_id_start': 0,
+        'part_id_end': 1,
+        'at_element_mapping': np.array([0]),
+        'data': (1,1,1,1),
+        'obs_names': ['dummy']
+    },
 }
