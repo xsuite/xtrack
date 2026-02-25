@@ -502,9 +502,9 @@ class Marker(BeamElement):
     allow_rot_and_shift = False
     _skip_in_repr = ['_dummy']
 
-_extra_c_sources = [
-    '#include "xtrack/beam_elements/elements_src/marker.h"',
-]
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/marker.h"',
+    ]
 
 
 class Drift(_HasModelDrift, BeamElement):
