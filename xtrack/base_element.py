@@ -121,7 +121,7 @@ def _generate_track_local_particle_with_transformations(
 
     source_lines = [
         *preamble_lines,
-        '#include "headers/track_local_particle_with_transformations.h"',
+        '#include "xtrack/headers/track_local_particle_with_transformations.h"',
         *epilogue_lines,
     ]
     return '\n'.join(source_lines)

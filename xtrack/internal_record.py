@@ -9,7 +9,7 @@ from .particles import Particles
 
 
 _RecordIdentifier_getp_record_source = r'''
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 GPUFUN
 GPUGLMEM int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
@@ -199,7 +199,7 @@ def stop_internal_logging_for_elements_of_type(tracker, element_type):
 def generate_get_record(ele_classname, record_classname):
     content = '''
 /*---GENERATED GET RECORD FUNCTION---*/
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 GPUFUN
 RECORDCLASSNAME ELECLASSNAME_getp_internal_record(ELECLASSNAME el, LocalParticle* part){

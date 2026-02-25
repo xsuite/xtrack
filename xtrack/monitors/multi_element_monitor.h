@@ -6,7 +6,7 @@
 #ifndef XTRACK_MULTI_ELEMENT_MONITOR_H
 #define XTRACK_MULTI_ELEMENT_MONITOR_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 GPUFUN
 void MultiElementMonitor_track_local_particle(MultiElementMonitorData el,

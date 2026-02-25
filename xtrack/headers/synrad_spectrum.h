@@ -6,7 +6,7 @@
 #ifndef XTRACK_SYNRAD_SPECTRUM_H
 #define XTRACK_SYNRAD_SPECTRUM_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 #include <random/random_src/uniform_accurate.h>
 
 
