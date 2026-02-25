@@ -441,11 +441,13 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             kwargs['apply_to_source'] = []
         kwargs['apply_to_source'].append(_handle_per_particle_blocks)
 
+        only_if_needed = kwargs.pop('only_if_needed', True)
+
         xo.HybridClass.compile_kernels(
             self,
             extra_classes=[Particles._XoStruct],
             extra_compile_args=(),
-            only_if_needed=True,
+            only_if_needed=only_if_needed,
             *args,
             **kwargs,
         )
