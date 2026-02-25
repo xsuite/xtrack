@@ -476,7 +476,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         xo.HybridClass.compile_kernels(
             self,
             extra_classes=[Particles._XoStruct],
-            extra_compile_args=(f"-I{xt.__path__[0]}",),
+            extra_compile_args=(),
             *args,
             **kwargs,
         )

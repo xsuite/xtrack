@@ -6,12 +6,12 @@
 #ifndef XTRACK_DIPOLEEDGE_H
 #define XTRACK_DIPOLEEDGE_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_yrotation.h>
-#include <beam_elements/elements_src/track_wedge.h>
-#include <beam_elements/elements_src/track_dipole_fringe.h>
-#include <beam_elements/elements_src/track_dipole_edge_linear.h>
-#include <beam_elements/elements_src/track_dipole_edge_nonlinear.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_yrotation.h"
+#include "xtrack/beam_elements/elements_src/track_wedge.h"
+#include "xtrack/beam_elements/elements_src/track_dipole_fringe.h"
+#include "xtrack/beam_elements/elements_src/track_dipole_edge_linear.h"
+#include "xtrack/beam_elements/elements_src/track_dipole_edge_nonlinear.h"
 
 GPUFUN
 void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){

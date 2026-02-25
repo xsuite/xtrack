@@ -270,8 +270,8 @@ for td in to_do:
     #ifndef XTRACK_DRIFT_SLICE_OCTUPOLE_H
     #define XTRACK_DRIFT_SLICE_OCTUPOLE_H
 
-    #include <headers/track.h>
-    #include <beam_elements/elements_src/track_drift.h>
+    #include "xtrack/headers/track.h"
+    #include "xtrack/beam_elements/elements_src/track_drift.h"
 
 
     GPUFUN
