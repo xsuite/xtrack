@@ -13,7 +13,7 @@
 #endif  // XO_CONTEXT_CPU
 
 #include "xtrack/headers/track.h"
-#include <particles/rng_src/base_rng.h>
+#include "xtrack/particles/rng_src/base_rng.h"
 
 
 GPUFUN

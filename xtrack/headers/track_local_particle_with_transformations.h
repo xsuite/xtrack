@@ -25,7 +25,7 @@
 
 #include "xtrack/headers/track.h"
 #include "xtrack/headers/particle_states.h"
-#include <beam_elements/elements_src/track_misalignments.h>
+#include "xtrack/beam_elements/elements_src/track_misalignments.h"
 
 // Shorthand for `ElementClassNameData`
 #define ELEMENT_DATA CONCAT(ELEMENT_NAME, Data)

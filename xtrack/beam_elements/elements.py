@@ -482,7 +482,7 @@ class ReferenceEnergyIncrease(BeamElement):
         'Delta_p0c': xo.Float64}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/referenceenergyincrease.h>',
+        '#include "xtrack/beam_elements/elements_src/referenceenergyincrease.h"',
     ]
 
     has_backtrack = True
@@ -503,7 +503,7 @@ class Marker(BeamElement):
     _skip_in_repr = ['_dummy']
 
     _extra_c_sources = [
-        "#include <beam_elements/elements_src/marker.h>",
+        "#include "xtrack/beam_elements/elements_src/marker.h"",
     ]
 
 
@@ -536,7 +536,7 @@ class Drift(_HasModelDrift, BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/drift.h>',
+        '#include "xtrack/beam_elements/elements_src/drift.h"',
     ]
 
     _rename = {
@@ -593,7 +593,7 @@ class DriftExact(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/drift_exact.h>',
+        '#include "xtrack/beam_elements/elements_src/drift_exact.h"',
     ]
 
     def __init__(self, length=None, **kwargs):
@@ -670,7 +670,7 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/cavity.h>',
+        '#include "xtrack/beam_elements/elements_src/cavity.h"',
     ]
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -796,7 +796,7 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/crab_cavity.h>',
+        '#include "xtrack/beam_elements/elements_src/crab_cavity.h"',
     ]
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -866,7 +866,7 @@ class XYShift(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/xyshift.h>',
+        '#include "xtrack/beam_elements/elements_src/xyshift.h"',
     ]
 
 
@@ -911,7 +911,7 @@ class Elens(BeamElement):
     has_backtrack = True
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/elens.h>',
+        '#include "xtrack/beam_elements/elements_src/elens.h"',
     ]
 
     def __init__(self, **kwargs):
@@ -947,7 +947,7 @@ class NonLinearLens(BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/nonlinearlens.h>',
+        '#include "xtrack/beam_elements/elements_src/nonlinearlens.h"',
     ]
 
 
@@ -986,7 +986,7 @@ class Wire(BeamElement):
               }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/wire.h>',
+        '#include "xtrack/beam_elements/elements_src/wire.h"',
     ]
 
 
@@ -1014,7 +1014,7 @@ class SRotation(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/srotation.h>',
+        '#include "xtrack/beam_elements/elements_src/srotation.h"',
     ]
 
     _store_in_to_dict = ['angle']
@@ -1085,7 +1085,7 @@ class XRotation(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/xrotation.h>',
+        '#include "xtrack/beam_elements/elements_src/xrotation.h"',
     ]
 
     _store_in_to_dict = ['angle']
@@ -1176,7 +1176,7 @@ class YRotation(BeamElement):
         }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/yrotation.h>',
+        '#include "xtrack/beam_elements/elements_src/yrotation.h"',
     ]
 
     _store_in_to_dict = ['angle']
@@ -1263,7 +1263,7 @@ class ZetaShift(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/zetashift.h>',
+        '#include "xtrack/beam_elements/elements_src/zetashift.h"',
     ]
 
     _store_in_to_dict = ['dzeta']
@@ -1324,7 +1324,7 @@ class Misalignment(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/misalignment.h>',
+        '#include "xtrack/beam_elements/elements_src/misalignment.h"',
     ]
 
 
@@ -1393,7 +1393,7 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/multipole.h>',
+        '#include "xtrack/beam_elements/elements_src/multipole.h"',
     ]
 
     _internal_record_class = SynchrotronRadiationRecord
@@ -1490,7 +1490,7 @@ class SimpleThinQuadrupole(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/simplethinquadrupole.h>',
+        '#include "xtrack/beam_elements/elements_src/simplethinquadrupole.h"',
     ]
 
     def __init__(self, **kwargs):
@@ -1752,7 +1752,7 @@ class Bend(_BendCommon, BeamElement):
     _noexpr_fields = _NOEXPR_FIELDS
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/bend.h>',
+        '#include "xtrack/beam_elements/elements_src/bend.h"',
     ]
 
     def __init__(self, **kwargs):
@@ -1878,7 +1878,7 @@ class RBend(_BendCommon, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/rbend.h>',
+        '#include "xtrack/beam_elements/elements_src/rbend.h"',
     ]
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -2131,7 +2131,7 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/sextupole.h>',
+        '#include "xtrack/beam_elements/elements_src/sextupole.h"',
     ]
 
     @property
@@ -2211,7 +2211,7 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/octupole.h>',
+        '#include "xtrack/beam_elements/elements_src/octupole.h"',
     ]
 
     @property
@@ -2288,7 +2288,7 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _noexpr_fields = _NOEXPR_FIELDS
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/quadrupole.h>',
+        '#include "xtrack/beam_elements/elements_src/quadrupole.h"',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -2378,7 +2378,7 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/uniform_solenoid.h>',
+        '#include "xtrack/beam_elements/elements_src/uniform_solenoid.h"',
     ]
 
     def __init__(self, **kwargs):
@@ -2456,7 +2456,7 @@ class VariableSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/variable_solenoid.h>',
+        '#include "xtrack/beam_elements/elements_src/variable_solenoid.h"',
     ]
 
     def __init__(self, **kwargs):
@@ -2495,7 +2495,7 @@ class TempRF(_HasKnlKsl, _HasModelRF, _HasIntegrator, BeamElement):
     _noexpr_fields = _NOEXPR_FIELDS
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/temprf.h>',
+        '#include "xtrack/beam_elements/elements_src/temprf.h"',
     ]
 
 
@@ -2561,7 +2561,7 @@ class Solenoid(_HasKnlKsl, BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/legacy_solenoid.h>',
+        '#include "xtrack/beam_elements/elements_src/legacy_solenoid.h"',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -2767,7 +2767,7 @@ class Magnet(_BendCommon, BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/magnet.h>',
+        '#include "xtrack/beam_elements/elements_src/magnet.h"',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -2883,7 +2883,7 @@ class MagnetEdge(_HasKnlKsl, BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/magnet_edge.h>',
+        '#include "xtrack/beam_elements/elements_src/magnet_edge.h"',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
@@ -2985,7 +2985,7 @@ class DipoleFringe(BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/dipole_fringe.h>',
+        '#include "xtrack/beam_elements/elements_src/dipole_fringe.h"',
     ]
 
     def __init__(self, **kwargs):
@@ -3011,7 +3011,7 @@ class Wedge(BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/wedge.h>',
+        '#include "xtrack/beam_elements/elements_src/wedge.h"',
     ]
 
 
@@ -3041,7 +3041,7 @@ class SimpleThinBend(BeamElement):
     allow_rot_and_shift = False
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/simplethinbend.h>',
+        '#include "xtrack/beam_elements/elements_src/simplethinbend.h"',
     ]
 
     def __init__(self, **kwargs):
@@ -3118,7 +3118,7 @@ class RFMultipole(_HasKnlKsl, BeamElement):
     allow_loss_refinement = True
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/rfmultipole.h>',
+        '#include "xtrack/beam_elements/elements_src/rfmultipole.h"',
     ]
 
     _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
@@ -3167,7 +3167,7 @@ class DipoleEdge(BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/dipoleedge.h>',
+        '#include "xtrack/beam_elements/elements_src/dipoleedge.h"',
     ]
 
     has_backtrack = True
@@ -3362,7 +3362,7 @@ class MultipoleEdge(_HasKnlKsl, BeamElement):
     }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/multipoleedge.h>',
+        '#include "xtrack/beam_elements/elements_src/multipoleedge.h"',
     ]
 
     def __init__(self, kn: list=None, ks: list=None, is_exit=False, order=None, _xobject=None, **kwargs):
@@ -3437,7 +3437,7 @@ class LineSegmentMap(BeamElement):
     # }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/linesegmentmap.h>',
+        '#include "xtrack/beam_elements/elements_src/linesegmentmap.h"',
     ]
 
     def __init__(self, length=0., qx=0, qy=0,
@@ -3877,7 +3877,7 @@ class FirstOrderTaylorMap(BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/firstordertaylormap.h>',
+        '#include "xtrack/beam_elements/elements_src/firstordertaylormap.h"',
     ]
 
     _internal_record_class = SynchrotronRadiationRecord # not functional,
@@ -3970,7 +3970,7 @@ class SecondOrderTaylorMap(BeamElement):
     isthick = True
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/second_order_taylor_map.h>',
+        '#include "xtrack/beam_elements/elements_src/second_order_taylor_map.h"',
     ]
 
     _xofields={
@@ -4170,7 +4170,7 @@ class ElectronCooler(BeamElement):
         }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/electroncooler.h>',
+        '#include "xtrack/beam_elements/elements_src/electroncooler.h"',
     ]
 
     _internal_record_class = ElectronCoolerRecord
