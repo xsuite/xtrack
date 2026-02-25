@@ -5,7 +5,7 @@
 #ifndef XTRACK_ELECTRONCOOLER_H
 #define XTRACK_ELECTRONCOOLER_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 GPUFUN
 void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* part0){

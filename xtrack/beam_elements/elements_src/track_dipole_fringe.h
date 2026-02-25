@@ -5,7 +5,7 @@
 #ifndef XTRACK_TRACK_DIPOLE_FRINGE_H
 #define XTRACK_TRACK_DIPOLE_FRINGE_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 #ifndef XTRACK_FRINGE_FROM_PTC
 

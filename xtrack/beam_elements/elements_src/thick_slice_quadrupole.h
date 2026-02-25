@@ -9,9 +9,9 @@
 #ifndef XTRACK_THICK_SLICE_QUADRUPOLE_H
 #define XTRACK_THICK_SLICE_QUADRUPOLE_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet.h>
-#include <beam_elements/elements_src/default_magnet_config.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
 void ThickSliceQuadrupole_track_local_particle(

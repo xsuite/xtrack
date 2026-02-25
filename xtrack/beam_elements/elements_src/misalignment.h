@@ -6,7 +6,7 @@
 #ifndef XTRACK_MISALIGNMENT_H
 #define XTRACK_MISALIGNMENT_H
 
-#include <beam_elements/elements_src/track_misalignments.h>
+#include "xtrack/beam_elements/elements_src/track_misalignments.h"
 
 
 GPUFUN

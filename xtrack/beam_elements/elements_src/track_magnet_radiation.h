@@ -5,8 +5,8 @@
 #ifndef XTRACK_TRACK_MAGNET_RADIATION_H
 #define XTRACK_TRACK_MAGNET_RADIATION_H
 
-#include <headers/track.h>
-#include <headers/synrad_spectrum.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/synrad_spectrum.h"
 
 GPUFUN
 void direction_of_motion(

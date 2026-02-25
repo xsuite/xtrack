@@ -9,7 +9,7 @@
 #ifndef XTRACK_THIN_SLICE_CRABCAVITY_H
 #define XTRACK_THIN_SLICE_CRABCAVITY_H
 
-#include <beam_elements/elements_src/track_rf.h>
+#include "xtrack/beam_elements/elements_src/track_rf.h"
 
 GPUFUN
 void ThinSliceCrabCavity_track_local_particle(ThinSliceCrabCavityData el, LocalParticle* part0)

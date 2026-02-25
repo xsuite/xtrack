@@ -5,7 +5,7 @@
 #ifndef XTRACK_TRACK_MULT_FRINGE_H
 #define XTRACK_TRACK_MULT_FRINGE_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 // This functionality is ported from MAD-NG
 

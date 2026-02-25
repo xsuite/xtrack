@@ -5,7 +5,7 @@
 #ifndef XTRACK_TRACK_ACDIPOLE_H
 #define XTRACK_TRACK_ACDIPOLE_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 GPUFUN
 void track_ramped_ac_dipole_single_particle(

@@ -5,12 +5,12 @@
 #ifndef XTRACK_TRACK_MISALIGNMENT_H
 #define XTRACK_TRACK_MISALIGNMENT_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_xrotation.h>
-#include <beam_elements/elements_src/track_yrotation.h>
-#include <beam_elements/elements_src/track_srotation.h>
-#include <beam_elements/elements_src/track_drift.h>
-#include <beam_elements/elements_src/track_xyshift.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_xrotation.h"
+#include "xtrack/beam_elements/elements_src/track_yrotation.h"
+#include "xtrack/beam_elements/elements_src/track_srotation.h"
+#include "xtrack/beam_elements/elements_src/track_drift.h"
+#include "xtrack/beam_elements/elements_src/track_xyshift.h"
 
 
 #define IF_NONZERO(VALUE, EXPRESSION) { if (VALUE != 0.0) { EXPRESSION; } }
