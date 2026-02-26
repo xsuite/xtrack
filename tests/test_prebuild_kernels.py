@@ -131,7 +131,8 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
                 xt.ParticlesMonitor,
                 xt.ThickSliceCavity,
                 xt.ThinSliceCavity,
-            ]
+            ],
+            'extra_classes': [xt.Particles]
         }),
         ("test_module_rand", {
             "config": {},
@@ -139,7 +140,7 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
             "extra_classes": [
                 xt.RandomNormal,
                 xt.Particles,
-            ]
+            ],
         }),
     ]
 
