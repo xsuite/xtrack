@@ -68,13 +68,15 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
     all_classes = [xt.Cavity, xt.Drift, xt.DriftSlice, xt.DriftSliceCavity,
                    xt.MultiElementMonitor, xt.ParticlesMonitor, xt.ThickSliceCavity,
                    xt.ThinSliceCavity, xt.XYShift, xt.Particles, xt.RandomNormal]
+    NAME_CLASS_MAP = {cls.__name__: cls for cls in all_classes}
+
 
     # Override the definitions with the temporary ones
     mocker.patch('xsuite.kernel_definitions.kernel_definitions', kernel_defs)
     mocker.patch('xsuite.prebuild_kernels.kernel_definitions', kernel_defs)
-    # Override the ALL classes definition as well
-    mocker.patch('xsuite.kernel_definitions.ALL_CLASSES', all_classes)
-    mocker.patch('xsuite.prebuild_kernels.ALL_CLASSES', all_classes)
+    # Override the NAME_CLASS_MAP definition as well
+    mocker.patch('xsuite.kernel_definitions.NAME_CLASS_MAP', NAME_CLASS_MAP)
+    mocker.patch('xsuite.prebuild_kernels.NAME_CLASS_MAP', NAME_CLASS_MAP)
     # We need to change the default location so that loading the kernels works
     mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
@@ -144,13 +146,14 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
     all_classes = [xt.Cavity, xt.Drift, xt.DriftSlice, xt.DriftSliceCavity,
                    xt.MultiElementMonitor, xt.ParticlesMonitor, xt.ThickSliceCavity,
                    xt.ThinSliceCavity, xt.XYShift, xt.Particles, xt.RandomNormal]
+    NAME_CLASS_MAP = {cls.__name__: cls for cls in all_classes}
 
     # Override the definitions with the temporary ones
     mocker.patch('xsuite.kernel_definitions.kernel_definitions', kernel_defs)
     mocker.patch('xsuite.prebuild_kernels.kernel_definitions', kernel_defs)
-    # Override the ALL classes definition as well
-    mocker.patch('xsuite.kernel_definitions.ALL_CLASSES', all_classes)
-    mocker.patch('xsuite.prebuild_kernels.ALL_CLASSES', all_classes)
+    # Override the NAME_CLASS_MAP definition as well
+    mocker.patch('xsuite.kernel_definitions.NAME_CLASS_MAP', NAME_CLASS_MAP)
+    mocker.patch('xsuite.prebuild_kernels.NAME_CLASS_MAP', NAME_CLASS_MAP)
     # We need to change the default location so that loading the kernels works
     mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
