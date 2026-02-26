@@ -22,3 +22,4 @@ checkpoint_restart.dat
 
 # CFFI build artifacts
 [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]*.c
+examples/splineboris/006_asymmetric_wiggler.py
