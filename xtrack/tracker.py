@@ -1555,8 +1555,10 @@ class Tracker:
         from xsuite import get_suitable_kernel
         get_suitable_kernel(
             config=self.line.config,
-            line_element_classes=self.line_element_classes,
-            verbose=True)
+            tracker_element_classes=self.line_element_classes,
+            classes=[],
+            verbose=True
+        )
 
     def _handle_time_dependent_vars(self, particles):
 
