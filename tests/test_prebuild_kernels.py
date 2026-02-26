@@ -38,6 +38,12 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
                 xt.Drift,
                 xt.Cavity,
                 xt.XYShift,
+                xt.DriftSlice,
+                xt.DriftSliceCavity,
+                xt.MultiElementMonitor,
+                xt.ParticlesMonitor,
+                xt.ThickSliceCavity,
+                xt.ThinSliceCavity,
             ],
         }),
         ("000_test_module", {
@@ -49,16 +55,26 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
             },
             "classes": [
                 xt.Drift,
-                xt.Cavity,
                 xt.XYShift,
-                xt.Bend,
+                xt.DriftSlice,
+                xt.MultiElementMonitor,
+                xt.ParticlesMonitor,
+                xt.ThickSliceCavity,
+                xt.ThinSliceCavity,
             ],
         }),
     ]
 
+    all_classes = [xt.Cavity, xt.Drift, xt.DriftSlice, xt.DriftSliceCavity,
+                   xt.MultiElementMonitor, xt.ParticlesMonitor, xt.ThickSliceCavity,
+                   xt.ThinSliceCavity, xt.XYShift, xt.Particles, xt.RandomNormal]
+
     # Override the definitions with the temporary ones
     mocker.patch('xsuite.kernel_definitions.kernel_definitions', kernel_defs)
     mocker.patch('xsuite.prebuild_kernels.kernel_definitions', kernel_defs)
+    # Override the ALL classes definition as well
+    mocker.patch('xsuite.kernel_definitions.ALL_CLASSES', all_classes)
+    mocker.patch('xsuite.prebuild_kernels.ALL_CLASSES', all_classes)
     # We need to change the default location so that loading the kernels works
     mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
@@ -98,7 +114,6 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
     captured = capsys.readouterr()
     assert 'Found suitable prebuilt kernel `111_test_module`' in captured.out
 
-
 def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_func):
     # Set up the temporary kernels directory
     kernel_defs = [
@@ -108,6 +123,12 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
                 xt.Drift,
                 xt.Cavity,
                 xt.XYShift,
+                xt.DriftSlice,
+                xt.DriftSliceCavity,
+                xt.MultiElementMonitor,
+                xt.ParticlesMonitor,
+                xt.ThickSliceCavity,
+                xt.ThinSliceCavity,
             ]
         }),
         ("test_module_rand", {
@@ -115,13 +136,21 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
             "classes": [],
             "extra_classes": [
                 xt.RandomNormal,
+                xt.Particles,
             ]
         }),
     ]
 
+    all_classes = [xt.Cavity, xt.Drift, xt.DriftSlice, xt.DriftSliceCavity,
+                   xt.MultiElementMonitor, xt.ParticlesMonitor, xt.ThickSliceCavity,
+                   xt.ThinSliceCavity, xt.XYShift, xt.Particles, xt.RandomNormal]
+
     # Override the definitions with the temporary ones
     mocker.patch('xsuite.kernel_definitions.kernel_definitions', kernel_defs)
     mocker.patch('xsuite.prebuild_kernels.kernel_definitions', kernel_defs)
+    # Override the ALL classes definition as well
+    mocker.patch('xsuite.kernel_definitions.ALL_CLASSES', all_classes)
+    mocker.patch('xsuite.prebuild_kernels.ALL_CLASSES', all_classes)
     # We need to change the default location so that loading the kernels works
     mocker.patch('xsuite.prebuild_kernels.XSK_PREBUILT_KERNELS_LOCATION',
                  tmp_path)
