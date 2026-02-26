@@ -21,11 +21,11 @@ dz = 0.001  # Step size in the z (longitudinal) direction for numerical differen
 here = Path(__file__).resolve().parent
 
 # Standard 6-column format (X Y Z Bx By Bs)
-# Use example knot-map file in the local `field_maps` folder
-file_path = Path(__file__).parent / "example_data" / "knot_map_test.txt"
+# Use the shared test-data knot-map file
+file_path = Path(__file__).resolve().parent.parent.parent / "test_data" / "sls" / "U36_knot.txt"
 
 # Where to write the fitted spline coefficients
-output_dir = Path(__file__).parent / "example_data"
+output_dir = Path(__file__).resolve().parent.parent.parent / "test_data" / "sls"
 output_dir.mkdir(parents=True, exist_ok=True)
 
 deg = 2

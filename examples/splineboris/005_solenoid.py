@@ -3,17 +3,16 @@ from pathlib import Path
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
-import xobjects as xo
+import pandas as pd
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
-from xtrack._temp.field_fitter import FieldFitter
 import matplotlib.pyplot as plt
 
 # Set basic parameters
 interval = 30
 dx = 0.001
 dy = 0.001
-multipole_order = 4
+multipole_order = 2
 n_steps = 5000
 
 # Make initial particles
@@ -32,50 +31,14 @@ sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
 def get_field(x, y, z):
     return sf.get_field(x, y, z)
 
-# Prepare field map directory
-example_data_dir = Path(__file__).parent / "example_data"
-example_data_dir.mkdir(exist_ok=True)
-fit_pars_path = example_data_dir / "solenoid_fit_pars.csv"
-
-
-# Construct field map
-x_axis = np.linspace(-multipole_order*dx/2, multipole_order*dx/2, multipole_order+1)
-y_axis = np.linspace(-multipole_order*dy/2, multipole_order*dy/2, multipole_order+1)
-z_axis = np.linspace(0, interval, n_steps+1)
-X, Y, Z = np.meshgrid(x_axis, y_axis, z_axis, indexing="ij")
-Bx, By, Bz = get_field(X.ravel(), Y.ravel(), Z.ravel())
-Bx = Bx.reshape(X.shape)
-By = By.reshape(X.shape)
-Bz = Bz.reshape(X.shape)
-data = np.column_stack([
-    X.ravel(), Y.ravel(), Z.ravel(),
-    Bx.ravel(), By.ravel(), Bz.ravel(),
-])
-fieldmap_path = example_data_dir / "solenoid_field.dat"
-np.savetxt(fieldmap_path, data)
-
-# Fit the field map data (FieldFitter parses the file directly)
-fitter = FieldFitter(raw_data=fieldmap_path,
-    xy_point=(0, 0),
-    distance_unit=1,
-    min_region_size=10,
-    deg=multipole_order-1,
-)
-# Use lower field_tol to include transverse field gradients needed for solenoid focusing
-fitter.field_tol = 1e-4
-fitter.fit()
-fitter.save_fit_pars(fit_pars_path)
-
-# Plot the fit results
-# NOTE: Fit corresponds well with data.
-for i in range(multipole_order):
-    fitter.plot_fields(der=i)
-    plt.show()
+test_data_dir = Path(__file__).resolve().parent.parent.parent / "test_data" / "solenoid"
+fit_pars_path = test_data_dir / "solenoid_fit_pars.csv"
+df_fit_pars = pd.read_csv(fit_pars_path)
 
 # Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
 # element per polynomial piece with n_steps based on the data point count
 seq = xt.SplineBorisSequence(
-    df_fit_pars=fitter.df_fit_pars,
+    df_fit_pars=df_fit_pars,
     multipole_order=multipole_order,
     steps_per_point=1,  # one integration step per data point
 )
@@ -96,6 +59,7 @@ boris_integrator = xt.BorisSpatialIntegrator(
     s_end=interval,
     n_steps=n_steps,
 )
+boris_integrator.log_trajectories = True
 boris_integrator.track(p_boris)
 
 # --- VariableSolenoid reference (paraxial approximation, on-axis Bz only) ---

@@ -31,8 +31,8 @@ line_sls.particle_ref = p0.copy()
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# Load the raw field map data from knot_map_test.txt
-field_map_path = BASE_DIR / "example_data" / "knot_map_test.txt"
+# Load the raw field map data from shared test_data
+field_map_path = BASE_DIR.parent.parent / "test_data" / "sls" / "U36_knot.txt"
 df_raw_data = pd.read_csv(
     field_map_path,
     sep='\t',
@@ -57,7 +57,7 @@ field_fitter.fit()
 # Save fit parameters if needed
 # field_fitter.save_fit_pars(
 #     BASE_DIR
-#     / "example_data"
+#     / "test_data" / "sls"
 #     / "field_fit_pars.csv"
 # )
 

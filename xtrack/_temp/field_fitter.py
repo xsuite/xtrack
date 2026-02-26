@@ -219,7 +219,9 @@ class FieldFitter:
             if field_max > abs_max:
                 abs_max = field_max
 
-        x_max = np.max(self.df_on_axis_raw.index.get_level_values("X")) * self.distance_unit
+        # df_on_axis_raw is indexed by Z only (after xs on X,Y), so use the raw
+        # MultiIndex to estimate transverse scaling for derivative tolerance.
+        x_max = np.max(np.abs(self.df_raw_data.index.get_level_values("X")))
 
         for field in fields:
             # Bs only has der = 0; other fields range 0..deg

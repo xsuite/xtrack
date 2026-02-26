@@ -26,7 +26,7 @@ FIT_PARS_INDEX_COLS = [
 
 @pytest.fixture(scope="module")
 def test_data_dir():
-    return Path(__file__).parent.parent / "test_data" / "splineboris"
+    return Path(__file__).parent.parent / "test_data" / "sls"
 
 @pytest.fixture
 def make_uniform_splineboris():
@@ -125,7 +125,8 @@ def solenoid_field():
 
 @pytest.fixture(scope="module")
 def solenoid_vs_varsol_fit_pars_df(test_data_dir):
-    return pd.read_csv(test_data_dir / "test_solenoid_vs_varsol_fit_pars.csv")
+    solenoid_data_dir = Path(__file__).parent.parent / "test_data" / "solenoid"
+    return pd.read_csv(solenoid_data_dir / "solenoid_fit_pars.csv")
 
 
 @pytest.fixture(scope="module")
@@ -357,14 +358,6 @@ def test_splineboris_homogeneous_rbend(field_angle, make_uniform_splineboris):
 
 
 
-# @pytest.mark.parametrize(
-#     'case,atol',
-#     zip(
-#         [case['case'].copy() for case in COMMON_TEST_CASES],
-#         [3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 2e-5, 1e-5, 2e-8, 1e-5, 2e-5],
-#     ),
-#     ids=[case['id'] for case in COMMON_TEST_CASES],
-# )
 def test_uniform_solenoid(make_uniform_splineboris):
 
     atol = 3e-8
@@ -438,7 +431,7 @@ def test_splineboris_solenoid_vs_variable_solenoid(solenoid_field, solenoid_vs_v
     """
     # Set basic parameters
     interval = 30
-    multipole_order = 4
+    multipole_order = 2
     n_steps = 5000
 
     # Make initial particles
@@ -453,38 +446,8 @@ def test_splineboris_solenoid_vs_variable_solenoid(solenoid_field, solenoid_vs_v
     # Make solenoid field instance
     sf = solenoid_field
 
-    # NOTE: If the fit parameters need to be updated, uncomment the following code.
-    # from xtrack._temp.field_fitter import FieldFitter
-
-    # # Construct field map
-    # dx = 0.001
-    # dy = 0.001
-    # x_axis = np.linspace(-multipole_order*dx/2, multipole_order*dx/2, multipole_order+1)
-    # y_axis = np.linspace(-multipole_order*dy/2, multipole_order*dy/2, multipole_order+1)
-    # z_axis = np.linspace(0, interval, n_steps+1)
-    # X, Y, Z = np.meshgrid(x_axis, y_axis, z_axis, indexing="ij")
-    # Bx, By, Bz = sf.get_field(X.ravel(), Y.ravel(), Z.ravel())
-    # Bx = Bx.reshape(X.shape)
-    # By = By.reshape(X.shape)
-    # Bz = Bz.reshape(X.shape)
-    # data = np.column_stack([
-    #     X.ravel(), Y.ravel(), Z.ravel(),
-    #     Bx.ravel(), By.ravel(), Bz.ravel(),
-    # ])
-    # fieldmap_path = test_data_dir / "test_solenoid_vs_varsol_fieldmap.dat"
-    # np.savetxt(fieldmap_path, data)
-
-    # # Fit the field map data (pass file path directly to FieldFitter)
-    # fitter = FieldFitter(raw_data=fieldmap_path,
-    #     xy_point=(0, 0),
-    #     distance_unit=1,
-    #     min_region_size=10,
-    #     deg=multipole_order-1,
-    # )
-    # # Use lower field_tol to include transverse field gradients needed for solenoid focusing
-    # fitter.field_tol = 1e-4
-    # fitter.fit()
-    # fitter.save_fit_pars(fit_pars_path)
+    # Solenoid field-map and fit-parameter generation is centralized in:
+    # test_data/solenoid/generate_solenoid_test_data.py
 
     # Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
     # element per polynomial piece with n_steps based on the data point count
@@ -568,7 +531,7 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
     # NOTE: If the fit parameters need to be updated, uncomment the following code.
     # from xtrack._temp.field_fitter import FieldFitter
 
-    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "splineboris" / "knot_map_test.txt"
+    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "sls" / "U36_knot.txt"
     
     # # Fit the field map data (pass file path directly to FieldFitter)
     # fitter = FieldFitter(
@@ -665,7 +628,7 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(
     # NOTE: If the fit parameters need to be updated, uncomment the following code.
     # from xtrack._temp.field_fitter import FieldFitter
 
-    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "splineboris" / "knot_map_test.txt"
+    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "sls" / "U36_knot.txt"
 
     # # Fit the field map data (pass file path directly to FieldFitter)
     # fitter_rot = FieldFitter(
