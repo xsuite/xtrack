@@ -459,16 +459,17 @@ class Tracker:
                 kernel_info = None
             else:
                 kernel_info = get_suitable_kernel(
-                    self.config, self.line_element_classes
+                    config=self.config,
+                    tracker_element_classes=self.line_element_classes,
+                    classes=extra_classes,
                 )
 
             if kernel_info:
-                module_name, modules_classes = kernel_info
-
                 kernel_description = self.get_kernel_descriptions(
-                                            modules_classes)['track_line']
+                    kernel_element_classes=kernel_info['tracker_element_classes']
+                )['track_line']
                 kernels = self._context.kernels_from_file(
-                    module_name=module_name,
+                    module_name=kernel_info['module_name'],
                     containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions={'track_line': kernel_description},
                 )
