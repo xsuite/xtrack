@@ -3482,6 +3482,13 @@ class Line:
 
         self._update_synrad_compile_flag()
 
+        if (not self.config.get('XFIELDS_BB3D_NO_BEAMSTR', False)
+            or not self.config.get('XFIELDS_BB3D_NO_BHABHA', False)):
+            # To use precompiled kernel
+            self.config.XFIELDS_BB3D_NO_SYNRAD = False
+            self.config.XFIELDS_BB3D_NO_BHABHA = False
+            self.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+
     def _update_synrad_compile_flag(self):
 
         if self._radiation_model or self._spin_model:
