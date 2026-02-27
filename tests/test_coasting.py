@@ -3,7 +3,7 @@ import pathlib
 import numpy as np
 import xobjects as xo
 from scipy.constants import c as clight
-from xobjects.test_helpers import fix_random_seed
+from xobjects.test_helpers import fix_random_seed, skip_if_forbid_compile
 
 import xtrack as xt
 import xtrack.synctime as st
@@ -14,6 +14,9 @@ test_data_folder = pathlib.Path(
 
 @fix_random_seed(8837465)
 def test_coasting():
+
+    skip_if_forbid_compile() # because the test uses openmp
+
     delta0 = 1e-2
 
     line = xt.load(test_data_folder /
