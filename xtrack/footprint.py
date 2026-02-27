@@ -11,7 +11,7 @@ class LinearRescale():
 
 def _footprint_with_linear_rescale(linear_rescale_on_knobs, line,
                                    freeze_longitudinal=False,
-                                   delta0=None, zeta0=None, 
+                                   delta0=None, zeta0=None,
                                    kwargs={}):
 
         if isinstance (linear_rescale_on_knobs, LinearRescale):
