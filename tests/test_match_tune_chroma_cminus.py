@@ -234,7 +234,6 @@ def test_match_chroma_knob(test_context):
     line = xt.Line.from_dict(dct['line'])
     line.particle_ref = xp.Particles.from_dict(dct['particle'])
     line.twiss_default['method'] = '4d'
-    line.twiss_default['freeze_longitudinal'] = True
     line.build_tracker(_context=test_context)
 
     vary=[ xt.Vary('ksf.b1', step=1e-8),  xt.Vary('ksd.b1', step=1e-8)]

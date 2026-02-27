@@ -4,11 +4,13 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 from cpymad.madx import Madx
+from xobjects.test_helpers import skip_if_forbid_compile
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 def test_aperture_table():
+    skip_if_forbid_compile()
 
     aper_blacklist = [
         'vtaf.51632.b_aper', 'vbrta.51633.a_aper', 'vbrta.51633.b_aper',
@@ -105,6 +107,7 @@ def test_aperture_table():
                     == aper_check.y_aper_high[mask_not_none])
 
 def test_aperture_table_aper_at_same_s():
+    skip_if_forbid_compile()
 
     env = xt.Environment()
 

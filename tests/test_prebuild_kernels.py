@@ -9,6 +9,7 @@ import pytest
 
 import xobjects as xo
 import xtrack as xt
+from xobjects.test_helpers import skip_if_forbid_compile
 
 
 @pytest.fixture
@@ -25,6 +26,9 @@ def with_verbose():
 
 
 def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, with_verbose):
+
+    skip_if_forbid_compile()
+
     # Set up the temporary kernels directory
     kernel_defs = [
         ("111_test_module", {
@@ -117,6 +121,9 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
     assert 'Found suitable prebuilt kernel `111_test_module`' in captured.out
 
 def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_func):
+
+    skip_if_forbid_compile()
+
     # Set up the temporary kernels directory
     kernel_defs = [
         ("test_module", {
