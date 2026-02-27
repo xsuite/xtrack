@@ -26,7 +26,7 @@ FIT_PARS_INDEX_COLS = [
 
 @pytest.fixture(scope="module")
 def test_data_dir():
-    return Path(__file__).parent.parent / "test_data" / "sls"
+    return Path(__file__).parent.parent / "test_data"
 
 @pytest.fixture
 def make_uniform_splineboris():
@@ -125,19 +125,18 @@ def solenoid_field():
 
 @pytest.fixture(scope="module")
 def solenoid_vs_varsol_fit_pars_df(test_data_dir):
-    solenoid_data_dir = Path(__file__).parent.parent / "test_data" / "solenoid"
-    return pd.read_csv(solenoid_data_dir / "solenoid_fit_pars.csv")
+    return pd.read_csv(test_data_dir / "solenoid" / "solenoid_fit_pars.csv")
 
 
 @pytest.fixture(scope="module")
 def undulator_fit_pars_df(test_data_dir):
-    return pd.read_csv(test_data_dir / "field_fit_pars.csv", index_col=FIT_PARS_INDEX_COLS)
+    return pd.read_csv(test_data_dir / "sls" / "field_fit_pars.csv", index_col=FIT_PARS_INDEX_COLS)
 
 
 @pytest.fixture(scope="module")
 def undulator_rotated_fit_pars_df(test_data_dir):
     return pd.read_csv(
-        test_data_dir / "field_fit_pars_rotated.csv",
+        test_data_dir / "sls" / "field_fit_pars_rotated.csv",
         index_col=FIT_PARS_INDEX_COLS,
     )
 
