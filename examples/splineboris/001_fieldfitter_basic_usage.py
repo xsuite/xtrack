@@ -24,10 +24,6 @@ here = Path(__file__).resolve().parent
 # Use the shared test-data knot-map file
 file_path = Path(__file__).resolve().parent.parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
 
-# Where to write the fitted spline coefficients
-output_dir = Path(__file__).resolve().parent.parent.parent / "test_data" / "sls"
-output_dir.mkdir(parents=True, exist_ok=True)
-
 deg = 2
 
 if __name__ == "__main__":
