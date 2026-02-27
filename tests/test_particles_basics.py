@@ -9,7 +9,7 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
 
 
 def _check_consistency_energy_variables(particles):
@@ -339,6 +339,9 @@ def test_python_delta_setter(test_context):
 
 @for_all_test_contexts
 def test_LocalParticle_add_to_energy(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElement(xt.BeamElement):
         _xofields={
             'value': xo.Float64,
@@ -415,6 +418,9 @@ def test_LocalParticle_add_to_energy(test_context):
 
 @for_all_test_contexts
 def test_LocalParticle_update_delta(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElement(xt.BeamElement):
         _xofields={
             'value': xo.Float64,
@@ -422,7 +428,7 @@ def test_LocalParticle_update_delta(test_context):
 
         _extra_c_sources =['''
             #include "xtrack/headers/track.h"
-            
+
             GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
@@ -458,6 +464,9 @@ def test_LocalParticle_update_delta(test_context):
 
 @for_all_test_contexts
 def test_LocalParticle_update_ptau(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElement(xt.BeamElement):
         _xofields={
             'value': xo.Float64,
@@ -465,7 +474,7 @@ def test_LocalParticle_update_ptau(test_context):
 
         _extra_c_sources = ['''
             #include "xtrack/headers/track.h"
-            
+
             GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
@@ -501,13 +510,16 @@ def test_LocalParticle_update_ptau(test_context):
 
 @for_all_test_contexts
 def test_LocalParticle_update_pzeta(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElement(xt.BeamElement):
         _xofields={
             'value': xo.Float64,
             }
         _extra_c_sources = ['''
             #include "xtrack/headers/track.h"
-            
+
             GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
@@ -546,13 +558,16 @@ def test_LocalParticle_update_pzeta(test_context):
 
 @for_all_test_contexts
 def test_LocalParticle_update_p0c(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElement(xt.BeamElement):
         _xofields={
             'value': xo.Float64,
             }
         _extra_c_sources = ['''
             #include "xtrack/headers/track.h"
-            
+
             GPUFUN
             void TestElement_track_local_particle(
                     TestElementData el, LocalParticle* part0){
@@ -592,6 +607,9 @@ def test_LocalParticle_update_p0c(test_context):
 
 @for_all_test_contexts
 def test_LocalParticle_angles(test_context):
+
+    skip_if_forbid_compile()
+
     class ScaleAng(xt.BeamElement):
         _xofields={
             'scale_x':   xo.Float64,
@@ -601,7 +619,7 @@ def test_LocalParticle_angles(test_context):
             }
         _extra_c_sources = ['''
             #include "xtrack/headers/track.h"
-            
+
             GPUFUN
             void ScaleAng_track_local_particle(
                     ScaleAngData el, LocalParticle* part0){
@@ -663,7 +681,7 @@ def test_LocalParticle_angles(test_context):
             }
         _extra_c_sources = ['''
             #include "xtrack/headers/track.h"
-            
+
             GPUFUN
             void ScaleAngExact_track_local_particle(
                     ScaleAngExactData el, LocalParticle* part0){
