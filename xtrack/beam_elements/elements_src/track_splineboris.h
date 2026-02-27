@@ -6,7 +6,7 @@
 #define XTRACK_TRACK_SPLINEBORIS_H
 
 #include <headers/track.h>
-#include "_spline_B_field_eval.h" // evaluate_B for Bx, By, Bs (scalar version)
+#include "spline_B_field_eval.h" // evaluate_B for Bx, By, Bs (scalar version)
 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
 // Forward declarations for random functions needed by synrad_spectrum.h
 // (These are normally declared in random headers but we avoid including them
@@ -152,7 +152,7 @@ void SplineBoris_single_particle(
         // --------------------------------------------------------------
         //  Evaluate B-field at mid-step (xh, yh, s_field)
         //  Convert local s to absolute s in field map for field evaluation
-        //  Using evaluate_B from _spline_B_field_eval.h
+        //  Using evaluate_B from spline_B_field_eval.h
         // --------------------------------------------------------------
         double Bx;
         double By;

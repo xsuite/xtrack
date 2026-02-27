@@ -3,6 +3,9 @@ import sys
 from pathlib import Path
 
 import sympy as sp
+
+# Uses bpmeth 0.0.0
+# Commit: 95e8f0e on main
 import bpmeth as bp
 
 THIS_DIR = os.path.dirname(__file__)
@@ -167,9 +170,9 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
     printer = MulPowerPrinter()
 
     if field == 'A':
-        filename = os.path.join(ELEMENTS_SRC_DIR, '_spline_A_field_eval.h')
+        filename = os.path.join(ELEMENTS_SRC_DIR, 'spline_A_field_eval.h')
     else:
-        filename = os.path.join(ELEMENTS_SRC_DIR, '_spline_B_field_eval.h')
+        filename = os.path.join(ELEMENTS_SRC_DIR, 'spline_B_field_eval.h')
 
     with open(filename, 'w') as f:
         f.write(f"#include <stddef.h>\n")
@@ -228,7 +231,7 @@ def write_to_python(max_order=multipole_order, poly_order=4, field='B', curvatur
     """
     Generate a pure-Python implementation of the field evaluation routine.
 
-    The generated file is named ``_spline_{field}_field_eval.py`` and contains a function
+    The generated file is named ``spline_{field}_field_eval_python.py`` and contains a function
     ``evaluate_{field}(x, y, s, params, multipole_order)`` that mirrors the logic of the
     C implementation produced by ``write_to_C``.
     """
@@ -237,9 +240,9 @@ def write_to_python(max_order=multipole_order, poly_order=4, field='B', curvatur
     printer = PythonCodePrinter()
 
     if field == 'A':
-        filename = os.path.join(ELEMENTS_SRC_DIR, '_spline_A_field_eval_python.py')
+        filename = os.path.join(ELEMENTS_SRC_DIR, 'spline_A_field_eval_python.py')
     else:
-        filename = os.path.join(ELEMENTS_SRC_DIR, '_spline_B_field_eval_python.py')
+        filename = os.path.join(ELEMENTS_SRC_DIR, 'spline_B_field_eval_python.py')
 
     with open(filename, 'w') as f:
         f.write("# Auto-generated symbolic field expressions for {field}\n".format(field=field))

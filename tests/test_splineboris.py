@@ -106,9 +106,9 @@ def evaluate_b():
         / "xtrack"
         / "beam_elements"
         / "elements_src"
-        / "_spline_B_field_eval_python.py"
+        / "spline_B_field_eval_python.py"
     )
-    spec = importlib.util.spec_from_file_location("_spline_B_field_eval_python", module_path)
+    spec = importlib.util.spec_from_file_location("spline_B_field_eval_python", module_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Could not load module spec from {module_path}")
     module = importlib.util.module_from_spec(spec)
