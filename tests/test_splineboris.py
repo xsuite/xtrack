@@ -204,12 +204,12 @@ def solenoid_vs_varsol_fit_pars_df(solenoid_field):
 
 @pytest.fixture(scope="module")
 def undulator_fit_pars_df(test_data_dir):
-    return pd.read_csv(test_data_dir / "sls" / "field_fit_pars.csv", index_col=FIT_PARS_INDEX_COLS)
+    return pd.read_csv(test_data_dir / "sls" / "undulator_fit_pars.csv", index_col=FIT_PARS_INDEX_COLS)
 
 @pytest.fixture(scope="module")
 def undulator_rotated_fit_pars_df(test_data_dir):
     return pd.read_csv(
-        test_data_dir / "sls" / "field_fit_pars_rotated.csv",
+        test_data_dir / "sls" / "undulator_fit_pars_rotated.csv",
         index_col=FIT_PARS_INDEX_COLS,
     )
 
@@ -598,7 +598,7 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
     # NOTE: If the fit parameters need to be updated, uncomment the following code.
     # from xtrack._temp.field_fitter import FieldFitter
 
-    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "sls" / "U36_knot.txt"
+    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
     
     # # Fit the field map data (pass file path directly to FieldFitter)
     # fitter = FieldFitter(
@@ -693,7 +693,7 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(undulator_rotated_fit_pa
     # NOTE: If the fit parameters need to be updated, uncomment the following code.
     # from xtrack._temp.field_fitter import FieldFitter
 
-    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "sls" / "U36_knot.txt"
+    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
 
     # # Fit the field map data (pass file path directly to FieldFitter)
     # fitter_rot = FieldFitter(

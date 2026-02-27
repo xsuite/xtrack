@@ -12,7 +12,7 @@ from pathlib import Path
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
 
 # Load SLS MADX file
-madx_file = Path(__file__).resolve().parent.parent.parent / 'test_data' / 'sls' / 'b075_2024.09.25.madx'
+madx_file = Path(__file__).resolve().parent.parent.parent / 'test_data' / 'sls' / 'sls.madx'
 env = xt.load(str(madx_file))
 line_sls = env.ring
 

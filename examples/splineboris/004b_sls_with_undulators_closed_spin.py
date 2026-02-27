@@ -18,7 +18,7 @@ multipole_order = 3
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
 
 # Load SLS MADX file
-madx_file = Path(__file__).resolve().parent.parent.parent / 'test_data' / 'sls' / 'b075_2024.09.25.madx'
+madx_file = Path(__file__).resolve().parent.parent.parent / 'test_data' / 'sls' / 'sls.madx'
 env = xt.load(str(madx_file))
 line_sls = env.ring
 
@@ -31,7 +31,7 @@ line_sls.particle_ref = p0.copy()
 BASE_DIR = Path(__file__).resolve().parent
 
 # Load the raw field map data from shared test_data
-field_map_path = BASE_DIR.parent.parent / "test_data" / "sls" / "U36_knot.txt"
+field_map_path = BASE_DIR.parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
 df_raw_data = pd.read_csv(
     field_map_path,
     sep='\t',
@@ -57,7 +57,7 @@ field_fitter.fit()
 # field_fitter.save_fit_pars(
 #     BASE_DIR
 #     / "test_data" / "sls"
-#     / "field_fit_pars.csv"
+#     / "undulator_fit_pars.csv"
 # )
 
 # Build undulator using SplineBorisSequence - automatically creates one SplineBoris
