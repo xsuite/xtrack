@@ -25,6 +25,7 @@ ONLY_XTRACK_ELEMENTS = [
     Cavity,
     CrabCavity,
     Elens,
+    ElectronCooler,
     Wire,
     Solenoid,
     VariableSolenoid,
