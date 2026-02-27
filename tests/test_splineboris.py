@@ -11,6 +11,7 @@ import importlib.util
 
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
+from xtrack._temp.field_fitter import FieldFitter
 
 FIT_PARS_INDEX_COLS = [
     "field_component",
@@ -22,6 +23,19 @@ FIT_PARS_INDEX_COLS = [
     "idx_end",
     "param_index",
 ]
+
+SOLENOID_MODEL_PARAMS = {
+    "L": 4.0,
+    "a": 0.3,
+    "B0": 1.5,
+    "z0": 20.0,
+}
+SOLENOID_INTERVAL = 30.0
+SOLENOID_DX = 0.001
+SOLENOID_DY = 0.001
+SOLENOID_MULTIPOLE_ORDER = 2
+SOLENOID_N_STEPS = 5000
+SOLENOID_Z_POINT_COUNT = SOLENOID_N_STEPS + 1
 
 @pytest.fixture(scope="module")
 def test_data_dir():
@@ -116,11 +130,77 @@ def make_segment_field(evaluate_b):
 
 @pytest.fixture(scope="module")
 def solenoid_field():
-    return SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
+    return SolenoidField(**SOLENOID_MODEL_PARAMS)
 
 @pytest.fixture(scope="module")
-def solenoid_vs_varsol_fit_pars_df(test_data_dir):
-    return pd.read_csv(test_data_dir / "solenoid" / "solenoid_fit_pars.csv")
+def solenoid_vs_varsol_fit_pars_df(solenoid_field):
+    sf = solenoid_field
+
+    x_axis = np.linspace(
+        -SOLENOID_MULTIPOLE_ORDER * SOLENOID_DX / 2,
+        SOLENOID_MULTIPOLE_ORDER * SOLENOID_DX / 2,
+        SOLENOID_MULTIPOLE_ORDER + 1,
+    )
+    y_axis = np.linspace(
+        -SOLENOID_MULTIPOLE_ORDER * SOLENOID_DY / 2,
+        SOLENOID_MULTIPOLE_ORDER * SOLENOID_DY / 2,
+        SOLENOID_MULTIPOLE_ORDER + 1,
+    )
+    z_axis = np.linspace(0, SOLENOID_INTERVAL, SOLENOID_Z_POINT_COUNT)
+    x_grid, y_grid, z_grid = np.meshgrid(x_axis, y_axis, z_axis, indexing="ij")
+    bx, by, bz = sf.get_field(x_grid.ravel(), y_grid.ravel(), z_grid.ravel())
+
+    df_raw_data = pd.DataFrame(
+        np.column_stack(
+            [x_grid.ravel(), y_grid.ravel(), z_grid.ravel(), bx.ravel(), by.ravel(), bz.ravel()]
+        ),
+        columns=["X", "Y", "Z", "Bx", "By", "Bs"],
+    ).set_index(["X", "Y", "Z"])
+
+    fitter = FieldFitter(
+        raw_data=df_raw_data,
+        xy_point=(0, 0),
+        distance_unit=1,
+        min_region_size=10,
+        deg=SOLENOID_MULTIPOLE_ORDER - 1,
+    )
+    fitter.field_tol = 1e-4
+    fitter.fit()
+    df_fit_pars = fitter.df_fit_pars
+
+    assert df_fit_pars is not None
+    assert not df_fit_pars.empty, "FieldFitter produced an empty fit-parameter table"
+
+    df_fit_pars_reset = df_fit_pars.reset_index()
+    required_cols = {
+        "field_component",
+        "derivative_x",
+        "s_start",
+        "s_end",
+        "idx_start",
+        "idx_end",
+        "param_name",
+        "param_value",
+    }
+    missing_cols = required_cols.difference(df_fit_pars_reset.columns)
+    assert not missing_cols, f"Missing required fit-parameter columns: {sorted(missing_cols)}"
+    assert {"Bx", "By", "Bs"}.issubset(set(df_fit_pars_reset["field_component"])), (
+        "FieldFitter output is missing one or more field components (Bx, By, Bs)"
+    )
+
+    s_start_min = float(df_fit_pars_reset["s_start"].min())
+    s_end_max = float(df_fit_pars_reset["s_end"].max())
+    idx_start_min = int(df_fit_pars_reset["idx_start"].min())
+    idx_end_max = int(df_fit_pars_reset["idx_end"].max())
+    point_count = idx_end_max - idx_start_min + 1
+
+    assert np.isclose(s_start_min, 0.0), f"Unexpected s_start min: {s_start_min}"
+    assert np.isclose(s_end_max, SOLENOID_INTERVAL), f"Unexpected s_end max: {s_end_max}"
+    assert idx_start_min == 0, f"Unexpected idx_start min: {idx_start_min}"
+    assert idx_end_max == SOLENOID_N_STEPS, f"Unexpected idx_end max: {idx_end_max}"
+    assert point_count == SOLENOID_Z_POINT_COUNT, f"Unexpected point_count: {point_count}"
+
+    return df_fit_pars
 
 @pytest.fixture(scope="module")
 def undulator_fit_pars_df(test_data_dir):
@@ -420,9 +500,9 @@ def test_splineboris_solenoid_vs_variable_solenoid(solenoid_field, solenoid_vs_v
     through both SplineBoris and VariableSolenoid, and compares the trajectories.
     """
     # Set basic parameters
-    interval = 30
-    multipole_order = 2
-    n_steps = 5000
+    interval = SOLENOID_INTERVAL
+    multipole_order = SOLENOID_MULTIPOLE_ORDER
+    n_steps = SOLENOID_N_STEPS
 
     # Make initial particles
     delta = np.array([0, 4])
@@ -435,9 +515,6 @@ def test_splineboris_solenoid_vs_variable_solenoid(solenoid_field, solenoid_vs_v
 
     # Make solenoid field instance
     sf = solenoid_field
-
-    # Solenoid field-map and fit-parameter generation is centralized in:
-    # test_data/solenoid/generate_solenoid_test_data.py
 
     # Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
     # element per polynomial piece with n_steps based on the data point count
@@ -889,7 +966,7 @@ def test_splineboris_variable_solenoid_radiation(solenoid_field, solenoid_vs_var
 
     seq = xt.SplineBorisSequence(
         df_fit_pars=df_fit_pars,
-        multipole_order=4,
+        multipole_order=SOLENOID_MULTIPOLE_ORDER,
         steps_per_point=1,
     )
 
@@ -908,7 +985,7 @@ def test_splineboris_variable_solenoid_radiation(solenoid_field, solenoid_vs_var
                               * p_boris.energy0[0])
 
     # --- VariableSolenoid reference ---
-    z_axis = np.linspace(0, 30, 5001)
+    z_axis = np.linspace(0, SOLENOID_INTERVAL, SOLENOID_Z_POINT_COUNT)
     Bz_axis = sf.get_field(0 * z_axis, 0 * z_axis, z_axis)[2]
 
     P0_J = p0.p0c[0] * qe / clight

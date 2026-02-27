@@ -1,11 +1,11 @@
 import numpy as np
-from pathlib import Path
 from scipy.constants import c as clight
 from scipy.constants import e as qe
 
 import pandas as pd
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
+from xtrack._temp.field_fitter import FieldFitter
 import matplotlib.pyplot as plt
 
 # Set basic parameters
@@ -31,9 +31,28 @@ sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
 def get_field(x, y, z):
     return sf.get_field(x, y, z)
 
-test_data_dir = Path(__file__).resolve().parent.parent.parent / "test_data" / "solenoid"
-fit_pars_path = test_data_dir / "solenoid_fit_pars.csv"
-df_fit_pars = pd.read_csv(fit_pars_path)
+z_point_count = n_steps + 1
+x_axis = np.linspace(-multipole_order * dx / 2, multipole_order * dx / 2, multipole_order + 1)
+y_axis = np.linspace(-multipole_order * dy / 2, multipole_order * dy / 2, multipole_order + 1)
+z_axis = np.linspace(0, interval, z_point_count)
+x_grid, y_grid, z_grid = np.meshgrid(x_axis, y_axis, z_axis, indexing="ij")
+bx, by, bz = sf.get_field(x_grid.ravel(), y_grid.ravel(), z_grid.ravel())
+
+df_raw_data = pd.DataFrame(
+    np.column_stack([x_grid.ravel(), y_grid.ravel(), z_grid.ravel(), bx, by, bz]),
+    columns=["X", "Y", "Z", "Bx", "By", "Bs"],
+).set_index(["X", "Y", "Z"])
+
+fitter = FieldFitter(
+    raw_data=df_raw_data,
+    xy_point=(0, 0),
+    distance_unit=1,
+    min_region_size=10,
+    deg=multipole_order - 1,
+)
+fitter.field_tol = 1e-4
+fitter.fit()
+df_fit_pars = fitter.df_fit_pars
 
 # Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
 # element per polynomial piece with n_steps based on the data point count
