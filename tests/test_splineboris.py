@@ -23,7 +23,6 @@ FIT_PARS_INDEX_COLS = [
     "param_index",
 ]
 
-
 @pytest.fixture(scope="module")
 def test_data_dir():
     return Path(__file__).parent.parent / "test_data"
@@ -86,7 +85,6 @@ def make_uniform_splineboris():
         return splineboris
     return _make
 
-
 @pytest.fixture(scope="module")
 def evaluate_b():
     module_path = (
@@ -103,7 +101,6 @@ def evaluate_b():
     spec.loader.exec_module(module)
     return module.evaluate_B
 
-
 @pytest.fixture(scope="module")
 def make_segment_field(evaluate_b):
     def _make(params_1d, multipole_order_local):
@@ -117,21 +114,17 @@ def make_segment_field(evaluate_b):
 
     return _make
 
-
 @pytest.fixture(scope="module")
 def solenoid_field():
     return SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
-
 
 @pytest.fixture(scope="module")
 def solenoid_vs_varsol_fit_pars_df(test_data_dir):
     return pd.read_csv(test_data_dir / "solenoid" / "solenoid_fit_pars.csv")
 
-
 @pytest.fixture(scope="module")
 def undulator_fit_pars_df(test_data_dir):
     return pd.read_csv(test_data_dir / "sls" / "field_fit_pars.csv", index_col=FIT_PARS_INDEX_COLS)
-
 
 @pytest.fixture(scope="module")
 def undulator_rotated_fit_pars_df(test_data_dir):
@@ -139,6 +132,8 @@ def undulator_rotated_fit_pars_df(test_data_dir):
         test_data_dir / "sls" / "field_fit_pars_rotated.csv",
         index_col=FIT_PARS_INDEX_COLS,
     )
+
+
 
 # Test some common field angles, as well as some unusual ones
 @pytest.mark.parametrize('field_angle', [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi, 4*np.pi/9, np.pi/7])
@@ -152,7 +147,6 @@ def test_splineboris_homogeneous_analytic(field_angle, make_uniform_splineboris)
 
     s_start = 0
     s_end = 1
-    length = s_end - s_start
     n_steps = 100
 
     # Field strength and orientation in the transverse plane
@@ -357,7 +351,7 @@ def test_splineboris_homogeneous_rbend(field_angle, make_uniform_splineboris):
 
 
 
-def test_uniform_solenoid(make_uniform_splineboris):
+def test_splineboris_spin_uniform_solenoid(make_uniform_splineboris):
 
     atol = 3e-8
     case = {
@@ -370,8 +364,6 @@ def test_uniform_solenoid(make_uniform_splineboris):
     'spin_z': 0.2,
     }
     case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
-
-    
 
     p = xt.Particles(
         p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
@@ -396,7 +388,6 @@ def test_uniform_solenoid(make_uniform_splineboris):
     # Reference and test particle
     line_splineboris = xt.Line(elements=[splineboris])
     line_splineboris.particle_ref = p_splineboris
-
 
     line = env.new_line(
         components=[
@@ -609,9 +600,7 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
 
 
 
-def test_splineboris_rotated_undulator_vs_boris_spatial(
-    undulator_rotated_fit_pars_df, undulator_fit_pars_df, make_segment_field
-):
+def test_splineboris_rotated_undulator_vs_boris_spatial(undulator_rotated_fit_pars_df, undulator_fit_pars_df, make_segment_field):
     '''
     Rotate the field map by 90 degrees and check that the fit parameters obey the rotation rule:
     Bx_rotated == By_original,
@@ -751,8 +740,9 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(
     xo.assert_allclose(p_splineboris.delta, p_boris.delta, rtol=1e-12, atol=5e-11)
 
 
+
 @fix_random_seed(645284)
-def test_splineboris_radiation(make_uniform_splineboris):
+def test_splineboris_bend_radiation(make_uniform_splineboris):
     """
     Test synchrotron radiation in SplineBoris element.
 
@@ -1017,7 +1007,6 @@ def test_splineboris_variable_solenoid_radiation(solenoid_field, solenoid_vs_var
         xo.assert_allclose(this_emitted_dpy,
                 0.5 * (this_dE_ds[:-1] + this_dE_ds[1:]) * this_dy_ds * np.diff(mon.s[i_part, :])/p0.p0c[0],
                 rtol=0, atol=5e-2 * (np.max(this_emitted_dpy) - np.min(this_emitted_dpy)))
-
 
 
 
