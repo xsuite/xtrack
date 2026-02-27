@@ -390,8 +390,7 @@ def test_get_R_matrix():
             0, rtol=0, atol=5e-4)
 
     # Check method=4d
-
-    tw4d = line.twiss(method='4d', freeze_longitudinal=True)
+    tw4d = line.twiss(method='4d')
 
     R_IP3_IP6_4d = tw4d.get_R_matrix(start=0, end='ip6')
     R_IP6_IP3_4d = tw4d.get_R_matrix(start='ip6', end=len(tw4d.name)-1)
