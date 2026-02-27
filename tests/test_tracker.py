@@ -12,7 +12,7 @@ from cpymad.madx import Madx
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed, skip_if_forbid_compile
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -354,6 +354,9 @@ def test_tracker_hashable_config():
 
 
 def test_tracker_config_to_headers():
+
+    skip_if_forbid_compile()
+
     line = xt.Line([])
     line.build_tracker()
 
@@ -377,6 +380,9 @@ def test_tracker_config_to_headers():
 @for_all_test_contexts
 def test_tracker_config(test_context):
     class TestElement(xt.BeamElement):
+
+        skip_if_forbid_compile()
+
         _xofields = {
             'dummy': xo.Float64,
         }
@@ -714,6 +720,9 @@ def test_track_log_and_merit_function(test_context):
 
 @for_all_test_contexts
 def test_init_io_buffer(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElementRecord(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
