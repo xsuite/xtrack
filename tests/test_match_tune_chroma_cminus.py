@@ -102,7 +102,6 @@ def test_match_tune_chromaticity(test_context):
         if isinstance(ee, xt.Cavity):
             ee.voltage = 0.0
     line.match(method='4d', # <-- 4d matchin
-        freeze_longitudinal=True,
         vary=[
             xt.Vary('kqtf.b1', step=1e-8),
             xt.Vary('kqtd.b1', step=1e-8),
