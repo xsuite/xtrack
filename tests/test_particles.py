@@ -5,6 +5,7 @@
 import numpy as np
 import pytest
 from scipy.constants import c as clight
+from xobjects.test_helpers import skip_if_forbid_compile
 
 import xtrack as xt
 import xobjects as xo
@@ -12,6 +13,9 @@ import xpart as xp
 
 
 def test_check_is_active_sorting_openmp():
+
+    skip_if_forbid_compile()
+
     test_context = xo.ContextCpu(omp_num_threads=5)
 
     class TestElement(xt.BeamElement):
@@ -91,6 +95,9 @@ def test_check_is_active_sorting_openmp():
     ]
 )
 def test_check_is_active_sorting_cpu_default(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElement(xt.BeamElement):
         _xofields = {
             'states': xo.Int64[:],
