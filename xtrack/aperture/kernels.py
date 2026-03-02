@@ -4,6 +4,7 @@ from xtrack.aperture.structures import (
     BeamData,
     CrossSections,
     Profile,
+    ProfilePolygons,
     SurveyData,
     TwissData
 )
@@ -21,7 +22,9 @@ def build_aperture_kernels(context):
             c_name="build_profile_polygons",
             args=[
                 xo.Arg(ApertureModel, name="model"),
+                xo.Arg(ProfilePolygons, name="profile_polygons"),
                 xo.Arg(CrossSections, name="cross_sections"),
+                xo.Arg(SurveyData, name="survey"),
             ],
         ),
         "compute_max_aperture_sigma": xo.Kernel(

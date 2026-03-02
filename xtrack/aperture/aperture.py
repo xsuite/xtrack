@@ -19,6 +19,7 @@ from xtrack.aperture.structures import (
     BeamData,
     CrossSections,
     Profile,
+    ProfilePolygons,
     ProfilePosition,
     ShapeTypes,
     SurveyData,
@@ -94,6 +95,8 @@ class Aperture:
         self.context = context or xo.ContextCpu()
         self.s_tol = s_tol
 
+        self.survey = line.survey()
+        self.survey_data = SurveyData.from_survey_table(self.survey, context=self.context)
         self.num_profile_points = num_profile_points
         self._cross_sections: Optional[CrossSections] = None
 
@@ -327,9 +330,9 @@ class Aperture:
                 profile_position.shift_x = element.shift_x
                 profile_position.shift_y = element.shift_y
                 # TODO: Is this really how it should be??
-                profile_position.rot_x = element.rot_s_rad_no_frame
-                profile_position.rot_y = element.rot_x_rad
-                profile_position.rot_z = element.rot_y_rad
+                profile_position.rot_s = element.rot_s_rad_no_frame
+                profile_position.rot_x = element.rot_x_rad
+                profile_position.rot_y = element.rot_y_rad
 
             aperture_type = ApertureType(curvature=0, positions=[profile_position])
             type_list.append(aperture_type)
@@ -444,7 +447,6 @@ class Aperture:
             s_positions: Iterable[float],
             twiss_init: Optional[TwissInit] = None,
             method: Literal['bisection', 'rays'] = 'rays',
-            cross_sections_num_points: int = 36,
             envelopes_num_points: int = 36,
     ) -> Tuple[np.ndarray, TwissTable, np.ndarray, Optional[np.ndarray]]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at element ``element_name``.
@@ -460,8 +462,6 @@ class Aperture:
             - 'rays' - the horizontal, vertical, and diagonal sigmas are computed (fast)
             - 'bisection' - the smallest number of sigmas for the beam to fit in the aperture is computed by bisecting
               on a polygon-inside-polygon problem (slow)
-        cross_sections_num_points:
-            Number of points to use in when discretising of the aperture profiles.
         envelopes_num_points:
             Only for method `bisection`: number of points to use when discretising the beam cross-section.
         **kwargs
@@ -543,7 +543,6 @@ class Aperture:
             s_positions: Iterable[float],
             sigmas: float,
             twiss_init: Optional[TwissInit] = None,
-            cross_sections_num_points: int = 128,
             envelopes_num_points: int = 128,
     ) -> Tuple[np.ndarray, np.ndarray, TwissTable]:
         line_sliced = self.line.copy()
@@ -572,37 +571,19 @@ class Aperture:
 
         return envelopes, interpolated_points, sliced_twiss
 
-    def tangents_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices32:
+    def poses_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices32:
         """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
-        tangents = np.zeros(shape=(len(s_positions), 4, 4), dtype=np.float32)
-        line = self.line.copy()
-        line.cut_at_s(s_positions)
-        survey_sliced = line.survey()
-        sv_indices = np.searchsorted(survey_sliced.s, s_positions)
-
-        for idx, sv_idx in enumerate(sv_indices):
-            row = survey_sliced.rows[sv_idx]
-            tangents[idx, :3, 0] = row.ex
-            tangents[idx, :3, 1] = row.ey
-            tangents[idx, :3, 2] = row.ez
-            tangents[idx, :, 3] = np.hstack([row.X, row.Y, row.Z, 1])
-
-        return tangents
+        sv_data = SurveyData.from_survey_table(self.line.survey(), context=self.context)
+        sv_resampled = sv_data.resample(s_positions)
+        return sv_resampled.pose.to_nparray()
 
     def profiles_at_s(self, s_positions: Collection[float]) -> Tuple[PolygonPoints32, HomogenousMatrices32]:
         s_positions = np.array(s_positions, dtype=np.float32)
         shape = np.array([(np.cos(t), np.sin(t)) for t in np.linspace(0, 2 * np.pi, 50)], dtype=np.float32)
-        placeholders = cast(PolygonPoints32, np.tile(shape, (len(s_positions), 1, 1)))
+        profiles = np.tile(shape, (len(s_positions), 1, 1))
 
-        sv_data = SurveyData.from_survey_table(self.line.survey())
-        sv_sliced = SurveyData.zeros(len(s_positions))
-        self.call_kernel(
-            'resample_survey_table',
-            survey=sv_data,
-            s=np.array(s_positions, dtype=np.float32),
-            sliced=sv_sliced,
-        )
-        return placeholders, sv_sliced.tangent.to_nparray()
+        sv_resampled = self.poses_at_s(s_positions)
+        return profiles, sv_resampled
 
     @property
     def cross_sections(self) -> CrossSections:
@@ -627,41 +608,43 @@ class Aperture:
         return s_positions
 
     def _build_cross_sections(self, num_points: int) -> CrossSections:
-        survey = self.line.survey()
-        num_cross_sections = sum(len(self.model.type_for_position(type_pos).positions) for type_pos in self.model.type_positions)
-
         # Pre-allocate the cross-sections with the correct sizes
+        num_cross_sections = sum(len(self.model.type_for_position(type_pos).positions) for type_pos in self.model.type_positions)
         cross_sections = CrossSections(
             count=num_cross_sections,
-            num_points=num_points,
-            s_positions=num_cross_sections,
             type_position_indices=num_cross_sections,
             profile_position_indices=num_cross_sections,
+            num_points=num_points,
+            s_positions=num_cross_sections,
+            s_start=num_cross_sections,
+            s_end=num_cross_sections,
             points=(num_cross_sections, num_points),
+        )
+
+        # Pre-allocate the profile polygons (generate once, so that we only need to compute transformations on them)
+        num_profile_polys = len(self.model.profiles)
+        profile_polygons = ProfilePolygons(
+            count=num_profile_polys,
+            num_points=num_points,
+            points=(num_profile_polys, num_points),
         )
 
         cross_section_idx_iter = iter(progress(range(num_cross_sections), desc='Building cross-sections', total=num_cross_sections))
 
         for type_pos_idx, type_pos in enumerate(cast(Iterable[TypePosition], self.model.type_positions)):
             aper_type = self.model.type_for_position(type_pos)
-
             for profile_pos_idx, profile_pos in enumerate(cast(Iterable[ProfilePosition], aper_type.positions)):
-                profile = self.model.profile_for_position(profile_pos)
-
-                # TODO: We need to correctly handle transformations here, and if needed generate two cross-sections!
-                #  (When generating two cross sections, remember to adapt the calculation of num_cross_sections above.)
-                assert np.all(type_pos.transformation.to_nparray() == np.identity(4))
-                assert profile_pos.rot_x == profile_pos.rot_y == profile_pos.rot_z == 0
-
-                s_position = survey.s[type_pos.survey_index] + profile_pos.s_position
-
                 idx = next(cross_section_idx_iter)
-                cross_sections.s_positions[idx] = s_position
                 cross_sections.type_position_indices[idx] = type_pos_idx
                 cross_sections.profile_position_indices[idx] = profile_pos_idx
 
-        self.call_kernel('build_profile_polygons', model=self.model, cross_sections=cross_sections)
-
+        self.call_kernel(
+            'build_profile_polygons',
+            model=self.model,
+            profile_polygons=profile_polygons,
+            cross_sections=cross_sections,
+            survey=self.survey_data,
+        )
         return cross_sections
 
 
@@ -687,7 +670,7 @@ class Aperture:
             ``(s_start, s_end)`` there is no associated type_position (i.e.
             there's a gap in the aperture model), ``type_position`` is None.
         """
-        survey = self.line.survey()
+        survey = self.survey
         line_length = survey.s[-1]
 
         type_positions = list(self.model.type_positions)
