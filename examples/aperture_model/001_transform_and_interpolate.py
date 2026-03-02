@@ -136,15 +136,14 @@ def poses_at_s(line, s_positions):
 
 s_for_cuts = np.linspace(1, 11, 20)
 profiles, poses = aper.profiles_at_s(s_for_cuts)
-poses2 = poses_at_s(line, s_for_cuts)
 
-xo.assert_allclose(poses, poses2, atol=1e-6, rtol=1e-6)
+expected_poses = poses_at_s(line, s_for_cuts)
+xo.assert_allclose(poses, expected_poses, atol=1e-6, rtol=1e-6)
 
 for idx, s in enumerate(s_for_cuts):
     profile = profiles[idx]
     profile_hom = poly2d_to_hom(profile)
     profile_in_sv_frame = poses[idx] @ profile_hom
-    profile_in_sv_frame2 = poses2[idx] @ profile_hom
 
     xs, ys, zs = profile_in_sv_frame[:3]
     ax.plot(zs, xs, ys, c='g')

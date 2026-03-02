@@ -98,7 +98,10 @@ class Aperture:
         self.survey = line.survey()
         self.survey_data = SurveyData.from_survey_table(self.survey, context=self.context)
         self.num_profile_points = num_profile_points
+
         self._cross_sections: Optional[CrossSections] = None
+        self._profile_polygons: Optional[ProfilePolygons] = None
+        self._build_cross_sections()
 
         if halo_params is not None:
             self.halo_params.update(halo_params)
@@ -487,7 +490,7 @@ class Aperture:
         num_slices = len(sliced_twiss.s)
         twiss_data = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
-        interpolated_points = np.zeros(shape=(num_slices, self.cross_sections.num_points, 2), dtype=np.float32)
+        interpolated_points = np.zeros(shape=(num_slices, self._cross_sections.num_points, 2), dtype=np.float32)
 
         if method == 'bisection':
             envelope_at_max_sigma = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=np.float32)
@@ -496,7 +499,7 @@ class Aperture:
             self.call_kernel(
                 'compute_max_aperture_sigma',
                 model=self.model,
-                cross_sections=self.cross_sections,
+                cross_sections=self._cross_sections,
                 twiss_data=twiss_data,
                 beam_data=beam_data,
                 out_interpolated_apertures=interpolated_points,
@@ -513,7 +516,7 @@ class Aperture:
             self.call_kernel(
                 'compute_horizontal_vertical_diagonal_aperture_sigmas',
                 model=self.model,
-                cross_sections=self.cross_sections,
+                cross_sections=self._cross_sections,
                 twiss_data=twiss_data,
                 beam_data=beam_data,
                 out_interpolated_apertures=interpolated_points,
@@ -553,14 +556,14 @@ class Aperture:
         num_slices = len(sliced_twiss.s)
         twiss_data = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
-        interpolated_points = np.zeros(shape=(num_slices, self.cross_sections.num_points, 2), dtype=np.float32)
+        interpolated_points = np.zeros(shape=(num_slices, self._cross_sections.num_points, 2), dtype=np.float32)
 
         envelopes = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=np.float32)
 
         self.call_kernel(
             'compute_beam_envelopes_at_sigma',
             model=self.model,
-            cross_sections=self.cross_sections,
+            cross_sections=self._cross_sections,
             twiss_data=twiss_data,
             beam_data=beam_data,
             sigmas=sigmas,
@@ -585,13 +588,6 @@ class Aperture:
         sv_resampled = self.poses_at_s(s_positions)
         return profiles, sv_resampled
 
-    @property
-    def cross_sections(self) -> CrossSections:
-        if not self._cross_sections:
-            self._cross_sections = self._build_cross_sections(self.num_profile_points)
-
-        return self._cross_sections
-
     def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
         element = self.line[element_name]
@@ -607,10 +603,11 @@ class Aperture:
 
         return s_positions
 
-    def _build_cross_sections(self, num_points: int) -> CrossSections:
+    def _build_cross_sections(self):
         # Pre-allocate the cross-sections with the correct sizes
+        num_points = self.num_profile_points
         num_cross_sections = sum(len(self.model.type_for_position(type_pos).positions) for type_pos in self.model.type_positions)
-        cross_sections = CrossSections(
+        self._cross_sections = CrossSections(
             count=num_cross_sections,
             type_position_indices=num_cross_sections,
             profile_position_indices=num_cross_sections,
@@ -623,7 +620,7 @@ class Aperture:
 
         # Pre-allocate the profile polygons (generate once, so that we only need to compute transformations on them)
         num_profile_polys = len(self.model.profiles)
-        profile_polygons = ProfilePolygons(
+        self._profile_polygons = ProfilePolygons(
             count=num_profile_polys,
             num_points=num_points,
             points=(num_profile_polys, num_points),
@@ -635,17 +632,16 @@ class Aperture:
             aper_type = self.model.type_for_position(type_pos)
             for profile_pos_idx, profile_pos in enumerate(cast(Iterable[ProfilePosition], aper_type.positions)):
                 idx = next(cross_section_idx_iter)
-                cross_sections.type_position_indices[idx] = type_pos_idx
-                cross_sections.profile_position_indices[idx] = profile_pos_idx
+                self._cross_sections.type_position_indices[idx] = type_pos_idx
+                self._cross_sections.profile_position_indices[idx] = profile_pos_idx
 
         self.call_kernel(
             'build_profile_polygons',
             model=self.model,
-            profile_polygons=profile_polygons,
-            cross_sections=cross_sections,
+            profile_polygons=self._profile_polygons,
+            cross_sections=self._cross_sections,
             survey=self.survey_data,
         )
-        return cross_sections
 
 
     def _find_type_positions(self, s_start: float, s_end: float) -> List[TypePosition]:
