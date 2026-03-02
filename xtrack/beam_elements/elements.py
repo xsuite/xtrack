@@ -1373,6 +1373,10 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         'delta_taper': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'rel_ref_order': xo.Int32,
+        'rel_ref_is_skew': xo.Int32,
         'isthick': xo.Int64,
         'num_multipole_kicks': xo.Int64,
         'model': xo.Int64,
@@ -1429,6 +1433,17 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
 
         if 'hyl' in kwargs.keys():
             assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
+
+        # Handle knl_rel and ksl_rel
+        knl_rel = kwargs.pop('knl_rel', [0])
+        ksl_rel = kwargs.pop('ksl_rel', [0])
+        # pad to have the same length for knl_rel and ksl_rel
+        max_len_rel = max(len(knl_rel), len(ksl_rel))
+        if len(knl_rel) != len(ksl_rel):
+            knl_rel = list(knl_rel) + [0] * (max_len_rel - len(knl_rel))
+            ksl_rel = list(ksl_rel) + [0] * (max_len_rel - len(ksl_rel))
+        kwargs['knl_rel'] = knl_rel
+        kwargs['ksl_rel'] = ksl_rel
 
         self.xoinitialize(**kwargs)
 
