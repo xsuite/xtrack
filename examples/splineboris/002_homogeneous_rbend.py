@@ -39,27 +39,13 @@ for field_angle in field_angles:
     # ------------------------------------------------------------------
     # Build SplineBoris element with homogeneous field
     # ------------------------------------------------------------------
-    # Spline coefficients: [f(s0), f'(s0), f(s1), f'(s1), integral]
-    Bx_0_coeffs = np.array([B_x, 0.0, B_x, 0.0, B_x * length])
-    By_0_coeffs = np.array([B_y, 0.0, B_y, 0.0, B_y * length])
-    Bs_coeffs = np.zeros_like(Bx_0_coeffs)
-
-    Bx_poly = xt.SplineBoris.spline_poly(s_start, s_end, Bx_0_coeffs)
-    By_poly = xt.SplineBoris.spline_poly(s_start, s_end, By_0_coeffs)
-    Bs_poly = xt.SplineBoris.spline_poly(s_start, s_end, Bs_coeffs)
-
-    degree = 4
-    ks_0 = np.zeros(degree + 1)
-    ks_0[: len(Bx_poly.coef)] = Bx_poly.coef
-    kn_0 = np.zeros(degree + 1)
-    kn_0[: len(By_poly.coef)] = By_poly.coef
-    bs = np.zeros(degree + 1)
-    bs[: len(Bs_poly.coef)] = Bs_poly.coef
-
-    param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
-        bs=bs,
-        kn={0: kn_0},
-        ks={0: ks_0},
+    # Hermite params: [f_left, df_left, f_right, df_right, average]
+    # For a constant field, all boundary values equal the field and derivatives are zero.
+    param_table = xt.SplineBoris.build_param_table(
+        bs=[0, 0, 0, 0, 0],
+        kn={0: [B_y, 0, B_y, 0, B_y]},
+        ks={0: [B_x, 0, B_x, 0, B_x]},
+        s_start=s_start, s_end=s_end,
     )
 
     splineboris = xt.SplineBoris(

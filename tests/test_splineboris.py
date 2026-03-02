@@ -45,47 +45,21 @@ def test_data_dir():
 def make_uniform_splineboris():
     def _make(Bx=0, By=0, Bs=0, s_start=0, s_end=1, n_steps=100,
                 multipole_order=1, radiation_flag=0, kn=None, ks=None):
-        # Field strength and orientation in the transverse plane
-        B_x = Bx
-        B_y = By
-        B_s = Bs
+        # Uniform field: Hermite params (f_left, df_left, f_right, df_right, average)
+        # For a constant field B, all boundary values = B, derivatives = 0, average = B
+        Bx_h = [Bx, 0, Bx, 0, Bx]
+        By_h = [By, 0, By, 0, By]
+        Bs_h = [Bs, 0, Bs, 0, Bs]
 
-        length = s_end - s_start
+        # Verify the polynomials evaluate to constants
+        s_test = np.linspace(s_start, s_end, 100)
+        xo.assert_allclose(xt.SplineBoris.hermite_to_poly(s_start, s_end, Bx_h)(s_test), Bx, rtol=1e-12, atol=1e-12)
+        xo.assert_allclose(xt.SplineBoris.hermite_to_poly(s_start, s_end, By_h)(s_test), By, rtol=1e-12, atol=1e-12)
+        xo.assert_allclose(xt.SplineBoris.hermite_to_poly(s_start, s_end, Bs_h)(s_test), Bs, rtol=1e-12, atol=1e-12)
 
-        # Homogeneous transverse field coefficients on [s_start, s_end]
-        # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
-        Bx_0_coeffs = np.array([B_x, 0.0, B_x, 0.0, B_x * length])
-        By_0_coeffs = np.array([B_y, 0.0, B_y, 0.0, B_y * length])
-        Bs_coeffs   = np.array([B_s, 0.0, B_s, 0.0, B_s * length])
-
-        # Convert to the basis that the field evaluator uses.
-        Bx_poly = xt.SplineBoris.spline_poly(s_start, s_end, Bx_0_coeffs)
-        By_poly = xt.SplineBoris.spline_poly(s_start, s_end, By_0_coeffs)
-        Bs_poly = xt.SplineBoris.spline_poly(s_start, s_end, Bs_coeffs)
-
-        Bx_values = Bx_poly(np.linspace(s_start, s_end, 100))
-        By_values = By_poly(np.linspace(s_start, s_end, 100))
-        Bs_values = Bs_poly(np.linspace(s_start, s_end, 100))
-
-        degree = 4
-
-        ks_0 = np.zeros(degree + 1)
-        ks_0[:len(Bx_poly.coef)] = Bx_poly.coef
-        kn_0 = np.zeros(degree + 1)
-        kn_0[:len(By_poly.coef)] = By_poly.coef
-        bs   = np.zeros(degree + 1)
-        bs[:len(Bs_poly.coef)]   = Bs_poly.coef
-
-        # Assert that the field is constant (homogeneous) over the region
-        # This validates that the polynomial representation correctly represents a constant field
-        xo.assert_allclose(Bx_values, B_x, rtol=1e-12, atol=1e-12)
-        xo.assert_allclose(By_values, B_y, rtol=1e-12, atol=1e-12)
-        xo.assert_allclose(Bs_values, B_s, rtol=1e-12, atol=1e-12)
-        
-        param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
-            bs=bs,
-            kn={0: kn_0},
-            ks={0: ks_0},
+        param_table = xt.SplineBoris.build_param_table(
+            bs=Bs_h, kn={0: By_h}, ks={0: Bx_h},
+            s_start=s_start, s_end=s_end,
         )
 
         splineboris = xt.SplineBoris(
@@ -1312,35 +1286,19 @@ def test_splineboris_spin_quadrupole(case, atol):
     line_ref.track(p_ref)
 
     # --- SplineBoris ---
-    # Spline coefficients on [s_start, s_end]:
-    # c1 = f(s0), c2 = f'(s0), c3 = f(s1), c4 = f'(s1), c5 = ∫ f(s) ds
-    #
-    # For a normal quadrupole, only kn_1 (normal multipole order 1) is needed.
-    # The field evaluator derives both By = kn_1*x and Bx = kn_1*y from
-    # kn_1 via Maxwell's equations. ks_1 (skew quadrupole) must be zero.
-    kn_1_coeffs = np.array([quad_gradient, 0.0, quad_gradient, 0.0, quad_gradient * length])
-    Bs_coeffs = np.array([0, 0.0, 0.0, 0.0, 0])
+    # Uniform quadrupole: Hermite params (f_left, df_left, f_right, df_right, average)
+    kn_1_hermite = [quad_gradient, 0, quad_gradient, 0, quad_gradient]
+    Bs_hermite = [0, 0, 0, 0, 0]
 
-    # Convert to the basis that the field evaluator uses.
-    kn_1_poly = xt.SplineBoris.spline_poly(s_start, s_end, kn_1_coeffs)
-    Bs_poly = xt.SplineBoris.spline_poly(s_start, s_end, Bs_coeffs)
+    # Verify the polynomial evaluates to a constant gradient
+    kn_1_poly = xt.SplineBoris.hermite_to_poly(s_start, s_end, kn_1_hermite)
+    xo.assert_allclose(kn_1_poly(np.linspace(s_start, s_end, 100)), quad_gradient, rtol=1e-12, atol=1e-12)
 
-    kn_1_values = kn_1_poly(np.linspace(s_start, s_end, 100))
-
-    degree = 4
-
-    kn_1 = np.zeros(degree + 1)
-    kn_1[:len(kn_1_poly.coef)] = kn_1_poly.coef
-    bs = np.zeros(degree + 1)
-    bs[:len(Bs_poly.coef)] = Bs_poly.coef
-
-    # Assert that the gradient is constant (homogeneous) over the region
-    xo.assert_allclose(kn_1_values, quad_gradient, rtol=1e-12, atol=1e-12)
-
-    param_table = xt.SplineBoris.build_param_table_from_spline_coeffs(
-        bs=bs,
-        kn={1: kn_1},
+    param_table = xt.SplineBoris.build_param_table(
+        bs=Bs_hermite,
+        kn={1: kn_1_hermite},
         ks={},
+        s_start=s_start, s_end=s_end,
         multipole_order=2,
     )
 

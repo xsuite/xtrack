@@ -99,12 +99,11 @@ class FieldFitter:
     @staticmethod
     def _poly(s0, s1, coeffs):
         """
-        Build a 4th-order spline polynomial over [s0, s1] from boundary data.
+        Build a 4th-order polynomial over [s0, s1] from Hermite parameters.
 
-        This is a convenience wrapper around ``xt.SplineBoris.spline_poly``.
-        See that method for full documentation.
+        Convenience wrapper around ``xt.SplineBoris.hermite_to_poly``.
         """
-        return xt.SplineBoris.spline_poly(s0, s1, coeffs)
+        return xt.SplineBoris.hermite_to_poly(s0, s1, coeffs)
 
 
 
@@ -308,7 +307,7 @@ class FieldFitter:
         index_width = len(str(n_pieces - 1)) if n_pieces > 1 else 1
         for i in range(n_pieces):
             pars = xt.SplineBoris.ParamFormat.fieldfitter_param_names(
-                field, der_order, self.poly_order
+                field, der_order
             )
 
             idx_start = idx_extrema[i]
@@ -368,12 +367,12 @@ class FieldFitter:
 
     def _fit_single_poly(self, field, der_order, sub_df_this, sub_df_prev=None):
         """
-        Fit a single polynomial piece to the specified region of data.
+        Fit a single polynomial piece and store its Hermite parameters.
 
-        This method fits a single polynomial piece to the specified region of data.
-        It accepts the field, derivative order, the current region DataFrame, and the previous region DataFrame.
-        It computes the boundary conditions from the previous polynomial and the data on the rightmost point of the region.
-        It then fits a polynomial (see _poly) to the data in the region and stores the coefficients in the df_fit_pars DataFrame.
+        The five stored parameters are
+        ``(f_left, df_left, f_right, df_right, average)``.
+        Continuity is enforced by reading ``f_right`` / ``df_right`` from the
+        previous piece when available, avoiding polynomial reconstruction.
         """
 
         idx_left = int(sub_df_this.index.get_level_values('idx_start')[0])
@@ -383,42 +382,35 @@ class FieldFitter:
 
         s_region = self.s_full[idx_left:idx_right + 1]
         b_region = self.df_on_axis_raw[(field, der_order)].values[idx_left:idx_right + 1]
-        integral = sc.integrate.trapezoid(b_region, s_region)
+        L = s_right - s_left
+        average = sc.integrate.trapezoid(b_region, s_region) / L
 
         if sub_df_prev is not None:
-            # Extract coefficients, filtering out None values and sorting by param_index
-            # Only use parameters that have been fitted (param_value is not None)
             sub_df_prev_fitted = sub_df_prev[sub_df_prev['param_value'].notna()].sort_values('param_index')
             if len(sub_df_prev_fitted) == 0:
-                # No fitted parameters yet, use finite differences instead
                 left_bounds = self._boundary_from_finite_differences(b_region, s_region, get_right_point=False)
             else:
-                coeff_prev = sub_df_prev_fitted['param_value'].values
-                poly = np.polynomial.Polynomial(coeff_prev)
-                left_bounds = self._boundary_from_poly(s_left, poly)
+                prev_vals = sub_df_prev_fitted['param_value'].values
+                left_bounds = np.array([float(prev_vals[2]),   # f_right of previous
+                                        float(prev_vals[3])],  # df_right of previous
+                                       dtype=float)
         else:
             left_bounds = self._boundary_from_finite_differences(b_region, s_region, get_right_point=False)
 
         right_bounds = self._boundary_from_finite_differences(b_region, s_region, get_right_point=True)
-        coeffs = (left_bounds[0], left_bounds[1], right_bounds[0], right_bounds[1], integral)
+        hermite_params = (left_bounds[0], left_bounds[1],
+                          right_bounds[0], right_bounds[1], average)
 
-        poly = self._poly(s_left, s_right, coeffs)
+        poly = self._poly(s_left, s_right, hermite_params)
 
-        # Convert to standard form and ensure we have the expected number of coefficients
-        poly_std = poly.convert()
-        coef = poly_std.coef
-        # Pad with zeros if necessary (poly.convert() may drop trailing zeros)
-        expected_len = self.poly_order + 1
-        if len(coef) < expected_len:
-            coef = np.pad(coef, (0, expected_len - len(coef)), mode='constant')
+        region_name = sub_df_this['region_name'].iloc[0]
+        for i, param_value in enumerate(hermite_params):
+            self.df_fit_pars.at[
+                (field, der_order, region_name,
+                 s_left, s_right, idx_left, idx_right, i),
+                'param_value'
+            ] = param_value
 
-        # Assign coefficients into df_fit_pars
-        for i in range(self.poly_order + 1):
-            param_value = coef[i]  # get coefficient of s^i
-            self.df_fit_pars.at[(field, der_order, sub_df_this['region_name'].iloc[0], s_left, s_right, idx_left, idx_right, i), 'param_value'] = param_value
-        
-        # Use .loc instead of .values to avoid read-only array error
-        # Get the index slice for the region
         idx_slice = self.df_on_axis_fit.index[idx_left:idx_right + 1]
         self.df_on_axis_fit.loc[idx_slice, (field, der_order)] = poly(s_region)
 

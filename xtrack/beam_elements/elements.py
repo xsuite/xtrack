@@ -1123,19 +1123,24 @@ class SplineBoris(BeamElement):
             poly_order = cls._validate_orders(multipole_order, poly_order)
             return (2 * multipole_order + 1) * (poly_order + 1)
 
+        HERMITE_SUFFIXES = ('f_left', 'df_left', 'f_right', 'df_right', 'average')
+
         @classmethod
-        def fieldfitter_param_names(cls, field_component, derivative_order, poly_order=None):
-            """Return the parameter names for the given field component and derivative order."""
-            if poly_order is None:
-                poly_order = cls.POLY_ORDER
+        def fieldfitter_param_names(cls, field_component, derivative_order):
+            """Return the Hermite parameter names stored by FieldFitter.
+
+            Each field component has five Hermite parameters:
+            ``f_left, df_left, f_right, df_right, average``.
+            """
             if field_component == "Bx":
-                return [f"ks_{derivative_order}_{k}" for k in range(poly_order + 1)]
+                prefix = f"ks_{derivative_order}"
             elif field_component == "By":
-                return [f"kn_{derivative_order}_{k}" for k in range(poly_order + 1)]
+                prefix = f"kn_{derivative_order}"
             elif field_component == "Bs":
-                return [f"bs_{k}" for k in range(poly_order + 1)]
+                prefix = "bs"
             else:
                 raise ValueError(f"Unknown field component: {field_component}")
+            return [f"{prefix}_{s}" for s in cls.HERMITE_SUFFIXES]
 
         @classmethod
         def validate_param_array(cls, params, multipole_order, poly_order=None):
@@ -1159,67 +1164,78 @@ class SplineBoris(BeamElement):
             return True
 
         @classmethod
-        def build_param_table_from_spline_coeffs(
+        def build_param_table(
             cls,
             bs,
             kn,
             ks,
+            s_start,
+            s_end,
             multipole_order=1,
             poly_order=None,
         ):
-            """Build a 1D parameter array from spline coefficients."""
+            """Build a 1D parameter array from Hermite parameters.
 
-            bs = np.asarray(bs, dtype=float)
+            Each field component is specified as a 5-element array of Hermite
+            parameters ``(f_left, df_left, f_right, df_right, average)``.
+            The conversion to monomial polynomial coefficients is performed
+            internally via :meth:`SplineBoris.hermite_to_poly`.
+
+            Parameters
+            ----------
+            bs : array-like
+                5-element Hermite params for Bs.
+            kn : dict
+                ``{derivative_order: [5 Hermite params]}`` for By derivatives.
+            ks : dict
+                ``{derivative_order: [5 Hermite params]}`` for Bx derivatives.
+            s_start, s_end : float
+                Interval endpoints used for the Hermite-to-polynomial
+                conversion.
+            multipole_order : int
+                Maximum multipole order.
+            poly_order : int or None
+                Polynomial order (default ``POLY_ORDER``).
+            """
+
             if poly_order is None:
                 poly_order = cls.POLY_ORDER
-            expected_len = poly_order + 1
+            expected_poly_len = poly_order + 1
 
-            if bs.shape[0] != expected_len:
-                raise ValueError(
-                    f"bs must have length {expected_len} (got {bs.shape[0]})"
-                )
+            def _hermite_to_coef(hermite_vals):
+                poly = SplineBoris.hermite_to_poly(s_start, s_end, hermite_vals)
+                coef = poly.convert().coef
+                out = np.zeros(expected_poly_len)
+                out[:len(coef)] = coef
+                return out
 
-            # Validate and collect kn coefficients
+            bs_coef = _hermite_to_coef(np.asarray(bs, dtype=float))
+
             kn = kn or {}
-            for order, coeffs in kn.items():
-                coeffs = np.asarray(coeffs, dtype=float)
-                if coeffs.shape[0] != expected_len:
-                    raise ValueError(
-                        f"kn[{order}] must have length {expected_len} (got {coeffs.shape[0]})"
-                    )
-                kn[order] = coeffs
-
-            # Validate and collect ks coefficients
+            kn_coefs = {
+                order: _hermite_to_coef(np.asarray(v, dtype=float))
+                for order, v in kn.items()
+            }
             ks = ks or {}
-            for order, coeffs in ks.items():
-                coeffs = np.asarray(coeffs, dtype=float)
-                if coeffs.shape[0] != expected_len:
-                    raise ValueError(
-                        f"ks[{order}] must have length {expected_len} (got {coeffs.shape[0]})"
-                    )
-                ks[order] = coeffs
+            ks_coefs = {
+                order: _hermite_to_coef(np.asarray(v, dtype=float))
+                for order, v in ks.items()
+            }
 
-            # Build parameter dictionary
             param_names = cls.get_param_names(
                 multipole_order=multipole_order, poly_order=poly_order
             )
             param_dict = {}
 
-            # Add bs coefficients
-            for k, value in enumerate(bs):
+            for k, value in enumerate(bs_coef):
                 param_dict[f"bs_{k}"] = float(value)
-
-            # Add kn coefficients
-            for order, coeffs in kn.items():
-                for k, value in enumerate(coeffs):
+            for order, coefs in kn_coefs.items():
+                for k, value in enumerate(coefs):
                     param_dict[f"kn_{order}_{k}"] = float(value)
-
-            # Add ks coefficients
-            for order, coeffs in ks.items():
-                for k, value in enumerate(coeffs):
+            for order, coefs in ks_coefs.items():
+                for k, value in enumerate(coefs):
                     param_dict[f"ks_{order}_{k}"] = float(value)
 
-            # Build parameter array in canonical order
             par_arr = np.array([param_dict.get(name, 0.0) for name in param_names])
 
             cls.validate_param_array(
@@ -1248,22 +1264,43 @@ class SplineBoris(BeamElement):
         )
 
     @classmethod
-    def build_param_table_from_spline_coeffs(
+    def build_param_table(
         cls,
         bs,
         kn,
         ks,
+        s_start,
+        s_end,
         multipole_order=1,
         poly_order=None,
     ):
-        return cls.ParamFormat.build_param_table_from_spline_coeffs(
+        return cls.ParamFormat.build_param_table(
             bs=bs, kn=kn, ks=ks,
+            s_start=s_start, s_end=s_end,
             multipole_order=multipole_order, poly_order=poly_order,
         )
 
     @staticmethod
-    def spline_poly(s_start, s_end, coeffs):
-        """Build a fourth-order spline polynomial over [s_start, s_end] from boundary data."""
+    def hermite_to_poly(s_start, s_end, coeffs):
+        """Build a fourth-order polynomial over [s_start, s_end] from Hermite
+        parameters.
+
+        Parameters
+        ----------
+        s_start, s_end : float
+            Interval endpoints.
+        coeffs : array-like of length 5
+            ``(f_left, df_left, f_right, df_right, average)`` where
+            *f_left*/*f_right* are function values at the endpoints,
+            *df_left*/*df_right* are derivatives, and *average* is the mean
+            value of the function over the interval.
+
+        Returns
+        -------
+        numpy.polynomial.Polynomial
+            Polynomial in *s* that interpolates the given boundary data and
+            whose mean over ``[s_start, s_end]`` equals *average*.
+        """
 
         if len(coeffs) != 5:
             raise ValueError("coeffs must be a 5-element array")
@@ -1284,9 +1321,8 @@ class SplineBoris(BeamElement):
         b4_poly = np.polynomial.Polynomial(b4_coeffs)
         b5_poly = np.polynomial.Polynomial(b5_coeffs)
 
-        # Combine with correct scaling for derivatives/integral
         poly_t = (c1 * b1_poly + L * c2 * b2_poly + c3 * b3_poly +
-                  L * c4 * b4_poly + (c5 / L) * b5_poly)
+                  L * c4 * b4_poly + c5 * b5_poly)
         poly_s = poly_t(t)
         return poly_s
 
@@ -1451,10 +1487,13 @@ class SplineBorisSequence:
 
         Different field components may have different s-ranges due to:
         - Different extrema in the field data
-        - Noise filtering that excludes the fitting of some magnetic field components/derivatives
+        - Noise filtering that excludes the fitting of some magnetic field
+          components/derivatives
 
-        This method finds all unique s-boundaries and creates one SplineBoris
-        element per region, collecting all valid parameters for that region.
+        For each region the stored Hermite parameters are converted to
+        monomial polynomial coefficients via
+        :meth:`SplineBoris.hermite_to_poly`, using each piece's original
+        ``s_start`` / ``s_end``.
         """
         # 1. Build sorted list of (s, idx) boundary pairs
         boundary_pairs = []
@@ -1463,13 +1502,13 @@ class SplineBorisSequence:
             boundary_pairs.append((float(row["s_end"]), int(row["idx_end"])))
         boundary_pairs = sorted(set(boundary_pairs), key=lambda x: x[0])
 
-        # Calculate padding width for element names (e.g., 123 elements → width 3)
         max_elements = len(boundary_pairs) - 1
         name_width = len(str(max_elements))
 
         expected_params = SplineBoris.ParamFormat.get_param_names(
             multipole_order=self.multipole_order, poly_order=self.poly_order
         )
+        expected_poly_len = self.poly_order + 1
 
         # 2. For each region (between consecutive boundaries)
         for i in range(max_elements):
@@ -1477,25 +1516,47 @@ class SplineBorisSequence:
             region_end, idx_end = boundary_pairs[i + 1]
 
             # 3. Find all parameters valid for this region
-            # A parameter is valid if its s_range fully contains this region
             mask = (df_reset["s_start"] <= region_start) & (df_reset["s_end"] >= region_end)
             valid_params = df_reset[mask]
 
             if valid_params.empty:
-                continue  # No parameters valid for this region (gap in data)
+                continue
 
-            # 4. Build parameter dictionary from all valid parameters
-            param_dict = {}
-            for _, row in valid_params.iterrows():
-                pname = row["param_name"]
-                if pname not in param_dict:
-                    param_dict[pname] = float(row["param_value"])
+            # 4. Group by component and convert Hermite → polynomial
+            poly_param_dict = {}
+            groups = valid_params.groupby(
+                ['field_component', 'derivative_x', 's_start', 's_end']
+            )
+            for (fc, deriv, piece_s_start, piece_s_end), grp in groups:
+                hermite_vals = (
+                    grp.sort_values('param_index')['param_value']
+                    .values.astype(float)
+                )
+                poly = SplineBoris.hermite_to_poly(
+                    piece_s_start, piece_s_end, hermite_vals
+                )
+                coef = poly.convert().coef
+                padded = np.zeros(expected_poly_len)
+                padded[:len(coef)] = coef
+
+                if fc == 'Bs':
+                    prefix = 'bs'
+                elif fc == 'By':
+                    prefix = f'kn_{int(deriv)}'
+                elif fc == 'Bx':
+                    prefix = f'ks_{int(deriv)}'
+                else:
+                    continue
+
+                for k, v in enumerate(padded):
+                    poly_param_dict.setdefault(f"{prefix}_{k}", float(v))
 
             # 5. Calculate n_steps from boundary indices
             n_steps = max(1, (idx_end - idx_start) * self.steps_per_point)
 
             # 6. Build 1D parameter array in expected order
-            par_arr = np.array([param_dict.get(pname, 0.0) for pname in expected_params])
+            par_arr = np.array([poly_param_dict.get(pname, 0.0)
+                                for pname in expected_params])
 
             # 7. Create SplineBoris element for this region
             elem = SplineBoris(

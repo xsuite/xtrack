@@ -7,7 +7,7 @@ import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 from xtrack._temp.field_fitter import FieldFitter
 import matplotlib.pyplot as plt
-
+import time
 # Set basic parameters
 interval = 30
 dx = 0.001
@@ -66,7 +66,10 @@ seq = xt.SplineBorisSequence(
 line_splineboris = seq.to_line()
 line_splineboris.build_tracker()
 p_splineboris = p0.copy()
+start_time = time.time()
 line_splineboris.track(p_splineboris, turn_by_turn_monitor='ONE_TURN_EBE')
+end_time = time.time()
+print(f"SplineBoris time: {end_time - start_time} seconds")
 mon_splineboris = line_splineboris.record_last_track
 
 # --- TRUE REFERENCE: BorisSpatialIntegrator with same analytical field ---
@@ -79,7 +82,10 @@ boris_integrator = xt.BorisSpatialIntegrator(
     n_steps=n_steps,
 )
 boris_integrator.log_trajectories = True
+start_time = time.time()
 boris_integrator.track(p_boris)
+end_time = time.time()
+print(f"BorisSpatialIntegrator time: {end_time - start_time} seconds")
 
 # --- VariableSolenoid reference (paraxial approximation, on-axis Bz only) ---
 n_ref_steps = n_steps
@@ -98,7 +104,10 @@ line_varsol = xt.Line(elements=[
 ])
 line_varsol.build_tracker()
 p_varsol = p0.copy()
+start_time = time.time()
 line_varsol.track(p_varsol, turn_by_turn_monitor='ONE_TURN_EBE')
+end_time = time.time()
+print(f"VariableSolenoid time: {end_time - start_time} seconds")
 mon_varsol = line_varsol.record_last_track
 
 # Use mon_varsol as mon_ref for plotting
