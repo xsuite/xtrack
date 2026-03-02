@@ -50,7 +50,7 @@ static inline Racetrack_s geom2d_scale_racetrack(Racetrack_s rt, float_type scal
 float_type geom2d_racetrack_radius_at_angle(float_type theta, Racetrack_s rt)
 /* Compute the length of a line segment going from the center of a racetrack to its boundary at angle ``theta``. */
 {
-    static const float_type eps = 1e-8;
+    const float_type eps = APER_PRECISION;
     const float_type h = rt.h;
     const float_type v = rt.v;
     const float_type a = rt.a;
@@ -122,7 +122,7 @@ RayHit_s geom2d_dist_to_poly_along_ray(
     - `vertex_idx` is the index of the vertex hit by the ray.
 */
 {
-    static const float_type eps = 1e-8;
+    const float_type eps = APER_PRECISION;
 
     const G2DPoint ray = (G2DPoint){ .x = cos(theta), .y = sin(theta) };
     const G2DPoint xy0 = (G2DPoint){ .x = x0, .y = y0 };
@@ -157,7 +157,7 @@ RayHit_s geom2d_dist_to_poly_along_ray(
             */
             const float_type u = ca / (ca - cb);
 
-            if (u < -eps || (1.f + eps) < u) {
+            if (u < -eps || (1 + eps) < u) {
                 // If `u` is outside [0, 1], the ray is parallel but does not hit the edge.
                 continue;
             }

@@ -10,6 +10,8 @@ typedef float float_type;
 #define M_PI 3.14159265358979323846
 #endif
 
+#define APER_PRECISION 1e-6f;
+
 typedef struct {
     float_type x;
     float_type y;
@@ -19,49 +21,69 @@ typedef struct {
     float_type x;
     float_type y;
     float_type z;
-} G3DPoint;
+} Point3D;
 
 typedef struct {
-    float_type mat[4*4];
-} G3DTransform;
+    float_type x;  // shift in x
+    float_type y;  // shift in y
+    float_type s;  // shift in s
+    float_type rot_x;  // rotation around the x-axis, positive s to y (MAD-X phi)
+    float_type rot_y;  // rotation around the y-axis, positive s to x (MAD-X theta)
+    float_type rot_s;  // rotation around the s-axis, positive y to x (MAD-X psi)
+} Transform;
+
+typedef struct {
+    float_type mat[4][4];
+} Pose;
 
 
+inline float_type geom2d_dot(G2DPoint, G2DPoint);
+inline float_type geom2d_cross(G2DPoint, G2DPoint);
+inline G2DPoint geom2d_sub(G2DPoint, G2DPoint);
+inline float_type geom2d_clamp(float_type t, float_type lo, float_type hi);
+inline float_type geom2d_points_distance(float_type x1, float_type y1, float_type x2, float_type y2);
+inline void geom2d_points_translate(float_type dx, float_type dy, G2DPoint* points, const int len_points);
 
-float_type geom2d_dot(G2DPoint a, G2DPoint b);
-float_type geom2d_cross(G2DPoint a, G2DPoint b);
-G2DPoint geom2d_sub(G2DPoint a, G2DPoint b);
-float_type geom2d_clamp(float_type t, float_type lo, float_type hi);
-float_type geom2d_points_distance(float_type x1, float_type y1, float_type x2, float_type y2);
-void geom2d_points_translate(float_type dx, float_type dy, G2DPoint* points, const int len_points);
+static inline float_type geom2d_elliptic_E_adaptive(float_type a, float_type b, float_type eps, int depth, float_type m);
+static inline float_type geom2d_elliptic_E_numeric(float_type phi, float_type k);
 float_type geom2d_elliptic_E(float_type phi, float_type k);
 float_type geom2d_elliptic_E_complete(float_type k);
 
+inline float_type sinc(float_type);
+inline void matrix_multiply_4x4(const float_type a[4][4], const float_type b[4][4], float_type result[4][4]);
+inline Pose transform_to_matrix(const Transform);
+inline Transform matrix_to_transform(const Pose);
+inline Point3D point3d_sub(const Point3D, const Point3D);
+inline float_type point3d_dot(const Point3D, const Point3D);
+inline Point3D point3d_add_scaled(const Point3D a, const Point3D v, const float_type t);
+inline Point3D pose_apply_point(const Pose, const Point3D);
 
-float_type geom2d_dot(G2DPoint a, G2DPoint b)
+
+inline float_type geom2d_dot(G2DPoint a, G2DPoint b)
 {
     return a.x*b.x + a.y*b.y;
 }
 
 
-float_type geom2d_cross(G2DPoint a, G2DPoint b)
+inline float_type geom2d_cross(G2DPoint a, G2DPoint b)
 {
     return a.x*b.y - a.y*b.x;
 }
 
 
-G2DPoint geom2d_sub(G2DPoint a, G2DPoint b)
+inline G2DPoint geom2d_sub(G2DPoint a, G2DPoint b)
 {
     G2DPoint r = {a.x-b.x, a.y-b.y};
     return r;
 }
 
 
-float_type geom2d_clamp(float_type t, float_type lo, float_type hi) {
+inline float_type geom2d_clamp(float_type t, float_type lo, float_type hi) {
     return (t < lo) ? lo : (t > hi) ? hi : t;
 }
 
 
-float_type geom2d_points_distance(float_type x1, float_type y1, float_type x2, float_type y2)
+inline float_type geom2d_points_distance(float_type x1, float_type y1, float_type x2, float_type y2)
 /* Get the distance between two 2D points */
 {
     float_type dx = x2 - x1;
@@ -70,7 +92,7 @@ float_type geom2d_points_distance(float_type x1, float_type y1, float_type x2, f
 }
 
 
-void geom2d_points_translate(float_type dx, float_type dy, G2DPoint* points, const int len_points)
+inline void geom2d_points_translate(float_type dx, float_type dy, G2DPoint* points, const int len_points)
 /* Translate the `points` by (dx, dy)
 
 Contract: len_points=len(points)
@@ -83,7 +105,7 @@ Contract: len_points=len(points)
 }
 
 
-static float_type geom2d_elliptic_E_adaptive(float_type a, float_type b, float_type eps, int depth, float_type m)
+static inline float_type geom2d_elliptic_E_adaptive(float_type a, float_type b, float_type eps, int depth, float_type m)
 /* Incomplete elliptic integral of the second kind E(phi, k)
    Uses libm ellint_2/comp_ellint_2 when available (glibc),
    otherwise falls back to a small adaptive Simpson integrator.
@@ -108,7 +130,7 @@ static float_type geom2d_elliptic_E_adaptive(float_type a, float_type b, float_t
 }
 
 
-static float_type geom2d_elliptic_E_numeric(float_type phi, float_type k)
+static inline float_type geom2d_elliptic_E_numeric(float_type phi, float_type k)
 {
     float_type m = k * k;
     float_type sign = (phi >= 0.0) ? 1.0 : -1.0;
@@ -142,59 +164,13 @@ float_type geom2d_elliptic_E_complete(float_type k)
 }
 
 
-void merge_sorted(const float_type *restrict a, const float_type *restrict b, int len_a, int len_b, float_type *out, int *out_len)
-/* Return array with not repeated ascending values from a and b that are assumed to be sorted
-
-Contract: len_a=len(a); len_b=len(b); len(out)=len_a+len_b; postlen(out)=out_len;
-*/
-{
-    int ia = 0, ib = 0, k = 0;
-    float_type last = NAN;
-    while (ia < len_a && ib < len_b) {
-        float_type va = a[ia];
-        float_type vb = b[ib];
-        float_type v;
-        if (va < vb) {
-            v = va;
-            ia++;
-        } else if (vb < va) {
-            v = vb;
-            ib++;
-        } else {
-            v = va;
-            ia++;
-            ib++;
-        }
-        if (k == 0 || v != last) {
-            out[k++] = v;
-            last = v;
-        }
-    }
-    while (ia < len_a) {
-        float_type v = a[ia++];
-        if (k == 0 || v != last) {
-            out[k++] = v;
-            last = v;
-        }
-    }
-    while (ib < len_b) {
-        float_type v = b[ib++];
-        if (k == 0 || v != last) {
-            out[k++] = v;
-            last = v;
-        }
-    }
-    *out_len = k;
-}
-
-
-float_type sinc(float_type x) {
+inline float_type sinc(float_type x) {
     if (fabs(x) < 1e-8f) return 1.0f;
     return sin(x) / x;
 }
 
 
-void matrix_multiply_4x4(const float_type a[4][4], const float_type b[4][4], float_type result[4][4]) {
+inline void matrix_multiply_4x4(const float_type a[4][4], const float_type b[4][4], float_type result[4][4]) {
     // Multiply two 4x4 matrices `a` and `b`, and store the result in `result`.
     for (int i = 0; i < 4; i++) {
         result[i][0] = a[i][0] * b[0][0] + a[i][1] * b[1][0] + a[i][2] * b[2][0] + a[i][3] * b[3][0];
@@ -202,6 +178,85 @@ void matrix_multiply_4x4(const float_type a[4][4], const float_type b[4][4], flo
         result[i][2] = a[i][0] * b[0][2] + a[i][1] * b[1][2] + a[i][2] * b[2][2] + a[i][3] * b[3][2];
         result[i][3] = a[i][0] * b[0][3] + a[i][1] * b[1][3] + a[i][2] * b[2][3] + a[i][3] * b[3][3];
     }
+}
+
+
+inline Pose transform_to_matrix(const Transform t)
+{
+    const float_type s_phi = sin(t.rot_x);
+    const float_type c_phi = cos(t.rot_x);
+    const float_type s_theta = sin(t.rot_y);
+    const float_type c_theta = cos(t.rot_y);
+    const float_type s_psi = sin(t.rot_s);
+    const float_type c_psi = cos(t.rot_s);
+
+    return (Pose) {
+        .mat = {
+            {
+                -s_phi * s_psi * s_theta + c_psi * c_theta,
+                -c_psi * s_phi * s_theta - c_theta * s_psi,
+                c_phi * s_theta,
+                t.x
+            },
+            {
+                c_phi * s_psi,
+                c_phi * c_psi,
+                s_phi,
+                t.y
+            },
+            {
+                -c_theta * s_phi * s_psi - c_psi * s_theta,
+                -c_psi * c_theta * s_phi + s_psi * s_theta,
+                c_phi * c_theta,
+                t.s
+            },
+            {0, 0, 0, 1}
+        }
+    };
+}
+
+
+inline Transform matrix_to_transform(const Pose m) {
+    return (Transform) {
+        .x = m.mat[0][3],
+        .y = m.mat[1][3],
+        .s = m.mat[2][3],
+        .rot_x = atan2(m.mat[1][2], sqrt(m.mat[1][0] * m.mat[1][0] + m.mat[1][1] * m.mat[1][1])),
+        .rot_y = atan2(m.mat[0][2], m.mat[2][2]),
+        .rot_s = atan2(m.mat[1][0], m.mat[1][1])
+    };
+}
+
+
+inline Point3D point3d_sub(const Point3D a, const Point3D b)
+{
+    return (Point3D){ a.x - b.x, a.y - b.y, a.z - b.z };
+}
+
+
+inline float_type point3d_dot(const Point3D a, const Point3D b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+
+inline Point3D point3d_add_scaled(const Point3D a, const Point3D v, const float_type t)
+{
+    return (Point3D){
+        a.x + t * v.x,
+        a.y + t * v.y,
+        a.z + t * v.z
+    };
+}
+
+
+inline Point3D pose_apply_point(const Pose p, const Point3D v)
+/* Apply a Pose matrix to a 3D point */
+{
+    const float_type x = p.mat[0][0] * v.x + p.mat[0][1] * v.y + p.mat[0][2] * v.z + p.mat[0][3];
+    const float_type y = p.mat[1][0] * v.x + p.mat[1][1] * v.y + p.mat[1][2] * v.z + p.mat[1][3];
+    const float_type z = p.mat[2][0] * v.x + p.mat[2][1] * v.y + p.mat[2][2] * v.z + p.mat[2][3];
+    return (Point3D){ x, y, z };
 }
 
 #endif /* APERTURE_BASE_H */

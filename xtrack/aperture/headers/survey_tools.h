@@ -2,15 +2,57 @@
 #define SURVEY_TOOLS_H
 
 #include "base.h"
+#include "path3d.h"
 
 
 typedef struct {
     float_type s;       // position along the beamline}
-    float_type angle;   // angle of the tangent vector
+    float_type angle;   // angle of the pose vector
     float_type length;  // length of the segment
     float_type tilt;    // tilt of the segment
-    float_type tangent[4][4]; // tangent matrix (4x4) for each entry
+    float_type pose[4][4]; // pose matrix (4x4) for each entry
 } SurveyEntry_s;
+
+
+inline float_type get_survey_max_s(const SurveyData survey)
+/* Get the max s of the survey. */
+{
+    // Rely on the fact that the last element is `_end_point` (length = 0).
+    // This needs to change, if that is ever not the case.
+    const uint32_t survey_num_entries = SurveyData_len_s(survey);
+    return SurveyData_get_s(survey, survey_num_entries - 1);
+}
+
+
+inline Pose pose_matrix_from_survey(const SurveyData survey, const uint32_t idx) {
+    Pose m;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            m.mat[i][j] = SurveyData_get_pose(survey, idx, i, j);
+        }
+    }
+    return m;
+}
+
+
+inline Point3D survey_point(SurveyData survey, uint32_t idx) {
+    Pose pose = pose_matrix_from_survey(survey, idx);
+    return (Point3D) {
+        .x = pose.mat[0][3],
+        .y = pose.mat[1][3],
+        .z = pose.mat[2][3]
+    };
+}
+
+
+inline LineSegment3D survey_segment(SurveyData survey, uint32_t idx) {
+    Point3D entry = survey_point(survey, idx);
+    Point3D exit = survey_point(survey, idx + 1);
+    return (LineSegment3D) {
+        .start = entry,
+        .end = exit
+    };
+}
 
 
 SurveyEntry_s interpolate_survey_table_entry(
@@ -19,7 +61,7 @@ SurveyEntry_s interpolate_survey_table_entry(
     const uint32_t i_survey
 )
 {
-    static const float_type eps = 1e-8f;
+    const float_type eps = APER_PRECISION;
     const float_type s_current = SurveyData_get_s(survey, i_survey);
     const float_type s_next = SurveyData_get_s(survey, i_survey + 1);
 
@@ -31,11 +73,7 @@ SurveyEntry_s interpolate_survey_table_entry(
         entry.s = SurveyData_get_s(survey, i_survey);
         entry.angle = SurveyData_get_angle(survey, i_survey);
         entry.length = SurveyData_get_length(survey, i_survey);
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                entry.tangent[i][j] = SurveyData_get_tangent(survey, i_survey, i, j);
-            }
-        }
+        memcpy(entry.pose, pose_matrix_from_survey(survey, i_survey).mat, sizeof(float_type[4][4]));
     }
     else {
         // Properly interpolate between the current and the next survey entry
@@ -44,10 +82,10 @@ SurveyEntry_s interpolate_survey_table_entry(
         entry.length = t * SurveyData_get_length(survey, i_survey);
         entry.s = s_current + entry.length;
 
-        float_type tangent_current[4][4];
+        float_type pose_current[4][4];
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                tangent_current[i][j] = SurveyData_get_tangent(survey, i_survey, i, j);
+                pose_current[i][j] = SurveyData_get_pose(survey, i_survey, i, j);
             }
         }
 
@@ -64,7 +102,7 @@ SurveyEntry_s interpolate_survey_table_entry(
             {    0.f,  0.f,      0.f,      1.f }
         };
 
-        matrix_multiply_4x4(tangent_current, tilted_arc, entry.tangent);
+        matrix_multiply_4x4(pose_current, tilted_arc, entry.pose);
     }
 
     return entry;
@@ -112,7 +150,7 @@ void resample_survey_table(
             SurveyData_set_tilt(sliced, i_sliced, entry.tilt);
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    SurveyData_set_tangent(sliced, i_sliced, i, j, entry.tangent[i][j]);
+                    SurveyData_set_pose(sliced, i_sliced, i, j, entry.pose[i][j]);
                 }
             }
             i_sliced++;

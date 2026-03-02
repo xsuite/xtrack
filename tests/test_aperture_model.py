@@ -7,9 +7,19 @@ from cpymad.madx import Madx
 from xobjects.test_helpers import for_all_test_contexts
 
 import xtrack as xt
-from xtrack.aperture.aperture import Aperture
+from xtrack.aperture.aperture import Aperture, transform_matrix
 from xtrack.aperture.kernels import build_aperture_kernels
-from xtrack.aperture.structures import Ellipse, Rectangle, RectEllipse
+from xtrack.aperture.structures import (
+    ApertureModel,
+    ApertureType,
+    Circle,
+    Ellipse,
+    Profile,
+    ProfilePosition,
+    Rectangle,
+    RectEllipse,
+    TypePosition
+)
 
 TOY_RING_SEQUENCE = """
     ! Toy Ring, 4 arcs
@@ -51,7 +61,7 @@ def kernels(context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-def test_aperture_from_line_with_aperture_type_bounds(test_context):
+def test_from_line_with_aperture_type_bounds(test_context):
     pass
     mad = Madx(stdout=None)
     mad.input(TOY_RING_SEQUENCE)
@@ -83,7 +93,7 @@ def test_aperture_from_line_with_aperture_type_bounds(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-def test_aperture_from_line_with_associated_apertures_type_bounds(test_context):
+def test_from_line_with_associated_apertures_type_bounds(test_context):
     env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
     env.set_particle_ref('proton', p0c=1.2e9)
     ring = env['ring']
@@ -116,7 +126,7 @@ def test_aperture_from_line_with_associated_apertures_type_bounds(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-def test_aperture_from_line_with_limits_type_bounds(test_context):
+def test_from_line_with_limits_type_bounds(test_context):
     env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=True)
     env.set_particle_ref('proton', p0c=1.2e9)
     ring = env['ring']
@@ -145,7 +155,7 @@ def test_aperture_from_line_with_limits_type_bounds(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-def test_aperture_find_type_positions_perfect_overlap(test_context):
+def test_find_type_positions_perfect_overlap(test_context):
     env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
     env.set_particle_ref('proton', p0c=1.2e9)
     ring = env['ring']
@@ -174,7 +184,7 @@ def test_aperture_find_type_positions_perfect_overlap(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-def test_aperture_find_type_positions_partially_spanning_multiple_types(test_context):
+def test_find_type_positions_partially_spanning_multiple_types(test_context):
     env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
     env.set_particle_ref('proton', p0c=1.2e9)
     ring = env['ring']
@@ -576,7 +586,6 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
         element_name='m1',
         resolution=None,
         twiss=tw,
-        cross_sections_num_points=144,
         envelopes_num_points=144,
         method=method,
     )
@@ -648,7 +657,6 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
             element_name="m1",
             resolution=None,
             twiss=tw,
-            cross_sections_num_points=144,
             envelopes_num_points=144,
             method="rays",
         )
@@ -768,9 +776,81 @@ def test_get_aperture_sigmas_at_element_vs_madx(
         element_name='m1',
         resolution=None,
         twiss=tw,
-        cross_sections_num_points=144,
         envelopes_num_points=144,
         method='bisection',
     )
 
     xo.assert_allclose(madx_n1, computed_n1, rtol=0.01)
+
+
+@pytest.mark.parametrize(
+    'rot_x,rot_y,dx,dy,ds1,ds2,ds_bounds1,ds_bounds2',
+    [
+        (0, 0, 0, 0, 0, 0, 0, 0),
+        (np.deg2rad(45), np.deg2rad(30), np.sqrt(3), 1, 1, 1, 1 / np.sqrt(2), 0.5),
+    ]
+)
+def test_computation_of_profile_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_bounds1, ds_bounds2):
+    env = xt.Environment()
+    drift = env.new('drift', xt.Drift, length=1)
+    line = env.new_line(name='line', components=10 * [drift])
+    sv = line.survey()
+
+    circle = Circle(radius=1)
+    rectangle = Rectangle(half_width=0.6, half_height=0.4)
+
+    profiles = [
+        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+    ]
+
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=-1.5),
+        ProfilePosition(profile_index=0, s_position=0.5, rot_x=rot_x),
+        ProfilePosition(profile_index=0, s_position=2.5, rot_y=rot_y),
+        ProfilePosition(profile_index=0, s_position=8.5),
+    ]
+
+    types = [
+        ApertureType(curvature=0., positions=profile_positions),
+    ]
+
+    type_positions = [
+        TypePosition(
+            type_index=0,
+            survey_reference_name='drift::0',
+            survey_index=sv.name.tolist().index('drift::0'),
+            transformation=transform_matrix(
+                ds=1.5,
+                dx=dx,
+                dy=dy,
+            ),
+        ),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=type_positions,
+        types=types,
+        profiles=profiles,
+        type_names=['type0'],
+        profile_names=['circle', 'rectangle'],
+    )
+
+    ap = Aperture(line=line, model=model)
+
+    xo.assert_allclose(ap.cross_sections.s_positions[0], 0, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap.cross_sections.s_start[0], 0, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap.cross_sections.s_end[0], 0, atol=1e-6, rtol=1e-8)
+
+    xo.assert_allclose(ap.cross_sections.s_positions[1], 2 + ds1, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap.cross_sections.s_start[1], 2 - ds_bounds1, atol=1e-4, rtol=1e-8)
+    xo.assert_allclose(ap.cross_sections.s_end[1], 2 + ds_bounds1, atol=1e-4, rtol=1e-8)
+
+    xo.assert_allclose(ap.cross_sections.s_positions[2], 4 + ds2, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap.cross_sections.s_start[2], 4 - ds_bounds2, atol=2e-4, rtol=1e-8)  # atol < 1mm but quite high
+    xo.assert_allclose(ap.cross_sections.s_end[2], 4 + ds_bounds2, atol=2e-4, rtol=1e-8)  # ditto
+
+    xo.assert_allclose(ap.cross_sections.s_positions[3], 10, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap.cross_sections.s_start[3], 10, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap.cross_sections.s_end[3], 10, atol=1e-6, rtol=1e-8)

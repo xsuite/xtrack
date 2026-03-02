@@ -2,8 +2,8 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 import matplotlib.pyplot as plt
-from cgeom.aperture import Aperture, transform_matrix
-from cgeom.structures import ApertureModel, ApertureType, Circle, Profile, ProfilePosition, Rectangle, TypePosition
+from xtrack.aperture.aperture import Aperture, transform_matrix
+from xtrack.aperture.structures import ApertureModel, ApertureType, Circle, Profile, ProfilePosition, Rectangle, TypePosition
 
 
 env = xt.Environment()
@@ -69,7 +69,7 @@ ax.set_zlabel('Y [m]')
 
 ax.auto_scale_xyz([0, 12], [-6, 6], [-6, 6])
 
-aper = Aperture(env, model, cross_sections=None)
+aper = Aperture(line, model)
 
 
 def matrix_from_survey_point(sv_row):
@@ -107,7 +107,7 @@ for type_pos in aper.model.type_positions:
             ds=profile_pos.s_position,
             theta=profile_pos.rot_y,
             phi=profile_pos.rot_x,
-            psi=profile_pos.rot_z,
+            psi=profile_pos.rot_s,
         )
 
         poly_in_sv_frame = sv_ref_matrix @ type_matrix @ profile_position_matrix @ poly_hom
@@ -116,9 +116,9 @@ for type_pos in aper.model.type_positions:
         ax.plot(zs, xs, ys, c='r')
 
 
-def tangents_at_s(line, s_positions):
+def poses_at_s(line, s_positions):
     """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
-    tangents = np.zeros(shape=(len(s_positions), 4, 4), dtype=np.float32)
+    poses = np.zeros(shape=(len(s_positions), 4, 4), dtype=np.float32)
     line_sliced = line.copy()
     line_sliced.cut_at_s(s_positions)
     survey_sliced = line_sliced.survey()
@@ -126,25 +126,25 @@ def tangents_at_s(line, s_positions):
 
     for idx, sv_idx in enumerate(sv_indices):
         row = survey_sliced.rows[sv_idx]
-        tangents[idx, :3, 0] = row.ex
-        tangents[idx, :3, 1] = row.ey
-        tangents[idx, :3, 2] = row.ez
-        tangents[idx, :, 3] = np.hstack([row.X, row.Y, row.Z, 1])
+        poses[idx, :3, 0] = row.ex
+        poses[idx, :3, 1] = row.ey
+        poses[idx, :3, 2] = row.ez
+        poses[idx, :, 3] = np.hstack([row.X, row.Y, row.Z, 1])
 
-    return tangents
+    return poses
 
 
 s_for_cuts = np.linspace(1, 11, 20)
-profiles, tangents = aper.profiles_at_s('line', s_for_cuts)
-tangents2 = tangents_at_s(line, s_for_cuts)
+profiles, poses = aper.profiles_at_s(s_for_cuts)
+poses2 = poses_at_s(line, s_for_cuts)
 
-xo.assert_allclose(tangents, tangents2, atol=1e-6, rtol=1e-6)
+xo.assert_allclose(poses, poses2, atol=1e-6, rtol=1e-6)
 
 for idx, s in enumerate(s_for_cuts):
     profile = profiles[idx]
     profile_hom = poly2d_to_hom(profile)
-    profile_in_sv_frame = tangents[idx] @ profile_hom
-    profile_in_sv_frame2 = tangents2[idx] @ profile_hom
+    profile_in_sv_frame = poses[idx] @ profile_hom
+    profile_in_sv_frame2 = poses2[idx] @ profile_hom
 
     xs, ys, zs = profile_in_sv_frame[:3]
     ax.plot(zs, xs, ys, c='g')

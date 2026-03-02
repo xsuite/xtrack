@@ -597,8 +597,8 @@ static inline float_type compute_n1_for_point(
     Computed ``n1``.
  */
 {
-    static const int n_iter = 2;
-    static const float_type eps = 1e-8f;
+    const int n_iter = 2;
+    const float_type eps = APER_PRECISION;
 
     float_type f0 = _envelope_at_n_error(n0, angle, d_target, halo, beam);
     float_type f1 = _envelope_at_n_error(n1, angle, d_target, halo, beam);
@@ -632,7 +632,7 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
     float_type* const out_num_sigmas_v,
     float_type* const out_num_sigmas_d
 ) {
-    static const float_type angles[8] = {0, M_PI / 4, M_PI / 2, 3 * M_PI / 4, M_PI, 5 * M_PI / 4, 3 * M_PI / 2, 7 * M_PI / 4};
+    const float_type angles[8] = {0, M_PI / 4, M_PI / 2, 3 * M_PI / 4, M_PI, 5 * M_PI / 4, 3 * M_PI / 2, 7 * M_PI / 4};
     const uint32_t num_slices = TwissData_len_x(twiss_data);
     const uint32_t num_points = CrossSections_get_num_points(cross_sections);
 

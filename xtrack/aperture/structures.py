@@ -1,4 +1,4 @@
-from typing import List, Union, get_args
+from typing import List, Union, get_args, Collection
 
 import numpy as np
 import xobjects as xo
@@ -88,11 +88,11 @@ class ProfilePosition(xo.Struct):
     shift_y: float
         The vertical shift of the profile centre from the type axis
     rot_x: float
-        The rotation of the profile around the type axis in radians.
+        The rotation of the profile around the horizontal axis in radians.
     rot_y: float
         The rotation of the profile around the vertical axis in radians.
-    rot_z: float
-        The rotation of the profile around the horizontal axis in radians.
+    rot_s: float
+        The rotation of the profile around the type axis in radians.
     """
     profile_index = xo.Int32
     s_position = xo.Float32
@@ -100,7 +100,7 @@ class ProfilePosition(xo.Struct):
     shift_y = xo.Float32
     rot_x = xo.Float32
     rot_y = xo.Float32
-    rot_z = xo.Float32
+    rot_s = xo.Float32
 
     def copy(self):
         return ProfilePosition(
@@ -110,7 +110,7 @@ class ProfilePosition(xo.Struct):
             shift_y=self.shift_y,
             rot_x=self.rot_x,
             rot_y=self.rot_y,
-            rot_z=self.rot_z,
+            rot_z=self.rot_s,
         )
 
 
@@ -145,7 +145,7 @@ class ApertureModel(xo.Struct):
         self,
         type_positions: List[TypePosition],
         types: List[ApertureType],
-        profiles: List[ShapeTypes],
+        profiles: List[Profile],
         type_names: List[str],
         profile_names: List[str],
         **kwargs,
@@ -183,9 +183,17 @@ class ApertureModel(xo.Struct):
 class CrossSections(xo.Struct):
     count = xo.UInt32
     num_points = xo.UInt32
-    s_positions = xo.Float32[:]
     type_position_indices = xo.UInt32[:]
     profile_position_indices = xo.UInt32[:]
+    s_positions = xo.Float32[:]
+    s_start = xo.Float32[:]
+    s_end = xo.Float32[:]
+    points = xo.Float32[:, :, 2]
+
+
+class ProfilePolygons(xo.Struct):
+    count = xo.UInt32
+    num_points = xo.UInt32
     points = xo.Float32[:, :, 2]
 
 
@@ -234,39 +242,46 @@ class BeamData(xo.Struct):
 
 class SurveyData(xo.Struct):
     s = xo.Float32[:]
-    tangent = xo.Float32[:, 4, 4]
+    pose = xo.Float32[:, 4, 4]
     angle = xo.Float32[:]
     length = xo.Float32[:]
     tilt = xo.Float32[:]
 
     @classmethod
-    def zeros(cls, length):
+    def zeros(cls, length, context: xo.XContext = None) -> 'SurveyData':
         return cls(
             s=np.zeros(shape=(length,), dtype=np.float32),
-            tangent=np.zeros(shape=(length, 4, 4), dtype=np.float32),
+            pose=np.zeros(shape=(length, 4, 4), dtype=np.float32),
             angle=np.zeros(shape=(length,), dtype=np.float32),
             length=np.zeros(shape=(length,), dtype=np.float32),
             tilt=np.zeros(shape=(length,), dtype=np.float32),
+            _context=context,
         )
 
     @classmethod
-    def from_survey_table(cls, survey_table: SurveyTable) -> 'SurveyData':
+    def from_survey_table(cls, survey_table: SurveyTable, context: xo.XContext = None) -> 'SurveyData':
         s = np.zeros(shape=(len(survey_table),), dtype=np.float32)
-        tangents = np.zeros(shape=(len(survey_table), 4, 4), dtype=np.float32)
+        poses = np.zeros(shape=(len(survey_table), 4, 4), dtype=np.float32)
         angles = np.zeros_like(s)
         lengths = np.zeros_like(s)
         tilts = np.zeros_like(s)
 
         for idx, row in enumerate(survey_table.rows):
             row = survey_table.rows[idx]
-            s[idx] = row.s
-            tangents[idx, :3, 0] = row.ex
-            tangents[idx, :3, 1] = row.ey
-            tangents[idx, :3, 2] = row.ez
-            tangents[idx, :, 3] = np.hstack([row.X, row.Y, row.Z, 1])
-            angles[idx] = row.angle
-            lengths[idx] = row.length
-            tilts[idx] = row.rot_s_rad
+            s[idx] = row.s[0]
+            poses[idx, :3, 0] = row.ex[0]
+            poses[idx, :3, 1] = row.ey[0]
+            poses[idx, :3, 2] = row.ez[0]
+            poses[idx, :, 3] = np.hstack([row.X[0], row.Y[0], row.Z[0], 1])
+            angles[idx] = row.angle[0]
+            lengths[idx] = row.length[0]
+            tilts[idx] = row.rot_s_rad[0]
 
-        survey_data = cls(s=s, tangent=tangents, angle=angles, length=lengths, tilt=tilts)
+        survey_data = cls(s=s, pose=poses, angle=angles, length=lengths, tilt=tilts, _context=context)
         return survey_data
+
+    def resample(self, s_positions: Collection[float]) -> 'SurveyData':
+        s_positions = np.array(s_positions, dtype=np.float32)
+        resampled = SurveyData.zeros(len(s_positions), context=self._context)
+        self._context.kernels['resample_survey_table'](survey=self, s=s_positions, sliced=resampled)
+        return resampled
