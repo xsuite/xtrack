@@ -27,7 +27,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
       /*inv_factorial_order_rel*/ 1. / (tgamma(MultipoleData_len_knl_rel(el) + 1)),
         /*knl_rel*/               MultipoleData_getp1_knl_rel(el, 0),
         /*ksl_rel*/               MultipoleData_getp1_ksl_rel(el, 0),
-        /*rel_ref_strength*/      MultipoleData_get_knl(el, MultipoleData_get_rel_ref_order(el)),
+        /*rel_ref_strength*/      ((MultipoleData_get_rel_ref_is_skew(el)) ? (MultipoleData_get_ksl(el, MultipoleData_get_rel_ref_order(el))) : (MultipoleData_get_knl(el, MultipoleData_get_rel_ref_order(el)))),
         /*num_multipole_kicks*/   MultipoleData_get_num_multipole_kicks(el),
         /*model*/                 ((MultipoleData_get_isthick(el) <= 0) ? (-1) : MultipoleData_get_model(el)), // kick only if not thick
         /*default_model*/         MULTIPOLE_DEFAULT_MODEL,
