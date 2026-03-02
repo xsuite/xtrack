@@ -286,6 +286,7 @@ void track_magnet_particles(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
+    double rel_ref_strength,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t default_model,
