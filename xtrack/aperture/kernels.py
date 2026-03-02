@@ -2,7 +2,7 @@ import xobjects as xo
 from xtrack.aperture.structures import (
     ApertureModel,
     BeamData,
-    CrossSections,
+    ApertureBounds,
     Profile,
     ProfilePolygons,
     SurveyData,
@@ -23,8 +23,19 @@ def build_aperture_kernels(context):
             args=[
                 xo.Arg(ApertureModel, name="model"),
                 xo.Arg(ProfilePolygons, name="profile_polygons"),
-                xo.Arg(CrossSections, name="cross_sections"),
+                xo.Arg(ApertureBounds, name="aperture_bounds"),
                 xo.Arg(SurveyData, name="survey"),
+            ],
+        ),
+        "cross_sections_at_s": xo.Kernel(
+            c_name="cross_sections_at_s",
+            args=[
+                xo.Arg(SurveyData, name="survey_at_s"),
+                xo.Arg(ApertureModel, name="model"),
+                xo.Arg(ProfilePolygons, name="profile_polygons"),
+                xo.Arg(ApertureBounds, name="aperture_bounds"),
+                xo.Arg(SurveyData, name="survey"),
+                xo.Arg(xo.Float32, pointer=True, name="cross_sections"),
             ],
         ),
         "compute_max_aperture_sigma": xo.Kernel(
@@ -32,7 +43,7 @@ def build_aperture_kernels(context):
             args=[
                 xo.Arg(ApertureModel, name="model"),
                 xo.Arg(ProfilePolygons, name="profile_polygons"),
-                xo.Arg(CrossSections, name="cross_sections"),
+                xo.Arg(ApertureBounds, name="aperture_bounds"),
                 xo.Arg(TwissData, name="twiss_data"),
                 xo.Arg(BeamData, name="beam_data"),
                 xo.Arg(xo.Float32, pointer=True, name="out_interpolated_apertures"),
@@ -46,7 +57,7 @@ def build_aperture_kernels(context):
             args=[
                 xo.Arg(ApertureModel, name="model"),
                 xo.Arg(ProfilePolygons, name="profile_polygons"),
-                xo.Arg(CrossSections, name="cross_sections"),
+                xo.Arg(ApertureBounds, name="aperture_bounds"),
                 xo.Arg(TwissData, name="twiss_data"),
                 xo.Arg(BeamData, name="beam_data"),
                 xo.Arg(xo.Float32, pointer=True, name="out_interpolated_apertures"),
@@ -60,7 +71,7 @@ def build_aperture_kernels(context):
             args=[
                 xo.Arg(ApertureModel, name='model'),
                 xo.Arg(ProfilePolygons, name="profile_polygons"),
-                xo.Arg(CrossSections, name='cross_sections'),
+                xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(TwissData, name='twiss_data'),
                 xo.Arg(BeamData, name='beam_data'),
                 xo.Arg(xo.Float32, name='sigmas'),

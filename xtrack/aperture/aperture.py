@@ -17,7 +17,7 @@ from xtrack.aperture.structures import (
     ApertureModel,
     ApertureType,
     BeamData,
-    CrossSections,
+    ApertureBounds,
     Profile,
     ProfilePolygons,
     ProfilePosition,
@@ -29,8 +29,11 @@ from xtrack.aperture.structures import (
 from xtrack.line import Line
 from xtrack.progress_indicator import progress
 
-PolygonPoints32 = np.ndarray[Tuple[int, Literal[2]], np.dtype[np.float32]]
-HomogenousMatrices32 = np.ndarray[Tuple[int, Literal[4], Literal[4]], np.dtype[np.float32]]
+DTypeFloat = np.dtype[np.float32]
+NDArrayNx2 = np.ndarray[Tuple[int, Literal[2]], DTypeFloat]
+NDArrayNxMx2 = np.ndarray[Tuple[int, int, Literal[2]], DTypeFloat]
+HomogenousMatrix = np.ndarray[Tuple[Literal[4], Literal[4]], DTypeFloat]
+HomogenousMatrices = np.ndarray[Tuple[int, Literal[4], Literal[4]], DTypeFloat]
 
 
 def transform_matrix(dx=0, dy=0, ds=0, theta=0, phi=0, psi=0):
@@ -99,9 +102,9 @@ class Aperture:
         self.survey_data = SurveyData.from_survey_table(self.survey, context=self.context)
         self.num_profile_points = num_profile_points
 
-        self._cross_sections: Optional[CrossSections] = None
+        self._aperture_bounds: Optional[ApertureBounds] = None
         self._profile_polygons: Optional[ProfilePolygons] = None
-        self._build_cross_sections()
+        self._build_aperture_bounds()
 
         if halo_params is not None:
             self.halo_params.update(halo_params)
@@ -118,6 +121,7 @@ class Aperture:
         survey_names = survey.name[:-1]  # _end_point is not an element
         name_to_sv_index = dict(zip(survey.name, range(len(survey))))
         layout_data = line.metadata['layout_data']
+        aperture_offsets = cls._get_per_type_madx_offsets(line.metadata.get('aperture_offsets', {}))
 
         name_iter_with_progress = progress(
             survey_names,
@@ -361,7 +365,7 @@ class Aperture:
         )
         return aperture
 
-    def polygon_for_profile(self, profile: Profile, num_points: int) -> PolygonPoints32:
+    def polygon_for_profile(self, profile: Profile, num_points: int) -> NDArrayNx2:
         points = np.ndarray(shape=(num_points, 2), dtype=np.float32)
         self.call_kernel('build_polygon_for_profile', points=points, num_points=num_points, profile=profile)
         return points
@@ -500,7 +504,7 @@ class Aperture:
                 'compute_max_aperture_sigma',
                 model=self.model,
                 profile_polygons=self._profile_polygons,
-                cross_sections=self._cross_sections,
+                aperture_bounds=self._aperture_bounds,
                 twiss_data=twiss_data,
                 beam_data=beam_data,
                 out_interpolated_apertures=interpolated_points,
@@ -518,7 +522,7 @@ class Aperture:
                 'compute_horizontal_vertical_diagonal_aperture_sigmas',
                 model=self.model,
                 profile_polygons=self._profile_polygons,
-                cross_sections=self._cross_sections,
+                aperture_bounds=self._aperture_bounds,
                 twiss_data=twiss_data,
                 beam_data=beam_data,
                 out_interpolated_apertures=interpolated_points,
@@ -566,7 +570,7 @@ class Aperture:
             'compute_beam_envelopes_at_sigma',
             model=self.model,
             profile_polygons=self._profile_polygons,
-            cross_sections=self._cross_sections,
+            aperture_bounds=self._aperture_bounds,
             twiss_data=twiss_data,
             beam_data=beam_data,
             sigmas=sigmas,
@@ -577,19 +581,25 @@ class Aperture:
 
         return envelopes, interpolated_points, sliced_twiss
 
-    def poses_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices32:
+    def poses_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices:
         """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
-        sv_data = SurveyData.from_survey_table(self.line.survey(), context=self.context)
-        sv_resampled = sv_data.resample(s_positions)
+        sv_resampled = self.survey_data.resample(s_positions)
         return sv_resampled.pose.to_nparray()
 
-    def profiles_at_s(self, s_positions: Collection[float]) -> Tuple[PolygonPoints32, HomogenousMatrices32]:
+    def cross_sections_at_s(self, s_positions: Collection[float]) -> Tuple[NDArrayNxMx2, HomogenousMatrices]:
         s_positions = np.array(s_positions, dtype=np.float32)
-        shape = np.array([(np.cos(t), np.sin(t)) for t in np.linspace(0, 2 * np.pi, 50)], dtype=np.float32)
-        profiles = np.tile(shape, (len(s_positions), 1, 1))
-
-        sv_resampled = self.poses_at_s(s_positions)
-        return profiles, sv_resampled
+        sv_resampled = self.survey_data.resample(s_positions)
+        cross_sections = np.zeros(shape=(len(s_positions), self.num_profile_points, 2), dtype=np.float32)
+        self.call_kernel(
+            'cross_sections_at_s',
+            survey_at_s=sv_resampled,
+            model=self.model,
+            profile_polygons=self._profile_polygons,
+            aperture_bounds=self._aperture_bounds,
+            survey=self.survey_data,
+            cross_sections=cross_sections,
+        )
+        return cross_sections, sv_resampled.pose.to_nparray()
 
     def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
@@ -606,11 +616,11 @@ class Aperture:
 
         return s_positions
 
-    def _build_cross_sections(self):
+    def _build_aperture_bounds(self):
         # Pre-allocate the cross-sections with the correct sizes
         num_points = self.num_profile_points
         num_cross_sections = sum(len(self.model.type_for_position(type_pos).positions) for type_pos in self.model.type_positions)
-        self._cross_sections = CrossSections(
+        self._aperture_bounds = ApertureBounds(
             count=num_cross_sections,
             type_position_indices=num_cross_sections,
             profile_position_indices=num_cross_sections,
@@ -633,14 +643,14 @@ class Aperture:
             aper_type = self.model.type_for_position(type_pos)
             for profile_pos_idx, profile_pos in enumerate(cast(Iterable[ProfilePosition], aper_type.positions)):
                 idx = next(cross_section_idx_iter)
-                self._cross_sections.type_position_indices[idx] = type_pos_idx
-                self._cross_sections.profile_position_indices[idx] = profile_pos_idx
+                self._aperture_bounds.type_position_indices[idx] = type_pos_idx
+                self._aperture_bounds.profile_position_indices[idx] = profile_pos_idx
 
         self.call_kernel(
             'build_profile_polygons',
             model=self.model,
             profile_polygons=self._profile_polygons,
-            cross_sections=self._cross_sections,
+            aperture_bounds=self._aperture_bounds,
             survey=self.survey_data,
         )
 
@@ -746,3 +756,25 @@ class Aperture:
         pattern = r"(?P<prefix>.*?)(?:[:]\d+)?(?:/[^/]+)?"
         match = re.fullmatch(pattern, element_name)
         return match.group('prefix')
+
+    @classmethod
+    def _get_per_type_madx_offsets(cls, offsets):
+        """Parse MAD-X imported aperture offsets metadata to obtain per-element (type) transformations."""
+        data = {}
+        for section in offsets.values():
+            reference_name = section['reference']
+            for idx, name in enumerate(section['name']):
+                dx = section['dx_off'][idx]
+                dy = section['dy_off'][idx]
+
+                theta = np.atan2(dx, 1)
+                phi = np.atan2(dy, np.sqrt(1 + dx ** dx))
+
+                data[name] = {
+                    'survey_ref': reference_name,
+                    's': section['s_ip'][idx],
+                    'x': section['x_off'][idx],
+                    'y': section['y_off'][idx],
+                    'rot_y': theta,
+                    'rot_x': phi,
+                }

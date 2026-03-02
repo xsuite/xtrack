@@ -27,7 +27,7 @@ line = env.new_line(
 sv = line.survey()
 
 circle = Circle(radius=2)
-rectangle = Rectangle(half_width=2, half_height=0.5)
+rectangle = Rectangle(half_width=2, half_height=1)
 
 profiles = [
     Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
@@ -35,8 +35,8 @@ profiles = [
 ]
 
 profile_positions = [
-    ProfilePosition(profile_index=0, s_position=s)
-    for s in [0, 11]
+    ProfilePosition(profile_index=1, s_position=0, rot_s=np.deg2rad(15)),
+    ProfilePosition(profile_index=0, s_position=11, rot_x=np.deg2rad(10)),
 ]
 
 types = [
@@ -135,7 +135,7 @@ def poses_at_s(line, s_positions):
 
 
 s_for_cuts = np.linspace(1, 11, 20)
-profiles, poses = aper.profiles_at_s(s_for_cuts)
+profiles, poses = aper.cross_sections_at_s(s_for_cuts)
 
 expected_poses = poses_at_s(line, s_for_cuts)
 xo.assert_allclose(poses, expected_poses, atol=1e-6, rtol=1e-6)

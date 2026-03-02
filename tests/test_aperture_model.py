@@ -839,18 +839,18 @@ def test_computation_of_profile_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1
 
     ap = Aperture(line=line, model=model)
 
-    xo.assert_allclose(ap._cross_sections.s_positions[0], 0, atol=1e-6, rtol=1e-8)
-    xo.assert_allclose(ap._cross_sections.s_start[0], 0, atol=1e-6, rtol=1e-8)
-    xo.assert_allclose(ap._cross_sections.s_end[0], 0, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_positions[0], 0, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_start[0], 0, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_end[0], 0, atol=1e-6, rtol=1e-8)
 
-    xo.assert_allclose(ap._cross_sections.s_positions[1], 2 + ds1, atol=1e-6, rtol=1e-8)
-    xo.assert_allclose(ap._cross_sections.s_start[1], 2 - ds_bounds1, atol=1e-4, rtol=1e-8)
-    xo.assert_allclose(ap._cross_sections.s_end[1], 2 + ds_bounds1, atol=1e-4, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_positions[1], 2 + ds1, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_start[1], 2 - ds_bounds1, atol=1e-4, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_end[1], 2 + ds_bounds1, atol=1e-4, rtol=1e-8)
 
-    xo.assert_allclose(ap._cross_sections.s_positions[2], 4 + ds2, atol=1e-6, rtol=1e-8)
-    xo.assert_allclose(ap._cross_sections.s_start[2], 4 - ds_bounds2, atol=2e-4, rtol=1e-8)  # atol < 1mm but quite high
-    xo.assert_allclose(ap._cross_sections.s_end[2], 4 + ds_bounds2, atol=2e-4, rtol=1e-8)  # ditto
+    xo.assert_allclose(ap._aperture_bounds.s_positions[2], 4 + ds2, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_start[2], 4 - ds_bounds2, atol=2e-4, rtol=1e-8)  # atol < 1mm but quite high
+    xo.assert_allclose(ap._aperture_bounds.s_end[2], 4 + ds_bounds2, atol=2e-4, rtol=1e-8)  # ditto
 
-    xo.assert_allclose(ap._cross_sections.s_positions[3], 10, atol=1e-6, rtol=1e-8)
-    xo.assert_allclose(ap._cross_sections.s_start[3], 10, atol=1e-6, rtol=1e-8)
-    xo.assert_allclose(ap._cross_sections.s_end[3], 10, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_positions[3], 10, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_start[3], 10, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_end[3], 10, atol=1e-6, rtol=1e-8)
