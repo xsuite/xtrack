@@ -19,7 +19,6 @@ ZigZagIterator zigzag_iterator_new(uint32_t start, uint32_t lower_bound, uint32_
 uint8_t zigzag_iterator_next(ZigZagIterator* iter);
 
 void build_polygon_for_profile(float_type *const, const uint32_t, const Profile);
-void polygon_transform_in_type_frame(float_type *const, const uint32_t, const ProfilePosition);
 void build_circle_polygon(G2DPoint *const, const uint32_t, const Circle);
 void build_rectangle_polygon(G2DPoint *const, const uint32_t, const Rectangle);
 void build_ellipse_polygon(G2DPoint *const, const uint32_t, const Ellipse);
@@ -397,30 +396,6 @@ void build_polygon_for_profile(
             // TODO: Implement
             break;
         }
-    }
-}
-
-
-void polygon_transform_in_type_frame(
-    float_type *const points,
-    const uint32_t num_points,
-    const ProfilePosition profile_pos
-) {
-    /*
-    Apply the type frame transformation described in ``profile_pos`` to a
-    polygon.
-    */
-    const float_type shift_x = ProfilePosition_get_shift_x(profile_pos);
-    const float_type shift_y = ProfilePosition_get_shift_y(profile_pos);
-
-    for (uint32_t i = 0; i < num_points; i++)
-    {
-        ((G2DPoint* const) points)[i].x += shift_x;
-        ((G2DPoint* const) points)[i].y += shift_y;
-        // TODO: Apply rotations, will change s (a heuristic for when a profile
-        // generates 1 or 2 cross sections needed?)
-        // TODO: Also, how will we select if this is the entry or exit in case of 2
-        // cross sections?
     }
 }
 
