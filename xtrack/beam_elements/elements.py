@@ -1392,6 +1392,38 @@ class SplineBoris(BeamElement):
         kwargs['hx'] = hx           # This does nothing yet.
         super().__init__(**kwargs)
 
+    def evaluate_field(self, x, y, s):
+        '''Evaluate the magnetic field at the given coordinates.
+
+        Parameters
+        ----------
+        x : float or array-like
+            Horizontal position [m].
+        y : float or array-like
+            Vertical position [m].
+        s : float
+            Longitudinal position [m]. Must be within ``[s_start, s_end]``.
+
+        Returns
+        -------
+        Bx, By, Bs : float or array
+            Magnetic field components [T].
+        '''
+        if s < self.s_start or s > self.s_end:
+            raise ValueError(
+                f"s={s} is outside the element range "
+                f"[{self.s_start}, {self.s_end}]"
+            )
+
+        from .elements_src.spline_B_field_eval_python import evaluate_B
+
+        params = np.array(self.par_table)
+        Bx, By, Bs = evaluate_B(
+            x - self.shift_x, y - self.shift_y, s,
+            params, self.multipole_order,
+        )
+        return Bx, By, Bs
+
 
 class SplineBorisSequence:
     '''
@@ -1604,6 +1636,33 @@ class SplineBorisSequence:
             shift_y=shift_y,
             radiation_flag=radiation_flag,
             poly_order=poly_order,
+        )
+
+    def evaluate_field(self, x, y, s):
+        '''Evaluate the magnetic field by delegating to the appropriate element.
+
+        Parameters
+        ----------
+        x : float or array-like
+            Horizontal position [m].
+        y : float or array-like
+            Vertical position [m].
+        s : float
+            Longitudinal position [m]. Must be within one of the element
+            ranges.
+
+        Returns
+        -------
+        Bx, By, Bs : float or array
+            Magnetic field components [T].
+        '''
+        for elem in self.elements:
+            if elem.s_start <= s <= elem.s_end:
+                return elem.evaluate_field(x, y, s)
+        s_min = min(float(e.s_start) for e in self.elements)
+        s_max = max(float(e.s_end) for e in self.elements)
+        raise ValueError(
+            f"s={s} is outside the sequence range [{s_min}, {s_max}]"
         )
 
 
