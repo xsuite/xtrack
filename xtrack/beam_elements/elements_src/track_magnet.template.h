@@ -121,6 +121,11 @@ void track_magnet_body_single_particle(
                     inv_factorial_order, \
                     knl, \
                     ksl, \
+                    order_rel, \
+                    inv_factorial_order_rel, \
+                    knl_rel, \
+                    ksl_rel, \
+                    rel_ref_strength, \
                     factor_knl_ksl, \
                     k0_drift + k0_kick, \
                     k1_drift + k1_kick, \

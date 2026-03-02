@@ -73,6 +73,17 @@ void track_magnet_kick_single_particle(
         kick_weight
     );
 
+    // multipolar kick
+    kick_simple_single_particle(
+        part,
+        order_rel,
+        inv_factorial_order_rel,
+        knl_rel,
+        ksl_rel,
+        factor_knl_ksl * rel_ref_strength,
+        kick_weight
+    );
+
     kick_simple_single_particle(
         part,
         /* order */ 3,
@@ -248,6 +259,11 @@ void evaluate_field_from_strengths(
     double inv_factorial_order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
+    int64_t order_rel,
+    double inv_factorial_order_rel,
+    GPUGLMEM const double* knl_rel,
+    GPUGLMEM const double* ksl_rel,
+    double rel_ref_strength,
     double const factor_knl_ksl,
     double k0,
     double k1,
@@ -296,6 +312,22 @@ void evaluate_field_from_strengths(
         &dpx_mul,
         &dpy_mul);
 
+    // multipolar kick relevant for the field evaluation
+    double dpx_mul_rel = 0.;
+    double dpy_mul_rel = 0.;
+    kick_simple_single_coordinates(
+        x,
+        y,
+        1., // chi
+        order_rel,
+        inv_factorial_order_rel,
+        knl_rel,
+        ksl_rel,
+        factor_knl_ksl * rel_ref_strength,
+        1., // kick_weight
+        &dpx_mul_rel,
+        &dpy_mul_rel);
+
 
     // main kick
     double dpx_main=0.;
@@ -313,11 +345,10 @@ void evaluate_field_from_strengths(
         &dpx_main,
         &dpy_main);
 
-    double const dpx = dpx_mul + dpx_main;
-    double const dpy = dpy_mul + dpy_main;
+    double const dpx = dpx_mul + dpx_main + dpx_mul_rel;
+    double const dpy = dpy_mul + dpy_main + dpy_mul_rel;
 
     double const brho_0 = p0c / C_LIGHT / q0; // [T m]
-
 
     *Bx_T = dpy * brho_0 / length - 0.5 * dks_ds * brho_0 * (x - x0_solenoid); // [T]
     *By_T = -dpx * brho_0 / length - 0.5 * dks_ds * brho_0 * (y - y0_solenoid); // [T]
