@@ -69,8 +69,10 @@ void track_magnet_body_single_particle(
 
     #define MAGNET_KICK(part, weight) \
         track_magnet_kick_single_particle(\
-            part, length, order, inv_factorial_order, \
-            knl, ksl, factor_knl_ksl, (weight), \
+            part, length,\
+            order, inv_factorial_order, knl, ksl,\
+            order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,\
+            factor_knl_ksl, (weight),\
             k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick,\
             hxl, k0_h_correction, k1_h_correction, kick_rot_frame\
         )
