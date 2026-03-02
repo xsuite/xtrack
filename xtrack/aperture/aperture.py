@@ -490,7 +490,7 @@ class Aperture:
         num_slices = len(sliced_twiss.s)
         twiss_data = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
-        interpolated_points = np.zeros(shape=(num_slices, self._cross_sections.num_points, 2), dtype=np.float32)
+        interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=np.float32)
 
         if method == 'bisection':
             envelope_at_max_sigma = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=np.float32)
@@ -499,6 +499,7 @@ class Aperture:
             self.call_kernel(
                 'compute_max_aperture_sigma',
                 model=self.model,
+                profile_polygons=self._profile_polygons,
                 cross_sections=self._cross_sections,
                 twiss_data=twiss_data,
                 beam_data=beam_data,
@@ -516,6 +517,7 @@ class Aperture:
             self.call_kernel(
                 'compute_horizontal_vertical_diagonal_aperture_sigmas',
                 model=self.model,
+                profile_polygons=self._profile_polygons,
                 cross_sections=self._cross_sections,
                 twiss_data=twiss_data,
                 beam_data=beam_data,
@@ -556,13 +558,14 @@ class Aperture:
         num_slices = len(sliced_twiss.s)
         twiss_data = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
-        interpolated_points = np.zeros(shape=(num_slices, self._cross_sections.num_points, 2), dtype=np.float32)
+        interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=np.float32)
 
         envelopes = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=np.float32)
 
         self.call_kernel(
             'compute_beam_envelopes_at_sigma',
             model=self.model,
+            profile_polygons=self._profile_polygons,
             cross_sections=self._cross_sections,
             twiss_data=twiss_data,
             beam_data=beam_data,
@@ -611,11 +614,9 @@ class Aperture:
             count=num_cross_sections,
             type_position_indices=num_cross_sections,
             profile_position_indices=num_cross_sections,
-            num_points=num_points,
             s_positions=num_cross_sections,
             s_start=num_cross_sections,
             s_end=num_cross_sections,
-            points=(num_cross_sections, num_points),
         )
 
         # Pre-allocate the profile polygons (generate once, so that we only need to compute transformations on them)

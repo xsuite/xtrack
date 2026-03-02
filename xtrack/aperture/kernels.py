@@ -31,6 +31,7 @@ def build_aperture_kernels(context):
             c_name="compute_max_aperture_sigma",
             args=[
                 xo.Arg(ApertureModel, name="model"),
+                xo.Arg(ProfilePolygons, name="profile_polygons"),
                 xo.Arg(CrossSections, name="cross_sections"),
                 xo.Arg(TwissData, name="twiss_data"),
                 xo.Arg(BeamData, name="beam_data"),
@@ -44,6 +45,7 @@ def build_aperture_kernels(context):
             c_name="compute_horizontal_vertical_diagonal_aperture_sigmas",
             args=[
                 xo.Arg(ApertureModel, name="model"),
+                xo.Arg(ProfilePolygons, name="profile_polygons"),
                 xo.Arg(CrossSections, name="cross_sections"),
                 xo.Arg(TwissData, name="twiss_data"),
                 xo.Arg(BeamData, name="beam_data"),
@@ -57,6 +59,7 @@ def build_aperture_kernels(context):
             c_name="compute_beam_envelopes_at_sigma",
             args=[
                 xo.Arg(ApertureModel, name='model'),
+                xo.Arg(ProfilePolygons, name="profile_polygons"),
                 xo.Arg(CrossSections, name='cross_sections'),
                 xo.Arg(TwissData, name='twiss_data'),
                 xo.Arg(BeamData, name='beam_data'),

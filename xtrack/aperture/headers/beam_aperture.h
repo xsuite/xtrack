@@ -336,6 +336,8 @@ uint32_t find_cross_section_for_s_left_to_right(
 
 
 void interpolate_profile(
+    const ApertureModel model,
+    const ProfilePolygons profile_polygons,
     const CrossSections cross_sections,
     const uint32_t idx,
     float_type* const points,
@@ -343,18 +345,28 @@ void interpolate_profile(
 )
 {
     // TODO: Implement proper interpolation: for now we simply copy the profile to the left
-    const uint32_t num_points = CrossSections_get_num_points(cross_sections);
-    float_type* const found_cross_section = CrossSections_getp3_points(cross_sections, idx, 0, 0);
-    memcpy(points, found_cross_section, 2 * num_points * sizeof(float_type));
+    const uint32_t type_pos_idx = CrossSections_get_type_position_indices(cross_sections, idx);
+    const uint32_t profile_pos_idx = CrossSections_get_profile_position_indices(cross_sections, idx);
 
-    if (points[0] != points[0]) {
-        float_type s = CrossSections_get_s_positions(cross_sections, idx);
-        fflush(stdout);
-    }
+    /* Get the aperture type and type position */
+    const TypePosition type_pos = ApertureModel_getp1_type_positions(model, type_pos_idx);
+    const uint32_t type_idx = TypePosition_get_type_index(type_pos);
+    const ApertureType aper_type = ApertureModel_getp1_types(model, type_idx);
+
+    /* Get the profile position, and the polygon */
+    const ProfilePosition profile_pos = ApertureType_getp1_positions(aper_type, profile_pos_idx);
+    const uint32_t profile_idx = ProfilePosition_get_profile_index(profile_pos);
+    float_type *const poly = ProfilePolygons_getp3_points(profile_polygons, profile_idx, 0, 0);
+
+    /* Copy the points to the cross section */
+    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
+    memcpy(points, poly, 2 * num_points * sizeof(float_type));
 }
 
 
 uint32_t find_cross_section_for_s(
+    const ApertureModel model,
+    const ProfilePolygons profile_polygons,
     const CrossSections cross_sections,
     const float_type target_s,
     float_type* const points,
@@ -371,7 +383,7 @@ uint32_t find_cross_section_for_s(
         found_idx = find_cross_section_for_s_left_to_right(cross_sections, target_s, points, lower_bound);
     }
 
-    interpolate_profile(cross_sections, found_idx, points, target_s);
+    interpolate_profile(model, profile_polygons, cross_sections, found_idx, points, target_s);
 
     return found_idx;
 }
@@ -379,6 +391,7 @@ uint32_t find_cross_section_for_s(
 
 void compute_max_aperture_sigma(
     ApertureModel model,
+    ProfilePolygons profile_polygons,
     CrossSections cross_sections,
     TwissData twiss_data,
     BeamData beam_data,
@@ -388,7 +401,7 @@ void compute_max_aperture_sigma(
     float_type* const sigmas
 ) {
     const uint32_t num_slices = TwissData_len_x(twiss_data);
-    const uint32_t num_points = CrossSections_get_num_points(cross_sections);
+    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
     G2DBeamData s_beam_data = {
         .emitx_norm = BeamData_get_emitx_norm(beam_data),
@@ -428,7 +441,7 @@ void compute_max_aperture_sigma(
             .gamma = TwissData_get_gamma(twiss_data)
         };
 
-        cross_section_index = find_cross_section_for_s(cross_sections, s, points, cross_section_index);
+        cross_section_index = find_cross_section_for_s(model, profile_polygons, cross_sections, s, points, cross_section_index);
 
         const uint32_t type_pos_idx = CrossSections_get_type_position_indices(cross_sections, cross_section_index);
         const uint32_t profile_pos_idx = CrossSections_get_profile_position_indices(cross_sections, cross_section_index);
@@ -469,6 +482,7 @@ void compute_max_aperture_sigma(
 
 void compute_beam_envelopes_at_sigma(
     ApertureModel model,
+    ProfilePolygons profile_polygons,
     CrossSections cross_sections,
     TwissData twiss_data,
     BeamData beam_data,
@@ -478,7 +492,7 @@ void compute_beam_envelopes_at_sigma(
     float_type* const out_envelope
 ) {
     const uint32_t num_slices = TwissData_len_x(twiss_data);
-    const uint32_t num_points = CrossSections_get_num_points(cross_sections);
+    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
     G2DBeamData s_beam_data = {
         .emitx_norm = BeamData_get_emitx_norm(beam_data),
@@ -518,7 +532,7 @@ void compute_beam_envelopes_at_sigma(
             .gamma = TwissData_get_gamma(twiss_data)
         };
 
-        cross_section_index = find_cross_section_for_s(cross_sections, s, points, cross_section_index);
+        cross_section_index = find_cross_section_for_s(model, profile_polygons, cross_sections, s, points, cross_section_index);
 
         const uint32_t type_pos_idx = CrossSections_get_type_position_indices(cross_sections, cross_section_index);
         const uint32_t profile_pos_idx = CrossSections_get_profile_position_indices(cross_sections, cross_section_index);
@@ -624,6 +638,7 @@ static inline float_type compute_n1_for_point(
 
 void compute_horizontal_vertical_diagonal_aperture_sigmas(
     ApertureModel model,
+    ProfilePolygons profile_polygons,
     CrossSections cross_sections,
     TwissData twiss_data,
     BeamData beam_data,
@@ -634,7 +649,7 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
 ) {
     const float_type angles[8] = {0, M_PI / 4, M_PI / 2, 3 * M_PI / 4, M_PI, 5 * M_PI / 4, 3 * M_PI / 2, 7 * M_PI / 4};
     const uint32_t num_slices = TwissData_len_x(twiss_data);
-    const uint32_t num_points = CrossSections_get_num_points(cross_sections);
+    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
     G2DBeamData s_beam_data = {
         .emitx_norm = BeamData_get_emitx_norm(beam_data),
@@ -674,7 +689,7 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
             .gamma = TwissData_get_gamma(twiss_data)
         };
 
-        cross_section_index = find_cross_section_for_s(cross_sections, s, points, cross_section_index);
+        cross_section_index = find_cross_section_for_s(model, profile_polygons, cross_sections, s, points, cross_section_index);
 
         const uint32_t type_pos_idx = CrossSections_get_type_position_indices(cross_sections, cross_section_index);
         const uint32_t profile_pos_idx = CrossSections_get_profile_position_indices(cross_sections, cross_section_index);

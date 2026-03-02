@@ -182,13 +182,11 @@ class ApertureModel(xo.Struct):
 
 class CrossSections(xo.Struct):
     count = xo.UInt32
-    num_points = xo.UInt32
     type_position_indices = xo.UInt32[:]
     profile_position_indices = xo.UInt32[:]
     s_positions = xo.Float32[:]
     s_start = xo.Float32[:]
     s_end = xo.Float32[:]
-    points = xo.Float32[:, :, 2]
 
 
 class ProfilePolygons(xo.Struct):
