@@ -9,11 +9,14 @@ import json
 import xtrack as xt
 import xpart as xp
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
 
 
 @for_all_test_contexts
 def test_record_single_table(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElementRecord(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
@@ -192,6 +195,9 @@ def test_record_single_table(test_context):
 
 @for_all_test_contexts
 def test_record_with_twiss(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElementRecord(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
@@ -205,7 +211,7 @@ def test_record_with_twiss(test_context):
 
     extra_src.append(r'''
         #include "xtrack/headers/track.h"
-        
+
         GPUFUN
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
@@ -277,6 +283,9 @@ def test_record_with_twiss(test_context):
 
 @for_all_test_contexts
 def test_record_multiple_tables(test_context):
+
+    skip_if_forbid_compile()
+
     class Table1(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
@@ -533,6 +542,8 @@ def test_record_multiple_tables(test_context):
 
 @for_all_test_contexts
 def test_record_standalone_mode(test_context):
+
+    skip_if_forbid_compile()
 
     class Table1(xo.HybridClass):
         _xofields = {

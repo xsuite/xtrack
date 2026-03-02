@@ -6,7 +6,7 @@
 #ifndef XTRACK_LIMITELLIPSE_H
 #define XTRACK_LIMITELLIPSE_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

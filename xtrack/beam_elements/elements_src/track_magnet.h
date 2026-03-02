@@ -5,14 +5,14 @@
 #ifndef XTRACK_TRACK_MAGNET_H
 #define XTRACK_TRACK_MAGNET_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet_kick.h>
-#include <beam_elements/elements_src/track_magnet_drift.h>
-#include <beam_elements/elements_src/track_magnet_edge.h>
-#include <beam_elements/elements_src/track_magnet_configure.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_kick.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_drift.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_edge.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_configure.h"
 
 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
-#include <beam_elements/elements_src/track_magnet_radiation.h>
+#include "xtrack/beam_elements/elements_src/track_magnet_radiation.h"
 #endif
 
 #define H_TOLERANCE (1e-8)

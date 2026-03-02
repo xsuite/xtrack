@@ -6,14 +6,14 @@
 #ifndef XTRACK_SOLENOID_H
 #define XTRACK_SOLENOID_H
 
-#include <headers/track.h>
-#include <headers/synrad_spectrum.h>
-#include <beam_elements/elements_src/track_legacy_solenoid_multipolar_components.h>
-#include <beam_elements/elements_src/track_legacy_solenoid_radiation.h>
-#include <beam_elements/elements_src/track_xrotation.h>
-#include <beam_elements/elements_src/track_yrotation.h>
-#include <beam_elements/elements_src/track_srotation.h>
-#include <beam_elements/elements_src/track_legacy_solenoid.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/synrad_spectrum.h"
+#include "xtrack/beam_elements/elements_src/track_legacy_solenoid_multipolar_components.h"
+#include "xtrack/beam_elements/elements_src/track_legacy_solenoid_radiation.h"
+#include "xtrack/beam_elements/elements_src/track_xrotation.h"
+#include "xtrack/beam_elements/elements_src/track_yrotation.h"
+#include "xtrack/beam_elements/elements_src/track_srotation.h"
+#include "xtrack/beam_elements/elements_src/track_legacy_solenoid.h"
 
 
 GPUFUN

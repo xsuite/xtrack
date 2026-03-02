@@ -6,7 +6,7 @@
 #ifndef XTRACK_LONGITUDINALLIMITRECT_H
 #define XTRACK_LONGITUDINALLIMITRECT_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

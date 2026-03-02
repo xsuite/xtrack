@@ -5,9 +5,9 @@
 #ifndef XTRACK_TRACK_RF_H
 #define XTRACK_TRACK_RF_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet_drift.h>
-#include <beam_elements/elements_src/track_magnet_configure.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_drift.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_configure.h"
 
 #ifndef VSWAP
     #define VSWAP(a, b) { double tmp = a; a = b; b = tmp; }

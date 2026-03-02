@@ -8,7 +8,7 @@
 #ifndef XTRACK_EXCITER_H
 #define XTRACK_EXCITER_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

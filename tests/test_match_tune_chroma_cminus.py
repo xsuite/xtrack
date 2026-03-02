@@ -102,7 +102,6 @@ def test_match_tune_chromaticity(test_context):
         if isinstance(ee, xt.Cavity):
             ee.voltage = 0.0
     line.match(method='4d', # <-- 4d matchin
-        freeze_longitudinal=True,
         vary=[
             xt.Vary('kqtf.b1', step=1e-8),
             xt.Vary('kqtd.b1', step=1e-8),
@@ -235,7 +234,6 @@ def test_match_chroma_knob(test_context):
     line = xt.Line.from_dict(dct['line'])
     line.particle_ref = xp.Particles.from_dict(dct['particle'])
     line.twiss_default['method'] = '4d'
-    line.twiss_default['freeze_longitudinal'] = True
     line.build_tracker(_context=test_context)
 
     vary=[ xt.Vary('ksf.b1', step=1e-8),  xt.Vary('ksd.b1', step=1e-8)]

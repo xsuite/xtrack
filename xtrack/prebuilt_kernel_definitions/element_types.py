@@ -17,12 +17,15 @@ ONLY_XTRACK_ELEMENTS = [
     Sextupole,
     Octupole,
     Magnet,
+    MagnetEdge,
+    Wedge,
     SecondOrderTaylorMap,
     Marker,
     ReferenceEnergyIncrease,
     Cavity,
     CrabCavity,
     Elens,
+    ElectronCooler,
     Wire,
     Solenoid,
     VariableSolenoid,
@@ -36,6 +39,7 @@ ONLY_XTRACK_ELEMENTS = [
     FirstOrderTaylorMap,
     NonLinearLens,
     DriftExact,
+    Misalignment,
     # Drift Slices
     DriftSlice,
     DriftExactSlice,
@@ -98,6 +102,7 @@ ONLY_XTRACK_ELEMENTS = [
     BeamProfileMonitor,
     LastTurnsMonitor,
     ParticlesMonitor,
+    MultiElementMonitor,
     ACDipole,
 ]
 

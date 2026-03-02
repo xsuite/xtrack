@@ -5,7 +5,7 @@
 #ifndef XTRACK_TRACK_MAGNET_DRIFT_H
 #define XTRACK_TRACK_MAGNET_DRIFT_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 #define IS_ZERO(X) (fabs(X) < 1e-9)
 

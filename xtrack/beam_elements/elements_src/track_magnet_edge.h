@@ -5,12 +5,12 @@
 #ifndef XTRACK_TRACK_MAGNET_EDGE_H
 #define XTRACK_TRACK_MAGNET_EDGE_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_dipole_edge_linear.h>
-#include <beam_elements/elements_src/track_yrotation.h>
-#include <beam_elements/elements_src/track_wedge.h>
-#include <beam_elements/elements_src/track_mult_fringe.h>
-#include <beam_elements/elements_src/track_dipole_fringe.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_dipole_edge_linear.h"
+#include "xtrack/beam_elements/elements_src/track_yrotation.h"
+#include "xtrack/beam_elements/elements_src/track_wedge.h"
+#include "xtrack/beam_elements/elements_src/track_mult_fringe.h"
+#include "xtrack/beam_elements/elements_src/track_dipole_fringe.h"
 
 
 GPUFUN

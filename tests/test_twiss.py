@@ -390,8 +390,7 @@ def test_get_R_matrix():
             0, rtol=0, atol=5e-4)
 
     # Check method=4d
-
-    tw4d = line.twiss(method='4d', freeze_longitudinal=True)
+    tw4d = line.twiss(method='4d')
 
     R_IP3_IP6_4d = tw4d.get_R_matrix(start=0, end='ip6')
     R_IP6_IP3_4d = tw4d.get_R_matrix(start='ip6', end=len(tw4d.name)-1)
@@ -1315,8 +1314,8 @@ def test_momentum_crab_dispersion(test_context):
 
     tw6d = line.twiss(method='6d')
     dz = 1e-3
-    tw4d_plus = line.twiss(method='4d', zeta0=dz, freeze_longitudinal=True)
-    tw4d_minus = line.twiss(method='4d', zeta0=-dz, freeze_longitudinal=True)
+    tw4d_plus = line.twiss(method='4d', zeta0=dz)
+    tw4d_minus = line.twiss(method='4d', zeta0=-dz)
     dpx_dzeta_expected = (tw4d_plus.px -  tw4d_minus.px) / (2*dz)
     dpy_dzeta_expected = (tw4d_plus.py -  tw4d_minus.py) / (2*dz)
 

@@ -20,7 +20,7 @@ class RandomUniform(BeamElement):
 
     allow_track = False
 
-    _extra_c_sources = ['#include <random/random_src/uniform.h>']
+    _extra_c_sources = ['#include "xtrack/random/random_src/uniform.h"']
 
     _per_particle_kernels = {
         'sample_uniform': xo.Kernel(
@@ -74,7 +74,7 @@ class RandomUniformAccurate(RandomUniform):
 
     _depends_on = [RandomUniform]
 
-    _extra_c_sources = ['#include <random/random_src/uniform_accurate.h>']
+    _extra_c_sources = ['#include "xtrack/random/random_src/uniform_accurate.h"']
 
     _per_particle_kernels = {
         'sample_unif_accuurate': xo.Kernel(
@@ -99,7 +99,7 @@ class RandomExponential(RandomUniform):
 
     _depends_on = [RandomUniform]
 
-    _extra_c_sources = ['#include <random/random_src/exponential.h>']
+    _extra_c_sources = ['#include "xtrack/random/random_src/exponential.h"']
 
     _per_particle_kernels = {
         'sample_exp': xo.Kernel(
@@ -124,7 +124,7 @@ class RandomNormal(RandomUniform):
 
     _depends_on = [RandomUniform]
 
-    _extra_c_sources = ['#include <random/random_src/normal.h>']
+    _extra_c_sources = ['#include "xtrack/random/random_src/normal.h"']
 
     _per_particle_kernels = {
         'sample_gauss': xo.Kernel(
@@ -153,7 +153,7 @@ class RandomRutherford(RandomUniform):
 
     _depends_on = [RandomUniform]
 
-    _extra_c_sources = ['#include <random/random_src/rutherford.h>']
+    _extra_c_sources = ['#include "xtrack/random/random_src/rutherford.h"']
 
     _per_particle_kernels = {
         'sample_ruth': xo.Kernel(

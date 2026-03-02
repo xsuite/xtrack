@@ -6,7 +6,7 @@
 #ifndef XTRACK_FASTDIPOLE_H
 #define XTRACK_FASTDIPOLE_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

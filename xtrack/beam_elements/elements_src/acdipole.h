@@ -6,8 +6,8 @@
 #ifndef XTRACK_ACDIPOLE_HORIZONTAL_H
 #define XTRACK_ACDIPOLE_HORIZONTAL_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_acdipole.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_acdipole.h"
 
 
 GPUFUN void ACDipole_track_local_particle(

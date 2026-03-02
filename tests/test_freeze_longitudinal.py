@@ -4,7 +4,7 @@ import pathlib
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -12,6 +12,8 @@ test_data_folder = pathlib.Path(
 
 @for_all_test_contexts
 def test_freeze_longitudinal_explicit(test_context):
+
+    skip_if_forbid_compile()
 
     fname_line = test_data_folder / 'lhc_no_bb/line_and_particle.json'
 
@@ -57,6 +59,8 @@ def test_freeze_longitudinal_explicit(test_context):
 @for_all_test_contexts
 def test_freeze_longitudinal_context_manager(test_context):
 
+    skip_if_forbid_compile()
+
     fname_line = test_data_folder / 'lhc_no_bb/line_and_particle.json'
 
     # import a line and add reference particle
@@ -96,6 +100,8 @@ def test_freeze_longitudinal_context_manager(test_context):
 
 @for_all_test_contexts
 def test_freeze_longitudinal_individual_methods(test_context):
+
+    skip_if_forbid_compile()
 
     fname_line = test_data_folder / 'lhc_no_bb/line_and_particle.json'
 

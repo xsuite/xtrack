@@ -12,7 +12,7 @@
 #include <time.h>
 #endif  // XO_CONTEXT_CPU
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

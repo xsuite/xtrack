@@ -57,7 +57,7 @@ class ThinSliceSextupole(_ThinSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Sextupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_sextupole.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_sextupole.h"'
     ]
 
     def get_equivalent_element(self):
@@ -92,7 +92,7 @@ class ThinSliceOctupole(_ThinSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Octupole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_octupole.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_octupole.h"'
     ]
 
     def get_equivalent_element(self):
@@ -170,7 +170,7 @@ class ThinSliceBend(_ThinSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Bend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_bend.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_bend.h"'
     ]
 
     def get_equivalent_element(self):
@@ -203,7 +203,7 @@ class ThinSliceRBend(_ThinSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(RBend), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_rbend.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_rbend.h"'
     ]
 
     def get_equivalent_element(self):
@@ -230,7 +230,7 @@ class ThinSliceMultipole(_ThinSliceElementBase, BeamElement):
     _xofields = {'_parent': xo.Ref(Multipole), **COMMON_SLICE_XO_FIELDS}
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/thin_slice_multipole.h>'
+        '#include "xtrack/beam_elements/elements_src/thin_slice_multipole.h"'
     ]
 
     def get_equivalent_element(self):

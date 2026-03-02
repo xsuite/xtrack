@@ -6,7 +6,7 @@
 #ifndef XTRACK_FASTQUADRUPOLE_H
 #define XTRACK_FASTQUADRUPOLE_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

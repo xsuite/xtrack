@@ -6,7 +6,7 @@
 #ifndef XTRACK_PARTICLES_RNG_H
 #define XTRACK_PARTICLES_RNG_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 GPUKERN
 void Particles_initialize_rand_gen(ParticlesData particles,

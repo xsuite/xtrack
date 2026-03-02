@@ -6,9 +6,9 @@
 #ifndef XTRACK_RBEND_H
 #define XTRACK_RBEND_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet.h>
-#include <beam_elements/elements_src/default_magnet_config.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet.h"
+#include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
 GPUFUN
 void RBend_track_local_particle(

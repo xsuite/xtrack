@@ -23,9 +23,9 @@
 #define CONCAT3(a, b, c) CONCAT(CONCAT(a, b), c)
 #endif /* !defined(_CONCAT) */
 
-#include <headers/track.h>
-#include <headers/particle_states.h>
-#include <beam_elements/elements_src/track_misalignments.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/headers/particle_states.h"
+#include "xtrack/beam_elements/elements_src/track_misalignments.h"
 
 // Shorthand for `ElementClassNameData`
 #define ELEMENT_DATA CONCAT(ELEMENT_NAME, Data)

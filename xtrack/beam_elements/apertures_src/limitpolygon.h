@@ -6,7 +6,7 @@
 #ifndef XTRACK_LIMITPOLYGON_H
 #define XTRACK_LIMITPOLYGON_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 #ifndef NO_LIMITPOLYGON_TRACK_LOCAL_PARTICLE
