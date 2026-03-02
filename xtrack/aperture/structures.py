@@ -180,7 +180,7 @@ class ApertureModel(xo.Struct):
         return self.profile_name_for_index(profile_position.profile_index)
 
 
-class CrossSections(xo.Struct):
+class ApertureBounds(xo.Struct):
     count = xo.UInt32
     type_position_indices = xo.UInt32[:]
     profile_position_indices = xo.UInt32[:]

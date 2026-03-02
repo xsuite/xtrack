@@ -287,66 +287,18 @@ Contract: len(out_points)=len_points; len_poly_points=len(poly_points)
 }
 
 
-uint32_t find_cross_section_for_s_bisection(
-    const CrossSections cross_sections,
-    const float_type target_s,
-    float_type* const points
-)
-{
-    const uint32_t num_cross_sections = CrossSections_get_count(cross_sections);
-
-    uint32_t lo = 0;
-    uint32_t hi = num_cross_sections;
-
-    while (hi > lo) {
-        const uint32_t mid = lo + (hi - lo) / 2;
-        float_type current_s = CrossSections_get_s_positions(cross_sections, mid);
-
-        if (current_s <= target_s) lo = mid + 1;
-        else hi = mid;
-    }
-
-    const uint32_t found_idx = (lo == 0 ? 0 : lo - 1);
-    return found_idx;
-}
-
-
-uint32_t find_cross_section_for_s_left_to_right(
-    const CrossSections cross_sections,
-    const float_type target_s,
-    float_type* const points,
-    const uint32_t lower_bound
-)
-{
-    const uint32_t num_cross_sections = CrossSections_get_count(cross_sections);
-
-    uint32_t found_idx = lower_bound;
-
-    for (uint32_t i = lower_bound; i < num_cross_sections; ++i) {
-        float_type current_s = CrossSections_get_s_positions(cross_sections, i);
-
-        if (current_s <= target_s) {
-            found_idx = i;
-        } else {
-            break;
-        }
-    }
-    return found_idx;
-}
-
-
 void interpolate_profile(
     const ApertureModel model,
     const ProfilePolygons profile_polygons,
-    const CrossSections cross_sections,
+    const ApertureBounds aperture_bounds,
     const uint32_t idx,
     float_type* const points,
     const float_type target_s
 )
 {
     // TODO: Implement proper interpolation: for now we simply copy the profile to the left
-    const uint32_t type_pos_idx = CrossSections_get_type_position_indices(cross_sections, idx);
-    const uint32_t profile_pos_idx = CrossSections_get_profile_position_indices(cross_sections, idx);
+    const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, idx);
+    const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, idx);
 
     /* Get the aperture type and type position */
     const TypePosition type_pos = ApertureModel_getp1_type_positions(model, type_pos_idx);
@@ -364,35 +316,10 @@ void interpolate_profile(
 }
 
 
-uint32_t find_cross_section_for_s(
-    const ApertureModel model,
-    const ProfilePolygons profile_polygons,
-    const CrossSections cross_sections,
-    const float_type target_s,
-    float_type* const points,
-    const uint32_t lower_bound
-)
-{
-    uint32_t found_idx;
-    if (lower_bound == 0) {
-        // If starting from the left, let's do a bisection because chances are we need to jump to a random point
-        found_idx = find_cross_section_for_s_bisection(cross_sections, target_s, points);
-    }
-    else {
-        // If a lower bound is specified, chances are the next point that we search for is close to the right
-        found_idx = find_cross_section_for_s_left_to_right(cross_sections, target_s, points, lower_bound);
-    }
-
-    interpolate_profile(model, profile_polygons, cross_sections, found_idx, points, target_s);
-
-    return found_idx;
-}
-
-
 void compute_max_aperture_sigma(
     ApertureModel model,
     ProfilePolygons profile_polygons,
-    CrossSections cross_sections,
+    ApertureBounds aperture_bounds,
     TwissData twiss_data,
     BeamData beam_data,
     float_type* const out_interpolated_apertures,
@@ -441,10 +368,11 @@ void compute_max_aperture_sigma(
             .gamma = TwissData_get_gamma(twiss_data)
         };
 
-        cross_section_index = find_cross_section_for_s(model, profile_polygons, cross_sections, s, points, cross_section_index);
+        cross_section_index = find_aperture_info_for_s(aperture_bounds, s, cross_section_index);
+        interpolate_profile(model, profile_polygons, aperture_bounds, cross_section_index, points, s);
 
-        const uint32_t type_pos_idx = CrossSections_get_type_position_indices(cross_sections, cross_section_index);
-        const uint32_t profile_pos_idx = CrossSections_get_profile_position_indices(cross_sections, cross_section_index);
+        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, cross_section_index);
+        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, cross_section_index);
         const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
         const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
         const float_type tol_r = Profile_get_tol_r(profile);
@@ -483,7 +411,7 @@ void compute_max_aperture_sigma(
 void compute_beam_envelopes_at_sigma(
     ApertureModel model,
     ProfilePolygons profile_polygons,
-    CrossSections cross_sections,
+    ApertureBounds aperture_bounds,
     TwissData twiss_data,
     BeamData beam_data,
     const float_type sigmas,
@@ -532,10 +460,11 @@ void compute_beam_envelopes_at_sigma(
             .gamma = TwissData_get_gamma(twiss_data)
         };
 
-        cross_section_index = find_cross_section_for_s(model, profile_polygons, cross_sections, s, points, cross_section_index);
+        cross_section_index = find_aperture_info_for_s(aperture_bounds, s, cross_section_index);
+        interpolate_profile(model, profile_polygons, aperture_bounds, cross_section_index, points, s);
 
-        const uint32_t type_pos_idx = CrossSections_get_type_position_indices(cross_sections, cross_section_index);
-        const uint32_t profile_pos_idx = CrossSections_get_profile_position_indices(cross_sections, cross_section_index);
+        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, cross_section_index);
+        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, cross_section_index);
         const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
         const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
         const float_type tol_r = Profile_get_tol_r(profile);
@@ -639,7 +568,7 @@ static inline float_type compute_n1_for_point(
 void compute_horizontal_vertical_diagonal_aperture_sigmas(
     ApertureModel model,
     ProfilePolygons profile_polygons,
-    CrossSections cross_sections,
+    ApertureBounds aperture_bounds,
     TwissData twiss_data,
     BeamData beam_data,
     float_type* const out_interpolated_apertures,
@@ -689,10 +618,11 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
             .gamma = TwissData_get_gamma(twiss_data)
         };
 
-        cross_section_index = find_cross_section_for_s(model, profile_polygons, cross_sections, s, points, cross_section_index);
+        cross_section_index = find_aperture_info_for_s(aperture_bounds, s, cross_section_index);
+        interpolate_profile(model, profile_polygons, aperture_bounds, cross_section_index, points, s);
 
-        const uint32_t type_pos_idx = CrossSections_get_type_position_indices(cross_sections, cross_section_index);
-        const uint32_t profile_pos_idx = CrossSections_get_profile_position_indices(cross_sections, cross_section_index);
+        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, cross_section_index);
+        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, cross_section_index);
         const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
         const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
         const float_type tol_r = Profile_get_tol_r(profile);

@@ -181,6 +181,37 @@ inline void matrix_multiply_4x4(const float_type a[4][4], const float_type b[4][
 }
 
 
+static inline Pose pose_inverse_rigid(const Pose p)
+/* Invert a rigid transform. */
+{
+    Pose inv;
+
+    /* Transpose rotation */
+    for (uint8_t i = 0; i < 3; i++) {
+        for (uint8_t j = 0; j < 3; j++) {
+            inv.mat[i][j] = p.mat[j][i];
+        }
+    }
+
+    /* Compute -R^T t */
+    const float_type tx = p.mat[0][3];
+    const float_type ty = p.mat[1][3];
+    const float_type tz = p.mat[2][3];
+
+    inv.mat[0][3] = -(inv.mat[0][0] * tx + inv.mat[0][1] * ty + inv.mat[0][2] * tz);
+    inv.mat[1][3] = -(inv.mat[1][0] * tx + inv.mat[1][1] * ty + inv.mat[1][2] * tz);
+    inv.mat[2][3] = -(inv.mat[2][0] * tx + inv.mat[2][1] * ty + inv.mat[2][2] * tz);
+
+    inv.mat[3][0] = 0.f;
+    inv.mat[3][1] = 0.f;
+    inv.mat[3][2] = 0.f;
+    inv.mat[3][3] = 1.f;
+
+    return inv;
+}
+
+
+
 inline Pose transform_to_matrix(const Transform t)
 {
     const float_type s_phi = sin(t.rot_x);

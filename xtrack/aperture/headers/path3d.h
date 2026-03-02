@@ -77,7 +77,6 @@ float_type dist_along_segment_where_plane_intersects(LineSegment3D segment, Pose
 
     const float_type n_dot_ab = (n_dot_tb - n_dot_ta);  /* n * (B - A), by the distributive property of dot product */
 
-
     if (fabs(n_dot_ab) < eps) return NAN;  // The segment and the plane are parallel (co-planar or no intersection)
 
     return -n_dot_ta / n_dot_ab;
