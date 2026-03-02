@@ -315,10 +315,7 @@ void build_profile_polygons(
         const uint32_t profile_idx = ProfilePosition_get_profile_index(profile_pos);
         float_type *const poly = ProfilePolygons_getp3_points(profile_polygons, profile_idx, 0, 0);
 
-        /* Copy the points to the cross section */
-        float_type *const cross_sec_points = CrossSections_getp3_points(cross_sections, idx, 0, 0);
-        const uint32_t num_points = CrossSections_get_num_points(cross_sections);
-        memcpy(cross_sec_points, poly, 2 * num_points * sizeof(float_type));
+        const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
         /* Get the survey s where the aperture actually sits */
         uint32_t installed_survey_index;
