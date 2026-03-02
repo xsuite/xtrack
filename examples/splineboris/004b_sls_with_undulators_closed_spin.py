@@ -80,7 +80,6 @@ df_by0 = field_fitter.df_fit_pars.xs(('By', 0), level=('field_component', 'deriv
 
 print(df_by0)
 
-prrrrrr
 # The issue: When you use betx=1, bety=1, twiss4d treats the line as OPEN (non-periodic).
 # For an open line, the orbit is computed from initial conditions in particle_on_co.
 # If particle_on_co has zero initial conditions (x=0, px=0, y=0, py=0), the orbit will
