@@ -188,6 +188,11 @@ void kick_simple_single_coordinates(
     double *dpy
 ) {
 
+    // Return if null knl/ksl pointers
+    if (knl == NULL || ksl == NULL) {
+        return;
+    }
+
     int64_t index = order;
 
     double dpx_mul = chi * knl[index] * factor * inv_factorial;
