@@ -27,3 +27,21 @@ knl_tot, ksl_tot = q_test.get_total_knl_ksl()
 
 xo.assert_allclose(knl_tot, expected_knl, rtol=0, atol=1e-12)
 xo.assert_allclose(ksl_tot, expected_ksl, rtol=0, atol=1e-12)
+
+q_ref = xt.Quadrupole(k1=k1, k1s=k1s, length=0.2,
+                      knl=expected_knl, ksl=expected_ksl)
+q_ref.knl[1] -= k1 * q_ref.length  # Not to double count the main quadrupole contribution
+q_ref.ksl[1] -= k1s * q_ref.length
+
+p0 = xt.Particles(p0c=1e9, x=1e-3, y=2e-3)
+
+p_test = p0.copy()
+q_test.track(p_test)
+
+p_ref = p0.copy()
+q_ref.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-13)
+xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
+xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
+xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
