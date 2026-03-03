@@ -351,9 +351,12 @@ void compute_max_aperture_sigma(
         int completed = 0;
     #endif
 
-    VECTORIZE_OVER(idx_slice, num_slices)
+    // TODO: Make this also compatible with GPUs
+    uint32_t bound_index = 0;
+    #pragma omp parallel for firstprivate(bound_index)
+    for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
-        uint32_t cross_section_index = 0;
+        uint32_t bound_index = 0;
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_data, idx_slice);
 
@@ -368,11 +371,11 @@ void compute_max_aperture_sigma(
             .gamma = TwissData_get_gamma(twiss_data)
         };
 
-        cross_section_index = find_aperture_info_for_s(aperture_bounds, s, cross_section_index);
-        interpolate_profile(model, profile_polygons, aperture_bounds, cross_section_index, points, s);
+        bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
+        interpolate_profile(model, profile_polygons, aperture_bounds, bound_index, points, s);
 
-        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, cross_section_index);
-        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, cross_section_index);
+        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
+        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
         const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
         const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
         const float_type tol_r = Profile_get_tol_r(profile);
@@ -404,7 +407,6 @@ void compute_max_aperture_sigma(
             fflush(stdout);
         #endif
     }
-    END_VECTORIZE;
 }
 
 
@@ -443,9 +445,12 @@ void compute_beam_envelopes_at_sigma(
         int completed = 0;
     #endif
 
-    VECTORIZE_OVER(idx_slice, num_slices)
+    // TODO: Make this also compatible with GPUs
+    uint32_t bound_index = 0;
+    #pragma omp parallel for firstprivate(bound_index)
+    for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
-        uint32_t cross_section_index = 0;
+        uint32_t bound_index = 0;
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_data, idx_slice);
 
@@ -460,11 +465,11 @@ void compute_beam_envelopes_at_sigma(
             .gamma = TwissData_get_gamma(twiss_data)
         };
 
-        cross_section_index = find_aperture_info_for_s(aperture_bounds, s, cross_section_index);
-        interpolate_profile(model, profile_polygons, aperture_bounds, cross_section_index, points, s);
+        bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
+        interpolate_profile(model, profile_polygons, aperture_bounds, bound_index, points, s);
 
-        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, cross_section_index);
-        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, cross_section_index);
+        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
+        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
         const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
         const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
         const float_type tol_r = Profile_get_tol_r(profile);
@@ -494,7 +499,6 @@ void compute_beam_envelopes_at_sigma(
             fflush(stdout);
         #endif
     }
-    END_VECTORIZE;
 }
 
 
@@ -601,9 +605,11 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
         int completed = 0;
     #endif
 
-    VECTORIZE_OVER(idx_slice, num_slices)
+    // TODO: Make this also compatible with GPUs
+    uint32_t bound_index = 0;
+    #pragma omp parallel for firstprivate(bound_index)
+    for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
-        uint32_t cross_section_index = 0;
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_data, idx_slice);
 
@@ -618,11 +624,11 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
             .gamma = TwissData_get_gamma(twiss_data)
         };
 
-        cross_section_index = find_aperture_info_for_s(aperture_bounds, s, cross_section_index);
-        interpolate_profile(model, profile_polygons, aperture_bounds, cross_section_index, points, s);
+        bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
+        interpolate_profile(model, profile_polygons, aperture_bounds, bound_index, points, s);
 
-        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, cross_section_index);
-        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, cross_section_index);
+        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
+        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
         const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
         const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
         const float_type tol_r = Profile_get_tol_r(profile);
@@ -673,7 +679,6 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
             fflush(stdout);
         #endif
     }
-    END_VECTORIZE;
 }
 
 #endif /* XTRACK_BEAM_APERTURE_H */
