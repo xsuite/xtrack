@@ -28,7 +28,7 @@ xo.assert_allclose(ksl_tot, expected_ksl, rtol=0, atol=1e-12)
 
 expected_knl[0] -= el_test._k0 * el_test.length
 
-el_ref = xt.Multipole(length=0.2, knl=expected_knl, ksl=expected_ksl)
+el_ref = xt.Bend(length=0.2, knl=expected_knl, ksl=expected_ksl, angle=0.01)
 
 p0 = xt.Particles(p0c=1e9, x=1e-2, y=2e-2)
 
