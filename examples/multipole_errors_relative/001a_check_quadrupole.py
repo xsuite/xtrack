@@ -2,6 +2,8 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
+rel_ref_is_skew = True
+
 knl = np.array([0.001, 1e-4, 2e-3, 3e-2, 4e-1, 5])
 ksl = np.array([0.002, 2e-4, 3e-3, 4e-2, 5e-1, 6])
 knl_rel = np.array([1, 20, 30, 400, 50000, 6000000])
@@ -13,9 +15,13 @@ q_test = xt.Quadrupole(k1=k1, k1s=k1s, length=0.2,
                        knl=knl,
                        ksl=ksl,
                        knl_rel=knl_rel,
-                       ksl_rel=ksl_rel)
+                       ksl_rel=ksl_rel,
+                       rel_ref_is_skew=rel_ref_is_skew)
 
-xo.assert_allclose(q_test.rel_ref_strength, 0.001 * 0.2, rtol=0, atol=1e-12)
+if rel_ref_is_skew:
+    xo.assert_allclose(q_test.rel_ref_strength, 0.002 * 0.2, rtol=0, atol=1e-12)
+else:
+    xo.assert_allclose(q_test.rel_ref_strength, 0.001 * 0.2, rtol=0, atol=1e-12)
 
 expected_knl = knl + knl_rel * q_test.rel_ref_strength
 expected_ksl = ksl + ksl_rel * q_test.rel_ref_strength
