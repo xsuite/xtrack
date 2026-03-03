@@ -27,11 +27,11 @@ void ThinSliceQuadrupoleEntry_track_local_particle(
         /*inv_factorial_order*/   ThinSliceQuadrupoleEntryData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceQuadrupoleEntryData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceQuadrupoleEntryData_getp1__parent_ksl(el, 0),
-        /*order_rel*/             -1,
-      /*inv_factorial_order_rel*/ 0,
-        /*knl_rel*/               NULL,
-        /*ksl_rel*/               NULL,
-        /*rel_ref_strength*/      0.,
+        /*order_rel*/             ThinSliceQuadrupoleEntryData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ 1. / (tgamma(ThinSliceQuadrupoleEntryData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+        /*knl_rel*/               ThinSliceQuadrupoleEntryData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThinSliceQuadrupoleEntryData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ThinSliceQuadrupoleEntryData_get__parent_length(el) * ((ThinSliceQuadrupoleEntryData_get__parent_rel_ref_is_skew(el)) ? ThinSliceQuadrupoleEntryData_get__parent_k1s(el) : ThinSliceQuadrupoleEntryData_get__parent_k1(el)),
         /*num_multipole_kicks*/   0, // unused
         /*model*/                 0, // unused
         /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,

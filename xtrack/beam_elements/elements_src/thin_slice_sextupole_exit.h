@@ -27,11 +27,11 @@ void ThinSliceSextupoleExit_track_local_particle(
         /*inv_factorial_order*/   ThinSliceSextupoleExitData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceSextupoleExitData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceSextupoleExitData_getp1__parent_ksl(el, 0),
-        /*order_rel*/             -1,
-      /*inv_factorial_order_rel*/ 0,
-        /*knl_rel*/               NULL,
-        /*ksl_rel*/               NULL,
-        /*rel_ref_strength*/      0.,
+        /*order_rel*/             ThinSliceSextupoleExitData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ 1. / (tgamma(ThinSliceSextupoleExitData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+        /*knl_rel*/               ThinSliceSextupoleExitData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThinSliceSextupoleExitData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ThinSliceSextupoleExitData_get__parent_length(el) * ((ThinSliceSextupoleExitData_get__parent_rel_ref_is_skew(el)) ? ThinSliceSextupoleExitData_get__parent_k2s(el) : ThinSliceSextupoleExitData_get__parent_k2(el)),
         /*num_multipole_kicks*/   0, // unused
         /*model*/                 0, // unused
         /*default_model*/         SEXTUPOLE_DEFAULT_MODEL,

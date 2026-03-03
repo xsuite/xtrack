@@ -24,8 +24,8 @@ void Bend_track_local_particle(
         /*inv_factorial_order*/   BendData_get_inv_factorial_order(el),
         /*knl*/                   BendData_getp1_knl(el, 0),
         /*ksl*/                   BendData_getp1_ksl(el, 0),
-        /*order_rel*/             0,
-      /*inv_factorial_order_rel*/ 1,
+        /*order_rel*/             BendData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ 1. / (tgamma(BendData_len_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
         /*knl_rel*/               BendData_getp1_knl_rel(el, 0),
         /*ksl_rel*/               BendData_getp1_ksl_rel(el, 0),
         /*rel_ref_strength*/      BendData_get_k0(el) * BendData_get_length(el),

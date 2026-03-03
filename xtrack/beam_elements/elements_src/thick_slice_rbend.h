@@ -27,8 +27,8 @@ void ThickSliceRBend_track_local_particle(
         /*inv_factorial_order*/   ThickSliceRBendData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceRBendData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceRBendData_getp1__parent_ksl(el, 0),
-/*order_rel*/             0,
-      /*inv_factorial_order_rel*/ 1,
+        /*order_rel*/             ThickSliceRBendData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ 1. / (tgamma(ThickSliceRBendData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
         /*knl_rel*/               ThickSliceRBendData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThickSliceRBendData_getp1__parent_ksl_rel(el, 0),
         /*rel_ref_strength*/      ThickSliceRBendData_get__parent_k0(el) * ThickSliceRBendData_get__parent_length(el),

@@ -27,11 +27,11 @@ void ThinSliceSextupole_track_local_particle(
         /*inv_factorial_order*/   ThinSliceSextupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceSextupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceSextupoleData_getp1__parent_ksl(el, 0),
-        /*order_rel*/             -1,
-      /*inv_factorial_order_rel*/ 0,
-        /*knl_rel*/               NULL,
-        /*ksl_rel*/               NULL,
-        /*rel_ref_strength*/      0.,
+        /*order_rel*/             ThinSliceSextupoleData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ 1. / (tgamma(ThinSliceSextupoleData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+        /*knl_rel*/               ThinSliceSextupoleData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThinSliceSextupoleData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ThinSliceSextupoleData_get__parent_length(el) * ((ThinSliceSextupoleData_get__parent_rel_ref_is_skew(el)) ? ThinSliceSextupoleData_get__parent_k2s(el) : ThinSliceSextupoleData_get__parent_k2(el)),
         /*num_multipole_kicks*/   1, // kick only
         /*model*/                 -1, // kick only
         /*default_model*/         SEXTUPOLE_DEFAULT_MODEL,

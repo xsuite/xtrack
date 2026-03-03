@@ -24,11 +24,11 @@ void Octupole_track_local_particle(
         /*inv_factorial_order*/   OctupoleData_get_inv_factorial_order(el),
         /*knl*/                   OctupoleData_getp1_knl(el, 0),
         /*ksl*/                   OctupoleData_getp1_ksl(el, 0),
-        /*order_rel*/             -1,
-      /*inv_factorial_order_rel*/ 0,
-        /*knl_rel*/               NULL,
-        /*ksl_rel*/               NULL,
-        /*rel_ref_strength*/      0.,
+        /*order_rel*/             OctupoleData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ 1. / (tgamma(OctupoleData_len_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+        /*knl_rel*/               OctupoleData_getp1_knl_rel(el, 0),
+        /*ksl_rel*/               OctupoleData_getp1_ksl_rel(el, 0),
+        /*rel_ref_strength*/      OctupoleData_get_length(el) * ((OctupoleData_get_rel_ref_is_skew(el)) ? OctupoleData_get_k3s(el) : OctupoleData_get_k3(el)),
         /*num_multipole_kicks*/   OctupoleData_get_num_multipole_kicks(el),
         /*model*/                 OctupoleData_get_model(el),
         /*default_model*/         OCTUPOLE_DEFAULT_MODEL,

@@ -24,8 +24,8 @@ void RBend_track_local_particle(
         /*inv_factorial_order*/   RBendData_get_inv_factorial_order(el),
         /*knl*/                   RBendData_getp1_knl(el, 0),
         /*ksl*/                   RBendData_getp1_ksl(el, 0),
-/*order_rel*/             0,
-      /*inv_factorial_order_rel*/ 1,
+        /*order_rel*/             RBendData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ 1. / (tgamma(RBendData_len_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
         /*knl_rel*/               RBendData_getp1_knl_rel(el, 0),
         /*ksl_rel*/               RBendData_getp1_ksl_rel(el, 0),
         /*rel_ref_strength*/      RBendData_get_k0(el) * RBendData_get_length(el),
