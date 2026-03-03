@@ -3,9 +3,11 @@ import xtrack as xt
 # TODO:
 # - need a property on rel_ref_is_skew
 # - need method to see the total multipole strength
+# - need method to extend knl_rel and ksl_rel when needed
 # - MAD-NG interface
 # - Add new parameters to docstring
 # - Update env.set_multipole_errors_relative
+# - Update docs
 
 m = xt.Multipole(knl=[1e-3], ksl=[2e-3])
 
