@@ -359,6 +359,40 @@ class _HasKnlKsl:
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
+    def get_total_knl_ksl(self):
+        nn = 4  # minimum length for knl and ksl is 4 (octupole order)
+        nn = max(nn, len(self.knl))
+        nn = max(nn, len(self.ksl))
+
+        if 'knl_rel' in self._xo_fnames:
+            nn = max(nn, len(self.knl_rel))
+            nn = max(nn, len(self.ksl_rel))
+
+        knl = np.zeros(nn, dtype=np.float64)
+        ksl = np.zeros(nn, dtype=np.float64)
+        knl[: len(self.knl)] += self.knl
+        ksl[: len(self.ksl)] += self.ksl
+
+        if 'knl_rel' in self._xo_fnames:
+            knl[: len(self.knl_rel)] += self.rel_ref_strength * self.knl_rel
+            ksl[: len(self.ksl_rel)] += self.rel_ref_strength * self.ksl_rel
+
+        if 'k0' in self._xo_fnames:
+            if hasattr(self, '_k0'): # To bypass k0 = from_angle
+                knl[0] += self._k0
+            else:
+                knl[0] += 0.0
+
+        for kk, ii in {'k1': 1, 'k2': 2, 'k3': 3}.items():
+            if kk in self._xo_fnames:
+                knl[ii] += getattr(self, kk)
+
+        for kk, ii in {'k0s':0, 'k1s': 1, 'k2s': 2, 'k3s': 3}.items():
+            if kk in self._xo_fnames:
+                ksl[ii] += getattr(self, kk)
+
+        return knl, ksl
+
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
@@ -1415,6 +1449,13 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         # have consistency with other thick elements otherwise)
         return self.isthick and self.length != 0
 
+    @property
+    def rel_ref_strength(self):
+        if self.rel_ref_is_skew:
+            return self.ksl[self.rel_ref_order]
+        else:
+            return self.knl[self.rel_ref_order]
+
     def __init__(self, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -1615,6 +1656,10 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'rel_ref_is_skew': '_rel_ref_is_skew',
     }
 
+    @property
+    def rel_ref_strength(self):
+        if self.rel_ref_is_skew:
+            return self.k0 * self.length
 
     @property
     def angle(self):
@@ -2183,6 +2228,13 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     ]
 
     @property
+    def rel_ref_strength(self):
+        if self.rel_ref_is_skew:
+            return self.k2s * self.length
+        else:
+            return self.k2 * self.length
+
+    @property
     def _thin_slice_class(self):
         return xt.ThinSliceSextupole
 
@@ -2273,6 +2325,13 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/octupole.h"',
     ]
+
+    @property
+    def rel_ref_strength(self):
+        if self.rel_ref_is_skew:
+            return self.k3s * self.length
+        else:
+            return self.k3 * self.length
 
     @property
     def _thin_slice_class(self):
@@ -2367,6 +2426,13 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _internal_record_class = SynchrotronRadiationRecord
+
+    @property
+    def rel_ref_strength(self):
+        if self.rel_ref_is_skew:
+            return self.k1s * self.length
+        else:
+            return self.k1 * self.length
 
     @property
     def radiation_flag(self): return 0.0

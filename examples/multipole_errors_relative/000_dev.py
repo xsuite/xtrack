@@ -8,6 +8,7 @@ import xtrack as xt
 # - Add new parameters to docstring
 # - Update env.set_multipole_errors_relative
 # - Update docs
+# - Remove rel_ref_is_skew from bends
 
 m = xt.Multipole(knl=[1e-3], ksl=[2e-3])
 
