@@ -5,7 +5,7 @@
 #ifndef XTRACK_ZETASHIFT_H
 #define XTRACK_ZETASHIFT_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

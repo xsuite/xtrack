@@ -6,7 +6,7 @@
 #ifndef XTRACK_ELENS_H
 #define XTRACK_ELENS_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 GPUFUN
 void Elens_track_local_particle(ElensData el, LocalParticle* part0){

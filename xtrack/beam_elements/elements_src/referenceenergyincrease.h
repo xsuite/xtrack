@@ -6,7 +6,7 @@
 #ifndef XTRACK_REFERENCEENERGYINCREASE_H
 #define XTRACK_REFERENCEENERGYINCREASE_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

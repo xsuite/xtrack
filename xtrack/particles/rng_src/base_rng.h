@@ -6,7 +6,7 @@
 #ifndef XTRACK_BASE_RNG_H
 #define XTRACK_BASE_RNG_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 // Only include if compiled standalone, outside of Xsuite
 #ifndef START_PER_PARTICLE_BLOCK

@@ -6,7 +6,7 @@
 #ifndef XTRACK_FUNCTIONS_H
 #define XTRACK_FUNCTIONS_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

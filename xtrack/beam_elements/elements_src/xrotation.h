@@ -5,8 +5,8 @@
 #ifndef XTRACK_XROTATION_H
 #define XTRACK_XROTATION_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_xrotation.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_xrotation.h"
 
 
 GPUFUN

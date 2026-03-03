@@ -9,7 +9,7 @@ import numpy as np
 import copy
 
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
 import xtrack as xt
 import xpart as xp
 
@@ -23,7 +23,9 @@ rB = 53.50625
 iterations = 7
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
-def test_random_generation(test_context):
+def test_random_generation_ruth(test_context):
+
+    skip_if_forbid_compile()
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1,2,3])
     part._init_random_number_generator()
@@ -37,7 +39,7 @@ def test_random_generation(test_context):
         _extra_c_sources = [
             '''
                 #include "xtrack/headers/track.h"
-                
+
                 GPUFUN
                 void TestElement_track_local_particle(
                         TestElementData el, LocalParticle* part0){

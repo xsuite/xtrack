@@ -6,8 +6,8 @@
 #ifndef XTRACK_FRINGE_H
 #define XTRACK_FRINGE_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_dipole_fringe.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_dipole_fringe.h"
 
 
 GPUFUN

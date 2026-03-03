@@ -5,7 +5,7 @@
 #ifndef XTRACK_TRACK_THICK_CFD_H
 #define XTRACK_TRACK_THICK_CFD_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 // From madx: https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/8695bd422dc403a01aa185e9fea16603bbd5b3e1/src/trrun.f90#L4320
 

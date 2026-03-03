@@ -6,13 +6,16 @@ import pytest
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
 
 test_data_folder = pathlib.Path(__file__).parent.joinpath('../test_data').absolute()
 
 @for_all_test_contexts
 @pytest.mark.parametrize('freeze_longitudinal', [True, False])
 def test_footprint(test_context, freeze_longitudinal):
+
+    if freeze_longitudinal:
+        skip_if_forbid_compile()
 
     if isinstance(test_context, xo.ContextPyopencl):
         pytest.skip('Pyopencl not yet supported for footprint')
@@ -194,6 +197,8 @@ def test_footprint(test_context, freeze_longitudinal):
 
 @for_all_test_contexts
 def test_footprint_delta0(test_context):
+
+    skip_if_forbid_compile()
 
     if isinstance(test_context, xo.ContextPyopencl):
         pytest.skip('Pyopencl not yet supported for footprint')

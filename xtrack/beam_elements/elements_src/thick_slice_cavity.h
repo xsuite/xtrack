@@ -9,7 +9,7 @@
 #ifndef XTRACK_THICK_SLICE_CAVITY_H
 #define XTRACK_THICK_SLICE_CAVITY_H
 
-#include <beam_elements/elements_src/track_rf.h>
+#include "xtrack/beam_elements/elements_src/track_rf.h"
 
 GPUFUN
 void ThickSliceCavity_track_local_particle(ThickSliceCavityData el, LocalParticle* part0)

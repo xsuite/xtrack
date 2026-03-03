@@ -6,7 +6,7 @@
 #ifndef XTRACK_LINESEGMENTMAP_H
 #define XTRACK_LINESEGMENTMAP_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

@@ -6,8 +6,8 @@
 #ifndef XTRACK_MAGNET_EDGE_H
 #define XTRACK_MAGNET_EDGE_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_magnet_edge.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_magnet_edge.h"
 
 GPUFUN
 void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)

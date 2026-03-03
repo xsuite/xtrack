@@ -5,7 +5,7 @@
 #ifndef XTRACK_TRACK_THICK_BEND_H
 #define XTRACK_TRACK_THICK_BEND_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

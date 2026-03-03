@@ -6,7 +6,7 @@
 #ifndef XTRACK_RFMULTIPOLE_H
 #define XTRACK_RFMULTIPOLE_H
 
-#include <beam_elements/elements_src/track_rf.h>
+#include "xtrack/beam_elements/elements_src/track_rf.h"
 
 GPUFUN
 void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){

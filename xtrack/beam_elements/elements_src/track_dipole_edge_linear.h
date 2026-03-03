@@ -5,7 +5,7 @@
 #ifndef XTRACK_TRACK_DIPOLEEDGE_LINEAR_H
 #define XTRACK_TRACK_DIPOLEEDGE_LINEAR_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 
 
 GPUFUN

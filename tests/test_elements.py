@@ -13,7 +13,8 @@ import ducktrack as dtk
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
+from xobjects.test_helpers import (for_all_test_contexts, fix_random_seed,
+                                   skip_if_forbid_compile)
 from xtrack.beam_elements.elements import _angle_from_trig
 
 test_data_folder = pathlib.Path(
@@ -48,7 +49,7 @@ def test_constructor(test_context):
         xt.Bend(_context=test_context, length=1.),
         xt.Quadrupole(_context=test_context, length=1.),
         xt.ElectronCooler(_context=test_context,current=2.4,length=1.5,radius_e_beam=25*1e-3,
-                                temp_perp=0.01,temp_long=0.001,magnetic_field=0.060) 
+                                temp_perp=0.01,temp_long=0.001,magnetic_field=0.060)
     ]
 
     # test to_dict / from_dict
@@ -216,6 +217,38 @@ def test_drift(test_context):
 
 @for_all_test_contexts
 def test_drift_exact_and_expanded(test_context):
+
+    line = xt.Line(elements=[xt.Drift(length=1.), xt.Drift(length=2.), xt.Drift(length=3.)])
+    ltot = line.get_length()
+    line.build_tracker(_context=test_context)
+
+    assert line['e2'].model == 'adaptive'
+
+    p0 = xp.Particles(p0c=1e9, px=0.3)
+    x_prime_expanded = p0.px / (1 + p0.delta)
+    x_prime_exact = p0.px / np.sqrt((1 + p0.delta)**2 - p0.px**2)
+
+    p = p0.copy(_context=test_context)
+    line.track(p)
+    xo.assert_allclose(p.x, x_prime_expanded*ltot, rtol=1e-14, atol=1e-14)
+
+    line.configure_drift_model(model='exact')
+    assert line['e2'].model == 'exact'
+    p = p0.copy(_context=test_context)
+    line.track(p)
+    xo.assert_allclose(p.x, x_prime_exact*ltot, rtol=1e-14, atol=1e-14)
+
+    line.configure_drift_model(model='expanded')
+    assert line['e2'].model == 'expanded'
+    p = p0.copy(_context=test_context)
+    line.track(p)
+    xo.assert_allclose(p.x, x_prime_expanded*ltot, rtol=1e-14, atol=1e-14)
+
+
+@for_all_test_contexts
+def test_drift_exact_and_expanded_legacy(test_context):
+
+    skip_if_forbid_compile()
 
     line = xt.Line(elements=[xt.Drift(length=1.), xt.Drift(length=2.), xt.Drift(length=3.)])
     ltot = line.get_length()
@@ -579,6 +612,9 @@ void TestElement_track_local_particle(TestElementData el,
 
 @for_all_test_contexts
 def test_per_particle_kernel(test_context):
+
+    skip_if_forbid_compile()
+
     class TestElement(xt.BeamElement):
         _xofields = {
             'a': xo.Float64
