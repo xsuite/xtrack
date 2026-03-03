@@ -28,7 +28,7 @@ void RBend_track_local_particle(
       /*inv_factorial_order_rel*/ 1,
         /*knl_rel*/               RBendData_getp1_knl_rel(el, 0),
         /*ksl_rel*/               RBendData_getp1_ksl_rel(el, 0),
-        /*rel_ref_strength*/      ((RBendData_get_rel_ref_is_skew(el)) ? (RBendData_get_k0s(el)) : (RBendData_get_k0(el))),
+        /*rel_ref_strength*/      RBendData_get_k0(el) * RBendData_get_length(el),
         /*num_multipole_kicks*/   RBendData_get_num_multipole_kicks(el),
         /*model*/                 RBendData_get_model(el),
         /*default_model*/         RBEND_DEFAULT_MODEL,

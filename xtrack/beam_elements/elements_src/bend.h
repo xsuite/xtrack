@@ -28,7 +28,7 @@ void Bend_track_local_particle(
       /*inv_factorial_order_rel*/ 1,
         /*knl_rel*/               BendData_getp1_knl_rel(el, 0),
         /*ksl_rel*/               BendData_getp1_ksl_rel(el, 0),
-        /*rel_ref_strength*/      ((BendData_get_rel_ref_is_skew(el)) ? (BendData_get_k0s(el)) : (BendData_get_k0(el))),
+        /*rel_ref_strength*/      BendData_get_k0(el) * BendData_get_length(el),
         /*num_multipole_kicks*/   BendData_get_num_multipole_kicks(el),
         /*model*/                 BendData_get_model(el),
         /*default_model*/         BEND_DEFAULT_MODEL,

@@ -31,7 +31,7 @@ void ThinSliceBendExit_track_local_particle(
       /*inv_factorial_order_rel*/ 1,
         /*knl_rel*/               ThinSliceBendExitData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThinSliceBendExitData_getp1__parent_ksl_rel(el, 0),
-        /*rel_ref_strength*/      ((ThinSliceBendExitData_get__parent_rel_ref_is_skew(el)) ? (ThinSliceBendExitData_get__parent_k0s(el)) : (ThinSliceBendExitData_get__parent_k0(el))),
+        /*rel_ref_strength*/      ThinSliceBendExitData_get__parent_k0(el) * ThinSliceBendExitData_get__parent_length(el),
         /*num_multipole_kicks*/   0, // unused
         /*model*/                 0, // unused
         /*default_model*/         BEND_DEFAULT_MODEL,
