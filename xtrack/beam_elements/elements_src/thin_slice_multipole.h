@@ -26,6 +26,11 @@ void ThinSliceMultipole_track_local_particle(ThinSliceMultipoleData el, LocalPar
         /*inv_factorial_order*/   ThinSliceMultipoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceMultipoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceMultipoleData_getp1__parent_ksl(el, 0),
+        /*order_rel*/             ThinSliceMultipoleData_len_knl_rel(el),
+      /*inv_factorial_order_rel*/ 1. / (tgamma(ThinSliceMultipoleData_len_knl_rel(el) + 1)),
+        /*knl_rel*/               ThinSliceMultipoleData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThinSliceMultipoleData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ((ThinSliceMultipoleData_get__parent_rel_ref_is_skew(el)) ? (ThinSliceMultipoleData_get__parent_ksl(el, ThinSliceMultipoleData_get__parent_rel_ref_order(el))) : (ThinSliceMultipoleData_get__parent_knl(el, ThinSliceMultipoleData_get__parent_rel_ref_order(el)))),
         /*num_multipole_kicks*/   1, // kick only
         /*model*/                 -1, // kick only
         /*default_model*/         MULTIPOLE_DEFAULT_MODEL,

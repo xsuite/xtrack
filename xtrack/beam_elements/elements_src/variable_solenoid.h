@@ -51,6 +51,11 @@ void VariableSolenoid_track_local_particle(
         /*inv_factorial_order*/   VariableSolenoidData_get_inv_factorial_order(el),
         /*knl*/                   VariableSolenoidData_getp1_knl(el, 0),
         /*ksl*/                   VariableSolenoidData_getp1_ksl(el, 0),
+        /*order_rel*/             -1,
+      /*inv_factorial_order_rel*/ 0,
+        /*knl_rel*/               NULL,
+        /*ksl_rel*/               NULL,
+        /*rel_ref_strength*/      0.,
         /*num_multipole_kicks*/   VariableSolenoidData_get_num_multipole_kicks(el),
         /*model*/                 -2, // sol-kick-sol
         /*default_model*/         0, // unused

@@ -18,7 +18,7 @@ to_do = [
     ("Octupole", "octupole.h"),
     ("Quadrupole", "quadrupole.h"),
     ("Sextupole", "sextupole.h"),
-    ("UniformSolenoid", "slnd.h"),
+    ("UniformSolenoid", "uniform_solenoid.h"),
     ("Cavity", "cavity.h"),
     ("CrabCavity", "crab_cavity.h"),
     ("Multipole", "multipole.h")

@@ -27,6 +27,11 @@ void ThinSliceQuadrupole_track_local_particle(
         /*inv_factorial_order*/   ThinSliceQuadrupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceQuadrupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceQuadrupoleData_getp1__parent_ksl(el, 0),
+        /*order_rel*/             -1,
+      /*inv_factorial_order_rel*/ 0,
+        /*knl_rel*/               NULL,
+        /*ksl_rel*/               NULL,
+        /*rel_ref_strength*/      0.,
         /*num_multipole_kicks*/   1, // kick only
         /*model*/                 -1, // kick only
         /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,

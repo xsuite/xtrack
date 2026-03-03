@@ -27,6 +27,11 @@ void ThinSliceSextupoleExit_track_local_particle(
         /*inv_factorial_order*/   ThinSliceSextupoleExitData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceSextupoleExitData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceSextupoleExitData_getp1__parent_ksl(el, 0),
+        /*order_rel*/             -1,
+      /*inv_factorial_order_rel*/ 0,
+        /*knl_rel*/               NULL,
+        /*ksl_rel*/               NULL,
+        /*rel_ref_strength*/      0.,
         /*num_multipole_kicks*/   0, // unused
         /*model*/                 0, // unused
         /*default_model*/         SEXTUPOLE_DEFAULT_MODEL,
