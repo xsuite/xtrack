@@ -77,6 +77,9 @@ for td in to_do:
         assert generated_data_class + '_get_' in out_content
         out_content = out_content.replace(generated_data_class + '_get_', generated_data_class + '_get__parent_')
         out_content = out_content.replace(generated_data_class + '_getp_', generated_data_class + '_getp__parent_')
+        out_content = out_content.replace(generated_data_class + '_len_', generated_data_class + '_len__parent_')
+
+
 
         if parent_class not in ['Cavity', 'CrabCavity']:
             assert generated_data_class + '_getp1_' in out_content

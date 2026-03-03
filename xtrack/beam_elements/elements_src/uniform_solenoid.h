@@ -24,6 +24,11 @@ void UniformSolenoid_track_local_particle(
         /*inv_factorial_order*/   UniformSolenoidData_get_inv_factorial_order(el),
         /*knl*/                   UniformSolenoidData_getp1_knl(el, 0),
         /*ksl*/                   UniformSolenoidData_getp1_ksl(el, 0),
+        /*order_rel*/             -1,
+      /*inv_factorial_order_rel*/ 0,
+        /*knl_rel*/               NULL,
+        /*ksl_rel*/               NULL,
+        /*rel_ref_strength*/      0.,
         /*num_multipole_kicks*/   UniformSolenoidData_get_num_multipole_kicks(el),
         /*model*/                 -2, // sol-kick-sol
         /*default_model*/         0, // unused
