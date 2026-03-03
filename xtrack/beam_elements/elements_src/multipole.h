@@ -23,8 +23,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*inv_factorial_order*/   MultipoleData_get_inv_factorial_order(el),
         /*knl*/                   MultipoleData_getp1_knl(el, 0),
         /*ksl*/                   MultipoleData_getp1_ksl(el, 0),
-        /*order_rel*/             MultipoleData_len_knl_rel(el),
-      /*inv_factorial_order_rel*/ 1. / (tgamma(MultipoleData_len_knl_rel(el) + 1)),
+        /*order_rel*/             MultipoleData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ 1. / (tgamma(MultipoleData_len_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
         /*knl_rel*/               MultipoleData_getp1_knl_rel(el, 0),
         /*ksl_rel*/               MultipoleData_getp1_ksl_rel(el, 0),
         /*rel_ref_strength*/      ((MultipoleData_get_rel_ref_is_skew(el)) ? (MultipoleData_get_ksl(el, MultipoleData_get_rel_ref_order(el))) : (MultipoleData_get_knl(el, MultipoleData_get_rel_ref_order(el)))),

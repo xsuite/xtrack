@@ -190,6 +190,8 @@ void kick_simple_single_coordinates(
 
     // Return if null knl/ksl pointers
     if (knl == NULL || ksl == NULL) {
+        *dpx = 0.;
+        *dpy = 0.;
         return;
     }
 
