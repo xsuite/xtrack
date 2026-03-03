@@ -1,6 +1,10 @@
 import xtrack as xt
 
-m = xt.Multipole(knl=[1e-3])
+# TODO:
+# - need a property on rel_ref_is_skew
+# - need method to see the total multipole strength
+
+m = xt.Multipole(knl=[1e-3], ksl=[2e-3])
 
 p0 = xt.Particles(p0c=1e9)
 
@@ -8,5 +12,6 @@ p = p0.copy()
 m.track(p)
 
 m.knl_rel = [0.5]
+m.rel_ref_is_skew = True
 p = p0.copy()
 m.track(p)
