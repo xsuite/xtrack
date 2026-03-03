@@ -379,17 +379,17 @@ class _HasKnlKsl:
 
         if 'k0' in self._xo_fnames:
             if hasattr(self, '_k0'): # To bypass k0 = from_angle
-                knl[0] += self._k0
+                knl[0] += self._k0 * self.length
             else:
-                knl[0] += 0.0
+                knl[0] += self.k0 * self.length
 
         for kk, ii in {'k1': 1, 'k2': 2, 'k3': 3}.items():
             if kk in self._xo_fnames:
-                knl[ii] += getattr(self, kk)
+                knl[ii] += getattr(self, kk) * self.length
 
         for kk, ii in {'k0s':0, 'k1s': 1, 'k2s': 2, 'k3s': 3}.items():
             if kk in self._xo_fnames:
-                ksl[ii] += getattr(self, kk)
+                ksl[ii] += getattr(self, kk) * self.length
 
         return knl, ksl
 
