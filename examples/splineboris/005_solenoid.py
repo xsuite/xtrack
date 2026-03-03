@@ -62,6 +62,36 @@ seq = xt.SplineBorisSequence(
     steps_per_point=1,  # one integration step per data point
 )
 
+# Evaluate the reconstructed field along the on-axis longitudinal direction
+x0, y0 = fitter.xy_point
+Bx_eval = np.array([seq.evaluate_field(x0, y0, s)[0] for s in fitter.s_full])
+By_eval = np.array([seq.evaluate_field(x0, y0, s)[1] for s in fitter.s_full])
+Bs_eval = np.array([seq.evaluate_field(x0, y0, s)[2] for s in fitter.s_full])
+
+# Compare the SplineBorisSequence field evaluation against the analytical solenoid field
+Bx_ref, By_ref, Bs_ref = sf.get_field(
+    x0 * np.ones_like(fitter.s_full),
+    y0 * np.ones_like(fitter.s_full),
+    fitter.s_full,
+)
+
+fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(10, 6), constrained_layout=True)
+for ax, comp_eval, comp_ref, label in zip(
+    [ax1, ax2, ax3],
+    [Bx_eval, By_eval, Bs_eval],
+    [Bx_ref, By_ref, Bs_ref],
+    [r"$B_x$", r"$B_y$", r"$B_s$"],
+):
+    ax.plot(fitter.s_full, comp_ref, label="Analytical")
+    ax.plot(fitter.s_full, comp_eval, "--", label="SplineBorisSequence")
+    ax.set_ylabel(f"{label} [T]")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+ax1.set_title(f"On-axis field at (x, y) = ({x0}, {y0})")
+ax3.set_xlabel("s [m]")
+plt.show()
+
 # Get the Line of SplineBoris elements
 line_splineboris = seq.to_line()
 line_splineboris.build_tracker()
