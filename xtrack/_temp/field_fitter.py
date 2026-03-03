@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pathlib
-
 import numpy as np
 import pandas as pd
 import scipy as sc
@@ -24,9 +22,7 @@ class FieldFitter:
     Parameters
     ----------
     raw_data :
-        Either a file path (``str`` or ``pathlib.Path``) to a whitespace-
-        separated file with six columns ``X Y Z Bx By Bs``, or a
-        ``pd.DataFrame`` with MultiIndex ``('X', 'Y', 'Z')`` and columns
+        A ``pd.DataFrame`` with MultiIndex ``('X', 'Y', 'Z')`` and columns
         ``('Bx', 'By', 'Bs')``.
     xy_point :
         On-axis transverse point ``(X, Y)`` in meters, used to select the
@@ -114,33 +110,23 @@ class FieldFitter:
         Set the raw data DataFrame, scale coordinates to meters, and compute ``s_full``.
 
         After loading the DataFrame, the X, Y, and Z index levels are
-        multiplied by ``self.distance_scaler`` so that all downstream code operates in
-        metres.
+        multiplied by ``self.distance_unit`` so that all downstream code
+        operates in metres.
 
         Parameters
         ----------
         raw_data :
-            Either a file path (``str`` or ``pathlib.Path``) to a whitespace-
-            separated file with six columns ``X Y Z Bx By Bs``, or a
-            ``pd.DataFrame`` with MultiIndex ``('X', 'Y', 'Z')`` and columns
+            A ``pd.DataFrame`` with MultiIndex ``('X', 'Y', 'Z')`` and columns
             ``('Bx', 'By', 'Bs')``.
         """
 
-        if isinstance(raw_data, (str, pathlib.Path)):
-            df_raw_data = pd.read_csv(
-                raw_data, sep=r"\s+", header=None,
-                names=["X", "Y", "Z", "Bx", "By", "Bs"],
-            )
-            df_raw_data.set_index(["X", "Y", "Z"], inplace=True)
-        elif isinstance(raw_data, pd.DataFrame):
-            df_raw_data = raw_data
-        else:
+        if not isinstance(raw_data, pd.DataFrame):
             raise TypeError(
-                f"raw_data must be a file path (str/Path) or a pd.DataFrame, "
-                f"got {type(raw_data).__name__}"
+                f"raw_data must be a pd.DataFrame with MultiIndex "
+                f"('X', 'Y', 'Z'), got {type(raw_data).__name__}"
             )
 
-        self.df_raw_data = df_raw_data
+        self.df_raw_data = raw_data
 
         # Convert coordinates to meters (e.g. ds=1e-3 for mm input)
         idx = self.df_raw_data.index

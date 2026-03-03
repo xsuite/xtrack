@@ -1,6 +1,7 @@
 from pathlib import Path
 
-# Simple local import so this file can be run directly (e.g. via IDE "Run" button)
+import pandas as pd
+
 from xtrack._temp.field_fitter import FieldFitter
 
 
@@ -18,27 +19,26 @@ This also means that we can only incorporate up to the second derivative of the 
 
 dz = 0.001  # Step size in the z (longitudinal) direction for numerical differentiation
 
-here = Path(__file__).resolve().parent
-
-# Standard 6-column format (X Y Z Bx By Bs)
-# Use the shared test-data knot-map file
+# Convert the field map to a DataFrame
 file_path = Path(__file__).resolve().parent.parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
+df_raw_data = pd.read_csv(
+    file_path, sep=r"\s+", header=None,
+    names=["X", "Y", "Z", "Bx", "By", "Bs"],
+).set_index(["X", "Y", "Z"])
 
 deg = 2
 
-if __name__ == "__main__":
-    # Build and run the fitter (file path is parsed inline by FieldFitter)
-    fitter = FieldFitter(
-        raw_data=file_path,
-        xy_point=(0.0, 0.0),
-        distance_unit=dz,
-        min_region_size=10,
-        deg=deg,
-    )
+fitter = FieldFitter(
+    raw_data=df_raw_data,
+    xy_point=(0.0, 0.0),
+    distance_unit=dz,
+    min_region_size=10,
+    deg=deg,
+)
 
-    fitter.fit()
-    
-    for der in range(0, deg + 1):
-        fitter.plot_fields(der=der)
+fitter.fit()
 
-    fitter.plot_integrated_fields()
+for der in range(0, deg + 1):
+    fitter.plot_fields(der=der)
+
+fitter.plot_integrated_fields()

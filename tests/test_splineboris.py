@@ -569,23 +569,6 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
     # ------------------------------------------------------------------
     multipole_order = 3
 
-    # NOTE: If the fit parameters need to be updated, uncomment the following code.
-    # from xtrack._temp.field_fitter import FieldFitter
-
-    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
-    
-    # # Fit the field map data (pass file path directly to FieldFitter)
-    # fitter = FieldFitter(
-    #     raw_data=fieldmap_path,
-    #     xy_point=(0, 0),
-    #     distance_unit=0.001,
-    #     min_region_size=10,
-    #     deg=multipole_order-1,
-    # )
-
-    # fitter.fit()
-    # fitter.save_fit_pars(fit_pars_path)
-
     df = undulator_fit_pars_df
 
     # Build undulator using SplineBorisSequence
@@ -663,41 +646,6 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(undulator_rotated_fit_pa
     # Load fit parameters and build undulator using SplineBorisSequence
     # ------------------------------------------------------------------
     multipole_order = 3
-
-    # NOTE: If the fit parameters need to be updated, uncomment the following code.
-    # from xtrack._temp.field_fitter import FieldFitter
-
-    # fieldmap_path = Path(__file__).parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
-
-    # # Fit the field map data (pass file path directly to FieldFitter)
-    # fitter_rot = FieldFitter(
-    #     raw_data=fieldmap_path,
-    #     xy_point=(0, 0),
-    #     distance_unit=0.001,
-    #     min_region_size=10,
-    #     deg=multipole_order-1,
-    # )
-
-    # # --- Rotate field by 90 degrees (Bx_new = By_old, By_new = -Bx_old) ---
-
-    # # 1. Swap in the full raw data (used by _fit_transverse_polynomials)
-    # old_Bx = fitter_rot.df_raw_data['Bx'].copy()
-    # old_By = fitter_rot.df_raw_data['By'].copy()
-    # fitter_rot.df_raw_data['Bx'] = old_By
-    # fitter_rot.df_raw_data['By'] = -old_Bx
-
-    # # 2. Swap in the on-axis raw data (0th derivative, already extracted in __init__)
-    # old_Bx_on = fitter_rot.df_on_axis_raw[('Bx', 0)].copy()
-    # old_By_on = fitter_rot.df_on_axis_raw[('By', 0)].copy()
-    # fitter_rot.df_on_axis_raw[('Bx', 0)] = old_By_on
-    # fitter_rot.df_on_axis_raw[('By', 0)] = -old_Bx_on
-
-    # # --- Now run the three fit steps manually ---
-    # fitter_rot._set_df_on_axis()
-    # fitter_rot._find_regions()
-    # fitter_rot._fit_slices()
-
-    # fitter_rot.save_fit_pars(fit_pars_path)
 
     df = undulator_rotated_fit_pars_df
 
