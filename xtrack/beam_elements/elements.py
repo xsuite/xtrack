@@ -393,6 +393,9 @@ class _HasKnlKsl:
         model = kwargs.pop('model', None)
         integrator = kwargs.pop('integrator', None)
 
+        if 'knl_rel' in self._xo_fnames:
+            _handle_knl_ksl_rel_kwargs(kwargs)
+
         self.xoinitialize(**kwargs)
 
         # Trigger properties
@@ -1793,8 +1796,6 @@ class Bend(_BendCommon, BeamElement):
             if nn in kwargs:
                 to_be_set_with_properties.append((nn, kwargs.pop(nn)))
 
-        _handle_knl_ksl_rel_kwargs(kwargs)
-
         _HasKnlKsl.__init__(self, **kwargs)
 
         for nn, val in to_be_set_with_properties:
@@ -1926,8 +1927,6 @@ class RBend(_BendCommon, BeamElement):
                    'edge_exit_model', 'rbend_angle_diff', 'rbend_model', 'k0']:
             if nn in kwargs:
                 to_be_set_with_properties.append((nn, kwargs.pop(nn)))
-
-        _handle_knl_ksl_rel_kwargs(kwargs)
 
         _HasKnlKsl.__init__(self, **kwargs) # Handles knl, ksl, order, model, integrator
 
@@ -2134,6 +2133,10 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'rel_ref_order': xo.Int32,
+        'rel_ref_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
@@ -2214,6 +2217,10 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'rel_ref_order': xo.Int32,
+        'rel_ref_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
@@ -2295,6 +2302,10 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'rel_ref_order': xo.Int32,
+        'rel_ref_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'model': xo.Int64,
