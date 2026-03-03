@@ -1655,7 +1655,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
 
     @property
     def main_strength(self):
-        return self.k0 * self.length
+        return self._k0 * self.length
 
     @property
     def angle(self):
