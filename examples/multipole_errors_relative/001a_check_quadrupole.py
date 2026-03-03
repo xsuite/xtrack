@@ -4,8 +4,8 @@ import numpy as np
 
 knl = np.array([0.001, 1e-4, 2e-3, 3e-2, 4e-1, 5])
 ksl = np.array([0.002, 2e-4, 3e-3, 4e-2, 5e-1, 6])
-knl_rel = np.array([1, 20, 30, 40, 50, 60])
-ksl_rel = np.array([2, 40, 60, 80, 100, 120])
+knl_rel = np.array([1, 20, 30, 400, 50000, 6000000])
+ksl_rel = np.array([2, 40, 60, 800, 100000, 1200000])
 k1 = 0.001
 k1s = 0.002
 
@@ -33,7 +33,7 @@ q_ref = xt.Quadrupole(k1=k1, k1s=k1s, length=0.2,
 q_ref.knl[1] -= k1 * q_ref.length  # Not to double count the main quadrupole contribution
 q_ref.ksl[1] -= k1s * q_ref.length
 
-p0 = xt.Particles(p0c=1e9, x=1e-3, y=2e-3)
+p0 = xt.Particles(p0c=1e9, x=1e-2, y=2e-2)
 
 p_test = p0.copy()
 q_test.track(p_test)
