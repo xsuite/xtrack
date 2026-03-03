@@ -451,7 +451,6 @@ class FieldFitter:
 
 
 
-    # TODO: Also allow y derivatives and use Maxwell's Equations to get the right sign.
     def _fit_transverse_polynomials(self):
         """
         Fit transverse polynomials and compute all derivatives at ``self.xy_point``.
