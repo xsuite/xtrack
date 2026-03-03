@@ -51,3 +51,43 @@ xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-13)
 xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
 xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
 xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
+
+line_test = xt.Line(elements=[q_test])
+line_ref = xt.Line(elements=[q_ref])
+
+# Check thick slicing
+line_test_slice_thick = line_test.copy(shallow=True)
+line_ref_slice_thick = line_ref.copy(shallow=True)
+
+line_test_slice_thick.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thick'))])
+line_ref_slice_thick.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thick'))])
+
+p_test = p0.copy()
+line_test_slice_thick.track(p_test)
+p_ref = p0.copy()
+line_ref_slice_thick.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-13)
+xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
+xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
+xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
+
+# Check thin slicing
+line_test_slice_thin = line_test.copy(shallow=True)
+line_ref_slice_thin = line_ref.copy(shallow=True)
+line_test_slice_thin.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
+line_ref_slice_thin.slice_thick_elements(
+        slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
+
+p_test = p0.copy()
+line_test_slice_thin.track(p_test)
+p_ref = p0.copy()
+line_ref_slice_thin.track(p_ref)
+
+xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-13)
+xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
+xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
+xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
