@@ -31,6 +31,29 @@ sf = SolenoidField(L=4, a=0.3, B0=1.5, z0=20)
 def get_field(x, y, z):
     return sf.get_field(x, y, z)
 
+
+def benchmark_track(track_callable, n_warmup=1, n_repeats=7):
+    # First-call timing includes one-time effects.
+    t0 = time.perf_counter()
+    track_callable()
+    first_call_s = time.perf_counter() - t0
+
+    # Warm-up before steady-state timing.
+    for _ in range(n_warmup):
+        track_callable()
+
+    times = []
+    for _ in range(n_repeats):
+        t0 = time.perf_counter()
+        track_callable()
+        times.append(time.perf_counter() - t0)
+
+    return {
+        "first_call_s": float(first_call_s),
+        "median_s": float(np.median(times)),
+    }
+
+
 z_point_count = n_steps + 1
 x_axis = np.linspace(-multipole_order * dx / 2, multipole_order * dx / 2, multipole_order + 1)
 y_axis = np.linspace(-multipole_order * dy / 2, multipole_order * dy / 2, multipole_order + 1)
@@ -95,27 +118,16 @@ plt.show()
 # Get the Line of SplineBoris elements
 line_splineboris = seq.to_line()
 line_splineboris.build_tracker()
-p_splineboris = p0.copy()
-start_time = time.time()
-line_splineboris.track(p_splineboris, turn_by_turn_monitor='ONE_TURN_EBE')
-end_time = time.time()
-print(f"SplineBoris time: {end_time - start_time} seconds")
-mon_splineboris = line_splineboris.record_last_track
 
 # --- TRUE REFERENCE: BorisSpatialIntegrator with same analytical field ---
 # This is the gold standard - uses the same full 3D field directly
-p_boris = p0.copy()
 boris_integrator = xt.BorisSpatialIntegrator(
     fieldmap_callable=get_field,  # Same field function as used for fitting
     s_start=0,
     s_end=interval,
     n_steps=n_steps,
 )
-boris_integrator.log_trajectories = True
-start_time = time.time()
-boris_integrator.track(p_boris)
-end_time = time.time()
-print(f"BorisSpatialIntegrator time: {end_time - start_time} seconds")
+boris_integrator.log_trajectories = False
 
 # --- VariableSolenoid reference (paraxial approximation, on-axis Bz only) ---
 n_ref_steps = n_steps
@@ -133,11 +145,49 @@ line_varsol = xt.Line(elements=[
     for ii in range(len(z_axis_ref) - 1)
 ])
 line_varsol.build_tracker()
+
+n_warmup = 1
+n_repeats = 7
+print(f"Benchmark settings: n_warmup={n_warmup}, n_repeats={n_repeats}")
+
+t_spline = benchmark_track(
+    lambda: line_splineboris.track(p0.copy()),
+    n_warmup=n_warmup,
+    n_repeats=n_repeats,
+)
+t_boris = benchmark_track(
+    lambda: boris_integrator.track(p0.copy()),
+    n_warmup=n_warmup,
+    n_repeats=n_repeats,
+)
+t_varsol = benchmark_track(
+    lambda: line_varsol.track(p0.copy()),
+    n_warmup=n_warmup,
+    n_repeats=n_repeats,
+)
+
+print(f"SplineBoris first call:          {t_spline['first_call_s']:.6f} s")
+print(f"BorisSpatialIntegrator first call: {t_boris['first_call_s']:.6f} s")
+print(f"VariableSolenoid first call:     {t_varsol['first_call_s']:.6f} s")
+print("")
+print(f"SplineBoris steady-state:          {t_spline['median_s']:.6f} s (median)")
+print(f"BorisSpatialIntegrator steady-state: {t_boris['median_s']:.6f} s (median)")
+print(f"VariableSolenoid steady-state:     {t_varsol['median_s']:.6f} s (median)")
+print("")
+print(f"Speedup spline vs boris (steady): {t_boris['median_s'] / t_spline['median_s']:.2f}x")
+print(f"Speedup spline vs varsol (steady): {t_varsol['median_s'] / t_spline['median_s']:.2f}x")
+
+# Produce monitored trajectories for diagnostics/plots.
+p_splineboris = p0.copy()
+line_splineboris.track(p_splineboris, turn_by_turn_monitor='ONE_TURN_EBE')
+mon_splineboris = line_splineboris.record_last_track
+
+boris_integrator.log_trajectories = True
+p_boris = p0.copy()
+boris_integrator.track(p_boris)
+
 p_varsol = p0.copy()
-start_time = time.time()
 line_varsol.track(p_varsol, turn_by_turn_monitor='ONE_TURN_EBE')
-end_time = time.time()
-print(f"VariableSolenoid time: {end_time - start_time} seconds")
 mon_varsol = line_varsol.record_last_track
 
 # Use mon_varsol as mon_ref for plotting
