@@ -30,7 +30,7 @@ void ThickSliceMultipole_track_local_particle(ThickSliceMultipoleData el, LocalP
       /*inv_factorial_order_rel*/ 1. / (tgamma(ThickSliceMultipoleData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
         /*knl_rel*/               ThickSliceMultipoleData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThickSliceMultipoleData_getp1__parent_ksl_rel(el, 0),
-        /*rel_ref_strength*/      ((ThickSliceMultipoleData_get__parent_rel_ref_is_skew(el)) ? (ThickSliceMultipoleData_get__parent_ksl(el, ThickSliceMultipoleData_get__parent_rel_ref_order(el))) : (ThickSliceMultipoleData_get__parent_knl(el, ThickSliceMultipoleData_get__parent_rel_ref_order(el)))),
+        /*main_strength*/         ((ThickSliceMultipoleData_get__parent_main_is_skew(el)) ? (ThickSliceMultipoleData_get__parent_ksl(el, ThickSliceMultipoleData_get__parent_main_order(el))) : (ThickSliceMultipoleData_get__parent_knl(el, ThickSliceMultipoleData_get__parent_main_order(el)))),
         /*num_multipole_kicks*/   ThickSliceMultipoleData_get__parent_num_multipole_kicks(el),
         /*model*/                 ((ThickSliceMultipoleData_get__parent_isthick(el) <= 0) ? (-1) : ThickSliceMultipoleData_get__parent_model(el)), // kick only if not thick
         /*default_model*/         MULTIPOLE_DEFAULT_MODEL,

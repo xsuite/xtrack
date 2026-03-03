@@ -31,7 +31,7 @@ void ThickSliceSextupole_track_local_particle(
       /*inv_factorial_order_rel*/ 1. / (tgamma(ThickSliceSextupoleData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
         /*knl_rel*/               ThickSliceSextupoleData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThickSliceSextupoleData_getp1__parent_ksl_rel(el, 0),
-        /*rel_ref_strength*/      ThickSliceSextupoleData_get__parent_length(el) * ((ThickSliceSextupoleData_get__parent_rel_ref_is_skew(el)) ? ThickSliceSextupoleData_get__parent_k2s(el) : ThickSliceSextupoleData_get__parent_k2(el)),
+        /*rel_ref_strength*/      ThickSliceSextupoleData_get__parent_length(el) * ((ThickSliceSextupoleData_get__parent_main_is_skew(el)) ? ThickSliceSextupoleData_get__parent_k2s(el) : ThickSliceSextupoleData_get__parent_k2(el)),
         /*num_multipole_kicks*/   ThickSliceSextupoleData_get__parent_num_multipole_kicks(el),
         /*model*/                 ThickSliceSextupoleData_get__parent_model(el),
         /*default_model*/         SEXTUPOLE_DEFAULT_MODEL,

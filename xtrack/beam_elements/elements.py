@@ -374,8 +374,8 @@ class _HasKnlKsl:
         ksl[: len(self.ksl)] += self.ksl
 
         if 'knl_rel' in self._xo_fnames:
-            knl[: len(self.knl_rel)] += self.rel_ref_strength * self.knl_rel
-            ksl[: len(self.ksl_rel)] += self.rel_ref_strength * self.ksl_rel
+            knl[: len(self.knl_rel)] += self.main_strength * self.knl_rel
+            ksl[: len(self.ksl_rel)] += self.main_strength * self.ksl_rel
 
         if 'k0' in self._xo_fnames:
             if hasattr(self, '_k0'): # To bypass k0 = from_angle
@@ -1412,8 +1412,8 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         'ksl': xo.Float64[:],
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
-        'rel_ref_order': xo.Int32,
-        'rel_ref_is_skew': xo.Int32,
+        'main_order': xo.Int32,
+        'main_is_skew': xo.Int32,
         'isthick': xo.Int64,
         'num_multipole_kicks': xo.Int64,
         'model': xo.Int64,
@@ -1425,7 +1425,7 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         'isthick': '_isthick',
         'model': '_model',
         'integrator': '_integrator',
-        'rel_ref_is_skew': '_rel_ref_is_skew',
+        'main_is_skew': '_main_is_skew',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -1450,11 +1450,11 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         return self.isthick and self.length != 0
 
     @property
-    def rel_ref_strength(self):
-        if self.rel_ref_is_skew:
-            return self.ksl[self.rel_ref_order]
+    def main_strength(self):
+        if self.main_is_skew:
+            return self.ksl[self.main_order]
         else:
-            return self.knl[self.rel_ref_order]
+            return self.knl[self.main_order]
 
     def __init__(self, **kwargs):
 
@@ -1522,12 +1522,12 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         return xt.DriftSliceMultipole
 
     @property
-    def rel_ref_is_skew(self):
-        return bool(self._rel_ref_is_skew > 0)
+    def main_is_skew(self):
+        return bool(self._main_is_skew > 0)
 
-    @rel_ref_is_skew.setter
-    def rel_ref_is_skew(self, value):
-        self._rel_ref_is_skew = int(bool(value))
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
 
 def _handle_knl_ksl_rel_kwargs(kwargs):
     knl_rel = kwargs.pop('knl_rel', [0])
@@ -1637,8 +1637,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'ksl': xo.Float64[:],
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
-        'rel_ref_order': xo.Int32,
-        'rel_ref_is_skew': xo.Int32,
+        'main_is_skew': xo.Int32,
         'k0_from_h': xo.Field(xo.UInt64, default=1),
     }
 
@@ -1653,12 +1652,12 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'angle': '_angle',
         'length': '_length',
         'h': '_h',
-        'rel_ref_is_skew': '_rel_ref_is_skew',
+        'main_is_skew': '_main_is_skew',
     }
 
     @property
-    def rel_ref_strength(self):
-        if self.rel_ref_is_skew:
+    def main_strength(self):
+        if self.main_is_skew:
             return self.k0 * self.length
 
     @property
@@ -1788,12 +1787,12 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         return super().from_dict(dct, **kwargs)
 
     @property
-    def rel_ref_is_skew(self):
-        return bool(self._rel_ref_is_skew > 0)
+    def main_is_skew(self):
+        return bool(self._main_is_skew > 0)
 
-    @rel_ref_is_skew.setter
-    def rel_ref_is_skew(self, value):
-        self._rel_ref_is_skew = int(bool(value))
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
 
 
 class Bend(_BendCommon, BeamElement):
@@ -2198,8 +2197,7 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'ksl': xo.Float64[:],
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
-        'rel_ref_order': xo.Int32,
-        'rel_ref_is_skew': xo.Int32,
+        'main_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
@@ -2215,7 +2213,7 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'order': '_order',
         'model': '_model',
         'integrator': '_integrator',
-        'rel_ref_is_skew': '_rel_ref_is_skew',
+        'main_is_skew': '_main_is_skew',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -2228,8 +2226,8 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     ]
 
     @property
-    def rel_ref_strength(self):
-        if self.rel_ref_is_skew:
+    def main_strength(self):
+        if self.main_is_skew:
             return self.k2s * self.length
         else:
             return self.k2 * self.length
@@ -2255,12 +2253,12 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         return xt.ThinSliceSextupoleExit
 
     @property
-    def rel_ref_is_skew(self):
-        return bool(self._rel_ref_is_skew > 0)
+    def main_is_skew(self):
+        return bool(self._main_is_skew > 0)
 
-    @rel_ref_is_skew.setter
-    def rel_ref_is_skew(self, value):
-        self._rel_ref_is_skew = int(bool(value))
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
 
 
 class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
@@ -2298,8 +2296,7 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'ksl': xo.Float64[:],
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
-        'rel_ref_order': xo.Int32,
-        'rel_ref_is_skew': xo.Int32,
+        'main_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
@@ -2327,8 +2324,8 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     ]
 
     @property
-    def rel_ref_strength(self):
-        if self.rel_ref_is_skew:
+    def main_strength(self):
+        if self.main_is_skew:
             return self.k3s * self.length
         else:
             return self.k3 * self.length
@@ -2354,12 +2351,12 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         return xt.ThinSliceOctupoleExit
 
     @property
-    def rel_ref_is_skew(self):
-        return bool(self._rel_ref_is_skew > 0)
+    def main_is_skew(self):
+        return bool(self._main_is_skew > 0)
 
-    @rel_ref_is_skew.setter
-    def rel_ref_is_skew(self, value):
-        self._rel_ref_is_skew = int(bool(value))
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
 
 
 class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
@@ -2398,8 +2395,7 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'ksl': xo.Float64[:],
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
-        'rel_ref_order': xo.Int32,
-        'rel_ref_is_skew': xo.Int32,
+        'main_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'model': xo.Int64,
@@ -2414,7 +2410,7 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'order': '_order',
         'model': '_model',
         'integrator': '_integrator',
-        'rel_ref_is_skew': '_rel_ref_is_skew',
+        'main_is_skew': '_main_is_skew',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -2428,8 +2424,8 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _internal_record_class = SynchrotronRadiationRecord
 
     @property
-    def rel_ref_strength(self):
-        if self.rel_ref_is_skew:
+    def main_strength(self):
+        if self.main_is_skew:
             return self.k1s * self.length
         else:
             return self.k1 * self.length
@@ -2458,12 +2454,12 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         return xt.ThinSliceQuadrupoleExit
 
     @property
-    def rel_ref_is_skew(self):
-        return bool(self._rel_ref_is_skew > 0)
+    def main_is_skew(self):
+        return bool(self._main_is_skew > 0)
 
-    @rel_ref_is_skew.setter
-    def rel_ref_is_skew(self, value):
-        self._rel_ref_is_skew = int(bool(value))
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
 
 
 class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):

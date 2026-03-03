@@ -31,7 +31,7 @@ void ThinSliceOctupoleEntry_track_local_particle(
       /*inv_factorial_order_rel*/ 1. / (tgamma(ThinSliceOctupoleEntryData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
         /*knl_rel*/               ThinSliceOctupoleEntryData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThinSliceOctupoleEntryData_getp1__parent_ksl_rel(el, 0),
-        /*rel_ref_strength*/      ThinSliceOctupoleEntryData_get__parent_length(el) * ((ThinSliceOctupoleEntryData_get__parent_rel_ref_is_skew(el)) ? ThinSliceOctupoleEntryData_get__parent_k3s(el) : ThinSliceOctupoleEntryData_get__parent_k3(el)),
+        /*rel_ref_strength*/      ThinSliceOctupoleEntryData_get__parent_length(el) * ((ThinSliceOctupoleEntryData_get__parent_main_is_skew(el)) ? ThinSliceOctupoleEntryData_get__parent_k3s(el) : ThinSliceOctupoleEntryData_get__parent_k3(el)),
         /*num_multipole_kicks*/   0, // unused
         /*model*/                 0, // unused
         /*default_model*/         OCTUPOLE_DEFAULT_MODEL,
