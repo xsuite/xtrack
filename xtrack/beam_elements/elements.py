@@ -1434,16 +1434,7 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         if 'hyl' in kwargs.keys():
             assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
 
-        # Handle knl_rel and ksl_rel
-        knl_rel = kwargs.pop('knl_rel', [0])
-        ksl_rel = kwargs.pop('ksl_rel', [0])
-        # pad to have the same length for knl_rel and ksl_rel
-        max_len_rel = max(len(knl_rel), len(ksl_rel))
-        if len(knl_rel) != len(ksl_rel):
-            knl_rel = list(knl_rel) + [0] * (max_len_rel - len(knl_rel))
-            ksl_rel = list(ksl_rel) + [0] * (max_len_rel - len(ksl_rel))
-        kwargs['knl_rel'] = knl_rel
-        kwargs['ksl_rel'] = ksl_rel
+        _handle_knl_ksl_rel_kwargs(kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -1484,6 +1475,18 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     @property
     def _drift_slice_class(self):
         return xt.DriftSliceMultipole
+
+def _handle_knl_ksl_rel_kwargs(kwargs):
+    knl_rel = kwargs.pop('knl_rel', [0])
+    ksl_rel = kwargs.pop('ksl_rel', [0])
+    # pad to have the same length for knl_rel and ksl_rel
+    max_len_rel = max(len(knl_rel), len(ksl_rel))
+    if len(knl_rel) != len(ksl_rel):
+        knl_rel = list(knl_rel) + [0] * (max_len_rel - len(knl_rel))
+        ksl_rel = list(ksl_rel) + [0] * (max_len_rel - len(ksl_rel))
+    kwargs['knl_rel'] = knl_rel
+    kwargs['ksl_rel'] = ksl_rel
+
 
 class SimpleThinQuadrupole(BeamElement):
     """An specialized version of Multipole to model a thin quadrupole
@@ -1579,6 +1582,10 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'rel_ref_order': xo.Int32,
+        'rel_ref_is_skew': xo.Int32,
         'k0_from_h': xo.Field(xo.UInt64, default=1),
     }
 
@@ -1786,6 +1793,8 @@ class Bend(_BendCommon, BeamElement):
             if nn in kwargs:
                 to_be_set_with_properties.append((nn, kwargs.pop(nn)))
 
+        _handle_knl_ksl_rel_kwargs(kwargs)
+
         _HasKnlKsl.__init__(self, **kwargs)
 
         for nn, val in to_be_set_with_properties:
@@ -1917,6 +1926,8 @@ class RBend(_BendCommon, BeamElement):
                    'edge_exit_model', 'rbend_angle_diff', 'rbend_model', 'k0']:
             if nn in kwargs:
                 to_be_set_with_properties.append((nn, kwargs.pop(nn)))
+
+        _handle_knl_ksl_rel_kwargs(kwargs)
 
         _HasKnlKsl.__init__(self, **kwargs) # Handles knl, ksl, order, model, integrator
 
