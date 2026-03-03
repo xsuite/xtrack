@@ -1,4 +1,3 @@
-import numpy as np
 import matplotlib.pyplot as plt
 import xobjects as xo
 import xtrack as xt
@@ -11,7 +10,7 @@ lhc_with_metadata = xt.load('./lhc_aperture.json')
 b1 = lhc_with_metadata['b1']
 lhc_length = b1.get_length()
 
-aperture_model = Aperture.from_line_with_madx_metadata(b1, context=context)
+aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, context=context)
 
 mqxfa_name = 'mqy.4r1.b1'
 
@@ -19,7 +18,6 @@ mqxfa_name = 'mqy.4r1.b1'
 sig_rays, tw_rays, aper_rays, _ = aperture_model.get_aperture_sigmas_at_element(
     element_name=mqxfa_name,
     resolution=0.1,
-    cross_sections_num_points=100,
     method='rays',
 )
 
@@ -27,7 +25,6 @@ sig_rays, tw_rays, aper_rays, _ = aperture_model.get_aperture_sigmas_at_element(
 sig_bisect, tw_bisect, aper_bisect, max_envelope = aperture_model.get_aperture_sigmas_at_element(
     element_name=mqxfa_name,
     resolution=0.1,
-    cross_sections_num_points=100,
     method='bisection',
 )
 

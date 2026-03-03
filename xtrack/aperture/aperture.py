@@ -116,7 +116,7 @@ class Aperture:
         return self.context.kernels[name](**kwargs)
 
     @classmethod
-    def from_line_with_madx_metadata(cls, line, context=None):
+    def from_line_with_madx_metadata(cls, line, context=None, **kwargs):
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
         name_to_sv_index = dict(zip(survey.name, range(len(survey))))
@@ -147,6 +147,10 @@ class Aperture:
             if 'aperture' not in element_metadata:
                 continue
 
+            offset_data = aperture_offsets.get(aper_name, {})
+            if offset_data:
+                print(f'INFO: offset data is present for {aper_name}')
+
             if aper_name not in aperture_indices:
                 shape_name, params, tols = element_metadata['aperture']
                 shape = profile_from_madx_aperture(shape_name, params)
@@ -163,23 +167,32 @@ class Aperture:
                 aper_idx = len(types)
                 aperture_indices[aper_name] = aper_idx
 
-                profile_position = ProfilePosition(profile_index=aper_idx)
-                offset_x, offset_y = 0, 0  # TODO: fill properly based on metadata['aperture_offset'][...]['x_off', ...]
-                profile_position.shift_x = offset_x
-                profile_position.shift_y = offset_y
-                # TODO: any other transformations from metadata?
-
-                if element.isthick:
+                if element.isthick and not offset_data:
                     # Place two profiles on either side of the element
-                    profile_position_start = profile_position
-                    profile_position_end = profile_position.copy()
-                    profile_position_start.s_position = 0
-                    profile_position_end.s_position = element.length
-                    positions = [profile_position_start, profile_position_end]
+                    position_entry = ProfilePosition(profile_index=aper_idx)
+                    position_exit = ProfilePosition(profile_index=aper_idx, s_position=element.length)
+                    positions = [position_entry, position_exit]
+                    # If no MAD-X offset data is present, the curvature follows
+                    # the element
                     curvature = getattr(element, 'h', 0)
+                elif element.isthick and offset_data:
+                    # If MAD-X offset data is given, place profiles
+                    # on the described parabola with 10cm resolution
+                    length = element.length
+                    positions = []
+                    for s in np.linspace(0, length, min(2, int(length / 0.1))):
+                        position = ProfilePosition(profile_index=aper_idx)
+                        position.s_position = s
+                        position.shift_x = length * offset_data['dx'] + length ** 2 * offset_data['ddx']
+                        position.shift_y = length * offset_data['dy'] + length ** 2 * offset_data['ddy']
+                        position.rot_x = offset_data['rot_x']  # ignore the contribution of ddx in the angle
+                        position.rot_y = offset_data['rot_y']  # ignore the contribution of ddy in the angle
+
+                    # If we have offset data, assume the type is straight
+                    curvature = 0
                 else:
-                    # Place single profile at center of element
-                    positions = [profile_position]
+                    # Place a single profile for a thin element
+                    positions = [ProfilePosition(profile_index=aper_idx)]
                     curvature = 0
 
                 aperture_type = ApertureType(curvature=curvature, positions=positions)
@@ -188,14 +201,14 @@ class Aperture:
                 profiles.append(profile)
 
             # Apply element transformations to type position
-            if element.transformations_active:
+            if offset_data:
                 matrix = transform_matrix(
-                    dx=element.shift_x,
-                    dy=element.shift_y,
-                    ds=element.shift_s,
-                    theta=element.rot_y_rad,
-                    phi=element.rot_x_rad,
-                    psi=element.rot_s_rad_no_frame,
+                    dx=offset_data['x'],
+                    dy=offset_data['y'],
+                    ds=offset_data['s'],
+                    theta=0,
+                    phi=0,
+                    psi=0,
                 )
             else:
                 matrix = np.identity(4)
@@ -216,11 +229,12 @@ class Aperture:
             profile_indices=aperture_indices,
             profile_list=profiles,
             context=context,
+            **kwargs,
         )
         return aperture
 
     @classmethod
-    def from_line_with_associated_apertures(cls, line, context=None):
+    def from_line_with_associated_apertures(cls, line, context=None, **kwargs):
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
         name_to_sv_index = dict(zip(survey.name, range(len(survey_names))))
@@ -306,11 +320,12 @@ class Aperture:
             profile_indices=aperture_indices,
             profile_list=profiles,
             context=context,
+            **kwargs,
         )
         return aperture
 
     @classmethod
-    def from_line_with_limits(cls, line, context=None):
+    def from_line_with_limits(cls, line, context=None, **kwargs):
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not a limit
         name_to_sv_index = dict(zip(survey.name, range(len(survey_names))))
@@ -362,6 +377,7 @@ class Aperture:
             profile_indices=indices,
             profile_list=profiles,
             context=context,
+            **kwargs,
         )
         return aperture
 
@@ -380,6 +396,7 @@ class Aperture:
             profile_indices: Dict[str, int],
             profile_list: List[ShapeTypes],
             context: XContext,
+            **kwargs,
     ) -> 'Aperture':
         """Build the Aperture class and its comprising xobjects.
 
@@ -398,6 +415,8 @@ class Aperture:
         profile_list
             List of all profiles featured in the model. The order must be consistent with the indices used inside
             each of the type definitions in ``type_list``.
+        kwargs
+            Further parameters to be passed to the initialiser of `Aperture`.
         """
         if list(type_indices.values()) != list(range(len(type_list))):
             raise ValueError('Expected type_indices to be ordered by index')
@@ -420,6 +439,7 @@ class Aperture:
             line=line,
             model=model,
             context=context,
+            **kwargs,
         )
 
         return aperture
@@ -758,10 +778,10 @@ class Aperture:
         return match.group('prefix')
 
     @classmethod
-    def _get_per_type_madx_offsets(cls, offsets):
+    def _get_per_type_madx_offsets(cls, madx_offsets):
         """Parse MAD-X imported aperture offsets metadata to obtain per-element (type) transformations."""
-        data = {}
-        for section in offsets.values():
+        offsets = {}
+        for section in madx_offsets.values():
             reference_name = section['reference']
             for idx, name in enumerate(section['name']):
                 dx = section['dx_off'][idx]
@@ -770,11 +790,16 @@ class Aperture:
                 theta = np.atan2(dx, 1)
                 phi = np.atan2(dy, np.sqrt(1 + dx ** dx))
 
-                data[name] = {
+                offsets[name] = {
                     'survey_ref': reference_name,
                     's': section['s_ip'][idx],
                     'x': section['x_off'][idx],
                     'y': section['y_off'][idx],
                     'rot_y': theta,
                     'rot_x': phi,
+                    'dx': dx,
+                    'dy': dy,
+                    'ddx': section['ddx_off'][idx],
+                    'ddy': section['ddy_off'][idx],
                 }
+        return offsets
