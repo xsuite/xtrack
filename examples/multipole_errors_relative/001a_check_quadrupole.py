@@ -4,8 +4,8 @@ import numpy as np
 
 rel_ref_is_skew = True
 
-knl = np.array([0.001, 1e-4, 2e-3, 3e-2, 4e-1, 5])
-ksl = np.array([0.002, 2e-4, 3e-3, 4e-2, 5e-1, 6])
+knl = np.array([0.001, 1e-3, 2e-2, 3e-2, 4, 50])
+ksl = np.array([0.002, 2e-3, 3e-2, 4e-2, 5, 60])
 knl_rel = np.array([1, 20, 30, 400, 50000, 6000000])
 ksl_rel = np.array([2, 40, 60, 800, 100000, 1200000])
 k1 = 0.001
