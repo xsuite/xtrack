@@ -1,5 +1,10 @@
 import xtrack as xt
 
+# RENAME:
+# - main is skew
+# - main strength (read only)
+# - main order (for multipole)
+
 # TODO:
 # - need a property on rel_ref_is_skew
 # - need method to see the total multipole strength
