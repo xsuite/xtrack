@@ -27,11 +27,11 @@ void ThinSliceBend_track_local_particle(
         /*inv_factorial_order*/   ThinSliceBendData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceBendData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceBendData_getp1__parent_ksl(el, 0),
-        /*order_rel*/             -1,
-      /*inv_factorial_order_rel*/ 0,
-        /*knl_rel*/               NULL,
-        /*ksl_rel*/               NULL,
-        /*rel_ref_strength*/      0.,
+        /*order_rel*/             0,
+      /*inv_factorial_order_rel*/ 1,
+        /*knl_rel*/               ThinSliceBendData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThinSliceBendData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ((ThinSliceBendData_get__parent_rel_ref_is_skew(el)) ? (ThinSliceBendData_get__parent_k0s(el)) : (ThinSliceBendData_get__parent_k0(el))),
         /*num_multipole_kicks*/   1, // kick only
         /*model*/                 -1, // kick only
         /*default_model*/         BEND_DEFAULT_MODEL,

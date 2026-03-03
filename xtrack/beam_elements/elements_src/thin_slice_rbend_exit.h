@@ -27,11 +27,11 @@ void ThinSliceRBendExit_track_local_particle(
         /*inv_factorial_order*/   ThinSliceRBendExitData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThinSliceRBendExitData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceRBendExitData_getp1__parent_ksl(el, 0),
-        /*order_rel*/             -1,
-      /*inv_factorial_order_rel*/ 0,
-        /*knl_rel*/               NULL,
-        /*ksl_rel*/               NULL,
-        /*rel_ref_strength*/      0.,
+/*order_rel*/             0,
+      /*inv_factorial_order_rel*/ 1,
+        /*knl_rel*/               ThinSliceRBendExitData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThinSliceRBendExitData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ((ThinSliceRBendExitData_get__parent_rel_ref_is_skew(el)) ? (ThinSliceRBendExitData_get__parent_k0s(el)) : (ThinSliceRBendExitData_get__parent_k0(el))),
         /*num_multipole_kicks*/   0, // unused
         /*model*/                 0, // unused
         /*default_model*/         RBEND_DEFAULT_MODEL,
