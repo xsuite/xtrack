@@ -139,10 +139,11 @@ tw_undulator_corr_spin = piecewise_undulator.twiss4d(
     )
 tw_undulator_corr_spin.plot('x y')
 tw_undulator_corr_spin.plot('betx bety', 'dx dy')
-tw_undulator_corr_spin.plot('spin_x spin_y spin_z')
+tw_undulator_corr_spin.plot('spin_x')
+tw_undulator_corr_spin.plot('spin_y')
+tw_undulator_corr_spin.plot('spin_z')
 
 plt.show()
-
 
 # Enable radiation on all elements (this sets radiation_flag on elements)
 piecewise_undulator.configure_radiation(model='mean')
