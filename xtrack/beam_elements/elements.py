@@ -1637,7 +1637,6 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'ksl': xo.Float64[:],
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
-        'main_is_skew': xo.Int32,
         'k0_from_h': xo.Field(xo.UInt64, default=1),
     }
 
@@ -1652,13 +1651,11 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'angle': '_angle',
         'length': '_length',
         'h': '_h',
-        'main_is_skew': '_main_is_skew',
     }
 
     @property
     def main_strength(self):
-        if self.main_is_skew:
-            return self.k0 * self.length
+        return self.k0 * self.length
 
     @property
     def angle(self):

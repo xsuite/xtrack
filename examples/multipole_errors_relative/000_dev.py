@@ -1,13 +1,8 @@
 import xtrack as xt
 
-# RENAME:
-# - main is skew
-# - main strength (read only)
-# - main order (for multipole)
-
 # TODO:
-# - need a property on rel_ref_is_skew
-# - need method to see the total multipole strength
+# - [DONE] need a property on rel_ref_is_skew
+# - [DONE] need method to see the total multipole strength
 # - need method to extend knl_rel and ksl_rel when needed
 # - MAD-NG interface
 # - Add new parameters to docstring
