@@ -5,7 +5,7 @@
 #ifndef XTRACK_TRACK_SPLINEBORIS_H
 #define XTRACK_TRACK_SPLINEBORIS_H
 
-#include <headers/track.h>
+#include "xtrack/headers/track.h"
 #include "spline_B_field_eval.h" // evaluate_B for Bx, By, Bs (scalar version)
 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
 // Forward declarations for random functions needed by synrad_spectrum.h
@@ -14,7 +14,7 @@
 GPUFUN uint32_t RandomUniformUInt32_generate(LocalParticle* part);
 GPUFUN double RandomUniform_generate(LocalParticle* part);
 GPUFUN double RandomExponential_generate(LocalParticle* part);
-#include <beam_elements/elements_src/track_magnet_radiation.h>
+#include "xtrack/beam_elements/elements_src/track_magnet_radiation.h"
 #endif
 
 GPUFUN

@@ -6,8 +6,8 @@
 #ifndef XTRACK_SPLINEBORIS_H
 #define XTRACK_SPLINEBORIS_H
 
-#include <headers/track.h>
-#include <beam_elements/elements_src/track_splineboris.h>
+#include "xtrack/headers/track.h"
+#include "xtrack/beam_elements/elements_src/track_splineboris.h"
 
 
 GPUFUN

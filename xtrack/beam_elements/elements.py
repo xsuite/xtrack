@@ -1040,7 +1040,7 @@ class SplineBoris(BeamElement):
                }
 
     _extra_c_sources = [
-        '#include <beam_elements/elements_src/splineboris.h>',
+        '#include "xtrack/beam_elements/elements_src/splineboris.h"',
     ]
 
     _depends_on = [RandomUniformAccurate, RandomExponential]
