@@ -260,6 +260,7 @@ void cross_sections_at_s(
     const float_type eps = APER_PRECISION;
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
     const uint32_t num_profiles = SurveyData_len_s(survey_at_s);
+    const uint32_t num_apertures = ApertureBounds_get_count(aperture_bounds);
 
     uint32_t aper_info_idx = 0;
 
@@ -273,7 +274,7 @@ void cross_sections_at_s(
 
         /* Find bracketing installed aperture entries */
         const uint32_t idx0 = find_aperture_info_for_s(aperture_bounds, s, aper_info_idx);
-        const uint32_t idx1 = (idx0 + 1 < num_profiles) ? (idx0 + 1) : idx0;
+        const uint32_t idx1 = (idx0 + 1 < num_apertures) ? (idx0 + 1) : idx0;
 
         const float_type s0 = ApertureBounds_get_s_positions(aperture_bounds, idx0);
         const float_type s1 = ApertureBounds_get_s_positions(aperture_bounds, idx1);
