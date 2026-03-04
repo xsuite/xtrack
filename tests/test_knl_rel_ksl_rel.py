@@ -85,6 +85,15 @@ def test_knl_rel_ksl_rel_quadrupole(main_is_skew):
 
     p_test = p0.copy()
     line_test_slice_thick.track(p_test)
+    line_test_slice_thick.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
+
+    p_test = p0.copy()
+    line_test_slice_thick.track(p_test)
     p_ref = p0.copy()
     line_ref_slice_thick.track(p_ref)
 
@@ -100,6 +109,15 @@ def test_knl_rel_ksl_rel_quadrupole(main_is_skew):
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
     line_ref_slice_thin.slice_thick_elements(
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
+
+    p_test = p0.copy()
+    line_test_slice_thin.track(p_test)
+    line_test_slice_thin.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
 
     p_test = p0.copy()
     line_test_slice_thin.track(p_test)
@@ -193,6 +211,15 @@ def test_knl_rel_ksl_rel_sextupole(main_is_skew):
 
     p_test = p0.copy()
     line_test_slice_thick.track(p_test)
+    line_test_slice_thick.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
+
+    p_test = p0.copy()
+    line_test_slice_thick.track(p_test)
     p_ref = p0.copy()
     line_ref_slice_thick.track(p_ref)
 
@@ -208,6 +235,15 @@ def test_knl_rel_ksl_rel_sextupole(main_is_skew):
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
     line_ref_slice_thin.slice_thick_elements(
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
+
+    p_test = p0.copy()
+    line_test_slice_thin.track(p_test)
+    line_test_slice_thin.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
 
     p_test = p0.copy()
     line_test_slice_thin.track(p_test)
@@ -301,6 +337,15 @@ def test_knl_rel_ksl_rel_octupole(main_is_skew):
 
     p_test = p0.copy()
     line_test_slice_thick.track(p_test)
+    line_test_slice_thick.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
+
+    p_test = p0.copy()
+    line_test_slice_thick.track(p_test)
     p_ref = p0.copy()
     line_ref_slice_thick.track(p_ref)
 
@@ -316,6 +361,15 @@ def test_knl_rel_ksl_rel_octupole(main_is_skew):
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
     line_ref_slice_thin.slice_thick_elements(
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
+
+    p_test = p0.copy()
+    line_test_slice_thin.track(p_test)
+    line_test_slice_thin.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
 
     p_test = p0.copy()
     line_test_slice_thin.track(p_test)
@@ -402,6 +456,15 @@ def test_knl_rel_ksl_rel_multipole(main_is_skew):
 
     p_test = p0.copy()
     line_test_slice_thick.track(p_test)
+    line_test_slice_thick.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
+
+    p_test = p0.copy()
+    line_test_slice_thick.track(p_test)
     p_ref = p0.copy()
     line_ref_slice_thick.track(p_ref)
 
@@ -417,6 +480,15 @@ def test_knl_rel_ksl_rel_multipole(main_is_skew):
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
     line_ref_slice_thin.slice_thick_elements(
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
+
+    p_test = p0.copy()
+    line_test_slice_thin.track(p_test)
+    line_test_slice_thin.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
 
     p_test = p0.copy()
     line_test_slice_thin.track(p_test)
@@ -502,6 +574,15 @@ def test_knl_rel_ksl_rel_bend():
 
     p_test = p0.copy()
     line_test_slice_thick.track(p_test)
+    line_test_slice_thick.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
+
+    p_test = p0.copy()
+    line_test_slice_thick.track(p_test)
     p_ref = p0.copy()
     line_ref_slice_thick.track(p_ref)
 
@@ -517,6 +598,15 @@ def test_knl_rel_ksl_rel_bend():
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
     line_ref_slice_thin.slice_thick_elements(
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
+
+    p_test = p0.copy()
+    line_test_slice_thin.track(p_test)
+    line_test_slice_thin.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
 
     p_test = p0.copy()
     line_test_slice_thin.track(p_test)
@@ -602,6 +692,15 @@ def test_knl_rel_ksl_rel_rbend():
 
     p_test = p0.copy()
     line_test_slice_thick.track(p_test)
+    line_test_slice_thick.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
+
+    p_test = p0.copy()
+    line_test_slice_thick.track(p_test)
     p_ref = p0.copy()
     line_ref_slice_thick.track(p_ref)
 
@@ -617,6 +716,15 @@ def test_knl_rel_ksl_rel_rbend():
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
     line_ref_slice_thin.slice_thick_elements(
             slicing_strategies=[xt.Strategy(slicing=xt.Uniform(2, mode='thin'))])
+
+    p_test = p0.copy()
+    line_test_slice_thin.track(p_test)
+    line_test_slice_thin.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
 
     p_test = p0.copy()
     line_test_slice_thin.track(p_test)
