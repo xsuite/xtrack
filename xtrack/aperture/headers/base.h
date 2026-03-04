@@ -15,7 +15,7 @@ typedef float float_type;
 typedef struct {
     float_type x;
     float_type y;
-} G2DPoint;
+} Point2D;
 
 typedef struct {
     float_type x;
@@ -37,17 +37,17 @@ typedef struct {
 } Pose;
 
 
-inline float_type geom2d_dot(G2DPoint, G2DPoint);
-inline float_type geom2d_cross(G2DPoint, G2DPoint);
-inline G2DPoint geom2d_sub(G2DPoint, G2DPoint);
-inline float_type geom2d_clamp(float_type t, float_type lo, float_type hi);
-inline float_type geom2d_points_distance(float_type x1, float_type y1, float_type x2, float_type y2);
-inline void geom2d_points_translate(float_type dx, float_type dy, G2DPoint* points, const int len_points);
+inline float_type point2d_dot(Point2D, Point2D);
+inline float_type point2d_cross(Point2D, Point2D);
+inline Point2D point2d_sub(Point2D, Point2D);
+inline float_type clamp_value(float_type t, float_type lo, float_type hi);
+inline float_type point2d_distance(float_type x1, float_type y1, float_type x2, float_type y2);
+inline void point2d_translate(float_type dx, float_type dy, Point2D* points, const int len_points);
 
-static inline float_type geom2d_elliptic_E_adaptive(float_type a, float_type b, float_type eps, int depth, float_type m);
-static inline float_type geom2d_elliptic_E_numeric(float_type phi, float_type k);
-float_type geom2d_elliptic_E(float_type phi, float_type k);
-float_type geom2d_elliptic_E_complete(float_type k);
+static inline float_type elliptic_E_adaptive(float_type a, float_type b, float_type eps, int depth, float_type m);
+static inline float_type elliptic_E_numeric(float_type phi, float_type k);
+float_type elliptic_E(float_type phi, float_type k);
+float_type elliptic_E_complete(float_type k);
 
 inline float_type sinc(float_type);
 inline void matrix_multiply_4x4(const float_type a[4][4], const float_type b[4][4], float_type result[4][4]);
@@ -59,31 +59,31 @@ inline Point3D point3d_add_scaled(const Point3D a, const Point3D v, const float_
 inline Point3D pose_apply_point(const Pose, const Point3D);
 
 
-inline float_type geom2d_dot(G2DPoint a, G2DPoint b)
+inline float_type point2d_dot(Point2D a, Point2D b)
 {
     return a.x*b.x + a.y*b.y;
 }
 
 
-inline float_type geom2d_cross(G2DPoint a, G2DPoint b)
+inline float_type point2d_cross(Point2D a, Point2D b)
 {
     return a.x*b.y - a.y*b.x;
 }
 
 
-inline G2DPoint geom2d_sub(G2DPoint a, G2DPoint b)
+inline Point2D point2d_sub(Point2D a, Point2D b)
 {
-    G2DPoint r = {a.x-b.x, a.y-b.y};
+    Point2D r = {a.x-b.x, a.y-b.y};
     return r;
 }
 
 
-inline float_type geom2d_clamp(float_type t, float_type lo, float_type hi) {
+inline float_type clamp_value(float_type t, float_type lo, float_type hi) {
     return (t < lo) ? lo : (t > hi) ? hi : t;
 }
 
 
-inline float_type geom2d_points_distance(float_type x1, float_type y1, float_type x2, float_type y2)
+inline float_type point2d_distance(float_type x1, float_type y1, float_type x2, float_type y2)
 /* Get the distance between two 2D points */
 {
     float_type dx = x2 - x1;
@@ -92,7 +92,7 @@ inline float_type geom2d_points_distance(float_type x1, float_type y1, float_typ
 }
 
 
-inline void geom2d_points_translate(float_type dx, float_type dy, G2DPoint* points, const int len_points)
+inline void point2d_translate(float_type dx, float_type dy, Point2D* points, const int len_points)
 /* Translate the `points` by (dx, dy)
 
 Contract: len_points=len(points)
@@ -105,7 +105,7 @@ Contract: len_points=len(points)
 }
 
 
-static inline float_type geom2d_elliptic_E_adaptive(float_type a, float_type b, float_type eps, int depth, float_type m)
+static inline float_type elliptic_E_adaptive(float_type a, float_type b, float_type eps, int depth, float_type m)
 /* Incomplete elliptic integral of the second kind E(phi, k)
    Uses libm ellint_2/comp_ellint_2 when available (glibc),
    otherwise falls back to a small adaptive Simpson integrator.
@@ -125,42 +125,42 @@ static inline float_type geom2d_elliptic_E_adaptive(float_type a, float_type b, 
     float_type Sright = (fc + 4.0 * f_right_c + fb) * (h / 2.0) / 6.0;
     if (depth <= 0 || fabs(Sleft + Sright - S) < 15.0 * eps)
         return Sleft + Sright + (Sleft + Sright - S) / 15.0;
-    return geom2d_elliptic_E_adaptive(a, c, eps / 2.0, depth - 1, m) +
-           geom2d_elliptic_E_adaptive(c, b, eps / 2.0, depth - 1, m);
+    return elliptic_E_adaptive(a, c, eps / 2.0, depth - 1, m) +
+           elliptic_E_adaptive(c, b, eps / 2.0, depth - 1, m);
 }
 
 
-static inline float_type geom2d_elliptic_E_numeric(float_type phi, float_type k)
+static inline float_type elliptic_E_numeric(float_type phi, float_type k)
 {
     float_type m = k * k;
     float_type sign = (phi >= 0.0) ? 1.0 : -1.0;
     float_type abs_phi = fabs(phi);
     float_type period = M_PI; /* integrand is periodic in pi */
     float_type half_pi = 0.5 * M_PI;
-    float_type base_complete = geom2d_elliptic_E_adaptive(0.0, half_pi, 1e-10, 12, m);
+    float_type base_complete = elliptic_E_adaptive(0.0, half_pi, 1e-10, 12, m);
     float_type per_value = 2.0 * base_complete; /* integral over one period */
     long periods = (long)(abs_phi / period);
     float_type remainder = abs_phi - periods * period;
     float_type total = periods * per_value;
     if (remainder > 0.0)
-        total += geom2d_elliptic_E_adaptive(0.0, remainder, 1e-10, 12, m);
+        total += elliptic_E_adaptive(0.0, remainder, 1e-10, 12, m);
     return sign * total;
 }
 
 
-float_type geom2d_elliptic_E(float_type phi, float_type k)
+float_type elliptic_E(float_type phi, float_type k)
 {
     if (k < 0.0 || k >= 1.0)
         return NAN;
-    return geom2d_elliptic_E_numeric(phi, k);
+    return elliptic_E_numeric(phi, k);
 }
 
 
-float_type geom2d_elliptic_E_complete(float_type k)
+float_type elliptic_E_complete(float_type k)
 {
     if (k < 0.0 || k >= 1.0)
         return NAN;
-    return geom2d_elliptic_E_numeric(0.5 * M_PI, k);
+    return elliptic_E_numeric(0.5 * M_PI, k);
 }
 
 

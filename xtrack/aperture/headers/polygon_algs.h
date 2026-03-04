@@ -23,7 +23,7 @@ typedef struct {
 } RayHit_s;
 
 
-static inline Racetrack_s geom2d_add_racetracks(Racetrack_s rt1, Racetrack_s rt2)
+static inline Racetrack_s add_racetracks(Racetrack_s rt1, Racetrack_s rt2)
 /* Minkowski sum of two racetracks */
 {
     return (Racetrack_s){
@@ -35,7 +35,7 @@ static inline Racetrack_s geom2d_add_racetracks(Racetrack_s rt1, Racetrack_s rt2
 }
 
 
-static inline Racetrack_s geom2d_scale_racetrack(Racetrack_s rt, float_type scale)
+static inline Racetrack_s scale_racetrack(Racetrack_s rt, float_type scale)
 /* Scale a racetrack by a factor ``scale``. */
 {
     return (Racetrack_s){
@@ -47,7 +47,7 @@ static inline Racetrack_s geom2d_scale_racetrack(Racetrack_s rt, float_type scal
 }
 
 
-float_type geom2d_racetrack_radius_at_angle(float_type theta, Racetrack_s rt)
+float_type racetrack_radius_at_angle(float_type theta, Racetrack_s rt)
 /* Compute the length of a line segment going from the center of a racetrack to its boundary at angle ``theta``. */
 {
     const float_type eps = APER_PRECISION;
@@ -94,11 +94,11 @@ float_type geom2d_racetrack_radius_at_angle(float_type theta, Racetrack_s rt)
 }
 
 
-RayHit_s geom2d_dist_to_poly_along_ray(
+RayHit_s dist_to_poly_along_ray(
     float_type theta,
     float_type x0,
     float_type y0,
-    const G2DPoint *poly,
+    const Point2D *poly,
     int len_poly,
     int convex,
     int start_at
@@ -124,8 +124,8 @@ RayHit_s geom2d_dist_to_poly_along_ray(
 {
     const float_type eps = APER_PRECISION;
 
-    const G2DPoint ray = (G2DPoint){ .x = cos(theta), .y = sin(theta) };
-    const G2DPoint xy0 = (G2DPoint){ .x = x0, .y = y0 };
+    const Point2D ray = (Point2D){ .x = cos(theta), .y = sin(theta) };
+    const Point2D xy0 = (Point2D){ .x = x0, .y = y0 };
 
     float_type best = INFINITY;
     int best_idx = -1;
@@ -137,13 +137,13 @@ RayHit_s geom2d_dist_to_poly_along_ray(
         const int i = (start_at + k) % n_edges;
 
         /* Translate so that (x0, y0) is origin */
-        const G2DPoint a = geom2d_sub(poly[i], xy0);
-        const G2DPoint b = geom2d_sub(poly[i + 1], xy0);
+        const Point2D a = point2d_sub(poly[i], xy0);
+        const Point2D b = point2d_sub(poly[i + 1], xy0);
 
-        const G2DPoint edge = geom2d_sub(b, a);
+        const Point2D edge = point2d_sub(b, a);
 
-        const float_type ca = geom2d_cross(a, ray);
-        const float_type cb = geom2d_cross(b, ray);
+        const float_type ca = point2d_cross(a, ray);
+        const float_type cb = point2d_cross(b, ray);
         const float_type delta = cb - ca;  // == e × d (by the distributive property)
 
         if (fabs(delta) > eps) {
@@ -162,8 +162,8 @@ RayHit_s geom2d_dist_to_poly_along_ray(
                 continue;
             }
 
-            const G2DPoint hit = (G2DPoint){ .x = a.x + u * edge.x, .y = a.y + u * edge.y };
-            const float_type t = geom2d_dot(hit, ray); // signed distance to the polygon along the ray.
+            const Point2D hit = (Point2D){ .x = a.x + u * edge.x, .y = a.y + u * edge.y };
+            const float_type t = point2d_dot(hit, ray); // signed distance to the polygon along the ray.
 
             if (t >= 0 && t < best) {
                 best = fabs(t);
@@ -179,8 +179,8 @@ RayHit_s geom2d_dist_to_poly_along_ray(
             }
 
             // Collinear overlap: get signed distances to endpoints
-            const float_type ta = geom2d_dot(a, ray);
-            const float_type tb = geom2d_dot(b, ray);
+            const float_type ta = point2d_dot(a, ray);
+            const float_type tb = point2d_dot(b, ray);
 
             if (signbit(ta) != signbit(tb)) {
                 // Vertices of the edge are on opposite sides of the origin, so
@@ -203,12 +203,12 @@ RayHit_s geom2d_dist_to_poly_along_ray(
 }
 
 
-void geom2d_dist_to_poly_along_rays(
+void dist_to_poly_along_rays(
     const float_type *thetas,
     int len_thetas,
     float_type x0,
     float_type y0,
-    const G2DPoint *poly,
+    const Point2D *poly,
     int len_poly,
     int convex,
     float_type *out_dists
@@ -232,7 +232,7 @@ void geom2d_dist_to_poly_along_rays(
     for (int j = 0; j < len_thetas; ++j) {
         const float_type theta = thetas[j];
 
-        const RayHit_s hit = geom2d_dist_to_poly_along_ray(theta, x0, y0, poly, len_poly, convex, start_at);
+        const RayHit_s hit = dist_to_poly_along_ray(theta, x0, y0, poly, len_poly, convex, start_at);
 
         out_dists[j] = hit.dist;
 

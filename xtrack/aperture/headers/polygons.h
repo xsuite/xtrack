@@ -26,19 +26,19 @@ static inline void bounds_on_s_for_aperture(
     const TypePosition,
     const ProfilePosition,
     const SurveyData,
-    const G2DPoint* const,
+    const Point2D* const,
     const uint32_t num_poly_points,
     const uint32_t installed_survey_index,
     float_type* min_s,
     float_type* max_s);
 
-static inline void build_circle_polygon(G2DPoint *const, const uint32_t, const Circle);
-static inline void build_rectangle_polygon(G2DPoint *const, const uint32_t, const Rectangle);
-static inline void build_ellipse_polygon(G2DPoint *const, const uint32_t, const Ellipse);
-static inline void build_rect_ellipse_polygon(G2DPoint *const, const uint32_t, const RectEllipse);
-static inline void build_racetrack_polygon(G2DPoint *const, const uint32_t, const Racetrack);
-static inline void build_octagon_polygon(G2DPoint *const, const uint32_t, const Octagon);
-static inline void build_polygon_polygon(G2DPoint *const, const uint32_t, const Polygon);
+static inline void build_circle_polygon(Point2D *const, const uint32_t, const Circle);
+static inline void build_rectangle_polygon(Point2D *const, const uint32_t, const Rectangle);
+static inline void build_ellipse_polygon(Point2D *const, const uint32_t, const Ellipse);
+static inline void build_rect_ellipse_polygon(Point2D *const, const uint32_t, const RectEllipse);
+static inline void build_racetrack_polygon(Point2D *const, const uint32_t, const Racetrack);
+static inline void build_octagon_polygon(Point2D *const, const uint32_t, const Octagon);
+static inline void build_polygon_polygon(Point2D *const, const uint32_t, const Polygon);
 
 static inline uint32_t find_aperture_info_bisection(const ApertureBounds, const float_type s);
 static inline uint32_t find_aperture_info_linear(const ApertureBounds, const float_type s, const uint32_t lower_bound);
@@ -99,7 +99,7 @@ void build_profile_polygons(
 
         /* Get the bounds in s that the aperture spans */
         float_type min_s, max_s;
-        const G2DPoint* const profile_points = (G2DPoint*)poly;
+        const Point2D* const profile_points = (Point2D*)poly;
         bounds_on_s_for_aperture(type_pos, profile_pos, survey, profile_points, num_points, installed_survey_index, &min_s, &max_s);
         ApertureBounds_set_s_start(aperture_bounds, idx, min_s);
         ApertureBounds_set_s_end(aperture_bounds, idx, max_s);
@@ -152,7 +152,7 @@ static inline void get_aperture_polygon_and_pose(
     const ApertureBounds aperture_bounds,
     const SurveyData survey,
     const uint32_t aper_info_idx,
-    const G2DPoint** out_poly,
+    const Point2D** out_poly,
     Pose* out_profile_in_world
 )
 {
@@ -166,17 +166,17 @@ static inline void get_aperture_polygon_and_pose(
     const ProfilePosition profile_pos = ApertureType_getp1_positions(aper_type, profile_pos_idx);
     const uint32_t profile_idx = ProfilePosition_get_profile_index(profile_pos);
 
-    *out_poly = (const G2DPoint* const)ProfilePolygons_getp3_points(profile_polygons, profile_idx, 0, 0);
+    *out_poly = (const Point2D* const)ProfilePolygons_getp3_points(profile_polygons, profile_idx, 0, 0);
     aperture_profile_pose_in_world(type_pos, profile_pos, survey, out_profile_in_world);
 }
 
 
 static inline void project_3d_polygon_to_plane(
-    const G2DPoint* poly_local,
+    const Point2D* poly_local,
     const Pose profile_in_world,
     const Pose world_in_plane,
     const uint32_t num_points,
-    G2DPoint* out_poly_plane
+    Point2D* out_poly_plane
 )
 /* Project a local 2D polygon (lying on z = 0 in the local frame) into plane frame. */
 {
@@ -191,8 +191,8 @@ static inline void project_3d_polygon_to_plane(
 
 
 static inline uint32_t find_best_cyclic_shift_plane(
-    const G2DPoint* p0_plane,
-    const G2DPoint* p1_plane,
+    const Point2D* p0_plane,
+    const Point2D* p1_plane,
     const uint32_t n
 )
 /* Find `shift` that minimises sum of squared distances between `p0[j]` and `p1[(j + shift) % n]`. */
@@ -223,7 +223,7 @@ static inline int intersect_segment_with_plane_and_project_xy(
     const Point3D b_world,
     const Pose plane_in_world,
     const Pose world_in_plane,
-    G2DPoint* out_xy_plane
+    Point2D* out_xy_plane
 )
 /*
     Intersect segment [a_world, b_world] with plane (z = 0 in the local `plane_in_world` frame)
@@ -258,7 +258,7 @@ static inline int intersect_segment_with_plane_and_project_xy(
     }
     if (t < -eps || (1.f + eps) < t) return 0;
 
-    const float_type tt = geom2d_clamp(t, 0.f, 1.f);
+    const float_type tt = clamp_value(t, 0.f, 1.f);
     const Point3D dir = point3d_sub(seg.end, seg.start);
     const Point3D hit_world = point3d_add_scaled(seg.start, dir, tt);
     const Point3D hit_plane = pose_apply_point(world_in_plane, hit_world);
@@ -287,7 +287,7 @@ void cross_sections_at_s(
 
     for (uint32_t i = 0; i < num_cross_sections; i++) {
         const float_type s = SurveyData_get_s(survey_at_s, i);
-        G2DPoint* poly_at_s = (G2DPoint*)cross_sections + i * num_points;
+        Point2D* poly_at_s = (Point2D*)cross_sections + i * num_points;
 
         /* Plane at this s (from the sliced/resampled survey table) */
         const Pose plane_in_world = pose_matrix_from_survey(survey_at_s, i);
@@ -315,9 +315,9 @@ void cross_sections_at_s(
         const uint32_t idx_left = has_left ? (current_bound_idx - 1) : current_bound_idx;
         const uint32_t idx_right = has_right ? (current_bound_idx + 1) : current_bound_idx;
 
-        const G2DPoint* poly_center = NULL;
-        const G2DPoint* poly_left = NULL;
-        const G2DPoint* poly_right = NULL;
+        const Point2D* poly_center = NULL;
+        const Point2D* poly_left = NULL;
+        const Point2D* poly_right = NULL;
         Pose pose_center, pose_left, pose_right;
 
         get_aperture_polygon_and_pose(model, profile_polygons, aperture_bounds, survey, current_bound_idx, &poly_center, &pose_center);
@@ -343,9 +343,9 @@ void cross_sections_at_s(
             However, assuming the z-term is not significantly varying between pairs of points and/or does not
             dominate, the following should be good enough. This is cheaper than a full 3D minimisation.
         */
-        G2DPoint poly_center_plane[num_points];
-        G2DPoint poly_left_plane[num_points];
-        G2DPoint poly_right_plane[num_points];
+        Point2D poly_center_plane[num_points];
+        Point2D poly_left_plane[num_points];
+        Point2D poly_right_plane[num_points];
         project_3d_polygon_to_plane(poly_center, pose_center, world_in_plane, num_points, poly_center_plane);
         if (has_left) project_3d_polygon_to_plane(poly_left, pose_left, world_in_plane, num_points, poly_left_plane);
         if (has_right) project_3d_polygon_to_plane(poly_right, pose_right, world_in_plane, num_points, poly_right_plane);
@@ -362,7 +362,7 @@ void cross_sections_at_s(
         /* Interpolate */
         for (uint32_t j = 0; j < num_points; j++) {
             int has_intersection = 0;
-            G2DPoint hit_point_plane = (G2DPoint){ .x = NAN, .y = NAN };
+            Point2D hit_point_plane = (Point2D){ .x = NAN, .y = NAN };
 
             /* Try the geometrically expected side first, then the opposite side */
             for (uint32_t attempt = 0; attempt < 2 && !has_intersection; attempt++) {
@@ -405,43 +405,43 @@ void build_polygon_for_profile(
         case Shape_Circle_t:  // LHC
         {
             const Circle circle = Profile_member_shape(profile);
-            build_circle_polygon((G2DPoint* const) points, num_points, circle);
+            build_circle_polygon((Point2D* const) points, num_points, circle);
             break;
         }
         case Shape_Rectangle_t:
         {
             const Rectangle rectangle = Profile_member_shape(profile);
-            build_rectangle_polygon((G2DPoint* const) points, num_points, rectangle);
+            build_rectangle_polygon((Point2D* const) points, num_points, rectangle);
             break;
         }
         case Shape_Ellipse_t:
         {
             const Ellipse ellipse = Profile_member_shape(profile);
-            build_ellipse_polygon((G2DPoint* const) points, num_points, ellipse);
+            build_ellipse_polygon((Point2D* const) points, num_points, ellipse);
             break;
         }
         case Shape_RectEllipse_t:
         {
             const RectEllipse rect_ellipse = Profile_member_shape(profile);
-            build_rect_ellipse_polygon((G2DPoint* const) points, num_points, rect_ellipse);
+            build_rect_ellipse_polygon((Point2D* const) points, num_points, rect_ellipse);
             break;
         }
         case Shape_Racetrack_t:
         {
             const Racetrack racetrack = Profile_member_shape(profile);
-            build_racetrack_polygon((G2DPoint* const) points, num_points, racetrack);
+            build_racetrack_polygon((Point2D* const) points, num_points, racetrack);
             break;
         }
         case Shape_Octagon_t:
         {
             const Octagon octagon = Profile_member_shape(profile);
-            build_octagon_polygon((G2DPoint* const) points, num_points, octagon);
+            build_octagon_polygon((Point2D* const) points, num_points, octagon);
             break;
         }
         case Shape_Polygon_t:
         {
             const Polygon polygon = Profile_member_shape(profile);
-            build_polygon_polygon((G2DPoint* const) points, num_points, polygon);
+            build_polygon_polygon((Point2D* const) points, num_points, polygon);
             break;
         }
         case Shape_SVGShape_t:
@@ -527,7 +527,7 @@ static inline void bounds_on_s_for_aperture(
     const TypePosition type_pos,
     const ProfilePosition profile_pos,
     const SurveyData survey,
-    const G2DPoint* const profile_points,
+    const Point2D* const profile_points,
     const uint32_t num_poly_points,
     const uint32_t installed_survey_index,
     float_type* min_s,
@@ -605,83 +605,83 @@ static inline void bounds_on_s_for_aperture(
 }
 
 
-static inline void build_circle_polygon(G2DPoint *const points, const uint32_t num_points, const Circle circle)
+static inline void build_circle_polygon(Point2D *const points, const uint32_t num_points, const Circle circle)
 {
     const float_type radius = Circle_get_radius(circle);
 
-    G2DSegment segments[1];
-    G2DPath path = {.segments = segments, .len_segments = 1};
-    geom2d_segments_from_circle(radius, segments);
-    geom2d_poly_get_n_uniform_points(&path, num_points, points);
+    Segment2D segments[1];
+    Path2D path = {.segments = segments, .len_segments = 1};
+    segments_from_circle(radius, segments);
+    poly_get_n_uniform_points(&path, num_points, points);
 }
 
 
-static inline void build_rectangle_polygon(G2DPoint *const points, const uint32_t num_points, const Rectangle rectangle)
+static inline void build_rectangle_polygon(Point2D *const points, const uint32_t num_points, const Rectangle rectangle)
 {
     const float_type half_width = Rectangle_get_half_width(rectangle);
     const float_type half_height = Rectangle_get_half_height(rectangle);
 
-    G2DSegment segments[4];
-    G2DPath path = {.segments = segments, .len_segments = 4};
-    geom2d_segments_from_rectangle(half_width, half_height, segments);
-    geom2d_poly_get_n_uniform_points(&path, num_points, points);
+    Segment2D segments[4];
+    Path2D path = {.segments = segments, .len_segments = 4};
+    segments_from_rectangle(half_width, half_height, segments);
+    poly_get_n_uniform_points(&path, num_points, points);
 }
 
 
-static inline void build_ellipse_polygon(G2DPoint *const points, const uint32_t num_points, const Ellipse ellipse)
+static inline void build_ellipse_polygon(Point2D *const points, const uint32_t num_points, const Ellipse ellipse)
 {
     const float_type half_major = Ellipse_get_half_major(ellipse);
     const float_type half_minor = Ellipse_get_half_minor(ellipse);
 
-    G2DSegment segments[1];
-    G2DPath path = {.segments = segments, .len_segments = 1};
-    geom2d_segments_from_ellipse(half_major, half_minor, segments);
-    geom2d_poly_get_n_uniform_points(&path, num_points, points);
+    Segment2D segments[1];
+    Path2D path = {.segments = segments, .len_segments = 1};
+    segments_from_ellipse(half_major, half_minor, segments);
+    poly_get_n_uniform_points(&path, num_points, points);
 }
 
 
-static inline void build_rect_ellipse_polygon(G2DPoint *const points, const uint32_t num_points, const RectEllipse rect_ellipse)
+static inline void build_rect_ellipse_polygon(Point2D *const points, const uint32_t num_points, const RectEllipse rect_ellipse)
 {
     const float_type half_width = RectEllipse_get_half_width(rect_ellipse);
     const float_type half_height = RectEllipse_get_half_height(rect_ellipse);
     const float_type half_major = RectEllipse_get_half_major(rect_ellipse);
     const float_type half_minor = RectEllipse_get_half_minor(rect_ellipse);
 
-    G2DSegment segments[8];
-    G2DPath path = {.segments = segments, .len_segments = 8};
-    geom2d_segments_from_rectellipse(half_width, half_height, half_major, half_minor, segments, &path.len_segments);
-    geom2d_poly_get_n_uniform_points(&path, num_points, points);
+    Segment2D segments[8];
+    Path2D path = {.segments = segments, .len_segments = 8};
+    segments_from_rectellipse(half_width, half_height, half_major, half_minor, segments, &path.len_segments);
+    poly_get_n_uniform_points(&path, num_points, points);
 }
 
 
-static inline void build_racetrack_polygon(G2DPoint *const points, const uint32_t num_points, const Racetrack racetrack)
+static inline void build_racetrack_polygon(Point2D *const points, const uint32_t num_points, const Racetrack racetrack)
 {
     const float_type half_width = Racetrack_get_half_width(racetrack);
     const float_type half_height = Racetrack_get_half_height(racetrack);
     const float_type half_major = Racetrack_get_half_major(racetrack);
     const float_type half_minor = Racetrack_get_half_minor(racetrack);
 
-    G2DSegment segments[8];
-    G2DPath path = {.segments = segments, .len_segments = 8};
-    geom2d_segments_from_racetrack(half_width, half_height, half_major, half_minor, segments, &path.len_segments);
-    geom2d_poly_get_n_uniform_points(&path, num_points, points);
+    Segment2D segments[8];
+    Path2D path = {.segments = segments, .len_segments = 8};
+    segments_from_racetrack(half_width, half_height, half_major, half_minor, segments, &path.len_segments);
+    poly_get_n_uniform_points(&path, num_points, points);
 }
 
 
-static inline void build_octagon_polygon(G2DPoint *const points, const uint32_t num_points, const Octagon octagon)
+static inline void build_octagon_polygon(Point2D *const points, const uint32_t num_points, const Octagon octagon)
 {
     const float_type half_width = Octagon_get_half_width(octagon);
     const float_type half_height = Octagon_get_half_height(octagon);
     const float_type half_diagonal = Octagon_get_half_diagonal(octagon);
 
-    G2DSegment segments[8];
-    G2DPath path = {.segments = segments, .len_segments = 8};
-    geom2d_segments_from_octagon(half_width, half_height, half_diagonal, segments, &path.len_segments);
-    geom2d_poly_get_n_uniform_points(&path, num_points, points);
+    Segment2D segments[8];
+    Path2D path = {.segments = segments, .len_segments = 8};
+    segments_from_octagon(half_width, half_height, half_diagonal, segments, &path.len_segments);
+    poly_get_n_uniform_points(&path, num_points, points);
 }
 
 
-static inline void build_polygon_polygon(G2DPoint *const points, const uint32_t num_points, const Polygon polygon)
+static inline void build_polygon_polygon(Point2D *const points, const uint32_t num_points, const Polygon polygon)
 {
     // TODO: Not yet implemented, requires resampling the polygon
 }
