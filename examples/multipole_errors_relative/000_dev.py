@@ -2,7 +2,7 @@ import xtrack as xt
 
 # TODO:
 # - Remove the gamma function
-# - Test radiation and spin
+# - [DONE]Test spin (radiation is together)
 # - [DONE] need a property on rel_ref_is_skew
 # - [DONE] need method to see the total multipole strength
 # - need method to extend knl_rel and ksl_rel when needed
@@ -14,7 +14,7 @@ import xtrack as xt
 # - RDT calculation
 # - Radiation integrals
 # - Polarization calculation
-# - Backtracking
+# - [DONE] Backtracking
 
 m = xt.Multipole(knl=[1e-3], ksl=[2e-3])
 
