@@ -46,6 +46,10 @@ void MagnetEdge_track_local_particle(MagnetEdgeData el, LocalParticle* part0)
         ksl,
         /* factor_knl_ksl */ 1,
         kl_order,
+        NULL, // knl_rel not supported yet in MagnetEdge
+        NULL, // ksl_rel not supported yet in MagnetEdge
+        /* factor_knl_ksl_rel */ 0,
+        -1, // order_rel not supported yet in MagnetEdge
         ks,
         0., // x0_solenoid
         0., // y0_solenoid
