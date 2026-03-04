@@ -65,6 +65,15 @@ def test_knl_rel_ksl_rel_quadrupole(main_is_skew):
     line_test = xt.Line(elements=[el_test])
     line_ref = xt.Line(elements=[el_ref])
 
+    p_test = p0.copy()
+    line_test.track(p_test)
+    line_test.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
+
     # Check thick slicing
     line_test_slice_thick = line_test.copy(shallow=True)
     line_ref_slice_thick = line_ref.copy(shallow=True)
@@ -163,6 +172,15 @@ def test_knl_rel_ksl_rel_sextupole(main_is_skew):
 
     line_test = xt.Line(elements=[el_test])
     line_ref = xt.Line(elements=[el_ref])
+
+    p_test = p0.copy()
+    line_test.track(p_test)
+    line_test.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
 
     # Check thick slicing
     line_test_slice_thick = line_test.copy(shallow=True)
@@ -263,6 +281,15 @@ def test_knl_rel_ksl_rel_octupole(main_is_skew):
     line_test = xt.Line(elements=[el_test])
     line_ref = xt.Line(elements=[el_ref])
 
+    p_test = p0.copy()
+    line_test.track(p_test)
+    line_test.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
+
     # Check thick slicing
     line_test_slice_thick = line_test.copy(shallow=True)
     line_ref_slice_thick = line_ref.copy(shallow=True)
@@ -355,6 +382,15 @@ def test_knl_rel_ksl_rel_multipole(main_is_skew):
     line_test = xt.Line(elements=[el_test])
     line_ref = xt.Line(elements=[el_ref])
 
+    p_test = p0.copy()
+    line_test.track(p_test)
+    line_test.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
+
     # Check thick slicing
     line_test_slice_thick = line_test.copy(shallow=True)
     line_ref_slice_thick = line_ref.copy(shallow=True)
@@ -446,6 +482,15 @@ def test_knl_rel_ksl_rel_bend():
     line_test = xt.Line(elements=[el_test])
     line_ref = xt.Line(elements=[el_ref])
 
+    p_test = p0.copy()
+    line_test.track(p_test)
+    line_test.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
+
     # Check thick slicing
     line_test_slice_thick = line_test.copy(shallow=True)
     line_ref_slice_thick = line_ref.copy(shallow=True)
@@ -536,6 +581,15 @@ def test_knl_rel_ksl_rel_rbend():
 
     line_test = xt.Line(elements=[el_test])
     line_ref = xt.Line(elements=[el_ref])
+
+    p_test = p0.copy()
+    line_test.track(p_test)
+    line_test.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.x, p0.x, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.y, p0.y, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.px, p0.px, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_test.py, p0.py, rtol=0, atol=1e-13)
 
     # Check thick slicing
     line_test_slice_thick = line_test.copy(shallow=True)
