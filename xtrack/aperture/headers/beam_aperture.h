@@ -351,19 +351,30 @@ static inline G2DTwissData twiss_data_get_entry(const TwissData twiss_data, cons
 
 void compute_max_aperture_sigma(
     ApertureModel model,
+    SurveyData survey,
     ProfilePolygons profile_polygons,
     ApertureBounds aperture_bounds,
-    TwissData twiss_data,
+    TwissData twiss_at_s,
+    SurveyData survey_at_s,
     BeamData beam_data,
     float_type* const out_interpolated_apertures,
     const uint32_t envelope_num_points,
     float_type* const out_envelope_at_max_sigma,
     float_type* const sigmas
 ) {
-    const uint32_t num_slices = TwissData_len_x(twiss_data);
+    const uint32_t num_slices = TwissData_len_x(twiss_at_s);
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
     G2DBeamData s_beam_data = beam_data_get_entry(beam_data);
+
+    cross_sections_at_s(
+        survey_at_s,
+        model,
+        profile_polygons,
+        aperture_bounds,
+        survey,
+        out_interpolated_apertures
+    );
 
 
     #ifdef XO_CONTEXT_CPU
@@ -377,12 +388,10 @@ void compute_max_aperture_sigma(
     {
         uint32_t bound_index = 0;
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
-        float_type s = TwissData_get_s(twiss_data, idx_slice);
+        float_type s = TwissData_get_s(twiss_at_s, idx_slice);
 
-        const G2DTwissData s_twiss_data = twiss_data_get_entry(twiss_data, idx_slice);
-
+        const G2DTwissData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
-        interpolate_profile(model, profile_polygons, aperture_bounds, bound_index, points, s);
 
         const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
         const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
@@ -558,9 +567,11 @@ static inline float_type compute_n1_for_point(
 
 void compute_horizontal_vertical_diagonal_aperture_sigmas(
     ApertureModel model,
+    SurveyData survey,
     ProfilePolygons profile_polygons,
     ApertureBounds aperture_bounds,
-    TwissData twiss_data,
+    TwissData twiss_at_s,
+    SurveyData survey_at_s,
     BeamData beam_data,
     float_type* const out_interpolated_apertures,
     float_type* const out_num_sigmas_h,
@@ -568,10 +579,19 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
     float_type* const out_num_sigmas_d
 ) {
     const float_type angles[8] = {0, M_PI / 4, M_PI / 2, 3 * M_PI / 4, M_PI, 5 * M_PI / 4, 3 * M_PI / 2, 7 * M_PI / 4};
-    const uint32_t num_slices = TwissData_len_x(twiss_data);
+    const uint32_t num_slices = TwissData_len_x(twiss_at_s);
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
     G2DBeamData s_beam_data = beam_data_get_entry(beam_data);
+
+    cross_sections_at_s(
+        survey_at_s,
+        model,
+        profile_polygons,
+        aperture_bounds,
+        survey,
+        out_interpolated_apertures
+    );
 
 
     #ifdef XO_CONTEXT_CPU
@@ -584,12 +604,10 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
-        float_type s = TwissData_get_s(twiss_data, idx_slice);
+        float_type s = TwissData_get_s(twiss_at_s, idx_slice);
 
-        const G2DTwissData s_twiss_data = twiss_data_get_entry(twiss_data, idx_slice);
-
+        const G2DTwissData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
-        interpolate_profile(model, profile_polygons, aperture_bounds, bound_index, points, s);
 
         const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
         const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
