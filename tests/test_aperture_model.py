@@ -62,7 +62,6 @@ def kernels(context):
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_from_line_with_aperture_type_bounds(test_context):
-    pass
     mad = Madx(stdout=None)
     mad.input(TOY_RING_SEQUENCE)
     env = xt.Environment.from_madx(madx=mad, enable_layout_data=True)
