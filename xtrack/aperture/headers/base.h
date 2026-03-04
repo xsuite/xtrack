@@ -10,7 +10,7 @@ typedef float float_type;
 #define M_PI 3.14159265358979323846
 #endif
 
-#define APER_PRECISION 1e-6f;
+#define APER_PRECISION 1e-6f
 
 typedef struct {
     float_type x;
