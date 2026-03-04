@@ -36,8 +36,10 @@ plt.plot(tw_rays.s, sig_rays[:, 2], label=r'diagonal envelope [$\sigma$] (rays)'
 
 # plt.plot(tw_bisect.s, sig_bisect, label=r'max envelope [$\sigma$] (bisection)', linestyle='--')
 
-plt.plot(tw_rays.s, np.max(np.abs(aper_rays[:, :, 0]), axis=1), label=r'horizontal extent [mm]')
-plt.plot(tw_rays.s, np.max(np.abs(aper_rays[:, :, 1]), axis=1), label=r'vertical extent [mm]')
+plt.plot(tw_rays.s, np.max(aper_rays[:, :, 0], axis=1), label=r'+ horizontal extent [mm]')
+plt.plot(tw_rays.s, np.min(aper_rays[:, :, 0], axis=1), label=r'- horizontal extent [mm]')
+plt.plot(tw_rays.s, np.max(aper_rays[:, :, 1], axis=1), label=r'+ vertical extent [mm]')
+plt.plot(tw_rays.s, np.min(aper_rays[:, :, 1], axis=1), label=r'- vertical extent [mm]')
 
 plt.legend()
 plt.show()

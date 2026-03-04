@@ -190,7 +190,7 @@ static inline void project_3d_polygon_to_plane(
 }
 
 
-static inline int find_best_cyclic_shift_plane(
+static inline uint32_t find_best_cyclic_shift_plane(
     const G2DPoint* p0_plane,
     const G2DPoint* p1_plane,
     const uint32_t n
@@ -198,7 +198,7 @@ static inline int find_best_cyclic_shift_plane(
 /* Find `shift` that minimises sum of squared distances between `p0[j]` and `p1[(j + shift) % n]`. */
 {
     float_type best_cost = INFINITY;
-    int best_shift = 0;
+    uint32_t best_shift = 0;
 
     for (uint32_t shift = 0; shift < n; shift++) {
         float_type cost = 0.f;
@@ -210,7 +210,7 @@ static inline int find_best_cyclic_shift_plane(
         }
         if (cost < best_cost) {
             best_cost = cost;
-            best_shift = (int)shift;
+            best_shift = shift;
         }
     }
 
@@ -297,7 +297,7 @@ void cross_sections_at_s(
         current_bound_idx = find_active_profile_for_s(aperture_bounds, s, current_bound_idx);
 
         if (current_bound_idx >= num_bounds) {
-            /* If s is outside the */
+            /* If requested s is outside of the model, give up and return NANs */
             for (uint32_t j = 0; j < num_points; j++) {
                 poly_at_s[j].x = NAN;
                 poly_at_s[j].y = NAN;
@@ -305,11 +305,15 @@ void cross_sections_at_s(
             continue;
         }
 
+        /*
+            Find the bound which either contains s or is immediately to the left of it, then store the
+            indices of the bounds on either side (snapping to [0, num_bounds) if necessary).
+        */
         const float_type s_center = ApertureBounds_get_s_positions(aperture_bounds, current_bound_idx);
-        const uint32_t idx_left = (current_bound_idx > 0) ? (current_bound_idx - 1) : current_bound_idx;
-        const uint32_t idx_right = (current_bound_idx + 1 < num_bounds) ? (current_bound_idx + 1) : current_bound_idx;
-        const int has_left = (idx_left != current_bound_idx);
-        const int has_right = (idx_right != current_bound_idx);
+        const int has_left = (current_bound_idx > 0);
+        const int has_right = (current_bound_idx + 1 < num_bounds);
+        const uint32_t idx_left = has_left ? (current_bound_idx - 1) : current_bound_idx;
+        const uint32_t idx_right = has_right ? (current_bound_idx + 1) : current_bound_idx;
 
         const G2DPoint* poly_center = NULL;
         const G2DPoint* poly_left = NULL;
@@ -324,6 +328,21 @@ void cross_sections_at_s(
             get_aperture_polygon_and_pose(model, profile_polygons, aperture_bounds, survey, idx_right, &poly_right, &pose_right);
         }
 
+        /*
+            Compute the best cyclic shift between the pairs of profiles for the purposes of interpolation.
+
+            We do this by projecting each installed profile onto the plane orthogonal to the survey at
+            the s location where the profile sits. Then we minimise the distances between the points:
+
+                dist2d(j) := \Sigma_j (poly2d[j].x - poly2d[i + j].x)^2 + (poly2d[j].y - poly2d[i + j].y)^2
+
+            Note that this is not the same as minimising
+
+                dist3d(j) := dist2d(j) + (poly[j].z - poly[i + j].z)^2
+
+            However, assuming the z-term is not significantly varying between pairs of points and/or does not
+            dominate, the following should be good enough. This is cheaper than a full 3D minimisation.
+        */
         G2DPoint poly_center_plane[num_points];
         G2DPoint poly_left_plane[num_points];
         G2DPoint poly_right_plane[num_points];
@@ -336,10 +355,11 @@ void cross_sections_at_s(
             continue;
         }
 
-        const int shift_center_left = has_left ? find_best_cyclic_shift_plane(poly_center_plane, poly_left_plane, num_points) : 0;
-        const int shift_center_right = has_right ? find_best_cyclic_shift_plane(poly_center_plane, poly_right_plane, num_points) : 0;
-        const int prefer_right = (s >= s_center);
+        const uint32_t shift_center_left = has_left ? find_best_cyclic_shift_plane(poly_center_plane, poly_left_plane, num_points) : 0;
+        const uint32_t shift_center_right = has_right ? find_best_cyclic_shift_plane(poly_center_plane, poly_right_plane, num_points) : 0;
+        const char prefer_right = (s >= s_center);
 
+        /* Interpolate */
         for (uint32_t j = 0; j < num_points; j++) {
             int has_intersection = 0;
             G2DPoint hit_point_plane = (G2DPoint){ .x = NAN, .y = NAN };
@@ -348,13 +368,13 @@ void cross_sections_at_s(
             for (uint32_t attempt = 0; attempt < 2 && !has_intersection; attempt++) {
                 const int use_right = (attempt == 0) ? prefer_right : !prefer_right;
                 if (use_right && has_right) {
-                    const uint32_t idx_right_shifted = (uint32_t)((j + (uint32_t)shift_center_right) % num_points);
+                    const uint32_t idx_right_shifted = (j + shift_center_right) % num_points;
                     const Point3D point_a_world = pose_apply_point(pose_center, (Point3D){ poly_center[j].x, poly_center[j].y, 0.f });
                     const Point3D point_b_world = pose_apply_point(pose_right, (Point3D){ poly_right[idx_right_shifted].x, poly_right[idx_right_shifted].y, 0.f });
                     has_intersection = intersect_segment_with_plane_and_project_xy(
                         point_a_world, point_b_world, plane_in_world, world_in_plane, &hit_point_plane);
                 } else if (!use_right && has_left) {
-                    const uint32_t idx_left_shifted = (uint32_t)((j + (uint32_t)shift_center_left) % num_points);
+                    const uint32_t idx_left_shifted = (j + shift_center_left) % num_points;
                     const Point3D point_a_world = pose_apply_point(pose_left, (Point3D){ poly_left[idx_left_shifted].x, poly_left[idx_left_shifted].y, 0.f });
                     const Point3D point_b_world = pose_apply_point(pose_center, (Point3D){ poly_center[j].x, poly_center[j].y, 0.f });
                     has_intersection = intersect_segment_with_plane_and_project_xy(
