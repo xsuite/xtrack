@@ -315,6 +315,39 @@ void interpolate_profile(
     memcpy(points, poly, 2 * num_points * sizeof(float_type));
 }
 
+static inline G2DBeamData beam_data_get_entry(const BeamData beam_data)
+{
+    return (G2DBeamData){
+        .emitx_norm = BeamData_get_emitx_norm(beam_data),
+        .emity_norm = BeamData_get_emity_norm(beam_data),
+        .delta_rms = BeamData_get_delta_rms(beam_data),
+        .tol_co = BeamData_get_tol_co(beam_data),
+        .tol_disp = BeamData_get_tol_disp(beam_data),
+        .tol_disp_ref_dx = BeamData_get_tol_disp_ref_dx(beam_data),
+        .tol_disp_ref_beta = BeamData_get_tol_disp_ref_beta(beam_data),
+        .tol_energy = BeamData_get_tol_energy(beam_data),
+        .tol_beta_beating = BeamData_get_tol_beta_beating(beam_data),
+        .halo_x = BeamData_get_halo_x(beam_data),
+        .halo_y = BeamData_get_halo_y(beam_data),
+        .halo_r = BeamData_get_halo_r(beam_data),
+        .halo_primary = BeamData_get_halo_primary(beam_data),
+    };
+}
+
+static inline G2DTwissData twiss_data_get_entry(const TwissData twiss_data, const uint32_t idx_slice)
+{
+    return (G2DTwissData){
+        .x = TwissData_get_x(twiss_data, idx_slice),
+        .y = TwissData_get_y(twiss_data, idx_slice),
+        .betx = TwissData_get_betx(twiss_data, idx_slice),
+        .bety = TwissData_get_bety(twiss_data, idx_slice),
+        .dx = TwissData_get_dx(twiss_data, idx_slice),
+        .dy = TwissData_get_dy(twiss_data, idx_slice),
+        .delta = TwissData_get_delta(twiss_data, idx_slice),
+        .gamma = TwissData_get_gamma(twiss_data),
+    };
+}
+
 
 void compute_max_aperture_sigma(
     ApertureModel model,
@@ -330,21 +363,7 @@ void compute_max_aperture_sigma(
     const uint32_t num_slices = TwissData_len_x(twiss_data);
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
-    G2DBeamData s_beam_data = {
-        .emitx_norm = BeamData_get_emitx_norm(beam_data),
-        .emity_norm = BeamData_get_emity_norm(beam_data),
-        .delta_rms = BeamData_get_delta_rms(beam_data),
-        .tol_co = BeamData_get_tol_co(beam_data),
-        .tol_disp = BeamData_get_tol_disp(beam_data),
-        .tol_disp_ref_dx = BeamData_get_tol_disp_ref_dx(beam_data),
-        .tol_disp_ref_beta = BeamData_get_tol_disp_ref_beta(beam_data),
-        .tol_energy = BeamData_get_tol_energy(beam_data),
-        .tol_beta_beating = BeamData_get_tol_beta_beating(beam_data),
-        .halo_x = BeamData_get_halo_x(beam_data),
-        .halo_y = BeamData_get_halo_y(beam_data),
-        .halo_r = BeamData_get_halo_r(beam_data),
-        .halo_primary = BeamData_get_halo_primary(beam_data)
-    };
+    G2DBeamData s_beam_data = beam_data_get_entry(beam_data);
 
 
     #ifdef XO_CONTEXT_CPU
@@ -360,16 +379,7 @@ void compute_max_aperture_sigma(
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_data, idx_slice);
 
-        const G2DTwissData s_twiss_data = {
-            .x = TwissData_get_x(twiss_data, idx_slice),
-            .y = TwissData_get_y(twiss_data, idx_slice),
-            .betx = TwissData_get_betx(twiss_data, idx_slice),
-            .bety = TwissData_get_bety(twiss_data, idx_slice),
-            .dx = TwissData_get_dx(twiss_data, idx_slice),
-            .dy = TwissData_get_dy(twiss_data, idx_slice),
-            .delta = TwissData_get_delta(twiss_data, idx_slice),
-            .gamma = TwissData_get_gamma(twiss_data)
-        };
+        const G2DTwissData s_twiss_data = twiss_data_get_entry(twiss_data, idx_slice);
 
         bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
         interpolate_profile(model, profile_polygons, aperture_bounds, bound_index, points, s);
@@ -424,21 +434,7 @@ void compute_beam_envelopes_at_sigma(
     const uint32_t num_slices = TwissData_len_x(twiss_data);
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
-    G2DBeamData s_beam_data = {
-        .emitx_norm = BeamData_get_emitx_norm(beam_data),
-        .emity_norm = BeamData_get_emity_norm(beam_data),
-        .delta_rms = BeamData_get_delta_rms(beam_data),
-        .tol_co = BeamData_get_tol_co(beam_data),
-        .tol_disp = BeamData_get_tol_disp(beam_data),
-        .tol_disp_ref_dx = BeamData_get_tol_disp_ref_dx(beam_data),
-        .tol_disp_ref_beta = BeamData_get_tol_disp_ref_beta(beam_data),
-        .tol_energy = BeamData_get_tol_energy(beam_data),
-        .tol_beta_beating = BeamData_get_tol_beta_beating(beam_data),
-        .halo_x = BeamData_get_halo_x(beam_data),
-        .halo_y = BeamData_get_halo_y(beam_data),
-        .halo_r = BeamData_get_halo_r(beam_data),
-        .halo_primary = BeamData_get_halo_primary(beam_data)
-    };
+    G2DBeamData s_beam_data = beam_data_get_entry(beam_data);
 
 
     #ifdef XO_CONTEXT_CPU
@@ -454,16 +450,7 @@ void compute_beam_envelopes_at_sigma(
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_data, idx_slice);
 
-        const G2DTwissData s_twiss_data = {
-            .x = TwissData_get_x(twiss_data, idx_slice),
-            .y = TwissData_get_y(twiss_data, idx_slice),
-            .betx = TwissData_get_betx(twiss_data, idx_slice),
-            .bety = TwissData_get_bety(twiss_data, idx_slice),
-            .dx = TwissData_get_dx(twiss_data, idx_slice),
-            .dy = TwissData_get_dy(twiss_data, idx_slice),
-            .delta = TwissData_get_delta(twiss_data, idx_slice),
-            .gamma = TwissData_get_gamma(twiss_data)
-        };
+        const G2DTwissData s_twiss_data = twiss_data_get_entry(twiss_data, idx_slice);
 
         bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
         interpolate_profile(model, profile_polygons, aperture_bounds, bound_index, points, s);
@@ -584,21 +571,7 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
     const uint32_t num_slices = TwissData_len_x(twiss_data);
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
-    G2DBeamData s_beam_data = {
-        .emitx_norm = BeamData_get_emitx_norm(beam_data),
-        .emity_norm = BeamData_get_emity_norm(beam_data),
-        .delta_rms = BeamData_get_delta_rms(beam_data),
-        .tol_co = BeamData_get_tol_co(beam_data),
-        .tol_disp = BeamData_get_tol_disp(beam_data),
-        .tol_disp_ref_dx = BeamData_get_tol_disp_ref_dx(beam_data),
-        .tol_disp_ref_beta = BeamData_get_tol_disp_ref_beta(beam_data),
-        .tol_energy = BeamData_get_tol_energy(beam_data),
-        .tol_beta_beating = BeamData_get_tol_beta_beating(beam_data),
-        .halo_x = BeamData_get_halo_x(beam_data),
-        .halo_y = BeamData_get_halo_y(beam_data),
-        .halo_r = BeamData_get_halo_r(beam_data),
-        .halo_primary = BeamData_get_halo_primary(beam_data)
-    };
+    G2DBeamData s_beam_data = beam_data_get_entry(beam_data);
 
 
     #ifdef XO_CONTEXT_CPU
@@ -613,16 +586,7 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_data, idx_slice);
 
-        const G2DTwissData s_twiss_data = {
-            .x = TwissData_get_x(twiss_data, idx_slice),
-            .y = TwissData_get_y(twiss_data, idx_slice),
-            .betx = TwissData_get_betx(twiss_data, idx_slice),
-            .bety = TwissData_get_bety(twiss_data, idx_slice),
-            .dx = TwissData_get_dx(twiss_data, idx_slice),
-            .dy = TwissData_get_dy(twiss_data, idx_slice),
-            .delta = TwissData_get_delta(twiss_data, idx_slice),
-            .gamma = TwissData_get_gamma(twiss_data)
-        };
+        const G2DTwissData s_twiss_data = twiss_data_get_entry(twiss_data, idx_slice);
 
         bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
         interpolate_profile(model, profile_polygons, aperture_bounds, bound_index, points, s);
