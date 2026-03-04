@@ -323,7 +323,14 @@ void cross_sections_at_s(
 
         const int best_shift = find_best_cyclic_shift_plane(p0_plane, p1_plane, num_points);
 
-        /* Step 4-6: intersect each connecting segment with the plane; NaN if any intersection fails */
+        /* Step 4-6: intersect each connecting segment with the plane.
+           If intersection fails for a point, fall back to plane-space interpolation. */
+        const float_type ds = s1 - s0;
+        float_type u = 0.f;
+        if (fabs(ds) > eps) {
+            u = geom2d_clamp((s - s0) / ds, 0.f, 1.f);
+        }
+
         for (uint32_t j = 0; j < num_points; j++) {
             const uint32_t k = (uint32_t)((j + (uint32_t)best_shift) % num_points);
 
@@ -338,8 +345,14 @@ void cross_sections_at_s(
                 a_world, b_world, plane_in_world, world_in_plane, &hit_xy);
 
             if (!ok) {
-                poly_at_s[j].x = NAN;
-                poly_at_s[j].y = NAN;
+                if (fabs(s - s0) < eps) {
+                    poly_at_s[j] = p0_plane[j];
+                } else if (fabs(s - s1) < eps) {
+                    poly_at_s[j] = p1_plane[k];
+                } else {
+                    poly_at_s[j].x = (1.f - u) * p0_plane[j].x + u * p1_plane[k].x;
+                    poly_at_s[j].y = (1.f - u) * p0_plane[j].y + u * p1_plane[k].y;
+                }
             } else {
                 poly_at_s[j] = hit_xy;
             }

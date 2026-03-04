@@ -77,7 +77,21 @@ float_type dist_along_segment_where_plane_intersects(LineSegment3D segment, Pose
 
     const float_type n_dot_ab = (n_dot_tb - n_dot_ta);  /* n * (B - A), by the distributive property of dot product */
 
-    if (fabs(n_dot_ab) < eps) return NAN;  // The segment and the plane are parallel (co-planar or no intersection)
+    if (fabs(n_dot_ab) < eps) {
+        /*
+            Segment is parallel (or near-parallel) to the plane.
+            If an endpoint lies on the plane within tolerance, use that endpoint to avoid
+            spurious NaNs from numerical noise.
+        */
+        const int a_on_plane = fabs(n_dot_ta) < eps;
+        const int b_on_plane = fabs(n_dot_tb) < eps;
+
+        if (a_on_plane && b_on_plane) return 0.f;
+        if (a_on_plane) return 0.f;
+        if (b_on_plane) return 1.f;
+
+        return NAN;
+    }
 
     return -n_dot_ta / n_dot_ab;
 }
