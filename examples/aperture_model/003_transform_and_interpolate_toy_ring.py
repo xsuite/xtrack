@@ -6,59 +6,40 @@ from xtrack.aperture.aperture import Aperture, transform_matrix
 from xtrack.aperture.structures import ApertureModel, ApertureType, Circle, Profile, ProfilePosition, Rectangle, TypePosition
 
 
-env = xt.Environment()
+TOY_RING_SEQUENCE = """
+    ! Toy Ring, 4 arcs
 
-l = 1
-dx = 1
-angle = np.deg2rad(30)
-l_straight = dx / np.sin(angle / 2)
-rho = 0.5 * l_straight / np.sin(angle / 2)
-l_curv = rho * angle
+    l_arc = 3;  ! length of the arc
+    l_quad = 0.3;  ! length of the quads
+    l_drift = 1;  ! length of the straight section drifts
 
-drift = env.new('drift', xt.Drift, length=l)
-rot_plus = env.new('rot_plus', xt.Bend, length=l_curv, angle=angle, k0=0)
-rot_minus = env.new('rot_minus', xt.Bend, length=l_curv, angle=-angle, k0=0)
+    qf = 0.1;  ! qf strength
+    qd = -0.7;  ! qd strength
+    angle_arc = pi / 2;  ! arcs 90°
 
-line = env.new_line(
-    name='line',
-    components=[drift, rot_plus, drift, drift, rot_minus, drift],
-)
+    mb: sbend, angle = angle_arc, l = l_arc, apertype=circle, aperture={0.1}, aper_offset={0.003, 0};
+    mqf: quadrupole, k1 = qf, l = l_quad, apertype=rectangle, aperture={0.08, 0.04};
+    mqd: quadrupole, k1 = qd, l = l_quad, apertype=ellipse, aperture={0.04, 0.08};
+    ds: drift, l = l_drift;
+    ap_ds: marker, apertype=rectellipse, aperture={0.022, 0.01715, 0.022, 0.022}, aper_tol={9e-4, 8e-4, 5e-4};
+    dsa: line = (ap_ds, ds, ap_ds);
 
-sv = line.survey()
+    ss_f: line = (dsa, mqf, dsa);
+    ss_d: line = (dsa, mqd, dsa);
 
-circle = Circle(radius=2)
-rectangle = Rectangle(half_width=2, half_height=1)
+    ring: line = (ss_f, mb, ss_d, mb, ss_f, mb, ss_d, mb);
 
-profiles = [
-    Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
-    Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
-]
+    beam, particle=proton, pc=1.2e9;
+    use, period=ring;
+"""
 
-types = [
-    ApertureType(curvature=0., positions=[
-        ProfilePosition(profile_index=1, s_position=0, rot_s=np.deg2rad(15)),
-        ProfilePosition(profile_index=1, s_position=5.5, rot_s=np.deg2rad(90)),
-        ProfilePosition(profile_index=0, s_position=11, rot_x=np.deg2rad(10)),
-    ]),
-]
+env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
+env.set_particle_ref('proton', p0c=1.2e9)
+ring = env['ring']
 
-type_positions = [
-    TypePosition(
-        type_index=0,
-        survey_reference_name='drift::0',
-        survey_index=sv.name.tolist().index('drift::0'),
-        transformation=transform_matrix(dx=-1.5),
-    ),
-]
+aper = Aperture.from_line_with_associated_apertures(ring)
 
-model = ApertureModel(
-    line_name='line',
-    type_positions=type_positions,
-    types=types,
-    profiles=profiles,
-    type_names=['type0'],
-    profile_names=['circle', 'rectangle'],
-)
+sv = ring.survey()
 
 ax = plt.figure().add_subplot(projection='3d')
 ax.plot(sv.Z, sv.X, sv.Y, c='b')
@@ -67,8 +48,6 @@ ax.set_ylabel('X [m]')
 ax.set_zlabel('Y [m]')
 
 ax.auto_scale_xyz([0, 12], [-6, 6], [-6, 6])
-
-aper = Aperture(line, model)
 
 
 def matrix_from_survey_point(sv_row):
@@ -136,7 +115,7 @@ def poses_at_s(line, s_positions):
 s_for_cuts = np.linspace(1, 11, 20)
 profiles, poses = aper.cross_sections_at_s(s_for_cuts)
 
-expected_poses = poses_at_s(line, s_for_cuts)
+expected_poses = poses_at_s(ring, s_for_cuts)
 xo.assert_allclose(poses, expected_poses, atol=1e-6, rtol=1e-6)
 
 for idx, s in enumerate(s_for_cuts):
