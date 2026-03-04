@@ -148,8 +148,6 @@ class Aperture:
                 continue
 
             offset_data = aperture_offsets.get(aper_name, {})
-            if offset_data:
-                print(f'INFO: offset data is present for {aper_name}')
 
             if aper_name not in aperture_indices:
                 shape_name, params, tols = element_metadata['aperture']
