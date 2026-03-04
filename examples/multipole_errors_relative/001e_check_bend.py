@@ -18,8 +18,6 @@ el_test = xt.Bend(length=0.2,
                   ksl=ksl,
                   knl_rel=knl_rel,
                   ksl_rel=ksl_rel)
-el_test.integrator = 'uniform'
-el_test.num_multipole_kicks = 1
 
 
 xo.assert_allclose(el_test.main_strength, 0.01, rtol=0, atol=1e-12)
@@ -37,15 +35,11 @@ xo.assert_allclose(ksl_tot, expected_ksl, rtol=0, atol=1e-12)
 expected_knl[0] -= el_test._k0 * el_test.length
 
 el_ref = xt.Bend(length=0.2, knl=expected_knl, ksl=expected_ksl, angle=0.01)
-el_ref.integrator = 'uniform'
-el_ref.num_multipole_kicks = 1
 
 p0 = xt.Particles(p0c=1e9, x=1e-2, y=2e-2)
 
 p_test = p0.copy()
 el_test.track(p_test)
-
-print('-----')
 
 p_ref = p0.copy()
 el_ref.track(p_ref)

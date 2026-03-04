@@ -63,8 +63,6 @@ void track_magnet_kick_single_particle(
     }
 
     // multipolar kick
-    printf("px before kick: %.14e\n", LocalParticle_get_px(part));
-    printf("Absolute knl: %e, ksl: %e\n", knl[0], ksl[0]);
     kick_simple_single_particle(
         part,
         order,
@@ -74,11 +72,8 @@ void track_magnet_kick_single_particle(
         factor_knl_ksl,
         kick_weight
     );
-    printf("px after absolute kick: %.14e\n", LocalParticle_get_px(part));
 
     // multipolar kick
-    printf("Relative knl: %e, ksl: %e\n", knl_rel[0], ksl_rel[0]);
-    printf("rel_ref_strength: %e\n", rel_ref_strength);
     kick_simple_single_particle(
         part,
         order_rel,
@@ -88,7 +83,6 @@ void track_magnet_kick_single_particle(
         factor_knl_ksl * rel_ref_strength,
         kick_weight
     );
-    printf("px after relative kick: %.14e\n", LocalParticle_get_px(part));
 
     kick_simple_single_particle(
         part,
@@ -145,8 +139,6 @@ void track_magnet_kick_single_particle(
     LocalParticle_add_to_px(part, dpx);
     LocalParticle_add_to_py(part, dpy);
     LocalParticle_add_to_zeta(part, dzeta);
-
-    printf("px after curvature correction: %.14e\n", LocalParticle_get_px(part));
 
 }
 
