@@ -3,6 +3,22 @@ import xobjects as xo
 import numpy as np
 import pytest
 
+
+def _assert_spin_tracking_matches(line_test, line_ref):
+    for line in (line_test, line_ref):
+        line.set_particle_ref(
+            'positron', p0c=1e9, anomalous_magnetic_moment=0.00115965218128)
+
+    tw_test = line_test.twiss(
+        spin=True, x=1e-2, y=2e-2, spin_y=1, betx=1, bety=1)
+    tw_ref = line_ref.twiss(
+        spin=True, x=1e-2, y=2e-2, spin_y=1, betx=1, bety=1)
+
+    xo.assert_allclose(tw_test.spin_x, tw_ref.spin_x, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_test.spin_y, tw_ref.spin_y, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw_test.spin_z, tw_ref.spin_z, rtol=0, atol=1e-10)
+
+
 @pytest.mark.parametrize("main_is_skew", [True, False])
 def test_knl_rel_ksl_rel_quadrupole(main_is_skew):
 
@@ -128,6 +144,10 @@ def test_knl_rel_ksl_rel_quadrupole(main_is_skew):
     xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
     xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
     xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
+
+    _assert_spin_tracking_matches(line_test, line_ref)
+    _assert_spin_tracking_matches(line_test_slice_thick, line_ref_slice_thick)
+    _assert_spin_tracking_matches(line_test_slice_thin, line_ref_slice_thin)
 
 @pytest.mark.parametrize("main_is_skew", [True, False])
 def test_knl_rel_ksl_rel_sextupole(main_is_skew):
@@ -255,6 +275,10 @@ def test_knl_rel_ksl_rel_sextupole(main_is_skew):
     xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
     xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
 
+    _assert_spin_tracking_matches(line_test, line_ref)
+    _assert_spin_tracking_matches(line_test_slice_thick, line_ref_slice_thick)
+    _assert_spin_tracking_matches(line_test_slice_thin, line_ref_slice_thin)
+
 @pytest.mark.parametrize("main_is_skew", [True, False])
 def test_knl_rel_ksl_rel_octupole(main_is_skew):
 
@@ -381,6 +405,10 @@ def test_knl_rel_ksl_rel_octupole(main_is_skew):
     xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
     xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
 
+    _assert_spin_tracking_matches(line_test, line_ref)
+    _assert_spin_tracking_matches(line_test_slice_thick, line_ref_slice_thick)
+    _assert_spin_tracking_matches(line_test_slice_thin, line_ref_slice_thin)
+
 @pytest.mark.parametrize("main_is_skew", [True, False])
 def test_knl_rel_ksl_rel_multipole(main_is_skew):
 
@@ -500,6 +528,10 @@ def test_knl_rel_ksl_rel_multipole(main_is_skew):
     xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
     xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
 
+    _assert_spin_tracking_matches(line_test, line_ref)
+    _assert_spin_tracking_matches(line_test_slice_thick, line_ref_slice_thick)
+    _assert_spin_tracking_matches(line_test_slice_thin, line_ref_slice_thin)
+
 def test_knl_rel_ksl_rel_bend():
 
     knl = np.array([0.001, 1e-3, 2e-2])
@@ -618,6 +650,10 @@ def test_knl_rel_ksl_rel_bend():
     xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
     xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
 
+    _assert_spin_tracking_matches(line_test, line_ref)
+    _assert_spin_tracking_matches(line_test_slice_thick, line_ref_slice_thick)
+    _assert_spin_tracking_matches(line_test_slice_thin, line_ref_slice_thin)
+
 def test_knl_rel_ksl_rel_rbend():
 
     knl = np.array([0.001, 1e-3, 2e-2])
@@ -735,3 +771,7 @@ def test_knl_rel_ksl_rel_rbend():
     xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)
     xo.assert_allclose(p_test.px, p_ref.px, rtol=0, atol=1e-13)
     xo.assert_allclose(p_test.py, p_ref.py, rtol=0, atol=1e-13)
+
+    _assert_spin_tracking_matches(line_test, line_ref)
+    _assert_spin_tracking_matches(line_test_slice_thick, line_ref_slice_thick)
+    _assert_spin_tracking_matches(line_test_slice_thin, line_ref_slice_thin)

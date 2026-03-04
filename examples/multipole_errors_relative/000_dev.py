@@ -13,6 +13,7 @@ import xtrack as xt
 # - Remove rel_ref_is_skew from bends
 # - RDT calculation
 # - Radiation integrals
+# - Polarization calculation
 # - Backtracking
 
 m = xt.Multipole(knl=[1e-3], ksl=[2e-3])
