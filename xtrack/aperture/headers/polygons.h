@@ -42,6 +42,7 @@ static inline void build_polygon_polygon(G2DPoint *const, const uint32_t, const 
 
 static inline uint32_t find_aperture_info_bisection(const ApertureBounds, const float_type s);
 static inline uint32_t find_aperture_info_linear(const ApertureBounds, const float_type s, const uint32_t lower_bound);
+static inline uint32_t find_active_profile_for_s(const ApertureBounds, const float_type s, const uint32_t lower_bound);
 
 
 void build_profile_polygons(
@@ -234,7 +235,27 @@ static inline int intersect_segment_with_plane_and_project_xy(
 
     const float_type t = dist_along_segment_where_plane_intersects(seg, plane_in_world);
 
-    if (!isfinite(t)) return 0;
+    if (!isfinite(t)) {
+        /*
+            Near-parallel case: if an endpoint is already on the target plane within tolerance,
+            use that endpoint rather than dropping the point.
+        */
+        const Point3D a_plane = pose_apply_point(world_in_plane, a_world);
+        if (fabs(a_plane.z) <= eps) {
+            out_xy_plane->x = a_plane.x;
+            out_xy_plane->y = a_plane.y;
+            return 1;
+        }
+
+        const Point3D b_plane = pose_apply_point(world_in_plane, b_world);
+        if (fabs(b_plane.z) <= eps) {
+            out_xy_plane->x = b_plane.x;
+            out_xy_plane->y = b_plane.y;
+            return 1;
+        }
+
+        return 0;
+    }
     if (t < -eps || (1.f + eps) < t) return 0;
 
     const float_type tt = geom2d_clamp(t, 0.f, 1.f);
@@ -271,91 +292,70 @@ void cross_sections_at_s(
         /* Plane at this s (from the resampled survey table) */
         const Pose plane_in_world = pose_matrix_from_survey(survey_at_s, i);
         const Pose world_in_plane = pose_inverse_rigid(plane_in_world);
-
-        /* Find bracketing installed aperture entries */
-        const uint32_t idx0 = find_aperture_info_for_s(aperture_bounds, s, aper_info_idx);
-        const uint32_t idx1 = (idx0 + 1 < num_apertures) ? (idx0 + 1) : idx0;
-
-        const float_type s0 = ApertureBounds_get_s_positions(aperture_bounds, idx0);
-        const float_type s1 = ApertureBounds_get_s_positions(aperture_bounds, idx1);
-
-        /* Fetch polygon+pose for idx0/idx1 as needed */
-        const G2DPoint* poly0 = NULL;
-        const G2DPoint* poly1 = NULL;
-        Pose pose0, pose1;
-
-        get_aperture_polygon_and_pose(model, profile_polygons, aperture_bounds, survey, idx0, &poly0, &pose0);
-        if (idx1 != idx0) {
-            get_aperture_polygon_and_pose(model, profile_polygons, aperture_bounds, survey, idx1, &poly1, &pose1);
-        }
-
-        /*
-            If s matches an installed profile, we can compute the cross-section by direct projection
-            (no interpolation).
-        */
-        if (fabs(s - s0) < eps) {
-            project_3d_polygon_to_plane(poly0, pose0, world_in_plane, num_points, poly_at_s);
-            continue;
-        }
-        if (idx1 != idx0 && fabs(s - s1) < eps) {
-            project_3d_polygon_to_plane(poly1, pose1, world_in_plane, num_points, poly_at_s);
-            continue;
-        }
-
-        /*
-            Otherwise we require a valid bracketing interval. We do not extrapolate:
-            if s is outside [s0, s1], return NaNs.
-        */
-        if (idx1 == idx0 || s < (s0 - eps) || (s1 + eps) < s) {
-            for (uint32_t i = 0; i < num_points; i++) {
-                poly_at_s[i].x = NAN;
-                poly_at_s[i].y = NAN;
+        const uint32_t idxc = find_active_profile_for_s(aperture_bounds, s, aper_info_idx);
+        if (idxc >= num_apertures) {
+            for (uint32_t j = 0; j < num_points; j++) {
+                poly_at_s[j].x = NAN;
+                poly_at_s[j].y = NAN;
             }
             continue;
         }
+        aper_info_idx = idxc;
 
-        /* Step 2+3: project both polygons into plane frame and choose best cyclic shift */
-        G2DPoint p0_plane[num_points];
-        G2DPoint p1_plane[num_points];
+        const float_type sc = ApertureBounds_get_s_positions(aperture_bounds, idxc);
+        const uint32_t idxl = (idxc > 0) ? (idxc - 1) : idxc;
+        const uint32_t idxr = (idxc + 1 < num_apertures) ? (idxc + 1) : idxc;
+        const int has_left = (idxl != idxc);
+        const int has_right = (idxr != idxc);
 
-        project_3d_polygon_to_plane(poly0, pose0, world_in_plane, num_points, p0_plane);
-        project_3d_polygon_to_plane(poly1, pose1, world_in_plane, num_points, p1_plane);
+        const G2DPoint* polyc = NULL;
+        const G2DPoint* polyl = NULL;
+        const G2DPoint* polyr = NULL;
+        Pose posec, posel, poser;
 
-        const int best_shift = find_best_cyclic_shift_plane(p0_plane, p1_plane, num_points);
+        get_aperture_polygon_and_pose(model, profile_polygons, aperture_bounds, survey, idxc, &polyc, &posec);
+        if (has_left) get_aperture_polygon_and_pose(model, profile_polygons, aperture_bounds, survey, idxl, &polyl, &posel);
+        if (has_right) get_aperture_polygon_and_pose(model, profile_polygons, aperture_bounds, survey, idxr, &polyr, &poser);
 
-        /* Step 4-6: intersect each connecting segment with the plane.
-           If intersection fails for a point, fall back to plane-space interpolation. */
-        const float_type ds = s1 - s0;
-        float_type u = 0.f;
-        if (fabs(ds) > eps) {
-            u = geom2d_clamp((s - s0) / ds, 0.f, 1.f);
+        G2DPoint pc_plane[num_points];
+        G2DPoint pl_plane[num_points];
+        G2DPoint pr_plane[num_points];
+        project_3d_polygon_to_plane(polyc, posec, world_in_plane, num_points, pc_plane);
+        if (has_left) project_3d_polygon_to_plane(polyl, posel, world_in_plane, num_points, pl_plane);
+        if (has_right) project_3d_polygon_to_plane(polyr, poser, world_in_plane, num_points, pr_plane);
+
+        if (fabs(s - sc) < eps) {
+            for (uint32_t j = 0; j < num_points; j++) poly_at_s[j] = pc_plane[j];
+            continue;
         }
+
+        const int shift_cl = has_left ? find_best_cyclic_shift_plane(pc_plane, pl_plane, num_points) : 0;
+        const int shift_cr = has_right ? find_best_cyclic_shift_plane(pc_plane, pr_plane, num_points) : 0;
+        const int prefer_right = (s >= sc);
 
         for (uint32_t j = 0; j < num_points; j++) {
-            const uint32_t k = (uint32_t)((j + (uint32_t)best_shift) % num_points);
+            int ok = 0;
+            G2DPoint hit_xy = (G2DPoint){ .x = NAN, .y = NAN };
 
-            const Point3D a_local = (Point3D){ poly0[j].x, poly0[j].y, 0.f };
-            const Point3D b_local = (Point3D){ poly1[k].x, poly1[k].y, 0.f };
-
-            const Point3D a_world = pose_apply_point(pose0, a_local);
-            const Point3D b_world = pose_apply_point(pose1, b_local);
-
-            G2DPoint hit_xy;
-            const int ok = intersect_segment_with_plane_and_project_xy(
-                a_world, b_world, plane_in_world, world_in_plane, &hit_xy);
-
-            if (!ok) {
-                if (fabs(s - s0) < eps) {
-                    poly_at_s[j] = p0_plane[j];
-                } else if (fabs(s - s1) < eps) {
-                    poly_at_s[j] = p1_plane[k];
-                } else {
-                    poly_at_s[j].x = (1.f - u) * p0_plane[j].x + u * p1_plane[k].x;
-                    poly_at_s[j].y = (1.f - u) * p0_plane[j].y + u * p1_plane[k].y;
+            /* Try the geometrically expected side first, then the opposite side */
+            for (uint32_t attempt = 0; attempt < 2 && !ok; attempt++) {
+                const int use_right = (attempt == 0) ? prefer_right : !prefer_right;
+                if (use_right && has_right) {
+                    const uint32_t kr = (uint32_t)((j + (uint32_t)shift_cr) % num_points);
+                    const Point3D a_world = pose_apply_point(posec, (Point3D){ polyc[j].x, polyc[j].y, 0.f });
+                    const Point3D b_world = pose_apply_point(poser, (Point3D){ polyr[kr].x, polyr[kr].y, 0.f });
+                    ok = intersect_segment_with_plane_and_project_xy(
+                        a_world, b_world, plane_in_world, world_in_plane, &hit_xy);
+                } else if (!use_right && has_left) {
+                    const uint32_t kl = (uint32_t)((j + (uint32_t)shift_cl) % num_points);
+                    const Point3D a_world = pose_apply_point(posel, (Point3D){ polyl[kl].x, polyl[kl].y, 0.f });
+                    const Point3D b_world = pose_apply_point(posec, (Point3D){ polyc[j].x, polyc[j].y, 0.f });
+                    ok = intersect_segment_with_plane_and_project_xy(
+                        a_world, b_world, plane_in_world, world_in_plane, &hit_xy);
                 }
-            } else {
-                poly_at_s[j] = hit_xy;
             }
+
+            poly_at_s[j] = ok ? hit_xy : pc_plane[j];
         }
     }
 }
@@ -703,6 +703,58 @@ static inline uint32_t find_aperture_info_linear(
         }
     }
     return found_idx;
+}
+
+
+static inline uint32_t find_active_profile_for_s(
+    const ApertureBounds aperture_bounds,
+    const float_type target_s,
+    const uint32_t lower_bound
+)
+/*
+    Find a profile whose [s_start, s_end] interval contains target_s.
+    If multiple intervals contain target_s, choose the profile with s_position closest to target_s.
+*/
+{
+    const float_type eps = APER_PRECISION;
+    const uint32_t num_apertures = ApertureBounds_get_count(aperture_bounds);
+    if (num_apertures == 0) return 0;
+
+    uint32_t idx = lower_bound;
+    if (idx >= num_apertures) idx = num_apertures - 1;
+
+    while (idx + 1 < num_apertures &&
+           ApertureBounds_get_s_end(aperture_bounds, idx) + eps < target_s) {
+        idx++;
+    }
+
+    uint32_t best_idx = num_apertures;
+    float_type best_dist = INFINITY;
+
+    for (uint32_t k = idx; k < num_apertures; k++) {
+        const float_type s_start = ApertureBounds_get_s_start(aperture_bounds, k);
+        if (s_start - eps > target_s) break;
+
+        const float_type s_end = ApertureBounds_get_s_end(aperture_bounds, k);
+        if (target_s <= s_end + eps) {
+            const float_type sk = ApertureBounds_get_s_positions(aperture_bounds, k);
+            const float_type dist = fabs(target_s - sk);
+            if (dist < best_dist) {
+                best_dist = dist;
+                best_idx = k;
+            }
+        }
+    }
+
+    if (best_idx < num_apertures) return best_idx;
+
+    /* Fallback: choose nearest installed profile by s_position around idx */
+    if (idx + 1 < num_apertures) {
+        const float_type d0 = fabs(target_s - ApertureBounds_get_s_positions(aperture_bounds, idx));
+        const float_type d1 = fabs(target_s - ApertureBounds_get_s_positions(aperture_bounds, idx + 1));
+        return (d1 < d0) ? (idx + 1) : idx;
+    }
+    return idx;
 }
 
 #endif /* XTRACK_POLYGONS_H */
