@@ -2,15 +2,10 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 
-# knl = np.array([0.001, 1e-3, 2e-2, 3e-2, 4, 50])
-# ksl = np.array([0.002, 2e-3, 3e-2, 4e-2, 5, 60])
-# knl_rel = np.array([1, 20, 30, 400, 50000, 6000000])
-# ksl_rel = np.array([2, 40, 60, 800, 100000, 1200000])
-
-knl = np.array([0.01*0.1, 0, 0, 0, 0, 0])
-ksl = np.array([0, 0, 0, 0, 0, 0])
-knl_rel = np.array([0.1, 0, 0, 0, 0, 0])
-ksl_rel = np.array([0, 0, 0, 0, 0, 0])
+knl = np.array([0.001, 1e-3, 2e-2])
+ksl = np.array([0.002, 2e-3, 3e-2])
+knl_rel = np.array([1, 20, 30, 400, 50000, 6000000])
+ksl_rel = np.array([2, 40, 60, 800, 100000])
 
 el_test = xt.Bend(length=0.2,
                   angle=0.01,
@@ -19,6 +14,10 @@ el_test = xt.Bend(length=0.2,
                   knl_rel=knl_rel,
                   ksl_rel=ksl_rel)
 
+knl = np.pad(knl, (0, 10 - len(knl)))
+ksl = np.pad(ksl, (0, 10 - len(ksl)))
+knl_rel = np.pad(knl_rel, (0, 10 - len(knl_rel)))
+ksl_rel = np.pad(ksl_rel, (0, 10 - len(ksl_rel)))
 
 xo.assert_allclose(el_test.main_strength, 0.01, rtol=0, atol=1e-12)
 
@@ -28,6 +27,9 @@ expected_ksl = ksl + ksl_rel * el_test.main_strength
 expected_knl[0] += el_test._k0 * el_test.length
 
 knl_tot, ksl_tot = el_test.get_total_knl_ksl()
+
+knl_tot = np.pad(knl_tot, (0, 10 - len(knl_tot)))
+ksl_tot = np.pad(ksl_tot, (0, 10 - len(ksl_tot)))
 
 xo.assert_allclose(knl_tot, expected_knl, rtol=0, atol=1e-12)
 xo.assert_allclose(ksl_tot, expected_ksl, rtol=0, atol=1e-12)
