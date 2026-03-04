@@ -17,6 +17,7 @@ el_test = xt.Quadrupole(k1=k1, k1s=k1s, length=0.2,
                        knl_rel=knl_rel,
                        ksl_rel=ksl_rel,
                        main_is_skew=main_is_skew)
+el_test.radiation_flag = 1
 
 knl = np.pad(knl, (0, 10 - len(knl)))
 ksl = np.pad(ksl, (0, 10 - len(ksl)))
@@ -44,16 +45,19 @@ xo.assert_allclose(ksl_tot, expected_ksl, rtol=0, atol=1e-12)
 
 el_ref = xt.Quadrupole(k1=k1, k1s=k1s, length=0.2,
                       knl=expected_knl, ksl=expected_ksl)
+el_ref.radiation_flag = 1
 el_ref.knl[1] -= k1 * el_ref.length  # Not to double count the main quadrupole contribution
 el_ref.ksl[1] -= k1s * el_ref.length
 
-p0 = xt.Particles(p0c=1e9, x=1e-2, y=2e-2)
+p0 = xt.Particles('electron', p0c=10e9, x=1e-2, y=2e-2)
 
 p_test = p0.copy()
 el_test.track(p_test)
 
 p_ref = p0.copy()
 el_ref.track(p_ref)
+
+xo.assert_allclose(p_test.delta, p_ref.delta, rtol=1e-7) # Energy loss from radiation
 
 xo.assert_allclose(p_test.x, p_ref.x, rtol=0, atol=1e-13)
 xo.assert_allclose(p_test.y, p_ref.y, rtol=0, atol=1e-13)

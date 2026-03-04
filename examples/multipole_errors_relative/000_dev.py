@@ -2,6 +2,7 @@ import xtrack as xt
 
 # TODO:
 # - Remove the gamma function
+# - Test radiation and spin
 # - [DONE] need a property on rel_ref_is_skew
 # - [DONE] need method to see the total multipole strength
 # - need method to extend knl_rel and ksl_rel when needed
