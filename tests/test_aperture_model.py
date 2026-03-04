@@ -854,3 +854,82 @@ def test_computation_of_profile_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1
     xo.assert_allclose(ap._aperture_bounds.s_positions[3], 10, atol=1e-6, rtol=1e-8)
     xo.assert_allclose(ap._aperture_bounds.s_start[3], 10, atol=1e-6, rtol=1e-8)
     xo.assert_allclose(ap._aperture_bounds.s_end[3], 10, atol=1e-6, rtol=1e-8)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
+    env = xt.Environment()
+    l = 1.0
+    angle = np.deg2rad(30.0)
+    l_straight = 1.0 / np.sin(angle / 2)
+    rho = 0.5 * l_straight / np.sin(angle / 2)
+    l_curv = rho * angle
+
+    drift = env.new('drift', xt.Drift, length=l)
+    bend_plus = env.new('bend_plus', xt.Bend, length=l_curv, angle=angle, k0=0)
+    bend_minus = env.new('bend_minus', xt.Bend, length=l_curv, angle=-angle, k0=0)
+    line = env.new_line(name='line', components=[drift, bend_plus, drift, drift, bend_minus, drift])
+    sv = line.survey()
+
+    s0, s1 = 0.0, 11.0
+    r0, r1 = 0.8, 2.0
+
+    profiles = [
+        Profile(shape=Circle(radius=r0), tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=Circle(radius=r1), tol_r=0, tol_x=0, tol_y=0),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=s0),
+        ProfilePosition(profile_index=1, s_position=s1),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(dx=-1.5),
+            ),
+        ],
+        types=[ApertureType(curvature=0.0, positions=profile_positions)],
+        profiles=profiles,
+        type_names=['type0'],
+        profile_names=['circle0', 'circle1'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context)
+
+    s_samples = np.linspace(1.0, 11.0, 21, dtype=np.float32)
+    sections, poses = ap.cross_sections_at_s(s_samples)
+
+    # Transform all cross-section points to the (fixed) type frame.
+    # In this frame, two circle profiles at z=s0/s1 define a cone:
+    # sqrt(x^2 + y^2) == r0 + (r1-r0) * (z-s0)/(s1-s0)
+    sv_ref = sv.rows[0]
+    sv_ref_mat = np.identity(4)
+    sv_ref_mat[:3, 0] = sv_ref.ex
+    sv_ref_mat[:3, 1] = sv_ref.ey
+    sv_ref_mat[:3, 2] = sv_ref.ez
+    sv_ref_mat[:3, 3] = np.array([sv_ref.X[0], sv_ref.Y[0], sv_ref.Z[0]])
+    world_from_type = sv_ref_mat @ model.type_positions[0].transformation.to_nparray()
+    type_from_world = np.linalg.inv(world_from_type)
+
+    for ii in range(len(s_samples)):
+        sec_xy = sections[ii]
+        assert not np.isnan(sec_xy).any()
+
+        sec_hom = np.column_stack([
+            sec_xy,
+            np.zeros(len(sec_xy), dtype=np.float32),
+            np.ones(len(sec_xy), dtype=np.float32),
+        ])
+        sec_world = (poses[ii] @ sec_hom.T).T
+        sec_type = (type_from_world @ sec_world.T).T
+
+        rr = np.linalg.norm(sec_type[:, :2], axis=1)
+        z = sec_type[:, 2]
+        expected_r = r0 + (r1 - r0) * (z - s0) / (s1 - s0)
+
+        xo.assert_allclose(rr, expected_r, atol=1e-3, rtol=0)
