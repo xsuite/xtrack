@@ -512,7 +512,8 @@ class Aperture:
         sliced_twiss = line_sliced.twiss(init=twiss_init).rows[s_start:s_end:'s']
 
         num_slices = len(sliced_twiss.s)
-        twiss_data = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
+        twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
+        survey_at_s = self.survey_data.resample(np.array(sliced_twiss.s, dtype=np.float32))
         beam_data = BeamData(**self.halo_params)
         interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=np.float32)
 
@@ -523,9 +524,11 @@ class Aperture:
             self.call_kernel(
                 'compute_max_aperture_sigma',
                 model=self.model,
+                survey=self.survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
-                twiss_data=twiss_data,
+                twiss_at_s=twiss_at_s,
+                survey_at_s=survey_at_s,
                 beam_data=beam_data,
                 out_interpolated_apertures=interpolated_points,
                 envelope_num_points=envelopes_num_points,
@@ -541,9 +544,11 @@ class Aperture:
             self.call_kernel(
                 'compute_horizontal_vertical_diagonal_aperture_sigmas',
                 model=self.model,
+                survey=self.survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
-                twiss_data=twiss_data,
+                twiss_at_s=twiss_at_s,
+                survey_at_s=survey_at_s,
                 beam_data=beam_data,
                 out_interpolated_apertures=interpolated_points,
                 out_sigmas_h=sigmas_h,
