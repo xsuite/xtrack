@@ -10,7 +10,7 @@ import xtrack as xt
 # - Add new parameters to docstring
 # - Update env.set_multipole_errors_relative
 # - Update docs
-# - Remove rel_ref_is_skew from bends
+# - [DONE] Remove rel_ref_is_skew from bends
 # - RDT calculation
 # - Radiation integrals
 # - Polarization calculation

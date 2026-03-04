@@ -4996,6 +4996,20 @@ class Line:
                 '_own_k4sl': ('ksl', 4),
                 '_own_k5sl': ('ksl', 5),
 
+                '_own_k0l_rel': ('knl_rel', 0),
+                '_own_k1l_rel': ('knl_rel', 1),
+                '_own_k2l_rel': ('knl_rel', 2),
+                '_own_k3l_rel': ('knl_rel', 3),
+                '_own_k4l_rel': ('knl_rel', 4),
+                '_own_k5l_rel': ('knl_rel', 5),
+
+                '_own_k0sl_rel': ('ksl_rel', 0),
+                '_own_k1sl_rel': ('ksl_rel', 1),
+                '_own_k2sl_rel': ('ksl_rel', 2),
+                '_own_k3sl_rel': ('ksl_rel', 3),
+                '_own_k4sl_rel': ('ksl_rel', 4),
+                '_own_k5sl_rel': ('ksl_rel', 5),
+
                 # Handling of reference frame transformations
                 # (XYShift, XRotation, YRotation, SRotation)
                 # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
@@ -5052,6 +5066,20 @@ class Line:
                 '_parent_k3sl': (('_parent', 'ksl'), 3),
                 '_parent_k4sl': (('_parent', 'ksl'), 4),
                 '_parent_k5sl': (('_parent', 'ksl'), 5),
+
+                '_parent_k0l_rel': (('_parent', 'knl_rel'), 0),
+                '_parent_k1l_rel': (('_parent', 'knl_rel'), 1),
+                '_parent_k2l_rel': (('_parent', 'knl_rel'), 2),
+                '_parent_k3l_rel': (('_parent', 'knl_rel'), 3),
+                '_parent_k4l_rel': (('_parent', 'knl_rel'), 4),
+                '_parent_k5l_rel': (('_parent', 'knl_rel'), 5),
+
+                '_parent_k0sl_rel': (('_parent', 'ksl_rel'), 0),
+                '_parent_k1sl_rel': (('_parent', 'ksl_rel'), 1),
+                '_parent_k2sl_rel': (('_parent', 'ksl_rel'), 2),
+                '_parent_k3sl_rel': (('_parent', 'ksl_rel'), 3),
+                '_parent_k4sl_rel': (('_parent', 'ksl_rel'), 4),
+                '_parent_k5sl_rel': (('_parent', 'ksl_rel'), 5),
 
                 # Handling of reference frame transformations
                 # (XYShift, XRotation, YRotation, SRotation)
