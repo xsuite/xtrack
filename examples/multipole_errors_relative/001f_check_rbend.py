@@ -13,8 +13,6 @@ el_test = xt.RBend(length_straight=0.2,
                   ksl=ksl,
                   knl_rel=knl_rel,
                   ksl_rel=ksl_rel)
-el_test.edge_entry_model = 'suppressed'
-el_test.edge_exit_model = 'suppressed'
 
 knl = np.pad(knl, (0, 10 - len(knl)))
 ksl = np.pad(ksl, (0, 10 - len(ksl)))
@@ -39,8 +37,6 @@ xo.assert_allclose(ksl_tot, expected_ksl, rtol=0, atol=1e-12)
 expected_knl[0] -= el_test._k0 * el_test.length
 
 el_ref = xt.RBend(length_straight=0.2, knl=expected_knl, ksl=expected_ksl, angle=0.01)
-el_ref.edge_entry_model = 'suppressed'
-el_ref.edge_exit_model = 'suppressed'
 
 p0 = xt.Particles(p0c=1e9, x=1e-2, y=2e-2)
 

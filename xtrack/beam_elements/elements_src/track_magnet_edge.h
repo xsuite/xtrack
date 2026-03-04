@@ -41,7 +41,12 @@ void track_magnet_edge_particles(
 ) {
     double k0 = 0;
     if (k_order > -1) k0 += knorm[0];
-    if (fabs(length) > 1e-10 && kl_order > -1) k0 += factor_knl_ksl * knl[0] / length;
+    if (fabs(length) > 1e-10 && kl_order > -1) {
+        k0 += factor_knl_ksl * knl[0] / length;
+    }
+    if (fabs(length) > 1e-10 && order_rel > -1 && knl_rel != NULL) {
+        k0 += factor_knl_ksl_rel * knl_rel[0] / length;
+    }
 
     // Assume we are coming from or going to a drift
     if (is_exit) {
