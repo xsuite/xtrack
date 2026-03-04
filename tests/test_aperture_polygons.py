@@ -229,6 +229,20 @@ def test_racetrack_degenerate_to_ellipse(build_polygon_for_profile):
     assert_uniform_sampling(pts, ellipse_circumference(a, b))
 
 
+def test_rectellipse_with_zero_length_arcs(build_polygon_for_profile):
+    # angle1 == angle2 in `geom2d_segments_from_rectellipse`, yielding zero-length arc segments.
+    # This used to expose division-by-zero issues in arc sampling.
+    pts = build_polygon_for_profile(
+        RectEllipse(half_width=0.6, half_height=0.8, half_major=1.0, half_minor=1.0),
+        1200,
+    )
+    assert pts.shape == (1200, 2)
+    assert_polyline(pts)
+    assert_centered(pts)
+    assert_rectellipse_union_boundary(pts, 0.6, 0.8, 1.0, 1.0)
+    assert_uniform_sampling(pts)
+
+
 @pytest.mark.parametrize("w,h,a,b,n", [
     (0.5, 0.25, 2.0, 1.0, 3500),  # rectangle inside ellipse
     (3.0, 2.0, 1.0, 0.5, 3500),   # ellipse inside rectangle

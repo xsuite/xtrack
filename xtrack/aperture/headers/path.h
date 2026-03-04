@@ -146,6 +146,17 @@ Contract: len_points=len(steps); len(out_points)=len_points
     float_type x2 = seg->line_params.x1;
     float_type y2 = seg->line_params.y1;
     float_type line_length = hypot(x2 - x1, y2 - y1);
+
+    if (line_length <= APER_PRECISION)
+    {
+        for (int i = 0; i < len_points; i++)
+        {
+            out_points[i].x = x1;
+            out_points[i].y = y1;
+        }
+        return;
+    }
+
     float_type ux = (x2 - x1) / line_length;
     float_type uy = (y2 - y1) / line_length;
 
@@ -211,6 +222,16 @@ void geom2d_arc_segment_get_ref_at_length(const G2DSegment *seg, float_type at, 
     float_type end_angle = seg->arc_params.end_angle;
     float_type total_angle = end_angle - start_angle;
     float_type arc_length = fabs(total_angle) * r;
+
+    if (arc_length <= APER_PRECISION)
+    {
+        *out_x = cx + r * cos(start_angle);
+        *out_y = cy + r * sin(start_angle);
+        *out_dx = -sin(start_angle);
+        *out_dy = cos(start_angle);
+        return;
+    }
+
     float_type angle_at = start_angle + (at / arc_length) * total_angle;
     *out_x = cx + r * cos(angle_at);
     *out_y = cy + r * sin(angle_at);
@@ -241,6 +262,18 @@ Contract: len_points=len(steps); len(out_points)=len_points
     float_type end_angle = seg->arc_params.end_angle;
     float_type total_angle = end_angle - start_angle;
     float_type arc_length = fabs(total_angle) * r;
+
+    if (arc_length <= APER_PRECISION)
+    {
+        const float_type x0 = cx + r * cos(start_angle);
+        const float_type y0 = cy + r * sin(start_angle);
+        for (int i = 0; i < len_points; i++)
+        {
+            out_points[i].x = x0;
+            out_points[i].y = y0;
+        }
+        return;
+    }
 
     for (int i = 0; i < len_points; i++)
     {
