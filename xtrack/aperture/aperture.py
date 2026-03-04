@@ -508,10 +508,11 @@ class Aperture:
         s_start, s_end = s_positions[0], s_positions[-1]
 
         sliced_twiss = line_sliced.twiss(init=twiss_init).rows[s_start:s_end:'s']
+        sliced_survey = line_sliced.survey().rows[s_start:s_end:'s']
 
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
-        survey_at_s = self.survey_data.resample(np.array(sliced_twiss.s, dtype=np.float32))
+        survey_at_s = SurveyData.from_survey_table(sliced_survey)
         beam_data = BeamData(**self.halo_params)
         interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=np.float32)
 
