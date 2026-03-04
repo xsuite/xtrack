@@ -134,6 +134,7 @@ void track_magnet_kick_single_particle(
     if (order_rel >= 1 && knl_rel != NULL) {
         k1l_mult += knl_rel[1] * factor_knl_ksl * rel_ref_strength;
     }
+    dpx += htot * chi * (k1_h_correction * length + k1l_mult) * kick_weight * (-x * x + 0.5 * y * y);
     dpy += htot * chi * (k1_h_correction * length  + k1l_mult) * kick_weight * x * y;
 
     LocalParticle_add_to_px(part, dpx);
