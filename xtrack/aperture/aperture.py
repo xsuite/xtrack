@@ -678,6 +678,31 @@ class Aperture:
             survey=self.survey_data,
         )
 
+        # Check validity
+        eps = 3e-3  # TODO: yikes!
+        last_right = -np.inf
+        for idx in range(self._aperture_bounds.count):
+            left = self._aperture_bounds.s_start[idx]
+            centre = self._aperture_bounds.s_positions[idx]
+            right = self._aperture_bounds.s_end[idx]
+
+            type_pos_idx = self._aperture_bounds.type_position_indices[idx]
+            profile_pos_idx = self._aperture_bounds.profile_position_indices[idx]
+            type_name, profile_name = self.model.type_profile_names_for_indices(type_pos_idx, profile_pos_idx)
+
+            if not (centre - left > -eps and right - centre > -eps):
+                raise ValueError(
+                    f'Aperture model corrupted for type {type_name} and profile {profile_name}): the '
+                    f'computed s location {centre} is not inside the computed bounds [{left}, {right}]'
+                )
+
+            if last_right > left:
+                raise ValueError(
+                    f'Aperture model corrupted for type {type_name} and profile {profile_name}): the '
+                    f'aperture bounds [{left}, {right}] overlap the preceding profile whose s_end = {last_right}'
+                )
+
+
 
     def _find_type_positions(self, s_start: float, s_end: float) -> List[TypePosition]:
         type_bounds = self._type_bounds()

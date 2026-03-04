@@ -179,6 +179,14 @@ class ApertureModel(xo.Struct):
     def profile_name_for_position(self, profile_position: ProfilePosition) -> str:
         return self.profile_name_for_index(profile_position.profile_index)
 
+    def type_profile_names_for_indices(self, type_position_index, profile_position_index) -> Tuple[str, str]:
+        type_pos = self.type_positions[type_position_index]
+        type_name = self.type_name_for_position(type_pos)
+        type = self.type_for_position(type_pos)
+        profile_pos = type.positions[profile_position_index]
+        profile_name = self.profile_name_for_position(profile_pos)
+        return type_name, profile_name
+
 
 class ApertureBounds(xo.Struct):
     count = xo.UInt32
