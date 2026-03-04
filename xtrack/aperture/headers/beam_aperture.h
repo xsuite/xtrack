@@ -20,7 +20,7 @@ typedef struct
     float_type dy;    // dispersion y
     float_type delta; // relative energy deviation
     float_type gamma; // relativistic gamma
-} G2DTwissData;
+} TwissLocalData;
 
 
 typedef struct {
@@ -37,22 +37,22 @@ typedef struct {
     float_type halo_y;            // n sigma of vertical halo
     float_type halo_r;            // n sigma of 45 degree halo
     float_type halo_primary;      // n sigma of primary halo
-} G2DBeamData;
+} BeamLocalData;
 
 
 typedef struct {
-    G2DPoint *points; // points defining the aperture shape
+    Point2D *points; // points defining the aperture shape
     int n_points;     // number of points defining the aperture shape
     float_type tol_r;     // radial tolerance for point-in-aperture check
     float_type tol_x;     // horizontal tolerance for point-in-aperture check
     float_type tol_y;     // vertical tolerance for point-in-aperture check
-} G2DBeamApertureData;
+} BeamApertureLocalData;
 
 
-static inline Racetrack_s geom2d_halo_racetrack(
-    const G2DTwissData *twiss,
-    const G2DBeamData *beam,
-    const G2DBeamApertureData *aperture
+static inline Racetrack_s halo_racetrack(
+    const TwissLocalData *twiss,
+    const BeamLocalData *beam,
+    const BeamApertureLocalData *aperture
 )
 {
     const float_type tol_dx =
@@ -85,9 +85,9 @@ static inline Racetrack_s geom2d_halo_racetrack(
 }
 
 
-static inline Racetrack_s geom2d_beam_racetrack(
-    const G2DTwissData *twiss,
-    const G2DBeamData *beam
+static inline Racetrack_s beam_racetrack(
+    const TwissLocalData *twiss,
+    const BeamLocalData *beam
 )
 {
     const float_type hx = beam->halo_x / beam->halo_primary;
@@ -131,21 +131,21 @@ static inline Racetrack_s geom2d_beam_racetrack(
 }
 
 
-void geom2d_get_beam_envelope(
-    const G2DBeamData *beam_data,
-    const G2DTwissData *twiss_data,
-    const G2DBeamApertureData *aperture_data,
+void get_beam_envelope(
+    const BeamLocalData *beam_data,
+    const TwissLocalData *twiss_data,
+    const BeamApertureLocalData *aperture_data,
     const float_type num_sigmas,
     int len_points,
-    G2DPoint *out_points
+    Point2D *out_points
 )
 {
     const float_type x0 = twiss_data->x;  /* assuming closed orbit relative to aperture center */
     const float_type y0 = twiss_data->y;  /* assuming closed orbit relative to aperture center */
 
     /* Beam racetrack is defined in 1-sigma units; scale by num_sigmas here */
-    const Racetrack_s beam_rt_1s = geom2d_beam_racetrack(twiss_data, beam_data);
-    const Racetrack_s halo_rt = geom2d_halo_racetrack(twiss_data, beam_data, aperture_data);
+    const Racetrack_s beam_rt_1s = beam_racetrack(twiss_data, beam_data);
+    const Racetrack_s halo_rt = halo_racetrack(twiss_data, beam_data, aperture_data);
 
     /*
         Remembering that hx, hy, and hr are specified in sigmas, we convolve the
@@ -159,19 +159,19 @@ void geom2d_get_beam_envelope(
         .b = halo_rt.b + num_sigmas * beam_rt_1s.b,
     };
 
-    G2DSegment segments[8];
-    G2DPath path = (G2DPath){
+    Segment2D segments[8];
+    Path2D path = (Path2D){
         .segments = segments,
         .len_segments = 8,
     };
 
-    geom2d_segments_from_racetrack(env.h, env.v, env.a, env.b, path.segments, &path.len_segments);
-    geom2d_poly_get_n_uniform_points(&path, len_points, out_points);
-    geom2d_points_translate(x0, y0, out_points, len_points);
+    segments_from_racetrack(env.h, env.v, env.a, env.b, path.segments, &path.len_segments);
+    poly_get_n_uniform_points(&path, len_points, out_points);
+    point2d_translate(x0, y0, out_points, len_points);
 }
 
 
-char horizontal_ray_intersects_segment(const G2DPoint* q, const G2DPoint* a, const G2DPoint* b)
+char horizontal_ray_intersects_segment(const Point2D* q, const Point2D* a, const Point2D* b)
 {
     // Straddle test
     const int above_a = (a->y > q->y);
@@ -200,7 +200,7 @@ char horizontal_ray_intersects_segment(const G2DPoint* q, const G2DPoint* a, con
 }
 
 
-char geom2d_is_point_inside_polygon(const G2DPoint* point, const G2DPoint* points, const int len_points)
+char is_point_inside_polygon(const Point2D* point, const Point2D* points, const int len_points)
 /* Determine if a point is inside a polygon.
 
 Assume the polygon is closed, i.e. that points[-1] == points[0].
@@ -211,8 +211,8 @@ Contract: len_points=len(points)
     char inside = 0;
     for (int i = 0; i < len_points - 1; i++)
     {
-        const G2DPoint* a = &points[i];
-        const G2DPoint* b = &points[i + 1];
+        const Point2D* a = &points[i];
+        const Point2D* b = &points[i + 1];
         inside ^= horizontal_ray_intersects_segment(point, a, b);
     }
 
@@ -223,11 +223,11 @@ Contract: len_points=len(points)
 
 char _is_point_inside_polygon(const float_type* point, const float_type* points, const int len_points)
 {
-    return geom2d_is_point_inside_polygon((const G2DPoint*) point, (const G2DPoint*) points, len_points);
+    return is_point_inside_polygon((const Point2D*) point, (const Point2D*) points, len_points);
 }
 
 
-char geom2d_points_inside_polygon(const G2DPoint* points, const G2DPoint* poly_points, const int len_points, const int len_poly_points)
+char points_inside_polygon(const Point2D* points, const Point2D* poly_points, const int len_points, const int len_poly_points)
 /* Given a set of point, determine if they are inside a polygon. False if there
 is at least one point outside of the polygon, and true if all points
 are contained in the polygon.
@@ -239,8 +239,8 @@ Contract: len_points=len(points); len_poly_points=len(poly_points)
 {
     for (int i = 0; i < len_points; i++)
     {
-        const G2DPoint point = points[i];
-        if (!geom2d_is_point_inside_polygon(&point, poly_points, len_poly_points))
+        const Point2D point = points[i];
+        if (!is_point_inside_polygon(&point, poly_points, len_poly_points))
             return 0;
     }
     return 1;
@@ -249,26 +249,26 @@ Contract: len_points=len(points); len_poly_points=len(poly_points)
 
 char _points_inside_polygon(const float_type* points, const float_type* poly_points, const int len_points, const int len_poly_points)
 {
-    return geom2d_points_inside_polygon((const G2DPoint*) points, (const G2DPoint*) poly_points, len_points, len_poly_points);
+    return points_inside_polygon((const Point2D*) points, (const Point2D*) poly_points, len_points, len_poly_points);
 }
 
 
-float_type geom2d_compute_max_aperture_sigma_bisection(
-    G2DBeamData *beam_data,  // TODO: NOT THREAD SAFE if beam_data is shared!!!
-    const G2DTwissData *twiss_data,
-    const G2DBeamApertureData *aperture_data,
+float_type compute_max_aperture_sigma_bisection(
+    BeamLocalData *beam_data,  // TODO: NOT THREAD SAFE if beam_data is shared!!!
+    const TwissLocalData *twiss_data,
+    const BeamApertureLocalData *aperture_data,
     int len_points,
     const float_type lower_bound,
     const float_type upper_bound,
     const float_type tol,
-    G2DPoint *out_points
+    Point2D *out_points
 )
 /* Obtain the maximum number of sigmas that the beam fits within the aperture.
 
 Contract: len(out_points)=len_points; len_poly_points=len(poly_points)
 */
 {
-    const G2DPoint* poly_points = aperture_data->points;
+    const Point2D* poly_points = aperture_data->points;
     const float_type len_poly_points = aperture_data->n_points;
 
     float_type lo = lower_bound;
@@ -276,8 +276,8 @@ Contract: len(out_points)=len_points; len_poly_points=len(poly_points)
 
     while (hi - lo > tol) {
         const float_type mid = (lo + hi) / 2;
-        geom2d_get_beam_envelope(beam_data, twiss_data, aperture_data, mid, len_points, out_points);
-        char inside = geom2d_points_inside_polygon(out_points, poly_points, len_points, len_poly_points);
+        get_beam_envelope(beam_data, twiss_data, aperture_data, mid, len_points, out_points);
+        char inside = points_inside_polygon(out_points, poly_points, len_points, len_poly_points);
 
         if (inside) lo = mid;
         else hi = mid;
@@ -315,9 +315,9 @@ void interpolate_profile(
     memcpy(points, poly, 2 * num_points * sizeof(float_type));
 }
 
-static inline G2DBeamData beam_data_get_entry(const BeamData beam_data)
+static inline BeamLocalData beam_data_get_entry(const BeamData beam_data)
 {
-    return (G2DBeamData){
+    return (BeamLocalData){
         .emitx_norm = BeamData_get_emitx_norm(beam_data),
         .emity_norm = BeamData_get_emity_norm(beam_data),
         .delta_rms = BeamData_get_delta_rms(beam_data),
@@ -334,9 +334,9 @@ static inline G2DBeamData beam_data_get_entry(const BeamData beam_data)
     };
 }
 
-static inline G2DTwissData twiss_data_get_entry(const TwissData twiss_data, const uint32_t idx_slice)
+static inline TwissLocalData twiss_data_get_entry(const TwissData twiss_data, const uint32_t idx_slice)
 {
-    return (G2DTwissData){
+    return (TwissLocalData){
         .x = TwissData_get_x(twiss_data, idx_slice),
         .y = TwissData_get_y(twiss_data, idx_slice),
         .betx = TwissData_get_betx(twiss_data, idx_slice),
@@ -365,7 +365,7 @@ void compute_max_aperture_sigma(
     const uint32_t num_slices = TwissData_len_x(twiss_at_s);
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
-    G2DBeamData s_beam_data = beam_data_get_entry(beam_data);
+    BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 
     cross_sections_at_s(
         survey_at_s,
@@ -390,7 +390,7 @@ void compute_max_aperture_sigma(
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_at_s, idx_slice);
 
-        const G2DTwissData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
+        const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
 
         const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
@@ -401,15 +401,15 @@ void compute_max_aperture_sigma(
         const float_type tol_x = Profile_get_tol_x(profile);
         const float_type tol_y = Profile_get_tol_y(profile);
 
-        const G2DBeamApertureData s_aperture_data = {
-            .points = (G2DPoint* const)points,
+        const BeamApertureLocalData s_aperture_data = {
+            .points = (Point2D* const)points,
             .n_points = num_points,
             .tol_r = tol_r,
             .tol_x = tol_x,
             .tol_y = tol_y
         };
 
-        const float_type num_sigmas = geom2d_compute_max_aperture_sigma_bisection(
+        const float_type num_sigmas = compute_max_aperture_sigma_bisection(
             &s_beam_data,
             &s_twiss_data,
             &s_aperture_data,
@@ -417,7 +417,7 @@ void compute_max_aperture_sigma(
             /* lower bound on search */ 0,
             /* upper bound on search */ 10000,
             /* tolerance on search */ 0.01,
-            (G2DPoint*)(out_envelope_at_max_sigma + idx_slice * envelope_num_points * 2)
+            (Point2D*)(out_envelope_at_max_sigma + idx_slice * envelope_num_points * 2)
         );
         sigmas[idx_slice] = num_sigmas;
 
@@ -443,7 +443,7 @@ void compute_beam_envelopes_at_sigma(
     const uint32_t num_slices = TwissData_len_x(twiss_data);
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
-    G2DBeamData s_beam_data = beam_data_get_entry(beam_data);
+    BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 
 
     #ifdef XO_CONTEXT_CPU
@@ -459,7 +459,7 @@ void compute_beam_envelopes_at_sigma(
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_data, idx_slice);
 
-        const G2DTwissData s_twiss_data = twiss_data_get_entry(twiss_data, idx_slice);
+        const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_data, idx_slice);
 
         bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
         interpolate_profile(model, profile_polygons, aperture_bounds, bound_index, points, s);
@@ -472,16 +472,16 @@ void compute_beam_envelopes_at_sigma(
         const float_type tol_x = Profile_get_tol_x(profile);
         const float_type tol_y = Profile_get_tol_y(profile);
 
-        const G2DBeamApertureData s_aperture_data = {
-            .points = (G2DPoint* const)points,
+        const BeamApertureLocalData s_aperture_data = {
+            .points = (Point2D* const)points,
             .n_points = num_points,
             .tol_r = tol_r,
             .tol_x = tol_x,
             .tol_y = tol_y
         };
 
-        G2DPoint* out_points = (G2DPoint*)(out_envelope + idx_slice * envelope_num_points * 2);
-        geom2d_get_beam_envelope(
+        Point2D* out_points = (Point2D*)(out_envelope + idx_slice * envelope_num_points * 2);
+        get_beam_envelope(
             &s_beam_data,
             &s_twiss_data,
             &s_aperture_data,
@@ -507,9 +507,9 @@ static inline float_type _envelope_at_n_error(
 )
 /* Returns racetrack_radius_at_angle(angle, halo + n*beam) - d_target */
 {
-    Racetrack_s beam_at_n = geom2d_scale_racetrack(beam, n);
-    Racetrack_s rt = geom2d_add_racetracks(halo, beam_at_n);
-    return geom2d_racetrack_radius_at_angle(angle, rt) - d_target;
+    Racetrack_s beam_at_n = scale_racetrack(beam, n);
+    Racetrack_s rt = add_racetracks(halo, beam_at_n);
+    return racetrack_radius_at_angle(angle, rt) - d_target;
 }
 
 
@@ -582,7 +582,7 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
     const uint32_t num_slices = TwissData_len_x(twiss_at_s);
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
-    G2DBeamData s_beam_data = beam_data_get_entry(beam_data);
+    BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 
     cross_sections_at_s(
         survey_at_s,
@@ -606,7 +606,7 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_at_s, idx_slice);
 
-        const G2DTwissData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
+        const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
 
         const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
@@ -617,20 +617,20 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
         const float_type tol_x = Profile_get_tol_x(profile);
         const float_type tol_y = Profile_get_tol_y(profile);
 
-        const G2DBeamApertureData s_aperture_data = {
-            .points = (G2DPoint* const)points,
+        const BeamApertureLocalData s_aperture_data = {
+            .points = (Point2D* const)points,
             .n_points = num_points,
             .tol_r = tol_r,
             .tol_x = tol_x,
             .tol_y = tol_y
         };
 
-        Racetrack_s halo_rt = geom2d_halo_racetrack(&s_twiss_data, &s_beam_data, &s_aperture_data);
-        Racetrack_s beam_rt = geom2d_beam_racetrack(&s_twiss_data, &s_beam_data);
-        Racetrack_s envelope_one_sigma_rt = geom2d_add_racetracks(halo_rt, beam_rt);
+        Racetrack_s halo_rt = halo_racetrack(&s_twiss_data, &s_beam_data, &s_aperture_data);
+        Racetrack_s beam_rt = beam_racetrack(&s_twiss_data, &s_beam_data);
+        Racetrack_s envelope_one_sigma_rt = add_racetracks(halo_rt, beam_rt);
 
         float_type aperture_distances[8];
-        geom2d_dist_to_poly_along_rays(
+        dist_to_poly_along_rays(
             angles,
             /* num_thetas */ 8,
             s_twiss_data.x,
@@ -644,8 +644,8 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
         float_type num_sigmas[8];
         for (int i = 0; i < 8; i++) {
             const float_type angle = angles[i];
-            const float_type d_halo = geom2d_racetrack_radius_at_angle(angle, halo_rt);
-            const float_type d_envelope_one_sigma = geom2d_racetrack_radius_at_angle(angle, envelope_one_sigma_rt);
+            const float_type d_halo = racetrack_radius_at_angle(angle, halo_rt);
+            const float_type d_envelope_one_sigma = racetrack_radius_at_angle(angle, envelope_one_sigma_rt);
             const float_type d_aperture = aperture_distances[i];
             const float_type n1_lin_approx = (d_aperture - d_halo) / (d_envelope_one_sigma - d_halo);
             float_type n1 = compute_n1_for_point(angle, d_aperture, halo_rt, beam_rt, 0.f, n1_lin_approx);
