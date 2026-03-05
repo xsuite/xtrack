@@ -50,7 +50,7 @@ float_type elliptic_E(float_type phi, float_type k);
 float_type elliptic_E_complete(float_type k);
 
 inline float_type sinc(float_type);
-inline void matrix_multiply_4x4(const float_type a[4][4], const float_type b[4][4], float_type result[4][4]);
+inline Pose matrix_multiply(const Pose a, const Pose b);
 inline Pose transform_to_matrix(const Transform);
 inline Transform matrix_to_transform(const Pose);
 inline Point3D point3d_sub(const Point3D, const Point3D);
@@ -170,14 +170,15 @@ inline float_type sinc(float_type x) {
 }
 
 
-inline void matrix_multiply_4x4(const float_type a[4][4], const float_type b[4][4], float_type result[4][4]) {
-    // Multiply two 4x4 matrices `a` and `b`, and store the result in `result`.
+inline Pose matrix_multiply(const Pose a, const Pose b) {
+    Pose result;
     for (int i = 0; i < 4; i++) {
-        result[i][0] = a[i][0] * b[0][0] + a[i][1] * b[1][0] + a[i][2] * b[2][0] + a[i][3] * b[3][0];
-        result[i][1] = a[i][0] * b[0][1] + a[i][1] * b[1][1] + a[i][2] * b[2][1] + a[i][3] * b[3][1];
-        result[i][2] = a[i][0] * b[0][2] + a[i][1] * b[1][2] + a[i][2] * b[2][2] + a[i][3] * b[3][2];
-        result[i][3] = a[i][0] * b[0][3] + a[i][1] * b[1][3] + a[i][2] * b[2][3] + a[i][3] * b[3][3];
+        result.mat[i][0] = a.mat[i][0] * b.mat[0][0] + a.mat[i][1] * b.mat[1][0] + a.mat[i][2] * b.mat[2][0] + a.mat[i][3] * b.mat[3][0];
+        result.mat[i][1] = a.mat[i][0] * b.mat[0][1] + a.mat[i][1] * b.mat[1][1] + a.mat[i][2] * b.mat[2][1] + a.mat[i][3] * b.mat[3][1];
+        result.mat[i][2] = a.mat[i][0] * b.mat[0][2] + a.mat[i][1] * b.mat[1][2] + a.mat[i][2] * b.mat[2][2] + a.mat[i][3] * b.mat[3][2];
+        result.mat[i][3] = a.mat[i][0] * b.mat[0][3] + a.mat[i][1] * b.mat[1][3] + a.mat[i][2] * b.mat[2][3] + a.mat[i][3] * b.mat[3][3];
     }
+    return result;
 }
 
 

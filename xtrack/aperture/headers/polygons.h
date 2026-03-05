@@ -139,10 +139,8 @@ static inline void aperture_profile_pose_in_world(
     Pose survey_ref_in_world = pose_matrix_from_survey(survey, survey_idx);
 
     // Compute survey_ref_in_world @ type_in_survey_ref @ profile_in_type
-    Pose profile_in_survey;
-    matrix_multiply_4x4(type_in_survey_ref.mat, profile_in_type.mat, profile_in_survey.mat);
-    Pose plane_in_world;
-    matrix_multiply_4x4(survey_ref_in_world.mat, profile_in_survey.mat, out_profile_in_world->mat);
+    Pose profile_in_survey = matrix_multiply(type_in_survey_ref, profile_in_type);
+    *out_profile_in_world = matrix_multiply(survey_ref_in_world, profile_in_survey);
 }
 
 

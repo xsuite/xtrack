@@ -10,7 +10,7 @@ typedef struct {
     float_type angle;   // angle of the pose vector
     float_type length;  // length of the segment
     float_type tilt;    // tilt of the segment
-    float_type pose[4][4]; // pose matrix (4x4) for each entry
+    Pose pose; // pose matrix (4x4) for each entry
 } SurveyEntry_s;
 
 
@@ -73,7 +73,7 @@ SurveyEntry_s interpolate_survey_table_entry(
         entry.s = SurveyData_get_s(survey, i_survey);
         entry.angle = SurveyData_get_angle(survey, i_survey);
         entry.length = SurveyData_get_length(survey, i_survey);
-        memcpy(entry.pose, pose_matrix_from_survey(survey, i_survey).mat, sizeof(float_type[4][4]));
+        entry.pose = pose_matrix_from_survey(survey, i_survey);
     }
     else {
         // Properly interpolate between the current and the next survey entry
@@ -82,27 +82,9 @@ SurveyEntry_s interpolate_survey_table_entry(
         entry.length = t * SurveyData_get_length(survey, i_survey);
         entry.s = s_current + entry.length;
 
-        float_type pose_current[4][4];
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                pose_current[i][j] = SurveyData_get_pose(survey, i_survey, i, j);
-            }
-        }
-
-        float_type ct = cos(entry.tilt), st = sin(entry.tilt);
-        float_type ca  = cos(entry.angle), sa = sin(entry.angle);
-
-        float_type dx = -entry.length * sinc(entry.angle * 0.5f) * sin(entry.angle * 0.5f);
-        float_type ds = entry.length * sinc(entry.angle);
-
-        float_type tilted_arc[4][4] = {
-            {ct * ca,  -st, -ct * sa,  ct * dx },
-            {st * ca,   ct, -st * sa,  st * dx },
-            {     sa,  0.f,       ca,       ds },
-            {    0.f,  0.f,      0.f,      1.f }
-        };
-
-        matrix_multiply_4x4(pose_current, tilted_arc, entry.pose);
+        const Pose pose_current = pose_matrix_from_survey(survey, i_survey);
+        const Pose tilted_arc = arc_matrix(entry.length, entry.angle, 0);
+        entry.pose = matrix_multiply(pose_current, tilted_arc);
     }
 
     return entry;
@@ -150,7 +132,7 @@ void resample_survey_table(
             SurveyData_set_tilt(sliced, i_sliced, entry.tilt);
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    SurveyData_set_pose(sliced, i_sliced, i, j, entry.pose[i][j]);
+                    SurveyData_set_pose(sliced, i_sliced, i, j, entry.pose.mat[i][j]);
                 }
             }
             i_sliced++;

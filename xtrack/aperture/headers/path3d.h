@@ -113,4 +113,35 @@ inline float_type closest_t_on_segment(const Point3D p, const Point3D a, const P
     return t;
 }
 
+
+inline Pose arc_matrix(const float_type length, const float_type angle, const float_type tilt)
+/*
+    Get a transformation to the point at `length` along an arc of `angle`.
+*/
+{
+    if (fabs(angle) < APER_PRECISION) {
+        return transform_to_matrix((Transform){
+            .x = 0,
+            .y = 0,
+            .s = length,
+            .rot_x = 0,
+            .rot_y = 0,
+            .rot_s = 0
+        });
+    }
+
+    const float_type ct = cos(tilt), st = sin(tilt);
+    const float_type ca = cos(angle), sa = sin(angle);
+    const float_type dx = length * (ca - 1) / angle;
+    const float_type ds = length * sa / angle;
+    return (Pose) {
+        .mat = {
+            {ct * ca,  -st, -ct * sa,  ct * dx },
+            {st * ca,   ct, -st * sa,  st * dx },
+            {     sa,  0.f,       ca,       ds },
+            {    0.f,  0.f,      0.f,      1.f }
+        }
+    };
+}
+
 #endif  /* XT_APERTURE_PATH_3D_H */
