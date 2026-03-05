@@ -14,10 +14,9 @@ def _assert_spin_tracking_matches(line_test, line_ref):
     tw_ref = line_ref.twiss(
         spin=True, x=1e-2, y=2e-2, spin_y=1, betx=1, bety=1)
 
-    xo.assert_allclose(tw_test.spin_x, tw_ref.spin_x, rtol=0, atol=1e-10)
-    xo.assert_allclose(tw_test.spin_y, tw_ref.spin_y, rtol=0, atol=1e-10)
-    xo.assert_allclose(tw_test.spin_z, tw_ref.spin_z, rtol=0, atol=1e-10)
-
+    xo.assert_allclose(tw_test.spin_x, tw_ref.spin_x, rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_test.spin_y, tw_ref.spin_y, rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_test.spin_z, tw_ref.spin_z, rtol=0, atol=1e-14)
 
 @pytest.mark.parametrize("main_is_skew", [True, False])
 def test_knl_rel_ksl_rel_quadrupole(main_is_skew):
