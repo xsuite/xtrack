@@ -30,6 +30,14 @@ class MultiSetter(xo.HybridClass):
                 xo.Arg(xo.Int64, pointer=True, name='out'),
             ],
         ),
+        'get_values_at_offsets_int32': xo.Kernel(
+            c_name='get_values_at_offsets_int32',
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Int32, pointer=True, name='out'),
+            ],
+        ),
         'set_values_at_offsets_float64': xo.Kernel(
             c_name='set_values_at_offsets_float64',
             args=[
@@ -44,6 +52,14 @@ class MultiSetter(xo.HybridClass):
                 xo.Arg(xo.ThisClass, name='data'),
                 xo.Arg(xo.Int8, pointer=True, name='buffer'),
                 xo.Arg(xo.Int64, pointer=True, name='input'),
+            ],
+        ),
+        'set_values_at_offsets_int32': xo.Kernel(
+            c_name='set_values_at_offsets_int32',
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Int32, pointer=True, name='input'),
             ],
         ),
     }
@@ -101,10 +117,11 @@ class MultiSetter(xo.HybridClass):
         self.xodtype = {
             np.float64: xo.Float64,
             np.int64: xo.Int64,
+            np.int32: xo.Int32,
         }[self.dtype]
 
-        assert self.dtype in [np.float64, np.int64], (
-            'Only float64 and int64 are supported for now')
+        assert self.dtype in [np.float64, np.int64, np.int32], (
+            'Only float64, int64, and int32 are supported for now')
 
         assert np.all([line[nn]._buffer is tracker_buffer for nn in elements])
         offsets = [_extract_offset(line[nn], field, index, self.dtype, self.xodtype)
@@ -120,11 +137,13 @@ class MultiSetter(xo.HybridClass):
         self._get_kernel = {
             np.float64: self._context.kernels.get_values_at_offsets_float64,
             np.int64: self._context.kernels.get_values_at_offsets_int64,
+            np.int32: self._context.kernels.get_values_at_offsets_int32,
         }[self.dtype]
 
         self._set_kernel = {
             np.float64: self._context.kernels.set_values_at_offsets_float64,
             np.int64: self._context.kernels.set_values_at_offsets_int64,
+            np.int32: self._context.kernels.set_values_at_offsets_int32,
         }[self.dtype]
 
     def get_values(self):

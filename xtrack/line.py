@@ -5010,6 +5010,9 @@ class Line:
                 '_own_k4sl_rel': ('ksl_rel', 4),
                 '_own_k5sl_rel': ('ksl_rel', 5),
 
+                '_own_main_order': 'main_order',
+                '_own_main_is_skew': 'main_is_skew',
+
                 # Handling of reference frame transformations
                 # (XYShift, XRotation, YRotation, SRotation)
                 # TODO: The dx, dy, etc labels come from the element level and should possibly be changed

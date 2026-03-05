@@ -42,6 +42,23 @@ void get_values_at_offsets_int64(
 }
 
 GPUKERN
+void get_values_at_offsets_int32(
+    MultiSetterData data,
+    GPUGLMEM int8_t* buffer,
+    GPUGLMEM int32_t* out){
+
+    int64_t num_offsets = MultiSetterData_len_offsets(data);
+
+    VECTORIZE_OVER(ii, num_offsets);
+        int64_t offs = MultiSetterData_get_offsets(data, ii);
+
+        int32_t val = *((GPUGLMEM int32_t*)(buffer + offs));
+        out[ii] = val;
+    END_VECTORIZE;
+}
+
+
+GPUKERN
 void set_values_at_offsets_float64(
     MultiSetterData data,
     GPUGLMEM int8_t* buffer,
@@ -72,5 +89,22 @@ void set_values_at_offsets_int64(
         *((GPUGLMEM int64_t*)(buffer + offs)) = val;
     END_VECTORIZE;
 }
+
+GPUKERN
+void set_values_at_offsets_int32(
+    MultiSetterData data,
+    GPUGLMEM int8_t* buffer,
+    GPUGLMEM int32_t* input){
+
+    int64_t num_offsets = MultiSetterData_len_offsets(data);
+
+    VECTORIZE_OVER(ii, num_offsets);
+        int64_t offs = MultiSetterData_get_offsets(data, ii);
+
+        int32_t val = input[ii];
+        *((GPUGLMEM int32_t*)(buffer + offs)) = val;
+    END_VECTORIZE;
+}
+
 
 #endif /* XTRACK_MULTISETTER_H */
