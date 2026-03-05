@@ -70,7 +70,7 @@ def test_from_line_with_aperture_type_bounds(test_context):
     aperture_model = Aperture.from_line_with_madx_metadata(ring, context=test_context)
     type_bounds = aperture_model._type_bounds()
     type_name_bounds = [(a, b, aperture_model.model.type_name_for_position(c) if c else None) for a, b, c in type_bounds]
-    table_rows = ring.get_table().cols['s_start', 's_end', 'name', 'element_type'].rows[:-1].rows
+    table_rows = ring.get_table().cols['s_start', 's_end', 'name', 'element_type'].rows[1:-2].rows # trim MAD-X endpoints
 
     for type_bound, table_row in zip_longest(type_name_bounds, table_rows):
         type_start = type_bound[0]
