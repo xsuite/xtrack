@@ -57,13 +57,10 @@ def make_uniform_splineboris():
         xo.assert_allclose(xt.SplineBoris.hermite_to_poly(s_start, s_end, By_h)(s_test), By, rtol=1e-12, atol=1e-12)
         xo.assert_allclose(xt.SplineBoris.hermite_to_poly(s_start, s_end, Bs_h)(s_test), Bs, rtol=1e-12, atol=1e-12)
 
-        param_table = xt.SplineBoris.build_param_table(
-            bs=Bs_h, kn={0: By_h}, ks={0: Bx_h},
-            s_start=s_start, s_end=s_end,
-        )
-
         splineboris = xt.SplineBoris(
-            par_table=param_table,
+            bs=Bs_h,
+            kn={0: By_h},
+            ks={0: Bx_h},
             s_start=s_start,
             s_end=s_end,
             multipole_order=1,
@@ -1242,16 +1239,10 @@ def test_splineboris_spin_quadrupole(case, atol):
     kn_1_poly = xt.SplineBoris.hermite_to_poly(s_start, s_end, kn_1_hermite)
     xo.assert_allclose(kn_1_poly(np.linspace(s_start, s_end, 100)), quad_gradient, rtol=1e-12, atol=1e-12)
 
-    param_table = xt.SplineBoris.build_param_table(
+    splineboris = xt.SplineBoris(
         bs=Bs_hermite,
         kn={1: kn_1_hermite},
         ks={},
-        s_start=s_start, s_end=s_end,
-        multipole_order=2,
-    )
-
-    splineboris = xt.SplineBoris(
-        par_table=param_table,
         s_start=s_start,
         s_end=s_end,
         multipole_order=2,
@@ -1269,3 +1260,46 @@ def test_splineboris_spin_quadrupole(case, atol):
     xo.assert_allclose(p.spin_x[0], p_ref.spin_x[0], atol=atol, rtol=0)
     xo.assert_allclose(p.spin_y[0], p_ref.spin_y[0], atol=atol, rtol=0)
     xo.assert_allclose(p.spin_z[0], p_ref.spin_z[0], atol=atol, rtol=0)
+
+
+def test_splineboris_constructor_validation():
+    with pytest.raises(ValueError, match="s_start and s_end must be provided"):
+        xt.SplineBoris(
+            bs=[0, 0, 0, 0, 0],
+            kn={0: [0, 0, 0, 0, 0]},
+            ks={0: [0, 0, 0, 0, 0]},
+            s_start=0,
+            s_end=None,
+            multipole_order=1,
+        )
+
+    with pytest.raises(ValueError, match="must contain exactly 5 Hermite values"):
+        xt.SplineBoris(
+            bs=[0, 0, 0, 0],
+            kn={0: [0, 0, 0, 0, 0]},
+            ks={0: [0, 0, 0, 0, 0]},
+            s_start=0,
+            s_end=1,
+            multipole_order=1,
+        )
+
+    with pytest.raises(ValueError, match="outside valid range"):
+        xt.SplineBoris(
+            bs=[0, 0, 0, 0, 0],
+            kn={1: [0, 0, 0, 0, 0]},
+            ks={0: [0, 0, 0, 0, 0]},
+            s_start=0,
+            s_end=1,
+            multipole_order=1,
+        )
+
+    with pytest.raises(TypeError, match="no longer supported"):
+        xt.SplineBoris(
+            par_table=[0.0],
+            bs=[0, 0, 0, 0, 0],
+            kn={0: [0, 0, 0, 0, 0]},
+            ks={0: [0, 0, 0, 0, 0]},
+            s_start=0,
+            s_end=1,
+            multipole_order=1,
+        )
