@@ -137,8 +137,8 @@ def solenoid_vs_varsol_fit_pars_df(solenoid_field):
         distance_unit=1,
         min_region_size=10,
         deg=SOLENOID_MULTIPOLE_ORDER - 1,
+        field_tol=1e-4,
     )
-    fitter.field_tol = 1e-4
     fitter.fit()
     df_fit_pars = fitter.df_fit_pars
 
