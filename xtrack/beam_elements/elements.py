@@ -1063,147 +1063,122 @@ class SplineBoris(BeamElement):
         "param_index",
     )
 
-    class ParamFormat:
-        '''
-        Canonical definition of the SplineBoris parameter ordering.
+    # -- Parameter format constants and helpers ----------------------------------
+    #
+    # Parameter names follow the pattern:
+    #   bs_k        : longitudinal field polynomial coefficients (only for i=0)
+    #   kn_i_k      : d^i(By)/dx^i polynomial coefficient k
+    #   ks_i_k      : d^i(Bx)/dx^i polynomial coefficient k
+    #
+    # k in 0.._POLY_ORDER (fixed at 4), i in 0..multipole_order-1.
+    # Names are sorted alphabetically.
 
-        The parameter names are:
+    _POLY_ORDER = 4
+    _NUM_COEFFS = _POLY_ORDER + 1
+    _MAX_MULTIPOLE_ORDER = 7
+    _HERMITE_SUFFIXES = ('f_left', 'df_left', 'f_right', 'df_right', 'average')
 
-        - ``bs_k``      : longitudinal field polynomial coefficients (only for i=0)
-        - ``kn_i_k``    : derivative of By w.r.t. x of order ``i`` and polynomial coefficient ``k``
-        - ``ks_i_k``    : derivative of Bx w.r.t. x of order ``i`` and polynomial coefficient ``k``
+    @classmethod
+    def _validate_multipole_order(cls, multipole_order):
+        if multipole_order is None:
+            raise ValueError("multipole_order must be provided")
+        if multipole_order <= 0:
+            raise ValueError("multipole_order must be a positive integer")
+        if multipole_order > cls._MAX_MULTIPOLE_ORDER:
+            raise ValueError(
+                f"multipole_order ({multipole_order}) exceeds maximum supported "
+                f"({cls._MAX_MULTIPOLE_ORDER})"
+            )
 
-        k runs from 0 to ``POLY_ORDER`` (fixed at 4).
-        i runs from 0 to multipole_order-1.
-        Names are sorted alphabetically, giving:
+    @classmethod
+    def _get_param_names(cls, multipole_order):
+        """Return sorted parameter names for the given multipole order."""
+        cls._validate_multipole_order(multipole_order)
+        param_names = []
+        for i in range(multipole_order):
+            for k in range(cls._NUM_COEFFS):
+                param_names.append(f"ks_{i}_{k}")
+                param_names.append(f"kn_{i}_{k}")
+                if i == 0:
+                    param_names.append(f"bs_{k}")
+        param_names.sort()
+        return param_names
 
-        - ``bs_0 .. bs_4``
-        - ``kn_0_0 .. kn_0_4, kn_1_0 .., ..., kn_{multipole_order-1}_4``
-        - ``ks_0_0 .. ks_0_4, ks_1_0 .., ..., ks_{multipole_order-1}_4``
-        '''
-        POLY_ORDER = 4
-        NUM_COEFFS = POLY_ORDER + 1
-        MAX_MULTIPOLE_ORDER = 7
+    @classmethod
+    def _get_num_params(cls, multipole_order):
+        """Return the number of parameters for the given multipole order."""
+        cls._validate_multipole_order(multipole_order)
+        return (2 * multipole_order + 1) * cls._NUM_COEFFS
 
-        HERMITE_SUFFIXES = ('f_left', 'df_left', 'f_right', 'df_right', 'average')
+    @classmethod
+    def _fieldfitter_param_names(cls, field_component, derivative_order):
+        """Return the Hermite parameter names stored by FieldFitter."""
+        if field_component == "Bx":
+            prefix = f"ks_{derivative_order}"
+        elif field_component == "By":
+            prefix = f"kn_{derivative_order}"
+        elif field_component == "Bs":
+            prefix = "bs"
+        else:
+            raise ValueError(f"Unknown field component: {field_component}")
+        return [f"{prefix}_{s}" for s in cls._HERMITE_SUFFIXES]
 
-        @classmethod
-        def _validate_multipole_order(cls, multipole_order):
-            if multipole_order is None:
-                raise ValueError("multipole_order must be provided")
-            if multipole_order <= 0:
-                raise ValueError("multipole_order must be a positive integer")
-            if multipole_order > cls.MAX_MULTIPOLE_ORDER:
-                raise ValueError(
-                    f"multipole_order ({multipole_order}) exceeds maximum supported "
-                    f"({cls.MAX_MULTIPOLE_ORDER})"
-                )
+    @classmethod
+    def _validate_param_array(cls, params, multipole_order):
+        """Validate the 1D parameter array for the given multipole order."""
+        expected = cls._get_num_params(multipole_order)
+        arr = np.asarray(params, dtype=float)
+        if arr.ndim != 1:
+            raise ValueError(
+                f"params must be a 1D array-like, got array with ndim={arr.ndim}"
+            )
+        if arr.shape[0] != expected:
+            raise ValueError(
+                f"Invalid parameter vector length {arr.shape[0]} "
+                f"(expected {expected} for multipole_order={multipole_order})"
+            )
+        return True
 
-        @classmethod
-        def get_param_names(cls, multipole_order):
-            """Return sorted parameter names for the given multipole order."""
-            cls._validate_multipole_order(multipole_order)
-            param_names = []
-            for i in range(multipole_order):
-                for k in range(cls.NUM_COEFFS):
-                    param_names.append(f"ks_{i}_{k}")
-                    param_names.append(f"kn_{i}_{k}")
-                    if i == 0:
-                        param_names.append(f"bs_{k}")
-            param_names.sort()
-            return param_names
+    @classmethod
+    def _build_param_table(cls, bs, kn, ks, s_start, s_end, multipole_order=1):
+        """Build a 1D coefficient array from Hermite parameters."""
+        num_coeffs = cls._NUM_COEFFS
 
-        @classmethod
-        def get_num_params(cls, multipole_order):
-            """Return the number of parameters for the given multipole order."""
-            cls._validate_multipole_order(multipole_order)
-            return (2 * multipole_order + 1) * cls.NUM_COEFFS
+        def _hermite_to_coef(hermite_vals):
+            poly = SplineBoris.hermite_to_poly(s_start, s_end, hermite_vals)
+            coef = poly.convert().coef
+            out = np.zeros(num_coeffs)
+            out[:len(coef)] = coef
+            return out
 
-        @classmethod
-        def fieldfitter_param_names(cls, field_component, derivative_order):
-            """Return the Hermite parameter names stored by FieldFitter.
+        bs_coef = _hermite_to_coef(np.asarray(bs, dtype=float))
 
-            Each field component has five Hermite parameters:
-            ``f_left, df_left, f_right, df_right, average``.
-            """
-            if field_component == "Bx":
-                prefix = f"ks_{derivative_order}"
-            elif field_component == "By":
-                prefix = f"kn_{derivative_order}"
-            elif field_component == "Bs":
-                prefix = "bs"
-            else:
-                raise ValueError(f"Unknown field component: {field_component}")
-            return [f"{prefix}_{s}" for s in cls.HERMITE_SUFFIXES]
+        kn = kn or {}
+        kn_coefs = {
+            order: _hermite_to_coef(np.asarray(v, dtype=float))
+            for order, v in kn.items()
+        }
+        ks = ks or {}
+        ks_coefs = {
+            order: _hermite_to_coef(np.asarray(v, dtype=float))
+            for order, v in ks.items()
+        }
 
-        @classmethod
-        def validate_param_array(cls, params, multipole_order):
-            """Validate the 1D parameter array for the given multipole order."""
-            expected = cls.get_num_params(multipole_order)
-            arr = np.asarray(params, dtype=float)
-            if arr.ndim != 1:
-                raise ValueError(
-                    f"params must be a 1D array-like, got array with ndim={arr.ndim}"
-                )
-            if arr.shape[0] != expected:
-                raise ValueError(
-                    f"Invalid parameter vector length {arr.shape[0]} "
-                    f"(expected {expected} for multipole_order={multipole_order})"
-                )
-            return True
+        param_names = cls._get_param_names(multipole_order)
+        param_dict = {}
 
-        @classmethod
-        def build_param_table(cls, bs, kn, ks, s_start, s_end, multipole_order=1):
-            """Build a 1D coefficient array from Hermite parameters.
+        for k, value in enumerate(bs_coef):
+            param_dict[f"bs_{k}"] = float(value)
+        for order, coefs in kn_coefs.items():
+            for k, value in enumerate(coefs):
+                param_dict[f"kn_{order}_{k}"] = float(value)
+        for order, coefs in ks_coefs.items():
+            for k, value in enumerate(coefs):
+                param_dict[f"ks_{order}_{k}"] = float(value)
 
-            Parameters
-            ----------
-            bs : array-like
-                5-element Hermite params for Bs.
-            kn : dict
-                ``{derivative_order: [5 Hermite params]}`` for By derivatives.
-            ks : dict
-                ``{derivative_order: [5 Hermite params]}`` for Bx derivatives.
-            s_start, s_end : float
-                Interval endpoints for Hermite-to-polynomial conversion.
-            multipole_order : int
-                Maximum multipole order.
-            """
-            def _hermite_to_coef(hermite_vals):
-                poly = SplineBoris.hermite_to_poly(s_start, s_end, hermite_vals)
-                coef = poly.convert().coef
-                out = np.zeros(cls.NUM_COEFFS)
-                out[:len(coef)] = coef
-                return out
-
-            bs_coef = _hermite_to_coef(np.asarray(bs, dtype=float))
-
-            kn = kn or {}
-            kn_coefs = {
-                order: _hermite_to_coef(np.asarray(v, dtype=float))
-                for order, v in kn.items()
-            }
-            ks = ks or {}
-            ks_coefs = {
-                order: _hermite_to_coef(np.asarray(v, dtype=float))
-                for order, v in ks.items()
-            }
-
-            param_names = cls.get_param_names(multipole_order)
-            param_dict = {}
-
-            for k, value in enumerate(bs_coef):
-                param_dict[f"bs_{k}"] = float(value)
-            for order, coefs in kn_coefs.items():
-                for k, value in enumerate(coefs):
-                    param_dict[f"kn_{order}_{k}"] = float(value)
-            for order, coefs in ks_coefs.items():
-                for k, value in enumerate(coefs):
-                    param_dict[f"ks_{order}_{k}"] = float(value)
-
-            par_arr = np.array([param_dict.get(name, 0.0) for name in param_names])
-            cls.validate_param_array(par_arr, multipole_order)
-            return par_arr
+        par_arr = np.array([param_dict.get(name, 0.0) for name in param_names])
+        cls._validate_param_array(par_arr, multipole_order)
+        return par_arr
 
     @staticmethod
     def _reset_fieldfit_index(df):
@@ -1317,7 +1292,7 @@ class SplineBoris(BeamElement):
             raise ValueError(f"s_end ({s_end}) must be greater than s_start ({s_start})")
 
         par_arr = np.asarray(par_table, dtype=np.float64).ravel()
-        cls.ParamFormat.validate_param_array(par_arr, multipole_order)
+        cls._validate_param_array(par_arr, multipole_order)
 
         if length is None:
             length = s_end - s_start
@@ -1401,7 +1376,7 @@ class SplineBoris(BeamElement):
         kn_dict = self._validate_hermite_dict("kn", kn, multipole_order)
         ks_dict = self._validate_hermite_dict("ks", ks, multipole_order)
 
-        par_arr = self.ParamFormat.build_param_table(
+        par_arr = self._build_param_table(
             bs=bs_arr,
             kn=kn_dict,
             ks=ks_dict,
@@ -1526,10 +1501,9 @@ class SplineBorisSequence:
 
         Returns ``(elements_list, names_list)``.
         """
-        PF = SplineBoris.ParamFormat
-        num_coeffs = PF.NUM_COEFFS
+        num_coeffs = SplineBoris._NUM_COEFFS
         multipole_order = self.multipole_order
-        param_names = PF.get_param_names(multipole_order)
+        param_names = SplineBoris._get_param_names(multipole_order)
 
         # Collect unique (s, idx) boundary pairs, deduplicated and sorted by s.
         seen = set()

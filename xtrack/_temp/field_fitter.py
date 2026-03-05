@@ -293,7 +293,7 @@ class FieldFitter:
         # Zero-pad index so alphabetical sort matches numerical sort
         index_width = len(str(n_pieces - 1)) if n_pieces > 1 else 1
         for i in range(n_pieces):
-            pars = xt.SplineBoris.ParamFormat.fieldfitter_param_names(
+            pars = xt.SplineBoris._fieldfitter_param_names(
                 field, der_order
             )
 
