@@ -932,3 +932,132 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
         expected_r = r0 + (r1 - r0) * (z - s0) / (s1 - s0)
 
         xo.assert_allclose(rr, expected_r, atol=1e-3, rtol=0)
+
+
+# @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+@pytest.mark.xfail
+def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
+    env = xt.Environment()
+    angle = np.deg2rad(35.0)
+    length = 3.2
+    radius = 1.4
+
+    bend_name = env.new('bend', xt.Bend, length=length, angle=angle, k0=0)
+    line = env.new_line(name='line', components=[bend_name])
+    sv = line.survey()
+
+    shape = Circle(radius=radius)
+    profiles = [
+        Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=0, s_position=length),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+        ],
+        types=[ApertureType(curvature=angle / length, positions=profile_positions)],
+        profiles=profiles,
+        type_names=['type0'],
+        profile_names=['circ0'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
+
+    s_samples = np.linspace(0.0, length, 33, dtype=np.float32)
+    sections, _ = ap.cross_sections_at_s(s_samples)
+
+    for ii in range(1, len(sections)):
+        xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
+
+
+#@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+@pytest.mark.xfail
+def test_cross_sections_at_s_compare_straight_curved(test_context):
+    env = xt.Environment()
+    angle = np.deg2rad(35.0)
+    length = 3.2
+
+    drift = env.new('drift', xt.Drift, length=length)
+    bend = env.new('bend', xt.Bend, length=length, angle=angle)
+    line = env.new_line(name='line', components=[drift, bend])
+    sv = line.survey()
+
+    circle = Circle(radius=1.4)
+    rectangle = Rectangle(half_width=0.4, half_height=1.9)
+    profiles = [
+        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=1, s_position=length),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        types=[
+            ApertureType(curvature=0, positions=profile_positions),
+            ApertureType(curvature=angle / length, positions=profile_positions),
+        ],
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name='drift',
+                survey_index=list(sv.name).index('drift'),
+                transformation=np.identity(4),
+            ),
+            TypePosition(
+                type_index=1,
+                survey_reference_name='bend',
+                survey_index=list(sv.name).index('bend'),
+                transformation=np.identity(4),
+            ),
+        ],
+        profiles=profiles,
+        type_names=['type_straight', 'type_curv'],
+        profile_names=['rect0', 'circ0'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
+
+    s_samples0 = np.linspace(0.1, length - 0.1, 33, dtype=np.float32)
+    s_samples1 = s_samples0 + length
+
+    sections_straight, _ = ap.cross_sections_at_s(s_samples0)
+    sections_curv, _ = ap.cross_sections_at_s(s_samples1)
+
+    # Compare up to cyclic polygon indexing: point ordering can differ by a
+    # rotation along the closed contour while representing the same shape.
+    for ii in range(sections_straight.shape[0]):
+        sec_ref = sections_straight[ii]
+        sec_cur = sections_curv[ii]
+
+        best_shift = 0
+        best_cost = np.inf
+        for shift in range(sec_cur.shape[0]):
+            sec_shifted = np.roll(sec_cur, -shift, axis=0)
+            cost = np.sum((sec_ref - sec_shifted) ** 2)
+            if cost < best_cost:
+                best_cost = cost
+                best_shift = shift
+
+        xo.assert_allclose(sec_ref, np.roll(sec_cur, -best_shift, axis=0), atol=1e-6, rtol=0)
+
+    # import matplotlib.pyplot as plt
+    # for ii in range(33):
+    #     plt.title(f'Sample {ii}')
+    #     plt.plot(sections_curv[ii, :, 0], sections_curv[ii, :, 1], label='curv')
+    #     plt.plot(sections_straight[ii, :, 0], sections_straight[ii, :, 1], linestyle='dashed', label='straight')
+    #     plt.legend()
+    #     plt.gca().set_aspect('equal')
+    #     plt.show()
