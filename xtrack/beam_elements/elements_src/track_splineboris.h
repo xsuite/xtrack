@@ -1,0 +1,301 @@
+// copyright ############################### //
+// This file is part of the Xtrack Package.  //
+// Copyright (c) CERN, 2025.                 //
+// ######################################### //
+#ifndef XTRACK_TRACK_SPLINEBORIS_H
+#define XTRACK_TRACK_SPLINEBORIS_H
+
+#include "xtrack/headers/track.h"
+#include "spline_B_field_eval.h" // evaluate_B for Bx, By, Bs (scalar version)
+#ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+// Forward declarations for random functions needed by synrad_spectrum.h
+// (These are normally declared in random headers but we avoid including them
+//  directly to prevent issues with generated data types)
+GPUFUN uint32_t RandomUniformUInt32_generate(LocalParticle* part);
+GPUFUN double RandomUniform_generate(LocalParticle* part);
+GPUFUN double RandomExponential_generate(LocalParticle* part);
+#include "xtrack/beam_elements/elements_src/track_magnet_radiation.h"
+#endif
+
+GPUFUN
+void SplineBoris_single_particle(
+    LocalParticle* part,
+    const double* params,
+    const int      multipole_order,
+    const double   s_start,
+    const double   s_end,
+    const int      n_steps,
+    const double   shift_x,
+    const double   shift_y,
+    const double   hx,
+    const int64_t  radiation_flag,
+    SynchrotronRadiationRecordData radiation_record
+){
+    
+    // TODO: When curvature is implemented, remove this check.
+    // For now, if hx != 0, we skip spin tracking but continue with particle tracking
+    // (The check is done per-step in the loop below)
+
+    // Skip dead particles (state <= 0)
+    if (LocalParticle_get_state(part) <= 0){
+        return;
+    }
+
+    // ----------------------------------------------------------------------
+    //  Extract particle/reference parameters
+    // ----------------------------------------------------------------------
+    const double c      = C_LIGHT;   // [m/s]
+    const double qe     = QELEM;     // [C], elementary charge (absolute value)
+
+    const double q0     = LocalParticle_get_q0(part);      // charge in units of e
+    const double mass0  = LocalParticle_get_mass0(part);   // [eV]
+    const double p0c_ev = LocalParticle_get_p0c(part);     // reference p0 c [eV]
+    const double beta0  = LocalParticle_get_beta0(part);   // reference beta
+    
+    // Positions and momenta (dimensionless px, py)
+    double x    = LocalParticle_get_x(part);   // [m]
+    double y    = LocalParticle_get_y(part);   // [m]
+    double px_r = LocalParticle_get_px(part);  // dimensionless px / p0
+    double py_r = LocalParticle_get_py(part);  // dimensionless py / p0
+    double zeta = LocalParticle_get_zeta(part);
+
+    // ----------------------------------------------------------------------
+    //  Convert to physical units (kg, m, s)
+    // ----------------------------------------------------------------------
+    // Constants that don't change during stepping
+    const double energy0 = LocalParticle_get_energy0(part);  // [eV]
+    const double charge_ratio = LocalParticle_get_charge_ratio(part);
+    const double chi = LocalParticle_get_chi(part);
+    const double mass_ratio = charge_ratio / chi;
+
+    // mass_kg = mass[eV] * qe [J/eV] / c^2
+    const double mass = mass_ratio * mass0;  // [eV]
+    const double mass_kg = mass * qe / (c * c);  // [kg]
+
+    // Reference momentum P0 in SI units:
+    //   p0c [eV] * qe [J/eV] / c [m/s] = kg m / s
+    const double P0 = p0c_ev * qe / c;  // [kg m / s]
+
+    // Physical transverse momenta
+    double px = px_r * P0;  // [kg m / s]
+    double py = py_r * P0;  // [kg m / s]
+
+    const double q_coulomb = q0 * qe;  // [C]
+
+    // ----------------------------------------------------------------------
+    //  Set up longitudinal stepping
+    // ----------------------------------------------------------------------
+    const double L    = s_end - s_start;
+    const double ds   = L / (double) n_steps;
+    const double half_ds = 0.5 * ds;
+    
+    // Local s coordinate (0 to L) for stepping through the element
+    double s_local = 0.0;
+
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    // Variables for radiation tracking (if needed)
+    double old_kin_px = 0.0, old_kin_py = 0.0;
+    double dp_record_exit = 0.0, dpx_record_exit = 0.0, dpy_record_exit = 0.0;
+    #endif
+
+    // ----------------------------------------------------------------------
+    //  Loop over Boris substeps
+    // ----------------------------------------------------------------------
+    for (int istep = 0; istep < n_steps; ++istep) {
+
+        // Recalculate energy, gamma and total momentum each step
+        // since ptau/delta may change (e.g., from radiation)
+        const double ptau = LocalParticle_get_ptau(part);
+        const double delta = LocalParticle_get_delta(part);
+        // energy = (energy0 + ptau * p0c) * mass_ratio  [eV]
+        const double energy = (energy0 + ptau * p0c_ev) * mass_ratio;  // [eV]
+        // gamma = energy / mass  (matching Python implementation)
+        const double gamma = energy / mass;
+
+        const double P = P0 * (1.0 + delta);  // [kg m / s]
+
+        // Save state for radiation tracking
+        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        if (radiation_flag && ds > 0) {
+            // Get kinetic momenta (px/py minus ax/ay)
+            // Convert physical momenta back to dimensionless, then subtract ax/ay
+            double ax_old = LocalParticle_get_ax(part);
+            double ay_old = LocalParticle_get_ay(part);
+            old_kin_px = (px / P0) - ax_old;
+            old_kin_py = (py / P0) - ay_old;
+        }
+        #endif
+
+        // --------------------------------------------------------------
+        //  (0) Longitudinal momentum from constant |p| = P
+        // --------------------------------------------------------------
+        double tmp  = P * P - px * px - py * py;
+        if (tmp < 0.0) tmp = 0.0;
+        double ps   = sqrt(tmp);     // [kg m / s]
+        if (ps == 0.0) {
+            // If ps is zero, drift/rotation is ill-defined; we just skip.
+            // Should not occur in practice.
+            break;
+        }
+
+        // --------------------------------------------------------------
+        //  (1) FIRST HALF-DRIFT in x, y, and time
+        // --------------------------------------------------------------
+        const double inv_ps  = 1.0 / ps;
+
+        const double xh = x + (px * inv_ps) * half_ds;
+        const double yh = y + (py * inv_ps) * half_ds;
+        const double s_local_h = s_local + half_ds;
+
+        double dt = half_ds * inv_ps * gamma * mass_kg; // [s]
+
+        // --------------------------------------------------------------
+        //  Evaluate B-field at mid-step (xh, yh, s_field)
+        //  Convert local s to absolute s in field map for field evaluation
+        //  Using evaluate_B from spline_B_field_eval.h
+        // --------------------------------------------------------------
+        double Bx;
+        double By;
+        double Bs;
+        
+        // Convert local s coordinate to absolute s in field map
+        const double s_field = s_start + s_local_h;
+
+        evaluate_B(
+            xh - shift_x, yh - shift_y, s_field,
+            params,
+            multipole_order,
+            &Bx, &By, &Bs
+        );
+
+        // --------------------------------------------------------------
+        //  (2) FIRST HALF-KICK from (Bx, By)
+        // --------------------------------------------------------------
+        const double half_qds = q_coulomb * half_ds;
+
+        double pxm = px - half_qds * By;
+        double pym = py + half_qds * Bx;
+
+        // Enforce |p| = P
+        tmp = P * P - pxm * pxm - pym * pym;
+        if (tmp < 0.0) tmp = 0.0;
+        double ps_mid = sqrt(tmp);
+        if (ps_mid == 0.0) {
+            // Same caveat: if ps vanishes, rotation is undefined.
+            break;
+        }
+
+        // --------------------------------------------------------------
+        //  (3) ROTATION around Bs
+        // --------------------------------------------------------------
+        double t  = q_coulomb * Bs * half_ds / ps_mid;
+        double t2 = t * t;
+        double inv_den = 1.0 / (1.0 + t2);
+
+        double sR = 2.0 * t * inv_den;
+        double c0 = (1.0 - t2) * inv_den;
+
+        double pxp = c0 * pxm + sR * pym;
+        double pyp = -sR * pxm + c0 * pym;
+
+        // --------------------------------------------------------------
+        //  (4) SECOND HALF-KICK from (Bx, By)
+        // --------------------------------------------------------------
+        double px1 = pxp - half_qds * By;
+        double py1 = pyp + half_qds * Bx;
+
+        tmp = P * P - px1 * px1 - py1 * py1;
+        if (tmp < 0.0) tmp = 0.0;
+        double ps1 = sqrt(tmp);
+        if (ps1 == 0.0) {
+            break;
+        }
+        double inv_ps1 = 1.0 / ps1;
+
+        // --------------------------------------------------------------
+        //  (5) SECOND HALF-DRIFT in x, y and time
+        // --------------------------------------------------------------
+        x = xh + (px1 * inv_ps1) * half_ds;
+        y = yh + (py1 * inv_ps1) * half_ds;
+        s_local += ds;  // Advance local s coordinate
+
+        dt += half_ds * inv_ps1 * gamma * mass_kg;  // [s]
+
+        // Store updated momenta for next step
+        px = px1;
+        py = py1;
+
+        // Update zeta per step (matching Python: zeta += (ds - dt * c * beta0))
+        zeta += (ds - dt * c * beta0);
+
+        // Track spin and radiation over this step
+        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+        // Compute path length for spin and radiation tracking
+        // dzeta per step = ds - dt * c * beta0
+        double const rvv = LocalParticle_get_rvv(part);
+        double const l_path = rvv * dt * c * beta0;
+        
+        // Track spin over this step
+        // Field is evaluated at midpoint (xh, yh), track over step length ds
+        // TODO: When curvature is fully implemented, remove the curvature check
+        if (hx == 0.0) {
+            magnet_spin(part, Bx, By, Bs, hx, ds, l_path);
+        }
+        // If hx != 0, skip spin tracking for now (curvature not yet implemented)
+        
+        // Track radiation over this step
+        if (radiation_flag && ds > 0) {
+            // Get new kinetic momenta (px/py minus ax/ay)
+            // Convert physical momenta back to dimensionless, then subtract ax/ay
+            double ax_new = LocalParticle_get_ax(part);
+            double ay_new = LocalParticle_get_ay(part);
+            double new_kin_px = (px / P0) - ax_new;
+            double new_kin_py = (py / P0) - ay_new;
+            
+            // Compute mean kinetic momenta for radiation computation
+            // Note: Bx, By, Bs are already evaluated at midpoint (xh, yh) by the Boris algorithm
+            double mean_kin_px = 0.5 * (old_kin_px + new_kin_px);
+            double mean_kin_py = 0.5 * (old_kin_py + new_kin_py);
+            
+            // Compute perpendicular B field magnitude
+            double const B_perp_T = compute_b_perp_mod(
+                mean_kin_px,
+                mean_kin_py,
+                LocalParticle_get_delta(part),
+                Bx, By, Bs
+            );
+            
+            // Apply radiation
+            magnet_radiation(
+                part,
+                B_perp_T,
+                ds,  // length
+                l_path,
+                radiation_flag,
+                radiation_record,
+                &dp_record_exit, &dpx_record_exit, &dpy_record_exit
+            );
+        }
+        #endif
+    }
+
+    // ------------------------------------------------------------------
+    //  Write back to LocalParticle
+    // ------------------------------------------------------------------
+    // Positions:
+    LocalParticle_set_x(part, x);
+    LocalParticle_set_y(part, y);
+
+    // s: Add element length to particle's s coordinate (like Drift element)
+    // The particle's s coordinate advances by L from its incoming position
+    LocalParticle_add_to_s(part, L);
+
+    // Convert physical momenta back to dimensionless px, py (relative to p0)
+    LocalParticle_set_px(part, px / P0);
+    LocalParticle_set_py(part, py / P0);
+
+    // Update longitudinal coordinate zeta (already updated per step in loop)
+    LocalParticle_set_zeta(part, zeta);
+}
+
+#endif // XTRACK_TRACK_SPLINEBORIS_H

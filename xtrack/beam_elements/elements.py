@@ -8,6 +8,7 @@ from warnings import warn
 import numpy as np
 from numbers import Number
 from scipy.special import factorial
+import pandas as pd
 
 import xobjects as xo
 import xtrack as xt
@@ -988,6 +989,663 @@ class Wire(BeamElement):
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/wire.h"',
     ]
+
+
+class SplineBoris(BeamElement):
+    '''
+    Beam element for tracking particles through magnetic fields constructed from
+    a fourth-order polynomial using the Boris integration algorithm.
+
+    Parameters
+    ----------
+    bs : array-like
+        5 Hermite parameters ``(f_left, df_left, f_right, df_right, average)``
+        for the longitudinal field component ``Bs``.
+    kn : dict
+        Mapping ``{derivative_order: [5 Hermite params]}`` for derivatives of
+        ``By`` with respect to ``x``.
+    ks : dict
+        Mapping ``{derivative_order: [5 Hermite params]}`` for derivatives of
+        ``Bx`` with respect to ``x``.
+    multipole_order : int
+        Maximum order of multipole expansion for this magnet.
+    s_start : float
+        Starting position of the element [m].
+    s_end : float
+        Ending position of the element [m].
+    length : float
+        Length of the element [m].
+    n_steps : int
+        Number of integration steps.
+    shift_x : float
+        Transverse shift in x [m] for field map offset.
+    shift_y : float
+        Transverse shift in y [m] for field map offset.
+    hx : float
+        Horizontal curvature [1/m].
+    radiation_flag : int
+        Whether to enable radiation. See ``Magnet`` for details.
+    '''
+
+    isthick = True
+    # Disable base transverse shifts - we use shift_x/shift_y as offsets in the field evaluation
+    # Rotations should be apparent from the field map itself, not from transformation of the element.
+    allow_rot_and_shift = False
+
+    _xofields={'par_table'          : xo.Float64[:],
+               'multipole_order'    : xo.Int64,
+               's_start'            : xo.Float64,
+               's_end'              : xo.Float64,
+               'length'             : xo.Float64,
+               'n_steps'            : xo.Int64,
+               'shift_x'            : xo.Field(xo.Float64, 0),  # Transverse shift in x [m] - used for field map offset
+               'shift_y'            : xo.Field(xo.Float64, 0),  # Transverse shift in y [m] - used for field map offset
+               'hx'                 : xo.Field(xo.Float64, 0),  # Horizontal curvature [1/m] - not implemented yet, but is a placeholder for when it will be
+               'radiation_flag'     : xo.Int64,
+               }
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/splineboris.h"',
+    ]
+
+    _depends_on = [RandomUniformAccurate, RandomExponential]
+    _internal_record_class = SynchrotronRadiationRecord
+
+    # Index columns used by FieldFitter and saved CSV files
+    FIELD_FIT_INDEX_COLUMNS = (
+        "field_component",
+        "derivative_x",
+        "region_name",
+        "s_start",
+        "s_end",
+        "idx_start",
+        "idx_end",
+        "param_index",
+    )
+
+    # -- Parameter format constants and helpers ----------------------------------
+    #
+    # Parameter names follow the pattern:
+    #   bs_k        : longitudinal field polynomial coefficients (only for i=0)
+    #   kn_i_k      : d^i(By)/dx^i polynomial coefficient k
+    #   ks_i_k      : d^i(Bx)/dx^i polynomial coefficient k
+    #
+    # k in 0.._POLY_ORDER (fixed at 4), i in 0..multipole_order-1.
+    # Names are sorted alphabetically.
+
+    _POLY_ORDER = 4
+    _NUM_COEFFS = _POLY_ORDER + 1
+    _MAX_MULTIPOLE_ORDER = 7
+    _HERMITE_SUFFIXES = ('f_left', 'df_left', 'f_right', 'df_right', 'average')
+
+    @classmethod
+    def _validate_multipole_order(cls, multipole_order):
+        if multipole_order is None:
+            raise ValueError("multipole_order must be provided")
+        if multipole_order <= 0:
+            raise ValueError("multipole_order must be a positive integer")
+        if multipole_order > cls._MAX_MULTIPOLE_ORDER:
+            raise ValueError(
+                f"multipole_order ({multipole_order}) exceeds maximum supported "
+                f"({cls._MAX_MULTIPOLE_ORDER})"
+            )
+
+    @classmethod
+    def _get_param_names(cls, multipole_order):
+        """Return sorted parameter names for the given multipole order."""
+        cls._validate_multipole_order(multipole_order)
+        param_names = []
+        for i in range(multipole_order):
+            for k in range(cls._NUM_COEFFS):
+                param_names.append(f"ks_{i}_{k}")
+                param_names.append(f"kn_{i}_{k}")
+                if i == 0:
+                    param_names.append(f"bs_{k}")
+        param_names.sort()
+        return param_names
+
+    @classmethod
+    def _get_num_params(cls, multipole_order):
+        """Return the number of parameters for the given multipole order."""
+        cls._validate_multipole_order(multipole_order)
+        return (2 * multipole_order + 1) * cls._NUM_COEFFS
+
+    @classmethod
+    def _fieldfitter_param_names(cls, field_component, derivative_order):
+        """Return the Hermite parameter names stored by FieldFitter."""
+        if field_component == "Bx":
+            prefix = f"ks_{derivative_order}"
+        elif field_component == "By":
+            prefix = f"kn_{derivative_order}"
+        elif field_component == "Bs":
+            prefix = "bs"
+        else:
+            raise ValueError(f"Unknown field component: {field_component}")
+        return [f"{prefix}_{s}" for s in cls._HERMITE_SUFFIXES]
+
+    @classmethod
+    def _validate_param_array(cls, params, multipole_order):
+        """Validate the 1D parameter array for the given multipole order."""
+        expected = cls._get_num_params(multipole_order)
+        arr = np.asarray(params, dtype=float)
+        if arr.ndim != 1:
+            raise ValueError(
+                f"params must be a 1D array-like, got array with ndim={arr.ndim}"
+            )
+        if arr.shape[0] != expected:
+            raise ValueError(
+                f"Invalid parameter vector length {arr.shape[0]} "
+                f"(expected {expected} for multipole_order={multipole_order})"
+            )
+        return True
+
+    @classmethod
+    def _build_param_table(cls, bs, kn, ks, s_start, s_end, multipole_order=1):
+        """Build a 1D coefficient array from Hermite parameters."""
+        num_coeffs = cls._NUM_COEFFS
+
+        def _hermite_to_coef(hermite_vals):
+            poly = SplineBoris.hermite_to_poly(s_start, s_end, hermite_vals)
+            coef = poly.convert().coef
+            out = np.zeros(num_coeffs)
+            out[:len(coef)] = coef
+            return out
+
+        bs_coef = _hermite_to_coef(np.asarray(bs, dtype=float))
+
+        kn = kn or {}
+        kn_coefs = {
+            order: _hermite_to_coef(np.asarray(v, dtype=float))
+            for order, v in kn.items()
+        }
+        ks = ks or {}
+        ks_coefs = {
+            order: _hermite_to_coef(np.asarray(v, dtype=float))
+            for order, v in ks.items()
+        }
+
+        param_names = cls._get_param_names(multipole_order)
+        param_dict = {}
+
+        for k, value in enumerate(bs_coef):
+            param_dict[f"bs_{k}"] = float(value)
+        for order, coefs in kn_coefs.items():
+            for k, value in enumerate(coefs):
+                param_dict[f"kn_{order}_{k}"] = float(value)
+        for order, coefs in ks_coefs.items():
+            for k, value in enumerate(coefs):
+                param_dict[f"ks_{order}_{k}"] = float(value)
+
+        par_arr = np.array([param_dict.get(name, 0.0) for name in param_names])
+        cls._validate_param_array(par_arr, multipole_order)
+        return par_arr
+
+    @staticmethod
+    def _reset_fieldfit_index(df):
+        if all(col in df.columns for col in SplineBoris.FIELD_FIT_INDEX_COLUMNS):
+            return df.copy()
+        return df.reset_index()
+
+    @staticmethod
+    def _validate_hermite_values(name, values):
+        if values is None:
+            raise ValueError(f"{name} must be provided as 5 Hermite values")
+        arr = np.asarray(values, dtype=float).ravel()
+        if arr.shape[0] != 5:
+            raise ValueError(
+                f"{name} must contain exactly 5 Hermite values "
+                f"(f_left, df_left, f_right, df_right, average); "
+                f"got {arr.shape[0]}"
+            )
+        return arr
+
+    @classmethod
+    def _validate_hermite_dict(cls, name, values_dict, multipole_order):
+        if values_dict is None:
+            return {}
+        if not isinstance(values_dict, dict):
+            raise TypeError(f"{name} must be a dict mapping derivative order to 5 Hermite values")
+        out = {}
+        for order, values in values_dict.items():
+            if not isinstance(order, (int, np.integer)):
+                raise TypeError(f"{name} keys must be integers, got {type(order).__name__}")
+            order = int(order)
+            if order < 0 or order >= int(multipole_order):
+                raise ValueError(
+                    f"{name} key {order} is outside valid range "
+                    f"[0, {int(multipole_order) - 1}]"
+                )
+            out[order] = cls._validate_hermite_values(f"{name}[{order}]", values)
+        return out
+
+    @staticmethod
+    def hermite_to_poly(s_start, s_end, coeffs):
+        """Build a fourth-order polynomial over [s_start, s_end] from Hermite
+        parameters.
+
+        Parameters
+        ----------
+        s_start, s_end : float
+            Interval endpoints.
+        coeffs : array-like of length 5
+            ``(f_left, df_left, f_right, df_right, average)`` where
+            *f_left*/*f_right* are function values at the endpoints,
+            *df_left*/*df_right* are derivatives, and *average* is the mean
+            value of the function over the interval.
+
+        Returns
+        -------
+        numpy.polynomial.Polynomial
+            Polynomial in *s* that interpolates the given boundary data and
+            whose mean over ``[s_start, s_end]`` equals *average*.
+        """
+
+        if len(coeffs) != 5:
+            raise ValueError("coeffs must be a 5-element array")
+
+        c1, c2, c3, c4, c5 = coeffs
+        L = s_end - s_start
+        t = np.polynomial.Polynomial([-s_start / L, 1 / L])
+
+        # Basis functions on [0, 1]
+        b1_coeffs = [1, 0, -18, 32, -15]
+        b2_coeffs = [0, 1, -4.5, 6, -2.5]
+        b3_coeffs = [0, 0, -12, 28, -15]
+        b4_coeffs = [0, 0, 1.5, -4, 2.5]
+        b5_coeffs = [0, 0, 30, -60, 30]
+        b1_poly = np.polynomial.Polynomial(b1_coeffs)
+        b2_poly = np.polynomial.Polynomial(b2_coeffs)
+        b3_poly = np.polynomial.Polynomial(b3_coeffs)
+        b4_poly = np.polynomial.Polynomial(b4_coeffs)
+        b5_poly = np.polynomial.Polynomial(b5_coeffs)
+
+        poly_t = (c1 * b1_poly + L * c2 * b2_poly + c3 * b3_poly +
+                  L * c4 * b4_poly + c5 * b5_poly)
+        poly_s = poly_t(t)
+        return poly_s
+
+    @classmethod
+    def _init_from_coefficients(
+        cls,
+        par_table,
+        multipole_order,
+        s_start,
+        s_end,
+        length=None,
+        n_steps=1,
+        shift_x=0.0,
+        shift_y=0.0,
+        hx=0.0,
+        radiation_flag=0,
+    ):
+        """Canonical internal constructor from a precomputed coefficient vector.
+
+        Both the public Hermite constructor and ``SplineBorisSequence``
+        funnel through this single path for validation and xobject creation.
+        """
+        multipole_order = int(multipole_order)
+        if multipole_order <= 0:
+            raise ValueError("multipole_order must be a positive integer")
+        s_start = float(s_start)
+        s_end = float(s_end)
+        if s_end <= s_start:
+            raise ValueError(f"s_end ({s_end}) must be greater than s_start ({s_start})")
+
+        par_arr = np.asarray(par_table, dtype=np.float64).ravel()
+        cls._validate_param_array(par_arr, multipole_order)
+
+        if length is None:
+            length = s_end - s_start
+
+        obj = cls.__new__(cls)
+        super(SplineBoris, obj).__init__(
+            par_table=par_arr.tolist(),
+            multipole_order=multipole_order,
+            s_start=s_start,
+            s_end=s_end,
+            length=length,
+            n_steps=n_steps,
+            shift_x=shift_x,
+            shift_y=shift_y,
+            hx=hx,
+            radiation_flag=radiation_flag,
+        )
+        return obj
+
+    def __init__(self,
+                 bs=None,
+                 kn=None,
+                 ks=None,
+                 multipole_order=1,
+                 s_start=None,
+                 s_end=None,
+                 length=None,
+                 n_steps=1,
+                 shift_x=0.0,
+                 shift_y=0.0,
+                 hx=0.0,
+                 **kwargs,
+    ):
+        '''
+        Construct a ``SplineBoris`` element from Hermite boundary data.
+
+        Parameters
+        ----------
+        bs : array-like
+            5 Hermite parameters for ``Bs``:
+            ``(f_left, df_left, f_right, df_right, average)``.
+        kn : dict
+            ``{derivative_order: [5 Hermite params]}`` for derivatives of ``By``.
+            Missing orders are treated as zeros.
+        ks : dict
+            ``{derivative_order: [5 Hermite params]}`` for derivatives of ``Bx``.
+            Missing orders are treated as zeros.
+        multipole_order : int, default=1
+            Maximum multipole order used in the parameter table.
+        s_start : float
+            Starting longitudinal position [m].
+        s_end : float
+            Ending longitudinal position [m].
+        length : float, optional
+            Element length [m]. Defaults to ``s_end - s_start``.
+        n_steps : int, optional
+            Number of longitudinal integration steps. Defaults to 1.
+        shift_x : float, default=0.0
+            Transverse shift in x [m] for field map offset.
+        shift_y : float, default=0.0
+            Transverse shift in y [m] for field map offset.
+        hx : float, default=0.0
+            Horizontal curvature [1/m].
+        '''
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            super().__init__(**kwargs)
+            return
+
+        if 'par_table' in kwargs:
+            raise TypeError(
+                "SplineBoris(par_table=...) is no longer supported. "
+                "Pass Hermite inputs instead: bs=..., kn=..., ks=..., s_start=..., s_end=..."
+            )
+        if s_start is None or s_end is None:
+            raise ValueError("s_start and s_end must be provided for Hermite-to-polynomial conversion")
+        if not isinstance(multipole_order, (int, np.integer)) or int(multipole_order) <= 0:
+            raise ValueError("multipole_order must be a positive integer")
+
+        bs_arr = self._validate_hermite_values("bs", bs)
+        kn_dict = self._validate_hermite_dict("kn", kn, multipole_order)
+        ks_dict = self._validate_hermite_dict("ks", ks, multipole_order)
+
+        par_arr = self._build_param_table(
+            bs=bs_arr,
+            kn=kn_dict,
+            ks=ks_dict,
+            s_start=float(s_start),
+            s_end=float(s_end),
+            multipole_order=int(multipole_order),
+        )
+
+        radiation_flag = kwargs.pop('radiation_flag', 0)
+        super().__init__(
+            par_table=par_arr.tolist(),
+            multipole_order=int(multipole_order),
+            s_start=float(s_start),
+            s_end=float(s_end),
+            length=float(s_end) - float(s_start) if length is None else length,
+            n_steps=n_steps,
+            shift_x=shift_x,
+            shift_y=shift_y,
+            hx=hx,
+            radiation_flag=radiation_flag,
+        )
+
+    def evaluate_field(self, x, y, s):
+        '''Evaluate the magnetic field at the given coordinates.
+
+        Parameters
+        ----------
+        x : float or array-like
+            Horizontal position [m].
+        y : float or array-like
+            Vertical position [m].
+        s : float
+            Longitudinal position [m]. Must be within ``[s_start, s_end]``.
+
+        Returns
+        -------
+        Bx, By, Bs : float or array
+            Magnetic field components [T].
+        '''
+        if s < self.s_start or s > self.s_end:
+            raise ValueError(
+                f"s={s} is outside the element range "
+                f"[{self.s_start}, {self.s_end}]"
+            )
+
+        from .elements_src.spline_B_field_eval_python import evaluate_B
+
+        params = np.array(self.par_table)
+        Bx, By, Bs = evaluate_B(
+            x - self.shift_x, y - self.shift_y, s,
+            params, self.multipole_order,
+        )
+        return Bx, By, Bs
+
+
+class SplineBorisSequence:
+    '''
+    Create a sequence of ``SplineBoris`` elements from FieldFitter output.
+
+    Different field components (Bs, Bx, By, derivatives) may have different
+    s-ranges in the FieldFitter output.  This class finds all unique
+    s-boundaries and creates one ``SplineBoris`` element per region, using
+    every parameter valid for that range.
+
+    Parameters
+    ----------
+    df_fit_pars : pd.DataFrame
+        DataFrame from FieldFitter containing fit parameters.  Must have
+        columns: ``field_component``, ``derivative_x``, ``region_name``,
+        ``s_start``, ``s_end``, ``idx_start``, ``idx_end``, ``param_index``,
+        ``param_name``, ``param_value``.
+    multipole_order : int
+        Number of multipole orders to use.
+    steps_per_point : int, optional
+        Multiplier for integration steps per data point.  Default is 1.
+    shift_x : float, optional
+        Transverse shift in x [m].  Default is 0.0.
+    shift_y : float, optional
+        Transverse shift in y [m].  Default is 0.0.
+    radiation_flag : int, optional
+        Radiation flag for the SplineBoris elements.  Default is 0.
+    '''
+
+    def __init__(
+        self,
+        df_fit_pars,
+        multipole_order,
+        steps_per_point=1,
+        shift_x=0.0,
+        shift_y=0.0,
+        radiation_flag=0,
+    ):
+        if df_fit_pars is None or len(df_fit_pars) == 0:
+            raise ValueError("df_fit_pars must be a non-empty DataFrame")
+        if multipole_order is None or multipole_order <= 0:
+            raise ValueError("multipole_order must be a positive integer")
+        if not isinstance(steps_per_point, int) or steps_per_point <= 0:
+            raise ValueError("steps_per_point must be a positive integer")
+
+        self.multipole_order = int(multipole_order)
+        self.steps_per_point = int(steps_per_point)
+        self.shift_x = shift_x
+        self.shift_y = shift_y
+        self.radiation_flag = radiation_flag
+
+        df_reset = SplineBoris._reset_fieldfit_index(df_fit_pars)
+
+        required_cols = ["param_value", "s_start", "s_end", "idx_start", "idx_end"]
+        missing = [c for c in required_cols if c not in df_reset.columns]
+        if missing:
+            raise ValueError(f"df_fit_pars is missing required columns: {missing}")
+
+        elements, element_names = self._build_elements(df_reset)
+
+        self.elements = tuple(elements)
+        self.element_names = tuple(element_names)
+        self.length = sum(float(e.length) for e in self.elements)
+        self.n_pieces = len(self.elements)
+
+    def _build_elements(self, df_reset):
+        """Build SplineBoris elements, one per s-region.
+
+        Returns ``(elements_list, names_list)``.
+        """
+        num_coeffs = SplineBoris._NUM_COEFFS
+        multipole_order = self.multipole_order
+        param_names = SplineBoris._get_param_names(multipole_order)
+
+        # Collect unique (s, idx) boundary pairs, deduplicated and sorted by s.
+        seen = set()
+        boundary_pairs = []
+        for _, row in df_reset.drop_duplicates(subset=["s_start", "s_end"]).iterrows():
+            for s_col, idx_col in (("s_start", "idx_start"), ("s_end", "idx_end")):
+                pair = (float(row[s_col]), int(row[idx_col]))
+                if pair not in seen:
+                    seen.add(pair)
+                    boundary_pairs.append(pair)
+        boundary_pairs.sort(key=lambda p: p[0])
+
+        n_regions = len(boundary_pairs) - 1
+        if n_regions <= 0:
+            return [], []
+
+        name_width = len(str(n_regions))
+        elements = []
+        names = []
+
+        for i in range(n_regions):
+            region_start, idx_start = boundary_pairs[i]
+            region_end, idx_end = boundary_pairs[i + 1]
+
+            if region_end <= region_start:
+                continue
+
+            mask = (df_reset["s_start"] <= region_start) & (df_reset["s_end"] >= region_end)
+            valid_params = df_reset[mask]
+            if valid_params.empty:
+                continue
+
+            param_dict = {}
+            groups = valid_params.groupby(
+                ['field_component', 'derivative_x', 's_start', 's_end']
+            )
+            for (fc, deriv, piece_s_start, piece_s_end), grp in groups:
+                hermite_vals = (
+                    grp.sort_values('param_index')['param_value']
+                    .values.astype(float)
+                )
+                piece_poly = SplineBoris.hermite_to_poly(
+                    float(piece_s_start), float(piece_s_end), hermite_vals
+                ).convert()
+                coef = piece_poly.coef
+                coef_out = np.zeros(num_coeffs, dtype=float)
+                coef_out[:len(coef)] = coef
+
+                if fc == 'Bs':
+                    prefix = "bs"
+                elif fc == 'By':
+                    deriv = int(deriv)
+                    if deriv < 0 or deriv >= multipole_order:
+                        continue
+                    prefix = f"kn_{deriv}"
+                elif fc == 'Bx':
+                    deriv = int(deriv)
+                    if deriv < 0 or deriv >= multipole_order:
+                        continue
+                    prefix = f"ks_{deriv}"
+                else:
+                    continue
+
+                for k, value in enumerate(coef_out):
+                    param_dict[f"{prefix}_{k}"] = float(value)
+
+            n_steps = max(1, (idx_end - idx_start) * self.steps_per_point)
+            par_arr = np.array(
+                [param_dict.get(name, 0.0) for name in param_names], dtype=float
+            )
+
+            elem = SplineBoris._init_from_coefficients(
+                par_table=par_arr,
+                multipole_order=multipole_order,
+                s_start=region_start,
+                s_end=region_end,
+                n_steps=n_steps,
+                shift_x=self.shift_x,
+                shift_y=self.shift_y,
+                radiation_flag=self.radiation_flag,
+            )
+
+            idx_name = len(elements)
+            elements.append(elem)
+            names.append(f"splineboris_{idx_name:0{name_width}d}")
+
+        return elements, names
+
+    def to_line(self, env=None):
+        '''Return a Line containing all ``SplineBoris`` elements.'''
+        if env is not None:
+            for name, elem in zip(self.element_names, self.elements):
+                env.elements[name] = elem
+            return xt.Line(env=env, element_names=self.element_names)
+        return xt.Line(elements=self.elements)
+
+    @classmethod
+    def from_csv(
+        cls,
+        csv_path,
+        multipole_order,
+        steps_per_point=1,
+        shift_x=0.0,
+        shift_y=0.0,
+        radiation_flag=0,
+    ):
+        '''Build a ``SplineBorisSequence`` from a CSV file produced by `FieldFitter.save_fit_pars`.'''
+        df = pd.read_csv(csv_path, index_col=list(SplineBoris.FIELD_FIT_INDEX_COLUMNS))
+        return cls(
+            df_fit_pars=df,
+            multipole_order=multipole_order,
+            steps_per_point=steps_per_point,
+            shift_x=shift_x,
+            shift_y=shift_y,
+            radiation_flag=radiation_flag,
+        )
+
+    def evaluate_field(self, x, y, s):
+        '''Evaluate the magnetic field by delegating to the appropriate element.
+
+        Parameters
+        ----------
+        x : float or array-like
+            Horizontal position [m].
+        y : float or array-like
+            Vertical position [m].
+        s : float
+            Longitudinal position [m].
+
+        Returns
+        -------
+        Bx, By, Bs : float or array
+            Magnetic field components [T].
+        '''
+        for elem in self.elements:
+            if elem.s_start <= s <= elem.s_end:
+                return elem.evaluate_field(x, y, s)
+        s_min = min(float(e.s_start) for e in self.elements)
+        s_max = max(float(e.s_end) for e in self.elements)
+        raise ValueError(
+            f"s={s} is outside the sequence range [{s_min}, {s_max}]"
+        )
 
 
 class SRotation(BeamElement):

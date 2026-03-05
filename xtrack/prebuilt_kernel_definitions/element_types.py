@@ -40,6 +40,7 @@ ONLY_XTRACK_ELEMENTS = [
     NonLinearLens,
     DriftExact,
     Misalignment,
+    SplineBoris,
     # Drift Slices
     DriftSlice,
     DriftExactSlice,
