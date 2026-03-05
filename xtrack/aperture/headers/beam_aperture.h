@@ -431,53 +431,32 @@ void compute_max_aperture_sigma(
 
 void compute_beam_envelopes_at_sigma(
     ApertureModel model,
-    ProfilePolygons profile_polygons,
-    ApertureBounds aperture_bounds,
-    TwissData twiss_data,
+    TwissData twiss_at_s,
     BeamData beam_data,
     const float_type sigmas,
-    float_type* const out_interpolated_apertures,
     const uint32_t envelope_num_points,
     float_type* const out_envelope
 ) {
-    const uint32_t num_slices = TwissData_len_x(twiss_data);
-    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
-
+    const uint32_t num_slices = TwissData_len_x(twiss_at_s);
     BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
-
 
     #ifdef XO_CONTEXT_CPU
         int completed = 0;
     #endif
 
     // TODO: Make this also compatible with GPUs
-    uint32_t bound_index = 0;
-    #pragma omp parallel for firstprivate(bound_index)
+    #pragma omp parallel for
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
-        uint32_t bound_index = 0;
-        float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
-        float_type s = TwissData_get_s(twiss_data, idx_slice);
-
-        const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_data, idx_slice);
-
-        bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
-        interpolate_profile(model, profile_polygons, aperture_bounds, bound_index, points, s);
-
-        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
-        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
-        const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
-        const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
-        const float_type tol_r = Profile_get_tol_r(profile);
-        const float_type tol_x = Profile_get_tol_x(profile);
-        const float_type tol_y = Profile_get_tol_y(profile);
+        float_type s = TwissData_get_s(twiss_at_s, idx_slice);
+        const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
 
         const BeamApertureLocalData s_aperture_data = {
-            .points = (Point2D* const)points,
-            .n_points = num_points,
-            .tol_r = tol_r,
-            .tol_x = tol_x,
-            .tol_y = tol_y
+            .points = NULL,
+            .n_points = 0,
+            .tol_r = 0,
+            .tol_x = 0,
+            .tol_y = 0
         };
 
         Point2D* out_points = (Point2D*)(out_envelope + idx_slice * envelope_num_points * 2);
