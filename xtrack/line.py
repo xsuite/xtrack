@@ -759,25 +759,31 @@ class Line:
         element_types = []
         isreplica = []
         parent_name = []
+        parent_type = []
         for ee in elements:
             ee_pname = None
+            ee_ptype = None
             if isinstance(ee, xt.Replica):
                 ee_pname = ee.parent_name
+                ee_ptype = self[ee.parent_name].__class__.__name__
                 ee = ee.resolve(self)
                 isreplica.append(True)
             else:
                 isreplica.append(False)
                 if hasattr(ee, 'parent_name'):
                     ee_pname = ee.parent_name
+                    ee_ptype = self[ee.parent_name].__class__.__name__
             isthick.append(_is_thick(ee, self))
             iscollective.append(_is_collective(ee, self))
             element_types.append(ee.__class__.__name__)
             parent_name.append(ee_pname)
+            parent_type.append(ee_ptype)
         isthick = np.array(isthick + [False])
         iscollective = np.array(iscollective + [False])
         isreplica = np.array(isreplica + [False])
         element_types = np.array(element_types + [''])
         parent_name = np.array(parent_name + [None])
+        parent_type = np.array(parent_type + [None])
 
         elements += [None]
 
@@ -788,6 +794,7 @@ class Line:
             'isthick': isthick,
             'isreplica': isreplica,
             'parent_name': parent_name,
+            'parent_type': parent_type,
             'iscollective': iscollective,
             'element': elements,
             's_start': s_start,
@@ -5084,6 +5091,9 @@ class Line:
                 '_parent_k4sl_rel': (('_parent', 'ksl_rel'), 4),
                 '_parent_k5sl_rel': (('_parent', 'ksl_rel'), 5),
 
+                '_parent_main_order': (('_parent', 'main_order'), None),
+                '_parent_main_is_skew': (('_parent', 'main_is_skew'), None),
+
                 # Handling of reference frame transformations
                 # (XYShift, XRotation, YRotation, SRotation)
                 # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
@@ -5125,66 +5135,78 @@ class Line:
                 'radiation_flag': lambda attr:
                     attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
                   + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
-                'k0l': lambda attr: (
+                '_k0l_no_rel': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
                     + attr['_parent_k0l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k0'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k0sl': lambda attr: (
+                'k0l': lambda attr: attr['_k0l_no_rel'],
+                '_k0sl_no_rel': lambda attr: (
                     attr['_own_k0sl']
                     + attr['_own_k0s'] * attr['_own_length']
                     + attr['_parent_k0sl'] * attr['weight']* attr._inherit_strengths
                     + attr['_parent_k0s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k1l': lambda attr: (
+                'k0sl': lambda attr: attr['_k0sl_no_rel'],
+                '_k1l_no_rel': lambda attr: (
                     attr['_own_k1l']
                     + attr['_own_k1'] * attr['_own_length']
                     + attr['_parent_k1l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k1'] * attr['_parent_length'] * attr['weight']* attr._inherit_strengths),
-                'k1sl': lambda attr: (
+                'k1l': lambda attr: attr['_k1l_no_rel'],
+                '_k1sl_no_rel': lambda attr: (
                     attr['_own_k1sl']
                     + attr['_own_k1s'] * attr['_own_length']
                     + attr['_parent_k1sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k1s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k2l': lambda attr: (
+                'k1sl': lambda attr: attr['_k1sl_no_rel'],
+                '_k2l_no_rel': lambda attr: (
                     attr['_own_k2l']
                     + attr['_own_k2'] * attr['_own_length']
                     + attr['_parent_k2l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k2'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k2sl': lambda attr: (
+                'k2l': lambda attr: attr['_k2l_no_rel'],
+                '_k2sl_no_rel': lambda attr: (
                     attr['_own_k2sl']
                     + attr['_own_k2s'] * attr['_own_length']
                     + attr['_parent_k2sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k2s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k3l': lambda attr: (
+                'k2sl': lambda attr: attr['_k2sl_no_rel'],
+                '_k3l_no_rel': lambda attr: (
                     attr['_own_k3l']
                     + attr['_own_k3'] * attr['_own_length']
                     + attr['_parent_k3l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k3'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k3sl': lambda attr: (
+                'k3l': lambda attr: attr['_k3l_no_rel'],
+                '_k3sl_no_rel': lambda attr: (
                     attr['_own_k3sl']
                     + attr['_own_k3s'] * attr['_own_length']
                     + attr['_parent_k3sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k3s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k4l': lambda attr: (
+                'k3sl': lambda attr: attr['_k3sl_no_rel'],
+                '_k4l_no_rel': lambda attr: (
                     attr['_own_k4l']
                     + attr['_own_k4'] * attr['_own_length']
                     + attr['_parent_k4l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k4'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k4sl': lambda attr: (
+                'k4l': lambda attr: attr['_k4l_no_rel'],
+                '_k4sl_no_rel': lambda attr: (
                     attr['_own_k4sl']
                     + attr['_own_k4s'] * attr['_own_length']
                     + attr['_parent_k4sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k4s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k5l': lambda attr: (
+                'k4sl': lambda attr: attr['_k4sl_no_rel'],
+                '_k5l_no_rel': lambda attr: (
                     attr['_own_k5l']
                     + attr['_own_k5'] * attr['_own_length']
                     + attr['_parent_k5l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k5sl': lambda attr: (
+                'k5l': lambda attr: attr['_k5l_no_rel'],
+                '_k5sl_no_rel': lambda attr: (
                     attr['_own_k5sl']
                     + attr['_own_k5s'] * attr['_own_length']
                     + attr['_parent_k5sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                'k5sl': lambda attr: attr['_k5sl_no_rel'],
                 'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
                 'ref_shift_x': lambda attr: attr['_own_ref_shift_x'] + attr['_parent_ref_shift_x'],
