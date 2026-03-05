@@ -1303,3 +1303,70 @@ def test_splineboris_constructor_validation():
             s_end=1,
             multipole_order=1,
         )
+
+
+
+def test_splineboris_sequence_rejects_poly_order():
+    """SplineBorisSequence no longer accepts a poly_order keyword."""
+    df = pd.DataFrame({
+        'field_component': ['Bs'] * 5,
+        'derivative_x': [0] * 5,
+        'region_name': ['r0'] * 5,
+        's_start': [0.0] * 5,
+        's_end': [1.0] * 5,
+        'idx_start': [0] * 5,
+        'idx_end': [10] * 5,
+        'param_index': list(range(5)),
+        'param_name': ['bs_f_left', 'bs_df_left', 'bs_f_right', 'bs_df_right', 'bs_average'],
+        'param_value': [0.0, 0.0, 0.0, 0.0, 0.0],
+    })
+    with pytest.raises(TypeError):
+        xt.SplineBorisSequence(
+            df_fit_pars=df,
+            multipole_order=1,
+            poly_order=3,
+        )
+
+
+def test_splineboris_sequence_deterministic_from_shuffled(undulator_fit_pars_df):
+    """Sequence output should be identical regardless of input row order."""
+    multipole_order = 3
+    df = undulator_fit_pars_df
+
+    seq_a = xt.SplineBorisSequence(df_fit_pars=df, multipole_order=multipole_order)
+
+    df_shuffled = df.sample(frac=1, random_state=42)
+    seq_b = xt.SplineBorisSequence(df_fit_pars=df_shuffled, multipole_order=multipole_order)
+
+    assert seq_a.n_pieces == seq_b.n_pieces
+    for ea, eb in zip(seq_a.elements, seq_b.elements):
+        xo.assert_allclose(ea.s_start, eb.s_start, atol=0, rtol=0)
+        xo.assert_allclose(ea.s_end, eb.s_end, atol=0, rtol=0)
+        xo.assert_allclose(
+            np.array(ea.par_table), np.array(eb.par_table), atol=0, rtol=0
+        )
+
+
+def test_splineboris_sequence_duplicate_boundaries():
+    """Duplicate (s, idx) boundaries should not create zero-length regions."""
+    rows = []
+    for i, pname in enumerate(['bs_f_left', 'bs_df_left', 'bs_f_right', 'bs_df_right', 'bs_average']):
+        for rname, ss, se, ids, ide in [('r0', 0.0, 0.5, 0, 5), ('r1', 0.5, 1.0, 5, 10)]:
+            rows.append({
+                'field_component': 'Bs',
+                'derivative_x': 0,
+                'region_name': rname,
+                's_start': ss,
+                's_end': se,
+                'idx_start': ids,
+                'idx_end': ide,
+                'param_index': i,
+                'param_name': pname,
+                'param_value': 0.0,
+            })
+    df = pd.DataFrame(rows)
+
+    seq = xt.SplineBorisSequence(df_fit_pars=df, multipole_order=1)
+    assert seq.n_pieces == 2
+    for elem in seq.elements:
+        assert float(elem.s_end) > float(elem.s_start)
