@@ -45,6 +45,18 @@ static inline uint32_t find_aperture_info_linear(const ApertureBounds, const flo
 static inline uint32_t find_active_profile_for_s(const ApertureBounds, const float_type s, const uint32_t lower_bound);
 
 
+static inline Pose pose_from_type_position(const TypePosition type_pos)
+{
+    Pose type_in_survey_ref;
+
+    for (uint8_t i = 0; i < 4; i++)
+        for (uint8_t j = 0; j < 4; j++)
+            type_in_survey_ref.mat[i][j] = TypePosition_get_transformation(type_pos, i, j);
+
+    return type_in_survey_ref;
+}
+
+
 void build_profile_polygons(
     const ApertureModel model,
     const ProfilePolygons profile_polygons,
@@ -129,10 +141,7 @@ static inline void aperture_profile_pose_in_world(
     Pose profile_in_type = transform_to_matrix(profile_transform);
 
     // Transformation from type frame -> survey reference point frame
-    Pose type_in_survey_ref;
-    for (uint8_t i = 0; i < 4; i++)
-        for (uint8_t j = 0; j < 4; j++)
-            type_in_survey_ref.mat[i][j] = TypePosition_get_transformation(type_pos, i, j);
+    Pose type_in_survey_ref = pose_from_type_position(type_pos);
 
     // Transformation from survey reference point -> world frame
     const uint32_t survey_idx = TypePosition_get_survey_index(type_pos);
@@ -141,6 +150,18 @@ static inline void aperture_profile_pose_in_world(
     // Compute survey_ref_in_world @ type_in_survey_ref @ profile_in_type
     Pose profile_in_survey = matrix_multiply(type_in_survey_ref, profile_in_type);
     *out_profile_in_world = matrix_multiply(survey_ref_in_world, profile_in_survey);
+}
+
+
+static inline Pose aperture_type_pose_in_world(
+    const TypePosition type_pos,
+    const SurveyData survey
+)
+{
+    Pose type_in_survey_ref = pose_from_type_position(type_pos);
+    const uint32_t survey_idx = TypePosition_get_survey_index(type_pos);
+    Pose survey_ref_in_world = pose_matrix_from_survey(survey, survey_idx);
+    return matrix_multiply(survey_ref_in_world, type_in_survey_ref);
 }
 
 

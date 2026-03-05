@@ -24,7 +24,7 @@ from xtrack.aperture.structures import (
     ShapeTypes,
     SurveyData,
     TwissData,
-    TypePosition
+    TypePosition, Circle
 )
 from xtrack.line import Line
 from xtrack.progress_indicator import progress
@@ -155,6 +155,10 @@ class Aperture:
 
                 if not shape:
                     # There is not really an aperture here, continue
+                    continue
+
+                if isinstance(shape, Circle) and shape.radius < 1e-6:
+                    # broken zero aperture
                     continue
 
                 tol_r, tol_x, tol_y = tols
