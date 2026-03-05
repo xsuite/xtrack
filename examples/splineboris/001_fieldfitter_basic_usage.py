@@ -34,6 +34,7 @@ fitter = FieldFitter(
     distance_unit=dz,
     min_region_size=10,
     deg=deg,
+    field_tol=1e-3,
 )
 
 fitter.fit()

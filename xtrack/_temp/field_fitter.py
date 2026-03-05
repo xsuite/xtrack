@@ -63,6 +63,7 @@ class FieldFitter:
             distance_unit=0.001,
             min_region_size=10,
             deg=2,
+            field_tol=1e-3,
     ):
         # Parameters
         self.xy_point = xy_point
@@ -72,7 +73,7 @@ class FieldFitter:
         self.s_full = None
         self.length = None
         self.deg = deg
-        self.field_tol = 1e-3
+        self.field_tol = field_tol
 
         # DataFrames
         self.df_raw_data = None
