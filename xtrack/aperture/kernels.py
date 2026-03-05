@@ -74,12 +74,9 @@ def build_aperture_kernels(context):
             c_name="compute_beam_envelopes_at_sigma",
             args=[
                 xo.Arg(ApertureModel, name='model'),
-                xo.Arg(ProfilePolygons, name="profile_polygons"),
-                xo.Arg(ApertureBounds, name='aperture_bounds'),
-                xo.Arg(TwissData, name='twiss_data'),
+                xo.Arg(TwissData, name='twiss_at_s'),
                 xo.Arg(BeamData, name='beam_data'),
                 xo.Arg(xo.Float32, name='sigmas'),
-                xo.Arg(xo.Float32, pointer=True, name='out_interpolated_apertures'),
                 xo.Arg(xo.UInt32, name='envelope_num_points'),
                 xo.Arg(xo.Float32, pointer=True, name='out_envelope'),
             ]

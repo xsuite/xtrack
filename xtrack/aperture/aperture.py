@@ -563,51 +563,47 @@ class Aperture:
         else:
             raise NotImplementedError(f"Method `{method}` for getting aperture sigmas is unknown.")
 
-    def get_apertures_and_envelope_at_element(
+    def get_envelope_at_element(
             self,
             element_name: str,
             sigmas: float,
             resolution: Optional[float] = None,
             twiss: Optional[TwissTable] = None,
             **kwargs,
-    ) -> Tuple[np.ndarray, np.ndarray, TwissTable]:
+    ) -> Tuple[np.ndarray, TwissTable]:
         s_positions = self._get_cuts_at_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
-        return self.get_apertures_and_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
+        return self.get_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
 
-    def get_apertures_and_envelope_at_s(
+    def get_envelope_at_s(
             self,
             s_positions: Iterable[float],
             sigmas: float,
             twiss_init: Optional[TwissInit] = None,
             envelopes_num_points: int = 128,
-    ) -> Tuple[np.ndarray, np.ndarray, TwissTable]:
+    ) -> Tuple[np.ndarray, TwissTable]:
         line_sliced = self.line.copy()
         line_sliced.cut_at_s(s_positions)
         s_start, s_end = s_positions[0], s_positions[-1]
 
         sliced_twiss = line_sliced.twiss(init=twiss_init).rows[s_start:s_end:'s']
         num_slices = len(sliced_twiss.s)
-        twiss_data = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
+        twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
-        interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=np.float32)
 
         envelopes = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=np.float32)
 
         self.call_kernel(
             'compute_beam_envelopes_at_sigma',
             model=self.model,
-            profile_polygons=self._profile_polygons,
-            aperture_bounds=self._aperture_bounds,
-            twiss_data=twiss_data,
+            twiss_at_s=twiss_at_s,
             beam_data=beam_data,
             sigmas=sigmas,
-            out_interpolated_apertures=interpolated_points,
             envelope_num_points=envelopes_num_points,
             out_envelope=envelopes,
         )
 
-        return envelopes, interpolated_points, sliced_twiss
+        return envelopes, sliced_twiss
 
     def poses_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices:
         """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
