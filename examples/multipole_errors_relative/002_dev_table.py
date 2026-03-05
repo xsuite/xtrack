@@ -18,9 +18,9 @@ line1 = env.new_line(components=[
     env.new('oct', xt.Octupole, length=0.1, k3=4, at=5),
     env.new('skew_oct', xt.Octupole, length=0.1, k3s=4, main_is_skew=True, at=6),
     env.new('multipole', xt.Multipole, length=0.1, knl=[0,0,0,0,2],
-            main_order=5, at=7),
-    env.new('skew_multipole', xt.Multipole, length=0.1, ksl=[0,0,0,0,2],
-            main_is_skew=True, main_order=5, at=8),
+            main_order=4, at=7),
+    env.new('skew_multipole', xt.Multipole, length=0.1, ksl=[0,0,0,0,3],
+            main_is_skew=True, main_order=4, at=8),
 ])
 line2 = line1.copy(shallow=True)
 line2.slice_thick_elements(slicing_strategies=[
@@ -49,13 +49,14 @@ for ii in range(MAX_ORDER+1):
     # Bends, RBends, Quadrupoles, and Sextupoles, Octupoles have implicit main order
     mask_type = None
     if ii == 0:
-        mask_type = (element_type == 'RBend') | (element_type == 'Bend')
+        mask_type = ((element_type == 'RBend') | (element_type == 'Bend')
+                     | (parent_type == 'RBend') | (parent_type == 'Bend'))
     elif ii == 1:
-        mask_type = (element_type == 'Quadrupole')
+        mask_type = ((element_type == 'Quadrupole') | (parent_type == 'Quadrupole'))
     elif ii == 2:
-        mask_type = (element_type == 'Sextupole')
+        mask_type = ((element_type == 'Sextupole') | (parent_type == 'Sextupole'))
     elif ii == 3:
-        mask_type = (element_type == 'Octupole')
+        mask_type = ((element_type == 'Octupole') | (parent_type == 'Octupole'))
 
     this_norm = attr[f'_k{ii}l_no_rel']
     this_skew = attr[f'_k{ii}sl_no_rel']
@@ -74,3 +75,6 @@ main_is_skew = np.bool(attr['_own_main_is_skew'] + attr['_parent_main_is_skew'])
 main_strength = np.zeros(len(main_order), dtype=np.float64)
 main_strength[~main_is_skew] = _main_strength_normal[~main_is_skew]
 main_strength[main_is_skew] = _main_strength_skew[main_is_skew]
+
+tt = line.get_table()
+tt['main_strength'] = main_strength
