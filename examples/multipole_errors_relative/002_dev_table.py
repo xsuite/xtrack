@@ -85,6 +85,14 @@ for nn in tt.name:
                 xo.assert_allclose(ksl[ii], tt[f'k{ii}sl', nn], rtol=0, atol=1e-14)
     elif ee.__class__.__name__.startswith('ThickSlice') or ee.__class__.__name__.startswith('ThinSlice'):
         xo.assert_allclose(ee._parent.main_strength*ee.weight, tt['_main_strength', nn], rtol=0, atol=1e-14)
+        knl_parent, ksl_parent = ee._parent.get_total_knl_ksl()
+        for ii in range(6):
+            if ii >= len(knl_parent):
+                assert tt[f'k{ii}l', nn] == 0
+                assert tt[f'k{ii}sl', nn] == 0
+            else:
+                xo.assert_allclose(knl_parent[ii]*ee.weight, tt[f'k{ii}l', nn], rtol=0, atol=1e-14)
+                xo.assert_allclose(ksl_parent[ii]*ee.weight, tt[f'k{ii}sl', nn], rtol=0, atol=1e-14)
     else:
         assert isinstance(ee, (xt.Drift, xt.Marker))
         assert tt['_main_strength', nn] == 0
