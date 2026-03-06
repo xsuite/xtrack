@@ -67,7 +67,16 @@ line = line1 + line2
 tt = line.get_table(attr=True)
 
 for nn in tt.name:
+
+    if nn == '_end_point':
+        continue
+
     ee = line[nn]
 
-    if isinstance(ee, xt.Bend):
+    if isinstance(ee, (xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole)):
         xo.assert_allclose(ee.main_strength, tt['_main_strength', nn], rtol=0, atol=1e-14)
+    elif ee.__class__.__name__.startswith('ThickSlice') or ee.__class__.__name__.startswith('ThinSlice'):
+        xo.assert_allclose(ee._parent.main_strength*ee.weight, tt['_main_strength', nn], rtol=0, atol=1e-14)
+    else:
+        assert isinstance(ee, (xt.Drift, xt.Marker))
+        assert tt['_main_strength', nn] == 0

@@ -6061,15 +6061,19 @@ def _main_strength_from_attr(attr):
         elif ii == 3:
             mask_type = ((element_type == 'Octupole') | (parent_type == 'Octupole'))
 
-        this_norm = attr[f'_k{ii}l_no_rel']
-        this_skew = attr[f'_k{ii}sl_no_rel']
-
         if mask_type is not None and np.any(mask_type):
+            this_norm = (attr[f'_own_k{ii}'] * attr['_own_length']
+                         + attr[f'_parent_k{ii}'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths)
+            this_skew = (attr[f'_own_k{ii}s'] * attr['_own_length']
+                         + attr[f'_parent_k{ii}s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths)
             _main_strength_normal[mask_type] = this_norm[mask_type]
             _main_strength_skew[mask_type] = this_skew[mask_type]
 
+        # Handle Multipole elements
         mask_main_order = (main_order == ii) & mask_take_main_order
         if np.any(mask_main_order):
+            this_norm = attr[f'_k{ii}l_no_rel']
+            this_skew = attr[f'_k{ii}sl_no_rel']
             _main_strength_normal[mask_main_order] = this_norm[mask_main_order]
             _main_strength_skew[mask_main_order] = this_skew[mask_main_order]
 
