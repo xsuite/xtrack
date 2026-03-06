@@ -50,6 +50,7 @@ float_type elliptic_E(float_type phi, float_type k);
 float_type elliptic_E_complete(float_type k);
 
 inline float_type sinc(float_type);
+inline Pose identity();
 inline Pose matrix_multiply(const Pose a, const Pose b);
 inline Pose transform_to_matrix(const Transform);
 inline Transform matrix_to_transform(const Pose);
@@ -167,6 +168,12 @@ float_type elliptic_E_complete(float_type k)
 inline float_type sinc(float_type x) {
     if (fabs(x) < 1e-8f) return 1.0f;
     return sin(x) / x;
+}
+
+inline Pose identity() {
+    Pose id = {0};
+    for (int i = 0; i < 4; i++) id.mat[i][i] = 1;
+    return id;
 }
 
 

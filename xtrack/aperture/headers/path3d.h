@@ -104,25 +104,51 @@ inline Point3D segment_point_at(const Segment3D segment, const float_type frac_l
 }
 
 
-float_type line_segment_plane_intersect(LineSegment3D segment, Pose plane)
+inline Point3D plane_initial_point(const Pose plane)
+/*
+    Given a pose defining a plane (z = 0 in the local `plane` frame), return
+    its initial point.
+*/
+{
+    return (Point3D) {
+        .x = plane.mat[0][3],
+        .y = plane.mat[1][3],
+        .z = plane.mat[2][3]
+    };
+}
+
+
+inline Point3D plane_normal_vector(const Pose plane)
+/*
+    Given a pose defining a plane (z = 0 in the local `plane` frame), return
+    its normal point.
+*/
+{
+    return (Point3D) {
+        .x = plane.mat[0][2],
+        .y = plane.mat[1][2],
+        .z = plane.mat[2][2]
+    };
+}
+
+
+float_type line_segment_plane_intersect(LineSegment3D segment, const Point3D plane_point, const Point3D normal)
 /*
     Return a parameter `t` such that `segment.start + t * (segment.end - segment.start)` is the
-    point on the segment at which `plane` intersects the `segment`. The plane is defined as a
-    pose, such that if the pose is an identity, the plane lies in the X-Y plane (z=0), or, in
-    other words, `plane @ [0, 0, 1]^T` is the plane normal.
+    point on the segment at which the plane` intersects the `segment`.
 */
 {
     const float_type eps = APER_PRECISION;
 
     // Extract translation T from pose (local -> world)
-    const float_type t_x = plane.mat[0][3];
-    const float_type t_y = plane.mat[1][3];
-    const float_type t_z = plane.mat[2][3];
+    const float_type t_x = plane_point.x;
+    const float_type t_y = plane_point.y;
+    const float_type t_z = plane_point.z;
 
     // Extract 3rd column of rotation R (plane normal in world)
-    const float_type n_x = plane.mat[0][2];
-    const float_type n_y = plane.mat[1][2];
-    const float_type n_z = plane.mat[2][2];
+    const float_type n_x = normal.x;
+    const float_type n_y = normal.y;
+    const float_type n_z = normal.z;
 
     // Let A := segment.start, compute A - T
     const float_type ta_x = segment.start.x - t_x;
@@ -179,7 +205,7 @@ float_type line_segment_plane_intersect(LineSegment3D segment, Pose plane)
 }
 
 
-float_type arc_segment_plane_intersect(const ArcSegment3D segment, const Pose plane)
+float_type arc_segment_plane_intersect(const ArcSegment3D segment, const Point3D plane_point, const Point3D normal)
 /*
     Return a parameter `t` such that the point at `t * segment.angle` is the point on the
     segment at which `plane` intersects the `segment`. The plane is defined as a
@@ -193,14 +219,14 @@ float_type arc_segment_plane_intersect(const ArcSegment3D segment, const Pose pl
     if (length <= eps) return 0.f;
 
     // Extract translation T from pose (local -> world)
-    const float_type t_x = plane.mat[0][3];
-    const float_type t_y = plane.mat[1][3];
-    const float_type t_z = plane.mat[2][3];
+    const float_type t_x = plane_point.x;
+    const float_type t_y = plane_point.y;
+    const float_type t_z = plane_point.z;
 
     // Extract 3rd column of rotation R (plane normal in world)
-    const float_type n_x = plane.mat[0][2];
-    const float_type n_y = plane.mat[1][2];
-    const float_type n_z = plane.mat[2][2];
+    const float_type n_x = normal.x;
+    const float_type n_y = normal.y;
+    const float_type n_z = normal.z;
 
     // Let A := segment start, compute A - T
     const Point3D p_start = arc_segment_point_at(segment, 0);
@@ -261,13 +287,13 @@ float_type arc_segment_plane_intersect(const ArcSegment3D segment, const Pose pl
 }
 
 
-inline float_type segment_plane_intersect(const Segment3D segment, const Pose plane)
+inline float_type segment_plane_intersect(const Segment3D segment, const Point3D plane_point, const Point3D normal)
 {
     switch (segment.type) {
         case SEGMENT3D_LINE:
-            return line_segment_plane_intersect(segment.line, plane);
+            return line_segment_plane_intersect(segment.line, plane_point, normal);
         case SEGMENT3D_ARC:
-            return arc_segment_plane_intersect(segment.arc, plane);
+            return arc_segment_plane_intersect(segment.arc, plane_point, normal);
     }
 }
 

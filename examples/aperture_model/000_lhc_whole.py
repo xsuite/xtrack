@@ -62,25 +62,27 @@ cs, _ = aperture_model.cross_sections_at_s(
 fig, (ax, ay) = plt.subplots(2, sharex=True)
 fig.suptitle(r'Interpolated apertures and beam at 3$\sigma$')
 
-min_envel_x = np.min(envel[:, :, 0], axis=1) / 100
-max_envel_x = np.max(envel[:, :, 0], axis=1) / 100
-min_aper_x = np.min(cs[:, :, 0], axis=1) / 100
-max_aper_x = np.max(cs[:, :, 0], axis=1) / 100
+min_envel_x = np.min(envel[:, :, 0], axis=1) * 1000
+max_envel_x = np.max(envel[:, :, 0], axis=1) * 1000
+min_aper_x = np.min(cs[:, :, 0], axis=1) * 1000
+max_aper_x = np.max(cs[:, :, 0], axis=1) * 1000
 
 ax.fill_between(tw_envel.s, min_envel_x, max_envel_x, color='b', alpha=0.3)
 ax.plot(cs_s, min_aper_x, color='k')
 ax.plot(cs_s, max_aper_x, color='k')
 ax.set_ylabel(r'horizontal aperture [mm]')
+ax.set_ylim([-100, 100])
 
 # ax_sig = ax.twinx()
 # ax_sig.plot(tw_rays.s, sig_rays[:, 0], label=r'horizonal envelope [$\sigma$] (rays)', color='pink')
 # ax_sig.set_ylabel(r'horizontal n1 [$sigma$]')
 
-min_envel_y = np.min(envel[:, :, 1], axis=1) / 100
-max_envel_y = np.max(envel[:, :, 1], axis=1) / 100
-min_aper_y = np.min(cs[:, :, 1], axis=1) / 100
-max_aper_y = np.max(cs[:, :, 1], axis=1) / 100
+min_envel_y = np.min(envel[:, :, 1], axis=1) * 1000
+max_envel_y = np.max(envel[:, :, 1], axis=1) * 1000
+min_aper_y = np.min(cs[:, :, 1], axis=1) * 1000
+max_aper_y = np.max(cs[:, :, 1], axis=1) * 1000
 ay.set_ylabel(r'vertical aperture [mm]')
+ay.set_ylim([-100, 100])
 
 ay.fill_between(tw_envel.s, min_envel_y, max_envel_y, color='r', alpha=0.3)
 ay.plot(cs_s, min_aper_y, color='k')
