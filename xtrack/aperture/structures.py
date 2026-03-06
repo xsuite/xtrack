@@ -2,6 +2,7 @@ from typing import List, Union, get_args, Collection, Tuple
 
 import numpy as np
 import xobjects as xo
+from xobjects.context import XContext
 from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
 from xtrack.twiss import TwissTable
@@ -254,7 +255,7 @@ class SurveyData(xo.Struct):
     tilt = xo.Float32[:]
 
     @classmethod
-    def zeros(cls, length, context: xo.XContext = None) -> 'SurveyData':
+    def zeros(cls, length, context: XContext = None) -> 'SurveyData':
         return cls(
             s=np.zeros(shape=(length,), dtype=np.float32),
             pose=np.zeros(shape=(length, 4, 4), dtype=np.float32),
@@ -265,7 +266,7 @@ class SurveyData(xo.Struct):
         )
 
     @classmethod
-    def from_survey_table(cls, survey_table: SurveyTable, context: xo.XContext = None) -> 'SurveyData':
+    def from_survey_table(cls, survey_table: SurveyTable, context: XContext = None) -> 'SurveyData':
         s = np.zeros(shape=(len(survey_table),), dtype=np.float32)
         poses = np.zeros(shape=(len(survey_table), 4, 4), dtype=np.float32)
         angles = np.zeros_like(s)
