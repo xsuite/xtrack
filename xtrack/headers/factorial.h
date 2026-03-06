@@ -25,7 +25,9 @@ double one_over_factorial(int n){
         1.5619206968586225e-16, // 1/18!
         8.22063524662433e-18 // 1/19!
     };
-    if (n < 20){
+    if (n<0){
+        return 0.;
+    } else if (n < 20){
         return ONE_OVER_FACT[n];
     } else {
         return 1 / tgamma(n+1);
