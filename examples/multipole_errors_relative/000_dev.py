@@ -11,9 +11,9 @@ import xtrack as xt
 # - Update env.set_multipole_errors_relative
 # - Update docs
 # - [DONE] Remove rel_ref_is_skew from bends
-# - RDT calculation
-# - Radiation integrals
-# - Polarization calculation
+# - [Checked] RDT calculation
+# - [Checked] Radiation integrals
+# - [Checked] Polarization calculation
 # - [DONE] Backtracking
 
 m = xt.Multipole(knl=[1e-3], ksl=[2e-3])
