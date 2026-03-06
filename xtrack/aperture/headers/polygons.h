@@ -252,7 +252,7 @@ static inline int intersect_segment_with_plane_and_project_xy(
     const float_type eps = APER_PRECISION;
     LineSegment3D seg = (LineSegment3D){ .start = a_world, .end = b_world };
 
-    const float_type t = dist_along_segment_where_plane_intersects(seg, plane_in_world);
+    const float_type t = line_segment_plane_intersect(seg, plane_in_world);
 
     if (!isfinite(t)) {
         /*
@@ -525,7 +525,7 @@ static inline float_type survey_s_for_aperture(
     do
     {
         LineSegment3D segment = survey_segment(survey, it.index);
-        const float_type t = dist_along_segment_where_plane_intersects(segment, plane_in_world);
+        const float_type t = line_segment_plane_intersect(segment, plane_in_world);
         const float_type type_s = SurveyData_get_s(survey, it.index);
 
         if (-eps <= t && t <= 1 + eps)
