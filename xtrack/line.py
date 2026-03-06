@@ -749,8 +749,6 @@ class Line:
 
         elements = list(self._elements)
 
-
-
         isthick = []
         iscollective = []
         element_types = []
@@ -784,10 +782,9 @@ class Line:
 
         elements += [None]
 
-        if self._has_valid_tracker():
+        if self._has_valid_tracker() and not self.tracker.iscollective:
             s_elements = np.zeros(len(self.element_names) + 1)
-            s_elements[:-1] = np.cumsum(self.attr['length'] * isthick[:-1])
-            s_elements[-1] = s_elements[-2]
+            s_elements[1:] = np.cumsum(self.attr['length'] * isthick[:-1])
         else:
             s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
 
