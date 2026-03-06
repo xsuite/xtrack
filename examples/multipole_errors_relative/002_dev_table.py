@@ -45,13 +45,13 @@ line1 = env.new_line(components=[
             ksl=[0.0002, 0.002, 0.02, 3, 4],
             knl_rel=[0.5, 0.6, 0.7, 0.8, 0.9, 1],
             ksl_rel=[0.9, 0.8, 0.7, 0.6, 0.5, 0.4]),
-    env.new('multipole', xt.Multipole, length=0.1, knl=[0,0,0,0,2],
+    env.new('multipole', xt.Multipole, length=0.1, knl=[0,0,0,0,2], isthick=True,
             main_order=4, at=7,
             ksl=[1,2,3,4,5],
             knl_rel=[0.1, 0.2, 0.3, 0.4, 0.5],
             ksl_rel=[0.5, 0.4, 0.3, 0.2, 0.1],
             ),
-    env.new('skew_multipole', xt.Multipole, length=0.1, ksl=[0,0,0,0,3],
+    env.new('skew_multipole', xt.Multipole, length=0.1, ksl=[0,0,0,0,3], isthick=True,
             main_is_skew=True, main_order=4, at=8,
             knl=[5,4,3,2,1],
              knl_rel=[0.5, 0.4, 0.3, 0.2, 0.1],
@@ -60,12 +60,17 @@ line1 = env.new_line(components=[
 ])
 line2 = line1.copy(shallow=True)
 line2.slice_thick_elements(slicing_strategies=[
-    xt.Strategy(slicing=xt.Teapot(1, mode='thick'))])
+    xt.Strategy(slicing=xt.Teapot(2, mode='thick'))])
 
-line = line1 + line2
+line3 = line1.copy(shallow=True)
+line3.slice_thick_elements(slicing_strategies=[
+    xt.Strategy(slicing=xt.Teapot(2, mode='thin'))])
+
+line = line1 + line2 + line3
 
 tt = line.get_table(attr=True)
 
+# Check _main_strength, k0l, k0sl, k2l, k2sl, k3l, k3sl, k4l, k4sl, k5l, k5sl
 for nn in tt.name:
 
     if nn == '_end_point':
@@ -83,7 +88,9 @@ for nn in tt.name:
             else:
                 xo.assert_allclose(knl[ii], tt[f'k{ii}l', nn], rtol=0, atol=1e-14)
                 xo.assert_allclose(ksl[ii], tt[f'k{ii}sl', nn], rtol=0, atol=1e-14)
-    elif ee.__class__.__name__.startswith('ThickSlice') or ee.__class__.__name__.startswith('ThinSlice'):
+    elif (ee.__class__.__name__.startswith('ThickSlice')
+          or ee.__class__.__name__.startswith('ThinSlice')
+          or ee.__class__.__name__.startswith('DriftSlice')):
         xo.assert_allclose(ee._parent.main_strength*ee.weight, tt['_main_strength', nn], rtol=0, atol=1e-14)
         knl_parent, ksl_parent = ee._parent.get_total_knl_ksl()
         for ii in range(6):
