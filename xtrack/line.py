@@ -5776,9 +5776,9 @@ class LineAttr:
             return self._value_cache[key]
 
         if key in self.derived_fields:
-            return self.derived_fields[key](self)
-
-        out = self._cache[key].get_full_array()
+            out=  self.derived_fields[key](self)
+        else:
+            out = self._cache[key].get_full_array()
 
         if self._value_cache is not None:
             self._value_cache[key] = out
@@ -6070,6 +6070,8 @@ class ActionLine(Action):
         return self.line
 
 def _main_strength_from_attr(attr):
+
+    print('Computing main strength from attr')
 
     line = attr.line
 
