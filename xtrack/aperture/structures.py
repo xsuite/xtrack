@@ -1,4 +1,4 @@
-from typing import List, Union, get_args, Collection
+from typing import List, Union, get_args, Collection, Tuple
 
 import numpy as np
 import xobjects as xo
