@@ -748,11 +748,8 @@ class Line:
             self._full_elements_from_composer()
 
         elements = list(self._elements)
-        s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
-        length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
-        s_start = s_elements
-        s_end = s_elements + length_elements
-        s_center = s_start + 0.5 * length_elements
+
+
 
         isthick = []
         iscollective = []
@@ -786,6 +783,18 @@ class Line:
         parent_type = np.array(parent_type + [None])
 
         elements += [None]
+
+        if self._has_valid_tracker():
+            s_elements = np.zeros(len(self.element_names) + 1)
+            s_elements[:-1] = np.cumsum(self.attr['length'] * isthick[:-1])
+            s_elements[-1] = s_elements[-2]
+        else:
+            s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
+
+        length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
+        s_start = s_elements
+        s_end = s_elements + length_elements
+        s_center = s_start + 0.5 * length_elements
 
         out = {
             's': s_elements,
@@ -824,12 +833,13 @@ class Line:
         data.pop('element')
 
         if attr:
-            for kk in self.attr.keys():
-                this_attr = self.attr[kk]
-                if hasattr(this_attr, 'get'):
-                    this_attr = this_attr.get() # bring to cpu
-                # Add zero at the end (there is _end_point)
-                data[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
+            with self.attr._cache_values():
+                for kk in self.attr.keys():
+                    this_attr = self.attr[kk]
+                    if hasattr(this_attr, 'get'):
+                        this_attr = this_attr.get() # bring to cpu
+                    # Add zero at the end (there is _end_point)
+                    data[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
 
         for kk in data.keys():
             data[kk] = np.array(data[kk])
@@ -5738,6 +5748,7 @@ class LineAttr:
         self.fields = fields
         self.derived_fields = derived_fields or {}
         self._cache = {}
+        self._value_cache = None
 
         # Build _inherit_strengths and _rot_and_shift_from_parent
         _inherit_strengths = np.zeros(len(line.element_names), dtype=np.float64)
@@ -5760,13 +5771,30 @@ class LineAttr:
             self._cache[fn] = LineAttrItem(name=access, index=index, line=line)
 
     def __getitem__(self, key):
+
+        if self._value_cache is not None and key in self._value_cache:
+            return self._value_cache[key]
+
         if key in self.derived_fields:
             return self.derived_fields[key](self)
 
-        return self._cache[key].get_full_array()
+        out = self._cache[key].get_full_array()
+
+        if self._value_cache is not None:
+            self._value_cache[key] = out
+
+        return out
 
     def keys(self):
         return list(self.derived_fields.keys()) + list(self.fields)
+
+    @contextmanager
+    def _cache_values(self):
+        self._value_cache = {}
+        try:
+            yield
+        finally:
+            self._value_cache = None
 
 
 class EnergyProgram:
