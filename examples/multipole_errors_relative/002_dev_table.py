@@ -75,6 +75,14 @@ for nn in tt.name:
 
     if isinstance(ee, (xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole)):
         xo.assert_allclose(ee.main_strength, tt['_main_strength', nn], rtol=0, atol=1e-14)
+        knl, ksl = ee.get_total_knl_ksl()
+        for ii in range(6):
+            if ii >= len(knl):
+                assert tt[f'k{ii}l', nn] == 0
+                assert tt[f'k{ii}sl', nn] == 0
+            else:
+                xo.assert_allclose(knl[ii], tt[f'k{ii}l', nn], rtol=0, atol=1e-14)
+                xo.assert_allclose(ksl[ii], tt[f'k{ii}sl', nn], rtol=0, atol=1e-14)
     elif ee.__class__.__name__.startswith('ThickSlice') or ee.__class__.__name__.startswith('ThinSlice'):
         xo.assert_allclose(ee._parent.main_strength*ee.weight, tt['_main_strength', nn], rtol=0, atol=1e-14)
     else:

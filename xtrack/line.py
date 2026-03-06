@@ -5141,73 +5141,85 @@ class Line:
                     + attr['_own_k0'] * attr['_own_length']
                     + attr['_parent_k0l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k0'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k0l': lambda attr: attr['_k0l_no_rel'],
+                '_k0l_rel': lambda attr: attr['_own_k0l_rel'] + attr['_parent_k0l_rel'],
+                'k0l': lambda attr: attr['_k0l_no_rel'] + attr['_k0l_rel'] * attr['_main_strength'],
                 '_k0sl_no_rel': lambda attr: (
                     attr['_own_k0sl']
                     + attr['_own_k0s'] * attr['_own_length']
                     + attr['_parent_k0sl'] * attr['weight']* attr._inherit_strengths
                     + attr['_parent_k0s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k0sl': lambda attr: attr['_k0sl_no_rel'],
+                '_k0sl_rel': lambda attr: attr['_own_k0sl_rel'] + attr['_parent_k0sl_rel'],
+                'k0sl': lambda attr: attr['_k0sl_no_rel'] + attr['_k0sl_rel'] * attr['_main_strength'],
                 '_k1l_no_rel': lambda attr: (
                     attr['_own_k1l']
                     + attr['_own_k1'] * attr['_own_length']
                     + attr['_parent_k1l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k1'] * attr['_parent_length'] * attr['weight']* attr._inherit_strengths),
-                'k1l': lambda attr: attr['_k1l_no_rel'],
+                '_k1l_rel': lambda attr: attr['_own_k1l_rel'] + attr['_parent_k1l_rel'],
+                'k1l': lambda attr: attr['_k1l_no_rel'] + attr['_k1l_rel'] * attr['_main_strength'],
                 '_k1sl_no_rel': lambda attr: (
                     attr['_own_k1sl']
                     + attr['_own_k1s'] * attr['_own_length']
                     + attr['_parent_k1sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k1s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k1sl': lambda attr: attr['_k1sl_no_rel'],
+                '_k1sl_rel': lambda attr: attr['_own_k1sl_rel'] + attr['_parent_k1sl_rel'],
+                'k1sl': lambda attr: attr['_k1sl_no_rel'] + attr['_k1sl_rel'] * attr['_main_strength'],
                 '_k2l_no_rel': lambda attr: (
                     attr['_own_k2l']
                     + attr['_own_k2'] * attr['_own_length']
                     + attr['_parent_k2l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k2'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k2l': lambda attr: attr['_k2l_no_rel'],
+                '_k2l_rel': lambda attr: attr['_own_k2l_rel'] + attr['_parent_k2l_rel'],
+                'k2l': lambda attr: attr['_k2l_no_rel'] + attr['_k2l_rel'] * attr['_main_strength'],
                 '_k2sl_no_rel': lambda attr: (
                     attr['_own_k2sl']
                     + attr['_own_k2s'] * attr['_own_length']
                     + attr['_parent_k2sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k2s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k2sl': lambda attr: attr['_k2sl_no_rel'],
+                '_k2sl_rel': lambda attr: attr['_own_k2sl_rel'] + attr['_parent_k2sl_rel'],
+                'k2sl': lambda attr: attr['_k2sl_no_rel'] + attr['_k2sl_rel'] * attr['_main_strength'],
                 '_k3l_no_rel': lambda attr: (
                     attr['_own_k3l']
                     + attr['_own_k3'] * attr['_own_length']
                     + attr['_parent_k3l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k3'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k3l': lambda attr: attr['_k3l_no_rel'],
+                '_k3l_rel': lambda attr: attr['_own_k3l_rel'] + attr['_parent_k3l_rel'],
+                'k3l': lambda attr: attr['_k3l_no_rel'] + attr['_k3l_rel'] * attr['_main_strength'],
                 '_k3sl_no_rel': lambda attr: (
                     attr['_own_k3sl']
                     + attr['_own_k3s'] * attr['_own_length']
                     + attr['_parent_k3sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k3s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k3sl': lambda attr: attr['_k3sl_no_rel'],
+                '_k3sl_rel': lambda attr: attr['_own_k3sl_rel'] + attr['_parent_k3sl_rel'],
+                'k3sl': lambda attr: attr['_k3sl_no_rel'] + attr['_k3sl_rel'] * attr['_main_strength'],
                 '_k4l_no_rel': lambda attr: (
                     attr['_own_k4l']
                     + attr['_own_k4'] * attr['_own_length']
                     + attr['_parent_k4l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k4'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k4l': lambda attr: attr['_k4l_no_rel'],
+                '_k4l_rel': lambda attr: attr['_own_k4l_rel'] + attr['_parent_k4l_rel'],
+                'k4l': lambda attr: attr['_k4l_no_rel'] + attr['_k4l_rel'] * attr['_main_strength'],
                 '_k4sl_no_rel': lambda attr: (
                     attr['_own_k4sl']
                     + attr['_own_k4s'] * attr['_own_length']
                     + attr['_parent_k4sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k4s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k4sl': lambda attr: attr['_k4sl_no_rel'],
+                '_k4sl_rel': lambda attr: attr['_own_k4sl_rel'] + attr['_parent_k4sl_rel'],
+                'k4sl': lambda attr: attr['_k4sl_no_rel'] + attr['_k4sl_rel'] * attr['_main_strength'],
                 '_k5l_no_rel': lambda attr: (
                     attr['_own_k5l']
                     + attr['_own_k5'] * attr['_own_length']
                     + attr['_parent_k5l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k5l': lambda attr: attr['_k5l_no_rel'],
+                '_k5l_rel': lambda attr: attr['_own_k5l_rel'] + attr['_parent_k5l_rel'],
+                'k5l': lambda attr: attr['_k5l_no_rel'] + attr['_k5l_rel'] * attr['_main_strength'],
                 '_k5sl_no_rel': lambda attr: (
                     attr['_own_k5sl']
                     + attr['_own_k5s'] * attr['_own_length']
                     + attr['_parent_k5sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k5sl': lambda attr: attr['_k5sl_no_rel'],
+                '_k5sl_rel': lambda attr: attr['_own_k5sl_rel'] + attr['_parent_k5sl_rel'],
+                'k5sl': lambda attr: attr['_k5sl_no_rel'] + attr['_k5sl_rel'] * attr['_main_strength'],
                 'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
                 'ref_shift_x': lambda attr: attr['_own_ref_shift_x'] + attr['_parent_ref_shift_x'],
