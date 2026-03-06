@@ -355,7 +355,7 @@ def test_to_pandas():
 
     assert tuple(df.columns) == (
         's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
-       'iscollective', 'element', 's_start', 's_center', 's_end')
+       'parent_type', 'iscollective', 'element', 's_start', 's_center', 's_end')
     assert len(df) == 4
 
 def test_check_aperture():
