@@ -60,17 +60,15 @@ line1 = env.new_line(components=[
 ])
 line2 = line1.copy(shallow=True)
 line2.slice_thick_elements(slicing_strategies=[
-    xt.Strategy(slicing=xt.Teapot(1, mode='thick'))])
+    xt.Strategy(slicing=xt.Teapot(2, mode='thick'))])
 
 line3 = line1.copy(shallow=True)
 line3.slice_thick_elements(slicing_strategies=[
-    xt.Strategy(slicing=xt.Teapot(1, mode='thick'))])
+    xt.Strategy(slicing=xt.Teapot(2, mode='thick'))])
 
-line = line1 + line2
+line = line1 + line2 + line3
 
 tt = line.get_table(attr=True)
-
-# assert np.all(tt.name == 
 
 # Check _main_strength, k0l, k0sl, k2l, k2sl, k3l, k3sl, k4l, k4sl, k5l, k5sl
 for nn in tt.name:
