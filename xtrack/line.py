@@ -6071,8 +6071,6 @@ class ActionLine(Action):
 
 def _main_strength_from_attr(attr):
 
-    print('Computing main strength from attr')
-
     line = attr.line
 
     if not line._has_valid_tracker():
