@@ -51,7 +51,7 @@ line1 = env.new_line(components=[
             knl_rel=[0.1, 0.2, 0.3, 0.4, 0.5],
             ksl_rel=[0.5, 0.4, 0.3, 0.2, 0.1],
             ),
-    env.new('skew_multipole', xt.Multipole, length=0.1, ksl=[0,0,0,0,3],
+    env.new('skew_multipole', xt.Multipole, length=0.1, ksl=[0,0,0,0,3], isthick=True,
             main_is_skew=True, main_order=4, at=8,
             knl=[5,4,3,2,1],
              knl_rel=[0.5, 0.4, 0.3, 0.2, 0.1],
@@ -64,7 +64,7 @@ line2.slice_thick_elements(slicing_strategies=[
 
 line3 = line1.copy(shallow=True)
 line3.slice_thick_elements(slicing_strategies=[
-    xt.Strategy(slicing=xt.Teapot(2, mode='thick'))])
+    xt.Strategy(slicing=xt.Teapot(2, mode='thin'))])
 
 line = line1 + line2 + line3
 
@@ -88,8 +88,10 @@ for nn in tt.name:
             else:
                 xo.assert_allclose(knl[ii], tt[f'k{ii}l', nn], rtol=0, atol=1e-14)
                 xo.assert_allclose(ksl[ii], tt[f'k{ii}sl', nn], rtol=0, atol=1e-14)
-    elif ee.__class__.__name__.startswith('ThickSlice') or ee.__class__.__name__.startswith('ThinSlice'):
-        xo.assert_allclose(ee._parent.main_strength*ee.weight, tt['_main_strength', nn], rtol=0, atol=1e-14)
+    elif (ee.__class__.__name__.startswith('ThickSlice')
+          or ee.__class__.__name__.startswith('ThinSlice')
+          or ee.__class__.__name__.startswith('DriftSlice')):
+        xo.assert_allclose(ee._parent.main_strength*ee.weight*ee._inherit_strengths, tt['_main_strength', nn], rtol=0, atol=1e-14)
         knl_parent, ksl_parent = ee._parent.get_total_knl_ksl()
         for ii in range(6):
             if ii >= len(knl_parent):
