@@ -610,6 +610,10 @@ class Aperture:
         sv_resampled = self.survey_data.resample(s_positions)
         return sv_resampled.pose.to_nparray()
 
+    def cross_sections_at_element(self, element_name: str, resolution: Optional[float]) -> Tuple[NDArrayNxMx2, HomogenousMatrices]:
+        s_positions = self._get_cuts_at_element(element_name, resolution)
+        return self.cross_sections_at_s(s_positions)
+
     def cross_sections_at_s(self, s_positions: Collection[float]) -> Tuple[NDArrayNxMx2, HomogenousMatrices]:
         s_positions = np.array(s_positions, dtype=np.float32)
         sv_resampled = self.survey_data.resample(s_positions)

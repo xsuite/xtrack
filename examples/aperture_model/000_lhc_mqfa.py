@@ -29,10 +29,15 @@ sig_bisect, tw_bisect, aper_bisect, max_envelope = aperture_model.get_aperture_s
 )
 
 # Get envelope at arbitrary sigma
-envelopes, aper_envel, tw_envel = aperture_model.get_apertures_and_envelope_at_element(
+envelopes, tw_envel = aperture_model.get_envelope_at_element(
     element_name=mqxfa_name,
     resolution=0.1,
     sigmas=1,
+)
+
+aper_envel, aper_poses = aperture_model.cross_sections_at_element(
+    element_name=mqxfa_name,
+    resolution=0.1,
 )
 
 # PLOT envelope sigmas
