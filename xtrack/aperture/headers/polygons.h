@@ -8,6 +8,7 @@
 #include "path.h"
 #include "survey_tools.h"
 #include "zigzag_iterate.h"
+#include "convert_curvilinear.h"
 
 
 void build_profile_polygons(const ApertureModel, const ProfilePolygons, ApertureBounds, const SurveyData survey);
@@ -119,12 +120,13 @@ void build_profile_polygons(
 }
 
 
-static inline void aperture_profile_pose_in_world(
+static inline void aperture_profile_pose_frame(
     const TypePosition type_pos,
     const ProfilePosition profile_pos,
     const float_type curvature,
     const SurveyData survey,
-    Pose* out_profile_in_world
+    const Pose target_frame,
+    Pose* out_profile_in_target_frame
 )
 /*
     Compute: profile_in_world = survey_ref_in_world @ type_in_survey_ref @ profile_in_type
@@ -150,9 +152,12 @@ static inline void aperture_profile_pose_in_world(
     const uint32_t survey_idx = TypePosition_get_survey_index(type_pos);
     Pose survey_ref_in_world = pose_matrix_from_survey(survey, survey_idx);
 
-    // Compute survey_ref_in_world @ type_in_survey_ref @ profile_in_type
+    // Compute survey_ref_in_target_frame = world_in_target_frame @ survey_ref_in_world
+    Pose survey_ref_in_target_frame = matrix_multiply(target_frame, survey_ref_in_world);
+
+    // Compute survey_ref_in_target_frame @ type_in_survey_ref @ profile_in_type
     Pose profile_in_survey = matrix_multiply(type_in_survey_ref, profile_in_type);
-    *out_profile_in_world = matrix_multiply(survey_ref_in_world, profile_in_survey);
+    *out_profile_in_target_frame = matrix_multiply(survey_ref_in_target_frame, profile_in_survey);
 }
 
 
@@ -168,12 +173,13 @@ static inline Pose aperture_type_pose_in_world(
 }
 
 
-static inline void get_aperture_polygon_and_pose(
+static inline char get_aperture_polygon_and_pose(
     const ApertureModel model,
     const ProfilePolygons profile_polygons,
     const ApertureBounds aperture_bounds,
     const SurveyData survey,
     const uint32_t aper_info_idx,
+    const Pose target_frame,
     const Point2D** out_poly,
     Pose* out_profile_in_world
 )
@@ -183,6 +189,9 @@ static inline void get_aperture_polygon_and_pose(
     placing the polygon in world coordinates.
 */
 {
+    const uint32_t num_bounds = ApertureBounds_get_count(aperture_bounds);
+    if (aper_info_idx < 0 || aper_info_idx >= num_bounds) return 0;
+
     const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, aper_info_idx);
     const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, aper_info_idx);
 
@@ -198,7 +207,8 @@ static inline void get_aperture_polygon_and_pose(
 
     /* Return the pose */
     const float_type curvature = ApertureType_get_curvature(aper_type);
-    aperture_profile_pose_in_world(type_pos, profile_pos, curvature, survey, out_profile_in_world);
+    aperture_profile_pose_frame(type_pos, profile_pos, curvature, survey, target_frame, out_profile_in_world);
+    return 1;
 }
 
 
@@ -250,35 +260,56 @@ static inline uint32_t find_best_cyclic_shift_plane(
 
 
 static inline int intersect_segment_with_plane_and_project_xy(
-    const Point3D a_world,
-    const Point3D b_world,
-    const Pose plane_in_world,
-    const Pose world_in_plane,
+    Point3D a,
+    Point3D b,
+    const Pose plane_in_frame,
+    const Pose frame_in_plane,
+    const float_type curvature,
     Point2D* out_xy_plane
 )
 /*
-    Intersect segment [a_world, b_world] with plane (z = 0 in the local `plane_in_world` frame)
+    Intersect segment [a, b] with plane (z = 0 in the local `plane_in_frame` frame)
     and project intersection into plane coordinates (x,y). Returns 1 on success, 0 otherwise.
 */
 {
     const float_type eps = APER_PRECISION;
-    LineSegment3D seg = (LineSegment3D){ .start = a_world, .end = b_world };
+    Point3D plane_point = plane_initial_point(plane_in_frame);
+    Point3D normal = plane_normal_vector(plane_in_frame);
 
-    const float_type t = line_segment_plane_intersect(seg, plane_in_world);
+    /*
+        If there is curvature, we "unbend" it (move to curvilinear frame through
+        "locally rigid" transformations). This is a little bit of a hack
+        for profiles/planes that are not orthogonal to the type frame s,
+        but it will do for now, and avoids complex mathematics for proper
+        interpolation along curves (which are in this case not circle arcs!)
+    */
+    if (fabs(curvature) > APER_PRECISION)
+    {
+        a = cartesian_to_curvilinear_point(a, curvature);
+        b = cartesian_to_curvilinear_point(b, curvature);
+        plane_point = cartesian_to_curvilinear_point(plane_point, curvature);
+        normal = cartesian_vector_to_curvilinear_at_point(plane_point, normal, curvature);
+    }
+
+    /*
+        Intersect in the straight (or straightened) frame
+    */
+    LineSegment3D seg = (LineSegment3D){ .start = a, .end = b };
+    const float_type t = line_segment_plane_intersect(seg, plane_point, normal);
 
     if (!isfinite(t)) {
         /*
             Near-parallel case: if an endpoint is already on the target plane within tolerance,
             use that endpoint rather than dropping the point.
         */
-        const Point3D a_plane = pose_apply_point(world_in_plane, a_world);
+        Point3D a_plane = pose_apply_point(frame_in_plane, a);
         if (fabs(a_plane.z) <= eps) {
             out_xy_plane->x = a_plane.x;
             out_xy_plane->y = a_plane.y;
             return 1;
         }
 
-        const Point3D b_plane = pose_apply_point(world_in_plane, b_world);
+        const Point3D b_plane = pose_apply_point(frame_in_plane, b);
         if (fabs(b_plane.z) <= eps) {
             out_xy_plane->x = b_plane.x;
             out_xy_plane->y = b_plane.y;
@@ -291,9 +322,13 @@ static inline int intersect_segment_with_plane_and_project_xy(
 
     const float_type tt = clamp_value(t, 0.f, 1.f);
     const Point3D dir = point3d_sub(seg.end, seg.start);
-    const Point3D hit_world = point3d_add_scaled(seg.start, dir, tt);
-    const Point3D hit_plane = pose_apply_point(world_in_plane, hit_world);
+    Point3D hit_frame = point3d_add_scaled(seg.start, dir, tt);
 
+    /* Unbend */
+    if (fabs(curvature) > APER_PRECISION)
+        hit_frame = curvilinear_to_cartesian_point(hit_frame, curvature);
+
+    const Point3D hit_plane = pose_apply_point(frame_in_plane, hit_frame);
     out_xy_plane->x = hit_plane.x;
     out_xy_plane->y = hit_plane.y;
     return 1;
@@ -303,31 +338,27 @@ static inline int intersect_segment_with_plane_and_project_xy(
 void cross_sections_at_s(
     const SurveyData survey_at_s,
     const ApertureModel model,
-    const ProfilePolygons profile_polygons,
-    const ApertureBounds aperture_bounds,
+    const ProfilePolygons profile_polys,
+    const ApertureBounds bounds,
     const SurveyData survey,
     float_type* cross_sections
 )
 {
     const float_type eps = APER_PRECISION;
-    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
+    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polys);
     const uint32_t num_cross_sections = SurveyData_len_s(survey_at_s);
-    const uint32_t num_bounds = ApertureBounds_get_count(aperture_bounds);
+    const uint32_t num_bounds = ApertureBounds_get_count(bounds);
 
-    uint32_t current_bound_idx = 0;
+    uint32_t bound_idx = 0;
 
     for (uint32_t i = 0; i < num_cross_sections; i++) {
         const float_type s = SurveyData_get_s(survey_at_s, i);
         Point2D* poly_at_s = (Point2D*)cross_sections + i * num_points;
 
-        /* Plane at this s (from the sliced/resampled survey table) */
-        const Pose plane_in_world = pose_matrix_from_survey(survey_at_s, i);
-        const Pose world_in_plane = pose_inverse_rigid(plane_in_world);
-
         /* Use aperture bounds information to find the relevant profile for this s */
-        current_bound_idx = find_active_profile_for_s(aperture_bounds, s, current_bound_idx);
+        bound_idx = find_active_profile_for_s(bounds, s, bound_idx);
 
-        if (current_bound_idx >= num_bounds) {
+        if (bound_idx >= num_bounds) {
             /* If requested s is outside of the model, give up and return NANs */
             for (uint32_t j = 0; j < num_points; j++) {
                 poly_at_s[j].x = NAN;
@@ -337,27 +368,53 @@ void cross_sections_at_s(
         }
 
         /*
-            Find the bound which either contains s or is immediately to the left of it, then store the
-            indices of the bounds on either side (snapping to [0, num_bounds) if necessary).
+            Find the bound which either contains s or is immediately to the left of it.
         */
-        const float_type s_center = ApertureBounds_get_s_positions(aperture_bounds, current_bound_idx);
-        const int has_left = (current_bound_idx > 0);
-        const int has_right = (current_bound_idx + 1 < num_bounds);
-        const uint32_t idx_left = has_left ? (current_bound_idx - 1) : current_bound_idx;
-        const uint32_t idx_right = has_right ? (current_bound_idx + 1) : current_bound_idx;
+        const float_type s_center = ApertureBounds_get_s_positions(bounds, bound_idx);
 
         const Point2D* poly_center = NULL;
         const Point2D* poly_left = NULL;
         const Point2D* poly_right = NULL;
         Pose pose_center, pose_left, pose_right;
 
-        get_aperture_polygon_and_pose(model, profile_polygons, aperture_bounds, survey, current_bound_idx, &poly_center, &pose_center);
-        if (has_left) {
-            get_aperture_polygon_and_pose(model, profile_polygons, aperture_bounds, survey, idx_left, &poly_left, &pose_left);
+        /*
+            Determine whether the installed profiles on either side are in the same type frame.
+            If so, we will need to interpolate on the associated curve.
+        */
+        float_type curvature_left = 0, curvature_right = 0;
+
+        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(bounds, bound_idx);
+        const TypePosition type_pos = ApertureModel_getp1_type_positions(model, type_pos_idx);
+        const uint32_t type_idx = TypePosition_get_type_index(type_pos);
+        const ApertureType aper_type = ApertureModel_getp1_types(model, type_idx);
+        const float_type curvature = ApertureType_get_curvature(aper_type);
+
+        if (bound_idx > 0 && type_pos_idx == ApertureBounds_get_type_position_indices(bounds, bound_idx - 1))
+            curvature_left = curvature;
+
+        if (bound_idx + 1 < num_bounds && type_pos_idx == ApertureBounds_get_type_position_indices(bounds, bound_idx + 1))
+            curvature_right = curvature;
+
+        /*
+            We want to move to the type frame, so calculate the transformations
+        */
+        const Pose plane_in_world = pose_matrix_from_survey(survey_at_s, i);
+        Pose type_in_world;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                type_in_world.mat[i][j] = TypePosition_get_transformation(type_pos, i, j);
+            }
         }
-        if (has_right) {
-            get_aperture_polygon_and_pose(model, profile_polygons, aperture_bounds, survey, idx_right, &poly_right, &pose_right);
-        }
+        const Pose world_in_type = pose_inverse_rigid(type_in_world);
+        const Pose plane_in_type = matrix_multiply(world_in_type, plane_in_world);
+        const Pose type_in_plane = pose_inverse_rigid(plane_in_type);
+
+        /*
+            Get polygons and poses in the correct frame(s).
+        */
+        get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx, world_in_type, &poly_center, &pose_center);
+        const char has_left = get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx - 1, world_in_type, &poly_left, &pose_left);
+        const char has_right = get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx + 1, world_in_type, &poly_right, &pose_right);
 
         /*
             Compute the best cyclic shift between the pairs of profiles for the purposes of interpolation.
@@ -377,9 +434,9 @@ void cross_sections_at_s(
         Point2D poly_center_plane[num_points];
         Point2D poly_left_plane[num_points];
         Point2D poly_right_plane[num_points];
-        project_3d_polygon_to_plane(poly_center, pose_center, world_in_plane, num_points, poly_center_plane);
-        if (has_left) project_3d_polygon_to_plane(poly_left, pose_left, world_in_plane, num_points, poly_left_plane);
-        if (has_right) project_3d_polygon_to_plane(poly_right, pose_right, world_in_plane, num_points, poly_right_plane);
+        project_3d_polygon_to_plane(poly_center, pose_center, type_in_plane, num_points, poly_center_plane);
+        if (has_left) project_3d_polygon_to_plane(poly_left, pose_left, type_in_plane, num_points, poly_left_plane);
+        if (has_right) project_3d_polygon_to_plane(poly_right, pose_right, type_in_plane, num_points, poly_right_plane);
 
         if (fabs(s - s_center) < eps) {
             for (uint32_t j = 0; j < num_points; j++) poly_at_s[j] = poly_center_plane[j];
@@ -407,14 +464,15 @@ void cross_sections_at_s(
                 const Point2D* poly_b = use_right ? poly_right : poly_center;
                 const uint32_t idx_a = use_right ? j : (j + shift_center_left) % num_points;
                 const uint32_t idx_b = use_right ? (j + shift_center_right) % num_points : j;
+                const float_type curvature = use_right ? curvature_right : curvature_left;
 
-                const Point3D point_a_world = pose_apply_point(
+                const Point3D point_a_type = pose_apply_point(
                     *pose_a, (Point3D){ poly_a[idx_a].x, poly_a[idx_a].y, 0.f });
-                const Point3D point_b_world = pose_apply_point(
+                const Point3D point_b_type = pose_apply_point(
                     *pose_b, (Point3D){ poly_b[idx_b].x, poly_b[idx_b].y, 0.f });
 
                 has_intersection = intersect_segment_with_plane_and_project_xy(
-                    point_a_world, point_b_world, plane_in_world, world_in_plane, &hit_point_plane);
+                    point_a_type, point_b_type, plane_in_type, type_in_plane, curvature, &hit_point_plane);
             }
 
             poly_at_s[j] = has_intersection ? hit_point_plane : poly_center_plane[j];
@@ -529,8 +587,9 @@ static inline float_type survey_s_for_aperture(
 
     // Transformation from plane (s = 0) -> world
     Pose plane_in_world;
-    // TODO: Include curvature
-    aperture_profile_pose_in_world(type_pos, profile_pos, 0, survey, &plane_in_world);
+    // TODO: Include curvature and correct frame calculation
+    const Pose world_in_world = identity();
+    aperture_profile_pose_frame(type_pos, profile_pos, 0, survey, world_in_world, &plane_in_world);
 
     /*
         For data from MAD-X etc. it's likely that it's the type's reference survey point where the profile
@@ -542,7 +601,9 @@ static inline float_type survey_s_for_aperture(
     do
     {
         LineSegment3D segment = survey_segment(survey, it.index);
-        const float_type t = line_segment_plane_intersect(segment, plane_in_world);
+        const Point3D plane_point = plane_initial_point(plane_in_world);
+        const Point3D normal = plane_normal_vector(plane_in_world);
+        const float_type t = line_segment_plane_intersect(segment, plane_point, normal);
         const float_type type_s = SurveyData_get_s(survey, it.index);
 
         if (-eps <= t && t <= 1 + eps)
@@ -589,8 +650,9 @@ static inline void bounds_on_s_for_aperture(
 
     // Transformation profile local -> world frame
     Pose profile_in_world;
-    // TODO: Include curvature
-    aperture_profile_pose_in_world(type_pos, profile_pos, 0, survey, &profile_in_world);
+    // TODO: Include curvature and correct frame calculation
+    const Pose world_in_world = identity();
+    aperture_profile_pose_frame(type_pos, profile_pos, 0, survey, world_in_world, &profile_in_world);
 
     float_type out_min = INFINITY;
     float_type out_max = -INFINITY;
