@@ -1,7 +1,7 @@
 from pyparsing import line
 
 import xtrack as xt
-import numpy as np
+import xobjects as xo
 
 # TODO:
 # - Slices and replicas
@@ -64,53 +64,10 @@ line2.slice_thick_elements(slicing_strategies=[
 
 line = line1 + line2
 
-attr = line.attr
+tt = line.get_table(attr=True)
 
-if not line._has_valid_tracker():
-    line.build_tracker()
+for nn in tt.name:
+    ee = line[nn]
 
-main_order = attr['_own_main_order'] + attr['_parent_main_order']
-
-mask_take_main_order = attr._cache['_own_main_order']._mask | attr._cache['_parent_main_order']._mask
-
-_main_strength_normal = np.zeros(len(main_order), dtype=np.float64)
-_main_strength_skew = np.zeros(len(main_order), dtype=np.float64)
-
-element_type = line.tracker._tracker_data_base._line_table.element_type[:-1] # remove _end_point
-parent_type = line.tracker._tracker_data_base._line_table.parent_type[:-1] # remove _end_point
-
-MAX_ORDER = 5
-for ii in range(MAX_ORDER+1):
-
-    # Bends, RBends, Quadrupoles, and Sextupoles, Octupoles have implicit main order
-    mask_type = None
-    if ii == 0:
-        mask_type = ((element_type == 'RBend') | (element_type == 'Bend')
-                     | (parent_type == 'RBend') | (parent_type == 'Bend'))
-    elif ii == 1:
-        mask_type = ((element_type == 'Quadrupole') | (parent_type == 'Quadrupole'))
-    elif ii == 2:
-        mask_type = ((element_type == 'Sextupole') | (parent_type == 'Sextupole'))
-    elif ii == 3:
-        mask_type = ((element_type == 'Octupole') | (parent_type == 'Octupole'))
-
-    this_norm = attr[f'_k{ii}l_no_rel']
-    this_skew = attr[f'_k{ii}sl_no_rel']
-
-    if mask_type is not None and np.any(mask_type):
-        _main_strength_normal[mask_type] = this_norm[mask_type]
-        _main_strength_skew[mask_type] = this_skew[mask_type]
-
-    mask_main_order = (main_order == ii) & mask_take_main_order
-    if np.any(mask_main_order):
-        _main_strength_normal[mask_main_order] = this_norm[mask_main_order]
-        _main_strength_skew[mask_main_order] = this_skew[mask_main_order]
-
-main_is_skew = np.bool(attr['_own_main_is_skew'] + attr['_parent_main_is_skew'])
-
-main_strength = np.zeros(len(main_order), dtype=np.float64)
-main_strength[~main_is_skew] = _main_strength_normal[~main_is_skew]
-main_strength[main_is_skew] = _main_strength_skew[main_is_skew]
-
-tt = line.get_table()
-tt['main_strength'] = main_strength
+    if isinstance(ee, xt.Bend):
+        xo.assert_allclose(ee.main_strength, tt['_main_strength', nn], rtol=0, atol=1e-14)
