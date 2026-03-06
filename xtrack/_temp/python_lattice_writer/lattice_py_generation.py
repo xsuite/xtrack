@@ -59,7 +59,7 @@ def _elem_to_tokens(env, nn, formatter):
             continue
         if kk == 'k0_from_h' and not ee.k0_from_h:
             continue
-        if kk == 'knl' or kk == 'ksl':
+        if kk == 'knl' or kk == 'ksl' or kk == 'knl_rel' or kk == 'ksl_rel':
             arr_ref = getattr(ee_ref, kk)
             vv = _repr_arr_ref(arr_ref, formatter)
             if vv != '[]':
