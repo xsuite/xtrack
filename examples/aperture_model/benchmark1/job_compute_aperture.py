@@ -42,19 +42,29 @@ ap.plot_aper_sx()
 ap.plot_beam_sx()
 plt.show()
 
-# MQXFA pyoptics vs Xtrack aperture model
-ap.plot_halo_name("MQXFA.A1R5")
-plt.show()
+# Cross-sections and beam pyoptics vs Xtrack aperture model
+for name in ["MQXFA.A1R5", "MBXF.4R5"]:
+    ap.plot_halo_name(name)
+    xs_name = b1.get_table().rows[f'{name.lower()}.*'].name[0]
 
-sig_bisect, tw_bisect, aper_bisect, max_envelope = aperture_model.get_aperture_sigmas_at_element(
-    element_name='mqxfa.a1r5/b1',
-    resolution=0.1,
-    method='bisection',
-)
+    sigmas, twiss, cross_sections, max_envelope = aperture_model.get_aperture_sigmas_at_element(
+        element_name=xs_name,
+        resolution=0.1,
+        method='bisection',
+    )
 
-# MBXF pyoptics vs Xtrack aperture model
-ap.plot_halo_name("MBXF.4R5")
-plt.show()
+    cross_sections2, poses = aperture_model.cross_sections_at_element(element_name=xs_name, resolution=0.1)
 
-ap.ap.show("MQXFA.A1R5", "n1 betx bety x y dx dy")
+    for pt in cross_sections2:
+        plt.plot(pt[:, 0], pt[:, 1], c='gray', linestyle='--')
+
+    for pt in max_envelope:
+        plt.plot(pt[:, 0], pt[:, 1])
+
+    plt.gca().set_aspect('equal')
+    plt.title(f"{xs_name}")
+    plt.legend()
+    plt.show()
+
+ap.ap.show("MQXFA.A1R5", "s n1 betx bety x y dx dy")
 ap.ap.show("MBXF.4R5", "n1 x y betx bety x y dx dy")

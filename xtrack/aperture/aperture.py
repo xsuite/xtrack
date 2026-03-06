@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, cast
 
 import numpy as np
 import xobjects as xo
+from xdeps.table import Table
 from xobjects.context import XContext
 from xtrack import TwissInit, TwissTable
 from xtrack.aperture.kernels import build_aperture_kernels
@@ -512,11 +513,9 @@ class Aperture:
         s_start, s_end = s_positions[0], s_positions[-1]
 
         sliced_twiss = line_sliced.twiss(init=twiss_init).rows[s_start:s_end:'s']
-        sliced_survey = line_sliced.survey().rows[s_start:s_end:'s']
-
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
-        survey_at_s = SurveyData.from_survey_table(sliced_survey)
+        survey_at_s = self.survey_data.resample(twiss_at_s.s)
         beam_data = BeamData(**self.halo_params)
         interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=np.float32)
 
@@ -707,7 +706,50 @@ class Aperture:
         #             f'aperture bounds [{left}, {right}] overlap the preceding profile whose s_end = {last_right}'
         #         )
 
+    def get_bounds_table(self):
+        type_names = []
+        profile_names = []
+        s_positions = []
+        s_starts = []
+        s_ends = []
+        shapes = []
+        shape_params = []
 
+        ap_bounds = self._aperture_bounds
+        for i in range(ap_bounds.count):
+            type_pos_idx = ap_bounds.type_position_indices[i]
+            type_pos = self.model.type_positions[type_pos_idx]
+            type_ = self.model.type_for_position(type_pos)
+            type_name = self.model.type_name_for_position(type_pos)
+
+            profile_pos_idx = ap_bounds.profile_position_indices[i]
+            profile_pos = type_.positions[profile_pos_idx]
+            profile_name = self.model.profile_name_for_position(profile_pos)
+            profile = self.model.profile_for_position(profile_pos)
+
+            shape = profile.shape
+
+            type_names.append(type_name)
+            profile_names.append(profile_name)
+            s_positions.append(ap_bounds.s_positions[i])
+            s_starts.append(ap_bounds.s_start[i])
+            s_ends.append(ap_bounds.s_end[i])
+            shapes.append(type(shape).__name__)
+            shape_params.append(shape._to_dict())
+
+        table = Table(
+            data={
+                'type_name': np.array(type_names, dtype=np.str_),
+                'profile_name': np.array(profile_names, dtype=np.str_),
+                's': np.array(s_positions, dtype=np.float32),
+                's_start': np.array(s_starts, dtype=np.float32),
+                's_end': np.array(s_ends, dtype=np.float32),
+                'shape': np.array(shapes, dtype=object),
+                'shape_param': np.array(shape_params, dtype=object),
+            },
+            index='type_name',
+        )
+        return table
 
     def _find_type_positions(self, s_start: float, s_end: float) -> List[TypePosition]:
         type_bounds = self._type_bounds()
