@@ -3,7 +3,7 @@
 
 GPUFUN
 double one_over_factorial(int n){
-    double[] ONE_OVER_FACT = {
+    double ONE_OVER_FACT[] = {
         1.0, // 1/0!
         1.0, // 1/1!
         0.5, // 1/2!

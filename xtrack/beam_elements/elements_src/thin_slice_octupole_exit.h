@@ -10,6 +10,7 @@
 #define XTRACK_EXIT_SLICE_OCTUPOLE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -28,7 +29,7 @@ void ThinSliceOctupoleExit_track_local_particle(
         /*knl*/                   ThinSliceOctupoleExitData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceOctupoleExitData_getp1__parent_ksl(el, 0),
         /*order_rel*/             ThinSliceOctupoleExitData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ 1. / (tgamma(ThinSliceOctupoleExitData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+      /*inv_factorial_order_rel*/ one_over_factorial(ThinSliceOctupoleExitData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
         /*knl_rel*/               ThinSliceOctupoleExitData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThinSliceOctupoleExitData_getp1__parent_ksl_rel(el, 0),
         /*rel_ref_strength*/      ThinSliceOctupoleExitData_get__parent_length(el) * ((ThinSliceOctupoleExitData_get__parent_main_is_skew(el)) ? ThinSliceOctupoleExitData_get__parent_k3s(el) : ThinSliceOctupoleExitData_get__parent_k3(el)),

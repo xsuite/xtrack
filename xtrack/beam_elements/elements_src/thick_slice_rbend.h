@@ -10,6 +10,7 @@
 #define XTRACK_THICK_SLICE_RBEND_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -28,7 +29,7 @@ void ThickSliceRBend_track_local_particle(
         /*knl*/                   ThickSliceRBendData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceRBendData_getp1__parent_ksl(el, 0),
         /*order_rel*/             ThickSliceRBendData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ 1. / (tgamma(ThickSliceRBendData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+      /*inv_factorial_order_rel*/ one_over_factorial(ThickSliceRBendData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
         /*knl_rel*/               ThickSliceRBendData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThickSliceRBendData_getp1__parent_ksl_rel(el, 0),
         /*rel_ref_strength*/      ThickSliceRBendData_get__parent_k0(el) * ThickSliceRBendData_get__parent_length(el),

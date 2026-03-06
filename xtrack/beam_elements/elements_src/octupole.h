@@ -7,6 +7,7 @@
 #define XTRACK_OCTUPOLE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -25,7 +26,7 @@ void Octupole_track_local_particle(
         /*knl*/                   OctupoleData_getp1_knl(el, 0),
         /*ksl*/                   OctupoleData_getp1_ksl(el, 0),
         /*order_rel*/             OctupoleData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ 1. / (tgamma(OctupoleData_len_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+      /*inv_factorial_order_rel*/ one_over_factorial(OctupoleData_len_knl_rel(el) - 1), // 1 / (order_rel)!
         /*knl_rel*/               OctupoleData_getp1_knl_rel(el, 0),
         /*ksl_rel*/               OctupoleData_getp1_ksl_rel(el, 0),
         /*rel_ref_strength*/      OctupoleData_get_length(el) * ((OctupoleData_get_main_is_skew(el)) ? OctupoleData_get_k3s(el) : OctupoleData_get_k3(el)),

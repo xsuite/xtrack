@@ -10,6 +10,7 @@
 #define XTRACK_ENTRY_SLICE_QUADRUPOLE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -28,7 +29,7 @@ void ThinSliceQuadrupoleEntry_track_local_particle(
         /*knl*/                   ThinSliceQuadrupoleEntryData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceQuadrupoleEntryData_getp1__parent_ksl(el, 0),
         /*order_rel*/             ThinSliceQuadrupoleEntryData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ 1. / (tgamma(ThinSliceQuadrupoleEntryData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+      /*inv_factorial_order_rel*/ one_over_factorial(ThinSliceQuadrupoleEntryData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
         /*knl_rel*/               ThinSliceQuadrupoleEntryData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThinSliceQuadrupoleEntryData_getp1__parent_ksl_rel(el, 0),
         /*rel_ref_strength*/      ThinSliceQuadrupoleEntryData_get__parent_length(el) * ((ThinSliceQuadrupoleEntryData_get__parent_main_is_skew(el)) ? ThinSliceQuadrupoleEntryData_get__parent_k1s(el) : ThinSliceQuadrupoleEntryData_get__parent_k1(el)),

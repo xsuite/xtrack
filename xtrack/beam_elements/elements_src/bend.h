@@ -7,6 +7,7 @@
 #define XTRACK_BEND_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -25,7 +26,7 @@ void Bend_track_local_particle(
         /*knl*/                   BendData_getp1_knl(el, 0),
         /*ksl*/                   BendData_getp1_ksl(el, 0),
         /*order_rel*/             BendData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ 1. / (tgamma(BendData_len_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+      /*inv_factorial_order_rel*/ one_over_factorial(BendData_len_knl_rel(el) - 1), // 1 / (order_rel)!
         /*knl_rel*/               BendData_getp1_knl_rel(el, 0),
         /*ksl_rel*/               BendData_getp1_ksl_rel(el, 0),
         /*rel_ref_strength*/      BendData_get_k0(el) * BendData_get_length(el),

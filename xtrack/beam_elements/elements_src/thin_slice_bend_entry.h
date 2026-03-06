@@ -10,6 +10,7 @@
 #define XTRACK_ENTRY_SLICE_BEND_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -28,7 +29,7 @@ void ThinSliceBendEntry_track_local_particle(
         /*knl*/                   ThinSliceBendEntryData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceBendEntryData_getp1__parent_ksl(el, 0),
         /*order_rel*/             ThinSliceBendEntryData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ 1. / (tgamma(ThinSliceBendEntryData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+      /*inv_factorial_order_rel*/ one_over_factorial(ThinSliceBendEntryData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
         /*knl_rel*/               ThinSliceBendEntryData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThinSliceBendEntryData_getp1__parent_ksl_rel(el, 0),
         /*rel_ref_strength*/      ThinSliceBendEntryData_get__parent_k0(el) * ThinSliceBendEntryData_get__parent_length(el),

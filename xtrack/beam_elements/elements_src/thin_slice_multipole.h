@@ -10,6 +10,7 @@
 #define XTRACK_THIN_SLICE_MULTIPOLE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -27,7 +28,7 @@ void ThinSliceMultipole_track_local_particle(ThinSliceMultipoleData el, LocalPar
         /*knl*/                   ThinSliceMultipoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThinSliceMultipoleData_getp1__parent_ksl(el, 0),
         /*order_rel*/             ThinSliceMultipoleData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
-      /*inv_factorial_order_rel*/ 1. / (tgamma(ThinSliceMultipoleData_len__parent_knl_rel(el))), // 1 / (order_rel)! = 1 / tgamma(order_rel + 1)
+      /*inv_factorial_order_rel*/ one_over_factorial(ThinSliceMultipoleData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
         /*knl_rel*/               ThinSliceMultipoleData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThinSliceMultipoleData_getp1__parent_ksl_rel(el, 0),
         /*main_strength*/         ((ThinSliceMultipoleData_get__parent_main_is_skew(el)) ? (ThinSliceMultipoleData_get__parent_ksl(el, ThinSliceMultipoleData_get__parent_main_order(el))) : (ThinSliceMultipoleData_get__parent_knl(el, ThinSliceMultipoleData_get__parent_main_order(el)))),
