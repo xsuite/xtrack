@@ -3771,6 +3771,30 @@ class Line:
 
         self.env.extend_knl_ksl(order, element_names)
 
+    def extend_knl_rel_ksl_rel(self, order, element_names=None):
+
+        """
+        Extend the order of the knl_rel and ksl_rel attributes of the elements.
+
+        Parameters
+        ----------
+        order: int
+            New order of the knl_rel and ksl_rel attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl_rel`
+            and `ksl_rel` attributes are extended.
+
+        """
+        self._method_incompatible_with_compose()
+
+        if element_names is None:
+            element_names = []
+            for nn in self.element_names:
+                if hasattr(self.get(nn), 'knl_rel'):
+                    element_names.append(nn)
+
+        self.env.extend_knl_rel_ksl_rel(order, element_names)
+
     def remove_markers(self, inplace=True, keep=None):
         """
         Remove markers from the line

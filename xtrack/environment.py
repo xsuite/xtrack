@@ -1357,8 +1357,49 @@ class Environment:
         '''
         return self.vars.new_expr(expr)
 
-    def extend_knl_ksl(self, order, element_names=None):
+    def _extend_knl_ksl_abs_rel(self, order, element_names=None, absolute=False,
+                        relative=False):
 
+        if not absolute and not relative:
+            raise ValueError('At least one of absolute or relative must be True')
+
+        if element_names is None:
+            raise NotImplementedError(
+                'Extending knl and ksl for all elements is not implemented yet.')
+
+        if isinstance(element_names, str):
+            element_names = [element_names]
+
+        self.discard_trackers()
+
+        for nn in element_names:
+            ee = self.get(nn)
+
+            if ee.order == order:
+                continue
+
+            dct = ee.to_dict()
+
+            if absolute and ee.order < order:
+                new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
+                new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+
+                dct.pop('order', None)
+                dct['knl'] = new_knl
+                dct['ksl'] = new_ksl
+
+            if relative:
+                new_knl_rel = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
+                new_ksl_rel = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+
+                dct['rel_knl'] = new_knl_rel
+                dct['rel_ksl'] = new_ksl_rel
+
+            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
+            # Need to bypass the check on element redefinition
+            self._xdeps_eref._owner[nn] = new_ee
+
+    def extend_knl_ksl(self, order, element_names=None):
         """
         Extend the order of the knl and ksl attributes of the elements.
 
@@ -1371,37 +1412,24 @@ class Environment:
             and `ksl` attributes are extended.
 
         """
+        self._extend_knl_ksl_abs_rel(order, element_names=element_names,
+                                    absolute=True, relative=False)
 
-        if element_names is None:
-            raise NotImplementedError(
-                'Extending knl and ksl for all elements is not implemented yet.')
+    def extend_knl_rel_ksl_rel(self, order, element_names=None):
+        """
+        Extend the order of the rel_knl and rel_ksl attributes of the elements.
 
-        if isinstance(element_names, str):
-            element_names = [element_names]
+        Parameters
+        ----------
+        order: int
+            New order of the rel_knl and rel_ksl attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl`
+            and `ksl` attributes are extended.
 
-        self.discard_trackers()
-
-        for nn in element_names:
-            if self.get(nn).order > order:
-                raise ValueError(f'Order of element {nn} is smaller than {order}')
-
-        for nn in element_names:
-            ee = self.get(nn)
-
-            if ee.order == order:
-                continue
-
-            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
-            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
-
-            dct = ee.to_dict()
-            dct.pop('order', None)
-            dct['knl'] = new_knl
-            dct['ksl'] = new_ksl
-
-            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
-            # Need to bypass the check on element redefinition
-            self._xdeps_eref._owner[nn] = new_ee
+        """
+        self._extend_knl_ksl_abs_rel(order, element_names=element_names,
+                                    absolute=False, relative=True)
 
     @property
     def ref_manager(self):
