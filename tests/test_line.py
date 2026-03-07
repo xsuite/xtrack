@@ -1400,14 +1400,10 @@ def test_extend_knl_rel_ksl_rel():
                        0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['q1'].ksl_rel, [4., 5., 6., 0.,
                        0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['s1'].knl_rel, [3., 2., 1.,
-                       0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['s1'].ksl_rel, [4., 5., 6.,
-                       0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['o1'].knl_rel, [3., 2., 1.,
-                       0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['o1'].ksl_rel, [4., 5., 6.,
-                       0., 0., 0.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].knl_rel, [3., 2., 1.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['s1'].ksl_rel, [4., 5., 6.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].knl_rel, [3., 2., 1.], rtol=0, atol=1e-15)
+    xo.assert_allclose(line['o1'].ksl_rel, [4., 5., 6.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['m1'].knl_rel, [3., 2., 1.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['m1'].ksl_rel, [4., 5., 6.], rtol=0, atol=1e-15)
 
@@ -1451,6 +1447,6 @@ def test_extend_knl_rel_ksl_rel():
 
     xo.assert_allclose(line['o1'].knl_rel, [3., 100., 1., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
-    xo.assert_allclose(line['o1'].ksl, [4., 5., 200., 0.,
+    xo.assert_allclose(line['o1'].ksl_rel, [4., 5., 200., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
 

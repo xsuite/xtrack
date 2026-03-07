@@ -1375,9 +1375,6 @@ class Environment:
         for nn in element_names:
             ee = self.get(nn)
 
-            if ee.order == order:
-                continue
-
             dct = ee.to_dict()
 
             if absolute and ee.order < order:
@@ -1389,11 +1386,11 @@ class Environment:
                 dct['ksl'] = new_ksl
 
             if relative:
-                new_knl_rel = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
-                new_ksl_rel = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+                new_knl_rel = [vv for vv in ee.knl_rel] + [0] * (order - len(ee.knl_rel) + 1)
+                new_ksl_rel = [vv for vv in ee.ksl_rel] + [0] * (order - len(ee.ksl_rel) + 1)
 
-                dct['rel_knl'] = new_knl_rel
-                dct['rel_ksl'] = new_ksl_rel
+                dct['knl_rel'] = new_knl_rel
+                dct['ksl_rel'] = new_ksl_rel
 
             new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
             # Need to bypass the check on element redefinition
