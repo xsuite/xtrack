@@ -6,7 +6,7 @@ import xtrack as xt
 # - [DONE] need a property on rel_ref_is_skew
 # - [DONE] need method to see the total multipole strength
 # - [DONE] need method to extend knl_rel and ksl_rel when needed
-# - MAD-NG interface
+# - MAD-X and MAD-NG interface
 # - Add new parameters to docstring
 # - Add new parameters to to __repr__
 # - Update env.set_multipole_errors_relative
