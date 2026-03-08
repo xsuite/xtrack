@@ -5682,15 +5682,22 @@ class LineAttrItem:
         name = self.name
         index = self.index
 
+        if not hasattr(line.tracker._tracker_data_base, '_cache_len_prepare_multisetter'):
+            line.tracker._tracker_data_base._cache_len_prepare_multisetter = {}
+        cache_len = line.tracker._tracker_data_base._cache_len_prepare_multisetter
+
         all_names = line.element_names
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
-        for nn, ee in zip(all_names, line.tracker._tracker_data_base._elements):
-            ee = line._element_dict[nn]
-            if isinstance(ee, xt.Replica):
+        for ii, (nn, ee) in enumerate(zip(all_names, line.tracker._tracker_data_base._elements)):
+            if ee.__class__.__name__ == 'Replica':
                 nn = ee.resolve(line, get_name=True)
                 ee = line._element_dict[nn]
-            if isinstance(name, (list, tuple)):
+            if isinstance(name, str):
+                inner_obj = ee
+                inner_name = name
+            else:
+                assert isinstance(name, (list, tuple))
                 inner_obj = ee
                 inner_name = name[-1]
                 has_name = True
@@ -5701,14 +5708,16 @@ class LineAttrItem:
                     inner_obj = getattr(inner_obj, nn_inner)
                 if not has_name:
                     continue
-            else:
-                inner_obj = ee
-                inner_name = name
-            if hasattr(inner_obj, '_xobject') and inner_name in inner_obj._xofields:
-                if index is not None and index >= getattr(inner_obj._xobject, inner_name)._shape[0]:
-                    continue
-                mask[ii] = True
-                setter_names.append(nn)
+            if index is not None:
+                if hasattr(inner_obj, '_xobject') and inner_name in inner_obj._xofields:
+                    this_len = cache_len.get(tuple(name), None)
+                    if this_len is None:
+                        this_len = len(getattr(inner_obj._xobject, inner_name))
+                        cache_len[tuple(name)] = this_len
+                    if index >= this_len:
+                        continue
+                    mask[ii] = True
+                    setter_names.append(nn)
 
         multisetter = xt.MultiSetter(line=line, elements=setter_names,
                                      field=name, index=index)
