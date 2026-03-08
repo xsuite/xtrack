@@ -1,6 +1,8 @@
 import xtrack as xt
 import xobjects as xo
 
+import numpy as np
+
 line = xt.load('../../test_data/sps_w_spacecharge/line_no_spacecharge.json')
 
 cls = xt.Multipole
@@ -18,14 +20,15 @@ void Multipole_get(
     for (int64_t ii=0; ii<num_offsets; ii++) {
         int64_t ofst = offsets[ii];
 
-        MultipoleData* el = (MultipoleData*)(buffer + ofst);
+        /*gpuglmem*/ int8_t* el_pointer = buffer + ofst;
+        MultipoleData el = (MultipoleData) el_pointer;
 
         if (field_id == 0) {
-            int64_t len_field = MultipoleData_len_knl(*el);
+            int64_t len_field = MultipoleData_len_knl(el);
             if (idx_within_field >= len_field) {
                 out_values[ii] = 0;
             } else {
-                out_values[ii] = MultipoleData_get_knl(*el, idx_within_field);
+                out_values[ii] = MultipoleData_get_knl(el, idx_within_field);
             }
         }
     }
@@ -59,5 +62,31 @@ out_kernels = context.build_kernels(
     extra_compile_args=(),
 )
 
+# Test the kernel
+line.build_tracker()
+buffer = line._buffer
+
+tt = line.get_table()
+mult_names = []
+mult_offsets = []
+for nn in tt.name:
+    if nn == '_end_point':
+        continue
+    if isinstance(line[nn], xt.Multipole):
+        assert line[nn]._buffer is buffer, f"Buffer mismatch for element {nn}"
+        mult_names.append(nn)
+        mult_offsets.append(line[nn]._offset)
+
+mult_offsets = np.array(mult_offsets, dtype=np.int64)
+
+out = np.zeros_like(mult_offsets, dtype=np.float64)
+out_kernels['Multipole_get'](
+    buffer=buffer.buffer,
+    offsets=mult_offsets,
+    num_offsets=len(mult_offsets),
+    field_id=0,
+    idx_within_field=1,
+    out_values=out,
+)
 
 
