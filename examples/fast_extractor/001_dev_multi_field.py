@@ -14,8 +14,11 @@ for ii, nn in enumerate(cls._xofields):
 id_to_name = {ii: nn for nn, ii in name_to_id.items()}
 
 src_start = '''
+#ifndef XTRACK_!!CLSNAME!!_MULTI_GET
+#define XTRACK_!!CLSNAME!!_MULTI_GET
+
 GPUKERN
-void Multipole_get(
+void !!CLSNAME!!_multi_get(
     /*gpuglmem*/ int8_t* buffer,
     /*gpuglmem*/ int64_t* offsets,
                  int64_t num_offsets,
@@ -27,9 +30,9 @@ void Multipole_get(
         int64_t ofst = offsets[ii];
 
         /*gpuglmem*/ int8_t* el_pointer = buffer + ofst;
-        MultipoleData el = (MultipoleData) el_pointer;
+        !!CLSNAME!!Data el = (!!CLSNAME!!Data) el_pointer;
 
-'''
+'''.replace('!!CLSNAME!!', cls.__name__)
 
 SUPPORTED_CTYPES = {'int8_t', 'int64_t', 'double', 'int32_t'}
 
@@ -75,13 +78,14 @@ for iidd in id_to_name:
 src_end = '''
     END_VECTORIZE;
 }
+#endif
 '''
 
 src = '\n'.join([src_start] + src_body_parts + [src_end])
 
 kernel_descriptions = {
-    "Multipole_get": xo.Kernel(
-        c_name='Multipole_get',
+    cls.__name__ + "_multi_get": xo.Kernel(
+        c_name=cls.__name__ + '_multi_get',
         args=[
             xo.Arg(xo.Int8, pointer=True, name="buffer"),
             xo.Arg(xo.Int64, pointer=True, name="offsets"),
@@ -99,7 +103,7 @@ out_kernels = context.build_kernels(
     sources=[src],
     kernel_descriptions=kernel_descriptions,
     extra_headers=[],
-    extra_classes=[xt.Multipole._XoStruct],
+    extra_classes=[cls._XoStruct],
     apply_to_source=[],
     specialize=True,
     compile=True,
@@ -135,7 +139,7 @@ else:
     dtype = typ._dtype
 
 out = np.zeros_like(mult_offsets, dtype=dtype)
-kernel = out_kernels['Multipole_get']
+kernel = out_kernels[cls.__name__ + "_multi_get"]
 kernel(
     buffer=buffer.buffer,
     offsets=mult_offsets,
