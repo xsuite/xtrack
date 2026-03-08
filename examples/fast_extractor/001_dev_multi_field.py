@@ -54,23 +54,25 @@ for iidd in id_to_name:
 
     if isarray:
         src_part = '''
-        if (field_id == !!IIDD!!) {
-            !!CCTTYP!!* out_values = (!!CCTTYP!!*) out_ptr;
+            case !!IIDD!!: {
+                !!CCTTYP!!* out_values = (!!CCTTYP!!*) out_ptr;
 
-            int64_t len_field = !!CLSNAME!!Data_len_!!FIELDNAME!!(el);
-            if (idx_within_field >= len_field) {
-                out_values[ii] = 0;
-            } else {
-                out_values[ii] = !!CLSNAME!!Data_get_!!FIELDNAME!!(el, idx_within_field);
+                int64_t len_field = !!CLSNAME!!Data_len_!!FIELDNAME!!(el);
+                if (idx_within_field >= len_field) {
+                    out_values[ii] = 0;
+                } else {
+                    out_values[ii] = !!CLSNAME!!Data_get_!!FIELDNAME!!(el, idx_within_field);
+                }
+                break;
             }
-        }
         '''.replace('!!IIDD!!', str(iidd)).replace('!!CCTTYP!!', ctype_name).replace('!!CLSNAME!!', cls.__name__).replace('!!FIELDNAME!!', nn)
     else:
         src_part = '''
-        if (field_id == !!IIDD!!) {
-            !!CCTTYP!!* out_values = (!!CCTTYP!!*) out_ptr;
-            out_values[ii] = !!CLSNAME!!Data_get_!!FIELDNAME!!(el);
-        }
+            case !!IIDD!!: {
+                !!CCTTYP!!* out_values = (!!CCTTYP!!*) out_ptr;
+                out_values[ii] = !!CLSNAME!!Data_get_!!FIELDNAME!!(el);
+                break;
+            }
         '''.replace('!!IIDD!!', str(iidd)).replace('!!CCTTYP!!', ctype_name).replace('!!CLSNAME!!', cls.__name__).replace('!!FIELDNAME!!', nn)
 
     src_body_parts.append(src_part)
@@ -81,7 +83,17 @@ src_end = '''
 #endif
 '''
 
-src = '\n'.join([src_start] + src_body_parts + [src_end])
+src_switch_start = '''
+        switch (field_id) {
+'''
+
+src_switch_end = '''
+            default:
+                break;
+        }
+'''
+
+src = '\n'.join([src_start, src_switch_start] + src_body_parts + [src_switch_end, src_end])
 
 kernel_descriptions = {
     cls.__name__ + "_multi_get": xo.Kernel(
@@ -148,5 +160,4 @@ kernel(
     idx_within_field=1,
     out_values=out.view(np.int8)
 )
-
 
