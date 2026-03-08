@@ -5682,6 +5682,10 @@ class LineAttrItem:
         name = self.name
         index = self.index
 
+        if not hasattr(line.tracker._tracker_data_base, '_cache_prepare_multisetter_len'):
+            line.tracker._tracker_data_base._cache_prepare_multisetter_len = {}
+        cache_len = line.tracker._tracker_data_base._cache_prepare_multisetter_len
+
         all_names = line.element_names
         all_elems = line.tracker._tracker_data_base._elements
         num_elements = len(all_names)
@@ -5693,7 +5697,12 @@ class LineAttrItem:
             if ee.__class__.__name__ == 'Replica':
                 nn = ee.resolve(line, get_name=True)
                 ee = line._element_dict[nn]
-            if isinstance(name, (list, tuple)):
+
+            if isinstance(name, str):
+                inner_obj = ee
+                inner_name = name
+            else:
+                assert isinstance(name, (list, tuple))
                 inner_obj = ee
                 inner_name = name[-1]
                 has_name = True
@@ -5704,13 +5713,15 @@ class LineAttrItem:
                     inner_obj = getattr(inner_obj, nn_inner)
                 if not has_name:
                     continue
-            else:
-                inner_obj = ee
-                inner_name = name
 
             if hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
-                if index is not None and index >= len(getattr(inner_obj, inner_name)):
-                    continue
+                if index is not None:
+                    this_len = cache_len.get(tuple(name)+(nn,), None)
+                    if this_len is None:
+                        this_len = len(getattr(inner_obj, inner_name))
+                        cache_len[tuple(name)+(nn,)] = this_len
+                    if index >= this_len:
+                        continue
                 mask[ii] = True
                 setter_names.append(nn)
 
