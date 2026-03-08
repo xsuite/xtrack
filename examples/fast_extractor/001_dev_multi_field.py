@@ -35,6 +35,7 @@ void !!CLSNAME!!_multi_get(
 '''.replace('!!CLSNAME!!', cls.__name__)
 
 SUPPORTED_CTYPES = {'int8_t', 'int64_t', 'double', 'int32_t'}
+unsupported_fields = set()
 
 src_body_parts = []
 for iidd in id_to_name:
@@ -50,6 +51,7 @@ for iidd in id_to_name:
         ctype_name = typ._c_type
 
     if ctype_name not in SUPPORTED_CTYPES:
+        unsupported_fields.add(nn)
         continue
 
     if isarray:
@@ -141,6 +143,10 @@ for nn in tt.name:
 mult_offsets = np.array(mult_offsets, dtype=np.int64)
 
 field_name = 'order'
+
+if field_name in unsupported_fields:
+    raise ValueError(f"Field {field_name} is not supported by the multi-field kernel due to unsupported ctype.")
+
 typ = cls._xofields[field_name]
 if isinstance(typ, xo.Field):
     typ = typ.ftype
