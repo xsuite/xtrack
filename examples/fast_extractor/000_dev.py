@@ -15,7 +15,7 @@ void Multipole_get(
                  int64_t num_offsets,
                  int64_t field_id,
                  int64_t idx_within_field,
-    /*gpuglmem*/ double* out_values){
+    /*gpuglmem*/ int8_t* out_ptr){
 
     VECTORIZE_OVER(ii, num_offsets);
         int64_t ofst = offsets[ii];
@@ -24,6 +24,8 @@ void Multipole_get(
         MultipoleData el = (MultipoleData) el_pointer;
 
         if (field_id == 0) {
+            double* out_values = (double*) out_ptr;
+
             int64_t len_field = MultipoleData_len_knl(el);
             if (idx_within_field >= len_field) {
                 out_values[ii] = 0;
@@ -44,7 +46,7 @@ kernel_descriptions = {
             xo.Arg(xo.Int64, name="num_offsets"),
             xo.Arg(xo.Int64, name="field_id"),
             xo.Arg(xo.Int64, name="idx_within_field"),
-            xo.Arg(xo.Float64, pointer=True, name="out_values"),
+            xo.Arg(xo.Int8, pointer=True, name="out_values"),
         ],
         n_threads='num_offsets',
     )
@@ -88,7 +90,7 @@ kernel(
     num_offsets=len(mult_offsets),
     field_id=0,
     idx_within_field=1,
-    out_values=out,
+    out_values=out.view(np.int8)
 )
 
 
