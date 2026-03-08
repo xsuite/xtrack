@@ -5683,11 +5683,14 @@ class LineAttrItem:
         index = self.index
 
         all_names = line.element_names
+        all_elems = line.tracker._tracker_data_base._elements
+        num_elements = len(all_names)
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
-        for ii, nn in enumerate(all_names):
-            ee = line._element_dict[nn]
-            if isinstance(ee, xt.Replica):
+        for ii in range(num_elements):
+            nn = all_names[ii]
+            ee = all_elems[ii]
+            if ee.__class__.__name__ == 'Replica':
                 nn = ee.resolve(line, get_name=True)
                 ee = line._element_dict[nn]
             if isinstance(name, (list, tuple)):
@@ -5704,7 +5707,8 @@ class LineAttrItem:
             else:
                 inner_obj = ee
                 inner_name = name
-            if hasattr(inner_obj, '_xobject') and hasattr(inner_obj._xobject, inner_name):
+
+            if hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
                 if index is not None and index >= len(getattr(inner_obj, inner_name)):
                     continue
                 mask[ii] = True
