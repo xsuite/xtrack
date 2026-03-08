@@ -5685,7 +5685,7 @@ class LineAttrItem:
         all_names = line.element_names
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
-        for ii, nn in enumerate(all_names):
+        for nn, ee in zip(all_names, line.tracker._tracker_data_base._elements):
             ee = line._element_dict[nn]
             if isinstance(ee, xt.Replica):
                 nn = ee.resolve(line, get_name=True)
@@ -5704,8 +5704,8 @@ class LineAttrItem:
             else:
                 inner_obj = ee
                 inner_name = name
-            if hasattr(inner_obj, '_xobject') and hasattr(inner_obj._xobject, inner_name):
-                if index is not None and index >= len(getattr(inner_obj, inner_name)):
+            if hasattr(inner_obj, '_xobject') and inner_name in inner_obj._xofields:
+                if index is not None and index >= getattr(inner_obj._xobject, inner_name)._shape[0]:
                     continue
                 mask[ii] = True
                 setter_names.append(nn)
