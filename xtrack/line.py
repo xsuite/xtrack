@@ -4368,7 +4368,7 @@ class Line:
             elements_map_line.append(smap)
 
         names_map_line.append(ele_cut_sorted[-1])
-        elements_map_line.append(self[ele_cut_sorted[-1]])
+        elements_map_line.append(self.get(ele_cut_sorted[-1]))
 
         line_maps = Line(elements=elements_map_line, element_names=names_map_line)
         line_maps.particle_ref = self.particle_ref.copy()
