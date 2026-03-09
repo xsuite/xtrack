@@ -1771,6 +1771,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     @property
     def _repr_fields(self):
         return ['length', 'k0', 'k1', 'h', 'k0_from_h', 'model', 'knl', 'ksl',
+                'knl_rel', 'ksl_rel',
                 'edge_entry_active', 'edge_exit_active', 'edge_entry_model',
                 'edge_exit_model', 'edge_entry_angle', 'edge_exit_angle',
                 'edge_entry_angle_fdown', 'edge_exit_angle_fdown',
