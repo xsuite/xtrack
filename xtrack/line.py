@@ -5687,14 +5687,13 @@ class LineAttrItem:
         cache_len = line.tracker._tracker_data_base._cache_prepare_multisetter_len
 
         all_names = line.element_names
-        ele_dict = line.env._elements
+        ele_dict = line.env._element_dict
         num_elements = len(all_names)
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
         for ii in range(num_elements):
             nn = all_names[ii]
             ee = ele_dict[nn]
-            obj = None
             if isinstance(ee, xt.Replica):
                 nn = ee.resolve(line, get_name=True)
                 ee = line._element_dict[nn]
