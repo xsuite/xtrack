@@ -5687,7 +5687,7 @@ class LineAttrItem:
         cache_len = line.tracker._tracker_data_base._cache_prepare_multisetter_len
 
         all_names = line.element_names
-        ele_dict = line._xdeps_eref._owner
+        ele_dict = line.env._elements
         num_elements = len(all_names)
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
