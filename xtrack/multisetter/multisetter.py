@@ -123,8 +123,8 @@ class MultiSetter(xo.HybridClass):
         assert self.dtype in [np.float64, np.int64, np.int32], (
             'Only float64, int64, and int32 are supported for now')
 
-        assert np.all([line[nn]._buffer is tracker_buffer for nn in elements])
-        offsets = [_extract_offset(line[nn], field, index, self.dtype, self.xodtype)
+        assert np.all([line.get(nn)._buffer is tracker_buffer for nn in elements])
+        offsets = [_extract_offset(line.get(nn), field, index, self.dtype, self.xodtype)
                    for nn in elements]
 
         self.xoinitialize(_context=context, offsets=offsets)
