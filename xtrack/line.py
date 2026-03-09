@@ -5694,10 +5694,12 @@ class LineAttrItem:
         for ii in range(num_elements):
             nn = all_names[ii]
             ee = all_elems[ii]
+            obj = None
             if ee.__class__.__name__ == 'Replica':
                 nn = ee.resolve(line, get_name=True)
                 ee = line._element_dict[nn]
 
+            has_name = True
             if isinstance(name, str):
                 inner_obj = ee
                 inner_name = name
@@ -5705,16 +5707,13 @@ class LineAttrItem:
                 assert isinstance(name, (list, tuple))
                 inner_obj = ee
                 inner_name = name[-1]
-                has_name = True
                 for nn_inner in name[:-1]:
                     if not hasattr(inner_obj, nn_inner):
                         has_name = False
                         break
                     inner_obj = getattr(inner_obj, nn_inner)
-                if not has_name:
-                    continue
 
-            if hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
+            if has_name and hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
                 if index is not None:
                     this_len = cache_len.get(tuple(name)+(nn,), None)
                     if this_len is None:
