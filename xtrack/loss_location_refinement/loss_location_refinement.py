@@ -157,8 +157,8 @@ class LossLocationRefinement:
                 logger.debug(f'presence_shifts_rotations={presence_shifts_rotations}')
 
                 if (not(presence_shifts_rotations) and
-                   apertures_are_identical(self.line.elements[i_aper_0],
-                                           self.line.elements[i_aper_1], self.line)):
+                   apertures_are_identical(self.line.get(self.line.element_names[i_aper_0]),
+                                           self.line.get(self.line.element_names[i_aper_1]), self.line)):
 
                     logger.debug('Replicate mode')
                     (interp_line, i_end_thin_0, i_start_thin_1, s0, s1
@@ -370,9 +370,9 @@ def interp_aperture_replicate(context, line,
                                                    i_aper_0, i_aper_1, ds)
 
     if mode=='end':
-        aper_to_copy = line.elements[i_aper_1]
+        aper_to_copy = line.get(line.element_names[i_aper_1])
     elif mode=='start':
-        aper_to_copy = line.elements[i_aper_0]
+        aper_to_copy = line.get(line.element_names[i_aper_0])
     else:
         raise ValueError(f'Invalid mode: {mode}')
     interp_apertures = []
