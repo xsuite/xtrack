@@ -1673,6 +1673,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
 
     @property
     def main_strength(self):
+        """Integrated strength of the main dipole component k0*length."""
         return self._k0 * self.length
 
     @property
@@ -1800,14 +1801,6 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
             dct.pop('k0_from_h')
 
         return super().from_dict(dct, **kwargs)
-
-    @property
-    def main_is_skew(self):
-        return bool(self._main_is_skew > 0)
-
-    @main_is_skew.setter
-    def main_is_skew(self, value):
-        self._main_is_skew = int(bool(value))
 
 
 class Bend(_BendCommon, BeamElement):
@@ -2213,7 +2206,7 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters.
     """.strip()
 
-    _for_docstring_knl_ksl_rel = \
+    _docstring_knl_ksl_rel = \
     """knl_rel : array, optional
         Relative integrated strength of the normal components with respect to the
         main component k2 or k2s, depending on whether `main_is_skew` is False or True, respectively.
@@ -2228,6 +2221,7 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _docstring_knl_ksl_rel,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
                _for_docstring_edge_straight, _for_docstring_alignment, '\n',
                _docstring_general_notes, '\n\n'])
@@ -2276,6 +2270,10 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     @property
     def main_strength(self):
+        """Returns the integrated strength of the main component, i.e. k2*length
+        if the main component is the normal one, or k2s*length if the main component
+        is the skew one.
+        """
         if self.main_is_skew:
             return self.k2s * self.length
         else:
@@ -2303,6 +2301,8 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     @property
     def main_is_skew(self):
+        """It is True if the main component is the skew one, i.e. k2s,
+        or False if the main component is the normal one, i.e. k2."""
         return bool(self._main_is_skew > 0)
 
     @main_is_skew.setter
@@ -2390,6 +2390,10 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     @property
     def main_strength(self):
+        """Returns the integrated strength of the main component, i.e. k3*length
+        if the main component is the normal one, or k3s*length if the main component
+        is the skew one.
+        """
         if self.main_is_skew:
             return self.k3s * self.length
         else:
@@ -2417,6 +2421,8 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     @property
     def main_is_skew(self):
+        """It is True if the main component is the skew one, i.e. k3s,
+        or False if the main component is the normal one, i.e. k3."""
         return bool(self._main_is_skew > 0)
 
     @main_is_skew.setter
@@ -2506,6 +2512,10 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     @property
     def main_strength(self):
+        """Returns the integrated strength of the main component, i.e. k1*length
+        if the main component is the normal one, or k1s*length if the main component 
+        is the skew one.
+        """
         if self.main_is_skew:
             return self.k1s * self.length
         else:
@@ -2536,6 +2546,8 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
     @property
     def main_is_skew(self):
+        """It is True if the main component is the skew one, i.e. k1s,
+        or False if the main component is the normal one, i.e. k1."""
         return bool(self._main_is_skew > 0)
 
     @main_is_skew.setter
