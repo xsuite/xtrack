@@ -1388,9 +1388,27 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     isthick : bool
         Whether the multipole is to be treated as thick (True) or thin (False).
         Default is ``False``.
-    """
+    """.strip()
 
-    __doc__ = '\n    '.join([_docstring_start.strip(),
+    _docstring_knl_rel_ksl_rel = \
+    """
+    knl_rel : array
+        Relative integrated strength of the normal components with respect to the main
+        component defined by `main_order` and `main_is_skew`. The effect of
+        `knl_rel` is added to the one of `knl`.
+    ksl_rel : array
+        Relative integrated strength of the skew components with respect to the main
+        component defined by `main_order` and `main_is_skew`. The effect of
+        `ksl_rel` is added to the one of `ksl`.
+    main_order : int
+        Order of the main multipole component used for defining the relative strengths
+        `knl_rel` and `ksl_rel`. Default is ``0``.
+    main_is_skew : bool
+        Whether the main multipole component used for defining the relative strengths
+        `knl_rel` and `ksl_rel` is skew (True) or normal (False). Default is ``False``.
+    """.strip()
+
+    __doc__ = '\n    '.join([_docstring_start, _docstring_knl_rel_ksl_rel,
                              _HasModelCurved._for_docstring,
                              _HasIntegrator._for_docstring,
                              _for_docstring_edge_straight,
@@ -1819,7 +1837,17 @@ class Bend(_BendCommon, BeamElement):
         becomes false when `k0` is set directly to a numeric value.
     """.strip()
 
+    _docstring_knl_rel_ksl_rel = \
+    """knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k0. The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k0. The effect of ksl_rel is added to the one of ksl.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+            _docstring_knl_rel_ksl_rel,
             _HasModelCurved._for_docstring, _HasIntegrator._for_docstring,
             _for_docstring_edge_bend, _for_docstring_alignment, '\n',
             _docstring_general_notes, '\n\n'])
@@ -1931,9 +1959,19 @@ class RBend(_BendCommon, BeamElement):
         defined as (1 / h) * (1 - cos(angle / 2)). The shift is added to `rbend_shift`.
         This parameter has effect only when `rbend_model` is "straight-body".
         Default is True.
-    """
+    """.strip()
+
+    _docstring_knl_rel_ksl_rel = \
+    """knl_rel : array
+        Relative integrated strength of the normal components with respect to the
+        main component k0. The effect of knl_rel is added to the one of knl.
+    ksl_rel : array
+        Relative integrated strength of the skew components with respect to the
+        main component k0. The effect of ksl_rel is added to the one of ksl.
+    """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+            _docstring_knl_rel_ksl_rel,
             _HasModelCurved._for_docstring, _HasIntegrator._for_docstring,
             _for_docstring_edge_bend, _for_docstring_alignment, '\n',
             _docstring_general_notes, '\n\n'])
@@ -2175,6 +2213,20 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters.
     """.strip()
 
+    _for_docstring_knl_ksl_rel = \
+    """knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k2 or k2s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k2 or k2s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of ksl_rel is added to the one of ksl.
+    main_is_skew : bool, optional
+        If False (default), the main component is the normal sextupole k2,
+        while if True the main component is the skew sextupole k2s.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
                _for_docstring_edge_straight, _for_docstring_alignment, '\n',
@@ -2274,7 +2326,23 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters.
     """.strip()
 
+    _docstring_knl_ksl_rel = \
+    """
+    knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k3 or k3s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k3 or k3s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of ksl_rel is added to the one of ksl.
+    main_is_skew : bool, optional
+        If False (default), the main component is the normal octupole k3,
+        while if True the main component is the skew octupole k3s.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _docstring_knl_ksl_rel,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
                _for_docstring_edge_straight, _for_docstring_alignment, '\n',
                _docstring_general_notes, '\n\n'])
@@ -2372,7 +2440,23 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters.
     """.strip()
 
+    _docstring_knl_rel_ksl_rel = \
+    """
+    knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k1 or k1s, depending whether `main_is_skew` is False or True, respectively.
+        The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k1 or k1s, depending whether `main_is_skew` is False or True, respectively.
+        The effect of ksl_rel is added to the one of ksl.
+    main_is_skew : bool, optional
+        If True, the main component is the skew one (k1s), otherwise it is the normal one (k1).
+        Default is False.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _docstring_knl_rel_ksl_rel,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
                _for_docstring_edge_straight, _for_docstring_alignment, '\n',
                _docstring_general_notes, '\n\n'])
