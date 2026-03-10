@@ -99,7 +99,7 @@ def _knl_ksl_to_mad(mult):
     if hasattr(mult._value, 'knl_rel'):
         knl_rel_val = mult._value.knl_rel
         ksl_rel_val = mult._value.ksl_rel
-        if np.any(knl_rel_val._value != 0) or np.any(ksl_rel_val._value != 0):
+        if np.any(knl_rel_val != 0) or np.any(ksl_rel_val != 0):
             raise ValueError("Relative multipole errors are not supported in MAD writer.")
 
     weight = 1
