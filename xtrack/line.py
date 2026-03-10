@@ -5714,10 +5714,6 @@ class LineAttrItem:
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
         for ii, nn, ee in has_nn0:
-            if isinstance(ee, xt.Replica):
-                nn = ee.resolve(line, get_name=True)
-                ee = line._element_dict[nn]
-
             has_name = True
             if isinstance(name, str):
                 inner_obj = ee
