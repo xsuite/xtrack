@@ -66,5 +66,10 @@ for name in ["MQXFA.A1R5", "MBXF.4R5"]:
     plt.legend()
     plt.show()
 
+tt = aperture_model.get_bounds_table()
+
 ap.ap.show("MQXFA.A1R5", "s n1 betx bety x y dx dy")
+print(tt.rows['mqxfa.a1r5.*'])
+
 ap.ap.show("MBXF.4R5", "n1 x y betx bety x y dx dy")
+print(tt.rows['mbxf.4r5.*'])

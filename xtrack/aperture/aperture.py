@@ -183,13 +183,14 @@ class Aperture:
                     # on the described parabola with 10cm resolution
                     length = element.length
                     positions = []
-                    for s in np.linspace(0, length, min(2, int(length / 0.1))):
+                    for s in np.linspace(0, length, max(2, int(length / 0.1))):
                         position = ProfilePosition(profile_index=aper_idx)
                         position.s_position = s
                         position.shift_x = length * offset_data['dx'] + length ** 2 * offset_data['ddx']
                         position.shift_y = length * offset_data['dy'] + length ** 2 * offset_data['ddy']
                         position.rot_x = offset_data['rot_x']  # ignore the contribution of ddx in the angle
                         position.rot_y = offset_data['rot_y']  # ignore the contribution of ddy in the angle
+                        positions.append(position)
 
                     # If we have offset data, assume the type is straight
                     curvature = 0
@@ -213,13 +214,16 @@ class Aperture:
                     phi=0,
                     psi=0,
                 )
+                # this breaks things
+                survey_reference_name = element_name#offset_data['survey_ref']
             else:
                 matrix = np.identity(4)
+                survey_reference_name = element_name
 
             type_position = TypePosition(
                 type_index=aperture_indices[aper_name],
-                survey_reference_name=element_name,
-                survey_index=name_to_sv_index[element_name],
+                survey_reference_name=survey_reference_name,
+                survey_index=name_to_sv_index[survey_reference_name],
                 transformation=matrix,
             )
             type_positions_list.append(type_position)
