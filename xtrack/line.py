@@ -264,6 +264,10 @@ class Line:
         # and env. In that case the element_dict, vars and xdeps stuff come through
         # the environment and should not be in the dictionary
 
+        if cls_str := dct.get('__class__', None):
+            if cls_str != 'Line':
+                raise ValueError(f"Expected __class__ to be 'Line', got {cls_str!r}")
+
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
         if '_var_manager' in dct.keys():
