@@ -5705,8 +5705,8 @@ class LineAttrItem:
                 nn = all_names[ii]
                 ee = line._element_dict[nn]
                 if isinstance(ee, xt.Replica):
-                    nn_res = ee.resolve(line, get_name=True)
-                    ee = line._element_dict[nn_res]
+                    nn = ee.resolve(line, get_name=True)
+                    ee = line._element_dict[nn]
                 if hasattr(ee, nn0):
                     has_nn0.append((ii, nn, ee))
             cache_has_name[nn0] = has_nn0
