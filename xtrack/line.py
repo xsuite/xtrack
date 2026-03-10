@@ -5684,16 +5684,36 @@ class LineAttrItem:
 
         if not hasattr(line.tracker._tracker_data_base, '_cache_prepare_multisetter_len'):
             line.tracker._tracker_data_base._cache_prepare_multisetter_len = {}
+            line.tracker._tracker_data_base._cache_prepare_multisetter_has_name = {}
         cache_len = line.tracker._tracker_data_base._cache_prepare_multisetter_len
+        cache_has_name = line.tracker._tracker_data_base._cache_prepare_multisetter_has_name
 
+        if isinstance(name, str):
+            nn0 = name
+        else:
+            assert isinstance(name, (list, tuple))
+            nn0 = name[0]
+
+        # I cache the list of elements that have nn0, not to loop on all the elements
+        # every time this function is called.
         all_names = line.element_names
-        ele_dict = line.env._element_dict
-        num_elements = len(all_names)
+        if nn0 in cache_has_name:
+            has_nn0 = cache_has_name[nn0]
+        else:
+            has_nn0 =[]
+            for ii in range(len(all_names)):
+                nn = all_names[ii]
+                ee = line._element_dict[nn]
+                if isinstance(ee, xt.Replica):
+                    nn_res = ee.resolve(line, get_name=True)
+                    ee = line._element_dict[nn_res]
+                if hasattr(ee, nn0):
+                    has_nn0.append((ii, nn, ee))
+            cache_has_name[nn0] = has_nn0
+
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
-        for ii in range(num_elements):
-            nn = all_names[ii]
-            ee = ele_dict[nn]
+        for ii, nn, ee in has_nn0:
             if isinstance(ee, xt.Replica):
                 nn = ee.resolve(line, get_name=True)
                 ee = line._element_dict[nn]
