@@ -399,6 +399,7 @@ void cross_sections_at_s(
             We want to move to the type frame, so calculate the transformations
         */
         const Pose plane_in_world = pose_matrix_from_survey(survey_at_s, i);
+        // const Pose type_in_world = aperture_type_pose_in_world(type_pos, survey);
         Pose type_in_world;
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
