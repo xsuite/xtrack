@@ -997,6 +997,10 @@ class Environment:
     def set_multipolar_errors(env, errors):
 
         '''
+        !DEPRECATED!: This function is deprecated and will be removed in a future version.
+        Please use the attributes `knl_rel` and `ksl_rel` of the elements
+        to set relative multipolar errors directly on the elements.
+
         Set multipolar errors for specified elements of the environment.
 
         Parameters
@@ -1036,6 +1040,11 @@ class Environment:
                 })
 
         '''
+
+        warn('The function `set_multipolar_errors` is deprecated and will be removed '
+             'in a future version. Please use the attributes `knl_rel` and `ksl_rel` ' \
+             'of the elements to set relative multipolar errors directly on the elements.',
+                FutureWarning)
 
         for ele_name in progress(errors.keys(), desc='Setting multipolar errors'):
 

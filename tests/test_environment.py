@@ -2918,7 +2918,7 @@ def test_nested_lists():
     assert np.all(tt.name == np.array(
         ['q1::0', 'q1::1', 'q2', '_end_point']))
 
-
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_relative_error_definition():
 
     env = xt.Environment()
