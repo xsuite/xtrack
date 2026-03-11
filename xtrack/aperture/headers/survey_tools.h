@@ -45,13 +45,49 @@ inline Point3D survey_point(SurveyData survey, uint32_t idx) {
 }
 
 
-inline LineSegment3D survey_segment(SurveyData survey, uint32_t idx) {
-    Point3D entry = survey_point(survey, idx);
-    Point3D exit = survey_point(survey, idx + 1);
+inline LineSegment3D survey_line_segment(SurveyData survey, uint32_t idx) {
+    const Point3D entry = survey_point(survey, idx);
+    const Point3D exit = survey_point(survey, idx + 1);
     return (LineSegment3D) {
         .start = entry,
         .end = exit
     };
+}
+
+
+inline ArcSegment3D survey_arc_segment(SurveyData survey, uint32_t idx) {
+    const Pose start = pose_matrix_from_survey(survey, idx);
+    const float_type length = SurveyData_get_length(survey, idx);
+    const float_type angle = SurveyData_get_angle(survey, idx);
+    const float_type roll = SurveyData_get_tilt(survey, idx);
+
+    return (ArcSegment3D) {
+        .start = start,
+        .length = length,
+        .curvature = angle / length,
+        .roll = roll
+    };
+}
+
+
+inline Segment3D survey_segment(SurveyData survey, uint32_t idx) {
+    const float_type angle = SurveyData_get_angle(survey, idx);
+    const float_type length = SurveyData_get_length(survey, idx);
+
+    if (fabs(angle) < APER_PRECISION || fabs(length) < APER_PRECISION)
+    {
+        return (Segment3D) {
+            .type = SEGMENT3D_LINE,
+            .line = survey_line_segment(survey, idx)
+        };
+    }
+    else
+    {
+        return (Segment3D) {
+            .type = SEGMENT3D_ARC,
+            .arc = survey_arc_segment(survey, idx)
+        };
+    }
 }
 
 

@@ -789,7 +789,8 @@ def test_get_aperture_sigmas_at_element_vs_madx(
         (np.deg2rad(45), np.deg2rad(30), np.sqrt(3), 1, 1, 1, 1 / np.sqrt(2), 0.5),
     ]
 )
-def test_computation_of_profile_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_bounds1, ds_bounds2):
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_bounds1, ds_bounds2, test_context):
     env = xt.Environment()
     drift = env.new('drift', xt.Drift, length=1)
     line = env.new_line(name='line', components=10 * [drift])
@@ -836,7 +837,7 @@ def test_computation_of_profile_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1
         profile_names=['circle', 'rectangle'],
     )
 
-    ap = Aperture(line=line, model=model)
+    ap = Aperture(line=line, model=model, context=test_context)
 
     xo.assert_allclose(ap._aperture_bounds.s_positions[0], 0, atol=1e-6, rtol=1e-8)
     xo.assert_allclose(ap._aperture_bounds.s_start[0], 0, atol=1e-6, rtol=1e-8)
@@ -853,6 +854,71 @@ def test_computation_of_profile_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1
     xo.assert_allclose(ap._aperture_bounds.s_positions[3], 10, atol=1e-6, rtol=1e-8)
     xo.assert_allclose(ap._aperture_bounds.s_start[3], 10, atol=1e-6, rtol=1e-8)
     xo.assert_allclose(ap._aperture_bounds.s_end[3], 10, atol=1e-6, rtol=1e-8)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_curved_survey_follows_pipe(test_context):
+    env = xt.Environment()
+    angle = np.deg2rad(35.0)
+    length = 3.2
+    radius = 0.6
+
+    bend = env.new('bend', xt.Bend, length=length, angle=angle, k0=0)
+    drift = env.new('drift', xt.Drift, length=length)
+    anti_bend = env.new('anti_bend', xt.Bend, length=length, angle=-angle, k0=0)
+    line = env.new_line(name='line', components=[bend, drift, anti_bend])
+    sv = line.survey()
+
+    shape = Circle(radius=radius)
+    profiles = [
+        Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=0, s_position=length),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+            TypePosition(
+                type_index=1,
+                survey_reference_name=sv.name[1],
+                survey_index=1,
+                transformation=transform_matrix(),
+            ),
+            TypePosition(
+                type_index=2,
+                survey_reference_name=sv.name[2],
+                survey_index=2,
+                transformation=transform_matrix(),
+            ),
+        ],
+        types=[
+            ApertureType(curvature=angle / length, positions=profile_positions),
+            ApertureType(curvature=0, positions=profile_positions),
+            ApertureType(curvature=-angle / length, positions=profile_positions),
+        ],
+        profiles=profiles,
+        type_names=['type0', 'type1', 'type2'],
+        profile_names=['circ0'],
+    )
+
+    ap = Aperture(line=line, model=model, num_profile_points=256, context=test_context)
+
+    bounds_table = ap.get_bounds_table()
+    bounds_s = [0, length, length, 2 * length, 2 * length, 3 * length]
+    xo.assert_allclose(bounds_table.s, bounds_s, atol=1e-6, rtol=1e-6)
+    xo.assert_allclose(bounds_table.s_start, bounds_s, atol=1e-6, rtol=1e-6)
+    xo.assert_allclose(bounds_table.s_end, bounds_s, atol=1e-6, rtol=1e-6)
+    assert all(bounds_table.type_name == ['type0', 'type0', 'type1', 'type1', 'type2', 'type2'])
+    assert all(bounds_table.profile_name == ['circ0'])
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
