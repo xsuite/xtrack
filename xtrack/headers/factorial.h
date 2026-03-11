@@ -30,7 +30,7 @@ double one_over_factorial(int n){
     } else if (n < 20){
         return ONE_OVER_FACT[n];
     } else {
-        return 1 / tgamma(n+1);
+        return 1. / tgamma((double)(n + 1));
     }
 }
 
