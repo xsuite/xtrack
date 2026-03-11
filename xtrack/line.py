@@ -5009,7 +5009,7 @@ class Line:
                 '_own_frequency': AttrDefinition(name='frequency'),
                 '_own_harmonic': AttrDefinition(name='harmonic'),
 
-                '_own_radiation_flag': AttrDefinition(name='radiation_flag'),
+                '_own_radiation_flag': AttrDefinition(name='radiation_flag', dtype=np.int64),
 
                 '_own_k0': AttrDefinition(name='k0'),
                 '_own_k1': AttrDefinition(name='k1'),
@@ -5053,8 +5053,8 @@ class Line:
                 '_own_k4sl_rel': AttrDefinition(name='ksl_rel', index=4),
                 '_own_k5sl_rel': AttrDefinition(name='ksl_rel', index=5),
 
-                '_own_main_order': AttrDefinition(name='main_order'),
-                '_own_main_is_skew': AttrDefinition(name='main_is_skew'),
+                '_own_main_order': AttrDefinition(name='main_order', dtype=np.int32),
+                '_own_main_is_skew': AttrDefinition(name='main_is_skew', dtype=np.int32),
 
                 # Handling of reference frame transformations
                 # (XYShift, XRotation, YRotation, SRotation)
@@ -5074,7 +5074,7 @@ class Line:
 
                 '_parent_h': AttrDefinition(name=('_parent', 'h')),
                 '_parent_hxl': AttrDefinition(name=('_parent', 'hxl')),
-                '_parent_rbend_model': AttrDefinition(name=('_parent', 'rbend_model')),
+                '_parent_rbend_model': AttrDefinition(name=('_parent', 'rbend_model'), dtype=np.int64),
                 '_parent_rbend_angle_diff': AttrDefinition(name=('_parent', 'rbend_angle_diff')),
 
                 '_parent_voltage': AttrDefinition(name=('_parent', 'voltage')),
@@ -5083,7 +5083,7 @@ class Line:
                 '_parent_frequency': AttrDefinition(name=('_parent', 'frequency')),
                 '_parent_harmonic': AttrDefinition(name=('_parent', 'harmonic')),
 
-                '_parent_radiation_flag': AttrDefinition(name=('_parent', 'radiation_flag')),
+                '_parent_radiation_flag': AttrDefinition(name=('_parent', 'radiation_flag'), dtype=np.int64),
 
                 '_parent_k0': AttrDefinition(name=('_parent', 'k0')),
                 '_parent_k1': AttrDefinition(name=('_parent', 'k1')),
@@ -5127,8 +5127,8 @@ class Line:
                 '_parent_k4sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=4),
                 '_parent_k5sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=5),
 
-                '_parent_main_order': AttrDefinition(name=('_parent', 'main_order')),
-                '_parent_main_is_skew': AttrDefinition(name=('_parent', 'main_is_skew')),
+                '_parent_main_order': AttrDefinition(name=('_parent', 'main_order'), dtype=np.int32 ),
+                '_parent_main_is_skew': AttrDefinition(name=('_parent', 'main_is_skew'), dtype=np.int32 ),
 
                 # Handling of reference frame transformations
                 # (XYShift, XRotation, YRotation, SRotation)
@@ -5672,9 +5672,10 @@ def _temp_knobs(line_or_trk, knobs: dict):
 
 class LineAttrItem:
 
-    def __init__(self, name, index=None, line=None):
+    def __init__(self, name, index=None, line=None, dtype=None):
         self.name = name
         self.index = index
+        self.dtype = dtype
 
         assert line is not None
         self.line = line
@@ -5685,6 +5686,7 @@ class LineAttrItem:
         line = self.line
         name = self.name
         index = self.index
+        dtype = self.dtype
 
         if not hasattr(line.tracker._tracker_data_base, '_cache_prepare_multisetter_len'):
             line.tracker._tracker_data_base._cache_prepare_multisetter_len = {}
@@ -5744,7 +5746,7 @@ class LineAttrItem:
                 setter_names.append(nn)
 
         multisetter = xt.MultiSetter(line=line, elements=setter_names,
-                                     field=name, index=index)
+                                     field=name, index=index, dtype=dtype)
         self.names = setter_names
         self._multisetter = multisetter
         self._mask = mask
@@ -5819,7 +5821,8 @@ class LineAttr:
         for fn, fa in zip(field_names, field_access):
             name=fa.name
             index=fa.index
-            self._cache[fn] = LineAttrItem(name=name, index=index, line=line)
+            dtype=fa.dtype
+            self._cache[fn] = LineAttrItem(name=name, index=index, line=line, dtype=dtype)
 
     def __getitem__(self, key):
 

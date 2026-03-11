@@ -64,7 +64,7 @@ class MultiSetter(xo.HybridClass):
         ),
     }
 
-    def __init__(self, line, elements, field, index=None):
+    def __init__(self, line, elements, field, index=None, dtype=np.float64):
         """Create object to efficiently set and get values of a specific field of
         several elements of a line.
 
@@ -113,7 +113,7 @@ class MultiSetter(xo.HybridClass):
         dd = getattr(inner_obj.copy(_context=xo.context_default)._xobject, inner_name)
         if index is not None:
             dd = dd[index]
-        self.dtype = type(dd)
+        self.dtype = type(dd) if dtype is None else dtype
         self.xodtype = {
             np.float64: xo.Float64,
             np.int64: xo.Int64,
