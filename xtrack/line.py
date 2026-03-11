@@ -5746,7 +5746,8 @@ class LineAttrItem:
                 setter_names.append(nn)
 
         multisetter = xt.MultiSetter(line=line, elements=setter_names,
-                                     field=name, index=index, dtype=dtype)
+                                     field=name, index=index, dtype=dtype,
+                                     skip_inconsistent_type_check=True)
         self.names = setter_names
         self._multisetter = multisetter
         self._mask = mask
