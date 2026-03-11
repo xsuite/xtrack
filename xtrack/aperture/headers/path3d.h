@@ -287,7 +287,12 @@ float_type arc_segment_plane_intersect(const ArcSegment3D segment, const Point3D
 }
 
 
-inline float_type segment_plane_intersect(const Segment3D segment, const Point3D plane_point, const Point3D normal)
+inline float_type segment3d_plane_intersect(const Segment3D segment, const Point3D plane_point, const Point3D normal)
+/*
+    Given a `segment` (line or arc) and a plane defined with a point and a normal, get a parameter `t` along
+    the length of the `segment` at which the plane intersects the segment. If `t` is not in [0, 1] the plane
+    does not intersect the segment.
+*/
 {
     switch (segment.type) {
         case SEGMENT3D_LINE:
@@ -298,11 +303,13 @@ inline float_type segment_plane_intersect(const Segment3D segment, const Point3D
 }
 
 
-inline float_type closest_t_on_segment(const Point3D p, const Point3D a, const Point3D b)
+inline float_type closest_t_on_line_segment(const Point3D p, const LineSegment3D segment)
 /*
     Closest point parameter t on segment [a,b] to point p.
 */
 {
+    const Point3D a = segment.start;
+    const Point3D b = segment.end;
     const float_type eps = APER_PRECISION;
     const Point3D ab = point3d_sub(b, a);
     const Point3D ap = point3d_sub(p, a);
@@ -312,6 +319,99 @@ inline float_type closest_t_on_segment(const Point3D p, const Point3D a, const P
 
     const float_type t = point3d_dot(ap, ab) / segment_length;
     return t;
+}
+
+
+inline float_type closest_t_on_arc_segment(const Point3D p, const ArcSegment3D segment)
+/*
+    Closest point parameter t on an ArcSegment3D to point p.
+
+    The returned value is the normalized arc parameter, such that:
+        arc_segment_point_at(segment, t)
+    is the closest point on the supporting arc.
+
+    Like closest_t_on_segment(), this returns the unconstrained parameter.
+    Clamp to [0, 1] at the call site if you need the closest point strictly
+    on the finite arc segment.
+*/
+{
+    const float_type eps = APER_PRECISION;
+
+    if (segment.length < eps) return 0.f;
+
+    /*
+        Transform p into the local frame of segment.start.
+
+        Since segment.start is a rigid transform, its inverse is:
+            local = R^T * (p - T)
+    */
+    const float_type px = p.x - segment.start.mat[0][3];
+    const float_type py = p.y - segment.start.mat[1][3];
+    const float_type pz = p.z - segment.start.mat[2][3];
+
+    const float_type qx =
+        segment.start.mat[0][0] * px +
+        segment.start.mat[1][0] * py +
+        segment.start.mat[2][0] * pz;
+
+    const float_type qy =
+        segment.start.mat[0][1] * px +
+        segment.start.mat[1][1] * py +
+        segment.start.mat[2][1] * pz;
+
+    const float_type qz =
+        segment.start.mat[0][2] * px +
+        segment.start.mat[1][2] * py +
+        segment.start.mat[2][2] * pz;
+
+    /*
+        Undo the arc roll. In this frame the arc lies in the x-z plane:
+            x = (cos(theta) - 1) / k
+            z =  sin(theta) / k
+        with theta = k * s.
+    */
+    const float_type c_roll = cos(segment.roll);
+    const float_type s_roll = sin(segment.roll);
+
+    const float_type x =  c_roll * qx + s_roll * qy;
+    const float_type z =  qz;
+
+    const float_type k = segment.curvature;
+
+    /* Straight-line limit */
+    if (fabs(k) < eps) {
+        return z / segment.length;
+    }
+
+    /*
+        The arc is part of the circle:
+            (x + 1/k)^2 + z^2 = (1/k)^2
+
+        If C = (-1/k, 0) is the circle center in the local x-z plane, then
+        the closest point on the supporting circle is obtained by projecting
+        (x, z) radially from C.
+
+        For a point exactly on the arc:
+            x = (cos(theta) - 1) / k
+            z =  sin(theta) / k
+
+        so:
+            atan2(k*z, 1 + k*x) = theta
+    */
+    const float_type theta = atan2(k * z, 1.f + k * x);
+
+    return theta / (k * segment.length);
+}
+
+
+inline float_type closest_t_on_segment(const Point3D p, const Segment3D segment)
+{
+    switch (segment.type) {
+        case SEGMENT3D_LINE:
+            return closest_t_on_line_segment(p, segment.line);
+        case SEGMENT3D_ARC:
+            return closest_t_on_arc_segment(p, segment.arc);
+    }
 }
 
 

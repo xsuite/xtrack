@@ -743,6 +743,7 @@ class Aperture:
 
         table = Table(
             data={
+                'name': np.array([f'{pn}_in_{tn}' for pn, tn in zip(profile_names, type_names)], dtype=np.str_),
                 'type_name': np.array(type_names, dtype=np.str_),
                 'profile_name': np.array(profile_names, dtype=np.str_),
                 's': np.array(s_positions, dtype=np.float32),
@@ -751,7 +752,7 @@ class Aperture:
                 'shape': np.array(shapes, dtype=object),
                 'shape_param': np.array(shape_params, dtype=object),
             },
-            index='type_name',
+            index='name',
         )
         return table
 
