@@ -4988,157 +4988,157 @@ class Line:
         cache = LineAttr(
             line=self,
             fields={
-                'delta_taper': None, 'ks': None,
+                'delta_taper': AttrDefinition(name='delta_taper'),
+                'ks': AttrDefinition(name='ks'),
 
-                'weight': None,
+                'weight': AttrDefinition(name='weight'),
 
-                '_own_length': 'length',
+                '_own_length': AttrDefinition(name='length'),
 
-                '_own_rot_s_rad': 'rot_s_rad',
-                '_own_shift_x': 'shift_x',
-                '_own_shift_y': 'shift_y',
-                '_own_shift_s': 'shift_s',
+                '_own_rot_s_rad': AttrDefinition(name='rot_s_rad'),
+                '_own_shift_x': AttrDefinition(name='shift_x'),
+                '_own_shift_y': AttrDefinition(name='shift_y'),
+                '_own_shift_s': AttrDefinition(name='shift_s'),
 
-                '_own_h': 'h',
-                '_own_hxl': 'hxl',
+                '_own_h': AttrDefinition(name='h'),
+                '_own_hxl': AttrDefinition(name='hxl'),
 
-                '_own_voltage': 'voltage',
-                '_own_lag': 'lag',
-                '_own_lag_taper': 'lag_taper',
-                '_own_frequency': 'frequency',
-                '_own_harmonic': 'harmonic',
+                '_own_voltage': AttrDefinition(name='voltage'),
+                '_own_lag': AttrDefinition(name='lag'),
+                '_own_lag_taper': AttrDefinition(name='lag_taper'),
+                '_own_frequency': AttrDefinition(name='frequency'),
+                '_own_harmonic': AttrDefinition(name='harmonic'),
 
-                '_own_radiation_flag': 'radiation_flag',
+                '_own_radiation_flag': AttrDefinition(name='radiation_flag'),
 
-                '_own_k0': 'k0',
-                '_own_k1': 'k1',
-                '_own_k2': 'k2',
-                '_own_k3': 'k3',
-                '_own_k4': 'k4',
-                '_own_k5': 'k5',
+                '_own_k0': AttrDefinition(name='k0'),
+                '_own_k1': AttrDefinition(name='k1'),
+                '_own_k2': AttrDefinition(name='k2'),
+                '_own_k3': AttrDefinition(name='k3'),
+                '_own_k4': AttrDefinition(name='k4'),
+                '_own_k5': AttrDefinition(name='k5'),
 
-                '_own_k0s': 'k0s',
-                '_own_k1s': 'k1s',
-                '_own_k2s': 'k2s',
-                '_own_k3s': 'k3s',
-                '_own_k4s': 'k4s',
-                '_own_k5s': 'k5s',
+                '_own_k0s': AttrDefinition(name='k0s'),
+                '_own_k1s': AttrDefinition(name='k1s'),
+                '_own_k2s': AttrDefinition(name='k2s'),
+                '_own_k3s': AttrDefinition(name='k3s'),
+                '_own_k4s': AttrDefinition(name='k4s'),
+                '_own_k5s': AttrDefinition(name='k5s'),
 
-                '_own_k0l': ('knl', 0),
-                '_own_k1l': ('knl', 1),
-                '_own_k2l': ('knl', 2),
-                '_own_k3l': ('knl', 3),
-                '_own_k4l': ('knl', 4),
-                '_own_k5l': ('knl', 5),
+                '_own_k0l': AttrDefinition(name='knl', index=0),
+                '_own_k1l': AttrDefinition(name='knl', index=1),
+                '_own_k2l': AttrDefinition(name='knl', index=2),
+                '_own_k3l': AttrDefinition(name='knl', index=3),
+                '_own_k4l': AttrDefinition(name='knl', index=4),
+                '_own_k5l': AttrDefinition(name='knl', index=5),
 
-                '_own_k0sl': ('ksl', 0),
-                '_own_k1sl': ('ksl', 1),
-                '_own_k2sl': ('ksl', 2),
-                '_own_k3sl': ('ksl', 3),
-                '_own_k4sl': ('ksl', 4),
-                '_own_k5sl': ('ksl', 5),
+                '_own_k0sl': AttrDefinition(name='ksl', index=0),
+                '_own_k1sl': AttrDefinition(name='ksl', index=1),
+                '_own_k2sl': AttrDefinition(name='ksl', index=2),
+                '_own_k3sl': AttrDefinition(name='ksl', index=3),
+                '_own_k4sl': AttrDefinition(name='ksl', index=4),
+                '_own_k5sl': AttrDefinition(name='ksl', index=5),
 
-                '_own_k0l_rel': ('knl_rel', 0),
-                '_own_k1l_rel': ('knl_rel', 1),
-                '_own_k2l_rel': ('knl_rel', 2),
-                '_own_k3l_rel': ('knl_rel', 3),
-                '_own_k4l_rel': ('knl_rel', 4),
-                '_own_k5l_rel': ('knl_rel', 5),
+                '_own_k0l_rel': AttrDefinition(name='knl_rel', index=0),
+                '_own_k1l_rel': AttrDefinition(name='knl_rel', index=1),
+                '_own_k2l_rel': AttrDefinition(name='knl_rel', index=2),
+                '_own_k3l_rel': AttrDefinition(name='knl_rel', index=3),
+                '_own_k4l_rel': AttrDefinition(name='knl_rel', index=4),
+                '_own_k5l_rel': AttrDefinition(name='knl_rel', index=5),
 
-                '_own_k0sl_rel': ('ksl_rel', 0),
-                '_own_k1sl_rel': ('ksl_rel', 1),
-                '_own_k2sl_rel': ('ksl_rel', 2),
-                '_own_k3sl_rel': ('ksl_rel', 3),
-                '_own_k4sl_rel': ('ksl_rel', 4),
-                '_own_k5sl_rel': ('ksl_rel', 5),
+                '_own_k0sl_rel': AttrDefinition(name='ksl_rel', index=0),
+                '_own_k1sl_rel': AttrDefinition(name='ksl_rel', index=1),
+                '_own_k2sl_rel': AttrDefinition(name='ksl_rel', index=2),
+                '_own_k3sl_rel': AttrDefinition(name='ksl_rel', index=3),
+                '_own_k4sl_rel': AttrDefinition(name='ksl_rel', index=4),
+                '_own_k5sl_rel': AttrDefinition(name='ksl_rel', index=5),
 
-                '_own_main_order': 'main_order',
-                '_own_main_is_skew': 'main_is_skew',
-
-                # Handling of reference frame transformations
-                # (XYShift, XRotation, YRotation, SRotation)
-                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
-                '_own_ref_shift_x':         'dx',
-                '_own_ref_shift_y':         'dy',
-                '_own_ref_rot_sin_angle':   'sin_angle',
-                '_own_ref_rot_cos_angle':   'cos_angle',
-                '_own_ref_rot_sin_z':       'sin_z',
-                '_own_ref_rot_cos_z':       'cos_z',
-
-                '_parent_length': (('_parent', 'length'), None),
-                '_parent_rot_s_rad': (('_parent', 'rot_s_rad'), None),
-                '_parent_shift_x': (('_parent', 'shift_x'), None),
-                '_parent_shift_y': (('_parent', 'shift_y'), None),
-                '_parent_shift_s': (('_parent', 'shift_s'), None),
-
-                '_parent_h': (('_parent', 'h'), None),
-                '_parent_hxl': (('_parent', 'hxl'), None),
-                '_parent_rbend_model': (('_parent', 'rbend_model'), None),
-                '_parent_rbend_angle_diff': (('_parent', 'rbend_angle_diff'), None),
-
-                '_parent_voltage': (('_parent', 'voltage'), None),
-                '_parent_lag': (('_parent', 'lag'), None),
-                '_parent_lag_taper': (('_parent', 'lag_taper'), None),
-                '_parent_frequency': (('_parent', 'frequency'), None),
-                '_parent_harmonic': (('_parent', 'harmonic'), None),
-
-                '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
-
-                '_parent_k0': (('_parent', 'k0'), None),
-                '_parent_k1': (('_parent', 'k1'), None),
-                '_parent_k2': (('_parent', 'k2'), None),
-                '_parent_k3': (('_parent', 'k3'), None),
-                '_parent_k4': (('_parent', 'k4'), None),
-                '_parent_k5': (('_parent', 'k5'), None),
-
-                '_parent_k0s': (('_parent', 'k0s'), None),
-                '_parent_k1s': (('_parent', 'k1s'), None),
-                '_parent_k2s': (('_parent', 'k2s'), None),
-                '_parent_k3s': (('_parent', 'k3s'), None),
-                '_parent_k4s': (('_parent', 'k4s'), None),
-                '_parent_k5s': (('_parent', 'k5s'), None),
-
-                '_parent_k0l': (('_parent', 'knl'), 0),
-                '_parent_k1l': (('_parent', 'knl'), 1),
-                '_parent_k2l': (('_parent', 'knl'), 2),
-                '_parent_k3l': (('_parent', 'knl'), 3),
-                '_parent_k4l': (('_parent', 'knl'), 4),
-                '_parent_k5l': (('_parent', 'knl'), 5),
-
-                '_parent_k0sl': (('_parent', 'ksl'), 0),
-                '_parent_k1sl': (('_parent', 'ksl'), 1),
-                '_parent_k2sl': (('_parent', 'ksl'), 2),
-                '_parent_k3sl': (('_parent', 'ksl'), 3),
-                '_parent_k4sl': (('_parent', 'ksl'), 4),
-                '_parent_k5sl': (('_parent', 'ksl'), 5),
-
-                '_parent_k0l_rel': (('_parent', 'knl_rel'), 0),
-                '_parent_k1l_rel': (('_parent', 'knl_rel'), 1),
-                '_parent_k2l_rel': (('_parent', 'knl_rel'), 2),
-                '_parent_k3l_rel': (('_parent', 'knl_rel'), 3),
-                '_parent_k4l_rel': (('_parent', 'knl_rel'), 4),
-                '_parent_k5l_rel': (('_parent', 'knl_rel'), 5),
-
-                '_parent_k0sl_rel': (('_parent', 'ksl_rel'), 0),
-                '_parent_k1sl_rel': (('_parent', 'ksl_rel'), 1),
-                '_parent_k2sl_rel': (('_parent', 'ksl_rel'), 2),
-                '_parent_k3sl_rel': (('_parent', 'ksl_rel'), 3),
-                '_parent_k4sl_rel': (('_parent', 'ksl_rel'), 4),
-                '_parent_k5sl_rel': (('_parent', 'ksl_rel'), 5),
-
-                '_parent_main_order': (('_parent', 'main_order'), None),
-                '_parent_main_is_skew': (('_parent', 'main_is_skew'), None),
+                '_own_main_order': AttrDefinition(name='main_order'),
+                '_own_main_is_skew': AttrDefinition(name='main_is_skew'),
 
                 # Handling of reference frame transformations
                 # (XYShift, XRotation, YRotation, SRotation)
                 # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
-                '_parent_ref_shift_x': (('_parent', 'dx'), None),
-                '_parent_ref_shift_y': (('_parent', 'dy'), None),
-                '_parent_ref_rot_sin_angle': (('_parent', 'sin_angle'), None),
-                '_parent_ref_rot_cos_angle': (('_parent', 'cos_angle'), None),
-                '_parent_ref_rot_sin_z': (('_parent', 'sin_z'), None),
-                '_parent_ref_rot_cos_z': (('_parent', 'cos_z'), None),
+                '_own_ref_shift_x': AttrDefinition(name='dx'),
+                '_own_ref_shift_y': AttrDefinition(name='dy'),
+                '_own_ref_rot_sin_angle': AttrDefinition(name='sin_angle'),
+                '_own_ref_rot_cos_angle': AttrDefinition(name='cos_angle'),
+                '_own_ref_rot_sin_z': AttrDefinition(name='sin_z'),
+                '_own_ref_rot_cos_z': AttrDefinition(name='cos_z'),
 
+                '_parent_length': AttrDefinition(name=('_parent', 'length')),
+                '_parent_rot_s_rad': AttrDefinition(name=('_parent', 'rot_s_rad')),
+                '_parent_shift_x': AttrDefinition(name=('_parent', 'shift_x')),
+                '_parent_shift_y': AttrDefinition(name=('_parent', 'shift_y')),
+                '_parent_shift_s': AttrDefinition(name=('_parent', 'shift_s')),
+
+                '_parent_h': AttrDefinition(name=('_parent', 'h')),
+                '_parent_hxl': AttrDefinition(name=('_parent', 'hxl')),
+                '_parent_rbend_model': AttrDefinition(name=('_parent', 'rbend_model')),
+                '_parent_rbend_angle_diff': AttrDefinition(name=('_parent', 'rbend_angle_diff')),
+
+                '_parent_voltage': AttrDefinition(name=('_parent', 'voltage')),
+                '_parent_lag': AttrDefinition(name=('_parent', 'lag')),
+                '_parent_lag_taper': AttrDefinition(name=('_parent', 'lag_taper')),
+                '_parent_frequency': AttrDefinition(name=('_parent', 'frequency')),
+                '_parent_harmonic': AttrDefinition(name=('_parent', 'harmonic')),
+
+                '_parent_radiation_flag': AttrDefinition(name=('_parent', 'radiation_flag')),
+
+                '_parent_k0': AttrDefinition(name=('_parent', 'k0')),
+                '_parent_k1': AttrDefinition(name=('_parent', 'k1')),
+                '_parent_k2': AttrDefinition(name=('_parent', 'k2')),
+                '_parent_k3': AttrDefinition(name=('_parent', 'k3')),
+                '_parent_k4': AttrDefinition(name=('_parent', 'k4')),
+                '_parent_k5': AttrDefinition(name=('_parent', 'k5')),
+
+                '_parent_k0s': AttrDefinition(name=('_parent', 'k0s')),
+                '_parent_k1s': AttrDefinition(name=('_parent', 'k1s')),
+                '_parent_k2s': AttrDefinition(name=('_parent', 'k2s')),
+                '_parent_k3s': AttrDefinition(name=('_parent', 'k3s')),
+                '_parent_k4s': AttrDefinition(name=('_parent', 'k4s')),
+                '_parent_k5s': AttrDefinition(name=('_parent', 'k5s')),
+
+                '_parent_k0l': AttrDefinition(name=('_parent', 'knl'), index=0),
+                '_parent_k1l': AttrDefinition(name=('_parent', 'knl'), index=1),
+                '_parent_k2l': AttrDefinition(name=('_parent', 'knl'), index=2),
+                '_parent_k3l': AttrDefinition(name=('_parent', 'knl'), index=3),
+                '_parent_k4l': AttrDefinition(name=('_parent', 'knl'), index=4),
+                '_parent_k5l': AttrDefinition(name=('_parent', 'knl'), index=5),
+
+                '_parent_k0sl': AttrDefinition(name=('_parent', 'ksl'), index=0),
+                '_parent_k1sl': AttrDefinition(name=('_parent', 'ksl'), index=1),
+                '_parent_k2sl': AttrDefinition(name=('_parent', 'ksl'), index=2),
+                '_parent_k3sl': AttrDefinition(name=('_parent', 'ksl'), index=3),
+                '_parent_k4sl': AttrDefinition(name=('_parent', 'ksl'), index=4),
+                '_parent_k5sl': AttrDefinition(name=('_parent', 'ksl'), index=5),
+
+                '_parent_k0l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=0),
+                '_parent_k1l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=1),
+                '_parent_k2l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=2),
+                '_parent_k3l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=3),
+                '_parent_k4l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=4),
+                '_parent_k5l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=5),
+
+                '_parent_k0sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=0),
+                '_parent_k1sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=1),
+                '_parent_k2sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=2),
+                '_parent_k3sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=3),
+                '_parent_k4sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=4),
+                '_parent_k5sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=5),
+
+                '_parent_main_order': AttrDefinition(name=('_parent', 'main_order')),
+                '_parent_main_is_skew': AttrDefinition(name=('_parent', 'main_is_skew')),
+
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_parent_ref_shift_x': AttrDefinition(name=('_parent', 'dx')),
+                '_parent_ref_shift_y': AttrDefinition(name=('_parent', 'dy')),
+                '_parent_ref_rot_sin_angle': AttrDefinition(name=('_parent', 'sin_angle')),
+                '_parent_ref_rot_cos_angle': AttrDefinition(name=('_parent', 'cos_angle')),
+                '_parent_ref_rot_sin_z': AttrDefinition(name=('_parent', 'sin_z')),
+                '_parent_ref_rot_cos_z': AttrDefinition(name=('_parent', 'cos_z')),
             },
             derived_fields={
                 'length': lambda attr:
@@ -5817,12 +5817,9 @@ class LineAttr:
         self._rot_and_shift_from_parent = _rot_and_shift_from_parent
 
         for fn, fa in zip(field_names, field_access):
-            if isinstance(fa, str):
-                access = fa
-                index = None
-            else:
-                access, index = fa
-            self._cache[fn] = LineAttrItem(name=access, index=index, line=line)
+            name=fa.name
+            index=fa.index
+            self._cache[fn] = LineAttrItem(name=name, index=index, line=line)
 
     def __getitem__(self, key):
 
@@ -6178,3 +6175,9 @@ def _main_strength_from_attr(attr):
     main_strength[main_is_skew] = _main_strength_skew[main_is_skew]
 
     return main_strength
+
+class AttrDefinition:
+    def __init__(self, name, index=None, dtype=np.float64):
+        self.name = name
+        self.index = index
+        self.dtype = dtype
