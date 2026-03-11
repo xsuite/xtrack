@@ -20,8 +20,10 @@ void get_values_at_offsets_float64(
     VECTORIZE_OVER(ii, num_offsets);
         int64_t offs = MultiSetterData_get_offsets(data, ii);
 
-        double val = *((GPUGLMEM double*)(buffer + offs));
-        out[ii] = val;
+        if (offs>=0){
+            double val = *((GPUGLMEM double*)(buffer + offs));
+            out[ii] = val;
+        }
     END_VECTORIZE;
 }
 
@@ -36,8 +38,10 @@ void get_values_at_offsets_int64(
     VECTORIZE_OVER(ii, num_offsets);
         int64_t offs = MultiSetterData_get_offsets(data, ii);
 
-        int64_t val = *((GPUGLMEM int64_t*)(buffer + offs));
-        out[ii] = val;
+        if (offs>=0){
+            int64_t val = *((GPUGLMEM int64_t*)(buffer + offs));
+            out[ii] = val;
+        }
     END_VECTORIZE;
 }
 
@@ -52,8 +56,10 @@ void get_values_at_offsets_int32(
     VECTORIZE_OVER(ii, num_offsets);
         int64_t offs = MultiSetterData_get_offsets(data, ii);
 
-        int32_t val = *((GPUGLMEM int32_t*)(buffer + offs));
-        out[ii] = val;
+        if (offs>=0){
+            int32_t val = *((GPUGLMEM int32_t*)(buffer + offs));
+            out[ii] = val;
+        }
     END_VECTORIZE;
 }
 
@@ -69,8 +75,10 @@ void set_values_at_offsets_float64(
     VECTORIZE_OVER(ii, num_offsets);
         int64_t offs = MultiSetterData_get_offsets(data, ii);
 
-        double val = input[ii];
-        *((GPUGLMEM double*)(buffer + offs)) = val;
+        if (offs>=0){
+            double val = input[ii];
+            *((GPUGLMEM double*)(buffer + offs)) = val;
+        }
     END_VECTORIZE;
 }
 
@@ -85,8 +93,10 @@ void set_values_at_offsets_int64(
     VECTORIZE_OVER(ii, num_offsets);
         int64_t offs = MultiSetterData_get_offsets(data, ii);
 
-        int64_t val = input[ii];
-        *((GPUGLMEM int64_t*)(buffer + offs)) = val;
+        if (offs>=0){
+            int64_t val = input[ii];
+            *((GPUGLMEM int64_t*)(buffer + offs)) = val;
+        }
     END_VECTORIZE;
 }
 
@@ -101,8 +111,10 @@ void set_values_at_offsets_int32(
     VECTORIZE_OVER(ii, num_offsets);
         int64_t offs = MultiSetterData_get_offsets(data, ii);
 
-        int32_t val = input[ii];
-        *((GPUGLMEM int32_t*)(buffer + offs)) = val;
+        if (offs>=0){
+            int32_t val = input[ii];
+            *((GPUGLMEM int32_t*)(buffer + offs)) = val;
+        }
     END_VECTORIZE;
 }
 
