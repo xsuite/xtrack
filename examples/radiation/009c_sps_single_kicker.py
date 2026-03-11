@@ -117,22 +117,22 @@ opt = line.match(
 opt.step(5)
 opt.target_status()
 
-# opt.enable_all_targets()
-# opt.enable_all_vary()
-# opt.disable_targets(tag='chrom')
-# opt.disable_vary(tag='chrom')
+# opt.enable(target=True)
+# opt.enable(vary=True)
+# opt.disable(target='chrom')
+# opt.disable(vary='chrom')
 # opt.solve()
 
 # if match_chrom:
 
-#     opt.disable_all_targets()
-#     opt.disable_all_vary()
-#     opt.enable_targets(tag='chrom')
-#     opt.enable_vary(tag='chrom')
+#     opt.disable(target=True)
+#     opt.disable(vary=True)
+#     opt.enable(target='chrom')
+#     opt.enable(vary='chrom')
 #     opt.solve()
 
-#     opt.enable_all_targets()
-#     opt.enable_all_vary()
+#     opt.enable(target=True)
+#     opt.enable(vary=True)
 #     opt.solve()
 
 

@@ -405,6 +405,14 @@ class Environment:
             Length of the line to be built by the builder. Can be an expression.
             If not specified, the length will be the minimum length that can
             fit all the components.
+        mirror : bool, optional
+            Whether the line should be mirrored after creation.
+        compose : bool, optional
+            Whether to instantiate the line in ``compose`` mode, which allows
+            the components to be added to the line after creation.
+        s_tol : float, optional
+            Difference between two s positions below which they should be
+            treated as the same location.
 
         Returns
         -------
@@ -425,7 +433,7 @@ class Environment:
                 env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
                 env.new('mq1_clone', 'mq1', k1='2a'),   # Clone 'mq1' with a different k1
                 env.place('mq2', at=20.0, from='mymark'),  # Place 'mq2' at s=20
-                ])
+            ])
         """
 
         if isinstance(components, str):
@@ -995,13 +1003,11 @@ class Environment:
                     ] + object.__dir__(self)
 
     def set_multipolar_errors(env, errors):
+        """Deprecated: set multipolar errors for specified elements of the environment.
 
-        '''
-        !DEPRECATED!: This function is deprecated and will be removed in a future version.
-        Please use the attributes `knl_rel` and `ksl_rel` of the elements
-        to set relative multipolar errors directly on the elements.
-
-        Set multipolar errors for specified elements of the environment.
+        .. warning:: This function is deprecated and will be removed in a future
+           version. Please use the attributes `knl_rel` and `ksl_rel` of the elements
+           to set relative multipolar errors directly on the elements.
 
         Parameters
         ----------
@@ -1038,13 +1044,11 @@ class Environment:
                 'mb': {'rel_knl': [2e-6, 3e-5, 4e-4],
                        'rel_ksl': [5e-6, 6e-5, 7e-4]},
                 })
-
-        '''
-
+        """
         warn('The function `set_multipolar_errors` is deprecated and will be removed '
-             'in a future version. Please use the attributes `knl_rel` and `ksl_rel` ' \
+             'in a future version. Please use the attributes `knl_rel` and `ksl_rel` '
              'of the elements to set relative multipolar errors directly on the elements.',
-                FutureWarning)
+             FutureWarning)
 
         for ele_name in progress(errors.keys(), desc='Setting multipolar errors'):
 
@@ -2233,6 +2237,7 @@ class EnvVars:
         self.default_to_zero = old_default_to_zero  # restore (in case changed by loader)
 
     def load_json(self, filename):
+        """Deprecated: use `load` instead."""
         warn(
             '`EnvVars.load_json` is deprecated, use `load`, optionally with `format="json"` instead.',
             FutureWarning
