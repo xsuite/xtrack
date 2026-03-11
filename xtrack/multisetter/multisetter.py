@@ -187,16 +187,18 @@ def _extract_offset(obj, field_name, index, dtype, xodtype, skip_inconsistent_ty
 
     if index is None:
         inconsistent_type = not isinstance(getattr(inner_obj._xobject, inner_name), dtype)
-        if skip_inconsistent_type_check:
-            return -1
-        else:
-            assert not inconsistent_type, "Inconsistent types"
+        if inconsistent_type:
+            if skip_inconsistent_type_check:
+                return -1
+            else:
+                assert not inconsistent_type, "Inconsistent types"
         return inner_obj._xobject._get_offset(inner_name)
     else:
         obj = getattr(inner_obj._xobject, inner_name)
         inconsistent_type = not hasattr(obj, "_itemtype") or obj._itemtype is not xodtype
-        if skip_inconsistent_type_check:
-            return -1
-        else:
-            assert not inconsistent_type, "Inconsistent types"
+        if inconsistent_type:
+            if skip_inconsistent_type_check:
+                return -1
+            else:
+                assert not inconsistent_type, "Inconsistent types"
         return obj._get_offset(index)
