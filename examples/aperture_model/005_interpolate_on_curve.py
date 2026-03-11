@@ -58,9 +58,10 @@ angle = np.deg2rad(35.0)
 length = 3.2
 radius = 0.6
 
-bend_name = env.new('bend', xt.Bend, length=length, angle=angle, k0=0)
-anti_bend_name = env.new('anti_bend', xt.Bend, length=length, angle=-angle, k0=0)
-line = env.new_line(name='line', components=[bend_name, anti_bend_name])
+bend = env.new('bend', xt.Bend, length=length, angle=angle, k0=0)
+drift = env.new('drift', xt.Drift, length=length)
+anti_bend = env.new('anti_bend', xt.Bend, length=length, angle=-angle, k0=0)
+line = env.new_line(name='line', components=[bend, drift, anti_bend])
 sv = line.survey()
 
 shape = Circle(radius=radius)
@@ -87,19 +88,34 @@ model = ApertureModel(
             survey_index=1,
             transformation=transform_matrix(),
         ),
+        TypePosition(
+            type_index=2,
+            survey_reference_name=sv.name[2],
+            survey_index=2,
+            transformation=transform_matrix(),
+        ),
     ],
     types=[
         ApertureType(curvature=angle / length, positions=profile_positions),
+        ApertureType(curvature=0, positions=profile_positions),
         ApertureType(curvature=-angle / length, positions=profile_positions),
     ],
     profiles=profiles,
-    type_names=['type0', 'type1'],
+    type_names=['type0', 'type1', 'type2'],
     profile_names=['circ0'],
 )
 
 ap = Aperture(line=line, model=model, num_profile_points=256)
 
-s_samples = np.linspace(0.0, 2 * length, 33, dtype=np.float32)
+bounds_table = ap.get_bounds_table()
+bounds_s = [0, length, length, 2 * length, 2 * length, 3 * length]
+xo.assert_allclose(bounds_table.s, bounds_s, atol=1e-6, rtol=1e-6)
+xo.assert_allclose(bounds_table.s_start, bounds_s, atol=1e-6, rtol=1e-6)
+xo.assert_allclose(bounds_table.s_end, bounds_s, atol=1e-6, rtol=1e-6)
+assert all(bounds_table.type_name == ['type0', 'type0', 'type1', 'type1', 'type2', 'type2'])
+assert all(bounds_table.profile_name == ['circ0'])
+
+s_samples = np.linspace(0, 3 * length, 51, dtype=np.float32)
 sections, poses = ap.cross_sections_at_s(s_samples)
 
 ax = plt.figure().add_subplot(projection="3d")

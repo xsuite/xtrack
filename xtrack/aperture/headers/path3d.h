@@ -287,7 +287,12 @@ float_type arc_segment_plane_intersect(const ArcSegment3D segment, const Point3D
 }
 
 
-inline float_type segment_plane_intersect(const Segment3D segment, const Point3D plane_point, const Point3D normal)
+inline float_type segment3d_plane_intersect(const Segment3D segment, const Point3D plane_point, const Point3D normal)
+/*
+    Given a `segment` (line or arc) and a plane defined with a point and a normal, get a parameter `t` along
+    the length of the `segment` at which the plane intersects the segment. If `t` is not in [0, 1] the plane
+    does not intersect the segment.
+*/
 {
     switch (segment.type) {
         case SEGMENT3D_LINE:
@@ -298,11 +303,14 @@ inline float_type segment_plane_intersect(const Segment3D segment, const Point3D
 }
 
 
-inline float_type closest_t_on_segment(const Point3D p, const Point3D a, const Point3D b)
+inline float_type closest_t_on_line_segment(const Point3D p, const LineSegment3D segment)
 /*
-    Closest point parameter t on segment [a,b] to point p.
+    Closest point parameter `t` on segment [a,b] to point p. Parameter `t` is unconstrained,
+    if the point strictly on the segment is needed, clamp to [0, 1].
 */
 {
+    const Point3D a = segment.start;
+    const Point3D b = segment.end;
     const float_type eps = APER_PRECISION;
     const Point3D ab = point3d_sub(b, a);
     const Point3D ap = point3d_sub(p, a);
@@ -315,20 +323,79 @@ inline float_type closest_t_on_segment(const Point3D p, const Point3D a, const P
 }
 
 
+inline float_type closest_t_on_arc_segment(const Point3D p, const ArcSegment3D segment)
+/*
+    Closest point parameter t on an ArcSegment3D to point p.
+
+    The returned value is the normalized arc parameter, such that
+    `arc_segment_point_at(segment, t)` is the closest point on the supporting arc.
+
+    The returned parameter `t` is unconstrained, if the point strictly  on the arc
+    segment is needed, clamp to [0, 1].
+*/
+{
+    const float_type eps = APER_PRECISION;
+    if (segment.length < eps) return 0.f;
+
+    const float_type h = segment.curvature;
+
+    /* Transform p into the local frame of the arc start */
+    const Pose inv_start = pose_inverse_rigid(segment.start);
+    const Point3D q = pose_apply_point(inv_start, p);
+
+    /*
+        Undo the arc roll to bring the point into the frame in which
+        the arc lies in the X-Z plane. This is now a 2D problem, and
+        the Y coordinate is irrelevant for the computation.
+    */
+    const float_type x = cos(segment.roll) * q.x + sin(segment.roll) * q.y;
+    const float_type z = q.z;
+
+
+    /* Shart-circuit if actually a line segment */
+    if (fabs(h) < eps) {
+        return z / segment.length;
+    }
+
+    /*
+        In the local X-Z plane the arc is a circle with centre `C = (-R, 0)`
+        and radius `R = 1 / h`. The closest point to `q` on the arc is the
+        point lying on the ray from `C` to `q`.
+
+        The ray is:
+            v = (x - C_x, z - C_z) = (x + 1 / h, z)
+
+        and the corresponding circle angle is then:
+            theta = atan2(v_z, v_x) = atan2(h * v_z, h * v_x) = atan2(h * z, 1 + h * x)
+    */
+    const float_type theta = atan2(h * z, 1.f + h * x);
+
+    return theta / (h * segment.length);
+}
+
+
+inline float_type closest_t_on_segment(const Point3D p, const Segment3D segment)
+/*
+    Get parameter `t` of the point along the `segment` closest to `p`.
+*/
+{
+    switch (segment.type) {
+        case SEGMENT3D_LINE:
+            return closest_t_on_line_segment(p, segment.line);
+        case SEGMENT3D_ARC:
+            return closest_t_on_arc_segment(p, segment.arc);
+    }
+}
+
+
 inline Pose arc_matrix(const float_type length, const float_type angle, const float_type tilt)
 /*
     Get a transformation to the point at `length` along an arc of `angle`.
 */
 {
     if (fabs(angle) < APER_PRECISION) {
-        return transform_to_matrix((Transform){
-            .x = 0,
-            .y = 0,
-            .s = length,
-            .rot_x = 0,
-            .rot_y = 0,
-            .rot_s = 0
-        });
+        // Just a translation in the straight case
+        return transform_to_matrix((Transform){ .s = length });
     }
 
     const float_type ct = cos(tilt), st = sin(tilt);
