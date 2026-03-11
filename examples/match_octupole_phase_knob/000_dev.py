@@ -116,7 +116,7 @@ opt = line.match_knob(
 t1 = time.time()
 opt.step(30)
 
-opt.disable_targets(tag='rdt')
+opt.disable(target='rdt')
 opt.solve()
 t2 = time.time()
 print(f'Optimization time: {t2-t1:.2f} s')

@@ -46,23 +46,23 @@ opt_l = line.match(
 
 for iter in range(2):
     # Orbit alone
-    opt_l.disable_all_targets(); opt_l.disable_all_vary()
-    opt_l.enable_targets(tag='orbit'); opt_l.enable_vary(tag='corr_l'); opt_l.solve()
+    opt_l.disable(target=True); opt_l.disable(vary=True)
+    opt_l.enable(target='orbit'); opt_l.enable(vary='corr_l'); opt_l.solve()
 
     # Coupling alone
-    opt_l.disable_all_targets(); opt_l.disable_all_vary()
-    opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l'); opt_l.solve()
+    opt_l.disable(target=True); opt_l.disable(vary=True)
+    opt_l.enable(target='coupl'); opt_l.enable(vary='skew_l'); opt_l.solve()
 
     # phase, beta and alpha alone
-    opt_l.disable_all_targets(); opt_l.disable_all_vary()
-    opt_l.enable_vary(tag='normal_l')
-    opt_l.enable_targets(tag='mu_ip'); opt_l.solve()
-    opt_l.enable_targets(tag='bet_ip'); opt_l.solve()
-    opt_l.enable_targets(tag='alf_ip'); opt_l.solve()
+    opt_l.disable(target=True); opt_l.disable(vary=True)
+    opt_l.enable(vary='normal_l')
+    opt_l.enable(target='mu_ip'); opt_l.solve()
+    opt_l.enable(target='bet_ip'); opt_l.solve()
+    opt_l.enable(target='alf_ip'); opt_l.solve()
 
 # All together
-opt_l.enable_all_targets()
-opt_l.enable_all_vary()
+opt_l.enable(target=True)
+opt_l.enable(vary=True)
 opt_l.solve()
 
 
@@ -93,23 +93,23 @@ opt_r = line.match(
 
 for iter in range(2):
     # Orbit alone
-    opt_r.disable_all_targets(); opt_r.disable_all_vary()
-    opt_r.enable_targets(tag='orbit'); opt_r.enable_vary(tag='corr_r'); opt_r.solve()
+    opt_r.disable(target=True); opt_r.disable(vary=True)
+    opt_r.enable(target='orbit'); opt_r.enable(vary='corr_r'); opt_r.solve()
 
     # Coupling alone
-    opt_r.disable_all_targets(); opt_r.disable_all_vary()
-    opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r'); opt_r.solve()
+    opt_r.disable(target=True); opt_r.disable(vary=True)
+    opt_r.enable(target='coupl'); opt_r.enable(vary='skew_r'); opt_r.solve()
 
     # phase, beta and alpha alone
-    opt_r.disable_all_targets(); opt_r.disable_all_vary()
-    opt_r.enable_vary(tag='normal_r')
-    opt_r.enable_targets(tag='mu_ip'); opt_r.solve()
-    opt_r.enable_targets(tag='bet_ip'); opt_r.solve()
-    opt_r.enable_targets(tag='alf_ip'); opt_r.solve()
+    opt_r.disable(target=True); opt_r.disable(vary=True)
+    opt_r.enable(vary='normal_r')
+    opt_r.enable(target='mu_ip'); opt_r.solve()
+    opt_r.enable(target='bet_ip'); opt_r.solve()
+    opt_r.enable(target='alf_ip'); opt_r.solve()
 
 # All together
-opt_r.enable_all_targets()
-opt_r.enable_all_vary()
+opt_r.enable(target=True)
+opt_r.enable(vary=True)
 opt_r.solve()
 
 tw_local_corr = line.twiss(start='ip.4', end='_end_point', init_at='ip.1',
