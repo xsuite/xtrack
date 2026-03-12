@@ -12,7 +12,7 @@ lhc_with_metadata = xt.load('./lhc_aperture.json')
 b1 = lhc_with_metadata['b1']
 lhc_length = b1.get_length()
 
-aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, context=context)
+aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, context=context, _skip_validity_check=True)
 
 end_s = lhc_length / 8
 s_positions = np.linspace(0, end_s, int(end_s))
