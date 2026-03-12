@@ -857,7 +857,7 @@ def test_aperture_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_boun
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-def test_aperture_bounds_curved_survey_follows_pipe(test_context):
+def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_context):
     env = xt.Environment()
     angle = np.deg2rad(35.0)
     length = 3.2
@@ -919,6 +919,12 @@ def test_aperture_bounds_curved_survey_follows_pipe(test_context):
     xo.assert_allclose(bounds_table.s_end, bounds_s, atol=1e-6, rtol=1e-6)
     assert all(bounds_table.type_name == ['type0', 'type0', 'type1', 'type1', 'type2', 'type2'])
     assert all(bounds_table.profile_name == ['circ0'])
+
+    s_samples = np.linspace(0, 3 * length, 51, dtype=np.float32)
+    sections, poses = ap.cross_sections_at_s(s_samples)
+
+    for ii in range(1, len(sections)):
+        xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

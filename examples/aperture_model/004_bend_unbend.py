@@ -129,11 +129,12 @@ def cartesian_to_curvilinear_point(p_cart, h):
     R = 1.0 / h
 
     # Since X + R = (R + x) cos(theta), Z = (R + x) sin(theta)
-    rho = np.hypot(X + R, Z)
+    sgn = np.sign(h)
+    rho = sgn * np.hypot(X + R, Z)
 
     x = rho - R
     y = Y
-    theta = np.arctan2(Z, X + R)
+    theta = np.arctan2(sgn * Z, sgn * (X + R))
     s = theta / h
 
     return np.array([x, y, s], dtype=float)

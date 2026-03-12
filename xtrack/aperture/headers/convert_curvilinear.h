@@ -3,7 +3,6 @@
 
 #include "base.h"
 
-
 inline Point3D curvilinear_to_cartesian_point(const Point3D p_curv, const float_type h)
 /*
     Curvilinear (x, y, s) -> Cartesian (X, Y, Z):
@@ -57,8 +56,15 @@ inline Point3D cartesian_to_curvilinear_point(const Point3D p_cart, const float_
         X + R = (R + x) cos(theta)
         Z = (R + x) sin(theta)
     */
-    const float_type rho = hypot(p_cart.x + R, p_cart.z);
-    const float_type theta = atan2(p_cart.z, p_cart.x + R);
+    const float_type v_x = p_cart.x + R;
+    const float_type v_z = p_cart.z;
+
+    /*
+        Keep a signed (R + x) convention that is symmetric for positive/negative curvature.
+    */
+    const float_type sgn = (h >= 0.f) ? 1.f : -1.f;
+    const float_type rho = sgn * hypot(v_x, v_z);
+    const float_type theta = atan2(sgn * v_z, sgn * v_x);
 
     return (Point3D){
         .x = rho - R,
