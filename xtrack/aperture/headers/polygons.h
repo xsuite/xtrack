@@ -275,6 +275,8 @@ static inline int intersect_segment_with_plane_and_project_xy(
 */
 {
     const float_type eps = APER_PRECISION;
+    const Point3D a_cart = a;
+    const Point3D b_cart = b;
     Point3D plane_point = plane_initial_point(plane_in_frame);
     Point3D normal = plane_normal_vector(plane_in_frame);
 
@@ -284,6 +286,8 @@ static inline int intersect_segment_with_plane_and_project_xy(
         for profiles/planes that are not orthogonal to the type frame s,
         but it will do for now, and avoids complex mathematics for proper
         interpolation along curves (which are in this case not circle arcs!)
+
+        TODO: This is not robust for arcs > 90°, a different method needed for that?
     */
     if (fabs(curvature) > APER_PRECISION)
     {
@@ -304,14 +308,14 @@ static inline int intersect_segment_with_plane_and_project_xy(
             Near-parallel case: if an endpoint is already on the target plane within tolerance,
             use that endpoint rather than dropping the point.
         */
-        Point3D a_plane = pose_apply_point(frame_in_plane, a);
+        const Point3D a_plane = pose_apply_point(frame_in_plane, a_cart);
         if (fabs(a_plane.z) <= eps) {
             out_xy_plane->x = a_plane.x;
             out_xy_plane->y = a_plane.y;
             return 1;
         }
 
-        const Point3D b_plane = pose_apply_point(frame_in_plane, b);
+        const Point3D b_plane = pose_apply_point(frame_in_plane, b_cart);
         if (fabs(b_plane.z) <= eps) {
             out_xy_plane->x = b_plane.x;
             out_xy_plane->y = b_plane.y;
