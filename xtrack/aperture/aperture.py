@@ -19,13 +19,15 @@ from xtrack.aperture.structures import (
     ApertureType,
     BeamData,
     ApertureBounds,
+    Circle,
     Profile,
     ProfilePolygons,
     ProfilePosition,
+    Rectangle,
     ShapeTypes,
     SurveyData,
     TwissData,
-    TypePosition, Circle
+    TypePosition,
 )
 from xtrack.line import Line
 from xtrack.progress_indicator import progress
@@ -92,6 +94,7 @@ class Aperture:
         halo_params: Optional[dict] = None,
         context: Optional[XContext] = None,
         s_tol=1e-3,
+        _skip_validity_check=False,
     ):
         self.line = line
         self.model = model  # positioning of types in line frame
@@ -105,7 +108,7 @@ class Aperture:
 
         self._aperture_bounds: Optional[ApertureBounds] = None
         self._profile_polygons: Optional[ProfilePolygons] = None
-        self._build_aperture_bounds()
+        self._build_aperture_bounds(check_validity=not _skip_validity_check)
 
         if halo_params is not None:
             self.halo_params.update(halo_params)
@@ -148,7 +151,7 @@ class Aperture:
             if 'aperture' not in element_metadata:
                 continue
 
-            offset_data = aperture_offsets.get(aper_name, {})
+            offset_data = {} #aperture_offsets.get(aper_name, {})
 
             if aper_name not in aperture_indices:
                 shape_name, params, tols = element_metadata['aperture']
@@ -158,8 +161,7 @@ class Aperture:
                     # There is not really an aperture here, continue
                     continue
 
-                if isinstance(shape, Circle) and shape.radius < 1e-6:
-                    # broken zero aperture
+                if cls._is_broken_madx_aperture(shape):
                     continue
 
                 tol_r, tol_x, tol_y = tols
@@ -215,7 +217,7 @@ class Aperture:
                     psi=0,
                 )
                 # this breaks things
-                survey_reference_name = element_name#offset_data['survey_ref']
+                survey_reference_name = offset_data['survey_ref']
             else:
                 matrix = np.identity(4)
                 survey_reference_name = element_name
@@ -647,7 +649,7 @@ class Aperture:
 
         return s_positions
 
-    def _build_aperture_bounds(self):
+    def _build_aperture_bounds(self, check_validity=True):
         # Pre-allocate the cross-sections with the correct sizes
         num_points = self.num_profile_points
         num_cross_sections = sum(len(self.model.type_for_position(type_pos).positions) for type_pos in self.model.type_positions)
@@ -685,30 +687,33 @@ class Aperture:
             survey=self.survey_data,
         )
 
+        if check_validity:
+            self._check_aperture_bounds_validity()
+
+    def _check_aperture_bounds_validity(self):
         # Check validity
-        # TODO: Re-enable once h is supported in types... as-is breaks the tests
-        # eps = 3e-3  # TODO: yikes!
-        # last_right = -np.inf
-        # for idx in range(self._aperture_bounds.count):
-        #     left = self._aperture_bounds.s_start[idx]
-        #     centre = self._aperture_bounds.s_positions[idx]
-        #     right = self._aperture_bounds.s_end[idx]
-        #
-        #     type_pos_idx = self._aperture_bounds.type_position_indices[idx]
-        #     profile_pos_idx = self._aperture_bounds.profile_position_indices[idx]
-        #     type_name, profile_name = self.model.type_profile_names_for_indices(type_pos_idx, profile_pos_idx)
-        #
-        #     if not (centre - left > -eps and right - centre > -eps):
-        #         raise ValueError(
-        #             f'Aperture model corrupted for type {type_name} and profile {profile_name}): the '
-        #             f'computed s location {centre} is not inside the computed bounds [{left}, {right}]'
-        #         )
-        #
-        #     if last_right > left:
-        #         raise ValueError(
-        #             f'Aperture model corrupted for type {type_name} and profile {profile_name}): the '
-        #             f'aperture bounds [{left}, {right}] overlap the preceding profile whose s_end = {last_right}'
-        #         )
+        eps = 1e-3  # TODO: yikes!
+        last_right = -np.inf
+        for idx in range(self._aperture_bounds.count):
+            left = self._aperture_bounds.s_start[idx]
+            centre = self._aperture_bounds.s_positions[idx]
+            right = self._aperture_bounds.s_end[idx]
+
+            type_pos_idx = self._aperture_bounds.type_position_indices[idx]
+            profile_pos_idx = self._aperture_bounds.profile_position_indices[idx]
+            type_name, profile_name = self.model.type_profile_names_for_indices(type_pos_idx, profile_pos_idx)
+
+            if not (centre - left > -eps and right - centre > -eps):
+                raise ValueError(
+                    f'Aperture model corrupted for type {type_name} and profile {profile_name}: the '
+                    f'computed s location {centre} is not inside the computed bounds [{left}, {right}]'
+                )
+
+            if last_right > left:
+                raise ValueError(
+                    f'Aperture model corrupted for type {type_name} and profile {profile_name}): the '
+                    f'aperture bounds [{left}, {right}] overlap the preceding profile whose s_end = {last_right}'
+                )
 
     def get_bounds_table(self):
         type_names = []
@@ -884,3 +889,11 @@ class Aperture:
                     'ddy': section['ddy_off'][idx],
                 }
         return offsets
+
+    @classmethod
+    def _is_broken_madx_aperture(cls, shape):
+        if isinstance(shape, Circle):
+            return shape.radius < 1e-6 or shape.radius > 10
+
+        if isinstance(shape, Rectangle):
+            return shape.half_width < 1e-6 or shape.half_width > 10 or shape.half_height < 1e-6 or shape.half_height > 10

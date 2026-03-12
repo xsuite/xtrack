@@ -837,7 +837,8 @@ def test_aperture_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_boun
         profile_names=['circle', 'rectangle'],
     )
 
-    ap = Aperture(line=line, model=model, context=test_context)
+    # Skip validity check as in this case some profiles are outside the survey
+    ap = Aperture(line=line, model=model, context=test_context, _skip_validity_check=True)
 
     xo.assert_allclose(ap._aperture_bounds.s_positions[0], 0, atol=1e-6, rtol=1e-8)
     xo.assert_allclose(ap._aperture_bounds.s_start[0], 0, atol=1e-6, rtol=1e-8)
