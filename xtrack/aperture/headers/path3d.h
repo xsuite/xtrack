@@ -140,36 +140,22 @@ float_type line_segment_plane_intersect(LineSegment3D segment, const Point3D pla
 {
     const float_type eps = APER_PRECISION;
 
-    // Extract translation T from pose (local -> world)
-    const float_type t_x = plane_point.x;
-    const float_type t_y = plane_point.y;
-    const float_type t_z = plane_point.z;
+    // Let A := segment.start, T := plane_point, compute A - T
+    const Point3D ta = point3d_sub(segment.start, plane_point);
 
-    // Extract 3rd column of rotation R (plane normal in world)
-    const float_type n_x = normal.x;
-    const float_type n_y = normal.y;
-    const float_type n_z = normal.z;
-
-    // Let A := segment.start, compute A - T
-    const float_type ta_x = segment.start.x - t_x;
-    const float_type ta_y = segment.start.y - t_y;
-    const float_type ta_z = segment.start.z - t_z;
-
-    // Let B := segment.end, compute B - T
-    const float_type tb_x = segment.end.x - t_x;
-    const float_type tb_y = segment.end.y - t_y;
-    const float_type tb_z = segment.end.z - t_z;
+    // Let B := segment.end, T := plane_point, compute B - T
+    const Point3D tb = point3d_sub(segment.end, plane_point);
 
     /*
         The equation P(t) = A + t * (B - A), t \in [0, 1], defines the line segment, while
-        n * (X - T) = 0 defines the plane.
+        n * (X - T) = 0 defines the plane, where n := normal.
         
         Substituting P(t) in the latter gives n * (A + t * (B - A) - T) = 0, and after rearranging
         n * (A - T) + tn * (B - A) = 0 and then t = - (n * (A - T)) / (n * (B - A)).
     */
 
-    const float_type n_dot_ta = n_x * ta_x + n_y * ta_y + n_z * ta_z;  /* n * (A - T) */
-    const float_type n_dot_tb = n_x * tb_x + n_y * tb_y + n_z * tb_z;  /* n * (B - T) */
+    const float_type n_dot_ta = point3d_dot(normal, ta);  /* n * (A - T) */
+    const float_type n_dot_tb = point3d_dot(normal, tb);  /* n * (B - T) */
 
     /* Handle the degenerate case: if the line segment has no length, only check if point is on the plane */
     const float_type length_sq = segment_get_squared_length(segment);
