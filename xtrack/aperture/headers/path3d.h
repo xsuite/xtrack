@@ -191,85 +191,257 @@ float_type line_segment_plane_intersect(LineSegment3D segment, const Point3D pla
 }
 
 
-float_type arc_segment_plane_intersect(const ArcSegment3D segment, const Point3D plane_point, const Point3D normal)
+//float_type arc_segment_plane_intersect(const ArcSegment3D segment, const Point3D plane_point, const Point3D normal)
+///*
+//    Return a parameter `t` such that the point at `t * segment.angle` is the point on the
+//    segment at which `plane` intersects the `segment`. The plane is defined as a
+//    pose, such that if the pose is an identity, the plane lies in the X-Y plane (z=0), or, in
+//    other words, `plane @ [0, 0, 1]^T` is the plane normal.
+//*/
+//{
+//    const float_type eps = APER_PRECISION;
+//    const float_type length = segment.length;
+//
+//    if (length <= eps) return 0.f;
+//
+//    // Extract translation T from pose (local -> world)
+//    const float_type t_x = plane_point.x;
+//    const float_type t_y = plane_point.y;
+//    const float_type t_z = plane_point.z;
+//
+//    // Extract 3rd column of rotation R (plane normal in world)
+//    const float_type n_x = normal.x;
+//    const float_type n_y = normal.y;
+//    const float_type n_z = normal.z;
+//
+//    // Let A := segment start, compute A - T
+//    const Point3D p_start = arc_segment_point_at(segment, 0);
+//    const float_type ta_x = p_start.x - t_x;
+//    const float_type ta_y = p_start.y - t_y;
+//    const float_type ta_z = p_start.z - t_z;
+//
+//    // Let B := segment end, compute B - T
+//    const Point3D p_end = arc_segment_point_at(segment, 1);
+//    const float_type tb_x = p_end.x - t_x;
+//    const float_type tb_y = p_end.y - t_y;
+//    const float_type tb_z = p_end.z - t_z;
+//
+//    /*
+//        For numerical stability we will use bisection to find the intersection point.
+//        In principle there might be two such points, but is this is not expected in
+//        practice, we go on assuming there is just one.
+//
+//        We iteratively converge on an interval where n * (A - T) and n * (B - T),
+//        the signed distances between points A, B and the plane, have different signs.
+//    */
+//    float_type n_dot_ta = n_x * ta_x + n_y * ta_y + n_z * ta_z;
+//    float_type n_dot_tb = n_x * tb_x + n_y * tb_y + n_z * tb_z;
+//
+//    /* Short-circuit if already on one of the points */
+//    if (fabs(n_dot_ta) <= eps) return 0;
+//    if (fabs(n_dot_tb) <= eps) return 1;
+//
+//    /* If no sign change assume no intersection (we assume max one intersection point) */
+//    if (signbit(n_dot_ta) == signbit(n_dot_tb)) return NAN;
+//
+//    /* Bisect */
+//    float_type d_lo = 0;
+//    float_type d_hi = 1;
+//    float_type d_mid = 0.5;
+//
+//    for (int i = 0; i < 34; i++) {
+//        d_mid = 0.5f * (d_lo + d_hi);
+//        const Point3D p_mid = arc_segment_point_at(segment, d_mid);
+//        const float_type n_dot_t_mid = n_x * (p_mid.x - t_x) + n_y * (p_mid.y - t_y) + n_z * (p_mid.z - t_z);
+//
+//        /* Solution found within precision */
+//        if (fabs(n_dot_t_mid) <= eps || (d_hi - d_lo) <= eps) {
+//            return d_mid;
+//        }
+//
+//        if (signbit(n_dot_t_mid) == signbit(n_dot_ta)) {
+//            /* If projections have the same sign, bisect on [d_mid, d_hi] */
+//            d_lo = d_mid;
+//            n_dot_ta = n_dot_t_mid;
+//        } else {
+//            /* Otherwise bisect on the interval [d_lo, d_mid] */
+//            d_hi = d_mid;
+//        }
+//    }
+//
+//    return d_mid;
+//}
+
+
+static inline void plane_to_arc_local(
+    const ArcSegment3D segment,
+    const Point3D plane_point,
+    const Point3D normal,
+    Point3D *restrict q,
+    Point3D *restrict n_local)
+{
+    const Pose inv = pose_inverse_rigid(segment.start);
+
+    /* Plane point in arc-local frame */
+    *q = pose_apply_point(inv, plane_point);
+
+    /* Plane normal in arc-local frame: R^T n */
+    *n_local = (Point3D){
+        .x = inv.mat[0][0] * normal.x + inv.mat[0][1] * normal.y + inv.mat[0][2] * normal.z,
+        .y = inv.mat[1][0] * normal.x + inv.mat[1][1] * normal.y + inv.mat[1][2] * normal.z,
+        .z = inv.mat[2][0] * normal.x + inv.mat[2][1] * normal.y + inv.mat[2][2] * normal.z,
+    };
+}
+
+
+float_type arc_segment_plane_intersect(
+    const ArcSegment3D segment,
+    const Point3D plane_point,
+    const Point3D normal)
 /*
-    Return a parameter `t` such that the point at `t * segment.angle` is the point on the
-    segment at which `plane` intersects the `segment`. The plane is defined as a
-    pose, such that if the pose is an identity, the plane lies in the X-Y plane (z=0), or, in
-    other words, `plane @ [0, 0, 1]^T` is the plane normal.
+    Return a parameter `t` such that `arc_segment_point_at(segment, t)` lies on the
+    plane defined by `plane_point` and `normal`.
+
+    Return NAN only if the plane does not intersect the supporting circle.
+    Otherwise return the solution `t` closest to [0, 1].
 */
 {
     const float_type eps = APER_PRECISION;
-    const float_type length = segment.length;
+    const float_type L = segment.length;
 
-    if (length <= eps) return 0.f;
+    if (L <= eps) return 0.f;
 
-    // Extract translation T from pose (local -> world)
-    const float_type t_x = plane_point.x;
-    const float_type t_y = plane_point.y;
-    const float_type t_z = plane_point.z;
+    const float_type h = segment.curvature;
 
-    // Extract 3rd column of rotation R (plane normal in world)
-    const float_type n_x = normal.x;
-    const float_type n_y = normal.y;
-    const float_type n_z = normal.z;
-
-    // Let A := segment start, compute A - T
-    const Point3D p_start = arc_segment_point_at(segment, 0);
-    const float_type ta_x = p_start.x - t_x;
-    const float_type ta_y = p_start.y - t_y;
-    const float_type ta_z = p_start.z - t_z;
-
-    // Let B := segment end, compute B - T
-    const Point3D p_end = arc_segment_point_at(segment, 1);
-    const float_type tb_x = p_end.x - t_x;
-    const float_type tb_y = p_end.y - t_y;
-    const float_type tb_z = p_end.z - t_z;
+    /* Straight-line limit */
+    if (fabs(h) < eps) {
+        const LineSegment3D line = {
+            .start = arc_segment_point_at(segment, 0.f),
+            .end = arc_segment_point_at(segment, 1.f),
+        };
+        return line_segment_plane_intersect(line, plane_point, normal);
+    }
 
     /*
-        For numerical stability we will use bisection to find the intersection point.
-        In principle there might be two such points, but is this is not expected in
-        practice, we go on assuming there is just one.
+        Bring the plane into arc-local coordinates.
 
-        We iteratively converge on an interval where n * (A - T) and n * (B - T),
-        the signed distances between points A, B and the plane, have different signs.
+        In these coordinates, with theta = h L t,
+        the arc is
+
+            p(theta) =
+            (
+                cos(roll) * (cos(theta) - 1) / h,
+                sin(roll) * (cos(theta) - 1) / h,
+                sin(theta) / h
+            )
     */
-    float_type n_dot_ta = n_x * ta_x + n_y * ta_y + n_z * ta_z;
-    float_type n_dot_tb = n_x * tb_x + n_y * tb_y + n_z * tb_z;
+    Point3D q, n;
+    plane_to_arc_local(segment, plane_point, normal, &q, &n);
 
-    /* Short-circuit if already on one of the points */
-    if (fabs(n_dot_ta) <= eps) return 0;
-    if (fabs(n_dot_tb) <= eps) return 1;
+    /*
+        Solve the plane equation in local coordinates:
+            n · (p(theta) - q) = 0
 
-    /* If no sign change assume no intersection (we assume max one intersection point) */
-    if (signbit(n_dot_ta) == signbit(n_dot_tb)) return NAN;
+        Let:
+            alpha = n_x * cos(roll) + n_y * sin(roll)
+            beta = n_z
+            delta = n \cdot q
 
-    /* Bisect */
-    float_type d_lo = 0;
-    float_type d_hi = 1;
-    float_type d_mid = 0.5;
+        Then we can rewrite the original equation as:
+            alpha * (cos(theta) - 1) / h + beta * sin(theta) / h - delta = 0
 
-    for (int i = 0; i < 34; i++) {
-        d_mid = 0.5f * (d_lo + d_hi);
-        const Point3D p_mid = arc_segment_point_at(segment, d_mid);
-        const float_type n_dot_t_mid = n_x * (p_mid.x - t_x) + n_y * (p_mid.y - t_y) + n_z * (p_mid.z - t_z);
+        Multiply by h:
+            alpha * cos(theta) + beta * sin(theta) - (alpha + h * delta) = 0
+    */
+    const float_type alpha = n.x * cos(segment.roll) + n.y * sin(segment.roll);
+    const float_type beta = n.z;
+    const float_type delta = point3d_dot(n, q);
 
-        /* Solution found within precision */
-        if (fabs(n_dot_t_mid) <= eps || (d_hi - d_lo) <= eps) {
-            return d_mid;
-        }
+    /* Let a := alpha, b := beta, and c := -alpha - h * delta */
+    const float_type a = alpha;
+    const float_type b = beta;
+    const float_type c = -(alpha + h * delta);
 
-        if (signbit(n_dot_t_mid) == signbit(n_dot_ta)) {
-            /* If projections have the same sign, bisect on [d_mid, d_hi] */
-            d_lo = d_mid;
-            n_dot_ta = n_dot_t_mid;
-        } else {
-            /* Otherwise bisect on the interval [d_lo, d_mid] */
-            d_hi = d_mid;
+    /*
+        Using the identity
+            a cos(theta) + b sin(theta) = R cos(theta - phi)
+        where
+            R = hypot(a, b)
+            phi = atan2(b, a)
+
+        We can solve the following for phi:
+            R cos(theta - phi) + c = 0 => cos(theta - phi) = -c / R
+    */
+    const float_type R = hypot(a, b);
+
+    if (R < eps) {
+        /* Degenerate case */
+        if (fabs(c) < eps)
+            return 0;  // The whole circle lies in the plane
+        else
+            return NAN;  // No intersection
+    }
+
+    const float_type rhs = -c / R;
+
+    if (rhs < -(1 + eps) || rhs > 1 + eps) {
+        // No real solutions
+        return NAN;
+    }
+
+    const float_type rhs_clamped = clamp_value(rhs, -1, 1);
+    const float_type phi = atan2(b, a);
+    const float_type gamma = acos(rhs_clamped);
+
+    /*
+        Two solution families in theta:
+            theta = phi + gamma + 2 * pi * m
+            theta = phi - gamma + 2 * pi * m
+
+        Convert with
+            theta = h L t
+    */
+    const float_type theta_scale = h * L;
+    const float_type period_t = (2.f * M_PI) / theta_scale;
+
+    const float_type t_base[2] = {
+        (phi + gamma) / theta_scale,
+        (phi - gamma) / theta_scale
+    };
+
+    float_type best_t = NAN;
+    float_type best_dist = INFINITY;
+
+    for (int branch = 0; branch < 2; ++branch) {
+        const float_type t0 = t_base[branch];
+
+        /* Search copies of this solution family nearest to the interval [0, 1]. */
+        const float_type m0 = round((0.f - t0) / period_t);
+        const float_type m1 = round((1.f - t0) / period_t);
+
+        const float_type candidates[6] = {
+            t0 + (m0 - 1.f) * period_t,
+            t0 + m0 * period_t,
+            t0 + (m0 + 1.f) * period_t,
+            t0 + (m1 - 1.f) * period_t,
+            t0 + m1 * period_t,
+            t0 + (m1 + 1.f) * period_t
+        };
+
+        for (int i = 0; i < 6; ++i) {
+            const float_type t = candidates[i];
+            float_type dist = 0.f;
+            if (t < 0.f) dist = -t;
+            else if (t > 1.f) dist = t - 1.f;
+
+            if (dist < best_dist) {
+                best_dist = dist;
+                best_t = t;
+            }
         }
     }
 
-    return d_mid;
+    return best_t;
 }
 
 
