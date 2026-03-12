@@ -110,6 +110,7 @@ void build_profile_polygons(
         /* Get the survey s where the aperture actually sits */
         uint32_t installed_survey_index;
         const float_type found_s = survey_s_for_aperture(type_pos, profile_pos, curvature, survey, &installed_survey_index);
+
         ApertureBounds_set_s_positions(aperture_bounds, idx, found_s);
 
         /* Get the bounds in s that the aperture spans */
@@ -603,6 +604,8 @@ static inline float_type survey_s_for_aperture(
         s by testing that survey "segment" first, and working our way outwards in both directions.
     */
     float_type found_s = NAN;
+    float_type last_t_right = NAN;
+    float_type last_t_left = NAN;
     ZigZagIterator it = zigzag_iterator_new(survey_idx, 0, num_survey_entries - 1);
     do
     {
@@ -610,18 +613,33 @@ static inline float_type survey_s_for_aperture(
         const Point3D plane_point = plane_initial_point(plane_in_world);
         const Point3D normal = plane_normal_vector(plane_in_world);
         const float_type t = segment3d_plane_intersect(segment, plane_point, normal);
+
         const float_type type_s = SurveyData_get_s(survey, it.index);
 
-        if (-eps <= t && t <= 1 + eps)
-        {
-            /* Current survey segment is intersected by the installed profile plane: compute the position. */
+        if (
+            /* Candidate s on this segment, or... */
+            (-eps < t && t < 1 + eps) ||
+            /*
+                ...unfortunately, due to numerical instability, it can happen that for one segment
+                we get t > 1 + eps, but for the adjacent one t < -eps (or analogously on the left
+                side). Detect if there was a sign change, and if so return the current solution.
+            */
+            (it.offset > 0 && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
+            (it.offset < 0 && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
+        ) {
             const float_type dist = t * segment3d_get_length(segment);
             found_s = type_s + dist;
             *found_survey_index = it.index;
             break;
         }
+
+        if (it.offset >= 0 && isfinite(t)) last_t_right = t;
+        if (it.offset <= 0 && isfinite(t)) last_t_left = t;
     } while (zigzag_iterator_next(&it));
 
+    if (!isfinite(found_s))
+        printf("On ho, returning NAN\n");
+    fflush(stdout);
     return found_s;
 }
 
@@ -670,6 +688,8 @@ static inline void bounds_on_s_for_aperture(
         const Point3D pt_in_world = pose_apply_point(profile_in_world, pt_in_profile);
 
         float_type closest_s = NAN;
+        float_type last_t_right = NAN;
+        float_type last_t_left = NAN;
         /*
             It's likely that survey segment at the installed s is where the bounds are, however this
             might not be always the case. So we test other segments working our way outwards in both directions.
@@ -680,13 +700,25 @@ static inline void bounds_on_s_for_aperture(
             const Segment3D seg = survey_segment(survey, it.index);
             const float_type t = closest_t_on_segment(pt_in_world, seg);
 
-            if (-eps < t && t < 1 + eps) {
-                /* Candidate s on this segment */
+            if (
+                /* Candidate s on this segment, or... */
+                (-eps < t && t < 1 + eps) ||
+                /*
+                    ...unfortunately, due to numerical instability, it can happen that for one segment
+                    we get t > 1 + eps, but for the adjacent one t < -eps (or analogously on the left
+                    side). Detect if there was a sign change, and if so return the current solution.
+                */
+                (it.offset > 0 && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
+                (it.offset < 0 && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
+            ) {
                 const float_type seg_s_start = SurveyData_get_s(survey, it.index);
                 const float_type seg_len = segment3d_get_length(seg);
                 closest_s = seg_s_start + t * seg_len;
                 break;
             }
+
+            if (it.offset >= 0 && isfinite(t)) last_t_right = t;
+            if (it.offset <= 0 && isfinite(t)) last_t_left = t;
         } while (zigzag_iterator_next(&it));
 
         if (closest_s < out_min) out_min = closest_s;
@@ -696,6 +728,8 @@ static inline void bounds_on_s_for_aperture(
     if (!isfinite(out_min) || !isfinite(out_max)) {
         *min_s = NAN;
         *max_s = NAN;
+        printf("Warning: returning NAN from the aperture bounds calculation...\n");
+        fflush(stdout);
     } else {
         *min_s = out_min;
         *max_s = out_max;
