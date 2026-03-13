@@ -8,42 +8,45 @@ from xtrack.survey import SurveyTable
 from xtrack.twiss import TwissTable
 
 
+FloatType = xo.Float32
+
+
 class Circle(xo.Struct):
-    radius = xo.Float32
+    radius = FloatType
 
 
 class Rectangle(xo.Struct):
-    half_width = xo.Float32
-    half_height = xo.Float32
+    half_width = FloatType
+    half_height = FloatType
 
 
 class Ellipse(xo.Struct):
-    half_major = xo.Float32
-    half_minor = xo.Float32
+    half_major = FloatType
+    half_minor = FloatType
 
 
 class RectEllipse(xo.Struct):
-    half_width = xo.Float32
-    half_height = xo.Float32
-    half_major = xo.Float32
-    half_minor = xo.Float32
+    half_width = FloatType
+    half_height = FloatType
+    half_major = FloatType
+    half_minor = FloatType
 
 
 class Racetrack(xo.Struct):
-    half_width = xo.Float32
-    half_height = xo.Float32
-    half_major = xo.Float32
-    half_minor = xo.Float32
+    half_width = FloatType
+    half_height = FloatType
+    half_major = FloatType
+    half_minor = FloatType
 
 
 class Octagon(xo.Struct):
-    half_width = xo.Float32
-    half_height = xo.Float32
-    half_diagonal = xo.Float32
+    half_width = FloatType
+    half_height = FloatType
+    half_diagonal = FloatType
 
 
 class Polygon(xo.Struct):
-    vertices = xo.Float32[:, 2]
+    vertices = FloatType[:, 2]
 
 
 class SVGShape(xo.Struct):
@@ -70,9 +73,9 @@ class Profile(xo.Struct):
         Vertical tolerance for point-in-aperture check.
     """
     shape = Shape
-    tol_r = xo.Float32
-    tol_x = xo.Float32
-    tol_y = xo.Float32
+    tol_r = FloatType
+    tol_x = FloatType
+    tol_y = FloatType
 
 
 class ProfilePosition(xo.Struct):
@@ -96,12 +99,12 @@ class ProfilePosition(xo.Struct):
         The rotation of the profile around the type axis in radians.
     """
     profile_index = xo.Int32
-    s_position = xo.Float32
-    shift_x = xo.Float32
-    shift_y = xo.Float32
-    rot_x = xo.Float32
-    rot_y = xo.Float32
-    rot_s = xo.Float32
+    s_position = FloatType
+    shift_x = FloatType
+    shift_y = FloatType
+    rot_x = FloatType
+    rot_y = FloatType
+    rot_s = FloatType
 
     def copy(self):
         return ProfilePosition(
@@ -126,7 +129,7 @@ class ApertureType(xo.Struct):
     positions: List[ProfilePosition]
         The list of profile positions comprising the type.
     """
-    curvature = xo.Float32
+    curvature = FloatType
     positions = ProfilePosition[:]
 
 
@@ -134,7 +137,7 @@ class TypePosition(xo.Struct):
     type_index = xo.Int32
     survey_reference_name = xo.String  # identify a point in survey
     survey_index = xo.Int32  # index of the point in the survey
-    transformation = xo.Float32[4, 4]  # 3D rigid transformation matrix from the survey entry to 0 s-position of type
+    transformation = FloatType[4, 4]  # 3D rigid transformation matrix from the survey entry to 0 s-position of type
 
 
 class ApertureModel(xo.Struct):
@@ -193,27 +196,27 @@ class ApertureBounds(xo.Struct):
     count = xo.UInt32
     type_position_indices = xo.UInt32[:]
     profile_position_indices = xo.UInt32[:]
-    s_positions = xo.Float32[:]
-    s_start = xo.Float32[:]
-    s_end = xo.Float32[:]
+    s_positions = FloatType[:]
+    s_start = FloatType[:]
+    s_end = FloatType[:]
 
 
 class ProfilePolygons(xo.Struct):
     count = xo.UInt32
     num_points = xo.UInt32
-    points = xo.Float32[:, :, 2]
+    points = FloatType[:, :, 2]
 
 
 class TwissData(xo.Struct):
-    s = xo.Float32[:]     # s position
-    x = xo.Float32[:]     # closed orbit x
-    y = xo.Float32[:]     # closed orbit y
-    betx = xo.Float32[:]  # beta x
-    bety = xo.Float32[:]  # beta y
-    dx = xo.Float32[:]    # dispersion x
-    dy = xo.Float32[:]    # dispersion y
-    delta = xo.Float32[:] # relative energy deviation
-    gamma = xo.Float32    # relativistic gamma
+    s = FloatType[:]     # s position
+    x = FloatType[:]     # closed orbit x
+    y = FloatType[:]     # closed orbit y
+    betx = FloatType[:]  # beta x
+    bety = FloatType[:]  # beta y
+    dx = FloatType[:]    # dispersion x
+    dy = FloatType[:]    # dispersion y
+    delta = FloatType[:] # relative energy deviation
+    gamma = FloatType    # relativistic gamma
 
     @classmethod
     def from_twiss_table(cls, particle_ref: Particles, twiss_table: TwissTable) -> 'TwissData':
@@ -248,27 +251,27 @@ class BeamData(xo.Struct):
 
 
 class SurveyData(xo.Struct):
-    s = xo.Float32[:]
-    pose = xo.Float32[:, 4, 4]
-    angle = xo.Float32[:]
-    length = xo.Float32[:]
-    tilt = xo.Float32[:]
+    s = FloatType[:]
+    pose = FloatType[:, 4, 4]
+    angle = FloatType[:]
+    length = FloatType[:]
+    tilt = FloatType[:]
 
     @classmethod
     def zeros(cls, length, context: XContext = None) -> 'SurveyData':
         return cls(
-            s=np.zeros(shape=(length,), dtype=np.float32),
-            pose=np.zeros(shape=(length, 4, 4), dtype=np.float32),
-            angle=np.zeros(shape=(length,), dtype=np.float32),
-            length=np.zeros(shape=(length,), dtype=np.float32),
-            tilt=np.zeros(shape=(length,), dtype=np.float32),
+            s=np.zeros(shape=(length,), dtype=FloatType._dtype),
+            pose=np.zeros(shape=(length, 4, 4), dtype=FloatType._dtype),
+            angle=np.zeros(shape=(length,), dtype=FloatType._dtype),
+            length=np.zeros(shape=(length,), dtype=FloatType._dtype),
+            tilt=np.zeros(shape=(length,), dtype=FloatType._dtype),
             _context=context,
         )
 
     @classmethod
     def from_survey_table(cls, survey_table: SurveyTable, context: XContext = None) -> 'SurveyData':
-        s = np.zeros(shape=(len(survey_table),), dtype=np.float32)
-        poses = np.zeros(shape=(len(survey_table), 4, 4), dtype=np.float32)
+        s = np.zeros(shape=(len(survey_table),), dtype=FloatType._dtype)
+        poses = np.zeros(shape=(len(survey_table), 4, 4), dtype=FloatType._dtype)
         angles = np.zeros_like(s)
         lengths = np.zeros_like(s)
         tilts = np.zeros_like(s)
@@ -288,7 +291,7 @@ class SurveyData(xo.Struct):
         return survey_data
 
     def resample(self, s_positions: Collection[float]) -> 'SurveyData':
-        s_positions = np.array(s_positions, dtype=np.float32)
+        s_positions = np.array(s_positions, dtype=FloatType._dtype)
         resampled = SurveyData.zeros(len(s_positions), context=self._context)
         self._context.kernels['resample_survey_table'](survey=self, s=s_positions, sliced=resampled)
         return resampled

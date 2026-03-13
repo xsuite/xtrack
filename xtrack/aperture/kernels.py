@@ -1,8 +1,9 @@
 import xobjects as xo
 from xtrack.aperture.structures import (
+    ApertureBounds,
     ApertureModel,
     BeamData,
-    ApertureBounds,
+    FloatType,
     Profile,
     ProfilePolygons,
     SurveyData,
@@ -35,7 +36,7 @@ def build_aperture_kernels(context):
                 xo.Arg(ProfilePolygons, name="profile_polygons"),
                 xo.Arg(ApertureBounds, name="aperture_bounds"),
                 xo.Arg(SurveyData, name="survey"),
-                xo.Arg(xo.Float32, pointer=True, name="cross_sections"),
+                xo.Arg(FloatType, pointer=True, name="cross_sections"),
             ],
         ),
         "compute_max_aperture_sigma": xo.Kernel(
@@ -48,10 +49,10 @@ def build_aperture_kernels(context):
                 xo.Arg(TwissData, name="twiss_at_s"),
                 xo.Arg(SurveyData, name="survey_at_s"),
                 xo.Arg(BeamData, name="beam_data"),
-                xo.Arg(xo.Float32, pointer=True, name="out_interpolated_apertures"),
+                xo.Arg(FloatType, pointer=True, name="out_interpolated_apertures"),
                 xo.Arg(xo.UInt32, name="envelope_num_points"),
-                xo.Arg(xo.Float32, pointer=True, name="out_envelope_at_max_sigma"),
-                xo.Arg(xo.Float32, pointer=True, name="sigmas"),
+                xo.Arg(FloatType, pointer=True, name="out_envelope_at_max_sigma"),
+                xo.Arg(FloatType, pointer=True, name="sigmas"),
             ],
         ),
         "compute_horizontal_vertical_diagonal_aperture_sigmas": xo.Kernel(
@@ -64,10 +65,10 @@ def build_aperture_kernels(context):
                 xo.Arg(TwissData, name="twiss_at_s"),
                 xo.Arg(SurveyData, name="survey_at_s"),
                 xo.Arg(BeamData, name="beam_data"),
-                xo.Arg(xo.Float32, pointer=True, name="out_interpolated_apertures"),
-                xo.Arg(xo.Float32, pointer=True, name="out_sigmas_h"),
-                xo.Arg(xo.Float32, pointer=True, name="out_sigmas_v"),
-                xo.Arg(xo.Float32, pointer=True, name="out_sigmas_d"),
+                xo.Arg(FloatType, pointer=True, name="out_interpolated_apertures"),
+                xo.Arg(FloatType, pointer=True, name="out_sigmas_h"),
+                xo.Arg(FloatType, pointer=True, name="out_sigmas_v"),
+                xo.Arg(FloatType, pointer=True, name="out_sigmas_d"),
             ],
         ),
         "compute_beam_envelopes_at_sigma": xo.Kernel(
@@ -76,15 +77,15 @@ def build_aperture_kernels(context):
                 xo.Arg(ApertureModel, name='model'),
                 xo.Arg(TwissData, name='twiss_at_s'),
                 xo.Arg(BeamData, name='beam_data'),
-                xo.Arg(xo.Float32, name='sigmas'),
+                xo.Arg(FloatType, name='sigmas'),
                 xo.Arg(xo.UInt32, name='envelope_num_points'),
-                xo.Arg(xo.Float32, pointer=True, name='out_envelope'),
+                xo.Arg(FloatType, pointer=True, name='out_envelope'),
             ]
         ),
         "build_polygon_for_profile": xo.Kernel(
             c_name="build_polygon_for_profile",
             args=[
-                xo.Arg(xo.Float32, pointer=True, name="points"),
+                xo.Arg(FloatType, pointer=True, name="points"),
                 xo.Arg(xo.UInt32, name="num_points"),
                 xo.Arg(Profile, name="profile"),
             ],
@@ -92,8 +93,8 @@ def build_aperture_kernels(context):
         "_points_inside_polygon": xo.Kernel(
             c_name="_points_inside_polygon",
             args=[
-                xo.Arg(xo.Float32, pointer=True, name="points"),
-                xo.Arg(xo.Float32, pointer=True, name="poly_points"),
+                xo.Arg(FloatType, pointer=True, name="points"),
+                xo.Arg(FloatType, pointer=True, name="poly_points"),
                 xo.Arg(xo.UInt32, name="len_points"),
                 xo.Arg(xo.UInt32, name="len_poly_points"),
             ],
@@ -102,8 +103,8 @@ def build_aperture_kernels(context):
         "_is_point_inside_polygon": xo.Kernel(
             c_name="_is_point_inside_polygon",
             args=[
-                xo.Arg(xo.Float32, pointer=True, name="point"),
-                xo.Arg(xo.Float32, pointer=True, name="points"),
+                xo.Arg(FloatType, pointer=True, name="point"),
+                xo.Arg(FloatType, pointer=True, name="points"),
                 xo.Arg(xo.UInt32, name="len_points"),
             ],
             ret=xo.Arg(xo.Int8),
@@ -112,7 +113,7 @@ def build_aperture_kernels(context):
             c_name="resample_survey_table",
             args=[
                 xo.Arg(SurveyData, name="survey"),
-                xo.Arg(xo.Float32, pointer=True, name="s"),
+                xo.Arg(FloatType, pointer=True, name="s"),
                 xo.Arg(SurveyData, name="sliced"),
             ]
         ),

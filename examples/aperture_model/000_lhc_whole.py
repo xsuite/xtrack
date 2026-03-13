@@ -8,7 +8,7 @@ from xtrack.aperture import Aperture
 
 context = xo.ContextCpu(omp_num_threads='auto')
 
-lhc_with_metadata = xt.load('./lhc_aperture.json')
+lhc_with_metadata = xt.load('./benchmark1/lhc_aperture.json')
 b1 = lhc_with_metadata['b1']
 lhc_length = b1.get_length()
 
@@ -68,8 +68,8 @@ min_aper_x = np.min(cs[:, :, 0], axis=1) * 1000
 max_aper_x = np.max(cs[:, :, 0], axis=1) * 1000
 
 ax.fill_between(tw_envel.s, min_envel_x, max_envel_x, color='b', alpha=0.3)
-ax.plot(cs_s, min_aper_x, color='k')
-ax.plot(cs_s, max_aper_x, color='k')
+ax.plot(cs_s, min_aper_x, color='k', marker='.')
+ax.plot(cs_s, max_aper_x, color='k', marker='.')
 ax.set_ylabel(r'horizontal aperture [mm]')
 ax.set_ylim([-100, 100])
 
@@ -85,8 +85,8 @@ ay.set_ylabel(r'vertical aperture [mm]')
 ay.set_ylim([-100, 100])
 
 ay.fill_between(tw_envel.s, min_envel_y, max_envel_y, color='r', alpha=0.3)
-ay.plot(cs_s, min_aper_y, color='k')
-ay.plot(cs_s, max_aper_y, color='k')
+ay.plot(cs_s, min_aper_y, color='k', marker='.')
+ay.plot(cs_s, max_aper_y, color='k', marker='.')
 
 # ay_sig = ay.twinx()
 # ay_sig.plot(tw_rays.s, sig_rays[:, 1], label=r'vertical envelope [$\sigma$] (rays)', color='violet')
