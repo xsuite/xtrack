@@ -638,7 +638,7 @@ static inline float_type survey_s_for_aperture(
     } while (zigzag_iterator_next(&it));
 
     if (!isfinite(found_s))
-        printf("On ho, returning NAN\n");
+        printf("survey_s_for_aperture returning NAN: profile sits outside of the survey, a bug in the aperture model?\n");
     fflush(stdout);
     return found_s;
 }

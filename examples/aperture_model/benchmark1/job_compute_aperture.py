@@ -3,6 +3,7 @@ from pyoptics import BeamEnvelope
 import xobjects as xo
 import xtrack as xt
 from xtrack.aperture import Aperture
+import numpy as np
 
 context = xo.ContextCpu(omp_num_threads="auto")
 
@@ -11,7 +12,7 @@ lhc_with_metadata = xt.load("./lhc_aperture.json")
 b1 = lhc_with_metadata["b1"]
 lhc_length = b1.get_length()
 
-aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, context=context)
+aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, include_offsets=True, _skip_validity_check=True, context=context)
 
 emittance_norm = 2.5e-6
 apbbeat = 1.1
@@ -45,6 +46,8 @@ plt.show()
 # Cross-sections and beam pyoptics vs Xtrack aperture model
 for name in ["MQXFA.A1R5", "MBXF.4R5"]:
     ap.plot_halo_name(name)
+    n1_pyoptics = [row[0] for row in ap.get_n1_name(name)]
+
     xs_name = b1.get_table().rows[f'{name.lower()}.*'].name[0]
 
     sigmas, twiss, cross_sections, max_envelope = aperture_model.get_aperture_sigmas_at_element(
@@ -59,10 +62,11 @@ for name in ["MQXFA.A1R5", "MBXF.4R5"]:
         plt.plot(pt[:, 0], pt[:, 1], c='gray', linestyle='--')
 
     for pt in max_envelope:
-        plt.plot(pt[:, 0], pt[:, 1])
+        plt.plot(pt[:, 0], pt[:, 1], c='cyan', linestyle=':')
 
     plt.gca().set_aspect('equal')
     plt.title(f"{xs_name}")
+    plt.suptitle(f"min(n1_xsuite) = {min(sigmas)} vs min(n1_pyoptics) = {min(n1_pyoptics)}")
     plt.legend()
     plt.show()
 

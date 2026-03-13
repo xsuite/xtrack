@@ -20,10 +20,12 @@ from xtrack.aperture.structures import (
     BeamData,
     ApertureBounds,
     Circle,
+    FloatType,
     Profile,
     ProfilePolygons,
     ProfilePosition,
     Rectangle,
+    RectEllipse,
     ShapeTypes,
     SurveyData,
     TwissData,
@@ -32,7 +34,7 @@ from xtrack.aperture.structures import (
 from xtrack.line import Line
 from xtrack.progress_indicator import progress
 
-DTypeFloat = np.dtype[np.float32]
+DTypeFloat = np.dtype[FloatType._dtype]
 NDArrayNx2 = np.ndarray[Tuple[int, Literal[2]], DTypeFloat]
 NDArrayNxMx2 = np.ndarray[Tuple[int, int, Literal[2]], DTypeFloat]
 HomogenousMatrix = np.ndarray[Tuple[Literal[4], Literal[4]], DTypeFloat]
@@ -67,6 +69,23 @@ def transform_matrix(dx=0, dy=0, ds=0, theta=0, phi=0, psi=0):
         ]
     )
     return matrix
+
+
+def survey_relative_transform(survey, source, destination):
+    src_row = survey.rows[source]
+    dest_row = survey.rows[destination]
+
+    def _row_to_matrix(row):
+        matrix = np.identity(4)
+        matrix[:3, :3] = row.W
+        matrix[:3, 3] = row.p0
+        return matrix
+
+    src_mat = _row_to_matrix(src_row)
+    dest_mat = _row_to_matrix(dest_row)
+
+    return np.linalg.inv(src_mat) @ dest_mat
+
 
 
 class Aperture:
@@ -120,12 +139,16 @@ class Aperture:
         return self.context.kernels[name](**kwargs)
 
     @classmethod
-    def from_line_with_madx_metadata(cls, line, context=None, **kwargs):
+    def from_line_with_madx_metadata(cls, line, include_offsets=True, context=None, **kwargs):
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
         name_to_sv_index = dict(zip(survey.name, range(len(survey))))
         layout_data = line.metadata['layout_data']
-        aperture_offsets = cls._get_per_type_madx_offsets(line.metadata.get('aperture_offsets', {}))
+
+        if include_offsets:
+            aperture_offsets = cls._get_per_type_madx_offsets(line.metadata.get('aperture_offsets', {}))
+        else:
+            aperture_offsets = {}
 
         name_iter_with_progress = progress(
             survey_names,
@@ -151,79 +174,72 @@ class Aperture:
             if 'aperture' not in element_metadata:
                 continue
 
-            offset_data = {} #aperture_offsets.get(aper_name, {})
+            offset_data = aperture_offsets.get(aper_name, {})
 
-            if aper_name not in aperture_indices:
-                shape_name, params, tols = element_metadata['aperture']
-                shape = profile_from_madx_aperture(shape_name, params)
+            shape_name, params, tols = element_metadata['aperture']
+            shape = profile_from_madx_aperture(shape_name, params)
 
-                if not shape:
-                    # There is not really an aperture here, continue
-                    continue
+            if not shape:
+                # There is not really an aperture here, continue
+                continue
 
-                if cls._is_broken_madx_aperture(shape):
-                    continue
+            if cls._is_broken_madx_aperture(shape):
+                continue
 
-                tol_r, tol_x, tol_y = tols
-                profile = Profile(shape=shape, tol_r=tol_r, tol_x=tol_x, tol_y=tol_y)
+            tol_r, tol_x, tol_y = tols
+            profile = Profile(shape=shape, tol_r=tol_r, tol_x=tol_x, tol_y=tol_y)
 
-                assert len(types) == len(profiles)  # in MAD-X we will have just one type per profile
+            assert len(types) == len(profiles)  # in MAD-X we will have just one type per profile
 
-                aper_idx = len(types)
-                aperture_indices[aper_name] = aper_idx
+            aper_idx = len(types)
 
-                if element.isthick and not offset_data:
-                    # Place two profiles on either side of the element
-                    position_entry = ProfilePosition(profile_index=aper_idx)
-                    position_exit = ProfilePosition(profile_index=aper_idx, s_position=element.length)
-                    positions = [position_entry, position_exit]
-                    # If no MAD-X offset data is present, the curvature follows
-                    # the element
-                    curvature = getattr(element, 'h', 0)
-                elif element.isthick and offset_data:
-                    # If MAD-X offset data is given, place profiles
-                    # on the described parabola with 10cm resolution
-                    length = element.length
-                    positions = []
-                    for s in np.linspace(0, length, max(2, int(length / 0.1))):
-                        position = ProfilePosition(profile_index=aper_idx)
-                        position.s_position = s
-                        position.shift_x = length * offset_data['dx'] + length ** 2 * offset_data['ddx']
-                        position.shift_y = length * offset_data['dy'] + length ** 2 * offset_data['ddy']
-                        position.rot_x = offset_data['rot_x']  # ignore the contribution of ddx in the angle
-                        position.rot_y = offset_data['rot_y']  # ignore the contribution of ddy in the angle
-                        positions.append(position)
-
-                    # If we have offset data, assume the type is straight
-                    curvature = 0
-                else:
-                    # Place a single profile for a thin element
-                    positions = [ProfilePosition(profile_index=aper_idx)]
-                    curvature = 0
-
-                aperture_type = ApertureType(curvature=curvature, positions=positions)
-                types.append(aperture_type)
-
-                profiles.append(profile)
-
-            # Apply element transformations to type position
             if offset_data:
-                matrix = transform_matrix(
-                    dx=offset_data['x'],
-                    dy=offset_data['y'],
-                    ds=offset_data['s'],
-                    theta=0,
-                    phi=0,
-                    psi=0,
+                rel_survey_mat = survey_relative_transform(survey, offset_data['survey_ref'], element_name)
+                offset_mat = transform_matrix(
+                    dx=offset_data['dx'],
+                    dy=offset_data['dy'],
+                    phi=offset_data['rot_x'],
+                    theta=offset_data['rot_y'],
                 )
-                # this breaks things
+                matrix = offset_mat @ rel_survey_mat
                 survey_reference_name = offset_data['survey_ref']
             else:
                 matrix = np.identity(4)
                 survey_reference_name = element_name
 
+            if element.isthick and not offset_data:
+                # Place two profiles on either side of the element
+                position_entry = ProfilePosition(profile_index=aper_idx)
+                position_exit = ProfilePosition(profile_index=aper_idx, s_position=element.length)
+                positions = [position_entry, position_exit]
+                # If no MAD-X offset data is present, the curvature follows
+                # the element
+                curvature = getattr(element, 'h', 0)
+            elif element.isthick and offset_data:
+                # If MAD-X offset data is given, place profiles
+                # on the described parabola with 10cm resolution
+                length = element.length
+                positions = []
+
+                for s in np.linspace(0, length, max(2, int(length / 0.1))):
+                    position = ProfilePosition(profile_index=aper_idx)
+                    position.s_position = s
+                    positions.append(position)
+
+                # If we have offset data, assume the type is straight
+                curvature = 0
+            else:
+                # Place a single profile for a thin element
+                positions = [ProfilePosition(profile_index=aper_idx)]
+                curvature = 0
+
+            aperture_indices[aper_name] = aper_idx
+            aperture_type = ApertureType(curvature=curvature, positions=positions)
+            types.append(aperture_type)
+            profiles.append(profile)
+
             type_position = TypePosition(
-                type_index=aperture_indices[aper_name],
+                type_index=aper_idx,
                 survey_reference_name=survey_reference_name,
                 survey_index=name_to_sv_index[survey_reference_name],
                 transformation=matrix,
@@ -391,7 +407,7 @@ class Aperture:
         return aperture
 
     def polygon_for_profile(self, profile: Profile, num_points: int) -> NDArrayNx2:
-        points = np.ndarray(shape=(num_points, 2), dtype=np.float32)
+        points = np.ndarray(shape=(num_points, 2), dtype=FloatType._dtype)
         self.call_kernel('build_polygon_for_profile', points=points, num_points=num_points, profile=profile)
         return points
 
@@ -523,11 +539,11 @@ class Aperture:
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         survey_at_s = self.survey_data.resample(twiss_at_s.s)
         beam_data = BeamData(**self.halo_params)
-        interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=np.float32)
+        interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
 
         if method == 'bisection':
-            envelope_at_max_sigma = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=np.float32)
-            sigmas = np.zeros(num_slices, dtype=np.float32)
+            envelope_at_max_sigma = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
+            sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
 
             self.call_kernel(
                 'compute_max_aperture_sigma',
@@ -545,9 +561,9 @@ class Aperture:
             )
             return sigmas, sliced_twiss, interpolated_points, envelope_at_max_sigma
         elif method == 'rays':
-            sigmas_h = np.zeros(num_slices, dtype=np.float32)
-            sigmas_v = np.zeros(num_slices, dtype=np.float32)
-            sigmas_d = np.zeros(num_slices, dtype=np.float32)
+            sigmas_h = np.zeros(num_slices, dtype=FloatType._dtype)
+            sigmas_v = np.zeros(num_slices, dtype=FloatType._dtype)
+            sigmas_d = np.zeros(num_slices, dtype=FloatType._dtype)
 
             self.call_kernel(
                 'compute_horizontal_vertical_diagonal_aperture_sigmas',
@@ -596,7 +612,7 @@ class Aperture:
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
 
-        envelopes = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=np.float32)
+        envelopes = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
 
         self.call_kernel(
             'compute_beam_envelopes_at_sigma',
@@ -620,9 +636,9 @@ class Aperture:
         return self.cross_sections_at_s(s_positions)
 
     def cross_sections_at_s(self, s_positions: Collection[float]) -> Tuple[NDArrayNxMx2, HomogenousMatrices]:
-        s_positions = np.array(s_positions, dtype=np.float32)
+        s_positions = np.array(s_positions, dtype=FloatType._dtype)
         sv_resampled = self.survey_data.resample(s_positions)
-        cross_sections = np.zeros(shape=(len(s_positions), self.num_profile_points, 2), dtype=np.float32)
+        cross_sections = np.zeros(shape=(len(s_positions), self.num_profile_points, 2), dtype=FloatType._dtype)
         self.call_kernel(
             'cross_sections_at_s',
             survey_at_s=sv_resampled,
@@ -751,9 +767,9 @@ class Aperture:
                 'name': np.array([f'{pn}_in_{tn}' for pn, tn in zip(profile_names, type_names)], dtype=np.str_),
                 'type_name': np.array(type_names, dtype=np.str_),
                 'profile_name': np.array(profile_names, dtype=np.str_),
-                's': np.array(s_positions, dtype=np.float32),
-                's_start': np.array(s_starts, dtype=np.float32),
-                's_end': np.array(s_ends, dtype=np.float32),
+                's': np.array(s_positions, dtype=FloatType._dtype),
+                's_start': np.array(s_starts, dtype=FloatType._dtype),
+                's_end': np.array(s_ends, dtype=FloatType._dtype),
                 'shape': np.array(shapes, dtype=object),
                 'shape_param': np.array(shape_params, dtype=object),
             },
@@ -874,7 +890,7 @@ class Aperture:
                 dy = section['dy_off'][idx]
 
                 theta = np.atan2(dx, 1)
-                phi = np.atan2(dy, np.sqrt(1 + dx ** dx))
+                phi = np.atan2(dy, np.sqrt(1 + dx ** 2))
 
                 offsets[name] = {
                     'survey_ref': reference_name,
@@ -893,7 +909,17 @@ class Aperture:
     @classmethod
     def _is_broken_madx_aperture(cls, shape):
         if isinstance(shape, Circle):
-            return shape.radius < 1e-6 or shape.radius > 10
+            return shape.radius < 1e-6 or shape.radius > 9.98
 
         if isinstance(shape, Rectangle):
-            return shape.half_width < 1e-6 or shape.half_width > 10 or shape.half_height < 1e-6 or shape.half_height > 10
+            return (shape.half_width < 1e-6 or shape.half_width > 9.98) and (shape.half_height < 1e-6 or shape.half_height > 9.98)
+
+        if isinstance(shape, RectEllipse):
+            return (
+                (shape.half_width < 1e-6 or shape.half_width > 9.98) and
+                (shape.half_height < 1e-6 or shape.half_height > 9.98) and
+                (shape.half_major < 1e-6 or shape.half_major > 9.98) and
+                (shape.half_minor < 1e-6 or shape.half_minor > 9.98)
+            )
+
+        return False
