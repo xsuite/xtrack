@@ -929,6 +929,173 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_context):
+    env = xt.Environment()
+
+    num_bends = 720
+    bend_angle = np.deg2rad(0.5)
+    ring_length = 30_000.0
+    bend_length = ring_length / num_bends
+    aperture_radius = 0.03
+
+    bend = env.new('bend', xt.Bend, length=bend_length, angle=bend_angle, k0=0)
+    line = env.new_line(name='line', components=[bend] * num_bends)
+    sv = line.survey()
+
+    shape = Circle(radius=aperture_radius)
+    profiles = [Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0)]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=0, s_position=bend_length),
+    ]
+
+    type_positions = [
+        TypePosition(
+            type_index=ii,
+            survey_reference_name=sv.name[ii],
+            survey_index=ii,
+            transformation=transform_matrix(),
+        )
+        for ii in range(num_bends)
+    ]
+    types = [ApertureType(curvature=bend_angle / bend_length, positions=profile_positions)] * num_bends
+
+    model = ApertureModel(
+        line=line,
+        type_positions=type_positions,
+        types=types,
+        profiles=profiles,
+        type_names=[f'type{ii}' for ii in range(num_bends)],
+        profile_names=['circ0'],
+    )
+
+    ap = Aperture(
+        line=line,
+        model=model,
+        num_profile_points=64,
+        context=test_context,
+        _skip_validity_check=True,
+    )
+
+    bounds_table = ap.get_bounds_table()
+    expected_s = np.repeat(np.arange(1, num_bends + 1, dtype=np.float32) * bend_length, 2)
+    expected_s[::2] -= bend_length
+
+    # Float32 precision at s ~ 30 km is a few mm, unfortunately tolerances are what they are.
+    # TODO: Tighten tolerances when switching to float64
+    xo.assert_allclose(bounds_table.s, expected_s, atol=1e-2, rtol=0)
+    xo.assert_allclose(bounds_table.s_start, expected_s, atol=1e-2, rtol=0)
+    xo.assert_allclose(bounds_table.s_end, expected_s, atol=1e-2, rtol=0)
+
+    assert np.all(np.diff(bounds_table.s) >= -1e-2)
+    assert np.all(np.isfinite(bounds_table.s))
+    assert np.all(np.isfinite(bounds_table.s_start))
+    assert np.all(np.isfinite(bounds_table.s_end))
+
+    s_samples = np.linspace(0, ring_length, 101, dtype=np.float32)
+    sections, _ = ap.cross_sections_at_s(s_samples)
+    radii = np.linalg.norm(sections, axis=2)
+    xo.assert_allclose(radii, aperture_radius, atol=2e-3, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_context):
+    env = xt.Environment()
+
+    num_bends = 720
+    bend_angle = np.deg2rad(0.5)
+    ring_length = 30_000.0
+    bend_length = ring_length / num_bends
+    aperture_radius = 0.03
+
+    bend = env.new('bend', xt.Bend, length=bend_length, angle=bend_angle, k0=0)
+    line = env.new_line(name='line', components=[bend] * num_bends)
+    sv = line.survey()
+
+    shape = Circle(radius=aperture_radius)
+    profiles = [Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0)]
+
+    # Same physical profile planes, expressed in three different reference frames.
+    types = [
+        ApertureType(
+            curvature=bend_angle / bend_length,
+            positions=[
+                ProfilePosition(profile_index=0, s_position=0.0),
+                ProfilePosition(profile_index=0, s_position=bend_length),
+            ],
+        ),
+        ApertureType(
+            curvature=bend_angle / bend_length,
+            positions=[
+                ProfilePosition(profile_index=0, s_position=-bend_length),
+                ProfilePosition(profile_index=0, s_position=0.0),
+            ],
+        ),
+        ApertureType(
+            curvature=bend_angle / bend_length,
+            positions=[
+                ProfilePosition(profile_index=0, s_position=-2 * bend_length),
+                ProfilePosition(profile_index=0, s_position=-bend_length),
+            ],
+        ),
+    ]
+
+    type_positions = []
+    for ii in range(num_bends):
+        # Cycle references where possible; near the end stay in-range.
+        if ii <= num_bends - 3:
+            shift = ii % 3
+        else:
+            shift = 0
+
+        type_positions.append(
+            TypePosition(
+                type_index=shift,
+                survey_reference_name=sv.name[ii + shift],
+                survey_index=ii + shift,
+                transformation=transform_matrix(),
+            )
+        )
+
+    model = ApertureModel(
+        line=line,
+        type_positions=type_positions,
+        types=types,
+        profiles=profiles,
+        type_names=['type_ref0', 'type_ref1', 'type_ref2'],
+        profile_names=['circ0'],
+    )
+
+    ap = Aperture(
+        line=line,
+        model=model,
+        num_profile_points=64,
+        context=test_context,
+        _skip_validity_check=True,
+    )
+
+    bounds_table = ap.get_bounds_table()
+    expected_s = np.repeat(np.arange(1, num_bends + 1, dtype=np.float32) * bend_length, 2)
+    expected_s[::2] -= bend_length
+
+    # Float32 precision at s ~ 30 km is a few mm, unfortunately tolerances are what they are.
+    # TODO: Tighten tolerances when switching to float64
+    xo.assert_allclose(bounds_table.s, expected_s, atol=1e-2, rtol=0)
+    xo.assert_allclose(bounds_table.s_start, expected_s, atol=1e-2, rtol=0)
+    xo.assert_allclose(bounds_table.s_end, expected_s, atol=1e-2, rtol=0)
+
+    assert np.all(np.diff(bounds_table.s) >= -1e-2)
+    assert np.all(np.isfinite(bounds_table.s))
+    assert np.all(np.isfinite(bounds_table.s_start))
+    assert np.all(np.isfinite(bounds_table.s_end))
+
+    s_samples = np.linspace(0, ring_length, 101, dtype=np.float32)
+    sections, _ = ap.cross_sections_at_s(s_samples)
+    radii = np.linalg.norm(sections, axis=2)
+    xo.assert_allclose(radii, aperture_radius, atol=2e-3, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     env = xt.Environment()
     l = 1.0
