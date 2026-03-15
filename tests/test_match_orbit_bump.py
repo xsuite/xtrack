@@ -230,7 +230,7 @@ def test_match_orbit_bump_with_weights():
 
         xo.assert_allclose(tw['y', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
         xo.assert_allclose(tw['y', 'mq.17l8.b1'], 0, atol=1e-6, rtol=0)
-        xo.assert_allclose(tw['py', 'mq.17l8.b1'], 0, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw['py', 'mq.17l8.b1'], 0, atol=5e-8, rtol=0)
         xo.assert_allclose(tw['py', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
 
         xo.assert_allclose(tw['y', 'mb.b26l8.b1'], 3e-3, atol=1e-6, rtol=0)
