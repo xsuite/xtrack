@@ -35,10 +35,48 @@ integral_optim_12 = xt.IntegralOptimization(
     end='e.ds.l2.b1',
     line=line,
     vary=xt.VaryList(['kqs.r1b1', 'kqs.l2b1'], step=1e-5),
-    target_quantities={'coupl': 'f1001'},
-    generated_knob_name='on_corr_coupl_12')
+    target_quantities={'coupl_1': 'f1001', 'coupl_2': 'f1010'},
+    generated_knob_name='on_corr_coupl_12'
+)
 
-breakpoint()
-oo = integral_optim_12.run()
+integral_optim_56 = xt.IntegralOptimization(
+    twiss=tw,
+    start='s.ds.r5.b1',
+    end='e.ds.l6.b1',
+    line=line,
+    vary=xt.VaryList(['kqs.r5b1', 'kqs.l6b1'], step=1e-5),
+    target_quantities={'coupl_1': 'f1001', 'coupl_2': 'f1010'},
+    generated_knob_name='on_corr_coupl_56'
+)
 
-opt = integral_optim_12.correct()
+assert line.twiss4d().c_minus > 5e-2 # Because correction of 56 is not there
+
+opt12 = integral_optim_12.correct(n_steps=10)
+opt56 = integral_optim_56.correct(n_steps=10)
+
+assert line.twiss4d().c_minus < 1e-3
+
+# Disable correction of 56
+env['on_corr_coupl_56'] = 0.0
+assert line.twiss4d().c_minus > 2e-2
+
+# Disable source in 56 (check that correction of 12 is fully local)
+env['tilt56'] = 0.0
+assert line.twiss4d().c_minus < 1e-3
+
+# Disable correction of 12
+env['on_corr_coupl_12'] = 0.0
+assert line.twiss4d().c_minus > 2e-2
+
+# Disable source in 12
+env['tilt12'] = 0.0
+assert line.twiss4d().c_minus < 1e-3
+
+# Enable source in 56
+env['tilt56'] = 1.0
+assert line.twiss4d().c_minus > 2e-2
+
+# Enable correction of 56 (check that correction of 56 is fully local)
+env['on_corr_coupl_56'] = 1.0
+assert line.twiss4d().c_minus < 1e-3
+

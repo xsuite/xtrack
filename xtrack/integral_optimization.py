@@ -157,5 +157,6 @@ class IntegralOptimization:
         opt = self.get_optimizer()
         opt.step(n_steps)
         opt.generate_knob()
+        self.env[self.generated_knob_name] = 1.0
 
         return opt
