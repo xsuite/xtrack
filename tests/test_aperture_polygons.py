@@ -8,6 +8,7 @@ from xtrack.aperture.kernels import build_aperture_kernels
 from xtrack.aperture.structures import (
     Circle,
     Ellipse,
+    FloatType,
     Octagon,
     Profile,
     Racetrack,
@@ -28,7 +29,7 @@ def context():
 def build_polygon_for_profile(context):
     def _build_polygon_for_profile(profile: ShapeTypes, num_points: int):
         profile = Profile(shape=profile)
-        points = np.zeros((num_points, 2), dtype=np.float32)
+        points = np.zeros((num_points, 2), dtype=FloatType._dtype)
         context.kernels.build_polygon_for_profile(points=points, num_points=num_points, profile=profile)
         return points
 
