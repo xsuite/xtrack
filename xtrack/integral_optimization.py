@@ -6,8 +6,9 @@ NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
 
 class IntegralOptimization:
-    def __init__(self, line, twiss, start, end, vary,
+    def __init__(self, line, twiss, vary,
                  target_quantities, generated_knob_name,
+                 start=None, end=None,
                  scale_multipoles=None, feed_down=True, orbit=None):
 
         '''
