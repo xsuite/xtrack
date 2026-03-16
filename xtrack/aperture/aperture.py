@@ -195,11 +195,12 @@ class Aperture:
 
             if offset_data:
                 rel_survey_mat = survey_relative_transform(survey, offset_data['survey_ref'], element_name)
-                offset_mat = transform_matrix(
-                    dx=offset_data['dx'],
-                    dy=offset_data['dy'],
+                s_ref = rel_survey_mat[2, 3]
+                matrix = transform_matrix(
+                    dx=offset_data['x'],
+                    dy=offset_data['y'],
+                    ds=s_ref,
                 )
-                matrix = rel_survey_mat @ offset_mat
                 survey_reference_name = offset_data['survey_ref']
             else:
                 matrix = np.identity(4)
@@ -222,6 +223,8 @@ class Aperture:
                 for s in np.linspace(0, length, max(2, int(length / 0.1))):
                     position = ProfilePosition(profile_index=aper_idx)
                     position.s_position = s
+                    position.shift_x = s * offset_data['dx'] + s**2 * offset_data['ddx']
+                    position.shift_y = s * offset_data['dy'] + s**2 * offset_data['ddy']
                     positions.append(position)
 
                 # If we have offset data, assume the type is straight
