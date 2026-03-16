@@ -6,7 +6,7 @@ NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
 
 class IntegralOptimization:
-    def __init__(self, line, tw, start, end, vary,
+    def __init__(self, line, twiss, start, end, vary,
                  target_quantities, generated_knob_name,
                  scale_multipoles=None, feed_down=True, orbit=None):
 
@@ -20,7 +20,7 @@ class IntegralOptimization:
         line: xt.Line
             Line on which the correction is applied. It should contain the relevant
             sources and correctors for the integral correction.
-        tw: xt.Table
+        twiss: xt.Table
             Twiss table to be used to compute the integrand.
         start: str
             Name of the element at which the integral starts.
@@ -50,7 +50,7 @@ class IntegralOptimization:
         '''
 
         self.env = line.env
-        self.tw = tw
+        self.twiss = twiss
         self.line = line
         self.start = start
         self.end = end
@@ -72,7 +72,8 @@ class IntegralOptimization:
         tt0 = self.line.tracker._tracker_data_base._line_table
         tt = xt.Table(data={'name': tt0['name'], 'env_name': tt0['env_name'],
                             'parent_name': tt0['parent_name'], 's': tt0['s']})
-        for kk in NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR:
+        for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
+                   + ['shift_x', 'shift_y', 'rot_s_rad']):
             tt[kk] = np.concatenate([self.line.attr[kk], [0]])
 
         if self.scale_multipoles is not None:
@@ -98,16 +99,16 @@ class IntegralOptimization:
         # mask_corr = tt_range.rows.mask[list(correction_elements)]
         # tt_integral = tt_range.rows[(tt_range[self.multipole] != 0) | (mask_corr)]
         #
-        # tw_integral = self.tw.rows[tt_integral.env_name]
+        # tw_integral = self.twiss.rows[tt_integral.env_name]
         # orbit_integral = None
         # if self.orbit is not None:
-        #     assert len(self.orbit) == len(self.tw)
+        #     assert len(self.orbit) == len(self.twiss)
         #     orbit_integral = self.orbit.rows[tt_integral.env_name]
 
         tt_integral = tt_range
-        tw_integral = self.tw.rows[tt_integral.name]
+        tw_integral = self.twiss.rows[tt_integral.name]
         if self.orbit is not None:
-            assert len(self.orbit) == len(self.tw)
+            assert len(self.orbit) == len(self.twiss)
             orbit_integral = self.orbit.rows[tt_integral.name]
         else:
             orbit_integral = None

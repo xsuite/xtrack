@@ -1,0 +1,44 @@
+import xtrack as xt
+
+env = xt.load('../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
+
+line = env['lhcb1']
+
+tw_ref = line.twiss4d()
+
+env['tilt12'] = 1
+env['tilt56'] = 1
+
+# Tilt a few quadrupoles in sector 12
+env['mq.20r1.b1'].rot_s_rad = env.ref['tilt12'] * 10e-3
+env['mq.24r1.b1'].rot_s_rad = env.ref['tilt12'] * 5e-3
+env['mq.18l2.b1'].rot_s_rad = env.ref['tilt12'] * 7e-3
+env['mq.22l2.b1'].rot_s_rad = env.ref['tilt12'] * 10e-3
+
+# Tilt a few quadrupoles in sector 56
+env['mq.20r5.b1'].rot_s_rad = env.ref['tilt56'] * 10e-3
+env['mq.24r5.b1'].rot_s_rad = env.ref['tilt56'] * 10e-3
+env['mq.18l6.b1'].rot_s_rad = env.ref['tilt56'] * 10e-3
+env['mq.22l6.b1'].rot_s_rad = env.ref['tilt56'] * 10e-3
+
+tw = line.twiss4d()
+
+rdts = xt.rdt_first_order_perturbation(
+    rdt=['f1001'],
+    twiss=tw_ref,
+    strengths=line.get_table(attr=True)
+)
+
+integral_optim_12 = xt.IntegralOptimization(
+    twiss=tw,
+    start='s.ds.r1.b1',
+    end='e.ds.l2.b1',
+    line=line,
+    vary=xt.VaryList(['kqs.r1b1', 'kqs.l2b1'], step=1e-5),
+    target_quantities={'coupl': 'f1001'},
+    generated_knob_name='on_corr_coupl_12')
+
+breakpoint()
+oo = integral_optim_12.run()
+
+opt = integral_optim_12.correct()
