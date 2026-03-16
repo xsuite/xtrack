@@ -169,29 +169,7 @@ class Aperture:
             if aper_name not in layout_data:
                 continue
 
-            element_metadata = layout_data[aper_name]
-
-            if 'aperture' not in element_metadata:
-                continue
-
             offset_data = aperture_offsets.get(aper_name, {})
-
-            shape_name, params, tols = element_metadata['aperture']
-            shape = profile_from_madx_aperture(shape_name, params)
-
-            if not shape:
-                # There is not really an aperture here, continue
-                continue
-
-            if cls._is_broken_madx_aperture(shape):
-                continue
-
-            tol_r, tol_x, tol_y = tols
-            profile = Profile(shape=shape, tol_r=tol_r, tol_x=tol_x, tol_y=tol_y)
-
-            assert len(types) == len(profiles)  # in MAD-X we will have just one type per profile
-
-            aper_idx = len(types)
 
             if offset_data:
                 rel_survey_mat = survey_relative_transform(survey, offset_data['survey_ref'], element_name)
@@ -206,41 +184,65 @@ class Aperture:
                 matrix = np.identity(4)
                 survey_reference_name = element_name
 
-            if element.isthick and not offset_data:
-                # Place two profiles on either side of the element
-                position_entry = ProfilePosition(profile_index=aper_idx)
-                position_exit = ProfilePosition(profile_index=aper_idx, s_position=element.length)
-                positions = [position_entry, position_exit]
-                # If no MAD-X offset data is present, the curvature follows
-                # the element
-                curvature = getattr(element, 'h', 0)
-            elif element.isthick and offset_data:
-                # If MAD-X offset data is given, place profiles
-                # on the described parabola with 10cm resolution
-                length = element.length
-                positions = []
+            if aper_name not in aperture_indices:
+                element_metadata = layout_data[aper_name]
 
-                for s in np.linspace(0, length, max(2, int(length / 0.1))):
-                    position = ProfilePosition(profile_index=aper_idx)
-                    position.s_position = s
-                    position.shift_x = s * offset_data['dx'] + s**2 * offset_data['ddx']
-                    position.shift_y = s * offset_data['dy'] + s**2 * offset_data['ddy']
-                    positions.append(position)
+                if 'aperture' not in element_metadata:
+                    continue
 
-                # If we have offset data, assume the type is straight
-                curvature = 0
-            else:
-                # Place a single profile for a thin element
-                positions = [ProfilePosition(profile_index=aper_idx)]
-                curvature = 0
+                shape_name, params, tols = element_metadata['aperture']
+                shape = profile_from_madx_aperture(shape_name, params)
 
-            aperture_indices[aper_name] = aper_idx
-            aperture_type = ApertureType(curvature=curvature, positions=positions)
-            types.append(aperture_type)
-            profiles.append(profile)
+                if not shape:
+                    # There is not really an aperture here, continue
+                    continue
+
+                if cls._is_broken_madx_aperture(shape):
+                    continue
+
+                tol_r, tol_x, tol_y = tols
+                profile = Profile(shape=shape, tol_r=tol_r, tol_x=tol_x, tol_y=tol_y)
+
+                assert len(types) == len(profiles)  # in MAD-X we will have just one type per profile
+
+                aper_idx = len(types)
+
+                if element.isthick and not offset_data:
+                    # Place two profiles on either side of the element
+                    position_entry = ProfilePosition(profile_index=aper_idx)
+                    position_exit = ProfilePosition(profile_index=aper_idx, s_position=element.length)
+                    positions = [position_entry, position_exit]
+                    # If no MAD-X offset data is present, the curvature follows
+                    # the element
+                    curvature = getattr(element, 'h', 0)
+                elif element.isthick and offset_data:
+                    # If MAD-X offset data is given, place profiles
+                    # on the described parabola with 10cm resolution
+                    length = element.length
+                    positions = []
+
+                    for s in np.linspace(0, length, max(2, int(length / 0.1))):
+                        position = ProfilePosition(profile_index=aper_idx)
+                        position.s_position = s
+                        position.shift_x = s * offset_data['dx'] + s**2 * offset_data['ddx']
+                        position.shift_y = s * offset_data['dy'] + s**2 * offset_data['ddy']
+                        positions.append(position)
+
+                    # If we have offset data, assume the type is straight
+                    curvature = 0
+                else:
+                    # Place a single profile for a thin element
+                    positions = [ProfilePosition(profile_index=aper_idx)]
+                    curvature = 0
+
+                aperture_indices[aper_name] = aper_idx
+
+                aperture_type = ApertureType(curvature=curvature, positions=positions)
+                types.append(aperture_type)
+                profiles.append(profile)
 
             type_position = TypePosition(
-                type_index=aper_idx,
+                type_index=aperture_indices[aper_name],
                 survey_reference_name=survey_reference_name,
                 survey_index=name_to_sv_index[survey_reference_name],
                 transformation=matrix,
@@ -428,8 +430,8 @@ class Aperture:
 
         Parameters
         ----------
-        env
-            The environment of the line for which the aperture model is built.
+        line
+            The line for which the aperture model is built.
         type_indices
             A mapping between the name of an aperture type and its index in ``type_list``.
         type_list

@@ -14,6 +14,7 @@ from xtrack.aperture.structures import (
     ApertureType,
     Circle,
     Ellipse,
+    FloatType,
     Profile,
     ProfilePosition,
     Rectangle,
@@ -260,11 +261,11 @@ def test_is_point_inside_polygon_ellipse(kernels):
     ry = 3
     ellipse = [(rx * np.cos(angle), ry * np.sin(angle)) for angle in np.linspace(0, 2 * np.pi, 99)]
     ellipse.append(ellipse[0])
-    ellipse = np.array(ellipse, dtype=np.float32)
+    ellipse = np.array(ellipse, dtype=FloatType._dtype)
 
     @np.vectorize
     def in_ellipse(x, y):
-        point = np.array([x, y], dtype=np.float32)
+        point = np.array([x, y], dtype=FloatType._dtype)
         return bool(kernels['_is_point_inside_polygon'](point=point, points=ellipse, len_points=ellipse.shape[0]))
 
     extent = np.linspace(-10, 10, 100)
@@ -291,11 +292,11 @@ def test_is_point_inside_polygon_path(kernels):
         (-1, -1),
         (-1, 2),
         (1, 2),
-    ], dtype=np.float32)
+    ], dtype=FloatType._dtype)
 
     @np.vectorize
     def in_poly(x, y):
-        point = np.array([x, y], dtype=np.float32)
+        point = np.array([x, y], dtype=FloatType._dtype)
         return bool(kernels['_is_point_inside_polygon'](point=point, points=poly, len_points=poly.shape[0]))
 
     extent = np.linspace(-5, 5, 100)
@@ -321,8 +322,8 @@ def test_points_inside_polygon_inscribed_circles(kernels):
     circ2 = [(r2 * np.cos(angle), r2 * np.sin(angle)) for angle in np.linspace(0, 2 * np.pi, 99)]
     circ2.append(circ2[0])
 
-    circ1 = np.array(circ1, dtype=np.float32)
-    circ2 = np.array(circ2, dtype=np.float32)
+    circ1 = np.array(circ1, dtype=FloatType._dtype)
+    circ2 = np.array(circ2, dtype=FloatType._dtype)
 
     small_in_big = kernels["_points_inside_polygon"](
         points=circ1,
@@ -347,8 +348,8 @@ def test_points_inside_polygon_simple(kernels):
     poly_big = [(1, 1), (2, 3.5), (4.5, 3.5), (4.5, 1), (1, 1)]
     poly_small = [(2, 2), (3, 3), (4, 2), (3, 1.5), (2, 2)]
 
-    poly_big = np.array(poly_big, dtype=np.float32)
-    poly_small = np.array(poly_small, dtype=np.float32)
+    poly_big = np.array(poly_big, dtype=FloatType._dtype)
+    poly_small = np.array(poly_small, dtype=FloatType._dtype)
 
     small_in_big = kernels["_points_inside_polygon"](
         points=poly_small,
@@ -375,13 +376,13 @@ def test_points_inside_polygon_simpler(kernels):
         [-5.0000006e-01, 8.6602539e-01],
         [-4.9999991e-01, -8.6602545e-01],
         [1.0000000e+00, 0.0000000e+00],
-    ], dtype=np.float32)
+    ], dtype=FloatType._dtype)
     poly_small = np.array([
         [1.1466468e-01, 0.0000000e+00],
         [-5.7332322e-02, 9.9302538e-02],
         [-5.7332378e-02, -9.9302508e-02],
         [1.1466468e-01, 0.0000000e+00],
-    ], dtype=np.float32)
+    ], dtype=FloatType._dtype)
 
     small_in_big = kernels["_points_inside_polygon"](
         points=poly_small,
@@ -921,7 +922,7 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
     assert all(bounds_table.type_name == ['type0', 'type0', 'type1', 'type1', 'type2', 'type2'])
     assert all(bounds_table.profile_name == ['circ0'])
 
-    s_samples = np.linspace(0, 3 * length, 51, dtype=np.float32)
+    s_samples = np.linspace(0, 3 * length, 51, dtype=FloatType._dtype)
     sections, poses = ap.cross_sections_at_s(s_samples)
 
     for ii in range(1, len(sections)):
@@ -978,7 +979,7 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
     )
 
     bounds_table = ap.get_bounds_table()
-    expected_s = np.repeat(np.arange(1, num_bends + 1, dtype=np.float32) * bend_length, 2)
+    expected_s = np.repeat(np.arange(1, num_bends + 1, dtype=FloatType._dtype) * bend_length, 2)
     expected_s[::2] -= bend_length
 
     # Float32 precision at s ~ 30 km is a few mm, unfortunately tolerances are what they are.
@@ -992,7 +993,7 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
     assert np.all(np.isfinite(bounds_table.s_start))
     assert np.all(np.isfinite(bounds_table.s_end))
 
-    s_samples = np.linspace(0, ring_length, 101, dtype=np.float32)
+    s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
     sections, _ = ap.cross_sections_at_s(s_samples)
     radii = np.linalg.norm(sections, axis=2)
     xo.assert_allclose(radii, aperture_radius, atol=2e-3, rtol=0)
@@ -1075,7 +1076,7 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
     )
 
     bounds_table = ap.get_bounds_table()
-    expected_s = np.repeat(np.arange(1, num_bends + 1, dtype=np.float32) * bend_length, 2)
+    expected_s = np.repeat(np.arange(1, num_bends + 1, dtype=FloatType._dtype) * bend_length, 2)
     expected_s[::2] -= bend_length
 
     # Float32 precision at s ~ 30 km is a few mm, unfortunately tolerances are what they are.
@@ -1089,7 +1090,7 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
     assert np.all(np.isfinite(bounds_table.s_start))
     assert np.all(np.isfinite(bounds_table.s_end))
 
-    s_samples = np.linspace(0, ring_length, 101, dtype=np.float32)
+    s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
     sections, _ = ap.cross_sections_at_s(s_samples)
     radii = np.linalg.norm(sections, axis=2)
     xo.assert_allclose(radii, aperture_radius, atol=2e-3, rtol=0)
@@ -1140,7 +1141,7 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
 
     ap = Aperture(line=line, model=model, context=test_context)
 
-    s_samples = np.linspace(1.0, 11.0, 21, dtype=np.float32)
+    s_samples = np.linspace(1.0, 11.0, 21, dtype=FloatType._dtype)
     sections, poses = ap.cross_sections_at_s(s_samples)
 
     # Transform all cross-section points to the (fixed) type frame.
@@ -1161,8 +1162,8 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
 
         sec_hom = np.column_stack([
             sec_xy,
-            np.zeros(len(sec_xy), dtype=np.float32),
-            np.ones(len(sec_xy), dtype=np.float32),
+            np.zeros(len(sec_xy), dtype=FloatType._dtype),
+            np.ones(len(sec_xy), dtype=FloatType._dtype),
         ])
         sec_world = (poses[ii] @ sec_hom.T).T
         sec_type = (type_from_world @ sec_world.T).T
@@ -1213,7 +1214,7 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
 
     ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
 
-    s_samples = np.linspace(0.0, length, 33, dtype=np.float32)
+    s_samples = np.linspace(0.0, length, 33, dtype=FloatType._dtype)
     sections, _ = ap.cross_sections_at_s(s_samples)
 
     for ii in range(1, len(sections)):
@@ -1270,7 +1271,7 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
 
     ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
 
-    s_samples0 = np.linspace(0.1, length - 0.1, 33, dtype=np.float32)
+    s_samples0 = np.linspace(0.1, length - 0.1, 33, dtype=FloatType._dtype)
     s_samples1 = s_samples0 + length
 
     sections_straight, _ = ap.cross_sections_at_s(s_samples0)
