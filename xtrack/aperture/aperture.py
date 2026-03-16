@@ -198,10 +198,8 @@ class Aperture:
                 offset_mat = transform_matrix(
                     dx=offset_data['dx'],
                     dy=offset_data['dy'],
-                    phi=offset_data['rot_x'],
-                    theta=offset_data['rot_y'],
                 )
-                matrix = offset_mat @ rel_survey_mat
+                matrix = rel_survey_mat @ offset_mat
                 survey_reference_name = offset_data['survey_ref']
             else:
                 matrix = np.identity(4)

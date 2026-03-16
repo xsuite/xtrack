@@ -43,8 +43,10 @@ ap.plot_aper_sx()
 ap.plot_beam_sx()
 plt.show()
 
+tt = aperture_model.get_bounds_table()
+
 # Cross-sections and beam pyoptics vs Xtrack aperture model
-for name in ["MQXFA.A1R5", "MBXF.4R5"]:
+for name in ["MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
     ap.plot_halo_name(name)
     n1_pyoptics = [row[0] for row in ap.get_n1_name(name)]
 
@@ -58,11 +60,14 @@ for name in ["MQXFA.A1R5", "MBXF.4R5"]:
 
     cross_sections2, poses = aperture_model.cross_sections_at_element(element_name=xs_name, resolution=0.1)
 
-    for pt in cross_sections2:
-        plt.plot(pt[:, 0], pt[:, 1], c='gray', linestyle='--')
 
-    for pt in max_envelope:
-        plt.plot(pt[:, 0], pt[:, 1], c='cyan', linestyle=':')
+    ap_centre = (np.min(cross_sections2, axis=1) + np.max(cross_sections2, axis=1)) / 2
+
+    for pt, ct in zip(cross_sections2, ap_centre):
+        plt.plot(pt[:, 0] - ct[0], pt[:, 1] - ct[1], c='gray', linestyle='--')
+
+    for pt, ct in zip(max_envelope, ap_centre):
+        plt.plot(pt[:, 0] - ct[0], pt[:, 1] - ct[1], c='cyan', linestyle=':')
 
     plt.gca().set_aspect('equal')
     plt.title(f"{xs_name}")
@@ -70,10 +75,5 @@ for name in ["MQXFA.A1R5", "MBXF.4R5"]:
     plt.legend()
     plt.show()
 
-tt = aperture_model.get_bounds_table()
-
-ap.ap.show("MQXFA.A1R5", "s n1 betx bety x y dx dy")
-print(tt.rows['mqxfa.a1r5.*'])
-
-ap.ap.show("MBXF.4R5", "n1 x y betx bety x y dx dy")
-print(tt.rows['mbxf.4r5.*'])
+    ap.ap.show(name, "s n1 betx bety x y dx dy")
+    print(tt.rows[f'{name.lower()}.*'])

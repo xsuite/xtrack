@@ -8,7 +8,7 @@ from xtrack.survey import SurveyTable
 from xtrack.twiss import TwissTable
 
 
-FloatType = xo.Float32
+FloatType = xo.Float64
 
 
 class Circle(xo.Struct):
