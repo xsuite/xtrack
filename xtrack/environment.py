@@ -324,7 +324,15 @@ class Environment:
     def new_particle(self, name, parent=None, force=False, **kwargs):
 
         '''
-        Create a new particle type.
+        Associate a particle type to a name. The particle is stored in
+        Environment.particles, its properties can be controlled with deferred
+        expressions and it can be used as reference particle for lines.
+
+        Note that this method is not meant to create particles distributions for
+        tracking. For that purpose use xt.Particles(...), Line.build_particles(...)
+        or the generation functions for particles distributions available in xpart.
+        See https://xsuite.readthedocs.io/en/latest/particlesmanip.html for more
+        details.
 
         Parameters
         ----------
@@ -332,7 +340,39 @@ class Environment:
             Name of the new particle type
         parent : str or class
             Parent class or name of the parent particle type
+        pdg_id_0 : int or str, optional, define reference mass and charge from
+            PDG id or particle name.
+        mass0 : float, optional
+            Reference rest mass [eV]
+        q0 : float, optional
+            Reference charge [e]
+        p0c : array_like of float, optional
+            Reference momentum [eV]
+        energy0 : array_like of float, optional
+            Reference energy [eV]
+        gamma0 : array_like of float, optional
+            Reference relativistic gamma
+        beta0 : array_like of float, optional
+            Reference relativistic beta
+        rigidity0 : array_like of float, optional
+            Reference magnetic rigidity [T.m]
+        kinetic_energy0 : array_like of float, optional
+            Reference kinetic energy [eV]
 
+        Examples
+        --------
+        Create a positron particle type with gamma0 controlled by a deferred
+        expression:
+
+        >>> env = xt.Environment()
+        >>> env['a'] = 5
+        >>> env.new_particle('my_particle_type', pdg_id_0='positron', gamma0='3*a')
+        'my_particle_type'
+        >>> env['my_particle_type'].gamma0
+        View of LinkedArrayCpu([15.])
+        >>> env['a'] = 10
+        >>> env['my_particle_type'].gamma0
+        View of LinkedArrayCpu([30.])
 
         '''
 

@@ -438,6 +438,8 @@ class Particles(xo.HybridClass):
         'beta0': '_beta0',
     }
 
+    _noexpr_fields = ['pdg_id_0', 'pdg_id']
+
     _kernels = {
         'Particles_initialize_rand_gen': xo.Kernel(
             c_name="Particles_initialize_rand_gen",
