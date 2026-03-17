@@ -533,11 +533,7 @@ class Aperture:
         - ``envelope_at_max_sigma`` are the beam cross-section polygons at the computed ``n1`` if ``bisection`` method
           was selected: a numpy array of the same shape as ``aperture_polygons``.
         """
-        line_sliced = self.line.copy()
-        line_sliced.cut_at_s(s_positions)
-        s_start, s_end = s_positions[0], s_positions[-1]
-
-        sliced_twiss = line_sliced.twiss(init=twiss_init).rows[s_start:s_end:'s']
+        sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         survey_at_s = self.survey_data.resample(twiss_at_s.s)
@@ -605,12 +601,9 @@ class Aperture:
             sigmas: float,
             twiss_init: Optional[TwissInit] = None,
             envelopes_num_points: int = 128,
+            include_aper_tols: bool = True,
     ) -> Tuple[np.ndarray, TwissTable]:
-        line_sliced = self.line.copy()
-        line_sliced.cut_at_s(s_positions)
-        s_start, s_end = s_positions[0], s_positions[-1]
-
-        sliced_twiss = line_sliced.twiss(init=twiss_init).rows[s_start:s_end:'s']
+        sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
@@ -620,10 +613,12 @@ class Aperture:
         self.call_kernel(
             'compute_beam_envelopes_at_sigma',
             model=self.model,
+            aperture_bounds=self._aperture_bounds,
             twiss_at_s=twiss_at_s,
             beam_data=beam_data,
             sigmas=sigmas,
             envelope_num_points=envelopes_num_points,
+            include_aper_tols=int(include_aper_tols),
             out_envelope=envelopes,
         )
 
@@ -779,6 +774,44 @@ class Aperture:
             index='name',
         )
         return table
+
+    def _sliced_twiss_at_s(
+            self,
+            s_positions: Iterable[float],
+            twiss_init: Optional[TwissInit] = None,
+    ) -> TwissTable:
+        """Get a twiss table for the line with entries at each `s_position`.
+
+        Parameters
+        ----------
+        s_positions : Iterable[float]
+            s-positions for the sliced twiss.
+        twiss_init : TwissInit, optional
+            Initial conditions for the twiss.
+        """
+        s_positions = np.array(s_positions, dtype=FloatType._dtype)
+        line_sliced = self.line.copy()
+        line_sliced.cut_at_s(s_positions)
+        full_twiss = line_sliced.twiss(init=twiss_init)
+
+        # "Authoritative" s-positions after slicing (up to cutting tolerances)
+        tw_s = np.array(full_twiss.s, dtype=FloatType._dtype)
+
+        # Bracket each requested s with the nearest row on the left and on the right.
+        idx_left = np.searchsorted(tw_s, s_positions, side='right') - 1
+        idx_right = np.searchsorted(tw_s, s_positions, side='left')
+
+        idx_left = np.clip(idx_left, 0, len(tw_s) - 1)
+        idx_right = np.clip(idx_right, 0, len(tw_s) - 1)
+
+        # Compare the left/right candidates by distance in s.
+        dist_left = np.abs(tw_s[idx_left] - s_positions)
+        dist_right = np.abs(tw_s[idx_right] - s_positions)
+
+        # Keep the nearest row; on ties prefer the rightmost candidate.
+        tw_indices = np.where(dist_right <= dist_left, idx_right, idx_left)
+
+        return full_twiss.rows[tw_indices]
 
     def _find_type_positions(self, s_start: float, s_end: float) -> List[TypePosition]:
         type_bounds = self._type_bounds()
