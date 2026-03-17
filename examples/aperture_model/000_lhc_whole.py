@@ -12,7 +12,7 @@ lhc_with_metadata = xt.load('./benchmark1/lhc_aperture.json')
 b1 = lhc_with_metadata['b1']
 lhc_length = b1.get_length()
 
-aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, context=context, _skip_validity_check=True)
+aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, context=context)
 
 end_s = lhc_length / 8
 s_positions = np.linspace(0, end_s, int(end_s))
@@ -28,6 +28,7 @@ envel, tw_envel = aperture_model.get_envelope_at_s(
     s_positions=np.linspace(0, lhc_length, int(lhc_length)),
     sigmas=5,
     envelopes_num_points=12,
+    include_aper_tols=False,
 )
 
 cs_s = np.linspace(0, lhc_length, int(lhc_length))
