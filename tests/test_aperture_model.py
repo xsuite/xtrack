@@ -979,13 +979,11 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
     expected_s = np.repeat(np.arange(1, num_bends + 1, dtype=FloatType._dtype) * bend_length, 2)
     expected_s[::2] -= bend_length
 
-    # Float32 precision at s ~ 30 km is a few mm, unfortunately tolerances are what they are.
-    # TODO: Tighten tolerances when switching to float64
-    xo.assert_allclose(bounds_table.s, expected_s, atol=1e-2, rtol=0)
-    xo.assert_allclose(bounds_table.s_start, expected_s, atol=1e-2, rtol=0)
-    xo.assert_allclose(bounds_table.s_end, expected_s, atol=1e-2, rtol=0)
+    xo.assert_allclose(bounds_table.s, expected_s, atol=1e-6, rtol=0)
+    xo.assert_allclose(bounds_table.s_start, expected_s, atol=1e-6, rtol=0)
+    xo.assert_allclose(bounds_table.s_end, expected_s, atol=1e-6, rtol=0)
 
-    assert np.all(np.diff(bounds_table.s) >= -1e-2)
+    assert np.all(np.diff(bounds_table.s) >= -1e-6)
     assert np.all(np.isfinite(bounds_table.s))
     assert np.all(np.isfinite(bounds_table.s_start))
     assert np.all(np.isfinite(bounds_table.s_end))
@@ -993,7 +991,7 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
     s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
     sections, _ = ap.cross_sections_at_s(s_samples)
     radii = np.linalg.norm(sections, axis=2)
-    xo.assert_allclose(radii, aperture_radius, atol=2e-3, rtol=0)
+    xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -1076,13 +1074,11 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
     expected_s = np.repeat(np.arange(1, num_bends + 1, dtype=FloatType._dtype) * bend_length, 2)
     expected_s[::2] -= bend_length
 
-    # Float32 precision at s ~ 30 km is a few mm, unfortunately tolerances are what they are.
-    # TODO: Tighten tolerances when switching to float64
-    xo.assert_allclose(bounds_table.s, expected_s, atol=1e-2, rtol=0)
-    xo.assert_allclose(bounds_table.s_start, expected_s, atol=1e-2, rtol=0)
-    xo.assert_allclose(bounds_table.s_end, expected_s, atol=1e-2, rtol=0)
+    xo.assert_allclose(bounds_table.s, expected_s, atol=1e-6, rtol=0)
+    xo.assert_allclose(bounds_table.s_start, expected_s, atol=1e-6, rtol=0)
+    xo.assert_allclose(bounds_table.s_end, expected_s, atol=1e-6, rtol=0)
 
-    assert np.all(np.diff(bounds_table.s) >= -1e-2)
+    assert np.all(np.diff(bounds_table.s) >= -1e-6)
     assert np.all(np.isfinite(bounds_table.s))
     assert np.all(np.isfinite(bounds_table.s_start))
     assert np.all(np.isfinite(bounds_table.s_end))
@@ -1090,7 +1086,7 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
     s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
     sections, _ = ap.cross_sections_at_s(s_samples)
     radii = np.linalg.norm(sections, axis=2)
-    xo.assert_allclose(radii, aperture_radius, atol=2e-3, rtol=0)
+    xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -1169,11 +1165,10 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
         z = sec_type[:, 2]
         expected_r = r0 + (r1 - r0) * (z - s0) / (s1 - s0)
 
-        xo.assert_allclose(rr, expected_r, atol=1e-3, rtol=0)
+        xo.assert_allclose(rr, expected_r, atol=1e-6, rtol=0)
 
 
-# @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-@pytest.mark.xfail
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
     env = xt.Environment()
     angle = np.deg2rad(35.0)
@@ -1218,8 +1213,7 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
         xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
 
 
-#@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-@pytest.mark.xfail
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_at_s_compare_straight_curved(test_context):
     env = xt.Environment()
     angle = np.deg2rad(35.0)

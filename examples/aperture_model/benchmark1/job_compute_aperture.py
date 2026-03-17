@@ -12,7 +12,7 @@ lhc_with_metadata = xt.load("./lhc_aperture.json")
 b1 = lhc_with_metadata["b1"]
 lhc_length = b1.get_length()
 
-aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, include_offsets=True, _skip_validity_check=True, context=context)
+aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=100, include_offsets=True, context=context)
 
 emittance_norm = 2.5e-6
 apbbeat = 1.1
@@ -39,9 +39,6 @@ aperture_model.halo_params.update(
 
 # Beam Envelope pyoptics vs Xtrack aperture model
 ap = BeamEnvelope.from_apname("temp/ap_ir5b1.tfs")
-ap.plot_aper_sx()
-ap.plot_beam_sx()
-plt.show()
 
 tt = aperture_model.get_bounds_table()
 
