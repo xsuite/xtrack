@@ -491,7 +491,11 @@ class Aperture:
         twiss
             Optionally provided twiss table from which to derive the initial beam parameters at the element.
         **kwargs
-            Other parameters to be forwarded to ``Aperture.get_aperture_sigmas_at_s``.
+            Other parameters to be forwarded to :meth:`get_aperture_sigmas_at_s`.
+
+        Returns
+        -------
+        See :meth:`get_aperture_sigmas_at_s`.
         """
         s_positions = self._get_cuts_at_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
@@ -503,6 +507,7 @@ class Aperture:
             twiss_init: Optional[TwissInit] = None,
             method: Literal['bisection', 'rays'] = 'rays',
             envelopes_num_points: int = 36,
+            num_rays: int = 32,
     ) -> Tuple[np.ndarray, TwissTable, np.ndarray, Optional[np.ndarray]]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at element ``element_name``.
 
@@ -514,19 +519,19 @@ class Aperture:
             Optionally provided initial twiss conditions.
         method
             A method to use for the computation:
-            - 'rays' - the horizontal, vertical, and diagonal sigmas are computed (fast)
+            - 'rays' - the aperture sigma is estimated from sampled rays and the minimum over the sampled directions
+              is returned (faster method)
             - 'bisection' - the smallest number of sigmas for the beam to fit in the aperture is computed by bisecting
-              on a polygon-inside-polygon problem (slow)
+              on a polygon-inside-polygon problem (slower method)
         envelopes_num_points:
             Only for method `bisection`: number of points to use when discretising the beam cross-section.
-        **kwargs
-            Other parameters to be forwarded to ``Aperture.get_aperture_sigmas_at_s``.
+        num_rays:
+            Only for method `rays`: number of evenly-spaced ray directions to sample in [0, 2 * pi).
 
         Returns
         -------
         A four-tuple (sigmas, sliced_twiss, aperture_polygons, envelope_at_max_sigma), where:
-        - ``sigmas`` is the computed maximum number of sigmas, either a single number ``n1`` or three numbers
-          ``(n1_horizontal, n1_vertical, n1_diagonal)``, depending on ``method``.
+        - ``sigmas`` is the computed maximum number of sigmas ``n1`` at each requested location.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation
         - ``aperture_polygons`` are the aperture cross-sections at each of the ``s_positions``: a numpy array of shape
           ``(len(s_positions), cross_sections_num_points, 2)``.
@@ -560,12 +565,11 @@ class Aperture:
             )
             return sigmas, sliced_twiss, interpolated_points, envelope_at_max_sigma
         elif method == 'rays':
-            sigmas_h = np.zeros(num_slices, dtype=FloatType._dtype)
-            sigmas_v = np.zeros(num_slices, dtype=FloatType._dtype)
-            sigmas_d = np.zeros(num_slices, dtype=FloatType._dtype)
+            ray_angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False, dtype=FloatType._dtype)
+            ray_sigmas = np.zeros((num_slices, num_rays), dtype=FloatType._dtype)
 
             self.call_kernel(
-                'compute_horizontal_vertical_diagonal_aperture_sigmas',
+                'compute_max_aperture_sigma_rays',
                 model=self.model,
                 survey=self.survey_data,
                 profile_polygons=self._profile_polygons,
@@ -574,14 +578,100 @@ class Aperture:
                 survey_at_s=survey_at_s,
                 beam_data=beam_data,
                 out_interpolated_apertures=interpolated_points,
-                out_sigmas_h=sigmas_h,
-                out_sigmas_v=sigmas_v,
-                out_sigmas_d=sigmas_d,
+                ray_angles=ray_angles,
+                num_ray_angles=num_rays,
+                num_sigmas=ray_sigmas,
 
             )
-            return np.c_[sigmas_h, sigmas_v, sigmas_d], sliced_twiss, interpolated_points, None
+            return np.min(ray_sigmas, axis=1), sliced_twiss, interpolated_points, None
         else:
             raise NotImplementedError(f"Method `{method}` for getting aperture sigmas is unknown.")
+
+    def get_hvd_aperture_sigmas_at_element(
+            self,
+            element_name: str,
+            resolution: Optional[float] = None,
+            twiss: Optional[TwissTable] = None,
+    ) -> Tuple[np.ndarray, TwissTable, np.ndarray]:
+        """Compute horizontal, vertical and horizontal max aperture sigmas at element ``element_name``.
+
+        Parameters
+        ----------
+        elment_name
+            The name of the element at which the sigmas should be computed.
+        resolution
+            The desired resolution, in meters along s, at which the sigmas should be computed. If not provided only the
+            values at the entry and exit will be output.
+        twiss
+            Optionally provided twiss table from which to derive the initial beam parameters at the element.
+        **kwargs
+            Other parameters to be forwarded to :meth:`get_hvd_aperture_sigmas_at_s`.
+
+        Returns
+        -------
+        See :meth:`get_hvd_aperture_sigmas_at_s`.
+        """
+        s_positions = self._get_cuts_at_element(element_name, resolution)
+        twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
+        return self.get_hvd_aperture_sigmas_at_s(s_positions=s_positions, twiss_init=twiss_init)
+
+    def get_hvd_aperture_sigmas_at_s(
+            self,
+            s_positions: Iterable[float],
+            twiss_init: Optional[TwissInit] = None,
+    ) -> Tuple[np.ndarray, TwissTable, np.ndarray]:
+        """Compute horizontal, vertical and horizontal max aperture sigmas.
+
+        Parameters
+        ----------
+        s_positions : Iterable[float]
+            Locations at which to compute the desired quantities.
+        twiss_init : TwissInit, optional
+            Initial conditions for the twiss.
+
+        Returns
+        -------
+        A three-tuple ``(sigmas, sliced_twiss, aperture_polygons)``:
+        - ```sigmas`` is an array of shape `(len(s_positions), 3)`, containing the maximum number of sigmas fitting in
+          the aperture in the horizontal, vertical and horizontal directions at each s-position.
+        - ``sliced_twiss`` is the twiss table computed as part of the calculation
+        - ``aperture_polygons`` are the aperture cross-sections at each of the ``s_positions``: a numpy array of shape
+          ``(len(s_positions), cross_sections_num_points, 2)``.
+        """
+        sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
+        num_slices = len(sliced_twiss.s)
+
+        twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
+        survey_at_s = self.survey_data.resample(twiss_at_s.s)
+
+        beam_data = BeamData(**self.halo_params)
+        interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
+
+        ray_angles = np.linspace(0, 2 * np.pi, 8, endpoint=False, dtype=FloatType._dtype)
+        ray_sigmas = np.zeros((num_slices, 8), dtype=FloatType._dtype)
+
+        self.call_kernel(
+            'compute_max_aperture_sigma_rays',
+            model=self.model,
+            survey=self.survey_data,
+            profile_polygons=self._profile_polygons,
+            aperture_bounds=self._aperture_bounds,
+            twiss_at_s=twiss_at_s,
+            survey_at_s=survey_at_s,
+            beam_data=beam_data,
+            out_interpolated_apertures=interpolated_points,
+            ray_angles=ray_angles,
+            num_ray_angles=8,
+            num_sigmas=ray_sigmas,
+
+        )
+
+        sigmas_h = np.minimum(ray_sigmas[:, 0], ray_sigmas[:, 4])
+        sigmas_v = np.minimum(ray_sigmas[:, 2], ray_sigmas[:, 6])
+        sigmas_d = np.minimum.reduce([ray_sigmas[:, 1], ray_sigmas[:, 3], ray_sigmas[:, 5], ray_sigmas[:, 7]])
+        ray_sigmas = np.c_[sigmas_h, sigmas_v, sigmas_d]
+
+        return ray_sigmas, sliced_twiss, interpolated_points
 
     def get_envelope_at_element(
             self,
@@ -591,6 +681,29 @@ class Aperture:
             twiss: Optional[TwissTable] = None,
             **kwargs,
     ) -> Tuple[np.ndarray, TwissTable]:
+        """Compute beam-envelope polygons at the cuts of ``element_name`` for a fixed sigma value.
+
+        Parameters
+        ----------
+        element_name
+            The name of the element at which the envelope should be computed.
+        sigmas
+            The beam size, in sigmas, at which the envelope should be evaluated.
+        resolution
+            The desired resolution, in meters along s, at which the envelope should be computed. If not provided only
+            the values at the entry and exit will be output.
+        twiss
+            Optionally provided twiss table from which to derive the initial beam parameters at the element.
+        **kwargs
+            Other parameters to be forwarded to ``Aperture.get_envelope_at_s``.
+
+        Returns
+        -------
+        A two-tuple ``(envelopes, sliced_twiss)``, where:
+        - ``envelopes`` are the beam cross-section polygons at the requested sigma: a numpy array of shape
+          ``(num_cuts, envelopes_num_points, 2)``.
+        - ``sliced_twiss`` is the twiss table computed as part of the calculation.
+        """
         s_positions = self._get_cuts_at_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
@@ -603,6 +716,28 @@ class Aperture:
             envelopes_num_points: int = 128,
             include_aper_tols: bool = True,
     ) -> Tuple[np.ndarray, TwissTable]:
+        """Compute beam-envelope polygons at the requested ``s_positions`` for a fixed sigma value.
+
+        Parameters
+        ----------
+        s_positions
+            List of s positions at which to compute the envelope.
+        sigmas
+            The beam size, in sigmas, at which the envelope should be evaluated.
+        twiss_init
+            Optionally provided initial twiss conditions.
+        envelopes_num_points
+            Number of points to use when discretising the beam cross-section polygon.
+        include_aper_tols
+            If true, include the aperture mechanical tolerances associated with the active profile at each ``s``.
+
+        Returns
+        -------
+        A two-tuple ``(envelopes, sliced_twiss)``, where:
+        - ``envelopes`` are the beam cross-section polygons at the requested sigma: a numpy array of shape
+          ``(len(s_positions), envelopes_num_points, 2)``.
+        - ``sliced_twiss`` is the twiss table computed as part of the calculation.
+        """
         sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)

@@ -46,19 +46,18 @@ ap = BeamEnvelope.from_apname("temp/ap_ir5b1.tfs")
 
 tt = aperture_model.get_bounds_table()
 
-n_sigma = 27
-
 # Cross-sections and beam pyoptics vs Xtrack aperture model
 # ["MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]
 #name = "MQXFA.A1R5"
 name = "MBXF.4R5"
 
 pyop_id = ap.get_n_name(name)[0]
+n_sigma = ap.get_n1_name(name)[0][0]
 s = ap.ap.s[pyop_id]
 
 ap.plot_halo(pyop_id, halor=n_sigma, halox=n_sigma, haloy=n_sigma)
 
-envel, tw = aperture_model.get_envelope_at_s(s_positions=[s], sigmas=n_sigma, include_aper_tols=True)
+envel, tw = aperture_model.get_envelope_at_s(s_positions=[s], sigmas=n_sigma, include_aper_tols=True, envelopes_num_points=101)
 
 cross_sections, poses = aperture_model.cross_sections_at_s(s_positions=[s])
 
@@ -69,7 +68,7 @@ for pt, ct in zip(cross_sections, ap_centre):
     plt.plot(pt[:, 0] - ct[0], pt[:, 1] - ct[1], c='gray', linestyle='--')
 
 for pt, ct in zip(envel, ap_centre):
-    plt.plot(pt[:, 0] - ct[0], pt[:, 1] - ct[1], c='cyan', linestyle=':')
+    plt.plot(pt[:, 0] - ct[0], pt[:, 1] - ct[1], c='b', linestyle='-', marker='.')
 
 plt.gca().set_aspect('equal')
 plt.title(f"s = {s}")

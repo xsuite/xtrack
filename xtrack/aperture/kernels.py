@@ -55,8 +55,8 @@ def build_aperture_kernels(context):
                 xo.Arg(FloatType, pointer=True, name="sigmas"),
             ],
         ),
-        "compute_horizontal_vertical_diagonal_aperture_sigmas": xo.Kernel(
-            c_name="compute_horizontal_vertical_diagonal_aperture_sigmas",
+        "compute_max_aperture_sigma_rays": xo.Kernel(
+            c_name="compute_max_aperture_sigma_rays",
             args=[
                 xo.Arg(ApertureModel, name="model"),
                 xo.Arg(SurveyData, name="survey"),
@@ -66,9 +66,9 @@ def build_aperture_kernels(context):
                 xo.Arg(SurveyData, name="survey_at_s"),
                 xo.Arg(BeamData, name="beam_data"),
                 xo.Arg(FloatType, pointer=True, name="out_interpolated_apertures"),
-                xo.Arg(FloatType, pointer=True, name="out_sigmas_h"),
-                xo.Arg(FloatType, pointer=True, name="out_sigmas_v"),
-                xo.Arg(FloatType, pointer=True, name="out_sigmas_d"),
+                xo.Arg(FloatType, pointer=True, name="ray_angles"),
+                xo.Arg(xo.UInt32, name="num_ray_angles"),
+                xo.Arg(FloatType, pointer=True, name="num_sigmas"),
             ],
         ),
         "compute_beam_envelopes_at_sigma": xo.Kernel(
