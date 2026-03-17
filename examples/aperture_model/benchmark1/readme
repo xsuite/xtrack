@@ -1,2 +1,3 @@
-need to
-git pull https://github.com/lhcopt/hllhc15.git slhc
+1. First need to `git pull https://github.com/lhcopt/hllhc15.git slhc` or make a link to a pre-existing `slhc`
+2. Compute aperture data with `madx job_compute_aperture.madx`
+3. Build Xsuite model with `python job_make_xsuite_json.py`

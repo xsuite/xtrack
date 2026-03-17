@@ -431,10 +431,12 @@ void compute_max_aperture_sigma(
 
 void compute_beam_envelopes_at_sigma(
     ApertureModel model,
+    ApertureBounds aperture_bounds,
     TwissData twiss_at_s,
     BeamData beam_data,
     const float_type sigmas,
     const uint32_t envelope_num_points,
+    const int8_t include_aper_tols,
     float_type* const out_envelope
 ) {
     const uint32_t num_slices = TwissData_len_x(twiss_at_s);
@@ -445,19 +447,32 @@ void compute_beam_envelopes_at_sigma(
     #endif
 
     // TODO: Make this also compatible with GPUs
-    #pragma omp parallel for
+    uint32_t bound_index = 0;
+    #pragma omp parallel for firstprivate(bound_index)
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
         float_type s = TwissData_get_s(twiss_at_s, idx_slice);
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
 
-        const BeamApertureLocalData s_aperture_data = {
+        BeamApertureLocalData s_aperture_data = {
             .points = NULL,
             .n_points = 0,
             .tol_r = 0,
             .tol_x = 0,
             .tol_y = 0
         };
+
+        if (include_aper_tols) {
+            bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
+            const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
+            const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
+            const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
+            const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
+
+            s_aperture_data.tol_r = Profile_get_tol_r(profile);
+            s_aperture_data.tol_x = Profile_get_tol_x(profile);
+            s_aperture_data.tol_y = Profile_get_tol_y(profile);
+        }
 
         Point2D* out_points = (Point2D*)(out_envelope + idx_slice * envelope_num_points * 2);
         get_beam_envelope(
