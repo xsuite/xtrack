@@ -412,18 +412,18 @@ def rematch_ir2(collider, line_name,
 
     if solve:
         if staged_match:
-            opt.disable_all_vary()
-            opt.disable_all_targets()
+            opt.disable(vary=True)
+            opt.disable(target=True)
 
-            opt.enable_vary(tag='stage0')
-            opt.enable_targets(tag='stage0')
+            opt.enable(vary='stage0')
+            opt.enable(target='stage0')
             opt.solve()
 
-            opt.enable_vary(tag='stage1')
+            opt.enable(vary='stage1')
             opt.solve()
 
-            opt.enable_vary(tag='stage2')
-            opt.enable_targets(tag='stage2')
+            opt.enable(vary='stage2')
+            opt.enable(target='stage2')
             opt.solve()
         else:
             opt.solve()
@@ -468,9 +468,9 @@ def rematch_ir3(collider, line_name,
 
     if solve:
         if staged_match:
-            opt.disable_targets(tag='stage1')
+            opt.disable(target='stage1')
             opt.solve()
-            opt.enable_targets(tag='stage1')
+            opt.enable(target='stage1')
             opt.solve()
         else:
             opt.solve()
@@ -516,9 +516,9 @@ def rematch_ir4(collider, line_name,
 
     if solve:
         if staged_match:
-            opt.disable_targets(tag='stage1')
+            opt.disable(target='stage1')
             opt.solve()
-            opt.enable_targets(tag='stage1')
+            opt.enable(target='stage1')
             opt.solve()
         else:
             opt.solve()
@@ -610,9 +610,9 @@ def rematch_ir7(collider, line_name,
 
     if solve:
         if staged_match:
-            opt.disable_targets(tag='stage1')
+            opt.disable(target='stage1')
             opt.solve()
-            opt.enable_targets(tag='stage1')
+            opt.enable(target='stage1')
             opt.solve()
         else:
             opt.solve()
@@ -663,16 +663,16 @@ def rematch_ir8(collider, line_name,
 
     if solve:
         if staged_match:
-            opt.disable_targets(tag=['stage1', 'stage2'])
-            opt.disable_vary(tag=['stage1', 'stage2'])
+            opt.disable(target=['stage1', 'stage2'])
+            opt.disable(vary=['stage1', 'stage2'])
             opt.solve()
 
-            opt.enable_vary(tag='stage1')
+            opt.enable(vary='stage1')
             opt.solve()
 
-            opt.enable_targets(tag='stage1')
-            opt.enable_targets(tag='stage2')
-            opt.enable_vary(tag='stage2')
+            opt.enable(target='stage1')
+            opt.enable(target='stage2')
+            opt.enable(vary='stage2')
             opt.solve()
         else:
             opt.solve()
@@ -900,7 +900,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         collider.vars[f'acbxh{icorr}.l2_from_on_x2h'] = acbx_xing_ir2
         collider.vars[f'acbxh{icorr}.r2_from_on_x2h'] = -acbx_xing_ir2
     # Match other correctors with fixed mcbx and generate knob
-    opt_x2h.disable_vary(tag='mcbx')
+    opt_x2h.disable(vary='mcbx')
     opt_x2h.solve()
     opt_x2h.generate_knob()
 
@@ -924,7 +924,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         collider.vars[f'acbxv{icorr}.l2_from_on_x2v'] = acbx_xing_ir2
         collider.vars[f'acbxv{icorr}.r2_from_on_x2v'] = -acbx_xing_ir2
     # Match other correctors with fixed mcbx and generate knob
-    opt_x2v.disable_vary(tag='mcbx')
+    opt_x2v.disable(vary='mcbx')
     opt_x2v.solve()
     opt_x2v.generate_knob()
 
@@ -956,7 +956,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     #   collider.vars[f'acbxh{icorr}.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6 * 0.1
 
     # First round of optimization without changing mcbx
-    opt_x8h.disable_vary(tag='mcbx')
+    opt_x8h.disable(vary='mcbx')
     opt_x8h.step(3) # perform 3 steps without checking for convergence
 
     # Link all mcbx strengths to the first one
@@ -997,11 +997,11 @@ def match_orbit_knobs_ip2_ip8(collider):
         collider.vars[f'acbxv{icorr}.r8_from_on_x8v'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6
 
     # First round of optimization without changing mcbx
-    opt_x8v.disable_vary(tag='mcbx')
+    opt_x8v.disable(vary='mcbx')
     opt_x8v.step(3) # perform 3 steps without checking for convergence
 
     # Solve with all vary active and generate knob
-    opt_x8v.enable_vary(tag='mcbx')
+    opt_x8v.enable(vary='mcbx')
     opt_x8v.solve()
     opt_x8v.generate_knob()
 
@@ -1034,7 +1034,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         collider.vars[f'acbxh{icorr}.r2_from_on_sep2h'] = acbx_sep_ir2
 
     # Match other correctors with fixed mcbx and generate knob
-    opt_sep2h.disable_vary(tag='mcbx')
+    opt_sep2h.disable(vary='mcbx')
     opt_sep2h.solve()
     opt_sep2h.generate_knob()
 
@@ -1061,7 +1061,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         collider.vars[f'acbxv{icorr}.r2_from_on_sep2v'] = acbx_sep_ir2
 
     # Match other correctors with fixed mcbx and generate knob
-    opt_sep2v.disable_vary(tag='mcbx')
+    opt_sep2v.disable(vary='mcbx')
     opt_sep2v.solve()
     opt_sep2v.generate_knob()
 
@@ -1088,7 +1088,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         collider.vars[f'acbxh{icorr}.r8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
 
     # Match other correctors with fixed mcbx and generate knob
-    opt_sep8h.disable_vary(tag='mcbx')
+    opt_sep8h.disable(vary='mcbx')
     opt_sep8h.solve()
     opt_sep8h.generate_knob()
 
@@ -1115,7 +1115,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         collider.vars[f'acbxv{icorr}.r8_from_on_sep8v'] = acbx_sep_ir8 * sep_match / 2e-3
 
     # Match other correctors with fixed mcbx and generate knob
-    opt_sep8v.disable_vary(tag='mcbx')
+    opt_sep8v.disable(vary='mcbx')
     opt_sep8v.solve()
     opt_sep8v.generate_knob()
 

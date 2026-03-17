@@ -4,6 +4,7 @@ from .environment import Environment
 
 # For backward compatibility
 class Multiline(Environment):
+    """Multiline is deprecated, use :class:`Environment` instead."""
 
     def __init__(self, *args, **kwargs):
         warn('Multiline is deprecated, use Environment instead', FutureWarning)
