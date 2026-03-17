@@ -1609,14 +1609,6 @@ class SimpleThinQuadrupole(BeamElement):
     @property
     def inv_factorial_order(self): return 1.0
 
-    @property
-    def ksl(self): return self._buffer.context.linked_array_type.from_array(
-        np.array([0., 0.]),
-        mode='readonly',
-        container=self,
-    )
-
-
 class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     """Common properties for Bend and RBend: see their respective docstrings."""
     isthick = True
@@ -3300,13 +3292,6 @@ class SimpleThinBend(BeamElement):
 
     @property
     def inv_factorial_order(self): return 1.0
-
-    @property
-    def ksl(self): return self._buffer.context.linked_array_type.from_array(
-        np.array([0., 0.]),
-        mode='readonly',
-        container=self,
-    )
 
 
 class RFMultipole(_HasKnlKsl, BeamElement):
