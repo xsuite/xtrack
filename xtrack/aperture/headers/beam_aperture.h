@@ -559,7 +559,7 @@ static inline float_type compute_n1_for_point(
 }
 
 
-void compute_horizontal_vertical_diagonal_aperture_sigmas(
+void compute_max_aperture_sigma_rays(
     ApertureModel model,
     SurveyData survey,
     ProfilePolygons profile_polygons,
@@ -568,11 +568,10 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
     SurveyData survey_at_s,
     BeamData beam_data,
     float_type* const out_interpolated_apertures,
-    float_type* const out_num_sigmas_h,
-    float_type* const out_num_sigmas_v,
-    float_type* const out_num_sigmas_d
+    float_type* const ray_angles,
+    const uint32_t num_ray_angles,
+    float_type* const out_num_sigmas
 ) {
-    const float_type angles[8] = {0, M_PI / 4, M_PI / 2, 3 * M_PI / 4, M_PI, 5 * M_PI / 4, 3 * M_PI / 2, 7 * M_PI / 4};
     const uint32_t num_slices = TwissData_len_x(twiss_at_s);
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
 
@@ -623,10 +622,10 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
         Racetrack_s beam_rt = beam_racetrack(&s_twiss_data, &s_beam_data);
         Racetrack_s envelope_one_sigma_rt = add_racetracks(halo_rt, beam_rt);
 
-        float_type aperture_distances[8];
+        float_type aperture_distances[num_ray_angles];
         dist_to_poly_along_rays(
-            angles,
-            /* num_thetas */ 8,
+            ray_angles,
+            num_ray_angles,
             s_twiss_data.x,
             s_twiss_data.y,
             s_aperture_data.points,
@@ -635,20 +634,16 @@ void compute_horizontal_vertical_diagonal_aperture_sigmas(
             aperture_distances
         );
 
-        float_type num_sigmas[8];
-        for (int i = 0; i < 8; i++) {
-            const float_type angle = angles[i];
+        float_type* const slice_num_sigmas = out_num_sigmas + idx_slice * num_ray_angles;
+        for (uint32_t i = 0; i < num_ray_angles; i++) {
+            const float_type angle = ray_angles[i];
             const float_type d_halo = racetrack_radius_at_angle(angle, halo_rt);
             const float_type d_envelope_one_sigma = racetrack_radius_at_angle(angle, envelope_one_sigma_rt);
             const float_type d_aperture = aperture_distances[i];
             const float_type n1_lin_approx = (d_aperture - d_halo) / (d_envelope_one_sigma - d_halo);
             float_type n1 = compute_n1_for_point(angle, d_aperture, halo_rt, beam_rt, 0.f, n1_lin_approx);
-            num_sigmas[i] = n1;
+            slice_num_sigmas[i] = n1;
         }
-
-        out_num_sigmas_h[idx_slice] = fmin(num_sigmas[0], num_sigmas[4]);
-        out_num_sigmas_v[idx_slice] = fmin(num_sigmas[2], num_sigmas[6]);
-        out_num_sigmas_d[idx_slice] = fmin(fmin(num_sigmas[1], num_sigmas[3]), fmin(num_sigmas[5], num_sigmas[7]));
 
         #ifdef XO_CONTEXT_CPU
             printf("Computing sigmas: %d%%\r", 100 * (++completed) / num_slices);

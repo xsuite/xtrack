@@ -42,9 +42,7 @@ cs, _ = aperture_model.cross_sections_at_s(
 # )
 
 # PLOT envelope sigmas
-# plt.plot(tw_rays.s, sig_rays[:, 0], label=r'horizonal envelope [$\sigma$] (rays)')
-# plt.plot(tw_rays.s, sig_rays[:, 1], label=r'vertical envelope [$\sigma$] (rays)')
-# plt.plot(tw_rays.s, sig_rays[:, 2], label=r'diagonal envelope [$\sigma$] (rays)')
+# plt.plot(tw_rays.s, sig_rays, label=r'min envelope [$\sigma$] (rays)')
 
 # plt.plot(tw_bisect.s, sig_bisect, label=r'max envelope [$\sigma$] (bisection)', linestyle='--')
 

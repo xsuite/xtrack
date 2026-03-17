@@ -590,9 +590,6 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
         method=method,
     )
 
-    if method == 'rays':
-        computed_n1 = np.min(computed_n1, axis=1)
-
     # There are two sources of error wrt. to the analytic solution:
     # - precision of 0.01 on the bisection defined in beam_aperture.h
     # - error coming from the fact that we are comparing polygons, not ideal shapes (especially a problem if x, y != 0)
