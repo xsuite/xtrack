@@ -191,6 +191,16 @@ class ApertureModel(xo.Struct):
         profile_name = self.profile_name_for_position(profile_pos)
         return type_name, profile_name
 
+    def to_dict(self) -> dict:
+        out = self._to_dict()
+        out['type_names'] = self.type_names
+        out['profile_names'] = self.profile_names
+        return out
+
+    @classmethod
+    def from_dict(cls, src: dict, context: XContext = None) -> 'ApertureModel':
+        return cls(**src, _context=context)
+
 
 class ApertureBounds(xo.Struct):
     count = xo.UInt32

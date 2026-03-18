@@ -356,9 +356,14 @@ void cross_sections_at_s(
     const uint32_t num_cross_sections = SurveyData_len_s(survey_at_s);
     const uint32_t num_bounds = ApertureBounds_get_count(bounds);
 
-    uint32_t bound_idx = 0;
+    #ifdef XO_CONTEXT_CPU
+        int completed = 0;
+    #endif
 
-    for (uint32_t i = 0; i < num_cross_sections; i++) {
+    uint32_t bound_idx = 0;
+    #pragma omp parallel for firstprivate(bound_idx)
+    for (uint32_t i = 0; i < num_cross_sections; i++)
+    {
         const float_type s = SurveyData_get_s(survey_at_s, i);
         Point2D* poly_at_s = (Point2D*)cross_sections + i * num_points;
 
@@ -407,12 +412,6 @@ void cross_sections_at_s(
         */
         const Pose plane_in_world = pose_matrix_from_survey(survey_at_s, i);
         const Pose type_in_world = aperture_type_pose_in_world(type_pos, survey);
-//        Pose type_in_world;
-//        for (int i = 0; i < 4; i++) {
-//            for (int j = 0; j < 4; j++) {
-//                type_in_world.mat[i][j] = TypePosition_get_transformation(type_pos, i, j);
-//            }
-//        }
         const Pose world_in_type = pose_inverse_rigid(type_in_world);
         const Pose plane_in_type = matrix_multiply(world_in_type, plane_in_world);
         const Pose type_in_plane = pose_inverse_rigid(plane_in_type);
@@ -485,7 +484,16 @@ void cross_sections_at_s(
 
             poly_at_s[j] = has_intersection ? hit_point_plane : poly_center_plane[j];
         }
+
+        #ifdef XO_CONTEXT_CPU
+            printf("Interpolating profiles: %d%%\r", 100 * (++completed) / num_cross_sections);
+            fflush(stdout);
+        #endif
     }
+
+    #ifdef XO_CONTEXT_CPU
+        printf("\n");
+    #endif
 }
 
 
