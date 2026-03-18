@@ -112,7 +112,7 @@ class Aperture:
         num_profile_points: int = 128,
         halo_params: Optional[dict] = None,
         context: Optional[XContext] = None,
-        s_tol=1e-3,
+        s_tol=1e-6,
         _skip_validity_check=False,
     ):
         self.line = line
@@ -122,6 +122,10 @@ class Aperture:
         self.s_tol = s_tol
 
         self.survey = line.survey()
+
+        if not _skip_validity_check:
+            self._check_model_validity()
+
         self.survey_data = SurveyData.from_survey_table(self.survey, context=self.context)
         self.num_profile_points = num_profile_points
 
@@ -839,10 +843,30 @@ class Aperture:
         if check_validity:
             self._check_aperture_bounds_validity()
 
-    def _check_aperture_bounds_validity(self):
+    def _check_model_validity(self):
+        for type_pos in self.model.type_positions:
+            survey_ref_name = type_pos.survey_reference_name
+            survey_ref_idx = type_pos.survey_index
+
+            try:
+                survey_at_idx = self.survey.name[survey_ref_idx]
+            except IndexError:
+                survey_at_idx = None
+
+            if survey_at_idx != survey_ref_name:
+                raise ValueError(
+                    f'Aperture model corrupted for type position {type_pos.name}: the associate survey reference name '
+                    f'`{survey_ref_name}` and index `{survey_ref_idx}` do not match. The element of the survey at the '
+                    f'index is {survey_at_idx}.'
+                )
+
+    def _check_aperture_bounds_validity(self, s_tol = 1e-6):
         # Check validity
-        eps = 1e-3  # TODO: yikes!
         last_right = -np.inf
+
+        if self._aperture_bounds.count < 1:
+            raise ValueError('No aperture bounds computed. Is the model empty?')
+
         for idx in range(self._aperture_bounds.count):
             left = self._aperture_bounds.s_start[idx]
             centre = self._aperture_bounds.s_positions[idx]
@@ -852,7 +876,7 @@ class Aperture:
             profile_pos_idx = self._aperture_bounds.profile_position_indices[idx]
             type_name, profile_name = self.model.type_profile_names_for_indices(type_pos_idx, profile_pos_idx)
 
-            if not (centre - left > -eps and right - centre > -eps):
+            if not (centre - left > -s_tol and right - centre > -s_tol):
                 raise ValueError(
                     f'Aperture model corrupted for type {type_name} and profile {profile_name}: the '
                     f'computed s location {centre} is not inside the computed bounds [{left}, {right}]'

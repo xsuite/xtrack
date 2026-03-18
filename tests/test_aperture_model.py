@@ -1089,6 +1089,66 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
     xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
 
 
+@pytest.mark.xfail(
+    reason="Wrapped profile placement across the ring end is not handled correctly in survey_s_for_aperture.",
+    strict=True,
+)
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_large_curved_ring_single_type_wraparound_regression(test_context):
+    env = xt.Environment()
+
+    num_bends = 720
+    bend_angle = np.deg2rad(0.5)
+    ring_length = 30_000.0
+    bend_length = ring_length / num_bends
+    aperture_radius = 0.03
+
+    bend = env.new('bend', xt.Bend, length=bend_length, angle=bend_angle, k0=0)
+    line = env.new_line(name='line', components=[bend] * num_bends)
+    sv = line.survey()
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[num_bends - 1],
+                survey_index=num_bends - 1,
+                # Shift the type forward so the installed profiles should wrap to small s.
+                transformation=transform_matrix(ds=2 * bend_length),
+            )
+        ],
+        types=[
+            ApertureType(
+                curvature=bend_angle / bend_length,
+                positions=[
+                    ProfilePosition(profile_index=0, s_position=0.0),
+                    ProfilePosition(profile_index=0, s_position=bend_length),
+                ],
+            )
+        ],
+        profiles=[Profile(shape=Circle(radius=aperture_radius), tol_r=0, tol_x=0, tol_y=0)],
+        type_names=['wrapped_type'],
+        profile_names=['circ0'],
+    )
+
+    ap = Aperture(
+        line=line,
+        model=model,
+        num_profile_points=64,
+        context=test_context,
+        _skip_validity_check=True,
+    )
+
+    bounds_table = ap.get_bounds_table()
+    expected_s = np.array([bend_length, 2 * bend_length], dtype=FloatType._dtype)
+
+    assert np.all(np.isfinite(bounds_table.s))
+    xo.assert_allclose(bounds_table.s, expected_s, atol=1e-3, rtol=0)
+    xo.assert_allclose(bounds_table.s_start, expected_s, atol=1e-3, rtol=0)
+    xo.assert_allclose(bounds_table.s_end, expected_s, atol=1e-3, rtol=0)
+
+
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     env = xt.Environment()

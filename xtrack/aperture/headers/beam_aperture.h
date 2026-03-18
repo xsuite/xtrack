@@ -254,7 +254,7 @@ char _points_inside_polygon(const float_type* points, const float_type* poly_poi
 
 
 float_type compute_max_aperture_sigma_bisection(
-    BeamLocalData *beam_data,  // TODO: NOT THREAD SAFE if beam_data is shared!!!
+    BeamLocalData *beam_data,
     const TwissLocalData *twiss_data,
     const BeamApertureLocalData *aperture_data,
     int len_points,
@@ -422,10 +422,18 @@ void compute_max_aperture_sigma(
         sigmas[idx_slice] = num_sigmas;
 
         #ifdef XO_CONTEXT_CPU
-            printf("Computing sigmas: %d%%\r", 100 * (++completed) / num_slices);
-            fflush(stdout);
+            #pragma omp critical
+            {
+                completed++;
+                printf("Computing sigmas: %d%%\r", 100 * completed / num_slices);
+                fflush(stdout);
+            }
         #endif
     }
+
+    #ifdef XO_CONTEXT_CPU
+        printf("\n");
+    #endif
 }
 
 
@@ -485,10 +493,18 @@ void compute_beam_envelopes_at_sigma(
         );
 
         #ifdef XO_CONTEXT_CPU
-            printf("Computing beam envelopes: %d%%\r", 100 * (++completed) / num_slices);
-            fflush(stdout);
+            #pragma omp critical
+            {
+                completed++;
+                printf("Computing beam envelopes: %d%%\r", 100 * completed / num_slices);
+                fflush(stdout);
+            }
         #endif
     }
+
+    #ifdef XO_CONTEXT_CPU
+        printf("\n");
+    #endif
 }
 
 
@@ -646,10 +662,18 @@ void compute_max_aperture_sigma_rays(
         }
 
         #ifdef XO_CONTEXT_CPU
-            printf("Computing sigmas: %d%%\r", 100 * (++completed) / num_slices);
-            fflush(stdout);
+            #pragma omp critical
+            {
+                completed++;
+                printf("Computing sigmas: %d%%\r", 100 * completed / num_slices);
+                fflush(stdout);
+            }
         #endif
     }
+
+    #ifdef XO_CONTEXT_CPU
+        printf("\n");
+    #endif
 }
 
 #endif /* XTRACK_BEAM_APERTURE_H */
