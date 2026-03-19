@@ -1405,9 +1405,6 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
 
         xo.assert_allclose(sec_ref, np.roll(sec_cur, -best_shift, axis=0), atol=1e-6, rtol=0)
 
-    # import matplotlib.pyplot as plt
-    # for ii in range(33):
-
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
@@ -1452,9 +1449,60 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
     sections, _ = ap.cross_sections_at_s(s_samples)
 
     xo.assert_allclose(sections[:, 0, :], sections[:, -1, :], atol=1e-12, rtol=0)
-    #     plt.title(f'Sample {ii}')
-    #     plt.plot(sections_curv[ii, :, 0], sections_curv[ii, :, 1], label='curv')
-    #     plt.plot(sections_straight[ii, :, 0], sections_straight[ii, :, 1], linestyle='dashed', label='straight')
-    #     plt.legend()
-    #     plt.gca().set_aspect('equal')
-    #     plt.show()
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
+    env = xt.Environment()
+
+    l = 1.0
+    dx = 1.0
+    angle = np.deg2rad(30.0)
+    l_straight = dx / np.sin(angle / 2)
+    rho = 0.5 * l_straight / np.sin(angle / 2)
+    l_curv = rho * angle
+
+    drift = env.new('drift', xt.Drift, length=l)
+    rot_plus = env.new('rot_plus', xt.Bend, length=l_curv, angle=angle, k0=0)
+    rot_minus = env.new('rot_minus', xt.Bend, length=l_curv, angle=-angle, k0=0)
+    line = env.new_line(name='line', components=[drift, rot_plus, drift, drift, rot_minus, drift])
+    sv = line.survey()
+
+    circle = Circle(radius=2.0)
+    rectangle = Rectangle(half_width=2.0, half_height=1.0)
+    profiles = [
+        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+    ]
+    types = [
+        ApertureType(curvature=0.0, positions=[
+            ProfilePosition(profile_index=1, s_position=0.0, rot_s=np.deg2rad(15.0)),
+            ProfilePosition(profile_index=1, s_position=5.5, rot_s=np.deg2rad(90.0)),
+            ProfilePosition(profile_index=0, s_position=11.0, rot_x=np.deg2rad(10.0)),
+        ]),
+    ]
+    type_positions = [
+        TypePosition(
+            type_index=0,
+            survey_reference_name='drift::0',
+            survey_index=sv.name.tolist().index('drift::0'),
+            transformation=transform_matrix(dx=-1.5),
+        ),
+    ]
+    model = ApertureModel(
+        line_name='line',
+        type_positions=type_positions,
+        types=types,
+        profiles=profiles,
+        type_names=['type0'],
+        profile_names=['circle', 'rectangle'],
+    )
+
+    ap = Aperture(line, model, context=test_context)
+    bounds_table = ap.get_bounds_table()
+
+    assert np.all(np.isfinite(bounds_table.s))
+    assert np.all(np.isfinite(bounds_table.s_start))
+    assert np.all(np.isfinite(bounds_table.s_end))
+    assert np.all(bounds_table.s_start <= bounds_table.s)
+    assert np.all(bounds_table.s <= bounds_table.s_end)
