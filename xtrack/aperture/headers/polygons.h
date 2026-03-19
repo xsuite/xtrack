@@ -353,6 +353,7 @@ void cross_sections_at_s(
 {
     const float_type eps = APER_PRECISION;
     const uint32_t num_points = ProfilePolygons_get_num_points(profile_polys);
+    const uint32_t num_unique_points = num_points - 1;
     const uint32_t num_cross_sections = SurveyData_len_s(survey_at_s);
     const uint32_t num_bounds = ApertureBounds_get_count(bounds);
 
@@ -450,12 +451,16 @@ void cross_sections_at_s(
             continue;
         }
 
-        const uint32_t shift_center_left = has_left ? find_best_cyclic_shift_plane(poly_center_plane, poly_left_plane, num_points) : 0;
-        const uint32_t shift_center_right = has_right ? find_best_cyclic_shift_plane(poly_center_plane, poly_right_plane, num_points) : 0;
+        const uint32_t shift_center_left = has_left
+            ? find_best_cyclic_shift_plane(poly_center_plane, poly_left_plane, num_unique_points)
+            : 0;
+        const uint32_t shift_center_right = has_right
+            ? find_best_cyclic_shift_plane(poly_center_plane, poly_right_plane, num_unique_points)
+            : 0;
         const char prefer_right = (s >= s_center);
 
         /* Interpolate */
-        for (uint32_t j = 0; j < num_points; j++) {
+        for (uint32_t j = 0; j < num_unique_points; j++) {
             char has_intersection = 0;
             Point2D hit_point_plane = (Point2D){ .x = NAN, .y = NAN };
 
@@ -469,8 +474,8 @@ void cross_sections_at_s(
                 const Pose* pose_b = use_right ? &pose_right : &pose_center;
                 const Point2D* poly_a = use_right ? poly_center : poly_left;
                 const Point2D* poly_b = use_right ? poly_right : poly_center;
-                const uint32_t idx_a = use_right ? j : (j + shift_center_left) % num_points;
-                const uint32_t idx_b = use_right ? (j + shift_center_right) % num_points : j;
+                const uint32_t idx_a = use_right ? j : (j + shift_center_left) % num_unique_points;
+                const uint32_t idx_b = use_right ? (j + shift_center_right) % num_unique_points : j;
                 const float_type curvature = use_right ? curvature_right : curvature_left;
 
                 const Point3D point_a_type = pose_apply_point(
@@ -484,6 +489,7 @@ void cross_sections_at_s(
 
             poly_at_s[j] = has_intersection ? hit_point_plane : poly_center_plane[j];
         }
+        poly_at_s[num_points - 1] = poly_at_s[0];
 
         #ifdef XO_CONTEXT_CPU
             printf("Interpolating profiles: %d%%\r", 100 * (++completed) / num_cross_sections);

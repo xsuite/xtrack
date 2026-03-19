@@ -1343,6 +1343,51 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
 
     # import matplotlib.pyplot as plt
     # for ii in range(33):
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
+    env = xt.Environment()
+    angle = np.deg2rad(35.0)
+    length = 3.2
+
+    bend = env.new('bend', xt.Bend, length=length, angle=angle)
+    line = env.new_line(name='line', components=[bend])
+    sv = line.survey()
+
+    rectangle = Rectangle(half_width=0.4, half_height=1.9)
+    circle = Circle(radius=1.4)
+    profiles = [
+        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=1, s_position=length),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name='bend',
+                survey_index=list(sv.name).index('bend'),
+                transformation=np.identity(4),
+            ),
+        ],
+        types=[ApertureType(curvature=angle / length, positions=profile_positions)],
+        profiles=profiles,
+        type_names=['type_curv'],
+        profile_names=['rect0', 'circ0'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
+
+    s_samples = np.linspace(0.1, length - 0.1, 33, dtype=FloatType._dtype)
+    sections, _ = ap.cross_sections_at_s(s_samples)
+
+    xo.assert_allclose(sections[:, 0, :], sections[:, -1, :], atol=1e-12, rtol=0)
     #     plt.title(f'Sample {ii}')
     #     plt.plot(sections_curv[ii, :, 0], sections_curv[ii, :, 1], label='curv')
     #     plt.plot(sections_straight[ii, :, 0], sections_straight[ii, :, 1], linestyle='dashed', label='straight')
