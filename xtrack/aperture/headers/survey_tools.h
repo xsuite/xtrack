@@ -45,6 +45,18 @@ inline Point3D survey_point(SurveyData survey, uint32_t idx) {
 }
 
 
+inline uint8_t survey_is_closed(const SurveyData survey) {
+    const uint32_t survey_num_entries = SurveyData_len_s(survey);
+    if (survey_num_entries < 2) return 0;
+
+    const Point3D start = survey_point(survey, 0);
+    const Point3D end = survey_point(survey, survey_num_entries - 1);
+    const Point3D delta = point3d_sub(end, start);
+    const float_type dist_sq = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
+    return dist_sq < APER_PRECISION * APER_PRECISION;
+}
+
+
 inline LineSegment3D survey_line_segment(SurveyData survey, uint32_t idx) {
     const Point3D entry = survey_point(survey, idx);
     const Point3D exit = survey_point(survey, idx + 1);

@@ -607,6 +607,7 @@ static inline float_type survey_s_for_aperture(
     const float_type eps = APER_PRECISION;
     const uint32_t num_survey_entries = SurveyData_len_s(survey);
     const uint32_t survey_idx = TypePosition_get_survey_index(type_pos);
+    const uint8_t wrap = survey_is_closed(survey);
 
     // Transformation from plane (s = 0) -> world
     Pose plane_in_world;
@@ -620,7 +621,7 @@ static inline float_type survey_s_for_aperture(
     float_type found_s = NAN;
     float_type last_t_right = NAN;
     float_type last_t_left = NAN;
-    ZigZagIterator it = zigzag_iterator_new(survey_idx, num_survey_entries - 1);
+    ZigZagIterator it = zigzag_iterator_new(survey_idx, num_survey_entries - 1, wrap);
     do
     {
         Segment3D segment = survey_segment(survey, it.index);
@@ -684,6 +685,7 @@ static inline void bounds_on_s_for_aperture(
 {
     const float_type eps = APER_PRECISION;
     const uint32_t num_survey_entries = SurveyData_len_s(survey);
+    const uint8_t wrap = survey_is_closed(survey);
 
     // Transformation profile local -> world frame
     Pose profile_in_world;
@@ -708,7 +710,7 @@ static inline void bounds_on_s_for_aperture(
             It's likely that survey segment at the installed s is where the bounds are, however this
             might not be always the case. So we test other segments working our way outwards in both directions.
         */
-        ZigZagIterator it = zigzag_iterator_new(installed_survey_index, num_survey_entries - 1);
+        ZigZagIterator it = zigzag_iterator_new(installed_survey_index, num_survey_entries - 1, wrap);
         do
         {
             const Segment3D seg = survey_segment(survey, it.index);

@@ -6,27 +6,30 @@ typedef struct {
     int32_t offset;
     int32_t start;
     int32_t upper_bound;
+    int32_t visited;
+    uint8_t wrap;
 } ZigZagIterator;
 
 
-ZigZagIterator zigzag_iterator_new(uint32_t start, uint32_t upper_bound)
+ZigZagIterator zigzag_iterator_new(uint32_t start, uint32_t upper_bound, uint8_t wrap)
 /*
     Return a new zigzag iterator: already pointing to `start`, which must be in `[0, upper_bound)`.
 
-    The iterator's `.index` property points to the current index, and iterates within
-    `[0, upper_bound)` wrapping around the edges of the interval.
+    The iterator's `.index` property points to the current index, and iterates within `[0, upper_bound)`,
+    either wrapping around the edges of the interval or stopping at the boundaries, according to `wrap`.
 */
 {
     return (ZigZagIterator) {
         .index = start,
         .offset = 0,
         .start = start,
-        .upper_bound = upper_bound
+        .upper_bound = upper_bound,
+        .wrap = wrap,
     };
 }
 
 
-uint8_t zigzag_iterator_next(ZigZagIterator* iter)
+static inline uint8_t zigzag_iterator_next_wrapping(ZigZagIterator* iter)
 /*
     Advance the zigzag iterator to the next index.
 
@@ -62,7 +65,7 @@ uint8_t zigzag_iterator_next(ZigZagIterator* iter)
     }
     else if (iter->offset > 0) {
         /* Positive side -> negative side */
-        if (iter->offset == span / 2) return 0;
+        if (2 * iter->offset == span) return 0;
         next_offset = -iter->offset;
     }
     else {
@@ -79,6 +82,62 @@ uint8_t zigzag_iterator_next(ZigZagIterator* iter)
     iter->offset = next_offset;
     iter->index = rel_index;
     return 1;
+}
+
+
+static inline uint8_t zigzag_iterator_next_bounded(ZigZagIterator* iter)
+/*
+    Advance the zigzag iterator to the next index.
+
+    The iterator alternates outward: start, start+1, start-1, start+2, start-2, ...
+    When one side reaches a bound, iteration continues only on the remaining side
+    until all indices in [0, upper_bound) are exhausted.
+
+    Returns
+    -------
+      1 if the iterator was successfully advanced and `iter->index` is valid.
+      0 if the iterator is exhausted, and cannot be advanced anymore.
+ */
+{
+    int32_t prev_index = iter->index;
+
+    if (iter->offset == 0) {
+        /* Initial condition */
+        iter->offset++;
+        iter->index++;
+    }
+    else if (iter->offset > 0) {
+        /* Positive side -> negative side */
+        iter->index -= 2 * iter->offset;
+
+        if (iter->index < 0) {
+            /* Hit the lower bound, continue the positive side */
+            iter->index = prev_index + 1;
+            iter->offset++;
+        }
+        else iter->offset *= -1;
+    }
+    else if (iter->offset < 0) {
+        /* Negative side -> positive side + 1 */
+        iter->index += -2 * iter->offset + 1;
+        if (iter->index >= iter->upper_bound) {
+            /* Hit the upper bound, continue the negative side */
+            iter->index = prev_index - 1;
+            iter->offset--;
+        }
+        else iter->offset = 1 - iter->offset;
+    }
+
+    /* If still not in the bounds, means we've exhausted the iterator */
+    if (iter->index < 0 || iter->upper_bound <= iter->index) return 0;
+    else return 1;
+}
+
+
+uint8_t zigzag_iterator_next(ZigZagIterator* iter)
+{
+    if (iter->wrap) return zigzag_iterator_next_wrapping(iter);
+    else return zigzag_iterator_next_bounded(iter);
 }
 
 #endif /* XTRACK_ZIGZAG_ITERATE_H */
