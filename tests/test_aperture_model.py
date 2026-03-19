@@ -93,6 +93,70 @@ def test_from_line_with_aperture_type_bounds(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_zigzag_iterator_wrap_and_bounds(test_context):
+    ZIGZAG_TEST_SOURCE = r"""
+        #include "xtrack/aperture/headers/zigzag_iterate.h"
+
+        void fill_zigzag_sequence(
+            uint32_t start,
+            uint32_t upper_bound,
+            int8_t wrap,
+            int32_t* out,
+            uint32_t len_out
+        ) {
+            ZigZagIterator it = zigzag_iterator_new(start, upper_bound, wrap);
+
+            uint32_t i_out = 0;
+            if (len_out == 0) return;
+
+            out[i_out++] = it.index;
+            while (i_out < len_out && zigzag_iterator_next(&it)) {
+                out[i_out++] = it.index;
+            }
+
+            while (i_out < len_out) {
+                out[i_out++] = -1;
+            }
+        }
+    """
+
+    test_context.add_kernels(
+        sources=[ZIGZAG_TEST_SOURCE],
+        kernels={
+            'fill_zigzag_sequence': xo.Kernel(
+                c_name='fill_zigzag_sequence',
+                args=[
+                    xo.Arg(xo.UInt32, name='start'),
+                    xo.Arg(xo.UInt32, name='upper_bound'),
+                    xo.Arg(xo.Int8, name='wrap'),
+                    xo.Arg(xo.Int32, pointer=True, name='out'),
+                    xo.Arg(xo.UInt32, name='len_out'),
+                ],
+            ),
+        },
+    )
+    zigzag_test_kernel = test_context.kernels['fill_zigzag_sequence']
+
+    # Test odd cases
+    out = np.zeros(5, dtype=np.int32)
+
+    zigzag_test_kernel(start=4, upper_bound=5, wrap=1, out=out, len_out=len(out))
+    assert all(out == [4, 0, 3, 1, 2])
+
+    zigzag_test_kernel(start=2, upper_bound=5, wrap=0, out=out, len_out=len(out))
+    assert all(out == [2, 3, 1, 4, 0])
+
+    # Test even cases
+    out = np.zeros(6, dtype=np.int32)
+
+    zigzag_test_kernel(start=4, upper_bound=6, wrap=1, out=out, len_out=len(out))
+    assert all(out == [4, 5, 3, 0, 2, 1])
+
+    zigzag_test_kernel(start=4, upper_bound=6, wrap=0, out=out, len_out=len(out))
+    assert all(out == [4, 5, 3, 2, 1, 0])
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_from_line_with_associated_apertures_type_bounds(test_context):
     env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
     env.set_particle_ref('proton', p0c=1.2e9)
