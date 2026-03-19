@@ -3,8 +3,8 @@ import numpy as np
 
 sf = SolenoidField(L=3., a=0.2, B0=2., z0=0)
 
-theta = -0.015 * 5
-s = np.linspace(-4, 4, 21)
+theta = -0.015
+s = np.linspace(-4, 4, 201)
 
 s_sol = s * np.cos(theta)
 x_sol = s * np.sin(theta)
@@ -52,6 +52,18 @@ for ii in range(len(s)-1):
     )
     ele_names.append(f'sol_slice_{ii}')
 
+line_solenoid = env.new_line(components=ele_names)
+line_solenoid.set_particle_ref('ref_part')
+
+tw = line_solenoid.twiss4d(betx=1, bety=1)
+
+fcc = env.new_line(length=100, components=[
+    env.new('ip', xt.Marker, at=50)
+])
+
+fcc.insert(line_solenoid, anchor='center', at=0, from_='ip')
+
+fcc.select('ip', "sol_slice_183").get_table()
 
 import matplotlib.pyplot as plt
 plt.close('all')
