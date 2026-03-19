@@ -168,7 +168,7 @@ RayHit_s dist_to_poly_along_ray(
             if (t >= 0 && t < best) {
                 best = fabs(t);
                 best_idx = i;
-                if (!convex) break;
+                if (convex) break;
             }
         } else {
             // Parallel case
@@ -194,7 +194,7 @@ RayHit_s dist_to_poly_along_ray(
             if (col_best < best) {
                 best = col_best;
                 best_idx = i;
-                if (!convex) break;
+                if (convex) break;
             }
         }
     }
@@ -210,7 +210,7 @@ void dist_to_poly_along_rays(
     float_type y0,
     const Point2D *poly,
     int len_poly,
-    int convex,
+    char convex,
     float_type *out_dists
 )
 /*  Find the distance from (x0, y0) to the polygon boundary along rays going in directions thetas.
