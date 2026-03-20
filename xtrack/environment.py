@@ -2143,7 +2143,11 @@ class EnvVars:
                 if ee is None:
                     expr.append(None)
                 else:
-                    expr.append(ee._formatted(formatter))
+                    try:
+                        repr_expr = ee._formatted(formatter)
+                    except Exception:
+                        repr_expr = '__NOT_REPRESENTABLE__'
+                    expr.append(repr_expr)
         else:
             expr  = [self.env._xdeps_vref[str(kk)]._expr for kk in name]
             for ii, ee in enumerate(expr):
