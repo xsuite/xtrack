@@ -242,4 +242,49 @@ void dist_to_poly_along_rays(
     }
 }
 
+
+void convolve_poly_and_segment(
+    Point2D* poly,
+    const int len_poly,
+    const Point2D d
+) {
+    const float_type eps = 1e-6;
+
+    if (!poly || len_poly < 3) return;
+
+    Point2D a = poly[0];
+
+    for (int i = 0; i < len_poly - 1; ++i) {
+        const int j = (i + 1) % len_poly;
+        const Point2D b = poly[j];
+        const Point2D e = point2d_sub(b, a);
+
+        const float_type c = point2d_cross(d, e);
+        const float_type s = point2d_dot(e, d);
+
+        Point2D out = a;
+
+        if (c > eps) {
+            out.x += d.x;
+            out.y += d.y;
+        } else if (c < -eps) {
+            out.x -= d.x;
+            out.y -= d.y;
+        } else {
+            if (s >= 0) {
+                out.x -= d.x;
+                out.y -= d.y;
+            } else {
+                out.x += d.x;
+                out.y += d.y;
+            }
+        }
+
+        poly[i] = out;
+        a = b;
+    }
+
+    poly[len_poly - 1] = poly[0];
+}
+
 #endif /* POLYGON_ALGS */

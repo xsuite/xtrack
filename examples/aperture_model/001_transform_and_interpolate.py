@@ -60,8 +60,11 @@ model = ApertureModel(
     profile_names=['circle', 'rectangle'],
 )
 
+line_sliced = line.copy()
+line_sliced.cut_at_s(np.linspace(0, line_sliced.get_length(), 100))
+sv_sliced = line_sliced.survey()
 ax = plt.figure().add_subplot(projection='3d')
-ax.plot(sv.Z, sv.X, sv.Y, c='b')
+ax.plot(sv_sliced.Z, sv_sliced.X, sv_sliced.Y, c='b')
 ax.set_xlabel('Z [m]')
 ax.set_ylabel('X [m]')
 ax.set_zlabel('Y [m]')
