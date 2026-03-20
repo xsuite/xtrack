@@ -1,0 +1,1508 @@
+from itertools import zip_longest
+
+import numpy as np
+import pytest
+import xobjects as xo
+from cpymad.madx import Madx
+from xobjects.test_helpers import for_all_test_contexts
+
+import xtrack as xt
+from xtrack.aperture.aperture import Aperture, transform_matrix
+from xtrack.aperture.kernels import build_aperture_kernels
+from xtrack.aperture.structures import (
+    ApertureModel,
+    ApertureType,
+    Circle,
+    Ellipse,
+    FloatType,
+    Profile,
+    ProfilePosition,
+    Rectangle,
+    RectEllipse,
+    TypePosition
+)
+
+TOY_RING_SEQUENCE = """
+    ! Toy Ring, 4 arcs
+
+    l_arc = 3;  ! length of the arc
+    l_quad = 0.3;  ! length of the quads
+    l_drift = 1;  ! length of the straight section drifts
+
+    qf = 0.1;  ! qf strength
+    qd = -0.7;  ! qd strength
+    angle_arc = pi / 2;  ! arcs 90°
+
+    mb: sbend, angle = angle_arc, l = l_arc, apertype=circle, aperture={0.1}, aper_offset={0.003, 0};
+    mqf: quadrupole, k1 = qf, l = l_quad, apertype=rectangle, aperture={0.08, 0.04};
+    mqd: quadrupole, k1 = qd, l = l_quad, apertype=ellipse, aperture={0.04, 0.08};
+    ds: drift, l = l_drift;
+    ap_ds: marker, apertype=rectellipse, aperture={0.022, 0.01715, 0.022, 0.022}, aper_tol={9e-4, 8e-4, 5e-4};
+    dsa: line = (ap_ds, ds, ap_ds);
+
+    ss_f: line = (dsa, mqf, dsa);
+    ss_d: line = (dsa, mqd, dsa);
+
+    ring: line = (ss_f, mb, ss_d, mb, ss_f, mb, ss_d, mb);
+
+    beam, particle=proton, pc=1.2e9;
+    use, period=ring;
+"""
+
+
+@pytest.fixture(scope='module')
+def context():
+    return xo.ContextCpu()
+
+
+@pytest.fixture(scope="module")
+def kernels(context):
+    build_aperture_kernels(context)
+    return context.kernels
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_from_line_with_aperture_type_bounds(test_context):
+    mad = Madx(stdout=None)
+    mad.input(TOY_RING_SEQUENCE)
+    env = xt.Environment.from_madx(madx=mad, enable_layout_data=True)
+    ring = env['ring']
+
+    aperture_model = Aperture.from_line_with_madx_metadata(ring, context=test_context)
+    type_bounds = aperture_model._type_bounds()
+    type_name_bounds = [(a, b, aperture_model.model.type_name_for_position(c) if c else None) for a, b, c in type_bounds]
+    table_rows = ring.get_table().cols['s_start', 's_end', 'name', 'element_type'].rows[1:-2].rows # trim MAD-X endpoints
+
+    for type_bound, table_row in zip_longest(type_name_bounds, table_rows):
+        type_start = type_bound[0]
+        type_end = type_bound[1]
+        type_name = type_bound[2]
+
+        element_start = table_row.s_start
+        element_end = table_row.s_end
+        element_name = table_row.name
+
+        xo.assert_allclose(element_start, type_start, atol=1e-6)
+        xo.assert_allclose(element_end, type_end, atol=1e-6)
+
+        if table_row.element_type == 'Drift':  # MAD-X won't allow apertures on drifts, so these shouldn't have bounds
+            assert type_name is None
+            continue
+
+        assert element_name.startswith(type_name)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_zigzag_iterator_wrap_and_bounds(test_context):
+    ZIGZAG_TEST_SOURCE = r"""
+        #include "xtrack/aperture/headers/zigzag_iterate.h"
+
+        void fill_zigzag_sequence(
+            uint32_t start,
+            uint32_t upper_bound,
+            int8_t wrap,
+            int32_t* out,
+            uint32_t len_out
+        ) {
+            ZigZagIterator it = zigzag_iterator_new(start, upper_bound, wrap);
+
+            uint32_t i_out = 0;
+            if (len_out == 0) return;
+
+            out[i_out++] = it.index;
+            while (i_out < len_out && zigzag_iterator_next(&it)) {
+                out[i_out++] = it.index;
+            }
+
+            while (i_out < len_out) {
+                out[i_out++] = -1;
+            }
+        }
+    """
+
+    test_context.add_kernels(
+        sources=[ZIGZAG_TEST_SOURCE],
+        kernels={
+            'fill_zigzag_sequence': xo.Kernel(
+                c_name='fill_zigzag_sequence',
+                args=[
+                    xo.Arg(xo.UInt32, name='start'),
+                    xo.Arg(xo.UInt32, name='upper_bound'),
+                    xo.Arg(xo.Int8, name='wrap'),
+                    xo.Arg(xo.Int32, pointer=True, name='out'),
+                    xo.Arg(xo.UInt32, name='len_out'),
+                ],
+            ),
+        },
+    )
+    zigzag_test_kernel = test_context.kernels['fill_zigzag_sequence']
+
+    # Test odd cases
+    out = np.zeros(5, dtype=np.int32)
+
+    zigzag_test_kernel(start=4, upper_bound=5, wrap=1, out=out, len_out=len(out))
+    assert all(out == [4, 0, 3, 1, 2])
+
+    zigzag_test_kernel(start=2, upper_bound=5, wrap=0, out=out, len_out=len(out))
+    assert all(out == [2, 3, 1, 4, 0])
+
+    # Test even cases
+    out = np.zeros(6, dtype=np.int32)
+
+    zigzag_test_kernel(start=4, upper_bound=6, wrap=1, out=out, len_out=len(out))
+    assert all(out == [4, 5, 3, 0, 2, 1])
+
+    zigzag_test_kernel(start=4, upper_bound=6, wrap=0, out=out, len_out=len(out))
+    assert all(out == [4, 5, 3, 2, 1, 0])
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_from_line_with_associated_apertures_type_bounds(test_context):
+    env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
+    env.set_particle_ref('proton', p0c=1.2e9)
+    ring = env['ring']
+
+    aperture_model = Aperture.from_line_with_associated_apertures(ring, context=test_context)
+    type_bounds = aperture_model._type_bounds()
+    type_name_bounds = [(a, b, aperture_model.model.type_name_for_position(c) if c else None) for a, b, c in type_bounds]
+    table_rows = ring.get_table().cols['s_start', 's_end', 'name', 'element_type'].rows[:-1].rows
+
+    for type_bound, table_row in zip_longest(type_name_bounds, table_rows):
+        type_start = type_bound[0]
+        type_end = type_bound[1]
+        type_name = type_bound[2]
+
+        element_start = table_row.s_start
+        element_end = table_row.s_end
+        element_name = table_row.name
+
+        xo.assert_allclose(element_start, type_start, atol=1e-6)
+        xo.assert_allclose(element_end, type_end, atol=1e-6)
+
+        if table_row.element_type == 'Drift':  # MAD-X won't allow apertures on drifts, so these shouldn't have bounds
+            assert type_name is None
+            continue
+
+        # element names in survey have ::N at the end, we make the check disregarding the suffix:
+        prototype_name, suffix = element_name.split('::')
+        _ = int(suffix)
+        assert type_name.startswith(prototype_name)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_from_line_with_limits_type_bounds(test_context):
+    env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=True)
+    env.set_particle_ref('proton', p0c=1.2e9)
+    ring = env['ring']
+
+    aperture_model = Aperture.from_line_with_limits(ring, context=test_context)
+    type_bounds = aperture_model._type_bounds()
+    type_name_bounds_only_limits = [(a, b, aperture_model.model.type_name_for_position(c)) for a, b, c in type_bounds if c]
+
+    bounds_from_table = []
+    for row in ring.get_table().rows:
+        if row.element_type.startswith('Limit'):
+            bounds_from_table.append((row.s_start, row.s_end, row.name))
+
+    for type_bound, table_bound in zip_longest(type_name_bounds_only_limits, bounds_from_table):
+        type_start = type_bound[0]
+        type_end = type_bound[1]
+        type_name = type_bound[2]
+
+        element_start = table_bound[0]
+        element_end = table_bound[1]
+        element_name = table_bound[2]
+
+        xo.assert_allclose(element_start, type_start, atol=1e-6)
+        xo.assert_allclose(element_end, type_end, atol=1e-6)
+        assert element_name.startswith(type_name)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_find_type_positions_perfect_overlap(test_context):
+    env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
+    env.set_particle_ref('proton', p0c=1.2e9)
+    ring = env['ring']
+
+    aperture_model = Aperture.from_line_with_associated_apertures(ring, context=test_context)
+
+    mqf0, = aperture_model._find_type_positions(1, 1.3)
+    assert mqf0.survey_reference_name == 'mqf::0'
+
+    mqf0_name = aperture_model.model.type_name_for_position(mqf0)
+    assert mqf0_name == 'mqf_aper'
+
+    mqf0_type = aperture_model.model.type_for_position(mqf0)
+    mqf0_profile_names = [aperture_model.model.profile_name_for_position(pos) for pos in mqf0_type.positions]
+    assert mqf0_profile_names == ['mqf_aper', 'mqf_aper']
+
+    mqf0_prof_pos0, mqf0_prof_pos1 = mqf0_type.positions
+    assert mqf0_prof_pos0.s_position == 0.
+    assert mqf0_prof_pos1.s_position == 0.3
+    assert mqf0_prof_pos0.shift_x == mqf0_prof_pos0.shift_y == mqf0_prof_pos1.shift_x == mqf0_prof_pos1.shift_y == 0.
+
+    mqf0_profile_start, mqf0_profile_end = [aperture_model.model.profile_for_position(pos) for pos in mqf0_type.positions]
+    assert isinstance(mqf0_profile_start.shape, Rectangle)
+    assert mqf0_profile_start.shape.half_width == mqf0_profile_end.shape.half_width == 0.08
+    assert mqf0_profile_start.shape.half_height == mqf0_profile_end.shape.half_height == 0.04
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_find_type_positions_partially_spanning_multiple_types(test_context):
+    env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
+    env.set_particle_ref('proton', p0c=1.2e9)
+    ring = env['ring']
+
+    aperture_model = Aperture.from_line_with_associated_apertures(ring, context=test_context)
+
+    overlapping = aperture_model._find_type_positions(8, 11.8)
+    mb1, ap_ds8, ap_ds9, mqf1 = overlapping
+
+    # Check the bend
+    assert mb1.survey_reference_name == 'mb::1'
+
+    mb1_name = aperture_model.model.type_name_for_position(mb1)
+    assert mb1_name == 'mb_aper'
+
+    mb1_type = aperture_model.model.type_for_position(mb1)
+    xo.assert_allclose(mb1_type.curvature, ring['mb'].h, atol=1e-6)
+    mb1_profile_names = [aperture_model.model.profile_name_for_position(pos) for pos in mb1_type.positions]
+    assert mb1_profile_names == ['mb_aper', 'mb_aper']
+
+    mb1_prof_pos0, mb1_prof_pos1 = mb1_type.positions
+    assert mb1_prof_pos0.s_position == 0.
+    assert mb1_prof_pos1.s_position == 3.
+    assert mb1_prof_pos0.shift_x == mb1_prof_pos0.shift_y == mb1_prof_pos1.shift_x == mb1_prof_pos1.shift_y == 0.
+
+    mb1_profile_start, mb1_profile_end = [aperture_model.model.profile_for_position(pos) for pos in mb1_type.positions]
+    assert isinstance(mb1_profile_start.shape, Ellipse)
+    assert mb1_profile_start.shape.half_major == mb1_profile_end.shape.half_major == 0.1
+    assert mb1_profile_start.shape.half_minor == mb1_profile_end.shape.half_minor == 0.1
+
+    # Check the mqf
+    mqf1_name = aperture_model.model.type_name_for_position(mqf1)
+    assert mqf1_name == 'mqf_aper'
+
+    mqf1_type = aperture_model.model.type_for_position(mqf1)
+    mqf1_profile_names = [aperture_model.model.profile_name_for_position(pos) for pos in mqf1_type.positions]
+    assert mqf1_profile_names == ['mqf_aper', 'mqf_aper']
+
+    mqf1_prof_pos0, mqf1_prof_pos1 = mqf1_type.positions
+    assert mqf1_prof_pos0.s_position == 0.
+    assert mqf1_prof_pos1.s_position == 0.3
+    assert mqf1_prof_pos0.shift_x == mqf1_prof_pos0.shift_y == mqf1_prof_pos1.shift_x == mqf1_prof_pos1.shift_y == 0.
+
+    mqf1_profile_start, mqf1_profile_end = [aperture_model.model.profile_for_position(pos) for pos in mqf1_type.positions]
+    assert isinstance(mqf1_profile_start.shape, Rectangle)
+    assert mqf1_profile_start.shape.half_width == mqf1_profile_end.shape.half_width == 0.08
+    assert mqf1_profile_start.shape.half_height == mqf1_profile_end.shape.half_height == 0.04
+
+    # Check the ap_ds
+    ap_ds8_name = aperture_model.model.type_name_for_position(ap_ds8)
+    ap_ds9_name = aperture_model.model.type_name_for_position(ap_ds8)
+    assert ap_ds8_name == ap_ds9_name == 'ap_ds_aper'
+
+    ap_ds8_type = aperture_model.model.type_for_position(ap_ds8)
+    assert ap_ds8.type_index == ap_ds9.type_index
+
+    ap_ds8_profile_names = [aperture_model.model.profile_name_for_position(pos) for pos in ap_ds8_type.positions]
+    assert ap_ds8_profile_names == ['ap_ds_aper']
+
+    ap_ds8_prof_pos0, = ap_ds8_type.positions
+    assert ap_ds8_prof_pos0.s_position == 0.
+    assert ap_ds8_prof_pos0.shift_x == ap_ds8_prof_pos0.shift_y
+
+    ap_ds8_profile_start = aperture_model.model.profile_for_position(ap_ds8_prof_pos0)
+    assert isinstance(ap_ds8_profile_start.shape, RectEllipse)
+    assert ap_ds8_profile_start.shape.half_major == 0.022
+    assert ap_ds8_profile_start.shape.half_minor == 0.022
+    assert ap_ds8_profile_start.shape.half_width == 0.022
+    assert ap_ds8_profile_start.shape.half_height == 0.01715
+
+
+def test_is_point_inside_polygon_ellipse(kernels):
+    rx = 2
+    ry = 3
+    ellipse = [(rx * np.cos(angle), ry * np.sin(angle)) for angle in np.linspace(0, 2 * np.pi, 99)]
+    ellipse.append(ellipse[0])
+    ellipse = np.array(ellipse, dtype=FloatType._dtype)
+
+    @np.vectorize
+    def in_ellipse(x, y):
+        point = np.array([x, y], dtype=FloatType._dtype)
+        return bool(kernels['_is_point_inside_polygon'](point=point, points=ellipse, len_points=ellipse.shape[0]))
+
+    extent = np.linspace(-10, 10, 100)
+    xs, ys = np.meshgrid(extent, extent)
+
+    result = in_ellipse(xs, ys)
+    expected = (xs ** 2 / rx ** 2 + ys ** 2 / ry ** 2 - 1) < 0
+
+    assert not np.all(result) and np.any(result)  # sanity check
+    assert np.all(result == expected)
+
+
+def test_is_point_inside_polygon_path(kernels):
+    # Define a shape that is a rectangle spanning (-1, -1) through (3, 2) minus
+    # a rectangle (1, 0.5) through (2, 2)
+
+    poly = np.array([
+        (1, 2),
+        (1, .5),
+        (2, .5),
+        (2, 2),
+        (3, 2),
+        (3, -1),
+        (-1, -1),
+        (-1, 2),
+        (1, 2),
+    ], dtype=FloatType._dtype)
+
+    @np.vectorize
+    def in_poly(x, y):
+        point = np.array([x, y], dtype=FloatType._dtype)
+        return bool(kernels['_is_point_inside_polygon'](point=point, points=poly, len_points=poly.shape[0]))
+
+    extent = np.linspace(-5, 5, 100)
+    xs, ys = np.meshgrid(extent, extent)
+
+    result = in_poly(xs, ys)
+
+    in_rec1 = (-1 < xs) & (xs < 3) & (-1 < ys) & (ys < 2)
+    in_rec2 = (1 < xs) & (xs < 2) & (0.5 < ys) & (ys < 2)
+    expected = in_rec1 & ~in_rec2
+
+    assert not np.all(result) and np.any(result)  # sanity check
+    assert np.all(result == expected)
+
+
+
+def test_points_inside_polygon_inscribed_circles(kernels):
+    r1 = 0.11
+    r2 = 1
+
+    circ1 = [(r1 * np.cos(angle), r1 * np.sin(angle)) for angle in np.linspace(0, 2 * np.pi, 99)]
+    circ1.append(circ1[0])
+    circ2 = [(r2 * np.cos(angle), r2 * np.sin(angle)) for angle in np.linspace(0, 2 * np.pi, 99)]
+    circ2.append(circ2[0])
+
+    circ1 = np.array(circ1, dtype=FloatType._dtype)
+    circ2 = np.array(circ2, dtype=FloatType._dtype)
+
+    small_in_big = kernels["_points_inside_polygon"](
+        points=circ1,
+        poly_points=circ2,
+        len_points=circ1.shape[0],
+        len_poly_points=circ2.shape[0],
+    )
+
+    assert bool(small_in_big)
+
+    big_in_small = kernels["_points_inside_polygon"](
+        points=circ2,
+        poly_points=circ1,
+        len_points=circ2.shape[0],
+        len_poly_points=circ1.shape[0],
+    )
+
+    assert not bool(big_in_small)
+
+
+def test_points_inside_polygon_simple(kernels):
+    poly_big = [(1, 1), (2, 3.5), (4.5, 3.5), (4.5, 1), (1, 1)]
+    poly_small = [(2, 2), (3, 3), (4, 2), (3, 1.5), (2, 2)]
+
+    poly_big = np.array(poly_big, dtype=FloatType._dtype)
+    poly_small = np.array(poly_small, dtype=FloatType._dtype)
+
+    small_in_big = kernels["_points_inside_polygon"](
+        points=poly_small,
+        poly_points=poly_big,
+        len_points=poly_small.shape[0],
+        len_poly_points=poly_big.shape[0],
+    )
+
+    assert bool(small_in_big)
+
+    big_in_small = kernels["_points_inside_polygon"](
+        points=poly_big,
+        poly_points=poly_small,
+        len_points=poly_big.shape[0],
+        len_poly_points=poly_small.shape[0],
+    )
+
+    assert not bool(big_in_small)
+
+
+def test_points_inside_polygon_simpler(kernels):
+    poly_big = np.array([
+        [1.0000000e+00, 0.0000000e+00],
+        [-5.0000006e-01, 8.6602539e-01],
+        [-4.9999991e-01, -8.6602545e-01],
+        [1.0000000e+00, 0.0000000e+00],
+    ], dtype=FloatType._dtype)
+    poly_small = np.array([
+        [1.1466468e-01, 0.0000000e+00],
+        [-5.7332322e-02, 9.9302538e-02],
+        [-5.7332378e-02, -9.9302508e-02],
+        [1.1466468e-01, 0.0000000e+00],
+    ], dtype=FloatType._dtype)
+
+    small_in_big = kernels["_points_inside_polygon"](
+        points=poly_small,
+        poly_points=poly_big,
+        len_points=poly_small.shape[0],
+        len_poly_points=poly_big.shape[0],
+    )
+
+    assert bool(small_in_big)
+
+    big_in_small = kernels["_points_inside_polygon"](
+        points=poly_big,
+        poly_points=poly_small,
+        len_points=poly_big.shape[0],
+        len_poly_points=poly_small.shape[0],
+    )
+
+    assert not bool(big_in_small)
+
+
+@pytest.mark.parametrize('method', ['bisection', 'rays'])
+@pytest.mark.parametrize(
+    'shape,aper_params,aper_tol,beam_params,halo_params,expected',
+    [
+        (
+            'circle', (1,), (0, 0, 0),
+            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': 10, 'betx': 1, 'bety': 1, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
+            {},
+            100,
+        ),
+        (
+            'circle', (1,), (0, 0, 0),
+            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': 10, 'betx': 1, 'bety': 1, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
+            {'halo_primary': 1, 'halo_r': 2, 'halo_x': 2, 'halo_y': 2},
+            50,
+        ),
+        (
+            'rectangle', (1, 1), (0, 0, 0),
+            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': 10, 'betx': 1, 'bety': 1, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
+            {},
+            100,
+        ),
+        (
+            'rectangle', (1.1, 1.2), (0, 0, 0),
+            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': 10, 'betx': 1, 'bety': 1, 'x': -0.1, 'y': 0.2, 'dx': 0, 'dy': 0},
+            {},
+            100,
+        ),
+        (
+            'racetrack', (0.28, 0.43, 0.13, 0.172), (0.002, 0.006, 0.002),
+            {'exn': 4e-3, 'eyn': 4e-3, 'gamma': 10, 'betx': 9, 'bety': 16, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
+            {
+                'tol_beta_beating': 0.8,
+                'tol_disp': 1.25,
+                'tol_disp_ref_beta': 4,
+                'tol_disp_ref_dx': 20,
+                'halo_primary': 10,
+                'halo_r': 0.7,
+                'halo_x': 0.5,
+                'halo_y': 0.6,
+                'tol_co': 0.002,
+                'delta_rms': 0.001,
+            },
+            100,
+        ),
+        (
+            'racetrack', (0.3, 0.5, 0.13, 0.172), (0.002, 0.006, 0.002),
+            {'exn': 4e-3, 'eyn': 4e-3, 'gamma': 10, 'betx': 9, 'bety': 16, 'x': -0.02, 'y': 0.07, 'dx': 0, 'dy': 0},
+            {
+                'tol_beta_beating': 0.8,
+                'tol_disp': 1.25,
+                'tol_disp_ref_beta': 4,
+                'tol_disp_ref_dx': 20,
+                'halo_primary': 10,
+                'halo_r': 0.7,
+                'halo_x': 0.5,
+                'halo_y': 0.6,
+                'tol_co': 0.002,
+                'delta_rms': 0.001,
+            },
+            100,
+        ),
+        (
+            'racetrack', (0.32, 0.478, 0.13, 0.172), (0.002, 0.006, 0.002),
+            {
+                'exn': 4e-3,
+                'eyn': 4e-3,
+                'gamma': 10,
+                'betx': 9,
+                'bety': 16,
+                'x': 0,
+                'y': 0,
+                'dx': 10 * np.sqrt(13),
+                'dy': 10 * np.sqrt(17)
+            },
+            {
+                'tol_beta_beating': 0.8,
+                'tol_disp': 1.25,
+                'tol_disp_ref_beta': 4,
+                'tol_disp_ref_dx': 20,
+                'halo_primary': 10,
+                'halo_r': 0.7,
+                'halo_x': 0.5,
+                'halo_y': 0.6,
+                'tol_co': 0.002,
+                'delta_rms': 0.001,
+            },
+            100,
+        ),
+        (
+            'racetrack', (0.4, 0.5, 0.13, 0.172), (0.002, 0.006, 0.002),
+            {
+                'exn': 4e-3,
+                'eyn': 4e-3,
+                'gamma': 10,
+                'betx': 9,
+                'bety': 16,
+                'x': -0.08,
+                'y': 0.022,
+                'dx': 10 * np.sqrt(13),
+                'dy': 10 * np.sqrt(17)
+            },
+            {
+                'tol_beta_beating': 0.8,
+                'tol_disp': 1.25,
+                'tol_disp_ref_beta': 4,
+                'tol_disp_ref_dx': 20,
+                'halo_primary': 10,
+                'halo_r': 0.7,
+                'halo_x': 0.5,
+                'halo_y': 0.6,
+                'tol_co': 0.002,
+                'delta_rms': 0.001,
+            },
+            100,
+        ),
+    ],
+    ids=[
+        'circle',
+        'circle-halo',
+        'square',
+        'square-orbit',
+        'racetrack-aper_tols-halo',
+        'racetrack-orbit-aper_tols-halo',
+        'racetrack-dispersion-aper_tols-halo',
+        'racetrack-dispersion-orbit-aper_tols-halo',
+    ]
+)
+def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, aper_tol, beam_params, halo_params, expected, context):
+    def madx_list(l):
+        return '{' + ', '.join([str(v) for v in l]) + '}'
+
+    halo_params_for_test = {
+        'emitx_norm': beam_params['exn'],
+        'emity_norm': beam_params['eyn'],
+        'tol_beta_beating': 1,
+        'tol_disp': 0,
+        'tol_disp_ref_beta': 1,
+        'tol_disp_ref_dx': 0,
+        'halo_primary': 1,
+        'halo_r': 1,
+        'halo_x': 1,
+        'halo_y': 1,
+        'tol_co': 0,
+        'delta_rms': 0,
+    }
+    halo_params_for_test.copy()
+    halo_params_for_test.update(halo_params)
+    halo_params = halo_params_for_test
+
+    lattice = f"""
+        m1: marker, apertype = {shape}, aperture = {madx_list(aper_params)}, aper_tol = {madx_list(aper_tol)};
+
+        seq: sequence,l = 1;
+            m1, at=0;
+        endsequence;
+    """
+
+    env = xt.load(string=lattice, format='madx', install_limits=False)
+    seq = env['seq']
+    seq.set_particle_ref('proton', gamma0=beam_params['gamma'])
+    tw = seq.twiss4d(
+        betx=beam_params['betx'],
+        bety=beam_params['bety'],
+        x=beam_params['x'],
+        y=beam_params['y'],
+        dx=beam_params['dx'],
+        dy=beam_params['dy'],
+    )
+
+    aperture_model = Aperture.from_line_with_associated_apertures(seq, context=context)
+    aperture_model.halo_params.update(halo_params)
+
+    # Needed as these quantities are not imported by the native madloader
+    aperture_model.model.profiles[0].tol_r = aper_tol[0]
+    aperture_model.model.profiles[0].tol_x = aper_tol[1]
+    aperture_model.model.profiles[0].tol_y = aper_tol[2]
+
+    # Compute n1 with Xsuite
+    computed_n1, tw, apertures_points, envelope_points = aperture_model.get_aperture_sigmas_at_element(
+        element_name='m1',
+        resolution=None,
+        twiss=tw,
+        envelopes_num_points=144,
+        method=method,
+    )
+
+    # There are two sources of error wrt. to the analytic solution:
+    # - precision of 0.01 on the bisection defined in beam_aperture.h
+    # - error coming from the fact that we are comparing polygons, not ideal shapes (especially a problem if x, y != 0)
+    xo.assert_allclose(computed_n1, expected, atol=0.01, rtol=0.002)
+
+
+def test_get_aperture_sigmas_at_element_analytic_rays(context):
+    betx = 9
+    bety = 16
+    delta = 0.001
+    gamma = 10
+
+    beam_data = {
+        'emitx_norm': 4e-3,
+        'emity_norm': 4e-3,
+        'delta_rms': 0.001,
+        'tol_co': 0.002,
+        'tol_disp': 1.25,
+        'tol_disp_ref_dx': 20,
+        'tol_disp_ref_beta': 4,
+        'tol_energy': 0.001,
+        'tol_beta_beating': 0.8,
+        'halo_x': 0.5,
+        'halo_y': 0.6,
+        'halo_r': 0.7,
+        'halo_primary': 10,
+    }
+
+    tol_r = 0.002
+    tol_x = 0.006
+    tol_y = 0.002
+
+    expected_n1 = 100
+
+    lattice = f"""
+        m1: marker,
+            apertype = racetrack,
+            aperture = {{ 0.28, 0.43, 0.13, 0.172 }},
+            aper_tol = {{ {tol_r}, {tol_x}, {tol_y} }};
+
+        seq: sequence, l = 1;
+            m1, at = 0;
+        endsequence;
+    """
+
+    env = xt.load(string=lattice, format="madx", install_limits=False)
+    seq = env["seq"]
+    seq.set_particle_ref("proton", gamma0=gamma)
+
+    tw = seq.twiss4d(betx=betx, bety=bety, delta=delta)
+
+    aperture_model = Aperture.from_line_with_associated_apertures(seq, context=context)
+    aperture_model.halo_params.update(beam_data)
+
+    # Needed as these quantities are not imported by the native madloader
+    aperture_model.model.profiles[0].tol_r = tol_r
+    aperture_model.model.profiles[0].tol_x = tol_x
+    aperture_model.model.profiles[0].tol_y = tol_y
+
+    computed_n1, tw, apertures_points, envelope_points = (
+        aperture_model.get_aperture_sigmas_at_element(
+            element_name="m1",
+            resolution=None,
+            twiss=tw,
+            envelopes_num_points=144,
+            method="rays",
+        )
+    )
+
+    # All n1-s should be the expected value, the envelope at the expected value
+    # should fully cover the aperture in this case.
+    xo.assert_allclose(computed_n1, expected_n1, atol=0.01, rtol=0.002)
+
+
+@pytest.mark.parametrize(
+    'shape,aper_params,aper_tol,exn,eyn,gamma,betx,bety,x,y,halo_params',
+    [
+        ('ellipse', (1, 1.3), (0.01, 0.015, 0.01), 1e-3, 1e-3, 10, 1, 1, 0, 0, {}),
+        ('circle', (1,), (0.01, 0.01, 0.02), 1e-3, 1e-3, 10, 1, 1, 0, 0,
+            {'halo_primary': 1, 'halo_r': 2, 'halo_x': 2, 'halo_y': 2}),
+        ('rectangle', (1, 1), (0.01, 0.02, 0.03), 1e-3, 1e-3, 10, 1, 1, 0, 0, {}),
+        ('rectangle', (1.1, 1.2), (0.04, 0.02, 0.02), 1e-3, 1e-3, 10, 1, 1, -0.1, 0.2,
+            {'halo_primary': 1, 'halo_r': 2, 'halo_x': 2, 'halo_y': 2}),
+    ],
+    ids=['ellipse-tols', 'circle-halo-tols', 'square-tols', 'square-orbit-halo-tols'],
+)
+def test_get_aperture_sigmas_at_element_vs_madx(
+        shape,
+        aper_params,
+        aper_tol,
+        exn,
+        eyn,
+        gamma,
+        betx,
+        bety,
+        x,
+        y,
+        halo_params,
+        context
+):
+    """Test the computation of sigmas vs MAD-X
+
+    MAD-X uses a different approach to computing N1 when dispersion is present, hence we only test the cases without.
+    """
+    def madx_list(l):
+        return '{' + ', '.join([str(v) for v in l]) + '}'
+
+    halo_params_for_test = {
+        'emitx_norm': exn,
+        'emity_norm': eyn,
+        'tol_beta_beating': 1,
+        'tol_disp': 0,
+        'tol_disp_ref_beta': 1,
+        'tol_disp_ref_dx': 0,
+        'halo_primary': 1,
+        'halo_r': 1,
+        'halo_x': 1,
+        'halo_y': 1,
+        'tol_co': 0,
+        'delta_rms': 0,
+    }
+    halo_params_for_test.copy()
+    halo_params_for_test.update(halo_params)
+    halo_params = halo_params_for_test
+
+    mad = Madx(stdout=False)
+    mad.input(f"""
+        m1: marker, apertype = {shape}, aperture = {madx_list(aper_params)}, aper_tol = {madx_list(aper_tol)};
+
+        seq: sequence,l = 1;
+            m1, at=0;
+        endsequence;
+
+        beam, particle = proton, exn = {exn}, eyn = {eyn}, gamma = {gamma};
+        use, sequence = seq;
+        twiss, betx = {betx}, bety = {bety}, x = {x}, y = {y};
+
+        aperture,
+            dqf = {halo_params['tol_disp_ref_dx']},
+            betaqfx = {halo_params['tol_disp_ref_beta']},
+            dp = {halo_params['delta_rms']},  ! called `twiss_deltap` in the table
+            dparx = {halo_params['tol_disp']},
+            dpary = {halo_params['tol_disp']},
+            cor = {halo_params['tol_co']},
+            bbeat = {halo_params['tol_beta_beating']},
+            halo = {madx_list([halo_params[param] for param in ('halo_primary', 'halo_r', 'halo_x', 'halo_y')])};
+
+        write, table = aperture;
+    """)
+
+    madx_n1 = mad.table['aperture'].n1[1]
+
+    env = xt.Environment.from_madx(madx=mad, enable_layout_data=True)
+    seq = env['seq']
+    seq.set_particle_ref('proton', gamma0=mad.beam.gamma)
+    tw = seq.twiss4d(betx=betx, bety=bety, x=x, y=y)
+
+    xo.assert_allclose(mad.beam.gamma, seq.particle_ref.gamma0, atol=1e-10)
+    xo.assert_allclose(mad.beam.beta, seq.particle_ref.beta0, atol=1e-10)
+
+    aperture_model = Aperture.from_line_with_madx_metadata(seq, context=context)
+    aperture_model.halo_params.update(halo_params)
+
+    # Sanity checks
+    aper_summ = mad.table.aperture.summary
+    xo.assert_allclose(aperture_model.halo_params['tol_disp_ref_dx'], aper_summ.dqf, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['tol_disp_ref_beta'], aper_summ.betaqfx, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['delta_rms'], aper_summ.dp_bucket_size, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['tol_disp'], aper_summ.paras_dx, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['tol_co'], aper_summ.co_radius, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['tol_beta_beating'], aper_summ.beta_beating, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['halo_primary'], aper_summ.halo_prim, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['halo_r'], aper_summ.halo_r, atol=3e-6, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['halo_x'], aper_summ.halo_h, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['halo_y'], aper_summ.halo_v, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['emitx_norm'], mad.beam.exn, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['emity_norm'], mad.beam.eyn, atol=1e-8, rtol=0)
+
+    # Compute n1 with Xsuite
+    computed_n1, tw, apertures_points, envelope_points = aperture_model.get_aperture_sigmas_at_element(
+        element_name='m1',
+        resolution=None,
+        twiss=tw,
+        envelopes_num_points=144,
+        method='bisection',
+    )
+
+    xo.assert_allclose(madx_n1, computed_n1, rtol=0.01)
+
+
+@pytest.mark.parametrize(
+    'rot_x,rot_y,dx,dy,ds1,ds2,ds_bounds1,ds_bounds2',
+    [
+        (0, 0, 0, 0, 0, 0, 0, 0),
+        (np.deg2rad(45), np.deg2rad(30), np.sqrt(3), 1, 1, 1, 1 / np.sqrt(2), 0.5),
+    ]
+)
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_bounds1, ds_bounds2, test_context):
+    env = xt.Environment()
+    drift = env.new('drift', xt.Drift, length=1)
+    line = env.new_line(name='line', components=10 * [drift])
+    sv = line.survey()
+
+    circle = Circle(radius=1)
+    rectangle = Rectangle(half_width=0.6, half_height=0.4)
+
+    profiles = [
+        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+    ]
+
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=-1.5),
+        ProfilePosition(profile_index=0, s_position=0.5, rot_x=rot_x),
+        ProfilePosition(profile_index=0, s_position=2.5, rot_y=rot_y),
+        ProfilePosition(profile_index=0, s_position=8.5),
+    ]
+
+    types = [
+        ApertureType(curvature=0., positions=profile_positions),
+    ]
+
+    type_positions = [
+        TypePosition(
+            type_index=0,
+            survey_reference_name='drift::0',
+            survey_index=sv.name.tolist().index('drift::0'),
+            transformation=transform_matrix(
+                ds=1.5,
+                dx=dx,
+                dy=dy,
+            ),
+        ),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=type_positions,
+        types=types,
+        profiles=profiles,
+        type_names=['type0'],
+        profile_names=['circle', 'rectangle'],
+    )
+
+    # Skip validity check as in this case some profiles are outside the survey
+    ap = Aperture(line=line, model=model, context=test_context, _skip_validity_check=True)
+
+    xo.assert_allclose(ap._aperture_bounds.s_positions[0], 0, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_start[0], 0, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_end[0], 0, atol=1e-6, rtol=1e-8)
+
+    xo.assert_allclose(ap._aperture_bounds.s_positions[1], 2 + ds1, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_start[1], 2 - ds_bounds1, atol=1e-4, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_end[1], 2 + ds_bounds1, atol=1e-4, rtol=1e-8)
+
+    xo.assert_allclose(ap._aperture_bounds.s_positions[2], 4 + ds2, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_start[2], 4 - ds_bounds2, atol=2e-4, rtol=1e-8)  # atol < 1mm but quite high
+    xo.assert_allclose(ap._aperture_bounds.s_end[2], 4 + ds_bounds2, atol=2e-4, rtol=1e-8)  # ditto
+
+    xo.assert_allclose(ap._aperture_bounds.s_positions[3], 10, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_start[3], 10, atol=1e-6, rtol=1e-8)
+    xo.assert_allclose(ap._aperture_bounds.s_end[3], 10, atol=1e-6, rtol=1e-8)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_context):
+    env = xt.Environment()
+    angle = np.deg2rad(35.0)
+    length = 3.2
+    radius = 0.6
+
+    bend = env.new('bend', xt.Bend, length=length, angle=angle, k0=0)
+    drift = env.new('drift', xt.Drift, length=length)
+    anti_bend = env.new('anti_bend', xt.Bend, length=length, angle=-angle, k0=0)
+    line = env.new_line(name='line', components=[bend, drift, anti_bend])
+    sv = line.survey()
+
+    shape = Circle(radius=radius)
+    profiles = [
+        Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=0, s_position=length),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+            TypePosition(
+                type_index=1,
+                survey_reference_name=sv.name[1],
+                survey_index=1,
+                transformation=transform_matrix(),
+            ),
+            TypePosition(
+                type_index=2,
+                survey_reference_name=sv.name[2],
+                survey_index=2,
+                transformation=transform_matrix(),
+            ),
+        ],
+        types=[
+            ApertureType(curvature=angle / length, positions=profile_positions),
+            ApertureType(curvature=0, positions=profile_positions),
+            ApertureType(curvature=-angle / length, positions=profile_positions),
+        ],
+        profiles=profiles,
+        type_names=['type0', 'type1', 'type2'],
+        profile_names=['circ0'],
+    )
+
+    ap = Aperture(line=line, model=model, num_profile_points=256, context=test_context)
+
+    bounds_table = ap.get_bounds_table()
+    bounds_s = [0, length, length, 2 * length, 2 * length, 3 * length]
+    xo.assert_allclose(bounds_table.s, bounds_s, atol=1e-6, rtol=1e-6)
+    xo.assert_allclose(bounds_table.s_start, bounds_s, atol=1e-6, rtol=1e-6)
+    xo.assert_allclose(bounds_table.s_end, bounds_s, atol=1e-6, rtol=1e-6)
+    assert all(bounds_table.type_name == ['type0', 'type0', 'type1', 'type1', 'type2', 'type2'])
+    assert all(bounds_table.profile_name == ['circ0'])
+
+    s_samples = np.linspace(0, 3 * length, 51, dtype=FloatType._dtype)
+    sections, poses = ap.cross_sections_at_s(s_samples)
+
+    for ii in range(1, len(sections)):
+        xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_context):
+    env = xt.Environment()
+
+    num_bends = 720
+    bend_angle = np.deg2rad(0.5)
+    ring_length = 30_000.0
+    bend_length = ring_length / num_bends
+    aperture_radius = 0.03
+
+    bend = env.new('bend', xt.Bend, length=bend_length, angle=bend_angle, k0=0)
+    line = env.new_line(name='line', components=[bend] * num_bends)
+    sv = line.survey()
+
+    shape = Circle(radius=aperture_radius)
+    profiles = [Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0)]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=0, s_position=bend_length),
+    ]
+
+    type_positions = [
+        TypePosition(
+            type_index=ii,
+            survey_reference_name=sv.name[ii],
+            survey_index=ii,
+            transformation=transform_matrix(),
+        )
+        for ii in range(num_bends)
+    ]
+    types = [ApertureType(curvature=bend_angle / bend_length, positions=profile_positions)] * num_bends
+
+    model = ApertureModel(
+        line=line,
+        type_positions=type_positions,
+        types=types,
+        profiles=profiles,
+        type_names=[f'type{ii}' for ii in range(num_bends)],
+        profile_names=['circ0'],
+    )
+
+    ap = Aperture(
+        line=line,
+        model=model,
+        num_profile_points=64,
+        context=test_context,
+        _skip_validity_check=True,
+    )
+
+    bounds_table = ap.get_bounds_table()
+    expected_s = np.repeat(np.arange(1, num_bends + 1, dtype=FloatType._dtype) * bend_length, 2)
+    expected_s[::2] -= bend_length
+
+    xo.assert_allclose(bounds_table.s, expected_s, atol=1e-6, rtol=0)
+    xo.assert_allclose(bounds_table.s_start, expected_s, atol=1e-6, rtol=0)
+    xo.assert_allclose(bounds_table.s_end, expected_s, atol=1e-6, rtol=0)
+
+    assert np.all(np.diff(bounds_table.s) >= -1e-6)
+    assert np.all(np.isfinite(bounds_table.s))
+    assert np.all(np.isfinite(bounds_table.s_start))
+    assert np.all(np.isfinite(bounds_table.s_end))
+
+    s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
+    sections, _ = ap.cross_sections_at_s(s_samples)
+    radii = np.linalg.norm(sections, axis=2)
+    xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_context):
+    env = xt.Environment()
+
+    num_bends = 720
+    bend_angle = np.deg2rad(0.5)
+    ring_length = 30_000.0
+    bend_length = ring_length / num_bends
+    aperture_radius = 0.03
+
+    bend = env.new('bend', xt.Bend, length=bend_length, angle=bend_angle, k0=0)
+    line = env.new_line(name='line', components=[bend] * num_bends)
+    sv = line.survey()
+
+    shape = Circle(radius=aperture_radius)
+    profiles = [Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0)]
+
+    # Same physical profile planes, expressed in three different reference frames.
+    types = [
+        ApertureType(
+            curvature=bend_angle / bend_length,
+            positions=[
+                ProfilePosition(profile_index=0, s_position=0.0),
+                ProfilePosition(profile_index=0, s_position=bend_length),
+            ],
+        ),
+        ApertureType(
+            curvature=bend_angle / bend_length,
+            positions=[
+                ProfilePosition(profile_index=0, s_position=-bend_length),
+                ProfilePosition(profile_index=0, s_position=0.0),
+            ],
+        ),
+        ApertureType(
+            curvature=bend_angle / bend_length,
+            positions=[
+                ProfilePosition(profile_index=0, s_position=-2 * bend_length),
+                ProfilePosition(profile_index=0, s_position=-bend_length),
+            ],
+        ),
+    ]
+
+    type_positions = []
+    for ii in range(num_bends):
+        # Cycle references where possible; near the end stay in-range.
+        if ii <= num_bends - 3:
+            shift = ii % 3
+        else:
+            shift = 0
+
+        type_positions.append(
+            TypePosition(
+                type_index=shift,
+                survey_reference_name=sv.name[ii + shift],
+                survey_index=ii + shift,
+                transformation=transform_matrix(),
+            )
+        )
+
+    model = ApertureModel(
+        line=line,
+        type_positions=type_positions,
+        types=types,
+        profiles=profiles,
+        type_names=['type_ref0', 'type_ref1', 'type_ref2'],
+        profile_names=['circ0'],
+    )
+
+    ap = Aperture(
+        line=line,
+        model=model,
+        num_profile_points=64,
+        context=test_context,
+        _skip_validity_check=True,
+    )
+
+    bounds_table = ap.get_bounds_table()
+    expected_s = np.repeat(np.arange(1, num_bends + 1, dtype=FloatType._dtype) * bend_length, 2)
+    expected_s[::2] -= bend_length
+
+    xo.assert_allclose(bounds_table.s, expected_s, atol=1e-6, rtol=0)
+    xo.assert_allclose(bounds_table.s_start, expected_s, atol=1e-6, rtol=0)
+    xo.assert_allclose(bounds_table.s_end, expected_s, atol=1e-6, rtol=0)
+
+    assert np.all(np.diff(bounds_table.s) >= -1e-6)
+    assert np.all(np.isfinite(bounds_table.s))
+    assert np.all(np.isfinite(bounds_table.s_start))
+    assert np.all(np.isfinite(bounds_table.s_end))
+
+    s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
+    sections, _ = ap.cross_sections_at_s(s_samples)
+    radii = np.linalg.norm(sections, axis=2)
+    xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_large_curved_ring_single_type_wraparound_regression(test_context):
+    env = xt.Environment()
+
+    num_bends = 720
+    bend_angle = np.deg2rad(0.5)
+    ring_length = 30_000.0
+    bend_length = ring_length / num_bends
+    aperture_radius = 0.03
+
+    bend = env.new('bend', xt.Bend, length=bend_length, angle=bend_angle, k0=0)
+    line = env.new_line(name='line', components=[bend] * num_bends)
+    sv = line.survey()
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[num_bends - 1],
+                survey_index=num_bends - 1,
+                # Shift the type forward so the installed profiles should wrap to small s.
+                transformation=transform_matrix(ds=2 * bend_length),
+            )
+        ],
+        types=[
+            ApertureType(
+                curvature=bend_angle / bend_length,
+                positions=[
+                    ProfilePosition(profile_index=0, s_position=0.0),
+                    ProfilePosition(profile_index=0, s_position=bend_length),
+                ],
+            )
+        ],
+        profiles=[Profile(shape=Circle(radius=aperture_radius), tol_r=0, tol_x=0, tol_y=0)],
+        type_names=['wrapped_type'],
+        profile_names=['circ0'],
+    )
+
+    ap = Aperture(
+        line=line,
+        model=model,
+        num_profile_points=64,
+        context=test_context,
+        _skip_validity_check=True,
+    )
+
+    bounds_table = ap.get_bounds_table()
+    expected_s = np.array([bend_length, 2 * bend_length], dtype=FloatType._dtype)
+
+    assert np.all(np.isfinite(bounds_table.s))
+    xo.assert_allclose(bounds_table.s, expected_s, atol=5e-3, rtol=0)
+    xo.assert_allclose(bounds_table.s_start, expected_s, atol=3e-2, rtol=0)
+    xo.assert_allclose(bounds_table.s_end, expected_s, atol=3e-2, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
+    env = xt.Environment()
+    l = 1.0
+    angle = np.deg2rad(30.0)
+    l_straight = 1.0 / np.sin(angle / 2)
+    rho = 0.5 * l_straight / np.sin(angle / 2)
+    l_curv = rho * angle
+
+    drift = env.new('drift', xt.Drift, length=l)
+    bend_plus = env.new('bend_plus', xt.Bend, length=l_curv, angle=angle, k0=0)
+    bend_minus = env.new('bend_minus', xt.Bend, length=l_curv, angle=-angle, k0=0)
+    line = env.new_line(name='line', components=[drift, bend_plus, drift, drift, bend_minus, drift])
+    sv = line.survey()
+
+    s0, s1 = 0.0, 11.0
+    r0, r1 = 0.8, 2.0
+
+    profiles = [
+        Profile(shape=Circle(radius=r0), tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=Circle(radius=r1), tol_r=0, tol_x=0, tol_y=0),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=s0),
+        ProfilePosition(profile_index=1, s_position=s1),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(dx=-1.5),
+            ),
+        ],
+        types=[ApertureType(curvature=0.0, positions=profile_positions)],
+        profiles=profiles,
+        type_names=['type0'],
+        profile_names=['circle0', 'circle1'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context)
+
+    s_samples = np.linspace(1.0, 11.0, 21, dtype=FloatType._dtype)
+    sections, poses = ap.cross_sections_at_s(s_samples)
+
+    # Transform all cross-section points to the (fixed) type frame.
+    # In this frame, two circle profiles at z=s0/s1 define a cone:
+    # sqrt(x^2 + y^2) == r0 + (r1-r0) * (z-s0)/(s1-s0)
+    sv_ref = sv.rows[0]
+    sv_ref_mat = np.identity(4)
+    sv_ref_mat[:3, 0] = sv_ref.ex
+    sv_ref_mat[:3, 1] = sv_ref.ey
+    sv_ref_mat[:3, 2] = sv_ref.ez
+    sv_ref_mat[:3, 3] = np.array([sv_ref.X[0], sv_ref.Y[0], sv_ref.Z[0]])
+    world_from_type = sv_ref_mat @ model.type_positions[0].transformation.to_nparray()
+    type_from_world = np.linalg.inv(world_from_type)
+
+    for ii in range(len(s_samples)):
+        sec_xy = sections[ii]
+        assert not np.isnan(sec_xy).any()
+
+        sec_hom = np.column_stack([
+            sec_xy,
+            np.zeros(len(sec_xy), dtype=FloatType._dtype),
+            np.ones(len(sec_xy), dtype=FloatType._dtype),
+        ])
+        sec_world = (poses[ii] @ sec_hom.T).T
+        sec_type = (type_from_world @ sec_world.T).T
+
+        rr = np.linalg.norm(sec_type[:, :2], axis=1)
+        z = sec_type[:, 2]
+        expected_r = r0 + (r1 - r0) * (z - s0) / (s1 - s0)
+
+        xo.assert_allclose(rr, expected_r, atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
+    env = xt.Environment()
+    angle = np.deg2rad(35.0)
+    length = 3.2
+    radius = 1.4
+
+    bend_name = env.new('bend', xt.Bend, length=length, angle=angle, k0=0)
+    line = env.new_line(name='line', components=[bend_name])
+    sv = line.survey()
+
+    shape = Circle(radius=radius)
+    profiles = [
+        Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=0, s_position=length),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+        ],
+        types=[ApertureType(curvature=angle / length, positions=profile_positions)],
+        profiles=profiles,
+        type_names=['type0'],
+        profile_names=['circ0'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
+
+    s_samples = np.linspace(0.0, length, 33, dtype=FloatType._dtype)
+    sections, _ = ap.cross_sections_at_s(s_samples)
+
+    for ii in range(1, len(sections)):
+        xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_compare_straight_curved(test_context):
+    env = xt.Environment()
+    angle = np.deg2rad(35.0)
+    length = 3.2
+
+    drift = env.new('drift', xt.Drift, length=length)
+    bend = env.new('bend', xt.Bend, length=length, angle=angle)
+    line = env.new_line(name='line', components=[drift, bend])
+    sv = line.survey()
+
+    circle = Circle(radius=1.4)
+    rectangle = Rectangle(half_width=0.4, half_height=1.9)
+    profiles = [
+        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=1, s_position=length),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        types=[
+            ApertureType(curvature=0, positions=profile_positions),
+            ApertureType(curvature=angle / length, positions=profile_positions),
+        ],
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name='drift',
+                survey_index=list(sv.name).index('drift'),
+                transformation=np.identity(4),
+            ),
+            TypePosition(
+                type_index=1,
+                survey_reference_name='bend',
+                survey_index=list(sv.name).index('bend'),
+                transformation=np.identity(4),
+            ),
+        ],
+        profiles=profiles,
+        type_names=['type_straight', 'type_curv'],
+        profile_names=['rect0', 'circ0'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
+
+    s_samples0 = np.linspace(0.1, length - 0.1, 33, dtype=FloatType._dtype)
+    s_samples1 = s_samples0 + length
+
+    sections_straight, _ = ap.cross_sections_at_s(s_samples0)
+    sections_curv, _ = ap.cross_sections_at_s(s_samples1)
+
+    # Compare up to cyclic polygon indexing: point ordering can differ by a
+    # rotation along the closed contour while representing the same shape.
+    for ii in range(sections_straight.shape[0]):
+        sec_ref = sections_straight[ii]
+        sec_cur = sections_curv[ii]
+
+        best_shift = 0
+        best_cost = np.inf
+        for shift in range(sec_cur.shape[0]):
+            sec_shifted = np.roll(sec_cur, -shift, axis=0)
+            cost = np.sum((sec_ref - sec_shifted) ** 2)
+            if cost < best_cost:
+                best_cost = cost
+                best_shift = shift
+
+        xo.assert_allclose(sec_ref, np.roll(sec_cur, -best_shift, axis=0), atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
+    env = xt.Environment()
+    angle = np.deg2rad(35.0)
+    length = 3.2
+
+    bend = env.new('bend', xt.Bend, length=length, angle=angle)
+    line = env.new_line(name='line', components=[bend])
+    sv = line.survey()
+
+    rectangle = Rectangle(half_width=0.4, half_height=1.9)
+    circle = Circle(radius=1.4)
+    profiles = [
+        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=1, s_position=length),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name='bend',
+                survey_index=list(sv.name).index('bend'),
+                transformation=np.identity(4),
+            ),
+        ],
+        types=[ApertureType(curvature=angle / length, positions=profile_positions)],
+        profiles=profiles,
+        type_names=['type_curv'],
+        profile_names=['rect0', 'circ0'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
+
+    s_samples = np.linspace(0.1, length - 0.1, 33, dtype=FloatType._dtype)
+    sections, _ = ap.cross_sections_at_s(s_samples)
+
+    xo.assert_allclose(sections[:, 0, :], sections[:, -1, :], atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
+    env = xt.Environment()
+
+    l = 1.0
+    dx = 1.0
+    angle = np.deg2rad(30.0)
+    l_straight = dx / np.sin(angle / 2)
+    rho = 0.5 * l_straight / np.sin(angle / 2)
+    l_curv = rho * angle
+
+    drift = env.new('drift', xt.Drift, length=l)
+    rot_plus = env.new('rot_plus', xt.Bend, length=l_curv, angle=angle, k0=0)
+    rot_minus = env.new('rot_minus', xt.Bend, length=l_curv, angle=-angle, k0=0)
+    line = env.new_line(name='line', components=[drift, rot_plus, drift, drift, rot_minus, drift])
+    sv = line.survey()
+
+    circle = Circle(radius=2.0)
+    rectangle = Rectangle(half_width=2.0, half_height=1.0)
+    profiles = [
+        Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
+        Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
+    ]
+    types = [
+        ApertureType(curvature=0.0, positions=[
+            ProfilePosition(profile_index=1, s_position=0.0, rot_s=np.deg2rad(15.0)),
+            ProfilePosition(profile_index=1, s_position=5.5, rot_s=np.deg2rad(90.0)),
+            ProfilePosition(profile_index=0, s_position=11.0, rot_x=np.deg2rad(10.0)),
+        ]),
+    ]
+    type_positions = [
+        TypePosition(
+            type_index=0,
+            survey_reference_name='drift::0',
+            survey_index=sv.name.tolist().index('drift::0'),
+            transformation=transform_matrix(dx=-1.5),
+        ),
+    ]
+    model = ApertureModel(
+        line_name='line',
+        type_positions=type_positions,
+        types=types,
+        profiles=profiles,
+        type_names=['type0'],
+        profile_names=['circle', 'rectangle'],
+    )
+
+    ap = Aperture(line, model, context=test_context)
+    bounds_table = ap.get_bounds_table()
+
+    assert np.all(np.isfinite(bounds_table.s))
+    assert np.all(np.isfinite(bounds_table.s_start))
+    assert np.all(np.isfinite(bounds_table.s_end))
+    assert np.all(bounds_table.s_start <= bounds_table.s)
+    assert np.all(bounds_table.s <= bounds_table.s_end)
