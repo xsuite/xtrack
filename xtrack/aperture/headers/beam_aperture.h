@@ -97,12 +97,8 @@ static inline Racetrack_s beam_racetrack(
     const float_type ex = beam->emitx_norm / twiss->gamma;
     const float_type ey = beam->emity_norm / twiss->gamma;
 
-    const float_type delta_sq = beam->delta_rms * beam->delta_rms;
-    const float_type dx_sq = twiss->dx * twiss->dx;
-    const float_type dy_sq = twiss->dy * twiss->dy;
-
-    const float_type sigma_x = sqrt(ex * twiss->betx + dx_sq * delta_sq) * beam->tol_beta_beating;
-    const float_type sigma_y = sqrt(ey * twiss->bety + dy_sq * delta_sq) * beam->tol_beta_beating;
+    const float_type sigma_x = sqrt(ex * twiss->betx) * beam->tol_beta_beating;
+    const float_type sigma_y = sqrt(ey * twiss->bety) * beam->tol_beta_beating;
 
     /*
         We describe the beam of the shape described by hx, hy, and hr as a
@@ -140,9 +136,6 @@ void get_beam_envelope(
     Point2D *out_points
 )
 {
-    const float_type x0 = twiss_data->x;  /* assuming closed orbit relative to aperture center */
-    const float_type y0 = twiss_data->y;  /* assuming closed orbit relative to aperture center */
-
     /* Beam racetrack is defined in 1-sigma units; scale by num_sigmas here */
     const Racetrack_s beam_rt_1s = beam_racetrack(twiss_data, beam_data);
     const Racetrack_s halo_rt = halo_racetrack(twiss_data, beam_data, aperture_data);
@@ -167,6 +160,14 @@ void get_beam_envelope(
 
     segments_from_racetrack(env.h, env.v, env.a, env.b, path.segments, &path.len_segments);
     poly_get_n_uniform_points(&path, len_points, out_points);
+
+    /* Include the dispersive orbit shift effect */
+    const Point2D disp_orbit_shift = {twiss_data->dx * beam_data->delta_rms, twiss_data->dy * beam_data->delta_rms};
+    convolve_poly_and_segment(out_points, len_points, disp_orbit_shift);
+
+    /* Shift according to the closed orbit – assuming closed orbit relative to aperture center */
+    const float_type x0 = twiss_data->x;
+    const float_type y0 = twiss_data->y;
     point2d_translate(x0, y0, out_points, len_points);
 }
 
@@ -222,6 +223,7 @@ Contract: len_points=len(points)
 
 
 char _is_point_inside_polygon(const float_type* point, const float_type* points, const int len_points)
+/* This function is exposed for testing purposes */
 {
     return is_point_inside_polygon((const Point2D*) point, (const Point2D*) points, len_points);
 }
@@ -254,10 +256,10 @@ char _points_inside_polygon(const float_type* points, const float_type* poly_poi
 
 
 float_type compute_max_aperture_sigma_bisection(
-    BeamLocalData *beam_data,
+    const BeamLocalData *beam_data,
     const TwissLocalData *twiss_data,
     const BeamApertureLocalData *aperture_data,
-    int len_points,
+    const int len_points,
     const float_type lower_bound,
     const float_type upper_bound,
     const float_type tol,
@@ -286,34 +288,6 @@ Contract: len(out_points)=len_points; len_poly_points=len(poly_points)
     return lo;
 }
 
-
-void interpolate_profile(
-    const ApertureModel model,
-    const ProfilePolygons profile_polygons,
-    const ApertureBounds aperture_bounds,
-    const uint32_t idx,
-    float_type* const points,
-    const float_type target_s
-)
-{
-    // TODO: Implement proper interpolation: for now we simply copy the profile to the left
-    const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, idx);
-    const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, idx);
-
-    /* Get the aperture type and type position */
-    const TypePosition type_pos = ApertureModel_getp1_type_positions(model, type_pos_idx);
-    const uint32_t type_idx = TypePosition_get_type_index(type_pos);
-    const ApertureType aper_type = ApertureModel_getp1_types(model, type_idx);
-
-    /* Get the profile position, and the polygon */
-    const ProfilePosition profile_pos = ApertureType_getp1_positions(aper_type, profile_pos_idx);
-    const uint32_t profile_idx = ProfilePosition_get_profile_index(profile_pos);
-    float_type *const poly = ProfilePolygons_getp3_points(profile_polygons, profile_idx, 0, 0);
-
-    /* Copy the points to the cross section */
-    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
-    memcpy(points, poly, 2 * num_points * sizeof(float_type));
-}
 
 static inline BeamLocalData beam_data_get_entry(const BeamData beam_data)
 {
@@ -416,7 +390,7 @@ void compute_max_aperture_sigma(
             envelope_num_points,
             /* lower bound on search */ 0,
             /* upper bound on search */ 10000,
-            /* tolerance on search */ 0.01,
+            /* tolerance on search */ 0.001,
             (Point2D*)(out_envelope_at_max_sigma + idx_slice * envelope_num_points * 2)
         );
         sigmas[idx_slice] = num_sigmas;
@@ -638,24 +612,33 @@ void compute_max_aperture_sigma_rays(
         Racetrack_s beam_rt = beam_racetrack(&s_twiss_data, &s_beam_data);
         Racetrack_s envelope_one_sigma_rt = add_racetracks(halo_rt, beam_rt);
 
-        float_type aperture_distances[num_ray_angles];
-        dist_to_poly_along_rays(
-            ray_angles,
-            num_ray_angles,
-            s_twiss_data.x,
-            s_twiss_data.y,
-            s_aperture_data.points,
-            num_points,
-            /* convex */ 1,
-            aperture_distances
-        );
+        float_type aperture_distances_minus[num_ray_angles];
+        float_type aperture_distances_plus[num_ray_angles];
+
+        const float_type disp_orbit_shift_x = s_twiss_data.dx * s_beam_data.delta_rms;
+        const float_type disp_orbit_shift_y = s_twiss_data.dy * s_beam_data.delta_rms;
+
+        for (int disp_side = 0; disp_side < 2; disp_side++)
+        {
+            const float_type sgn = disp_side == 0 ? 1 : -1;
+            dist_to_poly_along_rays(
+                ray_angles,
+                num_ray_angles,
+                s_twiss_data.x + sgn * disp_orbit_shift_x,
+                s_twiss_data.y + sgn * disp_orbit_shift_y,
+                s_aperture_data.points,
+                num_points,
+                /* convex */ 1,
+                disp_side == 0 ? aperture_distances_plus : aperture_distances_minus
+            );
+        }
 
         float_type* const slice_num_sigmas = out_num_sigmas + idx_slice * num_ray_angles;
         for (uint32_t i = 0; i < num_ray_angles; i++) {
             const float_type angle = ray_angles[i];
             const float_type d_halo = racetrack_radius_at_angle(angle, halo_rt);
             const float_type d_envelope_one_sigma = racetrack_radius_at_angle(angle, envelope_one_sigma_rt);
-            const float_type d_aperture = aperture_distances[i];
+            const float_type d_aperture = fmin(aperture_distances_minus[i], aperture_distances_plus[i]);
             const float_type n1_lin_approx = (d_aperture - d_halo) / (d_envelope_one_sigma - d_halo);
             float_type n1 = compute_n1_for_point(angle, d_aperture, halo_rt, beam_rt, 0.f, n1_lin_approx);
             slice_num_sigmas[i] = n1;

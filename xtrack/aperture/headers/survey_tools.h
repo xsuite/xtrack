@@ -53,7 +53,7 @@ inline uint8_t survey_is_closed(const SurveyData survey) {
     const Point3D end = survey_point(survey, survey_num_entries - 1);
     const Point3D delta = point3d_sub(end, start);
     const float_type dist_sq = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
-    return dist_sq < APER_PRECISION * APER_PRECISION;
+    return dist_sq < APER_PRECISION; // TODO: Check why this is needed for LHC (and not eps**2)
 }
 
 

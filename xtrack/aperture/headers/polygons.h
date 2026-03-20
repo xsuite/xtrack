@@ -510,8 +510,11 @@ void build_polygon_for_profile(
 )
 {
     /*
-        Convert the logical description of a profile to a polygon, and store it in
-        ``aperture_bounds``.
+        Convert the logical description of a profile to a polygon, and store it in ``aperture_bounds``.
+
+        The polygons created are expected to be:
+        (1) anticlockwise, and
+        (2) closed.
     */
     const uint64_t profile_type_id = Profile_typeid_shape(profile);
 
