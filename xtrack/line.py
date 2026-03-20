@@ -5660,13 +5660,24 @@ def freeze_longitudinal(ln_or_trk):
 
 @contextmanager
 def _temp_knobs(line_or_trk, knobs: dict):
-    old_values = {kk: line_or_trk.vars[kk]._value for kk in knobs.keys()}
+    '''
+    Context manager to temporarily set knobs in a line or tracker.
+    The state of the knobs is restored after leaving the context.
+    '''
+
+    old_expr_or_val = {}
+    for kk, vv in knobs.items():
+        rr = line_or_trk.vars[kk]
+        if rr._expr is not None:
+            old_expr_or_val[kk] = rr._expr
+        else:
+            old_expr_or_val[kk] = rr._value
     try:
         for kk, vv in knobs.items():
             line_or_trk.vars[kk] = vv
         yield
     finally:
-        for kk, vv in old_values.items():
+        for kk, vv in old_expr_or_val.items():
             line_or_trk.vars[kk] = vv
 
 
