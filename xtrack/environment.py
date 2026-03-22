@@ -2128,7 +2128,7 @@ class EnvVars:
                 f'Cannot access variables as the environment has no xdeps manager')
         return self.env._xdeps_vref._owner['__vary_default']
 
-    def get_table(self, compact=True):
+    def get_table(self, compact=True, expr_obj=False):
         if self.env._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the environment has no xdeps manager')
@@ -2138,21 +2138,31 @@ class EnvVars:
         if compact:
             formatter = xd.refs.CompactFormatter(scope=None)
             expr = []
+            expr_obj_list = []
             for kk in name:
                 ee = self.env._xdeps_vref[kk]._expr
                 if ee is None:
                     expr.append(None)
+                    expr_obj_list.append(None)
                 else:
-                    expr.append(ee._formatted(formatter))
+                    try:
+                        repr_expr = ee._formatted(formatter)
+                    except Exception:
+                        repr_expr = '__NOT_REPRESENTABLE__'
+                    expr.append(repr_expr)
+                    expr_obj_list.append(ee)
         else:
-            expr  = [self.env._xdeps_vref[str(kk)]._expr for kk in name]
-            for ii, ee in enumerate(expr):
-                if ee is not None:
-                    expr[ii] = str(ee)
+            expr_obj_list  = [self.env._xdeps_vref[str(kk)]._expr for kk in name]
+            expr = [str(ee) if ee is not None else None for ee in expr_obj_list]
 
         expr = np.array(expr)
+        expr_obj_arr = np.array(expr_obj_list)
 
-        return VarsTable({'name': name, 'value': value, 'expr': expr})
+        outdct = {'name': name, 'value': value, 'expr': expr}
+        if expr_obj:
+            outdct['expr_obj'] = expr_obj_arr
+
+        return VarsTable(outdct)
 
     def new_expr(self, expr):
         return self.env._xdeps_eval.eval(expr)
