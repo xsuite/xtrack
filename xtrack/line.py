@@ -6183,7 +6183,7 @@ def _main_strength_from_attr(attr):
             _main_strength_normal[mask_main_order] = this_norm[mask_main_order]
             _main_strength_skew[mask_main_order] = this_skew[mask_main_order]
 
-    main_is_skew = np.bool(attr['_own_main_is_skew'] + attr['_parent_main_is_skew'])
+    main_is_skew = np.bool_(attr['_own_main_is_skew'] + attr['_parent_main_is_skew'])
 
     main_strength = np.zeros(len(main_order), dtype=np.float64)
     main_strength[~main_is_skew] = _main_strength_normal[~main_is_skew]
