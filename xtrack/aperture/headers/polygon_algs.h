@@ -247,37 +247,47 @@ void convolve_poly_and_segment(
     Point2D* poly,
     const int len_poly,
     const Point2D d
-) {
-    const float_type eps = 1e-6;
+)
+/*
+    Given a closed, convex, and anti-clockwise polygon `poly` and a vector `d`, convolve the polygon with the line
+    segment `[-d, d]`. In other words, get a polygon that is the contour of both `poly - d` and `poly + d`.
 
-    if (!poly || len_poly < 3) return;
+    This is done by moving each vertex of the polygon either by `d` or by `-d` depending on the associated edge's
+    orientation relative to `d`, and in the nearly-parallel case, choosing the translation direction based on whether
+    the edge is pointing in the same direction as `d` or not.
+
+    This maintains the number of point and does not resample the polygon. Should be good enough for beam envelope
+    construction, but not interpolation as the polygon loses the quality of being evenly sampled. Might be somewhat
+    inexact for polygons that are very coarse.
+*/
+{
+    /* Precision on cross product */
+    const float_type eps = APER_PRECISION * APER_PRECISION;
+
+    if (len_poly < 3)
+        return;
 
     Point2D a = poly[0];
 
-    for (int i = 0; i < len_poly - 1; ++i) {
+    for (int i = 0; i < len_poly - 1; i++)
+    {
         const int j = (i + 1) % len_poly;
         const Point2D b = poly[j];
-        const Point2D e = point2d_sub(b, a);
+        const Point2D edge = point2d_sub(b, a);
 
-        const float_type c = point2d_cross(d, e);
-        const float_type s = point2d_dot(e, d);
-
+        const float_type cross = point2d_cross(d, edge);
         Point2D out = a;
 
-        if (c > eps) {
-            out.x += d.x;
-            out.y += d.y;
-        } else if (c < -eps) {
-            out.x -= d.x;
-            out.y -= d.y;
-        } else {
-            if (s >= 0) {
-                out.x -= d.x;
-                out.y -= d.y;
-            } else {
-                out.x += d.x;
-                out.y += d.y;
-            }
+        if (cross > eps)
+            out = point2d_add(out, d);
+        else if (cross < -eps)
+            out = point2d_sub(out, d);
+        else
+        {
+            if (point2d_dot(edge, d) >= 0)
+                out = point2d_sub(out, d);
+            else
+                out = point2d_add(out, d);
         }
 
         poly[i] = out;

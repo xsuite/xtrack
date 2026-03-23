@@ -39,6 +39,8 @@ typedef struct {
 
 inline float_type point2d_dot(Point2D, Point2D);
 inline float_type point2d_cross(Point2D, Point2D);
+inline Point2D point2d_scale(Point2D, float_type);
+inline Point2D point2d_add(Point2D, Point2D);
 inline Point2D point2d_sub(Point2D, Point2D);
 inline float_type clamp_value(float_type t, float_type lo, float_type hi);
 inline float_type point2d_distance(float_type x1, float_type y1, float_type x2, float_type y2);
@@ -62,20 +64,31 @@ inline Point3D pose_apply_point(const Pose, const Point3D);
 
 inline float_type point2d_dot(Point2D a, Point2D b)
 {
-    return a.x*b.x + a.y*b.y;
+    return a.x * b.x + a.y * b.y;
 }
 
 
 inline float_type point2d_cross(Point2D a, Point2D b)
 {
-    return a.x*b.y - a.y*b.x;
+    return a.x * b.y - a.y * b.x;
+}
+
+
+inline Point2D point2d_scale(Point2D p, float_type k)
+{
+    return (Point2D) {k * p.x, k * p.y};
+}
+
+
+inline Point2D point2d_add(Point2D a, Point2D b)
+{
+    return (Point2D) {a.x + b.x, a.y + b.y};
 }
 
 
 inline Point2D point2d_sub(Point2D a, Point2D b)
 {
-    Point2D r = {a.x-b.x, a.y-b.y};
-    return r;
+    return point2d_add(a, point2d_scale(b, -1));
 }
 
 
