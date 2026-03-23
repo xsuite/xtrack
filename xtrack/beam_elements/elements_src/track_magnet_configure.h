@@ -108,7 +108,7 @@ void configure_tracking_model(
         *k1_h_correction = k1;
         *kick_rot_frame = 0;
     }
-    else if (drift_model == 3){ // expanded dipole-quadrupole
+    else if (drift_model == 3 || drift_model == 7 || drift_model == 8){ // expanded dipole-quadrupole
         *k0_drift = k0;
         *k1_drift = k1;
         *h_drift = h;
