@@ -29,6 +29,7 @@ void configure_tracking_model(
     // model = 4: mat-kick-mat (previously called `expanded`)
     // model = 5: drift-kick-drift-exact
     // model = 6: drift-kick-drift-expanded
+    // model = 7: mat-kick-mat-corr
     // model = -1: kick only (not exposed in python)
     // model = -2: sol-kick-sol (not exposed in python)
 
@@ -63,6 +64,14 @@ void configure_tracking_model(
     }
     else if(model == 6){ // drift-kick-drift-expanded
         drift_model = 0; // drift expanded
+    }
+    else if(model == 7){ // mat-kick-mat-corr
+        if (h_is_zero){
+            drift_model = 8; // expanded with correction (straight)
+        }
+        else{
+            drift_model = 7; // expanded with correction (curved)
+        }
     }
     else if(model == -1){ // kick only
         drift_model = -1;
