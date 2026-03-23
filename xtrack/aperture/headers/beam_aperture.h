@@ -659,4 +659,134 @@ void compute_max_aperture_sigma_rays(
     #endif
 }
 
+
+void compute_max_aperture_sigma_exact(
+    ApertureModel model,
+    SurveyData survey,
+    ProfilePolygons profile_polygons,
+    ApertureBounds aperture_bounds,
+    TwissData twiss_at_s,
+    SurveyData survey_at_s,
+    BeamData beam_data,
+    float_type* const out_interpolated_apertures,
+    float_type* const ray_angles,
+    const uint32_t num_ray_angles,
+    float_type* const out_num_sigmas
+) {
+    const uint32_t num_slices = TwissData_len_x(twiss_at_s);
+    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
+
+    BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
+
+    cross_sections_at_s(
+        survey_at_s,
+        model,
+        profile_polygons,
+        aperture_bounds,
+        survey,
+        out_interpolated_apertures
+    );
+
+    #ifdef XO_CONTEXT_CPU
+        int completed = 0;
+    #endif
+
+    uint32_t bound_index = 0;
+    #pragma omp parallel for firstprivate(bound_index)
+    for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
+    {
+        float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
+        float_type s = TwissData_get_s(twiss_at_s, idx_slice);
+
+        const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
+        bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
+
+        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
+        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
+        const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
+        const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
+        const float_type tol_r = Profile_get_tol_r(profile);
+        const float_type tol_x = Profile_get_tol_x(profile);
+        const float_type tol_y = Profile_get_tol_y(profile);
+
+        const BeamApertureLocalData s_aperture_data = {
+            .points = (Point2D* const)points,
+            .n_points = num_points,
+            .tol_r = tol_r,
+            .tol_x = tol_x,
+            .tol_y = tol_y
+        };
+
+        const float_type ex = s_beam_data.emitx_norm / s_twiss_data.gamma;
+        const float_type ey = s_beam_data.emity_norm / s_twiss_data.gamma;
+        const float_type sigma_x = sqrt(ex * s_twiss_data.betx) * s_beam_data.tol_beta_beating;
+        const float_type sigma_y = sqrt(ey * s_twiss_data.bety) * s_beam_data.tol_beta_beating;
+
+        const float_type disp_orbit_shift_x = s_twiss_data.dx * s_beam_data.delta_rms;
+        const float_type disp_orbit_shift_y = s_twiss_data.dy * s_beam_data.delta_rms;
+
+        Racetrack_s halo_rt = halo_racetrack(&s_twiss_data, &s_beam_data, &s_aperture_data);
+
+        float_type n1 = INFINITY;
+        for (uint32_t i = 0; i < num_ray_angles; i++)
+        {
+            const float_type angle0 = ray_angles[i];
+            const float_type d_halo = racetrack_radius_at_angle(angle0, halo_rt);
+            const float_type cos0 = cos(angle0);
+            const float_type sin0 = sin(angle0);
+
+            for (uint32_t j = 0; j < num_ray_angles; j++)
+            {
+                const float_type angle1 = ray_angles[j];
+                const float_type p_minus_x = s_twiss_data.x - disp_orbit_shift_x + d_halo * cos0;
+                const float_type p_minus_y = s_twiss_data.y - disp_orbit_shift_y + d_halo * sin0;
+                const float_type p_plus_x = s_twiss_data.x + disp_orbit_shift_x + d_halo * cos0;
+                const float_type p_plus_y = s_twiss_data.y + disp_orbit_shift_y + d_halo * sin0;
+
+                const RayHit_s hit_minus = dist_to_poly_along_ray(
+                    angle1,
+                    p_minus_x,
+                    p_minus_y,
+                    s_aperture_data.points,
+                    num_points,
+                    /* convex */ 1,
+                    /* start_at */ 0
+                );
+                const RayHit_s hit_plus = dist_to_poly_along_ray(
+                    angle1,
+                    p_plus_x,
+                    p_plus_y,
+                    s_aperture_data.points,
+                    num_points,
+                    /* convex */ 1,
+                    /* start_at */ 0
+                );
+                const float_type d_aperture = fmin(hit_minus.dist, hit_plus.dist);
+                const float_type sigma_ray =
+                    sigma_x * fabs(cos(angle1)) +
+                    sigma_y * fabs(sin(angle1));
+
+                const float_type n_ray = d_aperture / sigma_ray;
+                if (n_ray < n1)
+                    n1 = n_ray;
+            }
+        }
+
+        out_num_sigmas[idx_slice] = n1;
+
+        #ifdef XO_CONTEXT_CPU
+            #pragma omp critical
+            {
+                completed++;
+                printf("Computing sigmas: %d%%\r", 100 * completed / num_slices);
+                fflush(stdout);
+            }
+        #endif
+    }
+
+    #ifdef XO_CONTEXT_CPU
+        printf("\n");
+    #endif
+}
+
 #endif /* XTRACK_BEAM_APERTURE_H */

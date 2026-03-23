@@ -71,6 +71,22 @@ def build_aperture_kernels(context):
                 xo.Arg(FloatType, pointer=True, name="num_sigmas"),
             ],
         ),
+        "compute_max_aperture_sigma_exact": xo.Kernel(
+            c_name="compute_max_aperture_sigma_exact",
+            args=[
+                xo.Arg(ApertureModel, name="model"),
+                xo.Arg(SurveyData, name="survey"),
+                xo.Arg(ProfilePolygons, name="profile_polygons"),
+                xo.Arg(ApertureBounds, name="aperture_bounds"),
+                xo.Arg(TwissData, name="twiss_at_s"),
+                xo.Arg(SurveyData, name="survey_at_s"),
+                xo.Arg(BeamData, name="beam_data"),
+                xo.Arg(FloatType, pointer=True, name="out_interpolated_apertures"),
+                xo.Arg(FloatType, pointer=True, name="ray_angles"),
+                xo.Arg(xo.UInt32, name="num_ray_angles"),
+                xo.Arg(FloatType, pointer=True, name="num_sigmas"),
+            ],
+        ),
         "compute_beam_envelopes_at_sigma": xo.Kernel(
             c_name="compute_beam_envelopes_at_sigma",
             args=[

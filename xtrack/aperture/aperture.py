@@ -509,7 +509,7 @@ class Aperture:
             self,
             s_positions: Iterable[float],
             twiss_init: Optional[TwissInit] = None,
-            method: Literal['bisection', 'rays'] = 'rays',
+            method: Literal['bisection', 'rays', 'exact'] = 'rays',
             envelopes_num_points: int = 36,
             num_rays: int = 32,
     ) -> Tuple[np.ndarray, TwissTable, np.ndarray, Optional[np.ndarray]]:
@@ -524,13 +524,18 @@ class Aperture:
         method
             A method to use for the computation:
             - 'rays' - the aperture sigma is estimated from sampled rays and the minimum over the sampled directions
-              is returned (faster method)
+              is returned (faster method, O(R) where R is the number of rays)
+            - 'exact' - the aperture sigma is estimated from sampled points on the halo racetrack, at which new sample
+              rays are emitted to compare the local directional sigma to the aperture (O(R^2), where R is the number
+              of rays).
             - 'bisection' - the smallest number of sigmas for the beam to fit in the aperture is computed by bisecting
-              on a polygon-inside-polygon problem (slower method)
+              on a polygon-inside-polygon problem (slower method, O(EAK), where E is the number of envelope points,
+              A is the number of aperture points, and K is the number of bisection steps; currently K <= 20, this
+              depends on the tolerance and search space set in ``beam_envelope.h``).
         envelopes_num_points:
             Only for method `bisection`: number of points to use when discretising the beam cross-section.
         num_rays:
-            Only for method `rays`: number of evenly-spaced ray directions to sample in [0, 2 * pi).
+            Only for methods `rays` and `exact`: number of evenly-spaced ray directions to sample in [0, 2 * pi).
 
         Returns
         -------
@@ -588,6 +593,25 @@ class Aperture:
 
             )
             return np.min(ray_sigmas, axis=1), sliced_twiss, interpolated_points, None
+        elif method == 'exact':
+            ray_angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False, dtype=FloatType._dtype)
+            sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
+
+            self.call_kernel(
+                'compute_max_aperture_sigma_exact',
+                model=self.model,
+                survey=self.survey_data,
+                profile_polygons=self._profile_polygons,
+                aperture_bounds=self._aperture_bounds,
+                twiss_at_s=twiss_at_s,
+                survey_at_s=survey_at_s,
+                beam_data=beam_data,
+                out_interpolated_apertures=interpolated_points,
+                ray_angles=ray_angles,
+                num_ray_angles=num_rays,
+                num_sigmas=sigmas,
+            )
+            return sigmas, sliced_twiss, interpolated_points, None
         else:
             raise NotImplementedError(f"Method `{method}` for getting aperture sigmas is unknown.")
 
