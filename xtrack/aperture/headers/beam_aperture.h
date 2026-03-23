@@ -341,31 +341,30 @@ void compute_max_aperture_sigma(
 
     BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 
-    cross_sections_at_s(
-        survey_at_s,
-        model,
-        profile_polygons,
-        aperture_bounds,
-        survey,
-        out_interpolated_apertures
-    );
-
-
     #ifdef XO_CONTEXT_CPU
         int completed = 0;
     #endif
 
     // TODO: Make this also compatible with GPUs
-    uint32_t bound_index = 0;
-    #pragma omp parallel for firstprivate(bound_index)
+    uint32_t cross_section_bound_index = 0;
+    #pragma omp parallel for firstprivate(cross_section_bound_index)
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
-        uint32_t bound_index = 0;
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_at_s, idx_slice);
 
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
-        bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
+        cross_section_bound_index = cross_section_at_s(
+            survey_at_s,
+            idx_slice,
+            model,
+            profile_polygons,
+            aperture_bounds,
+            survey,
+            cross_section_bound_index,
+            points
+        );
+        const uint32_t bound_index = find_aperture_info_for_s(aperture_bounds, s, 0);
 
         const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
         const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
@@ -567,30 +566,30 @@ void compute_max_aperture_sigma_rays(
 
     BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 
-    cross_sections_at_s(
-        survey_at_s,
-        model,
-        profile_polygons,
-        aperture_bounds,
-        survey,
-        out_interpolated_apertures
-    );
-
-
     #ifdef XO_CONTEXT_CPU
         int completed = 0;
     #endif
 
     // TODO: Make this also compatible with GPUs
-    uint32_t bound_index = 0;
-    #pragma omp parallel for firstprivate(bound_index)
+    uint32_t cross_section_bound_index = 0;
+    #pragma omp parallel for firstprivate(cross_section_bound_index)
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_at_s, idx_slice);
 
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
-        bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
+        cross_section_bound_index = cross_section_at_s(
+            survey_at_s,
+            idx_slice,
+            model,
+            profile_polygons,
+            aperture_bounds,
+            survey,
+            cross_section_bound_index,
+            points
+        );
+        const uint32_t bound_index = find_aperture_info_for_s(aperture_bounds, s, 0);
 
         const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
         const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
@@ -678,28 +677,29 @@ void compute_max_aperture_sigma_exact(
 
     BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 
-    cross_sections_at_s(
-        survey_at_s,
-        model,
-        profile_polygons,
-        aperture_bounds,
-        survey,
-        out_interpolated_apertures
-    );
-
     #ifdef XO_CONTEXT_CPU
         int completed = 0;
     #endif
 
-    uint32_t bound_index = 0;
-    #pragma omp parallel for firstprivate(bound_index)
+    uint32_t cross_section_bound_index = 0;
+    #pragma omp parallel for firstprivate(cross_section_bound_index)
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
         float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
         float_type s = TwissData_get_s(twiss_at_s, idx_slice);
 
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
-        bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
+        cross_section_bound_index = cross_section_at_s(
+            survey_at_s,
+            idx_slice,
+            model,
+            profile_polygons,
+            aperture_bounds,
+            survey,
+            cross_section_bound_index,
+            points
+        );
+        const uint32_t bound_index = find_aperture_info_for_s(aperture_bounds, s, 0);
 
         const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
         const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
