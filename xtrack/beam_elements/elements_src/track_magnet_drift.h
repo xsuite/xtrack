@@ -436,6 +436,22 @@ void track_magnet_drift_single_particle(
         case 6:
             track_solenoid_single_particle(part, length, ks, x0_solenoid, y0_solenoid);
             break;
+        case 7:
+            // expanded combined dipole with correction (curved)
+            track_polar_drift_single_particle(part, length/2, h);
+            track_expanded_combined_dipole_quad_single_particle(part, -length/2, 0, 0, h);
+            track_expanded_combined_dipole_quad_single_particle(part, length, k0, k1, h);
+            track_expanded_combined_dipole_quad_single_particle(part, -length/2, 0, 0, h);
+            track_polar_drift_single_particle(part, length/2, h);
+            break;
+        case 8:
+            // expanded combined dipole with correction (straight)
+            track_exact_drift_single_particle(part, length/2);
+            track_expanded_combined_dipole_quad_single_particle(part, -length/2, 0, 0, 0);
+            track_expanded_combined_dipole_quad_single_particle(part, length, k0, k1, 0);
+            track_expanded_combined_dipole_quad_single_particle(part, -length/2, 0, 0, 0);
+            track_exact_drift_single_particle(part, length/2);
+            break;
         default:
             break;
     }
