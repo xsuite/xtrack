@@ -62,6 +62,11 @@ for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
         resolution=0.1,
         method='rays',
     )
+    sigmas_exact, _, _, max_envelope_exact = aperture_model.get_aperture_sigmas_at_element(
+        element_name=xs_name,
+        resolution=0.1,
+        method='exact',
+    )
 
     cross_sections2, poses = aperture_model.cross_sections_at_element(element_name=xs_name, resolution=0.1)
 
@@ -79,8 +84,14 @@ for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
     plt.gca().set_aspect('equal')
     plt.suptitle(f"{xs_name}")
     plt.title(
-        f"min(n1_xsuite) = {min(sigmas_rays):.5f} vs min(n1_pyoptics) = {min(n1_pyoptics):.5f},"
-        fr" $\Delta n_1$ = {np.abs(min(sigmas_rays) - min(n1_pyoptics))}"
+        " / ".join(
+            [
+                f"min(n1_rays) = {min(sigmas_rays):.5f}",
+                f"min(n1_bisection) = {min(sigmas):.5f}",
+                f"min(n1_exact) = {min(sigmas_exact):.5f}",
+                f"min(n1_pyoptics) = {min(n1_pyoptics):.5f}",
+            ]
+        )
     )
     plt.legend()
     plt.show()

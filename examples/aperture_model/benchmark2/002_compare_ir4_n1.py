@@ -1,17 +1,33 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from pyoptics import BeamEnvelope
-
-import xobjects as xo
 import xtrack as xt
+from lhcoptics import LHCOptics
+from xdeps import Table
+from xobjects import ContextCpu
 from xtrack.aperture import Aperture
 
 
-context = xo.ContextCpu(omp_num_threads="auto")
+base = "./acc-models-lhc/"
 
-lhc_with_metadata = xt.load("./lhc_aperture.json")
-b1 = lhc_with_metadata["b1"]
+lhc = xt.load(f"{base}/xsuite/lhc_aperture.json")
+lhc.vars.load(f"{base}/strengths/cycle_round_v0/opt_6000.madx")
+lhc.set_particle_ref(p0c=450e9)
 
+lhc.b1.metadata["aperture_offsets"] = {}
+lhc.b2.metadata["aperture_offsets"] = {}
+for ipn in range(1, 9):
+    for beam in "14":
+        tfs = Table.from_tfs(f"./temp/offset.ip{ipn}.b{beam}.tfs")
+        line = lhc.b1 if beam == "1" else lhc.b2
+        line.metadata["aperture_offsets"][f"ip{ipn}"] = tfs._data.copy()
+
+opt = LHCOptics.from_xsuite(lhc)
+mad = opt.make_madx_model()
+apm = mad.get_ap_irs()
+ir4 = apm["ir4b1"]
+
+context = ContextCpu(omp_num_threads="auto")
+b1 = lhc.b1
 aperture_model = Aperture.from_line_with_madx_metadata(
     b1,
     num_profile_points=100,
@@ -19,54 +35,41 @@ aperture_model = Aperture.from_line_with_madx_metadata(
     context=context,
 )
 
-emittance_norm = 2.5e-6
-apbbeat = 1.1
-DParcx = 0.10
-DParcy = 0.10
-COmax = 0.002
-dPmax = 0.0002
-VMAXI = 30
-SPECIF = 7
-
 aperture_model.halo_params.update(
     {
-        "emitx_norm": emittance_norm,
-        "emity_norm": emittance_norm,
-        "delta_rms": dPmax,
-        "tol_co": COmax,
-        "tol_disp": DParcx,  # MADX has different settings for x/y
-        "tol_disp_ref_dx": 2.086,
-        "tol_disp_ref_beta": 170.25,
-        "tol_energy": 0.0,  # TO CHECK
-        "tol_beta_beating": apbbeat,  # MADX has different settings for x/y
+        "emitx_norm": ir4.exn,
+        "emity_norm": ir4.eyn,
+        "delta_rms": ir4.dp_bucket_size,
+        "tol_co": ir4.co_radius,
+        "tol_disp": ir4.paras_dx,
+        "tol_disp_ref_dx": ir4.dqf,
+        "tol_disp_ref_beta": ir4.betaqfx,
+        "tol_energy": 0.0,
+        "tol_beta_beating": ir4.beta_beating,
     }
 )
 
-ap = BeamEnvelope.from_apname("temp/ap_ir5b1.tfs")
-
-s_positions = np.array(ap.ap.s, dtype=float)
-n1_pyoptics = np.array(ap.ap.n1, dtype=float)
+s_ip4_m, = ir4.rows["ip4.*"].s
+s_ip4_x, = b1.get_table().rows["ip4.*"].s
+s_positions = np.array(ir4.s - s_ip4_m + s_ip4_x, dtype=float)
+n1_madx = np.array(ir4.n1, dtype=float)
 
 sigmas_rays, twiss, _, _ = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
-    envelopes_num_points=36,
     method="rays",
 )
 sigmas_bisection, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
-    num_rays=360,
     method="bisection",
+    envelopes_num_points=36,
 )
 sigmas_exact, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
-    num_rays=360,
     method="exact",
+    num_rays=32,
 )
 
-n1_pyoptics_plot = np.where(n1_pyoptics > 9e5, np.inf, n1_pyoptics)
-mask_rays = np.isfinite(n1_pyoptics_plot) & np.isfinite(sigmas_rays)
-mask_bisection = np.isfinite(n1_pyoptics_plot) & np.isfinite(sigmas_bisection)
-mask_exact = np.isfinite(n1_pyoptics_plot) & np.isfinite(sigmas_exact)
+n1_madx_plot = np.where(n1_madx > 9e5, np.inf, n1_madx)
 
 fig, (ax_top, ax_middle, ax_bottom) = plt.subplots(
     3,
@@ -76,12 +79,12 @@ fig, (ax_top, ax_middle, ax_bottom) = plt.subplots(
     height_ratios=[3, 2, 1],
 )
 
-ax_top.plot(s_positions, n1_pyoptics_plot, label="n1 (MAD-X/pyoptics)", lw=1.5)
+ax_top.plot(s_positions, n1_madx_plot, label="n1 (MAD-X)", lw=1.5)
 ax_top.plot(s_positions, sigmas_rays, label="n1 (Xtrack rays)", linestyle="--", lw=1.5)
 ax_top.plot(s_positions, sigmas_bisection, label="n1 (Xtrack bisection)", linestyle=":", lw=1.5)
 ax_top.plot(s_positions, sigmas_exact, label="n1 (Xtrack exact)", linestyle="-.", lw=1.5)
 ax_top.set_ylabel(r"max beam size [$\sigma$]")
-ax_top.set_title("IR5 B1 aperture comparison")
+ax_top.set_title("IR4 B1 aperture comparison")
 ax_top.legend()
 ax_top.grid(True)
 
@@ -95,10 +98,10 @@ ax_middle.legend()
 
 ax_bottom.plot(
     s_positions,
-    n1_pyoptics_plot - sigmas_exact,
+    n1_madx_plot - sigmas_exact,
     lw=1.2,
     linestyle="-",
-    label=r"$\Delta n_1$ (MAD-X/pyoptics - exact)",
+    label=r"$\Delta n_1$ (MAD-X - exact)",
 )
 ax_bottom.plot(
     s_positions,

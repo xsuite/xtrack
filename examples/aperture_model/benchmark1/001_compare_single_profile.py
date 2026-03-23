@@ -47,33 +47,54 @@ ap = BeamEnvelope.from_apname("temp/ap_ir5b1.tfs")
 tt = aperture_model.get_bounds_table()
 
 # Cross-sections and beam pyoptics vs Xtrack aperture model
-# ["MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]
-#name = "MQXFA.A1R5"
-name = "MBXF.4R5"
+for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
+    pyop_id = ap.get_n_name(name)[0]
+    n_sigma = ap.get_n1_name(name)[0][0]
+    s = ap.ap.s[pyop_id]
 
-pyop_id = ap.get_n_name(name)[0]
-n_sigma = ap.get_n1_name(name)[0][0]
-s = ap.ap.s[pyop_id]
+    ap.plot_halo(pyop_id, halor=n_sigma, halox=n_sigma, haloy=n_sigma)
 
-ap.plot_halo(pyop_id, halor=n_sigma, halox=n_sigma, haloy=n_sigma)
+    sigmas_bisection, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
+        s_positions=[s],
+        method="bisection",
+        envelopes_num_points=101,
+    )
+    sigmas_rays, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
+        s_positions=[s],
+        method="rays",
+        num_rays=360,
+    )
+    sigmas_exact, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
+        s_positions=[s],
+        method="exact",
+        num_rays=360,
+    )
+    envel, _ = aperture_model.get_envelope_at_s(s_positions=[s], sigmas=sigmas_bisection[0], envelopes_num_points=101)
 
-envel, tw = aperture_model.get_envelope_at_s(s_positions=[s], sigmas=n_sigma, include_aper_tols=True, envelopes_num_points=101)
+    cross_sections, poses = aperture_model.cross_sections_at_s(s_positions=[s])
 
-cross_sections, poses = aperture_model.cross_sections_at_s(s_positions=[s])
+    ap_centre = (np.min(cross_sections, axis=1) + np.max(cross_sections, axis=1)) / 2
 
+    for pt, ct in zip(cross_sections, ap_centre):
+        plt.plot(pt[:, 0] - ct[0], pt[:, 1] - ct[1], c='gray', linestyle='--')
 
-ap_centre = (np.min(cross_sections, axis=1) + np.max(cross_sections, axis=1)) / 2
+    for pt, ct in zip(envel, ap_centre):
+        plt.plot(pt[:, 0] - ct[0], pt[:, 1] - ct[1], c='b', linestyle='-', marker='.')
 
-for pt, ct in zip(cross_sections, ap_centre):
-    plt.plot(pt[:, 0] - ct[0], pt[:, 1] - ct[1], c='gray', linestyle='--')
+    plt.gca().set_aspect('equal')
+    plt.title(
+        " / ".join(
+            [
+                f"s = {s:.6f}",
+                f"n1_pyoptics = {n_sigma:.5f}",
+                f"n1_rays = {sigmas_rays[0]:.5f}",
+                f"n1_bisection = {sigmas_bisection[0]:.5f}",
+                f"n1_exact = {sigmas_exact[0]:.5f}",
+            ]
+        )
+    )
+    plt.legend()
+    plt.show()
 
-for pt, ct in zip(envel, ap_centre):
-    plt.plot(pt[:, 0] - ct[0], pt[:, 1] - ct[1], c='b', linestyle='-', marker='.')
-
-plt.gca().set_aspect('equal')
-plt.title(f"s = {s}")
-plt.legend()
-plt.show()
-
-ap.ap.show(name, "s n1 betx bety x y dx dy")
-print(tt.rows[f'{name.lower()}.*'])
+    ap.ap.show(name, "s n1 betx bety x y dx dy")
+    print(tt.rows[f'{name.lower()}.*'])

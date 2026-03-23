@@ -725,7 +725,8 @@ void compute_max_aperture_sigma_exact(
         const float_type disp_orbit_shift_x = s_twiss_data.dx * s_beam_data.delta_rms;
         const float_type disp_orbit_shift_y = s_twiss_data.dy * s_beam_data.delta_rms;
 
-        Racetrack_s halo_rt = halo_racetrack(&s_twiss_data, &s_beam_data, &s_aperture_data);
+        const Racetrack_s halo_rt = halo_racetrack(&s_twiss_data, &s_beam_data, &s_aperture_data);
+        const Racetrack_s beam_1s_rt = beam_racetrack(&s_twiss_data, &s_beam_data);
 
         float_type n1 = INFINITY;
         for (uint32_t i = 0; i < num_ray_angles; i++)
@@ -762,9 +763,7 @@ void compute_max_aperture_sigma_exact(
                     /* start_at */ 0
                 );
                 const float_type d_aperture = fmin(hit_minus.dist, hit_plus.dist);
-                const float_type sigma_ray =
-                    sigma_x * fabs(cos(angle1)) +
-                    sigma_y * fabs(sin(angle1));
+                const float_type sigma_ray = racetrack_radius_at_angle(angle1, beam_1s_rt);
 
                 const float_type n_ray = d_aperture / sigma_ray;
                 if (n_ray < n1)
