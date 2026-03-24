@@ -27,10 +27,10 @@ def context():
 
 @pytest.fixture(scope="module")
 def build_polygon_for_profile(context):
-    def _build_polygon_for_profile(profile: ShapeTypes, num_points: int):
+    def _build_polygon_for_profile(profile: ShapeTypes, len_points: int):
         profile = Profile(shape=profile)
-        points = np.zeros((num_points, 2), dtype=FloatType._dtype)
-        context.kernels.build_polygon_for_profile(points=points, num_points=num_points, profile=profile)
+        points = np.zeros((len_points, 2), dtype=FloatType._dtype)
+        context.kernels.build_polygon_for_profile(points=points, len_points=len_points, profile=profile)
         return points
 
     return _build_polygon_for_profile
@@ -60,15 +60,15 @@ def segment_lengths(pts: np.ndarray) -> np.ndarray:
 
 def assert_uniform_sampling(pts: np.ndarray, expected_circumference: float = None):
     lens = segment_lengths(pts)
-    num_points = lens.shape[0]
+    len_points = lens.shape[0]
 
     if True or expected_circumference is None:
-        circumference = (num_points - 1) * np.mean(lens)
+        circumference = (len_points - 1) * np.mean(lens)
     else:
-        assert (num_points - 1) * np.mean(lens) < expected_circumference
+        assert (len_points - 1) * np.mean(lens) < expected_circumference
         circumference = expected_circumference
 
-    min_ds = circumference / (num_points - 1) / np.sqrt(2)
+    min_ds = circumference / (len_points - 1) / np.sqrt(2)
     atol = 1e-6 # microns
     assert (lens >= min_ds - atol).all()
 
@@ -285,7 +285,7 @@ def test_octagon_correctness_and_uniformity(build_polygon_for_profile, w, h, d, 
     ('Racetrack', {'half_width': 1.0, 'half_height': 0.5, 'half_major': 0.3, 'half_minor': 0.2}),
     ('Octagon', {'half_width': 1.0, 'half_height': 0.8, 'half_diagonal': 0.8}),
 ])
-def test_smoke_small_num_points(build_polygon_for_profile, shape_class, params):
+def test_smoke_small_len_points(build_polygon_for_profile, shape_class, params):
     profile = getattr(structures, shape_class)(**params)
     n = 8
     pts = build_polygon_for_profile(profile, n)

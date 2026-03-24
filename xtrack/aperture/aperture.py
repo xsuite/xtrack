@@ -415,7 +415,7 @@ class Aperture:
 
     def polygon_for_profile(self, profile: Profile, num_points: int) -> NDArrayNx2:
         points = np.ndarray(shape=(num_points, 2), dtype=FloatType._dtype)
-        self.call_kernel('build_polygon_for_profile', points=points, num_points=num_points, profile=profile)
+        self.call_kernel('build_polygon_for_profile', points=points, len_points=num_points, profile=profile)
         return points
 
     @classmethod
@@ -559,7 +559,7 @@ class Aperture:
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
 
             self.call_kernel(
-                'compute_max_aperture_sigma',
+                'compute_max_aperture_sigma_bisection',
                 model=self.model,
                 survey=self.survey_data,
                 profile_polygons=self._profile_polygons,
@@ -589,7 +589,7 @@ class Aperture:
                 out_interpolated_apertures=interpolated_points,
                 ray_angles=ray_angles,
                 num_ray_angles=num_rays,
-                num_sigmas=ray_sigmas,
+                sigmas=ray_sigmas,
 
             )
             return np.min(ray_sigmas, axis=1), sliced_twiss, interpolated_points, None
@@ -609,7 +609,7 @@ class Aperture:
                 out_interpolated_apertures=interpolated_points,
                 ray_angles=ray_angles,
                 num_ray_angles=num_rays,
-                num_sigmas=sigmas,
+                sigmas=sigmas,
             )
             return sigmas, sliced_twiss, interpolated_points, None
         else:
@@ -690,7 +690,7 @@ class Aperture:
             out_interpolated_apertures=interpolated_points,
             ray_angles=ray_angles,
             num_ray_angles=8,
-            num_sigmas=ray_sigmas,
+            sigmas=ray_sigmas,
 
         )
 
@@ -874,7 +874,7 @@ class Aperture:
         num_profile_polys = len(self.model.profiles)
         self._profile_polygons = ProfilePolygons(
             count=num_profile_polys,
-            num_points=num_points,
+            len_points=num_points,
             points=(num_profile_polys, num_points),
         )
 

@@ -106,9 +106,9 @@ void build_profile_polygons(
     {
         const Profile profile = ApertureModel_getp1_profiles(model, idx);
         float_type *const points = ProfilePolygons_getp3_points(profile_polygons, idx, 0, 0);
-        const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
+        const uint32_t len_points = ProfilePolygons_get_len_points(profile_polygons);
 
-        build_polygon_for_profile(points, num_points, profile);
+        build_polygon_for_profile(points, len_points, profile);
     }
 
     /*
@@ -132,7 +132,7 @@ void build_profile_polygons(
         const uint32_t profile_idx = ProfilePosition_get_profile_index(profile_pos);
         float_type *const poly = ProfilePolygons_getp3_points(profile_polygons, profile_idx, 0, 0);
 
-        const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
+        const uint32_t len_points = ProfilePolygons_get_len_points(profile_polygons);
 
         /* Get the survey s where the aperture actually sits */
         uint32_t installed_survey_index;
@@ -143,7 +143,7 @@ void build_profile_polygons(
         /* Get the bounds in s that the aperture spans */
         float_type min_s, max_s;
         const Point2D* const profile_points = (Point2D*)poly;
-        bounds_on_s_for_aperture(type_pos, profile_pos, curvature, survey, profile_points, num_points, installed_survey_index, &min_s, &max_s);
+        bounds_on_s_for_aperture(type_pos, profile_pos, curvature, survey, profile_points, len_points, installed_survey_index, &min_s, &max_s);
         ApertureBounds_set_s_start(aperture_bounds, idx, min_s);
         ApertureBounds_set_s_end(aperture_bounds, idx, max_s);
     }
@@ -246,12 +246,12 @@ static inline void project_3d_polygon_to_plane(
     const Point2D* poly_local,
     const Pose profile_in_world,
     const Pose world_in_plane,
-    const uint32_t num_points,
+    const uint32_t len_points,
     Point2D* out_poly_plane
 )
 /* Project a local 2D polygon (lying on z = 0 in the local frame) into plane frame. */
 {
-    for (uint32_t j = 0; j < num_points; j++) {
+    for (uint32_t j = 0; j < len_points; j++) {
         const Point3D p_local = (Point3D){ poly_local[j].x, poly_local[j].y, 0.f };
         const Point3D p_world = pose_apply_point(profile_in_world, p_local);
         const Point3D p_plane = pose_apply_point(world_in_plane, p_world);
@@ -399,7 +399,7 @@ void cross_sections_at_s(
             bounds,
             survey,
             bound_idx,
-            cross_sections + i * ProfilePolygons_get_num_points(profile_polys) * 2,
+            cross_sections + i * ProfilePolygons_get_len_points(profile_polys) * 2,
             tol_r ? &tol_r[i] : NULL,
             tol_x ? &tol_x[i] : NULL,
             tol_y ? &tol_y[i] : NULL
@@ -432,8 +432,8 @@ uint32_t cross_section_at_s(
 )
 {
     const float_type eps = APER_PRECISION;
-    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polys);
-    const uint32_t num_unique_points = num_points - 1;
+    const uint32_t len_points = ProfilePolygons_get_len_points(profile_polys);
+    const uint32_t num_unique_points = len_points - 1;
     const uint32_t num_bounds = ApertureBounds_get_count(bounds);
     const float_type s = SurveyData_get_s(survey_at_s, idx_cross_section);
     Point2D* poly_at_s = (Point2D*)cross_section;
@@ -442,7 +442,7 @@ uint32_t cross_section_at_s(
         model, bounds, s, lower_bound, out_tol_r, out_tol_x, out_tol_y);
 
     if (bound_idx >= num_bounds) {
-        for (uint32_t j = 0; j < num_points; j++) {
+        for (uint32_t j = 0; j < len_points; j++) {
             poly_at_s[j].x = NAN;
             poly_at_s[j].y = NAN;
         }
@@ -480,15 +480,15 @@ uint32_t cross_section_at_s(
     const char has_left = get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx - 1, world_in_type, &poly_left, &pose_left);
     const char has_right = get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx + 1, world_in_type, &poly_right, &pose_right);
 
-    Point2D poly_center_plane[num_points];
-    Point2D poly_left_plane[num_points];
-    Point2D poly_right_plane[num_points];
-    project_3d_polygon_to_plane(poly_center, pose_center, type_in_plane, num_points, poly_center_plane);
-    if (has_left) project_3d_polygon_to_plane(poly_left, pose_left, type_in_plane, num_points, poly_left_plane);
-    if (has_right) project_3d_polygon_to_plane(poly_right, pose_right, type_in_plane, num_points, poly_right_plane);
+    Point2D poly_center_plane[len_points];
+    Point2D poly_left_plane[len_points];
+    Point2D poly_right_plane[len_points];
+    project_3d_polygon_to_plane(poly_center, pose_center, type_in_plane, len_points, poly_center_plane);
+    if (has_left) project_3d_polygon_to_plane(poly_left, pose_left, type_in_plane, len_points, poly_left_plane);
+    if (has_right) project_3d_polygon_to_plane(poly_right, pose_right, type_in_plane, len_points, poly_right_plane);
 
     if (fabs(s - s_center) < eps) {
-        for (uint32_t j = 0; j < num_points; j++) poly_at_s[j] = poly_center_plane[j];
+        for (uint32_t j = 0; j < len_points; j++) poly_at_s[j] = poly_center_plane[j];
         return bound_idx;
     }
 
@@ -528,14 +528,14 @@ uint32_t cross_section_at_s(
 
         poly_at_s[j] = has_intersection ? hit_point_plane : poly_center_plane[j];
     }
-    poly_at_s[num_points - 1] = poly_at_s[0];
+    poly_at_s[len_points - 1] = poly_at_s[0];
     return bound_idx;
 }
 
 
 void build_polygon_for_profile(
     float_type *const points,
-    const uint32_t num_points,
+    const uint32_t len_points,
     const Profile profile
 )
 {
@@ -553,43 +553,43 @@ void build_polygon_for_profile(
         case Shape_Circle_t:  // LHC
         {
             const Circle circle = Profile_member_shape(profile);
-            build_circle_polygon((Point2D* const) points, num_points, circle);
+            build_circle_polygon((Point2D* const) points, len_points, circle);
             break;
         }
         case Shape_Rectangle_t:
         {
             const Rectangle rectangle = Profile_member_shape(profile);
-            build_rectangle_polygon((Point2D* const) points, num_points, rectangle);
+            build_rectangle_polygon((Point2D* const) points, len_points, rectangle);
             break;
         }
         case Shape_Ellipse_t:
         {
             const Ellipse ellipse = Profile_member_shape(profile);
-            build_ellipse_polygon((Point2D* const) points, num_points, ellipse);
+            build_ellipse_polygon((Point2D* const) points, len_points, ellipse);
             break;
         }
         case Shape_RectEllipse_t:
         {
             const RectEllipse rect_ellipse = Profile_member_shape(profile);
-            build_rect_ellipse_polygon((Point2D* const) points, num_points, rect_ellipse);
+            build_rect_ellipse_polygon((Point2D* const) points, len_points, rect_ellipse);
             break;
         }
         case Shape_Racetrack_t:
         {
             const Racetrack racetrack = Profile_member_shape(profile);
-            build_racetrack_polygon((Point2D* const) points, num_points, racetrack);
+            build_racetrack_polygon((Point2D* const) points, len_points, racetrack);
             break;
         }
         case Shape_Octagon_t:
         {
             const Octagon octagon = Profile_member_shape(profile);
-            build_octagon_polygon((Point2D* const) points, num_points, octagon);
+            build_octagon_polygon((Point2D* const) points, len_points, octagon);
             break;
         }
         case Shape_Polygon_t:
         {
             const Polygon polygon = Profile_member_shape(profile);
-            build_polygon_polygon((Point2D* const) points, num_points, polygon);
+            build_polygon_polygon((Point2D* const) points, len_points, polygon);
             break;
         }
         case Shape_SVGShape_t:
@@ -850,18 +850,18 @@ static inline void bounds_on_s_for_aperture(
 }
 
 
-static inline void build_circle_polygon(Point2D *const points, const uint32_t num_points, const Circle circle)
+static inline void build_circle_polygon(Point2D *const points, const uint32_t len_points, const Circle circle)
 {
     const float_type radius = Circle_get_radius(circle);
 
     Segment2D segments[1];
     Path2D path = {.segments = segments, .len_segments = 1};
     segments_from_circle(radius, segments);
-    poly_get_n_uniform_points(&path, num_points, points);
+    poly_get_n_uniform_points(&path, len_points, points);
 }
 
 
-static inline void build_rectangle_polygon(Point2D *const points, const uint32_t num_points, const Rectangle rectangle)
+static inline void build_rectangle_polygon(Point2D *const points, const uint32_t len_points, const Rectangle rectangle)
 {
     const float_type half_width = Rectangle_get_half_width(rectangle);
     const float_type half_height = Rectangle_get_half_height(rectangle);
@@ -869,11 +869,11 @@ static inline void build_rectangle_polygon(Point2D *const points, const uint32_t
     Segment2D segments[4];
     Path2D path = {.segments = segments, .len_segments = 4};
     segments_from_rectangle(half_width, half_height, segments);
-    poly_get_n_uniform_points(&path, num_points, points);
+    poly_get_n_uniform_points(&path, len_points, points);
 }
 
 
-static inline void build_ellipse_polygon(Point2D *const points, const uint32_t num_points, const Ellipse ellipse)
+static inline void build_ellipse_polygon(Point2D *const points, const uint32_t len_points, const Ellipse ellipse)
 {
     const float_type half_major = Ellipse_get_half_major(ellipse);
     const float_type half_minor = Ellipse_get_half_minor(ellipse);
@@ -881,11 +881,11 @@ static inline void build_ellipse_polygon(Point2D *const points, const uint32_t n
     Segment2D segments[1];
     Path2D path = {.segments = segments, .len_segments = 1};
     segments_from_ellipse(half_major, half_minor, segments);
-    poly_get_n_uniform_points(&path, num_points, points);
+    poly_get_n_uniform_points(&path, len_points, points);
 }
 
 
-static inline void build_rect_ellipse_polygon(Point2D *const points, const uint32_t num_points, const RectEllipse rect_ellipse)
+static inline void build_rect_ellipse_polygon(Point2D *const points, const uint32_t len_points, const RectEllipse rect_ellipse)
 {
     const float_type half_width = RectEllipse_get_half_width(rect_ellipse);
     const float_type half_height = RectEllipse_get_half_height(rect_ellipse);
@@ -895,11 +895,11 @@ static inline void build_rect_ellipse_polygon(Point2D *const points, const uint3
     Segment2D segments[8];
     Path2D path = {.segments = segments, .len_segments = 8};
     segments_from_rectellipse(half_width, half_height, half_major, half_minor, segments, &path.len_segments);
-    poly_get_n_uniform_points(&path, num_points, points);
+    poly_get_n_uniform_points(&path, len_points, points);
 }
 
 
-static inline void build_racetrack_polygon(Point2D *const points, const uint32_t num_points, const Racetrack racetrack)
+static inline void build_racetrack_polygon(Point2D *const points, const uint32_t len_points, const Racetrack racetrack)
 {
     const float_type half_width = Racetrack_get_half_width(racetrack);
     const float_type half_height = Racetrack_get_half_height(racetrack);
@@ -909,11 +909,11 @@ static inline void build_racetrack_polygon(Point2D *const points, const uint32_t
     Segment2D segments[8];
     Path2D path = {.segments = segments, .len_segments = 8};
     segments_from_racetrack(half_width, half_height, half_major, half_minor, segments, &path.len_segments);
-    poly_get_n_uniform_points(&path, num_points, points);
+    poly_get_n_uniform_points(&path, len_points, points);
 }
 
 
-static inline void build_octagon_polygon(Point2D *const points, const uint32_t num_points, const Octagon octagon)
+static inline void build_octagon_polygon(Point2D *const points, const uint32_t len_points, const Octagon octagon)
 {
     const float_type half_width = Octagon_get_half_width(octagon);
     const float_type half_height = Octagon_get_half_height(octagon);
@@ -922,11 +922,11 @@ static inline void build_octagon_polygon(Point2D *const points, const uint32_t n
     Segment2D segments[8];
     Path2D path = {.segments = segments, .len_segments = 8};
     segments_from_octagon(half_width, half_height, half_diagonal, segments, &path.len_segments);
-    poly_get_n_uniform_points(&path, num_points, points);
+    poly_get_n_uniform_points(&path, len_points, points);
 }
 
 
-static inline void build_polygon_polygon(Point2D *const points, const uint32_t num_points, const Polygon polygon)
+static inline void build_polygon_polygon(Point2D *const points, const uint32_t len_points, const Polygon polygon)
 {
     // TODO: Not yet implemented, requires resampling the polygon
 }

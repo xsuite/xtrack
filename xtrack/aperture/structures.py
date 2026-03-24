@@ -213,7 +213,7 @@ class ApertureBounds(xo.Struct):
 
 class ProfilePolygons(xo.Struct):
     count = xo.UInt32
-    num_points = xo.UInt32
+    len_points = xo.UInt32
     points = FloatType[:, :, 2]
 
 

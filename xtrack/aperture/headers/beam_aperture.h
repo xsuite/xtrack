@@ -129,12 +129,12 @@ void get_beam_envelope(
     const BeamLocalData *beam_data,
     const TwissLocalData *twiss_data,
     const BeamApertureLocalData *aperture_data,
-    const float_type num_sigmas,
+    const float_type sigmas,
     int len_points,
     Point2D *out_points
 )
 {
-    /* Beam racetrack is defined in 1-sigma units; scale by num_sigmas here */
+    /* Beam racetrack is defined in 1-sigma units; scale by sigmas here */
     const Racetrack_s beam_rt_1s = beam_racetrack(twiss_data, beam_data);
     const Racetrack_s halo_rt = halo_racetrack(twiss_data, beam_data, aperture_data);
 
@@ -144,10 +144,10 @@ void get_beam_envelope(
         envelope racetrack:
     */
     const Racetrack_s env = (Racetrack_s){
-        .h = halo_rt.h + num_sigmas * beam_rt_1s.h,
-        .v = halo_rt.v + num_sigmas * beam_rt_1s.v,
-        .a = halo_rt.a + num_sigmas * beam_rt_1s.a,
-        .b = halo_rt.b + num_sigmas * beam_rt_1s.b,
+        .h = halo_rt.h + sigmas * beam_rt_1s.h,
+        .v = halo_rt.v + sigmas * beam_rt_1s.v,
+        .a = halo_rt.a + sigmas * beam_rt_1s.a,
+        .b = halo_rt.b + sigmas * beam_rt_1s.b,
     };
 
     Segment2D segments[8];
@@ -253,7 +253,7 @@ char _points_inside_polygon(const float_type* points, const float_type* poly_poi
 }
 
 
-float_type compute_max_aperture_sigma_bisection(
+float_type max_aperture_sigma_bisect_one_slice(
     const BeamLocalData *beam_data,
     const TwissLocalData *twiss_data,
     const BeamApertureLocalData *aperture_data,
@@ -321,7 +321,7 @@ static inline TwissLocalData twiss_data_get_entry(const TwissData twiss_data, co
 }
 
 
-void compute_max_aperture_sigma(
+void compute_max_aperture_sigma_bisection(
     ApertureModel model,
     SurveyData survey,
     ProfilePolygons profile_polygons,
@@ -335,7 +335,7 @@ void compute_max_aperture_sigma(
     float_type* const sigmas
 ) {
     const uint32_t num_slices = TwissData_len_x(twiss_at_s);
-    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
+    const uint32_t len_points = ProfilePolygons_get_len_points(profile_polygons);
 
     BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 
@@ -350,7 +350,7 @@ void compute_max_aperture_sigma(
     {
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         BeamApertureLocalData s_aperture_data = {
-            .points = (Point2D*)(out_interpolated_apertures + idx_slice * num_points * 2),
+            .points = (Point2D*)(out_interpolated_apertures + idx_slice * len_points * 2),
         };
         cross_section_bound_index = cross_section_at_s(
             survey_at_s,
@@ -365,9 +365,9 @@ void compute_max_aperture_sigma(
             &s_aperture_data.tol_x,
             &s_aperture_data.tol_y
         );
-        s_aperture_data.n_points = num_points;
+        s_aperture_data.n_points = len_points;
 
-        const float_type num_sigmas = compute_max_aperture_sigma_bisection(
+        const float_type sigma = max_aperture_sigma_bisect_one_slice(
             &s_beam_data,
             &s_twiss_data,
             &s_aperture_data,
@@ -377,7 +377,7 @@ void compute_max_aperture_sigma(
             /* tolerance on search */ 0.001,
             (Point2D*)(out_envelope_at_max_sigma + idx_slice * envelope_num_points * 2)
         );
-        sigmas[idx_slice] = num_sigmas;
+        sigmas[idx_slice] = sigma;
 
         #ifdef XO_CONTEXT_CPU
             IF_OMP_PRAGMA("omp critical")
@@ -534,10 +534,10 @@ void compute_max_aperture_sigma_rays(
     float_type* const out_interpolated_apertures,
     float_type* const ray_angles,
     const uint32_t num_ray_angles,
-    float_type* const out_num_sigmas
+    float_type* const out_sigmas
 ) {
     const uint32_t num_slices = TwissData_len_x(twiss_at_s);
-    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
+    const uint32_t len_points = ProfilePolygons_get_len_points(profile_polygons);
 
     BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 
@@ -552,7 +552,7 @@ void compute_max_aperture_sigma_rays(
     {
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         BeamApertureLocalData s_aperture_data = {
-            .points = (Point2D*)(out_interpolated_apertures + idx_slice * num_points * 2),
+            .points = (Point2D*)(out_interpolated_apertures + idx_slice * len_points * 2),
         };
         cross_section_bound_index = cross_section_at_s(
             survey_at_s,
@@ -567,7 +567,7 @@ void compute_max_aperture_sigma_rays(
             &s_aperture_data.tol_x,
             &s_aperture_data.tol_y
         );
-        s_aperture_data.n_points = num_points;
+        s_aperture_data.n_points = len_points;
 
         Racetrack_s halo_rt = halo_racetrack(&s_twiss_data, &s_beam_data, &s_aperture_data);
         Racetrack_s beam_rt = beam_racetrack(&s_twiss_data, &s_beam_data);
@@ -588,13 +588,13 @@ void compute_max_aperture_sigma_rays(
                 s_twiss_data.x + sgn * disp_orbit_shift_x,
                 s_twiss_data.y + sgn * disp_orbit_shift_y,
                 s_aperture_data.points,
-                num_points,
+                len_points,
                 /* convex */ 1,
                 disp_side == 0 ? aperture_distances_plus : aperture_distances_minus
             );
         }
 
-        float_type* const slice_num_sigmas = out_num_sigmas + idx_slice * num_ray_angles;
+        float_type* const slice_sigmas = out_sigmas + idx_slice * num_ray_angles;
         for (uint32_t i = 0; i < num_ray_angles; i++) {
             const float_type angle = ray_angles[i];
             const float_type d_halo = racetrack_radius_at_angle(angle, halo_rt);
@@ -602,7 +602,7 @@ void compute_max_aperture_sigma_rays(
             const float_type d_aperture = fmin(aperture_distances_minus[i], aperture_distances_plus[i]);
             const float_type n1_lin_approx = (d_aperture - d_halo) / (d_envelope_one_sigma - d_halo);
             float_type n1 = compute_n1_for_point(angle, d_aperture, halo_rt, beam_rt, 0.f, n1_lin_approx);
-            slice_num_sigmas[i] = n1;
+            slice_sigmas[i] = n1;
         }
 
         #ifdef XO_CONTEXT_CPU
@@ -632,10 +632,10 @@ void compute_max_aperture_sigma_exact(
     float_type* const out_interpolated_apertures,
     float_type* const ray_angles,
     const uint32_t num_ray_angles,
-    float_type* const out_num_sigmas
+    float_type* const out_sigmas
 ) {
     const uint32_t num_slices = TwissData_len_x(twiss_at_s);
-    const uint32_t num_points = ProfilePolygons_get_num_points(profile_polygons);
+    const uint32_t len_points = ProfilePolygons_get_len_points(profile_polygons);
 
     BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 
@@ -649,7 +649,7 @@ void compute_max_aperture_sigma_exact(
     {
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         BeamApertureLocalData s_aperture_data = {
-            .points = (Point2D*)(out_interpolated_apertures + idx_slice * num_points * 2),
+            .points = (Point2D*)(out_interpolated_apertures + idx_slice * len_points * 2),
         };
         cross_section_bound_index = cross_section_at_s(
             survey_at_s,
@@ -664,7 +664,7 @@ void compute_max_aperture_sigma_exact(
             &s_aperture_data.tol_x,
             &s_aperture_data.tol_y
         );
-        s_aperture_data.n_points = num_points;
+        s_aperture_data.n_points = len_points;
 
         const float_type ex = s_beam_data.emitx_norm / s_twiss_data.gamma;
         const float_type ey = s_beam_data.emity_norm / s_twiss_data.gamma;
@@ -720,7 +720,7 @@ void compute_max_aperture_sigma_exact(
             }
         }
 
-        out_num_sigmas[idx_slice] = n1;
+        out_sigmas[idx_slice] = n1;
 
         #ifdef XO_CONTEXT_CPU
             IF_OMP_PRAGMA("omp critical")
