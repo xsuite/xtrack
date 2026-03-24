@@ -51,7 +51,7 @@ for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
 
     xs_name = b1.get_table().rows[f'{name.lower()}.*'].name[0]
 
-    sigmas, twiss, cross_sections, max_envelope = aperture_model.get_aperture_sigmas_at_element(
+    sigmas, twiss, _, max_envelope = aperture_model.get_aperture_sigmas_at_element(
         element_name=xs_name,
         resolution=0.1,
         method='bisection',
@@ -68,12 +68,13 @@ for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
         method='exact',
     )
 
-    cross_sections2, poses = aperture_model.cross_sections_at_element(element_name=xs_name, resolution=0.1)
+    cross_sections_table = aperture_model.cross_sections_at_element(element_name=xs_name, resolution=0.1)
+    cross_sections = cross_sections_table.cross_section
 
 
-    ap_centre = (np.min(cross_sections2, axis=1) + np.max(cross_sections2, axis=1)) / 2
+    ap_centre = (np.min(cross_sections, axis=1) + np.max(cross_sections, axis=1)) / 2
 
-    for pt, ct in zip(cross_sections2, ap_centre):
+    for pt, ct in zip(cross_sections, ap_centre):
         plt.plot(pt[:, 0] - ct[0], pt[:, 1] - ct[1], c='gray', linestyle='--')
 
     seen = False

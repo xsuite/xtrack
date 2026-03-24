@@ -116,7 +116,9 @@ assert all(bounds_table.type_name == ['type0', 'type0', 'type1', 'type1', 'type2
 assert all(bounds_table.profile_name == ['circ0'])
 
 s_samples = np.linspace(0, 3 * length, 51, dtype=np.float32)
-sections, poses = ap.cross_sections_at_s(s_samples)
+sections_table = ap.cross_sections_at_s(s_samples)
+sections = sections_table.cross_section
+poses = sections_table.pose
 
 ax = plt.figure().add_subplot(projection="3d")
 

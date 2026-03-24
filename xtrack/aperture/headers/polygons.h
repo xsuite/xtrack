@@ -10,7 +10,6 @@
 #include "zigzag_iterate.h"
 #include "convert_curvilinear.h"
 
-
 typedef struct {
     Point2D *points;   // points defining the aperture shape
     int n_points;      // number of points defining the aperture shape
@@ -18,7 +17,6 @@ typedef struct {
     float_type tol_x;  // horizontal tolerance for point-in-aperture check
     float_type tol_y;  // vertical tolerance for point-in-aperture check
 } BeamApertureLocalData;
-
 
 void build_profile_polygons(const ApertureModel, const ProfilePolygons, ApertureBounds, const SurveyData survey);
 uint32_t cross_section_at_s(
@@ -29,21 +27,29 @@ uint32_t cross_section_at_s(
     const ApertureBounds,
     const SurveyData,
     const uint32_t lower_bound,
-    BeamApertureLocalData* out_aperture);
+    float_type* cross_section,
+    float_type* out_tol_r,
+    float_type* out_tol_x,
+    float_type* out_tol_y);
 void cross_sections_at_s(
     const SurveyData survey_at_s,
     const ApertureModel,
     const ProfilePolygons,
     const ApertureBounds,
     const SurveyData,
-    float_type* cross_sections);
+    float_type* cross_sections,
+    float_type* tol_r,
+    float_type* tol_x,
+    float_type* tol_y);
 void build_polygon_for_profile(float_type *const, const uint32_t, const Profile);
 uint32_t interpolate_aperture_tolerances_at_s(
     const ApertureModel model,
     const ApertureBounds bounds,
     const float_type target_s,
     const uint32_t lower_bound,
-    BeamApertureLocalData* out_aperture);
+    float_type* out_tol_r,
+    float_type* out_tol_x,
+    float_type* out_tol_y);
 
 static inline float_type survey_s_for_aperture(const TypePosition, const ProfilePosition, const float_type curvature, const SurveyData, uint32_t*);
 static inline void bounds_on_s_for_aperture(
@@ -369,7 +375,10 @@ void cross_sections_at_s(
     const ProfilePolygons profile_polys,
     const ApertureBounds bounds,
     const SurveyData survey,
-    float_type* cross_sections
+    float_type* cross_sections,
+    float_type* tol_r,
+    float_type* tol_x,
+    float_type* tol_y
 )
 {
     const uint32_t num_cross_sections = SurveyData_len_s(survey_at_s);
@@ -390,9 +399,10 @@ void cross_sections_at_s(
             bounds,
             survey,
             bound_idx,
-            &(BeamApertureLocalData){
-                .points = (Point2D*)(cross_sections + i * ProfilePolygons_get_num_points(profile_polys) * 2)
-            }
+            cross_sections + i * ProfilePolygons_get_num_points(profile_polys) * 2,
+            tol_r ? &tol_r[i] : NULL,
+            tol_x ? &tol_x[i] : NULL,
+            tol_y ? &tol_y[i] : NULL
         );
 
         #ifdef XO_CONTEXT_CPU
@@ -415,7 +425,10 @@ uint32_t cross_section_at_s(
     const ApertureBounds bounds,
     const SurveyData survey,
     const uint32_t lower_bound,
-    BeamApertureLocalData* out_aperture
+    float_type* cross_section,
+    float_type* out_tol_r,
+    float_type* out_tol_x,
+    float_type* out_tol_y
 )
 {
     const float_type eps = APER_PRECISION;
@@ -423,11 +436,10 @@ uint32_t cross_section_at_s(
     const uint32_t num_unique_points = num_points - 1;
     const uint32_t num_bounds = ApertureBounds_get_count(bounds);
     const float_type s = SurveyData_get_s(survey_at_s, idx_cross_section);
-    Point2D* poly_at_s = out_aperture->points;
+    Point2D* poly_at_s = (Point2D*)cross_section;
 
-    out_aperture->n_points = num_points;
-
-    uint32_t bound_idx = interpolate_aperture_tolerances_at_s(model, bounds, s, lower_bound, out_aperture);
+    uint32_t bound_idx = interpolate_aperture_tolerances_at_s(
+        model, bounds, s, lower_bound, out_tol_r, out_tol_x, out_tol_y);
 
     if (bound_idx >= num_bounds) {
         for (uint32_t j = 0; j < num_points; j++) {
@@ -595,7 +607,9 @@ uint32_t interpolate_aperture_tolerances_at_s(
     const ApertureBounds bounds,
     const float_type target_s,
     const uint32_t lower_bound,
-    BeamApertureLocalData* out_aperture
+    float_type* out_tol_r,
+    float_type* out_tol_x,
+    float_type* out_tol_y
 )
 {
     const float_type eps = APER_PRECISION;
@@ -603,9 +617,9 @@ uint32_t interpolate_aperture_tolerances_at_s(
     const uint32_t bound_idx = find_active_profile_for_s(bounds, target_s, lower_bound);
 
     if (bound_idx >= num_bounds) {
-        out_aperture->tol_r = NAN;
-        out_aperture->tol_x = NAN;
-        out_aperture->tol_y = NAN;
+        if (out_tol_r) *out_tol_r = NAN;
+        if (out_tol_x) *out_tol_x = NAN;
+        if (out_tol_y) *out_tol_y = NAN;
         return bound_idx;
     }
 
@@ -622,9 +636,9 @@ uint32_t interpolate_aperture_tolerances_at_s(
     const float_type tol_y_center = Profile_get_tol_y(profile_center);
 
     if (fabs(target_s - s_center) < eps) {
-        out_aperture->tol_r = tol_r_center;
-        out_aperture->tol_x = tol_x_center;
-        out_aperture->tol_y = tol_y_center;
+        if (out_tol_r) *out_tol_r = tol_r_center;
+        if (out_tol_x) *out_tol_x = tol_x_center;
+        if (out_tol_y) *out_tol_y = tol_y_center;
         return bound_idx;
     }
 
@@ -633,17 +647,17 @@ uint32_t interpolate_aperture_tolerances_at_s(
     const char has_side = prefer_right ? (bound_idx + 1 < num_bounds) : (bound_idx > 0);
 
     if (!has_side) {
-        out_aperture->tol_r = tol_r_center;
-        out_aperture->tol_x = tol_x_center;
-        out_aperture->tol_y = tol_y_center;
+        if (out_tol_r) *out_tol_r = tol_r_center;
+        if (out_tol_x) *out_tol_x = tol_x_center;
+        if (out_tol_y) *out_tol_y = tol_y_center;
         return bound_idx;
     }
 
     const uint32_t type_pos_idx_side = ApertureBounds_get_type_position_indices(bounds, side_idx);
     if (type_pos_idx_side != type_pos_idx) {
-        out_aperture->tol_r = tol_r_center;
-        out_aperture->tol_x = tol_x_center;
-        out_aperture->tol_y = tol_y_center;
+        if (out_tol_r) *out_tol_r = tol_r_center;
+        if (out_tol_x) *out_tol_x = tol_x_center;
+        if (out_tol_y) *out_tol_y = tol_y_center;
         return bound_idx;
     }
 
@@ -656,18 +670,18 @@ uint32_t interpolate_aperture_tolerances_at_s(
     const float_type ds = s_side - s_center;
 
     if (fabs(ds) < eps) {
-        out_aperture->tol_r = tol_r_center;
-        out_aperture->tol_x = tol_x_center;
-        out_aperture->tol_y = tol_y_center;
+        if (out_tol_r) *out_tol_r = tol_r_center;
+        if (out_tol_x) *out_tol_x = tol_x_center;
+        if (out_tol_y) *out_tol_y = tol_y_center;
         return bound_idx;
     }
 
     const float_type w_side = clamp_value((target_s - s_center) / ds, 0.f, 1.f);
     const float_type w_center = 1.f - w_side;
 
-    out_aperture->tol_r = w_center * tol_r_center + w_side * Profile_get_tol_r(profile_side);
-    out_aperture->tol_x = w_center * tol_x_center + w_side * Profile_get_tol_x(profile_side);
-    out_aperture->tol_y = w_center * tol_y_center + w_side * Profile_get_tol_y(profile_side);
+    if (out_tol_r) *out_tol_r = w_center * tol_r_center + w_side * Profile_get_tol_r(profile_side);
+    if (out_tol_x) *out_tol_x = w_center * tol_x_center + w_side * Profile_get_tol_x(profile_side);
+    if (out_tol_y) *out_tol_y = w_center * tol_y_center + w_side * Profile_get_tol_y(profile_side);
     return bound_idx;
 }
 

@@ -792,14 +792,28 @@ class Aperture:
         sv_resampled = self.survey_data.resample(s_positions)
         return sv_resampled.pose.to_nparray()
 
-    def cross_sections_at_element(self, element_name: str, resolution: Optional[float]) -> Tuple[NDArrayNxMx2, HomogenousMatrices]:
+    def cross_sections_at_element(
+        self,
+        element_name: str,
+        resolution: Optional[float],
+        return_tolerances: bool = False,
+    ) -> Table:
         s_positions = self._get_cuts_at_element(element_name, resolution)
-        return self.cross_sections_at_s(s_positions)
+        return self.cross_sections_at_s(s_positions, return_tolerances=return_tolerances)
 
-    def cross_sections_at_s(self, s_positions: Collection[float]) -> Tuple[NDArrayNxMx2, HomogenousMatrices]:
+    def cross_sections_at_s(
+        self,
+        s_positions: Collection[float],
+        return_tolerances: bool = False,
+    ) -> Table:
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         sv_resampled = self.survey_data.resample(s_positions)
+
         cross_sections = np.zeros(shape=(len(s_positions), self.num_profile_points, 2), dtype=FloatType._dtype)
+        tol_r = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
+        tol_x = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
+        tol_y = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
+
         self.call_kernel(
             'cross_sections_at_s',
             survey_at_s=sv_resampled,
@@ -808,8 +822,25 @@ class Aperture:
             aperture_bounds=self._aperture_bounds,
             survey=self.survey_data,
             cross_sections=cross_sections,
+            tol_r=tol_r,
+            tol_x=tol_x,
+            tol_y=tol_y,
         )
-        return cross_sections, sv_resampled.pose.to_nparray()
+        poses = sv_resampled.pose.to_nparray()
+
+        table_data = {
+            'index': np.arange(len(s_positions)),
+            's': s_positions,
+            'pose': poses,
+            'cross_section': cross_sections,
+        }
+
+        if return_tolerances:
+            table_data['tol_r'] = tol_r
+            table_data['tol_x'] = tol_x
+            table_data['tol_y'] = tol_y
+
+        return Table(table_data, index='index')
 
     def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""

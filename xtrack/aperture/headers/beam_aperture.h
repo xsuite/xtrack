@@ -360,8 +360,12 @@ void compute_max_aperture_sigma(
             aperture_bounds,
             survey,
             cross_section_bound_index,
-            &s_aperture_data
+            (float_type*)s_aperture_data.points,
+            &s_aperture_data.tol_r,
+            &s_aperture_data.tol_x,
+            &s_aperture_data.tol_y
         );
+        s_aperture_data.n_points = num_points;
 
         const float_type num_sigmas = compute_max_aperture_sigma_bisection(
             &s_beam_data,
@@ -422,7 +426,8 @@ void compute_beam_envelopes_at_sigma(
 
         if (include_aper_tols) {
             bound_index = interpolate_aperture_tolerances_at_s(
-                model, aperture_bounds, s, bound_index, &s_aperture_data);
+                model, aperture_bounds, s, bound_index,
+                &s_aperture_data.tol_r, &s_aperture_data.tol_x, &s_aperture_data.tol_y);
         }
 
         Point2D* out_points = (Point2D*)(out_envelope + idx_slice * envelope_num_points * 2);
@@ -557,8 +562,12 @@ void compute_max_aperture_sigma_rays(
             aperture_bounds,
             survey,
             cross_section_bound_index,
-            &s_aperture_data
+            (float_type*)s_aperture_data.points,
+            &s_aperture_data.tol_r,
+            &s_aperture_data.tol_x,
+            &s_aperture_data.tol_y
         );
+        s_aperture_data.n_points = num_points;
 
         Racetrack_s halo_rt = halo_racetrack(&s_twiss_data, &s_beam_data, &s_aperture_data);
         Racetrack_s beam_rt = beam_racetrack(&s_twiss_data, &s_beam_data);
@@ -650,8 +659,12 @@ void compute_max_aperture_sigma_exact(
             aperture_bounds,
             survey,
             cross_section_bound_index,
-            &s_aperture_data
+            (float_type*)s_aperture_data.points,
+            &s_aperture_data.tol_r,
+            &s_aperture_data.tol_x,
+            &s_aperture_data.tol_y
         );
+        s_aperture_data.n_points = num_points;
 
         const float_type ex = s_beam_data.emitx_norm / s_twiss_data.gamma;
         const float_type ey = s_beam_data.emity_norm / s_twiss_data.gamma;

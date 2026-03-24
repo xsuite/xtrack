@@ -984,7 +984,9 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
     assert all(bounds_table.profile_name == ['circ0'])
 
     s_samples = np.linspace(0, 3 * length, 51, dtype=FloatType._dtype)
-    sections, poses = ap.cross_sections_at_s(s_samples)
+    sections_table = ap.cross_sections_at_s(s_samples)
+    sections = sections_table.cross_section
+    poses = sections_table.pose
 
     for ii in range(1, len(sections)):
         xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
@@ -1053,7 +1055,7 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
     assert np.all(np.isfinite(bounds_table.s_end))
 
     s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
-    sections, _ = ap.cross_sections_at_s(s_samples)
+    sections = ap.cross_sections_at_s(s_samples).cross_section
     radii = np.linalg.norm(sections, axis=2)
     xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
 
@@ -1148,7 +1150,7 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
     assert np.all(np.isfinite(bounds_table.s_end))
 
     s_samples = np.linspace(0, ring_length, 101, dtype=FloatType._dtype)
-    sections, _ = ap.cross_sections_at_s(s_samples)
+    sections = ap.cross_sections_at_s(s_samples).cross_section
     radii = np.linalg.norm(sections, axis=2)
     xo.assert_allclose(radii, aperture_radius, atol=1e-6, rtol=0)
 
@@ -1255,7 +1257,9 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     ap = Aperture(line=line, model=model, context=test_context)
 
     s_samples = np.linspace(1.0, 11.0, 21, dtype=FloatType._dtype)
-    sections, poses = ap.cross_sections_at_s(s_samples)
+    sections_table = ap.cross_sections_at_s(s_samples)
+    sections = sections_table.cross_section
+    poses = sections_table.pose
 
     # Transform all cross-section points to the (fixed) type frame.
     # In this frame, two circle profiles at z=s0/s1 define a cone:
@@ -1327,7 +1331,7 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
     ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
 
     s_samples = np.linspace(0.0, length, 33, dtype=FloatType._dtype)
-    sections, _ = ap.cross_sections_at_s(s_samples)
+    sections = ap.cross_sections_at_s(s_samples).cross_section
 
     for ii in range(1, len(sections)):
         xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
@@ -1385,8 +1389,8 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
     s_samples0 = np.linspace(0.1, length - 0.1, 33, dtype=FloatType._dtype)
     s_samples1 = s_samples0 + length
 
-    sections_straight, _ = ap.cross_sections_at_s(s_samples0)
-    sections_curv, _ = ap.cross_sections_at_s(s_samples1)
+    sections_straight = ap.cross_sections_at_s(s_samples0).cross_section
+    sections_curv = ap.cross_sections_at_s(s_samples1).cross_section
 
     # Compare up to cyclic polygon indexing: point ordering can differ by a
     # rotation along the closed contour while representing the same shape.
@@ -1446,7 +1450,7 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
     ap = Aperture(line=line, model=model, context=test_context, num_profile_points=256)
 
     s_samples = np.linspace(0.1, length - 0.1, 33, dtype=FloatType._dtype)
-    sections, _ = ap.cross_sections_at_s(s_samples)
+    sections = ap.cross_sections_at_s(s_samples).cross_section
 
     xo.assert_allclose(sections[:, 0, :], sections[:, -1, :], atol=1e-12, rtol=0)
 

@@ -43,10 +43,11 @@ sigmas, twiss, cross_sections, max_envelope = apx.get_aperture_sigmas_at_element
     method="bisection",
 )
 
-cross_sections_ref, _ = apx.cross_sections_at_element(
+cross_sections_table = apx.cross_sections_at_element(
     element_name=xs_name,
     resolution=resolution,
 )
+cross_sections_ref = cross_sections_table.cross_section
 
 ap_centre = (np.min(cross_sections_ref, axis=1) + np.max(cross_sections_ref, axis=1)) / 2
 

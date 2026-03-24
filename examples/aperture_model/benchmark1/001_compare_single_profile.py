@@ -71,7 +71,9 @@ for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
     )
     envel, _ = aperture_model.get_envelope_at_s(s_positions=[s], sigmas=sigmas_bisection[0], envelopes_num_points=101)
 
-    cross_sections, poses = aperture_model.cross_sections_at_s(s_positions=[s])
+    cross_sections_table = aperture_model.cross_sections_at_s(s_positions=[s])
+    cross_sections = cross_sections_table.cross_section
+    poses = cross_sections_table.pose
 
     ap_centre = (np.min(cross_sections, axis=1) + np.max(cross_sections, axis=1)) / 2
 

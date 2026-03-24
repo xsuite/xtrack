@@ -37,6 +37,9 @@ def build_aperture_kernels(context):
                 xo.Arg(ApertureBounds, name="aperture_bounds"),
                 xo.Arg(SurveyData, name="survey"),
                 xo.Arg(FloatType, pointer=True, name="cross_sections"),
+                xo.Arg(FloatType, pointer=True, name="tol_r"),
+                xo.Arg(FloatType, pointer=True, name="tol_x"),
+                xo.Arg(FloatType, pointer=True, name="tol_y"),
             ],
         ),
         "compute_max_aperture_sigma": xo.Kernel(

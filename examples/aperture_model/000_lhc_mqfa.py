@@ -40,10 +40,11 @@ envelopes, tw_envel = aperture_model.get_envelope_at_element(
     sigmas=1,
 )
 
-aper_envel, aper_poses = aperture_model.cross_sections_at_element(
+aper_table = aperture_model.cross_sections_at_element(
     element_name=mqxfa_name,
     resolution=0.1,
 )
+aper_envel = aper_table.cross_section
 
 # PLOT envelope sigmas
 plt.plot(tw_rays.s, sig_hvd_rays[:, 0], label=r'horizonal envelope [$\sigma$] (rays)')

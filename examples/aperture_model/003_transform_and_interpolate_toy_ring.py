@@ -113,7 +113,9 @@ def poses_at_s(line, s_positions):
 
 
 s_for_cuts = np.linspace(1, 11, 20)
-profiles, poses = aper.cross_sections_at_s(s_for_cuts)
+profiles_table = aper.cross_sections_at_s(s_for_cuts)
+profiles = profiles_table.cross_section
+poses = profiles_table.pose
 
 expected_poses = poses_at_s(ring, s_for_cuts)
 xo.assert_allclose(poses, expected_poses, atol=1e-6, rtol=1e-6)
