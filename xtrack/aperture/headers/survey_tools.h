@@ -2,7 +2,7 @@
 #define SURVEY_TOOLS_H
 
 #include "base.h"
-#include "path3d.h"
+#include "segment3d.h"
 
 
 typedef struct {

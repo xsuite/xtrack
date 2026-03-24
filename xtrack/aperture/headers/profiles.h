@@ -1,5 +1,5 @@
-#ifndef XTRACK_POLYGONS_H
-#define XTRACK_POLYGONS_H
+#ifndef XTRACK_PROFILES_H
+#define XTRACK_PROFILES_H
 
 #include <math.h>
 #include <stdlib.h>
@@ -958,4 +958,4 @@ static inline uint32_t find_active_profile_for_s(
     return idx;
 }
 
-#endif /* XTRACK_POLYGONS_H */
+#endif /* XTRACK_PROFILES_H */

@@ -13,7 +13,7 @@ from xtrack.aperture.structures import (
 
 def build_aperture_kernels(context):
     source = '''
-        #include "xtrack/aperture/headers/polygons.h"
+        #include "xtrack/aperture/headers/profiles.h"
         #include "xtrack/aperture/headers/beam_aperture.h"
         #include "xtrack/aperture/headers/survey_tools.h"
     '''

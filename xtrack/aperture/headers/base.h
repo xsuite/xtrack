@@ -12,16 +12,19 @@ typedef double float_type;
 
 #define APER_PRECISION 1e-6f
 
+
 typedef struct {
     float_type x;
     float_type y;
 } Point2D;
+
 
 typedef struct {
     float_type x;
     float_type y;
     float_type z;
 } Point3D;
+
 
 typedef struct {
     float_type x;  // shift in x
@@ -32,10 +35,13 @@ typedef struct {
     float_type rot_s;  // rotation around the s-axis, positive y to x (MAD-X psi)
 } Transform;
 
+
 typedef struct {
     float_type mat[4][4];
 } Pose;
 
+
+inline Pose arc_matrix(const float_type length, const float_type angle, const float_type tilt);
 
 inline float_type point2d_dot(Point2D, Point2D);
 inline float_type point2d_cross(Point2D, Point2D);
@@ -60,6 +66,31 @@ inline Point3D point3d_sub(const Point3D, const Point3D);
 inline float_type point3d_dot(const Point3D, const Point3D);
 inline Point3D point3d_add_scaled(const Point3D a, const Point3D v, const float_type t);
 inline Point3D pose_apply_point(const Pose, const Point3D);
+
+
+inline Pose arc_matrix(const float_type length, const float_type angle, const float_type tilt)
+/*
+    Get a transformation to the point at `length` along an arc of `angle`.
+*/
+{
+    if (fabs(angle) < APER_PRECISION) {
+        // Just a translation in the straight case
+        return transform_to_matrix((Transform){ .s = length });
+    }
+
+    const float_type ct = cos(tilt), st = sin(tilt);
+    const float_type ca = cos(angle), sa = sin(angle);
+    const float_type dx = length * (ca - 1) / angle;
+    const float_type ds = length * sa / angle;
+    return (Pose) {
+        .mat = {
+            {ct * ca,  -st, -ct * sa,  ct * dx },
+            {st * ca,   ct, -st * sa,  st * dx },
+            {     sa,  0.f,       ca,       ds },
+            {    0.f,  0.f,      0.f,      1.f }
+        }
+    };
+}
 
 
 inline float_type point2d_dot(Point2D a, Point2D b)
