@@ -1293,6 +1293,47 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_interpolates_tolerances(test_context):
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=10.0)])
+    sv = line.survey()
+
+    profiles = [
+        Profile(shape=Circle(radius=1.0), tol_r=0.1, tol_x=0.2, tol_y=0.3),
+        Profile(shape=Circle(radius=1.0), tol_r=0.5, tol_x=0.6, tol_y=0.7),
+    ]
+    profile_positions = [
+        ProfilePosition(profile_index=0, s_position=0.0),
+        ProfilePosition(profile_index=1, s_position=10.0),
+    ]
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+        ],
+        types=[ApertureType(curvature=0.0, positions=profile_positions)],
+        profiles=profiles,
+        type_names=['type0'],
+        profile_names=['profile0', 'profile1'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context)
+
+    s_samples = np.array([0.0, 2.5, 5.0, 7.5, 10.0], dtype=FloatType._dtype)
+    sections_table = ap.cross_sections_at_s(s_samples, return_tolerances=True)
+
+    xo.assert_allclose(sections_table.tol_r, [0.1, 0.2, 0.3, 0.4, 0.5], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.tol_x, [0.2, 0.3, 0.4, 0.5, 0.6], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.tol_y, [0.3, 0.4, 0.5, 0.6, 0.7], atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
     env = xt.Environment()
     angle = np.deg2rad(35.0)
