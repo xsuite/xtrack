@@ -554,7 +554,22 @@ def test_points_inside_polygon_simpler(kernels):
                 'tol_co': 0.002,
                 'delta_rms': 0.001,
             },
-            100,
+            # In the following two parametrisations the limiting direction is horizontal.
+            # Available horizontal clearance is 0.32 either directly, or as 0.4 - 0.08
+            # once the closed-orbit offset is included.
+            #
+            # Halo racetrack horizontal half-size:
+            #   tol_x + tol_r + tol_co + tol_dx = 0.006 + 0.002 + 0.002 + 0.03 = 0.04
+            #
+            # One-sigma beam horizontal half-size:
+            #   (halo_x / halo_primary) * sqrt((emitx_norm / gamma) * betx) * tol_beta_beating
+            #   = 0.05 * sqrt((4e-3 / 10) * 9) * 0.8 = 0.0024
+            #
+            # Dispersive orbit shift:
+            #   dx * delta_rms = 10 * sqrt(13) * 1e-3 = sqrt(13) / 100
+            #
+            # Solving 0.04 + n * 0.0024 + sqrt(13) / 100 = 0.32 gives:
+            (0.32 - 0.04 - np.sqrt(13) / 100) / 0.0024,
         ),
         (
             'racetrack', (0.4, 0.5, 0.13, 0.172), (0.002, 0.006, 0.002),
@@ -581,7 +596,7 @@ def test_points_inside_polygon_simpler(kernels):
                 'tol_co': 0.002,
                 'delta_rms': 0.001,
             },
-            100,
+            (0.32 - 0.04 - np.sqrt(13) / 100) / 0.0024,
         ),
     ],
     ids=[
