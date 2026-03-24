@@ -10,6 +10,13 @@
 #include "polygon_algs.h"
 
 
+#ifdef XO_CONTEXT_CPU_OPENMP
+#define IF_OMP_PRAGMA(x) _Pragma(x)
+#else
+#define IF_OMP_PRAGMA(x)
+#endif
+
+
 typedef struct
 {
     float_type x;     // closed orbit x
@@ -38,15 +45,6 @@ typedef struct {
     float_type halo_r;            // n sigma of 45 degree halo
     float_type halo_primary;      // n sigma of primary halo
 } BeamLocalData;
-
-
-typedef struct {
-    Point2D *points; // points defining the aperture shape
-    int n_points;     // number of points defining the aperture shape
-    float_type tol_r;     // radial tolerance for point-in-aperture check
-    float_type tol_x;     // horizontal tolerance for point-in-aperture check
-    float_type tol_y;     // vertical tolerance for point-in-aperture check
-} BeamApertureLocalData;
 
 
 static inline Racetrack_s halo_racetrack(
@@ -347,13 +345,13 @@ void compute_max_aperture_sigma(
 
     // TODO: Make this also compatible with GPUs
     uint32_t cross_section_bound_index = 0;
-    #pragma omp parallel for firstprivate(cross_section_bound_index)
+    IF_OMP_PRAGMA("parallel for firstprivate(cross_section_bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
-        float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
-        float_type s = TwissData_get_s(twiss_at_s, idx_slice);
-
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
+        BeamApertureLocalData s_aperture_data = {
+            .points = (Point2D*)(out_interpolated_apertures + idx_slice * num_points * 2),
+        };
         cross_section_bound_index = cross_section_at_s(
             survey_at_s,
             idx_slice,
@@ -362,25 +360,8 @@ void compute_max_aperture_sigma(
             aperture_bounds,
             survey,
             cross_section_bound_index,
-            points
+            &s_aperture_data
         );
-        const uint32_t bound_index = find_aperture_info_for_s(aperture_bounds, s, 0);
-
-        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
-        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
-        const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
-        const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
-        const float_type tol_r = Profile_get_tol_r(profile);
-        const float_type tol_x = Profile_get_tol_x(profile);
-        const float_type tol_y = Profile_get_tol_y(profile);
-
-        const BeamApertureLocalData s_aperture_data = {
-            .points = (Point2D* const)points,
-            .n_points = num_points,
-            .tol_r = tol_r,
-            .tol_x = tol_x,
-            .tol_y = tol_y
-        };
 
         const float_type num_sigmas = compute_max_aperture_sigma_bisection(
             &s_beam_data,
@@ -395,7 +376,7 @@ void compute_max_aperture_sigma(
         sigmas[idx_slice] = num_sigmas;
 
         #ifdef XO_CONTEXT_CPU
-            #pragma omp critical
+            IF_OMP_PRAGMA("omp critical")
             {
                 completed++;
                 printf("Computing sigmas: %d%%\r", 100 * completed / num_slices);
@@ -429,7 +410,7 @@ void compute_beam_envelopes_at_sigma(
 
     // TODO: Make this also compatible with GPUs
     uint32_t bound_index = 0;
-    #pragma omp parallel for firstprivate(bound_index)
+    IF_OMP_PRAGMA("omp parallel for firstprivate(bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
         float_type s = TwissData_get_s(twiss_at_s, idx_slice);
@@ -437,22 +418,11 @@ void compute_beam_envelopes_at_sigma(
 
         BeamApertureLocalData s_aperture_data = {
             .points = NULL,
-            .n_points = 0,
-            .tol_r = 0,
-            .tol_x = 0,
-            .tol_y = 0
         };
 
         if (include_aper_tols) {
-            bound_index = find_aperture_info_for_s(aperture_bounds, s, bound_index);
-            const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
-            const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
-            const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
-            const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
-
-            s_aperture_data.tol_r = Profile_get_tol_r(profile);
-            s_aperture_data.tol_x = Profile_get_tol_x(profile);
-            s_aperture_data.tol_y = Profile_get_tol_y(profile);
+            bound_index = interpolate_aperture_tolerances_at_s(
+                model, aperture_bounds, s, bound_index, &s_aperture_data);
         }
 
         Point2D* out_points = (Point2D*)(out_envelope + idx_slice * envelope_num_points * 2);
@@ -466,7 +436,7 @@ void compute_beam_envelopes_at_sigma(
         );
 
         #ifdef XO_CONTEXT_CPU
-            #pragma omp critical
+            IF_OMP_PRAGMA("omp critical")
             {
                 completed++;
                 printf("Computing beam envelopes: %d%%\r", 100 * completed / num_slices);
@@ -572,13 +542,13 @@ void compute_max_aperture_sigma_rays(
 
     // TODO: Make this also compatible with GPUs
     uint32_t cross_section_bound_index = 0;
-    #pragma omp parallel for firstprivate(cross_section_bound_index)
+    IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
-        float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
-        float_type s = TwissData_get_s(twiss_at_s, idx_slice);
-
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
+        BeamApertureLocalData s_aperture_data = {
+            .points = (Point2D*)(out_interpolated_apertures + idx_slice * num_points * 2),
+        };
         cross_section_bound_index = cross_section_at_s(
             survey_at_s,
             idx_slice,
@@ -587,25 +557,8 @@ void compute_max_aperture_sigma_rays(
             aperture_bounds,
             survey,
             cross_section_bound_index,
-            points
+            &s_aperture_data
         );
-        const uint32_t bound_index = find_aperture_info_for_s(aperture_bounds, s, 0);
-
-        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
-        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
-        const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
-        const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
-        const float_type tol_r = Profile_get_tol_r(profile);
-        const float_type tol_x = Profile_get_tol_x(profile);
-        const float_type tol_y = Profile_get_tol_y(profile);
-
-        const BeamApertureLocalData s_aperture_data = {
-            .points = (Point2D* const)points,
-            .n_points = num_points,
-            .tol_r = tol_r,
-            .tol_x = tol_x,
-            .tol_y = tol_y
-        };
 
         Racetrack_s halo_rt = halo_racetrack(&s_twiss_data, &s_beam_data, &s_aperture_data);
         Racetrack_s beam_rt = beam_racetrack(&s_twiss_data, &s_beam_data);
@@ -644,7 +597,7 @@ void compute_max_aperture_sigma_rays(
         }
 
         #ifdef XO_CONTEXT_CPU
-            #pragma omp critical
+            IF_OMP_PRAGMA("omp critical")
             {
                 completed++;
                 printf("Computing sigmas: %d%%\r", 100 * completed / num_slices);
@@ -682,13 +635,13 @@ void compute_max_aperture_sigma_exact(
     #endif
 
     uint32_t cross_section_bound_index = 0;
-    #pragma omp parallel for firstprivate(cross_section_bound_index)
+    IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
-        float_type* const points = out_interpolated_apertures + idx_slice * num_points * 2;
-        float_type s = TwissData_get_s(twiss_at_s, idx_slice);
-
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
+        BeamApertureLocalData s_aperture_data = {
+            .points = (Point2D*)(out_interpolated_apertures + idx_slice * num_points * 2),
+        };
         cross_section_bound_index = cross_section_at_s(
             survey_at_s,
             idx_slice,
@@ -697,25 +650,8 @@ void compute_max_aperture_sigma_exact(
             aperture_bounds,
             survey,
             cross_section_bound_index,
-            points
+            &s_aperture_data
         );
-        const uint32_t bound_index = find_aperture_info_for_s(aperture_bounds, s, 0);
-
-        const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(aperture_bounds, bound_index);
-        const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(aperture_bounds, bound_index);
-        const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_pos_idx, profile_pos_idx);
-        const Profile profile = ApertureModel_getp1_profiles(model, profile_idx);
-        const float_type tol_r = Profile_get_tol_r(profile);
-        const float_type tol_x = Profile_get_tol_x(profile);
-        const float_type tol_y = Profile_get_tol_y(profile);
-
-        const BeamApertureLocalData s_aperture_data = {
-            .points = (Point2D* const)points,
-            .n_points = num_points,
-            .tol_r = tol_r,
-            .tol_x = tol_x,
-            .tol_y = tol_y
-        };
 
         const float_type ex = s_beam_data.emitx_norm / s_twiss_data.gamma;
         const float_type ey = s_beam_data.emity_norm / s_twiss_data.gamma;
@@ -749,7 +685,7 @@ void compute_max_aperture_sigma_exact(
                     p_minus_x,
                     p_minus_y,
                     s_aperture_data.points,
-                    num_points,
+                    s_aperture_data.n_points,
                     /* convex */ 1,
                     /* start_at */ 0
                 );
@@ -758,7 +694,7 @@ void compute_max_aperture_sigma_exact(
                     p_plus_x,
                     p_plus_y,
                     s_aperture_data.points,
-                    num_points,
+                    s_aperture_data.n_points,
                     /* convex */ 1,
                     /* start_at */ 0
                 );
@@ -774,7 +710,7 @@ void compute_max_aperture_sigma_exact(
         out_num_sigmas[idx_slice] = n1;
 
         #ifdef XO_CONTEXT_CPU
-            #pragma omp critical
+            IF_OMP_PRAGMA("omp critical")
             {
                 completed++;
                 printf("Computing sigmas: %d%%\r", 100 * completed / num_slices);

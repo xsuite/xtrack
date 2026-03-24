@@ -11,6 +11,15 @@
 #include "convert_curvilinear.h"
 
 
+typedef struct {
+    Point2D *points;   // points defining the aperture shape
+    int n_points;      // number of points defining the aperture shape
+    float_type tol_r;  // radial tolerance for point-in-aperture check
+    float_type tol_x;  // horizontal tolerance for point-in-aperture check
+    float_type tol_y;  // vertical tolerance for point-in-aperture check
+} BeamApertureLocalData;
+
+
 void build_profile_polygons(const ApertureModel, const ProfilePolygons, ApertureBounds, const SurveyData survey);
 uint32_t cross_section_at_s(
     const SurveyData survey_at_s,
@@ -20,7 +29,7 @@ uint32_t cross_section_at_s(
     const ApertureBounds,
     const SurveyData,
     const uint32_t lower_bound,
-    float_type* cross_section);
+    BeamApertureLocalData* out_aperture);
 void cross_sections_at_s(
     const SurveyData survey_at_s,
     const ApertureModel,
@@ -29,7 +38,12 @@ void cross_sections_at_s(
     const SurveyData,
     float_type* cross_sections);
 void build_polygon_for_profile(float_type *const, const uint32_t, const Profile);
-uint32_t find_aperture_info_for_s(const ApertureBounds, const float_type s, const uint32_t lower_bound);
+uint32_t interpolate_aperture_tolerances_at_s(
+    const ApertureModel model,
+    const ApertureBounds bounds,
+    const float_type target_s,
+    const uint32_t lower_bound,
+    BeamApertureLocalData* out_aperture);
 
 static inline float_type survey_s_for_aperture(const TypePosition, const ProfilePosition, const float_type curvature, const SurveyData, uint32_t*);
 static inline void bounds_on_s_for_aperture(
@@ -51,8 +65,6 @@ static inline void build_racetrack_polygon(Point2D *const, const uint32_t, const
 static inline void build_octagon_polygon(Point2D *const, const uint32_t, const Octagon);
 static inline void build_polygon_polygon(Point2D *const, const uint32_t, const Polygon);
 
-static inline uint32_t find_aperture_info_bisection(const ApertureBounds, const float_type s);
-static inline uint32_t find_aperture_info_linear(const ApertureBounds, const float_type s, const uint32_t lower_bound);
 static inline uint32_t find_active_profile_for_s(const ApertureBounds, const float_type s, const uint32_t lower_bound);
 
 
@@ -378,7 +390,9 @@ void cross_sections_at_s(
             bounds,
             survey,
             bound_idx,
-            cross_sections + i * ProfilePolygons_get_num_points(profile_polys) * 2
+            &(BeamApertureLocalData){
+                .points = (Point2D*)(cross_sections + i * ProfilePolygons_get_num_points(profile_polys) * 2)
+            }
         );
 
         #ifdef XO_CONTEXT_CPU
@@ -401,7 +415,7 @@ uint32_t cross_section_at_s(
     const ApertureBounds bounds,
     const SurveyData survey,
     const uint32_t lower_bound,
-    float_type* cross_section
+    BeamApertureLocalData* out_aperture
 )
 {
     const float_type eps = APER_PRECISION;
@@ -409,9 +423,11 @@ uint32_t cross_section_at_s(
     const uint32_t num_unique_points = num_points - 1;
     const uint32_t num_bounds = ApertureBounds_get_count(bounds);
     const float_type s = SurveyData_get_s(survey_at_s, idx_cross_section);
-    Point2D* poly_at_s = (Point2D*)cross_section;
+    Point2D* poly_at_s = out_aperture->points;
 
-    uint32_t bound_idx = find_active_profile_for_s(bounds, s, lower_bound);
+    out_aperture->n_points = num_points;
+
+    uint32_t bound_idx = interpolate_aperture_tolerances_at_s(model, bounds, s, lower_bound, out_aperture);
 
     if (bound_idx >= num_bounds) {
         for (uint32_t j = 0; j < num_points; j++) {
@@ -574,23 +590,85 @@ void build_polygon_for_profile(
 }
 
 
-uint32_t find_aperture_info_for_s(
-    const ApertureBounds aperture_bounds,
+uint32_t interpolate_aperture_tolerances_at_s(
+    const ApertureModel model,
+    const ApertureBounds bounds,
     const float_type target_s,
-    const uint32_t lower_bound
+    const uint32_t lower_bound,
+    BeamApertureLocalData* out_aperture
 )
 {
-    uint32_t found_idx;
-    if (lower_bound == 0) {
-        // If starting from the left, let's do a bisection because chances are we need to jump to a random point
-        found_idx = find_aperture_info_bisection(aperture_bounds, target_s);
-    }
-    else {
-        // If a lower bound is specified, chances are the next point that we search for is close to the right
-        found_idx = find_aperture_info_linear(aperture_bounds, target_s, lower_bound);
+    const float_type eps = APER_PRECISION;
+    const uint32_t num_bounds = ApertureBounds_get_count(bounds);
+    const uint32_t bound_idx = find_active_profile_for_s(bounds, target_s, lower_bound);
+
+    if (bound_idx >= num_bounds) {
+        out_aperture->tol_r = NAN;
+        out_aperture->tol_x = NAN;
+        out_aperture->tol_y = NAN;
+        return bound_idx;
     }
 
-    return found_idx;
+    const uint32_t type_pos_idx = ApertureBounds_get_type_position_indices(bounds, bound_idx);
+    const TypePosition type_pos = ApertureModel_getp1_type_positions(model, type_pos_idx);
+    const uint32_t type_idx = TypePosition_get_type_index(type_pos);
+    const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(bounds, bound_idx);
+    const uint32_t profile_idx = ApertureModel_get_types_positions_profile_index(model, type_idx, profile_pos_idx);
+    const Profile profile_center = ApertureModel_getp1_profiles(model, profile_idx);
+
+    const float_type s_center = ApertureBounds_get_s_positions(bounds, bound_idx);
+    const float_type tol_r_center = Profile_get_tol_r(profile_center);
+    const float_type tol_x_center = Profile_get_tol_x(profile_center);
+    const float_type tol_y_center = Profile_get_tol_y(profile_center);
+
+    if (fabs(target_s - s_center) < eps) {
+        out_aperture->tol_r = tol_r_center;
+        out_aperture->tol_x = tol_x_center;
+        out_aperture->tol_y = tol_y_center;
+        return bound_idx;
+    }
+
+    const char prefer_right = (target_s >= s_center);
+    const uint32_t side_idx = prefer_right ? bound_idx + 1 : bound_idx - 1;
+    const char has_side = prefer_right ? (bound_idx + 1 < num_bounds) : (bound_idx > 0);
+
+    if (!has_side) {
+        out_aperture->tol_r = tol_r_center;
+        out_aperture->tol_x = tol_x_center;
+        out_aperture->tol_y = tol_y_center;
+        return bound_idx;
+    }
+
+    const uint32_t type_pos_idx_side = ApertureBounds_get_type_position_indices(bounds, side_idx);
+    if (type_pos_idx_side != type_pos_idx) {
+        out_aperture->tol_r = tol_r_center;
+        out_aperture->tol_x = tol_x_center;
+        out_aperture->tol_y = tol_y_center;
+        return bound_idx;
+    }
+
+    const uint32_t profile_pos_idx_side = ApertureBounds_get_profile_position_indices(bounds, side_idx);
+    const TypePosition type_pos_side = ApertureModel_getp1_type_positions(model, type_pos_idx_side);
+    const uint32_t type_idx_side = TypePosition_get_type_index(type_pos_side);
+    const uint32_t profile_idx_side = ApertureModel_get_types_positions_profile_index(model, type_idx_side, profile_pos_idx_side);
+    const Profile profile_side = ApertureModel_getp1_profiles(model, profile_idx_side);
+    const float_type s_side = ApertureBounds_get_s_positions(bounds, side_idx);
+    const float_type ds = s_side - s_center;
+
+    if (fabs(ds) < eps) {
+        out_aperture->tol_r = tol_r_center;
+        out_aperture->tol_x = tol_x_center;
+        out_aperture->tol_y = tol_y_center;
+        return bound_idx;
+    }
+
+    const float_type w_side = clamp_value((target_s - s_center) / ds, 0.f, 1.f);
+    const float_type w_center = 1.f - w_side;
+
+    out_aperture->tol_r = w_center * tol_r_center + w_side * Profile_get_tol_r(profile_side);
+    out_aperture->tol_x = w_center * tol_x_center + w_side * Profile_get_tol_x(profile_side);
+    out_aperture->tol_y = w_center * tol_y_center + w_side * Profile_get_tol_y(profile_side);
+    return bound_idx;
 }
 
 
@@ -837,52 +915,6 @@ static inline void build_octagon_polygon(Point2D *const points, const uint32_t n
 static inline void build_polygon_polygon(Point2D *const points, const uint32_t num_points, const Polygon polygon)
 {
     // TODO: Not yet implemented, requires resampling the polygon
-}
-
-
-static inline uint32_t find_aperture_info_bisection(
-    const ApertureBounds aperture_bounds,
-    const float_type target_s
-)
-{
-    const uint32_t num_apertures = ApertureBounds_get_count(aperture_bounds);
-
-    uint32_t lo = 0;
-    uint32_t hi = num_apertures;
-
-    while (hi > lo) {
-        const uint32_t mid = lo + (hi - lo) / 2;
-        float_type current_s = ApertureBounds_get_s_positions(aperture_bounds, mid);
-
-        if (current_s <= target_s) lo = mid + 1;
-        else hi = mid;
-    }
-
-    const uint32_t found_idx = (lo == 0 ? 0 : lo - 1);
-    return found_idx;
-}
-
-
-static inline uint32_t find_aperture_info_linear(
-    const ApertureBounds aperture_bounds,
-    const float_type target_s,
-    const uint32_t lower_bound
-)
-{
-    const uint32_t num_apertures = ApertureBounds_get_count(aperture_bounds);
-
-    uint32_t found_idx = lower_bound;
-
-    for (uint32_t i = lower_bound; i < num_apertures; ++i) {
-        float_type current_s = ApertureBounds_get_s_positions(aperture_bounds, i);
-
-        if (current_s <= target_s) {
-            found_idx = i;  /* keep advancing, last duplicate wins */
-        } else {
-            break;
-        }
-    }
-    return found_idx;
 }
 
 
