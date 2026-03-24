@@ -9,14 +9,6 @@
 #include "path.h"
 #include "polygon_algs.h"
 
-
-#ifdef XO_CONTEXT_CPU_OPENMP
-#define IF_OMP_PRAGMA(x) _Pragma(x)
-#else
-#define IF_OMP_PRAGMA(x)
-#endif
-
-
 typedef struct
 {
     float_type x;     // closed orbit x
@@ -345,7 +337,7 @@ void compute_max_aperture_sigma_bisection(
 
     // TODO: Make this also compatible with GPUs
     uint32_t cross_section_bound_index = 0;
-    IF_OMP_PRAGMA("parallel for firstprivate(cross_section_bound_index)")
+    IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
@@ -479,19 +471,19 @@ static inline float_type compute_n1_for_point(
     float_type n0,
     float_type n1
 )
-/* Find ``n`` such that the envelope ``halo + n * beam`` has a radius at angle
-   ``angle`` equal to ``d_target``.
+/*
+    Find ``n`` such that the envelope ``halo + n * beam`` has a radius at angle ``angle`` equal to ``d_target``.
 
     Parameters:
     -----------
     angle, d_target:
-        ray for which we are computing n1
+        Ray for which we are computing n1.
     halo:
-        racetrack describing the halo
+        Racetrack describing the halo.
     beam:
-        racetrack describing the beam in 1-sigma units
+        Racetrack describing the beam in 1-sigma units.
     n0, n1:
-        initial guesses
+        Initial guesses.
 
     Returns:
     --------

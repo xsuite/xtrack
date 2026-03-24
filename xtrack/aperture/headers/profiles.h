@@ -388,7 +388,7 @@ void cross_sections_at_s(
     #endif
 
     uint32_t bound_idx = 0;
-    #pragma omp parallel for firstprivate(bound_idx)
+    IF_OMP_PRAGMA("omp parallel for firstprivate(bound_idx)")
     for (uint32_t i = 0; i < num_cross_sections; i++)
     {
         bound_idx = cross_section_at_s(
@@ -929,6 +929,7 @@ static inline void build_octagon_polygon(Point2D *const points, const uint32_t l
 static inline void build_polygon_polygon(Point2D *const points, const uint32_t len_points, const Polygon polygon)
 {
     // TODO: Not yet implemented, requires resampling the polygon
+    // TODO: When implemented, change the hardcoded convex=1 flags where needed
 }
 
 

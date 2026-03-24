@@ -12,6 +12,14 @@ typedef double float_type;
 
 #define APER_PRECISION 1e-6f
 
+#ifndef IF_OMP_PRAGMA
+#ifdef XO_CONTEXT_CPU_OPENMP
+#define IF_OMP_PRAGMA(x) _Pragma(x)
+#else
+#define IF_OMP_PRAGMA(x)
+#endif
+#endif
+
 
 typedef struct {
     float_type x;

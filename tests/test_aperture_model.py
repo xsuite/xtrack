@@ -467,7 +467,7 @@ def test_points_inside_polygon_simpler(kernels):
     assert not bool(big_in_small)
 
 
-@pytest.mark.parametrize('method', ['bisection', 'rays'])
+@pytest.mark.parametrize('method', ['bisection', 'rays', 'exact'])
 @pytest.mark.parametrize(
     'shape,aper_params,aper_tol,beam_params,halo_params,expected',
     [
@@ -670,9 +670,9 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
     )
 
     # There are two sources of error wrt. to the analytic solution:
-    # - precision of 0.01 on the bisection defined in beam_aperture.h
+    # - precision on the bisection defined in beam_aperture.h
     # - error coming from the fact that we are comparing polygons, not ideal shapes (especially a problem if x, y != 0)
-    xo.assert_allclose(computed_n1, expected, atol=0.01, rtol=0.002)
+    xo.assert_allclose(computed_n1, expected, atol=0.001, rtol=0.002)
 
 
 def test_get_aperture_sigmas_at_element_analytic_rays(context):
