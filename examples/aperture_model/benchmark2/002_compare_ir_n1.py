@@ -6,12 +6,17 @@ from xdeps import Table
 from xobjects import ContextCpu
 from xtrack.aperture import Aperture
 
+which_ir = '2'
 
 base = "./acc-models-lhc/"
 
 lhc = xt.load(f"{base}/xsuite/lhc_aperture.json")
 lhc.vars.load(f"{base}/strengths/cycle_round_v0/opt_6000.madx")
 lhc.set_particle_ref(p0c=450e9)
+
+opt = LHCOptics.from_xsuite(lhc)
+mad = opt.make_madx_model()
+apm = mad.get_ap_irs()
 
 lhc.b1.metadata["aperture_offsets"] = {}
 lhc.b2.metadata["aperture_offsets"] = {}
@@ -21,10 +26,7 @@ for ipn in range(1, 9):
         line = lhc.b1 if beam == "1" else lhc.b2
         line.metadata["aperture_offsets"][f"ip{ipn}"] = tfs._data.copy()
 
-opt = LHCOptics.from_xsuite(lhc)
-mad = opt.make_madx_model()
-apm = mad.get_ap_irs()
-ir4 = apm["ir4b1"]
+ir = apm[f"ir{which_ir}b1"]
 
 context = ContextCpu(omp_num_threads="auto")
 b1 = lhc.b1
@@ -37,34 +39,34 @@ aperture_model = Aperture.from_line_with_madx_metadata(
 
 aperture_model.halo_params.update(
     {
-        "emitx_norm": ir4.exn,
-        "emity_norm": ir4.eyn,
-        "delta_rms": ir4.dp_bucket_size,
-        "tol_co": ir4.co_radius,
-        "tol_disp": ir4.paras_dx,
-        "tol_disp_ref_dx": ir4.dqf,
-        "tol_disp_ref_beta": ir4.betaqfx,
+        "emitx_norm": ir.exn,
+        "emity_norm": ir.eyn,
+        "delta_rms": ir.dp_bucket_size,
+        "tol_co": ir.co_radius,
+        "tol_disp": ir.paras_dx,
+        "tol_disp_ref_dx": ir.dqf,
+        "tol_disp_ref_beta": ir.betaqfx,
         "tol_energy": 0.0,
-        "tol_beta_beating": ir4.beta_beating,
+        "tol_beta_beating": ir.beta_beating,
     }
 )
 
-s_ip4_m, = ir4.rows["ip4.*"].s
-s_ip4_x, = b1.get_table().rows["ip4.*"].s
-s_positions = np.array(ir4.s - s_ip4_m + s_ip4_x, dtype=float)
-n1_madx = np.array(ir4.n1, dtype=float)
+s_ip_m, = ir.rows[f"ip{which_ir}:1"].s
+s_ip_x, = b1.get_table().rows[f"ip{which_ir}"].s
+s_positions = np.array(ir.s - s_ip_m + s_ip_x, dtype=float)
+n1_madx = np.array(ir.n1, dtype=float)
 
 n1_rays, twiss = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
     method="rays",
 )
 sigmas_rays = n1_rays.n1
-n1_bisection, _ = aperture_model.get_aperture_sigmas_at_s(
-    s_positions=s_positions,
-    method="bisection",
-    envelopes_num_points=36,
-)
-sigmas_bisection = n1_bisection.n1
+# n1_bisection, _ = aperture_model.get_aperture_sigmas_at_s(
+#     s_positions=s_positions,
+#     method="bisection",
+#     envelopes_num_points=36,
+# )
+# sigmas_bisection = n1_bisection.n1
 n1_exact, _ = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
     method="exact",
@@ -84,10 +86,10 @@ fig, (ax_top, ax_middle, ax_bottom) = plt.subplots(
 
 ax_top.plot(s_positions, n1_madx_plot, label="n1 (MAD-X)", lw=1.5)
 ax_top.plot(s_positions, sigmas_rays, label="n1 (Xtrack rays)", linestyle="--", lw=1.5)
-ax_top.plot(s_positions, sigmas_bisection, label="n1 (Xtrack bisection)", linestyle=":", lw=1.5)
+# ax_top.plot(s_positions, sigmas_bisection, label="n1 (Xtrack bisection)", linestyle=":", lw=1.5)
 ax_top.plot(s_positions, sigmas_exact, label="n1 (Xtrack exact)", linestyle="-.", lw=1.5)
 ax_top.set_ylabel(r"max beam size [$\sigma$]")
-ax_top.set_title("IR4 B1 aperture comparison")
+ax_top.set_title(f"IR{which_ir} B1 aperture comparison")
 ax_top.legend()
 ax_top.grid(True)
 
@@ -113,13 +115,13 @@ ax_bottom.plot(
     linestyle="--",
     label=r"$\Delta n_1$ (rays - exact)",
 )
-ax_bottom.plot(
-    s_positions,
-    sigmas_bisection - sigmas_exact,
-    lw=1.2,
-    linestyle=":",
-    label=r"$\Delta n_1$ (bisection - exact)",
-)
+# ax_bottom.plot(
+#     s_positions,
+#     sigmas_bisection - sigmas_exact,
+#     lw=1.2,
+#     linestyle=":",
+#     label=r"$\Delta n_1$ (bisection - exact)",
+# )
 ax_bottom.axhline(0.0, color="k", lw=0.8, linestyle="--")
 ax_bottom.set_xlabel("s [m]")
 ax_bottom.set_ylabel(r"$\Delta n_1$")

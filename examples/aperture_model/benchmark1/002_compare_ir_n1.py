@@ -6,6 +6,7 @@ import xobjects as xo
 import xtrack as xt
 from xtrack.aperture import Aperture
 
+which_ir = '5'
 
 context = xo.ContextCpu(omp_num_threads="auto")
 
@@ -42,7 +43,7 @@ aperture_model.halo_params.update(
     }
 )
 
-ap = BeamEnvelope.from_apname("temp/ap_ir5b1.tfs")
+ap = BeamEnvelope.from_apname(f"temp/ap_ir{which_ir}b1.tfs")
 
 s_positions = np.array(ap.ap.s, dtype=float)
 n1_pyoptics = np.array(ap.ap.n1, dtype=float)
@@ -84,7 +85,7 @@ ax_top.plot(s_positions, sigmas_rays, label="n1 (Xtrack rays)", linestyle="--", 
 ax_top.plot(s_positions, sigmas_bisection, label="n1 (Xtrack bisection)", linestyle=":", lw=1.5)
 ax_top.plot(s_positions, sigmas_exact, label="n1 (Xtrack exact)", linestyle="-.", lw=1.5)
 ax_top.set_ylabel(r"max beam size [$\sigma$]")
-ax_top.set_title("IR5 B1 aperture comparison")
+ax_top.set_title(f"IR{which_ir} B1 aperture comparison")
 ax_top.legend()
 ax_top.grid(True)
 
