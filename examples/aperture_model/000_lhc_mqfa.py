@@ -15,11 +15,14 @@ aperture_model = Aperture.from_line_with_madx_metadata(b1, num_profile_points=10
 mqxfa_name = 'mqy.4r1.b1'
 
 # Calculate n1 with the ``rays`` method
-sig_rays, tw_rays, aper_rays, _ = aperture_model.get_aperture_sigmas_at_element(
+n1_rays, tw_rays = aperture_model.get_aperture_sigmas_at_element(
     element_name=mqxfa_name,
     resolution=0.1,
     method='rays',
+    output_cross_sections=True,
 )
+sig_rays = n1_rays.n1
+aper_rays = n1_rays.cross_section
 
 sig_hvd_rays, _, _ = aperture_model.get_hvd_aperture_sigmas_at_element(
     element_name=mqxfa_name,
@@ -27,11 +30,16 @@ sig_hvd_rays, _, _ = aperture_model.get_hvd_aperture_sigmas_at_element(
 )
 
 # Calculate n1's with the ``bisection`` method
-sig_bisect, tw_bisect, aper_bisect, max_envelope = aperture_model.get_aperture_sigmas_at_element(
+n1_bisect, tw_bisect = aperture_model.get_aperture_sigmas_at_element(
     element_name=mqxfa_name,
     resolution=0.1,
     method='bisection',
+    output_cross_sections=True,
+    output_max_envelopes=True,
 )
+sig_bisect = n1_bisect.n1
+aper_bisect = n1_bisect.cross_section
+max_envelope = n1_bisect.envelope
 
 # Get envelope at arbitrary sigma
 envelopes, tw_envel = aperture_model.get_envelope_at_element(

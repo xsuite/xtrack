@@ -37,11 +37,16 @@ resolution = 0.1
 
 xs_name, = b1.get_table().rows[f"{target_name}.*"].name
 
-sigmas, twiss, cross_sections, max_envelope = apx.get_aperture_sigmas_at_element(
+n1_table, twiss = apx.get_aperture_sigmas_at_element(
     element_name=xs_name,
     resolution=resolution,
     method="bisection",
+    output_cross_sections=True,
+    output_max_envelopes=True,
 )
+sigmas = n1_table.n1
+cross_sections = n1_table.cross_section
+max_envelope = n1_table.envelope
 
 cross_sections_table = apx.cross_sections_at_element(
     element_name=xs_name,

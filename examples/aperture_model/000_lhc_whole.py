@@ -18,10 +18,13 @@ end_s = lhc_length / 8
 s_positions = np.linspace(0, end_s, int(end_s))
 
 # Calculate n1 with the ``rays`` method
-sig_rays, tw_rays, aper_rays, _ = aperture_model.get_aperture_sigmas_at_s(
+n1_rays, tw_rays = aperture_model.get_aperture_sigmas_at_s(
     s_positions=np.linspace(0, lhc_length, int(lhc_length)),
     method='rays',
+    output_cross_sections=True,
 )
+sig_rays = n1_rays.n1
+aper_rays = n1_rays.cross_section
 
 # Calculate extents
 envel, tw_envel = aperture_model.get_envelope_at_s(

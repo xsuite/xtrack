@@ -50,6 +50,12 @@ TOY_RING_SEQUENCE = """
 """
 
 
+def _polygon_area(points):
+    x = points[:, 0]
+    y = points[:, 1]
+    return 0.5 * abs(np.dot(x[:-1], y[1:]) + x[-1] * y[0] - np.dot(y[:-1], x[1:]) - y[-1] * x[0])
+
+
 @pytest.fixture(scope='module')
 def context():
     return xo.ContextCpu()
@@ -661,13 +667,16 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
     aperture_model.model.profiles[0].tol_y = aper_tol[2]
 
     # Compute n1 with Xsuite
-    computed_n1, tw, apertures_points, envelope_points = aperture_model.get_aperture_sigmas_at_element(
+    n1_table, tw = aperture_model.get_aperture_sigmas_at_element(
         element_name='m1',
         resolution=None,
         twiss=tw,
         envelopes_num_points=144,
         method=method,
+        output_cross_sections=False,
+        output_max_envelopes=False,
     )
+    computed_n1 = n1_table.n1
 
     # There are two sources of error wrt. to the analytic solution:
     # - precision on the bisection defined in beam_aperture.h
@@ -728,19 +737,177 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
     aperture_model.model.profiles[0].tol_x = tol_x
     aperture_model.model.profiles[0].tol_y = tol_y
 
-    computed_n1, tw, apertures_points, envelope_points = (
+    n1_table, tw = (
         aperture_model.get_aperture_sigmas_at_element(
             element_name="m1",
             resolution=None,
             twiss=tw,
             envelopes_num_points=144,
             method="rays",
+            output_cross_sections=False,
+            output_max_envelopes=False,
         )
     )
+    computed_n1 = n1_table.n1
 
     # All n1-s should be the expected value, the envelope at the expected value
     # should fully cover the aperture in this case.
     xo.assert_allclose(computed_n1, expected_n1, atol=0.01, rtol=0.002)
+
+
+def _build_single_marker_aperture_model(context):
+    lattice = """
+        m1: marker,
+            apertype = racetrack,
+            aperture = { 0.28, 0.43, 0.13, 0.172 },
+            aper_tol = { 0.002, 0.006, 0.002 };
+
+        seq: sequence, l = 1;
+            m1, at = 0;
+        endsequence;
+    """
+
+    env = xt.load(string=lattice, format="madx", install_limits=False)
+    seq = env["seq"]
+    seq.set_particle_ref("proton", gamma0=10)
+    tw = seq.twiss4d(betx=9, bety=16)
+
+    aperture_model = Aperture.from_line_with_associated_apertures(seq, context=context)
+    aperture_model.halo_params.update({
+        'emitx_norm': 4e-3,
+        'emity_norm': 4e-3,
+        'delta_rms': 0.001,
+        'tol_co': 0.002,
+        'tol_disp': 1.25,
+        'tol_disp_ref_dx': 20,
+        'tol_disp_ref_beta': 4,
+        'tol_energy': 0.001,
+        'tol_beta_beating': 0.8,
+        'halo_x': 0.5,
+        'halo_y': 0.6,
+        'halo_r': 0.7,
+        'halo_primary': 10,
+    })
+
+    aperture_model.model.profiles[0].tol_r = 0.002
+    aperture_model.model.profiles[0].tol_x = 0.006
+    aperture_model.model.profiles[0].tol_y = 0.002
+
+    return aperture_model, tw
+
+
+@pytest.mark.parametrize('method', ['bisection', 'rays', 'exact'])
+def test_get_aperture_sigmas_at_element_output_cross_sections_match_cross_sections_at_s(method, context):
+    aperture_model, tw = _build_single_marker_aperture_model(context)
+
+    n1_table, _ = aperture_model.get_aperture_sigmas_at_element(
+        element_name='m1',
+        resolution=None,
+        twiss=tw,
+        method=method,
+        envelopes_num_points=144,
+        output_cross_sections=True,
+        output_max_envelopes=False,
+    )
+    sigmas = n1_table.n1
+    aperture_points = n1_table.cross_section
+
+    ref = aperture_model.cross_sections_at_element('m1', resolution=None).cross_section
+    xo.assert_allclose(aperture_points, ref, atol=1e-12, rtol=0)
+    assert sigmas.shape == (2,)
+
+
+@pytest.mark.parametrize('method', ['bisection', 'rays'])
+def test_get_aperture_sigmas_at_element_output_envelopes_match_get_envelope_at_s(method, context):
+    aperture_model, tw = _build_single_marker_aperture_model(context)
+
+    n1_table, _ = aperture_model.get_aperture_sigmas_at_element(
+        element_name='m1',
+        resolution=None,
+        twiss=tw,
+        method=method,
+        envelopes_num_points=144,
+        output_cross_sections=False,
+        output_max_envelopes=True,
+    )
+    sigmas = n1_table.n1
+    envelope_points = n1_table.envelope
+
+    ref_envelopes, _ = aperture_model.get_envelope_at_element(
+        element_name='m1',
+        sigmas=float(sigmas[0]),
+        resolution=None,
+        twiss=tw,
+        envelopes_num_points=144,
+    )
+    xo.assert_allclose(envelope_points, ref_envelopes, atol=1e-10, rtol=0)
+
+
+def test_get_aperture_sigmas_at_element_output_envelopes_exact_is_contained_in_full_envelope(context):
+    aperture_model, tw = _build_single_marker_aperture_model(context)
+
+    n1_table, _ = aperture_model.get_aperture_sigmas_at_element(
+        element_name='m1',
+        resolution=None,
+        twiss=tw,
+        method='exact',
+        envelopes_num_points=144,
+        output_cross_sections=False,
+        output_max_envelopes=True,
+    )
+    sigmas = n1_table.n1
+    envelope_points = n1_table.envelope
+
+    ref_envelopes, _ = aperture_model.get_envelope_at_element(
+        element_name='m1',
+        sigmas=float(sigmas[0]),
+        resolution=None,
+        twiss=tw,
+        envelopes_num_points=2048,
+    )
+
+    for exact_env, full_env in zip(envelope_points, ref_envelopes):
+        assert exact_env[:, 0].min() >= full_env[:, 0].min()
+        assert exact_env[:, 0].max() <= full_env[:, 0].max()
+        assert exact_env[:, 1].min() >= full_env[:, 1].min()
+        assert exact_env[:, 1].max() <= full_env[:, 1].max()
+        assert _polygon_area(exact_env) < _polygon_area(full_env)
+
+
+@pytest.mark.parametrize('method', ['bisection', 'rays', 'exact'])
+def test_get_aperture_sigmas_at_element_can_skip_optional_outputs(method, context):
+    aperture_model, tw = _build_single_marker_aperture_model(context)
+
+    table_with_outputs, _ = aperture_model.get_aperture_sigmas_at_element(
+        element_name='m1',
+        resolution=None,
+        twiss=tw,
+        method=method,
+        envelopes_num_points=144,
+        output_cross_sections=True,
+        output_max_envelopes=True,
+    )
+    table_without_outputs, _ = aperture_model.get_aperture_sigmas_at_element(
+        element_name='m1',
+        resolution=None,
+        twiss=tw,
+        method=method,
+        envelopes_num_points=144,
+        output_cross_sections=False,
+        output_max_envelopes=False,
+    )
+    sigmas_with_outputs = table_with_outputs.n1
+    sigmas_without_outputs = table_without_outputs.n1
+    aperture_points = table_with_outputs.cross_section
+    envelope_points = table_with_outputs.envelope
+    aperture_points_none = table_without_outputs._data.get('cross_section')
+    envelope_points_none = table_without_outputs._data.get('envelope')
+
+    assert aperture_points is not None
+    assert envelope_points is not None
+    assert aperture_points_none is None
+    assert envelope_points_none is None
+    xo.assert_allclose(sigmas_with_outputs, sigmas_without_outputs, atol=1e-12, rtol=0)
 
 
 @pytest.mark.parametrize(
@@ -848,13 +1015,16 @@ def test_get_aperture_sigmas_at_element_vs_madx(
     xo.assert_allclose(aperture_model.halo_params['emity_norm'], mad.beam.eyn, atol=1e-8, rtol=0)
 
     # Compute n1 with Xsuite
-    computed_n1, tw, apertures_points, envelope_points = aperture_model.get_aperture_sigmas_at_element(
+    n1_table, tw = aperture_model.get_aperture_sigmas_at_element(
         element_name='m1',
         resolution=None,
         twiss=tw,
         envelopes_num_points=144,
         method='bisection',
+        output_cross_sections=False,
+        output_max_envelopes=False,
     )
+    computed_n1 = n1_table.n1
 
     xo.assert_allclose(madx_n1, computed_n1, rtol=0.01)
 

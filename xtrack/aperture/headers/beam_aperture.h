@@ -117,6 +117,45 @@ static inline Racetrack_s beam_racetrack(
 }
 
 
+static inline void polygon_from_racetrack(
+    const Racetrack_s rt,
+    const int len_points,
+    Point2D *out_points
+)
+{
+    Segment2D segments[8];
+    Path2D path = (Path2D){
+        .segments = segments,
+        .len_segments = 8,
+    };
+
+    segments_from_racetrack(rt.h, rt.v, rt.a, rt.b, path.segments, &path.len_segments);
+    poly_get_n_uniform_points(&path, len_points, out_points);
+}
+
+
+static inline void get_beam_envelope_from_racetracks(
+    const TwissLocalData *twiss_data,
+    const BeamLocalData *beam_data,
+    const Racetrack_s halo_rt,
+    const Racetrack_s beam_rt_1s,
+    const float_type sigmas,
+    const int len_points,
+    Point2D *out_points
+)
+{
+    const Racetrack_s env_rt = add_racetracks(halo_rt, scale_racetrack(beam_rt_1s, sigmas));
+    polygon_from_racetrack(env_rt, len_points, out_points);
+
+    /* Include the dispersive orbit shift effect */
+    const Point2D disp_orbit_shift = {twiss_data->dx * beam_data->delta_rms, twiss_data->dy * beam_data->delta_rms};
+    convolve_poly_and_segment(out_points, len_points, disp_orbit_shift);
+
+    /* Shift according to the closed orbit – assuming closed orbit relative to aperture center */
+    point2d_translate(twiss_data->x, twiss_data->y, out_points, len_points);
+}
+
+
 void get_beam_envelope(
     const BeamLocalData *beam_data,
     const TwissLocalData *twiss_data,
@@ -126,39 +165,17 @@ void get_beam_envelope(
     Point2D *out_points
 )
 {
-    /* Beam racetrack is defined in 1-sigma units; scale by sigmas here */
     const Racetrack_s beam_rt_1s = beam_racetrack(twiss_data, beam_data);
     const Racetrack_s halo_rt = halo_racetrack(twiss_data, beam_data, aperture_data);
-
-    /*
-        Remembering that hx, hy, and hr are specified in sigmas, we convolve the
-        beam racetrack with the aperture tolerance racetrack, to get our beam
-        envelope racetrack:
-    */
-    const Racetrack_s env = (Racetrack_s){
-        .h = halo_rt.h + sigmas * beam_rt_1s.h,
-        .v = halo_rt.v + sigmas * beam_rt_1s.v,
-        .a = halo_rt.a + sigmas * beam_rt_1s.a,
-        .b = halo_rt.b + sigmas * beam_rt_1s.b,
-    };
-
-    Segment2D segments[8];
-    Path2D path = (Path2D){
-        .segments = segments,
-        .len_segments = 8,
-    };
-
-    segments_from_racetrack(env.h, env.v, env.a, env.b, path.segments, &path.len_segments);
-    poly_get_n_uniform_points(&path, len_points, out_points);
-
-    /* Include the dispersive orbit shift effect */
-    const Point2D disp_orbit_shift = {twiss_data->dx * beam_data->delta_rms, twiss_data->dy * beam_data->delta_rms};
-    convolve_poly_and_segment(out_points, len_points, disp_orbit_shift);
-
-    /* Shift according to the closed orbit – assuming closed orbit relative to aperture center */
-    const float_type x0 = twiss_data->x;
-    const float_type y0 = twiss_data->y;
-    point2d_translate(x0, y0, out_points, len_points);
+    get_beam_envelope_from_racetracks(
+        twiss_data,
+        beam_data,
+        halo_rt,
+        beam_rt_1s,
+        sigmas,
+        len_points,
+        out_points
+    );
 }
 
 
@@ -341,8 +358,9 @@ void compute_max_aperture_sigma_bisection(
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
+        Point2D aperture_points[len_points];
         BeamApertureLocalData s_aperture_data = {
-            .points = (Point2D*)(out_interpolated_apertures + idx_slice * len_points * 2),
+            .points = aperture_points,
         };
         cross_section_bound_index = cross_section_at_s(
             survey_at_s,
@@ -358,6 +376,10 @@ void compute_max_aperture_sigma_bisection(
             &s_aperture_data.tol_y
         );
         s_aperture_data.n_points = len_points;
+        if (out_interpolated_apertures != NULL)
+            memcpy(out_interpolated_apertures + idx_slice * len_points * 2, aperture_points, len_points * sizeof(Point2D));
+
+        Point2D envelope_points[envelope_num_points];
 
         const float_type sigma = max_aperture_sigma_bisect_one_slice(
             &s_beam_data,
@@ -367,9 +389,11 @@ void compute_max_aperture_sigma_bisection(
             /* lower bound on search */ 0,
             /* upper bound on search */ 10000,
             /* tolerance on search */ 0.001,
-            (Point2D*)(out_envelope_at_max_sigma + idx_slice * envelope_num_points * 2)
+            envelope_points
         );
         sigmas[idx_slice] = sigma;
+        if (out_envelope_at_max_sigma != NULL)
+            memcpy(out_envelope_at_max_sigma + idx_slice * envelope_num_points * 2, envelope_points, envelope_num_points * sizeof(Point2D));
 
         #ifdef XO_CONTEXT_CPU
             IF_OMP_PRAGMA("omp critical")
@@ -524,6 +548,8 @@ void compute_max_aperture_sigma_rays(
     SurveyData survey_at_s,
     BeamData beam_data,
     float_type* const out_interpolated_apertures,
+    const uint32_t envelope_num_points,
+    float_type* const out_envelope_at_max_sigma,
     float_type* const ray_angles,
     const uint32_t num_ray_angles,
     float_type* const out_sigmas
@@ -543,8 +569,9 @@ void compute_max_aperture_sigma_rays(
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
+        Point2D aperture_points[len_points];
         BeamApertureLocalData s_aperture_data = {
-            .points = (Point2D*)(out_interpolated_apertures + idx_slice * len_points * 2),
+            .points = aperture_points,
         };
         cross_section_bound_index = cross_section_at_s(
             survey_at_s,
@@ -560,6 +587,8 @@ void compute_max_aperture_sigma_rays(
             &s_aperture_data.tol_y
         );
         s_aperture_data.n_points = len_points;
+        if (out_interpolated_apertures != NULL)
+            memcpy(out_interpolated_apertures + idx_slice * len_points * 2, aperture_points, len_points * sizeof(Point2D));
 
         Racetrack_s halo_rt = halo_racetrack(&s_twiss_data, &s_beam_data, &s_aperture_data);
         Racetrack_s beam_rt = beam_racetrack(&s_twiss_data, &s_beam_data);
@@ -587,6 +616,7 @@ void compute_max_aperture_sigma_rays(
         }
 
         float_type* const slice_sigmas = out_sigmas + idx_slice * num_ray_angles;
+        float_type slice_min_sigma = INFINITY;
         for (uint32_t i = 0; i < num_ray_angles; i++) {
             const float_type angle = ray_angles[i];
             const float_type d_halo = racetrack_radius_at_angle(angle, halo_rt);
@@ -595,6 +625,23 @@ void compute_max_aperture_sigma_rays(
             const float_type n1_lin_approx = (d_aperture - d_halo) / (d_envelope_one_sigma - d_halo);
             float_type n1 = compute_n1_for_point(angle, d_aperture, halo_rt, beam_rt, 0.f, n1_lin_approx);
             slice_sigmas[i] = n1;
+            if (n1 < slice_min_sigma)
+                slice_min_sigma = n1;
+        }
+
+        if (out_envelope_at_max_sigma != NULL)
+        {
+            Point2D envelope_points[envelope_num_points];
+            get_beam_envelope_from_racetracks(
+                &s_twiss_data,
+                &s_beam_data,
+                halo_rt,
+                beam_rt,
+                slice_min_sigma,
+                envelope_num_points,
+                envelope_points
+            );
+            memcpy(out_envelope_at_max_sigma + idx_slice * envelope_num_points * 2, envelope_points, envelope_num_points * sizeof(Point2D));
         }
 
         #ifdef XO_CONTEXT_CPU
@@ -622,6 +669,8 @@ void compute_max_aperture_sigma_exact(
     SurveyData survey_at_s,
     BeamData beam_data,
     float_type* const out_interpolated_apertures,
+    const uint32_t envelope_num_points,
+    float_type* const out_envelope_at_max_sigma,
     float_type* const ray_angles,
     const uint32_t num_ray_angles,
     float_type* const out_sigmas
@@ -640,8 +689,9 @@ void compute_max_aperture_sigma_exact(
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
+        Point2D aperture_points[len_points];
         BeamApertureLocalData s_aperture_data = {
-            .points = (Point2D*)(out_interpolated_apertures + idx_slice * len_points * 2),
+            .points = aperture_points,
         };
         cross_section_bound_index = cross_section_at_s(
             survey_at_s,
@@ -657,6 +707,8 @@ void compute_max_aperture_sigma_exact(
             &s_aperture_data.tol_y
         );
         s_aperture_data.n_points = len_points;
+        if (out_interpolated_apertures != NULL)
+            memcpy(out_interpolated_apertures + idx_slice * len_points * 2, aperture_points, len_points * sizeof(Point2D));
 
         const float_type ex = s_beam_data.emitx_norm / s_twiss_data.gamma;
         const float_type ey = s_beam_data.emity_norm / s_twiss_data.gamma;
@@ -670,6 +722,8 @@ void compute_max_aperture_sigma_exact(
         const Racetrack_s beam_1s_rt = beam_racetrack(&s_twiss_data, &s_beam_data);
 
         float_type n1 = INFINITY;
+        float_type best_center_x = 0.f;
+        float_type best_center_y = 0.f;
         for (uint32_t i = 0; i < num_ray_angles; i++)
         {
             const float_type angle0 = ray_angles[i];
@@ -707,12 +761,28 @@ void compute_max_aperture_sigma_exact(
                 const float_type sigma_ray = racetrack_radius_at_angle(angle1, beam_1s_rt);
 
                 const float_type n_ray = d_aperture / sigma_ray;
-                if (n_ray < n1)
+                if (n_ray < n1) {
                     n1 = n_ray;
+                    if (hit_minus.dist <= hit_plus.dist) {
+                        best_center_x = p_minus_x;
+                        best_center_y = p_minus_y;
+                    } else {
+                        best_center_x = p_plus_x;
+                        best_center_y = p_plus_y;
+                    }
+                }
             }
         }
 
         out_sigmas[idx_slice] = n1;
+
+        if (out_envelope_at_max_sigma != NULL)
+        {
+            Point2D envelope_points[envelope_num_points];
+            polygon_from_racetrack(scale_racetrack(beam_1s_rt, n1), envelope_num_points, envelope_points);
+            point2d_translate(best_center_x, best_center_y, envelope_points, envelope_num_points);
+            memcpy(out_envelope_at_max_sigma + idx_slice * envelope_num_points * 2, envelope_points, envelope_num_points * sizeof(Point2D));
+        }
 
         #ifdef XO_CONTEXT_CPU
             IF_OMP_PRAGMA("omp critical")

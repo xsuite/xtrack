@@ -54,20 +54,23 @@ s_ip4_x, = b1.get_table().rows["ip4.*"].s
 s_positions = np.array(ir4.s - s_ip4_m + s_ip4_x, dtype=float)
 n1_madx = np.array(ir4.n1, dtype=float)
 
-sigmas_rays, twiss, _, _ = aperture_model.get_aperture_sigmas_at_s(
+n1_rays, twiss = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
     method="rays",
 )
-sigmas_bisection, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
+sigmas_rays = n1_rays.n1
+n1_bisection, _ = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
     method="bisection",
     envelopes_num_points=36,
 )
-sigmas_exact, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
+sigmas_bisection = n1_bisection.n1
+n1_exact, _ = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
     method="exact",
     num_rays=32,
 )
+sigmas_exact = n1_exact.n1
 
 n1_madx_plot = np.where(n1_madx > 9e5, np.inf, n1_madx)
 

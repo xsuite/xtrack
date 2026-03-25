@@ -4,6 +4,8 @@ from collections.abc import Collection
 from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, cast
 
 import numpy as np
+from matplotlib import pyplot as plt
+
 import xobjects as xo
 from xdeps.table import Table
 from xobjects.context import XContext
@@ -482,7 +484,7 @@ class Aperture:
             resolution: Optional[float] = None,
             twiss: Optional[TwissTable] = None,
             **kwargs,
-    ) -> Tuple[np.ndarray, TwissTable, np.ndarray, Optional[np.ndarray]]:
+    ) -> Tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at element ``element_name``.
 
         Parameters
@@ -512,7 +514,9 @@ class Aperture:
             method: Literal['bisection', 'rays', 'exact'] = 'rays',
             envelopes_num_points: int = 36,
             num_rays: int = 32,
-    ) -> Tuple[np.ndarray, TwissTable, np.ndarray, Optional[np.ndarray]]:
+            output_max_envelopes: bool = False,
+            output_cross_sections: bool = False,
+    ) -> Tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at element ``element_name``.
 
         Parameters
@@ -533,29 +537,39 @@ class Aperture:
               A is the number of aperture points, and K is the number of bisection steps; currently K <= 20, this
               depends on the tolerance and search space set in ``beam_envelope.h``).
         envelopes_num_points:
-            Only for method `bisection`: number of points to use when discretising the beam cross-section.
+            Number of points to use when discretising the beam cross-section.
         num_rays:
             Only for methods `rays` and `exact`: number of evenly-spaced ray directions to sample in [0, 2 * pi).
+        output_max_envelopes:
+            If true, output beam-envelope polygons at the computed `n1`.
+        output_cross_sections:
+            If true, output interpolated aperture cross-sections.
 
         Returns
         -------
-        A four-tuple (sigmas, sliced_twiss, aperture_polygons, envelope_at_max_sigma), where:
-        - ``sigmas`` is the computed maximum number of sigmas ``n1`` at each requested location.
-        - ``sliced_twiss`` is the twiss table computed as part of the calculation
-        - ``aperture_polygons`` are the aperture cross-sections at each of the ``s_positions``: a numpy array of shape
-          ``(len(s_positions), cross_sections_num_points, 2)``.
-        - ``envelope_at_max_sigma`` are the beam cross-section polygons at the computed ``n1`` if ``bisection`` method
-          was selected: a numpy array of the same shape as ``aperture_polygons``.
+        A two-tuple ``(table, sliced_twiss)``, where:
+        - ``table`` is an :class:`xdeps.table.Table` with columns ``s`` and ``n1``.
+        - if ``output_cross_sections`` is true, ``table`` also contains ``cross_section``.
+        - if ``output_max_envelopes`` is true, ``table`` also contains ``envelope``.
+        - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
         sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         survey_at_s = self.survey_data.resample(twiss_at_s.s)
         beam_data = BeamData(**self.halo_params)
-        interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
+
+        if output_cross_sections:
+            interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
+        else:
+            interpolated_points = None
+
+        if output_max_envelopes:
+            envelope_at_max_sigma = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
+        else:
+            envelope_at_max_sigma = None
 
         if method == 'bisection':
-            envelope_at_max_sigma = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
 
             self.call_kernel(
@@ -572,7 +586,7 @@ class Aperture:
                 out_envelope_at_max_sigma=envelope_at_max_sigma,
                 sigmas=sigmas,
             )
-            return sigmas, sliced_twiss, interpolated_points, envelope_at_max_sigma
+            n1s = sigmas
         elif method == 'rays':
             ray_angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False, dtype=FloatType._dtype)
             ray_sigmas = np.zeros((num_slices, num_rays), dtype=FloatType._dtype)
@@ -587,12 +601,14 @@ class Aperture:
                 survey_at_s=survey_at_s,
                 beam_data=beam_data,
                 out_interpolated_apertures=interpolated_points,
+                envelope_num_points=envelopes_num_points,
+                out_envelope_at_max_sigma=envelope_at_max_sigma,
                 ray_angles=ray_angles,
                 num_ray_angles=num_rays,
                 sigmas=ray_sigmas,
 
             )
-            return np.min(ray_sigmas, axis=1), sliced_twiss, interpolated_points, None
+            n1s = np.min(ray_sigmas, axis=1)
         elif method == 'exact':
             ray_angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False, dtype=FloatType._dtype)
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
@@ -607,13 +623,26 @@ class Aperture:
                 survey_at_s=survey_at_s,
                 beam_data=beam_data,
                 out_interpolated_apertures=interpolated_points,
+                envelope_num_points=envelopes_num_points,
+                out_envelope_at_max_sigma=envelope_at_max_sigma,
                 ray_angles=ray_angles,
                 num_ray_angles=num_rays,
                 sigmas=sigmas,
             )
-            return sigmas, sliced_twiss, interpolated_points, None
+            n1s = sigmas
         else:
             raise NotImplementedError(f"Method `{method}` for getting aperture sigmas is unknown.")
+
+        table_data = {
+            'index': np.arange(len(sliced_twiss)),
+            's': sliced_twiss.s,
+            'n1': n1s,
+        }
+        if output_cross_sections:
+            table_data['cross_section'] = interpolated_points
+        if output_max_envelopes:
+            table_data['envelope'] = envelope_at_max_sigma
+        return Table(table_data, index='index'), sliced_twiss
 
     def get_hvd_aperture_sigmas_at_element(
             self,
@@ -688,6 +717,8 @@ class Aperture:
             survey_at_s=survey_at_s,
             beam_data=beam_data,
             out_interpolated_apertures=interpolated_points,
+            envelope_num_points=0,
+            out_envelope_at_max_sigma=None,
             ray_angles=ray_angles,
             num_ray_angles=8,
             sigmas=ray_sigmas,
@@ -833,14 +864,126 @@ class Aperture:
             's': s_positions,
             'pose': poses,
             'cross_section': cross_sections,
+            'tol_r': tol_r,
+            'tol_x': tol_x,
+            'tol_y': tol_y,
         }
-
-        if return_tolerances:
-            table_data['tol_r'] = tol_r
-            table_data['tol_x'] = tol_x
-            table_data['tol_y'] = tol_y
-
         return Table(table_data, index='index')
+
+    def plot_at_element(self, name, resolution=0.1, sigmas=None, method=None, middle='beam', ax=None):
+        """Display a transverse plot of the beam at an element ``name``.
+
+        Parameters
+        ----------
+        name : str
+            Name of the element at which to plot.
+        resolution : float
+            The desired resolution, in metres along s, of the plot.
+        sigmas : Optional[float]
+            The number of sigmas to plot. If None, compute n1 using ``method``.
+        method : str
+            If ``sigmas`` is None, plot the maximum sigma for element, calculated using ``method``.
+        middle : str
+            Whether the plot should be centred around the ``aperture`` middle, or ``beam`` reference.
+        ax : matplotlib.axes.Axes
+            Axes object to plot on, if not given, spawn a new one.
+        """
+        ax = ax or plt.gca()
+
+        if sigmas is None:
+            n1_tab, _ = self.get_aperture_sigmas_at_element(name, method=method, resolution=resolution)
+            sigmas = min(n1_tab.n1)
+
+        s_positions = self._get_cuts_at_element(name, resolution)
+        beam_tols, _ = self.get_envelope_at_s(s_positions=s_positions, sigmas=sigmas, include_aper_tols=True)
+        beam_no_tols, _ = self.get_envelope_at_s(s_positions=s_positions, sigmas=sigmas, include_aper_tols=False)
+        profiles = self.cross_sections_at_s(s_positions=s_positions)
+
+        polygons = profiles.cross_section
+
+        if middle == 'aperture':
+            middle = (np.min(polygons, axis=1) + np.max(polygons, axis=1)) / 2
+        elif middle == 'beam':
+            middle = np.zeros(shape=(len(s_positions), 2))
+        else:
+            raise ValueError("Middle must be either 'aperture' or 'beam'")
+
+        seen = False
+        for pt, mid in zip(polygons, middle):
+            label = 'aperture' if not seen else ''
+            ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='gray', linestyle='--', label=label)
+            seen = True
+
+        seen = False
+        for pt, mid in zip(beam_tols, middle):
+            label = 'envelope (with tolerances)' if not seen else ''
+            ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='royalblue', linestyle='-', label=label)
+            seen = True
+
+        seen = False
+        for pt, mid in zip(beam_no_tols, middle):
+            label = 'envelope (no tolerances)' if not seen else ''
+            ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='skyblue', linestyle=':', label=label)
+            seen = True
+
+        ax.set_aspect('equal')
+        ax.set_title(fr"Envelope at {name}, s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], $n$ = {sigmas:.3f}")
+        ax.legend()
+
+
+    def plot_n1_at_element(self, name, resolution=0.1, method='rays', middle='beam', ax=None, **kwargs):
+        """Display a transverse plot of the beam at n1 at element ``name``.
+
+        Parameters
+        ----------
+        name : str
+            Name of the element at which to plot.
+        resolution : float
+            The desired resolution, in metres along s, of the plot.
+        method : str
+            The method to use to calculate ``n1`` and the envelope.
+        middle : str
+            Whether the plot should be centred around the ``aperture`` middle, or ``beam`` reference.
+        ax : matplotlib.axes.Axes
+            Axes object to plot on, if not given, spawn a new one.
+        **kwargs
+            More arguments to pass to matplotlib.
+        """
+        ax = ax or plt.gca()
+
+        n1_table, _ = self.get_aperture_sigmas_at_element(
+            element_name=name,
+            resolution=resolution,
+            method=method,
+            envelopes_num_points=128,
+            output_max_envelopes=True,
+            output_cross_sections=True,
+        )
+
+        n1 = np.min(n1_table.n1)
+        polygons = n1_table.cross_section
+        beam = n1_table.envelope
+
+        if middle == 'aperture':
+            middle = (np.min(polygons, axis=1) + np.max(polygons, axis=1)) / 2
+        elif middle == 'beam':
+            middle = np.zeros(shape=(len(n1_table), 2))
+        else:
+            raise ValueError("Middle must be either 'aperture' or 'beam'")
+
+        for pt, mid in zip(polygons, middle):
+            ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='gray', linestyle='--')
+
+        seen = False
+        colour = {'rays': 'r', 'bisection': 'b', 'exact': 'g'}[method]
+        for pt, mid in zip(beam, middle):
+            label = f'envelope ({method}, min($n_1$) = {n1:.3f})' if not seen else ''
+            ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c=colour, label=label, **kwargs)
+            seen = True
+
+        ax.set_aspect('equal')
+        ax.set_title(fr"Max envelopes at {name}, s $\in$ [{n1_table.s[0]:.2f}, {n1_table.s[-1]:.2f}], min($n_1$) = {n1:.3f}")
+        ax.legend()
 
     def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""

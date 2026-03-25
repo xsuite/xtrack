@@ -54,21 +54,24 @@ for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
 
     ap.plot_halo(pyop_id, halor=n_sigma, halox=n_sigma, haloy=n_sigma)
 
-    sigmas_bisection, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
+    n1_bisection, _ = aperture_model.get_aperture_sigmas_at_s(
         s_positions=[s],
         method="bisection",
         envelopes_num_points=101,
     )
-    sigmas_rays, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
+    sigmas_bisection = n1_bisection.n1
+    n1_rays, _ = aperture_model.get_aperture_sigmas_at_s(
         s_positions=[s],
         method="rays",
         num_rays=360,
     )
-    sigmas_exact, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
+    sigmas_rays = n1_rays.n1
+    n1_exact, _ = aperture_model.get_aperture_sigmas_at_s(
         s_positions=[s],
         method="exact",
         num_rays=360,
     )
+    sigmas_exact = n1_exact.n1
     envel, _ = aperture_model.get_envelope_at_s(s_positions=[s], sigmas=sigmas_bisection[0], envelopes_num_points=101)
 
     cross_sections_table = aperture_model.cross_sections_at_s(s_positions=[s])

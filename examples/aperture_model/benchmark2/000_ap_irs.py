@@ -50,10 +50,11 @@ s_ip4_m, = ir4.rows['ip4.*'].s
 s_ip4_x, = b1.get_table().rows['ip4.*'].s
 s_positions = ir4.s - s_ip4_m + s_ip4_x
 
-sigmas, twiss, cross_sections, max_envelope = apx.get_aperture_sigmas_at_s(
+n1_table, twiss = apx.get_aperture_sigmas_at_s(
     s_positions=s_positions,
     method='rays',
 )
+sigmas = n1_table.n1
 
 plt.figure()
 plt.plot(s_positions, np.where(ir4.n1 > 9e5, np.inf, ir4.n1), label='n1 (MAD-X)')

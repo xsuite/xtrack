@@ -47,21 +47,24 @@ ap = BeamEnvelope.from_apname("temp/ap_ir5b1.tfs")
 s_positions = np.array(ap.ap.s, dtype=float)
 n1_pyoptics = np.array(ap.ap.n1, dtype=float)
 
-sigmas_rays, twiss, _, _ = aperture_model.get_aperture_sigmas_at_s(
+n1_rays, twiss = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
     envelopes_num_points=36,
     method="rays",
 )
-sigmas_bisection, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
+sigmas_rays = n1_rays.n1
+n1_bisection, _ = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
     num_rays=360,
     method="bisection",
 )
-sigmas_exact, _, _, _ = aperture_model.get_aperture_sigmas_at_s(
+sigmas_bisection = n1_bisection.n1
+n1_exact, _ = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,
     num_rays=360,
     method="exact",
 )
+sigmas_exact = n1_exact.n1
 
 n1_pyoptics_plot = np.where(n1_pyoptics > 9e5, np.inf, n1_pyoptics)
 mask_rays = np.isfinite(n1_pyoptics_plot) & np.isfinite(sigmas_rays)

@@ -47,26 +47,32 @@ tt = aperture_model.get_bounds_table()
 # Cross-sections and beam pyoptics vs Xtrack aperture model
 for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
     ap.plot_halo_name(name)
-    n1_pyoptics = [row[0] for row in ap.get_n1_name(name)]
 
     xs_name = b1.get_table().rows[f'{name.lower()}.*'].name[0]
 
-    sigmas, twiss, _, max_envelope = aperture_model.get_aperture_sigmas_at_element(
+    n1_table, twiss = aperture_model.get_aperture_sigmas_at_element(
         element_name=xs_name,
         resolution=0.1,
         method='bisection',
+        output_max_envelopes=True,
     )
+    sigmas = n1_table.n1
+    max_envelope = n1_table.envelope
 
-    sigmas_rays, _, _, _ = aperture_model.get_aperture_sigmas_at_element(
+    n1_rays, _ = aperture_model.get_aperture_sigmas_at_element(
         element_name=xs_name,
         resolution=0.1,
         method='rays',
     )
-    sigmas_exact, _, _, max_envelope_exact = aperture_model.get_aperture_sigmas_at_element(
+    sigmas_rays = n1_rays.n1
+    n1_exact, _ = aperture_model.get_aperture_sigmas_at_element(
         element_name=xs_name,
         resolution=0.1,
         method='exact',
+        output_max_envelopes=True,
     )
+    sigmas_exact = n1_exact.n1
+    max_envelope_exact = n1_exact.envelope
 
     cross_sections_table = aperture_model.cross_sections_at_element(element_name=xs_name, resolution=0.1)
     cross_sections = cross_sections_table.cross_section
