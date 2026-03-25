@@ -6,7 +6,7 @@
 #ifndef XTRACK_LINESEGMENTMAP_H
 #define XTRACK_LINESEGMENTMAP_H
 
-#include "xtrack/headers/track.h"
+#include <headers/track.h>
 
 
 GPUFUN
@@ -220,11 +220,11 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
             V[0] = gamma;  V[5] = gamma;
             V[10] = gamma; V[15] = gamma;
             /* C block (top-right) */
-            V[2] = c11;  V[3] = c12;
-            V[6] = c21;  V[7] = c22;
+            V[2] = c11;  V[3] = -c12;
+            V[6] = -c21;  V[7] = c22;
             /* -C^inv block (bottom-left) */
-            V[8]  = -c22; V[9]  =  c12;
-            V[12] =  c21; V[13] = -c11;
+            V[8]  = -c22; V[9]  =  -c12;
+            V[12] =  -c21; V[13] = -c11;
         }
 
         /* Construct 4x4 symplectic matrix R and its inverse from a 2x2 matrix C */
@@ -241,11 +241,11 @@ void transverse_motion(LocalParticle *part0, LineSegmentMapData el){
             V_inv[0] = gamma;  V_inv[5] = gamma;
             V_inv[10] = gamma; V_inv[15] = gamma;
             /* -C block (top-right) */
-            V_inv[2] = -c11;  V_inv[3] =  -c12;
-            V_inv[6] =  -c21;  V_inv[7] = -c22;
+            V_inv[2] = -c11;  V_inv[3] =  c12;
+            V_inv[6] =  c21;  V_inv[7] = -c22;
             /*C^inv block (bottom-left) */
-            V_inv[8]  =  c22; V_inv[9]  =  -c12;
-            V_inv[12] =  -c21; V_inv[13] =  c11;
+            V_inv[8]  =  c22; V_inv[9]  =  c12;
+            V_inv[12] =  c21; V_inv[13] =  c11;
         }
 
 
