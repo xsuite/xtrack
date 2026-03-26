@@ -2,14 +2,9 @@ from functools import singledispatch
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
+
 from xtrack.aperture.structures import (
-    Circle,
-    Ellipse,
-    Octagon,
-    Polygon,
-    Racetrack,
-    Rectangle,
-    RectEllipse,
+    Circle, Ellipse, Octagon, Polygon, Racetrack, Rectangle, RectEllipse,
     ShapeTypes
 )
 from xtrack.beam_elements import apertures

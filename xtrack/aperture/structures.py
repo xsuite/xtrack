@@ -1,12 +1,12 @@
-from typing import List, Union, get_args, Collection, Tuple
+from typing import Collection, List, Tuple, Union, get_args
 
 import numpy as np
 import xobjects as xo
 from xobjects.context import XContext
+
 from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
 from xtrack.twiss import TwissTable
-
 
 FloatType = xo.Float64
 

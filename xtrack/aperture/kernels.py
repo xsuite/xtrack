@@ -1,13 +1,8 @@
 import xobjects as xo
+
 from xtrack.aperture.structures import (
-    ApertureBounds,
-    ApertureModel,
-    BeamData,
-    FloatType,
-    Profile,
-    ProfilePolygons,
-    SurveyData,
-    TwissData
+    ApertureBounds, ApertureModel, BeamData, FloatType, Profile,
+    ProfilePolygons, SurveyData, TwissData
 )
 
 

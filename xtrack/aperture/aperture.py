@@ -4,35 +4,23 @@ from collections.abc import Collection
 from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, cast
 
 import numpy as np
-from matplotlib import pyplot as plt
-
 import xobjects as xo
+from matplotlib import pyplot as plt
 from xdeps.table import Table
 from xobjects.context import XContext
+
 from xtrack import TwissInit, TwissTable
 from xtrack.aperture.kernels import build_aperture_kernels
 from xtrack.aperture.profile_converters import (
-    LimitTypes,
-    profile_from_limit_element,
-    profile_from_madx_aperture
+    LimitTypes, profile_from_limit_element, profile_from_madx_aperture
 )
 from xtrack.aperture.structures import (
-    ApertureModel,
-    ApertureType,
-    BeamData,
-    ApertureBounds,
-    Circle,
-    FloatType,
-    Profile,
-    ProfilePolygons,
-    ProfilePosition,
-    Rectangle,
-    RectEllipse,
-    ShapeTypes,
-    SurveyData,
-    TwissData,
-    TypePosition,
+    ApertureBounds, ApertureModel, ApertureType, BeamData, Circle, FloatType,
+    Profile, ProfilePolygons, ProfilePosition, Rectangle, RectEllipse,
+    ShapeTypes, SurveyData, TwissData, TypePosition
 )
+from xtrack.json import dump as json_dump
+from xtrack.json import load as json_load
 from xtrack.line import Line
 from xtrack.progress_indicator import progress
 
@@ -137,6 +125,25 @@ class Aperture:
 
         if halo_params is not None:
             self.halo_params.update(halo_params)
+
+    def to_json(self, filename):
+        json = {
+            'model': self.model.to_dict(),
+            'halo_params': self.halo_params,
+        }
+        json_dump(json, filename)
+
+    @classmethod
+    def from_json(cls, filename, line, **kwargs):
+        json = json_load(filename)
+        model = ApertureModel(**json['model'])
+        halo_params = json['halo_params']
+        return cls(
+            line=line,
+            model=model,
+            halo_params=halo_params,
+            **kwargs,
+        )
 
     def call_kernel(self, name, **kwargs):
         if name not in self.context.kernels:
@@ -827,15 +834,15 @@ class Aperture:
         self,
         element_name: str,
         resolution: Optional[float],
-        return_tolerances: bool = False,
+        extents: bool = False,
     ) -> Table:
         s_positions = self._get_cuts_at_element(element_name, resolution)
-        return self.cross_sections_at_s(s_positions, return_tolerances=return_tolerances)
+        return self.cross_sections_at_s(s_positions, extents=extents)
 
     def cross_sections_at_s(
         self,
         s_positions: Collection[float],
-        return_tolerances: bool = False,
+        extents: bool = False,
     ) -> Table:
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         sv_resampled = self.survey_data.resample(s_positions)
@@ -868,7 +875,86 @@ class Aperture:
             'tol_x': tol_x,
             'tol_y': tol_y,
         }
+        if extents:
+            table_data.update(self._axis_extents_for_cross_sections(cross_sections))
         return Table(table_data, index='index')
+
+    def plot_extents(
+        self,
+        s_positions: Collection[float],
+        sigmas: Optional[float] = None,
+        twiss_init: Optional[TwissInit] = None,
+        method: Literal['bisection', 'rays', 'exact'] = 'rays',
+        envelopes_num_points: int = 64,
+        include_aper_tols: bool = False,
+        plot_s_positions: Optional[Collection[float]] = None,
+        axs=None,
+    ):
+        s_positions = np.asarray(s_positions, dtype=FloatType._dtype)
+        plot_s_positions = np.asarray(
+            s_positions if plot_s_positions is None else plot_s_positions,
+            dtype=FloatType._dtype,
+        )
+
+        order = np.argsort(s_positions)
+        undo_order = np.empty_like(order)
+        undo_order[order] = np.arange(len(order))
+        s_sorted = s_positions[order]
+
+        if sigmas is None:
+            n1_table, _ = self.get_aperture_sigmas_at_s(
+                s_positions=s_sorted,
+                twiss_init=twiss_init,
+                method=method,
+            )
+            sigmas = float(np.min(n1_table.n1))
+
+        envelopes, _ = self.get_envelope_at_s(
+            s_positions=s_sorted,
+            sigmas=sigmas,
+            twiss_init=twiss_init,
+            envelopes_num_points=envelopes_num_points,
+            include_aper_tols=include_aper_tols,
+        )
+        sections_table = self.cross_sections_at_s(s_sorted, extents=True)
+
+        min_envel_x = np.min(envelopes[:, :, 0], axis=1)[undo_order]
+        max_envel_x = np.max(envelopes[:, :, 0], axis=1)[undo_order]
+        min_envel_y = np.min(envelopes[:, :, 1], axis=1)[undo_order]
+        max_envel_y = np.max(envelopes[:, :, 1], axis=1)[undo_order]
+
+        min_aper_x = np.asarray(sections_table.min_x, dtype=FloatType._dtype)[undo_order]
+        max_aper_x = np.asarray(sections_table.max_x, dtype=FloatType._dtype)[undo_order]
+        min_aper_y = np.asarray(sections_table.min_y, dtype=FloatType._dtype)[undo_order]
+        max_aper_y = np.asarray(sections_table.max_y, dtype=FloatType._dtype)[undo_order]
+
+        tols_r = np.asarray(sections_table.tol_r, dtype=FloatType._dtype)[undo_order]
+        tols_x = np.asarray(sections_table.tol_x, dtype=FloatType._dtype)[undo_order]
+        tols_y = np.asarray(sections_table.tol_y, dtype=FloatType._dtype)[undo_order]
+
+        if axs is None:
+            fig, axs = plt.subplots(2, 1, sharex=True)
+        else:
+            fig = axs[0].figure
+
+        ax_x, ax_y = axs
+
+        ax_x.fill_between(plot_s_positions, min_envel_x, max_envel_x, color='royalblue', alpha=0.3)
+        ax_x.plot(plot_s_positions, min_aper_x, color='k')
+        ax_x.plot(plot_s_positions, max_aper_x, color='k')
+        ax_x.plot(plot_s_positions, min_aper_x + tols_x + tols_r, linestyle='--', color='k')
+        ax_x.plot(plot_s_positions, max_aper_x - tols_x - tols_r, linestyle='--', color='k')
+        ax_x.set_ylabel(r'x [m]')
+
+        ax_y.fill_between(plot_s_positions, min_envel_y, max_envel_y, color='indianred', alpha=0.3)
+        ax_y.plot(plot_s_positions, min_aper_y, color='k')
+        ax_y.plot(plot_s_positions, max_aper_y, color='k')
+        ax_y.plot(plot_s_positions, min_aper_y + tols_y + tols_r, linestyle='--', color='k')
+        ax_y.plot(plot_s_positions, max_aper_y - tols_y - tols_r, linestyle='--', color='k')
+        ax_y.set_ylabel(r'y [m]')
+        ax_y.set_xlabel('s [m]')
+
+        return fig, axs
 
     def plot_at_element(self, name, resolution=0.1, sigmas=None, method=None, middle='beam', ax=None):
         """Display a transverse plot of the beam at an element ``name``.
@@ -1179,7 +1265,6 @@ class Aperture:
         type_positions = [bound[2] for bound in type_bounds[bound_idx_start:bound_idx_end] if bound[2] is not None]
         return type_positions
 
-
     def _type_bounds(self) -> List[Tuple[float, float, Optional[TypePosition]]]:
         """Compute the bounds of each aperture type along the line.
 
@@ -1251,6 +1336,52 @@ class Aperture:
             type_bounds.append((current_s, line_length, None))
 
         return type_bounds
+
+    @staticmethod
+    def _axis_extents_for_cross_sections(cross_sections: np.ndarray) -> dict[str, np.ndarray]:
+        x0 = cross_sections[:, :-1, 0]
+        y0 = cross_sections[:, :-1, 1]
+        x1 = cross_sections[:, 1:, 0]
+        y1 = cross_sections[:, 1:, 1]
+
+        with np.errstate(divide='ignore', invalid='ignore'):
+            dy = y1 - y0
+            t_x_axis = -y0 / dy
+            crosses_x_axis = ((y0 < 0) & (y1 > 0)) | ((y0 > 0) & (y1 < 0))
+            x_axis_interp = np.where(crosses_x_axis, x0 + t_x_axis * (x1 - x0), np.nan)
+            x_axis_vertices = np.where(y0 == 0, x0, np.nan)
+            x_axis_vertices_next = np.where(y1 == 0, x1, np.nan)
+            on_x_axis = (y0 == 0) & (y1 == 0)
+            x_axis_seg0 = np.where(on_x_axis, x0, np.nan)
+            x_axis_seg1 = np.where(on_x_axis, x1, np.nan)
+            x_candidates = np.concatenate(
+                [x_axis_interp, x_axis_vertices, x_axis_vertices_next, x_axis_seg0, x_axis_seg1],
+                axis=1,
+            )
+
+            dx = x1 - x0
+            t_y_axis = -x0 / dx
+            crosses_y_axis = ((x0 < 0) & (x1 > 0)) | ((x0 > 0) & (x1 < 0))
+            y_axis_interp = np.where(crosses_y_axis, y0 + t_y_axis * (y1 - y0), np.nan)
+            y_axis_vertices = np.where(x0 == 0, y0, np.nan)
+            y_axis_vertices_next = np.where(x1 == 0, y1, np.nan)
+            on_y_axis = (x0 == 0) & (x1 == 0)
+            y_axis_seg0 = np.where(on_y_axis, y0, np.nan)
+            y_axis_seg1 = np.where(on_y_axis, y1, np.nan)
+            y_candidates = np.concatenate(
+                [y_axis_interp, y_axis_vertices, y_axis_vertices_next, y_axis_seg0, y_axis_seg1],
+                axis=1,
+            )
+
+        has_x = np.any(np.isfinite(x_candidates), axis=1)
+        has_y = np.any(np.isfinite(y_candidates), axis=1)
+
+        return {
+            'min_x': np.where(has_x, np.nanmin(x_candidates, axis=1), np.nan),
+            'max_x': np.where(has_x, np.nanmax(x_candidates, axis=1), np.nan),
+            'min_y': np.where(has_y, np.nanmin(y_candidates, axis=1), np.nan),
+            'max_y': np.where(has_y, np.nanmax(y_candidates, axis=1), np.nan),
+        }
 
     @classmethod
     def _guess_original_mad_name(cls, element_name) -> Any:

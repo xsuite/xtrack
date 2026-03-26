@@ -10,16 +10,8 @@ import xtrack as xt
 from xtrack.aperture.aperture import Aperture, transform_matrix
 from xtrack.aperture.kernels import build_aperture_kernels
 from xtrack.aperture.structures import (
-    ApertureModel,
-    ApertureType,
-    Circle,
-    Ellipse,
-    FloatType,
-    Profile,
-    ProfilePosition,
-    Rectangle,
-    RectEllipse,
-    TypePosition
+    ApertureModel, ApertureType, Circle, Ellipse, FloatType, Profile,
+    ProfilePosition, Rectangle, RectEllipse, TypePosition
 )
 
 TOY_RING_SEQUENCE = """
@@ -1511,7 +1503,7 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
     ap = Aperture(line=line, model=model, context=test_context)
 
     s_samples = np.array([0.0, 2.5, 5.0, 7.5, 10.0], dtype=FloatType._dtype)
-    sections_table = ap.cross_sections_at_s(s_samples, return_tolerances=True)
+    sections_table = ap.cross_sections_at_s(s_samples)
 
     xo.assert_allclose(sections_table.tol_r, [0.1, 0.2, 0.3, 0.4, 0.5], atol=1e-12, rtol=0)
     xo.assert_allclose(sections_table.tol_x, [0.2, 0.3, 0.4, 0.5, 0.6], atol=1e-12, rtol=0)
@@ -1561,6 +1553,37 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
 
     for ii in range(1, len(sections)):
         xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_returns_axis_extents(test_context):
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=1.0)])
+    sv = line.survey()
+
+    model = ApertureModel(
+        line=line,
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+        ],
+        types=[ApertureType(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
+        profiles=[Profile(shape=Rectangle(half_width=2.0, half_height=1.5), tol_r=0, tol_x=0, tol_y=0)],
+        type_names=['type0'],
+        profile_names=['profile0'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context)
+    sections_table = ap.cross_sections_at_s([0.0], extents=True)
+
+    xo.assert_allclose(sections_table.min_x, [-2.0], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.max_x, [2.0], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.min_y, [-1.5], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.max_y, [1.5], atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

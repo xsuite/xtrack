@@ -44,7 +44,7 @@ context = ContextCpu(omp_num_threads='auto')
 
 lines = {
     "b1": lhc.b1,
-    "b2": lhc.b2,
+    #"b2": lhc.b2,
 }
 apertures = {
     beam: Aperture.from_line_with_madx_metadata(
@@ -67,6 +67,10 @@ def _get_nearest_element_name(line_table, s_position):
 for ir_name in sorted(apm):
     ir = apm[ir_name]
     beam = ir_name[-2:]
+
+    if beam == 'b2':
+        continue
+
     line = lines[beam]
     line_table = line_tables[beam]
     aperture = apertures[beam]
@@ -88,31 +92,45 @@ for ir_name in sorted(apm):
     ip_name = f"ip{ir_name[2]}"
     s_ip_m = ir.rows[f"{ip_name}.*"].s[0]
     s_ip_x = line_table.rows[f"{ip_name}.*"].s[0]
-    s_positions = np.asarray(ir.s - s_ip_m + s_ip_x, dtype=float)
+    s_local = np.asarray(ir.s - s_ip_m, dtype=float)
+    s_positions = np.mod(s_local + s_ip_x, line.get_length())
+    order = np.argsort(s_positions)
+    undo_order = np.empty_like(order)
+    undo_order[order] = np.arange(len(order))
 
     n1_table, _ = aperture.get_aperture_sigmas_at_s(
-        s_positions=s_positions,
+        s_positions=s_positions[order],
         method="rays",
     )
+    sigmas = np.asarray(n1_table.n1[undo_order], dtype=float)
+    s_positions_ring = np.asarray(n1_table.s[undo_order], dtype=float)
 
-    min_idx = int(np.argmin(n1_table.n1))
-    min_n1 = float(n1_table.n1[min_idx])
-    min_s = float(n1_table.s[min_idx])
+    min_idx = int(np.argmin(sigmas))
+    min_n1 = float(sigmas[min_idx])
+    min_s = float(s_positions_ring[min_idx])
     element_name = (
         ir.name[min_idx]
-        if hasattr(ir, "name") and len(ir.name) == len(n1_table.n1)
+        if hasattr(ir, "name") and len(ir.name) == len(sigmas)
         else _get_nearest_element_name(line_table, min_s)
     )
     print(f"{ir_name}: min n1={min_n1:.3f} at {element_name} (s={min_s:.6f} m)")
 
-    sigmas = n1_table.n1
-
-    plt.figure()
-    plt.plot(
-        s_positions, np.where(ir.n1 > 9e5, np.inf, ir.n1), label='n1 (MAD-X)'
+    fig, axs = plt.subplots(3, 1, sharex=True)
+    axs[0].plot(
+        s_local, np.where(ir.n1 > 9e5, np.inf, ir.n1), label='n1 (MAD-X)'
     )
-    plt.plot(s_positions, sigmas, label='n1 (Xtrack)')
-    plt.xlabel('s [m]')
-    plt.ylabel(r'max beam size [$\sigma$]')
-    plt.legend()
+    axs[0].plot(s_local, sigmas, label='n1 (Xtrack)')
+    axs[0].set_ylabel(r'max beam size [$\sigma$]')
+    axs[0].legend()
+
+    aperture.plot_extents(
+        s_positions=s_positions,
+        sigmas=min_n1,
+        plot_s_positions=s_local,
+        axs=axs[1:],
+    )
+    axs[1].set_title(ir_name)
+    axs[2].set_xlabel(f's - {ip_name} [m]')
+
+    fig.tight_layout()
     plt.show()

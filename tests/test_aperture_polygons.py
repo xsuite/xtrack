@@ -6,15 +6,8 @@ from scipy.special import ellipe
 from xtrack.aperture import structures
 from xtrack.aperture.kernels import build_aperture_kernels
 from xtrack.aperture.structures import (
-    Circle,
-    Ellipse,
-    FloatType,
-    Octagon,
-    Profile,
-    Racetrack,
-    Rectangle,
-    RectEllipse,
-    ShapeTypes
+    Circle, Ellipse, FloatType, Octagon, Profile, Racetrack, Rectangle,
+    RectEllipse, ShapeTypes
 )
 
 
