@@ -7,6 +7,8 @@ import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 from xtrack._temp.field_fitter import FieldFitter
 import matplotlib.pyplot as plt
+
+plt.rcParams.update({"font.size": 14})
 # Set basic parameters
 interval = 30
 dx = 0.001
@@ -198,7 +200,7 @@ for i in range(n_part):
     ax.plot(mon_splineboris.s[i, :], 
             mon_splineboris.x[i, :] * 1e3, 
             mon_splineboris.y[i, :] * 1e3, 
-            '-', color=colors[i], linewidth=2,
+            '-', color=colors[i], linewidth=2, alpha=0.7,
             label=f'SplineBoris p{i}')
     # Boris integrator (dotted - this is the TRUE reference)
     ax.plot(z_boris[:, i], 
@@ -207,16 +209,16 @@ for i in range(n_part):
             ':', color=colors[i], linewidth=2,
             label=f'Boris p{i}')
     # VariableSolenoid tracks (dashed lines)
-    ax.plot(mon_ref.s[i, :], 
-            mon_ref.x[i, :] * 1e3, 
-            mon_ref.y[i, :] * 1e3, 
-            '--', color=colors[i], alpha=0.5, linewidth=1.5,
-            label=f'VarSol p{i}')
+    # ax.plot(mon_ref.s[i, :], 
+    #         mon_ref.x[i, :] * 1e3, 
+    #         mon_ref.y[i, :] * 1e3, 
+    #         '--', color=colors[i], alpha=0.5, linewidth=1.5,
+    #         label=f'VarSol p{i}')
 
 ax.set_xlabel('s [m]')
 ax.set_ylabel('x [mm]')
 ax.set_zlabel('y [mm]')
-ax.set_title('SplineBoris (solid) vs Boris ref (dotted) vs VariableSolenoid (dashed)')
+ax.set_title('SplineBoris (solid) vs Boris Analytical Field (dotted)')
 ax.legend(loc='upper left')
 ax.view_init(elev=20, azim=-60)
 fig.tight_layout()
@@ -228,11 +230,11 @@ fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 for i in range(n_part):
     # x vs s
     axes[0, i].plot(mon_splineboris.s[i, :], mon_splineboris.x[i, :] * 1e3, '-', 
-                    label='SplineBoris', linewidth=2)
+                    label='SplineBoris', linewidth=2, alpha=0.7)
     axes[0, i].plot(z_boris[:, i], x_boris[:, i] * 1e3, ':', 
                     label='Boris (ref)', linewidth=2)
-    axes[0, i].plot(mon_ref.s[i, :], mon_ref.x[i, :] * 1e3, '--', 
-                    label='VarSol', alpha=0.7)
+    # axes[0, i].plot(mon_ref.s[i, :], mon_ref.x[i, :] * 1e3, '--', 
+    #                 label='VarSol', alpha=0.7)
     axes[0, i].set_xlabel('s [m]')
     axes[0, i].set_ylabel('x [mm]')
     axes[0, i].set_title(f'Particle {i} (delta={delta[i]}): x vs s')
@@ -241,11 +243,11 @@ for i in range(n_part):
     
     # y vs s
     axes[1, i].plot(mon_splineboris.s[i, :], mon_splineboris.y[i, :] * 1e3, '-', 
-                    label='SplineBoris', linewidth=2)
+                    label='SplineBoris', linewidth=2, alpha=0.7)
     axes[1, i].plot(z_boris[:, i], y_boris[:, i] * 1e3, ':', 
                     label='Boris (ref)', linewidth=2)
-    axes[1, i].plot(mon_ref.s[i, :], mon_ref.y[i, :] * 1e3, '--', 
-                    label='VarSol', alpha=0.7)
+    # axes[1, i].plot(mon_ref.s[i, :], mon_ref.y[i, :] * 1e3, '--', 
+    #                 label='VarSol', alpha=0.7)
     axes[1, i].set_xlabel('s [m]')
     axes[1, i].set_ylabel('y [mm]')
     axes[1, i].set_title(f'Particle {i} (delta={delta[i]}): y vs s')
