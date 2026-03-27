@@ -4,7 +4,6 @@ import xobjects as xo
 from scipy.special import ellipe
 
 from xtrack.aperture import structures
-from xtrack.aperture.kernels import build_aperture_kernels
 from xtrack.aperture.structures import (
     Circle, Ellipse, FloatType, Octagon, Profile, Racetrack, Rectangle,
     RectEllipse, ShapeTypes
@@ -14,7 +13,7 @@ from xtrack.aperture.structures import (
 @pytest.fixture(scope="module")
 def context():
     context = xo.ContextCpu()
-    build_aperture_kernels(context)
+    Profile.compile_class_kernels(context, only_if_needed=True)
     return context
 
 

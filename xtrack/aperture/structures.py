@@ -77,6 +77,29 @@ class Profile(xo.Struct):
     tol_x = FloatType
     tol_y = FloatType
 
+    _extra_c_sources = [
+        '#include "xtrack/aperture/headers/profile.h"',
+    ]
+
+    _kernels = {
+        'build_polygon_for_profile': xo.Kernel(
+            c_name='build_polygon_for_profile',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(xo.ThisClass, name='profile'),
+            ],
+        ),
+    }
+
+    def build_polygon_for_profile(self, points: np.ndarray, len_points: int):
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_polygon_for_profile(
+            points=points,
+            len_points=len_points,
+            profile=self,
+        )
+
 
 class ProfilePosition(xo.Struct):
     """Description of the placement of a profile in type (lab) frame.
@@ -138,68 +161,6 @@ class TypePosition(xo.Struct):
     survey_reference_name = xo.String  # identify a point in survey
     survey_index = xo.Int32  # index of the point in the survey
     transformation = FloatType[4, 4]  # 3D rigid transformation matrix from the survey entry to 0 s-position of type
-
-
-class ApertureModel(xo.Struct):
-    type_positions = TypePosition[:]
-    types = ApertureType[:]
-    profiles = Profile[:]
-
-    def __init__(
-        self,
-        type_positions: List[TypePosition],
-        types: List[ApertureType],
-        profiles: List[Profile],
-        type_names: List[str],
-        profile_names: List[str],
-        **kwargs,
-    ):
-        if len(type_names) != len(types):
-            raise ValueError("Length of type_names and type_names must match.")
-
-        if len(profile_names) != len(profiles):
-            raise ValueError("Length of profiles and profiles must match.")
-
-        self.type_names = type_names
-        self.profile_names = profile_names
-
-        super().__init__(type_positions=type_positions, types=types, profiles=profiles, **kwargs)
-
-    def type_name_for_index(self, idx: int) -> str:
-        return self.type_names[idx]
-
-    def profile_name_for_index(self, idx: int) -> str:
-        return self.profile_names[idx]
-
-    def type_for_position(self, type_position: TypePosition) -> ApertureType:
-        return self.types[type_position.type_index]
-
-    def type_name_for_position(self, type_position: TypePosition) -> str:
-        return self.type_name_for_index(type_position.type_index)
-
-    def profile_for_position(self, profile_position: ProfilePosition) -> Profile:
-        return self.profiles[profile_position.profile_index]
-
-    def profile_name_for_position(self, profile_position: ProfilePosition) -> str:
-        return self.profile_name_for_index(profile_position.profile_index)
-
-    def type_profile_names_for_indices(self, type_position_index, profile_position_index) -> Tuple[str, str]:
-        type_pos = self.type_positions[type_position_index]
-        type_name = self.type_name_for_position(type_pos)
-        type = self.type_for_position(type_pos)
-        profile_pos = type.positions[profile_position_index]
-        profile_name = self.profile_name_for_position(profile_pos)
-        return type_name, profile_name
-
-    def to_dict(self) -> dict:
-        out = self._to_dict()
-        out['type_names'] = self.type_names
-        out['profile_names'] = self.profile_names
-        return out
-
-    @classmethod
-    def from_dict(cls, src: dict, context: XContext = None) -> 'ApertureModel':
-        return cls(**src, _context=context)
 
 
 class ApertureBounds(xo.Struct):
@@ -267,6 +228,21 @@ class SurveyData(xo.Struct):
     length = FloatType[:]
     tilt = FloatType[:]
 
+    _extra_c_sources = [
+        '#include "xtrack/aperture/headers/survey_tools.h"',
+    ]
+
+    _kernels = {
+        'resample_survey_table': xo.Kernel(
+            c_name='resample_survey_table',
+            args=[
+                xo.Arg(xo.ThisClass, name='survey'),
+                xo.Arg(FloatType, pointer=True, name='s'),
+                xo.Arg(xo.ThisClass, name='sliced'),
+            ],
+        ),
+    }
+
     @classmethod
     def zeros(cls, length, context: XContext = None) -> 'SurveyData':
         return cls(
@@ -303,5 +279,216 @@ class SurveyData(xo.Struct):
     def resample(self, s_positions: Collection[float]) -> 'SurveyData':
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         resampled = SurveyData.zeros(len(s_positions), context=self._context)
-        self._context.kernels['resample_survey_table'](survey=self, s=s_positions, sliced=resampled)
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.resample_survey_table(survey=self, s=s_positions, sliced=resampled)
         return resampled
+
+
+class ApertureModel(xo.Struct):
+    type_positions = TypePosition[:]
+    types = ApertureType[:]
+    profiles = Profile[:]
+
+    _extra_c_sources = [
+        '#include "xtrack/aperture/headers/cross_sections.h"',
+        '#include "xtrack/aperture/headers/beam_aperture.h"',
+        '#include "xtrack/aperture/headers/survey_tools.h"',
+    ]
+
+    _kernels = {
+        'build_profile_polygons': xo.Kernel(
+            c_name='build_profile_polygons',
+            args=[
+                xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ProfilePolygons, name='profile_polygons'),
+                xo.Arg(ApertureBounds, name='aperture_bounds'),
+                xo.Arg(SurveyData, name='survey'),
+            ],
+        ),
+        'cross_sections_at_s': xo.Kernel(
+            c_name='cross_sections_at_s',
+            args=[
+                xo.Arg(SurveyData, name='survey_at_s'),
+                xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ProfilePolygons, name='profile_polygons'),
+                xo.Arg(ApertureBounds, name='aperture_bounds'),
+                xo.Arg(SurveyData, name='survey'),
+                xo.Arg(FloatType, pointer=True, name='cross_sections'),
+                xo.Arg(FloatType, pointer=True, name='tol_r'),
+                xo.Arg(FloatType, pointer=True, name='tol_x'),
+                xo.Arg(FloatType, pointer=True, name='tol_y'),
+            ],
+        ),
+        'compute_max_aperture_sigma_bisection': xo.Kernel(
+            c_name='compute_max_aperture_sigma_bisection',
+            args=[
+                xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(SurveyData, name='survey'),
+                xo.Arg(ProfilePolygons, name='profile_polygons'),
+                xo.Arg(ApertureBounds, name='aperture_bounds'),
+                xo.Arg(TwissData, name='twiss_at_s'),
+                xo.Arg(SurveyData, name='survey_at_s'),
+                xo.Arg(BeamData, name='beam_data'),
+                xo.Arg(FloatType, pointer=True, name='out_interpolated_apertures'),
+                xo.Arg(xo.UInt32, name='envelope_num_points'),
+                xo.Arg(FloatType, pointer=True, name='out_envelope_at_max_sigma'),
+                xo.Arg(FloatType, pointer=True, name='sigmas'),
+            ],
+        ),
+        'compute_max_aperture_sigma_rays': xo.Kernel(
+            c_name='compute_max_aperture_sigma_rays',
+            args=[
+                xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(SurveyData, name='survey'),
+                xo.Arg(ProfilePolygons, name='profile_polygons'),
+                xo.Arg(ApertureBounds, name='aperture_bounds'),
+                xo.Arg(TwissData, name='twiss_at_s'),
+                xo.Arg(SurveyData, name='survey_at_s'),
+                xo.Arg(BeamData, name='beam_data'),
+                xo.Arg(FloatType, pointer=True, name='out_interpolated_apertures'),
+                xo.Arg(xo.UInt32, name='envelope_num_points'),
+                xo.Arg(FloatType, pointer=True, name='out_envelope_at_max_sigma'),
+                xo.Arg(FloatType, pointer=True, name='ray_angles'),
+                xo.Arg(xo.UInt32, name='num_ray_angles'),
+                xo.Arg(FloatType, pointer=True, name='sigmas'),
+            ],
+        ),
+        'compute_max_aperture_sigma_exact': xo.Kernel(
+            c_name='compute_max_aperture_sigma_exact',
+            args=[
+                xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(SurveyData, name='survey'),
+                xo.Arg(ProfilePolygons, name='profile_polygons'),
+                xo.Arg(ApertureBounds, name='aperture_bounds'),
+                xo.Arg(TwissData, name='twiss_at_s'),
+                xo.Arg(SurveyData, name='survey_at_s'),
+                xo.Arg(BeamData, name='beam_data'),
+                xo.Arg(FloatType, pointer=True, name='out_interpolated_apertures'),
+                xo.Arg(xo.UInt32, name='envelope_num_points'),
+                xo.Arg(FloatType, pointer=True, name='out_envelope_at_max_sigma'),
+                xo.Arg(FloatType, pointer=True, name='ray_angles'),
+                xo.Arg(xo.UInt32, name='num_ray_angles'),
+                xo.Arg(FloatType, pointer=True, name='sigmas'),
+            ],
+        ),
+        'compute_beam_envelopes_at_sigma': xo.Kernel(
+            c_name='compute_beam_envelopes_at_sigma',
+            args=[
+                xo.Arg(xo.ThisClass, name='model'),
+                xo.Arg(ApertureBounds, name='aperture_bounds'),
+                xo.Arg(TwissData, name='twiss_at_s'),
+                xo.Arg(BeamData, name='beam_data'),
+                xo.Arg(FloatType, name='sigmas'),
+                xo.Arg(xo.UInt32, name='envelope_num_points'),
+                xo.Arg(xo.Int8, name='include_aper_tols'),
+                xo.Arg(FloatType, pointer=True, name='out_envelope'),
+            ],
+        ),
+        '_points_inside_polygon': xo.Kernel(
+            c_name='_points_inside_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(FloatType, pointer=True, name='poly_points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+                xo.Arg(xo.UInt32, name='len_poly_points'),
+            ],
+            ret=xo.Arg(xo.Int8),
+        ),
+        '_is_point_inside_polygon': xo.Kernel(
+            c_name='_is_point_inside_polygon',
+            args=[
+                xo.Arg(FloatType, pointer=True, name='point'),
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+            ],
+            ret=xo.Arg(xo.Int8),
+        ),
+    }
+
+    def __init__(
+        self,
+        type_positions: List[TypePosition],
+        types: List[ApertureType],
+        profiles: List[Profile],
+        type_names: List[str],
+        profile_names: List[str],
+        **kwargs,
+    ):
+        if len(type_names) != len(types):
+            raise ValueError("Length of type_names and type_names must match.")
+
+        if len(profile_names) != len(profiles):
+            raise ValueError("Length of profiles and profiles must match.")
+
+        self.type_names = type_names
+        self.profile_names = profile_names
+
+        super().__init__(type_positions=type_positions, types=types, profiles=profiles, **kwargs)
+
+    def type_name_for_index(self, idx: int) -> str:
+        return self.type_names[idx]
+
+    def profile_name_for_index(self, idx: int) -> str:
+        return self.profile_names[idx]
+
+    def type_for_position(self, type_position: TypePosition) -> ApertureType:
+        return self.types[type_position.type_index]
+
+    def type_name_for_position(self, type_position: TypePosition) -> str:
+        return self.type_name_for_index(type_position.type_index)
+
+    def profile_for_position(self, profile_position: ProfilePosition) -> Profile:
+        return self.profiles[profile_position.profile_index]
+
+    def profile_name_for_position(self, profile_position: ProfilePosition) -> str:
+        return self.profile_name_for_index(profile_position.profile_index)
+
+    def type_profile_names_for_indices(self, type_position_index, profile_position_index) -> Tuple[str, str]:
+        type_pos = self.type_positions[type_position_index]
+        type_name = self.type_name_for_position(type_pos)
+        type = self.type_for_position(type_pos)
+        profile_pos = type.positions[profile_position_index]
+        profile_name = self.profile_name_for_position(profile_pos)
+        return type_name, profile_name
+
+    def to_dict(self) -> dict:
+        out = self._to_dict()
+        out['type_names'] = self.type_names
+        out['profile_names'] = self.profile_names
+        return out
+
+    @classmethod
+    def from_dict(cls, src: dict, context: XContext = None) -> 'ApertureModel':
+        return cls(**src, _context=context)
+
+    def build_profile_polygons(self, **kwargs) -> None:
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.build_profile_polygons(model=self, **kwargs)
+
+    def cross_sections_at_s(self, **kwargs) -> None:
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.cross_sections_at_s(model=self, **kwargs)
+
+    def compute_max_aperture_sigma_bisection(self, **kwargs) -> None:
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.compute_max_aperture_sigma_bisection(model=self, **kwargs)
+
+    def compute_max_aperture_sigma_rays(self, **kwargs) -> None:
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.compute_max_aperture_sigma_rays(model=self, **kwargs)
+
+    def compute_max_aperture_sigma_exact(self, **kwargs) -> None:
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.compute_max_aperture_sigma_exact(model=self, **kwargs)
+
+    def compute_beam_envelopes_at_sigma(self, **kwargs) -> None:
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.compute_beam_envelopes_at_sigma(model=self, **kwargs)
+
+    def _points_inside_polygon(self, **kwargs) -> bool:
+        self.compile_kernels(only_if_needed=True)
+        return bool(self._context.kernels._points_inside_polygon(**kwargs))
+
+    def _is_point_inside_polygon(self, **kwargs) -> bool:
+        self.compile_kernels(only_if_needed=True)
+        return bool(self._context.kernels._is_point_inside_polygon(**kwargs))

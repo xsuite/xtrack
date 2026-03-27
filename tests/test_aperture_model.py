@@ -11,10 +11,9 @@ from xobjects.general import allclose_with_outliers
 
 import xtrack as xt
 from xtrack.aperture.aperture import Aperture, transform_matrix
-from xtrack.aperture.kernels import build_aperture_kernels
 from xtrack.aperture.structures import (
     ApertureModel, ApertureType, Circle, Ellipse, FloatType, Profile,
-    ProfilePosition, Rectangle, RectEllipse, TypePosition
+    ProfilePosition, Rectangle, RectEllipse, SurveyData, TypePosition
 )
 
 TOY_RING_SEQUENCE = """
@@ -61,7 +60,9 @@ def context():
 
 @pytest.fixture(scope="module")
 def kernels(context):
-    build_aperture_kernels(context)
+    Profile.compile_class_kernels(context, only_if_needed=True)
+    SurveyData.compile_class_kernels(context, only_if_needed=True)
+    ApertureModel.compile_class_kernels(context, only_if_needed=True)
     return context.kernels
 
 

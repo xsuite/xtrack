@@ -10,7 +10,6 @@ from xdeps.table import Table
 from xobjects.context import XContext
 
 from xtrack import TwissInit, TwissTable
-from xtrack.aperture.kernels import build_aperture_kernels
 from xtrack.aperture.profile_converters import (
     LimitTypes, profile_from_limit_element, profile_from_madx_aperture
 )
@@ -148,12 +147,6 @@ class Aperture:
             context=context,
             **kwargs,
         )
-
-    def call_kernel(self, name, **kwargs):
-        if name not in self.context.kernels:
-            build_aperture_kernels(self.context)
-
-        return self.context.kernels[name](**kwargs)
 
     @classmethod
     def from_line_with_madx_metadata(cls, line, include_offsets=True, context=None, **kwargs):
@@ -428,7 +421,7 @@ class Aperture:
 
     def polygon_for_profile(self, profile: Profile, num_points: int) -> NDArrayNx2:
         points = np.ndarray(shape=(num_points, 2), dtype=FloatType._dtype)
-        self.call_kernel('build_polygon_for_profile', points=points, len_points=num_points, profile=profile)
+        profile.build_polygon_for_profile(points=points, len_points=num_points)
         return points
 
     @classmethod
@@ -583,9 +576,7 @@ class Aperture:
         if method == 'bisection':
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
 
-            self.call_kernel(
-                'compute_max_aperture_sigma_bisection',
-                model=self.model,
+            self.model.compute_max_aperture_sigma_bisection(
                 survey=self.survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
@@ -602,9 +593,7 @@ class Aperture:
             ray_angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False, dtype=FloatType._dtype)
             ray_sigmas = np.zeros((num_slices, num_rays), dtype=FloatType._dtype)
 
-            self.call_kernel(
-                'compute_max_aperture_sigma_rays',
-                model=self.model,
+            self.model.compute_max_aperture_sigma_rays(
                 survey=self.survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
@@ -624,9 +613,7 @@ class Aperture:
             ray_angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False, dtype=FloatType._dtype)
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
 
-            self.call_kernel(
-                'compute_max_aperture_sigma_exact',
-                model=self.model,
+            self.model.compute_max_aperture_sigma_exact(
                 survey=self.survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
@@ -718,9 +705,7 @@ class Aperture:
         ray_angles = np.linspace(0, 2 * np.pi, 8, endpoint=False, dtype=FloatType._dtype)
         ray_sigmas = np.zeros((num_slices, 8), dtype=FloatType._dtype)
 
-        self.call_kernel(
-            'compute_max_aperture_sigma_rays',
-            model=self.model,
+        self.model.compute_max_aperture_sigma_rays(
             survey=self.survey_data,
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
@@ -815,9 +800,7 @@ class Aperture:
 
         envelopes = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
 
-        self.call_kernel(
-            'compute_beam_envelopes_at_sigma',
-            model=self.model,
+        self.model.compute_beam_envelopes_at_sigma(
             aperture_bounds=self._aperture_bounds,
             twiss_at_s=twiss_at_s,
             beam_data=beam_data,
@@ -856,10 +839,8 @@ class Aperture:
         tol_x = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
         tol_y = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
 
-        self.call_kernel(
-            'cross_sections_at_s',
+        self.model.cross_sections_at_s(
             survey_at_s=sv_resampled,
-            model=self.model,
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
             survey=self.survey_data,
@@ -1122,9 +1103,7 @@ class Aperture:
                 self._aperture_bounds.type_position_indices[idx] = type_pos_idx
                 self._aperture_bounds.profile_position_indices[idx] = profile_pos_idx
 
-        self.call_kernel(
-            'build_profile_polygons',
-            model=self.model,
+        self.model.build_profile_polygons(
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
             survey=self.survey_data,
