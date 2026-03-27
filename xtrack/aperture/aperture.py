@@ -135,13 +135,17 @@ class Aperture:
 
     @classmethod
     def from_json(cls, filename, line, **kwargs):
+        context = kwargs.pop('context', None)
+        if context is None:
+            context = getattr(line, '_context', None)
         json = json_load(filename)
-        model = ApertureModel(**json['model'])
+        model = ApertureModel(**json['model'], _context=context)
         halo_params = json['halo_params']
         return cls(
             line=line,
             model=model,
             halo_params=halo_params,
+            context=context,
             **kwargs,
         )
 
@@ -1097,6 +1101,7 @@ class Aperture:
             s_positions=num_cross_sections,
             s_start=num_cross_sections,
             s_end=num_cross_sections,
+            _context=self.context,
         )
 
         # Pre-allocate the profile polygons (generate once, so that we only need to compute transformations on them)
@@ -1105,6 +1110,7 @@ class Aperture:
             count=num_profile_polys,
             len_points=num_points,
             points=(num_profile_polys, num_points),
+            _context=self.context,
         )
 
         cross_section_idx_iter = iter(progress(range(num_cross_sections), desc='Building cross-sections', total=num_cross_sections))

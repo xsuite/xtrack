@@ -1,10 +1,13 @@
 from itertools import zip_longest
+import json
+from pathlib import Path
 
 import numpy as np
 import pytest
 import xobjects as xo
 from cpymad.madx import Madx
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, requires_context
+from xobjects.general import allclose_with_outliers
 
 import xtrack as xt
 from xtrack.aperture.aperture import Aperture, transform_matrix
@@ -46,6 +49,9 @@ def _polygon_area(points):
     x = points[:, 0]
     y = points[:, 1]
     return 0.5 * abs(np.dot(x[:-1], y[1:]) + x[-1] * y[0] - np.dot(y[:-1], x[1:]) - y[-1] * x[0])
+
+
+TEST_DATA_DIR = Path(__file__).resolve().parent.parent / 'test_data'
 
 
 @pytest.fixture(scope='module')
@@ -1759,3 +1765,66 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
     assert np.all(np.isfinite(bounds_table.s_end))
     assert np.all(bounds_table.s_start <= bounds_table.s)
     assert np.all(bounds_table.s <= bounds_table.s_end)
+
+
+@pytest.fixture
+def hllhc19_end_to_end_model(tmp_path):
+    local_context = xo.ContextCpu()
+
+    lhc = xt.load(TEST_DATA_DIR / 'hllhc19_apertures/lhc_aperture.json')
+    line = lhc.b1.copy(_context=local_context)
+
+    aperture = Aperture.from_line_with_madx_metadata(
+        line,
+        num_profile_points=100,
+        include_offsets=True,
+        context=local_context,
+    )
+
+    aperture_path = tmp_path / 'aperture_model_b1.json'
+    aperture.to_json(aperture_path)
+    aperture = Aperture.from_json(aperture_path, line)
+
+    return line, aperture
+
+
+@requires_context('ContextCpu')
+@pytest.mark.parametrize('ir', [f'ir{idx}b1' for idx in range(1, 9)])
+@pytest.mark.parametrize('method', ['rays', 'exact'])
+def test_hllhc19_end_to_end(ir, method, hllhc19_end_to_end_model):
+    line, aperture = hllhc19_end_to_end_model
+    line_table = line.get_table()
+
+    # See `test_data/hllhc19_apertures` for more info on the file generation
+    # In particular these are sanitised by clamping to nan values that are too large
+    # or spurious (a lot of sequences nan, single value, nan, single value, nan, ...)
+    ref_file = TEST_DATA_DIR / f'hllhc19_apertures/{ir}.json'
+
+    reference = json.loads(ref_file.read_text())
+    aperture.halo_params.update(reference['halo_params'])
+
+    s_local = np.asarray(reference['s_local'], dtype=float)
+    n1_madx = np.asarray(reference['n1_madx'], dtype=float)
+    ip_name = reference['ip_name']
+
+    s_ip_x = float(line_table.rows[f'{ip_name}.*'].s[0])
+    s_positions = np.mod(s_local + s_ip_x, line.get_length())
+    order = np.argsort(s_positions)
+    undo_order = np.empty_like(order)
+    undo_order[order] = np.arange(len(order))
+
+    n1_table, _ = aperture.get_aperture_sigmas_at_s(
+        s_positions=s_positions[order],
+        method=method,
+    )
+    n1_xt = np.asarray(n1_table.n1[undo_order], dtype=float)
+
+    valid_mask = np.isfinite(n1_madx)
+
+    # Assert that 99% of the data points are within 1% of MAD-X
+    assert allclose_with_outliers(
+        n1_madx[valid_mask],
+        n1_xt[valid_mask],
+        rtol=0.01,
+        max_outliers=int(len(n1_madx) / 100),
+    ), ref_file.name

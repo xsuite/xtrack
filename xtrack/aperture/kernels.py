@@ -7,6 +7,9 @@ from xtrack.aperture.structures import (
 
 
 def build_aperture_kernels(context):
+    if isinstance(context, (xo.ContextCupy, xo.ContextPyopencl)):
+        raise NotImplementedError("Aperture calculations on GPU are not yet supported.")
+
     source = '''
         #include "xtrack/aperture/headers/profiles.h"
         #include "xtrack/aperture/headers/beam_aperture.h"
