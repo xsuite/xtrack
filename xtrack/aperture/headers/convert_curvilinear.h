@@ -69,7 +69,7 @@ inline Point3D cartesian_to_curvilinear_point(const Point3D p_cart, const float_
     return (Point3D){
         .x = rho - R,
         .y = p_cart.y,
-        .z = theta / h
+        .z = theta * R
     };
 }
 

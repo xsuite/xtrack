@@ -100,16 +100,13 @@ static inline Racetrack_s beam_racetrack(
         { hy = sv + sr  (height),
         { hr = sqrt(sh ** 2 + sv ** 2) + sr  (radial maximum: through (sh, sv)).
 
-        Solving these for sh, sv, and sr yields the following equations:
+        Solving these for gives the following:
     */
-    const float_type tmp = sqrt(2 * (hr - hx) * (hr - hy));
-    const float_type sh  = hr - hy + tmp;
-    const float_type sv  = hr - hx + tmp;
-    const float_type sr  = hx + hy - hr - tmp;
+    const float_type sr = hx + hy - hr - sqrt(2 * (hr - hx) * (hr - hy));
 
     Racetrack_s rt = {
-        .h = (sh + sr) * sigma_x,
-        .v = (sv + sr) * sigma_y,
+        .h = hx * sigma_x,
+        .v = hy * sigma_y,
         .a = sr * sigma_x,
         .b = sr * sigma_y,
     };
