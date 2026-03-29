@@ -116,11 +116,31 @@ class Line:
             used for building particles distributions, computing twiss parameters
             and matching.
         energy_program: EnergyProgram
-            (optional) Energy program used to update the reference energy during the tracking.
+            (optional) Energy program used to update the reference energy during
+            the tracking.
         env : Environment
             Environment object to which the line belongs. If not provided, a new
             environment is created.
-
+        compose : bool, optional
+            Whether to instantiate the line in ``compose`` mode, which allows
+            the components to be added to the line after creation.
+        components : list, optional
+            List of components to be added to the line. It can include strings,
+            place objects, and lines. Can only be given if ``compose`` is true.
+        length : float | str, optional
+            Length of the line to be built by the builder. Can be an expression.
+            If not specified, the length will be the minimum length that can
+            fit all the components. Can only be given if ``compose`` is true.
+        refer : str, optional
+            Specifies which part of the component the ``at`` position will refer
+            to. Allowed values are ``start``, ``center`` (default; also allowed
+            is ``centre```), and ``end``. Can only be given if ``compose`` is true.
+        mirror : bool, optional
+            Whether the line should be mirrored after creation. Can only be given
+            if ``compose`` is true.
+        s_tol : float, optional
+            Difference between two s positions below which they should be
+            treated as the same location. Can only be given if ``compose`` is true.
         """
 
         self.config = xt.tracker.TrackerConfig()
@@ -206,8 +226,8 @@ class Line:
             self.element_names = list(element_names).copy()
         else:
             self.composer = xt.Builder(env, mirror=mirror, length=length,
-                                        refer=refer, s_tol=s_tol or 1e-6,
-                                        components=components)
+                                       refer=refer, s_tol=s_tol or 1e-6,
+                                       components=components)
             self.element_names = element_names
 
         self._particle_ref = particle_ref
@@ -1534,8 +1554,7 @@ class Line:
         ele_stop='__discontinued__',
         ele_init='__discontinued__',
         twiss_init='__discontinued__'
-        ):
-
+    ):
         if not self._has_valid_tracker():
             self.build_tracker()
 
@@ -2896,11 +2915,9 @@ class Line:
     # To be deprecated in favor of Line.insert
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
+        """Insert an element in the line.
 
-        """
-        NOTE: This method is deprecated. Use `Line.insert` instead.
-
-        Insert an element in the line.
+        .. warning:: This method is deprecated. Use :meth:`Line.insert` instead.
 
         Parameters
         ----------
@@ -2910,9 +2927,9 @@ class Line:
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
         at: int or string, optional
-            Index or name of the element in the line. If `index` is provided, `at_s` must be None.
+            Index or name of the element in the line. If ``index`` is provided, ``at_s`` must be None.
         at_s: float, optional
-            Position of the element in the line in meters. If `at_s` is provided, `index`
+            Position of the element in the line in meters. If ``at_s`` is provided, ``index``
             must be None.
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
@@ -3004,11 +3021,9 @@ class Line:
         return self
 
     def append_element(self, element, name):
+        """Append element to the end of the lattice
 
-        """
-        NOTE: This method is deprecated. Use `Line.append` instead.
-
-        Append element to the end of the lattice
+        .. warning:: This method is deprecated. Use :meth:`Line.append` instead.
 
         Parameters
         ----------
@@ -4391,7 +4406,10 @@ class Line:
         self.element_names = tuple(self.element_names)
 
     def unfreeze(self):
-        """See `Line.discard_tracker()`. This function is deprecated."""
+        """Use :meth:`Line.discard_tracker` instead.
+
+        .. warning:: This function is deprecated.
+        """
         warn(
             '`Line.unfreeze()` is deprecated and will be removed in future '
             'versions. Please use `Line.discard_tracker()` instead.',

@@ -2732,6 +2732,8 @@ class TempRF(_HasKnlKsl, _HasModelRF, _HasIntegrator, BeamElement):
 class Solenoid(_HasKnlKsl, BeamElement):
     """Solenoid element.
 
+    .. warning:: The Solenoid element is deprecated, use VariableSolenoid or UniformSolenoid instead.
+
     Parameters
     ----------
     length : float
