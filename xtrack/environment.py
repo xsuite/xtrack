@@ -1310,11 +1310,10 @@ class Environment:
 
             extra = kwargs.pop('extra', None)
 
-            ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
-                type(self._element_dict[name]), kwargs, _eval)
-            self._set_kwargs(
-                name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                container=self._element_dict, container_refs=self._xdeps_eref)
+            ee_view = self[name]
+            for kk, vv in kwargs.items():
+                setattr(ee_view, kk, vv)
+
             if extra is not None:
                 assert isinstance(extra, dict), (
                     'Description must be a dictionary')
