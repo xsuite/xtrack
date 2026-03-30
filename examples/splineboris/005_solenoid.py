@@ -6,6 +6,7 @@ import pandas as pd
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 from xtrack._temp.field_fitter import FieldFitter
+from xtrack._temp.splineboris_sequence import SplineBorisSequence
 import matplotlib.pyplot as plt
 
 plt.rcParams.update({"font.size": 14})
@@ -100,7 +101,7 @@ df_fit_pars = fitter.df_fit_pars
 
 # Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
 # element per polynomial piece with n_steps based on the data point count
-seq = xt.SplineBorisSequence(
+seq = SplineBorisSequence(
     df_fit_pars=df_fit_pars,
     multipole_order=multipole_order,
     steps_per_point=1,  # one integration step per data point

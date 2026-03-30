@@ -12,6 +12,7 @@ import importlib.util
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 from xtrack._temp.field_fitter import FieldFitter
+from xtrack._temp.splineboris_sequence import SplineBorisSequence
 
 FIT_PARS_INDEX_COLS = [
     "field_component",
@@ -491,7 +492,7 @@ def test_splineboris_solenoid_vs_variable_solenoid(solenoid_field, solenoid_vs_v
     # Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
     # element per polynomial piece with n_steps based on the data point count
     df_fit_pars = solenoid_vs_varsol_fit_pars_df
-    seq = xt.SplineBorisSequence(
+    seq = SplineBorisSequence(
         df_fit_pars=df_fit_pars,
         multipole_order=multipole_order,
         steps_per_point=1,  # one integration step per data point
@@ -570,7 +571,7 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
     df = undulator_fit_pars_df
 
     # Build undulator using SplineBorisSequence
-    seq = xt.SplineBorisSequence(
+    seq = SplineBorisSequence(
         df_fit_pars=df,
         multipole_order=multipole_order,
         steps_per_point=1,
@@ -676,7 +677,7 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(undulator_rotated_fit_pa
     xo.assert_allclose(rot_vals, orig_vals, atol=1e-15, rtol=0)
 
     # Build undulator using SplineBorisSequence
-    seq = xt.SplineBorisSequence(
+    seq = SplineBorisSequence(
         df_fit_pars=df,
         multipole_order=multipole_order,
         steps_per_point=1,
@@ -884,7 +885,7 @@ def test_splineboris_variable_solenoid_radiation(solenoid_field, solenoid_vs_var
     # --- SplineBoris tracking ---
     df_fit_pars = solenoid_vs_varsol_fit_pars_df
 
-    seq = xt.SplineBorisSequence(
+    seq = SplineBorisSequence(
         df_fit_pars=df_fit_pars,
         multipole_order=SOLENOID_MULTIPOLE_ORDER,
         steps_per_point=1,
@@ -1319,7 +1320,7 @@ def test_splineboris_sequence_rejects_poly_order():
         'param_value': [0.0, 0.0, 0.0, 0.0, 0.0],
     })
     with pytest.raises(TypeError):
-        xt.SplineBorisSequence(
+        SplineBorisSequence(
             df_fit_pars=df,
             multipole_order=1,
             poly_order=3,
@@ -1331,10 +1332,10 @@ def test_splineboris_sequence_deterministic_from_shuffled(undulator_fit_pars_df)
     multipole_order = 3
     df = undulator_fit_pars_df
 
-    seq_a = xt.SplineBorisSequence(df_fit_pars=df, multipole_order=multipole_order)
+    seq_a = SplineBorisSequence(df_fit_pars=df, multipole_order=multipole_order)
 
     df_shuffled = df.sample(frac=1, random_state=42)
-    seq_b = xt.SplineBorisSequence(df_fit_pars=df_shuffled, multipole_order=multipole_order)
+    seq_b = SplineBorisSequence(df_fit_pars=df_shuffled, multipole_order=multipole_order)
 
     assert seq_a.n_pieces == seq_b.n_pieces
     for ea, eb in zip(seq_a.elements, seq_b.elements):
@@ -1364,7 +1365,7 @@ def test_splineboris_sequence_duplicate_boundaries():
             })
     df = pd.DataFrame(rows)
 
-    seq = xt.SplineBorisSequence(df_fit_pars=df, multipole_order=1)
+    seq = SplineBorisSequence(df_fit_pars=df, multipole_order=1)
     assert seq.n_pieces == 2
     for elem in seq.elements:
         assert float(elem.s_end) > float(elem.s_start)
@@ -1399,7 +1400,7 @@ def test_splineboris_sequence_accepts_fieldfitter_adapter(solenoid_vs_varsol_fit
         def __init__(self, df):
             self.df_fit_pars = df
 
-    seq = xt.SplineBorisSequence(
+    seq = SplineBorisSequence(
         df_fit_pars=_FieldFitterLike(solenoid_vs_varsol_fit_pars_df),
         multipole_order=SOLENOID_MULTIPOLE_ORDER,
         steps_per_point=1,
@@ -1424,7 +1425,7 @@ def test_splineboris_sequence_rejects_malformed_hermite_groups():
         })
     df_missing = pd.DataFrame(rows).set_index(FIT_PARS_INDEX_COLS)
     with pytest.raises(ValueError, match="Malformed Hermite group"):
-        xt.SplineBorisSequence(df_fit_pars=df_missing, multipole_order=1)
+        SplineBorisSequence(df_fit_pars=df_missing, multipole_order=1)
 
     rows_nan = []
     for i, sfx in enumerate(xt.SplineBoris._HERMITE_SUFFIXES):
@@ -1442,19 +1443,19 @@ def test_splineboris_sequence_rejects_malformed_hermite_groups():
         })
     df_nan = pd.DataFrame(rows_nan).set_index(FIT_PARS_INDEX_COLS)
     with pytest.raises(ValueError, match="all Hermite values must be finite"):
-        xt.SplineBorisSequence(df_fit_pars=df_nan, multipole_order=1)
+        SplineBorisSequence(df_fit_pars=df_nan, multipole_order=1)
 
 
 def test_splineboris_sequence_from_csv_roundtrip(tmp_path, solenoid_vs_varsol_fit_pars_df):
     csv_path = tmp_path / "fit_pars_roundtrip.csv"
     solenoid_vs_varsol_fit_pars_df.to_csv(csv_path)
 
-    seq_from_df = xt.SplineBorisSequence(
+    seq_from_df = SplineBorisSequence(
         df_fit_pars=solenoid_vs_varsol_fit_pars_df,
         multipole_order=SOLENOID_MULTIPOLE_ORDER,
         steps_per_point=1,
     )
-    seq_from_csv = xt.SplineBorisSequence.from_csv(
+    seq_from_csv = SplineBorisSequence.from_csv(
         csv_path=csv_path,
         multipole_order=SOLENOID_MULTIPOLE_ORDER,
         steps_per_point=1,

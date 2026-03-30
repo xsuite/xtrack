@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xtrack as xt
+from xtrack._temp.splineboris_sequence import SplineBorisSequence
 
 FIT_PARS_INDEX_COLS = [
     "field_component",
@@ -79,7 +80,7 @@ if __name__ == "__main__":
     multipole_order = 3
 
     # Build line using piecewise SplineBorisSequence (baseline xtrack implementation).
-    seq = xt.SplineBorisSequence(
+    seq = SplineBorisSequence(
         df_fit_pars=df,
         multipole_order=multipole_order,
         steps_per_point=1,

@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 from xtrack._temp.field_fitter import FieldFitter
+from xtrack._temp.splineboris_sequence import SplineBorisSequence
 
 
 multipole_order = 3
@@ -66,7 +67,7 @@ x_off = 5e-4  # 0.0005 m offset in x
 y_off = 0  # 0 offset in y
 
 # Build undulator using SplineBorisSequence with offset
-seq = xt.SplineBorisSequence(
+seq = SplineBorisSequence(
     df_fit_pars=field_fitter.df_fit_pars,
     multipole_order=multipole_order,
     steps_per_point=1,
