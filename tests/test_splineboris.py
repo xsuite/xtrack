@@ -45,25 +45,25 @@ def test_data_dir():
 def make_uniform_splineboris():
     def _make(Bx=0, By=0, Bs=0, s_start=0, s_end=1, n_steps=100,
                 multipole_order=1, radiation_flag=0, kn=None, ks=None):
-        # Uniform field: Hermite params (f_left, df_left, f_right, df_right, average)
-        # For a constant field B, all boundary values = B, derivatives = 0, average = B
+        # Uniform field: Hermite params (val_start, der_start, val_end, der_end, integral)
+        # For a constant field B, all boundary values = B, derivatives = 0, integral = B
         Bx_h = [Bx, 0, Bx, 0, Bx]
         By_h = [By, 0, By, 0, By]
         Bs_h = [Bs, 0, Bs, 0, Bs]
 
-        # Verify the polynomials evaluate to constants
+        # Verify the polynomials evaluate to constants (polynomial is in local s = s - s_start)
         s_test = np.linspace(s_start, s_end, 100)
-        xo.assert_allclose(xt.SplineBoris.hermite_to_poly(s_start, s_end, Bx_h)(s_test), Bx, rtol=1e-12, atol=1e-12)
-        xo.assert_allclose(xt.SplineBoris.hermite_to_poly(s_start, s_end, By_h)(s_test), By, rtol=1e-12, atol=1e-12)
-        xo.assert_allclose(xt.SplineBoris.hermite_to_poly(s_start, s_end, Bs_h)(s_test), Bs, rtol=1e-12, atol=1e-12)
+        s_local = s_test - s_start
+        xo.assert_allclose(xt.SplineBoris.hermite_to_polynomial(s_start, s_end, Bx_h)(s_local), Bx, rtol=1e-12, atol=1e-12)
+        xo.assert_allclose(xt.SplineBoris.hermite_to_polynomial(s_start, s_end, By_h)(s_local), By, rtol=1e-12, atol=1e-12)
+        xo.assert_allclose(xt.SplineBoris.hermite_to_polynomial(s_start, s_end, Bs_h)(s_local), Bs, rtol=1e-12, atol=1e-12)
 
         splineboris = xt.SplineBoris(
-            bs=Bs_h,
-            kn={0: By_h},
-            ks={0: Bx_h},
+            bs=xt.Spline4(*Bs_h),
+            by=(xt.Spline4(*By_h),),
+            bx=(xt.Spline4(*Bx_h),),
             s_start=s_start,
-            s_end=s_end,
-            multipole_order=1,
+            length=s_end - s_start,
             n_steps=n_steps,
             radiation_flag=radiation_flag,
         )
@@ -88,11 +88,12 @@ def evaluate_b():
 
 @pytest.fixture(scope="module")
 def make_segment_field(evaluate_b):
-    def _make(params_1d, multipole_order_local):
+    def _make(params_1d, multipole_order_local, s_start=0.0):
         params_arr = np.asarray(params_1d, dtype=float)
 
         def field(x, y, z):
-            Bx, By, Bs = evaluate_b(x, y, z, params_arr, multipole_order_local)
+            # evaluate_B expects local s (s - s_start); z here is absolute s from BorisSpatialIntegrator
+            Bx, By, Bs = evaluate_b(x, y, z - s_start, params_arr, multipole_order_local)
             return Bx, By, Bs
 
         return field
@@ -595,9 +596,9 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
     # ------------------------------------------------------------------
     boris_elems = []
     for elem in seq.elements:
-        # par_table is a 1D array of polynomial coefficients for this piece
-        params_i = np.asarray(elem.par_table, dtype=float)
-        field_i = make_segment_field(params_i, multipole_order)
+        # par_list is a 1D array of polynomial coefficients (in local s) for this piece
+        params_i = np.asarray(elem.par_list, dtype=float)
+        field_i = make_segment_field(params_i, multipole_order, s_start=float(elem.s_start))
 
         boris_elems.append(
             xt.BorisSpatialIntegrator(
@@ -701,9 +702,9 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(undulator_rotated_fit_pa
     # ------------------------------------------------------------------
     boris_elems = []
     for elem in seq.elements:
-        # par_table is a 1D array of polynomial coefficients for this piece
-        params_i = np.asarray(elem.par_table, dtype=float)
-        field_i = make_segment_field(params_i, multipole_order)
+        # par_list is a 1D array of polynomial coefficients (in local s) for this piece
+        params_i = np.asarray(elem.par_list, dtype=float)
+        field_i = make_segment_field(params_i, multipole_order, s_start=float(elem.s_start))
 
         boris_elems.append(
             xt.BorisSpatialIntegrator(
@@ -1235,17 +1236,17 @@ def test_splineboris_spin_quadrupole(case, atol):
     kn_1_hermite = [quad_gradient, 0, quad_gradient, 0, quad_gradient]
     Bs_hermite = [0, 0, 0, 0, 0]
 
-    # Verify the polynomial evaluates to a constant gradient
-    kn_1_poly = xt.SplineBoris.hermite_to_poly(s_start, s_end, kn_1_hermite)
-    xo.assert_allclose(kn_1_poly(np.linspace(s_start, s_end, 100)), quad_gradient, rtol=1e-12, atol=1e-12)
+    # Verify the polynomial evaluates to a constant gradient.
+    # hermite_to_polynomial returns a poly in local coordinate s_local = s - s_start.
+    kn_1_poly = xt.SplineBoris.hermite_to_polynomial(s_start, s_end, kn_1_hermite)
+    s_test = np.linspace(s_start, s_end, 100)
+    xo.assert_allclose(kn_1_poly(s_test - s_start), quad_gradient, rtol=1e-12, atol=1e-12)
 
     splineboris = xt.SplineBoris(
-        bs=Bs_hermite,
-        kn={1: kn_1_hermite},
-        ks={},
+        bs=xt.Spline4(*Bs_hermite),
+        by=(None, xt.Spline4(*kn_1_hermite)),
         s_start=s_start,
-        s_end=s_end,
-        multipole_order=2,
+        length=s_end - s_start,
         n_steps=n_steps,
     )
 
@@ -1263,45 +1264,42 @@ def test_splineboris_spin_quadrupole(case, atol):
 
 
 def test_splineboris_constructor_validation():
-    with pytest.raises(ValueError, match="s_start and s_end must be provided"):
+    with pytest.raises(TypeError, match="bs must be a Spline4"):
         xt.SplineBoris(
             bs=[0, 0, 0, 0, 0],
-            kn={0: [0, 0, 0, 0, 0]},
-            ks={0: [0, 0, 0, 0, 0]},
             s_start=0,
-            s_end=None,
-            multipole_order=1,
+            length=1,
         )
 
-    with pytest.raises(ValueError, match="must contain exactly 5 Hermite values"):
+    with pytest.raises(TypeError, match="by\\[0\\] must be a Spline4 or None"):
         xt.SplineBoris(
-            bs=[0, 0, 0, 0],
-            kn={0: [0, 0, 0, 0, 0]},
-            ks={0: [0, 0, 0, 0, 0]},
+            bs=xt.Spline4(0, 0, 0, 0, 0),
+            by=([0, 0, 0, 0, 0],),
             s_start=0,
-            s_end=1,
-            multipole_order=1,
+            length=1,
         )
 
-    with pytest.raises(ValueError, match="outside valid range"):
+    with pytest.raises(ValueError, match="n_steps must be > 0"):
         xt.SplineBoris(
-            bs=[0, 0, 0, 0, 0],
-            kn={1: [0, 0, 0, 0, 0]},
-            ks={0: [0, 0, 0, 0, 0]},
+            bs=xt.Spline4(0, 0, 0, 0, 0),
             s_start=0,
-            s_end=1,
-            multipole_order=1,
+            length=1,
+            n_steps=0,
         )
 
-    with pytest.raises(TypeError, match="no longer supported"):
+    with pytest.raises(ValueError, match="length must be finite and > 0"):
+        xt.SplineBoris(
+            bs=xt.Spline4(0, 0, 0, 0, 0),
+            s_start=0,
+            length=0,
+        )
+
+    with pytest.raises(NameError, match="Invalid keyword argument `par_table`"):
         xt.SplineBoris(
             par_table=[0.0],
-            bs=[0, 0, 0, 0, 0],
-            kn={0: [0, 0, 0, 0, 0]},
-            ks={0: [0, 0, 0, 0, 0]},
+            bs=xt.Spline4(0, 0, 0, 0, 0),
             s_start=0,
-            s_end=1,
-            multipole_order=1,
+            length=1,
         )
 
 
@@ -1343,7 +1341,7 @@ def test_splineboris_sequence_deterministic_from_shuffled(undulator_fit_pars_df)
         xo.assert_allclose(ea.s_start, eb.s_start, atol=0, rtol=0)
         xo.assert_allclose(ea.s_end, eb.s_end, atol=0, rtol=0)
         xo.assert_allclose(
-            np.array(ea.par_table), np.array(eb.par_table), atol=0, rtol=0
+            np.array(ea.par_list), np.array(eb.par_list), atol=0, rtol=0
         )
 
 
@@ -1370,3 +1368,116 @@ def test_splineboris_sequence_duplicate_boundaries():
     assert seq.n_pieces == 2
     for elem in seq.elements:
         assert float(elem.s_end) > float(elem.s_start)
+
+
+def test_fieldfitter_df_fit_pars_contract(solenoid_vs_varsol_fit_pars_df):
+    """FieldFitter output keeps the pandas schema consumed by SplineBorisSequence."""
+    df = solenoid_vs_varsol_fit_pars_df
+    assert isinstance(df.index, pd.MultiIndex)
+    assert tuple(df.index.names) == tuple(FIT_PARS_INDEX_COLS)
+
+    expected_columns = {"param_name", "param_value", "to_fit"}
+    assert expected_columns.issubset(set(df.columns))
+
+    df_reset = df.reset_index()
+    suffixes = tuple(xt.SplineBoris._HERMITE_SUFFIXES)
+    for _, row in df_reset.iterrows():
+        if row["field_component"] == "Bs":
+            expected_prefix = "Bs"
+        elif row["field_component"] == "By":
+            expected_prefix = f"Bnorm_{int(row['derivative_x'])}"
+        elif row["field_component"] == "Bx":
+            expected_prefix = f"Bskew_{int(row['derivative_x'])}"
+        else:
+            raise AssertionError(f"Unexpected field_component: {row['field_component']}")
+        assert any(row["param_name"] == f"{expected_prefix}_{sfx}" for sfx in suffixes)
+
+
+def test_splineboris_sequence_accepts_fieldfitter_adapter(solenoid_vs_varsol_fit_pars_df):
+    """Sequence accepts one-way adapter objects exposing a `df_fit_pars` DataFrame."""
+    class _FieldFitterLike:
+        def __init__(self, df):
+            self.df_fit_pars = df
+
+    seq = xt.SplineBorisSequence(
+        df_fit_pars=_FieldFitterLike(solenoid_vs_varsol_fit_pars_df),
+        multipole_order=SOLENOID_MULTIPOLE_ORDER,
+        steps_per_point=1,
+    )
+    assert seq.n_pieces > 0
+
+
+def test_splineboris_sequence_rejects_malformed_hermite_groups():
+    rows = []
+    for i in range(4):
+        rows.append({
+            "field_component": "Bs",
+            "derivative_x": 0,
+            "region_name": "r0",
+            "s_start": 0.0,
+            "s_end": 1.0,
+            "idx_start": 0,
+            "idx_end": 10,
+            "param_index": i,
+            "param_name": f"Bs_{xt.SplineBoris._HERMITE_SUFFIXES[i]}",
+            "param_value": 0.0,
+        })
+    df_missing = pd.DataFrame(rows).set_index(FIT_PARS_INDEX_COLS)
+    with pytest.raises(ValueError, match="Malformed Hermite group"):
+        xt.SplineBorisSequence(df_fit_pars=df_missing, multipole_order=1)
+
+    rows_nan = []
+    for i, sfx in enumerate(xt.SplineBoris._HERMITE_SUFFIXES):
+        rows_nan.append({
+            "field_component": "Bs",
+            "derivative_x": 0,
+            "region_name": "r0",
+            "s_start": 0.0,
+            "s_end": 1.0,
+            "idx_start": 0,
+            "idx_end": 10,
+            "param_index": i,
+            "param_name": f"Bs_{sfx}",
+            "param_value": 0.0 if i != 3 else np.nan,
+        })
+    df_nan = pd.DataFrame(rows_nan).set_index(FIT_PARS_INDEX_COLS)
+    with pytest.raises(ValueError, match="all Hermite values must be finite"):
+        xt.SplineBorisSequence(df_fit_pars=df_nan, multipole_order=1)
+
+
+def test_splineboris_sequence_from_csv_roundtrip(tmp_path, solenoid_vs_varsol_fit_pars_df):
+    csv_path = tmp_path / "fit_pars_roundtrip.csv"
+    solenoid_vs_varsol_fit_pars_df.to_csv(csv_path)
+
+    seq_from_df = xt.SplineBorisSequence(
+        df_fit_pars=solenoid_vs_varsol_fit_pars_df,
+        multipole_order=SOLENOID_MULTIPOLE_ORDER,
+        steps_per_point=1,
+    )
+    seq_from_csv = xt.SplineBorisSequence.from_csv(
+        csv_path=csv_path,
+        multipole_order=SOLENOID_MULTIPOLE_ORDER,
+        steps_per_point=1,
+    )
+
+    assert seq_from_df.n_pieces == seq_from_csv.n_pieces
+    for elem_df, elem_csv in zip(seq_from_df.elements, seq_from_csv.elements):
+        xo.assert_allclose(elem_df.s_start, elem_csv.s_start, atol=1e-12, rtol=0)
+        xo.assert_allclose(elem_df.s_end, elem_csv.s_end, atol=1e-12, rtol=0)
+
+    s_samples = np.linspace(0.0, SOLENOID_INTERVAL, 101)
+    bx_df, by_df, bs_df = [], [], []
+    bx_csv, by_csv, bs_csv = [], [], []
+    for s in s_samples:
+        bbx_df, bby_df, bbs_df = seq_from_df.evaluate_field(0.0, 0.0, float(s))
+        bbx_csv, bby_csv, bbs_csv = seq_from_csv.evaluate_field(0.0, 0.0, float(s))
+        bx_df.append(bbx_df)
+        by_df.append(bby_df)
+        bs_df.append(bbs_df)
+        bx_csv.append(bbx_csv)
+        by_csv.append(bby_csv)
+        bs_csv.append(bbs_csv)
+
+    xo.assert_allclose(np.array(bx_df), np.array(bx_csv), atol=1e-9, rtol=1e-6)
+    xo.assert_allclose(np.array(by_df), np.array(by_csv), atol=1e-9, rtol=1e-6)
+    xo.assert_allclose(np.array(bs_df), np.array(bs_csv), atol=1e-9, rtol=1e-6)

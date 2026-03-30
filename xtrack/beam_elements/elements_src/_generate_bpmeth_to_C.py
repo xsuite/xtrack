@@ -19,7 +19,10 @@ from xtrack.beam_elements.elements import SplineBoris
 # The generated C code supports multipole expansions up to a specified order
 # and polynomial dependencies on the longitudinal coordinate 's'.
 
-multipole_order = 7 # 14-pole.
+multipole_order = 7  # 14-pole.
+
+# Default poly_order=4 below implies (poly_order + 1) coefficients per block; must match
+# SplineBoris._POLY_ORDER / _NUM_COEFFS and XTRACK_SPLINE_B_N_POLY_COEFFS in splineboris.h.
 
 # To get the power in the format '*s*s*...*s' for a given power.
 def s_power(power):
@@ -28,74 +31,61 @@ def s_power(power):
         str += '*s'
     return str
 
-# Generates the symbols for the ks, kn and bs coefficients up to the given multipole and polynomial order.
+# Sympy symbols for SplineBoris wire format: Bs_k, Bnorm_i_k, Bskew_i_k (names match SplineBoris._get_param_names).
 def make_symbols(multipole_order=multipole_order, poly_order=4):
-    ks_symbols = ()
-    kn_symbols = ()
+    bskew_symbols = ()
+    bnorm_symbols = ()
     bs_symbols = ()
     for i in range(multipole_order):
-        for k in range(poly_order+1):
-            ks_symbol = sp.symbols(f'ks_{i}_{k}')
-            kn_symbol = sp.symbols(f'kn_{i}_{k}')
-            ks_symbols += (ks_symbol,)
-            kn_symbols += (kn_symbol,)
-
-            if i ==0:
-                bs_symbol = sp.symbols(f'bs_{k}')
-                bs_symbols += (bs_symbol,)
-
-    return ks_symbols, kn_symbols, bs_symbols
+        for k in range(poly_order + 1):
+            bskew_symbols += (sp.symbols(f'Bskew_{i}_{k}'),)
+            bnorm_symbols += (sp.symbols(f'Bnorm_{i}_{k}'),)
+            if i == 0:
+                bs_symbols += (sp.symbols(f'Bs_{k}'),)
+    return bskew_symbols, bnorm_symbols, bs_symbols
 
 
-# Sets strings for the expressions of the ks, kn and bs coefficients up to the given multipole and polynomial order.
 def set_exprs(multipole_order=multipole_order, poly_order=4):
-    ks_symbols, kn_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
+    bskew_symbols, bnorm_symbols, bs_symbols = make_symbols(
+        multipole_order=multipole_order, poly_order=poly_order
+    )
 
-    ks_exprs = ()
-    kn_exprs = ()
+    bskew_exprs = ()
+    bnorm_exprs = ()
     bs_expr = 0
 
     for i in range(multipole_order):
-        ks_expr = 0
-        kn_expr = 0
-        for k in range(poly_order+1):
-            ks_symbol = ks_symbols[i * (poly_order + 1) + k]
-            kn_symbol = kn_symbols[i * (poly_order + 1) + k]
+        bskew_expr = 0
+        bnorm_expr = 0
+        for k in range(poly_order + 1):
+            bskew_sym = bskew_symbols[i * (poly_order + 1) + k]
+            bnorm_sym = bnorm_symbols[i * (poly_order + 1) + k]
 
-            ks_expr += ks_symbol * sp.Pow(sp.symbols('s'), k)
-            kn_expr += kn_symbol * sp.Pow(sp.symbols('s'), k)
+            bskew_expr += bskew_sym * sp.Pow(sp.symbols('s'), k)
+            bnorm_expr += bnorm_sym * sp.Pow(sp.symbols('s'), k)
 
             if i == 0:
-                bs_symbol = bs_symbols[k]
-                bs_expr += bs_symbol * sp.Pow(sp.symbols('s'), k)
+                bs_expr += bs_symbols[k] * sp.Pow(sp.symbols('s'), k)
 
-        ks_exprs += (ks_expr,)
-        kn_exprs += (kn_expr,)
-    bs_expr  = bs_expr
+        bskew_exprs += (bskew_expr,)
+        bnorm_exprs += (bnorm_expr,)
 
-    return ks_exprs, kn_exprs, bs_expr
+    return bskew_exprs, bnorm_exprs, bs_expr
 
-ks_symbols, kn_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=4)
-
-#ks_exprs, kn_exprs, bs_expr = set_exprs(ks_symbols, kn_symbols, bs_symbols)
-#print(ks_exprs)
-#print(kn_exprs)
-#print(bs_expr)
 
 # Sets up the generic field expressions for given curvature, multipole and polynomial order.
-# Note: bpmeth uses the naming convention where a_ij corresponds to j-th polynomial coefficient of the (i-1)-th derivative w.r.t x of B_x,
-# and b_ij corresponds to j-th polynomial coefficient of the (i-1)-th derivative w.r.t y of B_y.
-# We use the usual beam-dynamics naming convention where ks_ij corresponds to j-th polynomial coefficient of the i-th derivative w.r.t x of B_x,
-# and kn_ij corresponds to j-th polynomial coefficient of the i-th derivative w.r.t y of B_y.
+# bpmeth GeneralVectorPotential: a = B_x multipole coeffs (here Bskew), b = B_y / Bnorm, bs = longitudinal Bs.
 def generic_field_exprs(curv, multipole_order=multipole_order, poly_order=4):
-    ks_symbols, kn_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
-    s = sp.symbols('s')
-    ks_exprs, kn_exprs, bs_exprs = set_exprs(multipole_order=multipole_order, poly_order=poly_order)
+    bskew_exprs, bnorm_exprs, bs_exprs = set_exprs(
+        multipole_order=multipole_order, poly_order=poly_order
+    )
 
-    # nphi must be > multipole_order to include y-dependent terms from dbs/ds
+    # nphi must be > multipole_order to include y-dependent terms from dBs/ds
     # The recursion phi_{n+2} = f(phi_n) means we need at least nphi = multipole_order + 2
-    # to capture the solenoid focusing terms (-y*(dbs/ds + ks_1)) in By
-    generic_B = bp.GeneralVectorPotential(hs=curv, a=ks_exprs, b=kn_exprs, bs=bs_exprs, nphi=multipole_order+2)
+    # to capture the solenoid focusing terms (-y*(dBs/ds + Bskew_1)) in By
+    generic_B = bp.GeneralVectorPotential(
+        hs=curv, a=bskew_exprs, b=bnorm_exprs, bs=bs_exprs, nphi=multipole_order + 2
+    )
     symbolic_Bx, symbolic_By, symbolic_Bs = generic_B.get_Bfield(lambdify=False)
     symbolic_Ax, symbolic_Ay, symbolic_As = generic_B.get_A()
 
@@ -135,10 +125,10 @@ def _get_reduced_expressions(exprs_list):
 # Currently, curvature is set to '0' for straight sections, but can be set to a non-zero value for curved sections.
 # However, the Boris Integrator does not support curved reference frames yet, so we leave the curvature zero here.
 def start_to_finish(multipole_order=multipole_order, poly_order=4, field='B', curvature='0'):
-    #ks_symbols, kn_symbols, bs_symbols = make_symbols(multipole_order=multipole_order, poly_order=poly_order)
     param_names = SplineBoris._get_param_names(multipole_order=multipole_order)
-    ks_exprs, kn_exprs, bs_expr = set_exprs(multipole_order=multipole_order, poly_order=poly_order)
-    symbolic_Bx, symbolic_By, symbolic_Bs, symbolic_Ax, symbolic_Ay, symbolic_As = generic_field_exprs(curv=curvature, multipole_order=multipole_order, poly_order=poly_order)
+    symbolic_Bx, symbolic_By, symbolic_Bs, symbolic_Ax, symbolic_Ay, symbolic_As = generic_field_exprs(
+        curv=curvature, multipole_order=multipole_order, poly_order=poly_order
+    )
     if field == 'B':
         exprs = [symbolic_Bx, symbolic_By, symbolic_Bs]
     else:
@@ -186,6 +176,8 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
         f.write(f"#define {guard_name}_H\n\n")
 
         f.write(f"// Auto-generated symbolic field expressions for {field}\n")
+        f.write(f"// NOTE: 's' is the local coordinate within the element (s_local = s - s_start),\n")
+        f.write(f"//        not the global s-coordinate along the beamline.\n")
         f.write("GPUFUN\n")
         f.write(
             f"void evaluate_{field}(const double x, const double y, const double s, const double *params, const int multipole_order, double *Bx_out, double *By_out, double *Bs_out){{\n\n")
@@ -247,7 +239,9 @@ def write_to_python(max_order=multipole_order, poly_order=4, field='B', curvatur
     with open(filename, 'w') as f:
         f.write("# Auto-generated symbolic field expressions for {field}\n".format(field=field))
         f.write("# This file is generated by _generate_bpmeth_to_C.py\n")
-        f.write("# Do not edit it directly.\n\n")
+        f.write("# Do not edit it directly.\n")
+        f.write("# NOTE: 's' is the local coordinate within the element (s_local = s - s_start),\n")
+        f.write("#        not the global s-coordinate along the beamline.\n\n")
 
         f.write("import math\n\n")
 

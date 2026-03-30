@@ -30,7 +30,7 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
     }
 
     // Copy parameters once per element (not per particle).
-    // par_table is a 1D array of length n_params (same coefficients for every step).
+    // par_list is a 1D array of length n_params (same coefficients for every step).
     #ifdef __GNUC__
         double* params = (double*)__builtin_alloca((size_t)n_params * sizeof(double));
     #else
@@ -41,7 +41,7 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
     #endif
 
     for (int64_t j = 0; j < n_params; ++j) {
-        params[j] = SplineBorisData_get_par_table(el, j);
+        params[j] = SplineBorisData_get_par_list(el, j);
     }
 
     // Process all particles using the same parameter array (shared across particles)

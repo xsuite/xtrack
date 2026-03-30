@@ -150,19 +150,15 @@ void SplineBoris_single_particle(
         double dt = half_ds * inv_ps * gamma * mass_kg; // [s]
 
         // --------------------------------------------------------------
-        //  Evaluate B-field at mid-step (xh, yh, s_field)
-        //  Convert local s to absolute s in field map for field evaluation
-        //  Using evaluate_B from spline_B_field_eval.h
+        //  Evaluate B-field at mid-step (xh, yh, s_local_h)
+        //  Polynomials are in local s (s_local = s - s_start); evaluate_B 3rd arg is that offset.
         // --------------------------------------------------------------
         double Bx;
         double By;
         double Bs;
-        
-        // Convert local s coordinate to absolute s in field map
-        const double s_field = s_start + s_local_h;
 
         evaluate_B(
-            xh - shift_x, yh - shift_y, s_field,
+            xh - shift_x, yh - shift_y, s_local_h,
             params,
             multipole_order,
             &Bx, &By, &Bs

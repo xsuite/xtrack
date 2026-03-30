@@ -10,6 +10,22 @@ from scipy.signal import find_peaks
 import xtrack as xt
 
 
+def _fieldfitter_param_names(field_component, derivative_order):
+    """Labels for the five Hermite scalars stored in ``df_fit_pars`` (``param_name`` column).
+
+    Naming convention: ``Bs_*``, ``Bnorm_i_*``, ``Bskew_i_*`` matching
+    :meth:`xtrack.SplineBoris._get_param_names` and ``_HERMITE_SUFFIXES``.
+    """
+    if field_component == "Bx":
+        prefix = f"Bskew_{derivative_order}"
+    elif field_component == "By":
+        prefix = f"Bnorm_{derivative_order}"
+    elif field_component == "Bs":
+        prefix = "Bs"
+    else:
+        raise ValueError(f"Unknown field_component: {field_component!r}")
+    return [f"{prefix}_{s}" for s in xt.SplineBoris._HERMITE_SUFFIXES]
+
 
 class FieldFitter:
     '''
@@ -95,12 +111,12 @@ class FieldFitter:
 
     @staticmethod
     def _poly(s0, s1, coeffs):
-        """
-        Build a 4th-order polynomial over [s0, s1] from Hermite parameters.
+        """Build a 4th-order polynomial over [s0, s1] from Hermite parameters.
 
-        Convenience wrapper around ``xt.SplineBoris.hermite_to_poly``.
+        Returns a polynomial in *s_local* (local coordinate starting at 0).
+        Convenience wrapper around ``xt.SplineBoris.hermite_to_polynomial``.
         """
-        return xt.SplineBoris.hermite_to_poly(s0, s1, coeffs)
+        return xt.SplineBoris.hermite_to_polynomial(s0, s1, coeffs)
 
 
 
@@ -293,9 +309,7 @@ class FieldFitter:
         # Zero-pad index so alphabetical sort matches numerical sort
         index_width = len(str(n_pieces - 1)) if n_pieces > 1 else 1
         for i in range(n_pieces):
-            pars = xt.SplineBoris._fieldfitter_param_names(
-                field, der_order
-            )
+            pars = _fieldfitter_param_names(field, der_order)
 
             idx_start = idx_extrema[i]
             idx_end = idx_extrema[i+1]
@@ -399,7 +413,7 @@ class FieldFitter:
             ] = param_value
 
         idx_slice = self.df_on_axis_fit.index[idx_left:idx_right + 1]
-        self.df_on_axis_fit.loc[idx_slice, (field, der_order)] = poly(s_region)
+        self.df_on_axis_fit.loc[idx_slice, (field, der_order)] = poly(s_region - s_left)
 
     # PRIVATE
     # This method loops over all fields and derivatives and fits polynomials to each region.
