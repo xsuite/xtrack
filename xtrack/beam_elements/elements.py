@@ -1362,6 +1362,26 @@ class SplineBoris(BeamElement):
             super().__init__(**kwargs)
             return
 
+        # Kernel prebuild instantiates elements with only ``_buffer``. In that
+        # path we need a minimally valid xobject payload for dynamic arrays.
+        if (
+            '_buffer' in kwargs and kwargs['_buffer'] is not None
+            and bs is None and kn is None and ks is None
+            and 'par_table' not in kwargs
+        ):
+            kwargs.setdefault('multipole_order', int(multipole_order))
+            kwargs.setdefault('par_table', [0.0] * self._get_num_params(int(multipole_order)))
+            kwargs.setdefault('s_start', 0.0)
+            kwargs.setdefault('s_end', 1.0)
+            kwargs.setdefault('length', 1.0 if length is None else length)
+            kwargs.setdefault('n_steps', int(n_steps))
+            kwargs.setdefault('shift_x', float(shift_x))
+            kwargs.setdefault('shift_y', float(shift_y))
+            kwargs.setdefault('hx', float(hx))
+            kwargs.setdefault('radiation_flag', kwargs.pop('radiation_flag', 0))
+            super().__init__(**kwargs)
+            return
+
         if 'par_table' in kwargs:
             raise TypeError(
                 "SplineBoris(par_table=...) is no longer supported. "
