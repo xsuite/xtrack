@@ -84,9 +84,8 @@ class Aperture:
         "delta_rms": 0.0,  # rms energy spread
         "tol_co": 0.0,  # tolerance for closed orbit
         "tol_disp": 0.0,  # tolerance for normalized dispersion
-        "tol_disp_ref_dx": 1.8,  # tolerance for reference dispersion derivative
+        "tol_disp_ref": 1.8,  # tolerance for reference dispersion derivative
         "tol_disp_ref_beta": 170,  # tolerance for reference dispersion beta
-        "tol_energy": 0.0,  # tolerance for energy error
         "tol_beta_beating": 1.0,  # tolerance for beta beating in sigma
         "halo_x": 6.0,  # n sigma of horizontal halo
         "halo_y": 6.0,  # n sigma of vertical halo

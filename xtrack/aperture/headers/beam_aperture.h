@@ -28,9 +28,8 @@ typedef struct {
     float_type delta_rms;         // rms energy spread
     float_type tol_co;            // tolerance for closed orbit [co_radius]
     float_type tol_disp;          // tolerance for normalized dispersion [dqf]
-    float_type tol_disp_ref_dx;   // tolerance for reference dispersion derivative [paras_dx]
+    float_type tol_disp_ref;      // tolerance for reference dispersion derivative [paras_dx]
     float_type tol_disp_ref_beta; // tolerance for reference dispersion beta [betaqfx]
-    float_type tol_energy;        // tolerance for energy error [twiss_deltap]
     float_type tol_beta_beating;  // tolerance for beta beating in sigma [beta_beating]
     float_type halo_x;            // n sigma of horizontal halo
     float_type halo_y;            // n sigma of vertical halo
@@ -48,14 +47,14 @@ static inline Racetrack_s halo_racetrack(
     const float_type tol_dx =
         beam->tol_beta_beating *
         beam->tol_disp *
-        beam->tol_disp_ref_dx *
+        beam->tol_disp_ref *
         sqrt(twiss->betx / beam->tol_disp_ref_beta) *
         beam->delta_rms;
 
     const float_type tol_dy =
         beam->tol_beta_beating *
         beam->tol_disp *
-        beam->tol_disp_ref_dx *
+        beam->tol_disp_ref *
         sqrt(twiss->bety / beam->tol_disp_ref_beta) *
         beam->delta_rms;
 
@@ -301,9 +300,8 @@ static inline BeamLocalData beam_data_get_entry(const BeamData beam_data)
         .delta_rms = BeamData_get_delta_rms(beam_data),
         .tol_co = BeamData_get_tol_co(beam_data),
         .tol_disp = BeamData_get_tol_disp(beam_data),
-        .tol_disp_ref_dx = BeamData_get_tol_disp_ref_dx(beam_data),
+        .tol_disp_ref = BeamData_get_tol_disp_ref(beam_data),
         .tol_disp_ref_beta = BeamData_get_tol_disp_ref_beta(beam_data),
-        .tol_energy = BeamData_get_tol_energy(beam_data),
         .tol_beta_beating = BeamData_get_tol_beta_beating(beam_data),
         .halo_x = BeamData_get_halo_x(beam_data),
         .halo_y = BeamData_get_halo_y(beam_data),

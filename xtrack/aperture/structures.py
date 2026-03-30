@@ -211,9 +211,8 @@ class BeamData(xo.Struct):
     delta_rms = xo.Float64         # rms energy spread
     tol_co = xo.Float64            # tolerance for closed orbit [co_radius]
     tol_disp = xo.Float64          # tolerance for normalized dispersion [dqf]
-    tol_disp_ref_dx = xo.Float64   # tolerance for reference dispersion derivative [paras_dx]
+    tol_disp_ref = xo.Float64      # tolerance for reference dispersion derivative [paras_dx]
     tol_disp_ref_beta = xo.Float64 # tolerance for reference dispersion beta [betaqfx]
-    tol_energy = xo.Float64        # tolerance for energy error [twiss_deltap]
     tol_beta_beating = xo.Float64  # tolerance for beta beating in sigma [beta_beating]
     halo_x = xo.Float64            # n sigma of horizontal halo
     halo_y = xo.Float64            # n sigma of vertical halo

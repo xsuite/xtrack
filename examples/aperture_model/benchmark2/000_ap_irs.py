@@ -82,9 +82,8 @@ for ir_name in sorted(apm):
             "delta_rms": ir.dp_bucket_size,
             "tol_co": ir.co_radius,
             "tol_disp": ir.paras_dx,  # MAD-X has different settings for x/y
-            "tol_disp_ref_dx": ir.dqf,
+            "tol_disp_ref": ir.dqf,
             "tol_disp_ref_beta": ir.betaqfx,
-            "tol_energy": 0.0,  # TO CHECK
             "tol_beta_beating": ir.beta_beating,  # MAD-X has different settings for x/y
         }
     )

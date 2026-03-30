@@ -32,9 +32,8 @@ aperture_model.halo_params.update(
         "delta_rms": dPmax,
         "tol_co": COmax,
         "tol_disp": DParcx,  # MADX has different settings for x/y
-        "tol_disp_ref_dx": 2.086,
+        "tol_disp_ref": 2.086,
         "tol_disp_ref_beta": 170.25,
-        "tol_energy": 0.0,  # TO CHECK
         "tol_beta_beating": apbbeat,  # MADX has different  settings for x/y
     }
 )

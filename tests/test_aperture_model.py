@@ -450,7 +450,7 @@ def test_points_inside_polygon_simpler(kernels):
                 'tol_beta_beating': 0.8,
                 'tol_disp': 1.25,
                 'tol_disp_ref_beta': 4,
-                'tol_disp_ref_dx': 20,
+                'tol_disp_ref': 20,
                 'halo_primary': 10,
                 'halo_r': 0.7,
                 'halo_x': 0.5,
@@ -467,7 +467,7 @@ def test_points_inside_polygon_simpler(kernels):
                 'tol_beta_beating': 0.8,
                 'tol_disp': 1.25,
                 'tol_disp_ref_beta': 4,
-                'tol_disp_ref_dx': 20,
+                'tol_disp_ref': 20,
                 'halo_primary': 10,
                 'halo_r': 0.7,
                 'halo_x': 0.5,
@@ -494,7 +494,7 @@ def test_points_inside_polygon_simpler(kernels):
                 'tol_beta_beating': 0.8,
                 'tol_disp': 1.25,
                 'tol_disp_ref_beta': 4,
-                'tol_disp_ref_dx': 20,
+                'tol_disp_ref': 20,
                 'halo_primary': 10,
                 'halo_r': 0.7,
                 'halo_x': 0.5,
@@ -536,7 +536,7 @@ def test_points_inside_polygon_simpler(kernels):
                 'tol_beta_beating': 0.8,
                 'tol_disp': 1.25,
                 'tol_disp_ref_beta': 4,
-                'tol_disp_ref_dx': 20,
+                'tol_disp_ref': 20,
                 'halo_primary': 10,
                 'halo_r': 0.7,
                 'halo_x': 0.5,
@@ -568,7 +568,7 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
         'tol_beta_beating': 1,
         'tol_disp': 0,
         'tol_disp_ref_beta': 1,
-        'tol_disp_ref_dx': 0,
+        'tol_disp_ref': 0,
         'halo_primary': 1,
         'halo_r': 1,
         'halo_x': 1,
@@ -638,9 +638,8 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
         'delta_rms': 0.001,
         'tol_co': 0.002,
         'tol_disp': 1.25,
-        'tol_disp_ref_dx': 20,
+        'tol_disp_ref': 20,
         'tol_disp_ref_beta': 4,
-        'tol_energy': 0.001,
         'tol_beta_beating': 0.8,
         'halo_x': 0.5,
         'halo_y': 0.6,
@@ -721,9 +720,8 @@ def _build_single_marker_aperture_model(context):
         'delta_rms': 0.001,
         'tol_co': 0.002,
         'tol_disp': 1.25,
-        'tol_disp_ref_dx': 20,
+        'tol_disp_ref': 20,
         'tol_disp_ref_beta': 4,
-        'tol_energy': 0.001,
         'tol_beta_beating': 0.8,
         'halo_x': 0.5,
         'halo_y': 0.6,
@@ -891,7 +889,7 @@ def test_get_aperture_sigmas_at_element_vs_madx(
         'tol_beta_beating': 1,
         'tol_disp': 0,
         'tol_disp_ref_beta': 1,
-        'tol_disp_ref_dx': 0,
+        'tol_disp_ref': 0,
         'halo_primary': 1,
         'halo_r': 1,
         'halo_x': 1,
@@ -916,7 +914,7 @@ def test_get_aperture_sigmas_at_element_vs_madx(
         twiss, betx = {betx}, bety = {bety}, x = {x}, y = {y};
 
         aperture,
-            dqf = {halo_params['tol_disp_ref_dx']},
+            dqf = {halo_params['tol_disp_ref']},
             betaqfx = {halo_params['tol_disp_ref_beta']},
             dp = {halo_params['delta_rms']},  ! called `twiss_deltap` in the table
             dparx = {halo_params['tol_disp']},
@@ -943,7 +941,7 @@ def test_get_aperture_sigmas_at_element_vs_madx(
 
     # Sanity checks
     aper_summ = mad.table.aperture.summary
-    xo.assert_allclose(aperture_model.halo_params['tol_disp_ref_dx'], aper_summ.dqf, atol=1e-8, rtol=0)
+    xo.assert_allclose(aperture_model.halo_params['tol_disp_ref'], aper_summ.dqf, atol=1e-8, rtol=0)
     xo.assert_allclose(aperture_model.halo_params['tol_disp_ref_beta'], aper_summ.betaqfx, atol=1e-8, rtol=0)
     xo.assert_allclose(aperture_model.halo_params['delta_rms'], aper_summ.dp_bucket_size, atol=1e-8, rtol=0)
     xo.assert_allclose(aperture_model.halo_params['tol_disp'], aper_summ.paras_dx, atol=1e-8, rtol=0)
