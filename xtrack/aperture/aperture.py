@@ -303,14 +303,22 @@ class Aperture:
                 profile_position = ProfilePosition(profile_index=aper_idx)
                 profile_position.shift_x = offset_x
                 profile_position.shift_y = offset_y
-                # TODO: any other transformations from metadata?
+
+                if aper_element.transformations_active:
+                    # Apply associated-aperture transforms in the local profile frame so
+                    # they follow the curved type geometry when transported along it.
+                    profile_position.s_position = aper_element.shift_s
+                    profile_position.shift_x += aper_element.shift_x
+                    profile_position.shift_y += aper_element.shift_y
+                    profile_position.rot_x = aper_element.rot_x_rad
+                    profile_position.rot_y = aper_element.rot_y_rad
+                    profile_position.rot_s = aper_element.rot_s_rad_no_frame
 
                 if element.isthick:
                     # Place two profiles on either side of the element
                     profile_position_start = profile_position
                     profile_position_end = profile_position.copy()
-                    profile_position_start.s_position = 0
-                    profile_position_end.s_position = element.length
+                    profile_position_end.s_position += element.length
                     positions = [profile_position_start, profile_position_end]
                     curvature = getattr(element, 'h', 0)
                 else:
@@ -330,23 +338,11 @@ class Aperture:
                 #  even more.
                 raise NotImplementedError('Aperture model not yet supported with element transformations.')
 
-            if aper_element.transformations_active:
-                matrix = transform_matrix(
-                    dx=aper_element.shift_x,
-                    dy=aper_element.shift_y,
-                    ds=aper_element.shift_s,
-                    theta=aper_element.rot_y_rad,
-                    phi=aper_element.rot_x_rad,
-                    psi=aper_element.rot_s_rad_no_frame,
-                )
-            else:
-                matrix = np.identity(4)
-
             type_position = TypePosition(
                 type_index=aperture_indices[aper_name],
                 survey_reference_name=survey_name,
                 survey_index=name_to_sv_index[survey_name],
-                transformation=matrix,
+                transformation=np.identity(4),
             )
             type_positions_list.append(type_position)
 
@@ -1240,87 +1236,6 @@ class Aperture:
         tw_indices = np.where(dist_right <= dist_left, idx_right, idx_left)
 
         return full_twiss.rows[tw_indices]
-
-    def _find_type_positions(self, s_start: float, s_end: float) -> List[TypePosition]:
-        type_bounds = self._type_bounds()
-
-        bound_idx_start = bisect.bisect_right(type_bounds, s_start, key=lambda bound: bound[0]) - 1
-        bound_idx_end = bisect.bisect_left(type_bounds, s_end, lo=bound_idx_start, key=lambda bound: bound[1]) + 1
-
-        type_positions = [bound[2] for bound in type_bounds[bound_idx_start:bound_idx_end] if bound[2] is not None]
-        return type_positions
-
-    def _type_bounds(self) -> List[Tuple[float, float, Optional[TypePosition]]]:
-        """Compute the bounds of each aperture type along the line.
-
-        Returns
-        -------
-        type_bounds
-            List of tuples ``(s_start, s_end, type_position)`` where each entry
-            corresponds to a unique occurrence of a type position along the line.
-            The entries are sorted and contiguous, and if for some range
-            ``(s_start, s_end)`` there is no associated type_position (i.e.
-            there's a gap in the aperture model), ``type_position`` is None.
-        """
-        survey = self.survey
-        line_length = survey.s[-1]
-
-        type_positions = list(self._model.type_positions)
-        if not type_positions:
-            return [(0.0, line_length, None)]
-
-        ref_s_list = []
-        type_ranges = []
-
-        for type_pos in type_positions:
-            aperture_type = self._model.type_for_position(type_pos)
-            positions = list(aperture_type.positions)
-
-            if not positions:
-                print(f"Warning: aperture type {self._model.type_name_for_position(type_pos)} has no profile positions.")
-                continue
-
-            s_positions = [float(p.s_position) for p in positions]
-            if any(s_positions[i] > s_positions[i + 1] for i in range(len(s_positions) - 1)):
-                raise ValueError(
-                    f"Profile positions are not ordered for the type relative to {type_pos.survey_reference_name} "
-                    f"(type index {type_pos.type_index})."
-                )
-
-            min_local = s_positions[0]
-            max_local = s_positions[-1]
-
-            sv_point = survey.rows[type_pos.survey_index]
-            ref_s = sv_point.s[0]
-            # TODO: include the transformation at some point
-
-            ref_s_list.append(ref_s)
-            type_ranges.append((ref_s + min_local, ref_s + max_local, type_pos))
-
-        for i in range(len(ref_s_list) - 1):
-            if ref_s_list[i] > ref_s_list[i + 1]:
-                raise ValueError("Type positions are not ordered by increasing s.")
-
-        type_bounds = []
-        current_s = 0.0
-
-        for start, end, type_pos in type_ranges:
-            if current_s - start > self.s_tol:
-                raise ValueError(f"Overlapping aperture types detected. Previous ends at {current_s}, current starts at {start}.")
-
-            if start - current_s > self.s_tol:
-                type_bounds.append((current_s, start, None))
-
-            type_bounds.append((start, end, type_pos))
-            current_s = end
-
-        if current_s > line_length:
-            raise ValueError("Aperture type bounds exceed line length.")
-
-        if current_s < line_length:
-            type_bounds.append((current_s, line_length, None))
-
-        return type_bounds
 
     @staticmethod
     def _axis_extents_for_cross_sections(cross_sections: np.ndarray) -> dict[str, np.ndarray]:
