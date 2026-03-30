@@ -75,7 +75,7 @@ def test_from_line_with_aperture_type_bounds(test_context):
 
     aperture_model = Aperture.from_line_with_madx_metadata(ring, context=test_context)
     type_bounds = aperture_model._type_bounds()
-    type_name_bounds = [(a, b, aperture_model.model.type_name_for_position(c) if c else None) for a, b, c in type_bounds]
+    type_name_bounds = [(a, b, aperture_model._model.type_name_for_position(c) if c else None) for a, b, c in type_bounds]
     table_rows = ring.get_table().cols['s_start', 's_end', 'name', 'element_type'].rows[1:-2].rows # trim MAD-X endpoints
 
     for type_bound, table_row in zip_longest(type_name_bounds, table_rows):
@@ -169,7 +169,7 @@ def test_from_line_with_associated_apertures_type_bounds(test_context):
 
     aperture_model = Aperture.from_line_with_associated_apertures(ring, context=test_context)
     type_bounds = aperture_model._type_bounds()
-    type_name_bounds = [(a, b, aperture_model.model.type_name_for_position(c) if c else None) for a, b, c in type_bounds]
+    type_name_bounds = [(a, b, aperture_model._model.type_name_for_position(c) if c else None) for a, b, c in type_bounds]
     table_rows = ring.get_table().cols['s_start', 's_end', 'name', 'element_type'].rows[:-1].rows
 
     for type_bound, table_row in zip_longest(type_name_bounds, table_rows):
@@ -202,7 +202,7 @@ def test_from_line_with_limits_type_bounds(test_context):
 
     aperture_model = Aperture.from_line_with_limits(ring, context=test_context)
     type_bounds = aperture_model._type_bounds()
-    type_name_bounds_only_limits = [(a, b, aperture_model.model.type_name_for_position(c)) for a, b, c in type_bounds if c]
+    type_name_bounds_only_limits = [(a, b, aperture_model._model.type_name_for_position(c)) for a, b, c in type_bounds if c]
 
     bounds_from_table = []
     for row in ring.get_table().rows:
@@ -234,11 +234,11 @@ def test_find_type_positions_perfect_overlap(test_context):
     mqf0, = aperture_model._find_type_positions(1, 1.3)
     assert mqf0.survey_reference_name == 'mqf::0'
 
-    mqf0_name = aperture_model.model.type_name_for_position(mqf0)
+    mqf0_name = aperture_model._model.type_name_for_position(mqf0)
     assert mqf0_name == 'mqf_aper'
 
-    mqf0_type = aperture_model.model.type_for_position(mqf0)
-    mqf0_profile_names = [aperture_model.model.profile_name_for_position(pos) for pos in mqf0_type.positions]
+    mqf0_type = aperture_model._model.type_for_position(mqf0)
+    mqf0_profile_names = [aperture_model._model.profile_name_for_position(pos) for pos in mqf0_type.positions]
     assert mqf0_profile_names == ['mqf_aper', 'mqf_aper']
 
     mqf0_prof_pos0, mqf0_prof_pos1 = mqf0_type.positions
@@ -246,7 +246,7 @@ def test_find_type_positions_perfect_overlap(test_context):
     assert mqf0_prof_pos1.s_position == 0.3
     assert mqf0_prof_pos0.shift_x == mqf0_prof_pos0.shift_y == mqf0_prof_pos1.shift_x == mqf0_prof_pos1.shift_y == 0.
 
-    mqf0_profile_start, mqf0_profile_end = [aperture_model.model.profile_for_position(pos) for pos in mqf0_type.positions]
+    mqf0_profile_start, mqf0_profile_end = [aperture_model._model.profile_for_position(pos) for pos in mqf0_type.positions]
     assert isinstance(mqf0_profile_start.shape, Rectangle)
     assert mqf0_profile_start.shape.half_width == mqf0_profile_end.shape.half_width == 0.08
     assert mqf0_profile_start.shape.half_height == mqf0_profile_end.shape.half_height == 0.04
@@ -266,12 +266,12 @@ def test_find_type_positions_partially_spanning_multiple_types(test_context):
     # Check the bend
     assert mb1.survey_reference_name == 'mb::1'
 
-    mb1_name = aperture_model.model.type_name_for_position(mb1)
+    mb1_name = aperture_model._model.type_name_for_position(mb1)
     assert mb1_name == 'mb_aper'
 
-    mb1_type = aperture_model.model.type_for_position(mb1)
+    mb1_type = aperture_model._model.type_for_position(mb1)
     xo.assert_allclose(mb1_type.curvature, ring['mb'].h, atol=1e-6)
-    mb1_profile_names = [aperture_model.model.profile_name_for_position(pos) for pos in mb1_type.positions]
+    mb1_profile_names = [aperture_model._model.profile_name_for_position(pos) for pos in mb1_type.positions]
     assert mb1_profile_names == ['mb_aper', 'mb_aper']
 
     mb1_prof_pos0, mb1_prof_pos1 = mb1_type.positions
@@ -279,17 +279,17 @@ def test_find_type_positions_partially_spanning_multiple_types(test_context):
     assert mb1_prof_pos1.s_position == 3.
     assert mb1_prof_pos0.shift_x == mb1_prof_pos0.shift_y == mb1_prof_pos1.shift_x == mb1_prof_pos1.shift_y == 0.
 
-    mb1_profile_start, mb1_profile_end = [aperture_model.model.profile_for_position(pos) for pos in mb1_type.positions]
+    mb1_profile_start, mb1_profile_end = [aperture_model._model.profile_for_position(pos) for pos in mb1_type.positions]
     assert isinstance(mb1_profile_start.shape, Ellipse)
     assert mb1_profile_start.shape.half_major == mb1_profile_end.shape.half_major == 0.1
     assert mb1_profile_start.shape.half_minor == mb1_profile_end.shape.half_minor == 0.1
 
     # Check the mqf
-    mqf1_name = aperture_model.model.type_name_for_position(mqf1)
+    mqf1_name = aperture_model._model.type_name_for_position(mqf1)
     assert mqf1_name == 'mqf_aper'
 
-    mqf1_type = aperture_model.model.type_for_position(mqf1)
-    mqf1_profile_names = [aperture_model.model.profile_name_for_position(pos) for pos in mqf1_type.positions]
+    mqf1_type = aperture_model._model.type_for_position(mqf1)
+    mqf1_profile_names = [aperture_model._model.profile_name_for_position(pos) for pos in mqf1_type.positions]
     assert mqf1_profile_names == ['mqf_aper', 'mqf_aper']
 
     mqf1_prof_pos0, mqf1_prof_pos1 = mqf1_type.positions
@@ -297,27 +297,27 @@ def test_find_type_positions_partially_spanning_multiple_types(test_context):
     assert mqf1_prof_pos1.s_position == 0.3
     assert mqf1_prof_pos0.shift_x == mqf1_prof_pos0.shift_y == mqf1_prof_pos1.shift_x == mqf1_prof_pos1.shift_y == 0.
 
-    mqf1_profile_start, mqf1_profile_end = [aperture_model.model.profile_for_position(pos) for pos in mqf1_type.positions]
+    mqf1_profile_start, mqf1_profile_end = [aperture_model._model.profile_for_position(pos) for pos in mqf1_type.positions]
     assert isinstance(mqf1_profile_start.shape, Rectangle)
     assert mqf1_profile_start.shape.half_width == mqf1_profile_end.shape.half_width == 0.08
     assert mqf1_profile_start.shape.half_height == mqf1_profile_end.shape.half_height == 0.04
 
     # Check the ap_ds
-    ap_ds8_name = aperture_model.model.type_name_for_position(ap_ds8)
-    ap_ds9_name = aperture_model.model.type_name_for_position(ap_ds8)
+    ap_ds8_name = aperture_model._model.type_name_for_position(ap_ds8)
+    ap_ds9_name = aperture_model._model.type_name_for_position(ap_ds8)
     assert ap_ds8_name == ap_ds9_name == 'ap_ds_aper'
 
-    ap_ds8_type = aperture_model.model.type_for_position(ap_ds8)
+    ap_ds8_type = aperture_model._model.type_for_position(ap_ds8)
     assert ap_ds8.type_index == ap_ds9.type_index
 
-    ap_ds8_profile_names = [aperture_model.model.profile_name_for_position(pos) for pos in ap_ds8_type.positions]
+    ap_ds8_profile_names = [aperture_model._model.profile_name_for_position(pos) for pos in ap_ds8_type.positions]
     assert ap_ds8_profile_names == ['ap_ds_aper']
 
     ap_ds8_prof_pos0, = ap_ds8_type.positions
     assert ap_ds8_prof_pos0.s_position == 0.
     assert ap_ds8_prof_pos0.shift_x == ap_ds8_prof_pos0.shift_y
 
-    ap_ds8_profile_start = aperture_model.model.profile_for_position(ap_ds8_prof_pos0)
+    ap_ds8_profile_start = aperture_model._model.profile_for_position(ap_ds8_prof_pos0)
     assert isinstance(ap_ds8_profile_start.shape, RectEllipse)
     assert ap_ds8_profile_start.shape.half_major == 0.022
     assert ap_ds8_profile_start.shape.half_minor == 0.022
@@ -661,9 +661,9 @@ def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, ape
     aperture_model.halo_params.update(halo_params)
 
     # Needed as these quantities are not imported by the native madloader
-    aperture_model.model.profiles[0].tol_r = aper_tol[0]
-    aperture_model.model.profiles[0].tol_x = aper_tol[1]
-    aperture_model.model.profiles[0].tol_y = aper_tol[2]
+    aperture_model._model.profiles[0].tol_r = aper_tol[0]
+    aperture_model._model.profiles[0].tol_x = aper_tol[1]
+    aperture_model._model.profiles[0].tol_y = aper_tol[2]
 
     # Compute n1 with Xsuite
     n1_table, tw = aperture_model.get_aperture_sigmas_at_element(
@@ -732,9 +732,9 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
     aperture_model.halo_params.update(beam_data)
 
     # Needed as these quantities are not imported by the native madloader
-    aperture_model.model.profiles[0].tol_r = tol_r
-    aperture_model.model.profiles[0].tol_x = tol_x
-    aperture_model.model.profiles[0].tol_y = tol_y
+    aperture_model._model.profiles[0].tol_r = tol_r
+    aperture_model._model.profiles[0].tol_x = tol_x
+    aperture_model._model.profiles[0].tol_y = tol_y
 
     n1_table, tw = (
         aperture_model.get_aperture_sigmas_at_element(
@@ -788,9 +788,9 @@ def _build_single_marker_aperture_model(context):
         'halo_primary': 10,
     })
 
-    aperture_model.model.profiles[0].tol_r = 0.002
-    aperture_model.model.profiles[0].tol_x = 0.006
-    aperture_model.model.profiles[0].tol_y = 0.002
+    aperture_model._model.profiles[0].tol_r = 0.002
+    aperture_model._model.profiles[0].tol_x = 0.006
+    aperture_model._model.profiles[0].tol_y = 0.002
 
     return aperture_model, tw
 

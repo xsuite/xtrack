@@ -89,15 +89,15 @@ def poly2d_to_hom(poly2d):
     return poly_hom
 
 
-for type_pos in aper.model.type_positions:
-    aper_type = aper.model.type_for_position(type_pos)
+for type_pos in aper._model.type_positions:
+    aper_type = aper._model.type_for_position(type_pos)
     sv_ref = sv.rows[type_pos.survey_index]
 
     sv_ref_matrix = matrix_from_survey_point(sv_ref)
     type_matrix = type_pos.transformation.to_nparray()
 
     for profile_pos in aper_type.positions:
-        profile = aper.model.profile_for_position(profile_pos)
+        profile = aper._model.profile_for_position(profile_pos)
 
         num_points = 100
         poly = aper.polygon_for_profile(profile, num_points)

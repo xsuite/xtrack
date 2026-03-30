@@ -109,14 +109,14 @@ ax = plt.figure().add_subplot(projection="3d")
 ax.plot(sv.Z, sv.X, sv.Y, c="b", label="survey")
 
 # Plot installed profiles (red)
-for type_pos in ap.model.type_positions:
-    aper_type = ap.model.type_for_position(type_pos)
+for type_pos in ap._model.type_positions:
+    aper_type = ap._model.type_for_position(type_pos)
     sv_ref_row = sv.rows[type_pos.survey_index]
     sv_ref_matrix = matrix_from_survey_row(sv_ref_row)
     type_pos_matrix = type_pos.transformation.to_nparray()
 
     for profile_pos in aper_type.positions:
-        profile = ap.model.profile_for_position(profile_pos)
+        profile = ap._model.profile_for_position(profile_pos)
         poly = ap.polygon_for_profile(profile, 256)
         poly_hom = poly2d_to_hom(poly)
         profile_matrix = transform_matrix(

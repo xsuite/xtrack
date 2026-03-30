@@ -105,7 +105,7 @@ class Aperture:
         _skip_validity_check=False,
     ):
         self.line = line
-        self.model = model  # positioning of types in line frame
+        self._model = model  # positioning of types in line frame
         self.halo_params = self.halo_params.copy()
         self.context = context or xo.ContextCpu()
         self.s_tol = s_tol
@@ -115,7 +115,7 @@ class Aperture:
         if not _skip_validity_check:
             self._check_model_validity()
 
-        self.survey_data = SurveyData.from_survey_table(self.survey, context=self.context)
+        self._survey_data = SurveyData.from_survey_table(self.survey, context=self.context)
         self.num_profile_points = num_profile_points
 
         self._aperture_bounds: Optional[ApertureBounds] = None
@@ -127,7 +127,7 @@ class Aperture:
 
     def to_json(self, filename):
         json = {
-            'model': self.model.to_dict(),
+            'model': self._model.to_dict(),
             'halo_params': self.halo_params,
         }
         json_dump(json, filename)
@@ -538,8 +538,8 @@ class Aperture:
               of rays).
             - 'bisection' - the smallest number of sigmas for the beam to fit in the aperture is computed by bisecting
               on a polygon-inside-polygon problem (slower method, O(EAK), where E is the number of envelope points,
-              A is the number of aperture points, and K is the number of bisection steps; currently K <= 20, this
-              depends on the tolerance and search space set in ``beam_envelope.h``).
+              A is the number of aperture points, and K is the number of bisection steps; currently K <= 25, this
+              depends on the tolerance and search space set in ``beam_aperture.h``).
         envelopes_num_points:
             Number of points to use when discretising the beam cross-section.
         num_rays:
@@ -560,7 +560,7 @@ class Aperture:
         sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
-        survey_at_s = self.survey_data.resample(twiss_at_s.s)
+        survey_at_s = self._survey_data.resample(twiss_at_s.s)
         beam_data = BeamData(**self.halo_params)
 
         if output_cross_sections:
@@ -576,8 +576,8 @@ class Aperture:
         if method == 'bisection':
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
 
-            self.model.compute_max_aperture_sigma_bisection(
-                survey=self.survey_data,
+            self._model.compute_max_aperture_sigma_bisection(
+                survey=self._survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
                 twiss_at_s=twiss_at_s,
@@ -593,8 +593,8 @@ class Aperture:
             ray_angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False, dtype=FloatType._dtype)
             ray_sigmas = np.zeros((num_slices, num_rays), dtype=FloatType._dtype)
 
-            self.model.compute_max_aperture_sigma_rays(
-                survey=self.survey_data,
+            self._model.compute_max_aperture_sigma_rays(
+                survey=self._survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
                 twiss_at_s=twiss_at_s,
@@ -613,8 +613,8 @@ class Aperture:
             ray_angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False, dtype=FloatType._dtype)
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
 
-            self.model.compute_max_aperture_sigma_exact(
-                survey=self.survey_data,
+            self._model.compute_max_aperture_sigma_exact(
+                survey=self._survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
                 twiss_at_s=twiss_at_s,
@@ -697,7 +697,7 @@ class Aperture:
         num_slices = len(sliced_twiss.s)
 
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
-        survey_at_s = self.survey_data.resample(twiss_at_s.s)
+        survey_at_s = self._survey_data.resample(twiss_at_s.s)
 
         beam_data = BeamData(**self.halo_params)
         interpolated_points = np.zeros(shape=(num_slices, self.num_profile_points, 2), dtype=FloatType._dtype)
@@ -705,8 +705,8 @@ class Aperture:
         ray_angles = np.linspace(0, 2 * np.pi, 8, endpoint=False, dtype=FloatType._dtype)
         ray_sigmas = np.zeros((num_slices, 8), dtype=FloatType._dtype)
 
-        self.model.compute_max_aperture_sigma_rays(
-            survey=self.survey_data,
+        self._model.compute_max_aperture_sigma_rays(
+            survey=self._survey_data,
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
             twiss_at_s=twiss_at_s,
@@ -800,7 +800,7 @@ class Aperture:
 
         envelopes = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
 
-        self.model.compute_beam_envelopes_at_sigma(
+        self._model.compute_beam_envelopes_at_sigma(
             aperture_bounds=self._aperture_bounds,
             twiss_at_s=twiss_at_s,
             beam_data=beam_data,
@@ -814,7 +814,7 @@ class Aperture:
 
     def poses_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices:
         """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
-        sv_resampled = self.survey_data.resample(s_positions)
+        sv_resampled = self._survey_data.resample(s_positions)
         return sv_resampled.pose.to_nparray()
 
     def cross_sections_at_element(
@@ -832,18 +832,18 @@ class Aperture:
         extents: bool = False,
     ) -> Table:
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
-        sv_resampled = self.survey_data.resample(s_positions)
+        sv_resampled = self._survey_data.resample(s_positions)
 
         cross_sections = np.zeros(shape=(len(s_positions), self.num_profile_points, 2), dtype=FloatType._dtype)
         tol_r = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
         tol_x = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
         tol_y = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
 
-        self.model.cross_sections_at_s(
+        self._model.cross_sections_at_s(
             survey_at_s=sv_resampled,
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
-            survey=self.survey_data,
+            survey=self._survey_data,
             cross_sections=cross_sections,
             tol_r=tol_r,
             tol_x=tol_x,
@@ -1074,7 +1074,7 @@ class Aperture:
     def _build_aperture_bounds(self, check_validity=True):
         # Pre-allocate the cross-sections with the correct sizes
         num_points = self.num_profile_points
-        num_cross_sections = sum(len(self.model.type_for_position(type_pos).positions) for type_pos in self.model.type_positions)
+        num_cross_sections = sum(len(self._model.type_for_position(type_pos).positions) for type_pos in self._model.type_positions)
         self._aperture_bounds = ApertureBounds(
             count=num_cross_sections,
             type_position_indices=num_cross_sections,
@@ -1086,7 +1086,7 @@ class Aperture:
         )
 
         # Pre-allocate the profile polygons (generate once, so that we only need to compute transformations on them)
-        num_profile_polys = len(self.model.profiles)
+        num_profile_polys = len(self._model.profiles)
         self._profile_polygons = ProfilePolygons(
             count=num_profile_polys,
             len_points=num_points,
@@ -1096,24 +1096,24 @@ class Aperture:
 
         cross_section_idx_iter = iter(progress(range(num_cross_sections), desc='Building cross-sections', total=num_cross_sections))
 
-        for type_pos_idx, type_pos in enumerate(cast(Iterable[TypePosition], self.model.type_positions)):
-            aper_type = self.model.type_for_position(type_pos)
+        for type_pos_idx, type_pos in enumerate(cast(Iterable[TypePosition], self._model.type_positions)):
+            aper_type = self._model.type_for_position(type_pos)
             for profile_pos_idx, profile_pos in enumerate(cast(Iterable[ProfilePosition], aper_type.positions)):
                 idx = next(cross_section_idx_iter)
                 self._aperture_bounds.type_position_indices[idx] = type_pos_idx
                 self._aperture_bounds.profile_position_indices[idx] = profile_pos_idx
 
-        self.model.build_profile_polygons(
+        self._model.build_profile_polygons(
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
-            survey=self.survey_data,
+            survey=self._survey_data,
         )
 
         if check_validity:
             self._check_aperture_bounds_validity()
 
     def _check_model_validity(self):
-        for type_pos in self.model.type_positions:
+        for type_pos in self._model.type_positions:
             survey_ref_name = type_pos.survey_reference_name
             survey_ref_idx = type_pos.survey_index
 
@@ -1143,7 +1143,7 @@ class Aperture:
 
             type_pos_idx = self._aperture_bounds.type_position_indices[idx]
             profile_pos_idx = self._aperture_bounds.profile_position_indices[idx]
-            type_name, profile_name = self.model.type_profile_names_for_indices(type_pos_idx, profile_pos_idx)
+            type_name, profile_name = self._model.type_profile_names_for_indices(type_pos_idx, profile_pos_idx)
 
             if not (centre - left > -s_tol and right - centre > -s_tol):
                 raise ValueError(
@@ -1169,14 +1169,14 @@ class Aperture:
         ap_bounds = self._aperture_bounds
         for i in range(ap_bounds.count):
             type_pos_idx = ap_bounds.type_position_indices[i]
-            type_pos = self.model.type_positions[type_pos_idx]
-            type_ = self.model.type_for_position(type_pos)
-            type_name = self.model.type_name_for_position(type_pos)
+            type_pos = self._model.type_positions[type_pos_idx]
+            type_ = self._model.type_for_position(type_pos)
+            type_name = self._model.type_name_for_position(type_pos)
 
             profile_pos_idx = ap_bounds.profile_position_indices[i]
             profile_pos = type_.positions[profile_pos_idx]
-            profile_name = self.model.profile_name_for_position(profile_pos)
-            profile = self.model.profile_for_position(profile_pos)
+            profile_name = self._model.profile_name_for_position(profile_pos)
+            profile = self._model.profile_for_position(profile_pos)
 
             shape = profile.shape
 
@@ -1265,7 +1265,7 @@ class Aperture:
         survey = self.survey
         line_length = survey.s[-1]
 
-        type_positions = list(self.model.type_positions)
+        type_positions = list(self._model.type_positions)
         if not type_positions:
             return [(0.0, line_length, None)]
 
@@ -1273,11 +1273,11 @@ class Aperture:
         type_ranges = []
 
         for type_pos in type_positions:
-            aperture_type = self.model.type_for_position(type_pos)
+            aperture_type = self._model.type_for_position(type_pos)
             positions = list(aperture_type.positions)
 
             if not positions:
-                print(f"Warning: aperture type {self.model.type_name_for_position(type_pos)} has no profile positions.")
+                print(f"Warning: aperture type {self._model.type_name_for_position(type_pos)} has no profile positions.")
                 continue
 
             s_positions = [float(p.s_position) for p in positions]
