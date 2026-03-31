@@ -69,7 +69,6 @@ for field_angle in field_angles:
         bs=Bs,
         by=(By_spline,),
         bx=(Bx_spline,),
-        s_start=s_start,
         length=length,
         n_steps=n_steps,
     )

@@ -65,7 +65,6 @@ sb = xt.SplineBoris(
     # by takes a Spline4 or a tuple/list of Spline4/None:
     #   index 0 -> dipole, index 1 -> quadrupole, index 2 -> sextupole, ...
     by=(By0, By1),
-    s_start=s_start,
     length=length,
     n_steps=n_steps,
 )

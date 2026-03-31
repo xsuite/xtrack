@@ -242,7 +242,7 @@ class FieldFitter:
                     new_extrema = [int(field_extrema[0])]
                     for left, right in zip(field_extrema[:-1], field_extrema[1:]):
                         length = int(right - left)
-                        if length < 2 * this_min_region_size:
+                        if length < this_min_region_size:
                             new_extrema.append(int(right))
                             continue
                         n_parts = int(np.floor(length / this_min_region_size))
