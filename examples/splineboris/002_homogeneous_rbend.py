@@ -41,13 +41,16 @@ for field_angle in field_angles:
     # ------------------------------------------------------------------
     # Hermite params: [f_left, df_left, f_right, df_right, average]
     # For a constant field, all boundary values equal the field and derivatives are zero.
+    Bx_h = [B_x, 0.0, B_x, 0.0, B_x]
+    By_h = [B_y, 0.0, B_y, 0.0, B_y]
+    Bs_h = [0.0, 0.0, 0.0, 0.0, 0.0]
+
     splineboris = xt.SplineBoris(
-        bs=[0, 0, 0, 0, 0],
-        kn={0: [B_y, 0, B_y, 0, B_y]},
-        ks={0: [B_x, 0, B_x, 0, B_x]},
+        bs=xt.Spline4(*Bs_h),
+        by=(xt.Spline4(*By_h),),
+        bx=(xt.Spline4(*Bx_h),),
         s_start=s_start,
-        s_end=s_end,
-        multipole_order=1,
+        length=length,
         n_steps=n_steps,
     )
 
