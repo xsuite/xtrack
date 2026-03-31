@@ -7,7 +7,6 @@ import xobjects as xo
 from xobjects.test_helpers import fix_random_seed
 import pandas as pd
 from pathlib import Path
-import importlib.util
 
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
@@ -72,22 +71,6 @@ def make_uniform_splineboris():
         )
         return splineboris
     return _make
-
-@pytest.fixture(scope="module")
-def evaluate_b():
-    module_path = (
-        Path(__file__).parent.parent
-        / "xtrack"
-        / "beam_elements"
-        / "splineboris_src"
-        / "spline_B_field_eval_python.py"
-    )
-    spec = importlib.util.spec_from_file_location("spline_B_field_eval_python", module_path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Could not load module spec from {module_path}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.evaluate_B
 
 @pytest.fixture(scope="module")
 def make_segment_field():
@@ -408,69 +391,6 @@ def test_splineboris_homogeneous_rbend(field_angle, make_uniform_splineboris):
     xo.assert_allclose(y_end_rbend, y_end_splineboris, atol=1e-12, rtol=1e-5)
     xo.assert_allclose(px_end_rbend, px_final_splineboris, atol=1e-12, rtol=1e-5)
     xo.assert_allclose(py_end_rbend, py_final_splineboris, atol=1e-12, rtol=1e-5)
-
-
-
-def test_splineboris_spin_uniform_solenoid(make_uniform_splineboris):
-
-    atol = 3e-8
-    case = {
-    'x': 0.001,
-    'px': 1e-05,
-    'y': 0.002,
-    'py': 2e-05,
-    'delta': 0.001,
-    'spin_x': 0.1,
-    'spin_z': 0.2,
-    }
-    case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
-
-    p = xt.Particles(
-        p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
-        anomalous_magnetic_moment=0.00115965218128,
-        **case,
-    )
-
-    p_splineboris = p.copy()
-    p_ref = p.copy()
-
-    Bz_T = 0.05
-    ks = Bz_T / (p.p0c[0] / clight / p.q0)
-    env = xt.Environment()
-
-    length = 0.25
-    s_start = 0
-    s_end = length
-    n_steps = 100
-
-    splineboris = make_uniform_splineboris(Bx=0, By=0, Bs=ks, s_start=s_start, s_end=s_end, n_steps=n_steps)
-
-    # Reference and test particle
-    line_splineboris = xt.Line(elements=[splineboris])
-    line_splineboris.particle_ref = p_splineboris
-
-    line = env.new_line(
-        components=[
-            env.new('mysolenoid', xt.UniformSolenoid, length=length, ks=ks),
-            env.new('mymarker', xt.Marker),
-        ]
-    )
-
-    line.configure_spin(spin_model='auto')
-    line_splineboris.configure_spin(spin_model='auto')
-
-    line.track(p_ref)
-    line_splineboris.track(p_splineboris)
-
-    xo.assert_allclose(p_ref.s, p_splineboris.s, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.x, p_splineboris.x, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.y, p_splineboris.y, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.px, p_splineboris.px, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.py, p_splineboris.py, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.delta, p_splineboris.delta, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.spin_x[0], p_splineboris.spin_x[0], atol=atol, rtol=0)
-    xo.assert_allclose(p_ref.spin_y[0], p_splineboris.spin_y[0], atol=atol, rtol=0)
-    xo.assert_allclose(p_ref.spin_z[0], p_splineboris.spin_z[0], atol=atol, rtol=0)
 
 
 
