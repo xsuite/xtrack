@@ -1114,15 +1114,10 @@ class SplineBoris(BeamElement):
     _HERMITE_SUFFIXES = ("val_start", "der_start", "val_end", "der_end", "integral")
 
     _xofields = {
-        # Hermite boundary data for Bs(s) on the local interval [0, length]:
-        # (val_start, der_start, val_end, der_end, integral)
         'Bs_hermite'        : xo.Float64[_NUM_COEFFS],
-        # Hermite blocks for normal/skew multipole components:
-        # shape (multipole_order, 5), one 5-tuple per order.
         'B_norm_hermite'    : xo.Float64[:, _NUM_COEFFS],
         'B_skew_hermite'    : xo.Float64[:, _NUM_COEFFS],
         'multipole_order'   : xo.Int64,
-        # Element length and integration steps; field representation is purely local in s.
         'length'            : xo.Float64,
         'n_steps'           : xo.Int64,
         'shift_x'           : xo.Field(xo.Float64, 0),  # Transverse shift in x [m] - used for field map offset
