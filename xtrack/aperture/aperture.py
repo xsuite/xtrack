@@ -1,11 +1,9 @@
-import bisect
 import re
 from collections.abc import Collection
 from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, cast
 
 import numpy as np
 import xobjects as xo
-from matplotlib import pyplot as plt
 from xdeps.table import Table
 from xobjects.context import XContext
 
@@ -913,6 +911,7 @@ class Aperture:
         tols_y = np.asarray(sections_table.tol_y, dtype=FloatType._dtype)[undo_order]
 
         if axs is None:
+            from matplotlib import pyplot as plt
             fig, axs = plt.subplots(2, 1, sharex=True)
         else:
             fig = axs[0].figure
@@ -954,6 +953,7 @@ class Aperture:
         ax : matplotlib.axes.Axes
             Axes object to plot on, if not given, spawn a new one.
         """
+        from matplotlib import pyplot as plt
         ax = ax or plt.gca()
 
         if sigmas is None:
@@ -1015,6 +1015,7 @@ class Aperture:
         **kwargs
             More arguments to pass to matplotlib.
         """
+        from matplotlib import pyplot as plt
         ax = ax or plt.gca()
 
         n1_table, _ = self.get_aperture_sigmas_at_element(
