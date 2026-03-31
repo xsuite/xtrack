@@ -461,7 +461,9 @@ def test_splineboris_spin_uniform_solenoid(make_uniform_splineboris):
     xo.assert_allclose(p_ref.px, p_splineboris.px, atol=atol, rtol=1e-12)
     xo.assert_allclose(p_ref.py, p_splineboris.py, atol=atol, rtol=1e-12)
     xo.assert_allclose(p_ref.delta, p_splineboris.delta, atol=atol, rtol=1e-12)
-
+    xo.assert_allclose(p_ref.spin_x[0], p_splineboris.spin_x[0], atol=atol, rtol=0)
+    xo.assert_allclose(p_ref.spin_y[0], p_splineboris.spin_y[0], atol=atol, rtol=0)
+    xo.assert_allclose(p_ref.spin_z[0], p_splineboris.spin_z[0], atol=atol, rtol=0)
 
 
 
