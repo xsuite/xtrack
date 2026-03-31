@@ -1156,6 +1156,33 @@ class SplineBoris(BeamElement):
             names.extend(f"Bskew_{i}_{k}" for k in range(n))
         return names
 
+
+    @staticmethod
+    def _normalize_component_tuple(values, name):
+        if values is None:
+            return ()
+        if isinstance(values, Spline4):
+            values = (values,)
+        elif isinstance(values, list):
+            values = tuple(values)
+        elif not isinstance(values, tuple):
+            raise TypeError(
+                f"{name} must be a Spline4, tuple/list of Spline4/None, or None; "
+                f"got {type(values).__name__}"
+            )
+        out = []
+        for order, item in enumerate(values, start=0):
+            if item is None:
+                out.append(None)
+                continue
+            if not isinstance(item, Spline4):
+                raise TypeError(
+                    f"{name}[{order}] must be a Spline4 or None, got {type(item).__name__}"
+                )
+            out.append(item.as_list())
+        return tuple(out)
+
+
     @classmethod
     def _validate_field_inputs(cls, bs, by, bx):
         """Validate and normalize ``Spline4`` inputs for longitudinal/normal/skew components.
@@ -1168,32 +1195,9 @@ class SplineBoris(BeamElement):
             Derivative-order tuples; entries are normalized Hermite lists or ``None``.
         multipole_order : int
         """
-        def _normalize_component_tuple(values, name):
-            if values is None:
-                return ()
-            if isinstance(values, Spline4):
-                values = (values,)
-            elif isinstance(values, list):
-                values = tuple(values)
-            elif not isinstance(values, tuple):
-                raise TypeError(
-                    f"{name} must be a Spline4, tuple/list of Spline4/None, or None; "
-                    f"got {type(values).__name__}"
-                )
-            out = []
-            for order, item in enumerate(values, start=0):
-                if item is None:
-                    out.append(None)
-                    continue
-                if not isinstance(item, Spline4):
-                    raise TypeError(
-                        f"{name}[{order}] must be a Spline4 or None, got {type(item).__name__}"
-                    )
-                out.append(item.as_list())
-            return tuple(out)
 
-        Bnorm_tuple = _normalize_component_tuple(by, "by")
-        Bskew_tuple = _normalize_component_tuple(bx, "bx")
+        Bnorm_tuple = cls._normalize_component_tuple(by, "by")
+        Bskew_tuple = cls._normalize_component_tuple(bx, "bx")
 
         if not isinstance(bs, Spline4):
             raise TypeError(f"bs must be a Spline4, got {type(bs).__name__}")
