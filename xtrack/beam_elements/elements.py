@@ -1202,16 +1202,6 @@ class SplineBoris(BeamElement):
         Bnorm_tuple = _normalize_component_tuple(by, "by")
         Bskew_tuple = _normalize_component_tuple(bx, "bx")
 
-        if (bs is None
-                and not any(v is not None for v in Bnorm_tuple)
-                and not any(v is not None for v in Bskew_tuple)):
-            raise ValueError(
-                "At least one of bs, bx, or by must be provided "
-                "(non-empty bx/by, or pass bs explicitly)."
-            )
-        if bs is None:
-            bs = Spline4(0.0, 0.0, 0.0, 0.0, 0.0)
-
         if not isinstance(bs, Spline4):
             raise TypeError(f"bs must be a Spline4, got {type(bs).__name__}")
         Bs_stored = bs.as_list()
@@ -1235,40 +1225,19 @@ class SplineBoris(BeamElement):
 
     def __init__(self,
                  s_start=0,
-                 length=0,
+                 length=1.0,
                  n_steps=1,
                  shift_x=0.0,
                  shift_y=0.0,
                  hx=0.0,
-                 *,
-                 bs=None,
-                 bx=None,
-                 by=None,
+                 bs=Spline4(0.0, 0.0, 0.0, 0.0, 0.0),
+                 bx=Spline4(0.0, 0.0, 0.0, 0.0, 0.0),
+                 by=Spline4(0.0, 0.0, 0.0, 0.0, 0.0),
                  **kwargs,
     ):
         """Build the element from ``Spline4`` data and pass the packed ``par_list`` to ``BeamElement``."""
 
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
-            super().__init__(**kwargs)
-            return
-
-        # Kernel prebuild path: instantiated with only ``_buffer``.
-        if (
-            '_buffer' in kwargs and kwargs['_buffer'] is not None
-            and bs is None and bx is None and by is None
-            and 'par_list' not in kwargs
-        ):
-            n_coeffs = self._NUM_COEFFS
-            kwargs.setdefault('multipole_order', 1)
-            kwargs.setdefault('par_list', [0.0] * (n_coeffs * 3))
-            kwargs.setdefault('s_start', float(s_start))
-            kwargs.setdefault('s_end', float(s_start) + float(length) if length else 1.0)
-            kwargs.setdefault('length', float(length) if length else 1.0)
-            kwargs.setdefault('n_steps', int(n_steps))
-            kwargs.setdefault('shift_x', float(shift_x))
-            kwargs.setdefault('shift_y', float(shift_y))
-            kwargs.setdefault('hx', float(hx))
-            kwargs.setdefault('radiation_flag', kwargs.pop('radiation_flag', 0))
             super().__init__(**kwargs)
             return
 
