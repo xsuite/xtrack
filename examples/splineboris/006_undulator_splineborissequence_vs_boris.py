@@ -64,7 +64,7 @@ def benchmark_line(line, p_ref, n_particles=1, n_repeats=7, n_warmup=1):
 if __name__ == "__main__":
     base_dir = Path(__file__).resolve().parent.parent.parent
     eval_module_path = (
-        base_dir / "xtrack" / "beam_elements" / "elements_src" / "spline_B_field_eval_python.py"
+        base_dir / "xtrack" / "beam_elements" / "splineboris_src" / "spline_B_field_eval_python.py"
     )
     spec = importlib.util.spec_from_file_location(
         "spline_B_field_eval_python", eval_module_path

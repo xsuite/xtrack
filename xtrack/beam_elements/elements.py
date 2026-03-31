@@ -1355,7 +1355,7 @@ class SplineBoris(BeamElement):
                 f"[{self.s_start}, {self.s_end}]"
             )
 
-        from .elements_src.spline_B_field_eval_python import evaluate_B
+        from .splineboris_src.spline_B_field_eval_python import evaluate_B
 
         s_loc = s - self.s_start
         Bx, By, Bs = evaluate_B(

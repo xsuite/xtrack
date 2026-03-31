@@ -77,7 +77,7 @@ def evaluate_b():
         Path(__file__).parent.parent
         / "xtrack"
         / "beam_elements"
-        / "elements_src"
+        / "splineboris_src"
         / "spline_B_field_eval_python.py"
     )
     spec = importlib.util.spec_from_file_location("spline_B_field_eval_python", module_path)
