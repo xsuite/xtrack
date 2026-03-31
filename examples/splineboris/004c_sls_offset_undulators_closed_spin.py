@@ -36,11 +36,10 @@ BASE_DIR = Path(__file__).resolve().parent
 field_map_path = BASE_DIR.parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
 df_raw_data = pd.read_csv(
     field_map_path,
-    sep='\t',
+    sep=r"\s+",
     header=None,
-    names=['X', 'Y', 'Z', 'Bx', 'By', 'Bs'],
-)
-df_raw_data = df_raw_data.set_index(['X', 'Y', 'Z'])
+    names=["X", "Y", "Z", "Bskew", "Bnorm", "Bs"],
+).set_index(["X", "Y", "Z"])
 
 # Distance unit in meters (the dataset uses mm, so 1 mm = 0.001 m)
 distance_unit = 0.001
@@ -208,9 +207,6 @@ print()
 print(f"Equilibrium emittances:")
 print(f"  eq_gemitt_x = {tw_offset.rad_int_eq_gemitt_x:.4e}")
 print(f"  eq_gemitt_y = {tw_offset.rad_int_eq_gemitt_y:.4e}")
-print(f"  eq_gemitt_zeta = {tw_offset.rad_int_eq_gemitt_zeta:.4e}")
-print()
-print(f"Energy loss per turn: {tw_offset.rad_int_eneloss_turn:.4e} eV")
 print()
 print(f"C^-: {tw_offset.c_minus:.4e}")
 print()
