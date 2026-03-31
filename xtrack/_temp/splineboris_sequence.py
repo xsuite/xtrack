@@ -110,34 +110,11 @@ class SplineBorisSequence:
         )
 
     @classmethod
-    def _adapt_df_fit_pars_input(cls, df_fit_pars):
-        # Keep the pandas contract untouched while allowing one-way adaptation from
-        # redesign-style producers (e.g. wrappers exposing a df_fit_pars attribute).
-        if isinstance(df_fit_pars, pd.DataFrame):
-            return df_fit_pars
-
-        if hasattr(df_fit_pars, "df_fit_pars"):
-            adapted = getattr(df_fit_pars, "df_fit_pars")
-            if isinstance(adapted, pd.DataFrame):
-                return adapted
-            raise TypeError("df_fit_pars attribute must be a pandas DataFrame")
-
-        if isinstance(df_fit_pars, (list, tuple, dict)):
-            try:
-                return pd.DataFrame(df_fit_pars)
-            except Exception as exc:
-                raise TypeError(
-                    "Could not adapt df_fit_pars input into a pandas DataFrame"
-                ) from exc
-
-        raise TypeError(
-            "df_fit_pars must be a pandas DataFrame or expose a DataFrame in "
-            "the `df_fit_pars` attribute"
-        )
-
-    @classmethod
     def _normalize_df_fit_pars(cls, df_fit_pars):
-        df_raw = cls._adapt_df_fit_pars_input(df_fit_pars)
+        if not isinstance(df_fit_pars, pd.DataFrame):
+            raise TypeError("df_fit_pars must be a pandas DataFrame")
+
+        df_raw = df_fit_pars
         if all(col in df_raw.columns for col in cls.FIELD_FIT_INDEX_COLUMNS):
             df_reset = df_raw.copy()
         else:
