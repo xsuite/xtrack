@@ -28,7 +28,16 @@ def hermite_to_polynomial(s_start, s_end, coeffs):
     b5 = np.polynomial.Polynomial([0, 0, 30, -60, 30])
 
     poly_t = (c1 * b1 + L * c2 * b2 + c3 * b3 + L * c4 * b4 + c5 * b5)
-    return poly_t(t)
+    poly_s = poly_t(t)
+
+    # Ensure we always have a length-5 coefficient array (degree 4 polynomial),
+    # even for the degenerate all-zero Hermite input where numpy compresses to degree 0.
+    if poly_s.coef.size < 5:
+        coeffs_padded = np.zeros(5, dtype=float)
+        coeffs_padded[: poly_s.coef.size] = poly_s.coef
+        poly_s = np.polynomial.Polynomial(coeffs_padded)
+
+    return poly_s
 
 def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole_order):
     """

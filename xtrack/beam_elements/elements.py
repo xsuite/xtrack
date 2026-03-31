@@ -1157,7 +1157,7 @@ class SplineBoris(BeamElement):
         return names
 
     @classmethod
-    def validate_field_inputs(cls, bs, by, bx):
+    def _validate_field_inputs(cls, bs, by, bx):
         """Validate and normalize ``Spline4`` inputs for longitudinal/normal/skew components.
 
         Returns
@@ -1234,7 +1234,7 @@ class SplineBoris(BeamElement):
             super().__init__(**kwargs)
             return
 
-        self.Bs, self.Bnorm, self.Bskew, multipole_order = self.validate_field_inputs(bs, by, bx)
+        self.Bs, self.Bnorm, self.Bskew, multipole_order = self._validate_field_inputs(bs, by, bx)
 
         if n_steps <= 0:
             raise ValueError(f"n_steps must be > 0, got {n_steps}")
@@ -1289,7 +1289,7 @@ class SplineBoris(BeamElement):
             **kwargs,
         )
 
-    def evaluate_field(self, x, y, s):
+    def get_field(self, x, y, s):
         """Evaluate **B** using the same ``evaluate_B`` dispatch as the tracking kernel.
 
         Parameters

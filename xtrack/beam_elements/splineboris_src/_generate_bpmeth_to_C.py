@@ -494,7 +494,7 @@ def write_to_python(max_order=multipole_order, poly_order=4, field='B', curvatur
             f.write("import math\n")
             f.write("import numpy as np\n\n")
 
-            # Emit hermite_to_polynomial helper mirroring elements.py.
+            # Emit hermite_to_polynomial helper (Python) matching the runtime implementation.
             f.write("def hermite_to_polynomial(s_start, s_end, coeffs):\n")
             f.write("    \"\"\"Build a fourth-order polynomial over [s_start, s_end] from Hermite data.\n\n")
             f.write("    Mirrors ``SplineBoris.hermite_to_polynomial`` in ``elements.py`` and the\n")
@@ -512,7 +512,14 @@ def write_to_python(max_order=multipole_order, poly_order=4, field='B', curvatur
             f.write("    b4 = np.polynomial.Polynomial([0, 0, 1.5, -4, 2.5])\n")
             f.write("    b5 = np.polynomial.Polynomial([0, 0, 30, -60, 30])\n\n")
             f.write("    poly_t = (c1 * b1 + L * c2 * b2 + c3 * b3 + L * c4 * b4 + c5 * b5)\n")
-            f.write("    return poly_t(t)\n\n")
+            f.write("    poly_s = poly_t(t)\n\n")
+            f.write("    # Ensure we always have a length-5 coefficient array (degree 4 polynomial),\n")
+            f.write("    # even for the degenerate all-zero Hermite input where numpy compresses to degree 0.\n")
+            f.write("    if poly_s.coef.size < 5:\n")
+            f.write("        coeffs_padded = np.zeros(5, dtype=float)\n")
+            f.write("        coeffs_padded[: poly_s.coef.size] = poly_s.coef\n")
+            f.write("        poly_s = np.polynomial.Polynomial(coeffs_padded)\n\n")
+            f.write("    return poly_s\n\n")
 
             f.write(
                 "def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole_order):\n"

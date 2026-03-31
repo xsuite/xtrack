@@ -13,6 +13,7 @@ import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 from xtrack._temp.field_fitter import FieldFitter
 from xtrack._temp.splineboris_sequence import SplineBorisSequence
+from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import evaluate_B
 
 FIT_PARS_INDEX_COLS = [
     "field_component",
@@ -89,17 +90,22 @@ def evaluate_b():
     return module.evaluate_B
 
 @pytest.fixture(scope="module")
-def make_segment_field(evaluate_b):
-    def _make(params_1d, multipole_order_local, s_start=0.0):
-        params_arr = np.asarray(params_1d, dtype=float)
-
+def make_segment_field():
+    def _make(Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole_order_local, s_start=0.0):
+        # ensure we have simple lists/arrays
+        Bs_hermite_arr = np.asarray(Bs_hermite, dtype=float).tolist()
+        B_norm_list = [np.asarray(b, dtype=float).tolist() for b in B_norm_hermite]
+        B_skew_list = [np.asarray(b, dtype=float).tolist() for b in B_skew_hermite]
         def field(x, y, z):
-            # evaluate_B expects local s (s - s_start); z here is absolute s from BorisSpatialIntegrator
-            Bx, By, Bs = evaluate_b(x, y, z - s_start, params_arr, multipole_order_local)
+            s_loc = z - s_start
+            Bx, By, Bs = evaluate_B(x, y, s_loc,
+                                    Bs_hermite_arr,
+                                    B_norm_list,
+                                    B_skew_list,
+                                    L,
+                                    multipole_order_local)
             return Bx, By, Bs
-
         return field
-
     return _make
 
 @pytest.fixture(scope="module")
@@ -596,13 +602,28 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
 
     # ------------------------------------------------------------------
     # Build a parallel undulator line using BorisSpatialIntegrator
-    # Extract parameters from SplineBorisSequence elements
+    # Extract Hermite parameters from SplineBorisSequence elements
     # ------------------------------------------------------------------
     boris_elems = []
     for elem in seq.elements:
-        # par_list is a 1D array of polynomial coefficients (in local s) for this piece
-        params_i = np.asarray(elem.par_list, dtype=float)
-        field_i = make_segment_field(params_i, multipole_order, s_start=float(elem.s_start))
+        Bs_hermite = [elem.Bs_hermite[i] for i in range(5)]
+        B_norm_hermite = [
+            [elem.B_norm_hermite[i, j] for j in range(5)]
+            for i in range(multipole_order)
+        ]
+        B_skew_hermite = [
+            [elem.B_skew_hermite[i, j] for j in range(5)]
+            for i in range(multipole_order)
+        ]
+        L = float(elem.length)
+        field_i = make_segment_field(
+            Bs_hermite,
+            B_norm_hermite,
+            B_skew_hermite,
+            L,
+            multipole_order,
+            s_start=float(elem.s_start),
+        )
 
         boris_elems.append(
             xt.BorisSpatialIntegrator(
@@ -706,9 +727,24 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(undulator_rotated_fit_pa
     # ------------------------------------------------------------------
     boris_elems = []
     for elem in seq.elements:
-        # par_list is a 1D array of polynomial coefficients (in local s) for this piece
-        params_i = np.asarray(elem.par_list, dtype=float)
-        field_i = make_segment_field(params_i, multipole_order, s_start=float(elem.s_start))
+        Bs_hermite = [elem.Bs_hermite[i] for i in range(5)]
+        B_norm_hermite = [
+            [elem.B_norm_hermite[i, j] for j in range(5)]
+            for i in range(multipole_order)
+        ]
+        B_skew_hermite = [
+            [elem.B_skew_hermite[i, j] for j in range(5)]
+            for i in range(multipole_order)
+        ]
+        L = float(elem.length)
+        field_i = make_segment_field(
+            Bs_hermite,
+            B_norm_hermite,
+            B_skew_hermite,
+            L,
+            multipole_order,
+            s_start=float(elem.s_start),
+        )
 
         boris_elems.append(
             xt.BorisSpatialIntegrator(
