@@ -7,6 +7,7 @@
 #define XTRACK_QUADRUPOLE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -24,6 +25,11 @@ void Quadrupole_track_local_particle(
         /*inv_factorial_order*/   QuadrupoleData_get_inv_factorial_order(el),
         /*knl*/                   QuadrupoleData_getp1_knl(el, 0),
         /*ksl*/                   QuadrupoleData_getp1_ksl(el, 0),
+        /*order_rel*/             QuadrupoleData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(QuadrupoleData_len_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               QuadrupoleData_getp1_knl_rel(el, 0),
+        /*ksl_rel*/               QuadrupoleData_getp1_ksl_rel(el, 0),
+        /*rel_ref_strength*/      QuadrupoleData_get_length(el) * ((QuadrupoleData_get_main_is_skew(el)) ? QuadrupoleData_get_k1s(el) : QuadrupoleData_get_k1(el)),
         /*num_multipole_kicks*/   QuadrupoleData_get_num_multipole_kicks(el),
         /*model*/                 QuadrupoleData_get_model(el),
         /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,

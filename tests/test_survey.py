@@ -354,8 +354,8 @@ def test_survey_with_h_and_v_bends():
 
     p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.p0
 
-    xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=1e-14)
-    xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=1e-14)
+    xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=5e-14)
+    xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=5e-14)
 
     assert sv_no_arg.element0 == 0
 

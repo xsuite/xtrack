@@ -1010,6 +1010,7 @@ def _complete_vary_with_info_from_line(vary, line):
 def closed_orbit_correction(line, line_co_ref, correction_config,
                             solver=None, verbose=False, restore_if_fail=True):
 
+    opts = {}
     for corr_name, corr in correction_config.items():
         _print('Correcting', corr_name)
         with xt.line._temp_knobs(line, corr['ref_with_knobs']):
@@ -1026,7 +1027,8 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
         if not line._has_valid_tracker():
             line.build_tracker()
 
-        line.match(
+        opt = line.match(
+            solve=False,
             solver=solver,
             verbose=verbose,
             restore_if_fail=restore_if_fail,
@@ -1043,6 +1045,10 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
                 delta=tw_ref['delta', corr['start']],
             ),
             start=corr['start'], end=corr['end'])
+        opt.solve()
+        opts[corr_name] = opt
+        print()
+    return opts
 
 def match_knob_line(line, knob_name, vary, targets, knob_value_start,
                     knob_value_end, run=True, **kwargs):

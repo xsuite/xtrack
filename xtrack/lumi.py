@@ -290,6 +290,11 @@ def luminosity_from_twiss(
 
     assert crab is not None, 'crab crossing information is required'
 
+    if twiss_b1.reference_frame != 'proper':
+        raise ValueError(f'twiss_b1 should be in the `proper` reference frame, found: {twiss_b1.reference_frame}')
+    if twiss_b2.reference_frame != 'proper':
+        raise ValueError(f'twiss_b2 should be in the `proper` reference frame, found: {twiss_b2.reference_frame}')
+
     twiss_b2_rev = twiss_b2.reverse()
 
     if crab:

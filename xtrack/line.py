@@ -116,11 +116,31 @@ class Line:
             used for building particles distributions, computing twiss parameters
             and matching.
         energy_program: EnergyProgram
-            (optional) Energy program used to update the reference energy during the tracking.
+            (optional) Energy program used to update the reference energy during
+            the tracking.
         env : Environment
             Environment object to which the line belongs. If not provided, a new
             environment is created.
-
+        compose : bool, optional
+            Whether to instantiate the line in ``compose`` mode, which allows
+            the components to be added to the line after creation.
+        components : list, optional
+            List of components to be added to the line. It can include strings,
+            place objects, and lines. Can only be given if ``compose`` is true.
+        length : float | str, optional
+            Length of the line to be built by the builder. Can be an expression.
+            If not specified, the length will be the minimum length that can
+            fit all the components. Can only be given if ``compose`` is true.
+        refer : str, optional
+            Specifies which part of the component the ``at`` position will refer
+            to. Allowed values are ``start``, ``center`` (default; also allowed
+            is ``centre```), and ``end``. Can only be given if ``compose`` is true.
+        mirror : bool, optional
+            Whether the line should be mirrored after creation. Can only be given
+            if ``compose`` is true.
+        s_tol : float, optional
+            Difference between two s positions below which they should be
+            treated as the same location. Can only be given if ``compose`` is true.
         """
 
         self.config = xt.tracker.TrackerConfig()
@@ -206,8 +226,8 @@ class Line:
             self.element_names = list(element_names).copy()
         else:
             self.composer = xt.Builder(env, mirror=mirror, length=length,
-                                        refer=refer, s_tol=s_tol or 1e-6,
-                                        components=components)
+                                       refer=refer, s_tol=s_tol or 1e-6,
+                                       components=components)
             self.element_names = element_names
 
         self._particle_ref = particle_ref
@@ -263,6 +283,10 @@ class Line:
         # When env is given it means that the line is being reloaded as part of
         # and env. In that case the element_dict, vars and xdeps stuff come through
         # the environment and should not be in the dictionary
+
+        if cls_str := dct.get('__class__', None):
+            if cls_str != 'Line':
+                raise ValueError(f"Expected __class__ to be 'Line', got {cls_str!r}")
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
@@ -748,38 +772,50 @@ class Line:
             self._full_elements_from_composer()
 
         elements = list(self._elements)
-        s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
-        length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
-        s_start = s_elements
-        s_end = s_elements + length_elements
-        s_center = s_start + 0.5 * length_elements
 
         isthick = []
         iscollective = []
         element_types = []
         isreplica = []
         parent_name = []
+        parent_type = []
         for ee in elements:
             ee_pname = None
+            ee_ptype = None
             if isinstance(ee, xt.Replica):
                 ee_pname = ee.parent_name
+                ee_ptype = self[ee.parent_name].__class__.__name__
                 ee = ee.resolve(self)
                 isreplica.append(True)
             else:
                 isreplica.append(False)
                 if hasattr(ee, 'parent_name'):
                     ee_pname = ee.parent_name
+                    ee_ptype = self[ee.parent_name].__class__.__name__
             isthick.append(_is_thick(ee, self))
             iscollective.append(_is_collective(ee, self))
             element_types.append(ee.__class__.__name__)
             parent_name.append(ee_pname)
+            parent_type.append(ee_ptype)
         isthick = np.array(isthick + [False])
         iscollective = np.array(iscollective + [False])
         isreplica = np.array(isreplica + [False])
         element_types = np.array(element_types + [''])
         parent_name = np.array(parent_name + [None])
+        parent_type = np.array(parent_type + [None])
 
         elements += [None]
+
+        if self._has_valid_tracker() and not self.tracker.iscollective:
+            s_elements = np.zeros(len(self.element_names) + 1)
+            s_elements[1:] = np.cumsum(self.attr['length'] * isthick[:-1])
+        else:
+            s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
+
+        length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
+        s_start = s_elements
+        s_end = s_elements + length_elements
+        s_center = s_start + 0.5 * length_elements
 
         out = {
             's': s_elements,
@@ -788,6 +824,7 @@ class Line:
             'isthick': isthick,
             'isreplica': isreplica,
             'parent_name': parent_name,
+            'parent_type': parent_type,
             'iscollective': iscollective,
             'element': elements,
             's_start': s_start,
@@ -817,12 +854,13 @@ class Line:
         data.pop('element')
 
         if attr:
-            for kk in self.attr.keys():
-                this_attr = self.attr[kk]
-                if hasattr(this_attr, 'get'):
-                    this_attr = this_attr.get() # bring to cpu
-                # Add zero at the end (there is _end_point)
-                data[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
+            with self.attr._cache_values():
+                for kk in self.attr.keys():
+                    this_attr = self.attr[kk]
+                    if hasattr(this_attr, 'get'):
+                        this_attr = this_attr.get() # bring to cpu
+                    # Add zero at the end (there is _end_point)
+                    data[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
 
         for kk in data.keys():
             data[kk] = np.array(data[kk])
@@ -1516,8 +1554,7 @@ class Line:
         ele_stop='__discontinued__',
         ele_init='__discontinued__',
         twiss_init='__discontinued__'
-        ):
-
+    ):
         if not self._has_valid_tracker():
             self.build_tracker()
 
@@ -1980,9 +2017,10 @@ class Line:
 
         self._method_incompatible_with_compose()
 
-        closed_orbit_correction(self, reference, correction_config,
+        opts = closed_orbit_correction(self, reference, correction_config,
                                 solver=solver, verbose=verbose,
                                 restore_if_fail=restore_if_fail)
+        return opts
 
     def find_closed_orbit(self, co_guess=None, particle_ref=None,
                           co_search_settings={},
@@ -2877,11 +2915,9 @@ class Line:
     # To be deprecated in favor of Line.insert
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
+        """Insert an element in the line.
 
-        """
-        NOTE: This method is deprecated. Use `Line.insert` instead.
-
-        Insert an element in the line.
+        .. warning:: This method is deprecated. Use :meth:`Line.insert` instead.
 
         Parameters
         ----------
@@ -2891,9 +2927,9 @@ class Line:
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
         at: int or string, optional
-            Index or name of the element in the line. If `index` is provided, `at_s` must be None.
+            Index or name of the element in the line. If ``index`` is provided, ``at_s`` must be None.
         at_s: float, optional
-            Position of the element in the line in meters. If `at_s` is provided, `index`
+            Position of the element in the line in meters. If ``at_s`` is provided, ``index``
             must be None.
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
@@ -2985,11 +3021,9 @@ class Line:
         return self
 
     def append_element(self, element, name):
+        """Append element to the end of the lattice
 
-        """
-        NOTE: This method is deprecated. Use `Line.append` instead.
-
-        Append element to the end of the lattice
+        .. warning:: This method is deprecated. Use :meth:`Line.append` instead.
 
         Parameters
         ----------
@@ -3757,6 +3791,30 @@ class Line:
 
         self.env.extend_knl_ksl(order, element_names)
 
+    def extend_knl_rel_ksl_rel(self, order, element_names=None):
+
+        """
+        Extend the order of the knl_rel and ksl_rel attributes of the elements.
+
+        Parameters
+        ----------
+        order: int
+            New order of the knl_rel and ksl_rel attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl_rel`
+            and `ksl_rel` attributes are extended.
+
+        """
+        self._method_incompatible_with_compose()
+
+        if element_names is None:
+            element_names = []
+            for nn in self.element_names:
+                if hasattr(self.get(nn), 'knl_rel'):
+                    element_names.append(nn)
+
+        self.env.extend_knl_rel_ksl_rel(order, element_names)
+
     def remove_markers(self, inplace=True, keep=None):
         """
         Remove markers from the line
@@ -4330,7 +4388,7 @@ class Line:
             elements_map_line.append(smap)
 
         names_map_line.append(ele_cut_sorted[-1])
-        elements_map_line.append(self[ele_cut_sorted[-1]])
+        elements_map_line.append(self.get(ele_cut_sorted[-1]))
 
         line_maps = Line(elements=elements_map_line, element_names=names_map_line)
         line_maps.particle_ref = self.particle_ref.copy()
@@ -4348,7 +4406,10 @@ class Line:
         self.element_names = tuple(self.element_names)
 
     def unfreeze(self):
-        """See `Line.discard_tracker()`. This function is deprecated."""
+        """Use :meth:`Line.discard_tracker` instead.
+
+        .. warning:: This function is deprecated.
+        """
         warn(
             '`Line.unfreeze()` is deprecated and will be removed in future '
             'versions. Please use `Line.discard_tracker()` instead.',
@@ -4946,129 +5007,164 @@ class Line:
         cache = LineAttr(
             line=self,
             fields={
-                'delta_taper': None, 'ks': None,
+                'delta_taper': AttrDefinition(name='delta_taper'),
+                'ks': AttrDefinition(name='ks'),
 
-                'weight': None,
+                'weight': AttrDefinition(name='weight'),
 
-                '_own_length': 'length',
+                '_own_length': AttrDefinition(name='length'),
 
-                '_own_rot_s_rad': 'rot_s_rad',
-                '_own_shift_x': 'shift_x',
-                '_own_shift_y': 'shift_y',
-                '_own_shift_s': 'shift_s',
+                '_own_rot_s_rad': AttrDefinition(name='rot_s_rad'),
+                '_own_shift_x': AttrDefinition(name='shift_x'),
+                '_own_shift_y': AttrDefinition(name='shift_y'),
+                '_own_shift_s': AttrDefinition(name='shift_s'),
 
-                '_own_h': 'h',
-                '_own_hxl': 'hxl',
+                '_own_h': AttrDefinition(name='h'),
+                '_own_hxl': AttrDefinition(name='hxl'),
 
-                '_own_voltage': 'voltage',
-                '_own_lag': 'lag',
-                '_own_lag_taper': 'lag_taper',
-                '_own_frequency': 'frequency',
-                '_own_harmonic': 'harmonic',
+                '_own_voltage': AttrDefinition(name='voltage'),
+                '_own_lag': AttrDefinition(name='lag'),
+                '_own_lag_taper': AttrDefinition(name='lag_taper'),
+                '_own_frequency': AttrDefinition(name='frequency'),
+                '_own_harmonic': AttrDefinition(name='harmonic'),
 
-                '_own_radiation_flag': 'radiation_flag',
+                '_own_radiation_flag': AttrDefinition(name='radiation_flag', dtype=np.int64),
 
-                '_own_k0': 'k0',
-                '_own_k1': 'k1',
-                '_own_k2': 'k2',
-                '_own_k3': 'k3',
-                '_own_k4': 'k4',
-                '_own_k5': 'k5',
+                '_own_k0': AttrDefinition(name='k0'),
+                '_own_k1': AttrDefinition(name='k1'),
+                '_own_k2': AttrDefinition(name='k2'),
+                '_own_k3': AttrDefinition(name='k3'),
+                '_own_k4': AttrDefinition(name='k4'),
+                '_own_k5': AttrDefinition(name='k5'),
 
-                '_own_k0s': 'k0s',
-                '_own_k1s': 'k1s',
-                '_own_k2s': 'k2s',
-                '_own_k3s': 'k3s',
-                '_own_k4s': 'k4s',
-                '_own_k5s': 'k5s',
+                '_own_k0s': AttrDefinition(name='k0s'),
+                '_own_k1s': AttrDefinition(name='k1s'),
+                '_own_k2s': AttrDefinition(name='k2s'),
+                '_own_k3s': AttrDefinition(name='k3s'),
+                '_own_k4s': AttrDefinition(name='k4s'),
+                '_own_k5s': AttrDefinition(name='k5s'),
 
-                '_own_k0l': ('knl', 0),
-                '_own_k1l': ('knl', 1),
-                '_own_k2l': ('knl', 2),
-                '_own_k3l': ('knl', 3),
-                '_own_k4l': ('knl', 4),
-                '_own_k5l': ('knl', 5),
+                '_own_k0l': AttrDefinition(name='knl', index=0),
+                '_own_k1l': AttrDefinition(name='knl', index=1),
+                '_own_k2l': AttrDefinition(name='knl', index=2),
+                '_own_k3l': AttrDefinition(name='knl', index=3),
+                '_own_k4l': AttrDefinition(name='knl', index=4),
+                '_own_k5l': AttrDefinition(name='knl', index=5),
 
-                '_own_k0sl': ('ksl', 0),
-                '_own_k1sl': ('ksl', 1),
-                '_own_k2sl': ('ksl', 2),
-                '_own_k3sl': ('ksl', 3),
-                '_own_k4sl': ('ksl', 4),
-                '_own_k5sl': ('ksl', 5),
+                '_own_k0sl': AttrDefinition(name='ksl', index=0),
+                '_own_k1sl': AttrDefinition(name='ksl', index=1),
+                '_own_k2sl': AttrDefinition(name='ksl', index=2),
+                '_own_k3sl': AttrDefinition(name='ksl', index=3),
+                '_own_k4sl': AttrDefinition(name='ksl', index=4),
+                '_own_k5sl': AttrDefinition(name='ksl', index=5),
 
-                # Handling of reference frame transformations
-                # (XYShift, XRotation, YRotation, SRotation)
-                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
-                '_own_ref_shift_x':         'dx',
-                '_own_ref_shift_y':         'dy',
-                '_own_ref_rot_sin_angle':   'sin_angle',
-                '_own_ref_rot_cos_angle':   'cos_angle',
-                '_own_ref_rot_sin_z':       'sin_z',
-                '_own_ref_rot_cos_z':       'cos_z',
+                '_own_k0l_rel': AttrDefinition(name='knl_rel', index=0),
+                '_own_k1l_rel': AttrDefinition(name='knl_rel', index=1),
+                '_own_k2l_rel': AttrDefinition(name='knl_rel', index=2),
+                '_own_k3l_rel': AttrDefinition(name='knl_rel', index=3),
+                '_own_k4l_rel': AttrDefinition(name='knl_rel', index=4),
+                '_own_k5l_rel': AttrDefinition(name='knl_rel', index=5),
 
-                '_parent_length': (('_parent', 'length'), None),
-                '_parent_rot_s_rad': (('_parent', 'rot_s_rad'), None),
-                '_parent_shift_x': (('_parent', 'shift_x'), None),
-                '_parent_shift_y': (('_parent', 'shift_y'), None),
-                '_parent_shift_s': (('_parent', 'shift_s'), None),
+                '_own_k0sl_rel': AttrDefinition(name='ksl_rel', index=0),
+                '_own_k1sl_rel': AttrDefinition(name='ksl_rel', index=1),
+                '_own_k2sl_rel': AttrDefinition(name='ksl_rel', index=2),
+                '_own_k3sl_rel': AttrDefinition(name='ksl_rel', index=3),
+                '_own_k4sl_rel': AttrDefinition(name='ksl_rel', index=4),
+                '_own_k5sl_rel': AttrDefinition(name='ksl_rel', index=5),
 
-                '_parent_h': (('_parent', 'h'), None),
-                '_parent_hxl': (('_parent', 'hxl'), None),
-                '_parent_rbend_model': (('_parent', 'rbend_model'), None),
-                '_parent_rbend_angle_diff': (('_parent', 'rbend_angle_diff'), None),
-
-                '_parent_voltage': (('_parent', 'voltage'), None),
-                '_parent_lag': (('_parent', 'lag'), None),
-                '_parent_lag_taper': (('_parent', 'lag_taper'), None),
-                '_parent_frequency': (('_parent', 'frequency'), None),
-                '_parent_harmonic': (('_parent', 'harmonic'), None),
-
-                '_parent_radiation_flag': (('_parent', 'radiation_flag'), None),
-
-                '_parent_k0': (('_parent', 'k0'), None),
-                '_parent_k1': (('_parent', 'k1'), None),
-                '_parent_k2': (('_parent', 'k2'), None),
-                '_parent_k3': (('_parent', 'k3'), None),
-                '_parent_k4': (('_parent', 'k4'), None),
-                '_parent_k5': (('_parent', 'k5'), None),
-
-                '_parent_k0s': (('_parent', 'k0s'), None),
-                '_parent_k1s': (('_parent', 'k1s'), None),
-                '_parent_k2s': (('_parent', 'k2s'), None),
-                '_parent_k3s': (('_parent', 'k3s'), None),
-                '_parent_k4s': (('_parent', 'k4s'), None),
-                '_parent_k5s': (('_parent', 'k5s'), None),
-
-                '_parent_k0l': (('_parent', 'knl'), 0),
-                '_parent_k1l': (('_parent', 'knl'), 1),
-                '_parent_k2l': (('_parent', 'knl'), 2),
-                '_parent_k3l': (('_parent', 'knl'), 3),
-                '_parent_k4l': (('_parent', 'knl'), 4),
-                '_parent_k5l': (('_parent', 'knl'), 5),
-
-                '_parent_k0sl': (('_parent', 'ksl'), 0),
-                '_parent_k1sl': (('_parent', 'ksl'), 1),
-                '_parent_k2sl': (('_parent', 'ksl'), 2),
-                '_parent_k3sl': (('_parent', 'ksl'), 3),
-                '_parent_k4sl': (('_parent', 'ksl'), 4),
-                '_parent_k5sl': (('_parent', 'ksl'), 5),
+                '_own_main_order': AttrDefinition(name='main_order', dtype=np.int32),
+                '_own_main_is_skew': AttrDefinition(name='main_is_skew', dtype=np.int32),
 
                 # Handling of reference frame transformations
                 # (XYShift, XRotation, YRotation, SRotation)
                 # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
-                '_parent_ref_shift_x': (('_parent', 'dx'), None),
-                '_parent_ref_shift_y': (('_parent', 'dy'), None),
-                '_parent_ref_rot_sin_angle': (('_parent', 'sin_angle'), None),
-                '_parent_ref_rot_cos_angle': (('_parent', 'cos_angle'), None),
-                '_parent_ref_rot_sin_z': (('_parent', 'sin_z'), None),
-                '_parent_ref_rot_cos_z': (('_parent', 'cos_z'), None),
+                '_own_ref_shift_x': AttrDefinition(name='dx'),
+                '_own_ref_shift_y': AttrDefinition(name='dy'),
+                '_own_ref_rot_sin_angle': AttrDefinition(name='sin_angle'),
+                '_own_ref_rot_cos_angle': AttrDefinition(name='cos_angle'),
+                '_own_ref_rot_sin_z': AttrDefinition(name='sin_z'),
+                '_own_ref_rot_cos_z': AttrDefinition(name='cos_z'),
 
+                '_parent_length': AttrDefinition(name=('_parent', 'length')),
+                '_parent_rot_s_rad': AttrDefinition(name=('_parent', 'rot_s_rad')),
+                '_parent_shift_x': AttrDefinition(name=('_parent', 'shift_x')),
+                '_parent_shift_y': AttrDefinition(name=('_parent', 'shift_y')),
+                '_parent_shift_s': AttrDefinition(name=('_parent', 'shift_s')),
+
+                '_parent_h': AttrDefinition(name=('_parent', 'h')),
+                '_parent_hxl': AttrDefinition(name=('_parent', 'hxl')),
+                '_parent_rbend_model': AttrDefinition(name=('_parent', 'rbend_model'), dtype=np.int64),
+                '_parent_rbend_angle_diff': AttrDefinition(name=('_parent', 'rbend_angle_diff')),
+
+                '_parent_voltage': AttrDefinition(name=('_parent', 'voltage')),
+                '_parent_lag': AttrDefinition(name=('_parent', 'lag')),
+                '_parent_lag_taper': AttrDefinition(name=('_parent', 'lag_taper')),
+                '_parent_frequency': AttrDefinition(name=('_parent', 'frequency')),
+                '_parent_harmonic': AttrDefinition(name=('_parent', 'harmonic')),
+
+                '_parent_radiation_flag': AttrDefinition(name=('_parent', 'radiation_flag'), dtype=np.int64),
+
+                '_parent_k0': AttrDefinition(name=('_parent', 'k0')),
+                '_parent_k1': AttrDefinition(name=('_parent', 'k1')),
+                '_parent_k2': AttrDefinition(name=('_parent', 'k2')),
+                '_parent_k3': AttrDefinition(name=('_parent', 'k3')),
+                '_parent_k4': AttrDefinition(name=('_parent', 'k4')),
+                '_parent_k5': AttrDefinition(name=('_parent', 'k5')),
+
+                '_parent_k0s': AttrDefinition(name=('_parent', 'k0s')),
+                '_parent_k1s': AttrDefinition(name=('_parent', 'k1s')),
+                '_parent_k2s': AttrDefinition(name=('_parent', 'k2s')),
+                '_parent_k3s': AttrDefinition(name=('_parent', 'k3s')),
+                '_parent_k4s': AttrDefinition(name=('_parent', 'k4s')),
+                '_parent_k5s': AttrDefinition(name=('_parent', 'k5s')),
+
+                '_parent_k0l': AttrDefinition(name=('_parent', 'knl'), index=0),
+                '_parent_k1l': AttrDefinition(name=('_parent', 'knl'), index=1),
+                '_parent_k2l': AttrDefinition(name=('_parent', 'knl'), index=2),
+                '_parent_k3l': AttrDefinition(name=('_parent', 'knl'), index=3),
+                '_parent_k4l': AttrDefinition(name=('_parent', 'knl'), index=4),
+                '_parent_k5l': AttrDefinition(name=('_parent', 'knl'), index=5),
+
+                '_parent_k0sl': AttrDefinition(name=('_parent', 'ksl'), index=0),
+                '_parent_k1sl': AttrDefinition(name=('_parent', 'ksl'), index=1),
+                '_parent_k2sl': AttrDefinition(name=('_parent', 'ksl'), index=2),
+                '_parent_k3sl': AttrDefinition(name=('_parent', 'ksl'), index=3),
+                '_parent_k4sl': AttrDefinition(name=('_parent', 'ksl'), index=4),
+                '_parent_k5sl': AttrDefinition(name=('_parent', 'ksl'), index=5),
+
+                '_parent_k0l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=0),
+                '_parent_k1l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=1),
+                '_parent_k2l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=2),
+                '_parent_k3l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=3),
+                '_parent_k4l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=4),
+                '_parent_k5l_rel': AttrDefinition(name=('_parent', 'knl_rel'), index=5),
+
+                '_parent_k0sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=0),
+                '_parent_k1sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=1),
+                '_parent_k2sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=2),
+                '_parent_k3sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=3),
+                '_parent_k4sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=4),
+                '_parent_k5sl_rel': AttrDefinition(name=('_parent', 'ksl_rel'), index=5),
+
+                '_parent_main_order': AttrDefinition(name=('_parent', 'main_order'), dtype=np.int32 ),
+                '_parent_main_is_skew': AttrDefinition(name=('_parent', 'main_is_skew'), dtype=np.int32 ),
+
+                # Handling of reference frame transformations
+                # (XYShift, XRotation, YRotation, SRotation)
+                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
+                '_parent_ref_shift_x': AttrDefinition(name=('_parent', 'dx')),
+                '_parent_ref_shift_y': AttrDefinition(name=('_parent', 'dy')),
+                '_parent_ref_rot_sin_angle': AttrDefinition(name=('_parent', 'sin_angle')),
+                '_parent_ref_rot_cos_angle': AttrDefinition(name=('_parent', 'cos_angle')),
+                '_parent_ref_rot_sin_z': AttrDefinition(name=('_parent', 'sin_z')),
+                '_parent_ref_rot_cos_z': AttrDefinition(name=('_parent', 'cos_z')),
             },
             derived_fields={
                 'length': lambda attr:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
                 '_angle_force_body': _angle_force_body_from_attr,
                 'angle_rad': _angle_rbend_correction_from_attr,
+                '_main_strength': _main_strength_from_attr,
                 'rot_s_rad': lambda attr:
                     attr['_own_rot_s_rad'] + attr['_parent_rot_s_rad']
                     * attr._rot_and_shift_from_parent,
@@ -5094,66 +5190,90 @@ class Line:
                 'radiation_flag': lambda attr:
                     attr['_own_radiation_flag'] * (attr['_own_radiation_flag'] != ID_RADIATION_FROM_PARENT)
                   + attr['_parent_radiation_flag'] * (attr['_own_radiation_flag'] == ID_RADIATION_FROM_PARENT),
-                'k0l': lambda attr: (
+                '_k0l_no_rel': lambda attr: (
                     attr['_own_k0l']
                     + attr['_own_k0'] * attr['_own_length']
                     + attr['_parent_k0l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k0'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k0sl': lambda attr: (
+                '_k0l_rel': lambda attr: attr['_own_k0l_rel'] + attr['_parent_k0l_rel'],
+                'k0l': lambda attr: attr['_k0l_no_rel'] + attr['_k0l_rel'] * attr['_main_strength'],
+                '_k0sl_no_rel': lambda attr: (
                     attr['_own_k0sl']
                     + attr['_own_k0s'] * attr['_own_length']
                     + attr['_parent_k0sl'] * attr['weight']* attr._inherit_strengths
                     + attr['_parent_k0s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k1l': lambda attr: (
+                '_k0sl_rel': lambda attr: attr['_own_k0sl_rel'] + attr['_parent_k0sl_rel'],
+                'k0sl': lambda attr: attr['_k0sl_no_rel'] + attr['_k0sl_rel'] * attr['_main_strength'],
+                '_k1l_no_rel': lambda attr: (
                     attr['_own_k1l']
                     + attr['_own_k1'] * attr['_own_length']
                     + attr['_parent_k1l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k1'] * attr['_parent_length'] * attr['weight']* attr._inherit_strengths),
-                'k1sl': lambda attr: (
+                '_k1l_rel': lambda attr: attr['_own_k1l_rel'] + attr['_parent_k1l_rel'],
+                'k1l': lambda attr: attr['_k1l_no_rel'] + attr['_k1l_rel'] * attr['_main_strength'],
+                '_k1sl_no_rel': lambda attr: (
                     attr['_own_k1sl']
                     + attr['_own_k1s'] * attr['_own_length']
                     + attr['_parent_k1sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k1s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k2l': lambda attr: (
+                '_k1sl_rel': lambda attr: attr['_own_k1sl_rel'] + attr['_parent_k1sl_rel'],
+                'k1sl': lambda attr: attr['_k1sl_no_rel'] + attr['_k1sl_rel'] * attr['_main_strength'],
+                '_k2l_no_rel': lambda attr: (
                     attr['_own_k2l']
                     + attr['_own_k2'] * attr['_own_length']
                     + attr['_parent_k2l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k2'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k2sl': lambda attr: (
+                '_k2l_rel': lambda attr: attr['_own_k2l_rel'] + attr['_parent_k2l_rel'],
+                'k2l': lambda attr: attr['_k2l_no_rel'] + attr['_k2l_rel'] * attr['_main_strength'],
+                '_k2sl_no_rel': lambda attr: (
                     attr['_own_k2sl']
                     + attr['_own_k2s'] * attr['_own_length']
                     + attr['_parent_k2sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k2s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k3l': lambda attr: (
+                '_k2sl_rel': lambda attr: attr['_own_k2sl_rel'] + attr['_parent_k2sl_rel'],
+                'k2sl': lambda attr: attr['_k2sl_no_rel'] + attr['_k2sl_rel'] * attr['_main_strength'],
+                '_k3l_no_rel': lambda attr: (
                     attr['_own_k3l']
                     + attr['_own_k3'] * attr['_own_length']
                     + attr['_parent_k3l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k3'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k3sl': lambda attr: (
+                '_k3l_rel': lambda attr: attr['_own_k3l_rel'] + attr['_parent_k3l_rel'],
+                'k3l': lambda attr: attr['_k3l_no_rel'] + attr['_k3l_rel'] * attr['_main_strength'],
+                '_k3sl_no_rel': lambda attr: (
                     attr['_own_k3sl']
                     + attr['_own_k3s'] * attr['_own_length']
                     + attr['_parent_k3sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k3s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k4l': lambda attr: (
+                '_k3sl_rel': lambda attr: attr['_own_k3sl_rel'] + attr['_parent_k3sl_rel'],
+                'k3sl': lambda attr: attr['_k3sl_no_rel'] + attr['_k3sl_rel'] * attr['_main_strength'],
+                '_k4l_no_rel': lambda attr: (
                     attr['_own_k4l']
                     + attr['_own_k4'] * attr['_own_length']
                     + attr['_parent_k4l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k4'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k4sl': lambda attr: (
+                '_k4l_rel': lambda attr: attr['_own_k4l_rel'] + attr['_parent_k4l_rel'],
+                'k4l': lambda attr: attr['_k4l_no_rel'] + attr['_k4l_rel'] * attr['_main_strength'],
+                '_k4sl_no_rel': lambda attr: (
                     attr['_own_k4sl']
                     + attr['_own_k4s'] * attr['_own_length']
                     + attr['_parent_k4sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k4s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k5l': lambda attr: (
+                '_k4sl_rel': lambda attr: attr['_own_k4sl_rel'] + attr['_parent_k4sl_rel'],
+                'k4sl': lambda attr: attr['_k4sl_no_rel'] + attr['_k4sl_rel'] * attr['_main_strength'],
+                '_k5l_no_rel': lambda attr: (
                     attr['_own_k5l']
                     + attr['_own_k5'] * attr['_own_length']
                     + attr['_parent_k5l'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
-                'k5sl': lambda attr: (
+                '_k5l_rel': lambda attr: attr['_own_k5l_rel'] + attr['_parent_k5l_rel'],
+                'k5l': lambda attr: attr['_k5l_no_rel'] + attr['_k5l_rel'] * attr['_main_strength'],
+                '_k5sl_no_rel': lambda attr: (
                     attr['_own_k5sl']
                     + attr['_own_k5s'] * attr['_own_length']
                     + attr['_parent_k5sl'] * attr['weight'] * attr._inherit_strengths
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
+                '_k5sl_rel': lambda attr: attr['_own_k5sl_rel'] + attr['_parent_k5sl_rel'],
+                'k5sl': lambda attr: attr['_k5sl_no_rel'] + attr['_k5sl_rel'] * attr['_main_strength'],
                 'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
                 'ref_shift_x': lambda attr: attr['_own_ref_shift_x'] + attr['_parent_ref_shift_x'],
@@ -5559,21 +5679,33 @@ def freeze_longitudinal(ln_or_trk):
 
 @contextmanager
 def _temp_knobs(line_or_trk, knobs: dict):
-    old_values = {kk: line_or_trk.vars[kk]._value for kk in knobs.keys()}
+    '''
+    Context manager to temporarily set knobs in a line or tracker.
+    The state of the knobs is restored after leaving the context.
+    '''
+
+    old_expr_or_val = {}
+    for kk, vv in knobs.items():
+        rr = line_or_trk.vars[kk]
+        if rr._expr is not None:
+            old_expr_or_val[kk] = rr._expr
+        else:
+            old_expr_or_val[kk] = rr._value
     try:
         for kk, vv in knobs.items():
             line_or_trk.vars[kk] = vv
         yield
     finally:
-        for kk, vv in old_values.items():
+        for kk, vv in old_expr_or_val.items():
             line_or_trk.vars[kk] = vv
 
 
 class LineAttrItem:
 
-    def __init__(self, name, index=None, line=None):
+    def __init__(self, name, index=None, line=None, dtype=None):
         self.name = name
         self.index = index
+        self.dtype = dtype
 
         assert line is not None
         self.line = line
@@ -5584,37 +5716,68 @@ class LineAttrItem:
         line = self.line
         name = self.name
         index = self.index
+        dtype = self.dtype
 
+        if not hasattr(line.tracker._tracker_data_base, '_cache_prepare_multisetter_len'):
+            line.tracker._tracker_data_base._cache_prepare_multisetter_len = {}
+            line.tracker._tracker_data_base._cache_prepare_multisetter_has_name = {}
+        cache_len = line.tracker._tracker_data_base._cache_prepare_multisetter_len
+        cache_has_name = line.tracker._tracker_data_base._cache_prepare_multisetter_has_name
+
+        if isinstance(name, str):
+            nn0 = name
+        else:
+            assert isinstance(name, (list, tuple))
+            nn0 = name[0]
+
+        # I cache the list of elements that have nn0, not to loop on all the elements
+        # every time this function is called.
         all_names = line.element_names
+        if nn0 in cache_has_name:
+            has_nn0 = cache_has_name[nn0]
+        else:
+            has_nn0 =[]
+            for ii in range(len(all_names)):
+                nn = all_names[ii]
+                ee = line._element_dict[nn]
+                if isinstance(ee, xt.Replica):
+                    nn = ee.resolve(line, get_name=True)
+                    ee = line._element_dict[nn]
+                if hasattr(ee, nn0):
+                    has_nn0.append((ii, nn, ee))
+            cache_has_name[nn0] = has_nn0
+
         mask = np.zeros(len(all_names), dtype=bool)
         setter_names = []
-        for ii, nn in enumerate(all_names):
-            ee = line._element_dict[nn]
-            if isinstance(ee, xt.Replica):
-                nn = ee.resolve(line, get_name=True)
-                ee = line._element_dict[nn]
-            if isinstance(name, (list, tuple)):
+        for ii, nn, ee in has_nn0:
+            has_name = True
+            if isinstance(name, str):
+                inner_obj = ee
+                inner_name = name
+            else:
+                assert isinstance(name, (list, tuple))
                 inner_obj = ee
                 inner_name = name[-1]
-                has_name = True
                 for nn_inner in name[:-1]:
                     if not hasattr(inner_obj, nn_inner):
                         has_name = False
                         break
                     inner_obj = getattr(inner_obj, nn_inner)
-                if not has_name:
-                    continue
-            else:
-                inner_obj = ee
-                inner_name = name
-            if hasattr(inner_obj, '_xobject') and hasattr(inner_obj._xobject, inner_name):
-                if index is not None and index >= len(getattr(inner_obj, inner_name)):
-                    continue
+
+            if has_name and hasattr(inner_obj, '_xofields') and inner_name in inner_obj._xofields:
+                if index is not None:
+                    this_len = cache_len.get(tuple(name)+(nn,), None)
+                    if this_len is None:
+                        this_len = len(getattr(inner_obj, inner_name))
+                        cache_len[tuple(name)+(nn,)] = this_len
+                    if index >= this_len:
+                        continue
                 mask[ii] = True
                 setter_names.append(nn)
 
         multisetter = xt.MultiSetter(line=line, elements=setter_names,
-                                     field=name, index=index)
+                                     field=name, index=index, dtype=dtype,
+                                     skip_inconsistent_type_check=True)
         self.names = setter_names
         self._multisetter = multisetter
         self._mask = mask
@@ -5672,6 +5835,7 @@ class LineAttr:
         self.fields = fields
         self.derived_fields = derived_fields or {}
         self._cache = {}
+        self._value_cache = None
 
         # Build _inherit_strengths and _rot_and_shift_from_parent
         _inherit_strengths = np.zeros(len(line.element_names), dtype=np.float64)
@@ -5686,21 +5850,36 @@ class LineAttr:
         self._rot_and_shift_from_parent = _rot_and_shift_from_parent
 
         for fn, fa in zip(field_names, field_access):
-            if isinstance(fa, str):
-                access = fa
-                index = None
-            else:
-                access, index = fa
-            self._cache[fn] = LineAttrItem(name=access, index=index, line=line)
+            name=fa.name
+            index=fa.index
+            dtype=fa.dtype
+            self._cache[fn] = LineAttrItem(name=name, index=index, line=line, dtype=dtype)
 
     def __getitem__(self, key):
-        if key in self.derived_fields:
-            return self.derived_fields[key](self)
 
-        return self._cache[key].get_full_array()
+        if self._value_cache is not None and key in self._value_cache:
+            return self._value_cache[key]
+
+        if key in self.derived_fields:
+            out=  self.derived_fields[key](self)
+        else:
+            out = self._cache[key].get_full_array()
+
+        if self._value_cache is not None:
+            self._value_cache[key] = out
+
+        return out
 
     def keys(self):
         return list(self.derived_fields.keys()) + list(self.fields)
+
+    @contextmanager
+    def _cache_values(self):
+        self._value_cache = {}
+        try:
+            yield
+        finally:
+            self._value_cache = None
 
 
 class EnergyProgram:
@@ -5974,3 +6153,65 @@ class ActionLine(Action):
 
     def run(self):
         return self.line
+
+def _main_strength_from_attr(attr):
+
+    line = attr.line
+
+    if not line._has_valid_tracker():
+        line.build_tracker()
+
+    main_order = attr['_own_main_order'] + attr['_parent_main_order']
+
+    mask_take_main_order = attr._cache['_own_main_order']._mask | attr._cache['_parent_main_order']._mask
+
+    _main_strength_normal = np.zeros(len(main_order), dtype=np.float64)
+    _main_strength_skew = np.zeros(len(main_order), dtype=np.float64)
+
+    element_type = line.tracker._tracker_data_base._line_table.element_type[:-1] # remove _end_point
+    parent_type = line.tracker._tracker_data_base._line_table.parent_type[:-1] # remove _end_point
+
+    MAX_ORDER = 5
+    for ii in range(MAX_ORDER+1):
+
+        # Bends, RBends, Quadrupoles, and Sextupoles, Octupoles have implicit main order
+        mask_type = None
+        if ii == 0:
+            mask_type = ((element_type == 'RBend') | (element_type == 'Bend')
+                        | (parent_type == 'RBend') | (parent_type == 'Bend'))
+        elif ii == 1:
+            mask_type = ((element_type == 'Quadrupole') | (parent_type == 'Quadrupole'))
+        elif ii == 2:
+            mask_type = ((element_type == 'Sextupole') | (parent_type == 'Sextupole'))
+        elif ii == 3:
+            mask_type = ((element_type == 'Octupole') | (parent_type == 'Octupole'))
+
+        if mask_type is not None and np.any(mask_type):
+            this_norm = (attr[f'_own_k{ii}'] * attr['_own_length']
+                         + attr[f'_parent_k{ii}'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths)
+            this_skew = (attr[f'_own_k{ii}s'] * attr['_own_length']
+                         + attr[f'_parent_k{ii}s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths)
+            _main_strength_normal[mask_type] = this_norm[mask_type]
+            _main_strength_skew[mask_type] = this_skew[mask_type]
+
+        # Handle Multipole elements
+        mask_main_order = (main_order == ii) & mask_take_main_order
+        if np.any(mask_main_order):
+            this_norm = attr[f'_k{ii}l_no_rel']
+            this_skew = attr[f'_k{ii}sl_no_rel']
+            _main_strength_normal[mask_main_order] = this_norm[mask_main_order]
+            _main_strength_skew[mask_main_order] = this_skew[mask_main_order]
+
+    main_is_skew = np.bool_(attr['_own_main_is_skew'] + attr['_parent_main_is_skew'])
+
+    main_strength = np.zeros(len(main_order), dtype=np.float64)
+    main_strength[~main_is_skew] = _main_strength_normal[~main_is_skew]
+    main_strength[main_is_skew] = _main_strength_skew[main_is_skew]
+
+    return main_strength
+
+class AttrDefinition:
+    def __init__(self, name, index=None, dtype=np.float64):
+        self.name = name
+        self.index = index
+        self.dtype = dtype

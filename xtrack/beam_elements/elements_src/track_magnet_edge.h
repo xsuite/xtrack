@@ -22,10 +22,14 @@ void track_magnet_edge_particles(
     const double* knorm,
     const double* kskew,
     const int64_t k_order,
-    const double* knl,
-    const double* ksl,
+    GPUGLMEM const double* knl,
+    GPUGLMEM const double* ksl,
     const double factor_knl_ksl,
     const int64_t kl_order,
+    GPUGLMEM const double* knl_rel,
+    GPUGLMEM const double* ksl_rel,
+    const double factor_knl_ksl_rel,
+    int64_t order_rel,
     const double ksol,
     const double x0_solenoid,
     const double y0_solenoid,
@@ -37,7 +41,12 @@ void track_magnet_edge_particles(
 ) {
     double k0 = 0;
     if (k_order > -1) k0 += knorm[0];
-    if (fabs(length) > 1e-10 && kl_order > -1) k0 += factor_knl_ksl * knl[0] / length;
+    if (fabs(length) > 1e-10 && kl_order > -1) {
+        k0 += factor_knl_ksl * knl[0] / length;
+    }
+    if (fabs(length) > 1e-10 && order_rel > -1 && knl_rel != NULL) {
+        k0 += factor_knl_ksl_rel * knl_rel[0] / length;
+    }
 
     // Assume we are coming from or going to a drift
     if (is_exit) {

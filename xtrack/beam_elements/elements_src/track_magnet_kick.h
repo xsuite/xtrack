@@ -28,6 +28,11 @@ void track_magnet_kick_single_particle(
     double inv_factorial_order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
+    int64_t order_rel,
+    double inv_factorial_order_rel,
+    GPUGLMEM const double* knl_rel,
+    GPUGLMEM const double* ksl_rel,
+    double rel_ref_strength,
     double const factor_knl_ksl,
     double kick_weight,
     double k0,
@@ -68,6 +73,17 @@ void track_magnet_kick_single_particle(
         kick_weight
     );
 
+    // multipolar kick
+    kick_simple_single_particle(
+        part,
+        order_rel,
+        inv_factorial_order_rel,
+        knl_rel,
+        ksl_rel,
+        factor_knl_ksl * rel_ref_strength,
+        kick_weight
+    );
+
     kick_simple_single_particle(
         part,
         /* order */ 3,
@@ -103,6 +119,9 @@ void track_magnet_kick_single_particle(
     if (order >= 0) {
         k0l_mult = knl[0] * factor_knl_ksl;
     }
+    if (order_rel >= 0 && knl_rel != NULL) {
+        k0l_mult += knl_rel[0] * factor_knl_ksl * rel_ref_strength;
+    }
     dpx += -chi * (k0_h_correction  *length + k0l_mult) * kick_weight * htot * x;
 
     // k1h correction can be computed from this term in the hamiltonian
@@ -111,6 +130,9 @@ void track_magnet_kick_single_particle(
     double k1l_mult = 0;
     if (order >= 1) {
         k1l_mult = knl[1] * factor_knl_ksl;
+    }
+    if (order_rel >= 1 && knl_rel != NULL) {
+        k1l_mult += knl_rel[1] * factor_knl_ksl * rel_ref_strength;
     }
     dpx += htot * chi * (k1_h_correction * length + k1l_mult) * kick_weight * (-x * x + 0.5 * y * y);
     dpy += htot * chi * (k1_h_correction * length  + k1l_mult) * kick_weight * x * y;
@@ -171,6 +193,13 @@ void kick_simple_single_coordinates(
     double *dpx,
     double *dpy
 ) {
+
+    // Return if null knl/ksl pointers
+    if (knl == NULL || ksl == NULL) {
+        *dpx = 0.;
+        *dpy = 0.;
+        return;
+    }
 
     int64_t index = order;
 
@@ -243,6 +272,11 @@ void evaluate_field_from_strengths(
     double inv_factorial_order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
+    int64_t order_rel,
+    double inv_factorial_order_rel,
+    GPUGLMEM const double* knl_rel,
+    GPUGLMEM const double* ksl_rel,
+    double rel_ref_strength,
     double const factor_knl_ksl,
     double k0,
     double k1,
@@ -291,6 +325,22 @@ void evaluate_field_from_strengths(
         &dpx_mul,
         &dpy_mul);
 
+    // multipolar kick relevant for the field evaluation
+    double dpx_mul_rel = 0.;
+    double dpy_mul_rel = 0.;
+    kick_simple_single_coordinates(
+        x,
+        y,
+        1., // chi
+        order_rel,
+        inv_factorial_order_rel,
+        knl_rel,
+        ksl_rel,
+        factor_knl_ksl * rel_ref_strength,
+        1., // kick_weight
+        &dpx_mul_rel,
+        &dpy_mul_rel);
+
 
     // main kick
     double dpx_main=0.;
@@ -308,11 +358,10 @@ void evaluate_field_from_strengths(
         &dpx_main,
         &dpy_main);
 
-    double const dpx = dpx_mul + dpx_main;
-    double const dpy = dpy_mul + dpy_main;
+    double const dpx = dpx_mul + dpx_main + dpx_mul_rel;
+    double const dpy = dpy_mul + dpy_main + dpy_mul_rel;
 
     double const brho_0 = p0c / C_LIGHT / q0; // [T m]
-
 
     *Bx_T = dpy * brho_0 / length - 0.5 * dks_ds * brho_0 * (x - x0_solenoid); // [T]
     *By_T = -dpx * brho_0 / length - 0.5 * dks_ds * brho_0 * (y - y0_solenoid); // [T]

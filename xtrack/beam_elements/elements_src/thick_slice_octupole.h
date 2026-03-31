@@ -10,6 +10,7 @@
 #define XTRACK_THICK_SLICE_OCTUPOLE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -27,6 +28,11 @@ void ThickSliceOctupole_track_local_particle(
         /*inv_factorial_order*/   ThickSliceOctupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceOctupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceOctupoleData_getp1__parent_ksl(el, 0),
+        /*order_rel*/             ThickSliceOctupoleData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(ThickSliceOctupoleData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               ThickSliceOctupoleData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThickSliceOctupoleData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ThickSliceOctupoleData_get__parent_length(el) * ((ThickSliceOctupoleData_get__parent_main_is_skew(el)) ? ThickSliceOctupoleData_get__parent_k3s(el) : ThickSliceOctupoleData_get__parent_k3(el)),
         /*num_multipole_kicks*/   ThickSliceOctupoleData_get__parent_num_multipole_kicks(el),
         /*model*/                 ThickSliceOctupoleData_get__parent_model(el),
         /*default_model*/         OCTUPOLE_DEFAULT_MODEL,

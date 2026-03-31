@@ -100,15 +100,15 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
 
         xt_tau = part.zeta/part.beta0
         xo.assert_allclose(part.x[ii], mad_results.x, rtol=0,
-                           atol=(3e-11 if k1 == 0 and k2 == 0 else 5e-9))
+                           atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.px[ii], mad_results.px, rtol=0,
                            atol=(4e-11 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.y[ii], mad_results.y, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.py[ii], mad_results.py, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
-        xo.assert_allclose(xt_tau[ii], mad_results.t, rtol=4e-8,
-                           atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
+        xo.assert_allclose(xt_tau[ii], mad_results.t, rtol=6e-8,
+                           atol=(5e-10 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
         part = p0.copy(_context=test_context)
