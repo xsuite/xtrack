@@ -177,7 +177,8 @@ class SplineBorisSequence:
             )
             for (fc, deriv, piece_s_start, piece_s_end), grp in groups:
                 deriv = int(deriv)
-                if fc in ("By", "Bx") and deriv >= multipole_order:
+                # Accept both legacy (Bx, By) and canonical (Bskew, Bnorm) names.
+                if fc in ("By", "Bx", "Bnorm", "Bskew") and deriv >= multipole_order:
                     continue
 
                 grp_sorted = grp.sort_values("param_index")
@@ -212,9 +213,9 @@ class SplineBorisSequence:
 
                 if fc == "Bs":
                     bs_spline = spline
-                elif fc == "By":
+                elif fc in ("By", "Bnorm"):
                     by_dict[deriv] = spline
-                elif fc == "Bx":
+                elif fc in ("Bx", "Bskew"):
                     bx_dict[deriv] = spline
 
             by_tuple = tuple(by_dict.get(order, zero_spline) for order in range(multipole_order))

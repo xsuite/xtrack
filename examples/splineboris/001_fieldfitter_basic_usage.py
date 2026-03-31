@@ -23,7 +23,7 @@ dz = 0.001  # Step size in the z (longitudinal) direction for numerical differen
 file_path = Path(__file__).resolve().parent.parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
 df_raw_data = pd.read_csv(
     file_path, sep=r"\s+", header=None,
-    names=["X", "Y", "Z", "Bx", "By", "Bs"],
+    names=["X", "Y", "Z", "Bskew", "Bnorm", "Bs"],
 ).set_index(["X", "Y", "Z"])
 
 deg = 2

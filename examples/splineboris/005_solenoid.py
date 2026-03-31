@@ -47,7 +47,7 @@ bx, by, bz = sf.get_field(x_grid.ravel(), y_grid.ravel(), z_grid.ravel())
 
 df_raw_data = pd.DataFrame(
     np.column_stack([x_grid.ravel(), y_grid.ravel(), z_grid.ravel(), bx, by, bz]),
-    columns=["X", "Y", "Z", "Bx", "By", "Bs"],
+    columns=["X", "Y", "Z", "Bskew", "Bnorm", "Bs"],
 ).set_index(["X", "Y", "Z"])
 
 fitter = FieldFitter(

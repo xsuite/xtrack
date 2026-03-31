@@ -127,7 +127,7 @@ def solenoid_vs_varsol_fit_pars_df(solenoid_field):
         np.column_stack(
             [x_grid.ravel(), y_grid.ravel(), z_grid.ravel(), bx.ravel(), by.ravel(), bz.ravel()]
         ),
-        columns=["X", "Y", "Z", "Bx", "By", "Bs"],
+        columns=["X", "Y", "Z", "Bskew", "Bnorm", "Bs"],
     ).set_index(["X", "Y", "Z"])
 
     fitter = FieldFitter(
@@ -157,8 +157,8 @@ def solenoid_vs_varsol_fit_pars_df(solenoid_field):
     }
     missing_cols = required_cols.difference(df_fit_pars_reset.columns)
     assert not missing_cols, f"Missing required fit-parameter columns: {sorted(missing_cols)}"
-    assert {"Bx", "By", "Bs"}.issubset(set(df_fit_pars_reset["field_component"])), (
-        "FieldFitter output is missing one or more field components (Bx, By, Bs)"
+    assert {"Bskew", "Bnorm", "Bs"}.issubset(set(df_fit_pars_reset["field_component"])), (
+        "FieldFitter output is missing one or more field components (Bskew, Bnorm, Bs)"
     )
 
     s_start_min = float(df_fit_pars_reset["s_start"].min())
