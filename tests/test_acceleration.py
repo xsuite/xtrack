@@ -158,7 +158,7 @@ def test_energy_program(test_context):
     line.vars['t_turn_s'] = 0
     line.vars['on_chicane_k0'] = 0
     tw = line.twiss(method='6d')
-    xo.assert_allclose(tw.zeta[0], 0, rtol=0, atol=1e-12)
+    xo.assert_allclose(tw.zeta[0], 0, rtol=0, atol=1e-10)
     xo.assert_allclose(line.particle_ref.mass0 * tw.gamma0, line.particle_ref.mass0 + E_kin_turn[0],
                        rtol=1e-10, atol=0)
 

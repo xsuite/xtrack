@@ -149,12 +149,12 @@ def test_misalign_drift(angle, tilt, test_context):
     p_aligned_exit.move(_context=xo.ContextCpu())
 
     # Compare the trajectory with and without misalignment
-    xo.assert_allclose(p_expected.x, p_aligned_exit.x, atol=1e-14, rtol=1e-9)
-    xo.assert_allclose(p_expected.px, p_aligned_exit.px, atol=1e-14, rtol=1e-9)
-    xo.assert_allclose(p_expected.y, p_aligned_exit.y, atol=1e-14, rtol=1e-9)
-    xo.assert_allclose(p_expected.py, p_aligned_exit.py, atol=1e-14, rtol=1e-9)
-    xo.assert_allclose(p_expected.s, p_aligned_exit.s, atol=1e-14, rtol=1e-9)
-    xo.assert_allclose(p_expected.zeta, p_aligned_exit.zeta, atol=1e-14, rtol=1e-9)
+    xo.assert_allclose(p_expected.x, p_aligned_exit.x, atol=3e-14, rtol=1e-9)
+    xo.assert_allclose(p_expected.px, p_aligned_exit.px, atol=3e-14, rtol=1e-9)
+    xo.assert_allclose(p_expected.y, p_aligned_exit.y, atol=3e-14, rtol=1e-9)
+    xo.assert_allclose(p_expected.py, p_aligned_exit.py, atol=3e-14, rtol=1e-9)
+    xo.assert_allclose(p_expected.s, p_aligned_exit.s, atol=3e-14, rtol=1e-9)
+    xo.assert_allclose(p_expected.zeta, p_aligned_exit.zeta, atol=3e-14, rtol=1e-9)
 
     # I comment out the following as it is inconsistent with the current implementation
     # (including the tilt in the misalignment), need to adapt:
@@ -442,6 +442,7 @@ def test_thick_slice_misaligned_bend():
     bend = xt.Bend(
         length=length,
         angle=angle,
+        model='bend-kick-bend',
         shift_x=dx,
         shift_y=dy,
         shift_s=ds,

@@ -651,7 +651,7 @@ def test_track_log_and_merit_function(test_context):
     xo.assert_allclose(merit_function.get_x_limits(), expected_limits, atol=1e-14)
 
     # Below numbers obtained by first only matching the tunes, then the above
-    x_optimized = [-1.40251213, 0.81823393, 0.31196667, 0.52478984, -0.052393429]
+    x_optimized = [-1.40280327,  0.81538019,  0.31203146,  0.52495916, -0.05239972]
     merit_function.set_x(x_optimized)
     assert np.all(opt.target_status(ret=True)['tol_met'])
 

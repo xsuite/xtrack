@@ -10,6 +10,7 @@
 #define XTRACK_THICK_SLICE_QUADRUPOLE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -27,6 +28,11 @@ void ThickSliceQuadrupole_track_local_particle(
         /*inv_factorial_order*/   ThickSliceQuadrupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceQuadrupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceQuadrupoleData_getp1__parent_ksl(el, 0),
+        /*order_rel*/             ThickSliceQuadrupoleData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(ThickSliceQuadrupoleData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               ThickSliceQuadrupoleData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThickSliceQuadrupoleData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ThickSliceQuadrupoleData_get__parent_length(el) * ((ThickSliceQuadrupoleData_get__parent_main_is_skew(el)) ? ThickSliceQuadrupoleData_get__parent_k1s(el) : ThickSliceQuadrupoleData_get__parent_k1(el)),
         /*num_multipole_kicks*/   ThickSliceQuadrupoleData_get__parent_num_multipole_kicks(el),
         /*model*/                 ThickSliceQuadrupoleData_get__parent_model(el),
         /*default_model*/         QUADRUPOLE_DEFAULT_MODEL,

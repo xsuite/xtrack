@@ -46,7 +46,7 @@ def test_rbend_straight_body_edge_full(test_context):
     xo.assert_allclose(tw_ref0.x,    tw_test0.x, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.y,    tw_test0.y, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.s,    tw_test0.s, rtol=0, atol=1e-12)
-    xo.assert_allclose(tw_ref0.zeta, tw_test0.zeta, rtol=0, atol=1e-11)
+    xo.assert_allclose(tw_ref0.zeta, tw_test0.zeta, rtol=0, atol=3e-11)
     xo.assert_allclose(tw_ref0.px,   tw_test0.px, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.py,   tw_test0.py, rtol=0, atol=1e-12)
 
@@ -55,7 +55,7 @@ def test_rbend_straight_body_edge_full(test_context):
     xo.assert_allclose(tw_ref.x,    tw_test.x, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref.y,    tw_test.y, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref.s,    tw_test.s, rtol=0, atol=1e-12)
-    xo.assert_allclose(tw_ref.zeta, tw_test.zeta, rtol=0, atol=1e-1)
+    xo.assert_allclose(tw_ref.zeta, tw_test.zeta, rtol=0, atol=3e-11)
     xo.assert_allclose(tw_ref.px,   tw_test.px, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref.py,   tw_test.py, rtol=0, atol=1e-12)
 
@@ -108,7 +108,7 @@ def test_rbend_straight_body_edge_linear(test_context):
     xo.assert_allclose(tw_ref0.x,    tw_test0.x, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.y,    tw_test0.y, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.s,    tw_test0.s, rtol=0, atol=1e-12)
-    xo.assert_allclose(tw_ref0.zeta, tw_test0.zeta, rtol=0, atol=1e-11)
+    xo.assert_allclose(tw_ref0.zeta, tw_test0.zeta, rtol=0, atol=3e-11)
     xo.assert_allclose(tw_ref0.px,   tw_test0.px, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.py,   tw_test0.py, rtol=0, atol=1e-12)
 
@@ -117,7 +117,7 @@ def test_rbend_straight_body_edge_linear(test_context):
     xo.assert_allclose(tw_ref.x,    tw_test.x, rtol=0, atol=1e-8)
     xo.assert_allclose(tw_ref.y,    tw_test.y, rtol=0, atol=1e-8)
     xo.assert_allclose(tw_ref.s,    tw_test.s, rtol=0, atol=1e-12)
-    xo.assert_allclose(tw_ref.zeta, tw_test.zeta, rtol=0, atol=1e-1)
+    xo.assert_allclose(tw_ref.zeta, tw_test.zeta, rtol=0, atol=5e-11)
     xo.assert_allclose(tw_ref.px,   tw_test.px, rtol=0, atol=1e-9)
     xo.assert_allclose(tw_ref.py,   tw_test.py, rtol=0, atol=1e-9)
 
@@ -129,7 +129,7 @@ def test_rbend_straight_body_edge_linear(test_context):
     xo.assert_allclose(tw_back.x,    tw_test.x, rtol=0, atol=1e-8)
     xo.assert_allclose(tw_back.y,    tw_test.y, rtol=0, atol=1e-8)
     xo.assert_allclose(tw_back.s,    tw_test.s, rtol=0, atol=1e-12)
-    xo.assert_allclose(tw_back.zeta, tw_test.zeta, rtol=0, atol=1e-1)
+    xo.assert_allclose(tw_back.zeta, tw_test.zeta, rtol=0, atol=5e-11)
     xo.assert_allclose(tw_back.px,   tw_test.px, rtol=0, atol=1e-9)
     xo.assert_allclose(tw_back.py,   tw_test.py, rtol=0, atol=1e-9)
 
@@ -195,7 +195,7 @@ def test_rbend_straight_body_edge_full_angle_diff():
     xo.assert_allclose(tw_ref0.x,    tw_test0.x, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.y,    tw_test0.y, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.s,    tw_test0.s, rtol=0, atol=1e-12)
-    xo.assert_allclose(tw_ref0.zeta, tw_test0.zeta, rtol=0, atol=1e-11)
+    xo.assert_allclose(tw_ref0.zeta, tw_test0.zeta, rtol=0, atol=3e-11)
     xo.assert_allclose(tw_ref0.px,   tw_test0.px, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.py,   tw_test0.py, rtol=0, atol=1e-12)
 
@@ -204,7 +204,7 @@ def test_rbend_straight_body_edge_full_angle_diff():
     xo.assert_allclose(tw_ref.x,    tw_test.x, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref.y,    tw_test.y, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref.s,    tw_test.s, rtol=0, atol=1e-12)
-    xo.assert_allclose(tw_ref.zeta, tw_test.zeta, rtol=0, atol=1e-1)
+    xo.assert_allclose(tw_ref.zeta, tw_test.zeta, rtol=0, atol=3e-11)
     xo.assert_allclose(tw_ref.px,   tw_test.px, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref.py,   tw_test.py, rtol=0, atol=1e-12)
 
@@ -245,7 +245,7 @@ def test_rbend_straight_body_edge_linear_angle_diff():
     xo.assert_allclose(tw_ref0.x,    tw_test0.x, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.y,    tw_test0.y, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.s,    tw_test0.s, rtol=0, atol=1e-12)
-    xo.assert_allclose(tw_ref0.zeta, tw_test0.zeta, rtol=0, atol=1e-11)
+    xo.assert_allclose(tw_ref0.zeta, tw_test0.zeta, rtol=0, atol=3e-11)
     xo.assert_allclose(tw_ref0.px,   tw_test0.px, rtol=0, atol=1e-12)
     xo.assert_allclose(tw_ref0.py,   tw_test0.py, rtol=0, atol=1e-12)
 
@@ -254,7 +254,7 @@ def test_rbend_straight_body_edge_linear_angle_diff():
     xo.assert_allclose(tw_ref.x,    tw_test.x, rtol=0, atol=2e-8)
     xo.assert_allclose(tw_ref.y,    tw_test.y, rtol=0, atol=2e-8)
     xo.assert_allclose(tw_ref.s,    tw_test.s, rtol=0, atol=2e-12)
-    xo.assert_allclose(tw_ref.zeta, tw_test.zeta, rtol=0, atol=1e-1)
+    xo.assert_allclose(tw_ref.zeta, tw_test.zeta, rtol=0, atol=3e-11)
     xo.assert_allclose(tw_ref.px,   tw_test.px, rtol=0, atol=5e-9)
     xo.assert_allclose(tw_ref.py,   tw_test.py, rtol=0, atol=5e-9)
 
@@ -266,7 +266,8 @@ def test_rbend_straight_body_edge_linear_angle_diff():
     xo.assert_allclose(tw_back.x,    tw_test.x, rtol=0, atol=1e-8)
     xo.assert_allclose(tw_back.y,    tw_test.y, rtol=0, atol=1e-8)
     xo.assert_allclose(tw_back.s,    tw_test.s, rtol=0, atol=1e-12)
-    xo.assert_allclose(tw_back.zeta, tw_test.zeta, rtol=0, atol=1e-1)
+    xo.assert_allclose(tw_back.zeta, tw_test.zeta, rtol=0, atol=3e-11)
+
     xo.assert_allclose(tw_back.px,   tw_test.px, rtol=0, atol=1e-9)
     xo.assert_allclose(tw_back.py,   tw_test.py, rtol=0, atol=1e-9)
 

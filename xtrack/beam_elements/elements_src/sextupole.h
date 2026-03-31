@@ -7,6 +7,7 @@
 #define XTRACK_SEXTUPOLE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -24,6 +25,11 @@ void Sextupole_track_local_particle(
         /*inv_factorial_order*/   SextupoleData_get_inv_factorial_order(el),
         /*knl*/                   SextupoleData_getp1_knl(el, 0),
         /*ksl*/                   SextupoleData_getp1_ksl(el, 0),
+        /*order_rel*/             SextupoleData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(SextupoleData_len_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               SextupoleData_getp1_knl_rel(el, 0),
+        /*ksl_rel*/               SextupoleData_getp1_ksl_rel(el, 0),
+        /*rel_ref_strength*/      SextupoleData_get_length(el) * ((SextupoleData_get_main_is_skew(el)) ? SextupoleData_get_k2s(el) : SextupoleData_get_k2(el)),
         /*num_multipole_kicks*/   SextupoleData_get_num_multipole_kicks(el),
         /*model*/                 SextupoleData_get_model(el),
         /*default_model*/         SEXTUPOLE_DEFAULT_MODEL,

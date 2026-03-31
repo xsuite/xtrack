@@ -2918,7 +2918,7 @@ def test_nested_lists():
     assert np.all(tt.name == np.array(
         ['q1::0', 'q1::1', 'q2', '_end_point']))
 
-
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_relative_error_definition():
 
     env = xt.Environment()
@@ -4485,3 +4485,21 @@ def test_sandwitch_thin_elements_insert():
     xo.assert_allclose(tt.s_end, [
         4.95, 5.05, 9., 11., 13.9, 14., 19., 21., 40., 40., 40., 40., 40., 40.],
         atol=1e-14)
+
+def test_environment_set_suppress_expression():
+
+    env = xt.Environment()
+
+    env['a'] = 5
+
+    env.new('q', xt.Quadrupole, length=1.0)
+    env.set('q', knl=[0.0, '3*a'])
+
+    env.set('q', k1='2*a')
+    assert str(env.ref['q'].k1._expr) == "(2.0 * vars['a'])"
+    env.set('q', k1=0.3)
+    assert env.ref['q'].k1._expr is None
+
+    assert str(env.ref['q'].knl[1]._expr) == "(3.0 * vars['a'])"
+    env.set('q', knl=[0.0, 0.2])
+    assert env.ref['q'].knl[1]._expr is None

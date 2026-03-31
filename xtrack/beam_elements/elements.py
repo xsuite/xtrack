@@ -36,6 +36,7 @@ _INDEX_TO_MODEL_CURVED = {
     4: 'mat-kick-mat',
     5: 'drift-kick-drift-exact',
     6: 'drift-kick-drift-expanded',
+    7: 'rot-kick-rot-low-order',
 }
 _MODEL_TO_INDEX_CURVED = {k: v for v, k in _INDEX_TO_MODEL_CURVED.items()} | {'expanded': 4}
 
@@ -361,6 +362,40 @@ class _HasKnlKsl:
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
+    def get_total_knl_ksl(self):
+        nn = 4  # minimum length for knl and ksl is 4 (octupole order)
+        nn = max(nn, len(self.knl))
+        nn = max(nn, len(self.ksl))
+
+        if 'knl_rel' in self._xo_fnames:
+            nn = max(nn, len(self.knl_rel))
+            nn = max(nn, len(self.ksl_rel))
+
+        knl = np.zeros(nn, dtype=np.float64)
+        ksl = np.zeros(nn, dtype=np.float64)
+        knl[: len(self.knl)] += self.knl
+        ksl[: len(self.ksl)] += self.ksl
+
+        if 'knl_rel' in self._xo_fnames:
+            knl[: len(self.knl_rel)] += self.main_strength * self.knl_rel
+            ksl[: len(self.ksl_rel)] += self.main_strength * self.ksl_rel
+
+        if 'k0' in self._xo_fnames:
+            if hasattr(self, '_k0'): # To bypass k0 = from_angle
+                knl[0] += self._k0 * self.length
+            else:
+                knl[0] += self.k0 * self.length
+
+        for kk, ii in {'k1': 1, 'k2': 2, 'k3': 3}.items():
+            if kk in self._xo_fnames:
+                knl[ii] += getattr(self, kk) * self.length
+
+        for kk, ii in {'k0s':0, 'k1s': 1, 'k2s': 2, 'k3s': 3}.items():
+            if kk in self._xo_fnames:
+                ksl[ii] += getattr(self, kk) * self.length
+
+        return knl, ksl
+
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
@@ -394,6 +429,9 @@ class _HasKnlKsl:
 
         model = kwargs.pop('model', None)
         integrator = kwargs.pop('integrator', None)
+
+        if 'knl_rel' in self._xo_fnames:
+            _handle_knl_ksl_rel_kwargs(kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -1688,9 +1726,27 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     isthick : bool
         Whether the multipole is to be treated as thick (True) or thin (False).
         Default is ``False``.
-    """
+    """.strip()
 
-    __doc__ = '\n    '.join([_docstring_start.strip(),
+    _docstring_knl_rel_ksl_rel = \
+    """
+    knl_rel : array
+        Relative integrated strength of the normal components with respect to the main
+        component defined by `main_order` and `main_is_skew`. The effect of
+        `knl_rel` is added to the one of `knl`.
+    ksl_rel : array
+        Relative integrated strength of the skew components with respect to the main
+        component defined by `main_order` and `main_is_skew`. The effect of
+        `ksl_rel` is added to the one of `ksl`.
+    main_order : int
+        Order of the main multipole component used for defining the relative strengths
+        `knl_rel` and `ksl_rel`. Default is ``0``.
+    main_is_skew : bool
+        Whether the main multipole component used for defining the relative strengths
+        `knl_rel` and `ksl_rel` is skew (True) or normal (False). Default is ``False``.
+    """.strip()
+
+    __doc__ = '\n    '.join([_docstring_start, _docstring_knl_rel_ksl_rel,
                              _HasModelCurved._for_docstring,
                              _HasIntegrator._for_docstring,
                              _for_docstring_edge_straight,
@@ -1710,6 +1766,10 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         'delta_taper': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'main_order': xo.Int32,
+        'main_is_skew': xo.Int32,
         'isthick': xo.Int64,
         'num_multipole_kicks': xo.Int64,
         'model': xo.Int64,
@@ -1721,6 +1781,7 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         'isthick': '_isthick',
         'model': '_model',
         'integrator': '_integrator',
+        'main_is_skew': '_main_is_skew',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -1744,6 +1805,13 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         # have consistency with other thick elements otherwise)
         return self.isthick and self.length != 0
 
+    @property
+    def main_strength(self):
+        if self.main_is_skew:
+            return self.ksl[self.main_order]
+        else:
+            return self.knl[self.main_order]
+
     def __init__(self, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -1766,6 +1834,8 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
 
         if 'hyl' in kwargs.keys():
             assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
+
+        _handle_knl_ksl_rel_kwargs(kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -1806,6 +1876,26 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     @property
     def _drift_slice_class(self):
         return xt.DriftSliceMultipole
+
+    @property
+    def main_is_skew(self):
+        return bool(self._main_is_skew > 0)
+
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
+
+def _handle_knl_ksl_rel_kwargs(kwargs):
+    knl_rel = kwargs.pop('knl_rel', [0])
+    ksl_rel = kwargs.pop('ksl_rel', [0])
+    # pad to have the same length for knl_rel and ksl_rel
+    max_len_rel = max(len(knl_rel), len(ksl_rel))
+    if len(knl_rel) != len(ksl_rel):
+        knl_rel = list(knl_rel) + [0] * (max_len_rel - len(knl_rel))
+        ksl_rel = list(ksl_rel) + [0] * (max_len_rel - len(ksl_rel))
+    kwargs['knl_rel'] = knl_rel
+    kwargs['ksl_rel'] = ksl_rel
+
 
 class SimpleThinQuadrupole(BeamElement):
     """An specialized version of Multipole to model a thin quadrupole
@@ -1857,14 +1947,6 @@ class SimpleThinQuadrupole(BeamElement):
     @property
     def inv_factorial_order(self): return 1.0
 
-    @property
-    def ksl(self): return self._buffer.context.linked_array_type.from_array(
-        np.array([0., 0.]),
-        mode='readonly',
-        container=self,
-    )
-
-
 class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     """Common properties for Bend and RBend: see their respective docstrings."""
     isthick = True
@@ -1901,6 +1983,8 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
         'k0_from_h': xo.Field(xo.UInt64, default=1),
     }
 
@@ -1917,6 +2001,10 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'h': '_h',
     }
 
+    @property
+    def main_strength(self):
+        """Integrated strength of the main dipole component k0*length."""
+        return self._k0 * self.length
 
     @property
     def angle(self):
@@ -2013,6 +2101,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     @property
     def _repr_fields(self):
         return ['length', 'k0', 'k1', 'h', 'k0_from_h', 'model', 'knl', 'ksl',
+                'knl_rel', 'ksl_rel',
                 'edge_entry_active', 'edge_exit_active', 'edge_entry_model',
                 'edge_exit_model', 'edge_entry_angle', 'edge_exit_angle',
                 'edge_entry_angle_fdown', 'edge_exit_angle_fdown',
@@ -2072,7 +2161,17 @@ class Bend(_BendCommon, BeamElement):
         becomes false when `k0` is set directly to a numeric value.
     """.strip()
 
+    _docstring_knl_rel_ksl_rel = \
+    """knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k0. The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k0. The effect of ksl_rel is added to the one of ksl.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+            _docstring_knl_rel_ksl_rel,
             _HasModelCurved._for_docstring, _HasIntegrator._for_docstring,
             _for_docstring_edge_bend, _for_docstring_alignment, '\n',
             _docstring_general_notes, '\n\n'])
@@ -2184,9 +2283,19 @@ class RBend(_BendCommon, BeamElement):
         defined as (1 / h) * (1 - cos(angle / 2)). The shift is added to `rbend_shift`.
         This parameter has effect only when `rbend_model` is "straight-body".
         Default is True.
-    """
+    """.strip()
+
+    _docstring_knl_rel_ksl_rel = \
+    """knl_rel : array
+        Relative integrated strength of the normal components with respect to the
+        main component k0. The effect of knl_rel is added to the one of knl.
+    ksl_rel : array
+        Relative integrated strength of the skew components with respect to the
+        main component k0. The effect of ksl_rel is added to the one of ksl.
+    """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+            _docstring_knl_rel_ksl_rel,
             _HasModelCurved._for_docstring, _HasIntegrator._for_docstring,
             _for_docstring_edge_bend, _for_docstring_alignment, '\n',
             _docstring_general_notes, '\n\n'])
@@ -2428,7 +2537,22 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters.
     """.strip()
 
+    _docstring_knl_ksl_rel = \
+    """knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k2 or k2s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k2 or k2s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of ksl_rel is added to the one of ksl.
+    main_is_skew : bool, optional
+        If False (default), the main component is the normal sextupole k2,
+        while if True the main component is the skew sextupole k2s.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _docstring_knl_ksl_rel,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
                _for_docstring_edge_straight, _for_docstring_alignment, '\n',
                _docstring_general_notes, '\n\n'])
@@ -2445,6 +2569,9 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'main_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
@@ -2460,6 +2587,7 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'order': '_order',
         'model': '_model',
         'integrator': '_integrator',
+        'main_is_skew': '_main_is_skew',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -2470,6 +2598,17 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/sextupole.h"',
     ]
+
+    @property
+    def main_strength(self):
+        """Returns the integrated strength of the main component, i.e. k2*length
+        if the main component is the normal one, or k2s*length if the main component
+        is the skew one.
+        """
+        if self.main_is_skew:
+            return self.k2s * self.length
+        else:
+            return self.k2 * self.length
 
     @property
     def _thin_slice_class(self):
@@ -2491,6 +2630,16 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceSextupoleExit
 
+    @property
+    def main_is_skew(self):
+        """It is True if the main component is the skew one, i.e. k2s,
+        or False if the main component is the normal one, i.e. k2."""
+        return bool(self._main_is_skew > 0)
+
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
+
 
 class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
@@ -2508,7 +2657,23 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters.
     """.strip()
 
+    _docstring_knl_ksl_rel = \
+    """
+    knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k3 or k3s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k3 or k3s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of ksl_rel is added to the one of ksl.
+    main_is_skew : bool, optional
+        If False (default), the main component is the normal octupole k3,
+        while if True the main component is the skew octupole k3s.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _docstring_knl_ksl_rel,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
                _for_docstring_edge_straight, _for_docstring_alignment, '\n',
                _docstring_general_notes, '\n\n'])
@@ -2525,6 +2690,9 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'main_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
@@ -2552,6 +2720,17 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     ]
 
     @property
+    def main_strength(self):
+        """Returns the integrated strength of the main component, i.e. k3*length
+        if the main component is the normal one, or k3s*length if the main component
+        is the skew one.
+        """
+        if self.main_is_skew:
+            return self.k3s * self.length
+        else:
+            return self.k3 * self.length
+
+    @property
     def _thin_slice_class(self):
         return xt.ThinSliceOctupole
 
@@ -2571,6 +2750,16 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceOctupoleExit
 
+    @property
+    def main_is_skew(self):
+        """It is True if the main component is the skew one, i.e. k3s,
+        or False if the main component is the normal one, i.e. k3."""
+        return bool(self._main_is_skew > 0)
+
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
+
 
 class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
@@ -2588,7 +2777,23 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters.
     """.strip()
 
+    _docstring_knl_rel_ksl_rel = \
+    """
+    knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k1 or k1s, depending whether `main_is_skew` is False or True, respectively.
+        The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k1 or k1s, depending whether `main_is_skew` is False or True, respectively.
+        The effect of ksl_rel is added to the one of ksl.
+    main_is_skew : bool, optional
+        If True, the main component is the skew one (k1s), otherwise it is the normal one (k1).
+        Default is False.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _docstring_knl_rel_ksl_rel,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
                _for_docstring_edge_straight, _for_docstring_alignment, '\n',
                _docstring_general_notes, '\n\n'])
@@ -2606,6 +2811,9 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'main_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'model': xo.Int64,
@@ -2620,6 +2828,7 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'order': '_order',
         'model': '_model',
         'integrator': '_integrator',
+        'main_is_skew': '_main_is_skew',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -2631,6 +2840,17 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _internal_record_class = SynchrotronRadiationRecord
+
+    @property
+    def main_strength(self):
+        """Returns the integrated strength of the main component, i.e. k1*length
+        if the main component is the normal one, or k1s*length if the main component 
+        is the skew one.
+        """
+        if self.main_is_skew:
+            return self.k1s * self.length
+        else:
+            return self.k1 * self.length
 
     @property
     def radiation_flag(self): return 0.0
@@ -2654,6 +2874,16 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     @property
     def _exit_slice_class(self):
         return xt.ThinSliceQuadrupoleExit
+
+    @property
+    def main_is_skew(self):
+        """It is True if the main component is the skew one, i.e. k1s,
+        or False if the main component is the normal one, i.e. k1."""
+        return bool(self._main_is_skew > 0)
+
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
 
 
 class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
@@ -2838,6 +3068,8 @@ class TempRF(_HasKnlKsl, _HasModelRF, _HasIntegrator, BeamElement):
 
 class Solenoid(_HasKnlKsl, BeamElement):
     """Solenoid element.
+
+    .. warning:: The Solenoid element is deprecated, use VariableSolenoid or UniformSolenoid instead.
 
     Parameters
     ----------
@@ -3400,13 +3632,6 @@ class SimpleThinBend(BeamElement):
 
     @property
     def inv_factorial_order(self): return 1.0
-
-    @property
-    def ksl(self): return self._buffer.context.linked_array_type.from_array(
-        np.array([0., 0.]),
-        mode='readonly',
-        container=self,
-    )
 
 
 class RFMultipole(_HasKnlKsl, BeamElement):

@@ -308,7 +308,8 @@ class Environment:
             self.elements[name] = parent(**value_kwargs)
 
         self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    container=self._element_dict, container_refs=self._xdeps_eref)
+                    container=self._element_dict, container_refs=self._xdeps_eref,
+                    isinit=True)
 
         if extra is not None:
             assert isinstance(extra, dict)
@@ -324,7 +325,15 @@ class Environment:
     def new_particle(self, name, parent=None, force=False, **kwargs):
 
         '''
-        Create a new particle type.
+        Associate a particle type to a name. The particle is stored in
+        Environment.particles, its properties can be controlled with deferred
+        expressions and it can be used as reference particle for lines.
+
+        Note that this method is not meant to create particles distributions for
+        tracking. For that purpose use xt.Particles(...), Line.build_particles(...)
+        or the generation functions for particles distributions available in xpart.
+        See https://xsuite.readthedocs.io/en/latest/particlesmanip.html for more
+        details.
 
         Parameters
         ----------
@@ -332,7 +341,39 @@ class Environment:
             Name of the new particle type
         parent : str or class
             Parent class or name of the parent particle type
+        pdg_id_0 : int or str, optional, define reference mass and charge from
+            PDG id or particle name.
+        mass0 : float, optional
+            Reference rest mass [eV]
+        q0 : float, optional
+            Reference charge [e]
+        p0c : array_like of float, optional
+            Reference momentum [eV]
+        energy0 : array_like of float, optional
+            Reference energy [eV]
+        gamma0 : array_like of float, optional
+            Reference relativistic gamma
+        beta0 : array_like of float, optional
+            Reference relativistic beta
+        rigidity0 : array_like of float, optional
+            Reference magnetic rigidity [T.m]
+        kinetic_energy0 : array_like of float, optional
+            Reference kinetic energy [eV]
 
+        Examples
+        --------
+        Create a positron particle type with gamma0 controlled by a deferred
+        expression:
+
+        >>> env = xt.Environment()
+        >>> env['a'] = 5
+        >>> env.new_particle('my_particle_type', pdg_id_0='positron', gamma0='3*a')
+        'my_particle_type'
+        >>> env['my_particle_type'].gamma0
+        View of LinkedArrayCpu([15.])
+        >>> env['a'] = 10
+        >>> env['my_particle_type'].gamma0
+        View of LinkedArrayCpu([30.])
 
         '''
 
@@ -378,7 +419,8 @@ class Environment:
             self.particles[name] = parent(**value_kwargs)
 
         self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                    container=self._particles, container_refs=self._xdeps_pref)
+                    container=self._particles, container_refs=self._xdeps_pref,
+                    isinit=True)
 
         self.particles[name].prototype = prototype
 
@@ -405,6 +447,14 @@ class Environment:
             Length of the line to be built by the builder. Can be an expression.
             If not specified, the length will be the minimum length that can
             fit all the components.
+        mirror : bool, optional
+            Whether the line should be mirrored after creation.
+        compose : bool, optional
+            Whether to instantiate the line in ``compose`` mode, which allows
+            the components to be added to the line after creation.
+        s_tol : float, optional
+            Difference between two s positions below which they should be
+            treated as the same location.
 
         Returns
         -------
@@ -425,7 +475,7 @@ class Environment:
                 env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
                 env.new('mq1_clone', 'mq1', k1='2a'),   # Clone 'mq1' with a different k1
                 env.place('mq2', at=20.0, from='mymark'),  # Place 'mq2' at s=20
-                ])
+            ])
         """
 
         if isinstance(components, str):
@@ -995,9 +1045,11 @@ class Environment:
                     ] + object.__dir__(self)
 
     def set_multipolar_errors(env, errors):
+        """Deprecated: set multipolar errors for specified elements of the environment.
 
-        '''
-        Set multipolar errors for specified elements of the environment.
+        .. warning:: This function is deprecated and will be removed in a future
+           version. Please use the attributes `knl_rel` and `ksl_rel` of the elements
+           to set relative multipolar errors directly on the elements.
 
         Parameters
         ----------
@@ -1034,8 +1086,11 @@ class Environment:
                 'mb': {'rel_knl': [2e-6, 3e-5, 4e-4],
                        'rel_ksl': [5e-6, 6e-5, 7e-4]},
                 })
-
-        '''
+        """
+        warn('The function `set_multipolar_errors` is deprecated and will be removed '
+             'in a future version. Please use the attributes `knl_rel` and `ksl_rel` '
+             'of the elements to set relative multipolar errors directly on the elements.',
+             FutureWarning)
 
         for ele_name in progress(errors.keys(), desc='Setting multipolar errors'):
 
@@ -1265,7 +1320,8 @@ class Environment:
                 type(self._element_dict[name]), kwargs, _eval)
             self._set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
-                container=self._element_dict, container_refs=self._xdeps_eref)
+                container=self._element_dict, container_refs=self._xdeps_eref,
+                isinit=False)
             if extra is not None:
                 assert isinstance(extra, dict), (
                     'Description must be a dictionary')
@@ -1357,8 +1413,46 @@ class Environment:
         '''
         return self.vars.new_expr(expr)
 
-    def extend_knl_ksl(self, order, element_names=None):
+    def _extend_knl_ksl_abs_rel(self, order, element_names=None, absolute=False,
+                        relative=False):
 
+        if not absolute and not relative:
+            raise ValueError('At least one of absolute or relative must be True')
+
+        if element_names is None:
+            raise NotImplementedError(
+                'Extending knl and ksl for all elements is not implemented yet.')
+
+        if isinstance(element_names, str):
+            element_names = [element_names]
+
+        self.discard_trackers()
+
+        for nn in element_names:
+            ee = self.get(nn)
+
+            dct = ee.to_dict()
+
+            if absolute and ee.order < order:
+                new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
+                new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
+
+                dct.pop('order', None)
+                dct['knl'] = new_knl
+                dct['ksl'] = new_ksl
+
+            if relative:
+                new_knl_rel = [vv for vv in ee.knl_rel] + [0] * (order - len(ee.knl_rel) + 1)
+                new_ksl_rel = [vv for vv in ee.ksl_rel] + [0] * (order - len(ee.ksl_rel) + 1)
+
+                dct['knl_rel'] = new_knl_rel
+                dct['ksl_rel'] = new_ksl_rel
+
+            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
+            # Need to bypass the check on element redefinition
+            self._xdeps_eref._owner[nn] = new_ee
+
+    def extend_knl_ksl(self, order, element_names=None):
         """
         Extend the order of the knl and ksl attributes of the elements.
 
@@ -1371,37 +1465,24 @@ class Environment:
             and `ksl` attributes are extended.
 
         """
+        self._extend_knl_ksl_abs_rel(order, element_names=element_names,
+                                    absolute=True, relative=False)
 
-        if element_names is None:
-            raise NotImplementedError(
-                'Extending knl and ksl for all elements is not implemented yet.')
+    def extend_knl_rel_ksl_rel(self, order, element_names=None):
+        """
+        Extend the order of the rel_knl and rel_ksl attributes of the elements.
 
-        if isinstance(element_names, str):
-            element_names = [element_names]
+        Parameters
+        ----------
+        order: int
+            New order of the rel_knl and rel_ksl attributes.
+        element_names: list of str
+            Names of the elements to extend. If None, all elements having `knl`
+            and `ksl` attributes are extended.
 
-        self.discard_trackers()
-
-        for nn in element_names:
-            if self.get(nn).order > order:
-                raise ValueError(f'Order of element {nn} is smaller than {order}')
-
-        for nn in element_names:
-            ee = self.get(nn)
-
-            if ee.order == order:
-                continue
-
-            new_knl = [vv for vv in ee.knl] + [0] * (order - len(ee.knl) + 1)
-            new_ksl = [vv for vv in ee.ksl] + [0] * (order - len(ee.ksl) + 1)
-
-            dct = ee.to_dict()
-            dct.pop('order', None)
-            dct['knl'] = new_knl
-            dct['ksl'] = new_ksl
-
-            new_ee = ee.__class__.from_dict(dct, _buffer=ee._buffer)
-            # Need to bypass the check on element redefinition
-            self._xdeps_eref._owner[nn] = new_ee
+        """
+        self._extend_knl_ksl_abs_rel(order, element_names=element_names,
+                                    absolute=False, relative=True)
 
     @property
     def ref_manager(self):
@@ -1444,7 +1525,33 @@ class Environment:
             if rr in deps:
                 self.ref_manager.unregister(task)
 
-    def _set_kwargs(self, name, ref_kwargs, value_kwargs, container, container_refs):
+    def _set_kwargs(self, name, ref_kwargs, value_kwargs, container, container_refs,
+                    isinit):
+        """
+        Set the attributes of an element, and the corresponding references in the
+        ref manager.
+
+        Parameters
+        ----------
+        name: str
+            Name of the element.
+        ref_kwargs: dict
+            Dictionary with the references to set. The keys are the attribute names,
+            and the values are the references.
+        value_kwargs: dict
+            Dictionary with the values to set. The keys are the attribute names,
+            and the values are the non-reference values.
+        container: dict
+            Dictionary with the elements.
+        container_refs: dict
+            Dictionary with the xdeps references to the elements.
+        isinit: bool
+            Whether the element is being initialized. If True, to gain speed,
+            we assume that no references are alredy present to the element
+            in the ref_manager, and we set numerical values directly on the
+            element without unregistering the refereces.
+        """
+
         for kk in value_kwargs:
             if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
                 len_value = len(value_kwargs[kk])
@@ -1458,14 +1565,19 @@ class Environment:
                             f'Cannot set attribute {kk} of element {name}: '
                             f'length mismatch ({len(target)} vs {len_value})')
                 target[:len_value] = value_kwargs[kk]
-                if kk in ref_kwargs:
+                if kk in ref_kwargs or not isinit:
                     for ii, vvv in enumerate(value_kwargs[kk]):
                         if ref_kwargs[kk][ii] is not None:
                             getattr(container_refs[name], kk)[ii] = ref_kwargs[kk][ii]
+                        elif not isinit:
+                            getattr(container_refs[name], kk)[ii] = value_kwargs[kk][ii]
             elif kk in ref_kwargs:
                 setattr(container_refs[name], kk, ref_kwargs[kk])
             else:
-                setattr(container[name], kk, value_kwargs[kk])
+                if not isinit:
+                    setattr(container_refs[name], kk, value_kwargs[kk])
+                else:
+                    setattr(container[name], kk, value_kwargs[kk])
 
     twiss = MultilineLegacy.twiss
     build_trackers = MultilineLegacy.build_trackers
@@ -1474,9 +1586,6 @@ class Environment:
     install_beambeam_interactions = MultilineLegacy.install_beambeam_interactions
     configure_beambeam_interactions =  MultilineLegacy.configure_beambeam_interactions
     apply_filling_pattern = MultilineLegacy.apply_filling_pattern
-
-
-
 
 
 def _parse_kwargs(cls, kwargs, _eval):
@@ -2054,7 +2163,7 @@ class EnvVars:
                 f'Cannot access variables as the environment has no xdeps manager')
         return self.env._xdeps_vref._owner['__vary_default']
 
-    def get_table(self, compact=True):
+    def get_table(self, compact=True, expr_obj=False):
         if self.env._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the environment has no xdeps manager')
@@ -2064,21 +2173,31 @@ class EnvVars:
         if compact:
             formatter = xd.refs.CompactFormatter(scope=None)
             expr = []
+            expr_obj_list = []
             for kk in name:
                 ee = self.env._xdeps_vref[kk]._expr
                 if ee is None:
                     expr.append(None)
+                    expr_obj_list.append(None)
                 else:
-                    expr.append(ee._formatted(formatter))
+                    try:
+                        repr_expr = ee._formatted(formatter)
+                    except Exception:
+                        repr_expr = '__NOT_REPRESENTABLE__'
+                    expr.append(repr_expr)
+                    expr_obj_list.append(ee)
         else:
-            expr  = [self.env._xdeps_vref[str(kk)]._expr for kk in name]
-            for ii, ee in enumerate(expr):
-                if ee is not None:
-                    expr[ii] = str(ee)
+            expr_obj_list  = [self.env._xdeps_vref[str(kk)]._expr for kk in name]
+            expr = [str(ee) if ee is not None else None for ee in expr_obj_list]
 
         expr = np.array(expr)
+        expr_obj_arr = np.array(expr_obj_list)
 
-        return VarsTable({'name': name, 'value': value, 'expr': expr})
+        outdct = {'name': name, 'value': value, 'expr': expr}
+        if expr_obj:
+            outdct['expr_obj'] = expr_obj_arr
+
+        return VarsTable(outdct)
 
     def new_expr(self, expr):
         return self.env._xdeps_eval.eval(expr)
@@ -2199,6 +2318,7 @@ class EnvVars:
         self.default_to_zero = old_default_to_zero  # restore (in case changed by loader)
 
     def load_json(self, filename):
+        """Deprecated: use `load` instead."""
         warn(
             '`EnvVars.load_json` is deprecated, use `load`, optionally with `format="json"` instead.',
             FutureWarning

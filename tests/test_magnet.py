@@ -1672,7 +1672,8 @@ def test_convergence_mat_kick_mat():
     xo.assert_allclose(p_ref.zeta, p_yoshida.zeta, rtol=0, atol=1e-13)
     xo.assert_allclose(p_ref.delta, p_yoshida.delta, rtol=0, atol=1e-13)
 
-def test_convergence_rot_kick_rot():
+@pytest.mark.parametrize('model_to_test', ['rot-kick-rot', 'rot-kick-rot-low-order'])
+def test_convergence_rot_kick_rot(model_to_test):
 
     magnet = xt.Magnet(k0=0.02, angle=0.01*2, k1=0.01, length=2.,
                     k2=0.005, k3=0.03,
@@ -1683,8 +1684,6 @@ def test_convergence_rot_kick_rot():
     magnet.num_multipole_kicks = 50
 
     p0 = xt.Particles(x=1e-2, y=2e-2, py=1e-3, delta=3e-2)
-
-    model_to_test = 'rot-kick-rot'
 
     m_ref = magnet.copy()
     m_ref.model = 'bend-kick-bend'

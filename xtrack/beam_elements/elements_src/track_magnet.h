@@ -30,6 +30,11 @@ void track_magnet_body_single_particle(
     const double inv_factorial_order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
+    int64_t order_rel,
+    double inv_factorial_order_rel,
+    GPUGLMEM const double* knl_rel,
+    GPUGLMEM const double* ksl_rel,
+    double rel_ref_strength,
     const double factor_knl_ksl,
     const int64_t num_multipole_kicks,
     const int8_t kick_rot_frame,
@@ -64,8 +69,10 @@ void track_magnet_body_single_particle(
 
     #define MAGNET_KICK(part, weight) \
         track_magnet_kick_single_particle(\
-            part, length, order, inv_factorial_order, \
-            knl, ksl, factor_knl_ksl, (weight), \
+            part, length,\
+            order, inv_factorial_order, knl, ksl,\
+            order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,\
+            factor_knl_ksl, (weight),\
             k0_kick, k1_kick, k2, k3, k0s, k1s, k2s, k3s, h_kick,\
             hxl, k0_h_correction, k1_h_correction, kick_rot_frame\
         )
@@ -114,6 +121,11 @@ void track_magnet_body_single_particle(
                     inv_factorial_order, \
                     knl, \
                     ksl, \
+                    order_rel, \
+                    inv_factorial_order_rel, \
+                    knl_rel, \
+                    ksl_rel, \
+                    rel_ref_strength, \
                     factor_knl_ksl, \
                     k0_drift + k0_kick, \
                     k1_drift + k1_kick, \
@@ -282,6 +294,11 @@ void track_magnet_particles(
     double inv_factorial_order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
+    int64_t order_rel,
+    double inv_factorial_order_rel,
+    GPUGLMEM const double* knl_rel,
+    GPUGLMEM const double* ksl_rel,
+    double rel_ref_strength,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t default_model,
@@ -481,6 +498,10 @@ void track_magnet_particles(
             ksl,
             factor_knl_ksl_edge,
             order,
+            knl_rel,
+            ksl_rel,
+            factor_knl_ksl_edge * rel_ref_strength,
+            order_rel,
             ks,
             x0_solenoid,
             y0_solenoid,
@@ -558,6 +579,7 @@ void track_magnet_particles(
             track_magnet_body_single_particle(
                 part, core_length, order, inv_factorial_order,
                 knl, ksl,
+                order_rel, inv_factorial_order_rel, knl_rel, ksl_rel, rel_ref_strength,
                 factor_knl_ksl_body,
                 num_multipole_kicks, kick_rot_frame, drift_model, integrator,
                 k0_drift, k1_drift, ks_drift, h_drift,
@@ -599,6 +621,10 @@ void track_magnet_particles(
             ksl,
             factor_knl_ksl_edge,
             order,
+            knl_rel,
+            ksl_rel,
+            factor_knl_ksl_edge * rel_ref_strength,
+            order_rel,
             ks,
             x0_solenoid,
             y0_solenoid,

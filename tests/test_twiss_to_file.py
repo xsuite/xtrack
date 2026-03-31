@@ -63,7 +63,7 @@ def test_twiss_table_file(check_type, tmp_path):
     # Check particle_on_co
     assert isinstance(tw.particle_on_co, xt.Particles)
     assert isinstance(tw_test.particle_on_co, xt.Particles)
-    dct_ref = line.particle_ref.to_dict()
+    dct_ref = tw_test.particle_on_co.to_dict()
     dct_test = tw_test.particle_on_co.to_dict()
     for kk in dct_ref:
         if isinstance(dct_ref[kk], np.ndarray):

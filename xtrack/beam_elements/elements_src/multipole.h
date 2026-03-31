@@ -7,6 +7,7 @@
 #define XTRACK_MULTIPOLE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -23,6 +24,11 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*inv_factorial_order*/   MultipoleData_get_inv_factorial_order(el),
         /*knl*/                   MultipoleData_getp1_knl(el, 0),
         /*ksl*/                   MultipoleData_getp1_ksl(el, 0),
+        /*order_rel*/             MultipoleData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(MultipoleData_len_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               MultipoleData_getp1_knl_rel(el, 0),
+        /*ksl_rel*/               MultipoleData_getp1_ksl_rel(el, 0),
+        /*main_strength*/         ((MultipoleData_get_main_is_skew(el)) ? (MultipoleData_get_ksl(el, MultipoleData_get_main_order(el))) : (MultipoleData_get_knl(el, MultipoleData_get_main_order(el)))),
         /*num_multipole_kicks*/   MultipoleData_get_num_multipole_kicks(el),
         /*model*/                 ((MultipoleData_get_isthick(el) <= 0) ? (-1) : MultipoleData_get_model(el)), // kick only if not thick
         /*default_model*/         MULTIPOLE_DEFAULT_MODEL,

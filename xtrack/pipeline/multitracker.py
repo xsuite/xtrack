@@ -4,7 +4,17 @@ import xtrack as xt
 
 class PipelineBranch:
     def __init__(self, line=None, particles=None, tracker=None):
+        """Create a new pipeline branch.
 
+        Parameters
+        ----------
+        line : Line
+            Line of the branch.
+        particles : Particles
+            Particles to be passed to the branch.
+        tracker : Tracker
+            Deprecated: use `line` instead.
+        """
         if tracker is not None:
             warn('The argument tracker is deprecated. Please use line instead.', FutureWarning)
             assert line is None
@@ -65,8 +75,7 @@ class PipelineMultiTracker:
                             f"by element {branch.line.tracker._part_names[branch.pipeline_status.data['ipp']]} "
                             f"with info: {branch.pipeline_status.data['status_from_element'].info}")
 
-                    branch.pipeline_status = branch.line.tracker.resume(
-                                                        branch.pipeline_status)
+                    branch.pipeline_status = branch.line.tracker.resume(branch.pipeline_status)
                     need_resume = True
 
 
