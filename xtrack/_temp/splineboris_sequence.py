@@ -271,7 +271,7 @@ class SplineBorisSequence:
             radiation_flag=radiation_flag,
         )
 
-    def evaluate_field(self, x, y, s):
+    def get_field(self, x, y, s):
         """Evaluate the magnetic field by delegating to the appropriate element.
 
         Parameters
@@ -281,16 +281,21 @@ class SplineBorisSequence:
         y : float or array-like
             Vertical position [m].
         s : float
-            Longitudinal position [m].
+            Global longitudinal position [m] along the sequence.
 
         Returns
         -------
         Bx, By, Bs : float or array
-            Magnetic field components [T].
+            Magnetic field components [T] at the requested global position.
         """
         for elem in self.elements:
-            if elem.s_start <= s <= elem.s_end:
-                return elem.evaluate_field(x, y, s)
+            s_start = float(elem.s_start)
+            s_end = float(elem.s_end)
+            if s_start <= s <= s_end:
+                # Convert to the element's local longitudinal coordinate
+                s_local = s - s_start
+                return elem.get_field(x, y, s_local)
+
         s_min = min(float(e.s_start) for e in self.elements)
         s_max = max(float(e.s_end) for e in self.elements)
         raise ValueError(f"s={s} is outside the sequence range [{s_min}, {s_max}]")

@@ -14,8 +14,7 @@ GPUFUN
 void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
 
     const int multipole_order = SplineBorisData_get_multipole_order(el);
-    const double s_start = SplineBorisData_get_s_start(el);
-    const double s_end = SplineBorisData_get_s_end(el);
+    const double length = SplineBorisData_get_length(el);
     const int n_steps = SplineBorisData_get_n_steps(el);
     const double shift_x = SplineBorisData_get_shift_x(el);
     const double shift_y = SplineBorisData_get_shift_y(el);
@@ -74,8 +73,7 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
             B_norm_ptrs,
             B_skew_ptrs,
             multipole_order,
-            s_start,
-            s_end,
+            length,
             n_steps,
             shift_x,
             shift_y,

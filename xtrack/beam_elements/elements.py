@@ -1063,38 +1063,44 @@ class Spline4:
 
 
 class SplineBoris(BeamElement):
-    """
-    Thick element integrating the Lorentz force with a Boris stepper through a
-    magnetic field given by piecewise polynomials in the longitudinal coordinate.
+    '''
+    Thick element integrating the Lorentz force with a Boris stepper in a
+    magnetic field represented by piecewise polynomials in the longitudinal
+    coordinate.
 
-    Field coefficients are supplied as Hermite boundary data on ``[s_start, s_end]``;
-    internally these are converted to polynomials and stored in the xobject
-    buffer ``par_list`` for the CPU/GPU kernel.
+    The field is expressed in a local longitudinal coordinate
+    ``s_local \\in [0, length]``; any global ``s`` bookkeeping is handled at the
+    lattice or sequence level (e.g. by ``SplineBorisSequence``).
 
     Parameters
     ----------
     bs : Spline4, optional
-        Longitudinal component as Hermite boundary data.
+        Longitudinal field component as Hermite boundary data.
     bx : Spline4 or tuple/list of (Spline4 or None), optional
-        Hermite data for the skew component (``Bx`` channel). A single
-        ``Spline4`` maps to derivative order 0. A tuple/list item index gives
-        derivative order; ``None`` entries are treated as zero.
+        Hermite data for the skew multipole components (Bx channel). A single
+        ``Spline4`` corresponds to derivative order 0. A tuple/list item index
+        gives the derivative order; ``None`` entries are treated as zero.
     by : Spline4 or tuple/list of (Spline4 or None), optional
-        Hermite data for the normal component (``By`` channel), same
-        indexing semantics as ``bx``.
+        Hermite data for the normal multipole components (By channel), with
+        the same indexing semantics as ``bx``.
     s_start : float
-        Starting position [m].
+        Starting position of the element in meters.
     length : float
-        Element length [m].
+        Physical length of the element in meters.
     n_steps : int
-        Number of Boris substeps (must be >= 1).
-    shift_x, shift_y : float
-        Subtracted from particle x, y before evaluating B (field-map offset).
-    hx : float
-        Horizontal curvature [1/m]; reserved for future use.
-    radiation_flag : int
-        Radiation flag.
-    """
+        Number of Boris substeps (must be ``>= 1``).
+    shift_x : float, optional
+        Horizontal offset of the field map in meters. Default is ``0``.
+    shift_y : float, optional
+        Vertical offset of the field map in meters. Default is ``0``.
+    hx : float, optional
+        Horizontal curvature in 1/m. Reserved for future use; spin tracking
+        currently assumes ``hx = 0``.
+    radiation_flag : int, optional
+        Radiation model flag. ``0`` disables radiation, non–zero values select
+        synchrotron radiation models as for other thick elements.
+
+    '''
 
     isthick = True
     # Disable base transverse shifts - we use shift_x/shift_y as offsets in the field evaluation
@@ -1108,7 +1114,7 @@ class SplineBoris(BeamElement):
     _HERMITE_SUFFIXES = ("val_start", "der_start", "val_end", "der_end", "integral")
 
     _xofields = {
-        # Hermite boundary data for Bs(s) on [s_start, s_end]:
+        # Hermite boundary data for Bs(s) on the local interval [0, length]:
         # (val_start, der_start, val_end, der_end, integral)
         'Bs_hermite'        : xo.Float64[_NUM_COEFFS],
         # Hermite blocks for normal/skew multipole components:
@@ -1116,8 +1122,7 @@ class SplineBoris(BeamElement):
         'B_norm_hermite'    : xo.Float64[:, _NUM_COEFFS],
         'B_skew_hermite'    : xo.Float64[:, _NUM_COEFFS],
         'multipole_order'   : xo.Int64,
-        's_start'           : xo.Float64,
-        's_end'             : xo.Float64,
+        # Element length and integration steps; field representation is purely local in s.
         'length'            : xo.Float64,
         'n_steps'           : xo.Int64,
         'shift_x'           : xo.Field(xo.Float64, 0),  # Transverse shift in x [m] - used for field map offset
@@ -1133,13 +1138,16 @@ class SplineBoris(BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
     _internal_record_class = SynchrotronRadiationRecord
 
-    # This function is not used here, but is called when generating the C code for the field evaluation.
-    # We keep it here, so that the SplineBoris defines the canonical naming convention for the polynomial coefficients.
+
+
     @classmethod
     def _get_param_names(cls, multipole_order):
         """Ordered names of polynomial coefficients in ``par_list`` / ``evaluate_B``'s ``params``.
+        This function is not used here, but is called when generating the C code for the field evaluation.
+        It is kept here, so that the SplineBoris defines the canonical naming convention for the polynomial coefficients.
 
-        Packing: ``Bs_*``, then ``Bnorm_{i}_{k}``, then ``Bskew_{i}_{k}``.
+        Convention: ``Bs_{k}``, then ``Bnorm_{i}_{k}``, then ``Bskew_{i}_{k}``.
+        Where ``k`` is the polynomial order, ``i`` is the multipole order.
         """
         if multipole_order < 1:
             raise ValueError("multipole_order must be >= 1")
@@ -1159,6 +1167,7 @@ class SplineBoris(BeamElement):
 
     @staticmethod
     def _normalize_component_tuple(values, name):
+        """Normalizes the input values to a tuple of Spline4 objects, depending on the type of the input."""
         if values is None:
             return ()
         if isinstance(values, Spline4):
@@ -1185,16 +1194,7 @@ class SplineBoris(BeamElement):
 
     @classmethod
     def _validate_field_inputs(cls, bs, by, bx):
-        """Validate and normalize ``Spline4`` inputs for longitudinal/normal/skew components.
-
-        Returns
-        -------
-        Bs_stored : list
-            Longitudinal Hermite data (possibly zero-filled).
-        Bnorm_tuple, Bskew_tuple : tuple
-            Derivative-order tuples; entries are normalized Hermite lists or ``None``.
-        multipole_order : int
-        """
+        """Converts the Spline4 inputs to a tuple of Spline4 objects, and validates the inputs."""
 
         Bnorm_tuple = cls._normalize_component_tuple(by, "by")
         Bskew_tuple = cls._normalize_component_tuple(bx, "bx")
@@ -1282,8 +1282,6 @@ class SplineBoris(BeamElement):
             B_norm_hermite=B_norm_array,
             B_skew_hermite=B_skew_array,
             multipole_order=multipole_order,
-            s_start=s_start_f,
-            s_end=s_end_f,
             length=length_f,
             n_steps=n_steps,
             shift_x=shift_x,
@@ -1293,30 +1291,28 @@ class SplineBoris(BeamElement):
             **kwargs,
         )
 
-    def get_field(self, x, y, s):
-        """Evaluate **B** using the same ``evaluate_B`` dispatch as the tracking kernel.
+        # Store global s-interval as Python metadata only; tracking uses local s in [0, length].
+        self.s_start = s_start_f
+        self.s_end = s_end_f
+
+    def get_field(self, x, y, s_local):
+        """Evaluate **B** in the element's local longitudinal coordinate.
 
         Parameters
         ----------
         x, y : float or array-like
-            Transverse coordinates [m].
-        s : float
-            Global longitudinal position [m], same axis as ``s_start`` … ``s_end``.
-
-        Returns
-        -------
-        Bx, By, Bs : float or ndarray
-            Field components [T].
+            Transverse positions [m].
+        s_local : float
+            Local longitudinal coordinate in the range ``[0, length]``.
         """
-        if s < self.s_start or s > self.s_end:
+        if s_local < 0 or s_local > self.length:
             raise ValueError(
-                f"s={s} is outside the element range "
-                f"[{self.s_start}, {self.s_end}]"
+                f"s_local={s_local} is outside the local element range [0, {self.length}]"
             )
 
         from .splineboris_src.spline_B_field_eval_python import evaluate_B
 
-        s_loc = s - self.s_start
+        s_loc = s_local
 
         # Build Python-side Hermite arrays from the xobject fields.
         Bs_hermite = [self.Bs_hermite[i] for i in range(self._NUM_COEFFS)]

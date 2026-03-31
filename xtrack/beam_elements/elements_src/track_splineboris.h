@@ -24,8 +24,7 @@ void SplineBoris_single_particle(
     const double* const *B_norm_hermite,
     const double* const *B_skew_hermite,
     const int      multipole_order,
-    const double   s_start,
-    const double   s_end,
+    const double   length,
     const int      n_steps,
     const double   shift_x,
     const double   shift_y,
@@ -85,9 +84,9 @@ void SplineBoris_single_particle(
     const double q_coulomb = q0 * qe;  // [C]
 
     // ----------------------------------------------------------------------
-    //  Set up longitudinal stepping
+    //  Set up longitudinal stepping in local s \in [0, length]
     // ----------------------------------------------------------------------
-    const double L    = s_end - s_start;
+    const double L    = length;
     const double ds   = L / (double) n_steps;
     const double half_ds = 0.5 * ds;
     
