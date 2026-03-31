@@ -64,7 +64,6 @@ def make_uniform_splineboris():
             bs=xt.Spline4(*Bs_h),
             by=(xt.Spline4(*By_h),),
             bx=(xt.Spline4(*Bx_h),),
-            s_start=s_start,
             length=s_end - s_start,
             n_steps=n_steps,
             radiation_flag=radiation_flag,
@@ -525,7 +524,7 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
     # Extract Hermite parameters from SplineBorisSequence elements
     # ------------------------------------------------------------------
     boris_elems = []
-    for elem in seq.elements:
+    for elem, s_start, s_end in zip(seq.elements, seq.s_starts, seq.s_ends):
         Bs_hermite = [elem.Bs_hermite[i] for i in range(5)]
         B_norm_hermite = [
             [elem.B_norm_hermite[i, j] for j in range(5)]
@@ -542,14 +541,14 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
             B_skew_hermite,
             L,
             multipole_order,
-            s_start=float(elem.s_start),
+            s_start=float(s_start),
         )
 
         boris_elems.append(
             xt.BorisSpatialIntegrator(
                 fieldmap_callable=field_i,
-                s_start=float(elem.s_start),
-                s_end=float(elem.s_end),
+                s_start=float(s_start),
+                s_end=float(s_end),
                 n_steps=int(elem.n_steps),
             )
         )
@@ -646,7 +645,7 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(undulator_rotated_fit_pa
     # Extract parameters from SplineBorisSequence elements
     # ------------------------------------------------------------------
     boris_elems = []
-    for elem in seq.elements:
+    for elem, s_start, s_end in zip(seq.elements, seq.s_starts, seq.s_ends):
         Bs_hermite = [elem.Bs_hermite[i] for i in range(5)]
         B_norm_hermite = [
             [elem.B_norm_hermite[i, j] for j in range(5)]
@@ -663,14 +662,14 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(undulator_rotated_fit_pa
             B_skew_hermite,
             L,
             multipole_order,
-            s_start=float(elem.s_start),
+            s_start=float(s_start),
         )
 
         boris_elems.append(
             xt.BorisSpatialIntegrator(
                 fieldmap_callable=field_i,
-                s_start=float(elem.s_start),
-                s_end=float(elem.s_end),
+                s_start=float(s_start),
+                s_end=float(s_end),
                 n_steps=int(elem.n_steps),
             )
         )
@@ -1206,7 +1205,6 @@ def test_splineboris_spin_quadrupole(case, atol):
     splineboris = xt.SplineBoris(
         bs=xt.Spline4(*Bs_hermite),
         by=(None, xt.Spline4(*kn_1_hermite)),
-        s_start=s_start,
         length=s_end - s_start,
         n_steps=n_steps,
     )

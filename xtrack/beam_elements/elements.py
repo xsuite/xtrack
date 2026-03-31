@@ -1083,8 +1083,6 @@ class SplineBoris(BeamElement):
     by : Spline4 or tuple/list of (Spline4 or None), optional
         Hermite data for the normal multipole components (By channel), with
         the same indexing semantics as ``bx``.
-    s_start : float
-        Starting position of the element in meters.
     length : float
         Physical length of the element in meters.
     n_steps : int
@@ -1216,7 +1214,6 @@ class SplineBoris(BeamElement):
         return Bs_stored, copy.deepcopy(Bnorm_tuple), copy.deepcopy(Bskew_tuple), multipole_order
 
     def __init__(self,
-                 s_start=0,
                  length=1.0,
                  n_steps=1,
                  shift_x=0.0,
@@ -1241,8 +1238,6 @@ class SplineBoris(BeamElement):
             raise ValueError(f"length must be finite and > 0, got {length}")
 
         length_f = float(length)
-        s_start_f = float(s_start)
-        s_end_f = s_start_f + length_f
 
         radiation_flag = kwargs.pop('radiation_flag', 0)
 
@@ -1285,10 +1280,6 @@ class SplineBoris(BeamElement):
             radiation_flag=radiation_flag,
             **kwargs,
         )
-
-        # Store global s-interval as Python metadata only; tracking uses local s in [0, length].
-        self.s_start = s_start_f
-        self.s_end = s_end_f
 
     def get_field(self, x, y, s_local):
         """Evaluate **B** in the element's local longitudinal coordinate.
