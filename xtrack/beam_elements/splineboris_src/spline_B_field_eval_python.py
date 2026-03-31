@@ -5,30 +5,49 @@
 #        not the global s-coordinate along the beamline.
 
 import math
+import numpy as np
 
-def evaluate_B(x, y, s, params, multipole_order):
+def hermite_to_polynomial(s_start, s_end, coeffs):
+    """Build a fourth-order polynomial over [s_start, s_end] from Hermite data.
+
+    Mirrors ``SplineBoris.hermite_to_polynomial`` in ``elements.py`` and the
+    Hermite → polynomial mapping used in the C backend.
+    """
+    if len(coeffs) != 5:
+        raise ValueError('coeffs must be a 5-element array')
+
+    c1, c2, c3, c4, c5 = coeffs
+    L = s_end - s_start
+    t = np.polynomial.Polynomial([0, 1 / L])  # t = s_local / L
+
+    # Basis functions on [0, 1]
+    b1 = np.polynomial.Polynomial([1, 0, -18, 32, -15])
+    b2 = np.polynomial.Polynomial([0, 1, -4.5, 6, -2.5])
+    b3 = np.polynomial.Polynomial([0, 0, -12, 28, -15])
+    b4 = np.polynomial.Polynomial([0, 0, 1.5, -4, 2.5])
+    b5 = np.polynomial.Polynomial([0, 0, 30, -60, 30])
+
+    poly_t = (c1 * b1 + L * c2 * b2 + c3 * b3 + L * c4 * b4 + c5 * b5)
+    return poly_t(t)
+
+def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole_order):
     """
     Auto-generated symbolic field evaluation for B.
-    Parameters are expected as a flat sequence in ``params``.
-    The meaning and ordering of the parameters match the C implementation.
+    Hermite coefficients are provided as:
+      - Bs_hermite      : array-like length 5
+      - B_norm_hermite : sequence of length n (order), each a length-5 array
+      - B_skew_hermite : sequence of length n (order), each a length-5 array
     """
     if multipole_order == 1:
-        # Parameter list
-        Bs_0 = params[0]
-        Bs_1 = params[1]
-        Bs_2 = params[2]
-        Bs_3 = params[3]
-        Bs_4 = params[4]
-        Bnorm_0_0 = params[5]
-        Bnorm_0_1 = params[6]
-        Bnorm_0_2 = params[7]
-        Bnorm_0_3 = params[8]
-        Bnorm_0_4 = params[9]
-        Bskew_0_0 = params[10]
-        Bskew_0_1 = params[11]
-        Bskew_0_2 = params[12]
-        Bskew_0_3 = params[13]
-        Bskew_0_4 = params[14]
+        # Hermite → polynomial coefficients (order 1)
+        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
+        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+
+        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
+        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+
+        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
+        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
@@ -49,32 +68,21 @@ def evaluate_B(x, y, s, params, multipole_order):
         return Bx, By, Bs
 
     elif multipole_order == 2:
-        # Parameter list
-        Bs_0 = params[0]
-        Bs_1 = params[1]
-        Bs_2 = params[2]
-        Bs_3 = params[3]
-        Bs_4 = params[4]
-        Bnorm_0_0 = params[5]
-        Bnorm_0_1 = params[6]
-        Bnorm_0_2 = params[7]
-        Bnorm_0_3 = params[8]
-        Bnorm_0_4 = params[9]
-        Bnorm_1_0 = params[10]
-        Bnorm_1_1 = params[11]
-        Bnorm_1_2 = params[12]
-        Bnorm_1_3 = params[13]
-        Bnorm_1_4 = params[14]
-        Bskew_0_0 = params[15]
-        Bskew_0_1 = params[16]
-        Bskew_0_2 = params[17]
-        Bskew_0_3 = params[18]
-        Bskew_0_4 = params[19]
-        Bskew_1_0 = params[20]
-        Bskew_1_1 = params[21]
-        Bskew_1_2 = params[22]
-        Bskew_1_3 = params[23]
-        Bskew_1_4 = params[24]
+        # Hermite → polynomial coefficients (order 2)
+        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
+        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+
+        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
+        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+
+        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
+        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+
+        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
+        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+
+        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
+        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
@@ -108,42 +116,27 @@ def evaluate_B(x, y, s, params, multipole_order):
         return Bx, By, Bs
 
     elif multipole_order == 3:
-        # Parameter list
-        Bs_0 = params[0]
-        Bs_1 = params[1]
-        Bs_2 = params[2]
-        Bs_3 = params[3]
-        Bs_4 = params[4]
-        Bnorm_0_0 = params[5]
-        Bnorm_0_1 = params[6]
-        Bnorm_0_2 = params[7]
-        Bnorm_0_3 = params[8]
-        Bnorm_0_4 = params[9]
-        Bnorm_1_0 = params[10]
-        Bnorm_1_1 = params[11]
-        Bnorm_1_2 = params[12]
-        Bnorm_1_3 = params[13]
-        Bnorm_1_4 = params[14]
-        Bnorm_2_0 = params[15]
-        Bnorm_2_1 = params[16]
-        Bnorm_2_2 = params[17]
-        Bnorm_2_3 = params[18]
-        Bnorm_2_4 = params[19]
-        Bskew_0_0 = params[20]
-        Bskew_0_1 = params[21]
-        Bskew_0_2 = params[22]
-        Bskew_0_3 = params[23]
-        Bskew_0_4 = params[24]
-        Bskew_1_0 = params[25]
-        Bskew_1_1 = params[26]
-        Bskew_1_2 = params[27]
-        Bskew_1_3 = params[28]
-        Bskew_1_4 = params[29]
-        Bskew_2_0 = params[30]
-        Bskew_2_1 = params[31]
-        Bskew_2_2 = params[32]
-        Bskew_2_3 = params[33]
-        Bskew_2_4 = params[34]
+        # Hermite → polynomial coefficients (order 3)
+        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
+        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+
+        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
+        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+
+        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
+        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+
+        Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2])
+        Bnorm_2_0, Bnorm_2_1, Bnorm_2_2, Bnorm_2_3, Bnorm_2_4 = Bnorm2_poly.coef[0:5]
+
+        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
+        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+
+        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
+        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+
+        Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2])
+        Bskew_2_0, Bskew_2_1, Bskew_2_2, Bskew_2_3, Bskew_2_4 = Bskew2_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
@@ -209,52 +202,33 @@ def evaluate_B(x, y, s, params, multipole_order):
         return Bx, By, Bs
 
     elif multipole_order == 4:
-        # Parameter list
-        Bs_0 = params[0]
-        Bs_1 = params[1]
-        Bs_2 = params[2]
-        Bs_3 = params[3]
-        Bs_4 = params[4]
-        Bnorm_0_0 = params[5]
-        Bnorm_0_1 = params[6]
-        Bnorm_0_2 = params[7]
-        Bnorm_0_3 = params[8]
-        Bnorm_0_4 = params[9]
-        Bnorm_1_0 = params[10]
-        Bnorm_1_1 = params[11]
-        Bnorm_1_2 = params[12]
-        Bnorm_1_3 = params[13]
-        Bnorm_1_4 = params[14]
-        Bnorm_2_0 = params[15]
-        Bnorm_2_1 = params[16]
-        Bnorm_2_2 = params[17]
-        Bnorm_2_3 = params[18]
-        Bnorm_2_4 = params[19]
-        Bnorm_3_0 = params[20]
-        Bnorm_3_1 = params[21]
-        Bnorm_3_2 = params[22]
-        Bnorm_3_3 = params[23]
-        Bnorm_3_4 = params[24]
-        Bskew_0_0 = params[25]
-        Bskew_0_1 = params[26]
-        Bskew_0_2 = params[27]
-        Bskew_0_3 = params[28]
-        Bskew_0_4 = params[29]
-        Bskew_1_0 = params[30]
-        Bskew_1_1 = params[31]
-        Bskew_1_2 = params[32]
-        Bskew_1_3 = params[33]
-        Bskew_1_4 = params[34]
-        Bskew_2_0 = params[35]
-        Bskew_2_1 = params[36]
-        Bskew_2_2 = params[37]
-        Bskew_2_3 = params[38]
-        Bskew_2_4 = params[39]
-        Bskew_3_0 = params[40]
-        Bskew_3_1 = params[41]
-        Bskew_3_2 = params[42]
-        Bskew_3_3 = params[43]
-        Bskew_3_4 = params[44]
+        # Hermite → polynomial coefficients (order 4)
+        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
+        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+
+        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
+        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+
+        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
+        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+
+        Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2])
+        Bnorm_2_0, Bnorm_2_1, Bnorm_2_2, Bnorm_2_3, Bnorm_2_4 = Bnorm2_poly.coef[0:5]
+
+        Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3])
+        Bnorm_3_0, Bnorm_3_1, Bnorm_3_2, Bnorm_3_3, Bnorm_3_4 = Bnorm3_poly.coef[0:5]
+
+        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
+        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+
+        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
+        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+
+        Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2])
+        Bskew_2_0, Bskew_2_1, Bskew_2_2, Bskew_2_3, Bskew_2_4 = Bskew2_poly.coef[0:5]
+
+        Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3])
+        Bskew_3_0, Bskew_3_1, Bskew_3_2, Bskew_3_3, Bskew_3_4 = Bskew3_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
@@ -353,62 +327,39 @@ def evaluate_B(x, y, s, params, multipole_order):
         return Bx, By, Bs
 
     elif multipole_order == 5:
-        # Parameter list
-        Bs_0 = params[0]
-        Bs_1 = params[1]
-        Bs_2 = params[2]
-        Bs_3 = params[3]
-        Bs_4 = params[4]
-        Bnorm_0_0 = params[5]
-        Bnorm_0_1 = params[6]
-        Bnorm_0_2 = params[7]
-        Bnorm_0_3 = params[8]
-        Bnorm_0_4 = params[9]
-        Bnorm_1_0 = params[10]
-        Bnorm_1_1 = params[11]
-        Bnorm_1_2 = params[12]
-        Bnorm_1_3 = params[13]
-        Bnorm_1_4 = params[14]
-        Bnorm_2_0 = params[15]
-        Bnorm_2_1 = params[16]
-        Bnorm_2_2 = params[17]
-        Bnorm_2_3 = params[18]
-        Bnorm_2_4 = params[19]
-        Bnorm_3_0 = params[20]
-        Bnorm_3_1 = params[21]
-        Bnorm_3_2 = params[22]
-        Bnorm_3_3 = params[23]
-        Bnorm_3_4 = params[24]
-        Bnorm_4_0 = params[25]
-        Bnorm_4_1 = params[26]
-        Bnorm_4_2 = params[27]
-        Bnorm_4_3 = params[28]
-        Bnorm_4_4 = params[29]
-        Bskew_0_0 = params[30]
-        Bskew_0_1 = params[31]
-        Bskew_0_2 = params[32]
-        Bskew_0_3 = params[33]
-        Bskew_0_4 = params[34]
-        Bskew_1_0 = params[35]
-        Bskew_1_1 = params[36]
-        Bskew_1_2 = params[37]
-        Bskew_1_3 = params[38]
-        Bskew_1_4 = params[39]
-        Bskew_2_0 = params[40]
-        Bskew_2_1 = params[41]
-        Bskew_2_2 = params[42]
-        Bskew_2_3 = params[43]
-        Bskew_2_4 = params[44]
-        Bskew_3_0 = params[45]
-        Bskew_3_1 = params[46]
-        Bskew_3_2 = params[47]
-        Bskew_3_3 = params[48]
-        Bskew_3_4 = params[49]
-        Bskew_4_0 = params[50]
-        Bskew_4_1 = params[51]
-        Bskew_4_2 = params[52]
-        Bskew_4_3 = params[53]
-        Bskew_4_4 = params[54]
+        # Hermite → polynomial coefficients (order 5)
+        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
+        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+
+        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
+        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+
+        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
+        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+
+        Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2])
+        Bnorm_2_0, Bnorm_2_1, Bnorm_2_2, Bnorm_2_3, Bnorm_2_4 = Bnorm2_poly.coef[0:5]
+
+        Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3])
+        Bnorm_3_0, Bnorm_3_1, Bnorm_3_2, Bnorm_3_3, Bnorm_3_4 = Bnorm3_poly.coef[0:5]
+
+        Bnorm4_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[4])
+        Bnorm_4_0, Bnorm_4_1, Bnorm_4_2, Bnorm_4_3, Bnorm_4_4 = Bnorm4_poly.coef[0:5]
+
+        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
+        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+
+        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
+        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+
+        Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2])
+        Bskew_2_0, Bskew_2_1, Bskew_2_2, Bskew_2_3, Bskew_2_4 = Bskew2_poly.coef[0:5]
+
+        Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3])
+        Bskew_3_0, Bskew_3_1, Bskew_3_2, Bskew_3_3, Bskew_3_4 = Bskew3_poly.coef[0:5]
+
+        Bskew4_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[4])
+        Bskew_4_0, Bskew_4_1, Bskew_4_2, Bskew_4_3, Bskew_4_4 = Bskew4_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
@@ -536,72 +487,45 @@ def evaluate_B(x, y, s, params, multipole_order):
         return Bx, By, Bs
 
     elif multipole_order == 6:
-        # Parameter list
-        Bs_0 = params[0]
-        Bs_1 = params[1]
-        Bs_2 = params[2]
-        Bs_3 = params[3]
-        Bs_4 = params[4]
-        Bnorm_0_0 = params[5]
-        Bnorm_0_1 = params[6]
-        Bnorm_0_2 = params[7]
-        Bnorm_0_3 = params[8]
-        Bnorm_0_4 = params[9]
-        Bnorm_1_0 = params[10]
-        Bnorm_1_1 = params[11]
-        Bnorm_1_2 = params[12]
-        Bnorm_1_3 = params[13]
-        Bnorm_1_4 = params[14]
-        Bnorm_2_0 = params[15]
-        Bnorm_2_1 = params[16]
-        Bnorm_2_2 = params[17]
-        Bnorm_2_3 = params[18]
-        Bnorm_2_4 = params[19]
-        Bnorm_3_0 = params[20]
-        Bnorm_3_1 = params[21]
-        Bnorm_3_2 = params[22]
-        Bnorm_3_3 = params[23]
-        Bnorm_3_4 = params[24]
-        Bnorm_4_0 = params[25]
-        Bnorm_4_1 = params[26]
-        Bnorm_4_2 = params[27]
-        Bnorm_4_3 = params[28]
-        Bnorm_4_4 = params[29]
-        Bnorm_5_0 = params[30]
-        Bnorm_5_1 = params[31]
-        Bnorm_5_2 = params[32]
-        Bnorm_5_3 = params[33]
-        Bnorm_5_4 = params[34]
-        Bskew_0_0 = params[35]
-        Bskew_0_1 = params[36]
-        Bskew_0_2 = params[37]
-        Bskew_0_3 = params[38]
-        Bskew_0_4 = params[39]
-        Bskew_1_0 = params[40]
-        Bskew_1_1 = params[41]
-        Bskew_1_2 = params[42]
-        Bskew_1_3 = params[43]
-        Bskew_1_4 = params[44]
-        Bskew_2_0 = params[45]
-        Bskew_2_1 = params[46]
-        Bskew_2_2 = params[47]
-        Bskew_2_3 = params[48]
-        Bskew_2_4 = params[49]
-        Bskew_3_0 = params[50]
-        Bskew_3_1 = params[51]
-        Bskew_3_2 = params[52]
-        Bskew_3_3 = params[53]
-        Bskew_3_4 = params[54]
-        Bskew_4_0 = params[55]
-        Bskew_4_1 = params[56]
-        Bskew_4_2 = params[57]
-        Bskew_4_3 = params[58]
-        Bskew_4_4 = params[59]
-        Bskew_5_0 = params[60]
-        Bskew_5_1 = params[61]
-        Bskew_5_2 = params[62]
-        Bskew_5_3 = params[63]
-        Bskew_5_4 = params[64]
+        # Hermite → polynomial coefficients (order 6)
+        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
+        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+
+        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
+        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+
+        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
+        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+
+        Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2])
+        Bnorm_2_0, Bnorm_2_1, Bnorm_2_2, Bnorm_2_3, Bnorm_2_4 = Bnorm2_poly.coef[0:5]
+
+        Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3])
+        Bnorm_3_0, Bnorm_3_1, Bnorm_3_2, Bnorm_3_3, Bnorm_3_4 = Bnorm3_poly.coef[0:5]
+
+        Bnorm4_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[4])
+        Bnorm_4_0, Bnorm_4_1, Bnorm_4_2, Bnorm_4_3, Bnorm_4_4 = Bnorm4_poly.coef[0:5]
+
+        Bnorm5_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[5])
+        Bnorm_5_0, Bnorm_5_1, Bnorm_5_2, Bnorm_5_3, Bnorm_5_4 = Bnorm5_poly.coef[0:5]
+
+        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
+        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+
+        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
+        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+
+        Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2])
+        Bskew_2_0, Bskew_2_1, Bskew_2_2, Bskew_2_3, Bskew_2_4 = Bskew2_poly.coef[0:5]
+
+        Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3])
+        Bskew_3_0, Bskew_3_1, Bskew_3_2, Bskew_3_3, Bskew_3_4 = Bskew3_poly.coef[0:5]
+
+        Bskew4_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[4])
+        Bskew_4_0, Bskew_4_1, Bskew_4_2, Bskew_4_3, Bskew_4_4 = Bskew4_poly.coef[0:5]
+
+        Bskew5_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[5])
+        Bskew_5_0, Bskew_5_1, Bskew_5_2, Bskew_5_3, Bskew_5_4 = Bskew5_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
@@ -761,82 +685,51 @@ def evaluate_B(x, y, s, params, multipole_order):
         return Bx, By, Bs
 
     elif multipole_order == 7:
-        # Parameter list
-        Bs_0 = params[0]
-        Bs_1 = params[1]
-        Bs_2 = params[2]
-        Bs_3 = params[3]
-        Bs_4 = params[4]
-        Bnorm_0_0 = params[5]
-        Bnorm_0_1 = params[6]
-        Bnorm_0_2 = params[7]
-        Bnorm_0_3 = params[8]
-        Bnorm_0_4 = params[9]
-        Bnorm_1_0 = params[10]
-        Bnorm_1_1 = params[11]
-        Bnorm_1_2 = params[12]
-        Bnorm_1_3 = params[13]
-        Bnorm_1_4 = params[14]
-        Bnorm_2_0 = params[15]
-        Bnorm_2_1 = params[16]
-        Bnorm_2_2 = params[17]
-        Bnorm_2_3 = params[18]
-        Bnorm_2_4 = params[19]
-        Bnorm_3_0 = params[20]
-        Bnorm_3_1 = params[21]
-        Bnorm_3_2 = params[22]
-        Bnorm_3_3 = params[23]
-        Bnorm_3_4 = params[24]
-        Bnorm_4_0 = params[25]
-        Bnorm_4_1 = params[26]
-        Bnorm_4_2 = params[27]
-        Bnorm_4_3 = params[28]
-        Bnorm_4_4 = params[29]
-        Bnorm_5_0 = params[30]
-        Bnorm_5_1 = params[31]
-        Bnorm_5_2 = params[32]
-        Bnorm_5_3 = params[33]
-        Bnorm_5_4 = params[34]
-        Bnorm_6_0 = params[35]
-        Bnorm_6_1 = params[36]
-        Bnorm_6_2 = params[37]
-        Bnorm_6_3 = params[38]
-        Bnorm_6_4 = params[39]
-        Bskew_0_0 = params[40]
-        Bskew_0_1 = params[41]
-        Bskew_0_2 = params[42]
-        Bskew_0_3 = params[43]
-        Bskew_0_4 = params[44]
-        Bskew_1_0 = params[45]
-        Bskew_1_1 = params[46]
-        Bskew_1_2 = params[47]
-        Bskew_1_3 = params[48]
-        Bskew_1_4 = params[49]
-        Bskew_2_0 = params[50]
-        Bskew_2_1 = params[51]
-        Bskew_2_2 = params[52]
-        Bskew_2_3 = params[53]
-        Bskew_2_4 = params[54]
-        Bskew_3_0 = params[55]
-        Bskew_3_1 = params[56]
-        Bskew_3_2 = params[57]
-        Bskew_3_3 = params[58]
-        Bskew_3_4 = params[59]
-        Bskew_4_0 = params[60]
-        Bskew_4_1 = params[61]
-        Bskew_4_2 = params[62]
-        Bskew_4_3 = params[63]
-        Bskew_4_4 = params[64]
-        Bskew_5_0 = params[65]
-        Bskew_5_1 = params[66]
-        Bskew_5_2 = params[67]
-        Bskew_5_3 = params[68]
-        Bskew_5_4 = params[69]
-        Bskew_6_0 = params[70]
-        Bskew_6_1 = params[71]
-        Bskew_6_2 = params[72]
-        Bskew_6_3 = params[73]
-        Bskew_6_4 = params[74]
+        # Hermite → polynomial coefficients (order 7)
+        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
+        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+
+        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
+        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+
+        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
+        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+
+        Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2])
+        Bnorm_2_0, Bnorm_2_1, Bnorm_2_2, Bnorm_2_3, Bnorm_2_4 = Bnorm2_poly.coef[0:5]
+
+        Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3])
+        Bnorm_3_0, Bnorm_3_1, Bnorm_3_2, Bnorm_3_3, Bnorm_3_4 = Bnorm3_poly.coef[0:5]
+
+        Bnorm4_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[4])
+        Bnorm_4_0, Bnorm_4_1, Bnorm_4_2, Bnorm_4_3, Bnorm_4_4 = Bnorm4_poly.coef[0:5]
+
+        Bnorm5_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[5])
+        Bnorm_5_0, Bnorm_5_1, Bnorm_5_2, Bnorm_5_3, Bnorm_5_4 = Bnorm5_poly.coef[0:5]
+
+        Bnorm6_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[6])
+        Bnorm_6_0, Bnorm_6_1, Bnorm_6_2, Bnorm_6_3, Bnorm_6_4 = Bnorm6_poly.coef[0:5]
+
+        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
+        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+
+        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
+        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+
+        Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2])
+        Bskew_2_0, Bskew_2_1, Bskew_2_2, Bskew_2_3, Bskew_2_4 = Bskew2_poly.coef[0:5]
+
+        Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3])
+        Bskew_3_0, Bskew_3_1, Bskew_3_2, Bskew_3_3, Bskew_3_4 = Bskew3_poly.coef[0:5]
+
+        Bskew4_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[4])
+        Bskew_4_0, Bskew_4_1, Bskew_4_2, Bskew_4_3, Bskew_4_4 = Bskew4_poly.coef[0:5]
+
+        Bskew5_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[5])
+        Bskew_5_0, Bskew_5_1, Bskew_5_2, Bskew_5_3, Bskew_5_4 = Bskew5_poly.coef[0:5]
+
+        Bskew6_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[6])
+        Bskew_6_0, Bskew_6_1, Bskew_6_2, Bskew_6_3, Bskew_6_4 = Bskew6_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2

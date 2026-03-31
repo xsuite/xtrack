@@ -1,33 +1,148 @@
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
+#define MAX_DEGREE 4
 
 #ifndef SPLINE_B_FIELD_EVAL_H
 #define SPLINE_B_FIELD_EVAL_H
 
 // Auto-generated symbolic field expressions for B
-// NOTE: 's' is the local coordinate within the element (s_local = s - s_start),
-//        not the global s-coordinate along the beamline.
+// NOTE:
+//   - 's' is the local coordinate within the element: s_local ∈ [0, L].
+//   - Hermite coefficients are defined on s_local ∈ [0, L] and are converted
+//     internally to polynomials in s_local via hermite_to_polynomial(0, L, ...).
+//
+// Hermite input layout
+// --------------------
+//   - Bs_hermite        : one scalar Hermite polynomial (5 coeffs) for Bs(s_local)
+//   - B_norm_hermite[i] : Hermite coeffs (5) for polynomial group Bnorm_i_*(s_local)
+//   - B_skew_hermite[i] : Hermite coeffs (5) for polynomial group Bskew_i_*(s_local)
+//
+// For multipole_order = n (1 ≤ n ≤ 7):
+//   - Bs:       1 polynomial      → Bs_0..Bs_4 from Bs_hermite
+//   - Bnorm:    n polynomials     → Bnorm_i_0..Bnorm_i_4 from B_norm_hermite[i], i=0..n-1
+//   - Bskew:    n polynomials     → Bskew_i_0..Bskew_i_4 from B_skew_hermite[i], i=0..n-1
+//
+// The symbolic expressions below are unchanged; only the way the Bs_*, Bnorm_*_*,
+// and Bskew_*_* scalars are populated has been refactored to use Hermite data.
+typedef struct {
+	double coeffs[MAX_DEGREE + 1]; /* coeffs[i] = coefficient of x^i */
+	int degree;
+} Poly;
+
+static Poly poly_scale(Poly p, double s) {
+	for (int i = 0; i <= p.degree; i++) p.coeffs[i] *= s;
+	return p;
+}
+
+static Poly poly_add(Poly a, Poly b) {
+	Poly result = {0};
+	result.degree = a.degree > b.degree ? a.degree : b.degree;
+	for (int i = 0; i <= a.degree; i++) result.coeffs[i] += a.coeffs[i];
+	for (int i = 0; i <= b.degree; i++) result.coeffs[i] += b.coeffs[i];
+	return result;
+}
+
+static Poly poly_mul(Poly a, Poly b) {
+	Poly result = {0};
+	int deg = a.degree + b.degree;
+	if (deg > MAX_DEGREE)
+		deg = MAX_DEGREE;
+	result.degree = deg;
+	for (int i = 0; i <= a.degree; i++) {
+		for (int j = 0; j <= b.degree; j++) {
+			int k = i + j;
+			if (k <= MAX_DEGREE)
+				result.coeffs[k] += a.coeffs[i] * b.coeffs[j];
+		}
+	}
+	return result;
+}
+
+/* Compose f(g(x)) via Horner's method:
+   result = f[n] * g^n + ... + f[0]
+		  = f[0] + g*(f[1] + g*(f[2] + ... + g*f[n]))  */
+static Poly poly_compose(Poly f, Poly g) {
+	Poly result = {0};
+	result.coeffs[0] = f.coeffs[f.degree]; /* start with leading coeff */
+	result.degree = 0;
+	for (int i = f.degree - 1; i >= 0; i--) {
+		result = poly_mul(result, g);       /* result = result * g      */
+		if (result.degree < MAX_DEGREE) {
+			result.degree++;
+		}
+		result.coeffs[0] += f.coeffs[i];   /* result = result * g + f[i] */
+	}
+	return result;
+}
+
+static Poly hermite_to_polynomial(double s_start, double s_end, const double coeffs[5]) {
+	double c1 = coeffs[0], c2 = coeffs[1], c3 = coeffs[2];
+	double c4 = coeffs[3], c5 = coeffs[4];
+	double L = s_end - s_start;
+
+	/* t(s_local) = s_local / L */
+	Poly t = (Poly){ .coeffs = {0.0, 1.0/L}, .degree = 1 };
+
+	/* Hermite basis polynomials in t on [0,1] */
+	Poly b1 = (Poly){ .coeffs = { 1,  0,  -18,   32,  -15}, .degree = 4 };
+	Poly b2 = (Poly){ .coeffs = { 0,  1, -4.5,    6, -2.5}, .degree = 4 };
+	Poly b3 = (Poly){ .coeffs = { 0,  0,  -12,   28,  -15}, .degree = 4 };
+	Poly b4 = (Poly){ .coeffs = { 0,  0,  1.5,   -4,  2.5}, .degree = 4 };
+	Poly b5 = (Poly){ .coeffs = { 0,  0,   30,  -60,   30}, .degree = 4 };
+
+	/* poly_t = c1*b1 + L*c2*b2 + c3*b3 + L*c4*b4 + c5*b5 */
+	Poly poly_t = {0};
+	poly_t = poly_add(poly_t, poly_scale(b1, c1));
+	poly_t = poly_add(poly_t, poly_scale(b2, L * c2));
+	poly_t = poly_add(poly_t, poly_scale(b3, c3));
+	 poly_t = poly_add(poly_t, poly_scale(b4, L * c4));
+	poly_t = poly_add(poly_t, poly_scale(b5, c5));
+
+	/* poly_s(s_local) = poly_t(t(s_local)) */
+	return poly_compose(poly_t, t);
+}
+
+/* Evaluate polynomial at x via Horner's method */
+static double poly_eval(Poly p, double x) {
+	double result = p.coeffs[p.degree];
+	for (int i = p.degree - 1; i >= 0; i--)
+		result = result * x + p.coeffs[i];
+	return result;
+}
+
 GPUFUN
-void evaluate_B(const double x, const double y, const double s, const double *params, const int multipole_order, double *Bx_out, double *By_out, double *Bs_out){
+void evaluate_B(const double x, const double y, const double s,
+                const double *Bs_hermite,
+                const double *const *B_norm_hermite,
+                const double *const *B_skew_hermite,
+                const double L,
+                const int multipole_order,
+                double *Bx_out, double *By_out, double *Bs_out){
 
 	switch (multipole_order) {
-	case 1:{
-		// Parameter List
-		const double Bs_0 = params[0];
-		const double Bs_1 = params[1];
-		const double Bs_2 = params[2];
-		const double Bs_3 = params[3];
-		const double Bs_4 = params[4];
-		const double Bnorm_0_0 = params[5];
-		const double Bnorm_0_1 = params[6];
-		const double Bnorm_0_2 = params[7];
-		const double Bnorm_0_3 = params[8];
-		const double Bnorm_0_4 = params[9];
-		const double Bskew_0_0 = params[10];
-		const double Bskew_0_1 = params[11];
-		const double Bskew_0_2 = params[12];
-		const double Bskew_0_3 = params[13];
-		const double Bskew_0_4 = params[14];
+	case 1: {
+		// Hermite → polynomial coefficients (order 1)
+		const Poly Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite);
+		const double Bs_0   = Bs_poly.coeffs[0];
+		const double Bs_1   = Bs_poly.coeffs[1];
+		const double Bs_2   = Bs_poly.coeffs[2];
+		const double Bs_3   = Bs_poly.coeffs[3];
+		const double Bs_4   = Bs_poly.coeffs[4];
+
+		const Poly Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0]);
+		const double Bnorm_0_0 = Bnorm0_poly.coeffs[0];
+		const double Bnorm_0_1 = Bnorm0_poly.coeffs[1];
+		const double Bnorm_0_2 = Bnorm0_poly.coeffs[2];
+		const double Bnorm_0_3 = Bnorm0_poly.coeffs[3];
+		const double Bnorm_0_4 = Bnorm0_poly.coeffs[4];
+
+		const Poly Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0]);
+		const double Bskew_0_0 = Bskew0_poly.coeffs[0];
+		const double Bskew_0_1 = Bskew0_poly.coeffs[1];
+		const double Bskew_0_2 = Bskew0_poly.coeffs[2];
+		const double Bskew_0_3 = Bskew0_poly.coeffs[3];
+		const double Bskew_0_4 = Bskew0_poly.coeffs[4];
 
 		// Common sub-expressions
 		const double x0 = s*s;
@@ -48,33 +163,42 @@ void evaluate_B(const double x, const double y, const double s, const double *pa
 		return;
 
 	}
-	case 2:{
-		// Parameter List
-		const double Bs_0 = params[0];
-		const double Bs_1 = params[1];
-		const double Bs_2 = params[2];
-		const double Bs_3 = params[3];
-		const double Bs_4 = params[4];
-		const double Bnorm_0_0 = params[5];
-		const double Bnorm_0_1 = params[6];
-		const double Bnorm_0_2 = params[7];
-		const double Bnorm_0_3 = params[8];
-		const double Bnorm_0_4 = params[9];
-		const double Bnorm_1_0 = params[10];
-		const double Bnorm_1_1 = params[11];
-		const double Bnorm_1_2 = params[12];
-		const double Bnorm_1_3 = params[13];
-		const double Bnorm_1_4 = params[14];
-		const double Bskew_0_0 = params[15];
-		const double Bskew_0_1 = params[16];
-		const double Bskew_0_2 = params[17];
-		const double Bskew_0_3 = params[18];
-		const double Bskew_0_4 = params[19];
-		const double Bskew_1_0 = params[20];
-		const double Bskew_1_1 = params[21];
-		const double Bskew_1_2 = params[22];
-		const double Bskew_1_3 = params[23];
-		const double Bskew_1_4 = params[24];
+	case 2: {
+		// Hermite → polynomial coefficients (order 2)
+		const Poly Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite);
+		const double Bs_0   = Bs_poly.coeffs[0];
+		const double Bs_1   = Bs_poly.coeffs[1];
+		const double Bs_2   = Bs_poly.coeffs[2];
+		const double Bs_3   = Bs_poly.coeffs[3];
+		const double Bs_4   = Bs_poly.coeffs[4];
+
+		const Poly Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0]);
+		const double Bnorm_0_0 = Bnorm0_poly.coeffs[0];
+		const double Bnorm_0_1 = Bnorm0_poly.coeffs[1];
+		const double Bnorm_0_2 = Bnorm0_poly.coeffs[2];
+		const double Bnorm_0_3 = Bnorm0_poly.coeffs[3];
+		const double Bnorm_0_4 = Bnorm0_poly.coeffs[4];
+
+		const Poly Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1]);
+		const double Bnorm_1_0 = Bnorm1_poly.coeffs[0];
+		const double Bnorm_1_1 = Bnorm1_poly.coeffs[1];
+		const double Bnorm_1_2 = Bnorm1_poly.coeffs[2];
+		const double Bnorm_1_3 = Bnorm1_poly.coeffs[3];
+		const double Bnorm_1_4 = Bnorm1_poly.coeffs[4];
+
+		const Poly Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0]);
+		const double Bskew_0_0 = Bskew0_poly.coeffs[0];
+		const double Bskew_0_1 = Bskew0_poly.coeffs[1];
+		const double Bskew_0_2 = Bskew0_poly.coeffs[2];
+		const double Bskew_0_3 = Bskew0_poly.coeffs[3];
+		const double Bskew_0_4 = Bskew0_poly.coeffs[4];
+
+		const Poly Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1]);
+		const double Bskew_1_0 = Bskew1_poly.coeffs[0];
+		const double Bskew_1_1 = Bskew1_poly.coeffs[1];
+		const double Bskew_1_2 = Bskew1_poly.coeffs[2];
+		const double Bskew_1_3 = Bskew1_poly.coeffs[3];
+		const double Bskew_1_4 = Bskew1_poly.coeffs[4];
 
 		// Common sub-expressions
 		const double x0 = s*s;
@@ -108,43 +232,56 @@ void evaluate_B(const double x, const double y, const double s, const double *pa
 		return;
 
 	}
-	case 3:{
-		// Parameter List
-		const double Bs_0 = params[0];
-		const double Bs_1 = params[1];
-		const double Bs_2 = params[2];
-		const double Bs_3 = params[3];
-		const double Bs_4 = params[4];
-		const double Bnorm_0_0 = params[5];
-		const double Bnorm_0_1 = params[6];
-		const double Bnorm_0_2 = params[7];
-		const double Bnorm_0_3 = params[8];
-		const double Bnorm_0_4 = params[9];
-		const double Bnorm_1_0 = params[10];
-		const double Bnorm_1_1 = params[11];
-		const double Bnorm_1_2 = params[12];
-		const double Bnorm_1_3 = params[13];
-		const double Bnorm_1_4 = params[14];
-		const double Bnorm_2_0 = params[15];
-		const double Bnorm_2_1 = params[16];
-		const double Bnorm_2_2 = params[17];
-		const double Bnorm_2_3 = params[18];
-		const double Bnorm_2_4 = params[19];
-		const double Bskew_0_0 = params[20];
-		const double Bskew_0_1 = params[21];
-		const double Bskew_0_2 = params[22];
-		const double Bskew_0_3 = params[23];
-		const double Bskew_0_4 = params[24];
-		const double Bskew_1_0 = params[25];
-		const double Bskew_1_1 = params[26];
-		const double Bskew_1_2 = params[27];
-		const double Bskew_1_3 = params[28];
-		const double Bskew_1_4 = params[29];
-		const double Bskew_2_0 = params[30];
-		const double Bskew_2_1 = params[31];
-		const double Bskew_2_2 = params[32];
-		const double Bskew_2_3 = params[33];
-		const double Bskew_2_4 = params[34];
+	case 3: {
+		// Hermite → polynomial coefficients (order 3)
+		const Poly Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite);
+		const double Bs_0   = Bs_poly.coeffs[0];
+		const double Bs_1   = Bs_poly.coeffs[1];
+		const double Bs_2   = Bs_poly.coeffs[2];
+		const double Bs_3   = Bs_poly.coeffs[3];
+		const double Bs_4   = Bs_poly.coeffs[4];
+
+		const Poly Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0]);
+		const double Bnorm_0_0 = Bnorm0_poly.coeffs[0];
+		const double Bnorm_0_1 = Bnorm0_poly.coeffs[1];
+		const double Bnorm_0_2 = Bnorm0_poly.coeffs[2];
+		const double Bnorm_0_3 = Bnorm0_poly.coeffs[3];
+		const double Bnorm_0_4 = Bnorm0_poly.coeffs[4];
+
+		const Poly Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1]);
+		const double Bnorm_1_0 = Bnorm1_poly.coeffs[0];
+		const double Bnorm_1_1 = Bnorm1_poly.coeffs[1];
+		const double Bnorm_1_2 = Bnorm1_poly.coeffs[2];
+		const double Bnorm_1_3 = Bnorm1_poly.coeffs[3];
+		const double Bnorm_1_4 = Bnorm1_poly.coeffs[4];
+
+		const Poly Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2]);
+		const double Bnorm_2_0 = Bnorm2_poly.coeffs[0];
+		const double Bnorm_2_1 = Bnorm2_poly.coeffs[1];
+		const double Bnorm_2_2 = Bnorm2_poly.coeffs[2];
+		const double Bnorm_2_3 = Bnorm2_poly.coeffs[3];
+		const double Bnorm_2_4 = Bnorm2_poly.coeffs[4];
+
+		const Poly Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0]);
+		const double Bskew_0_0 = Bskew0_poly.coeffs[0];
+		const double Bskew_0_1 = Bskew0_poly.coeffs[1];
+		const double Bskew_0_2 = Bskew0_poly.coeffs[2];
+		const double Bskew_0_3 = Bskew0_poly.coeffs[3];
+		const double Bskew_0_4 = Bskew0_poly.coeffs[4];
+
+		const Poly Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1]);
+		const double Bskew_1_0 = Bskew1_poly.coeffs[0];
+		const double Bskew_1_1 = Bskew1_poly.coeffs[1];
+		const double Bskew_1_2 = Bskew1_poly.coeffs[2];
+		const double Bskew_1_3 = Bskew1_poly.coeffs[3];
+		const double Bskew_1_4 = Bskew1_poly.coeffs[4];
+
+		const Poly Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2]);
+		const double Bskew_2_0 = Bskew2_poly.coeffs[0];
+		const double Bskew_2_1 = Bskew2_poly.coeffs[1];
+		const double Bskew_2_2 = Bskew2_poly.coeffs[2];
+		const double Bskew_2_3 = Bskew2_poly.coeffs[3];
+		const double Bskew_2_4 = Bskew2_poly.coeffs[4];
 
 		// Common sub-expressions
 		const double x0 = s*s;
@@ -210,53 +347,70 @@ void evaluate_B(const double x, const double y, const double s, const double *pa
 		return;
 
 	}
-	case 4:{
-		// Parameter List
-		const double Bs_0 = params[0];
-		const double Bs_1 = params[1];
-		const double Bs_2 = params[2];
-		const double Bs_3 = params[3];
-		const double Bs_4 = params[4];
-		const double Bnorm_0_0 = params[5];
-		const double Bnorm_0_1 = params[6];
-		const double Bnorm_0_2 = params[7];
-		const double Bnorm_0_3 = params[8];
-		const double Bnorm_0_4 = params[9];
-		const double Bnorm_1_0 = params[10];
-		const double Bnorm_1_1 = params[11];
-		const double Bnorm_1_2 = params[12];
-		const double Bnorm_1_3 = params[13];
-		const double Bnorm_1_4 = params[14];
-		const double Bnorm_2_0 = params[15];
-		const double Bnorm_2_1 = params[16];
-		const double Bnorm_2_2 = params[17];
-		const double Bnorm_2_3 = params[18];
-		const double Bnorm_2_4 = params[19];
-		const double Bnorm_3_0 = params[20];
-		const double Bnorm_3_1 = params[21];
-		const double Bnorm_3_2 = params[22];
-		const double Bnorm_3_3 = params[23];
-		const double Bnorm_3_4 = params[24];
-		const double Bskew_0_0 = params[25];
-		const double Bskew_0_1 = params[26];
-		const double Bskew_0_2 = params[27];
-		const double Bskew_0_3 = params[28];
-		const double Bskew_0_4 = params[29];
-		const double Bskew_1_0 = params[30];
-		const double Bskew_1_1 = params[31];
-		const double Bskew_1_2 = params[32];
-		const double Bskew_1_3 = params[33];
-		const double Bskew_1_4 = params[34];
-		const double Bskew_2_0 = params[35];
-		const double Bskew_2_1 = params[36];
-		const double Bskew_2_2 = params[37];
-		const double Bskew_2_3 = params[38];
-		const double Bskew_2_4 = params[39];
-		const double Bskew_3_0 = params[40];
-		const double Bskew_3_1 = params[41];
-		const double Bskew_3_2 = params[42];
-		const double Bskew_3_3 = params[43];
-		const double Bskew_3_4 = params[44];
+	case 4: {
+		// Hermite → polynomial coefficients (order 4)
+		const Poly Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite);
+		const double Bs_0   = Bs_poly.coeffs[0];
+		const double Bs_1   = Bs_poly.coeffs[1];
+		const double Bs_2   = Bs_poly.coeffs[2];
+		const double Bs_3   = Bs_poly.coeffs[3];
+		const double Bs_4   = Bs_poly.coeffs[4];
+
+		const Poly Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0]);
+		const double Bnorm_0_0 = Bnorm0_poly.coeffs[0];
+		const double Bnorm_0_1 = Bnorm0_poly.coeffs[1];
+		const double Bnorm_0_2 = Bnorm0_poly.coeffs[2];
+		const double Bnorm_0_3 = Bnorm0_poly.coeffs[3];
+		const double Bnorm_0_4 = Bnorm0_poly.coeffs[4];
+
+		const Poly Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1]);
+		const double Bnorm_1_0 = Bnorm1_poly.coeffs[0];
+		const double Bnorm_1_1 = Bnorm1_poly.coeffs[1];
+		const double Bnorm_1_2 = Bnorm1_poly.coeffs[2];
+		const double Bnorm_1_3 = Bnorm1_poly.coeffs[3];
+		const double Bnorm_1_4 = Bnorm1_poly.coeffs[4];
+
+		const Poly Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2]);
+		const double Bnorm_2_0 = Bnorm2_poly.coeffs[0];
+		const double Bnorm_2_1 = Bnorm2_poly.coeffs[1];
+		const double Bnorm_2_2 = Bnorm2_poly.coeffs[2];
+		const double Bnorm_2_3 = Bnorm2_poly.coeffs[3];
+		const double Bnorm_2_4 = Bnorm2_poly.coeffs[4];
+
+		const Poly Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3]);
+		const double Bnorm_3_0 = Bnorm3_poly.coeffs[0];
+		const double Bnorm_3_1 = Bnorm3_poly.coeffs[1];
+		const double Bnorm_3_2 = Bnorm3_poly.coeffs[2];
+		const double Bnorm_3_3 = Bnorm3_poly.coeffs[3];
+		const double Bnorm_3_4 = Bnorm3_poly.coeffs[4];
+
+		const Poly Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0]);
+		const double Bskew_0_0 = Bskew0_poly.coeffs[0];
+		const double Bskew_0_1 = Bskew0_poly.coeffs[1];
+		const double Bskew_0_2 = Bskew0_poly.coeffs[2];
+		const double Bskew_0_3 = Bskew0_poly.coeffs[3];
+		const double Bskew_0_4 = Bskew0_poly.coeffs[4];
+
+		const Poly Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1]);
+		const double Bskew_1_0 = Bskew1_poly.coeffs[0];
+		const double Bskew_1_1 = Bskew1_poly.coeffs[1];
+		const double Bskew_1_2 = Bskew1_poly.coeffs[2];
+		const double Bskew_1_3 = Bskew1_poly.coeffs[3];
+		const double Bskew_1_4 = Bskew1_poly.coeffs[4];
+
+		const Poly Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2]);
+		const double Bskew_2_0 = Bskew2_poly.coeffs[0];
+		const double Bskew_2_1 = Bskew2_poly.coeffs[1];
+		const double Bskew_2_2 = Bskew2_poly.coeffs[2];
+		const double Bskew_2_3 = Bskew2_poly.coeffs[3];
+		const double Bskew_2_4 = Bskew2_poly.coeffs[4];
+
+		const Poly Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3]);
+		const double Bskew_3_0 = Bskew3_poly.coeffs[0];
+		const double Bskew_3_1 = Bskew3_poly.coeffs[1];
+		const double Bskew_3_2 = Bskew3_poly.coeffs[2];
+		const double Bskew_3_3 = Bskew3_poly.coeffs[3];
+		const double Bskew_3_4 = Bskew3_poly.coeffs[4];
 
 		// Common sub-expressions
 		const double x0 = s*s;
@@ -355,63 +509,84 @@ void evaluate_B(const double x, const double y, const double s, const double *pa
 		return;
 
 	}
-	case 5:{
-		// Parameter List
-		const double Bs_0 = params[0];
-		const double Bs_1 = params[1];
-		const double Bs_2 = params[2];
-		const double Bs_3 = params[3];
-		const double Bs_4 = params[4];
-		const double Bnorm_0_0 = params[5];
-		const double Bnorm_0_1 = params[6];
-		const double Bnorm_0_2 = params[7];
-		const double Bnorm_0_3 = params[8];
-		const double Bnorm_0_4 = params[9];
-		const double Bnorm_1_0 = params[10];
-		const double Bnorm_1_1 = params[11];
-		const double Bnorm_1_2 = params[12];
-		const double Bnorm_1_3 = params[13];
-		const double Bnorm_1_4 = params[14];
-		const double Bnorm_2_0 = params[15];
-		const double Bnorm_2_1 = params[16];
-		const double Bnorm_2_2 = params[17];
-		const double Bnorm_2_3 = params[18];
-		const double Bnorm_2_4 = params[19];
-		const double Bnorm_3_0 = params[20];
-		const double Bnorm_3_1 = params[21];
-		const double Bnorm_3_2 = params[22];
-		const double Bnorm_3_3 = params[23];
-		const double Bnorm_3_4 = params[24];
-		const double Bnorm_4_0 = params[25];
-		const double Bnorm_4_1 = params[26];
-		const double Bnorm_4_2 = params[27];
-		const double Bnorm_4_3 = params[28];
-		const double Bnorm_4_4 = params[29];
-		const double Bskew_0_0 = params[30];
-		const double Bskew_0_1 = params[31];
-		const double Bskew_0_2 = params[32];
-		const double Bskew_0_3 = params[33];
-		const double Bskew_0_4 = params[34];
-		const double Bskew_1_0 = params[35];
-		const double Bskew_1_1 = params[36];
-		const double Bskew_1_2 = params[37];
-		const double Bskew_1_3 = params[38];
-		const double Bskew_1_4 = params[39];
-		const double Bskew_2_0 = params[40];
-		const double Bskew_2_1 = params[41];
-		const double Bskew_2_2 = params[42];
-		const double Bskew_2_3 = params[43];
-		const double Bskew_2_4 = params[44];
-		const double Bskew_3_0 = params[45];
-		const double Bskew_3_1 = params[46];
-		const double Bskew_3_2 = params[47];
-		const double Bskew_3_3 = params[48];
-		const double Bskew_3_4 = params[49];
-		const double Bskew_4_0 = params[50];
-		const double Bskew_4_1 = params[51];
-		const double Bskew_4_2 = params[52];
-		const double Bskew_4_3 = params[53];
-		const double Bskew_4_4 = params[54];
+	case 5: {
+		// Hermite → polynomial coefficients (order 5)
+		const Poly Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite);
+		const double Bs_0   = Bs_poly.coeffs[0];
+		const double Bs_1   = Bs_poly.coeffs[1];
+		const double Bs_2   = Bs_poly.coeffs[2];
+		const double Bs_3   = Bs_poly.coeffs[3];
+		const double Bs_4   = Bs_poly.coeffs[4];
+
+		const Poly Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0]);
+		const double Bnorm_0_0 = Bnorm0_poly.coeffs[0];
+		const double Bnorm_0_1 = Bnorm0_poly.coeffs[1];
+		const double Bnorm_0_2 = Bnorm0_poly.coeffs[2];
+		const double Bnorm_0_3 = Bnorm0_poly.coeffs[3];
+		const double Bnorm_0_4 = Bnorm0_poly.coeffs[4];
+
+		const Poly Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1]);
+		const double Bnorm_1_0 = Bnorm1_poly.coeffs[0];
+		const double Bnorm_1_1 = Bnorm1_poly.coeffs[1];
+		const double Bnorm_1_2 = Bnorm1_poly.coeffs[2];
+		const double Bnorm_1_3 = Bnorm1_poly.coeffs[3];
+		const double Bnorm_1_4 = Bnorm1_poly.coeffs[4];
+
+		const Poly Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2]);
+		const double Bnorm_2_0 = Bnorm2_poly.coeffs[0];
+		const double Bnorm_2_1 = Bnorm2_poly.coeffs[1];
+		const double Bnorm_2_2 = Bnorm2_poly.coeffs[2];
+		const double Bnorm_2_3 = Bnorm2_poly.coeffs[3];
+		const double Bnorm_2_4 = Bnorm2_poly.coeffs[4];
+
+		const Poly Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3]);
+		const double Bnorm_3_0 = Bnorm3_poly.coeffs[0];
+		const double Bnorm_3_1 = Bnorm3_poly.coeffs[1];
+		const double Bnorm_3_2 = Bnorm3_poly.coeffs[2];
+		const double Bnorm_3_3 = Bnorm3_poly.coeffs[3];
+		const double Bnorm_3_4 = Bnorm3_poly.coeffs[4];
+
+		const Poly Bnorm4_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[4]);
+		const double Bnorm_4_0 = Bnorm4_poly.coeffs[0];
+		const double Bnorm_4_1 = Bnorm4_poly.coeffs[1];
+		const double Bnorm_4_2 = Bnorm4_poly.coeffs[2];
+		const double Bnorm_4_3 = Bnorm4_poly.coeffs[3];
+		const double Bnorm_4_4 = Bnorm4_poly.coeffs[4];
+
+		const Poly Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0]);
+		const double Bskew_0_0 = Bskew0_poly.coeffs[0];
+		const double Bskew_0_1 = Bskew0_poly.coeffs[1];
+		const double Bskew_0_2 = Bskew0_poly.coeffs[2];
+		const double Bskew_0_3 = Bskew0_poly.coeffs[3];
+		const double Bskew_0_4 = Bskew0_poly.coeffs[4];
+
+		const Poly Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1]);
+		const double Bskew_1_0 = Bskew1_poly.coeffs[0];
+		const double Bskew_1_1 = Bskew1_poly.coeffs[1];
+		const double Bskew_1_2 = Bskew1_poly.coeffs[2];
+		const double Bskew_1_3 = Bskew1_poly.coeffs[3];
+		const double Bskew_1_4 = Bskew1_poly.coeffs[4];
+
+		const Poly Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2]);
+		const double Bskew_2_0 = Bskew2_poly.coeffs[0];
+		const double Bskew_2_1 = Bskew2_poly.coeffs[1];
+		const double Bskew_2_2 = Bskew2_poly.coeffs[2];
+		const double Bskew_2_3 = Bskew2_poly.coeffs[3];
+		const double Bskew_2_4 = Bskew2_poly.coeffs[4];
+
+		const Poly Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3]);
+		const double Bskew_3_0 = Bskew3_poly.coeffs[0];
+		const double Bskew_3_1 = Bskew3_poly.coeffs[1];
+		const double Bskew_3_2 = Bskew3_poly.coeffs[2];
+		const double Bskew_3_3 = Bskew3_poly.coeffs[3];
+		const double Bskew_3_4 = Bskew3_poly.coeffs[4];
+
+		const Poly Bskew4_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[4]);
+		const double Bskew_4_0 = Bskew4_poly.coeffs[0];
+		const double Bskew_4_1 = Bskew4_poly.coeffs[1];
+		const double Bskew_4_2 = Bskew4_poly.coeffs[2];
+		const double Bskew_4_3 = Bskew4_poly.coeffs[3];
+		const double Bskew_4_4 = Bskew4_poly.coeffs[4];
 
 		// Common sub-expressions
 		const double x0 = s*s;
@@ -539,73 +714,98 @@ void evaluate_B(const double x, const double y, const double s, const double *pa
 		return;
 
 	}
-	case 6:{
-		// Parameter List
-		const double Bs_0 = params[0];
-		const double Bs_1 = params[1];
-		const double Bs_2 = params[2];
-		const double Bs_3 = params[3];
-		const double Bs_4 = params[4];
-		const double Bnorm_0_0 = params[5];
-		const double Bnorm_0_1 = params[6];
-		const double Bnorm_0_2 = params[7];
-		const double Bnorm_0_3 = params[8];
-		const double Bnorm_0_4 = params[9];
-		const double Bnorm_1_0 = params[10];
-		const double Bnorm_1_1 = params[11];
-		const double Bnorm_1_2 = params[12];
-		const double Bnorm_1_3 = params[13];
-		const double Bnorm_1_4 = params[14];
-		const double Bnorm_2_0 = params[15];
-		const double Bnorm_2_1 = params[16];
-		const double Bnorm_2_2 = params[17];
-		const double Bnorm_2_3 = params[18];
-		const double Bnorm_2_4 = params[19];
-		const double Bnorm_3_0 = params[20];
-		const double Bnorm_3_1 = params[21];
-		const double Bnorm_3_2 = params[22];
-		const double Bnorm_3_3 = params[23];
-		const double Bnorm_3_4 = params[24];
-		const double Bnorm_4_0 = params[25];
-		const double Bnorm_4_1 = params[26];
-		const double Bnorm_4_2 = params[27];
-		const double Bnorm_4_3 = params[28];
-		const double Bnorm_4_4 = params[29];
-		const double Bnorm_5_0 = params[30];
-		const double Bnorm_5_1 = params[31];
-		const double Bnorm_5_2 = params[32];
-		const double Bnorm_5_3 = params[33];
-		const double Bnorm_5_4 = params[34];
-		const double Bskew_0_0 = params[35];
-		const double Bskew_0_1 = params[36];
-		const double Bskew_0_2 = params[37];
-		const double Bskew_0_3 = params[38];
-		const double Bskew_0_4 = params[39];
-		const double Bskew_1_0 = params[40];
-		const double Bskew_1_1 = params[41];
-		const double Bskew_1_2 = params[42];
-		const double Bskew_1_3 = params[43];
-		const double Bskew_1_4 = params[44];
-		const double Bskew_2_0 = params[45];
-		const double Bskew_2_1 = params[46];
-		const double Bskew_2_2 = params[47];
-		const double Bskew_2_3 = params[48];
-		const double Bskew_2_4 = params[49];
-		const double Bskew_3_0 = params[50];
-		const double Bskew_3_1 = params[51];
-		const double Bskew_3_2 = params[52];
-		const double Bskew_3_3 = params[53];
-		const double Bskew_3_4 = params[54];
-		const double Bskew_4_0 = params[55];
-		const double Bskew_4_1 = params[56];
-		const double Bskew_4_2 = params[57];
-		const double Bskew_4_3 = params[58];
-		const double Bskew_4_4 = params[59];
-		const double Bskew_5_0 = params[60];
-		const double Bskew_5_1 = params[61];
-		const double Bskew_5_2 = params[62];
-		const double Bskew_5_3 = params[63];
-		const double Bskew_5_4 = params[64];
+	case 6: {
+		// Hermite → polynomial coefficients (order 6)
+		const Poly Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite);
+		const double Bs_0   = Bs_poly.coeffs[0];
+		const double Bs_1   = Bs_poly.coeffs[1];
+		const double Bs_2   = Bs_poly.coeffs[2];
+		const double Bs_3   = Bs_poly.coeffs[3];
+		const double Bs_4   = Bs_poly.coeffs[4];
+
+		const Poly Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0]);
+		const double Bnorm_0_0 = Bnorm0_poly.coeffs[0];
+		const double Bnorm_0_1 = Bnorm0_poly.coeffs[1];
+		const double Bnorm_0_2 = Bnorm0_poly.coeffs[2];
+		const double Bnorm_0_3 = Bnorm0_poly.coeffs[3];
+		const double Bnorm_0_4 = Bnorm0_poly.coeffs[4];
+
+		const Poly Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1]);
+		const double Bnorm_1_0 = Bnorm1_poly.coeffs[0];
+		const double Bnorm_1_1 = Bnorm1_poly.coeffs[1];
+		const double Bnorm_1_2 = Bnorm1_poly.coeffs[2];
+		const double Bnorm_1_3 = Bnorm1_poly.coeffs[3];
+		const double Bnorm_1_4 = Bnorm1_poly.coeffs[4];
+
+		const Poly Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2]);
+		const double Bnorm_2_0 = Bnorm2_poly.coeffs[0];
+		const double Bnorm_2_1 = Bnorm2_poly.coeffs[1];
+		const double Bnorm_2_2 = Bnorm2_poly.coeffs[2];
+		const double Bnorm_2_3 = Bnorm2_poly.coeffs[3];
+		const double Bnorm_2_4 = Bnorm2_poly.coeffs[4];
+
+		const Poly Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3]);
+		const double Bnorm_3_0 = Bnorm3_poly.coeffs[0];
+		const double Bnorm_3_1 = Bnorm3_poly.coeffs[1];
+		const double Bnorm_3_2 = Bnorm3_poly.coeffs[2];
+		const double Bnorm_3_3 = Bnorm3_poly.coeffs[3];
+		const double Bnorm_3_4 = Bnorm3_poly.coeffs[4];
+
+		const Poly Bnorm4_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[4]);
+		const double Bnorm_4_0 = Bnorm4_poly.coeffs[0];
+		const double Bnorm_4_1 = Bnorm4_poly.coeffs[1];
+		const double Bnorm_4_2 = Bnorm4_poly.coeffs[2];
+		const double Bnorm_4_3 = Bnorm4_poly.coeffs[3];
+		const double Bnorm_4_4 = Bnorm4_poly.coeffs[4];
+
+		const Poly Bnorm5_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[5]);
+		const double Bnorm_5_0 = Bnorm5_poly.coeffs[0];
+		const double Bnorm_5_1 = Bnorm5_poly.coeffs[1];
+		const double Bnorm_5_2 = Bnorm5_poly.coeffs[2];
+		const double Bnorm_5_3 = Bnorm5_poly.coeffs[3];
+		const double Bnorm_5_4 = Bnorm5_poly.coeffs[4];
+
+		const Poly Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0]);
+		const double Bskew_0_0 = Bskew0_poly.coeffs[0];
+		const double Bskew_0_1 = Bskew0_poly.coeffs[1];
+		const double Bskew_0_2 = Bskew0_poly.coeffs[2];
+		const double Bskew_0_3 = Bskew0_poly.coeffs[3];
+		const double Bskew_0_4 = Bskew0_poly.coeffs[4];
+
+		const Poly Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1]);
+		const double Bskew_1_0 = Bskew1_poly.coeffs[0];
+		const double Bskew_1_1 = Bskew1_poly.coeffs[1];
+		const double Bskew_1_2 = Bskew1_poly.coeffs[2];
+		const double Bskew_1_3 = Bskew1_poly.coeffs[3];
+		const double Bskew_1_4 = Bskew1_poly.coeffs[4];
+
+		const Poly Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2]);
+		const double Bskew_2_0 = Bskew2_poly.coeffs[0];
+		const double Bskew_2_1 = Bskew2_poly.coeffs[1];
+		const double Bskew_2_2 = Bskew2_poly.coeffs[2];
+		const double Bskew_2_3 = Bskew2_poly.coeffs[3];
+		const double Bskew_2_4 = Bskew2_poly.coeffs[4];
+
+		const Poly Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3]);
+		const double Bskew_3_0 = Bskew3_poly.coeffs[0];
+		const double Bskew_3_1 = Bskew3_poly.coeffs[1];
+		const double Bskew_3_2 = Bskew3_poly.coeffs[2];
+		const double Bskew_3_3 = Bskew3_poly.coeffs[3];
+		const double Bskew_3_4 = Bskew3_poly.coeffs[4];
+
+		const Poly Bskew4_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[4]);
+		const double Bskew_4_0 = Bskew4_poly.coeffs[0];
+		const double Bskew_4_1 = Bskew4_poly.coeffs[1];
+		const double Bskew_4_2 = Bskew4_poly.coeffs[2];
+		const double Bskew_4_3 = Bskew4_poly.coeffs[3];
+		const double Bskew_4_4 = Bskew4_poly.coeffs[4];
+
+		const Poly Bskew5_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[5]);
+		const double Bskew_5_0 = Bskew5_poly.coeffs[0];
+		const double Bskew_5_1 = Bskew5_poly.coeffs[1];
+		const double Bskew_5_2 = Bskew5_poly.coeffs[2];
+		const double Bskew_5_3 = Bskew5_poly.coeffs[3];
+		const double Bskew_5_4 = Bskew5_poly.coeffs[4];
 
 		// Common sub-expressions
 		const double x0 = s*s;
@@ -765,83 +965,112 @@ void evaluate_B(const double x, const double y, const double s, const double *pa
 		return;
 
 	}
-	case 7:{
-		// Parameter List
-		const double Bs_0 = params[0];
-		const double Bs_1 = params[1];
-		const double Bs_2 = params[2];
-		const double Bs_3 = params[3];
-		const double Bs_4 = params[4];
-		const double Bnorm_0_0 = params[5];
-		const double Bnorm_0_1 = params[6];
-		const double Bnorm_0_2 = params[7];
-		const double Bnorm_0_3 = params[8];
-		const double Bnorm_0_4 = params[9];
-		const double Bnorm_1_0 = params[10];
-		const double Bnorm_1_1 = params[11];
-		const double Bnorm_1_2 = params[12];
-		const double Bnorm_1_3 = params[13];
-		const double Bnorm_1_4 = params[14];
-		const double Bnorm_2_0 = params[15];
-		const double Bnorm_2_1 = params[16];
-		const double Bnorm_2_2 = params[17];
-		const double Bnorm_2_3 = params[18];
-		const double Bnorm_2_4 = params[19];
-		const double Bnorm_3_0 = params[20];
-		const double Bnorm_3_1 = params[21];
-		const double Bnorm_3_2 = params[22];
-		const double Bnorm_3_3 = params[23];
-		const double Bnorm_3_4 = params[24];
-		const double Bnorm_4_0 = params[25];
-		const double Bnorm_4_1 = params[26];
-		const double Bnorm_4_2 = params[27];
-		const double Bnorm_4_3 = params[28];
-		const double Bnorm_4_4 = params[29];
-		const double Bnorm_5_0 = params[30];
-		const double Bnorm_5_1 = params[31];
-		const double Bnorm_5_2 = params[32];
-		const double Bnorm_5_3 = params[33];
-		const double Bnorm_5_4 = params[34];
-		const double Bnorm_6_0 = params[35];
-		const double Bnorm_6_1 = params[36];
-		const double Bnorm_6_2 = params[37];
-		const double Bnorm_6_3 = params[38];
-		const double Bnorm_6_4 = params[39];
-		const double Bskew_0_0 = params[40];
-		const double Bskew_0_1 = params[41];
-		const double Bskew_0_2 = params[42];
-		const double Bskew_0_3 = params[43];
-		const double Bskew_0_4 = params[44];
-		const double Bskew_1_0 = params[45];
-		const double Bskew_1_1 = params[46];
-		const double Bskew_1_2 = params[47];
-		const double Bskew_1_3 = params[48];
-		const double Bskew_1_4 = params[49];
-		const double Bskew_2_0 = params[50];
-		const double Bskew_2_1 = params[51];
-		const double Bskew_2_2 = params[52];
-		const double Bskew_2_3 = params[53];
-		const double Bskew_2_4 = params[54];
-		const double Bskew_3_0 = params[55];
-		const double Bskew_3_1 = params[56];
-		const double Bskew_3_2 = params[57];
-		const double Bskew_3_3 = params[58];
-		const double Bskew_3_4 = params[59];
-		const double Bskew_4_0 = params[60];
-		const double Bskew_4_1 = params[61];
-		const double Bskew_4_2 = params[62];
-		const double Bskew_4_3 = params[63];
-		const double Bskew_4_4 = params[64];
-		const double Bskew_5_0 = params[65];
-		const double Bskew_5_1 = params[66];
-		const double Bskew_5_2 = params[67];
-		const double Bskew_5_3 = params[68];
-		const double Bskew_5_4 = params[69];
-		const double Bskew_6_0 = params[70];
-		const double Bskew_6_1 = params[71];
-		const double Bskew_6_2 = params[72];
-		const double Bskew_6_3 = params[73];
-		const double Bskew_6_4 = params[74];
+	case 7: {
+		// Hermite → polynomial coefficients (order 7)
+		const Poly Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite);
+		const double Bs_0   = Bs_poly.coeffs[0];
+		const double Bs_1   = Bs_poly.coeffs[1];
+		const double Bs_2   = Bs_poly.coeffs[2];
+		const double Bs_3   = Bs_poly.coeffs[3];
+		const double Bs_4   = Bs_poly.coeffs[4];
+
+		const Poly Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0]);
+		const double Bnorm_0_0 = Bnorm0_poly.coeffs[0];
+		const double Bnorm_0_1 = Bnorm0_poly.coeffs[1];
+		const double Bnorm_0_2 = Bnorm0_poly.coeffs[2];
+		const double Bnorm_0_3 = Bnorm0_poly.coeffs[3];
+		const double Bnorm_0_4 = Bnorm0_poly.coeffs[4];
+
+		const Poly Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1]);
+		const double Bnorm_1_0 = Bnorm1_poly.coeffs[0];
+		const double Bnorm_1_1 = Bnorm1_poly.coeffs[1];
+		const double Bnorm_1_2 = Bnorm1_poly.coeffs[2];
+		const double Bnorm_1_3 = Bnorm1_poly.coeffs[3];
+		const double Bnorm_1_4 = Bnorm1_poly.coeffs[4];
+
+		const Poly Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2]);
+		const double Bnorm_2_0 = Bnorm2_poly.coeffs[0];
+		const double Bnorm_2_1 = Bnorm2_poly.coeffs[1];
+		const double Bnorm_2_2 = Bnorm2_poly.coeffs[2];
+		const double Bnorm_2_3 = Bnorm2_poly.coeffs[3];
+		const double Bnorm_2_4 = Bnorm2_poly.coeffs[4];
+
+		const Poly Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3]);
+		const double Bnorm_3_0 = Bnorm3_poly.coeffs[0];
+		const double Bnorm_3_1 = Bnorm3_poly.coeffs[1];
+		const double Bnorm_3_2 = Bnorm3_poly.coeffs[2];
+		const double Bnorm_3_3 = Bnorm3_poly.coeffs[3];
+		const double Bnorm_3_4 = Bnorm3_poly.coeffs[4];
+
+		const Poly Bnorm4_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[4]);
+		const double Bnorm_4_0 = Bnorm4_poly.coeffs[0];
+		const double Bnorm_4_1 = Bnorm4_poly.coeffs[1];
+		const double Bnorm_4_2 = Bnorm4_poly.coeffs[2];
+		const double Bnorm_4_3 = Bnorm4_poly.coeffs[3];
+		const double Bnorm_4_4 = Bnorm4_poly.coeffs[4];
+
+		const Poly Bnorm5_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[5]);
+		const double Bnorm_5_0 = Bnorm5_poly.coeffs[0];
+		const double Bnorm_5_1 = Bnorm5_poly.coeffs[1];
+		const double Bnorm_5_2 = Bnorm5_poly.coeffs[2];
+		const double Bnorm_5_3 = Bnorm5_poly.coeffs[3];
+		const double Bnorm_5_4 = Bnorm5_poly.coeffs[4];
+
+		const Poly Bnorm6_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[6]);
+		const double Bnorm_6_0 = Bnorm6_poly.coeffs[0];
+		const double Bnorm_6_1 = Bnorm6_poly.coeffs[1];
+		const double Bnorm_6_2 = Bnorm6_poly.coeffs[2];
+		const double Bnorm_6_3 = Bnorm6_poly.coeffs[3];
+		const double Bnorm_6_4 = Bnorm6_poly.coeffs[4];
+
+		const Poly Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0]);
+		const double Bskew_0_0 = Bskew0_poly.coeffs[0];
+		const double Bskew_0_1 = Bskew0_poly.coeffs[1];
+		const double Bskew_0_2 = Bskew0_poly.coeffs[2];
+		const double Bskew_0_3 = Bskew0_poly.coeffs[3];
+		const double Bskew_0_4 = Bskew0_poly.coeffs[4];
+
+		const Poly Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1]);
+		const double Bskew_1_0 = Bskew1_poly.coeffs[0];
+		const double Bskew_1_1 = Bskew1_poly.coeffs[1];
+		const double Bskew_1_2 = Bskew1_poly.coeffs[2];
+		const double Bskew_1_3 = Bskew1_poly.coeffs[3];
+		const double Bskew_1_4 = Bskew1_poly.coeffs[4];
+
+		const Poly Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2]);
+		const double Bskew_2_0 = Bskew2_poly.coeffs[0];
+		const double Bskew_2_1 = Bskew2_poly.coeffs[1];
+		const double Bskew_2_2 = Bskew2_poly.coeffs[2];
+		const double Bskew_2_3 = Bskew2_poly.coeffs[3];
+		const double Bskew_2_4 = Bskew2_poly.coeffs[4];
+
+		const Poly Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3]);
+		const double Bskew_3_0 = Bskew3_poly.coeffs[0];
+		const double Bskew_3_1 = Bskew3_poly.coeffs[1];
+		const double Bskew_3_2 = Bskew3_poly.coeffs[2];
+		const double Bskew_3_3 = Bskew3_poly.coeffs[3];
+		const double Bskew_3_4 = Bskew3_poly.coeffs[4];
+
+		const Poly Bskew4_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[4]);
+		const double Bskew_4_0 = Bskew4_poly.coeffs[0];
+		const double Bskew_4_1 = Bskew4_poly.coeffs[1];
+		const double Bskew_4_2 = Bskew4_poly.coeffs[2];
+		const double Bskew_4_3 = Bskew4_poly.coeffs[3];
+		const double Bskew_4_4 = Bskew4_poly.coeffs[4];
+
+		const Poly Bskew5_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[5]);
+		const double Bskew_5_0 = Bskew5_poly.coeffs[0];
+		const double Bskew_5_1 = Bskew5_poly.coeffs[1];
+		const double Bskew_5_2 = Bskew5_poly.coeffs[2];
+		const double Bskew_5_3 = Bskew5_poly.coeffs[3];
+		const double Bskew_5_4 = Bskew5_poly.coeffs[4];
+
+		const Poly Bskew6_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[6]);
+		const double Bskew_6_0 = Bskew6_poly.coeffs[0];
+		const double Bskew_6_1 = Bskew6_poly.coeffs[1];
+		const double Bskew_6_2 = Bskew6_poly.coeffs[2];
+		const double Bskew_6_3 = Bskew6_poly.coeffs[3];
+		const double Bskew_6_4 = Bskew6_poly.coeffs[4];
 
 		// Common sub-expressions
 		const double x0 = s*s;
@@ -1037,7 +1266,7 @@ void evaluate_B(const double x, const double y, const double s, const double *pa
 		return;
 
 	}
-	default:{
+	default: {
 		printf("Error: Unsupported multipole order %d\n", multipole_order);
 		printf("Supported orders are 1 to 7\n");
 		printf("Setting field values to zero.\n");

@@ -99,7 +99,8 @@ class FieldFitter:
         Returns a polynomial in *s_local* (local coordinate starting at 0).
         Convenience wrapper around ``xt.SplineBoris.hermite_to_polynomial``.
         """
-        return xt.SplineBoris.hermite_to_polynomial(s0, s1, coeffs)
+        from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import hermite_to_polynomial
+        return hermite_to_polynomial(s0, s1, coeffs)
 
 
 

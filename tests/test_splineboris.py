@@ -55,9 +55,10 @@ def make_uniform_splineboris():
         # Verify the polynomials evaluate to constants (polynomial is in local s = s - s_start)
         s_test = np.linspace(s_start, s_end, 100)
         s_local = s_test - s_start
-        xo.assert_allclose(xt.SplineBoris.hermite_to_polynomial(s_start, s_end, Bx_h)(s_local), Bx, rtol=1e-12, atol=1e-12)
-        xo.assert_allclose(xt.SplineBoris.hermite_to_polynomial(s_start, s_end, By_h)(s_local), By, rtol=1e-12, atol=1e-12)
-        xo.assert_allclose(xt.SplineBoris.hermite_to_polynomial(s_start, s_end, Bs_h)(s_local), Bs, rtol=1e-12, atol=1e-12)
+        from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import hermite_to_polynomial
+        xo.assert_allclose(hermite_to_polynomial(s_start, s_end, Bx_h)(s_local), Bx, rtol=1e-12, atol=1e-12)
+        xo.assert_allclose(hermite_to_polynomial(s_start, s_end, By_h)(s_local), By, rtol=1e-12, atol=1e-12)
+        xo.assert_allclose(hermite_to_polynomial(s_start, s_end, Bs_h)(s_local), Bs, rtol=1e-12, atol=1e-12)
 
         splineboris = xt.SplineBoris(
             bs=xt.Spline4(*Bs_h),
@@ -1241,7 +1242,8 @@ def test_splineboris_spin_quadrupole(case, atol):
 
     # Verify the polynomial evaluates to a constant gradient.
     # hermite_to_polynomial returns a poly in local coordinate s_local = s - s_start.
-    kn_1_poly = xt.SplineBoris.hermite_to_polynomial(s_start, s_end, kn_1_hermite)
+    from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import hermite_to_polynomial
+    kn_1_poly = hermite_to_polynomial(s_start, s_end, kn_1_hermite)
     s_test = np.linspace(s_start, s_end, 100)
     xo.assert_allclose(kn_1_poly(s_test - s_start), quad_gradient, rtol=1e-12, atol=1e-12)
 

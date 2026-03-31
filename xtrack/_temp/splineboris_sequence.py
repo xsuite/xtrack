@@ -92,7 +92,8 @@ class SplineBorisSequence:
         of ``[canon_s_start, canon_s_end]`` to produce new Hermite boundary
         conditions valid exactly for that sub-interval.
         """
-        poly = SplineBoris.hermite_to_polynomial(piece_s_start, piece_s_end, hermite_vals)
+        from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import hermite_to_polynomial
+        poly = hermite_to_polynomial(piece_s_start, piece_s_end, hermite_vals)
         dpoly = poly.deriv()
         ipoly = poly.integ()
 
