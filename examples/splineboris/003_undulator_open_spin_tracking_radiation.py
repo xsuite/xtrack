@@ -36,11 +36,10 @@ BASE_DIR = Path(__file__).resolve().parent
 field_map_path = BASE_DIR.parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
 df_raw_data = pd.read_csv(
     field_map_path,
-    sep='\t',
+    sep=r"\s+",
     header=None,
-    names=['X', 'Y', 'Z', 'Bx', 'By', 'Bs'],
-)
-df_raw_data = df_raw_data.set_index(['X', 'Y', 'Z'])
+    names=["X", "Y", "Z", "Bskew", "Bnorm", "Bs"],
+).set_index(["X", "Y", "Z"])
 
 # Distance unit in meters (the dataset uses mm, so 1 mm = 0.001 m)
 distance_unit = 0.001

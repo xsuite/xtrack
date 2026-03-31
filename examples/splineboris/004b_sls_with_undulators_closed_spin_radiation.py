@@ -37,11 +37,10 @@ BASE_DIR = Path(__file__).resolve().parent
 field_map_path = BASE_DIR.parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
 df_raw_data = pd.read_csv(
     field_map_path,
-    sep='\t',
+    sep=r"\s+",
     header=None,
-    names=['X', 'Y', 'Z', 'Bx', 'By', 'Bs'],
-)
-df_raw_data = df_raw_data.set_index(['X', 'Y', 'Z'])
+    names=["X", "Y", "Z", "Bskew", "Bnorm", "Bs"],
+).set_index(["X", "Y", "Z"])
 
 # Distance unit in meters (the dataset uses mm, so 1 mm = 0.001 m)
 distance_unit = 0.001
@@ -182,11 +181,6 @@ print()
 print(f"Chromaticity:")
 print(f"  dqx = {tw_sls.dqx:.4e}")
 print(f"  dqy = {tw_sls.dqy:.4e}")
-# print()
-# print(f"Partition numbers:")
-# print(f"  J_x = {tw_sls.rad_int_partition_number_x:.4e}")
-# print(f"  J_y = {tw_sls.rad_int_partition_number_y:.4e}")
-# print(f"  J_zeta = {tw_sls.rad_int_partition_number_zeta:.4e}")
 print()
 print(f"Damping constants per second:")
 print(f"  alpha_x = {tw_sls.rad_int_damping_constant_x_s:.4e}")
@@ -196,10 +190,6 @@ print()
 print(f"Equilibrium emittances:")
 print(f"  eq_gemitt_x = {tw_sls.rad_int_eq_gemitt_x:.4e}")
 print(f"  eq_gemitt_y = {tw_sls.rad_int_eq_gemitt_y:.4e}")
-# print(f"  eq_gemitt_zeta = {tw_sls.rad_int_eq_gemitt_zeta:.4e}")
-# print()
-# print(f"Energy loss per turn: {tw_sls.rad_int_eneloss_turn:.4e} eV")
-# print(f"Delta after one turn: {(tw_sls.rad_int_eneloss_turn / E0):.4e}")
 print()
 print(f"C^-: {tw_sls.c_minus:.4e}")
 print()
