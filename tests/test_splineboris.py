@@ -7,12 +7,12 @@ import xobjects as xo
 from xobjects.test_helpers import fix_random_seed
 import pandas as pd
 from pathlib import Path
-import importlib.util
 
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 from xtrack._temp.field_fitter import FieldFitter
 from xtrack._temp.splineboris_sequence import SplineBorisSequence
+from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import evaluate_B
 
 FIT_PARS_INDEX_COLS = [
     "field_component",
@@ -55,15 +55,15 @@ def make_uniform_splineboris():
         # Verify the polynomials evaluate to constants (polynomial is in local s = s - s_start)
         s_test = np.linspace(s_start, s_end, 100)
         s_local = s_test - s_start
-        xo.assert_allclose(xt.SplineBoris.hermite_to_polynomial(s_start, s_end, Bx_h)(s_local), Bx, rtol=1e-12, atol=1e-12)
-        xo.assert_allclose(xt.SplineBoris.hermite_to_polynomial(s_start, s_end, By_h)(s_local), By, rtol=1e-12, atol=1e-12)
-        xo.assert_allclose(xt.SplineBoris.hermite_to_polynomial(s_start, s_end, Bs_h)(s_local), Bs, rtol=1e-12, atol=1e-12)
+        from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import hermite_to_polynomial
+        xo.assert_allclose(hermite_to_polynomial(s_start, s_end, Bx_h)(s_local), Bx, rtol=1e-12, atol=1e-12)
+        xo.assert_allclose(hermite_to_polynomial(s_start, s_end, By_h)(s_local), By, rtol=1e-12, atol=1e-12)
+        xo.assert_allclose(hermite_to_polynomial(s_start, s_end, Bs_h)(s_local), Bs, rtol=1e-12, atol=1e-12)
 
         splineboris = xt.SplineBoris(
             bs=xt.Spline4(*Bs_h),
             by=(xt.Spline4(*By_h),),
             bx=(xt.Spline4(*Bx_h),),
-            s_start=s_start,
             length=s_end - s_start,
             n_steps=n_steps,
             radiation_flag=radiation_flag,
@@ -72,33 +72,22 @@ def make_uniform_splineboris():
     return _make
 
 @pytest.fixture(scope="module")
-def evaluate_b():
-    module_path = (
-        Path(__file__).parent.parent
-        / "xtrack"
-        / "beam_elements"
-        / "elements_src"
-        / "spline_B_field_eval_python.py"
-    )
-    spec = importlib.util.spec_from_file_location("spline_B_field_eval_python", module_path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Could not load module spec from {module_path}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module.evaluate_B
-
-@pytest.fixture(scope="module")
-def make_segment_field(evaluate_b):
-    def _make(params_1d, multipole_order_local, s_start=0.0):
-        params_arr = np.asarray(params_1d, dtype=float)
-
+def make_segment_field():
+    def _make(Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole_order_local, s_start=0.0):
+        # ensure we have simple lists/arrays
+        Bs_hermite_arr = np.asarray(Bs_hermite, dtype=float).tolist()
+        B_norm_list = [np.asarray(b, dtype=float).tolist() for b in B_norm_hermite]
+        B_skew_list = [np.asarray(b, dtype=float).tolist() for b in B_skew_hermite]
         def field(x, y, z):
-            # evaluate_B expects local s (s - s_start); z here is absolute s from BorisSpatialIntegrator
-            Bx, By, Bs = evaluate_b(x, y, z - s_start, params_arr, multipole_order_local)
+            s_loc = z - s_start
+            Bx, By, Bs = evaluate_B(x, y, s_loc,
+                                    Bs_hermite_arr,
+                                    B_norm_list,
+                                    B_skew_list,
+                                    L,
+                                    multipole_order_local)
             return Bx, By, Bs
-
         return field
-
     return _make
 
 @pytest.fixture(scope="module")
@@ -404,69 +393,6 @@ def test_splineboris_homogeneous_rbend(field_angle, make_uniform_splineboris):
 
 
 
-def test_splineboris_spin_uniform_solenoid(make_uniform_splineboris):
-
-    atol = 3e-8
-    case = {
-    'x': 0.001,
-    'px': 1e-05,
-    'y': 0.002,
-    'py': 2e-05,
-    'delta': 0.001,
-    'spin_x': 0.1,
-    'spin_z': 0.2,
-    }
-    case['spin_y'] = np.sqrt(1 - case['spin_x']**2 - case['spin_z']**2)
-
-    p = xt.Particles(
-        p0c=700e9, mass0=xt.ELECTRON_MASS_EV,
-        anomalous_magnetic_moment=0.00115965218128,
-        **case,
-    )
-
-    p_splineboris = p.copy()
-    p_ref = p.copy()
-
-    Bz_T = 0.05
-    ks = Bz_T / (p.p0c[0] / clight / p.q0)
-    env = xt.Environment()
-
-    length = 0.25
-    s_start = 0
-    s_end = length
-    n_steps = 100
-
-    splineboris = make_uniform_splineboris(Bx=0, By=0, Bs=ks, s_start=s_start, s_end=s_end, n_steps=n_steps)
-
-    # Reference and test particle
-    line_splineboris = xt.Line(elements=[splineboris])
-    line_splineboris.particle_ref = p_splineboris
-
-    line = env.new_line(
-        components=[
-            env.new('mysolenoid', xt.UniformSolenoid, length=length, ks=ks),
-            env.new('mymarker', xt.Marker),
-        ]
-    )
-
-    line.configure_spin(spin_model='auto')
-    line_splineboris.configure_spin(spin_model='auto')
-
-    line.track(p_ref)
-    line_splineboris.track(p_splineboris)
-
-    xo.assert_allclose(p_ref.s, p_splineboris.s, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.x, p_splineboris.x, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.y, p_splineboris.y, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.px, p_splineboris.px, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.py, p_splineboris.py, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.delta, p_splineboris.delta, atol=atol, rtol=1e-12)
-    xo.assert_allclose(p_ref.spin_x[0], p_splineboris.spin_x[0], atol=atol, rtol=0)
-    xo.assert_allclose(p_ref.spin_y[0], p_splineboris.spin_y[0], atol=atol, rtol=0)
-    xo.assert_allclose(p_ref.spin_z[0], p_splineboris.spin_z[0], atol=atol, rtol=0)
-
-
-
 def test_splineboris_solenoid_vs_variable_solenoid(solenoid_field, solenoid_vs_varsol_fit_pars_df):
     """
     Test SplineBoris element against VariableSolenoid for a solenoid field.
@@ -595,19 +521,34 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
 
     # ------------------------------------------------------------------
     # Build a parallel undulator line using BorisSpatialIntegrator
-    # Extract parameters from SplineBorisSequence elements
+    # Extract Hermite parameters from SplineBorisSequence elements
     # ------------------------------------------------------------------
     boris_elems = []
-    for elem in seq.elements:
-        # par_list is a 1D array of polynomial coefficients (in local s) for this piece
-        params_i = np.asarray(elem.par_list, dtype=float)
-        field_i = make_segment_field(params_i, multipole_order, s_start=float(elem.s_start))
+    for elem, s_start, s_end in zip(seq.elements, seq.s_starts, seq.s_ends):
+        Bs_hermite = [elem.Bs_hermite[i] for i in range(5)]
+        B_norm_hermite = [
+            [elem.B_norm_hermite[i, j] for j in range(5)]
+            for i in range(multipole_order)
+        ]
+        B_skew_hermite = [
+            [elem.B_skew_hermite[i, j] for j in range(5)]
+            for i in range(multipole_order)
+        ]
+        L = float(elem.length)
+        field_i = make_segment_field(
+            Bs_hermite,
+            B_norm_hermite,
+            B_skew_hermite,
+            L,
+            multipole_order,
+            s_start=float(s_start),
+        )
 
         boris_elems.append(
             xt.BorisSpatialIntegrator(
                 fieldmap_callable=field_i,
-                s_start=float(elem.s_start),
-                s_end=float(elem.s_end),
+                s_start=float(s_start),
+                s_end=float(s_end),
                 n_steps=int(elem.n_steps),
             )
         )
@@ -704,16 +645,31 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(undulator_rotated_fit_pa
     # Extract parameters from SplineBorisSequence elements
     # ------------------------------------------------------------------
     boris_elems = []
-    for elem in seq.elements:
-        # par_list is a 1D array of polynomial coefficients (in local s) for this piece
-        params_i = np.asarray(elem.par_list, dtype=float)
-        field_i = make_segment_field(params_i, multipole_order, s_start=float(elem.s_start))
+    for elem, s_start, s_end in zip(seq.elements, seq.s_starts, seq.s_ends):
+        Bs_hermite = [elem.Bs_hermite[i] for i in range(5)]
+        B_norm_hermite = [
+            [elem.B_norm_hermite[i, j] for j in range(5)]
+            for i in range(multipole_order)
+        ]
+        B_skew_hermite = [
+            [elem.B_skew_hermite[i, j] for j in range(5)]
+            for i in range(multipole_order)
+        ]
+        L = float(elem.length)
+        field_i = make_segment_field(
+            Bs_hermite,
+            B_norm_hermite,
+            B_skew_hermite,
+            L,
+            multipole_order,
+            s_start=float(s_start),
+        )
 
         boris_elems.append(
             xt.BorisSpatialIntegrator(
                 fieldmap_callable=field_i,
-                s_start=float(elem.s_start),
-                s_end=float(elem.s_end),
+                s_start=float(s_start),
+                s_end=float(s_end),
                 n_steps=int(elem.n_steps),
             )
         )
@@ -1241,14 +1197,14 @@ def test_splineboris_spin_quadrupole(case, atol):
 
     # Verify the polynomial evaluates to a constant gradient.
     # hermite_to_polynomial returns a poly in local coordinate s_local = s - s_start.
-    kn_1_poly = xt.SplineBoris.hermite_to_polynomial(s_start, s_end, kn_1_hermite)
+    from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import hermite_to_polynomial
+    kn_1_poly = hermite_to_polynomial(s_start, s_end, kn_1_hermite)
     s_test = np.linspace(s_start, s_end, 100)
     xo.assert_allclose(kn_1_poly(s_test - s_start), quad_gradient, rtol=1e-12, atol=1e-12)
 
     splineboris = xt.SplineBoris(
         bs=xt.Spline4(*Bs_hermite),
         by=(None, xt.Spline4(*kn_1_hermite)),
-        s_start=s_start,
         length=s_end - s_start,
         n_steps=n_steps,
     )

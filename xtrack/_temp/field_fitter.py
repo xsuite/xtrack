@@ -99,7 +99,8 @@ class FieldFitter:
         Returns a polynomial in *s_local* (local coordinate starting at 0).
         Convenience wrapper around ``xt.SplineBoris.hermite_to_polynomial``.
         """
-        return xt.SplineBoris.hermite_to_polynomial(s0, s1, coeffs)
+        from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import hermite_to_polynomial
+        return hermite_to_polynomial(s0, s1, coeffs)
 
 
 
@@ -241,7 +242,7 @@ class FieldFitter:
                     new_extrema = [int(field_extrema[0])]
                     for left, right in zip(field_extrema[:-1], field_extrema[1:]):
                         length = int(right - left)
-                        if length < 2 * this_min_region_size:
+                        if length < this_min_region_size:
                             new_extrema.append(int(right))
                             continue
                         n_parts = int(np.floor(length / this_min_region_size))

@@ -73,10 +73,12 @@ class SplineBorisSequence:
         if len(df_reset) == 0:
             raise ValueError("df_fit_pars must be a non-empty DataFrame")
 
-        elements, element_names = self._build_elements(df_reset)
+        elements, element_names, s_starts, s_ends = self._build_elements(df_reset)
 
         self.elements = tuple(elements)
         self.element_names = tuple(element_names)
+        self.s_starts = tuple(s_starts)
+        self.s_ends = tuple(s_ends)
         self.length = sum(float(e.length) for e in self.elements)
         self.n_pieces = len(self.elements)
 
@@ -92,7 +94,8 @@ class SplineBorisSequence:
         of ``[canon_s_start, canon_s_end]`` to produce new Hermite boundary
         conditions valid exactly for that sub-interval.
         """
-        poly = SplineBoris.hermite_to_polynomial(piece_s_start, piece_s_end, hermite_vals)
+        from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import hermite_to_polynomial
+        poly = hermite_to_polynomial(piece_s_start, piece_s_end, hermite_vals)
         dpoly = poly.deriv()
         ipoly = poly.integ()
 
@@ -129,7 +132,7 @@ class SplineBorisSequence:
     def _build_elements(self, df_reset):
         """Build SplineBoris elements, one per s-region.
 
-        Returns ``(elements_list, names_list)``.
+        Returns ``(elements_list, names_list, s_start_list, s_end_list)``.
         """
         multipole_order = self.multipole_order
 
@@ -151,6 +154,8 @@ class SplineBorisSequence:
         name_width = len(str(n_regions))
         elements = []
         names = []
+        s_starts = []
+        s_ends = []
 
         zero_spline = Spline4(
             val_start=0.0, der_start=0.0, val_end=0.0, der_end=0.0, integral=0.0
@@ -227,7 +232,6 @@ class SplineBorisSequence:
                 bs=bs_spline,
                 by=by_tuple,
                 bx=bx_tuple,
-                s_start=region_start,
                 length=region_end - region_start,
                 n_steps=n_steps,
                 shift_x=self.shift_x,
@@ -238,8 +242,10 @@ class SplineBorisSequence:
             idx_name = len(elements)
             elements.append(elem)
             names.append(f"splineboris_{idx_name:0{name_width}d}")
+            s_starts.append(float(region_start))
+            s_ends.append(float(region_end))
 
-        return elements, names
+        return elements, names, s_starts, s_ends
 
     def to_line(self, env=None):
         """Return a Line containing all ``SplineBoris`` elements."""
@@ -270,7 +276,7 @@ class SplineBorisSequence:
             radiation_flag=radiation_flag,
         )
 
-    def evaluate_field(self, x, y, s):
+    def get_field(self, x, y, s):
         """Evaluate the magnetic field by delegating to the appropriate element.
 
         Parameters
@@ -280,16 +286,19 @@ class SplineBorisSequence:
         y : float or array-like
             Vertical position [m].
         s : float
-            Longitudinal position [m].
+            Global longitudinal position [m] along the sequence.
 
         Returns
         -------
         Bx, By, Bs : float or array
-            Magnetic field components [T].
+            Magnetic field components [T] at the requested global position.
         """
-        for elem in self.elements:
-            if elem.s_start <= s <= elem.s_end:
-                return elem.evaluate_field(x, y, s)
-        s_min = min(float(e.s_start) for e in self.elements)
-        s_max = max(float(e.s_end) for e in self.elements)
+        for elem, s_start, s_end in zip(self.elements, self.s_starts, self.s_ends):
+            if s_start <= s <= s_end:
+                # Convert to the element's local longitudinal coordinate
+                s_local = s - s_start
+                return elem.get_field(x, y, s_local)
+
+        s_min = min(self.s_starts)
+        s_max = max(self.s_ends)
         raise ValueError(f"s={s} is outside the sequence range [{s_min}, {s_max}]")

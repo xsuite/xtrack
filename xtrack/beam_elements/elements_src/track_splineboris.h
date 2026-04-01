@@ -6,7 +6,7 @@
 #define XTRACK_TRACK_SPLINEBORIS_H
 
 #include "xtrack/headers/track.h"
-#include "spline_B_field_eval.h" // evaluate_B for Bx, By, Bs (scalar version)
+#include "xtrack/beam_elements/splineboris_src/spline_B_field_eval.h" // evaluate_B for Bx, By, Bs (scalar version)
 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
 // Forward declarations for random functions needed by synrad_spectrum.h
 // (These are normally declared in random headers but we avoid including them
@@ -20,10 +20,11 @@ GPUFUN double RandomExponential_generate(LocalParticle* part);
 GPUFUN
 void SplineBoris_single_particle(
     LocalParticle* part,
-    const double* params,
+    const double  Bs_hermite[5],
+    const double* const *B_norm_hermite,
+    const double* const *B_skew_hermite,
     const int      multipole_order,
-    const double   s_start,
-    const double   s_end,
+    const double   length,
     const int      n_steps,
     const double   shift_x,
     const double   shift_y,
@@ -83,9 +84,9 @@ void SplineBoris_single_particle(
     const double q_coulomb = q0 * qe;  // [C]
 
     // ----------------------------------------------------------------------
-    //  Set up longitudinal stepping
+    //  Set up longitudinal stepping in local s \in [0, length]
     // ----------------------------------------------------------------------
-    const double L    = s_end - s_start;
+    const double L    = length;
     const double ds   = L / (double) n_steps;
     const double half_ds = 0.5 * ds;
     
@@ -158,10 +159,17 @@ void SplineBoris_single_particle(
         double Bs;
 
         evaluate_B(
-            xh - shift_x, yh - shift_y, s_local_h,
-            params,
+            xh - shift_x,
+            yh - shift_y,
+            s_local_h,
+            Bs_hermite,
+            B_norm_hermite,
+            B_skew_hermite,
+            L,
             multipole_order,
-            &Bx, &By, &Bs
+            &Bx,
+            &By,
+            &Bs
         );
 
         // --------------------------------------------------------------
