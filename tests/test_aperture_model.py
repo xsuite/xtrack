@@ -421,31 +421,31 @@ def test_points_inside_polygon_simpler(kernels):
     [
         (
             'circle', (1,), (0, 0, 0),
-            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': 10, 'betx': 1, 'bety': 1, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
+            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': np.sqrt(101), 'betx': 1, 'bety': 1, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
             {},
             100,
         ),
         (
             'circle', (1,), (0, 0, 0),
-            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': 10, 'betx': 1, 'bety': 1, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
+            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': np.sqrt(101), 'betx': 1, 'bety': 1, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
             {'halo_primary': 1, 'halo_r': 2, 'halo_x': 2, 'halo_y': 2},
             50,
         ),
         (
             'rectangle', (1, 1), (0, 0, 0),
-            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': 10, 'betx': 1, 'bety': 1, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
+            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': np.sqrt(101), 'betx': 1, 'bety': 1, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
             {},
             100,
         ),
         (
             'rectangle', (1.1, 1.2), (0, 0, 0),
-            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': 10, 'betx': 1, 'bety': 1, 'x': -0.1, 'y': 0.2, 'dx': 0, 'dy': 0},
+            {'exn': 1e-3, 'eyn': 1e-3, 'gamma': np.sqrt(101), 'betx': 1, 'bety': 1, 'x': -0.1, 'y': 0.2, 'dx': 0, 'dy': 0},
             {},
             100,
         ),
         (
             'racetrack', (0.28, 0.43, 0.13, 0.172), (0.002, 0.006, 0.002),
-            {'exn': 4e-3, 'eyn': 4e-3, 'gamma': 10, 'betx': 9, 'bety': 16, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
+            {'exn': 4e-3, 'eyn': 4e-3, 'gamma': np.sqrt(101), 'betx': 9, 'bety': 16, 'x': 0, 'y': 0, 'dx': 0, 'dy': 0},
             {
                 'tol_beta_beating': 0.8,
                 'tol_disp': 1.25,
@@ -462,7 +462,7 @@ def test_points_inside_polygon_simpler(kernels):
         ),
         (
             'racetrack', (0.3, 0.5, 0.13, 0.172), (0.002, 0.006, 0.002),
-            {'exn': 4e-3, 'eyn': 4e-3, 'gamma': 10, 'betx': 9, 'bety': 16, 'x': -0.02, 'y': 0.07, 'dx': 0, 'dy': 0},
+            {'exn': 4e-3, 'eyn': 4e-3, 'gamma': np.sqrt(101), 'betx': 9, 'bety': 16, 'x': -0.02, 'y': 0.07, 'dx': 0, 'dy': 0},
             {
                 'tol_beta_beating': 0.8,
                 'tol_disp': 1.25,
@@ -482,7 +482,7 @@ def test_points_inside_polygon_simpler(kernels):
             {
                 'exn': 4e-3,
                 'eyn': 4e-3,
-                'gamma': 10,
+                'gamma': np.sqrt(101),
                 'betx': 9,
                 'bety': 16,
                 'x': 0,
@@ -524,7 +524,7 @@ def test_points_inside_polygon_simpler(kernels):
             {
                 'exn': 4e-3,
                 'eyn': 4e-3,
-                'gamma': 10,
+                'gamma': np.sqrt(101),
                 'betx': 9,
                 'bety': 16,
                 'x': -0.08,
@@ -630,7 +630,7 @@ def test_get_aperture_sigmas_at_element_analytic_rays(context):
     betx = 9
     bety = 16
     delta = 0.001
-    gamma = 10
+    gamma = np.sqrt(101)
 
     beam_data = {
         'emitx_norm': 4e-3,

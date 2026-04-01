@@ -188,6 +188,7 @@ class TwissData(xo.Struct):
     dy = FloatType[:]    # dispersion y
     delta = FloatType[:] # relative energy deviation
     gamma = FloatType    # relativistic gamma
+    beta = FloatType     # relativistic beta
 
     @classmethod
     def from_twiss_table(cls, particle_ref: Particles, twiss_table: TwissTable) -> 'TwissData':
@@ -201,6 +202,7 @@ class TwissData(xo.Struct):
             dy=twiss_table.dy,  # dispersion y
             delta=twiss_table.delta,  # relative energy deviation
             gamma=particle_ref.gamma0,  # relativistic gamma
+            beta=particle_ref.beta0,  # relativistic beta
         )
         return twiss_data
 

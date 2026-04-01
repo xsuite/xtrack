@@ -19,6 +19,7 @@ typedef struct
     float_type dy;    // dispersion y
     float_type delta; // relative energy deviation
     float_type gamma; // relativistic gamma
+    float_type beta;
 } TwissLocalData;
 
 
@@ -83,8 +84,8 @@ static inline Racetrack_s beam_racetrack(
     const float_type hy = beam->halo_y / beam->halo_primary;
     const float_type hr = beam->halo_r / beam->halo_primary;
 
-    const float_type ex = beam->emitx_norm / twiss->gamma;
-    const float_type ey = beam->emity_norm / twiss->gamma;
+    const float_type ex = beam->emitx_norm / (twiss->gamma * twiss->beta);
+    const float_type ey = beam->emity_norm / (twiss->gamma * twiss->beta);
 
     const float_type sigma_x = sqrt(ex * twiss->betx) * beam->tol_beta_beating;
     const float_type sigma_y = sqrt(ey * twiss->bety) * beam->tol_beta_beating;
@@ -288,6 +289,8 @@ Contract: len(out_points)=len_points; len_poly_points=len(poly_points)
         else hi = mid;
     }
 
+    get_beam_envelope(beam_data, twiss_data, aperture_data, lo, len_points, out_points);
+
     return lo;
 }
 
@@ -321,6 +324,7 @@ static inline TwissLocalData twiss_data_get_entry(const TwissData twiss_data, co
         .dy = TwissData_get_dy(twiss_data, idx_slice),
         .delta = TwissData_get_delta(twiss_data, idx_slice),
         .gamma = TwissData_get_gamma(twiss_data),
+        .beta = TwissData_get_beta(twiss_data),
     };
 }
 
@@ -705,8 +709,8 @@ void compute_max_aperture_sigma_exact(
         if (out_interpolated_apertures != NULL)
             memcpy(out_interpolated_apertures + idx_slice * len_points * 2, aperture_points, len_points * sizeof(Point2D));
 
-        const float_type ex = s_beam_data.emitx_norm / s_twiss_data.gamma;
-        const float_type ey = s_beam_data.emity_norm / s_twiss_data.gamma;
+        const float_type ex = s_beam_data.emitx_norm / (s_twiss_data.gamma * s_twiss_data.beta);
+        const float_type ey = s_beam_data.emity_norm / (s_twiss_data.gamma * s_twiss_data.beta);
         const float_type sigma_x = sqrt(ex * s_twiss_data.betx) * s_beam_data.tol_beta_beating;
         const float_type sigma_y = sqrt(ey * s_twiss_data.bety) * s_beam_data.tol_beta_beating;
 
