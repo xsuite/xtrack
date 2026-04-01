@@ -207,6 +207,11 @@ class ThinSliceRBend(_ThinSliceElementBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
+
+        if self._parent.rbend_model == "straight-body":
+            return self # No replacement possible (not yet supported), element
+                        # left where it is
+
         knl = self._parent.knl.copy() * self.weight
         ksl = self._parent.ksl.copy() * self.weight
 
