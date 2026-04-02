@@ -3,6 +3,8 @@ from collections.abc import Collection
 from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, cast
 
 import numpy as np
+from matplotlib import pyplot as plt
+
 import xobjects as xo
 from xdeps.table import Table
 from xobjects.context import XContext
@@ -13,7 +15,7 @@ from xtrack.aperture.profile_converters import (
 )
 from xtrack.aperture.structures import (
     ApertureBounds, ApertureModel, ApertureType, BeamData, Circle, FloatType,
-    Profile, ProfilePolygons, ProfilePosition, Rectangle, RectEllipse,
+    Profile, ProfilePolygons, ProfilePosition, Racetrack, Rectangle, RectEllipse,
     ShapeTypes, SurveyData, TwissData, TypePosition
 )
 from xtrack.aperture.transform import transform_matrix
@@ -28,6 +30,170 @@ NDArrayNx2 = np.ndarray[Tuple[int, Literal[2]], DTypeFloat]
 NDArrayNxMx2 = np.ndarray[Tuple[int, int, Literal[2]], DTypeFloat]
 HomogenousMatrix = np.ndarray[Tuple[Literal[4], Literal[4]], DTypeFloat]
 HomogenousMatrices = np.ndarray[Tuple[int, Literal[4], Literal[4]], DTypeFloat]
+
+
+class ProfileView:
+    __slots__ = ('_model', '_index')
+
+    def __init__(self, model: ApertureModel, index: int):
+        self._model = model
+        self._index = index
+
+    def __repr__(self):
+        return f'<ProfileView {self.name!r}: {self.raw!r}>'
+
+    @property
+    def raw(self) -> Profile:
+        return self._model.profiles[self._index]
+
+    @property
+    def name(self) -> str:
+        return self._model.profile_names[self._index]
+
+    @property
+    def shape(self) -> ShapeTypes:
+        return self.raw.shape  # noqa: xobjects
+
+    @shape.setter
+    def shape(self, shape: ShapeTypes):
+        self.raw.shape = shape
+
+    @property
+    def tol_r(self) -> float:
+        return self.raw.tol_r
+
+    @tol_r.setter
+    def tol_r(self, tol_r: float):
+        self.raw.tol_r = tol_r
+
+    @property
+    def tol_x(self) -> float:
+        return self.raw.tol_x
+
+    @tol_x.setter
+    def tol_x(self, tol_x: float):
+        self.raw.tol_x = tol_x
+
+    @property
+    def tol_y(self) -> float:
+        return self.raw.tol_y
+
+    @tol_y.setter
+    def tol_y(self, tol_y: float):
+        self.raw.tol_y = tol_y
+
+    def plot(self, len_points=128, ax=None):
+        ax = self.raw.plot(len_points=len_points, ax=ax, c='black', label='Aperture')
+
+        if self.tol_x or self.tol_y or self.tol_r:
+            tol_rt = Racetrack(
+                half_width=self.tol_x + self.tol_r,
+                half_height=self.tol_y + self.tol_r,
+                half_major=self.tol_r,
+                half_minor=self.tol_r,
+            )
+            Profile(shape=tol_rt).plot(len_points=len_points, ax=ax, c='black', linestyle='--', label='Tolerances')
+
+        ax.set_title(f'Profile {self.name}')
+        ax.legend()
+        return ax
+
+
+class ProfilesView:
+    __slots__ = ('_model',)
+
+    def __init__(self, model: ApertureModel):
+        self._model = model
+
+    def __repr__(self):
+        count = len(self)
+        profiles_str = 'profile' if count == 1 else 'profiles'
+        return f'<ProfilesView: {count} {profiles_str}>'
+
+    def __getitem__(self, item: str | int):
+        if isinstance(item, str):
+            item = self._model.profile_names.index(item)
+
+        return ProfileView(self._model, item)
+
+    def __len__(self) -> int:
+        return len(self._model.profiles)
+
+    def keys(self):
+        return self._model.profile_names
+
+    def values(self):
+        return self._model.profiles
+
+    def items(self):
+        return zip(self.keys(), self.values())
+
+    def search(self, pattern: str):
+        regex = re.compile(pattern)
+        matches = [name for name in self.keys() if regex.match(name)]
+        return matches
+
+
+class TypeView:
+    __slots__ = ('_model', '_index')
+
+    def __init__(self, model: ApertureModel, index: int):
+        self._model = model
+        self._index = index
+
+    def __repr__(self):
+        return f'<TypeView {self.name!r}: {self.raw!r}>'
+
+    @property
+    def raw(self) -> ApertureType:
+        return self._model.types[self._index]
+
+    @property
+    def name(self) -> str:
+        return self._model.type_names[self._index]
+
+    @property
+    def curvature(self) -> float:
+        return self.raw.curvature
+
+    @property
+    def positions(self):
+        return self.raw.positions
+
+
+class TypesView:
+    __slots__ = ('_model',)
+
+    def __init__(self, model: ApertureModel):
+        self._model = model
+
+    def __repr__(self):
+        count = len(self)
+        types_str = 'type' if count == 1 else 'types'
+        return f'<TypesView: {count} {types_str}>'
+
+    def __getitem__(self, item: str | int):
+        if isinstance(item, str):
+            item = self._model.type_names.index(item)
+
+        return TypeView(self._model, item)
+
+    def __len__(self) -> int:
+        return len(self._model.types)
+
+    def keys(self):
+        return self._model.type_names
+
+    def values(self):
+        return self._model.types
+
+    def items(self):
+        return zip(self.keys(), self.values())
+
+    def search(self, pattern: str):
+        regex = re.compile(pattern)
+        matches = [name for name in self.keys() if regex.match(name)]
+        return matches
 
 
 class Aperture:
@@ -76,6 +242,14 @@ class Aperture:
 
         if halo_params is not None:
             self.halo_params.update(halo_params)
+
+    @property
+    def profiles(self) -> ProfilesView:
+        return ProfilesView(self._model)
+
+    @property
+    def types(self) -> TypesView:
+        return TypesView(self._model)
 
     def to_json(self, filename):
         json = {

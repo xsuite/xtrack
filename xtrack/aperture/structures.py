@@ -135,11 +135,13 @@ class Profile(xo.Struct):
             tols_str += f', tol_y={self.tol_y}'
         return f'Profile({self.shape!r}{tols_str})'
 
-    def plot(self, len_points=128, ax=None):
+    def plot(self, len_points=128, ax=None, **kwargs):
         from matplotlib import pyplot as plt
         ax = ax or plt.gca()
+        ax.set_aspect('equal')
         poly = self.build_polygon(len_points)
-        ax.plot(poly[:, 0], poly[:, 1])
+        ax.plot(poly[:, 0], poly[:, 1], **kwargs)
+        return ax
 
 
 class ProfilePosition(xo.Struct):
@@ -195,6 +197,13 @@ class ApertureType(xo.Struct):
     """
     curvature = FloatType
     positions = ProfilePosition[:]
+
+    def __repr__(self):
+        count = len(self.positions)
+        params_str = '1 profile' if count == 1 else f'{count} profiles'
+        if self.curvature:
+            params_str += f', curvature={self.curvature}'
+        return f'<ApertureType: {params_str}>'
 
 
 class TypePosition(xo.Struct):
