@@ -21,29 +21,13 @@ from xtrack.json import dump as json_dump
 from xtrack.json import load as json_load
 from xtrack.line import Line
 from xtrack.progress_indicator import progress
+from xtrack.survey import survey_relative_transform
 
 DTypeFloat = np.dtype[FloatType._dtype]
 NDArrayNx2 = np.ndarray[Tuple[int, Literal[2]], DTypeFloat]
 NDArrayNxMx2 = np.ndarray[Tuple[int, int, Literal[2]], DTypeFloat]
 HomogenousMatrix = np.ndarray[Tuple[Literal[4], Literal[4]], DTypeFloat]
 HomogenousMatrices = np.ndarray[Tuple[int, Literal[4], Literal[4]], DTypeFloat]
-
-
-def survey_relative_transform(survey, source, destination):
-    """Generate a 3D transformation matrix from survey point `source` to the survey point `destination`."""
-    src_row = survey.rows[source]
-    dest_row = survey.rows[destination]
-
-    def _row_to_matrix(row):
-        matrix = np.identity(4)
-        matrix[:3, :3] = row.W
-        matrix[:3, 3] = row.p0
-        return matrix
-
-    src_mat = _row_to_matrix(src_row)
-    dest_mat = _row_to_matrix(dest_row)
-
-    return np.linalg.inv(src_mat) @ dest_mat
 
 
 class Aperture:
