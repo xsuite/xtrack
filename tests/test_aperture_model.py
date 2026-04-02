@@ -969,6 +969,33 @@ def test_get_aperture_sigmas_at_element_vs_madx(
     xo.assert_allclose(madx_n1, computed_n1, rtol=0.01)
 
 
+def test_survey_resample_out_of_range_returns_nans_with_precision_tolerance(context):
+    eps = 1e-6
+    env = xt.Environment()
+    drift = env.new('drift', xt.Drift, length=1.0)
+    line = env.new_line(name='line', components=[drift])
+
+    survey = SurveyData.from_survey_table(line.survey(), context=context)
+    s_query = np.array([
+        -2 * eps,
+        -0.5 * eps,
+        0.0,
+        1.0,
+        1.0 + 0.5 * eps,
+        1.0 + 2 * eps,
+    ], dtype=float)
+    resampled = survey.resample(s_query)
+
+    assert np.isnan(resampled.s[0])
+    assert np.isnan(resampled.pose[0, 0, 0])
+    xo.assert_allclose(resampled.s[1], 0.0, atol=0, rtol=0)
+    xo.assert_allclose(resampled.s[2], 0.0, atol=0, rtol=0)
+    xo.assert_allclose(resampled.s[3], 1.0, atol=0, rtol=0)
+    xo.assert_allclose(resampled.s[4], 1.0, atol=0, rtol=0)
+    assert np.isnan(resampled.s[5])
+    assert np.isnan(resampled.pose[5, 0, 0])
+
+
 @pytest.mark.parametrize(
     'rot_x,rot_y,dx,dy,ds1,ds2,ds_bounds1,ds_bounds2',
     [

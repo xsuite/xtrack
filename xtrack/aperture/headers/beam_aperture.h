@@ -709,11 +709,6 @@ void compute_max_aperture_sigma_exact(
         if (out_interpolated_apertures != NULL)
             memcpy(out_interpolated_apertures + idx_slice * len_points * 2, aperture_points, len_points * sizeof(Point2D));
 
-        const float_type ex = s_beam_data.emitx_norm / (s_twiss_data.gamma * s_twiss_data.beta);
-        const float_type ey = s_beam_data.emity_norm / (s_twiss_data.gamma * s_twiss_data.beta);
-        const float_type sigma_x = sqrt(ex * s_twiss_data.betx) * s_beam_data.tol_beta_beating;
-        const float_type sigma_y = sqrt(ey * s_twiss_data.bety) * s_beam_data.tol_beta_beating;
-
         const float_type disp_orbit_shift_x = s_twiss_data.dx * s_beam_data.delta_rms;
         const float_type disp_orbit_shift_y = s_twiss_data.dy * s_beam_data.delta_rms;
 

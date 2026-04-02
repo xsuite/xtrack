@@ -139,6 +139,40 @@ SurveyEntry_s interpolate_survey_table_entry(
 }
 
 
+static inline SurveyEntry_s survey_entry_nan(void)
+{
+    SurveyEntry_s entry;
+    entry.s = NAN;
+    entry.angle = NAN;
+    entry.length = NAN;
+    entry.tilt = NAN;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            entry.pose.mat[i][j] = NAN;
+        }
+    }
+    return entry;
+}
+
+
+static inline void write_survey_entry(
+    const SurveyData sliced,
+    const uint32_t i_sliced,
+    const SurveyEntry_s entry
+)
+{
+    SurveyData_set_s(sliced, i_sliced, entry.s);
+    SurveyData_set_angle(sliced, i_sliced, entry.angle);
+    SurveyData_set_length(sliced, i_sliced, entry.length);
+    SurveyData_set_tilt(sliced, i_sliced, entry.tilt);
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            SurveyData_set_pose(sliced, i_sliced, i, j, entry.pose.mat[i][j]);
+        }
+    }
+}
+
+
 void resample_survey_table(
     const SurveyData survey,
     const float_type* const s,
@@ -159,36 +193,47 @@ void resample_survey_table(
         have enough space to hold the interpolated values (len(s) entries).
 */
 {
+    const float_type eps = APER_PRECISION;
     const uint32_t survey_len = SurveyData_len_s(survey);
     const uint32_t sliced_len = SurveyData_len_s(sliced);
+    const float_type s_first = SurveyData_get_s(survey, 0);
+    const float_type s_last = SurveyData_get_s(survey, survey_len - 1);
 
-    uint32_t i_sliced = 0;
     uint32_t i_survey = 0;
 
-    while (i_sliced < sliced_len && i_survey < survey_len - 1) {
-        const float_type s_current = SurveyData_get_s(survey, i_survey);
-        const float_type s_next = SurveyData_get_s(survey, i_survey + 1);
+    for (uint32_t i_sliced = 0; i_sliced < sliced_len; i_sliced++) {
+        const float_type s_target = s[i_sliced];
 
-        if (s_current <= s[i_sliced] && s[i_sliced] <= s_next) {
-            // If we're in the right interval, interpolate
-            SurveyEntry_s entry = interpolate_survey_table_entry(
-                survey, s[i_sliced], i_survey);
-
-            SurveyData_set_s(sliced, i_sliced, entry.s);
-            SurveyData_set_angle(sliced, i_sliced, entry.angle);
-            SurveyData_set_length(sliced, i_sliced, entry.length);
-            SurveyData_set_tilt(sliced, i_sliced, entry.tilt);
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
-                    SurveyData_set_pose(sliced, i_sliced, i, j, entry.pose.mat[i][j]);
-                }
-            }
-            i_sliced++;
+        // If out of bounds, write NANs
+        if (s_target < s_first - eps || s_target > s_last + eps) {
+            write_survey_entry(sliced, i_sliced, survey_entry_nan());
+            continue;
         }
-        else {
-            // If not the right interval, wait for it to come
+
+        // If s is basically at the start, take the starting survey point
+        if (s_target <= s_first + eps) {
+            write_survey_entry(sliced, i_sliced, interpolate_survey_table_entry(survey, s_first, 0));
+            continue;
+        }
+
+        // If s is basically at the end, take the end survey point
+        if (s_target >= s_last - eps) {
+            write_survey_entry(sliced, i_sliced, interpolate_survey_table_entry(survey, s_last, survey_len - 2));
+            continue;
+        }
+
+        // Fast-forward through survey to find the relevant survey segment for the s_target
+        while (i_survey < survey_len - 2) {
+            const float_type s_current = SurveyData_get_s(survey, i_survey);
+            const float_type s_next = SurveyData_get_s(survey, i_survey + 1);
+            if (s_current <= s_target && s_target <= s_next) {
+                break;
+            }
             i_survey++;
         }
+
+        // Interpolate along the survey segment
+        write_survey_entry(sliced, i_sliced, interpolate_survey_table_entry(survey, s_target, i_survey));
     }
 }
 
