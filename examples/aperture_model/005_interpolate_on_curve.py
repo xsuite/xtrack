@@ -3,7 +3,8 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from xtrack.aperture.aperture import Aperture, transform_matrix
+from xtrack.aperture.aperture import Aperture
+from xtrack.aperture.transform import transform_matrix
 from xtrack.aperture.structures import (
     ApertureModel,
     ApertureType,

@@ -7,7 +7,7 @@ from ..beam_elements import *
 from ..monitors import *
 from ..multisetter import MultiSetter
 from ..random import *
-from ..aperture.structures import ApertureModel
+from ..aperture.structures import ApertureModel, Profile, SurveyData
 
 
 ONLY_XTRACK_ELEMENTS = [
@@ -119,4 +119,6 @@ NON_TRACKING_ELEMENTS = [
     RandomRutherford,
     MultiSetter,
     ApertureModel,
+    Profile,
+    SurveyData,
 ]

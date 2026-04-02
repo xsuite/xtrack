@@ -10,11 +10,12 @@ from xobjects.test_helpers import for_all_test_contexts, requires_context
 from xobjects.general import allclose_with_outliers
 
 import xtrack as xt
-from xtrack.aperture.aperture import Aperture, transform_matrix
+from xtrack.aperture.aperture import Aperture
 from xtrack.aperture.structures import (
     ApertureModel, ApertureType, Circle, Ellipse, FloatType, Profile,
     ProfilePosition, Rectangle, RectEllipse, SurveyData, TypePosition
 )
+from xtrack.aperture.transform import matrix_to_transform, transform_matrix
 
 TOY_RING_SEQUENCE = """
     ! Toy Ring, 4 arcs
@@ -56,6 +57,30 @@ TEST_DATA_DIR = Path(__file__).resolve().parent.parent / 'test_data'
 @pytest.fixture(scope='module')
 def context():
     return xo.ContextCpu()
+
+
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        {},
+        {'shift_x': 1.2, 'shift_y': -0.3, 'shift_z': 4.5},
+        {'rot_y': 0.2, 'rot_x': -0.1, 'rot_z': 0.3},
+        {'shift_x': -1.5, 'shift_y': 2.0, 'shift_z': 0.7, 'rot_y': 0.25, 'rot_x': -0.15, 'rot_z': 0.35},
+    ],
+)
+def test_matrix_to_transform_roundtrip(kwargs):
+    matrix = transform_matrix(**kwargs)
+    out = matrix_to_transform(matrix)
+    for key, value in {
+        'shift_x': 0.0,
+        'shift_y': 0.0,
+        'shift_z': 0.0,
+        'rot_y': 0.0,
+        'rot_x': 0.0,
+        'rot_z': 0.0,
+        **kwargs,
+    }.items():
+        xo.assert_allclose(getattr(out, key), value, atol=1e-14, rtol=0)
 
 
 @pytest.fixture(scope="module")
@@ -1035,9 +1060,9 @@ def test_aperture_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_boun
             survey_reference_name='drift::0',
             survey_index=sv.name.tolist().index('drift::0'),
             transformation=transform_matrix(
-                ds=1.5,
-                dx=dx,
-                dy=dy,
+                shift_z=1.5,
+                shift_x=dx,
+                shift_y=dy,
             ),
         ),
     ]
@@ -1329,7 +1354,7 @@ def test_aperture_bounds_large_curved_ring_single_type_wraparound_regression(tes
                 survey_reference_name=sv.name[num_bends - 1],
                 survey_index=num_bends - 1,
                 # Shift the type forward so the installed profiles should wrap to small s.
-                transformation=transform_matrix(ds=2 * bend_length),
+                transformation=transform_matrix(shift_z=2 * bend_length),
             )
         ],
         types=[
@@ -1397,7 +1422,7 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
                 type_index=0,
                 survey_reference_name=sv.name[0],
                 survey_index=0,
-                transformation=transform_matrix(dx=-1.5),
+                transformation=transform_matrix(shift_x=-1.5),
             ),
         ],
         types=[ApertureType(curvature=0.0, positions=profile_positions)],
@@ -1714,7 +1739,7 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
             type_index=0,
             survey_reference_name='drift::0',
             survey_index=sv.name.tolist().index('drift::0'),
-            transformation=transform_matrix(dx=-1.5),
+            transformation=transform_matrix(shift_x=-1.5),
         ),
     ]
     model = ApertureModel(

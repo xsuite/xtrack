@@ -3,7 +3,8 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-from xtrack.aperture.aperture import Aperture, transform_matrix
+from xtrack.aperture.aperture import Aperture
+from xtrack.aperture.transform import transform_matrix
 from xtrack.aperture.structures import (
     ApertureModel,
     ApertureType,
@@ -64,7 +65,7 @@ model = ApertureModel(
             type_index=0,
             survey_reference_name=sv.name[0],
             survey_index=0,
-            transformation=transform_matrix(dx=-1.5),
+            transformation=transform_matrix(shift_x=-1.5),
         ),
     ],
     types=[ApertureType(curvature=0.0, positions=profile_positions)],

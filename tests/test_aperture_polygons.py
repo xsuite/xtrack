@@ -12,6 +12,7 @@ from xtrack.aperture.structures import (
 
 @pytest.fixture(scope="module")
 def context():
+    # This is to avoid recompilation for every test
     context = xo.ContextCpu()
     Profile.compile_class_kernels(context, only_if_needed=True)
     return context
@@ -20,10 +21,8 @@ def context():
 @pytest.fixture(scope="module")
 def build_polygon_for_profile(context):
     def _build_polygon_for_profile(profile: ShapeTypes, len_points: int):
-        profile = Profile(shape=profile)
-        points = np.zeros((len_points, 2), dtype=FloatType._dtype)
-        context.kernels.build_polygon_for_profile(points=points, len_points=len_points, profile=profile)
-        return points
+        profile = Profile(shape=profile, _context=context)
+        return profile.build_polygon(len_points=len_points)
 
     return _build_polygon_for_profile
 

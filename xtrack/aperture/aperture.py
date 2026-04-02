@@ -16,6 +16,7 @@ from xtrack.aperture.structures import (
     Profile, ProfilePolygons, ProfilePosition, Rectangle, RectEllipse,
     ShapeTypes, SurveyData, TwissData, TypePosition
 )
+from xtrack.aperture.transform import transform_matrix
 from xtrack.json import dump as json_dump
 from xtrack.json import load as json_load
 from xtrack.line import Line
@@ -28,37 +29,8 @@ HomogenousMatrix = np.ndarray[Tuple[Literal[4], Literal[4]], DTypeFloat]
 HomogenousMatrices = np.ndarray[Tuple[int, Literal[4], Literal[4]], DTypeFloat]
 
 
-def transform_matrix(dx=0, dy=0, ds=0, theta=0, phi=0, psi=0):
-    """Generate a 3D transformation matrix.
-
-    Parameters
-    ----------
-    dx, dy, ds : float
-        Shifts in x, y, and s directions
-    theta : float
-        Rotation around the y-axis (positive s to x) in radians
-    phi
-        Rotation around the x-axis (positive s to y) in radians
-    psi
-        Rotation around the s-axis (positive y to x) in radians
-    """
-    s_phi, c_phi = np.sin(phi), np.cos(phi)
-    s_theta, c_theta = np.sin(theta), np.cos(theta)
-    s_psi, c_psi = np.sin(psi), np.cos(psi)
-    matrix = np.array(
-        [
-            [-s_phi * s_psi * s_theta + c_psi * c_theta,
-                -c_psi * s_phi * s_theta - c_theta * s_psi, c_phi * s_theta, dx],
-            [c_phi * s_psi, c_phi * c_psi, s_phi, dy],
-            [-c_theta * s_phi * s_psi - c_psi * s_theta,
-                -c_psi * c_theta * s_phi + s_psi * s_theta, c_phi * c_theta, ds],
-            [0, 0, 0, 1],
-        ]
-    )
-    return matrix
-
-
 def survey_relative_transform(survey, source, destination):
+    """Generate a 3D transformation matrix from survey point `source` to the survey point `destination`."""
     src_row = survey.rows[source]
     dest_row = survey.rows[destination]
 
@@ -72,7 +44,6 @@ def survey_relative_transform(survey, source, destination):
     dest_mat = _row_to_matrix(dest_row)
 
     return np.linalg.inv(src_mat) @ dest_mat
-
 
 
 class Aperture:
@@ -182,9 +153,9 @@ class Aperture:
                 rel_survey_mat = survey_relative_transform(survey, offset_data['survey_ref'], element_name)
                 s_ref = rel_survey_mat[2, 3]
                 matrix = transform_matrix(
-                    dx=offset_data['x'],
-                    dy=offset_data['y'],
-                    ds=s_ref,
+                    shift_x=offset_data['x'],
+                    shift_y=offset_data['y'],
+                    shift_z=s_ref,
                 )
                 survey_reference_name = offset_data['survey_ref']
             else:
@@ -413,9 +384,7 @@ class Aperture:
         return aperture
 
     def polygon_for_profile(self, profile: Profile, num_points: int) -> NDArrayNx2:
-        points = np.ndarray(shape=(num_points, 2), dtype=FloatType._dtype)
-        profile.build_polygon_for_profile(points=points, len_points=num_points)
-        return points
+        return profile.build_polygon(len_points=num_points)
 
     @classmethod
     def _build_aperture_model(

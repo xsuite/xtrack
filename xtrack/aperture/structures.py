@@ -14,15 +14,24 @@ FloatType = xo.Float64
 class Circle(xo.Struct):
     radius = FloatType
 
+    def __repr__(self):
+        return f'Circle(radius={self.radius})'
+
 
 class Rectangle(xo.Struct):
     half_width = FloatType
     half_height = FloatType
 
+    def __repr__(self):
+        return f'Rectangle(half_width={self.half_width}, half_height={self.half_height})'
+
 
 class Ellipse(xo.Struct):
     half_major = FloatType
     half_minor = FloatType
+
+    def __repr__(self):
+        return f'Ellipse(half_major={self.half_major}, half_minor={self.half_minor})'
 
 
 class RectEllipse(xo.Struct):
@@ -31,6 +40,10 @@ class RectEllipse(xo.Struct):
     half_major = FloatType
     half_minor = FloatType
 
+    def __repr__(self):
+        return (f'RectEllipse(half_width={self.half_width}, half_height={self.half_height}, '
+                f'half_major={self.half_major}, half_minor={self.half_minor})')
+
 
 class Racetrack(xo.Struct):
     half_width = FloatType
@@ -38,15 +51,25 @@ class Racetrack(xo.Struct):
     half_major = FloatType
     half_minor = FloatType
 
+    def __repr__(self):
+        return (f'RectEllipse(half_width={self.half_width}, half_height={self.half_height}, '
+                f'half_major={self.half_major}, half_minor={self.half_minor})')
+
 
 class Octagon(xo.Struct):
     half_width = FloatType
     half_height = FloatType
     half_diagonal = FloatType
 
+    def __repr__(self):
+        return f'Octagon(half_width={self.half_width}, half_height={self.half_height}, half_diagonal={self.half_diagonal})'
+
 
 class Polygon(xo.Struct):
     vertices = FloatType[:, 2]
+
+    def __repr__(self):
+        return f'Polygon({self.vertices._shape[0]} vertices)'
 
 
 class SVGShape(xo.Struct):
@@ -92,13 +115,31 @@ class Profile(xo.Struct):
         ),
     }
 
-    def build_polygon_for_profile(self, points: np.ndarray, len_points: int):
+    def build_polygon(self, len_points: int) -> np.ndarray:
+        points = np.empty((len_points, 2), dtype=FloatType._dtype)
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.build_polygon_for_profile(
             points=points,
             len_points=len_points,
             profile=self,
         )
+        return points
+
+    def __repr__(self):
+        tols_str = ''
+        if self.tol_r != 0:
+            tols_str += f', tol_r={self.tol_r}'
+        if self.tol_x != 0:
+            tols_str += f', tol_x={self.tol_x}'
+        if self.tol_y != 0:
+            tols_str += f', tol_y={self.tol_y}'
+        return f'Profile({self.shape!r}{tols_str})'
+
+    def plot(self, len_points=128, ax=None):
+        from matplotlib import pyplot as plt
+        ax = ax or plt.gca()
+        poly = self.build_polygon(len_points)
+        ax.plot(poly[:, 0], poly[:, 1])
 
 
 class ProfilePosition(xo.Struct):

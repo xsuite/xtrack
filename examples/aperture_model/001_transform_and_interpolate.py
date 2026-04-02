@@ -2,7 +2,8 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 import matplotlib.pyplot as plt
-from xtrack.aperture.aperture import Aperture, transform_matrix
+from xtrack.aperture.aperture import Aperture
+from xtrack.aperture.transform import transform_matrix
 from xtrack.aperture.structures import ApertureModel, ApertureType, Circle, Profile, ProfilePosition, Rectangle, TypePosition
 
 
@@ -47,7 +48,7 @@ type_positions = [
         type_index=0,
         survey_reference_name='drift::0',
         survey_index=sv.name.tolist().index('drift::0'),
-        transformation=transform_matrix(dx=-1.5),
+        transformation=transform_matrix(shift_x=-1.5),
     ),
 ]
 
