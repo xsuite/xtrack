@@ -6125,6 +6125,14 @@ class LineParticleRef:
         else:
             return _particle_ref
 
+    @property
+    def name(self):
+        _particle_ref = self.line._particle_ref
+        if isinstance(_particle_ref, str):
+            return _particle_ref
+        else:
+            return None
+
     def __getattr__(self, key):
         return getattr(self._resolved, key)
 
