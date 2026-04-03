@@ -1839,6 +1839,7 @@ def _compute_global_quantities(line, twiss_res, method):
             c_minus_cplx = c_minus * np.exp(1j * c_phi1)
             c_minus_re = np.real(c_minus_cplx)
             c_minus_im = np.imag(c_minus_cplx)
+            c_minus_local = cmin_arr * np.exp(1j * c_phi1)
 
             qs = np.abs(twiss_res['muzeta'][-1])
 
@@ -1847,6 +1848,7 @@ def _compute_global_quantities(line, twiss_res, method):
                 'qx': mux[-1], 'qy': muy[-1], 'qs': qs,
                 'c_minus': c_minus,
                 'c_minus_re_0': c_minus_re[0], 'c_minus_im_0': c_minus_im[0],
+                'c_minus_local': c_minus_local,
             })
 
             # Coupling columns
