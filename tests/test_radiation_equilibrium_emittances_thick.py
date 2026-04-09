@@ -121,7 +121,7 @@ def test_eq_emitt(conf):
     line.configure_radiation(model='mean')
     line.compensate_radiation_energy_loss()
 
-    tw_rad = line.twiss(eneloss_and_damping=True)
+    tw_rad = line.twiss(radiation_analysis=True)
     ex = tw_rad.eq_gemitt_x
     ey = tw_rad.eq_gemitt_y
     ez = tw_rad.eq_gemitt_zeta
@@ -174,7 +174,7 @@ def test_eq_emitt(conf):
     xo.assert_allclose(tw_integ.rad_int_eq_gemitt_x, ex, rtol=0.15, atol=1e-14)
     xo.assert_allclose(tw_integ.rad_int_eq_gemitt_y, ey, rtol=0.15, atol=1e-14)
 
-    tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
+    tw_rad2 = line.twiss(radiation_analysis=True, method='6d',
                      radiation_method='full',
                      compute_lattice_functions=False,
                      chrom=False)

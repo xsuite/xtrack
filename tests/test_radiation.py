@@ -191,7 +191,7 @@ def test_ring_with_radiation(test_context, thick):
     line.configure_radiation(model='mean')
 
     # Twiss
-    tw = line.twiss(eneloss_and_damping=True)
+    tw = line.twiss(radiation_analysis=True)
 
     # Checks
     met = mad_emit_table
