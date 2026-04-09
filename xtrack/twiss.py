@@ -399,7 +399,7 @@ def twiss_line(line, particle_ref=None, method=None,
         'The same functionality can be achieved by selecting the desired names after computing '
         'the twiss, e.g. `line.twiss(...).rows[["ele1", "ele2", "ele3"]]`. '
         'Regular expressions are also supported for the selection of element names, '
-        '`e.g. `line.twiss(...).rows["quad.*"]`.',
+        'e.g. `line.twiss(...).rows["quad.*"]`.',
         FutureWarning)
 
     if compute_chromatic_properties is not None:
