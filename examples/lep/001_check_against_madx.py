@@ -43,7 +43,7 @@ line.to_json('lep_thin.json')
 
 tw_norad = line.twiss()
 line.configure_radiation('mean')
-tw_rad = line.twiss(eneloss_and_damping=True)
+tw_rad = line.twiss(radiation_analysis=True)
 
 ##############################
 # Compare against MAD-X emit #

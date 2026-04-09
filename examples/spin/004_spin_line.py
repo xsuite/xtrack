@@ -126,9 +126,9 @@ line['vrfc231'] = 15
 
 line.configure_radiation(model='mean')
 line['on_spin_bumps'] = 0.; line['on_sol'] = 0.
-tw_rad_off = line.twiss(spin=True, eneloss_and_damping=True)
+tw_rad_off = line.twiss(spin=True, radiation_analysis=True)
 line['on_spin_bumps'] = 0.; line['on_sol'] = 1.
-tw_rad_on = line.twiss(spin=True, eneloss_and_damping=True)
+tw_rad_on = line.twiss(spin=True, radiation_analysis=True)
 
 line['on_spin_bumps'] = 0.; line['on_sol'] = 0.
 p_off = xp.generate_matched_gaussian_bunch(
@@ -137,7 +137,7 @@ p_off = xp.generate_matched_gaussian_bunch(
     nemitt_y=tw_rad_off.eq_nemitt_y,
     sigma_z=np.sqrt(tw_rad_off.eq_gemitt_zeta * tw_rad_off.bets0),
     num_particles=100,
-    engine='linear')
+    engine='pyheadtail')
 # Need to patch the longitudinal plane
 p_off.zeta += tw_rad_off.zeta[0]
 p_off.delta += tw_rad_off.delta[0]
@@ -153,7 +153,7 @@ p_on = xp.generate_matched_gaussian_bunch(
     nemitt_y=tw_rad_on.eq_nemitt_y,
     sigma_z=np.sqrt(tw_rad_on.eq_gemitt_zeta * tw_rad_on.bets0),
     num_particles=100,
-    engine='linear')
+    engine='pyheadtail')
 # Need to patch the longitudinal plane
 p_on.zeta += tw_rad_on.zeta[0]
 p_on.delta += tw_rad_on.delta[0]

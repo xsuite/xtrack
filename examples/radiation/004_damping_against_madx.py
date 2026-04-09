@@ -60,7 +60,7 @@ line.configure_radiation(model='mean')
 
 # Twiss
 print('Checks with twiss...')
-tw = line.twiss(eneloss_and_damping=True)
+tw = line.twiss(radiation_analysis=True)
 
 # Checks
 met = mad_emit_table

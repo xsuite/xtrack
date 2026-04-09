@@ -31,15 +31,14 @@ line['vrfc231'] = 12.65 # qs=0.6
 tw_bare = line.twiss(spin=True, radiation_integrals=True, polarization_analysis=True)
 
 line.configure_radiation('mean')
-tw_bare_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization_analysis=True)
+tw_bare_rad = line.twiss(spin=True, radiation_analysis=True, polarization_analysis=True)
 
 p_bare = xp.generate_matched_gaussian_bunch(
     line=line,
     nemitt_x=tw_bare_rad.eq_nemitt_x,
     nemitt_y=tw_bare_rad.eq_nemitt_y,
     sigma_z=np.sqrt(tw_bare_rad.eq_gemitt_zeta * tw_bare_rad.bets0),
-    num_particles=100,
-    engine='linear')
+    num_particles=100)
 p_bare.zeta += tw_bare_rad.zeta[0]
 p_bare.delta += tw_bare_rad.delta[0]
 p_bare.spin_x = tw_bare_rad.spin_x[0]
@@ -68,14 +67,13 @@ line['on_spin_bumps'] = 0
 
 tw_sol = line.twiss(spin=True, radiation_integrals=True, polarization_analysis=True)
 line.configure_radiation(model='mean')
-tw_sol_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization_analysis=True)
+tw_sol_rad = line.twiss(spin=True, radiation_analysis=True, polarization_analysis=True)
 p_sol = xp.generate_matched_gaussian_bunch(
     line=line,
     nemitt_x=tw_sol_rad.eq_nemitt_x,
     nemitt_y=tw_sol_rad.eq_nemitt_y,
     sigma_z=np.sqrt(tw_sol_rad.eq_gemitt_zeta * tw_sol_rad.bets0),
-    num_particles=100,
-    engine='linear')
+    num_particles=100)
 p_sol.zeta += tw_sol_rad.zeta[0]
 p_sol.delta += tw_sol_rad.delta[0]
 p_sol.spin_x = tw_sol_rad.spin_x[0]
@@ -104,14 +102,13 @@ line['on_spin_bumps'] = 1
 
 tw_sol_bump = line.twiss(spin=True, radiation_integrals=True, polarization_analysis=True)
 line.configure_radiation(model='mean')
-tw_sol_bump_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization_analysis=True)
+tw_sol_bump_rad = line.twiss(spin=True, radiation_analysis=True, polarization_analysis=True)
 p_sol_bump = xp.generate_matched_gaussian_bunch(
     line=line,
     nemitt_x=tw_sol_bump_rad.eq_nemitt_x,
     nemitt_y=tw_sol_bump_rad.eq_nemitt_y,
     sigma_z=np.sqrt(tw_sol_bump_rad.eq_gemitt_zeta * tw_sol_bump_rad.bets0),
-    num_particles=100,
-    engine='linear')
+    num_particles=100)
 p_sol_bump.zeta += tw_sol_bump_rad.zeta[0]
 p_sol_bump.delta += tw_sol_bump_rad.delta[0]
 p_sol_bump.spin_x = tw_sol_bump_rad.spin_x[0]

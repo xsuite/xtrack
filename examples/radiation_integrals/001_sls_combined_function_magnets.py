@@ -37,7 +37,7 @@ tw6d = line.twiss()
 
 line.configure_radiation(model='mean')
 
-tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
+tw_rad = line.twiss(radiation_analysis=True, strengths=True)
 
 tw_integrals = line.twiss(radiation_integrals=True)
 

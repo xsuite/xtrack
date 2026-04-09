@@ -224,7 +224,7 @@ line.build_tracker()
 line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
 
-two = line.twiss(eneloss_and_damping=True, particle_on_co=line.particle_ref.copy())
-tw = line.twiss(eneloss_and_damping=True)
+two = line.twiss(radiation_analysis=True, particle_on_co=line.particle_ref.copy())
+tw = line.twiss(radiation_analysis=True)
 
 print(tw.partition_numbers)
