@@ -78,7 +78,7 @@ def twiss_line(line, particle_ref=None, method=None,
         eneloss_and_damping=None,
         radiation_integrals=None,
         spin=None,
-        polarization=None,
+        polarization_analysis=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -122,6 +122,7 @@ def twiss_line(line, particle_ref=None, method=None,
         r_sigma=None,
         freeze_longitudinal=None,
         freeze_energy=None,
+        polarization=None,
     ):
     """
     Compute the Twiss parameters of the beam line. If no initial conditions
@@ -198,7 +199,7 @@ def twiss_line(line, particle_ref=None, method=None,
     spin : bool, optional
         If True, for periodic twiss compute spin closed solution (n0);
         for open twiss, propagate spin components.
-    polarization : bool, optional
+    polarization_analysis : bool, optional
         If True, compute quantititis related to spin polarization.
     delta_chrom : float, optional
         Momentum deviation for the chromaticity computation.
@@ -361,7 +362,7 @@ def twiss_line(line, particle_ref=None, method=None,
     Output fields present when `spin=True`:
         - `spin_x`, `spin_y`, `spin_z`: spin components of the closed spin solution
           (n0) for periodic twiss, or propagated spin components for open twiss. (ebe)
-    Output fields present when `polarization=True`:
+    Output fields present when `polarization_analysis=True`:
         - `spin_tune_fractional`: fractional spin tune
         - `spin_polarization_eq`: equilibrium polarization in the linear approximation
         - `spin_polarization_inf_no_depol`: infinite-time polarization without
@@ -423,6 +424,13 @@ def twiss_line(line, particle_ref=None, method=None,
              'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities',
              FutureWarning)
 
+    if polarization:
+        # TODO: enable warning when sister packages, acc-models-fcc, and tutorials are updated
+        # warn('The `polarization` keyword is deprecated and will be removed in future versions. \n'
+        #      'Please use `polarization_analysis` instead, which has the same behavior.',
+        #      FutureWarning)
+        polarization_analysis = polarization
+
     input_kwargs = locals().copy()
 
     # defaults
@@ -438,7 +446,7 @@ def twiss_line(line, particle_ref=None, method=None,
     freeze_longitudinal=(freeze_longitudinal or False)
     radiation_method=(radiation_method or None)
     spin=(spin or False)
-    polarization=(polarization or False)
+    polarization_analysis=(polarization_analysis or False)
     radiation_integrals=(radiation_integrals or False)
     eneloss_and_damping=(eneloss_and_damping or False)
     symplectify=(symplectify or False)
@@ -469,7 +477,7 @@ def twiss_line(line, particle_ref=None, method=None,
     if only_markers:
         raise NotImplementedError('``only_markers`` not supported anymore')
 
-    if polarization:
+    if polarization_analysis:
         spin = True
         radiation_integrals = True # some quantities are needed for polarization
                                    # could be decoupled in the future
@@ -963,7 +971,7 @@ def twiss_line(line, particle_ref=None, method=None,
     if radiation_integrals:
         twiss_res._compute_radiation_integrals(add_to_tw=True)
 
-    if polarization:
+    if polarization_analysis:
         _compute_spin_polarization(twiss_res, line, method)
 
     if coupling_edw_teng:

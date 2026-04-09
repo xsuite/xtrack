@@ -32,7 +32,7 @@ line['on_coupling_corrections'] = 1
 line.configure_radiation('mean')
 
 # Generate a matched bunch distribution
-tw = line.twiss(spin=True, eneloss_and_damping=True, polarization=True)
+tw = line.twiss(spin=True, eneloss_and_damping=True, polarization_analysis=True)
 np.random.seed(0)
 particles = xp.generate_matched_gaussian_bunch(
     line=line,

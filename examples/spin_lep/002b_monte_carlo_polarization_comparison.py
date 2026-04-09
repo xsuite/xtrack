@@ -18,7 +18,7 @@ opt = line.match(
 )
 opt.solve()
 
-tw = line.twiss4d(spin=True, radiation_integrals=True, polarization=True)
+tw = line.twiss4d(spin=True, radiation_integrals=True, polarization_analysis=True)
 
 # All off
 line['on_solenoids'] = 0
@@ -28,10 +28,10 @@ line['on_spin_bumps'] = 0
 line['vrfc231'] = 12.65 # qs=0.6
 
 # Bare machine
-tw_bare = line.twiss(spin=True, radiation_integrals=True, polarization=True)
+tw_bare = line.twiss(spin=True, radiation_integrals=True, polarization_analysis=True)
 
 line.configure_radiation('mean')
-tw_bare_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization=True)
+tw_bare_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization_analysis=True)
 
 p_bare = xp.generate_matched_gaussian_bunch(
     line=line,
@@ -66,9 +66,9 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads=0))
 line['on_solenoids'] = 1
 line['on_spin_bumps'] = 0
 
-tw_sol = line.twiss(spin=True, radiation_integrals=True, polarization=True)
+tw_sol = line.twiss(spin=True, radiation_integrals=True, polarization_analysis=True)
 line.configure_radiation(model='mean')
-tw_sol_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization=True)
+tw_sol_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization_analysis=True)
 p_sol = xp.generate_matched_gaussian_bunch(
     line=line,
     nemitt_x=tw_sol_rad.eq_nemitt_x,
@@ -102,9 +102,9 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads=0))
 line['on_solenoids'] = 1
 line['on_spin_bumps'] = 1
 
-tw_sol_bump = line.twiss(spin=True, radiation_integrals=True, polarization=True)
+tw_sol_bump = line.twiss(spin=True, radiation_integrals=True, polarization_analysis=True)
 line.configure_radiation(model='mean')
-tw_sol_bump_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization=True)
+tw_sol_bump_rad = line.twiss(spin=True, eneloss_and_damping=True, polarization_analysis=True)
 p_sol_bump = xp.generate_matched_gaussian_bunch(
     line=line,
     nemitt_x=tw_sol_bump_rad.eq_nemitt_x,

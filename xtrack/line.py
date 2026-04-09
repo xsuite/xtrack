@@ -1526,7 +1526,7 @@ class Line:
         only_markers=None,
         only_orbit=None,
         spin=None,
-        polarization=None,
+        polarization_analysis=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         chrom=None,
@@ -1559,6 +1559,7 @@ class Line:
         r_sigma=None,
         freeze_longitudinal=None,
         freeze_energy=None,
+        polarization=None,
     ):
         if not self._has_valid_tracker():
             self.build_tracker()
