@@ -1506,8 +1506,6 @@ class Line:
         co_guess=None, steps_r_matrix=None,
         co_search_settings=None,
         continue_on_closed_orbit_error=None,
-        freeze_longitudinal=None,
-        freeze_energy=None,
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
@@ -1559,6 +1557,8 @@ class Line:
         at_s=None,
         at_elements=None,
         r_sigma=None,
+        freeze_longitudinal=None,
+        freeze_energy=None,
     ):
         if not self._has_valid_tracker():
             self.build_tracker()

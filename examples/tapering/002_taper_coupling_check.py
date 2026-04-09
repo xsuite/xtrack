@@ -17,7 +17,7 @@ line.build_tracker()
 
 # Initial twiss (no radiation)
 line.configure_radiation(model=None)
-tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
+tw_no_rad = line.twiss4d()
 
 # Enable radiation
 line.configure_radiation(model='mean')

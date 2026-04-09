@@ -8,7 +8,7 @@ import xtrack as xt
 line = xt.load('../../test_data/clic_dr/line_for_taper.json')
 
 line.configure_radiation(model=None)
-tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
+tw_no_rad = line.twiss4d()
 
 ###############################################
 # Enable radiation and compensate energy loss #
