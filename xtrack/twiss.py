@@ -407,18 +407,18 @@ def twiss_line(line, particle_ref=None, method=None,
         #      FutureWarning)
         chrom = compute_chromatic_properties
 
-    if r_sigma is not None:
+    if r_sigma:
         warn('The `r_sigma` keyword is deprecated and will be removed in future versions. \n'
              'Please use `step_W_sigma` instead, which has the same behavior.',
              FutureWarning)
         step_W_sigma = r_sigma
 
-    if freeze_energy is not None:
+    if freeze_energy:
         warn('The `freeze_energy` keyword is deprecated and will be removed in future versions. \n'
              'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities',
              FutureWarning)
 
-    if freeze_longitudinal is not None:
+    if freeze_longitudinal:
         warn('The `freeze_longitudinal` keyword is deprecated and will be removed in future versions. \n'
              'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities',
              FutureWarning)
