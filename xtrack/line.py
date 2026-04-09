@@ -1501,10 +1501,10 @@ class Line:
     def twiss(self, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None, zeta_shift=None,
-        r_sigma=None, nemitt_x=None, nemitt_y=None,
+        nemitt_x=None, nemitt_y=None, step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_r_matrix=None,
-        co_search_settings=None, at_elements=None,
+        co_search_settings=None,
         continue_on_closed_orbit_error=None,
         freeze_longitudinal=None,
         freeze_energy=None,
@@ -1557,6 +1557,8 @@ class Line:
         # deprecated
         compute_chromatic_properties=None,
         at_s=None,
+        at_elements=None,
+        r_sigma=None,
     ):
         if not self._has_valid_tracker():
             self.build_tracker()

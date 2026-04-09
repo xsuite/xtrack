@@ -68,7 +68,7 @@ SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick'
 def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None, zeta_shift=None,
-        r_sigma=None, nemitt_x=None, nemitt_y=None,
+        nemitt_x=None, nemitt_y=None, step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_r_matrix=None,
         co_search_settings=None,
@@ -121,6 +121,7 @@ def twiss_line(line, particle_ref=None, method=None,
         at_s=None,
         at_elements=None,
         compute_chromatic_properties=None,
+        r_sigma=None,
     ):
     """
     Compute the Twiss parameters of the beam line. If no initial conditions
@@ -210,7 +211,7 @@ def twiss_line(line, particle_ref=None, method=None,
     matrix_stability_tol : float, optional
         Tolerance to be used to check the stability of the R matrix.
         If not provided, the default value is used.
-    r_sigma : float, optional.
+    step_W_sigma : float, optional.
         Deviation in sigmas used for the propagation of the W matrix.
     nemitt_x : float, optional
         Horizontal emittance assumed for the computation of the deviation
@@ -406,10 +407,16 @@ def twiss_line(line, particle_ref=None, method=None,
         #      FutureWarning)
         chrom = compute_chromatic_properties
 
+    if r_sigma is not None:
+        warn('The `r_sigma` keyword is deprecated and will be removed in future versions. \n'
+             'Please use `step_W_sigma` instead, which has the same behavior.',
+             FutureWarning)
+        step_W_sigma = r_sigma
+
     input_kwargs = locals().copy()
 
     # defaults
-    r_sigma=(r_sigma or 0.01)
+    step_W_sigma=(step_W_sigma or 0.01)
     nemitt_x=(nemitt_x or 1e-6)
     nemitt_y=(nemitt_y or 1e-6)
     delta_disp=(delta_disp or 1e-5)
@@ -780,7 +787,7 @@ def twiss_line(line, particle_ref=None, method=None,
             search_for_t_rev=search_for_t_rev,
             spin=spin,
             num_turns_search_t_rev=num_turns_search_t_rev,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, step_W_sigma=step_W_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
             only_orbit=only_orbit,
@@ -808,7 +815,7 @@ def twiss_line(line, particle_ref=None, method=None,
         start=start, end=end,
         nemitt_x=nemitt_x,
         nemitt_y=nemitt_y,
-        r_sigma=r_sigma,
+        step_W_sigma=step_W_sigma,
         delta_disp=delta_disp,
         use_full_inverse=use_full_inverse,
         hide_thin_groups=hide_thin_groups,
@@ -851,7 +858,7 @@ def twiss_line(line, particle_ref=None, method=None,
             nemitt_x=nemitt_x,
             nemitt_y=nemitt_y,
             on_momentum_twiss_res=twiss_res,
-            r_sigma=r_sigma,
+            step_W_sigma=step_W_sigma,
             delta_disp=delta_disp,
             zeta_disp=zeta_disp,
             start=start,
@@ -888,7 +895,7 @@ def twiss_line(line, particle_ref=None, method=None,
                     matrix_responsiveness_tol=matrix_responsiveness_tol,
                     matrix_stability_tol=None,
                     start=start, end=end,
-                    nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
+                    nemitt_x=nemitt_x, nemitt_y=nemitt_y, step_W_sigma=step_W_sigma,
                     delta0=None, zeta0=None, zeta_shift=zeta_shift,
                     W_matrix=None, R_matrix=None,
                     delta_disp=None,
@@ -1042,7 +1049,7 @@ def _twiss_open(
         end,
         nemitt_x,
         nemitt_y,
-        r_sigma,
+        step_W_sigma,
         delta_disp,
         use_full_inverse,
         hide_thin_groups=False,
@@ -1093,8 +1100,8 @@ def _twiss_open(
 
     gemitt_x = nemitt_x/particle_on_co._xobject.beta0[0]/particle_on_co._xobject.gamma0[0]
     gemitt_y = nemitt_y/particle_on_co._xobject.beta0[0]/particle_on_co._xobject.gamma0[0]
-    scale_transverse_x = np.sqrt(gemitt_x)*r_sigma
-    scale_transverse_y = np.sqrt(gemitt_y)*r_sigma
+    scale_transverse_x = np.sqrt(gemitt_x)*step_W_sigma
+    scale_transverse_y = np.sqrt(gemitt_y)*step_W_sigma
     scale_longitudinal = delta_disp
     scale_eigen = min(scale_transverse_x, scale_transverse_y, scale_longitudinal)
 
@@ -1883,7 +1890,7 @@ def _compute_chromatic_functions(line, init, delta_chrom,
                     matrix_responsiveness_tol, matrix_stability_tol, symplectify,
                     method='6d', use_full_inverse=False,
                     nemitt_x=None, nemitt_y=None,
-                    r_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
+                    step_W_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
                     on_momentum_twiss_res=None,
                     start=None, end=None, num_turns=None,
                     hide_thin_groups=False,
@@ -1990,7 +1997,7 @@ def _compute_chromatic_functions(line, init, delta_chrom,
                     start=start, end=end,
                     nemitt_x=nemitt_x,
                     nemitt_y=nemitt_y,
-                    r_sigma=r_sigma,
+                    step_W_sigma=step_W_sigma,
                     delta_disp=delta_disp,
                     use_full_inverse=use_full_inverse,
                     hide_thin_groups=hide_thin_groups,
@@ -2461,7 +2468,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             delta_disp, symplectify,
                             matrix_responsiveness_tol,
                             matrix_stability_tol,
-                            nemitt_x, nemitt_y, r_sigma,
+                            nemitt_x, nemitt_y, step_W_sigma,
                             start=None, end=None,
                             num_turns=1,
                             co_search_at=None,
