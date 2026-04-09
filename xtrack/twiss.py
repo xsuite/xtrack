@@ -73,8 +73,6 @@ def twiss_line(line, particle_ref=None, method=None,
         co_guess=None, steps_r_matrix=None,
         co_search_settings=None,
         continue_on_closed_orbit_error=None,
-        freeze_longitudinal=None,
-        freeze_energy=None,
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
@@ -122,6 +120,8 @@ def twiss_line(line, particle_ref=None, method=None,
         at_elements=None,
         compute_chromatic_properties=None,
         r_sigma=None,
+        freeze_longitudinal=None,
+        freeze_energy=None,
     ):
     """
     Compute the Twiss parameters of the beam line. If no initial conditions
@@ -412,6 +412,16 @@ def twiss_line(line, particle_ref=None, method=None,
              'Please use `step_W_sigma` instead, which has the same behavior.',
              FutureWarning)
         step_W_sigma = r_sigma
+
+    if freeze_energy is not None:
+        warn('The `freeze_energy` keyword is deprecated and will be removed in future versions. \n'
+             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities',
+             FutureWarning)
+
+    if freeze_longitudinal is not None:
+        warn('The `freeze_longitudinal` keyword is deprecated and will be removed in future versions. \n'
+             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities',
+             FutureWarning)
 
     input_kwargs = locals().copy()
 
