@@ -35,7 +35,7 @@ tw_fw = line.twiss(start='ip4', end='ip6', init_at='ip4',
               dy=tw['dy', 'ip4'], dpy=tw['dpy', 'ip4'],
               ddx=tw['ddx', 'ip4'], ddy=tw['ddy', 'ip4'],
               ddpx=tw['ddpx', 'ip4'], ddpy=tw['ddpy', 'ip4'],
-              compute_chromatic_properties=True)
+              chrom=True)
 
 tw_bw = line.twiss(start='ip4', end='ip6', init_at='ip6',
               x=tw['x', 'ip6'], px=tw['px', 'ip6'],
@@ -46,7 +46,7 @@ tw_bw = line.twiss(start='ip4', end='ip6', init_at='ip6',
               dy=tw['dy', 'ip6'], dpy=tw['dpy', 'ip6'],
               ddx=tw['ddx', 'ip6'], ddy=tw['ddy', 'ip6'],
               ddpx=tw['ddpx', 'ip6'], ddpy=tw['ddpy', 'ip6'],
-              compute_chromatic_properties=True)
+              chrom=True)
 
 
 tw_fw_mad = line.twiss(start='ip4', end='ip6', init_at='ip4',
@@ -58,7 +58,7 @@ tw_fw_mad = line.twiss(start='ip4', end='ip6', init_at='ip4',
               dy=twm['dy', 'ip4:1'], dpy=twm['dpy', 'ip4:1'],
               ddx=twm['ddx', 'ip4:1']*2, ddy=twm['ddy', 'ip4:1']*2,
               ddpx=twm['ddpx', 'ip4:1']*2, ddpy=twm['ddpy', 'ip4:1']*2,
-              compute_chromatic_properties=True)
+              chrom=True)
 
 ddy_mad = np.interp(tw_fw.s, twm.s, twm.ddy)
 ddx_mad = np.interp(tw_fw.s, twm.s, twm.ddx)

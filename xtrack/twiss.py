@@ -97,7 +97,7 @@ def twiss_line(line, particle_ref=None, method=None,
         only_orbit=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
-        compute_chromatic_properties=None,
+        chrom=None,
         coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
@@ -117,6 +117,8 @@ def twiss_line(line, particle_ref=None, method=None,
         _initial_particles=None,
         _ebe_monitor=None,
         only_markers=None,
+        # Deprecated
+        compute_chromatic_properties=None,
     ):
     """
     Compute the Twiss parameters of the beam line. If no initial conditions
@@ -175,7 +177,7 @@ def twiss_line(line, particle_ref=None, method=None,
         If True, the output is computed in the reversed reference frame, i.e.
         s = -s, x = -x, y = y, zeta = -zeta, px=px, py=-py, delta=delta.
         Default is False.
-    compute_chromatic_properties : bool, optional
+    chrom : bool, optional
         If True, compute chromatic properties. Default is None, which means
         chromatic properties are computed only for the periodic solution, but
         not for open twiss.
@@ -387,6 +389,13 @@ def twiss_line(line, particle_ref=None, method=None,
         ' functionality and then calling line_copy.twiss(...) on the cut line.',
         FutureWarning)
 
+    if compute_chromatic_properties is not None:
+        # TODO: enable warning when sister packages are updated
+        # warn('The `compute_chromatic_properties` keyword is deprecated and will be removed in future versions. \n'
+        #      'Please use `chrom` instead, which has the same behavior.',
+        #      FutureWarning)
+        chrom = compute_chromatic_properties
+
     input_kwargs = locals().copy()
 
     # defaults
@@ -417,8 +426,7 @@ def twiss_line(line, particle_ref=None, method=None,
     compute_R_element_by_element=(compute_R_element_by_element or False)
     compute_lattice_functions=(compute_lattice_functions
                         if compute_lattice_functions is not None else True)
-    compute_chromatic_properties=(compute_chromatic_properties
-                        if compute_chromatic_properties is not None else None)
+    chrom=(chrom if chrom is not None else None)
     num_turns = (num_turns or 1)
     disable_apertures = (disable_apertures if disable_apertures is not None else True)
 
@@ -815,8 +823,8 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['rotation_matrix'] = Rot.copy()
 
     if (not only_orbit and (
-        (compute_chromatic_properties is True)
-        or (compute_chromatic_properties is None and periodic))):
+        (chrom is True)
+        or (chrom is None and periodic))):
 
         cols_chrom, scalars_chrom = _compute_chromatic_functions(
             line=line,

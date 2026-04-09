@@ -1504,7 +1504,7 @@ class Line:
         r_sigma=None, nemitt_x=None, nemitt_y=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_r_matrix=None,
-        co_search_settings=None, at_elements=None, at_s=None,
+        co_search_settings=None, at_elements=None,
         continue_on_closed_orbit_error=None,
         freeze_longitudinal=None,
         freeze_energy=None,
@@ -1531,7 +1531,7 @@ class Line:
         polarization=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
-        compute_chromatic_properties=None,
+        chrom=None,
         coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
@@ -1553,7 +1553,10 @@ class Line:
         ele_start='__discontinued__',
         ele_stop='__discontinued__',
         ele_init='__discontinued__',
-        twiss_init='__discontinued__'
+        twiss_init='__discontinued__',
+        # deprecated
+        compute_chromatic_properties=None,
+        at_s=None,
     ):
         if not self._has_valid_tracker():
             self.build_tracker()

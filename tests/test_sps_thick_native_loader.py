@@ -189,7 +189,7 @@ def test_sps_thick_native_loader(test_context):
     tw_backwards = line.twiss(start=line.element_names[0],
                 end=line.element_names[-1],
                 init=tw_edge_linear.get_twiss_init(line.element_names[-1]),
-                compute_chromatic_properties=True)
+                chrom=True)
 
     assert_allclose = np.testing.assert_allclose
 

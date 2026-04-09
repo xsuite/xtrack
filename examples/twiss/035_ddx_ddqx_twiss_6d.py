@@ -45,8 +45,8 @@ dzeta = slip_factor * ddelta * tw6d.circumference
 # p_co_plus.zeta -= dzeta
 # p_co_minus.zeta += dzeta
 
-tw_plus = line.twiss6d(zeta_shift=-dzeta, compute_chromatic_properties=False)
-tw_minus = line.twiss6d(zeta_shift=dzeta, compute_chromatic_properties=False)
+tw_plus = line.twiss6d(zeta_shift=-dzeta, chrom=False)
+tw_minus = line.twiss6d(zeta_shift=dzeta, chrom=False)
 
 
 
