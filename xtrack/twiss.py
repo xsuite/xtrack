@@ -75,7 +75,7 @@ def twiss_line(line, particle_ref=None, method=None,
         continue_on_closed_orbit_error=None,
         values_at_element_exit=None,
         radiation_method=None,
-        eneloss_and_damping=None,
+        radiation_analysis=None,
         radiation_integrals=None,
         spin=None,
         polarization_analysis=None,
@@ -123,6 +123,7 @@ def twiss_line(line, particle_ref=None, method=None,
         freeze_longitudinal=None,
         freeze_energy=None,
         polarization=None,
+        eneloss_and_damping=None,
     ):
     """
     Compute the Twiss parameters of the beam line. If no initial conditions
@@ -185,7 +186,7 @@ def twiss_line(line, particle_ref=None, method=None,
         If True, compute chromatic properties. Default is None, which means
         chromatic properties are computed only for the periodic solution, but
         not for open twiss.
-    eneloss_and_damping : bool, optional
+    radiation_analysis : bool, optional
         If True, the energy loss, radiation damping constants, and equilibrium
         emittances are computed. Default is False.
     radiation_method : {'full', 'kick_as_co', 'scale_as_co'}, optional
@@ -329,7 +330,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole integrated strengths
         - `angle_rad`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
           `element_type`, `isthick`, `parent_name`: element properties
-    Output fields present when `eneloss_and_damping=True`:
+    Output fields present when `radiation_analysis=True`:
         - `eneloss_turn`: energy loss per turn [eV]
         - `damping_constants_turns`, `damping_constants_s`: damping constants in
           1/turn or 1/s.
@@ -431,6 +432,13 @@ def twiss_line(line, particle_ref=None, method=None,
         #      FutureWarning)
         polarization_analysis = polarization
 
+    if eneloss_and_damping:
+        # TODO: enable warning when sister packages, acc-models-fcc, and tutorials are updated
+        # warn('The `eneloss_and_damping` keyword is deprecated and will be removed in future versions. \n'
+        #      'Please use `radiation_analysis` instead, which has the same behavior.',
+        #      FutureWarning)
+        radiation_analysis = eneloss_and_damping
+
     input_kwargs = locals().copy()
 
     # defaults
@@ -448,7 +456,7 @@ def twiss_line(line, particle_ref=None, method=None,
     spin=(spin or False)
     polarization_analysis=(polarization_analysis or False)
     radiation_integrals=(radiation_integrals or False)
-    eneloss_and_damping=(eneloss_and_damping or False)
+    radiation_analysis=(radiation_analysis or False)
     symplectify=(symplectify or False)
     reverse=(reverse or False)
     strengths=(strengths or False)
@@ -823,9 +831,9 @@ def twiss_line(line, particle_ref=None, method=None,
         else:
             return init
 
-    if only_markers and eneloss_and_damping:
+    if only_markers and radiation_analysis:
         raise NotImplementedError(
-            '``only_markers`` not implemented for ``eneloss_and_damping``')
+            '``only_markers`` not implemented for ``radiation_analysis``')
 
     twiss_res = _twiss_open(
         line=line,
@@ -894,10 +902,10 @@ def twiss_line(line, particle_ref=None, method=None,
 
 
 
-    if eneloss_and_damping and not only_orbit:
+    if radiation_analysis and not only_orbit:
         assert 'R_matrix' in twiss_res._data
         if method == '4d':
-            raise ValueError('method="4d" not supported for eneloss_and_damping=True')
+            raise ValueError('method="4d" not supported for radiation_analysis=True')
         with xt.line._preserve_config(line):
             with xt.line._preserve_track_flags(line):
                 line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
@@ -3997,7 +4005,7 @@ class TwissTable(Table):
             and that this ``TwissTable`` holds information on the equilibrium
             state from Synchrotron Radiation. This means calling first
             ``line.configure_radiation(model="mean")`` and then the ``.twiss()``
-            method with ``eneloss_and_damping=True``.
+            method with ``radiation_analysis=True``.
 
         Warning
         -------

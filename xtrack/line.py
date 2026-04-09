@@ -1508,8 +1508,8 @@ class Line:
         continue_on_closed_orbit_error=None,
         values_at_element_exit=None,
         radiation_method=None,
-        eneloss_and_damping=None,
         radiation_integrals=None,
+        radiation_analysis=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -1560,6 +1560,7 @@ class Line:
         freeze_longitudinal=None,
         freeze_energy=None,
         polarization=None,
+        eneloss_and_damping=None,
     ):
         if not self._has_valid_tracker():
             self.build_tracker()
