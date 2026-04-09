@@ -151,7 +151,7 @@ for ii in range(num_turns):
     y_tbt[:, ii] = ctx2arr(particles.y[:N_footprint]).copy()
     line.track(particles)
 
-tw = line_sc_off.twiss(at_elements=[0])
+tw = line_sc_off.twiss()
 
 ######################
 # Frequency analysis #
