@@ -578,17 +578,17 @@ def test_orbit_knobs(test_context, mad_b12_no_errors):
     line.build_tracker(_context=test_context)
 
     line.vars['on_x1'] = 250
-    xo.assert_allclose(line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
+    xo.assert_allclose(line.twiss()['px', 'ip1'], 250e-6,
                 atol=1e-6, rtol=0)
     line.vars['on_x1'] = -300
-    xo.assert_allclose(line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
+    xo.assert_allclose(line.twiss()['px', 'ip1'], -300e-6,
                 atol=1e-6, rtol=0)
 
     line.vars['on_x5'] = 130
-    xo.assert_allclose(line.twiss(at_elements=['ip5'])['py'][0], 130e-6,
+    xo.assert_allclose(line.twiss()['py', 'ip5'], 130e-6,
                 atol=1e-6, rtol=0)
     line.vars['on_x5'] = -270
-    xo.assert_allclose(line.twiss(at_elements=['ip5'])['py'][0], -270e-6,
+    xo.assert_allclose(line.twiss()['py', 'ip5'], -270e-6,
                 atol=1e-6, rtol=0)
 
 
