@@ -71,7 +71,7 @@ def twiss_line(line, particle_ref=None, method=None,
         r_sigma=None, nemitt_x=None, nemitt_y=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
         co_guess=None, steps_r_matrix=None,
-        co_search_settings=None, at_elements=None, at_s=None,
+        co_search_settings=None,
         continue_on_closed_orbit_error=None,
         freeze_longitudinal=None,
         freeze_energy=None,
@@ -118,6 +118,8 @@ def twiss_line(line, particle_ref=None, method=None,
         _ebe_monitor=None,
         only_markers=None,
         # Deprecated
+        at_s=None,
+        at_elements=None,
         compute_chromatic_properties=None,
     ):
     """
@@ -387,6 +389,14 @@ def twiss_line(line, particle_ref=None, method=None,
         'The same functionality can be achieved making a shallow copy of the line '
         '(e.g. `line_copy = line.copy(shallow=True)`), using the`line.cut_at_s(...)` '
         ' functionality and then calling line_copy.twiss(...) on the cut line.',
+        FutureWarning)
+
+    if at_elements is not None:
+        warn('`at_elements` keyword is deprecated and will be removed in future versions. \n'
+        'The same functionality can be achieved by selecting the desired names after computing '
+        'the twiss, e.g. `line.twiss(...).rows[["ele1", "ele2", "ele3"]]`. '
+        'Regular expressions are also supported for the selection of element names, '
+        '`e.g. `line.twiss(...).rows["quad.*"]`.',
         FutureWarning)
 
     if compute_chromatic_properties is not None:
