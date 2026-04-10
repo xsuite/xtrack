@@ -284,8 +284,9 @@ def twiss_line(line, particle_ref=None, method=None,
         - `dx_zeta`, `dpx_zeta`, `dy_zeta`, `dpy_zeta`: crab dispersion functions (ebe)
         - `bets0`: longitudinal beta function at start ring.
         - `W_matrix`: linear normal-form matrix. (ebe)
-        - `kin_px`, `kin_py`, `kin_ps`: kinetic momenta (px, py are canonical momenta). (ebe)
-        - `kin_xprime`, `kin_yprime`: transverse slopes dx/ds, dy/ds. (ebe)
+        - `kin_px`, `kin_py`, `kin_ps`: kinetic momenta (different from `px`, `py`
+          which are canonical momenta). (ebe)
+        - `kin_xp`, `kin_yp`: transverse slopes kin_px/kin_ps, kin_py/kin_ps. (ebe)
         - `mux`, `muy`, `muzeta`: phase advances in units of 2 pi. (ebe)
         - `nux`, `nuy`, `nuzeta`: damping exponents. (ebe)
         - `betx1`, `bety1`, `betx2`, `bety2`, `alfx1`, `alfy1`, `alfx2`,
@@ -1228,8 +1229,8 @@ def _twiss_open(
     kin_px_co = line.record_last_track.kin_px[0, i_start:i_stop+1].copy()
     kin_py_co = line.record_last_track.kin_py[0, i_start:i_stop+1].copy()
     kin_ps_co = line.record_last_track.kin_ps[0, i_start:i_stop+1].copy()
-    kin_xprime_co = line.record_last_track.kin_xprime[0, i_start:i_stop+1].copy()
-    kin_yprime_co = line.record_last_track.kin_yprime[0, i_start:i_stop+1].copy()
+    kin_xp_co = line.record_last_track.kin_xp[0, i_start:i_stop+1].copy()
+    kin_yp_co = line.record_last_track.kin_yp[0, i_start:i_stop+1].copy()
     if spin:
         spin_x_co = line.record_last_track.spin_x[0, i_start:i_stop+1].copy()
         spin_y_co = line.record_last_track.spin_y[0, i_start:i_stop+1].copy()
@@ -1272,8 +1273,10 @@ def _twiss_open(
         'kin_px': kin_px_co,
         'kin_py': kin_py_co,
         'kin_ps': kin_ps_co,
-        'kin_xprime': kin_xprime_co,
-        'kin_yprime': kin_yprime_co,
+        'kin_xp': kin_xp_co,
+        'kin_yp': kin_yp_co,
+        'kin_xprime': kin_xp_co,
+        'kin_yprime': kin_yp_co,
         'env_name': name_co_env,
     })
     if spin:
@@ -3703,6 +3706,8 @@ class TwissTable(Table):
         'slip_factor_dz_ddelta': ('`slip_factor_dz_ddelta` is deprecated, '
                                   'use `slip_factor_dzeta_ddelta` instead.'),
         'T_rev0': ('`T_rev0` is deprecated, use `t_rev0` instead.'),
+        'kin_xprime': ('`kin_xprime` is deprecated, use `kin_xp` instead.'),
+        'kin_yprime': ('`kin_yprime` is deprecated, use `kin_yp` instead.')
     }
 
     def __init__(self, *args, **kwargs):
@@ -4354,8 +4359,10 @@ class TwissTable(Table):
         if 'kin_px' in out:
             out.kin_px = out.kin_px
             out.kin_py = -out.kin_py
-            out.kin_xprime = out.kin_xprime
-            out.kin_yprime = -out.kin_yprime
+            out.kin_xprime = out.kin_xp # deprecated
+            out.kin_yprime = -out.kin_yp # deprecated
+            out.kin_xp = out.kin_xp
+            out.kin_yp = -out.kin_yp
 
         if 'betx' in out:
             # if optics calculation is not skipped

@@ -176,7 +176,8 @@ per_particle_vars = xt.Particles.per_particle_vars
 for tt, nn in per_particle_vars:
     setattr(ParticlesMonitor, nn, _FieldOfMonitor(name=nn))
 
-for nn in ['pzeta', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime', 'kin_yprime']:
+for nn in ['pzeta', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime', 'kin_yprime',
+           'kin_xp', 'kin_yp']:
     setattr(ParticlesMonitor, nn, _FieldOfMonitor(name=nn))
 
 
