@@ -308,10 +308,10 @@ def luminosity_from_twiss(
         crab_crossing = None
 
     if f_rev is None:
-        if 'T_rev0' not in twiss_b1.keys():
+        if 't_rev0' not in twiss_b1.keys():
             raise ValueError('Revolution frequency cannot be retrieved from twiss, '
                              'please provide f_rev')
-        f_rev = 1/twiss_b1.T_rev0
+        f_rev = 1/twiss_b1.t_rev0
 
     lumi = luminosity(
         f=f_rev,
