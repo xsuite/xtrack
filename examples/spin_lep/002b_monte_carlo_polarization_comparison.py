@@ -150,7 +150,7 @@ tw_sol._data['t_dep_turn'] = fit_depolarization_time(np.arange(num_turns), pol_s
 tw_sol_bump._data['t_dep_turn']= fit_depolarization_time(np.arange(num_turns), pol_sol_bump)
 
 for ttww in [tw_bare, tw_sol, tw_sol_bump]:
-    ttww._data['pol'] = ttww['spin_polarization_inf_no_depol'] * (1 / (1 + ttww['spin_t_pol_component_s']/ttww.T_rev0 / ttww['t_dep_turn']))
+    ttww._data['pol'] = ttww['spin_polarization_inf_no_depol'] * (1 / (1 + ttww['spin_t_pol_component_s']/ttww.t_rev0 / ttww['t_dep_turn']))
 
 import matplotlib.pyplot as plt
 plt.close('all')

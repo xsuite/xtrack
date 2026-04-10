@@ -24,11 +24,11 @@ def test_cavity_absolute_time(test_context):
 
     df_hz = -50
     h_rf = 35640
-    f_rev = 1/tw.T_rev0
+    f_rev = 1/tw.t_rev0
     df_rev = df_hz / h_rf
     eta = tw.slip_factor
 
-    f_rf0 = 1/tw.T_rev0 * h_rf
+    f_rf0 = 1/tw.t_rev0 * h_rf
 
     f_rf = f_rf0 + df_hz
     line.vars['f_rf'] = f_rf

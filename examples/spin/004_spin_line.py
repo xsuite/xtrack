@@ -88,7 +88,7 @@ for ttww in [tw_off, tw]:
 
     tp_inv = 5 * np.sqrt(3) / 8 * r0 * hbar * ttww.gamma0**5 / m0_kg * alpha_plus_co
     tp_s = 1 / tp_inv
-    tp_turn = tp_s / ttww.T_rev0
+    tp_turn = tp_s / ttww.t_rev0
 
     brho_ref = ttww.particle_on_co.p0c[0] / clight / ttww.particle_on_co.q0
     brho_part = (brho_ref * ttww.particle_on_co.rvv[0] * ttww.particle_on_co.energy[0]

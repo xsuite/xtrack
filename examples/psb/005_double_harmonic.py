@@ -74,7 +74,7 @@ for ii in range(len(t_s)):
     print(f'Computing twiss at t_s = {t_s[ii]:.4} s    ', end='\r', flush=True)
     line['t_turn_s'] = t_s[ii]
     tt = line.twiss(method='4d')
-    t_rev.append(tt.T_rev0)
+    t_rev.append(tt.t_rev0)
     beta0.append(tt.beta0)
     gamma0.append(tt.gamma0)
     f_h1.append(line['br1.acwf5l1.1'].frequency)

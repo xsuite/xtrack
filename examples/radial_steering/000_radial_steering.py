@@ -26,7 +26,7 @@ tw0 = line.twiss()
 # dzeta = -beta0 * clight * dt = circumference * df_hz / f_rf
 
 h_rf = 35640
-f_rf = h_rf/tw0.T_rev0
+f_rf = h_rf/tw0.t_rev0
 beta0 = line.particle_ref.beta0[0]
 dzeta = tw0.circumference * df_hz / f_rf
 
@@ -37,7 +37,7 @@ line.append('zeta_shift', xt.ZetaShift(dzeta=dzeta))
 tw1 = line.twiss()
 
 # Expected momentum from slip factor (eta = -df_rev / f_rev / delta)
-f_rev = 1/tw0.T_rev0
+f_rev = 1/tw0.t_rev0
 df_rev = df_hz / h_rf
 eta = tw0.slip_factor
 delta_expected = -df_rev / f_rev / eta

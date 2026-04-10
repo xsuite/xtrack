@@ -90,7 +90,7 @@ plt.legend()
 
 # Compute equilibrium polarization
 p_inf = tw['spin_polarization_inf_no_depol']
-t_pol_turns = tw['spin_t_pol_component_s']/tw.T_rev0
+t_pol_turns = tw['spin_t_pol_component_s']/tw.t_rev0
 
 p_eq = p_inf * 1 / (1 + t_pol_turns/t_dep_turns)
 # gives 0.853721

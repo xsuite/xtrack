@@ -13,7 +13,7 @@ df_hz = 180 # Frequency trim
 tw = line.twiss()
 
 h_rf = 1
-f_rf = h_rf/tw.T_rev0
+f_rf = h_rf/tw.t_rev0
 
 beta0 = line.particle_ref.beta0[0]
 
@@ -36,7 +36,7 @@ print(f'delta closed orbit: {tw_6d_offmom.delta[0]:.3e}')
 # Checks
 import numpy as np
 eta = tw.slip_factor
-f0 = 1/tw.T_rev0
+f0 = 1/tw.t_rev0
 delta_trim = -1/h_rf/eta/f0*df_hz
 
 # Use 4d twiss on machine without zeta shift

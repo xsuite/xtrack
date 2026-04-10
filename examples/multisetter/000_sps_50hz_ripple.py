@@ -17,7 +17,7 @@ line['acta.31637'].lag = 180.
 twxt = line.twiss()
 
 # Get revolution period
-T_rev = twxt['T_rev0']
+T_rev = twxt['t_rev0']
 
 # Extract list of elements to trim (all focusing quads)
 tt = line.get_table()

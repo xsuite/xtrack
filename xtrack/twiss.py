@@ -307,7 +307,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `ddqx`, `ddqy`: second-order chromaticities
         - `circumference`: length of the beam line
         - `p0c`, `gamma0`, `beta0`: reference momentum and relativistic factors
-        -  `T_rev0`: reference revolution period
+        -  `t_rev0`: reference revolution period
         - `slip_factor`: slip factor, i.e. eta = -(dfrev / frev) / ddelta
         - `momentum_compaction_factor`: momentum compaction factor (d C / C) / ddelta
           where C the closed orbit path length
@@ -935,7 +935,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
                 W_matrix=twiss_res.W_matrix,
                 px_co=twiss_res.px, py_co=twiss_res.py,
-                ptau_co=twiss_res.ptau, T_rev0=twiss_res.T_rev0,
+                ptau_co=twiss_res.ptau, t_rev0=twiss_res.t_rev0,
                 line=line, radiation_method=radiation_method)
         twiss_res._data.update(eneloss_damp_res)
 
@@ -1040,7 +1040,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 twiss_res.muy += init.muy - twiss_res.muy[-1]
 
     if search_for_t_rev:
-        # Recompute T_rev0 to support case with only_orbit=True
+        # Recompute t_rev0 to support case with only_orbit=True
         circumference = twiss_res.s[-1]
         beta0 = twiss_res.particle_on_co.beta0[0]
         t_rev_0 = circumference/clight/beta0
@@ -1807,7 +1807,7 @@ def _compute_global_quantities(line, twiss_res, method):
 
         beta0 = part_on_co._xobject.beta0[0]
         gamma0 = part_on_co._xobject.gamma0[0]
-        T_rev0 = circumference/clight/beta0
+        t_rev0 = circumference/clight/beta0
         bets0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
 
         # compute slip factor
@@ -1842,7 +1842,9 @@ def _compute_global_quantities(line, twiss_res, method):
 
         twiss_res._data.update({
             'bets0': bets0,
-            'circumference': circumference, 'T_rev0': T_rev0,
+            'circumference': circumference,
+            'T_rev0': t_rev0, # deprecated
+            't_rev0': t_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
             'gamma0': gamma0,
             'beta0': beta0,
@@ -2149,7 +2151,7 @@ def _compute_chromatic_functions(line, init, delta_chrom,
 
 def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
                                        px_co, py_co, ptau_co, W_matrix,
-                                       T_rev0, line, radiation_method):
+                                       t_rev0, line, radiation_method):
     diff_ptau = np.diff(ptau_co)
     mask_loss = diff_ptau < 0
     eloss_turn = -sum(diff_ptau[mask_loss]) * particle_on_co._xobject.p0c[0]
@@ -2165,7 +2167,7 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
     energy0 = particle_on_co.mass0 * particle_on_co._xobject.gamma0[0]
 
     damping_constants_turns = -np.log(np.abs(eigenvals))
-    damping_constants_s = damping_constants_turns / T_rev0
+    damping_constants_s = damping_constants_turns / t_rev0
 
     # https://cds.cern.ch/record/175614 , Eq. 4.24
     partition_numbers = (
@@ -3698,8 +3700,9 @@ class TwissInit:
 class TwissTable(Table):
 
     _DEPRECATED_FIELDS = {
-        'slip_factor_dz_ddelta': ('`slip_factor_dz_ddelta` is deprecated,'
-                                  'use `slip_factor_dzeta_ddelta` instead.')
+        'slip_factor_dz_ddelta': ('`slip_factor_dz_ddelta` is deprecated, '
+                                  'use `slip_factor_dzeta_ddelta` instead.'),
+        'T_rev0': ('`T_rev0` is deprecated, use `t_rev0` instead.'),
     }
 
     def __init__(self, *args, **kwargs):

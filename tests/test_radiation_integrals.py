@@ -205,7 +205,7 @@ def test_radiation_integrals_sps_vs_df(tilt):
     tw_rad = line.twiss(radiation_analysis=True)
 
     # Prepare trim
-    env['frev0'] = 1. / tw4d.T_rev0
+    env['frev0'] = 1. / tw4d.t_rev0
     env['circum'] = tw4d.circumference
     env['frev_trim'] = 0.
 
