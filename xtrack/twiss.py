@@ -287,7 +287,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `kin_px`, `kin_py`, `kin_ps`: kinetic momenta (px, py are canonical momenta). (ebe)
         - `kin_xprime`, `kin_yprime`: transverse slopes dx/ds, dy/ds. (ebe)
         - `mux`, `muy`, `muzeta`: phase advances in units of 2 pi. (ebe)
-        - `nux`, `nuy`, `nuzeta`: tunes. (ebe)
+        - `nux`, `nuy`, `nuzeta`: damping exponents. (ebe)
         - `betx1`, `bety1`, `betx2`, `bety2`, `alfx1`, `alfy1`, `alfx2`,
           `alfy2`, `gamx1`, `gamy1`, `gamx2`, `gamy2`: Mais-Ripken coupled optics
           functions (ebe)
