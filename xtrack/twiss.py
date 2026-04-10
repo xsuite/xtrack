@@ -3703,12 +3703,14 @@ class TwissInit:
 
 class TwissTable(Table):
 
+    # Messages to be shown when accessing deprecated fields
     _DEPRECATED_FIELDS = {
         'slip_factor_dz_ddelta': ('`slip_factor_dz_ddelta` is deprecated, '
                                   'use `slip_factor_dzeta_ddelta` instead.'),
         'T_rev0': ('`T_rev0` is deprecated, use `t_rev0` instead.'),
+        'T_rev': ('`T_rev` is deprecated, use `t_rev` instead.'),
         'kin_xprime': ('`kin_xprime` is deprecated, use `kin_xp` instead.'),
-        'kin_yprime': ('`kin_yprime` is deprecated, use `kin_yp` instead.')
+        'kin_yprime': ('`kin_yprime` is deprecated, use `kin_yp` instead.'),
     }
 
     def __init__(self, *args, **kwargs):
@@ -4339,6 +4341,9 @@ class TwissTable(Table):
                 new_data[kk][:-1, :, :] = new_data[kk][itake, :, :][::-1, :, :]
                 new_data[kk][-1, :, :] = self[kk][0, :, :]
             else:
+                if kk in ['kin_xprime', 'kin_yprime']:
+                    # deprecated fields, to be removed in the future
+                    continue # handled separately below for backward compatibility
                 new_data[kk][:-1] = new_data[kk][itake][::-1]
                 new_data[kk][-1] = self[kk][0]
 
