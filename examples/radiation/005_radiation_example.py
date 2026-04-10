@@ -66,7 +66,7 @@ tw = line.twiss(radiation_analysis=True)
 
 # By setting `radiation_analysis=True` we can get additional information
 # from the twiss for example:
-#  - tw['eneloss_turn'] provides the energy loss per turn (in eV).
+#  - tw['energy_loss'] provides the energy loss per turn (in eV).
 #  - tw['damping_constants_s'] provides the damping constants in x, y and zeta.
 #  - tw['partition_numbers'] provides the corresponding damping partion numbers.
 #  - tw['eq_nemitt_x'] provides the equilibrium horizontal emittance.

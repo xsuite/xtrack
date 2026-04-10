@@ -82,9 +82,9 @@ print('Sliced thick: ', tw_rad_sliced_thick.dqx, tw_rad_sliced_thick.dqy)
 print('Thin:         ', tw_rad_thin.dqx, tw_rad_thin.dqy)
 
 print('Energy loss: ')
-print('Thick:        ', tw_rad_thick.eneloss_turn)
-print('Sliced thick: ', tw_rad_sliced_thick.eneloss_turn)
-print('Thin:         ', tw_rad_thin.eneloss_turn)
+print('Thick:        ', tw_rad_thick.energy_loss)
+print('Sliced thick: ', tw_rad_sliced_thick.energy_loss)
+print('Thin:         ', tw_rad_thin.energy_loss)
 
 print('Partition numbers: ')
 print('Thick:        ', tw_rad_thick.partition_numbers)

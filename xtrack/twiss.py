@@ -332,7 +332,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `angle_rad`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
           `element_type`, `isthick`, `parent_name`: element properties
     Output fields present when `radiation_analysis=True`:
-        - `eneloss_turn`: energy loss per turn [eV]
+        - `energy_loss`: energy loss per turn [eV]
         - `damping_constants_turns`, `damping_constants_s`: damping constants in
           1/turn or 1/s.
         - `partition_numbers`: radiation partition numbers
@@ -2179,7 +2179,8 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         / (-np.sum(diff_ptau[mask_loss] / (1 + ptau_co[:-1][mask_loss]))))
 
     eneloss_damp_res = {
-        'eneloss_turn': eloss_turn,
+        'eneloss_turn': eloss_turn, # deprecated
+        'energy_loss': eloss_turn,
         'damping_constants_turns': damping_constants_turns,
         'damping_constants_s':damping_constants_s,
         'partition_numbers': partition_numbers,
@@ -3711,6 +3712,7 @@ class TwissTable(Table):
         'T_rev': ('`T_rev` is deprecated, use `t_rev` instead.'),
         'kin_xprime': ('`kin_xprime` is deprecated, use `kin_xp` instead.'),
         'kin_yprime': ('`kin_yprime` is deprecated, use `kin_yp` instead.'),
+        'eneloss_turn': ('`eneloss_turn` is deprecated, use `energy_loss` instead.'),
     }
 
     def __init__(self, *args, **kwargs):

@@ -125,7 +125,7 @@ def test_tapering_and_twiss_with_radiation(conf):
     xo.assert_allclose(tw.betx[i_ele], tws.betx, rtol=1e-3, atol=0)
     xo.assert_allclose(tw.bety[i_ele], tws.bety, rtol=1e-3, atol=0)
 
-    eneloss = tw.eneloss_turn
+    eneloss = tw.energy_loss
     assert eneloss/line.particle_ref.energy0 > 0.01
     xo.assert_allclose(
         line['rf'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
