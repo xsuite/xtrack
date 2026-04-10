@@ -17,7 +17,7 @@ line['acta.31637'].lag = 180.
 twxt = line.twiss()
 
 # Get revolution period
-T_rev = twxt['t_rev0']
+t_rev = twxt['t_rev0']
 
 # Extract list of elements to trim (all focusing quads)
 tt = line.get_table()
@@ -53,7 +53,7 @@ for ii in range(num_turns):
     if ii % 100 == 0: print(f'Turn {ii} of {num_turns}')
 
     # Change the strength of the quads
-    k1l = k1l_0 * (1 + A_quad * np.sin(2*np.pi*f_quad*ii*T_rev))
+    k1l = k1l_0 * (1 + A_quad * np.sin(2*np.pi*f_quad*ii*t_rev))
     qf_setter.set_values(k1l)
 
     # Track one turn

@@ -30,7 +30,7 @@ def test_radial_steering(test_context):
     # dt = h_rf/(f_rf + df_hz) - h_rf/f_rf = h_rf/f_rf (1/(1+df_hz/f_rf) - 1)
     #                                       ~= h_rf/f_rf * (1 - df_hz/f_rf -1)
     #                                       = -h_rf/(f_rf^2) * df_hz
-    #                                       = -T_rev / f_rf * df_hz
+    #                                       = -t_rev / f_rf * df_hz
     # dzeta = -beta0 * clight * dt = circumference * df_hz / f_rf
 
     dzeta = tw.circumference * df_hz / f_rf

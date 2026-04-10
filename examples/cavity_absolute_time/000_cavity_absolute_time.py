@@ -61,7 +61,7 @@ particle_on_co = line.build_particles(
 
 tw1 = line.twiss(particle_on_co=particle_on_co)
 
-T_rev = tw1.t_rev0 - (tw1.zeta[-1] - tw1.zeta[0])/(tw.beta0*clight)
+t_rev = tw1.t_rev0 - (tw1.zeta[-1] - tw1.zeta[0])/(tw.beta0*clight)
 
 import matplotlib.pyplot as plt
 plt.close('all')

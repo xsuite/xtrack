@@ -18,11 +18,11 @@ tw0 = line.twiss()
 
 # Compute corresponding delay to be introduced in the line:
 #
-# T_rev = h_rf/f_rf
+# t_rev = h_rf/f_rf
 # dt = h_rf/(f_rf + df_hz) - h_rf/f_rf = h_rf/f_rf (1/(1+df_hz/f_rf) - 1)
 #                                       ~= h_rf/f_rf * (1 - df_hz/f_rf -1)
 #                                       = -h_rf/(f_rf^2) * df_hz
-#                                       = -T_rev / f_rf * df_hz
+#                                       = -t_rev / f_rf * df_hz
 # dzeta = -beta0 * clight * dt = circumference * df_hz / f_rf
 
 h_rf = 35640

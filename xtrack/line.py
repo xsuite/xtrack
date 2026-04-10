@@ -6005,14 +6005,14 @@ class EnergyProgram:
 
         beta0 = self.get_beta0_at_t_s(t_s)
         circumference = self.line.get_length()
-        T_rev = circumference / (beta0 * clight)
-        out = 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
-                     - self.get_p0c_at_t_s(t_s - T_rev))
+        t_rev = circumference / (beta0 * clight)
+        out = 0.5 * (self.get_p0c_at_t_s(t_s + t_rev)
+                     - self.get_p0c_at_t_s(t_s - t_rev))
 
-        mask_zero_neg = t_s - T_rev < 0
+        mask_zero_neg = t_s - t_rev < 0
         if np.any(mask_zero_neg):
             out[mask_zero_neg] = (
-                self.get_p0c_at_t_s(t_s[mask_zero_neg] + T_rev[mask_zero_neg])
+                self.get_p0c_at_t_s(t_s[mask_zero_neg] + t_rev[mask_zero_neg])
                 - self.get_p0c_at_t_s(t_s[mask_zero_neg]))
 
         if ts_scalar:

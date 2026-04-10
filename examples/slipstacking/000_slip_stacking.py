@@ -53,8 +53,8 @@ line['on_rf1'] = 0.
 tw_rf2 = line.twiss(search_for_t_rev=True)
 line['on_rf1'] = 1.
 
-print('Revolution frequency with RF1 only: ', 1/tw_rf1.T_rev)
-print('Revolution frequency with RF2 only: ', 1/tw_rf2.T_rev)
+print('Revolution frequency with RF1 only: ', 1/tw_rf1.t_rev)
+print('Revolution frequency with RF2 only: ', 1/tw_rf2.t_rev)
 print('Energy deviation with RF1 only: ', tw_rf1.ptau[0])
 print('Energy deviation with RF2 only: ', tw_rf2.ptau[0])
 

@@ -49,7 +49,7 @@ def test_twiss_table_file(check_type, tmp_path):
 
     for kk in tw._data:
         if kk in {'_action', 'completed_init',
-                  'T_rev0', 'slip_factor_dz_ddelta' # deprecated
+                  't_rev0', 'slip_factor_dz_ddelta' # deprecated
                   }:
             continue
         if kk in ['particle_on_co', 'steps_r_matrix', 'line_config']:

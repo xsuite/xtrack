@@ -6,8 +6,8 @@
 import numpy as np
 import xtrack as xt
 
-T_rev = 23e-6 # 23 us
-Delta_p0c = 450e9 / 10 * T_rev
+t_rev = 23e-6 # 23 us
+Delta_p0c = 450e9 / 10 * t_rev
 
 line = xt.load('../../test_data/sps_w_spacecharge/line_no_spacecharge.json')
 

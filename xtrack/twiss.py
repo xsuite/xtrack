@@ -384,8 +384,8 @@ def twiss_line(line, particle_ref=None, method=None,
     Output fields present when `coupling_edw_teng=True`:
         - `r11_edw_teng`, `r12_edw_teng`, `r21_edw_teng`, `r22_edw_teng`:
           Elements of the Edwards-Teng coupling matrix (ebe)
-        -     Output fields present when `search_for_t_rev=True`:
-        - `T_rev`: measured revolution period [s]
+    Output fields present when `search_for_t_rev=True`:
+        - `t_rev`: measured revolution period [s]
 
     """
     if at_s is not None:
@@ -1045,8 +1045,9 @@ def twiss_line(line, particle_ref=None, method=None,
         circumference = twiss_res.s[-1]
         beta0 = twiss_res.particle_on_co.beta0[0]
         t_rev_0 = circumference/clight/beta0
-        twiss_res._data['T_rev'] = t_rev_0 - (
+        twiss_res._data['t_rev'] = t_rev_0 - (
             twiss_res.zeta[-1] - twiss_res.zeta[0])/(beta0*clight)
+        twiss_res._data['T_rev'] = twiss_res._data['t_rev'] # deprecated
 
     if num_turns > 1:
 

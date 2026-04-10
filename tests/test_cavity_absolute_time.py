@@ -42,7 +42,7 @@ def test_cavity_absolute_time(test_context):
 
     f_rev_expected = f_rf / h_rf
 
-    xo.assert_allclose(f_rev_expected, 1/tw1.T_rev, atol=1e-5, rtol=0)
+    xo.assert_allclose(f_rev_expected, 1/tw1.t_rev, atol=1e-5, rtol=0)
     xo.assert_allclose(tw1.delta, tw1.delta[0], atol=1e-5, rtol=0) # Check that it is flat
     delta_expected = -df_rev / f_rev / eta
     xo.assert_allclose(tw1.delta, delta_expected, atol=2e-6, rtol=0)
