@@ -308,7 +308,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `circumference`: length of the beam line
         - `p0c`, `gamma0`, `beta0`: reference momentum and relativistic factors
         -  `T_rev0`: reference revolution period
-        - `slip_factor`: slip factor -(dfrev / frev) / ddelta
+        - `slip_factor`: slip factor, i.e. eta = -(dfrev / frev) / ddelta
         - `momentum_compaction_factor`: momentum compaction factor (d C / C) / ddelta
           where C the closed orbit path length
         - `slip_factor_dz_ddelta`: d (zeta) / ddelta
