@@ -48,11 +48,9 @@ def test_twiss_table_file(check_type, tmp_path):
         }
 
     for kk in tw._data:
-        if kk in {'_action', 'completed_init',
-                  't_rev0', 'slip_factor_dz_ddelta' # deprecated
-                  }:
+        if kk in {'_action', 'completed_init'} | set(tw._DEPRECATED_FIELDS.keys()):
             continue
-        if kk in ['particle_on_co', 'steps_r_matrix', 'line_config']:
+        if kk in ['particle_on_co', 'steps_r_matrix', 'line_config',]:
             continue # To be checked separately
         if tw[kk] is None:
             assert tw_test[kk] is None
