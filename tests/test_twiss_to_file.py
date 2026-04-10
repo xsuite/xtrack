@@ -42,10 +42,15 @@ def test_twiss_table_file(check_type, tmp_path):
         assert set(tw_test.keys()) - set(tw.keys()) == {'xtrack_version'}
     else:
         assert set(tw_test.keys()) - set(tw.keys()) == {'__class__', 'xtrack_version'}
-    assert set(tw.keys()) - set(tw_test.keys()) <= {'_action', 'completed_init'}
+    assert set(tw.keys()) - set(tw_test.keys()) <= {
+        '_action', 'completed_init',
+        'T_rev0', # deprecated, the table does contain t_rev0 with small "t"
+        }
 
     for kk in tw._data:
-        if kk == '_action' or kk == 'completed_init':
+        if kk in {'_action', 'completed_init',
+                  'T_rev0', 'slip_factor_dz_ddelta' # deprecated
+                  }:
             continue
         if kk in ['particle_on_co', 'steps_r_matrix', 'line_config']:
             continue # To be checked separately
