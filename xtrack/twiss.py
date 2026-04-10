@@ -311,7 +311,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `slip_factor`: slip factor, i.e. eta = -(dfrev / frev) / ddelta
         - `momentum_compaction_factor`: momentum compaction factor (d C / C) / ddelta
           where C the closed orbit path length
-        - `slip_factor_dz_ddelta`: d (zeta) / ddelta
+        - `slip_factor_dzeta_ddelta`: d (zeta) / ddelta
         - `bets0`: longitudinal beta function at start of the ring.
         - `c_minus`, `c_minus_re_0`, `c_minus_im_0`: closest tune approach coefficient
           (absolute, real and imaginary parts). See physics guide for definitions.
@@ -1828,16 +1828,16 @@ def _compute_global_quantities(line, twiss_res, method):
             xx_out = twiss_res['R_matrix'] @ xx
             dz_test = xx_out[4] - xx[4]
 
-        slip_factor_dz_ddelta = dz_test / delta_test
+        slip_factor_dzeta_ddelta = dz_test / delta_test
 
         if circumference > 0:
-            slip_factor = -slip_factor_dz_ddelta / circumference
+            slip_factor = -slip_factor_dzeta_ddelta / circumference
             momentum_compaction_factor = (slip_factor + 1/gamma0**2)
         else:
             slip_factor = np.nan
             momentum_compaction_factor = np.nan
 
-        if slip_factor_dz_ddelta > 0: # below transition
+        if slip_factor_dzeta_ddelta > 0: # below transition
             bets0 = -bets0
 
         twiss_res._data.update({
@@ -1849,7 +1849,8 @@ def _compute_global_quantities(line, twiss_res, method):
             'p0c': part_on_co._xobject.p0c[0],
             'slip_factor': slip_factor,
             'momentum_compaction_factor': momentum_compaction_factor,
-            'slip_factor_dz_ddelta': slip_factor_dz_ddelta,
+            'slip_factor_dz_ddelta': slip_factor_dzeta_ddelta, # deprecated
+            'slip_factor_dzeta_ddelta': slip_factor_dzeta_ddelta,
         })
 
         if hasattr(part_on_co, '_fsolve_info'):
@@ -1936,8 +1937,8 @@ def _compute_chromatic_functions(line, init, delta_chrom,
             tw_init_chrom = init.copy()
 
             if periodic:
-                slip_factor_dz_ddelta = on_momentum_twiss_res.slip_factor_dz_ddelta
-                dzeta = dd * slip_factor_dz_ddelta
+                slip_factor_dzeta_ddelta = on_momentum_twiss_res.slip_factor_dzeta_ddelta
+                dzeta = dd * slip_factor_dzeta_ddelta
                 import xpart
                 part_guess = xpart.build_particles(
                     _context=line._context,
@@ -3696,12 +3697,27 @@ class TwissInit:
 
 class TwissTable(Table):
 
+    _DEPRECATED_FIELDS = {
+        'slip_factor_dz_ddelta': ('`slip_factor_dz_ddelta` is deprecated,'
+                                  'use `slip_factor_dzeta_ddelta` instead.')
+    }
+
     def __init__(self, *args, **kwargs):
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
         super().__init__(*args, **kwargs)
         self['periodic'] = kwargs.get('periodic', kwargs.get('data', {}).get('periodic', False))
 
     _error_on_row_not_found = True
+
+    def __getitem__(self, key):
+        if key in self._DEPRECATED_FIELDS:
+            warn(self._DEPRECATED_FIELDS[key], FutureWarning)
+        return super().__getitem__(key)
+
+    def __getattribute__(self, name):
+        if name in object.__getattribute__(self, '_DEPRECATED_FIELDS'):
+            warn(object.__getattribute__(self, '_DEPRECATED_FIELDS')[name], FutureWarning)
+        return super().__getattribute__(name)
 
     def to_pandas(self, index=None, columns=None):
         if columns is None:
