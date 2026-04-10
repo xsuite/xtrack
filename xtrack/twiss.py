@@ -3713,8 +3713,12 @@ class TwissTable(Table):
     _error_on_row_not_found = True
 
     def __getitem__(self, key):
-        if key in self._DEPRECATED_FIELDS:
-            warn(self._DEPRECATED_FIELDS[key], FutureWarning)
+        if isinstance(key, (tuple, list)):
+            first_key = key[0]
+        else:
+            first_key = key
+        if first_key in self._DEPRECATED_FIELDS:
+            warn(self._DEPRECATED_FIELDS[first_key], FutureWarning)
         return super().__getitem__(key)
 
     def __getattribute__(self, name):
