@@ -3718,7 +3718,6 @@ class TwissTable(Table):
         else:
             first_key = key
         if first_key in self._DEPRECATED_FIELDS:
-            breakpoint()
             warn(self._DEPRECATED_FIELDS[first_key], FutureWarning)
         return super().__getitem__(key)
 
