@@ -297,7 +297,6 @@ def twiss_line(line, particle_ref=None, method=None,
           chromatic functions, see physics guide for definitions (ebe)
         - `particle_on_co`: particle on closed orbit or reference trajecory, placed
           at the first element in the selected range.
-        - `orientation`: forward/backward computation direction
         - `reference_frame`: reference frame used for the output (can be `proper`
           or `reversed`)
         - `periodic`: True if periodic twiss, False if open twiss
@@ -1031,16 +1030,16 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if not periodic and not only_orbit:
         # Start phase advance with provided init
-        if ((twiss_res.orientation == 'forward' and not reverse)
-                or (twiss_res.orientation == 'backward' and reverse)):
+        if ((twiss_res._orientation == 'forward' and not reverse)
+                or (twiss_res._orientation == 'backward' and reverse)):
             twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
             if 'dzeta' in twiss_res._data:
                 twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
             if 'mux' in twiss_res._data:
                 twiss_res.mux += init.mux - twiss_res.mux[0]
                 twiss_res.muy += init.muy - twiss_res.muy[0]
-        elif ((twiss_res.orientation == 'forward' and reverse)
-            or (twiss_res.orientation == 'backward' and not reverse)):
+        elif ((twiss_res._orientation == 'forward' and reverse)
+            or (twiss_res._orientation == 'backward' and not reverse)):
             twiss_res.muzeta += init.muzeta - twiss_res.muzeta[-1]
             if 'dzeta' in twiss_res._data:
                 twiss_res.dzeta += init.dzeta - twiss_res.dzeta[-1]
@@ -1329,7 +1328,7 @@ def _twiss_open(
     line_length = line.tracker._tracker_data_base.line_length
     twiss_res._data['line_length'] = line_length
     twiss_res._data['circumference'] = line_length # deprecated
-    twiss_res._data['orientation'] = twiss_orientation
+    twiss_res._data['_orientation'] = twiss_orientation
 
     return twiss_res
 

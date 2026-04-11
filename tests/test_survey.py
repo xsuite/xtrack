@@ -7,11 +7,6 @@ import xobjects as xo
 
 assert_allclose = np.testing.assert_allclose
 
-slice_mode = 'thin'
-tilted = True
-orientation = 'acw'
-transform_to_actual_elements = True
-
 if hasattr(np, 'trapezoid'): # numpy >= 2.0
     trapz = np.trapezoid
 else:

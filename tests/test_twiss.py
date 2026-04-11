@@ -471,7 +471,7 @@ def test_periodic_cell_twiss(test_context):
         tw = line.twiss()
 
         assert tw.method == '4d'
-        assert tw.orientation == 'forward'
+        assert tw._orientation == 'forward'
         assert tw.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
         assert 'dqx' in tw.keys() # check that periodic twiss is used
 
@@ -490,7 +490,7 @@ def test_periodic_cell_twiss(test_context):
         assert tw_cell.name[0] == start_cell
         assert tw_cell.name[-2] == end_cell
         assert tw_cell.method == '4d'
-        assert tw_cell.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
+        assert tw_cell._orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
         assert tw_cell.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         tw_cell_periodic = line.twiss(
@@ -504,7 +504,7 @@ def test_periodic_cell_twiss(test_context):
         assert tw_cell_periodic.name[0] == start_cell
         assert tw_cell_periodic.name[-2] == end_cell
         assert tw_cell_periodic.method == '4d'
-        assert tw_cell_periodic.orientation == 'forward'
+        assert tw_cell_periodic._orientation == 'forward'
         assert tw_cell_periodic.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         xo.assert_allclose(tw_cell_periodic.betx, tw_cell.betx, atol=0, rtol=1e-6)
@@ -525,7 +525,7 @@ def test_periodic_cell_twiss(test_context):
             end=end_arc,
             init=twinit_start_cell)
         assert tw_to_end_arc.method == '4d'
-        assert tw_to_end_arc.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
+        assert tw_to_end_arc._orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
         assert tw_to_end_arc.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         tw_to_start_arc = line.twiss(
@@ -533,7 +533,7 @@ def test_periodic_cell_twiss(test_context):
             end=start_cell,
             init=twinit_start_cell)
         assert tw_to_start_arc.method == '4d'
-        assert tw_to_start_arc.orientation == {'b1': 'backward', 'b2': 'forward'}[beam_name]
+        assert tw_to_start_arc._orientation == {'b1': 'backward', 'b2': 'forward'}[beam_name]
         assert tw_to_start_arc.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         mux_arc_from_cell = tw_to_end_arc['mux', end_arc] - tw_to_start_arc['mux', start_arc]
@@ -835,7 +835,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         tw_part.dzeta += tw['dzeta', name_init] - tw_part['dzeta', name_init]
         tw_part._data['method'] = '4d'
         tw_part._data['radiation_method'] = None
-        tw_part._data['orientation'] = (
+        tw_part._data['_orientation'] = (
             {'lhcb1': 'forward', 'lhcb2': 'backward'}[line_name])
     else:
         tw_part = tw.rows[estart_user:estop_user]
@@ -851,7 +851,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
     for kk in tw_test._data.keys():
         if kk in ['name', 'env_name', 'W_matrix', 'particle_on_co', 'values_at',
                     'method', 'radiation_method', 'reference_frame',
-                    'orientation', 'steps_R_matrix', 'line_config',
+                    '_orientation', 'steps_R_matrix', 'line_config',
                     'loop_around', '_action', 'completed_init',
                     'phix', 'phiy', 'phizeta', # are only relative (not unwrapped)
                     'steps_r_matrix' # deprecated
@@ -1229,7 +1229,7 @@ def test_custom_twiss_init(test_context):
 
     for kk in tw_test._data.keys():
         if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
-                'radiation_method', 'reference_frame', 'orientation']:
+                'radiation_method', 'reference_frame', '_orientation']:
             continue # tested separately
         atol = atols.get(kk, atol_default)
         rtol = rtols.get(kk, rtol_default)
