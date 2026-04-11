@@ -212,7 +212,11 @@ def test_twiss_and_survey(
             Sigmas = twtst.get_betatron_sigmas(nemitt_x, nemitt_y)
 
             for nn in twtst._col_names:
-                assert len(twtst[nn]) == len(twtst['name'])
+                if nn in twtst._DEPRECATED_FIELDS:
+                    # Avoid triggering the warning on the deprecated field
+                    assert len(twtst._data[nn]) == len(twtst._data['name'])
+                else:
+                    assert len(twtst[nn]) == len(twtst['name'])
 
             test_at_elements = []
             test_at_elements.extend(['mbxf.4l1..1', 'mbxf.4l5..1'])
