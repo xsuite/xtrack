@@ -236,7 +236,7 @@ def twiss_line(line, particle_ref=None, method=None,
         on multiple turns.
     search_for_t_rev : bool, optional
         If True, the revolution period is searched for, otherwise the revolution
-        period computed from the circumference is assumed.
+        period computed from the line length is assumed.
     num_turns_search_t_rev : int, optional
         Number of turns used for the search of the revolution period. Used only
         if ``search_for_t_rev`` is True.
@@ -307,7 +307,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `qs`: synchrotron tune (present only when method is `6d`)
         - `dqx`, `dqy`: linear chromaticities
         - `ddqx`, `ddqy`: second-order chromaticities
-        - `circumference`: length of the beam line
+        - `line_length`: length of the beam line
         - `p0c`, `gamma0`, `beta0`: reference momentum and relativistic factors
         -  `t_rev0`: reference revolution period
         - `slip_factor`: slip factor, i.e. eta = -(dfrev / frev) / ddelta
@@ -1050,9 +1050,9 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if search_for_t_rev:
         # Recompute t_rev0 to support case with only_orbit=True
-        circumference = twiss_res.s[-1]
+        line_length = twiss_res.s[-1]
         beta0 = twiss_res.particle_on_co.beta0[0]
-        t_rev_0 = circumference/clight/beta0
+        t_rev_0 = line_length/clight/beta0
         twiss_res._data['t_rev'] = t_rev_0 - (
             twiss_res.zeta[-1] - twiss_res.zeta[0])/(beta0*clight)
         twiss_res._data['T_rev'] = twiss_res._data['t_rev'] # deprecated
@@ -1326,8 +1326,9 @@ def _twiss_open(
 
     twiss_res._data['particle_on_co'] = particle_on_co.copy(_context=xo.context_default)
 
-    circumference = line.tracker._tracker_data_base.line_length
-    twiss_res._data['circumference'] = circumference
+    line_length = line.tracker._tracker_data_base.line_length
+    twiss_res._data['line_length'] = line_length
+    twiss_res._data['circumference'] = line_length # deprecated
     twiss_res._data['orientation'] = twiss_orientation
 
     return twiss_res
@@ -1813,13 +1814,13 @@ def _propagate_edwards_teng(WW, mux, muy, RR_ET0, betx0, alfx0, bety0, alfy0):
 def _compute_global_quantities(line, twiss_res, method):
 
         s_vect = twiss_res['s']
-        circumference = line.tracker._tracker_data_base.line_length
+        line_length = line.tracker._tracker_data_base.line_length
         part_on_co = twiss_res['particle_on_co']
         W_matrix = twiss_res['W_matrix']
 
         beta0 = part_on_co._xobject.beta0[0]
         gamma0 = part_on_co._xobject.gamma0[0]
-        t_rev0 = circumference/clight/beta0
+        t_rev0 = line_length/clight/beta0
         bets0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
 
         # compute slip factor
@@ -1842,8 +1843,8 @@ def _compute_global_quantities(line, twiss_res, method):
 
         slip_factor_dzeta_ddelta = dz_test / delta_test
 
-        if circumference > 0:
-            slip_factor = -slip_factor_dzeta_ddelta / circumference
+        if line_length > 0:
+            slip_factor = -slip_factor_dzeta_ddelta / line_length
             momentum_compaction_factor = (slip_factor + 1/gamma0**2)
         else:
             slip_factor = np.nan
@@ -1854,7 +1855,8 @@ def _compute_global_quantities(line, twiss_res, method):
 
         twiss_res._data.update({
             'bets0': bets0,
-            'circumference': circumference,
+            'line_length': line_length,
+            'circumference': line_length,  # deprecated
             'T_rev0': t_rev0, # deprecated
             't_rev0': t_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
@@ -1897,8 +1899,8 @@ def _compute_global_quantities(line, twiss_res, method):
             cmin_arr = (2 * np.sqrt(c_r1*c_r2) *
                         np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
                         /(1 + c_r1 * c_r2))
-            if circumference > 0:
-                c_minus = trapz(cmin_arr, s_vect)/(circumference)
+            if line_length > 0:
+                c_minus = trapz(cmin_arr, s_vect)/(line_length)
             else:
                 c_minus = np.mean(cmin_arr)
 
@@ -3722,6 +3724,7 @@ class TwissTable(Table):
         'kin_yprime': ('`kin_yprime` is deprecated, use `kin_yp` instead.'),
         'eneloss_turn': ('`eneloss_turn` is deprecated, use `energy_loss` instead.'),
         'steps_r_matrix': ('`steps_r_matrix` is deprecated, use `steps_R_matrix` instead.'),
+        'circumference': ('`circumference` is deprecated, use `line_length` instead.'),
     }
 
     def __init__(self, *args, **kwargs):
@@ -4360,10 +4363,10 @@ class TwissTable(Table):
 
         out = self.__class__(data=new_data, col_names=self._col_names)
 
-        circumference = (
-            out.circumference if hasattr(out, 'circumference') else np.max(out.s))
+        line_length = (
+            out.line_length if hasattr(out, 'line_length') else np.max(out.s))
 
-        out.s = circumference - out.s
+        out.s = line_length - out.s
 
         out.x = -out.x
         out.px = out.px # Dx/Ds
@@ -4723,9 +4726,9 @@ class TwissTable(Table):
                     / mass0 * gamma0**2 * i5y / (i2 - i4y))
 
         # Damping constants
-        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4x)
-        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.circumference * (i2 - i4y)
-        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.circumference * (2*i2 + i4)
+        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.line_length * (i2 - i4x)
+        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.line_length * (i2 - i4y)
+        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.line_length * (2*i2 + i4)
 
         # Velocity direction (for spin)
         ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
@@ -5504,13 +5507,13 @@ def _compute_spin_polarization(tw, line, method):
         int_kappa3_dn_ddelta_ib = np.sum(kappa**3 * dn_ddelta_ib * tw.length)
         int_kappa3_11_18_dn_ddelta_sq = 11./18. * np.sum(kappa**3 * dn_ddelta_mod**2 * tw.length)
 
-        alpha_minus_co = 1. / tw.circumference * np.sum(kappa**3 * n0_ib *  tw.length)
+        alpha_minus_co = 1. / tw.line_length * np.sum(kappa**3 * n0_ib *  tw.length)
 
-        alpha_plus_co = 1. / tw.circumference * np.sum(
+        alpha_plus_co = 1. / tw.line_length * np.sum(
             kappa**3 * (1 - 2./9. * n0_iv**2) * tw.length)
 
-        alpha_plus = alpha_plus_co + int_kappa3_11_18_dn_ddelta_sq / tw.circumference
-        alpha_minus = alpha_minus_co - int_kappa3_dn_ddelta_ib / tw.circumference
+        alpha_plus = alpha_plus_co + int_kappa3_11_18_dn_ddelta_sq / tw.line_length
+        alpha_minus = alpha_minus_co - int_kappa3_dn_ddelta_ib / tw.line_length
 
         pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
         pol_eq = 8 / 5 / np.sqrt(3) * alpha_minus / alpha_plus
