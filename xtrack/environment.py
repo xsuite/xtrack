@@ -23,6 +23,7 @@ from .match import Action
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 from .progress_indicator import progress
 from .view import View
+from .general import DEPRECATION_INFO_PREP_1_0
 
 ReferType = Literal['start', 'center', 'centre', 'end']
 
@@ -1089,7 +1090,8 @@ class Environment:
         """
         warn('The function `set_multipolar_errors` is deprecated and will be removed '
              'in a future version. Please use the attributes `knl_rel` and `ksl_rel` '
-             'of the elements to set relative multipolar errors directly on the elements.',
+             'of the elements to set relative multipolar errors directly on the elements.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
 
         for ele_name in progress(errors.keys(), desc='Setting multipolar errors'):
@@ -2283,17 +2285,23 @@ class EnvVars:
 
     def load_madx(self, filename=None, string=None):
         """Deprecated: see `_load_madx` instead."""
-        warn('EnvVars.load_madx is deprecated, use `load` instead.', FutureWarning)
+        warn('EnvVars.load_madx is deprecated, use `xtrack.load` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning)
         self._load_madx(filename=filename, string=string)
 
     def set_from_madx_file(self, filename=None, string=None):
         """Deprecated: see `_load_madx` instead."""
-        warn('EnvVars.set_from_madx_file is deprecated, use `load` instead.', FutureWarning)
+        warn('EnvVars.set_from_madx_file is deprecated, use `load` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning)
         self._load_madx(filename=filename, string=string)
 
     def load_madx_optics_file(self, filename=None, string=None):
         """Deprecated: see `_load_madx` instead."""
-        warn('EnvVars.load_madx_optics_file is deprecated, use `load` instead.', FutureWarning)
+        warn('EnvVars.load_madx_optics_file is deprecated, use `load` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning)
         self._load_madx(filename=filename, string=string)
 
     def _load_madx(self, filename=None, string=None):
@@ -2320,7 +2328,9 @@ class EnvVars:
     def load_json(self, filename):
         """Deprecated: use `load` instead."""
         warn(
-            '`EnvVars.load_json` is deprecated, use `load`, optionally with `format="json"` instead.',
+            '`EnvVars.load_json` is deprecated, use `vars.load` ,'
+            'optionally with `format="json"` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
             FutureWarning
         )
         with open(filename, 'r') as fid:

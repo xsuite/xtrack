@@ -19,6 +19,7 @@ from .masses import PROTON_MASS_EV
 from .masses import __dict__ as mass__dict__
 from .pdg import get_pdg_id_from_name, get_properties_from_pdg_id, \
                  get_mass_from_pdg_id
+from ..general import DEPRECATION_INFO_PREP_1_0
 
 LAST_INVALID_STATE = -999999999
 
@@ -1773,13 +1774,15 @@ class Particles(xo.HybridClass):
 
     @property
     def kin_xprime(self):
-        warn("The variable `kin_xprime` is deprecated, use `kin_xp` instead",
+        warn("The variable `kin_xprime` is deprecated, use `kin_xp` instead"
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
         return self.kin_xp
 
     @property
     def kin_yprime(self):
-        warn("The variable `kin_yprime` is deprecated, use `kin_yp` instead",
+        warn("The variable `kin_yprime` is deprecated, use `kin_yp` instead"
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
         return self.kin_yp
 

@@ -38,7 +38,7 @@ from .builder import (_all_places, _flatten_components,
                       _generate_element_names_with_drifts,
                       _resolve_s_positions, _sort_places)
 from .footprint import Footprint, _footprint_with_linear_rescale
-from .general import _print
+from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging,
                               stop_internal_logging_for_elements_of_type)
@@ -2151,8 +2151,8 @@ class Line:
         self._check_valid_tracker()
 
         if steps_t_matrix is not None:
-            warn("`steps_t_matrix` is deprecated, please use `steps` instead",
-                 FutureWarning)
+            warn("`steps_t_matrix` is deprecated, please use `steps` instead"
+                 + DEPRECATION_INFO_PREP_1_0, FutureWarning)
 
         return compute_T_matrix_line(self, start=start, end=end,
                                 particle_on_co=particle_on_co,
@@ -2370,7 +2370,8 @@ class Line:
         '''
 
         if steps_r_matrix is not None:
-            warn("`steps_r_matrix` is deprecated, please use `steps` instead",
+            warn("`steps_r_matrix` is deprecated, please use `steps` instead"
+                 + DEPRECATION_INFO_PREP_1_0,
                  FutureWarning)
             steps = steps_r_matrix
 
@@ -2955,7 +2956,8 @@ class Line:
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
         """
-        warn('Line.insert_element is deprecated. Use Line.insert instead.', FutureWarning)
+        warn('Line.insert_element is deprecated. Use Line.insert instead.'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
         self._method_incompatible_with_compose()
 
         if at is not None:
@@ -3053,7 +3055,8 @@ class Line:
         name : str
             Name of the element to append
         """
-        warn('Line.append_element is deprecated. Use Line.append', FutureWarning)
+        warn('Line.append_element is deprecated. Use Line.append'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
         self._method_incompatible_with_compose()
 
         if isinstance(element, xt.view.View):
@@ -4433,7 +4436,8 @@ class Line:
         """
         warn(
             '`Line.unfreeze()` is deprecated and will be removed in future '
-            'versions. Please use `Line.discard_tracker()` instead.',
+            'versions. Please use `Line.discard_tracker()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
             FutureWarning,
         )
         self.discard_tracker()

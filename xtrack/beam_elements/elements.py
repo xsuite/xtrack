@@ -14,6 +14,7 @@ import xtrack as xt
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
+from ..general import DEPRECATION_INFO_PREP_1_0
 
 from xtrack.internal_record import RecordIndex
 
@@ -2802,7 +2803,8 @@ class Solenoid(_HasKnlKsl, BeamElement):
 
     def __init__(self, order=None, knl: List[float] = None, ksl: List[float] = None, **kwargs):
         warn(
-            'The `Solenoid` element is deprecated. Use `VariableSolenoid` or `UniformSolenoid` instead.',
+            'The `Solenoid` element is deprecated. Use `VariableSolenoid` or `UniformSolenoid` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
             FutureWarning
         )
 

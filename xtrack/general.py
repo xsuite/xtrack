@@ -11,6 +11,10 @@ import gzip
 
 _pkg_root = Path(__file__).parent.absolute()
 
+DEPRECATION_INFO_PREP_1_0 = (
+    " This deprecation is part of the interface cleanup in view of "
+    "the 1.0 release.")
+
 
 class _LOC:
     def __init__(self, name=None):

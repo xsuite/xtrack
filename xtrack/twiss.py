@@ -26,7 +26,7 @@ import xobjects as xo
 import xdeps as xd
 
 from . import linear_normal_form as lnf
-from .general import _print
+from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .twissplot import TwissPlot
 from . import json as json_utils
 from .table import Table
@@ -392,7 +392,8 @@ def twiss_line(line, particle_ref=None, method=None,
         warn('`at_s` keyword is deprecated and will be removed in future versions. \n'
         'The same functionality can be achieved making a shallow copy of the line '
         '(e.g. `line_copy = line.copy(shallow=True)`), using the`line.cut_at_s(...)` '
-        ' functionality and then calling line_copy.twiss(...) on the cut line.',
+        ' functionality and then calling line_copy.twiss(...) on the cut line.'
+        + DEPRECATION_INFO_PREP_1_0,
         FutureWarning)
 
     if at_elements is not None:
@@ -400,49 +401,57 @@ def twiss_line(line, particle_ref=None, method=None,
         'The same functionality can be achieved by selecting the desired names after computing '
         'the twiss, e.g. `line.twiss(...).rows[["ele1", "ele2", "ele3"]]`. '
         'Regular expressions are also supported for the selection of element names, '
-        'e.g. `line.twiss(...).rows["quad.*"]`.',
+        'e.g. `line.twiss(...).rows["quad.*"]`.'
+        + DEPRECATION_INFO_PREP_1_0,
         FutureWarning)
 
     if compute_chromatic_properties is not None:
         # TODO: enable warning when sister packages are updated
         # warn('The `compute_chromatic_properties` keyword is deprecated and will be removed in future versions. \n'
         #      'Please use `chrom` instead, which has the same behavior.',
+        #      + DEPRECATION_INFO_PREP_1_0,
         #      FutureWarning)
         chrom = compute_chromatic_properties
 
     if r_sigma:
         warn('The `r_sigma` keyword is deprecated and will be removed in future versions. \n'
-             'Please use `step_W_sigma` instead, which has the same behavior.',
+             'Please use `step_W_sigma` instead, which has the same behavior.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
         step_W_sigma = r_sigma
 
     if freeze_energy:
         warn('The `freeze_energy` keyword is deprecated and will be removed in future versions. \n'
-             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities',
+             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
 
     if freeze_longitudinal:
         warn('The `freeze_longitudinal` keyword is deprecated and will be removed in future versions. \n'
-             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities',
+             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
 
     if polarization:
         # TODO: enable warning when sister packages, acc-models-fcc, and tutorials are updated
         # warn('The `polarization` keyword is deprecated and will be removed in future versions. \n'
-        #      'Please use `polarization_analysis` instead, which has the same behavior.',
+        #      'Please use `polarization_analysis` instead, which has the same behavior.'
+        #      + DEPRECATION_INFO_PREP_1_0,
         #      FutureWarning)
         polarization_analysis = polarization
 
     if eneloss_and_damping:
         # TODO: enable warning when sister packages, acc-models-fcc, and tutorials are updated
         # warn('The `eneloss_and_damping` keyword is deprecated and will be removed in future versions. \n'
-        #      'Please use `radiation_analysis` instead, which has the same behavior.',
+        #      'Please use `radiation_analysis` instead, which has the same behavior.'
+        #      + DEPRECATION_INFO_PREP_1_0,
         #      FutureWarning)
         radiation_analysis = eneloss_and_damping
 
     if steps_r_matrix is not None:
         warn('The `steps_r_matrix` keyword is deprecated and will be removed in future versions. \n'
-             'Please use `steps_R_matrix` instead, which has the same behavior.',
+             'Please use `steps_R_matrix` instead, which has the same behavior.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
         steps_R_matrix = steps_r_matrix
 
@@ -3716,14 +3725,22 @@ class TwissTable(Table):
     # Messages to be shown when accessing deprecated fields
     _DEPRECATED_FIELDS = {
         'slip_factor_dz_ddelta': ('`slip_factor_dz_ddelta` is deprecated, '
-                                  'use `slip_factor_dzeta_ddelta` instead.'),
-        'T_rev0': ('`T_rev0` is deprecated, use `t_rev0` instead.'),
-        'T_rev': ('`T_rev` is deprecated, use `t_rev` instead.'),
-        'kin_xprime': ('`kin_xprime` is deprecated, use `kin_xp` instead.'),
-        'kin_yprime': ('`kin_yprime` is deprecated, use `kin_yp` instead.'),
-        'eneloss_turn': ('`eneloss_turn` is deprecated, use `energy_loss` instead.'),
-        'steps_r_matrix': ('`steps_r_matrix` is deprecated, use `steps_R_matrix` instead.'),
-        'circumference': ('`circumference` is deprecated, use `line_length` instead.'),
+                                  'use `slip_factor_dzeta_ddelta` instead.'
+                                  + DEPRECATION_INFO_PREP_1_0),
+        'T_rev0': ('`T_rev0` is deprecated, use `t_rev0` instead.'
+                   + DEPRECATION_INFO_PREP_1_0),
+        'T_rev': ('`T_rev` is deprecated, use `t_rev` instead.'
+                  + DEPRECATION_INFO_PREP_1_0),
+        'kin_xprime': ('`kin_xprime` is deprecated, use `kin_xp` instead.'
+                       + DEPRECATION_INFO_PREP_1_0),
+        'kin_yprime': ('`kin_yprime` is deprecated, use `kin_yp` instead.'
+                       + DEPRECATION_INFO_PREP_1_0),
+        'eneloss_turn': ('`eneloss_turn` is deprecated, use `energy_loss` instead.'
+                         + DEPRECATION_INFO_PREP_1_0),
+        'steps_r_matrix': ('`steps_r_matrix` is deprecated, use `steps_R_matrix` instead.'
+                           + DEPRECATION_INFO_PREP_1_0),
+        'circumference': ('`circumference` is deprecated, use `line_length` instead.'
+                          + DEPRECATION_INFO_PREP_1_0),
     }
 
     def __init__(self, *args, **kwargs):
