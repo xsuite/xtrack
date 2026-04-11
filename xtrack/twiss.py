@@ -70,7 +70,7 @@ def twiss_line(line, particle_ref=None, method=None,
         delta0=None, zeta0=None, zeta_shift=None,
         nemitt_x=None, nemitt_y=None, step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
-        co_guess=None, steps_r_matrix=None,
+        co_guess=None, steps_R_matrix=None,
         co_search_settings=None,
         continue_on_closed_orbit_error=None,
         values_at_element_exit=None,
@@ -124,6 +124,7 @@ def twiss_line(line, particle_ref=None, method=None,
         freeze_energy=None,
         polarization=None,
         eneloss_and_damping=None,
+        steps_r_matrix=None,
     ):
     """
     Compute the Twiss parameters of the beam line. If no initial conditions
@@ -204,7 +205,7 @@ def twiss_line(line, particle_ref=None, method=None,
         If True, compute quantititis related to spin polarization.
     delta_chrom : float, optional
         Momentum deviation for the chromaticity computation.
-    steps_r_matrix : dict, optional
+    steps_R_matrix : dict, optional
         Steps to be used for the finite difference computation of the R matrix.
         If not provided, the default values are used.
     matrix_responsiveness_tol : float, optional
@@ -320,7 +321,7 @@ def twiss_line(line, particle_ref=None, method=None,
           element-by-element coupling coefficients. See physics guide for
           definitions. (ebe)
         - `R_matrix`: one-turn transfer matrix
-        - `steps_r_matrix`: steps used for the finite-difference computation of
+        - `steps_R_matrix`: steps used for the finite-difference computation of
           the R matrix
         - `R_matrix_ebe`: element-by-element transfer matrices, from the start of
           the line to the selected element. (ebe)
@@ -439,6 +440,12 @@ def twiss_line(line, particle_ref=None, method=None,
         #      'Please use `radiation_analysis` instead, which has the same behavior.',
         #      FutureWarning)
         radiation_analysis = eneloss_and_damping
+
+    if steps_r_matrix is not None:
+        warn('The `steps_r_matrix` keyword is deprecated and will be removed in future versions. \n'
+             'Please use `steps_R_matrix` instead, which has the same behavior.',
+             FutureWarning)
+        steps_R_matrix = steps_r_matrix
 
     input_kwargs = locals().copy()
 
@@ -794,15 +801,15 @@ def twiss_line(line, particle_ref=None, method=None,
 
         assert not _initial_particles
 
-        steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
+        steps_R_matrix = _complete_steps_r_matrix_with_default(steps_R_matrix)
 
-        init, R_matrix, steps_r_matrix, eigenvalues, Rot, RR_ebe = _find_periodic_solution(
+        init, R_matrix, steps_R_matrix, eigenvalues, Rot, RR_ebe = _find_periodic_solution(
             line=line, particle_on_co=particle_on_co,
             particle_ref=particle_ref, method=method,
             co_search_settings=co_search_settings,
             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
             delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
-            steps_r_matrix=steps_r_matrix,
+            steps_R_matrix=steps_R_matrix,
             W_matrix=W_matrix, R_matrix=R_matrix,
             co_guess=co_guess,
             delta_disp=delta_disp, symplectify=symplectify,
@@ -858,7 +865,8 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if not skip_global_quantities and not only_orbit:
         twiss_res._data['R_matrix'] = R_matrix
-        twiss_res._data['steps_r_matrix'] = steps_r_matrix
+        twiss_res._data['steps_R_matrix'] = steps_R_matrix
+        twiss_res._data['steps_r_matrix'] = steps_R_matrix # deprecated
         twiss_res._data['R_matrix_ebe'] = RR_ebe
 
         _compute_global_quantities(line=line, twiss_res=twiss_res, method=method)
@@ -876,7 +884,7 @@ def twiss_line(line, particle_ref=None, method=None,
             delta_chrom=delta_chrom,
             delta0=delta0,
             zeta0=zeta0,
-            steps_r_matrix=steps_r_matrix,
+            steps_R_matrix=steps_R_matrix,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
             symplectify=symplectify,
@@ -916,7 +924,7 @@ def twiss_line(line, particle_ref=None, method=None,
                     particle_ref=particle_ref, method='6d',
                     co_search_settings=co_search_settings,
                     continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                    steps_r_matrix=steps_r_matrix,
+                    steps_R_matrix=steps_R_matrix,
                     co_guess=co_guess,
                     symplectify=False,
                     matrix_responsiveness_tol=matrix_responsiveness_tol,
@@ -1919,7 +1927,7 @@ def _compute_global_quantities(line, twiss_res, method):
 
 def _compute_chromatic_functions(line, init, delta_chrom,
                     delta0, zeta0,
-                    steps_r_matrix,
+                    steps_R_matrix,
                     matrix_responsiveness_tol, matrix_stability_tol, symplectify,
                     method='6d', use_full_inverse=False,
                     nemitt_x=None, nemitt_y=None,
@@ -1972,7 +1980,7 @@ def _compute_chromatic_functions(line, init, delta_chrom,
                 RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                             particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                             start=start, end=end, num_turns=num_turns,
-                                            steps_r_matrix=steps_r_matrix,
+                                            steps=steps_R_matrix,
                                             symmetrize=False,
                                             include_collective=include_collective,
                                             )['R_matrix']
@@ -2497,7 +2505,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             co_search_settings, continue_on_closed_orbit_error,
                             delta0, zeta0,
                             zeta_shift,
-                            steps_r_matrix, W_matrix,
+                            steps_R_matrix, W_matrix,
                             R_matrix, co_guess,
                             delta_disp, symplectify,
                             matrix_responsiveness_tol,
@@ -2588,10 +2596,10 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                         responsiveness_tol=matrix_responsiveness_tol,
                         stability_tol=matrix_stability_tol)
         else:
-            steps_r_matrix['adapted'] = False
+            steps_R_matrix['adapted'] = False
             for iter in range(2):
                 RR_out = line.compute_one_turn_matrix_finite_differences(
-                    steps_r_matrix=steps_r_matrix,
+                    steps=steps_R_matrix,
                     particle_on_co=part_on_co,
                     start=start,
                     end=end,
@@ -2626,17 +2634,17 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                 sigma_px_start = np.sqrt(gamx_at_start * gemitt_x)
                 sigma_py_start = np.sqrt(gamy_at_start * gemitt_y)
 
-                if ((steps_r_matrix['dx'] < factor_adapt_steps * sigma_x_start)
-                    and (steps_r_matrix['dy'] < factor_adapt_steps * sigma_y_start)
-                    and (steps_r_matrix['dpx'] < factor_adapt_steps * sigma_px_start)
-                    and (steps_r_matrix['dpy'] < factor_adapt_steps * sigma_py_start)):
+                if ((steps_R_matrix['dx'] < factor_adapt_steps * sigma_x_start)
+                    and (steps_R_matrix['dy'] < factor_adapt_steps * sigma_y_start)
+                    and (steps_R_matrix['dpx'] < factor_adapt_steps * sigma_px_start)
+                    and (steps_R_matrix['dpy'] < factor_adapt_steps * sigma_py_start)):
                     break # sufficient accuracy
                 else:
-                    steps_r_matrix['dx'] = 0.01 * sigma_x_start
-                    steps_r_matrix['dy'] = 0.01 * sigma_y_start
-                    steps_r_matrix['dpx'] = 0.01 * sigma_px_start
-                    steps_r_matrix['dpy'] = 0.01 * sigma_py_start
-                    steps_r_matrix['adapted'] = True
+                    steps_R_matrix['dx'] = 0.01 * sigma_x_start
+                    steps_R_matrix['dy'] = 0.01 * sigma_y_start
+                    steps_R_matrix['dpx'] = 0.01 * sigma_px_start
+                    steps_R_matrix['dpy'] = 0.01 * sigma_py_start
+                    steps_R_matrix['adapted'] = True
 
     # Check on R matrix
     if RR is not None and matrix_stability_tol is not None:
@@ -2691,7 +2699,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                            ay_chrom=None, by_chrom=None,
                            reference_frame='proper')
 
-    return init, RR, steps_r_matrix, eigenvalues, Rot, RR_ebe
+    return init, RR, steps_R_matrix, eigenvalues, Rot, RR_ebe
 
 def _handle_loop_around(kwargs):
 
@@ -3071,7 +3079,7 @@ def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, zeta_shift, delta0, 
 
 def compute_one_turn_matrix_finite_differences(
         line, particle_on_co,
-        steps_r_matrix=None,
+        steps=None,
         start=None, end=None,
         num_turns=1,
         element_by_element=False,
@@ -3079,10 +3087,10 @@ def compute_one_turn_matrix_finite_differences(
         symmetrize=True):
     import xpart
 
-    if steps_r_matrix is None:
-        steps_r_matrix = {}
+    if steps is None:
+        steps = {}
 
-    steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
+    steps = _complete_steps_r_matrix_with_default(steps)
 
     if line.enable_time_dependent_vars:
         raise RuntimeError(
@@ -3102,12 +3110,12 @@ def compute_one_turn_matrix_finite_differences(
     particle_on_co = particle_on_co.copy(
                         _context=context)
 
-    dx = steps_r_matrix["dx"]
-    dpx = steps_r_matrix["dpx"]
-    dy = steps_r_matrix["dy"]
-    dpy = steps_r_matrix["dpy"]
-    dzeta = steps_r_matrix["dzeta"]
-    ddelta = steps_r_matrix["ddelta"]
+    dx = steps["dx"]
+    dpx = steps["dpx"]
+    dy = steps["dy"]
+    dpy = steps["dpy"]
+    dzeta = steps["dzeta"]
+    ddelta = steps["ddelta"]
     part_temp = xpart.build_particles(_context=context,
             particle_ref=particle_on_co, mode='shift',
             x  =    [0., dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
@@ -3165,7 +3173,7 @@ def compute_one_turn_matrix_finite_differences(
         RR[:, jj] = (temp_mat[:, jj+1] - temp_mat[:, jj+1+6])/(2*dd)
 
     out = {'R_matrix': RR}
-    out['steps_r_matrix'] = steps_r_matrix
+    out['steps_R_matrix'] = steps
     out['part_temp'] = part_temp
 
     if element_by_element:
@@ -3713,6 +3721,7 @@ class TwissTable(Table):
         'kin_xprime': ('`kin_xprime` is deprecated, use `kin_xp` instead.'),
         'kin_yprime': ('`kin_yprime` is deprecated, use `kin_yp` instead.'),
         'eneloss_turn': ('`eneloss_turn` is deprecated, use `energy_loss` instead.'),
+        'steps_r_matrix': ('`steps_r_matrix` is deprecated, use `steps_R_matrix` instead.'),
     }
 
     def __init__(self, *args, **kwargs):
@@ -4849,20 +4858,20 @@ def _complete_twiss_init(start, end, init_at, init,
 
     return init
 
-def _complete_steps_r_matrix_with_default(steps_r_matrix):
-    if steps_r_matrix is not None:
-        steps_in = steps_r_matrix.copy()
+def _complete_steps_r_matrix_with_default(steps_R_matrix):
+    if steps_R_matrix is not None:
+        steps_in = steps_R_matrix.copy()
         for nn in steps_in.keys():
             assert nn in list(DEFAULT_STEPS_R_MATRIX.keys()) + ['adapted'], (
-                '``steps_r_matrix`` can contain only ' +
+                '``steps_R_matrix`` can contain only ' +
                 ' '.join(DEFAULT_STEPS_R_MATRIX.keys())
             )
-        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
-        steps_r_matrix.update(steps_in)
+        steps_R_matrix = DEFAULT_STEPS_R_MATRIX.copy()
+        steps_R_matrix.update(steps_in)
     else:
-        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
+        steps_R_matrix = DEFAULT_STEPS_R_MATRIX.copy()
 
-    return steps_r_matrix
+    return steps_R_matrix
 
 def _renormalize_eigenvectors(Ws):
     # Re normalize eigenvectors
@@ -5012,9 +5021,9 @@ def _build_sigma_table(Sigma, s=None, name=None):
     return Table(res_data)
 
 def compute_T_matrix_line(line, start, end, particle_on_co=None,
-                            steps_t_matrix=None):
+                            steps=None):
 
-    steps_t_matrix = _complete_steps_r_matrix_with_default(steps_t_matrix)
+    steps = _complete_steps_r_matrix_with_default(steps)
 
     if particle_on_co is None:
         tw = line.twiss(reverse=False)
@@ -5028,13 +5037,13 @@ def compute_T_matrix_line(line, start, end, particle_on_co=None,
     for kk in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
 
         p_plus[kk] = particle_on_co.copy()
-        setattr(p_plus[kk], kk, getattr(particle_on_co, kk) + steps_t_matrix['d' + kk])
+        setattr(p_plus[kk], kk, getattr(particle_on_co, kk) + steps['d' + kk])
         R_plus[kk] = line.compute_one_turn_matrix_finite_differences(
                             start=start, end=end,
                             particle_on_co=p_plus[kk])['R_matrix']
 
         p_minus[kk] = particle_on_co.copy()
-        setattr(p_minus[kk], kk, getattr(particle_on_co, kk) - steps_t_matrix['d' + kk])
+        setattr(p_minus[kk], kk, getattr(particle_on_co, kk) - steps['d' + kk])
         R_minus[kk] = line.compute_one_turn_matrix_finite_differences(
                             start=start, end=end,
                             particle_on_co=p_minus[kk])['R_matrix']
@@ -5275,25 +5284,25 @@ def _compute_spin_polarization(tw, line, method):
         # A. Chao, valuation of Radiative Spin Polarization in an Electron Storage Ring
         # https://inspirehep.net/literature/154360
 
-        steps_r_matrix = tw.steps_r_matrix
+        steps_R_matrix = tw.steps_R_matrix
 
-        for kk in steps_r_matrix:
-            steps_r_matrix[kk] *= 0.1
+        for kk in steps_R_matrix:
+            steps_R_matrix[kk] *= 0.1
 
         out = line.compute_one_turn_matrix_finite_differences(particle_on_co=tw.particle_on_co,
                                                             element_by_element=True,
-                                                            steps_r_matrix=steps_r_matrix)
+                                                            steps=steps_R_matrix)
         mon_r_ebe = out['mon_ebe']
         part = out['part_temp']
 
-        steps_r_matrix = out['steps_r_matrix']
+        steps_R_matrix = out['steps_R_matrix']
 
-        dx = steps_r_matrix["dx"]
-        dpx = steps_r_matrix["dpx"]
-        dy = steps_r_matrix["dy"]
-        dpy = steps_r_matrix["dpy"]
-        dzeta = steps_r_matrix["dzeta"]
-        ddelta = steps_r_matrix["ddelta"]
+        dx = steps_R_matrix["dx"]
+        dpx = steps_R_matrix["dpx"]
+        dy = steps_R_matrix["dy"]
+        dpy = steps_R_matrix["dpy"]
+        dzeta = steps_R_matrix["dzeta"]
+        ddelta = steps_R_matrix["ddelta"]
 
         dpzeta = float(part.ptau[6] - part.ptau[12])/2/part.beta0[0]
 

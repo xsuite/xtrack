@@ -1503,7 +1503,7 @@ class Line:
         delta0=None, zeta0=None, zeta_shift=None,
         nemitt_x=None, nemitt_y=None, step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
-        co_guess=None, steps_r_matrix=None,
+        co_guess=None, steps_R_matrix=None,
         co_search_settings=None,
         continue_on_closed_orbit_error=None,
         values_at_element_exit=None,
@@ -1561,6 +1561,7 @@ class Line:
         freeze_energy=None,
         polarization=None,
         eneloss_and_damping=None,
+        steps_r_matrix=None
     ):
         if not self._has_valid_tracker():
             self.build_tracker()
@@ -2122,7 +2123,9 @@ class Line:
                                  symmetrize=symmetrize)
 
     def compute_T_matrix(self, start=None, end=None,
-                         particle_on_co=None, steps_t_matrix=None):
+                         particle_on_co=None, steps=None,
+                         steps_t_matrix=None # deprecated
+                         ):
 
         """
         Compute the second order tensor of the beamline.
@@ -2135,7 +2138,7 @@ class Line:
             Element at which the computation stops.
         particle_on_co : Particle
             Particle at the closed orbit (optional).
-        steps_r_matrix : int
+        steps : dict
             Finite difference step for computing the second order tensor.
 
         Returns
@@ -2147,9 +2150,13 @@ class Line:
 
         self._check_valid_tracker()
 
+        if steps_t_matrix is not None:
+            warn("`steps_t_matrix` is deprecated, please use `steps` instead",
+                 FutureWarning)
+
         return compute_T_matrix_line(self, start=start, end=end,
                                 particle_on_co=particle_on_co,
-                                steps_t_matrix=steps_t_matrix)
+                                steps=steps)
 
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
@@ -2330,12 +2337,14 @@ class Line:
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
-            steps_r_matrix=None,
+            steps=None,
             start=None, end=None,
             num_turns=1,
             element_by_element=False, only_markers=False,
             symmetrize=False,
-            include_collective=False):
+            include_collective=False,
+            steps_r_matrix=None # deprecated
+            ):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -2343,7 +2352,7 @@ class Line:
         ----------
         particle_on_co : Particle
             Particle at the closed orbit.
-        steps_r_matrix : float
+        steps : float
             Step size for finite differences. In not given, default step sizes
             are used.
         start : str
@@ -2360,6 +2369,11 @@ class Line:
 
         '''
 
+        if steps_r_matrix is not None:
+            warn("`steps_r_matrix` is deprecated, please use `steps` instead",
+                 FutureWarning)
+            steps = steps_r_matrix
+
         if not self._has_valid_tracker():
             self.build_tracker()
 
@@ -2373,7 +2387,7 @@ class Line:
             line = self
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
-                        steps_r_matrix, start=start, end=end,
+                        steps, start=start, end=end,
                         num_turns=num_turns,
                         element_by_element=element_by_element,
                         only_markers=only_markers,
