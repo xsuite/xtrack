@@ -851,9 +851,10 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
     for kk in tw_test._data.keys():
         if kk in ['name', 'env_name', 'W_matrix', 'particle_on_co', 'values_at',
                     'method', 'radiation_method', 'reference_frame',
-                    'orientation', 'steps_r_matrix', 'line_config',
+                    'orientation', 'steps_R_matrix', 'line_config',
                     'loop_around', '_action', 'completed_init',
                     'phix', 'phiy', 'phizeta', # are only relative (not unwrapped)
+                    'steps_r_matrix' # deprecated
                     ]:
             continue # some tested separately
         atol = atols.get(kk, atol_default)
@@ -1545,28 +1546,28 @@ def test_adaptive_steps_for_rmatrix(test_context):
     collider.lhcb2.twiss_default['nemitt_y'] = 1e-6
 
     tw = collider.twiss()
-    assert tw.lhcb1.steps_r_matrix['adapted'] == False
-    assert tw.lhcb2.steps_r_matrix['adapted'] == False
+    assert tw.lhcb1.steps_R_matrix['adapted'] == False
+    assert tw.lhcb2.steps_R_matrix['adapted'] == False
 
     collider.lhcb1.twiss_default['nemitt_x'] = 1e-8
     tw = collider.twiss()
-    assert tw.lhcb1.steps_r_matrix['adapted'] == True
-    assert tw.lhcb2.steps_r_matrix['adapted'] == False
+    assert tw.lhcb1.steps_R_matrix['adapted'] == True
+    assert tw.lhcb2.steps_R_matrix['adapted'] == False
 
     collider.lhcb2.twiss_default['nemitt_y'] = 2e-8
     tw = collider.twiss()
-    assert tw.lhcb1.steps_r_matrix['adapted'] == True
-    assert tw.lhcb2.steps_r_matrix['adapted'] == True
+    assert tw.lhcb1.steps_R_matrix['adapted'] == True
+    assert tw.lhcb2.steps_R_matrix['adapted'] == True
 
     expected_dx_b1 = 0.01 * np.sqrt(1e-8 * 0.15 / collider.lhcb1.particle_ref._xobject.gamma0[0])
     expected_dy_b1 = 0.01 * np.sqrt(1e-6 * 0.15 / collider.lhcb1.particle_ref._xobject.gamma0[0])
     expected_dx_b2 = 0.01 * np.sqrt(1e-6 * 0.15 / collider.lhcb1.particle_ref._xobject.gamma0[0])
     expected_dy_b2 = 0.01 * np.sqrt(2e-8 * 0.15 / collider.lhcb2.particle_ref._xobject.gamma0[0])
 
-    xo.assert_allclose(tw.lhcb1.steps_r_matrix['dx'], expected_dx_b1, atol=0, rtol=1e-4)
-    xo.assert_allclose(tw.lhcb1.steps_r_matrix['dy'], expected_dy_b1, atol=0, rtol=1e-4)
-    xo.assert_allclose(tw.lhcb2.steps_r_matrix['dx'], expected_dx_b2, atol=0, rtol=1e-4)
-    xo.assert_allclose(tw.lhcb2.steps_r_matrix['dy'], expected_dy_b2, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb1.steps_R_matrix['dx'], expected_dx_b1, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb1.steps_R_matrix['dy'], expected_dy_b1, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb2.steps_R_matrix['dx'], expected_dx_b2, atol=0, rtol=1e-4)
+    xo.assert_allclose(tw.lhcb2.steps_R_matrix['dy'], expected_dy_b2, atol=0, rtol=1e-4)
 
 @for_all_test_contexts
 def test_longitudinal_beam_sizes(test_context):
