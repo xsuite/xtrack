@@ -24,7 +24,7 @@ beta0 = line.particle_ref.beta0[0]
 #                                       = -t_rev / f_rf * df_hz
 # dzeta = -beta0 * clight * dt = circumference * df_hz / f_rf
 
-dzeta = tw.circumference * df_hz / f_rf
+dzeta = tw.line_length * df_hz / f_rf
 
 line.append('zeta_shift', xt.ZetaShift(dzeta=dzeta))
 
