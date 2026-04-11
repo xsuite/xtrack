@@ -83,7 +83,7 @@ for ttww in [tw_off, tw]:
 
     # reference https://lib-extopc.kek.jp/preprints/PDF/1980/8011/8011060.pdf
 
-    alpha_plus_co = 1. / ttww.circumference * np.sum(
+    alpha_plus_co = 1. / ttww.line_length * np.sum(
         kappa**3 * (1 - 2./9. * n0_iv**2) * ttww.length)
 
     tp_inv = 5 * np.sqrt(3) / 8 * r0 * hbar * ttww.gamma0**5 / m0_kg * alpha_plus_co
