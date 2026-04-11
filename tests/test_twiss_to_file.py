@@ -45,6 +45,7 @@ def test_twiss_table_file(check_type, tmp_path):
     assert set(tw.keys()) - set(tw_test.keys()) <= {
         '_action', 'completed_init',
         'T_rev0', # deprecated, the table does contain t_rev0 with small "t"
+        'steps_r_matrix', # deprecated, the table does contain steps_R_matrix with capital "R"
         }
 
     for kk in tw._data:

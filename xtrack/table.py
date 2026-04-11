@@ -1588,12 +1588,16 @@ class Table(_XdepsTable):
 
         if 'attrs_serialization' in data:
             attrs_serialization = json_utils.load(string=data['attrs_serialization'])
+            done = set()
             for kk, ss in attrs_serialization.items():
                 kk = rename_dict.get(kk, kk)
                 if data[kk] is None:
                     continue
+                if kk in done: # some deprecated elements are the same apart from capital letters
+                    continue
                 assert ss == 'json'
                 data[kk] = json_utils.load(string=data[kk])
+                done.add(kk)
 
         if tmad :=tfs_table.headers.get('TYPE', None):
             if tmad == 'TWISS':
