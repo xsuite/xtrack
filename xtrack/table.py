@@ -1589,6 +1589,7 @@ class Table(_XdepsTable):
         if 'attrs_serialization' in data:
             attrs_serialization = json_utils.load(string=data['attrs_serialization'])
             for kk, ss in attrs_serialization.items():
+                kk = rename_dict.get(kk, kk)
                 if data[kk] is None:
                     continue
                 assert ss == 'json'
