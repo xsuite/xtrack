@@ -23,7 +23,7 @@ line['pa.c40.77'].frequency = 'frf'
 
 tw6d = line.twiss6d()
 
-env['circumference'] = tw4d.circumference
+env['circumference'] = tw4d.line_length
 env['df_hz'] = 0.  # desired shift in RF frequency
 
 env['dzeta'] = 'circumference * df_hz / frf'

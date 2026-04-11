@@ -106,7 +106,7 @@ for ttww in [tw_off, tw]:
 
     n0_ib = ttww.spin_x * ib_x + ttww.spin_y * ib_y + ttww.spin_z * ib_z
 
-    alpha_minus_co = 1. / ttww.circumference * np.sum(kappa**3 * n0_ib *  ttww.length)
+    alpha_minus_co = 1. / ttww.line_length * np.sum(kappa**3 * n0_ib *  ttww.length)
 
     pol_inf = 8 / 5 / np.sqrt(3) * alpha_minus_co / alpha_plus_co
 
