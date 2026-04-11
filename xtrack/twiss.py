@@ -4494,11 +4494,11 @@ class TwissTable(Table):
         for kk in tables_to_concat[0]._col_names:
             if kk == 'W_matrix':
                 new_data[kk] = np.empty(
-                    (n_elem, 6, 6), dtype=tables_to_concat[0][kk].dtype)
+                    (n_elem, 6, 6), dtype=tables_to_concat[0]._data[kk].dtype)
                 continue
-            dtype=tables_to_concat[0][kk].dtype
+            dtype=tables_to_concat[0]._data[kk].dtype
             if dtype.str.startswith('<U'):
-                str_len = np.max([int(tables_to_concat[ii][kk].dtype.str.split('<U')[-1])
+                str_len = np.max([int(tables_to_concat[ii]._data[kk].dtype.str.split('<U')[-1])
                                     for ii in range(len(tables_to_concat))])
                 dtype = f'<U{str_len}'
             new_data[kk] = np.empty(n_elem, dtype=dtype)
@@ -4509,17 +4509,17 @@ class TwissTable(Table):
             for kk in tt._col_names:
                 if kk == 'W_matrix':
                     new_data[kk][i_start:i_end] = (
-                        tt[kk][ind_per_table[ii][0]:ind_per_table[ii][1], :, :])
+                        tt._data[kk][ind_per_table[ii][0]:ind_per_table[ii][1], :, :])
                     continue
                 new_data[kk][i_start:i_end] = (
-                    tt[kk][ind_per_table[ii][0]:ind_per_table[ii][1]])
+                    tt._data[kk][ind_per_table[ii][0]:ind_per_table[ii][1]])
                 if kk in CYCLICAL_QUANTITIES:
                     new_data[kk][i_start:i_end] -= new_data[kk][i_start]
                     if ii > 0:
                         new_data[kk][i_start:i_end] += new_data[kk][i_start-1]
                         new_data[kk][i_start:i_end] += (
-                            tables_to_concat[ii-1][kk][-1]
-                            - tables_to_concat[ii-1][kk][ind_per_table[ii-1][1]-1])
+                            tables_to_concat[ii-1]._data[kk][-1]
+                            - tables_to_concat[ii-1]._data[kk][ind_per_table[ii-1][1]-1])
 
             i_start = i_end
 
