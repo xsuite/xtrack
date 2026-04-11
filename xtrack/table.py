@@ -1555,7 +1555,7 @@ class Table(_XdepsTable):
         data = {}
         col_names = []
 
-        contain_capital = ["W_matrix", "R_matrix", "R_matrix_ebe"]
+        contain_capital = ["W_matrix", "R_matrix", "R_matrix_ebe", "steps_R_matrix"
         rename_dict = {cc.lower(): cc for cc in contain_capital}
 
         for cc in tfs_table.columns:
