@@ -36,7 +36,7 @@ twom = line.twiss(delta0=delta0)
 line.discard_tracker()
 
 # Install dummy collective elements
-s_sync = np.linspace(0, tw.circumference, 10)
+s_sync = np.linspace(0, tw.line_length, 10)
 for ii, ss in enumerate(s_sync):
     nn = f'sync_here_{ii}'
     line.insert(nn, obj=xt.Marker(), at=ss)
@@ -50,7 +50,7 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 beta1 = tw.beta0 / 0.9
 
-circumference = tw.circumference
+circumference = tw.line_length
 zeta_min0 = -circumference/2*tw.beta0/beta1
 zeta_max0 = circumference/2*tw.beta0/beta1
 
