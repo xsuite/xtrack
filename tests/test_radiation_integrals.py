@@ -206,7 +206,7 @@ def test_radiation_integrals_sps_vs_df(tilt):
 
     # Prepare trim
     env['frev0'] = 1. / tw4d.t_rev0
-    env['circum'] = tw4d.circumference
+    env['circum'] = tw4d.line_length
     env['frev_trim'] = 0.
 
     env['zeta_shift'].dzeta = 'circum * frev_trim / frev0'

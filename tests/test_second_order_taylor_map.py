@@ -56,7 +56,7 @@ def test_line_with_second_order_maps(test_context):
     xo.assert_allclose(tw_map.dqx, tw.dqx, rtol=0, atol=5e-2)
     xo.assert_allclose(tw_map.dqy, tw.dqy, rtol=0, atol=5e-2)
     xo.assert_allclose(tw_map.c_minus, tw.c_minus, rtol=0, atol=1e-5)
-    xo.assert_allclose(tw_map.circumference, tw.circumference, rtol=0, atol=5e-9)
+    xo.assert_allclose(tw_map.line_length, tw.line_length, rtol=0, atol=5e-9)
 
 
 @for_all_test_contexts

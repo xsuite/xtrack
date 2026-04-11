@@ -1019,7 +1019,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
 
         # Build corresponding matrix
         tw = line.twiss()
-        circumference = tw.circumference
+        circumference = tw.line_length
 
         if line[cavity_name].harmonic:
             frequency_rf = line[cavity_name].harmonic / (line.get_length() / tw.beta0 / clight)
@@ -1138,7 +1138,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         xo.assert_allclose(tw_line.dpy[0], tw_matrix.dpy[0], atol=1e-5, rtol=0)
 
         assert tw_matrix.s[0] == 0
-        xo.assert_allclose(tw_matrix.s[-1], tw_line.circumference, rtol=0, atol=1e-6)
+        xo.assert_allclose(tw_matrix.s[-1], tw_line.line_length, rtol=0, atol=1e-6)
         xo.assert_allclose(tw_matrix.bets0, tw_line.bets0, rtol=1e-2, atol=0)
 
         xo.assert_allclose(np.squeeze(mon.zeta), np.squeeze(mon_matrix.zeta),

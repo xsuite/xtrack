@@ -36,7 +36,7 @@ def test_coasting():
     line.discard_tracker()
 
     # Install dummy collective elements
-    s_sync = np.linspace(0, tw.circumference, 10)
+    s_sync = np.linspace(0, tw.line_length, 10)
     line.cut_at_s(s_sync)
     for ii, ss in enumerate(s_sync):
         nn = f'sync_here_{ii}'
@@ -49,7 +49,7 @@ def test_coasting():
 
     beta1 = tw.beta0 / 0.9
 
-    circumference = tw.circumference
+    circumference = tw.line_length
     zeta_min0 = -circumference/2*tw.beta0/beta1
     zeta_max0 = circumference/2*tw.beta0/beta1
 

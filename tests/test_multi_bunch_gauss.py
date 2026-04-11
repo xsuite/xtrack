@@ -13,7 +13,7 @@ from xobjects.test_helpers import fix_random_seed, for_all_test_contexts
 
 def do_checks(test_context,part,n_part_per_bunch,sigma_z,sigma_delta,
         filled_slots,bunch_numbers,bunch_spacing):
-        
+
     for i_bunch,bunch_number in enumerate(bunch_numbers):
         zeta_avg = np.average(
         test_context.nparray_from_context_array(
