@@ -4564,6 +4564,25 @@ class Line:
 
     def select(self, start=None, end=None, name=None):
 
+        """
+        Select a part of the line and return it as a new line (shallow copy,
+        i.e. the elements are in common with the original line).
+
+        Parameters
+        ----------
+        start : str
+            Name of the starting point
+        end : str
+            Name of the ending point
+        name : str
+            Name of the new line (default: None)
+
+        Returns
+        -------
+        out : Line
+            New line containing the selected portion.
+        """
+
         self._method_incompatible_with_compose()
 
         if self.mode == 'compose':
