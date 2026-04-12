@@ -5,7 +5,7 @@
 from time import perf_counter
 from typing import Literal, Union
 import logging
-from functools import partial
+from warnings import warn
 from collections import UserDict, defaultdict
 
 from scipy.constants import c as clight
@@ -16,7 +16,7 @@ import xtrack as xt
 
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
-from .general import _pkg_root
+from .general import _pkg_root, DEPRECATION_INFO_PREP_1_0
 from .internal_record import new_io_buffer
 from .line import Line, _is_thick, _is_collective
 from .line import freeze_longitudinal as _freeze_longitudinal
@@ -1629,6 +1629,10 @@ class TrackerConfig(UserDict):
             super(TrackerConfig, self).__setitem__(idx, val)
 
     def __setattr__(self, idx, val):
+        if idx == 'XTRACK_USE_EXACT_DRIFTS' and val is True:
+            warn('XTRACK_USE_EXACT_DRIFTS is deprecated, please use '
+                 '`Line.config_drift_model("exact")`.'
+                 + DEPRECATION_INFO_PREP_1_0)
         if idx == 'data':
             object.__setattr__(self, idx, val)
         elif val is not False and val is not None:
