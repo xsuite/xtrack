@@ -21,18 +21,6 @@ for _pkg_name in ("xobjects", "xdeps", "xpart", "xfields", "xtrack"):
         sys.path.insert(0, str(_pkg_root))
 
 
-def _get_line_class():
-    import xtrack as xt
-
-    line_class = getattr(xt, "Line", None)
-    if line_class is not None:
-        return line_class
-
-    from xtrack.line import Line
-
-    return Line
-
-
 def _is_missing_doc(obj) -> bool:
     doc = inspect.getdoc(obj)
     return doc is None or not doc.strip()
@@ -61,18 +49,19 @@ def _public_methods_and_properties(cls):
 
 
 def main():
-    line_class = _get_line_class()
-    methods, properties = _public_methods_and_properties(line_class)
+    import xtrack as xt
+    cls = xt.Line
+    methods, properties = _public_methods_and_properties(cls)
 
     missing_methods = sorted(name for name, member in methods if _is_missing_doc(member))
     missing_properties = sorted(name for name, member in properties if _is_missing_doc(member))
 
-    print(f"Class inspected: {line_class.__module__}.{line_class.__name__}")
+    print(f"Class inspected: {cls.__module__}.{cls.__name__}")
     print()
 
     print(f"Methods missing doc ({len(missing_methods)}):")
     for name in missing_methods:
-        print(f"- {name}")
+        print(f"- [ ] {name}")
 
     print()
 
