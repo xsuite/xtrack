@@ -26,7 +26,7 @@ env.new('pimm_start',   'Marker')
 
 env.new('pimm_cavity',  'Cavity')
 
-pimm = env.new_builder(name='pimm')
+pimm = env.new_line(name='pimm', compose=True)
 
 # Place elements
 pimm.new('end_ring', 'Marker', at=75.24) # defines ring length
@@ -84,5 +84,5 @@ pimm.place('mb', at=71.4275)
 pimm.place('qf1', at=72.6775)
 pimm.place('es_marker', at=73.25225)
 
-pimm = pimm.build() # Becomes a line
+pimm.end_compose()
 env.default_to_zero = False

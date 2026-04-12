@@ -548,7 +548,10 @@ class Environment:
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',
                     length=None, s_tol=1e-6):
         '''
-        Create a new builder.
+        Deprecated. Create a new builder.
+
+        ..warning:: The `new_builder` method is deprecated and will be removed in
+        a future version. Use `new_line` with `compose=True` instead.
 
         Parameters
         ----------
@@ -571,6 +574,9 @@ class Environment:
         Builder
             The new builder.
         '''
+
+        warn('The `new_builder` method is deprecated and will be removed in a future version. '
+             'Use `new_line` with `compose=True` instead.', FutureWarning)
 
         out = xt.Builder(env=self, components=components, name=name, refer=refer,
                        length=length, s_tol=s_tol)
