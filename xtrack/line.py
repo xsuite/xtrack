@@ -1005,6 +1005,55 @@ class Line:
 
         return out
 
+    def select(self, start=None, end=None, name=None):
+
+        """
+        Select a part of the line and return it as a new line (shallow copy,
+        i.e. the elements are in common with the original line).
+
+        Parameters
+        ----------
+        start : str
+            Name of the starting point
+        end : str
+            Name of the ending point
+        name : str
+            Name of the new line (default: None)
+
+        Returns
+        -------
+        out : Line
+            New line containing the selected portion.
+        """
+
+        self._method_incompatible_with_compose()
+
+        if self.mode == 'compose':
+            self._full_elements_from_composer()
+
+        if start is xt.START:
+            start = None
+
+        if end is xt.END:
+            end = None
+
+        tt = self.get_table().rows[start:end]
+        if tt.name[-1] == '_end_point':
+            tt = tt.rows[:-1]
+
+        out = self.env.new_line(components=list(tt.env_name), name=name)
+        out.particle_ref = self.particle_ref.copy() if self.particle_ref else None
+
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            out.env._var_management = None
+            out._var_management = None
+            out.env._in_multiline = self._in_multiline
+            out._in_multiline = self._in_multiline
+            out.env._name_in_multiline = self._name_in_multiline
+            out._name_in_multiline = self._name_in_multiline
+
+        return out
+
     def end_compose(self):
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
@@ -4562,54 +4611,7 @@ class Line:
                     env.new(new_name, nn, mode=mode)
                     self.element_names[ii] = new_name
 
-    def select(self, start=None, end=None, name=None):
 
-        """
-        Select a part of the line and return it as a new line (shallow copy,
-        i.e. the elements are in common with the original line).
-
-        Parameters
-        ----------
-        start : str
-            Name of the starting point
-        end : str
-            Name of the ending point
-        name : str
-            Name of the new line (default: None)
-
-        Returns
-        -------
-        out : Line
-            New line containing the selected portion.
-        """
-
-        self._method_incompatible_with_compose()
-
-        if self.mode == 'compose':
-            self._full_elements_from_composer()
-
-        if start is xt.START:
-            start = None
-
-        if end is xt.END:
-            end = None
-
-        tt = self.get_table().rows[start:end]
-        if tt.name[-1] == '_end_point':
-            tt = tt.rows[:-1]
-
-        out = self.env.new_line(components=list(tt.env_name), name=name)
-        out.particle_ref = self.particle_ref.copy() if self.particle_ref else None
-
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            out.env._var_management = None
-            out._var_management = None
-            out.env._in_multiline = self._in_multiline
-            out._in_multiline = self._in_multiline
-            out.env._name_in_multiline = self._name_in_multiline
-            out._name_in_multiline = self._name_in_multiline
-
-        return out
 
 
 
