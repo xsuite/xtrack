@@ -70,7 +70,7 @@ def test_quadrupole_wedge_ptc():
     line.build_tracker()
     line.track(p0)
 
-    mat = line.compute_one_turn_matrix_finite_differences(p0)['R_matrix']
+    mat = line.compute_R_matrix(p0)['R_matrix']
     det = np.linalg.det(mat)
 
     assert np.isclose(det, 1.0)

@@ -1987,7 +1987,7 @@ def _compute_chromatic_functions(line, init, delta_chrom,
                     include_collective=include_collective,
                     )
                 tw_init_chrom.particle_on_co = part_chrom
-                RR_chrom = line.compute_one_turn_matrix_finite_differences(
+                RR_chrom = line.compute_R_matrix(
                                             particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                             start=start, end=end, num_turns=num_turns,
                                             steps=steps_R_matrix,
@@ -2608,7 +2608,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         else:
             steps_R_matrix['adapted'] = False
             for iter in range(2):
-                RR_out = line.compute_one_turn_matrix_finite_differences(
+                RR_out = line.compute_R_matrix(
                     steps=steps_R_matrix,
                     particle_on_co=part_on_co,
                     start=start,
@@ -3087,7 +3087,7 @@ def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, zeta_shift, delta0, 
         p[4] - zeta0,
         p[5] - delta0])
 
-def compute_one_turn_matrix_finite_differences(
+def compute_R_matrix(
         line, particle_on_co,
         steps=None,
         start=None, end=None,
@@ -5057,13 +5057,13 @@ def compute_T_matrix_line(line, start, end, particle_on_co=None,
 
         p_plus[kk] = particle_on_co.copy()
         setattr(p_plus[kk], kk, getattr(particle_on_co, kk) + steps['d' + kk])
-        R_plus[kk] = line.compute_one_turn_matrix_finite_differences(
+        R_plus[kk] = line.compute_R_matrix(
                             start=start, end=end,
                             particle_on_co=p_plus[kk])['R_matrix']
 
         p_minus[kk] = particle_on_co.copy()
         setattr(p_minus[kk], kk, getattr(particle_on_co, kk) - steps['d' + kk])
-        R_minus[kk] = line.compute_one_turn_matrix_finite_differences(
+        R_minus[kk] = line.compute_R_matrix(
                             start=start, end=end,
                             particle_on_co=p_minus[kk])['R_matrix']
 
@@ -5308,7 +5308,7 @@ def _compute_spin_polarization(tw, line, method):
         for kk in steps_R_matrix:
             steps_R_matrix[kk] *= 0.1
 
-        out = line.compute_one_turn_matrix_finite_differences(particle_on_co=tw.particle_on_co,
+        out = line.compute_R_matrix(particle_on_co=tw.particle_on_co,
                                                             element_by_element=True,
                                                             steps=steps_R_matrix)
         mon_r_ebe = out['mon_ebe']

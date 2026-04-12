@@ -22,7 +22,7 @@ import xtrack as xt
 from xtrack.aperture_meas import measure_aperture
 from xtrack.twiss import (DEFAULT_MATRIX_RESPONSIVENESS_TOL,
                           DEFAULT_MATRIX_STABILITY_TOL,
-                          compute_one_turn_matrix_finite_differences,
+                          compute_R_matrix,
                           compute_T_matrix_line, find_closed_orbit_line,
                           get_non_linear_chromaticity, twiss_line)
 
@@ -2384,7 +2384,21 @@ class Line:
         return {'det_xx': det_xx, 'det_yy': det_yy,
                 'det_xy': det_xy, 'det_yx': det_yx}
 
-    def compute_one_turn_matrix_finite_differences(
+
+    def compute_one_turn_matrix_finite_differences(self, *args, **kwargs):
+
+        """Deprecated. Compute the one turn matrix using finite differences.
+
+        .. warning:: This function is deprecated and will be removed in a future
+           version. Please use Line.compute_R_matrix(...) instead.
+        """
+
+        warn("`compute_one_turn_matrix_finite_differences` is deprecated, please use `compute_R_matrix` instead"
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
+
+        return self.compute_R_matrix(*args, **kwargs)
+
+    def compute_R_matrix(
             self, particle_on_co,
             steps=None,
             start=None, end=None,
@@ -2436,7 +2450,7 @@ class Line:
         else:
             line = self
 
-        return compute_one_turn_matrix_finite_differences(line, particle_on_co,
+        return compute_R_matrix(line, particle_on_co,
                         steps, start=start, end=end,
                         num_turns=num_turns,
                         element_by_element=element_by_element,

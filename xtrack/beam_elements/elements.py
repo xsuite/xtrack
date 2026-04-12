@@ -4234,7 +4234,7 @@ class SecondOrderTaylorMap(BeamElement):
 
         '''
         if start == end:
-            # start == end will lead to compute_one_turn_matrix_finite_differences() computing a
+            # start == end will lead to compute_R_matrix() computing a
             # full one-turn response matrix (but here we would rather expect identity)
             raise NotImplementedError('end element must be after start element')
 
@@ -4246,7 +4246,7 @@ class SecondOrderTaylorMap(BeamElement):
         twinit = tw.get_twiss_init(start)
         twinit_out = tw.get_twiss_init(end)
 
-        RR = line.compute_one_turn_matrix_finite_differences(
+        RR = line.compute_R_matrix(
             start=start, end=end, particle_on_co=twinit.particle_on_co
             )['R_matrix']
         TT = line.compute_T_matrix(start=start, end=end,
