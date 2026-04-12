@@ -1632,7 +1632,7 @@ class TrackerConfig(UserDict):
         if idx == 'XTRACK_USE_EXACT_DRIFTS' and val is True:
             warn('XTRACK_USE_EXACT_DRIFTS is deprecated, please use '
                  '`Line.config_drift_model("exact")`.'
-                 + DEPRECATION_INFO_PREP_1_0)
+                 + DEPRECATION_INFO_PREP_1_0, FutureWarning)
         if idx == 'data':
             object.__setattr__(self, idx, val)
         elif val is not False and val is not None:
