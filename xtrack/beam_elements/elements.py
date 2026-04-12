@@ -3771,7 +3771,7 @@ class LineSegmentMap(BeamElement):
             List of frequencies of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
         lag_rf : list of float
-            List of lag of the RF kicks in the segment. Only used if
+            List of lags in degrees of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
         dqx : float or list of float
             Horizontal linear chromaticity of the segment.
