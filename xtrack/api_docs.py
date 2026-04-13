@@ -23,12 +23,21 @@ def _wrap_friendly(text: str) -> str:
 def _first_sentence(doc: str | None) -> str:
     if not doc:
         return "TBD"
-    lines = [ll.strip() for ll in doc.splitlines() if ll.strip()]
-    if not lines:
+    paragraph_lines = []
+    for raw_line in doc.splitlines():
+        line = raw_line.strip()
+        if not line:
+            if paragraph_lines:
+                break
+            continue
+        paragraph_lines.append(line)
+
+    if not paragraph_lines:
         return "TBD"
-    first_line = lines[0]
-    head = first_line.split(".", 1)[0].strip()
-    out = head if head else first_line
+
+    paragraph = " ".join(paragraph_lines)
+    head = paragraph.split(".", 1)[0].strip()
+    out = head if head else paragraph
     return _wrap_friendly(out) if out else "TBD"
 
 
