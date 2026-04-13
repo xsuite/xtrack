@@ -119,8 +119,6 @@ class Line:
     corresponding beam element object.
     """
 
-    config = None
-
     def __init__(self, elements=None, element_names=None, particle_ref=None,
                  energy_program=None, env=None, compose=False,
                  components=None, length=None, refer=None, mirror=None, s_tol=None):
@@ -165,6 +163,12 @@ class Line:
             Difference between two s positions below which they should be
             treated as the same location. Can only be given if ``compose`` is true.
         """
+
+        self._composer = None
+        self._config = None
+        self._env = None
+        self._metadata = None
+        self._tracker = None
 
         self.config = xt.tracker.TrackerConfig()
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
@@ -1215,6 +1219,51 @@ class Line:
     @builder.setter
     def builder(self, value):
         self.composer = value
+
+    @property_with_doc_group("Compose Mode")
+    def composer(self):
+        """Builder used when the line is in ``compose`` mode."""
+        return self._composer
+
+    @composer.setter
+    def composer(self, value):
+        self._composer = value
+
+    @property_with_doc_group("Tracker Setup")
+    def config(self):
+        """Tracking configuration flags and options."""
+        return self._config
+
+    @config.setter
+    def config(self, value):
+        self._config = value
+
+    @property_with_doc_group("Inspection, Variables and Configuration")
+    def env(self):
+        """Environment to which this line belongs."""
+        return self._env
+
+    @env.setter
+    def env(self, value):
+        self._env = value
+
+    @property_with_doc_group("Inspection, Variables and Configuration")
+    def metadata(self):
+        """User metadata associated with the line."""
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, value):
+        self._metadata = value
+
+    @property_with_doc_group("Tracker Setup")
+    def tracker(self):
+        """Tracker associated with this line, if built."""
+        return self._tracker
+
+    @tracker.setter
+    def tracker(self, value):
+        self._tracker = value
 
     @property_with_doc_group("Inspection, Variables and Configuration")
     def attr(self):
