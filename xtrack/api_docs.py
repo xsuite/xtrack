@@ -15,12 +15,21 @@ def _slugify(text: str) -> str:
     return slug or "section"
 
 
+def _wrap_friendly(text: str) -> str:
+    # Add zero-width break opportunities for long snake_case names.
+    return text.replace("_", "_\u200b")
+
+
 def _first_sentence(doc: str | None) -> str:
     if not doc:
         return "TBD"
-    text = " ".join(doc.strip().split())
-    head = text.split(".", 1)[0].strip()
-    return head if head else "TBD"
+    lines = [ll.strip() for ll in doc.splitlines() if ll.strip()]
+    if not lines:
+        return "TBD"
+    first_line = lines[0]
+    head = first_line.split(".", 1)[0].strip()
+    out = head if head else first_line
+    return _wrap_friendly(out) if out else "TBD"
 
 
 def generate_categorized_class_rst(
@@ -74,6 +83,16 @@ def generate_categorized_class_rst(
     if include_summary_table:
         out.append("Summary\n")
         out.append("-------\n\n")
+        out.append(".. raw:: html\n\n")
+        out.append("   <style>\n")
+        out.append("   table.line-api-summary-table { width: 100%; table-layout: fixed; }\n")
+        out.append("   table.line-api-summary-table th,\n")
+        out.append("   table.line-api-summary-table td {\n")
+        out.append("     white-space: normal !important;\n")
+        out.append("     overflow-wrap: anywhere;\n")
+        out.append("     word-break: break-word;\n")
+        out.append("   }\n")
+        out.append("   </style>\n\n")
         for category in categories:
             cat_name = category["name"]
             methods = category.get("methods", [])
@@ -82,24 +101,28 @@ def generate_categorized_class_rst(
             cat_label = f"line-api-{cat_slug}"
 
             out.append(f".. list-table:: :ref:`{cat_name} <{cat_label}>`\n")
+            out.append("   :class: line-api-summary-table\n")
             out.append("   :header-rows: 1\n")
-            out.append("   :widths: 45 55\n\n")
+            out.append("   :width: 100%\n")
+            out.append("   :widths: 40 60\n\n")
             out.append("   * - Member\n")
             out.append("     - Description\n")
 
             for method in methods:
                 member_obj = getattr(cls, method)
                 desc = _first_sentence(inspect.getdoc(member_obj))
+                method_text = _wrap_friendly(f"{method}(...)")
                 out.append(
-                    f"   * - :ref:`{method}(...) <{cat_label}-method-{_slugify(method)}>`\n"
+                    f"   * - :ref:`{method_text} <{cat_label}-method-{_slugify(method)}>`\n"
                 )
                 out.append(f"     - {desc}\n")
 
             for prop in properties:
                 member_obj = getattr(cls, prop)
                 desc = _first_sentence(inspect.getdoc(member_obj))
+                prop_text = _wrap_friendly(prop)
                 out.append(
-                    f"   * - :ref:`{prop} <{cat_label}-property-{_slugify(prop)}>`\n"
+                    f"   * - :ref:`{prop_text} <{cat_label}-property-{_slugify(prop)}>`\n"
                 )
                 out.append(f"     - {desc}\n")
 
