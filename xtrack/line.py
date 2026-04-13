@@ -4814,6 +4814,26 @@ class Line:
     @doc_group("Line Editing")
     def replace_all_repeated_elements(self, separator='.', mode='clone',
                                       replace_generated_drifts=False):
+        """
+        Replace repeated element occurrences with newly named elements.
+
+        Parameters
+        ----------
+        separator : str, optional
+            Separator inserted between the original element name and the
+            generated index in the new element names. Default is '.'.
+        mode : str, optional
+            Creation mode passed to ``env.new(...)`` when generating each new
+            element from the repeated source element.
+        replace_generated_drifts : bool, optional
+            If ``False``, elements whose names start with ``'||drift_'`` are
+            skipped. If ``True``, repeated generated drifts are also replaced.
+
+        Returns
+        -------
+        None
+            This method modifies the line in place.
+        """
         self._method_incompatible_with_compose()
         env = self.env
 
@@ -4865,8 +4885,25 @@ class Line:
 
         return self.vars.eval(expr)
 
-    @doc_group("Line Editing")
+    @doc_group("Upcoming Deprecations")
     def extend(self, line):
+        """
+        Append elements from another line to this line.
+
+        Parameters
+        ----------
+        line : Line
+            Source line providing the `element_names` to append.
+
+        Returns
+        -------
+        None
+            This method modifies the line in place.
+
+        Notes
+        -----
+        Only the sequence of element names is extended.
+        """
         self._method_incompatible_with_compose()
         self.element_names.extend(line.element_names)
 
