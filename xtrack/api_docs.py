@@ -35,9 +35,7 @@ def _first_sentence(doc: str | None) -> str:
     if not paragraph_lines:
         return "TBD"
 
-    paragraph = " ".join(paragraph_lines)
-    head = paragraph.split(".", 1)[0].strip()
-    out = head if head else paragraph
+    out = " ".join(paragraph_lines).strip()
     return _wrap_friendly(out) if out else "TBD"
 
 
