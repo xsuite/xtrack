@@ -4666,6 +4666,21 @@ class Line:
 
     @doc_group("Line Editing")
     def mirror(self, inplace=True):
+        """
+        Reverse the order of elements in the line.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            If ``True`` (default), the line is modified in place.
+            If ``False``, a mirrored shallow copy is returned.
+            Default is ``True``.
+
+        Returns
+        -------
+        Line or None
+            Mirrored line when ``inplace=False``, otherwise ``None``.
+        """
         assert inplace in [True, False]
         if inplace == False:
             out = self.copy(shallow=True)
