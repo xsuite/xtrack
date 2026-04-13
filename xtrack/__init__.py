@@ -52,9 +52,9 @@ from .load import load, load_madx_lattice
 from .boris import BorisSpatialIntegrator
 
 from .multiline import Multiline
+from .api_docs import generate_categorized_class_rst, generate_line_rst
 
 from xdeps import FunctionPieceWiseLinear
 from .table import Table
 
 from ._version import __version__
-
