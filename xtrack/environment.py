@@ -1281,11 +1281,12 @@ class Environment:
     def set(self, name, *args, **kwargs):
         '''
         Set the values or expressions of variables or element properties.
+        A single call can set one or multiple variables or elements.
 
         Parameters
         ----------
-        name : str
-            Name(s) of the variable or element.
+        name : str or iterable of str
+            Name or names of the variable(s) or element(s).
         value: float or str
             Value or expression of the variable to set. Can be provided only
             if the name is associated to a variable.

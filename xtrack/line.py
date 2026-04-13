@@ -5026,10 +5026,48 @@ class Line:
 
     @doc_group("Inspection, Variables and Configuration")
     def set(self, name, *args, **kwargs):
+        '''
+        Set the values or expressions of variables or element properties.
+        A single call can set one or multiple variables or elements.
+
+        Parameters
+        ----------
+        name : str or iterable of str
+            Name or names of the variable(s) or element(s).
+        value: float or str
+            Value or expression of the variable to set. Can be provided only
+            if the name is associated to a variable.
+        **kwargs, float or str
+            Attributes to set. Can be provided only if the name is associated
+            to an element.
+
+        Examples
+        --------
+        >>> line.set('a', 0.1)
+        >>> line.set('k1', '3*a')
+        >>> line.set('quad', k1=0.1, k2='3*a')
+        >>> line.set(['quad1', 'quad2'], k1=0.1, k2='3*a')
+        >>> line.set(['c', 'd'], 0.1)
+        >>> line.set(['e', 'f'], '3*a')
+
+        '''
         self.env.set(name, *args, **kwargs)
 
     @doc_group("Inspection, Variables and Configuration")
     def get(self, key):
+        '''
+        Get an element or the value of a variable.
+
+        Parameters
+        ----------
+        key : str
+            Name of the element or variable.
+
+        Returns
+        -------
+        element : Element or float
+            Element or value of the variable.
+        '''
         return self.env.get(key)
 
     @doc_group("Inspection, Variables and Configuration")
@@ -5046,6 +5084,19 @@ class Line:
 
     @doc_group("Inspection, Variables and Configuration")
     def get_expr(self, var):
+        '''
+        Get expression associated to a variable
+
+        Parameters
+        ----------
+        var: str
+            Name of the variable
+
+        Returns
+        -------
+        expr : Expression
+            Expression associated to the variable
+        '''
         return self.env.get_expr(var)
 
     @doc_group("Inspection, Variables and Configuration")
