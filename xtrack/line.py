@@ -4797,6 +4797,20 @@ class Line:
 
     @doc_group("Line Editing")
     def replace_replica(self, name):
+        """
+        Replace a replica element a clone of its parent element. Expressions
+        on element attributes are preserved.
+
+        Parameters
+        ----------
+        name : str
+            Name of the replica element to replace.
+
+        Returns
+        -------
+        None
+            This method modifies the line environment in place.
+        """
         self._method_incompatible_with_compose()
         self.env.replace_replica(name)
 
@@ -4806,6 +4820,19 @@ class Line:
 
     @doc_group("Line Editing")
     def replace_all_replicas(self):
+        """
+        Replace all replica elements found in the line with clones of their
+        parent elements. Expressions on element attributes are preserved.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method modifies the line and its environment in place.
+        """
         self._method_incompatible_with_compose()
         for nn in self.element_names:
             if isinstance(self._element_dict[nn], xt.Replica):
