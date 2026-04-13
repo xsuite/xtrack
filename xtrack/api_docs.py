@@ -11,6 +11,12 @@ def _underline(text: str, char: str) -> str:
 
 
 def _slugify(text: str) -> str:
+    """Convert text into a stable anchor-friendly slug.
+
+    Lowercases the input, replaces non-alphanumeric characters with ``-``,
+    and trims leading/trailing dashes.
+    Example: ``"Tracking & Analysis" -> "tracking-analysis"``.
+    """
     slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
     return slug or "section"
 
