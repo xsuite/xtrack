@@ -53,21 +53,21 @@ def main():
     cls = xt.Line
     methods, properties = _public_methods_and_properties(cls)
 
-    missing_methods = sorted(name for name, member in methods if _is_missing_doc(member))
-    missing_properties = sorted(name for name, member in properties if _is_missing_doc(member))
+    missing_methods = [name for name, member in methods if _is_missing_doc(member)]
+    missing_properties = [name for name, member in properties if _is_missing_doc(member)]
 
     print(f"Class inspected: {cls.__module__}.{cls.__name__}")
     print()
 
     print(f"Methods missing doc ({len(missing_methods)}):")
     for name in missing_methods:
-        print(f"- [ ] {name}")
+        print(f"- {name}")
 
     print()
 
     print(f"Properties missing doc ({len(missing_properties)}):")
     for name in missing_properties:
-        print(f"- [ ] {name}")
+        print(f"- {name}")
 
 
 if __name__ == "__main__":
