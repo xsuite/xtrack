@@ -122,8 +122,8 @@ def generate_grouped_class_rst(
         out.append("   </style>\n\n")
         for group in groups:
             cat_name = group["name"]
-            methods = group.get("methods", [])
-            properties = group.get("properties", [])
+            methods = sorted(group.get("methods", []))
+            properties = sorted(group.get("properties", []))
             cat_slug = _slugify(cat_name)
             cat_label = f"line-api-{cat_slug}"
 
@@ -164,8 +164,8 @@ def generate_grouped_class_rst(
 
     for group in groups:
         cat_name = group["name"]
-        methods = group.get("methods", [])
-        properties = group.get("properties", [])
+        methods = sorted(group.get("methods", []))
+        properties = sorted(group.get("properties", []))
         cat_slug = _slugify(cat_name)
         cat_label = f"line-api-{cat_slug}"
         methods_label = f"{cat_label}-methods"
