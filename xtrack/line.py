@@ -4772,6 +4772,24 @@ class Line:
 
     @doc_group("Line Editing")
     def clone(self, suffix, mirror=False):
+        """
+        Create a cloned copy of the line with renamed independent elements.
+
+        Elements are cloned with the new name and expressions on element
+        attributes are preserved.
+
+        Parameters
+        ----------
+        suffix : str
+            Suffix appended to each cloned element name.
+        mirror : bool, optional
+            If ``True``, the cloned line is mirrored before being returned.
+
+        Returns
+        -------
+        Line
+            New line containing independent element copies.
+        """
         self._method_incompatible_with_compose()
         out = self.replicate(suffix=suffix, mirror=mirror)
         out.replace_all_replicas()
