@@ -104,6 +104,17 @@ def generate_grouped_class_rst(
         out.append("     overflow-wrap: anywhere;\n")
         out.append("     word-break: break-word;\n")
         out.append("   }\n")
+        out.append("   table.line-api-summary-table caption {\n")
+        out.append("     font-size: 1.10em !important;\n")
+        out.append("     font-weight: 600 !important;\n")
+        out.append("   }\n")
+        out.append("   table.line-api-summary-table caption .caption-text,\n")
+        out.append("   table.line-api-summary-table caption .caption-text a {\n")
+        out.append("     font-size: 1.10em !important;\n")
+        out.append("     font-weight: 600 !important;\n")
+        out.append("     font-style: normal !important;\n")
+        out.append("     line-height: 1.2 !important;\n")
+        out.append("   }\n")
         out.append("   </style>\n\n")
         for group in groups:
             cat_name = group["name"]
