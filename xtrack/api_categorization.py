@@ -1,4 +1,4 @@
-"""Utilities to annotate and collect categorized class APIs."""
+"""Utilities to annotate and collect grouped class APIs."""
 
 from __future__ import annotations
 
@@ -8,30 +8,30 @@ from typing import Iterable
 
 
 @dataclass(frozen=True)
-class CategorySpec:
+class GroupSpec:
     name: str
 
 
-class CategorizedAPICollector:
-    def __init__(self, category_order: Iterable[str]):
-        self.category_order = tuple(category_order)
-        self._category_set = set(self.category_order)
+class GroupedAPICollector:
+    def __init__(self, group_order: Iterable[str]):
+        self.group_order = tuple(group_order)
+        self._group_set = set(self.group_order)
 
-    def ensure_known_category(self, category: str) -> None:
-        if category not in self._category_set:
-            raise ValueError(f"Unknown API category: {category!r}")
+    def ensure_known_group(self, group: str) -> None:
+        if group not in self._group_set:
+            raise ValueError(f"Unknown doc group: {group!r}")
 
     def collect(self, cls):
         out = OrderedDict(
             (
-                category,
+                group,
                 {
-                    "name": category,
+                    "name": group,
                     "methods": [],
                     "properties": [],
                 },
             )
-            for category in self.category_order
+            for group in self.group_order
         )
 
         for name, member in cls.__dict__.items():
@@ -39,25 +39,25 @@ class CategorizedAPICollector:
                 continue
 
             if isinstance(member, property):
-                category = getattr(member.fget, "__api_category__", None)
-                if category is not None:
-                    self.ensure_known_category(category)
-                    out[category]["properties"].append(name)
+                group = getattr(member.fget, "__doc_group__", None)
+                if group is not None:
+                    self.ensure_known_group(group)
+                    out[group]["properties"].append(name)
                 continue
 
             if isinstance(member, (staticmethod, classmethod)):
                 func = member.__func__
-                category = getattr(member, "__api_category__", None)
-                if category is None:
-                    category = getattr(func, "__api_category__", None)
+                group = getattr(member, "__doc_group__", None)
+                if group is None:
+                    group = getattr(func, "__doc_group__", None)
             elif callable(member):
-                category = getattr(member, "__api_category__", None)
+                group = getattr(member, "__doc_group__", None)
             else:
-                category = None
+                group = None
 
-            if category is not None:
-                self.ensure_known_category(category)
-                out[category]["methods"].append(name)
+            if group is not None:
+                self.ensure_known_group(group)
+                out[group]["methods"].append(name)
 
         return [item for item in out.values() if item["methods"] or item["properties"]]
 
@@ -85,22 +85,22 @@ class CategorizedAPICollector:
         missing = sorted(public - categorized)
         if strict and missing:
             raise ValueError(
-                f"Uncategorized public API in {cls.__name__}: {missing}"
+                f"Ungrouped public API in {cls.__name__}: {missing}"
             )
         return missing
 
 
-def api_category(category: str):
+def doc_group(group: str):
     def decorator(obj):
-        setattr(obj, "__api_category__", category)
+        setattr(obj, "__doc_group__", group)
         return obj
 
     return decorator
 
 
-def property_with_category(category: str):
+def property_with_doc_group(group: str):
     def decorator(func):
-        setattr(func, "__api_category__", category)
+        setattr(func, "__doc_group__", group)
         return property(func)
 
     return decorator
