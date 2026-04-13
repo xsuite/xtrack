@@ -86,7 +86,7 @@ def generate_categorized_class_rst(
             methods_label = f"{cat_label}-methods"
             properties_label = f"{cat_label}-properties"
             method_links = [
-                f":ref:`{m} <{cat_label}-method-{_slugify(m)}>`"
+                f":ref:`{m}(...) <{cat_label}-method-{_slugify(m)}>`"
                 for m in methods
             ]
             property_links = [
@@ -94,10 +94,7 @@ def generate_categorized_class_rst(
                 for p in properties
             ]
 
-            out.append(f"{cat_name}\n")
-            out.append(f"{_underline(cat_name, '~')}\n\n")
-            out.append(f"Details: :ref:`{cat_name} <{cat_label}>`\n\n")
-            out.append(f".. list-table:: {cat_name} (compact)\n")
+            out.append(f".. list-table:: :ref:`{cat_name} <{cat_label}>`\n")
             out.append("   :header-rows: 1\n")
             out.append("   :widths: 50 50\n\n")
             out.append("   * - Methods\n")
