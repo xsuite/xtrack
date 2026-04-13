@@ -90,8 +90,8 @@ def generate_categorized_class_rst(
         out.append("   :local:\n")
         out.append("   :depth: 2\n\n")
     if include_summary_table:
-        out.append("Summary\n")
-        out.append("-------\n\n")
+        out.append("Members - sort description\n")
+        out.append("--------------------------\n\n")
         out.append(".. raw:: html\n\n")
         out.append("   <style>\n")
         out.append("   table.line-api-summary-table { width: 100%; table-layout: fixed; }\n")
@@ -156,16 +156,12 @@ def generate_categorized_class_rst(
 
         if methods:
             out.append(f".. _{methods_label}:\n\n")
-            out.append("Methods\n")
-            out.append("~~~~~~~\n\n")
             for method in methods:
                 out.append(f".. _{cat_label}-method-{_slugify(method)}:\n\n")
                 out.append(f".. automethod:: {full_name}.{method}\n\n")
 
         if include_properties and properties:
             out.append(f".. _{properties_label}:\n\n")
-            out.append("Properties\n")
-            out.append("~~~~~~~~~~\n\n")
             for prop in properties:
                 out.append(f".. _{cat_label}-property-{_slugify(prop)}:\n\n")
                 out.append(f".. autoproperty:: {full_name}.{prop}\n\n")
