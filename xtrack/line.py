@@ -26,6 +26,8 @@ from xtrack.twiss import (DEFAULT_MATRIX_RESPONSIVENESS_TOL,
                           compute_T_matrix_line, find_closed_orbit_line,
                           get_non_linear_chromaticity, twiss_line)
 
+from .api_categorization import (CategorizedAPICollector, api_category,
+                                 property_with_category)
 from . import beam_elements
 from . import json as json_utils
 from .beam_elements import (BeamElement, Drift, Marker, Multipole,
@@ -71,6 +73,28 @@ _ALLOWED_ELEMENT_TYPES_DICT = {
 
 _STR_ALLOWED_ELEMENT_TYPES_IN_NEW = ', '.join([tt.__name__ for tt in _ALLOWED_ELEMENT_TYPES_IN_NEW])
 
+
+
+LINE_API_CATEGORY_ORDER = (
+    "Composition, Editing & Replica Utilities",
+    "Compose Mode",
+    "Inspection, Query & Variables",
+    "Reference Particle & Particle Generation",
+    "Tracking & Analysis",
+    "Matching and Corrections",
+    "Magnet Model Configuration",
+    "Radiation, Spin & IBS",
+    "Energy & Longitudinal State",
+    "Tracker Setup",
+    "Constructors & Serialization",
+    "Logging",
+    "Cleanup & Simplification",
+    "MAD-NG Integration",
+    "Deprecated Methods",
+    "Upcoming Deprecations",
+)
+
+_LINE_API_COLLECTOR = CategorizedAPICollector(LINE_API_CATEGORY_ORDER)
 
 def find_index_repeated(item, lst,count=0):
     res=[ii for ii, nn in enumerate(lst) if nn == item]
@@ -242,6 +266,7 @@ class Line:
         self._line_before_slicing_cache = None
         self._element_names_before_slicing = None
 
+    @api_category("Constructors & Serialization")
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=(),
                   verbose=True, _env=None):
@@ -363,6 +388,7 @@ class Line:
 
         return self
 
+    @api_category("Constructors & Serialization")
     @classmethod
     def from_json(cls, file, **kwargs):
         """Constructs a line from a JSON file.
@@ -389,6 +415,7 @@ class Line:
 
         return cls.from_dict(dct_line, **kwargs)
 
+    @api_category("Constructors & Serialization")
     @classmethod
     def from_sequence(cls, nodes=None, length=None, elements=None,
                       sequences=None, copy_elements=False,
@@ -523,11 +550,13 @@ class Line:
 
         return cls(elements=element_objects, element_names=element_names, **kwargs)
 
+    @api_category("Deprecated Methods")
     @classmethod
     def from_sixinput(cls, sixinput, classes=()):
         """``Line.from_sixinput`` has been removed in favour of ``sixinput.generate_xtrack_line()``."""
         raise NotImplementedError(__doc__)
 
+    @api_category("Constructors & Serialization")
     @classmethod
     def from_madx_sequence(
         cls,
@@ -621,6 +650,7 @@ class Line:
         line = loader.make_line()
         return line
 
+    @api_category("Constructors & Serialization")
     def to_dict(self, include_var_management=True, include_element_dict=True,
                 include_version=False):
 
@@ -678,6 +708,7 @@ class Line:
 
         return out
 
+    @api_category("Constructors & Serialization")
     def to_madx_sequence(self, sequence_name, mode='sequence'):
         '''
         Return a MAD-X sequence corresponding to the line.
@@ -694,6 +725,7 @@ class Line:
         '''
         return to_madx_sequence(self, sequence_name, mode=mode)
 
+    @api_category("Constructors & Serialization")
     def to_madng(self, sequence_name='seq', temp_fname=None, keep_files=False,
                  **kwargs):
 
@@ -742,6 +774,7 @@ class Line:
     def __setstate__(self, state):
         self.__dict__.update(state)
 
+    @api_category("Constructors & Serialization")
     def to_json(self, file, indent=1, **kwargs):
         '''Save the line to a json file.
 
@@ -828,6 +861,7 @@ class Line:
 
         return out
 
+    @api_category("Upcoming Deprecations")
     def to_pandas(self):
         '''
         Return a pandas DataFrame with the elements of the line.
@@ -842,6 +876,7 @@ class Line:
         elements_df = pd.DataFrame(self._to_table_dict())
         return elements_df
 
+    @api_category("Inspection, Query & Variables")
     def get_table(self, attr=False):
 
         data = self._to_table_dict()
@@ -866,6 +901,7 @@ class Line:
         out = xd.Table(data=data, sep_count='::::')
         return out
 
+    @api_category("Inspection, Query & Variables")
     def get_strengths(self, reverse=None):
 
         self._method_incompatible_with_compose()
@@ -897,6 +933,7 @@ class Line:
             True: 'reverse', False: 'proper'}[reverse]
         return tab
 
+    @api_category("Upcoming Deprecations")
     def get_aperture_table(self, dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1),
                            y_range=(-0.1, 0.1)):
         '''
@@ -935,6 +972,7 @@ class Line:
         return xt.aperture_meas.measure_aperture(self,
             dx=1e-3, dy=1e-3, x_range=(-0.1, 0.1), y_range=(-0.1, 0.1))
 
+    @api_category("Composition, Editing & Replica Utilities")
     def copy(self, shallow=False, _context=None, _buffer=None):
         '''
         Return a copy of the line.
@@ -999,6 +1037,7 @@ class Line:
 
         return out
 
+    @api_category("Composition, Editing & Replica Utilities")
     def select(self, start=None, end=None, name=None):
 
         """
@@ -1048,6 +1087,7 @@ class Line:
 
         return out
 
+    @api_category("Compose Mode")
     def end_compose(self):
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
@@ -1060,23 +1100,27 @@ class Line:
             raise ValueError('Line is not in compose mode')
         self.composer.build(line=self, inplace=False)
 
+    @api_category("Compose Mode")
     def regenerate_from_composer(self):
         self._element_names = '__COMPOSE__'
         self._mode = 'compose'
         self.discard_tracker()
 
+    @api_category("Compose Mode")
     def place(self, *args, **kwargs):
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
         self.discard_tracker()
         self.composer.place(*args, **kwargs)
 
+    @api_category("Compose Mode")
     def new(self, *args, **kwargs):
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
         self.discard_tracker()
         return self.composer.new(*args, **kwargs)
 
+    @api_category("Tracker Setup")
     def build_tracker(
             self,
             _context=None,
@@ -1161,11 +1205,11 @@ class Line:
 
         return self.tracker
 
-    @property
+    @property_with_category("Compose Mode")
     def mode(self):
         return self._mode
 
-    @property
+    @property_with_category("Compose Mode")
     def builder(self):
        return self.composer
 
@@ -1173,7 +1217,7 @@ class Line:
     def builder(self, value):
         self.composer = value
 
-    @property
+    @property_with_category("Inspection, Query & Variables")
     def attr(self):
 
         if not self._has_valid_tracker():
@@ -1185,6 +1229,7 @@ class Line:
 
         return self.tracker._tracker_data_base.cache['attr']
 
+    @api_category("Reference Particle & Particle Generation")
     def set_particle_ref(self, *args, **kwargs):
         """
         Set the reference particle of the line. See `particle_ref` property.
@@ -1200,7 +1245,7 @@ class Line:
         else:
             self.particle_ref = xt.Particles(*args, **kwargs)
 
-    @property
+    @property_with_category("Reference Particle & Particle Generation")
     def particle_ref(self):
         if self._particle_ref is None:
             return None
@@ -1218,7 +1263,7 @@ class Line:
             self.particle_ref.t_sim = (
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
-    @property
+    @property_with_category("Radiation, Spin & IBS")
     def scattering(self):
         if not hasattr(self, '_scattering') or self._scattering is None:
             try:
@@ -1229,7 +1274,7 @@ class Line:
 
         return self._scattering
 
-    @property
+    @property_with_category("Radiation, Spin & IBS")
     def collimators(self):
         if not hasattr(self, '_collimators') or self._collimators is None:
             try:
@@ -1244,6 +1289,7 @@ class Line:
         import xpart as xp
         return xp.longitudinal.get_bucket(self)
 
+    @api_category("Tracker Setup")
     def discard_tracker(self):
 
         """
@@ -1261,6 +1307,7 @@ class Line:
             self.tracker._invalidate()
             self.tracker = None
 
+    @api_category("Tracking & Analysis")
     def track(
         self,
         particles,
@@ -1354,6 +1401,7 @@ class Line:
             multi_element_monitor_at=multi_element_monitor_at,
             **kwargs)
 
+    @api_category("Composition, Editing & Replica Utilities")
     def slice_thick_elements(self, slicing_strategies):
         """
         Slice thick elements in the line. Slicing is done in place.
@@ -1395,6 +1443,7 @@ class Line:
         slicer = Slicer(self, slicing_strategies)
         return slicer.slice_in_place()
 
+    @api_category("Reference Particle & Particle Generation")
     def build_particles(
         self,
         particle_ref=None,
@@ -1541,6 +1590,7 @@ class Line:
             include_collective=include_collective,
             **kwargs)
 
+    @api_category("Tracking & Analysis")
     def twiss(self, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None, zeta_shift=None,
@@ -1626,6 +1676,7 @@ class Line:
 
     twiss.__doc__ = twiss_line.__doc__
 
+    @api_category("Tracking & Analysis")
     def twiss4d(self, **kwargs):
 
         """
@@ -1637,6 +1688,7 @@ class Line:
         kwargs['method'] = '4d'
         return self.twiss(**kwargs)
 
+    @api_category("Tracking & Analysis")
     def twiss6d(self, **kwargs):
 
         """
@@ -1648,6 +1700,7 @@ class Line:
         kwargs['method'] = '6d'
         return self.twiss(**kwargs)
 
+    @api_category("Matching and Corrections")
     def match(self, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
                   solver_options={}, allow_twiss_failure=True,
@@ -1773,6 +1826,7 @@ class Line:
                         check_limits=check_limits, **kwargs)
 
 
+    @api_category("Matching and Corrections")
     def match_knob(self, knob_name, vary, targets,
                    knob_value_start=0, knob_value_end=1,
                    **kwargs):
@@ -1807,6 +1861,7 @@ class Line:
         return opt
 
 
+    @api_category("Tracking & Analysis")
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
                element0=0, reverse=None):
 
@@ -1912,6 +1967,7 @@ class Line:
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
 
+    @api_category("Matching and Corrections")
     def correct_trajectory(self, run=True, n_iter='auto', start=None, end=None,
                  twiss_table=None, planes=None,
                  monitor_names_x=None, corrector_names_x=None,
@@ -2073,6 +2129,7 @@ class Line:
                                 restore_if_fail=restore_if_fail)
         return opts
 
+    @api_category("Tracking & Analysis")
     def find_closed_orbit(self, co_guess=None, particle_ref=None,
                           co_search_settings={},
                           delta0=None, zeta0=None, zeta_shift=0,
@@ -2165,6 +2222,7 @@ class Line:
                                  num_turns_search_t_rev=num_turns_search_t_rev,
                                  symmetrize=symmetrize)
 
+    @api_category("Tracking & Analysis")
     def compute_T_matrix(self, start=None, end=None,
                          particle_on_co=None, steps=None,
                          steps_t_matrix=None # deprecated
@@ -2201,6 +2259,7 @@ class Line:
                                 particle_on_co=particle_on_co,
                                 steps=steps)
 
+    @api_category("Tracking & Analysis")
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
@@ -2295,6 +2354,7 @@ class Line:
 
         return fp
 
+    @api_category("Tracking & Analysis")
     def get_amplitude_detuning_coefficients(self, nemitt_x=1e-6, nemitt_y=1e-6,
                 num_turns=256, a0_sigmas=0.01, a1_sigmas=0.1, a2_sigmas=0.2):
 
@@ -2379,6 +2439,7 @@ class Line:
                 'det_xy': det_xy, 'det_yx': det_yx}
 
 
+    @api_category("Deprecated Methods")
     def compute_one_turn_matrix_finite_differences(self, *args, **kwargs):
 
         """Deprecated. Compute the one turn matrix using finite differences.
@@ -2392,6 +2453,7 @@ class Line:
 
         return self.compute_R_matrix(*args, **kwargs)
 
+    @api_category("Tracking & Analysis")
     def compute_R_matrix(
             self, particle_on_co,
             steps=None,
@@ -2451,6 +2513,7 @@ class Line:
                         only_markers=only_markers,
                         symmetrize=symmetrize)
 
+    @api_category("Tracking & Analysis")
     def get_non_linear_chromaticity(self,
                         delta0_range=(-1e-3, 1e-3), num_delta=5, fit_order=3, **kwargs):
 
@@ -2477,6 +2540,7 @@ class Line:
         return get_non_linear_chromaticity(self, delta0_range, num_delta,
                                            fit_order, **kwargs)
 
+    @api_category("Inspection, Query & Variables")
     def get_length(self) -> float:
 
         '''Get total length of the line'''
@@ -2489,6 +2553,7 @@ class Line:
 
         return ll
 
+    @api_category("Inspection, Query & Variables")
     def get_s_elements(self, mode="upstream"):
 
         '''Get s position for all elements
@@ -2507,6 +2572,7 @@ class Line:
 
         return self.get_s_position(mode=mode)
 
+    @api_category("Inspection, Query & Variables")
     def get_s_position(self, at_elements=None, mode="upstream"):
 
         '''Get s position for given elements
@@ -2615,6 +2681,7 @@ class Line:
 
         return cuts_for_element
 
+    @api_category("Composition, Editing & Replica Utilities")
     def cut_at_s(self, s: Iterable[float], s_tol=1e-6, return_slices=False):
         """Slice the line so that positions in s never fall inside an element."""
 
@@ -2639,6 +2706,7 @@ class Line:
         if return_slices:
             return slices
 
+    @api_category("Composition, Editing & Replica Utilities")
     def append(self, what, obj=None):
 
         """
@@ -2709,6 +2777,7 @@ class Line:
         self.element_names.clear()
         self.element_names.extend(ln_extended.element_names)
 
+    @api_category("Composition, Editing & Replica Utilities")
     def insert(self, what, obj=None, at=None, from_=None, anchor=None,
                from_anchor=None, s_tol=1e-10):
         """
@@ -2878,6 +2947,7 @@ class Line:
         self.element_names.clear()
         self.element_names.extend(element_names)
 
+    @api_category("Composition, Editing & Replica Utilities")
     def remove(self, name, s_tol=1e-10):
 
         """
@@ -2926,6 +2996,7 @@ class Line:
             self.element_names = [nn for ii, nn in enumerate(self.element_names)
                                 if ii not in idx_remove]
 
+    @api_category("Composition, Editing & Replica Utilities")
     def replace(self, name, new_name, s_tol=1e-10):
 
         """
@@ -2992,6 +3063,7 @@ class Line:
         return tt_match
 
     # To be deprecated in favor of Line.insert
+    @api_category("Deprecated Methods")
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
         """Insert an element in the line.
@@ -3100,6 +3172,7 @@ class Line:
 
         return self
 
+    @api_category("Deprecated Methods")
     def append_element(self, element, name):
         """Append element to the end of the lattice
 
@@ -3129,6 +3202,7 @@ class Line:
         self.element_names.append(name)
         return self
 
+    @api_category("Upcoming Deprecations")
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """
         Return a new line with only the elements satisfying a given condition.
@@ -3189,6 +3263,7 @@ class Line:
 
         return new_line
 
+    @api_category("Composition, Editing & Replica Utilities")
     def cycle(self, index_first_element=None, name_first_element=None,
               inplace=True):
 
@@ -3264,6 +3339,7 @@ class Line:
 
         return new_line
 
+    @api_category("Energy & Longitudinal State")
     def freeze_energy(self, state=True, force=False):
 
         """
@@ -3294,6 +3370,7 @@ class Line:
                 return False
         return True
 
+    @api_category("Energy & Longitudinal State")
     def freeze_longitudinal(self, state=True):
 
         """
@@ -3318,6 +3395,7 @@ class Line:
         else:
             self.unfreeze_vars(xt.Particles.part_energy_varnames() + ['zeta'])
 
+    @api_category("Upcoming Deprecations")
     def freeze_vars(self, variable_names):
 
         """
@@ -3338,6 +3416,7 @@ class Line:
     def _var_is_frozen(self, variable_name):
         return self.config[f'FREEZE_VAR_{variable_name}'] == True
 
+    @api_category("Upcoming Deprecations")
     def unfreeze_vars(self, variable_names):
 
         """
@@ -3355,6 +3434,7 @@ class Line:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
+    @api_category("Magnet Model Configuration")
     def configure_drift_model(self, model=None):
 
         """
@@ -3379,6 +3459,7 @@ class Line:
             if model is not None and isinstance(ee, xt.Drift):
                 ee.model = model
 
+    @api_category("Magnet Model Configuration")
     def configure_bend_model(
             self,
             core=None,
@@ -3476,6 +3557,7 @@ class Line:
             if model is not None:
                 ee.model = model
 
+    @api_category("Magnet Model Configuration")
     def configure_quadrupole_model(self,
             model: Optional[str] = None,
             edge: Optional[Literal['full']] = None,
@@ -3492,6 +3574,7 @@ class Line:
             integrator=integrator,
         )
 
+    @api_category("Magnet Model Configuration")
     def configure_sextupole_model(
             self,
             model: Optional[str] = None,
@@ -3508,6 +3591,7 @@ class Line:
             integrator=integrator,
         )
 
+    @api_category("Magnet Model Configuration")
     def configure_octupole_model(
             self,
             model: Optional[str] = None,
@@ -3524,6 +3608,7 @@ class Line:
             integrator=integrator,
         )
 
+    @api_category("Radiation, Spin & IBS")
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
 
@@ -3611,6 +3696,7 @@ class Line:
         else:
             self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
 
+    @api_category("Radiation, Spin & IBS")
     def configure_spin(self, spin_model: Literal[True, False, None, 'auto'] = None):
         """
         Configure the spin model for the line.
@@ -3632,6 +3718,7 @@ class Line:
 
         self._update_synrad_compile_flag()
 
+    @api_category("Radiation, Spin & IBS")
     def configure_intrabeam_scattering(
         self, element = None,
         update_every: int = None,
@@ -3686,6 +3773,7 @@ class Line:
             self, element=element, update_every=update_every, **kwargs
         )
 
+    @api_category("Radiation, Spin & IBS")
     def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
@@ -3716,6 +3804,7 @@ class Line:
         self._check_valid_tracker()
         compensate_radiation_energy_loss(self, **all_kwargs)
 
+    @api_category("Cleanup & Simplification")
     def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
 
         """
@@ -3793,6 +3882,7 @@ class Line:
         if compile:
             _ = self.tracker.get_track_kernel_and_data_for_present_config()
 
+    @api_category("Logging")
     def start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity):
         """
@@ -3816,6 +3906,7 @@ class Line:
         return start_internal_logging_for_elements_of_type(self.tracker,
                                                     element_type, capacity)
 
+    @api_category("Logging")
     def stop_internal_logging_for_all_elements(self, reinitialize_io_buffer=False):
         """
         Stop internal logging for all elements.
@@ -3833,6 +3924,7 @@ class Line:
         if reinitialize_io_buffer:
             self.tracker._init_io_buffer()
 
+    @api_category("Logging")
     def stop_internal_logging_for_elements_of_type(self, element_type):
 
         """
@@ -3848,6 +3940,7 @@ class Line:
         self._check_valid_tracker()
         stop_internal_logging_for_elements_of_type(self.tracker, element_type)
 
+    @api_category("Composition, Editing & Replica Utilities")
     def extend_knl_ksl(self, order, element_names=None):
 
         """
@@ -3872,6 +3965,7 @@ class Line:
 
         self.env.extend_knl_ksl(order, element_names)
 
+    @api_category("Composition, Editing & Replica Utilities")
     def extend_knl_rel_ksl_rel(self, order, element_names=None):
 
         """
@@ -3896,6 +3990,7 @@ class Line:
 
         self.env.extend_knl_rel_ksl_rel(order, element_names)
 
+    @api_category("Cleanup & Simplification")
     def remove_markers(self, inplace=True, keep=None):
         """
         Remove markers from the line
@@ -3928,6 +4023,7 @@ class Line:
         else:
             return newline
 
+    @api_category("Cleanup & Simplification")
     def remove_inactive_multipoles(self, inplace=True, keep=None):
 
         '''
@@ -3978,6 +4074,7 @@ class Line:
         else:
             return newline
 
+    @api_category("Cleanup & Simplification")
     def remove_zero_length_drifts(self, inplace=True, keep=None):
         """
         Remove zero length drifts from the line
@@ -4022,6 +4119,7 @@ class Line:
         else:
             return newline
 
+    @api_category("Cleanup & Simplification")
     def merge_consecutive_drifts(self, inplace=True, keep=None):
         """
         Merge consecutive drifts into a single drift
@@ -4074,6 +4172,7 @@ class Line:
         self.element_names = newline.element_names
         return self
 
+    @api_category("Cleanup & Simplification")
     def remove_redundant_apertures(self, inplace=True, keep=None,
                                   drifts_that_need_aperture=[]):
 
@@ -4163,6 +4262,7 @@ class Line:
 
         return newline
 
+    @api_category("Cleanup & Simplification")
     def use_simple_quadrupoles(self):
         '''
         Replace multipoles having only the normal quadrupolar component
@@ -4180,6 +4280,7 @@ class Line:
                 )
                 self._element_dict[name] = fast_quad
 
+    @api_category("Cleanup & Simplification")
     def use_simple_bends(self):
         '''
         Replace multipoles having only the horizontal dipolar component
@@ -4199,6 +4300,7 @@ class Line:
                 )
                 self._element_dict[name] = fast_di
 
+    @api_category("Upcoming Deprecations")
     def get_elements_of_type(self, types):
 
         '''Get all elements of given type(s)
@@ -4232,6 +4334,7 @@ class Line:
 
         return elements, names
 
+    @api_category("Upcoming Deprecations")
     def check_aperture(self, needs_aperture=[]):
 
         '''Check that all active elements have an associated aperture.
@@ -4343,6 +4446,7 @@ class Line:
 
         return elements_df
 
+    @api_category("Cleanup & Simplification")
     def merge_consecutive_multipoles(self, inplace=True, keep=None):
         '''
         Merge consecutive multipoles into one multipole.
@@ -4423,6 +4527,7 @@ class Line:
         else:
             return newline
 
+    @api_category("Tracking & Analysis")
     def get_line_with_second_order_maps(self, split_at):
 
         '''
@@ -4476,6 +4581,7 @@ class Line:
 
         return line_maps
 
+    @api_category("Matching and Corrections")
     def target(self, tar, value, **kwargs):
 
         action = ActionLine(line=self)
@@ -4486,6 +4592,7 @@ class Line:
             return
         self.element_names = tuple(self.element_names)
 
+    @api_category("Deprecated Methods")
     def unfreeze(self):
         """Use :meth:`Line.discard_tracker` instead.
 
@@ -4508,6 +4615,7 @@ class Line:
                 'This action is not allowed as the line is frozen! '
                 'You can unfreeze the line by calling the `discard_tracker()` method.')
 
+    @api_category("Composition, Editing & Replica Utilities")
     def mirror(self, inplace=True):
         assert inplace in [True, False]
         if inplace == False:
@@ -4557,6 +4665,7 @@ class Line:
     def __sub__(self, other):
         return self + (-other)
 
+    @api_category("Composition, Editing & Replica Utilities")
     def replicate(self, suffix, mirror=False):
 
         self._method_incompatible_with_compose()
@@ -4577,25 +4686,30 @@ class Line:
 
         return out
 
+    @api_category("Composition, Editing & Replica Utilities")
     def clone(self, suffix, mirror=False):
         self._method_incompatible_with_compose()
         out = self.replicate(suffix=suffix, mirror=mirror)
         out.replace_all_replicas()
         return out
 
+    @api_category("Composition, Editing & Replica Utilities")
     def replace_replica(self, name):
         self._method_incompatible_with_compose()
         self.env.replace_replica(name)
 
+    @api_category("Upcoming Deprecations")
     def copy_element_from(self, name, source, new_name=None):
         return self.env.copy_element_from(name, source, new_name)
 
+    @api_category("Composition, Editing & Replica Utilities")
     def replace_all_replicas(self):
         self._method_incompatible_with_compose()
         for nn in self.element_names:
             if isinstance(self._element_dict[nn], xt.Replica):
                 self.replace_replica(nn)
 
+    @api_category("Composition, Editing & Replica Utilities")
     def replace_all_repeated_elements(self, separator='.', mode='clone',
                                       replace_generated_drifts=False):
         self._method_incompatible_with_compose()
@@ -4631,6 +4745,7 @@ class Line:
 #        else:
 #            raise KeyError(f'Element or variable {key} not found')
 
+    @api_category("Inspection, Query & Variables")
     def eval(self, expr):
         '''
         Get the value of an expression
@@ -4648,6 +4763,7 @@ class Line:
 
         return self.vars.eval(expr)
 
+    @api_category("Composition, Editing & Replica Utilities")
     def extend(self, line):
         self._method_incompatible_with_compose()
         self.element_names.extend(line.element_names)
@@ -4657,6 +4773,7 @@ class Line:
             return 0
         return len(self.element_names)
 
+    @api_category("Inspection, Query & Variables")
     def items(self):
         self._method_incompatible_with_compose()
         for name in self.element_names:
@@ -4678,7 +4795,7 @@ class Line:
                 "This line does not have a valid tracker. "
                 "Please build the tracke using `line.build_tracker(...)`.")
 
-    @property
+    @property_with_category("Inspection, Query & Variables")
     def name(self):
         '''Name of the line (if it is part of a `MultiLine`)'''
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
@@ -4688,7 +4805,7 @@ class Line:
         else:
             return getattr(self, '_name', None)
 
-    @property
+    @property_with_category("Tracker Setup")
     def iscollective(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
@@ -4712,59 +4829,72 @@ class Line:
     def _line_vars(self):
         return self.env._line_vars
 
-    @property
+    @property_with_category("Logging")
     def record_last_track(self):
         self._check_valid_tracker()
         return self.tracker.record_last_track
 
-    @property
+    @property_with_category("Logging")
     def record_multi_element_last_track(self):
         self._check_valid_tracker()
         return self.tracker.record_multi_element_last_track
 
-    @property
+    @property_with_category("Inspection, Query & Variables")
     def vars(self):
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline.vars
         else:
             return self.env.vars
 
-    @property
+    @property_with_category("Inspection, Query & Variables")
     def ref(self):
         return self.env.ref
 
-    @property
+    @property_with_category("Inspection, Query & Variables")
     def varval(self):
         return self.vars.val
 
-    @property
+    @property_with_category("Inspection, Query & Variables")
     def vv(self): # Shorter alias
         return self.vars.val
 
+    @api_category("Inspection, Query & Variables")
     def set(self, name, *args, **kwargs):
         self.env.set(name, *args, **kwargs)
 
+    @api_category("Inspection, Query & Variables")
     def get(self, key):
         return self.env.get(key)
 
+    @api_category("Inspection, Query & Variables")
     def info(self, key, limit=30):
         return self.env.info(key, limit=limit)
 
+    @classmethod
+    def _get_api_categories_dict(cls):
+        """Return categorized API methods as a dictionary of lists."""
+        return {
+            item['name']: list(item['methods'])
+            for item in cls.__api_categories__
+        }
+
+    @api_category("Inspection, Query & Variables")
     def get_expr(self, var):
         return self.env.get_expr(var)
 
+    @api_category("Inspection, Query & Variables")
     def new_expr(self, var):
         return self.env.new_expr(var)
 
-    @property
+    @property_with_category("Inspection, Query & Variables")
     def ref_manager(self):
         return self.env.ref_manager
 
-    @property
+    @property_with_category("Inspection, Query & Variables")
     def functions(self):
         return self._xdeps_fref
 
-    @property
+    @property_with_category("Composition, Editing & Replica Utilities")
     def element_dict(self):
         return self.env.element_dict
 
@@ -4772,7 +4902,7 @@ class Line:
     def _element_dict(self):
         return self.env._element_dict
 
-    @property
+    @property_with_category("Composition, Editing & Replica Utilities")
     def element_refs(self):
         if hasattr(self, '_in_multiline'):
             var_sharing = self._in_multiline._var_sharing
@@ -4801,11 +4931,11 @@ class Line:
     def _xdeps_eval(self):
         return self.env._xdeps_eval
 
-    @property
+    @property_with_category("Inspection, Query & Variables")
     def vv(self):  # Shorter alias
         return self.vars.val
 
-    @property
+    @property_with_category("Composition, Editing & Replica Utilities")
     def element_names(self):
         return self._element_names
 
@@ -4816,7 +4946,7 @@ class Line:
         self._frozen_check()
         self._element_names = value
 
-    @property
+    @property_with_category("Composition, Editing & Replica Utilities")
     def elements(self):
         return tuple([self.env.elements[nn] for nn in self.element_names])
 
@@ -4824,7 +4954,7 @@ class Line:
     def _elements(self):
         return [self.env._element_dict[nn] for nn in self.element_names]
 
-    @property
+    @property_with_category("Tracker Setup")
     def skip_end_turn_actions(self):
         return self._extra_config['skip_end_turn_actions']
 
@@ -4832,7 +4962,7 @@ class Line:
     def skip_end_turn_actions(self, value):
         self._extra_config['skip_end_turn_actions'] = value
 
-    @property
+    @property_with_category("Tracker Setup")
     def reset_s_at_end_turn(self):
         return self._extra_config['reset_s_at_end_turn']
 
@@ -4840,7 +4970,7 @@ class Line:
     def reset_s_at_end_turn(self, value):
         self._extra_config['reset_s_at_end_turn'] = value
 
-    @property
+    @property_with_category("Tracker Setup")
     def matrix_responsiveness_tol(self):
         return self._extra_config['matrix_responsiveness_tol']
 
@@ -4848,7 +4978,7 @@ class Line:
     def matrix_responsiveness_tol(self, value):
         self._extra_config['matrix_responsiveness_tol'] = value
 
-    @property
+    @property_with_category("Tracker Setup")
     def matrix_stability_tol(self):
         return self._extra_config['matrix_stability_tol']
 
@@ -4896,7 +5026,7 @@ class Line:
     def _needs_rng(self, value):
         self._extra_config['_needs_rng'] = value
 
-    @property
+    @property_with_category("Energy & Longitudinal State")
     def enable_time_dependent_vars(self):
         return self._extra_config['enable_time_dependent_vars']
 
@@ -4905,7 +5035,7 @@ class Line:
         assert value in (True, False)
         self._extra_config['enable_time_dependent_vars'] = value
 
-    @property
+    @property_with_category("Energy & Longitudinal State")
     def dt_update_time_dependent_vars(self):
         return self._extra_config['dt_update_time_dependent_vars']
 
@@ -4921,16 +5051,16 @@ class Line:
     def _t_last_update_time_dependent_vars(self, value):
         self._extra_config['_t_last_update_time_dependent_vars'] = value
 
-    @property
+    @property_with_category("Tracking & Analysis")
     def time_last_track(self):
         self._check_valid_tracker()
         return self.tracker.time_last_track
 
-    @property
+    @property_with_category("Tracking & Analysis")
     def twiss_default(self):
         return self._extra_config['twiss_default']
 
-    @property
+    @property_with_category("Energy & Longitudinal State")
     def energy_program(self):
         try:
             out = self._element_dict['energy_program']
@@ -4952,7 +5082,7 @@ class Line:
         self.energy_program.line = self
         self._xdeps_eref['energy_program'].t_turn_s_line = self.vars['t_turn_s']
 
-    @property
+    @property_with_category("Matching and Corrections")
     def steering_monitors_x(self):
         return self._extra_config.get('steering_monitors_x', None)
 
@@ -4960,7 +5090,7 @@ class Line:
     def steering_monitors_x(self, value):
         self._extra_config['steering_monitors_x'] = value
 
-    @property
+    @property_with_category("Matching and Corrections")
     def steering_monitors_y(self):
         return self._extra_config.get('steering_monitors_y', None)
 
@@ -4968,7 +5098,7 @@ class Line:
     def steering_monitors_y(self, value):
         self._extra_config['steering_monitors_y'] = value
 
-    @property
+    @property_with_category("Matching and Corrections")
     def steering_correctors_x(self):
         return self._extra_config.get('steering_correctors_x', None)
 
@@ -4976,7 +5106,7 @@ class Line:
     def steering_correctors_x(self, value):
         self._extra_config['steering_correctors_x'] = value
 
-    @property
+    @property_with_category("Matching and Corrections")
     def steering_correctors_y(self):
         return self._extra_config.get('steering_correctors_y', None)
 
@@ -4984,7 +5114,7 @@ class Line:
     def steering_correctors_y(self, value):
         self._extra_config['steering_correctors_y'] = value
 
-    @property
+    @property_with_category("Matching and Corrections")
     def corrector_limits_x(self):
         return self._extra_config.get('corrector_limits_x', None)
 
@@ -4992,7 +5122,7 @@ class Line:
     def corrector_limits_x(self, value):
         self._extra_config['corrector_limits_x'] = value
 
-    @property
+    @property_with_category("Matching and Corrections")
     def corrector_limits_y(self):
         return self._extra_config.get('corrector_limits_y', None)
 
@@ -5429,11 +5559,11 @@ class Line:
                 'To exit the compose mode, use `line.end_compose()`.'
             )
 
-    build_madng_model = build_madng_model
-    discard_madng_model = discard_madng_model
-    regen_madng_model = regen_madng_model
-    madng_twiss = _tw_ng
-    madng_survey = _survey_ng
+    build_madng_model = api_category("MAD-NG Integration")(build_madng_model)
+    discard_madng_model = api_category("MAD-NG Integration")(discard_madng_model)
+    regen_madng_model = api_category("MAD-NG Integration")(regen_madng_model)
+    madng_twiss = api_category("MAD-NG Integration")(_tw_ng)
+    madng_survey = api_category("MAD-NG Integration")(_survey_ng)
 
 
 def _deserialize_element(el, class_dict, _buffer):
@@ -5759,6 +5889,10 @@ def _temp_knobs(line_or_trk, knobs: dict):
             line_or_trk.vars[kk] = vv
 
 
+Line.__api_categories__ = _LINE_API_COLLECTOR.collect(Line)
+Line.__api_uncategorized__ = _LINE_API_COLLECTOR.validate(Line, strict=False)
+
+
 class LineAttrItem:
 
     def __init__(self, name, index=None, line=None, dtype=None):
@@ -6081,14 +6215,12 @@ class EnergyProgram:
         p0c = self.get_p0c_at_t_s(value)
         self.line.particle_ref.update_p0c_and_energy_deviations(
                                                     p0c=p0c, update_pxpy=True)
-
     def to_dict(self):
         assert not self.needs_complete, 'EnergyProgram not completed'
         return {
             '__class__': self.__class__.__name__,
             't_at_turn_interpolator': self.t_at_turn_interpolator.to_dict(),
             'p0c_interpolator': self.p0c_interpolator.to_dict()}
-
     @classmethod
     def from_dict(cls, dct):
         self = cls.__new__(cls)
@@ -6098,7 +6230,6 @@ class EnergyProgram:
                                         dct['p0c_interpolator'])
         self.needs_complete = False
         return self
-
     def copy(self, _context=None, _buffer=None, _offeset=None):
         return self.from_dict(self.to_dict())
 
@@ -6183,8 +6314,6 @@ class LineParticleRef:
             return self.line.env[_particle_ref]
         else:
             return _particle_ref
-
-    @property
     def name(self):
         _particle_ref = self.line._particle_ref
         if isinstance(_particle_ref, str):
@@ -6200,7 +6329,6 @@ class LineParticleRef:
             object.__setattr__(self, key, value)
         else:
             setattr(self._resolved, key, value)
-
     def copy(self, **kwargs):
         return self._resolved.copy(**kwargs)
 
