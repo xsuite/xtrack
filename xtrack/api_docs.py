@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import re
 
 
@@ -14,14 +15,12 @@ def _slugify(text: str) -> str:
     return slug or "section"
 
 
-def _append_cell_with_links(out: list[str], base_indent: str, links: list[str]):
-    if not links:
-        out.append(f"{base_indent}-\n")
-        return
-    out.append(f"{base_indent}{links[0]}\n")
-    cont_indent = " " * len(base_indent)
-    for text in links[1:]:
-        out.append(f"{cont_indent}|br| {text}\n")
+def _first_sentence(doc: str | None) -> str:
+    if not doc:
+        return "TBD"
+    text = " ".join(doc.strip().split())
+    head = text.split(".", 1)[0].strip()
+    return head if head else "TBD"
 
 
 def generate_categorized_class_rst(
@@ -75,32 +74,38 @@ def generate_categorized_class_rst(
     if include_summary_table:
         out.append("Summary\n")
         out.append("-------\n\n")
-        out.append(".. |br| raw:: html\n\n")
-        out.append("   <br />\n\n")
         for category in categories:
             cat_name = category["name"]
             methods = category.get("methods", [])
             properties = category.get("properties", [])
             cat_slug = _slugify(cat_name)
             cat_label = f"line-api-{cat_slug}"
-            methods_label = f"{cat_label}-methods"
-            properties_label = f"{cat_label}-properties"
-            method_links = [
-                f":ref:`{m}(...) <{cat_label}-method-{_slugify(m)}>`"
-                for m in methods
-            ]
-            property_links = [
-                f":ref:`{p} <{cat_label}-property-{_slugify(p)}>`"
-                for p in properties
-            ]
 
             out.append(f".. list-table:: :ref:`{cat_name} <{cat_label}>`\n")
             out.append("   :header-rows: 1\n")
-            out.append("   :widths: 50 50\n\n")
-            out.append("   * - Methods\n")
-            out.append("     - Properties\n")
-            _append_cell_with_links(out, "   * - ", method_links)
-            _append_cell_with_links(out, "     - ", property_links)
+            out.append("   :widths: 45 55\n\n")
+            out.append("   * - Member\n")
+            out.append("     - Description\n")
+
+            for method in methods:
+                member_obj = getattr(cls, method)
+                desc = _first_sentence(inspect.getdoc(member_obj))
+                out.append(
+                    f"   * - :ref:`{method}(...) <{cat_label}-method-{_slugify(method)}>`\n"
+                )
+                out.append(f"     - {desc}\n")
+
+            for prop in properties:
+                member_obj = getattr(cls, prop)
+                desc = _first_sentence(inspect.getdoc(member_obj))
+                out.append(
+                    f"   * - :ref:`{prop} <{cat_label}-property-{_slugify(prop)}>`\n"
+                )
+                out.append(f"     - {desc}\n")
+
+            if not methods and not properties:
+                out.append("   * - -\n")
+                out.append("     - -\n")
             out.append("\n")
         out.append("\n")
 
