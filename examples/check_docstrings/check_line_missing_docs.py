@@ -61,13 +61,13 @@ def main():
 
     print(f"Methods missing doc ({len(missing_methods)}):")
     for name in missing_methods:
-        print(f"- {name}")
+        print(f"- [ ] {name}")
 
     print()
 
     print(f"Properties missing doc ({len(missing_properties)}):")
     for name in missing_properties:
-        print(f"- {name}")
+        print(f"- [ ] {name}")
 
 
 if __name__ == "__main__":

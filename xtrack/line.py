@@ -718,12 +718,6 @@ class Line:
                              **kwargs)
 
 
-    build_madng_model = build_madng_model
-    discard_madng_model = discard_madng_model
-    regen_madng_model = regen_madng_model
-    madng_twiss = _tw_ng
-    madng_survey = _survey_ng
-
     def __repr__(self):
         if hasattr(self, '_name'):
             name = self._name
@@ -5435,6 +5429,11 @@ class Line:
                 'To exit the compose mode, use `line.end_compose()`.'
             )
 
+    build_madng_model = build_madng_model
+    discard_madng_model = discard_madng_model
+    regen_madng_model = regen_madng_model
+    madng_twiss = _tw_ng
+    madng_survey = _survey_ng
 
 
 def _deserialize_element(el, class_dict, _buffer):
