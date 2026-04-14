@@ -5225,6 +5225,57 @@ class Line:
 
     @property_with_doc_group("Inspection, Variables and Configuration")
     def ref(self):
+        """
+        xdeps reference container for variables and element fields.
+
+        Returns
+        -------
+        ref : object
+            Dictionary-like container of references used in expressions.
+
+        Examples
+        --------
+        >>> env = xt.Environment()
+        >>> env['a'] = 3
+        >>> line = env.new_line(length=10, components=[
+        ...     env.new('qf', 'Quadrupole', length=1, k1='2*a', at=2.5),
+        ...     env.new('qd', 'Quadrupole', length=1, k1='-2*a', at=7.5)])
+        >>> line.ref['a']._info()
+        #  vars['a']._get_value()
+           vars['a'] = 3
+        #
+        #  vars['a']._expr is None
+        #
+        #  vars['a']._find_dependant_targets()
+           element_refs['qd'].k1
+           element_refs['qf'].k1
+        >>> line.ref['qd'].k1._info()
+        #  element_refs['qd'].k1._get_value()
+           element_refs['qd'].k1 = -6.0
+        #
+        #  element_refs['qd'].k1._expr
+           element_refs['qd'].k1 = (-2.0 * vars['a'])
+        #
+        #  element_refs['qd'].k1._expr._get_dependencies()
+           vars['a'] = 3
+        #
+        #  element_refs['qd'].k1 does not influence any target
+        >>> line.ref['qd'].k1._expr
+        (-2.0 * vars['a'])
+        >>> env['b'] = line.functions.sqrt(line.ref['a'])
+        >>> env.ref['b']._info()
+        #  vars['b']._get_value()
+           vars['b'] = 1.7320508075688772
+        #
+        #  vars['b']._expr
+           vars['b'] = f.sqrt(vars['a'])
+        #
+        #  vars['b']._expr._get_dependencies()
+           vars['a'] = 3
+           f.sqrt = <built-in function sqrt>
+        #
+        #  vars['b'] does not influence any target
+        """
         return self.env.ref
 
     @property_with_doc_group("Inspection, Variables and Configuration")
