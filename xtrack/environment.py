@@ -644,7 +644,7 @@ class Environment:
     def copy(self):
         return self.__class__.from_dict(self.to_dict())
 
-    @doc_group("Members")
+    @doc_group("Upcoming deprecations")
     def copy_element_from(self, name, source, new_name=None):
         """Copy an element from another environment.
 
@@ -992,7 +992,7 @@ class Environment:
 
         xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
 
-    @doc_group("Members")
+    @doc_group("Upcoming deprecations")
     @classmethod
     def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
         '''
@@ -1251,7 +1251,7 @@ class Environment:
     def vars(self):
         return self._line_vars
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Upcoming deprecations")
     def varval(self):
         return self.vars.val
 
@@ -1664,9 +1664,9 @@ class Environment:
     build_trackers = doc_group("Members")(MultilineLegacy.build_trackers)
     match = doc_group("Members")(MultilineLegacy.match)
     match_knob = doc_group("Members")(MultilineLegacy.match_knob)
-    install_beambeam_interactions = doc_group("Members")(
+    install_beambeam_interactions = doc_group("Upcoming deprecations")(
         MultilineLegacy.install_beambeam_interactions)
-    configure_beambeam_interactions = doc_group("Members")(
+    configure_beambeam_interactions = doc_group("Upcoming deprecations")(
         MultilineLegacy.configure_beambeam_interactions)
     apply_filling_pattern = doc_group("Upcoming deprecations")(
         MultilineLegacy.apply_filling_pattern)
