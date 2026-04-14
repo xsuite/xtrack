@@ -301,7 +301,7 @@ def generate_environment_rst(
     """Generate RST documentation for ``xtrack.Environment``."""
     from .environment import Environment
 
-    return generate_class_rst(
+    return generate_grouped_class_rst(
         Environment,
         include_properties=include_properties,
         include_summary_table=include_summary_table,

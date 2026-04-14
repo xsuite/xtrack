@@ -19,6 +19,7 @@ import xobjects as xo
 import xtrack as xt
 
 from .functions import Functions
+from .api_categorization import GroupedAPICollector
 from .match import Action
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 from .progress_indicator import progress
@@ -34,6 +35,14 @@ DEFAULT_REF_STRENGTH_NAME = {
     'Sextupole': 'k2',
     'Octupole': 'k3',
 }
+
+ENVIRONMENT_DOC_GROUP_ORDER = (
+    "Members",
+    "Deprecated",
+    "Upcoming deprecations",
+)
+
+_ENVIRONMENT_DOC_GROUP_COLLECTOR = GroupedAPICollector(ENVIRONMENT_DOC_GROUP_ORDER)
 
 
 
@@ -1631,6 +1640,43 @@ class Environment:
     install_beambeam_interactions = MultilineLegacy.install_beambeam_interactions
     configure_beambeam_interactions =  MultilineLegacy.configure_beambeam_interactions
     apply_filling_pattern = MultilineLegacy.apply_filling_pattern
+
+
+def _assign_environment_doc_groups():
+    group_overrides = {
+        'new_builder': 'Deprecated',
+        'set_multipolar_errors': 'Deprecated',
+        'vv': 'Upcoming deprecations',
+    }
+
+    for name, member in Environment.__dict__.items():
+        if name.startswith('_'):
+            continue
+
+        if not (
+            isinstance(member, property)
+            or isinstance(member, (staticmethod, classmethod))
+            or callable(member)
+        ):
+            continue
+
+        group = group_overrides.get(name, 'Members')
+
+        if isinstance(member, property):
+            setattr(member.fget, '__doc_group__', group)
+        elif isinstance(member, (staticmethod, classmethod)):
+            setattr(member, '__doc_group__', group)
+            setattr(member.__func__, '__doc_group__', group)
+        else:
+            setattr(member, '__doc_group__', group)
+
+
+_assign_environment_doc_groups()
+Environment.__doc_groups__ = _ENVIRONMENT_DOC_GROUP_COLLECTOR.collect(Environment)
+Environment.__doc_groups_ungrouped__ = _ENVIRONMENT_DOC_GROUP_COLLECTOR.validate(
+    Environment,
+    strict=False,
+)
 
 
 def _parse_kwargs(cls, kwargs, _eval):
