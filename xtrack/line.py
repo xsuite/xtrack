@@ -1888,6 +1888,7 @@ class Line:
 
         """
         Compute the 4D Twiss parameters. Equivalent to `twiss` with `method='4d'`.
+
         See :ref:`Line.twiss method documentation<twiss_method_label>` for all
         available options.
         """
@@ -1900,6 +1901,7 @@ class Line:
 
         """
         Compute the 6D Twiss parameters. Equivalent to `twiss` with `method='6d'`.
+
         See :ref:`Line.twiss method documentation<twiss_method_label>` for all
         available options.
         """
