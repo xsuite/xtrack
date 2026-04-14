@@ -5756,6 +5756,16 @@ class Line:
 
     @property_with_doc_group("Matching and Corrections")
     def steering_monitors_x(self):
+        """
+        Names of horizontal trajectory monitors used by trajectory correction.
+
+        Any element can be used as a monitor.
+
+        Returns
+        -------
+        names : list of str or None
+            Horizontal monitor names, or ``None`` if not configured.
+        """
         return self._extra_config.get('steering_monitors_x', None)
 
     @steering_monitors_x.setter
@@ -5764,6 +5774,16 @@ class Line:
 
     @property_with_doc_group("Matching and Corrections")
     def steering_monitors_y(self):
+        """
+        Names of vertical trajectory monitors used by trajectory correction.
+
+        Any element can be used as a monitor.
+
+        Returns
+        -------
+        names : list of str or None
+            Vertical monitor names, or ``None`` if not configured.
+        """
         return self._extra_config.get('steering_monitors_y', None)
 
     @steering_monitors_y.setter
@@ -5772,6 +5792,16 @@ class Line:
 
     @property_with_doc_group("Matching and Corrections")
     def steering_correctors_x(self):
+        """
+        Names of horizontal steering correctors used by trajectory correction.
+
+        Any element with ``knl``/``ksl`` can be used as a corrector.
+
+        Returns
+        -------
+        names : list of str or None
+            Horizontal steering-corrector names, or ``None`` if not configured.
+        """
         return self._extra_config.get('steering_correctors_x', None)
 
     @steering_correctors_x.setter
@@ -5780,6 +5810,16 @@ class Line:
 
     @property_with_doc_group("Matching and Corrections")
     def steering_correctors_y(self):
+        """
+        Names of vertical steering correctors used by trajectory correction.
+
+        Any element with ``knl``/``ksl`` can be used as a corrector.
+
+        Returns
+        -------
+        names : list of str or None
+            Vertical steering-corrector names, or ``None`` if not configured.
+        """
         return self._extra_config.get('steering_correctors_y', None)
 
     @steering_correctors_y.setter
@@ -5788,6 +5828,15 @@ class Line:
 
     @property_with_doc_group("Matching and Corrections")
     def corrector_limits_x(self):
+        """
+        Horizontal steering-corrector limits used by trajectory correction.
+
+        Returns
+        -------
+        limits : tuple of 2 floats or None
+            Lower and upper limits for horizontal steering correctors, or ``None``
+            if no limits are set.
+        """
         return self._extra_config.get('corrector_limits_x', None)
 
     @corrector_limits_x.setter
@@ -5796,6 +5845,15 @@ class Line:
 
     @property_with_doc_group("Matching and Corrections")
     def corrector_limits_y(self):
+        """
+        Vertical steering-corrector limits used by trajectory correction.
+
+        Returns
+        -------
+        limits : tuple of 2 floats or None
+            Lower and upper limits for vertical steering correctors, or ``None``
+            if no limits are set.
+        """
         return self._extra_config.get('corrector_limits_y', None)
 
     @corrector_limits_y.setter
