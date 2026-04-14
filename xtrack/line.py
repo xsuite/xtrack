@@ -881,6 +881,35 @@ class Line:
 
     @doc_group("Inspection, Variables and Configuration")
     def get_table(self, attr=False):
+        '''
+        Return a table with line element metadata and longitudinal positions.
+
+        Parameters
+        ----------
+        attr : bool, optional
+            If ``True``, include element attribute columns from ``line.attr``.
+
+        Returns
+        -------
+        table : xdeps.Table
+            Table containing one row per element plus the ``'_end_point'`` row.
+
+        Examples
+        --------
+        >>> env = xt.Environment()
+        >>> line = env.new_line(length=10, components=[
+        ...    env.new('qf', 'Quadrupole', at=2.5),
+        ...    env.new('qd', 'Quadrupole', at=7.5)])
+        >>> line.get_table().cols['s_start s_center s_end']
+        Table: 6 rows, 4 cols
+        name               s_start      s_center         s_end
+        ||drift_1::0             0          1.25           2.5
+        qf                     2.5           2.5           2.5
+        ||drift_2              2.5             5           7.5
+        qd                     7.5           7.5           7.5
+        ||drift_1::1           7.5          8.75            10
+        _end_point              10            10            10
+        '''
 
         data = self._to_table_dict()
         data.pop('element')
