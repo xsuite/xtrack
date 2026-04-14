@@ -10,7 +10,7 @@ import xtrack as xt
 from cpymad.madx import Madx
 from xobjects.general import allclose_with_outliers
 from xobjects.test_helpers import for_all_test_contexts, requires_context
-from xtrack.aperture.aperture import Aperture, ProfilesView, TypesView
+from xtrack.aperture.aperture import Aperture, ProfilesView, TypePositionsView, TypesView
 from xtrack.aperture.structures import (
     ApertureModel, ApertureType, Circle, Ellipse, FloatType, Profile,
     ProfilePosition, Rectangle, RectEllipse, SurveyData, TypePosition
@@ -261,6 +261,8 @@ def test_bounds_table_for_perfect_overlap_interval(test_context):
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_aperture_model_views(test_context):
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=1.0)])
     model = ApertureModel(
         type_positions=[
             TypePosition(
@@ -279,26 +281,32 @@ def test_aperture_model_views(test_context):
             Profile(shape=Rectangle(half_width=2.0, half_height=3.0), tol_r=0.1, tol_x=0.2, tol_y=0.3),
         ],
         type_names=['type0'],
+        type_position_names=['type0_at_drift'],
         profile_names=['circ0', 'rect0'],
         _context=test_context,
     )
 
     profiles = ProfilesView(model)
     types = TypesView(model)
+    type_positions = TypePositionsView(model)
     type0 = types[0]
     positions = type0
 
     assert repr(profiles) == '<ProfilesView: 2 profiles>'
     assert repr(types) == '<TypesView: 1 type>'
+    assert repr(type_positions) == '<TypePositionsView: 1 type position>'
     assert profiles.keys() == ['circ0', 'rect0']
     assert types.keys() == ['type0']
+    assert type_positions.keys() == ['type0_at_drift']
     assert profiles.search(r'.*0') == ['circ0', 'rect0']
     assert types.search(r'type.*') == ['type0']
+    assert type_positions.search(r'type0_.*') == ['type0_at_drift']
 
     assert profiles[0].name == 'circ0'
     assert profiles['rect0'].name == 'rect0'
     assert list(name for name, _ in profiles.items()) == ['circ0', 'rect0']
     assert list(type(profile.raw.shape).__name__ for profile in [profiles[0], profiles[1]]) == ['Circle', 'Rectangle']
+    assert [profile.name for profile in profiles.values()] == ['circ0', 'rect0']
     assert [type(profile.shape).__name__ for profile in profiles.values()] == ['Circle', 'Rectangle']
 
     xo.assert_allclose(profiles['rect0'].tol_r, 0.1, atol=1e-15, rtol=0)
@@ -314,11 +322,47 @@ def test_aperture_model_views(test_context):
     assert types[0].name == 'type0'
     assert types['type0'].name == 'type0'
     assert list(name for name, _ in types.items()) == ['type0']
+    assert [type_.name for type_ in types.values()] == ['type0']
     assert [type_.curvature for type_ in types.values()] == [0.5]
     xo.assert_allclose(type0.length, 0.6, atol=1e-15, rtol=0)
     xo.assert_allclose(type0.angle, 0.3, atol=1e-15, rtol=0)
     type0.curvature = 0.25
     xo.assert_allclose(model.types[0].curvature, 0.25, atol=1e-15, rtol=0)
+
+    assert type_positions[0].name == 'type0_at_drift'
+    assert type_positions['type0_at_drift'].name == 'type0_at_drift'
+    assert type_positions[0].type.name == 'type0'
+    assert type_positions[0].survey_reference_name == 'drift'
+    assert type_positions[0].survey_index == 0
+    xo.assert_allclose(type_positions[0].shift_x, 0.0, atol=1e-15, rtol=0)
+    xo.assert_allclose(type_positions[0].shift_y, 0.0, atol=1e-15, rtol=0)
+    xo.assert_allclose(type_positions[0].shift_z, 0.0, atol=1e-15, rtol=0)
+    xo.assert_allclose(type_positions[0].rot_x, 0.0, atol=1e-15, rtol=0)
+    xo.assert_allclose(type_positions[0].rot_y, 0.0, atol=1e-15, rtol=0)
+    xo.assert_allclose(type_positions[0].rot_z, 0.0, atol=1e-15, rtol=0)
+    assert list(name for name, _ in type_positions.items()) == ['type0_at_drift']
+    assert [type_pos.name for type_pos in type_positions.values()] == ['type0_at_drift']
+    assert [type_pos.type_index for type_pos in type_positions.values()] == [0]
+    type_positions[0].survey_reference_name = 'drift_entry'
+    type_positions[0].survey_index = 3
+    type_positions[0].type_index = 0
+    type_positions[0].shift_x = 0.1
+    type_positions[0].shift_y = -0.2
+    type_positions[0].shift_z = 0.3
+    type_positions[0].rot_x = 0.4
+    type_positions[0].rot_y = -0.5
+    type_positions[0].rot_z = 0.6
+    assert model.type_positions[0].survey_reference_name == 'drift_entry'
+    assert model.type_positions[0].survey_index == 3
+    updated_transform = matrix_to_transform(model.type_positions[0].transformation.to_nplike())
+    xo.assert_allclose(updated_transform.shift_x, 0.1, atol=1e-15, rtol=0)
+    xo.assert_allclose(updated_transform.shift_y, -0.2, atol=1e-15, rtol=0)
+    xo.assert_allclose(updated_transform.shift_z, 0.3, atol=1e-15, rtol=0)
+    xo.assert_allclose(updated_transform.rot_x, 0.4, atol=1e-15, rtol=0)
+    xo.assert_allclose(updated_transform.rot_y, -0.5, atol=1e-15, rtol=0)
+    xo.assert_allclose(updated_transform.rot_z, 0.6, atol=1e-15, rtol=0)
+    type_positions[0].survey_reference_name = 'drift'
+    type_positions[0].survey_index = 0
 
     assert positions[0].profile.name == 'circ0'
     assert positions[1].profile.name == 'rect0'
@@ -352,6 +396,43 @@ def test_aperture_model_views(test_context):
     assert [pp.profile.name for pp in positions[:]] == ['rect0', 'rect0']
     with pytest.raises(AttributeError):
         positions.append(positions[0])
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_bounds_table_uses_type_position_name_in_installed_profile_name(test_context):
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=1.0)])
+    sv = line.survey()
+
+    model = ApertureModel(
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+            TypePosition(
+                type_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(shift_z=0.5),
+            ),
+        ],
+        types=[ApertureType(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
+        profiles=[Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0)],
+        type_names=['shared_type'],
+        type_position_names=['entry_ap', 'middle_ap'],
+        profile_names=['circ0'],
+        _context=test_context,
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context, _skip_validity_check=True)
+    bounds_table = ap.get_bounds_table()
+
+    assert list(bounds_table.type_name) == ['shared_type', 'shared_type']
+    assert list(bounds_table.type_position_name) == ['entry_ap', 'middle_ap']
+    assert list(bounds_table.name) == ['circ0_in_entry_ap', 'circ0_in_middle_ap']
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -1169,6 +1250,7 @@ def test_aperture_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_boun
         types=types,
         profiles=profiles,
         type_names=['type0'],
+        type_position_names=['type0'],
         profile_names=['circle', 'rectangle'],
     )
 
@@ -1243,6 +1325,7 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
         ],
         profiles=profiles,
         type_names=['type0', 'type1', 'type2'],
+        type_position_names=['type0', 'type1', 'type2'],
         profile_names=['circ0'],
     )
 
@@ -1303,6 +1386,7 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
         types=types,
         profiles=profiles,
         type_names=[f'type{ii}' for ii in range(num_bends)],
+        type_position_names=[f'type{ii}' for ii in range(num_bends)],
         profile_names=['circ0'],
     )
 
@@ -1398,6 +1482,7 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
         types=types,
         profiles=profiles,
         type_names=['type_ref0', 'type_ref1', 'type_ref2'],
+        type_position_names=[['type_ref0', 'type_ref1', 'type_ref2'][tp.type_index] for tp in type_positions],
         profile_names=['circ0'],
     )
 
@@ -1464,6 +1549,7 @@ def test_aperture_bounds_large_curved_ring_single_type_wraparound_regression(tes
         ],
         profiles=[Profile(shape=Circle(radius=aperture_radius), tol_r=0, tol_x=0, tol_y=0)],
         type_names=['wrapped_type'],
+        type_position_names=['wrapped_type'],
         profile_names=['circ0'],
     )
 
@@ -1524,6 +1610,7 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
         types=[ApertureType(curvature=0.0, positions=profile_positions)],
         profiles=profiles,
         type_names=['type0'],
+        type_position_names=['type0'],
         profile_names=['circle0', 'circle1'],
     )
 
@@ -1593,6 +1680,7 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
         types=[ApertureType(curvature=0.0, positions=profile_positions)],
         profiles=profiles,
         type_names=['type0'],
+        type_position_names=['type0'],
         profile_names=['profile0', 'profile1'],
     )
 
@@ -1639,6 +1727,7 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
         types=[ApertureType(curvature=angle / length, positions=profile_positions)],
         profiles=profiles,
         type_names=['type0'],
+        type_position_names=['type0'],
         profile_names=['circ0'],
     )
 
@@ -1670,6 +1759,7 @@ def test_cross_sections_at_s_returns_axis_extents(test_context):
         types=[ApertureType(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
         profiles=[Profile(shape=Rectangle(half_width=2.0, half_height=1.5), tol_r=0, tol_x=0, tol_y=0)],
         type_names=['type0'],
+        type_position_names=['type0'],
         profile_names=['profile0'],
     )
 
@@ -1726,6 +1816,7 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
         ],
         profiles=profiles,
         type_names=['type_straight', 'type_curv'],
+        type_position_names=['type_straight', 'type_curv'],
         profile_names=['rect0', 'circ0'],
     )
 
@@ -1789,6 +1880,7 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
         types=[ApertureType(curvature=angle / length, positions=profile_positions)],
         profiles=profiles,
         type_names=['type_curv'],
+        type_position_names=['type_curv'],
         profile_names=['rect0', 'circ0'],
     )
 
@@ -1844,6 +1936,7 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
         types=types,
         profiles=profiles,
         type_names=['type0'],
+        type_position_names=['type0'],
         profile_names=['circle', 'rectangle'],
     )
 

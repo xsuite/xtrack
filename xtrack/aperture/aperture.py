@@ -18,7 +18,9 @@ from xtrack.aperture.structures import (
     Profile, ProfilePolygons, ProfilePosition, Racetrack, Rectangle,
     RectEllipse, ShapeTypes, SurveyData, TwissData, TypePosition
 )
-from xtrack.aperture.transform import transform_matrix
+from xtrack.aperture.transform import (
+    Transform, matrix_to_transform, transform_matrix
+)
 from xtrack.json import dump as json_dump
 from xtrack.json import load as json_load
 from xtrack.line import Line
@@ -119,11 +121,186 @@ class ProfilesView:
     def __len__(self) -> int:
         return len(self._model.profiles)
 
+    def __iter__(self):
+        for ii in range(len(self)):
+            yield self[ii]
+
     def keys(self):
         return self._model.profile_names
 
     def values(self):
-        return self._model.profiles
+        return list(self)
+
+    def items(self):
+        return zip(self.keys(), self.values())
+
+    def search(self, pattern: str):
+        regex = re.compile(pattern)
+        matches = [name for name in self.keys() if regex.match(name)]
+        return matches
+
+
+class TypePositionView:
+    __slots__ = ('_model', '_index')
+
+    def __init__(self, model: ApertureModel, index: int):
+        self._model = model
+        self._index = index
+
+    def __repr__(self):
+        shift_and_rot = self.get_transform()
+        non_zero_transform = {
+            field: value
+            for field in shift_and_rot._fields
+            if (value := getattr(shift_and_rot, field))
+        }
+        transform = ''.join(f', {k} = {v}' for k, v in non_zero_transform.items())
+
+        return (f'<TypePositionView {self.name!r}: {self.type.name!r}, '
+                f'survey_ref = {self.survey_reference_name!r}{transform}>')
+
+    @property
+    def raw(self) -> TypePosition:
+        return self._model.type_positions[self._index]
+
+    @property
+    def name(self) -> str:
+        return self._model.type_position_names[self._index]
+
+    @property
+    def type_index(self) -> int:
+        return self.raw.type_index
+
+    @type_index.setter
+    def type_index(self, type_index: int):
+        self.raw.type_index = type_index
+
+    @property
+    def type(self) -> TypeView:
+        return TypeView(self._model, self.type_index)
+
+    @property
+    def survey_reference_name(self) -> str:
+        return self.raw.survey_reference_name  # noqa: xobjects
+
+    @survey_reference_name.setter
+    def survey_reference_name(self, survey_reference_name: str):
+        self.raw.survey_reference_name = survey_reference_name
+
+    @property
+    def survey_index(self) -> int:
+        return self.raw.survey_index
+
+    @survey_index.setter
+    def survey_index(self, survey_index: int):
+        self.raw.survey_index = survey_index
+
+    @property
+    def transformation(self):
+        return self.raw.transformation.to_nplike()
+
+    @transformation.setter
+    def transformation(self, transformation):
+        self.raw.transformation = transformation
+
+    def get_transform(self) -> Transform:
+        return matrix_to_transform(self.transformation)
+
+    def set_transform(self, transform: Transform):
+        matrix = transform_matrix(**transform._asdict())
+        self.raw.transformation.to_nplike()[:] = matrix
+
+    @property
+    def shift_x(self) -> float:
+        return self.get_transform().shift_x
+
+    @shift_x.setter
+    def shift_x(self, value: float):
+        as_dict = self.get_transform()._asdict()
+        as_dict['shift_x'] = value
+        self.set_transform(Transform(**as_dict))
+
+    @property
+    def shift_y(self) -> float:
+        return self.get_transform().shift_y
+
+    @shift_y.setter
+    def shift_y(self, value: float):
+        as_dict = self.get_transform()._asdict()
+        as_dict['shift_y'] = value
+        self.set_transform(Transform(**as_dict))
+
+    @property
+    def shift_z(self) -> float:
+        return self.get_transform().shift_z
+
+    @shift_z.setter
+    def shift_z(self, value: float):
+        as_dict = self.get_transform()._asdict()
+        as_dict['shift_z'] = value
+        self.set_transform(Transform(**as_dict))
+
+    @property
+    def rot_y(self) -> float:
+        return self.get_transform().rot_y
+
+    @rot_y.setter
+    def rot_y(self, value: float):
+        as_dict = self.get_transform()._asdict()
+        as_dict['rot_y'] = value
+        self.set_transform(Transform(**as_dict))
+
+    @property
+    def rot_x(self) -> float:
+        return self.get_transform().rot_x
+
+    @rot_x.setter
+    def rot_x(self, value: float):
+        as_dict = self.get_transform()._asdict()
+        as_dict['rot_x'] = value
+        self.set_transform(Transform(**as_dict))
+
+    @property
+    def rot_z(self) -> float:
+        return self.get_transform().rot_z
+
+    @rot_z.setter
+    def rot_z(self, value: float):
+        as_dict = self.get_transform()._asdict()
+        as_dict['rot_z'] = value
+        self.set_transform(Transform(**as_dict))
+
+
+
+class TypePositionsView:
+    __slots__ = ('_model',)
+
+    def __init__(self, model: ApertureModel):
+        self._model = model
+
+    def __repr__(self):
+        count = len(self)
+        positions_str = 'type position' if count == 1 else 'type positions'
+        return f'<TypePositionsView: {count} {positions_str}>'
+
+    def __getitem__(self, item: str | int):
+        if isinstance(item, str):
+            item = self._model.type_position_names.index(item)
+
+        return TypePositionView(self._model, item)
+
+    def __len__(self) -> int:
+        return len(self._model.type_positions)
+
+    def __iter__(self):
+        for ii in range(len(self)):
+            yield self[ii]
+
+    def keys(self):
+        return self._model.type_position_names
+
+    def values(self):
+        return list(self)
 
     def items(self):
         return zip(self.keys(), self.values())
@@ -286,11 +463,15 @@ class TypesView:
     def __len__(self) -> int:
         return len(self._model.types)
 
+    def __iter__(self):
+        for ii in range(len(self)):
+            yield self[ii]
+
     def keys(self):
         return self._model.type_names
 
     def values(self):
-        return self._model.types
+        return list(self)
 
     def items(self):
         return zip(self.keys(), self.values())
@@ -353,6 +534,10 @@ class Aperture:
         return ProfilesView(self._model)
 
     @property
+    def type_positions(self) -> TypePositionsView:
+        return TypePositionsView(self._model)
+
+    @property
     def types(self) -> TypesView:
         return TypesView(self._model)
 
@@ -401,6 +586,7 @@ class Aperture:
         types = []
         aperture_indices = {}
         type_positions_list = []
+        type_position_names = []
 
         for element_name in name_iter_with_progress:
             element = line.element_dict[element_name]
@@ -489,12 +675,14 @@ class Aperture:
                 transformation=matrix,
             )
             type_positions_list.append(type_position)
+            type_position_names.append(aper_name)
 
         aperture = cls._build_aperture_model(
             line=line,
             type_indices=aperture_indices,
             type_list=types,
             type_position_list=type_positions_list,
+            type_position_names=type_position_names,
             profile_indices=aperture_indices,
             profile_list=profiles,
             context=context,
@@ -512,6 +700,7 @@ class Aperture:
         types = []
         aperture_indices = {}
         type_positions_list = []
+        type_position_names = []
 
         for survey_name in progress(survey_names, desc="Building aperture data", total=len(survey_names)):
             # Discard line name suffix to get the aperture name
@@ -576,12 +765,14 @@ class Aperture:
                 transformation=np.identity(4),
             )
             type_positions_list.append(type_position)
+            type_position_names.append(aper_name)
 
         aperture = cls._build_aperture_model(
             line=line,
             type_indices=aperture_indices,
             type_list=types,
             type_position_list=type_positions_list,
+            type_position_names=type_position_names,
             profile_indices=aperture_indices,
             profile_list=profiles,
             context=context,
@@ -599,6 +790,7 @@ class Aperture:
         type_list = []
         indices = {}
         type_positions_list = []
+        type_position_names = []
 
         aper_idx = 0
 
@@ -631,6 +823,7 @@ class Aperture:
                 transformation=np.identity(4),
             )
             type_positions_list.append(type_position)
+            type_position_names.append(name)
 
             aper_idx += 1
 
@@ -639,6 +832,7 @@ class Aperture:
             type_indices=indices,
             type_list=type_list,
             type_position_list=type_positions_list,
+            type_position_names=type_position_names,
             profile_indices=indices,
             profile_list=profiles,
             context=context,
@@ -656,6 +850,7 @@ class Aperture:
             type_indices: Dict[str, int],
             type_list: List[ApertureType],
             type_position_list: List[TypePosition],
+            type_position_names: List[str],
             profile_indices: Dict[str, int],
             profile_list: List[ShapeTypes],
             context: XContext,
@@ -673,6 +868,8 @@ class Aperture:
             List of aperture types featured in the model.
         type_position_list
             List of aperture type positions that define the model.
+        type_position_names
+            Names of all aperture type positions in ``type_position_list`` order.
         profile_indices
             A mapping between the name of an aperture type and its index in ``profile_list``.
         profile_list
@@ -694,6 +891,7 @@ class Aperture:
             types=type_list,
             profiles=profile_list,
             type_names=list(type_indices.keys()),
+            type_position_names=type_position_names,
             profile_names=list(profile_indices.keys()),
             _context=context,
         )
@@ -1341,9 +1539,10 @@ class Aperture:
             self._check_aperture_bounds_validity()
 
     def _check_model_validity(self):
-        for type_pos in self._model.type_positions:
+        for ii, type_pos in enumerate(self._model.type_positions):
             survey_ref_name = type_pos.survey_reference_name
             survey_ref_idx = type_pos.survey_index
+            type_position_name = self._model.type_position_name_for_position_index(ii)
 
             try:
                 survey_at_idx = self.survey.name[survey_ref_idx]
@@ -1352,7 +1551,7 @@ class Aperture:
 
             if survey_at_idx != survey_ref_name:
                 raise ValueError(
-                    f'Aperture model corrupted for type position {type_pos.name}: the associate survey reference name '
+                    f'Aperture model corrupted for type position {type_position_name}: the associate survey reference name '
                     f'`{survey_ref_name}` and index `{survey_ref_idx}` do not match. The element of the survey at the '
                     f'index is {survey_at_idx}.'
                 )
@@ -1386,6 +1585,7 @@ class Aperture:
                 )
 
     def get_bounds_table(self):
+        type_position_names = []
         type_names = []
         profile_names = []
         s_positions = []
@@ -1399,6 +1599,7 @@ class Aperture:
             type_pos_idx = ap_bounds.type_position_indices[i]
             type_pos = self._model.type_positions[type_pos_idx]
             type_ = self._model.type_for_position(type_pos)
+            type_position_name = self._model.type_position_name_for_position_index(type_pos_idx)
             type_name = self._model.type_name_for_position(type_pos)
 
             profile_pos_idx = ap_bounds.profile_position_indices[i]
@@ -1408,6 +1609,7 @@ class Aperture:
 
             shape = profile.shape
 
+            type_position_names.append(type_position_name)
             type_names.append(type_name)
             profile_names.append(profile_name)
             s_positions.append(ap_bounds.s_positions[i])
@@ -1418,7 +1620,8 @@ class Aperture:
 
         table = Table(
             data={
-                'name': np.array([f'{pn}_in_{tn}' for pn, tn in zip(profile_names, type_names)], dtype=np.str_),
+                'name': np.array([f'{pn}_in_{tpn}' for pn, tpn in zip(profile_names, type_position_names)], dtype=np.str_),
+                'type_position_name': np.array(type_position_names, dtype=np.str_),
                 'type_name': np.array(type_names, dtype=np.str_),
                 'profile_name': np.array(profile_names, dtype=np.str_),
                 's': np.array(s_positions, dtype=FloatType._dtype),

@@ -95,7 +95,6 @@ for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
                 f"min(n1_rays) = {min(sigmas_rays):.5f}",
                 f"min(n1_bisection) = {min(sigmas):.5f}",
                 f"min(n1_exact) = {min(sigmas_exact):.5f}",
-                f"min(n1_pyoptics) = {min(n1_pyoptics):.5f}",
             ]
         )
     )

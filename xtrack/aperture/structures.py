@@ -463,6 +463,7 @@ class ApertureModel(xo.Struct):
         profiles: List[Profile],
         type_names: List[str],
         profile_names: List[str],
+        type_position_names: List[str],
         **kwargs,
     ):
         if len(type_names) != len(types):
@@ -471,13 +472,20 @@ class ApertureModel(xo.Struct):
         if len(profile_names) != len(profiles):
             raise ValueError("Length of profiles and profiles must match.")
 
+        if len(type_position_names) != len(type_positions):
+            raise ValueError("Length of type_position_names and type_positions must match.")
+
         self.type_names = type_names
         self.profile_names = profile_names
+        self.type_position_names = type_position_names
 
         super().__init__(type_positions=type_positions, types=types, profiles=profiles, **kwargs)
 
     def type_name_for_index(self, idx: int) -> str:
         return self.type_names[idx]
+
+    def type_position_name_for_index(self, idx: int) -> str:
+        return self.type_position_names[idx]
 
     def profile_name_for_index(self, idx: int) -> str:
         return self.profile_names[idx]
@@ -488,11 +496,22 @@ class ApertureModel(xo.Struct):
     def type_name_for_position(self, type_position: TypePosition) -> str:
         return self.type_name_for_index(type_position.type_index)
 
+    def type_position_name_for_position_index(self, idx: int) -> str:
+        return self.type_position_name_for_index(idx)
+
     def profile_for_position(self, profile_position: ProfilePosition) -> Profile:
         return self.profiles[profile_position.profile_index]
 
     def profile_name_for_position(self, profile_position: ProfilePosition) -> str:
         return self.profile_name_for_index(profile_position.profile_index)
+
+    def type_position_profile_names_for_indices(self, type_position_index, profile_position_index) -> Tuple[str, str]:
+        type_pos_name = self.type_position_name_for_index(type_position_index)
+        type_pos = self.type_positions[type_position_index]
+        type_ = self.type_for_position(type_pos)
+        profile_pos = type_.positions[profile_position_index]
+        profile_name = self.profile_name_for_position(profile_pos)
+        return type_pos_name, profile_name
 
     def type_profile_names_for_indices(self, type_position_index, profile_position_index) -> Tuple[str, str]:
         type_pos = self.type_positions[type_position_index]
@@ -505,6 +524,7 @@ class ApertureModel(xo.Struct):
     def to_dict(self) -> dict:
         out = self._to_dict()
         out['type_names'] = self.type_names
+        out['type_position_names'] = self.type_position_names
         out['profile_names'] = self.profile_names
         return out
 

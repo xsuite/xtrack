@@ -103,6 +103,7 @@ model = ApertureModel(
     ],
     profiles=profiles,
     type_names=['type0', 'type1', 'type2'],
+    type_position_names=['type0', 'type1', 'type2'],
     profile_names=['circ0'],
 )
 

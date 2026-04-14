@@ -58,6 +58,7 @@ model = ApertureModel(
     types=types,
     profiles=profiles,
     type_names=['type0'],
+    type_position_names=['type0'],
     profile_names=['circle', 'rectangle'],
 )
 
