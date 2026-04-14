@@ -100,6 +100,8 @@ def generate_class_rst(
 ) -> str:
     """Generate RST for a class without doc groups metadata."""
     full_name = f"{cls.__module__}.{cls.__name__}"
+    class_slug = _slugify(cls.__name__)
+    class_label = f"class-api-{class_slug}"
     members = list(_iter_public_members(cls, include_properties=include_properties))
 
     out = []
@@ -122,19 +124,33 @@ def generate_class_rst(
             out.append("     - -\n")
         else:
             for member_kind, member_name, member_obj in members:
+                member_label = f"{class_label}-{member_kind}-{_slugify(member_name)}"
                 if member_kind == "method":
                     member_text = _wrap_friendly(f"{member_name}(...)")
                 else:
                     member_text = _wrap_friendly(member_name)
-                out.append(f"   * - {member_text}\n")
+                out.append(f"   * - :ref:`{member_text} <{member_label}>`\n")
                 out.append(f"     - {_first_sentence(inspect.getdoc(member_obj))}\n")
         out.append("\n")
 
     out.append("Members - full description\n")
     out.append("--------------------------\n\n")
-    out.append(f".. autoclass:: {full_name}\n")
-    out.append("    :members:\n")
-    out.append("    :member-order: bysource\n\n")
+    out.append(f".. _{class_label}:\n\n")
+    out.append(f"{cls.__name__}\n")
+    out.append(f"{_underline(cls.__name__, '~')}\n\n")
+
+    if not members:
+        out.append(f".. autoclass:: {full_name}\n")
+        out.append("    :members:\n")
+        out.append("    :member-order: bysource\n\n")
+    else:
+        for member_kind, member_name, _ in members:
+            member_label = f"{class_label}-{member_kind}-{_slugify(member_name)}"
+            out.append(f".. _{member_label}:\n\n")
+            if member_kind == "method":
+                out.append(f".. automethod:: {full_name}.{member_name}\n\n")
+            else:
+                out.append(f".. autoproperty:: {full_name}.{member_name}\n\n")
 
     return "".join(out)
 
