@@ -19,7 +19,7 @@ import xobjects as xo
 import xtrack as xt
 
 from .functions import Functions
-from .api_categorization import GroupedAPICollector
+from .api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
 from .match import Action
 from .multiline_legacy.multiline_legacy import MultilineLegacy
 from .progress_indicator import progress
@@ -184,7 +184,7 @@ class Environment:
         self._lines_weakrefs = WeakSet()
         self._line_builders = WeakKeyDictionary()
 
-    @property
+    @property_with_doc_group("Members")
     def lines(self):
         return self._lines
 
@@ -192,7 +192,7 @@ class Environment:
     def lines(self, value):
         self._lines = value
 
-    @property
+    @property_with_doc_group("Members")
     def ref(self):
         return self._ref
 
@@ -200,7 +200,7 @@ class Environment:
     def ref(self, value):
         self._ref = value
 
-    @property
+    @property_with_doc_group("Members")
     def metadata(self):
         return self._metadata
 
@@ -208,6 +208,7 @@ class Environment:
     def metadata(self, value):
         self._metadata = value
 
+    @doc_group("Members")
     def new(self, name, parent, mode=None, at=None, from_=None,
             anchor=None, from_anchor=None,
             extra=None,
@@ -356,6 +357,7 @@ class Environment:
 
         return name
 
+    @doc_group("Members")
     def new_particle(self, name, parent=None, force=False, **kwargs):
 
         '''
@@ -461,6 +463,7 @@ class Environment:
         return name
 
 
+    @doc_group("Members")
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
                  length=None, mirror=False, s_tol=1e-6, compose=False) -> xt.Line:
         """
@@ -539,6 +542,7 @@ class Environment:
 
         return out
 
+    @doc_group("Members")
     def place(self, name, obj=None, at=None, from_=None, anchor=None, from_anchor=None):
         '''
         Create a place object.
@@ -578,6 +582,7 @@ class Environment:
 
         return xt.Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
 
+    @doc_group("Deprecated")
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',
                     length=None, s_tol=1e-6):
         '''
@@ -616,6 +621,7 @@ class Environment:
 
         return out
 
+    @doc_group("Members")
     def call(self, filename):
         '''
         Call a file with xtrack commands.
@@ -634,9 +640,11 @@ class Environment:
             raise ee
         xtrack._passed_env = None
 
+    @doc_group("Members")
     def copy(self):
         return self.__class__.from_dict(self.to_dict())
 
+    @doc_group("Members")
     def copy_element_from(self, name, source, new_name=None):
         """Copy an element from another environment.
 
@@ -686,6 +694,7 @@ class Environment:
 
         return new_name
 
+    @doc_group("Members")
     def replace_replica(self, name):
         name_parent = self._element_dict[name].resolve(self, get_name=True)
         self.copy_element_from(name_parent, self, new_name=name)
@@ -714,6 +723,7 @@ class Environment:
 
         return new_name
 
+    @doc_group("Members")
     def import_line(
             self,
             line,
@@ -783,6 +793,7 @@ class Environment:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
                 ln.discard_tracker()
 
+    @doc_group("Members")
     def discard_trackers(self):
         '''Discard all trackers in all lines of the environment.'''
         for ln in self._lines_weakrefs:
@@ -818,6 +829,7 @@ class Environment:
         else:
             raise ValueError('Only lines, scalars or references are allowed')
 
+    @doc_group("Members")
     def to_dict(self, include_var_management=True, include_version=True):
 
         out = {}
@@ -874,6 +886,7 @@ class Environment:
 
         return out
 
+    @doc_group("Members")
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         cls = xt.Environment
@@ -937,6 +950,7 @@ class Environment:
 
         return out
 
+    @doc_group("Members")
     @classmethod
     def from_json(cls, file, **kwargs):
         """Constructs an environment from a JSON file.
@@ -959,6 +973,7 @@ class Environment:
         return cls.from_dict(dct, **kwargs)
 
 
+    @doc_group("Members")
     def to_json(self, file, indent=1, **kwargs):
         '''Save the environment to a json file.
 
@@ -977,6 +992,7 @@ class Environment:
 
         xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
 
+    @doc_group("Members")
     @classmethod
     def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
         '''
@@ -998,14 +1014,15 @@ class Environment:
         return xt.multiline_legacy._multiline_from_madx(cls, filename=filename, madx=madx, stdout=stdout,
                              return_lines=return_lines, **kwargs)
 
-    @property
+    @property_with_doc_group("Members")
     def elements(self):
         return self._elements
 
-    @property
+    @property_with_doc_group("Members")
     def particles(self):
         return self._particles_container
 
+    @doc_group("Members")
     def set_particle_ref(self, *args, lines=True, **kwargs):
 
         if lines is True:
@@ -1038,7 +1055,7 @@ class Environment:
             for ln in lines:
                 self.lines[ln].particle_ref = self.particle_ref.copy()
 
-    @property
+    @property_with_doc_group("Members")
     def particle_ref(self):
         if self._particle_ref is None:
             return None
@@ -1048,11 +1065,11 @@ class Environment:
     def particle_ref(self, particle_ref):
         self._particle_ref = particle_ref
 
-    @property
+    @property_with_doc_group("Members")
     def line_names(self):
         return list(self.lines.keys())
 
-    @property
+    @property_with_doc_group("Members")
     def functions(self):
         return self._xdeps_fref
 
@@ -1084,6 +1101,7 @@ class Environment:
         return [nn for nn  in list(self._lines.keys()) if '.' not in nn
                     ] + object.__dir__(self)
 
+    @doc_group("Deprecated")
     def set_multipolar_errors(env, errors):
         """Deprecated: set multipolar errors for specified elements of the environment.
 
@@ -1170,7 +1188,7 @@ class Environment:
                         env.ref[ele_name].ksl[ii]._expr._get_dependencies()):
                     env[ele_name].ksl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
 
-    @property
+    @property_with_doc_group("Members")
     def element_dict(self):
         return self._element_dict
 
@@ -1229,18 +1247,19 @@ class Environment:
 
         return eva_obj
 
-    @property
+    @property_with_doc_group("Members")
     def vars(self):
         return self._line_vars
 
-    @property
+    @property_with_doc_group("Members")
     def varval(self):
         return self.vars.val
 
-    @property
+    @property_with_doc_group("Upcoming deprecations")
     def vv(self): # Shorter alias
         return self.vars.val
 
+    @doc_group("Members")
     def eval(self, expr):
         '''
         Get the value of an expression
@@ -1259,7 +1278,7 @@ class Environment:
         return self.vars.eval(expr)
 
 
-    @property
+    @property_with_doc_group("Members")
     def element_refs(self):
         if self._var_management is not None:
             return self._var_management['lref']
@@ -1295,6 +1314,7 @@ class Environment:
                 (self.ref_manager is not None and key in self.vars)
                 )
 
+    @doc_group("Members")
     def remove(self, key):
 
         if key in self._element_dict:
@@ -1311,6 +1331,7 @@ class Environment:
     def __delitem__(self, key):
         self.remove(key)
 
+    @doc_group("Members")
     def set(self, name, *args, **kwargs):
         '''
         Set the values or expressions of variables or element properties.
@@ -1384,6 +1405,7 @@ class Environment:
             else:
                 self.vars[name] = value
 
+    @doc_group("Members")
     def get(self, key):
         '''
         Get an element or the value of a variable.
@@ -1409,6 +1431,7 @@ class Environment:
         else:
             raise KeyError(f'Element or variable {key} not found')
 
+    @doc_group("Members")
     def info(self, key, limit=30):
         '''
         Get information about an element or a variable.
@@ -1434,6 +1457,7 @@ class Environment:
             raise KeyError(f'Element or variable {key} not found')
 
 
+    @doc_group("Members")
     def get_expr(self, var):
         '''
         Get expression associated to a variable
@@ -1451,6 +1475,7 @@ class Environment:
 
         return self.vars.get_expr(var)
 
+    @doc_group("Members")
     def new_expr(self, expr):
         '''
         Create a new expression
@@ -1506,6 +1531,7 @@ class Environment:
             # Need to bypass the check on element redefinition
             self._xdeps_eref._owner[nn] = new_ee
 
+    @doc_group("Members")
     def extend_knl_ksl(self, order, element_names=None):
         """
         Extend the order of the knl and ksl attributes of the elements.
@@ -1522,6 +1548,7 @@ class Environment:
         self._extend_knl_ksl_abs_rel(order, element_names=element_names,
                                     absolute=True, relative=False)
 
+    @doc_group("Members")
     def extend_knl_rel_ksl_rel(self, order, element_names=None):
         """
         Extend the order of the rel_knl and rel_ksl attributes of the elements.
@@ -1538,7 +1565,7 @@ class Environment:
         self._extend_knl_ksl_abs_rel(order, element_names=element_names,
                                     absolute=False, relative=True)
 
-    @property
+    @property_with_doc_group("Members")
     def ref_manager(self):
         return self._xdeps_manager
 
@@ -1633,45 +1660,18 @@ class Environment:
                 else:
                     setattr(container[name], kk, value_kwargs[kk])
 
-    twiss = MultilineLegacy.twiss
-    build_trackers = MultilineLegacy.build_trackers
-    match = MultilineLegacy.match
-    match_knob = MultilineLegacy.match_knob
-    install_beambeam_interactions = MultilineLegacy.install_beambeam_interactions
-    configure_beambeam_interactions =  MultilineLegacy.configure_beambeam_interactions
-    apply_filling_pattern = MultilineLegacy.apply_filling_pattern
+    twiss = doc_group("Members")(MultilineLegacy.twiss)
+    build_trackers = doc_group("Members")(MultilineLegacy.build_trackers)
+    match = doc_group("Members")(MultilineLegacy.match)
+    match_knob = doc_group("Members")(MultilineLegacy.match_knob)
+    install_beambeam_interactions = doc_group("Members")(
+        MultilineLegacy.install_beambeam_interactions)
+    configure_beambeam_interactions = doc_group("Members")(
+        MultilineLegacy.configure_beambeam_interactions)
+    apply_filling_pattern = doc_group("Upcoming deprecations")(
+        MultilineLegacy.apply_filling_pattern)
 
 
-def _assign_environment_doc_groups():
-    group_overrides = {
-        'new_builder': 'Deprecated',
-        'set_multipolar_errors': 'Deprecated',
-        'vv': 'Upcoming deprecations',
-    }
-
-    for name, member in Environment.__dict__.items():
-        if name.startswith('_'):
-            continue
-
-        if not (
-            isinstance(member, property)
-            or isinstance(member, (staticmethod, classmethod))
-            or callable(member)
-        ):
-            continue
-
-        group = group_overrides.get(name, 'Members')
-
-        if isinstance(member, property):
-            setattr(member.fget, '__doc_group__', group)
-        elif isinstance(member, (staticmethod, classmethod)):
-            setattr(member, '__doc_group__', group)
-            setattr(member.__func__, '__doc_group__', group)
-        else:
-            setattr(member, '__doc_group__', group)
-
-
-_assign_environment_doc_groups()
 Environment.__doc_groups__ = _ENVIRONMENT_DOC_GROUP_COLLECTOR.collect(Environment)
 Environment.__doc_groups_ungrouped__ = _ENVIRONMENT_DOC_GROUP_COLLECTOR.validate(
     Environment,
