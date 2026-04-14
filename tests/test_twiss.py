@@ -1676,7 +1676,7 @@ def test_second_order_chromaticity_and_dispersion(test_context, method):
     xo.assert_allclose(tw_part['dpy'], tw_bw.rows[:-1]['dpy'], atol=1e-3, rtol=0)
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
-def test_twiss_strength_reverse_vs_madx(test_context):
+def test_twiss_strength_reverse_vs_madx(test_context, sandbox_cwd):
 
     test_data_folder_str = str(test_data_folder)
 
@@ -1822,7 +1822,7 @@ def test_twiss_range_start_end(test_context, line_name, section, collider_for_te
         xo.assert_allclose(tw_test._data[kk], tw_ref._data[kk], rtol=1e-12, atol=5e-13)
 
 @for_all_test_contexts
-def test_arbitrary_start(test_context, collider_for_test_twiss_range):
+def test_arbitrary_start(test_context, collider_for_test_twiss_range, tmp_path):
 
     collider = collider_for_test_twiss_range
 
@@ -1870,7 +1870,7 @@ def test_arbitrary_start(test_context, collider_for_test_twiss_range):
                 tw[ 'betx', ['ip8', 'ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']],
                 rtol=1e-5, atol=0)
 
-    collider.to_json('ok.json')
+    collider.to_json(tmp_path / 'ok.json')
 
 @for_all_test_contexts
 def test_part_from_full_periodic(test_context, collider_for_test_twiss_range):

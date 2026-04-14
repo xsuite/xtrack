@@ -994,7 +994,8 @@ def test_get_aperture_sigmas_at_element_vs_madx(
         x,
         y,
         halo_params,
-        context
+        context,
+        sandbox_cwd,
 ):
     """Test the computation of sigmas vs MAD-X
 

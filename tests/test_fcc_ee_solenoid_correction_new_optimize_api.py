@@ -11,7 +11,7 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
-def test_fcc_ee_solenoid_correction_new_optimizer_api():
+def test_fcc_ee_solenoid_correction_new_optimizer_api(tmp_path):
     fname = 'fccee_t'; pc_gev = 182.5
 
     env = xt.load([test_data_folder / 'fcc_ee/' / (fname + '.seq')])
@@ -331,7 +331,7 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     opt_r.enable(vary=True)
     opt_r.solve()
 
-    line.to_json(fname + '_with_sol_corrected.json')
+    line.to_json(tmp_path / f'{fname}_with_sol_corrected.json')
 
     tw_sol_on_corrected = line.twiss(method='4d')
 
