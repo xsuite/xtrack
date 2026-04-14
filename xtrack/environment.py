@@ -175,6 +175,30 @@ class Environment:
         self._lines_weakrefs = WeakSet()
         self._line_builders = WeakKeyDictionary()
 
+    @property
+    def lines(self):
+        return self._lines
+
+    @lines.setter
+    def lines(self, value):
+        self._lines = value
+
+    @property
+    def ref(self):
+        return self._ref
+
+    @ref.setter
+    def ref(self, value):
+        self._ref = value
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, value):
+        self._metadata = value
+
     def new(self, name, parent, mode=None, at=None, from_=None,
             anchor=None, from_anchor=None,
             extra=None,
@@ -1040,15 +1064,15 @@ class Environment:
         self._element_dict.pop(name)
 
     def __getattr__(self, key):
-        if key == 'lines':
-            return object.__getattribute__(self, 'lines')
-        if key in self.lines:
-            return self.lines[key]
+        if key == '_lines':
+            return object.__getattribute__(self, '_lines')
+        if key in self._lines:
+            return self._lines[key]
         else:
             raise AttributeError(f"Environment object has no attribute `{key}`.")
 
     def __dir__(self):
-        return [nn for nn  in list(self.lines.keys()) if '.' not in nn
+        return [nn for nn  in list(self._lines.keys()) if '.' not in nn
                     ] + object.__dir__(self)
 
     def set_multipolar_errors(env, errors):
