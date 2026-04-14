@@ -1179,12 +1179,49 @@ class Line:
 
     @doc_group("Compose Mode")
     def regenerate_from_composer(self):
+        """
+        Re-enter compose mode using the attached composer.
+
+        Any modification done in normal mode is lost.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method switches the line state in place.
+        """
         self._element_names = '__COMPOSE__'
         self._mode = 'compose'
         self.discard_tracker()
 
     @doc_group("Compose Mode")
     def place(self, *args, **kwargs):
+        """
+        Place an existing object or name in the compose-mode component list.
+
+        Parameters
+        ----------
+        name : str
+            Name assigned to the placed component.
+        obj : object, optional
+            Existing object to place. If omitted, ``name`` is resolved in the environment.
+        at : float or str, optional
+            Placement position.
+        from_ : str, optional
+            Reference element used to define the placement position.
+        anchor : str, optional
+            Anchor on the placed object used for positioning.
+        from_anchor : str, optional
+            Anchor on the reference element used for positioning.
+
+        Returns
+        -------
+        Place
+            The placed component descriptor appended to the composer.
+        """
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
         self.discard_tracker()
@@ -1193,22 +1230,30 @@ class Line:
     @doc_group("Compose Mode")
     def new(self, *args, **kwargs):
         """
-        Create a new element in the environment and append its placement to the composer.
+        Create a new element and append it to the compose-mode component list.
 
         Parameters
         ----------
-        *args
-            Positional arguments forwarded to ``Builder.new`` / ``Environment.new``
-            (typically element name and class/type).
+        name : str
+            Name of the new element.
+        cls : str or class
+            Element type (or parent element name when cloning/replicating).
+        at : float or str, optional
+            Position at which the created element is placed.
+        from_ : str, optional
+            Name of the reference element used to define the placement position.
+        extra : dict, optional
+            Extra metadata associated with the created element.
+        force : bool, optional
+            If ``True``, allow replacing an existing element with the same name.
         **kwargs
-            Keyword arguments forwarded to ``Builder.new`` / ``Environment.new``
-            (for example placement options such as ``at`` and element attributes).
+            Element attributes forwarded to ``Environment.new(...)``.
 
         Returns
         -------
-        object
-            The object returned by ``composer.new(...)`` (the newly created placed
-            component).
+        str or Place
+            Name of the created element, or a ``Place`` object when placement
+            arguments are provided.
         """
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
