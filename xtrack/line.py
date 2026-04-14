@@ -1347,6 +1347,14 @@ class Line:
 
     @property_with_doc_group("Compose Mode")
     def mode(self):
+        """
+        Current line mode.
+
+        Returns
+        -------
+        str
+            ``'normal'`` or ``'compose'``.
+        """
         return self._mode
 
     @property_with_doc_group("Upcoming Deprecations")
@@ -5152,6 +5160,20 @@ class Line:
 
     @doc_group("Inspection, Variables and Configuration")
     def items(self):
+        """
+        Iterate over line elements in sequence.
+
+        Parameters
+        ----------
+        None
+
+        Yields
+        ------
+        name : str
+            Element name in line order.
+        element_view : View
+            Element view associated with ``name``.
+        """
         self._method_incompatible_with_compose()
         for name in self.element_names:
             yield name, self.env.elements[name]
@@ -5378,6 +5400,19 @@ class Line:
 
     @doc_group("Inspection, Variables and Configuration")
     def new_expr(self, var):
+        """
+        Create a new xdeps expression object.
+
+        Parameters
+        ----------
+        expr : str
+            Expression to create.
+
+        Returns
+        -------
+        expr : Expression
+            New xdeps expression object.
+        """
         return self.env.new_expr(var)
 
     @property_with_doc_group("Inspection, Variables and Configuration")
@@ -5386,6 +5421,14 @@ class Line:
 
     @property_with_doc_group("Inspection, Variables and Configuration")
     def functions(self):
+        """
+        xdeps function container used in expressions.
+
+        Returns
+        -------
+        functions : object
+            Dictionary-like container of functions available in expressions.
+        """
         return self._xdeps_fref
 
     @property_with_doc_group("Line Editing")
@@ -5427,7 +5470,7 @@ class Line:
     def _xdeps_eval(self):
         return self.env._xdeps_eval
 
-    @property_with_doc_group("Inspection, Variables and Configuration")
+    @property_with_doc_group("Upcoming Deprecations")
     def vv(self):  # Shorter alias
         return self.vars.val
 
