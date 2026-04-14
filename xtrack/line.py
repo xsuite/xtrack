@@ -5499,6 +5499,14 @@ class Line:
 
     @property_with_doc_group("Inspection, Variables and Configuration")
     def ref_manager(self):
+        """
+        xdeps dependency manager for variables, element references, and expressions.
+
+        Returns
+        -------
+        ref_manager : object
+            Dependency manager used to register and update expression tasks.
+        """
         return self.env.ref_manager
 
     @property_with_doc_group("Inspection, Variables and Configuration")
