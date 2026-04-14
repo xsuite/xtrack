@@ -115,7 +115,9 @@ def generate_grouped_class_rst(
             properties = sorted(group.get("properties", []))
             cat_slug = _slugify(cat_name)
             cat_label = f"line-api-{cat_slug}"
+            summary_label = f"{cat_label}-summary"
 
+            out.append(f".. _{summary_label}:\n\n")
             out.append(f".. list-table:: :ref:`{cat_name} <{cat_label}>`\n")
             out.append("   :class: line-api-summary-table\n")
             out.append("   :header-rows: 1\n")
@@ -163,6 +165,8 @@ def generate_grouped_class_rst(
         out.append(f".. _{cat_label}:\n\n")
         out.append(f"{cat_name}\n")
         out.append(f"{_underline(cat_name, '~')}\n\n")
+        if include_summary_table:
+            out.append(f"Go to :ref:`Summary table <{cat_label}-summary>`\n\n")
 
         if methods:
             out.append(f".. _{methods_label}:\n\n")
