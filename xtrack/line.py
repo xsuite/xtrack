@@ -1454,6 +1454,14 @@ class Line:
 
     @property_with_doc_group("Reference Particle and Particle Generation")
     def particle_ref(self):
+        """
+        Reference particle used by the line for optics and tracking defaults.
+
+        Returns
+        -------
+        particle_ref : xtrack.Particles or None
+            Reference particle, if set.
+        """
         if self._particle_ref is None:
             return None
         return LineParticleRef(self)
@@ -4853,6 +4861,39 @@ class Line:
 
     @doc_group("Matching and Corrections")
     def target(self, tar, value, **kwargs):
+        """
+        Create a target object for line-level matching expressions.
+
+        Parameters
+        ----------
+        tar : callable
+            Target expression evaluated on the line action, for example
+            ``lambda ll: ll['qf'].k1``.
+        value : object
+            Desired target value or constraint object (for example
+            ``xt.GreaterThan(...)`` / ``xt.LessThan(...)``).
+        **kwargs
+            Additional keyword arguments forwarded to ``xt.Target`` (for example
+            weighting or tolerance options).
+
+        Returns
+        -------
+        target : xt.Target
+            Target object to be passed to matching routines such as ``line.match``.
+
+        Examples
+        --------
+        >>> env = xt.Environment()
+        >>> env['kqf'] = 0.1
+        >>> line = env.new_line(components=[
+        ...     env.new('qf', 'Quadrupole', length=1.0, k1='kqf')])
+        >>> opt = line.match(
+        ...     solve=False,
+        ...     vary=xt.Vary('kqf', step=1e-8, limits=[-1, 1]),
+        ...     targets=[
+        ...         line.target(lambda ll: ll['qf'].k1, xt.GreaterThan(0.0)),
+        ...     ])
+        """
 
         action = ActionLine(line=self)
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
@@ -5242,6 +5283,18 @@ class Line:
 
     @property_with_doc_group("Inspection, Variables and Configuration")
     def vars(self):
+        """
+        Variables container associated with the line environment.
+
+        The container provides variable-management utilities such as
+        ``keys()``, ``get_table()``, ``load()`` (JSON and MAD-X files),
+        ``remove()``, ``rename()``, and ``update()``.
+
+        Returns
+        -------
+        vars : object
+            Dictionary-like container of variables.
+        """
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline.vars
         else:
@@ -5304,6 +5357,16 @@ class Line:
 
     @property_with_doc_group("Inspection, Variables and Configuration")
     def varval(self):
+        """
+        Convenience accessor to variable values.
+
+        Equivalent to ``line.vars.val``.
+
+        Returns
+        -------
+        values : object
+            Mapping-like view exposing variable values.
+        """
         return self.vars.val
 
     @property_with_doc_group("Upcoming Deprecations")
@@ -5474,6 +5537,16 @@ class Line:
 
     @property_with_doc_group("Upcoming Deprecations")
     def vv(self):  # Shorter alias
+        """
+        Deprecated short alias for variable values.
+
+        Equivalent to ``line.varval`` (or ``line.vars.val``).
+
+        Returns
+        -------
+        values : object
+            Mapping-like view exposing variable values.
+        """
         return self.vars.val
 
     @property_with_doc_group("Line Editing")
@@ -5515,6 +5588,14 @@ class Line:
 
     @property_with_doc_group("Tracking and Analysis")
     def matrix_responsiveness_tol(self):
+        """
+        Responsiveness tolerance used in finite-difference matrix computations.
+
+        Returns
+        -------
+        tol : float
+            Responsiveness tolerance.
+        """
         return self._extra_config['matrix_responsiveness_tol']
 
     @matrix_responsiveness_tol.setter
@@ -5523,6 +5604,14 @@ class Line:
 
     @property_with_doc_group("Tracking and Analysis")
     def matrix_stability_tol(self):
+        """
+        Stability tolerance used in finite-difference matrix computations.
+
+        Returns
+        -------
+        tol : float
+            Stability tolerance.
+        """
         return self._extra_config['matrix_stability_tol']
 
     @matrix_stability_tol.setter
@@ -5571,6 +5660,14 @@ class Line:
 
     @property_with_doc_group("Tracking and Analysis")
     def enable_time_dependent_vars(self):
+        """
+        Flag controlling updates of time-dependent variables during tracking.
+
+        Returns
+        -------
+        enabled : bool
+            ``True`` to enable time-dependent variable updates, ``False`` otherwise.
+        """
         return self._extra_config['enable_time_dependent_vars']
 
     @enable_time_dependent_vars.setter
@@ -5580,6 +5677,14 @@ class Line:
 
     @property_with_doc_group("Tracking and Analysis")
     def dt_update_time_dependent_vars(self):
+        """
+        Time interval between updates of time-dependent variables.
+
+        Returns
+        -------
+        dt : float
+            Update interval in seconds.
+        """
         return self._extra_config['dt_update_time_dependent_vars']
 
     @dt_update_time_dependent_vars.setter
@@ -5596,15 +5701,39 @@ class Line:
 
     @property_with_doc_group("Tracking and Analysis")
     def time_last_track(self):
+        """
+        Execution time of the most recent ``track(...)`` call.
+
+        Returns
+        -------
+        dt : float
+            Elapsed tracking time in seconds.
+        """
         self._check_valid_tracker()
         return self.tracker.time_last_track
 
     @property_with_doc_group("Tracking and Analysis")
     def twiss_default(self):
+        """
+        Default options used by Twiss-related computations.
+
+        Returns
+        -------
+        twiss_default : dict
+            Dictionary of default keyword values used by Twiss methods.
+        """
         return self._extra_config['twiss_default']
 
     @property_with_doc_group("Tracking and Analysis")
     def energy_program(self):
+        """
+        Reference energy program to be followed during the simulation.
+
+        Returns
+        -------
+        energy_program : EnergyProgram or None
+            Attached energy program, or ``None`` if not set.
+        """
         try:
             out = self._element_dict['energy_program']
         except KeyError:
