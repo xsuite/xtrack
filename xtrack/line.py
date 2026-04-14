@@ -1329,6 +1329,20 @@ class Line:
 
     @property_with_doc_group("Inspection, Variables and Configuration")
     def attr(self):
+        """
+        Line-attribute accessor.
+
+        Examples
+        --------
+        >>> env = xt.Environment()
+        >>> line = env.new_line(length=10, components=[
+        ...    env.new('qf', 'Quadrupole', length=1., k1=2., at=2.5),
+        ...    env.new('qd', 'Quadrupole', length=1., k1=-2., at=7.5)])
+        >>> line.attr['k1l']
+        array([ 0.,  2.,  0., -2.,  0.])
+        >>> line.attr['length']
+        array([2., 1., 4., 1., 2.])
+        """
 
         if not self._has_valid_tracker():
             self.build_tracker()
