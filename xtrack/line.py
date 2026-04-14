@@ -5271,13 +5271,30 @@ class Line:
     def _line_vars(self):
         return self.env._line_vars
 
-    @property_with_doc_group("Element Internal Logging")
+    @property_with_doc_group("Tracking and Analysis")
     def record_last_track(self):
+        """
+        Particle coordinates recorded during the most recent ``track(...)`` call.
+
+        Returns
+        -------
+        record : object
+            Track record object from the last call to ``track(...)``.
+        """
         self._check_valid_tracker()
         return self.tracker.record_last_track
 
-    @property_with_doc_group("Element Internal Logging")
+    @property_with_doc_group("Tracking and Analysis")
     def record_multi_element_last_track(self):
+        """
+        Particle coordinates recorded for selected elements in the most recent
+        ``track(...)`` call.
+
+        Returns
+        -------
+        record : object
+            Multi-element track record object from the last call to ``track(...)``.
+        """
         self._check_valid_tracker()
         return self.tracker.record_multi_element_last_track
 
