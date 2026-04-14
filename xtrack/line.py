@@ -1154,6 +1154,18 @@ class Line:
 
     @doc_group("Compose Mode")
     def end_compose(self):
+        """
+        Resolve compose-mode placements and switch the line back to normal mode.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            This method updates the line in place.
+        """
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
         self.discard_tracker()
@@ -1180,6 +1192,24 @@ class Line:
 
     @doc_group("Compose Mode")
     def new(self, *args, **kwargs):
+        """
+        Create a new element in the environment and append its placement to the composer.
+
+        Parameters
+        ----------
+        *args
+            Positional arguments forwarded to ``Builder.new`` / ``Environment.new``
+            (typically element name and class/type).
+        **kwargs
+            Keyword arguments forwarded to ``Builder.new`` / ``Environment.new``
+            (for example placement options such as ``at`` and element attributes).
+
+        Returns
+        -------
+        object
+            The object returned by ``composer.new(...)`` (the newly created placed
+            component).
+        """
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
         self.discard_tracker()
@@ -5264,6 +5294,7 @@ class Line:
 
     @property_with_doc_group("Line Editing")
     def element_dict(self):
+        """Dictionary-like container of elements in the line environment."""
         return self.env.element_dict
 
     @property
@@ -5272,6 +5303,7 @@ class Line:
 
     @property_with_doc_group("Line Editing")
     def element_refs(self):
+        """Dictionary-like container of xdeps element references."""
         if hasattr(self, '_in_multiline'):
             var_sharing = self._in_multiline._var_sharing
             if var_sharing is not None:
@@ -5305,6 +5337,7 @@ class Line:
 
     @property_with_doc_group("Line Editing")
     def element_names(self):
+        """Ordered list of element names defining the line sequence."""
         return self._element_names
 
     @element_names.setter
@@ -5316,6 +5349,7 @@ class Line:
 
     @property_with_doc_group("Line Editing")
     def elements(self):
+        """Tuple-like container of element-object views in line order."""
         return tuple([self.env.elements[nn] for nn in self.element_names])
 
     @property
