@@ -37,7 +37,11 @@ DEFAULT_REF_STRENGTH_NAME = {
 }
 
 ENVIRONMENT_DOC_GROUP_ORDER = (
-    "Members",
+    "Editing, Inspection, Variables and Configuration",
+    "Reference Particle and Particle Generation",
+    "Analysis and Matching",
+    "Tracker Setup",
+    "Constructors and Serialization",
     "Deprecated",
     "Upcoming deprecations",
 )
@@ -184,7 +188,7 @@ class Environment:
         self._lines_weakrefs = WeakSet()
         self._line_builders = WeakKeyDictionary()
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def lines(self):
         return self._lines
 
@@ -192,7 +196,7 @@ class Environment:
     def lines(self, value):
         self._lines = value
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def ref(self):
         return self._ref
 
@@ -200,7 +204,7 @@ class Environment:
     def ref(self, value):
         self._ref = value
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def metadata(self):
         return self._metadata
 
@@ -208,7 +212,7 @@ class Environment:
     def metadata(self, value):
         self._metadata = value
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def new(self, name, parent, mode=None, at=None, from_=None,
             anchor=None, from_anchor=None,
             extra=None,
@@ -357,7 +361,7 @@ class Environment:
 
         return name
 
-    @doc_group("Members")
+    @doc_group("Reference Particle and Particle Generation")
     def new_particle(self, name, parent=None, force=False, **kwargs):
 
         '''
@@ -463,7 +467,7 @@ class Environment:
         return name
 
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def new_line(self, components=None, name=None, refer: ReferType = 'center',
                  length=None, mirror=False, s_tol=1e-6, compose=False) -> xt.Line:
         """
@@ -542,7 +546,7 @@ class Environment:
 
         return out
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def place(self, name, obj=None, at=None, from_=None, anchor=None, from_anchor=None):
         '''
         Create a place object.
@@ -621,7 +625,7 @@ class Environment:
 
         return out
 
-    @doc_group("Members")
+    @doc_group("Constructors and Serialization")
     def call(self, filename):
         '''
         Call a file with xtrack commands.
@@ -640,7 +644,7 @@ class Environment:
             raise ee
         xtrack._passed_env = None
 
-    @doc_group("Members")
+    @doc_group("Constructors and Serialization")
     def copy(self):
         return self.__class__.from_dict(self.to_dict())
 
@@ -694,7 +698,7 @@ class Environment:
 
         return new_name
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def replace_replica(self, name):
         name_parent = self._element_dict[name].resolve(self, get_name=True)
         self.copy_element_from(name_parent, self, new_name=name)
@@ -723,7 +727,7 @@ class Environment:
 
         return new_name
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def import_line(
             self,
             line,
@@ -793,7 +797,7 @@ class Environment:
             if ln._has_valid_tracker() and ln._buffer is not buffer:
                 ln.discard_tracker()
 
-    @doc_group("Members")
+    @doc_group("Tracker Setup")
     def discard_trackers(self):
         '''Discard all trackers in all lines of the environment.'''
         for ln in self._lines_weakrefs:
@@ -829,7 +833,7 @@ class Environment:
         else:
             raise ValueError('Only lines, scalars or references are allowed')
 
-    @doc_group("Members")
+    @doc_group("Constructors and Serialization")
     def to_dict(self, include_var_management=True, include_version=True):
 
         out = {}
@@ -886,7 +890,7 @@ class Environment:
 
         return out
 
-    @doc_group("Members")
+    @doc_group("Constructors and Serialization")
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         cls = xt.Environment
@@ -950,7 +954,7 @@ class Environment:
 
         return out
 
-    @doc_group("Members")
+    @doc_group("Constructors and Serialization")
     @classmethod
     def from_json(cls, file, **kwargs):
         """Constructs an environment from a JSON file.
@@ -973,7 +977,7 @@ class Environment:
         return cls.from_dict(dct, **kwargs)
 
 
-    @doc_group("Members")
+    @doc_group("Constructors and Serialization")
     def to_json(self, file, indent=1, **kwargs):
         '''Save the environment to a json file.
 
@@ -1014,15 +1018,15 @@ class Environment:
         return xt.multiline_legacy._multiline_from_madx(cls, filename=filename, madx=madx, stdout=stdout,
                              return_lines=return_lines, **kwargs)
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def elements(self):
         return self._elements
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Reference Particle and Particle Generation")
     def particles(self):
         return self._particles_container
 
-    @doc_group("Members")
+    @doc_group("Reference Particle and Particle Generation")
     def set_particle_ref(self, *args, lines=True, **kwargs):
 
         if lines is True:
@@ -1055,7 +1059,7 @@ class Environment:
             for ln in lines:
                 self.lines[ln].particle_ref = self.particle_ref.copy()
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Reference Particle and Particle Generation")
     def particle_ref(self):
         if self._particle_ref is None:
             return None
@@ -1065,11 +1069,11 @@ class Environment:
     def particle_ref(self, particle_ref):
         self._particle_ref = particle_ref
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def line_names(self):
         return list(self.lines.keys())
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def functions(self):
         return self._xdeps_fref
 
@@ -1188,7 +1192,7 @@ class Environment:
                         env.ref[ele_name].ksl[ii]._expr._get_dependencies()):
                     env[ele_name].ksl[ii] += env.ref[err_vname] * ref_str_ref * length_ref
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def element_dict(self):
         return self._element_dict
 
@@ -1247,7 +1251,7 @@ class Environment:
 
         return eva_obj
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def vars(self):
         return self._line_vars
 
@@ -1259,7 +1263,7 @@ class Environment:
     def vv(self): # Shorter alias
         return self.vars.val
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def eval(self, expr):
         '''
         Get the value of an expression
@@ -1278,7 +1282,7 @@ class Environment:
         return self.vars.eval(expr)
 
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def element_refs(self):
         if self._var_management is not None:
             return self._var_management['lref']
@@ -1314,7 +1318,7 @@ class Environment:
                 (self.ref_manager is not None and key in self.vars)
                 )
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def remove(self, key):
 
         if key in self._element_dict:
@@ -1331,7 +1335,7 @@ class Environment:
     def __delitem__(self, key):
         self.remove(key)
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def set(self, name, *args, **kwargs):
         '''
         Set the values or expressions of variables or element properties.
@@ -1405,7 +1409,7 @@ class Environment:
             else:
                 self.vars[name] = value
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def get(self, key):
         '''
         Get an element or the value of a variable.
@@ -1431,7 +1435,7 @@ class Environment:
         else:
             raise KeyError(f'Element or variable {key} not found')
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def info(self, key, limit=30):
         '''
         Get information about an element or a variable.
@@ -1457,7 +1461,7 @@ class Environment:
             raise KeyError(f'Element or variable {key} not found')
 
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def get_expr(self, var):
         '''
         Get expression associated to a variable
@@ -1475,7 +1479,7 @@ class Environment:
 
         return self.vars.get_expr(var)
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def new_expr(self, expr):
         '''
         Create a new expression
@@ -1531,7 +1535,7 @@ class Environment:
             # Need to bypass the check on element redefinition
             self._xdeps_eref._owner[nn] = new_ee
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def extend_knl_ksl(self, order, element_names=None):
         """
         Extend the order of the knl and ksl attributes of the elements.
@@ -1548,7 +1552,7 @@ class Environment:
         self._extend_knl_ksl_abs_rel(order, element_names=element_names,
                                     absolute=True, relative=False)
 
-    @doc_group("Members")
+    @doc_group("Editing, Inspection, Variables and Configuration")
     def extend_knl_rel_ksl_rel(self, order, element_names=None):
         """
         Extend the order of the rel_knl and rel_ksl attributes of the elements.
@@ -1565,7 +1569,7 @@ class Environment:
         self._extend_knl_ksl_abs_rel(order, element_names=element_names,
                                     absolute=False, relative=True)
 
-    @property_with_doc_group("Members")
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def ref_manager(self):
         return self._xdeps_manager
 
@@ -1660,10 +1664,10 @@ class Environment:
                 else:
                     setattr(container[name], kk, value_kwargs[kk])
 
-    twiss = doc_group("Members")(MultilineLegacy.twiss)
-    build_trackers = doc_group("Members")(MultilineLegacy.build_trackers)
-    match = doc_group("Members")(MultilineLegacy.match)
-    match_knob = doc_group("Members")(MultilineLegacy.match_knob)
+    twiss = doc_group("Analysis and Matching")(MultilineLegacy.twiss)
+    build_trackers = doc_group("Tracker Setup")(MultilineLegacy.build_trackers)
+    match = doc_group("Analysis and Matching")(MultilineLegacy.match)
+    match_knob = doc_group("Analysis and Matching")(MultilineLegacy.match_knob)
     install_beambeam_interactions = doc_group("Upcoming deprecations")(
         MultilineLegacy.install_beambeam_interactions)
     configure_beambeam_interactions = doc_group("Upcoming deprecations")(
