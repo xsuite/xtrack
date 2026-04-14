@@ -41,6 +41,21 @@ class MadngVars:
         #     ''')
 
 def build_madng_model(line, sequence_name='seq', **kwargs):
+    """
+    Build and attach the MAD-NG model associated with this line.
+
+    Parameters
+    ----------
+    sequence_name : str, optional
+        Name of the MAD-NG sequence to be created.
+    **kwargs
+        Additional keyword arguments forwarded to MAD-NG model creation.
+
+    Returns
+    -------
+    model : object
+        Built MAD-NG model.
+    """
     print('Building MAD-NG model for line', line.name, 'with sequence name', sequence_name)
     if line.tracker is None:
         line.build_tracker()
@@ -52,11 +67,27 @@ def build_madng_model(line, sequence_name='seq', **kwargs):
     return mng
 
 def discard_madng_model(line):
+    """
+    Discard the attached MAD-NG model for this line.
+
+    Returns
+    -------
+    None
+        Removes the current MAD-NG model association.
+    """
     line.tracker._madng = None
     line.tracker.vars_to_update.remove(line.tracker._madng_vars)
     return
 
 def regen_madng_model(line):
+    """
+    Regenerate the MAD-NG model associated with this line.
+
+    Returns
+    -------
+    None
+        Rebuilds the MAD-NG model association.
+    """
     discard_madng_model(line)
     build_madng_model(line)
     return
@@ -112,6 +143,37 @@ def _tw_ng(line, rdts=(), normal_form=True,
            mapdef_twiss=2, mapdef_normal_form=4,
            nslice=3, xsuite_tw=True, X0=None,
            method=4, **tw_kwargs):
+    """
+    Run a Twiss calculation using the MAD-NG model.
+
+    If the MAD-NG model is not available, it is created automatically.
+
+    Parameters
+    ----------
+    rdts : tuple, optional
+        Resonance driving terms to compute.
+    normal_form : bool, optional
+        If ``True``, also compute normal-form quantities.
+    mapdef_twiss : int, optional
+        Map order used for the MAD-NG Twiss computation.
+    mapdef_normal_form : int, optional
+        Map order used for the MAD-NG normal-form computation.
+    nslice : int, optional
+        Number of slices used in MAD-NG tracking/Twiss internals.
+    xsuite_tw : bool, optional
+        If ``True``, use Xsuite Twiss output structure and enrich it with MAD-NG data.
+    X0 : object, optional
+        Initial condition object for open Twiss calculations.
+    method : int, optional
+        MAD-NG method identifier for Twiss/tracking calls.
+    **tw_kwargs
+        Additional keyword arguments forwarded to Twiss setup.
+
+    Returns
+    -------
+    twiss : xtrack.TwissTable
+        Twiss table with MAD-NG columns.
+    """
 
     _action = ActionTwissMadng(line, {
         "rdts": rdts,
@@ -322,6 +384,16 @@ def madng_get_init(line, at):
     return f"{mng._sequence_name}.X0"
 
 def _survey_ng(line):
+    """
+    Run a survey using the MAD-NG model.
+
+    If the MAD-NG model is not available, it is created automatically.
+
+    Returns
+    -------
+    survey : xtrack.survey.SurveyTable
+        Survey result produced by MAD-NG.
+    """
     if not hasattr(line.tracker, '_madng'):
         line.build_madng_model()
     mng = line.tracker._madng

@@ -1480,6 +1480,14 @@ class Line:
 
     @property_with_doc_group("Radiation, Spin and Intra-Beam Scattering")
     def scattering(self):
+        """
+        Interface to Xcoll scattering tools for this line.
+
+        Returns
+        -------
+        scattering : object
+            Xcoll scattering API bound to this line.
+        """
         if not hasattr(self, '_scattering') or self._scattering is None:
             try:
                 from xcoll.line_tools import XcollScatteringAPI
@@ -1491,6 +1499,14 @@ class Line:
 
     @property_with_doc_group("Radiation, Spin and Intra-Beam Scattering")
     def collimators(self):
+        """
+        Interface to Xcoll collimator tools for this line.
+
+        Returns
+        -------
+        collimators : object
+            Xcoll collimator API bound to this line.
+        """
         if not hasattr(self, '_collimators') or self._collimators is None:
             try:
                 from xcoll.line_tools import XcollCollimatorAPI
@@ -5249,6 +5265,14 @@ class Line:
 
     @property_with_doc_group("Tracker Setup")
     def iscollective(self):
+        """
+        Whether the built tracker runs in collective mode.
+
+        Returns
+        -------
+        iscollective : bool
+            ``True`` if the tracker is collective, ``False`` otherwise.
+        """
         if not self._has_valid_tracker():
             raise RuntimeError(
                 '`Line.iscollective` can only be called after `Line.build_tracker`')
@@ -5597,6 +5621,16 @@ class Line:
 
     @property_with_doc_group("Tracker Setup")
     def skip_end_turn_actions(self):
+        """
+        Whether end-turn actions are skipped during tracking.
+
+        Default is ``False``.
+
+        Returns
+        -------
+        skip : bool
+            ``True`` to skip end-turn actions, ``False`` to execute them.
+        """
         return self._extra_config['skip_end_turn_actions']
 
     @skip_end_turn_actions.setter
@@ -5605,6 +5639,16 @@ class Line:
 
     @property_with_doc_group("Tracker Setup")
     def reset_s_at_end_turn(self):
+        """
+        Whether longitudinal position ``s`` is reset at the end of each turn.
+
+        Default is ``True``.
+
+        Returns
+        -------
+        reset : bool
+            ``True`` to reset ``s`` at end turn, ``False`` to keep cumulative ``s``.
+        """
         return self._extra_config['reset_s_at_end_turn']
 
     @reset_s_at_end_turn.setter
