@@ -86,7 +86,7 @@ LINE_DOC_GROUP_ORDER = (
     "Energy & Longitudinal State",
     "Tracker Setup",
     "Constructors and Serialization",
-    "Logging",
+    "Element Internal Logging",
     "Cleanup and Simplification",
     "MAD-NG Integration",
     "Deprecated Methods",
@@ -935,6 +935,39 @@ class Line:
 
     @doc_group("Inspection, Variables and Configuration")
     def get_strengths(self, reverse=None):
+        '''
+        Return integrated magnet strengths as a table.
+
+        Parameters
+        ----------
+        reverse : bool, optional
+            If ``True``, return strengths in reverse reference frame. If
+            ``None``, the value is taken from ``line.twiss_default['reverse']``
+            (default ``False``).
+
+        Returns
+        -------
+        strengths : xtrack.Table
+            Table with one row per element plus ``'_end_point'``, including
+            integrated strengths (for example ``k0l``, ``k1l``, ``k2l``,
+            ``k3l``) and other twiss strength fields.
+
+        Examples
+        --------
+        >>> env = xt.Environment()
+        >>> line = env.new_line(length=10, components=[
+        ...    env.new('qf', 'Quadrupole', length=1., k1=2., at=2.5),
+        ...    env.new('qd', 'Quadrupole', length=1., k1=-2., at=7.5)])
+        >>> line.get_strengths()
+        Table: 6 rows, 20 cols
+        name                   k0l           k1l           k2l           k3l ...
+        ||drift_1::0             0             0             0             0
+        qf                       0             2             0             0
+        ||drift_2                0             0             0             0
+        qd                       0            -2             0             0
+        ||drift_1::1             0             0             0             0
+        _end_point               0             0             0             0
+        '''
 
         self._method_incompatible_with_compose()
 
@@ -4020,7 +4053,7 @@ class Line:
         if compile:
             _ = self.tracker.get_track_kernel_and_data_for_present_config()
 
-    @doc_group("Logging")
+    @doc_group("Element Internal Logging")
     def start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity):
         """
@@ -4044,7 +4077,7 @@ class Line:
         return start_internal_logging_for_elements_of_type(self.tracker,
                                                     element_type, capacity)
 
-    @doc_group("Logging")
+    @doc_group("Element Internal Logging")
     def stop_internal_logging_for_all_elements(self, reinitialize_io_buffer=False):
         """
         Stop internal logging for all elements.
@@ -4062,7 +4095,7 @@ class Line:
         if reinitialize_io_buffer:
             self.tracker._init_io_buffer()
 
-    @doc_group("Logging")
+    @doc_group("Element Internal Logging")
     def stop_internal_logging_for_elements_of_type(self, element_type):
 
         """
@@ -5084,12 +5117,12 @@ class Line:
     def _line_vars(self):
         return self.env._line_vars
 
-    @property_with_doc_group("Logging")
+    @property_with_doc_group("Element Internal Logging")
     def record_last_track(self):
         self._check_valid_tracker()
         return self.tracker.record_last_track
 
-    @property_with_doc_group("Logging")
+    @property_with_doc_group("Element Internal Logging")
     def record_multi_element_last_track(self):
         self._check_valid_tracker()
         return self.tracker.record_multi_element_last_track
