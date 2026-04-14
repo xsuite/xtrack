@@ -882,7 +882,7 @@ class Line:
     @doc_group("Inspection, Variables and Configuration")
     def get_table(self, attr=False):
         '''
-        Return a table with line element metadata and longitudinal positions.
+        Return a table with line element information and longitudinal positions.
 
         Parameters
         ----------
