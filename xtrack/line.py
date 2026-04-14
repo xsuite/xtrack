@@ -1241,7 +1241,7 @@ class Line:
     def mode(self):
         return self._mode
 
-    @property_with_doc_group("Compose Mode")
+    @property_with_doc_group("Upcoming Deprecations")
     def builder(self):
        return self.composer
 
@@ -5109,7 +5109,7 @@ class Line:
     def varval(self):
         return self.vars.val
 
-    @property_with_doc_group("Inspection, Variables and Configuration")
+    @property_with_doc_group("Upcoming Deprecations")
     def vv(self): # Shorter alias
         return self.vars.val
 
@@ -5291,7 +5291,7 @@ class Line:
     def reset_s_at_end_turn(self, value):
         self._extra_config['reset_s_at_end_turn'] = value
 
-    @property_with_doc_group("Tracker Setup")
+    @property_with_doc_group("Tracking and Analysis")
     def matrix_responsiveness_tol(self):
         return self._extra_config['matrix_responsiveness_tol']
 
@@ -5299,7 +5299,7 @@ class Line:
     def matrix_responsiveness_tol(self, value):
         self._extra_config['matrix_responsiveness_tol'] = value
 
-    @property_with_doc_group("Tracker Setup")
+    @property_with_doc_group("Tracking and Analysis")
     def matrix_stability_tol(self):
         return self._extra_config['matrix_stability_tol']
 
@@ -5347,7 +5347,7 @@ class Line:
     def _needs_rng(self, value):
         self._extra_config['_needs_rng'] = value
 
-    @property_with_doc_group("Energy & Longitudinal State")
+    @property_with_doc_group("Tracking and Analysis")
     def enable_time_dependent_vars(self):
         return self._extra_config['enable_time_dependent_vars']
 
@@ -5356,7 +5356,7 @@ class Line:
         assert value in (True, False)
         self._extra_config['enable_time_dependent_vars'] = value
 
-    @property_with_doc_group("Energy & Longitudinal State")
+    @property_with_doc_group("Tracking and Analysis")
     def dt_update_time_dependent_vars(self):
         return self._extra_config['dt_update_time_dependent_vars']
 
@@ -5381,7 +5381,7 @@ class Line:
     def twiss_default(self):
         return self._extra_config['twiss_default']
 
-    @property_with_doc_group("Energy & Longitudinal State")
+    @property_with_doc_group("Tracking and Analysis")
     def energy_program(self):
         try:
             out = self._element_dict['energy_program']
