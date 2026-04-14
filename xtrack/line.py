@@ -3642,6 +3642,26 @@ class Line:
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
+        '''
+        Configure the model for all quadrupoles in the line.
+
+        Parameters
+        ----------
+        model : str, optional
+            Magnet model to assign to all quadrupole elements.
+        edge : {'full', None}, optional
+            Edge-fringe configuration. Use ``'full'`` to enable fringes and
+            ``None`` to leave edge settings unchanged.
+        num_multipole_kicks : int, optional
+            Number of multipole kicks to assign to quadrupole elements.
+        integrator : str, optional
+            Integrator to assign to quadrupole elements.
+
+        Returns
+        -------
+        None
+            This method modifies matching elements in place.
+        '''
 
         self._method_incompatible_with_compose()
         self._configure_mult(
@@ -3660,6 +3680,26 @@ class Line:
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
+        '''
+        Configure the model for all sextupoles in the line.
+
+        Parameters
+        ----------
+        model : str, optional
+            Magnet model to assign to all sextupole elements.
+        edge : {'full', None}, optional
+            Edge-fringe configuration. Use ``'full'`` to enable fringes and
+            ``None`` to leave edge settings unchanged.
+        num_multipole_kicks : int, optional
+            Number of multipole kicks to assign to sextupole elements.
+        integrator : str, optional
+            Integrator to assign to sextupole elements.
+
+        Returns
+        -------
+        None
+            This method modifies matching elements in place.
+        '''
         self._method_incompatible_with_compose()
         self._configure_mult(
             xt.Sextupole,
@@ -3677,6 +3717,26 @@ class Line:
             num_multipole_kicks: Optional[int] = None,
             integrator: Optional[str] = None,
     ):
+        '''
+        Configure the model for all octupoles in the line.
+
+        Parameters
+        ----------
+        model : str, optional
+            Magnet model to assign to all octupole elements.
+        edge : {'full', None}, optional
+            Edge-fringe configuration. Use ``'full'`` to enable fringes and
+            ``None`` to leave edge settings unchanged.
+        num_multipole_kicks : int, optional
+            Number of multipole kicks to assign to octupole elements.
+        integrator : str, optional
+            Integrator to assign to octupole elements.
+
+        Returns
+        -------
+        None
+            This method modifies matching elements in place.
+        '''
         self._method_incompatible_with_compose()
         self._configure_mult(
             xt.Octupole,
