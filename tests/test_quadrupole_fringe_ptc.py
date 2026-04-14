@@ -4,7 +4,7 @@ import xtrack as xt
 import numpy as np
 from cpymad.madx import Madx
 
-def test_quadrupole_fringe_ptc():
+def test_quadrupole_fringe_ptc(sandbox_cwd):
     b2 = 100
     b1 = 0
     length=1e-20

@@ -779,7 +779,7 @@ def test_load_madx_optics_file():
     xo.assert_allclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-9, rtol=0)
 
 
-def test_load_b2_with_bv_minus_one():
+def test_load_b2_with_bv_minus_one(sandbox_cwd):
     test_data_folder_str = str(test_data_folder)
 
     mad1 = Madx(stdout=False)

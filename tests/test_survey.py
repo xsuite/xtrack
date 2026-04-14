@@ -397,7 +397,7 @@ def test_survey_with_h_and_v_bends():
     xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
 
-def test_survey_against_madx_cpymad_loader():
+def test_survey_against_madx_cpymad_loader(sandbox_cwd):
     from cpymad.madx import Madx
 
     mad = Madx()
@@ -492,7 +492,7 @@ def test_survey_against_madx_cpymad_loader():
     xo.assert_allclose(p[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p[:, 1], 2e-3, atol=1e-14)
 
-def test_survey_transforms_native_loader():
+def test_survey_transforms_native_loader(sandbox_cwd):
 
     from cpymad.madx import Madx
 
