@@ -5072,7 +5072,22 @@ class Line:
 
     @doc_group("Inspection, Variables and Configuration")
     def info(self, key, limit=30):
-        return self.env.info(key, limit=limit)
+        '''
+        Get information about an element or a variable.
+
+        Parameters
+        ----------
+        key : str
+            Name of the element or variable.
+        limit : int, optional
+            Maximum number of expression terms shown for variable info.
+
+        Returns
+        -------
+        None
+            This method displays information and does not return a value.
+        '''
+        self.env.info(key, limit=limit)
 
     @classmethod
     def _get_doc_groups_dict(cls):

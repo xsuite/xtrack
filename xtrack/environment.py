@@ -1377,14 +1377,26 @@ class Environment:
             raise KeyError(f'Element or variable {key} not found')
 
     def info(self, key, limit=30):
-        """
-            Get information about an element or a variable.
-        """
+        '''
+        Get information about an element or a variable.
+
+        Parameters
+        ----------
+        key : str
+            Name of the element or variable.
+        limit : int, optional
+            Maximum number of expression terms shown for variable info.
+
+        Returns
+        -------
+        None
+            This method displays information and does not return a value.
+        '''
 
         if key in self.elements:
-            return self[key].get_info()
+            self[key].get_info()
         elif key in self.vars:
-            return self.vars.info(key, limit=limit)
+            self.vars.info(key, limit=limit)
         else:
             raise KeyError(f'Element or variable {key} not found')
 
