@@ -1,22 +1,22 @@
+from __future__ import annotations
+
 import re
 from collections.abc import Collection
 from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, cast
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 import xobjects as xo
 from xdeps.table import Table
 from xobjects.context import XContext
-
 from xtrack import TwissInit, TwissTable
 from xtrack.aperture.profile_converters import (
     LimitTypes, profile_from_limit_element, profile_from_madx_aperture
 )
 from xtrack.aperture.structures import (
     ApertureBounds, ApertureModel, ApertureType, BeamData, Circle, FloatType,
-    Profile, ProfilePolygons, ProfilePosition, Racetrack, Rectangle, RectEllipse,
-    ShapeTypes, SurveyData, TwissData, TypePosition
+    Profile, ProfilePolygons, ProfilePosition, Racetrack, Rectangle,
+    RectEllipse, ShapeTypes, SurveyData, TwissData, TypePosition
 )
 from xtrack.aperture.transform import transform_matrix
 from xtrack.json import dump as json_dump
@@ -134,6 +134,82 @@ class ProfilesView:
         return matches
 
 
+class ProfilePositionView:
+    __slots__ = ('_model', '_type_index', '_position_index')
+
+    def __init__(self, model: ApertureModel, type_index: int, position_index: int):
+        self._model = model
+        self._type_index = type_index
+        self._position_index = position_index
+
+    def __repr__(self):
+        return f'<ProfilePositionView profile={self.profile.name!r}, s={self.s_position}>'
+
+    @property
+    def raw(self) -> ProfilePosition:
+        return self._model.types[self._type_index].positions[self._position_index]
+
+    @property
+    def profile_index(self) -> int:
+        return self.raw.profile_index
+
+    @profile_index.setter
+    def profile_index(self, profile_index: int):
+        self.raw.profile_index = profile_index
+
+    @property
+    def profile(self) -> ProfileView:
+        return ProfileView(self._model, self.profile_index)
+
+    @property
+    def s_position(self) -> float:
+        return self.raw.s_position
+
+    @s_position.setter
+    def s_position(self, s_position: float):
+        self.raw.s_position = s_position
+
+    @property
+    def shift_x(self) -> float:
+        return self.raw.shift_x
+
+    @shift_x.setter
+    def shift_x(self, shift_x: float):
+        self.raw.shift_x = shift_x
+
+    @property
+    def shift_y(self) -> float:
+        return self.raw.shift_y
+
+    @shift_y.setter
+    def shift_y(self, shift_y: float):
+        self.raw.shift_y = shift_y
+
+    @property
+    def rot_x(self) -> float:
+        return self.raw.rot_x
+
+    @rot_x.setter
+    def rot_x(self, rot_x: float):
+        self.raw.rot_x = rot_x
+
+    @property
+    def rot_y(self) -> float:
+        return self.raw.rot_y
+
+    @rot_y.setter
+    def rot_y(self, rot_y: float):
+        self.raw.rot_y = rot_y
+
+    @property
+    def rot_s(self) -> float:
+        return self.raw.rot_s
+
+    @rot_s.setter
+    def rot_s(self, rot_s: float):
+        self.raw.rot_s = rot_s
+
+
 class TypeView:
     __slots__ = ('_model', '_index')
 
@@ -142,7 +218,16 @@ class TypeView:
         self._index = index
 
     def __repr__(self):
-        return f'<TypeView {self.name!r}: {self.raw!r}>'
+        curved_str = f', curvature = {self.curvature}' if self.curvature else ''
+        len_positions = len(self)
+        return f'<TypeView {self.name!r}: {len_positions} profiles{curved_str}>'
+
+    def __getitem__(self, item: int):
+        if isinstance(item, slice):
+            indices = range(*item.indices(len(self)))
+            return [ProfilePositionView(self._model, self._index, ii) for ii in indices]
+
+        return ProfilePositionView(self._model, self._index, item)
 
     @property
     def raw(self) -> ApertureType:
@@ -156,9 +241,29 @@ class TypeView:
     def curvature(self) -> float:
         return self.raw.curvature
 
+    def __len__(self) -> int:
+        return len(self.raw.positions)
+
+    def __iter__(self):
+        for ii in range(len(self)):
+            yield self[ii]
+
     @property
-    def positions(self):
-        return self.raw.positions
+    def length(self):
+        s_end = self.raw.positions[len(self) - 1].s_position
+        s_start = self.raw.positions[0].s_position
+        return s_end - s_start
+
+    @property
+    def angle(self):
+        return self.length * self.curvature
+
+    @curvature.setter
+    def curvature(self, curvature: float):
+        self.raw.curvature = curvature
+
+    def values(self):
+        return list(self)
 
 
 class TypesView:

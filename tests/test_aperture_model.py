@@ -1,16 +1,16 @@
-from itertools import zip_longest
 import json
+from itertools import zip_longest
 from pathlib import Path
 
 import numpy as np
 import pytest
-import xobjects as xo
-from cpymad.madx import Madx
-from xobjects.test_helpers import for_all_test_contexts, requires_context
-from xobjects.general import allclose_with_outliers
 
+import xobjects as xo
 import xtrack as xt
-from xtrack.aperture.aperture import Aperture
+from cpymad.madx import Madx
+from xobjects.general import allclose_with_outliers
+from xobjects.test_helpers import for_all_test_contexts, requires_context
+from xtrack.aperture.aperture import Aperture, ProfilesView, TypesView
 from xtrack.aperture.structures import (
     ApertureModel, ApertureType, Circle, Ellipse, FloatType, Profile,
     ProfilePosition, Rectangle, RectEllipse, SurveyData, TypePosition
@@ -257,6 +257,101 @@ def test_bounds_table_for_perfect_overlap_interval(test_context):
     assert list(rows.shape) == ['Rectangle', 'Rectangle']
     assert all(sp['half_width'] == 0.08 for sp in rows.shape_param)
     assert all(sp['half_height'] == 0.04 for sp in rows.shape_param)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_model_views(test_context):
+    model = ApertureModel(
+        type_positions=[
+            TypePosition(
+                type_index=0,
+                survey_reference_name='drift',
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+        ],
+        types=[ApertureType(curvature=0.5, positions=[
+            ProfilePosition(profile_index=0, s_position=0.1, shift_x=0.2, shift_y=-0.3, rot_x=0.4, rot_y=-0.5, rot_s=0.6),
+            ProfilePosition(profile_index=1, s_position=0.7),
+        ])],
+        profiles=[
+            Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
+            Profile(shape=Rectangle(half_width=2.0, half_height=3.0), tol_r=0.1, tol_x=0.2, tol_y=0.3),
+        ],
+        type_names=['type0'],
+        profile_names=['circ0', 'rect0'],
+        _context=test_context,
+    )
+
+    profiles = ProfilesView(model)
+    types = TypesView(model)
+    type0 = types[0]
+    positions = type0
+
+    assert repr(profiles) == '<ProfilesView: 2 profiles>'
+    assert repr(types) == '<TypesView: 1 type>'
+    assert profiles.keys() == ['circ0', 'rect0']
+    assert types.keys() == ['type0']
+    assert profiles.search(r'.*0') == ['circ0', 'rect0']
+    assert types.search(r'type.*') == ['type0']
+
+    assert profiles[0].name == 'circ0'
+    assert profiles['rect0'].name == 'rect0'
+    assert list(name for name, _ in profiles.items()) == ['circ0', 'rect0']
+    assert list(type(profile.raw.shape).__name__ for profile in [profiles[0], profiles[1]]) == ['Circle', 'Rectangle']
+    assert [type(profile.shape).__name__ for profile in profiles.values()] == ['Circle', 'Rectangle']
+
+    xo.assert_allclose(profiles['rect0'].tol_r, 0.1, atol=1e-15, rtol=0)
+    xo.assert_allclose(profiles['rect0'].tol_x, 0.2, atol=1e-15, rtol=0)
+    xo.assert_allclose(profiles['rect0'].tol_y, 0.3, atol=1e-15, rtol=0)
+    profiles['rect0'].tol_r = 0.4
+    profiles['rect0'].tol_x = 0.5
+    profiles['rect0'].tol_y = 0.6
+    xo.assert_allclose(model.profiles[1].tol_r, 0.4, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.profiles[1].tol_x, 0.5, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.profiles[1].tol_y, 0.6, atol=1e-15, rtol=0)
+
+    assert types[0].name == 'type0'
+    assert types['type0'].name == 'type0'
+    assert list(name for name, _ in types.items()) == ['type0']
+    assert [type_.curvature for type_ in types.values()] == [0.5]
+    xo.assert_allclose(type0.length, 0.6, atol=1e-15, rtol=0)
+    xo.assert_allclose(type0.angle, 0.3, atol=1e-15, rtol=0)
+    type0.curvature = 0.25
+    xo.assert_allclose(model.types[0].curvature, 0.25, atol=1e-15, rtol=0)
+
+    assert positions[0].profile.name == 'circ0'
+    assert positions[1].profile.name == 'rect0'
+    assert [pp.profile.name for pp in positions] == ['circ0', 'rect0']
+    assert [pp.profile.name for pp in positions[:]] == ['circ0', 'rect0']
+    assert [pp.profile.name for pp in positions.values()] == ['circ0', 'rect0']
+    xo.assert_allclose(positions[0].s_position, 0.1, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[0].shift_x, 0.2, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[0].shift_y, -0.3, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[0].rot_x, 0.4, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[0].rot_y, -0.5, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[0].rot_s, 0.6, atol=1e-15, rtol=0)
+
+    positions[0].profile_index = 1
+    positions[0].s_position = 0.25
+    positions[0].shift_x = 0.35
+    positions[0].shift_y = -0.45
+    positions[0].rot_x = 0.55
+    positions[0].rot_y = -0.65
+    positions[0].rot_s = 0.75
+
+    assert positions[0].profile.name == 'rect0'
+    xo.assert_allclose(model.types[0].positions[0].profile_index, 1, atol=0, rtol=0)
+    xo.assert_allclose(model.types[0].positions[0].s_position, 0.25, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.types[0].positions[0].shift_x, 0.35, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.types[0].positions[0].shift_y, -0.45, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.types[0].positions[0].rot_x, 0.55, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.types[0].positions[0].rot_y, -0.65, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.types[0].positions[0].rot_s, 0.75, atol=1e-15, rtol=0)
+
+    assert [pp.profile.name for pp in positions[:]] == ['rect0', 'rect0']
+    with pytest.raises(AttributeError):
+        positions.append(positions[0])
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

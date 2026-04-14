@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
-import xobjects as xo
 from scipy.special import ellipe
 
+import xobjects as xo
 from xtrack.aperture import structures
 from xtrack.aperture.structures import (
     Circle, Ellipse, FloatType, Octagon, Profile, Racetrack, Rectangle,
