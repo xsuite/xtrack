@@ -190,6 +190,7 @@ class Environment:
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def lines(self):
+        """Container of named lines registered in this environment."""
         return self._lines
 
     @lines.setter
@@ -198,6 +199,7 @@ class Environment:
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def ref(self):
+        """xdeps reference container for variables, elements and particles."""
         return self._ref
 
     @ref.setter
@@ -206,6 +208,7 @@ class Environment:
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def metadata(self):
+        """User metadata associated with the environment."""
         return self._metadata
 
     @metadata.setter
@@ -646,6 +649,15 @@ class Environment:
 
     @doc_group("Constructors and Serialization")
     def copy(self):
+        """
+        Create a deep copy of the environment.
+
+        Returns
+        -------
+        Environment
+            Independent copy of the environment, including elements, lines,
+            particles, variables, expressions and metadata.
+        """
         return self.__class__.from_dict(self.to_dict())
 
     @doc_group("Upcoming deprecations")
@@ -700,6 +712,20 @@ class Environment:
 
     @doc_group("Editing, Inspection, Variables and Configuration")
     def replace_replica(self, name):
+        """
+        Replace a replica element with a clone of its parent element.
+        Expressions on element attributes are preserved.
+
+        Parameters
+        ----------
+        name : str
+            Name of the replica element to replace.
+
+        Returns
+        -------
+        None
+            This method modifies the environment in place.
+        """
         name_parent = self._element_dict[name].resolve(self, get_name=True)
         self.copy_element_from(name_parent, self, new_name=name)
 
@@ -835,6 +861,23 @@ class Environment:
 
     @doc_group("Constructors and Serialization")
     def to_dict(self, include_var_management=True, include_version=True):
+        """
+        Serialize the environment to a JSON-compatible dictionary.
+
+        Parameters
+        ----------
+        include_var_management : bool, optional
+            If True, include deferred-expression data and variable manager
+            state. Default is ``True``.
+        include_version : bool, optional
+            If True, include the xtrack version that generated the dictionary.
+            Default is ``True``.
+
+        Returns
+        -------
+        dict
+            Serialized environment data.
+        """
 
         out = {}
         out['__class__'] = self.__class__.__name__
@@ -893,6 +936,25 @@ class Environment:
     @doc_group("Constructors and Serialization")
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+        """
+        Rebuild an environment from a serialized dictionary.
+
+        Parameters
+        ----------
+        dct : dict
+            Dictionary produced by :meth:`to_dict`.
+        _context : xobjects.Context, optional
+            Context used to rebuild xobjects-backed data.
+        _buffer : xobjects.Buffer, optional
+            Buffer used to rebuild xobjects-backed data.
+        classes : tuple, optional
+            Extra element classes accepted during element deserialization.
+
+        Returns
+        -------
+        Environment
+            Reconstructed environment.
+        """
         cls = xt.Environment
 
         if "xtrack_version" in dct:
@@ -1020,14 +1082,31 @@ class Environment:
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def elements(self):
+        """Container of environment elements; item access returns ``View`` objects."""
         return self._elements
 
     @property_with_doc_group("Reference Particle and Particle Generation")
     def particles(self):
+        """Container of named particles; item access returns ``View`` objects."""
         return self._particles_container
 
     @doc_group("Reference Particle and Particle Generation")
     def set_particle_ref(self, *args, lines=True, **kwargs):
+        """
+        Set the environment reference particle and optionally propagate it to lines.
+
+        Parameters
+        ----------
+        *args
+            Either a single :class:`xtrack.Particles`, a particle name, or
+            arguments passed to ``xtrack.Particles``.
+        lines : bool, str, iterable of str, optional
+            Which lines receive the same reference particle.
+            ``True`` updates all lines, ``False``/``None`` updates none.
+        **kwargs
+            Extra keyword arguments forwarded to ``xtrack.Particles`` when
+            constructing a new particle reference.
+        """
 
         if lines is True:
             lines = self.lines.keys()
@@ -1061,6 +1140,7 @@ class Environment:
 
     @property_with_doc_group("Reference Particle and Particle Generation")
     def particle_ref(self):
+        """Reference particle accessor, or ``None`` if not configured."""
         if self._particle_ref is None:
             return None
         return EnvParticleRef(self)
@@ -1071,10 +1151,19 @@ class Environment:
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def line_names(self):
+        """List of names of all lines currently in the environment."""
         return list(self.lines.keys())
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def functions(self):
+        """
+        xdeps function container used in expressions.
+
+        Returns
+        -------
+        functions : object
+            Dictionary-like container of functions available in expressions.
+        """
         return self._xdeps_fref
 
     def _remove_element(self, name):
@@ -1194,6 +1283,7 @@ class Environment:
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def element_dict(self):
+        """Dictionary-like container of elements in the environment."""
         return self._element_dict
 
     @element_dict.setter
@@ -1253,14 +1343,46 @@ class Environment:
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def vars(self):
+        """
+        Variables container associated with the environment.
+
+        The container provides variable-management utilities such as
+        ``keys()``, ``get_table()``, ``load()`` (JSON and MAD-X files),
+        ``remove()``, ``rename()``, and ``update()``.
+
+        Returns
+        -------
+        vars : object
+            Dictionary-like container of variables.
+        """
         return self._line_vars
 
     @property_with_doc_group("Upcoming deprecations")
     def varval(self):
+        """
+        Convenience accessor to variable values.
+
+        Equivalent to ``environment.vars.val``.
+
+        Returns
+        -------
+        values : object
+            Mapping-like view exposing variable values.
+        """
         return self.vars.val
 
     @property_with_doc_group("Upcoming deprecations")
     def vv(self): # Shorter alias
+        """
+        Deprecated short alias for variable values.
+
+        Equivalent to ``environment.varval`` (or ``environment.vars.val``).
+
+        Returns
+        -------
+        values : object
+            Mapping-like view exposing variable values.
+        """
         return self.vars.val
 
     @doc_group("Editing, Inspection, Variables and Configuration")
@@ -1284,6 +1406,7 @@ class Environment:
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def element_refs(self):
+        """Dictionary-like container of xdeps element references."""
         if self._var_management is not None:
             return self._var_management['lref']
 
@@ -1320,6 +1443,14 @@ class Environment:
 
     @doc_group("Editing, Inspection, Variables and Configuration")
     def remove(self, key):
+        """
+        Remove an element, particle, line, or variable by name.
+
+        Parameters
+        ----------
+        key : str
+            Name of the object to remove.
+        """
 
         if key in self._element_dict:
             self.elements.remove(key)
@@ -1571,6 +1702,14 @@ class Environment:
 
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def ref_manager(self):
+        """
+        xdeps dependency manager for variables, element references, and expressions.
+
+        Returns
+        -------
+        ref_manager : object
+            Dependency manager used to register and update expression tasks.
+        """
         return self._xdeps_manager
 
     def _var_management_to_dict(self):
