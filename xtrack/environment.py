@@ -188,6 +188,22 @@ class Environment:
         self._lines_weakrefs = WeakSet()
         self._line_builders = WeakKeyDictionary()
 
+    @classmethod
+    def _generate_doc_rst(
+        cls,
+        *,
+        include_properties=True,
+        include_summary_table=True,
+    ):
+        """Generate grouped API documentation in RST format."""
+        from .api_docs import generate_grouped_class_rst
+
+        return generate_grouped_class_rst(
+            cls,
+            include_properties=include_properties,
+            include_summary_table=include_summary_table,
+        )
+
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def lines(self):
         """Container of named lines registered in this environment."""

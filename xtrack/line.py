@@ -5487,6 +5487,26 @@ class Line:
             for item in cls.__doc_groups__
         }
 
+    @classmethod
+    def _generate_doc_rst(
+        cls,
+        *,
+        title="Line API (Grouped)",
+        include_properties=True,
+        include_toc=False,
+        include_summary_table=True,
+    ):
+        """Generate grouped API documentation in RST format."""
+        from .api_docs import generate_grouped_class_rst
+
+        return generate_grouped_class_rst(
+            cls,
+            title=title,
+            include_properties=include_properties,
+            include_toc=include_toc,
+            include_summary_table=include_summary_table,
+        )
+
     @doc_group("Inspection, Variables and Configuration")
     def get_expr(self, var):
         '''
