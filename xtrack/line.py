@@ -1359,7 +1359,15 @@ class Line:
 
     @property_with_doc_group("Upcoming Deprecations")
     def builder(self):
-       return self.composer
+        """
+        Deprecated alias for ``line.composer``.
+
+        Returns
+        -------
+        Builder or None
+            Compose-mode builder object associated with the line.
+        """
+        return self.composer
 
     @builder.setter
     def builder(self, value):
@@ -5094,6 +5102,26 @@ class Line:
 
     @doc_group("Upcoming Deprecations")
     def copy_element_from(self, name, source, new_name=None):
+        """
+        Deprecated wrapper for ``line.env.copy_element_from(...)``.
+
+        Copies an element from ``source`` into this line's environment and
+        optionally renames it.
+
+        Parameters
+        ----------
+        name : str
+            Name of the element to copy from ``source``.
+        source : Environment or Line
+            Object containing the element.
+        new_name : str, optional
+            Name to assign in this line's environment. If omitted, ``name`` is used.
+
+        Returns
+        -------
+        None
+            The destination environment is modified in place.
+        """
         return self.env.copy_element_from(name, source, new_name)
 
     @doc_group("Line Editing")
