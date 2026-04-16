@@ -123,7 +123,7 @@ def test_rbend_straight_body_edge_linear(test_context):
 
     tw_back = l_test.twiss(init=tw_test, init_at='end')
 
-    assert tw_back.orientation == 'backward'
+    assert tw_back._orientation == 'backward'
     xo.assert_allclose(tw_back.betx, tw_test.betx, rtol=5e-6, atol=0.0)
     xo.assert_allclose(tw_back.bety, tw_test.bety, rtol=5e-6, atol=0.0)
     xo.assert_allclose(tw_back.x,    tw_test.x, rtol=0, atol=1e-8)
@@ -148,7 +148,7 @@ def test_rbend_straight_body_edge_linear(test_context):
 
     tw_test_sliced_back = l_sliced.twiss(init=tw_test_sliced0, init_at='end')
 
-    assert tw_test_sliced_back.orientation == 'backward'
+    assert tw_test_sliced_back._orientation == 'backward'
     xo.assert_allclose(tw_test_sliced_back.betx, tw_test_sliced0.betx, rtol=5e-9, atol=0.0)
     xo.assert_allclose(tw_test_sliced_back.bety, tw_test_sliced0.bety, rtol=5e-9, atol=0.0)
     xo.assert_allclose(tw_test_sliced_back.x,    tw_test_sliced0.x, rtol=0, atol=1e-12)
@@ -260,7 +260,7 @@ def test_rbend_straight_body_edge_linear_angle_diff():
 
     tw_back = l_test.twiss(init=tw_test, init_at='end')
 
-    assert tw_back.orientation == 'backward'
+    assert tw_back._orientation == 'backward'
     xo.assert_allclose(tw_back.betx, tw_test.betx, rtol=5e-6, atol=0.0)
     xo.assert_allclose(tw_back.bety, tw_test.bety, rtol=5e-6, atol=0.0)
     xo.assert_allclose(tw_back.x,    tw_test.x, rtol=0, atol=1e-8)
@@ -286,7 +286,7 @@ def test_rbend_straight_body_edge_linear_angle_diff():
 
     tw_test_sliced_back = l_sliced.twiss(init=tw_test_sliced0, init_at='end')
 
-    assert tw_test_sliced_back.orientation == 'backward'
+    assert tw_test_sliced_back._orientation == 'backward'
     xo.assert_allclose(tw_test_sliced_back.betx, tw_test_sliced0.betx, rtol=5e-9, atol=0.0)
     xo.assert_allclose(tw_test_sliced_back.bety, tw_test_sliced0.bety, rtol=5e-9, atol=0.0)
     xo.assert_allclose(tw_test_sliced_back.x,    tw_test_sliced0.x, rtol=0, atol=1e-12)
@@ -352,11 +352,11 @@ def test_rbend_straight_sps():
     line.configure_radiation(model='mean')
 
     line.set(tt_rbend, rbend_model='curved-body')
-    tw_rad_curved = line.twiss(eneloss_and_damping=True,
+    tw_rad_curved = line.twiss(radiation_analysis=True,
                                 radiation_integrals=True)
 
     line.set(tt_rbend, rbend_model='straight-body')
-    tw_rad_straight = line.twiss(eneloss_and_damping=True,
+    tw_rad_straight = line.twiss(radiation_analysis=True,
                                 radiation_integrals=True)
 
     xo.assert_allclose(tw_rad_straight.eq_gemitt_x,

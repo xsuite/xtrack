@@ -32,15 +32,14 @@ line['on_coupling_corrections'] = 1
 line.configure_radiation('mean')
 
 # Generate a matched bunch distribution
-tw = line.twiss(spin=True, eneloss_and_damping=True, polarization=True)
+tw = line.twiss(spin=True, radiation_analysis=True, polarization_analysis=True)
 np.random.seed(0)
 particles = xp.generate_matched_gaussian_bunch(
     line=line,
     nemitt_x=tw.eq_nemitt_x,
     nemitt_y=tw.eq_nemitt_y,
     sigma_z=np.sqrt(tw.eq_gemitt_zeta * tw.bets0),
-    num_particles=300,
-    engine='linear')
+    num_particles=300)
 # Add stable phase
 particles.zeta += tw.zeta[0]
 particles.delta += tw.delta[0]
@@ -91,7 +90,7 @@ plt.legend()
 
 # Compute equilibrium polarization
 p_inf = tw['spin_polarization_inf_no_depol']
-t_pol_turns = tw['spin_t_pol_component_s']/tw.T_rev0
+t_pol_turns = tw['spin_t_pol_component_s']/tw.t_rev0
 
 p_eq = p_inf * 1 / (1 + t_pol_turns/t_dep_turns)
 # gives 0.853721

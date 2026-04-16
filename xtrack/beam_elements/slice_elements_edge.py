@@ -252,6 +252,10 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
 
     def get_equivalent_element(self):
 
+        if self._parent.rbend_model == "straight-body":
+            return self # No replacement possible (not yet supported), element
+                        # left where it is
+
         if self._parent.edge_entry_active:
             return DipoleEdge(
                 k=self._parent._k0,
@@ -336,6 +340,10 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
+
+        if self._parent.rbend_model == "straight-body":
+            return self # No replacement possible (not yet supported), element
+                        # left where it is
 
         if self._parent.edge_exit_active:
             return DipoleEdge(

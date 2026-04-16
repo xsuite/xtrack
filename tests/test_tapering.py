@@ -73,7 +73,7 @@ def test_tapering_and_twiss_with_radiation(conf):
     print('Twiss with radiation')
     # Twiss(es) with radiation
     tw = line.twiss(radiation_method=conf['radiation_method'],
-                    eneloss_and_damping=True, **extra_kwargs)
+                    radiation_analysis=True, **extra_kwargs)
     print('Done')
 
     assert tw.radiation_method == (conf['radiation_method'] or 'kick_as_co')
@@ -81,7 +81,7 @@ def test_tapering_and_twiss_with_radiation(conf):
     # Check twiss at_s
     print('Twiss at_s')
     i_ele = len(tw.s) // 3
-    tws = line.twiss(radiation_method=conf['radiation_method'], eneloss_and_damping=True, **extra_kwargs).rows[i_ele]
+    tws = line.twiss(radiation_method=conf['radiation_method'], radiation_analysis=True, **extra_kwargs).rows[i_ele]
     print('Done')
 
     line.config.XTRACK_CAVITY_PRESERVE_ANGLE = False
@@ -125,7 +125,7 @@ def test_tapering_and_twiss_with_radiation(conf):
     xo.assert_allclose(tw.betx[i_ele], tws.betx, rtol=1e-3, atol=0)
     xo.assert_allclose(tw.bety[i_ele], tws.bety, rtol=1e-3, atol=0)
 
-    eneloss = tw.eneloss_turn
+    eneloss = tw.energy_loss
     assert eneloss/line.particle_ref.energy0 > 0.01
     xo.assert_allclose(
         line['rf'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),

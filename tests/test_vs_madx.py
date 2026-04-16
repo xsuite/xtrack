@@ -212,7 +212,11 @@ def test_twiss_and_survey(
             Sigmas = twtst.get_betatron_sigmas(nemitt_x, nemitt_y)
 
             for nn in twtst._col_names:
-                assert len(twtst[nn]) == len(twtst['name'])
+                if nn in twtst._DEPRECATED_FIELDS:
+                    # Avoid triggering the warning on the deprecated field
+                    assert len(twtst._data[nn]) == len(twtst._data['name'])
+                else:
+                    assert len(twtst[nn]) == len(twtst['name'])
 
             test_at_elements = []
             test_at_elements.extend(['mbxf.4l1..1', 'mbxf.4l5..1'])
@@ -578,17 +582,17 @@ def test_orbit_knobs(test_context, mad_b12_no_errors):
     line.build_tracker(_context=test_context)
 
     line.vars['on_x1'] = 250
-    xo.assert_allclose(line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
+    xo.assert_allclose(line.twiss()['px', 'ip1'], 250e-6,
                 atol=1e-6, rtol=0)
     line.vars['on_x1'] = -300
-    xo.assert_allclose(line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
+    xo.assert_allclose(line.twiss()['px', 'ip1'], -300e-6,
                 atol=1e-6, rtol=0)
 
     line.vars['on_x5'] = 130
-    xo.assert_allclose(line.twiss(at_elements=['ip5'])['py'][0], 130e-6,
+    xo.assert_allclose(line.twiss()['py', 'ip5'], 130e-6,
                 atol=1e-6, rtol=0)
     line.vars['on_x5'] = -270
-    xo.assert_allclose(line.twiss(at_elements=['ip5'])['py'][0], -270e-6,
+    xo.assert_allclose(line.twiss()['py', 'ip5'], -270e-6,
                 atol=1e-6, rtol=0)
 
 

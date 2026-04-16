@@ -1,5 +1,6 @@
 import json
 import pathlib
+import pytest
 
 import xobjects as xo
 import xpart as xp
@@ -97,7 +98,7 @@ def test_freeze_longitudinal_context_manager(test_context):
     twiss = line.twiss(method='6d')
     xo.assert_allclose(twiss.slip_factor, 0.00032151, rtol=0, atol=1e-6)
 
-
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @for_all_test_contexts
 def test_freeze_longitudinal_individual_methods(test_context):
 

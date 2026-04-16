@@ -43,7 +43,7 @@ line.to_json('lep_thin.json')
 
 tw_norad = line.twiss()
 line.configure_radiation('mean')
-tw_rad = line.twiss(eneloss_and_damping=True)
+tw_rad = line.twiss(radiation_analysis=True)
 
 ##############################
 # Compare against MAD-X emit #
@@ -55,7 +55,7 @@ mad.input('''
     emit;
     ''')
 
-mad_eneloss_turn = mad.table.emitsumm.u0[0]
+mad_energy_loss = mad.table.emitsumm.u0[0]
 mad_gemitt_x = mad.table.emitsumm.ex[0]
 mad_gemitt_zeta = mad.table.emitsumm.et[0]
 met = mad.table.emit.dframe()
@@ -67,8 +67,8 @@ mad_partition_y = met[met.loc[:, 'parameter']=='damping_partion']['mode2'].value
 mad_partition_z = met[met.loc[:, 'parameter']=='damping_partion']['mode3'].values[0]
 
 print(f'Energy loss per turn [eV]:')
-print(f'- MAD-X:  {mad_eneloss_turn*1e9:.6g}')
-print(f'- Xsuite: {tw_rad.eneloss_turn:.6g}')
+print(f'- MAD-X:  {mad_energy_loss*1e9:.6g}')
+print(f'- Xsuite: {tw_rad.energy_loss:.6g}')
 print(f'Geometric emittance in x [m.rad]:')
 print(f'- MAD-X:  {mad_gemitt_x:.6g}')
 print(f'- Xsuite: {tw_rad.eq_gemitt_x:.6g}')
@@ -90,7 +90,7 @@ print(f'- Xsuite: {tw_rad.damping_constants_s[2]:.6g}')
 ###########
 
 import xobjects as xo
-xo.assert_allclose(tw_rad['eneloss_turn'],  mad.table.emitsumm.u0*1e9, atol=0, rtol=1e-5)
+xo.assert_allclose(tw_rad['energy_loss'],  mad.table.emitsumm.u0*1e9, atol=0, rtol=1e-5)
 xo.assert_allclose(tw_rad['eq_gemitt_x'],  mad.table.emitsumm.ex, atol=0, rtol=5e-3)
 xo.assert_allclose(tw_rad['eq_gemitt_zeta'],  mad.table.emitsumm.et, atol=0, rtol=1e-3)
 

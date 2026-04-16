@@ -3,9 +3,9 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 import json
+from warnings import warn
 
 import numpy as np
-from pathlib import Path
 
 from scipy.constants import e as qe
 from scipy.constants import c as clight
@@ -13,13 +13,13 @@ from scipy.constants import epsilon_0
 
 import xobjects as xo
 import xtrack as xt
-from xobjects.general import Print
 from xobjects import BypassLinked
 
 from .masses import PROTON_MASS_EV
 from .masses import __dict__ as mass__dict__
 from .pdg import get_pdg_id_from_name, get_properties_from_pdg_id, \
                  get_mass_from_pdg_id
+from ..general import DEPRECATION_INFO_PREP_1_0
 
 LAST_INVALID_STATE = -999999999
 
@@ -1757,7 +1757,7 @@ class Particles(xo.HybridClass):
             container=self)
 
     @property
-    def kin_xprime(self):
+    def kin_xp(self):
         out = self.kin_px / self.kin_ps
         return self._buffer.context.linked_array_type.from_array(
             out,
@@ -1765,12 +1765,26 @@ class Particles(xo.HybridClass):
             container=self)
 
     @property
-    def kin_yprime(self):
+    def kin_yp(self):
         out = self.kin_py / self.kin_ps
         return self._buffer.context.linked_array_type.from_array(
             out,
             mode='readonly',
             container=self)
+
+    @property
+    def kin_xprime(self):
+        warn("The variable `kin_xprime` is deprecated, use `kin_xp` instead"
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning)
+        return self.kin_xp
+
+    @property
+    def kin_yprime(self):
+        warn("The variable `kin_yprime` is deprecated, use `kin_yp` instead"
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning)
+        return self.kin_yp
 
     def add_to_energy(self, delta_energy):
         """

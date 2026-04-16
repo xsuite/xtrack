@@ -36,7 +36,7 @@ twom = line.twiss(delta0=delta0)
 line.discard_tracker()
 
 # Install dummy collective elements
-s_sync = np.linspace(0, tw.circumference, 10)
+s_sync = np.linspace(0, tw.line_length, 10)
 for ii, ss in enumerate(s_sync):
     nn = f'sync_here_{ii}'
     line.insert(nn, obj=xt.Marker(), at=ss)
@@ -50,7 +50,7 @@ line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 beta1 = tw.beta0 / 0.9
 
-circumference = tw.circumference
+circumference = tw.line_length
 zeta_min0 = -circumference/2*tw.beta0/beta1
 zeta_max0 = circumference/2*tw.beta0/beta1
 
@@ -117,7 +117,7 @@ line.track(p, num_turns=num_turns, log=xt.Log(intensity=intensity,
 
 inten = line.log_last_track['intensity']
 
-f_rev_ave = 1 / tw.T_rev0 * (1 - tw.slip_factor * p.delta.mean())
+f_rev_ave = 1 / tw.t_rev0 * (1 - tw.slip_factor * p.delta.mean())
 t_rev_ave = 1 / f_rev_ave
 
 inten_exp =  np.sum(p0.weight) / t_rev_ave
@@ -137,9 +137,9 @@ t_range_size = z_range_size / (tw.beta0 * clight)
 
 import nafflib
 f_harmons = nafflib.get_tunes(intensity_vs_t, N=50)[0] / (t_unwrapped[1] - t_unwrapped[0])
-f_nominal = 1 / tw.T_rev0
+f_nominal = 1 / tw.t_rev0
 dt_expected = -(twom.zeta[-1] - twom.zeta[0]) / tw.beta0 / clight
-f_expected = 1 / (tw.T_rev0 + dt_expected)
+f_expected = 1 / (tw.t_rev0 + dt_expected)
 
 f_measured = f_harmons[np.argmin(np.abs(f_harmons - f_nominal))]
 
@@ -170,7 +170,7 @@ plt.close('all')
 plt.figure(1)
 plt.plot(inten, label='xtrack')
 plt.axhline(inten_exp, color='C1', label='expected')
-plt.axhline(np.sum(p0.weight) / tw.T_rev0, color='C3', label='N/T_rev0')
+plt.axhline(np.sum(p0.weight) / tw.t_rev0, color='C3', label='N/t_rev0')
 plt.legend(loc='best')
 plt.xlabel('Turn')
 plt.ylim(inten_exp*0.95, inten_exp*1.05)

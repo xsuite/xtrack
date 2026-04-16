@@ -13,7 +13,7 @@ rfb_no_rad = line._get_bucket()
 line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
 
-tw_rad = line.twiss6d(eneloss_and_damping=True)
+tw_rad = line.twiss6d(radiation_analysis=True)
 rfb_rad = line._get_bucket()
 
 # Check that the effect of the radiation is visible on qs

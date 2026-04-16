@@ -22,7 +22,7 @@ def test_radial_steering(test_context):
     tw = line.twiss()
 
     h_rf = 1
-    f_rf = h_rf/tw.T_rev0
+    f_rf = h_rf/tw.t_rev0
 
     beta0 = line.particle_ref.beta0[0]
 
@@ -30,10 +30,10 @@ def test_radial_steering(test_context):
     # dt = h_rf/(f_rf + df_hz) - h_rf/f_rf = h_rf/f_rf (1/(1+df_hz/f_rf) - 1)
     #                                       ~= h_rf/f_rf * (1 - df_hz/f_rf -1)
     #                                       = -h_rf/(f_rf^2) * df_hz
-    #                                       = -T_rev / f_rf * df_hz
+    #                                       = -t_rev / f_rf * df_hz
     # dzeta = -beta0 * clight * dt = circumference * df_hz / f_rf
 
-    dzeta = tw.circumference * df_hz / f_rf
+    dzeta = tw.line_length * df_hz / f_rf
 
     line.discard_tracker()
     line.append('zeta_shift', xt.ZetaShift(dzeta=dzeta))
@@ -46,7 +46,7 @@ def test_radial_steering(test_context):
 
     # Checks
     eta = tw.slip_factor
-    f0 = 1/tw.T_rev0
+    f0 = 1/tw.t_rev0
     delta_trim = -1/h_rf/eta/f0*df_hz
 
     # Use 4d twiss on machine without zeta shift

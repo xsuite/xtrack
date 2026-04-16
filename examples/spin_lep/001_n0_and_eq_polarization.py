@@ -13,7 +13,7 @@ line['on_spin_bumps'] = 0
 line['on_coupling_corrections'] = 0
 
 # Twiss with spin and polarization calculation
-tw_no_sol = line.twiss4d(spin=True, polarization=True)
+tw_no_sol = line.twiss4d(spin=True, polarization_analysis=True)
 
 # Inspect equilibrium polarization
 tw_no_sol.spin_polarization_eq # is 0.92376
@@ -24,7 +24,7 @@ line['on_spin_bumps'] = 0
 line['on_coupling_corrections'] = 1
 
 # Twiss with spin and polarization calculation
-tw_sol = line.twiss4d(spin=True, polarization=True)
+tw_sol = line.twiss4d(spin=True, polarization_analysis=True)
 
 # Inspect equilibrium polarization
 tw_sol.spin_polarization_eq # is 0.018617
@@ -35,7 +35,7 @@ line['on_spin_bumps'] = 1
 line['on_coupling_corrections'] = 1
 
 # Twiss with spin and polarization calculation
-tw = line.twiss4d(spin=True, polarization=True)
+tw = line.twiss4d(spin=True, polarization_analysis=True)
 
 # Inspect equilibrium polarization
 tw.spin_polarization_eq # is 0.89160

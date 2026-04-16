@@ -44,7 +44,7 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
 
     # Build corresponding matrix
     tw = line.twiss()
-    circumference = tw.circumference
+    circumference = tw.line_length
 
     if longitudinal_mode == 'nonlinear':
         matrix = xt.LineSegmentMap(
@@ -155,7 +155,7 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     assert np.isclose(tw_line.dpy[0], tw_matrix.dpy[0], atol=1e-5, rtol=0)
 
     assert tw_matrix.s[0] == 0
-    assert np.isclose(tw_matrix.s[-1], tw_line.circumference, rtol=0, atol=1e-6)
+    assert np.isclose(tw_matrix.s[-1], tw_line.line_length, rtol=0, atol=1e-6)
     assert np.allclose(tw_matrix.bets0, tw_line.bets0, rtol=1e-2, atol=0)
 
     assert np.allclose(np.squeeze(mon.zeta), np.squeeze(mon_matrix.zeta),

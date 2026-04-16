@@ -62,7 +62,7 @@ def test_radiation_wiggler():
 
     line.configure_radiation(model='mean')
 
-    tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
+    tw_rad = line.twiss(radiation_analysis=True, strengths=True)
 
     print('ex rad int:', tw4d.rad_int_eq_gemitt_x)
     print('ex Chao:   ', tw_rad.eq_gemitt_x)
@@ -123,7 +123,7 @@ def test_radiation_integrals_sls_combined_function_magnets():
 
     line.configure_radiation(model='mean')
 
-    tw_rad = line.twiss(eneloss_and_damping=True, strengths=True,
+    tw_rad = line.twiss(radiation_analysis=True, strengths=True,
                         radiation_method='full')
 
     tw_integrals = line.twiss(radiation_integrals=True)
@@ -202,11 +202,11 @@ def test_radiation_integrals_sps_vs_df(tilt):
     line.configure_radiation(model='mean')
     line.compensate_radiation_energy_loss()
 
-    tw_rad = line.twiss(eneloss_and_damping=True)
+    tw_rad = line.twiss(radiation_analysis=True)
 
     # Prepare trim
-    env['frev0'] = 1. / tw4d.T_rev0
-    env['circum'] = tw4d.circumference
+    env['frev0'] = 1. / tw4d.t_rev0
+    env['circum'] = tw4d.line_length
     env['frev_trim'] = 0.
 
     env['zeta_shift'].dzeta = 'circum * frev_trim / frev0'
@@ -230,7 +230,7 @@ def test_radiation_integrals_sps_vs_df(tilt):
     for dff in dfrev:
         print(f'dfrev: {dff}')
         env['frev_trim'] = dff
-        tw = line.twiss(eneloss_and_damping=True,
+        tw = line.twiss(radiation_analysis=True,
                         radiation_integrals=True)
         part_x.append(tw.partition_numbers[0])
         part_y.append(tw.partition_numbers[1])

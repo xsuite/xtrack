@@ -45,7 +45,7 @@ p_dummy = line.build_particles(x=0)
 tw_from_sigmas = dummy_line.twiss(
                         particle_on_co=p_dummy,
                         R_matrix=dummy_R,
-                        compute_chromatic_properties=False)
+                        chrom=False)
 
 print('betx/bety')
 print(f'betx (from line)    = {tw.betx[0]}')

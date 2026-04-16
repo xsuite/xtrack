@@ -14,6 +14,7 @@ import xtrack as xt
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
+from ..general import DEPRECATION_INFO_PREP_1_0
 
 from xtrack.internal_record import RecordIndex
 
@@ -2802,7 +2803,8 @@ class Solenoid(_HasKnlKsl, BeamElement):
 
     def __init__(self, order=None, knl: List[float] = None, ksl: List[float] = None, **kwargs):
         warn(
-            'The `Solenoid` element is deprecated. Use `VariableSolenoid` or `UniformSolenoid` instead.',
+            'The `Solenoid` element is deprecated. Use `VariableSolenoid` or `UniformSolenoid` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
             FutureWarning
         )
 
@@ -3769,7 +3771,7 @@ class LineSegmentMap(BeamElement):
             List of frequencies of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
         lag_rf : list of float
-            List of lag of the RF kicks in the segment. Only used if
+            List of lags in degrees of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
         dqx : float or list of float
             Horizontal linear chromaticity of the segment.
@@ -4232,7 +4234,7 @@ class SecondOrderTaylorMap(BeamElement):
 
         '''
         if start == end:
-            # start == end will lead to compute_one_turn_matrix_finite_differences() computing a
+            # start == end will lead to compute_R_matrix() computing a
             # full one-turn response matrix (but here we would rather expect identity)
             raise NotImplementedError('end element must be after start element')
 
@@ -4244,7 +4246,7 @@ class SecondOrderTaylorMap(BeamElement):
         twinit = tw.get_twiss_init(start)
         twinit_out = tw.get_twiss_init(end)
 
-        RR = line.compute_one_turn_matrix_finite_differences(
+        RR = line.compute_R_matrix(
             start=start, end=end, particle_on_co=twinit.particle_on_co
             )['R_matrix']
         TT = line.compute_T_matrix(start=start, end=end,

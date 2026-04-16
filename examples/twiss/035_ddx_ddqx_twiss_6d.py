@@ -21,7 +21,7 @@ RR = tw6d.R_matrix
 dz_test = 1e-3
 xx = np.linalg.solve(RR - np.eye(6), np.array([0,0,0,0,dz_test,0]))
 delta_test = xx[5]
-slip_factor = -dz_test / delta_test / tw6d.circumference
+slip_factor = -dz_test / delta_test / tw6d.line_length
 
 # 4d calculation
 RR = tw4d.R_matrix.copy()
@@ -34,10 +34,10 @@ xx = np.linalg.solve(solve_mat, np.array([0,0,0,0,0,delta_test]))
 # measure slippage on original matrix
 xx_out = tw4d.R_matrix @ xx
 dz_test = xx_out[4] - xx[4]
-slip_factor_4d = -dz_test / delta_test / tw4d.circumference
+slip_factor_4d = -dz_test / delta_test / tw4d.line_length
 
 
-dzeta = slip_factor * ddelta * tw6d.circumference
+dzeta = slip_factor * ddelta * tw6d.line_length
 
 # p_co_plus = line.find_closed_orbit(delta_zeta=-dzeta)
 # p_co_minus = line.find_closed_orbit(delta_zeta=dzeta)
@@ -45,8 +45,8 @@ dzeta = slip_factor * ddelta * tw6d.circumference
 # p_co_plus.zeta -= dzeta
 # p_co_minus.zeta += dzeta
 
-tw_plus = line.twiss6d(zeta_shift=-dzeta, compute_chromatic_properties=False)
-tw_minus = line.twiss6d(zeta_shift=dzeta, compute_chromatic_properties=False)
+tw_plus = line.twiss6d(zeta_shift=-dzeta, chrom=False)
+tw_minus = line.twiss6d(zeta_shift=dzeta, chrom=False)
 
 
 

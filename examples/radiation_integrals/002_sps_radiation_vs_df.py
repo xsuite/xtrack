@@ -23,11 +23,11 @@ tw6d = line.twiss()
 line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
 
-tw_rad = line.twiss(eneloss_and_damping=True)
+tw_rad = line.twiss(radiation_analysis=True)
 
 # Prepare trim
-env['frev0'] = 1. / tw4d.T_rev0
-env['circum'] = tw4d.circumference
+env['frev0'] = 1. / tw4d.t_rev0
+env['circum'] = tw4d.line_length
 env['frev_trim'] = 0.
 
 env['zeta_shift'].dzeta = 'circum * frev_trim / frev0'
@@ -51,7 +51,7 @@ delta_ave = []
 for dff in dfrev:
     print(f'dfrev: {dff}')
     env['frev_trim'] = dff
-    tw = line.twiss(eneloss_and_damping=True,
+    tw = line.twiss(radiation_analysis=True,
                     radiation_integrals=True)
     part_x.append(tw.partition_numbers[0])
     part_y.append(tw.partition_numbers[1])

@@ -33,7 +33,7 @@ for nn in tt_bend.name:
 # # for nn in tt_quad.name:
 # #     line[nn].radiation_flag = 0
 
-tw_rad_thick = line.twiss(eneloss_and_damping=True, strengths=True)
+tw_rad_thick = line.twiss(radiation_analysis=True, strengths=True)
 
 print('Done thick')
 
@@ -51,7 +51,7 @@ line_sliced_thick.slice_thick_elements(slicing_strategies)
 
 assert line['ars12_mqua_5940..0'].radiation_flag == 10
 
-tw_rad_sliced_thick = line_sliced_thick.twiss(eneloss_and_damping=True, strengths=True)
+tw_rad_sliced_thick = line_sliced_thick.twiss(radiation_analysis=True, strengths=True)
 
 # Thin ...
 env['ring_thin'] = env.ring.copy(shallow=True)
@@ -68,7 +68,7 @@ line_thin.slice_thick_elements(slicing_strategies)
 line_thin.build_tracker()
 # line_thin.configure_radiation(model='mean')
 
-tw_rad_thin = line_thin.twiss(eneloss_and_damping=True, strengths=True)
+tw_rad_thin = line_thin.twiss(radiation_analysis=True, strengths=True)
 
 # Compare tunes, chromaticities, damping rates, equilibrium emittances
 print('Tune comparison')
@@ -82,9 +82,9 @@ print('Sliced thick: ', tw_rad_sliced_thick.dqx, tw_rad_sliced_thick.dqy)
 print('Thin:         ', tw_rad_thin.dqx, tw_rad_thin.dqy)
 
 print('Energy loss: ')
-print('Thick:        ', tw_rad_thick.eneloss_turn)
-print('Sliced thick: ', tw_rad_sliced_thick.eneloss_turn)
-print('Thin:         ', tw_rad_thin.eneloss_turn)
+print('Thick:        ', tw_rad_thick.energy_loss)
+print('Sliced thick: ', tw_rad_sliced_thick.energy_loss)
+print('Thin:         ', tw_rad_thin.energy_loss)
 
 print('Partition numbers: ')
 print('Thick:        ', tw_rad_thick.partition_numbers)

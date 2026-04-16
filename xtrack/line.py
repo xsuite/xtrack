@@ -22,7 +22,7 @@ import xtrack as xt
 from xtrack.aperture_meas import measure_aperture
 from xtrack.twiss import (DEFAULT_MATRIX_RESPONSIVENESS_TOL,
                           DEFAULT_MATRIX_STABILITY_TOL,
-                          compute_one_turn_matrix_finite_differences,
+                          compute_R_matrix,
                           compute_T_matrix_line, find_closed_orbit_line,
                           get_non_linear_chromaticity, twiss_line)
 
@@ -38,7 +38,7 @@ from .builder import (_all_places, _flatten_components,
                       _generate_element_names_with_drifts,
                       _resolve_s_positions, _sort_places)
 from .footprint import Footprint, _footprint_with_linear_rescale
-from .general import _print
+from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging,
                               stop_internal_logging_for_elements_of_type)
@@ -718,12 +718,6 @@ class Line:
                              **kwargs)
 
 
-    build_madng_model = build_madng_model
-    discard_madng_model = discard_madng_model
-    regen_madng_model = regen_madng_model
-    madng_twiss = _tw_ng
-    madng_survey = _survey_ng
-
     def __repr__(self):
         if hasattr(self, '_name'):
             name = self._name
@@ -1002,6 +996,55 @@ class Line:
 
         if out.energy_program is not None:
             out.energy_program.line = out
+
+        return out
+
+    def select(self, start=None, end=None, name=None):
+
+        """
+        Select a part of the line and return it as a new line (shallow copy,
+        i.e. the elements are in common with the original line).
+
+        Parameters
+        ----------
+        start : str
+            Name of the starting point
+        end : str
+            Name of the ending point
+        name : str
+            Name of the new line (default: None)
+
+        Returns
+        -------
+        out : Line
+            New line containing the selected portion.
+        """
+
+        self._method_incompatible_with_compose()
+
+        if self.mode == 'compose':
+            self._full_elements_from_composer()
+
+        if start is xt.START:
+            start = None
+
+        if end is xt.END:
+            end = None
+
+        tt = self.get_table().rows[start:end]
+        if tt.name[-1] == '_end_point':
+            tt = tt.rows[:-1]
+
+        out = self.env.new_line(components=list(tt.env_name), name=name)
+        out.particle_ref = self.particle_ref.copy() if self.particle_ref else None
+
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            out.env._var_management = None
+            out._var_management = None
+            out.env._in_multiline = self._in_multiline
+            out._in_multiline = self._in_multiline
+            out.env._name_in_multiline = self._name_in_multiline
+            out._name_in_multiline = self._name_in_multiline
 
         return out
 
@@ -1501,17 +1544,15 @@ class Line:
     def twiss(self, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None, zeta_shift=None,
-        r_sigma=None, nemitt_x=None, nemitt_y=None,
+        nemitt_x=None, nemitt_y=None, step_W_sigma=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
-        co_guess=None, steps_r_matrix=None,
-        co_search_settings=None, at_elements=None, at_s=None,
+        co_guess=None, steps_R_matrix=None,
+        co_search_settings=None,
         continue_on_closed_orbit_error=None,
-        freeze_longitudinal=None,
-        freeze_energy=None,
         values_at_element_exit=None,
         radiation_method=None,
-        eneloss_and_damping=None,
         radiation_integrals=None,
+        radiation_analysis=None,
         start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
@@ -1528,10 +1569,10 @@ class Line:
         only_markers=None,
         only_orbit=None,
         spin=None,
-        polarization=None,
+        polarization_analysis=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
-        compute_chromatic_properties=None,
+        chrom=None,
         coupling_edw_teng=False,
         init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
@@ -1553,7 +1594,17 @@ class Line:
         ele_start='__discontinued__',
         ele_stop='__discontinued__',
         ele_init='__discontinued__',
-        twiss_init='__discontinued__'
+        twiss_init='__discontinued__',
+        # deprecated
+        compute_chromatic_properties=None,
+        at_s=None,
+        at_elements=None,
+        r_sigma=None,
+        freeze_longitudinal=None,
+        freeze_energy=None,
+        polarization=None,
+        eneloss_and_damping=None,
+        steps_r_matrix=None
     ):
         if not self._has_valid_tracker():
             self.build_tracker()
@@ -2115,7 +2166,9 @@ class Line:
                                  symmetrize=symmetrize)
 
     def compute_T_matrix(self, start=None, end=None,
-                         particle_on_co=None, steps_t_matrix=None):
+                         particle_on_co=None, steps=None,
+                         steps_t_matrix=None # deprecated
+                         ):
 
         """
         Compute the second order tensor of the beamline.
@@ -2128,7 +2181,7 @@ class Line:
             Element at which the computation stops.
         particle_on_co : Particle
             Particle at the closed orbit (optional).
-        steps_r_matrix : int
+        steps : dict
             Finite difference step for computing the second order tensor.
 
         Returns
@@ -2140,9 +2193,13 @@ class Line:
 
         self._check_valid_tracker()
 
+        if steps_t_matrix is not None:
+            warn("`steps_t_matrix` is deprecated, please use `steps` instead"
+                 + DEPRECATION_INFO_PREP_1_0, FutureWarning)
+
         return compute_T_matrix_line(self, start=start, end=end,
                                 particle_on_co=particle_on_co,
-                                steps_t_matrix=steps_t_matrix)
+                                steps=steps)
 
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
@@ -2321,14 +2378,30 @@ class Line:
         return {'det_xx': det_xx, 'det_yy': det_yy,
                 'det_xy': det_xy, 'det_yx': det_yx}
 
-    def compute_one_turn_matrix_finite_differences(
+
+    def compute_one_turn_matrix_finite_differences(self, *args, **kwargs):
+
+        """Deprecated. Compute the one turn matrix using finite differences.
+
+        .. warning:: This function is deprecated and will be removed in a future
+           version. Please use Line.compute_R_matrix(...) instead.
+        """
+
+        warn("`compute_one_turn_matrix_finite_differences` is deprecated, please use `compute_R_matrix` instead"
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
+
+        return self.compute_R_matrix(*args, **kwargs)
+
+    def compute_R_matrix(
             self, particle_on_co,
-            steps_r_matrix=None,
+            steps=None,
             start=None, end=None,
             num_turns=1,
             element_by_element=False, only_markers=False,
             symmetrize=False,
-            include_collective=False):
+            include_collective=False,
+            steps_r_matrix=None # deprecated
+            ):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -2336,7 +2409,7 @@ class Line:
         ----------
         particle_on_co : Particle
             Particle at the closed orbit.
-        steps_r_matrix : float
+        steps : float
             Step size for finite differences. In not given, default step sizes
             are used.
         start : str
@@ -2353,6 +2426,12 @@ class Line:
 
         '''
 
+        if steps_r_matrix is not None:
+            warn("`steps_r_matrix` is deprecated, please use `steps` instead"
+                 + DEPRECATION_INFO_PREP_1_0,
+                 FutureWarning)
+            steps = steps_r_matrix
+
         if not self._has_valid_tracker():
             self.build_tracker()
 
@@ -2365,8 +2444,8 @@ class Line:
         else:
             line = self
 
-        return compute_one_turn_matrix_finite_differences(line, particle_on_co,
-                        steps_r_matrix, start=start, end=end,
+        return compute_R_matrix(line, particle_on_co,
+                        steps, start=start, end=end,
                         num_turns=num_turns,
                         element_by_element=element_by_element,
                         only_markers=only_markers,
@@ -2934,7 +3013,8 @@ class Line:
         s_tol: float, optional
             Tolerance for the position of the element in the line in meters.
         """
-        warn('Line.insert_element is deprecated. Use Line.insert instead.', FutureWarning)
+        warn('Line.insert_element is deprecated. Use Line.insert instead.'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
         self._method_incompatible_with_compose()
 
         if at is not None:
@@ -3032,7 +3112,8 @@ class Line:
         name : str
             Name of the element to append
         """
-        warn('Line.append_element is deprecated. Use Line.append', FutureWarning)
+        warn('Line.append_element is deprecated. Use Line.append'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
         self._method_incompatible_with_compose()
 
         if isinstance(element, xt.view.View):
@@ -4412,7 +4493,8 @@ class Line:
         """
         warn(
             '`Line.unfreeze()` is deprecated and will be removed in future '
-            'versions. Please use `Line.discard_tracker()` instead.',
+            'versions. Please use `Line.discard_tracker()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
             FutureWarning,
         )
         self.discard_tracker()
@@ -4537,35 +4619,7 @@ class Line:
                     env.new(new_name, nn, mode=mode)
                     self.element_names[ii] = new_name
 
-    def select(self, start=None, end=None, name=None):
 
-        self._method_incompatible_with_compose()
-
-        if self.mode == 'compose':
-            self._full_elements_from_composer()
-
-        if start is xt.START:
-            start = None
-
-        if end is xt.END:
-            end = None
-
-        tt = self.get_table().rows[start:end]
-        if tt.name[-1] == '_end_point':
-            tt = tt.rows[:-1]
-
-        out = self.env.new_line(components=list(tt.env_name), name=name)
-        out.particle_ref = self.particle_ref.copy() if self.particle_ref else None
-
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            out.env._var_management = None
-            out._var_management = None
-            out.env._in_multiline = self._in_multiline
-            out._in_multiline = self._in_multiline
-            out.env._name_in_multiline = self._name_in_multiline
-            out._name_in_multiline = self._name_in_multiline
-
-        return out
 
 
 
@@ -5375,6 +5429,11 @@ class Line:
                 'To exit the compose mode, use `line.end_compose()`.'
             )
 
+    build_madng_model = build_madng_model
+    discard_madng_model = discard_madng_model
+    regen_madng_model = regen_madng_model
+    madng_twiss = _tw_ng
+    madng_survey = _survey_ng
 
 
 def _deserialize_element(el, class_dict, _buffer):
@@ -5998,14 +6057,14 @@ class EnergyProgram:
 
         beta0 = self.get_beta0_at_t_s(t_s)
         circumference = self.line.get_length()
-        T_rev = circumference / (beta0 * clight)
-        out = 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
-                     - self.get_p0c_at_t_s(t_s - T_rev))
+        t_rev = circumference / (beta0 * clight)
+        out = 0.5 * (self.get_p0c_at_t_s(t_s + t_rev)
+                     - self.get_p0c_at_t_s(t_s - t_rev))
 
-        mask_zero_neg = t_s - T_rev < 0
+        mask_zero_neg = t_s - t_rev < 0
         if np.any(mask_zero_neg):
             out[mask_zero_neg] = (
-                self.get_p0c_at_t_s(t_s[mask_zero_neg] + T_rev[mask_zero_neg])
+                self.get_p0c_at_t_s(t_s[mask_zero_neg] + t_rev[mask_zero_neg])
                 - self.get_p0c_at_t_s(t_s[mask_zero_neg]))
 
         if ts_scalar:
@@ -6124,6 +6183,14 @@ class LineParticleRef:
             return self.line.env[_particle_ref]
         else:
             return _particle_ref
+
+    @property
+    def name(self):
+        _particle_ref = self.line._particle_ref
+        if isinstance(_particle_ref, str):
+            return _particle_ref
+        else:
+            return None
 
     def __getattr__(self, key):
         return getattr(self._resolved, key)

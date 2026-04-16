@@ -3,7 +3,6 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import json
 import numpy as np
 
 import xtrack as xt
@@ -12,14 +11,13 @@ line = xt.load('status.json')
 line.build_tracker()
 
 line.vars['on_x1'] = 250
-assert np.isclose(line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
-                  atol=1e-6, rtol=0)
+assert np.isclose(line.twiss4d()['px', 'ip1'], 250e-6, atol=1e-6, rtol=0)
+
 
 line.vars['on_x1'] = -300
-assert np.isclose(line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
-                  atol=1e-6, rtol=0)
+assert np.isclose(line.twiss4d()['px', 'ip1'], -300e-6, atol=1e-6, rtol=0)
 
-manager = line._var_management['manager']
+manager = line.ref_manager
 
 manager.find_deps([line.vars['on_x1']])
 # returns :
@@ -31,12 +29,11 @@ manager.find_deps([line.vars['on_x1']])
 #  line_dict['mcbrdv.4r1.b1'].ksl, vars['on_dx1vs'], vars['acbv13.l1b1'],
 #  ... ]
 
-lref = line._var_management['lref']
 
-lref['mcbrdv.4r1.b1'].ksl[0].expr
+line.ref['mcbrdv.4r1.b1'].ksl[0]._expr
 # returns:
 # (vars['acbrdv4.r1b1']*vars['bv_aux'])
 
-line.vars['acbrdv4.r1b1'].expr
+line.ref['acbrdv4.r1b1'].expr
 # returns:
 # vars['acbrdv4.r1b1'] = ((((((((4.455799347835793e-07*vars['on_x1vs'])+ ...

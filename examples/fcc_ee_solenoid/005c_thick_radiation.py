@@ -43,7 +43,7 @@ mask_ds = ds > 0
 dE_ds = eloss * 0
 dE_ds[mask_ds] = -eloss[mask_ds] / ds[mask_ds]
 
-tw_rad = line.twiss(eneloss_and_damping=True)
+tw_rad = line.twiss(radiation_analysis=True)
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -63,7 +63,7 @@ print('partition numbers: ', tw_rad.partition_numbers)
 print('gemit_x: ', tw_rad.eq_gemitt_x)
 print('gemit_y: ', tw_rad.eq_gemitt_y)
 
-tw_rad = line.twiss(eneloss_and_damping=True, radiation_method='full')
+tw_rad = line.twiss(radiation_analysis=True, radiation_method='full')
 
 ex = tw_rad.eq_gemitt_x
 ey = tw_rad.eq_gemitt_y

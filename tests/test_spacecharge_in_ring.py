@@ -166,7 +166,7 @@ def test_ring_with_spacecharge(test_context, mode):
     ###############################
 
     line_no_sc = line.filter_elements(exclude_types_starting_with='SpaceCh')
-    tw = line_no_sc.twiss(at_elements=[0])
+    tw = line_no_sc.twiss()
 
     p_probe_before = particles.filter(
             particles.particle_id == 0).to_dict()

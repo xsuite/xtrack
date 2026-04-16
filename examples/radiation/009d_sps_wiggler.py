@@ -112,4 +112,4 @@ line.build_tracker(_context=xo.ContextCpu())
 line.configure_radiation(model=None)
 
 line.configure_radiation(model='mean')
-twr = line.twiss(eneloss_and_damping=True)
+twr = line.twiss(radiation_analysis=True)

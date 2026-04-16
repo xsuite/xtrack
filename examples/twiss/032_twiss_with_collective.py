@@ -64,9 +64,9 @@ xo.assert_allclose(twfodo.dqx, twfodo_ref.dqx, atol=1e-8, rtol=0)
 xo.assert_allclose(twfodo.dqy, twfodo_ref.dqy, atol=1e-8, rtol=0)
 
 twfodo_open = lfodo.twiss4d(include_collective=True, betx=1, bety=1,
-                            compute_chromatic_properties=True)
+                            chrom=True)
 twfodo_open_ref = lfodo_ref.twiss4d(include_collective=True, betx=1, bety=1,
-                                    compute_chromatic_properties=True)
+                                    chrom=True)
 
 xo.assert_allclose(twfodo_open.betx, twfodo_open_ref.betx, atol=0, rtol=1e-8)
 xo.assert_allclose(twfodo_open.bety, twfodo_open_ref.bety, atol=0, rtol=1e-8)

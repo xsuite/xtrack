@@ -36,7 +36,7 @@ def test_coasting():
     line.discard_tracker()
 
     # Install dummy collective elements
-    s_sync = np.linspace(0, tw.circumference, 10)
+    s_sync = np.linspace(0, tw.line_length, 10)
     line.cut_at_s(s_sync)
     for ii, ss in enumerate(s_sync):
         nn = f'sync_here_{ii}'
@@ -49,7 +49,7 @@ def test_coasting():
 
     beta1 = tw.beta0 / 0.9
 
-    circumference = tw.circumference
+    circumference = tw.line_length
     zeta_min0 = -circumference/2*tw.beta0/beta1
     zeta_max0 = circumference/2*tw.beta0/beta1
 
@@ -112,7 +112,7 @@ def test_coasting():
 
     inten = line.log_last_track['intensity']
 
-    f_rev_ave = 1 / tw.T_rev0 * (1 - tw.slip_factor * p.delta.mean())
+    f_rev_ave = 1 / tw.t_rev0 * (1 - tw.slip_factor * p.delta.mean())
     t_rev_ave = 1 / f_rev_ave
 
     inten_exp =  np.sum(p0.weight) / t_rev_ave
@@ -133,9 +133,9 @@ def test_coasting():
     import nafflib
     intensity_no_ave = intensity_vs_t - np.mean(intensity_vs_t)
     f_harmons = nafflib.get_tunes(intensity_no_ave, N=50)[0] / (t_unwrapped[1] - t_unwrapped[0])
-    f_nominal = 1 / tw.T_rev0
+    f_nominal = 1 / tw.t_rev0
     dt_expected = -(twom.zeta[-1] - twom.zeta[0]) / tw.beta0 / clight
-    f_expected = 1 / (tw.T_rev0 + dt_expected)
+    f_expected = 1 / (tw.t_rev0 + dt_expected)
 
     f_measured = f_harmons[np.argmin(np.abs(f_harmons - f_nominal))]
 

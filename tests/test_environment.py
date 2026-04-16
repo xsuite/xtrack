@@ -680,6 +680,7 @@ def test_assemble_ring():
     # ring2.survey().plot()
     # plt.show()
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_assemble_ring_builders():
 
     env = xt.Environment()
@@ -3583,6 +3584,9 @@ def test_compose_parametric_lines():
         ['||drift_2', 'q1', '||drift_1', 'q2', '||drift_2', 'q2',
        '||drift_1', 'q1', '_end_point'])
 
+# Before removing this test, check that an equivalent test for Line in compose mode
+# is present.
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_expr_in_builder():
 
     env = xt.Environment()

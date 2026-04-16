@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Literal, Optional
 from xtrack.mad_parser.loader import load_madx_lattice as mad_parser_load_madx_lattice
 import xtrack as xt
+from .general import DEPRECATION_INFO_PREP_1_0
 
 
 _SUPPORTED_FORMATS = {'json', 'madx', 'python', 'csv', 'hdf5', 'tfs'}
@@ -149,5 +150,6 @@ def load(
 
 def load_madx_lattice(file=None, string=None, reverse_lines=None, **kwargs):
     """Deprecated in favour of `xt.load`, or the dedicated function in `mad_parser.loader`."""
-    warn('`xt.load_madx_lattice` is deprecated, use `xt.load` instead', FutureWarning)
+    warn('`xt.load_madx_lattice` is deprecated, use `xtrack.load` instead'
+         + DEPRECATION_INFO_PREP_1_0, FutureWarning)
     return mad_parser_load_madx_lattice(file=file, string=string, reverse_lines=reverse_lines, **kwargs)

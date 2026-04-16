@@ -15,7 +15,7 @@ env.set(tt_bend, model='rot-kick-rot', integrator='yoshida4',
 tw4d = line.twiss4d()
 
 hrf = 8
-line['frf'] = hrf / tw4d.circumference * tw4d.beta0 * clight
+line['frf'] = hrf / tw4d.line_length * tw4d.beta0 * clight
 line['vrf'] = 20e3
 
 line['pa.c40.77'].voltage = 'vrf'
@@ -23,7 +23,7 @@ line['pa.c40.77'].frequency = 'frf'
 
 tw6d = line.twiss6d()
 
-env['circumference'] = tw4d.circumference
+env['circumference'] = tw4d.line_length
 env['df_hz'] = 0.  # desired shift in RF frequency
 
 env['dzeta'] = 'circumference * df_hz / frf'
