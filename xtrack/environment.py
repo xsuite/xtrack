@@ -2459,10 +2459,10 @@ class EnvVars:
         return expr_or_value
 
     def info(self, var, limit=10):
-        return self[var]._info(limit=limit)
+        return self[var].xdeps.info(limit=limit)
 
     def get_expr(self, var):
-        return self[var]._expr
+        return self[var].xdeps.expr
 
     def rename(self, old, new, verbose=False):
 
