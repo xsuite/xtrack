@@ -43,12 +43,12 @@ line.twiss4d()['px', 'ip1']
 
 # For example we can see how the dipole corrector 'mcbyv.4r1.b1' is controlled,
 # by inspecting the expression of its normal dipole component knl[0]
-line.ref['mcbxfah.3r1/lhcb1'].knl[0]._expr
+line.ref['mcbxfah.3r1/lhcb1'].knl[0].xdeps.expr
 # ---> returns "(-vars['acbxh3.r1'])"
 
 # We can see that the variable controlling the corrector is in turn controlled
 # by an expression involving several other variables:
-line.ref['acbxh3.r1']._expr
+line.ref['acbxh3.r1'].xdeps.expr
 # ---> returns
 #         (((((((-3.529000650090648e-07*vars['on_x1hs'])
 #          -(1.349958221397232e-07*vars['on_x1hl']))
@@ -58,33 +58,35 @@ line.ref['acbxh3.r1']._expr
 #          +(3.769003853335184e-05*vars['on_ccpr1h']))
 #          +(1.197587664190056e-05*vars['on_ccmr1h']))
 
-# The _info() method can be used to get on overview of the information related
+# The info() method can be used to get on overview of the information related
 # to a given variable:
-line.ref['acbxh3.r1']._info()
+line.ref['acbxh3.r1'].xdeps.info()
 # ---> prints:
-#          #  vars['acbxh3.r1']._get_value()
-#             vars['acbxh3.r1'] = 0.00010587001950271944
+# Info for vars['acbxh3.r1']
 #
-#          #  vars['acbxh3.r1']._expr
-#             vars['acbxh3.r1'] = (((((((-3.529000650090648e-07*vars['on_x1hs'])
-#                                 -(1.349958221397232e-07*vars['on_x1hl']))
-#                                 +(1.154711348310621e-05*vars['on_sep1h']))
-#                                 +(1.535247516521591e-05*vars['on_o1h']))
-#                                 -(9.919546388675102e-07*vars['on_a1h']))
-#                                 +(3.769003853335184e-05*vars['on_ccpr1h']))
-#                                 +(1.197587664190056e-05*vars['on_ccmr1h']))
+# value: -3.529000650090648e-07
 #
-#          #  vars['acbxh3.r1']._expr._get_dependencies()
-#             vars['on_x1hs'] = -300.0
-#             vars['on_a1h'] = -0.0
-#             vars['on_x1hl'] = -0.0
-#             vars['on_ccpr1h'] = 0.0
-#             vars['on_sep1h'] = -0.0
-#             vars['on_o1h'] = 0.0
-#             vars['on_ccmr1h'] = 0.0
+# controlled by expr:
+#   vars['acbxh3.r1'] = (((((((-3.529000650090648e-07 * vars['on_x1hs']
+#                              - (1.349958221397232e-07 * vars['on_x1hl']))
+#                              + (1.154711348310621e-05 * vars['on_sep1h']))
+#                              + (1.535247516521591e-05 * vars['on_o1h']))
+#                              - (9.919546388675102e-07 * vars['on_a1h']))
+#                              + (3.769003853335184e-05 * vars['on_ccpr1h']))
+#                              + (1.197587664190056e-05 * vars['on_ccmr1h']))
 #
-#          #  vars['acbxh3.r1']._find_dependant_targets()
-#             element_refs['mcbxfah.3r1'].knl[0]
+# expr_dependencies:
+#   vars['on_a1h'] = -0.0
+#   vars['on_sep1h'] = -0.0
+#   vars['on_x1hs'] = 1.0
+#   vars['on_ccmr1h'] = 0.0
+#   vars['on_ccpr1h'] = 0.0
+#   vars['on_o1h'] = 0.0
+#   vars['on_x1hl'] = 0.0
+#
+# controlled_targets: 
+#    element_refs['mcbxfah.3r1/lhcb2'].knl[0]
+#    element_refs['mcbxfah.3r1/lhcb1'].knl[0]
 
 
 #########################################################################
