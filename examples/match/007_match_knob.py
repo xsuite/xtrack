@@ -12,10 +12,10 @@ opt = line.match_knob('dqx.b1', knob_value_start=tw0.dqx, knob_value_end=3.0,
             targets=xt.TargetSet(dqx=3.0, dqy=tw0, tol=1e-6))
 
 # New terms have been added to knobs to vary
-line.ref['ksf.b1']._expr # is: (0.0 + vars['ksf.b1_from_dqx.b1'])
-line.ref['ksd.b1']._expr # is: (0.0 + vars['ksd.b1_from_dqx.b1'])
-line.ref['ksf.b1_from_dqx.b1']._expr # is None
-line.ref['ksd.b1_from_dqx.b1']._expr # is None
+line.ref['ksf.b1'].xdeps.expr # is: (0.0 + vars['ksf.b1_from_dqx.b1'])
+line.ref['ksd.b1'].xdeps.expr # is: (0.0 + vars['ksd.b1_from_dqx.b1'])
+line.ref['ksf.b1_from_dqx.b1'].xdeps.expr # is None
+line.ref['ksd.b1_from_dqx.b1'].xdeps.expr # is None
 
 # optimized acts on newly created terms
 opt.vary_status(); opt.target_status()
@@ -46,11 +46,11 @@ opt.vary_status(); opt.target_status()
 # Generate the knob
 opt.generate_knob()
 
-line.ref['ksf.b1']._expr # is: (0.0 + vars['ksf.b1_from_dqx.b1'])
-line.ref['ksd.b1']._expr # is: (0.0 + vars['ksd.b1_from_dqx.b1'])
-line.ref['ksf.b1_from_dqx.b1']._expr
+line.ref['ksf.b1'].xdeps.expr # is: (0.0 + vars['ksf.b1_from_dqx.b1'])
+line.ref['ksd.b1'].xdeps.expr # is: (0.0 + vars['ksd.b1_from_dqx.b1'])
+line.ref['ksf.b1_from_dqx.b1'].xdeps.expr
 # is ((0.0011956933485755728 * vars['dqx.b1']) - 0.0022837181704350494)
-line.ref['ksd.b1_from_dqx.b1']._expr # is None
+line.ref['ksd.b1_from_dqx.b1'].xdeps.expr # is None
 # is ((-0.0003691583859286993 * vars['dqx.b1']) - -0.0007050751889840094)
 
 # Create also vertical chromaticity knob
@@ -61,17 +61,17 @@ opt_dqy = line.match_knob('dqy.b1', knob_value_start=tw0.dqy, knob_value_end=3.0
 opt_dqy.solve()
 opt_dqy.generate_knob()
 
-line.ref['ksf.b1']._expr
+line.ref['ksf.b1'].xdeps.expr
 # is: ((0.0 + vars['ksf.b1_from_dqx.b1']) + vars['ksf.b1_from_dqy.b1'])
-line.ref['ksd.b1']._expr
+line.ref['ksd.b1'].xdeps.expr
 # is: ((0.0 + vars['ksd.b1_from_dqx.b1']) + vars['ksd.b1_from_dqy.b1'])
-line.ref['ksf.b1_from_dqx.b1']._expr
+line.ref['ksf.b1_from_dqx.b1'].xdeps.expr
 # is ((0.0011956933485755728 * vars['dqx.b1']) - 0.0022837181704350494)
-line.ref['ksd.b1_from_dqx.b1']._expr # is None
+line.ref['ksd.b1_from_dqx.b1'].xdeps.expr # is None
 # is ((-0.0003691583859286993 * vars['dqx.b1']) - -0.0007050751889840094)
-line.ref['ksf.b1_from_dqy.b1']._expr
+line.ref['ksf.b1_from_dqy.b1'].xdeps.expr
 # is ((0.0011956933485755728 * vars['dqy.b1']) - 0.0022837181704350494)
-line.ref['ksd.b1_from_dqy.b1']._expr
+line.ref['ksd.b1_from_dqy.b1'].xdeps.expr
 # is ((-0.0003691583859286993 * vars['dqy.b1']) - -0.0007050751889840094)
 
 # Test knobs
