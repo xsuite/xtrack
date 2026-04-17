@@ -2026,7 +2026,7 @@ class EnvRef:
     def __init__(self, env):
         self.env = env
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> xd.refs.ItemRef:
         if hasattr(self.env, 'lines') and name in self.env.lines:
             return self.env.lines[name].ref
         elif name in self.env._element_dict:
