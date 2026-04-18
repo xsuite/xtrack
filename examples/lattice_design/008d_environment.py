@@ -18,17 +18,18 @@ env['b'] = '2 * a'
 env['b'] # is 6.0
 env.get_expr('b') # is (2.0 * vars['a'])
 env.info('b')
-# prints:
-#  vars['b']._get_value()
-#  vars['b'] = 6.0
-
-#  vars['b']._expr
-#  vars['b'] = (2.0 * vars['a'])
-
-#  vars['b']._expr._get_dependencies()
-#  vars['a'] = 3.0
-
-#  vars['b'] does not influence any target
+# Info for vars['b']
+#
+# value: 8.0
+#
+# controlled by expr:
+#   vars['b'] = (2.0 * vars['a'])
+#
+# expr_dependencies:
+#   vars['a'] = 4.0
+#
+# controlled_targets:
+#    element_refs['mq'].k1
 
 # We can use the eval method to evaluate the value for a given expression:
 env.eval('sqrt(b + a)') # returns 3.0

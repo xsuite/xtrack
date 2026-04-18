@@ -29,10 +29,10 @@ env_native = xt.load(string=madx_src, format='madx')
 lnative = env_native['seq']
 
 for ll in [lcpymad, lnative]:
-    assert str(ll.ref['cav_harm'].harmonic._expr) == "vars['hh']"
-    assert ll.ref['cav_harm'].frequency._expr is None
-    assert ll.ref['cav_harm'].frequency._value == 0
+    assert str(ll.ref['cav_harm'].harmonic.xdeps.expr) == "vars['hh']"
+    assert ll.ref['cav_harm'].frequency.xdeps.expr is None
+    assert ll.ref['cav_harm'].frequency.xdeps.value == 0
 
-    assert str(ll.ref['cav_freq'].frequency._expr) == "(vars['ff'] * 1000000.0)"
-    assert ll.ref['cav_freq'].harmonic._expr is None
-    assert ll.ref['cav_freq'].harmonic._value == 0
+    assert str(ll.ref['cav_freq'].frequency.xdeps.expr) == "(vars['ff'] * 1000000.0)"
+    assert ll.ref['cav_freq'].harmonic.xdeps.expr is None
+    assert ll.ref['cav_freq'].harmonic.xdeps.value == 0
