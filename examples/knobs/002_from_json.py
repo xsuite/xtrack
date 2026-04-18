@@ -30,10 +30,10 @@ manager.find_deps([line.vars['on_x1']])
 #  ... ]
 
 
-line.ref['mcbrdv.4r1.b1'].ksl[0]._expr
+line.ref['mcbrdv.4r1.b1'].ksl[0].xdeps.expr
 # returns:
 # (vars['acbrdv4.r1b1']*vars['bv_aux'])
 
-line.ref['acbrdv4.r1b1'].expr
+line.ref['acbrdv4.r1b1'].xdeps.expr
 # returns:
 # vars['acbrdv4.r1b1'] = ((((((((4.455799347835793e-07*vars['on_x1vs'])+ ...
