@@ -16,7 +16,7 @@ env['a'] = 3.
 env['b'] = '2 * a'
 
 env['b'] # is 6.0
-env.get_expr('b') # is (2.0 * vars['a'])
+env.ref['b'].xdeps.expr # is (2.0 * vars['a'])
 env.info('b')
 # Info for vars['b']
 #
