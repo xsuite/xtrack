@@ -318,17 +318,26 @@ class SplineBoris(BeamElement):
         ----------
         x, y : float or array-like
             Transverse positions [m].
-        s_local : float
-            Local longitudinal coordinate in the range ``[0, length]``.
+        s_local : float or array-like
+            Local longitudinal coordinate(s) in the range ``[0, length]``.
+            If array-like, it is broadcast together with ``x`` and ``y``.
         """
-        if s_local < 0 or s_local > self.length:
+        x_arr, y_arr, s_loc = np.broadcast_arrays(
+            np.asarray(x, dtype=float),
+            np.asarray(y, dtype=float),
+            np.asarray(s_local, dtype=float),
+        )
+
+        outside = (s_loc < 0) | (s_loc > self.length)
+        if np.any(outside):
+            s_min = float(np.min(s_loc))
+            s_max = float(np.max(s_loc))
             raise ValueError(
-                f"s_local={s_local} is outside the local element range [0, {self.length}]"
+                "s_local contains values outside the local element range "
+                f"[0, {self.length}] (min={s_min}, max={s_max})"
             )
 
         from .splineboris_src.spline_B_field_eval_python import evaluate_B
-
-        s_loc = s_local
 
         # Build Python-side Hermite arrays from the xobject fields.
         bs = [self.bs[i] for i in range(self._SB_NUM_COEFFS)]
@@ -340,8 +349,8 @@ class SplineBoris(BeamElement):
             bx.append([self.bx[order, j] for j in range(self._SB_NUM_COEFFS)])
 
         bx_eval, by_eval, bs_eval = evaluate_B(
-            x - self.shift_x,
-            y - self.shift_y,
+            x_arr - self.shift_x,
+            y_arr - self.shift_y,
             s_loc,
             bs,
             by,
@@ -349,6 +358,7 @@ class SplineBoris(BeamElement):
             self.length,
             self.multipole_order,
         )
+
+        if bx_eval.shape == ():
+            return float(bx_eval), float(by_eval), float(bs_eval)
         return bx_eval, by_eval, bs_eval
-
-
