@@ -11,8 +11,8 @@ import bpmeth as bp
 THIS_DIR = os.path.dirname(__file__)
 ELEMENTS_SRC_DIR = THIS_DIR   # since the script is already in elements_src
 
-# SplineBoris defines the canonical param order; use repo root on PYTHONPATH.
-from xtrack.beam_elements.splineboris import SplineBoris
+# SplineBoris module defines the canonical param order; use repo root on PYTHONPATH.
+from xtrack.beam_elements.splineboris import _get_param_names
 
 # This script generates C code for evaluating magnetic field components
 # based on symbolic expressions derived from the bpmeth formalism.
@@ -125,7 +125,7 @@ def _get_reduced_expressions(exprs_list):
 # Currently, curvature is set to '0' for straight sections, but can be set to a non-zero value for curved sections.
 # However, the Boris Integrator does not support curved reference frames yet, so we leave the curvature zero here.
 def start_to_finish(multipole_order=multipole_order, poly_order=4, field='B', curvature='0'):
-    param_names = SplineBoris._get_param_names(multipole_order=multipole_order)
+    param_names = _get_param_names(multipole_order=multipole_order)
     symbolic_Bx, symbolic_By, symbolic_Bs, symbolic_Ax, symbolic_Ay, symbolic_As = generic_field_exprs(
         curv=curvature, multipole_order=multipole_order, poly_order=poly_order
     )
@@ -196,7 +196,7 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
                     curvature=curvature,
                 )
 
-                f.write(f"\tcase {order}{{\n")
+                f.write(f"\tcase {order}: {{\n")
                 f.write("\t\t// Parameter List\n")
                 for j, name in enumerate(param_names):
                     f.write(f"\t\tconst double {name} = params[{j}];\n")
@@ -213,7 +213,7 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
                 f.write("\t\treturn;\n\n")
                 f.write("\t}\n")
 
-            f.write("\tdefault{\n")
+            f.write("\tdefault: {\n")
             f.write("\t\tprintf(\"Error: Unsupported multipole order %d\\n\", multipole_order);\n")
             f.write(f"\t\tprintf(\"Supported orders are 1 to {max_order}\\n\");\n")
             f.write("\t\tprintf(\"Setting field values to zero.\\n\");\n")
@@ -255,6 +255,81 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
             f.write("// The symbolic expressions below are unchanged; only the way the bs_*, by_*_*,\n")
             f.write("// and bx_*_* scalars are populated has been refactored to use Hermite data.\n")
 
+            # Poly helpers are emitted at file scope because C does not support nested functions.
+            f.write("typedef struct {\n")
+            f.write("\tdouble coeffs[MAX_DEGREE + 1]; /* coeffs[i] = coefficient of x^i */\n")
+            f.write("\tint degree;\n")
+            f.write("} Poly;\n\n")
+
+            f.write("static inline Poly poly_scale(Poly p, double s) {\n")
+            f.write("\tfor (int i = 0; i <= p.degree; i++) p.coeffs[i] *= s;\n")
+            f.write("\treturn p;\n")
+            f.write("}\n\n")
+
+            f.write("static inline Poly poly_add(Poly a, Poly b) {\n")
+            f.write("\tPoly result = {0};\n")
+            f.write("\tresult.degree = a.degree > b.degree ? a.degree : b.degree;\n")
+            f.write("\tfor (int i = 0; i <= a.degree; i++) result.coeffs[i] += a.coeffs[i];\n")
+            f.write("\tfor (int i = 0; i <= b.degree; i++) result.coeffs[i] += b.coeffs[i];\n")
+            f.write("\treturn result;\n")
+            f.write("}\n\n")
+
+            f.write("static inline Poly poly_mul(Poly a, Poly b) {\n")
+            f.write("\tPoly result = {0};\n")
+            f.write("\tint deg = a.degree + b.degree;\n")
+            f.write("\tif (deg > MAX_DEGREE)\n")
+            f.write("\t\tdeg = MAX_DEGREE;\n")
+            f.write("\tresult.degree = deg;\n")
+            f.write("\tfor (int i = 0; i <= a.degree; i++) {\n")
+            f.write("\t\tfor (int j = 0; j <= b.degree; j++) {\n")
+            f.write("\t\t\tint k = i + j;\n")
+            f.write("\t\t\tif (k <= MAX_DEGREE)\n")
+            f.write("\t\t\t\tresult.coeffs[k] += a.coeffs[i] * b.coeffs[j];\n")
+            f.write("\t\t}\n")
+            f.write("\t}\n")
+            f.write("\treturn result;\n")
+            f.write("}\n\n")
+
+            f.write("/* Compose f(g(x)) via Horner's method:\n")
+            f.write("   result = f[n] * g^n + ... + f[0]\n")
+            f.write("\t\t  = f[0] + g*(f[1] + g*(f[2] + ... + g*f[n]))  */\n")
+            f.write("static inline Poly poly_compose(Poly f, Poly g) {\n")
+            f.write("\tPoly result = {0};\n")
+            f.write("\tresult.coeffs[0] = f.coeffs[f.degree]; /* start with leading coeff */\n")
+            f.write("\tresult.degree = 0;\n")
+            f.write("\tfor (int i = f.degree - 1; i >= 0; i--) {\n")
+            f.write("\t\tresult = poly_mul(result, g);       /* result = result * g      */\n")
+            f.write("\t\tif (result.degree < MAX_DEGREE) {\n")
+            f.write("\t\t\tresult.degree++;\n")
+            f.write("\t\t}\n")
+            f.write("\t\tresult.coeffs[0] += f.coeffs[i];   /* result = result * g + f[i] */\n")
+            f.write("\t}\n")
+            f.write("\treturn result;\n")
+            f.write("}\n\n")
+
+            f.write("static inline Poly hermite_to_polynomial(double s_start, double s_end, const double coeffs[5]) {\n")
+            f.write("\tdouble c1 = coeffs[0], c2 = coeffs[1], c3 = coeffs[2];\n")
+            f.write("\tdouble c4 = coeffs[3], c5 = coeffs[4];\n")
+            f.write("\tdouble L = s_end - s_start;\n\n")
+            f.write("\t/* t(s_local) = s_local / L */\n")
+            f.write("\tPoly t = { .coeffs = {0.0, 1.0/L}, .degree = 1 };\n\n")
+            f.write("\t/* Hermite basis polynomials in t on [0,1] */\n")
+            f.write("\tPoly b1 = { .coeffs = { 1,  0,  -18,   32,  -15}, .degree = 4 };\n")
+            f.write("\tPoly b2 = { .coeffs = { 0,  1, -4.5,    6, -2.5}, .degree = 4 };\n")
+            f.write("\tPoly b3 = { .coeffs = { 0,  0,  -12,   28,  -15}, .degree = 4 };\n")
+            f.write("\tPoly b4 = { .coeffs = { 0,  0,  1.5,   -4,  2.5}, .degree = 4 };\n")
+            f.write("\tPoly b5 = { .coeffs = { 0,  0,   30,  -60,   30}, .degree = 4 };\n\n")
+            f.write("\t/* poly_t = c1*b1 + L*c2*b2 + c3*b3 + L*c4*b4 + c5*b5 */\n")
+            f.write("\tPoly poly_t = {0};\n")
+            f.write("\tpoly_t = poly_add(poly_t, poly_scale(b1, c1));\n")
+            f.write("\tpoly_t = poly_add(poly_t, poly_scale(b2, L * c2));\n")
+            f.write("\tpoly_t = poly_add(poly_t, poly_scale(b3, c3));\n")
+            f.write("\tpoly_t = poly_add(poly_t, poly_scale(b4, L * c4));\n")
+            f.write("\tpoly_t = poly_add(poly_t, poly_scale(b5, c5));\n\n")
+            f.write("\t/* poly_s(s_local) = poly_t(t(s_local)) */\n")
+            f.write("\treturn poly_compose(poly_t, t);\n")
+            f.write("}\n\n")
+
             f.write("GPUFUN\n")
             f.write(
                 "void evaluate_B(const double x, const double y, const double s,\n"
@@ -265,89 +340,6 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
                 "                const int multipole_order,\n"
                 "                double *Bx_out, double *By_out, double *Bs_out){\n\n"
             )
-
-            # Poly helpers.
-            f.write("\t\ttypedef struct {\n")
-            f.write("\t\t\tdouble coeffs[MAX_DEGREE + 1]; /* coeffs[i] = coefficient of x^i */\n")
-            f.write("\t\t\tint degree;\n")
-            f.write("\t\t} Poly;\n\n")
-
-            f.write("\t\tstatic Poly poly_scale(Poly p, double s) {\n")
-            f.write("\t\t\tfor (int i = 0; i <= p.degree; i++) p.coeffs[i] *= s;\n")
-            f.write("\t\t\treturn p;\n")
-            f.write("\t\t}\n\n")
-
-            f.write("\t\tstatic Poly poly_add(Poly a, Poly b) {\n")
-            f.write("\t\t\tPoly result = {0};\n")
-            f.write("\t\t\tresult.degree = a.degree > b.degree ? a.degree : b.degree;\n")
-            f.write("\t\t\tfor (int i = 0; i <= a.degree; i++) result.coeffs[i] += a.coeffs[i];\n")
-            f.write("\t\t\tfor (int i = 0; i <= b.degree; i++) result.coeffs[i] += b.coeffs[i];\n")
-            f.write("\t\t\treturn result;\n")
-            f.write("\t\t}\n\n")
-
-            f.write("\t\tstatic Poly poly_mul(Poly a, Poly b) {\n")
-            f.write("\t\t\tPoly result = {0};\n")
-            f.write("\t\t\tint deg = a.degree + b.degree;\n")
-            f.write("\t\t\tif (deg > MAX_DEGREE)\n")
-            f.write("\t\t\t\tdeg = MAX_DEGREE;\n")
-            f.write("\t\t\tresult.degree = deg;\n")
-            f.write("\t\t\tfor (int i = 0; i <= a.degree; i++) {\n")
-            f.write("\t\t\t\tfor (int j = 0; j <= b.degree; j++) {\n")
-            f.write("\t\t\t\t\tint k = i + j;\n")
-            f.write("\t\t\t\t\tif (k <= MAX_DEGREE)\n")
-            f.write("\t\t\t\t\t\tresult.coeffs[k] += a.coeffs[i] * b.coeffs[j];\n")
-            f.write("\t\t\t\t}\n")
-            f.write("\t\t\t}\n")
-            f.write("\t\t\treturn result;\n")
-            f.write("\t\t}\n\n")
-
-            f.write("\t\t/* Compose f(g(x)) via Horner's method:\n")
-            f.write("\t\t   result = f[n] * g^n + ... + f[0]\n")
-            f.write("\t\t\t\t  = f[0] + g*(f[1] + g*(f[2] + ... + g*f[n]))  */\n")
-            f.write("\t\tstatic Poly poly_compose(Poly f, Poly g) {\n")
-            f.write("\t\t\tPoly result = {0};\n")
-            f.write("\t\t\tresult.coeffs[0] = f.coeffs[f.degree]; /* start with leading coeff */\n")
-            f.write("\t\t\tresult.degree = 0;\n")
-            f.write("\t\t\tfor (int i = f.degree - 1; i >= 0; i--) {\n")
-            f.write("\t\t\t\tresult = poly_mul(result, g);       /* result = result * g      */\n")
-            f.write("\t\t\t\tif (result.degree < MAX_DEGREE) {\n")
-            f.write("\t\t\t\t\tresult.degree++;\n")
-            f.write("\t\t\t\t}\n")
-            f.write("\t\t\t\tresult.coeffs[0] += f.coeffs[i];   /* result = result * g + f[i] */\n")
-            f.write("\t\t\t}\n")
-            f.write("\t\t\treturn result;\n")
-            f.write("\t\t}\n\n")
-
-            f.write("\t\tPoly hermite_to_polynomial(double s_start, double s_end, const double coeffs[5]) {\n")
-            f.write("\t\t\tdouble c1 = coeffs[0], c2 = coeffs[1], c3 = coeffs[2];\n")
-            f.write("\t\t\tdouble c4 = coeffs[3], c5 = coeffs[4];\n")
-            f.write("\t\t\tdouble L = s_end - s_start;\n\n")
-            f.write("\t\t\t/* t(s_local) = s_local / L */\n")
-            f.write("\t\t\tPoly t = { .coeffs = {0.0, 1.0/L}, .degree = 1 };\n\n")
-            f.write("\t\t\t/* Hermite basis polynomials in t on [0,1] */\n")
-            f.write("\t\t\tPoly b1 = { .coeffs = { 1,  0,  -18,   32,  -15}, .degree = 4 };\n")
-            f.write("\t\t\tPoly b2 = { .coeffs = { 0,  1, -4.5,    6, -2.5}, .degree = 4 };\n")
-            f.write("\t\t\tPoly b3 = { .coeffs = { 0,  0,  -12,   28,  -15}, .degree = 4 };\n")
-            f.write("\t\t\tPoly b4 = { .coeffs = { 0,  0,  1.5,   -4,  2.5}, .degree = 4 };\n")
-            f.write("\t\t\tPoly b5 = { .coeffs = { 0,  0,   30,  -60,   30}, .degree = 4 };\n\n")
-            f.write("\t\t\t/* poly_t = c1*b1 + L*c2*b2 + c3*b3 + L*c4*b4 + c5*b5 */\n")
-            f.write("\t\t\tPoly poly_t = {0};\n")
-            f.write("\t\t\tpoly_t = poly_add(poly_t, poly_scale(b1, c1));\n")
-            f.write("\t\t\tpoly_t = poly_add(poly_t, poly_scale(b2, L * c2));\n")
-            f.write("\t\t\tpoly_t = poly_add(poly_t, poly_scale(b3, c3));\n")
-            f.write("\t\t\tpoly_t = poly_add(poly_t, poly_scale(b4, L * c4));\n")
-            f.write("\t\t\tpoly_t = poly_add(poly_t, poly_scale(b5, c5));\n\n")
-            f.write("\t\t\t/* poly_s(s_local) = poly_t(t(s_local)) */\n")
-            f.write("\t\t\treturn poly_compose(poly_t, t);\n")
-            f.write("\t\t}\n\n")
-
-            f.write("\t\t/* Evaluate polynomial at x via Horner's method */\n")
-            f.write("\t\tdouble poly_eval(Poly p, double x) {\n")
-            f.write("\t\t\tdouble result = p.coeffs[p.degree];\n")
-            f.write("\t\t\tfor (int i = p.degree - 1; i >= 0; i--)\n")
-            f.write("\t\t\t\tresult = result * x + p.coeffs[i];\n")
-            f.write("\t\t\treturn result;\n")
-            f.write("\t\t}\n\n")
 
             names = ['Bx_out', 'By_out', 'Bs_out']
 
@@ -361,7 +353,7 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
                     curvature=curvature,
                 )
 
-                f.write(f"\tcase {order}{{\n")
+                f.write(f"\tcase {order}: {{\n")
                 f.write(f"\t\t// Hermite → polynomial coefficients (order {order})\n")
                 f.write("\t\tconst Poly bs_poly = hermite_to_polynomial(0.0, L, bs);\n")
                 f.write("\t\tconst double bs_0   = bs_poly.coeffs[0];\n")
@@ -403,7 +395,7 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
                 f.write("\t\treturn;\n\n")
                 f.write("\t}\n")
 
-            f.write("\tdefault{\n")
+            f.write("\tdefault: {\n")
             f.write("\t\tprintf(\"Error: Unsupported multipole order %d\\n\", multipole_order);\n")
             f.write(f"\t\tprintf(\"Supported orders are 1 to {max_order}\\n\");\n")
             f.write("\t\tprintf(\"Setting field values to zero.\\n\");\n")

@@ -25,6 +25,84 @@
 //
 // The symbolic expressions below are unchanged; only the way the bs_*, by_*_*,
 // and bx_*_* scalars are populated has been refactored to use Hermite data.
+typedef struct {
+	double coeffs[MAX_DEGREE + 1]; /* coeffs[i] = coefficient of x^i */
+	int degree;
+} Poly;
+
+static inline Poly poly_scale(Poly p, double s) {
+	for (int i = 0; i <= p.degree; i++) p.coeffs[i] *= s;
+	return p;
+}
+
+static inline Poly poly_add(Poly a, Poly b) {
+	Poly result = {0};
+	result.degree = a.degree > b.degree ? a.degree : b.degree;
+	for (int i = 0; i <= a.degree; i++) result.coeffs[i] += a.coeffs[i];
+	for (int i = 0; i <= b.degree; i++) result.coeffs[i] += b.coeffs[i];
+	return result;
+}
+
+static inline Poly poly_mul(Poly a, Poly b) {
+	Poly result = {0};
+	int deg = a.degree + b.degree;
+	if (deg > MAX_DEGREE)
+		deg = MAX_DEGREE;
+	result.degree = deg;
+	for (int i = 0; i <= a.degree; i++) {
+		for (int j = 0; j <= b.degree; j++) {
+			int k = i + j;
+			if (k <= MAX_DEGREE)
+				result.coeffs[k] += a.coeffs[i] * b.coeffs[j];
+		}
+	}
+	return result;
+}
+
+/* Compose f(g(x)) via Horner's method:
+   result = f[n] * g^n + ... + f[0]
+		  = f[0] + g*(f[1] + g*(f[2] + ... + g*f[n]))  */
+static inline Poly poly_compose(Poly f, Poly g) {
+	Poly result = {0};
+	result.coeffs[0] = f.coeffs[f.degree]; /* start with leading coeff */
+	result.degree = 0;
+	for (int i = f.degree - 1; i >= 0; i--) {
+		result = poly_mul(result, g);       /* result = result * g      */
+		if (result.degree < MAX_DEGREE) {
+			result.degree++;
+		}
+		result.coeffs[0] += f.coeffs[i];   /* result = result * g + f[i] */
+	}
+	return result;
+}
+
+static inline Poly hermite_to_polynomial(double s_start, double s_end, const double coeffs[5]) {
+	double c1 = coeffs[0], c2 = coeffs[1], c3 = coeffs[2];
+	double c4 = coeffs[3], c5 = coeffs[4];
+	double L = s_end - s_start;
+
+	/* t(s_local) = s_local / L */
+	Poly t = { .coeffs = {0.0, 1.0/L}, .degree = 1 };
+
+	/* Hermite basis polynomials in t on [0,1] */
+	Poly b1 = { .coeffs = { 1,  0,  -18,   32,  -15}, .degree = 4 };
+	Poly b2 = { .coeffs = { 0,  1, -4.5,    6, -2.5}, .degree = 4 };
+	Poly b3 = { .coeffs = { 0,  0,  -12,   28,  -15}, .degree = 4 };
+	Poly b4 = { .coeffs = { 0,  0,  1.5,   -4,  2.5}, .degree = 4 };
+	Poly b5 = { .coeffs = { 0,  0,   30,  -60,   30}, .degree = 4 };
+
+	/* poly_t = c1*b1 + L*c2*b2 + c3*b3 + L*c4*b4 + c5*b5 */
+	Poly poly_t = {0};
+	poly_t = poly_add(poly_t, poly_scale(b1, c1));
+	poly_t = poly_add(poly_t, poly_scale(b2, L * c2));
+	poly_t = poly_add(poly_t, poly_scale(b3, c3));
+	poly_t = poly_add(poly_t, poly_scale(b4, L * c4));
+	poly_t = poly_add(poly_t, poly_scale(b5, c5));
+
+	/* poly_s(s_local) = poly_t(t(s_local)) */
+	return poly_compose(poly_t, t);
+}
+
 GPUFUN
 void evaluate_B(const double x, const double y, const double s,
                 const double *bs,
@@ -34,94 +112,8 @@ void evaluate_B(const double x, const double y, const double s,
                 const int multipole_order,
                 double *Bx_out, double *By_out, double *Bs_out){
 
-		typedef struct {
-			double coeffs[MAX_DEGREE + 1]; /* coeffs[i] = coefficient of x^i */
-			int degree;
-		} Poly;
-
-		static Poly poly_scale(Poly p, double s) {
-			for (int i = 0; i <= p.degree; i++) p.coeffs[i] *= s;
-			return p;
-		}
-
-		static Poly poly_add(Poly a, Poly b) {
-			Poly result = {0};
-			result.degree = a.degree > b.degree ? a.degree : b.degree;
-			for (int i = 0; i <= a.degree; i++) result.coeffs[i] += a.coeffs[i];
-			for (int i = 0; i <= b.degree; i++) result.coeffs[i] += b.coeffs[i];
-			return result;
-		}
-
-		static Poly poly_mul(Poly a, Poly b) {
-			Poly result = {0};
-			int deg = a.degree + b.degree;
-			if (deg > MAX_DEGREE)
-				deg = MAX_DEGREE;
-			result.degree = deg;
-			for (int i = 0; i <= a.degree; i++) {
-				for (int j = 0; j <= b.degree; j++) {
-					int k = i + j;
-					if (k <= MAX_DEGREE)
-						result.coeffs[k] += a.coeffs[i] * b.coeffs[j];
-				}
-			}
-			return result;
-		}
-
-		/* Compose f(g(x)) via Horner's method:
-		   result = f[n] * g^n + ... + f[0]
-				  = f[0] + g*(f[1] + g*(f[2] + ... + g*f[n]))  */
-		static Poly poly_compose(Poly f, Poly g) {
-			Poly result = {0};
-			result.coeffs[0] = f.coeffs[f.degree]; /* start with leading coeff */
-			result.degree = 0;
-			for (int i = f.degree - 1; i >= 0; i--) {
-				result = poly_mul(result, g);       /* result = result * g      */
-				if (result.degree < MAX_DEGREE) {
-					result.degree++;
-				}
-				result.coeffs[0] += f.coeffs[i];   /* result = result * g + f[i] */
-			}
-			return result;
-		}
-
-		Poly hermite_to_polynomial(double s_start, double s_end, const double coeffs[5]) {
-			double c1 = coeffs[0], c2 = coeffs[1], c3 = coeffs[2];
-			double c4 = coeffs[3], c5 = coeffs[4];
-			double L = s_end - s_start;
-
-			/* t(s_local) = s_local / L */
-			Poly t = { .coeffs = {0.0, 1.0/L}, .degree = 1 };
-
-			/* Hermite basis polynomials in t on [0,1] */
-			Poly b1 = { .coeffs = { 1,  0,  -18,   32,  -15}, .degree = 4 };
-			Poly b2 = { .coeffs = { 0,  1, -4.5,    6, -2.5}, .degree = 4 };
-			Poly b3 = { .coeffs = { 0,  0,  -12,   28,  -15}, .degree = 4 };
-			Poly b4 = { .coeffs = { 0,  0,  1.5,   -4,  2.5}, .degree = 4 };
-			Poly b5 = { .coeffs = { 0,  0,   30,  -60,   30}, .degree = 4 };
-
-			/* poly_t = c1*b1 + L*c2*b2 + c3*b3 + L*c4*b4 + c5*b5 */
-			Poly poly_t = {0};
-			poly_t = poly_add(poly_t, poly_scale(b1, c1));
-			poly_t = poly_add(poly_t, poly_scale(b2, L * c2));
-			poly_t = poly_add(poly_t, poly_scale(b3, c3));
-			poly_t = poly_add(poly_t, poly_scale(b4, L * c4));
-			poly_t = poly_add(poly_t, poly_scale(b5, c5));
-
-			/* poly_s(s_local) = poly_t(t(s_local)) */
-			return poly_compose(poly_t, t);
-		}
-
-		/* Evaluate polynomial at x via Horner's method */
-		double poly_eval(Poly p, double x) {
-			double result = p.coeffs[p.degree];
-			for (int i = p.degree - 1; i >= 0; i--)
-				result = result * x + p.coeffs[i];
-			return result;
-		}
-
 	switch (multipole_order) {
-	case 1{
+	case 1: {
 		// Hermite → polynomial coefficients (order 1)
 		const Poly bs_poly = hermite_to_polynomial(0.0, L, bs);
 		const double bs_0   = bs_poly.coeffs[0];
@@ -163,7 +155,7 @@ void evaluate_B(const double x, const double y, const double s,
 		return;
 
 	}
-	case 2{
+	case 2: {
 		// Hermite → polynomial coefficients (order 2)
 		const Poly bs_poly = hermite_to_polynomial(0.0, L, bs);
 		const double bs_0   = bs_poly.coeffs[0];
@@ -232,7 +224,7 @@ void evaluate_B(const double x, const double y, const double s,
 		return;
 
 	}
-	case 3{
+	case 3: {
 		// Hermite → polynomial coefficients (order 3)
 		const Poly bs_poly = hermite_to_polynomial(0.0, L, bs);
 		const double bs_0   = bs_poly.coeffs[0];
@@ -347,7 +339,7 @@ void evaluate_B(const double x, const double y, const double s,
 		return;
 
 	}
-	case 4{
+	case 4: {
 		// Hermite → polynomial coefficients (order 4)
 		const Poly bs_poly = hermite_to_polynomial(0.0, L, bs);
 		const double bs_0   = bs_poly.coeffs[0];
@@ -509,7 +501,7 @@ void evaluate_B(const double x, const double y, const double s,
 		return;
 
 	}
-	case 5{
+	case 5: {
 		// Hermite → polynomial coefficients (order 5)
 		const Poly bs_poly = hermite_to_polynomial(0.0, L, bs);
 		const double bs_0   = bs_poly.coeffs[0];
@@ -714,7 +706,7 @@ void evaluate_B(const double x, const double y, const double s,
 		return;
 
 	}
-	case 6{
+	case 6: {
 		// Hermite → polynomial coefficients (order 6)
 		const Poly bs_poly = hermite_to_polynomial(0.0, L, bs);
 		const double bs_0   = bs_poly.coeffs[0];
@@ -965,7 +957,7 @@ void evaluate_B(const double x, const double y, const double s,
 		return;
 
 	}
-	case 7{
+	case 7: {
 		// Hermite → polynomial coefficients (order 7)
 		const Poly bs_poly = hermite_to_polynomial(0.0, L, bs);
 		const double bs_0   = bs_poly.coeffs[0];
@@ -1266,7 +1258,7 @@ void evaluate_B(const double x, const double y, const double s,
 		return;
 
 	}
-	default{
+	default: {
 		printf("Error: Unsupported multipole order %d\n", multipole_order);
 		printf("Supported orders are 1 to 7\n");
 		printf("Setting field values to zero.\n");
