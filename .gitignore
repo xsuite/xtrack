@@ -16,3 +16,5 @@ xtrack/prebuilt_kernels
 !xtrack/prebuilt_kernels/*.py
 checkpoint_restart.dat
 
+.__afs*
+*.c
