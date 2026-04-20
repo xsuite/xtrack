@@ -4,7 +4,7 @@ from scipy.constants import e as qe
 from scipy.constants import epsilon_0, hbar
 import pytest
 import xobjects as xo
-from xobjects.test_helpers import fix_random_seed
+from xobjects.test_helpers import fix_random_seed, for_all_test_contexts
 import pandas as pd
 from pathlib import Path
 
@@ -37,6 +37,58 @@ SOLENOID_DY = 0.001
 SOLENOID_MULTIPOLE_ORDER = 2
 SOLENOID_N_STEPS = 5000
 SOLENOID_Z_POINT_COUNT = SOLENOID_N_STEPS + 1
+
+@for_all_test_contexts
+def test_splineboris_to_dict_from_dict_roundtrip(test_context):
+    element = xt.SplineBoris(
+        length=1.2,
+        n_steps=4,
+        shift_x=1e-3,
+        shift_y=-2e-3,
+        radiation_flag=1,
+        bs=xt.Spline4(0.1, 0.2, 0.3, 0.4, 0.5),
+        by=(
+            xt.Spline4(1.0, 1.1, 1.2, 1.3, 1.4),
+            None,
+            xt.Spline4(3.0, 3.1, 3.2, 3.3, 3.4),
+        ),
+        bx=(
+            None,
+            xt.Spline4(-2.0, -2.1, -2.2, -2.3, -2.4),
+        ),
+        _context=test_context,
+    )
+
+    element_dict = element.to_dict()
+
+    assert 'bs' in element_dict
+    assert 'by' in element_dict
+    assert 'bx' in element_dict
+    assert 'bs' not in element_dict
+    assert 'by' not in element_dict
+    assert 'bx' not in element_dict
+    assert 'multipole_order' not in element_dict
+
+    roundtrip = xt.SplineBoris.from_dict(element_dict, _context=test_context)
+
+    ctor_dict = element_dict.copy()
+    ctor_dict.pop('__class__', None)
+    ctor_roundtrip = xt.SplineBoris(_context=test_context, **ctor_dict)
+
+    element_cpu = element.copy(_context=xo.ContextCpu())
+    roundtrip_cpu = roundtrip.copy(_context=xo.ContextCpu())
+    ctor_roundtrip_cpu = ctor_roundtrip.copy(_context=xo.ContextCpu())
+
+    for candidate in (roundtrip_cpu, ctor_roundtrip_cpu):
+        xo.assert_allclose(candidate.length, element_cpu.length, atol=0, rtol=0)
+        xo.assert_allclose(candidate.n_steps, element_cpu.n_steps, atol=0, rtol=0)
+        xo.assert_allclose(candidate.shift_x, element_cpu.shift_x, atol=0, rtol=0)
+        xo.assert_allclose(candidate.shift_y, element_cpu.shift_y, atol=0, rtol=0)
+        xo.assert_allclose(candidate.radiation_flag, element_cpu.radiation_flag, atol=0, rtol=0)
+        xo.assert_allclose(candidate.bs, element_cpu.bs, atol=0, rtol=0)
+        xo.assert_allclose(candidate.by, element_cpu.by, atol=0, rtol=0)
+        xo.assert_allclose(candidate.bx, element_cpu.bx, atol=0, rtol=0)
+
 
 @pytest.fixture(scope="module")
 def test_data_dir():
@@ -73,15 +125,15 @@ def make_uniform_splineboris():
 
 @pytest.fixture(scope="module")
 def make_segment_field():
-    def _make(Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole_order_local, s_start=0.0):
+    def _make(bs, by, bx, L, multipole_order_local, s_start=0.0):
         # ensure we have simple lists/arrays
-        Bs_hermite_arr = np.asarray(Bs_hermite, dtype=float).tolist()
-        B_norm_list = [np.asarray(b, dtype=float).tolist() for b in B_norm_hermite]
-        B_skew_list = [np.asarray(b, dtype=float).tolist() for b in B_skew_hermite]
+        bs_arr = np.asarray(bs, dtype=float).tolist()
+        B_norm_list = [np.asarray(b, dtype=float).tolist() for b in by]
+        B_skew_list = [np.asarray(b, dtype=float).tolist() for b in bx]
         def field(x, y, z):
             s_loc = z - s_start
             Bx, By, Bs = evaluate_B(x, y, s_loc,
-                                    Bs_hermite_arr,
+                                    bs_arr,
                                     B_norm_list,
                                     B_skew_list,
                                     L,
@@ -525,20 +577,20 @@ def test_splineboris_undulator_vs_boris_spatial(undulator_fit_pars_df, make_segm
     # ------------------------------------------------------------------
     boris_elems = []
     for elem, s_start, s_end in zip(seq.elements, seq.s_starts, seq.s_ends):
-        Bs_hermite = [elem.Bs_hermite[i] for i in range(5)]
-        B_norm_hermite = [
-            [elem.B_norm_hermite[i, j] for j in range(5)]
+        bs = [elem.bs[i] for i in range(5)]
+        by = [
+            [elem.by[i, j] for j in range(5)]
             for i in range(multipole_order)
         ]
-        B_skew_hermite = [
-            [elem.B_skew_hermite[i, j] for j in range(5)]
+        bx = [
+            [elem.bx[i, j] for j in range(5)]
             for i in range(multipole_order)
         ]
         L = float(elem.length)
         field_i = make_segment_field(
-            Bs_hermite,
-            B_norm_hermite,
-            B_skew_hermite,
+            bs,
+            by,
+            bx,
             L,
             multipole_order,
             s_start=float(s_start),
@@ -646,20 +698,20 @@ def test_splineboris_rotated_undulator_vs_boris_spatial(undulator_rotated_fit_pa
     # ------------------------------------------------------------------
     boris_elems = []
     for elem, s_start, s_end in zip(seq.elements, seq.s_starts, seq.s_ends):
-        Bs_hermite = [elem.Bs_hermite[i] for i in range(5)]
-        B_norm_hermite = [
-            [elem.B_norm_hermite[i, j] for j in range(5)]
+        bs = [elem.bs[i] for i in range(5)]
+        by = [
+            [elem.by[i, j] for j in range(5)]
             for i in range(multipole_order)
         ]
-        B_skew_hermite = [
-            [elem.B_skew_hermite[i, j] for j in range(5)]
+        bx = [
+            [elem.bx[i, j] for j in range(5)]
             for i in range(multipole_order)
         ]
         L = float(elem.length)
         field_i = make_segment_field(
-            Bs_hermite,
-            B_norm_hermite,
-            B_skew_hermite,
+            bs,
+            by,
+            bx,
             L,
             multipole_order,
             s_start=float(s_start),
@@ -1193,7 +1245,7 @@ def test_splineboris_spin_quadrupole(case, atol):
     # --- SplineBoris ---
     # Uniform quadrupole: Hermite params (f_left, df_left, f_right, df_right, average)
     kn_1_hermite = [quad_gradient, 0, quad_gradient, 0, quad_gradient]
-    Bs_hermite = [0, 0, 0, 0, 0]
+    bs = [0, 0, 0, 0, 0]
 
     # Verify the polynomial evaluates to a constant gradient.
     # hermite_to_polynomial returns a poly in local coordinate s_local = s - s_start.
@@ -1203,7 +1255,7 @@ def test_splineboris_spin_quadrupole(case, atol):
     xo.assert_allclose(kn_1_poly(s_test - s_start), quad_gradient, rtol=1e-12, atol=1e-12)
 
     splineboris = xt.SplineBoris(
-        bs=xt.Spline4(*Bs_hermite),
+        bs=xt.Spline4(*bs),
         by=(None, xt.Spline4(*kn_1_hermite)),
         length=s_end - s_start,
         n_steps=n_steps,

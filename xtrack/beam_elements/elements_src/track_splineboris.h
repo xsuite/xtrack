@@ -20,22 +20,17 @@ GPUFUN double RandomExponential_generate(LocalParticle* part);
 GPUFUN
 void SplineBoris_single_particle(
     LocalParticle* part,
-    const double  Bs_hermite[5],
-    const double* const *B_norm_hermite,
-    const double* const *B_skew_hermite,
+    const double  bs[5],
+    const double* const *by,
+    const double* const *bx,
     const int      multipole_order,
     const double   length,
     const int      n_steps,
     const double   shift_x,
     const double   shift_y,
-    const double   hx,
     const int64_t  radiation_flag,
     SynchrotronRadiationRecordData radiation_record
 ){
-    
-    // TODO: When curvature is implemented, remove this check.
-    // For now, if hx != 0, we skip spin tracking but continue with particle tracking
-    // (The check is done per-step in the loop below)
 
     // Skip dead particles (state <= 0)
     if (LocalParticle_get_state(part) <= 0){
@@ -162,9 +157,9 @@ void SplineBoris_single_particle(
             xh - shift_x,
             yh - shift_y,
             s_local_h,
-            Bs_hermite,
-            B_norm_hermite,
-            B_skew_hermite,
+            bs,
+            by,
+            bx,
             L,
             multipole_order,
             &Bx,
@@ -241,11 +236,7 @@ void SplineBoris_single_particle(
         
         // Track spin over this step
         // Field is evaluated at midpoint (xh, yh), track over step length ds
-        // TODO: When curvature is fully implemented, remove the curvature check
-        if (hx == 0.0) {
-            magnet_spin(part, Bx, By, Bs, hx, ds, l_path);
-        }
-        // If hx != 0, skip spin tracking for now (curvature not yet implemented)
+        magnet_spin(part, Bx, By, Bs, 0.0, ds, l_path);
         
         // Track radiation over this step
         if (radiation_flag && ds > 0) {

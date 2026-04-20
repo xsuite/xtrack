@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import xtrack as xt
 
-from xtrack.beam_elements.elements import SplineBoris, Spline4
+from xtrack.beam_elements.splineboris import SplineBoris, Spline4
 
 
 class SplineBorisSequence:
@@ -44,7 +44,7 @@ class SplineBorisSequence:
         "idx_end",
         "param_index",
     )
-    _HERMITE_PARAM_COUNT = len(SplineBoris._HERMITE_SUFFIXES)
+    _HERMITE_PARAM_COUNT = len(SplineBoris._SB_HERMITE_SUFFIXES)
     _HERMITE_PARAM_INDEXES = tuple(range(_HERMITE_PARAM_COUNT))
 
     def __init__(

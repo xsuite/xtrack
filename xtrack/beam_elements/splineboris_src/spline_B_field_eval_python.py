@@ -39,59 +39,59 @@ def hermite_to_polynomial(s_start, s_end, coeffs):
 
     return poly_s
 
-def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole_order):
+def evaluate_B(x, y, s, bs, by, bx, L, multipole_order):
     """
     Auto-generated symbolic field evaluation for B.
     Hermite coefficients are provided as:
-      - Bs_hermite      : array-like length 5
-      - B_norm_hermite : sequence of length n (order), each a length-5 array
-      - B_skew_hermite : sequence of length n (order), each a length-5 array
+      - bs : array-like length 5
+      - by : sequence of length n (order), each a length-5 array
+      - bx : sequence of length n (order), each a length-5 array
     """
     if multipole_order == 1:
         # Hermite → polynomial coefficients (order 1)
-        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
-        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+        bs_poly = hermite_to_polynomial(0.0, L, bs)
+        bs_0, bs_1, bs_2, bs_3, bs_4 = bs_poly.coef[0:5]
 
-        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
-        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+        by0_poly = hermite_to_polynomial(0.0, L, by[0])
+        by_0_0, by_0_1, by_0_2, by_0_3, by_0_4 = by0_poly.coef[0:5]
 
-        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
-        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+        bx0_poly = hermite_to_polynomial(0.0, L, bx[0])
+        bx_0_0, bx_0_1, bx_0_2, bx_0_3, bx_0_4 = bx0_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
         x1 = s**3
         x2 = s**4
         x3 = y**2
-        x4 = 3*Bskew_0_3
+        x4 = 3*bx_0_3
         x5 = 6*x0
-        x6 = Bskew_0_2 + Bskew_0_4*x5 + s*x4
+        x6 = bx_0_2 + bx_0_4*x5 + s*x4
         x7 = 2*s
         x8 = 3*x0
         x9 = 4*x1
 
         # Reduced expressions
-        Bx = Bskew_0_0 + Bskew_0_1*s + Bskew_0_2*x0 + Bskew_0_3*x1 + Bskew_0_4*x2 - x3*x6
-        By = Bnorm_0_0 + Bnorm_0_1*s + Bnorm_0_2*x0 + Bnorm_0_3*x1 + Bnorm_0_4*x2 - y*(Bs_1 + Bs_2*x7 + Bs_3*x8 + Bs_4*x9 + 2*x*x6)
-        Bs = Bs_0 + Bs_1*s + Bs_2*x0 + Bs_3*x1 + Bs_4*x2 + x*(Bskew_0_1 + Bskew_0_2*x7 + Bskew_0_4*x9 + x0*x4) - 1/2*x3*(2*Bs_2 + 6*Bs_3*s + 2*Bs_4*x5 + 6*x*(Bskew_0_3 + 4*Bskew_0_4*s)) + y*(Bnorm_0_1 + Bnorm_0_2*x7 + Bnorm_0_3*x8 + Bnorm_0_4*x9)
+        Bx = bx_0_0 + bx_0_1*s + bx_0_2*x0 + bx_0_3*x1 + bx_0_4*x2 - x3*x6
+        By = by_0_0 + by_0_1*s + by_0_2*x0 + by_0_3*x1 + by_0_4*x2 - y*(bs_1 + bs_2*x7 + bs_3*x8 + bs_4*x9 + 2*x*x6)
+        Bs = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2 + x*(bx_0_1 + bx_0_2*x7 + bx_0_4*x9 + x0*x4) - 1/2*x3*(2*bs_2 + 6*bs_3*s + 2*bs_4*x5 + 6*x*(bx_0_3 + 4*bx_0_4*s)) + y*(by_0_1 + by_0_2*x7 + by_0_3*x8 + by_0_4*x9)
         return Bx, By, Bs
 
     elif multipole_order == 2:
         # Hermite → polynomial coefficients (order 2)
-        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
-        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+        bs_poly = hermite_to_polynomial(0.0, L, bs)
+        bs_0, bs_1, bs_2, bs_3, bs_4 = bs_poly.coef[0:5]
 
-        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
-        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+        by0_poly = hermite_to_polynomial(0.0, L, by[0])
+        by_0_0, by_0_1, by_0_2, by_0_3, by_0_4 = by0_poly.coef[0:5]
 
-        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
-        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+        by1_poly = hermite_to_polynomial(0.0, L, by[1])
+        by_1_0, by_1_1, by_1_2, by_1_3, by_1_4 = by1_poly.coef[0:5]
 
-        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
-        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+        bx0_poly = hermite_to_polynomial(0.0, L, bx[0])
+        bx_0_0, bx_0_1, bx_0_2, bx_0_3, bx_0_4 = bx0_poly.coef[0:5]
 
-        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
-        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+        bx1_poly = hermite_to_polynomial(0.0, L, bx[1])
+        bx_1_0, bx_1_1, bx_1_2, bx_1_3, bx_1_4 = bx1_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
@@ -100,14 +100,14 @@ def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole
         x3 = y**3
         x4 = 3*s
         x5 = 6*x0
-        x6 = Bnorm_1_2 + Bnorm_1_3*x4 + Bnorm_1_4*x5
-        x7 = Bskew_1_1*s
-        x8 = Bskew_1_2*x0
-        x9 = Bskew_1_3*x1
-        x10 = Bskew_1_4*x2
-        x11 = Bnorm_1_0 + Bnorm_1_1*s + Bnorm_1_2*x0 + Bnorm_1_3*x1 + Bnorm_1_4*x2
-        x12 = Bskew_0_2 + Bskew_0_3*x4 + Bskew_0_4*x5
-        x13 = Bskew_1_2 + Bskew_1_3*x4 + Bskew_1_4*x5
+        x6 = by_1_2 + by_1_3*x4 + by_1_4*x5
+        x7 = bx_1_1*s
+        x8 = bx_1_2*x0
+        x9 = bx_1_3*x1
+        x10 = bx_1_4*x2
+        x11 = by_1_0 + by_1_1*s + by_1_2*x0 + by_1_3*x1 + by_1_4*x2
+        x12 = bx_0_2 + bx_0_3*x4 + bx_0_4*x5
+        x13 = bx_1_2 + bx_1_3*x4 + bx_1_4*x5
         x14 = 4*x
         x15 = y**2
         x16 = (1/4)*x15
@@ -119,73 +119,73 @@ def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole
         x22 = 4*x1
 
         # Reduced expressions
-        Bx = Bskew_0_0 + Bskew_0_1*s + Bskew_0_2*x0 + Bskew_0_3*x1 + Bskew_0_4*x2 + x*(Bskew_1_0 + x10 + x7 + x8 + x9) + x11*y - x16*(4*x12 + x13*x14) - 1/3*x3*x6
-        By = Bnorm_0_0 + Bnorm_0_1*s + Bnorm_0_2*x0 + Bnorm_0_3*x1 + Bnorm_0_4*x2 + x*x11 - 1/2*x15*(2*Bnorm_0_2 + 2*Bnorm_0_3*x4 + 2*Bnorm_0_4*x5 + 2*x*x6) - 1/2*y*(2*Bs_1 + Bs_2*x17 + Bs_3*x5 + Bs_4*x18 + 2*Bskew_1_0 + 2*x10 + x12*x14 + 2*x13*x19 + 2*x7 + 2*x8 + 2*x9)
-        Bs = Bs_0 + Bs_1*s + Bs_2*x0 + Bs_3*x1 + Bs_4*x2 + x*(Bskew_0_1 + Bskew_0_2*x20 + Bskew_0_3*x21 + Bskew_0_4*x22) - x16*(4*Bs_2 + 4*Bs_3*x4 + 4*Bs_4*x5 + 2*Bskew_1_1 + Bskew_1_2*x17 + Bskew_1_3*x5 + Bskew_1_4*x18 + 12*x*(Bskew_0_3 + Bskew_0_4*x17) + 6*x19*(Bskew_1_3 + Bskew_1_4*x17)) + (1/2)*x19*(Bskew_1_1 + Bskew_1_2*x20 + Bskew_1_3*x21 + Bskew_1_4*x22) - 1/6*x3*(6*Bnorm_0_3 + 6*Bnorm_0_4*x17 + 6*x*(Bnorm_1_3 + Bnorm_1_4*x17)) + y*(Bnorm_0_1 + Bnorm_0_2*x20 + Bnorm_0_3*x21 + Bnorm_0_4*x22 + x*(Bnorm_1_1 + Bnorm_1_2*x20 + Bnorm_1_3*x21 + Bnorm_1_4*x22))
+        Bx = bx_0_0 + bx_0_1*s + bx_0_2*x0 + bx_0_3*x1 + bx_0_4*x2 + x*(bx_1_0 + x10 + x7 + x8 + x9) + x11*y - x16*(4*x12 + x13*x14) - 1/3*x3*x6
+        By = by_0_0 + by_0_1*s + by_0_2*x0 + by_0_3*x1 + by_0_4*x2 + x*x11 - 1/2*x15*(2*by_0_2 + 2*by_0_3*x4 + 2*by_0_4*x5 + 2*x*x6) - 1/2*y*(2*bs_1 + bs_2*x17 + bs_3*x5 + bs_4*x18 + 2*bx_1_0 + 2*x10 + x12*x14 + 2*x13*x19 + 2*x7 + 2*x8 + 2*x9)
+        Bs = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2 + x*(bx_0_1 + bx_0_2*x20 + bx_0_3*x21 + bx_0_4*x22) - x16*(4*bs_2 + 4*bs_3*x4 + 4*bs_4*x5 + 2*bx_1_1 + bx_1_2*x17 + bx_1_3*x5 + bx_1_4*x18 + 12*x*(bx_0_3 + bx_0_4*x17) + 6*x19*(bx_1_3 + bx_1_4*x17)) + (1/2)*x19*(bx_1_1 + bx_1_2*x20 + bx_1_3*x21 + bx_1_4*x22) - 1/6*x3*(6*by_0_3 + 6*by_0_4*x17 + 6*x*(by_1_3 + by_1_4*x17)) + y*(by_0_1 + by_0_2*x20 + by_0_3*x21 + by_0_4*x22 + x*(by_1_1 + by_1_2*x20 + by_1_3*x21 + by_1_4*x22))
         return Bx, By, Bs
 
     elif multipole_order == 3:
         # Hermite → polynomial coefficients (order 3)
-        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
-        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+        bs_poly = hermite_to_polynomial(0.0, L, bs)
+        bs_0, bs_1, bs_2, bs_3, bs_4 = bs_poly.coef[0:5]
 
-        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
-        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+        by0_poly = hermite_to_polynomial(0.0, L, by[0])
+        by_0_0, by_0_1, by_0_2, by_0_3, by_0_4 = by0_poly.coef[0:5]
 
-        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
-        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+        by1_poly = hermite_to_polynomial(0.0, L, by[1])
+        by_1_0, by_1_1, by_1_2, by_1_3, by_1_4 = by1_poly.coef[0:5]
 
-        Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2])
-        Bnorm_2_0, Bnorm_2_1, Bnorm_2_2, Bnorm_2_3, Bnorm_2_4 = Bnorm2_poly.coef[0:5]
+        by2_poly = hermite_to_polynomial(0.0, L, by[2])
+        by_2_0, by_2_1, by_2_2, by_2_3, by_2_4 = by2_poly.coef[0:5]
 
-        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
-        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+        bx0_poly = hermite_to_polynomial(0.0, L, bx[0])
+        bx_0_0, bx_0_1, bx_0_2, bx_0_3, bx_0_4 = bx0_poly.coef[0:5]
 
-        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
-        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+        bx1_poly = hermite_to_polynomial(0.0, L, bx[1])
+        bx_1_0, bx_1_1, bx_1_2, bx_1_3, bx_1_4 = bx1_poly.coef[0:5]
 
-        Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2])
-        Bskew_2_0, Bskew_2_1, Bskew_2_2, Bskew_2_3, Bskew_2_4 = Bskew2_poly.coef[0:5]
+        bx2_poly = hermite_to_polynomial(0.0, L, bx[2])
+        bx_2_0, bx_2_1, bx_2_2, bx_2_3, bx_2_4 = bx2_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
         x1 = s**3
         x2 = s**4
-        x3 = Bskew_1_1*s
-        x4 = Bskew_1_2*x0
-        x5 = Bskew_1_3*x1
-        x6 = Bskew_1_4*x2
-        x7 = Bskew_2_1*s
-        x8 = Bskew_2_2*x0
-        x9 = Bskew_2_3*x1
-        x10 = Bskew_2_4*x2
-        x11 = Bskew_2_0 + x10 + x7 + x8 + x9
+        x3 = bx_1_1*s
+        x4 = bx_1_2*x0
+        x5 = bx_1_3*x1
+        x6 = bx_1_4*x2
+        x7 = bx_2_1*s
+        x8 = bx_2_2*x0
+        x9 = bx_2_3*x1
+        x10 = bx_2_4*x2
+        x11 = bx_2_0 + x10 + x7 + x8 + x9
         x12 = x**2
         x13 = (1/2)*x12
-        x14 = 144*Bskew_0_4
+        x14 = 144*bx_0_4
         x15 = 72*x12
         x16 = 3*s
         x17 = 6*x0
-        x18 = Bskew_2_2 + Bskew_2_3*x16 + Bskew_2_4*x17
+        x18 = bx_2_2 + bx_2_3*x16 + bx_2_4*x17
         x19 = (1/144)*y**4
-        x20 = Bnorm_1_2 + Bnorm_1_3*x16 + Bnorm_1_4*x17
-        x21 = Bnorm_2_2 + Bnorm_2_3*x16 + Bnorm_2_4*x17
+        x20 = by_1_2 + by_1_3*x16 + by_1_4*x17
+        x21 = by_2_2 + by_2_3*x16 + by_2_4*x17
         x22 = 4*x
         x23 = y**3
         x24 = (1/12)*x23
-        x25 = Bnorm_1_1*s
-        x26 = Bnorm_1_2*x0
-        x27 = Bnorm_1_3*x1
-        x28 = Bnorm_1_4*x2
-        x29 = Bnorm_2_1*s
-        x30 = Bnorm_2_2*x0
-        x31 = Bnorm_2_3*x1
-        x32 = Bnorm_2_4*x2
-        x33 = Bnorm_2_0 + x29 + x30 + x31 + x32
+        x25 = by_1_1*s
+        x26 = by_1_2*x0
+        x27 = by_1_3*x1
+        x28 = by_1_4*x2
+        x29 = by_2_1*s
+        x30 = by_2_2*x0
+        x31 = by_2_3*x1
+        x32 = by_2_4*x2
+        x33 = by_2_0 + x29 + x30 + x31 + x32
         x34 = 2*x
         x35 = (1/2)*y
-        x36 = Bskew_0_2 + Bskew_0_3*x16 + Bskew_0_4*x17
-        x37 = Bskew_1_2 + Bskew_1_3*x16 + Bskew_1_4*x17
+        x36 = bx_0_2 + bx_0_3*x16 + bx_0_4*x17
+        x37 = bx_1_2 + bx_1_3*x16 + bx_1_4*x17
         x38 = 12*x
         x39 = 6*x12
         x40 = y**2
@@ -199,108 +199,108 @@ def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole
         x48 = 2*s
         x49 = 3*x0
         x50 = 4*x1
-        x51 = Bskew_2_1 + Bskew_2_2*x48 + Bskew_2_3*x49 + Bskew_2_4*x50
-        x52 = Bskew_1_3 + Bskew_1_4*x43
-        x53 = Bskew_2_3 + Bskew_2_4*x43
+        x51 = bx_2_1 + bx_2_2*x48 + bx_2_3*x49 + bx_2_4*x50
+        x52 = bx_1_3 + bx_1_4*x43
+        x53 = bx_2_3 + bx_2_4*x43
         x54 = 8*x1
 
         # Reduced expressions
-        Bx = Bskew_0_0 + Bskew_0_1*s + Bskew_0_2*x0 + Bskew_0_3*x1 + Bskew_0_4*x2 + x*(Bskew_1_0 + x3 + x4 + x5 + x6) + x11*x13 + x19*(144*Bskew_1_4*x + Bskew_2_4*x15 + x14 + 24*x18) - x24*(4*x20 + x21*x22) + x35*(2*Bnorm_1_0 + 2*x25 + 2*x26 + 2*x27 + 2*x28 + x33*x34) - x41*(6*Bskew_2_0 + 6*x10 + x18*x39 + 12*x36 + x37*x38 + 6*x7 + 6*x8 + 6*x9)
-        By = Bnorm_0_0 + Bnorm_0_1*s + Bnorm_0_2*x0 + Bnorm_0_3*x1 + Bnorm_0_4*x2 + x*(Bnorm_1_0 + x25 + x26 + x27 + x28) + x13*x33 + (1/36)*x23*(36*Bs_3 + 36*Bs_4*x43 + Bskew_1_4*x15 + 24*Bskew_2_4*x42 + x*x14 + 24*x*x18 + 24*x37) - 1/4*x40*(4*Bnorm_0_2 + 4*Bnorm_0_3*x16 + 4*Bnorm_0_4*x17 + 2*Bnorm_2_0 + 2*x12*x21 + x20*x22 + 2*x29 + 2*x30 + 2*x31 + 2*x32) - 1/6*y*(6*Bs_1 + Bs_2*x44 + Bs_3*x45 + Bs_4*x46 + 6*Bskew_1_0 + x11*x47 + 2*x18*x42 + 6*x3 + x36*x38 + x37*x39 + 6*x4 + 6*x5 + 6*x6)
-        Bs = Bs_0 + Bs_1*s + Bs_2*x0 + Bs_3*x1 + Bs_4*x2 + x*(Bskew_0_1 + Bskew_0_2*x48 + Bskew_0_3*x49 + Bskew_0_4*x50) + x13*(Bskew_1_1 + Bskew_1_2*x48 + Bskew_1_3*x49 + Bskew_1_4*x50) + x19*(144*Bs_4 + 72*x*x53 + 72*x52) - x24*(12*Bnorm_0_3 + 12*Bnorm_0_4*x43 + 2*Bnorm_2_1 + Bnorm_2_2*x43 + Bnorm_2_3*x17 + Bnorm_2_4*x54 + x38*(Bnorm_1_3 + Bnorm_1_4*x43) + x39*(Bnorm_2_3 + Bnorm_2_4*x43)) + x35*(2*Bnorm_0_1 + Bnorm_0_2*x43 + Bnorm_0_3*x17 + Bnorm_0_4*x54 + x12*(Bnorm_2_1 + Bnorm_2_2*x48 + Bnorm_2_3*x49 + Bnorm_2_4*x50) + x34*(Bnorm_1_1 + Bnorm_1_2*x48 + Bnorm_1_3*x49 + Bnorm_1_4*x50)) - x41*(12*Bs_2 + 12*Bs_3*x16 + 12*Bs_4*x17 + 6*Bskew_1_1 + Bskew_1_2*x44 + Bskew_1_3*x45 + Bskew_1_4*x46 + 36*x*(Bskew_0_3 + Bskew_0_4*x43) + 18*x12*x52 + 6*x42*x53 + x47*x51) + (1/6)*x42*x51
+        Bx = bx_0_0 + bx_0_1*s + bx_0_2*x0 + bx_0_3*x1 + bx_0_4*x2 + x*(bx_1_0 + x3 + x4 + x5 + x6) + x11*x13 + x19*(144*bx_1_4*x + bx_2_4*x15 + x14 + 24*x18) - x24*(4*x20 + x21*x22) + x35*(2*by_1_0 + 2*x25 + 2*x26 + 2*x27 + 2*x28 + x33*x34) - x41*(6*bx_2_0 + 6*x10 + x18*x39 + 12*x36 + x37*x38 + 6*x7 + 6*x8 + 6*x9)
+        By = by_0_0 + by_0_1*s + by_0_2*x0 + by_0_3*x1 + by_0_4*x2 + x*(by_1_0 + x25 + x26 + x27 + x28) + x13*x33 + (1/36)*x23*(36*bs_3 + 36*bs_4*x43 + bx_1_4*x15 + 24*bx_2_4*x42 + x*x14 + 24*x*x18 + 24*x37) - 1/4*x40*(4*by_0_2 + 4*by_0_3*x16 + 4*by_0_4*x17 + 2*by_2_0 + 2*x12*x21 + x20*x22 + 2*x29 + 2*x30 + 2*x31 + 2*x32) - 1/6*y*(6*bs_1 + bs_2*x44 + bs_3*x45 + bs_4*x46 + 6*bx_1_0 + x11*x47 + 2*x18*x42 + 6*x3 + x36*x38 + x37*x39 + 6*x4 + 6*x5 + 6*x6)
+        Bs = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2 + x*(bx_0_1 + bx_0_2*x48 + bx_0_3*x49 + bx_0_4*x50) + x13*(bx_1_1 + bx_1_2*x48 + bx_1_3*x49 + bx_1_4*x50) + x19*(144*bs_4 + 72*x*x53 + 72*x52) - x24*(12*by_0_3 + 12*by_0_4*x43 + 2*by_2_1 + by_2_2*x43 + by_2_3*x17 + by_2_4*x54 + x38*(by_1_3 + by_1_4*x43) + x39*(by_2_3 + by_2_4*x43)) + x35*(2*by_0_1 + by_0_2*x43 + by_0_3*x17 + by_0_4*x54 + x12*(by_2_1 + by_2_2*x48 + by_2_3*x49 + by_2_4*x50) + x34*(by_1_1 + by_1_2*x48 + by_1_3*x49 + by_1_4*x50)) - x41*(12*bs_2 + 12*bs_3*x16 + 12*bs_4*x17 + 6*bx_1_1 + bx_1_2*x44 + bx_1_3*x45 + bx_1_4*x46 + 36*x*(bx_0_3 + bx_0_4*x43) + 18*x12*x52 + 6*x42*x53 + x47*x51) + (1/6)*x42*x51
         return Bx, By, Bs
 
     elif multipole_order == 4:
         # Hermite → polynomial coefficients (order 4)
-        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
-        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+        bs_poly = hermite_to_polynomial(0.0, L, bs)
+        bs_0, bs_1, bs_2, bs_3, bs_4 = bs_poly.coef[0:5]
 
-        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
-        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+        by0_poly = hermite_to_polynomial(0.0, L, by[0])
+        by_0_0, by_0_1, by_0_2, by_0_3, by_0_4 = by0_poly.coef[0:5]
 
-        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
-        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+        by1_poly = hermite_to_polynomial(0.0, L, by[1])
+        by_1_0, by_1_1, by_1_2, by_1_3, by_1_4 = by1_poly.coef[0:5]
 
-        Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2])
-        Bnorm_2_0, Bnorm_2_1, Bnorm_2_2, Bnorm_2_3, Bnorm_2_4 = Bnorm2_poly.coef[0:5]
+        by2_poly = hermite_to_polynomial(0.0, L, by[2])
+        by_2_0, by_2_1, by_2_2, by_2_3, by_2_4 = by2_poly.coef[0:5]
 
-        Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3])
-        Bnorm_3_0, Bnorm_3_1, Bnorm_3_2, Bnorm_3_3, Bnorm_3_4 = Bnorm3_poly.coef[0:5]
+        by3_poly = hermite_to_polynomial(0.0, L, by[3])
+        by_3_0, by_3_1, by_3_2, by_3_3, by_3_4 = by3_poly.coef[0:5]
 
-        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
-        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+        bx0_poly = hermite_to_polynomial(0.0, L, bx[0])
+        bx_0_0, bx_0_1, bx_0_2, bx_0_3, bx_0_4 = bx0_poly.coef[0:5]
 
-        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
-        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+        bx1_poly = hermite_to_polynomial(0.0, L, bx[1])
+        bx_1_0, bx_1_1, bx_1_2, bx_1_3, bx_1_4 = bx1_poly.coef[0:5]
 
-        Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2])
-        Bskew_2_0, Bskew_2_1, Bskew_2_2, Bskew_2_3, Bskew_2_4 = Bskew2_poly.coef[0:5]
+        bx2_poly = hermite_to_polynomial(0.0, L, bx[2])
+        bx_2_0, bx_2_1, bx_2_2, bx_2_3, bx_2_4 = bx2_poly.coef[0:5]
 
-        Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3])
-        Bskew_3_0, Bskew_3_1, Bskew_3_2, Bskew_3_3, Bskew_3_4 = Bskew3_poly.coef[0:5]
+        bx3_poly = hermite_to_polynomial(0.0, L, bx[3])
+        bx_3_0, bx_3_1, bx_3_2, bx_3_3, bx_3_4 = bx3_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
         x1 = s**3
         x2 = s**4
-        x3 = Bskew_1_1*s
-        x4 = Bskew_1_2*x0
-        x5 = Bskew_1_3*x1
-        x6 = Bskew_1_4*x2
-        x7 = Bskew_2_1*s
-        x8 = Bskew_2_2*x0
-        x9 = Bskew_2_3*x1
-        x10 = Bskew_2_4*x2
-        x11 = Bskew_2_0 + x10 + x7 + x8 + x9
+        x3 = bx_1_1*s
+        x4 = bx_1_2*x0
+        x5 = bx_1_3*x1
+        x6 = bx_1_4*x2
+        x7 = bx_2_1*s
+        x8 = bx_2_2*x0
+        x9 = bx_2_3*x1
+        x10 = bx_2_4*x2
+        x11 = bx_2_0 + x10 + x7 + x8 + x9
         x12 = x**2
         x13 = (1/2)*x12
-        x14 = Bskew_3_1*s
-        x15 = Bskew_3_2*x0
-        x16 = Bskew_3_3*x1
-        x17 = Bskew_3_4*x2
-        x18 = Bskew_3_0 + x14 + x15 + x16 + x17
+        x14 = bx_3_1*s
+        x15 = bx_3_2*x0
+        x16 = bx_3_3*x1
+        x17 = bx_3_4*x2
+        x18 = bx_3_0 + x14 + x15 + x16 + x17
         x19 = x**3
         x20 = (1/6)*x19
-        x21 = 144*Bnorm_1_4
+        x21 = 144*by_1_4
         x22 = 144*x
         x23 = 72*x12
         x24 = 3*s
         x25 = 6*x0
-        x26 = Bnorm_3_2 + Bnorm_3_3*x24 + Bnorm_3_4*x25
+        x26 = by_3_2 + by_3_3*x24 + by_3_4*x25
         x27 = (1/720)*y**5
-        x28 = 576*Bskew_0_4
+        x28 = 576*bx_0_4
         x29 = 288*x12
         x30 = 96*x19
-        x31 = Bskew_2_2 + Bskew_2_3*x24 + Bskew_2_4*x25
-        x32 = Bskew_3_2 + Bskew_3_3*x24 + Bskew_3_4*x25
+        x31 = bx_2_2 + bx_2_3*x24 + bx_2_4*x25
+        x32 = bx_3_2 + bx_3_3*x24 + bx_3_4*x25
         x33 = 96*x
         x34 = y**4
         x35 = (1/576)*x34
-        x36 = Bnorm_1_1*s
-        x37 = Bnorm_1_2*x0
-        x38 = Bnorm_1_3*x1
-        x39 = Bnorm_1_4*x2
-        x40 = Bnorm_2_1*s
-        x41 = Bnorm_2_2*x0
-        x42 = Bnorm_2_3*x1
-        x43 = Bnorm_2_4*x2
-        x44 = Bnorm_2_0 + x40 + x41 + x42 + x43
+        x36 = by_1_1*s
+        x37 = by_1_2*x0
+        x38 = by_1_3*x1
+        x39 = by_1_4*x2
+        x40 = by_2_1*s
+        x41 = by_2_2*x0
+        x42 = by_2_3*x1
+        x43 = by_2_4*x2
+        x44 = by_2_0 + x40 + x41 + x42 + x43
         x45 = 6*x
-        x46 = Bnorm_3_1*s
-        x47 = Bnorm_3_2*x0
-        x48 = Bnorm_3_3*x1
-        x49 = Bnorm_3_4*x2
-        x50 = Bnorm_3_0 + x46 + x47 + x48 + x49
+        x46 = by_3_1*s
+        x47 = by_3_2*x0
+        x48 = by_3_3*x1
+        x49 = by_3_4*x2
+        x50 = by_3_0 + x46 + x47 + x48 + x49
         x51 = 3*x12
         x52 = (1/6)*y
-        x53 = Bnorm_1_2 + Bnorm_1_3*x24 + Bnorm_1_4*x25
-        x54 = Bnorm_2_2 + Bnorm_2_3*x24 + Bnorm_2_4*x25
+        x53 = by_1_2 + by_1_3*x24 + by_1_4*x25
+        x54 = by_2_2 + by_2_3*x24 + by_2_4*x25
         x55 = 12*x
         x56 = 6*x12
         x57 = y**3
         x58 = (1/36)*x57
-        x59 = Bskew_0_2 + Bskew_0_3*x24 + Bskew_0_4*x25
-        x60 = Bskew_1_2 + Bskew_1_3*x24 + Bskew_1_4*x25
+        x59 = bx_0_2 + bx_0_3*x24 + bx_0_4*x25
+        x60 = bx_1_2 + bx_1_3*x24 + bx_1_4*x25
         x61 = 48*x
         x62 = 24*x12
         x63 = 8*x19
@@ -317,144 +317,144 @@ def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole
         x74 = 2*s
         x75 = 3*x0
         x76 = 4*x1
-        x77 = Bskew_2_1 + Bskew_2_2*x74 + Bskew_2_3*x75 + Bskew_2_4*x76
-        x78 = Bskew_3_1 + Bskew_3_2*x74 + Bskew_3_3*x75 + Bskew_3_4*x76
-        x79 = Bnorm_2_3 + Bnorm_2_4*x69
-        x80 = Bnorm_3_3 + Bnorm_3_4*x69
-        x81 = Bskew_1_3 + Bskew_1_4*x69
-        x82 = Bskew_2_3 + Bskew_2_4*x69
-        x83 = Bskew_3_3 + Bskew_3_4*x69
+        x77 = bx_2_1 + bx_2_2*x74 + bx_2_3*x75 + bx_2_4*x76
+        x78 = bx_3_1 + bx_3_2*x74 + bx_3_3*x75 + bx_3_4*x76
+        x79 = by_2_3 + by_2_4*x69
+        x80 = by_3_3 + by_3_4*x69
+        x81 = bx_1_3 + bx_1_4*x69
+        x82 = bx_2_3 + bx_2_4*x69
+        x83 = bx_3_3 + bx_3_4*x69
         x84 = 12*s
         x85 = 18*x0
         x86 = 24*x1
-        x87 = Bnorm_3_1 + Bnorm_3_2*x74 + Bnorm_3_3*x75 + Bnorm_3_4*x76
+        x87 = by_3_1 + by_3_2*x74 + by_3_3*x75 + by_3_4*x76
 
         # Reduced expressions
-        Bx = Bskew_0_0 + Bskew_0_1*s + Bskew_0_2*x0 + Bskew_0_3*x1 + Bskew_0_4*x2 + x*(Bskew_1_0 + x3 + x4 + x5 + x6) + x11*x13 + x18*x20 + x27*(Bnorm_2_4*x22 + Bnorm_3_4*x23 + x21 + 24*x26) + x35*(576*Bskew_1_4*x + Bskew_2_4*x29 + Bskew_3_4*x30 + x28 + 96*x31 + x32*x33) + x52*(6*Bnorm_1_0 + 6*x36 + 6*x37 + 6*x38 + 6*x39 + x44*x45 + x50*x51) - x58*(6*Bnorm_3_0 + x26*x56 + 6*x46 + 6*x47 + 6*x48 + 6*x49 + 12*x53 + x54*x55) - x66*(24*Bskew_2_0 + 24*x10 + x18*x64 + x31*x62 + x32*x63 + 48*x59 + x60*x61 + 24*x7 + 24*x8 + 24*x9)
-        By = Bnorm_0_0 + Bnorm_0_1*s + Bnorm_0_2*x0 + Bnorm_0_3*x1 + Bnorm_0_4*x2 + x*(Bnorm_1_0 + x36 + x37 + x38 + x39) + x13*x44 + x20*x50 + (1/144)*x34*(144*Bnorm_0_4 + Bnorm_2_4*x23 + Bnorm_3_4*x67 + x*x21 + x26*x64 + 24*x54) + (1/144)*x57*(144*Bs_3 + 144*Bs_4*x69 + Bskew_1_4*x29 + Bskew_2_4*x30 + 24*Bskew_3_0 + 24*Bskew_3_4*x68 + x*x28 + 48*x12*x32 + 24*x14 + 24*x15 + 24*x16 + 24*x17 + x31*x33 + 96*x60) - 1/12*x65*(12*Bnorm_0_2 + 12*Bnorm_0_3*x24 + 12*Bnorm_0_4*x25 + 6*Bnorm_2_0 + 2*x19*x26 + 6*x40 + 6*x41 + 6*x42 + 6*x43 + x45*x50 + x53*x55 + x54*x56) - 1/24*y*(24*Bs_1 + Bs_2*x70 + Bs_3*x71 + Bs_4*x72 + 24*Bskew_1_0 + x11*x64 + x18*x73 + 24*x3 + x31*x63 + 2*x32*x68 + 24*x4 + 24*x5 + x59*x61 + 24*x6 + x60*x62)
-        Bs = Bs_0 + Bs_1*s + Bs_2*x0 + Bs_3*x1 + Bs_4*x2 + x*(Bskew_0_1 + Bskew_0_2*x74 + Bskew_0_3*x75 + Bskew_0_4*x76) + x13*(Bskew_1_1 + Bskew_1_2*x74 + Bskew_1_3*x75 + Bskew_1_4*x76) + x20*x77 + x27*(72*x*x80 + 72*x79) + x35*(576*Bs_4 + 24*Bskew_3_1 + Bskew_3_2*x70 + Bskew_3_3*x71 + Bskew_3_4*x72 + 288*x*x82 + 144*x12*x83 + 288*x81) + x52*(6*Bnorm_0_1 + Bnorm_0_2*x84 + Bnorm_0_3*x85 + Bnorm_0_4*x86 + x19*x87 + x45*(Bnorm_1_1 + Bnorm_1_2*x74 + Bnorm_1_3*x75 + Bnorm_1_4*x76) + x51*(Bnorm_2_1 + Bnorm_2_2*x74 + Bnorm_2_3*x75 + Bnorm_2_4*x76)) - x58*(36*Bnorm_0_3 + 36*Bnorm_0_4*x69 + 6*Bnorm_2_1 + Bnorm_2_2*x84 + Bnorm_2_3*x85 + Bnorm_2_4*x86 + 36*x*(Bnorm_1_3 + Bnorm_1_4*x69) + 18*x12*x79 + 6*x19*x80 + x45*x87) - x66*(48*Bs_2 + 48*Bs_3*x24 + 48*Bs_4*x25 + 24*Bskew_1_1 + Bskew_1_2*x70 + Bskew_1_3*x71 + Bskew_1_4*x72 + x22*(Bskew_0_3 + Bskew_0_4*x69) + x23*x81 + x64*x77 + x67*x82 + 6*x68*x83 + x73*x78) + (1/24)*x68*x78
+        Bx = bx_0_0 + bx_0_1*s + bx_0_2*x0 + bx_0_3*x1 + bx_0_4*x2 + x*(bx_1_0 + x3 + x4 + x5 + x6) + x11*x13 + x18*x20 + x27*(by_2_4*x22 + by_3_4*x23 + x21 + 24*x26) + x35*(576*bx_1_4*x + bx_2_4*x29 + bx_3_4*x30 + x28 + 96*x31 + x32*x33) + x52*(6*by_1_0 + 6*x36 + 6*x37 + 6*x38 + 6*x39 + x44*x45 + x50*x51) - x58*(6*by_3_0 + x26*x56 + 6*x46 + 6*x47 + 6*x48 + 6*x49 + 12*x53 + x54*x55) - x66*(24*bx_2_0 + 24*x10 + x18*x64 + x31*x62 + x32*x63 + 48*x59 + x60*x61 + 24*x7 + 24*x8 + 24*x9)
+        By = by_0_0 + by_0_1*s + by_0_2*x0 + by_0_3*x1 + by_0_4*x2 + x*(by_1_0 + x36 + x37 + x38 + x39) + x13*x44 + x20*x50 + (1/144)*x34*(144*by_0_4 + by_2_4*x23 + by_3_4*x67 + x*x21 + x26*x64 + 24*x54) + (1/144)*x57*(144*bs_3 + 144*bs_4*x69 + bx_1_4*x29 + bx_2_4*x30 + 24*bx_3_0 + 24*bx_3_4*x68 + x*x28 + 48*x12*x32 + 24*x14 + 24*x15 + 24*x16 + 24*x17 + x31*x33 + 96*x60) - 1/12*x65*(12*by_0_2 + 12*by_0_3*x24 + 12*by_0_4*x25 + 6*by_2_0 + 2*x19*x26 + 6*x40 + 6*x41 + 6*x42 + 6*x43 + x45*x50 + x53*x55 + x54*x56) - 1/24*y*(24*bs_1 + bs_2*x70 + bs_3*x71 + bs_4*x72 + 24*bx_1_0 + x11*x64 + x18*x73 + 24*x3 + x31*x63 + 2*x32*x68 + 24*x4 + 24*x5 + x59*x61 + 24*x6 + x60*x62)
+        Bs = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2 + x*(bx_0_1 + bx_0_2*x74 + bx_0_3*x75 + bx_0_4*x76) + x13*(bx_1_1 + bx_1_2*x74 + bx_1_3*x75 + bx_1_4*x76) + x20*x77 + x27*(72*x*x80 + 72*x79) + x35*(576*bs_4 + 24*bx_3_1 + bx_3_2*x70 + bx_3_3*x71 + bx_3_4*x72 + 288*x*x82 + 144*x12*x83 + 288*x81) + x52*(6*by_0_1 + by_0_2*x84 + by_0_3*x85 + by_0_4*x86 + x19*x87 + x45*(by_1_1 + by_1_2*x74 + by_1_3*x75 + by_1_4*x76) + x51*(by_2_1 + by_2_2*x74 + by_2_3*x75 + by_2_4*x76)) - x58*(36*by_0_3 + 36*by_0_4*x69 + 6*by_2_1 + by_2_2*x84 + by_2_3*x85 + by_2_4*x86 + 36*x*(by_1_3 + by_1_4*x69) + 18*x12*x79 + 6*x19*x80 + x45*x87) - x66*(48*bs_2 + 48*bs_3*x24 + 48*bs_4*x25 + 24*bx_1_1 + bx_1_2*x70 + bx_1_3*x71 + bx_1_4*x72 + x22*(bx_0_3 + bx_0_4*x69) + x23*x81 + x64*x77 + x67*x82 + 6*x68*x83 + x73*x78) + (1/24)*x68*x78
         return Bx, By, Bs
 
     elif multipole_order == 5:
         # Hermite → polynomial coefficients (order 5)
-        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
-        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+        bs_poly = hermite_to_polynomial(0.0, L, bs)
+        bs_0, bs_1, bs_2, bs_3, bs_4 = bs_poly.coef[0:5]
 
-        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
-        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+        by0_poly = hermite_to_polynomial(0.0, L, by[0])
+        by_0_0, by_0_1, by_0_2, by_0_3, by_0_4 = by0_poly.coef[0:5]
 
-        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
-        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+        by1_poly = hermite_to_polynomial(0.0, L, by[1])
+        by_1_0, by_1_1, by_1_2, by_1_3, by_1_4 = by1_poly.coef[0:5]
 
-        Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2])
-        Bnorm_2_0, Bnorm_2_1, Bnorm_2_2, Bnorm_2_3, Bnorm_2_4 = Bnorm2_poly.coef[0:5]
+        by2_poly = hermite_to_polynomial(0.0, L, by[2])
+        by_2_0, by_2_1, by_2_2, by_2_3, by_2_4 = by2_poly.coef[0:5]
 
-        Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3])
-        Bnorm_3_0, Bnorm_3_1, Bnorm_3_2, Bnorm_3_3, Bnorm_3_4 = Bnorm3_poly.coef[0:5]
+        by3_poly = hermite_to_polynomial(0.0, L, by[3])
+        by_3_0, by_3_1, by_3_2, by_3_3, by_3_4 = by3_poly.coef[0:5]
 
-        Bnorm4_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[4])
-        Bnorm_4_0, Bnorm_4_1, Bnorm_4_2, Bnorm_4_3, Bnorm_4_4 = Bnorm4_poly.coef[0:5]
+        by4_poly = hermite_to_polynomial(0.0, L, by[4])
+        by_4_0, by_4_1, by_4_2, by_4_3, by_4_4 = by4_poly.coef[0:5]
 
-        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
-        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+        bx0_poly = hermite_to_polynomial(0.0, L, bx[0])
+        bx_0_0, bx_0_1, bx_0_2, bx_0_3, bx_0_4 = bx0_poly.coef[0:5]
 
-        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
-        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+        bx1_poly = hermite_to_polynomial(0.0, L, bx[1])
+        bx_1_0, bx_1_1, bx_1_2, bx_1_3, bx_1_4 = bx1_poly.coef[0:5]
 
-        Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2])
-        Bskew_2_0, Bskew_2_1, Bskew_2_2, Bskew_2_3, Bskew_2_4 = Bskew2_poly.coef[0:5]
+        bx2_poly = hermite_to_polynomial(0.0, L, bx[2])
+        bx_2_0, bx_2_1, bx_2_2, bx_2_3, bx_2_4 = bx2_poly.coef[0:5]
 
-        Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3])
-        Bskew_3_0, Bskew_3_1, Bskew_3_2, Bskew_3_3, Bskew_3_4 = Bskew3_poly.coef[0:5]
+        bx3_poly = hermite_to_polynomial(0.0, L, bx[3])
+        bx_3_0, bx_3_1, bx_3_2, bx_3_3, bx_3_4 = bx3_poly.coef[0:5]
 
-        Bskew4_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[4])
-        Bskew_4_0, Bskew_4_1, Bskew_4_2, Bskew_4_3, Bskew_4_4 = Bskew4_poly.coef[0:5]
+        bx4_poly = hermite_to_polynomial(0.0, L, bx[4])
+        bx_4_0, bx_4_1, bx_4_2, bx_4_3, bx_4_4 = bx4_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
         x1 = s**3
         x2 = s**4
-        x3 = Bskew_1_1*s
-        x4 = Bskew_1_2*x0
-        x5 = Bskew_1_3*x1
-        x6 = Bskew_1_4*x2
-        x7 = Bskew_2_1*s
-        x8 = Bskew_2_2*x0
-        x9 = Bskew_2_3*x1
-        x10 = Bskew_2_4*x2
-        x11 = Bskew_2_0 + x10 + x7 + x8 + x9
+        x3 = bx_1_1*s
+        x4 = bx_1_2*x0
+        x5 = bx_1_3*x1
+        x6 = bx_1_4*x2
+        x7 = bx_2_1*s
+        x8 = bx_2_2*x0
+        x9 = bx_2_3*x1
+        x10 = bx_2_4*x2
+        x11 = bx_2_0 + x10 + x7 + x8 + x9
         x12 = x**2
         x13 = (1/2)*x12
-        x14 = Bskew_3_1*s
-        x15 = Bskew_3_2*x0
-        x16 = Bskew_3_3*x1
-        x17 = Bskew_3_4*x2
-        x18 = Bskew_3_0 + x14 + x15 + x16 + x17
+        x14 = bx_3_1*s
+        x15 = bx_3_2*x0
+        x16 = bx_3_3*x1
+        x17 = bx_3_4*x2
+        x18 = bx_3_0 + x14 + x15 + x16 + x17
         x19 = x**3
         x20 = (1/6)*x19
-        x21 = Bskew_4_1*s
-        x22 = Bskew_4_2*x0
-        x23 = Bskew_4_3*x1
-        x24 = Bskew_4_4*x2
-        x25 = Bskew_4_0 + x21 + x22 + x23 + x24
+        x21 = bx_4_1*s
+        x22 = bx_4_2*x0
+        x23 = bx_4_3*x1
+        x24 = bx_4_4*x2
+        x25 = bx_4_0 + x21 + x22 + x23 + x24
         x26 = x**4
         x27 = (1/24)*x26
-        x28 = 8640*Bskew_2_4
+        x28 = 8640*bx_2_4
         x29 = 4320*x12
         x30 = 3*s
         x31 = 6*x0
-        x32 = Bskew_4_2 + Bskew_4_3*x30 + Bskew_4_4*x31
+        x32 = bx_4_2 + bx_4_3*x30 + bx_4_4*x31
         x33 = (1/86400)*y**6
-        x34 = 576*Bnorm_1_4
+        x34 = 576*by_1_4
         x35 = 288*x12
         x36 = 96*x19
-        x37 = Bnorm_3_2 + Bnorm_3_3*x30 + Bnorm_3_4*x31
-        x38 = Bnorm_4_2 + Bnorm_4_3*x30 + Bnorm_4_4*x31
+        x37 = by_3_2 + by_3_3*x30 + by_3_4*x31
+        x38 = by_4_2 + by_4_3*x30 + by_4_4*x31
         x39 = 96*x
         x40 = y**5
         x41 = (1/2880)*x40
-        x42 = Bnorm_1_1*s
-        x43 = Bnorm_1_2*x0
-        x44 = Bnorm_1_3*x1
-        x45 = Bnorm_1_4*x2
-        x46 = Bnorm_2_1*s
-        x47 = Bnorm_2_2*x0
-        x48 = Bnorm_2_3*x1
-        x49 = Bnorm_2_4*x2
-        x50 = Bnorm_2_0 + x46 + x47 + x48 + x49
+        x42 = by_1_1*s
+        x43 = by_1_2*x0
+        x44 = by_1_3*x1
+        x45 = by_1_4*x2
+        x46 = by_2_1*s
+        x47 = by_2_2*x0
+        x48 = by_2_3*x1
+        x49 = by_2_4*x2
+        x50 = by_2_0 + x46 + x47 + x48 + x49
         x51 = 24*x
-        x52 = Bnorm_3_1*s
-        x53 = Bnorm_3_2*x0
-        x54 = Bnorm_3_3*x1
-        x55 = Bnorm_3_4*x2
-        x56 = Bnorm_3_0 + x52 + x53 + x54 + x55
+        x52 = by_3_1*s
+        x53 = by_3_2*x0
+        x54 = by_3_3*x1
+        x55 = by_3_4*x2
+        x56 = by_3_0 + x52 + x53 + x54 + x55
         x57 = 12*x12
-        x58 = Bnorm_4_1*s
-        x59 = Bnorm_4_2*x0
-        x60 = Bnorm_4_3*x1
-        x61 = Bnorm_4_4*x2
-        x62 = Bnorm_4_0 + x58 + x59 + x60 + x61
+        x58 = by_4_1*s
+        x59 = by_4_2*x0
+        x60 = by_4_3*x1
+        x61 = by_4_4*x2
+        x62 = by_4_0 + x58 + x59 + x60 + x61
         x63 = 4*x19
         x64 = (1/24)*y
-        x65 = 2880*Bskew_0_4
+        x65 = 2880*bx_0_4
         x66 = 1440*x12
         x67 = 480*x19
         x68 = 120*x26
-        x69 = Bskew_2_2 + Bskew_2_3*x30 + Bskew_2_4*x31
-        x70 = Bskew_3_2 + Bskew_3_3*x30 + Bskew_3_4*x31
+        x69 = bx_2_2 + bx_2_3*x30 + bx_2_4*x31
+        x70 = bx_3_2 + bx_3_3*x30 + bx_3_4*x31
         x71 = 480*x
         x72 = 240*x12
         x73 = y**4
         x74 = (1/2880)*x73
-        x75 = Bnorm_1_2 + Bnorm_1_3*x30 + Bnorm_1_4*x31
-        x76 = Bnorm_2_2 + Bnorm_2_3*x30 + Bnorm_2_4*x31
+        x75 = by_1_2 + by_1_3*x30 + by_1_4*x31
+        x76 = by_2_2 + by_2_3*x30 + by_2_4*x31
         x77 = 48*x
         x78 = 24*x12
         x79 = 8*x19
         x80 = y**3
         x81 = (1/144)*x80
-        x82 = Bskew_0_2 + Bskew_0_3*x30 + Bskew_0_4*x31
-        x83 = Bskew_1_2 + Bskew_1_3*x30 + Bskew_1_4*x31
+        x82 = bx_0_2 + bx_0_3*x30 + bx_0_4*x31
+        x83 = bx_1_2 + bx_1_3*x30 + bx_1_4*x31
         x84 = 240*x
         x85 = 120*x12
         x86 = 40*x19
@@ -473,180 +473,180 @@ def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole
         x99 = 2*s
         x100 = 3*x0
         x101 = 4*x1
-        x102 = Bskew_2_1 + Bskew_2_2*x99 + Bskew_2_3*x100 + Bskew_2_4*x101
-        x103 = Bskew_3_1 + Bskew_3_2*x99 + Bskew_3_3*x100 + Bskew_3_4*x101
-        x104 = Bskew_4_1 + Bskew_4_2*x99 + Bskew_4_3*x100 + Bskew_4_4*x101
-        x105 = Bskew_3_3 + Bskew_3_4*x94
-        x106 = Bskew_4_3 + Bskew_4_4*x94
+        x102 = bx_2_1 + bx_2_2*x99 + bx_2_3*x100 + bx_2_4*x101
+        x103 = bx_3_1 + bx_3_2*x99 + bx_3_3*x100 + bx_3_4*x101
+        x104 = bx_4_1 + bx_4_2*x99 + bx_4_3*x100 + bx_4_4*x101
+        x105 = bx_3_3 + bx_3_4*x94
+        x106 = bx_4_3 + bx_4_4*x94
         x107 = 48*s
         x108 = 72*x0
         x109 = 96*x1
-        x110 = Bnorm_2_3 + Bnorm_2_4*x94
-        x111 = Bnorm_3_3 + Bnorm_3_4*x94
-        x112 = Bnorm_4_3 + Bnorm_4_4*x94
-        x113 = Bskew_1_3 + Bskew_1_4*x94
-        x114 = Bskew_2_3 + Bskew_2_4*x94
-        x115 = Bnorm_4_1 + Bnorm_4_2*x99 + Bnorm_4_3*x100 + Bnorm_4_4*x101
-        x116 = Bnorm_3_1 + Bnorm_3_2*x99 + Bnorm_3_3*x100 + Bnorm_3_4*x101
+        x110 = by_2_3 + by_2_4*x94
+        x111 = by_3_3 + by_3_4*x94
+        x112 = by_4_3 + by_4_4*x94
+        x113 = bx_1_3 + bx_1_4*x94
+        x114 = bx_2_3 + bx_2_4*x94
+        x115 = by_4_1 + by_4_2*x99 + by_4_3*x100 + by_4_4*x101
+        x116 = by_3_1 + by_3_2*x99 + by_3_3*x100 + by_3_4*x101
 
         # Reduced expressions
-        Bx = Bskew_0_0 + Bskew_0_1*s + Bskew_0_2*x0 + Bskew_0_3*x1 + Bskew_0_4*x2 + x*(Bskew_1_0 + x3 + x4 + x5 + x6) + x11*x13 + x18*x20 + x25*x27 - x33*(8640*Bskew_3_4*x + Bskew_4_4*x29 + x28 + 720*x32) + x41*(576*Bnorm_2_4*x + Bnorm_3_4*x35 + Bnorm_4_4*x36 + x34 + 96*x37 + x38*x39) + x64*(24*Bnorm_1_0 + 24*x42 + 24*x43 + 24*x44 + 24*x45 + x50*x51 + x56*x57 + x62*x63) + x74*(2880*Bskew_1_4*x + Bskew_2_4*x66 + Bskew_3_4*x67 + 120*Bskew_4_0 + Bskew_4_4*x68 + 120*x21 + 120*x22 + 120*x23 + 120*x24 + x32*x72 + x65 + 480*x69 + x70*x71) - x81*(24*Bnorm_3_0 + x37*x78 + x38*x79 + x51*x62 + 24*x52 + 24*x53 + 24*x54 + 24*x55 + 48*x75 + x76*x77) - x91*(120*Bskew_2_0 + 120*x10 + x18*x88 + x25*x89 + x32*x87 + x69*x85 + 120*x7 + x70*x86 + 120*x8 + 240*x82 + x83*x84 + 120*x9)
-        By = Bnorm_0_0 + Bnorm_0_1*s + Bnorm_0_2*x0 + Bnorm_0_3*x1 + Bnorm_0_4*x2 + x*(Bnorm_1_0 + x42 + x43 + x44 + x45) + x13*x50 + x20*x56 + x27*x62 - 1/14400*x40*(8640*Bskew_1_4 + Bskew_3_4*x29 + 1440*Bskew_4_4*x19 + x*x28 + x32*x92 + 720*x70) + (1/576)*x73*(576*Bnorm_0_4 + Bnorm_2_4*x35 + Bnorm_3_4*x36 + 24*Bnorm_4_0 + 24*Bnorm_4_4*x26 + x*x34 + 48*x12*x38 + x37*x39 + 24*x58 + 24*x59 + 24*x60 + 24*x61 + 96*x76) + (1/720)*x80*(720*Bs_3 + 720*Bs_4*x94 + Bskew_1_4*x66 + Bskew_2_4*x67 + 120*Bskew_3_0 + Bskew_3_4*x68 + 24*Bskew_4_4*x93 + x*x65 + 120*x14 + 120*x15 + 120*x16 + 120*x17 + 80*x19*x32 + x25*x88 + x69*x71 + x70*x72 + 480*x83) - 1/48*x90*(48*Bnorm_0_2 + 48*Bnorm_0_3*x30 + 48*Bnorm_0_4*x31 + 24*Bnorm_2_0 + 2*x26*x38 + x37*x79 + 24*x46 + 24*x47 + 24*x48 + 24*x49 + x51*x56 + x57*x62 + x75*x77 + x76*x78) - 1/120*y*(120*Bs_1 + Bs_2*x95 + Bs_3*x96 + Bs_4*x97 + 120*Bskew_1_0 + x11*x88 + x18*x89 + x25*x98 + 120*x3 + 2*x32*x93 + 120*x4 + 120*x5 + 120*x6 + x69*x86 + x70*x87 + x82*x84 + x83*x85)
-        Bs = Bs_0 + Bs_1*s + Bs_2*x0 + Bs_3*x1 + Bs_4*x2 + x*(Bskew_0_1 + Bskew_0_2*x99 + Bskew_0_3*x100 + Bskew_0_4*x101) + x102*x20 + x103*x27 + (1/120)*x104*x93 + x13*(Bskew_1_1 + Bskew_1_2*x99 + Bskew_1_3*x100 + Bskew_1_4*x101) - x33*(2160*x*x106 + 2160*x105) + x41*(24*Bnorm_4_1 + Bnorm_4_2*x107 + Bnorm_4_3*x108 + Bnorm_4_4*x109 + 288*x*x111 + 288*x110 + 144*x112*x12) + x64*(24*Bnorm_0_1 + Bnorm_0_2*x107 + Bnorm_0_3*x108 + Bnorm_0_4*x109 + x115*x26 + x116*x63 + x51*(Bnorm_1_1 + Bnorm_1_2*x99 + Bnorm_1_3*x100 + Bnorm_1_4*x101) + x57*(Bnorm_2_1 + Bnorm_2_2*x99 + Bnorm_2_3*x100 + Bnorm_2_4*x101)) + x74*(2880*Bs_4 + 120*Bskew_3_1 + Bskew_3_2*x95 + Bskew_3_3*x96 + Bskew_3_4*x97 + 1440*x*x114 + x104*x88 + 720*x105*x12 + 240*x106*x19 + 1440*x113) - x81*(144*Bnorm_0_3 + 144*Bnorm_0_4*x94 + 24*Bnorm_2_1 + Bnorm_2_2*x107 + Bnorm_2_3*x108 + Bnorm_2_4*x109 + 144*x*(Bnorm_1_3 + Bnorm_1_4*x94) + 72*x110*x12 + 24*x111*x19 + 6*x112*x26 + x115*x57 + x116*x51) - x91*(240*Bs_2 + 240*Bs_3*x30 + 240*Bs_4*x31 + 120*Bskew_1_1 + Bskew_1_2*x95 + Bskew_1_3*x96 + Bskew_1_4*x97 + x102*x88 + x103*x89 + x104*x98 + 30*x105*x26 + 6*x106*x93 + 360*x113*x12 + 120*x114*x19 + x92*(Bskew_0_3 + Bskew_0_4*x94))
+        Bx = bx_0_0 + bx_0_1*s + bx_0_2*x0 + bx_0_3*x1 + bx_0_4*x2 + x*(bx_1_0 + x3 + x4 + x5 + x6) + x11*x13 + x18*x20 + x25*x27 - x33*(8640*bx_3_4*x + bx_4_4*x29 + x28 + 720*x32) + x41*(576*by_2_4*x + by_3_4*x35 + by_4_4*x36 + x34 + 96*x37 + x38*x39) + x64*(24*by_1_0 + 24*x42 + 24*x43 + 24*x44 + 24*x45 + x50*x51 + x56*x57 + x62*x63) + x74*(2880*bx_1_4*x + bx_2_4*x66 + bx_3_4*x67 + 120*bx_4_0 + bx_4_4*x68 + 120*x21 + 120*x22 + 120*x23 + 120*x24 + x32*x72 + x65 + 480*x69 + x70*x71) - x81*(24*by_3_0 + x37*x78 + x38*x79 + x51*x62 + 24*x52 + 24*x53 + 24*x54 + 24*x55 + 48*x75 + x76*x77) - x91*(120*bx_2_0 + 120*x10 + x18*x88 + x25*x89 + x32*x87 + x69*x85 + 120*x7 + x70*x86 + 120*x8 + 240*x82 + x83*x84 + 120*x9)
+        By = by_0_0 + by_0_1*s + by_0_2*x0 + by_0_3*x1 + by_0_4*x2 + x*(by_1_0 + x42 + x43 + x44 + x45) + x13*x50 + x20*x56 + x27*x62 - 1/14400*x40*(8640*bx_1_4 + bx_3_4*x29 + 1440*bx_4_4*x19 + x*x28 + x32*x92 + 720*x70) + (1/576)*x73*(576*by_0_4 + by_2_4*x35 + by_3_4*x36 + 24*by_4_0 + 24*by_4_4*x26 + x*x34 + 48*x12*x38 + x37*x39 + 24*x58 + 24*x59 + 24*x60 + 24*x61 + 96*x76) + (1/720)*x80*(720*bs_3 + 720*bs_4*x94 + bx_1_4*x66 + bx_2_4*x67 + 120*bx_3_0 + bx_3_4*x68 + 24*bx_4_4*x93 + x*x65 + 120*x14 + 120*x15 + 120*x16 + 120*x17 + 80*x19*x32 + x25*x88 + x69*x71 + x70*x72 + 480*x83) - 1/48*x90*(48*by_0_2 + 48*by_0_3*x30 + 48*by_0_4*x31 + 24*by_2_0 + 2*x26*x38 + x37*x79 + 24*x46 + 24*x47 + 24*x48 + 24*x49 + x51*x56 + x57*x62 + x75*x77 + x76*x78) - 1/120*y*(120*bs_1 + bs_2*x95 + bs_3*x96 + bs_4*x97 + 120*bx_1_0 + x11*x88 + x18*x89 + x25*x98 + 120*x3 + 2*x32*x93 + 120*x4 + 120*x5 + 120*x6 + x69*x86 + x70*x87 + x82*x84 + x83*x85)
+        Bs = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2 + x*(bx_0_1 + bx_0_2*x99 + bx_0_3*x100 + bx_0_4*x101) + x102*x20 + x103*x27 + (1/120)*x104*x93 + x13*(bx_1_1 + bx_1_2*x99 + bx_1_3*x100 + bx_1_4*x101) - x33*(2160*x*x106 + 2160*x105) + x41*(24*by_4_1 + by_4_2*x107 + by_4_3*x108 + by_4_4*x109 + 288*x*x111 + 288*x110 + 144*x112*x12) + x64*(24*by_0_1 + by_0_2*x107 + by_0_3*x108 + by_0_4*x109 + x115*x26 + x116*x63 + x51*(by_1_1 + by_1_2*x99 + by_1_3*x100 + by_1_4*x101) + x57*(by_2_1 + by_2_2*x99 + by_2_3*x100 + by_2_4*x101)) + x74*(2880*bs_4 + 120*bx_3_1 + bx_3_2*x95 + bx_3_3*x96 + bx_3_4*x97 + 1440*x*x114 + x104*x88 + 720*x105*x12 + 240*x106*x19 + 1440*x113) - x81*(144*by_0_3 + 144*by_0_4*x94 + 24*by_2_1 + by_2_2*x107 + by_2_3*x108 + by_2_4*x109 + 144*x*(by_1_3 + by_1_4*x94) + 72*x110*x12 + 24*x111*x19 + 6*x112*x26 + x115*x57 + x116*x51) - x91*(240*bs_2 + 240*bs_3*x30 + 240*bs_4*x31 + 120*bx_1_1 + bx_1_2*x95 + bx_1_3*x96 + bx_1_4*x97 + x102*x88 + x103*x89 + x104*x98 + 30*x105*x26 + 6*x106*x93 + 360*x113*x12 + 120*x114*x19 + x92*(bx_0_3 + bx_0_4*x94))
         return Bx, By, Bs
 
     elif multipole_order == 6:
         # Hermite → polynomial coefficients (order 6)
-        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
-        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+        bs_poly = hermite_to_polynomial(0.0, L, bs)
+        bs_0, bs_1, bs_2, bs_3, bs_4 = bs_poly.coef[0:5]
 
-        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
-        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+        by0_poly = hermite_to_polynomial(0.0, L, by[0])
+        by_0_0, by_0_1, by_0_2, by_0_3, by_0_4 = by0_poly.coef[0:5]
 
-        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
-        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+        by1_poly = hermite_to_polynomial(0.0, L, by[1])
+        by_1_0, by_1_1, by_1_2, by_1_3, by_1_4 = by1_poly.coef[0:5]
 
-        Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2])
-        Bnorm_2_0, Bnorm_2_1, Bnorm_2_2, Bnorm_2_3, Bnorm_2_4 = Bnorm2_poly.coef[0:5]
+        by2_poly = hermite_to_polynomial(0.0, L, by[2])
+        by_2_0, by_2_1, by_2_2, by_2_3, by_2_4 = by2_poly.coef[0:5]
 
-        Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3])
-        Bnorm_3_0, Bnorm_3_1, Bnorm_3_2, Bnorm_3_3, Bnorm_3_4 = Bnorm3_poly.coef[0:5]
+        by3_poly = hermite_to_polynomial(0.0, L, by[3])
+        by_3_0, by_3_1, by_3_2, by_3_3, by_3_4 = by3_poly.coef[0:5]
 
-        Bnorm4_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[4])
-        Bnorm_4_0, Bnorm_4_1, Bnorm_4_2, Bnorm_4_3, Bnorm_4_4 = Bnorm4_poly.coef[0:5]
+        by4_poly = hermite_to_polynomial(0.0, L, by[4])
+        by_4_0, by_4_1, by_4_2, by_4_3, by_4_4 = by4_poly.coef[0:5]
 
-        Bnorm5_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[5])
-        Bnorm_5_0, Bnorm_5_1, Bnorm_5_2, Bnorm_5_3, Bnorm_5_4 = Bnorm5_poly.coef[0:5]
+        by5_poly = hermite_to_polynomial(0.0, L, by[5])
+        by_5_0, by_5_1, by_5_2, by_5_3, by_5_4 = by5_poly.coef[0:5]
 
-        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
-        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+        bx0_poly = hermite_to_polynomial(0.0, L, bx[0])
+        bx_0_0, bx_0_1, bx_0_2, bx_0_3, bx_0_4 = bx0_poly.coef[0:5]
 
-        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
-        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+        bx1_poly = hermite_to_polynomial(0.0, L, bx[1])
+        bx_1_0, bx_1_1, bx_1_2, bx_1_3, bx_1_4 = bx1_poly.coef[0:5]
 
-        Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2])
-        Bskew_2_0, Bskew_2_1, Bskew_2_2, Bskew_2_3, Bskew_2_4 = Bskew2_poly.coef[0:5]
+        bx2_poly = hermite_to_polynomial(0.0, L, bx[2])
+        bx_2_0, bx_2_1, bx_2_2, bx_2_3, bx_2_4 = bx2_poly.coef[0:5]
 
-        Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3])
-        Bskew_3_0, Bskew_3_1, Bskew_3_2, Bskew_3_3, Bskew_3_4 = Bskew3_poly.coef[0:5]
+        bx3_poly = hermite_to_polynomial(0.0, L, bx[3])
+        bx_3_0, bx_3_1, bx_3_2, bx_3_3, bx_3_4 = bx3_poly.coef[0:5]
 
-        Bskew4_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[4])
-        Bskew_4_0, Bskew_4_1, Bskew_4_2, Bskew_4_3, Bskew_4_4 = Bskew4_poly.coef[0:5]
+        bx4_poly = hermite_to_polynomial(0.0, L, bx[4])
+        bx_4_0, bx_4_1, bx_4_2, bx_4_3, bx_4_4 = bx4_poly.coef[0:5]
 
-        Bskew5_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[5])
-        Bskew_5_0, Bskew_5_1, Bskew_5_2, Bskew_5_3, Bskew_5_4 = Bskew5_poly.coef[0:5]
+        bx5_poly = hermite_to_polynomial(0.0, L, bx[5])
+        bx_5_0, bx_5_1, bx_5_2, bx_5_3, bx_5_4 = bx5_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
         x1 = s**3
         x2 = s**4
-        x3 = Bskew_1_1*s
-        x4 = Bskew_1_2*x0
-        x5 = Bskew_1_3*x1
-        x6 = Bskew_1_4*x2
-        x7 = Bskew_2_1*s
-        x8 = Bskew_2_2*x0
-        x9 = Bskew_2_3*x1
-        x10 = Bskew_2_4*x2
-        x11 = Bskew_2_0 + x10 + x7 + x8 + x9
+        x3 = bx_1_1*s
+        x4 = bx_1_2*x0
+        x5 = bx_1_3*x1
+        x6 = bx_1_4*x2
+        x7 = bx_2_1*s
+        x8 = bx_2_2*x0
+        x9 = bx_2_3*x1
+        x10 = bx_2_4*x2
+        x11 = bx_2_0 + x10 + x7 + x8 + x9
         x12 = x**2
         x13 = (1/2)*x12
-        x14 = Bskew_3_1*s
-        x15 = Bskew_3_2*x0
-        x16 = Bskew_3_3*x1
-        x17 = Bskew_3_4*x2
-        x18 = Bskew_3_0 + x14 + x15 + x16 + x17
+        x14 = bx_3_1*s
+        x15 = bx_3_2*x0
+        x16 = bx_3_3*x1
+        x17 = bx_3_4*x2
+        x18 = bx_3_0 + x14 + x15 + x16 + x17
         x19 = x**3
         x20 = (1/6)*x19
-        x21 = Bskew_4_1*s
-        x22 = Bskew_4_2*x0
-        x23 = Bskew_4_3*x1
-        x24 = Bskew_4_4*x2
-        x25 = Bskew_4_0 + x21 + x22 + x23 + x24
+        x21 = bx_4_1*s
+        x22 = bx_4_2*x0
+        x23 = bx_4_3*x1
+        x24 = bx_4_4*x2
+        x25 = bx_4_0 + x21 + x22 + x23 + x24
         x26 = x**4
         x27 = (1/24)*x26
-        x28 = Bskew_5_1*s
-        x29 = Bskew_5_2*x0
-        x30 = Bskew_5_3*x1
-        x31 = Bskew_5_4*x2
-        x32 = Bskew_5_0 + x28 + x29 + x30 + x31
+        x28 = bx_5_1*s
+        x29 = bx_5_2*x0
+        x30 = bx_5_3*x1
+        x31 = bx_5_4*x2
+        x32 = bx_5_0 + x28 + x29 + x30 + x31
         x33 = x**5
         x34 = (1/120)*x33
-        x35 = 8640*Bnorm_3_4
+        x35 = 8640*by_3_4
         x36 = 8640*x
         x37 = 4320*x12
         x38 = 3*s
         x39 = 6*x0
-        x40 = Bnorm_5_2 + Bnorm_5_3*x38 + Bnorm_5_4*x39
+        x40 = by_5_2 + by_5_3*x38 + by_5_4*x39
         x41 = (1/604800)*y**7
-        x42 = 51840*Bskew_2_4
+        x42 = 51840*bx_2_4
         x43 = 25920*x12
         x44 = 8640*x19
-        x45 = Bskew_4_2 + Bskew_4_3*x38 + Bskew_4_4*x39
-        x46 = Bskew_5_2 + Bskew_5_3*x38 + Bskew_5_4*x39
+        x45 = bx_4_2 + bx_4_3*x38 + bx_4_4*x39
+        x46 = bx_5_2 + bx_5_3*x38 + bx_5_4*x39
         x47 = 4320*x
         x48 = y**6
         x49 = (1/518400)*x48
-        x50 = 2880*Bnorm_1_4
+        x50 = 2880*by_1_4
         x51 = 2880*x
-        x52 = Bnorm_5_1*s
+        x52 = by_5_1*s
         x53 = 1440*x12
         x54 = 480*x19
-        x55 = Bnorm_5_2*x0
-        x56 = Bnorm_5_3*x1
-        x57 = Bnorm_5_4*x2
+        x55 = by_5_2*x0
+        x56 = by_5_3*x1
+        x57 = by_5_4*x2
         x58 = 120*x26
-        x59 = Bnorm_3_2 + Bnorm_3_3*x38 + Bnorm_3_4*x39
-        x60 = Bnorm_4_2 + Bnorm_4_3*x38 + Bnorm_4_4*x39
+        x59 = by_3_2 + by_3_3*x38 + by_3_4*x39
+        x60 = by_4_2 + by_4_3*x38 + by_4_4*x39
         x61 = 480*x
         x62 = 240*x12
         x63 = y**5
         x64 = (1/14400)*x63
-        x65 = Bnorm_1_1*s
-        x66 = Bnorm_1_2*x0
-        x67 = Bnorm_1_3*x1
-        x68 = Bnorm_1_4*x2
-        x69 = Bnorm_2_1*s
-        x70 = Bnorm_2_2*x0
-        x71 = Bnorm_2_3*x1
-        x72 = Bnorm_2_4*x2
-        x73 = Bnorm_2_0 + x69 + x70 + x71 + x72
+        x65 = by_1_1*s
+        x66 = by_1_2*x0
+        x67 = by_1_3*x1
+        x68 = by_1_4*x2
+        x69 = by_2_1*s
+        x70 = by_2_2*x0
+        x71 = by_2_3*x1
+        x72 = by_2_4*x2
+        x73 = by_2_0 + x69 + x70 + x71 + x72
         x74 = 120*x
-        x75 = Bnorm_3_1*s
-        x76 = Bnorm_3_2*x0
-        x77 = Bnorm_3_3*x1
-        x78 = Bnorm_3_4*x2
-        x79 = Bnorm_3_0 + x75 + x76 + x77 + x78
+        x75 = by_3_1*s
+        x76 = by_3_2*x0
+        x77 = by_3_3*x1
+        x78 = by_3_4*x2
+        x79 = by_3_0 + x75 + x76 + x77 + x78
         x80 = 60*x12
-        x81 = Bnorm_4_1*s
-        x82 = Bnorm_4_2*x0
-        x83 = Bnorm_4_3*x1
-        x84 = Bnorm_4_4*x2
-        x85 = Bnorm_4_0 + x81 + x82 + x83 + x84
+        x81 = by_4_1*s
+        x82 = by_4_2*x0
+        x83 = by_4_3*x1
+        x84 = by_4_4*x2
+        x85 = by_4_0 + x81 + x82 + x83 + x84
         x86 = 20*x19
-        x87 = Bnorm_5_0 + x52 + x55 + x56 + x57
+        x87 = by_5_0 + x52 + x55 + x56 + x57
         x88 = 5*x26
         x89 = (1/120)*y
-        x90 = 17280*Bskew_0_4
+        x90 = 17280*bx_0_4
         x91 = 8640*x12
         x92 = 2880*x19
         x93 = 720*x26
         x94 = 144*x33
-        x95 = Bskew_2_2 + Bskew_2_3*x38 + Bskew_2_4*x39
-        x96 = Bskew_3_2 + Bskew_3_3*x38 + Bskew_3_4*x39
+        x95 = bx_2_2 + bx_2_3*x38 + bx_2_4*x39
+        x96 = bx_3_2 + bx_3_3*x38 + bx_3_4*x39
         x97 = 720*x
         x98 = y**4
         x99 = (1/17280)*x98
-        x100 = Bnorm_1_2 + Bnorm_1_3*x38 + Bnorm_1_4*x39
-        x101 = Bnorm_2_2 + Bnorm_2_3*x38 + Bnorm_2_4*x39
+        x100 = by_1_2 + by_1_3*x38 + by_1_4*x39
+        x101 = by_2_2 + by_2_3*x38 + by_2_4*x39
         x102 = 240*x
         x103 = 120*x12
         x104 = 40*x19
         x105 = 10*x26
         x106 = y**3
         x107 = (1/720)*x106
-        x108 = Bskew_0_2 + Bskew_0_3*x38 + Bskew_0_4*x39
-        x109 = Bskew_1_2 + Bskew_1_3*x38 + Bskew_1_4*x39
+        x108 = bx_0_2 + bx_0_3*x38 + bx_0_4*x39
+        x109 = bx_1_2 + bx_1_3*x38 + bx_1_4*x39
         x110 = 1440*x
         x111 = 720*x12
         x112 = 240*x19
@@ -667,202 +667,202 @@ def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole
         x127 = 2*s
         x128 = 3*x0
         x129 = 4*x1
-        x130 = Bskew_2_1 + Bskew_2_2*x127 + Bskew_2_3*x128 + Bskew_2_4*x129
-        x131 = Bskew_3_1 + Bskew_3_2*x127 + Bskew_3_3*x128 + Bskew_3_4*x129
-        x132 = Bskew_4_1 + Bskew_4_2*x127 + Bskew_4_3*x128 + Bskew_4_4*x129
-        x133 = Bskew_5_1 + Bskew_5_2*x127 + Bskew_5_3*x128 + Bskew_5_4*x129
-        x134 = Bnorm_4_3 + Bnorm_4_4*x122
-        x135 = Bnorm_5_3 + Bnorm_5_4*x122
-        x136 = Bskew_3_3 + Bskew_3_4*x122
-        x137 = Bskew_4_3 + Bskew_4_4*x122
-        x138 = Bskew_5_3 + Bskew_5_4*x122
+        x130 = bx_2_1 + bx_2_2*x127 + bx_2_3*x128 + bx_2_4*x129
+        x131 = bx_3_1 + bx_3_2*x127 + bx_3_3*x128 + bx_3_4*x129
+        x132 = bx_4_1 + bx_4_2*x127 + bx_4_3*x128 + bx_4_4*x129
+        x133 = bx_5_1 + bx_5_2*x127 + bx_5_3*x128 + bx_5_4*x129
+        x134 = by_4_3 + by_4_4*x122
+        x135 = by_5_3 + by_5_4*x122
+        x136 = bx_3_3 + bx_3_4*x122
+        x137 = bx_4_3 + bx_4_4*x122
+        x138 = bx_5_3 + bx_5_4*x122
         x139 = 240*s
         x140 = 360*x0
         x141 = 480*x1
-        x142 = Bnorm_2_3 + Bnorm_2_4*x122
-        x143 = Bnorm_3_3 + Bnorm_3_4*x122
-        x144 = Bnorm_5_1 + Bnorm_5_2*x127 + Bnorm_5_3*x128 + Bnorm_5_4*x129
-        x145 = Bskew_1_3 + Bskew_1_4*x122
-        x146 = Bskew_2_3 + Bskew_2_4*x122
-        x147 = Bnorm_3_1 + Bnorm_3_2*x127 + Bnorm_3_3*x128 + Bnorm_3_4*x129
-        x148 = Bnorm_4_1 + Bnorm_4_2*x127 + Bnorm_4_3*x128 + Bnorm_4_4*x129
+        x142 = by_2_3 + by_2_4*x122
+        x143 = by_3_3 + by_3_4*x122
+        x144 = by_5_1 + by_5_2*x127 + by_5_3*x128 + by_5_4*x129
+        x145 = bx_1_3 + bx_1_4*x122
+        x146 = bx_2_3 + bx_2_4*x122
+        x147 = by_3_1 + by_3_2*x127 + by_3_3*x128 + by_3_4*x129
+        x148 = by_4_1 + by_4_2*x127 + by_4_3*x128 + by_4_4*x129
 
         # Reduced expressions
-        Bx = Bskew_0_0 + Bskew_0_1*s + Bskew_0_2*x0 + Bskew_0_3*x1 + Bskew_0_4*x2 + x*(Bskew_1_0 + x3 + x4 + x5 + x6) - x107*(120*Bnorm_3_0 + 240*x100 + x101*x102 + x103*x59 + x104*x60 + x105*x40 + x74*x85 + 120*x75 + 120*x76 + 120*x77 + 120*x78 + x80*x87) + x11*x13 - x118*(720*Bskew_2_0 + 720*x10 + 1440*x108 + x109*x110 + x111*x95 + x112*x96 + x113*x45 + x114*x46 + x115*x25 + x116*x32 + x18*x97 + 720*x7 + 720*x8 + 720*x9) + x18*x20 + x25*x27 + x32*x34 - x41*(Bnorm_4_4*x36 + Bnorm_5_4*x37 + x35 + 720*x40) - x49*(51840*Bskew_3_4*x + Bskew_4_4*x43 + Bskew_5_4*x44 + x42 + 4320*x45 + x46*x47) + x64*(Bnorm_2_4*x51 + Bnorm_3_4*x53 + Bnorm_4_4*x54 + 120*Bnorm_5_0 + Bnorm_5_4*x58 + x40*x62 + x50 + 120*x52 + 120*x55 + 120*x56 + 120*x57 + 480*x59 + x60*x61) + x89*(120*Bnorm_1_0 + 120*x65 + 120*x66 + 120*x67 + 120*x68 + x73*x74 + x79*x80 + x85*x86 + x87*x88) + x99*(17280*Bskew_1_4*x + Bskew_2_4*x91 + Bskew_3_4*x92 + 720*Bskew_4_0 + Bskew_4_4*x93 + Bskew_5_4*x94 + 720*x21 + 720*x22 + 720*x23 + 720*x24 + x32*x97 + x45*x53 + x46*x54 + x51*x96 + x90 + 2880*x95)
-        By = Bnorm_0_0 + Bnorm_0_1*s + Bnorm_0_2*x0 + Bnorm_0_3*x1 + Bnorm_0_4*x2 + x*(Bnorm_1_0 + x65 + x66 + x67 + x68) + (1/4320)*x106*(4320*Bs_3 + 4320*Bs_4*x122 + Bskew_1_4*x91 + Bskew_2_4*x92 + 720*Bskew_3_0 + Bskew_3_4*x93 + Bskew_4_4*x94 + 24*Bskew_5_4*x121 + x*x90 + 2880*x109 + x115*x32 + 720*x14 + 720*x15 + 720*x16 + 720*x17 + x25*x97 + x45*x54 + x46*x58 + x51*x95 + x53*x96) - 1/240*x117*(240*Bnorm_0_2 + 240*Bnorm_0_3*x38 + 240*Bnorm_0_4*x39 + 120*Bnorm_2_0 + x100*x102 + x101*x103 + x104*x59 + x105*x60 + 2*x33*x40 + 120*x69 + 120*x70 + 120*x71 + 120*x72 + x74*x79 + x80*x85 + x86*x87) + x13*x73 + x20*x79 + x27*x85 + x34*x87 - 1/86400*x48*(8640*Bnorm_2_4 + Bnorm_4_4*x37 + Bnorm_5_4*x119 + x*x35 + x40*x97 + 720*x60) - 1/86400*x63*(51840*Bskew_1_4 + Bskew_3_4*x43 + Bskew_4_4*x44 + 720*Bskew_5_0 + 2160*Bskew_5_4*x26 + x*x42 + x120*x46 + 720*x28 + 720*x29 + 720*x30 + 720*x31 + x45*x47 + 4320*x96) + (1/2880)*x98*(2880*Bnorm_0_4 + Bnorm_2_4*x53 + Bnorm_3_4*x54 + 120*Bnorm_4_0 + Bnorm_4_4*x58 + 24*Bnorm_5_4*x33 + x*x50 + 480*x101 + 80*x19*x40 + x59*x61 + x60*x62 + x74*x87 + 120*x81 + 120*x82 + 120*x83 + 120*x84) - 1/720*y*(720*Bs_1 + Bs_2*x123 + Bs_3*x124 + Bs_4*x125 + 720*Bskew_1_0 + x108*x110 + x109*x111 + x11*x97 + x112*x95 + x113*x96 + x114*x45 + x115*x18 + x116*x25 + 2*x121*x46 + x126*x32 + 720*x3 + 720*x4 + 720*x5 + 720*x6)
-        Bs = Bs_0 + Bs_1*s + Bs_2*x0 + Bs_3*x1 + Bs_4*x2 + x*(Bskew_0_1 + Bskew_0_2*x127 + Bskew_0_3*x128 + Bskew_0_4*x129) - x107*(720*Bnorm_0_3 + 720*Bnorm_0_4*x122 + 120*Bnorm_2_1 + Bnorm_2_2*x139 + Bnorm_2_3*x140 + Bnorm_2_4*x141 + x115*x142 + x116*x143 + x126*x134 + 6*x135*x33 + x144*x86 + x147*x74 + x148*x80 + x97*(Bnorm_1_3 + Bnorm_1_4*x122)) - x118*(1440*Bs_2 + 1440*Bs_3*x38 + 1440*Bs_4*x39 + 720*Bskew_1_1 + Bskew_1_2*x123 + Bskew_1_3*x124 + Bskew_1_4*x125 + x115*x131 + x116*x132 + x120*x145 + 6*x121*x138 + x126*x133 + x130*x97 + 180*x136*x26 + 36*x137*x33 + 720*x146*x19 + x47*(Bskew_0_3 + Bskew_0_4*x122)) + (1/720)*x121*x133 + x13*(Bskew_1_1 + Bskew_1_2*x127 + Bskew_1_3*x128 + Bskew_1_4*x129) + x130*x20 + x131*x27 + x132*x34 - x41*(2160*x*x135 + 2160*x134) - x49*(720*Bskew_5_1 + Bskew_5_2*x123 + Bskew_5_3*x124 + Bskew_5_4*x125 + 12960*x*x137 + 6480*x12*x138 + 12960*x136) + x64*(120*Bnorm_4_1 + Bnorm_4_2*x139 + Bnorm_4_3*x140 + Bnorm_4_4*x141 + x110*x143 + x111*x134 + x112*x135 + 1440*x142 + x144*x74) + x89*(120*Bnorm_0_1 + Bnorm_0_2*x139 + Bnorm_0_3*x140 + Bnorm_0_4*x141 + x144*x33 + x147*x86 + x148*x88 + x74*(Bnorm_1_1 + Bnorm_1_2*x127 + Bnorm_1_3*x128 + Bnorm_1_4*x129) + x80*(Bnorm_2_1 + Bnorm_2_2*x127 + Bnorm_2_3*x128 + Bnorm_2_4*x129)) + x99*(17280*Bs_4 + 720*Bskew_3_1 + Bskew_3_2*x123 + Bskew_3_3*x124 + Bskew_3_4*x125 + x115*x133 + x119*x137 + x132*x97 + x136*x37 + 360*x138*x26 + 8640*x145 + x146*x36)
+        Bx = bx_0_0 + bx_0_1*s + bx_0_2*x0 + bx_0_3*x1 + bx_0_4*x2 + x*(bx_1_0 + x3 + x4 + x5 + x6) - x107*(120*by_3_0 + 240*x100 + x101*x102 + x103*x59 + x104*x60 + x105*x40 + x74*x85 + 120*x75 + 120*x76 + 120*x77 + 120*x78 + x80*x87) + x11*x13 - x118*(720*bx_2_0 + 720*x10 + 1440*x108 + x109*x110 + x111*x95 + x112*x96 + x113*x45 + x114*x46 + x115*x25 + x116*x32 + x18*x97 + 720*x7 + 720*x8 + 720*x9) + x18*x20 + x25*x27 + x32*x34 - x41*(by_4_4*x36 + by_5_4*x37 + x35 + 720*x40) - x49*(51840*bx_3_4*x + bx_4_4*x43 + bx_5_4*x44 + x42 + 4320*x45 + x46*x47) + x64*(by_2_4*x51 + by_3_4*x53 + by_4_4*x54 + 120*by_5_0 + by_5_4*x58 + x40*x62 + x50 + 120*x52 + 120*x55 + 120*x56 + 120*x57 + 480*x59 + x60*x61) + x89*(120*by_1_0 + 120*x65 + 120*x66 + 120*x67 + 120*x68 + x73*x74 + x79*x80 + x85*x86 + x87*x88) + x99*(17280*bx_1_4*x + bx_2_4*x91 + bx_3_4*x92 + 720*bx_4_0 + bx_4_4*x93 + bx_5_4*x94 + 720*x21 + 720*x22 + 720*x23 + 720*x24 + x32*x97 + x45*x53 + x46*x54 + x51*x96 + x90 + 2880*x95)
+        By = by_0_0 + by_0_1*s + by_0_2*x0 + by_0_3*x1 + by_0_4*x2 + x*(by_1_0 + x65 + x66 + x67 + x68) + (1/4320)*x106*(4320*bs_3 + 4320*bs_4*x122 + bx_1_4*x91 + bx_2_4*x92 + 720*bx_3_0 + bx_3_4*x93 + bx_4_4*x94 + 24*bx_5_4*x121 + x*x90 + 2880*x109 + x115*x32 + 720*x14 + 720*x15 + 720*x16 + 720*x17 + x25*x97 + x45*x54 + x46*x58 + x51*x95 + x53*x96) - 1/240*x117*(240*by_0_2 + 240*by_0_3*x38 + 240*by_0_4*x39 + 120*by_2_0 + x100*x102 + x101*x103 + x104*x59 + x105*x60 + 2*x33*x40 + 120*x69 + 120*x70 + 120*x71 + 120*x72 + x74*x79 + x80*x85 + x86*x87) + x13*x73 + x20*x79 + x27*x85 + x34*x87 - 1/86400*x48*(8640*by_2_4 + by_4_4*x37 + by_5_4*x119 + x*x35 + x40*x97 + 720*x60) - 1/86400*x63*(51840*bx_1_4 + bx_3_4*x43 + bx_4_4*x44 + 720*bx_5_0 + 2160*bx_5_4*x26 + x*x42 + x120*x46 + 720*x28 + 720*x29 + 720*x30 + 720*x31 + x45*x47 + 4320*x96) + (1/2880)*x98*(2880*by_0_4 + by_2_4*x53 + by_3_4*x54 + 120*by_4_0 + by_4_4*x58 + 24*by_5_4*x33 + x*x50 + 480*x101 + 80*x19*x40 + x59*x61 + x60*x62 + x74*x87 + 120*x81 + 120*x82 + 120*x83 + 120*x84) - 1/720*y*(720*bs_1 + bs_2*x123 + bs_3*x124 + bs_4*x125 + 720*bx_1_0 + x108*x110 + x109*x111 + x11*x97 + x112*x95 + x113*x96 + x114*x45 + x115*x18 + x116*x25 + 2*x121*x46 + x126*x32 + 720*x3 + 720*x4 + 720*x5 + 720*x6)
+        Bs = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2 + x*(bx_0_1 + bx_0_2*x127 + bx_0_3*x128 + bx_0_4*x129) - x107*(720*by_0_3 + 720*by_0_4*x122 + 120*by_2_1 + by_2_2*x139 + by_2_3*x140 + by_2_4*x141 + x115*x142 + x116*x143 + x126*x134 + 6*x135*x33 + x144*x86 + x147*x74 + x148*x80 + x97*(by_1_3 + by_1_4*x122)) - x118*(1440*bs_2 + 1440*bs_3*x38 + 1440*bs_4*x39 + 720*bx_1_1 + bx_1_2*x123 + bx_1_3*x124 + bx_1_4*x125 + x115*x131 + x116*x132 + x120*x145 + 6*x121*x138 + x126*x133 + x130*x97 + 180*x136*x26 + 36*x137*x33 + 720*x146*x19 + x47*(bx_0_3 + bx_0_4*x122)) + (1/720)*x121*x133 + x13*(bx_1_1 + bx_1_2*x127 + bx_1_3*x128 + bx_1_4*x129) + x130*x20 + x131*x27 + x132*x34 - x41*(2160*x*x135 + 2160*x134) - x49*(720*bx_5_1 + bx_5_2*x123 + bx_5_3*x124 + bx_5_4*x125 + 12960*x*x137 + 6480*x12*x138 + 12960*x136) + x64*(120*by_4_1 + by_4_2*x139 + by_4_3*x140 + by_4_4*x141 + x110*x143 + x111*x134 + x112*x135 + 1440*x142 + x144*x74) + x89*(120*by_0_1 + by_0_2*x139 + by_0_3*x140 + by_0_4*x141 + x144*x33 + x147*x86 + x148*x88 + x74*(by_1_1 + by_1_2*x127 + by_1_3*x128 + by_1_4*x129) + x80*(by_2_1 + by_2_2*x127 + by_2_3*x128 + by_2_4*x129)) + x99*(17280*bs_4 + 720*bx_3_1 + bx_3_2*x123 + bx_3_3*x124 + bx_3_4*x125 + x115*x133 + x119*x137 + x132*x97 + x136*x37 + 360*x138*x26 + 8640*x145 + x146*x36)
         return Bx, By, Bs
 
     elif multipole_order == 7:
         # Hermite → polynomial coefficients (order 7)
-        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)
-        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]
+        bs_poly = hermite_to_polynomial(0.0, L, bs)
+        bs_0, bs_1, bs_2, bs_3, bs_4 = bs_poly.coef[0:5]
 
-        Bnorm0_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[0])
-        Bnorm_0_0, Bnorm_0_1, Bnorm_0_2, Bnorm_0_3, Bnorm_0_4 = Bnorm0_poly.coef[0:5]
+        by0_poly = hermite_to_polynomial(0.0, L, by[0])
+        by_0_0, by_0_1, by_0_2, by_0_3, by_0_4 = by0_poly.coef[0:5]
 
-        Bnorm1_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[1])
-        Bnorm_1_0, Bnorm_1_1, Bnorm_1_2, Bnorm_1_3, Bnorm_1_4 = Bnorm1_poly.coef[0:5]
+        by1_poly = hermite_to_polynomial(0.0, L, by[1])
+        by_1_0, by_1_1, by_1_2, by_1_3, by_1_4 = by1_poly.coef[0:5]
 
-        Bnorm2_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[2])
-        Bnorm_2_0, Bnorm_2_1, Bnorm_2_2, Bnorm_2_3, Bnorm_2_4 = Bnorm2_poly.coef[0:5]
+        by2_poly = hermite_to_polynomial(0.0, L, by[2])
+        by_2_0, by_2_1, by_2_2, by_2_3, by_2_4 = by2_poly.coef[0:5]
 
-        Bnorm3_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[3])
-        Bnorm_3_0, Bnorm_3_1, Bnorm_3_2, Bnorm_3_3, Bnorm_3_4 = Bnorm3_poly.coef[0:5]
+        by3_poly = hermite_to_polynomial(0.0, L, by[3])
+        by_3_0, by_3_1, by_3_2, by_3_3, by_3_4 = by3_poly.coef[0:5]
 
-        Bnorm4_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[4])
-        Bnorm_4_0, Bnorm_4_1, Bnorm_4_2, Bnorm_4_3, Bnorm_4_4 = Bnorm4_poly.coef[0:5]
+        by4_poly = hermite_to_polynomial(0.0, L, by[4])
+        by_4_0, by_4_1, by_4_2, by_4_3, by_4_4 = by4_poly.coef[0:5]
 
-        Bnorm5_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[5])
-        Bnorm_5_0, Bnorm_5_1, Bnorm_5_2, Bnorm_5_3, Bnorm_5_4 = Bnorm5_poly.coef[0:5]
+        by5_poly = hermite_to_polynomial(0.0, L, by[5])
+        by_5_0, by_5_1, by_5_2, by_5_3, by_5_4 = by5_poly.coef[0:5]
 
-        Bnorm6_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[6])
-        Bnorm_6_0, Bnorm_6_1, Bnorm_6_2, Bnorm_6_3, Bnorm_6_4 = Bnorm6_poly.coef[0:5]
+        by6_poly = hermite_to_polynomial(0.0, L, by[6])
+        by_6_0, by_6_1, by_6_2, by_6_3, by_6_4 = by6_poly.coef[0:5]
 
-        Bskew0_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[0])
-        Bskew_0_0, Bskew_0_1, Bskew_0_2, Bskew_0_3, Bskew_0_4 = Bskew0_poly.coef[0:5]
+        bx0_poly = hermite_to_polynomial(0.0, L, bx[0])
+        bx_0_0, bx_0_1, bx_0_2, bx_0_3, bx_0_4 = bx0_poly.coef[0:5]
 
-        Bskew1_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[1])
-        Bskew_1_0, Bskew_1_1, Bskew_1_2, Bskew_1_3, Bskew_1_4 = Bskew1_poly.coef[0:5]
+        bx1_poly = hermite_to_polynomial(0.0, L, bx[1])
+        bx_1_0, bx_1_1, bx_1_2, bx_1_3, bx_1_4 = bx1_poly.coef[0:5]
 
-        Bskew2_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[2])
-        Bskew_2_0, Bskew_2_1, Bskew_2_2, Bskew_2_3, Bskew_2_4 = Bskew2_poly.coef[0:5]
+        bx2_poly = hermite_to_polynomial(0.0, L, bx[2])
+        bx_2_0, bx_2_1, bx_2_2, bx_2_3, bx_2_4 = bx2_poly.coef[0:5]
 
-        Bskew3_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[3])
-        Bskew_3_0, Bskew_3_1, Bskew_3_2, Bskew_3_3, Bskew_3_4 = Bskew3_poly.coef[0:5]
+        bx3_poly = hermite_to_polynomial(0.0, L, bx[3])
+        bx_3_0, bx_3_1, bx_3_2, bx_3_3, bx_3_4 = bx3_poly.coef[0:5]
 
-        Bskew4_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[4])
-        Bskew_4_0, Bskew_4_1, Bskew_4_2, Bskew_4_3, Bskew_4_4 = Bskew4_poly.coef[0:5]
+        bx4_poly = hermite_to_polynomial(0.0, L, bx[4])
+        bx_4_0, bx_4_1, bx_4_2, bx_4_3, bx_4_4 = bx4_poly.coef[0:5]
 
-        Bskew5_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[5])
-        Bskew_5_0, Bskew_5_1, Bskew_5_2, Bskew_5_3, Bskew_5_4 = Bskew5_poly.coef[0:5]
+        bx5_poly = hermite_to_polynomial(0.0, L, bx[5])
+        bx_5_0, bx_5_1, bx_5_2, bx_5_3, bx_5_4 = bx5_poly.coef[0:5]
 
-        Bskew6_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[6])
-        Bskew_6_0, Bskew_6_1, Bskew_6_2, Bskew_6_3, Bskew_6_4 = Bskew6_poly.coef[0:5]
+        bx6_poly = hermite_to_polynomial(0.0, L, bx[6])
+        bx_6_0, bx_6_1, bx_6_2, bx_6_3, bx_6_4 = bx6_poly.coef[0:5]
 
         # Common sub-expressions
         x0 = s**2
         x1 = s**3
         x2 = s**4
-        x3 = Bskew_1_1*s
-        x4 = Bskew_1_2*x0
-        x5 = Bskew_1_3*x1
-        x6 = Bskew_1_4*x2
-        x7 = Bskew_2_1*s
-        x8 = Bskew_2_2*x0
-        x9 = Bskew_2_3*x1
-        x10 = Bskew_2_4*x2
-        x11 = Bskew_2_0 + x10 + x7 + x8 + x9
+        x3 = bx_1_1*s
+        x4 = bx_1_2*x0
+        x5 = bx_1_3*x1
+        x6 = bx_1_4*x2
+        x7 = bx_2_1*s
+        x8 = bx_2_2*x0
+        x9 = bx_2_3*x1
+        x10 = bx_2_4*x2
+        x11 = bx_2_0 + x10 + x7 + x8 + x9
         x12 = x**2
         x13 = (1/2)*x12
-        x14 = Bskew_3_1*s
-        x15 = Bskew_3_2*x0
-        x16 = Bskew_3_3*x1
-        x17 = Bskew_3_4*x2
-        x18 = Bskew_3_0 + x14 + x15 + x16 + x17
+        x14 = bx_3_1*s
+        x15 = bx_3_2*x0
+        x16 = bx_3_3*x1
+        x17 = bx_3_4*x2
+        x18 = bx_3_0 + x14 + x15 + x16 + x17
         x19 = x**3
         x20 = (1/6)*x19
-        x21 = Bskew_4_1*s
-        x22 = Bskew_4_2*x0
-        x23 = Bskew_4_3*x1
-        x24 = Bskew_4_4*x2
-        x25 = Bskew_4_0 + x21 + x22 + x23 + x24
+        x21 = bx_4_1*s
+        x22 = bx_4_2*x0
+        x23 = bx_4_3*x1
+        x24 = bx_4_4*x2
+        x25 = bx_4_0 + x21 + x22 + x23 + x24
         x26 = x**4
         x27 = (1/24)*x26
-        x28 = Bskew_5_1*s
-        x29 = Bskew_5_2*x0
-        x30 = Bskew_5_3*x1
-        x31 = Bskew_5_4*x2
-        x32 = Bskew_5_0 + x28 + x29 + x30 + x31
+        x28 = bx_5_1*s
+        x29 = bx_5_2*x0
+        x30 = bx_5_3*x1
+        x31 = bx_5_4*x2
+        x32 = bx_5_0 + x28 + x29 + x30 + x31
         x33 = x**5
         x34 = (1/120)*x33
-        x35 = Bskew_6_1*s
-        x36 = Bskew_6_2*x0
-        x37 = Bskew_6_3*x1
-        x38 = Bskew_6_4*x2
-        x39 = Bskew_6_0 + x35 + x36 + x37 + x38
+        x35 = bx_6_1*s
+        x36 = bx_6_2*x0
+        x37 = bx_6_3*x1
+        x38 = bx_6_4*x2
+        x39 = bx_6_0 + x35 + x36 + x37 + x38
         x40 = x**6
         x41 = (1/720)*x40
-        x42 = 725760*Bskew_4_4
+        x42 = 725760*bx_4_4
         x43 = 362880*x12
         x44 = 3*s
         x45 = 6*x0
-        x46 = Bskew_6_2 + Bskew_6_3*x44 + Bskew_6_4*x45
+        x46 = bx_6_2 + bx_6_3*x44 + bx_6_4*x45
         x47 = (1/203212800)*y**8
-        x48 = 51840*Bnorm_3_4
+        x48 = 51840*by_3_4
         x49 = 25920*x12
         x50 = 8640*x19
-        x51 = Bnorm_5_2 + Bnorm_5_3*x44 + Bnorm_5_4*x45
-        x52 = Bnorm_6_2 + Bnorm_6_3*x44 + Bnorm_6_4*x45
+        x51 = by_5_2 + by_5_3*x44 + by_5_4*x45
+        x52 = by_6_2 + by_6_3*x44 + by_6_4*x45
         x53 = 4320*x
         x54 = y**7
         x55 = (1/3628800)*x54
-        x56 = 362880*Bskew_2_4
+        x56 = 362880*bx_2_4
         x57 = 181440*x12
         x58 = 60480*x19
         x59 = 15120*x26
-        x60 = Bskew_4_2 + Bskew_4_3*x44 + Bskew_4_4*x45
-        x61 = Bskew_5_2 + Bskew_5_3*x44 + Bskew_5_4*x45
+        x60 = bx_4_2 + bx_4_3*x44 + bx_4_4*x45
+        x61 = bx_5_2 + bx_5_3*x44 + bx_5_4*x45
         x62 = 30240*x
         x63 = 15120*x12
         x64 = y**6
         x65 = (1/3628800)*x64
-        x66 = 17280*Bnorm_1_4
-        x67 = Bnorm_5_1*s
+        x66 = 17280*by_1_4
+        x67 = by_5_1*s
         x68 = 8640*x12
         x69 = 2880*x19
-        x70 = Bnorm_5_2*x0
-        x71 = Bnorm_5_3*x1
-        x72 = Bnorm_5_4*x2
+        x70 = by_5_2*x0
+        x71 = by_5_3*x1
+        x72 = by_5_4*x2
         x73 = 720*x26
         x74 = 144*x33
-        x75 = Bnorm_3_2 + Bnorm_3_3*x44 + Bnorm_3_4*x45
-        x76 = Bnorm_4_2 + Bnorm_4_3*x44 + Bnorm_4_4*x45
+        x75 = by_3_2 + by_3_3*x44 + by_3_4*x45
+        x76 = by_4_2 + by_4_3*x44 + by_4_4*x45
         x77 = 2880*x
         x78 = 1440*x12
         x79 = 480*x19
-        x80 = Bnorm_6_1*s
-        x81 = Bnorm_6_2*x0
-        x82 = Bnorm_6_3*x1
-        x83 = Bnorm_6_4*x2
-        x84 = Bnorm_6_0 + x80 + x81 + x82 + x83
+        x80 = by_6_1*s
+        x81 = by_6_2*x0
+        x82 = by_6_3*x1
+        x83 = by_6_4*x2
+        x84 = by_6_0 + x80 + x81 + x82 + x83
         x85 = 720*x
         x86 = y**5
         x87 = (1/86400)*x86
-        x88 = Bnorm_1_1*s
-        x89 = Bnorm_1_2*x0
-        x90 = Bnorm_1_3*x1
-        x91 = Bnorm_1_4*x2
-        x92 = Bnorm_2_1*s
-        x93 = Bnorm_2_2*x0
-        x94 = Bnorm_2_3*x1
-        x95 = Bnorm_2_4*x2
-        x96 = Bnorm_2_0 + x92 + x93 + x94 + x95
-        x97 = Bnorm_3_1*s
-        x98 = Bnorm_3_2*x0
-        x99 = Bnorm_3_3*x1
-        x100 = Bnorm_3_4*x2
-        x101 = Bnorm_3_0 + x100 + x97 + x98 + x99
+        x88 = by_1_1*s
+        x89 = by_1_2*x0
+        x90 = by_1_3*x1
+        x91 = by_1_4*x2
+        x92 = by_2_1*s
+        x93 = by_2_2*x0
+        x94 = by_2_3*x1
+        x95 = by_2_4*x2
+        x96 = by_2_0 + x92 + x93 + x94 + x95
+        x97 = by_3_1*s
+        x98 = by_3_2*x0
+        x99 = by_3_3*x1
+        x100 = by_3_4*x2
+        x101 = by_3_0 + x100 + x97 + x98 + x99
         x102 = 360*x12
-        x103 = Bnorm_4_1*s
-        x104 = Bnorm_4_2*x0
-        x105 = Bnorm_4_3*x1
-        x106 = Bnorm_4_4*x2
-        x107 = Bnorm_4_0 + x103 + x104 + x105 + x106
+        x103 = by_4_1*s
+        x104 = by_4_2*x0
+        x105 = by_4_3*x1
+        x106 = by_4_4*x2
+        x107 = by_4_0 + x103 + x104 + x105 + x106
         x108 = 120*x19
-        x109 = Bnorm_5_0 + x67 + x70 + x71 + x72
+        x109 = by_5_0 + x67 + x70 + x71 + x72
         x110 = 30*x26
         x111 = 6*x33
         x112 = (1/720)*y
-        x113 = 120960*Bskew_0_4
+        x113 = 120960*bx_0_4
         x114 = 120960*x
         x115 = 60480*x12
         x116 = 20160*x19
         x117 = 5040*x26
         x118 = 1008*x33
         x119 = 168*x40
-        x120 = Bskew_2_2 + Bskew_2_3*x44 + Bskew_2_4*x45
-        x121 = Bskew_3_2 + Bskew_3_3*x44 + Bskew_3_4*x45
+        x120 = bx_2_2 + bx_2_3*x44 + bx_2_4*x45
+        x121 = bx_3_2 + bx_3_3*x44 + bx_3_4*x45
         x122 = 20160*x
         x123 = 10080*x12
         x124 = 3360*x19
@@ -871,8 +871,8 @@ def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole
         x127 = 2520*x12
         x128 = y**4
         x129 = (1/120960)*x128
-        x130 = Bnorm_1_2 + Bnorm_1_3*x44 + Bnorm_1_4*x45
-        x131 = Bnorm_2_2 + Bnorm_2_3*x44 + Bnorm_2_4*x45
+        x130 = by_1_2 + by_1_3*x44 + by_1_4*x45
+        x131 = by_2_2 + by_2_3*x44 + by_2_4*x45
         x132 = 1440*x
         x133 = 720*x12
         x134 = 240*x19
@@ -880,8 +880,8 @@ def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole
         x136 = 12*x33
         x137 = y**3
         x138 = (1/4320)*x137
-        x139 = Bskew_0_2 + Bskew_0_3*x44 + Bskew_0_4*x45
-        x140 = Bskew_1_2 + Bskew_1_3*x44 + Bskew_1_4*x45
+        x139 = bx_0_2 + bx_0_3*x44 + bx_0_4*x45
+        x140 = bx_1_2 + bx_1_3*x44 + bx_1_4*x45
         x141 = 10080*x
         x142 = 5040*x12
         x143 = 1680*x19
@@ -903,34 +903,34 @@ def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole
         x159 = 2*s
         x160 = 3*x0
         x161 = 4*x1
-        x162 = Bskew_2_1 + Bskew_2_2*x159 + Bskew_2_3*x160 + Bskew_2_4*x161
-        x163 = Bskew_3_1 + Bskew_3_2*x159 + Bskew_3_3*x160 + Bskew_3_4*x161
-        x164 = Bskew_4_1 + Bskew_4_2*x159 + Bskew_4_3*x160 + Bskew_4_4*x161
-        x165 = Bskew_5_1 + Bskew_5_2*x159 + Bskew_5_3*x160 + Bskew_5_4*x161
-        x166 = Bskew_6_1 + Bskew_6_2*x159 + Bskew_6_3*x160 + Bskew_6_4*x161
-        x167 = Bskew_5_3 + Bskew_5_4*x154
-        x168 = Bskew_6_3 + Bskew_6_4*x154
+        x162 = bx_2_1 + bx_2_2*x159 + bx_2_3*x160 + bx_2_4*x161
+        x163 = bx_3_1 + bx_3_2*x159 + bx_3_3*x160 + bx_3_4*x161
+        x164 = bx_4_1 + bx_4_2*x159 + bx_4_3*x160 + bx_4_4*x161
+        x165 = bx_5_1 + bx_5_2*x159 + bx_5_3*x160 + bx_5_4*x161
+        x166 = bx_6_1 + bx_6_2*x159 + bx_6_3*x160 + bx_6_4*x161
+        x167 = bx_5_3 + bx_5_4*x154
+        x168 = bx_6_3 + bx_6_4*x154
         x169 = 1440*s
         x170 = 2160*x0
         x171 = 2880*x1
-        x172 = Bnorm_4_3 + Bnorm_4_4*x154
-        x173 = Bnorm_5_3 + Bnorm_5_4*x154
-        x174 = Bnorm_6_3 + Bnorm_6_4*x154
-        x175 = Bskew_3_3 + Bskew_3_4*x154
-        x176 = Bskew_4_3 + Bskew_4_4*x154
-        x177 = Bnorm_2_3 + Bnorm_2_4*x154
-        x178 = Bnorm_3_3 + Bnorm_3_4*x154
-        x179 = Bnorm_5_1 + Bnorm_5_2*x159 + Bnorm_5_3*x160 + Bnorm_5_4*x161
-        x180 = Bnorm_6_1 + Bnorm_6_2*x159 + Bnorm_6_3*x160 + Bnorm_6_4*x161
-        x181 = Bskew_1_3 + Bskew_1_4*x154
-        x182 = Bskew_2_3 + Bskew_2_4*x154
-        x183 = Bnorm_3_1 + Bnorm_3_2*x159 + Bnorm_3_3*x160 + Bnorm_3_4*x161
-        x184 = Bnorm_4_1 + Bnorm_4_2*x159 + Bnorm_4_3*x160 + Bnorm_4_4*x161
+        x172 = by_4_3 + by_4_4*x154
+        x173 = by_5_3 + by_5_4*x154
+        x174 = by_6_3 + by_6_4*x154
+        x175 = bx_3_3 + bx_3_4*x154
+        x176 = bx_4_3 + bx_4_4*x154
+        x177 = by_2_3 + by_2_4*x154
+        x178 = by_3_3 + by_3_4*x154
+        x179 = by_5_1 + by_5_2*x159 + by_5_3*x160 + by_5_4*x161
+        x180 = by_6_1 + by_6_2*x159 + by_6_3*x160 + by_6_4*x161
+        x181 = bx_1_3 + bx_1_4*x154
+        x182 = bx_2_3 + bx_2_4*x154
+        x183 = by_3_1 + by_3_2*x159 + by_3_3*x160 + by_3_4*x161
+        x184 = by_4_1 + by_4_2*x159 + by_4_3*x160 + by_4_4*x161
 
         # Reduced expressions
-        Bx = Bskew_0_0 + Bskew_0_1*s + Bskew_0_2*x0 + Bskew_0_3*x1 + Bskew_0_4*x2 + x*(Bskew_1_0 + x3 + x4 + x5 + x6) + x11*x13 + x112*(720*Bnorm_1_0 + x101*x102 + x107*x108 + x109*x110 + x111*x84 + x85*x96 + 720*x88 + 720*x89 + 720*x90 + 720*x91) + x129*(Bskew_1_4*x114 + Bskew_2_4*x115 + Bskew_3_4*x116 + 5040*Bskew_4_0 + Bskew_4_4*x117 + Bskew_5_4*x118 + Bskew_6_4*x119 + x113 + 20160*x120 + x121*x122 + x123*x60 + x124*x61 + x125*x46 + x126*x32 + x127*x39 + 5040*x21 + 5040*x22 + 5040*x23 + 5040*x24) - x138*(720*Bnorm_3_0 + 720*x100 + x102*x109 + x107*x85 + x108*x84 + 1440*x130 + x131*x132 + x133*x75 + x134*x76 + x135*x51 + x136*x52 + 720*x97 + 720*x98 + 720*x99) - x150*(5040*Bskew_2_0 + 5040*x10 + x120*x142 + x121*x143 + x126*x18 + x127*x25 + 10080*x139 + x140*x141 + x144*x60 + x145*x61 + x146*x46 + x147*x32 + x148*x39 + 5040*x7 + 5040*x8 + 5040*x9) + x18*x20 + x25*x27 + x32*x34 + x39*x41 + x47*(725760*Bskew_5_4*x + Bskew_6_4*x43 + x42 + 40320*x46) - x55*(51840*Bnorm_4_4*x + Bnorm_5_4*x49 + Bnorm_6_4*x50 + x48 + 4320*x51 + x52*x53) - x65*(362880*Bskew_3_4*x + Bskew_4_4*x57 + Bskew_5_4*x58 + 5040*Bskew_6_0 + Bskew_6_4*x59 + 5040*x35 + 5040*x36 + 5040*x37 + 5040*x38 + x46*x63 + x56 + 30240*x60 + x61*x62) + x87*(17280*Bnorm_2_4*x + Bnorm_3_4*x68 + Bnorm_4_4*x69 + 720*Bnorm_5_0 + Bnorm_5_4*x73 + Bnorm_6_4*x74 + x51*x78 + x52*x79 + x66 + 720*x67 + 720*x70 + 720*x71 + 720*x72 + 2880*x75 + x76*x77 + x84*x85)
-        By = Bnorm_0_0 + Bnorm_0_1*s + Bnorm_0_2*x0 + Bnorm_0_3*x1 + Bnorm_0_4*x2 + x*(Bnorm_1_0 + x88 + x89 + x90 + x91) + x101*x20 + x107*x27 + x109*x34 + (1/17280)*x128*(17280*Bnorm_0_4 + Bnorm_2_4*x68 + Bnorm_3_4*x69 + 720*Bnorm_4_0 + Bnorm_4_4*x73 + Bnorm_5_4*x74 + 24*Bnorm_6_4*x40 + x*x66 + x102*x84 + 720*x103 + 720*x104 + 720*x105 + 720*x106 + x109*x85 + 2880*x131 + 120*x26*x52 + x51*x79 + x75*x77 + x76*x78) + x13*x96 + (1/30240)*x137*(30240*Bs_3 + 30240*Bs_4*x154 + Bskew_1_4*x115 + Bskew_2_4*x116 + 5040*Bskew_3_0 + Bskew_3_4*x117 + Bskew_4_4*x118 + Bskew_5_4*x119 + 24*Bskew_6_4*x153 + x*x113 + x120*x122 + x121*x123 + x124*x60 + x125*x61 + x126*x25 + x127*x32 + 5040*x14 + 20160*x140 + x147*x39 + 5040*x15 + 5040*x16 + 5040*x17 + 168*x33*x46) - 1/1440*x149*(1440*Bnorm_0_2 + 1440*Bnorm_0_3*x44 + 1440*Bnorm_0_4*x45 + 720*Bnorm_2_0 + x101*x85 + x102*x107 + x108*x109 + x110*x84 + x130*x132 + x131*x133 + x134*x75 + x135*x76 + x136*x51 + 2*x40*x52 + 720*x92 + 720*x93 + 720*x94 + 720*x95) + x41*x84 + (1/25401600)*x54*(725760*Bskew_3_4 + Bskew_5_4*x43 + 120960*Bskew_6_4*x19 + x*x42 + 40320*x*x46 + 40320*x61) - 1/518400*x64*(51840*Bnorm_2_4 + Bnorm_4_4*x49 + Bnorm_5_4*x50 + 720*Bnorm_6_0 + 2160*Bnorm_6_4*x26 + x*x48 + x151*x52 + x51*x53 + 4320*x76 + 720*x80 + 720*x81 + 720*x82 + 720*x83) - 1/604800*x86*(362880*Bskew_1_4 + Bskew_3_4*x57 + Bskew_4_4*x58 + 5040*Bskew_5_0 + Bskew_5_4*x59 + 3024*Bskew_6_4*x33 + x*x56 + 30240*x121 + x126*x39 + x152*x46 + 5040*x28 + 5040*x29 + 5040*x30 + 5040*x31 + x60*x62 + x61*x63) - 1/5040*y*(5040*Bs_1 + Bs_2*x155 + Bs_3*x156 + Bs_4*x157 + 5040*Bskew_1_0 + x11*x126 + x120*x143 + x121*x144 + x127*x18 + x139*x141 + x140*x142 + x145*x60 + x146*x61 + x147*x25 + x148*x32 + 2*x153*x46 + x158*x39 + 5040*x3 + 5040*x4 + 5040*x5 + 5040*x6)
-        Bs = Bs_0 + Bs_1*s + Bs_2*x0 + Bs_3*x1 + Bs_4*x2 + x*(Bskew_0_1 + Bskew_0_2*x159 + Bskew_0_3*x160 + Bskew_0_4*x161) + x112*(720*Bnorm_0_1 + Bnorm_0_2*x169 + Bnorm_0_3*x170 + Bnorm_0_4*x171 + x102*(Bnorm_2_1 + Bnorm_2_2*x159 + Bnorm_2_3*x160 + Bnorm_2_4*x161) + x108*x183 + x110*x184 + x111*x179 + x180*x40 + x85*(Bnorm_1_1 + Bnorm_1_2*x159 + Bnorm_1_3*x160 + Bnorm_1_4*x161)) + x129*(120960*Bs_4 + 5040*Bskew_3_1 + Bskew_3_2*x155 + Bskew_3_3*x156 + Bskew_3_4*x157 + 60480*x*x182 + 30240*x12*x175 + x126*x164 + x127*x165 + x147*x166 + 2520*x167*x26 + 504*x168*x33 + 10080*x176*x19 + 60480*x181) + x13*(Bskew_1_1 + Bskew_1_2*x159 + Bskew_1_3*x160 + Bskew_1_4*x161) - x138*(4320*Bnorm_0_3 + 4320*Bnorm_0_4*x154 + 720*Bnorm_2_1 + Bnorm_2_2*x169 + Bnorm_2_3*x170 + Bnorm_2_4*x171 + x102*x184 + x108*x179 + x110*x180 + x151*x177 + 180*x172*x26 + 36*x173*x33 + 6*x174*x40 + 720*x178*x19 + x183*x85 + x53*(Bnorm_1_3 + Bnorm_1_4*x154)) - x150*(10080*Bs_2 + 10080*Bs_3*x44 + 10080*Bs_4*x45 + 5040*Bskew_1_1 + Bskew_1_2*x155 + Bskew_1_3*x156 + Bskew_1_4*x157 + x126*x162 + x127*x163 + x147*x164 + x148*x165 + x152*x182 + 6*x153*x168 + x158*x166 + 42*x167*x40 + 1260*x175*x26 + 252*x176*x33 + x181*x63 + x62*(Bskew_0_3 + Bskew_0_4*x154)) + (1/5040)*x153*x166 + x162*x20 + x163*x27 + x164*x34 + x165*x41 + x47*(x114*x168 + 120960*x167) - x55*(720*Bnorm_6_1 + Bnorm_6_2*x169 + Bnorm_6_3*x170 + Bnorm_6_4*x171 + 12960*x*x173 + 6480*x12*x174 + 12960*x172) - x65*(5040*Bskew_5_1 + Bskew_5_2*x155 + Bskew_5_3*x156 + Bskew_5_4*x157 + 90720*x*x176 + 45360*x12*x167 + x126*x166 + 15120*x168*x19 + 90720*x175) + x87*(720*Bnorm_4_1 + Bnorm_4_2*x169 + Bnorm_4_3*x170 + Bnorm_4_4*x171 + 8640*x*x178 + x102*x180 + 4320*x12*x172 + 1440*x173*x19 + 360*x174*x26 + 8640*x177 + x179*x85)
+        Bx = bx_0_0 + bx_0_1*s + bx_0_2*x0 + bx_0_3*x1 + bx_0_4*x2 + x*(bx_1_0 + x3 + x4 + x5 + x6) + x11*x13 + x112*(720*by_1_0 + x101*x102 + x107*x108 + x109*x110 + x111*x84 + x85*x96 + 720*x88 + 720*x89 + 720*x90 + 720*x91) + x129*(bx_1_4*x114 + bx_2_4*x115 + bx_3_4*x116 + 5040*bx_4_0 + bx_4_4*x117 + bx_5_4*x118 + bx_6_4*x119 + x113 + 20160*x120 + x121*x122 + x123*x60 + x124*x61 + x125*x46 + x126*x32 + x127*x39 + 5040*x21 + 5040*x22 + 5040*x23 + 5040*x24) - x138*(720*by_3_0 + 720*x100 + x102*x109 + x107*x85 + x108*x84 + 1440*x130 + x131*x132 + x133*x75 + x134*x76 + x135*x51 + x136*x52 + 720*x97 + 720*x98 + 720*x99) - x150*(5040*bx_2_0 + 5040*x10 + x120*x142 + x121*x143 + x126*x18 + x127*x25 + 10080*x139 + x140*x141 + x144*x60 + x145*x61 + x146*x46 + x147*x32 + x148*x39 + 5040*x7 + 5040*x8 + 5040*x9) + x18*x20 + x25*x27 + x32*x34 + x39*x41 + x47*(725760*bx_5_4*x + bx_6_4*x43 + x42 + 40320*x46) - x55*(51840*by_4_4*x + by_5_4*x49 + by_6_4*x50 + x48 + 4320*x51 + x52*x53) - x65*(362880*bx_3_4*x + bx_4_4*x57 + bx_5_4*x58 + 5040*bx_6_0 + bx_6_4*x59 + 5040*x35 + 5040*x36 + 5040*x37 + 5040*x38 + x46*x63 + x56 + 30240*x60 + x61*x62) + x87*(17280*by_2_4*x + by_3_4*x68 + by_4_4*x69 + 720*by_5_0 + by_5_4*x73 + by_6_4*x74 + x51*x78 + x52*x79 + x66 + 720*x67 + 720*x70 + 720*x71 + 720*x72 + 2880*x75 + x76*x77 + x84*x85)
+        By = by_0_0 + by_0_1*s + by_0_2*x0 + by_0_3*x1 + by_0_4*x2 + x*(by_1_0 + x88 + x89 + x90 + x91) + x101*x20 + x107*x27 + x109*x34 + (1/17280)*x128*(17280*by_0_4 + by_2_4*x68 + by_3_4*x69 + 720*by_4_0 + by_4_4*x73 + by_5_4*x74 + 24*by_6_4*x40 + x*x66 + x102*x84 + 720*x103 + 720*x104 + 720*x105 + 720*x106 + x109*x85 + 2880*x131 + 120*x26*x52 + x51*x79 + x75*x77 + x76*x78) + x13*x96 + (1/30240)*x137*(30240*bs_3 + 30240*bs_4*x154 + bx_1_4*x115 + bx_2_4*x116 + 5040*bx_3_0 + bx_3_4*x117 + bx_4_4*x118 + bx_5_4*x119 + 24*bx_6_4*x153 + x*x113 + x120*x122 + x121*x123 + x124*x60 + x125*x61 + x126*x25 + x127*x32 + 5040*x14 + 20160*x140 + x147*x39 + 5040*x15 + 5040*x16 + 5040*x17 + 168*x33*x46) - 1/1440*x149*(1440*by_0_2 + 1440*by_0_3*x44 + 1440*by_0_4*x45 + 720*by_2_0 + x101*x85 + x102*x107 + x108*x109 + x110*x84 + x130*x132 + x131*x133 + x134*x75 + x135*x76 + x136*x51 + 2*x40*x52 + 720*x92 + 720*x93 + 720*x94 + 720*x95) + x41*x84 + (1/25401600)*x54*(725760*bx_3_4 + bx_5_4*x43 + 120960*bx_6_4*x19 + x*x42 + 40320*x*x46 + 40320*x61) - 1/518400*x64*(51840*by_2_4 + by_4_4*x49 + by_5_4*x50 + 720*by_6_0 + 2160*by_6_4*x26 + x*x48 + x151*x52 + x51*x53 + 4320*x76 + 720*x80 + 720*x81 + 720*x82 + 720*x83) - 1/604800*x86*(362880*bx_1_4 + bx_3_4*x57 + bx_4_4*x58 + 5040*bx_5_0 + bx_5_4*x59 + 3024*bx_6_4*x33 + x*x56 + 30240*x121 + x126*x39 + x152*x46 + 5040*x28 + 5040*x29 + 5040*x30 + 5040*x31 + x60*x62 + x61*x63) - 1/5040*y*(5040*bs_1 + bs_2*x155 + bs_3*x156 + bs_4*x157 + 5040*bx_1_0 + x11*x126 + x120*x143 + x121*x144 + x127*x18 + x139*x141 + x140*x142 + x145*x60 + x146*x61 + x147*x25 + x148*x32 + 2*x153*x46 + x158*x39 + 5040*x3 + 5040*x4 + 5040*x5 + 5040*x6)
+        Bs = bs_0 + bs_1*s + bs_2*x0 + bs_3*x1 + bs_4*x2 + x*(bx_0_1 + bx_0_2*x159 + bx_0_3*x160 + bx_0_4*x161) + x112*(720*by_0_1 + by_0_2*x169 + by_0_3*x170 + by_0_4*x171 + x102*(by_2_1 + by_2_2*x159 + by_2_3*x160 + by_2_4*x161) + x108*x183 + x110*x184 + x111*x179 + x180*x40 + x85*(by_1_1 + by_1_2*x159 + by_1_3*x160 + by_1_4*x161)) + x129*(120960*bs_4 + 5040*bx_3_1 + bx_3_2*x155 + bx_3_3*x156 + bx_3_4*x157 + 60480*x*x182 + 30240*x12*x175 + x126*x164 + x127*x165 + x147*x166 + 2520*x167*x26 + 504*x168*x33 + 10080*x176*x19 + 60480*x181) + x13*(bx_1_1 + bx_1_2*x159 + bx_1_3*x160 + bx_1_4*x161) - x138*(4320*by_0_3 + 4320*by_0_4*x154 + 720*by_2_1 + by_2_2*x169 + by_2_3*x170 + by_2_4*x171 + x102*x184 + x108*x179 + x110*x180 + x151*x177 + 180*x172*x26 + 36*x173*x33 + 6*x174*x40 + 720*x178*x19 + x183*x85 + x53*(by_1_3 + by_1_4*x154)) - x150*(10080*bs_2 + 10080*bs_3*x44 + 10080*bs_4*x45 + 5040*bx_1_1 + bx_1_2*x155 + bx_1_3*x156 + bx_1_4*x157 + x126*x162 + x127*x163 + x147*x164 + x148*x165 + x152*x182 + 6*x153*x168 + x158*x166 + 42*x167*x40 + 1260*x175*x26 + 252*x176*x33 + x181*x63 + x62*(bx_0_3 + bx_0_4*x154)) + (1/5040)*x153*x166 + x162*x20 + x163*x27 + x164*x34 + x165*x41 + x47*(x114*x168 + 120960*x167) - x55*(720*by_6_1 + by_6_2*x169 + by_6_3*x170 + by_6_4*x171 + 12960*x*x173 + 6480*x12*x174 + 12960*x172) - x65*(5040*bx_5_1 + bx_5_2*x155 + bx_5_3*x156 + bx_5_4*x157 + 90720*x*x176 + 45360*x12*x167 + x126*x166 + 15120*x168*x19 + 90720*x175) + x87*(720*by_4_1 + by_4_2*x169 + by_4_3*x170 + by_4_4*x171 + 8640*x*x178 + x102*x180 + 4320*x12*x172 + 1440*x173*x19 + 360*x174*x26 + 8640*x177 + x179*x85)
         return Bx, By, Bs
 
     raise ValueError(f'Unsupported multipole order {multipole_order}; supported orders are 1 to 7')

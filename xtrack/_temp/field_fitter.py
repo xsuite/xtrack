@@ -295,14 +295,14 @@ class FieldFitter:
         index_width = len(str(n_pieces - 1)) if n_pieces > 1 else 1
         for i in range(n_pieces):
             if field_component == "Bskew":
-                prefix = f"Bskew_{der_order}"
+                prefix = f"bx_{der_order}"
             elif field_component == "Bnorm":
-                prefix = f"Bnorm_{der_order}"
+                prefix = f"by_{der_order}"
             elif field_component == "Bs":
                 prefix = "Bs"
             else:
                 raise ValueError(f"Unknown field_component: {field_component!r}")
-            pars = [f"{prefix}_{s}" for s in xt.SplineBoris._HERMITE_SUFFIXES]
+            pars = [f"{prefix}_{s}" for s in xt.SplineBoris._SB_HERMITE_SUFFIXES]
 
             idx_start = idx_extrema[i]
             idx_end = idx_extrema[i+1]

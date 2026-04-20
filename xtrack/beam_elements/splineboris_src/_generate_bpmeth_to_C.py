@@ -12,7 +12,7 @@ THIS_DIR = os.path.dirname(__file__)
 ELEMENTS_SRC_DIR = THIS_DIR   # since the script is already in elements_src
 
 # SplineBoris defines the canonical param order; use repo root on PYTHONPATH.
-from xtrack.beam_elements.elements import SplineBoris
+from xtrack.beam_elements.splineboris import SplineBoris
 
 # This script generates C code for evaluating magnetic field components
 # based on symbolic expressions derived from the bpmeth formalism.
@@ -31,60 +31,60 @@ def s_power(power):
         str += '*s'
     return str
 
-# Sympy symbols for SplineBoris wire format: Bs_k, Bnorm_i_k, Bskew_i_k (names match SplineBoris._get_param_names).
+# Sympy symbols for SplineBoris wire format: bs_k, by_i_k, bx_i_k (names match SplineBoris._get_param_names).
 def make_symbols(multipole_order=multipole_order, poly_order=4):
-    bskew_symbols = ()
-    bnorm_symbols = ()
+    bx_symbols = ()
+    by_symbols = ()
     bs_symbols = ()
     for i in range(multipole_order):
         for k in range(poly_order + 1):
-            bskew_symbols += (sp.symbols(f'Bskew_{i}_{k}'),)
-            bnorm_symbols += (sp.symbols(f'Bnorm_{i}_{k}'),)
+            bx_symbols += (sp.symbols(f'bx_{i}_{k}'),)
+            by_symbols += (sp.symbols(f'by_{i}_{k}'),)
             if i == 0:
-                bs_symbols += (sp.symbols(f'Bs_{k}'),)
-    return bskew_symbols, bnorm_symbols, bs_symbols
+                bs_symbols += (sp.symbols(f'bs_{k}'),)
+    return bx_symbols, by_symbols, bs_symbols
 
 
 def set_exprs(multipole_order=multipole_order, poly_order=4):
-    bskew_symbols, bnorm_symbols, bs_symbols = make_symbols(
+    bx_symbols, by_symbols, bs_symbols = make_symbols(
         multipole_order=multipole_order, poly_order=poly_order
     )
 
-    bskew_exprs = ()
-    bnorm_exprs = ()
+    bx_exprs = ()
+    by_exprs = ()
     bs_expr = 0
 
     for i in range(multipole_order):
-        bskew_expr = 0
-        bnorm_expr = 0
+        bx_expr = 0
+        by_expr = 0
         for k in range(poly_order + 1):
-            bskew_sym = bskew_symbols[i * (poly_order + 1) + k]
-            bnorm_sym = bnorm_symbols[i * (poly_order + 1) + k]
+            bx_sym = bx_symbols[i * (poly_order + 1) + k]
+            by_sym = by_symbols[i * (poly_order + 1) + k]
 
-            bskew_expr += bskew_sym * sp.Pow(sp.symbols('s'), k)
-            bnorm_expr += bnorm_sym * sp.Pow(sp.symbols('s'), k)
+            bx_expr += bx_sym * sp.Pow(sp.symbols('s'), k)
+            by_expr += by_sym * sp.Pow(sp.symbols('s'), k)
 
             if i == 0:
                 bs_expr += bs_symbols[k] * sp.Pow(sp.symbols('s'), k)
 
-        bskew_exprs += (bskew_expr,)
-        bnorm_exprs += (bnorm_expr,)
+        bx_exprs += (bx_expr,)
+        by_exprs += (by_expr,)
 
-    return bskew_exprs, bnorm_exprs, bs_expr
+    return bx_exprs, by_exprs, bs_expr
 
 
 # Sets up the generic field expressions for given curvature, multipole and polynomial order.
-# bpmeth GeneralVectorPotential: a = B_x multipole coeffs (here Bskew), b = B_y / Bnorm, bs = longitudinal Bs.
+# bpmeth GeneralVectorPotential: a = B_x multipole coeffs (bx), b = B_y (by), bs = longitudinal field (bs).
 def generic_field_exprs(curv, multipole_order=multipole_order, poly_order=4):
-    bskew_exprs, bnorm_exprs, bs_exprs = set_exprs(
+    bx_exprs, by_exprs, bs_exprs = set_exprs(
         multipole_order=multipole_order, poly_order=poly_order
     )
 
     # nphi must be > multipole_order to include y-dependent terms from dBs/ds
     # The recursion phi_{n+2} = f(phi_n) means we need at least nphi = multipole_order + 2
-    # to capture the solenoid focusing terms (-y*(dBs/ds + Bskew_1)) in By
+    # to capture the solenoid focusing terms (-y*(d(bs)/ds + bx_1)) in By
     generic_B = bp.GeneralVectorPotential(
-        hs=curv, a=bskew_exprs, b=bnorm_exprs, bs=bs_exprs, nphi=multipole_order + 2
+        hs=curv, a=bx_exprs, b=by_exprs, bs=bs_exprs, nphi=multipole_order + 2
     )
     symbolic_Bx, symbolic_By, symbolic_Bs = generic_B.get_Bfield(lambdify=False)
     symbolic_Ax, symbolic_Ay, symbolic_As = generic_B.get_A()
@@ -243,24 +243,24 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
             f.write("//\n")
             f.write("// Hermite input layout\n")
             f.write("// --------------------\n")
-            f.write("//   - Bs_hermite        : one scalar Hermite polynomial (5 coeffs) for Bs(s_local)\n")
-            f.write("//   - B_norm_hermite[i] : Hermite coeffs (5) for polynomial group Bnorm_i_*(s_local)\n")
-            f.write("//   - B_skew_hermite[i] : Hermite coeffs (5) for polynomial group Bskew_i_*(s_local)\n")
+            f.write("//   - bs        : one scalar Hermite polynomial (5 coeffs) for bs(s_local)\n")
+            f.write("//   - by[i]     : Hermite coeffs (5) for polynomial group by_i_*(s_local)\n")
+            f.write("//   - bx[i]     : Hermite coeffs (5) for polynomial group bx_i_*(s_local)\n")
             f.write("//\n")
             f.write("// For multipole_order = n (1 ≤ n ≤ 7):\n")
-            f.write("//   - Bs:       1 polynomial      → Bs_0..Bs_4 from Bs_hermite\n")
-            f.write("//   - Bnorm:    n polynomials     → Bnorm_i_0..Bnorm_i_4 from B_norm_hermite[i], i=0..n-1\n")
-            f.write("//   - Bskew:    n polynomials     → Bskew_i_0..Bskew_i_4 from B_skew_hermite[i], i=0..n-1\n")
+            f.write("//   - bs:       1 polynomial      → bs_0..bs_4 from bs\n")
+            f.write("//   - by:       n polynomials     → by_i_0..by_i_4 from by[i], i=0..n-1\n")
+            f.write("//   - bx:       n polynomials     → bx_i_0..bx_i_4 from bx[i], i=0..n-1\n")
             f.write("//\n")
-            f.write("// The symbolic expressions below are unchanged; only the way the Bs_*, Bnorm_*_*,\n")
-            f.write("// and Bskew_*_* scalars are populated has been refactored to use Hermite data.\n")
+            f.write("// The symbolic expressions below are unchanged; only the way the bs_*, by_*_*,\n")
+            f.write("// and bx_*_* scalars are populated has been refactored to use Hermite data.\n")
 
             f.write("GPUFUN\n")
             f.write(
                 "void evaluate_B(const double x, const double y, const double s,\n"
-                "                const double *Bs_hermite,\n"
-                "                const double *const *B_norm_hermite,\n"
-                "                const double *const *B_skew_hermite,\n"
+                "                const double *bs,\n"
+                "                const double *const *by,\n"
+                "                const double *const *bx,\n"
                 "                const double L,\n"
                 "                const int multipole_order,\n"
                 "                double *Bx_out, double *By_out, double *Bs_out){\n\n"
@@ -363,32 +363,32 @@ def write_to_C(max_order=multipole_order, poly_order=4, field='B', curvature='0'
 
                 f.write(f"\tcase {order}{{\n")
                 f.write(f"\t\t// Hermite → polynomial coefficients (order {order})\n")
-                f.write("\t\tconst Poly Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite);\n")
-                f.write("\t\tconst double Bs_0   = Bs_poly.coeffs[0];\n")
-                f.write("\t\tconst double Bs_1   = Bs_poly.coeffs[1];\n")
-                f.write("\t\tconst double Bs_2   = Bs_poly.coeffs[2];\n")
-                f.write("\t\tconst double Bs_3   = Bs_poly.coeffs[3];\n")
-                f.write("\t\tconst double Bs_4   = Bs_poly.coeffs[4];\n\n")
+                f.write("\t\tconst Poly bs_poly = hermite_to_polynomial(0.0, L, bs);\n")
+                f.write("\t\tconst double bs_0   = bs_poly.coeffs[0];\n")
+                f.write("\t\tconst double bs_1   = bs_poly.coeffs[1];\n")
+                f.write("\t\tconst double bs_2   = bs_poly.coeffs[2];\n")
+                f.write("\t\tconst double bs_3   = bs_poly.coeffs[3];\n")
+                f.write("\t\tconst double bs_4   = bs_poly.coeffs[4];\n\n")
 
-                # Bnorm groups
+                # by groups
                 for i in range(order):
                     f.write(
-                        f"\t\tconst Poly Bnorm{i}_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[{i}]);\n"
+                        f"\t\tconst Poly by{i}_poly = hermite_to_polynomial(0.0, L, by[{i}]);\n"
                     )
                     for k in range(poly_order + 1):
                         f.write(
-                            f"\t\tconst double Bnorm_{i}_{k} = Bnorm{i}_poly.coeffs[{k}];\n"
+                            f"\t\tconst double by_{i}_{k} = by{i}_poly.coeffs[{k}];\n"
                         )
                     f.write("\n")
 
-                # Bskew groups
+                # bx groups
                 for i in range(order):
                     f.write(
-                        f"\t\tconst Poly Bskew{i}_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[{i}]);\n"
+                        f"\t\tconst Poly bx{i}_poly = hermite_to_polynomial(0.0, L, bx[{i}]);\n"
                     )
                     for k in range(poly_order + 1):
                         f.write(
-                            f"\t\tconst double Bskew_{i}_{k} = Bskew{i}_poly.coeffs[{k}];\n"
+                            f"\t\tconst double bx_{i}_{k} = bx{i}_poly.coeffs[{k}];\n"
                         )
                     f.write("\n")
 
@@ -522,14 +522,14 @@ def write_to_python(max_order=multipole_order, poly_order=4, field='B', curvatur
             f.write("    return poly_s\n\n")
 
             f.write(
-                "def evaluate_B(x, y, s, Bs_hermite, B_norm_hermite, B_skew_hermite, L, multipole_order):\n"
+                "def evaluate_B(x, y, s, bs, by, bx, L, multipole_order):\n"
             )
             f.write('    """\n')
             f.write("    Auto-generated symbolic field evaluation for B.\n")
             f.write("    Hermite coefficients are provided as:\n")
-            f.write("      - Bs_hermite      : array-like length 5\n")
-            f.write("      - B_norm_hermite : sequence of length n (order), each a length-5 array\n")
-            f.write("      - B_skew_hermite : sequence of length n (order), each a length-5 array\n")
+            f.write("      - bs : array-like length 5\n")
+            f.write("      - by : sequence of length n (order), each a length-5 array\n")
+            f.write("      - bx : sequence of length n (order), each a length-5 array\n")
             f.write('    """\n')
 
             for order in range(1, max_order + 1):
@@ -547,27 +547,27 @@ def write_to_python(max_order=multipole_order, poly_order=4, field='B', curvatur
 
                 # Hermite → polynomial mapping
                 f.write(f"        # Hermite → polynomial coefficients (order {order})\n")
-                f.write("        Bs_poly = hermite_to_polynomial(0.0, L, Bs_hermite)\n")
-                f.write("        Bs_0, Bs_1, Bs_2, Bs_3, Bs_4 = Bs_poly.coef[0:5]\n\n")
+                f.write("        bs_poly = hermite_to_polynomial(0.0, L, bs)\n")
+                f.write("        bs_0, bs_1, bs_2, bs_3, bs_4 = bs_poly.coef[0:5]\n\n")
 
-                # Bnorm groups
+                # by groups
                 for i in range(order):
                     f.write(
-                        f"        Bnorm{i}_poly = hermite_to_polynomial(0.0, L, B_norm_hermite[{i}])\n"
+                        f"        by{i}_poly = hermite_to_polynomial(0.0, L, by[{i}])\n"
                     )
                     f.write(
-                        f"        Bnorm_{i}_0, Bnorm_{i}_1, Bnorm_{i}_2, Bnorm_{i}_3, Bnorm_{i}_4 = "
-                        f"Bnorm{i}_poly.coef[0:5]\n\n"
+                        f"        by_{i}_0, by_{i}_1, by_{i}_2, by_{i}_3, by_{i}_4 = "
+                        f"by{i}_poly.coef[0:5]\n\n"
                     )
 
-                # Bskew groups
+                # bx groups
                 for i in range(order):
                     f.write(
-                        f"        Bskew{i}_poly = hermite_to_polynomial(0.0, L, B_skew_hermite[{i}])\n"
+                        f"        bx{i}_poly = hermite_to_polynomial(0.0, L, bx[{i}])\n"
                     )
                     f.write(
-                        f"        Bskew_{i}_0, Bskew_{i}_1, Bskew_{i}_2, Bskew_{i}_3, Bskew_{i}_4 = "
-                        f"Bskew{i}_poly.coef[0:5]\n\n"
+                        f"        bx_{i}_0, bx_{i}_1, bx_{i}_2, bx_{i}_3, bx_{i}_4 = "
+                        f"bx{i}_poly.coef[0:5]\n\n"
                     )
 
                 # Common sub-expressions
