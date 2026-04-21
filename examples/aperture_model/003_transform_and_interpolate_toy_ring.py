@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from xtrack.aperture.aperture import Aperture
 from xtrack.aperture.transform import transform_matrix
-from xtrack.aperture.structures import ApertureModel, ApertureType, Circle, Profile, ProfilePosition, Rectangle, TypePosition
+from xtrack.aperture.structures import ApertureModel, Pipe, Circle, Profile, ProfilePosition, Rectangle, PipePosition
 
 
 TOY_RING_SEQUENCE = """
@@ -43,12 +43,24 @@ aper = Aperture.from_line_with_associated_apertures(ring)
 sv = ring.survey()
 
 ax = plt.figure().add_subplot(projection='3d')
-ax.plot(sv.Z, sv.X, sv.Y, c='b')
+ax.plot(sv.Z, sv.X, sv.Y, c='b', label='survey')
 ax.set_xlabel('Z [m]')
 ax.set_ylabel('X [m]')
 ax.set_zlabel('Y [m]')
 
-ax.auto_scale_xyz([0, 12], [-6, 6], [-6, 6])
+ax.auto_scale_xyz([-3, 5], [-7, 1], [-4, 4])
+
+sv_rows = list(sv.rows)
+for ii, row in enumerate(sv_rows):
+    if row.name == '_end_point':
+        continue
+    z, x, y = row.Z, row.X, row.Y
+    if ii + 1 < len(sv_rows):
+        next_row = sv_rows[ii + 1]
+        z = 0.5 * (row.Z + next_row.Z)
+        x = 0.5 * (row.X + next_row.X)
+        y = 0.5 * (row.Y + next_row.Y)
+    ax.text(z, x, y + 0.3, row.name, fontsize=9, color='k')
 
 
 def matrix_from_survey_point(sv_row):
@@ -66,7 +78,28 @@ def poly2d_to_hom(poly2d):
     return poly_hom
 
 
-for type_pos in aper._model.type_positions:
+def arc_matrix(length: float, angle: float, tilt: float) -> np.ndarray:
+    if abs(angle) < 1e-9:
+        return transform_matrix(shift_z=length, rot_z_rad=tilt)
+
+    ct = np.cos(tilt)
+    st = np.sin(tilt)
+    ca = np.cos(angle)
+    sa = np.sin(angle)
+    dx = length * (ca - 1) / angle
+    ds = length * sa / angle
+    return np.array(
+        [
+            [ct * ca, -st, -ct * sa, ct * dx],
+            [st * ca, ct, -st * sa, st * dx],
+            [sa, 0.0, ca, ds],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
+
+
+seen_installed_profiles = False
+for type_pos in aper._model.pipe_positions:
     aper_type = aper._model.type_for_position(type_pos)
     sv_ref = sv.rows[type_pos.survey_index]
 
@@ -80,19 +113,27 @@ for type_pos in aper._model.type_positions:
         poly = aper.polygon_for_profile(profile, num_points)
         poly_hom = poly2d_to_hom(poly)
 
-        profile_position_matrix = transform_matrix(
+        profile_matrix_trans = transform_matrix(
             dx=profile_pos.shift_x,
             dy=profile_pos.shift_y,
-            ds=profile_pos.s_position,
-            theta=profile_pos.rot_y,
-            phi=profile_pos.rot_x,
-            psi=profile_pos.rot_s,
+            ds=0,
+            theta=profile_pos.rot_y_rad,
+            phi=profile_pos.rot_x_rad,
+            psi=profile_pos.rot_s_rad,
         )
+        profile_matrix_arc = arc_matrix(
+            length=profile_pos.shift_s,
+            angle=aper_type.curvature * profile_pos.shift_s,
+            tilt=0,
+        )
+        profile_position_matrix = profile_matrix_arc @ profile_matrix_trans
 
         poly_in_sv_frame = sv_ref_matrix @ type_matrix @ profile_position_matrix @ poly_hom
 
         xs, ys, zs = poly_in_sv_frame[:3]
-        ax.plot(zs, xs, ys, c='r')
+        label = 'installed profiles' if not seen_installed_profiles else None
+        ax.plot(zs, xs, ys, c='r', label=label)
+        seen_installed_profiles = True
 
 
 def poses_at_s(line, s_positions):
@@ -113,7 +154,7 @@ def poses_at_s(line, s_positions):
     return poses
 
 
-s_for_cuts = np.linspace(1, 11, 20)
+s_for_cuts = np.linspace(0, ring.get_length(), 300, endpoint=False)
 profiles_table = aper.cross_sections_at_s(s_for_cuts)
 profiles = profiles_table.cross_section
 poses = profiles_table.pose
@@ -121,12 +162,16 @@ poses = profiles_table.pose
 expected_poses = poses_at_s(ring, s_for_cuts)
 xo.assert_allclose(poses, expected_poses, atol=1e-6, rtol=1e-6)
 
+seen_cross_sections = False
 for idx, s in enumerate(s_for_cuts):
     profile = profiles[idx]
     profile_hom = poly2d_to_hom(profile)
     profile_in_sv_frame = poses[idx] @ profile_hom
 
     xs, ys, zs = profile_in_sv_frame[:3]
-    ax.plot(zs, xs, ys, c='g')
+    label = 'interpolated cross sections' if not seen_cross_sections else None
+    ax.plot(zs, xs, ys, c='g', label=label)
+    seen_cross_sections = True
 
+ax.legend()
 plt.show()

@@ -7,11 +7,11 @@ from xtrack.aperture.aperture import Aperture
 from xtrack.aperture.transform import transform_matrix
 from xtrack.aperture.structures import (
     ApertureModel,
-    ApertureType,
+    Pipe,
     Circle,
     Profile,
     ProfilePosition,
-    TypePosition,
+    PipePosition,
 )
 
 
@@ -54,24 +54,24 @@ profiles = [
     Profile(shape=Circle(radius=r1), tol_r=0, tol_x=0, tol_y=0),
 ]
 profile_positions = [
-    ProfilePosition(profile_index=0, s_position=s0),
-    ProfilePosition(profile_index=1, s_position=s1),
+    ProfilePosition(profile_index=0, shift_s=s0),
+    ProfilePosition(profile_index=1, shift_s=s1),
 ]
 
 model = ApertureModel(
     line=line,
-    type_positions=[
-        TypePosition(
-            type_index=0,
+    pipe_positions=[
+        PipePosition(
+            pipe_index=0,
             survey_reference_name=sv.name[0],
             survey_index=0,
             transformation=transform_matrix(shift_x=-1.5),
         ),
     ],
-    types=[ApertureType(curvature=0.0, positions=profile_positions)],
+    pipes=[Pipe(curvature=0.0, positions=profile_positions)],
     profiles=profiles,
-    type_names=["type0"],
-    type_position_names=["type0"],
+    pipe_names=["type0"],
+    pipe_position_names=["type0"],
     profile_names=["circle0", "circle1"],
 )
 
@@ -80,7 +80,7 @@ ap = Aperture(line=line, model=model)
 # Build transform world<->type
 sv_ref = sv.rows[0]
 sv_ref_mat = matrix_from_survey_row(sv_ref)
-type_matrix = model.type_positions[0].transformation.to_nparray()
+type_matrix = model.pipe_positions[0].transformation.to_nparray()
 world_from_type = sv_ref_mat @ type_matrix
 type_from_world = np.linalg.inv(world_from_type)
 
@@ -111,7 +111,7 @@ ax = plt.figure().add_subplot(projection="3d")
 ax.plot(sv.Z, sv.X, sv.Y, c="b", label="survey")
 
 # Plot installed profiles (red)
-for type_pos in ap._model.type_positions:
+for type_pos in ap._model.pipe_positions:
     aper_type = ap._model.type_for_position(type_pos)
     sv_ref_row = sv.rows[type_pos.survey_index]
     sv_ref_matrix = matrix_from_survey_row(sv_ref_row)
@@ -124,10 +124,10 @@ for type_pos in ap._model.type_positions:
         profile_matrix = transform_matrix(
             dx=profile_pos.shift_x,
             dy=profile_pos.shift_y,
-            ds=profile_pos.s_position,
-            theta=profile_pos.rot_y,
-            phi=profile_pos.rot_x,
-            psi=profile_pos.rot_s,
+            ds=profile_pos.shift_s,
+            theta=profile_pos.rot_y_rad,
+            phi=profile_pos.rot_x_rad,
+            psi=profile_pos.rot_s_rad,
         )
         poly_world = sv_ref_matrix @ type_pos_matrix @ profile_matrix @ poly_hom
         xw, yw, zw = poly_world[:3]

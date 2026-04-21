@@ -12,8 +12,8 @@ from xobjects.general import allclose_with_outliers
 from xobjects.test_helpers import for_all_test_contexts, requires_context
 from xtrack.aperture.aperture import Aperture, ProfilesView, TypePositionsView, TypesView
 from xtrack.aperture.structures import (
-    ApertureModel, ApertureType, Circle, Ellipse, FloatType, Profile,
-    ProfilePosition, Rectangle, RectEllipse, SurveyData, TypePosition
+    ApertureModel, Pipe, Circle, Ellipse, FloatType, Profile,
+    ProfilePosition, Rectangle, RectEllipse, SurveyData, PipePosition
 )
 from xtrack.aperture.transform import matrix_to_transform, transform_matrix
 
@@ -64,8 +64,8 @@ def context():
     [
         {},
         {'shift_x': 1.2, 'shift_y': -0.3, 'shift_z': 4.5},
-        {'rot_y': 0.2, 'rot_x': -0.1, 'rot_z': 0.3},
-        {'shift_x': -1.5, 'shift_y': 2.0, 'shift_z': 0.7, 'rot_y': 0.25, 'rot_x': -0.15, 'rot_z': 0.35},
+        {'rot_y_rad': 0.2, 'rot_x_rad': -0.1, 'rot_z_rad': 0.3},
+        {'shift_x': -1.5, 'shift_y': 2.0, 'shift_z': 0.7, 'rot_y_rad': 0.25, 'rot_x_rad': -0.15, 'rot_z_rad': 0.35},
     ],
 )
 def test_matrix_to_transform_roundtrip(kwargs):
@@ -75,9 +75,9 @@ def test_matrix_to_transform_roundtrip(kwargs):
         'shift_x': 0.0,
         'shift_y': 0.0,
         'shift_z': 0.0,
-        'rot_y': 0.0,
-        'rot_x': 0.0,
-        'rot_z': 0.0,
+        'rot_y_rad': 0.0,
+        'rot_x_rad': 0.0,
+        'rot_z_rad': 0.0,
         **kwargs,
     }.items():
         xo.assert_allclose(getattr(out, key), value, atol=1e-14, rtol=0)
@@ -118,11 +118,11 @@ def test_from_line_with_aperture_type_bounds(test_context):
     )
 
     assert len(bounds_table.name) == len(expected)
-    for idx, ((expected_s, expected_name), bound_s, type_name) in enumerate(
-        zip(expected, bounds_table.s, bounds_table.type_name)
+    for idx, ((expected_s, expected_name), bound_s, pipe_name) in enumerate(
+        zip(expected, bounds_table.s, bounds_table.pipe_name)
     ):
         xo.assert_allclose(bound_s, expected_s, atol=1e-6)
-        assert expected_name.startswith(type_name), f'mismatch at bound row {idx}'
+        assert expected_name.startswith(pipe_name), f'mismatch at bound row {idx}'
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -204,13 +204,13 @@ def test_from_line_with_associated_apertures_type_bounds(test_context):
     )
 
     assert len(bounds_table.name) == len(expected)
-    for idx, ((expected_s, expected_name), bound_s, type_name) in enumerate(
-        zip(expected, bounds_table.s, bounds_table.type_name)
+    for idx, ((expected_s, expected_name), bound_s, pipe_name) in enumerate(
+        zip(expected, bounds_table.s, bounds_table.pipe_name)
     ):
         xo.assert_allclose(bound_s, expected_s, atol=1e-6)
         prototype_name, suffix = expected_name.split('::')
         _ = int(suffix)
-        assert type_name.startswith(prototype_name), f'mismatch at bound row {idx}'
+        assert pipe_name.startswith(prototype_name), f'mismatch at bound row {idx}'
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -228,11 +228,11 @@ def test_from_line_with_limits_type_bounds(test_context):
     )
 
     assert len(bounds_table.name) == len(expected)
-    for idx, ((expected_s, expected_name), bound_s, type_name) in enumerate(
-        zip(expected, bounds_table.s, bounds_table.type_name)
+    for idx, ((expected_s, expected_name), bound_s, pipe_name) in enumerate(
+        zip(expected, bounds_table.s, bounds_table.pipe_name)
     ):
         xo.assert_allclose(bound_s, expected_s, atol=1e-6)
-        assert expected_name.startswith(type_name), f'mismatch at bound row {idx}'
+        assert expected_name.startswith(pipe_name), f'mismatch at bound row {idx}'
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -245,7 +245,7 @@ def test_bounds_table_for_perfect_overlap_interval(test_context):
 
     bounds_table = aperture_model.get_bounds_table()
     mask = (
-        (bounds_table.type_name == 'mqf_aper')
+        (bounds_table.pipe_name == 'mqf_aper')
         & (bounds_table.s >= 1.0 - 1e-12)
         & (bounds_table.s <= 1.3 + 1e-12)
     )
@@ -264,43 +264,43 @@ def test_aperture_model_views(test_context):
     env = xt.Environment()
     line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=1.0)])
     model = ApertureModel(
-        type_positions=[
-            TypePosition(
-                type_index=0,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name='drift',
                 survey_index=0,
                 transformation=transform_matrix(),
             ),
         ],
-        types=[ApertureType(curvature=0.5, positions=[
-            ProfilePosition(profile_index=0, s_position=0.1, shift_x=0.2, shift_y=-0.3, rot_x=0.4, rot_y=-0.5, rot_s=0.6),
-            ProfilePosition(profile_index=1, s_position=0.7),
+        pipes=[Pipe(curvature=0.5, positions=[
+            ProfilePosition(profile_index=0, shift_s=0.1, shift_x=0.2, shift_y=-0.3, rot_x_rad=0.4, rot_y_rad=-0.5, rot_s_rad=0.6),
+            ProfilePosition(profile_index=1, shift_s=0.7),
         ])],
         profiles=[
             Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
             Profile(shape=Rectangle(half_width=2.0, half_height=3.0), tol_r=0.1, tol_x=0.2, tol_y=0.3),
         ],
-        type_names=['type0'],
-        type_position_names=['type0_at_drift'],
+        pipe_names=['type0'],
+        pipe_position_names=['type0_at_drift'],
         profile_names=['circ0', 'rect0'],
         _context=test_context,
     )
 
     profiles = ProfilesView(model)
-    types = TypesView(model)
-    type_positions = TypePositionsView(model)
-    type0 = types[0]
+    pipes = TypesView(model)
+    pipe_positions = TypePositionsView(model)
+    type0 = pipes[0]
     positions = type0
 
     assert repr(profiles) == '<ProfilesView: 2 profiles>'
-    assert repr(types) == '<TypesView: 1 type>'
-    assert repr(type_positions) == '<TypePositionsView: 1 type position>'
+    assert repr(pipes) == '<PipesView: 1 pipe>'
+    assert repr(pipe_positions) == '<PipePositionsView: 1 pipe position>'
     assert profiles.keys() == ['circ0', 'rect0']
-    assert types.keys() == ['type0']
-    assert type_positions.keys() == ['type0_at_drift']
+    assert pipes.keys() == ['type0']
+    assert pipe_positions.keys() == ['type0_at_drift']
     assert profiles.search(r'.*0') == ['circ0', 'rect0']
-    assert types.search(r'type.*') == ['type0']
-    assert type_positions.search(r'type0_.*') == ['type0_at_drift']
+    assert pipes.search(r'type.*') == ['type0']
+    assert pipe_positions.search(r'type0_.*') == ['type0_at_drift']
 
     assert profiles[0].name == 'circ0'
     assert profiles['rect0'].name == 'rect0'
@@ -319,79 +319,79 @@ def test_aperture_model_views(test_context):
     xo.assert_allclose(model.profiles[1].tol_x, 0.5, atol=1e-15, rtol=0)
     xo.assert_allclose(model.profiles[1].tol_y, 0.6, atol=1e-15, rtol=0)
 
-    assert types[0].name == 'type0'
-    assert types['type0'].name == 'type0'
-    assert list(name for name, _ in types.items()) == ['type0']
-    assert [type_.name for type_ in types.values()] == ['type0']
-    assert [type_.curvature for type_ in types.values()] == [0.5]
+    assert pipes[0].name == 'type0'
+    assert pipes['type0'].name == 'type0'
+    assert list(name for name, _ in pipes.items()) == ['type0']
+    assert [type_.name for type_ in pipes.values()] == ['type0']
+    assert [type_.curvature for type_ in pipes.values()] == [0.5]
     xo.assert_allclose(type0.length, 0.6, atol=1e-15, rtol=0)
     xo.assert_allclose(type0.angle, 0.3, atol=1e-15, rtol=0)
     type0.curvature = 0.25
-    xo.assert_allclose(model.types[0].curvature, 0.25, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].curvature, 0.25, atol=1e-15, rtol=0)
 
-    assert type_positions[0].name == 'type0_at_drift'
-    assert type_positions['type0_at_drift'].name == 'type0_at_drift'
-    assert type_positions[0].type.name == 'type0'
-    assert type_positions[0].survey_reference_name == 'drift'
-    assert type_positions[0].survey_index == 0
-    xo.assert_allclose(type_positions[0].shift_x, 0.0, atol=1e-15, rtol=0)
-    xo.assert_allclose(type_positions[0].shift_y, 0.0, atol=1e-15, rtol=0)
-    xo.assert_allclose(type_positions[0].shift_z, 0.0, atol=1e-15, rtol=0)
-    xo.assert_allclose(type_positions[0].rot_x, 0.0, atol=1e-15, rtol=0)
-    xo.assert_allclose(type_positions[0].rot_y, 0.0, atol=1e-15, rtol=0)
-    xo.assert_allclose(type_positions[0].rot_z, 0.0, atol=1e-15, rtol=0)
-    assert list(name for name, _ in type_positions.items()) == ['type0_at_drift']
-    assert [type_pos.name for type_pos in type_positions.values()] == ['type0_at_drift']
-    assert [type_pos.type_index for type_pos in type_positions.values()] == [0]
-    type_positions[0].survey_reference_name = 'drift_entry'
-    type_positions[0].survey_index = 3
-    type_positions[0].type_index = 0
-    type_positions[0].shift_x = 0.1
-    type_positions[0].shift_y = -0.2
-    type_positions[0].shift_z = 0.3
-    type_positions[0].rot_x = 0.4
-    type_positions[0].rot_y = -0.5
-    type_positions[0].rot_z = 0.6
-    assert model.type_positions[0].survey_reference_name == 'drift_entry'
-    assert model.type_positions[0].survey_index == 3
-    updated_transform = matrix_to_transform(model.type_positions[0].transformation.to_nplike())
+    assert pipe_positions[0].name == 'type0_at_drift'
+    assert pipe_positions['type0_at_drift'].name == 'type0_at_drift'
+    assert pipe_positions[0].type.name == 'type0'
+    assert pipe_positions[0].survey_reference_name == 'drift'
+    assert pipe_positions[0].survey_index == 0
+    xo.assert_allclose(pipe_positions[0].shift_x, 0.0, atol=1e-15, rtol=0)
+    xo.assert_allclose(pipe_positions[0].shift_y, 0.0, atol=1e-15, rtol=0)
+    xo.assert_allclose(pipe_positions[0].shift_z, 0.0, atol=1e-15, rtol=0)
+    xo.assert_allclose(pipe_positions[0].rot_x_rad, 0.0, atol=1e-15, rtol=0)
+    xo.assert_allclose(pipe_positions[0].rot_y_rad, 0.0, atol=1e-15, rtol=0)
+    xo.assert_allclose(pipe_positions[0].rot_z_rad, 0.0, atol=1e-15, rtol=0)
+    assert list(name for name, _ in pipe_positions.items()) == ['type0_at_drift']
+    assert [type_pos.name for type_pos in pipe_positions.values()] == ['type0_at_drift']
+    assert [type_pos.pipe_index for type_pos in pipe_positions.values()] == [0]
+    pipe_positions[0].survey_reference_name = 'drift_entry'
+    pipe_positions[0].survey_index = 3
+    pipe_positions[0].pipe_index = 0
+    pipe_positions[0].shift_x = 0.1
+    pipe_positions[0].shift_y = -0.2
+    pipe_positions[0].shift_z = 0.3
+    pipe_positions[0].rot_x_rad = 0.4
+    pipe_positions[0].rot_y_rad = -0.5
+    pipe_positions[0].rot_z_rad = 0.6
+    assert model.pipe_positions[0].survey_reference_name == 'drift_entry'
+    assert model.pipe_positions[0].survey_index == 3
+    updated_transform = matrix_to_transform(model.pipe_positions[0].transformation.to_nplike())
     xo.assert_allclose(updated_transform.shift_x, 0.1, atol=1e-15, rtol=0)
     xo.assert_allclose(updated_transform.shift_y, -0.2, atol=1e-15, rtol=0)
     xo.assert_allclose(updated_transform.shift_z, 0.3, atol=1e-15, rtol=0)
-    xo.assert_allclose(updated_transform.rot_x, 0.4, atol=1e-15, rtol=0)
-    xo.assert_allclose(updated_transform.rot_y, -0.5, atol=1e-15, rtol=0)
-    xo.assert_allclose(updated_transform.rot_z, 0.6, atol=1e-15, rtol=0)
-    type_positions[0].survey_reference_name = 'drift'
-    type_positions[0].survey_index = 0
+    xo.assert_allclose(updated_transform.rot_x_rad, 0.4, atol=1e-15, rtol=0)
+    xo.assert_allclose(updated_transform.rot_y_rad, -0.5, atol=1e-15, rtol=0)
+    xo.assert_allclose(updated_transform.rot_z_rad, 0.6, atol=1e-15, rtol=0)
+    pipe_positions[0].survey_reference_name = 'drift'
+    pipe_positions[0].survey_index = 0
 
     assert positions[0].profile.name == 'circ0'
     assert positions[1].profile.name == 'rect0'
     assert [pp.profile.name for pp in positions] == ['circ0', 'rect0']
     assert [pp.profile.name for pp in positions[:]] == ['circ0', 'rect0']
     assert [pp.profile.name for pp in positions.values()] == ['circ0', 'rect0']
-    xo.assert_allclose(positions[0].s_position, 0.1, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[0].shift_s, 0.1, atol=1e-15, rtol=0)
     xo.assert_allclose(positions[0].shift_x, 0.2, atol=1e-15, rtol=0)
     xo.assert_allclose(positions[0].shift_y, -0.3, atol=1e-15, rtol=0)
-    xo.assert_allclose(positions[0].rot_x, 0.4, atol=1e-15, rtol=0)
-    xo.assert_allclose(positions[0].rot_y, -0.5, atol=1e-15, rtol=0)
-    xo.assert_allclose(positions[0].rot_s, 0.6, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[0].rot_x_rad, 0.4, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[0].rot_y_rad, -0.5, atol=1e-15, rtol=0)
+    xo.assert_allclose(positions[0].rot_s_rad, 0.6, atol=1e-15, rtol=0)
 
     positions[0].profile_index = 1
-    positions[0].s_position = 0.25
+    positions[0].shift_s = 0.25
     positions[0].shift_x = 0.35
     positions[0].shift_y = -0.45
-    positions[0].rot_x = 0.55
-    positions[0].rot_y = -0.65
-    positions[0].rot_s = 0.75
+    positions[0].rot_x_rad = 0.55
+    positions[0].rot_y_rad = -0.65
+    positions[0].rot_s_rad = 0.75
 
     assert positions[0].profile.name == 'rect0'
-    xo.assert_allclose(model.types[0].positions[0].profile_index, 1, atol=0, rtol=0)
-    xo.assert_allclose(model.types[0].positions[0].s_position, 0.25, atol=1e-15, rtol=0)
-    xo.assert_allclose(model.types[0].positions[0].shift_x, 0.35, atol=1e-15, rtol=0)
-    xo.assert_allclose(model.types[0].positions[0].shift_y, -0.45, atol=1e-15, rtol=0)
-    xo.assert_allclose(model.types[0].positions[0].rot_x, 0.55, atol=1e-15, rtol=0)
-    xo.assert_allclose(model.types[0].positions[0].rot_y, -0.65, atol=1e-15, rtol=0)
-    xo.assert_allclose(model.types[0].positions[0].rot_s, 0.75, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[0].profile_index, 1, atol=0, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[0].shift_s, 0.25, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[0].shift_x, 0.35, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[0].shift_y, -0.45, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[0].rot_x_rad, 0.55, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[0].rot_y_rad, -0.65, atol=1e-15, rtol=0)
+    xo.assert_allclose(model.pipes[0].positions[0].rot_s_rad, 0.75, atol=1e-15, rtol=0)
 
     assert [pp.profile.name for pp in positions[:]] == ['rect0', 'rect0']
     with pytest.raises(AttributeError):
@@ -405,24 +405,24 @@ def test_bounds_table_uses_type_position_name_in_installed_profile_name(test_con
     sv = line.survey()
 
     model = ApertureModel(
-        type_positions=[
-            TypePosition(
-                type_index=0,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name=sv.name[0],
                 survey_index=0,
                 transformation=transform_matrix(),
             ),
-            TypePosition(
-                type_index=0,
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name=sv.name[0],
                 survey_index=0,
                 transformation=transform_matrix(shift_z=0.5),
             ),
         ],
-        types=[ApertureType(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
+        pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
         profiles=[Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0)],
-        type_names=['shared_type'],
-        type_position_names=['entry_ap', 'middle_ap'],
+        pipe_names=['shared_type'],
+        pipe_position_names=['entry_ap', 'middle_ap'],
         profile_names=['circ0'],
         _context=test_context,
     )
@@ -430,8 +430,8 @@ def test_bounds_table_uses_type_position_name_in_installed_profile_name(test_con
     ap = Aperture(line=line, model=model, context=test_context, _skip_validity_check=True)
     bounds_table = ap.get_bounds_table()
 
-    assert list(bounds_table.type_name) == ['shared_type', 'shared_type']
-    assert list(bounds_table.type_position_name) == ['entry_ap', 'middle_ap']
+    assert list(bounds_table.pipe_name) == ['shared_type', 'shared_type']
+    assert list(bounds_table.pipe_position_name) == ['entry_ap', 'middle_ap']
     assert list(bounds_table.name) == ['circ0_in_entry_ap', 'circ0_in_middle_ap']
 
 
@@ -448,7 +448,7 @@ def test_bounds_table_for_interval_spanning_multiple_types(test_context):
     rows = bounds_table.rows[mask]
 
     assert len(rows) == 4
-    assert list(rows.type_name) == ['mb_aper', 'ap_ds_aper', 'ap_ds_aper', 'mqf_aper']
+    assert list(rows.pipe_name) == ['mb_aper', 'ap_ds_aper', 'ap_ds_aper', 'mqf_aper']
     xo.assert_allclose(rows.s, [10.6, 10.6, 11.6, 11.6], atol=1e-9)
     assert list(rows.shape) == ['Ellipse', 'RectEllipse', 'RectEllipse', 'Rectangle']
 
@@ -1199,14 +1199,14 @@ def test_survey_resample_out_of_range_returns_nans_with_precision_tolerance(cont
 
 
 @pytest.mark.parametrize(
-    'rot_x,rot_y,dx,dy,ds1,ds2,ds_bounds1,ds_bounds2',
+    'rot_x_rad,rot_y_rad,dx,dy,ds1,ds2,ds_bounds1,ds_bounds2',
     [
         (0, 0, 0, 0, 0, 0, 0, 0),
         (np.deg2rad(45), np.deg2rad(30), np.sqrt(3), 1, 1, 1, 1 / np.sqrt(2), 0.5),
     ]
 )
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-def test_aperture_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_bounds1, ds_bounds2, test_context):
+def test_aperture_bounds_straight_survey(rot_x_rad, rot_y_rad, dx, dy, ds1, ds2, ds_bounds1, ds_bounds2, test_context):
     env = xt.Environment()
     drift = env.new('drift', xt.Drift, length=1)
     line = env.new_line(name='line', components=10 * [drift])
@@ -1221,19 +1221,19 @@ def test_aperture_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_boun
     ]
 
     profile_positions = [
-        ProfilePosition(profile_index=0, s_position=-1.5),
-        ProfilePosition(profile_index=0, s_position=0.5, rot_x=rot_x),
-        ProfilePosition(profile_index=0, s_position=2.5, rot_y=rot_y),
-        ProfilePosition(profile_index=0, s_position=8.5),
+        ProfilePosition(profile_index=0, shift_s=-1.5),
+        ProfilePosition(profile_index=0, shift_s=0.5, rot_x_rad=rot_x_rad),
+        ProfilePosition(profile_index=0, shift_s=2.5, rot_y_rad=rot_y_rad),
+        ProfilePosition(profile_index=0, shift_s=8.5),
     ]
 
-    types = [
-        ApertureType(curvature=0., positions=profile_positions),
+    pipes = [
+        Pipe(curvature=0., positions=profile_positions),
     ]
 
-    type_positions = [
-        TypePosition(
-            type_index=0,
+    pipe_positions = [
+        PipePosition(
+            pipe_index=0,
             survey_reference_name='drift::0',
             survey_index=sv.name.tolist().index('drift::0'),
             transformation=transform_matrix(
@@ -1246,11 +1246,11 @@ def test_aperture_bounds_straight_survey(rot_x, rot_y, dx, dy, ds1, ds2, ds_boun
 
     model = ApertureModel(
         line=line,
-        type_positions=type_positions,
-        types=types,
+        pipe_positions=pipe_positions,
+        pipes=pipes,
         profiles=profiles,
-        type_names=['type0'],
-        type_position_names=['type0'],
+        pipe_names=['type0'],
+        pipe_position_names=['type0'],
         profile_names=['circle', 'rectangle'],
     )
 
@@ -1292,40 +1292,40 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
         Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
     ]
     profile_positions = [
-        ProfilePosition(profile_index=0, s_position=0.0),
-        ProfilePosition(profile_index=0, s_position=length),
+        ProfilePosition(profile_index=0, shift_s=0.0),
+        ProfilePosition(profile_index=0, shift_s=length),
     ]
 
     model = ApertureModel(
         line=line,
-        type_positions=[
-            TypePosition(
-                type_index=0,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name=sv.name[0],
                 survey_index=0,
                 transformation=transform_matrix(),
             ),
-            TypePosition(
-                type_index=1,
+            PipePosition(
+                pipe_index=1,
                 survey_reference_name=sv.name[1],
                 survey_index=1,
                 transformation=transform_matrix(),
             ),
-            TypePosition(
-                type_index=2,
+            PipePosition(
+                pipe_index=2,
                 survey_reference_name=sv.name[2],
                 survey_index=2,
                 transformation=transform_matrix(),
             ),
         ],
-        types=[
-            ApertureType(curvature=angle / length, positions=profile_positions),
-            ApertureType(curvature=0, positions=profile_positions),
-            ApertureType(curvature=-angle / length, positions=profile_positions),
+        pipes=[
+            Pipe(curvature=angle / length, positions=profile_positions),
+            Pipe(curvature=0, positions=profile_positions),
+            Pipe(curvature=-angle / length, positions=profile_positions),
         ],
         profiles=profiles,
-        type_names=['type0', 'type1', 'type2'],
-        type_position_names=['type0', 'type1', 'type2'],
+        pipe_names=['type0', 'type1', 'type2'],
+        pipe_position_names=['type0', 'type1', 'type2'],
         profile_names=['circ0'],
     )
 
@@ -1336,7 +1336,7 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
     xo.assert_allclose(bounds_table.s, bounds_s, atol=1e-6, rtol=1e-6)
     xo.assert_allclose(bounds_table.s_start, bounds_s, atol=1e-6, rtol=1e-6)
     xo.assert_allclose(bounds_table.s_end, bounds_s, atol=1e-6, rtol=1e-6)
-    assert all(bounds_table.type_name == ['type0', 'type0', 'type1', 'type1', 'type2', 'type2'])
+    assert all(bounds_table.pipe_name == ['type0', 'type0', 'type1', 'type1', 'type2', 'type2'])
     assert all(bounds_table.profile_name == ['circ0'])
 
     s_samples = np.linspace(0, 3 * length, 51, dtype=FloatType._dtype)
@@ -1365,28 +1365,28 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
     shape = Circle(radius=aperture_radius)
     profiles = [Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0)]
     profile_positions = [
-        ProfilePosition(profile_index=0, s_position=0.0),
-        ProfilePosition(profile_index=0, s_position=bend_length),
+        ProfilePosition(profile_index=0, shift_s=0.0),
+        ProfilePosition(profile_index=0, shift_s=bend_length),
     ]
 
-    type_positions = [
-        TypePosition(
-            type_index=ii,
+    pipe_positions = [
+        PipePosition(
+            pipe_index=ii,
             survey_reference_name=sv.name[ii],
             survey_index=ii,
             transformation=transform_matrix(),
         )
         for ii in range(num_bends)
     ]
-    types = [ApertureType(curvature=bend_angle / bend_length, positions=profile_positions)] * num_bends
+    pipes = [Pipe(curvature=bend_angle / bend_length, positions=profile_positions)] * num_bends
 
     model = ApertureModel(
         line=line,
-        type_positions=type_positions,
-        types=types,
+        pipe_positions=pipe_positions,
+        pipes=pipes,
         profiles=profiles,
-        type_names=[f'type{ii}' for ii in range(num_bends)],
-        type_position_names=[f'type{ii}' for ii in range(num_bends)],
+        pipe_names=[f'type{ii}' for ii in range(num_bends)],
+        pipe_position_names=[f'type{ii}' for ii in range(num_bends)],
         profile_names=['circ0'],
     )
 
@@ -1435,31 +1435,31 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
     profiles = [Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0)]
 
     # Same physical profile planes, expressed in three different reference frames.
-    types = [
-        ApertureType(
+    pipes = [
+        Pipe(
             curvature=bend_angle / bend_length,
             positions=[
-                ProfilePosition(profile_index=0, s_position=0.0),
-                ProfilePosition(profile_index=0, s_position=bend_length),
+                ProfilePosition(profile_index=0, shift_s=0.0),
+                ProfilePosition(profile_index=0, shift_s=bend_length),
             ],
         ),
-        ApertureType(
+        Pipe(
             curvature=bend_angle / bend_length,
             positions=[
-                ProfilePosition(profile_index=0, s_position=-bend_length),
-                ProfilePosition(profile_index=0, s_position=0.0),
+                ProfilePosition(profile_index=0, shift_s=-bend_length),
+                ProfilePosition(profile_index=0, shift_s=0.0),
             ],
         ),
-        ApertureType(
+        Pipe(
             curvature=bend_angle / bend_length,
             positions=[
-                ProfilePosition(profile_index=0, s_position=-2 * bend_length),
-                ProfilePosition(profile_index=0, s_position=-bend_length),
+                ProfilePosition(profile_index=0, shift_s=-2 * bend_length),
+                ProfilePosition(profile_index=0, shift_s=-bend_length),
             ],
         ),
     ]
 
-    type_positions = []
+    pipe_positions = []
     for ii in range(num_bends):
         # Cycle references where possible; near the end stay in-range.
         if ii <= num_bends - 3:
@@ -1467,9 +1467,9 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
         else:
             shift = 0
 
-        type_positions.append(
-            TypePosition(
-                type_index=shift,
+        pipe_positions.append(
+            PipePosition(
+                pipe_index=shift,
                 survey_reference_name=sv.name[ii + shift],
                 survey_index=ii + shift,
                 transformation=transform_matrix(),
@@ -1478,11 +1478,11 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
 
     model = ApertureModel(
         line=line,
-        type_positions=type_positions,
-        types=types,
+        pipe_positions=pipe_positions,
+        pipes=pipes,
         profiles=profiles,
-        type_names=['type_ref0', 'type_ref1', 'type_ref2'],
-        type_position_names=[['type_ref0', 'type_ref1', 'type_ref2'][tp.type_index] for tp in type_positions],
+        pipe_names=['type_ref0', 'type_ref1', 'type_ref2'],
+        pipe_position_names=[['type_ref0', 'type_ref1', 'type_ref2'][tp.pipe_index] for tp in pipe_positions],
         profile_names=['circ0'],
     )
 
@@ -1529,27 +1529,27 @@ def test_aperture_bounds_large_curved_ring_single_type_wraparound_regression(tes
 
     model = ApertureModel(
         line=line,
-        type_positions=[
-            TypePosition(
-                type_index=0,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name=sv.name[num_bends - 1],
                 survey_index=num_bends - 1,
                 # Shift the type forward so the installed profiles should wrap to small s.
                 transformation=transform_matrix(shift_z=2 * bend_length),
             )
         ],
-        types=[
-            ApertureType(
+        pipes=[
+            Pipe(
                 curvature=bend_angle / bend_length,
                 positions=[
-                    ProfilePosition(profile_index=0, s_position=0.0),
-                    ProfilePosition(profile_index=0, s_position=bend_length),
+                    ProfilePosition(profile_index=0, shift_s=0.0),
+                    ProfilePosition(profile_index=0, shift_s=bend_length),
                 ],
             )
         ],
         profiles=[Profile(shape=Circle(radius=aperture_radius), tol_r=0, tol_x=0, tol_y=0)],
-        type_names=['wrapped_type'],
-        type_position_names=['wrapped_type'],
+        pipe_names=['wrapped_type'],
+        pipe_position_names=['wrapped_type'],
         profile_names=['circ0'],
     )
 
@@ -1593,24 +1593,24 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
         Profile(shape=Circle(radius=r1), tol_r=0, tol_x=0, tol_y=0),
     ]
     profile_positions = [
-        ProfilePosition(profile_index=0, s_position=s0),
-        ProfilePosition(profile_index=1, s_position=s1),
+        ProfilePosition(profile_index=0, shift_s=s0),
+        ProfilePosition(profile_index=1, shift_s=s1),
     ]
 
     model = ApertureModel(
         line=line,
-        type_positions=[
-            TypePosition(
-                type_index=0,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name=sv.name[0],
                 survey_index=0,
                 transformation=transform_matrix(shift_x=-1.5),
             ),
         ],
-        types=[ApertureType(curvature=0.0, positions=profile_positions)],
+        pipes=[Pipe(curvature=0.0, positions=profile_positions)],
         profiles=profiles,
-        type_names=['type0'],
-        type_position_names=['type0'],
+        pipe_names=['type0'],
+        pipe_position_names=['type0'],
         profile_names=['circle0', 'circle1'],
     )
 
@@ -1630,7 +1630,7 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     sv_ref_mat[:3, 1] = sv_ref.ey
     sv_ref_mat[:3, 2] = sv_ref.ez
     sv_ref_mat[:3, 3] = np.array([sv_ref.X[0], sv_ref.Y[0], sv_ref.Z[0]])
-    world_from_type = sv_ref_mat @ model.type_positions[0].transformation.to_nparray()
+    world_from_type = sv_ref_mat @ model.pipe_positions[0].transformation.to_nparray()
     type_from_world = np.linalg.inv(world_from_type)
 
     for ii in range(len(s_samples)):
@@ -1663,24 +1663,24 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
         Profile(shape=Circle(radius=1.0), tol_r=0.5, tol_x=0.6, tol_y=0.7),
     ]
     profile_positions = [
-        ProfilePosition(profile_index=0, s_position=0.0),
-        ProfilePosition(profile_index=1, s_position=10.0),
+        ProfilePosition(profile_index=0, shift_s=0.0),
+        ProfilePosition(profile_index=1, shift_s=10.0),
     ]
 
     model = ApertureModel(
         line=line,
-        type_positions=[
-            TypePosition(
-                type_index=0,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name=sv.name[0],
                 survey_index=0,
                 transformation=transform_matrix(),
             ),
         ],
-        types=[ApertureType(curvature=0.0, positions=profile_positions)],
+        pipes=[Pipe(curvature=0.0, positions=profile_positions)],
         profiles=profiles,
-        type_names=['type0'],
-        type_position_names=['type0'],
+        pipe_names=['type0'],
+        pipe_position_names=['type0'],
         profile_names=['profile0', 'profile1'],
     )
 
@@ -1710,24 +1710,24 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
         Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
     ]
     profile_positions = [
-        ProfilePosition(profile_index=0, s_position=0.0),
-        ProfilePosition(profile_index=0, s_position=length),
+        ProfilePosition(profile_index=0, shift_s=0.0),
+        ProfilePosition(profile_index=0, shift_s=length),
     ]
 
     model = ApertureModel(
         line=line,
-        type_positions=[
-            TypePosition(
-                type_index=0,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name=sv.name[0],
                 survey_index=0,
                 transformation=transform_matrix(),
             ),
         ],
-        types=[ApertureType(curvature=angle / length, positions=profile_positions)],
+        pipes=[Pipe(curvature=angle / length, positions=profile_positions)],
         profiles=profiles,
-        type_names=['type0'],
-        type_position_names=['type0'],
+        pipe_names=['type0'],
+        pipe_position_names=['type0'],
         profile_names=['circ0'],
     )
 
@@ -1748,18 +1748,18 @@ def test_cross_sections_at_s_returns_axis_extents(test_context):
 
     model = ApertureModel(
         line=line,
-        type_positions=[
-            TypePosition(
-                type_index=0,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name=sv.name[0],
                 survey_index=0,
                 transformation=transform_matrix(),
             ),
         ],
-        types=[ApertureType(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
+        pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
         profiles=[Profile(shape=Rectangle(half_width=2.0, half_height=1.5), tol_r=0, tol_x=0, tol_y=0)],
-        type_names=['type0'],
-        type_position_names=['type0'],
+        pipe_names=['type0'],
+        pipe_position_names=['type0'],
         profile_names=['profile0'],
     )
 
@@ -1790,33 +1790,33 @@ def test_cross_sections_at_s_compare_straight_curved(test_context):
         Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
     ]
     profile_positions = [
-        ProfilePosition(profile_index=0, s_position=0.0),
-        ProfilePosition(profile_index=1, s_position=length),
+        ProfilePosition(profile_index=0, shift_s=0.0),
+        ProfilePosition(profile_index=1, shift_s=length),
     ]
 
     model = ApertureModel(
         line=line,
-        types=[
-            ApertureType(curvature=0, positions=profile_positions),
-            ApertureType(curvature=angle / length, positions=profile_positions),
+        pipes=[
+            Pipe(curvature=0, positions=profile_positions),
+            Pipe(curvature=angle / length, positions=profile_positions),
         ],
-        type_positions=[
-            TypePosition(
-                type_index=0,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name='drift',
                 survey_index=list(sv.name).index('drift'),
                 transformation=np.identity(4),
             ),
-            TypePosition(
-                type_index=1,
+            PipePosition(
+                pipe_index=1,
                 survey_reference_name='bend',
                 survey_index=list(sv.name).index('bend'),
                 transformation=np.identity(4),
             ),
         ],
         profiles=profiles,
-        type_names=['type_straight', 'type_curv'],
-        type_position_names=['type_straight', 'type_curv'],
+        pipe_names=['type_straight', 'type_curv'],
+        pipe_position_names=['type_straight', 'type_curv'],
         profile_names=['rect0', 'circ0'],
     )
 
@@ -1863,24 +1863,24 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
         Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
     ]
     profile_positions = [
-        ProfilePosition(profile_index=0, s_position=0.0),
-        ProfilePosition(profile_index=1, s_position=length),
+        ProfilePosition(profile_index=0, shift_s=0.0),
+        ProfilePosition(profile_index=1, shift_s=length),
     ]
 
     model = ApertureModel(
         line=line,
-        type_positions=[
-            TypePosition(
-                type_index=0,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
                 survey_reference_name='bend',
                 survey_index=list(sv.name).index('bend'),
                 transformation=np.identity(4),
             ),
         ],
-        types=[ApertureType(curvature=angle / length, positions=profile_positions)],
+        pipes=[Pipe(curvature=angle / length, positions=profile_positions)],
         profiles=profiles,
-        type_names=['type_curv'],
-        type_position_names=['type_curv'],
+        pipe_names=['type_curv'],
+        pipe_position_names=['type_curv'],
         profile_names=['rect0', 'circ0'],
     )
 
@@ -1915,16 +1915,16 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
         Profile(shape=circle, tol_r=0, tol_x=0, tol_y=0),
         Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
     ]
-    types = [
-        ApertureType(curvature=0.0, positions=[
-            ProfilePosition(profile_index=1, s_position=0.0, rot_s=np.deg2rad(15.0)),
-            ProfilePosition(profile_index=1, s_position=5.5, rot_s=np.deg2rad(90.0)),
-            ProfilePosition(profile_index=0, s_position=11.0, rot_x=np.deg2rad(10.0)),
+    pipes = [
+        Pipe(curvature=0.0, positions=[
+            ProfilePosition(profile_index=1, shift_s=0.0, rot_s_rad=np.deg2rad(15.0)),
+            ProfilePosition(profile_index=1, shift_s=5.5, rot_s_rad=np.deg2rad(90.0)),
+            ProfilePosition(profile_index=0, shift_s=11.0, rot_x_rad=np.deg2rad(10.0)),
         ]),
     ]
-    type_positions = [
-        TypePosition(
-            type_index=0,
+    pipe_positions = [
+        PipePosition(
+            pipe_index=0,
             survey_reference_name='drift::0',
             survey_index=sv.name.tolist().index('drift::0'),
             transformation=transform_matrix(shift_x=-1.5),
@@ -1932,11 +1932,11 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
     ]
     model = ApertureModel(
         line_name='line',
-        type_positions=type_positions,
-        types=types,
+        pipe_positions=pipe_positions,
+        pipes=pipes,
         profiles=profiles,
-        type_names=['type0'],
-        type_position_names=['type0'],
+        pipe_names=['type0'],
+        pipe_position_names=['type0'],
         profile_names=['circle', 'rectangle'],
     )
 

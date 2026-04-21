@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from xtrack.aperture.aperture import Aperture
 from xtrack.aperture.transform import transform_matrix
-from xtrack.aperture.structures import ApertureModel, ApertureType, Circle, Profile, ProfilePosition, Rectangle, TypePosition
+from xtrack.aperture.structures import ApertureModel, Pipe, Circle, Profile, ProfilePosition, Rectangle, PipePosition
 
 
 env = xt.Environment()
@@ -35,17 +35,17 @@ profiles = [
     Profile(shape=rectangle, tol_r=0, tol_x=0, tol_y=0),
 ]
 
-types = [
-    ApertureType(curvature=0., positions=[
-        ProfilePosition(profile_index=1, s_position=0, rot_s=np.deg2rad(15)),
-        ProfilePosition(profile_index=1, s_position=5.5, rot_s=np.deg2rad(90)),
-        ProfilePosition(profile_index=0, s_position=11, rot_x=np.deg2rad(10)),
+pipes = [
+    Pipe(curvature=0., positions=[
+        ProfilePosition(profile_index=1, shift_s=0, rot_s_rad=np.deg2rad(15)),
+        ProfilePosition(profile_index=1, shift_s=5.5, rot_s_rad=np.deg2rad(90)),
+        ProfilePosition(profile_index=0, shift_s=11, rot_x_rad=np.deg2rad(10)),
     ]),
 ]
 
-type_positions = [
-    TypePosition(
-        type_index=0,
+pipe_positions = [
+    PipePosition(
+        pipe_index=0,
         survey_reference_name='drift::0',
         survey_index=sv.name.tolist().index('drift::0'),
         transformation=transform_matrix(shift_x=-1.5),
@@ -54,11 +54,11 @@ type_positions = [
 
 model = ApertureModel(
     line_name='line',
-    type_positions=type_positions,
-    types=types,
+    pipe_positions=pipe_positions,
+    pipes=pipes,
     profiles=profiles,
-    type_names=['type0'],
-    type_position_names=['type0'],
+    pipe_names=['type0'],
+    pipe_position_names=['type0'],
     profile_names=['circle', 'rectangle'],
 )
 
@@ -91,7 +91,7 @@ def poly2d_to_hom(poly2d):
     return poly_hom
 
 
-for type_pos in aper._model.type_positions:
+for type_pos in aper._model.pipe_positions:
     aper_type = aper._model.type_for_position(type_pos)
     sv_ref = sv.rows[type_pos.survey_index]
 
@@ -108,10 +108,10 @@ for type_pos in aper._model.type_positions:
         profile_position_matrix = transform_matrix(
             dx=profile_pos.shift_x,
             dy=profile_pos.shift_y,
-            ds=profile_pos.s_position,
-            theta=profile_pos.rot_y,
-            phi=profile_pos.rot_x,
-            psi=profile_pos.rot_s,
+            ds=profile_pos.shift_s,
+            theta=profile_pos.rot_y_rad,
+            phi=profile_pos.rot_x_rad,
+            psi=profile_pos.rot_s_rad,
         )
 
         poly_in_sv_frame = sv_ref_matrix @ type_matrix @ profile_position_matrix @ poly_hom

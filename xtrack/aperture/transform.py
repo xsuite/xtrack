@@ -7,28 +7,55 @@ class Transform(NamedTuple):
     shift_x: float
     shift_y: float
     shift_z: float
-    rot_y: float
-    rot_x: float
-    rot_z: float
+    rot_y_rad: float
+    rot_x_rad: float
+    rot_z_rad: float
 
 
-def transform_matrix(shift_x=0, shift_y=0, shift_z=0, rot_y=0, rot_x=0, rot_z=0):
+def transform_matrix(
+    shift_x=0,
+    shift_y=0,
+    shift_z=0,
+    rot_y_rad=0,
+    rot_x_rad=0,
+    rot_z_rad=0,
+    *,
+    dx=None,
+    dy=None,
+    ds=None,
+    theta=None,
+    phi=None,
+    psi=None,
+):
     """Generate a 3D transformation matrix.
 
     Parameters
     ----------
     shift_x, shift_y, shift_z : float
         Shifts in x, y, and z directions
-    rot_y : float
+    rot_y_rad : float
         Rotation around the y-axis (positive s to x) in radians (MAD-X theta)
-    rot_x
+    rot_x_rad
         Rotation around the x-axis (positive s to y) in radians (MAD-X phi)
-    rot_z
+    rot_z_rad
         Rotation around the z-axis (positive y to x) in radians (MAD-X psi)
     """
-    s_phi, c_phi = np.sin(rot_x), np.cos(rot_x)
-    s_theta, c_theta = np.sin(rot_y), np.cos(rot_y)
-    s_psi, c_psi = np.sin(rot_z), np.cos(rot_z)
+    if dx is not None:
+        shift_x = dx
+    if dy is not None:
+        shift_y = dy
+    if ds is not None:
+        shift_z = ds
+    if theta is not None:
+        rot_y_rad = theta
+    if phi is not None:
+        rot_x_rad = phi
+    if psi is not None:
+        rot_z_rad = psi
+
+    s_phi, c_phi = np.sin(rot_x_rad), np.cos(rot_x_rad)
+    s_theta, c_theta = np.sin(rot_y_rad), np.cos(rot_y_rad)
+    s_psi, c_psi = np.sin(rot_z_rad), np.cos(rot_z_rad)
     matrix = np.array(
         [
             [
@@ -60,7 +87,7 @@ def matrix_to_transform(matrix: np.ndarray) -> Transform:
 
     The rotations are applied in the following order:
 
-        R = Ry(rot_y) @ Rx(rot_x) @ Rz(rot_z)
+        R = Ry(rot_y_rad) @ Rx(rot_x_rad) @ Rz(rot_z_rad)
 
     and translation taken from the last column.
 
@@ -97,16 +124,16 @@ def matrix_to_transform(matrix: np.ndarray) -> Transform:
     # Extract translation directly
     shift_x, shift_y, shift_z = t
 
-    # Extract angles for R = Ry(rot_y) @ Rx(rot_x) @ Rz(rot_z)
-    rot_x = np.arcsin(np.clip(R[1, 2], -1.0, 1.0))
-    rot_y = np.arctan2(R[0, 2], R[2, 2])
-    rot_z = np.arctan2(R[1, 0], R[1, 1])
+    # Extract angles for R = Ry(rot_y_rad) @ Rx(rot_x_rad) @ Rz(rot_z_rad)
+    rot_x_rad = np.arcsin(np.clip(R[1, 2], -1.0, 1.0))
+    rot_y_rad = np.arctan2(R[0, 2], R[2, 2])
+    rot_z_rad = np.arctan2(R[1, 0], R[1, 1])
 
     return Transform(
         shift_x=float(shift_x),
         shift_y=float(shift_y),
         shift_z=float(shift_z),
-        rot_y=float(rot_y),
-        rot_x=float(rot_x),
-        rot_z=float(rot_z),
+        rot_y_rad=float(rot_y_rad),
+        rot_x_rad=float(rot_x_rad),
+        rot_z_rad=float(rot_z_rad),
     )

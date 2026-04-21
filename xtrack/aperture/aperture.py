@@ -14,9 +14,9 @@ from xtrack.aperture.profile_converters import (
     LimitTypes, profile_from_limit_element, profile_from_madx_aperture
 )
 from xtrack.aperture.structures import (
-    ApertureBounds, ApertureModel, ApertureType, BeamData, Circle, FloatType,
-    Profile, ProfilePolygons, ProfilePosition, Racetrack, Rectangle,
-    RectEllipse, ShapeTypes, SurveyData, TwissData, TypePosition
+    ApertureBounds, ApertureModel, BeamData, Circle, FloatType, Pipe,
+    PipePosition, Profile, ProfilePolygons, ProfilePosition, Racetrack,
+    Rectangle, RectEllipse, ShapeTypes, SurveyData, TwissData
 )
 from xtrack.aperture.transform import (
     Transform, matrix_to_transform, transform_matrix
@@ -140,7 +140,7 @@ class ProfilesView:
         return matches
 
 
-class TypePositionView:
+class PipePositionView:
     __slots__ = ('_model', '_index')
 
     def __init__(self, model: ApertureModel, index: int):
@@ -156,28 +156,40 @@ class TypePositionView:
         }
         transform = ''.join(f', {k} = {v}' for k, v in non_zero_transform.items())
 
-        return (f'<TypePositionView {self.name!r}: {self.type.name!r}, '
+        return (f'<PipePositionView {self.name!r}: {self.pipe.name!r}, '
                 f'survey_ref = {self.survey_reference_name!r}{transform}>')
 
     @property
-    def raw(self) -> TypePosition:
-        return self._model.type_positions[self._index]
+    def raw(self) -> PipePosition:
+        return self._model.pipe_positions[self._index]
 
     @property
     def name(self) -> str:
-        return self._model.type_position_names[self._index]
+        return self._model.pipe_position_names[self._index]
+
+    @property
+    def pipe_index(self) -> int:
+        return self.raw.pipe_index
+
+    @pipe_index.setter
+    def pipe_index(self, pipe_index: int):
+        self.raw.pipe_index = pipe_index
 
     @property
     def type_index(self) -> int:
-        return self.raw.type_index
+        return self.pipe_index
 
     @type_index.setter
     def type_index(self, type_index: int):
-        self.raw.type_index = type_index
+        self.pipe_index = type_index
 
     @property
-    def type(self) -> TypeView:
-        return TypeView(self._model, self.type_index)
+    def pipe(self) -> PipeView:
+        return PipeView(self._model, self.pipe_index)
+
+    @property
+    def type(self) -> PipeView:
+        return self.pipe
 
     @property
     def survey_reference_name(self) -> str:
@@ -241,38 +253,36 @@ class TypePositionView:
         self.set_transform(Transform(**as_dict))
 
     @property
-    def rot_y(self) -> float:
-        return self.get_transform().rot_y
+    def rot_y_rad(self) -> float:
+        return self.get_transform().rot_y_rad
 
-    @rot_y.setter
-    def rot_y(self, value: float):
+    @rot_y_rad.setter
+    def rot_y_rad(self, value: float):
         as_dict = self.get_transform()._asdict()
-        as_dict['rot_y'] = value
+        as_dict['rot_y_rad'] = value
         self.set_transform(Transform(**as_dict))
 
     @property
-    def rot_x(self) -> float:
-        return self.get_transform().rot_x
+    def rot_x_rad(self) -> float:
+        return self.get_transform().rot_x_rad
 
-    @rot_x.setter
-    def rot_x(self, value: float):
+    @rot_x_rad.setter
+    def rot_x_rad(self, value: float):
         as_dict = self.get_transform()._asdict()
-        as_dict['rot_x'] = value
+        as_dict['rot_x_rad'] = value
         self.set_transform(Transform(**as_dict))
 
     @property
-    def rot_z(self) -> float:
-        return self.get_transform().rot_z
+    def rot_z_rad(self) -> float:
+        return self.get_transform().rot_z_rad
 
-    @rot_z.setter
-    def rot_z(self, value: float):
+    @rot_z_rad.setter
+    def rot_z_rad(self, value: float):
         as_dict = self.get_transform()._asdict()
-        as_dict['rot_z'] = value
+        as_dict['rot_z_rad'] = value
         self.set_transform(Transform(**as_dict))
 
-
-
-class TypePositionsView:
+class PipePositionsView:
     __slots__ = ('_model',)
 
     def __init__(self, model: ApertureModel):
@@ -280,24 +290,24 @@ class TypePositionsView:
 
     def __repr__(self):
         count = len(self)
-        positions_str = 'type position' if count == 1 else 'type positions'
-        return f'<TypePositionsView: {count} {positions_str}>'
+        positions_str = 'pipe position' if count == 1 else 'pipe positions'
+        return f'<PipePositionsView: {count} {positions_str}>'
 
     def __getitem__(self, item: str | int):
         if isinstance(item, str):
-            item = self._model.type_position_names.index(item)
+            item = self._model.pipe_position_names.index(item)
 
-        return TypePositionView(self._model, item)
+        return PipePositionView(self._model, item)
 
     def __len__(self) -> int:
-        return len(self._model.type_positions)
+        return len(self._model.pipe_positions)
 
     def __iter__(self):
         for ii in range(len(self)):
             yield self[ii]
 
     def keys(self):
-        return self._model.type_position_names
+        return self._model.pipe_position_names
 
     def values(self):
         return list(self)
@@ -312,19 +322,19 @@ class TypePositionsView:
 
 
 class ProfilePositionView:
-    __slots__ = ('_model', '_type_index', '_position_index')
+    __slots__ = ('_model', '_pipe_index', '_position_index')
 
-    def __init__(self, model: ApertureModel, type_index: int, position_index: int):
+    def __init__(self, model: ApertureModel, pipe_index: int, position_index: int):
         self._model = model
-        self._type_index = type_index
+        self._pipe_index = pipe_index
         self._position_index = position_index
 
     def __repr__(self):
-        return f'<ProfilePositionView profile={self.profile.name!r}, s={self.s_position}>'
+        return f'<ProfilePositionView profile={self.profile.name!r}, shift_s={self.shift_s}>'
 
     @property
     def raw(self) -> ProfilePosition:
-        return self._model.types[self._type_index].positions[self._position_index]
+        return self._model.pipes[self._pipe_index].positions[self._position_index]
 
     @property
     def profile_index(self) -> int:
@@ -339,12 +349,20 @@ class ProfilePositionView:
         return ProfileView(self._model, self.profile_index)
 
     @property
+    def shift_s(self) -> float:
+        return self.raw.shift_s
+
+    @shift_s.setter
+    def shift_s(self, shift_s: float):
+        self.raw.shift_s = shift_s
+
+    @property
     def s_position(self) -> float:
-        return self.raw.s_position
+        return self.shift_s
 
     @s_position.setter
     def s_position(self, s_position: float):
-        self.raw.s_position = s_position
+        self.shift_s = s_position
 
     @property
     def shift_x(self) -> float:
@@ -363,31 +381,30 @@ class ProfilePositionView:
         self.raw.shift_y = shift_y
 
     @property
-    def rot_x(self) -> float:
-        return self.raw.rot_x
+    def rot_x_rad(self) -> float:
+        return self.raw.rot_x_rad
 
-    @rot_x.setter
-    def rot_x(self, rot_x: float):
-        self.raw.rot_x = rot_x
-
-    @property
-    def rot_y(self) -> float:
-        return self.raw.rot_y
-
-    @rot_y.setter
-    def rot_y(self, rot_y: float):
-        self.raw.rot_y = rot_y
+    @rot_x_rad.setter
+    def rot_x_rad(self, rot_x_rad: float):
+        self.raw.rot_x_rad = rot_x_rad
 
     @property
-    def rot_s(self) -> float:
-        return self.raw.rot_s
+    def rot_y_rad(self) -> float:
+        return self.raw.rot_y_rad
 
-    @rot_s.setter
-    def rot_s(self, rot_s: float):
-        self.raw.rot_s = rot_s
+    @rot_y_rad.setter
+    def rot_y_rad(self, rot_y_rad: float):
+        self.raw.rot_y_rad = rot_y_rad
 
+    @property
+    def rot_s_rad(self) -> float:
+        return self.raw.rot_s_rad
 
-class TypeView:
+    @rot_s_rad.setter
+    def rot_s_rad(self, rot_s_rad: float):
+        self.raw.rot_s_rad = rot_s_rad
+
+class PipeView:
     __slots__ = ('_model', '_index')
 
     def __init__(self, model: ApertureModel, index: int):
@@ -397,7 +414,7 @@ class TypeView:
     def __repr__(self):
         curved_str = f', curvature = {self.curvature}' if self.curvature else ''
         len_positions = len(self)
-        return f'<TypeView {self.name!r}: {len_positions} profiles{curved_str}>'
+        return f'<PipeView {self.name!r}: {len_positions} profiles{curved_str}>'
 
     def __getitem__(self, item: int):
         if isinstance(item, slice):
@@ -407,12 +424,12 @@ class TypeView:
         return ProfilePositionView(self._model, self._index, item)
 
     @property
-    def raw(self) -> ApertureType:
-        return self._model.types[self._index]
+    def raw(self) -> Pipe:
+        return self._model.pipes[self._index]
 
     @property
     def name(self) -> str:
-        return self._model.type_names[self._index]
+        return self._model.pipe_names[self._index]
 
     @property
     def curvature(self) -> float:
@@ -427,8 +444,8 @@ class TypeView:
 
     @property
     def length(self):
-        s_end = self.raw.positions[len(self) - 1].s_position
-        s_start = self.raw.positions[0].s_position
+        s_end = self.raw.positions[len(self) - 1].shift_s
+        s_start = self.raw.positions[0].shift_s
         return s_end - s_start
 
     @property
@@ -443,7 +460,7 @@ class TypeView:
         return list(self)
 
 
-class TypesView:
+class PipesView:
     __slots__ = ('_model',)
 
     def __init__(self, model: ApertureModel):
@@ -451,24 +468,24 @@ class TypesView:
 
     def __repr__(self):
         count = len(self)
-        types_str = 'type' if count == 1 else 'types'
-        return f'<TypesView: {count} {types_str}>'
+        pipes_str = 'pipe' if count == 1 else 'pipes'
+        return f'<PipesView: {count} {pipes_str}>'
 
     def __getitem__(self, item: str | int):
         if isinstance(item, str):
-            item = self._model.type_names.index(item)
+            item = self._model.pipe_names.index(item)
 
-        return TypeView(self._model, item)
+        return PipeView(self._model, item)
 
     def __len__(self) -> int:
-        return len(self._model.types)
+        return len(self._model.pipes)
 
     def __iter__(self):
         for ii in range(len(self)):
             yield self[ii]
 
     def keys(self):
-        return self._model.type_names
+        return self._model.pipe_names
 
     def values(self):
         return list(self)
@@ -480,6 +497,12 @@ class TypesView:
         regex = re.compile(pattern)
         matches = [name for name in self.keys() if regex.match(name)]
         return matches
+
+
+TypePositionView = PipePositionView
+TypePositionsView = PipePositionsView
+TypeView = PipeView
+TypesView = PipesView
 
 
 class Aperture:
@@ -509,7 +532,7 @@ class Aperture:
         _skip_validity_check=False,
     ):
         self.line = line
-        self._model = model  # positioning of types in line frame
+        self._model = model  # positioning of pipes in line frame
         self.halo_params = self.halo_params.copy()
         self.context = context or xo.ContextCpu()
         self.s_tol = s_tol
@@ -534,12 +557,20 @@ class Aperture:
         return ProfilesView(self._model)
 
     @property
-    def type_positions(self) -> TypePositionsView:
-        return TypePositionsView(self._model)
+    def pipe_positions(self) -> PipePositionsView:
+        return PipePositionsView(self._model)
 
     @property
-    def types(self) -> TypesView:
-        return TypesView(self._model)
+    def pipes(self) -> PipesView:
+        return PipesView(self._model)
+
+    @property
+    def type_positions(self):
+        return self.pipe_positions
+
+    @property
+    def types(self):
+        return self.pipes
 
     def to_json(self, filename):
         json = {
@@ -583,10 +614,10 @@ class Aperture:
         )
 
         profiles = []
-        types = []
+        pipes = []
         aperture_indices = {}
-        type_positions_list = []
-        type_position_names = []
+        pipe_positions_list = []
+        pipe_position_names = []
 
         for element_name in name_iter_with_progress:
             element = line.element_dict[element_name]
@@ -630,14 +661,14 @@ class Aperture:
                 tol_r, tol_x, tol_y = tols
                 profile = Profile(shape=shape, tol_r=tol_r, tol_x=tol_x, tol_y=tol_y)
 
-                assert len(types) == len(profiles)  # in MAD-X we will have just one type per profile
+                assert len(pipes) == len(profiles)  # in MAD-X we will have just one pipe per profile
 
-                aper_idx = len(types)
+                aper_idx = len(pipes)
 
                 if element.isthick and not offset_data:
                     # Place two profiles on either side of the element
                     position_entry = ProfilePosition(profile_index=aper_idx)
-                    position_exit = ProfilePosition(profile_index=aper_idx, s_position=element.length)
+                    position_exit = ProfilePosition(profile_index=aper_idx, shift_s=element.length)
                     positions = [position_entry, position_exit]
                     # If no MAD-X offset data is present, the curvature follows
                     # the element
@@ -650,7 +681,7 @@ class Aperture:
 
                     for s in np.linspace(0, length, max(2, int(length / 0.1))):
                         position = ProfilePosition(profile_index=aper_idx)
-                        position.s_position = s
+                        position.shift_s = s
                         position.shift_x = s * offset_data['dx'] + s**2 * offset_data['ddx']
                         position.shift_y = s * offset_data['dy'] + s**2 * offset_data['ddy']
                         positions.append(position)
@@ -664,25 +695,25 @@ class Aperture:
 
                 aperture_indices[aper_name] = aper_idx
 
-                aperture_type = ApertureType(curvature=curvature, positions=positions)
-                types.append(aperture_type)
+                pipe = Pipe(curvature=curvature, positions=positions)
+                pipes.append(pipe)
                 profiles.append(profile)
 
-            type_position = TypePosition(
-                type_index=aperture_indices[aper_name],
+            pipe_position = PipePosition(
+                pipe_index=aperture_indices[aper_name],
                 survey_reference_name=survey_reference_name,
                 survey_index=name_to_sv_index[survey_reference_name],
                 transformation=matrix,
             )
-            type_positions_list.append(type_position)
-            type_position_names.append(aper_name)
+            pipe_positions_list.append(pipe_position)
+            pipe_position_names.append(aper_name)
 
         aperture = cls._build_aperture_model(
             line=line,
-            type_indices=aperture_indices,
-            type_list=types,
-            type_position_list=type_positions_list,
-            type_position_names=type_position_names,
+            pipe_indices=aperture_indices,
+            pipe_list=pipes,
+            pipe_position_list=pipe_positions_list,
+            pipe_position_names=pipe_position_names,
             profile_indices=aperture_indices,
             profile_list=profiles,
             context=context,
@@ -697,10 +728,10 @@ class Aperture:
         name_to_sv_index = dict(zip(survey.name, range(len(survey_names))))
 
         profiles = []
-        types = []
+        pipes = []
         aperture_indices = {}
-        type_positions_list = []
-        type_position_names = []
+        pipe_positions_list = []
+        pipe_position_names = []
 
         for survey_name in progress(survey_names, desc="Building aperture data", total=len(survey_names)):
             # Discard line name suffix to get the aperture name
@@ -715,9 +746,9 @@ class Aperture:
             if aper_name not in aperture_indices:
                 profile, offset_x, offset_y = profile_from_limit_element(aper_element)
 
-                assert len(types) == len(profiles)  # in Xsuite with associated apertures we will have just one type per profile
+                assert len(pipes) == len(profiles)  # in Xsuite with associated apertures we will have just one pipe per profile
 
-                aper_idx = len(types)
+                aper_idx = len(pipes)
                 aperture_indices[aper_name] = aper_idx
 
                 profile_position = ProfilePosition(profile_index=aper_idx)
@@ -726,19 +757,19 @@ class Aperture:
 
                 if aper_element.transformations_active:
                     # Apply associated-aperture transforms in the local profile frame so
-                    # they follow the curved type geometry when transported along it.
-                    profile_position.s_position = aper_element.shift_s
+                    # they follow the curved pipe geometry when transported along it.
+                    profile_position.shift_s = aper_element.shift_s
                     profile_position.shift_x += aper_element.shift_x
                     profile_position.shift_y += aper_element.shift_y
-                    profile_position.rot_x = aper_element.rot_x_rad
-                    profile_position.rot_y = aper_element.rot_y_rad
-                    profile_position.rot_s = aper_element.rot_s_rad_no_frame
+                    profile_position.rot_x_rad = aper_element.rot_x_rad
+                    profile_position.rot_y_rad = aper_element.rot_y_rad
+                    profile_position.rot_s_rad = aper_element.rot_s_rad_no_frame
 
                 if element.isthick:
                     # Place two profiles on either side of the element
                     profile_position_start = profile_position
                     profile_position_end = profile_position.copy()
-                    profile_position_end.s_position += element.length
+                    profile_position_end.shift_s += element.length
                     positions = [profile_position_start, profile_position_end]
                     curvature = getattr(element, 'h', 0)
                 else:
@@ -746,33 +777,33 @@ class Aperture:
                     positions = [profile_position]
                     curvature = 0
 
-                aperture_type = ApertureType(curvature=curvature, positions=positions)
-                types.append(aperture_type)
+                pipe = Pipe(curvature=curvature, positions=positions)
+                pipes.append(pipe)
 
                 profiles.append(Profile(shape=profile))
 
-            # Apply element transformations to type position
+            # Apply element transformations to pipe position
             if element.transformations_active:
                 # TODO: Need to correctly handle the situation where both the element and the aperture are misaligned.
                 #  The matrix then needs to combine the two in a correct way. Curvature will probably complicate this
                 #  even more.
                 raise NotImplementedError('Aperture model not yet supported with element transformations.')
 
-            type_position = TypePosition(
-                type_index=aperture_indices[aper_name],
+            pipe_position = PipePosition(
+                pipe_index=aperture_indices[aper_name],
                 survey_reference_name=survey_name,
                 survey_index=name_to_sv_index[survey_name],
                 transformation=np.identity(4),
             )
-            type_positions_list.append(type_position)
-            type_position_names.append(aper_name)
+            pipe_positions_list.append(pipe_position)
+            pipe_position_names.append(aper_name)
 
         aperture = cls._build_aperture_model(
             line=line,
-            type_indices=aperture_indices,
-            type_list=types,
-            type_position_list=type_positions_list,
-            type_position_names=type_position_names,
+            pipe_indices=aperture_indices,
+            pipe_list=pipes,
+            pipe_position_list=pipe_positions_list,
+            pipe_position_names=pipe_position_names,
             profile_indices=aperture_indices,
             profile_list=profiles,
             context=context,
@@ -787,10 +818,10 @@ class Aperture:
         name_to_sv_index = dict(zip(survey.name, range(len(survey_names))))
 
         profiles = []
-        type_list = []
+        pipe_list = []
         indices = {}
-        type_positions_list = []
-        type_position_names = []
+        pipe_positions_list = []
+        pipe_position_names = []
 
         aper_idx = 0
 
@@ -805,34 +836,34 @@ class Aperture:
 
             profile_position = ProfilePosition(profile_index=aper_idx)
             if element.transformations_active:
-                profile_position.s_position = element.shift_s
+                profile_position.shift_s = element.shift_s
                 profile_position.shift_x = element.shift_x
                 profile_position.shift_y = element.shift_y
                 # TODO: Is this really how it should be??
-                profile_position.rot_s = element.rot_s_rad_no_frame
-                profile_position.rot_x = element.rot_x_rad
-                profile_position.rot_y = element.rot_y_rad
+                profile_position.rot_s_rad = element.rot_s_rad_no_frame
+                profile_position.rot_x_rad = element.rot_x_rad
+                profile_position.rot_y_rad = element.rot_y_rad
 
-            aperture_type = ApertureType(curvature=0, positions=[profile_position])
-            type_list.append(aperture_type)
+            pipe = Pipe(curvature=0, positions=[profile_position])
+            pipe_list.append(pipe)
 
-            type_position = TypePosition(
-                type_index=aper_idx,
+            pipe_position = PipePosition(
+                pipe_index=aper_idx,
                 survey_reference_name=name,
                 survey_index=name_to_sv_index[name],
                 transformation=np.identity(4),
             )
-            type_positions_list.append(type_position)
-            type_position_names.append(name)
+            pipe_positions_list.append(pipe_position)
+            pipe_position_names.append(name)
 
             aper_idx += 1
 
         aperture = cls._build_aperture_model(
             line=line,
-            type_indices=indices,
-            type_list=type_list,
-            type_position_list=type_positions_list,
-            type_position_names=type_position_names,
+            pipe_indices=indices,
+            pipe_list=pipe_list,
+            pipe_position_list=pipe_positions_list,
+            pipe_position_names=pipe_position_names,
             profile_indices=indices,
             profile_list=profiles,
             context=context,
@@ -847,10 +878,10 @@ class Aperture:
     def _build_aperture_model(
             cls,
             line: Line,
-            type_indices: Dict[str, int],
-            type_list: List[ApertureType],
-            type_position_list: List[TypePosition],
-            type_position_names: List[str],
+            pipe_indices: Dict[str, int],
+            pipe_list: List[Pipe],
+            pipe_position_list: List[PipePosition],
+            pipe_position_names: List[str],
             profile_indices: Dict[str, int],
             profile_list: List[ShapeTypes],
             context: XContext,
@@ -862,24 +893,24 @@ class Aperture:
         ----------
         line
             The line for which the aperture model is built.
-        type_indices
-            A mapping between the name of an aperture type and its index in ``type_list``.
-        type_list
-            List of aperture types featured in the model.
-        type_position_list
-            List of aperture type positions that define the model.
-        type_position_names
-            Names of all aperture type positions in ``type_position_list`` order.
+        pipe_indices
+            A mapping between the name of an aperture pipe and its index in ``pipe_list``.
+        pipe_list
+            List of aperture pipes featured in the model.
+        pipe_position_list
+            List of aperture pipe positions that define the model.
+        pipe_position_names
+            Names of all aperture pipe positions in ``pipe_position_list`` order.
         profile_indices
-            A mapping between the name of an aperture type and its index in ``profile_list``.
+            A mapping between the name of an aperture pipe and its index in ``profile_list``.
         profile_list
             List of all profiles featured in the model. The order must be consistent with the indices used inside
-            each of the type definitions in ``type_list``.
+            each of the pipe definitions in ``pipe_list``.
         kwargs
             Further parameters to be passed to the initialiser of `Aperture`.
         """
-        if list(type_indices.values()) != list(range(len(type_list))):
-            raise ValueError('Expected type_indices to be ordered by index')
+        if list(pipe_indices.values()) != list(range(len(pipe_list))):
+            raise ValueError('Expected pipe_indices to be ordered by index')
 
         if list(profile_indices.values()) != list(range(len(profile_indices))):
             raise ValueError('Expected profile_indices to be ordered by index')
@@ -887,11 +918,11 @@ class Aperture:
         context = context or xo.ContextCpu()
 
         model = ApertureModel(
-            type_positions=type_position_list,
-            types=type_list,
+            pipe_positions=pipe_position_list,
+            pipes=pipe_list,
             profiles=profile_list,
-            type_names=list(type_indices.keys()),
-            type_position_names=type_position_names,
+            pipe_names=list(pipe_indices.keys()),
+            pipe_position_names=pipe_position_names,
             profile_names=list(profile_indices.keys()),
             _context=context,
         )
@@ -1500,10 +1531,10 @@ class Aperture:
     def _build_aperture_bounds(self, check_validity=True):
         # Pre-allocate the cross-sections with the correct sizes
         num_points = self.num_profile_points
-        num_cross_sections = sum(len(self._model.type_for_position(type_pos).positions) for type_pos in self._model.type_positions)
+        num_cross_sections = sum(len(self._model.pipe_for_position(pipe_pos).positions) for pipe_pos in self._model.pipe_positions)
         self._aperture_bounds = ApertureBounds(
             count=num_cross_sections,
-            type_position_indices=num_cross_sections,
+            pipe_position_indices=num_cross_sections,
             profile_position_indices=num_cross_sections,
             s_positions=num_cross_sections,
             s_start=num_cross_sections,
@@ -1522,11 +1553,11 @@ class Aperture:
 
         cross_section_idx_iter = iter(progress(range(num_cross_sections), desc='Building cross-sections', total=num_cross_sections))
 
-        for type_pos_idx, type_pos in enumerate(cast(Iterable[TypePosition], self._model.type_positions)):
-            aper_type = self._model.type_for_position(type_pos)
-            for profile_pos_idx, profile_pos in enumerate(cast(Iterable[ProfilePosition], aper_type.positions)):
+        for pipe_pos_idx, pipe_pos in enumerate(cast(Iterable[PipePosition], self._model.pipe_positions)):
+            pipe = self._model.pipe_for_position(pipe_pos)
+            for profile_pos_idx, profile_pos in enumerate(cast(Iterable[ProfilePosition], pipe.positions)):
                 idx = next(cross_section_idx_iter)
-                self._aperture_bounds.type_position_indices[idx] = type_pos_idx
+                self._aperture_bounds.pipe_position_indices[idx] = pipe_pos_idx
                 self._aperture_bounds.profile_position_indices[idx] = profile_pos_idx
 
         self._model.build_profile_polygons(
@@ -1539,10 +1570,10 @@ class Aperture:
             self._check_aperture_bounds_validity()
 
     def _check_model_validity(self):
-        for ii, type_pos in enumerate(self._model.type_positions):
-            survey_ref_name = type_pos.survey_reference_name
-            survey_ref_idx = type_pos.survey_index
-            type_position_name = self._model.type_position_name_for_position_index(ii)
+        for ii, pipe_pos in enumerate(self._model.pipe_positions):
+            survey_ref_name = pipe_pos.survey_reference_name
+            survey_ref_idx = pipe_pos.survey_index
+            pipe_position_name = self._model.pipe_position_name_for_position_index(ii)
 
             try:
                 survey_at_idx = self.survey.name[survey_ref_idx]
@@ -1551,7 +1582,7 @@ class Aperture:
 
             if survey_at_idx != survey_ref_name:
                 raise ValueError(
-                    f'Aperture model corrupted for type position {type_position_name}: the associate survey reference name '
+                    f'Aperture model corrupted for pipe position {pipe_position_name}: the associate survey reference name '
                     f'`{survey_ref_name}` and index `{survey_ref_idx}` do not match. The element of the survey at the '
                     f'index is {survey_at_idx}.'
                 )
@@ -1568,25 +1599,25 @@ class Aperture:
             centre = self._aperture_bounds.s_positions[idx]
             right = self._aperture_bounds.s_end[idx]
 
-            type_pos_idx = self._aperture_bounds.type_position_indices[idx]
+            pipe_pos_idx = self._aperture_bounds.pipe_position_indices[idx]
             profile_pos_idx = self._aperture_bounds.profile_position_indices[idx]
-            type_name, profile_name = self._model.type_profile_names_for_indices(type_pos_idx, profile_pos_idx)
+            pipe_name, profile_name = self._model.pipe_profile_names_for_indices(pipe_pos_idx, profile_pos_idx)
 
             if not (centre - left > -s_tol and right - centre > -s_tol):
                 raise ValueError(
-                    f'Aperture model corrupted for type {type_name} and profile {profile_name}: the '
+                    f'Aperture model corrupted for pipe {pipe_name} and profile {profile_name}: the '
                     f'computed s location {centre} is not inside the computed bounds [{left}, {right}]'
                 )
 
             if last_right > left:
                 raise ValueError(
-                    f'Aperture model corrupted for type {type_name} and profile {profile_name}): the '
+                    f'Aperture model corrupted for pipe {pipe_name} and profile {profile_name}): the '
                     f'aperture bounds [{left}, {right}] overlap the preceding profile whose s_end = {last_right}'
                 )
 
     def get_bounds_table(self):
-        type_position_names = []
-        type_names = []
+        pipe_position_names = []
+        pipe_names = []
         profile_names = []
         s_positions = []
         s_starts = []
@@ -1596,21 +1627,21 @@ class Aperture:
 
         ap_bounds = self._aperture_bounds
         for i in range(ap_bounds.count):
-            type_pos_idx = ap_bounds.type_position_indices[i]
-            type_pos = self._model.type_positions[type_pos_idx]
-            type_ = self._model.type_for_position(type_pos)
-            type_position_name = self._model.type_position_name_for_position_index(type_pos_idx)
-            type_name = self._model.type_name_for_position(type_pos)
+            pipe_pos_idx = ap_bounds.pipe_position_indices[i]
+            pipe_pos = self._model.pipe_positions[pipe_pos_idx]
+            pipe = self._model.pipe_for_position(pipe_pos)
+            pipe_position_name = self._model.pipe_position_name_for_position_index(pipe_pos_idx)
+            pipe_name = self._model.pipe_name_for_position(pipe_pos)
 
             profile_pos_idx = ap_bounds.profile_position_indices[i]
-            profile_pos = type_.positions[profile_pos_idx]
+            profile_pos = pipe.positions[profile_pos_idx]
             profile_name = self._model.profile_name_for_position(profile_pos)
             profile = self._model.profile_for_position(profile_pos)
 
             shape = profile.shape
 
-            type_position_names.append(type_position_name)
-            type_names.append(type_name)
+            pipe_position_names.append(pipe_position_name)
+            pipe_names.append(pipe_name)
             profile_names.append(profile_name)
             s_positions.append(ap_bounds.s_positions[i])
             s_starts.append(ap_bounds.s_start[i])
@@ -1620,9 +1651,11 @@ class Aperture:
 
         table = Table(
             data={
-                'name': np.array([f'{pn}_in_{tpn}' for pn, tpn in zip(profile_names, type_position_names)], dtype=np.str_),
-                'type_position_name': np.array(type_position_names, dtype=np.str_),
-                'type_name': np.array(type_names, dtype=np.str_),
+                'name': np.array([f'{pn}_in_{ppn}' for pn, ppn in zip(profile_names, pipe_position_names)], dtype=np.str_),
+                'pipe_position_name': np.array(pipe_position_names, dtype=np.str_),
+                'pipe_name': np.array(pipe_names, dtype=np.str_),
+                'type_position_name': np.array(pipe_position_names, dtype=np.str_),
+                'type_name': np.array(pipe_names, dtype=np.str_),
                 'profile_name': np.array(profile_names, dtype=np.str_),
                 's': np.array(s_positions, dtype=FloatType._dtype),
                 's_start': np.array(s_starts, dtype=FloatType._dtype),
@@ -1639,7 +1672,7 @@ class Aperture:
             s_positions: Iterable[float],
             twiss_init: Optional[TwissInit] = None,
     ) -> TwissTable:
-        """Get a twiss table for the line with entries at each `s_position`.
+        """Get a twiss table for the line with entries at each requested `s`.
 
         Parameters
         ----------

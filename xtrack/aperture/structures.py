@@ -145,55 +145,55 @@ class Profile(xo.Struct):
 
 
 class ProfilePosition(xo.Struct):
-    """Description of the placement of a profile in type (lab) frame.
+    """Description of the placement of a profile in pipe (lab) frame.
 
     Parameters
     ----------
     profile_index: int
         The index identifying the profile in the associated ``Profiles`` object.
-    s_position: float
-        The position along the type axis where this profile sits.
+    shift_s: float
+        The position along the pipe axis where this profile sits.
     shift_x: float
-        The horizontal shift of the profile centre from the type axis.
+        The horizontal shift of the profile centre from the pipe axis.
     shift_y: float
-        The vertical shift of the profile centre from the type axis
-    rot_x: float
+        The vertical shift of the profile centre from the pipe axis
+    rot_x_rad: float
         The rotation of the profile around the horizontal axis in radians.
-    rot_y: float
+    rot_y_rad: float
         The rotation of the profile around the vertical axis in radians.
-    rot_s: float
-        The rotation of the profile around the type axis in radians.
+    rot_s_rad: float
+        The rotation of the profile around the pipe axis in radians.
     """
     profile_index = xo.Int32
-    s_position = FloatType
+    shift_s = FloatType
     shift_x = FloatType
     shift_y = FloatType
-    rot_x = FloatType
-    rot_y = FloatType
-    rot_s = FloatType
+    rot_x_rad = FloatType
+    rot_y_rad = FloatType
+    rot_s_rad = FloatType
 
     def copy(self):
         return ProfilePosition(
             profile_index=self.profile_index,
-            s_position=self.s_position,
+            shift_s=self.shift_s,
             shift_x=self.shift_x,
             shift_y=self.shift_y,
-            rot_x=self.rot_x,
-            rot_y=self.rot_y,
-            rot_z=self.rot_s,
+            rot_x_rad=self.rot_x_rad,
+            rot_y_rad=self.rot_y_rad,
+            rot_s_rad=self.rot_s_rad,
         )
 
 
-class ApertureType(xo.Struct):
-    """Description of the type, i.e. a section consisting of pipes (profiles).
+class Pipe(xo.Struct):
+    """Description of the pipe, i.e. a section consisting of profiles.
 
     Parameters
     ----------
     curvature: float
-        curvature of the type axis assumed to be in the horizontal plane
+        curvature of the pipe axis assumed to be in the horizontal plane
 
     positions: List[ProfilePosition]
-        The list of profile positions comprising the type.
+        The list of profile positions comprising the pipe.
     """
     curvature = FloatType
     positions = ProfilePosition[:]
@@ -203,19 +203,19 @@ class ApertureType(xo.Struct):
         params_str = '1 profile' if count == 1 else f'{count} profiles'
         if self.curvature:
             params_str += f', curvature={self.curvature}'
-        return f'<ApertureType: {params_str}>'
+        return f'<Pipe: {params_str}>'
 
 
-class TypePosition(xo.Struct):
-    type_index = xo.Int32
+class PipePosition(xo.Struct):
+    pipe_index = xo.Int32
     survey_reference_name = xo.String  # identify a point in survey
     survey_index = xo.Int32  # index of the point in the survey
-    transformation = FloatType[4, 4]  # 3D rigid transformation matrix from the survey entry to 0 s-position of type
+    transformation = FloatType[4, 4]  # 3D rigid transformation matrix from the survey entry to 0 shift_s of pipe
 
 
 class ApertureBounds(xo.Struct):
     count = xo.UInt32
-    type_position_indices = xo.UInt32[:]
+    pipe_position_indices = xo.UInt32[:]
     profile_position_indices = xo.UInt32[:]
     s_positions = FloatType[:]
     s_start = FloatType[:]
@@ -336,8 +336,8 @@ class SurveyData(xo.Struct):
 
 
 class ApertureModel(xo.Struct):
-    type_positions = TypePosition[:]
-    types = ApertureType[:]
+    pipe_positions = PipePosition[:]
+    pipes = Pipe[:]
     profiles = Profile[:]
 
     _extra_c_sources = [
@@ -458,46 +458,46 @@ class ApertureModel(xo.Struct):
 
     def __init__(
         self,
-        type_positions: List[TypePosition],
-        types: List[ApertureType],
+        pipe_positions: List[PipePosition],
+        pipes: List[Pipe],
         profiles: List[Profile],
-        type_names: List[str],
+        pipe_names: List[str],
         profile_names: List[str],
-        type_position_names: List[str],
+        pipe_position_names: List[str],
         **kwargs,
     ):
-        if len(type_names) != len(types):
-            raise ValueError("Length of type_names and type_names must match.")
+        if len(pipe_names) != len(pipes):
+            raise ValueError("Length of pipe_names and pipe_names must match.")
 
         if len(profile_names) != len(profiles):
             raise ValueError("Length of profiles and profiles must match.")
 
-        if len(type_position_names) != len(type_positions):
-            raise ValueError("Length of type_position_names and type_positions must match.")
+        if len(pipe_position_names) != len(pipe_positions):
+            raise ValueError("Length of pipe_position_names and pipe_positions must match.")
 
-        self.type_names = type_names
+        self.pipe_names = pipe_names
         self.profile_names = profile_names
-        self.type_position_names = type_position_names
+        self.pipe_position_names = pipe_position_names
 
-        super().__init__(type_positions=type_positions, types=types, profiles=profiles, **kwargs)
+        super().__init__(pipe_positions=pipe_positions, pipes=pipes, profiles=profiles, **kwargs)
 
-    def type_name_for_index(self, idx: int) -> str:
-        return self.type_names[idx]
+    def pipe_name_for_index(self, idx: int) -> str:
+        return self.pipe_names[idx]
 
-    def type_position_name_for_index(self, idx: int) -> str:
-        return self.type_position_names[idx]
+    def pipe_position_name_for_index(self, idx: int) -> str:
+        return self.pipe_position_names[idx]
 
     def profile_name_for_index(self, idx: int) -> str:
         return self.profile_names[idx]
 
-    def type_for_position(self, type_position: TypePosition) -> ApertureType:
-        return self.types[type_position.type_index]
+    def pipe_for_position(self, pipe_position: PipePosition) -> Pipe:
+        return self.pipes[pipe_position.pipe_index]
 
-    def type_name_for_position(self, type_position: TypePosition) -> str:
-        return self.type_name_for_index(type_position.type_index)
+    def pipe_name_for_position(self, pipe_position: PipePosition) -> str:
+        return self.pipe_name_for_index(pipe_position.pipe_index)
 
-    def type_position_name_for_position_index(self, idx: int) -> str:
-        return self.type_position_name_for_index(idx)
+    def pipe_position_name_for_position_index(self, idx: int) -> str:
+        return self.pipe_position_name_for_index(idx)
 
     def profile_for_position(self, profile_position: ProfilePosition) -> Profile:
         return self.profiles[profile_position.profile_index]
@@ -505,29 +505,65 @@ class ApertureModel(xo.Struct):
     def profile_name_for_position(self, profile_position: ProfilePosition) -> str:
         return self.profile_name_for_index(profile_position.profile_index)
 
-    def type_position_profile_names_for_indices(self, type_position_index, profile_position_index) -> Tuple[str, str]:
-        type_pos_name = self.type_position_name_for_index(type_position_index)
-        type_pos = self.type_positions[type_position_index]
-        type_ = self.type_for_position(type_pos)
-        profile_pos = type_.positions[profile_position_index]
+    def pipe_position_profile_names_for_indices(self, pipe_position_index, profile_position_index) -> Tuple[str, str]:
+        pipe_pos_name = self.pipe_position_name_for_index(pipe_position_index)
+        pipe_pos = self.pipe_positions[pipe_position_index]
+        pipe = self.pipe_for_position(pipe_pos)
+        profile_pos = pipe.positions[profile_position_index]
         profile_name = self.profile_name_for_position(profile_pos)
-        return type_pos_name, profile_name
+        return pipe_pos_name, profile_name
+
+    def pipe_profile_names_for_indices(self, pipe_position_index, profile_position_index) -> Tuple[str, str]:
+        pipe_pos = self.pipe_positions[pipe_position_index]
+        pipe_name = self.pipe_name_for_position(pipe_pos)
+        pipe = self.pipe_for_position(pipe_pos)
+        profile_pos = pipe.positions[profile_position_index]
+        profile_name = self.profile_name_for_position(profile_pos)
+        return pipe_name, profile_name
+
+    @property
+    def types(self):
+        return self.pipes
+
+    @property
+    def type_positions(self):
+        return self.pipe_positions
+
+    @property
+    def type_names(self):
+        return self.pipe_names
+
+    @property
+    def type_position_names(self):
+        return self.pipe_position_names
+
+    def type_name_for_index(self, idx: int) -> str:
+        return self.pipe_name_for_index(idx)
+
+    def type_position_name_for_index(self, idx: int) -> str:
+        return self.pipe_position_name_for_index(idx)
+
+    def type_for_position(self, type_position: PipePosition) -> Pipe:
+        return self.pipe_for_position(type_position)
+
+    def type_name_for_position(self, type_position: PipePosition) -> str:
+        return self.pipe_name_for_position(type_position)
+
+    def type_position_name_for_position_index(self, idx: int) -> str:
+        return self.pipe_position_name_for_position_index(idx)
+
+    def type_position_profile_names_for_indices(self, type_position_index, profile_position_index) -> Tuple[str, str]:
+        return self.pipe_position_profile_names_for_indices(type_position_index, profile_position_index)
 
     def type_profile_names_for_indices(self, type_position_index, profile_position_index) -> Tuple[str, str]:
-        type_pos = self.type_positions[type_position_index]
-        type_name = self.type_name_for_position(type_pos)
-        type = self.type_for_position(type_pos)
-        profile_pos = type.positions[profile_position_index]
-        profile_name = self.profile_name_for_position(profile_pos)
-        return type_name, profile_name
+        return self.pipe_profile_names_for_indices(type_position_index, profile_position_index)
 
     def to_dict(self) -> dict:
         out = self._to_dict()
-        out['type_names'] = self.type_names
-        out['type_position_names'] = self.type_position_names
+        out['pipe_names'] = self.pipe_names
+        out['pipe_position_names'] = self.pipe_position_names
         out['profile_names'] = self.profile_names
         return out
-
     @classmethod
     def from_dict(cls, src: dict, context: XContext = None) -> 'ApertureModel':
         return cls(**src, _context=context)
@@ -563,3 +599,7 @@ class ApertureModel(xo.Struct):
     def _is_point_inside_polygon(self, **kwargs) -> bool:
         self.compile_kernels(only_if_needed=True)
         return bool(self._context.kernels._is_point_inside_polygon(**kwargs))
+
+
+ApertureType = Pipe
+TypePosition = PipePosition

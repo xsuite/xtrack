@@ -7,11 +7,11 @@ from xtrack.aperture.aperture import Aperture
 from xtrack.aperture.transform import transform_matrix
 from xtrack.aperture.structures import (
     ApertureModel,
-    ApertureType,
+    Pipe,
     Circle,
     Profile,
     ProfilePosition,
-    TypePosition,
+    PipePosition,
 )
 
 
@@ -70,40 +70,40 @@ profiles = [
     Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0),
 ]
 profile_positions = [
-    ProfilePosition(profile_index=0, s_position=0.0),
-    ProfilePosition(profile_index=0, s_position=length),
+    ProfilePosition(profile_index=0, shift_s=0.0),
+    ProfilePosition(profile_index=0, shift_s=length),
 ]
 
 model = ApertureModel(
     line=line,
-    type_positions=[
-        TypePosition(
-            type_index=0,
+    pipe_positions=[
+        PipePosition(
+            pipe_index=0,
             survey_reference_name=sv.name[0],
             survey_index=0,
             transformation=transform_matrix(),
         ),
-        TypePosition(
-            type_index=1,
+        PipePosition(
+            pipe_index=1,
             survey_reference_name=sv.name[1],
             survey_index=1,
             transformation=transform_matrix(),
         ),
-        TypePosition(
-            type_index=2,
+        PipePosition(
+            pipe_index=2,
             survey_reference_name=sv.name[2],
             survey_index=2,
             transformation=transform_matrix(),
         ),
     ],
-    types=[
-        ApertureType(curvature=angle / length, positions=profile_positions),
-        ApertureType(curvature=0, positions=profile_positions),
-        ApertureType(curvature=-angle / length, positions=profile_positions),
+    pipes=[
+        Pipe(curvature=angle / length, positions=profile_positions),
+        Pipe(curvature=0, positions=profile_positions),
+        Pipe(curvature=-angle / length, positions=profile_positions),
     ],
     profiles=profiles,
-    type_names=['type0', 'type1', 'type2'],
-    type_position_names=['type0', 'type1', 'type2'],
+    pipe_names=['type0', 'type1', 'type2'],
+    pipe_position_names=['type0', 'type1', 'type2'],
     profile_names=['circ0'],
 )
 
@@ -114,7 +114,7 @@ bounds_s = [0, length, length, 2 * length, 2 * length, 3 * length]
 xo.assert_allclose(bounds_table.s, bounds_s, atol=1e-6, rtol=1e-6)
 xo.assert_allclose(bounds_table.s_start, bounds_s, atol=1e-6, rtol=1e-6)
 xo.assert_allclose(bounds_table.s_end, bounds_s, atol=1e-6, rtol=1e-6)
-assert all(bounds_table.type_name == ['type0', 'type0', 'type1', 'type1', 'type2', 'type2'])
+assert all(bounds_table.pipe_name == ['type0', 'type0', 'type1', 'type1', 'type2', 'type2'])
 assert all(bounds_table.profile_name == ['circ0'])
 
 s_samples = np.linspace(0, 3 * length, 51, dtype=np.float32)
@@ -130,7 +130,7 @@ sv_fine = line_fine.survey()
 ax.plot(sv_fine.Z, sv_fine.X, sv_fine.Y, c="b", label="survey")
 
 # Plot installed profiles (red)
-for type_pos in ap._model.type_positions:
+for type_pos in ap._model.pipe_positions:
     aper_type = ap._model.type_for_position(type_pos)
     sv_ref_row = sv.rows[type_pos.survey_index]
     sv_ref_matrix = matrix_from_survey_row(sv_ref_row)
@@ -144,13 +144,13 @@ for type_pos in ap._model.type_positions:
             dx=profile_pos.shift_x,
             dy=profile_pos.shift_y,
             ds=0,
-            theta=profile_pos.rot_y,
-            phi=profile_pos.rot_x,
-            psi=profile_pos.rot_s,
+            theta=profile_pos.rot_y_rad,
+            phi=profile_pos.rot_x_rad,
+            psi=profile_pos.rot_s_rad,
         )
         profile_matrix_arc = arc_matrix(
-            length=profile_pos.s_position,
-            angle=aper_type.curvature * profile_pos.s_position,
+            length=profile_pos.shift_s,
+            angle=aper_type.curvature * profile_pos.shift_s,
             tilt=0,
         )
         profile_matrix = profile_matrix_arc @ profile_matrix_trans

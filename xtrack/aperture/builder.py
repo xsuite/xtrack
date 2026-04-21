@@ -10,11 +10,11 @@ from xobjects.context import XContext
 
 from xtrack.aperture.structures import (
     ApertureModel,
-    ApertureType,
+    Pipe,
     Profile,
     ProfilePosition,
     ShapeTypes,
-    TypePosition,
+    PipePosition,
 )
 from xtrack.aperture.transform import transform_matrix
 
@@ -59,16 +59,16 @@ def _shape_from_input(shape: str | type, **shape_params):
 @dataclass
 class ProfilePositionBlueprint:
     profile_name: str
-    s_position: float = 0.0
+    shift_s: float = 0.0
     shift_x: float = 0.0
     shift_y: float = 0.0
-    rot_y: float = 0.0
-    rot_x: float = 0.0
-    rot_s: float = 0.0
+    rot_y_rad: float = 0.0
+    rot_x_rad: float = 0.0
+    rot_s_rad: float = 0.0
 
 
 @dataclass
-class TypeBlueprint:
+class PipeBlueprint:
     builder: ApertureBuilder
     name: str
     curvature: float = 0.0
@@ -77,25 +77,25 @@ class TypeBlueprint:
     def place_profile(
         self,
         name: str,
-        s_position: float = 0.0,
+        shift_s: float = 0.0,
         shift_x: float = 0.0,
         shift_y: float = 0.0,
-        rot_y: float = 0.0,
-        rot_x: float = 0.0,
-        rot_s: float = 0.0,
+        rot_y_rad: float = 0.0,
+        rot_x_rad: float = 0.0,
+        rot_s_rad: float = 0.0,
     ) -> ProfilePositionBlueprint:
-        """Create and append a profile position blueprint to this type.
+        """Create and append a profile position blueprint to this pipe.
 
         Parameters
         ----------
         name : str
             Name of the profile to place.
-        s_position : float, optional
-            Longitudinal position of the profile in the type frame.
+        shift_s : float, optional
+            Longitudinal position of the profile in the pipe frame.
         shift_x, shift_y : float, optional
-            Transverse offsets of the profile in the type frame.
-        rot_y, rot_x, rot_s : float, optional
-            Rotations of the profile in the type frame.
+            Transverse offsets of the profile in the pipe frame.
+        rot_y_rad, rot_x_rad, rot_s_rad : float, optional
+            Rotations of the profile in the pipe frame.
 
         Returns
         -------
@@ -104,23 +104,27 @@ class TypeBlueprint:
         """
         profile_position = self.builder.place_profile(
             name=name,
-            s_position=s_position,
+            shift_s=shift_s,
             shift_x=shift_x,
             shift_y=shift_y,
-            rot_y=rot_y,
-            rot_x=rot_x,
-            rot_s=rot_s,
+            rot_y_rad=rot_y_rad,
+            rot_x_rad=rot_x_rad,
+            rot_s_rad=rot_s_rad,
         )
         self.positions.append(profile_position)
         return profile_position
 
 
 @dataclass
-class TypePositionBlueprint:
+class PipePositionBlueprint:
     name: str
-    type_name: str
+    pipe_name: str
     survey_reference: str
     transformation: np.ndarray
+
+
+TypeBlueprint = PipeBlueprint
+TypePositionBlueprint = PipePositionBlueprint
 
 
 class ApertureBuilder:
@@ -130,12 +134,12 @@ class ApertureBuilder:
         Parameters
         ----------
         line : xtrack.Line
-            Line whose survey is used when resolving installed type positions.
+            Line whose survey is used when resolving installed pipe positions.
         """
         self.line = line
         self._profiles: dict[str, Profile] = {}
-        self._types: dict[str, TypeBlueprint] = {}
-        self._type_positions: list[TypePositionBlueprint] = []
+        self._pipes: dict[str, PipeBlueprint] = {}
+        self._pipe_positions: list[PipePositionBlueprint] = []
 
     def new_profile(
         self,
@@ -183,12 +187,12 @@ class ApertureBuilder:
     def place_profile(
         self,
         name: str,
-        s_position: float = 0.0,
+        shift_s: float = 0.0,
         shift_x: float = 0.0,
         shift_y: float = 0.0,
-        rot_y: float = 0.0,
-        rot_x: float = 0.0,
-        rot_s: float = 0.0,
+        rot_y_rad: float = 0.0,
+        rot_x_rad: float = 0.0,
+        rot_s_rad: float = 0.0,
     ) -> ProfilePositionBlueprint:
         """Create a profile position blueprint.
 
@@ -196,12 +200,12 @@ class ApertureBuilder:
         ----------
         name : str
             Name of the profile to place.
-        s_position : float, optional
-            Longitudinal position of the profile in the type frame.
+        shift_s : float, optional
+            Longitudinal position of the profile in the pipe frame.
         shift_x, shift_y : float, optional
-            Transverse offsets of the profile in the type frame.
-        rot_y, rot_x, rot_s : float, optional
-            Rotations of the profile in the type frame.
+            Transverse offsets of the profile in the pipe frame.
+        rot_y_rad, rot_x_rad, rot_s_rad : float, optional
+            Rotations of the profile in the pipe frame.
 
         Returns
         -------
@@ -210,105 +214,108 @@ class ApertureBuilder:
         """
         return ProfilePositionBlueprint(
             profile_name=name,
-            s_position=s_position,
+            shift_s=shift_s,
             shift_x=shift_x,
             shift_y=shift_y,
-            rot_y=rot_y,
-            rot_x=rot_x,
-            rot_s=rot_s,
+            rot_y_rad=rot_y_rad,
+            rot_x_rad=rot_x_rad,
+            rot_s_rad=rot_s_rad,
         )
 
-    def new_type(
+    def new_pipe(
         self,
         name: str,
         curvature: float = 0.0,
         positions: Optional[list[ProfilePositionBlueprint]] = None,
-    ) -> TypeBlueprint:
-        """Create and register a new aperture type blueprint.
+    ) -> PipeBlueprint:
+        """Create and register a new aperture pipe blueprint.
 
         Parameters
         ----------
         name : str
-            Name of the new type.
+            Name of the new pipe.
         curvature : float, optional
-            Curvature assigned to the type.
+            Curvature assigned to the pipe.
         positions : list of ProfilePositionBlueprint, optional
-            Initial profile positions to install in the type.
+            Initial profile positions to install in the pipe.
 
         Returns
         -------
-        TypeBlueprint
-            The created type blueprint.
+        PipeBlueprint
+            The created pipe blueprint.
 
         Raises
         ------
         ValueError
-            If a type with the same name already exists.
+            If a pipe with the same name already exists.
         """
-        if name in self._types:
-            raise ValueError(f"Type `{name}` already exists.")
+        if name in self._pipes:
+            raise ValueError(f"Pipe `{name}` already exists.")
 
-        aperture_type = TypeBlueprint(
+        pipe = PipeBlueprint(
             builder=self,
             name=name,
             curvature=curvature,
             positions=list(positions) if positions is not None else [],
         )
-        self._types[name] = aperture_type
-        return aperture_type
+        self._pipes[name] = pipe
+        return pipe
 
-    def place_type(
+    def new_type(self, *args, **kwargs):
+        return self.new_pipe(*args, **kwargs)
+
+    def place_pipe(
         self,
         name: str,
-        type_name: str,
+        pipe_name: str,
         survey_reference: str,
         transformation: Optional[np.ndarray] = None,
         shift_x: Optional[float] = None,
         shift_y: Optional[float] = None,
         shift_z: Optional[float] = None,
-        rot_y: Optional[float] = None,
-        rot_x: Optional[float] = None,
-        rot_z: Optional[float] = None,
-    ) -> TypePositionBlueprint:
-        """Create and register a type-position blueprint.
+        rot_y_rad: Optional[float] = None,
+        rot_x_rad: Optional[float] = None,
+        rot_z_rad: Optional[float] = None,
+    ) -> PipePositionBlueprint:
+        """Create and register a pipe-position blueprint.
 
         Parameters
         ----------
         name : str
-            Name of the installed type position.
-        type_name : str
-            Name of the type to install.
+            Name of the installed pipe position.
+        pipe_name : str
+            Name of the pipe to install.
         survey_reference : str
             Name of the survey entry used as the installation reference.
         transformation : np.ndarray, optional
             Full 4x4 homogeneous transform from the survey reference to the
-            type frame.
+            pipe frame.
         shift_x, shift_y, shift_z : float, optional
             Translation components used when ``transformation`` is not given.
-        rot_y, rot_x, rot_z : float, optional
+        rot_y_rad, rot_x_rad, rot_z_rad : float, optional
             Rotation components used when ``transformation`` is not given.
 
         Returns
         -------
-        TypePositionBlueprint
-            The created type-position blueprint.
+        PipePositionBlueprint
+            The created pipe-position blueprint.
 
         Raises
         ------
         ValueError
-            If the type-position name already exists, or if both a full matrix
+            If the pipe-position name already exists, or if both a full matrix
             and transform components are supplied.
         """
-        if any(type_position.name == name for type_position in self._type_positions):
-            raise ValueError(f"Type position `{name}` already exists.")
+        if any(pipe_position.name == name for pipe_position in self._pipe_positions):
+            raise ValueError(f"Pipe position `{name}` already exists.")
 
         transform_fields = {
             "shift_x": shift_x,
             "shift_y": shift_y,
             "shift_z": shift_z,
-            "rot_y": rot_y,
-            "rot_x": rot_x,
-            "rot_z": rot_z,
+            "rot_y_rad": rot_y_rad,
+            "rot_x_rad": rot_x_rad,
+            "rot_z_rad": rot_z_rad,
         }
         if transformation is not None and any(value is not None for value in transform_fields.values()):
             raise ValueError("Provide either `transformation` or transform components, not both.")
@@ -320,14 +327,17 @@ class ApertureBuilder:
         else:
             transformation = np.array(transformation, dtype=float, copy=True)
 
-        type_position = TypePositionBlueprint(
+        pipe_position = PipePositionBlueprint(
             name=name,
-            type_name=type_name,
+            pipe_name=pipe_name,
             survey_reference=survey_reference,
             transformation=transformation,
         )
-        self._type_positions.append(type_position)
-        return type_position
+        self._pipe_positions.append(pipe_position)
+        return pipe_position
+
+    def place_type(self, *args, **kwargs):
+        return self.place_pipe(*args, **kwargs)
 
     def build(self, context: Optional[XContext] = None) -> ApertureModel:
         """Build an :class:`ApertureModel` in the requested context.
@@ -352,51 +362,51 @@ class ApertureBuilder:
         profile_name_to_index = {name: ii for ii, name in enumerate(profile_names)}
         profiles = [Profile(**self._profiles[name]._to_dict(), _context=context) for name in profile_names]
 
-        type_names = list(self._types.keys())
-        type_name_to_index = {name: ii for ii, name in enumerate(type_names)}
-        types = []
-        for type_name in type_names:
-            type_blueprint = self._types[type_name]
-            sorted_positions = sorted(type_blueprint.positions, key=lambda position: position.s_position)
+        pipe_names = list(self._pipes.keys())
+        pipe_name_to_index = {name: ii for ii, name in enumerate(pipe_names)}
+        pipes = []
+        for pipe_name in pipe_names:
+            pipe_blueprint = self._pipes[pipe_name]
+            sorted_positions = sorted(pipe_blueprint.positions, key=lambda position: position.shift_s)
             positions = [
                 ProfilePosition(
                     profile_index=profile_name_to_index[position.profile_name],
-                    s_position=position.s_position,
+                    shift_s=position.shift_s,
                     shift_x=position.shift_x,
                     shift_y=position.shift_y,
-                    rot_y=position.rot_y,
-                    rot_x=position.rot_x,
-                    rot_s=position.rot_s,
+                    rot_y_rad=position.rot_y_rad,
+                    rot_x_rad=position.rot_x_rad,
+                    rot_s_rad=position.rot_s_rad,
                     _context=context,
                 )
                 for position in sorted_positions
             ]
-            types.append(
-                ApertureType(
-                    curvature=type_blueprint.curvature,
+            pipes.append(
+                Pipe(
+                    curvature=pipe_blueprint.curvature,
                     positions=positions,
                     _context=context,
                 )
             )
 
-        type_position_names = [type_position.name for type_position in self._type_positions]
-        type_positions = [
-            TypePosition(
-                type_index=type_name_to_index[type_position.type_name],
-                survey_reference_name=type_position.survey_reference,
-                survey_index=survey_name_to_index[type_position.survey_reference],
-                transformation=type_position.transformation,
+        pipe_position_names = [pipe_position.name for pipe_position in self._pipe_positions]
+        pipe_positions = [
+            PipePosition(
+                pipe_index=pipe_name_to_index[pipe_position.pipe_name],
+                survey_reference_name=pipe_position.survey_reference,
+                survey_index=survey_name_to_index[pipe_position.survey_reference],
+                transformation=pipe_position.transformation,
                 _context=context,
             )
-            for type_position in self._type_positions
+            for pipe_position in self._pipe_positions
         ]
 
         return ApertureModel(
-            type_positions=type_positions,
-            types=types,
+            pipe_positions=pipe_positions,
+            pipes=pipes,
             profiles=profiles,
-            type_names=type_names,
-            type_position_names=type_position_names,
+            pipe_names=pipe_names,
+            pipe_position_names=pipe_position_names,
             profile_names=profile_names,
             _context=context,
         )

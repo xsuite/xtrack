@@ -17,7 +17,7 @@ env['l_mb'] = 1.65
 env['l_mq'] = 0.35
 env['l_ms'] = 0.2
 
-# Magnet types
+# Magnet pipes
 env.new('mb', xt.RBend, length_straight='l_mb', angle='ang_mb')
 env.new('mq', xt.Quadrupole, length='l_mq')
 env.new('ms', xt.Sextupole, length='l_ms')
@@ -135,26 +135,26 @@ l_mq = float(env['mq'].length)
 l_ms = float(env['ms'].length)
 ang_mb = float(env['mb'].angle)
 
-type_mb = builder.new_type(
+type_mb = builder.new_pipe(
     'mb',
     curvature=ang_mb / l_mb,
     positions=[
-        builder.place_profile(profile_dipole, s_position=0.0),
-        builder.place_profile(profile_dipole, s_position=l_mb),
+        builder.place_profile(profile_dipole, shift_s=0.0),
+        builder.place_profile(profile_dipole, shift_s=l_mb),
     ],
 )
-type_mq = builder.new_type(
+type_mq = builder.new_pipe(
     'mq',
     positions=[
-        builder.place_profile(profile_straight, s_position=0.0),
-        builder.place_profile(profile_straight, s_position=l_mq),
+        builder.place_profile(profile_straight, shift_s=0.0),
+        builder.place_profile(profile_straight, shift_s=l_mq),
     ],
 )
-type_ms = builder.new_type(
+type_ms = builder.new_pipe(
     'ms',
     positions=[
-        builder.place_profile(profile_straight, s_position=0.0),
-        builder.place_profile(profile_straight, s_position=l_ms),
+        builder.place_profile(profile_straight, shift_s=0.0),
+        builder.place_profile(profile_straight, shift_s=l_ms),
     ],
 )
 
@@ -167,25 +167,25 @@ for row in ring_table.rows:
     length = s_end - s_start
 
     if name.startswith('mb'):
-        builder.place_type(name, type_mb.name, survey_reference=name)
+        builder.place_pipe(name, type_mb.name, survey_reference=name)
     elif name.startswith('q'):
-        builder.place_type(name, type_mq.name, survey_reference=name)
+        builder.place_pipe(name, type_mq.name, survey_reference=name)
     elif name.startswith('ms'):
-        builder.place_type(name, type_ms.name, survey_reference=name)
+        builder.place_pipe(name, type_ms.name, survey_reference=name)
     elif length > 1e-6:
         key = round(length / 1e-6)
         if key in types_dr:
             type_ = types_dr[key]
         else:
-            type_ = builder.new_type(
+            type_ = builder.new_pipe(
                 f'drift_{length:.6f}',
                 positions=[
-                    builder.place_profile(profile_straight, s_position=0.0),
-                    builder.place_profile(profile_straight, s_position=length),
+                    builder.place_profile(profile_straight, shift_s=0.0),
+                    builder.place_profile(profile_straight, shift_s=length),
                 ],
             )
             types_dr[key] = type_
-        builder.place_type(name, type_.name, survey_reference=name)
+        builder.place_pipe(name, type_.name, survey_reference=name)
 
 aperture_model = builder.build()
 aperture = Aperture(line=ring, model=aperture_model)
