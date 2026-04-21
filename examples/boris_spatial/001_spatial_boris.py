@@ -23,6 +23,7 @@ integrator = xt.BorisSpatialIntegrator(fieldmap_callable=sf.get_field,
                                         s_start=0,
                                         s_end=30,
                                         n_steps=15000)
+integrator.log_trajectories = True
 p_boris = p.copy()
 integrator.track(p_boris)
 
