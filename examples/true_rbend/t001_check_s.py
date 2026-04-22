@@ -36,3 +36,12 @@ line_thick_cut.set_particle_ref(p0.copy())
 tw_thick = line.twiss(betx=1, bety=1)
 tw_thin = line_thin.twiss(betx=1, bety=1)
 tw_thick_cut = line_thick_cut.twiss(betx=1, bety=1)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.plot(tw_thick_cut.s, tw_thick_cut.x, '.-', label='thick cut')
+plt.plot(tw_thin.s, tw_thin.x, 'x--', label='thin')
+plt.xlabel('s [m]')
+plt.ylabel('x [m]')
+plt.legend()
+plt.show()
