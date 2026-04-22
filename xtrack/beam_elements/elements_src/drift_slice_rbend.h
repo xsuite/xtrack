@@ -24,24 +24,31 @@
             int64_t rbend_model = DriftSliceRBendData_get__parent_rbend_model(el);
             double full_length;
             double length_drift;
+            double ds_corr = 0;
+            double full_length_curved = DriftSliceRBendData_get__parent_length(el);
             if (rbend_model == 2) { // straight-body
-                full_length = DriftSliceRBendData_get__parent_length_straight(el);
-                length_drift = full_length * weight;
+                double full_length_straight = DriftSliceRBendData_get__parent_length_straight(el);
+                length_drift = full_length_straight * weight;
+                ds_corr = (full_length_curved - full_length_straight) * weight;
             }
             else {
-                full_length = DriftSliceRBendData_get__parent_length(el);
-                length_drift = full_length * weight;
+                length_drift = full_length_curved * weight;
             }
 
 
             if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
-                length_drift *= -1; // 
+                length_drift *= -1;
+                ds_corr *= -1;
             }
 
             if (rbend_model == 2) { // straight-body
                 // Force exact drift
                 START_PER_PARTICLE_BLOCK(part0, part);
                     Drift_single_particle_exact(part, length_drift);
+                END_PER_PARTICLE_BLOCK;
+                START_PER_PARTICLE_BLOCK(part0, part);
+                    LocalParticle_add_to_s(part, ds_corr);
+                    LocalParticle_add_to_zeta(part, ds_corr);
                 END_PER_PARTICLE_BLOCK;
             }
             else {
