@@ -302,6 +302,62 @@ for td in to_do:
     out_drift_slice = drift_slice_template.replace("Octupole", parent_class)
     out_drift_slice = out_drift_slice.replace("Octupole".upper(), parent_class.upper())
 
+    if parent_class == "RBend":
+
+        out_drift_slice = '''
+        // copyright ############################### //
+        // This file is part of the Xtrack Package.  //
+        // Copyright (c) CERN, 2023.                 //
+        // ######################################### //
+
+        #ifndef XTRACK_DRIFT_SLICE_RBEND_H
+        #define XTRACK_DRIFT_SLICE_RBEND_H
+
+        #include "xtrack/headers/track.h"
+        #include "xtrack/beam_elements/elements_src/track_drift.h"
+
+
+        GPUFUN
+        void DriftSliceRBend_track_local_particle(
+                DriftSliceRBendData el,
+                LocalParticle* part0
+        ) {
+
+            int64_t rbend_model = DriftSliceRBendData_get__parent_rbend_model(el);
+            double full_length;
+            if (rbend_model == 2) { // straight-body
+                full_length = DriftSliceRBendData_get__parent_length_straight(el);
+            }
+            else {
+                full_length = DriftSliceRBendData_get__parent_length(el);
+            }
+
+            double weight = DriftSliceRBendData_get_weight(el);
+
+            double length;
+            if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
+                length = -weight * full_length; // m
+            }
+            else {
+                length = weight * full_length; // m
+            }
+
+            if (rbend_model == 2) { // straight-body
+                // Force exact drift
+                START_PER_PARTICLE_BLOCK(part0, part);
+                    Drift_single_particle_exact(part, length);
+                END_PER_PARTICLE_BLOCK;
+            }
+            else {
+                START_PER_PARTICLE_BLOCK(part0, part);
+                    Drift_single_particle(part, length);
+                END_PER_PARTICLE_BLOCK;
+            }
+        }
+
+        #endif
+        '''
+
     parent_class_snake = ''.join(['_' + c.lower() if c.isupper() else c for c in parent_class]).lstrip('_')
     parent_class_snake = parent_class_snake.replace("r_bend", "rbend")
 

@@ -2,37 +2,55 @@
 // Do not edit it directly.
 
 
-    // copyright ############################### //
-    // This file is part of the Xtrack Package.  //
-    // Copyright (c) CERN, 2023.                 //
-    // ######################################### //
+        // copyright ############################### //
+        // This file is part of the Xtrack Package.  //
+        // Copyright (c) CERN, 2023.                 //
+        // ######################################### //
 
-    #ifndef XTRACK_DRIFT_SLICE_RBEND_H
-    #define XTRACK_DRIFT_SLICE_RBEND_H
+        #ifndef XTRACK_DRIFT_SLICE_RBEND_H
+        #define XTRACK_DRIFT_SLICE_RBEND_H
 
-    #include "xtrack/headers/track.h"
-    #include "xtrack/beam_elements/elements_src/track_drift.h"
+        #include "xtrack/headers/track.h"
+        #include "xtrack/beam_elements/elements_src/track_drift.h"
 
 
-    GPUFUN
-    void DriftSliceRBend_track_local_particle(
-            DriftSliceRBendData el,
-            LocalParticle* part0
-    ) {
+        GPUFUN
+        void DriftSliceRBend_track_local_particle(
+                DriftSliceRBendData el,
+                LocalParticle* part0
+        ) {
 
-        double weight = DriftSliceRBendData_get_weight(el);
-        double length;
-        if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
-            length = -weight * DriftSliceRBendData_get__parent_length(el); // m
+            int64_t rbend_model = DriftSliceRBendData_get__parent_rbend_model(el);
+            double full_length;
+            if (rbend_model == 2) { // straight-body
+                full_length = DriftSliceRBendData_get__parent_length_straight(el);
+            }
+            else {
+                full_length = DriftSliceRBendData_get__parent_length(el);
+            }
+
+            double weight = DriftSliceRBendData_get_weight(el);
+
+            double length;
+            if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
+                length = -weight * full_length; // m
+            }
+            else {
+                length = weight * full_length; // m
+            }
+
+            if (rbend_model == 2) { // straight-body
+                // Force exact drift
+                START_PER_PARTICLE_BLOCK(part0, part);
+                    Drift_single_particle_exact(part, length);
+                END_PER_PARTICLE_BLOCK;
+            }
+            else {
+                START_PER_PARTICLE_BLOCK(part0, part);
+                    Drift_single_particle(part, length);
+                END_PER_PARTICLE_BLOCK;
+            }
         }
-        else {
-            length = weight * DriftSliceRBendData_get__parent_length(el); // m
-        }
 
-        START_PER_PARTICLE_BLOCK(part0, part);
-            Drift_single_particle(part, length);
-        END_PER_PARTICLE_BLOCK;
-    }
-
-    #endif
-    
+        #endif
+        
