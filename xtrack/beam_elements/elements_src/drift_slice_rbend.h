@@ -20,34 +20,33 @@
                 LocalParticle* part0
         ) {
 
+            double weight = DriftSliceRBendData_get_weight(el);
             int64_t rbend_model = DriftSliceRBendData_get__parent_rbend_model(el);
             double full_length;
+            double length_drift;
             if (rbend_model == 2) { // straight-body
                 full_length = DriftSliceRBendData_get__parent_length_straight(el);
+                length_drift = full_length * weight;
             }
             else {
                 full_length = DriftSliceRBendData_get__parent_length(el);
+                length_drift = full_length * weight;
             }
 
-            double weight = DriftSliceRBendData_get_weight(el);
 
-            double length;
             if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
-                length = -weight * full_length; // m
-            }
-            else {
-                length = weight * full_length; // m
+                length_drift *= -1; // 
             }
 
             if (rbend_model == 2) { // straight-body
                 // Force exact drift
                 START_PER_PARTICLE_BLOCK(part0, part);
-                    Drift_single_particle_exact(part, length);
+                    Drift_single_particle_exact(part, length_drift);
                 END_PER_PARTICLE_BLOCK;
             }
             else {
                 START_PER_PARTICLE_BLOCK(part0, part);
-                    Drift_single_particle(part, length);
+                    Drift_single_particle(part, length_drift);
                 END_PER_PARTICLE_BLOCK;
             }
         }

@@ -595,7 +595,7 @@ void track_magnet_particles(
             );
         END_PER_PARTICLE_BLOCK;
 
-        if (rbend_model == 2){
+        if (rbend_model == 2 && model >= 0){ // model>=0 means not kick only
             // straight body --> correct s to match the curved frame
             double const ds = (core_length_curved - core_length);
             START_PER_PARTICLE_BLOCK(part0, part);
