@@ -1084,7 +1084,7 @@ class Environment:
         ----------
         file: str
             The MAD-X file to load from.
-        **kwargs: dict
+        **kwargs
             Additional keyword arguments are passed to the `Line.from_madx_sequence`
             method.
 

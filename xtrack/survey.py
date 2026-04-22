@@ -526,3 +526,20 @@ def _compute_survey_quantities_from_v_w(V, W):
         'p0': p0,
         'W': W
     }
+
+
+def survey_relative_transform(survey: SurveyTable, source: str | int, destination: str | int) -> np.ndarray:
+    """Generate a 3D transformation matrix from survey point `source` to `destination`."""
+    src_row = survey.rows[source]
+    dest_row = survey.rows[destination]
+
+    def _row_to_matrix(row):
+        matrix = np.identity(4)
+        matrix[:3, :3] = row.W
+        matrix[:3, 3] = row.p0
+        return matrix
+
+    src_mat = _row_to_matrix(src_row)
+    dest_mat = _row_to_matrix(dest_row)
+
+    return np.linalg.inv(src_mat) @ dest_mat

@@ -395,7 +395,7 @@ class Table(_XdepsTable):
     # ------------------------------------------------------------------
     def to_json(self, file, indent=1, **kwargs):
         """Dump the table to JSON using the xtrack JSON utilities."""
-        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
+        json_utils.dump(self.to_dict(**kwargs), file, sort_keys=False, indent=indent)
 
     @classmethod
     def from_json(cls, file):

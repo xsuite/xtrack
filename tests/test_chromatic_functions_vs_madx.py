@@ -12,7 +12,7 @@ test_data_folder = pathlib.Path(
 import numpy as np
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
-def test_chromatic_functions_vs_madx(test_context):
+def test_chromatic_functions_vs_madx(test_context, sandbox_cwd):
 
     collider = xt.load(test_data_folder /
                                 'hllhc15_thick/hllhc15_collider_thick.json')

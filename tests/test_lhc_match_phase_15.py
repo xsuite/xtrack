@@ -18,7 +18,7 @@ test_data_folder = pathlib.Path(
     ['noshift', 'shift']
 )
 @fix_random_seed(2836475)
-def test_lhc_match_phase_15(config):
+def test_lhc_match_phase_15(config, tmp_path):
     test_context = xo.ContextCpu()
 
     if config == 'noshift':
@@ -241,7 +241,8 @@ def test_lhc_match_phase_15(config):
     optimizers['orbit_knobs'] = opt
 
     # Generate madx optics file
-    lm.gen_madx_optics_file_auto(collider, f'opt_round_150_1500_xs_{config}.madx')
+    optics_path = tmp_path / f'opt_round_150_1500_xs_{config}.madx'
+    lm.gen_madx_optics_file_auto(collider, optics_path)
 
     tw = collider.twiss()
 
@@ -522,7 +523,7 @@ def test_lhc_match_phase_15(config):
     mad.use('lhcb1')
     mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
     mad.use('lhcb2')
-    mad.call(f"opt_round_150_1500_xs_{config}.madx")
+    mad.call(str(optics_path))
 
     mad.input('twiss, sequence=lhcb1, table=twb1')
     mad.input('twiss, sequence=lhcb2, table=twb2')

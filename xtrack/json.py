@@ -53,7 +53,7 @@ def _complex_object_hook(obj):
     return obj
 
 
-def dump(data, file, indent=1):
+def dump(data, file, indent=1, sort_keys=True):
     if isinstance(file, io.IOBase):
         fh, close = file, False
     elif (isinstance(file, str) and file.endswith(".gz")) or (
@@ -63,7 +63,7 @@ def dump(data, file, indent=1):
     else:
         fh, close = open(file, "w"), True
 
-    json.dump(data, fh, indent=indent, cls=_XtrackJSONEncoder)
+    json.dump(data, fh, sort_keys=sort_keys, indent=indent, cls=_XtrackJSONEncoder)
 
     if close:
         fh.close()
