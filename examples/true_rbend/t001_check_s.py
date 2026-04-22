@@ -9,7 +9,7 @@ line = env.new_line(components=[
 line_thin = line.copy(shallow=True)
 line_thin.slice_thick_elements(
     slicing_strategies=[
-        xt.Strategy(slicing=xt.Teapot(3, mode='thin'))
+        xt.Strategy(slicing=xt.Teapot(10, mode='thin'))
     ]
 )
 
@@ -17,7 +17,7 @@ p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=45.6e9)
 p_thick = p0.copy()
 p_thin = p0.copy()
 
-line_thick_cut = line_thin.copy(shallow=True)
+line_thick_cut = line.copy(shallow=True)
 line_thick_cut.cut_at_s(line_thin.get_table().s)
 
 line.reset_s_at_end_turn = False
