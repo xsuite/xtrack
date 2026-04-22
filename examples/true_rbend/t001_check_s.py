@@ -18,6 +18,14 @@ line_thin.slice_thick_elements(
 line_thick_cut = line.copy(shallow=True)
 line_thick_cut.cut_at_s(line_thin.get_table().s)
 
+tt_thin = line_thin.get_table()
+tt_thick_cut = line_thick_cut.get_table()
+tt_thick = line.get_table()
+
+xo.assert_allclose(tt_thick.s[-1], env['rb'].length, atol=1e-13)
+xo.assert_allclose(tt_thin.s[-1], env['rb'].length, atol=1e-13)
+xo.assert_allclose(tt_thick_cut.s[-1], env['rb'].length, atol=1e-13)
+
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=45.6e9)
 p_thick = p0.copy()
 p_thin = p0.copy()
@@ -27,11 +35,6 @@ line.reset_s_at_end_turn = False
 line_thin.reset_s_at_end_turn = False
 line_thick_cut.reset_s_at_end_turn = False
 
-
-# line.discard_tracker()
-# line_thin.discard_tracker()
-# line.build_tracker(compile=True, use_prebuilt_kernels=False)
-# line_thin.build_tracker(compile=True, use_prebuilt_kernels=False)
 line.track(p_thick)
 line_thin.track(p_thin)
 line_thick_cut.track(p_thick_cut)
@@ -70,6 +73,10 @@ xo.assert_allclose(tw_thick_cut.x, tw_thin_compare.x, atol=4e-2*np.max(tw_thick_
 tw_thick_back = line.twiss(init_at='end_point', betx=1, bety=1)
 tw_thin_back = line_thin.twiss(init_at='end_point', betx=1, bety=1)
 tw_thick_cut_back = line_thick_cut.twiss(init_at='end_point', betx=1, bety=1)
+
+xo.assert_allclose(tw_thick.s, tt_thick.s, atol=1e-13)
+xo.assert_allclose(tw_thin.s, tt_thin.s, atol=1e-13)
+xo.assert_allclose(tw_thick_cut.s, tt_thick_cut.s, atol=1e-13)
 
 assert tw_thick_back._orientation == 'backward'
 assert tw_thin_back._orientation == 'backward'
