@@ -35,7 +35,7 @@ from xtrack.slicing import Strategy, Uniform
 @pytest.mark.parametrize('model', ['adaptive', 'full', 'bend-kick-bend', 'rot-kick-rot'])
 @for_all_test_contexts
 def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
-                                              use_multipole,  model):
+                                              use_multipole,  model, sandbox_cwd):
 
     p0 = xp.Particles(
         mass0=xp.PROTON_MASS_EV,

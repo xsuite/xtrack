@@ -692,7 +692,7 @@ def test_reversed_solenoid(example_sequence):
     assert so1.ks == -3
 
 
-def test_load_b2_with_bv_minus_one(tmp_path):
+def test_load_b2_with_bv_minus_one(sandbox_cwd):
     test_data_folder_str = str(test_data_folder)
 
     mad = Madx(stdout=False)
@@ -723,8 +723,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     mad.globals['kctx3.l1'] = 1e-5  # Check thin dodecapole expressions
     mad.globals['kctsx3.r1'] = 1e-5  # Check thin skew dodecapole expressions
 
-
-    tmp_seq_path = str(tmp_path / 'sequence.seq')
+    tmp_seq_path = str(sandbox_cwd / 'sequence.seq')
     mad.input('set, format=".20g";')
     mad.save(file=tmp_seq_path)
 
@@ -867,6 +866,27 @@ def test_line_syntax():
     l6 = env['l6']
     assert l6.name == 'l6'
     assert l6.element_names == 4 * ['el1', 'el2']
+
+
+def test_line_syntax_inserts_apertures():
+    sequence = """
+    m1: marker, apertype="circle", aperture={.2};
+    d1: drift, l=1;
+
+    l1: line = (m1, 3 * m1, d1);
+    """
+
+    loader = MadxLoader()
+    loader.load_string(sequence)
+    env = loader.env
+
+    env['l1'].end_compose()
+
+    l1 = env['l1']
+    assert l1.name == 'l1'
+    assert l1.element_names == 4 * ['m1_aper', 'm1'] + ['d1']
+    assert l1['m1'].name_associated_aperture == 'm1_aper'
+    assert isinstance(l1['m1_aper'], xt.LimitEllipse)
 
 
 def test_refer_and_thin_elements():

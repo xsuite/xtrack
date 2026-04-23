@@ -57,3 +57,10 @@ def temp_context_default_mod(module_mocker):
     """Module scope version of `temp_context_default_func` fixture."""
     module_mocker.patch.object(xo.typeutils, "context_default", xo.ContextCpu())
     yield
+
+
+@pytest.fixture(scope="function")
+def sandbox_cwd(tmp_path):
+    """Temporarily run the test with cwd set to the pytest tmp_path."""
+    with contextlib.chdir(tmp_path):
+        yield tmp_path

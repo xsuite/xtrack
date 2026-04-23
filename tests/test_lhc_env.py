@@ -9,7 +9,7 @@ from cpymad.madx import Madx
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
-def test_lhc_environment():
+def test_lhc_environment(tmp_path, sandbox_cwd):
 
     mad1=Madx()
     mad1.call(str(test_data_folder / 'hllhc15_thick/lhc.seq'))
@@ -45,9 +45,10 @@ def test_lhc_environment():
     env = xt.Environment(lines={'lhcb1': line1, 'lhcb2': line4})
     assert env.lhcb2.twiss_default['reverse'] == True
 
-    env.to_json('lhc.json')
+    env_path = tmp_path / 'lhc.json'
+    env.to_json(env_path)
 
-    env = xt.load('lhc.json')
+    env = xt.load(env_path)
 
     assert env.lhcb1._element_dict is env._element_dict
     assert env.lhcb2._element_dict is env._element_dict

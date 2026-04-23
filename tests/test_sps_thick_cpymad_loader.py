@@ -15,7 +15,7 @@ test_data_folder = pathlib.Path(
 
 @pytest.mark.parametrize('deferred_expressions', [True, False])
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
-def test_sps_thick_cpymad_loader(test_context, deferred_expressions):
+def test_sps_thick_cpymad_loader(test_context, deferred_expressions, tmp_path):
 
     mad = Madx(stdout=False)
     mad.call(str(test_data_folder) + '/sps_thick/sps.seq')
@@ -194,7 +194,7 @@ def test_sps_thick_cpymad_loader(test_context, deferred_expressions):
 
     assert_allclose = np.testing.assert_allclose
 
-    line.to_json('sps_cpymad.json')
+    line.to_json(tmp_path / 'sps_cpymad.json')
 
     assert_allclose(tw_backwards.s, tw_edge_linear.s, rtol=0, atol=1e-10)
     assert_allclose(tw_backwards.x, tw_edge_linear.x, rtol=0, atol=1e-10)
@@ -215,4 +215,3 @@ def test_sps_thick_cpymad_loader(test_context, deferred_expressions):
                     rtol=0, atol=1e-10)
     assert_allclose(tw_backwards.muy[-1] - tw_edge_linear.muy[0], tw_edge_linear.qy,
                     rtol=0, atol=1e-10)
-
