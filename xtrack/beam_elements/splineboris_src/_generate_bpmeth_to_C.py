@@ -80,11 +80,12 @@ def generic_field_exprs(curv, multipole_order=multipole_order, poly_order=4):
         multipole_order=multipole_order, poly_order=poly_order
     )
 
-    # nphi must be > multipole_order to include y-dependent terms from dBs/ds
-    # The recursion phi_{n+2} = f(phi_n) means we need at least nphi = multipole_order + 2
-    # to capture the solenoid focusing terms (-y*(d(bs)/ds + bx_1)) in By
+    # For hs=0, the bpmeth recurrence is phi_{i+2} = -(d_x^2 + d_s^2) phi_i.
+    # If bs has degree N in x and degree P in s, the largest nonzero phi index is N + P.
+    # nphi counts terms from phi_0..phi_{nphi-1}, so we need nphi = N + P + 1.
+    # Using multipole_order for N and poly_order for P keeps truncation correct if P changes.
     generic_B = bp.GeneralVectorPotential(
-        hs=curv, a=bx_exprs, b=by_exprs, bs=bs_exprs, nphi=multipole_order + 2
+        hs=curv, a=bx_exprs, b=by_exprs, bs=bs_exprs, nphi=multipole_order + poly_order + 1
     )
     symbolic_Bx, symbolic_By, symbolic_Bs = generic_B.get_Bfield(lambdify=False)
     symbolic_Ax, symbolic_Ay, symbolic_As = generic_B.get_A()
