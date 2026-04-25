@@ -8,9 +8,9 @@ from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                 energy0=45.6e9/1000,
-                x=[-1e-3,],
+                x=[-5e-3,],
                 px=0,
-                y=1e-3,
+                y=2e-3,
                 delta=0)
 
 
@@ -52,7 +52,7 @@ class LinearFringeSolenoid:
 
 sf = LinearFringeSolenoid(B0=1.0, s1=0.0, s2=3, s3=7, s4=10)
 
-n_steps_vect = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
+n_steps_vect = [200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
 
 sympl_error = []
 S = xt.linear_normal_form.S
@@ -82,18 +82,20 @@ err = np.sqrt((np.array(x) - x[-1])**2 + (np.array(y) - y[-1])**2)
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(1)
+fig1 = plt.figure(1)
 plt.loglog(n_steps_vect[:-1], err[:-1], '-o', label='Simulation')
 plt.loglog(n_steps_vect[:-1], err[0]*n_steps_vect[0]**2 * 1/np.array(n_steps_vect[:-1])**(2), '--', label=r'~ 1/$N_\text{steps}^2$')
 plt.xlabel('Number of steps')
 plt.ylabel('Error on exit position (m)')
+plt.xlim(n_steps_vect[0]/2, n_steps_vect[-1])
 plt.legend()
 
-plt.figure(2)
+fig2 = plt.figure(2)
 plt.loglog(n_steps_vect[:-1], np.abs(sympl_error[:-1]), '-o', label='Simulation')
 plt.loglog(n_steps_vect[:-1], np.abs(sympl_error[0])*n_steps_vect[0]**2 * 1/np.array(n_steps_vect[:-1])**(2), '--', label=r'~ 1/$N_\text{steps}^2$')
 plt.xlabel('Number of steps')
 plt.ylabel('Symplectic deviation')
+plt.xlim(n_steps_vect[0]/2, n_steps_vect[-1])
 plt.legend()
 
 plt.show()
