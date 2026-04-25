@@ -52,8 +52,8 @@ class LinearFringeSolenoid:
 
 sf = LinearFringeSolenoid(B0=1.0, s1=0.0, s2=3, s3=7, s4=10)
 
-n_steps_vect = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000]
-# n_steps_vect = [5000, 10000, 20000, 50000, 100000] # 200000]
+n_steps_vect = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
+
 sympl_error = []
 S = xt.linear_normal_form.S
 x = []
@@ -83,17 +83,17 @@ err = np.sqrt((np.array(x) - x[-1])**2 + (np.array(y) - y[-1])**2)
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
-plt.loglog(n_steps_vect, err, '-o')
-plt.loglog(n_steps_vect, err[0]*n_steps_vect[0]**2 * 1/np.array(n_steps_vect)**(2), '--', label='~1/Nsteps^2')
+plt.loglog(n_steps_vect[:-1], err[:-1], '-o', label='Simulation')
+plt.loglog(n_steps_vect[:-1], err[0]*n_steps_vect[0]**2 * 1/np.array(n_steps_vect[:-1])**(2), '--', label=r'~ 1/$N_\text{steps}^2$')
 plt.xlabel('Number of steps')
-plt.ylabel('Error in position (m)')
+plt.ylabel('Error on exit position (m)')
 plt.legend()
 
 plt.figure(2)
-plt.loglog(n_steps_vect, np.abs(sympl_error), '-o')
-plt.loglog(n_steps_vect, np.abs(sympl_error[0])*n_steps_vect[0]**2 * 1/np.array(n_steps_vect)**(2), '--', label='~1/Nsteps^2')
+plt.loglog(n_steps_vect[:-1], np.abs(sympl_error[:-1]), '-o', label='Simulation')
+plt.loglog(n_steps_vect[:-1], np.abs(sympl_error[0])*n_steps_vect[0]**2 * 1/np.array(n_steps_vect[:-1])**(2), '--', label=r'~ 1/$N_\text{steps}^2$')
 plt.xlabel('Number of steps')
-plt.ylabel('Symplecticity error')
+plt.ylabel('Symplectic deviation')
 plt.legend()
 
 plt.show()
