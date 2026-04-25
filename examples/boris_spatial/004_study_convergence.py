@@ -13,8 +13,6 @@ p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
                 y=1e-3,
                 delta=0)
 
-p = p0.copy()
-
 
 class LinearFringeSolenoid:
 
@@ -59,6 +57,7 @@ n_steps_vect = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000]
 sympl_error = []
 S = xt.linear_normal_form.S
 x = []
+y = []
 for n_steps in n_steps_vect:
     print('n_steps=', n_steps)
     integrator = xt.BorisSpatialIntegrator(fieldmap_callable=sf.get_field,
@@ -75,11 +74,11 @@ for n_steps in n_steps_vect:
     se = np.linalg.norm(RR.T @ S @ RR - S, ord=2)
     sympl_error.append(se)
 
-    p_boris = p.copy()
+    p_boris = p0.copy()
     integrator.track(p_boris)
     x.append(p_boris.x[0])
-
-err = np.abs(np.array(x)-x[-1])
+    y.append(p_boris.y[0])
+err = np.sqrt((np.array(x) - x[-1])**2 + (np.array(y) - y[-1])**2)
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -87,7 +86,7 @@ plt.figure(1)
 plt.loglog(n_steps_vect, err, '-o')
 plt.loglog(n_steps_vect, err[0]*n_steps_vect[0]**2 * 1/np.array(n_steps_vect)**(2), '--', label='~1/Nsteps^2')
 plt.xlabel('Number of steps')
-plt.ylabel('Error in x (m)')
+plt.ylabel('Error in position (m)')
 plt.legend()
 
 plt.figure(2)
