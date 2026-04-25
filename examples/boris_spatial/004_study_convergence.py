@@ -82,7 +82,7 @@ err = np.sqrt((np.array(x) - x[-1])**2 + (np.array(y) - y[-1])**2)
 
 import matplotlib.pyplot as plt
 plt.close('all')
-fig1 = plt.figure(1)
+fig1 = plt.figure(1, figsize=(6.4, 4.8))
 plt.loglog(n_steps_vect[:-1], err[:-1], '-o', label='Simulation')
 plt.loglog(n_steps_vect[:-1], err[0]*n_steps_vect[0]**2 * 1/np.array(n_steps_vect[:-1])**(2), '--', label=r'~ 1/$N_\text{steps}^2$')
 plt.xlabel('Number of steps')
@@ -90,7 +90,7 @@ plt.ylabel('Error on exit position (m)')
 plt.xlim(n_steps_vect[0]/2, n_steps_vect[-1])
 plt.legend()
 
-fig2 = plt.figure(2)
+fig2 = plt.figure(2, figsize=(6.4, 4.8))
 plt.loglog(n_steps_vect[:-1], np.abs(sympl_error[:-1]), '-o', label='Simulation')
 plt.loglog(n_steps_vect[:-1], np.abs(sympl_error[0])*n_steps_vect[0]**2 * 1/np.array(n_steps_vect[:-1])**(2), '--', label=r'~ 1/$N_\text{steps}^2$')
 plt.xlabel('Number of steps')

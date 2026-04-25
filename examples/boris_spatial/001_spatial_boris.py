@@ -154,7 +154,7 @@ plt.plot(z_check - sf.z0, dy_ds_xsuite_check, label='XSuite')
 plt.xlim(-4, 3)
 
 
-fig2 = plt.figure(2, figsize=(6.4, 4.8))
+fig2 = plt.figure(2, figsize=(6.4, 4.8*1.2))
 plt.subplot(2, 1, 1, sharex=ax0)
 plt.plot(z_log[:, i_part] - sf.z0, x_log[:, i_part], label='Boris')
 plt.plot(mon.s[i_part, :] - sf.z0, mon.x[i_part, :], label='XSuite', linestyle='--')
@@ -167,5 +167,6 @@ plt.plot(mon.s[i_part, :] - sf.z0, mon.y[i_part, :], label='XSuite', linestyle='
 plt.ylim(-0.01, 0.025)
 plt.xlabel('z [m]')
 plt.ylabel('y [m]')
+plt.subplots_adjust(left=0.15, right=0.95)
 
 plt.show()
