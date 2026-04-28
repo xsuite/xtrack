@@ -3,10 +3,14 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 import pathlib
+import pytest
+
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
+
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 def test_native_madloader_ti2():
     env = xt.load([test_data_folder / 'sps_to_lhc_ti2/ti2.seq',
                    test_data_folder / 'sps_to_lhc_ti2/ti2_liu.str'])

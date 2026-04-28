@@ -327,6 +327,7 @@ class ElementAssembler:
             xtel.name_associated_aperture = name_associated_aperture
         name = generate_repeated_name(line, self.name)
         line.append(name, xtel)
+        return xtel
 
 
 class ElementAssemblerWithExpr(ElementAssembler):

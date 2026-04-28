@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict, Optional, List, Set, Tuple, Union
 
 import numpy as np
@@ -59,8 +60,12 @@ _APERTURE_TYPES = {
 }
 
 
+class MADLoaderWarning(UserWarning):
+    pass
+
+
 def _warn(msg):
-    print(f'Warning: {msg}')
+    warnings.warn(msg, MADLoaderWarning)
 
 
 def get_params(params, parent):
@@ -624,6 +629,10 @@ class MadxLoader:
                 aper_params['x_vertices'] = aper_vx
             if (aper_vy := params.pop('aper_vy', None)):
                 aper_params['y_vertices'] = aper_vy
+
+        if not force and aper_name in self.env:
+            _warn(f'Aperture `{aper_name}` redefinition ignored for compatibility with MAD-X.')
+            return aper_name
 
         return self.env.new(aper_name, _APERTURE_TYPES[apertype], force=force,
                             **aper_params)
