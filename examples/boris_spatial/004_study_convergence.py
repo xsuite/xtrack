@@ -17,6 +17,7 @@ sf = LinearFringeSolenoid(B0=1.0, s1=0.0, s2=3, s3=7, s4=10)
 n_steps_vect = [200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
 
 sympl_error = []
+det_R = []
 S = xt.linear_normal_form.S
 x = []
 y = []
@@ -40,6 +41,7 @@ for n_steps in n_steps_vect:
     integrator.track(p_boris)
     x.append(p_boris.x[0])
     y.append(p_boris.y[0])
+    det_R.append(np.linalg.det(RR))
 err = np.sqrt((np.array(x) - x[-1])**2 + (np.array(y) - y[-1])**2)
 
 import matplotlib.pyplot as plt
@@ -58,6 +60,12 @@ plt.loglog(n_steps_vect[:-1], np.abs(sympl_error[0])*n_steps_vect[0]**2 * 1/np.a
 plt.xlabel('Number of steps')
 plt.ylabel('Symplectic deviation')
 plt.xlim(n_steps_vect[0]/2, n_steps_vect[-1])
+plt.legend()
+
+fig3 = plt.figure(3, figsize=(6.4, 4.8))
+plt.loglog(n_steps_vect, np.abs(np.abs(det_R)- 1), '-o', label='Simulation')
+plt.xlabel('Number of steps')
+plt.ylabel('Deviation from unity on the determinant of R')
 plt.legend()
 
 plt.show()
