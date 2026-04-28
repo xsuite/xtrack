@@ -4,7 +4,7 @@ import xtrack as xt
 from linear_fringe_solenoid import LinearFringeSolenoid
 
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
-                energy0=45.6e9/1000,
+                energy0=50e6,
                 x=[-5e-3,],
                 px=0,
                 y=2e-3,

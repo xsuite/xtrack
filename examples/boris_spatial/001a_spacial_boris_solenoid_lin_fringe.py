@@ -7,17 +7,16 @@ import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 from linear_fringe_solenoid import LinearFringeSolenoid
 
-sf = LinearFringeSolenoid(B0=1.0, s1=16, s2=18, s3=22, s4=24)
+sf = LinearFringeSolenoid(B0=1.0, s1=15, s2=18, s3=22, s4=25)
 sf.z0 = 20
 sf.L = 4
 
-delta=np.array([0, 4])
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1,
-                energy0=45.6e9/1000,
-                x=[-1e-3, -1e-3],
-                px=-1e-3*(1+delta),
-                y=1e-3,
-                delta=delta)
+                energy0=50e6,
+                x=[-5e-3],
+                px=0,
+                y=2e-3,
+                delta=0)
 
 p = p0.copy()
 
@@ -160,13 +159,13 @@ fig2 = plt.figure(2, figsize=(6.4, 4.8*1.2))
 plt.subplot(2, 1, 1, sharex=ax0)
 plt.plot(z_log[:, i_part] - sf.z0, x_log[:, i_part], label='Boris')
 plt.plot(mon.s[i_part, :] - sf.z0, mon.x[i_part, :], label='XSuite', linestyle='--')
-plt.ylim(-0.025, 0.01)
+plt.ylim(-0.01, 0.002)
 plt.ylabel('x [m]')
 plt.legend()
 plt.subplot(2, 1, 2, sharex=ax0)
 plt.plot(z_log[:, i_part] - sf.z0, y_log[:, i_part], label='Boris')
 plt.plot(mon.s[i_part, :] - sf.z0, mon.y[i_part, :], label='XSuite', linestyle='--')
-plt.ylim(-0.01, 0.025)
+plt.ylim(-0.005, 0.007)
 plt.xlabel('z [m]')
 plt.ylabel('y [m]')
 plt.subplots_adjust(left=0.15, right=0.95)
