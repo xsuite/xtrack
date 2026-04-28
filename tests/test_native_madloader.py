@@ -10,8 +10,8 @@ from cpymad.madx import Madx
 from xdeps.refs import CompactFormatter
 import xtrack as xt
 from xtrack import Strategy, Uniform
-from xtrack.mad_parser.loader import MadxLoader
-from xtrack.mad_parser.parse import MadxOutputType, MadxParser
+from xtrack.mad_parser.loader import MadxLoader, MADLoaderWarning
+from xtrack.mad_parser.parse import MadxParser
 
 test_data_folder = (Path(__file__).parent / '../test_data').absolute()
 
@@ -1160,6 +1160,7 @@ def test_import_thick_with_apertures_and_slice():
     for i in range(2):
         _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)
 
+
 def test_solenoid_zero_length():
 
     mad_str = """
@@ -1187,6 +1188,7 @@ def test_solenoid_zero_length():
     xo.assert_allclose(env['sol4'].length, 0.0, rtol=0, atol=1e-12)
     xo.assert_allclose(env['sol5'].length, 0.0, rtol=0, atol=1e-12)
     xo.assert_allclose(env['sol6'].length, 0.0, rtol=0, atol=1e-12)
+
 
 def test_bend_k0_neq_h():
 
@@ -1231,3 +1233,57 @@ def test_bend_k0_neq_h():
                     lmad['b1'].edge_entry_angle_fdown, rtol=0, atol=1e-12)
     xo.assert_allclose(lenv['b1'].edge_exit_angle_fdown,
                     lmad['b1'].edge_exit_angle_fdown, rtol=0, atol=1e-12)
+
+
+def test_redefined_apertures():
+    """Check that the following MAD-X behaviour is supported, and note that in both cases MAD-X complains.
+
+    In both cases it ignores the new settings. With "ip1: omk, at = ..." we get:
+
+        ++++++ warning: implicit element re-definition ignored: ip1
+
+    With "ip, at = ..." we get:
+
+        ++++++ warning: Not possible to update attribute for element in sequence definition:  ip1
+        ++++++ warning: Not possible to update attribute for element in sequence definition:  ip1
+        ++++++ warning: Not possible to update attribute for element in sequence definition:  ip1
+
+    In both cases:
+
+        >>> m.sequence.line1.elements['ip1'].aperture
+        [0.029]
+        >>> m.sequence.line2.elements['ip1'].aperture
+        [0.029]
+    """
+
+    mad_src_clone = """
+        l.omk = 0;
+        omk: marker, l := l.omk;
+        ip1: omk, apertype = "circle", aperture := {0.029}, aper_tol := {0.011};
+        
+        line1: sequence, l = 1;
+            ip1: omk, at = 0, apertype = "circle", aperture := {42}, aper_tol := {0.87};
+        endsequence;
+    """
+
+    mad_src_place = """
+        l.omk = 0;
+        omk: marker, l := l.omk;
+        ip1: omk, apertype = "circle", aperture := {0.029}, aper_tol := {0.011};
+
+        line2: sequence, l = 1;
+            ip1: omk, at = 0, apertype = "circle", aperture := {42}, aper_tol := {0.87};
+        endsequence;
+    """
+
+    with pytest.warns(MADLoaderWarning, match='redefinition ignored'):
+        env1 = xt.load(string=mad_src_clone, format='madx')
+    aper1 = env1.line1['ip1_aper']
+    assert isinstance(aper1, xt.LimitEllipse)
+    assert np.allclose([aper1.a, aper1.b], 0.029, atol=1e-12, rtol=0)
+
+    with pytest.warns(MADLoaderWarning, match='redefinition ignored'):
+        env2 = xt.load(string=mad_src_place, format='madx')
+    aper2 = env2.line2['ip1_aper']
+    assert isinstance(aper2, xt.LimitEllipse)
+    assert np.allclose([aper2.a, aper2.b], 0.029, atol=1e-12, rtol=0)
