@@ -417,6 +417,10 @@ void track_magnet_particles(
             ksl,
             factor_knl_ksl_edge,
             order,
+            knl_rel,
+            ksl_rel,
+            factor_knl_ksl_edge * rel_ref_strength,
+            order_rel,
             ks,
             x0_solenoid,
             y0_solenoid,
@@ -510,7 +514,7 @@ void track_magnet_particles(
             );
         END_PER_PARTICLE_BLOCK;
 
-        if (rbend_model == 2){
+        if (rbend_model == 2 && model >= 0){ // model>=0 means not kick only
             // straight body --> correct s to match the curved frame
             double const ds = (core_length_curved - core_length);
             START_PER_PARTICLE_BLOCK(part0, part);
@@ -536,6 +540,10 @@ void track_magnet_particles(
             ksl,
             factor_knl_ksl_edge,
             order,
+            knl_rel,
+            ksl_rel,
+            factor_knl_ksl_edge * rel_ref_strength,
+            order_rel,
             ks,
             x0_solenoid,
             y0_solenoid,
