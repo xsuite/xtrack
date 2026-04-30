@@ -22,8 +22,10 @@ void ThickSliceCrabCavity_track_local_particle(ThickSliceCrabCavityData el, Loca
         /*frequency*/             ThickSliceCrabCavityData_get__parent_frequency(el),
         /*harmonic*/              0.,
         /*lag*/                   0.,
+        /*phase*/                 0.,
         /*transverse_voltage*/    ThickSliceCrabCavityData_get__parent_crab_voltage(el),
         /*transverse_lag*/        ThickSliceCrabCavityData_get__parent_lag(el),
+        /*transverse_phase*/      ThickSliceCrabCavityData_get__parent_phase(el),
         /*absolute_time*/         ThickSliceCrabCavityData_get__parent_absolute_time(el),
         /*order*/                 -1, // not used here
         /*knl*/                   NULL,
