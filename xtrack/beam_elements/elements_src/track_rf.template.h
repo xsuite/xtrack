@@ -19,10 +19,12 @@ void track_rf_kick_single_particle(
     LocalParticle* part,
     double voltage,
     double frequency,
-    double lag,
     double harmonic,
+    double lag,
+    double phase,
     double transverse_voltage,
     double transverse_lag,
+    double transverse_phase,
     int64_t absolute_time,
     int64_t order,
     double factor_knl_ksl,
@@ -54,7 +56,8 @@ void track_rf_kick_single_particle(
     double const tau = zeta / beta0;
 
     double const energy_kick = q * voltage
-        * sin(phase0 + DEG2RAD * lag - (2.0 * PI) / C_LIGHT * frequency * tau);
+        * sin(phase0 + DEG2RAD * lag + phase
+              - (2.0 * PI) / C_LIGHT * frequency * tau);
 
     double rfmultipole_energy_kick = 0;
     if (order >= 0) {
@@ -120,7 +123,9 @@ void track_rf_kick_single_particle(
         double const y = LocalParticle_get_y(part);
         double const p0c = LocalParticle_get_p0c(part);
 
-        double const pn_kk = phase0 + DEG2RAD * (transverse_lag + 90.) - (2.0 * PI) / C_LIGHT * frequency * tau;
+        double const pn_kk = phase0 + DEG2RAD * (transverse_lag + 90.)
+                           + transverse_phase
+                           - (2.0 * PI) / C_LIGHT * frequency * tau;
         double const k0l = transverse_voltage / p0c;
 
         double bal_n_kk = k0l;
@@ -166,10 +171,12 @@ void track_rf_body_single_particle(
     double length,
     double voltage,
     double frequency,
-    double lag,
     double harmonic,
+    double lag,
+    double phase,
     double transverse_voltage,
     double transverse_lag,
+    double transverse_phase,
     int64_t absolute_time,
     int64_t order,
     double factor_knl_ksl,
@@ -185,8 +192,8 @@ void track_rf_body_single_particle(
 
     #define RF_KICK(part, kick_weight) \
         track_rf_kick_single_particle(\
-            part, voltage * (kick_weight), frequency, lag, harmonic,\
-            transverse_voltage * (kick_weight), transverse_lag,\
+            part, voltage * (kick_weight), frequency, harmonic, lag, phase,\
+            transverse_voltage * (kick_weight), transverse_lag, transverse_phase,\
             absolute_time, order, \
             factor_knl_ksl * (kick_weight), knl, ksl, pn, ps,\
             kill_energy_kick\
@@ -228,10 +235,12 @@ void track_rf_particles(
     double length,
     double voltage,
     double frequency,
-    double lag,
     double harmonic,
+    double lag,
+    double phase,
     double transverse_voltage,
     double transverse_lag,
+    double transverse_phase,
     int64_t absolute_time,
     int64_t order,
     GPUGLMEM const double* knl,
@@ -328,10 +337,12 @@ void track_rf_particles(
                 body_length * weight,
                 voltage * weight,
                 frequency,
-                lag,
                 harmonic,
+                lag,
+                phase,
                 transverse_voltage * weight,
                 transverse_lag,
+                transverse_phase,
                 absolute_time,
                 order,
                 factor_knl_ksl_body * weight,

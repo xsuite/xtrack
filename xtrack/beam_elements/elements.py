@@ -678,6 +678,8 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
     lag : float
         Phase in degrees seen at the arrival time of the reference particle (zeta = 0).
         When `absolute_time` is True `lag` is the phase at time zero. Default is ``0``.
+    phase : float
+        Phase in radians added to `lag`. Default is ``0``.
     absolute_time : bool
         If True, the cavity phase is computed from the absolute time of the
         simulation, otherwise the cavity is synchronized with the arrival time of
@@ -700,6 +702,7 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
+        'phase': xo.Float64,
         'harmonic': xo.Float64,
         'lag_taper': xo.Float64,
         'absolute_time': xo.Int64,
@@ -809,6 +812,8 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
         Default is ``0``.
     lag : float
         Phase in degrees seen at the arrival time of the reference particle (zeta = 0).
+    phase : float
+        Phase in radians added to `lag`. Default is ``0``.
     '''.strip()
 
     __doc__ = '\n    '.join([_docstring_start,
@@ -827,6 +832,7 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
         'crab_voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
+        'phase': xo.Float64,
         'lag_taper': xo.Float64,
         'absolute_time': xo.Int64,
         'num_kicks': xo.Int64,
