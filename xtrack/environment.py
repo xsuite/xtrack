@@ -2199,10 +2199,11 @@ def _reverse_element(env, name):
         ee_ref.crab_voltage = -(ee_ref.crab_voltage._expr or ee_ref.crab_voltage._value)
 
     if hasattr(ee, 'lag'):
+        # +PI is applied on phase, not needed on lag, so we just change the sign of lag
         if ee_ref.lag._expr is not None:
-            ee_ref.lag = 180 - (ee_ref.lag._expr)
+            ee_ref.lag = -(ee_ref.lag._expr)
         else:
-            ee_ref.lag = 180 - (ee_ref.lag._value)
+            ee_ref.lag = -(ee_ref.lag._value)
 
     if hasattr(ee, 'phase'):
         if ee_ref.phase._expr is not None:

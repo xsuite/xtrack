@@ -661,7 +661,8 @@ def test_reversed_rfcavity(example_sequence):
     xo.assert_allclose(positions_reversed['rf1/line_reversed'], 36 - 27, atol=1e-14)
     assert isinstance(rf1, xt.Cavity)
     assert rf1.voltage == 1e6
-    assert rf1.lag == 180 - 2 * 360
+    assert rf1.lag == 0
+    xo.assert_allclose(rf1.phase, math.pi - 4 * math.pi, rtol=0, atol=1e-12)
     assert rf1.frequency == 3e6
 
 
