@@ -455,7 +455,8 @@ def test_rfcavity(example_sequence):
     xo.assert_allclose(positions['rf1/line'], 27, atol=1e-14)
     assert isinstance(rf1, xt.Cavity)
     assert rf1.voltage == 1e6
-    assert rf1.lag == 2 * 360
+    assert rf1.lag == 0
+    xo.assert_allclose(rf1.phase, 4 * math.pi, rtol=0, atol=1e-12)
     assert rf1.frequency == 3e6
 
 
