@@ -137,6 +137,7 @@ class ThinSliceCavity(_ThinSliceElementBase, BeamElement):
                      frequency=self._parent.frequency,
                      harmonic=self._parent.harmonic,
                      lag=self._parent.lag,
+                     phase=self._parent.phase,
                      lag_taper=self._parent.lag_taper,
                      absolute_time=self._parent.absolute_time,
                      _buffer=self._buffer)
@@ -158,6 +159,7 @@ class ThinSliceCrabCavity(_ThinSliceElementBase, BeamElement):
                      crab_voltage=self._parent.crab_voltage * self.weight,
                      frequency=self._parent.frequency,
                      lag=self._parent.lag,
+                     phase=self._parent.phase,
                      lag_taper=self._parent.lag_taper,
                      absolute_time=self._parent.absolute_time,
                      _buffer=self._buffer)
