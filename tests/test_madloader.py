@@ -597,13 +597,13 @@ def test_mad_elements_import():
         assert isinstance(line['c0'], xt.Cavity)
         assert line.get_s_position('c0') == 0.2
         assert line['c0'].frequency == 10e6
-        assert line['c0'].lag == 180
+        xo.assert_allclose(line['c0'].phase, np.pi, rtol=0, atol=1e-12)
         assert line['c0'].voltage == 6e6
 
         assert isinstance(line['c1'], xt.Cavity)
         assert line.get_s_position('c1') == 0.2
         xo.assert_allclose(line['c1'].harmonic, 8, rtol=0, atol=1e-12)
-        assert line['c1'].lag == 180
+        xo.assert_allclose(line['c1'].phase, np.pi, rtol=0, atol=1e-12)
         assert line['c1'].voltage == 6e6
 
         assert isinstance(line['de0'], xt.DipoleEdge)
@@ -630,13 +630,12 @@ def test_mad_elements_import():
         assert line.get_s_position('cb0') == 0.41
         xo.assert_allclose(line['cb0'].crab_voltage, 2 * 1e6,
                            rtol=0, atol=1e-12)
-        assert np.all(line['cb0'].lag == 180)
+        xo.assert_allclose(line['cb0'].rot_s_rad, 0, rtol=0, atol=1e-12)
         assert line['cb0'].frequency == 100e6
 
         assert isinstance(line['cb1'], xt.CrabCavity)
         assert line.get_s_position('cb1') == 0.42
         assert line['cb1'].crab_voltage == 2 * 1e6
-        assert np.all(line['cb1'].lag == 180)
         xo.assert_allclose(line['cb1'].rot_s_rad, np.pi / 2, rtol=0, atol=1e-12)
         assert line['cb1'].frequency == 100e6
 

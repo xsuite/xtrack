@@ -1123,7 +1123,7 @@ class MadLoader:
 
     def convert_rfcavity(self, ee): # bv done
 
-        if self.enable_expressions:
+        if ee.madeval is not None:
             PI = self.line.vars['pi']
         else:
             PI = math.pi
@@ -1206,7 +1206,7 @@ class MadLoader:
             raise ValueError("Multiwire configuration not supported")
 
     def convert_crabcavity(self, ee):
-        if self.enable_expressions:
+        if ee.madeval is not None:
             PI = self.line.vars['pi']
         else:
             PI = math.pi
