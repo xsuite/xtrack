@@ -2199,7 +2199,18 @@ def _reverse_element(env, name):
         ee_ref.crab_voltage = -(ee_ref.crab_voltage._expr or ee_ref.crab_voltage._value)
 
     if hasattr(ee, 'lag'):
-        ee_ref.lag = 180 - (ee_ref.lag._expr or ee_ref.lag._value)
+        if ee_ref.lag._expr is not None:
+            ee_ref.lag = 180 - (ee_ref.lag._expr)
+        else:
+            ee_ref.lag = 180 - (ee_ref.lag._value)
+
+    if hasattr(ee, 'phase'):
+        if ee_ref.phase._expr is not None:
+            PI = env.vars['pi']
+            ee_ref.phase = PI - (ee_ref.phase._expr)
+        else:
+            PI = env.vars.val['pi']
+            ee_ref.phase = PI - (ee_ref.phase._value)
 
     if hasattr(ee, 'knl'):
         for i in range(1, len(ee.knl), 2):

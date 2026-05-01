@@ -438,7 +438,7 @@ class MadxLoader:
 
         elif parent_name in {'rfcavity', 'crabcavity'}:
             if (lag := params.pop('lag', None)):
-                params['lag'] = lag * 360
+                params['phase'] = lag * self.env.vars['pi'] * 2
             if (volt := params.pop('volt', None)):
                 if parent_name == 'crabcavity':
                     params['crab_voltage'] = volt * 1e6
