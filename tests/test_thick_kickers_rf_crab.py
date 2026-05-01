@@ -1398,7 +1398,10 @@ def test_thick_cavity_cpymad_loader():
         ['Marker', 'Drift', 'Cavity', 'Drift', 'Marker', '']))
     xo.assert_allclose(tt.voltage, np.array(
         [      0.,       0., 3000000.,       0.,       0.,       0.]))
-    xo.assert_allclose(tt.lag, np.array([0., 0., 144., 0., 0., 0.]))
+    xo.assert_allclose(tt.lag, 0, rtol=0, atol=1e-14)
+    PI = np.pi
+    xo.assert_allclose(tt.phase,
+        np.array([0., 0., 2*PI*0.4, 0., 0., 0.]), rtol=0, atol=1e-14)
     xo.assert_allclose(tt.frequency, np.array(
         [0.e+00, 0.e+00, 4.e+08, 0.e+00, 0.e+00, 0.e+00]))
     assert np.all(tt.isthick == np.array(
@@ -1445,8 +1448,10 @@ def test_thick_cavity_cpymad_loader():
     xo.assert_allclose(tt_slice_thick.voltage, np.array([
             0.,       0.,       0., 1000000., 1000000., 1000000.,
             0.,       0.,       0.,       0.]))
-    xo.assert_allclose(tt_slice_thick.lag, np.array(
-        [0., 0., 0., 144., 144., 144., 0., 0., 0., 0.]))
+    xo.assert_allclose(tt_slice_thick.lag, 0, rtol=0, atol=1e-14)
+    xo.assert_allclose(tt_slice_thick.phase, np.array([
+        0., 0., 0., 2*PI*0.4, 2*PI*0.4, 2*PI*0.4, 0., 0., 0., 0.,
+    ]), rtol=0, atol=1e-14)
     xo.assert_allclose(tt_slice_thick.frequency, np.array([
         0.e+00, 0.e+00, 0.e+00, 4.e+08, 4.e+08, 4.e+08, 0.e+00, 0.e+00, 0.e+00, 0.e+00
     ]))
@@ -1503,9 +1508,11 @@ def test_thick_cavity_cpymad_loader():
         0.e+00, 0.e+00, 0.e+00, 0.e+00, 4.e+08, 0.e+00, 4.e+08, 0.e+00,
         4.e+08, 0.e+00, 0.e+00, 0.e+00, 0.e+00, 0.e+00
     ]))
-    xo.assert_allclose(tt_slice_thin.lag, np.array([
-        0., 0., 0., 0., 144., 0., 144., 0., 144., 0., 0., 0., 0., 0.
-    ]))
+    xo.assert_allclose(tt_slice_thin.lag, 0, rtol=0, atol=1e-14)
+    PI = np.pi
+    xo.assert_allclose(tt_slice_thin.phase, np.array([
+        0., 0., 0., 0., 2*PI*0.4, 0., 2*PI*0.4, 0., 2*PI*0.4, 0., 0., 0., 0., 0.
+    ]), rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thick.ptau[-1], tw_mad.pt[-1], rtol=0, atol=1e-14)
 
 def test_thick_cavity_native_loader():

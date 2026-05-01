@@ -6055,6 +6055,7 @@ class Line:
 
                 '_own_voltage': AttrDefinition(name='voltage'),
                 '_own_lag': AttrDefinition(name='lag'),
+                '_own_phase': AttrDefinition(name='phase'),
                 '_own_lag_taper': AttrDefinition(name='lag_taper'),
                 '_own_frequency': AttrDefinition(name='frequency'),
                 '_own_harmonic': AttrDefinition(name='harmonic'),
@@ -6129,6 +6130,7 @@ class Line:
 
                 '_parent_voltage': AttrDefinition(name=('_parent', 'voltage')),
                 '_parent_lag': AttrDefinition(name=('_parent', 'lag')),
+                '_parent_phase': AttrDefinition(name=('_parent', 'phase')),
                 '_parent_lag_taper': AttrDefinition(name=('_parent', 'lag_taper')),
                 '_parent_frequency': AttrDefinition(name=('_parent', 'frequency')),
                 '_parent_harmonic': AttrDefinition(name=('_parent', 'harmonic')),
@@ -6212,6 +6214,8 @@ class Line:
                     attr['_own_voltage'] + attr['_parent_voltage'] * attr['weight'] * attr._inherit_strengths,
                 'lag': lambda attr:
                     attr['_own_lag'] + attr['_parent_lag'] * attr._inherit_strengths,
+                'phase': lambda attr:
+                    attr['_own_phase'] + attr['_parent_phase'] * attr._inherit_strengths,
                 'lag_taper': lambda attr:
                     attr['_own_lag_taper'] + attr['_parent_lag_taper'] * attr._inherit_strengths,
                 'frequency': lambda attr:
