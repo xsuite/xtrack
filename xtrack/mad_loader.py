@@ -27,6 +27,7 @@ Loader.add_<name>(mad_elem,line,buffer) to add a new element to line
 
 if the want to control how the xobject is created
 """
+import math
 from typing import List, Union
 
 import numpy as np
@@ -1121,6 +1122,12 @@ class MadLoader:
         return self.make_composite_element([el], mad_elem)
 
     def convert_rfcavity(self, ee): # bv done
+
+        if self.enable_expressions:
+            PI = self.line.vars['pi']
+        else:
+            PI = math.pi
+
         # TODO LRAD
         freq_harm_kwargs = {}
         if ee.harmon:
@@ -1133,16 +1140,16 @@ class MadLoader:
         else:
             scale_voltage = 1.
         if self.bv == -1:
-            lag_deg = -ee.lag * 360 + 180
+            lag_rad = -ee.lag * 2 * PI + PI
         elif self.bv == 1:
-            lag_deg = ee.lag * 360
+            lag_rad = ee.lag * 2 * PI
         else:
             raise ValueError(f"bv should be 1 or -1, not {self.bv}")
         el = self.Assembler(
             ee.name,
             self.classes.Cavity,
             voltage=scale_voltage * ee.volt * 1e6,
-            lag=lag_deg,
+            phase=lag_rad,
             length=ee.l,
             **freq_harm_kwargs,
         )
@@ -1199,10 +1206,14 @@ class MadLoader:
             raise ValueError("Multiwire configuration not supported")
 
     def convert_crabcavity(self, ee):
-        if self.bv == -1:
-            lll = 180 - ee.lag * 360
+        if self.enable_expressions:
+            PI = self.line.vars['pi']
         else:
-            lll = ee.lag * 360
+            PI = math.pi
+        if self.bv == -1:
+            lll_rad = -ee.lag * 2 * PI + PI
+        else:
+            lll_rad = ee.lag * 2 * PI
 
         el = self.Assembler(
                 ee.name,
@@ -1210,7 +1221,7 @@ class MadLoader:
                 length=ee.l,
                 frequency=ee.freq * 1e6,
                 crab_voltage=ee.volt * 1e6 * self.bv,
-                lag=lll,
+                phase=lll_rad,
             )
         return self.make_composite_element([el], ee)
 
