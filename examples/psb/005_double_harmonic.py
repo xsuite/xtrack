@@ -52,8 +52,8 @@ line['phi_rad_h2'] = line.functions['fun_phi_rad_h2'](line.ref['t_turn_s'])
 line['br1.acwf5l1.1'].voltage = 'volt_mv_h1 * 1e6'
 line['br1.acwf5l1.2'].voltage = 'volt_mv_h2 * 1e6'
 
-line['br1.acwf5l1.1'].lag = line.ref['phi_rad_h1'] * 360 / 2 / np.pi
-line['br1.acwf5l1.2'].lag = line.ref['phi_rad_h2'] * 360 / 2 / np.pi
+line['br1.acwf5l1.1'].phase = line.ref['phi_rad_h1']
+line['br1.acwf5l1.2'].phase = line.ref['phi_rad_h2']
 
 line['br1.acwf5l1.1'].frequency = line.ref['freq_h1']
 line['br1.acwf5l1.2'].frequency = line.ref['freq_h2']
@@ -66,8 +66,8 @@ beta0 = []
 gamma0 = []
 f_h1 = []
 f_h2 = []
-lag_h1 = []
-lag_h2 = []
+phase_h1 = []
+phase_h2 = []
 volt_h1 = []
 volt_h2 = []
 for ii in range(len(t_s)):
@@ -79,8 +79,8 @@ for ii in range(len(t_s)):
     gamma0.append(tt.gamma0)
     f_h1.append(line['br1.acwf5l1.1'].frequency)
     f_h2.append(line['br1.acwf5l1.2'].frequency)
-    lag_h1.append(line['br1.acwf5l1.1'].lag)
-    lag_h2.append(line['br1.acwf5l1.2'].lag)
+    phase_h1.append(line['br1.acwf5l1.1'].phase)
+    phase_h2.append(line['br1.acwf5l1.2'].phase)
     volt_h1.append(line['br1.acwf5l1.1'].voltage)
     volt_h2.append(line['br1.acwf5l1.2'].voltage)
 
@@ -139,9 +139,9 @@ plt.plot(t_s, f_h2, label='h2')
 plt.ylabel('frequency [Hz]')
 plt.legend()
 plt.subplot(3,1,2)
-plt.plot(t_s, lag_h1, label='h1')
-plt.plot(t_s, lag_h2, label='h2')
-plt.ylabel('lag [deg]')
+plt.plot(t_s, phase_h1, label='h1')
+plt.plot(t_s, phase_h2, label='h2')
+plt.ylabel('phase [rad]')
 plt.legend()
 
 plt.subplot(3,1,3)
