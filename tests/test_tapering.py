@@ -128,19 +128,19 @@ def test_tapering_and_twiss_with_radiation(conf):
     eneloss = tw.energy_loss
     assert eneloss/line.particle_ref.energy0 > 0.01
     xo.assert_allclose(
-        line['rf'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
+        line['rf'].voltage*np.sin(line['rf'].phase + (line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
         eneloss/4, rtol=3e-5)
     xo.assert_allclose(
-        line['rf1'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
+        line['rf1'].voltage*np.sin(line['rf1'].phase + (line['rf1'].lag + line['rf1'].lag_taper)/180*np.pi),
         eneloss/4, rtol=3e-5)
     xo.assert_allclose(
-        line['rf2a'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
+        line['rf2a'].voltage*np.sin(line['rf2a'].phase + (line['rf2a'].lag + line['rf2a'].lag_taper)/180*np.pi),
         eneloss/4*0.6, rtol=3e-5)
     xo.assert_allclose(
-        line['rf2b'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
+        line['rf2b'].voltage*np.sin(line['rf2b'].phase + (line['rf2b'].lag + line['rf2b'].lag_taper)/180*np.pi),
         eneloss/4*0.4, rtol=3e-5)
     xo.assert_allclose(
-        line['rf3'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
+        line['rf3'].voltage*np.sin(line['rf3'].phase + (line['rf3'].lag + line['rf3'].lag_taper)/180*np.pi),
         eneloss/4, rtol=3e-5)
 
 def test_tapering_zero_mean():
