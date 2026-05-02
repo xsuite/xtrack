@@ -162,7 +162,7 @@ def cavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     tokens.append(mad_assignment('freq', _ge(eref.frequency) * 1e-6, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('harmon', _ge(eref.harmonic), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('volt', _ge(eref.voltage) * 1e-6, mad_type, substituted_vars=substituted_vars))
-    tokens.append(mad_assignment('lag', _ge(eref.lag) / 360., mad_type, substituted_vars=substituted_vars))
+    tokens.append(mad_assignment('lag', _ge(eref.lag) / 360. + _ge(eref.phase) / (2 * np.pi), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('l', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
 
     return tokens
