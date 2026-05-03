@@ -9,7 +9,7 @@ line.set_particle_ref('proton', p0c=26e9)
 
 line['actcse.31632'].voltage = 4.5e6
 line['actcse.31632'].frequency = 200e6
-line['actcse.31632'].lag = 180
+line['actcse.31632'].phase = np.pi
 
 tw6d = line.twiss6d()
 tw4d = line.twiss4d()

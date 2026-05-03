@@ -12,7 +12,7 @@ q2 = xt.Multipole(knl=[0, -2e-2])
 line = xt.Line(
         elements=[
         xt.Drift(length=1),
-        xt.Cavity(frequency=400e6, voltage=1e6, lag=0),
+        xt.Cavity(frequency=400e6, voltage=1e6, phase=0),
         q1,
         xt.Drift(length=1),
         xt.Multipole(knl=[1e-2], hxl=1e-2),
