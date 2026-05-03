@@ -15,7 +15,7 @@ def test_radiation_wiggler():
 
     line['actcse.31632'].voltage = 4.2e+08
     line['actcse.31632'].frequency = 3e6
-    line['actcse.31632'].lag = 180.
+    line['actcse.31632'].phase = np.pi
 
     line.particle_ref = xt.Particles(energy0=20e9, mass0=xt.ELECTRON_MASS_EV)
     env.particle_ref = line.particle_ref
@@ -99,10 +99,10 @@ def test_radiation_integrals_sls_combined_function_magnets():
 
     line['vrf'] = 1.8e6
     line['frf'] = 499.6e6
-    line['lagrf'] = 180.
+    line['phrf'] = np.pi
 
     line.insert(
-        env.new('cav', 'Cavity', voltage='vrf', frequency='frf', lag='lagrf', at=0))
+        env.new('cav', 'Cavity', voltage='vrf', frequency='frf', phase='phrf', at=0))
 
     tt = line.get_table()
     tw4d_thick = line.twiss4d()
@@ -167,7 +167,7 @@ def test_radiation_integrals_sps_vs_df(tilt):
     # RF set tp stay in the linear region
     env['actcse.31632'].voltage = 2500e6
     env['actcse.31632'].frequency = 3e6
-    env['actcse.31632'].lag = 180.
+    env['actcse.31632'].phase = np.pi
 
     if tilt:
 

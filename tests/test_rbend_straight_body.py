@@ -347,7 +347,7 @@ def test_rbend_straight_sps():
 
     line['actcse.31632'].voltage = 4.2e+08
     line['actcse.31632'].frequency = 3e6
-    line['actcse.31632'].lag = 180.
+    line['actcse.31632'].phase = np.pi
 
     line.configure_radiation(model='mean')
 

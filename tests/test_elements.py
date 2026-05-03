@@ -515,7 +515,7 @@ def test_linear_transfer_first_order_taylor_map(test_context):
 
 @for_all_test_contexts
 def test_cavity(test_context):
-    cav = xt.Cavity(_context=test_context, frequency=0, lag=90, voltage=30)
+    cav = xt.Cavity(_context=test_context, frequency=0, phase=np.pi/2, voltage=30)
     part = xp.Particles(p0c=1e9, delta=[0, 1e-2], zeta=[0, 0.2], _context=test_context)
     part0 = part.copy(_context=xo.ContextCpu())
 
@@ -1399,7 +1399,7 @@ def test_cavity_lag_taper():
     line.track(p1)
     xo.assert_allclose(p1.delta, 0, atol=1e-10)
 
-    env['cav'].lag = 60
+    env['cav'].phase = np.deg2rad(60)
     p2 = p0.copy()
     line.track(p2)
     assert p2.delta != 0

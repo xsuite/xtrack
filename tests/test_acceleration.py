@@ -237,10 +237,9 @@ def test_acceleration_transverse_shrink(test_context):
     line['br1.acwf5l1.1'].frequency = line.functions['fun_f_rf'](
                                                             line.vars['t_turn_s'])
 
-    # Setup voltage and lag
+    # Setup voltage and phase
     line['br1.acwf5l1.1'].voltage = 3000 # V
-    line['br1.acwf5l1.1'].lag = 0 # degrees (below transition energy)
-
+    line['br1.acwf5l1.1'].phase = 0 # rad
     # When setting line.vars['t_turn_s'] the reference energy and the rf frequency
     # are updated automatically
     line.vars['t_turn_s'] = 0
