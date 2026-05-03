@@ -4,7 +4,7 @@ import numpy as np
 # Todo: track flags in save/reload, or mabybe not
 # preserve config needs to be preserve_config_and_track_flags
 
-line = xt.Line(elements=[xt.Cavity(lag=90, voltage=1e6)])
+line = xt.Line(elements=[xt.Cavity(lag=np.pi/2, voltage=1e6)])
 line.particle_ref = xt.Particles(p0c=20e9)
 line.build_tracker()
 
