@@ -62,7 +62,6 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     h_setter = line.attr._cache['_own_harmonic'].multisetter
     lag_setter = line.attr._cache['_own_lag'].multisetter
     phase_setter = line.attr._cache['_own_phase'].multisetter
-    lag_taper_setter = line.attr._cache['_own_lag_taper'].multisetter
     phase_taper_setter = line.attr._cache['_own_phase_taper'].multisetter
 
     v0 = v_setter.get_values()
@@ -70,6 +69,10 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     h0 = h_setter.get_values()
     lag_zero = lag_setter.get_values()
     phase_zero = phase_setter.get_values()
+
+    # Legacy, deprecated, clean up if used
+    lag_taper_setter = line.attr._cache['_own_lag_taper'].multisetter
+    lag_taper_setter.set_values(0 * phase_zero)
 
     f0_all = f0 + h0 / (line.tracker._tracker_data_base.line_length / beta0 / clight)
     eneloss_partitioning = v0 / v0.sum()
