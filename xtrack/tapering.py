@@ -142,13 +142,13 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     assert np.all(np.abs(v_ratio[mask_active_cav]) < 1)
     inst_phase = np.arcsin(v_ratio)
 
-    total_lag = 360.*(inst_phase / (2 * np.pi) - f0_all * zeta_at_cav / beta0 / clight)
-    total_lag = 180. - total_lag # we are above transition
-    lag_taper = total_lag - lag_zero - np.rad2deg(phase_zero)
-    lag_taper[~mask_active_cav] = 0
+    total_phase = (inst_phase - (2 * np.pi) * f0_all * zeta_at_cav / beta0 / clight)
+    total_phase = np.pi - total_phase # we are above transition
+    phase_taper = total_phase - np.deg2rad(lag_zero) - phase_zero
+    phase_taper[~mask_active_cav] = 0
 
     v_setter.set_values(v0)
     f_setter.set_values(f0)
     h_setter.set_values(h0)
-    lag_taper_setter.set_values(0 * lag_taper)
-    phase_taper_setter.set_values(np.deg2rad(lag_taper))
+    lag_taper_setter.set_values(0 * phase_taper)
+    phase_taper_setter.set_values(phase_taper)
