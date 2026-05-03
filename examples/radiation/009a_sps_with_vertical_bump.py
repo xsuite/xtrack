@@ -278,3 +278,5 @@ mdv.53107, kick := mdv.53107.ksl0;
 mdv.53307, kick := mdv.53307.ksl0;
 mdv.53507, kick := mdv.53507.ksl0;
 ''')
+
+plt.show()
