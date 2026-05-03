@@ -35,7 +35,7 @@ twm4d = mad.table.tw4d
 
 mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10   # To stay in the linear region
 mad.sequence.sps.elements['actcse.31632'].freq = 0.3
-mad.sequence.sps.elements['actcse.31632'].lag = 0.5
+mad.sequence.sps.elements['actcse.31632'].phase = np.pi
 
 
 mad.input('twiss, table=tw6d;')

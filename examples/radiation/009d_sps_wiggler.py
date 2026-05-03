@@ -34,7 +34,7 @@ n_cav = 6
 
 mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10 / n_cav   # To stay in the linear region
 mad.sequence.sps.elements['actcse.31632'].freq = 3
-mad.sequence.sps.elements['actcse.31632'].lag = 0.5
+mad.sequence.sps.elements['actcse.31632'].phase = np.pi
 
 
 mad.input('twiss, table=tw6d;')
