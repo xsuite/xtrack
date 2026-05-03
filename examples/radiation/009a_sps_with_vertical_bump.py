@@ -51,7 +51,7 @@ line.cycle('bpv.11706', inplace=True)
 line.env.new('cav', xt.Cavity, length=0,
              frequency=line.ref['actcse.31632'].frequency,
              voltage=line.ref['actcse.31632'].voltage,
-             lag=line.ref['actcse.31632'].lag)
+             phase=line.ref['actcse.31632'].phase)
 
 line.insert([
     line.env.new('cav1', 'cav', at='bpv.11706@start'),
