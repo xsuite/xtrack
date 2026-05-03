@@ -723,6 +723,7 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         'integrator': '_integrator',
         'frequency': '_frequency',
         'harmonic': '_harmonic',
+        'lag': '_lag',
     }
 
     _default_frequency = 0.0
@@ -740,6 +741,7 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         integrator = kwargs.pop('integrator', None)
         frequency = kwargs.pop('frequency', None)
         harmonic = kwargs.pop('harmonic', None)
+        lag = kwargs.pop('lag', None)
 
         self.xoinitialize(**kwargs)
 
@@ -755,6 +757,9 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
 
         if harmonic is not None:
             self.harmonic = harmonic
+
+        if lag is not None:
+            self.lag = lag
 
     def track(self, particles, *args, **kwargs):
 
@@ -774,6 +779,18 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         if self._harmonic != 0 and value != 0:
             raise ValueError("Cannot set non-zero frequency when harmonic is not zero.")
         self._frequency = value
+
+    @property
+    def lag(self):
+        return self._lag
+
+    @lag.setter
+    def lag(self, value):
+        if value != 0:
+            warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
+                 "Please use `phase` (in radians) instead."
+                 + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+        self._lag = value
 
     @property
     def harmonic(self):
@@ -851,6 +868,7 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
     _rename = {
         'model': '_model',
         'integrator': '_integrator',
+        'lag': '_lag',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -863,6 +881,7 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
 
         model = kwargs.pop('model', None)
         integrator = kwargs.pop('integrator', None)
+        lag = kwargs.pop('lag', None)
 
         self.xoinitialize(**kwargs)
 
@@ -872,6 +891,21 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
 
         if integrator is not None:
             self.integrator = integrator
+
+        if lag is not None:
+            self.lag = lag
+
+    @property
+    def lag(self):
+        return self._lag
+
+    @lag.setter
+    def lag(self, value):
+        if value != 0:
+            warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
+                 "Please use `phase` (in radians) instead." + DEPRECATION_INFO_PREP_1_0,
+                 FutureWarning, stacklevel=2)
+        self._lag = value
 
     @property
     def _thin_slice_class(self):
