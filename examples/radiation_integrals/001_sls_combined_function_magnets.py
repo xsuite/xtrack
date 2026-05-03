@@ -13,10 +13,10 @@ line.configure_bend_model(num_multipole_kicks=20)
 
 line['vrf'] = 1.8e6
 line['frf'] = 499.6e6
-line['lagrf'] = 180.
+line['phaserf'] = np.pi
 
 line.insert(
-    env.new('cav', 'Cavity', voltage='vrf', frequency='frf', lag='lagrf', at=0))
+    env.new('cav', 'Cavity', voltage='vrf', frequency='frf', phase='phaserf', at=0))
 
 tt = line.get_table()
 tw4d_thick = line.twiss4d()

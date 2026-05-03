@@ -14,7 +14,7 @@ line.insert('zeta_shift', obj=xt.ZetaShift(), at=0)
 # RF set tp stay in the linear region
 env['actcse.31632'].voltage = 2500e6
 env['actcse.31632'].frequency = 3e6
-env['actcse.31632'].lag = 180.
+env['actcse.31632'].phase = np.pi
 
 
 tw4d = line.twiss4d()
