@@ -27,7 +27,7 @@ def test_twiss_4d_fodo_vs_beta_rel(test_context):
         xt.Multipole(length=1.0, knl=[2 * np.pi / n], hxl=[2 * np.pi / n]),
         xt.Drift(length=1.0),
     ]
-    line = xt.Line(elements=n * fodo + [xt.Cavity(frequency=1e9, voltage=0, lag=180)])
+    line = xt.Line(elements=n * fodo + [xt.Cavity(frequency=1e9, voltage=0, phase=np.pi)])
     line.build_tracker(_context=test_context)
 
     ## Twiss
@@ -1011,10 +1011,10 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
 
         if machine == 'sps':
             if configuration == 'above transition':
-                line[cavity_name].lag = 180.
+                line[cavity_name].phase = np.pi
                 line.particle_ref = xp.Particles(p0c=450e9, q0=1.0)
             else:
-                line[cavity_name].lag = 0.
+                line[cavity_name].phase = 0
                 line.particle_ref = xp.Particles(p0c=16e9, q0=1.0)
 
         # Build corresponding matrix
@@ -1036,7 +1036,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
                 frequency_rf=frequency_rf,
-                lag_rf=line[cavity_name].lag,
+                lag_rf=np.rad2deg(line[cavity_name].phase),
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
         elif longitudinal_mode == 'linear_fixed_rf':
@@ -1050,7 +1050,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
                 frequency_rf=frequency_rf,
-                lag_rf=line[cavity_name].lag,
+                lag_rf=np.rad2deg(line[cavity_name].phase),
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
         elif longitudinal_mode == 'linear_fixed_qs':
@@ -1942,7 +1942,7 @@ def test_twiss_add_strengths(test_context):
         xt.Multipole(length=1.0, knl=[2 * np.pi / n], hxl=[2 * np.pi / n]),
         xt.Drift(length=1.0),
     ]
-    line = xt.Line(elements=n * fodo + [xt.Cavity(frequency=1e9, voltage=0, lag=180)])
+    line = xt.Line(elements=n * fodo + [xt.Cavity(frequency=1e9, voltage=0, phase=np.pi)])
     line.build_tracker(_context=test_context)
 
     ## Twiss
