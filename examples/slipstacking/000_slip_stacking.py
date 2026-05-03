@@ -32,17 +32,17 @@ line['v_rf2'] = 1.2e6 * line.ref['on_rf2']
 line['acta.31637'].absolute_time = 1 # <-- define cavity w.r.t. absolute time and not to ref. particle!!!
 line['acta.31637'].frequency = h_rf * f0 + line.ref['dfreq']
 line['acta.31637'].voltage = line.ref['v_rf1']
-line['acta.31637'].lag = 180
+line['acta.31637'].phase = np.pi
 
 line['actd.31934'].absolute_time = 1 # <-- define cavity w.r.t. absolute time and not to ref. particle!!!
 line['actd.31934'].frequency = h_rf * f0 - line.ref['dfreq']
 line['actd.31934'].voltage = line.ref['v_rf2']
-line['actd.31934'].lag = 180
+line['actd.31934'].phase = np.pi
 
 # Display the cavity properties
 tt = line.get_table(attr=True)
 tt_cav = tt.rows[['acta.31637', 'actd.31934']]
-tt_cav.cols['frequency voltage lag'].show(digits=10)
+tt_cav.cols['frequency voltage phase'].show(digits=10)
 
 # Twiss (looking for actual revolution frequency)
 line['on_rf2'] = 0.
