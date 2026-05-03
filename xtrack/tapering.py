@@ -63,6 +63,7 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     lag_setter = line.attr._cache['_own_lag'].multisetter
     phase_setter = line.attr._cache['_own_phase'].multisetter
     lag_taper_setter = line.attr._cache['_own_lag_taper'].multisetter
+    phase_taper_setter = line.attr._cache['_own_phase_taper'].multisetter
 
     v0 = v_setter.get_values()
     f0 = f_setter.get_values()
@@ -149,4 +150,5 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     v_setter.set_values(v0)
     f_setter.set_values(f0)
     h_setter.set_values(h0)
-    lag_taper_setter.set_values(lag_taper)
+    lag_taper_setter.set_values(0 * lag_taper)
+    phase_taper_setter.set_values(np.deg2rad(lag_taper))
