@@ -29,7 +29,7 @@ line.set_particle_ref('proton', energy0=26e9)
 # enable RF
 V_RF = 3e6
 line['acta.31637'].voltage = V_RF
-line['acta.31637'].lag = 180.
+line['acta.31637'].phase = np.pi
 line['acta.31637'].frequency = 200.266e6
 
 # A test particle
