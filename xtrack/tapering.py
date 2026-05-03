@@ -150,5 +150,3 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     f_setter.set_values(f0)
     h_setter.set_values(h0)
     lag_taper_setter.set_values(lag_taper)
-    phase_setter.set_values(phase_zero)
-    lag_setter.set_values(lag_zero)
