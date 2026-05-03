@@ -336,6 +336,7 @@ void track_rf_particles(
     int64_t radiation_flag,
     int64_t radiation_flag_parent,
     double lag_taper,
+    double phase_taper,
     int64_t body_active,
     int64_t edge_entry_active,
     int64_t edge_exit_active
@@ -351,6 +352,7 @@ void track_rf_particles(
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         lag += lag_taper;
+        phase += phase_taper;
     #endif
 
     if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {

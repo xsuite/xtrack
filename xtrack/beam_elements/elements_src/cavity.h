@@ -37,6 +37,7 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0)
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
         /*lag_taper*/             CavityData_get_lag_taper(el),
+        /*phase_taper*/           CavityData_get_phase_taper(el),
         /*body_active*/           1,
         /*edge_entry_active*/     0, // not used here
         /*edge_exit_active*/      0  // not used here

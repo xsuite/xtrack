@@ -40,6 +40,7 @@ void ThinSliceCrabCavity_track_local_particle(ThinSliceCrabCavityData el, LocalP
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
         /*lag_taper*/             ThinSliceCrabCavityData_get__parent_lag_taper(el),
+        /*phase_taper*/           ThinSliceCrabCavityData_get__parent_phase_taper(el),
         /*body_active*/           1,
         /*edge_entry_active*/     0, // not used here
         /*edge_exit_active*/      0  // not used here
