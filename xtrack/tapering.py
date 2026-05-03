@@ -75,7 +75,7 @@ def compensate_radiation_energy_loss(line, delta0='zero_mean', rtol_eneloss=1e-1
     eneloss_partitioning = v0 / v0.sum()
 
     # Put all cavities on crest and at zero frequency
-    lag_taper_setter.set_values(90. - lag_zero - np.rad2deg(phase_zero))
+    phase_taper_setter.set_values(np.pi/2 - np.deg2rad(lag_zero) - phase_zero)
     v_setter.set_values(np.zeros_like(v_setter.get_values()))
     f_setter.set_values(np.zeros_like(f_setter.get_values()))
     h_setter.set_values(np.zeros_like(h_setter.get_values()))
