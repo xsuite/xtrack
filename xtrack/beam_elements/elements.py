@@ -3706,12 +3706,9 @@ class LineSegmentMap(BeamElement):
     _depends_on = [RandomNormal]
     isthick = True
 
-    # _rename = {
-    #     'cos_s': '_cos_s',
-    #     'sin_s': '_sin_s',
-    #     'bets': '_bets',
-    #     'longitudinal_mode_flag': '_longitudinal_mode_flag',
-    # }
+    _rename = {
+        'lag_rf': '_lag_rf',
+    }
 
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/linesegmentmap.h"',
@@ -4073,16 +4070,15 @@ class LineSegmentMap(BeamElement):
         # acceleration without change of reference momentum
         nargs['energy_increment'] = energy_increment
 
-
         assert damping_rate_x >= 0.0
         assert damping_rate_px >= 0.0
         assert damping_rate_y >= 0.0
         assert damping_rate_py >= 0.0
         assert damping_rate_zeta >= 0.0
         assert damping_rate_pzeta >= 0.0
-        
+
         if (damping_rate_x > 0.0 or damping_rate_px > 0.0
-                or damping_rate_y > 0.0 or damping_rate_py > 0.0 
+                or damping_rate_y > 0.0 or damping_rate_py > 0.0
                 or damping_rate_zeta > 0.0 or damping_rate_pzeta > 0.0):
             assert damping_matrix is None
             nargs['uncorrelated_rad_damping'] = True
@@ -4142,6 +4138,38 @@ class LineSegmentMap(BeamElement):
             3: 'linear_fixed_rf'
         }[self.longitudinal_mode_flag]
         return ret
+
+    @property
+    def lag_rf(self):
+        return self._buffer.context.linked_array_type.from_array(
+            self._lag_rf,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_lag_rf_setitem')
+
+    @lag_rf.setter
+    def lag_rf(self, value):
+        self.lag_rf[:] = value
+
+    def _lag_rf_setitem(self, index, value):
+
+        need_warn = False
+        if np.isscalar(value) and value != 0:
+            need_warn = True
+        elif not np.isscalar(value):
+            for v in value:
+                if v != 0:
+                    need_warn = True
+                    break
+
+        if need_warn:
+            warn('`lag_rf` (in degrees) is deprecated and will be removed in a future version.'
+            'Please use `phase_rf` (in radians) instead. '
+            'Note that if both `lag_rf` and `phase_rf` are set, the effect is the sum of the two '
+            'with `lag_rf` converted to radians.',
+            FutureWarning, stacklevel=2)
+
+        self._lag_rf[index] = value
 
 
 class FirstOrderTaylorMap(BeamElement):
