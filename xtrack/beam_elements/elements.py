@@ -786,7 +786,7 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
 
     @lag.setter
     def lag(self, value):
-        # Warning to be activated when acc-models repos are updated
+        # TODO: Warning to be activated when acc-models repos are updated
         # if value != 0:
         #     warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
         #          "Please use `phase` (in radians) instead. "
@@ -906,7 +906,7 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
 
     @lag.setter
     def lag(self, value):
-        # Warning to be activated when acc-models repos are updated
+        # TODO: Warning to be activated when acc-models repos are updated
         # if value != 0:
         #     warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
         #          "Please use `phase` (in radians) instead. "
