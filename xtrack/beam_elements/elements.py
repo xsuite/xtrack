@@ -3700,6 +3700,7 @@ class LineSegmentMap(BeamElement):
         'voltage_rf': xo.Float64[:],
         'frequency_rf': xo.Float64[:],
         'lag_rf': xo.Float64[:],
+        'phase_rf': xo.Float64[:],
     }
 
     _depends_on = [RandomNormal]
@@ -3724,7 +3725,7 @@ class LineSegmentMap(BeamElement):
             qs=None, bets=None,bucket_length=None,
             momentum_compaction_factor=None,
             slippage_length=None,
-            voltage_rf=None, frequency_rf=None, lag_rf=None,
+            voltage_rf=None, frequency_rf=None, lag_rf=None, phase_rf=None,
             dqx=0.0, dqy=0.0, ddqx=0.0, ddqy=0.0, dnqx=None, dnqy=None,
             det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
             energy_increment=0.0, energy_ref_increment=0.0,
@@ -3952,6 +3953,7 @@ class LineSegmentMap(BeamElement):
             assert voltage_rf is None
             assert frequency_rf is None
             assert lag_rf is None
+            assert phase_rf is None
             if bucket_length == None:
                 bucket_length = -1.0
             nargs['longitudinal_mode_flag'] = 1
@@ -3961,14 +3963,19 @@ class LineSegmentMap(BeamElement):
             nargs['voltage_rf'] = [0]
             nargs['frequency_rf'] = [0]
             nargs['lag_rf'] = [0]
+            nargs['phase_rf'] = [0]
         elif longitudinal_mode == 'nonlinear' or longitudinal_mode == 'linear_fixed_rf':
             assert voltage_rf is not None
             assert frequency_rf is not None
-            assert lag_rf is not None
             assert momentum_compaction_factor is not None
             assert qs is None
             assert bets is None
             assert bucket_length is None
+
+            if lag_rf is None:
+                lag_rf = [0]*len(frequency_rf)
+            if phase_rf is None:
+                phase_rf = [0]*len(frequency_rf)
 
             if slippage_length is None:
                 nargs['slippage_length'] = length
@@ -3982,6 +3989,7 @@ class LineSegmentMap(BeamElement):
 
             nargs['voltage_rf'] = voltage_rf
             nargs['frequency_rf'] = frequency_rf
+            nargs['phase_rf'] = phase_rf
             nargs['lag_rf'] = lag_rf
             nargs['momentum_compaction_factor'] = momentum_compaction_factor
             for nn in ['frequency_rf', 'lag_rf', 'voltage_rf']:
@@ -4000,6 +4008,7 @@ class LineSegmentMap(BeamElement):
             nargs['voltage_rf'] = [0]
             nargs['frequency_rf'] = [0]
             nargs['lag_rf'] = [0]
+            nargs['phase_rf'] = [0]
         else:
             raise ValueError('longitudinal_mode must be one of "linear_fixed_qs", "nonlinear" or "frozen"')
 
