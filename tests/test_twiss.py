@@ -1036,7 +1036,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
                 frequency_rf=frequency_rf,
-                lag_rf=np.rad2deg(line[cavity_name].phase),
+                phase_rf=line[cavity_name].phase,
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
         elif longitudinal_mode == 'linear_fixed_rf':
@@ -1050,7 +1050,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                 dy=tw.dy[0], dpy=tw.dpy[0],
                 voltage_rf=line[cavity_name].voltage,
                 frequency_rf=frequency_rf,
-                lag_rf=np.rad2deg(line[cavity_name].phase),
+                phase_rf=line[cavity_name].phase,
                 momentum_compaction_factor=tw.momentum_compaction_factor,
                 length=circumference)
         elif longitudinal_mode == 'linear_fixed_qs':

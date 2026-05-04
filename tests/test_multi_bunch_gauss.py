@@ -92,7 +92,7 @@ def test_multi_bunch_gaussian_generation(test_context, arc_type):
             voltage_rf = voltage,
             longitudinal_mode = 'linear_fixed_rf',
             frequency_rf = f_RF,
-            lag_rf = 180.0,
+            phase_rf = np.pi,
             slippage_length = circumference,
             momentum_compaction_factor = momentumCompaction,length=circumference)
     elif arc_type == 'arc_nonlinear':
@@ -102,7 +102,7 @@ def test_multi_bunch_gaussian_generation(test_context, arc_type):
             voltage_rf = voltage,
             longitudinal_mode = 'nonlinear',
             frequency_rf = f_RF,
-            lag_rf = 180.0,
+            phase_rf = np.pi,
             slippage_length = circumference,
             momentum_compaction_factor = momentumCompaction,
             length=circumference)

@@ -798,7 +798,7 @@ def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
         voltage_rf = voltage,
         longitudinal_mode = 'linear_fixed_rf',
         frequency_rf = f_RF,
-        lag_rf = 180.0,
+        phase_rf = np.pi,
         slippage_length = circumference,
         momentum_compaction_factor = momentum_compaction)
 
