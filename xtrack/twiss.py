@@ -407,7 +407,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if compute_chromatic_properties is not None:
         warn('The `compute_chromatic_properties` keyword is deprecated and will be removed in future versions. \n'
-             'Please use `chrom` instead, which has the same behavior.',
+             'Please use `chrom` instead, which has the same behavior.'
              + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
         chrom = compute_chromatic_properties
