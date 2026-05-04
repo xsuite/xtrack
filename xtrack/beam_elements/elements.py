@@ -4015,7 +4015,6 @@ class LineSegmentMap(BeamElement):
         else:
             raise ValueError('longitudinal_mode must be one of "linear_fixed_qs", "nonlinear" or "frozen"')
 
-
         if np.isscalar(betx): betx = [betx, betx]
         else: assert len(betx) == 2
 
@@ -4127,6 +4126,17 @@ class LineSegmentMap(BeamElement):
         else:
             nargs['uncorrelated_gauss_noise'] = False
             nargs['correlated_gauss_noise'] = False
+
+        # Warn if lag_rf (deprecation)
+        for vv in nargs['lag_rf']:
+            if vv != 0:
+                warn("`lag_rf` (in degrees) is deprecated and will be removed in a future version. "
+                     "Please use `phase_rf` (in radians) instead. "
+                     "Note that if both `lag_rf` and `phase_rf` are set, the effect is the sum of the two "
+                     "with `lag_rf` converted to radians.",
+                     FutureWarning, stacklevel=2)
+                break
+
         super().__init__(**nargs)
 
     @property
