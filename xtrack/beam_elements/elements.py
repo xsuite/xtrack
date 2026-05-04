@@ -3973,9 +3973,15 @@ class LineSegmentMap(BeamElement):
             assert bucket_length is None
 
             if lag_rf is None:
-                lag_rf = [0]*len(frequency_rf)
+                try:
+                    lag_rf = [0]*len(frequency_rf)
+                except TypeError:
+                    lag_rf = [0]
             if phase_rf is None:
-                phase_rf = [0]*len(frequency_rf)
+                try:
+                    phase_rf = [0]*len(frequency_rf)
+                except TypeError:
+                    phase_rf = [0]
 
             if slippage_length is None:
                 nargs['slippage_length'] = length
