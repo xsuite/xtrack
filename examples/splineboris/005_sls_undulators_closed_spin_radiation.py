@@ -9,8 +9,8 @@ import xtrack as xt
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
-from xtrack._temp.field_fitter import FieldFitter
-from xtrack._temp.splineboris_sequence import SplineBorisSequence
+from xtrack._temp.splineboris.field_fitter import FieldFitter
+from xtrack._temp.splineboris.splineboris_sequence import SplineBorisSequence
 
 
 multipole_order = 3
@@ -52,8 +52,6 @@ field_fitter = FieldFitter(
     min_region_size=10,
     deg=multipole_order-1,
 )
-
-field_fitter.fit()
 
 # Build undulator using SplineBorisSequence - automatically creates one SplineBoris
 # element per polynomial piece with n_steps based on the data point count

@@ -10,8 +10,8 @@ from pathlib import Path
 
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
-from xtrack._temp.field_fitter import FieldFitter
-from xtrack._temp.splineboris_sequence import SplineBorisSequence
+from xtrack._temp.splineboris.field_fitter import FieldFitter
+from xtrack._temp.splineboris.splineboris_sequence import SplineBorisSequence
 from xtrack.beam_elements.splineboris_src.spline_B_field_eval_python import evaluate_B
 
 FIT_PARS_INDEX_COLS = [
@@ -130,7 +130,6 @@ def solenoid_vs_varsol_fit_pars_df(solenoid_field):
         deg=SOLENOID_MULTIPOLE_ORDER - 1,
         field_tol=1e-4,
     )
-    fitter.fit()
     df_fit_pars = fitter.df_fit_pars
 
     assert df_fit_pars is not None

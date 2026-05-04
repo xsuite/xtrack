@@ -1,1 +1,1 @@
-from .splineboris_sequence import SplineBorisSequence
+from .splineboris.splineboris_sequence import SplineBorisSequence

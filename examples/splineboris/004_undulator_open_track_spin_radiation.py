@@ -10,8 +10,8 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from xtrack._temp.field_fitter import FieldFitter
-from xtrack._temp.splineboris_sequence import SplineBorisSequence
+from xtrack._temp.splineboris.field_fitter import FieldFitter
+from xtrack._temp.splineboris.splineboris_sequence import SplineBorisSequence
 
 
 multipole_order = 3
@@ -51,8 +51,6 @@ field_fitter = FieldFitter(
     min_region_size=10,
     deg=multipole_order-1,
 )
-
-field_fitter.fit()
 
 # Save fit parameters if needed
 # field_fitter.save_fit_pars(

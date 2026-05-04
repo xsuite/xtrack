@@ -5,8 +5,8 @@ from scipy.constants import e as qe
 import pandas as pd
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
-from xtrack._temp.field_fitter import FieldFitter
-from xtrack._temp.splineboris_sequence import SplineBorisSequence
+from xtrack._temp.splineboris.field_fitter import FieldFitter
+from xtrack._temp.splineboris.splineboris_sequence import SplineBorisSequence
 import matplotlib.pyplot as plt
 
 plt.rcParams.update({"font.size": 14})
@@ -58,10 +58,9 @@ fitter = FieldFitter(
     deg=multipole_order - 1,
     field_tol=1e-4,
 )
-fitter.fit()
 df_fit_pars = fitter.df_fit_pars
 
-# # After fitter.fit()
+# # After FieldFitter construction
 # s = fitter.s_full
 
 # def _get_series(df, field="Bs", der=0):

@@ -81,16 +81,111 @@ class FieldFitter:
         self.df_fit_pars = None
         self._set_raw_data(raw_data)
 
+        self.fit()
+
     # PUBLIC
     # Method that calls all the other methods to arrive at a fit.
-    def fit(self):
+    def fit(self, plot_fields=False, fit_par_path=None):
         if self.df_raw_data is None:
             raise RuntimeError("Raw data must be provided before calling fit().")
         self._set_df_on_axis()
         self._find_regions()
         self._fit_slices()
+        self.print_residuals()
+        
+        if fit_par_path is not None:
+            self.save_fit_pars(file_path=fit_par_path)
+        
+        if plot_fields:
+            for der in range(0, self.deg + 1):
+                self.plot_fields(der=der)
+            self.plot_integrated_fields()
 
+    def compute_residuals(self, mode='signed', aggregate=None):
+        """
+        Compute relative residuals between on-axis raw data and fit.
 
+        Parameters
+        ----------
+        mode : {'signed', 'squared', 'abs'}, optional
+            Residual transformation:
+
+            - ``'signed'``  -> ``(raw - fit) / abs(raw)``
+            - ``'squared'`` -> ``((raw - fit) / abs(raw))**2``
+            - ``'abs'``     -> ``abs((raw - fit) / abs(raw))``
+        aggregate : {None, 'sum', 'mean', 'rms'}, optional
+            If ``None`` return a DataFrame with per-sample residuals and the same
+            shape/index/columns as ``df_on_axis_raw``.
+            Otherwise return a Series aggregated over the longitudinal axis for
+            each ``(field_component, derivative_x)`` column.
+
+        Returns
+        -------
+        pd.DataFrame or pd.Series
+            Residuals in the requested representation.
+        """
+        if self.df_on_axis_raw is None or self.df_on_axis_fit is None:
+            raise RuntimeError('Call fit() before compute_residuals().')
+
+        diff = self.df_on_axis_raw - self.df_on_axis_fit
+        raw_abs = self.df_on_axis_raw.abs().replace(0.0, np.nan)
+        rel = diff / raw_abs
+
+        if mode == 'signed':
+            residuals = rel
+        elif mode == 'squared':
+            residuals = rel**2
+        elif mode == 'abs':
+            residuals = rel.abs()
+        else:
+            raise ValueError("mode must be one of {'signed', 'squared', 'abs'}.")
+
+        if aggregate is None:
+            return residuals
+        if aggregate == 'sum':
+            return residuals.sum(axis=0)
+        if aggregate == 'mean':
+            return residuals.mean(axis=0)
+        if aggregate == 'rms':
+            return np.sqrt((rel**2).mean(axis=0))
+
+        raise ValueError(
+            "aggregate must be one of {None, 'sum', 'mean', 'rms'}."
+        )
+
+    def print_residuals(self, mode='signed', aggregate=None, include_total=False):
+        """
+        Print residuals in a readable format.
+
+        Parameters
+        ----------
+        mode : {'signed', 'squared', 'abs'}, optional
+            Residual representation passed to :meth:`compute_residuals`.
+        aggregate : {None, 'sum', 'mean', 'rms'}, optional
+            Aggregation passed to :meth:`compute_residuals`.
+        include_total : bool, optional
+            If ``True`` and residuals are aggregated (Series), print the scalar
+            sum over all channels as an additional line.
+
+        Returns
+        -------
+        pd.DataFrame or pd.Series
+            The residual object that was printed.
+        """
+        residuals = self.compute_residuals(mode=mode, aggregate=aggregate)
+        print(f'Residuals (mode={mode!r}, aggregate={aggregate!r}):')
+        with pd.option_context(
+            'display.max_rows', None,
+            'display.max_columns', None,
+            'display.width', None,
+        ):
+            print(residuals)
+
+        if include_total and isinstance(residuals, pd.Series):
+            print('Total over all channels:')
+            print(float(residuals.sum()))
+
+        return residuals
 
     @staticmethod
     def _poly(s0, s1, coeffs):
