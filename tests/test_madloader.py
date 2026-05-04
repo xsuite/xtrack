@@ -3,8 +3,6 @@ import pathlib
 
 import numpy as np
 from cpymad.madx import Madx
-from scipy.constants import c as clight
-from scipy.special import factorial
 
 import xobjects as xo
 import xpart as xp

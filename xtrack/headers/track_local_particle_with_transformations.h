@@ -93,6 +93,9 @@
 #ifdef ALLOW_ROT_AND_SHIFT
 
 GPUFUN
+#ifdef XO_CONTEXT_CL
+    __attribute__((noinline))
+#endif
 void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
     ELEMENT_DATA el,
     LocalParticle* part0
@@ -165,6 +168,9 @@ void CONCAT(ELEMENT_NAME, _track_local_particle_with_nonzero_transformations)(
    standard local tracking function or the one that handles transformations.
 */
 GPUFUN
+#ifdef XO_CONTEXT_CL
+    __attribute__((noinline))
+#endif
 void CONCAT(ELEMENT_NAME, _track_local_particle_with_transformations)(
     ELEMENT_DATA el,
     LocalParticle* part0
