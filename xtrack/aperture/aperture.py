@@ -624,6 +624,7 @@ class Aperture:
             offset_data = aperture_offsets.get(aper_name, {})
 
             if offset_data:
+                offsets_reversed = offset_data['reversed']
                 rel_survey_mat = survey_relative_transform(survey, offset_data['survey_ref'], element_name)
                 s_ref = rel_survey_mat[2, 3]
                 matrix = transform_matrix(

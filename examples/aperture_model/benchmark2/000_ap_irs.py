@@ -35,16 +35,18 @@ apm = mad.get_ap_irs()
 lhc.b1.metadata["aperture_offsets"] = {}
 lhc.b2.metadata["aperture_offsets"] = {}
 for ipn in range(1, 9):
-    for beam in "14":
+    for beam in "12":
         tfs = Table.from_tfs(f"./temp/offset.ip{ipn}.b{beam}.tfs")
         line = lhc.b1 if beam == "1" else lhc.b2
-        line.metadata["aperture_offsets"][f"ip{ipn}"] = tfs._data.copy()
+        tfs_data = tfs._data.copy()
+        tfs_data["reversed"] = beam == "2"
+        line.metadata["aperture_offsets"][f"ip{ipn}"] = tfs_data
 
 context = ContextCpu(omp_num_threads='auto')
 
 lines = {
     "b1": lhc.b1,
-    #"b2": lhc.b2,
+    "b2": lhc.b2,
 }
 apertures = {
     beam: Aperture.from_line_with_madx_metadata(
@@ -67,9 +69,6 @@ def _get_nearest_element_name(line_table, s_position):
 for ir_name in sorted(apm):
     ir = apm[ir_name]
     beam = ir_name[-2:]
-
-    if beam == 'b2':
-        continue
 
     line = lines[beam]
     line_table = line_tables[beam]

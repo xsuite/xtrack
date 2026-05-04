@@ -276,8 +276,8 @@ class SurveyTable(Table):
 # ==================================================
 def survey_from_line(
         line,
-        X0 = 0, Y0 = 0, Z0 = 0, theta0 = 0, phi0 = 0, psi0 = 0,
-        element0 = 0, values_at_element_exit = False, reverse = True):
+        X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
+        element0=0, values_at_element_exit=False, reverse=False):
     """Execute SURVEY command. Based on MAD-X equivalent.
     Attributes, must be given in this order in the dictionary:
     X0        (float)    Initial X position in meters.
