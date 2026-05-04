@@ -3995,12 +3995,13 @@ class LineSegmentMap(BeamElement):
             nargs['phase_rf'] = phase_rf
             nargs['lag_rf'] = lag_rf
             nargs['momentum_compaction_factor'] = momentum_compaction_factor
-            for nn in ['frequency_rf', 'lag_rf', 'voltage_rf']:
+            for nn in ['frequency_rf', 'lag_rf', 'voltage_rf', 'phase_rf']:
                 if np.isscalar(nargs[nn]):
                     nargs[nn] = [nargs[nn]]
 
             assert (len(nargs['frequency_rf'])
                     == len(nargs['lag_rf'])
+                    == len(nargs['phase_rf'])
                     == len(nargs['voltage_rf']))
 
             if longitudinal_mode == 'linear_fixed_rf':

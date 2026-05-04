@@ -196,14 +196,12 @@ def test_bucket_above_transition():
 
     f_rf = h_rf * f_rev
     v_rf = 100e3
-    lag_rf = 180. if eta > 0. else 0.
 
     # Compute momentum increment using auxiliary particle
     dp0c_eV = energy_ref_increment / particle_ref.beta0[0]
     phi = np.arcsin(dp0c_eV * particle_ref.beta0[0] / v_rf)
     if eta > 0:
         phi = np.pi - phi
-    lag_rf = np.rad2deg(phi)
 
     otm = xt.LineSegmentMap(
         betx=1., bety=1,
@@ -212,7 +210,7 @@ def test_bucket_above_transition():
         longitudinal_mode="nonlinear",
         voltage_rf=v_rf,
         frequency_rf=f_rf,
-        lag_rf=lag_rf,
+        phase_rf=phi,
         length=circumference,
         energy_ref_increment=energy_ref_increment
     )
@@ -226,10 +224,10 @@ def test_bucket_above_transition():
     rfb = line._get_bucket()
 
     # Mostly checking that they do not change
-    xo.assert_allclose(line['otm'].lag_rf[0], 180-30., # degrees
+    xo.assert_allclose(line['otm'].phase_rf[0], np.deg2rad(180-30.), # degrees
                     atol=1e-4, rtol=0)
 
-    xo.assert_allclose(np.rad2deg(rfb.dphi[0]), 180-30.,
+    xo.assert_allclose(rfb.dphi[0], np.deg2rad(180-30.),
                     atol=1e-4, rtol=0)
 
     xo.assert_allclose(rfb.z_sfp, 0, atol=1e-4, rtol=0)
