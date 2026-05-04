@@ -406,11 +406,10 @@ def twiss_line(line, particle_ref=None, method=None,
         FutureWarning)
 
     if compute_chromatic_properties is not None:
-        # TODO: enable warning when sister packages are updated
-        # warn('The `compute_chromatic_properties` keyword is deprecated and will be removed in future versions. \n'
-        #      'Please use `chrom` instead, which has the same behavior.',
-        #      + DEPRECATION_INFO_PREP_1_0,
-        #      FutureWarning)
+        warn('The `compute_chromatic_properties` keyword is deprecated and will be removed in future versions. \n'
+             'Please use `chrom` instead, which has the same behavior.',
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning)
         chrom = compute_chromatic_properties
 
     if r_sigma:
@@ -433,19 +432,17 @@ def twiss_line(line, particle_ref=None, method=None,
              FutureWarning)
 
     if polarization:
-        # TODO: enable warning when sister packages, acc-models-fcc, and tutorials are updated
-        # warn('The `polarization` keyword is deprecated and will be removed in future versions. \n'
-        #      'Please use `polarization_analysis` instead, which has the same behavior.'
-        #      + DEPRECATION_INFO_PREP_1_0,
-        #      FutureWarning)
+        warn('The `polarization` keyword is deprecated and will be removed in future versions. \n'
+             'Please use `polarization_analysis` instead, which has the same behavior.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning)
         polarization_analysis = polarization
 
     if eneloss_and_damping:
-        # TODO: enable warning when sister packages, acc-models-fcc, and tutorials are updated
-        # warn('The `eneloss_and_damping` keyword is deprecated and will be removed in future versions. \n'
-        #      'Please use `radiation_analysis` instead, which has the same behavior.'
-        #      + DEPRECATION_INFO_PREP_1_0,
-        #      FutureWarning)
+        warn('The `eneloss_and_damping` keyword is deprecated and will be removed in future versions. \n'
+             'Please use `radiation_analysis` instead, which has the same behavior.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning)
         radiation_analysis = eneloss_and_damping
 
     if steps_r_matrix is not None:
@@ -4280,8 +4277,6 @@ class TwissTable(Table):
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None, _force_at_element=None):
-
-        # TODO: check consistency of gamma0
 
         ctx2np = particles._context.nparray_from_context_array
         at_element_particles = ctx2np(particles.at_element)
