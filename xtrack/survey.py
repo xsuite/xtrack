@@ -492,8 +492,18 @@ def _get_survey_quantities_from_v_w(V, E_matrix):
     }
 
 
-def survey_relative_transform(survey: SurveyTable, source: str | int, destination: str | int) -> np.ndarray:
-    """Generate a 3D transformation matrix from survey point `source` to `destination`."""
+def survey_relative_transform(survey: SurveyTable, source: str | int, destination: str | int, reversed=False) -> np.ndarray:
+    """Generate a 3D transformation matrix from survey point `source` to `destination`.
+
+    If `reversed`, take the transformation that points from the end point of `source` to the end point of `destination`.
+    """
+
+    if reversed:
+        if source != survey.name[-1]:
+            source = survey.name[survey.name.index(source) + 1]
+        if destination != survey.name[-1]:
+            destination = survey.name[survey.name.index(destination) + 1]
+
     src_row = survey.rows[source]
     dest_row = survey.rows[destination]
 

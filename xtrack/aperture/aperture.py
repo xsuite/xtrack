@@ -624,15 +624,18 @@ class Aperture:
             offset_data = aperture_offsets.get(aper_name, {})
 
             if offset_data:
-                offsets_reversed = offset_data['reversed']
-                rel_survey_mat = survey_relative_transform(survey, offset_data['survey_ref'], element_name)
+                offsets_reversed = offset_data.get('reversed', False)
+                survey_reference_name = offset_data['survey_ref']
+                rel_survey_mat = survey_relative_transform(survey, survey_reference_name, element_name, reversed=offsets_reversed)
+
+                assert not line[survey_reference_name].isthick
+
                 s_ref = rel_survey_mat[2, 3]
                 matrix = transform_matrix(
                     shift_x=offset_data['x'],
                     shift_y=offset_data['y'],
                     shift_z=s_ref,
                 )
-                survey_reference_name = offset_data['survey_ref']
             else:
                 matrix = np.identity(4)
                 survey_reference_name = element_name
@@ -675,11 +678,14 @@ class Aperture:
                     positions = []
 
                     for s in np.linspace(0, length, max(2, int(length / 0.1))):
+                        s_local = -s if offsets_reversed else s
                         position = ProfilePosition(profile_index=aper_idx)
-                        position.shift_s = s
+                        position.shift_s = s_local
                         position.shift_x = s * offset_data['dx'] + s**2 * offset_data['ddx']
                         position.shift_y = s * offset_data['dy'] + s**2 * offset_data['ddy']
                         positions.append(position)
+
+                    positions = sorted(positions, key=lambda p: p.shift_s)
 
                     # If we have offset data, assume the type is straight
                     curvature = 0
