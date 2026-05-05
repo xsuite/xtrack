@@ -330,7 +330,7 @@ def test_madng_interface_amplitude_detuning_and_second_order_chrom():
     line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
 
-    twng = line.madng_twiss()
+    twng = line.madng_twiss(normal_form=True)
     det = line.get_amplitude_detuning_coefficients(num_turns=512)
 
     xo.assert_allclose(twng.dqxdjx_nf_ng, det['det_xx'], rtol=7e-2)
