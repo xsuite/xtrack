@@ -500,9 +500,9 @@ def survey_relative_transform(survey: SurveyTable, source: str | int, destinatio
 
     if reversed:
         if source != survey.name[-1]:
-            source = survey.name[survey.name.index(source) + 1]
+            source = survey.rows.get_index(source) + 1
         if destination != survey.name[-1]:
-            destination = survey.name[survey.name.index(destination) + 1]
+            destination = survey.rows.get_index(destination) + 1
 
     src_row = survey.rows[source]
     dest_row = survey.rows[destination]

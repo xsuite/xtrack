@@ -624,15 +624,16 @@ class Aperture:
             offset_data = aperture_offsets.get(aper_name, {})
 
             if offset_data:
-                offsets_reversed = offset_data.get('reversed', False)
+                offsets_reversed = offset_data['reversed']
+                x_multiplier = -1 if offsets_reversed else 1
                 survey_reference_name = offset_data['survey_ref']
-                rel_survey_mat = survey_relative_transform(survey, survey_reference_name, element_name, reversed=offsets_reversed)
+                rel_survey_mat = survey_relative_transform(survey, survey_reference_name, element_name, reversed=False)
 
                 assert not line[survey_reference_name].isthick
 
                 s_ref = rel_survey_mat[2, 3]
                 matrix = transform_matrix(
-                    shift_x=offset_data['x'],
+                    shift_x=offset_data['x'] * x_multiplier,
                     shift_y=offset_data['y'],
                     shift_z=s_ref,
                 )
@@ -675,13 +676,17 @@ class Aperture:
                     # If MAD-X offset data is given, place profiles
                     # on the described parabola with 10cm resolution
                     length = element.length
+                    # next_element = survey.rows.get_index(element_name)
+                    # rel_survey_mat_end = survey_relative_transform(survey, survey_reference_name, next_element,
+                    #                                                reversed=offsets_reversed)
+                    # length = rel_survey_mat_end[2, 3] - rel_survey_mat_end[2, 3]
                     positions = []
 
                     for s in np.linspace(0, length, max(2, int(length / 0.1))):
-                        s_local = -s if offsets_reversed else s
+                        s_local = s * x_multiplier
                         position = ProfilePosition(profile_index=aper_idx)
                         position.shift_s = s_local
-                        position.shift_x = s * offset_data['dx'] + s**2 * offset_data['ddx']
+                        position.shift_x = s * offset_data['dx'] * x_multiplier + s**2 * offset_data['ddx'] * x_multiplier
                         position.shift_y = s * offset_data['dy'] + s**2 * offset_data['ddy']
                         positions.append(position)
 
@@ -1794,6 +1799,7 @@ class Aperture:
                     'dy': dy,
                     'ddx': section['ddx_off'][idx],
                     'ddy': section['ddy_off'][idx],
+                    'reversed': section['reversed'],
                 }
         return offsets
 
