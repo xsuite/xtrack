@@ -143,7 +143,7 @@ def _handle_transforms(tokens, el_ref, mad_type=MadType.MADX, substituted_vars=N
 
     elif mad_type == MadType.MADNG:
         misalign_flag = False
-        misalign_token = 'misalign =\\ {'
+        misalign_token = 'misalign = MAD.typeid.deferred {'
         if _defined_and_nonzero('shift_x'):
             misalign_token += mad_assignment('dx', _ge(el_ref.shift_x), mad_type, substituted_vars=substituted_vars) + ', '
             misalign_flag = True
