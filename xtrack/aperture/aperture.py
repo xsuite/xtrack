@@ -1690,28 +1690,31 @@ class Aperture:
         line_sliced = self.line.copy()
         line_sliced.cut_at_s(s_positions)
 
-        full_twiss = line_sliced.twiss(init=twiss_init, reverse=False)
-        if line_sliced.twiss_default.get('reverse'):
-            full_twiss = full_twiss.reverse()
+        full_twiss = line_sliced.twiss(init=twiss_init)
 
         # "Authoritative" s-positions after slicing (up to cutting tolerances)
         tw_s = np.array(full_twiss.s, dtype=FloatType._dtype)
+        twiss_s_positions = s_positions
+        if getattr(full_twiss, 'reference_frame', None) == 'reverse':
+            twiss_s_positions = np.mod(self.line.get_length() - s_positions, self.line.get_length())
 
         # Bracket each requested s with the nearest row on the left and on the right.
-        idx_left = np.searchsorted(tw_s, s_positions, side='right') - 1
-        idx_right = np.searchsorted(tw_s, s_positions, side='left')
+        idx_left = np.searchsorted(tw_s, twiss_s_positions, side='right') - 1
+        idx_right = np.searchsorted(tw_s, twiss_s_positions, side='left')
 
         idx_left = np.clip(idx_left, 0, len(tw_s) - 1)
         idx_right = np.clip(idx_right, 0, len(tw_s) - 1)
 
         # Compare the left/right candidates by distance in s.
-        dist_left = np.abs(tw_s[idx_left] - s_positions)
-        dist_right = np.abs(tw_s[idx_right] - s_positions)
+        dist_left = np.abs(tw_s[idx_left] - twiss_s_positions)
+        dist_right = np.abs(tw_s[idx_right] - twiss_s_positions)
 
         # Keep the nearest row; on ties prefer the rightmost candidate.
         tw_indices = np.where(dist_right <= dist_left, idx_right, idx_left)
 
-        return full_twiss.rows[tw_indices]
+        sliced_twiss = full_twiss.rows[tw_indices]
+        sliced_twiss.s = s_positions
+        return sliced_twiss
 
     @staticmethod
     def _axis_extents_for_cross_sections(cross_sections: np.ndarray) -> dict[str, np.ndarray]:

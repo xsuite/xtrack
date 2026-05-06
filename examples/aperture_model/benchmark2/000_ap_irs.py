@@ -129,6 +129,18 @@ def _wrap_local_s(s, line_length):
     return np.where(s > half_length, s - line_length, np.where(s < -half_length, s + line_length, s))
 
 
+def _beam_s_direction(beam):
+    return -1.0 if beam == "b2" else 1.0
+
+
+def _ir_local_to_ring_s(s_local, s_ip, line_length, beam):
+    return np.mod(s_ip + _beam_s_direction(beam) * s_local, line_length)
+
+
+def _ring_to_ir_local_s(s_ring, s_ip, line_length, beam):
+    return _beam_s_direction(beam) * _wrap_local_s(s_ring - s_ip, line_length)
+
+
 def _as_scalar(value):
     arr = np.asarray(value, dtype=float)
     return float(arr.reshape(-1)[0])
@@ -159,7 +171,7 @@ for ir_name in sorted(apm):
     s_ip_m = ir.rows[f"{ip_name}.*"].s[0]
     s_ip_x = line_table.rows[f"{ip_name}.*"].s[0]
     s_local = np.asarray(ir.s - s_ip_m, dtype=float)
-    s_positions = np.mod(s_local + s_ip_x, line.get_length())
+    s_positions = _ir_local_to_ring_s(s_local, s_ip_x, line.get_length(), beam)
     order = np.argsort(s_positions)
     undo_order = np.empty_like(order)
     undo_order[order] = np.arange(len(order))
@@ -168,20 +180,22 @@ for ir_name in sorted(apm):
     offset_s_start, offset_s_end, offset_data, offset_reference_s = _offset_s_positions(
         line.survey(), offset_data
     )
-    offset_s_start = _wrap_local_s(offset_s_start - s_ip_x, line_length)
-    offset_s_end = _wrap_local_s(offset_s_end - s_ip_x, line_length)
+    offset_s_start = _ring_to_ir_local_s(offset_s_start, s_ip_x, line_length, beam)
+    offset_s_end = _ring_to_ir_local_s(offset_s_end, s_ip_x, line_length, beam)
     offset_reference_s = (
         None
         if offset_reference_s is None
-        else _wrap_local_s(offset_reference_s - s_ip_x, line_length)
+        else _ring_to_ir_local_s(offset_reference_s, s_ip_x, line_length, beam)
     )
     if offset_reference_s is not None:
         offset_reference_s = _as_scalar(offset_reference_s)
+    offset_s_min = np.minimum(offset_s_start, offset_s_end)
+    offset_s_max = np.maximum(offset_s_start, offset_s_end)
     ir_s_min = float(np.min(s_local))
     ir_s_max = float(np.max(s_local))
-    in_ir = (offset_s_end >= ir_s_min) & (offset_s_start <= ir_s_max)
-    offset_s_start = offset_s_start[in_ir]
-    offset_s_end = offset_s_end[in_ir]
+    in_ir = (offset_s_max >= ir_s_min) & (offset_s_min <= ir_s_max)
+    offset_s_start = offset_s_min[in_ir]
+    offset_s_end = offset_s_max[in_ir]
     filtered_offset_data = {}
     for key, value in offset_data.items():
         value_arr = np.asarray(value)

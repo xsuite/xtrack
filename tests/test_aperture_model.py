@@ -213,6 +213,35 @@ def test_from_line_with_associated_apertures_type_bounds(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_sliced_twiss_at_s_uses_reverse_frame_coordinates(test_context):
+    env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
+    env.set_particle_ref('proton', p0c=1.2e9)
+    ring = env['ring']
+    ring.twiss_default['method'] = '4d'
+    ring.twiss_default['reverse'] = True
+
+    aperture_model = Aperture.from_line_with_associated_apertures(ring, context=test_context)
+    s_positions = np.array([0.37, 1.2, 2.84, 4.9])
+    sliced_twiss = aperture_model._sliced_twiss_at_s(s_positions)
+
+    line_sliced = ring.copy()
+    line_sliced.cut_at_s(s_positions)
+    full_twiss = line_sliced.twiss()
+
+    assert full_twiss.reference_frame == 'reverse'
+    xo.assert_allclose(sliced_twiss.s, s_positions, atol=0, rtol=0)
+
+    tw_s = np.asarray(full_twiss.s, dtype=float)
+    reverse_s_positions = np.mod(ring.get_length() - s_positions, ring.get_length())
+    expected_indices = np.array([
+        np.argmin(np.abs(tw_s - reverse_s)) for reverse_s in reverse_s_positions
+    ])
+
+    xo.assert_allclose(sliced_twiss.betx, full_twiss.betx[expected_indices], atol=1e-12, rtol=0)
+    xo.assert_allclose(sliced_twiss.bety, full_twiss.bety[expected_indices], atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_from_line_with_limits_type_bounds(test_context):
     env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=True)
     env.set_particle_ref('proton', p0c=1.2e9)
