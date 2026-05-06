@@ -130,14 +130,31 @@ def _handle_transforms(tokens, el_ref, mad_type=MadType.MADX, substituted_vars=N
         field = getattr(el_ref, field_name)
         return field._expr is not None or field._value != 0
 
-    if _defined_and_nonzero('shift_x'):
-        tokens.append(mad_assignment('dx', _ge(el_ref.shift_x), mad_type, substituted_vars=substituted_vars))
-    if _defined_and_nonzero('shift_y'):
-        tokens.append(mad_assignment('dy', _ge(el_ref.shift_y), mad_type, substituted_vars=substituted_vars))
     if _defined_and_nonzero('rot_s_rad'):
         tokens.append(mad_assignment('tilt', _ge(el_ref.rot_s_rad), mad_type, substituted_vars=substituted_vars))
-    if _defined_and_nonzero('shift_s'):
-        raise NotImplementedError("shift_s is not yet supported in mad writer")
+
+    if mad_type == MadType.MADX:
+        if _defined_and_nonzero('shift_x'):
+            tokens.append(mad_assignment('dx', _ge(el_ref.shift_x), mad_type, substituted_vars=substituted_vars))
+        if _defined_and_nonzero('shift_y'):
+            tokens.append(mad_assignment('dy', _ge(el_ref.shift_y), mad_type, substituted_vars=substituted_vars))
+        if _defined_and_nonzero('shift_s'):
+            tokens.append(mad_assignment('ds', _ge(el_ref.shift_s), mad_type, substituted_vars=substituted_vars))
+
+    elif mad_type == MadType.MADNG:
+        misalign_flag = False
+        misalign_token = 'misalign =\\ {'
+        if _defined_and_nonzero('shift_x'):
+            misalign_token += mad_assignment('dx', _ge(el_ref.shift_x), mad_type, substituted_vars=substituted_vars) + ', '
+            misalign_flag = True
+        if _defined_and_nonzero('shift_y'):
+            misalign_token += mad_assignment('dy', _ge(el_ref.shift_y), mad_type, substituted_vars=substituted_vars) + ', '
+            misalign_flag = True
+        if _defined_and_nonzero('shift_s'):
+            misalign_token += mad_assignment('ds', _ge(el_ref.shift_s), mad_type, substituted_vars=substituted_vars) + ', '
+            misalign_flag = True
+        if misalign_flag:
+            tokens.append(misalign_token[:-2] + '}')
 
 def cavity_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """
@@ -724,10 +741,6 @@ def to_madng_sequence(line, name='seq'):
         if el_str is None:
             continue
 
-        # Misalignments
-
-        if hasattr(el, 'shift_x') and hasattr(el, 'shift_y') and el.__class__ not in element_types_converted_to_markers:
-            el_str += f", misalign =\\ {{dx={mad_str_or_value(_ge(line.ref[tt.env_name[ii]].shift_x))}, dy={mad_str_or_value(_ge(line.ref[tt.env_name[ii]].shift_y))}}}"
         el_strs.append(el_str)
 
     # Chunking sequence
