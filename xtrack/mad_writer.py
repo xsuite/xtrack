@@ -96,11 +96,7 @@ _ge = xt.elements._get_expr
 
 def _knl_ksl_to_mad(mult):
 
-    if hasattr(mult._value, 'knl_rel'):
-        knl_rel_val = mult._value.knl_rel
-        ksl_rel_val = mult._value.ksl_rel
-        if np.any(knl_rel_val != 0) or np.any(ksl_rel_val != 0):
-            raise ValueError("Relative multipole errors are not supported in MAD writer.")
+    rel_token_suffix = ''
 
     weight = 1
     if hasattr(_ge(mult), '_parent'):
@@ -115,7 +111,19 @@ def _knl_ksl_to_mad(mult):
             if not isinstance(item, str):
                 item = str(item)
             klmad.append(item)
-    knl_token = 'knl := {' + ','.join(knl_mad) + '}'
+
+    if hasattr(mult._value, 'knl_rel'):
+        dknl_mad = []
+        dksl_mad = []
+        for kl, klmad in zip([mult.knl_rel, mult.ksl_rel], [dknl_mad, dksl_mad]):
+            for ii in range(len(kl._value)):
+                item = mad_str_or_value(_ge(kl[ii]) * weight)
+                if not isinstance(item, str):
+                    item = str(item)
+                klmad.append(item)
+        rel_token_suffix = ', dknl := {' + ','.join(dknl_mad) + '}, dksl := {' + ','.join(dksl_mad) + '}'
+
+    knl_token = 'knl := {' + ','.join(knl_mad) + '}' + rel_token_suffix
     ksl_token = 'ksl := {' + ','.join(ksl_mad) + '}'
     return knl_token, ksl_token
 
