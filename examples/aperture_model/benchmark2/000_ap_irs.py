@@ -53,7 +53,7 @@ apertures = {
     beam: Aperture.from_line_with_madx_metadata(
         line,
         num_profile_points=100,
-        include_offsets=False,
+        include_offsets=True,
         context=context,
         _skip_validity_check=True,
     )

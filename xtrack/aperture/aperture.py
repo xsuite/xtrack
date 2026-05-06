@@ -625,17 +625,18 @@ class Aperture:
 
             if offset_data:
                 offsets_reversed = offset_data['reversed']
-                x_multiplier = -1 if offsets_reversed else 1
+                x_dir = -1 if offsets_reversed else 1
+                z_dir = -1 if offsets_reversed else 1
                 survey_reference_name = offset_data['survey_ref']
-                rel_survey_mat = survey_relative_transform(survey, survey_reference_name, element_name, reversed=False)
+                rel_survey_mat = survey_relative_transform(survey, survey_reference_name, element_name, reversed=offsets_reversed)
 
                 assert not line[survey_reference_name].isthick
 
-                s_ref = rel_survey_mat[2, 3]
+                z_ref = rel_survey_mat[2, 3]
                 matrix = transform_matrix(
-                    shift_x=offset_data['x'] * x_multiplier,
+                    shift_x=offset_data['x'] * x_dir,
                     shift_y=offset_data['y'],
-                    shift_z=s_ref,
+                    shift_z=z_ref,
                 )
             else:
                 matrix = np.identity(4)
@@ -683,11 +684,11 @@ class Aperture:
                     positions = []
 
                     for s in np.linspace(0, length, max(2, int(length / 0.1))):
-                        s_local = s * x_multiplier
+                        s_local = s
                         position = ProfilePosition(profile_index=aper_idx)
-                        position.shift_s = s_local
-                        position.shift_x = s * offset_data['dx'] * x_multiplier + s**2 * offset_data['ddx'] * x_multiplier
-                        position.shift_y = s * offset_data['dy'] + s**2 * offset_data['ddy']
+                        position.shift_s = s * z_dir
+                        position.shift_x = (s_local * offset_data['dx'] + s_local**2 * offset_data['ddx']) * x_dir
+                        position.shift_y = s_local * offset_data['dy'] + s_local**2 * offset_data['ddy']
                         positions.append(position)
 
                     positions = sorted(positions, key=lambda p: p.shift_s)
@@ -1688,7 +1689,10 @@ class Aperture:
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         line_sliced = self.line.copy()
         line_sliced.cut_at_s(s_positions)
-        full_twiss = line_sliced.twiss(init=twiss_init)
+
+        full_twiss = line_sliced.twiss(init=twiss_init, reverse=False)
+        if line_sliced.twiss_default.get('reverse'):
+            full_twiss = full_twiss.reverse()
 
         # "Authoritative" s-positions after slicing (up to cutting tolerances)
         tw_s = np.array(full_twiss.s, dtype=FloatType._dtype)
