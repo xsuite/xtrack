@@ -446,6 +446,9 @@ def sextupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     tokens.append(mad_assignment('l', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k2', _ge(eref.k2), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k2s', _ge(eref.k2s), mad_type, substituted_vars=substituted_vars))
+    knl_token, ksl_token = _knl_ksl_to_mad(eref)
+    tokens.append(knl_token)
+    tokens.append(ksl_token)
 
     return tokens
 
@@ -472,6 +475,9 @@ def octupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     tokens.append(mad_assignment('l', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k3', _ge(eref.k3), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k3s', _ge(eref.k3s), mad_type, substituted_vars=substituted_vars))
+    knl_token, ksl_token = _knl_ksl_to_mad(eref)
+    tokens.append(knl_token)
+    tokens.append(ksl_token)
 
     return tokens
 
