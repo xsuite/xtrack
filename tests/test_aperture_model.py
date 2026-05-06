@@ -1954,6 +1954,43 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
     assert np.all(bounds_table.s <= bounds_table.s_end)
 
 
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_upstream_of_reference_across_marker(test_context):
+    env = xt.Environment()
+
+    d0 = env.new('d0', xt.Drift, length=1.0)
+    marker = env.new('marker', xt.Marker)
+    d1 = env.new('d1', xt.Drift, length=1.0)
+    ref = env.new('ref', xt.Marker)
+    tail = env.new('tail', xt.Drift, length=1.0)
+    line = env.new_line(name='line', components=[d0, marker, d1, ref, tail])
+    sv = line.survey()
+
+    model = ApertureModel(
+        line_name='line',
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
+                survey_reference_name='ref',
+                survey_index=sv.name.tolist().index('ref'),
+                transformation=transform_matrix(shift_z=-1.5),
+            ),
+        ],
+        pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
+        profiles=[Profile(shape=Circle(radius=0.01), tol_r=0, tol_x=0, tol_y=0)],
+        pipe_names=['type0'],
+        pipe_position_names=['type0'],
+        profile_names=['circle'],
+    )
+
+    ap = Aperture(line, model, context=test_context)
+    bounds_table = ap.get_bounds_table()
+
+    xo.assert_allclose(bounds_table.s[0], 0.5, atol=1e-12, rtol=0)
+    assert np.isfinite(bounds_table.s_start[0])
+    assert np.isfinite(bounds_table.s_end[0])
+
+
 @pytest.fixture
 def hllhc19_end_to_end_model(tmp_path):
     local_context = xo.ContextCpu()

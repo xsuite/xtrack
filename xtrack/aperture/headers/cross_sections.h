@@ -657,7 +657,6 @@ static inline float_type survey_s_for_aperture(
         const float_type t = segment3d_plane_intersect(segment, plane_point, normal);
 
         const float_type pipe_s = SurveyData_get_s(survey, it.index);
-
         if (
             /* Candidate s on this segment, or... */
             (-eps < t && t < 1 + eps) ||
@@ -666,8 +665,8 @@ static inline float_type survey_s_for_aperture(
                 we get t > 1 + eps, but for the adjacent one t < -eps (or analogously on the left
                 side). Detect if there was a sign change, and if so return the current solution.
             */
-            (it.offset > 0 && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
-            (it.offset < 0 && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
+            (it.offset > 0 && isfinite(t) && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
+            (it.offset < 0 && isfinite(t) && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
         ) {
             const float_type dist = t * segment3d_get_length(segment);
             found_s = pipe_s + dist;
@@ -751,8 +750,8 @@ static inline void bounds_on_s_for_aperture(
                     we get t > 1 + eps, but for the adjacent one t < -eps (or analogously on the left
                     side). Detect if there was a sign change, and if so return the current solution.
                 */
-                (it.offset > 0 && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
-                (it.offset < 0 && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
+                (it.offset > 0 && isfinite(t) && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
+                (it.offset < 0 && isfinite(t) && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
             ) {
                 const float_type seg_s_start = SurveyData_get_s(survey, it.index);
                 const float_type seg_len = segment3d_get_length(seg);
