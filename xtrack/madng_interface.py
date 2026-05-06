@@ -750,11 +750,11 @@ class ActionTwissMadngTPSA(Action):
                 elif isinstance(target, xt.TargetRmatrixTerm):
                     self.match_rmat = True
                     qty = target.term
-                    tag = target.tag.split('_')[0]
+                    tag = target.rtag.split('_')[0]
                     idx = int(tag)
 
                     self.rmat_start_end_list[idx] = (loc_start, loc_end)
-                    self.rmat_tags.append(target.tag)
+                    self.rmat_tags.append(target.rtag)
 
                     targets_map_str += f"{XSUITE_MADNG_ENV_NAME}.targets_arr[{i+1}] = {{ loc = '{loc_end}', qty = '{qty}', loc_start = '{loc_start}', rmat = true, tag = {tag} }}\n"
                     xs_ng_target_map += f"{XSUITE_MADNG_ENV_NAME}.xs_ng_target_map['{target.term}'] = '{qty}'\n"

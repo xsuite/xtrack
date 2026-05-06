@@ -892,7 +892,7 @@ class OptimizeLine(xd.Optimize):
                     else:
                         rmat_index = len(start_end_tuple_set)
                         start_end_tuple_set.append((tt.start, tt.end))
-                    tt.tag = f'{rmat_index}_{tt.term}'
+                    tt.rtag = f'{rmat_index}_{tt.term}'
                 elif isinstance(tt, TargetRmatrix):
                     if (tt.targets[0].start, tt.targets[0].end) in start_end_tuple_set:
                         rmat_index = start_end_tuple_set.index((tt.targets[0].start, tt.targets[0].end))
@@ -900,7 +900,7 @@ class OptimizeLine(xd.Optimize):
                         rmat_index = len(start_end_tuple_set)
                         start_end_tuple_set.append((tt.targets[0].start, tt.targets[0].end))
                     for sub_tt in tt.targets:
-                        sub_tt.tag = f'{rmat_index}_{sub_tt.term}'
+                        sub_tt.rtag = f'{rmat_index}_{sub_tt.term}'
 
         for tt in targets:
             if isinstance(tt, xd.TargetList):
