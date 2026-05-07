@@ -2159,12 +2159,11 @@ class Line:
           thin elements) [m].
         - ``length``: physical length of the element [m].
         - ``angle``: bending angle of the element [rad].
-        - ``rot_s_rad``: rotation around the longitudinal axis applied before
+        - ``rot_s_rad``: rotation around the longitudinal axis applied to
           the element [rad].
-        - ``ref_shift_x``, ``ref_shift_y``: alignment shifts applied before the
-          element [m].
-        - ``ref_rot_x_rad``, ``ref_rot_y_rad``, ``ref_rot_s_rad``: alignment
-          rotations applied before the element [rad].
+        - ``ref_shift_x``, ``ref_shift_y``: discrete reference frame shifts [m].
+        - ``ref_rot_x_rad``, ``ref_rot_y_rad``, ``ref_rot_s_rad``: discrete
+          reference frame rotations [rad].
 
         Examples
         --------
