@@ -1087,6 +1087,7 @@ class Rotation(xt.BeamElement):
 
     allow_rot_and_shift = False
     has_backtrack = True
+    allow_loss_refinement = True
 
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/rotation.h"',
