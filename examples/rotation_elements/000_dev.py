@@ -1,5 +1,6 @@
 import xtrack as xt
 import xobjects as xo
+import numpy as np
 
 from xtrack.survey import advance_element as survey_advance_element
 
@@ -9,6 +10,10 @@ MAPPING_ID_TO_AX = {0: 'x', 1: 'y', 2: 's'}
 class Rotation(xt.BeamElement):
 
     allow_rot_and_shift = False
+
+    _extra_c_sources = [
+        '#include "rotation.h"',
+    ]
 
     _xofields = {
         'rot_s_rad': xo.Float64,
@@ -41,7 +46,7 @@ class Rotation(xt.BeamElement):
         self._second_rot = ROT_AX_TO_ID[value[1]]
         self._third_rot = ROT_AX_TO_ID[value[2]]
 
-    def _preopagate_survey(self, v, w, backtrack):
+    def _propagate_survey(self, v, w, backtrack):
 
         for ax in self.seq:
             if ax == 'x':
@@ -62,7 +67,7 @@ class Rotation(xt.BeamElement):
                         ref_shift_x     = 0,
                         ref_shift_y     = 0,
                         ref_rot_x_rad   = rx,
-                        ref_rot_y_rad   = ry,
+                        ref_rot_y_rad   = -ry,
                         ref_rot_s_rad   = rs,
                     )
         return v, w
@@ -81,7 +86,22 @@ assert rot._third_rot == 1
 assert rot.seq == 'sxy'
 
 env = xt.Environment()
-env.elements['rot'] = Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq='xys')
+env.elements['rot'] = Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq='yxs')
 
 line = env.new_line(components=['rot'])
+
+rot = line['rot']
+legacy_rots = []
+for ax in rot.seq:
+    if ax == 'x':
+        legacy_rots.append(xt.XRotation(angle=np.rad2deg(rot.rot_x_rad)))
+    elif ax == 'y':
+        legacy_rots.append(xt.YRotation(angle=np.rad2deg(rot.rot_y_rad)))
+    elif ax == 's':
+        legacy_rots.append(xt.SRotation(angle=np.rad2deg(rot.rot_s_rad)))
+line_legacy = xt.Line(elements=legacy_rots)
+
 sv = line.survey()
+sv_legacy = line_legacy.survey()
+
+
