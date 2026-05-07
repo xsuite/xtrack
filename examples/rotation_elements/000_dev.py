@@ -91,46 +91,50 @@ assert rot._second_rot == 0
 assert rot._third_rot == 1
 assert rot.seq == 'sxy'
 
-env = xt.Environment()
-env.new('end_marker', xt.Marker)
-env.elements['rot'] = Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq='yxs')
 
-line = env.new_line(components=['rot', 'end_marker'])
 
-rot = line['rot']
-legacy_rots = []
-for ax in rot.seq:
-    if ax == 'x':
-        legacy_rots.append(xt.XRotation(angle=np.rad2deg(rot.rot_x_rad)))
-    elif ax == 'y':
-        legacy_rots.append(xt.YRotation(angle=np.rad2deg(rot.rot_y_rad)))
-    elif ax == 's':
-        legacy_rots.append(xt.SRotation(angle=np.rad2deg(rot.rot_s_rad)))
+for seq in ['yxs', 'xsy', 'sxy', 'syx', 'xys', 'ysx']:
 
-env.elements['r1'] = legacy_rots[0]
-env.elements['r2'] = legacy_rots[1]
-env.elements['r3'] = legacy_rots[2]
-line_legacy = env.new_line(components=['r1', 'r2', 'r3', 'end_marker'])
+    env = xt.Environment()
+    env.new('end_marker', xt.Marker)
+    env.elements['rot'] = Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq='yxs')
 
-sv = line.survey()
-sv_legacy = line_legacy.survey()
+    line = env.new_line(components=['rot', 'end_marker'])
 
-sv_back = line.survey(element0='end_marker', X0=sv.X[-1], Y0=sv.Y[-1], Z0=sv.Z[-1],
-                      theta0=sv.theta[-1], phi0=sv.phi[-1], psi0=sv.psi[-1])
+    rot = line['rot']
+    legacy_rots = []
+    for ax in rot.seq:
+        if ax == 'x':
+            legacy_rots.append(xt.XRotation(angle=np.rad2deg(rot.rot_x_rad)))
+        elif ax == 'y':
+            legacy_rots.append(xt.YRotation(angle=np.rad2deg(rot.rot_y_rad)))
+        elif ax == 's':
+            legacy_rots.append(xt.SRotation(angle=np.rad2deg(rot.rot_s_rad)))
 
-sv_legacy_back = line_legacy.survey(element0='end_marker', X0=sv_legacy.X[-1], Y0=sv_legacy.Y[-1], Z0=sv_legacy.Z[-1],
-                                    theta0=sv_legacy.theta[-1], phi0=sv_legacy.phi[-1], psi0=sv_legacy.psi[-1])
+    env.elements['r1'] = legacy_rots[0]
+    env.elements['r2'] = legacy_rots[1]
+    env.elements['r3'] = legacy_rots[2]
+    line_legacy = env.new_line(components=['r1', 'r2', 'r3', 'end_marker'])
 
-xo.assert_allclose(sv.X[-1], sv_legacy.X[-1], atol=1e-12)
-xo.assert_allclose(sv.Y[-1], sv_legacy.Y[-1], atol=1e-12)
-xo.assert_allclose(sv.Z[-1], sv_legacy.Z[-1], atol=1e-12)
-xo.assert_allclose(sv.theta[-1], sv_legacy.theta[-1], atol=1e-12)
-xo.assert_allclose(sv.phi[-1], sv_legacy.phi[-1], atol=1e-12)
-xo.assert_allclose(sv.psi[-1], sv_legacy.psi[-1], atol=1e-12)
+    sv = line.survey()
+    sv_legacy = line_legacy.survey()
 
-xo.assert_allclose(sv.X, sv_back.X, atol=1e-12)
-xo.assert_allclose(sv.Y, sv_back.Y, atol=1e-12)
-xo.assert_allclose(sv.Z, sv_back.Z, atol=1e-12)
-xo.assert_allclose(sv.theta, sv_back.theta, atol=1e-12)
-xo.assert_allclose(sv.phi, sv_back.phi, atol=1e-12)
-xo.assert_allclose(sv.psi, sv_back.psi, atol=1e-12)
+    sv_back = line.survey(element0='end_marker', X0=sv.X[-1], Y0=sv.Y[-1], Z0=sv.Z[-1],
+                        theta0=sv.theta[-1], phi0=sv.phi[-1], psi0=sv.psi[-1])
+
+    sv_legacy_back = line_legacy.survey(element0='end_marker', X0=sv_legacy.X[-1], Y0=sv_legacy.Y[-1], Z0=sv_legacy.Z[-1],
+                                        theta0=sv_legacy.theta[-1], phi0=sv_legacy.phi[-1], psi0=sv_legacy.psi[-1])
+
+    xo.assert_allclose(sv.X[-1], sv_legacy.X[-1], atol=1e-12)
+    xo.assert_allclose(sv.Y[-1], sv_legacy.Y[-1], atol=1e-12)
+    xo.assert_allclose(sv.Z[-1], sv_legacy.Z[-1], atol=1e-12)
+    xo.assert_allclose(sv.theta[-1], sv_legacy.theta[-1], atol=1e-12)
+    xo.assert_allclose(sv.phi[-1], sv_legacy.phi[-1], atol=1e-12)
+    xo.assert_allclose(sv.psi[-1], sv_legacy.psi[-1], atol=1e-12)
+
+    xo.assert_allclose(sv.X, sv_back.X, atol=1e-12)
+    xo.assert_allclose(sv.Y, sv_back.Y, atol=1e-12)
+    xo.assert_allclose(sv.Z, sv_back.Z, atol=1e-12)
+    xo.assert_allclose(sv.theta, sv_back.theta, atol=1e-12)
+    xo.assert_allclose(sv.phi, sv_back.phi, atol=1e-12)
+    xo.assert_allclose(sv.psi, sv_back.psi, atol=1e-12)
