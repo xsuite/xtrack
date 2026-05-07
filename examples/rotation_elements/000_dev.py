@@ -4,8 +4,8 @@ import numpy as np
 
 from xtrack.survey import advance_element as survey_advance_element
 
-ROT_AX_TO_ID = {'x': 0, 'y': 1, 's': 2}
-MAPPING_ID_TO_AX = {0: 'x', 1: 'y', 2: 's'}
+_ROT_AX_TO_ID = {'x': 0, 'y': 1, 's': 2}
+_ROT_ID_TO_AX = {0: 'x', 1: 'y', 2: 's'}
 
 class Rotation(xt.BeamElement):
 
@@ -14,6 +14,12 @@ class Rotation(xt.BeamElement):
     _extra_c_sources = [
         '#include "rotation.h"',
     ]
+
+    _noexpr_fields = ['seq']
+
+    _skip_in_to_dict = ['_first_rot', '_second_rot', '_third_rot']
+    _store_in_to_dict = ['seq']
+
 
     _xofields = {
         'rot_s_rad': xo.Float64,
@@ -31,20 +37,24 @@ class Rotation(xt.BeamElement):
         self.rot_y_rad = rot_y_rad
         self.seq = seq  # this will set the _first_rot, _second_rot, _third_rot fields
 
+    def __repr__(self):
+        return (f"Rotation(rot_s_rad={self.rot_s_rad}, rot_x_rad={self.rot_x_rad}, "
+                f"rot_y_rad={self.rot_y_rad}, seq='{self.seq}')")
+
     @property
     def seq(self):
-        out = (MAPPING_ID_TO_AX[self._first_rot] +
-               MAPPING_ID_TO_AX[self._second_rot] +
-               MAPPING_ID_TO_AX[self._third_rot])
+        out = (_ROT_ID_TO_AX[self._first_rot] +
+               _ROT_ID_TO_AX[self._second_rot] +
+               _ROT_ID_TO_AX[self._third_rot])
         return out
 
     @seq.setter
     def seq(self, value):
         if len(value) != 3 or set(value) != {'x', 'y', 's'}:
             raise ValueError("Sequence must be a permutation of 'x', 'y', 's'")
-        self._first_rot = ROT_AX_TO_ID[value[0]]
-        self._second_rot = ROT_AX_TO_ID[value[1]]
-        self._third_rot = ROT_AX_TO_ID[value[2]]
+        self._first_rot = _ROT_AX_TO_ID[value[0]]
+        self._second_rot = _ROT_AX_TO_ID[value[1]]
+        self._third_rot = _ROT_AX_TO_ID[value[2]]
 
     def _propagate_survey(self, v, w, backtrack):
 
@@ -92,12 +102,21 @@ assert rot._third_rot == 1
 assert rot.seq == 'sxy'
 
 
+dct = rot.to_dict()
+assert set(rot.to_dict().keys()) == {'__class__', 'rot_s_rad', 'rot_x_rad', 'rot_y_rad', 'seq'}
+rot2 = Rotation.from_dict(dct)
+assert rot2.rot_s_rad == rot.rot_s_rad
+assert rot2.rot_x_rad == rot.rot_x_rad
+assert rot2.rot_y_rad == rot.rot_y_rad
+assert rot2.seq == rot.seq
+
+
 
 for seq in ['yxs', 'xsy', 'sxy', 'syx', 'xys', 'ysx']:
 
     env = xt.Environment()
     env.new('end_marker', xt.Marker)
-    env.elements['rot'] = Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq='yxs')
+    env.elements['rot'] = Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq=seq)
 
     line = env.new_line(components=['rot', 'end_marker'])
 
