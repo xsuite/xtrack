@@ -1290,7 +1290,7 @@ def test_redefined_apertures():
     assert isinstance(aper2, xt.LimitEllipse)
     assert np.allclose([aper2.a, aper2.b], 0.029, atol=1e-12, rtol=0)
 
-def test_srotation():
+def test_native_loader_srotation():
 
     mad_src = """
     angle=0.2;
@@ -1306,4 +1306,39 @@ def test_srotation():
     assert isinstance(line[0], xt.Rotation)
     line.vars['angle'] = 2.0
     assert line[0].rot_s_rad == line.vars['angle']._value
+
+
+def test_native_loader_xrotation():
+
+    mad_src = """
+    angle=0.2;
+    rot: xrotation,angle:=angle;
+
+    ss: sequence, l=1; rot: rot, at=0; endsequence;
+
+    """
+
+    env = xt.load(string=mad_src, format='madx')
+    line = env.ss
+
+    assert isinstance(line[0], xt.Rotation)
+    line.vars['angle'] = 2.0
+    assert line[0].rot_x_rad == line.vars['angle']._value
+
+def test_native_loader_yrotation():
+
+    mad_src = """
+    angle=0.2;
+    rot: yrotation,angle:=angle;
+
+    ss: sequence, l=1; rot: rot, at=0; endsequence;
+
+    """
+
+    env = xt.load(string=mad_src, format='madx')
+    line = env.ss
+
+    assert isinstance(line[0], xt.Rotation)
+    line.vars['angle'] = 2.0
+    assert line[0].rot_y_rad == line.vars['angle']._value
 
