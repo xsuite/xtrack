@@ -1338,27 +1338,27 @@ class MadLoader:
     def convert_srotation(self, ee):
         if self.bv == -1:
             raise NotImplementedError("SRotation for bv=-1 are not yet supported.")
-        angle = ee.angle*180/np.pi
+        angle = ee.angle
         el = self.Assembler(
-            ee.name, self.classes.SRotation, angle=angle
+            ee.name, self.classes.Rotation, rot_s_rad=angle
         )
         return self.make_composite_element([el], ee)
 
     def convert_xrotation(self, ee):
         if self.bv == -1:
             raise NotImplementedError("XRotation for bv=-1 are not yet supported.")
-        angle = ee.angle*180/np.pi
+        angle = ee.angle
         el = self.Assembler(
-            ee.name, self.classes.XRotation, angle=angle
+            ee.name, self.classes.Rotation, rot_x_rad=angle
         )
         return self.make_composite_element([el], ee)
 
     def convert_yrotation(self, ee):
         if self.bv == -1:
             raise NotImplementedError("YRotation for bv=-1 are not yet supported.")
-        angle = ee.angle*180/np.pi
+        angle = ee.angle
         el = self.Assembler(
-            ee.name, self.classes.YRotation, angle=angle
+            ee.name, self.classes.Rotation, rot_y_rad=angle
         )
         return self.make_composite_element([el], ee)
 
