@@ -2130,8 +2130,6 @@ class Line:
         element0 : int or str
             Element at which the given coordinates are defined. Default is the
             first element in the beam line.
-        reverse : bool
-            If True, the survey is computed in the reversed reference frame.
 
         Returns
         -------
