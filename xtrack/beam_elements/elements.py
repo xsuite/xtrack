@@ -1222,6 +1222,11 @@ class SRotation(BeamElement):
         parameters are given, their consistency will be checked.
         """
 
+        warn("SRotation is deprecated and will be removed in a future version. "
+             "Please use Rotation(rot_s_rad=...) instead. "
+                + DEPRECATION_INFO_PREP_1_0,
+                FutureWarning, stacklevel=2)
+
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
@@ -1300,6 +1305,11 @@ class XRotation(BeamElement):
         parameters are given, their consistency will be checked.
         """
         # Note MAD-X node_value('other_bv ') is ignored
+
+        warn("XRotation is deprecated and will be removed in a future version. "
+             "Please use Rotation(rot_x_rad=...) instead. "
+                + DEPRECATION_INFO_PREP_1_0,
+                FutureWarning, stacklevel=2)
 
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -1390,6 +1400,11 @@ class YRotation(BeamElement):
         calculate the missing values from the others. If more than necessary
         parameters are given, their consistency will be checked.
         """
+
+        warn("YRotation is deprecated and will be removed in a future version. "
+             "Please use Rotation(rot_y_rad=...) instead. "
+                + DEPRECATION_INFO_PREP_1_0,
+                FutureWarning, stacklevel=2)
 
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
