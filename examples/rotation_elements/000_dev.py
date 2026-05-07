@@ -32,6 +32,25 @@ class Rotation(xt.BeamElement):
     }
 
     def __init__(self, rot_s_rad=0, rot_x_rad=0, rot_y_rad=0, seq='yxs', **kwargs):
+
+        """"
+        3D rotation element.
+
+        Parameters
+        ----------
+        rot_s_rad : float
+            Rotation around the longitudinal axis applied to the element [rad].
+        rot_x_rad : float
+            Rotation around the horizontal axis applied to the element [rad].
+        rot_y_rad : float
+            Rotation around the vertical axis applied to the element [rad].
+        seq : str
+            Sequence of rotations, as a permutation of 'x', 'y', 's'.
+            Default is 'yxs', which means that the first rotation applied to
+            the element is around y, then around x, and finally around s.
+
+        """
+
         super().__init__(**kwargs)
         self.rot_s_rad = rot_s_rad
         self.rot_x_rad = rot_x_rad
