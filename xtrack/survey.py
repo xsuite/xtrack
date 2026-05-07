@@ -170,9 +170,9 @@ class SurveyTable(Table):
         new_cols = {}
 
         element_properties = ['name', 'element_type', 'isthick', 'drift_length',
-                                'length', 'angle', 'rot_s_rad',
+                                'length',
                                 'ref_shift_x', 'ref_shift_y',
-                                'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad']
+                                ]
 
         for kk in element_properties:
             new_cols[kk] = self[kk].copy()
@@ -341,13 +341,8 @@ def survey_from_line(
     out_columns['isthick']          = tt.isthick
     out_columns['drift_length']     = drift_length
     out_columns['length']           = tt.length
-    out_columns['angle']            = angle
-    out_columns['rot_s_rad']        = tt.rot_s_rad
     out_columns['ref_shift_x']      = ref_shift_x
     out_columns['ref_shift_y']      = ref_shift_y
-    out_columns['ref_rot_x_rad']    = ref_rot_x_rad
-    out_columns['ref_rot_y_rad']    = ref_rot_y_rad
-    out_columns['ref_rot_s_rad']    = ref_rot_s_rad
 
     out_columns["s"]                = tt.s
 
