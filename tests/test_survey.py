@@ -123,18 +123,18 @@ def test_survey_with_ref_transformations():
     env = xt.Environment(particle_ref=xt.Particles(p0c = 1E9))
 
     line = env.new_line(length=10, components=[
-        env.new('r1', xt.YRotation, angle=30,  at=1),
-        env.new('r2', xt.YRotation, angle=-30, at=2),
-        env.new('r3', xt.YRotation, angle=-30, at=8),
-        env.new('r4', xt.YRotation, angle=30,  at=9),
+        env.new('r1', xt.Rotation, rot_y_rad=np.deg2rad(30),  at=1),
+        env.new('r2', xt.Rotation, rot_y_rad=np.deg2rad(-30), at=2),
+        env.new('r3', xt.Rotation, rot_y_rad=np.deg2rad(-30), at=8),
+        env.new('r4', xt.Rotation, rot_y_rad=np.deg2rad(30),  at=9),
 
-        env.new('rx1', xt.XRotation, angle=20,  at=3),
-        env.new('rx2', xt.XRotation, angle=-20, at=4),
-        env.new('rx3', xt.XRotation, angle=-20, at=6),
-        env.new('rx4', xt.XRotation, angle=20,  at=7),
+        env.new('rx1', xt.Rotation, rot_x_rad=np.deg2rad(20),  at=3),
+        env.new('rx2', xt.Rotation, rot_x_rad=np.deg2rad(-20), at=4),
+        env.new('rx3', xt.Rotation, rot_x_rad=np.deg2rad(-20), at=6),
+        env.new('rx4', xt.Rotation, rot_x_rad=np.deg2rad(20),  at=7),
 
-        env.new('rs1', xt.SRotation, angle=60.,  at=4.5),
-        env.new('rs2', xt.SRotation, angle=-60, at=5.5),
+        env.new('rs1', xt.Rotation, rot_s_rad=np.deg2rad(60),  at=4.5),
+        env.new('rs2', xt.Rotation, rot_s_rad=np.deg2rad(-60), at=5.5),
 
         env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
         env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
@@ -166,37 +166,12 @@ def test_survey_with_ref_transformations():
         0.2,  0. ,  0. ,  0. , -0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
         0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
 
-    xo.assert_allclose(sv_no_arg.ref_rot_x_rad, np.array([
-        0.        , -0.        ,  0.        ,  0.        ,  0.        ,
-        0.34906585,  0.        , -0.34906585,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -0.        ,  0.        , -0.34906585,
-        0.        ,  0.34906585,  0.        ,  0.        ,  0.        ,
-    -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
-
-    xo.assert_allclose(sv_no_arg.ref_rot_y_rad, np.array([
-        0.        , -0.52359878,  0.        ,  0.52359878,  0.        ,
-        0.        ,  0.        , -0.        ,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -0.        ,  0.        , -0.        ,
-        0.        ,  0.        ,  0.        ,  0.52359878,  0.        ,
-    -0.52359878,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
-
-    xo.assert_allclose(sv_no_arg.ref_rot_s_rad, np.array([
-        0.        , -0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -0.        ,  0.        ,  1.04719755,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -1.04719755,  0.        , -0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-    -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
-
     xo.assert_allclose(sv_no_arg.drift_length, np.array([
         1. , 0. , 1. , 0. , 1. , 0. , 1. , 0. , 0.5, 0. , 0.3, 0. , 0.2,
         0. , 0.2, 0. , 0.3, 0. , 0.5, 0. , 1. , 0. , 1. , 0. , 1. , 0. ,
         0.5, 0. , 0.5, 0. ]), atol=1e-14)
 
     xo.assert_allclose(sv_no_arg.angle, np.zeros(30), atol=1e-14)
-    xo.assert_allclose(sv_no_arg.rot_s_rad, np.zeros(30), atol=1e-14)
 
     xo.assert_allclose(
         sv_no_arg.s,
@@ -267,13 +242,13 @@ def test_survey_with_h_and_v_bends():
         env.new('r3', xt.Bend, length=0.1, angle=-np.deg2rad(30), k0_from_h=False, at=8),
         env.new('r4', xt.Bend, length=0.1, angle=np.deg2rad(30), k0_from_h=False, at=9),
 
-        env.new('rx1', xt.Bend, length=0.1, rot_s_rad=np.pi/2, angle=np.deg2rad(20), k0_from_h=False, at=3),
-        env.new('rx2', xt.Bend, length=0.1, rot_s_rad=np.pi/2, angle=-np.deg2rad(20), k0_from_h=False, at=4),
-        env.new('rx3', xt.Bend, length=0.1, rot_s_rad=np.pi/2, angle=-np.deg2rad(20), k0_from_h=False, at=6),
-        env.new('rx4', xt.Bend, length=0.1, rot_s_rad=np.pi/2, angle=np.deg2rad(20), k0_from_h=False, at=7),
+        env.new('rx1', xt.Bend, length=0.1, rot_x_rad=np.deg2rad(20), k0_from_h=False, at=3),
+        env.new('rx2', xt.Bend, length=0.1, rot_x_rad=np.deg2rad(-20), k0_from_h=False, at=4),
+        env.new('rx3', xt.Bend, length=0.1, rot_x_rad=np.deg2rad(-20), k0_from_h=False, at=6),
+        env.new('rx4', xt.Bend, length=0.1, rot_x_rad=np.deg2rad(20), k0_from_h=False, at=7),
 
-        env.new('rs1', xt.SRotation, angle=60.,  at=4.5),
-        env.new('rs2', xt.SRotation, angle=-60, at=5.5),
+        env.new('rs1', xt.Rotation, rot_s_rad=np.deg2rad(60),  at=4.5),
+        env.new('rs2', xt.Rotation, rot_s_rad=np.deg2rad(-60), at=5.5),
 
         env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
         env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
@@ -309,35 +284,10 @@ def test_survey_with_h_and_v_bends():
     xo.assert_allclose(sv_no_arg.ref_rot_x_rad, 0, atol=1e-14)
     xo.assert_allclose(sv_no_arg.ref_rot_y_rad, 0, atol=1e-14)
 
-    xo.assert_allclose(sv_no_arg.ref_rot_s_rad, np.array([
-        0.        , -0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -0.        ,  0.        ,  1.04719755,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , -1.04719755,  0.        , -0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-    -0.        ,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
-
     xo.assert_allclose(sv_no_arg.drift_length, np.array([
         0.95, 0.1 , 0.9 , 0.1 , 0.9 , 0.1 , 0.9 , 0.1 , 0.45, 0.  , 0.3 ,
         0.  , 0.2 , 0.  , 0.2 , 0.  , 0.3 , 0.  , 0.45, 0.1 , 0.9 , 0.1 ,
         0.9 , 0.1 , 0.9 , 0.1 , 0.45, 0.  , 0.5 , 0.   ]), atol=1e-14)
-
-    xo.assert_allclose(sv_no_arg.angle, np.array(
-        [ 0.        ,  0.52359878,  0.        , -0.52359878,  0.        ,
-            0.34906585,  0.        , -0.34906585,  0.        ,  0.        ,
-            0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-            0.        ,  0.        ,  0.        ,  0.        , -0.34906585,
-            0.        ,  0.34906585,  0.        , -0.52359878,  0.        ,
-            0.52359878,  0.        ,  0.        ,  0.        ,  0.        ]), atol=1e-8)
-
-    xo.assert_allclose(sv_no_arg.rot_s_rad, np.array([
-        0.        , 0.        , 0.        , 0.        , 0.        ,
-        1.57079633, 0.        , 1.57079633, 0.        , 0.        ,
-        0.        , 0.        , 0.        , 0.        , 0.        ,
-        0.        , 0.        , 0.        , 0.        , 1.57079633,
-        0.        , 1.57079633, 0.        , 0.        , 0.        ,
-        0.        , 0.        , 0.        , 0.        , 0.
-    ]), atol=1e-8)
 
     xo.assert_allclose(
         sv_no_arg.s,
@@ -372,8 +322,7 @@ def test_survey_with_h_and_v_bends():
 
     cols_to_check = [
         'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle',
-        'ref_shift_x', 'ref_shift_y', 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad',
-        'ex', 'ey', 'ez', 'p0',
+        'ref_shift_x', 'ref_shift_y', 'ex', 'ey', 'ez', 'p0',
     ]
 
     assert sv_mid_with_init.element0 == 13
