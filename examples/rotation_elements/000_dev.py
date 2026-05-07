@@ -4,8 +4,7 @@ import numpy as np
 
 from xtrack.survey import advance_element as survey_advance_element
 
-_ROT_AX_TO_ID = {'x': 0, 'y': 1, 's': 2}
-_ROT_ID_TO_AX = {0: 'x', 1: 'y', 2: 's'}
+
 
 
 
@@ -37,7 +36,7 @@ for seq in ['yxs', 'xsy', 'sxy', 'syx', 'xys', 'ysx']:
 
     env = xt.Environment()
     env.new('end_marker', xt.Marker)
-    env.elements['rot'] = Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq=seq)
+    env.elements['rot'] = xt.Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq=seq)
 
     line = env.new_line(components=['rot', 'end_marker'])
     line.particle_ref = xt.Particles(p0c=1e9)

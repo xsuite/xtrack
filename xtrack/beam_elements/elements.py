@@ -1089,7 +1089,7 @@ class Rotation(xt.BeamElement):
     has_backtrack = True
 
     _extra_c_sources = [
-        '#include "rotation.h"',
+        '#include "xtrack/beam_elements/elements_src/rotation.h"',
     ]
 
     _noexpr_fields = ['seq']
