@@ -171,8 +171,6 @@ def test_survey_with_ref_transformations():
         0. , 0.2, 0. , 0.3, 0. , 0.5, 0. , 1. , 0. , 1. , 0. , 1. , 0. ,
         0.5, 0. , 0.5, 0. ]), atol=1e-14)
 
-    xo.assert_allclose(sv_no_arg.angle, np.zeros(30), atol=1e-14)
-
     xo.assert_allclose(
         sv_no_arg.s,
         np.array([ 0. ,  1. ,  1. ,  2. ,  2. ,  3. ,  3. ,  4. ,  4. ,  4.5,  4.5,
@@ -206,8 +204,8 @@ def test_survey_with_ref_transformations():
                                 psi0=sv_no_arg['psi', 'right'])
 
     cols_to_check = [
-        'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle', 'rot_s_rad',
-        'ref_shift_x', 'ref_shift_y', 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad',
+        'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length',
+        'ref_shift_x', 'ref_shift_y',
         'ex', 'ey', 'ez', 'p0',
     ]
 
@@ -281,9 +279,6 @@ def test_survey_with_h_and_v_bends():
         0.2,  0. ,  0. ,  0. , -0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
         0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
 
-    xo.assert_allclose(sv_no_arg.ref_rot_x_rad, 0, atol=1e-14)
-    xo.assert_allclose(sv_no_arg.ref_rot_y_rad, 0, atol=1e-14)
-
     xo.assert_allclose(sv_no_arg.drift_length, np.array([
         0.95, 0.1 , 0.9 , 0.1 , 0.9 , 0.1 , 0.9 , 0.1 , 0.45, 0.  , 0.3 ,
         0.  , 0.2 , 0.  , 0.2 , 0.  , 0.3 , 0.  , 0.45, 0.1 , 0.9 , 0.1 ,
@@ -321,7 +316,7 @@ def test_survey_with_h_and_v_bends():
                                 psi0=sv_no_arg['psi', 'right'])
 
     cols_to_check = [
-        'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle',
+        'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length',
         'ref_shift_x', 'ref_shift_y', 'ex', 'ey', 'ez', 'p0',
     ]
 
