@@ -1950,9 +1950,9 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
 
     elements_sol = [solenoid_no_kick] + 3 * [
         xt.XYShift(dx=mult_shift_x),
-        xt.YRotation(angle=np.rad2deg(-mult_rot_y_rad)),
+        xt.Rotation(rot_y_rad=-mult_rot_y_rad),
         kick,
-        xt.YRotation(angle=np.rad2deg(mult_rot_y_rad)),
+        xt.Rotation(rot_y_rad=mult_rot_y_rad),
         xt.XYShift(dx=-mult_shift_x),
         solenoid_no_kick
     ]
@@ -2132,9 +2132,9 @@ def test_solenoid_multipole_rotations():
     vrot_components_in = [
         env.new('vrot_drift0', xt.Drift, length=1),
         env.new('vshift_in', xt.XYShift, dy=np.sin(XING_RAD) * L_SOL / 2),
-        env.new('vrot_in', xt.Rotation, rot_s_rad=XING_RAD)]
+        env.new('vrot_in', xt.Rotation, rot_x_rad=XING_RAD)]
     vrot_components_out = [
-        env.new('vrot_out', xt.Rotation, rot_s_rad=-XING_RAD),
+        env.new('vrot_out', xt.Rotation, rot_x_rad=-XING_RAD),
         env.new('vshift_out', xt.XYShift, dy=np.sin(XING_RAD) * L_SOL / 2),
         env.new('vrot_drift1', xt.Drift, length=1)]
 

@@ -10,8 +10,6 @@ checks = [
     (xt.ZetaShift,               dict(_isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.Elens,                   dict(_isthick=False, allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.Wire,                    dict(_isthick=False, allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
-    (xt.SRotation,               dict(_isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
-    (xt.YRotation,               dict(_isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.Solenoid,                dict(_isthick=True , allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.UniformSolenoid,         dict(_isthick=True , allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.VariableSolenoid,        dict(_isthick=True , allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
