@@ -161,6 +161,9 @@ def _handle_transforms(tokens, el_ref, mad_type=MadType.MADX, substituted_vars=N
         if _defined_and_nonzero('shift_s'):
             misalign_token += mad_assignment('ds', _ge(el_ref.shift_s), mad_type, substituted_vars=substituted_vars) + ', '
             misalign_flag = True
+        if _defined_and_nonzero('rot_s_rad_no_frame'):
+            misalign_token += mad_assignment('dpsi', _ge(el_ref.rot_s_rad_no_frame), mad_type, substituted_vars=substituted_vars) + ', '
+            misalign_flag = True
         if misalign_flag:
             tokens.append(misalign_token[:-2] + '}')
 
