@@ -4508,3 +4508,21 @@ def test_environment_set_suppress_expression():
     assert str(env.ref['q'].knl[1].xdeps.expr) == "(3.0 * vars['a'])"
     env.set('q', knl=[0.0, 0.2])
     assert env.ref['q'].knl[1].xdeps.expr is None
+
+def test_insert_from_anchor_center():
+
+    env = xt.Environment()
+
+    line = env.new_line(components=[
+        env.new('q', xt.Quadrupole, length=2)]
+    )
+
+    env.new('mark', xt.Marker)
+    line.insert([env.place('mark', at=0, from_='q', from_anchor='center')])
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == [
+        'q_entry', 'q..entry_map', 'q..0', 'mark', 'q..1', 'q..exit_map',
+        'q_exit', '_end_point'])
+    xo.assert_allclose(tt.s, [0., 0., 0., 1., 1., 2., 2., 2.], rtol=0, atol=1e-14)
