@@ -147,9 +147,9 @@ class MadxLoader:
         self._new_builtin("multipole", "Multipole", knl=6 * [0])
         self._new_builtin("solenoid", "UniformSolenoid")
         self._new_builtin("crabcavity", "CrabCavity")
-        self._new_builtin("xrotation", "XRotation")
-        self._new_builtin("yrotation", "YRotation")
-        self._new_builtin("srotation", "SRotation")
+        self._new_builtin("xrotation", "Rotation")
+        self._new_builtin("yrotation", "Rotation")
+        self._new_builtin("srotation", "Rotation")
         self._new_builtin("translation", "XYShift")
         self._new_builtin("dipedge", "DipoleEdge")
 
@@ -494,9 +494,15 @@ class MadxLoader:
         elif parent_name == 'marker':
             params.pop('isthick', None)
             params.pop('length', None)
-        elif parent_name in {'srotation', 'xrotation', 'yrotation'}:
+        elif parent_name == 'srotation':
             if (angle := params.pop('angle', None)):
-                params['angle'] = (angle * 180) / np.pi
+                params['rot_s_rad'] = angle
+        elif parent_name == 'xrotation':
+            if (angle := params.pop('angle', None)):
+                params['rot_x_rad'] = angle
+        elif parent_name == 'yrotation':
+            if (angle := params.pop('angle', None)):
+                params['rot_y_rad'] = angle
         elif parent_name == 'translation':
             if (ds := params.pop('ds', None)):
                 raise NotImplementedError('`ds` parameter not supported yet for '

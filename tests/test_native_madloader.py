@@ -1289,3 +1289,21 @@ def test_redefined_apertures():
     aper2 = env2.line2['ip1_aper']
     assert isinstance(aper2, xt.LimitEllipse)
     assert np.allclose([aper2.a, aper2.b], 0.029, atol=1e-12, rtol=0)
+
+def test_srotation():
+
+    mad_src = """
+    angle=0.2;
+    rot: srotation,angle:=angle;
+
+    ss: sequence, l=1; rot: rot, at=0; endsequence;
+
+    """
+
+    env = xt.load(string=mad_src, format='madx')
+    line = env.ss
+
+    assert isinstance(line[0], xt.Rotation)
+    line.vars['angle'] = 2.0
+    assert line[0].rot_s_rad == line.vars['angle']._value
+
