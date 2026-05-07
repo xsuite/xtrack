@@ -158,7 +158,7 @@ def test_tilt_shift_and_errors():
 
         for nn in line.element_names:
             if 'tilt' in nn:
-                assert isinstance(line[nn], xt.SRotation)
+                assert isinstance(line[nn], xt.Rotation)
             elif 'offset' in nn:
                 assert isinstance(line[nn], xt.XYShift)
 
@@ -337,9 +337,9 @@ def test_srotation():
 
     line = MadLoader(mad.sequence.ss).make_line()
     line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
-    assert isinstance(line[1], xt.SRotation)
+    assert isinstance(line[1], xt.Rotation)
     line.vars['angle'] = 2.0
-    assert line[1].angle == line.vars['angle']._value * 180 / np.pi
+    assert line[1].rot_s_rad == line.vars['angle']._value
 
 
 def test_thick_kicker_option():
@@ -426,9 +426,9 @@ def test_xrotation():
 
     line = MadLoader(mad.sequence.ss).make_line()
     line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
-    assert isinstance(line[1], xt.XRotation)
+    assert isinstance(line[1], xt.Rotation)
     line.vars['angle'] = 2.0
-    assert line[1].angle == line.vars['angle']._value * 180 / np.pi
+    assert line[1].rot_x_rad == line.vars['angle']._value
 
 
 def test_yrotation():
@@ -445,9 +445,9 @@ def test_yrotation():
 
     line = MadLoader(mad.sequence.ss).make_line()
     line = MadLoader(mad.sequence.ss, enable_expressions=True).make_line()
-    assert isinstance(line[1], xt.YRotation)
+    assert isinstance(line[1], xt.Rotation)
     line.vars['angle'] = 2.0
-    assert line[1].angle == line.vars['angle']._value * 180 / np.pi
+    assert line[1].rot_y_rad == line.vars['angle']._value
 
 
 def test_mad_elements_import():

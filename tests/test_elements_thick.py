@@ -2132,10 +2132,9 @@ def test_solenoid_multipole_rotations():
     vrot_components_in = [
         env.new('vrot_drift0', xt.Drift, length=1),
         env.new('vshift_in', xt.XYShift, dy=np.sin(XING_RAD) * L_SOL / 2),
-        env.new('vrot_in', xt.XRotation, angle=np.rad2deg(XING_RAD))]
-    # TODO: Minus sign difference here as still inconsistent definition with XRotation and YRotation
+        env.new('vrot_in', xt.Rotation, rot_s_rad=XING_RAD)]
     vrot_components_out = [
-        env.new('vrot_out', xt.XRotation, angle=-np.rad2deg(XING_RAD)),
+        env.new('vrot_out', xt.Rotation, rot_s_rad=-XING_RAD),
         env.new('vshift_out', xt.XYShift, dy=np.sin(XING_RAD) * L_SOL / 2),
         env.new('vrot_drift1', xt.Drift, length=1)]
 

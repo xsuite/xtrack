@@ -29,9 +29,7 @@ def test_constructor(test_context):
         xt.Multipole(_context=test_context, knl=[2, 3]),
         xt.RFMultipole(_context=test_context, knl=[2]),
         xt.Cavity(_context=test_context, voltage=3.),
-        xt.SRotation(_context=test_context, angle=0),
-        xt.XRotation(_context=test_context, angle=0),
-        xt.YRotation(_context=test_context, angle=0),
+        xt.Rotation(_context=test_context, angle=0),
         xt.ZetaShift(_context=test_context, dzeta=3E-4),
         xt.XYShift(_context=test_context, dx=1),
         xt.DipoleEdge(_context=test_context, h=1),
@@ -65,6 +63,7 @@ def test_constructor(test_context):
                     nee._xobject._offset:nee._xobject._size]).sum() == 0
 
 
+@pytest.filterwarnings('ignore::FutureWarning')
 @pytest.mark.parametrize(
     'element_cls,args',
     [
@@ -125,9 +124,7 @@ def test_backtrack(test_context):
         xt.RFMultipole(_context=test_context, knl=[2]),
         xt.ReferenceEnergyIncrease(_context=test_context, Delta_p0c=42),
         xt.Cavity(_context=test_context, voltage=3.),
-        xt.SRotation(_context=test_context, angle=4),
-        xt.XRotation(_context=test_context, angle=0.3),
-        xt.YRotation(_context=test_context, angle=0.7),
+        xt.Rotation(_context=test_context, rot_s_rad=0.2, rot_x_rad=0.3, rot_y_rad=0.4, seq='xsy'),
         xt.ZetaShift(_context=test_context, dzeta=3E-4),
         xt.XYShift(_context=test_context, dx=1),
         xt.DipoleEdge(_context=test_context, h=1),
