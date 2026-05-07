@@ -153,7 +153,7 @@ class FieldFitter:
             "aggregate must be one of {None, 'sum', 'mean', 'rms'}."
         )
 
-    def print_residuals(self, mode='signed', aggregate=None, include_total=False):
+    def print_residuals(self, mode='signed', aggregate='mean', include_total=False):
         """
         Print residuals in a readable format.
 
