@@ -29,7 +29,7 @@ def test_constructor(test_context):
         xt.Multipole(_context=test_context, knl=[2, 3]),
         xt.RFMultipole(_context=test_context, knl=[2]),
         xt.Cavity(_context=test_context, voltage=3.),
-        xt.Rotation(_context=test_context, angle=0),
+        xt.Rotation(_context=test_context, rot_s_rad=0),
         xt.ZetaShift(_context=test_context, dzeta=3E-4),
         xt.XYShift(_context=test_context, dx=1),
         xt.DipoleEdge(_context=test_context, h=1),
@@ -63,7 +63,7 @@ def test_constructor(test_context):
                     nee._xobject._offset:nee._xobject._size]).sum() == 0
 
 
-@pytest.filterwarnings('ignore::FutureWarning')
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @pytest.mark.parametrize(
     'element_cls,args',
     [
@@ -1284,9 +1284,10 @@ def test_multipole_tilt_90_deg(test_context):
     m = xt.Multipole(knl=[0.1, 0], hxl=0.1, length=2, _context=test_context)
     p = xt.Particles(x = 0, y=0, delta=1, p0c=1e12, _context=test_context)
     ln = xt.Line(elements=[
-        xt.SRotation(angle=-90.),
+        xt.Rotation(rot_s_rad=-np.pi/2),
         m,
-        xt.SRotation(angle=90.)])
+        xt.Rotation(rot_s_rad=np.pi/2)
+    ])
     ln.build_tracker(_context=test_context)
     ln.track(p)
 
