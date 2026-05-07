@@ -69,7 +69,7 @@ def test_cycle(test_context):
     d0 = xt.Drift()
     c0 = xt.Cavity()
     d1 = xt.Drift()
-    r0 = xt.SRotation()
+    r0 = xt.Rotation()
     particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=1.05)
 
     for collective in [True, False]:
@@ -97,7 +97,7 @@ def test_cycle(test_context):
             assert cline.element_names[3] == 'e1'
 
             assert isinstance(cline.elements[0], xt.Drift)
-            assert isinstance(cline.elements[1], xt.SRotation)
+            assert isinstance(cline.elements[1], xt.Rotation)
             assert isinstance(cline.elements[2], xt.Drift)
             assert isinstance(cline.elements[3], xt.Cavity)
 
