@@ -2106,10 +2106,10 @@ def test_solenoid_multipole_rotations():
     hrot_components_in = [
         env.new('hrot_drift0', xt.Drift, length=1),
         env.new('hshift_in', xt.XYShift, dx=np.sin(XING_RAD) * L_SOL / 2),
-        env.new('hrot_in', xt.YRotation, angle=-np.rad2deg(XING_RAD))]
+        env.new('hrot_in', xt.Rotation, rot_y_rad=-XING_RAD)]
 
     hrot_components_out = [
-        env.new('hrot_out', xt.YRotation, angle=np.rad2deg(XING_RAD)),
+        env.new('hrot_out', xt.Rotation, rot_y_rad=XING_RAD),
         env.new('hshift_out', xt.XYShift, dx=np.sin(XING_RAD) * L_SOL / 2),
         env.new('hrot_drift1', xt.Drift, length=1)]
 
