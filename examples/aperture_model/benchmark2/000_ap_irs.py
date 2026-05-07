@@ -7,7 +7,7 @@ import numpy as np
 from xdeps import Table
 import warnings
 
-base = "./acc-models-lhc/" # "https://cern.ch/acc-models/lhc/hl19/"
+base = "./acc-models-lhc/"  # "https://cern.ch/acc-models/lhc/hl19/"
 lhc = xt.load(f"{base}/xsuite/lhc_aperture.json")
 lhc.vars.load(f"{base}/strengths/cycle_round_v0/opt_6000.madx")
 lhc.set_particle_ref(p0c=450e9)
@@ -32,7 +32,8 @@ opt = LHCOptics.from_xsuite(lhc)
 mad = opt.make_madx_model()
 apm = mad.get_ap_irs()
 
-# load in metadata
+# Load aperture offset files as line metadata. B2 offset files are written in
+# the reversed-machine convention, so the aperture builder needs to know this.
 lhc.b1.metadata["aperture_offsets"] = {}
 lhc.b2.metadata["aperture_offsets"] = {}
 for ipn in range(1, 9):
@@ -63,12 +64,16 @@ line_tables = {beam: line.get_table() for beam, line in lines.items()}
 
 
 def _get_nearest_element_name(line_table, s_position):
-    idx = np.searchsorted(np.asarray(line_table.s, dtype=float), s_position, side="right") - 1
+    idx = (
+        np.searchsorted(np.asarray(line_table.s, dtype=float), s_position, side="right")
+        - 1
+    )
     idx = int(np.clip(idx, 0, len(line_table.name) - 1))
     return line_table.name[idx]
 
 
 def _offset_s_positions(survey_table, offset_data):
+    """Resolve MAD-X offset row names to Xtrack survey entry/exit positions."""
     s_by_name = {}
     s_values = np.asarray(survey_table.s, dtype=float)
     survey_names = np.asarray(survey_table.name)
@@ -124,12 +129,38 @@ def _offset_s_positions(survey_table, offset_data):
     )
 
 
+def _filter_offset_data(offset_data, mask):
+    filtered_offset_data = {}
+    for key, value in offset_data.items():
+        value_arr = np.asarray(value)
+        if value_arr.ndim > 0 and len(value_arr) == len(mask):
+            filtered_offset_data[key] = value_arr[mask]
+        else:
+            filtered_offset_data[key] = value
+    return filtered_offset_data
+
+
+def _madx_reference_s(ir_table, reference_name):
+    s_by_name = {}
+    for name, s_value in zip(ir_table.name, ir_table.s):
+        mad_name = Aperture._guess_original_mad_name(name)
+        s_by_name.setdefault(mad_name, float(s_value))
+
+    return s_by_name[reference_name]
+
+
 def _wrap_local_s(s, line_length):
     half_length = 0.5 * line_length
-    return np.where(s > half_length, s - line_length, np.where(s < -half_length, s + line_length, s))
+    return np.where(
+        s > half_length,
+        s - line_length,
+        np.where(s < -half_length, s + line_length, s),
+    )
 
 
 def _beam_s_direction(beam):
+    # B2 is represented in the reversed ring direction. These helpers convert
+    # between IR-local coordinates used in the plots and ring s used by Xtrack.
     return -1.0 if beam == "b2" else 1.0
 
 
@@ -144,6 +175,16 @@ def _ring_to_ir_local_s(s_ring, s_ip, line_length, beam):
 def _as_scalar(value):
     arr = np.asarray(value, dtype=float)
     return float(arr.reshape(-1)[0])
+
+
+OFFSET_COLUMNS = [
+    ("x", "x_off"),
+    ("dx", "dx_off"),
+    ("ddx", "ddx_off"),
+    ("y", "y_off"),
+    ("dy", "dy_off"),
+    ("ddy", "ddy_off"),
+]
 
 
 for ir_name in sorted(apm):
@@ -170,41 +211,23 @@ for ir_name in sorted(apm):
     ip_name = f"ip{ir_name[2]}"
     s_ip_m = ir.rows[f"{ip_name}.*"].s[0]
     s_ip_x = line_table.rows[f"{ip_name}.*"].s[0]
+
+    # -------------------------------------------------------------------------
+    # Shared longitudinal coordinates
+    # -------------------------------------------------------------------------
+    # MAD-X and Xtrack use different absolute origins. The IR-local coordinate
+    # is the common plotting coordinate; it is converted back to ring s only
+    # for the Xtrack aperture calculation.
     s_local = np.asarray(ir.s - s_ip_m, dtype=float)
+
     s_positions = _ir_local_to_ring_s(s_local, s_ip_x, line.get_length(), beam)
     order = np.argsort(s_positions)
     undo_order = np.empty_like(order)
     undo_order[order] = np.arange(len(order))
-    offset_data = line.metadata["aperture_offsets"][ip_name]
-    line_length = line.get_length()
-    offset_s_start, offset_s_end, offset_data, offset_reference_s = _offset_s_positions(
-        line.survey(), offset_data
-    )
-    offset_s_start = _ring_to_ir_local_s(offset_s_start, s_ip_x, line_length, beam)
-    offset_s_end = _ring_to_ir_local_s(offset_s_end, s_ip_x, line_length, beam)
-    offset_reference_s = (
-        None
-        if offset_reference_s is None
-        else _ring_to_ir_local_s(offset_reference_s, s_ip_x, line_length, beam)
-    )
-    if offset_reference_s is not None:
-        offset_reference_s = _as_scalar(offset_reference_s)
-    offset_s_min = np.minimum(offset_s_start, offset_s_end)
-    offset_s_max = np.maximum(offset_s_start, offset_s_end)
-    ir_s_min = float(np.min(s_local))
-    ir_s_max = float(np.max(s_local))
-    in_ir = (offset_s_max >= ir_s_min) & (offset_s_min <= ir_s_max)
-    offset_s_start = offset_s_min[in_ir]
-    offset_s_end = offset_s_max[in_ir]
-    filtered_offset_data = {}
-    for key, value in offset_data.items():
-        value_arr = np.asarray(value)
-        if value_arr.ndim > 0 and len(value_arr) == len(in_ir):
-            filtered_offset_data[key] = value_arr[in_ir]
-        else:
-            filtered_offset_data[key] = value
-    offset_data = filtered_offset_data
 
+    # -------------------------------------------------------------------------
+    # Xsuite aperture calculation
+    # -------------------------------------------------------------------------
     n1_table, _ = aperture.get_aperture_sigmas_at_s(
         s_positions=s_positions[order],
         method="rays",
@@ -223,10 +246,27 @@ for ir_name in sorted(apm):
     print(f"{ir_name}: min n1={min_n1:.3f} at {element_name} (s={min_s:.6f} m)")
 
     fig, axs = plt.subplots(4, 1, sharex=True, figsize=(10, 10))
+
+    # -------------------------------------------------------------------------
+    # MAD-X n1 plot
+    # -------------------------------------------------------------------------
     axs[0].plot(
         s_local, np.where(ir.n1 > 9e5, np.inf, ir.n1), label='n1 (MAD-X)'
     )
-    axs[0].plot(s_local, sigmas, label='n1 (Xtrack)')
+    offset_data = line.metadata["aperture_offsets"][ip_name]
+    madx_offset_reference_s = _madx_reference_s(ir, offset_data["reference"]) - s_ip_m
+    axs[0].axvline(
+        madx_offset_reference_s,
+        color="tab:red",
+        linestyle=":",
+        lw=1.2,
+        label="MAD-X reference",
+    )
+
+    # -------------------------------------------------------------------------
+    # Xsuite n1 and aperture extent plots
+    # -------------------------------------------------------------------------
+    axs[0].plot(s_local, sigmas, label='n1 (Xtrack)', linestyle='--')
     axs[0].set_ylabel(r'max beam size [$\sigma$]')
     axs[0].legend()
 
@@ -238,17 +278,32 @@ for ir_name in sorted(apm):
     )
     axs[1].set_title(ir_name)
     axs[2].set_xlabel(f's - {ip_name} [m]')
+
+    # -------------------------------------------------------------------------
+    # MAD-X offset-file diagnostics
+    # -------------------------------------------------------------------------
+    line_length = line.get_length()
+    offset_s_start, offset_s_end, offset_data, offset_reference_s = _offset_s_positions(
+        line.survey(), offset_data
+    )
+    offset_s_start = _ring_to_ir_local_s(offset_s_start, s_ip_x, line_length, beam)
+    offset_s_end = _ring_to_ir_local_s(offset_s_end, s_ip_x, line_length, beam)
+    offset_reference_s = _ring_to_ir_local_s(offset_reference_s, s_ip_x, line_length, beam)
+    offset_reference_s = _as_scalar(offset_reference_s)
+
+    offset_s_min = np.minimum(offset_s_start, offset_s_end)
+    offset_s_max = np.maximum(offset_s_start, offset_s_end)
+    ir_s_min = float(np.min(s_local))
+    ir_s_max = float(np.max(s_local))
+    in_ir = (offset_s_max >= ir_s_min) & (offset_s_min <= ir_s_max)
+    offset_s_start = offset_s_min[in_ir]
+    offset_s_end = offset_s_max[in_ir]
+    offset_data = _filter_offset_data(offset_data, in_ir)
+
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-    for label, values, color in [
-        ("x", offset_data["x_off"], colors[0]),
-        ("dx", offset_data["dx_off"], colors[1]),
-        ("ddx", offset_data["ddx_off"], colors[2]),
-        ("y", offset_data["y_off"], colors[3]),
-        ("dy", offset_data["dy_off"], colors[4]),
-        ("ddy", offset_data["ddy_off"], colors[5]),
-    ]:
+    for color_idx, (label, column) in enumerate(OFFSET_COLUMNS):
         first = True
-        for s0, s1, value in zip(offset_s_start, offset_s_end, values):
+        for s0, s1, value in zip(offset_s_start, offset_s_end, offset_data[column]):
             axs[3].plot(
                 [s0, s1],
                 [value, value],
@@ -257,11 +312,16 @@ for ir_name in sorted(apm):
                 lw=1.2,
                 alpha=0.8,
                 label=label if first else None,
-                color=color,
+                color=colors[color_idx],
             )
             first = False
-    if offset_reference_s is not None:
-        axs[3].axvline(offset_reference_s, color="k", linestyle="--", lw=1.0, label="reference")
+    axs[3].axvline(
+        offset_reference_s,
+        color="k",
+        linestyle="--",
+        lw=1.0,
+        label="reference",
+    )
     axs[3].set_ylabel("offset data")
     axs[3].set_xlabel(f"s - {ip_name} [m]")
     axs[3].grid(True)
