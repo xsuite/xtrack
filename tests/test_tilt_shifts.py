@@ -38,9 +38,9 @@ def test_test_tilt_shifts_vs_sandwich(test_context, slice_mode, element_type):
     line_ref = xt.Line(elements=[
         xt.DriftExact(length=shift_s),
         xt.XYShift(dx=shift_x, dy=shift_y),
-        xt.SRotation(angle=np.rad2deg(rot_s_rad)),
+        xt.Rotation(rot_s_rad=rot_s_rad),
         elem.copy(),
-        xt.SRotation(angle=np.rad2deg(-rot_s_rad)),
+        xt.Rotation(rot_s_rad=-rot_s_rad),
         xt.XYShift(dx=-shift_x, dy=-shift_y),
         xt.DriftExact(length=-shift_s)
     ])
@@ -150,9 +150,9 @@ def test_tilt_shifts_vs_madx_cpymad_loader():
 
     lsandwitch = xt.Line(elements=[
         xt.XYShift(dx=shift_x, dy=shift_y),
-        xt.SRotation(angle=tilt_deg),
+        xt.Rotation(rot_s_rad=tilt_rad),
         elm,
-        xt.SRotation(angle=-tilt_deg),
+        xt.Rotation(rot_s_rad=-tilt_rad),
         xt.XYShift(dx=-shift_x, dy=-shift_y)
     ])
     lsandwitch.build_tracker()
