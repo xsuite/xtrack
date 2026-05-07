@@ -549,7 +549,12 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
         for ii in subgroup_from_is_inside:
             from_ = tt_group.from_[ii]
             from_anchor = tt_group.from_anchor[ii]
-            if from_anchor == 'start' or from_anchor == None:
+            if (from_anchor == 'start'
+                # we are in a thin sandwich, we decide that center behaves as start:
+                or from_anchor == 'center' or from_anchor == 'centre'
+                # None behaves as center:
+                or from_anchor is None
+                ):
                 if from_ not in insertion_before:
                     insertion_before[from_] = []
                 insertion_before[from_].append(ii)
