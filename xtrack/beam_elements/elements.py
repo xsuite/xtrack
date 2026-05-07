@@ -1080,6 +1080,8 @@ class Wire(BeamElement):
         '#include "xtrack/beam_elements/elements_src/wire.h"',
     ]
 
+_ROT_AX_TO_ID = {'x': 0, 'y': 1, 's': 2}
+_ROT_ID_TO_AX = {0: 'x', 1: 'y', 2: 's'}
 
 class Rotation(xt.BeamElement):
 
