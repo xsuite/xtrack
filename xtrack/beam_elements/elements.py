@@ -2,6 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
+import copy
 from typing import List
 from warnings import warn
 
@@ -152,6 +153,10 @@ class SynchrotronRadiationRecord(xo.HybridClass):
         'particle_id': xo.Int64[:],
         'particle_delta': xo.Float64[:]
     }
+
+# Imported here (after SynchrotronRadiationRecord definition) to avoid
+# circular import issues while keeping SplineBoris in its own module.
+from .splineboris import Spline4, SplineBoris
 
 class _HasIntegrator:
 
