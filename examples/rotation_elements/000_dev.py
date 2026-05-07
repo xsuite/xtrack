@@ -1,15 +1,7 @@
 import xtrack as xt
 import xobjects as xo
 
-env = xt.Environment()
-
-line = env.new_line(components=[
-    env.new('xrot', xt.XRotation, angle=90)
-])
-
-
-# xt.Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3,
-#             seq='yxs')
+from xtrack.survey import advance_element as survey_advance_element
 
 ROT_AX_TO_ID = {'x': 0, 'y': 1, 's': 2}
 MAPPING_ID_TO_AX = {0: 'x', 1: 'y', 2: 's'}
@@ -27,6 +19,13 @@ class Rotation(xt.BeamElement):
         '_third_rot': xo.Field(xo.Int8, default=2),  # default to 's' rotation
     }
 
+    def __init__(self, rot_s_rad=0, rot_x_rad=0, rot_y_rad=0, seq='yxs', **kwargs):
+        super().__init__(**kwargs)
+        self.rot_s_rad = rot_s_rad
+        self.rot_x_rad = rot_x_rad
+        self.rot_y_rad = rot_y_rad
+        self.seq = seq  # this will set the _first_rot, _second_rot, _third_rot fields
+
     @property
     def seq(self):
         out = (MAPPING_ID_TO_AX[self._first_rot] +
@@ -42,6 +41,33 @@ class Rotation(xt.BeamElement):
         self._second_rot = ROT_AX_TO_ID[value[1]]
         self._third_rot = ROT_AX_TO_ID[value[2]]
 
+    def _preopagate_survey(self, v, w, backtrack):
+
+        for ax in self.seq:
+            if ax == 'x':
+                rx, ry, rs = self.rot_x_rad, 0, 0
+            elif ax == 'y':
+                rx, ry, rs = 0, self.rot_y_rad, 0
+            elif ax == 's':
+                rx, ry, rs = 0, 0, self.rot_s_rad
+            else:
+                raise ValueError(f"Invalid rotation axis '{ax}' in sequence '{self.seq}'")
+
+            v, w = survey_advance_element(
+                        v               = v,
+                        w               = w,
+                        length          = 0,
+                        angle           = 0,
+                        tilt            = 0,
+                        ref_shift_x     = 0,
+                        ref_shift_y     = 0,
+                        ref_rot_x_rad   = rx,
+                        ref_rot_y_rad   = ry,
+                        ref_rot_s_rad   = rs,
+                    )
+        return v, w
+
+
 rot = Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3)
 assert rot.seq == 'yxs'
 assert rot._first_rot == 1
@@ -53,3 +79,9 @@ assert rot._first_rot == 2
 assert rot._second_rot == 0
 assert rot._third_rot == 1
 assert rot.seq == 'sxy'
+
+env = xt.Environment()
+env.elements['rot'] = Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq='xys')
+
+line = env.new_line(components=['rot'])
+sv = line.survey()
