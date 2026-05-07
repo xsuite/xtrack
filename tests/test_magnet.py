@@ -992,7 +992,7 @@ def test_edge_full_model_with_dipole_component_and_angle(test_context):
         half_gap=0.4, k_order=2, _context=test_context
     )
     e_ref = [
-        xt.YRotation(angle=np.rad2deg(-0.2)),
+        xt.Rotation(rot_y_rad=-0.2),
         # The rotation is also the other way than in the underlying map :'(
         xt.DipoleEdge(model='full', k=3, fint=0.3, hgap=0.4),
         xt.MultipoleEdge(kn=[0, 4, 5], order=2),
@@ -1037,7 +1037,7 @@ def test_edge_full_model_with_dipole_component_and_angle_exit(test_context):
         xt.Wedge(angle=-0.2, k=3, k1=4),
         xt.MultipoleEdge(kn=[0, 4, 5], is_exit=True, order=2),
         xt.DipoleEdge(model='full', k=-3, fint=0.3, hgap=0.4),
-        xt.YRotation(angle=np.rad2deg(-0.2)),
+        xt.Rotation(rot_y_rad=-0.2),
     ]
 
     p0 = xt.Particles(
