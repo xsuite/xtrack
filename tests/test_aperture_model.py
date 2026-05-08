@@ -1176,8 +1176,14 @@ def test_survey_resample_out_of_range_returns_nans_with_precision_tolerance(cont
     env = xt.Environment()
     drift = env.new('drift', xt.Drift, length=1.0)
     line = env.new_line(name='line', components=[drift])
+    survey_table = line.survey()
+    # Add angle and rot_s_rad
+    survey_table['angle'] = np.zeros_like(survey_table.s)
+    survey_table['rot_s_rad'] = np.zeros_like(survey_table.s)
+    survey_table['angle'][:-1] = line.attr['angle_rad'] # shorter by one because survey has '_end_point'
+    survey_table['rot_s_rad'][:-1] = line.attr['rot_s_rad'] # shorter by one because survey has '_end_point'
 
-    survey = SurveyData.from_survey_table(line.survey(), context=context)
+    survey = SurveyData.from_survey_table(survey_table, context=context)
     s_query = np.array([
         -2 * eps,
         -0.5 * eps,

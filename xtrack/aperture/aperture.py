@@ -531,6 +531,12 @@ class Aperture:
 
         self.survey = line.survey()
 
+        # Add angle and rot_s_rad
+        self.survey['angle'] = np.zeros_like(self.survey.s)
+        self.survey['rot_s_rad'] = np.zeros_like(self.survey.s)
+        self.survey['angle'][:-1] = line.attr['angle_rad'] # shorter by one because survey has '_end_point'
+        self.survey['rot_s_rad'][:-1] = line.attr['rot_s_rad'] # shorter by one because survey has '_end_point'
+
         if not _skip_validity_check:
             self._check_model_validity()
 
