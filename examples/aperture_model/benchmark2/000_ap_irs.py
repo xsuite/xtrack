@@ -1,65 +1,33 @@
-import xtrack as xt
-from xtrack.aperture import Aperture
-from xobjects import ContextCpu
-from lhcoptics import LHCOptics
+import json
+import warnings
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
+import xtrack as xt
 from xdeps import Table
-import warnings
+from xobjects.general import allclose_with_outliers
+from xobjects import ContextCpu
 
-base = "./acc-models-lhc/"  # "https://cern.ch/acc-models/lhc/hl19/"
-lhc = xt.load(f"{base}/xsuite/lhc_aperture.json")
-lhc.vars.load(f"{base}/strengths/cycle_round_v0/opt_6000.madx")
-lhc.set_particle_ref(p0c=450e9)
+from xtrack.aperture import Aperture
 
-lhc.vars.update({
-    'on_sep1v':  2,
-    'on_x1hs': 295,
-    'on_sep5h':  2,
-    'on_x5vs': 295,
-    'on_sep2h': -3.5,
-    'on_x2v':  170,
-    'on_a2h': 40,
-    'on_alice': 7000/450,
-    'on_sep8v': -3.5,
-    'on_x8h': -170,
-    'on_a8v': -40,
-    'on_lhcb': 7000/450,
-})
 
-opt = LHCOptics.from_xsuite(lhc)
+BASE_DIR = Path(__file__).resolve().parents[3] / "test_data" / "hllhc19_apertures"
+OFFSET_COLUMNS = [
+    ("x", "x_off"),
+    ("dx", "dx_off"),
+    ("ddx", "ddx_off"),
+    ("y", "y_off"),
+    ("dy", "dy_off"),
+    ("ddy", "ddy_off"),
+]
 
-mad = opt.make_madx_model()
-apm = mad.get_ap_irs()
 
-# Load aperture offset files as line metadata. B2 offset files are written in
-# the reversed-machine convention, so the aperture builder needs to know this.
-lhc.b1.metadata["aperture_offsets"] = {}
-lhc.b2.metadata["aperture_offsets"] = {}
-for ipn in range(1, 9):
-    for beam in "12":
-        tfs = Table.from_tfs(f"./temp/offset.ip{ipn}.b{beam}.tfs")
-        line = lhc.b1 if beam == "1" else lhc.b2
-        tfs_data = tfs._data.copy()
-        tfs_data["reversed"] = beam == "2"
-        line.metadata["aperture_offsets"][f"ip{ipn}"] = tfs_data
-
-context = ContextCpu(omp_num_threads='auto')
-
-lines = {
-    "b1": lhc.b1,
-    "b2": lhc.b2,
-}
-apertures = {
-    beam: Aperture.from_line_with_madx_metadata(
-        line,
-        num_profile_points=100,
-        include_offsets=True,
-        context=context,
-    )
-    for beam, line in lines.items()
-}
-line_tables = {beam: line.get_table() for beam, line in lines.items()}
+def _load_reference_irs():
+    refs = {}
+    for path in sorted(BASE_DIR.glob("ir*b*.json")):
+        refs[path.stem] = json.loads(path.read_text())
+    return refs
 
 
 def _get_nearest_element_name(line_table, s_position):
@@ -136,15 +104,6 @@ def _filter_offset_data(offset_data, mask):
     return filtered_offset_data
 
 
-def _madx_reference_s(ir_table, reference_name):
-    s_by_name = {}
-    for name, s_value in zip(ir_table.name, ir_table.s):
-        mad_name = Aperture._guess_original_mad_name(name)
-        s_by_name.setdefault(mad_name, float(s_value))
-
-    return s_by_name[reference_name]
-
-
 def _wrap_local_s(s, line_length):
     half_length = 0.5 * line_length
     return np.where(
@@ -155,8 +114,6 @@ def _wrap_local_s(s, line_length):
 
 
 def _beam_s_direction(beam):
-    # B2 is represented in the reversed ring direction. These helpers convert
-    # between IR-local coordinates used in the plots and ring s used by Xtrack.
     return -1.0 if beam == "b2" else 1.0
 
 
@@ -173,155 +130,165 @@ def _as_scalar(value):
     return float(arr.reshape(-1)[0])
 
 
-OFFSET_COLUMNS = [
-    ("x", "x_off"),
-    ("dx", "dx_off"),
-    ("ddx", "ddx_off"),
-    ("y", "y_off"),
-    ("dy", "dy_off"),
-    ("ddy", "ddy_off"),
-]
+def _load_lines():
+    lhc = xt.load(BASE_DIR / "lhc_aperture.json")
+
+    lines = {
+        "b1": lhc.b1,
+        "b2": lhc.b2,
+    }
+
+    return lines
 
 
-for ir_name in sorted(apm):
-    ir = apm[ir_name]
-    beam = ir_name[-2:]
+def main():
+    references = _load_reference_irs()
+    lines = _load_lines()
+    context = ContextCpu(omp_num_threads="auto")
 
-    line = lines[beam]
-    line_table = line_tables[beam]
-    aperture = apertures[beam]
+    apertures = {
+        beam: Aperture.from_line_with_madx_metadata(
+            line,
+            num_profile_points=100,
+            include_offsets=True,
+            context=context,
+        )
+        for beam, line in lines.items()
+    }
+    line_tables = {beam: line.get_table() for beam, line in lines.items()}
 
-    aperture.halo_params.update(
-        {
-            "emitx_norm": ir.exn,
-            "emity_norm": ir.eyn,
-            "delta_rms": ir.dp_bucket_size,
-            "tol_co": ir.co_radius,
-            "tol_disp": ir.paras_dx,  # MAD-X has different settings for x/y
-            "tol_disp_ref": ir.dqf,
-            "tol_disp_ref_beta": ir.betaqfx,
-            "tol_beta_beating": ir.beta_beating,  # MAD-X has different settings for x/y
-        }
-    )
+    for ir_name in sorted(references):
+        reference = references[ir_name]
+        beam = reference["beam"]
+        ip_name = reference["ip_name"]
 
-    ip_name = f"ip{ir_name[2]}"
-    s_ip_m = ir.rows[f"{ip_name}.*"].s[0]
-    s_ip_x = line_table.rows[f"{ip_name}.*"].s[0]
+        line = lines[beam]
+        line_table = line_tables[beam]
+        aperture = apertures[beam]
 
-    # -------------------------------------------------------------------------
-    # Shared longitudinal coordinates
-    # -------------------------------------------------------------------------
-    # MAD-X and Xtrack use different absolute origins. The IR-local coordinate
-    # is the common plotting coordinate; it is converted back to ring s only
-    # for the Xtrack aperture calculation.
-    s_local = np.asarray(ir.s - s_ip_m, dtype=float)
+        aperture.halo_params.update(reference["halo_params"])
 
-    s_positions = _ir_local_to_ring_s(s_local, s_ip_x, line.get_length(), beam)
-    order = np.argsort(s_positions)
-    undo_order = np.empty_like(order)
-    undo_order[order] = np.arange(len(order))
+        s_ip_x = line_table.rows[f"{ip_name}.*"].s[0]
+        s_positions = np.asarray(reference["s_positions"], dtype=float)
+        s_local = _ring_to_ir_local_s(s_positions, s_ip_x, line.get_length(), beam)
+        order = np.argsort(s_positions)
+        undo_order = np.empty_like(order)
+        undo_order[order] = np.arange(len(order))
 
-    # -------------------------------------------------------------------------
-    # Xsuite aperture calculation
-    # -------------------------------------------------------------------------
-    n1_table, _ = aperture.get_aperture_sigmas_at_s(
-        s_positions=s_positions[order],
-        method="rays",
-    )
-    sigmas = np.asarray(n1_table.n1[undo_order], dtype=float)
-    s_positions_ring = np.asarray(n1_table.s[undo_order], dtype=float)
+        n1_table, _ = aperture.get_aperture_sigmas_at_s(
+            s_positions=s_positions[order],
+            method="rays",
+        )
+        sigmas = np.asarray(n1_table.n1[undo_order], dtype=float)
+        s_positions_ring = np.asarray(n1_table.s[undo_order], dtype=float)
+        n1_madx = np.asarray(reference["n1_madx"], dtype=float)
 
-    min_idx = int(np.argmin(sigmas))
-    min_n1 = float(sigmas[min_idx])
-    min_s = float(s_positions_ring[min_idx])
-    element_name = (
-        ir.name[min_idx]
-        if hasattr(ir, "name") and len(ir.name) == len(sigmas)
-        else _get_nearest_element_name(line_table, min_s)
-    )
-    print(f"{ir_name}: min n1={min_n1:.3f} at {element_name} (s={min_s:.6f} m)")
+        min_idx = int(np.argmin(sigmas))
+        min_n1 = float(sigmas[min_idx])
+        min_s = float(s_positions_ring[min_idx])
+        element_name = _get_nearest_element_name(line_table, min_s)
+        print(f"{ir_name}: min n1={min_n1:.3f} at {element_name} (s={min_s:.6f} m)")
 
-    fig, axs = plt.subplots(4, 1, sharex=True, figsize=(10, 10))
+        n1_madx = np.where(n1_madx >= 7000, np.nan, n1_madx)
+        valid_mask = np.isfinite(n1_madx)
+        non_cont_mask = valid_mask & np.r_[True, ~valid_mask[:-1]] & np.r_[~valid_mask[1:], True]
+        n1_madx[non_cont_mask] = np.nan
 
-    # -------------------------------------------------------------------------
-    # MAD-X n1 plot
-    # -------------------------------------------------------------------------
-    axs[0].plot(
-        s_local, np.where(ir.n1 > 9e5, np.inf, ir.n1), label='n1 (MAD-X)'
-    )
-    offset_data = line.metadata["aperture_offsets"][ip_name]
-    madx_offset_reference_s = _madx_reference_s(ir, offset_data["reference"]) - s_ip_m
-    axs[0].axvline(
-        madx_offset_reference_s,
-        color="tab:red",
-        linestyle=":",
-        lw=1.2,
-        label="MAD-X reference",
-    )
-
-    # -------------------------------------------------------------------------
-    # Xsuite n1 and aperture extent plots
-    # -------------------------------------------------------------------------
-    axs[0].plot(s_local, sigmas, label='n1 (Xtrack)', linestyle='--')
-    axs[0].set_ylabel(r'max beam size [$\sigma$]')
-    axs[0].legend()
-
-    aperture.plot_extents(
-        s_positions=s_positions,
-        sigmas=min_n1,
-        plot_s_positions=s_local,
-        axs=axs[1:3],
-    )
-    axs[1].set_title(ir_name)
-    axs[2].set_xlabel(f's - {ip_name} [m]')
-
-    # -------------------------------------------------------------------------
-    # MAD-X offset-file diagnostics
-    # -------------------------------------------------------------------------
-    line_length = line.get_length()
-    offset_s_start, offset_s_end, offset_data, offset_reference_s = _offset_s_positions(
-        line.survey(), offset_data
-    )
-    offset_s_start = _ring_to_ir_local_s(offset_s_start, s_ip_x, line_length, beam)
-    offset_s_end = _ring_to_ir_local_s(offset_s_end, s_ip_x, line_length, beam)
-    offset_reference_s = _ring_to_ir_local_s(offset_reference_s, s_ip_x, line_length, beam)
-    offset_reference_s = _as_scalar(offset_reference_s)
-
-    offset_s_min = np.minimum(offset_s_start, offset_s_end)
-    offset_s_max = np.maximum(offset_s_start, offset_s_end)
-    ir_s_min = float(np.min(s_local))
-    ir_s_max = float(np.max(s_local))
-    in_ir = (offset_s_max >= ir_s_min) & (offset_s_min <= ir_s_max)
-    offset_s_start = offset_s_min[in_ir]
-    offset_s_end = offset_s_max[in_ir]
-    offset_data = _filter_offset_data(offset_data, in_ir)
-
-    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-    for color_idx, (label, column) in enumerate(OFFSET_COLUMNS):
-        first = True
-        for s0, s1, value in zip(offset_s_start, offset_s_end, offset_data[column]):
-            axs[3].plot(
-                [s0, s1],
-                [value, value],
-                linestyle="-",
-                marker=None,
-                lw=1.2,
-                alpha=0.8,
-                label=label if first else None,
-                color=colors[color_idx],
+        absdiffs = np.abs(n1_madx - sigmas)
+        reldiffs = np.abs((n1_madx - sigmas) / n1_madx)
+        mask = (reldiffs > 0.01) & np.isfinite(reldiffs)
+        lines_where = s_local[mask]
+        no_outliers = len(lines_where)
+        print(f"==> Outliers: {no_outliers}")
+        print(f"MAD-X vs Xtrack: abs diff = {np.nanmax(absdiffs)}, rel diff = {np.nanmax(reldiffs)}")
+        sorted_abs, sorted_rel = np.sort(absdiffs[np.isfinite(absdiffs)]), np.sort(reldiffs[np.isfinite(reldiffs)])
+        if no_outliers > 0:
+            print(
+                f"MAD-X vs Xtrack: abs mean diff = {np.nanmax(sorted_abs[:-no_outliers])}, "
+                f"rel mean diff = {np.nanmax(sorted_rel[:-no_outliers])}"
             )
-            first = False
-    axs[3].axvline(
-        offset_reference_s,
-        color="k",
-        linestyle="--",
-        lw=1.0,
-        label="reference",
-    )
-    axs[3].set_ylabel("offset data")
-    axs[3].set_xlabel(f"s - {ip_name} [m]")
-    axs[3].grid(True)
-    axs[3].legend(ncol=3, fontsize="small")
+        else:
+            print("No outliers")
 
-    fig.tight_layout()
-    plt.show()
+        # 99% of points within 1% tolerance
+        finite_mask = np.isfinite(n1_madx)
+        assert allclose_with_outliers(
+            n1_madx[finite_mask],
+            sigmas[finite_mask],
+            rtol=0.01,
+            max_outliers=int(len(n1_madx) / 100),
+        )
+
+        fig, axs = plt.subplots(4, 1, sharex=True, figsize=(10, 10))
+
+        # ---------------------------------------------------------------------
+        # n1 comparison
+        # ---------------------------------------------------------------------
+        axs[0].plot(s_local, n1_madx, label="n1 (MAD-X)")
+        axs[0].plot(s_local, sigmas, label="n1 (Xtrack)", linestyle="--")
+        axs[0].set_ylabel(r"max beam size [$\sigma$]")
+        axs[0].legend()
+
+        aperture.plot_extents(
+            s_positions=s_positions,
+            sigmas=min_n1,
+            plot_s_positions=s_local,
+            axs=axs[1:3],
+        )
+        axs[1].set_title(ir_name)
+        axs[2].set_xlabel(f"s - {ip_name} [m]")
+
+        # ---------------------------------------------------------------------
+        # Offset diagnostics
+        # ---------------------------------------------------------------------
+        offset_data = line.metadata["aperture_offsets"][ip_name]
+        line_length = line.get_length()
+        offset_s_start, offset_s_end, offset_data, offset_reference_s = _offset_s_positions(
+            line.survey(), offset_data
+        )
+        offset_s_start = _ring_to_ir_local_s(offset_s_start, s_ip_x, line_length, beam)
+        offset_s_end = _ring_to_ir_local_s(offset_s_end, s_ip_x, line_length, beam)
+        offset_reference_s = _as_scalar(_ring_to_ir_local_s(offset_reference_s, s_ip_x, line_length, beam))
+
+        offset_s_min = np.minimum(offset_s_start, offset_s_end)
+        offset_s_max = np.maximum(offset_s_start, offset_s_end)
+        ir_s_min = float(np.min(s_local))
+        ir_s_max = float(np.max(s_local))
+        in_ir = (offset_s_max >= ir_s_min) & (offset_s_min <= ir_s_max)
+        offset_s_start = offset_s_min[in_ir]
+        offset_s_end = offset_s_max[in_ir]
+        offset_data = _filter_offset_data(offset_data, in_ir)
+
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        for color_idx, (label, column) in enumerate(OFFSET_COLUMNS):
+            first = True
+            for s0, s1, value in zip(offset_s_start, offset_s_end, offset_data[column]):
+                axs[3].plot(
+                    [s0, s1],
+                    [value, value],
+                    linestyle="-",
+                    marker=None,
+                    lw=1.2,
+                    alpha=0.8,
+                    label=label if first else None,
+                    color=colors[color_idx],
+                )
+                first = False
+        axs[3].axvline(
+            offset_reference_s,
+            color="k",
+            linestyle="--",
+            lw=1.0,
+            label="reference",
+        )
+        axs[3].set_ylabel("offset data")
+        axs[3].set_xlabel(f"s - {ip_name} [m]")
+        axs[3].grid(True)
+        axs[3].legend(ncol=3, fontsize="small")
+
+        fig.tight_layout()
+        plt.show()
+
+
+if __name__ == "__main__":
+    main()

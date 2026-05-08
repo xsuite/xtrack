@@ -53,6 +53,7 @@ uint32_t interpolate_aperture_tolerances_at_s(
     float_type* out_tol_y);
 
 static inline float_type survey_s_for_aperture(const PipePosition, const ProfilePosition, const float_type curvature, const SurveyData, uint32_t*);
+static inline float_type normalize_s_near_reference(const float_type s, const float_type reference_s, const float_type survey_length);
 static inline void bounds_on_s_for_aperture(
     const PipePosition,
     const ProfilePosition,
@@ -61,6 +62,7 @@ static inline void bounds_on_s_for_aperture(
     const Point2D* const,
     const uint32_t num_poly_points,
     const uint32_t installed_survey_index,
+    const float_type reference_s,
     float_type* min_s,
     float_type* max_s);
 
@@ -136,7 +138,7 @@ void build_profile_polygons(
         /* Get the bounds in s that the aperture spans */
         float_type min_s, max_s;
         const Point2D* const profile_points = (Point2D*)poly;
-        bounds_on_s_for_aperture(pipe_pos, profile_pos, curvature, survey, profile_points, len_points, installed_survey_index, &min_s, &max_s);
+        bounds_on_s_for_aperture(pipe_pos, profile_pos, curvature, survey, profile_points, len_points, installed_survey_index, found_s, &min_s, &max_s);
         ApertureBounds_set_s_start(aperture_bounds, idx, min_s);
         ApertureBounds_set_s_end(aperture_bounds, idx, max_s);
     }
@@ -685,6 +687,34 @@ static inline float_type survey_s_for_aperture(
 }
 
 
+static inline float_type normalize_s_near_reference(
+    const float_type s,
+    const float_type reference_s,
+    const float_type survey_length
+)
+/*
+    Normalize a closed-survey `s` value to the representative closest to
+    `reference_s`.
+
+    On a closed survey the same physical point can appear as values that differ
+    by integer multiples of the survey length.
+*/
+{
+    if (!isfinite(s) || !isfinite(reference_s) || !(survey_length > 0)) {
+        return s;
+    }
+
+    float_type delta = s - reference_s;
+    delta = fmod(delta, survey_length);
+
+    const float_type half_length = 0.5 * survey_length;
+    if (delta > half_length) delta -= survey_length;
+    if (delta < -half_length) delta += survey_length;
+
+    return reference_s + delta;
+}
+
+
 static inline void bounds_on_s_for_aperture(
     const PipePosition pipe_pos,
     const ProfilePosition profile_pos,
@@ -693,6 +723,7 @@ static inline void bounds_on_s_for_aperture(
     const Point2D* const profile_points,
     const uint32_t num_poly_points,
     const uint32_t installed_survey_index,
+    const float_type reference_s,
     float_type* min_s,
     float_type* max_s
 )
@@ -712,6 +743,7 @@ static inline void bounds_on_s_for_aperture(
     const float_type eps = APER_PRECISION;
     const uint32_t num_survey_entries = SurveyData_len_s(survey);
     const uint8_t wrap = survey_is_closed(survey);
+    const float_type survey_length = SurveyData_get_s(survey, num_survey_entries - 1) - SurveyData_get_s(survey, 0);
 
     // Transformation profile local -> world frame
     Pose profile_in_world;
@@ -761,7 +793,7 @@ static inline void bounds_on_s_for_aperture(
                 */
                 (it.offset > 0 && isfinite(t) && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
                 (it.offset < 0 && isfinite(t) && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
-            ) {
+        ) {
                 const float_type seg_s_start = SurveyData_get_s(survey, it.index);
                 closest_s = seg_s_start + t * seg_len;
                 break;
@@ -770,6 +802,8 @@ static inline void bounds_on_s_for_aperture(
             if (it.offset >= 0 && isfinite(t)) last_t_right = t;
             if (it.offset <= 0 && isfinite(t)) last_t_left = t;
         } while (zigzag_iterator_next(&it));
+
+        closest_s = normalize_s_near_reference(closest_s, reference_s, survey_length);
 
         if (closest_s < out_min) out_min = closest_s;
         if (closest_s > out_max) out_max = closest_s;
