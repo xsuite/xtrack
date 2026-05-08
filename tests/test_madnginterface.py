@@ -171,21 +171,24 @@ def test_madng_interface_with_misalignments_and_rotations():
     shift_y = rgen.randn(len(tt_quad) + len(tt_sext)) * 0.01e-3 # 0.01 mm rms shift on all quads
     shift_s = rgen.randn(len(tt_quad) + len(tt_sext)) * 0.01e-3 # 0.01 mm rms shift on all quads
     rot_s = rgen.randn(len(tt_quad) + len(tt_sext)) * 1e-3 # 1 mrad rms rotation on all quads
+    rot_s_no_frame = rgen.randn(len(tt_quad) + len(tt_sext)) * 1e-3 # 1 mrad rms rotation on all quads, without frame rotation
 
     qlen = len(tt_quad)
 
     line['on_error'] = 1.
-    for nn_quad, sx, sy, ss, rr in zip(tt_quad.name, shift_x[:qlen], shift_y[:qlen], shift_s[:qlen], rot_s[:qlen]):
+    for nn_quad, sx, sy, ss, rr, rr_no_frame in zip(tt_quad.name, shift_x[:qlen], shift_y[:qlen], shift_s[:qlen], rot_s[:qlen], rot_s_no_frame[:qlen]):
         line[nn_quad].shift_x = sx * line.ref['on_error']
         line[nn_quad].shift_y = sy * line.ref['on_error']
         line[nn_quad].shift_s = ss * line.ref['on_error']
         line[nn_quad].rot_s_rad = rr * line.ref['on_error']
+        line[nn_quad].rot_s_rad_no_frame = rr_no_frame * line.ref['on_error']
 
-    for nn_sext, sx, sy, ss, rr in zip(tt_sext.name, shift_x[qlen:], shift_y[qlen:], shift_s[qlen:], rot_s[qlen:]):
+    for nn_sext, sx, sy, ss, rr, rr_no_frame in zip(tt_sext.name, shift_x[qlen:], shift_y[qlen:], shift_s[qlen:], rot_s[qlen:], rot_s_no_frame[qlen:]):
         line[nn_sext].shift_x = sx * line.ref['on_error']
         line[nn_sext].shift_y = sy * line.ref['on_error']
         line[nn_sext].shift_s = ss * line.ref['on_error']
         line[nn_sext].rot_s_rad = rr * line.ref['on_error']
+        line[nn_sext].rot_s_rad_no_frame = rr_no_frame * line.ref['on_error']
 
     # Test with misalignments enabled (as they were in the MAD file)
     tw = line.madng_twiss(coupling_edw_teng=True, compute_chromatic_properties=True)
