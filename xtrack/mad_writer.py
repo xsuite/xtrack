@@ -94,7 +94,7 @@ def _handle_tokens_madng(tokens, substituted_vars):
 
 _ge = xt.elements._get_expr
 
-def _knl_ksl_to_mad(mult):
+def _knl_ksl_to_mad(mult, mad_type=MadType.MADX):
 
     rel_token_suffix = ''
 
@@ -112,7 +112,7 @@ def _knl_ksl_to_mad(mult):
                 item = str(item)
             klmad.append(item)
 
-    if hasattr(mult._value, 'knl_rel'):
+    if mad_type == MadType.MADNG and hasattr(mult._value, 'knl_rel'):
         dknl_mad = []
         dksl_mad = []
         for kl, klmad in zip([mult.knl_rel, mult.ksl_rel], [dknl_mad, dksl_mad]):
@@ -325,7 +325,7 @@ def multipole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
 
         tokens = []
         tokens.append('multipole')
-        knl_token, ksl_token = _knl_ksl_to_mad(eref)
+        knl_token, ksl_token = _knl_ksl_to_mad(eref, mad_type)
         tokens.append(knl_token)
         tokens.append(ksl_token)
         tokens.append(mad_assignment('lrad', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
@@ -340,7 +340,7 @@ def multipole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
         assert eref.hxl._value == 0, "Thick multipoles with hxl not supported"
         tokens = []
         tokens.append('sbend')
-        knl_token, ksl_token = _knl_ksl_to_mad(eref)
+        knl_token, ksl_token = _knl_ksl_to_mad(eref, mad_type)
         tokens.append(knl_token)
         tokens.append(ksl_token)
         tokens.append(mad_assignment('l', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
@@ -441,7 +441,7 @@ def bend_to_mad_str(eref, bend_type='sbend', mad_type=MadType.MADX, substituted_
         tokens.append(mad_assignment('kill_exi_fringe', edge_exit_active_val, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k1', _ge(eref.k1), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k2', _ge(eref.k2), mad_type, substituted_vars=substituted_vars))
-    knl_token, ksl_token = _knl_ksl_to_mad(eref)
+    knl_token, ksl_token = _knl_ksl_to_mad(eref, mad_type)
     tokens.append(knl_token)
     tokens.append(ksl_token)
 
@@ -474,7 +474,7 @@ def sextupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     tokens.append(mad_assignment('l', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k2', _ge(eref.k2), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k2s', _ge(eref.k2s), mad_type, substituted_vars=substituted_vars))
-    knl_token, ksl_token = _knl_ksl_to_mad(eref)
+    knl_token, ksl_token = _knl_ksl_to_mad(eref, mad_type)
     tokens.append(knl_token)
     tokens.append(ksl_token)
 
@@ -503,7 +503,7 @@ def octupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     tokens.append(mad_assignment('l', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k3', _ge(eref.k3), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k3s', _ge(eref.k3s), mad_type, substituted_vars=substituted_vars))
-    knl_token, ksl_token = _knl_ksl_to_mad(eref)
+    knl_token, ksl_token = _knl_ksl_to_mad(eref, mad_type)
     tokens.append(knl_token)
     tokens.append(ksl_token)
 
@@ -532,7 +532,7 @@ def quadrupole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     tokens.append(mad_assignment('l', _ge(eref.length) * weight, mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k1', _ge(eref.k1), mad_type, substituted_vars=substituted_vars))
     tokens.append(mad_assignment('k1s', _ge(eref.k1s), mad_type, substituted_vars=substituted_vars))
-    knl_token, ksl_token = _knl_ksl_to_mad(eref)
+    knl_token, ksl_token = _knl_ksl_to_mad(eref, mad_type)
     tokens.append(knl_token)
     tokens.append(ksl_token)
 
