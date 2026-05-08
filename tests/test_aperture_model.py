@@ -1,3 +1,5 @@
+import itertools
+
 import json
 from itertools import zip_longest
 from pathlib import Path
@@ -2020,48 +2022,46 @@ def test_aperture_bounds_upstream_of_reference_across_marker(test_context):
     assert np.isfinite(bounds_table.s_end[0])
 
 
-@pytest.fixture
-def hllhc19_end_to_end_model(tmp_path):
+@pytest.fixture(scope='module')
+def hllhc19_end_to_end_model(tmp_path_factory):
     local_context = xo.ContextCpu()
+    tmp_path = tmp_path_factory.mktemp('hllhc19_end_to_end_model')
 
     lhc = xt.load(TEST_DATA_DIR / 'hllhc19_apertures/lhc_aperture.json')
-    line = lhc.b1.copy(_context=local_context)
+    out = {}
+    for beam in ('b1', 'b2'):
+        line = getattr(lhc, beam).copy(_context=local_context)
+        aperture = Aperture.from_line_with_madx_metadata(
+            line,
+            num_profile_points=100,
+            include_offsets=True,
+            context=local_context,
+        )
 
-    aperture = Aperture.from_line_with_madx_metadata(
-        line,
-        num_profile_points=100,
-        include_offsets=True,
-        context=local_context,
-    )
+        aperture_path = tmp_path / f'aperture_model_{beam}.json'
+        aperture.to_json(aperture_path)
+        aperture = Aperture.from_json(aperture_path, line)
 
-    aperture_path = tmp_path / 'aperture_model_b1.json'
-    aperture.to_json(aperture_path)
-    aperture = Aperture.from_json(aperture_path, line)
+        out[beam] = (line, aperture)
 
-    return line, aperture
+    return out
 
 
 @requires_context('ContextCpu')
-@pytest.mark.parametrize('ir', [f'ir{idx}b1' for idx in range(1, 9)])
+@pytest.mark.parametrize('ir', [f'ir{ir_idx}b{b_idx}' for ir_idx, b_idx in itertools.product(range(1, 9), (1, 2))])
 @pytest.mark.parametrize('method', ['rays', 'exact'])
 def test_hllhc19_end_to_end(ir, method, hllhc19_end_to_end_model):
-    line, aperture = hllhc19_end_to_end_model
-    line_table = line.get_table()
-
     # See `test_data/hllhc19_apertures` for more info on the file generation
     # In particular these are sanitised by clamping to nan values that are too large
     # or spurious (a lot of sequences nan, single value, nan, single value, nan, ...)
     ref_file = TEST_DATA_DIR / f'hllhc19_apertures/{ir}.json'
 
     reference = json.loads(ref_file.read_text())
+    line, aperture = hllhc19_end_to_end_model[reference['beam']]
     aperture.halo_params.update(reference['halo_params'])
 
-    s_local = np.asarray(reference['s_local'], dtype=float)
+    s_positions = np.asarray(reference['s_positions'], dtype=float)
     n1_madx = np.asarray(reference['n1_madx'], dtype=float)
-    ip_name = reference['ip_name']
-
-    s_ip_x = float(line_table.rows[f'{ip_name}.*'].s[0])
-    s_positions = np.mod(s_local + s_ip_x, line.get_length())
     order = np.argsort(s_positions)
     undo_order = np.empty_like(order)
     undo_order[order] = np.arange(len(order))

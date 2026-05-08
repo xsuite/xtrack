@@ -56,7 +56,6 @@ apertures = {
         num_profile_points=100,
         include_offsets=True,
         context=context,
-        _skip_validity_check=True,
     )
     for beam, line in lines.items()
 }
@@ -64,10 +63,7 @@ line_tables = {beam: line.get_table() for beam, line in lines.items()}
 
 
 def _get_nearest_element_name(line_table, s_position):
-    idx = (
-        np.searchsorted(np.asarray(line_table.s, dtype=float), s_position, side="right")
-        - 1
-    )
+    idx = np.searchsorted(np.asarray(line_table.s, dtype=float), s_position, side="right") - 1
     idx = int(np.clip(idx, 0, len(line_table.name) - 1))
     return line_table.name[idx]
 

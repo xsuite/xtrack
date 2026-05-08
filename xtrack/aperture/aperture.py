@@ -628,18 +628,31 @@ class Aperture:
                 x_dir = -1 if offsets_reversed else 1
                 z_dir = -1 if offsets_reversed else 1
                 survey_reference_name = offset_data['survey_ref']
+
+                assert not line[survey_reference_name].isthick  # sanity check, not strictly needed for the maths
+
+                # Transformation from the reference point to the element in the correct frame
                 rel_survey_mat = survey_relative_transform(survey, survey_reference_name, element_name, reversed=offsets_reversed)
+                survey_elem_index = survey.rows.get_index(element_name)
 
-                assert not line[survey_reference_name].isthick
+                # Compute the survey transformation of the element itself
+                if not offsets_reversed:
+                    elem_mat = survey_relative_transform(survey, survey_elem_index, survey_elem_index + 1, reversed=False)
+                else:
+                    elem_mat = survey_relative_transform(survey, survey_elem_index - 1, survey_elem_index, reversed=True)
 
+                # Compute the length of the element projected onto the offset reference Z
                 z_ref = rel_survey_mat[2, 3]
-                matrix = transform_matrix(
+                z_next = (elem_mat @ rel_survey_mat)[2, 3]
+                offset_frame_length = z_next - z_ref
+
+                type_transform = transform_matrix(
                     shift_x=offset_data['x'] * x_dir,
                     shift_y=offset_data['y'],
                     shift_z=z_ref,
                 )
             else:
-                matrix = np.identity(4)
+                type_transform = np.identity(4)
                 survey_reference_name = element_name
 
             if aper_name not in aperture_indices:
@@ -673,17 +686,12 @@ class Aperture:
                     # If no MAD-X offset data is present, the curvature follows
                     # the element
                     curvature = getattr(element, 'h', 0)
-                elif element.isthick and offset_data:
+                elif offset_data and offset_frame_length > 1e-6:
                     # If MAD-X offset data is given, place profiles
                     # on the described parabola with 10cm resolution
-                    length = element.length
-                    # next_element = survey.rows.get_index(element_name)
-                    # rel_survey_mat_end = survey_relative_transform(survey, survey_reference_name, next_element,
-                    #                                                reversed=offsets_reversed)
-                    # length = rel_survey_mat_end[2, 3] - rel_survey_mat_end[2, 3]
                     positions = []
 
-                    for s in np.linspace(0, length, max(2, int(length / 0.1))):
+                    for s in np.linspace(0, offset_frame_length, max(2, int(offset_frame_length / 0.1))):
                         s_local = s
                         position = ProfilePosition(profile_index=aper_idx)
                         position.shift_s = s * z_dir
@@ -710,7 +718,7 @@ class Aperture:
                 pipe_index=aperture_indices[aper_name],
                 survey_reference_name=survey_reference_name,
                 survey_index=name_to_sv_index[survey_reference_name],
-                transformation=matrix,
+                transformation=type_transform,
             )
             pipe_positions_list.append(pipe_position)
             pipe_position_names.append(aper_name)

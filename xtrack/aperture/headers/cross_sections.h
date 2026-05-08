@@ -740,6 +740,15 @@ static inline void bounds_on_s_for_aperture(
         do
         {
             const Segment3D seg = survey_segment(survey, it.index);
+            const float_type seg_len = segment3d_get_length(seg);
+
+            /*
+                Zero-length survey segments are not valid projection candidates:
+                any point can be "projected" onto a point, giving t = 0 and always
+                leading to acceptance of the point as a bound.
+            */
+            if (seg_len < eps) continue;
+
             const float_type t = closest_t_on_segment(pt_in_world, seg);
 
             if (
@@ -754,7 +763,6 @@ static inline void bounds_on_s_for_aperture(
                 (it.offset < 0 && isfinite(t) && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
             ) {
                 const float_type seg_s_start = SurveyData_get_s(survey, it.index);
-                const float_type seg_len = segment3d_get_length(seg);
                 closest_s = seg_s_start + t * seg_len;
                 break;
             }
