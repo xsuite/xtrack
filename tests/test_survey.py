@@ -136,8 +136,8 @@ def test_survey_with_ref_transformations():
         env.new('rs1', xt.Rotation, rot_s_rad=np.deg2rad(60),  at=4.5),
         env.new('rs2', xt.Rotation, rot_s_rad=np.deg2rad(-60), at=5.5),
 
-        env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
-        env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
+        env.new('sxy1', xt.Translation, shift_x=0.1, shift_y=0.2, at=4.8),
+        env.new('sxy2', xt.Translation, shift_x=-0.1, shift_y=-0.2, at=5.2),
 
         env.new('mid', xt.Marker, at=5.0),
         env.new('right', xt.Marker, at=9.5)
@@ -248,8 +248,8 @@ def test_survey_with_h_and_v_bends():
         env.new('rs1', xt.Rotation, rot_s_rad=np.deg2rad(60),  at=4.5),
         env.new('rs2', xt.Rotation, rot_s_rad=np.deg2rad(-60), at=5.5),
 
-        env.new('sxy1', xt.XYShift, dx=0.1, dy=0.2, at=4.8),
-        env.new('sxy2', xt.XYShift, dx=-0.1, dy=-0.2, at=5.2),
+        env.new('sxy1', xt.Translation, shift_x=0.1, shift_y=0.2, at=4.8),
+        env.new('sxy2', xt.Translation, shift_x=-0.1, shift_y=-0.2, at=5.2),
 
         env.new('mid', xt.Marker, at=5.0),
         env.new('right', xt.Marker, at=9.5)
