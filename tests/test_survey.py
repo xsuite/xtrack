@@ -156,16 +156,6 @@ def test_survey_with_ref_transformations():
        'rx4', '||drift_1::5', 'r3', '||drift_1::6', 'r4', '||drift_2::2',
        'right', '||drift_2::3', '_end_point']))
 
-    xo.assert_allclose(sv_no_arg.ref_shift_x, np.array([
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0.1,  0. ,  0. ,  0. , -0.1,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
-
-    xo.assert_allclose(sv_no_arg.ref_shift_y, np.array([
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0.2,  0. ,  0. ,  0. , -0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
-
     xo.assert_allclose(sv_no_arg.drift_length, np.array([
         1. , 0. , 1. , 0. , 1. , 0. , 1. , 0. , 0.5, 0. , 0.3, 0. , 0.2,
         0. , 0.2, 0. , 0.3, 0. , 0.5, 0. , 1. , 0. , 1. , 0. , 1. , 0. ,
@@ -205,7 +195,6 @@ def test_survey_with_ref_transformations():
 
     cols_to_check = [
         'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length',
-        'ref_shift_x', 'ref_shift_y',
         'ex', 'ey', 'ez', 'p0',
     ]
 
@@ -269,16 +258,6 @@ def test_survey_with_h_and_v_bends():
        'rx4', '||drift_3::2', 'r3', '||drift_7', 'r4', '||drift_8',
        'right', '||drift_9', '_end_point']))
 
-    xo.assert_allclose(sv_no_arg.ref_shift_x, np.array([
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0.1,  0. ,  0. ,  0. , -0.1,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
-
-    xo.assert_allclose(sv_no_arg.ref_shift_y, np.array([
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0.2,  0. ,  0. ,  0. , -0.2,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,
-        0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]), atol=1e-14)
-
     xo.assert_allclose(sv_no_arg.drift_length, np.array([
         0.95, 0.1 , 0.9 , 0.1 , 0.9 , 0.1 , 0.9 , 0.1 , 0.45, 0.  , 0.3 ,
         0.  , 0.2 , 0.  , 0.2 , 0.  , 0.3 , 0.  , 0.45, 0.1 , 0.9 , 0.1 ,
@@ -317,7 +296,7 @@ def test_survey_with_h_and_v_bends():
 
     cols_to_check = [
         'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length',
-        'ref_shift_x', 'ref_shift_y', 'ex', 'ey', 'ez', 'p0',
+        'ex', 'ey', 'ez', 'p0',
     ]
 
     assert sv_mid_with_init.element0 == 13

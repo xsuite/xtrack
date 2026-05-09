@@ -994,6 +994,30 @@ class Translation(BeamElement):
         '#include "xtrack/beam_elements/elements_src/translation.h"',
     ]
 
+    def _propagate_survey(self, v, w, backtrack):
+
+        shift_x = self.shift_x
+        shift_y = self.shift_y
+
+        if backtrack:
+            fback = -1
+        else:
+            fback = 1
+
+        v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = 0,
+                    tilt            = 0,
+                    ref_shift_x     = fback * shift_x,
+                    ref_shift_y     = fback * shift_y,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+        return v, w
+
 
 class Elens(BeamElement):
     '''Beam element modeling a hollow electron lens.

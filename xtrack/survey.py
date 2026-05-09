@@ -171,7 +171,6 @@ class SurveyTable(Table):
 
         element_properties = ['name', 'element_type', 'isthick', 'drift_length',
                                 'length',
-                                'ref_shift_x', 'ref_shift_y',
                                 ]
 
         for kk in element_properties:
@@ -341,8 +340,6 @@ def survey_from_line(
     out_columns['isthick']          = tt.isthick
     out_columns['drift_length']     = drift_length
     out_columns['length']           = tt.length
-    out_columns['ref_shift_x']      = ref_shift_x
-    out_columns['ref_shift_y']      = ref_shift_y
 
     out_columns["s"]                = tt.s
 
