@@ -127194,7 +127194,7 @@
    ]
   },
   "translation": {
-   "__class__": "XYShift"
+   "__class__": "Translation"
   },
   "uv.qf19.l8": {
    "__class__": "Drift",
