@@ -160,7 +160,7 @@ def test_tilt_shift_and_errors():
             if 'tilt' in nn:
                 assert isinstance(line[nn], xt.Rotation)
             elif 'offset' in nn:
-                assert isinstance(line[nn], xt.XYShift)
+                assert isinstance(line[nn], xt.Translation)
 
         mad_elm2 = mad.sequence['seq'].expanded_elements['elm2']
 
