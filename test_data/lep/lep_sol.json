@@ -127146,9 +127146,7 @@
    "length": 0.44
   },
   "srotation": {
-   "__class__": "SRotation",
-   "angle": 0.0,
-   "cos_z": 1.0
+   "__class__": "Rotation"
   },
   "stopr.ql7.l1": {
    "__class__": "Drift",
@@ -127806,8 +127804,7 @@
    "length": 1.014
   },
   "xrotation": {
-   "__class__": "XRotation",
-   "angle": 0.0
+   "__class__": "Rotation"
   },
   "xst2f.qs3.l2": {
    "__class__": "Drift",
@@ -127842,8 +127839,7 @@
    "length": 0.14
   },
   "yrotation": {
-   "__class__": "YRotation",
-   "angle": 0.0
+   "__class__": "Rotation"
   }
  },
  "env_particles": {},
@@ -127951,5 +127947,5 @@
    0.0
   ]
  },
- "xtrack_version": "0.103.1"
+ "xtrack_version": "0.103.5"
 }

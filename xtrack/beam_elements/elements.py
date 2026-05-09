@@ -1098,7 +1098,6 @@ class Rotation(xt.BeamElement):
     _skip_in_to_dict = ['_first_rot', '_second_rot', '_third_rot']
     _store_in_to_dict = ['seq']
 
-
     _xofields = {
         'rot_s_rad': xo.Float64,
         'rot_x_rad': xo.Float64,
@@ -1133,6 +1132,12 @@ class Rotation(xt.BeamElement):
         self.rot_x_rad = rot_x_rad
         self.rot_y_rad = rot_y_rad
         self.seq = seq  # this will set the _first_rot, _second_rot, _third_rot fields
+
+    def to_dict(self, *args, **kwargs):
+        out = super().to_dict(*args, **kwargs)
+        if out['seq'] == 'yxs': # default sequence, can be omitted for brevity
+            out.pop('seq')
+        return out
 
     def __repr__(self):
         return (f"Rotation(rot_s_rad={self.rot_s_rad}, rot_x_rad={self.rot_x_rad}, "
