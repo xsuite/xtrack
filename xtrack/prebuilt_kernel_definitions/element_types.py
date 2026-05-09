@@ -87,6 +87,7 @@ ONLY_XTRACK_ELEMENTS = [
     ThinSliceOctupoleExit,
     # Transformations
     Rotation,
+    Translation,
     XYShift,
     ZetaShift,
     XRotation,
