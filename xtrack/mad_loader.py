@@ -1366,7 +1366,7 @@ class MadLoader:
         if self.bv == -1:
             raise NotImplementedError("Translation for bv=-1 are not yet supported.")
         el_transverse = self.Assembler(
-            ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
+            ee.name, self.classes.Translation, shift_x=ee.dx, shift_y=ee.dy
         )
         if ee.ds:
             raise NotImplementedError # Need to implement ShiftS element
