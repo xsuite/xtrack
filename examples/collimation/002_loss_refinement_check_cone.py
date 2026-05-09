@@ -33,21 +33,21 @@ rot_deg_aper_1 = 10.
 
 # aper_0_sandwitch
 line_aper_0 = xt.Line(
-    elements=[xt.XYShift(dx=shift_aper_0[0], dy=shift_aper_0[1]),
+    elements=[xt.Translation(shift_x=shift_aper_0[0], shift_y=shift_aper_0[1]),
               xt.Rotation(rot_s_rad=np.deg2rad(rot_deg_aper_0)),
               aper_0,
               xt.Multipole(knl=[0.00]),
               xt.Rotation(rot_s_rad=-np.deg2rad(rot_deg_aper_0)),
-              xt.XYShift(dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
+              xt.Translation(shift_x=-shift_aper_0[0], shift_y=-shift_aper_0[1])])
 
 # aper_1_sandwitch
 line_aper_1 = xt.Line(
-    elements=[xt.XYShift(dx=shift_aper_1[0], dy=shift_aper_1[1]),
+    elements=[xt.Translation(shift_x=shift_aper_1[0], shift_y=shift_aper_1[1]),
               xt.Rotation(rot_s_rad=np.deg2rad(rot_deg_aper_1)),
               aper_1,
               xt.Multipole(knl=[0.00]),
               xt.Rotation(rot_s_rad=-np.deg2rad(rot_deg_aper_1)),
-              xt.XYShift(dx=-shift_aper_1[0], dy=-shift_aper_1[1])])
+              xt.Translation(shift_x=-shift_aper_1[0], shift_y=-shift_aper_1[1])])
 
 # Build example line
 line=xt.Line(
