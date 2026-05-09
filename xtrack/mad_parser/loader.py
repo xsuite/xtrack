@@ -150,7 +150,7 @@ class MadxLoader:
         self._new_builtin("xrotation", "Rotation")
         self._new_builtin("yrotation", "Rotation")
         self._new_builtin("srotation", "Rotation")
-        self._new_builtin("translation", "XYShift")
+        self._new_builtin("translation", "Translation")
         self._new_builtin("dipedge", "DipoleEdge")
 
     def load_file(self, file):
@@ -507,6 +507,10 @@ class MadxLoader:
             if (ds := params.pop('ds', None)):
                 raise NotImplementedError('`ds` parameter not supported yet for '
                                           '`translation` elements.')
+            if (dx := params.pop('dx', None)):
+                params['shift_x'] = dx
+            if (dy := params.pop('dy', None)):
+                params['shift_y'] = dy
 
         if 'edge_entry_fint' in params and 'edge_exit_fint' not in params:
             params['edge_exit_fint'] = params['edge_entry_fint']
