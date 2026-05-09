@@ -958,6 +958,13 @@ class XYShift(BeamElement):
         '#include "xtrack/beam_elements/elements_src/xyshift.h"',
     ]
 
+    def __init__(self, dx=None, dy=None, **kwargs):
+
+        warn("XYShift is deprecated and will be removed in a future version. Please use Translation instead."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+
+        super().__init__(shift_x=dx, shift_y=dy, **kwargs)
+
 class Translation(BeamElement):
     '''
     Beam element modeling a transverse shift of the reference system, by applying
