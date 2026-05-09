@@ -656,6 +656,24 @@ class SRotation(Element):
         p.px = xn
         p.py = yn
 
+class Rotation(Element):
+    """Rotation of the reference frame"""
+
+    _description = [
+        ("rot_s_rad", "rad", "Rotation angle around s axis (positive y to x)", 0)
+    ]
+
+    def track(self, p):
+        cz = p._m.cos(self.rot_s_rad)
+        sz = p._m.sin(self.rot_s_rad)
+        xn = cz * p.x + sz * p.y
+        yn = -sz * p.x + cz * p.y
+        p.x = xn
+        p.y = yn
+        xn = cz * p.px + sz * p.py
+        yn = -sz * p.px + cz * p.py
+        p.px = xn
+        p.py = yn
 
 class LimitRect(Element):
     _description = [
