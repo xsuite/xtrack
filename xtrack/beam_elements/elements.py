@@ -963,7 +963,7 @@ class XYShift(BeamElement):
         warn("XYShift is deprecated and will be removed in a future version. Please use Translation instead."
              + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
 
-        super().__init__(shift_x=dx, shift_y=dy, **kwargs)
+        super().__init__(dx=dx, dy=dy, **kwargs)
 
 class Translation(BeamElement):
     '''
