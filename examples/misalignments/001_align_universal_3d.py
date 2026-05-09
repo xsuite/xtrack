@@ -75,7 +75,7 @@ theta0, phi0, psi0 = p1.get_theta_phi_psi()
 
 line = xt.Line(
     elements=[
-        xt.XYShift(dx=p1.x, dy=p1.y),
+        xt.Translation(shift_x=p1.x, shift_y=p1.y),
         xt.DriftExact(length=p1.z),
         xt.Rotation(rot_y_rad=theta0),
         xt.Rotation(rot_x_rad=-phi0),
@@ -92,7 +92,7 @@ theta1, phi1, psi1 = dr.get_theta_phi_psi()
 
 line3 = xt.Line(
     elements=[
-        xt.XYShift(dx=dr.x, dy=dr.y),
+        xt.Translation(shift_x=dr.x, shift_y=dr.y),
         xt.DriftExact(length=dr.z),
         xt.Rotation(rot_y_rad=theta1),
         xt.Rotation(rot_x_rad=-phi1),
