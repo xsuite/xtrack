@@ -1949,11 +1949,11 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
     line_test.build_tracker(_context=test_context)
 
     elements_sol = [solenoid_no_kick] + 3 * [
-        xt.XYShift(dx=mult_shift_x),
+        xt.Translation(shift_x=mult_shift_x),
         xt.Rotation(rot_y_rad=-mult_rot_y_rad),
         kick,
         xt.Rotation(rot_y_rad=mult_rot_y_rad),
-        xt.XYShift(dx=-mult_shift_x),
+        xt.Translation(shift_x=-mult_shift_x),
         solenoid_no_kick
     ]
     line_ref = xt.Line(elements=elements_sol)
