@@ -2105,12 +2105,12 @@ def test_solenoid_multipole_rotations():
     ########################################
     hrot_components_in = [
         env.new('hrot_drift0', xt.Drift, length=1),
-        env.new('hshift_in', xt.XYShift, dx=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('hshift_in', xt.Translation, shift_x=np.sin(XING_RAD) * L_SOL / 2),
         env.new('hrot_in', xt.Rotation, rot_y_rad=-XING_RAD)]
 
     hrot_components_out = [
         env.new('hrot_out', xt.Rotation, rot_y_rad=XING_RAD),
-        env.new('hshift_out', xt.XYShift, dx=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('hshift_out', xt.Translation, shift_x=np.sin(XING_RAD) * L_SOL / 2),
         env.new('hrot_drift1', xt.Drift, length=1)]
 
     hrot_components_sol = [
@@ -2131,11 +2131,11 @@ def test_solenoid_multipole_rotations():
     ########################################
     vrot_components_in = [
         env.new('vrot_drift0', xt.Drift, length=1),
-        env.new('vshift_in', xt.XYShift, dy=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('vshift_in', xt.Translation, shift_y=np.sin(XING_RAD) * L_SOL / 2),
         env.new('vrot_in', xt.Rotation, rot_x_rad=XING_RAD)]
     vrot_components_out = [
         env.new('vrot_out', xt.Rotation, rot_x_rad=-XING_RAD),
-        env.new('vshift_out', xt.XYShift, dy=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('vshift_out', xt.Translation, shift_y=np.sin(XING_RAD) * L_SOL / 2),
         env.new('vrot_drift1', xt.Drift, length=1)]
 
     vrot_components_sol = [
