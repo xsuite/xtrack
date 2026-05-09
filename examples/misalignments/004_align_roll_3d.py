@@ -90,9 +90,9 @@ line = xt.Line(
     elements=[
         xt.XYShift(dx=p1.x, dy=p1.y),
         xt.DriftExact(length=p1.z),
-        xt.YRotation(angle=np.rad2deg(theta0)),
-        xt.XRotation(angle=np.rad2deg(-phi0)),  # angle flip, unsure why
-        xt.SRotation(angle=np.rad2deg(psi0)),
+        xt.Rotation(rot_y_rad=theta0),
+        xt.Rotation(rot_x_rad=-phi0),
+        xt.Rotation(rot_s_rad=psi0),
     ]
 )
 
@@ -107,9 +107,9 @@ line3 = xt.Line(
     elements=[
         xt.XYShift(dx=dr.x, dy=dr.y),
         xt.DriftExact(length=dr.z),
-        xt.YRotation(angle=np.rad2deg(theta1)),
-        xt.XRotation(angle=np.rad2deg(-phi1)),  # angle flip, unsure why
-        xt.SRotation(angle=np.rad2deg(psi1)),
+        xt.Rotation(rot_y_rad=theta1),
+        xt.Rotation(rot_x_rad=-phi1),
+        xt.Rotation(rot_s_rad=psi1),
     ]
 )
 

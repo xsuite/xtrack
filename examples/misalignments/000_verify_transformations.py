@@ -15,9 +15,9 @@ p0 = xt.Particles(x=[0.01, -0.01], px=[0.02, -0.02], y=[0.03, -0.03], py=[0.04, 
 line = xt.Line(elements=[
     xt.XYShift(dx=dx, dy=dy),
     xt.Solenoid(length=ds),
-    xt.YRotation(angle=np.rad2deg(theta)),
-    xt.XRotation(angle=np.rad2deg(phi)),
-    xt.SRotation(angle=np.rad2deg(psi)),
+    xt.Rotation(rot_y_rad=theta),
+    xt.Rotation(rot_x_rad=phi),
+    xt.Rotation(rot_s_rad=psi),
     xt.Marker(),
 ])
 p = p0.copy()
