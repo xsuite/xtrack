@@ -41,7 +41,7 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
             "classes": [
                 xt.Drift,
                 xt.Cavity,
-                xt.XYShift,
+                xt.Translation,
                 xt.DriftSlice,
                 xt.DriftSliceCavity,
                 xt.MultiElementMonitor,
@@ -59,7 +59,7 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
             },
             "classes": [
                 xt.Drift,
-                xt.XYShift,
+                xt.Translation,
                 xt.DriftSlice,
                 xt.MultiElementMonitor,
                 xt.ParticlesMonitor,
@@ -71,7 +71,7 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
 
     all_classes = [xt.Cavity, xt.Drift, xt.DriftSlice, xt.DriftSliceCavity,
                    xt.MultiElementMonitor, xt.ParticlesMonitor, xt.ThickSliceCavity,
-                   xt.ThinSliceCavity, xt.XYShift, xt.Particles, xt.RandomNormal]
+                   xt.ThinSliceCavity, xt.Translation, xt.Particles, xt.RandomNormal]
     NAME_CLASS_MAP = {cls.__name__: cls for cls in all_classes}
 
 
@@ -131,7 +131,7 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
             "classes": [
                 xt.Drift,
                 xt.Cavity,
-                xt.XYShift,
+                xt.Translation,
                 xt.DriftSlice,
                 xt.DriftSliceCavity,
                 xt.MultiElementMonitor,
@@ -153,7 +153,7 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
 
     all_classes = [xt.Cavity, xt.Drift, xt.DriftSlice, xt.DriftSliceCavity,
                    xt.MultiElementMonitor, xt.ParticlesMonitor, xt.ThickSliceCavity,
-                   xt.ThinSliceCavity, xt.XYShift, xt.Particles, xt.RandomNormal]
+                   xt.ThinSliceCavity, xt.Translation, xt.Particles, xt.RandomNormal]
     NAME_CLASS_MAP = {cls.__name__: cls for cls in all_classes}
 
     # Override the definitions with the temporary ones
