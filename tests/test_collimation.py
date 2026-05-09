@@ -130,21 +130,21 @@ def test_aperture_refinement(sandwitch_aper):
     # aper_0_sandwitch
     if sandwitch_aper:
         line_aper_0 = xt.Line(
-            elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
+            elements=[xt.Translation(_buffer=buf, shift_x=shift_aper_0[0], shift_y=shift_aper_0[1]),
                     xt.Rotation(_buffer=buf, rot_s_rad=np.deg2rad(rot_deg_aper_0)),
                     aper_0,
                     xt.Multipole(_buffer=buf, knl=[0.00]),
                     xt.Rotation(_buffer=buf, rot_s_rad=np.deg2rad(-rot_deg_aper_0)),
-                    xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
+                    xt.Translation(_buffer=buf, shift_x=-shift_aper_0[0], shift_y=-shift_aper_0[1])])
         line_aper_0.build_tracker(_buffer=buf)
         # aper_1_sandwitch
         line_aper_1 = xt.Line(
-            elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
+            elements=[xt.Translation(_buffer=buf, shift_x=shift_aper_1[0], shift_y=shift_aper_1[1]),
                     xt.Rotation(_buffer=buf, rot_s_rad=np.deg2rad(rot_deg_aper_1)),
                     aper_1,
                     xt.Multipole(_buffer=buf, knl=[0.00]),
                     xt.Rotation(_buffer=buf, rot_s_rad=np.deg2rad(-rot_deg_aper_1)),
-                    xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])])
+                    xt.Translation(_buffer=buf, shift_x=-shift_aper_1[0], shift_y=-shift_aper_1[1])])
     else:
         aper_0.shift_x = shift_aper_0[0]
         aper_0.shift_y = shift_aper_0[1]
@@ -471,21 +471,21 @@ def test_memory_dealloc_repeated_refinements():
     # aper_0_sandwitch
     if sandwitch_aper:
         line_aper_0 = xt.Line(
-            elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
+            elements=[xt.Translation(_buffer=buf, shift_x=shift_aper_0[0], shift_y=shift_aper_0[1]),
                     xt.Rotation(_buffer=buf, rot_s_rad=np.deg2rad(rot_deg_aper_0)),
                     aper_0,
                     xt.Multipole(_buffer=buf, knl=[0.00]),
                     xt.Rotation(_buffer=buf, rot_s_rad=np.deg2rad(-rot_deg_aper_0)),
-                    xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
+                    xt.Translation(_buffer=buf, shift_x=-shift_aper_0[0], shift_y=-shift_aper_0[1])])
         line_aper_0.build_tracker(_buffer=buf)
         # aper_1_sandwitch
         line_aper_1 = xt.Line(
-            elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
+            elements=[xt.Translation(_buffer=buf, shift_x=shift_aper_1[0], shift_y=shift_aper_1[1]),
                     xt.Rotation(_buffer=buf, rot_s_rad=np.deg2rad(rot_deg_aper_1)),
                     aper_1,
                     xt.Multipole(_buffer=buf, knl=[0.00]),
                     xt.Rotation(_buffer=buf, rot_s_rad=np.deg2rad(-rot_deg_aper_1)),
-                    xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])])
+                    xt.Translation(_buffer=buf, shift_x=-shift_aper_1[0], shift_y=-shift_aper_1[1])])
     else:
         aper_0.shift_x = shift_aper_0[0]
         aper_0.shift_y = shift_aper_0[1]
