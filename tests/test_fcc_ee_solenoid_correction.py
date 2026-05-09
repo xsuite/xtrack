@@ -67,8 +67,8 @@ def test_fcc_ee_solenoid_correction(tmp_path):
 
     sol_start_tilt = xt.Rotation(rot_y_rad=-theta_tilt)
     sol_end_tilt = xt.Rotation(rot_y_rad=+theta_tilt)
-    sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
-    sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
+    sol_start_shift = xt.Translation(shift_x=l_solenoid/2 * np.tan(theta_tilt))
+    sol_end_shift = xt.Translation(shift_x=l_solenoid/2 * np.tan(theta_tilt))
 
     line.env.elements['sol_start_tilt_'+ip_sol] = sol_start_tilt
     line.env.elements['sol_end_tilt_'+ip_sol] = sol_end_tilt
