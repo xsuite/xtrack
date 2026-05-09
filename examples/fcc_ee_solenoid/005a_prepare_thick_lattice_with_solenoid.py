@@ -75,8 +75,8 @@ line.insert('sol_end_'+ip_sol, xt.Marker(), at=s_ip + ds_sol_end)
 # Build reference frame transformations at ebtry and exit of solenoid
 sol_start_tilt = xt.Rotation(rot_y_rad=-theta_tilt)
 sol_end_tilt = xt.Rotation(rot_y_rad=+theta_tilt)
-sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
-sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
+sol_start_shift = xt.Translation(shift_x=l_solenoid/2 * np.tan(theta_tilt))
+sol_end_shift = xt.Translation(shift_x=l_solenoid/2 * np.tan(theta_tilt))
 
 line.env.elements['sol_start_tilt_'+ip_sol] = sol_start_tilt
 line.env.elements['sol_end_tilt_'+ip_sol] = sol_end_tilt
