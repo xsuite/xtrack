@@ -929,8 +929,6 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
     def _drift_slice_class(self):
         return xt.DriftSliceCrabCavity
 
-
-
 class XYShift(BeamElement):
     '''
     Beam element modeling an transverse shift of the reference system, by applying
@@ -958,6 +956,35 @@ class XYShift(BeamElement):
 
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/xyshift.h"',
+    ]
+
+class Translation(BeamElement):
+    '''
+    Beam element modeling a transverse shift of the reference system, by applying
+    the following transformation to the particle coordinates:
+
+        x_new = x_old - shift_x
+        y_new = y_old - shift_y
+
+    Parameters
+    ----------
+    shift_x : float
+        Horizontal shift in meters. Default is ``0``.
+    shift_y : float
+        Vertical shift in meters. Default is ``0``.
+
+    '''
+    _xofields = {
+        'shift_x': xo.Float64,
+        'shift_y': xo.Float64,
+        }
+
+    allow_loss_refinement = True
+    has_backtrack = True
+    allow_rot_and_shift = False
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/translation.h"',
     ]
 
 
