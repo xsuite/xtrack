@@ -169,6 +169,79 @@ def test_rotation_against_legacy_rotations():
                 getattr(tw, vv), getattr(tw_back, vv), atol=1e-12)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+def test_translation_against_legacy_xyshift():
+    shift = xt.Translation(shift_x=0.1, shift_y=0.2)
+    dct = shift.to_dict()
+    assert set(dct.keys()) == {'__class__', 'shift_x', 'shift_y'}
+    shift2 = xt.Translation.from_dict(dct)
+    assert shift2.shift_x == shift.shift_x
+    assert shift2.shift_y == shift.shift_y
+
+    for shift_x, shift_y in [
+        (0.1, 0.2),
+        (-0.3, 0.4),
+        (0.5, -0.6),
+    ]:
+        env = xt.Environment()
+        env.new('end_marker', xt.Marker)
+        env.elements['shift'] = xt.Translation(
+            shift_x=shift_x, shift_y=shift_y)
+
+        line = env.new_line(components=['shift', 'end_marker'])
+        line.particle_ref = xt.Particles(p0c=1e9)
+
+        env.elements['legacy_shift'] = xt.XYShift(dx=shift_x, dy=shift_y)
+        line_legacy = env.new_line(
+            components=['legacy_shift', 'end_marker'])
+        line_legacy.particle_ref = xt.Particles(p0c=1e9)
+
+        sv = line.survey(
+            X0=0.1, Y0=0.2, Z0=0.3, theta0=0.4, phi0=0.5, psi0=0.6)
+        sv_legacy = line_legacy.survey(
+            X0=0.1, Y0=0.2, Z0=0.3, theta0=0.4, phi0=0.5, psi0=0.6)
+
+        sv_back = line.survey(
+            element0='end_marker',
+            X0=sv.X[-1], Y0=sv.Y[-1], Z0=sv.Z[-1],
+            theta0=sv.theta[-1], phi0=sv.phi[-1], psi0=sv.psi[-1])
+
+        for vv in ['X', 'Y', 'Z', 'theta', 'phi', 'psi']:
+            xo.assert_allclose(
+                getattr(sv, vv)[-1], getattr(sv_legacy, vv)[-1],
+                atol=1e-12)
+            xo.assert_allclose(
+                getattr(sv, vv), getattr(sv_back, vv), atol=1e-12)
+
+        tw = line.twiss(betx=1, bety=1, x=0.01, px=0.02, y=0.03, py=0.04)
+        tw_legacy = line_legacy.twiss(
+            betx=1, bety=1, x=0.01, px=0.02, y=0.03, py=0.04)
+
+        for vv in ['x', 'px', 'y', 'py']:
+            xo.assert_allclose(
+                getattr(tw, vv)[-1], getattr(tw_legacy, vv)[-1],
+                atol=1e-12)
+
+        tw_back = line.twiss(
+            init_at='end_marker',
+            x=tw.x[-1], px=tw.px[-1], y=tw.y[-1], py=tw.py[-1],
+            betx=tw.betx[-1], bety=tw.bety[-1],
+            alfx=tw.alfx[-1], alfy=tw.alfy[-1])
+        for vv in ['x', 'px', 'y', 'py']:
+            xo.assert_allclose(
+                getattr(tw, vv), getattr(tw_back, vv), atol=1e-12)
+
+        particles = xt.Particles(
+            p0c=1e9, x=0.01, px=0.02, y=0.03, py=0.04)
+        particles_legacy = particles.copy()
+        line.track(particles)
+        line_legacy.track(particles_legacy)
+        for vv in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
+            xo.assert_allclose(
+                getattr(particles, vv), getattr(particles_legacy, vv),
+                atol=1e-12)
+
+
 @pytest.mark.parametrize(
     'cos,sin,tan,angle',
     [
