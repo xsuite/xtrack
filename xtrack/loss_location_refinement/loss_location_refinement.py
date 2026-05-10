@@ -207,11 +207,25 @@ def check_for_active_shifts_and_rotations(line, i_aper_0, i_aper_1):
     presence_shifts_rotations = False
     for ii in range(i_aper_0, i_aper_1):
         ee = line.get(line.element_names[ii])
-        if ee.__class__ is SRotation:
+        if ee.__class__ is xt.SRotation:
             if not np.isclose(ee.angle, 0, rtol=0, atol=1e-15):
                 presence_shifts_rotations = True
                 break
-        if ee.__class__ is XYShift:
+        if ee.__class__ is xt.Rotation:
+            if not np.isclose(ee.rot_s_rad, 0, rtol=0, atol=1e-15):
+                presence_shifts_rotations = True
+                break
+            if not np.isclose(ee.rot_x_rad, 0, rtol=0, atol=1e-15):
+                presence_shifts_rotations = True
+                break
+            if not np.isclose(ee.rot_y_rad, 0, rtol=0, atol=1e-15):
+                presence_shifts_rotations = True
+                break
+        if ee.__class__ in [xt.Translation]:
+            if not np.allclose([ee.shift_x, ee.shift_y], 0, rtol=0, atol=1e-15):
+                presence_shifts_rotations = True
+                break
+        if ee.__class__ is xt.XYShift:
             if not np.allclose([ee.dx, ee.dy], 0, rtol=0, atol=1e-15):
                 presence_shifts_rotations = True
                 break
