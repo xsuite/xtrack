@@ -82,6 +82,93 @@ def test_rotations_constructors_on_inconsistent_input(element_cls, args):
         element_cls(**args)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+def test_rotation_against_legacy_rotations():
+    rot = xt.Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3)
+    assert rot.seq == 'yxs'
+    assert rot._first_rot == 1
+    assert rot._second_rot == 0
+    assert rot._third_rot == 2
+
+    rot.seq = 'sxy'
+    assert rot._first_rot == 2
+    assert rot._second_rot == 0
+    assert rot._third_rot == 1
+    assert rot.seq == 'sxy'
+
+    dct = rot.to_dict()
+    assert set(dct.keys()) == {
+        '__class__', 'rot_s_rad', 'rot_x_rad', 'rot_y_rad', 'seq'}
+    rot2 = xt.Rotation.from_dict(dct)
+    assert rot2.rot_s_rad == rot.rot_s_rad
+    assert rot2.rot_x_rad == rot.rot_x_rad
+    assert rot2.rot_y_rad == rot.rot_y_rad
+    assert rot2.seq == rot.seq
+
+    for seq in ['yxs', 'xsy', 'sxy', 'syx', 'xys', 'ysx']:
+        env = xt.Environment()
+        env.new('end_marker', xt.Marker)
+        env.elements['rot'] = xt.Rotation(
+            rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq=seq)
+
+        line = env.new_line(components=['rot', 'end_marker'])
+        line.particle_ref = xt.Particles(p0c=1e9)
+
+        rot = line['rot']
+        legacy_rots = []
+        for ax in rot.seq:
+            if ax == 'x':
+                legacy_rots.append(
+                    xt.XRotation(angle=np.rad2deg(rot.rot_x_rad)))
+            elif ax == 'y':
+                legacy_rots.append(
+                    xt.YRotation(angle=np.rad2deg(rot.rot_y_rad)))
+            elif ax == 's':
+                legacy_rots.append(
+                    xt.SRotation(angle=np.rad2deg(rot.rot_s_rad)))
+
+        env.elements['r1'] = legacy_rots[0]
+        env.elements['r2'] = legacy_rots[1]
+        env.elements['r3'] = legacy_rots[2]
+        line_legacy = env.new_line(components=['r1', 'r2', 'r3', 'end_marker'])
+        line_legacy.particle_ref = xt.Particles(p0c=1e9)
+
+        sv = line.survey(
+            X0=0.1, Y0=0.2, Z0=0.3, theta0=0.4, phi0=0.5, psi0=0.6)
+        sv_legacy = line_legacy.survey(
+            X0=0.1, Y0=0.2, Z0=0.3, theta0=0.4, phi0=0.5, psi0=0.6)
+
+        sv_back = line.survey(
+            element0='end_marker',
+            X0=sv.X[-1], Y0=sv.Y[-1], Z0=sv.Z[-1],
+            theta0=sv.theta[-1], phi0=sv.phi[-1], psi0=sv.psi[-1])
+
+        for vv in ['X', 'Y', 'Z', 'theta', 'phi', 'psi']:
+            xo.assert_allclose(
+                getattr(sv, vv)[-1], getattr(sv_legacy, vv)[-1],
+                atol=1e-12)
+            xo.assert_allclose(
+                getattr(sv, vv), getattr(sv_back, vv), atol=1e-12)
+
+        tw = line.twiss(betx=1, bety=1, x=0.01, px=0.02, y=0.03, py=0.04)
+        tw_legacy = line_legacy.twiss(
+            betx=1, bety=1, x=0.01, px=0.02, y=0.03, py=0.04)
+
+        for vv in ['x', 'px', 'y', 'py']:
+            xo.assert_allclose(
+                getattr(tw, vv)[-1], getattr(tw_legacy, vv)[-1],
+                atol=1e-12)
+
+        tw_back = line.twiss(
+            init_at='end_marker',
+            x=tw.x[-1], px=tw.px[-1], y=tw.y[-1], py=tw.py[-1],
+            betx=tw.betx[-1], bety=tw.bety[-1],
+            alfx=tw.alfx[-1], alfy=tw.alfy[-1])
+        for vv in ['x', 'px', 'y', 'py']:
+            xo.assert_allclose(
+                getattr(tw, vv), getattr(tw_back, vv), atol=1e-12)
+
+
 @pytest.mark.parametrize(
     'cos,sin,tan,angle',
     [
