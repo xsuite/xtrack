@@ -291,8 +291,17 @@ class XYShift(Element):
         p.x -= self.dx
         p.y -= self.dy
 
+class Translation(Element):
+    """shift of the reference"""
 
+    _description = [
+        ("shift_x", "m", "Horizontal shift", 0),
+        ("shift_y", "m", "Vertical shift", 0),
+    ]
 
+    def track(self, p):
+        p.x -= self.shift_x
+        p.y -= self.shift_y
 
 class Elens(Element):
     """Hollow Electron Lens"""
