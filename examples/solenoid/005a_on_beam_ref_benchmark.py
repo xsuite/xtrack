@@ -18,7 +18,7 @@ class TiltedSolenoid:
         z_sol = -x * stheta + z * ctheta
         y_sol = y
 
-        bx_sol, by_sol, bz_sol = sf.get_field(x_sol, y_sol, z_sol)
+        bx_sol, by_sol, bz_sol = self._sf.get_field(x_sol, y_sol, z_sol)
 
         bx = bx_sol * np.cos(theta) - bz_sol * np.sin(theta)
         bz = bx_sol * np.sin(theta) + bz_sol * np.cos(theta)
@@ -28,10 +28,10 @@ class TiltedSolenoid:
 
 
 theta = -0.015
-sf = TiltedSolenoid(L=3., a=0.2, B0=2., z0=0, theta=theta)
+sf = TiltedSolenoid(L=3., a=0.2, B0=2., theta=theta)
 
 s = np.linspace(-4, 4, 201)
-bx, by, bz = sf.get_field(0, 0, s)
+bx, by, bz = sf.get_field(0*s, 0*s, s)
 
 
 import xtrack as xt
