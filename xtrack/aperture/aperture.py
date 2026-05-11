@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import hashlib
 from collections.abc import Collection
 from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, cast
 
@@ -19,7 +20,7 @@ from xtrack.aperture.structures import (
     Rectangle, RectEllipse, ShapeTypes, SurveyData, TwissData,
 )
 from xtrack.aperture.transform import (
-    Transform, matrix_to_transform, transform_matrix
+    Frame, arc_matrix, Transform, matrix_to_transform, transform_matrix, poly2d_to_homogeneous
 )
 from xtrack.json import dump as json_dump
 from xtrack.json import load as json_load
@@ -32,6 +33,23 @@ NDArrayNx2 = np.ndarray[Tuple[int, Literal[2]], DTypeFloat]
 NDArrayNxMx2 = np.ndarray[Tuple[int, int, Literal[2]], DTypeFloat]
 HomogenousMatrix = np.ndarray[Tuple[Literal[4], Literal[4]], DTypeFloat]
 HomogenousMatrices = np.ndarray[Tuple[int, Literal[4], Literal[4]], DTypeFloat]
+
+
+def _hashed_color(name: str, palette: list[str]) -> str:
+    if not palette:
+        return 'C0'
+    digest = hashlib.sha1(name.encode('utf-8')).digest()
+    return palette[int.from_bytes(digest[:4], 'little') % len(palette)]
+
+
+def _deduplicate_legend(ax):
+    handles, labels = ax.get_legend_handles_labels()
+    unique = {}
+    for handle, label in zip(handles, labels):
+        if label and label not in unique:
+            unique[label] = handle
+    if unique:
+        ax.legend(unique.values(), unique.keys())
 
 
 class ProfileView:
@@ -85,7 +103,7 @@ class ProfileView:
         self.raw.tol_y = tol_y
 
     def plot(self, len_points=128, ax=None):
-        ax = self.raw.plot(len_points=len_points, ax=ax, c='black', label='Aperture')
+        ax = self.raw.plot(len_points=len_points, ax=ax, c='black', label=type(self.shape).__name__)
 
         if self.tol_x or self.tol_y or self.tol_r:
             tol_rt = Racetrack(
@@ -180,10 +198,6 @@ class PipePositionView:
         return PipeView(self._model, self.pipe_index)
 
     @property
-    def type(self) -> PipeView:
-        return self.pipe
-
-    @property
     def survey_reference_name(self) -> str:
         return self.raw.survey_reference_name  # noqa: xobjects
 
@@ -200,7 +214,7 @@ class PipePositionView:
         self.raw.survey_index = survey_index
 
     @property
-    def transformation(self):
+    def transformation(self) -> np.ndarray:
         return self.raw.transformation.to_nplike()
 
     @transformation.setter
@@ -349,14 +363,6 @@ class ProfilePositionView:
         self.raw.shift_s = shift_s
 
     @property
-    def s_position(self) -> float:
-        return self.shift_s
-
-    @s_position.setter
-    def s_position(self, s_position: float):
-        self.shift_s = s_position
-
-    @property
     def shift_x(self) -> float:
         return self.raw.shift_x
 
@@ -395,6 +401,22 @@ class ProfilePositionView:
     @rot_s_rad.setter
     def rot_s_rad(self, rot_s_rad: float):
         self.raw.rot_s_rad = rot_s_rad
+
+    def get_transform(self, frame: Frame = 'curved'):
+        if frame not in ('curved', 'straight'):
+            return ValueError('Frame must be "curved" or "straight"')
+
+        t_x, t_y, t_s = self.shift_x, self.shift_y, self.shift_s
+        rot_y, rot_x, rot_s = self.rot_y_rad, self.rot_x_rad, self.rot_s_rad
+
+        if frame == 'straight':
+            return transform_matrix(t_x, t_y, t_s, rot_y, rot_x, rot_s)
+
+        curvature = self._model.pipes[self._pipe_index].curvature
+        local = transform_matrix(t_x, t_y, 0, rot_y, rot_x, rot_s)
+        arc = arc_matrix(length=t_s, angle=curvature * t_s, tilt=0)
+        return arc @ local
+
 
 class PipeView:
     __slots__ = ('_model', '_index')
@@ -450,6 +472,103 @@ class PipeView:
 
     def values(self):
         return list(self)
+
+    def build_polygons_3d(self, frame: Frame = 'curved', len_points=128):
+        def _poly_in_pipe(profile_pos_view):
+            poly_2d = profile_pos_view.profile.raw.build_polygon(len_points)
+            poly_hom = poly2d_to_homogeneous(poly_2d)
+            profile_position_matrix = profile_pos_view.get_transform(frame=frame)
+            return profile_position_matrix @ poly_hom
+
+        polygons = np.array([_poly_in_pipe(prof_pos_view) for prof_pos_view in self])
+        return polygons
+
+    def plot_projection(
+        self,
+        plane: Literal['zx', 'zy', 'sx', 'sy'] = 'zx',
+        len_points=32,
+        transform: np.ndarray = np.identity(4),
+        ax=None,
+        legend: bool = True,
+    ):
+        frame = {'z': 'curved', 's': 'straight'}[plane[0]]
+
+        # Plot setup
+        import matplotlib.pyplot as plt
+        ax = ax or plt.gca()
+        ax.set_aspect('equal')
+        ax.set_title(f'{self.name}')
+        palette = plt.rcParams['axes.prop_cycle'].by_key().get('color', ['C0'])
+
+        # Plot the projected polygons
+        polys = self.build_polygons_3d(frame=frame, len_points=len_points)  # noqa
+        for poly, prof_view in zip(polys, self):
+            label = prof_view.profile.name
+            colour = _hashed_color(label, palette)
+            poly_trans = transform @ poly
+            xs, ys, zs = poly_trans[:3]
+            ax.plot(zs, {'x': xs, 'y': ys}[plane[1]], label=label, color=colour)
+
+        # Plot the pipe axis
+        min_s, max_s = self[0].shift_s, self[len(self) - 1].shift_s
+        ss = np.linspace(min_s, max_s, len_points)
+        h = self.curvature if frame == 'curved' else 0
+        points = np.array([transform @ arc_matrix(length=s, angle=h * s, tilt=0) for s in ss])
+        coords_z = points[:, 2, 3]
+        coords_xy = points[:, 'xy'.index(plane[1]), 3]
+        axis_colour = _hashed_color(self.name, palette)
+        ax.plot(coords_z, coords_xy, color=axis_colour, linestyle='--', label=self.name)
+
+        # Plot labels
+        ax.set_xlabel(f'{plane[0]} [m]')
+        ax.set_ylabel(f'{plane[1]} [m]')
+        if legend:
+            _deduplicate_legend(ax)
+
+    def plot_3d(self, frame: Frame = 'curved', len_points=32, ax=None):
+        if frame not in ('curved', 'straight'):
+            return ValueError('Frame must be "curved" or "straight"')
+
+        # Plot setup
+        import matplotlib.pyplot as plt
+        ax = ax or plt.figure(figsize=(10, 8)).add_subplot(111, projection='3d')
+        ax.set_title(f'{self.name}')
+        palette = plt.rcParams['axes.prop_cycle'].by_key().get('color', ['C0'])
+
+        # Plot the profile polygons
+        polys = self.build_polygons_3d(frame=frame, len_points=len_points)
+        all_points = []
+        for poly, prof_view in zip(polys, self):
+            points = np.asarray(poly[:3], dtype=float).T
+            points = np.vstack([points, points[0]])
+            all_points.append(points)
+            colour = _hashed_color(prof_view.profile.name, palette)
+            ax.plot(points[:, 2], points[:, 0], points[:, 1], alpha=0.85, label=prof_view.profile.name, color=colour)
+
+        # Plot the pipe axis
+        min_s, max_s = self[0].shift_s, self[len(self) - 1].shift_s
+        ss = np.linspace(min_s, max_s, len_points)
+        h = self.curvature if frame == 'curved' else 0
+        axis_points = np.array([arc_matrix(length=s, angle=h * s, tilt=0)[:3, 3] for s in ss])
+        axis_colour = _hashed_color(self.name, palette)
+        ax.plot(axis_points[:, 2], axis_points[:, 0], axis_points[:, 1], color=axis_colour, linestyle='--', label=self.name)
+
+        # Plot labels and set axes scaling
+        ax.set_xlabel(f"{'z' if frame == 'curved' else 's'} [m]")
+        ax.set_ylabel('x [m]')
+        ax.set_zlabel('y [m]')
+        if all_points:
+            stacked = np.vstack(all_points)
+            mins = stacked.min(axis=0)
+            maxs = stacked.max(axis=0)
+            centres = 0.5 * (mins + maxs)
+            half_span = 0.5 * np.max(maxs - mins)
+            ax.set_xlim(centres[2] - half_span, centres[2] + half_span)
+            ax.set_ylim(centres[0] - half_span, centres[0] + half_span)
+            ax.set_zlim(centres[1] - half_span, centres[1] + half_span)
+        _deduplicate_legend(ax)
+        ax.set_box_aspect((1, 1, 1))
+        return ax
 
 
 class PipesView:
@@ -562,10 +681,6 @@ class Aperture:
     def pipes(self) -> PipesView:
         return PipesView(self._model)
 
-    @property
-    def types(self):
-        return self.pipes
-
     def to_json(self, filename):
         json = {
             'model': self._model.to_dict(),
@@ -597,7 +712,7 @@ class Aperture:
         layout_data = line.metadata['layout_data']
 
         if include_offsets:
-            aperture_offsets = cls._get_per_type_madx_offsets(line.metadata.get('aperture_offsets', {}))
+            aperture_offsets = cls._get_per_pipe_madx_offsets(line.metadata.get('aperture_offsets', {}))
         else:
             aperture_offsets = {}
 
@@ -646,13 +761,13 @@ class Aperture:
                 z_next = (elem_mat @ rel_survey_mat)[2, 3]
                 offset_frame_length = z_next - z_ref
 
-                type_transform = transform_matrix(
+                pipe_transform = transform_matrix(
                     shift_x=offset_data['x'] * x_dir,
                     shift_y=offset_data['y'],
                     shift_z=z_ref,
                 )
             else:
-                type_transform = np.identity(4)
+                pipe_transform = np.identity(4)
                 survey_reference_name = element_name
 
             if aper_name not in aperture_indices:
@@ -701,7 +816,7 @@ class Aperture:
 
                     positions = sorted(positions, key=lambda p: p.shift_s)
 
-                    # If we have offset data, assume the type is straight
+                    # If we have offset data, assume the pipe is straight
                     curvature = 0
                 else:
                     # Place a single profile for a thin element
@@ -718,7 +833,7 @@ class Aperture:
                 pipe_index=aperture_indices[aper_name],
                 survey_reference_name=survey_reference_name,
                 survey_index=name_to_sv_index[survey_reference_name],
-                transformation=type_transform,
+                transformation=pipe_transform,
             )
             pipe_positions_list.append(pipe_position)
             pipe_position_names.append(aper_name)
@@ -1528,6 +1643,17 @@ class Aperture:
         ax.set_title(fr"Max envelopes at {name}, s $\in$ [{n1_table.s[0]:.2f}, {n1_table.s[-1]:.2f}], min($n_1$) = {n1:.3f}")
         ax.legend()
 
+    def plot_floor_projection(self, ax=None):
+        from matplotlib import pyplot as plt
+        ax = ax or plt.gca()
+
+        for pipe_position in self.pipe_positions:
+            pipe = pipe_position.pipe
+            sv_ref_transform = survey_relative_transform(self.survey, 0, pipe_position.survey_reference_name)
+            transform = sv_ref_transform @ pipe_position.transformation
+            pipe.plot_projection(ax=ax, plane='zx', transform=transform)
+
+
     def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
         element = self.line[element_name]
@@ -1787,7 +1913,7 @@ class Aperture:
         return match.group('prefix')
 
     @classmethod
-    def _get_per_type_madx_offsets(cls, madx_offsets):
+    def _get_per_pipe_madx_offsets(cls, madx_offsets):
         """Parse MAD-X imported aperture offsets metadata to obtain per-element (type) transformations."""
         offsets = {}
         for section in madx_offsets.values():

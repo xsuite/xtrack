@@ -1,10 +1,11 @@
-from typing import Collection, List, Tuple, Union, get_args
 from warnings import warn
+from typing import Collection, List, Tuple, Union, get_args
 
 import numpy as np
 
 import xobjects as xo
 from xobjects.context import XContext
+from xtrack.aperture.transform import poly2d_to_homogeneous
 from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
 from xtrack.twiss import TwissTable

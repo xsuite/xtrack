@@ -1,3 +1,5 @@
+import re
+
 import xtrack as xt
 import numpy as np
 from xtrack.aperture import Aperture, ApertureBuilder
