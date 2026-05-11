@@ -424,7 +424,7 @@ def line_to_madng(line, sequence_name='seq', temp_fname=None, keep_files=False,
 
         mng[sequence_name] = mng.MADX[sequence_name] # this ensures that the file has been read
         mng[sequence_name].beam = mng.beam(particle="'custom'",
-                        mass=line.particle_ref.mass0 * 1e9,
+                        mass=line.particle_ref.mass0 / 1e9, # xsuite mass eV -> ng mass GeV.
                         charge=line.particle_ref.q0,
                         betgam=line.particle_ref.beta0[0] * line.particle_ref.gamma0[0])
 
