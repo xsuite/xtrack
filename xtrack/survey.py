@@ -270,7 +270,7 @@ def survey_from_line(
         line,
         X0 = 0, Y0 = 0, Z0 = 0, theta0 = 0, phi0 = 0, psi0 = 0,
         element0 = 0, values_at_element_exit = False, reverse = True):
-    """Execute SURVEY command. Based on MAref_shift_x equivalent.
+    """Execute SURVEY command. Based on MAD-X equivalent.
     Attributes, must be given in this order in the dictionary:
     X0        (float)    Initial X position in meters.
     Y0        (float)    Initial Y position in meters.
@@ -296,18 +296,6 @@ def survey_from_line(
     drift_length = tt.length
     drift_length[~tt.isthick] = 0
 
-    # Extract xy shifts from elements
-    ref_shift_x = tt.ref_shift_x
-    ref_shift_y = tt.ref_shift_y
-
-    # Handling of XRotation, YRotation and SRotation elements
-    ref_rot_angle_rad   = tt.ref_rot_angle_rad
-    ref_rot_x_rad    = ref_rot_angle_rad * np.array(tt.element_type == 'XRotation')
-    # The minus sign accounts for the discrepancy between the definition of the
-    # y-rotation between the survey and the tracking (MAD-X convention)
-    ref_rot_y_rad    = -ref_rot_angle_rad * np.array(tt.element_type == 'YRotation')
-    ref_rot_s_rad    = ref_rot_angle_rad * np.array(tt.element_type == 'SRotation')
-
     if isinstance(element0, str):
         element0 = line.element_names.index(element0)
 
@@ -322,11 +310,6 @@ def survey_from_line(
         drift_length    = drift_length[:-1],
         angle           = angle[:-1],
         tilt            = tilt[:-1],
-        ref_shift_x     = ref_shift_x[:-1],
-        ref_shift_y     = ref_shift_y[:-1],
-        ref_rot_x_rad   = ref_rot_x_rad[:-1],
-        ref_rot_y_rad   = ref_rot_y_rad[:-1],
-        ref_rot_s_rad   = ref_rot_s_rad[:-1],
         element0        = element0)
 
     derived_quantities = _compute_survey_quantities_from_v_w(V, W)
@@ -357,7 +340,6 @@ def compute_survey(
         elements,
         X0, Y0, Z0, theta0, phi0, psi0,
         drift_length, angle, tilt,
-        ref_shift_x, ref_shift_y, ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad,
         element0 = 0, backtrack=False):
     """
     Compute survey from initial position and orientation.
@@ -371,11 +353,6 @@ def compute_survey(
         drift_forward           = drift_length[element0:]
         angle_forward           = angle[element0:]
         tilt_forward            = tilt[element0:]
-        ref_shift_x_forward     = ref_shift_x[element0:]
-        ref_shift_y_forward     = ref_shift_y[element0:]
-        ref_rot_x_rad_forward   = ref_rot_x_rad[element0:]
-        ref_rot_y_rad_forward   = ref_rot_y_rad[element0:]
-        ref_rot_s_rad_forward   = ref_rot_s_rad[element0:]
 
         # Evaluate forward survey
         (V_forward, W_forward)    = compute_survey(
@@ -389,12 +366,6 @@ def compute_survey(
             drift_length    = drift_forward,
             angle           = angle_forward,
             tilt            = tilt_forward,
-            ref_shift_x     = ref_shift_x_forward,
-            ref_shift_y     = ref_shift_y_forward,
-            ref_rot_x_rad   = ref_rot_x_rad_forward,
-            ref_rot_y_rad   = ref_rot_y_rad_forward,
-            ref_rot_s_rad   = ref_rot_s_rad_forward,
-            element0        = 0,
             backtrack       = backtrack)
 
         # Backward section of survey
@@ -402,12 +373,6 @@ def compute_survey(
         drift_backward          = np.array(drift_length[:element0][::-1])
         angle_backward          = np.array(angle[:element0][::-1])
         tilt_backward           = np.array(tilt[:element0][::-1])
-        ref_shift_x_backward    = np.array(ref_shift_x[:element0][::-1])
-        ref_shift_y_backward    = np.array(ref_shift_y[:element0][::-1])
-        ref_rot_x_rad_backward  = np.array(ref_rot_x_rad[:element0][::-1])
-        ref_rot_y_rad_backward  = np.array(ref_rot_y_rad[:element0][::-1])
-        ref_rot_s_rad_backward  = np.array(ref_rot_s_rad[:element0][::-1])
-
         # Evaluate backward survey
         (V_backward, W_backward)   = compute_survey(
             elements        = elements_backward,
@@ -420,11 +385,6 @@ def compute_survey(
             drift_length    = drift_backward,
             angle           = angle_backward,
             tilt            = tilt_backward,
-            ref_shift_x     = ref_shift_x_backward,
-            ref_shift_y     = ref_shift_y_backward,
-            ref_rot_x_rad   = ref_rot_x_rad_backward,
-            ref_rot_y_rad   = ref_rot_y_rad_backward,
-            ref_rot_s_rad   = ref_rot_s_rad_backward,
             element0        = 0,
             backtrack       = not backtrack)
 
@@ -445,10 +405,7 @@ def compute_survey(
         psi         = psi0)
 
     # Advancing element by element
-    for ee, ll, aa, tt, xx, yy, rx, ry, rs, in zip(
-        elements, drift_length, angle, tilt,
-        ref_shift_x, ref_shift_y,
-        ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad):
+    for ee, ll, aa, tt in zip(elements, drift_length, angle, tilt):
 
         # Store position and orientation at element entrance
         W.append(w)
@@ -461,11 +418,6 @@ def compute_survey(
             if backtrack:
                 ll = -ll
                 aa = -aa
-                xx = -xx
-                yy = -yy
-                rx = -rx
-                ry = -ry
-                rs = -rs
 
             # Advancing
             v, w = advance_element(
@@ -474,11 +426,11 @@ def compute_survey(
                 length          = ll,
                 angle           = aa,
                 tilt            = tt,
-                ref_shift_x     = xx,
-                ref_shift_y     = yy,
-                ref_rot_x_rad   = rx,
-                ref_rot_y_rad   = ry,
-                ref_rot_s_rad   = rs)
+                ref_shift_x     = 0.,
+                ref_shift_y     = 0.,
+                ref_rot_x_rad   = 0.,
+                ref_rot_y_rad   = 0.,
+                ref_rot_s_rad   = 0.)
 
     # Last marker
     W.append(w)

@@ -6105,16 +6105,6 @@ class Line:
                 '_own_main_order': AttrDefinition(name='main_order', dtype=np.int32),
                 '_own_main_is_skew': AttrDefinition(name='main_is_skew', dtype=np.int32),
 
-                # Handling of reference frame transformations
-                # (XYShift, XRotation, YRotation, SRotation)
-                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
-                '_own_ref_shift_x': AttrDefinition(name='dx'),
-                '_own_ref_shift_y': AttrDefinition(name='dy'),
-                '_own_ref_rot_sin_angle': AttrDefinition(name='sin_angle'),
-                '_own_ref_rot_cos_angle': AttrDefinition(name='cos_angle'),
-                '_own_ref_rot_sin_z': AttrDefinition(name='sin_z'),
-                '_own_ref_rot_cos_z': AttrDefinition(name='cos_z'),
-
                 '_parent_length': AttrDefinition(name=('_parent', 'length')),
                 '_parent_rot_s_rad': AttrDefinition(name=('_parent', 'rot_s_rad')),
                 '_parent_shift_x': AttrDefinition(name=('_parent', 'shift_x')),
@@ -6181,15 +6171,6 @@ class Line:
                 '_parent_main_order': AttrDefinition(name=('_parent', 'main_order'), dtype=np.int32 ),
                 '_parent_main_is_skew': AttrDefinition(name=('_parent', 'main_is_skew'), dtype=np.int32 ),
 
-                # Handling of reference frame transformations
-                # (XYShift, XRotation, YRotation, SRotation)
-                # TODO: The dx, dy, etc labels come from the element level and should possibly be changed
-                '_parent_ref_shift_x': AttrDefinition(name=('_parent', 'dx')),
-                '_parent_ref_shift_y': AttrDefinition(name=('_parent', 'dy')),
-                '_parent_ref_rot_sin_angle': AttrDefinition(name=('_parent', 'sin_angle')),
-                '_parent_ref_rot_cos_angle': AttrDefinition(name=('_parent', 'cos_angle')),
-                '_parent_ref_rot_sin_z': AttrDefinition(name=('_parent', 'sin_z')),
-                '_parent_ref_rot_cos_z': AttrDefinition(name=('_parent', 'cos_z')),
             },
             derived_fields={
                 'length': lambda attr:
@@ -6312,13 +6293,6 @@ class Line:
                 'k5sl': lambda attr: attr['_k5sl_no_rel'] + attr['_k5sl_rel'] * attr['_main_strength'],
                 'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
-                'ref_shift_x': lambda attr: attr['_own_ref_shift_x'] + attr['_parent_ref_shift_x'],
-                'ref_shift_y': lambda attr: attr['_own_ref_shift_y'] + attr['_parent_ref_shift_y'],
-                'ref_rot_angle_rad': lambda attr: np.arctan2(
-                    attr['_own_ref_rot_sin_angle'] + attr['_parent_ref_rot_sin_angle'] +\
-                    attr['_own_ref_rot_sin_z'] + attr['_parent_ref_rot_sin_z'],
-                    attr['_own_ref_rot_cos_angle'] + attr['_parent_ref_rot_cos_angle'] +\
-                    attr['_own_ref_rot_cos_z'] + attr['_parent_ref_rot_cos_z']),
             }
         )
         return cache

@@ -965,6 +965,30 @@ class XYShift(BeamElement):
 
         super().__init__(dx=dx, dy=dy, **kwargs)
 
+    def _propagate_survey(self, v, w, backtrack):
+
+        shift_x = self.dx
+        shift_y = self.dy
+
+        if backtrack:
+            fback = -1
+        else:
+            fback = 1
+
+        v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = 0,
+                    tilt            = 0,
+                    ref_shift_x     = fback * shift_x,
+                    ref_shift_y     = fback * shift_y,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+        return v, w
+
 class Translation(BeamElement):
     '''
     Beam element modeling a transverse shift of the reference system, by applying
@@ -1324,6 +1348,29 @@ class SRotation(BeamElement):
         self.cos_z = np.cos(anglerad)
         self.sin_z = np.sin(anglerad)
 
+    def _propagate_survey(self, v, w, backtrack):
+
+        fback = 1
+        if backtrack:
+            fback = -1
+
+        rx, ry, rs = 0, 0, np.deg2rad(self.angle)
+
+        v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = 0,
+                    tilt            = 0,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = fback * rx,
+                    ref_rot_y_rad   = -fback * ry,
+                    ref_rot_s_rad   = fback * rs,
+                )
+
+        return v, w
+
 
 class XRotation(BeamElement):
     """
@@ -1408,6 +1455,29 @@ class XRotation(BeamElement):
         super().__init__(
             cos_angle=cos_angle, sin_angle=sin_angle, tan_angle=tan_angle,
             **kwargs)
+
+    def _propagate_survey(self, v, w, backtrack):
+
+        fback = 1
+        if backtrack:
+            fback = -1
+
+        rx, ry, rs = np.deg2rad(self.angle), 0, 0
+
+        v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = 0,
+                    tilt            = 0,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = fback * rx,
+                    ref_rot_y_rad   = -fback * ry,
+                    ref_rot_s_rad   = fback * rs,
+                )
+        return v, w
+
 
     @property
     def angle(self):
@@ -1516,6 +1586,29 @@ class YRotation(BeamElement):
         self.cos_angle = np.cos(anglerad)
         self.sin_angle = np.sin(anglerad)
         self.tan_angle = np.tan(anglerad)
+
+    def _propagate_survey(self, v, w, backtrack):
+
+        fback = 1
+        if backtrack:
+            fback = -1
+
+        rx, ry, rs = 0, np.deg2rad(self.angle), 0
+
+        v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = 0,
+                    tilt            = 0,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = fback * rx,
+                    ref_rot_y_rad   = -fback * ry,
+                    ref_rot_s_rad   = fback * rs,
+                )
+
+        return v, w
 
 
 class ZetaShift(BeamElement):
