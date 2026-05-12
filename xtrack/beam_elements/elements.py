@@ -937,6 +937,8 @@ class XYShift(BeamElement):
         x_new = x_old - dx
         y_new = y_old - dy
 
+    .. warning:: The XYShift element is deprecated and will be removed in a future version. Please use the Translation element instead.
+
     Parameters
     ----------
     dx : float
