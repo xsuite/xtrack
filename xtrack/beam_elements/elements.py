@@ -1276,6 +1276,9 @@ class Rotation(xt.BeamElement):
 class SRotation(BeamElement):
     """
     Beam element modeling a rotation of the reference system around the s-axis.
+
+    .. warning:: SRotation is deprecated and will be removed in a future version. Please use Rotation(rot_s_rad=...) instead.
+
     The sign convention is such that:
 
             px_out = px_in * cos(angle) - py_in * sin(angle)
@@ -1375,6 +1378,9 @@ class SRotation(BeamElement):
 class XRotation(BeamElement):
     """
     Beam element modeling a rotation of the reference system around the x-axis.
+
+    .. warning:: XRotation is deprecated and will be removed in a future version. Please use Rotation(rot_x_rad=...) instead.
+
     The sign convention is such that:
 
           py_out = py_in * cos(angle) + pz_in * sin(angle)
@@ -1494,6 +1500,9 @@ class XRotation(BeamElement):
 class YRotation(BeamElement):
     """
     Beam element modeling a rotation of the reference system around the y-axis.
+
+    .. warning:: YRotation is deprecated and will be removed in a future version. Please use Rotation(rot_y_rad=...) instead.
+
     The sign convention is such that:
 
             px_out = px_in * cos(angle) - pz_in * sin(angle)
@@ -1613,6 +1622,8 @@ class YRotation(BeamElement):
 
 class ZetaShift(BeamElement):
     '''Beam element modeling a time delay.
+
+    .. warning:: ZetaShift is deprecated and will be removed in a future version. Please use TimeDelay instead.
 
     Parameters
     ----------
