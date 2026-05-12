@@ -91,7 +91,7 @@ line.env.elements['sol_end_shift_'+ip_sol] = sol_end_shift
 
 line.env.elements['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
 line.env.elements['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-line.env.elements['sol_zeta_shift_'+ip_sol] = xt.ZetaShift(dzeta=-(l_beam - l_solenoid))
+line.env.elements['sol_time_delay_'+ip_sol] = xt.TimeDelay(shift_zeta=-(l_beam - l_solenoid))
 
 # Add slices to the elements pot
 sol_slice_names = []
