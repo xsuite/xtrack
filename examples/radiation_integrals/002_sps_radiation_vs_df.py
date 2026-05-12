@@ -9,7 +9,7 @@ line = env.sps
 
 line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV, energy0=10e9)
 
-line.insert('zeta_shift', obj=xt.ZetaShift(), at=0)
+line.insert('time_delay', obj=xt.TimeDelay(), at=0)
 
 # RF set tp stay in the linear region
 env['actcse.31632'].voltage = 2500e6
@@ -30,7 +30,7 @@ env['frev0'] = 1. / tw4d.t_rev0
 env['circum'] = tw4d.line_length
 env['frev_trim'] = 0.
 
-env['zeta_shift'].dzeta = 'circum * frev_trim / frev0'
+env['time_delay'].shift_zeta = 'circum * frev_trim / frev0'
 
 dfrev = np.linspace(-0.7, 0.7, 21)
 part_x = []
