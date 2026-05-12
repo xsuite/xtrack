@@ -1635,6 +1635,11 @@ class ZetaShift(BeamElement):
 
     _store_in_to_dict = ['dzeta']
 
+    def __init__(self, *args, **kwargs):
+        warn("ZetaShift is deprecated and will be removed in a future version. Please use TimeDelay instead."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+        super().__init__(*args, **kwargs)
+
 class TimeDelay(BeamElement):
 
     '''Beam element modeling a time delay, by applying the following transformation
