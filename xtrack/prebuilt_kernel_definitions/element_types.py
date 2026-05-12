@@ -88,6 +88,7 @@ ONLY_XTRACK_ELEMENTS = [
     # Transformations
     Rotation,
     Translation,
+    TimeDelay,
     XYShift,
     ZetaShift,
     XRotation,

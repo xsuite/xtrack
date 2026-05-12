@@ -1635,6 +1635,32 @@ class ZetaShift(BeamElement):
 
     _store_in_to_dict = ['dzeta']
 
+class TimeDelay(BeamElement):
+
+    '''Beam element modeling a time delay, by applying the following transformation
+    to the variable ``zeta``:
+
+        zeta_new = zeta_old + shift_zeta
+
+    Parameters
+    ----------
+
+    shift_zeta : float
+        Time shift in meters added to the variable ``zeta``. Default is ``0``.
+
+    '''
+
+    _xofields={
+        'shift_zeta': xo.Float64,
+        }
+
+    has_backtrack = True
+    allow_rot_and_shift = False
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/timedelay.h"',
+    ]
+
 class Misalignment(BeamElement):
     """Beam element modeling a misalignment of a strait or curved element.
 
