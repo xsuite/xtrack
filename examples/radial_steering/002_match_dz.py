@@ -27,7 +27,7 @@ env['circumference'] = tw4d.line_length
 env['df_hz'] = 0.  # desired shift in RF frequency
 
 env['dzeta'] = 'circumference * df_hz / frf'
-env.new('z_shift', xt.ZetaShift, dzeta='dzeta')
+env.new('z_shift', xt.TimeDelay, shift_zeta='dzeta')
 line.append('z_shift')
 
 tw0 = line.twiss6d()
