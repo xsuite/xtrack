@@ -931,7 +931,7 @@ class Line:
         names_unique = names_table.cols.get_index_unique()
         data['env_name'] = data['name']
         data['name'] = names_unique
-        out = xd.Table(data=data, sep_count='::::')
+        out = xt.Table(data=data, sep_count='::::')
         return out
 
     @doc_group("Inspection, Variables and Configuration")
