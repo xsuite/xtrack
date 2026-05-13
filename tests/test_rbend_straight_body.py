@@ -393,7 +393,7 @@ def test_rbend_straight_body_survey_h():
     sv_straight = line.survey(element0='mid', X0=-line['mb'].sagitta/2)
     tt_straight = line.get_table(attr=True)
     tw_straight = line.twiss(betx=1, bety=1)
-    p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+    p_straight = (sv_straight.XYZ + tw_straight.x[:, None] * sv_straight['ex']
                                 + tw_straight.y[:, None] * sv_straight['ey'])
     tw_straight['X'] = p_straight[:, 0]
     tw_straight['Y'] = p_straight[:, 1]
@@ -434,7 +434,7 @@ def test_rbend_straight_body_survey_h():
     sv_curved = line.survey(element0='mid')
     tt_curved = line.get_table(attr=True)
     tw_curved = line.twiss(betx=1, bety=1)
-    p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+    p_curved = (sv_curved.XYZ + tw_curved.x[:, None] * sv_curved['ex']
                             + tw_curved.y[:, None] * sv_curved['ey'])
     tw_curved['X'] = p_curved[:, 0]
     tw_curved['Y'] = p_curved[:, 1]
@@ -869,7 +869,7 @@ def test_rbend_straight_survey_h_angle_diff():
     sv_straight = line.survey()
     tt_straight = line.get_table(attr=True)
     tw_straight = line.twiss(betx=1, bety=1)
-    p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+    p_straight = (sv_straight.XYZ + tw_straight.x[:, None] * sv_straight['ex']
                                 + tw_straight.y[:, None] * sv_straight['ey'])
     tw_straight['X'] = p_straight[:, 0]
     tw_straight['Y'] = p_straight[:, 1]
@@ -910,7 +910,7 @@ def test_rbend_straight_survey_h_angle_diff():
     sv_curved = line.survey()
     tt_curved = line.get_table(attr=True)
     tw_curved = line.twiss(betx=1, bety=1)
-    p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+    p_curved = (sv_curved.XYZ + tw_curved.x[:, None] * sv_curved['ex']
                             + tw_curved.y[:, None] * sv_curved['ey'])
     tw_curved['X'] = p_curved[:, 0]
     tw_curved['Y'] = p_curved[:, 1]
@@ -1163,7 +1163,7 @@ def test_rbend_straight_body_survey_v():
     sv_straight = line.survey(element0='mid', Y0=-line['mb'].sagitta/2)
     tt_straight = line.get_table(attr=True)
     tw_straight = line.twiss(betx=1, bety=1)
-    p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+    p_straight = (sv_straight.XYZ + tw_straight.x[:, None] * sv_straight['ex']
                                 + tw_straight.y[:, None] * sv_straight['ey'])
     tw_straight['X'] = p_straight[:, 0]
     tw_straight['Y'] = p_straight[:, 1]
@@ -1204,7 +1204,7 @@ def test_rbend_straight_body_survey_v():
     sv_curved = line.survey(element0='mid')
     tt_curved = line.get_table(attr=True)
     tw_curved = line.twiss(betx=1, bety=1)
-    p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+    p_curved = (sv_curved.XYZ + tw_curved.x[:, None] * sv_curved['ex']
                             + tw_curved.y[:, None] * sv_curved['ey'])
     tw_curved['X'] = p_curved[:, 0]
     tw_curved['Y'] = p_curved[:, 1]
@@ -1655,7 +1655,7 @@ def test_rbend_straight_body_thin_slices_coarse():
     sv_straight = line.survey(element0='mid', Y0=-line['mb'].sagitta/2)
     tt_straight = line.get_table(attr=True)
     tw_straight = line.twiss(betx=1, bety=1)
-    p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+    p_straight = (sv_straight.XYZ + tw_straight.x[:, None] * sv_straight['ex']
                                 + tw_straight.y[:, None] * sv_straight['ey'])
     tw_straight['X'] = p_straight[:, 0]
     tw_straight['Y'] = p_straight[:, 1]
@@ -1665,7 +1665,7 @@ def test_rbend_straight_body_thin_slices_coarse():
     sv_curved = line.survey(element0='mid')
     tt_curved = line.get_table(attr=True)
     tw_curved = line.twiss(betx=1, bety=1)
-    p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+    p_curved = (sv_curved.XYZ + tw_curved.x[:, None] * sv_curved['ex']
                             + tw_curved.y[:, None] * sv_curved['ey'])
     tw_curved['X'] = p_curved[:, 0]
     tw_curved['Y'] = p_curved[:, 1]
@@ -1826,7 +1826,7 @@ def test_rbend_straight_body_thin_slices_fine():
     sv_straight = line.survey(element0='mid', Y0=-line['mb'].sagitta/2)
     tt_straight = line.get_table(attr=True)
     tw_straight = line.twiss(betx=1, bety=1)
-    p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+    p_straight = (sv_straight.XYZ + tw_straight.x[:, None] * sv_straight['ex']
                                 + tw_straight.y[:, None] * sv_straight['ey'])
     tw_straight['X'] = p_straight[:, 0]
     tw_straight['Y'] = p_straight[:, 1]
@@ -1867,7 +1867,7 @@ def test_rbend_straight_body_thin_slices_fine():
     sv_curved = line.survey(element0='mid')
     tt_curved = line.get_table(attr=True)
     tw_curved = line.twiss(betx=1, bety=1)
-    p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+    p_curved = (sv_curved.XYZ + tw_curved.x[:, None] * sv_curved['ex']
                             + tw_curved.y[:, None] * sv_curved['ey'])
     tw_curved['X'] = p_curved[:, 0]
     tw_curved['Y'] = p_curved[:, 1]
@@ -2395,7 +2395,7 @@ def test_rbend_straight_body_chicane_h(edge_model):
                                         init=tw_sliced.get_twiss_init('end'))
 
     # Combine twiss and survey to get actual trajectory
-    trajectory = sv_sliced.p0 + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
+    trajectory = sv_sliced.XYZ + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
 
     tw0['path_length'] = tw0.s - tw0.zeta
     tw0['diff_path_length'] = np.diff(tw0.path_length, append=tw0.path_length[-1])
@@ -2701,7 +2701,7 @@ def test_rbend_straight_body_chicane_v(edge_model):
                                         init=tw_sliced.get_twiss_init('end'))
 
     # Combine twiss and survey to get actual trajectory
-    trajectory = sv_sliced.p0 + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
+    trajectory = sv_sliced.XYZ + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
 
     tw0['path_length'] = tw0.s - tw0.zeta
     tw0['diff_path_length'] = np.diff(tw0.path_length, append=tw0.path_length[-1])
