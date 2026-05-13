@@ -347,6 +347,27 @@ def multipole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
 
         return tokens
 
+def acdipole_to_mad_str(eref, mad_type=MadType.MADNG, substituted_vars=None):
+    if mad_type != MadType.MADNG:
+        raise NotImplementedError("AC dipole is currently only supported in MAD-NG")
+    tokens = []
+    tokens.append(f"{_ge(eref.plane)}ackicker")
+
+    if eref.twiss_mode._value:
+        tokens.append(mad_assignment('ac_bet', _ge(eref.beta_at_acdipole), mad_type, substituted_vars=substituted_vars))
+        tokens.append(mad_assignment('nat_q', _ge(eref.natural_q), mad_type, substituted_vars=substituted_vars))
+        tokens.append(mad_assignment('drv_q', _ge(eref.freq), mad_type, substituted_vars=substituted_vars))
+    else:
+        tokens.append(mad_assignment('volt', _ge(eref.volt), mad_type, substituted_vars=substituted_vars))
+        tokens.append(mad_assignment('freq', _ge(eref.freq), mad_type, substituted_vars=substituted_vars))
+
+        # MAD-NG is turn-1 based, while in xtrack is turn-0 based, so we need to shift the lag and ramp parameters accordingly
+        tokens.append(mad_assignment('lag', _ge(eref.lag) - _ge(eref.freq), mad_type, substituted_vars=substituted_vars))
+        tokens.append(mad_assignment('ramp', eref.ramp._value + 1, mad_type, substituted_vars=substituted_vars))
+        tokens.append("ac_bet = false")
+
+    return tokens
+
 def rfmultipole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
     """
     Convert an RF multipole element to a MADX/MAD-NG string representation.
@@ -592,6 +613,7 @@ xsuite_to_mad_converters = {
     xt.RFMultipole: rfmultipole_to_mad_str,
     xt.CrabCavity: crabcavity_to_mad_str,
     xt.DriftSlice: drift_slice_to_mad_str,
+    xt.ACDipole: acdipole_to_mad_str,
 }
 
 element_types_converted_to_markers = {
