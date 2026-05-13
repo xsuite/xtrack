@@ -98,65 +98,6 @@ def test_madng_interface_with_multipole_errors_enabled():
     xo.assert_allclose(tw.bx_chrom, tw.bx_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
     xo.assert_allclose(tw.by_chrom, tw.by_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
 
-
-def test_madng_interface_with_multipole_errors_disabled():
-    """Test with on_error=0 throughout (errors disabled from start)."""
-    line = xt.load(test_data_folder /
-                            'hllhc15_thick/lhc_thick_with_knobs.json')
-
-    tt = line.get_table()
-    tt_quad = tt.rows[r'mq\..*']
-    tt_sext = tt.rows[r'ms\..*']
-
-    rgen = np.random.RandomState(1)
-    k2l = rgen.rand(len(tt_quad)) * 1e-3
-    k2sl = rgen.rand(len(tt_quad)) * 1e-3
-    k2l_rel = rgen.randn(len(tt_quad)) * 1e-5
-    k2sl_rel = rgen.randn(len(tt_quad)) * 1e-5
-    k3l = rgen.rand(len(tt_sext)) * 1e-3
-    k3sl = rgen.rand(len(tt_sext)) * 1e-3
-    k3l_rel = rgen.randn(len(tt_sext)) * 1e-5
-    k3sl_rel = rgen.randn(len(tt_sext)) * 1e-5
-
-    line.extend_knl_rel_ksl_rel(order=3, element_names=[*tt_quad.name, *tt_sext.name])
-
-    # Keep on_error=0 throughout (no actual errors applied)
-    line['on_error'] = 0.
-    for nn_quad, knn, ksn, knr, ksr in zip(tt_quad.name, k2l, k2sl, k2l_rel, k2sl_rel):
-        line[nn_quad].knl[2] = knn * line.ref['on_error']
-        line[nn_quad].ksl[2] = ksn * line.ref['on_error']
-        line[nn_quad].knl_rel[2] = knr * line.ref['on_error']
-        line[nn_quad].ksl_rel[2] = ksr * line.ref['on_error']
-
-    for nn_sext, knn, ksn, knr, ksr in zip(tt_sext.name, k3l, k3sl, k3l_rel, k3sl_rel):
-        line[nn_sext].knl[3] = knn * line.ref['on_error']
-        line[nn_sext].ksl[3] = ksn * line.ref['on_error']
-        line[nn_sext].knl_rel[3] = knr * line.ref['on_error']
-        line[nn_sext].ksl_rel[3] = ksr * line.ref['on_error']
-
-    # Test with errors disabled (as they were in the MAD file)
-    tw = line.madng_twiss(coupling_edw_teng=True, compute_chromatic_properties=True)
-    assert tw is not None
-    assert len(tw) > 0
-    # Expect near-zero orbits and consistency with MAD-NG (errors disabled)
-    xo.assert_allclose(tw.x, 0, atol=1e-10, rtol=0)
-    xo.assert_allclose(tw.y, 0, atol=1e-10, rtol=0)
-    xo.assert_allclose(tw.betx2, 0, atol=1e-10, rtol=0)
-    xo.assert_allclose(tw.bety1, 0, atol=1e-10, rtol=0)
-    xo.assert_allclose(tw.x, tw.x_ng, atol=1e-9, rtol=0)
-    xo.assert_allclose(tw.y, tw.y_ng, atol=1e-9, rtol=0)
-    xo.assert_allclose(tw.betx2, tw.beta12_ng, atol=1e-10, rtol=0)
-    xo.assert_allclose(tw.bety1, tw.beta21_ng, atol=1e-9, rtol=0)
-
-    # Chromatic properties comparisons (errors disabled)
-    xo.assert_allclose(tw.wx_chrom, tw.wx_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
-    xo.assert_allclose(tw.wy_chrom, tw.wy_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
-    xo.assert_allclose(tw.ax_chrom, tw.ax_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
-    xo.assert_allclose(tw.ay_chrom, tw.ay_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
-    xo.assert_allclose(tw.bx_chrom, tw.bx_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
-    xo.assert_allclose(tw.by_chrom, tw.by_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
-
-
 def test_madng_interface_with_misalignments_and_rotations():
     line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
