@@ -289,7 +289,7 @@ def survey_from_line(
     tt      = line.get_table(attr = True)
 
     # Extract angle and tilt from elements
-    angle   = tt.angle_rad
+    angle   = tt.angle
     tilt    = tt.rot_s_rad
 
     # Extract drift lengths
