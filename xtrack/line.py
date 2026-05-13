@@ -2150,20 +2150,14 @@ class Line:
         - ``theta``, ``phi``, ``psi``: orientation angles of the local frame
           (azimuth, elevation, roll) unwrapped along the line [rad].
         - ``ex``, ``ey``, ``ez``: unit vectors of the local frame expressed in
-          the global frame (they are the columns of ``W``).
-        - ``W``: 3x3 rotation matrices describing the local frame at each
+          the global frame (they are the columns of ``E_matrix``).
+        - ``E_matrix``: 3x3 rotation matrices describing the local frame at each
           element entrance.
-        - ``p0``: position vectors stacked as ``[X, Y, Z]``.
+        - ``XYZ``: position vectors stacked as ``[X, Y, Z]``.
         - ``isthick``: ``True`` for thick elements, ``False`` for markers.
         - ``drift_length``: length used while advancing the survey (zero for
           thin elements) [m].
         - ``length``: physical length of the element [m].
-        - ``angle``: bending angle of the element [rad].
-        - ``rot_s_rad``: rotation around the longitudinal axis applied to
-          the element [rad].
-        - ``ref_shift_x``, ``ref_shift_y``: discrete reference frame shifts [m].
-        - ``ref_rot_x_rad``, ``ref_rot_y_rad``, ``ref_rot_s_rad``: discrete
-          reference frame rotations [rad].
 
         Examples
         --------
@@ -2190,7 +2184,7 @@ class Line:
             # tw.x, tw.y contain the coordinates of the particle in the local frame
 
             # Compute the trajectory of the particle in the global frame
-            p_global = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
+            p_global = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.XYZ
 
             X_trajectory = p_global[:, 0]
             Y_trajectory = p_global[:, 1]
