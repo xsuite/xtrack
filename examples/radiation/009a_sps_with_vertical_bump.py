@@ -193,7 +193,7 @@ line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
 print(f'Tracking time: {line.time_last_track}')
 
 twe = tw.rows[:-1]
-hl = twe.angle_rad
+hl = twe.angle
 dl = twe.length
 hh = hl * 0
 hh[dl>0] = hl[dl>0] / dl[dl>0]

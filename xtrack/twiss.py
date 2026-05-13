@@ -5236,7 +5236,8 @@ def _add_strengths_to_twiss_res(twiss_res, line):
     for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
                 + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
         twiss_res._col_names.append(kk)
-        twiss_res._data[kk] = tt[kk].copy()
+        # using _data to bypass the warning on deprecated fields
+        twiss_res._data[kk] = tt._data[kk].copy()
 
 def _find_spin_fixed_point(line, particle_on_co):
 
@@ -5569,7 +5570,7 @@ def _compute_spin_polarization(tw, line, method):
 
 def _compute_trajectory_curvatures(twiss_res):
 
-    angle_rad = twiss_res['angle_rad']
+    angle = twiss_res['angle']
     rot_s_rad = twiss_res['rot_s_rad']
     x = twiss_res['x']
     y = twiss_res['y']
@@ -5580,10 +5581,10 @@ def _compute_trajectory_curvatures(twiss_res):
 
     # Curvature of the reference trajectory
     mask = length != 0
-    kappa0_x = 0 * angle_rad
-    kappa0_y = 0 * angle_rad
-    kappa0_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
-    kappa0_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+    kappa0_x = 0 * angle
+    kappa0_y = 0 * angle
+    kappa0_x[mask] = angle[mask] * np.cos(rot_s_rad[mask]) / length[mask]
+    kappa0_y[mask] = angle[mask] * np.sin(rot_s_rad[mask]) / length[mask]
 
     # Compute x', y', x'', y''
     ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
