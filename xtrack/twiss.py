@@ -2,12 +2,12 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-from warnings import warn
 
 import io
 import json
 from functools import partial
 from typing import Literal
+from warnings import warn
 
 import numpy as np
 from scipy.constants import c as clight
@@ -3746,20 +3746,6 @@ class TwissTable(Table):
         self['periodic'] = kwargs.get('periodic', kwargs.get('data', {}).get('periodic', False))
 
     _error_on_row_not_found = True
-
-    def __getitem__(self, key):
-        if isinstance(key, (tuple, list)):
-            first_key = key[0]
-        else:
-            first_key = key
-        if first_key in self._DEPRECATED_FIELDS:
-            warn(self._DEPRECATED_FIELDS[first_key], FutureWarning)
-        return super().__getitem__(key)
-
-    def __getattribute__(self, name):
-        if name in object.__getattribute__(self, '_DEPRECATED_FIELDS'):
-            warn(object.__getattribute__(self, '_DEPRECATED_FIELDS')[name], FutureWarning)
-        return super().__getattribute__(name)
 
     def to_pandas(self, index=None, columns=None):
         if columns is None:

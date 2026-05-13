@@ -9,15 +9,16 @@ import json
 import math
 import numbers
 import os
-import shlex
 import tempfile
 from typing import Any, Dict, Iterable, Mapping, Optional
+from warnings import warn
 
 import numpy as np
 import pandas as pd
 
 from xdeps import Table as _XdepsTable
 import xtrack as xt
+from .general import DEPRECATION_INFO_PREP_1_0
 
 from . import json as json_utils
 
@@ -137,6 +138,27 @@ def _parse_headers(text):
 
 
 class Table(_XdepsTable):
+
+    # Messages to be shown when accessing deprecated fields
+    _DEPRECATED_FIELDS = None
+
+    def __getitem__(self, key):
+        depr_fields = object.__getattribute__(self, '_DEPRECATED_FIELDS')
+        if depr_fields is not None:
+            if isinstance(key, (tuple, list)):
+                first_key = key[0]
+            else:
+                first_key = key
+            if first_key in depr_fields:
+                warn(depr_fields[first_key], FutureWarning)
+        return super().__getitem__(key)
+
+    def __getattribute__(self, name):
+        depr_fields = object.__getattribute__(self, '_DEPRECATED_FIELDS')
+        if depr_fields is not None and name in depr_fields:
+            warn(depr_fields[name], FutureWarning)
+        return super().__getattribute__(name)
+
     """Extension of :class:`xdeps.Table` with export/import helpers."""
 
     # ------------------------------------------------------------------
