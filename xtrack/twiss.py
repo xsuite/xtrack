@@ -60,9 +60,9 @@ CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
 
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
-OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length', '_angle_force_body']
+OTHER_FIELDS_FROM_ATTR=['angle', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length', '_angle_force_body']
 OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name', 'parent_type']
-SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle_rad']
+SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle', 'angle_rad']
 
 
 def twiss_line(line, particle_ref=None, method=None,
@@ -329,7 +329,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `dzeta`: longitudinal dispersion vs delta
     Output fields present when `strengths=True` (or `radiation_integrals=True`):
         - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole integrated strengths
-        - `angle_rad`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
+        - `angle`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
           `element_type`, `isthick`, `parent_name`: element properties
     Output fields present when `radiation_analysis=True`:
         - `energy_loss`: energy loss per turn [eV]
@@ -953,7 +953,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 line=line, radiation_method=radiation_method)
         twiss_res._data.update(eneloss_damp_res)
 
-        for kk in ['angle_rad', 'rot_s_rad', 'length', 'radiation_flag']:
+        for kk in ['angle_rad', 'angle', 'rot_s_rad', 'length', 'radiation_flag']:
             if kk not in twiss_res._data:
                 aa = line.attr[kk]
                 twiss_res[kk] = np.concatenate([aa, [aa[0]*0]])
@@ -3738,6 +3738,8 @@ class TwissTable(Table):
                            + DEPRECATION_INFO_PREP_1_0),
         'circumference': ('`circumference` is deprecated, use `line_length` instead.'
                           + DEPRECATION_INFO_PREP_1_0),
+        'angle_rad': ('`angle_rad` is deprecated, use `angle` instead.'
+                      + DEPRECATION_INFO_PREP_1_0),
     }
 
     def __init__(self, *args, **kwargs):
