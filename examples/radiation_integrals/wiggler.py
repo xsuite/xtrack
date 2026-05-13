@@ -5,7 +5,7 @@ import xtrack as xt
 # something for later.
 
 class Wiggler:
-    def __init__(self, period, amplitude, num_periods, angle_rad=0,
+    def __init__(self, period, amplitude, num_periods, angle=0,
                  scheme='121s'):
         # The scheme_library is a list of all the possible schemes that can be
         # used. The scheme determines the order of the dipoles in the wiggler.
@@ -16,7 +16,7 @@ class Wiggler:
         self.wiggler_period = period
         self.wiggler_amplitude = amplitude
         self.wiggler_num_periods = num_periods
-        self.angle_rad = angle_rad
+        self.angle = angle
         self.scheme = scheme
         self.spacing = 0
         self.wiggler = self._build_wiggler_()
@@ -31,36 +31,36 @@ class Wiggler:
                     wiggler += [
                         xt.Bend(length=self.wiggler_period / 4,
                                 k0=-self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad),
+                                rot_s_rad=self.angle),
                         xt.Bend(length=self.wiggler_period / 4,
                                 k0=-self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad),
+                                rot_s_rad=self.angle),
                         xt.Bend(length=self.wiggler_period / 4,
                                 k0=self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad),
+                                rot_s_rad=self.angle),
                         xt.Bend(length=self.wiggler_period / 4,
                                 k0=self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad)
+                                rot_s_rad=self.angle)
                     ]
 
                 elif i == 0:
                     wiggler += [
                         xt.Bend(length=self.wiggler_period / 4,
                                 k0=self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad)
+                                rot_s_rad=self.angle)
                     ]
 
                 else:
                     wiggler += [
                         xt.Bend(length=self.wiggler_period / 4,
                                 k0=-self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad),
+                                rot_s_rad=self.angle),
                         xt.Bend(length=self.wiggler_period / 4,
                                 k0=-self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad),
+                                rot_s_rad=self.angle),
                         xt.Bend(length=self.wiggler_period / 4,
                                 k0=self.wiggler_amplitude, h=0,
-                                rot_s_rad=self.angle_rad)
+                                rot_s_rad=self.angle)
                     ]
 
         if self.scheme == '121a':
@@ -69,16 +69,16 @@ class Wiggler:
                 wiggler += [
                     xt.Bend(length=self.wiggler_period / 4,
                             k0=-sign * self.wiggler_amplitude, h=0,
-                            rot_s_rad=self.angle_rad),
+                            rot_s_rad=self.angle),
                     xt.Bend(length=self.wiggler_period / 4,
                             k0=sign * self.wiggler_amplitude, h=0,
-                            rot_s_rad=self.angle_rad),
+                            rot_s_rad=self.angle),
                     xt.Bend(length=self.wiggler_period / 4,
                             k0=sign * self.wiggler_amplitude, h=0,
-                            rot_s_rad=self.angle_rad),
+                            rot_s_rad=self.angle),
                     xt.Bend(length=self.wiggler_period / 4,
                             k0=-sign * self.wiggler_amplitude, h=0,
-                            rot_s_rad=self.angle_rad)
+                            rot_s_rad=self.angle)
                 ]
 
         print(f'wiggler.shape = {len(wiggler)}')
