@@ -4342,6 +4342,7 @@ class TwissTable(Table):
             itake = slice(1, None, None)
 
         for kk in self._col_names:
+            # Accessing with _data to avoid triggering deprecation warnings
             if (kk == 'name' or kk == 'env_name'
                     or kk in NORMAL_STRENGTHS_FROM_ATTR
                     or kk in SKEW_STRENGTHS_FROM_ATTR
@@ -4349,16 +4350,16 @@ class TwissTable(Table):
                     or kk in OTHER_FIELDS_FROM_TABLE
             ):
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
-                new_data[kk][-1] = self[kk][-1]
+                new_data[kk][-1] = self._data[kk][-1]
             elif kk == 'W_matrix':
                 new_data[kk][:-1, :, :] = new_data[kk][itake, :, :][::-1, :, :]
-                new_data[kk][-1, :, :] = self[kk][0, :, :]
+                new_data[kk][-1, :, :] = self._data[kk][0, :, :]
             else:
                 if kk in ['kin_xprime', 'kin_yprime']:
                     # deprecated fields, to be removed in the future
                     continue # handled separately below for backward compatibility
                 new_data[kk][:-1] = new_data[kk][itake][::-1]
-                new_data[kk][-1] = self[kk][0]
+                new_data[kk][-1] = self._data[kk][0]
 
         out = self.__class__(data=new_data, col_names=self._col_names)
 
