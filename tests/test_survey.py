@@ -169,7 +169,7 @@ def test_survey_with_ref_transformations():
         atol=1e-14
     )
 
-    p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.p0
+    p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.XYZ
 
     xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=1e-14)
@@ -195,7 +195,7 @@ def test_survey_with_ref_transformations():
 
     cols_to_check = [
         'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length',
-        'ex', 'ey', 'ez', 'p0',
+        'ex', 'ey', 'ez', 'XYZ',
     ]
 
     assert sv_mid_with_init.element0 == 13
@@ -214,7 +214,7 @@ def test_survey_with_ref_transformations():
                                 init_at='mid')
 
     p_mid_no_init = tw_init_at_mid.x[:, None] * sv_mid_no_init.ex + \
-                    tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.p0
+                    tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.XYZ
 
     xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
@@ -271,7 +271,7 @@ def test_survey_with_h_and_v_bends():
             9.5 ,  9.5 , 10.   ]),   atol=1e-14
     )
 
-    p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.p0
+    p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.XYZ
 
     xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=5e-14)
     xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=5e-14)
@@ -296,7 +296,7 @@ def test_survey_with_h_and_v_bends():
 
     cols_to_check = [
         'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length',
-        'ex', 'ey', 'ez', 'p0',
+        'ex', 'ey', 'ez', 'XYZ',
     ]
 
     assert sv_mid_with_init.element0 == 13
@@ -315,7 +315,7 @@ def test_survey_with_h_and_v_bends():
                                 init_at='mid')
 
     p_mid_no_init = tw_init_at_mid.x[:, None] * sv_mid_no_init.ex + \
-                    tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.p0
+                    tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.XYZ
 
     xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
@@ -385,7 +385,7 @@ def test_survey_against_madx_cpymad_loader(sandbox_cwd):
     sv = line.survey()
     tw = line.twiss(betx=1, bety=1, x=1e-3, y=2e-3)
 
-    p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
+    p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.XYZ
 
     assert (tw.name == np.array([
         'ss$start', 'drift_0', 'rs2', 'drift_1', 'rx1', 'drift_2', 'rx2',
@@ -490,7 +490,7 @@ def test_survey_transforms_native_loader(sandbox_cwd):
     sv = line.survey()
     tw = line.twiss(betx=1, bety=1, x=1e-3, y=2e-3)
 
-    p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
+    p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.XYZ
     X = p[:, 0]
     Y = p[:, 1]
     Z = p[:, 2]
