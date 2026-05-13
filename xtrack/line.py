@@ -52,6 +52,7 @@ from .match import Action, closed_orbit_correction, match_knob_line, match_line
 from .progress_indicator import progress
 from .slicing import Custom, Slicer, Strategy
 from .survey import survey_from_line
+from .table import Table
 from .tapering import compensate_radiation_energy_loss
 from .trajectory_correction import TrajectoryCorrection
 
@@ -892,7 +893,7 @@ class Line:
 
         Returns
         -------
-        table : xdeps.Table
+        table : LineTable
             Table containing one row per element plus the ``'_end_point'`` row.
 
         Examples
@@ -931,7 +932,7 @@ class Line:
         names_unique = names_table.cols.get_index_unique()
         data['env_name'] = data['name']
         data['name'] = names_unique
-        out = xt.Table(data=data, sep_count='::::')
+        out = LineTable(data=data, sep_count='::::')
         return out
 
     @doc_group("Inspection, Variables and Configuration")
@@ -6177,7 +6178,8 @@ class Line:
                 'length': lambda attr:
                     attr['_own_length'] + attr['_parent_length'] * attr['weight'],
                 '_angle_force_body': _angle_force_body_from_attr,
-                'angle_rad': _angle_rbend_correction_from_attr,
+                'angle': _angle_rbend_correction_from_attr,
+                'angle_rad': _angle_rbend_correction_from_attr, # deprecated
                 '_main_strength': _main_strength_from_attr,
                 'rot_s_rad': lambda attr:
                     attr['_own_rot_s_rad'] + attr['_parent_rot_s_rad']
@@ -6292,7 +6294,7 @@ class Line:
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 '_k5sl_rel': lambda attr: attr['_own_k5sl_rel'] + attr['_parent_k5sl_rel'],
                 'k5sl': lambda attr: attr['_k5sl_no_rel'] + attr['_k5sl_rel'] * attr['_main_strength'],
-                'hkick': lambda attr: attr["angle_rad"] - attr["k0l"],
+                'hkick': lambda attr: attr["angle"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
             }
         )
@@ -6392,6 +6394,14 @@ class Line:
     madng_twiss = doc_group("MAD-NG Integration")(_tw_ng)
     madng_survey = doc_group("MAD-NG Integration")(_survey_ng)
 
+
+class LineTable(Table):
+
+    # Messages to be shown when accessing deprecated fields
+    _DEPRECATED_FIELDS = {
+        'angle_rad': ('`angle_rad` is deprecated, please use `angle` instead'
+                      + DEPRECATION_INFO_PREP_1_0),
+    }
 
 def _deserialize_element(el, class_dict, _buffer):
     eldct = el.copy()
