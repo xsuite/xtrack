@@ -846,7 +846,7 @@ def test_line_attr():
     assert np.all(line.attr['length'] == [1, 0, 6, 10, 12])
     assert np.all(line.attr['k0l'] == [0, 2, 5 * 6 + 7, 0, 0])
     assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])
-    assert np.all(line.attr['angle_rad'] == [0, 8, 0.5 * 6, 0, 0])
+    assert np.all(line.attr['angle'] == [0, 8, 0.5 * 6, 0, 0])
 
 @for_all_test_contexts
 def test_insert_thin_elements_at_s_basic(test_context):
@@ -1106,7 +1106,7 @@ def test_get_strengths(test_context):
             -str_table_rev['k0l', 'mbw.a6l3.b2'] / str_table_rev['length', 'mbw.a6l3.b2'],
             rtol=0, atol=1e-14)
     xo.assert_allclose(line['mbw.a6l3.b2'].h,
-            -str_table_rev['angle_rad', 'mbw.a6l3.b2'] / str_table_rev['length', 'mbw.a6l3.b2'],
+            -str_table_rev['angle', 'mbw.a6l3.b2'] / str_table_rev['length', 'mbw.a6l3.b2'],
             rtol=0, atol=1e-14)
 
     str_table = line.get_strengths(reverse=False) # Takes reverse from twiss_default
@@ -1114,7 +1114,7 @@ def test_get_strengths(test_context):
             str_table['k0l', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
             rtol=0, atol=1e-14)
     xo.assert_allclose(line['mbw.a6l3.b2'].h,
-            str_table['angle_rad', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
+            str_table['angle', 'mbw.a6l3.b2'] / str_table['length', 'mbw.a6l3.b2'],
             rtol=0, atol=1e-14)
 
 

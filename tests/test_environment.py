@@ -528,7 +528,7 @@ def test_assemble_ring():
     xo.assert_allclose(sv_ring.Y[-1], 0, atol=1e-12, rtol=0)
     xo.assert_allclose(sv_ring.Z[-1], 0, atol=1e-12, rtol=0)
 
-    xo.assert_allclose(tt_ring.angle_rad.sum(), 2*np.pi, atol=1e-12, rtol=0)
+    xo.assert_allclose(tt_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
 
     ## Insertion
 
@@ -947,7 +947,7 @@ def test_assemble_ring_builders():
     xo.assert_allclose(sv_ring.Y[-1], 0, atol=1e-12, rtol=0)
     xo.assert_allclose(sv_ring.Z[-1], 0, atol=1e-12, rtol=0)
 
-    xo.assert_allclose(tt_ring.angle_rad.sum(), 2*np.pi, atol=1e-12, rtol=0)
+    xo.assert_allclose(tt_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
 
     ## Insertion
 
@@ -1335,7 +1335,7 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(sv_ring.Y[-1], 0, atol=1e-12, rtol=0)
     xo.assert_allclose(sv_ring.Z[-1], 0, atol=1e-12, rtol=0)
 
-    xo.assert_allclose(tt_ring.angle_rad.sum(), 2*np.pi, atol=1e-12, rtol=0)
+    xo.assert_allclose(tt_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
 
     ## Insertion
 

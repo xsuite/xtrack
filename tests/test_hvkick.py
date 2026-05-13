@@ -21,7 +21,7 @@ def test_hvkick():
     line['b2'].rot_s_rad = -0.8
 
     tt = line.get_table(attr=True)
-    tt.cols['s', 'element_type', 'angle_rad', 'rot_s_rad', 'k0l', 'k0sl', 'hkick', 'vkick']
+    tt.cols['s', 'element_type', 'angle', 'rot_s_rad', 'k0l', 'k0sl', 'hkick', 'vkick']
 
     assert  tt['hkick','k1']==0.3
     assert  tt['vkick','k1']==0.4

@@ -471,10 +471,10 @@ def test_rbend_straight_body_survey_h():
     tw_no_slice_curved = line_no_slice.twiss(betx=1, bety=1)
 
 
-    tt_straight.cols['s element_type angle_rad']
+    tt_straight.cols['s element_type angle']
     # is:
     # Table: 20 rows, 4 cols
-    # name                      s element_type            angle_rad
+    # name                      s element_type            angle
     # start                     0 Marker                          0
     # drift_1..0                0 DriftSlice                      0
     # drift_1..1              0.5 DriftSlice                      0
@@ -512,7 +512,7 @@ def test_rbend_straight_body_survey_h():
         'Marker', ''])
 
     xo.assert_allclose(
-        tt_straight['angle_rad'],
+        tt_straight['angle'],
         np.array([
             0.  , 0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
             0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  ]),
@@ -601,10 +601,10 @@ def test_rbend_straight_body_survey_h():
         -0.15, -0.15]))
 
 
-    tt_curved.cols['s element_type angle_rad']
+    tt_curved.cols['s element_type angle']
     # is:
     # Table: 20 rows, 4 cols
-    # name                      s element_type            angle_rad
+    # name                      s element_type            angle
     # start                     0 Marker                          0
     # drift_1..0                0 DriftSlice                      0
     # drift_1..1              0.5 DriftSlice                      0
@@ -641,7 +641,7 @@ def test_rbend_straight_body_survey_h():
         'Marker', ''])
 
     xo.assert_allclose(
-        tt_curved['angle_rad'],
+        tt_curved['angle'],
         np.array([
         0.        , 0.        , 0.        , 0.        , 0.        ,
         0.00056187, 0.04981271, 0.04981271, 0.04981271, 0.        ,
@@ -960,7 +960,7 @@ def test_rbend_straight_survey_h_angle_diff():
         'ThinSliceRBendExit', 'Marker', 'Drift', 'Marker', ''])
 
     xo.assert_allclose(
-        tt_straight['angle_rad'],
+        tt_straight['angle'],
         np.array([
         0. , 0. , 0. , 0. , 0. , 0. , 0. , 0. , 0. , 0. , 0.3, 0. , 0. ,
         0. , 0. ]),
@@ -1011,7 +1011,7 @@ def test_rbend_straight_survey_h_angle_diff():
         'ThinSliceRBendExit', 'Marker', 'Drift', 'Marker', ''])
 
     xo.assert_allclose(
-        tt_curved['angle_rad'],
+        tt_curved['angle'],
         np.array([
         0.  , 0.  , 0.  , 0.  , 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.  ,
         0.  , 0.  , 0.  , 0.  ]),
@@ -1241,10 +1241,10 @@ def test_rbend_straight_body_survey_v():
     tw_no_slice_curved = line_no_slice.twiss(betx=1, bety=1)
 
 
-    tt_straight.cols['s element_type angle_rad']
+    tt_straight.cols['s element_type angle']
     # is:
     # Table: 20 rows, 4 cols
-    # name                      s element_type            angle_rad
+    # name                      s element_type            angle
     # start                     0 Marker                          0
     # drift_1..0                0 DriftSlice                      0
     # drift_1..1              0.5 DriftSlice                      0
@@ -1282,7 +1282,7 @@ def test_rbend_straight_body_survey_v():
         'Marker', ''])
 
     xo.assert_allclose(
-        tt_straight['angle_rad'],
+        tt_straight['angle'],
         np.array([
             0.  , 0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
             0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  ]),
@@ -1377,10 +1377,10 @@ def test_rbend_straight_body_survey_v():
         -0.15, -0.15]))
 
 
-    tt_curved.cols['s element_type angle_rad']
+    tt_curved.cols['s element_type angle']
     # is:
     # Table: 20 rows, 4 cols
-    # name                      s element_type            angle_rad
+    # name                      s element_type            angle
     # start                     0 Marker                          0
     # drift_1..0                0 DriftSlice                      0
     # drift_1..1              0.5 DriftSlice                      0
@@ -1417,7 +1417,7 @@ def test_rbend_straight_body_survey_v():
         'Marker', ''])
 
     xo.assert_allclose(
-        tt_curved['angle_rad'],
+        tt_curved['angle'],
         np.array([
         0.        , 0.        , 0.        , 0.        , 0.        ,
         0.00056187, 0.04981271, 0.04981271, 0.04981271, 0.        ,
@@ -1694,7 +1694,7 @@ def test_rbend_straight_body_thin_slices_coarse():
         'Marker', ''])
 
     xo.assert_allclose(
-        tt_straight['angle_rad'], np.array([
+        tt_straight['angle'], np.array([
         0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
         0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
         0.  , 0.  , 0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  ]),
@@ -1756,7 +1756,7 @@ def test_rbend_straight_body_thin_slices_coarse():
     assert np.all(sv_curved['element_type'] == sv_straight['element_type'])
 
     xo.assert_allclose(
-        tt_curved['angle_rad'],
+        tt_curved['angle'],
         np.array([
         0.  , 0.  , 0.  , 0.  , 0.  , 0.03, 0.  , 0.03, 0.  , 0.03, 0.  ,
         0.03, 0.  , 0.03, 0.  , 0.  , 0.  , 0.03, 0.  , 0.03, 0.  , 0.03,
@@ -2425,7 +2425,7 @@ def test_rbend_straight_body_chicane_h(edge_model):
     assert np.all(sv.element_type ==
             ['Marker', 'Drift', 'RBend', 'Drift', 'RBend', 'Drift', 'RBend',
         'Drift', 'Marker', ''])
-    xo.assert_allclose(tt.angle_rad, np.array([
+    xo.assert_allclose(tt.angle, np.array([
             0.        ,  0.        , -0.08249992,  0.        , -0.08306823,
             0.        ,  0.16556815,  0.        ,  0.        ,  0.        ]),
             rtol=1e-7)
@@ -2481,7 +2481,7 @@ def test_rbend_straight_body_chicane_h(edge_model):
         'ThickSliceRBend', 'ThickSliceRBend', 'ThinSliceRBendExit',
         'Marker', 'Drift', 'Marker', '']))
 
-    xo.assert_allclose(tt_sliced.angle_rad, np.array([
+    xo.assert_allclose(tt_sliced.angle, np.array([
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00, -8.24999219e-02,
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  8.24999219e-02,
@@ -2731,7 +2731,7 @@ def test_rbend_straight_body_chicane_v(edge_model):
     assert np.all(sv.element_type ==
             ['Marker', 'Drift', 'RBend', 'Drift', 'RBend', 'Drift', 'RBend',
         'Drift', 'Marker', ''])
-    xo.assert_allclose(tt.angle_rad, np.array([
+    xo.assert_allclose(tt.angle, np.array([
             0.        ,  0.        , -0.08249992,  0.        , -0.08306823,
             0.        ,  0.16556815,  0.        ,  0.        ,  0.        ]),
             rtol=1e-7)
@@ -2787,7 +2787,7 @@ def test_rbend_straight_body_chicane_v(edge_model):
         'ThickSliceRBend', 'ThickSliceRBend', 'ThinSliceRBendExit',
         'Marker', 'Drift', 'Marker', '']))
 
-    xo.assert_allclose(tt_sliced.angle_rad, np.array([
+    xo.assert_allclose(tt_sliced.angle, np.array([
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00, -8.24999219e-02,
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  8.24999219e-02,
