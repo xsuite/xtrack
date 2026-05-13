@@ -31,7 +31,7 @@ line.configure_drift_model(model='exact')
 sv = line.survey()
 tw = line.twiss4d(_continue_if_lost=True, betx=1, bety=1, x=1e-3, y=2e-3)
 
-p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
+p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.XYZ
 X = p[:, 0]
 Y = p[:, 1]
 Z = p[:, 2]
@@ -42,7 +42,7 @@ Z = p[:, 2]
 
 sv_no_arg = line.survey()
 
-p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.p0
+p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.XYZ
 
 sv_mid_with_init = line.survey(element0='mid',
                           Z0=sv_no_arg['Z', 'mid'],
@@ -60,20 +60,13 @@ sv_right_with_init = line.survey(element0='right',
                             theta0=sv_no_arg['theta', 'right'],
                             psi0=sv_no_arg['psi', 'right'])
 
-cols_to_check = [
-    'X', 'Y', 'Z', 'theta', 'phi', 'psi', 's', 'drift_length', 'angle', 'rot_s_rad',
-    'ref_shift_x', 'ref_shift_y', 'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad',
-    'ex', 'ey', 'ez', 'p0',
-]
-
-
 # Check with no starting from 0 in the middle
 sv_mid_no_init = line.survey(element0='mid')
 tw_init_at_mid = line.twiss4d(betx=1, bety=1, x=1e-3, y=2e-3,
                               init_at='mid')
 
 p_mid_no_init = tw_init_at_mid.x[:, None] * sv_mid_no_init.ex + \
-                tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.p0
+                tw_init_at_mid.y[:, None] * sv_mid_no_init.ey + sv_mid_no_init.XYZ
 
 import matplotlib.pyplot as plt
 plt.close('all')
