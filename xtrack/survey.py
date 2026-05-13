@@ -10,6 +10,7 @@
 import numpy as np
 
 from .table import Table
+from .general import DEPRECATION_INFO_PREP_1_0
 
 # Required functions
 # ==================================================
@@ -161,6 +162,13 @@ class SurveyTable(Table):
     """
     Table for survey data.
     """
+
+    _DEPRECATED_FIELDS = {
+        'p0': ('`p0` is deprecated, please use `XYZ` instead'
+                      + DEPRECATION_INFO_PREP_1_0),
+        'W': ('`W` is deprecated, please use `E_matrix` instead'
+                      + DEPRECATION_INFO_PREP_1_0)
+    }
 
     _error_on_row_not_found = True
 
