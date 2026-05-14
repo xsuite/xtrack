@@ -69,20 +69,25 @@ def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
         warnings.simplefilter('always')
         rfm = xt.RFMultipole(
             knl=[1],
+            phase=0.3,
             phase_n=[0.1],
             phase_s=[0.2],
         )
     assert len(record) == 0
+    xo.assert_allclose(rfm.phase, 0.3)
     xo.assert_allclose(rfm.phase_n[0], 0.1)
     xo.assert_allclose(rfm.phase_s[0], 0.2)
 
     rfm_dict = rfm.to_dict()
+    assert 'phase' in rfm_dict
     assert 'phase_n' in rfm_dict
     assert 'phase_s' in rfm_dict
+    xo.assert_allclose(rfm_dict['phase'], 0.3)
     xo.assert_allclose(rfm_dict['phase_n'][0], 0.1)
     xo.assert_allclose(rfm_dict['phase_s'][0], 0.2)
 
     rfm_from_dict = xt.RFMultipole.from_dict(rfm_dict)
+    xo.assert_allclose(rfm_from_dict.phase, 0.3)
     xo.assert_allclose(rfm_from_dict.phase_n[0], 0.1)
     xo.assert_allclose(rfm_from_dict.phase_s[0], 0.2)
 
@@ -99,6 +104,12 @@ def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
 
     with pytest.warns(FutureWarning, match='`pn`'):
         rfm.pn = [0, 2, 0, 0, 0, 0]
+
+    with pytest.warns(FutureWarning, match='`lag`'):
+        rfm = xt.RFMultipole(knl=[1], lag=1)
+
+    with pytest.warns(FutureWarning, match='`lag`'):
+        rfm.lag = 2
 
 
 @pytest.mark.parametrize('phase_arg', ['pn', 'ps', 'phase_n', 'phase_s'])
@@ -160,6 +171,45 @@ def test_rfmultipole_phase_n_s_are_summed_with_pn_ps_in_tracking():
     for nn in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
         xo.assert_allclose(getattr(p_new, nn), getattr(p_ref, nn),
                            rtol=1e-14, atol=1e-14)
+
+
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+def test_rfmultipole_phase_is_summed_with_lag_in_tracking():
+    ctx = xo.ContextCpu()
+    phase = 0.23
+
+    elem_phase = xt.RFMultipole(
+        _context=ctx,
+        knl=[0],
+        voltage=1000,
+        frequency=400e6,
+        phase=phase,
+    )
+    elem_lag = xt.RFMultipole(
+        _context=ctx,
+        knl=[0],
+        voltage=1000,
+        frequency=400e6,
+        lag=np.rad2deg(phase),
+    )
+
+    particles = xp.Particles(
+        _context=ctx,
+        p0c=1e9,
+        zeta=[0.02],
+    )
+
+    line_phase = xt.Line(elements=[elem_phase])
+    line_lag = xt.Line(elements=[elem_lag])
+    line_phase.build_tracker(_context=ctx)
+    line_lag.build_tracker(_context=ctx)
+
+    p_phase = particles.copy()
+    p_lag = particles.copy()
+    line_phase.track(p_phase)
+    line_lag.track(p_lag)
+
+    xo.assert_allclose(p_phase.delta, p_lag.delta, rtol=1e-14, atol=1e-14)
 
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')

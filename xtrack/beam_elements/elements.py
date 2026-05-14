@@ -3727,8 +3727,10 @@ class RFMultipole(_HasKnlKsl, BeamElement):
         Deprecated. Phase of the skew components in degrees.
     voltage : float
         Longitudinal voltage. Default is ``0``.
+    phase : float
+        Longitudinal phase in radians seen by the reference particle. Default is ``0``.
     lag : float
-        Longitudinal phase seen by the reference particle. Default is ``0``.
+        Deprecated longitudinal phase in degrees, added to `phase`. Default is ``0``.
     """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _for_docstring_alignment, '\n',
@@ -3738,6 +3740,7 @@ class RFMultipole(_HasKnlKsl, BeamElement):
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
+        'phase': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
@@ -3760,6 +3763,7 @@ class RFMultipole(_HasKnlKsl, BeamElement):
 
     _rename = {
         'order': '_order',
+        'lag': '_lag',
         'pn': '_pn',
         'ps': '_ps',
     }
@@ -3772,12 +3776,31 @@ class RFMultipole(_HasKnlKsl, BeamElement):
 
         pn = kwargs.get('pn')
         ps = kwargs.get('ps')
+        lag = kwargs.pop('lag', None)
         if pn is not None:
             self._warn_if_deprecated_phase_is_nonzero(pn, 'pn', 'phase_n')
         if ps is not None:
             self._warn_if_deprecated_phase_is_nonzero(ps, 'ps', 'phase_s')
 
         super().__init__(**kwargs)
+
+        if lag is not None:
+            self.lag = lag
+
+    @property
+    def lag(self):
+        return self._lag
+
+    @lag.setter
+    def lag(self, value):
+        if value != 0:
+            warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
+                 "Please use `phase` (in radians) instead. "
+                 "Note that if both `lag` and `phase` are set, the effect is the sum of the two,"
+                 " with `lag` converted to radians. "
+                 + DEPRECATION_INFO_PREP_1_0,
+                 FutureWarning, stacklevel=2)
+        self._lag = value
 
     @property
     def pn(self):

@@ -184,6 +184,7 @@ class RFMultipole(Element):
         ("voltage", "volt", "Voltage", 0),
         ("frequency", "hertz", "Frequency", 0),
         ("lag", "degree", "Delay in the cavity sin(lag - w tau)", 0),
+        ("phase", "rad", "Phase of the cavity", 0),
         ("knl", "", "...", lambda: [0]),
         ("ksl", "", "...", lambda: [0]),
         ("pn", "", "...", lambda: [0]),
@@ -246,7 +247,7 @@ class RFMultipole(Element):
         chi = p.chi
         p.px += -chi * dpx
         p.py += chi * dpy
-        dv0 = self.voltage * sin(self.lag * deg2rad - ktau)
+        dv0 = self.voltage * sin(self.phase + self.lag * deg2rad - ktau)
         p.add_to_energy(p.charge_ratio * p.q0 * (dv0 - p.p0c * k * dptr))
 
 
