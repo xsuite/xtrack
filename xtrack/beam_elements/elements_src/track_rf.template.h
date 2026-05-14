@@ -32,6 +32,8 @@ void track_rf_kick_single_particle(
     GPUGLMEM const double* ksl,
     GPUGLMEM const double* pn,
     GPUGLMEM const double* ps,
+    GPUGLMEM const double* phase_n,
+    GPUGLMEM const double* phase_s,
     const uint8_t kill_energy_kick
 ){
 
@@ -80,8 +82,8 @@ void track_rf_kick_single_particle(
                 factorial *= kk;
             }
 
-            double const pn_kk = phase0 + DEG2RAD * pn[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
-            double const ps_kk = phase0 + DEG2RAD * ps[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
+            double const pn_kk = phase0 + DEG2RAD * pn[kk] + phase_n[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
+            double const ps_kk = phase0 + DEG2RAD * ps[kk] + phase_s[kk] - (2.0 * PI) / C_LIGHT * frequency * tau;
 
             double bal_n_kk = factor_knl_ksl * knl[kk]/factorial;
             double bal_s_kk = factor_knl_ksl * ksl[kk]/factorial;
@@ -184,6 +186,8 @@ void track_rf_body_single_particle(
     GPUGLMEM const double* ksl,
     GPUGLMEM const double* pn,
     GPUGLMEM const double* ps,
+    GPUGLMEM const double* phase_n,
+    GPUGLMEM const double* phase_s,
     const int64_t num_kicks,
     const int8_t drift_model,
     const int8_t integrator,
@@ -195,7 +199,7 @@ void track_rf_body_single_particle(
             part, voltage * (kick_weight), frequency, harmonic, lag, phase,\
             transverse_voltage * (kick_weight), transverse_lag, transverse_phase,\
             absolute_time, order, \
-            factor_knl_ksl * (kick_weight), knl, ksl, pn, ps,\
+            factor_knl_ksl * (kick_weight), knl, ksl, pn, ps, phase_n, phase_s,\
             kill_energy_kick\
         )
 
@@ -247,6 +251,8 @@ void track_rf_particles(
     GPUGLMEM const double* ksl,
     GPUGLMEM const double* pn,
     GPUGLMEM const double* ps,
+    GPUGLMEM const double* phase_n,
+    GPUGLMEM const double* phase_s,
     int64_t num_kicks,
     int8_t model,
     int8_t default_model,
@@ -352,6 +358,8 @@ void track_rf_particles(
                 ksl,
                 pn,
                 ps,
+                phase_n,
+                phase_s,
                 num_kicks,
                 drift_model,
                 integrator,

@@ -6,6 +6,7 @@
 import numpy as np
 import pytest
 import pathlib
+import warnings
 from cpymad.madx import Madx
 from scipy.stats import linregress
 from scipy import constants as cst
@@ -61,6 +62,94 @@ def test_constructor(test_context):
         assert (ee._xobject._buffer.buffer[ee._xobject._offset:ee._xobject._size]
                 - nee._xobject._buffer.buffer[
                     nee._xobject._offset:nee._xobject._size]).sum() == 0
+
+
+def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter('always')
+        rfm = xt.RFMultipole(
+            knl=[1],
+            phase_n=[0.1],
+            phase_s=[0.2],
+        )
+    assert len(record) == 0
+    xo.assert_allclose(rfm.phase_n[0], 0.1)
+    xo.assert_allclose(rfm.phase_s[0], 0.2)
+
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter('always')
+        xt.RFMultipole(knl=[1], pn=[0], ps=[0])
+    assert len(record) == 0
+
+    with pytest.warns(FutureWarning, match='`pn`'):
+        rfm = xt.RFMultipole(knl=[1], pn=[1])
+
+    with pytest.warns(FutureWarning, match='`ps`'):
+        rfm.ps[0] = 1
+
+    with pytest.warns(FutureWarning, match='`pn`'):
+        rfm.pn = [0, 2, 0, 0, 0, 0]
+
+
+@pytest.mark.parametrize('phase_arg', ['pn', 'ps', 'phase_n', 'phase_s'])
+def test_rf_phase_arguments_are_rejected_on_non_rf_multipoles(phase_arg):
+    with pytest.raises(NameError, match=phase_arg):
+        xt.Multipole(knl=[1], **{phase_arg: [0]})
+
+
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+def test_rfmultipole_phase_n_s_are_summed_with_pn_ps_in_tracking():
+    ctx = xo.ContextCpu()
+
+    knl = [0.1, 0.2]
+    ksl = [-0.15, 0.05]
+    pn = np.array([10., 20.])
+    ps = np.array([30., 40.])
+    phase_n = np.array([0.11, 0.22])
+    phase_s = np.array([0.33, 0.44])
+
+    elem_new = xt.RFMultipole(
+        _context=ctx,
+        knl=knl,
+        ksl=ksl,
+        pn=pn,
+        ps=ps,
+        phase_n=phase_n,
+        phase_s=phase_s,
+        frequency=400e6,
+    )
+    elem_ref = xt.RFMultipole(
+        _context=ctx,
+        knl=knl,
+        ksl=ksl,
+        pn=pn + np.rad2deg(phase_n),
+        ps=ps + np.rad2deg(phase_s),
+        frequency=400e6,
+    )
+
+    particles = xp.Particles(
+        _context=ctx,
+        p0c=1e9,
+        x=[1e-3],
+        px=[2e-5],
+        y=[-2e-3],
+        py=[-3e-5],
+        zeta=[0.02],
+    )
+
+    line_new = xt.Line(elements=[elem_new])
+    line_ref = xt.Line(elements=[elem_ref])
+    line_new.build_tracker(_context=ctx)
+    line_ref.build_tracker(_context=ctx)
+
+    p_new = particles.copy()
+    p_ref = particles.copy()
+    line_new.track(p_new)
+    line_ref.track(p_ref)
+
+    for nn in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
+        xo.assert_allclose(getattr(p_new, nn), getattr(p_ref, nn),
+                           rtol=1e-14, atol=1e-14)
 
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')

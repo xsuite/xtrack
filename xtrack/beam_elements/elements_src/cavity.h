@@ -29,6 +29,8 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0)
         /*ksl*/                   NULL,
         /*pn*/                    NULL,
         /*ps*/                    NULL,
+        /*phase_n*/               NULL,
+        /*phase_s*/               NULL,
         /*num_kicks*/             CavityData_get_num_kicks(el),
         /*model*/                 CavityData_get_model(el),
         /*default_model*/         6, // drift-kick-drift-expanded

@@ -32,6 +32,8 @@ void ThinSliceCrabCavity_track_local_particle(ThinSliceCrabCavityData el, LocalP
         /*ksl*/                   NULL,
         /*pn*/                    NULL,
         /*ps*/                    NULL,
+        /*phase_n*/               NULL,
+        /*phase_s*/               NULL,
         /*num_kicks*/             1, // kick only
         /*model*/                 -1, // kick only
         /*default_model*/         6, // drift-kick-drift-expanded

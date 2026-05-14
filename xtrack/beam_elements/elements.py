@@ -421,10 +421,20 @@ class _HasKnlKsl:
         ksl = kwargs.pop('ksl', None)
         pn = kwargs.pop('pn', None) # Phase for RF multipoles
         ps = kwargs.pop('ps', None) # Phase for RF multipoles
+        phase_n = kwargs.pop('phase_n', None) # Phase for RF multipoles
+        phase_s = kwargs.pop('phase_s', None) # Phase for RF multipoles
+
+        for nn, vv in {
+                'pn': pn, 'ps': ps,
+                'phase_n': phase_n, 'phase_s': phase_s}.items():
+            if vv is not None and nn not in self._xofields:
+                raise NameError(f"Invalid keyword argument `{nn}`")
 
         order = order or DEFAULT_MULTIPOLE_ORDER
         multipolar_kwargs = self._prepare_multipolar_params(order,
-                                            knl=knl, ksl=ksl, pn=pn, ps=ps)
+                                            knl=knl, ksl=ksl,
+                                            pn=pn, ps=ps,
+                                            phase_n=phase_n, phase_s=phase_s)
         kwargs.update(multipolar_kwargs)
 
         model = kwargs.pop('model', None)
@@ -441,6 +451,26 @@ class _HasKnlKsl:
 
         if integrator is not None:
             self.integrator = integrator
+
+    @staticmethod
+    def _warn_if_deprecated_phase_is_nonzero(value, name, new_name):
+
+        need_warn = False
+        if np.isscalar(value) and value != 0:
+            need_warn = True
+        elif not np.isscalar(value):
+            for v in value:
+                if v != 0:
+                    need_warn = True
+                    break
+
+        if need_warn:
+            warn(f'`{name}` (in degrees) is deprecated and will be removed '
+                 f'in a future version. Please use `{new_name}` (in radians) '
+                 f'instead. Note that if both `{name}` and `{new_name}` are '
+                 f'set, the effect is the sum of the two with `{name}` '
+                 f'converted to radians.',
+                 FutureWarning, stacklevel=2)
 
     def _prepare_multipolar_params(
         self,
@@ -3687,10 +3717,14 @@ class RFMultipole(_HasKnlKsl, BeamElement):
         Integrated strength of the skew rf-multipole components in units of m^-n.
     order : int
         Order of the multipole. If not provided, it will be inferred from knl and/or ksl.
+    phase_n : array
+        Phase of the normal components in radians.
+    phase_s : array
+        Phase of the skew components in radians.
     pn : array
-        Phase of the normal components in degrees.
+        Deprecated. Phase of the normal components in degrees.
     ps : array
-        Phase of the skew components in degrees.
+        Deprecated. Phase of the skew components in degrees.
     voltage : float
         Longitudinal voltage. Default is ``0``.
     lag : float
@@ -3710,6 +3744,8 @@ class RFMultipole(_HasKnlKsl, BeamElement):
         'ksl': xo.Float64[:],
         'pn': xo.Float64[:],
         'ps': xo.Float64[:],
+        'phase_n': xo.Float64[:],
+        'phase_s': xo.Float64[:],
         'absolute_time': xo.Int64,
     }
 
@@ -3724,7 +3760,56 @@ class RFMultipole(_HasKnlKsl, BeamElement):
 
     _rename = {
         'order': '_order',
+        'pn': '_pn',
+        'ps': '_ps',
     }
+
+    def __init__(self, **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        pn = kwargs.get('pn')
+        ps = kwargs.get('ps')
+        if pn is not None:
+            self._warn_if_deprecated_phase_is_nonzero(pn, 'pn', 'phase_n')
+        if ps is not None:
+            self._warn_if_deprecated_phase_is_nonzero(ps, 'ps', 'phase_s')
+
+        super().__init__(**kwargs)
+
+    @property
+    def pn(self):
+        return self._buffer.context.linked_array_type.from_array(
+            self._pn,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_pn_setitem')
+
+    @pn.setter
+    def pn(self, value):
+        self.pn[:] = value
+
+    def _pn_setitem(self, index, value):
+        self._warn_if_deprecated_phase_is_nonzero(value, 'pn', 'phase_n')
+        self._pn[index] = value
+
+    @property
+    def ps(self):
+        return self._buffer.context.linked_array_type.from_array(
+            self._ps,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_ps_setitem')
+
+    @ps.setter
+    def ps(self, value):
+        self.ps[:] = value
+
+    def _ps_setitem(self, index, value):
+        self._warn_if_deprecated_phase_is_nonzero(value, 'ps', 'phase_s')
+        self._ps[index] = value
 
 
 class DipoleEdge(BeamElement):

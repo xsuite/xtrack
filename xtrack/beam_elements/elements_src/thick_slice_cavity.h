@@ -32,6 +32,8 @@ void ThickSliceCavity_track_local_particle(ThickSliceCavityData el, LocalParticl
         /*ksl*/                   NULL,
         /*pn*/                    NULL,
         /*ps*/                    NULL,
+        /*phase_n*/               NULL,
+        /*phase_s*/               NULL,
         /*num_kicks*/             ThickSliceCavityData_get__parent_num_kicks(el),
         /*model*/                 ThickSliceCavityData_get__parent_model(el),
         /*default_model*/         6, // drift-kick-drift-expanded
