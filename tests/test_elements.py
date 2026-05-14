@@ -76,6 +76,16 @@ def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
     xo.assert_allclose(rfm.phase_n[0], 0.1)
     xo.assert_allclose(rfm.phase_s[0], 0.2)
 
+    rfm_dict = rfm.to_dict()
+    assert 'phase_n' in rfm_dict
+    assert 'phase_s' in rfm_dict
+    xo.assert_allclose(rfm_dict['phase_n'][0], 0.1)
+    xo.assert_allclose(rfm_dict['phase_s'][0], 0.2)
+
+    rfm_from_dict = xt.RFMultipole.from_dict(rfm_dict)
+    xo.assert_allclose(rfm_from_dict.phase_n[0], 0.1)
+    xo.assert_allclose(rfm_from_dict.phase_s[0], 0.2)
+
     with warnings.catch_warnings(record=True) as record:
         warnings.simplefilter('always')
         xt.RFMultipole(knl=[1], pn=[0], ps=[0])
