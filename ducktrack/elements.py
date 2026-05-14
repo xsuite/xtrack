@@ -175,8 +175,8 @@ class RFMultipole(Element):
     """
     H= -l sum   Re[ (kn[n](zeta) + i ks[n](zeta) ) (x+iy)**(n+1)/ n ]
 
-    kn[n](z) = k_n cos(2pi w tau + pn/180*pi)
-    ks[n](z) = k_n cos(2pi w tau + pn/180*pi)
+    kn[n](z) = k_n cos(2pi w tau + pn/180*pi + phase_n)
+    ks[n](z) = k_n cos(2pi w tau + ps/180*pi + phase_s)
 
     """
 
@@ -188,11 +188,17 @@ class RFMultipole(Element):
         ("ksl", "", "...", lambda: [0]),
         ("pn", "", "...", lambda: [0]),
         ("ps", "", "...", lambda: [0]),
+        ("phase_n", "rad", "...", lambda: [0]),
+        ("phase_s", "rad", "...", lambda: [0]),
     ]
 
     @property
     def order(self):
-        return max(len(self.knl), len(self.ksl)) - 1
+        return max(
+            len(self.knl), len(self.ksl),
+            len(self.pn), len(self.ps),
+            len(self.phase_n), len(self.phase_s),
+        ) - 1
 
     def track(self, p):
         sin = p._m.sin
@@ -207,6 +213,8 @@ class RFMultipole(Element):
         ksl = _arrayofsize(self.ksl, order + 1)
         pn = _arrayofsize(self.pn, order + 1) * deg2rad
         ps = _arrayofsize(self.ps, order + 1) * deg2rad
+        phase_n = _arrayofsize(self.phase_n, order + 1)
+        phase_s = _arrayofsize(self.phase_s, order + 1)
         x = p.x
         y = p.y
         dpx = 0
@@ -215,8 +223,8 @@ class RFMultipole(Element):
         zre = 1
         zim = 0
         for ii in range(order + 1):
-            pn_ii = pn[ii] - ktau
-            ps_ii = ps[ii] - ktau
+            pn_ii = pn[ii] + phase_n[ii] - ktau
+            ps_ii = ps[ii] + phase_s[ii] - ktau
             cn = cos(pn_ii)
             sn = sin(pn_ii)
             cs = cos(ps_ii)
