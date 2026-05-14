@@ -2496,6 +2496,13 @@ class Line:
 
     @doc_group("Deprecated Methods")
     def compute_T_matrix(self, *args, **kwargs):
+        """
+        Compute the second order tensor of the beamline.
+
+        .. warning:: This method is deprecated and will be removed in future versions. Please use `get_T_matrix()` instead.
+
+        """
+
         warn(
             '`Line.compute_T_matrix()` is deprecated and will be removed in '
             'future versions. Please use `Line.get_T_matrix()` instead.'
@@ -2765,6 +2772,13 @@ class Line:
 
     @doc_group("Deprecated Methods")
     def compute_R_matrix(self, *args, **kwargs):
+
+        '''Compute the one turn matrix using finite differences.
+
+        .. warning:: This function is deprecated and will be removed in a future version. Please use Line.get_R_matrix(...) instead.
+
+        '''
+
         warn(
             '`Line.compute_R_matrix()` is deprecated and will be removed in '
             'future versions. Please use `Line.get_R_matrix()` instead.'
