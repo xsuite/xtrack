@@ -8,6 +8,7 @@
 
 
 import numpy as np
+from warnings import warn
 
 from .table import Table
 from .general import DEPRECATION_INFO_PREP_1_0
@@ -212,7 +213,7 @@ class SurveyTable(Table):
         new_E_matrix[:, :, 0] *= -1
         new_E_matrix[:, :, 2] *= -1
 
-        derived_quantities = _compute_survey_quantities_from_v_w(new_V, new_E_matrix)
+        derived_quantities = _get_survey_quantities_from_v_w(new_V, new_E_matrix)
         new_cols.update(derived_quantities)
 
         out = SurveyTable(
@@ -306,7 +307,7 @@ def survey_from_line(
     if isinstance(element0, str):
         element0 = line.element_names.index(element0)
 
-    V, E_matrix = compute_survey(
+    V, E_matrix = get_survey(
         elements        = line._elements,
         X0              = X0,
         Y0              = Y0,
@@ -319,7 +320,7 @@ def survey_from_line(
         tilt            = tilt[:-1],
         element0        = element0)
 
-    derived_quantities = _compute_survey_quantities_from_v_w(V, E_matrix)
+    derived_quantities = _get_survey_quantities_from_v_w(V, E_matrix)
 
     out_columns = derived_quantities
     out_scalars = {}
@@ -343,7 +344,7 @@ def survey_from_line(
     return out
 
 
-def compute_survey(
+def get_survey(
         elements,
         X0, Y0, Z0, theta0, phi0, psi0,
         drift_length, angle, tilt,
@@ -362,7 +363,7 @@ def compute_survey(
         tilt_forward            = tilt[element0:]
 
         # Evaluate forward survey
-        (V_forward, E_forward)    = compute_survey(
+        (V_forward, E_forward)    = get_survey(
             elements        = elements_forward,
             X0              = X0,
             Y0              = Y0,
@@ -381,7 +382,7 @@ def compute_survey(
         angle_backward          = np.array(angle[:element0][::-1])
         tilt_backward           = np.array(tilt[:element0][::-1])
         # Evaluate backward survey
-        (V_backward, E_backward)   = compute_survey(
+        (V_backward, E_backward)   = get_survey(
             elements        = elements_backward,
             X0              = X0,
             Y0              = Y0,
@@ -447,7 +448,17 @@ def compute_survey(
     return V, E_matrix
 
 
-def _compute_survey_quantities_from_v_w(V, E_matrix):
+def compute_survey(*args, **kwargs):
+    warn(
+        '`compute_survey()` is deprecated and will be removed in future '
+        'versions. Please use `get_survey()` instead.'
+        + DEPRECATION_INFO_PREP_1_0,
+        FutureWarning,
+    )
+    return get_survey(*args, **kwargs)
+
+
+def _get_survey_quantities_from_v_w(V, E_matrix):
 
     E_matrix = np.array(E_matrix)
     V = np.array(V)

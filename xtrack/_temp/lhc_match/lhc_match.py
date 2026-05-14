@@ -1,6 +1,8 @@
 import numpy as np
+from warnings import warn
 
 import xtrack as xt
+from xtrack.general import DEPRECATION_INFO_PREP_1_0
 
 ARC_NAMES = ['12', '23', '34', '45', '56', '67', '78', '81']
 
@@ -117,7 +119,7 @@ def match_arc_phase_advance(collider, arc_name,
     return opt
 
 
-def compute_ats_phase_advances_for_auxiliary_irs(line_name,
+def get_ats_phase_advances_for_auxiliary_irs(line_name,
         tw_sq_a81_ip1_a12, tw_sq_a45_ip5_a56,
         muxip1_l, muyip1_l, muxip1_r, muyip1_r,
         muxip5_l, muyip5_l, muxip5_r, muyip5_r,
@@ -158,6 +160,17 @@ def compute_ats_phase_advances_for_auxiliary_irs(line_name,
 
     return (mux_ir2_target, muy_ir2_target, mux_ir4_target, muy_ir4_target,
             mux_ir6_target, muy_ir6_target, mux_ir8_target, muy_ir8_target)
+
+
+def compute_ats_phase_advances_for_auxiliary_irs(*args, **kwargs):
+    warn(
+        '`compute_ats_phase_advances_for_auxiliary_irs()` is deprecated and '
+        'will be removed in future versions. Please use '
+        '`get_ats_phase_advances_for_auxiliary_irs()` instead.'
+        + DEPRECATION_INFO_PREP_1_0,
+        FutureWarning,
+    )
+    return get_ats_phase_advances_for_auxiliary_irs(*args, **kwargs)
 
 
 def propagate_optics_from_beta_star(collider, ip_name, line_name,

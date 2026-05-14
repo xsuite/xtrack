@@ -28,7 +28,7 @@ for n_steps in n_steps_vect:
                                             s_end=sf.s4,
                                             n_steps=n_steps)
     line = xt.Line(elements=[integrator])
-    R_obj = line.compute_R_matrix(particle_on_co=p0.copy(),
+    R_obj = line.get_R_matrix(particle_on_co=p0.copy(),
                                   include_collective=True
                                   )
 

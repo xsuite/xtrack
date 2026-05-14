@@ -1,4 +1,5 @@
 from typing import Collection, List, Tuple, Union, get_args
+from warnings import warn
 
 import numpy as np
 
@@ -7,6 +8,7 @@ from xobjects.context import XContext
 from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
 from xtrack.twiss import TwissTable
+from xtrack.general import DEPRECATION_INFO_PREP_1_0
 
 FloatType = xo.Float64
 
@@ -374,7 +376,7 @@ class ApertureModel(xo.Struct):
                 xo.Arg(xo.Int8, pointer=True, name='is_convex'),
             ],
         ),
-        'compute_max_aperture_sigma_bisection': xo.Kernel(
+        'get_max_aperture_sigma_bisection': xo.Kernel(
             c_name='compute_max_aperture_sigma_bisection',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
@@ -390,7 +392,7 @@ class ApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='sigmas'),
             ],
         ),
-        'compute_max_aperture_sigma_rays': xo.Kernel(
+        'get_max_aperture_sigma_rays': xo.Kernel(
             c_name='compute_max_aperture_sigma_rays',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
@@ -408,7 +410,7 @@ class ApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='sigmas'),
             ],
         ),
-        'compute_max_aperture_sigma_exact': xo.Kernel(
+        'get_max_aperture_sigma_exact': xo.Kernel(
             c_name='compute_max_aperture_sigma_exact',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
@@ -426,7 +428,7 @@ class ApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='sigmas'),
             ],
         ),
-        'compute_beam_envelopes_at_sigma': xo.Kernel(
+        'get_beam_envelopes_at_sigma': xo.Kernel(
             c_name='compute_beam_envelopes_at_sigma',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
@@ -543,21 +545,61 @@ class ApertureModel(xo.Struct):
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.cross_sections_at_s(model=self, is_convex=is_convex, **kwargs)
 
-    def compute_max_aperture_sigma_bisection(self, **kwargs) -> None:
+    def get_max_aperture_sigma_bisection(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.compute_max_aperture_sigma_bisection(model=self, **kwargs)
+        self._context.kernels.get_max_aperture_sigma_bisection(model=self, **kwargs)
+
+    def compute_max_aperture_sigma_bisection(self, **kwargs) -> None:
+        warn(
+            '`ApertureModel.compute_max_aperture_sigma_bisection()` is '
+            'deprecated and will be removed in future versions. Please use '
+            '`ApertureModel.get_max_aperture_sigma_bisection()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_max_aperture_sigma_bisection(**kwargs)
+
+    def get_max_aperture_sigma_rays(self, **kwargs) -> None:
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.get_max_aperture_sigma_rays(model=self, **kwargs)
 
     def compute_max_aperture_sigma_rays(self, **kwargs) -> None:
+        warn(
+            '`ApertureModel.compute_max_aperture_sigma_rays()` is deprecated '
+            'and will be removed in future versions. Please use '
+            '`ApertureModel.get_max_aperture_sigma_rays()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_max_aperture_sigma_rays(**kwargs)
+
+    def get_max_aperture_sigma_exact(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.compute_max_aperture_sigma_rays(model=self, **kwargs)
+        self._context.kernels.get_max_aperture_sigma_exact(model=self, **kwargs)
 
     def compute_max_aperture_sigma_exact(self, **kwargs) -> None:
+        warn(
+            '`ApertureModel.compute_max_aperture_sigma_exact()` is deprecated '
+            'and will be removed in future versions. Please use '
+            '`ApertureModel.get_max_aperture_sigma_exact()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_max_aperture_sigma_exact(**kwargs)
+
+    def get_beam_envelopes_at_sigma(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.compute_max_aperture_sigma_exact(model=self, **kwargs)
+        self._context.kernels.get_beam_envelopes_at_sigma(model=self, **kwargs)
 
     def compute_beam_envelopes_at_sigma(self, **kwargs) -> None:
-        self.compile_kernels(only_if_needed=True)
-        self._context.kernels.compute_beam_envelopes_at_sigma(model=self, **kwargs)
+        warn(
+            '`ApertureModel.compute_beam_envelopes_at_sigma()` is deprecated '
+            'and will be removed in future versions. Please use '
+            '`ApertureModel.get_beam_envelopes_at_sigma()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_beam_envelopes_at_sigma(**kwargs)
 
     def _points_inside_polygon(self, **kwargs) -> bool:
         self.compile_kernels(only_if_needed=True)

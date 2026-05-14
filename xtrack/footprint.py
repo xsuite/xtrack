@@ -135,7 +135,7 @@ class Footprint():
             self.x_norm_2d = np.sqrt(2 * self.Jx_2d / nemitt_x)
             self.y_norm_2d = np.sqrt(2 * self.Jy_2d / nemitt_y)
 
-    def _compute_footprint(self, line, freeze_longitudinal=False,
+    def _get_footprint(self, line, freeze_longitudinal=False,
                            delta0=None, zeta0=None):
 
         if not line._has_valid_tracker():
@@ -217,7 +217,7 @@ class Footprint():
 
         print ('Done computing footprint.')
 
-    def _compute_tune_shift(self,_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,epsilon):
+    def _get_tune_shift(self,_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,epsilon):
         nplike_lib = _context.nplike_lib
         ctx2np = _context.nparray_from_context_array
         np2ctx = _context.nparray_to_context_array
@@ -226,9 +226,9 @@ class Footprint():
         tune_shift = ctx2np(-1.0/nplike_lib.trapz(J2_grid,nplike_lib.trapz(J1_grid,integrand,1),0))
         return tune_shift
 
-    def _compute_tune_shift_adaptive_epsilon(self,_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,
+    def _get_tune_shift_adaptive_epsilon(self,_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,
                                              epsilon0,epsilon_factor,epsilon_rel_tol,max_iter,min_epsilon):
-        tune_shift = self._compute_tune_shift(_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,epsilon0)
+        tune_shift = self._get_tune_shift(_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,epsilon0)
         if epsilon_factor > 0.0:
             epsilon_ref = epsilon0
             epsilon = np.abs(np.imag(tune_shift)*epsilon_factor)
@@ -236,7 +236,7 @@ class Footprint():
                 epsilon = min_epsilon
             count = 0
             while np.abs(1-epsilon/epsilon_ref) > epsilon_rel_tol and count < max_iter and epsilon >= min_epsilon:
-                tune_shift = self._compute_tune_shift(_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,epsilon)
+                tune_shift = self._get_tune_shift(_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,epsilon)
                 epsilon_ref = epsilon
                 epsilon = np.abs(np.imag(tune_shift)*epsilon_factor)
                 count += 1
@@ -331,7 +331,7 @@ class Footprint():
         tune_shifts_x = np.zeros_like(coherent_tunes_x, dtype=complex)
         tune_shifts_y = np.zeros_like(coherent_tunes_y, dtype=complex)
         for i in range(n_points_stabiliy_diagram):
-            tune_shifts_x[i] = self._compute_tune_shift_adaptive_epsilon(
+            tune_shifts_x[i] = self._get_tune_shift_adaptive_epsilon(
                 _context=_context,
                 J1_2d=Jx_2d,
                 J1_grid=Jx_grid,
@@ -345,7 +345,7 @@ class Footprint():
                 max_iter=max_iter,
                 min_epsilon=min_epsilon,
             )
-            tune_shifts_y[i] = self._compute_tune_shift_adaptive_epsilon(
+            tune_shifts_y[i] = self._get_tune_shift_adaptive_epsilon(
                 _context=_context,
                 J1_2d=Jy_2d,
                 J1_grid=Jy_grid,

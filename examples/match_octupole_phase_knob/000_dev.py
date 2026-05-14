@@ -36,9 +36,9 @@ class RDTarget(xt.Target):
         self.m = m
 
         xt.Target.__init__(
-            self, tag='rdt', tar=self.compute_abs_target, value=0, tol=500, weight=1e-6)
+            self, tag='rdt', tar=self.get_abs_target, value=0, tol=500, weight=1e-6)
 
-    def compute_target(self, tw):
+    def get_target(self, tw):
         tw_mo = tw.rows['mo.*.b1']
         rdt = get_rdt(tmux=0, tmuy=0, betx=tw_mo['betx'], bety=tw_mo['bety'],
             mux=tw_mo['mux'], muy=tw_mo['muy'], q1=tw.mux[-1], q2=tw.muy[-1],
@@ -49,12 +49,12 @@ class RDTarget(xt.Target):
     #     return f'RDTarget(j={self.j}, k={self.k}, l={self.l}, m={self.m})'
 
 class RDTargetReal(RDTarget):
-    def compute_abs_target(self, tw):
-        return super().compute_target(tw).real
+    def get_abs_target(self, tw):
+        return super().get_target(tw).real
 
 class RDTargetImag(RDTarget):
-    def compute_abs_target(self, tw):
-        return super().compute_target(tw).imag
+    def get_abs_target(self, tw):
+        return super().get_target(tw).imag
 
 lims = {}
 varlist = ['kqtf.a12b1', 'kqtf.a23b1', 'kqtf.a34b1', 'kqtf.a45b1',

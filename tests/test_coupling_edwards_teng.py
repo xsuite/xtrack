@@ -65,7 +65,7 @@ def test_coupling_edwards_teng():
     alfx_mad_at_s = np.interp(tw.s, s_mad, twmad.alfx)
     alfy_mad_at_s = np.interp(tw.s, s_mad, twmad.alfy)
 
-    rdt_mad_at_s = compute_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_s,
+    rdt_mad_at_s = get_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_s,
                             betx_mad_at_s, bety_mad_at_s, alfx_mad_at_s, alfy_mad_at_s)
 
     xo.assert_allclose(tw.r11_edw_teng, r11_mad_at_s,
@@ -90,7 +90,7 @@ def test_coupling_edwards_teng():
 
 
 
-def compute_rdt(r11, r12, r21, r22, betx, bety, alfx, alfy):
+def get_rdt(r11, r12, r21, r22, betx, bety, alfx, alfy):
 
     '''
     Developed by CERN OMC team.

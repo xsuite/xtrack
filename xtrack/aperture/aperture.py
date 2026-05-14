@@ -1024,7 +1024,7 @@ class Aperture:
         if method == 'bisection':
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
 
-            self._model.compute_max_aperture_sigma_bisection(
+            self._model.get_max_aperture_sigma_bisection(
                 survey=self._survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
@@ -1041,7 +1041,7 @@ class Aperture:
             ray_angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False, dtype=FloatType._dtype)
             ray_sigmas = np.zeros((num_slices, num_rays), dtype=FloatType._dtype)
 
-            self._model.compute_max_aperture_sigma_rays(
+            self._model.get_max_aperture_sigma_rays(
                 survey=self._survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
@@ -1061,7 +1061,7 @@ class Aperture:
             ray_angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False, dtype=FloatType._dtype)
             sigmas = np.zeros(num_slices, dtype=FloatType._dtype)
 
-            self._model.compute_max_aperture_sigma_exact(
+            self._model.get_max_aperture_sigma_exact(
                 survey=self._survey_data,
                 profile_polygons=self._profile_polygons,
                 aperture_bounds=self._aperture_bounds,
@@ -1153,7 +1153,7 @@ class Aperture:
         ray_angles = np.linspace(0, 2 * np.pi, 8, endpoint=False, dtype=FloatType._dtype)
         ray_sigmas = np.zeros((num_slices, 8), dtype=FloatType._dtype)
 
-        self._model.compute_max_aperture_sigma_rays(
+        self._model.get_max_aperture_sigma_rays(
             survey=self._survey_data,
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
@@ -1248,7 +1248,7 @@ class Aperture:
 
         envelopes = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
 
-        self._model.compute_beam_envelopes_at_sigma(
+        self._model.get_beam_envelopes_at_sigma(
             aperture_bounds=self._aperture_bounds,
             twiss_at_s=twiss_at_s,
             beam_data=beam_data,

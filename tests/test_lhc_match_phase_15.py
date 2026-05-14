@@ -151,7 +151,7 @@ def test_lhc_match_phase_15(config, tmp_path):
 
         (mux_ir2_target, muy_ir2_target, mux_ir4_target, muy_ir4_target,
         mux_ir6_target, muy_ir6_target, mux_ir8_target, muy_ir8_target
-            ) = lm.compute_ats_phase_advances_for_auxiliary_irs(line_name,
+            ) = lm.get_ats_phase_advances_for_auxiliary_irs(line_name,
                 tw_sq_a81_ip1_a12, tw_sq_a45_ip5_a56,
                 muxip1_l, muyip1_l, muxip1_r, muyip1_r,
                 muxip5_l, muyip5_l, muxip5_r, muyip5_r,

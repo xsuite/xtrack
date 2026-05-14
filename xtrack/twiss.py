@@ -874,7 +874,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['steps_r_matrix'] = steps_R_matrix # deprecated
         twiss_res._data['R_matrix_ebe'] = RR_ebe
 
-        _compute_global_quantities(line=line, twiss_res=twiss_res, method=method)
+        _get_global_quantities(line=line, twiss_res=twiss_res, method=method)
 
         twiss_res._data['eigenvalues'] = eigenvalues.copy()
         twiss_res._data['rotation_matrix'] = Rot.copy()
@@ -883,7 +883,7 @@ def twiss_line(line, particle_ref=None, method=None,
         (chrom is True)
         or (chrom is None and periodic))):
 
-        cols_chrom, scalars_chrom = _compute_chromatic_functions(
+        cols_chrom, scalars_chrom = _get_chromatic_functions(
             line=line,
             init=init,
             delta_chrom=delta_chrom,
@@ -945,7 +945,7 @@ def twiss_line(line, particle_ref=None, method=None,
                                             # to campture small damping effects
                     )
 
-        eneloss_damp_res = _compute_eneloss_and_damping_rates(
+        eneloss_damp_res = _get_eneloss_and_damping_rates(
                 particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
                 W_matrix=twiss_res.W_matrix,
                 px_co=twiss_res.px, py_co=twiss_res.py,
@@ -960,13 +960,13 @@ def twiss_line(line, particle_ref=None, method=None,
 
         # Equilibrium emittances
         if radiation_method == 'kick_as_co':
-            eq_emitts = _compute_equilibrium_emittance_kick_as_co(
+            eq_emitts = _get_equilibrium_emittance_kick_as_co(
                 twiss_res=twiss_res,
                 damping_constants_turns=eneloss_damp_res['damping_constants_turns'],
                 radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
         elif radiation_method == 'full':
-            eq_emitts = _compute_equilibrium_emittance_full(twiss_res=twiss_res,
+            eq_emitts = _get_equilibrium_emittance_full(twiss_res=twiss_res,
                         R_matrix_ebe=RR_ebe,
                         radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
@@ -991,10 +991,10 @@ def twiss_line(line, particle_ref=None, method=None,
         _add_strengths_to_twiss_res(twiss_res, line)
 
     if radiation_integrals:
-        twiss_res._compute_radiation_integrals(add_to_tw=True)
+        twiss_res._get_radiation_integrals(add_to_tw=True)
 
     if polarization_analysis:
-        _compute_spin_polarization(twiss_res, line, method)
+        _get_spin_polarization(twiss_res, line, method)
 
     if coupling_edw_teng:
         if not periodic:
@@ -1011,7 +1011,7 @@ def twiss_line(line, particle_ref=None, method=None,
         bety1, bety2 = twiss_res['bety1'], twiss_res['bety2']
         alfx1, alfx2 = twiss_res['alfx1'], twiss_res['alfx2']
         alfy1, alfy2 = twiss_res['alfy1'], twiss_res['alfy2']
-        coupling_result = _compute_coupling_elements_edwards_teng(
+        coupling_result = _get_coupling_elements_edwards_teng(
             W_matrix=twiss_res['W_matrix'],
             mux=twiss_res['mux'],
             muy=twiss_res['muy'],
@@ -1301,7 +1301,7 @@ def _twiss_open(
         })
 
     if not only_orbit and compute_lattice_functions:
-        lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
+        lattice_functions, i_replace = _get_lattice_functions(Ws, use_full_inverse, s_co)
         twiss_res_element_by_element.update(lattice_functions)
 
     extra_data = {}
@@ -1339,7 +1339,7 @@ def _twiss_open(
     return twiss_res
 
 
-def _compute_lattice_functions(Ws, use_full_inverse, s_co):
+def _get_lattice_functions(Ws, use_full_inverse, s_co):
 
     # For removal ot thin groups of elements
     i_take = [0]
@@ -1486,7 +1486,7 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
     return res, i_replace
 
 
-def _compute_coupling_elements_edwards_teng(
+def _get_coupling_elements_edwards_teng(
         W_matrix: np.ndarray,
         mux: np.ndarray,
         muy: np.ndarray,
@@ -1512,7 +1512,7 @@ def _compute_coupling_elements_edwards_teng(
     # RR = WW0 @ Rot @ WW0_inv
 
     # # Edwards-Teng initial conditions
-    # edw_teng_init = _compute_edwards_teng_initial(RR)
+    # edw_teng_init = _get_edwards_teng_initial(RR)
 
     # # Edwards-Teng parameters along the ring
     # edw_teng_cols = _propagate_edwards_teng(
@@ -1525,7 +1525,7 @@ def _compute_coupling_elements_edwards_teng(
     # )
 
     # Coupling RDTs from Edwards-Teng parameters
-    rdts = _compute_coupling_rdts(edw_teng_cols['r11'], edw_teng_cols['r12'],
+    rdts = _get_coupling_rdts(edw_teng_cols['r11'], edw_teng_cols['r12'],
                                   edw_teng_cols['r21'], edw_teng_cols['r22'],
                                   edw_teng_cols['betx'], edw_teng_cols['bety'],
                                   edw_teng_cols['alfx'], edw_teng_cols['alfy'])
@@ -1544,7 +1544,7 @@ def _compute_coupling_elements_edwards_teng(
 
     return out
 
-def _compute_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
+def _get_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
 
     '''
     Developed by CERN OMC team.
@@ -1599,7 +1599,7 @@ def _compute_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
 
     return {'f1001': f1001, 'f1010': f1010, 'f0110': f0110}
 
-def _compute_edwards_teng_initial(RR):
+def _get_edwards_teng_initial(RR):
 
     AA = RR[:2, :2]
     BB = RR[:2, 2:4]
@@ -1676,7 +1676,7 @@ def _edwards_teng_from_one_turn_at_all_locations(WW, qx, qy):
         RR = WW0 @ Rot @ WW0_inv
 
         # Edwards-Teng initial conditions
-        edw_teng_init = _compute_edwards_teng_initial(RR)
+        edw_teng_init = _get_edwards_teng_initial(RR)
 
         RR_ET=edw_teng_init['RR_ET0']
 
@@ -1816,7 +1816,7 @@ def _propagate_edwards_teng(WW, mux, muy, RR_ET0, betx0, alfx0, bety0, alfy0):
     return out_dict
 
 
-def _compute_global_quantities(line, twiss_res, method):
+def _get_global_quantities(line, twiss_res, method):
 
         s_vect = twiss_res['s']
         line_length = line.tracker._tracker_data_base.line_length
@@ -1932,7 +1932,7 @@ def _compute_global_quantities(line, twiss_res, method):
             twiss_res['c_phi1'] = c_phi1
             twiss_res['c_phi2'] = c_phi2
 
-def _compute_chromatic_functions(line, init, delta_chrom,
+def _get_chromatic_functions(line, init, delta_chrom,
                     delta0, zeta0,
                     steps_R_matrix,
                     matrix_responsiveness_tol, matrix_stability_tol, symplectify,
@@ -1984,14 +1984,14 @@ def _compute_chromatic_functions(line, init, delta_chrom,
                     include_collective=include_collective,
                     )
                 tw_init_chrom.particle_on_co = part_chrom
-                RR_chrom = line.compute_R_matrix(
+                RR_chrom = line.get_R_matrix(
                                             particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                             start=start, end=end, num_turns=num_turns,
                                             steps=steps_R_matrix,
                                             symmetrize=False,
                                             include_collective=include_collective,
                                             )['R_matrix']
-                (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
+                (WW_chrom, _, _, _) = lnf.get_linear_normal_form(RR_chrom,
                                         only_4d_block=(method == '4d'),
                                         responsiveness_tol=matrix_responsiveness_tol,
                                         stability_tol=matrix_stability_tol,
@@ -2168,7 +2168,7 @@ def _compute_chromatic_functions(line, init, delta_chrom,
     return cols_chrom, scalars_chrom
 
 
-def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
+def _get_eneloss_and_damping_rates(particle_on_co, R_matrix,
                                        px_co, py_co, ptau_co, W_matrix,
                                        t_rev0, line, radiation_method):
     diff_ptau = np.diff(ptau_co)
@@ -2209,7 +2209,7 @@ def _extract_sr_distribution_properties(twiss_res):
     if np.any(radiation_flag == 2):
         raise ValueError('Incompatible radiation flag')
 
-    hx, hy, kappa0_x, kappa0_y = _compute_trajectory_curvatures(twiss_res)
+    hx, hy, kappa0_x, kappa0_y = _get_trajectory_curvatures(twiss_res)
     hh = np.sqrt(hx**2 + hy**2)
 
     ptau_co = twiss_res['ptau']
@@ -2247,7 +2247,7 @@ def _extract_sr_distribution_properties(twiss_res):
 
     return res
 
-def _compute_equilibrium_emittance_kick_as_co(twiss_res,
+def _get_equilibrium_emittance_kick_as_co(twiss_res,
                                   damping_constants_turns,
                                   radiation_method):
 
@@ -2363,7 +2363,7 @@ def _compute_equilibrium_emittance_kick_as_co(twiss_res,
 
     return res
 
-def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
+def _get_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
                                         radiation_method):
 
     kin_px_co = twiss_res['kin_px']
@@ -2403,7 +2403,7 @@ def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
     RR = RR_ebe_hat[-1, :, :]
 
     lnf = xt.linear_normal_form
-    WW, _, Rot, lam_eig = lnf.compute_linear_normal_form(RR)
+    WW, _, Rot, lam_eig = lnf.get_linear_normal_form(RR)
     DSigma = np.zeros_like(RR_ebe_hat)
 
     # The following is needed if RR is in px, py instead of x', y'
@@ -2433,7 +2433,7 @@ def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
         if d_delta_sq_ave[ii] > 0:
             DSigma0 += RR_ebe_hat_inv[ii, :, :] @ DSigma[ii, :, :] @ RR_ebe_hat_inv[ii, :, :].T
 
-    CC_split, _, RRR, reig = lnf.compute_linear_normal_form(Rot)
+    CC_split, _, RRR, reig = lnf.get_linear_normal_form(Rot)
     reig_full = np.zeros_like(Rot, dtype=complex)
     reig_full[0, 0] = reig[0]
     reig_full[1, 1] = reig[0].conjugate()
@@ -2597,7 +2597,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
             RR = R_matrix
             lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol,
                                                 only_4d=(method == '4d'))
-            W, _, Rot, eigenvalues = lnf.compute_linear_normal_form(
+            W, _, Rot, eigenvalues = lnf.get_linear_normal_form(
                         RR, only_4d_block=(method == '4d'),
                         symplectify=symplectify,
                         responsiveness_tol=matrix_responsiveness_tol,
@@ -2605,7 +2605,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         else:
             steps_R_matrix['adapted'] = False
             for iter in range(2):
-                RR_out = line.compute_R_matrix(
+                RR_out = line.get_R_matrix(
                     steps=steps_R_matrix,
                     particle_on_co=part_on_co,
                     start=start,
@@ -2623,7 +2623,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     lnf._assert_matrix_responsiveness(RR,
                         matrix_responsiveness_tol, only_4d=(method == '4d'))
 
-                W, _, Rot, eigenvalues = lnf.compute_linear_normal_form(
+                W, _, Rot, eigenvalues = lnf.get_linear_normal_form(
                             RR, only_4d_block=(method == '4d'),
                             symplectify=symplectify,
                             responsiveness_tol=None,
@@ -3084,7 +3084,7 @@ def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, zeta_shift, delta0, 
         p[4] - zeta0,
         p[5] - delta0])
 
-def compute_R_matrix(
+def get_R_matrix(
         line, particle_on_co,
         steps=None,
         start=None, end=None,
@@ -3208,6 +3208,16 @@ def compute_R_matrix(
         out['R_matrix_ebe'] = None
 
     return out
+
+
+def compute_R_matrix(*args, **kwargs):
+    warn(
+        '`compute_R_matrix()` is deprecated and will be removed in future '
+        'versions. Please use `get_R_matrix()` instead.'
+        + DEPRECATION_INFO_PREP_1_0,
+        FutureWarning,
+    )
+    return get_R_matrix(*args, **kwargs)
 
 
 def _updated_kwargs_from_locals(kwargs, loc):
@@ -4654,7 +4664,7 @@ class TwissTable(Table):
 
         return pl
 
-    def _compute_radiation_integrals(self, add_to_tw=False):
+    def _get_radiation_integrals(self, add_to_tw=False):
 
         kin_px = self['kin_px']
         kin_py = self['kin_py']
@@ -4679,7 +4689,7 @@ class TwissTable(Table):
         dxprime = dpx * (1 - delta) - kin_px
         dyprime = dpy * (1 - delta) - kin_py
 
-        kappa_x, kappa_y, kappa0_x, kappa0_y = _compute_trajectory_curvatures(self)
+        kappa_x, kappa_y, kappa0_x, kappa0_y = _get_trajectory_curvatures(self)
         kappa = np.sqrt(kappa_x**2 + kappa_y**2)
         kappa0 = np.sqrt(kappa0_x**2 + kappa0_y**2)
 
@@ -5023,7 +5033,7 @@ def _build_sigma_table(Sigma, s=None, name=None):
 
     return Table(res_data)
 
-def compute_T_matrix_line(line, start, end, particle_on_co=None,
+def get_T_matrix_line(line, start, end, particle_on_co=None,
                             steps=None):
 
     steps = _complete_steps_r_matrix_with_default(steps)
@@ -5041,13 +5051,13 @@ def compute_T_matrix_line(line, start, end, particle_on_co=None,
 
         p_plus[kk] = particle_on_co.copy()
         setattr(p_plus[kk], kk, getattr(particle_on_co, kk) + steps['d' + kk])
-        R_plus[kk] = line.compute_R_matrix(
+        R_plus[kk] = line.get_R_matrix(
                             start=start, end=end,
                             particle_on_co=p_plus[kk])['R_matrix']
 
         p_minus[kk] = particle_on_co.copy()
         setattr(p_minus[kk], kk, getattr(particle_on_co, kk) - steps['d' + kk])
-        R_minus[kk] = line.compute_R_matrix(
+        R_minus[kk] = line.get_R_matrix(
                             start=start, end=end,
                             particle_on_co=p_minus[kk])['R_matrix']
 
@@ -5067,6 +5077,16 @@ def compute_T_matrix_line(line, start, end, particle_on_co=None,
         / p_plus['delta']._xobject.beta0[0])
 
     return TT
+
+
+def compute_T_matrix_line(*args, **kwargs):
+    warn(
+        '`compute_T_matrix_line()` is deprecated and will be removed in future '
+        'versions. Please use `get_T_matrix_line()` instead.'
+        + DEPRECATION_INFO_PREP_1_0,
+        FutureWarning,
+    )
+    return get_T_matrix_line(*args, **kwargs)
 
 def _multiturn_twiss(tw0, num_turns, kwargs):
     tw_curr = tw0
@@ -5278,7 +5298,7 @@ def _errfun_spin(s, line, particle_on_co):
                         pp.spin_y[0] - sy,
                         pp.spin_z[0] - sz])
 
-def _compute_spin_polarization(tw, line, method):
+def _get_spin_polarization(tw, line, method):
 
     with xt.line._preserve_config(line):
 
@@ -5293,7 +5313,7 @@ def _compute_spin_polarization(tw, line, method):
         for kk in steps_R_matrix:
             steps_R_matrix[kk] *= 0.1
 
-        out = line.compute_R_matrix(particle_on_co=tw.particle_on_co,
+        out = line.get_R_matrix(particle_on_co=tw.particle_on_co,
                                                             element_by_element=True,
                                                             steps=steps_R_matrix)
         mon_r_ebe = out['mon_ebe']
@@ -5569,7 +5589,7 @@ def _compute_spin_polarization(tw, line, method):
             tw._data[nn] = other_data[nn]
 
 
-def _compute_trajectory_curvatures(twiss_res):
+def _get_trajectory_curvatures(twiss_res):
 
     angle = twiss_res['angle']
     rot_s_rad = twiss_res['rot_s_rad']

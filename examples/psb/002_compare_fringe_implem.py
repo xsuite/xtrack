@@ -14,10 +14,10 @@ p0 = line.build_particles(px=0.5, py=0.001, y=0.01, delta=0.1)
 p_ng = p0.copy()
 p_ptc = p0.copy()
 
-R_ng = line.compute_R_matrix(particle_on_co=p0.copy())
+R_ng = line.get_R_matrix(particle_on_co=p0.copy())
 line.track(p_ng)
 line.config.XTRACK_FRINGE_FROM_PTC = True
-R_ptc = line.compute_R_matrix(particle_on_co=p0.copy())
+R_ptc = line.get_R_matrix(particle_on_co=p0.copy())
 line.track(p_ptc)
 
 assert np.isclose(p_ng.x, p_ptc.x, rtol=0, atol=1e-10)

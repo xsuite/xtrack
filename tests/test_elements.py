@@ -536,7 +536,7 @@ def test_elens(test_context):
 
 @for_all_test_contexts
 def test_elens_measured_radial(test_context):
-    def compute_coef(r_measured, j_measured, r_1_new, r_2_new,
+    def get_coef(r_measured, j_measured, r_1_new, r_2_new,
                      r_1_old, r_2_old, p_order = 13):
         new_r = r_measured*(r_2_new-r_1_new)/(r_2_old-r_1_old)
         new_j = j_measured*(r_2_old-r_1_old)/(r_2_new-r_1_new)
@@ -571,7 +571,7 @@ def test_elens_measured_radial(test_context):
     r     = np.linspace(0.20338983,12,60)
     j     = np.append(np.append(np.linspace(0,4,20)*0,
            np.linspace(4,8,20)/np.linspace(4,8,20)), np.linspace(8,12,20)*0)
-    C     = compute_coef(r, j, 1.4, 2.8, 4.0, 8.0)
+    C     = get_coef(r, j, 1.4, 2.8, 4.0, 8.0)
 
     elens_radial_profile = xt.Elens(current=5, inner_radius=1.4e-3,
                 outer_radius=2.8e-3, elens_length=3, voltage=10e3,

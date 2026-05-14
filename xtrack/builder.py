@@ -317,7 +317,7 @@ def _all_places(seq):
             seq_all_places.append(Place(ss, at=None, from_=None))
     return seq_all_places
 
-def _compute_one_s(at, anchor, from_anchor, self_length, from_length, s_start_from,
+def _get_one_s(at, anchor, from_anchor, self_length, from_length, s_start_from,
                    default_anchor):
 
     if xd.refs.is_ref(at):
@@ -419,7 +419,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center',
                         from_length = tt_lengths['length', ss.from_]
                         s_start_from=s_start_for_place[place_for_name[ss.from_]]
 
-                s_start_for_place[ss] = _compute_one_s(at, anchor=ss.anchor,
+                s_start_for_place[ss] = _get_one_s(at, anchor=ss.anchor,
                     from_anchor=ss.from_anchor,
                     self_length=tt_lengths['length', ss.name],
                     from_length=from_length,

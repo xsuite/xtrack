@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 
-def _compute_correction(x_iter, response_matrix, n_micado=None, rcond=None,
+def _get_correction(x_iter, response_matrix, n_micado=None, rcond=None,
                         n_singular_values=None, corrector_limits=None):
 
     if isinstance(response_matrix, (list, tuple)):
@@ -291,7 +291,7 @@ class OrbitCorrectionSinglePlane:
                     break
                 pos_rms_prev = position.std()
 
-            correction = self._compute_correction(position=position,
+            correction = self._get_correction(position=position,
                                     n_micado=n_micado, rcond=rcond,
                                     n_singular_values=n_singular_values,
                                     corrector_limits=relative_limits)
@@ -315,7 +315,7 @@ class OrbitCorrectionSinglePlane:
         else:
             self._position_after = None
 
-    def _compute_tw_orbit(self, delta0=None):
+    def _get_tw_orbit(self, delta0=None):
         if self.mode == 'open':
             # Initialized with betx=1, bety=1 (use W_matrix to avoid compilation)
             twinit = xt.TwissInit(W_matrix=np.eye(6),
@@ -335,7 +335,7 @@ class OrbitCorrectionSinglePlane:
     def _measure_position(self, tw_orbit=None):
 
         if tw_orbit is None:
-            tw_orbit = self._compute_tw_orbit()
+            tw_orbit = self._get_tw_orbit()
 
         x_twiss_at_monitor = tw_orbit['x'][self._indices_monitor]
         y_twiss_at_monitor = tw_orbit['y'][self._indices_monitor]
@@ -350,7 +350,7 @@ class OrbitCorrectionSinglePlane:
 
         return position
 
-    def _compute_correction(self, position, n_micado=None,
+    def _get_correction(self, position, n_micado=None,
                             n_singular_values=None, rcond=None, corrector_limits=None):
 
         if rcond is None:
@@ -363,7 +363,7 @@ class OrbitCorrectionSinglePlane:
             n_micado = self.n_micado
 
 
-        correction = _compute_correction(position,
+        correction = _get_correction(position,
             response_matrix=(self.singular_vectors_out, self.singular_values, self.singular_vectors_in),
             n_micado=n_micado,
             rcond=rcond, n_singular_values=n_singular_values, corrector_limits=corrector_limits)
@@ -612,7 +612,7 @@ class TrajectoryCorrection:
         if self.y_correction is not None:
             a_correction = self.y_correction
 
-        tw_orbit = a_correction._compute_tw_orbit(delta0=delta0)
+        tw_orbit = a_correction._get_tw_orbit(delta0=delta0)
 
         if self.x_correction is not None:
             relative_limits_x = self.x_correction.corrector_limits
@@ -636,7 +636,7 @@ class TrajectoryCorrection:
                             corrector_limits=relative_limits_y)
 
             tw_orbit_prev = tw_orbit
-            tw_orbit = a_correction._compute_tw_orbit(delta0=delta0)
+            tw_orbit = a_correction._get_tw_orbit(delta0=delta0)
 
             if n_iter == 'auto' and self.x_correction is not None and 'x' in planes:
                 new_position = self.x_correction._measure_position(tw_orbit)
@@ -854,7 +854,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
         # if verbose:
         #     ocprint = ocorr_only_added_part
-        #     tw_orbit_print = ocprint.x_correction._compute_tw_orbit()
+        #     tw_orbit_print = ocprint.x_correction._get_tw_orbit()
         #     x_meas_print = ocprint.x_correction._measure_position(tw_orbit_print)
         #     y_meas_print = ocprint.y_correction._measure_position(tw_orbit_print)
         #     str_2print = f'Stop at s={s_corr_end}, '
@@ -882,7 +882,7 @@ def _thread(line, ds_thread, twiss_table=None, rcond_short = None, rcond_long = 
 
         if verbose:
             ocprint = ocorr
-            tw_orbit_print = ocprint.x_correction._compute_tw_orbit()
+            tw_orbit_print = ocprint.x_correction._get_tw_orbit()
             x_meas_print = ocprint.x_correction._measure_position(tw_orbit_print)
             y_meas_print = ocprint.y_correction._measure_position(tw_orbit_print)
             str_2print = f'Stop at s={s_corr_end}, '

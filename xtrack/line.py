@@ -22,8 +22,8 @@ import xtrack as xt
 from xtrack.aperture_meas import measure_aperture
 from xtrack.twiss import (DEFAULT_MATRIX_RESPONSIVENESS_TOL,
                           DEFAULT_MATRIX_STABILITY_TOL,
-                          compute_R_matrix,
-                          compute_T_matrix_line, find_closed_orbit_line,
+                          get_R_matrix,
+                          get_T_matrix_line, find_closed_orbit_line,
                           get_non_linear_chromaticity, twiss_line)
 
 from .api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
@@ -2458,7 +2458,7 @@ class Line:
                                  symmetrize=symmetrize)
 
     @doc_group("Tracking and Analysis")
-    def compute_T_matrix(self, start=None, end=None,
+    def get_T_matrix(self, start=None, end=None,
                          particle_on_co=None, steps=None,
                          steps_t_matrix=None # deprecated
                          ):
@@ -2490,9 +2490,19 @@ class Line:
             warn("`steps_t_matrix` is deprecated, please use `steps` instead"
                  + DEPRECATION_INFO_PREP_1_0, FutureWarning)
 
-        return compute_T_matrix_line(self, start=start, end=end,
+        return get_T_matrix_line(self, start=start, end=end,
                                 particle_on_co=particle_on_co,
                                 steps=steps)
+
+    @doc_group("Deprecated Methods")
+    def compute_T_matrix(self, *args, **kwargs):
+        warn(
+            '`Line.compute_T_matrix()` is deprecated and will be removed in '
+            'future versions. Please use `Line.get_T_matrix()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_T_matrix(*args, **kwargs)
 
     @doc_group("Tracking and Analysis")
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
@@ -2583,7 +2593,7 @@ class Line:
                         delta0=delta0, zeta0=zeta0)
         else:
             fp = Footprint(**kwargs)
-            fp._compute_footprint(self,
+            fp._get_footprint(self,
                 freeze_longitudinal=freeze_longitudinal,
                 delta0=delta0, zeta0=zeta0)
 
@@ -2680,16 +2690,21 @@ class Line:
         """Deprecated. Compute the one turn matrix using finite differences.
 
         .. warning:: This function is deprecated and will be removed in a future
-           version. Please use Line.compute_R_matrix(...) instead.
+           version. Please use Line.get_R_matrix(...) instead.
         """
 
-        warn("`compute_one_turn_matrix_finite_differences` is deprecated, please use `compute_R_matrix` instead"
-             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
+        warn(
+            '`Line.compute_one_turn_matrix_finite_differences()` is deprecated '
+            'and will be removed in future versions. Please use '
+            '`Line.get_R_matrix()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
 
-        return self.compute_R_matrix(*args, **kwargs)
+        return self.get_R_matrix(*args, **kwargs)
 
     @doc_group("Tracking and Analysis")
-    def compute_R_matrix(
+    def get_R_matrix(
             self, particle_on_co,
             steps=None,
             start=None, end=None,
@@ -2741,12 +2756,22 @@ class Line:
         else:
             line = self
 
-        return compute_R_matrix(line, particle_on_co,
+        return get_R_matrix(line, particle_on_co,
                         steps, start=start, end=end,
                         num_turns=num_turns,
                         element_by_element=element_by_element,
                         only_markers=only_markers,
                         symmetrize=symmetrize)
+
+    @doc_group("Deprecated Methods")
+    def compute_R_matrix(self, *args, **kwargs):
+        warn(
+            '`Line.compute_R_matrix()` is deprecated and will be removed in '
+            'future versions. Please use `Line.get_R_matrix()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_R_matrix(*args, **kwargs)
 
     @doc_group("Tracking and Analysis")
     def get_non_linear_chromaticity(self,
