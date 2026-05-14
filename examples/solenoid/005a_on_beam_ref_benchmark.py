@@ -64,15 +64,12 @@ for ii in range(len(s)-1):
 
     length = s_exit - s_entry
     s_mid = 0.5 * (s_entry + s_exit)
-    x0_mid = s_mid * np.tan(theta)
 
     env.new(f'sol_slice_{ii}', xt.VariableSolenoid,
         length=length,
         ks_profile=[ks_entry * env.ref['on_sol'], ks_exit * env.ref['on_sol']],
         knl=[0.5 * (k0_exit + k0_entry) * length * env.ref['on_sol']],
         ksl=[0.5 * (k0s_exit + k0s_entry) * length * env.ref['on_sol']],
-        # # x0=x0_mid,
-        # y0=0,
     )
     ele_names.append(f'sol_slice_{ii}')
 
@@ -130,6 +127,7 @@ ax2.legend()
 ax2.set_xlabel('s [m]')
 ax2.set_ylabel('y [m]')
 ax2.grid()
+plt.subplots_adjust(left=.15)
 
 plt.figure(3)
 ax31 = plt.subplot(211)
