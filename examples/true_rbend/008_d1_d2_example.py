@@ -118,7 +118,7 @@ if edge_model == 'linear':
                                     init=tw_sliced.get_twiss_init('end'))
 
 # Combine twiss and survey to get actual trajectory
-trajectory = sv_sliced.p0 + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
+trajectory = sv_sliced.XYZ + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
 
 tw0['path_length'] = tw0.s - tw0.zeta
 tw0['diff_path_length'] = np.diff(tw0.path_length, append=tw0.path_length[-1])
