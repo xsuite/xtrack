@@ -90,3 +90,12 @@ def test_mad_writer_bend():
         assert el1.length == el2.length
         assert el1.angle == el2.angle
         assert el1.k0 == el2.k0
+
+
+def test_mad_writer_rfmultipole_not_supported():
+    line = xt.Line(elements={'rfm': xt.RFMultipole(knl=[1])},
+                   element_names=['rfm'])
+
+    with pytest.raises(NotImplementedError,
+                       match='Conversion of xtrack RFMultipole to mad-x not supported'):
+        line.to_madx_sequence('seq')
