@@ -117,6 +117,7 @@ class Environment:
         self.ref = EnvRef(self)
         self._elements = EnvElements(self)
         self._particles_container = EnvParticles(self)
+        self._xfields = EnvXfields(self)
         self._enable_name_clash_check = True
         self._last_context = None
         self._drift_cache = {}
@@ -1182,6 +1183,11 @@ class Environment:
         """
         return self._xdeps_fref
 
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
+    def xfields(self):
+        """Xfields-specific helpers associated with this environment."""
+        return self._xfields
+
     def _remove_element(self, name):
 
         pars_with_expr = list(
@@ -1823,12 +1829,63 @@ class Environment:
     build_trackers = doc_group("Tracker Setup")(MultilineLegacy.build_trackers)
     match = doc_group("Analysis and Matching")(MultilineLegacy.match)
     match_knob = doc_group("Analysis and Matching")(MultilineLegacy.match_knob)
-    install_beambeam_interactions = doc_group("Upcoming deprecations")(
-        MultilineLegacy.install_beambeam_interactions)
-    configure_beambeam_interactions = doc_group("Upcoming deprecations")(
-        MultilineLegacy.configure_beambeam_interactions)
-    apply_filling_pattern = doc_group("Upcoming deprecations")(
-        MultilineLegacy.apply_filling_pattern)
+
+    @doc_group("Upcoming deprecations")
+    def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
+                                      ip_names,
+                                      num_long_range_encounters_per_side,
+                                      num_slices_head_on,
+                                      harmonic_number, bunch_spacing_buckets,
+                                      sigmaz,
+                                      delay_at_ips_slots=None):
+        """Deprecated alias for ``env.xfields.install_beambeam_interactions(...)``."""
+        warn('`Environment.install_beambeam_interactions(...)` is deprecated and will be removed '
+             'in a future version. Please use '
+             '`Environment.xfields.install_beambeam_interactions(...)` instead.',
+             FutureWarning, stacklevel=2)
+        return self.xfields.install_beambeam_interactions(
+            clockwise_line=clockwise_line,
+            anticlockwise_line=anticlockwise_line,
+            ip_names=ip_names,
+            num_long_range_encounters_per_side=num_long_range_encounters_per_side,
+            num_slices_head_on=num_slices_head_on,
+            harmonic_number=harmonic_number,
+            bunch_spacing_buckets=bunch_spacing_buckets,
+            sigmaz=sigmaz,
+            delay_at_ips_slots=delay_at_ips_slots)
+
+    @doc_group("Upcoming deprecations")
+    def configure_beambeam_interactions(self, num_particles,
+                                        nemitt_x, nemitt_y,
+                                        crab_strong_beam=True,
+                                        use_antisymmetry=False,
+                                        separation_bumps=None):
+        """Deprecated alias for ``env.xfields.configure_beambeam_interactions(...)``."""
+        warn('`Environment.configure_beambeam_interactions(...)` is deprecated and will be removed '
+             'in a future version. Please use '
+             '`Environment.xfields.configure_beambeam_interactions(...)` instead.',
+             FutureWarning, stacklevel=2)
+        return self.xfields.configure_beambeam_interactions(
+            num_particles=num_particles,
+            nemitt_x=nemitt_x,
+            nemitt_y=nemitt_y,
+            crab_strong_beam=crab_strong_beam,
+            use_antisymmetry=use_antisymmetry,
+            separation_bumps=separation_bumps)
+
+    @doc_group("Upcoming deprecations")
+    def apply_filling_pattern(self, filling_pattern_cw, filling_pattern_acw,
+                              i_bunch_cw, i_bunch_acw):
+        """Deprecated alias for ``env.xfields.apply_filling_pattern(...)``."""
+        warn('`Environment.apply_filling_pattern(...)` is deprecated and will be removed '
+             'in a future version. Please use '
+             '`Environment.xfields.apply_filling_pattern(...)` instead.',
+             FutureWarning, stacklevel=2)
+        return self.xfields.apply_filling_pattern(
+            filling_pattern_cw=filling_pattern_cw,
+            filling_pattern_acw=filling_pattern_acw,
+            i_bunch_cw=i_bunch_cw,
+            i_bunch_acw=i_bunch_acw)
 
 
 Environment.__doc_groups__ = _ENVIRONMENT_DOC_GROUP_COLLECTOR.collect(Environment)
@@ -2020,6 +2077,53 @@ class EnvParticles:
 
     def __delitem__(self, name):
         self.remove(name)
+
+
+class EnvXfields:
+    def __init__(self, env):
+        self.env = env
+
+    def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
+                                      ip_names,
+                                      num_long_range_encounters_per_side,
+                                      num_slices_head_on,
+                                      harmonic_number, bunch_spacing_buckets,
+                                      sigmaz,
+                                      delay_at_ips_slots=None):
+        return MultilineLegacy.install_beambeam_interactions(
+            self.env,
+            clockwise_line=clockwise_line,
+            anticlockwise_line=anticlockwise_line,
+            ip_names=ip_names,
+            num_long_range_encounters_per_side=num_long_range_encounters_per_side,
+            num_slices_head_on=num_slices_head_on,
+            harmonic_number=harmonic_number,
+            bunch_spacing_buckets=bunch_spacing_buckets,
+            sigmaz=sigmaz,
+            delay_at_ips_slots=delay_at_ips_slots)
+
+    def configure_beambeam_interactions(self, num_particles,
+                                        nemitt_x, nemitt_y,
+                                        crab_strong_beam=True,
+                                        use_antisymmetry=False,
+                                        separation_bumps=None):
+        return MultilineLegacy.configure_beambeam_interactions(
+            self.env,
+            num_particles=num_particles,
+            nemitt_x=nemitt_x,
+            nemitt_y=nemitt_y,
+            crab_strong_beam=crab_strong_beam,
+            use_antisymmetry=use_antisymmetry,
+            separation_bumps=separation_bumps)
+
+    def apply_filling_pattern(self, filling_pattern_cw, filling_pattern_acw,
+                              i_bunch_cw, i_bunch_acw):
+        return MultilineLegacy.apply_filling_pattern(
+            self.env,
+            filling_pattern_cw=filling_pattern_cw,
+            filling_pattern_acw=filling_pattern_acw,
+            i_bunch_cw=i_bunch_cw,
+            i_bunch_acw=i_bunch_acw)
 
 
 class EnvRef:

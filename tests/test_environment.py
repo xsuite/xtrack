@@ -4526,3 +4526,102 @@ def test_insert_from_anchor_center():
         'q_entry', 'q..entry_map', 'q..0', 'mark', 'q..1', 'q..exit_map',
         'q_exit', '_end_point'])
     xo.assert_allclose(tt.s, [0., 0., 0., 1., 1., 2., 2., 2.], rtol=0, atol=1e-14)
+
+
+def test_environment_xfields_beambeam_facade(monkeypatch):
+
+    env = xt.Environment()
+    calls = []
+
+    def fake_install(env_arg, *args, **kwargs):
+        calls.append(('install', env_arg, args, kwargs))
+        return 'installed'
+
+    def fake_configure(env_arg, *args, **kwargs):
+        calls.append(('configure', env_arg, args, kwargs))
+        return 'configured'
+
+    def fake_apply(env_arg, *args, **kwargs):
+        calls.append(('apply', env_arg, args, kwargs))
+        return 'applied'
+
+    monkeypatch.setattr(
+        xt.MultilineLegacy, 'install_beambeam_interactions', fake_install)
+    monkeypatch.setattr(
+        xt.MultilineLegacy, 'configure_beambeam_interactions', fake_configure)
+    monkeypatch.setattr(
+        xt.MultilineLegacy, 'apply_filling_pattern', fake_apply)
+
+    assert isinstance(env.xfields, xt.EnvXfields)
+    assert env.xfields is env.xfields
+
+    assert env.xfields.install_beambeam_interactions(
+        clockwise_line='cw',
+        anticlockwise_line='acw',
+        ip_names=['ip1'],
+        num_long_range_encounters_per_side=[0],
+        num_slices_head_on=1,
+        harmonic_number=35640,
+        bunch_spacing_buckets=10,
+        sigmaz=0.075) == 'installed'
+    assert calls[-1] == (
+        'install', env, (), {
+            'clockwise_line': 'cw',
+            'anticlockwise_line': 'acw',
+            'ip_names': ['ip1'],
+            'num_long_range_encounters_per_side': [0],
+            'num_slices_head_on': 1,
+            'harmonic_number': 35640,
+            'bunch_spacing_buckets': 10,
+            'sigmaz': 0.075,
+            'delay_at_ips_slots': None,
+        })
+
+    assert env.xfields.configure_beambeam_interactions(
+        num_particles=1.2e11,
+        nemitt_x=2.5e-6,
+        nemitt_y=2.5e-6) == 'configured'
+    assert calls[-1] == (
+        'configure', env, (), {
+            'num_particles': 1.2e11,
+            'nemitt_x': 2.5e-6,
+            'nemitt_y': 2.5e-6,
+            'crab_strong_beam': True,
+            'use_antisymmetry': False,
+            'separation_bumps': None,
+        })
+
+    assert env.xfields.apply_filling_pattern([1], [1], 0, 0) == 'applied'
+    assert calls[-1] == (
+        'apply', env, (), {
+            'filling_pattern_cw': [1],
+            'filling_pattern_acw': [1],
+            'i_bunch_cw': 0,
+            'i_bunch_acw': 0,
+        })
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Environment\.install_beambeam_interactions\(\.\.\.\)` is deprecated'):
+        assert env.install_beambeam_interactions(
+            clockwise_line='cw',
+            anticlockwise_line='acw',
+            ip_names=['ip1'],
+            num_long_range_encounters_per_side=[0],
+            num_slices_head_on=1,
+            harmonic_number=35640,
+            bunch_spacing_buckets=10,
+            sigmaz=0.075) == 'installed'
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Environment\.configure_beambeam_interactions\(\.\.\.\)` is deprecated'):
+        assert env.configure_beambeam_interactions(
+            num_particles=1.2e11,
+            nemitt_x=2.5e-6,
+            nemitt_y=2.5e-6) == 'configured'
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Environment\.apply_filling_pattern\(\.\.\.\)` is deprecated'):
+        assert env.apply_filling_pattern([1], [1], 0, 0) == 'applied'
