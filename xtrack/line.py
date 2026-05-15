@@ -5132,11 +5132,8 @@ class Line:
         self._method_incompatible_with_compose()
         self.env.replace_replica(name)
 
-    @doc_group("Upcoming Deprecations")
-    def copy_element_from(self, name, source, new_name=None):
+    def _copy_element_from(self, name, source, new_name=None):
         """
-        Deprecated wrapper for ``line.env.copy_element_from(...)``.
-
         Copies an element from ``source`` into this line's environment and
         optionally renames it.
 
@@ -5154,7 +5151,7 @@ class Line:
         None
             The destination environment is modified in place.
         """
-        return self.env.copy_element_from(name, source, new_name)
+        return self.env._copy_element_from(name, source, new_name)
 
     @doc_group("Line Editing")
     def replace_all_replicas(self):

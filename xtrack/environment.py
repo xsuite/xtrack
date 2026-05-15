@@ -677,8 +677,7 @@ class Environment:
         """
         return self.__class__.from_dict(self.to_dict())
 
-    @doc_group("Upcoming deprecations")
-    def copy_element_from(self, name, source, new_name=None):
+    def _copy_element_from(self, name, source, new_name=None):
         """Copy an element from another environment.
 
         Parameters
@@ -744,7 +743,7 @@ class Environment:
             This method modifies the environment in place.
         """
         name_parent = self._element_dict[name].resolve(self, get_name=True)
-        self.copy_element_from(name_parent, self, new_name=name)
+        self._copy_element_from(name_parent, self, new_name=name)
 
     def _import_element(self, line, name, rename_elements, suffix_for_common_elements,
                         already_imported):
@@ -759,7 +758,7 @@ class Environment:
                     isinstance(self._element_dict.get(name), xt.Marker))):
             new_name += suffix_for_common_elements
 
-        self.copy_element_from(name, line, new_name=new_name)
+        self._copy_element_from(name, line, new_name=new_name)
         already_imported[name] = new_name
         if hasattr(line._element_dict[name], 'parent_name'):
             parent_name = line._element_dict[name].parent_name

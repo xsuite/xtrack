@@ -1999,7 +1999,7 @@ def test_copy_element_from_other_env():
     env2 = xt.Environment()
     env2['var'] = 4
     env2['var2'] = '2 * var'
-    env2.copy_element_from('quad', env1, 'quad/env2')
+    env2._copy_element_from('quad', env1, 'quad/env2')
 
     assert env2['quad/env2'].length == 4
     assert env2['quad/env2'].knl[0] == 0
