@@ -1074,11 +1074,14 @@ class Environment:
 
         xt.json.dump(self.to_dict(**kwargs), file, indent=indent)
 
-    @doc_group("Upcoming deprecations")
+    @doc_group("Deprecated")
     @classmethod
     def from_madx(cls, filename=None, madx=None, stdout=None, return_lines=False, **kwargs):
         '''
         Load a multiline from a MAD-X file.
+
+        .. warning:: This function is deprecated and will be removed in a future
+           version. Please use xtrack.load(...).
 
         Parameters
         ----------
@@ -1093,6 +1096,11 @@ class Environment:
         new_multiline: Multiline
             The multiline object.
         '''
+        warn('The function `Environment.from_madx` is deprecated and will be removed '
+             'in a future version. Please use `xtrack.load(...)`.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning)
+
         return xt.multiline_legacy._multiline_from_madx(cls, filename=filename, madx=madx, stdout=stdout,
                              return_lines=return_lines, **kwargs)
 
