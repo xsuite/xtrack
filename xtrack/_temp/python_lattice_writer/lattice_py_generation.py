@@ -106,7 +106,7 @@ def gen_py_lattice(env):
     all_elems = []
     for lname in env.lines.keys():
         ll = env.lines[lname]
-        bb = ll.builder.flatten()
+        bb = ll.composer.flatten()
         all_elems += [cc.name for cc in bb.components]
 
     elem_tokens = {}
@@ -231,19 +231,19 @@ def gen_py_lattice(env):
     elem_def_part = '\n'.join(elem_def_lines)
 
 
-    ###################
-    # Handle builders #
-    ###################
+    ####################
+    # Handle composers #
+    ####################
 
-    builder_lines = []
+    composer_lines = []
     for lname in env.lines.keys():
-        builder_lines.append(f'# Line: {lname}')
-        bb = env.lines[lname].builder.flatten()
+        composer_lines.append(f'# Line: {lname}')
+        bb = env.lines[lname].composer.flatten()
         mirror_token=''
         if bb.mirror:
             mirror_token=f', mirror={bb.mirror}'
-        builder_lines.append(f'{lname} = env.new_line(name="{lname}", compose=True{mirror_token})')
-        builder_lines.append(f'{lname} = env["{lname}"]')
+        composer_lines.append(f'{lname} = env.new_line(name="{lname}", compose=True{mirror_token})')
+        composer_lines.append(f'{lname} = env["{lname}"]')
         for cc in bb.components:
             cc_tokens=[]
             for kk, vv in cc.__dict__.items():
@@ -254,11 +254,11 @@ def gen_py_lattice(env):
                     env['__temp__'] = vv
                     vv = env.ref["__temp__"]._expr._formatted(formatter)
                 cc_tokens.append(f'{kk}="{vv}"')
-            builder_lines.append(f'{lname}.place("{cc.name}", ' + ', '.join(cc_tokens) + ')')
-        builder_lines.append(f'{lname}.end_compose()')
-        builder_lines.append('')
+            composer_lines.append(f'{lname}.place("{cc.name}", ' + ', '.join(cc_tokens) + ')')
+        composer_lines.append(f'{lname}.end_compose()')
+        composer_lines.append('')
 
-    builder_part = '\n'.join(builder_lines)
+    composer_part = '\n'.join(composer_lines)
 
     ####################
     # Handle variables #
@@ -314,7 +314,7 @@ def gen_py_lattice(env):
     '# Beam lines #',
     '##############',
     '',
-    builder_part,
+    composer_part,
     postamble])
 
     return file_content

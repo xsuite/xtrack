@@ -744,10 +744,10 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
 
         new_env = xt.Environment(lines=all_lines)
 
-        # Adapt builders
+        # Adapt composers
         for nn in env.lines.keys():
-            bb = env.lines[nn].builder.__class__(new_env)
-            bb.__dict__.update(env.lines[nn].builder.__dict__)
+            bb = env.lines[nn].composer.__class__(new_env)
+            bb.__dict__.update(env.lines[nn].composer.__dict__)
             bb.env = new_env
             this_rename = new_env.lines[nn]._renamed_elements
             for cc in bb.components:
