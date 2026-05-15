@@ -112,7 +112,7 @@ class Environment:
 
         self.lines = EnvLines(self)
         self._lines_weakrefs = WeakSet()
-        self._line_builders = WeakKeyDictionary()
+        self._line_composers = WeakKeyDictionary()
         self._drift_counter = 0
         self.ref = EnvRef(self)
         self._elements = EnvElements(self)
@@ -180,14 +180,14 @@ class Environment:
     def __getstate__(self):
         out = self.__dict__.copy()
         out.pop('_lines_weakrefs')
-        out.pop('_line_builders', None)
+        out.pop('_line_composers', None)
         out.pop('_xdeps_eval_obj', None)
         return out
 
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._lines_weakrefs = WeakSet()
-        self._line_builders = WeakKeyDictionary()
+        self._line_composers = WeakKeyDictionary()
 
     @classmethod
     def _generate_doc_rst(
@@ -505,7 +505,7 @@ class Environment:
             to. Allowed values are ``start``, ``center`` (default; also allowed
             is ``centre```), and ``end``.
         length : float | str, optional
-            Length of the line to be built by the builder. Can be an expression.
+            Length of the line to be built by the composer. Can be an expression.
             If not specified, the length will be the minimum length that can
             fit all the components.
         mirror : bool, optional
@@ -610,37 +610,37 @@ class Environment:
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',
                     length=None, s_tol=1e-6):
         '''
-        Deprecated. Create a new builder.
+        Deprecated. Create a new composer.
 
-        ..warning:: The `new_builder` method is deprecated and will be removed in
+        ..warning:: The `new_composer` method is deprecated and will be removed in
         a future version. Use `new_line` with `compose=True` instead.
 
         Parameters
         ----------
         components : list, optional
-            List of components to be added to the builder. It can include strings,
+            List of components to be added to the composer. It can include strings,
             place objects, and lines.
         name : str, optional
-            Name of the line that will be built by the builder.
+            Name of the line that will be built by the composer.
         refer : str, optional
             Specifies which part of the component the ``at`` position will refer
             to. Allowed values are ``start``, ``center`` (default; also allowed
             is ``centre```), and ``end``.
         length : float | str, optional
-            Length of the line to be built by the builder. Can be an expression.
+            Length of the line to be built by the composer. Can be an expression.
             If not specified, the length will be the minimum length that can
             fit all the components.
 
         Returns
         -------
-        Builder
-            The new builder.
+        Composer
+            The new composer.
         '''
 
         warn('The `new_builder` method is deprecated and will be removed in a future version. '
              'Use `new_line` with `compose=True` instead.', FutureWarning)
 
-        out = xt.Builder(env=self, components=components, name=name, refer=refer,
+        out = xt.composer(env=self, components=components, name=name, refer=refer,
                        length=length, s_tol=s_tol)
 
         return out

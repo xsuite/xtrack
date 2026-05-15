@@ -35,7 +35,7 @@ from .beam_elements.elements import (_EDGE_MODEL_TO_INDEX,
                                      _MODEL_TO_INDEX_CURVED,
                                      _MODEL_TO_INDEX_DRIFT)
 from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
-from .builder import (_all_places, _flatten_components,
+from .composer import (_all_places, _flatten_components,
                       _generate_element_names_with_drifts,
                       _resolve_s_positions, _sort_places)
 from .footprint import Footprint, _footprint_with_linear_rescale
@@ -151,7 +151,7 @@ class Line:
             List of components to be added to the line. It can include strings,
             place objects, and lines. Can only be given if ``compose`` is true.
         length : float | str, optional
-            Length of the line to be built by the builder. Can be an expression.
+            Length of the line to be built by the composer. Can be an expression.
             If not specified, the length will be the minimum length that can
             fit all the components. Can only be given if ``compose`` is true.
         refer : str, optional
@@ -254,7 +254,7 @@ class Line:
                 element_names = []
             self.element_names = list(element_names).copy()
         else:
-            self.composer = xt.Builder(env, mirror=mirror, length=length,
+            self.composer = xt.Composer(env, mirror=mirror, length=length,
                                        refer=refer, s_tol=s_tol or 1e-6,
                                        components=components)
             self.element_names = element_names
@@ -378,7 +378,7 @@ class Line:
             '_element_names_before_slicing', None)
 
         if 'composer' in dct.keys() and dct['composer'] is not None:
-            self.composer = xt.Builder.from_dict(dct['composer'], env=self.env)
+            self.composer = xt.Composer.from_dict(dct['composer'], env=self.env)
 
         if ('energy_program' in self._element_dict
              and self._element_dict['energy_program'] is not None):
@@ -1366,7 +1366,7 @@ class Line:
 
         Returns
         -------
-        Builder or None
+        Composer or None
             Compose-mode builder object associated with the line.
         """
         warn("`Line.builder` is deprecated and will be removed in a future version. '"

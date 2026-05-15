@@ -5,7 +5,7 @@ import xdeps as xd
 from functools import cmp_to_key
 
 
-class Builder:
+class Composer:
     def __init__(self, env, components=None, name=None, length=None,
                  refer='center', s_tol=1e-6,
                  mirror=False):
@@ -38,7 +38,7 @@ class Builder:
             parts.append(f'mirror={self.mirror!r}')
         parts.append(f'{len(self.components)} components')
         args_str = ', '.join(parts)
-        return f'Builder({args_str})'
+        return f'Composer({args_str})'
 
     def new(self, name, cls, at=None, from_=None, extra=None, force=False,
             **kwargs):
@@ -59,7 +59,7 @@ class Builder:
             inplace = True
 
         if inplace and self.name is None:
-            raise ValueError('Inplace build requires the Builder to have a name')
+            raise ValueError('Inplace build requires the Composer to have a name')
 
         if inplace:
             name = self.name
@@ -69,7 +69,7 @@ class Builder:
 
         if line is not None:
             if line.env is not self.env:
-                raise ValueError('Line must belong to the same environment as the Builder')
+                raise ValueError('Line must belong to the same environment as the Composer')
 
         components = self.components
         length = self.length
@@ -255,7 +255,7 @@ def _flatten_components(env, components, refer='center'):
             else:
                 raise RuntimeError('This should never happen')
 
-            if isinstance(line, xt.Builder):
+            if isinstance(line, xt.Composer):
                 line = line.build(name=None, inplace=False)
             elif isinstance(line, xt.Line) and line.mode == 'compose':
                 line = line.composer.build(name=None, inplace=False)
@@ -282,7 +282,7 @@ def _flatten_components(env, components, refer='center'):
                 sub_components[0] = Place(sub_components[0], at=at_of_start_first_element,
                         anchor='start', from_=nn.from_, from_anchor=nn.from_anchor)
             flatt_components += sub_components
-        elif isinstance(nn, xt.Builder):
+        elif isinstance(nn, xt.Composer):
             flatt_components += nn.build(inplace=False).element_names
         elif isinstance(nn, xt.Line):
             if nn.mode == 'compose':
