@@ -489,8 +489,12 @@ class PipeView:
         len_points=32,
         transform: np.ndarray = np.identity(4),
         ax=None,
+        colour: Literal['profile', 'pipe'] = 'profile',
         legend: bool = True,
     ):
+        if colour not in ('profile', 'pipe'):
+            raise ValueError("colour must be either 'profile' or 'pipe'")
+
         frame = {'z': 'curved', 's': 'straight'}[plane[0]]
 
         # Plot setup
@@ -503,11 +507,11 @@ class PipeView:
         # Plot the projected polygons
         polys = self.build_polygons_3d(frame=frame, len_points=len_points)  # noqa
         for poly, prof_view in zip(polys, self):
-            label = prof_view.profile.name
-            colour = _hashed_color(label, palette)
+            label = prof_view.profile.name if colour == 'profile' else ''
+            line_colour = _hashed_color(prof_view.profile.name if colour == 'profile' else self.name, palette)
             poly_trans = transform @ poly
             xs, ys, zs = poly_trans[:3]
-            ax.plot(zs, {'x': xs, 'y': ys}[plane[1]], label=label, color=colour)
+            ax.plot(zs, {'x': xs, 'y': ys}[plane[1]], label=label, color=line_colour)
 
         # Plot the pipe axis
         min_s, max_s = self[0].shift_s, self[len(self) - 1].shift_s
@@ -1586,7 +1590,7 @@ class Aperture:
         ax.set_aspect('equal')
         ax.set_title(fr"Envelope at {name}, s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], $n$ = {sigmas:.3f}")
         ax.legend()
-
+        return ax
 
     def plot_n1_at_element(self, name, resolution=0.1, method='rays', middle='beam', ax=None, **kwargs):
         """Display a transverse plot of the beam at n1 at element ``name``.
@@ -1642,8 +1646,14 @@ class Aperture:
         ax.set_aspect('equal')
         ax.set_title(fr"Max envelopes at {name}, s $\in$ [{n1_table.s[0]:.2f}, {n1_table.s[-1]:.2f}], min($n_1$) = {n1:.3f}")
         ax.legend()
+        return ax
 
-    def plot_floor_projection(self, ax=None):
+    def plot_floor_projection(
+        self,
+        ax=None,
+        len_points=4,
+        colour: Literal['profile', 'pipe'] = 'pipe',
+    ):
         from matplotlib import pyplot as plt
         ax = ax or plt.gca()
 
@@ -1651,8 +1661,18 @@ class Aperture:
             pipe = pipe_position.pipe
             sv_ref_transform = survey_relative_transform(self.survey, 0, pipe_position.survey_reference_name)
             transform = sv_ref_transform @ pipe_position.transformation
-            pipe.plot_projection(ax=ax, plane='zx', transform=transform)
+            pipe.plot_projection(
+                ax=ax,
+                plane='zx',
+                transform=transform,
+                len_points=len_points,
+                colour=colour,
+                legend=False
+            )
 
+        # _deduplicate_legend(ax)
+        # ax.legend()
+        return ax
 
     def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""

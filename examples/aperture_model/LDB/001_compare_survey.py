@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 lhc = layout.Machine.from_pickle("LHC.pickle")
 ldb_curv = lhc.get_ref_curve()
 
-lattice = xt.load('https://acc-models.web.cern.ch/acc-models/lhc/hl19/xsuite/lhc.json')
+lattice = xt.load('lhc.json')
 b1 = lattice.b1
 b2 = lattice.b2
 
