@@ -91,7 +91,7 @@ LINE_DOC_GROUP_ORDER = (
     "Element Internal Logging",
     "Cleanup and Simplification",
     "MAD-NG Integration",
-    "Deprecated Methods",
+    "Deprecated",
     "Upcoming Deprecations",
 )
 
@@ -555,7 +555,7 @@ class Line:
 
         return cls(elements=element_objects, element_names=element_names, **kwargs)
 
-    @doc_group("Deprecated Methods")
+    @doc_group("Deprecated")
     @classmethod
     def from_sixinput(cls, sixinput, classes=()):
         """``Line.from_sixinput`` has been removed in favour of ``sixinput.generate_xtrack_line()``."""
@@ -1359,7 +1359,7 @@ class Line:
         """
         return self._mode
 
-    @property_with_doc_group("Upcoming Deprecations")
+    @property_with_doc_group("Deprecated")
     def builder(self):
         """
         Deprecated alias for ``line.composer``.
@@ -2497,7 +2497,7 @@ class Line:
                                 particle_on_co=particle_on_co,
                                 steps=steps)
 
-    @doc_group("Deprecated Methods")
+    @doc_group("Deprecated")
     def compute_T_matrix(self, *args, **kwargs):
         """
         Compute the second order tensor of the beamline.
@@ -2694,7 +2694,7 @@ class Line:
                 'det_xy': det_xy, 'det_yx': det_yx}
 
 
-    @doc_group("Deprecated Methods")
+    @doc_group("Deprecated")
     def compute_one_turn_matrix_finite_differences(self, *args, **kwargs):
 
         """Deprecated. Compute the one turn matrix using finite differences.
@@ -2773,7 +2773,7 @@ class Line:
                         only_markers=only_markers,
                         symmetrize=symmetrize)
 
-    @doc_group("Deprecated Methods")
+    @doc_group("Deprecated")
     def compute_R_matrix(self, *args, **kwargs):
 
         '''Compute the one turn matrix using finite differences.
@@ -3340,7 +3340,7 @@ class Line:
         return tt_match
 
     # To be deprecated in favor of Line.insert
-    @doc_group("Deprecated Methods")
+    @doc_group("Deprecated")
     def insert_element(self, name, element=None, at=None, index=None, at_s=None,
                        s_tol=1e-6):
         """Insert an element in the line.
@@ -3449,7 +3449,7 @@ class Line:
 
         return self
 
-    @doc_group("Deprecated Methods")
+    @doc_group("Deprecated")
     def append_element(self, element, name):
         """Append element to the end of the lattice
 
@@ -4962,7 +4962,7 @@ class Line:
             return
         self.element_names = tuple(self.element_names)
 
-    @doc_group("Deprecated Methods")
+    @doc_group("Deprecated")
     def unfreeze(self):
         """Use :meth:`Line.discard_tracker` instead.
 
@@ -5469,10 +5469,14 @@ class Line:
         """
         return self.env.ref
 
-    @property_with_doc_group("Inspection, Variables and Configuration")
+    @property_with_doc_group("Deprecated")
     def varval(self):
         """
         Convenience accessor to variable values.
+
+        .. warning: `Line.varval[...]` is deprecated and will be removed
+           in a future version. To access the value of a variable you can simply use
+           Line[...]."
 
         Equivalent to ``line.vars.val``.
 
@@ -5481,10 +5485,36 @@ class Line:
         values : object
             Mapping-like view exposing variable values.
         """
+
+        warn("`Line.varval[...]` is deprecated and will be removed in a future version. "
+             "To access the value of a variable you can simply use Line[...]. "
+             "Line.vars.val[...] is also available."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
         return self.vars.val
 
-    @property_with_doc_group("Upcoming Deprecations")
+    @property_with_doc_group("Deprecated")
     def vv(self): # Shorter alias
+
+        """
+        Short alias for variable values.
+
+        .. warning: `Line.vv[...]` is deprecated and will be removed
+           in a future version. To access the value of a variable you can simply use
+           Line[...]."
+
+        Equivalent to `line.varval`` (or `line.vars.val``).
+
+        Returns
+        -------
+        values : object
+            Mapping-like view exposing variable values.
+        """
+
+        warn("`Line.vv[...]` is deprecated and will be removed in a future version. "
+             "To access the value of a variable you can simply use Line[...]. "
+             "Line.vars.val[...] is also available."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
+
         return self.vars.val
 
     @doc_group("Inspection, Variables and Configuration")
@@ -5676,20 +5706,6 @@ class Line:
     @property
     def _xdeps_eval(self):
         return self.env._xdeps_eval
-
-    @property_with_doc_group("Upcoming Deprecations")
-    def vv(self):  # Shorter alias
-        """
-        Deprecated short alias for variable values.
-
-        Equivalent to ``line.varval`` (or ``line.vars.val``).
-
-        Returns
-        -------
-        values : object
-            Mapping-like view exposing variable values.
-        """
-        return self.vars.val
 
     @property_with_doc_group("Line Editing")
     def element_names(self):

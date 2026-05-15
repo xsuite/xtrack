@@ -1386,10 +1386,14 @@ class Environment:
         """
         return self._line_vars
 
-    @property_with_doc_group("Upcoming deprecations")
+    @property_with_doc_group("Deprecated")
     def varval(self):
         """
         Convenience accessor to variable values.
+
+        .. warning: `Environment.varval[...]` is deprecated and will be removed
+           in a future version. To access the value of a variable you can simply use 
+           Environment[...]."
 
         Equivalent to ``environment.vars.val``.
 
@@ -1398,12 +1402,22 @@ class Environment:
         values : object
             Mapping-like view exposing variable values.
         """
+
+        warn("`Environment.varval[...]` is deprecated and will be removed in a future version. "
+             "To access the value of a variable you can simply use Environment[...]. "
+             "Environment.vars.val[...] is also available."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
+
         return self.vars.val
 
-    @property_with_doc_group("Upcoming deprecations")
+    @property_with_doc_group("Deprecated")
     def vv(self): # Shorter alias
         """
-        Deprecated short alias for variable values.
+        Short alias for variable values.
+
+        .. warning: `Environment.vv[...]` is deprecated and will be removed
+           in a future version. To access the value of a variable you can simply use
+           Environment[...]."
 
         Equivalent to ``environment.varval`` (or ``environment.vars.val``).
 
@@ -1412,6 +1426,12 @@ class Environment:
         values : object
             Mapping-like view exposing variable values.
         """
+
+        warn("`Environment.vv[...]` is deprecated and will be removed in a future version. "
+             "To access the value of a variable you can simply use Environment[...]. "
+             "Environment.vars.val[...] is also available."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning)
+
         return self.vars.val
 
     @doc_group("Editing, Inspection, Variables and Configuration")
