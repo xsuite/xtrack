@@ -71,8 +71,54 @@ class Octagon(xo.Struct):
 class Polygon(xo.Struct):
     vertices = FloatType[:, 2]
 
+    _extra_c_sources = [
+        '#include "xtrack/aperture/headers/polygon.h"',
+    ]
+
+    _kernels = {
+        'is_point_inside_polygon': xo.Kernel(
+            c_name='is_point_inside_polygon',
+            args=[
+                xo.Arg(xo.ThisClass, name='polygon'),
+                xo.Arg(FloatType, pointer=True, name='point'),
+            ],
+            ret=xo.Arg(xo.Int8),
+        ),
+        'points_inside_polygon': xo.Kernel(
+            c_name='points_inside_polygon',
+            args=[
+                xo.Arg(xo.ThisClass, name='polygon'),
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+            ],
+            ret=xo.Arg(xo.Int8),
+        ),
+    }
+
     def __repr__(self):
         return f'<Polygon: {self.vertices._shape[0]} vertices>'
+
+    def is_point_inside_polygon(self, point) -> bool:
+        point = np.asarray(point, dtype=FloatType._dtype)
+        if point.shape != (2,):
+            raise ValueError(f'Expected a point with shape (2,), got {point.shape}.')
+
+        self.compile_kernels(only_if_needed=True)
+        return bool(self._context.kernels.is_point_inside_polygon(polygon=self, point=point))
+
+    def points_inside_polygon(self, points) -> bool:
+        points = np.asarray(points, dtype=FloatType._dtype)
+        if points.ndim != 2 or points.shape[1] != 2:
+            raise ValueError(f'Expected points with shape (n, 2), got {points.shape}.')
+
+        self.compile_kernels(only_if_needed=True)
+        return bool(
+            self._context.kernels.points_inside_polygon(
+                polygon=self,
+                points=points,
+                len_points=points.shape[0],
+            )
+        )
 
 
 class SVGShape(xo.Struct):
@@ -442,25 +488,6 @@ class ApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='out_envelope'),
             ],
         ),
-        '_points_inside_polygon': xo.Kernel(
-            c_name='_points_inside_polygon',
-            args=[
-                xo.Arg(FloatType, pointer=True, name='points'),
-                xo.Arg(FloatType, pointer=True, name='poly_points'),
-                xo.Arg(xo.UInt32, name='len_points'),
-                xo.Arg(xo.UInt32, name='len_poly_points'),
-            ],
-            ret=xo.Arg(xo.Int8),
-        ),
-        '_is_point_inside_polygon': xo.Kernel(
-            c_name='_is_point_inside_polygon',
-            args=[
-                xo.Arg(FloatType, pointer=True, name='point'),
-                xo.Arg(FloatType, pointer=True, name='points'),
-                xo.Arg(xo.UInt32, name='len_points'),
-            ],
-            ret=xo.Arg(xo.Int8),
-        ),
     }
 
     def __init__(
@@ -591,21 +618,3 @@ class ApertureModel(xo.Struct):
     def get_beam_envelopes_at_sigma(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_beam_envelopes_at_sigma(model=self, **kwargs)
-
-    def compute_beam_envelopes_at_sigma(self, **kwargs) -> None:
-        warn(
-            '`ApertureModel.compute_beam_envelopes_at_sigma()` is deprecated '
-            'and will be removed in future versions. Please use '
-            '`ApertureModel.get_beam_envelopes_at_sigma()` instead.'
-            + DEPRECATION_INFO_PREP_1_0,
-            FutureWarning,
-        )
-        return self.get_beam_envelopes_at_sigma(**kwargs)
-
-    def _points_inside_polygon(self, **kwargs) -> bool:
-        self.compile_kernels(only_if_needed=True)
-        return bool(self._context.kernels._points_inside_polygon(**kwargs))
-
-    def _is_point_inside_polygon(self, **kwargs) -> bool:
-        self.compile_kernels(only_if_needed=True)
-        return bool(self._context.kernels._is_point_inside_polygon(**kwargs))

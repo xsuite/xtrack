@@ -14,7 +14,7 @@ from xobjects.general import allclose_with_outliers
 from xobjects.test_helpers import for_all_test_contexts, requires_context
 from xtrack.aperture.aperture import Aperture, ProfilesView, TypePositionsView, TypesView
 from xtrack.aperture.structures import (
-    ApertureModel, Pipe, Circle, Ellipse, FloatType, Profile,
+    ApertureModel, Pipe, Circle, Ellipse, FloatType, Polygon, Profile,
     ProfilePosition, Rectangle, RectEllipse, SurveyData, PipePosition
 )
 from xtrack.aperture.transform import matrix_to_transform, transform_matrix
@@ -88,9 +88,10 @@ def test_matrix_to_transform_roundtrip(kwargs):
 @pytest.fixture(scope="module")
 def kernels(context):
     Profile.compile_class_kernels(context, only_if_needed=True)
+    Polygon.compile_class_kernels(context, only_if_needed=True)
     SurveyData.compile_class_kernels(context, only_if_needed=True)
     ApertureModel.compile_class_kernels(context, only_if_needed=True)
-    return context.kernels
+    return context
 
 
 def _expected_profile_bounds_from_table(table_rows, *, skip_row):
@@ -281,8 +282,8 @@ def test_aperture_model_views(test_context):
             Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
             Profile(shape=Rectangle(half_width=2.0, half_height=3.0), tol_r=0.1, tol_x=0.2, tol_y=0.3),
         ],
-        pipe_names=['type0'],
-        pipe_position_names=['type0_at_drift'],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0_at_drift'],
         profile_names=['circ0', 'rect0'],
         _context=test_context,
     )
@@ -290,18 +291,18 @@ def test_aperture_model_views(test_context):
     profiles = ProfilesView(model)
     pipes = TypesView(model)
     pipe_positions = TypePositionsView(model)
-    type0 = pipes[0]
-    positions = type0
+    pipe0 = pipes[0]
+    positions = pipe0
 
     assert repr(profiles) == '<ProfilesView: 2 profiles>'
     assert repr(pipes) == '<PipesView: 1 pipe>'
     assert repr(pipe_positions) == '<PipePositionsView: 1 pipe position>'
     assert profiles.keys() == ['circ0', 'rect0']
-    assert pipes.keys() == ['type0']
-    assert pipe_positions.keys() == ['type0_at_drift']
+    assert pipes.keys() == ['pipe0']
+    assert pipe_positions.keys() == ['pipe0_at_drift']
     assert profiles.search(r'.*0') == ['circ0', 'rect0']
-    assert pipes.search(r'type.*') == ['type0']
-    assert pipe_positions.search(r'type0_.*') == ['type0_at_drift']
+    assert pipes.search(r'pipe.*') == ['pipe0']
+    assert pipe_positions.search(r'pipe0_.*') == ['pipe0_at_drift']
 
     assert profiles[0].name == 'circ0'
     assert profiles['rect0'].name == 'rect0'
@@ -320,19 +321,19 @@ def test_aperture_model_views(test_context):
     xo.assert_allclose(model.profiles[1].tol_x, 0.5, atol=1e-15, rtol=0)
     xo.assert_allclose(model.profiles[1].tol_y, 0.6, atol=1e-15, rtol=0)
 
-    assert pipes[0].name == 'type0'
-    assert pipes['type0'].name == 'type0'
-    assert list(name for name, _ in pipes.items()) == ['type0']
-    assert [type_.name for type_ in pipes.values()] == ['type0']
-    assert [type_.curvature for type_ in pipes.values()] == [0.5]
-    xo.assert_allclose(type0.length, 0.6, atol=1e-15, rtol=0)
-    xo.assert_allclose(type0.angle, 0.3, atol=1e-15, rtol=0)
-    type0.curvature = 0.25
+    assert pipes[0].name == 'pipe0'
+    assert pipes['pipe0'].name == 'pipe0'
+    assert list(name for name, _ in pipes.items()) == ['pipe0']
+    assert [pipe.name for pipe in pipes.values()] == ['pipe0']
+    assert [pipe.curvature for pipe in pipes.values()] == [0.5]
+    xo.assert_allclose(pipe0.length, 0.6, atol=1e-15, rtol=0)
+    xo.assert_allclose(pipe0.angle, 0.3, atol=1e-15, rtol=0)
+    pipe0.curvature = 0.25
     xo.assert_allclose(model.pipes[0].curvature, 0.25, atol=1e-15, rtol=0)
 
-    assert pipe_positions[0].name == 'type0_at_drift'
-    assert pipe_positions['type0_at_drift'].name == 'type0_at_drift'
-    assert pipe_positions[0].type.name == 'type0'
+    assert pipe_positions[0].name == 'pipe0_at_drift'
+    assert pipe_positions['pipe0_at_drift'].name == 'pipe0_at_drift'
+    assert pipe_positions[0].pipe.name == 'pipe0'
     assert pipe_positions[0].survey_reference_name == 'drift'
     assert pipe_positions[0].survey_index == 0
     xo.assert_allclose(pipe_positions[0].shift_x, 0.0, atol=1e-15, rtol=0)
@@ -341,9 +342,9 @@ def test_aperture_model_views(test_context):
     xo.assert_allclose(pipe_positions[0].rot_x_rad, 0.0, atol=1e-15, rtol=0)
     xo.assert_allclose(pipe_positions[0].rot_y_rad, 0.0, atol=1e-15, rtol=0)
     xo.assert_allclose(pipe_positions[0].rot_z_rad, 0.0, atol=1e-15, rtol=0)
-    assert list(name for name, _ in pipe_positions.items()) == ['type0_at_drift']
-    assert [type_pos.name for type_pos in pipe_positions.values()] == ['type0_at_drift']
-    assert [type_pos.pipe_index for type_pos in pipe_positions.values()] == [0]
+    assert list(name for name, _ in pipe_positions.items()) == ['pipe0_at_drift']
+    assert [pipe_pos.name for pipe_pos in pipe_positions.values()] == ['pipe0_at_drift']
+    assert [pipe_pos.pipe_index for pipe_pos in pipe_positions.values()] == [0]
     pipe_positions[0].survey_reference_name = 'drift_entry'
     pipe_positions[0].survey_index = 3
     pipe_positions[0].pipe_index = 0
@@ -476,11 +477,12 @@ def test_is_point_inside_polygon_ellipse(kernels):
     ellipse = [(rx * np.cos(angle), ry * np.sin(angle)) for angle in np.linspace(0, 2 * np.pi, 99)]
     ellipse.append(ellipse[0])
     ellipse = np.array(ellipse, dtype=FloatType._dtype)
+    polygon = Polygon(vertices=ellipse, _context=kernels)
 
     @np.vectorize
     def in_ellipse(x, y):
         point = np.array([x, y], dtype=FloatType._dtype)
-        return bool(kernels['_is_point_inside_polygon'](point=point, points=ellipse, len_points=ellipse.shape[0]))
+        return bool(polygon.is_point_inside_polygon(point=point))
 
     extent = np.linspace(-10, 10, 100)
     xs, ys = np.meshgrid(extent, extent)
@@ -507,11 +509,12 @@ def test_is_point_inside_polygon_path(kernels):
         (-1, 2),
         (1, 2),
     ], dtype=FloatType._dtype)
+    polygon = Polygon(vertices=poly, _context=kernels)
 
     @np.vectorize
     def in_poly(x, y):
         point = np.array([x, y], dtype=FloatType._dtype)
-        return bool(kernels['_is_point_inside_polygon'](point=point, points=poly, len_points=poly.shape[0]))
+        return bool(polygon.is_point_inside_polygon(point=point))
 
     extent = np.linspace(-5, 5, 100)
     xs, ys = np.meshgrid(extent, extent)
@@ -538,22 +541,14 @@ def test_points_inside_polygon_inscribed_circles(kernels):
 
     circ1 = np.array(circ1, dtype=FloatType._dtype)
     circ2 = np.array(circ2, dtype=FloatType._dtype)
+    poly1 = Polygon(vertices=circ1, _context=kernels)
+    poly2 = Polygon(vertices=circ2, _context=kernels)
 
-    small_in_big = kernels["_points_inside_polygon"](
-        points=circ1,
-        poly_points=circ2,
-        len_points=circ1.shape[0],
-        len_poly_points=circ2.shape[0],
-    )
+    small_in_big = poly2.points_inside_polygon(points=circ1)
 
     assert bool(small_in_big)
 
-    big_in_small = kernels["_points_inside_polygon"](
-        points=circ2,
-        poly_points=circ1,
-        len_points=circ2.shape[0],
-        len_poly_points=circ1.shape[0],
-    )
+    big_in_small = poly1.points_inside_polygon(points=circ2)
 
     assert not bool(big_in_small)
 
@@ -564,22 +559,14 @@ def test_points_inside_polygon_simple(kernels):
 
     poly_big = np.array(poly_big, dtype=FloatType._dtype)
     poly_small = np.array(poly_small, dtype=FloatType._dtype)
+    poly_big_obj = Polygon(vertices=poly_big, _context=kernels)
+    poly_small_obj = Polygon(vertices=poly_small, _context=kernels)
 
-    small_in_big = kernels["_points_inside_polygon"](
-        points=poly_small,
-        poly_points=poly_big,
-        len_points=poly_small.shape[0],
-        len_poly_points=poly_big.shape[0],
-    )
+    small_in_big = poly_big_obj.points_inside_polygon(points=poly_small)
 
     assert bool(small_in_big)
 
-    big_in_small = kernels["_points_inside_polygon"](
-        points=poly_big,
-        poly_points=poly_small,
-        len_points=poly_big.shape[0],
-        len_poly_points=poly_small.shape[0],
-    )
+    big_in_small = poly_small_obj.points_inside_polygon(points=poly_big)
 
     assert not bool(big_in_small)
 
@@ -597,22 +584,14 @@ def test_points_inside_polygon_simpler(kernels):
         [-5.7332378e-02, -9.9302508e-02],
         [1.1466468e-01, 0.0000000e+00],
     ], dtype=FloatType._dtype)
+    poly_big_obj = Polygon(vertices=poly_big, _context=kernels)
+    poly_small_obj = Polygon(vertices=poly_small, _context=kernels)
 
-    small_in_big = kernels["_points_inside_polygon"](
-        points=poly_small,
-        poly_points=poly_big,
-        len_points=poly_small.shape[0],
-        len_poly_points=poly_big.shape[0],
-    )
+    small_in_big = poly_big_obj.points_inside_polygon(points=poly_small)
 
     assert bool(small_in_big)
 
-    big_in_small = kernels["_points_inside_polygon"](
-        points=poly_big,
-        poly_points=poly_small,
-        len_points=poly_big.shape[0],
-        len_poly_points=poly_small.shape[0],
-    )
+    big_in_small = poly_small_obj.points_inside_polygon(points=poly_big)
 
     assert not bool(big_in_small)
 
@@ -1255,8 +1234,8 @@ def test_aperture_bounds_straight_survey(rot_x_rad, rot_y_rad, dx, dy, ds1, ds2,
         pipe_positions=pipe_positions,
         pipes=pipes,
         profiles=profiles,
-        pipe_names=['type0'],
-        pipe_position_names=['type0'],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0'],
         profile_names=['circle', 'rectangle'],
     )
 
@@ -1330,8 +1309,8 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
             Pipe(curvature=-angle / length, positions=profile_positions),
         ],
         profiles=profiles,
-        pipe_names=['type0', 'type1', 'type2'],
-        pipe_position_names=['type0', 'type1', 'type2'],
+        pipe_names=['pipe0', 'type1', 'type2'],
+        pipe_position_names=['pipe0', 'type1', 'type2'],
         profile_names=['circ0'],
     )
 
@@ -1342,7 +1321,7 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
     xo.assert_allclose(bounds_table.s, bounds_s, atol=1e-6, rtol=1e-6)
     xo.assert_allclose(bounds_table.s_start, bounds_s, atol=1e-6, rtol=1e-6)
     xo.assert_allclose(bounds_table.s_end, bounds_s, atol=1e-6, rtol=1e-6)
-    assert all(bounds_table.pipe_name == ['type0', 'type0', 'type1', 'type1', 'type2', 'type2'])
+    assert all(bounds_table.pipe_name == ['pipe0', 'pipe0', 'type1', 'type1', 'type2', 'type2'])
     assert all(bounds_table.profile_name == ['circ0'])
 
     s_samples = np.linspace(0, 3 * length, 51, dtype=FloatType._dtype)
@@ -1615,8 +1594,8 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
         ],
         pipes=[Pipe(curvature=0.0, positions=profile_positions)],
         profiles=profiles,
-        pipe_names=['type0'],
-        pipe_position_names=['type0'],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0'],
         profile_names=['circle0', 'circle1'],
     )
 
@@ -1637,7 +1616,7 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     sv_ref_mat[:3, 2] = sv_ref.ez
     sv_ref_mat[:3, 3] = np.array([sv_ref.X[0], sv_ref.Y[0], sv_ref.Z[0]])
     world_from_type = sv_ref_mat @ model.pipe_positions[0].transformation.to_nparray()
-    type_from_world = np.linalg.inv(world_from_type)
+    pipe_from_world = np.linalg.inv(world_from_type)
 
     for ii in range(len(s_samples)):
         sec_xy = sections[ii]
@@ -1649,7 +1628,7 @@ def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
             np.ones(len(sec_xy), dtype=FloatType._dtype),
         ])
         sec_world = (poses[ii] @ sec_hom.T).T
-        sec_type = (type_from_world @ sec_world.T).T
+        sec_type = (pipe_from_world @ sec_world.T).T
 
         rr = np.linalg.norm(sec_type[:, :2], axis=1)
         z = sec_type[:, 2]
@@ -1685,8 +1664,8 @@ def test_cross_sections_at_s_interpolates_tolerances(test_context):
         ],
         pipes=[Pipe(curvature=0.0, positions=profile_positions)],
         profiles=profiles,
-        pipe_names=['type0'],
-        pipe_position_names=['type0'],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0'],
         profile_names=['profile0', 'profile1'],
     )
 
@@ -1732,8 +1711,8 @@ def test_cross_sections_at_s_curved_type_preserves_profile_shape(test_context):
         ],
         pipes=[Pipe(curvature=angle / length, positions=profile_positions)],
         profiles=profiles,
-        pipe_names=['type0'],
-        pipe_position_names=['type0'],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0'],
         profile_names=['circ0'],
     )
 
@@ -1764,8 +1743,8 @@ def test_cross_sections_at_s_returns_axis_extents(test_context):
         ],
         pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
         profiles=[Profile(shape=Rectangle(half_width=2.0, half_height=1.5), tol_r=0, tol_x=0, tol_y=0)],
-        pipe_names=['type0'],
-        pipe_position_names=['type0'],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0'],
         profile_names=['profile0'],
     )
 
@@ -1941,8 +1920,8 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
         pipe_positions=pipe_positions,
         pipes=pipes,
         profiles=profiles,
-        pipe_names=['type0'],
-        pipe_position_names=['type0'],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0'],
         profile_names=['circle', 'rectangle'],
     )
 
@@ -1980,8 +1959,8 @@ def test_aperture_bounds_upstream_of_reference_across_marker(test_context):
         ],
         pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
         profiles=[Profile(shape=Circle(radius=0.01), tol_r=0, tol_x=0, tol_y=0)],
-        pipe_names=['type0'],
-        pipe_position_names=['type0'],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0'],
         profile_names=['circle'],
     )
 

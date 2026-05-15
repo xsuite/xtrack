@@ -1653,6 +1653,7 @@ class Aperture:
         ax=None,
         len_points=4,
         colour: Literal['profile', 'pipe'] = 'pipe',
+        legend=True,
     ):
         from matplotlib import pyplot as plt
         ax = ax or plt.gca()
@@ -1670,8 +1671,10 @@ class Aperture:
                 legend=False
             )
 
-        # _deduplicate_legend(ax)
-        # ax.legend()
+        if legend:
+            _deduplicate_legend(ax)
+            ax.legend()
+
         return ax
 
     def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
@@ -1743,9 +1746,9 @@ class Aperture:
 
             if survey_at_idx != survey_ref_name:
                 raise ValueError(
-                    f'Aperture model corrupted for pipe position {pipe_position_name}: the associate survey reference name '
-                    f'`{survey_ref_name}` and index `{survey_ref_idx}` do not match. The element of the survey at the '
-                    f'index is {survey_at_idx}.'
+                    f'Aperture model corrupted for pipe position {pipe_position_name}: the associated survey reference '
+                    f'name `{survey_ref_name}` and index {survey_ref_idx} do not match. The element of the survey at '
+                    f'the index is {survey_at_idx}.'
                 )
 
     def _check_aperture_bounds_validity(self, s_tol = 1e-6):

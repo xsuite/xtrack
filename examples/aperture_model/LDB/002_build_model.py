@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xtrack as xt
 from xtrack.aperture import Aperture, ApertureBuilder
+from xtrack.aperture.structures import Polygon
+from xtrack.aperture.transform import poly2d_to_homogeneous
 from warnings import warn
 
 
@@ -136,7 +138,32 @@ for transform_name, mad_point in pipes_loc:
     type_name = ldb_model.transformations[transform_name].target_type
     s_pos = mad_point.z
 
-    builder.place_pipe(transform_name, type_name, transformation=mad_point.matrix, survey_reference='ip1')
+    # Determine if the pipe is for B1, B2, or both, by doing a rough check: does the first profile of the pipe as
+    # installed fit the beam? In addition, this check is rough because the interpolation ignores curved elements.
+
+    # Get profile info and the local offsets
+    ldb_aper = ldb_model.types[type_name].aperture
+    profile = ldb_aper.aperture_alias[0]
+    offset = np.array([ldb_aper.offset_x[0], ldb_aper.offset_y[0], ldb_aper.offset_z[0]])
+    s_profile = s_pos + offset[2]
+
+    # Get a rough polygon in the survey space
+    poly_2d = builder._profiles[ldb_aper.aperture_alias].build_polygon(8)
+    poly_hom = poly2d_to_homogeneous(poly_2d)
+    poly_hom[:, :3] += offset
+    poly_hom = mad_point.matrix @ poly_hom
+
+    assert np.isclose(s_profile, poly_hom[:, 3], atol=1e-9, rtol=1e-9)
+
+    # Get the rough survey position at s
+    survey_x_at_s = np.interp(s_profile, sv_b1.Z, sv_b1.X)
+    survey_y_at_s = np.interp(s_profile, sv_b1.Y, sv_b1.X)
+
+    # Check that the survey is inside the polygon
+    poly = Polygon(vertices=poly_hom[:, (0, 1)])
+
+    if poly.is_point_inside_polygon(np.array([survey_x_at_s, survey_y_at_s])):
+        builder.place_pipe(transform_name, type_name, transformation=mad_point.matrix, survey_reference='ip1')
 
 aperture_model = builder.build()
 aperture = Aperture(model=aperture_model, line=b1, _skip_validity_check=True)
