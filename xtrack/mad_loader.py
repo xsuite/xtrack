@@ -373,17 +373,17 @@ class Aperture:
 
     def aperture(self):
         if len(self.mad_el.aper_vx) > 2:
-            builder = self.Assembler(
+            assembler = self.Assembler(
                     self.name + "_aper",
                     self.classes.LimitPolygon,
                     x_vertices=self.mad_el.aper_vx,
                     y_vertices=self.mad_el.aper_vy,
                 )
             if self.dx or self.dy or self.aper_tilt:
-                builder.shift_x = self.dx
-                builder.shift_y = self.dy
-                builder.rot_s_rad = self.aper_tilt
-            return [builder]
+                assembler.shift_x = self.dx
+                assembler.shift_y = self.dy
+                assembler.rot_s_rad = self.aper_tilt
+            return [assembler]
         else:
             conveter = getattr(self.loader, "convert_" + self.apertype, None)
             if conveter is None:

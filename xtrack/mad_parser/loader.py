@@ -104,7 +104,7 @@ class MadxLoader:
         self.env = env or xt.Environment()
         self.install_limits = install_limits
         self.s_tol = s_tol
-        self.builders = {}
+        self.composers = {}
 
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._both_direction_elements: Set[str] = set()
@@ -173,9 +173,9 @@ class MadxLoader:
             self._madx_elem_hierarchy.update(hierarchy)
 
             self._parse_elements(parsed_dict["elements"])
-            builders = self._parse_lines(parsed_dict["lines"])
+            composers = self._parse_lines(parsed_dict["lines"])
             self._parse_parameters(parsed_dict["parameters"])
-            self.builders.update(builders)
+            self.composers.update(composers)
 
         # Handle variables obtained from arrow operations
         for var_name in self.env._xdeps_vref._owner.keys():
@@ -224,7 +224,7 @@ class MadxLoader:
             self._new_element(name, parent, self.env, **params)
 
     def _parse_lines(self, lines: Dict[str, LineType]):
-        builders = {}
+        composers = {}
 
         for name, line_params in lines.items():
             params = line_params.copy()
@@ -238,41 +238,41 @@ class MadxLoader:
                 elif refer == 'exit':
                     refer = 'end'
                 length = params.get('l', None)
-                builder = self.env.new_line(
+                composer = self.env.new_line(
                     name=name,
                     refer=refer,
                     length=length,
                     s_tol=self.s_tol,
                     compose=True,
                 )
-                self._parse_components(builder, params.pop('elements'))
+                self._parse_components(composer, params.pop('elements'))
             elif line_type == 'line':
                 components = self._parse_line_components(params.pop('elements'))
-                builder = self.env.new_line(name=name, components=components, compose=True)
+                composer = self.env.new_line(name=name, components=components, compose=True)
             else:
                 raise ValueError(
                     f'Only a MAD-X sequence or a line type can be used to build'
                     f'a line, but got: {line_type}!'
                 )
 
-            builders[name] = builder
+            composers[name] = composer
 
-            self.env._last_loaded_builders = builders
+            self.env._last_loaded_composers = composers
 
-        return builders
+        return composers
 
     def _parse_parameters(self, parameters: Dict[str, Dict[str, str]]):
         for element, el_params in parameters.items():
             params, extras = get_params(el_params, parent=element)
             self._set_element(element, self.env, **params, extra=extras)
 
-    def _parse_components(self, builder, elements: List[Tuple[str, Union[ElementType, LineType]]]):
+    def _parse_components(self, composer, elements: List[Tuple[str, Union[ElementType, LineType]]]):
         for name, element in elements:
             params = element.copy()
             parent = params.pop('parent', None)
             assert parent != 'sequence'
             params, extras = get_params(params, parent=parent)
-            self._new_element(name, parent, builder, **params, extra=extras)
+            self._new_element(name, parent, composer, **params, extra=extras)
 
     def _parse_line_components(self, elements):
         components = []
@@ -317,7 +317,7 @@ class MadxLoader:
             self.env.new(name, xt_type, **kwargs)
         self._builtin_types.add(name)
 
-    def _new_element(self, name, parent, builder, **kwargs):
+    def _new_element(self, name, parent, composer, **kwargs):
         should_clone = parent is not None
 
         if should_clone:
@@ -335,21 +335,21 @@ class MadxLoader:
         el_params = self._convert_element_params(name, kwargs)
 
         if aperture and self.install_limits and 'at' in el_params:  # placing mode
-            builder.place(aperture, at=0, from_=f'{name}@start')
+            composer.place(aperture, at=0, from_=f'{name}@start')
 
         if should_clone:
-            self._clone_element(name, parent, builder, el_params)
+            self._clone_element(name, parent, composer, el_params)
         else:
             # If parent is None, we must be in a sequence, and so we are
             # placing the element: in MAD-X this requires an `at` param, but
             # we can be a bit more lax, as Xsuite will automatically place the
             # element after the previous one if there is no `at`.
-            self._place_element(name, el_params, builder)
+            self._place_element(name, el_params, composer)
 
         if aperture:
-            builder._element_dict[name].name_associated_aperture = aperture
+            composer._element_dict[name].name_associated_aperture = aperture
 
-    def _place_element(self, name, el_params, builder):
+    def _place_element(self, name, el_params, composer):
         """Place an element in the sequence.
 
         This is the case when `parent` is None.
@@ -366,9 +366,9 @@ class MadxLoader:
         if (extras := el_params.pop('extra', None)):
             _warn(f'Ignoring extra parameters {extras} for element `{name}`!')
 
-        builder.place(name, **el_params)
+        composer.place(name, **el_params)
 
-    def _clone_element(self, name, parent, builder, el_params):
+    def _clone_element(self, name, parent, composer, el_params):
         """Clone an element, and possibly place it if we are in a sequence.
 
         Here `parent` is not None.
@@ -381,14 +381,14 @@ class MadxLoader:
                 _warn(f'Ignoring extra parameters {dropped_extra} for element '
                       f'`{name}`: it is a clone of itself overriding `extra`.')
             el_params.pop('k0_from_h', None)
-            builder.place(name, **el_params)
+            composer.place(name, **el_params)
         else:
             # `force=True` is needed to overwrite existing elements. In MAD-X
             # when an element name is repeated between lines, the first one
             # is retained: we do not simulate this behaviour here.
-            builder.new(name, parent, force=True, **el_params)
+            composer.new(name, parent, force=True, **el_params)
 
-    def _set_element(self, name, builder, **kwargs):
+    def _set_element(self, name, composer, **kwargs):
         self._parameter_cache[name].update(kwargs)
 
         if 'aperture' in kwargs and 'apertype' not in kwargs:
@@ -398,15 +398,15 @@ class MadxLoader:
         extra = kwargs.pop('extra', None)
 
         el_params = self._convert_element_params(name, kwargs)
-        builder.set(name, **el_params)
+        composer.set(name, **el_params)
 
         if extra:
-            if not hasattr(builder.element_dict[name], 'extra'):
-                builder.element_dict[name].extra = {}
+            if not hasattr(composer.element_dict[name], 'extra'):
+                composer.element_dict[name].extra = {}
             for kk, vv in extra.items():
-                builder.ref[name].extra[kk] = vv
+                composer.ref[name].extra[kk] = vv
 
-        builder.element_dict[name].name_associated_aperture = aperture
+        composer.element_dict[name].name_associated_aperture = aperture
 
     def _convert_element_params(self, name, params):
         parent_name = self._mad_base_type(name)
@@ -536,7 +536,7 @@ class MadxLoader:
         params : dict
             The parameters of the element, including the aperture parameters.
         force : bool, optional
-            If True, the ``force`` parameter is passed to the builder when
+            If True, the ``force`` parameter is passed to the composer when
             creating the aperture element: this will overwrite any existing
             aperture element with the same name. If False, an error will be
             raised if an aperture element with the same name already exists.

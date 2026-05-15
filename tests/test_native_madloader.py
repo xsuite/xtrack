@@ -939,7 +939,7 @@ def test_import_seq_length():
     tt = env.line.get_table()
     assert np.all(tt.name == np.array(['||drift_1', 'qu1', '||drift_2', '_end_point']))
     xo.assert_allclose(tt['s'], np.array([ 0., 18., 20., 30.]), rtol=0, atol=1e-15)
-    assert env.line.builder.length == 30
+    assert env.line.composer.length == 30
 
 
 def test_repeated_element_mad_behaviour():
