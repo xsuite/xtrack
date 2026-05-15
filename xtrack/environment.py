@@ -640,7 +640,7 @@ class Environment:
         warn('The `new_builder` method is deprecated and will be removed in a future version. '
              'Use `new_line` with `compose=True` instead.', FutureWarning)
 
-        out = xt.composer(env=self, components=components, name=name, refer=refer,
+        out = xt.Composer(env=self, components=components, name=name, refer=refer,
                        length=length, s_tol=s_tol)
 
         return out
