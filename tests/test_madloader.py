@@ -684,32 +684,32 @@ def test_load_madx_optics_file():
 
     # Check varval behaviour
     collider.vars['on_x1'] = 40
-    assert collider.varval['on_x1'] == 40
+    assert collider['on_x1'] == 40
     assert collider.lhcb1.vars['on_x1']._value == 40
     assert collider.lhcb2.vars['on_x1']._value == 40
-    assert collider.lhcb1.varval['on_x1'] == 40
-    assert collider.lhcb2.varval['on_x1'] == 40
+    assert collider.lhcb1['on_x1'] == 40
+    assert collider.lhcb2['on_x1'] == 40
 
-    collider.varval['on_x1'] = 50
+    collider['on_x1'] = 50
     assert collider.vars['on_x1']._value == 50
     assert collider.lhcb1.vars['on_x1']._value == 50
     assert collider.lhcb2.vars['on_x1']._value == 50
-    assert collider.lhcb1.varval['on_x1'] == 50
-    assert collider.lhcb2.varval['on_x1'] == 50
+    assert collider.lhcb1['on_x1'] == 50
+    assert collider.lhcb2['on_x1'] == 50
 
-    collider.lhcb1.varval['on_x1'] = 60
+    collider.lhcb1['on_x1'] = 60
     assert collider.vars['on_x1']._value == 60
     assert collider.lhcb1.vars['on_x1']._value == 60
     assert collider.lhcb2.vars['on_x1']._value == 60
-    assert collider.lhcb1.varval['on_x1'] == 60
-    assert collider.lhcb2.varval['on_x1'] == 60
+    assert collider.lhcb1['on_x1'] == 60
+    assert collider.lhcb2['on_x1'] == 60
 
-    collider.lhcb2.varval['on_x1'] = 70
+    collider.lhcb2['on_x1'] = 70
     assert collider.vars['on_x1']._value == 70
     assert collider.lhcb1.vars['on_x1']._value == 70
     assert collider.lhcb2.vars['on_x1']._value == 70
-    assert collider.lhcb1.varval['on_x1'] == 70
-    assert collider.lhcb2.varval['on_x1'] == 70
+    assert collider.lhcb1['on_x1'] == 70
+    assert collider.lhcb2['on_x1'] == 70
 
     collider.vars['on_disp'] = 0  # more precise angle
     xo.assert_allclose(collider.twiss().lhcb1['px', 'ip1'], 70e-6, atol=1e-8, rtol=0)
