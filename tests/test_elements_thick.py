@@ -1499,9 +1499,9 @@ def test_sextupole_cpymad(test_context):
     xo.assert_allclose(elem.k2, 3, rtol=0, atol=1e-14)
     xo.assert_allclose(elem.k2s, 10, rtol=0, atol=1e-14)
 
-    line_mad.vv['knob_a'] = 0.5
-    line_mad.vv['knob_b'] = 0.6
-    line_mad.vv['knob_l'] = 0.7
+    line_mad['knob_a'] = 0.5
+    line_mad['knob_b'] = 0.6
+    line_mad['knob_l'] = 0.7
 
     xo.assert_allclose(elem.length, 0.7, rtol=0, atol=1e-14)
     xo.assert_allclose(elem.k2, 1.5, rtol=0, atol=1e-14)
@@ -1622,9 +1622,9 @@ def test_sextupole_native(test_context):
     xo.assert_allclose(elem.k2, 3, rtol=0, atol=1e-14)
     xo.assert_allclose(elem.k2s, 10, rtol=0, atol=1e-14)
 
-    line_mad.vv['knob_a'] = 0.5
-    line_mad.vv['knob_b'] = 0.6
-    line_mad.vv['knob_l'] = 0.7
+    line_mad['knob_a'] = 0.5
+    line_mad['knob_b'] = 0.6
+    line_mad['knob_l'] = 0.7
 
     xo.assert_allclose(elem.length, 0.7, rtol=0, atol=1e-14)
     xo.assert_allclose(elem.k2, 1.5, rtol=0, atol=1e-14)

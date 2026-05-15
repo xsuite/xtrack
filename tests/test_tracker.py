@@ -675,12 +675,12 @@ def test_track_log_and_merit_function(test_context):
     # Define time-dependent behaviour of the quadrupoles
     line.functions['fun_kqfa'] = xt.FunctionPieceWiseLinear(
         x=[0, 0.5e-3],
-        y=[line.vv['kqfa'], 0.313],
+        y=[line['kqfa'], 0.313],
     )
     line.vars['kqfa'] = line.functions['fun_kqfa'](line.vars['t_turn_s'])
     line.vars['kse2'] = 9
 
-    kqfa_before = line.vv['kqfa']
+    kqfa_before = line['kqfa']
 
     def measure_intensity(_, particles):
         ctx2np = particles._context.nparray_from_context_array
@@ -708,7 +708,7 @@ def test_track_log_and_merit_function(test_context):
     assert slope > 0
     assert residual < 1e-28
     xo.assert_allclose(line.log_last_track['kqfa'][0], kqfa_before, atol=1e-14, rtol=0)
-    xo.assert_allclose(line.log_last_track['kqfa'][-1], line.vv['kqfa'], atol=1e-14, rtol=0)
+    xo.assert_allclose(line.log_last_track['kqfa'][-1], line['kqfa'], atol=1e-14, rtol=0)
 
     # Check that intensity is decreasing
     intensity = np.array(line.log_last_track['intensity'])

@@ -25,9 +25,9 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api(tmp_path):
     tt = line.get_table()
     bz_data_file = test_data_folder / 'fcc_ee/Bz_closed_before_quads.dat'
 
-    line.vars['voltca1_ref'] = line.vv['voltca1']
+    line.vars['voltca1_ref'] = line['voltca1']
     if 'voltca2' in line.vars.keys():
-        line.vars['voltca2_ref'] = line.vv['voltca2']
+        line.vars['voltca2_ref'] = line['voltca2']
     else:
         line.vars['voltca2_ref'] = 0
 

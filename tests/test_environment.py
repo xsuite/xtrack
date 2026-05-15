@@ -23,62 +23,62 @@ def test_vars_and_element_access_modes(container_type):
 
     ee = {'env': env, 'line': line}[container_type]
 
-    assert ee.vv['b'] == 2 * 2 + 1
+    assert ee['b'] == 2 * 2 + 1
 
     ee.vars['a'] = ee.vars['k.1']
-    assert ee.vv['b'] == 2 * 1 + 1
+    assert ee['b'] == 2 * 1 + 1
 
     ee.vars(a=3.)
     ee.vars({'k.1': 'a'})
-    assert ee.vv['k.1'] == 3.
-    assert ee.vv['b'] == 2 * 3 + 3.
+    assert ee['k.1'] == 3.
+    assert ee['b'] == 2 * 3 + 3.
 
     ee.vars['k.1'] = 2 * ee.vars['a'] + 5
-    assert ee.vv['k.1'] == 2 * 3 + 5
-    assert ee.vv['b'] == 2 * 3 + 2 * 3 + 5
+    assert ee['k.1'] == 2 * 3 + 5
+    assert ee['b'] == 2 * 3 + 2 * 3 + 5
 
     ee.vars.set('a', 4.)
-    assert ee.vv['k.1'] == 2 * 4 + 5
-    assert ee.vv['b'] == 2 * 4 + 2 * 4 + 5
+    assert ee['k.1'] == 2 * 4 + 5
+    assert ee['b'] == 2 * 4 + 2 * 4 + 5
 
     ee.vars.set('k.1', '2*a + 5')
-    assert ee.vv['k.1'] == 2 * 4 + 5
-    assert ee.vv['b'] == 2 * 4 + 2 * 4 + 5
+    assert ee['k.1'] == 2 * 4 + 5
+    assert ee['b'] == 2 * 4 + 2 * 4 + 5
 
     ee.vars.set('k.1', 3 * ee.vars['a'] + 6)
-    assert ee.vv['k.1'] == 3 * 4 + 6
-    assert ee.vv['b'] == 2 * 4 + 3 * 4 + 6
+    assert ee['k.1'] == 3 * 4 + 6
+    assert ee['b'] == 2 * 4 + 3 * 4 + 6
 
     env.set('c', '2*b')
-    assert env.vv['c'] == 2 * (2 * 4 + 3 * 4 + 6)
+    assert env['c'] == 2 * (2 * 4 + 3 * 4 + 6)
     env.set('d', 6)
-    assert env.vv['d'] == 6
+    assert env['d'] == 6
     env.set('d', '7')
-    assert env.vv['d'] == 7
+    assert env['d'] == 7
 
     ee.set('a', 0.)
-    assert ee.vv['k.1'] == 3 * 0 + 6
-    assert ee.vv['b'] == 2 * 0 + 3 * 0 + 6
+    assert ee['k.1'] == 3 * 0 + 6
+    assert ee['b'] == 2 * 0 + 3 * 0 + 6
 
     ee.set('a', 2.)
     ee.set('k.1', '2 * a + 5')
-    assert ee.vv['k.1'] == 2 * 2 + 5
-    assert ee.vv['b'] == 2 * 2 + 2 * 2 + 5
+    assert ee['k.1'] == 2 * 2 + 5
+    assert ee['b'] == 2 * 2 + 2 * 2 + 5
 
     ee.set('k.1', 3 * ee.vars['a'] + 6)
-    assert ee.vv['k.1'] == 3 * 2 + 6
-    assert ee.vv['b'] == 2 * 2 + 3 * 2 + 6
+    assert ee['k.1'] == 3 * 2 + 6
+    assert ee['b'] == 2 * 2 + 3 * 2 + 6
 
     assert hasattr(ee.ref['k.1'], '_value') # is a Ref
 
     ee.ref['a'] = 0
-    assert ee.vv['k.1'] == 3 * 0 + 6
-    assert ee.vv['b'] == 2 * 0 + 3 * 0 + 6
+    assert ee['k.1'] == 3 * 0 + 6
+    assert ee['b'] == 2 * 0 + 3 * 0 + 6
 
     ee.ref['a'] = 2
     ee.ref['k.1'] = 2 * ee.ref['a'] + 5
-    assert ee.vv['k.1'] == 2 * 2 + 5
-    assert ee.vv['b'] == 2 * 2 + 2 * 2 + 5
+    assert ee['k.1'] == 2 * 2 + 5
+    assert ee['b'] == 2 * 2 + 2 * 2 + 5
 
     #--------------------------------------------------
 
@@ -121,7 +121,7 @@ def test_vars_and_element_access_modes(container_type):
     assert line.get('bb1') is not env.get('bb')
     assert line.get('bb') is env.get('bb')
 
-    a = env.vv['a']
+    a = env['a']
     assert line['bb1'].length == 3 * a
     assert line['bb1'].k0 == 2 * (2 * a + 5)
     assert line['bb1'].angle == 5.
@@ -140,7 +140,7 @@ def test_vars_and_element_access_modes(container_type):
 
     old_a = a
     line.vars['a'] = 3.
-    a = line.vv['a']
+    a = line['a']
     assert line['bb1'].length == 3 * a
     assert line['bb1'].k0 == 2 * (2 * a + 5)
     assert line['bb1'].angle == 5.
@@ -355,7 +355,7 @@ def test_assemble_ring():
 
     ])
 
-    l_hc = env.vv['l.halfcell']
+    l_hc = env['l.halfcell']
     xo.assert_allclose(l_hc, l_hc, atol=1e-14, rtol=0)
     tt_hc = halfcell.get_table(attr=True)
     assert np.all(tt_hc.name == np.array(
@@ -386,9 +386,9 @@ def test_assemble_ring():
     xo.assert_allclose(tt_hc['s_center', 'corrector.d'] - tt_hc['s_center', 'mq.d'],
                     0.8, atol=1e-14, rtol=0)
     xo.assert_allclose(tt_hc['s_center', 'mb.2'], l_hc / 2, atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env.vv['l.mb'] - 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env['l.mb'] - 1,
                         atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env.vv['l.mb'] + 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env['l.mb'] + 1,
                     atol=1e-14, rtol=0)
 
 
@@ -783,7 +783,7 @@ def test_assemble_ring_builders():
     halfcell = halfcell.build()
 
 
-    l_hc = env.vv['l.halfcell']
+    l_hc = env['l.halfcell']
     xo.assert_allclose(l_hc, l_hc, atol=1e-14, rtol=0)
     tt_hc = halfcell.get_table(attr=True)
     assert np.all(tt_hc.name == np.array(
@@ -814,9 +814,9 @@ def test_assemble_ring_builders():
     xo.assert_allclose(tt_hc['s_center', 'corrector.d'] - tt_hc['s_center', 'mq.d'],
                     0.8, atol=1e-14, rtol=0)
     xo.assert_allclose(tt_hc['s_center', 'mb.2'], l_hc / 2, atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env.vv['l.mb'] - 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env['l.mb'] - 1,
                         atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env.vv['l.mb'] + 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env['l.mb'] + 1,
                     atol=1e-14, rtol=0)
 
 
@@ -1212,7 +1212,7 @@ def test_assemble_ring_repeated_elements():
 
     ])
 
-    l_hc = env.vv['l.halfcell']
+    l_hc = env['l.halfcell']
     xo.assert_allclose(l_hc, l_hc, atol=1e-14, rtol=0)
     tt_hc = halfcell.get_table(attr=True)
     assert np.all(tt_hc.name == np.array(
@@ -1243,9 +1243,9 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(tt_hc['s_center', 'corrector.d'] - tt_hc['s_center', 'mq.d'],
                     0.8, atol=1e-14, rtol=0)
     xo.assert_allclose(tt_hc['s_center', 'mb.2'], l_hc / 2, atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env.vv['l.mb'] - 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env['l.mb'] - 1,
                         atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env.vv['l.mb'] + 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env['l.mb'] + 1,
                     atol=1e-14, rtol=0)
 
     cell = -halfcell + halfcell

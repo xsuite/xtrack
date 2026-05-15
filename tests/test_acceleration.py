@@ -142,7 +142,7 @@ def test_energy_program(test_context):
     line.enable_time_dependent_vars = False
     line.vars['t_turn_s'] = 20e-3
 
-    E_kin_expected = np.interp(line.vv['t_turn_s'], t_s, E_kin_GeV*1e9)
+    E_kin_expected = np.interp(line['t_turn_s'], t_s, E_kin_GeV*1e9)
     E_tot_expected = E_kin_expected + line.particle_ref.mass0
     xo.assert_allclose(
         E_tot_expected, line.particle_ref.energy0[0], rtol=1e-4, atol=0)

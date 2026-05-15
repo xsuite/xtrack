@@ -42,10 +42,10 @@ def test_mad_writer(case):
         ll.vars['on_x1'] = 100 # Check kicker expressions
         ll.vars['on_sep2'] = 2 # Check kicker expressions
         ll.vars['on_x5'] = 123 # Check kicker expressions
-        ll.vv['kqtf.b1'] += 1e-5 # Check quad expressions
-        ll.vv['ksf.b1'] += 1e-3  # Check sext expressions
-        ll.vv['kqs.l4b1'] += 1e-4 # Check skew expressions
-        ll.vv['kof.a34b1'] = 3 # Check oct expressions
+        ll['kqtf.b1'] += 1e-5 # Check quad expressions
+        ll['ksf.b1'] += 1e-3  # Check sext expressions
+        ll['kqs.l4b1'] += 1e-4 # Check skew expressions
+        ll['kof.a34b1'] = 3 # Check oct expressions
         ll.vars['on_crab1'] = -190 # Check cavity expressions
         ll.vars['on_crab5'] = -130 # Check cavity expressions
 
