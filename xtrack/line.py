@@ -6049,7 +6049,7 @@ class Line:
                 self._element_dict[key], self._xdeps_eref[key],
                 evaluator=self._xdeps_eval.eval)
         elif key in self.vars:
-            return self.vv[key]
+            return self.vars.val[key]
         elif "::" in key and (env_name := key.split("::")[0]) in self._element_dict:
             return self[env_name]
         else:

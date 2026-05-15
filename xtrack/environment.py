@@ -1477,7 +1477,7 @@ class Environment:
             return View(self.particles[key], self._xdeps_pref[key],
                         evaluator=self._xdeps_eval.eval)
         elif self.ref_manager is not None and key in self.vars:
-            return self.vv[key]
+            return self.vars.val[key]
         elif key in self.lines: # Want to reuse the method for the env
             return self.lines[key]
         else:
@@ -2611,7 +2611,7 @@ class EnvVars:
 
         env = self.env
         mgr = env.ref_manager
-        env.vars[new] = env.vv[old]
+        env.vars[new] = env.vars.val[old]
         r_old = env.ref[old]
         r_new = env.ref[new]
         t_old = mgr.tasks.get(r_old)

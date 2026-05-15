@@ -907,7 +907,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
     # Set mcbx by hand
-    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    testkqx2=abs(collider['kqx.l2'])*7000./0.3
     acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6 # Value for 170 urad crossing
     for icorr in [1, 2, 3]:
         collider.vars[f'acbxh{icorr}.l2_from_on_x2h'] = acbx_xing_ir2
@@ -931,7 +931,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
     # Set mcbx by hand
-    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    testkqx2=abs(collider['kqx.l2'])*7000./0.3
     acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6
     for icorr in [1, 2, 3]:
         collider.vars[f'acbxv{icorr}.l2_from_on_x2v'] = acbx_xing_ir2
@@ -956,7 +956,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand (reduce value by 10, to test matching algorithm)
-    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    testkqx8=abs(collider['kqx.l8'])*7000./0.3
     acbx_xing_ir8 = 1.0e-6 if testkqx8 > 210. else 11.0e-6 # Value for 170 urad crossing
 
     # Set mcbx by hand
@@ -1002,7 +1002,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand
-    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    testkqx8=abs(collider['kqx.l8'])*7000./0.3
     acbx_xing_ir8 = 1.0e-6 if testkqx8 > 210. else 11.0e-6 # Value for 170 urad crossing
     # Set MCBX by hand
     for icorr in [1, 2, 3]:
@@ -1039,7 +1039,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand
-    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    testkqx2=abs(collider['kqx.l2'])*7000./0.3
     acbx_sep_ir2 = 18e-6 if testkqx2 > 210. else 16e-6
 
     for icorr in [1, 2, 3]:
@@ -1066,7 +1066,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand
-    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    testkqx2=abs(collider['kqx.l2'])*7000./0.3
     acbx_sep_ir2 = 18e-6 if testkqx2 > 210. else 16e-6
 
     for icorr in [1, 2, 3]:
@@ -1093,7 +1093,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand
-    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    testkqx8=abs(collider['kqx.l8'])*7000./0.3
     acbx_sep_ir8 = 18e-6 if testkqx8 > 210. else 16e-6
 
     for icorr in [1, 2, 3]:
@@ -1120,7 +1120,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand
-    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    testkqx8=abs(collider['kqx.l8'])*7000./0.3
     acbx_sep_ir8 = 18e-6 if testkqx8 > 210. else 16e-6
 
     for icorr in [1, 2, 3]:

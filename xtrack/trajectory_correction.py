@@ -421,7 +421,7 @@ class OrbitCorrectionSinglePlane:
             self.line.vars[nn_knob] += kick
 
     def get_kick_values(self):
-        return np.array([self.line.vv[nn_knob] for nn_knob in self.correction_knobs])
+        return np.array([self.line[nn_knob] for nn_knob in self.correction_knobs])
 
     def clear_correction_knobs(self):
         for nn_knob in self.correction_knobs:
