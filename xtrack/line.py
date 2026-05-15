@@ -5248,14 +5248,16 @@ class Line:
         return self.vars.eval(expr)
 
     @doc_group("Upcoming Deprecations")
-    def extend(self, line):
+    def extend(self, what):
         """
-        Append elements from another line to this line.
+        Append existing element names to this line.
 
         Parameters
         ----------
-        line : Line
-            Source line providing the `element_names` to append.
+        what : Line or list of str
+            If a line, append its sequence of element names. The source line
+            must belong to the same environment as this line. If a list, append
+            the provided element names directly.
 
         Returns
         -------
@@ -5264,10 +5266,21 @@ class Line:
 
         Notes
         -----
-        Only the sequence of element names is extended.
+        This method only extends the sequence of names; it does not import or
+        copy elements from another environment.
         """
         self._method_incompatible_with_compose()
-        self.element_names.extend(line.element_names)
+
+        if isinstance(what, xt.Line):
+            if what.env is not self.env:
+                raise ValueError('Line must be in the same environment')
+            element_names = what.element_names
+        elif isinstance(what, list) and all(isinstance(nn, str) for nn in what):
+            element_names = what
+        else:
+            raise ValueError('`what` must be a Line or a list of strings')
+
+        self.element_names.extend(element_names)
 
     def __len__(self):
         if self.mode == 'compose':

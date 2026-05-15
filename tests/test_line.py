@@ -1146,6 +1146,33 @@ def test_line_table_unique_names():
         assert line[name] == line[env_name]
 
 
+def test_extend():
+
+    env = xt.Environment()
+    env.new('d1', xt.Drift, length=1)
+    env.new('d2', xt.Drift, length=2)
+    env.new('d3', xt.Drift, length=3)
+
+    line = env.new_line(components=['d1'])
+    other_line = env.new_line(components=['d2'])
+
+    line.extend(other_line)
+    assert line.element_names == ['d1', 'd2']
+
+    line.extend(['d3', 'd1'])
+    assert line.element_names == ['d1', 'd2', 'd3', 'd1']
+
+    other_env = xt.Environment()
+    other_env.new('d4', xt.Drift, length=4)
+    line_from_other_env = other_env.new_line(components=['d4'])
+
+    with pytest.raises(ValueError, match='same environment'):
+        line.extend(line_from_other_env)
+
+    with pytest.raises(ValueError, match='list of strings'):
+        line.extend(['d2', 3])
+
+
 def test_extend_knl_ksl():
 
     classes_to_check = ['Bend', 'Quadrupole', 'Sextupole', 'Octupole', 'UniformSolenoid',
@@ -1449,4 +1476,3 @@ def test_extend_knl_rel_ksl_rel():
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['o1'].ksl_rel, [4., 5., 200., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
-
