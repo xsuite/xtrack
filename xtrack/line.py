@@ -1369,6 +1369,9 @@ class Line:
         Builder or None
             Compose-mode builder object associated with the line.
         """
+        warn("`Line.builder` is deprecated and will be removed in a future version. '"
+             "Please use `Line.composer` instead." + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning, stacklevel=2)
         return self.composer
 
     @builder.setter
