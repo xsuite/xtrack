@@ -686,7 +686,7 @@ def test_elens(test_context):
 @for_all_test_contexts
 def test_elens_measured_radial(test_context):
     def get_coef(r_measured, j_measured, r_1_new, r_2_new,
-                     r_1_old, r_2_old, p_order = 13):
+                     r_1_old, r_2_old, p_order = 12):
         new_r = r_measured*(r_2_new-r_1_new)/(r_2_old-r_1_old)
         new_j = j_measured*(r_2_old-r_1_old)/(r_2_new-r_1_new)
 
