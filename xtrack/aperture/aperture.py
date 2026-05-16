@@ -1510,7 +1510,7 @@ class Aperture:
     def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
         element = self.line[element_name]
-        s_start = self.line.get_s_position(element_name)
+        s_start = self.line._get_s_position(element_name)
         element_length = getattr(element, 'length', 0)
         s_end = s_start + element_length
 

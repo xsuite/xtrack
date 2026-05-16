@@ -842,7 +842,7 @@ class Line:
             s_elements = np.zeros(len(self.element_names) + 1)
             s_elements[1:] = np.cumsum(self.attr['length'] * isthick[:-1])
         else:
-            s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
+            s_elements = np.array(list(self._get_s_elements()) + [self.get_length()])
 
         length_elements = np.diff(s_elements, append=s_elements[-1]) # only think elements have length here
         s_start = s_elements
@@ -2838,8 +2838,7 @@ class Line:
 
         return ll
 
-    @doc_group("Inspection, Variables and Configuration")
-    def get_s_elements(self, mode="upstream"):
+    def _get_s_elements(self, mode="upstream"):
 
         '''Get s position for all elements
 
@@ -2855,10 +2854,35 @@ class Line:
             s position for all elements
         '''
 
-        return self.get_s_position(mode=mode)
+        return self._get_s_position(mode=mode)
 
-    @doc_group("Inspection, Variables and Configuration")
-    def get_s_position(self, at_elements=None, mode="upstream"):
+    @doc_group("Deprecated")
+    def get_s_elements(self, mode="upstream"):
+
+        '''Get s position for all elements
+
+        .. warning:: This method is deprecated and will be removed in a future version.
+                Use ``tt = line.get_table()`` and then ``tt.s`` instead.
+
+        Parameters
+        ----------
+
+        mode : str
+            "upstream" or "downstream" (default: "upstream")
+
+        Returns
+        -------
+        s : list of float
+            s position for all elements
+        '''
+
+        warn('`Line.get_s_elements` is deprecated and will be removed in a future version. '
+             'Use `tt = line.get_table()` and then `tt.s` to get all s positions.'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+
+        return self._get_s_elements(mode=mode)
+
+    def _get_s_position(self, at_elements=None, mode="upstream"):
 
         '''Get s position for given elements
 
@@ -2900,6 +2924,35 @@ class Line:
                 return [s[self.element_names.index(nn)] for nn in at_elements]
         else:
             return s
+
+    @doc_group("Deprecated")
+    def get_s_position(self, at_elements=None, mode="upstream"):
+
+        '''Get s position for given elements
+
+        .. warning:: This method is deprecated and will be removed in a future version.
+                Use ``tt = line.get_table()`` and then ``tt.s`` to get all s positions
+                or ``tt['s', 'myelem']`` for one specific s position.
+
+        Parameters
+        ----------
+        at_elements : str or list of str
+            Name of the element(s) to get s position for (default: all elements)
+        mode : str
+            "upstream" or "downstream" (default: "upstream")
+
+        Returns
+        -------
+        s : float or list of float
+            s position for given element(s)
+        '''
+
+        warn('`Line.get_s_position` is deprecated and will be removed in a future version. '
+             'Use `tt = line.get_table()` and then `tt.s` to get all s positions '
+             "or `tt['s', 'myelem']` for one specific s position."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+
+        return self._get_s_position(at_elements=at_elements, mode=mode)
 
     def _elements_intersecting_s(
             self,
@@ -3420,7 +3473,7 @@ class Line:
             return
 
         # Insert by s position
-        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+        s_vect_upstream = np.array(self._get_s_position(mode='upstream'))
 
         # Shortcut in case ot thin element and no cut needed
         if not _is_thick(element, self) or np.abs(_length(element, self)) == 0:
@@ -3437,7 +3490,7 @@ class Line:
 
         self.cut_at_s([s_start_ele, s_end_ele])
 
-        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+        s_vect_upstream = np.array(self._get_s_position(mode='upstream'))
         if _is_thick(element, self) and _length(element, self) > 0:
             i_first_removal = np.where(np.abs(s_vect_upstream - s_start_ele) < s_tol)[0][-1]
             i_last_removal = np.where(np.abs(s_vect_upstream - s_end_ele) < s_tol)[0][0] - 1
