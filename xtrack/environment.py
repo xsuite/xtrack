@@ -1081,7 +1081,11 @@ class Environment:
         Load a multiline from a MAD-X file.
 
         .. warning:: This function is deprecated and will be removed in a future
-           version. Please use xtrack.load(...).
+           version. Please use xtrack.load(...), which uses the xsuite native MAD-X
+           parser, without requiring Cpymad. In case you need to use cpymad for
+           specific features, please load the individual lines using
+           `Line.from_madx_sequence(...)` and add them to the environment
+           using `Environment.import_line(...)`.
 
         Parameters
         ----------
@@ -1097,7 +1101,11 @@ class Environment:
             The multiline object.
         '''
         warn('The function `Environment.from_madx` is deprecated and will be removed '
-             'in a future version. Please use `xtrack.load(...)`.'
+             'in a future version. Please use `xtrack.load(...)`, which uses the xsuite native '
+             'MAD-X parser, without requiring Cpymad. In case you need to use cpymad '
+             'for specific features, please load the individual lines using '
+             '`Line.from_madx_sequence(...)` and add them to the environment '
+             'using `Environment.import_line(...)`.'
              + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
 
