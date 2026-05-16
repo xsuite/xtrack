@@ -1495,8 +1495,11 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
 def test_simplified_accelerator_segment_correlated_noise(test_context):
     npart = int(1E6)
     scale = 1E-6
-    random_matrix = np.reshape(np.random.rand(36),(6,6))
-    data = np.transpose(np.random.multivariate_normal(np.zeros(6),random_matrix,npart))
+    random_matrix = np.reshape(np.random.rand(36), (6, 6))
+    # Build a symmetric positive-semidefinite covariance matrix.
+    covariance_seed = random_matrix @ random_matrix.T
+    data = np.transpose(
+        np.random.multivariate_normal(np.zeros(6), covariance_seed, npart))
     covariance_matrix = np.cov(data)
 
     particles = xp.Particles(_context=test_context,
