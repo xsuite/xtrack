@@ -1722,7 +1722,13 @@ def test_twiss_strength_reverse_vs_madx(test_context, sandbox_cwd):
     twm1 = xt.Table(mad1.table.twisslhcb1)
     twm2 = xt.Table(mad1.table.twisslhcb2)
 
-    collider = xt.Environment.from_madx(madx=mad1)
+    b1 = xt.Line.from_madx_sequence(mad1.sequence.lhcb1, deferred_expressions=True)
+    b2 = xt.Line.from_madx_sequence(mad1.sequence.lhcb2, deferred_expressions=True)
+
+    collider = xt.Environment(lines={'lhcb1': b1, 'lhcb2': b2})
+    collider.lhcb1.set_particle_ref('proton', p0c=7e12)
+    collider.lhcb2.set_particle_ref('proton', p0c=7e12)
+    collider.lhcb2.twiss_default['reverse'] = True
 
     collider.build_trackers(_context=test_context)
     tw = collider.twiss(strengths=True, method='4d')
