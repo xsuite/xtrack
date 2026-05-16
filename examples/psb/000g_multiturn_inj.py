@@ -72,5 +72,6 @@ assert np.all(np.sum(monitor.state > 0, axis=0)
 assert np.all(monitor.at_element[monitor.state > 0] ==
               line.element_names.index('monitor_at_end'))
 
+tt = line.get_table()
 assert np.allclose(monitor.s[monitor.state > 0],
-                   line.get_s_position('monitor_at_end'), atol=1e-12)
+                   tt['s', 'monitor_at_end'], atol=1e-12)

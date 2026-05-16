@@ -97,8 +97,9 @@ assert np.all(r_calc[mask_lost]>1e-2)
 i_aper_1 = line.elements.index(aper_1)
 assert np.all(particles.at_element[mask_lost]==i_aper_1)
 assert np.all(particles.at_element[~mask_lost]==0)
-s0 = line.get_s_elements()[line.elements.index(aper_0)]
-s1 = line.get_s_elements()[line.elements.index(aper_1)]
+tt = line.get_table()
+s0 = tt.s[line.elements.index(aper_0)]
+s1 = tt.s[line.elements.index(aper_1)]
 r0 = np.sqrt(aper_0.a_squ)
 r1 = np.sqrt(aper_1.a_squ)
 s_expected = s0 + (r_calc-r0)/(r1 - r0)*(s1 - s0)
@@ -149,8 +150,9 @@ ax.plot3D(
         color='k', linewidth=3)
 s_check = []
 r_check = []
+tt_interp = interp_line.get_table()
 for ee, ss in zip(interp_line.elements,
-                  interp_line.get_s_elements()):
+                  tt_interp.s[:-1]):
     if ee.__class__ is xt.LimitPolygon:
         ax.plot3D(
                 ee.x_closed,

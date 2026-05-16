@@ -142,8 +142,9 @@ ax.plot3D(
         s1+polygon_1.x_closed*0,
         color='k', linewidth=3)
 s_check = []
+tt_interp = interp_line.get_table()
 for ee, ss in zip(interp_line.elements,
-                  interp_line.get_s_elements()):
+                  tt_interp.s[:-1]):
     if ee.__class__ is xt.LimitPolygon:
         ax.plot3D(
                 ee.x_closed,

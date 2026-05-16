@@ -36,7 +36,7 @@ def test_simplification_methods():
     assert isinstance(line['e4..0'], xt.Drift)
     line.merge_consecutive_drifts(inplace=True)
     assert len(line.element_names) == 3
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == line.get_table().s_end[-1] == 5
     xo.assert_allclose(line[line.element_names[0]].length, 3.3, rtol=0, atol=1e-12)
     assert isinstance(line[line.element_names[1]], xt.Cavity)
     xo.assert_allclose(line[line.element_names[2]].length, 1.7, rtol=0, atol=1e-12)
@@ -143,7 +143,8 @@ def test_remove_redundant_apertures():
     # Test removing all consecutive middle apertures
     assert len(line.element_names) == 20
     all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
-    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
+    tt = line.get_table()
+    all_aper_pos = [tt['s', ap] for ap in all_aper]
     line.remove_redundant_apertures()
     line.remove_markers()
     line.merge_consecutive_drifts()
@@ -152,7 +153,8 @@ def test_remove_redundant_apertures():
     # Verify that only the first and last aperture are kept
     new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[-1]]
-    new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
+    tt = line.get_table()
+    new_aper_pos = [tt['s', ap] for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[-1]]
 
     # Test removing all consecutive middle apertures, but
@@ -160,7 +162,8 @@ def test_remove_redundant_apertures():
     line = original_line.copy()
     assert len(line.element_names) == 20
     all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
-    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
+    tt = line.get_table()
+    all_aper_pos = [tt['s', ap] for ap in all_aper]
     line.remove_redundant_apertures(keep=all_aper[3])
     line.remove_markers()
     line.merge_consecutive_drifts()
@@ -169,7 +172,8 @@ def test_remove_redundant_apertures():
     # Verify that only the first, fourth, and last aperture are kept
     new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[3], all_aper[-1]]
-    new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
+    tt = line.get_table()
+    new_aper_pos = [tt['s', ap] for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[3], all_aper_pos[-1]]
 
     # Test removing all consecutive middle apertures, but
@@ -178,7 +182,8 @@ def test_remove_redundant_apertures():
     line = original_line.copy()
     assert len(line.element_names) == 20
     all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
-    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
+    tt = line.get_table()
+    all_aper_pos = [tt['s', ap] for ap in all_aper]
     all_drifts = [nn for nn in line.element_names if xt._is_drift(line[nn], line)]
     line.remove_redundant_apertures(drifts_that_need_aperture=all_drifts[8])
     line.remove_markers()
@@ -188,7 +193,8 @@ def test_remove_redundant_apertures():
     # Verify that only the first, fourth, and last aperture are kept
     new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn], line)]
     assert new_aper == [all_aper[0], all_aper[3], all_aper[-1]]
-    new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
+    tt = line.get_table()
+    new_aper_pos = [tt['s', ap] for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[3], all_aper_pos[-1]]
 
     # All apertures are different, none should be removed
@@ -232,60 +238,68 @@ def test_insert():
     )
 
     line = line0.copy()
-    assert np.all(np.array([0,1,2,3,4]) == np.array(line.get_s_elements()))
-    assert np.all(np.array([0,1,2,3,4]) == np.array(line.get_s_elements(mode='upstream')))
-    assert np.all(np.array([1,2,3,4,5]) == np.array(line.get_s_elements(mode='downstream')))
+    tt = line.get_table()
+    assert np.all(np.array([0,1,2,3,4]) == tt.s[:-1])
+    assert np.all(np.array([0,1,2,3,4]) == tt.s_start[:-1])
+    assert np.all(np.array([1,2,3,4,5]) == tt.s_end[:-1])
 
-    assert line.get_s_position(at_elements='e3') == 3.
-    assert np.isscalar(line.get_s_position(at_elements='e3'))
-    assert len(line.get_s_position(at_elements=['e3'])) == 1
-    assert np.all(np.array([4,2]) == np.array(line.get_s_position(at_elements=['e4', 'e2'])))
+    assert tt['s', 'e3'] == 3.
+    assert np.isscalar(tt['s', 'e3'])
+    assert len([tt['s', 'e3']]) == 1
+    assert np.all(np.array([4,2]) == np.array([tt['s', 'e4'], tt['s', 'e2']]))
 
     line.insert(obj=xt.Cavity(), what="cav", at=3.3)
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
-    assert line.get_s_position('cav') == 3.3
+    tt = line.get_table()
+    assert line.get_length() == tt.s_end[-1] == 5
+    assert tt['s', 'cav'] == 3.3
     assert len(line.elements) == 7
 
     line = line0.copy()
     line.insert(obj=xt.Drift(length=0.2), at=0.11, what='inserted_drift', anchor='start')
-    assert line.get_s_position('inserted_drift') == 0.11
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 0.11
     assert len(line.elements) == 7
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0..0', 'inserted_drift', 'e0..2', 'e1', 'e2', 'e3', 'e4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
     line = line0.copy()
     line.insert(obj=xt.Drift(length=0.2), at=0.95, what='inserted_drift', anchor='start')
-    assert line.get_s_position('inserted_drift') == 0.95
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 0.95
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0..0', 'inserted_drift', 'e1..1', 'e2', 'e3', 'e4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
     line = line0.copy()
     line.insert(obj=xt.Drift(length=0.2), at=1.0, what='inserted_drift', anchor='start')
-    assert line.get_s_position('inserted_drift') == 1.
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 1.
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0', 'inserted_drift', 'e1..1', 'e2', 'e3', 'e4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
     line = line0.copy()
     line.insert(obj=xt.Drift(length=0.2), at=0.8, what='inserted_drift', anchor='start')
-    assert line.get_s_position('inserted_drift') == 0.8
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 0.8
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0..0', 'inserted_drift', 'e1', 'e2', 'e3', 'e4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
     line = line0.copy()
     line.insert(obj=xt.LimitEllipse(a=1, b=1), at=2.1, what='aper')
-    assert line.get_s_position('aper') == 2.1
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    tt = line.get_table()
+    assert tt['s', 'aper'] == 2.1
+    assert line.get_length() == tt.s_end[-1] == 5
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0', 'e1', 'e2..0', 'aper', 'e2..1', 'e3', 'e4']))])
     line.insert(obj=xt.Drift(length=0.8), at=1.9, what="newdrift", anchor='start')
-    assert line.get_s_position('newdrift') == 1.9
+    tt = line.get_table()
+    assert tt['s', 'newdrift'] == 1.9
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['e0', 'e1..0', 'newdrift', 'e2..1..1', 'e3', 'e4']))])
 
@@ -301,11 +315,12 @@ def test_insert():
 
     line = xt.Line(elements=elements, element_names=enames)
     line.insert(obj=xt.Drift(length=1.), at=1.0, what='inserted_drift', anchor='start')
-    assert line.get_s_position('inserted_drift') == 1.
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 1.
     assert len(line.elements) == 10
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
         ['d0', 'm0', 'inserted_drift', 'm1', 'd2', 'm2', 'd3', 'm3', 'd4', 'm4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
 
     line.insert(obj=xt.Cavity(), at=3.0, what='cav0')
     line.insert(obj=xt.Cavity(), at=3.0, what='cav1')
@@ -313,18 +328,31 @@ def test_insert():
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
         ['d0', 'm0', 'inserted_drift', 'm1', 'd2', 'cav1', 'cav0', 'm2', 'd3',
         'm3', 'd4', 'm4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
-    assert line.get_s_position('cav0') == 3.
-    assert line.get_s_position('cav1') == 3.
+    tt = line.get_table()
+    assert line.get_length() == tt.s_end[-1] == 5
+    assert tt['s', 'cav0'] == 3.
+    assert tt['s', 'cav1'] == 3.
 
     line = xt.Line(elements=elements, element_names=enames)
     line.insert(obj=xt.Drift(length=0.2), at=0.95, what='inserted_drift', anchor='start')
-    assert line.get_s_position('inserted_drift') == 0.95
+    tt = line.get_table()
+    assert tt['s', 'inserted_drift'] == 0.95
     assert len(line.elements) == 10
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
                 ['d0..0', 'inserted_drift', 'd1..1', 'm1', 'd2', 'm2', 'd3',
                 'm3', 'd4', 'm4']))])
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert line.get_length() == tt.s_end[-1] == 5
+
+
+def test_get_s_methods_are_deprecated():
+
+    line = xt.Line(elements=[xt.Drift(length=1), xt.Drift(length=2)])
+
+    with pytest.warns(FutureWarning, match='`Line.get_s_elements`'):
+        assert line.get_s_elements() == [0, 1]
+
+    with pytest.warns(FutureWarning, match='`Line.get_s_position`'):
+        assert line.get_s_position('e1') == 1
 
 
 def test_insert_omp():
@@ -574,26 +602,27 @@ def test_from_sequence():
     assert line.get_length() == 20
     assert len(line.elements) == 18
 
-    assert line.get_s_position()[line.element_names.index('section_1')] == 0
+    tt = line.get_table()
+    assert tt['s', 'section_1'] == 0
     assert isinstance(line.elements[line.element_names.index('section_1')], xt.Marker)
-    assert line.get_s_position()[line.element_names.index('section_1_quad')] == 1
+    assert tt['s', 'section_1_quad'] == 1
     assert line.elements[line.element_names.index('section_1_quad')] == elements['quad']
-    assert line.get_s_position()[line.element_names.index('section_1_bend')] == 5
+    assert tt['s', 'section_1_bend'] == 5
     assert line.elements[line.element_names.index('section_1_bend')] == elements['bend']
 
-    assert line.get_s_position()[line.element_names.index('section_2')] == 10
+    assert tt['s', 'section_2'] == 10
     assert isinstance(line.elements[line.element_names.index('section_2')], xt.Marker)
-    assert line.get_s_position()[line.element_names.index('section_2_quad')] == 11
+    assert tt['s', 'section_2_quad'] == 11
     assert line.elements[line.element_names.index('section_2_quad')] == elements['quad']
-    assert line.get_s_position()[line.element_names.index('section_2_bend')] == 15
+    assert tt['s', 'section_2_bend'] == 15
     assert line.elements[line.element_names.index('section_2_bend')] == elements['bend']
 
-    assert line.get_s_position()[line.element_names.index('sext')] == 13
+    assert tt['s', 'sext'] == 13
     assert line.elements[line.element_names.index('sext')] == sext
 
-    assert line.get_s_position()[line.element_names.index('section_3')] == 16
+    assert tt['s', 'section_3'] == 16
     assert isinstance(line.elements[line.element_names.index('section_3')], xt.Marker)
-    assert line.get_s_position()[line.element_names.index('section_3_quad')] == 17
+    assert tt['s', 'section_3_quad'] == 17
     assert line.elements[line.element_names.index('section_3_quad')] == elements['quad']
 
     # test negative drift
@@ -628,7 +657,7 @@ def test_from_sequence_with_thick(refer):
         offset = -1
 
     xo.assert_allclose(
-        line.get_s_position(line.element_names),
+        line.get_table().s[:-1],
         [
             0,             # drift
             1.2 + offset,  # my_drift
@@ -904,8 +933,9 @@ def test_insert_thin_elements_at_s_lhc(test_context):
     e0 = 'mq.28r3.b1_entry'
     e1 = 'mq.29r3.b1_exit'
 
-    s0 = line.get_s_position(e0)
-    s1 = line.get_s_position(e1)
+    tt = line.get_table()
+    s0 = tt['s', e0]
+    s1 = tt['s', e1]
     s2 = line.get_length()
 
     elements_to_insert = [

@@ -546,9 +546,10 @@ def test_mad_elements_import():
         # elements
 
         assert line.get_length() == 10
+        tt = line.get_table()
 
         assert isinstance(line['m0'], xt.Multipole)
-        assert line.get_s_position('m0') == 0.1
+        assert tt['s', 'm0'] == 0.1
         assert np.all(line['m0'].knl == np.array([1, 2, 3]))
         assert np.all(line['m0'].ksl == np.array([0, 5, 6]))
         assert line['m0'].hxl == 1
@@ -565,47 +566,47 @@ def test_mad_elements_import():
             assert len(line['m3'].ksl) == 3
 
         assert isinstance(line['k0'], xt.Multipole)
-        assert line.get_s_position('k0') == 0.3
+        assert tt['s', 'k0'] == 0.3
         assert np.all(line['k0'].knl == np.array([-5]))
         assert np.all(line['k0'].ksl == np.array([6]))
         assert line['k0'].hxl == 0
         assert line['k0'].length == 2.2
 
         assert isinstance(line['k1'], xt.Multipole)
-        assert line.get_s_position('k1') == 0.33
+        assert tt['s', 'k1'] == 0.33
         assert np.all(line['k1'].knl == np.array([-7]))
         assert np.all(line['k1'].ksl == np.array([8]))
         assert line['k1'].hxl == 0
         assert line['k1'].length == 2.3
 
         assert isinstance(line['k2'], xt.Multipole)
-        assert line.get_s_position('k2') == 0.34
+        assert tt['s', 'k2'] == 0.34
         assert np.all(line['k2'].knl == np.array([-3]))
         assert np.all(line['k2'].ksl == np.array([0]))
         assert line['k2'].hxl == 0
         assert line['k2'].length == 2.4
 
         assert isinstance(line['k3'], xt.Multipole)
-        assert line.get_s_position('k3') == 0.35
+        assert tt['s', 'k3'] == 0.35
         assert np.all(line['k3'].knl == np.array([0]))
         assert np.all(line['k3'].ksl == np.array([4]))
         assert line['k3'].hxl == 0
         assert line['k3'].length == 2.5
 
         assert isinstance(line['c0'], xt.Cavity)
-        assert line.get_s_position('c0') == 0.2
+        assert tt['s', 'c0'] == 0.2
         assert line['c0'].frequency == 10e6
         xo.assert_allclose(line['c0'].phase, np.pi, rtol=0, atol=1e-12)
         assert line['c0'].voltage == 6e6
 
         assert isinstance(line['c1'], xt.Cavity)
-        assert line.get_s_position('c1') == 0.2
+        assert tt['s', 'c1'] == 0.2
         xo.assert_allclose(line['c1'].harmonic, 8, rtol=0, atol=1e-12)
         xo.assert_allclose(line['c1'].phase, np.pi, rtol=0, atol=1e-12)
         assert line['c1'].voltage == 6e6
 
         assert isinstance(line['de0'], xt.DipoleEdge)
-        assert line.get_s_position('de0') == 0.38
+        assert tt['s', 'de0'] == 0.38
         assert line['de0'].k == 0.1
         assert line['de0'].e1 == 3
         assert line['de0'].fint == 4
@@ -614,7 +615,7 @@ def test_mad_elements_import():
         # Loading of RFMultipole not supported anymore:
         #
         # assert isinstance(line['r0'], xt.RFMultipole)
-        # assert line.get_s_position('r0') == 0.4
+        # assert tt['s', 'r0'] == 0.4
         # assert np.all(line['r0'].knl == np.array([2, 3, 0, 0, 0, 0]))
         # assert np.all(line['r0'].ksl == np.array([0, 5, 0, 0, 0, 0]))
         # assert np.all(line['r0'].pn == np.array([0.3 * 360, 0.4 * 360, 0, 0, 0, 0]))
@@ -625,32 +626,32 @@ def test_mad_elements_import():
         # assert line['r0'].lag == 180
 
         assert isinstance(line['cb0'], xt.CrabCavity)
-        assert line.get_s_position('cb0') == 0.41
+        assert tt['s', 'cb0'] == 0.41
         xo.assert_allclose(line['cb0'].crab_voltage, 2 * 1e6,
                            rtol=0, atol=1e-12)
         xo.assert_allclose(line['cb0'].rot_s_rad, 0, rtol=0, atol=1e-12)
         assert line['cb0'].frequency == 100e6
 
         assert isinstance(line['cb1'], xt.CrabCavity)
-        assert line.get_s_position('cb1') == 0.42
+        assert tt['s', 'cb1'] == 0.42
         assert line['cb1'].crab_voltage == 2 * 1e6
         xo.assert_allclose(line['cb1'].rot_s_rad, np.pi / 2, rtol=0, atol=1e-12)
         assert line['cb1'].frequency == 100e6
 
         assert isinstance(line['w'], xt.Wire)
-        assert line.get_s_position('w') == 1
+        assert tt['s', 'w'] == 1
         assert line['w'].L_phy == 1
         assert line['w'].L_int == 2
         assert line['w'].xma == 1e-3
         assert line['w'].yma == 2e-3
 
         assert isinstance(line['mat0'], xt.FirstOrderTaylorMap)
-        assert line.get_s_position('mat0') == 2
+        assert tt['s', 'mat0'] == 2
         xo.assert_allclose(line['mat0'].m0, matrix_m0, rtol=0.0, atol=1E-12)
         xo.assert_allclose(line['mat0'].m1, matrix_m1, rtol=0.0, atol=1E-12)
 
         assert isinstance(line['oct_aper'], xt.LimitPolygon)
-        assert line.get_s_position('oct_aper') == 3
+        assert tt['s', 'oct_aper'] == 3
         x_1, x_2, y_1, y_2 = 3, 2 * np.sqrt(3), np.sqrt(3), 6
         expected_x_vertices = [x_1, x_2, -x_2, -x_1, -x_1, -x_2, x_2, x_1]
         expected_y_vertices = [y_1, y_2, y_2, y_1, -y_1, -y_2, -y_2, -y_1]

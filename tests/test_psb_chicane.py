@@ -429,4 +429,4 @@ def test_psb_chicane(test_context):
                     line.element_names.index('monitor_at_end'))
 
         xo.assert_allclose(monitor.s[monitor.state > 0],
-                        line.get_s_position('monitor_at_end'), atol=1e-12)
+                        line.get_table()['s', 'monitor_at_end'], atol=1e-12)

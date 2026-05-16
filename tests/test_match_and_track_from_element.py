@@ -130,7 +130,7 @@ def test_match_and_track_from_element(test_context):
                     x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                     at_element=at_element,
-                    match_at_s=line_w_collective.get_s_position('ip6') + 100
+                    match_at_s=line_w_collective.get_table()['s', 'ip6'] + 100
                     )
 
     tw = line_w_collective.twiss().rows[at_element]
@@ -145,7 +145,8 @@ def test_match_and_track_from_element(test_context):
                 1j*(particles.x[0]  * tw['alfx'][0] / np.sqrt(tw['betx'][0]) +
                         particles.px[0] * np.sqrt(tw['betx'][0])))
 
-    line_w_collective.insert('ip6_plus_100', obj=xt.Marker(), at=line_w_collective.get_s_position('ip6') + 100)
+    line_w_collective.insert('ip6_plus_100', obj=xt.Marker(),
+                             at=line_w_collective.get_table()['s', 'ip6'] + 100)
     mu_at_s = line_w_collective.twiss().rows['ip6_plus_100']['mux']
     mu_at_element = line_w_collective.twiss().rows[at_element]['mux'][0]
 

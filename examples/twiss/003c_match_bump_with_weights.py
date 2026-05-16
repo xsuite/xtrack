@@ -49,6 +49,7 @@ opt.solve()
 #!end-doc-part
 
 tw = line.twiss()
+tt = line.get_table()
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -57,20 +58,20 @@ ax = fig.add_subplot(111)
 ax.plot(tw_before.s, tw_before.y*1000, label='y')
 ax.plot(tw.s, tw.y*1000, label='y')
 # Target
-ax.axvline(x=line.get_s_position('mb.b26l8.b1'), color='r', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mb.b26l8.b1'], color='r', linestyle='--', alpha=0.5)
 # Correctors
-ax.axvline(x=line.get_s_position('mcbv.32l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.28l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.26l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.24l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.22l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.18l8.b1'), color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.32l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.28l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.26l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.24l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.22l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.18l8.b1'], color='k', linestyle='--', alpha=0.5)
 # Boundaries
-ax.axvline(x=line.get_s_position('mq.33l8.b1'), color='g', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mq.17l8.b1'), color='g', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mq.33l8.b1'], color='g', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mq.17l8.b1'], color='g', linestyle='--', alpha=0.5)
 ax.axhline(y=-1, color='b', linestyle='--', alpha=0.5)
-ax.set_xlim(line.get_s_position('mq.33l8.b1') - 10,
-            line.get_s_position('mq.17l8.b1') + 10)
+ax.set_xlim(tt['s', 'mq.33l8.b1'] - 10,
+            tt['s', 'mq.17l8.b1'] + 10)
 ax.set_xlabel('s [m]')
 ax.set_ylabel('y [mm]')
 ax.set_ylim(-10, 10)

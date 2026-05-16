@@ -213,8 +213,9 @@ def test_aperture_refinement(sandwitch_aper):
     i_aper_1 = line.elements.index(aper_1)
     assert np.all(particles.at_element[mask_lost]==i_aper_1)
     assert np.all(particles.at_element[~mask_lost]==0)
-    s0 = line.get_s_elements()[line.elements.index(aper_0)]
-    s1 = line.get_s_elements()[line.elements.index(aper_1)]
+    tt = line.get_table()
+    s0 = tt.s[line.elements.index(aper_0)]
+    s1 = tt.s[line.elements.index(aper_1)]
     r0 = np.sqrt(aper_0.a_squ)
     r1 = np.sqrt(aper_1.a_squ)
     s_expected = s0 + (r_calc-r0)/(r1 - r0)*(s1 - s0)
@@ -571,8 +572,9 @@ def test_memory_dealloc_repeated_refinements():
     i_aper_1 = line.elements.index(aper_1)
     assert np.all(particles.at_element[mask_lost]==i_aper_1)
     assert np.all(particles.at_element[~mask_lost]==0)
-    s0 = line.get_s_elements()[line.elements.index(aper_0)]
-    s1 = line.get_s_elements()[line.elements.index(aper_1)]
+    tt = line.get_table()
+    s0 = tt.s[line.elements.index(aper_0)]
+    s1 = tt.s[line.elements.index(aper_1)]
     r0 = np.sqrt(aper_0.a_squ)
     r1 = np.sqrt(aper_1.a_squ)
     s_expected = s0 + (r_calc-r0)/(r1 - r0)*(s1 - s0)
