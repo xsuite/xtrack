@@ -866,16 +866,24 @@ class Line:
 
         return out
 
-    @doc_group("Upcoming Deprecations")
+    @doc_group("Deprecated")
     def to_pandas(self):
         '''
         Return a pandas DataFrame with the elements of the line.
+
+        .. warning:: This method is deprecated and will be removed in a future version.
+                A similar functionality is provided by the method `Line.get_table()`.
 
         Returns
         -------
         line_df : pandas.DataFrame
             DataFrame with the elements of the line.
         '''
+
+        warn('`Line.to_pandas` is deprecated and will be removed in a future version. '
+             'A similar functionality is provided by the method `Line.get_table()`.'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+
         import pandas as pd
 
         elements_df = pd.DataFrame(self._to_table_dict())
