@@ -106,7 +106,7 @@ def _expected_profile_bounds_from_table(table_rows, *, skip_row):
 def test_from_line_with_aperture_type_bounds(test_context):
     mad = Madx(stdout=None)
     mad.input(TOY_RING_SEQUENCE)
-    ring = xt.Line.from_madx_sequence(mad.sequence.seq, enable_layout_data=True)
+    ring = xt.Line.from_madx_sequence(mad.sequence.ring, enable_layout_data=True)
 
     aperture_model = Aperture.from_line_with_madx_metadata(ring, context=test_context)
     bounds_table = aperture_model.get_bounds_table()
