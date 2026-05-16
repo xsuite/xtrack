@@ -125,6 +125,12 @@ class View:
     def __len__(self):
         return len(self._obj)
 
+    def __iter__(self):
+        return iter(self._obj)
+
+    def __contains__(self, item):
+        return item in self._obj
+
     def __add__(self, other):
         return self._obj + other
 

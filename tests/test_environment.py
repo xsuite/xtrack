@@ -1838,6 +1838,8 @@ def test_inpection_methods(container_type):
     assert str(ee['bb'].get_expr('k0')) == "(2.0 * vars['b'])"
     assert ee['bb'].get_expr('k0')._value == 2 * (2 * 2 + 1)
     assert ee['bb'].get_value('k0') == 2 * (2 * 2 + 1)
+    assert 'length' in ee['bb']._xofields
+    assert list(ee['bb']._xofields) == list(ee['bb']._get_viewed_object()._xofields)
 
     tt = ee['bb'].get_table()
     assert tt['value', 'k0'] == 2 * (2 * 2 + 1)
