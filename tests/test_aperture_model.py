@@ -106,8 +106,7 @@ def _expected_profile_bounds_from_table(table_rows, *, skip_row):
 def test_from_line_with_aperture_type_bounds(test_context):
     mad = Madx(stdout=None)
     mad.input(TOY_RING_SEQUENCE)
-    env = xt.Environment.from_madx(madx=mad, enable_layout_data=True)
-    ring = env['ring']
+    ring = xt.Line.from_madx_sequence(mad.sequence.seq, enable_layout_data=True)
 
     aperture_model = Aperture.from_line_with_madx_metadata(ring, context=test_context)
     bounds_table = aperture_model.get_bounds_table()
@@ -1130,8 +1129,7 @@ def test_get_aperture_sigmas_at_element_vs_madx(
 
     madx_n1 = mad.table['aperture'].n1[1]
 
-    env = xt.Environment.from_madx(madx=mad, enable_layout_data=True)
-    seq = env['seq']
+    seq = xt.Line.from_madx_sequence(mad.sequence.seq, enable_layout_data=True)
     seq.set_particle_ref('proton', gamma0=mad.beam.gamma)
     tw = seq.twiss4d(betx=betx, bety=bety, x=x, y=y)
 
