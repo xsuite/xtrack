@@ -379,7 +379,8 @@ def test_to_pandas():
     line = xt.Line(elements=[
         xt.Drift(length=1), xt.Cavity(), xt.Drift(length=1)])
 
-    df = line.to_pandas()
+    with pytest.warns(FutureWarning, match='Line.to_pandas'):
+        df = line.to_pandas()
 
     assert tuple(df.columns) == (
         's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
