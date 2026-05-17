@@ -355,6 +355,20 @@ def test_get_s_methods_are_deprecated():
         assert line.get_s_position('e1') == 1
 
 
+def test_get_elements_of_type_is_deprecated():
+
+    line = xt.Line(
+        elements=[xt.Drift(length=1), xt.Cavity()],
+        element_names=['d0', 'cav'],
+    )
+
+    with pytest.warns(FutureWarning, match='`Line.get_elements_of_type`'):
+        elements, names = line.get_elements_of_type(xt.Cavity)
+
+    assert elements == [line['cav']]
+    assert names == ['cav']
+
+
 def test_insert_omp():
 
     skip_if_forbid_compile()

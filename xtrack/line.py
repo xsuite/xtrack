@@ -4698,10 +4698,14 @@ class Line:
                 )
                 self._element_dict[name] = fast_di
 
-    @doc_group("Upcoming Deprecations")
+    @doc_group("Deprecated")
     def get_elements_of_type(self, types):
 
         '''Get all elements of given type(s)
+
+        .. warning:: This method is deprecated and will be removed in a future version.
+                Use ``tt = line.get_table()`` and then
+                ``tt.rows.match(element_type='MyType')`` instead.
 
         Parameters
         ----------
@@ -4716,6 +4720,10 @@ class Line:
             List of names of elements of given type(s)
 
         '''
+        warn('`Line.get_elements_of_type` is deprecated and will be removed in a future version. '
+             "Use `tt = line.get_table()` and then `tt.rows.match(element_type='MyType')`."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+
         self._method_incompatible_with_compose()
         if not hasattr(types, "__iter__"):
             type_list = [types]

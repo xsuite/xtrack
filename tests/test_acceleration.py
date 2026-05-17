@@ -36,8 +36,9 @@ def test_acceleration(test_context):
     line.build_tracker(_context=test_context)
 
     # Assume only first cavity is active
-    frequency = line.get_elements_of_type(xt.Cavity)[0][0].frequency
-    voltage = line.get_elements_of_type(xt.Cavity)[0][0].voltage
+    tt_cav = line.get_table().rows.match(element_type='Cavity')
+    frequency = line[tt_cav.name[0]].frequency
+    voltage = line[tt_cav.name[0]].voltage
     # Assuming proton and beta=1
     stable_z = np.arcsin(Delta_p0c/voltage)/frequency/2/np.pi*clight
 
