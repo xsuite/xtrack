@@ -4749,7 +4749,11 @@ class Line:
             each active element.
         '''
         self._method_incompatible_with_compose()
-        elements_df = self.to_pandas()
+        elements_df = self.get_table().to_pandas()
+        elements_df['name'] = elements_df['env_name']
+        elements_df.drop(columns='env_name', inplace=True)
+        names = elements_df['name'].values[:-1]  # exclude `_end_point`
+        elements_df['element'] = [self.get(nn) for nn in names] + [None]
 
         elements_df['is_aperture'] = elements_df.name.map(
                 lambda nn: nn == '_end_point'
