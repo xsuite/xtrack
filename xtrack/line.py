@@ -171,6 +171,7 @@ class Line:
         self._env = None
         self._metadata = None
         self._tracker = None
+        self._xcoll = LineXcoll(self)
 
         self.config = xt.tracker.TrackerConfig()
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
@@ -1500,42 +1501,39 @@ class Line:
                 self.get_length() / self.particle_ref._xobject.beta0[0] / clight)
 
     @property_with_doc_group("Radiation, Spin and Intra-Beam Scattering")
+    def xcoll(self):
+        """Xcoll-specific helpers associated with this line."""
+        return self._xcoll
+
+    @property_with_doc_group("Upcoming Deprecations")
     def scattering(self):
         """
-        Interface to Xcoll scattering tools for this line.
+        Deprecated alias for ``line.xcoll.scattering``.
 
         Returns
         -------
         scattering : object
             Xcoll scattering API bound to this line.
         """
-        if not hasattr(self, '_scattering') or self._scattering is None:
-            try:
-                from xcoll.line_tools import XcollScatteringAPI
-                self._scattering = XcollScatteringAPI(line=self)
-            except ImportError as error:
-                raise ImportError("Please install Xcoll to use this feature.") from error
+        warn('`Line.scattering` is deprecated and will be removed in a future version. '
+             'Please use `Line.xcoll.scattering` instead.',
+             FutureWarning, stacklevel=2)
+        return self.xcoll.scattering
 
-        return self._scattering
-
-    @property_with_doc_group("Radiation, Spin and Intra-Beam Scattering")
+    @property_with_doc_group("Upcoming Deprecations")
     def collimators(self):
         """
-        Interface to Xcoll collimator tools for this line.
+        Deprecated alias for ``line.xcoll.collimators``.
 
         Returns
         -------
         collimators : object
             Xcoll collimator API bound to this line.
         """
-        if not hasattr(self, '_collimators') or self._collimators is None:
-            try:
-                from xcoll.line_tools import XcollCollimatorAPI
-                self._collimators = XcollCollimatorAPI(line=self)
-            except ImportError as error:
-                raise ImportError("Please install Xcoll to use this feature.") from error
-
-        return self._collimators
+        warn('`Line.collimators` is deprecated and will be removed in a future version. '
+             'Please use `Line.xcoll.collimators` instead.',
+             FutureWarning, stacklevel=2)
+        return self.xcoll.collimators
 
     def _get_bucket(self):
         import xpart as xp
@@ -6859,6 +6857,49 @@ def _temp_knobs(line_or_trk, knobs: dict):
     finally:
         for kk, vv in old_expr_or_val.items():
             line_or_trk.vars[kk] = vv
+
+
+class LineXcoll:
+    def __init__(self, line):
+        self.line = line
+
+    @property
+    def scattering(self):
+        """
+        Interface to Xcoll scattering tools for this line.
+
+        Returns
+        -------
+        scattering : object
+            Xcoll scattering API bound to this line.
+        """
+        if not hasattr(self.line, '_scattering') or self.line._scattering is None:
+            try:
+                from xcoll.line_tools import XcollScatteringAPI
+                self.line._scattering = XcollScatteringAPI(line=self.line)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+
+        return self.line._scattering
+
+    @property
+    def collimators(self):
+        """
+        Interface to Xcoll collimator tools for this line.
+
+        Returns
+        -------
+        collimators : object
+            Xcoll collimator API bound to this line.
+        """
+        if not hasattr(self.line, '_collimators') or self.line._collimators is None:
+            try:
+                from xcoll.line_tools import XcollCollimatorAPI
+                self.line._collimators = XcollCollimatorAPI(line=self.line)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+
+        return self.line._collimators
 
 
 Line.__doc_groups__ = _LINE_DOC_GROUP_COLLECTOR.collect(Line)

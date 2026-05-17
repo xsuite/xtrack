@@ -6,6 +6,8 @@
 import pathlib
 import pickle
 import math
+import sys
+import types
 
 import numpy as np
 import pytest
@@ -123,6 +125,48 @@ def test_simplification_methods():
     assert 'marker2' not in line.element_names
     assert 'marker3' not in line.element_names
     assert 'marker4' not in line.element_names
+
+
+def test_line_xcoll_facade(monkeypatch):
+
+    class FakeScatteringAPI:
+        def __init__(self, line):
+            self.line = line
+
+    class FakeCollimatorAPI:
+        def __init__(self, line):
+            self.line = line
+
+    xcoll_module = types.ModuleType('xcoll')
+    line_tools_module = types.ModuleType('xcoll.line_tools')
+    line_tools_module.XcollScatteringAPI = FakeScatteringAPI
+    line_tools_module.XcollCollimatorAPI = FakeCollimatorAPI
+    xcoll_module.line_tools = line_tools_module
+    monkeypatch.setitem(sys.modules, 'xcoll', xcoll_module)
+    monkeypatch.setitem(sys.modules, 'xcoll.line_tools', line_tools_module)
+
+    line = xt.Line(elements=[], element_names=[])
+
+    assert isinstance(line.xcoll, xt.LineXcoll)
+    assert line.xcoll is line.xcoll
+
+    assert isinstance(line.xcoll.scattering, FakeScatteringAPI)
+    assert line.xcoll.scattering is line.xcoll.scattering
+    assert line.xcoll.scattering.line is line
+
+    assert isinstance(line.xcoll.collimators, FakeCollimatorAPI)
+    assert line.xcoll.collimators is line.xcoll.collimators
+    assert line.xcoll.collimators.line is line
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Line\.scattering` is deprecated'):
+        assert line.scattering is line.xcoll.scattering
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Line\.collimators` is deprecated'):
+        assert line.collimators is line.xcoll.collimators
 
 
 def test_remove_redundant_apertures():
