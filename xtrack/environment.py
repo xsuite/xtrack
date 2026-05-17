@@ -1642,7 +1642,7 @@ class Environment:
         '''
 
         if key in self.elements:
-            self[key].get_info()
+            self[key]._get_info()
         elif key in self.vars:
             self.vars.info(key, limit=limit)
         else:

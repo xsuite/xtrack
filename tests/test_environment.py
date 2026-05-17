@@ -1834,10 +1834,16 @@ def test_inpection_methods(container_type):
     assert xd.refs.is_ref(ee.vars['b'])
 
     # View methods get_expr, get_value, get_info, get_table (for now)
-    assert xd.refs.is_ref(ee['bb'].get_expr('k0'))
-    assert str(ee['bb'].get_expr('k0')) == "(2.0 * vars['b'])"
-    assert ee['bb'].get_expr('k0')._value == 2 * (2 * 2 + 1)
-    assert ee['bb'].get_value('k0') == 2 * (2 * 2 + 1)
+    with pytest.warns(FutureWarning, match='View.get_expr'):
+        assert xd.refs.is_ref(ee['bb'].get_expr('k0'))
+    with pytest.warns(FutureWarning, match='View.get_expr'):
+        assert str(ee['bb'].get_expr('k0')) == "(2.0 * vars['b'])"
+    with pytest.warns(FutureWarning, match='View.get_expr'):
+        assert ee['bb'].get_expr('k0')._value == 2 * (2 * 2 + 1)
+    with pytest.warns(FutureWarning, match='View.get_value'):
+        assert ee['bb'].get_value('k0') == 2 * (2 * 2 + 1)
+    with pytest.warns(FutureWarning, match='View.get_info'):
+        ee['bb'].get_info('k0')
     assert 'length' in ee['bb']._xofields
     assert list(ee['bb']._xofields) == list(ee['bb']._get_viewed_object()._xofields)
 
