@@ -468,17 +468,17 @@ def test_optimize_for_tracking(test_context, multiline):
     num_turns = 10
 
     line.track(p_no_optimized, num_turns=num_turns, time=True)
-    df_before_optimize = line.to_pandas()
+    df_before_optimize = line.get_table().to_pandas()
     n_markers_before_optimize = (df_before_optimize.element_type == 'Marker').sum()
     assert n_markers_before_optimize > 4 # There are at least the IPs
 
     line.optimize_for_tracking(keep_markers=True)
-    df_optimize_keep_markers = line.to_pandas()
+    df_optimize_keep_markers = line.get_table().to_pandas()
     n_markers_optimize_keep = (df_optimize_keep_markers.element_type == 'Marker').sum()
     assert n_markers_optimize_keep == n_markers_before_optimize
 
     line.optimize_for_tracking(keep_markers=['ip1', 'ip5'])
-    df_optimize_ip15 = line.to_pandas()
+    df_optimize_ip15 = line.get_table().to_pandas()
     n_markers_optimize_ip15 = (df_optimize_ip15.element_type == 'Marker').sum()
     assert n_markers_optimize_ip15 == 2
 
@@ -487,7 +487,7 @@ def test_optimize_for_tracking(test_context, multiline):
     assert type(line['mb.b10l3.b1..1']) is xt.SimpleThinBend
     assert type(line['mq.10l3.b1..1']) is xt.SimpleThinQuadrupole
 
-    df_optimize = line.to_pandas()
+    df_optimize = line.get_table().to_pandas()
     n_markers_optimize = (df_optimize.element_type == 'Marker').sum()
     assert n_markers_optimize == 0
 
