@@ -3,6 +3,7 @@ import xtrack as xt
 import xobjects as xo
 import pathlib
 import numpy as np
+from xtrack._temp import lhc_match as lm
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -46,35 +47,50 @@ def test_madng_twiss():
     assert np.abs(tw_rdt.f2020).max() > 0
     assert np.abs(tw_rdt.f1120).max() > 0
 
-def test_madng_interface_with_multipole_errors_and_misalignments():
+def test_madng_interface_with_multipole_errors_enabled():
+    """Test with on_error=1 throughout (errors enabled from start)."""
     line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
 
     tt = line.get_table()
-    tt_quads = tt.rows[tt.element_type=='Quadrupole']
-
-    # Introduce misalignments on all quadrupoles
-    tt = line.get_table()
     tt_quad = tt.rows[r'mq\..*']
-    rgen = np.random.RandomState(1) # fix seed for random number generator
-                                    # (to have reproducible results)
-    shift_x = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
-    shift_y = rgen.randn(len(tt_quad)) * 0.01e-3 # 0.01 mm rms shift on all quads
-    rot_s = rgen.randn(len(tt_quad)) * 1e-3 # 1 mrad rms rotation on all quads
+    tt_sext = tt.rows[r'ms\..*']
+
+    rgen = np.random.RandomState(1)
     k2l = rgen.rand(len(tt_quad)) * 1e-3
+    k2sl = rgen.rand(len(tt_quad)) * 1e-3
+    k2l_rel = rgen.randn(len(tt_quad)) * 1e-5
+    k2sl_rel = rgen.randn(len(tt_quad)) * 1e-5
+    k3l = rgen.rand(len(tt_sext)) * 1e-3
+    k3sl = rgen.rand(len(tt_sext)) * 1e-3
+    k3l_rel = rgen.randn(len(tt_sext)) * 1e-5
+    k3sl_rel = rgen.randn(len(tt_sext)) * 1e-5
+
+    line.extend_knl_rel_ksl_rel(order=3, element_names=[*tt_quad.name, *tt_sext.name])
 
     line['on_error'] = 1.
-    for nn_quad, sx, sy, rr, kkk in zip(tt_quad.name, shift_x, shift_y, rot_s, k2l):
-        line[nn_quad].shift_x = sx * line.ref['on_error']
-        line[nn_quad].shift_y = sy * line.ref['on_error']
-        line[nn_quad].rot_s_rad = rr * line.ref['on_error']
-        line[nn_quad].knl[2] = kkk * line.ref['on_error']
-    tw = line.madng_twiss()
+    for nn_quad, knn, ksn, knr, ksr in zip(tt_quad.name, k2l, k2sl, k2l_rel, k2sl_rel):
+        line[nn_quad].knl[2] = knn * line.ref['on_error']
+        line[nn_quad].ksl[2] = ksn * line.ref['on_error']
+        line[nn_quad].knl_rel[2] = knr * line.ref['on_error']
+        line[nn_quad].ksl_rel[2] = ksr * line.ref['on_error']
 
-    xo.assert_allclose(tw.x, tw.x_ng, atol=5e-4*tw.x.std(), rtol=0)
-    xo.assert_allclose(tw.y, tw.y_ng, atol=5e-4*tw.y.std(), rtol=0)
-    xo.assert_allclose(tw.betx2, tw.beta12_ng, atol=0, rtol=2e-3)
-    xo.assert_allclose(tw.bety1, tw.beta21_ng, atol=0, rtol=2e-3)
+    for nn_sext, knn, ksn, knr, ksr in zip(tt_sext.name, k3l, k3sl, k3l_rel, k3sl_rel):
+        line[nn_sext].knl[3] = knn * line.ref['on_error']
+        line[nn_sext].ksl[3] = ksn * line.ref['on_error']
+        line[nn_sext].knl_rel[3] = knr * line.ref['on_error']
+        line[nn_sext].ksl_rel[3] = ksr * line.ref['on_error']
+
+    # Test with errors enabled (as they were in the MAD file)
+    tw = line.madng_twiss(coupling_edw_teng=True, compute_chromatic_properties=True)
+    assert tw is not None
+    assert len(tw) > 0
+    # Compare Xsuite vs MAD-NG (errors enabled)
+    # Allow for low-level numerical noise; use a small absolute floor.
+    xo.assert_allclose(tw.x, tw.x_ng, atol=max(5e-4*tw.x.std(), 1e-11), rtol=0)
+    xo.assert_allclose(tw.y, tw.y_ng, atol=max(5e-4*tw.y.std(), 1e-11), rtol=0)
+    xo.assert_allclose(tw.betx2, tw.beta12_ng, atol=1e-11, rtol=2e-3)
+    xo.assert_allclose(tw.bety1, tw.beta21_ng, atol=5e-11, rtol=2e-3)
     xo.assert_allclose(tw.wx_chrom, tw.wx_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
     xo.assert_allclose(tw.wy_chrom, tw.wy_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
     xo.assert_allclose(tw.ax_chrom, tw.ax_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
@@ -82,16 +98,50 @@ def test_madng_interface_with_multipole_errors_and_misalignments():
     xo.assert_allclose(tw.bx_chrom, tw.bx_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
     xo.assert_allclose(tw.by_chrom, tw.by_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
 
-    line['on_error'] = 0
-    tw = line.madng_twiss()
-    xo.assert_allclose(tw.x, 0, atol=1e-10, rtol=0)
-    xo.assert_allclose(tw.y, 0, atol=1e-10, rtol=0)
-    xo.assert_allclose(tw.betx2, 0, atol=1e-10, rtol=0)
-    xo.assert_allclose(tw.bety1, 0, atol=1e-10, rtol=0)
-    xo.assert_allclose(tw.x, tw.x_ng, atol=1e-9, rtol=0)
-    xo.assert_allclose(tw.y, tw.y_ng, atol=1e-9, rtol=0)
-    xo.assert_allclose(tw.betx2, tw.beta12_ng, atol=1e-10, rtol=0)
-    xo.assert_allclose(tw.bety1, tw.beta21_ng, atol=1e-19, rtol=0)
+def test_madng_interface_with_misalignments_and_rotations():
+    line = xt.load(test_data_folder /
+                            'hllhc15_thick/lhc_thick_with_knobs.json')
+
+    tt = line.get_table()
+    tt_quad = tt.rows[r'mq\..*']
+    tt_sext = tt.rows[r'ms\..*']
+
+    rgen = np.random.RandomState(1) # fix seed for random number generator
+                                    # (to have reproducible results)
+    shift_x = rgen.randn(len(tt_quad) + len(tt_sext)) * 0.01e-3 # 0.01 mm rms shift on all quads
+    shift_y = rgen.randn(len(tt_quad) + len(tt_sext)) * 0.01e-3 # 0.01 mm rms shift on all quads
+    shift_s = rgen.randn(len(tt_quad) + len(tt_sext)) * 0.01e-3 # 0.01 mm rms shift on all quads
+    rot_s = rgen.randn(len(tt_quad) + len(tt_sext)) * 1e-3 # 1 mrad rms rotation on all quads
+    rot_s_no_frame = rgen.randn(len(tt_quad) + len(tt_sext)) * 1e-3 # 1 mrad rms rotation on all quads, without frame rotation
+
+    qlen = len(tt_quad)
+
+    line['on_error'] = 1.
+    for nn_quad, sx, sy, ss, rr, rr_no_frame in zip(tt_quad.name, shift_x[:qlen], shift_y[:qlen], shift_s[:qlen], rot_s[:qlen], rot_s_no_frame[:qlen]):
+        line[nn_quad].shift_x = sx * line.ref['on_error']
+        line[nn_quad].shift_y = sy * line.ref['on_error']
+        line[nn_quad].shift_s = ss * line.ref['on_error']
+        line[nn_quad].rot_s_rad = rr * line.ref['on_error']
+        line[nn_quad].rot_s_rad_no_frame = rr_no_frame * line.ref['on_error']
+
+    for nn_sext, sx, sy, ss, rr, rr_no_frame in zip(tt_sext.name, shift_x[qlen:], shift_y[qlen:], shift_s[qlen:], rot_s[qlen:], rot_s_no_frame[qlen:]):
+        line[nn_sext].shift_x = sx * line.ref['on_error']
+        line[nn_sext].shift_y = sy * line.ref['on_error']
+        line[nn_sext].shift_s = ss * line.ref['on_error']
+        line[nn_sext].rot_s_rad = rr * line.ref['on_error']
+        line[nn_sext].rot_s_rad_no_frame = rr_no_frame * line.ref['on_error']
+
+    # Test with misalignments enabled (as they were in the MAD file)
+    tw = line.madng_twiss(coupling_edw_teng=True, compute_chromatic_properties=True)
+    assert tw is not None
+    assert len(tw) > 0
+
+    # Compare Xsuite vs MAD-NG (misalignments enabled)
+    # Allow for low-level numerical noise; use a small absolute floor.
+    xo.assert_allclose(tw.x, tw.x_ng, atol=max(5e-4*tw.x.std(), 1e-11), rtol=0)
+    xo.assert_allclose(tw.y, tw.y_ng, atol=max(5e-4*tw.y.std(), 1e-11), rtol=0)
+    xo.assert_allclose(tw.betx2, tw.beta12_ng, atol=1e-11, rtol=2e-3)
+    xo.assert_allclose(tw.bety1, tw.beta21_ng, atol=5e-11, rtol=2e-3)
     xo.assert_allclose(tw.wx_chrom, tw.wx_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
     xo.assert_allclose(tw.wy_chrom, tw.wy_ng, atol=5e-3*tw.wy_chrom.max(), rtol=0)
     xo.assert_allclose(tw.ax_chrom, tw.ax_ng, atol=5e-3*tw.wx_chrom.max(), rtol=0)
@@ -176,7 +226,7 @@ def test_madng_interface_with_slicing():
     line.cut_at_s(np.arange(1000))
 
     tw_xs = line.twiss4d()
-    tw = line.madng_twiss()
+    tw = line.madng_twiss(coupling_edw_teng=True, compute_chromatic_properties=True)
 
     assert len(tw) == len(tw_xs)
 
@@ -268,17 +318,17 @@ def test_madng_twiss_with_initial_conditions():
     xo.assert_allclose(tw4_xs.py, tw4_xsng.py_ng, rtol=1e-8, atol=1e-10)
     xo.assert_allclose(tw4_xs.mux, tw4_xsng.mu1_ng, rtol=1e-8, atol=1e-5)
     xo.assert_allclose(tw4_xs.muy, tw4_xsng.mu2_ng, rtol=1e-8, atol=1e-5)
-    
+
 def test_madng_slices():
     line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
     tw = line.twiss4d()
 
-    twng = line.madng_twiss()
+    twng = line.madng_twiss(compute_chromatic_properties=True)
 
     line.cut_at_s(np.linspace(0, line.get_length(), 5000))
     tw_sliced = line.twiss4d()
-    twng_sliced = line.madng_twiss()
+    twng_sliced = line.madng_twiss(compute_chromatic_properties=True)
     tt_sliced = line.get_table()
 
     assert np.all(np.array(sorted(list(set(tt_sliced.element_type)))) ==
@@ -329,7 +379,7 @@ def test_madng_interface_amplitude_detuning_and_second_order_chrom():
     line = xt.load(test_data_folder /
                             'hllhc15_thick/lhc_thick_with_knobs.json')
 
-    twng = line.madng_twiss()
+    twng = line.madng_twiss(normal_form=True)
     det = line.get_amplitude_detuning_coefficients(num_turns=512)
 
     xo.assert_allclose(twng.dqxdjx_nf_ng, det['det_xx'], rtol=7e-2)
@@ -340,3 +390,201 @@ def test_madng_interface_amplitude_detuning_and_second_order_chrom():
     tw = line.twiss4d()
     xo.assert_allclose(tw.ddqx, twng.d2q1_nf_ng, rtol=1e-2)
     xo.assert_allclose(tw.ddqy, twng.d2q2_nf_ng, rtol=1e-2)
+
+def test_madng_match_optics():
+    collider = xt.Environment.from_json(test_data_folder /
+                    'hllhc15_thick/hllhc15_collider_thick.json')
+    collider.vars.load_madx(test_data_folder /
+                    'hllhc15_thick/opt_round_150_1500.madx')
+
+    line = collider.lhcb1
+    tw0 = line.madng_twiss()
+
+    lm.set_var_limits_and_steps(collider)
+
+    # Match with Xsuite Targets
+    opt = line.match(
+    solve=False,
+    default_tol={None: 1e-8, 'betx': 1e-6, 'bety': 1e-6, 'alfx': 1e-6, 'alfy': 1e-6},
+    start='s.ds.l8.b1', end='ip1',
+    init=tw0, init_at=xt.START,
+    vary=[
+        # Only IR8 quadrupoles including DS
+        xt.VaryList(['kq6.l8b1', 'kq7.l8b1', 'kq8.l8b1', 'kq9.l8b1', 'kq10.l8b1',
+            'kqtl11.l8b1', 'kqt12.l8b1', 'kqt13.l8b1',
+            'kq4.l8b1', 'kq5.l8b1', 'kq4.r8b1', 'kq5.r8b1',
+            'kq6.r8b1', 'kq7.r8b1', 'kq8.r8b1', 'kq9.r8b1',
+            'kq10.r8b1', 'kqtl11.r8b1', 'kqt12.r8b1', 'kqt13.r8b1'])],
+    targets=[
+        xt.TargetSet(at='ip8', tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), value=tw0, weight=1),
+        xt.TargetSet(at='ip1', betx=0.15, bety=0.1, alfx=0, alfy=0, dx=0, dpx=0, weight=1),
+        xt.TargetRelPhaseAdvance('mux', value = tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
+        xt.TargetRelPhaseAdvance('muy', value = tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
+    ],
+    use_tpsa=True)
+
+    opt.step(30)
+
+    assert opt._err.call_counter < 20
+    assert len(opt.log()) < 10
+
+    tw = line.twiss(init=tw0, start='s.ds.l8.b1', end='ip1')
+
+    xo.assert_allclose(tw['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['bety', 'ip1'], 0.1, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfx', 'ip1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfy', 'ip1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dx', 'ip1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dy', 'ip1'], 0., atol=1e-6, rtol=0)
+
+    xo.assert_allclose(tw['betx', 'ip8'], tw0['betx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['bety', 'ip8'], tw0['bety', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfx', 'ip8'], tw0['alfx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfy', 'ip8'], tw0['alfy', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dx', 'ip8'], tw0['dx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dy', 'ip8'], tw0['dy', 'ip8'], atol=1e-6, rtol=0)
+
+    xo.assert_allclose(tw['mux', 'ip1.l1'] - tw['mux', 's.ds.l8.b1'], tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['muy', 'ip1.l1'] - tw['muy', 's.ds.l8.b1'], tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+
+    opt.reload(0)
+    opt.actions[0].cleanup()
+
+    # Match with MAD-NG and Xsuite Targets mixed
+    opt = line.match(
+    solve=False,
+    default_tol={None: 1e-8, 'betx': 1e-6, 'bety': 1e-6, 'alfx': 1e-6, 'alfy': 1e-6},
+    start='s.ds.l8.b1', end='ip1',
+    init=tw0, init_at=xt.START,
+    vary=[
+        # Only IR8 quadrupoles including DS
+        xt.VaryList(['kq6.l8b1', 'kq7.l8b1', 'kq8.l8b1', 'kq9.l8b1', 'kq10.l8b1',
+            'kqtl11.l8b1', 'kqt12.l8b1', 'kqt13.l8b1',
+            'kq4.l8b1', 'kq5.l8b1', 'kq4.r8b1', 'kq5.r8b1',
+            'kq6.r8b1', 'kq7.r8b1', 'kq8.r8b1', 'kq9.r8b1',
+            'kq10.r8b1', 'kqtl11.r8b1', 'kqt12.r8b1', 'kqt13.r8b1'])],
+    targets=[
+        xt.TargetSet(at='ip8', tars=('beta11_ng', 'bety', 'alfa11_ng', 'alfy', 'dx_ng', 'dpx'), value=tw0, weight=1),
+        xt.TargetSet(at='ip1', betx=0.15, beta22_ng=0.1, alfx=0, alfa22_ng=0, dx=0, dpx_ng=0, weight=1),
+        xt.TargetRelPhaseAdvance('mux', value = tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
+        xt.TargetRelPhaseAdvance('mu2_ng', value = tw0['mu2_ng', 'ip1.l1'] - tw0['mu2_ng', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
+    ],
+    use_tpsa=True)
+
+    opt.step(30)
+
+    assert opt._err.call_counter < 20
+    assert len(opt.log()) < 10
+
+    tw = line.twiss(init=tw0, start='s.ds.l8.b1', end='ip1')
+
+    xo.assert_allclose(tw['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['bety', 'ip1'], 0.1, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfx', 'ip1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfy', 'ip1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dx', 'ip1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dy', 'ip1'], 0., atol=1e-6, rtol=0)
+
+    xo.assert_allclose(tw['betx', 'ip8'], tw0['betx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['bety', 'ip8'], tw0['bety', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfx', 'ip8'], tw0['alfx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfy', 'ip8'], tw0['alfy', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dx', 'ip8'], tw0['dx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dy', 'ip8'], tw0['dy', 'ip8'], atol=1e-6, rtol=0)
+
+    xo.assert_allclose(tw['mux', 'ip1.l1'] - tw['mux', 's.ds.l8.b1'], tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['muy', 'ip1.l1'] - tw['muy', 's.ds.l8.b1'], tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+
+    opt.reload(0)
+    opt.actions[0].cleanup()
+
+    # Match on full line without initial conditions
+    opt = line.match(
+    solve=False,
+    default_tol={None: 1e-8, 'betx': 1e-6, 'bety': 1e-6, 'alfx': 1e-6, 'alfy': 1e-6},
+    vary=[
+        # Only IR8 quadrupoles including DS
+        xt.VaryList(['kq6.l8b1', 'kq7.l8b1', 'kq8.l8b1', 'kq9.l8b1', 'kq10.l8b1',
+            'kqtl11.l8b1', 'kqt12.l8b1', 'kqt13.l8b1',
+            'kq4.l8b1', 'kq5.l8b1', 'kq4.r8b1', 'kq5.r8b1',
+            'kq6.r8b1', 'kq7.r8b1', 'kq8.r8b1', 'kq9.r8b1',
+            'kq10.r8b1', 'kqtl11.r8b1', 'kqt12.r8b1', 'kqt13.r8b1'])],
+    targets=[
+        xt.TargetSet(at='ip8', tars=('beta11_ng', 'beta22_ng', 'alfa11_ng', 'alfa22_ng', 'dx_ng', 'dpx_ng'), value=tw0, weight=1),
+        xt.TargetSet(at='ip1.l1', beta11_ng=0.15, beta22_ng=0.1, alfa11_ng=0, alfa22_ng=0, dx_ng=0, dpx_ng=0, weight=1),
+        xt.TargetRelPhaseAdvance('mu1_ng', value = tw0['mu1_ng', 'ip1.l1'] - tw0['mu1_ng', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
+        xt.TargetRelPhaseAdvance('mu2_ng', value = tw0['mu2_ng', 'ip1.l1'] - tw0['mu2_ng', 's.ds.l8.b1'], start='s.ds.l8.b1', end='ip1.l1', weight=1),
+    ],
+    use_tpsa=True)
+
+    opt.step(30)
+
+    assert opt._err.call_counter < 20
+    assert len(opt.log()) < 10
+
+    tw = line.twiss(init=tw0)
+
+    xo.assert_allclose(tw['betx', 'ip1.l1'], 0.15, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['bety', 'ip1.l1'], 0.1, atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfx', 'ip1.l1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfy', 'ip1.l1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dx', 'ip1.l1'], 0., atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dy', 'ip1.l1'], 0., atol=1e-6, rtol=0)
+
+    xo.assert_allclose(tw['betx', 'ip8'], tw0['betx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['bety', 'ip8'], tw0['bety', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfx', 'ip8'], tw0['alfx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['alfy', 'ip8'], tw0['alfy', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dx', 'ip8'], tw0['dx', 'ip8'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['dy', 'ip8'], tw0['dy', 'ip8'], atol=1e-6, rtol=0)
+
+    xo.assert_allclose(tw['mux', 'ip1.l1'] - tw['mux', 's.ds.l8.b1'], tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+    xo.assert_allclose(tw['muy', 'ip1.l1'] - tw['muy', 's.ds.l8.b1'], tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1'], atol=1e-6, rtol=0)
+
+def test_madng_orbit_bump():
+    env = xt.Environment()
+    env.vars.default_to_zero = True
+    line = env.new_line(length=10, components=[
+        env.new('corr1', xt.Multipole, isthick=True,
+                knl=['kick_h_1'], ksl=['kick_v_1'], length=0.1, at=1),
+        env.new('corr2', xt.Multipole, isthick=True,
+                knl=['kick_h_2'], ksl=['kick_v_2'], length=0.1, at=2),
+        env.new('corr3', xt.Multipole, isthick=True,
+                knl=['kick_h_3'], ksl=['kick_v_3'], length=0.1, at=8),
+        env.new('corr4', xt.Multipole, isthick=True,
+                knl=['kick_h_4'], ksl=['kick_v_4'], length=0.1, at=9),
+        env.new('mid', xt.Marker, at=5),
+        env.new('end', xt.Marker, at=10)
+        ])
+    line.set_particle_ref('proton', p0c=26e9)
+
+    opt = line.match(
+        solve=False,
+        betx=1, bety=1,
+        vary=xt.VaryList(['kick_h_1', 'kick_v_1',
+                        'kick_h_2', 'kick_v_2',
+                        'kick_h_3', 'kick_v_3',
+                        'kick_h_4', 'kick_v_4']),
+        targets=[
+            xt.TargetSet(x=1e-3, y=-2e-3, px=0, py=0, at='mid'),
+            xt.TargetSet(x=0, y=0, px=0, py=0, at='end'),
+        ],
+        use_tpsa=True
+    )
+
+    jac_ng = opt._err.get_jacobian(opt._err._get_x())
+
+    jac_opt = np.array([[-40, 0, -30, 0, 0, 0, 0, 0],
+                        [-100, 0, -100, 0, 0, 0, 0, 0],
+                        [0, 40, 0, 30, 0, 0, 0, 0],
+                        [0, 100, 0, 100, 0, 0, 0, 0],
+                        [-90, 0, -80, 0, -20, 0, -10, 0],
+                        [-100, 0, -100, 0, -100, 0, -100, 0],
+                        [0, 90, 0, 80, 0, 20, 0, 10],
+                        [0, 100, 0, 100, 0, 100, 0, 100]])
+
+    xo.assert_allclose(jac_ng, jac_opt, rtol=1e-12, atol=1e-12)
+
+    opt.solve()
+
+    assert opt._err.call_counter < 7

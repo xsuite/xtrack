@@ -261,3 +261,57 @@ def test_acdipole_ramp(
         test_lag=case.lag,
         expected_kick=expected_kick,
     )
+
+@for_all_test_contexts
+@pytest.mark.parametrize("plane", PLANES, ids=lambda o: o.upper())
+def test_acdipole_tracking_madng(test_context: Any, plane: str) -> None:
+    n = 4
+    fodo = [
+        xt.Multipole(length=0.2, knl=[0, +0.2], ksl=[0, 0]),
+        xt.Drift(length=1.0),
+        xt.Multipole(length=0.2, knl=[0, -0.2], ksl=[0, 0]),
+        xt.Drift(length=1.0),
+    ]
+    line = xt.Line(elements=n * fodo)
+    line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, q0=1, p0c=1e9)
+    line.build_tracker(_context=test_context)
+    base_tws = line.twiss(method="4d")
+    nat_q = base_tws[f"q{plane}"]
+    e5_pos = line.get_s_position("e5")
+
+    # tracking-mode ACDipole (ramp)
+    line.env.elements["e5_acd"] = xt.ACDipole(
+        volt=1e-4,  # Large voltage to clearly see the effect
+        freq=nat_q + 0.02,
+        lag=0,
+        ramp=[2, 5, 15, 20],
+        plane=plane,
+        twiss_mode=False,
+    )
+    line.insert("e5_acd", at=e5_pos)
+
+    e6_pos = line.get_s_position("e6")
+    line.insert("e6_marker", xt.Marker(), at=e6_pos)
+
+    line.build_tracker(_context=test_context)
+    line.track(
+        line.build_particles(x=0), num_turns=20, multi_element_monitor_at=["e6_marker"], with_progress=True
+    )
+    monitor = line.record_multi_element_last_track
+
+    # MAD-NG twiss with corresponding initial params
+    mng = line.to_madng()
+    mng.send("seq:deselect(MAD.element.flags.observed)")
+    mng.send("seq:select(MAD.element.flags.observed, {pattern='e6_marker'})")
+    mng["trk", "mflw"] = mng.track(nturn=20, sequence="seq")
+    ng_trk = mng.trk.to_df()
+
+    # compare the monitor from tracking with the MAD-NG tracking results
+    x = monitor.get(plane).flatten()
+    px = monitor.get(f"p{plane}").flatten()
+    ng_x = ng_trk[plane].values
+    ng_px = ng_trk[f"p{plane}"].values
+
+    # px is more useful for debugging, so we test it first
+    xo.assert_allclose(px, ng_px, rtol=6e-6, atol=1e-10)
+    xo.assert_allclose(x, ng_x, rtol=2e-6, atol=3e-10)
