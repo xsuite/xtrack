@@ -60,9 +60,16 @@ CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
 
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
+<<<<<<< HEAD
 OTHER_FIELDS_FROM_ATTR=['angle', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length', '_angle_force_body']
 OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name', 'parent_type']
 SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle', 'angle_rad']
+=======
+OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length', '_angle_force_body']
+OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name', 'parent_type',
+                         'prototype']
+SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle_rad']
+>>>>>>> feature/prototype_column
 
 
 def twiss_line(line, particle_ref=None, method=None,
@@ -330,7 +337,7 @@ def twiss_line(line, particle_ref=None, method=None,
     Output fields present when `strengths=True` (or `radiation_integrals=True`):
         - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole integrated strengths
         - `angle`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
-          `element_type`, `isthick`, `parent_name`: element properties
+          `element_type`, `isthick`, `parent_name`, `prototype`: element properties
     Output fields present when `radiation_analysis=True`:
         - `energy_loss`: energy loss per turn [eV]
         - `damping_constants_turns`, `damping_constants_s`: damping constants in

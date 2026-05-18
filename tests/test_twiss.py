@@ -1959,6 +1959,25 @@ def test_twiss_add_strengths(test_context):
     tw.add_strengths()
     assert "length" in tw.keys()
 
+def test_twiss_prototype_with_strengths():
+
+    env = xt.Environment(particle_ref=xp.Particles(
+        mass0=xp.PROTON_MASS_EV, q0=1, p0c=1e8))
+    env.new('q0', 'Quadrupole', length=1.0, k1=0.1)
+    env.new('q1', 'q0')
+    env.new('q2', 'q1')
+
+    line = env.new_line(components=['q0', 'q1', 'q2'])
+    line.build_tracker()
+
+    tw = line.twiss(method='4d', betx=1, bety=1)
+    tw_with_strengths = line.twiss(method='4d', betx=1, bety=1,
+                                   strengths=True)
+
+    assert 'prototype' not in tw.keys()
+    assert np.all(tw_with_strengths.prototype == np.array(
+        [None, 'q0', 'q1', None]))
+
 def test_coupling_calculations():
 
     # Load a line and build tracker

@@ -219,6 +219,22 @@ def test_survey_with_ref_transformations():
     xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
 
+def test_survey_prototype():
+
+    env = xt.Environment()
+    env.new('q0', 'Quadrupole', length=1.0)
+    env.new('q1', 'q0')
+    env.new('q2', 'q1')
+
+    line = env.new_line(components=['q0', 'q1', 'q2'])
+
+    sv = line.survey()
+    sv_rev = sv.reverse()
+
+    assert np.all(sv.name == np.array(['q0', 'q1', 'q2', '_end_point']))
+    assert np.all(sv.prototype == np.array([None, 'q0', 'q1', None]))
+    assert np.all(sv_rev.prototype == np.array(['q1', 'q0', None, None]))
+
 def test_survey_with_h_and_v_bends():
 
     env = xt.Environment(particle_ref=xt.Particles(p0c = 1E9))

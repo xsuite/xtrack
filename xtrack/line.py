@@ -812,6 +812,7 @@ class Line:
         isreplica = []
         parent_name = []
         parent_type = []
+        prototype = []
         for ee in elements:
             ee_pname = None
             ee_ptype = None
@@ -830,12 +831,14 @@ class Line:
             element_types.append(ee.__class__.__name__)
             parent_name.append(ee_pname)
             parent_type.append(ee_ptype)
+            prototype.append(getattr(ee, 'prototype', None))
         isthick = np.array(isthick + [False])
         iscollective = np.array(iscollective + [False])
         isreplica = np.array(isreplica + [False])
         element_types = np.array(element_types + [''])
         parent_name = np.array(parent_name + [None])
         parent_type = np.array(parent_type + [None])
+        prototype = np.array(prototype + [None])
 
         elements += [None]
 
@@ -858,6 +861,7 @@ class Line:
             'isreplica': isreplica,
             'parent_name': parent_name,
             'parent_type': parent_type,
+            'prototype': prototype,
             'iscollective': iscollective,
             'element': elements,
             's_start': s_start,
@@ -2160,6 +2164,7 @@ class Line:
 
         - ``name``: element name (with occurrence counts for repeated names).
         - ``element_type``: type of the element (e.g. Drift, Marker, Bend).
+        - ``prototype``: name of the element prototype, when present.
         - ``s``: longitudinal coordinate at the element entrance [m].
         - ``X``, ``Y``, ``Z``: position of the element entrance in the global frame [m].
         - ``theta``, ``phi``, ``psi``: orientation angles of the local frame
