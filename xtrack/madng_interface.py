@@ -701,8 +701,8 @@ class ActionTwissMadngTPSA(Action):
                 aux = ''
                 if qty in OPTFUN_QUANTITIES:
                     aux = 'optfun = true'
-                elif qty in ['x', 'px', 'y', 'py', 't', 'pt']:
-                    aux = f'orbit = {['x', 'px', 'y', 'py', 't', 'pt'].index(qty) + 1}'
+                elif qty in (part_coords := ['x', 'px', 'y', 'py', 't', 'pt']):
+                    aux = f'orbit = {part_coords.index(qty) + 1}'
 
                 if qty_orig == 'zeta':
                     self._needs_zeta_scale.append(i)
