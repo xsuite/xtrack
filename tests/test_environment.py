@@ -1739,6 +1739,19 @@ def test_repeated_elements():
     assert np.all(tt_mult.s == np.array(
         [0. , 0.5, 1. , 1. , 1.5, 2. , 2.5, 3. , 3. , 3.5, 4. , 4.5, 5. ]))
 
+def test_line_table_prototype():
+
+    env = xt.Environment()
+    env.new('q0', 'Quadrupole', length=1.0)
+    env.new('q1', 'q0')
+    env.new('q2', 'q1')
+
+    line = env.new_line(components=['q0', 'q1', 'q2'])
+    tt = line.get_table()
+
+    assert np.all(tt.name == np.array(['q0', 'q1', 'q2', '_end_point']))
+    assert np.all(tt.prototype == np.array([None, 'q0', 'q1', None]))
+
 def test_select_in_multiline():
 
     # --- Parameters

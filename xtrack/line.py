@@ -809,6 +809,7 @@ class Line:
         isreplica = []
         parent_name = []
         parent_type = []
+        prototype = []
         for ee in elements:
             ee_pname = None
             ee_ptype = None
@@ -827,12 +828,14 @@ class Line:
             element_types.append(ee.__class__.__name__)
             parent_name.append(ee_pname)
             parent_type.append(ee_ptype)
+            prototype.append(getattr(ee, 'prototype', None))
         isthick = np.array(isthick + [False])
         iscollective = np.array(iscollective + [False])
         isreplica = np.array(isreplica + [False])
         element_types = np.array(element_types + [''])
         parent_name = np.array(parent_name + [None])
         parent_type = np.array(parent_type + [None])
+        prototype = np.array(prototype + [None])
 
         elements += [None]
 
@@ -855,6 +858,7 @@ class Line:
             'isreplica': isreplica,
             'parent_name': parent_name,
             'parent_type': parent_type,
+            'prototype': prototype,
             'iscollective': iscollective,
             'element': elements,
             's_start': s_start,
