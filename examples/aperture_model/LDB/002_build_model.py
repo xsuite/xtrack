@@ -1,6 +1,8 @@
 import cernlayoutdb as layout
+from functools import reduce
 import matplotlib.pyplot as plt
 import numpy as np
+import operator
 import xtrack as xt
 from xtrack.aperture import Aperture, ApertureBuilder
 from xtrack.aperture.structures import Polygon
@@ -58,6 +60,19 @@ b2.end_compose()
 sv_b1 = b1.survey()
 sv_b2 = b2.survey()
 
+
+def beam_inner_outer(s, sv):
+    x = np.interp(s, sv.s, sv.x)
+
+    if x > 1e-10:
+        return 'E'
+
+    if x < -1e-10:
+        return 'I'
+
+    return None
+
+
 plt.plot(sv_b1.Z, sv_b1.X, c='red', label='B1', marker='o')
 plt.plot(sv_b2.Z, sv_b2.X, c='blue', label='B2', marker='o')
 
@@ -98,17 +113,28 @@ for type_name, type in ldb_model.types.items():
         ignored_types.append(type_name)
         continue
 
+    inner_outer = reduce(operator.or_, (set(ie) if ie else {None} for ie in aperture.element_type_aperture), set())
+    if 'E' not in inner_outer and None not in inner_outer:
+        ignored_types.append(type_name)
+        continue
+
     profiles = aperture.aperture_alias
     offsets = (aperture.offset_x, aperture.offset_y, aperture.offset_z)
 
     pipe_blueprint = builder.new_pipe(type_name, curvature=0)
 
-    for profile, off_x, off_y, off_z in zip(profiles, *offsets):
+    for profile, in_out, off_x, off_y, off_z in zip(profiles, aperture.element_type_aperture, *offsets):
+        if in_out and 'E' not in in_out:
+            continue
+
         mad_off = layout.LDBPoint(x=off_x, y=off_y, z=off_z).to_madpoint()
         pipe_blueprint.place_profile(profile, shift_s=mad_off.z, shift_x=mad_off.x, shift_y=mad_off.y)
 
 if ignored_types:
-    warn(f'Ignored {len(ignored_types)} types without apertures: {_format_list(ignored_types)}', LDBConverterWarning)
+    warn(
+        f'Ignored {len(ignored_types)} types without apertures for this beam: {_format_list(ignored_types)}',
+        LDBConverterWarning,
+    )
 
 
 pipes_loc = {}
@@ -145,22 +171,21 @@ for transform_name, mad_point in pipes_loc:
     ldb_aper = ldb_model.types[type_name].aperture
     profile = ldb_aper.aperture_alias[0]
     offset = np.array([ldb_aper.offset_x[0], ldb_aper.offset_y[0], ldb_aper.offset_z[0]])
-    s_profile = s_pos + offset[2]
 
     # Get a rough polygon in the survey space
-    poly_2d = builder._profiles[ldb_aper.aperture_alias].build_polygon(8)
-    poly_hom = poly2d_to_homogeneous(poly_2d)
-    poly_hom[:, :3] += offset
+    poly_2d = builder._profiles[profile].build_polygon(8)
+    poly_hom = poly2d_to_homogeneous(poly_2d)  # -> shape is (4, len_points)
+    poly_hom[:3, :] += offset[:, np.newaxis]
     poly_hom = mad_point.matrix @ poly_hom
 
-    assert np.isclose(s_profile, poly_hom[:, 3], atol=1e-9, rtol=1e-9)
+    s_profile = np.mean(poly_hom[2, :])
 
     # Get the rough survey position at s
     survey_x_at_s = np.interp(s_profile, sv_b1.Z, sv_b1.X)
     survey_y_at_s = np.interp(s_profile, sv_b1.Y, sv_b1.X)
 
     # Check that the survey is inside the polygon
-    poly = Polygon(vertices=poly_hom[:, (0, 1)])
+    poly = Polygon(vertices=poly_hom[(0, 1), :].T)
 
     if poly.is_point_inside_polygon(np.array([survey_x_at_s, survey_y_at_s])):
         builder.place_pipe(transform_name, type_name, transformation=mad_point.matrix, survey_reference='ip1')

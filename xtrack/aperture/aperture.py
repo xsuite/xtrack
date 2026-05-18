@@ -1815,8 +1815,7 @@ class Aperture:
 
         table = Table(
             data={
-                'name': np.array([f'{pn}_in_{ppn}' for pn, ppn in zip(profile_names, pipe_position_names)], dtype=np.str_),
-                'pipe_position_name': np.array(pipe_position_names, dtype=np.str_),
+                'name': np.array(pipe_position_names, dtype=np.str_),
                 'pipe_name': np.array(pipe_names, dtype=np.str_),
                 'profile_name': np.array(profile_names, dtype=np.str_),
                 's': np.array(s_positions, dtype=FloatType._dtype),
