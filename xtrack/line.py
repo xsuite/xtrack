@@ -1978,7 +1978,7 @@ class Line:
             List of targets to be matched.
         solve : bool
             If True (default), the matching is performed immediately. If not an
-            Optimize object is returnd, which can be used for advanced matching.
+            Optimize object is returned, which can be used for advanced matching.
         assert_within_tol : bool
             If True (default), an exception is raised if the matching fails.
         compensate_radiation_energy_loss : bool
