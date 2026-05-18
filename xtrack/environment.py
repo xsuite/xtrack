@@ -118,6 +118,7 @@ class Environment:
         self._elements = EnvElements(self)
         self._particles_container = EnvParticles(self)
         self._xfields = EnvXfields(self)
+        self._xcoll = None
         self._enable_name_clash_check = True
         self._last_context = None
         self._drift_cache = {}
@@ -1202,6 +1203,17 @@ class Environment:
     def xfields(self):
         """Xfields-specific helpers associated with this environment."""
         return self._xfields
+
+    @property_with_doc_group("Editing, Inspection, Variables and Configuration")
+    def xcoll(self):
+        """Xcoll-specific helpers associated with this environment."""
+        if self._xcoll is None:
+            try:
+                from xcoll.environment_tools import XcollEnvironmentAPI
+                self._xcoll = XcollEnvironmentAPI(self)
+            except ImportError as error:
+                raise ImportError("Please install Xcoll to use this feature.") from error
+        return self._xcoll
 
     def _remove_element(self, name):
 

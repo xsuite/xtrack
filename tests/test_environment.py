@@ -4,6 +4,8 @@ import xdeps as xd
 import numpy as np
 import pytest
 import json
+import sys
+import types
 from pathlib import Path
 
 test_data_folder = Path(__file__).parent.joinpath('../test_data').absolute()
@@ -4633,3 +4635,23 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
             FutureWarning,
             match=r'`Environment\.apply_filling_pattern\(\.\.\.\)` is deprecated'):
         assert env.apply_filling_pattern([1], [1], 0, 0) == 'applied'
+
+
+def test_environment_xcoll_facade(monkeypatch):
+
+    class FakeXcollEnvironmentAPI:
+        def __init__(self, env):
+            self._env = env
+
+    xcoll_module = types.ModuleType('xcoll')
+    environment_tools_module = types.ModuleType('xcoll.environment_tools')
+    environment_tools_module.XcollEnvironmentAPI = FakeXcollEnvironmentAPI
+    xcoll_module.environment_tools = environment_tools_module
+    monkeypatch.setitem(sys.modules, 'xcoll', xcoll_module)
+    monkeypatch.setitem(sys.modules, 'xcoll.environment_tools', environment_tools_module)
+
+    env = xt.Environment()
+
+    assert isinstance(env.xcoll, FakeXcollEnvironmentAPI)
+    assert env.xcoll is env.xcoll
+    assert env.xcoll._env is env
