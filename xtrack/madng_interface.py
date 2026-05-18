@@ -575,10 +575,7 @@ class ActionTwissMadngTPSA(Action):
         if self._already_prepared and not force:
             return
 
-        # ------------------------------------------------------------
-        # 1. COLLECT INITIAL CONDITIONS
-        # ------------------------------------------------------------
-
+        # Collect initial conditions
         init = self.tw_kwargs.get('init', None)
 
         if init is None:
