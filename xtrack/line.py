@@ -1278,6 +1278,7 @@ class Line:
         *,
         particle_ref=None,
         twiss=None,
+        scattering='off',
         x_offset: float = 0.0,
         y_offset: float = 0.0,
         x_norm_offset: float = 0.0,
@@ -1433,7 +1434,11 @@ class Line:
         # Compute twiss (use 6D by default, overridable via kwargs['method'])
         twiss_method = kwargs.pop('method', '6d')
         if twiss is None:
+            if scattering == 'on':
+                self.scattering.disable()
             twiss = self.twiss(method=twiss_method)
+            if scattering == 'on':
+                self.scattering.enable()
 
         # By default, we scan at the ENTRANCE of each element
         s_entr = np.array(list(self.get_s_elements(mode="upstream")))
@@ -1484,6 +1489,9 @@ class Line:
             zeta_co = twiss['zeta', ee]
             delta_co= twiss['delta', ee]
 
+            if scattering == 'on':
+                self.scattering.disable()
+
             # On-momentum, matched, test particles
             particles = self.build_particles(
                 _context=self._context,
@@ -1499,6 +1507,9 @@ class Line:
                 method=twiss_method
             )
             particles.start_tracking_at_element = -1
+
+            if scattering == 'on':
+                self.scattering.enable()
 
             # Add the delta grid
             delta_temp = particles.delta.copy()
