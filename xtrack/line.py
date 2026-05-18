@@ -2149,6 +2149,7 @@ class Line:
 
         - ``name``: element name (with occurrence counts for repeated names).
         - ``element_type``: type of the element (e.g. Drift, Marker, Bend).
+        - ``prototype``: name of the element prototype, when present.
         - ``s``: longitudinal coordinate at the element entrance [m].
         - ``X``, ``Y``, ``Z``: position of the element entrance in the global frame [m].
         - ``theta``, ``phi``, ``psi``: orientation angles of the local frame
