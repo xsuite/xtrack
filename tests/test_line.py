@@ -137,8 +137,25 @@ def test_line_xcoll_facade(monkeypatch):
         def __init__(self, line):
             self.line = line
 
+    class FakeXcollLineAPI:
+        def __init__(self, line):
+            self.line = line
+
+        @property
+        def scattering(self):
+            if not hasattr(self.line, '_scattering') or self.line._scattering is None:
+                self.line._scattering = FakeScatteringAPI(line=self.line)
+            return self.line._scattering
+
+        @property
+        def collimators(self):
+            if not hasattr(self.line, '_collimators') or self.line._collimators is None:
+                self.line._collimators = FakeCollimatorAPI(line=self.line)
+            return self.line._collimators
+
     xcoll_module = types.ModuleType('xcoll')
     line_tools_module = types.ModuleType('xcoll.line_tools')
+    line_tools_module.XcollLineAPI = FakeXcollLineAPI
     line_tools_module.XcollScatteringAPI = FakeScatteringAPI
     line_tools_module.XcollCollimatorAPI = FakeCollimatorAPI
     xcoll_module.line_tools = line_tools_module
@@ -147,7 +164,7 @@ def test_line_xcoll_facade(monkeypatch):
 
     line = xt.Line(elements=[], element_names=[])
 
-    assert isinstance(line.xcoll, xt.LineXcoll)
+    assert isinstance(line.xcoll, FakeXcollLineAPI)
     assert line.xcoll is line.xcoll
 
     assert isinstance(line.xcoll.scattering, FakeScatteringAPI)
