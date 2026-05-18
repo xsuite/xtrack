@@ -355,7 +355,8 @@ def test_to_pandas():
 
     assert tuple(df.columns) == (
         's', 'element_type', 'name', 'isthick', 'isreplica', 'parent_name',
-       'parent_type', 'iscollective', 'element', 's_start', 's_center', 's_end')
+       'parent_type', 'prototype', 'iscollective', 'element', 's_start',
+       's_center', 's_end')
     assert len(df) == 4
 
 def test_check_aperture():
@@ -1449,4 +1450,3 @@ def test_extend_knl_rel_ksl_rel():
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
     xo.assert_allclose(line['o1'].ksl_rel, [4., 5., 200., 0.,
                        0., 0., 0., 0., 0., 0., 0., 0.], rtol=0, atol=1e-15)
-
