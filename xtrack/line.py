@@ -1273,7 +1273,7 @@ class Line:
             multi_element_monitor_at=multi_element_monitor_at,
             **kwargs)
 
-    def momentum_aperture(
+    def get_local_momentum_acceptance(
         self,
         *,
         particle_ref=None,

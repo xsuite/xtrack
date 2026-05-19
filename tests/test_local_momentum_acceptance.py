@@ -86,7 +86,7 @@ def test_parameter_validation():
 
     for kwargs, exc, pattern in cases:
         with pytest.raises(exc, match=pattern):
-            line.momentum_aperture(
+            line.get_local_momentum_acceptance(
                 nemitt_x=1e-6,
                 nemitt_y=1e-6,
                 method="4d",
@@ -101,7 +101,7 @@ def test_forbid_resonance_crossing_not_implemented():
     _, line = build_toy_ring_with_apertures()
 
     with pytest.raises(NotImplementedError, match=r"forbid_resonance_crossing is not implemented"):
-        line.momentum_aperture(
+        line.get_local_momentum_acceptance(
             nemitt_x=1e-6,
             nemitt_y=1e-6,
             method="4d",
@@ -117,7 +117,7 @@ def test_mutual_exclusivity_errors():
 
     # x-plane conflict
     with pytest.raises(ValueError, match=r"Provide either x_offset or x_norm_offset"):
-        line.momentum_aperture(
+        line.get_local_momentum_acceptance(
             nemitt_x=1e-6,
             nemitt_y=1e-6,
             method="4d",
@@ -127,7 +127,7 @@ def test_mutual_exclusivity_errors():
 
     # y-plane conflict
     with pytest.raises(ValueError, match=r"Provide either y_offset or y_norm_offset"):
-        line.momentum_aperture(
+        line.get_local_momentum_acceptance(
             nemitt_x=1e-6,
             nemitt_y=1e-6,
             method="4d",
@@ -143,7 +143,7 @@ def test_empty_selection_raises():
     _, line = build_toy_ring_with_apertures()
 
     with pytest.raises(ValueError, match=r"No elements selected for momentum aperture computation"):
-        line.momentum_aperture(
+        line.get_local_momentum_acceptance(
             nemitt_x=1e-6,
             nemitt_y=1e-6,
             method="4d",
@@ -168,7 +168,7 @@ def test_all_survive():
     delta_pos = +0.005
     delta_step = 0.001
 
-    out = line.momentum_aperture(
+    out = line.get_local_momentum_acceptance(
         twiss=tw,
         include_type_pattern="LimitRect",  # avoid duplicates at the same s
         nemitt_x=1e-5,
@@ -219,7 +219,7 @@ def test_all_lost():
     delta_pos = +0.2
     delta_step = 0.2
 
-    out = line.momentum_aperture(
+    out = line.get_local_momentum_acceptance(
         twiss=tw,
         include_type_pattern="LimitRect", # avoid duplicates at the same s
         nemitt_x=1e-5,
@@ -270,7 +270,7 @@ def test_all_lost_offset(x_offset, y_offset):
     delta_pos = +0.001
     delta_step = 0.0001
 
-    out = line.momentum_aperture(
+    out = line.get_local_momentum_acceptance(
         twiss=tw,
         include_type_pattern="LimitRect",
         nemitt_x=1e-5,
