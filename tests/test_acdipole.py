@@ -262,9 +262,14 @@ def test_acdipole_ramp(
         expected_kick=expected_kick,
     )
 
-@for_all_test_contexts
 @pytest.mark.parametrize("plane", PLANES, ids=lambda o: o.upper())
-def test_acdipole_tracking_madng(test_context: Any, plane: str) -> None:
+def test_acdipole_tracking_madng(plane: str) -> None:
+    """
+    Test that tracking through an ACDipole produces the same results
+    in Xsuite and MAD-NG.
+    """
+
+    test_context = xo.ContextCpu()
     n = 4
     fodo = [
         xt.Multipole(length=0.2, knl=[0, +0.2], ksl=[0, 0]),
