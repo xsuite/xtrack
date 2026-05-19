@@ -94,21 +94,6 @@ def test_parameter_validation():
             )
 
 
-def test_forbid_resonance_crossing_not_implemented():
-    """
-    forbid_resonance_crossing is currently a reserved option and must raise.
-    """
-    _, line = build_toy_ring_with_apertures()
-
-    with pytest.raises(NotImplementedError, match=r"forbid_resonance_crossing is not implemented"):
-        line.get_local_momentum_acceptance(
-            nemitt_x=1e-6,
-            nemitt_y=1e-6,
-            method="4d",
-            forbid_resonance_crossing=1,
-        )
-
-
 def test_mutual_exclusivity_errors():
     """
     x/y physical offsets must be mutually exclusive with normalized offsets.

@@ -1295,7 +1295,6 @@ class Line:
         include_name_pattern: str | None = None,
         include_type_pattern: str | None = None,
         n_turns: int = 512,
-        forbid_resonance_crossing: int = 0,
         with_progress: bool | int = False,
         verbose: bool = False,
         **kwargs):
@@ -1352,9 +1351,6 @@ class Line:
             Shell-style wildcard pattern (fnmatch) to include element types.
         n_turns : int, default 512
             Number of turns to track.
-        forbid_resonance_crossing : int, default 0
-            Reserved. Not implemented; using a non-zero value raises
-            NotImplementedError.
         with_progress : bool | int, default False
             If truthy, shows a per-element progress bar.
         verbose : bool, default False
@@ -1396,9 +1392,6 @@ class Line:
             else:
                 raise ValueError(
                     "If the line has no particle_ref, a particle_ref must be provided.")
-
-        if forbid_resonance_crossing:
-            raise NotImplementedError("forbid_resonance_crossing is not implemented yet.")
         
         # Mutual exclusivity: physical vs normalized offsets
         if x_offset != 0.0 and x_norm_offset != 0.0:
