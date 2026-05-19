@@ -1436,7 +1436,7 @@ class Line:
         if twiss is None:
             if scattering == 'on':
                 self.scattering.disable()
-            twiss = self.twiss(method=twiss_method)
+            twiss = self.twiss(method=twiss_method, reverse=False)
             if scattering == 'on':
                 self.scattering.enable()
 
