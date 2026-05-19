@@ -1547,6 +1547,7 @@ class Line:
                 deltap = float(0.0)
 
             rows.append({
+                'name': ee,
                 's': s_here,
                 'deltan': deltan,
                 'deltap': deltap
@@ -1554,7 +1555,7 @@ class Line:
 
         cols = {k: np.array([r[k] for r in rows]) for k in rows[0].keys()}
         
-        return xt.Table(cols, index='s')
+        return xt.Table(cols, index='name')
 
     def slice_thick_elements(self, slicing_strategies):
         """
