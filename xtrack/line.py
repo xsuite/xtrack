@@ -1492,20 +1492,26 @@ class Line:
             if scattering == 'on':
                 self.scattering.disable()
 
+            # Extract W_matrix and particle_on_co from the already-computed twiss
+            tw_init = twiss.get_twiss_init(at_element=ee)
+
+            idx_at_element = self.element_names.index(ee)
+
             # On-momentum, matched, test particles
             particles = self.build_particles(
                 _context=self._context,
                 num_particles=n_part,
-                particle_ref=particle_ref,
                 x_norm=x_norm_offset,
                 y_norm=y_norm_offset,
                 zeta=zeta_co,
                 delta=delta_co,
                 nemitt_x=nemitt_x,
                 nemitt_y=nemitt_y,
-                at_element=ee,
-                method=twiss_method
+                W_matrix=tw_init.W_matrix,
+                particle_on_co=tw_init.particle_on_co,
             )
+            particles.at_element[:] = idx_at_element
+            particles.s[:] = s_here
             particles.start_tracking_at_element = -1
 
             if scattering == 'on':
