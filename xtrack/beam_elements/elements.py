@@ -819,8 +819,10 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
     def lag(self, value):
         if value != 0:
             warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
-                 "Please use `phase` (in radians) instead. "
-                 "Note that if both `lag` and `phase` are set, the effect is the sum of the two," \
+                 "Please use `phase` (in radians) instead. If you see this warning "
+                 "while loading a saved line from a previous version of Xsuite, please "
+                 "regenerate the line with the current version to use phase instead of lag. "
+                 "Note that if both `lag` and `phase` are set, the effect is the sum of the two, "
                  " with `lag` converted to radians. "
                  + DEPRECATION_INFO_PREP_1_0,
                  FutureWarning, stacklevel=2)
@@ -938,8 +940,10 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
     def lag(self, value):
         if value != 0:
             warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
-                 "Please use `phase` (in radians) instead. "
-                 "Note that if both `lag` and `phase` are set, the effect is the sum of the two," \
+                 "Please use `phase` (in radians) instead. If you see this warning "
+                 "while loading a saved line from a previous version of Xsuite, please "
+                 "regenerate the line with the current version to use phase instead of lag. "
+                 "Note that if both `lag` and `phase` are set, the effect is the sum of the two, "
                  " with `lag` converted to radians. "
                  + DEPRECATION_INFO_PREP_1_0,
                  FutureWarning, stacklevel=2)
