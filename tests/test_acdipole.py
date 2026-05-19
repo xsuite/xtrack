@@ -277,6 +277,7 @@ def test_acdipole_tracking_madng(test_context: Any, plane: str) -> None:
     line.build_tracker(_context=test_context)
     base_tws = line.twiss(method="4d")
     nat_q = base_tws[f"q{plane}"]
+    e5_pos = line.get_s_position("e5")
 
     # tracking-mode ACDipole (ramp)
     line.env.elements["e5_acd"] = xt.ACDipole(
@@ -287,9 +288,10 @@ def test_acdipole_tracking_madng(test_context: Any, plane: str) -> None:
         plane=plane,
         twiss_mode=False,
     )
-    line.insert("e5_acd", at='e5')
+    line.insert("e5_acd", at=e5_pos)
 
-    line.insert("e6_marker", xt.Marker(), at='e6')
+    e6_pos = line.get_s_position("e6")
+    line.insert("e6_marker", xt.Marker(), at=e6_pos)
 
     line.build_tracker(_context=test_context)
     line.track(
