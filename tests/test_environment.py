@@ -4514,6 +4514,33 @@ def test_sandwitch_thin_elements_insert():
         4.95, 5.05, 9., 11., 13.9, 14., 19., 21., 40., 40., 40., 40., 40., 40.],
         atol=1e-14)
 
+def test_place_at_element_name():
+
+    env = xt.Environment()
+
+    env.new('m_ref', xt.Marker)
+    env.new('m_at_ref', xt.Marker)
+
+    p_at_ref = env.place('m_at_ref', at='m_ref')
+
+    assert p_at_ref.at == 0
+    assert p_at_ref.from_ == 'm_ref'
+    assert p_at_ref.anchor is None
+    assert p_at_ref.from_anchor is None
+
+    line = env.new_line(components=[
+        env.place('m_ref', at=5.),
+        p_at_ref,
+    ])
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == [
+        '||drift_1', 'm_ref', 'm_at_ref', '_end_point'
+    ])
+    xo.assert_allclose(tt.s, [0., 5., 5., 5.],
+                       rtol=0, atol=1e-14)
+
 def test_environment_set_suppress_expression():
 
     env = xt.Environment()

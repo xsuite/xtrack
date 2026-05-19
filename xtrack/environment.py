@@ -605,7 +605,8 @@ class Environment:
             else:
                 name = name.copy(shallow=True)
 
-        return xt.Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor)
+        return xt.Place(name, at=at, from_=from_, anchor=anchor, from_anchor=from_anchor,
+                        env=self)
 
     @doc_group("Deprecated")
     def new_builder(self, components=None, name=None, refer: ReferType = 'center',

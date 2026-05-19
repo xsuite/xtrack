@@ -635,16 +635,20 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
 
 class Place:
 
-    def __init__(self, name, at=None, from_=None, anchor=None, from_anchor=None):
+    def __init__(self, name, at=None, from_=None, anchor=None, from_anchor=None, env=None):
 
-        if isinstance(at, str) and '@' in at:
-            at_parts = at.split('@')
-            assert len(at_parts) == 2
-            assert from_ is None
-            assert from_anchor is None
-            at = 0
-            from_ = at_parts[0]
-            from_anchor = at_parts[1]
+        if isinstance(at, str):
+            if '@' in at:
+                at_parts = at.split('@')
+                assert len(at_parts) == 2
+                assert from_ is None
+                assert from_anchor is None
+                at = 0
+                from_ = at_parts[0]
+                from_anchor = at_parts[1]
+            elif env is not None and at in env._element_dict:
+                from_ = at
+                at = 0
 
         if from_ is not None:
             assert isinstance(from_, str)
@@ -662,6 +666,7 @@ class Place:
         self.from_ = from_
         self.anchor = anchor
         self.from_anchor = from_anchor
+        self.env = env
 
     def __repr__(self):
         out = f'Place({self.name}'
