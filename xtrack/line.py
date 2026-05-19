@@ -3875,7 +3875,7 @@ class Line:
         Parameters
         ----------
         edge: str
-            None to disable, 'full' to enable.
+            None or 'suppressed' to disable, 'full' to enable.
         num_multipole_kicks: int
             Number of multipole kicks to consider.
         integrator: str
