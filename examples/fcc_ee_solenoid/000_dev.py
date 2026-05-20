@@ -6,7 +6,7 @@ import numpy as np
 env = xt.load('fccee_z_lcc.json')
 line = env.fccee_p_ring
 
-tw0 = line.twiss4d()
+tw0 = line.twiss4d(strengths=True)
 
 ip_name = 'ipg'
 
@@ -109,8 +109,8 @@ line_comp_solenoid_right = line_comp_solenoid.clone(suffix='_right')
 s_ip = tw0['s', ip_name]
 line.insert(line_solenoid, anchor='center', at=s_ip)
 line.insert(ip_name, at=s_ip, s_tol=1e-9) # Put back the ip
-line.insert(line_comp_solenoid_left, anchor='end', at=-100, from_=ip_name)
-line.insert(line_comp_solenoid_right, anchor='start', at=100, from_=ip_name)
+line.insert(line_comp_solenoid_left, anchor='end', at=-12, from_=ip_name)
+line.insert(line_comp_solenoid_right, anchor='start', at=12, from_=ip_name)
 
 tt = line.get_table()
 tt_left = tt.rows['end_ds_start_straight_ipg':'ipg']
@@ -135,8 +135,12 @@ tw_sol_on_comp_sol_on = line.twiss4d()
 two_sol_on_comp_sol_on = line.twiss(
     start='end_ds_start_straight_ipg',
     end='end_straight_start_ds_ipg',
-    init_at=ip_name,
-    init=tw_off)
+    spin=True,
+    betx=tw_off['betx', 'end_ds_start_straight_ipg'],
+    bety=tw_off['bety', 'end_ds_start_straight_ipg'],
+    alfx=tw_off['alfx', 'end_ds_start_straight_ipg'],
+    alfy=tw_off['alfy', 'end_ds_start_straight_ipg'],
+    spin_y=1)
 
 line['on_sol'] = 0
 line['on_comp_sol'] = 1
@@ -144,6 +148,7 @@ tw_sol_off_comp_sol_on = line.twiss4d()
 two_sol_off_comp_sol_on = line.twiss(
     start='end_ds_start_straight_ipg',
     end='end_straight_start_ds_ipg',
+
     init_at=ip_name,
     init=tw_off)
 
