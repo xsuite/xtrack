@@ -136,21 +136,13 @@ two_sol_on_comp_sol_on = line.twiss(
     start='end_ds_start_straight_ipg',
     end='end_straight_start_ds_ipg',
     spin=True,
-    betx=tw_off['betx', 'end_ds_start_straight_ipg'],
-    bety=tw_off['bety', 'end_ds_start_straight_ipg'],
-    alfx=tw_off['alfx', 'end_ds_start_straight_ipg'],
-    alfy=tw_off['alfy', 'end_ds_start_straight_ipg'],
+    init_at=ip_name,
+    betx=tw_off['betx', 'ipg'],
+    bety=tw_off['bety', 'ipg'],
+    alfx=tw_off['alfx', 'ipg'],
+    alfy=tw_off['alfy', 'ipg'],
     spin_y=1)
 
-line['on_sol'] = 0
-line['on_comp_sol'] = 1
-tw_sol_off_comp_sol_on = line.twiss4d()
-two_sol_off_comp_sol_on = line.twiss(
-    start='end_ds_start_straight_ipg',
-    end='end_straight_start_ds_ipg',
-
-    init_at=ip_name,
-    init=tw_off)
 
 
 prrrr
