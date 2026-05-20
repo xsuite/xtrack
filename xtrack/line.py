@@ -1276,7 +1276,6 @@ class Line:
     def get_local_momentum_acceptance(
         self,
         *,
-        particle_ref=None,
         twiss=None,
         scattering='off',
         x_offset: float = 0.0,
@@ -1288,8 +1287,6 @@ class Line:
         delta_negative_limit: float = -0.10,
         delta_positive_limit: float = +0.10,
         delta_step_size: float = 0.01,
-        skip_elements: int = 0,
-        process_elements: int = 2**31 - 1,
         s_start: float = 0.0,
         s_end: float | None = None,
         include_name_pattern: str | None = None,
@@ -1299,7 +1296,7 @@ class Line:
         verbose: bool = False,
         **kwargs):
         """
-        Compute the local momentum aperture (LMA) along the line by tracking a
+        Compute the local momentum acceptance (LMA) along the line by tracking a
         grid of momentum offsets (δ) from the **entrance** of selected
         elements and reporting the largest surviving negative and positive δ.
 
@@ -1337,18 +1334,16 @@ class Line:
         delta_step_size : float, default 0.01
             Step for the δ grid. Must be > 0. The positive end is included
             with a half-step guard to reduce floating-point exclusion.
-        skip_elements : int, default 0
-            Number of selected elements to skip from the start.
-        process_elements : int, default 2**31 - 1
-            Maximum number of selected elements to process.
         s_start : float, default 0.0
             Start of the longitudinal selection window (m), inclusive.
         s_end : float, optional
             End of the selection window (m), exclusive. Defaults to ∞.
         include_name_pattern : str, optional
-            Shell-style wildcard pattern (fnmatch) to include element names.
+            Regex pattern to filter elements by name, passed directly to
+            ``tt.rows[include_name_pattern]``.
         include_type_pattern : str, optional
-            Shell-style wildcard pattern (fnmatch) to include element types.
+            Exact element type name to filter by (e.g. ``'Quadrupole'``,
+            ``'Sextupole'``), matched against the ``element_type`` column.
         n_turns : int, default 512
             Number of turns to track.
         with_progress : bool | int, default False
@@ -1363,8 +1358,7 @@ class Line:
         - LMA is evaluated at the **entrance** of each element.
         - If multiple elements share the same `s`, only the first encountered is used.
         - Elements are filtered by `s_start <= s < s_end`, then by optional
-        `include_name_pattern` and/or `include_type_pattern`, then by
-        `skip_elements`/`process_elements`.
+        `include_name_pattern` and/or `include_type_pattern`.
 
         Algorithm (per selected element)
         --------------------------------
@@ -1379,19 +1373,14 @@ class Line:
         Returns
         -------
         xt.Table
-            Table indexed by `'s'` with columns:
+            Table indexed by `'name'` with columns:
+            - `name` (str): Element name.
             - `s` (float): Element entrance position (m).
             - `deltan` (float): Largest surviving negative δ (may be 0).
             - `deltap` (float): Largest surviving positive δ (may be 0).
         """
-        import fnmatch
-
-        if particle_ref is None:
-            if hasattr(self, 'particle_ref'):
-                particle_ref = self.particle_ref
-            else:
-                raise ValueError(
-                    "If the line has no particle_ref, a particle_ref must be provided.")
+        if self.particle_ref is None:
+            raise ValueError("Line.particle_ref must be set to build probe particles.")
         
         # Mutual exclusivity: physical vs normalized offsets
         if x_offset != 0.0 and x_norm_offset != 0.0:
@@ -1412,15 +1401,9 @@ class Line:
             s_end = np.inf
         if s_start >= s_end:
             raise ValueError("s_start must be < s_end")
-        if skip_elements < 0:
-            raise ValueError("skip_elements must be >= 0")
-        if process_elements <= 0:
-            raise ValueError("process_elements must be > 0")
         if n_turns <= 0:
             raise ValueError("n_turns must be > 0")
-        if self.particle_ref is None:
-            raise ValueError("Line.particle_ref must be set to build probe particles.")
-
+        
         if not self._has_valid_tracker():
             self.build_tracker()
 
@@ -1433,41 +1416,34 @@ class Line:
             if scattering == 'on':
                 self.scattering.enable()
 
-        # By default, we scan at the ENTRANCE of each element
-        s_entr = np.array(list(self.get_s_elements(mode="upstream")))
-        elem_names = np.array(self.element_names)
-        elem_types = np.array([ee.__class__.__name__ for ee in self.elements])
+        tt = self.get_table()
 
-        candidates: list[int] = []
-        for i, (nm, tp, s_en) in enumerate(zip(elem_names, elem_types, s_entr)):
-            if not (s_start <= s_en < s_end):
-                continue
-            # If patterns are given, enforce them
-            if include_name_pattern and not fnmatch.fnmatch(nm, include_name_pattern):
-                continue
-            if include_type_pattern and not fnmatch.fnmatch(tp, include_type_pattern):
-                continue
-            candidates.append(i)
+        # Filter by s_range
+        tt_filtered = tt.rows[s_start:s_end:'s']
 
-        if skip_elements:
-            candidates = candidates[skip_elements:]
-        if process_elements < len(candidates):
-            candidates = candidates[:process_elements]
+        # Filter by name pattern
+        if include_name_pattern is not None:
+            tt_filtered = tt_filtered.rows[include_name_pattern]
 
-        if len(candidates) == 0:
-            raise ValueError("No elements selected for momentum aperture computation.")
+        # Filter by element_type
+        if include_type_pattern is not None:
+            tt_filtered = tt_filtered.rows[tt_filtered['element_type'] == include_type_pattern]
 
-        elements = elem_names[candidates]
+        if len(tt_filtered.name) == 0:
+            raise ValueError("No elements selected for local momentum acceptance computation.")
+        
+        # NOTE: if no filtering is applied, the default is to scan at the ENTRANCE of each element
+        elements = tt_filtered.name
 
         # Delta grid
         deltas = np.arange(delta_negative_limit, delta_positive_limit + 0.5 * delta_step_size,
-                        delta_step_size)
+                           delta_step_size)
         n_part = len(deltas)
 
         rows = []
         seen_s = set()
 
-        iterable = progress(elements, desc="Momentum aperture") if with_progress else elements
+        iterable = progress(elements, desc="Local Momentum Acceptance") if with_progress else elements
 
         for ii, ee in enumerate(iterable):
             s_here = float(twiss['s', ee])
