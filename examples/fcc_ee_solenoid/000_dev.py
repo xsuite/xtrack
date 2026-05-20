@@ -113,25 +113,45 @@ line.insert(line_comp_solenoid_left, anchor='end', at=-100, from_=ip_name)
 line.insert(line_comp_solenoid_right, anchor='start', at=100, from_=ip_name)
 
 tt = line.get_table()
+tt_left = tt.rows['end_ds_start_straight_ipg':'ipg']
+tt_right = tt.rows['ipg':'end_straight_start_ds_ipg']
 
 line['on_sol'] = 0
 line['on_comp_sol'] = 0
 tw_off = line.twiss4d()
 
 line['on_sol'] = 1
-line['ksol_l_comp_solenoid'] = 0
+line['on_comp_sol'] = 0
 tw_sol_on_comp_sol_off = line.twiss4d()
+two_sol_on_comp_sol_off = line.twiss(
+    start='end_ds_start_straight_ipg',
+    end='end_straight_start_ds_ipg',
+    init_at=ip_name,
+    init=tw_off)
 
 line['on_sol'] = 1
 line['on_comp_sol'] = 1
 tw_sol_on_comp_sol_on = line.twiss4d()
+two_sol_on_comp_sol_on = line.twiss(
+    start='end_ds_start_straight_ipg',
+    end='end_straight_start_ds_ipg',
+    init_at=ip_name,
+    init=tw_off)
+
+line['on_sol'] = 0
+line['on_comp_sol'] = 1
+tw_sol_off_comp_sol_on = line.twiss4d()
+two_sol_off_comp_sol_on = line.twiss(
+    start='end_ds_start_straight_ipg',
+    end='end_straight_start_ds_ipg',
+    init_at=ip_name,
+    init=tw_off)
 
 
 prrrr
 
 
-tt_left = tt.rows['end_ds_start_straight_ipg':'ipg']
-tt_right = tt.rows['ipg':'end_straight_start_ds_ipg']
+
 
 
 
