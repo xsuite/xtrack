@@ -7,8 +7,8 @@ import numpy as np
 import xtrack as xt
 
 
-@pytest.fixture(scope="session")
-def toy_ring():
+@pytest.fixture(scope="module")
+def toy_ring(temp_context_default_mod):
     """Build the toy ring once for the entire test session."""
     lbend = 3
     angle = np.pi / 2
@@ -65,22 +65,10 @@ def toy_ring():
 
     line.insert(placements)
 
-    return line
+    tt = line.get_table()
+    tw = line.twiss(method="4d")
 
-
-@pytest.fixture(scope="session")
-def tt(toy_ring):
-    return toy_ring.get_table()
-
-
-@pytest.fixture(scope="session")
-def tw(toy_ring):
-    return toy_ring.twiss(method="4d")
-
-
-@pytest.fixture(scope="session")
-def tt_aper(tt):
-    return tt.rows[tt.element_type == 'LimitRect']
+    return {'line': line, 'tt': tt, 'tw': tw}
 
 
 def test_parameter_validation():
@@ -140,8 +128,10 @@ def test_mutual_exclusivity_errors(toy_ring):
     """
     x/y physical offsets must be mutually exclusive with normalized offsets.
     """
+    line = toy_ring['line']
+
     with pytest.raises(ValueError, match=r"Provide either x_offset or x_norm_offset"):
-        toy_ring.get_local_momentum_acceptance(
+        line.get_local_momentum_acceptance(
             nemitt_x=1e-6,
             nemitt_y=1e-6,
             method="4d",
@@ -150,7 +140,7 @@ def test_mutual_exclusivity_errors(toy_ring):
         )
 
     with pytest.raises(ValueError, match=r"Provide either y_offset or y_norm_offset"):
-        toy_ring.get_local_momentum_acceptance(
+        line.get_local_momentum_acceptance(
             nemitt_x=1e-6,
             nemitt_y=1e-6,
             method="4d",
@@ -163,8 +153,10 @@ def test_empty_selection_raises(toy_ring):
     """
     If no elements match the selection filters, the method must raise.
     """
+    line = toy_ring['line']
+
     with pytest.raises(ValueError, match=r"No elements selected for local momentum acceptance computation"):
-        toy_ring.get_local_momentum_acceptance(
+        line.get_local_momentum_acceptance(
             nemitt_x=1e-6,
             nemitt_y=1e-6,
             method="4d",
@@ -172,14 +164,18 @@ def test_empty_selection_raises(toy_ring):
         )
 
 
-def test_include_name_pattern_selects_subset(toy_ring, tt, tw):
+def test_include_name_pattern_selects_subset(toy_ring):
     """
     A regex name pattern should restrict the output to only the matching elements.
     """
+    line = toy_ring['line']
+    tt = toy_ring['tt']
+    tw = toy_ring['tw']
+
     pattern = "^mqf.*_aper_entry$"
     expected_names = tt.rows[pattern].name
 
-    out = toy_ring.get_local_momentum_acceptance(
+    out = line.get_local_momentum_acceptance(
         twiss=tw,
         nemitt_x=1e-5,
         nemitt_y=1e-7,
@@ -197,17 +193,21 @@ def test_include_name_pattern_selects_subset(toy_ring, tt, tw):
     assert "deltap" in out.cols
 
 
-def test_s_window_selects_subset(toy_ring, tt, tw):
+def test_s_window_selects_subset(toy_ring):
     """
     s_start / s_end should restrict the output to elements within the window.
     """
+    line = toy_ring['line']
+    tt = toy_ring['tt']
+    tw = toy_ring['tw']
+
     s_start = 0.0
     s_end = tt.s[-1] / 2.0
 
     tab_in_window = tt.rows[s_start:s_end:'s']
     tab_aper_in_window = tab_in_window.rows[tab_in_window.element_type == 'LimitRect']
 
-    out = toy_ring.get_local_momentum_acceptance(
+    out = line.get_local_momentum_acceptance(
         twiss=tw,
         nemitt_x=1e-5,
         nemitt_y=1e-7,
@@ -224,15 +224,21 @@ def test_s_window_selects_subset(toy_ring, tt, tw):
     assert set(out.name) == set(tab_aper_in_window.name)
 
 
-def test_norm_offset_all_survive(toy_ring, tt_aper, tw):
+def test_norm_offset_all_survive(toy_ring):
     """
     A small normalized transverse offset should not cause additional losses.
     """
+    line = toy_ring['line']
+    tt = toy_ring['tt']
+    tw = toy_ring['tw']
+
+    tt_aper = tt.rows[tt.element_type == 'LimitRect']
+
     delta_neg = -0.005
     delta_pos = +0.005
     delta_step = 0.001
 
-    out = toy_ring.get_local_momentum_acceptance(
+    out = line.get_local_momentum_acceptance(
         twiss=tw,
         include_type_pattern="LimitRect",
         nemitt_x=1e-5,
@@ -250,16 +256,22 @@ def test_norm_offset_all_survive(toy_ring, tt_aper, tw):
     assert np.allclose(out.deltap, delta_co + delta_pos, atol=1e-12)
 
 
-def test_all_survive(toy_ring, tt_aper, tw):
+def test_all_survive(toy_ring):
     """
     For a small delta scan all particles survive; deltan/deltap must match
     the scan bounds around the local closed-orbit delta.
     """
+    line = toy_ring['line']
+    tt = toy_ring['tt']
+    tw = toy_ring['tw']
+
+    tt_aper = tt.rows[tt.element_type == 'LimitRect']
+
     delta_neg = -0.005
     delta_pos = +0.005
     delta_step = 0.001
 
-    out = toy_ring.get_local_momentum_acceptance(
+    out = line.get_local_momentum_acceptance(
         twiss=tw,
         include_type_pattern="LimitRect",
         nemitt_x=1e-5,
@@ -286,11 +298,16 @@ def test_all_survive(toy_ring, tt_aper, tw):
     assert np.allclose(out.deltap, delta_co + delta_pos, atol=1e-12)
 
 
-def test_all_lost(toy_ring, tt_aper, tw):
+def test_all_lost(toy_ring):
     """
     For a large delta scan all particles are lost; deltan=deltap=0 everywhere.
     """
-    out = toy_ring.get_local_momentum_acceptance(
+    line = toy_ring['line']
+    tt = toy_ring['tt']
+    tw = toy_ring['tw']
+
+    tt_aper = tt.rows[tt.element_type == 'LimitRect']
+    out = line.get_local_momentum_acceptance(
         twiss=tw,
         include_type_pattern="LimitRect",
         nemitt_x=1e-5,
@@ -320,11 +337,17 @@ def test_all_lost(toy_ring, tt_aper, tw):
         pytest.param(0.0, 0.050, id="lost_by_y_offset"),
     ],
 )
-def test_all_lost_offset(toy_ring, tt_aper, tw, x_offset, y_offset):
+def test_all_lost_offset(toy_ring, x_offset, y_offset):
     """
     A transverse offset larger than the aperture causes all particles to be lost.
     """
-    out = toy_ring.get_local_momentum_acceptance(
+    line = toy_ring['line']
+    tt = toy_ring['tt']
+    tw = toy_ring['tw']
+
+    tt_aper = tt.rows[tt.element_type == 'LimitRect']
+
+    out = line.get_local_momentum_acceptance(
         twiss=tw,
         include_type_pattern="LimitRect",
         nemitt_x=1e-5,
