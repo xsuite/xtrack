@@ -1765,12 +1765,14 @@ class Aperture:
 
             pipe_pos_idx = self._aperture_bounds.pipe_position_indices[idx]
             profile_pos_idx = self._aperture_bounds.profile_position_indices[idx]
+            pipe_position_name = self._model.pipe_position_name_for_position_index(pipe_pos_idx)
             pipe_name, profile_name = self._model.pipe_profile_names_for_indices(pipe_pos_idx, profile_pos_idx)
 
             if not (centre - left > -s_tol and right - centre > -s_tol):
                 raise ValueError(
-                    f'Aperture model corrupted for pipe {pipe_name} and profile {profile_name}: the '
-                    f'computed s location {centre} is not inside the computed bounds [{left}, {right}]'
+                    f'Aperture model corrupted for {pipe_position_name} (pipe {pipe_name}) and profile {profile_name} '
+                    f'at index {profile_pos_idx}: the computed s location {centre} is not inside the computed bounds '
+                    f'[{left}, {right}]'
                 )
 
             if last_right > left:

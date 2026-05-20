@@ -20,6 +20,9 @@ class Circle(xo.Struct):
     def __repr__(self):
         return f'Circle(radius={self.radius})'
 
+    def valid(self):
+        return self.radius > 0
+
 
 class Rectangle(xo.Struct):
     half_width = FloatType
@@ -28,6 +31,9 @@ class Rectangle(xo.Struct):
     def __repr__(self):
         return f'Rectangle(half_width={self.half_width}, half_height={self.half_height})'
 
+    def valid(self):
+        return np.min((self.half_width, self.half_height)) > 0
+
 
 class Ellipse(xo.Struct):
     half_major = FloatType
@@ -35,6 +41,9 @@ class Ellipse(xo.Struct):
 
     def __repr__(self):
         return f'Ellipse(half_major={self.half_major}, half_minor={self.half_minor})'
+
+    def valid(self):
+        return np.min((self.half_major, self.half_minor)) > 0
 
 
 class RectEllipse(xo.Struct):
@@ -47,6 +56,9 @@ class RectEllipse(xo.Struct):
         return (f'RectEllipse(half_width={self.half_width}, half_height={self.half_height}, '
                 f'half_major={self.half_major}, half_minor={self.half_minor})')
 
+    def valid(self):
+        return np.min((self.half_width, self.half_height, self.half_major, self.half_minor)) > 0
+
 
 class Racetrack(xo.Struct):
     half_width = FloatType
@@ -55,8 +67,11 @@ class Racetrack(xo.Struct):
     half_minor = FloatType
 
     def __repr__(self):
-        return (f'RectEllipse(half_width={self.half_width}, half_height={self.half_height}, '
+        return (f'Racetrack(half_width={self.half_width}, half_height={self.half_height}, '
                 f'half_major={self.half_major}, half_minor={self.half_minor})')
+
+    def valid(self):
+        return np.min((self.half_width, self.half_height)) > 0
 
 
 class Octagon(xo.Struct):
@@ -66,6 +81,9 @@ class Octagon(xo.Struct):
 
     def __repr__(self):
         return f'Octagon(half_width={self.half_width}, half_height={self.half_height}, half_diagonal={self.half_diagonal})'
+
+    def valid(self):
+        return np.min((self.half_width, self.half_height, self.half_diagonal)) > 0
 
 
 class Polygon(xo.Struct):
@@ -119,6 +137,9 @@ class Polygon(xo.Struct):
                 len_points=points.shape[0],
             )
         )
+
+    def valid(self):
+        raise NotImplementedError('Validation not yet implemented for a polygon shape.')
 
 
 class SVGShape(xo.Struct):
