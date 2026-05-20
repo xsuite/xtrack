@@ -14,6 +14,7 @@ import xtrack as xt
 
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
+from ..general import DEPRECATION_INFO_PREP_1_0
 
 from xtrack.internal_record import RecordIndex
 
@@ -34,6 +35,7 @@ _INDEX_TO_MODEL_CURVED = {
     4: 'mat-kick-mat',
     5: 'drift-kick-drift-exact',
     6: 'drift-kick-drift-expanded',
+    7: 'rot-kick-rot-low-order',
 }
 _MODEL_TO_INDEX_CURVED = {k: v for v, k in _INDEX_TO_MODEL_CURVED.items()} | {'expanded': 4}
 
@@ -359,6 +361,40 @@ class _HasKnlKsl:
         self._order = value
         self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
+    def get_total_knl_ksl(self):
+        nn = 4  # minimum length for knl and ksl is 4 (octupole order)
+        nn = max(nn, len(self.knl))
+        nn = max(nn, len(self.ksl))
+
+        if 'knl_rel' in self._xo_fnames:
+            nn = max(nn, len(self.knl_rel))
+            nn = max(nn, len(self.ksl_rel))
+
+        knl = np.zeros(nn, dtype=np.float64)
+        ksl = np.zeros(nn, dtype=np.float64)
+        knl[: len(self.knl)] += self.knl
+        ksl[: len(self.ksl)] += self.ksl
+
+        if 'knl_rel' in self._xo_fnames:
+            knl[: len(self.knl_rel)] += self.main_strength * self.knl_rel
+            ksl[: len(self.ksl_rel)] += self.main_strength * self.ksl_rel
+
+        if 'k0' in self._xo_fnames:
+            if hasattr(self, '_k0'): # To bypass k0 = from_angle
+                knl[0] += self._k0 * self.length
+            else:
+                knl[0] += self.k0 * self.length
+
+        for kk, ii in {'k1': 1, 'k2': 2, 'k3': 3}.items():
+            if kk in self._xo_fnames:
+                knl[ii] += getattr(self, kk) * self.length
+
+        for kk, ii in {'k0s':0, 'k1s': 1, 'k2s': 2, 'k3s': 3}.items():
+            if kk in self._xo_fnames:
+                ksl[ii] += getattr(self, kk) * self.length
+
+        return knl, ksl
+
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
@@ -392,6 +428,9 @@ class _HasKnlKsl:
 
         model = kwargs.pop('model', None)
         integrator = kwargs.pop('integrator', None)
+
+        if 'knl_rel' in self._xo_fnames:
+            _handle_knl_ksl_rel_kwargs(kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -636,9 +675,11 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         When `harmonic` is set, the cavity can only be used within a Line and not
         in standalone tracking (i.e. Cavity.track(...) will raise an error).
         Default is ``0``.
+    phase : float
+        Phase in radians seen at the arrival time of the reference particle (zeta = 0).
+        When `absolute_time` is True, `phase` is the phase at time zero. Default is ``0``.
     lag : float
-        Phase in degrees seen at the arrival time of the reference particle (zeta = 0).
-        When `absolute_time` is True `lag` is the phase at time zero. Default is ``0``.
+        Deprecated phase shift in degrees, added to `phase`. Default is ``0``.
     absolute_time : bool
         If True, the cavity phase is computed from the absolute time of the
         simulation, otherwise the cavity is synchronized with the arrival time of
@@ -661,8 +702,10 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
+        'phase': xo.Float64,
         'harmonic': xo.Float64,
         'lag_taper': xo.Float64,
+        'phase_taper': xo.Float64,
         'absolute_time': xo.Int64,
         'num_kicks': xo.Int64,
         'model': xo.Int64,
@@ -680,6 +723,7 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         'integrator': '_integrator',
         'frequency': '_frequency',
         'harmonic': '_harmonic',
+        'lag': '_lag',
     }
 
     _default_frequency = 0.0
@@ -697,6 +741,7 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         integrator = kwargs.pop('integrator', None)
         frequency = kwargs.pop('frequency', None)
         harmonic = kwargs.pop('harmonic', None)
+        lag = kwargs.pop('lag', None)
 
         self.xoinitialize(**kwargs)
 
@@ -712,6 +757,9 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
 
         if harmonic is not None:
             self.harmonic = harmonic
+
+        if lag is not None:
+            self.lag = lag
 
     def track(self, particles, *args, **kwargs):
 
@@ -731,6 +779,22 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
         if self._harmonic != 0 and value != 0:
             raise ValueError("Cannot set non-zero frequency when harmonic is not zero.")
         self._frequency = value
+
+    @property
+    def lag(self):
+        return self._lag
+
+    @lag.setter
+    def lag(self, value):
+        # TODO: Warning to be activated when acc-models repos are updated
+        # if value != 0:
+        #     warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
+        #          "Please use `phase` (in radians) instead. "
+        #          "Note that if both `lag` and `phase` are set, the effect is the sum of the two," \
+        #          " with `lag` converted to radians. "
+        #          + DEPRECATION_INFO_PREP_1_0,
+        #          FutureWarning, stacklevel=2)
+        self._lag = value
 
     @property
     def harmonic(self):
@@ -768,8 +832,11 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
     frequency : float
         Frequency of the cavity in Hertz. It can be set only if harmonic is zero.
         Default is ``0``.
+    phase : float
+        Phase in radians seen at the arrival time of the reference particle (zeta = 0).
+        Default is ``0``.
     lag : float
-        Phase in degrees seen at the arrival time of the reference particle (zeta = 0).
+        Deprecated phase shift in degrees, added to `phase`. Default is ``0``.
     '''.strip()
 
     __doc__ = '\n    '.join([_docstring_start,
@@ -788,7 +855,9 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
         'crab_voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
+        'phase': xo.Float64,
         'lag_taper': xo.Float64,
+        'phase_taper': xo.Float64,
         'absolute_time': xo.Int64,
         'num_kicks': xo.Int64,
         'model': xo.Int64,
@@ -804,6 +873,7 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
     _rename = {
         'model': '_model',
         'integrator': '_integrator',
+        'lag': '_lag',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -816,6 +886,7 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
 
         model = kwargs.pop('model', None)
         integrator = kwargs.pop('integrator', None)
+        lag = kwargs.pop('lag', None)
 
         self.xoinitialize(**kwargs)
 
@@ -825,6 +896,25 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
 
         if integrator is not None:
             self.integrator = integrator
+
+        if lag is not None:
+            self.lag = lag
+
+    @property
+    def lag(self):
+        return self._lag
+
+    @lag.setter
+    def lag(self, value):
+        # TODO: Warning to be activated when acc-models repos are updated
+        # if value != 0:
+        #     warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
+        #          "Please use `phase` (in radians) instead. "
+        #          "Note that if both `lag` and `phase` are set, the effect is the sum of the two," \
+        #          " with `lag` converted to radians. "
+        #          + DEPRECATION_INFO_PREP_1_0,
+        #          FutureWarning, stacklevel=2)
+        self._lag = value
 
     @property
     def _thin_slice_class(self):
@@ -1351,9 +1441,27 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     isthick : bool
         Whether the multipole is to be treated as thick (True) or thin (False).
         Default is ``False``.
-    """
+    """.strip()
 
-    __doc__ = '\n    '.join([_docstring_start.strip(),
+    _docstring_knl_rel_ksl_rel = \
+    """
+    knl_rel : array
+        Relative integrated strength of the normal components with respect to the main
+        component defined by `main_order` and `main_is_skew`. The effect of
+        `knl_rel` is added to the one of `knl`.
+    ksl_rel : array
+        Relative integrated strength of the skew components with respect to the main
+        component defined by `main_order` and `main_is_skew`. The effect of
+        `ksl_rel` is added to the one of `ksl`.
+    main_order : int
+        Order of the main multipole component used for defining the relative strengths
+        `knl_rel` and `ksl_rel`. Default is ``0``.
+    main_is_skew : bool
+        Whether the main multipole component used for defining the relative strengths
+        `knl_rel` and `ksl_rel` is skew (True) or normal (False). Default is ``False``.
+    """.strip()
+
+    __doc__ = '\n    '.join([_docstring_start, _docstring_knl_rel_ksl_rel,
                              _HasModelCurved._for_docstring,
                              _HasIntegrator._for_docstring,
                              _for_docstring_edge_straight,
@@ -1373,6 +1481,10 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         'delta_taper': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'main_order': xo.Int32,
+        'main_is_skew': xo.Int32,
         'isthick': xo.Int64,
         'num_multipole_kicks': xo.Int64,
         'model': xo.Int64,
@@ -1384,6 +1496,7 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         'isthick': '_isthick',
         'model': '_model',
         'integrator': '_integrator',
+        'main_is_skew': '_main_is_skew',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -1407,6 +1520,13 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
         # have consistency with other thick elements otherwise)
         return self.isthick and self.length != 0
 
+    @property
+    def main_strength(self):
+        if self.main_is_skew:
+            return self.ksl[self.main_order]
+        else:
+            return self.knl[self.main_order]
+
     def __init__(self, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -1429,6 +1549,8 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
 
         if 'hyl' in kwargs.keys():
             assert kwargs['hyl'] == 0.0, 'hyl is not supported anymore'
+
+        _handle_knl_ksl_rel_kwargs(kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -1469,6 +1591,26 @@ class Multipole(_HasKnlKsl, _HasModelStraight, _HasIntegrator, BeamElement):
     @property
     def _drift_slice_class(self):
         return xt.DriftSliceMultipole
+
+    @property
+    def main_is_skew(self):
+        return bool(self._main_is_skew > 0)
+
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
+
+def _handle_knl_ksl_rel_kwargs(kwargs):
+    knl_rel = kwargs.pop('knl_rel', [0])
+    ksl_rel = kwargs.pop('ksl_rel', [0])
+    # pad to have the same length for knl_rel and ksl_rel
+    max_len_rel = max(len(knl_rel), len(ksl_rel))
+    if len(knl_rel) != len(ksl_rel):
+        knl_rel = list(knl_rel) + [0] * (max_len_rel - len(knl_rel))
+        ksl_rel = list(ksl_rel) + [0] * (max_len_rel - len(ksl_rel))
+    kwargs['knl_rel'] = knl_rel
+    kwargs['ksl_rel'] = ksl_rel
+
 
 class SimpleThinQuadrupole(BeamElement):
     """An specialized version of Multipole to model a thin quadrupole
@@ -1520,14 +1662,6 @@ class SimpleThinQuadrupole(BeamElement):
     @property
     def inv_factorial_order(self): return 1.0
 
-    @property
-    def ksl(self): return self._buffer.context.linked_array_type.from_array(
-        np.array([0., 0.]),
-        mode='readonly',
-        container=self,
-    )
-
-
 class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     """Common properties for Bend and RBend: see their respective docstrings."""
     isthick = True
@@ -1564,6 +1698,8 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
         'k0_from_h': xo.Field(xo.UInt64, default=1),
     }
 
@@ -1580,6 +1716,10 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'h': '_h',
     }
 
+    @property
+    def main_strength(self):
+        """Integrated strength of the main dipole component k0*length."""
+        return self._k0 * self.length
 
     @property
     def angle(self):
@@ -1676,6 +1816,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     @property
     def _repr_fields(self):
         return ['length', 'k0', 'k1', 'h', 'k0_from_h', 'model', 'knl', 'ksl',
+                'knl_rel', 'ksl_rel',
                 'edge_entry_active', 'edge_exit_active', 'edge_entry_model',
                 'edge_exit_model', 'edge_entry_angle', 'edge_exit_angle',
                 'edge_entry_angle_fdown', 'edge_exit_angle_fdown',
@@ -1735,7 +1876,17 @@ class Bend(_BendCommon, BeamElement):
         becomes false when `k0` is set directly to a numeric value.
     """.strip()
 
+    _docstring_knl_rel_ksl_rel = \
+    """knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k0. The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k0. The effect of ksl_rel is added to the one of ksl.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+            _docstring_knl_rel_ksl_rel,
             _HasModelCurved._for_docstring, _HasIntegrator._for_docstring,
             _for_docstring_edge_bend, _for_docstring_alignment, '\n',
             _docstring_general_notes, '\n\n'])
@@ -1847,9 +1998,19 @@ class RBend(_BendCommon, BeamElement):
         defined as (1 / h) * (1 - cos(angle / 2)). The shift is added to `rbend_shift`.
         This parameter has effect only when `rbend_model` is "straight-body".
         Default is True.
-    """
+    """.strip()
+
+    _docstring_knl_rel_ksl_rel = \
+    """knl_rel : array
+        Relative integrated strength of the normal components with respect to the
+        main component k0. The effect of knl_rel is added to the one of knl.
+    ksl_rel : array
+        Relative integrated strength of the skew components with respect to the
+        main component k0. The effect of ksl_rel is added to the one of ksl.
+    """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+            _docstring_knl_rel_ksl_rel,
             _HasModelCurved._for_docstring, _HasIntegrator._for_docstring,
             _for_docstring_edge_bend, _for_docstring_alignment, '\n',
             _docstring_general_notes, '\n\n'])
@@ -2091,7 +2252,22 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters.
     """.strip()
 
+    _docstring_knl_ksl_rel = \
+    """knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k2 or k2s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k2 or k2s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of ksl_rel is added to the one of ksl.
+    main_is_skew : bool, optional
+        If False (default), the main component is the normal sextupole k2,
+        while if True the main component is the skew sextupole k2s.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _docstring_knl_ksl_rel,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
                _for_docstring_edge_straight, _for_docstring_alignment, '\n',
                _docstring_general_notes, '\n\n'])
@@ -2108,6 +2284,9 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'main_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
@@ -2123,6 +2302,7 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'order': '_order',
         'model': '_model',
         'integrator': '_integrator',
+        'main_is_skew': '_main_is_skew',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -2133,6 +2313,17 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/sextupole.h"',
     ]
+
+    @property
+    def main_strength(self):
+        """Returns the integrated strength of the main component, i.e. k2*length
+        if the main component is the normal one, or k2s*length if the main component
+        is the skew one.
+        """
+        if self.main_is_skew:
+            return self.k2s * self.length
+        else:
+            return self.k2 * self.length
 
     @property
     def _thin_slice_class(self):
@@ -2154,6 +2345,16 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceSextupoleExit
 
+    @property
+    def main_is_skew(self):
+        """It is True if the main component is the skew one, i.e. k2s,
+        or False if the main component is the normal one, i.e. k2."""
+        return bool(self._main_is_skew > 0)
+
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
+
 
 class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
@@ -2171,7 +2372,23 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters.
     """.strip()
 
+    _docstring_knl_ksl_rel = \
+    """
+    knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k3 or k3s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k3 or k3s, depending on whether `main_is_skew` is False or True, respectively.
+        The effect of ksl_rel is added to the one of ksl.
+    main_is_skew : bool, optional
+        If False (default), the main component is the normal octupole k3,
+        while if True the main component is the skew octupole k3s.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _docstring_knl_ksl_rel,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
                _for_docstring_edge_straight, _for_docstring_alignment, '\n',
                _docstring_general_notes, '\n\n'])
@@ -2188,6 +2405,9 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'main_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'num_multipole_kicks': xo.Int64,
@@ -2215,6 +2435,17 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     ]
 
     @property
+    def main_strength(self):
+        """Returns the integrated strength of the main component, i.e. k3*length
+        if the main component is the normal one, or k3s*length if the main component
+        is the skew one.
+        """
+        if self.main_is_skew:
+            return self.k3s * self.length
+        else:
+            return self.k3 * self.length
+
+    @property
     def _thin_slice_class(self):
         return xt.ThinSliceOctupole
 
@@ -2234,6 +2465,16 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     def _exit_slice_class(self):
         return xt.ThinSliceOctupoleExit
 
+    @property
+    def main_is_skew(self):
+        """It is True if the main component is the skew one, i.e. k3s,
+        or False if the main component is the normal one, i.e. k3."""
+        return bool(self._main_is_skew > 0)
+
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
+
 
 class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
 
@@ -2251,7 +2492,23 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         Length of the element in meters.
     """.strip()
 
+    _docstring_knl_rel_ksl_rel = \
+    """
+    knl_rel : array, optional
+        Relative integrated strength of the normal components with respect to the
+        main component k1 or k1s, depending whether `main_is_skew` is False or True, respectively.
+        The effect of knl_rel is added to the one of knl.
+    ksl_rel : array, optional
+        Relative integrated strength of the skew components with respect to the
+        main component k1 or k1s, depending whether `main_is_skew` is False or True, respectively.
+        The effect of ksl_rel is added to the one of ksl.
+    main_is_skew : bool, optional
+        If True, the main component is the skew one (k1s), otherwise it is the normal one (k1).
+        Default is False.
+    """.strip()
+
     __doc__ = '\n    '.join([_docstring_start, _HasKnlKsl._for_docstring,
+               _docstring_knl_rel_ksl_rel,
                _HasModelStraight._for_docstring, _HasIntegrator._for_docstring,
                _for_docstring_edge_straight, _for_docstring_alignment, '\n',
                _docstring_general_notes, '\n\n'])
@@ -2269,6 +2526,9 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
+        'knl_rel': xo.Float64[:],
+        'ksl_rel': xo.Float64[:],
+        'main_is_skew': xo.Int32,
         'edge_entry_active': xo.Field(xo.UInt64, default=False),
         'edge_exit_active': xo.Field(xo.UInt64, default=False),
         'model': xo.Int64,
@@ -2283,6 +2543,7 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'order': '_order',
         'model': '_model',
         'integrator': '_integrator',
+        'main_is_skew': '_main_is_skew',
     }
 
     _noexpr_fields = _NOEXPR_FIELDS
@@ -2294,6 +2555,17 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     _depends_on = [RandomUniformAccurate, RandomExponential]
 
     _internal_record_class = SynchrotronRadiationRecord
+
+    @property
+    def main_strength(self):
+        """Returns the integrated strength of the main component, i.e. k1*length
+        if the main component is the normal one, or k1s*length if the main component 
+        is the skew one.
+        """
+        if self.main_is_skew:
+            return self.k1s * self.length
+        else:
+            return self.k1 * self.length
 
     @property
     def radiation_flag(self): return 0.0
@@ -2317,6 +2589,16 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     @property
     def _exit_slice_class(self):
         return xt.ThinSliceQuadrupoleExit
+
+    @property
+    def main_is_skew(self):
+        """It is True if the main component is the skew one, i.e. k1s,
+        or False if the main component is the normal one, i.e. k1."""
+        return bool(self._main_is_skew > 0)
+
+    @main_is_skew.setter
+    def main_is_skew(self, value):
+        self._main_is_skew = int(bool(value))
 
 
 class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
@@ -2502,6 +2784,8 @@ class TempRF(_HasKnlKsl, _HasModelRF, _HasIntegrator, BeamElement):
 class Solenoid(_HasKnlKsl, BeamElement):
     """Solenoid element.
 
+    .. warning:: The Solenoid element is deprecated, use VariableSolenoid or UniformSolenoid instead.
+
     Parameters
     ----------
     length : float
@@ -2570,7 +2854,8 @@ class Solenoid(_HasKnlKsl, BeamElement):
 
     def __init__(self, order=None, knl: List[float] = None, ksl: List[float] = None, **kwargs):
         warn(
-            'The `Solenoid` element is deprecated. Use `VariableSolenoid` or `UniformSolenoid` instead.',
+            'The `Solenoid` element is deprecated. Use `VariableSolenoid` or `UniformSolenoid` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
             FutureWarning
         )
 
@@ -3064,13 +3349,6 @@ class SimpleThinBend(BeamElement):
     @property
     def inv_factorial_order(self): return 1.0
 
-    @property
-    def ksl(self): return self._buffer.context.linked_array_type.from_array(
-        np.array([0., 0.]),
-        mode='readonly',
-        container=self,
-    )
-
 
 class RFMultipole(_HasKnlKsl, BeamElement):
 
@@ -3424,17 +3702,15 @@ class LineSegmentMap(BeamElement):
         'voltage_rf': xo.Float64[:],
         'frequency_rf': xo.Float64[:],
         'lag_rf': xo.Float64[:],
+        'phase_rf': xo.Float64[:],
     }
 
     _depends_on = [RandomNormal]
     isthick = True
 
-    # _rename = {
-    #     'cos_s': '_cos_s',
-    #     'sin_s': '_sin_s',
-    #     'bets': '_bets',
-    #     'longitudinal_mode_flag': '_longitudinal_mode_flag',
-    # }
+    _rename = {
+        'lag_rf': '_lag_rf',
+    }
 
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/linesegmentmap.h"',
@@ -3448,7 +3724,7 @@ class LineSegmentMap(BeamElement):
             qs=None, bets=None,bucket_length=None,
             momentum_compaction_factor=None,
             slippage_length=None,
-            voltage_rf=None, frequency_rf=None, lag_rf=None,
+            voltage_rf=None, frequency_rf=None, lag_rf=None, phase_rf=None,
             dqx=0.0, dqy=0.0, ddqx=0.0, ddqy=0.0, dnqx=None, dnqy=None,
             det_xx=0.0, det_xy=0.0, det_yy=0.0, det_yx=0.0,
             energy_increment=0.0, energy_ref_increment=0.0,
@@ -3544,7 +3820,7 @@ class LineSegmentMap(BeamElement):
             List of frequencies of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
         lag_rf : list of float
-            List of lag of the RF kicks in the segment. Only used if
+            List of lags in degrees of the RF kicks in the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
         dqx : float or list of float
             Horizontal linear chromaticity of the segment.
@@ -3676,6 +3952,7 @@ class LineSegmentMap(BeamElement):
             assert voltage_rf is None
             assert frequency_rf is None
             assert lag_rf is None
+            assert phase_rf is None
             if bucket_length == None:
                 bucket_length = -1.0
             nargs['longitudinal_mode_flag'] = 1
@@ -3685,14 +3962,25 @@ class LineSegmentMap(BeamElement):
             nargs['voltage_rf'] = [0]
             nargs['frequency_rf'] = [0]
             nargs['lag_rf'] = [0]
+            nargs['phase_rf'] = [0]
         elif longitudinal_mode == 'nonlinear' or longitudinal_mode == 'linear_fixed_rf':
             assert voltage_rf is not None
             assert frequency_rf is not None
-            assert lag_rf is not None
             assert momentum_compaction_factor is not None
             assert qs is None
             assert bets is None
             assert bucket_length is None
+
+            if lag_rf is None:
+                try:
+                    lag_rf = [0]*len(frequency_rf)
+                except TypeError:
+                    lag_rf = [0]
+            if phase_rf is None:
+                try:
+                    phase_rf = [0]*len(frequency_rf)
+                except TypeError:
+                    phase_rf = [0]
 
             if slippage_length is None:
                 nargs['slippage_length'] = length
@@ -3706,14 +3994,16 @@ class LineSegmentMap(BeamElement):
 
             nargs['voltage_rf'] = voltage_rf
             nargs['frequency_rf'] = frequency_rf
+            nargs['phase_rf'] = phase_rf
             nargs['lag_rf'] = lag_rf
             nargs['momentum_compaction_factor'] = momentum_compaction_factor
-            for nn in ['frequency_rf', 'lag_rf', 'voltage_rf']:
+            for nn in ['frequency_rf', 'lag_rf', 'voltage_rf', 'phase_rf']:
                 if np.isscalar(nargs[nn]):
                     nargs[nn] = [nargs[nn]]
 
             assert (len(nargs['frequency_rf'])
                     == len(nargs['lag_rf'])
+                    == len(nargs['phase_rf'])
                     == len(nargs['voltage_rf']))
 
             if longitudinal_mode == 'linear_fixed_rf':
@@ -3724,9 +4014,9 @@ class LineSegmentMap(BeamElement):
             nargs['voltage_rf'] = [0]
             nargs['frequency_rf'] = [0]
             nargs['lag_rf'] = [0]
+            nargs['phase_rf'] = [0]
         else:
             raise ValueError('longitudinal_mode must be one of "linear_fixed_qs", "nonlinear" or "frozen"')
-
 
         if np.isscalar(betx): betx = [betx, betx]
         else: assert len(betx) == 2
@@ -3782,16 +4072,15 @@ class LineSegmentMap(BeamElement):
         # acceleration without change of reference momentum
         nargs['energy_increment'] = energy_increment
 
-
         assert damping_rate_x >= 0.0
         assert damping_rate_px >= 0.0
         assert damping_rate_y >= 0.0
         assert damping_rate_py >= 0.0
         assert damping_rate_zeta >= 0.0
         assert damping_rate_pzeta >= 0.0
-        
+
         if (damping_rate_x > 0.0 or damping_rate_px > 0.0
-                or damping_rate_y > 0.0 or damping_rate_py > 0.0 
+                or damping_rate_y > 0.0 or damping_rate_py > 0.0
                 or damping_rate_zeta > 0.0 or damping_rate_pzeta > 0.0):
             assert damping_matrix is None
             nargs['uncorrelated_rad_damping'] = True
@@ -3840,6 +4129,17 @@ class LineSegmentMap(BeamElement):
         else:
             nargs['uncorrelated_gauss_noise'] = False
             nargs['correlated_gauss_noise'] = False
+
+        # Warn if lag_rf (deprecation)
+        for vv in nargs['lag_rf']:
+            if vv != 0:
+                warn("`lag_rf` (in degrees) is deprecated and will be removed in a future version. "
+                     "Please use `phase_rf` (in radians) instead. "
+                     "Note that if both `lag_rf` and `phase_rf` are set, the effect is the sum of the two "
+                     "with `lag_rf` converted to radians.",
+                     FutureWarning, stacklevel=2)
+                break
+
         super().__init__(**nargs)
 
     @property
@@ -3851,6 +4151,38 @@ class LineSegmentMap(BeamElement):
             3: 'linear_fixed_rf'
         }[self.longitudinal_mode_flag]
         return ret
+
+    @property
+    def lag_rf(self):
+        return self._buffer.context.linked_array_type.from_array(
+            self._lag_rf,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_lag_rf_setitem')
+
+    @lag_rf.setter
+    def lag_rf(self, value):
+        self.lag_rf[:] = value
+
+    def _lag_rf_setitem(self, index, value):
+
+        need_warn = False
+        if np.isscalar(value) and value != 0:
+            need_warn = True
+        elif not np.isscalar(value):
+            for v in value:
+                if v != 0:
+                    need_warn = True
+                    break
+
+        if need_warn:
+            warn('`lag_rf` (in degrees) is deprecated and will be removed in a future version.'
+            'Please use `phase_rf` (in radians) instead. '
+            'Note that if both `lag_rf` and `phase_rf` are set, the effect is the sum of the two '
+            'with `lag_rf` converted to radians.',
+            FutureWarning, stacklevel=2)
+
+        self._lag_rf[index] = value
 
 
 class FirstOrderTaylorMap(BeamElement):
@@ -4007,7 +4339,7 @@ class SecondOrderTaylorMap(BeamElement):
 
         '''
         if start == end:
-            # start == end will lead to compute_one_turn_matrix_finite_differences() computing a
+            # start == end will lead to compute_R_matrix() computing a
             # full one-turn response matrix (but here we would rather expect identity)
             raise NotImplementedError('end element must be after start element')
 
@@ -4019,7 +4351,7 @@ class SecondOrderTaylorMap(BeamElement):
         twinit = tw.get_twiss_init(start)
         twinit_out = tw.get_twiss_init(end)
 
-        RR = line.compute_one_turn_matrix_finite_differences(
+        RR = line.compute_R_matrix(
             start=start, end=end, particle_on_co=twinit.particle_on_co
             )['R_matrix']
         TT = line.compute_T_matrix(start=start, end=end,

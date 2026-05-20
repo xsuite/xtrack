@@ -32,7 +32,7 @@ line.slice_thick_elements(
 line.build_tracker()
 line.configure_radiation('mean')
 
-tw_rad = line.twiss(eneloss_and_damping=True)
+tw_rad = line.twiss(radiation_analysis=True)
 
 import matplotlib.pyplot as plt
 plt.close('all')

@@ -151,7 +151,6 @@ class Footprint():
             x_norm=self.x_norm_2d.flatten(), y_norm=self.y_norm_2d.flatten(),
             nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y,
             zeta=zeta0, delta=delta0,
-            freeze_longitudinal=freeze_longitudinal,
             method={True: '4d', False: '6d'}[freeze_longitudinal]
             )
 

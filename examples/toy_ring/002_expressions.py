@@ -17,22 +17,22 @@ lbend = 3
 line = env.new_line(components=[
     env.new('mqf.1', xt.Quadrupole, length=0.3, k1='k1l.qf.1 / l.quad'),
     env.new('d1.1',  xt.Drift, length=1),
-    env.new('mb1.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb1.1', xt.Bend, length=lbend, angle=pi/2),
     env.new('d2.1',  xt.Drift, length=1),
 
     env.new('mqd.1', xt.Quadrupole, length=0.3, k1=0), # k1 will be set later
     env.new('d3.1',  xt.Drift, length=1),
-    env.new('mb2.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb2.1', xt.Bend, length=lbend, angle=pi/2),
     env.new('d4.1',  xt.Drift, length=1),
 
     env.new('mqf.2', xt.Quadrupole, length=0.3, k1='k1l.qf.2 / l.quad'),
     env.new('d1.2',  xt.Drift, length=1),
-    env.new('mb1.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb1.2', xt.Bend, length=lbend, angle=pi/2),
     env.new('d2.2',  xt.Drift, length=1),
 
     env.new('mqd.2', xt.Quadrupole, length=0.3, k1=0), # k1 will be set later
     env.new('d3.2',  xt.Drift, length=1),
-    env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb2.2', xt.Bend, length=lbend, angle=pi/2),
     env.new('d4.2',  xt.Drift, length=1),
 ])
 line.set_particle_ref('proton', p0c=1.2e9)
@@ -72,45 +72,49 @@ line['mqf.2'].k1 # is 0.666, i.e. 0.2 / lquad
 # between the variables. For example:
 line.info('k1l.qf.1')
 # prints:
-##  vars['k1l.qf.1']._get_value()
-#   vars['k1l.qf.1'] = 0.2
+# Info for vars['k1l.qf.1']
 #
-##  vars['k1l.qf.1']._expr
+# value: 0.2
+#
+# controlled by expr:
 #   vars['k1l.qf.1'] = vars['k1lf']
 #
-##  vars['k1l.qf.1']._expr._get_dependencies()
+# expr_dependencies:
 #   vars['k1lf'] = 0.2
 #
-##  vars['k1l.qf.1']._find_dependant_targets()
-#   element_refs['mqf.1'].k1
+# controlled_targets: None
 
 line.info('k1lf')
 # prints:
-##  vars['k1lf']._get_value()
+# Info for vars['k1lf']
+
+# value: 0.2
+
+# Not controlled by other entities.
+
+# controlled_targets:
+#    element_refs['mqf.1'].k1
+#    vars['a']
+#    vars['k1l.qf.2']
+#    element_refs['mqf.2'].k1
+#    vars['k1l.qf.1']
+
+# The .xdeps.info() method on a the reference associated to any attribute of
+# an element provides information on the expressions controlling the attribute.
+# For example:
+line.ref['mqf.1'].k1.xdeps.info()
+# Info for element_refs['mqf.1'].k1
+#
+# value: -1.6999999999999997
+#
+# controlled by expr:
+#   element_refs['mqf.1'].k1 = ((vars['k1lf'] * 2) + (vars['k1ld'] * 3))
+#
+# expr_dependencies:
+#   vars['k1ld'] = -0.7
 #   vars['k1lf'] = 0.2
 #
-##  vars['k1lf']._expr is None
-#
-##  vars['k1lf']._find_dependant_targets()
-#   vars['k1l.qf.2']
-#   element_refs['mqf.2'].k1
-#   vars['k1l.qf.1']
-#   element_refs['mqf.1'].k1
-
-# The `get_info()` method of an element provides information on attribute of
-# an element. For example:
-line['mqf.1'].get_info('k1')
-# prints:
-##  element_refs['mqf.1'].k1._get_value()
-#   element_refs['mqf.1'].k1 = 0.6666666666666667
-#
-##  element_refs['mqf.1'].k1._expr
-#   element_refs['mqf.1'].k1 = (vars['k1l.qf.1'] / 0.3)
-#
-##  element_refs['mqf.1'].k1._expr._get_dependencies()
-#   vars['k1l.qf.1'] = 0.2
-#
-##  element_refs['mqf.1'].k1 does not influence any target
+# controlled_targets: None
 
 # Expressions can include multiple variables and mathematical operations. For example
 line['a'] = '3 * sqrt(k1lf) + 2 * k1ld'
@@ -159,7 +163,7 @@ env['mqf.1'].k1 = env.ref['k1lf']*3+1
 env.ref_manager
 # establishes a relation between lhs and rhs if the rhs is an expression or
 # remove old relations and assign the value if the rhs is a value.
-env['mqf.1'].get_info("k1")
+env.ref['mqf.1'].k1.xdeps.expr
 # returns
 # element_refs['mqf.1'].k1 = ((vars['k1lf'] * 3) + 1)
 
@@ -172,14 +176,17 @@ env['mqf.1'].k1+=1
 # is equivalent to
 env['mqf.1'].k1=env['mqf.1'].k1+1
 # so the expression is deleted:
-env['mqf.1'].get_info("k1")
+env.ref['mqf.1'].k1.xdeps.info()
 # returns:
-# element_refs['mqf.1'].k1 = 3.6
-# element_refs['mqf.1'].k1._expr is None
-# while
+# Info for element_refs['mqf.1'].k1
+# value: 3.6
+# Not controlled by other entities.
+# controlled_targets: None
+
+# On the other hand
 env.ref['mqf.1'].k1=env.ref['k1lf']*2
 env.ref['mqf.1'].k1+=env.ref['k1ld']*3
 # is equivalent to
-# env.ref['mqf.1'].k1._expr + env.ref['k1ld']*3
+# env.ref['mqf.1'].k1.xdep.expr + env.ref['k1ld']*3
 # resulting in
 # element_refs['mqf.1'].k1 = ((vars['k1lf'] * 2) + (vars['k1ld'] * 3))

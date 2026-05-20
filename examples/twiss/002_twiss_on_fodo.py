@@ -12,7 +12,7 @@ q2 = xt.Multipole(knl=[0, -2e-2])
 line = xt.Line(
         elements=[
         xt.Drift(length=1),
-        xt.Cavity(frequency=400e6, voltage=1e6, lag=0),
+        xt.Cavity(frequency=400e6, voltage=1e6, phase=0),
         q1,
         xt.Drift(length=1),
         xt.Multipole(knl=[1e-2], hxl=1e-2),
@@ -37,8 +37,7 @@ for factor in factors:
     line.track(xt.Particles(p0c=6500e9, x=0.01, y=0.01),
                   num_turns=5000, turn_by_turn_monitor=True)
     mon = line.record_last_track
-    RR = line.compute_one_turn_matrix_finite_differences(
-                                               particle_on_co=line.particle_ref)
+    RR = line.compute_R_matrix(particle_on_co=line.particle_ref)
     ax1.semilogy(np.abs(mon.x.T), label=f'{factor}, {np.trace(RR["R_matrix"])}')
     ax2.semilogy(np.abs(mon.y.T), label=f'{factor}, {np.trace(RR["R_matrix"])}')
 

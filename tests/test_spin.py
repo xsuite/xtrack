@@ -454,7 +454,7 @@ def test_polarization_lep_base():
     # Make the tables the same length
     start, end = 'ip1', 'bemi.ql1a.l1'
     spin_bmad = spin_bmad.rows[start.upper():end.upper()]
-    tw = line.twiss4d(polarization=True).rows[start:end]
+    tw = line.twiss4d(polarization_analysis=True).rows[start:end]
 
     bmad_polarization_eq = spin_summary_bmad['Polarization Limit DK']
     bmad_pol_time_s = 60 * spin_summary_bmad['Polarization Time BKS (minutes, turns)'][0]
@@ -530,7 +530,7 @@ def test_polarization_lep_spin_bump():
     # Make the tables the same length
     start, end = 'ip1', 'bemi.ql1a.l1'
     spin_bmad = spin_bmad.rows[start.upper():end.upper()]
-    tw = line.twiss4d(polarization=True).rows[start:end]
+    tw = line.twiss4d(polarization_analysis=True).rows[start:end]
 
     bmad_polarization_eq = spin_summary_bmad['Polarization Limit DK']
     bmad_pol_time_s = 60 * spin_summary_bmad['Polarization Time BKS (minutes, turns)'][0]
@@ -606,7 +606,7 @@ def test_polarization_lep_sext_corr():
     # Make the tables the same length
     start, end = 'ip1', 'bemi.ql1a.l1'
     spin_bmad = spin_bmad.rows[start.upper():end.upper()]
-    tw = line.twiss4d(polarization=True).rows[start:end]
+    tw = line.twiss4d(polarization_analysis=True).rows[start:end]
 
     bmad_polarization_eq = spin_summary_bmad['Polarization Limit DK']
     bmad_pol_time_s = 60 * spin_summary_bmad['Polarization Time BKS (minutes, turns)'][0]
@@ -664,7 +664,7 @@ def test_polarization_lep_sext_corr():
     line['on_coupl_sol_bump.6'] = 0
     line['on_coupl_sol_bump.8'] = 0
 
-    tw = line.twiss4d(polarization=True)
+    tw = line.twiss4d(polarization_analysis=True)
     xo.assert_allclose(
         line.particle_ref.anomalous_magnetic_moment[0]*line.particle_ref.gamma0[0],
         103.45, rtol=0, atol=1e-9)

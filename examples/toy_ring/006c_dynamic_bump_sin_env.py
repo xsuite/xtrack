@@ -111,9 +111,9 @@ line.track(particles, num_turns=num_turns, with_progress=True)
 
 # Plot
 plt.figure(2, figsize=(6.4*0.8, 4.8*0.8))
-plt.plot(1e6 * monitor.at_turn.T * tw.T_rev0, 1e3 * monitor.x.T,
+plt.plot(1e6 * monitor.at_turn.T * tw.t_rev0, 1e3 * monitor.x.T,
          lw=1, color='r', alpha=0.05)
-plt.plot(1e6 * monitor.at_turn[0, :] * tw.T_rev0, 1e3 * monitor.x.mean(axis=0),
+plt.plot(1e6 * monitor.at_turn[0, :] * tw.t_rev0, 1e3 * monitor.x.mean(axis=0),
          lw=2, color='k')
 plt.xlabel('Time [us]')
 plt.ylabel('x [mm]')

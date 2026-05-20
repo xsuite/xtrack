@@ -10,6 +10,7 @@
 #define XTRACK_THICK_SLICE_SEXTUPOLE_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -27,6 +28,11 @@ void ThickSliceSextupole_track_local_particle(
         /*inv_factorial_order*/   ThickSliceSextupoleData_get__parent_inv_factorial_order(el),
         /*knl*/                   ThickSliceSextupoleData_getp1__parent_knl(el, 0),
         /*ksl*/                   ThickSliceSextupoleData_getp1__parent_ksl(el, 0),
+        /*order_rel*/             ThickSliceSextupoleData_len__parent_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(ThickSliceSextupoleData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               ThickSliceSextupoleData_getp1__parent_knl_rel(el, 0),
+        /*ksl_rel*/               ThickSliceSextupoleData_getp1__parent_ksl_rel(el, 0),
+        /*rel_ref_strength*/      ThickSliceSextupoleData_get__parent_length(el) * ((ThickSliceSextupoleData_get__parent_main_is_skew(el)) ? ThickSliceSextupoleData_get__parent_k2s(el) : ThickSliceSextupoleData_get__parent_k2(el)),
         /*num_multipole_kicks*/   ThickSliceSextupoleData_get__parent_num_multipole_kicks(el),
         /*model*/                 ThickSliceSextupoleData_get__parent_model(el),
         /*default_model*/         SEXTUPOLE_DEFAULT_MODEL,

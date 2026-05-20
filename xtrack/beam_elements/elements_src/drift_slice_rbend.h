@@ -2,37 +2,61 @@
 // Do not edit it directly.
 
 
-    // copyright ############################### //
-    // This file is part of the Xtrack Package.  //
-    // Copyright (c) CERN, 2023.                 //
-    // ######################################### //
+        // copyright ############################### //
+        // This file is part of the Xtrack Package.  //
+        // Copyright (c) CERN, 2023.                 //
+        // ######################################### //
 
-    #ifndef XTRACK_DRIFT_SLICE_RBEND_H
-    #define XTRACK_DRIFT_SLICE_RBEND_H
+        #ifndef XTRACK_DRIFT_SLICE_RBEND_H
+        #define XTRACK_DRIFT_SLICE_RBEND_H
 
-    #include "xtrack/headers/track.h"
-    #include "xtrack/beam_elements/elements_src/track_drift.h"
+        #include "xtrack/headers/track.h"
+        #include "xtrack/beam_elements/elements_src/track_drift.h"
 
 
-    GPUFUN
-    void DriftSliceRBend_track_local_particle(
-            DriftSliceRBendData el,
-            LocalParticle* part0
-    ) {
+        GPUFUN
+        void DriftSliceRBend_track_local_particle(
+                DriftSliceRBendData el,
+                LocalParticle* part0
+        ) {
 
-        double weight = DriftSliceRBendData_get_weight(el);
-        double length;
-        if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
-            length = -weight * DriftSliceRBendData_get__parent_length(el); // m
+            double weight = DriftSliceRBendData_get_weight(el);
+            int64_t rbend_model = DriftSliceRBendData_get__parent_rbend_model(el);
+            double full_length;
+            double length_drift;
+            double ds_corr = 0;
+            double full_length_curved = DriftSliceRBendData_get__parent_length(el);
+            if (rbend_model == 2) { // straight-body
+                double full_length_straight = DriftSliceRBendData_get__parent_length_straight(el);
+                length_drift = full_length_straight * weight;
+                ds_corr = (full_length_curved - full_length_straight) * weight;
+            }
+            else {
+                length_drift = full_length_curved * weight;
+            }
+
+
+            if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
+                length_drift *= -1;
+                ds_corr *= -1;
+            }
+
+            if (rbend_model == 2) { // straight-body
+                // Force exact drift
+                START_PER_PARTICLE_BLOCK(part0, part);
+                    Drift_single_particle_exact(part, length_drift);
+                END_PER_PARTICLE_BLOCK;
+                START_PER_PARTICLE_BLOCK(part0, part);
+                    LocalParticle_add_to_s(part, ds_corr);
+                    LocalParticle_add_to_zeta(part, ds_corr);
+                END_PER_PARTICLE_BLOCK;
+            }
+            else {
+                START_PER_PARTICLE_BLOCK(part0, part);
+                    Drift_single_particle(part, length_drift);
+                END_PER_PARTICLE_BLOCK;
+            }
         }
-        else {
-            length = weight * DriftSliceRBendData_get__parent_length(el); // m
-        }
 
-        START_PER_PARTICLE_BLOCK(part0, part);
-            Drift_single_particle(part, length);
-        END_PER_PARTICLE_BLOCK;
-    }
-
-    #endif
-    
+        #endif
+        

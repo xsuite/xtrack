@@ -405,7 +405,9 @@ void track_magnet_drift_single_particle(
     // drift_model = 3 : k0, k1, h expanded map (this is general for all possible values)
     // drift_model = 4 : bend with h (caller has ensured k1=0, h!=0)
     // drift_model = 5 : bend without h (caller has ensured k1=0, h=0)
-    // drift_model = -1 : no drift
+    // drift_model = 6 : solenoid (caller has ensured k0=0, k1=0, h=0, ks!=0)
+    // drift_model = 7 : bend (h!=0 + k0) modeled with with 4th order Yoshida
+    //                   integrator (rot-kick_from_k0-rot)
 
     if (drift_model == -1) {
         return;
@@ -435,6 +437,17 @@ void track_magnet_drift_single_particle(
             break;
         case 6:
             track_solenoid_single_particle(part, length, ks, x0_solenoid, y0_solenoid);
+            break;
+        case 7:
+            // 4th order Yoshida integrator for a curved bend (h and k0 only)
+            // (integrator coefficients from MAD-NG)
+            track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, -0.17560359597982889 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - (-1.7024143839193155) * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, -0.17560359597982889 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
             break;
         default:
             break;

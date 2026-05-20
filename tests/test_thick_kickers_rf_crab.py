@@ -1,3 +1,4 @@
+import contextlib
 import pathlib
 
 import numpy as np
@@ -1397,7 +1398,10 @@ def test_thick_cavity_cpymad_loader():
         ['Marker', 'Drift', 'Cavity', 'Drift', 'Marker', '']))
     xo.assert_allclose(tt.voltage, np.array(
         [      0.,       0., 3000000.,       0.,       0.,       0.]))
-    xo.assert_allclose(tt.lag, np.array([0., 0., 144., 0., 0., 0.]))
+    xo.assert_allclose(tt.lag, 0, rtol=0, atol=1e-14)
+    PI = np.pi
+    xo.assert_allclose(tt.phase,
+        np.array([0., 0., 2*PI*0.4, 0., 0., 0.]), rtol=0, atol=1e-14)
     xo.assert_allclose(tt.frequency, np.array(
         [0.e+00, 0.e+00, 4.e+08, 0.e+00, 0.e+00, 0.e+00]))
     assert np.all(tt.isthick == np.array(
@@ -1444,8 +1448,10 @@ def test_thick_cavity_cpymad_loader():
     xo.assert_allclose(tt_slice_thick.voltage, np.array([
             0.,       0.,       0., 1000000., 1000000., 1000000.,
             0.,       0.,       0.,       0.]))
-    xo.assert_allclose(tt_slice_thick.lag, np.array(
-        [0., 0., 0., 144., 144., 144., 0., 0., 0., 0.]))
+    xo.assert_allclose(tt_slice_thick.lag, 0, rtol=0, atol=1e-14)
+    xo.assert_allclose(tt_slice_thick.phase, np.array([
+        0., 0., 0., 2*PI*0.4, 2*PI*0.4, 2*PI*0.4, 0., 0., 0., 0.,
+    ]), rtol=0, atol=1e-14)
     xo.assert_allclose(tt_slice_thick.frequency, np.array([
         0.e+00, 0.e+00, 0.e+00, 4.e+08, 4.e+08, 4.e+08, 0.e+00, 0.e+00, 0.e+00, 0.e+00
     ]))
@@ -1502,9 +1508,11 @@ def test_thick_cavity_cpymad_loader():
         0.e+00, 0.e+00, 0.e+00, 0.e+00, 4.e+08, 0.e+00, 4.e+08, 0.e+00,
         4.e+08, 0.e+00, 0.e+00, 0.e+00, 0.e+00, 0.e+00
     ]))
-    xo.assert_allclose(tt_slice_thin.lag, np.array([
-        0., 0., 0., 0., 144., 0., 144., 0., 144., 0., 0., 0., 0., 0.
-    ]))
+    xo.assert_allclose(tt_slice_thin.lag, 0, rtol=0, atol=1e-14)
+    PI = np.pi
+    xo.assert_allclose(tt_slice_thin.phase, np.array([
+        0., 0., 0., 0., 2*PI*0.4, 0., 2*PI*0.4, 0., 2*PI*0.4, 0., 0., 0., 0., 0.
+    ]), rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thick.ptau[-1], tw_mad.pt[-1], rtol=0, atol=1e-14)
 
 def test_thick_cavity_native_loader():
@@ -1553,7 +1561,9 @@ def test_thick_cavity_native_loader():
         ['Drift', 'Cavity', 'Drift', '']))
     xo.assert_allclose(tt.voltage, np.array(
         [0., 3000000., 0., 0.]))
-    xo.assert_allclose(tt.lag, np.array([0., 144., 0., 0.]))
+    xo.assert_allclose(tt.lag, 0, rtol=0, atol=1e-14)
+    PI = np.pi
+    xo.assert_allclose(tt.phase, np.array([0., 2*PI*0.4, 0., 0.]), rtol=0, atol=1e-14)
     xo.assert_allclose(tt.frequency, np.array(
         [0.e+00, 4.e+08, 0.e+00, 0.e+00]))
     assert np.all(tt.isthick == np.array(
@@ -1596,8 +1606,11 @@ def test_thick_cavity_native_loader():
     xo.assert_allclose(tt_slice_thick.voltage, np.array([
         0., 0., 1000000., 1000000., 1000000., 0., 0., 0.
     ]))
-    xo.assert_allclose(tt_slice_thick.lag, np.array(
-        [0., 0., 144., 144., 144., 0., 0., 0.]))
+    xo.assert_allclose(tt_slice_thick.lag, 0, rtol=0, atol=1e-14)
+    PI = np.pi
+    xo.assert_allclose(tt_slice_thick.phase, np.array([
+        0., 0., 2*PI*0.4, 2*PI*0.4, 2*PI*0.4, 0., 0., 0.,
+    ]), rtol=0, atol=1e-14)
     xo.assert_allclose(tt_slice_thick.frequency, np.array([
         0.e+00, 0.e+00, 4.e+08, 4.e+08, 4.e+08, 0.e+00, 0.e+00, 0.e+00
     ]))
@@ -1649,9 +1662,11 @@ def test_thick_cavity_native_loader():
         0.e+00, 0.e+00, 0.e+00, 4.e+08, 0.e+00, 4.e+08, 0.e+00,
         4.e+08, 0.e+00, 0.e+00, 0.e+00, 0.e+00
     ]))
-    xo.assert_allclose(tt_slice_thin.lag, np.array([
-        0., 0., 0., 144., 0., 144., 0., 144., 0., 0., 0., 0.
-    ]))
+    xo.assert_allclose(tt_slice_thin.lag, 0, rtol=0, atol=1e-14)
+    PI = np.pi
+    xo.assert_allclose(tt_slice_thin.phase, np.array([
+        0., 0., 0., 2*PI*0.4, 0., 2*PI*0.4, 0., 2*PI*0.4, 0., 0., 0., 0.,
+    ]), rtol=0, atol=1e-14)
     xo.assert_allclose(tw_slice_thin.ptau[-1], tw_mad.pt[-1], rtol=0, atol=1e-14)
 
     line_opt = line_slice_thin.copy(shallow=True)
@@ -2016,135 +2031,140 @@ def test_crabcavity_thick_native_loader():
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
-def test_crab_dispersion_hlllhc_b1_and_b2():
+def test_crab_dispersion_hlllhc_b1_and_b2(tmp_path):
 
-    mad = Madx()
+    with contextlib.chdir(tmp_path):
+        mad = Madx()
 
-    mad.input(f"""
-    call,file="{str(test_data_folder)}/hllhc15_thick/lhc.seq";
-    call,file="{str(test_data_folder)}/hllhc15_thick/hllhc_sequence.madx";
-    call,file="{str(test_data_folder)}/hllhc15_thick/macro.madx";
-    call,file="{str(test_data_folder)}/hllhc15_thick/enable_crabcavities.madx";
-    call,file="{str(test_data_folder)}/hllhc15_thick/opt_round_150_1500.madx";
+        mad.input(f"""
+        call,file="{str(test_data_folder)}/hllhc15_thick/lhc.seq";
+        call,file="{str(test_data_folder)}/hllhc15_thick/hllhc_sequence.madx";
+        call,file="{str(test_data_folder)}/hllhc15_thick/macro.madx";
+        call,file="{str(test_data_folder)}/hllhc15_thick/enable_crabcavities.madx";
+        call,file="{str(test_data_folder)}/hllhc15_thick/opt_round_150_1500.madx";
 
-    seqedit,sequence=lhcb1;flatten;cycle,start=IP3;flatten;endedit;
-    seqedit,sequence=lhcb2;flatten;cycle,start=IP3;flatten;endedit;
+        seqedit,sequence=lhcb1;flatten;cycle,start=IP3;flatten;endedit;
+        seqedit,sequence=lhcb2;flatten;cycle,start=IP3;flatten;endedit;
 
-    exec,mk_beam(7000);
-    call,file="{str(test_data_folder)}/hllhc15_thick/opt_round_150_1500.madx";
-    exec,check_ip(b1);
-    exec,check_ip(b2);
-    """)
+        exec,mk_beam(7000);
+        call,file="{str(test_data_folder)}/hllhc15_thick/opt_round_150_1500.madx";
+        exec,check_ip(b1);
+        exec,check_ip(b2);
+        """)
 
-    mad.input('''
-    on_crab1 = -190;
-    on_crab5 = -190;
-    on_x1 = 0;
-    on_x5 = 0;
-    on_disp = 0;
-    vrf400 = 0;
-    lagrf400.b1' = 0.5;
-    lagrf400.b2' = 0.;
+        saved_b1b2 = tmp_path / "saved_b1b2.madx"
 
-    use, sequence=lhcb1;
-    use, sequence=lhcb2;
+        mad.input(f'''
+        on_crab1 = -190;
+        on_crab5 = -190;
+        on_x1 = 0;
+        on_x5 = 0;
+        on_disp = 0;
+        vrf400 = 0;
+        lagrf400.b1' = 0.5;
+        lagrf400.b2' = 0.;
 
-    save, sequence=lhcb1,lhcb2, file="saved_b1b2.madx";
+        use, sequence=lhcb1;
+        use, sequence=lhcb2;
 
-    ''')
+        save, sequence=lhcb1,lhcb2, file="{saved_b1b2}";
 
-    mad.use('lhcb1')
-    tw_b1 = xt.Table(mad.twiss(), _copy_cols=True)
-    tw_b1_t_plus = xt.Table(mad.twiss(t=1e-4), _copy_cols=True)
-    tw_b1t_minus = xt.Table(mad.twiss(t=-1e-4), _copy_cols=True)
+        ''')
 
-    tw_b1['dx_dz'] = (tw_b1_t_plus['x'] - tw_b1t_minus['x'])/(tw_b1_t_plus['t'] - tw_b1t_minus['t'])
-    tw_b1['dy_dz'] = (tw_b1_t_plus['y'] - tw_b1t_minus['y'])/(tw_b1_t_plus['t'] - tw_b1t_minus['t'])
+        mad.use('lhcb1')
+        tw_b1 = xt.Table(mad.twiss(), _copy_cols=True)
+        tw_b1_t_plus = xt.Table(mad.twiss(t=1e-4), _copy_cols=True)
+        tw_b1t_minus = xt.Table(mad.twiss(t=-1e-4), _copy_cols=True)
 
-    mad.use('lhcb2')
-    tw_b2 = xt.Table(mad.twiss(), _copy_cols=True)
-    tw_b2_t_plus = xt.Table(mad.twiss(t=1e-4), _copy_cols=True)
-    tw_b2t_minus = xt.Table(mad.twiss(t=-1e-4), _copy_cols=True)
+        tw_b1['dx_dz'] = (tw_b1_t_plus['x'] - tw_b1t_minus['x'])/(tw_b1_t_plus['t'] - tw_b1t_minus['t'])
+        tw_b1['dy_dz'] = (tw_b1_t_plus['y'] - tw_b1t_minus['y'])/(tw_b1_t_plus['t'] - tw_b1t_minus['t'])
 
-    tw_b2['dx_dz'] = (tw_b2_t_plus['x'] - tw_b2t_minus['x'])/(tw_b2_t_plus['t'] - tw_b2t_minus['t'])
-    tw_b2['dy_dz'] = (tw_b2_t_plus['y'] - tw_b2t_minus['y'])/(tw_b2_t_plus['t'] - tw_b2t_minus['t'])
+        mad.use('lhcb2')
+        tw_b2 = xt.Table(mad.twiss(), _copy_cols=True)
+        tw_b2_t_plus = xt.Table(mad.twiss(t=1e-4), _copy_cols=True)
+        tw_b2t_minus = xt.Table(mad.twiss(t=-1e-4), _copy_cols=True)
 
-    print('IP1 - MADX - has known issues on B2!!!')
-    print(f'B1 - dx_dz: {tw_b1["dx_dz", "ip1:1"]}')
-    print(f'B2 - dx_dz: {tw_b2["dx_dz", "ip1:1"]}')
-    print('IP5 - MADX - has known issues on B2!!!')
-    print(f'B1 - dy_dz: {tw_b1["dy_dz", "ip5:1"]}')
-    print(f'B2 - dy_dz: {tw_b2["dy_dz", "ip5:1"]}')
+        tw_b2['dx_dz'] = (tw_b2_t_plus['x'] - tw_b2t_minus['x'])/(tw_b2_t_plus['t'] - tw_b2t_minus['t'])
+        tw_b2['dy_dz'] = (tw_b2_t_plus['y'] - tw_b2t_minus['y'])/(tw_b2_t_plus['t'] - tw_b2t_minus['t'])
 
-    line_b1 = xt.Line.from_madx_sequence(mad.sequence['lhcb1'], deferred_expressions=True)
-    line_b4 = xt.Line.from_madx_sequence(mad.sequence['lhcb2'], deferred_expressions=True)
+        print('IP1 - MADX - has known issues on B2!!!')
+        print(f'B1 - dx_dz: {tw_b1["dx_dz", "ip1:1"]}')
+        print(f'B2 - dx_dz: {tw_b2["dx_dz", "ip1:1"]}')
+        print('IP5 - MADX - has known issues on B2!!!')
+        print(f'B1 - dy_dz: {tw_b1["dy_dz", "ip5:1"]}')
+        print(f'B2 - dy_dz: {tw_b2["dy_dz", "ip5:1"]}')
 
-    line_b1.particle_ref = xt.Particles(p0c=7e12)
-    line_b4.particle_ref = xt.Particles(p0c=7e12)
+        line_b1 = xt.Line.from_madx_sequence(mad.sequence['lhcb1'], deferred_expressions=True)
+        line_b4 = xt.Line.from_madx_sequence(mad.sequence['lhcb2'], deferred_expressions=True)
 
-    tw_xs_b1 = line_b1.twiss4d()
-    tw_xs_b4 = line_b4.twiss4d()
-    tw_xs_b2 = tw_xs_b4.reverse()
+        line_b1.particle_ref = xt.Particles(p0c=7e12)
+        line_b4.particle_ref = xt.Particles(p0c=7e12)
 
-    print('IP1 - Xsuite')
-    print(f'B1 - dx_zeta: {tw_xs_b1["dx_zeta", "ip1"]}')
-    print(f'B2 - dx_zeta: {tw_xs_b2["dx_zeta", "ip1"]}')
-    print(f'B4 - dx_zeta: {tw_xs_b4["dx_zeta", "ip1"]}')
+        tw_xs_b1 = line_b1.twiss4d()
+        tw_xs_b4 = line_b4.twiss4d()
+        tw_xs_b2 = tw_xs_b4.reverse()
 
-    print('IP5 - Xsuite')
-    print(f'B1 - dy_zeta: {tw_xs_b1["dy_zeta", "ip5"]}')
-    print(f'B2 - dy_zeta: {tw_xs_b2["dy_zeta", "ip5"]}')
-    print(f'B4 - dy_zeta: {tw_xs_b4["dy_zeta", "ip5"]}')
+        print('IP1 - Xsuite')
+        print(f'B1 - dx_zeta: {tw_xs_b1["dx_zeta", "ip1"]}')
+        print(f'B2 - dx_zeta: {tw_xs_b2["dx_zeta", "ip1"]}')
+        print(f'B4 - dx_zeta: {tw_xs_b4["dx_zeta", "ip1"]}')
 
-    mad_b4 = Madx()
-    mad_b4.input(f"""
-    mylhcbeam=4;
-    call,file="{str(test_data_folder)}/hllhc15_thick/lhcb4.seq";
-    call,file="{str(test_data_folder)}/hllhc15_thick/hllhc_sequence.madx";
-    call,file="{str(test_data_folder)}/hllhc15_thick/macro.madx";
-    call,file="{str(test_data_folder)}/hllhc15_thick/enable_crabcavities.madx";
-    call,file="{str(test_data_folder)}/hllhc15_thick/opt_round_150_1500.madx";
+        print('IP5 - Xsuite')
+        print(f'B1 - dy_zeta: {tw_xs_b1["dy_zeta", "ip5"]}')
+        print(f'B2 - dy_zeta: {tw_xs_b2["dy_zeta", "ip5"]}')
+        print(f'B4 - dy_zeta: {tw_xs_b4["dy_zeta", "ip5"]}')
 
-    seqedit,sequence=lhcb2;flatten;cycle,start=IP3;flatten;endedit;
+        mad_b4 = Madx()
+        mad_b4.input(f"""
+        mylhcbeam=4;
+        call,file="{str(test_data_folder)}/hllhc15_thick/lhcb4.seq";
+        call,file="{str(test_data_folder)}/hllhc15_thick/hllhc_sequence.madx";
+        call,file="{str(test_data_folder)}/hllhc15_thick/macro.madx";
+        call,file="{str(test_data_folder)}/hllhc15_thick/enable_crabcavities.madx";
+        call,file="{str(test_data_folder)}/hllhc15_thick/opt_round_150_1500.madx";
 
-    exec,mk_beam(7000);
-    call,file="{str(test_data_folder)}/hllhc15_thick/opt_round_150_1500.madx";
-    exec,check_ip(b2);
-    """)
+        seqedit,sequence=lhcb2;flatten;cycle,start=IP3;flatten;endedit;
 
-    mad_b4.input('''
-    on_crab1 = -190;
-    on_crab5 = -190;
-    on_x1 = 0;
-    on_x5 = 0;
-    on_disp = 0;
-    vrf400 = 0;
-    lagrf400.b1' = 0.5;
-    lagrf400.b2' = 0.;
+        exec,mk_beam(7000);
+        call,file="{str(test_data_folder)}/hllhc15_thick/opt_round_150_1500.madx";
+        exec,check_ip(b2);
+        """)
 
-    use, sequence=lhcb2;
+        saved_b4 = tmp_path / "saved_b4.madx"
 
-    save, sequence=lhcb2, file="saved_b4.madx";
+        mad_b4.input(f'''
+        on_crab1 = -190;
+        on_crab5 = -190;
+        on_x1 = 0;
+        on_x5 = 0;
+        on_disp = 0;
+        vrf400 = 0;
+        lagrf400.b1' = 0.5;
+        lagrf400.b2' = 0.;
 
-    ''')
+        use, sequence=lhcb2;
 
-    line_b4_mad = xt.Line.from_madx_sequence(mad_b4.sequence['lhcb2'], deferred_expressions=True)
-    line_b4_mad.particle_ref = xt.Particles(p0c=7e12)
+        save, sequence=lhcb2, file="{saved_b4}";
 
-    tw_b4_mad = line_b4_mad.twiss4d()
-    tw_b2_mad = tw_b4_mad.reverse()
+        ''')
 
-    env_b1b2 = xt.load("saved_b1b2.madx")
-    env_b1b2.lhcb1.particle_ref = xt.Particles(p0c=7e12)
-    env_b1b2.lhcb2.particle_ref = xt.Particles(p0c=7e12)
-    tw_b1_b1b2 = env_b1b2.lhcb1.twiss4d()
-    tw_b2_b1b2 = env_b1b2.lhcb2.twiss4d()
-    tw_b4_b1b2 = tw_b2_b1b2.reverse()
+        line_b4_mad = xt.Line.from_madx_sequence(mad_b4.sequence['lhcb2'], deferred_expressions=True)
+        line_b4_mad.particle_ref = xt.Particles(p0c=7e12)
 
-    env_b4 = xt.load("saved_b4.madx")
-    env_b4.lhcb2.particle_ref = xt.Particles(p0c=7e12)
-    tw_b4_b4 = env_b4.lhcb2.twiss4d()
-    tw_b2_b4 = tw_b4_b4.reverse()
+        tw_b4_mad = line_b4_mad.twiss4d()
+        tw_b2_mad = tw_b4_mad.reverse()
+
+        env_b1b2 = xt.load(saved_b1b2)
+        env_b1b2.lhcb1.particle_ref = xt.Particles(p0c=7e12)
+        env_b1b2.lhcb2.particle_ref = xt.Particles(p0c=7e12)
+        tw_b1_b1b2 = env_b1b2.lhcb1.twiss4d()
+        tw_b2_b1b2 = env_b1b2.lhcb2.twiss4d()
+        tw_b4_b1b2 = tw_b2_b1b2.reverse()
+
+        env_b4 = xt.load(saved_b4)
+        env_b4.lhcb2.particle_ref = xt.Particles(p0c=7e12)
+        tw_b4_b4 = env_b4.lhcb2.twiss4d()
+        tw_b2_b4 = tw_b4_b4.reverse()
 
     xo.assert_allclose(tw_xs_b1["dx_zeta", "ip1"], -190e-6, rtol=3e-3)
     xo.assert_allclose(tw_b1_b1b2["dx_zeta", "ip1"], -190e-6, rtol=3e-3)

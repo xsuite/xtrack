@@ -17,10 +17,12 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0)
         /*length*/                CavityData_get_length(el),
         /*voltage*/               CavityData_get_voltage(el),
         /*frequency*/             CavityData_get_frequency(el),
-        /*lag*/                   CavityData_get_lag(el),
         /*harmonic*/              CavityData_get_harmonic(el),
+        /*lag*/                   CavityData_get_lag(el),
+        /*phase*/                 CavityData_get_phase(el),
         /*transverse_voltage*/    0.,
         /*transverse_lag*/        0.,
+        /*transverse_phase*/      0.,
         /*absolute_time*/         CavityData_get_absolute_time(el),
         /*order*/                 -1, // not used here
         /*knl*/                   NULL,
@@ -35,6 +37,7 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0)
         /*radiation_flag*/        0, // not used here
         /*radiation_flag_parent*/ 0, // not used here
         /*lag_taper*/             CavityData_get_lag_taper(el),
+        /*phase_taper*/           CavityData_get_phase_taper(el),
         /*body_active*/           1,
         /*edge_entry_active*/     0, // not used here
         /*edge_exit_active*/      0  // not used here

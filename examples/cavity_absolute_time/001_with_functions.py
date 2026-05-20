@@ -19,11 +19,11 @@ tw = line.twiss()
 
 df_hz = -50
 h_rf = 35640
-f_rev = 1/tw.T_rev0
+f_rev = 1/tw.t_rev0
 df_rev = df_hz / h_rf
 eta = tw.slip_factor
 
-f_rf0 = 1/tw.T_rev0 * h_rf
+f_rf0 = 1/tw.t_rev0 * h_rf
 
 f_rf = f_rf0 + df_hz
 line.vars['f_rf'] = f_rf
@@ -37,7 +37,7 @@ tw1 = line.twiss(search_for_t_rev=True)
 
 f_rev_expected = f_rf / h_rf
 
-assert np.isclose(f_rev_expected, 1/tw1.T_rev, atol=1e-5, rtol=0)
+assert np.isclose(f_rev_expected, 1/tw1.t_rev, atol=1e-5, rtol=0)
 assert np.allclose(tw1.delta, tw1.delta[0], atol=1e-5, rtol=0) # Check that it is flat
 delta_expected = -df_rev / f_rev / eta
 assert np.allclose(tw1.delta, delta_expected, atol=2e-6, rtol=0)

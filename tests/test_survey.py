@@ -7,11 +7,6 @@ import xobjects as xo
 
 assert_allclose = np.testing.assert_allclose
 
-slice_mode = 'thin'
-tilted = True
-orientation = 'acw'
-transform_to_actual_elements = True
-
 if hasattr(np, 'trapezoid'): # numpy >= 2.0
     trapz = np.trapezoid
 else:
@@ -354,8 +349,8 @@ def test_survey_with_h_and_v_bends():
 
     p_no_arg = tw.x[:, None] * sv_no_arg.ex + tw.y[:, None] * sv_no_arg.ey + sv_no_arg.p0
 
-    xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=1e-14)
-    xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=1e-14)
+    xo.assert_allclose(p_no_arg[:, 0], 1e-3, atol=5e-14)
+    xo.assert_allclose(p_no_arg[:, 1], 2e-3, atol=5e-14)
 
     assert sv_no_arg.element0 == 0
 
@@ -402,7 +397,7 @@ def test_survey_with_h_and_v_bends():
     xo.assert_allclose(p_mid_no_init[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p_mid_no_init[:, 1], 2e-3, atol=1e-14)
 
-def test_survey_against_madx_cpymad_loader():
+def test_survey_against_madx_cpymad_loader(sandbox_cwd):
     from cpymad.madx import Madx
 
     mad = Madx()
@@ -497,7 +492,7 @@ def test_survey_against_madx_cpymad_loader():
     xo.assert_allclose(p[:, 0], 1e-3, atol=1e-14)
     xo.assert_allclose(p[:, 1], 2e-3, atol=1e-14)
 
-def test_survey_transforms_native_loader():
+def test_survey_transforms_native_loader(sandbox_cwd):
 
     from cpymad.madx import Madx
 

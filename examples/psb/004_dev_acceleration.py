@@ -47,7 +47,7 @@ for ii in range(len(t_s)):
     print(f'Computing twiss at t_s = {t_s[ii]:.4} s    ', end='\r', flush=True)
     line['t_turn_s'] = t_s[ii]
     tt = line.twiss(method='6d')
-    t_rev.append(tt.T_rev0)
+    t_rev.append(tt.t_rev0)
     qs.append(tt.qs)
     zeta_co.append(tt.zeta[0])
     beta0 = tt.beta0
@@ -60,12 +60,12 @@ zeta_co = np.array(zeta_co)
 beta0 = np.array(beta0)
 
 f1 = 1/t_rev
-phis_1_deg = 2 * np.pi * f1 * zeta_co / beta0 / clight * 360 / 2 / np.pi
+phis_1_rad = 2 * np.pi * f1 * zeta_co / beta0 / clight
 
-line.functions['fun_phi1'] = xd.FunctionPieceWiseLinear(x=t_s, y=-phis_1_deg)
-line.ref['phi1_deg'] = line.functions['fun_phi1'](line.ref['t_turn_s'])
+line.functions['fun_phi1'] = xd.FunctionPieceWiseLinear(x=t_s, y=-phis_1_rad)
+line.ref['phi1_rad'] = line.functions['fun_phi1'](line.ref['t_turn_s'])
 
-line['br1.acwf7l1.1'].lag = 'phi1_deg'
+line['br1.acwf7l1.1'].phase = 'phi1_rad'
 
 tw = line.twiss()
 

@@ -30,6 +30,14 @@ class MultiSetter(xo.HybridClass):
                 xo.Arg(xo.Int64, pointer=True, name='out'),
             ],
         ),
+        'get_values_at_offsets_int32': xo.Kernel(
+            c_name='get_values_at_offsets_int32',
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Int32, pointer=True, name='out'),
+            ],
+        ),
         'set_values_at_offsets_float64': xo.Kernel(
             c_name='set_values_at_offsets_float64',
             args=[
@@ -46,9 +54,18 @@ class MultiSetter(xo.HybridClass):
                 xo.Arg(xo.Int64, pointer=True, name='input'),
             ],
         ),
+        'set_values_at_offsets_int32': xo.Kernel(
+            c_name='set_values_at_offsets_int32',
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Int32, pointer=True, name='input'),
+            ],
+        ),
     }
 
-    def __init__(self, line, elements, field, index=None):
+    def __init__(self, line, elements, field, index=None, dtype=np.float64,
+                skip_inconsistent_type_check=False):
         """Create object to efficiently set and get values of a specific field of
         several elements of a line.
 
@@ -97,17 +114,19 @@ class MultiSetter(xo.HybridClass):
         dd = getattr(inner_obj.copy(_context=xo.context_default)._xobject, inner_name)
         if index is not None:
             dd = dd[index]
-        self.dtype = type(dd)
+        self.dtype = type(dd) if dtype is None else dtype
         self.xodtype = {
             np.float64: xo.Float64,
             np.int64: xo.Int64,
+            np.int32: xo.Int32,
         }[self.dtype]
 
-        assert self.dtype in [np.float64, np.int64], (
-            'Only float64 and int64 are supported for now')
+        assert self.dtype in [np.float64, np.int64, np.int32], (
+            'Only float64, int64, and int32 are supported for now')
 
-        assert np.all([line[nn]._buffer is tracker_buffer for nn in elements])
-        offsets = [_extract_offset(line[nn], field, index, self.dtype, self.xodtype)
+        assert np.all([line.get(nn)._buffer is tracker_buffer for nn in elements])
+        offsets = [_extract_offset(line.get(nn), field, index, self.dtype, self.xodtype,
+                                   skip_inconsistent_type_check=skip_inconsistent_type_check)
                    for nn in elements]
 
         self.xoinitialize(_context=context, offsets=offsets)
@@ -120,11 +139,13 @@ class MultiSetter(xo.HybridClass):
         self._get_kernel = {
             np.float64: self._context.kernels.get_values_at_offsets_float64,
             np.int64: self._context.kernels.get_values_at_offsets_int64,
+            np.int32: self._context.kernels.get_values_at_offsets_int32,
         }[self.dtype]
 
         self._set_kernel = {
             np.float64: self._context.kernels.set_values_at_offsets_float64,
             np.int64: self._context.kernels.set_values_at_offsets_int64,
+            np.int32: self._context.kernels.set_values_at_offsets_int32,
         }[self.dtype]
 
     def get_values(self):
@@ -153,7 +174,7 @@ class MultiSetter(xo.HybridClass):
                input=xt.BeamElement._arr2ctx(self, values))
 
 
-def _extract_offset(obj, field_name, index, dtype, xodtype):
+def _extract_offset(obj, field_name, index, dtype, xodtype, skip_inconsistent_type_check=False):
 
     if isinstance(field_name, (list, tuple)):
         inner_obj = obj
@@ -165,10 +186,19 @@ def _extract_offset(obj, field_name, index, dtype, xodtype):
         inner_name = field_name
 
     if index is None:
-        assert isinstance(getattr(inner_obj._xobject, inner_name), dtype), (
-            "Inconsistent types")
+        inconsistent_type = not isinstance(getattr(inner_obj._xobject, inner_name), dtype)
+        if inconsistent_type:
+            if skip_inconsistent_type_check:
+                return -1
+            else:
+                assert not inconsistent_type, "Inconsistent types"
         return inner_obj._xobject._get_offset(inner_name)
     else:
-        assert getattr(inner_obj._xobject, inner_name)._itemtype is xodtype, (
-            "Inconsistent types")
-        return getattr(inner_obj._xobject, inner_name)._get_offset(index)
+        obj = getattr(inner_obj._xobject, inner_name)
+        inconsistent_type = not hasattr(obj, "_itemtype") or obj._itemtype is not xodtype
+        if inconsistent_type:
+            if skip_inconsistent_type_check:
+                return -1
+            else:
+                assert not inconsistent_type, "Inconsistent types"
+        return obj._get_offset(index)

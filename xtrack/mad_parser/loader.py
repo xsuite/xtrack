@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict, Optional, List, Set, Tuple, Union
 
 import numpy as np
@@ -59,8 +60,12 @@ _APERTURE_TYPES = {
 }
 
 
+class MADLoaderWarning(UserWarning):
+    pass
+
+
 def _warn(msg):
-    print(f'Warning: {msg}')
+    warnings.warn(msg, MADLoaderWarning)
 
 
 def get_params(params, parent):
@@ -92,20 +97,22 @@ class MadxLoader:
             self,
             env: xt.Environment = None,
             default_to_zero: bool = False,
+            install_limits: bool = True,
             s_tol: float = 1e-9,
             _rbend_correct_k0: bool = False,
     ):
+        self.env = env or xt.Environment()
+        self.install_limits = install_limits
+        self.s_tol = s_tol
+        self.builders = {}
+
         self._madx_elem_hierarchy: Dict[str, List[str]] = {}
         self._both_direction_elements: Set[str] = set()
         self._builtin_types = set()
         self._parameter_cache = {}
-
-        self.env = env or xt.Environment()
-        self.env.default_to_zero = default_to_zero
-        self.builders = {}
-        self.s_tol = s_tol
         self._rbend_correct_k0 = _rbend_correct_k0
 
+        self.env.default_to_zero = default_to_zero
         self._init_environment()
 
     def _init_environment(self):
@@ -231,15 +238,17 @@ class MadxLoader:
                 elif refer == 'exit':
                     refer = 'end'
                 length = params.get('l', None)
-                builder = self.env.new_line(name=name, refer=refer,
-                                               length=length,
-                                               s_tol=self.s_tol,
-                                               compose=True)
+                builder = self.env.new_line(
+                    name=name,
+                    refer=refer,
+                    length=length,
+                    s_tol=self.s_tol,
+                    compose=True,
+                )
                 self._parse_components(builder, params.pop('elements'))
             elif line_type == 'line':
                 components = self._parse_line_components(params.pop('elements'))
-                builder = self.env.new_line(name=name, components=components,
-                                            compose=True)
+                builder = self.env.new_line(name=name, components=components, compose=True)
             else:
                 raise ValueError(
                     f'Only a MAD-X sequence or a line type can be used to build'
@@ -294,7 +303,10 @@ class MadxLoader:
             elif parent is None:
                 # If it's a reference to a single element, we multiply it and
                 # add it. Reversal will not affect it.
-                components += body.get('_repeat', 1) * [name]
+                element = [name]
+                if self.install_limits and (aper_name := self.env[name].name_associated_aperture):
+                    element.insert(0, aper_name)
+                components += repeat * element
             else:
                 raise ValueError('Only an element reference or a line is accepted')
 
@@ -322,7 +334,7 @@ class MadxLoader:
 
         el_params = self._convert_element_params(name, kwargs)
 
-        if aperture and 'at' in el_params:  # placing mode
+        if aperture and self.install_limits and 'at' in el_params:  # placing mode
             builder.place(aperture, at=0, from_=f'{name}@start')
 
         if should_clone:
@@ -331,7 +343,7 @@ class MadxLoader:
             # If parent is None, we must be in a sequence, and so we are
             # placing the element: in MAD-X this requires an `at` param, but
             # we can be a bit more lax, as Xsuite will automatically place the
-            # element after the previous one if there is not `at`.
+            # element after the previous one if there is no `at`.
             self._place_element(name, el_params, builder)
 
         if aperture:
@@ -431,7 +443,7 @@ class MadxLoader:
 
         elif parent_name in {'rfcavity', 'crabcavity'}:
             if (lag := params.pop('lag', None)):
-                params['lag'] = lag * 360
+                params['phase'] = lag * self.env.vars['pi'] * 2
             if (volt := params.pop('volt', None)):
                 if parent_name == 'crabcavity':
                     params['crab_voltage'] = volt * 1e6
@@ -618,6 +630,10 @@ class MadxLoader:
             if (aper_vy := params.pop('aper_vy', None)):
                 aper_params['y_vertices'] = aper_vy
 
+        if not force and aper_name in self.env:
+            _warn(f'Aperture `{aper_name}` redefinition ignored for compatibility with MAD-X.')
+            return aper_name
+
         return self.env.new(aper_name, _APERTURE_TYPES[apertype], force=force,
                             **aper_params)
 
@@ -662,7 +678,7 @@ class MadxLoader:
 
 
 def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
-                      _rbend_correct_k0=False, end_compose=True) -> xt.Environment:
+                      _rbend_correct_k0=False, end_compose=True, **kwargs) -> xt.Environment:
 
     if file is not None and string is not None:
         raise ValueError('Only one of `file` or `string` can be provided!')
@@ -670,7 +686,7 @@ def load_madx_lattice(file=None, string=None, reverse_lines=None, s_tol=1e-6,
     if file is None and string is None:
         raise ValueError('Either `file` or `string` must be provided!')
 
-    loader = MadxLoader(s_tol=s_tol, _rbend_correct_k0=_rbend_correct_k0)
+    loader = MadxLoader(s_tol=s_tol, _rbend_correct_k0=_rbend_correct_k0, **kwargs)
 
     if file is not None:
         if not isinstance(file, (tuple, list)):

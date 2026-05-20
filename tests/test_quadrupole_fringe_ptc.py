@@ -4,7 +4,7 @@ import xtrack as xt
 import numpy as np
 from cpymad.madx import Madx
 
-def test_quadrupole_fringe_ptc():
+def test_quadrupole_fringe_ptc(sandbox_cwd):
     b2 = 100
     b1 = 0
     length=1e-20
@@ -31,7 +31,7 @@ def test_quadrupole_fringe_ptc():
     line.build_tracker()
     line.track(p0)
 
-    mat = line.compute_one_turn_matrix_finite_differences(p0)['R_matrix']
+    mat = line.compute_R_matrix(p0)['R_matrix']
     det = np.linalg.det(mat)
 
     assert np.isclose(det, 1.0)

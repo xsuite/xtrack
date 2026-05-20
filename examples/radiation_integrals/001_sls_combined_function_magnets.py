@@ -13,10 +13,10 @@ line.configure_bend_model(num_multipole_kicks=20)
 
 line['vrf'] = 1.8e6
 line['frf'] = 499.6e6
-line['lagrf'] = 180.
+line['phaserf'] = np.pi
 
 line.insert(
-    env.new('cav', 'Cavity', voltage='vrf', frequency='frf', lag='lagrf', at=0))
+    env.new('cav', 'Cavity', voltage='vrf', frequency='frf', phase='phaserf', at=0))
 
 tt = line.get_table()
 tw4d_thick = line.twiss4d()
@@ -37,7 +37,7 @@ tw6d = line.twiss()
 
 line.configure_radiation(model='mean')
 
-tw_rad = line.twiss(eneloss_and_damping=True, strengths=True)
+tw_rad = line.twiss(radiation_analysis=True, strengths=True)
 
 tw_integrals = line.twiss(radiation_integrals=True)
 

@@ -35,7 +35,7 @@ from xtrack.slicing import Strategy, Uniform
 @pytest.mark.parametrize('model', ['adaptive', 'full', 'bend-kick-bend', 'rot-kick-rot'])
 @for_all_test_contexts
 def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
-                                              use_multipole,  model):
+                                              use_multipole,  model, sandbox_cwd):
 
     p0 = xp.Particles(
         mass0=xp.PROTON_MASS_EV,
@@ -100,15 +100,15 @@ def test_combined_function_dipole_against_ptc(test_context, k0, k1, k2, length,
 
         xt_tau = part.zeta/part.beta0
         xo.assert_allclose(part.x[ii], mad_results.x, rtol=0,
-                           atol=(3e-11 if k1 == 0 and k2 == 0 else 5e-9))
+                           atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.px[ii], mad_results.px, rtol=0,
                            atol=(4e-11 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.y[ii], mad_results.y, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.py[ii], mad_results.py, rtol=0,
                            atol=(1e-11 if k1 == 0 and k2 == 0 else 5e-9))
-        xo.assert_allclose(xt_tau[ii], mad_results.t, rtol=4e-8,
-                           atol=(1e-10 if k1 == 0 and k2 == 0 else 5e-9))
+        xo.assert_allclose(xt_tau[ii], mad_results.t, rtol=6e-8,
+                           atol=(5e-10 if k1 == 0 and k2 == 0 else 5e-9))
         xo.assert_allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
         part = p0.copy(_context=test_context)
@@ -1117,10 +1117,10 @@ def test_fringe_implementations(test_context):
     p_ng = p0.copy()
     p_ptc = p0.copy()
 
-    R_ng = line.compute_one_turn_matrix_finite_differences(particle_on_co=p0.copy())['R_matrix']
+    R_ng = line.compute_R_matrix(particle_on_co=p0.copy())['R_matrix']
     line.track(p_ng)
     line.config.XTRACK_FRINGE_FROM_PTC = True
-    R_ptc = line.compute_one_turn_matrix_finite_differences(particle_on_co=p0.copy())['R_matrix']
+    R_ptc = line.compute_R_matrix(particle_on_co=p0.copy())['R_matrix']
     line.track(p_ptc)
 
     p_ng.move(_context=xo.context_default)

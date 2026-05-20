@@ -22,12 +22,12 @@ xt.enable_pyheadtail_interface()
 # Settings #
 ############
 
-gpu_device = 0
+gpu_device = 0 # Set to None to use CPU, or to an integer to specify the GPU device to use (e.g. 0)
 seq_name = "sps"
 qx0,qy0 = 20.13, 20.18
 p0c = 26e9
 cavity_name = "actcse.31632"
-cavity_lag = 180
+cavity_phase = np.pi
 frequency = 200e6
 rf_voltage = 4e6
 use_wakes = True
@@ -88,7 +88,7 @@ line.particle_ref = xt.Particles(p0c=p0c,mass0=xt.PROTON_MASS_EV)
 ################
 
 line[cavity_name].voltage = rf_voltage
-line[cavity_name].lag = cavity_lag
+line[cavity_name].phase = cavity_phase
 line[cavity_name].frequency = frequency
 
 ############################################
@@ -97,11 +97,6 @@ line[cavity_name].frequency = frequency
 
 line.build_tracker()
 tw = line.twiss()
-
-# We unfreeze the line so that we can still insert elements in the
-# original one (would be prevented by the existence of a tracker linked to the
-# line).
-line.unfreeze()
 
 #####################################
 # Install spacecharge interactions) #
@@ -152,7 +147,7 @@ if use_wakes:
    # the average beta functions (for which the table is calculated) and the beta
    # functions at the location in the lattice at which the wake element is
    # installed.
-   wakefields = np.genfromtxt('wakes/kickerSPSwake_2020_oldMKP.wake')
+   wakefields = np.genfromtxt('wakes/wakeforhdtl_PyZbase_Allthemachine_7000GeV_B1_2021_TeleIndex1_wake.dat')
    wakefields[:,1] *= 54.65/tw['betx'][0]
    wakefields[:,2] *= 54.51/tw['bety'][0]
    wakefields[:,3] *= 54.65/tw['betx'][0]

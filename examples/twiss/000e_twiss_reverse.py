@@ -27,7 +27,7 @@ tw2 = collider.lhcb2.twiss(method='4d')
 tw1.reference_frame # is `proper`
 tw2.reference_frame # is `proper`
 
-# tw1 has a clokwise orientation while tw2 has a counter-clockwise orientation.
+# tw1 has a clokwise frame while tw2 has a counter-clockwise frame.
 #
 # name         s   mux   muy         x          y         px         py
 # ip1          0     0     0 4.313e-09     0.0005  1.002e-05 -4.133e-09

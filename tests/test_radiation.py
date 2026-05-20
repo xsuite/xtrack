@@ -191,12 +191,12 @@ def test_ring_with_radiation(test_context, thick):
     line.configure_radiation(model='mean')
 
     # Twiss
-    tw = line.twiss(eneloss_and_damping=True)
+    tw = line.twiss(radiation_analysis=True)
 
     # Checks
     met = mad_emit_table
 
-    xo.assert_allclose(tw['eneloss_turn'], mad_emit_summ.u0.iloc[0]*1e9,
+    xo.assert_allclose(tw['energy_loss'], mad_emit_summ.u0.iloc[0]*1e9,
                     rtol=3e-3, atol=0)
     xo.assert_allclose(tw['damping_constants_s'][0],
         met[met.loc[:, 'parameter']=='damping_constant']['mode1'].iloc[0],

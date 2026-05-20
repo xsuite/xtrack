@@ -545,6 +545,8 @@ class MultilineLegacy:
             if self._bb_config[f"{nn}_line"] is None:
                 continue
             line = self.lines[self._bb_config[f"{nn}_line"]]
+            if not line._has_valid_tracker():
+                line.build_tracker()
             if not isinstance(line.tracker._context, xo.ContextCpu):
                 raise ValueError(
                     "The trackers need to be built on CPU before "

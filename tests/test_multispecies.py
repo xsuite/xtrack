@@ -688,11 +688,11 @@ def test_multispecies_cavity():
     frequency = 400e6
 
 
-    lag2 = 180 / np.pi *  2 * np.pi * frequency * s_cav / clight * (1/p1_ref2.beta0 - 1/p1.beta0)
+    phase2 = 2 * np.pi * frequency * s_cav / clight * (1/p1_ref2.beta0 - 1/p1.beta0)
 
 
     cav_ref1 = xt.Cavity(voltage=1e6, frequency=frequency)
-    cav_ref2 = xt.Cavity(voltage=1e6, frequency=frequency, lag=lag2)
+    cav_ref2 = xt.Cavity(voltage=1e6, frequency=frequency, phase=phase2)
 
     ele_ref1 = [xt.Drift(length=s_cav), cav_ref1, xt.Drift(length=0)]
     ele_ref2 = [xt.Drift(length=s_cav), cav_ref2, xt.Drift(length=0)]

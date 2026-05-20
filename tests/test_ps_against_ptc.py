@@ -11,7 +11,7 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 @for_all_test_contexts
-def test_ps_against_ptc(test_context):
+def test_ps_against_ptc(test_context, sandbox_cwd):
 
     # Verify correct result with Yoshida integration in CombinedFunctionMagnet
 

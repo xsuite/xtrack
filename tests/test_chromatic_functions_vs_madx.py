@@ -12,7 +12,7 @@ test_data_folder = pathlib.Path(
 import numpy as np
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
-def test_chromatic_functions_vs_madx(test_context):
+def test_chromatic_functions_vs_madx(test_context, sandbox_cwd):
 
     collider = xt.load(test_data_folder /
                                 'hllhc15_thick/hllhc15_collider_thick.json')
@@ -74,7 +74,7 @@ def test_chromatic_functions_vs_madx(test_context):
         # Open twiss
         init = tw.get_twiss_init('ip3')
         tw_open = line.twiss(start='ip3', end='ip6', init=init,
-                            compute_chromatic_properties=True)
+                            chrom=True)
 
         tw_ref_open = tw.rows['ip3':'ip6']
         xo.assert_allclose(tw_open.wx_chrom[:-1], tw_ref_open.wx_chrom,

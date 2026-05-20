@@ -12909,7 +12909,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.98582655,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_1372": {
                 "__class__": "Drift",
@@ -12919,7 +12919,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.98582655,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_1372_1": {
                 "__class__": "Drift",
@@ -12929,7 +12929,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.98582655,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_1372_2": {
                 "__class__": "Drift",
@@ -12939,7 +12939,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.98582655,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_1375": {
                 "__class__": "Drift",
@@ -12957,7 +12957,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.98582655,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_1372_3": {
                 "__class__": "Drift",
@@ -12967,7 +12967,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.98582655,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_1372_4": {
                 "__class__": "Drift",
@@ -12977,7 +12977,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.98582655,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "drift_1372_5": {
                 "__class__": "Drift",
@@ -12987,7 +12987,7 @@
                 "__class__": "Cavity",
                 "voltage": 2000000.0,
                 "frequency": 400789598.98582655,
-                "lag": 180.0
+                "phase": 3.141592653589793
             },
             "d_c6t_532": {
                 "__class__": "Drift",
@@ -24340,7 +24340,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -24360,7 +24360,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -24384,7 +24384,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -24404,7 +24404,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -31175,7 +31175,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -31195,7 +31195,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -31219,7 +31219,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -31239,7 +31239,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -85282,7 +85282,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -85302,7 +85302,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     4.865601751690326e-07
                 ],
@@ -85326,7 +85326,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -85346,7 +85346,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     4.865601751690326e-07
                 ],
@@ -91993,7 +91993,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -92013,7 +92013,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     4.557633045889102e-07
                 ],
@@ -92037,7 +92037,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     0.0
                 ],
@@ -92057,7 +92057,7 @@
                 "inv_factorial_order": 0.0,
                 "voltage": 0.0,
                 "frequency": 400789602.58620286,
-                "lag": 0.0,
+                "phase": 0.0,
                 "knl": [
                     4.557633045889102e-07
                 ],

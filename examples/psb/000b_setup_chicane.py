@@ -14,9 +14,9 @@ tw0 = line.twiss()
 tw0.qx, tw0.qy
 
 # A few checks on the imported model
-line.ref['k0bi1bsw1l11']._info() # Check that the knob controls k0 and the edges
+line.ref['k0bi1bsw1l11'].xdeps.info() # Check that the knob controls k0 and the edges
 
-line.ref['bi1.bsw1l1.1'].h._info() # Check no reference system curvature
+line.ref['bi1.bsw1l1.1'].h.xdeps.info() # Check no reference system curvature
 
 # Build chicane knob (k0)
 line['bsw_k0l'] = 0
@@ -26,7 +26,7 @@ line['k0bi1bsw1l13'] = (-line.ref['bsw_k0l'] / line['bi1.bsw1l1.3'].length)
 line['k0bi1bsw1l14'] = (line.ref['bsw_k0l'] / line['bi1.bsw1l1.4'].length)
 
 # Inspect:
-line.ref['k0bi1bsw1l11']._info()
+line.ref['k0bi1bsw1l11'].xdeps.info()
 
 # Build knob to model eddy currents (k2)
 line['bsw_k2l'] = 0

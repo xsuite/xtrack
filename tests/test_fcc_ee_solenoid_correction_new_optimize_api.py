@@ -11,7 +11,7 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
-def test_fcc_ee_solenoid_correction_new_optimizer_api():
+def test_fcc_ee_solenoid_correction_new_optimizer_api(tmp_path):
     fname = 'fccee_t'; pc_gev = 182.5
 
     env = xt.load([test_data_folder / 'fcc_ee/' / (fname + '.seq')])
@@ -331,14 +331,14 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
     opt_r.enable(vary=True)
     opt_r.solve()
 
-    line.to_json(fname + '_with_sol_corrected.json')
+    line.to_json(tmp_path / f'{fname}_with_sol_corrected.json')
 
     tw_sol_on_corrected = line.twiss(method='4d')
 
     assert_allclose = np.testing.assert_allclose
 
     # Check that tilt is present
-    assert_allclose(tw_sol_off['kin_xprime', 'ip.1'], np.tan(0.015), atol=1e-14, rtol=0)
+    assert_allclose(tw_sol_off['kin_xp', 'ip.1'], np.tan(0.015), atol=1e-14, rtol=0)
 
     # Check that solenoid introduces coupling
     assert tw_sol_on.c_minus > 1e-4
@@ -348,16 +348,16 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api():
 
     assert_allclose(tw_chk['x', 'ip.1'], 0, atol=1e-8, rtol=0)
     assert_allclose(tw_chk['y', 'ip.1'], 0, atol=1e-10, rtol=0)
-    assert_allclose(tw_chk['kin_xprime', 'ip.1'], tw_sol_off['kin_xprime', 'ip.1'],  atol=1e-9, rtol=0)
-    assert_allclose(tw_chk['kin_yprime', 'ip.1'], 0,  atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_xp', 'ip.1'], tw_sol_off['kin_xp', 'ip.1'],  atol=1e-9, rtol=0)
+    assert_allclose(tw_chk['kin_yp', 'ip.1'], 0,  atol=1e-8, rtol=0)
     assert_allclose(tw_chk['x', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
     assert_allclose(tw_chk['y', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
-    assert_allclose(tw_chk['kin_xprime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
-    assert_allclose(tw_chk['kin_yprime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_xp', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_yp', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
     assert_allclose(tw_chk['x', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
     assert_allclose(tw_chk['y', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
-    assert_allclose(tw_chk['kin_xprime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
-    assert_allclose(tw_chk['kin_yprime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_xp', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_yp', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
 
     assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=0, rtol=5e-5)
     assert_allclose(tw_chk['bety', 'ip.1'], tw_sol_off['bety', 'ip.1'], atol=0, rtol=5e-5)

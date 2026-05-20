@@ -23,6 +23,7 @@ integrator = xt.BorisSpatialIntegrator(fieldmap_callable=sf.get_field,
                                         s_start=0,
                                         s_end=30,
                                         n_steps=15000)
+integrator.log_trajectories = True
 p_boris = p.copy()
 integrator.track(p_boris)
 
@@ -114,8 +115,7 @@ for i_part in range(z_log.shape[1]):
     xo.assert_allclose(ay_ref[i_part, :], mon.ay[i_part, :],
                     rtol=0, atol=np.max(np.abs(ay_ref)*3e-2))
 
-import matplotlib.pyplot as plt
-plt.close('all')
+
 
 # Plot the stuff checked by the asserts above for one of the particles
 i_part = 0
@@ -139,27 +139,34 @@ this_dy_ds = dy_ds[i_part, :]
 s_mid = 0.5 * (mon.s[i_part, :-1] + mon.s[i_part, 1:])
 s_boris_mid = 0.5 * (z_log[:-1, i_part] + z_log[1:, i_part])
 
+import matplotlib.pyplot as plt
+plt.close('all')
+
 plt.figure(1, figsize=(10, 8))
-plt.subplot(3, 1, 1)
-plt.plot(z_check, dx_ds_boris_check, label='Boris')
-plt.plot(z_check, dx_ds_xsuite_check, label='XSuite')
+ax0=plt.subplot(2, 1, 1)
+plt.plot(z_check - sf.z0, dx_ds_boris_check, label='Boris')
+plt.plot(z_check - sf.z0, dx_ds_xsuite_check, label='XSuite')
 plt.title('dx/ds')
 plt.legend()
-plt.subplot(3, 1, 2)
-plt.plot(z_check, dy_ds_boris_check, label='Boris')
-plt.plot(z_check, dy_ds_xsuite_check, label='XSuite')
-plt.title('dy/ds')
+plt.subplot(2, 1, 2, sharex=ax0)
+plt.plot(z_check - sf.z0, dy_ds_boris_check, label='Boris')
+plt.plot(z_check - sf.z0, dy_ds_xsuite_check, label='XSuite')
+plt.xlim(-4, 3)
 
-plt.figure(2, figsize=(10, 8))
-plt.subplot(3, 1, 1)
-plt.plot(mon.s[i_part, :], mon.x[i_part, :], label='XSuite')
-plt.plot(z_log[:, i_part], x_log[:, i_part], label='Boris')
-plt.title('x')
+
+fig2 = plt.figure(2, figsize=(6.4, 4.8*1.2))
+plt.subplot(2, 1, 1, sharex=ax0)
+plt.plot(z_log[:, i_part] - sf.z0, x_log[:, i_part], label='Boris')
+plt.plot(mon.s[i_part, :] - sf.z0, mon.x[i_part, :], label='XSuite', linestyle='--')
+plt.ylim(-0.025, 0.01)
+plt.ylabel('x [m]')
 plt.legend()
-plt.subplot(3, 1, 2)
-plt.plot(mon.s[i_part, :], mon.y[i_part, :], label='XSuite')
-plt.plot(z_log[:, i_part], y_log[:, i_part], label='Boris')
-plt.title('y')
-plt.legend()
+plt.subplot(2, 1, 2, sharex=ax0)
+plt.plot(z_log[:, i_part] - sf.z0, y_log[:, i_part], label='Boris')
+plt.plot(mon.s[i_part, :] - sf.z0, mon.y[i_part, :], label='XSuite', linestyle='--')
+plt.ylim(-0.01, 0.025)
+plt.xlabel('z [m]')
+plt.ylabel('y [m]')
+plt.subplots_adjust(left=0.15, right=0.95)
 
 plt.show()

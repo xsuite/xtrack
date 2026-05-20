@@ -60,7 +60,7 @@ if bmad:
     df_orb = bmad_data['optics']
     spin_summary_bmad = bmad_data['spin_summary']
 
-tw = line.twiss4d(polarization=True)
+tw = line.twiss4d(polarization_analysis=True)
 
 print('Xsuite polarization: ', tw.spin_polarization_eq)
 

@@ -1,0 +1,40 @@
+option,-echo,-info,-warn;
+Option, -echo,-warn,-info;
+
+call,file="lhc/aperture/const_for_aperture.madx";
+call,file="lhc/lhc.seq";
+Option, -echo,warn,-info;
+
+call,file="slhc/toolkit/macro.madx";
+call,file="slhc/hllhc_sequence.madx";
+call,   file="lhc/aperture/aperture.b1.madx";
+call,   file="lhc/aperture/aperture.b2.madx";
+call,   file="lhc/aperture/aper_tol.b1.madx";
+call,   file="lhc/aperture/aper_tol.b2.madx";
+call,file="slhc/aperture/exp_pipe_model_after_LS3.madx";
+call,file="slhc/aperture/exp_pipe_install_after_LS3.madx";
+
+exec,mk_beam(7000);
+
+seqedit,sequence=lhcb1;flatten;cycle,start=e.ds.r3.b1;endedit;
+seqedit,sequence=lhcb2;flatten;cycle,start=e.ds.r3.b2;endedit;
+
+call,file="slhc/round/opt_round_150_1500.madx";
+call,file="slhc/aperture/aperture_upgrade_IT.madx";
+call,file="slhc/aperture/aperture_upgrade_MS.madx";
+
+no_bs_tol=0;
+
+emittance_norm=2.5e-6;
+apbbeat=1.1;
+halor=6.001; halox=6; haloy=6;
+DParcx=0.10; DParcy=0.10;
+COmax=0.002; dPmax=0.0002; VMAXI=30; SPECIF=7;
+FULL=1;
+
+d1_newbs=0;
+on_x5=250; on_x1=250;
+on_sep5=0; on_sep1=0;
+on_disp=1;
+value,on_x5,on_x1,on_sep5,on_sep1;
+exec,check_ip(b1); exec,check_ip(b2);

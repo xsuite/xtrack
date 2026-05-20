@@ -27,16 +27,17 @@ voltage = line.functions['fun_v_rf'](line.ref['t_turn_s'])
 
 line['lmap'].voltage_rf[0] = voltage / n_cav
 
-line.ref['lmap'].voltage_rf[0]._info()
+line.ref['lmap'].voltage_rf[0].xdeps.info()
 # prints:
-# #  element_refs['lmap'].voltage_rf[0]._get_value()
-#    element_refs['lmap'].voltage_rf[0] = 6666.666666666667
-
-# #  element_refs['lmap'].voltage_rf[0]._expr
-#    element_refs['lmap'].voltage_rf[0] = (f['fun_v_rf'](vars['t_turn_s']) / 3)
-
-# #  element_refs['lmap'].voltage_rf[0]._expr._get_dependencies()
-#    vars['t_turn_s'] = 0.0
-#    f['fun_v_rf'] = <xdeps.functions.FunctionPieceWiseLinear object at 0x12315fc50>
-
-# #  element_refs['lmap'].voltage_rf[0] does not influence any target
+# Info for element_refs['lmap'].voltage_rf[0]
+#
+# value: 6666.666666666667
+#
+# controlled by expr:
+#   element_refs['lmap'].voltage_rf[0] = (f['fun_v_rf'](vars['t_turn_s']) / 3)
+#
+# expr_dependencies:
+#   f['fun_v_rf'] = <xdeps.functions.FunctionPieceWiseLinear object at 0x1412370e0>
+#   vars['t_turn_s'] = 0.0
+#
+# controlled_targets: None

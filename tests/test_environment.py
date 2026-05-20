@@ -110,12 +110,12 @@ def test_vars_and_element_access_modes(container_type):
 
     assert hasattr(env.ref['bb1'].length, '_value') # is a Ref
     assert not hasattr(env['bb1'].length, '_value') # a number
-    assert env.ref['bb1'].length._value == 3 * 2
+    assert env.ref['bb1'].length.xdeps.value == 3 * 2
     assert env['bb1'].length == 3 * 2
 
     assert hasattr(env.ref['bb1'].length, '_value') # is a Ref
     assert not hasattr(env['bb1'].length, '_value') # a number
-    assert env.ref['bb1'].length._value == 3 * 2
+    assert env.ref['bb1'].length.xdeps.value == 3 * 2
     assert env['bb1'].length == 3 * 2
 
     assert line.get('bb1') is not env.get('bb')
@@ -184,7 +184,7 @@ def test_vars_and_element_access_modes(container_type):
     env.set(['qx1', 'qx2', 'qx3'], k1='3*x0')
     for nn in ['qx1', 'qx2', 'qx3']:
         assert env[nn].k1 == 3 * 3
-        assert str(env.ref[nn].k1._expr) == "(3.0 * vars['x0'])"
+        assert str(env.ref[nn].k1.xdeps.expr) == "(3.0 * vars['x0'])"
 
 
 def test_element_placing_at_s():
@@ -680,6 +680,7 @@ def test_assemble_ring():
     # ring2.survey().plot()
     # plt.show()
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_assemble_ring_builders():
 
     env = xt.Environment()
@@ -1468,8 +1469,8 @@ def test_assemble_ring_repeated_elements():
     assert tt_ring2_after['name', 48] == 'mq.f.2'
     assert ring2.element_names[39] == 'mq.f.1'
     assert ring2.element_names[48] == 'mq.f.2'
-    assert str(ring2.ref['mq.f.1'].k1._expr) == "vars['kqf']"
-    assert str(ring2.ref['mq.f.2'].k1._expr) == "vars['kqf']"
+    assert str(ring2.ref['mq.f.1'].k1.xdeps.expr) == "vars['kqf']"
+    assert str(ring2.ref['mq.f.2'].k1.xdeps.expr) == "vars['kqf']"
     assert ring2.get('mq.f.1') is not ring2.get('mq.f.2')
 
     # import matplotlib.pyplot as plt
@@ -1516,10 +1517,10 @@ def test_element_views(container_type):
     assert ee['b2'] == 9
     assert ee['c'] == 12
 
-    assert ee.ref['a']._value == 3
-    assert ee.ref['b1']._value == 9
-    assert ee.ref['b2']._value == 9
-    assert ee.ref['c']._value == 12
+    assert ee.ref['a'].xdeps.value == 3
+    assert ee.ref['b1'].xdeps.value == 9
+    assert ee.ref['b2'].xdeps.value == 9
+    assert ee.ref['c'].xdeps.value == 12
 
     assert ee.get('a') == 3
     assert ee.get('b1') == 9
@@ -1562,11 +1563,11 @@ def test_element_views(container_type):
     assert isinstance(ee['mb'].h, float)
     assert isinstance(ee['mb'].knl[0], float)
 
-    assert ee.ref['mb'].k1._value == 120
-    assert ee.ref['mb'].angle._value == 160e-3
-    assert ee.ref['mb'].knl[0]._value == 0
-    assert ee.ref['mb'].knl[1]._value == 200
-    assert ee.ref['mb'].knl[2]._value == 240
+    assert ee.ref['mb'].k1.xdeps.value == 120
+    assert ee.ref['mb'].angle.xdeps.value == 160e-3
+    assert ee.ref['mb'].knl[0].xdeps.value == 0
+    assert ee.ref['mb'].knl[1].xdeps.value == 200
+    assert ee.ref['mb'].knl[2].xdeps.value == 240
 
     assert ee.get('mb').k1 == 120
     assert ee.get('mb').angle == 160e-3
@@ -1578,7 +1579,7 @@ def test_element_views(container_type):
     assert type(ee['mb']) is xt.view.View
     assert ee['mb'].__class__ is xt.Bend
     assert isinstance(ee['mb'], xt.Bend)
-    assert type(ee.ref['mb']._value) is xt.Bend
+    assert type(ee.ref['mb'].xdeps.value) is xt.Bend
     assert type(ee.get('mb')) is xt.Bend
 
 def test_env_new():
@@ -1595,7 +1596,7 @@ def test_env_new():
 
     env.new('m2', 'm', mode='clone')
     assert isinstance(env['m2'], xt.Bend)
-    str(env.ref['m2'].k0._expr) == "(3.0 * vars['a'])"
+    str(env.ref['m2'].k0.xdeps.expr) == "(3.0 * vars['a'])"
 
     ret = env.new('mm', xt.Bend, k0='3*a', at='4*a', from_='m')
     assert isinstance(ret, xt.Place)
@@ -1618,7 +1619,7 @@ def test_env_new():
     assert ret.name == 'mm2'
     assert ret.at == '6*a'
     assert ret.from_ == 'm2'
-    assert str(env.ref['mm2'].k0._expr) == "(3.0 * vars['a'])"
+    assert str(env.ref['mm2'].k0.xdeps.expr) == "(3.0 * vars['a'])"
 
     env.new('e1', xt.Bend, k0='3*a')
     env.new('e2', xt.Bend)
@@ -1635,7 +1636,7 @@ def test_env_new():
     assert env['ll2'].element_names == ['e1.ll2', 'e2.ll2']
     assert isinstance(env['e1.ll2'], xt.Bend)
     assert isinstance(env['e2.ll2'], xt.Bend)
-    assert env.ref['e1.ll2'].k0._expr == "(3.0 * vars['a'])"
+    assert env.ref['e1.ll2'].k0.xdeps.expr == "(3.0 * vars['a'])"
 
     env.new('ll3', 'll', mode='replica')
     assert isinstance(env['ll3'], xt.Line)
@@ -1742,15 +1743,16 @@ def test_select_in_multiline():
 
     # --- Parameters
     seq         = 'lhcb1'
-    ip_name     = 'ip1'
+    ip_name     = 'ip5'
     s_marker    = f'e.ds.l{ip_name[-1]}.b1'
     e_marker    = f's.ds.r{ip_name[-1]}.b1'
     #-------------------------------------
 
-    collider_file = test_data_folder / 'hllhc15_collider/collider_00_from_mad.json'
+    collider_file = test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json'
 
     # Load the machine and select line
     collider= xt.load(collider_file)
+
     collider.vars['test_vars'] = 3.1416
     line   = collider[seq]
     line_sel    = line.select(s_marker,e_marker)
@@ -1762,13 +1764,13 @@ def test_select_in_multiline():
     assert line_sel['aaa'] == 1e-6
     assert line['aaa'] == 1e-6
 
-    line_sel.ref['mcbch.7r1.b1'].knl[0] += line.ref['aaa']
-    assert (str(line.ref['mcbch.7r1.b1'].knl[0]._expr)
-            == "((-vars['acbch7.r1b1']) + vars['aaa'])")
-    assert (str(line_sel.ref['mcbch.7r1.b1'].knl[0]._expr)
-            == "((-vars['acbch7.r1b1']) + vars['aaa'])")
-    assert line_sel.get('mcbch.7r1.b1').knl[0] == 1e-6
-    assert line.get('mcbch.7r1.b1').knl[0] == 1e-6
+    line_sel.ref['mcbch.7r5.b1'].knl[0] += line.ref['aaa']
+    assert (str(line.ref['mcbch.7r5.b1'].knl[0].xdeps.expr)
+            == "((-vars['acbch7.r5b1']) + vars['aaa'])")
+    assert (str(line_sel.ref['mcbch.7r5.b1'].knl[0].xdeps.expr)
+            == "((-vars['acbch7.r5b1']) + vars['aaa'])")
+    assert line_sel.get('mcbch.7r5.b1').knl[0] == 1e-6
+    assert line.get('mcbch.7r5.b1').knl[0] == 1e-6
 
 @pytest.mark.parametrize('container_type', ['env', 'line'])
 def test_inpection_methods(container_type):
@@ -2918,7 +2920,7 @@ def test_nested_lists():
     assert np.all(tt.name == np.array(
         ['q1::0', 'q1::1', 'q2', '_end_point']))
 
-
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_relative_error_definition():
 
     env = xt.Environment()
@@ -3198,7 +3200,7 @@ def test_particle_ref_from_particles_container():
     xo.assert_allclose(env.particle_ref.p0c, 5e12, rtol=0, atol=1e-9)
     assert env.particle_ref.__class__.__name__ == 'EnvParticleRef'
     assert env._particle_ref == 'my_particle'
-    assert env.ref['my_particle']._value is env.get('my_particle')
+    assert env.ref['my_particle'].xdeps.value is env.get('my_particle')
     env.particle_ref.p0c = '2e12 * a'
     xo.assert_allclose(env.particle_ref.p0c, 10e12, rtol=0, atol=1e-9)
     env['my_particle'].p0c = '1e12 * a'
@@ -3209,7 +3211,7 @@ def test_particle_ref_from_particles_container():
     assert isinstance(env2.get('my_particle'), xt.Particles)
     assert env2.get('my_particle') is not env.get('my_particle')
     assert env2._particle_ref == "my_particle"
-    assert env2.ref['my_particle']._value is env2.get('my_particle')
+    assert env2.ref['my_particle'].xdeps.value is env2.get('my_particle')
     xo.assert_allclose(env2['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
     env2['a'] = 6.
     xo.assert_allclose(env2['my_particle'].p0c, 6e12, rtol=0, atol=1e-9)
@@ -3224,7 +3226,7 @@ def test_particle_ref_from_particles_container():
     env2 = env.copy()
     assert 'my_particle' in env2.particles
     assert env2._particle_ref == "my_particle"
-    assert env.ref['my_particle']._value is env.get('my_particle')
+    assert env.ref['my_particle'].xdeps.value is env.get('my_particle')
     assert isinstance(env2.get('my_particle'), xt.Particles)
     assert env2.get('my_particle') is not env.get('my_particle')
     xo.assert_allclose(env2['my_particle'].p0c, 5e12, rtol=0, atol=1e-9)
@@ -3583,6 +3585,9 @@ def test_compose_parametric_lines():
         ['||drift_2', 'q1', '||drift_1', 'q2', '||drift_2', 'q2',
        '||drift_1', 'q1', '_end_point'])
 
+# Before removing this test, check that an equivalent test for Line in compose mode
+# is present.
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_expr_in_builder():
 
     env = xt.Environment()
@@ -3891,7 +3896,7 @@ def test_remove():
     env.new('e', 'Quadrupole', length=2)
     env['a'] = 3 * env.ref['e'].length
     assert env['a'] == 6.
-    assert str(env.ref['a']._expr) == "(3 * element_refs['e'].length)"
+    assert str(env.ref['a'].xdeps.expr) == "(3 * element_refs['e'].length)"
     with pytest.raises(RuntimeError):
         env.remove('e') # e is used by variable a
     env.remove('a')
@@ -3908,7 +3913,7 @@ def test_remove():
     env.new_particle('p', p0c=1e12)
     env['a'] = env.ref['p'].p0c
     assert env['a'] == 1e12
-    assert str(env.ref['a']._expr) == "particles['p'].p0c"
+    assert str(env.ref['a'].xdeps.expr) == "particles['p'].p0c"
     with pytest.raises(RuntimeError):
         env.remove('p') # p is used by variable a
     env.remove('a')
@@ -4227,15 +4232,15 @@ def test_rename_var():
 
     env.new('mb', 'Bend', length=1.0, angle='bb * 1e-3', knl=[0.0, '3*bb'])
 
-    assert str(env.ref['bb']._expr) == "(2.0 * vars['aa'])"
-    assert str(env.ref['mb'].angle._expr) == "(vars['bb'] * 0.001)"
-    assert str(env.ref['mb'].knl[1]._expr) == "(3.0 * vars['bb'])"
+    assert str(env.ref['bb'].xdeps.expr) == "(2.0 * vars['aa'])"
+    assert str(env.ref['mb'].angle.xdeps.expr) == "(vars['bb'] * 0.001)"
+    assert str(env.ref['mb'].knl[1].xdeps.expr) == "(3.0 * vars['bb'])"
 
     env.vars.rename('bb', 'cc', verbose=True)
 
-    assert str(env.ref['cc']._expr) == "(2.0 * vars['aa'])"
-    assert str(env.ref['mb'].angle._expr) == "(vars['cc'] * 0.001)"
-    assert str(env.ref['mb'].knl[1]._expr) == "(3.0 * vars['cc'])"
+    assert str(env.ref['cc'].xdeps.expr) == "(2.0 * vars['aa'])"
+    assert str(env.ref['mb'].angle.xdeps.expr) == "(vars['cc'] * 0.001)"
+    assert str(env.ref['mb'].knl[1].xdeps.expr) == "(3.0 * vars['cc'])"
 
 def test_parametric_line_update():
 
@@ -4485,3 +4490,21 @@ def test_sandwitch_thin_elements_insert():
     xo.assert_allclose(tt.s_end, [
         4.95, 5.05, 9., 11., 13.9, 14., 19., 21., 40., 40., 40., 40., 40., 40.],
         atol=1e-14)
+
+def test_environment_set_suppress_expression():
+
+    env = xt.Environment()
+
+    env['a'] = 5
+
+    env.new('q', xt.Quadrupole, length=1.0)
+    env.set('q', knl=[0.0, '3*a'])
+
+    env.set('q', k1='2*a')
+    assert str(env.ref['q'].k1.xdeps.expr) == "(2.0 * vars['a'])"
+    env.set('q', k1=0.3)
+    assert env.ref['q'].k1.xdeps.expr is None
+
+    assert str(env.ref['q'].knl[1].xdeps.expr) == "(3.0 * vars['a'])"
+    env.set('q', knl=[0.0, 0.2])
+    assert env.ref['q'].knl[1].xdeps.expr is None

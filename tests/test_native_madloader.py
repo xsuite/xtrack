@@ -10,8 +10,8 @@ from cpymad.madx import Madx
 from xdeps.refs import CompactFormatter
 import xtrack as xt
 from xtrack import Strategy, Uniform
-from xtrack.mad_parser.loader import MadxLoader
-from xtrack.mad_parser.parse import MadxOutputType, MadxParser
+from xtrack.mad_parser.loader import MadxLoader, MADLoaderWarning
+from xtrack.mad_parser.parse import MadxParser
 
 test_data_folder = (Path(__file__).parent / '../test_data').absolute()
 
@@ -455,7 +455,8 @@ def test_rfcavity(example_sequence):
     xo.assert_allclose(positions['rf1/line'], 27, atol=1e-14)
     assert isinstance(rf1, xt.Cavity)
     assert rf1.voltage == 1e6
-    assert rf1.lag == 2 * 360
+    assert rf1.lag == 0
+    xo.assert_allclose(rf1.phase, 4 * math.pi, rtol=0, atol=1e-12)
     assert rf1.frequency == 3e6
 
 
@@ -660,7 +661,8 @@ def test_reversed_rfcavity(example_sequence):
     xo.assert_allclose(positions_reversed['rf1/line_reversed'], 36 - 27, atol=1e-14)
     assert isinstance(rf1, xt.Cavity)
     assert rf1.voltage == 1e6
-    assert rf1.lag == 180 - 2 * 360
+    assert rf1.lag == 0
+    xo.assert_allclose(rf1.phase, math.pi - 4 * math.pi, rtol=0, atol=1e-12)
     assert rf1.frequency == 3e6
 
 
@@ -692,7 +694,7 @@ def test_reversed_solenoid(example_sequence):
     assert so1.ks == -3
 
 
-def test_load_b2_with_bv_minus_one(tmp_path):
+def test_load_b2_with_bv_minus_one(sandbox_cwd):
     test_data_folder_str = str(test_data_folder)
 
     mad = Madx(stdout=False)
@@ -723,8 +725,7 @@ def test_load_b2_with_bv_minus_one(tmp_path):
     mad.globals['kctx3.l1'] = 1e-5  # Check thin dodecapole expressions
     mad.globals['kctsx3.r1'] = 1e-5  # Check thin skew dodecapole expressions
 
-
-    tmp_seq_path = str(tmp_path / 'sequence.seq')
+    tmp_seq_path = str(sandbox_cwd / 'sequence.seq')
     mad.input('set, format=".20g";')
     mad.save(file=tmp_seq_path)
 
@@ -867,6 +868,27 @@ def test_line_syntax():
     l6 = env['l6']
     assert l6.name == 'l6'
     assert l6.element_names == 4 * ['el1', 'el2']
+
+
+def test_line_syntax_inserts_apertures():
+    sequence = """
+    m1: marker, apertype="circle", aperture={.2};
+    d1: drift, l=1;
+
+    l1: line = (m1, 3 * m1, d1);
+    """
+
+    loader = MadxLoader()
+    loader.load_string(sequence)
+    env = loader.env
+
+    env['l1'].end_compose()
+
+    l1 = env['l1']
+    assert l1.name == 'l1'
+    assert l1.element_names == 4 * ['m1_aper', 'm1'] + ['d1']
+    assert l1['m1'].name_associated_aperture == 'm1_aper'
+    assert isinstance(l1['m1_aper'], xt.LimitEllipse)
 
 
 def test_refer_and_thin_elements():
@@ -1140,6 +1162,7 @@ def test_import_thick_with_apertures_and_slice():
     for i in range(2):
         _assert_eq(line[f'elm..{i}']._parent.rot_s_rad, 0.2)
 
+
 def test_solenoid_zero_length():
 
     mad_str = """
@@ -1167,6 +1190,7 @@ def test_solenoid_zero_length():
     xo.assert_allclose(env['sol4'].length, 0.0, rtol=0, atol=1e-12)
     xo.assert_allclose(env['sol5'].length, 0.0, rtol=0, atol=1e-12)
     xo.assert_allclose(env['sol6'].length, 0.0, rtol=0, atol=1e-12)
+
 
 def test_bend_k0_neq_h():
 
@@ -1211,3 +1235,57 @@ def test_bend_k0_neq_h():
                     lmad['b1'].edge_entry_angle_fdown, rtol=0, atol=1e-12)
     xo.assert_allclose(lenv['b1'].edge_exit_angle_fdown,
                     lmad['b1'].edge_exit_angle_fdown, rtol=0, atol=1e-12)
+
+
+def test_redefined_apertures():
+    """Check that the following MAD-X behaviour is supported, and note that in both cases MAD-X complains.
+
+    In both cases it ignores the new settings. With "ip1: omk, at = ..." we get:
+
+        ++++++ warning: implicit element re-definition ignored: ip1
+
+    With "ip, at = ..." we get:
+
+        ++++++ warning: Not possible to update attribute for element in sequence definition:  ip1
+        ++++++ warning: Not possible to update attribute for element in sequence definition:  ip1
+        ++++++ warning: Not possible to update attribute for element in sequence definition:  ip1
+
+    In both cases:
+
+        >>> m.sequence.line1.elements['ip1'].aperture
+        [0.029]
+        >>> m.sequence.line2.elements['ip1'].aperture
+        [0.029]
+    """
+
+    mad_src_clone = """
+        l.omk = 0;
+        omk: marker, l := l.omk;
+        ip1: omk, apertype = "circle", aperture := {0.029}, aper_tol := {0.011};
+        
+        line1: sequence, l = 1;
+            ip1: omk, at = 0, apertype = "circle", aperture := {42}, aper_tol := {0.87};
+        endsequence;
+    """
+
+    mad_src_place = """
+        l.omk = 0;
+        omk: marker, l := l.omk;
+        ip1: omk, apertype = "circle", aperture := {0.029}, aper_tol := {0.011};
+
+        line2: sequence, l = 1;
+            ip1: omk, at = 0, apertype = "circle", aperture := {42}, aper_tol := {0.87};
+        endsequence;
+    """
+
+    with pytest.warns(MADLoaderWarning, match='redefinition ignored'):
+        env1 = xt.load(string=mad_src_clone, format='madx')
+    aper1 = env1.line1['ip1_aper']
+    assert isinstance(aper1, xt.LimitEllipse)
+    assert np.allclose([aper1.a, aper1.b], 0.029, atol=1e-12, rtol=0)
+
+    with pytest.warns(MADLoaderWarning, match='redefinition ignored'):
+        env2 = xt.load(string=mad_src_place, format='madx')
+    aper2 = env2.line2['ip1_aper']
+    assert isinstance(aper2, xt.LimitEllipse)
+    assert np.allclose([aper2.a, aper2.b], 0.029, atol=1e-12, rtol=0)

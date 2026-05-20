@@ -11,7 +11,7 @@ test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
 
-def test_fcc_ee_solenoid_correction():
+def test_fcc_ee_solenoid_correction(tmp_path):
     fname = 'fccee_t'; pc_gev = 182.5
 
     env = xt.load([test_data_folder / 'fcc_ee/' / (fname + '.seq')])
@@ -262,23 +262,23 @@ def test_fcc_ee_solenoid_correction():
 
     for iter in range(2):
         # Orbit alone
-        opt_l.disable_all_targets(); opt_l.disable_all_vary()
-        opt_l.enable_targets(tag='orbit'); opt_l.enable_vary(tag='corr_l'); opt_l.solve()
+        opt_l.disable(target=True); opt_l.disable(vary=True)
+        opt_l.enable(target='orbit'); opt_l.enable(vary='corr_l'); opt_l.solve()
 
         # Coupling alone
-        opt_l.disable_all_targets(); opt_l.disable_all_vary()
-        opt_l.enable_targets(tag='coupl'); opt_l.enable_vary(tag='skew_l'); opt_l.solve()
+        opt_l.disable(target=True); opt_l.disable(vary=True)
+        opt_l.enable(target='coupl'); opt_l.enable(vary='skew_l'); opt_l.solve()
 
         # phase, beta and alpha alone
-        opt_l.disable_all_targets(); opt_l.disable_all_vary()
-        opt_l.enable_vary(tag='normal_l')
-        opt_l.enable_targets(tag='mu_ip'); opt_l.solve()
-        opt_l.enable_targets(tag='bet_ip'); opt_l.solve()
-        opt_l.enable_targets(tag='alf_ip'); opt_l.solve()
+        opt_l.disable(target=True); opt_l.disable(vary=True)
+        opt_l.enable(vary='normal_l')
+        opt_l.enable(target='mu_ip'); opt_l.solve()
+        opt_l.enable(target='bet_ip'); opt_l.solve()
+        opt_l.enable(target='alf_ip'); opt_l.solve()
 
     # All together
-    opt_l.enable_all_targets()
-    opt_l.enable_all_vary()
+    opt_l.enable(target=True)
+    opt_l.enable(vary=True)
     opt_l.solve()
 
 
@@ -309,33 +309,33 @@ def test_fcc_ee_solenoid_correction():
 
     for iter in range(2):
         # Orbit alone
-        opt_r.disable_all_targets(); opt_r.disable_all_vary()
-        opt_r.enable_targets(tag='orbit'); opt_r.enable_vary(tag='corr_r'); opt_r.solve()
+        opt_r.disable(target=True); opt_r.disable(vary=True)
+        opt_r.enable(target='orbit'); opt_r.enable(vary='corr_r'); opt_r.solve()
 
         # Coupling alone
-        opt_r.disable_all_targets(); opt_r.disable_all_vary()
-        opt_r.enable_targets(tag='coupl'); opt_r.enable_vary(tag='skew_r'); opt_r.solve()
+        opt_r.disable(target=True); opt_r.disable(vary=True)
+        opt_r.enable(target='coupl'); opt_r.enable(vary='skew_r'); opt_r.solve()
 
         # phase, beta and alpha alone
-        opt_r.disable_all_targets(); opt_r.disable_all_vary()
-        opt_r.enable_vary(tag='normal_r')
-        opt_r.enable_targets(tag='mu_ip'); opt_r.solve()
-        opt_r.enable_targets(tag='bet_ip'); opt_r.solve()
-        opt_r.enable_targets(tag='alf_ip'); opt_r.solve()
+        opt_r.disable(target=True); opt_r.disable(vary=True)
+        opt_r.enable(vary='normal_r')
+        opt_r.enable(target='mu_ip'); opt_r.solve()
+        opt_r.enable(target='bet_ip'); opt_r.solve()
+        opt_r.enable(target='alf_ip'); opt_r.solve()
 
     # All together
-    opt_r.enable_all_targets()
-    opt_r.enable_all_vary()
+    opt_r.enable(target=True)
+    opt_r.enable(vary=True)
     opt_r.solve()
 
-    line.to_json(fname + '_with_sol_corrected.json')
+    line.to_json(tmp_path / f'{fname}_with_sol_corrected.json')
 
     tw_sol_on_corrected = line.twiss(method='4d')
 
     assert_allclose = np.testing.assert_allclose
 
     # Check that tilt is present
-    assert_allclose(tw_sol_off['kin_xprime', 'ip.1'], np.tan(0.015), atol=1e-14, rtol=0)
+    assert_allclose(tw_sol_off['kin_xp', 'ip.1'], np.tan(0.015), atol=1e-14, rtol=0)
 
     # Check that solenoid introduces coupling
     assert tw_sol_on.c_minus > 1e-4
@@ -345,16 +345,16 @@ def test_fcc_ee_solenoid_correction():
 
     assert_allclose(tw_chk['x', 'ip.1'], 0, atol=1e-8, rtol=0)
     assert_allclose(tw_chk['y', 'ip.1'], 0, atol=1e-10, rtol=0)
-    assert_allclose(tw_chk['kin_xprime', 'ip.1'], tw_sol_off['kin_xprime', 'ip.1'],  atol=1e-9, rtol=0)
-    assert_allclose(tw_chk['kin_yprime', 'ip.1'], 0,  atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_xp', 'ip.1'], tw_sol_off['kin_xp', 'ip.1'],  atol=1e-9, rtol=0)
+    assert_allclose(tw_chk['kin_yp', 'ip.1'], 0,  atol=1e-8, rtol=0)
     assert_allclose(tw_chk['x', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
     assert_allclose(tw_chk['y', 'pqc2re.1'], 0, atol=5e-8, rtol=0)
-    assert_allclose(tw_chk['kin_xprime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
-    assert_allclose(tw_chk['kin_yprime', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_xp', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_yp', 'pqc2re.1'], 0, atol=1e-8, rtol=0)
     assert_allclose(tw_chk['x', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
     assert_allclose(tw_chk['y', 'pqc2le.4'], 0, atol=5e-8, rtol=0)
-    assert_allclose(tw_chk['kin_xprime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
-    assert_allclose(tw_chk['kin_yprime', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_xp', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
+    assert_allclose(tw_chk['kin_yp', 'pqc2le.4'], 0, atol=1e-8, rtol=0)
 
     assert_allclose(tw_chk['betx', 'ip.1'], tw_sol_off['betx', 'ip.1'], atol=0, rtol=5e-5)
     assert_allclose(tw_chk['bety', 'ip.1'], tw_sol_off['bety', 'ip.1'], atol=0, rtol=5e-5)

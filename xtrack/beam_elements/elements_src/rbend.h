@@ -7,6 +7,7 @@
 #define XTRACK_RBEND_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_magnet.h"
 #include "xtrack/beam_elements/elements_src/default_magnet_config.h"
 
@@ -24,6 +25,11 @@ void RBend_track_local_particle(
         /*inv_factorial_order*/   RBendData_get_inv_factorial_order(el),
         /*knl*/                   RBendData_getp1_knl(el, 0),
         /*ksl*/                   RBendData_getp1_ksl(el, 0),
+        /*order_rel*/             RBendData_len_knl_rel(el) - 1, // order_rel is derived from the length of knl_rel and ksl_rel arrays
+      /*inv_factorial_order_rel*/ one_over_factorial(RBendData_len_knl_rel(el) - 1), // 1 / (order_rel)!
+        /*knl_rel*/               RBendData_getp1_knl_rel(el, 0),
+        /*ksl_rel*/               RBendData_getp1_ksl_rel(el, 0),
+        /*rel_ref_strength*/      RBendData_get_k0(el) * RBendData_get_length(el),
         /*num_multipole_kicks*/   RBendData_get_num_multipole_kicks(el),
         /*model*/                 RBendData_get_model(el),
         /*default_model*/         RBEND_DEFAULT_MODEL,

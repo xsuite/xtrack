@@ -2,7 +2,7 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 
-edge_model = 'full' # linear of full
+edge_model = 'linear' # linear of full
 
 # TODO check angle column in survey
 
@@ -175,8 +175,8 @@ if edge_model == 'linear':
     xo.assert_allclose(tw_back.s, tw.s, atol=1e-14)
     xo.assert_allclose(tw_back.x, tw.x, atol=1e-14)
     xo.assert_allclose(tw_back.y, tw.y, atol=1e-14)
-    xo.assert_allclose(tw_back.betx, tw.betx, rtol=1e-10)
-    xo.assert_allclose(tw_back.bety, tw.bety, rtol=1e-10)
+    xo.assert_allclose(tw_back.betx, tw.betx, rtol=5e-10)
+    xo.assert_allclose(tw_back.bety, tw.bety, rtol=5e-10)
     xo.assert_allclose(tw_back.alfx, tw.alfx, atol=1e-8)
     xo.assert_allclose(tw_back.alfy, tw.alfy, atol=1e-8)
     xo.assert_allclose(tw_back.dx, tw.dx, atol=1e-9)

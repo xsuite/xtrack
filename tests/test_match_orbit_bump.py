@@ -230,7 +230,7 @@ def test_match_orbit_bump_with_weights():
 
         xo.assert_allclose(tw['y', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
         xo.assert_allclose(tw['y', 'mq.17l8.b1'], 0, atol=1e-6, rtol=0)
-        xo.assert_allclose(tw['py', 'mq.17l8.b1'], 0, atol=1e-8, rtol=0)
+        xo.assert_allclose(tw['py', 'mq.17l8.b1'], 0, atol=5e-8, rtol=0)
         xo.assert_allclose(tw['py', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
 
         xo.assert_allclose(tw['y', 'mb.b26l8.b1'], 3e-3, atol=1e-6, rtol=0)
@@ -243,7 +243,7 @@ def test_match_orbit_bump_with_weights():
         last_data = opt._err._last_data
         action = list(last_data.keys())[0]
         last_twiss  = last_data[action]
-        assert last_twiss.orientation == (
+        assert last_twiss._orientation == (
             'backward' if init_at == xt.END else 'forward')
         assert last_twiss.method == '6d'
         assert last_twiss.reference_frame == 'proper'

@@ -290,6 +290,11 @@ def luminosity_from_twiss(
 
     assert crab is not None, 'crab crossing information is required'
 
+    if twiss_b1.reference_frame != 'proper':
+        raise ValueError(f'twiss_b1 should be in the `proper` reference frame, found: {twiss_b1.reference_frame}')
+    if twiss_b2.reference_frame != 'proper':
+        raise ValueError(f'twiss_b2 should be in the `proper` reference frame, found: {twiss_b2.reference_frame}')
+
     twiss_b2_rev = twiss_b2.reverse()
 
     if crab:
@@ -303,10 +308,10 @@ def luminosity_from_twiss(
         crab_crossing = None
 
     if f_rev is None:
-        if 'T_rev0' not in twiss_b1.keys():
+        if 't_rev0' not in twiss_b1.keys():
             raise ValueError('Revolution frequency cannot be retrieved from twiss, '
                              'please provide f_rev')
-        f_rev = 1/twiss_b1.T_rev0
+        f_rev = 1/twiss_b1.t_rev0
 
     lumi = luminosity(
         f=f_rev,

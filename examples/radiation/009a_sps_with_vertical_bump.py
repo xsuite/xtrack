@@ -51,7 +51,7 @@ line.cycle('bpv.11706', inplace=True)
 line.env.new('cav', xt.Cavity, length=0,
              frequency=line.ref['actcse.31632'].frequency,
              voltage=line.ref['actcse.31632'].voltage,
-             lag=line.ref['actcse.31632'].lag)
+             phase=line.ref['actcse.31632'].phase)
 
 line.insert([
     line.env.new('cav1', 'cav', at='bpv.11706@start'),
@@ -143,22 +143,22 @@ opt = line.match(
         ],
 )
 
-opt.enable_all_targets()
-opt.enable_all_vary()
-opt.disable_targets(tag='chrom')
-opt.disable_vary(tag='chrom')
+opt.enable(target=True)
+opt.enable(vary=True)
+opt.disable(target='chrom')
+opt.disable(vary='chrom')
 opt.solve()
 
 if match_chrom:
 
-    opt.disable_all_targets()
-    opt.disable_all_vary()
-    opt.enable_targets(tag='chrom')
-    opt.enable_vary(tag='chrom')
+    opt.disable(target=True)
+    opt.disable(vary=True)
+    opt.enable(target='chrom')
+    opt.enable(vary='chrom')
     opt.solve()
 
-    opt.enable_all_targets()
-    opt.enable_all_vary()
+    opt.enable(target=True)
+    opt.enable(vary=True)
     opt.solve()
 
 
@@ -170,9 +170,9 @@ line.configure_radiation(model='mean')
 # Tapering!!!
 line.compensate_radiation_energy_loss()
 
-tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
+tw_rad = line.twiss(radiation_analysis=True, method='6d',
                     use_full_inverse=False)
-tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
+tw_rad2 = line.twiss(radiation_analysis=True, method='6d',
                      radiation_method='full')
 
 
@@ -278,3 +278,5 @@ mdv.53107, kick := mdv.53107.ksl0;
 mdv.53307, kick := mdv.53307.ksl0;
 mdv.53507, kick := mdv.53507.ksl0;
 ''')
+
+plt.show()

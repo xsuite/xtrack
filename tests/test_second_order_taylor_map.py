@@ -56,11 +56,11 @@ def test_line_with_second_order_maps(test_context):
     xo.assert_allclose(tw_map.dqx, tw.dqx, rtol=0, atol=5e-2)
     xo.assert_allclose(tw_map.dqy, tw.dqy, rtol=0, atol=5e-2)
     xo.assert_allclose(tw_map.c_minus, tw.c_minus, rtol=0, atol=1e-5)
-    xo.assert_allclose(tw_map.circumference, tw.circumference, rtol=0, atol=5e-9)
+    xo.assert_allclose(tw_map.line_length, tw.line_length, rtol=0, atol=5e-9)
 
 
 @for_all_test_contexts
-def test_second_order_maps_against_madx(test_context):
+def test_second_order_maps_against_madx(test_context, sandbox_cwd):
 
 
     orbit_settings = {
@@ -191,5 +191,3 @@ def test_second_order_maps_against_madx(test_context):
                     # The following means that a change of one sigma in jj, kk results
                     # in an error of less than 5e-4 sigmas on ii
                     xo.assert_allclose(scaled_tt, scaled_tt_mad, atol=5e-4, rtol=0)
-
-

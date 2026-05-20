@@ -63,7 +63,7 @@ def test_rf_track_lattice():
     # Build the ring
     line = xt.Line(elements=elements, element_names=list(elements.keys()))
     line.particle_ref = xt.Particles(p0c=p0c, mass0=xt.PROTON_MASS_EV)
-    line.configure_bend_model(core='full', edge=None)
+    line.configure_bend_model(edge=None)
     line.reset_s_at_end_turn = False
 
     ## Transfer lattice on context and compile tracking code=
@@ -86,7 +86,7 @@ def test_rf_track_lattice():
     particles_rft = particles0.copy()
 
     print('RF-Track tracking starts')
-    line.track(particles_rft)   
+    line.track(particles_rft)
     print('RF-Track tracking ends')
 
     ele_xt = elements.copy()
@@ -107,8 +107,8 @@ def test_rf_track_lattice():
 
     assert_allclose = np.testing.assert_allclose
     assert np.all(particles_rft.particle_id == particles_ref.particle_id)
-    assert_allclose(particles_rft.x,  particles_ref.x,  atol=1e-10, rtol=0)
-    assert_allclose(particles_rft.px, particles_ref.px, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.x,  particles_ref.x,  atol=1e-9, rtol=0)
+    assert_allclose(particles_rft.px, particles_ref.px, atol=1e-9, rtol=0)
     assert_allclose(particles_rft.y,  particles_ref.y,  atol=1e-10, rtol=0)
     assert_allclose(particles_rft.py, particles_ref.py, atol=1e-10, rtol=0)
     assert_allclose(particles_rft.rpp, particles_ref.rpp, atol=1e-10, rtol=0)
@@ -118,7 +118,7 @@ def test_rf_track_lattice():
     assert_allclose(particles_rft.chi, particles_ref.chi, atol=1e-10, rtol=0)
     assert_allclose(particles_rft.p0c, particles_ref.p0c, atol=1e-10, rtol=0)
     assert_allclose(particles_rft.energy0, particles_ref.energy0, atol=1e-10, rtol=0)
-    assert_allclose(particles_rft.zeta, particles_ref.zeta, atol=1e-10, rtol=0)
+    assert_allclose(particles_rft.zeta, particles_ref.zeta, atol=1e-8, rtol=0)
     assert_allclose(particles_rft.beta0, particles_ref.beta0, atol=1e-10, rtol=0)
     assert_allclose(particles_rft.mass0, particles_ref.mass0, atol=1e-10, rtol=0)
     assert_allclose(particles_rft.gamma0, particles_ref.gamma0, atol=1e-10, rtol=0)

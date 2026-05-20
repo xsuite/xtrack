@@ -249,6 +249,7 @@ class Cavity(Element):
         ("voltage", "V", "Integrated energy change", 0),
         ("frequency", "Hz", "Frequency of the cavity", 0),
         ("lag", "degree", "Delay in the cavity sin(lag - w tau)", 0),
+        ("phase", "rad", "Phase of the cavity", 0),
     ]
 
     def track(self, p):
@@ -256,7 +257,7 @@ class Cavity(Element):
         pi = p._m.pi
         k = 2 * pi * self.frequency / clight
         tau = p.zeta / p.beta0
-        phase = self.lag * pi / 180 - k * tau
+        phase = self.phase + self.lag * pi / 180 - k * tau
         p.add_to_energy(p.charge_ratio * p.q0 * self.voltage * sin(phase))
 
 

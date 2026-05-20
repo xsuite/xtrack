@@ -9,11 +9,6 @@ import xpart as xp
 import xobjects as xo
 import numpy as np
 
-from scipy.constants import c as clight
-from scipy.constants import e as qe
-from scipy.constants import m_e
-from scipy.constants import hbar
-
 num_turns = 500
 bmad = True
 
@@ -67,7 +62,7 @@ for bump_strength in bump_strength_list:
         df_orb = bmad_data['optics']
         spin_summary_bmad = bmad_data['spin_summary']
 
-    tw = line.twiss4d(polarization=True)
+    tw = line.twiss4d(polarization_analysis=True)
 
     print('Xsuite polarization: ', tw.spin_polarization_eq)
     pol_xsuite.append(tw.spin_polarization_eq)

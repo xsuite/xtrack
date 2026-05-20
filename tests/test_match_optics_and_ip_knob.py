@@ -177,7 +177,7 @@ def test_ip_knob_matching(test_context):
     init_mcbx_plus = collider.varval['acbxh1.l8_from_on_x8h']
 
     # First round of optimization without changing mcbx
-    opt.disable_vary(tag='mcbx')
+    opt.disable(vary='mcbx')
     vtags = [vv.tag for vv in opt.vary]
     assert np.all(np.array(vtags) == np.array(
         ['', '', '', '', '', '', '', '', 'mcbx', 'mcbx', 'mcbx', 'mcbx', 'mcbx', 'mcbx']))
@@ -287,7 +287,7 @@ def test_ip_knob_matching(test_context):
     collider.vars['acbxh3.r8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
 
     # First round of optimization without changing mcbx
-    opt.disable_vary(tag='mcbx')
+    opt.disable(vary='mcbx')
     opt.step(10) # perform 10 steps without checking for convergence
 
     # Enable first mcbx knob (which controls the others)
@@ -491,12 +491,12 @@ def test_match_ir8_optics(test_context):
     opt.clear_log()
     assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 
-    opt.disable_targets(tag=['stage1', 'stage2'])
+    opt.disable(target=['stage1', 'stage2'])
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 
-    opt.disable_vary(tag=['stage1', 'stage2'])
+    opt.disable(vary=['stage1', 'stage2'])
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
@@ -506,12 +506,12 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
-    opt.enable_vary(tag='stage1')
+    opt.enable(vary='stage1')
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
-    opt.enable_targets(tag='stage1')
+    opt.enable(target='stage1')
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
@@ -521,13 +521,13 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
-    opt.enable_targets(tag='stage2')
+    opt.enable(target='stage2')
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
     assert opt.log()['tol_met', -1] != 'yyyyyyyyyyyyyy'
 
-    opt.enable_vary(tag='stage2')
+    opt.enable(vary='stage2')
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
@@ -631,12 +631,12 @@ def test_match_ir8_optics(test_context):
     opt.clear_log()
     assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 
-    opt.disable_targets(tag=['stage1', 'stage2'])
+    opt.disable(target=['stage1', 'stage2'])
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 
-    opt.disable_vary(tag=['stage1', 'stage2'])
+    opt.disable(vary=['stage1', 'stage2'])
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
@@ -674,12 +674,12 @@ def test_match_ir8_optics(test_context):
 
     ##### Done checking reloading features #####
 
-    opt.enable_vary(tag='stage1')
+    opt.enable(vary='stage1')
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
-    opt.enable_targets(tag='stage1')
+    opt.enable(target='stage1')
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
@@ -689,13 +689,13 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
-    opt.enable_targets(tag='stage2')
+    opt.enable(target='stage2')
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
     assert opt.log()['tol_met', -1] != 'yyyyyyyyyyyyyy'
 
-    opt.enable_vary(tag='stage2')
+    opt.enable(vary='stage2')
     opt.tag()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'

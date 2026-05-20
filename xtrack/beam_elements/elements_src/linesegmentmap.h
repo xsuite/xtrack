@@ -242,6 +242,7 @@ void longitudinal_motion(LocalParticle *part0,
             double const v_rf = LineSegmentMapData_get_voltage_rf(el,i_rf);
             double const f_rf = LineSegmentMapData_get_frequency_rf(el,i_rf);
             double const lag_rf = LineSegmentMapData_get_lag_rf(el,i_rf);
+            double const phase_rf = LineSegmentMapData_get_phase_rf(el,i_rf);
 
             if (f_rf == 0) continue;
 
@@ -252,7 +253,7 @@ void longitudinal_motion(LocalParticle *part0,
                 double const   q      = fabs(LocalParticle_get_q0(part))
                                         * LocalParticle_get_charge_ratio(part);
                 double const   tau    = zeta / beta0;
-                double const   phase  = DEG2RAD  * lag_rf - K_FACTOR * f_rf * tau;
+                double const   phase  = DEG2RAD  * lag_rf + phase_rf - K_FACTOR * f_rf * tau;
                 double const energy   = q * v_rf * sin(phase);
                 LocalParticle_add_to_energy(part, energy, 1);
             END_PER_PARTICLE_BLOCK;

@@ -222,11 +222,6 @@ class ThinSliceUniformSolenoidEntry(_ThinSliceEdgeBase, BeamElement):
         '#include "xtrack/beam_elements/elements_src/thin_slice_uniform_solenoid_entry.h"'
     ]
 
-    def get_equivalent_element(self):
-        if self._parent.edge_entry_active:
-            raise NotImplementedError
-        else:
-            return Marker(_buffer=self._buffer)
 
 class ThinSliceUniformSolenoidExit(_ThinSliceEdgeBase, BeamElement):
 
@@ -235,12 +230,6 @@ class ThinSliceUniformSolenoidExit(_ThinSliceEdgeBase, BeamElement):
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/thin_slice_uniform_solenoid_exit.h"'
     ]
-
-    def get_equivalent_element(self):
-        if self._parent.edge_entry_active:
-            raise NotImplementedError
-        else:
-            return Marker(_buffer=self._buffer)
 
 class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
 
@@ -251,6 +240,10 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
+
+        if self._parent.rbend_model == "straight-body":
+            return self # No replacement possible (not yet supported), element
+                        # left where it is
 
         if self._parent.edge_entry_active:
             return DipoleEdge(
@@ -336,6 +329,10 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
+
+        if self._parent.rbend_model == "straight-body":
+            return self # No replacement possible (not yet supported), element
+                        # left where it is
 
         if self._parent.edge_exit_active:
             return DipoleEdge(

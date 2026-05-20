@@ -395,7 +395,7 @@ class Table(_XdepsTable):
     # ------------------------------------------------------------------
     def to_json(self, file, indent=1, **kwargs):
         """Dump the table to JSON using the xtrack JSON utilities."""
-        json_utils.dump(self.to_dict(**kwargs), file, indent=indent)
+        json_utils.dump(self.to_dict(**kwargs), file, sort_keys=False, indent=indent)
 
     @classmethod
     def from_json(cls, file):
@@ -1555,7 +1555,7 @@ class Table(_XdepsTable):
         data = {}
         col_names = []
 
-        contain_capital = ["W_matrix", "R_matrix", "R_matrix_ebe", "T_rev0"]
+        contain_capital = ["W_matrix", "R_matrix", "R_matrix_ebe", "steps_R_matrix"]
         rename_dict = {cc.lower(): cc for cc in contain_capital}
 
         for cc in tfs_table.columns:
@@ -1588,11 +1588,16 @@ class Table(_XdepsTable):
 
         if 'attrs_serialization' in data:
             attrs_serialization = json_utils.load(string=data['attrs_serialization'])
+            done = set()
             for kk, ss in attrs_serialization.items():
+                kk = rename_dict.get(kk, kk)
                 if data[kk] is None:
+                    continue
+                if kk in done: # some deprecated elements are the same apart from capital letters
                     continue
                 assert ss == 'json'
                 data[kk] = json_utils.load(string=data[kk])
+                done.add(kk)
 
         if tmad :=tfs_table.headers.get('TYPE', None):
             if tmad == 'TWISS':

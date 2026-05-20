@@ -35,7 +35,7 @@ twm4d = mad.table.tw4d
 
 mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10   # To stay in the linear region
 mad.sequence.sps.elements['actcse.31632'].freq = 0.3
-mad.sequence.sps.elements['actcse.31632'].lag = 0.5
+mad.sequence.sps.elements['actcse.31632'].phase = np.pi
 
 
 mad.input('twiss, table=tw6d;')
@@ -117,22 +117,22 @@ opt = line.match(
 opt.step(5)
 opt.target_status()
 
-# opt.enable_all_targets()
-# opt.enable_all_vary()
-# opt.disable_targets(tag='chrom')
-# opt.disable_vary(tag='chrom')
+# opt.enable(target=True)
+# opt.enable(vary=True)
+# opt.disable(target='chrom')
+# opt.disable(vary='chrom')
 # opt.solve()
 
 # if match_chrom:
 
-#     opt.disable_all_targets()
-#     opt.disable_all_vary()
-#     opt.enable_targets(tag='chrom')
-#     opt.enable_vary(tag='chrom')
+#     opt.disable(target=True)
+#     opt.disable(vary=True)
+#     opt.enable(target='chrom')
+#     opt.enable(vary='chrom')
 #     opt.solve()
 
-#     opt.enable_all_targets()
-#     opt.enable_all_vary()
+#     opt.enable(target=True)
+#     opt.enable(vary=True)
 #     opt.solve()
 
 
@@ -144,9 +144,9 @@ line.configure_radiation(model='mean')
 # Tapering!!!
 line.compensate_radiation_energy_loss()
 
-tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
+tw_rad = line.twiss(radiation_analysis=True, method='6d',
                     use_full_inverse=False)
-tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
+tw_rad2 = line.twiss(radiation_analysis=True, method='6d',
                      radiation_method='full')
 
 assert tw_rad.eq_gemitt_x is not None
