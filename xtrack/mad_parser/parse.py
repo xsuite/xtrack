@@ -90,6 +90,10 @@ class MadxTransformer(Transformer):
             return
         warn(f'Ignoring statement: `{statement}`')
 
+    def ignored_beta0(self, name, *args):
+        warn(f'Ignoring beta0 statement: `{name}`')
+        return
+
     def assign_defer(self, name, value) -> Tuple[str, VarType]:
         return name.value.lower(), value
 

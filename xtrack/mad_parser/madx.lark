@@ -1,6 +1,7 @@
 start:  stmt*
 
 ?stmt: ignored          -> ignored
+    | beta0_stmt
     | new_def
     | new_val
     | sequence          -> top_level_sequence
@@ -93,6 +94,8 @@ string_literal: STRING
 
 ignored: if | return | select | remove | beam | assign | use
 
+beta0_stmt: name_or_string ":" _BETA0 command_arglist ";" -> ignored_beta0
+
 !if: "if"i /[^\n]+/
 !return: "return"i /[^\n]+/
 !select: "select"i /[^\n]+/
@@ -101,6 +104,7 @@ ignored: if | return | select | remove | beam | assign | use
 !assign: "assign"i /[^\n]+/
 !use: "use"i /[^;]*;/
 
+_BETA0: "beta0"i
 _SEQUENCE: "sequence"i
 _ENDSEQUENCE: "endsequence"i
 _SEQEDIT: "seqedit"i

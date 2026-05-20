@@ -125,6 +125,42 @@ def test_simple_parser():
     assert expected == result
 
 
+def test_parse_linac4_beta0_sequence(capsys):
+    sequence = """
+    ! Minimal reproduction of the LINAC4 BETA0 initial-Twiss block pattern.
+
+    LINAC.BETX0 = 0.451;
+    LINAC.ALFX0 = -3.599;
+    LINAC.BETY0 = 2.236;
+    LINAC.ALFY0 = -10.419;
+
+    LINAC.INITBETA0: BETA0,
+      BETX := LINAC.BETX0,
+      ALFX := LINAC.ALFX0,
+      BETY := LINAC.BETY0,
+      ALFY := LINAC.ALFY0;
+
+    D1: DRIFT, L = 1.0;
+    QF: QUADRUPOLE, L = 0.2, K1 = 0.1;
+    D2: DRIFT, L = 1.0;
+
+    LINAC4_MWE: SEQUENCE, REFER = ENTRY, L = 2.2;
+      D1, AT = 0.0;
+      QF, AT = 1.0;
+      D2, AT = 1.2;
+    ENDSEQUENCE;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['linac4_mwe']
+    assert line.element_names == ['d1', 'qf', 'd2']
+    assert line.get_length() == 2.2
+    tt = line.get_table()
+    assert list(tt['name']) == ['d1', 'qf', 'd2', '_end_point']
+    assert list(tt['s']) == [0.0, 1.0, 1.2, 2.2]
+    assert 'Ignoring beta0 statement' in capsys.readouterr().out
+
+
 @pytest.mark.parametrize(
     'input,value,expr',
     [
