@@ -8,7 +8,7 @@ line = env.fccee_p_ring
 
 tw0 = line.twiss4d()
 
-ip_name = 'ip.3'
+ip_name = 'ipg'
 
 sf = SolenoidField(L=1.23*2, a=0.13, B0=2., z0=0)
 
@@ -76,3 +76,59 @@ tw_off = line.twiss4d()
 line['on_sol'] = 1
 tw_on = line.twiss4d()
 
+
+tt_left = tt.rows['end_ds_start_straight_ipg':'ipg']
+tt_right = tt.rows['ipg':'end_straight_start_ds_ipg']
+
+# Attach dipole correction knobs
+elements_for_orbit_correction_left = [
+       'qf1dl.1', 'qf1cl.1', 'qf1bl.1', 'qf1al.1', 'qd0cl.1', 'qd0bl.1']
+h_correction_knobs_left = []
+v_correction_knobs_left = []
+for nn in elements_for_orbit_correction_left:
+    nn_h = 'acdh.' + nn
+    nn_v = 'acv.' + nn
+    env[nn_h] = 0
+    env[nn_v] = 0
+    env[nn].knl[0] = nn_h
+    env[nn].ksl[0] = nn_v
+    h_correction_knobs_left.append(nn_h)
+    v_correction_knobs_left.append(nn_v)
+
+elements_for_orbit_correction_right = [
+       'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2']
+h_correction_knobs_right = []
+v_correction_knobs_right = []
+for nn in elements_for_orbit_correction_right:
+    nn_h = 'acdh.' + nn
+    nn_v = 'acv.' + nn
+    env[nn_h] = 0
+    env[nn_v] = 0
+    env[nn].knl[0] = nn_h
+    env[nn].ksl[0] = nn_v
+    h_correction_knobs_right.append(nn_h)
+    v_correction_knobs_right.append(nn_v)
+
+opt_orbit_left = line.match(
+    solve=False,
+    start=tt_left.name[0],
+    end=ip_name,
+    init_at=ip_name,
+    init=tw_off,
+    targets=xt.TargetSet(x=0, px=0, y=0, py=0, at=tt_left.name[0]),
+    vary=xt.VaryList(h_correction_knobs_left + v_correction_knobs_left)
+)
+opt_orbit_left.solve()
+
+opt_orbit_right = line.match(
+    solve=False,
+    start='ipg',
+    end=tt_right.name[-1],
+    init_at=ip_name,
+    init=tw_off,
+    targets=xt.TargetSet(x=0, px=0, y=0, py=0, at=tt_right.name[-1]),
+    vary=xt.VaryList(h_correction_knobs_right + v_correction_knobs_right)
+)
+opt_orbit_right.solve()
+
+tw_corrected_orbit = line.twiss4d()
