@@ -62,23 +62,83 @@ for ii in range(len(s)-1):
     ele_names.append(f'sol_slice_{ii}')
 
 line_solenoid = env.new_line(components=ele_names)
+ksol_l_main_solenoid = 0
+for nn in line_solenoid.element_names:
+    ee = env.get(nn)
+    if isinstance(ee, xt.VariableSolenoid):
+        ksol_l_main_solenoid += ee.ks_profile.mean() * ee.length
 
-# Put the solenoid in the fcc lattice
+# Make compensation solenoid
+
+sfc = SolenoidField(L=1.5, a=0.03, B0=1., z0=0)
+s_comp = np.linspace(-1, 1., 51)
+_, _, bzc = sfc.get_field(0*s_comp, 0*s_comp, s_comp)
+ks_comp = bzc / rigidity0
+env['on_comp_sol'] = 1
+env['field_comp_sol'] = 1.
+ele_names_comp = []
+for ii in range(len(s_comp)-1):
+
+    s_entry = s_comp[ii]
+    s_exit = s_comp[ii+1]
+
+    length = s_exit - s_entry
+
+    env.new(f'comp_sol_slice_{ii}', xt.VariableSolenoid,
+        length=length,
+        ks_profile=[ks_comp[ii] * env.ref['on_comp_sol'] * env.ref['field_comp_sol'],
+                    ks_comp[ii+1] * env.ref['on_comp_sol'] * env.ref['field_comp_sol']],
+    )
+    ele_names_comp.append(f'comp_sol_slice_{ii}')
+
+line_comp_solenoid = env.new_line(components=ele_names_comp)
+
+ksol_l_comp_solenoid = 0
+for nn in line_comp_solenoid.element_names:
+    ee = env.get(nn)
+    if isinstance(ee, xt.VariableSolenoid):
+        ksol_l_comp_solenoid += ee.ks_profile.mean() * ee.length
+
+# Scale to have zero integrated field
+env['field_comp_sol'] = -ksol_l_main_solenoid / ksol_l_comp_solenoid / 2
+
+line_comp_solenoid_left = line_comp_solenoid.clone(suffix='_left')
+line_comp_solenoid_right = line_comp_solenoid.clone(suffix='_right')
+
+# Put the solenoids in the fcc lattice
 s_ip = tw0['s', ip_name]
 line.insert(line_solenoid, anchor='center', at=s_ip)
 line.insert(ip_name, at=s_ip, s_tol=1e-9) # Put back the ip
+line.insert(line_comp_solenoid_left, anchor='end', at=-100, from_=ip_name)
+line.insert(line_comp_solenoid_right, anchor='start', at=100, from_=ip_name)
 
 tt = line.get_table()
 
 line['on_sol'] = 0
+line['on_comp_sol'] = 0
 tw_off = line.twiss4d()
 
 line['on_sol'] = 1
-tw_on = line.twiss4d()
+line['ksol_l_comp_solenoid'] = 0
+tw_sol_on_comp_sol_off = line.twiss4d()
+
+line['on_sol'] = 1
+line['on_comp_sol'] = 1
+tw_sol_on_comp_sol_on = line.twiss4d()
+
+
+prrrr
 
 
 tt_left = tt.rows['end_ds_start_straight_ipg':'ipg']
 tt_right = tt.rows['ipg':'end_straight_start_ds_ipg']
+
+
+
+prrrr
+
+
+
 
 # Attach dipole correction knobs
 elements_for_orbit_correction_left = [
@@ -137,7 +197,11 @@ opt_orbit_right.solve()
 
 # Correct the linear coupling
 elements_for_coupling_correction_left = elements_for_orbit_correction_left + [
-    'qy1l.3', 'qd6l.1', 'qf5l.1', 'qd4l.1', 'qd3l.1', 'qf2l.1']
+    # 'qy1l.3', 'qd6l.1',
+    'qf5l.1',
+    'qd4l.1', 'qd3l.1',
+    'qf2l.1'
+    ]
 coupling_correction_knobs_left = []
 for nn in elements_for_coupling_correction_left:
     nn_coupling = 'kqsk.' + nn
@@ -146,7 +210,11 @@ for nn in elements_for_coupling_correction_left:
     coupling_correction_knobs_left.append(nn_coupling)
 
 elements_for_coupling_correction_right = elements_for_orbit_correction_right + [
-    'qf2r.2', 'qd3r.2', 'qd4r.2', 'qf5r.2', 'qd6r.2', 'qy1r.4']
+     'qf2r.2',
+     'qd3r.2', 'qd4r.2',
+     'qf5r.2',
+    #  'qd6r.2', 'qy1r.4'
+    ]
 coupling_correction_knobs_right = []
 for nn in elements_for_coupling_correction_right:
     nn_coupling = 'kqsk.' + nn
@@ -167,7 +235,7 @@ opt_coupling_left = line.match(
                     start=tt_left.name[0], end=ip_name),
     vary=xt.VaryList(coupling_correction_knobs_left, step=1e-6)
 )
-opt_coupling_left.solve()
+opt_coupling_left.step(20)
 
 opt_coupling_right = line.match(
     name='coupling_correction_right',
@@ -182,7 +250,10 @@ opt_coupling_right = line.match(
                     start=ip_name, end=tt_right.name[-1]),
     vary=xt.VaryList(coupling_correction_knobs_right, step=1e-6)
 )
-opt_coupling_right.solve()
+opt_coupling_right.step(20)
+
+opt_orbit_left.solve()
+opt_orbit_right.solve()
 
 opt_orb_coupling_left = opt_orbit_left.clone(
     name='orb_coupling_correction_left',
@@ -199,3 +270,13 @@ opt_orb_coupling_right = opt_orbit_right.clone(
 opt_orb_coupling_right.solve()
 
 tw_after_correction = line.twiss4d()
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+plt.plot(tw_after_correction.s-tw_off['s', ip_name], tw_after_correction.betx, label='betx')
+plt.plot(tw_after_correction.s-tw_off['s', ip_name], tw_after_correction.bety, label='bety')
+plt.plot(tw_after_correction.s-tw_off['s', ip_name], tw_after_correction.betx2, label='betx2')
+plt.plot(tw_after_correction.s-tw_off['s', ip_name], tw_after_correction.bety1, label='bety1')
+plt.legend()
+plt.show()
