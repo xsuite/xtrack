@@ -2,6 +2,7 @@ start:  stmt*
 
 ?stmt: ignored          -> ignored
     | beta0_stmt
+    | beam_command      -> top_level_beam
     | new_def
     | new_val
     | sequence          -> top_level_sequence
@@ -16,11 +17,13 @@ start:  stmt*
 
 ?sequence: _sequence_body _ENDSEQUENCE ";"
 
-_sequence_body: name_or_string ":" _SEQUENCE command_arglist ";" (clone | command_stmt)*
+_sequence_body: name_or_string ":" SEQUENCE command_arglist ";" (clone | command_stmt)*
 
 ?line: name_or_string ":" _LINE "=" anonymous_line ";"
 
 anonymous_line: "(" line_elements ")"
+
+beam_command: _BEAM command_arglist ";"
 
 modifiers: /-/? ( NUMBER "*" )?
 
@@ -56,6 +59,8 @@ command_arglist: ( "," ( equal_scalar | defer_scalar | equal_array | defer_array
 ?equal_token: REFER "=" name_or_string -> assign_value
     | FROM "=" name_or_string -> assign_value
     | APERTYPE "=" name_or_string  -> assign_value
+    | PARTICLE "=" name_or_string -> assign_value
+    | SEQUENCE "=" name_or_string -> assign_value
 
 array: "{" sum ( "," sum )* "}"  -> build_list
 
@@ -92,7 +97,7 @@ array: "{" sum ( "," sum )* "}"  -> build_list
 
 string_literal: STRING
 
-ignored: if | return | select | remove | beam | assign | use
+ignored: if | return | select | remove | assign | use
 
 beta0_stmt: name_or_string ":" _BETA0 command_arglist ";" -> ignored_beta0
 
@@ -100,30 +105,40 @@ beta0_stmt: name_or_string ":" _BETA0 command_arglist ";" -> ignored_beta0
 !return: "return"i /[^\n]+/
 !select: "select"i /[^\n]+/
 !remove: "remove"i /[^\n]+/
-!beam: "beam"i /[^;]*;/
 !assign: "assign"i /[^\n]+/
 !use: "use"i /[^;]*;/
 
-_BETA0: "beta0"i
-_SEQUENCE: "sequence"i
-_ENDSEQUENCE: "endsequence"i
-_SEQEDIT: "seqedit"i
-_ENDEDIT: "endedit"i
-_LINE: "line"i
+SEQUENCE: "sequence"i
 NAME: /[A-Za-z_\\.][A-Za-z0-9_\\.%]*/
 STRING: /"[^"]*"/
 REFER: "refer"i
 FROM: "from"i
 APERTYPE: "apertype"i
+PARTICLE: "particle"i
+
+_BEAM: "beam"i
+_BETA0: "beta0"i
+_ENDSEQUENCE: "endsequence"i
+_SEQEDIT: "seqedit"i
+_ENDEDIT: "endedit"i
+_LINE: "line"i
 _COMMENT: "!" /[^\n]*/
        | "//" /[^\n]*/
        | "/*" /.*?/s "*/"
 _NEWLINE: ( /&?\r?\n[\t ]*/ )+  // include line continuations with '&'
 
-%import common.NUMBER
+%import common.INT
+%import common.DECIMAL
+%import common.SIGNED_INT
 %import common.WS_INLINE
 %import common.WS
 %ignore WS_INLINE
 %ignore WS
 %ignore _COMMENT
 %ignore _NEWLINE
+
+// The below is absolutely horrible, but MAD-X allows a line break in the engineering notation of exponents,
+// and in fact lattices saved from MAD-X can contain things like  "7e\n-9"...
+_EXP: ("e"|"E") _NEWLINE? SIGNED_INT
+FLOAT: INT _EXP | DECIMAL _EXP?
+NUMBER: FLOAT | INT

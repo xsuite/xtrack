@@ -42,6 +42,9 @@ def test_simple_parser():
     qf1, knl := {0, 0, 0, 0.01, 0};
     qd1, knl := {0, 0, 0, -0.01, 0};
 
+    BEAM, PARTICLE = PROTON, ENERGY = 7.0;
+    BEAM, SEQUENCE = LINE, PARTICLE = ELECTRON, GAMMA = 2.0;
+
     return;  ! should also be ignored
     """
 
@@ -110,6 +113,17 @@ def test_simple_parser():
                 'knl': [0.0, 0.0, 0.0, -0.01, 0.0],
             },
         },
+        'beams': [
+            {
+                'particle': 'proton',
+                'energy': 7.0,
+            },
+            {
+                'sequence': 'line',
+                'particle': 'electron',
+                'gamma': 2.0,
+            },
+        ],
     }
 
     def _order_madx_output(item):
@@ -117,6 +131,7 @@ def test_simple_parser():
         item['lines'] = OrderedDict(item['lines'])
         for line in item['lines'].values():
             line['elements'] = OrderedDict(line['elements'])
+        item['beams'] = list(item['beams'])
         item['parameters'] = OrderedDict(item['parameters'])
 
     _order_madx_output(expected)
@@ -159,6 +174,263 @@ def test_parse_linac4_beta0_sequence(capsys):
     assert list(tt['name']) == ['d1', 'qf', 'd2', '_end_point']
     assert list(tt['s']) == [0.0, 1.0, 1.2, 2.2]
     assert 'Ignoring beta0 statement' in capsys.readouterr().out
+
+
+def test_parse_beam_sets_particle_ref():
+    sequence = """
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = PROTON, ENERGY = 7.0,
+        BV = -1, BUNCHED = 1, NPART = 3, RADIATE = 1, SIGT = 0.1;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    assert line.particle_ref.name == 'madx_beam_for_testseq'
+    xo.assert_allclose(line.particle_ref.mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.energy0, 7.0e9, rtol=0, atol=1e-12)
+    assert line.twiss_default.get('reverse', False) is False
+
+
+@pytest.mark.parametrize(
+    'beam_option,value,expected_p0c,expected_energy0,expected_beta0',
+    [
+        (
+            'PC',
+            7.0,
+            7.0e9,
+            (7.0e9**2 + xt.PROTON_MASS_EV**2) ** 0.5,
+            7.0e9 / ((7.0e9**2 + xt.PROTON_MASS_EV**2) ** 0.5),
+        ),
+        (
+            'GAMMA',
+            2.0,
+            xt.PROTON_MASS_EV * (2.0**2 - 1.0) ** 0.5,
+            2.0 * xt.PROTON_MASS_EV,
+            (1.0 - 1.0 / 2.0**2) ** 0.5,
+        ),
+        (
+            'BETA',
+            0.8,
+            xt.PROTON_MASS_EV * 0.8 / (1.0 - 0.8**2) ** 0.5,
+            xt.PROTON_MASS_EV / (1.0 - 0.8**2) ** 0.5,
+            0.8,
+        ),
+    ],
+)
+def test_parse_beam_reference_kinematics(beam_option, value, expected_p0c, expected_energy0, expected_beta0):
+    sequence = f"""
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = PROTON, {beam_option} = {value};
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    xo.assert_allclose(line.particle_ref.mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(float(line.particle_ref.p0c[0]), expected_p0c, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), expected_energy0, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.beta0[0]), expected_beta0, rtol=0, atol=1e-12)
+
+
+@pytest.mark.parametrize(
+    'beam_option,var_name,var_value,expected_p0c,expected_energy0,expected_beta0',
+    [
+        (
+            'ENERGY',
+            'e0',
+            7.0,
+            (7.0e9**2 - xt.PROTON_MASS_EV**2) ** 0.5,
+            7.0e9,
+            ( (7.0e9**2 - xt.PROTON_MASS_EV**2) ** 0.5 ) / 7.0e9,
+        ),
+        (
+            'PC',
+            'p0',
+            7.0,
+            7.0e9,
+            (7.0e9**2 + xt.PROTON_MASS_EV**2) ** 0.5,
+            7.0e9 / ((7.0e9**2 + xt.PROTON_MASS_EV**2) ** 0.5),
+        ),
+        (
+            'GAMMA',
+            'g0',
+            2.0,
+            xt.PROTON_MASS_EV * (2.0**2 - 1.0) ** 0.5,
+            2.0 * xt.PROTON_MASS_EV,
+            (1.0 - 1.0 / 2.0**2) ** 0.5,
+        ),
+        (
+            'BETA',
+            'b0',
+            0.8,
+            xt.PROTON_MASS_EV * 0.8 / (1.0 - 0.8**2) ** 0.5,
+            xt.PROTON_MASS_EV / (1.0 - 0.8**2) ** 0.5,
+            0.8,
+        ),
+    ],
+)
+def test_parse_beam_variable_kinematics(beam_option, var_name, var_value,
+                                        expected_p0c, expected_energy0, expected_beta0):
+    sequence = f"""
+    {var_name} := {var_value};
+
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = PROTON, {beam_option} = {var_name};
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    assert line.particle_ref.name == 'madx_beam_for_testseq'
+    xo.assert_allclose(line.particle_ref.mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(float(line.particle_ref.p0c[0]), expected_p0c, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), expected_energy0, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.beta0[0]), expected_beta0, rtol=0, atol=1e-12)
+
+
+def test_parse_beam_energy_variable_is_live():
+    sequence = """
+    e0 := 7.0;
+
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = PROTON, ENERGY = e0;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    expected_p0c = (7.0e9**2 - xt.PROTON_MASS_EV**2) ** 0.5
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), 7.0e9, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.p0c[0]), expected_p0c, rtol=0, atol=1e-6)
+
+    env['e0'] = 8.0
+    expected_p0c = (8.0e9**2 - xt.PROTON_MASS_EV**2) ** 0.5
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), 8.0e9, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.p0c[0]), expected_p0c, rtol=0, atol=1e-6)
+
+
+def test_parse_multiple_beams_for_different_lines():
+    sequence = """
+    D1: DRIFT, L = 1.0;
+
+    LINEA: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    LINEB: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = LINEA, PARTICLE = PROTON, ENERGY = 7.0;
+    BEAM, SEQUENCE = LINEB, PARTICLE = ELECTRON, ENERGY = 1.0;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line_a = env['linea']
+    line_b = env['lineb']
+
+    assert line_a.particle_ref.name == 'madx_beam_for_linea'
+    assert line_b.particle_ref.name == 'madx_beam_for_lineb'
+    xo.assert_allclose(line_a.particle_ref.mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line_a.particle_ref.q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(line_b.particle_ref.mass0, xt.ELECTRON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line_b.particle_ref.q0, -1.0, rtol=0, atol=1e-12)
+
+
+def test_parse_beam_without_sequence_uses_global_name():
+    sequence = """
+    BEAM, PARTICLE = PROTON, ENERGY = 7.0;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+
+    assert env._particle_ref == 'madx_beam'
+    xo.assert_allclose(env.particles['madx_beam'].mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(env.particles['madx_beam'].q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(float(env.particles['madx_beam'].energy0[0]), 7.0e9, rtol=0, atol=1e-6)
+
+
+def test_parse_beam_brho_variable():
+    sequence = """
+    br0 := 3.0;
+
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = PROTON, BRHO = br0;
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    expected_p0c = 3.0 * 299792458.0
+    expected_energy0 = (expected_p0c**2 + xt.PROTON_MASS_EV**2) ** 0.5
+    expected_beta0 = expected_p0c / expected_energy0
+
+    assert line.particle_ref.name == 'madx_beam_for_testseq'
+    xo.assert_allclose(line.particle_ref.mass0, xt.PROTON_MASS_EV, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.q0, 1.0, rtol=0, atol=1e-12)
+    xo.assert_allclose(float(line.particle_ref.p0c[0]), expected_p0c, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), expected_energy0, rtol=0, atol=1e-6)
+    xo.assert_allclose(float(line.particle_ref.beta0[0]), expected_beta0, rtol=0, atol=1e-12)
+
+
+@pytest.mark.parametrize(
+    'particle_name,expected_q0,expected_mass0,extra',
+    [
+        ('POSITRON', 1.0, xt.ELECTRON_MASS_EV, ''),
+        ('electron', -1.0, xt.ELECTRON_MASS_EV, ''),
+        ('Proton', 1.0, xt.PROTON_MASS_EV, ''),
+        ('antiproton', -1.0, xt.PROTON_MASS_EV, ''),
+        ('POSMUON', 1.0, xt.particles.masses.MUON_MASS_EV, ''),
+        ('negmuon', -1.0, xt.particles.masses.MUON_MASS_EV, ''),
+        ('Ion', 2.0, 1.0e9, ', MASS = 1.0, CHARGE = 2'),
+    ],
+)
+def test_parse_beam_particle_aliases(particle_name, expected_q0, expected_mass0, extra):
+    sequence = f"""
+    D1: DRIFT, L = 1.0;
+
+    TESTSEQ: SEQUENCE, REFER = ENTRY, L = 1.0;
+      D1, AT = 0.0;
+    ENDSEQUENCE;
+
+    BEAM, SEQUENCE = TESTSEQ, PARTICLE = {particle_name}, ENERGY = 7.0{extra};
+    """
+
+    env = xt.load(string=sequence, format='madx')
+    line = env['testseq']
+
+    xo.assert_allclose(line.particle_ref.q0, expected_q0, rtol=0, atol=1e-12)
+    xo.assert_allclose(line.particle_ref.mass0, expected_mass0, rtol=0, atol=1e-12)
+    xo.assert_allclose(float(line.particle_ref.energy0[0]), 7.0e9, rtol=0, atol=1e-6)
 
 
 @pytest.mark.parametrize(

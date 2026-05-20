@@ -42,6 +42,7 @@ ElementType = Union[TypedDict('ElementType', {'parent': str}), Dict[str, VarType
 class MadxOutputType(TypedDict):
     elements: Dict[str, ElementType]
     lines: Dict[str, LineType]
+    beams: List[Dict[str, VarType]]
     parameters: Dict[str, ElementType]
 
 
@@ -73,6 +74,7 @@ class MadxTransformer(Transformer):
         super().__init__()
         self.elements: Dict[str, ElementType] = {}
         self.lines: Dict[str, LineType] = {}
+        self.beams = []
         self.parameters = {}
         self.vars = vars
         self.functions = functions
@@ -94,11 +96,20 @@ class MadxTransformer(Transformer):
         warn(f'Ignoring beta0 statement: `{name}`')
         return
 
+    def top_level_beam(self, arglist):
+        if hasattr(arglist, 'children'):
+            arglist = arglist.children[0]
+        self.beams.append(dict(arglist))
+
     def assign_defer(self, name, value) -> Tuple[str, VarType]:
         return name.value.lower(), value
 
     def assign_value(self, name, value) -> Tuple[str, VarType]:
-        if is_ref(value):
+        # Keep expressions alive for beam kinematics, but still resolve them
+        # eagerly for ordinary scalar assignments.
+        if is_ref(value) and name.value.lower() not in {
+            'mass', 'charge', 'energy', 'pc', 'brho', 'gamma', 'beta',
+        }:
             value = value._get_value()
         return name.value.lower(), value
 
@@ -116,7 +127,7 @@ class MadxTransformer(Transformer):
         return self.vars[field]
 
     def number(self, value):
-        float_value = float(value)
+        float_value = float(''.join(str(value).split()))
         return float_value
 
     def string_literal(self, string):
@@ -144,7 +155,7 @@ class MadxTransformer(Transformer):
     def reset_flag(self, name_token):
         return name_token.value.lower(), False
 
-    def sequence(self, name, arglist, *clones) -> Tuple[str, LineType]:
+    def sequence(self, name, _sequence, arglist, *clones) -> Tuple[str, LineType]:
         return name.lower(), {
             'parent': 'sequence',
             **dict(arglist),
@@ -244,6 +255,7 @@ class MadxTransformer(Transformer):
         return {
             'elements': self.elements,
             'lines': self.lines,
+            'beams': self.beams,
             'parameters': self.parameters,
         }
 
