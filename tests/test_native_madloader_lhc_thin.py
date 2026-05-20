@@ -3,10 +3,12 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 import pathlib
+import pytest
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 def test_native_madloader_lhc_thin():
 
     env = xt.load(test_data_folder / 'hllhc15_noerrors_nobb/sequence.madx',

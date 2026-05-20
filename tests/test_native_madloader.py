@@ -176,6 +176,7 @@ def test_parse_linac4_beta0_sequence(capsys):
     assert 'Ignoring beta0 statement' in capsys.readouterr().out
 
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 def test_parse_beam_sets_particle_ref():
     sequence = """
     D1: DRIFT, L = 1.0;

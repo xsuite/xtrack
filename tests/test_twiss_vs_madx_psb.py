@@ -2,6 +2,7 @@ import pathlib
 
 import numpy as np
 from cpymad.madx import Madx
+import pytest
 
 import xobjects as xo
 import xpart as xp
@@ -12,6 +13,7 @@ from scipy.constants import c as clight
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_twiss_psb(test_context):
 

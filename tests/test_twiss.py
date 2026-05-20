@@ -55,6 +55,7 @@ def test_twiss_4d_fodo_vs_beta_rel(test_context):
         xo.assert_allclose(tw_at_s.dqx, tw_4d_list[0].dqx, atol=1e-4, rtol=0)
         xo.assert_allclose(tw_at_s.dqy, tw_4d_list[0].dqy, atol=1e-4, rtol=0)
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_coupled_beta(test_context):
     mad = Madx(stdout=False)
@@ -100,6 +101,7 @@ def test_coupled_beta(test_context):
         xo.assert_allclose(tw.c_minus, cmin_ref, rtol=0, atol=1e-5)
 
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_twiss_zeta0_delta0(test_context):
 
