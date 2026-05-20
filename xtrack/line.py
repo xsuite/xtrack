@@ -1640,6 +1640,7 @@ class Line:
             multi_element_monitor_at=multi_element_monitor_at,
             **kwargs)
 
+    @doc_group("Tracking and Analysis")
     def get_local_momentum_acceptance(
         self,
         *,
