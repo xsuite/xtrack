@@ -3,12 +3,10 @@ import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 import numpy as np
 
-
-
 env = xt.load('fccee_z_lcc.json')
 line = env.fccee_p_ring
 
-tw = line.twiss6d()
+tw0 = line.twiss4d()
 
 ip_name = 'ip.3'
 
@@ -64,3 +62,17 @@ for ii in range(len(s)-1):
     ele_names.append(f'sol_slice_{ii}')
 
 line_solenoid = env.new_line(components=ele_names)
+
+# Put the solenoid in the fcc lattice
+s_ip = tw0['s', ip_name]
+line.insert(line_solenoid, anchor='center', at=s_ip)
+line.insert(ip_name, at=s_ip, s_tol=1e-9) # Put back the ip
+
+tt = line.get_table()
+
+line['on_sol'] = 0
+tw_off = line.twiss4d()
+
+line['on_sol'] = 1
+tw_on = line.twiss4d()
+
