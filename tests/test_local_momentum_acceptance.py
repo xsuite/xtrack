@@ -9,7 +9,7 @@ import xtrack as xt
 
 @pytest.fixture(scope="module")
 def toy_ring(temp_context_default_mod):
-    """Build the toy ring once for the entire test session."""
+    """Build a toy ring and Twiss it once for the entire test session."""
     lbend = 3
     angle = np.pi / 2
 
@@ -40,15 +40,12 @@ def toy_ring(temp_context_default_mod):
     line.set_particle_ref('electron', p0c=1e9)
     line.configure_bend_model(core='full', edge=None)
 
-    tab = line.get_table()
-    needs_aperture = ['Bend', 'Quadrupole']
+    tt = line.get_table()
+    needs_aperture = tt.rows.match(element_type='Bend|Quadrupole| ').name
     aper_size = 0.040  # m
 
     placements = []
-    for nn, ee in zip(tab.name, tab.element_type):
-        if ee not in needs_aperture:
-            continue
-
+    for nn in needs_aperture:
         env.new(
             f'{nn}_aper_entry', xt.LimitRect,
             min_x=-aper_size, max_x=aper_size,
@@ -65,10 +62,10 @@ def toy_ring(temp_context_default_mod):
 
     line.insert(placements)
 
-    tt = line.get_table()
     tw = line.twiss(method="4d")
+    tw.particle_on_co.move(_context=line._context)
 
-    return {'line': line, 'tt': tt, 'tw': tw}
+    return {'line': line, 'twiss': tw}
 
 
 def test_parameter_validation():
@@ -129,7 +126,7 @@ def test_mutual_exclusivity_errors(toy_ring):
     x/y physical offsets must be mutually exclusive with normalized offsets.
     """
     line = toy_ring['line']
-
+    
     with pytest.raises(ValueError, match=r"Provide either x_offset or x_norm_offset"):
         line.get_local_momentum_acceptance(
             nemitt_x=1e-6,
@@ -169,9 +166,9 @@ def test_include_name_pattern_selects_subset(toy_ring):
     A regex name pattern should restrict the output to only the matching elements.
     """
     line = toy_ring['line']
-    tt = toy_ring['tt']
-    tw = toy_ring['tw']
+    tw = toy_ring['twiss']
 
+    tt = line.get_table()
     pattern = "^mqf.*_aper_entry$"
     expected_names = tt.rows[pattern].name
 
@@ -198,9 +195,9 @@ def test_s_window_selects_subset(toy_ring):
     s_start / s_end should restrict the output to elements within the window.
     """
     line = toy_ring['line']
-    tt = toy_ring['tt']
-    tw = toy_ring['tw']
+    tw = toy_ring['twiss']
 
+    tt = line.get_table()
     s_start = 0.0
     s_end = tt.s[-1] / 2.0
 
@@ -229,9 +226,9 @@ def test_norm_offset_all_survive(toy_ring):
     A small normalized transverse offset should not cause additional losses.
     """
     line = toy_ring['line']
-    tt = toy_ring['tt']
-    tw = toy_ring['tw']
+    tw = toy_ring['twiss']
 
+    tt = line.get_table()
     tt_aper = tt.rows[tt.element_type == 'LimitRect']
 
     delta_neg = -0.005
@@ -262,9 +259,9 @@ def test_all_survive(toy_ring):
     the scan bounds around the local closed-orbit delta.
     """
     line = toy_ring['line']
-    tt = toy_ring['tt']
-    tw = toy_ring['tw']
+    tw = toy_ring['twiss']
 
+    tt = line.get_table()
     tt_aper = tt.rows[tt.element_type == 'LimitRect']
 
     delta_neg = -0.005
@@ -303,9 +300,9 @@ def test_all_lost(toy_ring):
     For a large delta scan all particles are lost; deltan=deltap=0 everywhere.
     """
     line = toy_ring['line']
-    tt = toy_ring['tt']
-    tw = toy_ring['tw']
+    tw = toy_ring['twiss']
 
+    tt = line.get_table()
     tt_aper = tt.rows[tt.element_type == 'LimitRect']
     out = line.get_local_momentum_acceptance(
         twiss=tw,
@@ -342,9 +339,9 @@ def test_all_lost_offset(toy_ring, x_offset, y_offset):
     A transverse offset larger than the aperture causes all particles to be lost.
     """
     line = toy_ring['line']
-    tt = toy_ring['tt']
-    tw = toy_ring['tw']
+    tw = toy_ring['twiss']
 
+    tt = line.get_table()
     tt_aper = tt.rows[tt.element_type == 'LimitRect']
 
     out = line.get_local_momentum_acceptance(
