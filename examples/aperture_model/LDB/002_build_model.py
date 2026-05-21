@@ -1,12 +1,15 @@
 import cernlayoutdb as layout
 from functools import reduce
+from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 import numpy as np
 import operator
+import xdeps as xd
 import xtrack as xt
 from xtrack.aperture import Aperture, ApertureBuilder
 from xtrack.aperture.structures import Polygon
 from xtrack.aperture.transform import poly2d_to_homogeneous
+from xtrack.survey import survey_relative_transform
 from warnings import warn
 
 
@@ -220,6 +223,7 @@ if ignored_types:
 
 # Map pipes to their positions
 pipes_loc = {}
+pipes_loc_middles = {}
 ignored_transforms = []
 for transform_name, transformation in ldb_model.transformations.items():
     if (target_type := transformation.target_type) is None:
@@ -231,7 +235,9 @@ for transform_name, transformation in ldb_model.transformations.items():
         continue
 
     loc = ldb_model.get_abs_points(transform_name)['MECHANICAL START']
+    loc_middle = ldb_model.get_abs_points(transform_name)['MECHANICAL MIDDLE']
     pipes_loc[transform_name] = loc.to_madpoint()
+    pipes_loc_middles[transform_name] = loc_middle.to_madpoint()
 
 pipes_loc = sorted(pipes_loc.items(), key=lambda x: x[1].z)
 
@@ -240,6 +246,13 @@ if ignored_transforms:
     warn(f'Ignored {len(ignored_transforms)} transforms without target types, or whose target types are not valid '
          f'apertures: {_format_list(ignored_transforms)}', LDBConverterWarning)
 
+
+# Refer pipe locations to survey elements
+s_mid_positions = [mad_point.z for _, mad_point in pipes_loc]
+sv_indices = np.searchsorted(sv_b1.Z + np.concat([np.diff(sv_b1.Z) / 2, [0]]), s_mid_positions, side='right')
+sv_names = [sv_b1.name[idx] for idx in sv_indices]
+assert len(set(sv_b1.name)) == len(sv_b1.name), "There are non-unique survey names, which might be a problem"
+transform_to_sv_point = dict(zip([transform_name for transform_name, _ in pipes_loc], sv_names))
 
 # Place pipes in the model
 for transform_name, mad_point in pipes_loc:
@@ -279,8 +292,14 @@ for transform_name, mad_point in pipes_loc:
         side = 'E' if np.interp(s_pos, sv_b1.Z, sv_b1.X) > 0 else 'I'
         pipe_to_place = f'{type_name}/{side}'
 
+    # Find the right reference point in the survey (closest) for this pipe
+    survey_ref = transform_to_sv_point[transform_name]
+    from_ip1_to_ref = survey_relative_transform(sv_b1, 'ip1', survey_ref)
+    from_ip1_to_here = mad_point.matrix
+    from_ref_to_here = np.linalg.inv(from_ip1_to_ref) @ from_ip1_to_here
+
     if pipe_to_place:
-        builder.place_pipe(transform_name, pipe_to_place, transformation=mad_point.matrix, survey_reference='ip1')
+        builder.place_pipe(transform_name, pipe_to_place, transformation=from_ref_to_here, survey_reference=survey_ref)
 
 # TEMPORARILY PATCH THE LAST PIPE SO IT DOESN'T EXTEND PAST THE END OF THE MACHINE
 # CAUSING CHECKS TO FAIL - THIS SHOULD BE UNDONE IN THE RING VERSION!
@@ -304,3 +323,61 @@ ax.set_xbound(lower=XLIM[0], upper=XLIM[1])
 ax.set_ybound(lower=YLIM[0], upper=YLIM[1])
 plt.show()
 
+
+# Find all the magnets that are controlled by the "a.mb" knob
+main_dipoles = [
+    ref._owner._key for ref in b1.vars['a.mb'].xdeps.controlled_targets
+    if isinstance(ref, xd.refs.AttrRef) and ref._key == 'angle'
+]
+elements_b1 = set(b1.element_names)
+main_dipoles_b1 = [name for name in main_dipoles if name in set(elements_b1)]
+
+# Plot the element boxes vs the relevant pipe boxes to see how we match
+sv_dipoles_b1 = sv_b1.rows[main_dipoles_b1]
+magnet_boxes = zip(sv_dipoles_b1.Z, sv_dipoles_b1.length, sv_dipoles_b1.name)
+BOX_HEIGHT = 1
+
+fig, ax = plt.subplots()
+
+def _draw_boxes(boxes, height=1., label_rotation=0, label_y=0., label_size=6, **kwargs):
+    for x, width, label in boxes:
+        rect = Rectangle(
+            (x, -height * BOX_HEIGHT),
+            width,
+            2 * height * BOX_HEIGHT,
+            **kwargs,
+        )
+        ax.add_patch(rect)
+        ax.text(
+            x + width / 2,
+            label_y * height * BOX_HEIGHT,
+            label,
+            ha='center',
+            va='center',
+            rotation=label_rotation,
+            fontsize=label_size,
+            clip_on=True,
+        )
+
+_draw_boxes(magnet_boxes, edgecolor='black', facecolor='skyblue', alpha=0.7, label_rotation=90, label_y=0.35)
+
+# Also plot the relevant type boxes
+p_tab = aperture.get_pipe_table()
+pipe_labels = [f'{name}\nref: {ref}' for name, ref in zip(p_tab.name, p_tab.survey_reference)]
+pipe_boxes = zip(p_tab.s_start, p_tab.span, pipe_labels)
+_draw_boxes(
+    pipe_boxes,
+    edgecolor='black',
+    facecolor='pink',
+    alpha=0.7,
+    height=0.5,
+    label_rotation=90,
+    label_size=5,
+    label_y=-0.35,
+)
+
+# Set plot limits
+ax.set_xlim(0, b1.get_length())
+ax.set_ylim(-5 * BOX_HEIGHT - 1, 5 * BOX_HEIGHT + 1)
+
+plt.show()
