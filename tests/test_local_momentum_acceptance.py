@@ -80,7 +80,6 @@ def test_parameter_validation():
         (dict(delta_negative_limit=0.0), ValueError, r"delta_negative_limit must be < 0"),
         (dict(delta_positive_limit=0.0), ValueError, r"delta_positive_limit must be > 0"),
         (dict(delta_step_size=0.0),      ValueError, r"delta_step_size must be > 0"),
-        (dict(s_start=1.0, s_end=1.0),   ValueError, r"s_start must be < s_end"),
         (dict(n_turns=0),                ValueError, r"n_turns must be > 0"),
     ]
 
@@ -92,6 +91,51 @@ def test_parameter_validation():
                 method="4d",
                 **kwargs,
             )
+
+
+def test_elements_validation():
+    """
+    Validate that invalid `elements` arguments are rejected with clear error messages.
+    """
+    env = xt.Environment()
+    line = env.new_line(components=[env.new('d', xt.Drift, length=1.0)])
+    line.set_particle_ref('electron', p0c=1e9)
+
+    # Not iterable / scalar
+    with pytest.raises(ValueError, match=r"`elements` must be an iterable of strings"):
+        line.get_local_momentum_acceptance(
+            elements=42,
+            nemitt_x=1e-6,
+            nemitt_y=1e-6,
+            method="4d",
+        )
+
+    # Bare string (not a list of strings)
+    with pytest.raises(ValueError, match=r"`elements` must be an iterable of strings"):
+        line.get_local_momentum_acceptance(
+            elements='d',
+            nemitt_x=1e-6,
+            nemitt_y=1e-6,
+            method="4d",
+        )
+
+    # Contains non-strings
+    with pytest.raises(ValueError, match=r"All entries in `elements` must be strings"):
+        line.get_local_momentum_acceptance(
+            elements=['d', 123],
+            nemitt_x=1e-6,
+            nemitt_y=1e-6,
+            method="4d",
+        )
+
+    # Element not in the line
+    with pytest.raises(ValueError, match=r"The following elements were not found in the line"):
+        line.get_local_momentum_acceptance(
+            elements=['does_not_exist'],
+            nemitt_x=1e-6,
+            nemitt_y=1e-6,
+            method="4d",
+        )
 
 
 def test_nemitt_not_provided():
@@ -126,7 +170,7 @@ def test_mutual_exclusivity_errors(toy_ring):
     x/y physical offsets must be mutually exclusive with normalized offsets.
     """
     line = toy_ring['line']
-    
+
     with pytest.raises(ValueError, match=r"Provide either x_offset or x_norm_offset"):
         line.get_local_momentum_acceptance(
             nemitt_x=1e-6,
@@ -146,41 +190,26 @@ def test_mutual_exclusivity_errors(toy_ring):
         )
 
 
-def test_empty_selection_raises(toy_ring):
+def test_elements_selects_subset(toy_ring):
     """
-    If no elements match the selection filters, the method must raise.
-    """
-    line = toy_ring['line']
-
-    with pytest.raises(ValueError, match=r"No elements selected for local momentum acceptance computation"):
-        line.get_local_momentum_acceptance(
-            nemitt_x=1e-6,
-            nemitt_y=1e-6,
-            method="4d",
-            include_name_pattern="^does_not_exist_.*$",
-        )
-
-
-def test_include_name_pattern_selects_subset(toy_ring):
-    """
-    A regex name pattern should restrict the output to only the matching elements.
+    Passing a filtered list of element names should restrict the output to
+    only those elements.
     """
     line = toy_ring['line']
     tw = toy_ring['twiss']
 
     tt = line.get_table()
-    pattern = "^mqf.*_aper_entry$"
-    expected_names = tt.rows[pattern].name
+    expected_names = tt.rows['^mqf.*_aper_entry$'].name
 
     out = line.get_local_momentum_acceptance(
+        elements=list(expected_names),
         twiss=tw,
         nemitt_x=1e-5,
         nemitt_y=1e-7,
-        include_name_pattern=pattern,
         delta_negative_limit=-0.005,
         delta_positive_limit=+0.005,
         delta_step_size=0.001,
-        n_turns=512
+        n_turns=512,
     )
 
     assert set(out.name) == set(expected_names)
@@ -192,29 +221,26 @@ def test_include_name_pattern_selects_subset(toy_ring):
 
 def test_s_window_selects_subset(toy_ring):
     """
-    s_start / s_end should restrict the output to elements within the window.
+    Passing elements pre-filtered by s window should restrict the output
+    to elements within the window.
     """
     line = toy_ring['line']
     tw = toy_ring['twiss']
 
     tt = line.get_table()
-    s_start = 0.0
     s_end = tt.s[-1] / 2.0
-
-    tab_in_window = tt.rows[s_start:s_end:'s']
+    tab_in_window = tt.rows[0.0:s_end:'s']
     tab_aper_in_window = tab_in_window.rows[tab_in_window.element_type == 'LimitRect']
 
     out = line.get_local_momentum_acceptance(
+        elements=list(tab_aper_in_window.name),
         twiss=tw,
         nemitt_x=1e-5,
         nemitt_y=1e-7,
-        include_type_pattern="LimitRect",
-        s_start=s_start,
-        s_end=s_end,
         delta_negative_limit=-0.005,
         delta_positive_limit=+0.005,
         delta_step_size=0.001,
-        n_turns=512
+        n_turns=512,
     )
 
     assert len(out.s) == len(tab_aper_in_window.name)
@@ -236,8 +262,8 @@ def test_norm_offset_all_survive(toy_ring):
     delta_step = 0.001
 
     out = line.get_local_momentum_acceptance(
+        elements=list(tt_aper.name),
         twiss=tw,
-        include_type_pattern="LimitRect",
         nemitt_x=1e-5,
         nemitt_y=1e-7,
         x_norm_offset=0.1,
@@ -245,7 +271,7 @@ def test_norm_offset_all_survive(toy_ring):
         delta_negative_limit=delta_neg,
         delta_positive_limit=delta_pos,
         delta_step_size=delta_step,
-        n_turns=512
+        n_turns=512,
     )
 
     delta_co = np.array([tw["delta", nn] for nn in tt_aper.name], dtype=float)
@@ -269,8 +295,8 @@ def test_all_survive(toy_ring):
     delta_step = 0.001
 
     out = line.get_local_momentum_acceptance(
+        elements=list(tt_aper.name),
         twiss=tw,
-        include_type_pattern="LimitRect",
         nemitt_x=1e-5,
         nemitt_y=1e-7,
         delta_negative_limit=delta_neg,
@@ -304,9 +330,10 @@ def test_all_lost(toy_ring):
 
     tt = line.get_table()
     tt_aper = tt.rows[tt.element_type == 'LimitRect']
+
     out = line.get_local_momentum_acceptance(
+        elements=list(tt_aper.name),
         twiss=tw,
-        include_type_pattern="LimitRect",
         nemitt_x=1e-5,
         nemitt_y=1e-7,
         delta_negative_limit=-0.2,
@@ -345,8 +372,8 @@ def test_all_lost_offset(toy_ring, x_offset, y_offset):
     tt_aper = tt.rows[tt.element_type == 'LimitRect']
 
     out = line.get_local_momentum_acceptance(
+        elements=list(tt_aper.name),
         twiss=tw,
-        include_type_pattern="LimitRect",
         nemitt_x=1e-5,
         nemitt_y=1e-7,
         x_offset=x_offset,
