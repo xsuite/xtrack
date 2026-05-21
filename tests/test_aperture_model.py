@@ -433,8 +433,8 @@ def test_bounds_table_uses_type_position_name_in_installed_profile_name(test_con
     bounds_table = ap.get_bounds_table()
 
     assert list(bounds_table.pipe_name) == ['shared_type', 'shared_type']
-    assert list(bounds_table.pipe_position_name) == ['entry_ap', 'middle_ap']
-    assert list(bounds_table.name) == ['circ0_in_entry_ap', 'circ0_in_middle_ap']
+    assert list(bounds_table.profile_name) == ['circ0', 'circ0']
+    assert list(bounds_table.name) == ['entry_ap', 'middle_ap']
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

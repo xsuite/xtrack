@@ -1782,49 +1782,84 @@ class Aperture:
                 )
 
     def get_bounds_table(self):
-        pipe_position_names = []
-        pipe_names = []
-        profile_names = []
-        s_positions = []
-        s_starts = []
-        s_ends = []
-        shapes = []
-        shape_params = []
-
+        """Get a table representation of the aperture bounds: per installed profile span information."""
         ap_bounds = self._aperture_bounds
-        for i in range(ap_bounds.count):
-            pipe_pos_idx = ap_bounds.pipe_position_indices[i]
-            pipe_pos = self._model.pipe_positions[pipe_pos_idx]
-            pipe = self._model.pipe_for_position(pipe_pos)
-            pipe_position_name = self._model.pipe_position_name_for_position_index(pipe_pos_idx)
-            pipe_name = self._model.pipe_name_for_position(pipe_pos)
+        table_size = ap_bounds.count
 
-            profile_pos_idx = ap_bounds.profile_position_indices[i]
-            profile_pos = pipe.positions[profile_pos_idx]
-            profile_name = self._model.profile_name_for_position(profile_pos)
-            profile = self._model.profile_for_position(profile_pos)
+        pipe_position_indices = ap_bounds.pipe_position_indices.to_nparray().astype(np.uint32, copy=False)
+        profile_position_indices = ap_bounds.profile_position_indices.to_nparray().astype(np.uint32, copy=False)
 
+        pipe_position_names_all = np.array(self._model.pipe_position_names, dtype=object)
+        pipe_names_all = np.array(self._model.pipe_names, dtype=object)
+        profile_names_all = np.array(self._model.profile_names, dtype=object)
+
+        num_pipe_positions = len(self._model.pipe_positions)
+        pipe_indices_for_position = np.empty(num_pipe_positions, dtype=np.int32)
+        for i in range(num_pipe_positions):
+            pipe_indices_for_position[i] = self._model.pipe_positions[i].pipe_index
+
+        pipe_indices = pipe_indices_for_position[pipe_position_indices]
+        profile_indices = np.empty(table_size, dtype=np.int32)
+        for pipe_index in np.unique(pipe_indices):
+            in_pipe = pipe_indices == pipe_index
+            pipe = self._model.pipes[pipe_index]
+            profile_indices_for_pipe = np.fromiter(
+                (profile_position.profile_index for profile_position in pipe.positions),
+                dtype=np.int32,
+                count=len(pipe.positions),
+            )
+            profile_indices[in_pipe] = profile_indices_for_pipe[profile_position_indices[in_pipe]]
+
+        shapes_all = np.empty(len(self._model.profiles), dtype=object)
+        shape_params_all = np.empty(len(self._model.profiles), dtype=object)
+        for i, profile in enumerate(self._model.profiles):
             shape = profile.shape
-
-            pipe_position_names.append(pipe_position_name)
-            pipe_names.append(pipe_name)
-            profile_names.append(profile_name)
-            s_positions.append(ap_bounds.s_positions[i])
-            s_starts.append(ap_bounds.s_start[i])
-            s_ends.append(ap_bounds.s_end[i])
-            shapes.append(type(shape).__name__)
-            shape_params.append(shape._to_dict())
+            shapes_all[i] = type(shape).__name__
+            shape_params_all[i] = shape._to_dict()
 
         table = Table(
             data={
-                'name': np.array(pipe_position_names, dtype=np.str_),
-                'pipe_name': np.array(pipe_names, dtype=np.str_),
-                'profile_name': np.array(profile_names, dtype=np.str_),
-                's': np.array(s_positions, dtype=FloatType._dtype),
-                's_start': np.array(s_starts, dtype=FloatType._dtype),
-                's_end': np.array(s_ends, dtype=FloatType._dtype),
-                'shape': np.array(shapes, dtype=object),
-                'shape_param': np.array(shape_params, dtype=object),
+                'name': pipe_position_names_all[pipe_position_indices],
+                'pipe_name': pipe_names_all[pipe_indices],
+                'profile_name': profile_names_all[profile_indices],
+                's': ap_bounds.s_positions.to_nparray(),
+                's_start': ap_bounds.s_start.to_nparray(),
+                's_end': ap_bounds.s_end.to_nparray(),
+                'shape': shapes_all[profile_indices],
+                'shape_param': shape_params_all[profile_indices],
+            },
+            index='name',
+        )
+        return table
+
+    def get_pipe_table(self):
+        """Get a table representation of the pipe bounds: per installed pipe span information."""
+        table_size = len(self._model.pipe_positions)
+
+        pipe_position_names = np.array(self._model.pipe_position_names, dtype=object)
+        pipe_indices = np.empty(table_size, dtype=np.int32)
+        survey_references = np.empty(table_size, dtype=object)
+        for i in range(table_size):
+            pipe_position = self._model.pipe_positions[i]
+            pipe_indices[i] = pipe_position.pipe_index
+            survey_references[i] = pipe_position.survey_reference_name
+        pipe_names = np.array(self._model.pipe_names, dtype=object)[pipe_indices]
+
+        ap_bounds = self._aperture_bounds
+        pipe_position_indices = ap_bounds.pipe_position_indices.to_nparray().astype(np.uint32, copy=False)
+        s_start = np.full(table_size, np.inf, dtype=FloatType._dtype)
+        s_end = np.full(table_size, -np.inf, dtype=FloatType._dtype)
+        np.minimum.at(s_start, pipe_position_indices, ap_bounds.s_start.to_nparray())
+        np.maximum.at(s_end, pipe_position_indices, ap_bounds.s_end.to_nparray())
+
+        table = Table(
+            data={
+                'name': pipe_position_names,
+                'pipe_name': pipe_names,
+                'survey_reference': survey_references,
+                's_start': s_start,
+                's_end': s_end,
+                'span': s_end - s_start,
             },
             index='name',
         )
