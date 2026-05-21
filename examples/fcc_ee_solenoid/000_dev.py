@@ -10,6 +10,14 @@ tw0 = line.twiss4d(strengths=True)
 
 ip_name = 'ipg'
 
+line.insert('dy_match_r_'+ip_name, xt.Marker(), at=11.95, from_=ip_name)
+line.insert('dy_match_l_'+ip_name, xt.Marker(), at=-11.95, from_=ip_name)
+
+line.insert([
+    env.new('corr_sol_right'+ip_name, xt.Multipole, at=0, from_=f'dy_match_r_{ip_name}@start'),
+    env.new('corr_sol_left'+ip_name, xt.Multipole, at=0, from_=f'dy_match_l_{ip_name}@end'),
+])
+
 sf = SolenoidField(L=1.23*2, a=0.13, B0=2., z0=0)
 
 # Tilt with respect to the beam axis
@@ -131,9 +139,82 @@ for nn in doublet_quad_right:
     env[nn].rot_s_rad = -env.ref['phi_rot_doublet'] * env.ref['on_rot_doublet_right']
 
 
+# Overlay dipole corrector in between 1.23m and 2.29
 tt = line.get_table()
-tt_left = tt.rows['end_ds_start_straight_ipg':'ipg']
-tt_right = tt.rows['ipg':'end_straight_start_ds_ipg']
+tt_region = tt.rows['end_ds_start_straight_ipg':'end_straight_start_ds_ipg']
+s_ip = tt_region['s', ip_name]
+
+# Inner kicker right
+ds_start = 1.23
+ds_end = 2.29
+tt_kicker_right= tt_region.rows[s_ip + ds_start: s_ip + ds_end:'s']
+
+assert np.all(tt_kicker_right.element_type == 'VariableSolenoid')
+l_tot = tt_kicker_right['s_end'][-1] - tt_kicker_right['s_start'][0]
+
+env['acbh1_sol_right'] = 0
+env['acbv1_sol_right'] = 0
+for nn in tt_kicker_right.name:
+    ee = env.get(nn)
+    env.ref[nn].knl[0] += env.ref['acbh1_sol_right']/l_tot * ee.length
+    env.ref[nn].ksl[0] += env.ref['acbv1_sol_right']/l_tot * ee.length
+
+# Inner kicker left
+ds_start = -2.29
+ds_end = -1.23
+tt_kicker_left = tt_region.rows[s_ip + ds_start: s_ip + ds_end:'s']
+assert np.all(tt_kicker_left.element_type == 'VariableSolenoid')
+l_tot = tt_kicker_left['s_end'][-1] - tt_kicker_left['s_start'][0]
+
+env['acbh1_sol_left'] = 0
+env['acbv1_sol_left'] = 0
+for nn in tt_kicker_left.name:
+    ee = env.get(nn)
+    env.ref[nn].knl[0] += env.ref['acbh1_sol_left']/l_tot * ee.length
+    env.ref[nn].ksl[0] += env.ref['acbv1_sol_left']/l_tot * ee.length
+
+# Other correctors on the right
+env['acbh2_sol_right'] = 0
+env['acbh3_sol_right'] = 0
+env['acbh4_sol_right'] = 0
+env['acbh5_sol_right'] = 0
+env['acbh6_sol_right'] = 0
+env['acbv2_sol_right'] = 0
+env['acbv3_sol_right'] = 0
+env['acbv4_sol_right'] = 0
+env['acbv5_sol_right'] = 0
+env['acbv6_sol_right'] = 0
+
+env['qd0ar.2'].knl[0] += env.ref['acbh2_sol_right']
+env['qd0br.2'].knl[0] += env.ref['acbh3_sol_right']
+env['qf1ar.2'].knl[0] += env.ref['acbh4_sol_right']
+env['qf1br.2'].knl[0] += env.ref['acbh5_sol_right']
+env['corr_sol_right'+ip_name].knl[0] += env.ref['acbh6_sol_right']
+
+env['qd0ar.2'].ksl[0] += env.ref['acbv2_sol_right']
+env['qd0br.2'].ksl[0] += env.ref['acbv3_sol_right']
+env['qf1ar.2'].ksl[0] += env.ref['acbv4_sol_right']
+env['qf1br.2'].ksl[0] += env.ref['acbv5_sol_right']
+env['corr_sol_right'+ip_name].ksl[0] += env.ref['acbv6_sol_right']
+env.vars.default_to_zero = False
+
+# Match orbit and vertical dispersion right
+opt = line.match(
+    solve=False,
+    init=tw0,
+    start=ip_name,
+    end='dy_match_r_'+ip_name,
+    vary=xt.VaryList([
+        'acbh1_sol_right', 'acbv1_sol_right',
+        'acbh2_sol_right', 'acbh3_sol_right',
+        'acbh4_sol_right', 'acbh5_sol_right',
+        'acbh6_sol_right', 'acbv2_sol_right',
+        'acbv3_sol_right', 'acbv4_sol_right',
+        'acbv5_sol_right', 'acbv6_sol_right'], step=1e-6),
+    targets=xt.TargetSet(x=0, px=0, y=0, py=0, dy=0, dpy=0, at=xt.END))
+opt.solve()
+
+prrrrr
 
 line['on_sol'] = 0
 line['on_comp_sol'] = 0
@@ -162,3 +243,10 @@ two_sol_on_comp_sol_on = line.twiss(
     init_at=ip_name,
     init=tw_off)
 
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+two_sol_on_comp_sol_on.zero_at(ip_name)
+two_sol_on_comp_sol_on.rows[-20:20:'s'].plot('betx2 bety1')
+
+plt.show()
