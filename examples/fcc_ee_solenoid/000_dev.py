@@ -16,7 +16,7 @@ sf = SolenoidField(L=1.23*2, a=0.13, B0=2., z0=0)
 theta = -0.015
 
 # s coordinate along the beam axis
-s = np.linspace(-2.4, 2.4, 201)
+s = np.linspace(-2.399, 2.399, 201)
 
 # Corresponding coordinates of the beam reference trajectory in the solenoid frame
 s_sol = s * np.cos(theta)
@@ -68,6 +68,10 @@ for nn in line_solenoid.element_names:
     if isinstance(ee, xt.VariableSolenoid):
         ksol_l_main_solenoid += ee.ks_profile.mean() * ee.length
 
+# Measure rotation angle from solenoid
+line_solenoid.particle_ref = line.particle_ref.copy()
+tw_tst = line_solenoid.twiss(betx=1, bety=1, px=1e-6)
+
 # Make compensation solenoid
 
 sfc = SolenoidField(L=1.5, a=0.03, B0=1., z0=0)
@@ -112,16 +116,35 @@ line.insert(ip_name, at=s_ip, s_tol=1e-9) # Put back the ip
 line.insert(line_comp_solenoid_left, anchor='end', at=-12, from_=ip_name)
 line.insert(line_comp_solenoid_right, anchor='start', at=12, from_=ip_name)
 
+# Tilt the doublets
+doublet_quad_left = [
+       'qd0al.1', 'qd0bl.1', 'qd0cl.1', 'qf1al.1', 'qf1bl.1', 'qf1cl.1', 'qf1dl.1']
+doublet_quad_right = [
+       'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2', 'qf1dr.2']
+
+env['phi_rot_doublet'] = (ksol_l_main_solenoid / 2) / 2 # in parentheses is the full solenoid rotation, we want half of it for each doublet
+env['on_rot_doublet_left'] = 1
+env['on_rot_doublet_right'] = 1
+for nn in doublet_quad_left:
+    env[nn].rot_s_rad = +env.ref['phi_rot_doublet'] * env.ref['on_rot_doublet_left']
+for nn in doublet_quad_right:
+    env[nn].rot_s_rad = -env.ref['phi_rot_doublet'] * env.ref['on_rot_doublet_right']
+
+
 tt = line.get_table()
 tt_left = tt.rows['end_ds_start_straight_ipg':'ipg']
 tt_right = tt.rows['ipg':'end_straight_start_ds_ipg']
 
 line['on_sol'] = 0
 line['on_comp_sol'] = 0
+line['on_rot_doublet_right'] = 0
+line['on_rot_doublet_left'] = 0
 tw_off = line.twiss4d()
 
 line['on_sol'] = 1
 line['on_comp_sol'] = 0
+line['on_rot_doublet_right'] = 0
+line['on_rot_doublet_left'] = 0
 tw_sol_on_comp_sol_off = line.twiss4d()
 two_sol_on_comp_sol_off = line.twiss(
     start='end_ds_start_straight_ipg',
@@ -131,17 +154,15 @@ two_sol_on_comp_sol_off = line.twiss(
 
 line['on_sol'] = 1
 line['on_comp_sol'] = 1
-tw_sol_on_comp_sol_on = line.twiss4d()
+line['on_rot_doublet_right'] = 1
+line['on_rot_doublet_left'] = 1
 two_sol_on_comp_sol_on = line.twiss(
     start='end_ds_start_straight_ipg',
     end='end_straight_start_ds_ipg',
-    spin=True,
-    init_at=ip_name,
-    betx=tw_off['betx', 'ipg'],
-    bety=tw_off['bety', 'ipg'],
-    alfx=tw_off['alfx', 'ipg'],
-    alfy=tw_off['alfy', 'ipg'],
-    spin_y=1)
+    init_at='end_straight_start_ds_ipg',
+    init=tw_off)
+
+
 
 
 
