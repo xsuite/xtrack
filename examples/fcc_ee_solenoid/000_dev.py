@@ -159,7 +159,7 @@ line['on_rot_doublet_left'] = 1
 two_sol_on_comp_sol_on = line.twiss(
     start='end_ds_start_straight_ipg',
     end='end_straight_start_ds_ipg',
-    init_at='end_straight_start_ds_ipg',
+    init_at=ip_name,
     init=tw_off)
 
 
