@@ -1644,6 +1644,7 @@ class Line:
     def get_local_momentum_acceptance(
         self,
         *,
+        elements=None,
         twiss=None,
         scattering='off',
         x_offset: float = 0.0,
@@ -1655,10 +1656,6 @@ class Line:
         delta_negative_limit: float = -0.10,
         delta_positive_limit: float = +0.10,
         delta_step_size: float = 0.01,
-        s_start: float = 0.0,
-        s_end: float | None = None,
-        include_name_pattern: str | None = None,
-        include_type_pattern: str | None = None,
         n_turns: int = 512,
         with_progress: bool | int = False,
         verbose: bool = False,
@@ -1673,12 +1670,17 @@ class Line:
 
         Parameters
         ----------
-        particle_ref : xt.Particles, optional
-            Reference particle. If not given, uses `self.particle_ref` (must exist).
+        elements : list of str or array-like of str, optional
+            Names of the elements at whose entrance the LMA is evaluated.
+            If ``None`` (default), all elements in the line are used.
+            If multiple elements share the same ``s``, only the first encountered
+            is used.
         twiss : xt.TwissTable, optional
             Twiss table to define the closed orbit and optics. By default,
             a 6D solution is computed with `self.twiss(method='6d')`. You can
             override the method with `method=...` in `**kwargs`.
+        scattering : str, optional
+            Wheter scattering has been enabled or not (`'on'` or `'off'`).
         x_offset : float, default 0.0
             Horizontal physical offset in meters. Mutually exclusive with
             `x_norm_offset`.
@@ -1702,16 +1704,6 @@ class Line:
         delta_step_size : float, default 0.01
             Step for the δ grid. Must be > 0. The positive end is included
             with a half-step guard to reduce floating-point exclusion.
-        s_start : float, default 0.0
-            Start of the longitudinal selection window (m), inclusive.
-        s_end : float, optional
-            End of the selection window (m), exclusive. Defaults to ∞.
-        include_name_pattern : str, optional
-            Regex pattern to filter elements by name, passed directly to
-            ``tt.rows[include_name_pattern]``.
-        include_type_pattern : str, optional
-            Exact element type name to filter by (e.g. ``'Quadrupole'``,
-            ``'Sextupole'``), matched against the ``element_type`` column.
         n_turns : int, default 512
             Number of turns to track.
         with_progress : bool | int, default False
@@ -1725,8 +1717,6 @@ class Line:
         -------------------
         - LMA is evaluated at the **entrance** of each element.
         - If multiple elements share the same `s`, only the first encountered is used.
-        - Elements are filtered by `s_start <= s < s_end`, then by optional
-        `include_name_pattern` and/or `include_type_pattern`.
 
         Algorithm (per selected element)
         --------------------------------
@@ -1749,7 +1739,7 @@ class Line:
         """
         if self.particle_ref is None:
             raise ValueError("Line.particle_ref must be set to build probe particles.")
-        
+
         # Mutual exclusivity: physical vs normalized offsets
         if x_offset != 0.0 and x_norm_offset != 0.0:
             raise ValueError("Provide either x_offset or x_norm_offset, not both.")
@@ -1765,13 +1755,20 @@ class Line:
             raise ValueError("delta_positive_limit must be > 0")
         if delta_step_size <= 0:
             raise ValueError("delta_step_size must be > 0")
-        if s_end is None:
-            s_end = np.inf
-        if s_start >= s_end:
-            raise ValueError("s_start must be < s_end")
         if n_turns <= 0:
             raise ValueError("n_turns must be > 0")
-        
+
+        if elements is not None:
+            if not hasattr(elements, '__iter__') or isinstance(elements, str):
+                raise ValueError("`elements` must be an iterable of strings, not a scalar.")
+            elements = list(elements)
+            if not all(isinstance(e, str) for e in elements):
+                raise ValueError("All entries in `elements` must be strings.")
+            invalid = [e for e in elements if e not in self.element_names]
+            if invalid:
+                raise ValueError(
+                    f"The following elements were not found in the line: {invalid}")
+
         if not self._has_valid_tracker():
             self.build_tracker()
 
@@ -1784,24 +1781,9 @@ class Line:
             if scattering == 'on':
                 self.scattering.enable()
 
-        tt = self.get_table()
-
-        # Filter by s_range
-        tt_filtered = tt.rows[s_start:s_end:'s']
-
-        # Filter by name pattern
-        if include_name_pattern is not None:
-            tt_filtered = tt_filtered.rows[include_name_pattern]
-
-        # Filter by element_type
-        if include_type_pattern is not None:
-            tt_filtered = tt_filtered.rows[tt_filtered['element_type'] == include_type_pattern]
-
-        if len(tt_filtered.name) == 0:
-            raise ValueError("No elements selected for local momentum acceptance computation.")
-        
-        # NOTE: if no filtering is applied, the default is to scan at the ENTRANCE of each element
-        elements = tt_filtered.name
+        if elements is None:
+            tt = self.get_table()
+            elements = tt.name
 
         # Delta grid
         deltas = np.arange(delta_negative_limit, delta_positive_limit + 0.5 * delta_step_size,
@@ -1824,7 +1806,7 @@ class Line:
             ## Prepare test particles
             # The longitudinal closed orbit need to be manually supplied
             zeta_co = twiss['zeta', ee]
-            delta_co= twiss['delta', ee]
+            delta_co = twiss['delta', ee]
 
             if scattering == 'on':
                 self.scattering.disable()
@@ -1891,7 +1873,7 @@ class Line:
             })
 
         cols = {k: np.array([r[k] for r in rows]) for k in rows[0].keys()}
-        
+
         return xt.Table(cols, index='name')
 
     @doc_group("Line Editing")
