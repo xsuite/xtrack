@@ -298,6 +298,8 @@ two_on_corr = line.twiss(
     init=tw_off,
     zero_at=ip_name)
 
+env.to_json('fcc_z_lcc_solenoid.json')
+
 import matplotlib.pyplot as plt
 
 plt.close('all')
