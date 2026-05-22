@@ -311,18 +311,23 @@ line['on_rot_doublet_right'] = 1
 line['on_rot_doublet_left'] = 1
 line['on_sol_orbit_corr'] = 1
 line['on_sol_optics_corr'] = 1
-tw_sol_on_corr_on = line.twiss4d()
-two_sol_on_comp_sol_on = line.twiss(
+tw_on_corr = line.twiss4d(strengths=True)
+two_on_corr = line.twiss(
+    strengths=True,
     start='end_ds_start_straight_ipg',
     end='end_straight_start_ds_ipg',
     init_at=ip_name,
     init=tw_off)
 
 import matplotlib.pyplot as plt
+two_on_corr.zero_at(ip_name)
+
 plt.close('all')
-fig = plt.figure(1)
-two_sol_on_comp_sol_on.zero_at(ip_name)
-two_sol_on_comp_sol_on.rows[-20:20:'s'].plot('betx2 bety1', figure=fig)
+fig1 = plt.figure(1)
+two_on_corr.rows[-20:20:'s'].plot('betx2 bety1', figure=fig1)
+
+fig2 = plt.figure(2)
+two_on_corr.rows[-20:20:'s'].plot('x y', figure=fig2)
 
 
 
