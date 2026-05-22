@@ -249,12 +249,49 @@ opt = line.match_knob(
 opt.solve()
 opt.generate_knob()
 
+quad_for_optics_correction = [
+       # right
+       'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2',
+       'qf1dr.2', 'qf2r.2', 'qd3r.2', 'qd4r.2', 'qf5r.2', 'qd6r.2',
+       #left
+       'qd6l.1', 'qf5l.1', 'qd4l.1', 'qd3l.1', 'qf2l.1', 'qf1dl.1', 'qf1cl.1',
+       'qf1bl.1', 'qf1al.1', 'qd0cl.1', 'qd0bl.1', 'qd0al.1'
+]
+k1_knobs = []
+for nn in quad_for_optics_correction:
+    nn_knob = 'k1_' + nn + '_sol_corr'
+    env[nn_knob] = 0
+    env[nn].k1 += env.ref[nn_knob]
+    k1_knobs.append(nn_knob)
+
+name_start = tt_region.name[0]
+name_end = tt_region.name[-1]
+opt = line.match_knob(
+    knob_name='on_sol_optics_corr',
+    run=False,
+    init=tw0,
+    init_at=ip_name,
+    start=name_start,
+    end=name_end,
+    vary=xt.VaryList(k1_knobs, step=1e-6),
+    targets=[
+        xt.TargetSet(betx=tw0['betx', name_start], bety=tw0['bety', name_start], tol=1e-5, at=xt.START),
+        xt.TargetSet(alfx=tw0['alfx', name_start], alfy=tw0['alfy', name_start], tol=1e-8, at=xt.START),
+        xt.TargetSet(dx=tw0['dx', name_start], dpx=tw0['dpx', name_start], tol=1e-8, at=xt.START),
+        xt.TargetSet(betx=tw0['betx', name_end], bety=tw0['bety', name_end], tol=1e-5, at=xt.END),
+        xt.TargetSet(alfx=tw0['alfx', name_end], alfy=tw0['alfy', name_end], tol=1e-8, at=xt.END),
+        xt.TargetSet(dx=tw0['dx', name_end], dpx=tw0['dpx', name_end], tol=1e-8, at=xt.END)
+    ])
+opt.solve()
+opt.generate_knob()
+
 
 line['on_sol'] = 0
 line['on_comp_sol'] = 0
 line['on_rot_doublet_right'] = 0
 line['on_rot_doublet_left'] = 0
 line['on_sol_orbit_corr'] = 0
+line['on_sol_optics_corr'] = 0
 tw_off = line.twiss4d()
 
 # line['on_sol'] = 1
@@ -273,6 +310,7 @@ line['on_comp_sol'] = 1
 line['on_rot_doublet_right'] = 1
 line['on_rot_doublet_left'] = 1
 line['on_sol_orbit_corr'] = 1
+line['on_sol_optics_corr'] = 1
 tw_sol_on_corr_on = line.twiss4d()
 two_sol_on_comp_sol_on = line.twiss(
     start='end_ds_start_straight_ipg',
@@ -285,5 +323,7 @@ plt.close('all')
 fig = plt.figure(1)
 two_sol_on_comp_sol_on.zero_at(ip_name)
 two_sol_on_comp_sol_on.rows[-20:20:'s'].plot('betx2 bety1', figure=fig)
+
+
 
 plt.show()
