@@ -284,7 +284,11 @@ opt_optics = line.match_knob(
     ])
 opt_optics.solve()
 
+# Iterate to improve orbit and optics correction
 opt_orbit.solve()
+opt_optics.solve()
+opt_orbit.solve()
+opt_optics.solve()
 
 # Generate the knobs
 opt_orbit.generate_knob()
