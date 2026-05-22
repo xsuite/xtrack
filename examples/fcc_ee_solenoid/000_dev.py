@@ -8,28 +8,49 @@ line = env.fccee_p_ring
 
 tw0 = line.twiss4d(strengths=True)
 
-ip_name = 'ipg'
+# ip_name = 'ipg'
+# quad_for_optics_correction = [
+#        # right
+#        'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2',
+#        'qf1dr.2', 'qf2r.2', 'qd3r.2', 'qd4r.2', 'qf5r.2', 'qd6r.2',
+#        #left
+#        'qd6l.1', 'qf5l.1', 'qd4l.1', 'qd3l.1', 'qf2l.1', 'qf1dl.1', 'qf1cl.1',
+#        'qf1bl.1', 'qf1al.1', 'qd0cl.1', 'qd0bl.1', 'qd0al.1'
+# ]
+# doublet_quad_left = [
+#        'qd0al.1', 'qd0bl.1', 'qd0cl.1', 'qf1al.1', 'qf1bl.1', 'qf1cl.1', 'qf1dl.1']
+# doublet_quad_right = [
+#        'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2', 'qf1dr.2']
+# corr_1_right_on_quad = 'qd0ar.2'
+# corr_2_right_on_quad = 'qd0br.2'
+# corr_3_right_on_quad = 'qf1ar.2'
+# corr_4_right_on_quad = 'qf1br.2'
+# corr_1_left_on_quad = 'qd0al.1'
+# corr_2_left_on_quad = 'qd0bl.1'
+# corr_3_left_on_quad = 'qf1al.1'
+# corr_4_left_on_quad = 'qf1bl.1'
+
+ip_name = 'ipj'
 quad_for_optics_correction = [
        # right
-       'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2',
-       'qf1dr.2', 'qf2r.2', 'qd3r.2', 'qd4r.2', 'qf5r.2', 'qd6r.2',
+       'qd0ar.3', 'qd0br.3', 'qd0cr.3', 'qf1ar.3', 'qf1br.3', 'qf1cr.3',
+       'qf1dr.3', 'qf2r.3', 'qd3r.3', 'qd4r.3', 'qf5r.3', 'qd6r.3',
        #left
-       'qd6l.1', 'qf5l.1', 'qd4l.1', 'qd3l.1', 'qf2l.1', 'qf1dl.1', 'qf1cl.1',
-       'qf1bl.1', 'qf1al.1', 'qd0cl.1', 'qd0bl.1', 'qd0al.1'
+       'qd6l.2', 'qf5l.2', 'qd4l.2', 'qd3l.2', 'qf2l.2', 'qf1dl.2', 'qf1cl.3',
+       'qf1bl.2', 'qf1al.2', 'qd0cl.2', 'qd0bl.2', 'qd0al.2'
 ]
 doublet_quad_left = [
-       'qd0al.1', 'qd0bl.1', 'qd0cl.1', 'qf1al.1', 'qf1bl.1', 'qf1cl.1', 'qf1dl.1']
+       'qd0al.2', 'qd0bl.2', 'qd0cl.2', 'qf1al.2', 'qf1bl.2', 'qf1cl.2', 'qf1dl.2']
 doublet_quad_right = [
-       'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2', 'qf1dr.2']
-
-corr_1_right_on_quad = 'qd0ar.2'
-corr_2_right_on_quad = 'qd0br.2'
-corr_3_right_on_quad = 'qf1ar.2'
-corr_4_right_on_quad = 'qf1br.2'
-corr_1_left_on_quad = 'qd0al.1'
-corr_2_left_on_quad = 'qd0bl.1'
-corr_3_left_on_quad = 'qf1al.1'
-corr_4_left_on_quad = 'qf1bl.1'
+       'qd0ar.3', 'qd0br.3', 'qd0cr.3', 'qf1ar.3', 'qf1br.3', 'qf1cr.3', 'qf1dr.3']
+corr_1_right_on_quad = 'qd0ar.3'
+corr_2_right_on_quad = 'qd0br.3'
+corr_3_right_on_quad = 'qf1ar.3'
+corr_4_right_on_quad = 'qf1br.3'
+corr_1_left_on_quad = 'qd0al.2'
+corr_2_left_on_quad = 'qd0bl.2'
+corr_3_left_on_quad = 'qf1al.2'
+corr_4_left_on_quad = 'qf1bl.2'
 
 line.insert('dy_match_r_'+ip_name, xt.Marker(), at=11.95, from_=ip_name)
 line.insert('dy_match_l_'+ip_name, xt.Marker(), at=-11.95, from_=ip_name)
