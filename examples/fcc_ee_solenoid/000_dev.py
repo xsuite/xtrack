@@ -241,7 +241,7 @@ for ip_name in config.keys():
         env.ref[nn].knl[0] += env.ref[f'acbh1_sol_left_{ip_name}']/l_tot * ee.length
         env.ref[nn].ksl[0] += env.ref[f'acbv1_sol_left_{ip_name}']/l_tot * ee.length
 
-    # Attouch knobs to kickers
+    # Define orbit corrector knobs
     env[f'acbh2_sol_right_{ip_name}'] = 0
     env[f'acbh3_sol_right_{ip_name}'] = 0
     env[f'acbh4_sol_right_{ip_name}'] = 0
@@ -263,6 +263,7 @@ for ip_name in config.keys():
     env[f'acbv5_sol_left_{ip_name}'] = 0
     env[f'acbv6_sol_left_{ip_name}'] = 0
 
+    # Attach knobs to correctors
     env[corr_1_right_on_quad].knl[0] += env.ref[f'acbh2_sol_right_{ip_name}']
     env[corr_2_right_on_quad].knl[0] += env.ref[f'acbh3_sol_right_{ip_name}']
     env[corr_3_right_on_quad].knl[0] += env.ref[f'acbh4_sol_right_{ip_name}']
@@ -353,8 +354,9 @@ for ip_name in config.keys():
     opt_orbit.generate_knob()
     opt_optics.generate_knob()
 
-    # Attach general correction knob
+    # Control all correction with a single knob
     line[f'on_sol_corr_{ip_name}'] = 1
+
     line[f'on_comp_sol_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_rot_doublet_right_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_rot_doublet_left_{ip_name}'] = f'on_sol_corr_{ip_name}'
