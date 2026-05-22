@@ -9,6 +9,28 @@ line = env.fccee_p_ring
 tw0 = line.twiss4d(strengths=True)
 
 config = {}
+
+config['ipd'] = {
+    'quad_for_optics_correction': [
+        'qd0ar.1', 'qd0br.1', 'qd0cr.1', 'qf1ar.1', 'qf1br.1', 'qf1cr.1',
+        'qf1dr.1', 'qf2r.1', 'qd3r.1', 'qd4r.1', 'qf5r.1', 'qd6r.1',
+        'qd6l.0', 'qf5l.0', 'qd4l.0', 'qd3l.0', 'qf2l.0', 'qf1dl.0', 'qf1cl.0',
+        'qf1bl.0', 'qf1al.0', 'qd0cl.0', 'qd0bl.0', 'qd0al.0'
+        ],
+    'doublet_quad_left': [
+        'qd0al.0', 'qd0bl.0', 'qd0cl.0', 'qf1al.0', 'qf1bl.0', 'qf1cl.0', 'qf1dl.0'],
+    'doublet_quad_right': [
+        'qd0ar.1', 'qd0br.1', 'qd0cr.1', 'qf1ar.1', 'qf1br.1', 'qf1cr.1', 'qf1dr.1'],
+    'corr_1_right_on_quad': 'qd0ar.1',
+    'corr_2_right_on_quad': 'qd0br.1',
+    'corr_3_right_on_quad': 'qf1ar.1',
+    'corr_4_right_on_quad': 'qf1br.1',
+    'corr_1_left_on_quad': 'qd0al.0',
+    'corr_2_left_on_quad': 'qd0bl.0',
+    'corr_3_left_on_quad': 'qf1al.0',
+    'corr_4_left_on_quad': 'qf1bl.0',
+}
+
 config['ipg'] = {
     'quad_for_optics_correction': [
         'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2',
@@ -339,15 +361,19 @@ for ip_name in config.keys():
     line[f'on_sol_orbit_corr_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_sol_optics_corr_{ip_name}'] = f'on_sol_corr_{ip_name}'
 
+line['on_sol_ipd'] = 0
 line['on_sol_ipg'] = 0
 line['on_sol_ipj'] = 0
+line['on_sol_corr_ipd'] = 0
 line['on_sol_corr_ipg'] = 0
 line['on_sol_corr_ipj'] = 0
 tw_off = line.twiss4d(strengths=True, zero_at=ip_name)
 nl_chrom_off = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
 
+line['on_sol_ipd'] = 1
 line['on_sol_ipg'] = 1
 line['on_sol_ipj'] = 1
+line['on_sol_corr_ipd'] = 1
 line['on_sol_corr_ipg'] = 1
 line['on_sol_corr_ipj'] = 1
 tw_on_corr = line.twiss4d(strengths=True, zero_at=ip_name)
