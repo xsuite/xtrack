@@ -22,7 +22,14 @@ doublet_quad_left = [
 doublet_quad_right = [
        'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2', 'qf1dr.2']
 
-
+corr_1_right_on_quad = 'qd0ar.2'
+corr_2_right_on_quad = 'qd0br.2'
+corr_3_right_on_quad = 'qf1ar.2'
+corr_4_right_on_quad = 'qf1br.2'
+corr_1_left_on_quad = 'qd0al.1'
+corr_2_left_on_quad = 'qd0bl.1'
+corr_3_left_on_quad = 'qf1al.1'
+corr_4_left_on_quad = 'qf1bl.1'
 
 line.insert('dy_match_r_'+ip_name, xt.Marker(), at=11.95, from_=ip_name)
 line.insert('dy_match_l_'+ip_name, xt.Marker(), at=-11.95, from_=ip_name)
@@ -185,7 +192,6 @@ for nn in tt_kicker_left.name:
     env.ref[nn].ksl[0] += env.ref[f'acbv1_sol_left_{ip_name}']/l_tot * ee.length
 
 # Outer kickers
-
 env[f'acbh2_sol_right_{ip_name}'] = 0
 env[f'acbh3_sol_right_{ip_name}'] = 0
 env[f'acbh4_sol_right_{ip_name}'] = 0
@@ -207,28 +213,28 @@ env[f'acbv4_sol_left_{ip_name}'] = 0
 env[f'acbv5_sol_left_{ip_name}'] = 0
 env[f'acbv6_sol_left_{ip_name}'] = 0
 
-env['qd0ar.2'].knl[0] += env.ref[f'acbh2_sol_right_{ip_name}']
-env['qd0br.2'].knl[0] += env.ref[f'acbh3_sol_right_{ip_name}']
-env['qf1ar.2'].knl[0] += env.ref[f'acbh4_sol_right_{ip_name}']
-env['qf1br.2'].knl[0] += env.ref[f'acbh5_sol_right_{ip_name}']
+env[corr_1_right_on_quad].knl[0] += env.ref[f'acbh2_sol_right_{ip_name}']
+env[corr_2_right_on_quad].knl[0] += env.ref[f'acbh3_sol_right_{ip_name}']
+env[corr_3_right_on_quad].knl[0] += env.ref[f'acbh4_sol_right_{ip_name}']
+env[corr_4_right_on_quad].knl[0] += env.ref[f'acbh5_sol_right_{ip_name}']
 env['corr_sol_right_'+ip_name].knl[0] += env.ref[f'acbh6_sol_right_{ip_name}']
 
-env['qd0al.1'].knl[0] += env.ref[f'acbh2_sol_left_{ip_name}']
-env['qd0bl.1'].knl[0] += env.ref[f'acbh3_sol_left_{ip_name}']
-env['qf1al.1'].knl[0] += env.ref[f'acbh4_sol_left_{ip_name}']
-env['qf1bl.1'].knl[0] += env.ref[f'acbh5_sol_left_{ip_name}']
+env[corr_1_left_on_quad].knl[0] += env.ref[f'acbh2_sol_left_{ip_name}']
+env[corr_2_left_on_quad].knl[0] += env.ref[f'acbh3_sol_left_{ip_name}']
+env[corr_3_left_on_quad].knl[0] += env.ref[f'acbh4_sol_left_{ip_name}']
+env[corr_4_left_on_quad].knl[0] += env.ref[f'acbh5_sol_left_{ip_name}']
 env['corr_sol_left_'+ip_name].knl[0] += env.ref[f'acbh6_sol_left_{ip_name}']
 
-env['qd0ar.2'].ksl[0] += env.ref[f'acbv2_sol_right_{ip_name}']
-env['qd0br.2'].ksl[0] += env.ref[f'acbv3_sol_right_{ip_name}']
-env['qf1ar.2'].ksl[0] += env.ref[f'acbv4_sol_right_{ip_name}']
-env['qf1br.2'].ksl[0] += env.ref[f'acbv5_sol_right_{ip_name}']
+env[corr_1_right_on_quad].ksl[0] += env.ref[f'acbv2_sol_right_{ip_name}']
+env[corr_2_right_on_quad].ksl[0] += env.ref[f'acbv3_sol_right_{ip_name}']
+env[corr_3_right_on_quad].ksl[0] += env.ref[f'acbv4_sol_right_{ip_name}']
+env[corr_4_right_on_quad].ksl[0] += env.ref[f'acbv5_sol_right_{ip_name}']
 env['corr_sol_right_'+ip_name].ksl[0] += env.ref[f'acbv6_sol_right_{ip_name}']
 
-env['qd0al.1'].ksl[0] += env.ref[f'acbv2_sol_left_{ip_name}']
-env['qd0bl.1'].ksl[0] += env.ref[f'acbv3_sol_left_{ip_name}']
-env['qf1al.1'].ksl[0] += env.ref[f'acbv4_sol_left_{ip_name}']
-env['qf1bl.1'].ksl[0] += env.ref[f'acbv5_sol_left_{ip_name}']
+env[corr_1_left_on_quad].ksl[0] += env.ref[f'acbv2_sol_left_{ip_name}']
+env[corr_2_left_on_quad].ksl[0] += env.ref[f'acbv3_sol_left_{ip_name}']
+env[corr_3_left_on_quad].ksl[0] += env.ref[f'acbv4_sol_left_{ip_name}']
+env[corr_4_left_on_quad].ksl[0] += env.ref[f'acbv5_sol_left_{ip_name}']
 env['corr_sol_left_'+ip_name].ksl[0] += env.ref[f'acbv6_sol_left_{ip_name}']
 
 # Match orbit and vertical dispersion right
