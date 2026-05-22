@@ -280,6 +280,7 @@ opt = line.match_knob(
         xt.TargetSet(dx=tw0['dx', name_start], dpx=tw0['dpx', name_start], tol=1e-8, at=xt.START),
         xt.TargetSet(betx=tw0['betx', name_end], bety=tw0['bety', name_end], tol=1e-5, at=xt.END),
         xt.TargetSet(alfx=tw0['alfx', name_end], alfy=tw0['alfy', name_end], tol=1e-8, at=xt.END),
+        xt.TargetSet(mux=tw0['mux', name_end], muy=tw0['muy', name_end], tol=1e-6, at=xt.END),
         xt.TargetSet(dx=tw0['dx', name_end], dpx=tw0['dpx', name_end], tol=1e-8, at=xt.END)
     ])
 opt.solve()
@@ -292,18 +293,8 @@ line['on_rot_doublet_right'] = 0
 line['on_rot_doublet_left'] = 0
 line['on_sol_orbit_corr'] = 0
 line['on_sol_optics_corr'] = 0
-tw_off = line.twiss4d()
-
-# line['on_sol'] = 1
-# line['on_comp_sol'] = 0
-# line['on_rot_doublet_right'] = 0
-# line['on_rot_doublet_left'] = 0
-# tw_sol_on_comp_sol_off = line.twiss4d()
-# two_sol_on_comp_sol_off = line.twiss(
-#     start='end_ds_start_straight_ipg',
-#     end='end_straight_start_ds_ipg',
-#     init_at=ip_name,
-#     init=tw_off)
+tw_off = line.twiss4d(strengths=True, zero_at=ip_name)
+nl_chrom_off = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
 
 line['on_sol'] = 1
 line['on_comp_sol'] = 1
@@ -311,16 +302,17 @@ line['on_rot_doublet_right'] = 1
 line['on_rot_doublet_left'] = 1
 line['on_sol_orbit_corr'] = 1
 line['on_sol_optics_corr'] = 1
-tw_on_corr = line.twiss4d(strengths=True)
+tw_on_corr = line.twiss4d(strengths=True, zero_at=ip_name)
+nl_chrom_on_corr = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
 two_on_corr = line.twiss(
     strengths=True,
     start='end_ds_start_straight_ipg',
     end='end_straight_start_ds_ipg',
     init_at=ip_name,
-    init=tw_off)
+    init=tw_off,
+    zero_at=ip_name)
 
 import matplotlib.pyplot as plt
-two_on_corr.zero_at(ip_name)
 
 plt.close('all')
 fig1 = plt.figure(1)
@@ -329,6 +321,16 @@ two_on_corr.rows[-20:20:'s'].plot('betx2 bety1', figure=fig1)
 fig2 = plt.figure(2)
 two_on_corr.rows[-20:20:'s'].plot('x y', figure=fig2)
 
+# Plot phase error
+fig3 = plt.figure(3)
+ax = fig3.add_subplot(3,1,1)
+tw_off.plot(ax=ax)
 
+ax2 = fig3.add_subplot(3,1,2, sharex=ax)
+ax2.plot(tw_off.s, tw_off.muy - tw_on_corr.muy, label='muy error')
+
+ax3 = fig3.add_subplot(3,1,3, sharex=ax)
+ax3.plot(tw_off.s, tw_off.muy)
+ax3.plot(tw_on_corr.s, tw_on_corr.muy, label='muy with solenoid')
 
 plt.show()
