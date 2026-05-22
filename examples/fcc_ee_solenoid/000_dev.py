@@ -9,6 +9,20 @@ line = env.fccee_p_ring
 tw0 = line.twiss4d(strengths=True)
 
 ip_name = 'ipg'
+quad_for_optics_correction = [
+       # right
+       'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2',
+       'qf1dr.2', 'qf2r.2', 'qd3r.2', 'qd4r.2', 'qf5r.2', 'qd6r.2',
+       #left
+       'qd6l.1', 'qf5l.1', 'qd4l.1', 'qd3l.1', 'qf2l.1', 'qf1dl.1', 'qf1cl.1',
+       'qf1bl.1', 'qf1al.1', 'qd0cl.1', 'qd0bl.1', 'qd0al.1'
+]
+doublet_quad_left = [
+       'qd0al.1', 'qd0bl.1', 'qd0cl.1', 'qf1al.1', 'qf1bl.1', 'qf1cl.1', 'qf1dl.1']
+doublet_quad_right = [
+       'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2', 'qf1dr.2']
+
+
 
 line.insert('dy_match_r_'+ip_name, xt.Marker(), at=11.95, from_=ip_name)
 line.insert('dy_match_l_'+ip_name, xt.Marker(), at=-11.95, from_=ip_name)
@@ -125,10 +139,7 @@ line.insert(line_comp_solenoid_left, anchor='end', at=-12, from_=ip_name)
 line.insert(line_comp_solenoid_right, anchor='start', at=12, from_=ip_name)
 
 # Tilt the doublets
-doublet_quad_left = [
-       'qd0al.1', 'qd0bl.1', 'qd0cl.1', 'qf1al.1', 'qf1bl.1', 'qf1cl.1', 'qf1dl.1']
-doublet_quad_right = [
-       'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2', 'qf1dr.2']
+
 
 env[f'phi_rot_doublet_{ip_name}'] = (ksol_l_main_solenoid / 2) / 2 # in parentheses is the full solenoid rotation, we want half of it for each doublet
 env[f'on_rot_doublet_left_{ip_name}'] = 1
@@ -249,14 +260,6 @@ opt_orbit = line.match_knob(
 opt_orbit.solve()
 
 
-quad_for_optics_correction = [
-       # right
-       'qd0ar.2', 'qd0br.2', 'qd0cr.2', 'qf1ar.2', 'qf1br.2', 'qf1cr.2',
-       'qf1dr.2', 'qf2r.2', 'qd3r.2', 'qd4r.2', 'qf5r.2', 'qd6r.2',
-       #left
-       'qd6l.1', 'qf5l.1', 'qd4l.1', 'qd3l.1', 'qf2l.1', 'qf1dl.1', 'qf1cl.1',
-       'qf1bl.1', 'qf1al.1', 'qd0cl.1', 'qd0bl.1', 'qd0al.1'
-]
 k1_knobs = []
 for nn in quad_for_optics_correction:
     nn_knob = 'k1_' + nn + '_sol_corr'
