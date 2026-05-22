@@ -261,6 +261,8 @@ sv_indices = np.clip(sv_indices, 0, len(sv_b1_straight.Z) - 1)
 for ii, sv_index in enumerate(sv_indices):
     while sv_index > 0 and sv_b1_straight.length[sv_index] == 0:
         sv_index -= 1
+    while sv_index > 0 and sv_b1_straight.name[sv_index].startswith('||'):
+        sv_index -= 1
     sv_indices[ii] = sv_index
 sv_names = [sv_b1_straight.name[idx] for idx in sv_indices]
 assert len(set(sv_b1_straight.name)) == len(sv_b1_straight.name), "There are non-unique survey names, which might be a problem"
@@ -420,8 +422,15 @@ assert len(p_tab.rows[indices_with_dipole_pipes & indices_not_main_dipoles]) == 
 
 
 # Unbend the model!
+b1.regenerate_from_composer()
+b2.regenerate_from_composer()
+
 lattice.vars['a.mb'] = angle_before
 lattice.vars['ds'] = ds_before
+
+b1.end_compose()
+b2.end_compose()
+
 sv_b1 = b1.survey()
 sv_b2 = b2.survey(theta0=np.pi)
 
