@@ -92,7 +92,7 @@ config['ipj'] = {
     'quad_for_optics_correction': [
         'qd0ar.3', 'qd0br.3', 'qd0cr.3', 'qf1ar.3', 'qf1br.3', 'qf1cr.3',
         'qf1dr.3', 'qf2r.3', 'qd3r.3', 'qd4r.3', 'qf5r.3', 'qd6r.3',
-        'qd6l.2', 'qf5l.2', 'qd4l.2', 'qd3l.2', 'qf2l.2', 'qf1dl.2', 'qf1cl.3',
+        'qd6l.2', 'qf5l.2', 'qd4l.2', 'qd3l.2', 'qf2l.2', 'qf1dl.2', 'qf1cl.2',
         'qf1bl.2', 'qf1al.2', 'qd0cl.2', 'qd0bl.2', 'qd0al.2'
     ],
     'doublet_quad_left': [
@@ -109,6 +109,7 @@ config['ipj'] = {
     'corr_4_left_on_quad': 'qf1bl.2',
 }
 
+optimizers = {}
 for ip_name in config.keys():
 
     print(f'IP {ip_name}:')
@@ -257,6 +258,9 @@ for ip_name in config.keys():
     opt_orbit.generate_knob()
     opt_optics.generate_knob()
 
+    optimizers[ip_name + '_orbit'] = opt_orbit
+    optimizers[ip_name + '_optics'] = opt_optics
+
     # Control all correction with a single knob
     line[f'on_sol_corr_{ip_name}'] = 1
 
@@ -293,7 +297,7 @@ tw_on_corr = line.twiss4d(strengths=True, zero_at=ip_name)
 two_on_corr = line.twiss(
     strengths=True,
     init=tw_off,
-    zero_at=ip_name)
+    init_at='ipj')
 
 env.to_json('fccee_z_lcc_solenoid.json')
 
