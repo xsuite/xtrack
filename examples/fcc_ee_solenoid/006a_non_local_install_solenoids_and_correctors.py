@@ -5,14 +5,16 @@ import numpy as np
 
 env = xt.load('fccee_z_lcc.json')
 line = env.fccee_p_ring
-tt = line.get_table()
 
-ip_names = ['ipd', 'ipg', 'ipj']
+ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
 
 # Tilt with respect to the beam axis
 theta = -0.015
 
 for ip_name in ip_names:
+
+    line.cycle(f'end_ds_start_straight_{ip_name}')
+    tt = line.get_table()
 
     print(f'IP {ip_name}:')
 
