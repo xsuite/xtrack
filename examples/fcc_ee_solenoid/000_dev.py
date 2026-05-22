@@ -221,7 +221,7 @@ env['qf1bl.1'].ksl[0] += env.ref['acbv5_sol_left']
 env['corr_sol_left'+ip_name].ksl[0] += env.ref['acbv6_sol_left']
 
 # Match orbit and vertical dispersion right
-opt = line.match_knob(
+opt_orbit = line.match_knob(
     knob_name='on_sol_orbit_corr',
     run=False,
     init=tw0,
@@ -246,8 +246,8 @@ opt = line.match_knob(
         xt.TargetSet(x=0, px=0, y=0, py=0, dy=0, dpy=0, at=xt.END),
         xt.TargetSet(x=0, px=0, y=0, py=0, dy=0, dpy=0, at=xt.START)
     ])
-opt.solve()
-opt.generate_knob()
+opt_orbit.solve()
+
 
 quad_for_optics_correction = [
        # right
@@ -266,7 +266,7 @@ for nn in quad_for_optics_correction:
 
 name_start = tt_region.name[0]
 name_end = tt_region.name[-1]
-opt = line.match_knob(
+opt_optics = line.match_knob(
     knob_name='on_sol_optics_corr',
     run=False,
     init=tw0,
@@ -280,12 +280,15 @@ opt = line.match_knob(
         xt.TargetSet(dx=tw0['dx', name_start], dpx=tw0['dpx', name_start], tol=1e-8, at=xt.START),
         xt.TargetSet(betx=tw0['betx', name_end], bety=tw0['bety', name_end], tol=1e-5, at=xt.END),
         xt.TargetSet(alfx=tw0['alfx', name_end], alfy=tw0['alfy', name_end], tol=1e-8, at=xt.END),
-        xt.TargetSet(mux=tw0['mux', name_end], muy=tw0['muy', name_end], tol=1e-6, at=xt.END),
         xt.TargetSet(dx=tw0['dx', name_end], dpx=tw0['dpx', name_end], tol=1e-8, at=xt.END)
     ])
-opt.solve()
-opt.generate_knob()
+opt_optics.solve()
 
+opt_orbit.solve()
+
+# Generate the knobs
+opt_orbit.generate_knob()
+opt_optics.generate_knob()
 
 line['on_sol'] = 0
 line['on_comp_sol'] = 0
@@ -316,10 +319,10 @@ import matplotlib.pyplot as plt
 
 plt.close('all')
 fig1 = plt.figure(1)
-two_on_corr.rows[-20:20:'s'].plot('betx2 bety1', figure=fig1)
+tw_on_corr.rows[-20:20:'s'].plot('betx2 bety1', figure=fig1)
 
 fig2 = plt.figure(2)
-two_on_corr.rows[-20:20:'s'].plot('x y', figure=fig2)
+tw_on_corr.rows[-20:20:'s'].plot('x y', figure=fig2)
 
 # Plot phase error
 fig3 = plt.figure(3)
