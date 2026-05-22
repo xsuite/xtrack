@@ -156,5 +156,5 @@ for ip_name in ip_names:
         env.new(f'corr_sol_left_{ip_name}', xt.Multipole, at=0, from_=f'dy_match_l_{ip_name}@end'),
     ])
 
-line.to_json('temp_fcc_ee_lcc_solenoid.json')
+env.to_json('temp_fcc_ee_lcc_solenoid.json')
 
