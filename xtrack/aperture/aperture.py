@@ -586,7 +586,7 @@ class PipesView:
         pipes_str = 'pipe' if count == 1 else 'pipes'
         return f'<PipesView: {count} {pipes_str}>'
 
-    def __getitem__(self, item: str | int):
+    def __getitem__(self, item: str | int) -> PipeView:
         if isinstance(item, str):
             item = self._model.pipe_names.index(item)
 

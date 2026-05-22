@@ -69,15 +69,20 @@ ldb_model = layout.Machine.from_pickle("LHC.pickle")
 
 # Load and straighten the LHC
 lattice = xt.load('lhc.json')
+lattice.vars.load('opt_6000.madx')
 
 b1 = lattice.b1
 b2 = lattice.b2
 
+# Check that they can twiss
+b1.twiss4d()
+b2.twiss4d()
+
 b1.regenerate_from_composer()
 b2.regenerate_from_composer()
 
-angle_before = lattice.vars['a.mb']
-ds_before = lattice.vars['ds']
+angle_before = lattice['a.mb']
+ds_before = lattice['ds']
 
 lattice.vars['a.mb'] = 0
 lattice.vars['ds'] = 0
@@ -85,8 +90,8 @@ lattice.vars['ds'] = 0
 b1.end_compose()
 b2.end_compose()
 
-sv_b1 = b1.survey()
-sv_b2 = b2.survey()
+sv_b1_straight = b1.survey()
+sv_b2_straight = b2.survey()
 
 
 def beam_inner_outer(s, sv):
@@ -101,8 +106,8 @@ def beam_inner_outer(s, sv):
     return None
 
 
-plt.plot(sv_b1.Z, sv_b1.X, c='red', label='B1', marker='o')
-plt.plot(sv_b2.Z, sv_b2.X, c='blue', label='B2', marker='o')
+plt.plot(sv_b1_straight.Z, sv_b1_straight.X, c='red', label='B1', marker='o')
+plt.plot(sv_b2_straight.Z, sv_b2_straight.X, c='blue', label='B2', marker='o')
 
 ldb_curv = ldb_model.get_ref_curve()
 dcum = ldb_curv.dcum
@@ -150,17 +155,17 @@ if ignored_profiles:
 
 # Build the pipes
 ignored_types = []
-for type_name, type in ldb_model.types.items():
-    if (aperture := type.aperture) is None:
+for type_name, type_ in ldb_model.types.items():
+    if (aperture_straight := type_.aperture) is None:
         ignored_types.append(type_name)
         continue
 
-    inner_outer = reduce(operator.or_, (set(ie) if ie else {None} for ie in aperture.element_type_aperture), set())
+    inner_outer = reduce(operator.or_, (set(ie) if ie else {None} for ie in aperture_straight.element_type_aperture), set())
     if 'E' not in inner_outer and None not in inner_outer:
         ignored_types.append(type_name)
         continue
 
-    element_type_aperture = aperture.element_type_aperture
+    element_type_aperture = aperture_straight.element_type_aperture
 
     # Sanity check the element type apertures, and apply element type overrides if deemed as inconsistent
     if set(element_type_aperture) <= {'E', 'I', 'IE'}:
@@ -184,11 +189,11 @@ for type_name, type in ldb_model.types.items():
         if override == 'D':
             override = None  # No one knows what "D" stands for...
 
-        element_type_aperture = [override] * len(aperture.element_type_aperture)
+        element_type_aperture = [override] * len(aperture_straight.element_type_aperture)
         beam_specific_type = override is not None
 
-    profiles = aperture.aperture_alias
-    offsets = (aperture.offset_x, aperture.offset_y, aperture.offset_z)
+    profiles = aperture_straight.aperture_alias
+    offsets = (aperture_straight.offset_x, aperture_straight.offset_y, aperture_straight.offset_z)
 
     if not beam_specific_type:
         pipes = [(None, builder.new_pipe(type_name, curvature=0))]
@@ -248,10 +253,17 @@ if ignored_transforms:
 
 
 # Refer pipe locations to survey elements
-s_mid_positions = [mad_point.z for _, mad_point in pipes_loc]
-sv_indices = np.searchsorted(sv_b1.Z + np.concat([np.diff(sv_b1.Z) / 2, [0]]), s_mid_positions, side='right')
-sv_names = [sv_b1.name[idx] for idx in sv_indices]
-assert len(set(sv_b1.name)) == len(sv_b1.name), "There are non-unique survey names, which might be a problem"
+# We use the following heuristic: the reference element is the one on which the middle of the pipe falls, and we take
+# side='right' which means we default to thick elements as references (ensure main dipoles are all correct)
+s_mid_positions = [pipes_loc_middles[transform_name].z for transform_name, _ in pipes_loc]
+sv_indices = np.searchsorted(sv_b1_straight.Z, s_mid_positions, side='right') - 1
+sv_indices = np.clip(sv_indices, 0, len(sv_b1_straight.Z) - 1)
+for ii, sv_index in enumerate(sv_indices):
+    while sv_index > 0 and sv_b1_straight.length[sv_index] == 0:
+        sv_index -= 1
+    sv_indices[ii] = sv_index
+sv_names = [sv_b1_straight.name[idx] for idx in sv_indices]
+assert len(set(sv_b1_straight.name)) == len(sv_b1_straight.name), "There are non-unique survey names, which might be a problem"
 transform_to_sv_point = dict(zip([transform_name for transform_name, _ in pipes_loc], sv_names))
 
 # Place pipes in the model
@@ -279,8 +291,8 @@ for transform_name, mad_point in pipes_loc:
         s_profile = np.mean(poly_hom[2, :])
 
         # Get the rough survey position at s
-        survey_x_at_s = np.interp(s_profile, sv_b1.Z, sv_b1.X)
-        survey_y_at_s = np.interp(s_profile, sv_b1.Y, sv_b1.X)
+        survey_x_at_s = np.interp(s_profile, sv_b1_straight.Z, sv_b1_straight.X)
+        survey_y_at_s = np.interp(s_profile, sv_b1_straight.Y, sv_b1_straight.X)
 
         # Check that the survey is inside the polygon
         poly = Polygon(vertices=poly_hom[(0, 1), :].T)
@@ -289,28 +301,31 @@ for transform_name, mad_point in pipes_loc:
             pipe_to_place = type_name
     else:
         # For a beam specific pipe, place the correct variant (I or E) based on the current side of the beam
-        side = 'E' if np.interp(s_pos, sv_b1.Z, sv_b1.X) > 0 else 'I'
+        side = 'E' if np.interp(s_pos, sv_b1_straight.Z, sv_b1_straight.X) > 0 else 'I'
         pipe_to_place = f'{type_name}/{side}'
 
     # Find the right reference point in the survey (closest) for this pipe
     survey_ref = transform_to_sv_point[transform_name]
-    from_ip1_to_ref = survey_relative_transform(sv_b1, 'ip1', survey_ref)
+    from_ip1_to_ref = survey_relative_transform(sv_b1_straight, 'ip1', survey_ref)
     from_ip1_to_here = mad_point.matrix
     from_ref_to_here = np.linalg.inv(from_ip1_to_ref) @ from_ip1_to_here
 
     if pipe_to_place:
         builder.place_pipe(transform_name, pipe_to_place, transformation=from_ref_to_here, survey_reference=survey_ref)
 
-# TEMPORARILY PATCH THE LAST PIPE SO IT DOESN'T EXTEND PAST THE END OF THE MACHINE
-# CAUSING CHECKS TO FAIL - THIS SHOULD BE UNDONE IN THE RING VERSION!
-builder._pipes['HCVC1IB'].positions[1].shift_s = 3.6
-# END OF PATCH
+# Clip the pipe that crosses the ring boundary. This avoids placing the single-turn model
+# past _end_point until the aperture model supports wrapped pipe spans.
+last_profile_hcvc1ib = builder._pipes['HCVC1IB'].positions[1]
+old_hcvc1ib_last_shift_s = last_profile_hcvc1ib.shift_s
+vc1ib_1l1_start = dict(pipes_loc)['VC1IB.1L1.X'].z
+boundary_margin = 0.05
+last_profile_hcvc1ib.shift_s = min(old_hcvc1ib_last_shift_s, b1.get_length() - vc1ib_1l1_start - boundary_margin)
 
 aperture_model = builder.build()
-aperture = Aperture(model=aperture_model, line=b1, _skip_validity_check=False)
+aperture_straight = Aperture(model=aperture_model, line=b1, _skip_validity_check=False)
 
 ax = plt.gca()
-aperture.plot_floor_projection(ax=ax, len_points=32)
+aperture_straight.plot_floor_projection(ax=ax, len_points=32)
 ax.set_aspect('auto')
 plt.title('LHC LS3 Aperture and Survey Floor Plot (Straightened)')
 
@@ -333,13 +348,14 @@ elements_b1 = set(b1.element_names)
 main_dipoles_b1 = [name for name in main_dipoles if name in set(elements_b1)]
 
 # Plot the element boxes vs the relevant pipe boxes to see how we match
-sv_dipoles_b1 = sv_b1.rows[main_dipoles_b1]
+sv_dipoles_b1 = sv_b1_straight.rows[main_dipoles_b1]
 magnet_boxes = zip(sv_dipoles_b1.Z, sv_dipoles_b1.length, sv_dipoles_b1.name)
 BOX_HEIGHT = 1
 
 fig, ax = plt.subplots()
 
-def _draw_boxes(boxes, height=1., label_rotation=0, label_y=0., label_size=6, **kwargs):
+def _draw_boxes(boxes, height=1., label_rotation=0, label_y=0., label_size=6,
+                label_va='center', **kwargs):
     for x, width, label in boxes:
         rect = Rectangle(
             (x, -height * BOX_HEIGHT),
@@ -353,16 +369,25 @@ def _draw_boxes(boxes, height=1., label_rotation=0, label_y=0., label_size=6, **
             label_y * height * BOX_HEIGHT,
             label,
             ha='center',
-            va='center',
+            va=label_va,
             rotation=label_rotation,
             fontsize=label_size,
             clip_on=True,
         )
 
-_draw_boxes(magnet_boxes, edgecolor='black', facecolor='skyblue', alpha=0.7, label_rotation=90, label_y=0.35)
+_draw_boxes(
+    magnet_boxes,
+    edgecolor='black',
+    facecolor='skyblue',
+    alpha=0.7,
+    label_rotation=90,
+    label_y=1.15,
+    label_size=9,
+    label_va='bottom',
+)
 
 # Also plot the relevant type boxes
-p_tab = aperture.get_pipe_table()
+p_tab = aperture_straight.get_pipe_table()
 pipe_labels = [f'{name}\nref: {ref}' for name, ref in zip(p_tab.name, p_tab.survey_reference)]
 pipe_boxes = zip(p_tab.s_start, p_tab.span, pipe_labels)
 _draw_boxes(
@@ -372,8 +397,9 @@ _draw_boxes(
     alpha=0.7,
     height=0.5,
     label_rotation=90,
-    label_size=5,
-    label_y=-0.35,
+    label_size=8,
+    label_y=-1.15,
+    label_va='top',
 )
 
 # Set plot limits
@@ -381,3 +407,44 @@ ax.set_xlim(0, b1.get_length())
 ax.set_ylim(-5 * BOX_HEIGHT - 1, 5 * BOX_HEIGHT + 1)
 
 plt.show()
+
+
+# Sanity checks for main dipoles
+table_main_dipoles_pipe_model = p_tab.rows[np.isin(p_tab.survey_reference, main_dipoles)]
+assert set(main_dipoles_b1) == set(table_main_dipoles_pipe_model.survey_reference)  # All dipoles have pipes assigned?
+
+main_dipole_pipes = set(table_main_dipoles_pipe_model.pipe_name)
+indices_with_dipole_pipes = np.isin(p_tab.pipe_name, list(main_dipole_pipes))
+indices_not_main_dipoles = ~np.isin(p_tab.survey_reference, main_dipoles)
+assert len(p_tab.rows[indices_with_dipole_pipes & indices_not_main_dipoles]) == 0  # Main dipole pipes not elsewhere?
+
+
+# Unbend the model!
+lattice.vars['a.mb'] = angle_before
+lattice.vars['ds'] = ds_before
+sv_b1 = b1.survey()
+sv_b2 = b2.survey(theta0=np.pi)
+
+for pipe_name in main_dipole_pipes:
+    a_dipole_name = p_tab.rows[p_tab.pipe_name == pipe_name].survey_reference[0]
+    pipe = aperture_straight.pipes[pipe_name]
+    pipe.curvature = b1[a_dipole_name].angle / pipe.length
+
+# UNDO THE EARLIER PATCH
+# aperture_model.pipes[aperture_model.pipe_names.index('HCVC1IB')].shift_s = old_hcvc1ib_last_shift_s
+
+# Build the curved model
+aperture = Aperture(model=aperture_model, line=b1, _skip_validity_check=False)
+# b_tab = aperture.get_bounds_table()
+# s_positions_at_lattice_changes = np.array(sorted(set(b_tab.s_start) | set(b_tab.s_end) | set(sv_b1.s)))
+# s_positions = np.array(sorted(set(s_positions_at_lattice_changes - 1e-6) | set(s_positions_at_lattice_changes + 1e-6)))
+# s_positions %= b1.get_length()
+# aperture.plot_extents(s_positions)
+plt.plot(sv_b1.Z, sv_b1.X, c='red', label='B1')
+plt.plot(sv_b2.Z, sv_b2.X, c='blue', label='B2')
+ax = plt.gca()
+aperture.plot_floor_projection(ax=ax, len_points=32)
+ax.set_aspect('auto')
+plt.title('LHC LS3 Aperture and Survey Floor Plot (Pipe Model for B1)')
+plt.xlabel('$Z$ [m]')
+plt.ylabel('$X$ [m]')
