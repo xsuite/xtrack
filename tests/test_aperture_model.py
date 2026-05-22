@@ -105,6 +105,67 @@ def _expected_profile_bounds_from_table(table_rows, *, skip_row):
     return expected
 
 
+def _make_pipe_table_test_ring(test_context, *, extra_pipe_positions=None):
+    env = xt.Environment()
+
+    num_bends = 8
+    ring_length = 80.0
+    bend_length = ring_length / num_bends
+    bend_angle = 2 * np.pi / num_bends
+
+    bend = env.new('bend', xt.Bend, length=bend_length, angle=bend_angle, k0=0)
+    line = env.new_line(name='ring', components=[bend] * num_bends)
+    sv = line.survey()
+
+    profiles = [Profile(shape=Circle(radius=0.03), tol_r=0, tol_x=0, tol_y=0)]
+    pipes = [
+        Pipe(curvature=bend_angle / bend_length, positions=[
+            ProfilePosition(profile_index=0, shift_s=0.0),
+            ProfilePosition(profile_index=0, shift_s=bend_length),
+        ]),
+    ]
+    pipe_names = ['pipe_type']
+    pipe_position_names = ['pipe_regular', 'pipe_wrapped']
+    pipe_positions = [
+        PipePosition(
+            pipe_index=0,
+            survey_reference_name=sv.name[1],
+            survey_index=1,
+            transformation=transform_matrix(),
+        ),
+        PipePosition(
+            pipe_index=0,
+            survey_reference_name=sv.name[num_bends - 1],
+            survey_index=num_bends - 1,
+            transformation=transform_matrix(shift_z=5.0),
+        ),
+    ]
+
+    if extra_pipe_positions is not None:
+        for name, survey_reference_name, shift_z in extra_pipe_positions:
+            pipe_position_names.append(name)
+            pipe_positions.append(
+                PipePosition(
+                    pipe_index=0,
+                    survey_reference_name=survey_reference_name,
+                    survey_index=sv.name.tolist().index(survey_reference_name),
+                    transformation=transform_matrix(shift_z=shift_z),
+                ),
+            )
+
+    model = ApertureModel(
+        line_name='ring',
+        pipe_positions=pipe_positions,
+        pipes=pipes,
+        profiles=profiles,
+        pipe_names=pipe_names,
+        pipe_position_names=pipe_position_names,
+        profile_names=['p0'],
+        _context=test_context,
+    )
+    return line, model
+
+
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_from_line_with_aperture_type_bounds(test_context):
     mad = Madx(stdout=None)
@@ -469,6 +530,53 @@ def test_bounds_table_for_interval_spanning_multiple_types(test_context):
     mqf_shape = rows.shape_param[3]
     assert mqf_shape['half_width'] == 0.08
     assert mqf_shape['half_height'] == 0.04
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_get_pipe_table_handles_regular_and_wrapped_pipes(test_context):
+    line, model = _make_pipe_table_test_ring(test_context)
+    ap = Aperture(line, model, context=test_context, _skip_validity_check=True)
+
+    pipe_table = ap.get_pipe_table()
+
+    regular = pipe_table.rows['pipe_regular']
+    xo.assert_allclose(regular.s_start, 10.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(regular.s_end, 20.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(regular.span, 10.0, atol=1e-9, rtol=0)
+
+    wrapped = pipe_table.rows['pipe_wrapped']
+    xo.assert_allclose(wrapped.s_start, 74.7542, atol=5e-4, rtol=0)
+    xo.assert_allclose(wrapped.s_end, 2.72965, atol=5e-4, rtol=0)
+    xo.assert_allclose(wrapped.span, 7.97542, atol=5e-4, rtol=0)
+    assert wrapped.s_start > wrapped.s_end
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_pipe_overlap_validation_allows_wrapped_and_regular_non_overlapping_pipes(test_context):
+    line, model = _make_pipe_table_test_ring(
+        test_context,
+        extra_pipe_positions=[('pipe_middle', 'bend::3', 0.0)],
+    )
+
+    ap = Aperture(line, model, context=test_context, _skip_validity_check=True)
+    pipe_table = ap.get_pipe_table()
+    ap._check_pipe_bounds_validity()
+
+    middle = pipe_table.rows['pipe_middle']
+    xo.assert_allclose(middle.s_start, 30.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(middle.s_end, 40.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(middle.span, 10.0, atol=1e-9, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_pipe_overlap_validation_rejects_overlap_with_wrapped_pipe(test_context):
+    line, model = _make_pipe_table_test_ring(
+        test_context,
+        extra_pipe_positions=[('pipe_overlap', 'bend::0', 0.0)],
+    )
+
+    with pytest.raises(ValueError, match=r'pipe position pipe_overlap overlaps pipe position pipe_wrapped|pipe position pipe_wrapped overlaps pipe position pipe_overlap'):
+        Aperture(line, model, context=test_context, _skip_validity_check=True)._check_pipe_bounds_validity()
 
 
 def test_is_point_inside_polygon_ellipse(kernels):

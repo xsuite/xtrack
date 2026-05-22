@@ -52,6 +52,35 @@ def _deduplicate_legend(ax):
         ax.legend(unique.values(), unique.keys())
 
 
+def _survey_is_closed(survey: Table, s_tol: float = 1e-6) -> bool:
+    if len(survey.Z) < 2:
+        return False
+
+    dx = survey.X[-1] - survey.X[0]
+    dy = survey.Y[-1] - survey.Y[0]
+    dz = survey.Z[-1] - survey.Z[0]
+    return dx * dx + dy * dy + dz * dz < s_tol
+
+
+def _shortest_circular_interval(points: np.ndarray, line_length: float) -> tuple[float, float, float]:
+    if points.size == 0:
+        raise ValueError('Cannot determine a circular interval from an empty point set.')
+
+    points = np.mod(points, line_length)
+    points = np.sort(points)
+
+    if points.size == 1:
+        point = float(points[0])
+        return point, point, 0.0
+
+    gaps = np.diff(points, append=points[0] + line_length)
+    gap_idx = int(np.argmax(gaps))
+    s_start = float(points[(gap_idx + 1) % points.size])
+    s_end = float(points[gap_idx])
+    span = float((s_end - s_start) % line_length)
+    return s_start, s_end, span
+
+
 class ProfileView:
     __slots__ = ('_model', '_index')
 
@@ -1729,9 +1758,11 @@ class Aperture:
             aperture_bounds=self._aperture_bounds,
             survey=self._survey_data,
         )
+        self._aperture_bounds.sort_by_s()
 
         if check_validity:
             self._check_aperture_bounds_validity()
+            self._check_pipe_bounds_validity()
 
     def _check_model_validity(self):
         for ii, pipe_pos in enumerate(self._model.pipe_positions):
@@ -1775,11 +1806,40 @@ class Aperture:
                     f'[{left}, {right}]'
                 )
 
-            if last_right > left:
+            if last_right > left + s_tol:
                 raise ValueError(
                     f'Aperture model corrupted for pipe {pipe_name} and profile {profile_name}): the '
                     f'aperture bounds [{left}, {right}] overlap the preceding profile whose s_end = {last_right}'
                 )
+
+            last_right = max(last_right, right)
+
+    def _check_pipe_bounds_validity(self, s_tol=1e-6):
+        pipe_table = self.get_pipe_table()
+        line_length = self.line.get_length()
+
+        intervals = []
+        for row in pipe_table.rows:
+            if row.s_start <= row.s_end + s_tol:
+                intervals.append((row.s_start, row.s_end, row.name))
+            else:
+                intervals.append((row.s_start, line_length, row.name))
+                intervals.append((0.0, row.s_end, row.name))
+
+        intervals.sort(key=lambda interval: interval[0])
+
+        last_end = -np.inf
+        last_name = None
+        for start, end, name in intervals:
+            if start < last_end - s_tol:
+                raise ValueError(
+                    f'Aperture model corrupted: pipe position {name} overlaps pipe position {last_name} '
+                    f'around s={start}.'
+                )
+
+            if end > last_end:
+                last_end = end
+                last_name = name
 
     def get_bounds_table(self):
         """Get a table representation of the aperture bounds: per installed profile span information."""
@@ -1847,10 +1907,40 @@ class Aperture:
 
         ap_bounds = self._aperture_bounds
         pipe_position_indices = ap_bounds.pipe_position_indices.to_nparray().astype(np.uint32, copy=False)
-        s_start = np.full(table_size, np.inf, dtype=FloatType._dtype)
-        s_end = np.full(table_size, -np.inf, dtype=FloatType._dtype)
-        np.minimum.at(s_start, pipe_position_indices, ap_bounds.s_start.to_nparray())
-        np.maximum.at(s_end, pipe_position_indices, ap_bounds.s_end.to_nparray())
+        ap_s_start = ap_bounds.s_start.to_nparray()
+        ap_s_end = ap_bounds.s_end.to_nparray()
+        line_length = self.line.get_length()
+        use_wrapped_span = _survey_is_closed(self.survey)
+
+        s_start = np.full(table_size, np.nan, dtype=FloatType._dtype)
+        s_end = np.full(table_size, np.nan, dtype=FloatType._dtype)
+        span = np.full(table_size, np.nan, dtype=FloatType._dtype)
+
+        bounds_order = np.argsort(pipe_position_indices, kind='stable')
+        sorted_pipe_position_indices = pipe_position_indices[bounds_order]
+        unique_pipe_positions, first_indices = np.unique(sorted_pipe_position_indices, return_index=True)
+        last_indices = np.r_[first_indices[1:], len(bounds_order)]
+
+        for pipe_position_index, first_idx, last_idx in zip(unique_pipe_positions, first_indices, last_indices):
+            bound_indices = bounds_order[first_idx:last_idx]
+            pipe_s_start = ap_s_start[bound_indices]
+            pipe_s_end = ap_s_end[bound_indices]
+
+            if use_wrapped_span:
+                # The shortest-arc inference is not robust for pipe spans > 180 degrees / half the ring.
+                # This is acceptable for now because large-arc curved pipe support is not yet complete.
+                pipe_s_start_val, pipe_s_end_val, pipe_span = _shortest_circular_interval(
+                    np.concatenate((pipe_s_start, pipe_s_end)),
+                    line_length=line_length,
+                )
+            else:
+                pipe_s_start_val = float(np.min(pipe_s_start))
+                pipe_s_end_val = float(np.max(pipe_s_end))
+                pipe_span = pipe_s_end_val - pipe_s_start_val
+
+            s_start[pipe_position_index] = pipe_s_start_val
+            s_end[pipe_position_index] = pipe_s_end_val
+            span[pipe_position_index] = pipe_span
 
         table = Table(
             data={
@@ -1859,7 +1949,7 @@ class Aperture:
                 'survey_reference': survey_references,
                 's_start': s_start,
                 's_end': s_end,
-                'span': s_end - s_start,
+                'span': span,
             },
             index='name',
         )

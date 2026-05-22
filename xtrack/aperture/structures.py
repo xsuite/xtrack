@@ -294,6 +294,16 @@ class ApertureBounds(xo.Struct):
     s_start = FloatType[:]
     s_end = FloatType[:]
 
+    def sort_by_s(self, s_tol=1e-9):
+        s_start = self.s_start.to_nparray()
+        order = np.argsort(np.round(s_start / s_tol), kind='stable')
+
+        self.pipe_position_indices.to_nplike()[...] = self.pipe_position_indices.to_nparray()[order]
+        self.profile_position_indices.to_nplike()[...] = self.profile_position_indices.to_nparray()[order]
+        self.s_positions.to_nplike()[...] = self.s_positions.to_nparray()[order]
+        self.s_start.to_nplike()[...] = self.s_start.to_nparray()[order]
+        self.s_end.to_nplike()[...] = self.s_end.to_nparray()[order]
+
 
 class ProfilePolygons(xo.Struct):
     count = xo.UInt32
