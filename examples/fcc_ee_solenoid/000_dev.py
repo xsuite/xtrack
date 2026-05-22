@@ -52,10 +52,9 @@ corr_2_left_on_quad = 'qd0bl.2'
 corr_3_left_on_quad = 'qf1al.2'
 corr_4_left_on_quad = 'qf1bl.2'
 
-line.insert('dy_match_r_'+ip_name, xt.Marker(), at=11.95, from_=ip_name)
-line.insert('dy_match_l_'+ip_name, xt.Marker(), at=-11.95, from_=ip_name)
-
 line.insert([
+    env.new('dy_match_r_'+ip_name, xt.Marker, at=11.95, from_=ip_name),
+    env.new('dy_match_l_'+ip_name, xt.Marker, at=-11.95, from_=ip_name),
     env.new(f'corr_sol_right_{ip_name}', xt.Multipole, at=0, from_=f'dy_match_r_{ip_name}@start'),
     env.new(f'corr_sol_left_{ip_name}', xt.Multipole, at=0, from_=f'dy_match_l_{ip_name}@end'),
 ])
@@ -161,10 +160,12 @@ line_comp_solenoid_right = line_comp_solenoid.clone(suffix=f'right_{ip_name}')
 
 # Put the solenoids in the fcc lattice``
 s_ip = tw0['s', ip_name]
-line.insert(line_solenoid, anchor='center', at=s_ip)
-line.insert(ip_name, at=s_ip, s_tol=1e-9) # Put back the ip
-line.insert(line_comp_solenoid_left, anchor='end', at=-12, from_=ip_name)
-line.insert(line_comp_solenoid_right, anchor='start', at=12, from_=ip_name)
+line.insert([
+    env.place(line_solenoid, anchor='center', at=s_ip),
+    env.place(ip_name, at=s_ip), # Put back the ip
+    env.place(line_comp_solenoid_left, anchor='end', at=-12, from_=ip_name),
+    env.place(line_comp_solenoid_right, anchor='start', at=12, from_=ip_name)
+], s_tol=1e-9)
 
 # Tilt the doublets
 
