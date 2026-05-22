@@ -292,13 +292,10 @@ tw_on_corr = line.twiss4d(strengths=True, zero_at=ip_name)
 # nl_chrom_on_corr = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
 two_on_corr = line.twiss(
     strengths=True,
-    start=f'end_ds_start_straight_{ip_name}',
-    end=f'end_straight_start_ds_{ip_name}',
-    init_at=ip_name,
     init=tw_off,
     zero_at=ip_name)
 
-env.to_json('fcc_z_lcc_solenoid.json')
+env.to_json('fccee_z_lcc_solenoid.json')
 
 import matplotlib.pyplot as plt
 
