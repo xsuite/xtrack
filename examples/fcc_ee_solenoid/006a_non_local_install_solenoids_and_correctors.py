@@ -67,6 +67,10 @@ for ip_name in ip_names:
         )
         ele_names.append(f'sol_slice_{ii}_{ip_name}')
 
+    # Force solenoid field at edges to be zero (ax, ay zero at entry and exit)
+    env[ele_names[0]].ks_profile[0] = 0
+    env[ele_names[-1]].ks_profile[-1] = 0
+
     # Assemble the solenoid
     line_solenoid = env.new_line(components=ele_names)
 
@@ -96,6 +100,10 @@ for ip_name in ip_names:
                         ks_comp[ii+1] * env.ref[f'on_comp_sol_{ip_name}'] * env.ref[f'field_comp_sol_{ip_name}']],
         )
         ele_names_comp.append(f'comp_sol_slice_{ii}_{ip_name}')
+
+    # Force compensation solenoid field at edges to be zero
+    env[ele_names_comp[0]].ks_profile[0] = 0
+    env[ele_names_comp[-1]].ks_profile[-1] = 0
     line_comp_solenoid = env.new_line(components=ele_names_comp)
 
     # Measure integrated field compensation solenoid
