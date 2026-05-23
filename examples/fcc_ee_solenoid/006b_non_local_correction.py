@@ -6,25 +6,6 @@ import numpy as np
 env = xt.load('temp_fcc_ee_lcc_solenoid.json')
 line = env.fccee_p_ring
 
-# Reference twiss with solenoids off
-line['on_sol_ipa'] = 0
-line['on_sol_ipd'] = 0
-line['on_sol_ipg'] = 0
-line['on_sol_ipj'] = 0
-line['on_comp_sol_ipa'] = 0
-line['on_comp_sol_ipd'] = 0
-line['on_comp_sol_ipg'] = 0
-line['on_comp_sol_ipj'] = 0
-tw0 = line.twiss4d(strengths=True)
-line['on_sol_ipa'] = 1
-line['on_sol_ipd'] = 1
-line['on_sol_ipg'] = 1
-line['on_sol_ipj'] = 1
-line['on_comp_sol_ipa'] = 1
-line['on_comp_sol_ipd'] = 1
-line['on_comp_sol_ipg'] = 1
-line['on_comp_sol_ipj'] = 1
-
 # Configuration (which elements are used for the correction at each ip)
 config = {}
 config['ipa'] = {
@@ -109,11 +90,30 @@ config['ipj'] = {
     'corr_4_left_on_quad': 'qf1bl.2',
 }
 
+# Start with clean machine
+line['on_sol_ipa'] = 0
+line['on_sol_ipd'] = 0
+line['on_sol_ipg'] = 0
+line['on_sol_ipj'] = 0
+line['on_comp_sol_ipa'] = 0
+line['on_comp_sol_ipd'] = 0
+line['on_comp_sol_ipg'] = 0
+line['on_comp_sol_ipj'] = 0
+
 optimizers = {}
 for ip_name in config.keys():
 
     print(f'IP {ip_name}:')
     line.cycle(f'end_ds_start_straight_{ip_name}')
+
+    # Reference twiss with solenoids off
+    tw0 = line.twiss4d(strengths=True)
+
+    # Switch on solenoid
+    line['on_sol_' + ip_name] = 1
+
+    # Switch on compensation solenoid
+    line['on_comp_sol_' + ip_name] = 1
 
     quad_for_optics_correction = config[ip_name]['quad_for_optics_correction']
     doublet_quad_left = config[ip_name]['doublet_quad_left']
@@ -197,6 +197,8 @@ for ip_name in config.keys():
         knob_name=f'on_sol_orbit_corr_{ip_name}',
         run=False,
         init=tw0,
+        # betx=tw0['betx', ip_name],
+        # bety=tw0['bety', ip_name],
         start='dy_match_l_'+ip_name,
         end='dy_match_r_'+ip_name,
         init_at=ip_name,
@@ -262,13 +264,16 @@ for ip_name in config.keys():
     optimizers[ip_name + '_optics'] = opt_optics
 
     # Control all correction with a single knob
-    line[f'on_sol_corr_{ip_name}'] = 1
+    line[f'on_sol_corr_{ip_name}'] = 0
 
     line[f'on_comp_sol_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_rot_doublet_right_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_rot_doublet_left_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_sol_orbit_corr_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_sol_optics_corr_{ip_name}'] = f'on_sol_corr_{ip_name}'
+
+    # Switch main solenoid off to leave the machine clean for the next IP correction
+    line['on_sol_' + ip_name] = 0
 
 # Cycle to ipa before saving
 line.cycle('ipa')

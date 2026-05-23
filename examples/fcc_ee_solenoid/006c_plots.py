@@ -33,6 +33,8 @@ line['on_sol_corr_ipj'] = 1
 
 tw = line.twiss6d(strengths=True)
 
+two = line.twiss(betx=tw_off.betx[0], bety=tw_off.bety[0])
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
