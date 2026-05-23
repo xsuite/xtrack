@@ -196,9 +196,9 @@ for ip_name in config.keys():
     opt_orbit = line.match_knob(
         knob_name=f'on_sol_orbit_corr_{ip_name}',
         run=False,
-        init=tw0,
-        # betx=tw0['betx', ip_name],
-        # bety=tw0['bety', ip_name],
+        # init=tw0,
+        betx=tw0['betx', ip_name],
+        bety=tw0['bety', ip_name],
         start='dy_match_l_'+ip_name,
         end='dy_match_r_'+ip_name,
         init_at=ip_name,
