@@ -54,6 +54,10 @@ line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
 tw_rad = line.twiss6d(strengths=True)
 
+tw['bs'] = tw.ks * line.particle_ref.rigidity0[0]
+for ip_name in tw.rows['ip.*'].name:
+    tw['bs', ip_name] = np.nan # to avoid seeing zero at ips
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
@@ -61,21 +65,38 @@ ip_plot = 'ipg'
 tw_off.zero_at(ip_plot)
 tw.zero_at(ip_plot)
 
-fig1 = plt.figure(figsize=(6.4, 4.8 * 1.6))
-ax1 = fig1.add_subplot(4,1,1)
+fig1 = plt.figure(figsize=(6.4, 4.8 * 1.8))
+ax1 = fig1.add_subplot(5,1,1)
 plty = tw_off.plot(ax=ax1)
 
-ax2 = fig1.add_subplot(4,1,2, sharex=ax1)
-ax2.plot(tw.s, tw.y * 1e3)
-ax2.set_ylabel('y [mm]')
+ax2 = fig1.add_subplot(5,1,2, sharex=ax1)
+ax2.plot(tw.s, tw.bs)
+ax2.set_ylabel(r'$B_s$ [T]')
+ax2.grid(True)
 
-ax3 = fig1.add_subplot(4,1,3, sharex=ax1)
-ax3.plot(tw.s, tw.dy * 1e3)
-ax3.set_ylabel('Dy [mm]')
+ax3 = fig1.add_subplot(5,1,3, sharex=ax1)
+ax3.plot(tw.s, tw.y * 1e3)
+ax3.set_ylabel('y [mm]')
+ax3.set_ylim(-0.2, 0.2)
+ax3.grid(True)
 
-ax3 = fig1.add_subplot(4,1,4, sharex=ax1)
-ax3.plot(tw.s, tw.betx2)
-ax3.plot(tw.s, tw.bety1)
-ax3.set_ylabel(r'$\beta_{x2,y1}$')
+ax4 = fig1.add_subplot(5,1,4, sharex=ax1)
+ax4.plot(tw.s, tw.dy * 1e3)
+ax4.set_ylabel(r'$D_y$ [mm]')
+ax4.set_ylim(-0.2, 0.2)
+ax4.grid(True)
+
+ax5 = fig1.add_subplot(5,1,5, sharex=ax1)
+ax5.plot(tw.s, tw.betx2)
+ax5.plot(tw.s, tw.bety1)
+ax5.set_ylabel(r'$\beta_{x2,y1}$')
+ax5.grid(True)
+
+ax1.set_xlabel('')
+ax5.set_xlabel('s [m]')
+
+fig1.subplots_adjust(hspace=.25, top=0.95, bottom=0.06, left=0.14)
+
+ax5.set_xlim(-20, 20)
 
 plt.show()
