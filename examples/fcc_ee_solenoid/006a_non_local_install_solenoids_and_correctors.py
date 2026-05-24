@@ -162,8 +162,10 @@ for ip_name in ip_names:
     line.insert([
         env.new('dy_match_r_'+ip_name, xt.Marker, at=11.95, from_=ip_name),
         env.new('dy_match_l_'+ip_name, xt.Marker, at=-11.95, from_=ip_name),
-        env.new(f'corr_sol_right_{ip_name}', xt.Multipole, at=0, from_=f'dy_match_r_{ip_name}@start'),
-        env.new(f'corr_sol_left_{ip_name}', xt.Multipole, at=0, from_=f'dy_match_l_{ip_name}@end'),
+        env.new(f'corr_sol_right_{ip_name}', xt.Multipole, length=1., isthick=False,
+                anchor='end', at=0, from_=f'dy_match_r_{ip_name}@start'),
+        env.new(f'corr_sol_left_{ip_name}', xt.Multipole, length=1., isthick=False,
+                anchor='start', at=0, from_=f'dy_match_l_{ip_name}@end'),
     ])
 
 env.to_json('temp_fcc_ee_lcc_solenoid.json')
