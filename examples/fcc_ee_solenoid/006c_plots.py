@@ -6,6 +6,8 @@ env = xt.load('fccee_z_lcc_solenoid.json')
 # work on a copy of the line for slicing
 line = env.fccee_p_ring.copy(shallow=True)
 
+line.particle_ref.anomalous_magnetic_moment = 0.00115965218128
+
 # Slice the IP regions
 line.cycle('end_ds_start_straight_ipa')
 ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
