@@ -954,6 +954,45 @@ def test_line_attr():
     assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])
     assert np.all(line.attr['angle'] == [0, 8, 0.5 * 6, 0, 0])
 
+
+def test_line_attr_ks():
+    line = xt.Line(
+        elements=[
+            xt.Drift(length=1),
+            xt.UniformSolenoid(length=2, ks=0.3),
+            xt.VariableSolenoid(length=3, ks_profile=[0.2, 0.8]),
+            xt.VariableSolenoid(length=4, ks_profile=[0, 0]),
+        ],
+        element_names=['drift', 'uniform_sol', 'var_sol', 'var_sol_expr'],
+    )
+
+    line.vars['ks_entry'] = 0.4
+    line.vars['ks_exit'] = 1.0
+    line['var_sol_expr'].ks_profile[0] = line.vars['ks_entry']
+    line['var_sol_expr'].ks_profile[1] = line.vars['ks_exit']
+
+    line.build_tracker()
+
+    xo.assert_allclose(
+        line.attr['ks'],
+        [0, 0.3, 0.5 * (0.2 + 0.8), 0.5 * (0.4 + 1.0)],
+        rtol=0,
+        atol=1e-14,
+    )
+
+    line['var_sol'].ks_profile[0] = 0.6
+    line['var_sol'].ks_profile[1] = 1.4
+    line.vars['ks_entry'] = 0.8
+    line.vars['ks_exit'] = 1.6
+
+    xo.assert_allclose(
+        line.attr['ks'],
+        [0, 0.3, 0.5 * (0.6 + 1.4), 0.5 * (0.8 + 1.6)],
+        rtol=0,
+        atol=1e-14,
+    )
+
+
 @for_all_test_contexts
 def test_insert_thin_elements_at_s_basic(test_context):
 

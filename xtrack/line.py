@@ -6182,7 +6182,6 @@ class Line:
             line=self,
             fields={
                 'delta_taper': AttrDefinition(name='delta_taper'),
-                'ks': AttrDefinition(name='ks'),
 
                 'weight': AttrDefinition(name='weight'),
 
@@ -6205,6 +6204,10 @@ class Line:
                 '_own_harmonic': AttrDefinition(name='harmonic'),
 
                 '_own_radiation_flag': AttrDefinition(name='radiation_flag', dtype=np.int64),
+
+                '_own_ks': AttrDefinition(name='ks'),
+                '_own_ks_profile_0': AttrDefinition(name='ks_profile', index=0),
+                '_own_ks_profile_1': AttrDefinition(name='ks_profile', index=1),
 
                 '_own_k0': AttrDefinition(name='k0'),
                 '_own_k1': AttrDefinition(name='k1'),
@@ -6271,6 +6274,8 @@ class Line:
                 '_parent_harmonic': AttrDefinition(name=('_parent', 'harmonic')),
 
                 '_parent_radiation_flag': AttrDefinition(name=('_parent', 'radiation_flag'), dtype=np.int64),
+
+                '_parent_ks': AttrDefinition(name=('_parent', 'ks')),
 
                 '_parent_k0': AttrDefinition(name=('_parent', 'k0')),
                 '_parent_k1': AttrDefinition(name=('_parent', 'k1')),
@@ -6438,6 +6443,8 @@ class Line:
                     + attr['_parent_k5s'] * attr['_parent_length'] * attr['weight'] * attr._inherit_strengths),
                 '_k5sl_rel': lambda attr: attr['_own_k5sl_rel'] + attr['_parent_k5sl_rel'],
                 'k5sl': lambda attr: attr['_k5sl_no_rel'] + attr['_k5sl_rel'] * attr['_main_strength'],
+                'ks': lambda attr: (attr['_own_ks'] + attr['_parent_ks'] * attr._inherit_strengths
+                                    + 0.5 * (attr['_own_ks_profile_0'] + attr['_own_ks_profile_1'])),
                 'hkick': lambda attr: attr["angle"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
             }
