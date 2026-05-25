@@ -110,7 +110,7 @@ element_names = (names_upstream
                  + ['sol_start_tilt_'+ip_sol, 'sol_start_shift_'+ip_sol]
                  + sol_slice_names
                  + ['sol_end_shift_'+ip_sol, 'sol_end_tilt_'+ip_sol]
-                 + ['sol_zeta_shift_'+ip_sol]
+                 + ['sol_time_delay_'+ip_sol]
                  + names_downstream)
 line.element_names = element_names
 
