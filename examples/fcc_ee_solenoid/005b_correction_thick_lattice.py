@@ -183,7 +183,7 @@ line_rad.configure_radiation(model='mean')
 line_rad['voltca1'] = line['voltca1_ref']
 line_rad['voltca2'] = line['voltca2_ref']
 line_rad.compensate_radiation_energy_loss()
-tw_sol_on_corr_rad = line_rad.twiss()
+tw_sol_on_corr_rad = line_rad.twiss(radiation_analysis=True)
 mask_len = tt.length > 0
 dE = -(np.diff(tw_sol_on_corr_rad.ptau) * tw_sol_on_corr_rad.particle_on_co.energy0[0])
 dE_ds = tt.s * 0

@@ -3,6 +3,7 @@ import numpy as np
 from scipy.constants import e as qe
 from scipy.constants import c as clight
 
+# env = xt.load('fccee_z_lcc_local_solenoid.json')
 env = xt.load('fccee_z_lcc_solenoid.json')
 
 # work on a copy of the line for slicing
@@ -48,6 +49,7 @@ line['on_sol_corr_ipd'] = 1
 line['on_sol_corr_ipg'] = 1
 line['on_sol_corr_ipj'] = 1
 
+tw4d = line.twiss4d(strengths=True, polarization_analysis=True, radiation_integrals=True)
 tw = line.twiss6d(strengths=True, polarization_analysis=True)
 
 two = line.twiss(betx=tw_off.betx[0], bety=tw_off.bety[0])
