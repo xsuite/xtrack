@@ -54,21 +54,19 @@ two = line.twiss(betx=tw_off.betx[0], bety=tw_off.bety[0])
 
 line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
-tw_rad = line.twiss6d(strengths=True)
+tw_rad = line.twiss6d(strengths=True, radiation_analysis=True)
 
 tw['bs'] = tw.ks * line.particle_ref.rigidity0[0]
 for ip_name in tw.rows['ip.*'].name:
     tw['bs', ip_name] = np.nan # to avoid seeing zero at ips
 
 energy_eV = tw_rad.ptau * line.particle_ref.p0c[0] + line.particle_ref.energy0[0]
-dE_J = -np.diff(energy_eV, append=energy_eV[-1])
+dE_eV = -np.diff(energy_eV, append=energy_eV[-1])
 length = tw.length
 mask_len = length > 0
-dE_ds_eV_per_m = np.zeros_like(dE_J)
-dE_ds_eV_per_m[mask_len] = dE_J[mask_len] / length[mask_len]
+dE_ds_eV_per_m = np.zeros_like(dE_eV)
+dE_ds_eV_per_m[mask_len] = dE_eV[mask_len] / length[mask_len]
 dE_ds_eV_per_m[dE_ds_eV_per_m < 0] = 0 # to avoid seeing gain at the cavities (off scale)
-
-
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -113,25 +111,29 @@ ax5.set_xlim(-20, 20)
 
 fig2 = plt.figure(figsize=(6.4, 4.8 * 1.8))
 ax1 = fig2.add_subplot(5,1,1)
-plty = tw.plot(ax=ax1)
+plty = tw_off.plot(ax=ax1)
 
 ax2 = fig2.add_subplot(5,1,2, sharex=ax1)
-ax2.plot(tw.s, dE_ds_eV_per_m / 1e9)
-ax2.set_ylabel(r'dE/ds [GeV/m]')
+ax2.plot(tw.s, tw.bs)
+ax2.set_ylabel(r'$B_s$ [T]')
+ax2.grid(True)
 
 ax3 = fig2.add_subplot(5,1,3, sharex=ax1)
-ax3.plot(tw.s, tw.spin_y)
-ax3.set_ylabel(r'spin y')
+ax3.plot(tw.s, dE_ds_eV_per_m / 1e3 / 1e2)
+ax3.set_ylabel(r'dE/ds [keV/cm]')
 ax3.grid(True)
 
 ax4 = fig2.add_subplot(5,1,4, sharex=ax1)
-ax4.plot(tw.s, tw.spin_x)
-ax4.set_ylabel(r'spin x')
+ax4.plot(tw.s, tw.spin_y)
+ax4.set_ylabel(r'spin y')
 ax4.grid(True)
 
+
 ax5 = fig2.add_subplot(5,1,5, sharex=ax1)
-ax5.plot(tw.s, tw.spin_z)
-ax5.set_ylabel(r'spin z')
+ax5.plot(tw.s, tw.spin_x, label='spin x')
+ax5.plot(tw.s, tw.spin_z, label='spin z')
+ax5.set_ylabel(r'spin x, z')
+ax5.legend()
 ax5.grid(True)
 
 ax1.set_xlabel('')
