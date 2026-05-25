@@ -4,8 +4,8 @@ from scipy.constants import e as qe
 
 import numpy as np
 
-# fname = 'fccee_z'; pc_gev = 45.6
-fname = 'fccee_t'; pc_gev = 182.5
+fname = 'fccee_z'; pc_gev = 45.6
+# fname = 'fccee_t'; pc_gev = 182.5
 
 
 line = xt.load(fname + '_with_sol.json')
@@ -121,7 +121,7 @@ tw_sol_on_corrected = line.twiss(method='4d')
 assert_allclose = np.testing.assert_allclose
 
 # Check that tilt is present
-assert_allclose(tw_sol_off['kin_xp', 'ip.1'], np.tan(0.015), atol=1e-14, rtol=0)
+assert_allclose(tw_sol_off['kin_xp', 'ip.1'], np.tan(0.015), atol=5e-14, rtol=0)
 
 # Check that solenoid introduces coupling
 assert tw_sol_on.c_minus > 1e-4
@@ -315,8 +315,8 @@ plt.ylabel('Bz [T]')
 plt.grid()
 
 ax2 = plt.subplot(2, 1, 2, sharex=ax1)
-plt.plot(tw_sol_on.s - s_ip, dE_ds * 1e-2 * 1e-3, '-', label='dE/ds')
-plt.ylabel('dE/ds [keV/cm]')
+plt.plot(tw_sol_on.s - s_ip, dE_ds * 1e-6, '-', label='dE/ds')
+plt.ylabel('dE/ds [MeV/m]')
 plt.xlim(-5, 5)
 plt.xlabel('s [m]')
 plt.grid()

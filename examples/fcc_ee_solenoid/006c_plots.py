@@ -68,12 +68,14 @@ dE_ds_eV_per_m = np.zeros_like(dE_eV)
 dE_ds_eV_per_m[mask_len] = dE_eV[mask_len] / length[mask_len]
 dE_ds_eV_per_m[dE_ds_eV_per_m < 0] = 0 # to avoid seeing gain at the cavities (off scale)
 
-import matplotlib.pyplot as plt
-plt.close('all')
+
 
 ip_plot = 'ipg'
 tw_off.zero_at(ip_plot)
 tw.zero_at(ip_plot)
+
+import matplotlib.pyplot as plt
+plt.close('all')
 
 fig1 = plt.figure(figsize=(6.4, 4.8 * 1.8))
 ax1 = fig1.add_subplot(5,1,1)
@@ -119,8 +121,8 @@ ax2.set_ylabel(r'$B_s$ [T]')
 ax2.grid(True)
 
 ax3 = fig2.add_subplot(5,1,3, sharex=ax1)
-ax3.plot(tw.s, dE_ds_eV_per_m / 1e3 / 1e2)
-ax3.set_ylabel(r'dE/ds [keV/cm]')
+ax3.plot(tw.s, dE_ds_eV_per_m / 1e6)
+ax3.set_ylabel(r'dE/ds [MeV/m]')
 ax3.grid(True)
 
 ax4 = fig2.add_subplot(5,1,4, sharex=ax1)
