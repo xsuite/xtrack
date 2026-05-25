@@ -69,7 +69,10 @@ s_sol_slices_entry = s_sol_slices[:-1]
 # Build the slices
 sol_slices = []
 for ii in range(len(s_sol_slices_entry)):
-    sol_slices.append(xt.VariableSolenoid(length=l_sol_slices[ii], ks_profile=[0, 0])) # Off for now
+    # sol_slices.append(xt.VariableSolenoid(length=l_sol_slices[ii], ks_profile=[0, 0])) # Off for now
+    # sol_slices.append(xt.UniformSolenoid(length=l_sol_slices[ii], ks=0, # Off for now
+    #                                      edge_entry_active=0, edge_exit_active=0))
+    sol_slices.append(xt.Solenoid(length=l_sol_slices[ii], ks=0))# Off for now
 
 s_ip = tt['s', ip_sol]
 
@@ -125,8 +128,9 @@ line.build_tracker()
 line['on_sol_'+ip_sol] = 0
 for ii in range(len(s_sol_slices_entry)):
     nn = f'sol_slice_{ii}_{ip_sol}'
-    line[nn].ks_profile[0] = ks_entry[ii] * line.ref['on_sol_'+ip_sol]
-    line[nn].ks_profile[1] = ks_exit[ii] * line.ref['on_sol_'+ip_sol]
+    line[nn].ks = 0.5 * (ks_entry[ii] + ks_exit[ii]) * line.ref['on_sol_'+ip_sol]
+    # line[nn].ks_profile[0] = ks_entry[ii] * line.ref['on_sol_'+ip_sol]
+    # line[nn].ks_profile[1] = ks_exit[ii] * line.ref['on_sol_'+ip_sol]
 
 tt = line.get_table()
 
