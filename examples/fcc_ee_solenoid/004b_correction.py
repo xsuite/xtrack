@@ -177,18 +177,27 @@ P0_J = line.particle_ref.p0c[0] * qe / clight
 brho = P0_J / qe / line.particle_ref.q0
 Bz = tt.ks * brho
 
-breakpoint()
 line_rad = line.copy()
+tw4d = line_rad.twiss(method='4d', radiation_integrals=True)
 line_rad.build_tracker()
 line_rad.configure_radiation(model='mean')
 line_rad['voltca1'] = line['voltca1_ref']
 line_rad['voltca2'] = line['voltca2_ref']
 line_rad.compensate_radiation_energy_loss()
-tw_sol_on_corr_rad = line_rad.twiss()
+tw_sol_on_corr_rad = line_rad.twiss(radiation_analysis=True)
 mask_len = tt.length > 0
 dE = -(np.diff(tw_sol_on_corr_rad.ptau) * tw_sol_on_corr_rad.particle_on_co.energy0[0])
 dE_ds = tt.s * 0
 dE_ds[mask_len] = dE[mask_len[:-1]] / tt.length[mask_len]
+
+# Check on energy loss
+one_over_rho = tw4d.rad_int_kappa
+B_T = one_over_rho * line.particle_ref.rigidity0[0]
+r0 = line.particle_ref.get_classical_particle_radius0()
+
+Ps_W = 2 / 3 * r0 * clight**3 * qe**2 * line.particle_ref.gamma0[0]**2 * B_T**2 / (qe * line.particle_ref.mass0)
+dE_ds_ref_keV_cm = Ps_W / clight / qe / 1e3 / 1e2
+
 
 # plot
 import matplotlib.pyplot as plt
