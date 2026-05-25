@@ -34,7 +34,7 @@ line['voltca2'] = 0
 # Load solenoid Bz data
 bz_data_file = '../../test_data/fcc_ee/Bz_closed_before_quads.dat'
 import pandas as pd
-bz_df = pd.read_csv(bz_data_file, sep='\s+', skiprows=1, names=['z', 'Bz'])
+bz_df = pd.read_csv(bz_data_file, sep=r'\s+', skiprows=1, names=['z', 'Bz'])
 
 # Solenoid parameters
 theta_tilt = 15e-3 # rad
@@ -83,8 +83,8 @@ line.env.elements['sol_end_tilt_'+ip_sol] = sol_end_tilt
 line.env.elements['sol_start_shift_'+ip_sol] = sol_start_shift
 line.env.elements['sol_end_shift_'+ip_sol] = sol_end_shift
 
-line.env.elements['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-line.env.elements['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
+line.env.elements['sol_entry_'+ip_sol] = xt.VariableSolenoid(length=0, ks_profile=[0, 0])
+line.env.elements['sol_exit_'+ip_sol] = xt.VariableSolenoid(length=0, ks_profile=[0, 0])
 line.env.elements['sol_time_delay_'+ip_sol] = xt.TimeDelay(shift_zeta=-(l_beam - l_solenoid))
 
 # Add slices to the elements pot
@@ -98,13 +98,13 @@ sol_slice_names.append('sol_exit_'+ip_sol)
 
 # Insert new elements in the names list
 tt = line.get_table()
-names_upstream = list(tt.rows[:'sol_start_'+ip_sol].name)
-names_downstream = list(tt.rows['sol_end_'+ip_sol:].name[:-1]) # -1 to exclude '_end_point' added by the table
+names_upstream = list(tt.rows[:'sol_start_'+ip_sol].env_name)
+names_downstream = list(tt.rows['sol_end_'+ip_sol:].env_name[:-1]) # -1 to exclude '_end_point' added by the table
 element_names = (names_upstream
                  + ['sol_start_tilt_'+ip_sol, 'sol_start_shift_'+ip_sol]
                  + sol_slice_names
                  + ['sol_end_shift_'+ip_sol, 'sol_end_tilt_'+ip_sol]
-                 + ['sol_zeta_shift_'+ip_sol]
+                 + ['sol_time_delay_'+ip_sol]
                  + names_downstream)
 line.element_names = element_names
 

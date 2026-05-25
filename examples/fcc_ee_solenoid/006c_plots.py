@@ -68,8 +68,6 @@ dE_ds_eV_per_m = np.zeros_like(dE_eV)
 dE_ds_eV_per_m[mask_len] = dE_eV[mask_len] / length[mask_len]
 dE_ds_eV_per_m[dE_ds_eV_per_m < 0] = 0 # to avoid seeing gain at the cavities (off scale)
 
-
-
 ip_plot = 'ipg'
 tw_off.zero_at(ip_plot)
 tw.zero_at(ip_plot)
