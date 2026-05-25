@@ -69,10 +69,8 @@ s_sol_slices_entry = s_sol_slices[:-1]
 # Build the slices
 sol_slices = []
 for ii in range(len(s_sol_slices_entry)):
-    # sol_slices.append(xt.VariableSolenoid(length=l_sol_slices[ii], ks_profile=[0, 0])) # Off for now
-    # sol_slices.append(xt.UniformSolenoid(length=l_sol_slices[ii], ks=0, # Off for now
-    #                                      edge_entry_active=0, edge_exit_active=0))
-    sol_slices.append(xt.Solenoid(length=l_sol_slices[ii], ks=0))# Off for now
+    sol_slices.append(xt.VariableSolenoid(length=l_sol_slices[ii], ks_profile=[0, 0])) # Off for now
+    # sol_slices.append(xt.Solenoid(length=l_sol_slices[ii], ks=0))# Off for now
 
 s_ip = tt['s', ip_sol]
 
@@ -92,8 +90,8 @@ line.env.elements['sol_end_tilt_'+ip_sol] = sol_end_tilt
 line.env.elements['sol_start_shift_'+ip_sol] = sol_start_shift
 line.env.elements['sol_end_shift_'+ip_sol] = sol_end_shift
 
-line.env.elements['sol_entry_'+ip_sol] = xt.Solenoid(length=0, ks=0)
-line.env.elements['sol_exit_'+ip_sol] = xt.Solenoid(length=0, ks=0)
+line.env.elements['sol_entry_'+ip_sol] = xt.VariableSolenoid(length=0, ks_profile=[0, 0])
+line.env.elements['sol_exit_'+ip_sol] = xt.VariableSolenoid(length=0, ks_profile=[0, 0])
 line.env.elements['sol_time_delay_'+ip_sol] = xt.TimeDelay(shift_zeta=-(l_beam - l_solenoid))
 
 # Add slices to the elements pot
@@ -128,9 +126,9 @@ line.build_tracker()
 line['on_sol_'+ip_sol] = 0
 for ii in range(len(s_sol_slices_entry)):
     nn = f'sol_slice_{ii}_{ip_sol}'
-    line[nn].ks = 0.5 * (ks_entry[ii] + ks_exit[ii]) * line.ref['on_sol_'+ip_sol]
-    # line[nn].ks_profile[0] = ks_entry[ii] * line.ref['on_sol_'+ip_sol]
-    # line[nn].ks_profile[1] = ks_exit[ii] * line.ref['on_sol_'+ip_sol]
+    # line[nn].ks = 0.5 * (ks_entry[ii] + ks_exit[ii]) * line.ref['on_sol_'+ip_sol]
+    line[nn].ks_profile[0] = ks_entry[ii] * line.ref['on_sol_'+ip_sol]
+    line[nn].ks_profile[1] = ks_exit[ii] * line.ref['on_sol_'+ip_sol]
 
 tt = line.get_table()
 
