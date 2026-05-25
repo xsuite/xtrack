@@ -177,6 +177,7 @@ P0_J = line.particle_ref.p0c[0] * qe / clight
 brho = P0_J / qe / line.particle_ref.q0
 Bz = tt.ks * brho
 
+breakpoint()
 line_rad = line.copy()
 line_rad.build_tracker()
 line_rad.configure_radiation(model='mean')
