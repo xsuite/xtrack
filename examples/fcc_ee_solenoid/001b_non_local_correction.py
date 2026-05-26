@@ -3,7 +3,7 @@ import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 import numpy as np
 
-env = xt.load('temp_fcc_ee_lcc_solenoid.json')
+env = xt.load('temp_fcc_ee_lcc_non_local_solenoid.json')
 line = env.fccee_p_ring
 
 # Configuration (which elements are used for the correction at each ip)
@@ -304,7 +304,7 @@ two_on_corr = line.twiss(
     init=tw_off,
     init_at='ipj')
 
-env.to_json('fccee_z_lcc_solenoid.json')
+env.to_json('fccee_z_lcc_non_local_solenoid.json')
 
 import matplotlib.pyplot as plt
 

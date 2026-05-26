@@ -172,5 +172,5 @@ for ip_name in ip_names:
                 anchor='start', at=0, from_=f'dy_match_l_{ip_name}@end'),
     ])
 
-env.to_json('temp_fcc_ee_lcc_solenoid.json')
+env.to_json('temp_fcc_ee_lcc_non_local_solenoid.json')
 

@@ -4,7 +4,7 @@ from scipy.constants import e as qe
 from scipy.constants import c as clight
 
 # env = xt.load('fccee_z_lcc_local_solenoid.json')
-env = xt.load('fccee_z_lcc_solenoid.json')
+env = xt.load('fccee_z_lcc_non_local_solenoid.json')
 
 # work on a copy of the line for slicing
 line = env.fccee_p_ring.copy(shallow=True)
