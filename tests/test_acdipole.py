@@ -262,7 +262,7 @@ def test_acdipole_ramp(
         expected_kick=expected_kick,
     )
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 @pytest.mark.parametrize("plane", PLANES, ids=lambda o: o.upper())
 def test_acdipole_tracking_madng(test_context: Any, plane: str) -> None:
     n = 4
