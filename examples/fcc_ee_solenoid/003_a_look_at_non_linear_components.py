@@ -61,13 +61,13 @@ s = np.linspace(-2.5, 2.5, 201)
 
 bx, by, bz = sf.get_field(0*s, 0*s, s)
 
-by_derivatives_x = compute_pure_field_derivatives(
-    field=sf, s=s, direction='x', step=dx, component='y',
+by_derivatives_x = sf.compute_pure_field_derivatives(
+    s=s, direction='x', step=dx, component='y',
     max_order=4, min_order=0)
-by_derivatives_y = compute_pure_by_derivatives(
-    field=sf, s=s, direction='y', step=dy, max_order=4)
-bx_derivatives_x = compute_pure_field_derivatives(
-    field=sf, s=s, direction='x', step=dx, component='x',
+by_derivatives_y = sf.compute_pure_by_derivatives(
+    s=s, direction='y', step=dy, max_order=4)
+bx_derivatives_x = sf.compute_pure_field_derivatives(
+    s=s, direction='x', step=dx, component='x',
     max_order=4, min_order=0)
 
 dby_dx = by_derivatives_x[1]
