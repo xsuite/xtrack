@@ -115,4 +115,10 @@ Bn = by_derivatives_x
 An = bx_derivatives_x
 
 Kn = {nn: Bn[nn] / rigidity0 for nn in range(5)}
-Khatn = {nn: An[nn] / rigidity0 for nn in range(5)}
+Ksn = {nn: An[nn] / rigidity0 for nn in range(5)}
+
+bx_plus = sf.get_field(dx + 0*s, 0*s, s)[0]
+bx_minus = sf.get_field(-dx + 0*s, 0*s, s)[0]
+k1s_central = (bx_plus - bx_minus) / (2 * dx) / rigidity0
+
+np.testing.assert_allclose(k1s_central, Ksn[1], rtol=0, atol=1e-8)
