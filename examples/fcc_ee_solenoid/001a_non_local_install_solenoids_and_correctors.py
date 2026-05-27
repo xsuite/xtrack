@@ -6,6 +6,7 @@ import xtrack as xt
 
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 import numpy as np
+from tilted_solenoid import TiltedSolenoid
 
 env = xt.load('fccee_z_lcc.json')
 line = env.fccee_p_ring
@@ -23,23 +24,13 @@ for ip_name in ip_names:
     print(f'IP {ip_name}:')
 
     # Analytic field map
-    sf = SolenoidField(L=1.23*2, a=0.13, B0=2., z0=0)
+    sf = TiltedSolenoid(L=1.23*2, a=0.13, B0=2., theta=theta)
 
     # s coordinate along the beam axis
     s = np.linspace(-2.399, 2.399, 201)
 
-    # Corresponding coordinates of the beam reference trajectory in the solenoid frame
-    s_sol = s * np.cos(theta)
-    x_sol = s * np.sin(theta)
-    y_sol = 0 * x_sol
-
-    # Compute field on the beam reference trajectory in the solenoid frame
-    bx_sol, by_sol, bz_sol = sf.get_field(x_sol, y_sol, s_sol)
-
-    # Transform field to the beam frame
-    bx = bx_sol * np.cos(theta) - bz_sol * np.sin(theta)
-    bz = bx_sol * np.sin(theta) + bz_sol * np.cos(theta)
-    by = by_sol
+    # Compute field on the beam reference trajectory in the beam frame
+    bx, by, bz = sf.get_field(0 * s, 0 * s, s)
 
     # Normalized strengths
     rigidity0 = line.particle_ref.rigidity0[0]
@@ -173,4 +164,3 @@ for ip_name in ip_names:
     ])
 
 env.to_json('temp_fcc_ee_lcc_non_local_solenoid.json')
-
