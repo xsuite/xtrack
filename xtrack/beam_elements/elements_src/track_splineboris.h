@@ -28,6 +28,7 @@ void SplineBoris_single_particle(
     const int      n_steps,
     const double   shift_x,
     const double   shift_y,
+    const double   scale_b,
     const int64_t  radiation_flag,
     SynchrotronRadiationRecordData radiation_record
 ){
@@ -166,6 +167,10 @@ void SplineBoris_single_particle(
             &By,
             &Bs
         );
+
+        Bx *= scale_b;
+        By *= scale_b;
+        Bs *= scale_b;
 
         // --------------------------------------------------------------
         //  (2) FIRST HALF-KICK from (Bx, By)

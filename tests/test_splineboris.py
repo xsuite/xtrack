@@ -48,7 +48,7 @@ def test_data_dir():
 @pytest.fixture
 def make_uniform_splineboris():
     def _make(Bx=0, By=0, Bs=0, s_start=0, s_end=1, n_steps=100,
-                multipole_order=1, radiation_flag=0, kn=None, ks=None):
+                multipole_order=1, radiation_flag=0, scale_b=1.0, kn=None, ks=None):
         # Uniform field: Hermite params (val_start, der_start, val_end, der_end, integral)
         # For a constant field B, all boundary values = B, derivatives = 0, integral = B
         Bx_h = [Bx, 0, Bx, 0, Bx]
@@ -69,6 +69,7 @@ def make_uniform_splineboris():
             bx=(xt.Spline4(*Bx_h),),
             length=s_end - s_start,
             n_steps=n_steps,
+            scale_b=scale_b,
             radiation_flag=radiation_flag,
         )
         return splineboris
@@ -186,6 +187,7 @@ def test_splineboris_to_dict_from_dict_roundtrip(test_context):
         n_steps=4,
         shift_x=1e-3,
         shift_y=-2e-3,
+        scale_b=1.7,
         radiation_flag=1,
         bs=xt.Spline4(0.1, 0.2, 0.3, 0.4, 0.5),
         by=(
@@ -225,10 +227,59 @@ def test_splineboris_to_dict_from_dict_roundtrip(test_context):
         xo.assert_allclose(candidate.n_steps, element_cpu.n_steps, atol=0, rtol=0)
         xo.assert_allclose(candidate.shift_x, element_cpu.shift_x, atol=0, rtol=0)
         xo.assert_allclose(candidate.shift_y, element_cpu.shift_y, atol=0, rtol=0)
+        xo.assert_allclose(candidate.scale_b, element_cpu.scale_b, atol=0, rtol=0)
         xo.assert_allclose(candidate.radiation_flag, element_cpu.radiation_flag, atol=0, rtol=0)
         xo.assert_allclose(candidate.bs, element_cpu.bs, atol=0, rtol=0)
         xo.assert_allclose(candidate.by, element_cpu.by, atol=0, rtol=0)
         xo.assert_allclose(candidate.bx, element_cpu.bx, atol=0, rtol=0)
+
+
+def test_splineboris_scale_b_scales_field_and_tracking(make_uniform_splineboris):
+    scale_b = 2.5
+    Bx = 0.03
+    By = -0.07
+    Bs = 0.01
+
+    scaled = make_uniform_splineboris(
+        Bx=Bx, By=By, Bs=Bs, n_steps=20, scale_b=scale_b)
+    reference = make_uniform_splineboris(
+        Bx=scale_b * Bx, By=scale_b * By, Bs=scale_b * Bs, n_steps=20)
+
+    xo.assert_allclose(scaled.scale_b, scale_b, atol=0, rtol=0)
+    xo.assert_allclose(
+        scaled.get_field(1e-3, -2e-3, 0.4),
+        reference.get_field(1e-3, -2e-3, 0.4),
+        atol=1e-14,
+        rtol=0,
+    )
+
+    particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
+        q0=1.0,
+        energy0=1e9,
+    )
+
+    p_scaled = particle_ref.copy()
+    p_reference = particle_ref.copy()
+    for pp in (p_scaled, p_reference):
+        pp.x = 1e-3
+        pp.y = -2e-3
+        pp.px = 3e-4
+        pp.py = -4e-4
+
+    line_scaled = xt.Line(elements=[scaled])
+    line_reference = xt.Line(elements=[reference])
+    line_scaled.particle_ref = particle_ref.copy()
+    line_reference.particle_ref = particle_ref.copy()
+
+    line_scaled.track(p_scaled)
+    line_reference.track(p_reference)
+
+    xo.assert_allclose(p_scaled.x, p_reference.x, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_scaled.y, p_reference.y, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_scaled.px, p_reference.px, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_scaled.py, p_reference.py, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_scaled.zeta, p_reference.zeta, atol=1e-15, rtol=0)
 
 # Test some common field angles, as well as some unusual ones
 @pytest.mark.parametrize('field_angle', [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi, 4*np.pi/9, np.pi/7])

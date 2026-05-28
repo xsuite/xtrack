@@ -200,6 +200,8 @@ class SplineBoris(BeamElement):
         Horizontal offset of the field map in meters. Default is ``0``.
     shift_y : float, optional
         Vertical offset of the field map in meters. Default is ``0``.
+    scale_b : float, optional
+        Multiplicative scale factor applied to the magnetic field. Default is ``1``.
     radiation_flag : int, optional
         Radiation model flag. ``0`` disables radiation, non-zero values select
         synchrotron radiation models as for other thick elements.
@@ -226,6 +228,7 @@ class SplineBoris(BeamElement):
         'n_steps'           : xo.Int64,
         'shift_x'           : xo.Field(xo.Float64, 0),  # Transverse shift in x [m] - used for field map offset
         'shift_y'           : xo.Field(xo.Float64, 0),  # Transverse shift in y [m] - used for field map offset
+        'scale_b'           : xo.Field(xo.Float64, default=1),
         'radiation_flag'    : xo.Int64,
     }
 
@@ -244,6 +247,7 @@ class SplineBoris(BeamElement):
                  n_steps=1,
                  shift_x=0.0,
                  shift_y=0.0,
+                 scale_b=1.0,
                  **kwargs,
     ):
         """Build the element from ``Spline4`` data and store Hermite boundary data in the xobject."""
@@ -272,6 +276,7 @@ class SplineBoris(BeamElement):
             n_steps=n_steps,
             shift_x=shift_x,
             shift_y=shift_y,
+            scale_b=scale_b,
             radiation_flag=radiation_flag,
             **kwargs,
         )
@@ -358,6 +363,10 @@ class SplineBoris(BeamElement):
             self.length,
             self.multipole_order,
         )
+
+        bx_eval *= self.scale_b
+        by_eval *= self.scale_b
+        bs_eval *= self.scale_b
 
         if bx_eval.shape == ():
             return float(bx_eval), float(by_eval), float(bs_eval)
