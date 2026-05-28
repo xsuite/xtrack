@@ -19,6 +19,7 @@ theta = -0.015
 SPLINE_MULTIPOLE_ORDER = 2
 SPLINE_DERIVATIVE_STEP = 1e-5
 SPLINE_STEPS_PER_POINT = 1
+SPLINE_INTEGRAL_POINTS = 10
 
 
 def compute_field_derivative(field_model, s_axis, component, derivative_order):
@@ -60,33 +61,41 @@ def build_splineboris_line(
     s_ends = []
     for ii in range(len(s_axis) - 1):
         length = s_axis[ii + 1] - s_axis[ii]
+        s_integral = np.linspace(
+            s_axis[ii], s_axis[ii + 1], SPLINE_INTEGRAL_POINTS)
 
+        bs_integral_values = compute_field_derivative(
+            field_model, s_integral, component=2, derivative_order=0)
         bs = xt.Spline4(
             val_start=bs_values[ii],
             der_start=bs_s_derivative[ii],
             val_end=bs_values[ii + 1],
             der_end=bs_s_derivative[ii + 1],
-            integral=0.5 * (bs_values[ii] + bs_values[ii + 1]),
+            integral=np.trapezoid(bs_integral_values, s_integral) / length,
         )
 
         bx = []
         by = []
         for order in range(SPLINE_MULTIPOLE_ORDER):
+            bx_integral_values = compute_field_derivative(
+                field_model, s_integral, component=0, derivative_order=order)
+            by_integral_values = compute_field_derivative(
+                field_model, s_integral, component=1, derivative_order=order)
             bx.append(xt.Spline4(
                 val_start=bx_values[order][ii],
                 der_start=bx_s_derivatives[order][ii],
                 val_end=bx_values[order][ii + 1],
                 der_end=bx_s_derivatives[order][ii + 1],
-                integral=0.5 * (
-                    bx_values[order][ii] + bx_values[order][ii + 1]),
+                integral=(
+                    np.trapezoid(bx_integral_values, s_integral) / length),
             ))
             by.append(xt.Spline4(
                 val_start=by_values[order][ii],
                 der_start=by_s_derivatives[order][ii],
                 val_end=by_values[order][ii + 1],
                 der_end=by_s_derivatives[order][ii + 1],
-                integral=0.5 * (
-                    by_values[order][ii] + by_values[order][ii + 1]),
+                integral=(
+                    np.trapezoid(by_integral_values, s_integral) / length),
             ))
 
         elements.append(xt.SplineBoris(
@@ -245,4 +254,4 @@ for ip_name in ip_names:
                 anchor='start', at=0, from_=f'dy_match_l_{ip_name}@end'),
     ])
 
-env.to_json('temp_fcc_ee_lcc_non_local_solenoid.json')
+env.to_json('temp_fcc_ee_lcc_non_local_boris_solenoid.json')

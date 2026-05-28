@@ -281,6 +281,42 @@ def test_splineboris_scale_b_scales_field_and_tracking(make_uniform_splineboris)
     xo.assert_allclose(p_scaled.py, p_reference.py, atol=1e-15, rtol=0)
     xo.assert_allclose(p_scaled.zeta, p_reference.zeta, atol=1e-15, rtol=0)
 
+
+def test_splineboris_backtrack(make_uniform_splineboris):
+    splineboris = make_uniform_splineboris(
+        Bx=0.03, By=-0.05, Bs=0.02, s_end=1.3, n_steps=32)
+
+    assert splineboris.has_backtrack
+
+    line = xt.Line(elements=[splineboris])
+    line.particle_ref = xt.Particles(
+        mass0=xt.ELECTRON_MASS_EV,
+        q0=1.0,
+        energy0=1e9,
+    )
+    line.build_tracker(use_prebuilt_kernels=False)
+
+    p_initial = line.particle_ref.copy()
+    p_initial.x = 1.2e-3
+    p_initial.y = -0.8e-3
+    p_initial.px = 2.0e-4
+    p_initial.py = -3.0e-4
+    p_initial.zeta = 1e-4
+    p_initial.delta = 2e-3
+
+    p_test = p_initial.copy()
+    line.track(p_test)
+    line.track(p_test, backtrack=True)
+
+    xo.assert_allclose(p_test.s, p_initial.s, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.x, p_initial.x, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.y, p_initial.y, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.px, p_initial.px, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.py, p_initial.py, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.zeta, p_initial.zeta, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_test.delta, p_initial.delta, atol=0, rtol=0)
+
+
 # Test some common field angles, as well as some unusual ones
 @pytest.mark.parametrize('field_angle', [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi, 4*np.pi/9, np.pi/7])
 def test_splineboris_homogeneous_analytic(field_angle, make_uniform_splineboris):

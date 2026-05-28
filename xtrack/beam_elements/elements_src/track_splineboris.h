@@ -83,11 +83,13 @@ void SplineBoris_single_particle(
     //  Set up longitudinal stepping in local s \in [0, length]
     // ----------------------------------------------------------------------
     const double L    = length;
-    const double ds   = L / (double) n_steps;
+    const int8_t backtrack = LocalParticle_check_track_flag(part, XS_FLAG_BACKTRACK);
+    const double ds   = (backtrack ? -L : L) / (double) n_steps;
     const double half_ds = 0.5 * ds;
     
-    // Local s coordinate (0 to L) for stepping through the element
-    double s_local = 0.0;
+    // Local s coordinate for stepping through the element.
+    // Backtracking traverses the same field map from L to 0.
+    double s_local = backtrack ? L : 0.0;
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
     // Variables for radiation tracking (if needed)
@@ -286,9 +288,8 @@ void SplineBoris_single_particle(
     LocalParticle_set_x(part, x);
     LocalParticle_set_y(part, y);
 
-    // s: Add element length to particle's s coordinate (like Drift element)
-    // The particle's s coordinate advances by L from its incoming position
-    LocalParticle_add_to_s(part, L);
+    // s: Add signed element length to particle's s coordinate (like Drift element)
+    LocalParticle_add_to_s(part, backtrack ? -L : L);
 
     // Convert physical momenta back to dimensionless px, py (relative to p0)
     LocalParticle_set_px(part, px / P0);

@@ -209,6 +209,7 @@ class SplineBoris(BeamElement):
     '''
 
     isthick = True
+    has_backtrack = True
     # Disable base transverse shifts - we use shift_x/shift_y as offsets in the field evaluation
     # Rotations should be apparent from the field map itself, not from transformation of the element.
     allow_rot_and_shift = False
