@@ -4742,6 +4742,11 @@ class TwissTable(Table):
         damping_constant_y_s = r0/3 * gamma0**3 * clight/self.line_length * (i2 - i4y)
         damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.line_length * (2*i2 + i4)
 
+        # Damping partition numbers:
+        J_x = 1 - i4x / i2
+        J_y = 1 - i4y / i2
+        J_zeta = 2 + i4 / i2
+
         # Velocity direction (for spin)
         ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
         xp = kin_px / ps
@@ -4789,6 +4794,9 @@ class TwissTable(Table):
             'rad_int_damping_constant_x_s': damping_constant_x_s,
             'rad_int_damping_constant_y_s': damping_constant_y_s,
             'rad_int_damping_constant_zeta_s': damping_constant_zeta_s,
+            'rad_int_partition_number_x': J_x,
+            'rad_int_partition_number_y': J_y,
+            'rad_int_partition_number_zeta': J_zeta,
         }
 
         out = Table({'name': self.name, 's': self.s, 'length':self.length} | cols)
