@@ -12,8 +12,10 @@ from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 HERE = Path(__file__).parent
 
 THETA = -0.015
-DERIVATIVE_STEP = 1e-5
-MAX_MULTIPOLE_ORDER = 2
+DERIVATIVE_STEP = 5e-4
+MAX_MULTIPOLE_ORDER = 4
+ZERO_CENTRAL_DERIVATIVES_FROM_ORDER = 2
+ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH = 0.25
 SPLINE_STEPS_PER_POINT = 10
 SPLINE_INTEGRAL_POINTS = 10
 N_SLICES_MAIN_SOLENOID = 201
@@ -41,6 +43,34 @@ class ExtractedFieldData:
     scale_b: float
 
 
+def zero_negligible_central_derivatives(values_by_order, s_axis):
+    if ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH <= 0:
+        return values_by_order
+
+    values_by_order = [np.array(values, copy=True) for values in values_by_order]
+    mask_center = np.abs(s_axis) <= ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH
+
+    for order in range(ZERO_CENTRAL_DERIVATIVES_FROM_ORDER, len(values_by_order)):
+        values_by_order[order][mask_center] = 0.0
+
+    return values_by_order
+
+
+def zero_negligible_central_derivative_values(bx, by, s_axis, derivative_order):
+    if (
+        derivative_order < ZERO_CENTRAL_DERIVATIVES_FROM_ORDER
+        or ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH <= 0
+    ):
+        return bx, by
+
+    bx = np.array(bx, copy=True)
+    by = np.array(by, copy=True)
+    mask_center = np.abs(s_axis) <= ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH
+    bx[mask_center] = 0.0
+    by[mask_center] = 0.0
+    return bx, by
+
+
 def _component_derivatives(field_model, s_axis, component, max_order):
     component_index = {'x': 0, 'y': 1, 'z': 2}[component]
     zero = np.zeros_like(s_axis)
@@ -62,15 +92,21 @@ def _component_derivatives(field_model, s_axis, component, max_order):
 
 
 def extract_required_field_data(spec, max_multipole_order):
+    bx = _component_derivatives(
+        spec.field_model, spec.s_axis, 'x', max_multipole_order)
+    by = _component_derivatives(
+        spec.field_model, spec.s_axis, 'y', max_multipole_order)
+
+    bx = zero_negligible_central_derivatives(bx, spec.s_axis)
+    by = zero_negligible_central_derivatives(by, spec.s_axis)
+
     return ExtractedFieldData(
         name=spec.name,
         s_axis=spec.s_axis,
         bs=_component_derivatives(
             spec.field_model, spec.s_axis, 'z', max_order=0)[0],
-        bx=_component_derivatives(
-            spec.field_model, spec.s_axis, 'x', max_multipole_order),
-        by=_component_derivatives(
-            spec.field_model, spec.s_axis, 'y', max_multipole_order),
+        bx=bx,
+        by=by,
         scale_b=spec.scale_b,
     )
 
@@ -176,8 +212,132 @@ def sample_splineboris_line(line, s0, x=0.0, y=0.0):
     )
 
 
-def plot_extracted_fields(extracted_fields, max_multipole_order, output_file):
-    plt.close('all')
+def sample_splineboris_derivatives(line, s0, x_eval, y_eval, derivative_order):
+    return sample_splineboris_derivatives_up_to_order(
+        line, s0, x_eval, y_eval, derivative_order)[derivative_order]
+
+
+def sample_splineboris_derivatives_up_to_order(
+        line, s0, x_eval, y_eval, max_derivative_order):
+
+    offsets = np.arange(-4, 5)
+
+    bx_at_offsets = []
+    by_at_offsets = []
+    bs_at_offsets = []
+
+    s_out = None
+    for offset in offsets:
+        s_curr, bx_curr, by_curr, bs_curr = sample_splineboris_line(
+            line,
+            s0=s0,
+            x=x_eval + offset * DERIVATIVE_STEP,
+            y=y_eval,
+        )
+        if s_out is None:
+            s_out = s_curr
+        bx_at_offsets.append(bx_curr)
+        by_at_offsets.append(by_curr)
+        bs_at_offsets.append(bs_curr)
+
+    bx_at_offsets = np.array(bx_at_offsets)
+    by_at_offsets = np.array(by_at_offsets)
+    bs_at_offsets = np.array(bs_at_offsets)
+
+    derivatives_by_order = {}
+    zero_offset_index = np.where(offsets == 0)[0][0]
+    derivatives_by_order[0] = (
+        s_out,
+        bx_at_offsets[zero_offset_index],
+        by_at_offsets[zero_offset_index],
+        bs_at_offsets[zero_offset_index],
+    )
+
+    for derivative_order in range(1, max_derivative_order + 1):
+        coefficients = SolenoidField.finite_difference_coefficients(
+            offsets, derivative_order)
+
+        bx = (
+            np.tensordot(coefficients, bx_at_offsets, axes=(0, 0))
+            / DERIVATIVE_STEP**derivative_order
+        )
+        by = (
+            np.tensordot(coefficients, by_at_offsets, axes=(0, 0))
+            / DERIVATIVE_STEP**derivative_order
+        )
+        bs = (
+            np.tensordot(coefficients, bs_at_offsets, axes=(0, 0))
+            / DERIVATIVE_STEP**derivative_order
+        )
+
+        bx, by = zero_negligible_central_derivative_values(
+            bx, by, s_out, derivative_order)
+        derivatives_by_order[derivative_order] = (s_out, bx, by, bs)
+
+    return derivatives_by_order
+
+
+def compute_field_map_derivatives(
+        field_model, s_axis, x_eval, y_eval, derivative_order):
+    return compute_field_map_derivatives_up_to_order(
+        field_model, s_axis, x_eval, y_eval, derivative_order)[derivative_order]
+
+
+def compute_field_map_derivatives_up_to_order(
+        field_model, s_axis, x_eval, y_eval, max_derivative_order):
+    offsets = np.arange(-4, 5)
+
+    bx_at_offsets = []
+    by_at_offsets = []
+    bs_at_offsets = []
+
+    for offset in offsets:
+        bx_curr, by_curr, bs_curr = field_model.get_field(
+            np.full_like(s_axis, x_eval + offset * DERIVATIVE_STEP),
+            np.full_like(s_axis, y_eval),
+            s_axis,
+        )
+        bx_at_offsets.append(bx_curr)
+        by_at_offsets.append(by_curr)
+        bs_at_offsets.append(bs_curr)
+
+    bx_at_offsets = np.array(bx_at_offsets)
+    by_at_offsets = np.array(by_at_offsets)
+    bs_at_offsets = np.array(bs_at_offsets)
+
+    derivatives_by_order = {}
+    zero_offset_index = np.where(offsets == 0)[0][0]
+    derivatives_by_order[0] = (
+        bx_at_offsets[zero_offset_index],
+        by_at_offsets[zero_offset_index],
+        bs_at_offsets[zero_offset_index],
+    )
+
+    for derivative_order in range(1, max_derivative_order + 1):
+        coefficients = SolenoidField.finite_difference_coefficients(
+            offsets, derivative_order)
+
+        bx = (
+            np.tensordot(coefficients, bx_at_offsets, axes=(0, 0))
+            / DERIVATIVE_STEP**derivative_order
+        )
+        by = (
+            np.tensordot(coefficients, by_at_offsets, axes=(0, 0))
+            / DERIVATIVE_STEP**derivative_order
+        )
+        bs = (
+            np.tensordot(coefficients, bs_at_offsets, axes=(0, 0))
+            / DERIVATIVE_STEP**derivative_order
+        )
+
+        bx, by = zero_negligible_central_derivative_values(
+            bx, by, s_axis, derivative_order)
+        derivatives_by_order[derivative_order] = (bx, by, bs)
+
+    return derivatives_by_order
+
+
+def plot_extracted_fields(extracted_fields, max_multipole_order):
     fig, axes = plt.subplots(
         len(extracted_fields), 3,
         figsize=(15, 4.0 * len(extracted_fields)),
@@ -217,11 +377,16 @@ def plot_extracted_fields(extracted_fields, max_multipole_order, output_file):
         f'(max multipole order {max_multipole_order})'
     )
     fig.tight_layout()
-    fig.savefig(output_file, dpi=200)
+    return fig, axes
 
 
-def plot_field_comparison(specs, lines, output_file, x_eval, y_eval):
-    plt.close('all')
+def _derivative_label(component, derivative_order):
+    if derivative_order == 0:
+        return f'B_{component} [T]'
+    return f'd^{derivative_order} B_{component} / dx^{derivative_order}'
+
+
+def plot_field_comparison(specs, lines, x_eval, y_eval):
     fig, axes = plt.subplots(
         len(specs), 3,
         figsize=(15, 4.0 * len(specs)),
@@ -272,7 +437,85 @@ def plot_field_comparison(specs, lines, output_file, x_eval, y_eval):
         f'at x={x_eval:g} m, y={y_eval:g} m'
     )
     fig.tight_layout()
-    fig.savefig(output_file, dpi=200)
+    return fig, axes
+
+
+def compute_derivative_comparison_data(
+        specs, lines, max_derivative_order, x_eval, y_eval):
+    data = []
+
+    for spec, line in zip(specs, lines):
+        splineboris_derivatives = sample_splineboris_derivatives_up_to_order(
+            line,
+            s0=spec.s_axis[0],
+            x_eval=x_eval,
+            y_eval=y_eval,
+            max_derivative_order=max_derivative_order,
+        )
+        s_model = splineboris_derivatives[0][0]
+        field_map_derivatives = compute_field_map_derivatives_up_to_order(
+            spec.field_model,
+            s_model,
+            x_eval=x_eval,
+            y_eval=y_eval,
+            max_derivative_order=max_derivative_order,
+        )
+        data.append({
+            'spec': spec,
+            's': s_model,
+            'splineboris_derivatives': splineboris_derivatives,
+            'field_map_derivatives': field_map_derivatives,
+        })
+
+    return data
+
+
+def plot_transverse_derivative_comparison(data, derivative_order, x_eval, y_eval):
+    fig, axes = plt.subplots(
+        len(data), 2,
+        figsize=(12, 4.0 * len(data)),
+        squeeze=False,
+    )
+
+    for row, item in enumerate(data):
+        spec = item['spec']
+        s_model = item['s']
+        _, bx_model, by_model, _ = item[
+            'splineboris_derivatives'][derivative_order]
+        bx_map, by_map, _ = item[
+            'field_map_derivatives'][derivative_order]
+
+        map_values = [
+            spec.scale_b * bx_map,
+            spec.scale_b * by_map,
+        ]
+        model_values = [bx_model, by_model]
+
+        for col, component in enumerate(('x', 'y')):
+            ax = axes[row, col]
+            ax.plot(s_model, map_values[col], '-', label='field map')
+            ax.plot(s_model, model_values[col], '--', label='SplineBoris')
+            ax.plot(
+                s_model,
+                model_values[col] - map_values[col],
+                ':',
+                label='difference',
+            )
+            ax.set_ylabel(
+                f'{spec.name}\n{_derivative_label(component, derivative_order)}')
+            ax.grid(True, alpha=0.3)
+            if row == 0 and col == 0:
+                ax.legend(loc='best')
+
+    for ax in axes[-1, :]:
+        ax.set_xlabel('s [m]')
+
+    fig.suptitle(
+        f'Transverse derivative comparison, order {derivative_order} '
+        f'at x={x_eval:g} m, y={y_eval:g} m'
+    )
+    fig.tight_layout()
+    return fig, axes
 
 
 def make_solenoid_specs():
@@ -321,30 +564,48 @@ extracted_fields = [
     extract_required_field_data(spec, MAX_MULTIPOLE_ORDER)
     for spec in specs
 ]
-plot_extracted_fields(
+plt.close('all')
+
+fig_extracted_fields, axes_extracted_fields = plot_extracted_fields(
     extracted_fields,
     MAX_MULTIPOLE_ORDER,
-    HERE / '005a_extracted_solenoid_fields.png',
 )
 
 lines = [
     build_splineboris_line(spec, extracted, MAX_MULTIPOLE_ORDER)
     for spec, extracted in zip(specs, extracted_fields)
 ]
-plot_field_comparison(
+fig_field_comparison, axes_field_comparison = plot_field_comparison(
     specs,
     lines,
-    HERE / '005a_splineboris_field_comparison.png',
     x_eval=X_FIELD_COMPARISON,
     y_eval=Y_FIELD_COMPARISON,
 )
+
+derivative_comparison_data = compute_derivative_comparison_data(
+    specs,
+    lines,
+    max_derivative_order=MAX_MULTIPOLE_ORDER,
+    x_eval=X_FIELD_COMPARISON,
+    y_eval=Y_FIELD_COMPARISON,
+)
+
+derivative_comparison_figures = {}
+derivative_comparison_axes = {}
+for order in range(1, MAX_MULTIPOLE_ORDER + 1):
+    fig, axes = plot_transverse_derivative_comparison(
+        derivative_comparison_data,
+        derivative_order=order,
+        x_eval=X_FIELD_COMPARISON,
+        y_eval=Y_FIELD_COMPARISON,
+    )
+    derivative_comparison_figures[order] = fig
+    derivative_comparison_axes[order] = axes
 
 print('Built isolated SplineBoris lines:')
 for spec, line in zip(specs, lines):
     print(
         f'  {spec.name}: {len(line.elements)} elements, '
         f'scale_b={spec.scale_b:.16g}')
-print(f'Wrote {HERE / "005a_extracted_solenoid_fields.png"}')
-print(f'Wrote {HERE / "005a_splineboris_field_comparison.png"}')
 
 plt.show()
