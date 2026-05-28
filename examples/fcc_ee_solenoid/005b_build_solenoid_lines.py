@@ -14,7 +14,7 @@ validate_max_multipole_order(max_multipole_order)
 
 lines = {
     extracted.name: build_splineboris_line(extracted, max_multipole_order)
-    for extracted in extracted_fields
+    for extracted in extracted_fields.values()
 }
 
 save_lines_json(lines, file=LINES_JSON)

@@ -39,12 +39,12 @@ class ExtractedFieldData:
     name: str
     s_axis: np.ndarray
     bs: np.ndarray
-    bx: list[np.ndarray]
-    by: list[np.ndarray]
+    bx: dict[int, np.ndarray]
+    by: dict[int, np.ndarray]
     scale_b: float
     bs_integral_average: np.ndarray
-    bx_integral_average: list[np.ndarray]
-    by_integral_average: list[np.ndarray]
+    bx_integral_average: dict[int, np.ndarray]
+    by_integral_average: dict[int, np.ndarray]
 
 
 def validate_max_multipole_order(max_multipole_order):
@@ -61,11 +61,15 @@ def zero_negligible_central_derivatives(values_by_order, s_axis):
     if ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH <= 0:
         return values_by_order
 
-    values_by_order = [np.array(values, copy=True) for values in values_by_order]
+    values_by_order = {
+        order: np.array(values, copy=True)
+        for order, values in values_by_order.items()
+    }
     mask_center = np.abs(s_axis) <= ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH
 
-    for order in range(ZERO_CENTRAL_DERIVATIVES_FROM_ORDER, len(values_by_order)):
-        values_by_order[order][mask_center] = 0.0
+    for order, values in values_by_order.items():
+        if order >= ZERO_CENTRAL_DERIVATIVES_FROM_ORDER:
+            values[mask_center] = 0.0
 
     return values_by_order
 
@@ -89,7 +93,9 @@ def _component_derivatives(field_model, s_axis, component, max_order):
     component_index = {'x': 0, 'y': 1, 'z': 2}[component]
     zero = np.zeros_like(s_axis)
 
-    values = [field_model.get_field(zero, zero, s_axis)[component_index]]
+    values = {
+        0: field_model.get_field(zero, zero, s_axis)[component_index],
+    }
     if max_order == 0:
         return values
 
@@ -101,7 +107,9 @@ def _component_derivatives(field_model, s_axis, component, max_order):
         max_order=max_order,
         min_order=1,
     )
-    values.extend(derivatives[order] for order in range(1, max_order + 1))
+    values.update({
+        order: derivatives[order] for order in range(1, max_order + 1)
+    })
     return values
 
 
@@ -134,10 +142,14 @@ def extract_required_field_data(spec, max_multipole_order):
 
     lengths = np.diff(s_axis)
     bs_integral = integral_values['bs'].reshape(n_intervals, -1)
-    bx_integral = [
-        vv.reshape(n_intervals, -1) for vv in integral_values['bx']]
-    by_integral = [
-        vv.reshape(n_intervals, -1) for vv in integral_values['by']]
+    bx_integral = {
+        order: vv.reshape(n_intervals, -1)
+        for order, vv in integral_values['bx'].items()
+    }
+    by_integral = {
+        order: vv.reshape(n_intervals, -1)
+        for order, vv in integral_values['by'].items()
+    }
 
     return ExtractedFieldData(
         name=spec.name,
@@ -147,10 +159,14 @@ def extract_required_field_data(spec, max_multipole_order):
         by=values['by'],
         scale_b=spec.scale_b,
         bs_integral_average=np.trapezoid(bs_integral, s_integral) / lengths,
-        bx_integral_average=[
-            np.trapezoid(vv, s_integral) / lengths for vv in bx_integral],
-        by_integral_average=[
-            np.trapezoid(vv, s_integral) / lengths for vv in by_integral],
+        bx_integral_average={
+            order: np.trapezoid(vv, s_integral) / lengths
+            for order, vv in bx_integral.items()
+        },
+        by_integral_average={
+            order: np.trapezoid(vv, s_integral) / lengths
+            for order, vv in by_integral.items()
+        },
     )
 
 
@@ -159,31 +175,77 @@ def extracted_field_to_dict(extracted):
         'name': extracted.name,
         's_axis': extracted.s_axis.tolist(),
         'bs': extracted.bs.tolist(),
-        'bx': [vv.tolist() for vv in extracted.bx],
-        'by': [vv.tolist() for vv in extracted.by],
+        'bx': {
+            str(order): vv.tolist()
+            for order, vv in extracted.bx.items()
+        },
+        'by': {
+            str(order): vv.tolist()
+            for order, vv in extracted.by.items()
+        },
         'scale_b': extracted.scale_b,
         'bs_integral_average': extracted.bs_integral_average.tolist(),
-        'bx_integral_average': [
-            vv.tolist() for vv in extracted.bx_integral_average],
-        'by_integral_average': [
-            vv.tolist() for vv in extracted.by_integral_average],
+        'bx_integral_average': {
+            str(order): vv.tolist()
+            for order, vv in extracted.bx_integral_average.items()
+        },
+        'by_integral_average': {
+            str(order): vv.tolist()
+            for order, vv in extracted.by_integral_average.items()
+        },
     }
 
 
 def extracted_field_from_dict(data):
+    bx_data = data['bx']
+    by_data = data['by']
+    bx_integral_data = data['bx_integral_average']
+    by_integral_data = data['by_integral_average']
+
+    if isinstance(bx_data, list):
+        bx_data = {str(ii): vv for ii, vv in enumerate(bx_data)}
+        by_data = {str(ii): vv for ii, vv in enumerate(by_data)}
+        bx_integral_data = {
+            str(ii): vv for ii, vv in enumerate(bx_integral_data)}
+        by_integral_data = {
+            str(ii): vv for ii, vv in enumerate(by_integral_data)}
+
     return ExtractedFieldData(
         name=data['name'],
         s_axis=np.array(data['s_axis'], dtype=float),
         bs=np.array(data['bs'], dtype=float),
-        bx=[np.array(vv, dtype=float) for vv in data['bx']],
-        by=[np.array(vv, dtype=float) for vv in data['by']],
+        bx={
+            int(order): np.array(vv, dtype=float)
+            for order, vv in bx_data.items()
+        },
+        by={
+            int(order): np.array(vv, dtype=float)
+            for order, vv in by_data.items()
+        },
         scale_b=float(data['scale_b']),
         bs_integral_average=np.array(data['bs_integral_average'], dtype=float),
-        bx_integral_average=[
-            np.array(vv, dtype=float) for vv in data['bx_integral_average']],
-        by_integral_average=[
-            np.array(vv, dtype=float) for vv in data['by_integral_average']],
+        bx_integral_average={
+            int(order): np.array(vv, dtype=float)
+            for order, vv in bx_integral_data.items()
+        },
+        by_integral_average={
+            int(order): np.array(vv, dtype=float)
+            for order, vv in by_integral_data.items()
+        },
     )
+
+
+def field_data_metadata(max_multipole_order):
+    return {
+        'max_multipole_order': max_multipole_order,
+        'derivative_step': DERIVATIVE_STEP,
+        'zero_central_derivatives_from_order': (
+            ZERO_CENTRAL_DERIVATIVES_FROM_ORDER),
+        'zero_central_derivatives_half_length': (
+            ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH),
+        'spline_integral_points': SPLINE_INTEGRAL_POINTS,
+        'spline_steps_per_point': SPLINE_STEPS_PER_POINT,
+    }
 
 
 def save_extracted_fields_json(
@@ -191,29 +253,28 @@ def save_extracted_fields_json(
         max_multipole_order=MAX_MULTIPOLE_ORDER):
     validate_max_multipole_order(max_multipole_order)
     data = {
-        'metadata': {
-            'max_multipole_order': max_multipole_order,
-            'derivative_step': DERIVATIVE_STEP,
-            'zero_central_derivatives_from_order': (
-                ZERO_CENTRAL_DERIVATIVES_FROM_ORDER),
-            'zero_central_derivatives_half_length': (
-                ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH),
-            'spline_integral_points': SPLINE_INTEGRAL_POINTS,
-            'spline_steps_per_point': SPLINE_STEPS_PER_POINT,
+        'metadata': field_data_metadata(max_multipole_order),
+        'fields': {
+            extracted.name: extracted_field_to_dict(extracted)
+            for extracted in _iter_extracted_fields(extracted_fields)
         },
-        'fields': [
-            extracted_field_to_dict(extracted)
-            for extracted in extracted_fields
-        ],
     }
     xt.json.dump(data, file, indent=1)
 
 
 def load_extracted_fields_json(file=FIELD_DATA_JSON):
     data = xt.json.load(file)
+    fields = data['fields']
+    if isinstance(fields, list):
+        fields = {
+            item['name']: item for item in fields
+        }
     return (
         data['metadata'],
-        [extracted_field_from_dict(item) for item in data['fields']],
+        {
+            name: extracted_field_from_dict(item)
+            for name, item in fields.items()
+        },
     )
 
 
@@ -232,10 +293,14 @@ def build_splineboris_line(extracted, max_multipole_order):
     n_intervals = len(s_axis) - 1
 
     bs_s_derivative = np.gradient(extracted.bs, s_axis, edge_order=2)
-    bx_s_derivatives = [
-        np.gradient(values, s_axis, edge_order=2) for values in extracted.bx]
-    by_s_derivatives = [
-        np.gradient(values, s_axis, edge_order=2) for values in extracted.by]
+    bx_s_derivatives = {
+        order: np.gradient(values, s_axis, edge_order=2)
+        for order, values in extracted.bx.items()
+    }
+    by_s_derivatives = {
+        order: np.gradient(values, s_axis, edge_order=2)
+        for order, values in extracted.by.items()
+    }
 
     elements = []
     names = []
@@ -374,11 +439,17 @@ def sample_splineboris_derivatives_up_to_order(
     return derivatives_by_order
 
 
+def _iter_extracted_fields(extracted_fields):
+    if isinstance(extracted_fields, dict):
+        return extracted_fields.values()
+    return extracted_fields
+
+
 def compute_bs_integrals(extracted_fields):
     return {
         extracted.name: np.trapezoid(
             extracted.scale_b * extracted.bs, extracted.s_axis)
-        for extracted in extracted_fields
+        for extracted in _iter_extracted_fields(extracted_fields)
     }
 
 
@@ -405,7 +476,7 @@ def plot_extracted_fields(
         squeeze=False,
     )
 
-    for row, extracted in enumerate(extracted_fields):
+    for row, extracted in enumerate(_iter_extracted_fields(extracted_fields)):
         s_axis = extracted.s_axis
         scale_b = extracted.scale_b
 
@@ -458,7 +529,7 @@ def plot_field_comparison(
         ('B_s [T]', 'bs', None),
     ]
 
-    for row, extracted in enumerate(extracted_fields):
+    for row, extracted in enumerate(_iter_extracted_fields(extracted_fields)):
         line = lines_by_name[extracted.name]
         s_model, bx_model, by_model, bs_model = sample_splineboris_line(
             line, s0=extracted.s_axis[0], x=x_eval, y=y_eval)
@@ -509,7 +580,7 @@ def compute_derivative_comparison_data(
         extracted_fields, lines_by_name, max_derivative_order, x_eval, y_eval):
     data = []
 
-    for extracted in extracted_fields:
+    for extracted in _iter_extracted_fields(extracted_fields):
         line = lines_by_name[extracted.name]
         splineboris_derivatives = sample_splineboris_derivatives_up_to_order(
             line,
@@ -606,4 +677,7 @@ def make_solenoid_specs():
         / 2.0
     )
 
-    return [main, comp]
+    return {
+        main.name: main,
+        comp.name: comp,
+    }
