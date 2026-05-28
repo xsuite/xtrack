@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import xtrack as xt
 
-from tilted_solenoid import TiltedSolenoid
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 
 
@@ -12,16 +11,12 @@ HERE = Path(__file__).parent
 FIELD_DATA_JSON = HERE / '005_solenoid_field_data.json'
 LINES_JSON = HERE / '005_solenoid_lines.json'
 
-THETA = -0.015
 DERIVATIVE_STEP = 5e-4
 MAX_MULTIPOLE_ORDER = 4
 ZERO_CENTRAL_DERIVATIVES_FROM_ORDER = 2
 ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH = 0.25
 SPLINE_STEPS_PER_POINT = 10
 SPLINE_INTEGRAL_POINTS = 10
-N_SLICES_MAIN_SOLENOID = 201
-N_SLICES_COMP_SOLENOID = 201
-SOL_ORBIT_CORRECTOR_DS = 1.8
 X_FIELD_COMPARISON = 0.0
 Y_FIELD_COMPARISON = 0.0
 
@@ -646,38 +641,3 @@ def plot_transverse_derivative_comparison(
     )
     fig.tight_layout()
     return fig, axes
-
-
-def make_solenoid_specs():
-    main = SolenoidSpec(
-        name='main_solenoid',
-        field_model=TiltedSolenoid(L=1.23 * 2, a=0.13, B0=2.0, theta=THETA),
-        s_axis=np.unique(np.r_[
-            np.linspace(-2.399, 2.399, N_SLICES_MAIN_SOLENOID),
-            -SOL_ORBIT_CORRECTOR_DS,
-            SOL_ORBIT_CORRECTOR_DS,
-        ]),
-        scale_b=1.0,
-    )
-
-    comp = SolenoidSpec(
-        name='compensation_solenoid',
-        field_model=SolenoidField(L=1.5, a=0.03, B0=1.0, z0=0.0),
-        s_axis=np.linspace(-1.0, 1.0, N_SLICES_COMP_SOLENOID),
-        scale_b=1.0,
-    )
-
-    _, _, bz_main = main.field_model.get_field(
-        np.zeros_like(main.s_axis), np.zeros_like(main.s_axis), main.s_axis)
-    _, _, bz_comp = comp.field_model.get_field(
-        np.zeros_like(comp.s_axis), np.zeros_like(comp.s_axis), comp.s_axis)
-    comp.scale_b = (
-        -np.trapezoid(bz_main, main.s_axis)
-        / np.trapezoid(bz_comp, comp.s_axis)
-        / 2.0
-    )
-
-    return {
-        main.name: main,
-        comp.name: comp,
-    }
