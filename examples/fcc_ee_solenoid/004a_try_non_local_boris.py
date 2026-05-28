@@ -16,9 +16,9 @@ ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
 # Tilt with respect to the beam axis
 theta = -0.015
 
-SPLINE_MULTIPOLE_ORDER = 2
+SPLINE_MULTIPOLE_ORDER = 1
 SPLINE_DERIVATIVE_STEP = 1e-5
-SPLINE_STEPS_PER_POINT = 100
+SPLINE_STEPS_PER_POINT = 10
 SPLINE_INTEGRAL_POINTS = 10
 SOL_ORBIT_CORRECTOR_DS = 1.8
 
@@ -43,11 +43,11 @@ def build_splineboris_line(env, name_prefix, field_model, s_axis, scale_b):
     bs_values = compute_field_derivative(field_model, s_axis, component=2, derivative_order=0)
     bx_values = [
         compute_field_derivative(field_model, s_axis, component=0, derivative_order=order)
-        for order in range(SPLINE_MULTIPOLE_ORDER)
+        for order in range(SPLINE_MULTIPOLE_ORDER + 1)
     ]
     by_values = [
         compute_field_derivative(field_model, s_axis, component=1, derivative_order=order)
-        for order in range(SPLINE_MULTIPOLE_ORDER)
+        for order in range(SPLINE_MULTIPOLE_ORDER + 1)
     ]
 
     bs_s_derivative = np.gradient(bs_values, s_axis, edge_order=2)
@@ -74,7 +74,7 @@ def build_splineboris_line(env, name_prefix, field_model, s_axis, scale_b):
 
         bx = []
         by = []
-        for order in range(SPLINE_MULTIPOLE_ORDER):
+        for order in range(SPLINE_MULTIPOLE_ORDER + 1):
             bx_integral_values = compute_field_derivative(
                 field_model, s_integral, component=0, derivative_order=order)
             by_integral_values = compute_field_derivative(
@@ -199,7 +199,7 @@ for ip_name in ip_names:
         env.place(ip_name, at=s_ip), # Put back the ip
         env.place(line_comp_solenoid_left, anchor='end', at=-12, from_=ip_name),
         env.place(line_comp_solenoid_right, anchor='start', at=12, from_=ip_name)
-    ], s_tol=1e-9)
+    ], s_tol=1e-8)
 
     # Single orbit corrector on each side of the IP
     env[f'acbh1_sol_right_{ip_name}'] = 0
