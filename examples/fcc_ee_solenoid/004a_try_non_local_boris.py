@@ -18,8 +18,9 @@ theta = -0.015
 
 SPLINE_MULTIPOLE_ORDER = 2
 SPLINE_DERIVATIVE_STEP = 1e-5
-SPLINE_STEPS_PER_POINT = 1
+SPLINE_STEPS_PER_POINT = 100
 SPLINE_INTEGRAL_POINTS = 10
+SOL_ORBIT_CORRECTOR_DS = 1.8
 
 
 def compute_field_derivative(field_model, s_axis, component, derivative_order):
@@ -38,8 +39,7 @@ def compute_field_derivative(field_model, s_axis, component, derivative_order):
     )[derivative_order]
 
 
-def build_splineboris_line(
-        env, name_prefix, field_model, s_axis, scale_b, corrector_specs=None):
+def build_splineboris_line(env, name_prefix, field_model, s_axis, scale_b):
     bs_values = compute_field_derivative(field_model, s_axis, component=2, derivative_order=0)
     bx_values = [
         compute_field_derivative(field_model, s_axis, component=0, derivative_order=order)
@@ -57,8 +57,6 @@ def build_splineboris_line(
         np.gradient(values, s_axis, edge_order=2) for values in by_values]
 
     elements = []
-    s_starts = []
-    s_ends = []
     for ii in range(len(s_axis) - 1):
         length = s_axis[ii + 1] - s_axis[ii]
         s_integral = np.linspace(
@@ -105,32 +103,6 @@ def build_splineboris_line(
             length=length,
             n_steps=SPLINE_STEPS_PER_POINT,
         ))
-        s_starts.append(float(s_axis[ii]))
-        s_ends.append(float(s_axis[ii + 1]))
-
-    corrector_specs = corrector_specs or []
-    correctors_by_element = {}
-    for side, ds_start, ds_end, ip_name in corrector_specs:
-        knob_h = f'acbh1_sol_{side}_{ip_name}'
-        knob_v = f'acbv1_sol_{side}_{ip_name}'
-        env[knob_h] = 0
-        env[knob_v] = 0
-
-        s_min = min(ds_start, ds_end)
-        s_max = max(ds_start, ds_end)
-        selected = [
-            ii for ii, (s_start, s_end) in enumerate(
-                zip(s_starts, s_ends))
-            if s_min <= 0.5 * (s_start + s_end) <= s_max
-        ]
-        if not selected:
-            raise ValueError(
-                f'No SplineBoris pieces selected for {side} corrector '
-                f'in range [{ds_start}, {ds_end}]')
-
-        l_tot = sum(elements[ii].length for ii in selected)
-        for ii in selected:
-            correctors_by_element[ii] = (side, knob_h, knob_v, l_tot)
 
     name_width = len(str(max(0, len(elements) - 1)))
     ele_names = []
@@ -138,22 +110,7 @@ def build_splineboris_line(
         name = f'{name_prefix}_{ii:0{name_width}d}'
         env.elements[name] = elem
         env.ref[name].scale_b = scale_b
-
-        if ii in correctors_by_element:
-            side, knob_h, knob_v, l_tot = correctors_by_element[ii]
-            half_knl = 0.5 * env.ref[knob_h] / l_tot * elem.length
-            half_ksl = 0.5 * env.ref[knob_v] / l_tot * elem.length
-
-            corr_entry = f'{name_prefix}_corr_{side}_{ii:0{name_width}d}_entry'
-            corr_exit = f'{name_prefix}_corr_{side}_{ii:0{name_width}d}_exit'
-            env.new(corr_entry, xt.Multipole, knl=[half_knl], ksl=[half_ksl])
-            env.new(corr_exit, xt.Multipole, knl=[half_knl], ksl=[half_ksl])
-            ele_names.append(corr_entry)
-
         ele_names.append(name)
-
-        if ii in correctors_by_element:
-            ele_names.append(corr_exit)
 
     return env.new_line(components=ele_names)
 
@@ -180,7 +137,11 @@ for ip_name in ip_names:
     sf = TiltedSolenoid(L=1.23*2, a=0.13, B0=2., theta=theta)
 
     # s coordinate along the beam axis
-    s = np.linspace(-2.399, 2.399, 201)
+    s = np.unique(np.r_[
+        np.linspace(-2.399, 2.399, 201),
+        -SOL_ORBIT_CORRECTOR_DS,
+        SOL_ORBIT_CORRECTOR_DS,
+    ])
 
     # Compute field on the beam reference trajectory in the beam frame
     bx, by, bz = sf.get_field(0 * s, 0 * s, s)
@@ -195,10 +156,6 @@ for ip_name in ip_names:
         field_model=sf,
         s_axis=s,
         scale_b=env.ref[f'on_sol_{ip_name}'],
-        corrector_specs=[
-            ('right', 1.23, 2.29, ip_name),
-            ('left', -2.29, -1.23, ip_name),
-        ],
     )
 
     # Measure integrated field of the main solenoid
@@ -242,6 +199,22 @@ for ip_name in ip_names:
         env.place(ip_name, at=s_ip), # Put back the ip
         env.place(line_comp_solenoid_left, anchor='end', at=-12, from_=ip_name),
         env.place(line_comp_solenoid_right, anchor='start', at=12, from_=ip_name)
+    ], s_tol=1e-9)
+
+    # Single orbit corrector on each side of the IP
+    env[f'acbh1_sol_right_{ip_name}'] = 0
+    env[f'acbv1_sol_right_{ip_name}'] = 0
+    env[f'acbh1_sol_left_{ip_name}'] = 0
+    env[f'acbv1_sol_left_{ip_name}'] = 0
+    line.insert([
+        env.new(f'corr_sol_1_right_{ip_name}', xt.Multipole,
+                knl=[env.ref[f'acbh1_sol_right_{ip_name}']],
+                ksl=[env.ref[f'acbv1_sol_right_{ip_name}']],
+                at=SOL_ORBIT_CORRECTOR_DS, from_=ip_name),
+        env.new(f'corr_sol_1_left_{ip_name}', xt.Multipole,
+                knl=[env.ref[f'acbh1_sol_left_{ip_name}']],
+                ksl=[env.ref[f'acbv1_sol_left_{ip_name}']],
+                at=-SOL_ORBIT_CORRECTOR_DS, from_=ip_name),
     ], s_tol=1e-9)
 
     # Insert markers and dedicated correctors for sol compensation

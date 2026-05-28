@@ -282,13 +282,33 @@ def test_splineboris_scale_b_scales_field_and_tracking(make_uniform_splineboris)
     xo.assert_allclose(p_scaled.zeta, p_reference.zeta, atol=1e-15, rtol=0)
 
 
-def test_splineboris_backtrack(make_uniform_splineboris):
-    splineboris = make_uniform_splineboris(
-        Bx=0.03, By=-0.05, Bs=0.02, s_end=1.3, n_steps=32)
+def test_splineboris_backtrack_twiss_checks_s():
+    def make_splineboris(length, scale=1.0):
+        return xt.SplineBoris(
+            bs=xt.Spline4(
+                scale * 0.020, scale * 0.003, scale * 0.017,
+                scale * -0.002, scale * 0.018),
+            by=(xt.Spline4(
+                scale * -0.010, scale * 0.004, scale * -0.012,
+                scale * 0.001, scale * -0.011),),
+            bx=(xt.Spline4(
+                scale * 0.006, scale * -0.002, scale * 0.009,
+                scale * 0.003, scale * 0.007),),
+            length=length,
+            n_steps=8,
+        )
 
-    assert splineboris.has_backtrack
+    splineboris_0 = make_splineboris(length=1.3, scale=1.0)
+    splineboris_1 = make_splineboris(length=0.7, scale=-0.6)
 
-    line = xt.Line(elements=[splineboris])
+    assert splineboris_0.has_backtrack
+    assert splineboris_1.has_backtrack
+
+    line = xt.Line(elements={
+        'sb0': splineboris_0,
+        'sb1': splineboris_1,
+        'end': xt.Marker(),
+    })
     line.particle_ref = xt.Particles(
         mass0=xt.ELECTRON_MASS_EV,
         q0=1.0,
@@ -296,25 +316,55 @@ def test_splineboris_backtrack(make_uniform_splineboris):
     )
     line.build_tracker(use_prebuilt_kernels=False)
 
-    p_initial = line.particle_ref.copy()
-    p_initial.x = 1.2e-3
-    p_initial.y = -0.8e-3
-    p_initial.px = 2.0e-4
-    p_initial.py = -3.0e-4
-    p_initial.zeta = 1e-4
-    p_initial.delta = 2e-3
+    tw_forward = line.twiss(
+        method='4d',
+        start='sb0',
+        end='end',
+        init_at='sb0',
+        x=1.2e-3,
+        px=2.0e-4,
+        y=-0.8e-3,
+        py=-3.0e-4,
+        betx=1.0,
+        bety=1.0,
+    )
+    tw_backtrack = line.twiss(
+        method='4d',
+        start='sb0',
+        end='end',
+        init=tw_forward,
+        init_at='end',
+    )
 
-    p_test = p_initial.copy()
-    line.track(p_test)
-    line.track(p_test, backtrack=True)
+    xo.assert_allclose(
+        tw_forward.s,
+        [0.0, splineboris_0.length,
+         splineboris_0.length + splineboris_1.length,
+         splineboris_0.length + splineboris_1.length],
+        atol=1e-14,
+        rtol=0,
+    )
+    xo.assert_allclose(tw_backtrack.s, tw_forward.s, atol=1e-14, rtol=0)
 
-    xo.assert_allclose(p_test.s, p_initial.s, atol=1e-14, rtol=0)
-    xo.assert_allclose(p_test.x, p_initial.x, atol=1e-14, rtol=0)
-    xo.assert_allclose(p_test.y, p_initial.y, atol=1e-14, rtol=0)
-    xo.assert_allclose(p_test.px, p_initial.px, atol=1e-14, rtol=0)
-    xo.assert_allclose(p_test.py, p_initial.py, atol=1e-14, rtol=0)
-    xo.assert_allclose(p_test.zeta, p_initial.zeta, atol=1e-14, rtol=0)
-    xo.assert_allclose(p_test.delta, p_initial.delta, atol=0, rtol=0)
+    for name in ('sb0', 'sb1', 'end', '_end_point'):
+        assert name in tw_forward.name
+        assert name in tw_backtrack.name
+
+    for column in ('x', 'px', 'y', 'py', 'delta'):
+        xo.assert_allclose(
+            tw_backtrack[column],
+            tw_forward[column],
+            atol=1e-12,
+            rtol=0,
+        )
+
+    for column in ('betx', 'bety', 'alfx', 'alfy'):
+        xo.assert_allclose(
+            tw_backtrack[column],
+            tw_forward[column],
+            atol=1e-9,
+            rtol=0,
+        )
 
 
 # Test some common field angles, as well as some unusual ones
