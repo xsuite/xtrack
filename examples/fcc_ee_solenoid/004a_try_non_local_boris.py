@@ -21,6 +21,8 @@ SPLINE_DERIVATIVE_STEP = 1e-5
 SPLINE_STEPS_PER_POINT = 10
 SPLINE_INTEGRAL_POINTS = 10
 SOL_ORBIT_CORRECTOR_DS = 1.8
+N_SLICES_MAIN_SOLENOID = 201
+N_SLICES_COMP_SOLENOID = 201
 
 
 def compute_field_derivative(field_model, s_axis, component, derivative_order):
@@ -138,7 +140,7 @@ for ip_name in ip_names:
 
     # s coordinate along the beam axis
     s = np.unique(np.r_[
-        np.linspace(-2.399, 2.399, 201),
+        np.linspace(-2.399, 2.399, N_SLICES_MAIN_SOLENOID),
         -SOL_ORBIT_CORRECTOR_DS,
         SOL_ORBIT_CORRECTOR_DS,
     ])
@@ -163,7 +165,7 @@ for ip_name in ip_names:
 
     # Make compensation solenoid
     sfc = SolenoidField(L=1.5, a=0.03, B0=1., z0=0)
-    s_comp = np.linspace(-1, 1., 51)
+    s_comp = np.linspace(-1, 1., N_SLICES_COMP_SOLENOID)
     _, _, bzc = sfc.get_field(0*s_comp, 0*s_comp, s_comp)
     env[f'on_comp_sol_{ip_name}'] = 1
     env[f'field_comp_sol_{ip_name}'] = 1.
