@@ -337,7 +337,23 @@ def compute_field_map_derivatives_up_to_order(
     return derivatives_by_order
 
 
-def plot_extracted_fields(extracted_fields, max_multipole_order):
+def compute_bs_integrals(extracted_fields):
+    return {
+        extracted.name: np.trapezoid(
+            extracted.scale_b * extracted.bs, extracted.s_axis)
+        for extracted in extracted_fields
+    }
+
+
+def format_bs_integrals_title(bs_integrals):
+    entries = [
+        f'{name}={value:.6g}' for name, value in bs_integrals.items()]
+    entries.append(f'sum={sum(bs_integrals.values()):.6g}')
+    return 'int Bs ds [T m]: ' + ', '.join(entries)
+
+
+def plot_extracted_fields(
+        extracted_fields, max_multipole_order, bs_integrals_title):
     fig, axes = plt.subplots(
         len(extracted_fields), 3,
         figsize=(15, 4.0 * len(extracted_fields)),
@@ -374,7 +390,8 @@ def plot_extracted_fields(extracted_fields, max_multipole_order):
 
     fig.suptitle(
         'Extracted SplineBoris inputs from field maps '
-        f'(max multipole order {max_multipole_order})'
+        f'(max multipole order {max_multipole_order})\n'
+        f'{bs_integrals_title}'
     )
     fig.tight_layout()
     return fig, axes
@@ -386,7 +403,7 @@ def _derivative_label(component, derivative_order):
     return f'd^{derivative_order} B_{component} / dx^{derivative_order}'
 
 
-def plot_field_comparison(specs, lines, x_eval, y_eval):
+def plot_field_comparison(specs, lines, x_eval, y_eval, bs_integrals_title):
     fig, axes = plt.subplots(
         len(specs), 3,
         figsize=(15, 4.0 * len(specs)),
@@ -434,7 +451,8 @@ def plot_field_comparison(specs, lines, x_eval, y_eval):
 
     fig.suptitle(
         'Field-map and isolated SplineBoris-line comparison '
-        f'at x={x_eval:g} m, y={y_eval:g} m'
+        f'at x={x_eval:g} m, y={y_eval:g} m\n'
+        f'{bs_integrals_title}'
     )
     fig.tight_layout()
     return fig, axes
@@ -470,7 +488,8 @@ def compute_derivative_comparison_data(
     return data
 
 
-def plot_transverse_derivative_comparison(data, derivative_order, x_eval, y_eval):
+def plot_transverse_derivative_comparison(
+        data, derivative_order, x_eval, y_eval, bs_integrals_title):
     fig, axes = plt.subplots(
         len(data), 2,
         figsize=(12, 4.0 * len(data)),
@@ -512,7 +531,8 @@ def plot_transverse_derivative_comparison(data, derivative_order, x_eval, y_eval
 
     fig.suptitle(
         f'Transverse derivative comparison, order {derivative_order} '
-        f'at x={x_eval:g} m, y={y_eval:g} m'
+        f'at x={x_eval:g} m, y={y_eval:g} m\n'
+        f'{bs_integrals_title}'
     )
     fig.tight_layout()
     return fig, axes
@@ -564,11 +584,14 @@ extracted_fields = [
     extract_required_field_data(spec, MAX_MULTIPOLE_ORDER)
     for spec in specs
 ]
+bs_integrals = compute_bs_integrals(extracted_fields)
+bs_integrals_title = format_bs_integrals_title(bs_integrals)
 plt.close('all')
 
 fig_extracted_fields, axes_extracted_fields = plot_extracted_fields(
     extracted_fields,
     MAX_MULTIPOLE_ORDER,
+    bs_integrals_title,
 )
 
 lines = [
@@ -580,6 +603,7 @@ fig_field_comparison, axes_field_comparison = plot_field_comparison(
     lines,
     x_eval=X_FIELD_COMPARISON,
     y_eval=Y_FIELD_COMPARISON,
+    bs_integrals_title=bs_integrals_title,
 )
 
 derivative_comparison_data = compute_derivative_comparison_data(
@@ -598,6 +622,7 @@ for order in range(1, MAX_MULTIPOLE_ORDER + 1):
         derivative_order=order,
         x_eval=X_FIELD_COMPARISON,
         y_eval=Y_FIELD_COMPARISON,
+        bs_integrals_title=bs_integrals_title,
     )
     derivative_comparison_figures[order] = fig
     derivative_comparison_axes[order] = axes
