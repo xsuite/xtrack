@@ -13,13 +13,15 @@ COMP_SOLENOID_DISTANCE_FROM_IP = 12.0
 MAIN_SOLENOID_CORRECTOR_DS = 1.8
 COMPENSATION_CORRECTOR_MARKER_DS = 11.95
 COMPENSATION_CORRECTOR_LENGTH = 1.0
-INSERTION_S_TOL = 0.01
+SOLENOID_INSERTION_S_TOL = 1e-8
+SOLENOID_CORRECTOR_INSERTION_S_TOL = 0.01
 
 
 # Load the FCC-ee environment and the isolated SplineBoris solenoid lines
 # prepared by 005b.
 env = xt.load(INPUT_LATTICE_JSON)
 line = env.fccee_p_ring
+tw0 = line.twiss4d()
 
 line_data = xt.json.load(LINES_JSON)
 solenoid_templates = {
@@ -41,8 +43,8 @@ for ip_name in IP_NAMES:
     print(f'Installing solenoids around {ip_name}')
 
     # Knobs controlling the main and compensation solenoids at this IP.
-    env[f'on_sol_{ip_name}'] = 1
-    env[f'on_comp_sol_{ip_name}'] = 1
+    env[f'on_sol_{ip_name}'] = 0
+    env[f'on_comp_sol_{ip_name}'] = 0
 
     # Make independent element clones for this IP. Each clone keeps the base
     # scale saved in 005_solenoid_lines.json and multiplies it by the local knob.
@@ -84,7 +86,7 @@ for ip_name in IP_NAMES:
                   at=-COMP_SOLENOID_DISTANCE_FROM_IP, from_=ip_name),
         env.place(solenoid_lines['comp_right'], anchor='start',
                   at=COMP_SOLENOID_DISTANCE_FROM_IP, from_=ip_name),
-    ], s_tol=INSERTION_S_TOL)
+    ], s_tol=SOLENOID_INSERTION_S_TOL)
 
     # Add one horizontal and one vertical knob to each of the two dipole
     # correctors installed inside the main solenoid.
@@ -108,7 +110,7 @@ for ip_name in IP_NAMES:
             at=-MAIN_SOLENOID_CORRECTOR_DS,
             from_=ip_name,
         ),
-    ], s_tol=INSERTION_S_TOL)
+    ], s_tol=SOLENOID_CORRECTOR_INSERTION_S_TOL)
 
     # Add the matching markers and the last pair of orbit correctors used by
     # the downstream correction script around the compensation-solenoid region.
@@ -139,7 +141,7 @@ for ip_name in IP_NAMES:
             at=0,
             from_=f'dy_match_l_{ip_name}@end',
         ),
-    ], s_tol=INSERTION_S_TOL)
+    ])
 
 
 # Save the environment containing the FCC ring with the solenoid insertions.
