@@ -37,6 +37,7 @@ idx_splineboris = np.where(mask_splineboris)[0]
 
 s_bs_plot_chunks = []
 bs_plot_chunks = []
+sampled_segments = []
 bs_by_element = {}
 bs_integral_by_element = {}
 bs_integral_main_solenoids = 0.0
@@ -71,13 +72,42 @@ for ii in idx_splineboris:
     elif name.startswith('comp_sol_slice_'):
         bs_integral_compensation_solenoids += bs_integral
 
-    # Add explicit zero points at both ends. This keeps the line on zero
-    # between separated solenoid regions without using NaN separators.
-    s_bs_plot_chunks.append(np.r_[s_ring[0], s_ring, s_ring[-1]])
-    bs_plot_chunks.append(np.r_[0.0, bs_local, 0.0])
+    sampled_segments.append((s_ring, bs_local))
 
 bs_integral_all_solenoids = (
     bs_integral_main_solenoids + bs_integral_compensation_solenoids)
+
+current_s = []
+current_bs = []
+previous_s_end = None
+for s_ring, bs_local in sampled_segments:
+    starts_new_region = (
+        previous_s_end is None
+        or abs(s_ring[0] - previous_s_end) > 1e-9
+    )
+
+    if starts_new_region and current_s:
+        s_region = np.concatenate(current_s)
+        bs_region = np.concatenate(current_bs)
+        s_bs_plot_chunks.append(np.r_[s_region[0], s_region, s_region[-1]])
+        bs_plot_chunks.append(np.r_[0.0, bs_region, 0.0])
+        current_s = []
+        current_bs = []
+
+    if current_s and abs(s_ring[0] - previous_s_end) <= 1e-9:
+        current_s.append(s_ring[1:])
+        current_bs.append(bs_local[1:])
+    else:
+        current_s.append(s_ring)
+        current_bs.append(bs_local)
+
+    previous_s_end = s_ring[-1]
+
+if current_s:
+    s_region = np.concatenate(current_s)
+    bs_region = np.concatenate(current_bs)
+    s_bs_plot_chunks.append(np.r_[s_region[0], s_region, s_region[-1]])
+    bs_plot_chunks.append(np.r_[0.0, bs_region, 0.0])
 
 s_bs = np.concatenate(s_bs_plot_chunks)
 bs = np.concatenate(bs_plot_chunks)
