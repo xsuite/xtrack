@@ -802,9 +802,14 @@ class ActionTwissMadngTPSA(Action):
             init_coord[4] = init['zeta', start_loc] / beta0
             init_coord[5] = init['ptau', start_loc] # ptau corresponds to pt
 
-        # Build small Lua snippet: map1.x = val ...
+        # Build small Lua snippet setting the initial orbit, e.g.
+        # ``map1.x:set0(val) ...``.  We must use ``:set0`` (set the 0th-order /
+        # constant part) and NOT ``map1.x = val``: to preserve TPSA.
+        # Otherwise TPSA is replaced which corrputs the A-matrix row and
+        # the optical functions for non-zero orbit.
+
         coord_assign = " ".join(
-            f"map1.{p} = {v}"
+            f"map1.{p}:set0({v})"
             for p, v in zip(['x','px','y','py','t','pt'], init_coord)
             if abs(v) > 1e-12
         )
