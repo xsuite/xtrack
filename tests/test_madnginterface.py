@@ -586,3 +586,11 @@ def test_madng_orbit_bump():
     opt.solve()
 
     assert opt._err.call_counter < 7
+
+    # check for arbitrary x argument that x is persisted in optimization object
+    x_sol = opt._err._get_x()
+    jac_sol = opt._err.get_jacobian(x_sol)
+    x_probe = x_sol + 1e-4
+    jac_probe = opt._err.get_jacobian(x_probe)
+    xo.assert_allclose(opt._err._get_x(), x_probe, rtol=0, atol=1e-12)
+    assert not np.allclose(jac_probe, jac_sol, rtol=1e-6, atol=1e-6)
