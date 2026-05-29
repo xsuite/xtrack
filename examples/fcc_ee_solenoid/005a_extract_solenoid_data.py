@@ -29,6 +29,7 @@ N_SLICES_MAIN_SOLENOID = 201
 N_SLICES_COMP_SOLENOID = 201
 
 
+# Define solenoids and longitudinal sampling grids.
 validate_max_multipole_order(MAX_MULTIPOLE_ORDER)
 
 main_s_axis = np.linspace(-2.399, 2.399, N_SLICES_MAIN_SOLENOID)
@@ -59,6 +60,7 @@ specs = {
     },
 }
 
+# Extract fields and transverse derivatives at the SplineBoris knots.
 fields = {}
 for name, spec in specs.items():
     field_model = spec['field_model']
@@ -98,6 +100,7 @@ for name, spec in specs.items():
             ZERO_CENTRAL_DERIVATIVES_HALF_LENGTH,
         )
 
+    # Extract interval averages used as the integral constraint of each spline.
     n_intervals = len(s_axis) - 1
     s_integral = np.array([
         np.linspace(s_axis[ii], s_axis[ii + 1], SPLINE_INTEGRAL_POINTS)
@@ -185,6 +188,7 @@ for name, spec in specs.items():
         },
     }
 
+# Prepare a JSON-friendly dictionary with all data needed to build the lines.
 output_data = {
     'metadata': {
         'max_multipole_order': MAX_MULTIPOLE_ORDER,
@@ -224,6 +228,7 @@ output_data = {
     },
 }
 
+# Save extracted data.
 bs_integrals = compute_bs_integrals(fields)
 bs_integrals_title = format_bs_integrals_title(bs_integrals)
 
@@ -232,6 +237,7 @@ xt.json.dump(output_data, FIELD_DATA_JSON, indent=1)
 print(f'Wrote {FIELD_DATA_JSON}')
 print(bs_integrals_title)
 
+# Plot the extracted data for inspection.
 plt.close('all')
 fig_extracted_fields, axes_extracted_fields = plt.subplots(
     len(fields), 3,

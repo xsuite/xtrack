@@ -27,6 +27,9 @@ Y_FIELD_COMPARISON = 0.0
 
 
 def sample_splineboris_line(line, s0, x=0.0, y=0.0):
+    # Sample the magnetic field represented by a full isolated SplineBoris line.
+    # The line elements use local s; s0 shifts the sampled points back to the
+    # same absolute s coordinate used in the saved field-map data.
     s_out = []
     bx_out = []
     by_out = []
@@ -55,6 +58,7 @@ def sample_splineboris_line(line, s0, x=0.0, y=0.0):
     )
 
 
+# Load the saved field-map extraction from 005a and the SplineBoris lines from 005b.
 metadata, fields = load_field_data_json(FIELD_DATA_JSON)
 max_multipole_order = metadata['max_multipole_order']
 validate_max_multipole_order(max_multipole_order)
@@ -70,6 +74,7 @@ bs_integrals_title = format_bs_integrals_title(bs_integrals)
 
 plt.close('all')
 
+# Compare the field values themselves: saved field-map data vs. line sampling.
 fig_field_comparison, axes_field_comparison = plt.subplots(
     len(fields), 3,
     figsize=(15, 4.0 * len(fields)),
@@ -84,6 +89,7 @@ components = [
 
 sampled_lines = {}
 for row, (name, field) in enumerate(fields.items()):
+    # Sample the SplineBoris line at the reference transverse point.
     s_model, bx_model, by_model, bs_model = sample_splineboris_line(
         lines[name],
         s0=field['s_axis'][0],
@@ -110,17 +116,9 @@ for row, (name, field) in enumerate(fields.items()):
 
     for col, (ylabel, component, _) in enumerate(components):
         ax = axes_field_comparison[row, col]
-        field_interp = np.interp(
-            s_model, field['s_axis'], field_values[component])
-        ax.plot(field['s_axis'], field_values[component], '.',
+        ax.plot(field['s_axis'], field_values[component], '-',
                 label='field-map data')
         ax.plot(s_model, model_values[component], '--', label='SplineBoris')
-        ax.plot(
-            s_model,
-            model_values[component] - field_interp,
-            ':',
-            label='difference',
-        )
         ax.set_ylabel(f'{name}\n{ylabel}')
         ax.grid(True, alpha=0.3)
         if row == 0 and col == 0:
@@ -136,6 +134,11 @@ fig_field_comparison.suptitle(
 )
 fig_field_comparison.tight_layout()
 
+# Extract transverse derivatives from the SplineBoris lines.
+#
+# For each line, sample the line at a 9-point stencil in x. The same samples
+# are reused for all derivative orders. This is the line-side analogue of the
+# derivatives saved from the original field maps in 005a.
 derivative_comparison_data = {}
 offsets = np.arange(-4, 5)
 zero_offset_index = np.where(offsets == 0)[0][0]
@@ -146,6 +149,7 @@ for name, field in fields.items():
     bs_at_offsets = []
     s_model = None
 
+    # Collect B(x + offset * step, y, s) from the SplineBoris line.
     for offset in offsets:
         s_curr, bx_curr, by_curr, bs_curr = sample_splineboris_line(
             lines[name],
@@ -163,6 +167,7 @@ for name, field in fields.items():
     by_at_offsets = np.array(by_at_offsets)
     bs_at_offsets = np.array(bs_at_offsets)
 
+    # Order 0 is just the central sample of the stencil.
     derivatives = {
         0: {
             's': s_model,
@@ -173,6 +178,8 @@ for name, field in fields.items():
     }
 
     for order in range(1, max_multipole_order + 1):
+        # Finite-difference extraction of d^order B / dx^order from the
+        # SplineBoris line samples.
         coefficients = SolenoidField.finite_difference_coefficients(
             offsets, order)
         bx_model = (
@@ -187,6 +194,7 @@ for name, field in fields.items():
             np.tensordot(coefficients, bs_at_offsets, axes=(0, 0))
             / DERIVATIVE_STEP**order
         )
+        # Keep the same central high-order zeroing convention used in 005a.
         bx_model, by_model = zero_negligible_central_derivative_values(
             bx_model, by_model, s_model, order,
             ZERO_CENTRAL_DERIVATIVES_FROM_ORDER,
@@ -205,6 +213,7 @@ for name, field in fields.items():
 derivative_comparison_figures = {}
 derivative_comparison_axes = {}
 
+# Plot one interactive derivative-comparison figure per derivative order.
 for order in range(1, max_multipole_order + 1):
     fig, axes = plt.subplots(
         len(fields), 2,
@@ -225,17 +234,9 @@ for order in range(1, max_multipole_order + 1):
 
         for col, component in enumerate(('x', 'y')):
             ax = axes[row, col]
-            field_interp = np.interp(
-                s_model, field['s_axis'], field_values[col])
-            ax.plot(field['s_axis'], field_values[col], '.',
+            ax.plot(field['s_axis'], field_values[col], '-',
                     label='field-map data')
             ax.plot(s_model, model_values[col], '--', label='SplineBoris')
-            ax.plot(
-                s_model,
-                model_values[col] - field_interp,
-                ':',
-                label='difference',
-            )
 
             if order == 0:
                 derivative_label = f'B_{component} [T]'
