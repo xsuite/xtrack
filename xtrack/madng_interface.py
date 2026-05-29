@@ -805,7 +805,7 @@ class ActionTwissMadngTPSA(Action):
         # Build small Lua snippet setting the initial orbit, e.g.
         # ``map1.x:set0(val) ...``.  We must use ``:set0`` (set the 0th-order /
         # constant part) and NOT ``map1.x = val``: to preserve TPSA.
-        # Otherwise TPSA is replaced which corrputs the A-matrix row and
+        # Otherwise TPSA is replaced which corrupts the A-matrix row and
         # the optical functions for non-zero orbit.
 
         coord_assign = " ".join(
