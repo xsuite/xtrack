@@ -13,10 +13,15 @@ FIELD_DATA_JSON = HERE / '005_solenoid_field_data.json'
 LINES_JSON = HERE / '005_solenoid_lines.json'
 SPLINE_STEPS_PER_POINT = 10
 USE_PIECEWISE_LINEAR_SPLINES = True
+FORCE_IDEAL_SOLENOID_TRANSVERSE_FIELD = True
 
 metadata, fields = load_field_data_json(FIELD_DATA_JSON)
 max_multipole_order = metadata['max_multipole_order']
 validate_max_multipole_order(max_multipole_order)
+if FORCE_IDEAL_SOLENOID_TRANSVERSE_FIELD and max_multipole_order < 1:
+    raise ValueError(
+        'FORCE_IDEAL_SOLENOID_TRANSVERSE_FIELD needs '
+        'max_multipole_order >= 1')
 
 lines = {}
 
@@ -33,6 +38,9 @@ for name, field in fields.items():
         order: np.gradient(values, s_axis, edge_order=2)
         for order, values in field['by'].items()
     }
+    ideal_dbx_dx = -0.5 * bs_s_derivative
+    ideal_dbx_dx_s_derivative = np.gradient(
+        ideal_dbx_dx, s_axis, edge_order=2)
 
     elements = []
     element_names = []
@@ -61,7 +69,42 @@ for name, field in fields.items():
         bx = []
         by = []
         for order in range(max_multipole_order + 1):
-            if USE_PIECEWISE_LINEAR_SPLINES:
+            if FORCE_IDEAL_SOLENOID_TRANSVERSE_FIELD:
+                if order == 1:
+                    if USE_PIECEWISE_LINEAR_SPLINES:
+                        ideal_value = -0.5 * bs_derivative
+                        bx_val_start = ideal_value
+                        bx_val_end = ideal_value
+                        bx_der_start = 0.0
+                        bx_der_end = 0.0
+                        bx_integral_average = ideal_value
+                    else:
+                        bx_val_start = ideal_dbx_dx[ii]
+                        bx_val_end = ideal_dbx_dx[ii + 1]
+                        bx_der_start = ideal_dbx_dx_s_derivative[ii]
+                        bx_der_end = ideal_dbx_dx_s_derivative[ii + 1]
+                        bx_integral_average = (
+                            -0.5 * (field['bs'][ii + 1] - field['bs'][ii])
+                            / length
+                        )
+                else:
+                    bx_val_start = 0.0
+                    bx_val_end = 0.0
+                    bx_der_start = 0.0
+                    bx_der_end = 0.0
+                    bx_integral_average = 0.0
+
+                by_val_start = 0.0
+                by_val_end = 0.0
+                by_der_start = 0.0
+                by_der_end = 0.0
+                by_integral_average = 0.0
+
+            elif USE_PIECEWISE_LINEAR_SPLINES:
+                bx_val_start = field['bx'][order][ii]
+                bx_val_end = field['bx'][order][ii + 1]
+                by_val_start = field['by'][order][ii]
+                by_val_end = field['by'][order][ii + 1]
                 bx_derivative = (
                     (field['bx'][order][ii + 1] - field['bx'][order][ii])
                     / length
@@ -70,32 +113,38 @@ for name, field in fields.items():
                     (field['by'][order][ii + 1] - field['by'][order][ii])
                     / length
                 )
+                bx_der_start = bx_derivative
+                bx_der_end = bx_derivative
+                by_der_start = by_derivative
+                by_der_end = by_derivative
                 bx_integral_average = 0.5 * (
                     field['bx'][order][ii] + field['bx'][order][ii + 1])
                 by_integral_average = 0.5 * (
                     field['by'][order][ii] + field['by'][order][ii + 1])
             else:
-                bx_derivative = None
-                by_derivative = None
+                bx_val_start = field['bx'][order][ii]
+                bx_val_end = field['bx'][order][ii + 1]
+                by_val_start = field['by'][order][ii]
+                by_val_end = field['by'][order][ii + 1]
+                bx_der_start = bx_s_derivatives[order][ii]
+                bx_der_end = bx_s_derivatives[order][ii + 1]
+                by_der_start = by_s_derivatives[order][ii]
+                by_der_end = by_s_derivatives[order][ii + 1]
                 bx_integral_average = field['bx_integral_average'][order][ii]
                 by_integral_average = field['by_integral_average'][order][ii]
 
             bx.append(xt.Spline4(
-                val_start=field['bx'][order][ii],
-                der_start=(bx_derivative if USE_PIECEWISE_LINEAR_SPLINES
-                           else bx_s_derivatives[order][ii]),
-                val_end=field['bx'][order][ii + 1],
-                der_end=(bx_derivative if USE_PIECEWISE_LINEAR_SPLINES
-                         else bx_s_derivatives[order][ii + 1]),
+                val_start=bx_val_start,
+                der_start=bx_der_start,
+                val_end=bx_val_end,
+                der_end=bx_der_end,
                 integral=bx_integral_average,
             ))
             by.append(xt.Spline4(
-                val_start=field['by'][order][ii],
-                der_start=(by_derivative if USE_PIECEWISE_LINEAR_SPLINES
-                           else by_s_derivatives[order][ii]),
-                val_end=field['by'][order][ii + 1],
-                der_end=(by_derivative if USE_PIECEWISE_LINEAR_SPLINES
-                         else by_s_derivatives[order][ii + 1]),
+                val_start=by_val_start,
+                der_start=by_der_start,
+                val_end=by_val_end,
+                der_end=by_der_end,
                 integral=by_integral_average,
             ))
 
@@ -122,5 +171,8 @@ xt.json.dump(output_data, LINES_JSON, indent=1)
 print(f'Loaded {FIELD_DATA_JSON}')
 print(f'Wrote {LINES_JSON}')
 print(f'USE_PIECEWISE_LINEAR_SPLINES = {USE_PIECEWISE_LINEAR_SPLINES}')
+print(
+    'FORCE_IDEAL_SOLENOID_TRANSVERSE_FIELD = '
+    f'{FORCE_IDEAL_SOLENOID_TRANSVERSE_FIELD}')
 for name, line in lines.items():
     print(f'  {name}: {len(line.elements)} SplineBoris elements')
