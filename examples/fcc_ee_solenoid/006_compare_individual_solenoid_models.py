@@ -23,14 +23,11 @@ SPLINE_INTEGRAL_POINTS = 10
 SPLINE_STEPS_PER_POINT = 10
 BORIS_STEPS_PER_SLICE = 10
 
-FCC_LATTICE_JSON = HERE / 'temp_fcc_ee_lcc_non_local_boris_solenoid.json'
-FCC_IP_NAME = 'ipg'
-
 # Switches for the SplineBoris construction. The default here is the raw tilted
 # field map, including on-axis transverse field and first transverse derivative.
-USE_PIECEWISE_LINEAR_SPLINES = False
-FORCE_IDEAL_SOLENOID_TRANSVERSE_FIELD = False
-FORCE_ZERO_FIELD_AT_SOLENOID_ENDS = False
+USE_PIECEWISE_LINEAR_SPLINES = True
+FORCE_IDEAL_SOLENOID_TRANSVERSE_FIELD = True
+FORCE_ZERO_FIELD_AT_SOLENOID_ENDS = True
 
 TWISS_BETX_AT_IP = 0.09
 TWISS_BETY_AT_IP = 0.0007
@@ -356,34 +353,6 @@ line_boris_half = xt.Line(
 )
 
 
-# Load the FCC ring with the installed SplineBoris solenoids and extract the
-# right half of the main solenoid around ipg. The copied elements keep the
-# values used in the installed ring after turning on the local solenoid knob.
-fcc_env = xt.load(FCC_LATTICE_JSON)
-fcc_ring = fcc_env.fccee_p_ring
-fcc_env[f'on_sol_{FCC_IP_NAME}'] = 1
-fcc_env[f'on_comp_sol_{FCC_IP_NAME}'] = 0
-
-fcc_main_solenoid_names = sorted(
-    [
-        name for name in fcc_ring.element_names
-        if name.startswith(f'sol_slice_{FCC_IP_NAME}_')
-    ],
-    key=lambda name: int(name.rsplit('_', 1)[1]),
-)
-fcc_right_main_solenoid_names = (
-    fcc_main_solenoid_names[len(fcc_main_solenoid_names) // 2:]
-)
-fcc_right_main_solenoid_elements = [
-    fcc_ring[name].copy()
-    for name in fcc_right_main_solenoid_names
-]
-line_fcc_ipg_half = xt.Line(
-    elements=[xt.Marker()] + fcc_right_main_solenoid_elements,
-    element_names=['ip'] + fcc_right_main_solenoid_names,
-)
-
-
 # Assign the same reference particle to all lines.
 lines_full = {
     'SplineBoris': line_splineboris_full,
@@ -394,7 +363,6 @@ lines_half = {
     'SplineBoris': line_splineboris_half,
     'VariableSolenoid': line_varsol_half,
     'BorisSpatialIntegrator': line_boris_half,
-    f'FCC installed {FCC_IP_NAME} right': line_fcc_ipg_half,
 }
 
 for line in list(lines_full.values()) + list(lines_half.values()):
@@ -410,6 +378,16 @@ for name, line in lines_half.items():
         strengths=True,
         include_collective=(name == 'BorisSpatialIntegrator'),
     )
+
+
+# Symplecticity check for the full SplineBoris map, using the same metric as
+# examples/boris_spatial/004_study_convergence.py.
+symplectic_errors = {}
+S = xt.linear_normal_form.S
+R_obj = line_splineboris_full.get_R_matrix(particle_on_co=particle_ref.copy())
+RR = R_obj['R_matrix']
+symplectic_errors['SplineBoris full'] = np.linalg.norm(
+    RR.T @ S @ RR - S, ord=2)
 
 
 # Comparison plots.
@@ -463,5 +441,8 @@ for name, tw in twiss_half.items():
         f'y_end={tw.y[-1]:+.6e} m, dy_end={tw.dy[-1]:+.6e} m, '
         f'betx2_end={tw.betx2[-1]:+.6e} m, '
         f'bety1_end={tw.bety1[-1]:+.6e} m')
+print('Symplectic error ||R.T S R - S||_2:')
+for name, value in symplectic_errors.items():
+    print(f'  {name}: {value:.6e}')
 
 plt.show()
