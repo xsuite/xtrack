@@ -23,6 +23,9 @@ USE_NEAR_AXIS_SIMPLIFIED_MODEL = False
 
 BETX = 0.09
 BETY = 0.0007
+MATCH_COMPENSATION_SOLENOID_SCALE = True
+COMPENSATION_SCALE_KNOB = 'delta_compensation_scale'
+COMPENSATION_SCALE_KNOB_LIMITS = (-0.05, 0.05)
 
 MAIN_SOLENOID_S_AXIS = np.linspace(-2.399, 2.399, 201)
 COMP_SOLENOID_S_AXIS = np.linspace(-1.0, 1.0, 201)
@@ -367,6 +370,16 @@ line_systems = {
 for line in line_systems.values():
     line.particle_ref = particle_ref.copy()
 
+spline_line = line_systems['SplineBoris']
+spline_line.vars[COMPENSATION_SCALE_KNOB] = 0.0
+for name in spline_line.element_names:
+    if (
+        name.startswith('spline_comp_left_')
+        or name.startswith('spline_comp_right_')
+    ):
+        spline_line.ref[name].scale_b = (
+            comp_scale_b * (1.0 + spline_line.ref[COMPENSATION_SCALE_KNOB]))
+
 
 # Symplecticity metric from examples/boris_spatial/004_study_convergence.py,
 # and open twiss initialized at the IP for both models.
@@ -374,13 +387,52 @@ S = xt.linear_normal_form.S
 symplectic_errors = {}
 det_r_errors = {}
 twiss_results = {}
+opt_compensation_scale = None
+
+twiss_spline_before_match = spline_line.twiss(
+    init_at='ip', betx=BETX, bety=BETY)
+
+if MATCH_COMPENSATION_SOLENOID_SCALE:
+    target_scales = {
+        'betx2': max(abs(twiss_spline_before_match.betx2[-1]), 1e-8),
+        'bety1': max(abs(twiss_spline_before_match.bety1[-1]), 1e-8),
+        'alfx2': max(abs(twiss_spline_before_match.alfx2[-1]), 1e-8),
+        'alfy1': max(abs(twiss_spline_before_match.alfy1[-1]), 1e-8),
+    }
+    opt_compensation_scale = spline_line.match(
+        solve=False,
+        assert_within_tol=False,
+        init_at='ip',
+        betx=BETX,
+        bety=BETY,
+        vary=xt.Vary(
+            COMPENSATION_SCALE_KNOB,
+            step=1e-4,
+            limits=COMPENSATION_SCALE_KNOB_LIMITS,
+        ),
+        targets=[
+            xt.Target(
+                name, value=0.0, at=xt.END, tol=1e-12,
+                scale=target_scales[name])
+            for name in ['betx2', 'bety1', 'alfx2', 'alfy1']
+        ],
+    )
+    opt_compensation_scale.solve()
+
+twiss_spline_after_match = spline_line.twiss(
+    init_at='ip', betx=BETX, bety=BETY)
+
+twiss_results['SplineBoris before comp-scale match'] = (
+    twiss_spline_before_match)
+twiss_results['SplineBoris after comp-scale match'] = twiss_spline_after_match
 
 for name, line in line_systems.items():
     R_obj = line.get_R_matrix(particle_on_co=particle_ref.copy())
     RR = R_obj['R_matrix']
     symplectic_errors[name] = np.linalg.norm(RR.T @ S @ RR - S, ord=2)
     det_r_errors[name] = abs(abs(np.linalg.det(RR)) - 1.0)
-    twiss_results[name] = line.twiss(init_at='ip', betx=BETX, bety=BETY)
+    if name != 'SplineBoris':
+        twiss_results[name] = line.twiss(init_at='ip', betx=BETX, bety=BETY)
 
 plt.close('all')
 
@@ -454,21 +506,64 @@ print(
     f'{main_bs_integral + 2 * comp_scale_b * comp_bs_integral_unscaled:.12e} '
     'T m')
 print(f'  compensation scale_b = {comp_scale_b:.12e}')
-for name, line in line_systems.items():
-    tw = twiss_results[name]
-    print(f'  {name}:')
-    print(f'    system length = {line.get_length():.12e} m')
-    print(f'    number of elements = {len(line.elements)}')
+if MATCH_COMPENSATION_SOLENOID_SCALE:
+    delta_compensation_scale = float(spline_line[COMPENSATION_SCALE_KNOB])
+    matched_comp_scale_b = comp_scale_b * (1.0 + delta_compensation_scale)
     print(
-        f'    twiss end: x = {tw.x[-1]:+.12e} m, '
+        '  matched compensation scale knob = '
+        f'{delta_compensation_scale:+.12e}')
+    print(
+        '  matched compensation scale_b = '
+        f'{matched_comp_scale_b:.12e}')
+    print(
+        '  matched total Bs integral = '
+        f'{main_bs_integral + 2 * matched_comp_scale_b * comp_bs_integral_unscaled:.12e} '
+        'T m')
+
+print('  SplineBoris:')
+print(f'    system length = {spline_line.get_length():.12e} m')
+print(f'    number of elements = {len(spline_line.elements)}')
+for label in [
+    'SplineBoris before comp-scale match',
+    'SplineBoris after comp-scale match',
+]:
+    tw = twiss_results[label]
+    print(f'    {label}:')
+    print(
+        f'      twiss end: x = {tw.x[-1]:+.12e} m, '
         f'y = {tw.y[-1]:+.12e} m, dy = {tw.dy[-1]:+.12e} m')
     print(
-        f'    twiss end: betx2 = {tw.betx2[-1]:+.12e} m, '
+        f'      twiss end: betx2 = {tw.betx2[-1]:+.12e} m, '
         f'bety1 = {tw.bety1[-1]:+.12e} m')
     print(
-        '    symplectic error ||R.T S R - S||_2 = '
-        f'{symplectic_errors[name]:.12e}')
-    print(
-        f'    determinant error ||det(R)| - 1| = {det_r_errors[name]:.12e}')
+        f'      twiss end: alfx2 = {tw.alfx2[-1]:+.12e}, '
+        f'alfy1 = {tw.alfy1[-1]:+.12e}')
+print(
+    '    symplectic error after match ||R.T S R - S||_2 = '
+    f'{symplectic_errors["SplineBoris"]:.12e}')
+print(
+    '    determinant error after match ||det(R)| - 1| = '
+    f'{det_r_errors["SplineBoris"]:.12e}')
+
+name = 'VariableSolenoid'
+line = line_systems[name]
+tw = twiss_results[name]
+print(f'  {name}:')
+print(f'    system length = {line.get_length():.12e} m')
+print(f'    number of elements = {len(line.elements)}')
+print(
+    f'    twiss end: x = {tw.x[-1]:+.12e} m, '
+    f'y = {tw.y[-1]:+.12e} m, dy = {tw.dy[-1]:+.12e} m')
+print(
+    f'    twiss end: betx2 = {tw.betx2[-1]:+.12e} m, '
+    f'bety1 = {tw.bety1[-1]:+.12e} m')
+print(
+    f'    twiss end: alfx2 = {tw.alfx2[-1]:+.12e}, '
+    f'alfy1 = {tw.alfy1[-1]:+.12e}')
+print(
+    '    symplectic error ||R.T S R - S||_2 = '
+    f'{symplectic_errors[name]:.12e}')
+print(
+    f'    determinant error ||det(R)| - 1| = {det_r_errors[name]:.12e}')
 
 plt.show()
