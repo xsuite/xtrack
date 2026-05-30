@@ -23,6 +23,9 @@ SPLINE_INTEGRAL_POINTS = 10
 SPLINE_STEPS_PER_POINT = 10
 BORIS_STEPS_PER_SLICE = 10
 
+FCC_LATTICE_JSON = HERE / 'temp_fcc_ee_lcc_non_local_boris_solenoid.json'
+FCC_IP_NAME = 'ipg'
+
 # Switches for the SplineBoris construction. The default here is the raw tilted
 # field map, including on-axis transverse field and first transverse derivative.
 USE_PIECEWISE_LINEAR_SPLINES = False
@@ -353,6 +356,34 @@ line_boris_half = xt.Line(
 )
 
 
+# Load the FCC ring with the installed SplineBoris solenoids and extract the
+# right half of the main solenoid around ipg. The copied elements keep the
+# values used in the installed ring after turning on the local solenoid knob.
+fcc_env = xt.load(FCC_LATTICE_JSON)
+fcc_ring = fcc_env.fccee_p_ring
+fcc_env[f'on_sol_{FCC_IP_NAME}'] = 1
+fcc_env[f'on_comp_sol_{FCC_IP_NAME}'] = 0
+
+fcc_main_solenoid_names = sorted(
+    [
+        name for name in fcc_ring.element_names
+        if name.startswith(f'sol_slice_{FCC_IP_NAME}_')
+    ],
+    key=lambda name: int(name.rsplit('_', 1)[1]),
+)
+fcc_right_main_solenoid_names = (
+    fcc_main_solenoid_names[len(fcc_main_solenoid_names) // 2:]
+)
+fcc_right_main_solenoid_elements = [
+    fcc_ring[name].copy()
+    for name in fcc_right_main_solenoid_names
+]
+line_fcc_ipg_half = xt.Line(
+    elements=[xt.Marker()] + fcc_right_main_solenoid_elements,
+    element_names=['ip'] + fcc_right_main_solenoid_names,
+)
+
+
 # Assign the same reference particle to all lines.
 lines_full = {
     'SplineBoris': line_splineboris_full,
@@ -363,6 +394,7 @@ lines_half = {
     'SplineBoris': line_splineboris_half,
     'VariableSolenoid': line_varsol_half,
     'BorisSpatialIntegrator': line_boris_half,
+    f'FCC installed {FCC_IP_NAME} right': line_fcc_ipg_half,
 }
 
 for line in list(lines_full.values()) + list(lines_half.values()):
