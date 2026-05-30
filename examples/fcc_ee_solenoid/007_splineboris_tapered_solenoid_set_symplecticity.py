@@ -19,6 +19,7 @@ DERIVATIVE_STEP = 5e-4
 SPLINE_INTEGRAL_POINTS = 10
 SPLINE_STEPS_PER_POINT = 10
 TAPER_LENGTH = 0.15  # m
+USE_NEAR_AXIS_SIMPLIFIED_MODEL = False
 
 BETX = 0.09
 BETY = 0.0007
@@ -157,30 +158,101 @@ def build_splineboris_line(name, field_data, scale_b):
     for ii in range(len(s_axis) - 1):
         length = s_axis[ii + 1] - s_axis[ii]
 
+        if USE_NEAR_AXIS_SIMPLIFIED_MODEL:
+            bs_derivative = (
+                (field_data['bs'][ii + 1] - field_data['bs'][ii])
+                / length
+            )
+            bs_der_start = bs_derivative
+            bs_der_end = bs_derivative
+            bs_integral_average = 0.5 * (
+                field_data['bs'][ii] + field_data['bs'][ii + 1])
+        else:
+            bs_derivative = None
+            bs_der_start = field_data['bs_s_derivative'][ii]
+            bs_der_end = field_data['bs_s_derivative'][ii + 1]
+            bs_integral_average = field_data['bs_integral_average'][ii]
+
         bs = xt.Spline4(
             val_start=field_data['bs'][ii],
-            der_start=field_data['bs_s_derivative'][ii],
+            der_start=bs_der_start,
             val_end=field_data['bs'][ii + 1],
-            der_end=field_data['bs_s_derivative'][ii + 1],
-            integral=field_data['bs_integral_average'][ii],
+            der_end=bs_der_end,
+            integral=bs_integral_average,
         )
 
         bx = []
         by = []
         for order in range(MAX_MULTIPOLE_ORDER + 1):
+            if USE_NEAR_AXIS_SIMPLIFIED_MODEL and order == 0:
+                bx_val_start = field_data['bx'][order][ii]
+                bx_val_end = field_data['bx'][order][ii + 1]
+                bx_der_start = field_data['bx_s_derivatives'][order][ii]
+                bx_der_end = field_data['bx_s_derivatives'][order][ii + 1]
+                bx_integral_average = (
+                    field_data['bx_integral_average'][order][ii])
+
+                by_val_start = field_data['by'][order][ii]
+                by_val_end = field_data['by'][order][ii + 1]
+                by_der_start = field_data['by_s_derivatives'][order][ii]
+                by_der_end = field_data['by_s_derivatives'][order][ii + 1]
+                by_integral_average = (
+                    field_data['by_integral_average'][order][ii])
+
+            elif USE_NEAR_AXIS_SIMPLIFIED_MODEL and order == 1:
+                bx_integral_average = -0.5 * bs_derivative
+                bx_val_start = bx_integral_average
+                bx_val_end = bx_integral_average
+                bx_der_start = 0.0
+                bx_der_end = 0.0
+
+                by_val_start = 0.0
+                by_val_end = 0.0
+                by_der_start = 0.0
+                by_der_end = 0.0
+                by_integral_average = 0.0
+
+            elif USE_NEAR_AXIS_SIMPLIFIED_MODEL and order > 1:
+                bx_val_start = 0.0
+                bx_val_end = 0.0
+                bx_der_start = 0.0
+                bx_der_end = 0.0
+                bx_integral_average = 0.0
+
+                by_val_start = 0.0
+                by_val_end = 0.0
+                by_der_start = 0.0
+                by_der_end = 0.0
+                by_integral_average = 0.0
+
+            else:
+                bx_val_start = field_data['bx'][order][ii]
+                bx_val_end = field_data['bx'][order][ii + 1]
+                bx_der_start = field_data['bx_s_derivatives'][order][ii]
+                bx_der_end = field_data['bx_s_derivatives'][order][ii + 1]
+                bx_integral_average = (
+                    field_data['bx_integral_average'][order][ii])
+
+                by_val_start = field_data['by'][order][ii]
+                by_val_end = field_data['by'][order][ii + 1]
+                by_der_start = field_data['by_s_derivatives'][order][ii]
+                by_der_end = field_data['by_s_derivatives'][order][ii + 1]
+                by_integral_average = (
+                    field_data['by_integral_average'][order][ii])
+
             bx.append(xt.Spline4(
-                val_start=field_data['bx'][order][ii],
-                der_start=field_data['bx_s_derivatives'][order][ii],
-                val_end=field_data['bx'][order][ii + 1],
-                der_end=field_data['bx_s_derivatives'][order][ii + 1],
-                integral=field_data['bx_integral_average'][order][ii],
+                val_start=bx_val_start,
+                der_start=bx_der_start,
+                val_end=bx_val_end,
+                der_end=bx_der_end,
+                integral=bx_integral_average,
             ))
             by.append(xt.Spline4(
-                val_start=field_data['by'][order][ii],
-                der_start=field_data['by_s_derivatives'][order][ii],
-                val_end=field_data['by'][order][ii + 1],
-                der_end=field_data['by_s_derivatives'][order][ii + 1],
-                integral=field_data['by_integral_average'][order][ii],
+                val_start=by_val_start,
+                der_start=by_der_start,
+                val_end=by_val_end,
+                der_end=by_der_end,
+                integral=by_integral_average,
             ))
 
         elements.append(xt.SplineBoris(
@@ -369,6 +441,9 @@ fig_alpha_coupling.tight_layout()
 
 print('Tapered three-solenoid system comparison')
 print(f'  taper length = {TAPER_LENGTH:.6g} m')
+print(
+    '  near-axis simplified SplineBoris model = '
+    f'{USE_NEAR_AXIS_SIMPLIFIED_MODEL}')
 print(f'  twiss init at IP: betx = {BETX:.12e} m, bety = {BETY:.12e} m')
 print(f'  main Bs integral = {main_bs_integral:.12e} T m')
 print(
