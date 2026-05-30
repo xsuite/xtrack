@@ -293,7 +293,8 @@ for ip_name in config.keys():
     opt_optics = line.match_knob(
         knob_name=f'on_sol_optics_corr_{ip_name}',
         run=False,
-        init=tw0,
+        betx=tw0['betx', ip_name],
+        bety=tw0['bety', ip_name],
         init_at=ip_name,
         start=name_start,
         end=name_end,
@@ -400,7 +401,7 @@ line['on_sol_corr_ipd'] = 0
 line['on_sol_corr_ipg'] = 0
 line['on_sol_corr_ipj'] = 0
 tw_off = line.twiss4d(strengths=True, zero_at=ip_name)
-nl_chrom_off = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
+# nl_chrom_off = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
 
 line['on_sol_ipa'] = 1
 line['on_sol_ipd'] = 1
@@ -411,11 +412,12 @@ line['on_sol_corr_ipd'] = 1
 line['on_sol_corr_ipg'] = 1
 line['on_sol_corr_ipj'] = 1
 
-tw_on_corr = line.twiss4d(strengths=True, zero_at=ip_name)
+tw_on_corr = line.twiss4d(strengths=True, zero_at='ipg')
 # nl_chrom_on_corr = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
 two = line.twiss(
     strengths=True,
-    init=tw_off,
+    betx=tw0['betx', 'ipg'],
+    bety=tw0['bety', 'ipg'],
     init_at='ipg',
 )
 

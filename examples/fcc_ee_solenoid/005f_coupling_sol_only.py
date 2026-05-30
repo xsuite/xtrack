@@ -32,6 +32,8 @@ tt_acb = line.vars.get_table().rows['acb.*']
 line.set(tt_acb.name, 0)
 
 two = line.twiss(
+    start='ipg',
+    end='ipj',
     betx=tw0['betx', 'ipg'],
     bety=tw0['bety', 'ipg'],
     init_at='ipg')
