@@ -143,7 +143,7 @@ line['on_comp_sol_ipg'] = 0
 line['on_comp_sol_ipj'] = 0
 
 optimizers = {}
-for ip_name in ['ipa']: #config.keys():
+for ip_name in config.keys():
 
     print(f'IP {ip_name}:')
     line.cycle(f'end_ds_start_straight_{ip_name}')
@@ -273,13 +273,20 @@ for ip_name in ['ipa']: #config.keys():
         bety=tw0['bety', ip_name],
     )
 
-    # Match optics and horizontal dispersion.
+    # Match optics and horizontal dispersion with normal quadrupole trims.
+    # Match linear coupling separately with skew quadrupole trims.
     k1_knobs = []
+    k1s_knobs = []
     for nn in quad_for_optics_correction:
         nn_knob = 'k1_' + nn + '_sol_corr'
         env[nn_knob] = 0
         env[nn].k1 += env.ref[nn_knob]
         k1_knobs.append(nn_knob)
+
+        nn_skew_knob = 'k1s_' + nn + '_sol_corr'
+        env[nn_skew_knob] = 0
+        env[nn].k1s += env.ref[nn_skew_knob]
+        k1s_knobs.append(nn_skew_knob)
 
     name_start = f'end_ds_start_straight_{ip_name}'
     name_end = f'end_straight_start_ds_{ip_name}'
@@ -325,18 +332,46 @@ for ip_name in ['ipa']: #config.keys():
         ])
     opt_optics.solve()
 
-    # Iterate to improve consistency of optics + orbit correction.
+    # line.match_knob(
+    #     knob_name=f'on_sol_coupling_corr_{ip_name}',
+    #     run=False,
+    #     init=tw0,
+    #     init_at=ip_name,
+    #     start=name_start,
+    #     end=name_end,
+    #     vary=xt.VaryList(
+    #         k1s_knobs, # + [f'on_comp_sol_{ip_name}'],
+    #         step=1e-9),
+    #     targets=[
+    #         xt.TargetSet(
+    #             betx2=0,
+    #             bety1=0,
+    #             tol=5e-2,
+    #             at=xt.START),
+    #         xt.TargetSet(
+    #             betx2=0,
+    #             bety1=0,
+    #             tol=5e-2,
+    #             at=xt.END),
+    #     ])
+    # opt_coupling.solve()
+
+    # Iterate to improve consistency of orbit, optics, and coupling correction.
     opt_orbit.solve()
     opt_optics.solve()
+    # opt_coupling.solve()
     opt_orbit.solve()
     opt_optics.solve()
+    # opt_coupling.solve()
 
     # Generate the knobs.
     opt_orbit.generate_knob()
     opt_optics.generate_knob()
+    # opt_coupling.generate_knob()
 
     optimizers[ip_name + '_orbit'] = opt_orbit
     optimizers[ip_name + '_optics'] = opt_optics
+    # optimizers[ip_name + '_coupling'] = opt_coupling
 
     # Control all correction with a single knob.
     line[f'on_sol_corr_{ip_name}'] = 0
@@ -346,6 +381,7 @@ for ip_name in ['ipa']: #config.keys():
     line[f'on_rot_doublet_left_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_sol_orbit_corr_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_sol_optics_corr_{ip_name}'] = f'on_sol_corr_{ip_name}'
+    line[f'on_sol_coupling_corr_{ip_name}'] = f'on_sol_corr_{ip_name}'
 
     # Switch main solenoid off to leave the machine clean for the next IP
     # correction.
@@ -367,13 +403,20 @@ tw_off = line.twiss4d(strengths=True, zero_at=ip_name)
 nl_chrom_off = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
 
 line['on_sol_ipa'] = 1
+line['on_sol_ipd'] = 1
+line['on_sol_ipg'] = 1
+line['on_sol_ipj'] = 1
 line['on_sol_corr_ipa'] = 1
+line['on_sol_corr_ipd'] = 1
+line['on_sol_corr_ipg'] = 1
+line['on_sol_corr_ipj'] = 1
+
 tw_on_corr = line.twiss4d(strengths=True, zero_at=ip_name)
 # nl_chrom_on_corr = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
 two = line.twiss(
     strengths=True,
     init=tw_off,
-    init_at='ipa',
+    init_at='ipg',
 )
 
 env.to_json(OUTPUT_LATTICE_JSON)
