@@ -25,9 +25,11 @@ BORIS_STEPS_PER_SLICE = 10
 
 # Switches for the SplineBoris construction. The default here is the raw tilted
 # field map, including on-axis transverse field and first transverse derivative.
-USE_PIECEWISE_LINEAR_SPLINES = True
-FORCE_IDEAL_SOLENOID_TRANSVERSE_FIELD = True
-FORCE_ZERO_FIELD_AT_SOLENOID_ENDS = True
+USE_PIECEWISE_LINEAR_SPLINES = False
+FORCE_IDEAL_SOLENOID_TRANSVERSE_FIELD = False
+FORCE_ZERO_FIELD_AT_SOLENOID_ENDS = False
+TAPER_SPLINEBORIS_FIELDS_TO_ZERO = True
+TAPER_LENGTH = 0.15  # m
 
 TWISS_BETX_AT_IP = 0.09
 TWISS_BETY_AT_IP = 0.0007
@@ -84,6 +86,30 @@ by_values = {
     for order, values in by_values.items()
 }
 
+bs_integral_before_taper = np.trapezoid(bs_values, s_axis)
+
+if TAPER_SPLINEBORIS_FIELDS_TO_ZERO:
+    # Quintic smoothstep window: zero value, slope, and curvature at both ends.
+    taper = np.ones_like(s_axis)
+    s_min = s_axis[0]
+    s_max = s_axis[-1]
+
+    left = s_axis < s_min + TAPER_LENGTH
+    u_left = (s_axis[left] - s_min) / TAPER_LENGTH
+    taper[left] = u_left**3 * (10.0 - 15.0 * u_left + 6.0 * u_left**2)
+
+    right = s_axis > s_max - TAPER_LENGTH
+    u_right = (s_max - s_axis[right]) / TAPER_LENGTH
+    taper[right] = u_right**3 * (10.0 - 15.0 * u_right + 6.0 * u_right**2)
+
+    taper[0] = 0.0
+    taper[-1] = 0.0
+
+    bs_values *= taper
+    for order in range(MAX_MULTIPOLE_ORDER + 1):
+        bx_values[order] *= taper
+        by_values[order] *= taper
+
 if FORCE_ZERO_FIELD_AT_SOLENOID_ENDS:
     bs_values[0] = 0.0
     bs_values[-1] = 0.0
@@ -102,8 +128,22 @@ by_s_derivatives = {
     order: np.gradient(values, s_axis, edge_order=2)
     for order, values in by_values.items()
 }
+if TAPER_SPLINEBORIS_FIELDS_TO_ZERO:
+    bs_s_derivative[0] = 0.0
+    bs_s_derivative[-1] = 0.0
+    for order in range(MAX_MULTIPOLE_ORDER + 1):
+        bx_s_derivatives[order][0] = 0.0
+        bx_s_derivatives[order][-1] = 0.0
+        by_s_derivatives[order][0] = 0.0
+        by_s_derivatives[order][-1] = 0.0
+
 ideal_dbx_dx = -0.5 * bs_s_derivative
 ideal_dbx_dx_s_derivative = np.gradient(ideal_dbx_dx, s_axis, edge_order=2)
+if TAPER_SPLINEBORIS_FIELDS_TO_ZERO:
+    ideal_dbx_dx_s_derivative[0] = 0.0
+    ideal_dbx_dx_s_derivative[-1] = 0.0
+
+bs_integral_after_taper = np.trapezoid(bs_values, s_axis)
 
 
 # Build the full and right-half SplineBoris lines, with the IP marker at s=0.
@@ -122,17 +162,22 @@ for ii in range(len(s_axis) - 1):
         bs_integral_average = 0.5 * (bs_values[ii] + bs_values[ii + 1])
     else:
         s_integral = np.linspace(s_start, s_end, SPLINE_INTEGRAL_POINTS)
-        bs_integral_average = (
-            np.trapezoid(
-                field_model.get_field(
-                    np.zeros_like(s_integral),
-                    np.zeros_like(s_integral),
+        if TAPER_SPLINEBORIS_FIELDS_TO_ZERO:
+            bs_integral_values = np.interp(s_integral, s_axis, bs_values)
+            bs_integral_average = (
+                np.trapezoid(bs_integral_values, s_integral) / length)
+        else:
+            bs_integral_average = (
+                np.trapezoid(
+                    field_model.get_field(
+                        np.zeros_like(s_integral),
+                        np.zeros_like(s_integral),
+                        s_integral,
+                    )[2],
                     s_integral,
-                )[2],
-                s_integral,
+                )
+                / length
             )
-            / length
-        )
 
     bs_spline = xt.Spline4(
         val_start=bs_values[ii],
@@ -204,33 +249,49 @@ for ii in range(len(s_axis) - 1):
             by_der_end = by_s_derivatives[order][ii + 1]
 
             if order == 0:
-                bx_integral_values = field_model.get_field(
-                    np.zeros_like(s_integral),
-                    np.zeros_like(s_integral),
-                    s_integral,
-                )[0]
-                by_integral_values = field_model.get_field(
-                    np.zeros_like(s_integral),
-                    np.zeros_like(s_integral),
-                    s_integral,
-                )[1]
+                if TAPER_SPLINEBORIS_FIELDS_TO_ZERO:
+                    bx_integral_values = np.interp(
+                        s_integral, s_axis, bx_values[order])
+                    by_integral_values = np.interp(
+                        s_integral, s_axis, by_values[order])
+                else:
+                    bx_integral_values = field_model.get_field(
+                        np.zeros_like(s_integral),
+                        np.zeros_like(s_integral),
+                        s_integral,
+                    )[0]
+                    by_integral_values = field_model.get_field(
+                        np.zeros_like(s_integral),
+                        np.zeros_like(s_integral),
+                        s_integral,
+                    )[1]
             else:
-                bx_integral_values = field_model.compute_pure_field_derivatives(
-                    s=s_integral,
-                    direction='x',
-                    step=DERIVATIVE_STEP,
-                    component='x',
-                    max_order=order,
-                    min_order=order,
-                )[order]
-                by_integral_values = field_model.compute_pure_field_derivatives(
-                    s=s_integral,
-                    direction='x',
-                    step=DERIVATIVE_STEP,
-                    component='y',
-                    max_order=order,
-                    min_order=order,
-                )[order]
+                if TAPER_SPLINEBORIS_FIELDS_TO_ZERO:
+                    bx_integral_values = np.interp(
+                        s_integral, s_axis, bx_values[order])
+                    by_integral_values = np.interp(
+                        s_integral, s_axis, by_values[order])
+                else:
+                    bx_integral_values = (
+                        field_model.compute_pure_field_derivatives(
+                            s=s_integral,
+                            direction='x',
+                            step=DERIVATIVE_STEP,
+                            component='x',
+                            max_order=order,
+                            min_order=order,
+                        )[order]
+                    )
+                    by_integral_values = (
+                        field_model.compute_pure_field_derivatives(
+                            s=s_integral,
+                            direction='x',
+                            step=DERIVATIVE_STEP,
+                            component='y',
+                            max_order=order,
+                            min_order=order,
+                        )[order]
+                    )
 
             bx_integral_average = (
                 np.trapezoid(bx_integral_values, s_integral) / length)
@@ -434,6 +495,11 @@ fig_coupling.tight_layout()
 print('Built full lines with IP marker in the middle:')
 for name, line in lines_full.items():
     print(f'  {name}: {len(line.element_names)} elements')
+if TAPER_SPLINEBORIS_FIELDS_TO_ZERO:
+    print(
+        'SplineBoris Bs integral before/after taper: '
+        f'{bs_integral_before_taper:.12e} T m / '
+        f'{bs_integral_after_taper:.12e} T m')
 print('Computed open twiss for right half-solenoid.')
 for name, tw in twiss_half.items():
     print(
