@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import xtrack as xt
 
@@ -18,6 +19,9 @@ DERIVATIVE_STEP = 5e-4
 SPLINE_INTEGRAL_POINTS = 10
 SPLINE_STEPS_PER_POINT = 10
 TAPER_LENGTH = 0.15  # m
+
+BETX = 0.09
+BETY = 0.0007
 
 MAIN_SOLENOID_S_AXIS = np.linspace(-2.399, 2.399, 201)
 COMP_SOLENOID_S_AXIS = np.linspace(-1.0, 1.0, 201)
@@ -192,6 +196,56 @@ def build_splineboris_line(name, field_data, scale_b):
     return xt.Line(elements=elements, element_names=element_names)
 
 
+def build_variable_solenoid_line(name, field_data, scale_b, rigidity0):
+    s_axis = field_data['s_axis']
+    elements = []
+    element_names = []
+    name_width = len(str(len(s_axis) - 2))
+
+    bs = scale_b * field_data['bs']
+    bx = scale_b * field_data['bx'][0]
+    by = scale_b * field_data['by'][0]
+
+    ks = bs / rigidity0
+    k0s = bx / rigidity0
+    k0 = by / rigidity0
+
+    for ii in range(len(s_axis) - 1):
+        length = s_axis[ii + 1] - s_axis[ii]
+        elements.append(xt.VariableSolenoid(
+            length=length,
+            ks_profile=[ks[ii], ks[ii + 1]],
+            knl=[0.5 * (k0[ii] + k0[ii + 1]) * length],
+            ksl=[0.5 * (k0s[ii] + k0s[ii + 1]) * length],
+        ))
+        element_names.append(f'{name}_{ii:0{name_width}d}')
+
+    return xt.Line(elements=elements, element_names=element_names)
+
+
+def assemble_three_solenoid_system(line_comp_left, line_main, line_comp_right):
+    return xt.Line(
+        elements=(
+            list(line_comp_left.elements)
+            + [xt.Drift(length=drift_between_comp_and_main)]
+            + list(line_main.elements[:len(line_main.elements) // 2])
+            + [xt.Marker()]
+            + list(line_main.elements[len(line_main.elements) // 2:])
+            + [xt.Drift(length=drift_between_comp_and_main)]
+            + list(line_comp_right.elements)
+        ),
+        element_names=(
+            list(line_comp_left.element_names)
+            + ['drift_comp_left_to_main']
+            + list(line_main.element_names[:len(line_main.element_names) // 2])
+            + ['ip']
+            + list(line_main.element_names[len(line_main.element_names) // 2:])
+            + ['drift_main_to_comp_right']
+            + list(line_comp_right.element_names)
+        ),
+    )
+
+
 # Field models and tapered SplineBoris data for the main and compensation
 # solenoid geometries used around each FCC-ee IP.
 main_field_model = TiltedSolenoid(L=1.23 * 2, a=0.13, B0=2.0, theta=THETA)
@@ -208,55 +262,114 @@ comp_bs_integral_unscaled = np.trapezoid(
     comp_field_data['bs'], comp_field_data['s_axis'])
 comp_scale_b = -main_bs_integral / comp_bs_integral_unscaled / 2.0
 
-line_comp_left = build_splineboris_line(
-    'comp_left', comp_field_data, comp_scale_b)
-line_main = build_splineboris_line('main', main_field_data, 1.0)
-line_comp_right = build_splineboris_line(
-    'comp_right', comp_field_data, comp_scale_b)
+particle_ref = xt.Particles(PARTICLE, energy0=ENERGY0)
+rigidity0 = particle_ref.rigidity0[0]
 
-
-# Assemble the same longitudinal layout used in the FCC installation:
-# left compensation solenoid ends 12 m before the IP, main solenoid is centered
-# on the IP, and right compensation solenoid starts 12 m after the IP.
 main_half_length = (
     MAIN_SOLENOID_S_AXIS[-1] - MAIN_SOLENOID_S_AXIS[0]) / 2.0
 drift_between_comp_and_main = (
     COMP_SOLENOID_DISTANCE_FROM_IP - main_half_length)
 
-line_system = xt.Line(
-    elements=(
-        list(line_comp_left.elements)
-        + [xt.Drift(length=drift_between_comp_and_main)]
-        + list(line_main.elements[:len(line_main.elements) // 2])
-        + [xt.Marker()]
-        + list(line_main.elements[len(line_main.elements) // 2:])
-        + [xt.Drift(length=drift_between_comp_and_main)]
-        + list(line_comp_right.elements)
-    ),
-    element_names=(
-        list(line_comp_left.element_names)
-        + ['drift_comp_left_to_main']
-        + list(line_main.element_names[:len(line_main.element_names) // 2])
-        + ['ip']
-        + list(line_main.element_names[len(line_main.element_names) // 2:])
-        + ['drift_main_to_comp_right']
-        + list(line_comp_right.element_names)
-    ),
-)
+# Build SplineBoris and VariableSolenoid versions of the same longitudinal
+# layout used in the FCC installation.
+spline_comp_left = build_splineboris_line(
+    'spline_comp_left', comp_field_data, comp_scale_b)
+spline_main = build_splineboris_line('spline_main', main_field_data, 1.0)
+spline_comp_right = build_splineboris_line(
+    'spline_comp_right', comp_field_data, comp_scale_b)
 
-particle_ref = xt.Particles(PARTICLE, energy0=ENERGY0)
-line_system.particle_ref = particle_ref.copy()
+varsol_comp_left = build_variable_solenoid_line(
+    'varsol_comp_left', comp_field_data, comp_scale_b, rigidity0)
+varsol_main = build_variable_solenoid_line(
+    'varsol_main', main_field_data, 1.0, rigidity0)
+varsol_comp_right = build_variable_solenoid_line(
+    'varsol_comp_right', comp_field_data, comp_scale_b, rigidity0)
+
+line_systems = {
+    'SplineBoris': assemble_three_solenoid_system(
+        spline_comp_left, spline_main, spline_comp_right),
+    'VariableSolenoid': assemble_three_solenoid_system(
+        varsol_comp_left, varsol_main, varsol_comp_right),
+}
+
+for line in line_systems.values():
+    line.particle_ref = particle_ref.copy()
 
 
-# Symplecticity metric from examples/boris_spatial/004_study_convergence.py.
+# Symplecticity metric from examples/boris_spatial/004_study_convergence.py,
+# and open twiss initialized at the IP for both models.
 S = xt.linear_normal_form.S
-R_obj = line_system.get_R_matrix(particle_on_co=particle_ref.copy())
-RR = R_obj['R_matrix']
-symplectic_error = np.linalg.norm(RR.T @ S @ RR - S, ord=2)
-det_r_error = abs(abs(np.linalg.det(RR)) - 1.0)
+symplectic_errors = {}
+det_r_errors = {}
+twiss_results = {}
 
-print('Tapered SplineBoris three-solenoid system')
+for name, line in line_systems.items():
+    R_obj = line.get_R_matrix(particle_on_co=particle_ref.copy())
+    RR = R_obj['R_matrix']
+    symplectic_errors[name] = np.linalg.norm(RR.T @ S @ RR - S, ord=2)
+    det_r_errors[name] = abs(abs(np.linalg.det(RR)) - 1.0)
+    twiss_results[name] = line.twiss(init_at='ip', betx=BETX, bety=BETY)
+
+plt.close('all')
+
+fig_orbit, axes_orbit = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
+for name, tw in twiss_results.items():
+    s_from_ip = tw.s - tw['s', 'ip']
+    axes_orbit[0].plot(s_from_ip, tw.x, label=name)
+    axes_orbit[1].plot(s_from_ip, tw.y, label=name)
+axes_orbit[0].set_ylabel('x [m]')
+axes_orbit[1].set_ylabel('y [m]')
+axes_orbit[1].set_xlabel('s - s_ip [m]')
+for ax in axes_orbit:
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='best')
+fig_orbit.suptitle('Three-solenoid open-twiss orbit, initialized at IP')
+fig_orbit.tight_layout()
+
+fig_dy, ax_dy = plt.subplots(figsize=(10, 4))
+for name, tw in twiss_results.items():
+    s_from_ip = tw.s - tw['s', 'ip']
+    ax_dy.plot(s_from_ip, tw.dy, label=name)
+ax_dy.set_xlabel('s - s_ip [m]')
+ax_dy.set_ylabel('dy [m]')
+ax_dy.set_title('Three-solenoid vertical dispersion')
+ax_dy.grid(True, alpha=0.3)
+ax_dy.legend(loc='best')
+fig_dy.tight_layout()
+
+fig_coupling, axes_coupling = plt.subplots(
+    2, 1, figsize=(10, 7), sharex=True)
+for name, tw in twiss_results.items():
+    s_from_ip = tw.s - tw['s', 'ip']
+    axes_coupling[0].plot(s_from_ip, tw.betx2, label=name)
+    axes_coupling[1].plot(s_from_ip, tw.bety1, label=name)
+axes_coupling[0].set_ylabel('betx2 [m]')
+axes_coupling[1].set_ylabel('bety1 [m]')
+axes_coupling[1].set_xlabel('s - s_ip [m]')
+for ax in axes_coupling:
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='best')
+fig_coupling.suptitle('Three-solenoid linear coupling')
+fig_coupling.tight_layout()
+
+fig_alpha_coupling, axes_alpha_coupling = plt.subplots(
+    2, 1, figsize=(10, 7), sharex=True)
+for name, tw in twiss_results.items():
+    s_from_ip = tw.s - tw['s', 'ip']
+    axes_alpha_coupling[0].plot(s_from_ip, tw.alfx2, label=name)
+    axes_alpha_coupling[1].plot(s_from_ip, tw.alfy1, label=name)
+axes_alpha_coupling[0].set_ylabel('alfx2')
+axes_alpha_coupling[1].set_ylabel('alfy1')
+axes_alpha_coupling[1].set_xlabel('s - s_ip [m]')
+for ax in axes_alpha_coupling:
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='best')
+fig_alpha_coupling.suptitle('Three-solenoid alpha coupling')
+fig_alpha_coupling.tight_layout()
+
+print('Tapered three-solenoid system comparison')
 print(f'  taper length = {TAPER_LENGTH:.6g} m')
+print(f'  twiss init at IP: betx = {BETX:.12e} m, bety = {BETY:.12e} m')
 print(f'  main Bs integral = {main_bs_integral:.12e} T m')
 print(
     '  one compensation Bs integral = '
@@ -266,9 +379,21 @@ print(
     f'{main_bs_integral + 2 * comp_scale_b * comp_bs_integral_unscaled:.12e} '
     'T m')
 print(f'  compensation scale_b = {comp_scale_b:.12e}')
-print(f'  system length = {line_system.get_length():.12e} m')
-print(
-    '  number of SplineBoris elements = '
-    f'{sum(isinstance(ee, xt.SplineBoris) for ee in line_system.elements)}')
-print(f'  symplectic error ||R.T S R - S||_2 = {symplectic_error:.12e}')
-print(f'  determinant error ||det(R)| - 1| = {det_r_error:.12e}')
+for name, line in line_systems.items():
+    tw = twiss_results[name]
+    print(f'  {name}:')
+    print(f'    system length = {line.get_length():.12e} m')
+    print(f'    number of elements = {len(line.elements)}')
+    print(
+        f'    twiss end: x = {tw.x[-1]:+.12e} m, '
+        f'y = {tw.y[-1]:+.12e} m, dy = {tw.dy[-1]:+.12e} m')
+    print(
+        f'    twiss end: betx2 = {tw.betx2[-1]:+.12e} m, '
+        f'bety1 = {tw.bety1[-1]:+.12e} m')
+    print(
+        '    symplectic error ||R.T S R - S||_2 = '
+        f'{symplectic_errors[name]:.12e}')
+    print(
+        f'    determinant error ||det(R)| - 1| = {det_r_errors[name]:.12e}')
+
+plt.show()
