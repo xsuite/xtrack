@@ -23,6 +23,8 @@ TAPER_LENGTH = 0.15  # m
 
 USE_NEAR_AXIS_SIMPLIFIED_MODEL = False
 SAVE_SOLENOID_LINES_JSON = True
+X_FIELD_COMPARISON = 0.0
+Y_FIELD_COMPARISON = 0.0
 
 BETX = 0.09
 BETY = 0.0007
@@ -322,6 +324,34 @@ def symplectic_error(line, particle_ref):
     return np.linalg.norm(r_matrix.T @ s_matrix @ r_matrix - s_matrix, ord=2)
 
 
+def sample_splineboris_line(line, s0, x=0.0, y=0.0):
+    s_out = []
+    bx_out = []
+    by_out = []
+    bs_out = []
+
+    s_start = s0
+    for element in line.elements:
+        s_local = np.linspace(0.0, element.length, SPLINE_STEPS_PER_POINT + 1)
+        bx, by, bs = element.get_field(
+            np.full_like(s_local, x),
+            np.full_like(s_local, y),
+            s_local,
+        )
+        s_out.append(s_start + s_local)
+        bx_out.append(bx)
+        by_out.append(by)
+        bs_out.append(bs)
+        s_start += element.length
+
+    return (
+        np.concatenate(s_out),
+        np.concatenate(bx_out),
+        np.concatenate(by_out),
+        np.concatenate(bs_out),
+    )
+
+
 assert MAX_TRANSVERSE_DERIVATIVE_ORDER <= xt.SplineBoris._SB_MAX_MULTIPOLE_ORDER - 1
 
 
@@ -374,6 +404,9 @@ if SAVE_SOLENOID_LINES_JSON:
     }
     xt.json.dump(output_data, OUTPUT_LINES_JSON, indent=1)
 
+##########
+# Checks #
+##########
 
 # Build a complete local three-solenoid system for checks before FCC install.
 main_half_length = (
@@ -416,48 +449,165 @@ comp_symplectic_error = symplectic_error(
     line_compensation_solenoid, particle_ref)
 
 
-# Plots: extracted fields and transverse derivatives.
+# Plots: compare field-map extraction against the built SplineBoris lines.
 plt.close('all')
 
-fig_fields, axes_fields = plt.subplots(2, 3, figsize=(15, 7), sharex='row')
-for row, field_data, scale_b in [
-    (0, main_field_data, 1.0),
-    (1, comp_field_data, comp_scale_b),
-]:
-    s_axis = field_data['s_axis']
-    axes_fields[row, 0].plot(s_axis, scale_b * field_data['bs'])
-    axes_fields[row, 1].plot(s_axis, scale_b * field_data['bx'][0])
-    axes_fields[row, 2].plot(s_axis, scale_b * field_data['by'][0])
-    axes_fields[row, 0].set_ylabel(field_data['name'])
-    axes_fields[row, 0].set_title('B_s [T]')
-    axes_fields[row, 1].set_title('B_x [T]')
-    axes_fields[row, 2].set_title('B_y [T]')
-for ax in axes_fields.ravel():
-    ax.grid(True, alpha=0.3)
-fig_fields.suptitle('Tapered on-axis fields')
+comparison_fields = {
+    'main_solenoid': {
+        'field_data': main_field_data,
+        'line': line_main_solenoid,
+        'scale_b': 1.0,
+    },
+    'compensation_solenoid': {
+        'field_data': comp_field_data,
+        'line': line_compensation_solenoid,
+        'scale_b': comp_scale_b,
+    },
+}
+
+sampled_lines = {}
+for name, item in comparison_fields.items():
+    field_data = item['field_data']
+    s_model, bx_model, by_model, bs_model = sample_splineboris_line(
+        item['line'],
+        s0=field_data['s_axis'][0],
+        x=X_FIELD_COMPARISON,
+        y=Y_FIELD_COMPARISON,
+    )
+    sampled_lines[name] = {
+        's': s_model,
+        'bx': bx_model,
+        'by': by_model,
+        'bs': bs_model,
+    }
+
+fig_fields, axes_fields = plt.subplots(
+    len(comparison_fields), 3,
+    figsize=(15, 4.0 * len(comparison_fields)),
+    squeeze=False,
+)
+
+field_components = [
+    ('B_s [T]', 'bs'),
+    ('B_x [T]', 'bx'),
+    ('B_y [T]', 'by'),
+]
+
+for row, (name, item) in enumerate(comparison_fields.items()):
+    field_data = item['field_data']
+    scale_b = item['scale_b']
+    field_values = {
+        'bs': scale_b * field_data['bs'],
+        'bx': scale_b * field_data['bx'][0],
+        'by': scale_b * field_data['by'][0],
+    }
+    model_values = sampled_lines[name]
+
+    for col, (ylabel, component) in enumerate(field_components):
+        ax = axes_fields[row, col]
+        ax.plot(
+            field_data['s_axis'], field_values[component],
+            '-', label='field-map data')
+        ax.plot(
+            model_values['s'], model_values[component],
+            '--', label='SplineBoris')
+        ax.set_ylabel(f'{name}\n{ylabel}')
+        ax.grid(True, alpha=0.3)
+        if row == 0 and col == 0:
+            ax.legend(loc='best')
+
+for ax in axes_fields[-1, :]:
+    ax.set_xlabel('s [m]')
+fig_fields.suptitle(
+    'Tapered field-map data and SplineBoris-line comparison '
+    f'at x={X_FIELD_COMPARISON:g} m, y={Y_FIELD_COMPARISON:g} m')
 fig_fields.tight_layout()
+
+offsets = np.arange(-4, 5)
+zero_offset_index = np.where(offsets == 0)[0][0]
+derivative_comparison_data = {}
+
+for name, item in comparison_fields.items():
+    field_data = item['field_data']
+    bx_at_offsets = []
+    by_at_offsets = []
+    s_model = None
+
+    for offset in offsets:
+        s_curr, bx_curr, by_curr, _ = sample_splineboris_line(
+            item['line'],
+            s0=field_data['s_axis'][0],
+            x=X_FIELD_COMPARISON + offset * DERIVATIVE_STEP,
+            y=Y_FIELD_COMPARISON,
+        )
+        if s_model is None:
+            s_model = s_curr
+        bx_at_offsets.append(bx_curr)
+        by_at_offsets.append(by_curr)
+
+    bx_at_offsets = np.array(bx_at_offsets)
+    by_at_offsets = np.array(by_at_offsets)
+
+    derivative_comparison_data[name] = {
+        0: {
+            's': s_model,
+            'bx': bx_at_offsets[zero_offset_index],
+            'by': by_at_offsets[zero_offset_index],
+        }
+    }
+
+    for order in range(1, MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
+        coefficients = SolenoidField.finite_difference_coefficients(
+            offsets, order)
+        derivative_comparison_data[name][order] = {
+            's': s_model,
+            'bx': (
+                np.tensordot(coefficients, bx_at_offsets, axes=(0, 0))
+                / DERIVATIVE_STEP**order
+            ),
+            'by': (
+                np.tensordot(coefficients, by_at_offsets, axes=(0, 0))
+                / DERIVATIVE_STEP**order
+            ),
+        }
 
 for order in range(1, MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
     fig_derivatives, axes_derivatives = plt.subplots(
-        2, 2, figsize=(12, 7), sharex='row')
-    for row, field_data, scale_b in [
-        (0, main_field_data, 1.0),
-        (1, comp_field_data, comp_scale_b),
-    ]:
-        s_axis = field_data['s_axis']
-        axes_derivatives[row, 0].plot(
-            s_axis, scale_b * field_data['bx'][order])
-        axes_derivatives[row, 1].plot(
-            s_axis, scale_b * field_data['by'][order])
-        axes_derivatives[row, 0].set_ylabel(field_data['name'])
-        axes_derivatives[row, 0].set_title(
-            f'd^{order} B_x / dx^{order}')
-        axes_derivatives[row, 1].set_title(
-            f'd^{order} B_y / dx^{order}')
-    for ax in axes_derivatives.ravel():
-        ax.grid(True, alpha=0.3)
+        len(comparison_fields), 2,
+        figsize=(12, 4.0 * len(comparison_fields)),
+        squeeze=False,
+    )
+
+    for row, (name, item) in enumerate(comparison_fields.items()):
+        field_data = item['field_data']
+        scale_b = item['scale_b']
+        model_data = derivative_comparison_data[name][order]
+
+        field_values = [
+            scale_b * field_data['bx'][order],
+            scale_b * field_data['by'][order],
+        ]
+        model_values = [model_data['bx'], model_data['by']]
+
+        for col, component in enumerate(('x', 'y')):
+            ax = axes_derivatives[row, col]
+            ax.plot(
+                field_data['s_axis'], field_values[col],
+                '-', label='field-map data')
+            ax.plot(
+                model_data['s'], model_values[col],
+                '--', label='SplineBoris')
+            ax.set_ylabel(
+                f'{name}\nd^{order} B_{component} / dx^{order}')
+            ax.grid(True, alpha=0.3)
+            if row == 0 and col == 0:
+                ax.legend(loc='best')
+
+    for ax in axes_derivatives[-1, :]:
+        ax.set_xlabel('s [m]')
     fig_derivatives.suptitle(
-        f'Tapered transverse derivative order {order}')
+        f'Tapered transverse derivative comparison, order {order} '
+        f'at x={X_FIELD_COMPARISON:g} m, y={Y_FIELD_COMPARISON:g} m')
     fig_derivatives.tight_layout()
 
 
