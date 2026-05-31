@@ -319,10 +319,7 @@ def symplectic_error(line, particle_ref):
     s_matrix = xt.linear_normal_form.S
     r_matrix = line.get_R_matrix(
         particle_on_co=particle_ref.copy())['R_matrix']
-    return (
-        np.linalg.norm(r_matrix.T @ s_matrix @ r_matrix - s_matrix, ord=2),
-        abs(abs(np.linalg.det(r_matrix)) - 1.0),
-    )
+    return np.linalg.norm(r_matrix.T @ s_matrix @ r_matrix - s_matrix, ord=2)
 
 
 assert MAX_TRANSVERSE_DERIVATIVE_ORDER <= xt.SplineBoris._SB_MAX_MULTIPOLE_ORDER - 1
@@ -414,14 +411,8 @@ twiss_results['SplineBoris'] = line_systems['SplineBoris'].twiss(
 twiss_results['VariableSolenoid'] = line_systems['VariableSolenoid'].twiss(
     init_at='ip', betx=BETX, bety=BETY)
 
-symplectic_errors = {}
-det_r_errors = {}
-for name, line in line_systems.items():
-    symplectic_errors[name], det_r_errors[name] = symplectic_error(
-        line, particle_ref)
-main_symplectic_error, main_det_error = symplectic_error(
-    line_main_solenoid, particle_ref)
-comp_symplectic_error, comp_det_error = symplectic_error(
+main_symplectic_error = symplectic_error(line_main_solenoid, particle_ref)
+comp_symplectic_error = symplectic_error(
     line_compensation_solenoid, particle_ref)
 
 
@@ -471,89 +462,46 @@ for order in range(1, MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
 
 
 # Plots: local three-solenoid checks.
-fig_orbit, axes_orbit = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
+fig_orbit_coupling, axes_orbit_coupling = plt.subplots(
+    2, 2, figsize=(12, 7), sharex=True)
 for name, tw in twiss_results.items():
     s_from_ip = tw.s - tw['s', 'ip']
-    axes_orbit[0].plot(s_from_ip, tw.x, label=name)
-    axes_orbit[1].plot(s_from_ip, tw.y, label=name)
-axes_orbit[0].set_ylabel('x [m]')
-axes_orbit[1].set_ylabel('y [m]')
-axes_orbit[1].set_xlabel('s - s_ip [m]')
-for ax in axes_orbit:
+    axes_orbit_coupling[0, 0].plot(s_from_ip, tw.x, label=name)
+    axes_orbit_coupling[1, 0].plot(s_from_ip, tw.y, label=name)
+    axes_orbit_coupling[0, 1].plot(s_from_ip, tw.betx2, label=name)
+    axes_orbit_coupling[1, 1].plot(s_from_ip, tw.bety1, label=name)
+axes_orbit_coupling[0, 0].set_ylabel('x [m]')
+axes_orbit_coupling[1, 0].set_ylabel('y [m]')
+axes_orbit_coupling[0, 1].set_ylabel('betx2 [m]')
+axes_orbit_coupling[1, 1].set_ylabel('bety1 [m]')
+axes_orbit_coupling[1, 0].set_xlabel('s - s_ip [m]')
+axes_orbit_coupling[1, 1].set_xlabel('s - s_ip [m]')
+for ax in axes_orbit_coupling.ravel():
     ax.grid(True, alpha=0.3)
     ax.legend(loc='best')
-fig_orbit.suptitle('Three-solenoid open-twiss orbit, initialized at IP')
-fig_orbit.tight_layout()
-
-fig_dy, ax_dy = plt.subplots(figsize=(10, 4))
-for name, tw in twiss_results.items():
-    s_from_ip = tw.s - tw['s', 'ip']
-    ax_dy.plot(s_from_ip, tw.dy, label=name)
-ax_dy.set_xlabel('s - s_ip [m]')
-ax_dy.set_ylabel('dy [m]')
-ax_dy.set_title('Three-solenoid vertical dispersion')
-ax_dy.grid(True, alpha=0.3)
-ax_dy.legend(loc='best')
-fig_dy.tight_layout()
-
-fig_coupling, axes_coupling = plt.subplots(
-    2, 1, figsize=(10, 7), sharex=True)
-for name, tw in twiss_results.items():
-    s_from_ip = tw.s - tw['s', 'ip']
-    axes_coupling[0].plot(s_from_ip, tw.betx2, label=name)
-    axes_coupling[1].plot(s_from_ip, tw.bety1, label=name)
-axes_coupling[0].set_ylabel('betx2 [m]')
-axes_coupling[1].set_ylabel('bety1 [m]')
-axes_coupling[1].set_xlabel('s - s_ip [m]')
-for ax in axes_coupling:
-    ax.grid(True, alpha=0.3)
-    ax.legend(loc='best')
-fig_coupling.suptitle('Three-solenoid beta coupling')
-fig_coupling.tight_layout()
+fig_orbit_coupling.suptitle(
+    'Three-solenoid orbit and beta coupling, initialized at IP')
+fig_orbit_coupling.tight_layout()
 
 print('004a build and check tapered solenoids')
 print(f'  output lines json = {OUTPUT_LINES_JSON}')
-print(
-    '  MAX_TRANSVERSE_DERIVATIVE_ORDER = '
-    f'{MAX_TRANSVERSE_DERIVATIVE_ORDER}')
-print(f'  TAPER_LENGTH = {TAPER_LENGTH:.6g} m')
-print(
-    '  USE_NEAR_AXIS_SIMPLIFIED_MODEL = '
-    f'{USE_NEAR_AXIS_SIMPLIFIED_MODEL}')
 print(f'  main Bs integral = {main_bs_integral:.12e} T m')
 print(
-    '  one compensation Bs integral = '
-    f'{comp_scale_b * comp_bs_integral_unscaled:.12e} T m')
-print(
-    '  total Bs integral = '
-    f'{main_bs_integral + 2 * comp_scale_b * comp_bs_integral_unscaled:.12e} '
-    'T m')
-print(f'  compensation scale_b = {comp_scale_b:.12e}')
+    '  2 x compensation Bs integral = '
+    f'{2 * comp_scale_b * comp_bs_integral_unscaled:.12e} T m')
 
 print('  Symplectic checks:')
 print(
     '    main SplineBoris line: '
-    f'{main_symplectic_error:.12e}, det error {main_det_error:.12e}')
+    f'{main_symplectic_error:.12e}')
 print(
     '    compensation SplineBoris line: '
-    f'{comp_symplectic_error:.12e}, det error {comp_det_error:.12e}')
-for name in line_systems:
-    print(
-        f'    {name} three-solenoid system: '
-        f'{symplectic_errors[name]:.12e}, '
-        f'det error {det_r_errors[name]:.12e}')
+    f'{comp_symplectic_error:.12e}')
 
 for label, tw in twiss_results.items():
     print(f'  {label}:')
     print(
-        f'    x_end = {tw.x[-1]:+.12e} m, '
-        f'y_end = {tw.y[-1]:+.12e} m, '
-        f'dy_end = {tw.dy[-1]:+.12e} m')
-    print(
         f'    betx2_end = {tw.betx2[-1]:+.12e} m, '
         f'bety1_end = {tw.bety1[-1]:+.12e} m')
-    print(
-        f'    alfx2_end = {tw.alfx2[-1]:+.12e}, '
-        f'alfy1_end = {tw.alfy1[-1]:+.12e}')
 
 plt.show()
