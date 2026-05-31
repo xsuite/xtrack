@@ -511,22 +511,6 @@ for ax in axes_coupling:
 fig_coupling.suptitle('Three-solenoid beta coupling')
 fig_coupling.tight_layout()
 
-fig_alpha_coupling, axes_alpha_coupling = plt.subplots(
-    2, 1, figsize=(10, 7), sharex=True)
-for name, tw in twiss_results.items():
-    s_from_ip = tw.s - tw['s', 'ip']
-    axes_alpha_coupling[0].plot(s_from_ip, tw.alfx2, label=name)
-    axes_alpha_coupling[1].plot(s_from_ip, tw.alfy1, label=name)
-axes_alpha_coupling[0].set_ylabel('alfx2')
-axes_alpha_coupling[1].set_ylabel('alfy1')
-axes_alpha_coupling[1].set_xlabel('s - s_ip [m]')
-for ax in axes_alpha_coupling:
-    ax.grid(True, alpha=0.3)
-    ax.legend(loc='best')
-fig_alpha_coupling.suptitle('Three-solenoid alpha coupling')
-fig_alpha_coupling.tight_layout()
-
-
 print('004a build and check tapered solenoids')
 print(f'  output lines json = {OUTPUT_LINES_JSON}')
 print(
