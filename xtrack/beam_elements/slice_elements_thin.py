@@ -9,6 +9,13 @@ from .elements import (
 )
 from ..base_element import BeamElement
 
+def _raise_if_parent_has_transverse_rotation(parent):
+    if parent.rot_x_rad != 0 or parent.rot_y_rad != 0:
+        raise ValueError(
+            'Thin slice equivalent multipoles do not support parent '
+            '`rot_x_rad` or `rot_y_rad` different from zero.')
+
+
 class _ThinSliceElementBase(_SliceBase):
 
     rot_and_shift_from_parent = True
@@ -27,11 +34,11 @@ class ThinSliceQuadrupole(_ThinSliceElementBase, BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
+        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        knl[1] += self._parent.k1 * self._parent.length * self.weight
-        ksl[1] += self._parent.k1s * self._parent.length * self.weight
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
@@ -62,11 +69,11 @@ class ThinSliceSextupole(_ThinSliceElementBase, BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
+        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        knl[2] += self._parent.k2 * self._parent.length * self.weight
-        ksl[2] += self._parent.k2s * self._parent.length * self.weight
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
@@ -97,11 +104,11 @@ class ThinSliceOctupole(_ThinSliceElementBase, BeamElement):
 
     def get_equivalent_element(self):
 
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
+        _raise_if_parent_has_transverse_rotation(self._parent)
 
-        knl[3] += self._parent.k3 * self._parent.length * self.weight
-        ksl[3] += self._parent.k3s * self._parent.length * self.weight
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
@@ -176,11 +183,12 @@ class ThinSliceBend(_ThinSliceElementBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
 
-        knl[0] += self._parent._k0 * self._parent.length * self.weight
-        knl[1] += self._parent.k1 * self._parent.length * self.weight
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
@@ -210,15 +218,15 @@ class ThinSliceRBend(_ThinSliceElementBase, BeamElement):
 
     def get_equivalent_element(self):
 
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.rbend_model == "straight-body":
             return self # No replacement possible (not yet supported), element
                         # left where it is
 
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
-
-        knl[0] += self._parent._k0 * self._parent.length * self.weight
-        knl[1] += self._parent.k1 * self._parent.length * self.weight
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
@@ -241,8 +249,11 @@ class ThinSliceMultipole(_ThinSliceElementBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
-        knl = self._parent.knl.copy() * self.weight
-        ksl = self._parent.ksl.copy() * self.weight
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
+        knl, ksl = self._parent.get_total_knl_ksl()
+        knl = knl * self.weight
+        ksl = ksl * self.weight
 
         length = self._parent.length * self.weight
 
