@@ -1,20 +1,16 @@
 import xobjects as xo
 
 from ..general import _pkg_root
-from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS, ID_RADIATION_FROM_PARENT
+from .slice_base import (
+    _SliceBase, COMMON_SLICE_XO_FIELDS, ID_RADIATION_FROM_PARENT,
+    _raise_if_parent_has_transverse_rotation,
+)
 from .elements import (
     SynchrotronRadiationRecord, Quadrupole, Sextupole,
     Octupole, Bend, Multipole, DipoleEdge, RBend, MultipoleEdge, Marker,
     UniformSolenoid, Cavity, CrabCavity
 )
 from ..base_element import BeamElement
-
-def _raise_if_parent_has_transverse_rotation(parent):
-    if parent.rot_x_rad != 0 or parent.rot_y_rad != 0:
-        raise ValueError(
-            'Thin slice equivalent multipoles do not support parent '
-            '`rot_x_rad` or `rot_y_rad` different from zero.')
-
 
 class _ThinSliceElementBase(_SliceBase):
 

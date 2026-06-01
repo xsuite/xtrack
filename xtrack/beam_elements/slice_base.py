@@ -13,6 +13,13 @@ COMMON_SLICE_XO_FIELDS = {
     'slice_offset': xo.Float64,
 }
 
+def _raise_if_parent_has_transverse_rotation(parent):
+    if parent.rot_x_rad != 0 or parent.rot_y_rad != 0:
+        raise ValueError(
+            'Equivalent elements do not support parent `rot_x_rad` or '
+            '`rot_y_rad` different from zero.')
+
+
 class _SliceBase:
 
     allow_rot_and_shift = False
