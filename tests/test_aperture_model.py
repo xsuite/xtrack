@@ -2151,6 +2151,78 @@ def test_aperture_bounds_do_not_depend_on_profile_position_order(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_rot_x_minus_pi_matches_reversed_profiles_with_shift(test_context):
+    """Compare equivalent pipe installations related by a pi flip about x.
+
+    For a symmetric profile such as a circle, rotating the installed pipe by ``pi`` about the x-axis
+    should not change the aperture bounds, if the local profile positions and offsets are mirrored.
+    """
+    env = xt.Environment()
+    rot_x_rad = np.deg2rad(20.0)
+    length = 3.2
+    radius = 0.6
+
+    drift = env.new('drift', xt.Drift, length=length)
+    line = env.new_line(name='line', components=10 * [drift])
+    sv = line.survey()
+
+    profiles = [Profile(shape=Circle(radius=radius), tol_r=0, tol_x=0, tol_y=0)]
+
+    positions = [
+        ProfilePosition(profile_index=0, shift_s=0.2 * length, shift_y=-0.2 * length * np.tan(rot_x_rad)),
+        ProfilePosition(profile_index=0, shift_s=0.5 * length, shift_y=-0.5 * length * np.tan(rot_x_rad)),
+        ProfilePosition(profile_index=0, shift_s=0.8 * length, shift_y=-0.8 * length * np.tan(rot_x_rad)),
+    ]
+    reversed_positions = [
+        ProfilePosition(
+            profile_index=0,
+            shift_s=-pos.shift_s,
+            shift_y=pos.shift_s * np.tan(rot_x_rad),
+        )
+        for pos in positions
+    ]
+
+    def build_model(positions, transformation):
+        return ApertureModel(
+            line=line,
+            pipe_positions=[
+                PipePosition(
+                    pipe_index=0,
+                    survey_reference_name=sv.name[0],
+                    survey_index=0,
+                    transformation=transformation,
+                ),
+            ],
+            pipes=[Pipe(curvature=0.0, positions=positions)],
+            profiles=profiles,
+            pipe_names=['pipe0'],
+            pipe_position_names=['pipe0'],
+            profile_names=['circ0'],
+        )
+
+    forward_transform = transform_matrix(rot_x_rad=rot_x_rad)
+    reversed_transform = transform_matrix(rot_x_rad=rot_x_rad - np.pi)
+
+    ap_forward = Aperture(
+        line=line,
+        model=build_model(positions, forward_transform),
+        context=test_context,
+    )
+    ap_reversed = Aperture(
+        line=line,
+        model=build_model(reversed_positions, reversed_transform),
+        context=test_context,
+    )
+
+    table_forward = ap_forward.get_bounds_table()
+    table_reversed = ap_reversed.get_bounds_table()
+
+    xo.assert_allclose(table_forward.s, table_reversed.s, atol=1e-9, rtol=0)
+    xo.assert_allclose(table_forward.s_start, table_reversed.s_start, atol=1e-9, rtol=0)
+    xo.assert_allclose(table_forward.s_end, table_reversed.s_end, atol=1e-9, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_aperture_bounds_upstream_of_reference_across_marker(test_context):
     """Ensure bounds search works when the profile lies upstream of the survey reference.
 
