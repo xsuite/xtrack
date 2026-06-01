@@ -4927,6 +4927,7 @@ class Line:
                     knl[:len(ee_knl)] += ee_knl
                     ksl[:len(prev_ksl)] += prev_ksl
                     ksl[:len(ee_ksl)] += ee_ksl
+                    knl, ksl = _trim_common_trailing_zeros(knl, ksl)
                     newee = Multipole(
                         knl=knl, ksl=ksl, hxl=prev_ee.hxl,
                         length=prev_ee.length,
@@ -6589,6 +6590,16 @@ def _is_simple_dipole(el):
 
 def _has_transverse_rotation(el):
     return el.rot_x_rad != 0 or el.rot_y_rad != 0
+
+def _trim_common_trailing_zeros(knl, ksl):
+    last_nonzero = 0
+    for ii, vv in enumerate(knl):
+        if vv != 0:
+            last_nonzero = ii
+    for ii, vv in enumerate(ksl):
+        if vv != 0:
+            last_nonzero = max(last_nonzero, ii)
+    return knl[:last_nonzero + 1], ksl[:last_nonzero + 1]
 
 @contextmanager
 def freeze_longitudinal(tracker):
