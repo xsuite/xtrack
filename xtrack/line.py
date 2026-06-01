@@ -4468,9 +4468,8 @@ class Line:
         for ee, nn in zip(self._elements, self.element_names):
             if (isinstance(ee, Multipole) and nn not in keep and
                 not(ee.isthick and ee.length != 0)):
-                ctx2np = ee._context.nparray_from_context_array
-                aux = ([ee.hxl]
-                        + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
+                knl, ksl = ee.get_total_knl_ksl()
+                aux = [ee.hxl, ee.rot_x_rad, ee.rot_y_rad, *knl, *ksl]
                 if np.sum(np.abs(np.array(aux))) == 0.0:
                     continue
             newline.append(nn)
@@ -4681,8 +4680,9 @@ class Line:
 
         for name, element in self._element_dict.items():
             if _is_simple_quadrupole(element):
+                knl, _ = element.get_total_knl_ksl()
                 fast_quad = beam_elements.SimpleThinQuadrupole(
-                    knl=element.knl[:2],
+                    knl=knl[:2],
                     _context=element._context,
                 )
                 self._element_dict[name] = fast_quad
@@ -4699,8 +4699,9 @@ class Line:
 
         for name, element in self._element_dict.items():
             if _is_simple_dipole(element):
+                knl, _ = element.get_total_knl_ksl()
                 fast_di = beam_elements.SimpleThinBend(
-                    knl=element.knl[:1],
+                    knl=knl[:1],
                     hxl=element.hxl,
                     length=element.length,
                     _context=element._context,
@@ -4912,20 +4913,21 @@ class Line:
                 if (isinstance(prev_ee, Multipole)
                     and not prev_ee.isthick
                     and prev_ee.hxl == ee.hxl == 0
+                    and not _has_transverse_rotation(ee)
+                    and not _has_transverse_rotation(prev_ee)
                     and prev_nn not in keep
                 ):
-                    oo = max(len(prev_ee.knl), len(prev_ee.ksl),
-                           len(ee.knl), len(ee.ksl))
+                    prev_knl, prev_ksl = prev_ee.get_total_knl_ksl()
+                    ee_knl, ee_ksl = ee.get_total_knl_ksl()
+                    oo = max(len(prev_knl), len(prev_ksl),
+                           len(ee_knl), len(ee_ksl))
                     knl = np.zeros(oo,dtype=float)
                     ksl = np.zeros(oo,dtype=float)
-                    for ii, kk in enumerate(prev_ee._xobject.knl):
-                        knl[ii] += kk
-                    for ii, kk in enumerate(ee._xobject.knl):
-                        knl[ii] += kk
-                    for ii, kk in enumerate(prev_ee._xobject.ksl):
-                        ksl[ii] += kk
-                    for ii, kk in enumerate(ee._xobject.ksl):
-                        ksl[ii] += kk
+                    knl[:len(prev_knl)] += prev_knl
+                    knl[:len(ee_knl)] += ee_knl
+                    ksl[:len(prev_ksl)] += prev_ksl
+                    ksl[:len(ee_ksl)] += ee_ksl
+                    knl, ksl = _trim_common_trailing_zeros(knl, ksl)
                     newee = Multipole(
                         knl=knl, ksl=ksl, hxl=prev_ee.hxl,
                         length=prev_ee.length,
@@ -6565,22 +6567,39 @@ def _deserialize_element(el, class_dict, _buffer):
 def _is_simple_quadrupole(el):
     if not isinstance(el, Multipole) or el.isthick:
         return False
+    knl, ksl = el.get_total_knl_ksl()
     return (el.radiation_flag == 0
-            and (el.order == 1 or len(el.knl) == 2 or not any(el.knl[2:]))
-            and el.knl[0] == 0
-            and not any(el.ksl)
+            and (len(knl) <= 2 or not any(knl[2:]))
+            and knl[0] == 0
+            and not any(ksl)
             and not el.hxl
+            and not _has_transverse_rotation(el)
             and el.shift_x == 0 and el.shift_y == 0 and el.shift_s == 0
             and np.abs(el.rot_s_rad) < 1e-12)
 
 def _is_simple_dipole(el):
     if not isinstance(el, Multipole) or el.isthick:
         return False
+    knl, ksl = el.get_total_knl_ksl()
     return (el.radiation_flag == 0
-            and (el.order == 0 or len(el.knl) == 1 or not any(el.knl[1:]))
-            and not any(el.ksl)
+            and (len(knl) <= 1 or not any(knl[1:]))
+            and not any(ksl)
+            and not _has_transverse_rotation(el)
             and el.shift_x == 0 and el.shift_y == 0 and el.shift_s == 0
             and np.abs(el.rot_s_rad) < 1e-12)
+
+def _has_transverse_rotation(el):
+    return el.rot_x_rad != 0 or el.rot_y_rad != 0
+
+def _trim_common_trailing_zeros(knl, ksl):
+    last_nonzero = 0
+    for ii, vv in enumerate(knl):
+        if vv != 0:
+            last_nonzero = ii
+    for ii, vv in enumerate(ksl):
+        if vv != 0:
+            last_nonzero = max(last_nonzero, ii)
+    return knl[:last_nonzero + 1], ksl[:last_nonzero + 1]
 
 @contextmanager
 def freeze_longitudinal(tracker):
