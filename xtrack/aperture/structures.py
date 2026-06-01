@@ -437,6 +437,7 @@ class ApertureModel(xo.Struct):
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(SurveyData, name='survey'),
+                xo.Arg(xo.Int8, name='is_ring'),
             ],
         ),
         'cross_sections_at_s': xo.Kernel(

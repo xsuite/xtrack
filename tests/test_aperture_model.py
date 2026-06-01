@@ -569,6 +569,40 @@ def test_pipe_overlap_validation_allows_wrapped_and_regular_non_overlapping_pipe
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_json_roundtrip_preserves_explicit_ring_flag(test_context, tmp_path):
+    env = xt.Environment()
+    drift = env.new('drift', xt.Drift, length=3.0)
+    line = env.new_line(name='line', components=[drift])
+    sv = line.survey()
+
+    model = ApertureModel(
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
+                survey_reference_name='drift',
+                survey_index=sv.name.tolist().index('drift'),
+                transformation=transform_matrix(),
+            ),
+        ],
+        pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
+        profiles=[Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0)],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0'],
+        profile_names=['circ0'],
+        _context=test_context,
+    )
+
+    ap = Aperture(line, model, context=test_context, ring=False)
+    path = tmp_path / 'aperture.json'
+
+    ap.to_json(path)
+    loaded = Aperture.from_json(path, line=line, context=test_context)
+
+    assert ap.ring is False
+    assert loaded.ring is False
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_pipe_overlap_validation_rejects_overlap_with_wrapped_pipe(test_context):
     line, model = _make_pipe_table_test_ring(
         test_context,
@@ -2044,7 +2078,86 @@ def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_do_not_depend_on_profile_position_order(test_context):
+    env = xt.Environment()
+    angle = np.deg2rad(35.0)
+    rot_x_rad = np.deg2rad(20.0)
+    length = 3.2
+    radius = 0.6
+
+    bend = env.new('bend', xt.Bend, length=length, angle=angle, k0=0)
+    drift = env.new('drift', xt.Drift, length=length)
+    anti_bend = env.new('anti_bend', xt.Bend, length=length, angle=-angle, k0=0)
+    line = env.new_line(name='line', components=[bend, drift, anti_bend])
+    sv = line.survey()
+
+    profiles = [Profile(shape=Circle(radius=radius), tol_r=0, tol_x=0, tol_y=0)]
+
+    def make_position(shift_s):
+        return ProfilePosition(
+            profile_index=0,
+            shift_s=shift_s,
+            shift_y=-shift_s * np.tan(rot_x_rad),
+        )
+
+    sorted_positions = [
+        make_position(0.0),
+        make_position(0.5 * length),
+        make_position(length),
+    ]
+    scrambled_positions = [
+        make_position(length),
+        make_position(0.0),
+        make_position(0.5 * length),
+    ]
+
+    def build_model(positions, curvature):
+        return ApertureModel(
+            line=line,
+            pipe_positions=[
+                PipePosition(
+                    pipe_index=0,
+                    survey_reference_name=sv.name[0],
+                    survey_index=0,
+                    transformation=transform_matrix(rot_x_rad=rot_x_rad),
+                ),
+            ],
+            pipes=[Pipe(curvature=curvature, positions=positions)],
+            profiles=profiles,
+            pipe_names=['pipe0'],
+            pipe_position_names=['pipe0'],
+            profile_names=['circ0'],
+        )
+
+    ap_forward = Aperture(
+        line=line,
+        model=build_model(sorted_positions, curvature=angle / length),
+        context=test_context,
+    )
+    ap_reversed = Aperture(
+        line=line,
+        model=build_model(scrambled_positions, curvature=angle / length),
+        context=test_context,
+    )
+
+    table_forward = ap_forward.get_bounds_table()
+    table_reversed = ap_reversed.get_bounds_table()
+
+    assert list(table_forward.name) == list(table_reversed.name)
+    assert list(table_forward.profile_name) == list(table_reversed.profile_name)
+    xo.assert_allclose(table_forward.s, table_reversed.s, atol=1e-9, rtol=0)
+    xo.assert_allclose(table_forward.s_start, table_reversed.s_start, atol=1e-9, rtol=0)
+    xo.assert_allclose(table_forward.s_end, table_reversed.s_end, atol=1e-9, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_aperture_bounds_upstream_of_reference_across_marker(test_context):
+    """Ensure bounds search works when the profile lies upstream of the survey reference.
+
+    The installed pipe is referenced at a marker, but its actual profile centre is shifted
+    back across the marker. The bound computation must still find the correct intersection
+    point and produce finite aperture limits.
+    """
     env = xt.Environment()
 
     d0 = env.new('d0', xt.Drift, length=1.0)

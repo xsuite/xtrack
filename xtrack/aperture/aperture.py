@@ -62,6 +62,12 @@ def _survey_is_closed(survey: Table, s_tol: float = 1e-6) -> bool:
     return dx * dx + dy * dy + dz * dz < s_tol
 
 
+def _resolve_ring_flag(ring: bool | Literal['auto'], survey: Table) -> bool:
+    if ring == 'auto':
+        return _survey_is_closed(survey)
+    return bool(ring)
+
+
 def _shortest_circular_interval(points: np.ndarray, line_length: float) -> tuple[float, float, float]:
     if points.size == 0:
         raise ValueError('Cannot determine a circular interval from an empty point set.')
@@ -673,6 +679,7 @@ class Aperture:
         halo_params: Optional[dict] = None,
         context: Optional[XContext] = None,
         s_tol=1e-6,
+        ring: bool | Literal['auto'] = 'auto',
         _skip_validity_check=False,
     ):
         self.line = line
@@ -682,6 +689,7 @@ class Aperture:
         self.s_tol = s_tol
 
         self.survey = line.survey()
+        self.ring = _resolve_ring_flag(ring, self.survey)
 
         # Add angle and rot_s_rad
         self.survey['angle'] = np.zeros_like(self.survey.s)
@@ -718,6 +726,7 @@ class Aperture:
         json = {
             'model': self._model.to_dict(),
             'halo_params': self.halo_params,
+            'ring': self.ring,
         }
         json_dump(json, filename)
 
@@ -729,10 +738,12 @@ class Aperture:
         json = json_load(filename)
         model = ApertureModel(**json['model'], _context=context)
         halo_params = json['halo_params']
+        ring = kwargs.pop('ring', json.get('ring', 'auto'))
         return cls(
             line=line,
             model=model,
             halo_params=halo_params,
+            ring=ring,
             context=context,
             **kwargs,
         )
@@ -1757,6 +1768,7 @@ class Aperture:
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
             survey=self._survey_data,
+            is_ring=int(self.ring),
         )
         self._aperture_bounds.sort_by_s()
 
@@ -1910,7 +1922,7 @@ class Aperture:
         ap_s_start = ap_bounds.s_start.to_nparray()
         ap_s_end = ap_bounds.s_end.to_nparray()
         line_length = self.line.get_length()
-        use_wrapped_span = _survey_is_closed(self.survey)
+        use_wrapped_span = self.ring
 
         s_start = np.full(table_size, np.nan, dtype=FloatType._dtype)
         s_end = np.full(table_size, np.nan, dtype=FloatType._dtype)

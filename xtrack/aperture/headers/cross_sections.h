@@ -18,7 +18,7 @@ typedef struct {
     float_type tol_y;  // vertical tolerance for point-in-aperture check
 } BeamApertureLocalData;
 
-void build_profile_polygons(const ApertureModel, const ProfilePolygons, ApertureBounds, const SurveyData survey);
+void build_profile_polygons(const ApertureModel, const ProfilePolygons, ApertureBounds, const SurveyData survey, const int8_t is_ring);
 uint32_t cross_section_at_s(
     const SurveyData survey_at_s,
     const uint32_t idx_cross_section,
@@ -52,7 +52,7 @@ uint32_t interpolate_aperture_tolerances_at_s(
     float_type* out_tol_x,
     float_type* out_tol_y);
 
-static inline float_type survey_s_for_aperture(const PipePosition, const ProfilePosition, const float_type curvature, const SurveyData, uint32_t*);
+static inline float_type survey_s_for_aperture(const PipePosition, const ProfilePosition, const float_type curvature, const SurveyData, const int8_t is_ring, uint32_t*);
 static inline float_type normalize_s_near_reference(const float_type s, const float_type reference_s, const float_type survey_length);
 static inline void bounds_on_s_for_aperture(
     const PipePosition,
@@ -62,6 +62,7 @@ static inline void bounds_on_s_for_aperture(
     const Point2D* const,
     const uint32_t num_poly_points,
     const uint32_t installed_survey_index,
+    const int8_t is_ring,
     const float_type reference_s,
     float_type* min_s,
     float_type* max_s);
@@ -85,7 +86,8 @@ void build_profile_polygons(
     const ApertureModel model,
     const ProfilePolygons profile_polygons,
     const ApertureBounds aperture_bounds,
-    const SurveyData survey
+    const SurveyData survey,
+    const int8_t is_ring
 )
     /*
       Based on the aperture model and cross section location data, generate
@@ -131,14 +133,14 @@ void build_profile_polygons(
 
         /* Get the survey s where the aperture actually sits */
         uint32_t installed_survey_index;
-        const float_type found_s = survey_s_for_aperture(pipe_pos, profile_pos, curvature, survey, &installed_survey_index);
+        const float_type found_s = survey_s_for_aperture(pipe_pos, profile_pos, curvature, survey, is_ring, &installed_survey_index);
 
         ApertureBounds_set_s_positions(aperture_bounds, idx, found_s);
 
         /* Get the bounds in s that the aperture spans */
         float_type min_s, max_s;
         const Point2D* const profile_points = (Point2D*)poly;
-        bounds_on_s_for_aperture(pipe_pos, profile_pos, curvature, survey, profile_points, len_points, installed_survey_index, found_s, &min_s, &max_s);
+        bounds_on_s_for_aperture(pipe_pos, profile_pos, curvature, survey, profile_points, len_points, installed_survey_index, is_ring, found_s, &min_s, &max_s);
         ApertureBounds_set_s_start(aperture_bounds, idx, min_s);
         ApertureBounds_set_s_end(aperture_bounds, idx, max_s);
     }
@@ -623,6 +625,7 @@ static inline float_type survey_s_for_aperture(
     const ProfilePosition profile_pos,
     const float_type curvature,
     const SurveyData survey,
+    const int8_t is_ring,
     uint32_t* found_survey_index
 )
 /*
@@ -636,7 +639,7 @@ static inline float_type survey_s_for_aperture(
     const float_type eps = APER_PRECISION;
     const uint32_t num_survey_entries = SurveyData_len_s(survey);
     const uint32_t survey_idx = PipePosition_get_survey_index(pipe_pos);
-    const uint8_t wrap = survey_is_closed(survey);
+    const uint8_t wrap = is_ring;
 
     // Transformation from plane (s = 0) -> world
     Pose plane_in_world;
@@ -723,6 +726,7 @@ static inline void bounds_on_s_for_aperture(
     const Point2D* const profile_points,
     const uint32_t num_poly_points,
     const uint32_t installed_survey_index,
+    const int8_t is_ring,
     const float_type reference_s,
     float_type* min_s,
     float_type* max_s
@@ -742,7 +746,7 @@ static inline void bounds_on_s_for_aperture(
 {
     const float_type eps = APER_PRECISION;
     const uint32_t num_survey_entries = SurveyData_len_s(survey);
-    const uint8_t wrap = survey_is_closed(survey);
+    const uint8_t wrap = is_ring;
     const float_type survey_length = SurveyData_get_s(survey, num_survey_entries - 1) - SurveyData_get_s(survey, 0);
 
     // Transformation profile local -> world frame
