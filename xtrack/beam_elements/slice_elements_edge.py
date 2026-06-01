@@ -20,6 +20,12 @@ def _parent_total_kn_ks(parent):
     knl, ksl = parent.get_total_knl_ksl()
     return knl / parent.length, ksl / parent.length
 
+def _parent_total_kn_ks_for_multipole_edge(parent):
+    kn, ks = _parent_total_kn_ks(parent)
+    kn[0] = 0
+    ks[0] = 0
+    return kn, ks
+
 
 class _ThinSliceEdgeBase(_SliceBase):
 
@@ -105,7 +111,7 @@ class ThinSliceQuadrupoleEntry(_ThinSliceEdgeBase, BeamElement):
         _raise_if_parent_has_transverse_rotation(self._parent)
 
         if self._parent.edge_entry_active:
-            kn, ks = _parent_total_kn_ks(self._parent)
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
                 kn=kn,
                 ks=ks,
@@ -131,7 +137,7 @@ class ThinSliceQuadrupoleExit(_ThinSliceEdgeBase, BeamElement):
         _raise_if_parent_has_transverse_rotation(self._parent)
 
         if self._parent.edge_exit_active:
-            kn, ks = _parent_total_kn_ks(self._parent)
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
                 kn=kn,
                 ks=ks,
@@ -157,7 +163,7 @@ class ThinSliceSextupoleEntry(_ThinSliceEdgeBase, BeamElement):
         _raise_if_parent_has_transverse_rotation(self._parent)
 
         if self._parent.edge_entry_active:
-            kn, ks = _parent_total_kn_ks(self._parent)
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
                 kn=kn,
                 ks=ks,
@@ -183,7 +189,7 @@ class ThinSliceSextupoleExit(_ThinSliceEdgeBase, BeamElement):
         _raise_if_parent_has_transverse_rotation(self._parent)
 
         if self._parent.edge_exit_active:
-            kn, ks = _parent_total_kn_ks(self._parent)
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
                 kn=kn,
                 ks=ks,
@@ -209,7 +215,7 @@ class ThinSliceOctupoleEntry(_ThinSliceEdgeBase, BeamElement):
         _raise_if_parent_has_transverse_rotation(self._parent)
 
         if self._parent.edge_entry_active:
-            kn, ks = _parent_total_kn_ks(self._parent)
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
                 kn=kn,
                 ks=ks,
@@ -235,7 +241,7 @@ class ThinSliceOctupoleExit(_ThinSliceEdgeBase, BeamElement):
         _raise_if_parent_has_transverse_rotation(self._parent)
 
         if self._parent.edge_exit_active:
-            kn, ks = _parent_total_kn_ks(self._parent)
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
                 kn=kn,
                 ks=ks,
