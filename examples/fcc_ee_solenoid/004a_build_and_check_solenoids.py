@@ -58,6 +58,8 @@ def extract_tapered_field_data(name, field_model, s_axis):
 
     bx = {0: np.array(bx0, copy=True)}
     by = {0: np.array(by0, copy=True)}
+    bx_y_pure = {0: np.array(bx0, copy=True)}
+    by_y_pure = {0: np.array(by0, copy=True)}
 
     if MAX_TRANSVERSE_DERIVATIVE_ORDER > 0:
         bx_derivatives = field_model.compute_pure_field_derivatives(
@@ -76,15 +78,35 @@ def extract_tapered_field_data(name, field_model, s_axis):
             max_order=MAX_TRANSVERSE_DERIVATIVE_ORDER,
             min_order=1,
         )
+        bx_y_derivatives = field_model.compute_pure_field_derivatives(
+            s=s_axis,
+            direction='y',
+            step=DERIVATIVE_STEP,
+            component='x',
+            max_order=MAX_TRANSVERSE_DERIVATIVE_ORDER,
+            min_order=1,
+        )
+        by_y_derivatives = field_model.compute_pure_field_derivatives(
+            s=s_axis,
+            direction='y',
+            step=DERIVATIVE_STEP,
+            component='y',
+            max_order=MAX_TRANSVERSE_DERIVATIVE_ORDER,
+            min_order=1,
+        )
         for order in range(1, MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
             bx[order] = bx_derivatives[order]
             by[order] = by_derivatives[order]
+            bx_y_pure[order] = bx_y_derivatives[order]
+            by_y_pure[order] = by_y_derivatives[order]
 
     taper = smooth_edge_taper(s_axis, TAPER_LENGTH)
     bs = np.array(bs_raw, copy=True) * taper
     for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
         bx[order] = np.array(bx[order], copy=True) * taper
         by[order] = np.array(by[order], copy=True) * taper
+        bx_y_pure[order] = np.array(bx_y_pure[order], copy=True) * taper
+        by_y_pure[order] = np.array(by_y_pure[order], copy=True) * taper
 
     bs_s_derivative = np.gradient(bs, s_axis, edge_order=2)
     bx_s_derivatives = {
@@ -139,6 +161,8 @@ def extract_tapered_field_data(name, field_model, s_axis):
         'bs': bs,
         'bx': bx,
         'by': by,
+        'bx_y_pure': bx_y_pure,
+        'by_y_pure': by_y_pure,
         'bs_s_derivative': bs_s_derivative,
         'bx_s_derivatives': bx_s_derivatives,
         'by_s_derivatives': by_s_derivatives,
@@ -485,6 +509,7 @@ fig_fields, axes_fields = plt.subplots(
     len(comparison_fields), 3,
     figsize=(15, 4.0 * len(comparison_fields)),
     squeeze=False,
+    num=1000,
 )
 
 field_components = [
@@ -571,49 +596,114 @@ for name, item in comparison_fields.items():
             ),
         }
 
-for order in range(1, MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
-    fig_derivatives, axes_derivatives = plt.subplots(
-        len(comparison_fields), 2,
-        figsize=(12, 4.0 * len(comparison_fields)),
-        squeeze=False,
-    )
+vertical_derivative_comparison_data = {}
 
-    for row, (name, item) in enumerate(comparison_fields.items()):
-        field_data = item['field_data']
-        scale_b = item['scale_b']
-        model_data = derivative_comparison_data[name][order]
+for name, item in comparison_fields.items():
+    field_data = item['field_data']
+    bx_at_offsets = []
+    by_at_offsets = []
+    s_model = None
 
-        field_values = [
-            scale_b * field_data['bx'][order],
-            scale_b * field_data['by'][order],
+    for offset in offsets:
+        s_curr, bx_curr, by_curr, _ = sample_splineboris_line(
+            item['line'],
+            s0=field_data['s_axis'][0],
+            x=X_FIELD_COMPARISON,
+            y=Y_FIELD_COMPARISON + offset * DERIVATIVE_STEP,
+        )
+        if s_model is None:
+            s_model = s_curr
+        bx_at_offsets.append(bx_curr)
+        by_at_offsets.append(by_curr)
+
+    bx_at_offsets = np.array(bx_at_offsets)
+    by_at_offsets = np.array(by_at_offsets)
+
+    vertical_derivative_comparison_data[name] = {
+        0: {
+            's': s_model,
+            'bx': bx_at_offsets[zero_offset_index],
+            'by': by_at_offsets[zero_offset_index],
+        }
+    }
+
+    for order in range(1, MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
+        coefficients = SolenoidField.finite_difference_coefficients(
+            offsets, order)
+        vertical_derivative_comparison_data[name][order] = {
+            's': s_model,
+            'bx': (
+                np.tensordot(coefficients, bx_at_offsets, axes=(0, 0))
+                / DERIVATIVE_STEP**order
+            ),
+            'by': (
+                np.tensordot(coefficients, by_at_offsets, axes=(0, 0))
+                / DERIVATIVE_STEP**order
+            ),
+        }
+
+for name, item in comparison_fields.items():
+    field_data = item['field_data']
+    scale_b = item['scale_b']
+    figure_number_offset = 100 if name == 'compensation_solenoid' else 0
+
+    for order in range(1, MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
+        fig_derivatives, axes_derivatives = plt.subplots(
+            2, 2, figsize=(13, 8), sharex=True,
+            num=figure_number_offset + order)
+
+        plot_specs = [
+            (
+                axes_derivatives[0, 0],
+                scale_b * field_data['bx'][order],
+                derivative_comparison_data[name][order]['bx'],
+                derivative_comparison_data[name][order]['s'],
+                f'd^{order} B_x / dx^{order}',
+            ),
+            (
+                axes_derivatives[0, 1],
+                scale_b * field_data['by'][order],
+                derivative_comparison_data[name][order]['by'],
+                derivative_comparison_data[name][order]['s'],
+                f'd^{order} B_y / dx^{order}',
+            ),
+            (
+                axes_derivatives[1, 0],
+                scale_b * field_data['bx_y_pure'][order],
+                vertical_derivative_comparison_data[name][order]['bx'],
+                vertical_derivative_comparison_data[name][order]['s'],
+                f'd^{order} B_x / dy^{order}',
+            ),
+            (
+                axes_derivatives[1, 1],
+                scale_b * field_data['by_y_pure'][order],
+                vertical_derivative_comparison_data[name][order]['by'],
+                vertical_derivative_comparison_data[name][order]['s'],
+                f'd^{order} B_y / dy^{order}',
+            ),
         ]
-        model_values = [model_data['bx'], model_data['by']]
 
-        for col, component in enumerate(('x', 'y')):
-            ax = axes_derivatives[row, col]
+        for ax, field_values, model_values, s_model, ylabel in plot_specs:
             ax.plot(
-                field_data['s_axis'], field_values[col],
+                field_data['s_axis'], field_values,
                 '-', label='field-map data')
-            ax.plot(
-                model_data['s'], model_values[col],
-                '--', label='SplineBoris')
-            ax.set_ylabel(
-                f'{name}\nd^{order} B_{component} / dx^{order}')
+            ax.plot(s_model, model_values, '--', label='SplineBoris')
+            ax.set_ylabel(ylabel)
             ax.grid(True, alpha=0.3)
-            if row == 0 and col == 0:
-                ax.legend(loc='best')
 
-    for ax in axes_derivatives[-1, :]:
-        ax.set_xlabel('s [m]')
-    fig_derivatives.suptitle(
-        f'Tapered transverse derivative comparison, order {order} '
-        f'at x={X_FIELD_COMPARISON:g} m, y={Y_FIELD_COMPARISON:g} m')
-    fig_derivatives.tight_layout()
+        axes_derivatives[0, 0].legend(loc='best')
+        axes_derivatives[1, 0].set_xlabel('s [m]')
+        axes_derivatives[1, 1].set_xlabel('s [m]')
+        fig_derivatives.suptitle(
+            f'Tapered transverse derivative comparison for {name}, '
+            f'order {order} at x={X_FIELD_COMPARISON:g} m, '
+            f'y={Y_FIELD_COMPARISON:g} m')
+        fig_derivatives.tight_layout()
 
 
 # Plots: local three-solenoid checks.
 fig_orbit_coupling, axes_orbit_coupling = plt.subplots(
-    2, 2, figsize=(12, 7), sharex=True)
+    2, 2, figsize=(12, 7), sharex=True, num=1001)
 for name, tw in twiss_results.items():
     s_from_ip = tw.s - tw['s', 'ip']
     axes_orbit_coupling[0, 0].plot(s_from_ip, tw.x, label=name)
