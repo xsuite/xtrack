@@ -18,6 +18,7 @@ ENERGY0 = 45.6e9
 MAX_TRANSVERSE_DERIVATIVE_ORDER = 4
 DERIVATIVE_STEP = 5e-4
 SPLINE_INTEGRAL_POINTS = 10
+S_DERIVATIVE_POLY_ORDER = 5
 SPLINE_STEPS_PER_POINT = 10
 TAPER_LENGTH = 0.15  # m
 
@@ -36,8 +37,8 @@ COMP_SOLENOID_DISTANCE_FROM_IP = 12.0
 
 def smooth_edge_taper(s_axis, taper_length):
     taper = np.ones_like(s_axis)
-    s_min = s_axis[0]
-    s_max = s_axis[-1]
+    s_min = np.min(s_axis)
+    s_max = np.max(s_axis)
 
     left = s_axis < s_min + taper_length
     u_left = (s_axis[left] - s_min) / taper_length
@@ -108,46 +109,111 @@ def extract_tapered_field_data(name, field_model, s_axis):
         bx_y_pure[order] = np.array(bx_y_pure[order], copy=True) * taper
         by_y_pure[order] = np.array(by_y_pure[order], copy=True) * taper
 
-    bs_s_derivative = np.gradient(bs, s_axis, edge_order=2)
-    bx_s_derivatives = {
-        order: np.gradient(values, s_axis, edge_order=2)
-        for order, values in bx.items()
-    }
-    by_s_derivatives = {
-        order: np.gradient(values, s_axis, edge_order=2)
-        for order, values in by.items()
-    }
-
-    bs_s_derivative[0] = 0.0
-    bs_s_derivative[-1] = 0.0
-    for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
-        bx_s_derivatives[order][0] = 0.0
-        bx_s_derivatives[order][-1] = 0.0
-        by_s_derivatives[order][0] = 0.0
-        by_s_derivatives[order][-1] = 0.0
-
     n_intervals = len(s_axis) - 1
     s_integral = np.array([
         np.linspace(s_axis[ii], s_axis[ii + 1], SPLINE_INTEGRAL_POINTS)
         for ii in range(n_intervals)
     ])
+    zero_integral = np.zeros_like(s_integral)
+    taper_integral = smooth_edge_taper(s_integral, TAPER_LENGTH)
+
+    bx0_integral, by0_integral, bs_raw_integral = field_model.get_field(
+        zero_integral, zero_integral, s_integral)
+
+    bs_integral_values = bs_raw_integral * taper_integral
+    bx_integral_values = {0: bx0_integral * taper_integral}
+    by_integral_values = {0: by0_integral * taper_integral}
+
+    if MAX_TRANSVERSE_DERIVATIVE_ORDER > 0:
+        bx_integral_derivatives = field_model.compute_pure_field_derivatives(
+            s=s_integral,
+            direction='x',
+            step=DERIVATIVE_STEP,
+            component='x',
+            max_order=MAX_TRANSVERSE_DERIVATIVE_ORDER,
+            min_order=1,
+        )
+        by_integral_derivatives = field_model.compute_pure_field_derivatives(
+            s=s_integral,
+            direction='x',
+            step=DERIVATIVE_STEP,
+            component='y',
+            max_order=MAX_TRANSVERSE_DERIVATIVE_ORDER,
+            min_order=1,
+        )
+        for order in range(1, MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
+            bx_integral_values[order] = (
+                bx_integral_derivatives[order] * taper_integral)
+            by_integral_values[order] = (
+                by_integral_derivatives[order] * taper_integral)
+
+    poly_order = min(S_DERIVATIVE_POLY_ORDER, SPLINE_INTEGRAL_POINTS - 1)
+    u_integral = np.linspace(-1.0, 1.0, SPLINE_INTEGRAL_POINTS)
+    length = np.diff(s_axis)
+
+    bs_s_derivative_start = np.empty(n_intervals)
+    bs_s_derivative_end = np.empty(n_intervals)
+    for ii in range(n_intervals):
+        coefficients = np.polyfit(
+            u_integral, bs_integral_values[ii], poly_order)
+        derivative_coefficients = np.polyder(coefficients)
+        bs_s_derivative_start[ii] = (
+            np.polyval(derivative_coefficients, -1.0) * 2.0 / length[ii])
+        bs_s_derivative_end[ii] = (
+            np.polyval(derivative_coefficients, 1.0) * 2.0 / length[ii])
+
+    bx_s_derivatives_start = {}
+    bx_s_derivatives_end = {}
+    by_s_derivatives_start = {}
+    by_s_derivatives_end = {}
+    for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
+        bx_s_derivatives_start[order] = np.empty(n_intervals)
+        bx_s_derivatives_end[order] = np.empty(n_intervals)
+        by_s_derivatives_start[order] = np.empty(n_intervals)
+        by_s_derivatives_end[order] = np.empty(n_intervals)
+
+        for ii in range(n_intervals):
+            bx_coefficients = np.polyfit(
+                u_integral, bx_integral_values[order][ii], poly_order)
+            by_coefficients = np.polyfit(
+                u_integral, by_integral_values[order][ii], poly_order)
+            bx_derivative_coefficients = np.polyder(bx_coefficients)
+            by_derivative_coefficients = np.polyder(by_coefficients)
+            bx_s_derivatives_start[order][ii] = (
+                np.polyval(bx_derivative_coefficients, -1.0)
+                * 2.0 / length[ii])
+            bx_s_derivatives_end[order][ii] = (
+                np.polyval(bx_derivative_coefficients, 1.0)
+                * 2.0 / length[ii])
+            by_s_derivatives_start[order][ii] = (
+                np.polyval(by_derivative_coefficients, -1.0)
+                * 2.0 / length[ii])
+            by_s_derivatives_end[order][ii] = (
+                np.polyval(by_derivative_coefficients, 1.0)
+                * 2.0 / length[ii])
+
+    bs_s_derivative_start[0] = 0.0
+    bs_s_derivative_end[-1] = 0.0
+    for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
+        bx_s_derivatives_start[order][0] = 0.0
+        bx_s_derivatives_end[order][-1] = 0.0
+        by_s_derivatives_start[order][0] = 0.0
+        by_s_derivatives_end[order][-1] = 0.0
 
     bs_integral_average = (
-        np.trapezoid(np.interp(s_integral, s_axis, bs), s_integral)
+        np.trapezoid(bs_integral_values, s_integral)
         / np.diff(s_axis)
     )
     bx_integral_average = {
         order: (
-            np.trapezoid(
-                np.interp(s_integral, s_axis, bx[order]), s_integral)
+            np.trapezoid(bx_integral_values[order], s_integral)
             / np.diff(s_axis)
         )
         for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1)
     }
     by_integral_average = {
         order: (
-            np.trapezoid(
-                np.interp(s_integral, s_axis, by[order]), s_integral)
+            np.trapezoid(by_integral_values[order], s_integral)
             / np.diff(s_axis)
         )
         for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1)
@@ -163,9 +229,12 @@ def extract_tapered_field_data(name, field_model, s_axis):
         'by': by,
         'bx_y_pure': bx_y_pure,
         'by_y_pure': by_y_pure,
-        'bs_s_derivative': bs_s_derivative,
-        'bx_s_derivatives': bx_s_derivatives,
-        'by_s_derivatives': by_s_derivatives,
+        'bs_s_derivative_start': bs_s_derivative_start,
+        'bs_s_derivative_end': bs_s_derivative_end,
+        'bx_s_derivatives_start': bx_s_derivatives_start,
+        'bx_s_derivatives_end': bx_s_derivatives_end,
+        'by_s_derivatives_start': by_s_derivatives_start,
+        'by_s_derivatives_end': by_s_derivatives_end,
         'bs_integral_average': bs_integral_average,
         'bx_integral_average': bx_integral_average,
         'by_integral_average': by_integral_average,
@@ -192,8 +261,8 @@ def build_splineboris_line(name, field_data, scale_b):
                 field_data['bs'][ii] + field_data['bs'][ii + 1])
         else:
             bs_derivative = None
-            bs_der_start = field_data['bs_s_derivative'][ii]
-            bs_der_end = field_data['bs_s_derivative'][ii + 1]
+            bs_der_start = field_data['bs_s_derivative_start'][ii]
+            bs_der_end = field_data['bs_s_derivative_end'][ii]
             bs_integral_average = field_data['bs_integral_average'][ii]
 
         bs = xt.Spline4(
@@ -210,15 +279,19 @@ def build_splineboris_line(name, field_data, scale_b):
             if USE_NEAR_AXIS_SIMPLIFIED_MODEL and order == 0:
                 bx_val_start = field_data['bx'][order][ii]
                 bx_val_end = field_data['bx'][order][ii + 1]
-                bx_der_start = field_data['bx_s_derivatives'][order][ii]
-                bx_der_end = field_data['bx_s_derivatives'][order][ii + 1]
+                bx_der_start = (
+                    field_data['bx_s_derivatives_start'][order][ii])
+                bx_der_end = (
+                    field_data['bx_s_derivatives_end'][order][ii])
                 bx_integral_average = (
                     field_data['bx_integral_average'][order][ii])
 
                 by_val_start = field_data['by'][order][ii]
                 by_val_end = field_data['by'][order][ii + 1]
-                by_der_start = field_data['by_s_derivatives'][order][ii]
-                by_der_end = field_data['by_s_derivatives'][order][ii + 1]
+                by_der_start = (
+                    field_data['by_s_derivatives_start'][order][ii])
+                by_der_end = (
+                    field_data['by_s_derivatives_end'][order][ii])
                 by_integral_average = (
                     field_data['by_integral_average'][order][ii])
 
@@ -251,15 +324,19 @@ def build_splineboris_line(name, field_data, scale_b):
             else:
                 bx_val_start = field_data['bx'][order][ii]
                 bx_val_end = field_data['bx'][order][ii + 1]
-                bx_der_start = field_data['bx_s_derivatives'][order][ii]
-                bx_der_end = field_data['bx_s_derivatives'][order][ii + 1]
+                bx_der_start = (
+                    field_data['bx_s_derivatives_start'][order][ii])
+                bx_der_end = (
+                    field_data['bx_s_derivatives_end'][order][ii])
                 bx_integral_average = (
                     field_data['bx_integral_average'][order][ii])
 
                 by_val_start = field_data['by'][order][ii]
                 by_val_end = field_data['by'][order][ii + 1]
-                by_der_start = field_data['by_s_derivatives'][order][ii]
-                by_der_end = field_data['by_s_derivatives'][order][ii + 1]
+                by_der_start = (
+                    field_data['by_s_derivatives_start'][order][ii])
+                by_der_end = (
+                    field_data['by_s_derivatives_end'][order][ii])
                 by_integral_average = (
                     field_data['by_integral_average'][order][ii])
 
@@ -413,6 +490,7 @@ if SAVE_SOLENOID_LINES_JSON:
                 MAX_TRANSVERSE_DERIVATIVE_ORDER),
             'derivative_step': DERIVATIVE_STEP,
             'spline_integral_points': SPLINE_INTEGRAL_POINTS,
+            's_derivative_poly_order': S_DERIVATIVE_POLY_ORDER,
             'spline_steps_per_point': SPLINE_STEPS_PER_POINT,
             'taper_length': TAPER_LENGTH,
             'use_near_axis_simplified_model': (
