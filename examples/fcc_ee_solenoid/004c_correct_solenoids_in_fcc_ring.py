@@ -6,7 +6,8 @@ import xtrack as xt
 
 HERE = Path(__file__).parent
 INPUT_LATTICE_JSON = HERE / 'temp_fcc_ee_lcc_splineboris_solenoids.json'
-OUTPUT_LATTICE_JSON = HERE / 'fccee_z_lcc_splineboris_solenoids_corrected.json'
+OUTPUT_LATTICE_JSON = (
+    HERE / 'fccee_z_lcc_splineboris_solenoids_coupling_corrected.json')
 
 IP_NAMES = ['ipa', 'ipd', 'ipg', 'ipj']
 
@@ -289,6 +290,29 @@ for ip_name in IP_NAMES:
 
     name_start = f'end_ds_start_straight_{ip_name}'
     name_end = f'end_straight_start_ds_{ip_name}'
+
+    # Skew quadrupole knobs for the additional linear-coupling/vertical-
+    # dispersion correction. Use all quadrupoles from the IP to the right edge
+    # and from the left edge to the IP.
+    table_for_skew = line.get_table()
+    k1s_quads_for_coupling_correction = []
+    for table_part in (
+            table_for_skew.rows[name_start:ip_name],
+            table_for_skew.rows[ip_name:name_end]):
+        for element_type, env_name in zip(
+                table_part.element_type, table_part.env_name):
+            if (
+                    element_type == 'Quadrupole'
+                    and env_name not in k1s_quads_for_coupling_correction):
+                k1s_quads_for_coupling_correction.append(env_name)
+
+    k1s_knobs = []
+    for nn in k1s_quads_for_coupling_correction:
+        nn_knob = f'k1s_{nn}_sol_coupling_corr'
+        env[nn_knob] = 0
+        env[nn].k1s += env.ref[nn_knob]
+        k1s_knobs.append(nn_knob)
+
     opt_optics = line.match_knob(
         knob_name=f'on_sol_optics_corr_{ip_name}',
         run=False,
@@ -332,17 +356,46 @@ for ip_name in IP_NAMES:
         ])
     opt_optics.solve()
 
+
+
+    # Try an additional correction of linear coupling and vertical dispersion
+    # at the straight-section edges using the skew quadrupole knobs.
+    opt_coupling = line.match_knob(
+        knob_name=f'on_sol_coupling_corr_{ip_name}',
+        run=False,
+        betx=tw0['betx', ip_name],
+        bety=tw0['bety', ip_name],
+        init_at=ip_name,
+        start=name_start,
+        end=name_end,
+        vary=xt.VaryList(k1s_knobs, step=1e-6),
+        targets=[
+            xt.TargetSet(betx2=0, bety1=0, at=xt.START, tol=5e-5),
+            xt.TargetSet(betx2=0, bety1=0, at=xt.END, tol=5e-5),
+            xt.TargetSet(alfx2=0, alfy1=0, at=xt.START, tol=1e-6),
+            xt.TargetSet(alfx2=0, alfy1=0, at=xt.END, tol=1e-6),
+            xt.TargetSet(dy=0, at=xt.START, tol=5e-5),
+            xt.TargetSet(dy=0, at=xt.END, tol=5e-5),
+            xt.TargetSet(dpy=0, at=xt.START, tol=1e-7),
+            xt.TargetSet(dpy=0, at=xt.END, tol=1e-7),
+        ])
+
+    opt_coupling.solve()
+
     # Iterate to improve consistency of orbit and optics corrections.
     opt_orbit.solve()
     opt_optics.solve()
+    opt_coupling.solve()
     opt_orbit.solve()
     opt_optics.solve()
 
     opt_orbit.generate_knob()
     opt_optics.generate_knob()
+    opt_coupling.generate_knob()
 
     optimizers[f'{ip_name}_orbit'] = opt_orbit
     optimizers[f'{ip_name}_optics'] = opt_optics
+    optimizers[f'{ip_name}_coupling'] = opt_coupling
 
     # One user knob turns on compensation solenoid, doublet rotations, and all
     # generated correction knobs for this IP.
@@ -352,6 +405,7 @@ for ip_name in IP_NAMES:
     line[f'on_rot_doublet_left_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_sol_orbit_corr_{ip_name}'] = f'on_sol_corr_{ip_name}'
     line[f'on_sol_optics_corr_{ip_name}'] = f'on_sol_corr_{ip_name}'
+    line[f'on_sol_coupling_corr_{ip_name}'] = f'on_sol_corr_{ip_name}'
 
     # Leave the main solenoid off while preparing the next IP.
     line[f'on_sol_{ip_name}'] = 0
