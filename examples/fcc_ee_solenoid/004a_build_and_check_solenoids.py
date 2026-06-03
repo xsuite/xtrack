@@ -32,11 +32,20 @@ Y_FIELD_COMPARISON = 0
 PLOT_MAIN_SOLENOID = True
 PLOT_COMPENSATION_SOLENOID = False
 
+MIXED_DERIVATIVE_SPECS = [
+    {
+        'component': 'bx',
+        'transverse_direction': 'x',
+        'transverse_order': 2,
+        's_order': 2,
+    },
+]
+
 BETX = 0.09
 BETY = 0.0007
 
-MAIN_SOLENOID_S_AXIS = np.linspace(-2.399, 2.399, 201)
-COMP_SOLENOID_S_AXIS = np.linspace(-1.0, 1.0, 201)
+MAIN_SOLENOID_S_AXIS = np.linspace(-2.399, 2.399, 401)
+COMP_SOLENOID_S_AXIS = np.linspace(-1.0, 1.0, 401)
 COMP_SOLENOID_DISTANCE_FROM_IP = 12.0
 
 
@@ -550,10 +559,38 @@ def sample_splineboris_line(line, s0, x=0.0, y=0.0):
     )
 
 
+def sample_splineboris_line_on_s(line, s_axis, s_eval, x=0.0, y=0.0):
+    bx_out = np.empty_like(s_eval)
+    by_out = np.empty_like(s_eval)
+    bs_out = np.empty_like(s_eval)
+
+    for ii, element in enumerate(line.elements):
+        if ii == len(line.elements) - 1:
+            mask = (s_eval >= s_axis[ii]) & (s_eval <= s_axis[ii + 1])
+        else:
+            mask = (s_eval >= s_axis[ii]) & (s_eval < s_axis[ii + 1])
+        if not np.any(mask):
+            continue
+
+        s_local = s_eval[mask] - s_axis[ii]
+        bx_out[mask], by_out[mask], bs_out[mask] = element.get_field(
+            np.full_like(s_local, x),
+            np.full_like(s_local, y),
+            s_local,
+        )
+
+    return bx_out, by_out, bs_out
+
+
 assert MAX_TRANSVERSE_DERIVATIVE_ORDER_FOR_SPLINE <= xt.SplineBoris._SB_MAX_MULTIPOLE_ORDER - 1
 assert MAX_TRANSVERSE_DERIVATIVE_ORDER <= 5
 assert S_DERIVATIVE_SPLINE_ORDER == 4
 assert MAX_S_DERIVATIVE_PLOT_ORDER <= 5
+for spec in MIXED_DERIVATIVE_SPECS:
+    assert spec['component'] in ('bx', 'by', 'bs')
+    assert spec['transverse_direction'] in ('x', 'y')
+    assert spec['transverse_order'] >= 0
+    assert spec['s_order'] >= 0
 
 
 # Build the two physical solenoid models and extract the tapered field data.
@@ -662,12 +699,14 @@ comparison_fields = {
 if PLOT_MAIN_SOLENOID:
     comparison_fields['main_solenoid'] = {
         'field_data': main_field_data,
+        'field_model': main_field_model,
         'line': line_main_solenoid,
         'scale_b': 1.0,
     }
 if PLOT_COMPENSATION_SOLENOID:
     comparison_fields['compensation_solenoid'] = {
         'field_data': comp_field_data,
+        'field_model': comp_field_model,
         'line': line_compensation_solenoid,
         'scale_b': comp_scale_b,
     }
@@ -1035,6 +1074,107 @@ for name, item in comparison_fields.items():
             f'{label} vs {direction} at x={X_FIELD_COMPARISON:g} m, '
             f'y={Y_FIELD_COMPARISON:g} m')
         fig_derivatives.tight_layout()
+
+mixed_component_index = {'bx': 0, 'by': 1, 'bs': 2}
+mixed_component_label = {'bx': 'B_x', 'by': 'B_y', 'bs': 'B_s'}
+
+for name, item in comparison_fields.items():
+    field_data = item['field_data']
+    field_model = item['field_model']
+    s_axis = field_data['s_axis']
+    scale_b = item['scale_b']
+    figure_number_offset = 1400 if name == 'compensation_solenoid' else 1300
+    s_mixed = field_data['s_derivative_plot_data'][0]['s']
+    taper_mixed = smooth_edge_taper(s_mixed, TAPER_LENGTH)
+
+    for spec_index, spec in enumerate(MIXED_DERIVATIVE_SPECS):
+        component = spec['component']
+        transverse_direction = spec['transverse_direction']
+        transverse_order = spec['transverse_order']
+        s_order = spec['s_order']
+
+        offsets = np.arange(-4, 5)
+        coefficients = SolenoidField.finite_difference_coefficients(
+            offsets, transverse_order)
+        field_values_at_offsets = []
+        model_values_at_offsets = []
+
+        for offset in offsets:
+            if transverse_direction == 'x':
+                x_values = np.full_like(
+                    s_mixed,
+                    X_FIELD_COMPARISON + offset * DERIVATIVE_STEP)
+                y_values = np.full_like(s_mixed, Y_FIELD_COMPARISON)
+            elif transverse_direction == 'y':
+                x_values = np.full_like(s_mixed, X_FIELD_COMPARISON)
+                y_values = np.full_like(
+                    s_mixed,
+                    Y_FIELD_COMPARISON + offset * DERIVATIVE_STEP)
+            else:
+                raise ValueError(
+                    "transverse_direction must be either 'x' or 'y'")
+
+            field_values_at_offsets.append(
+                field_model.get_field(
+                    x_values, y_values, s_mixed
+                )[mixed_component_index[component]] * taper_mixed)
+            model_values_at_offsets.append(
+                sample_splineboris_line_on_s(
+                    item['line'], s_axis, s_mixed,
+                    x=x_values[0], y=y_values[0],
+                )[mixed_component_index[component]])
+
+        field_mixed_derivative = (
+            np.tensordot(
+                coefficients,
+                np.array(field_values_at_offsets),
+                axes=(0, 0))
+            / DERIVATIVE_STEP**transverse_order
+        )
+        model_mixed_derivative = (
+            np.tensordot(
+                coefficients,
+                np.array(model_values_at_offsets),
+                axes=(0, 0))
+            / DERIVATIVE_STEP**transverse_order
+        )
+
+        for _ in range(s_order):
+            field_mixed_derivative = np.gradient(
+                field_mixed_derivative, s_mixed, edge_order=2)
+            model_mixed_derivative = np.gradient(
+                model_mixed_derivative, s_mixed, edge_order=2)
+
+        fig_mixed, ax_mixed = plt.subplots(
+            1, 1, figsize=(10, 5),
+            num=figure_number_offset + spec_index)
+        if name in shared_x_axes_by_solenoid:
+            ax_mixed.sharex(shared_x_axes_by_solenoid[name])
+        else:
+            shared_x_axes_by_solenoid[name] = ax_mixed
+
+        ax_mixed.plot(
+            s_mixed,
+            scale_b * field_mixed_derivative,
+            '-',
+            label='field-map data')
+        ax_mixed.plot(
+            s_mixed,
+            model_mixed_derivative,
+            '--',
+            label='SplineBoris')
+        total_order = transverse_order + s_order
+        ax_mixed.set_ylabel(
+            f'd^{total_order} {mixed_component_label[component]} / '
+            f'd{transverse_direction}^{transverse_order} ds^{s_order}')
+        ax_mixed.set_xlabel('s [m]')
+        ax_mixed.grid(True, alpha=0.3)
+        ax_mixed.legend(loc='best')
+        fig_mixed.suptitle(
+            f'Mixed derivative comparison for {name}: '
+            f'd^{total_order} {mixed_component_label[component]} / '
+            f'd{transverse_direction}^{transverse_order} ds^{s_order}')
+        fig_mixed.tight_layout()
 
 
 # Plots: local three-solenoid checks.
