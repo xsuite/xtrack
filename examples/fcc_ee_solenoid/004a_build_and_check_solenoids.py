@@ -322,6 +322,57 @@ def extract_tapered_field_data(name, field_model, s_axis):
         for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1)
     }
 
+    u_integral = np.linspace(-1.0, 1.0, SPLINE_INTEGRAL_POINTS)
+    bx_spline_data = {}
+    by_spline_data = {}
+    for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
+        degree = max(0, 4 - order)
+        bx_spline_data[order] = {
+            'degree': degree,
+            'val_start': np.empty(n_intervals),
+            'val_end': np.empty(n_intervals),
+            'der_start': np.empty(n_intervals),
+            'der_end': np.empty(n_intervals),
+            'integral_average': np.empty(n_intervals),
+        }
+        by_spline_data[order] = {
+            'degree': degree,
+            'val_start': np.empty(n_intervals),
+            'val_end': np.empty(n_intervals),
+            'der_start': np.empty(n_intervals),
+            'der_end': np.empty(n_intervals),
+            'integral_average': np.empty(n_intervals),
+        }
+
+        for ii in range(n_intervals):
+            for values_by_order, spline_data in (
+                    (bx_integral_values, bx_spline_data),
+                    (by_integral_values, by_spline_data)):
+                values = values_by_order[order][ii]
+                target_mean = (
+                    np.trapezoid(values, s_integral[ii]) / length[ii])
+
+                coefficients = np.polyfit(u_integral, values, degree)
+                integral_coefficients = np.polyint(coefficients)
+                fitted_mean = 0.5 * (
+                    np.polyval(integral_coefficients, 1.0)
+                    - np.polyval(integral_coefficients, -1.0)
+                )
+                coefficients[-1] += target_mean - fitted_mean
+
+                derivative_coefficients = np.polyder(coefficients)
+                spline_data[order]['val_start'][ii] = np.polyval(
+                    coefficients, -1.0)
+                spline_data[order]['val_end'][ii] = np.polyval(
+                    coefficients, 1.0)
+                spline_data[order]['der_start'][ii] = (
+                    np.polyval(derivative_coefficients, -1.0)
+                    * 2.0 / length[ii])
+                spline_data[order]['der_end'][ii] = (
+                    np.polyval(derivative_coefficients, 1.0)
+                    * 2.0 / length[ii])
+                spline_data[order]['integral_average'][ii] = target_mean
+
     return {
         'name': name,
         's_axis': s_axis,
@@ -341,6 +392,8 @@ def extract_tapered_field_data(name, field_model, s_axis):
         'by_s_derivatives_start': by_s_derivatives_start,
         'by_s_derivatives_end': by_s_derivatives_end,
         's_derivative_plot_data': s_derivative_plot_data,
+        'bx_spline_data': bx_spline_data,
+        'by_spline_data': by_spline_data,
         'bs_integral_average': bs_integral_average,
         'bx_integral_average': bx_integral_average,
         'by_integral_average': by_integral_average,
@@ -428,23 +481,21 @@ def build_splineboris_line(name, field_data, scale_b):
                 by_integral_average = 0.0
 
             else:
-                bx_val_start = field_data['bx'][order][ii]
-                bx_val_end = field_data['bx'][order][ii + 1]
-                bx_der_start = (
-                    field_data['bx_s_derivatives_start'][order][ii])
-                bx_der_end = (
-                    field_data['bx_s_derivatives_end'][order][ii])
+                bx_spline_data = field_data['bx_spline_data'][order]
+                bx_val_start = bx_spline_data['val_start'][ii]
+                bx_val_end = bx_spline_data['val_end'][ii]
+                bx_der_start = bx_spline_data['der_start'][ii]
+                bx_der_end = bx_spline_data['der_end'][ii]
                 bx_integral_average = (
-                    field_data['bx_integral_average'][order][ii])
+                    bx_spline_data['integral_average'][ii])
 
-                by_val_start = field_data['by'][order][ii]
-                by_val_end = field_data['by'][order][ii + 1]
-                by_der_start = (
-                    field_data['by_s_derivatives_start'][order][ii])
-                by_der_end = (
-                    field_data['by_s_derivatives_end'][order][ii])
+                by_spline_data = field_data['by_spline_data'][order]
+                by_val_start = by_spline_data['val_start'][ii]
+                by_val_end = by_spline_data['val_end'][ii]
+                by_der_start = by_spline_data['der_start'][ii]
+                by_der_end = by_spline_data['der_end'][ii]
                 by_integral_average = (
-                    field_data['by_integral_average'][order][ii])
+                    by_spline_data['integral_average'][ii])
 
             bx.append(xt.Spline4(
                 val_start=bx_val_start,
@@ -627,6 +678,8 @@ if SAVE_SOLENOID_LINES_JSON:
                 MAX_TRANSVERSE_DERIVATIVE_ORDER),
             'max_transverse_derivative_order_for_spline': (
                 MAX_TRANSVERSE_DERIVATIVE_ORDER_FOR_SPLINE),
+            'spline_s_polynomial_degree_rule': (
+                'max(0, 4 - transverse_derivative_order)'),
             'derivative_step': DERIVATIVE_STEP,
             'spline_integral_points': SPLINE_INTEGRAL_POINTS,
             's_derivative_spline_order': S_DERIVATIVE_SPLINE_ORDER,
