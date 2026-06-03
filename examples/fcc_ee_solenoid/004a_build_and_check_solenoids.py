@@ -694,11 +694,12 @@ field_components = [
     ('B_y [T]', 'by'),
 ]
 
+shared_x_axes_by_solenoid = {}
+
 if comparison_fields:
     fig_fields, axes_fields = plt.subplots(
         len(comparison_fields), 3,
         figsize=(15, 4.0 * len(comparison_fields)),
-        sharex=True,
         squeeze=False,
         num=1000,
     )
@@ -725,6 +726,13 @@ if comparison_fields:
             ax.grid(True, alpha=0.3)
             if row == 0 and col == 0:
                 ax.legend(loc='best')
+
+        axes_to_share = axes_fields[row, :].ravel()
+        if name not in shared_x_axes_by_solenoid:
+            shared_x_axes_by_solenoid[name] = axes_to_share[0]
+        for ax in axes_to_share:
+            if ax is not shared_x_axes_by_solenoid[name]:
+                ax.sharex(shared_x_axes_by_solenoid[name])
 
     for ax in axes_fields[-1, :]:
         ax.set_xlabel('s [m]')
@@ -800,9 +808,14 @@ for name, item in comparison_fields.items():
             ('by', 'B_y'),
             ('bs', 'B_s'))):
         fig_s_derivatives, axes_s_derivatives = plt.subplots(
-            2, 3, figsize=(15, 8), sharex=True,
+            2, 3, figsize=(15, 8),
             num=figure_number_offset + 10 * component_index)
         axes_s_derivatives_flat = axes_s_derivatives.ravel()
+        if name not in shared_x_axes_by_solenoid:
+            shared_x_axes_by_solenoid[name] = axes_s_derivatives_flat[0]
+        for ax in axes_s_derivatives_flat:
+            if ax is not shared_x_axes_by_solenoid[name]:
+                ax.sharex(shared_x_axes_by_solenoid[name])
 
         for derivative_order in range(max_s_derivative_plot_order + 1):
             ax = axes_s_derivatives_flat[derivative_order]
@@ -982,9 +995,14 @@ for name, item in comparison_fields.items():
             component, direction, label, field_values_by_order,
             model_data_by_order) in enumerate(transverse_plot_specs):
         fig_derivatives, axes_derivatives = plt.subplots(
-            2, 3, figsize=(15, 8), sharex=True,
+            2, 3, figsize=(15, 8),
             num=figure_number_offset + plot_index)
         axes_derivatives_flat = axes_derivatives.ravel()
+        if name not in shared_x_axes_by_solenoid:
+            shared_x_axes_by_solenoid[name] = axes_derivatives_flat[0]
+        for ax in axes_derivatives_flat:
+            if ax is not shared_x_axes_by_solenoid[name]:
+                ax.sharex(shared_x_axes_by_solenoid[name])
 
         for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
             ax = axes_derivatives_flat[order]
