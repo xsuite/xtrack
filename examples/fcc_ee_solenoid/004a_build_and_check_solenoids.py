@@ -17,7 +17,7 @@ PARTICLE = 'positron'
 ENERGY0 = 45.6e9
 
 MAX_TRANSVERSE_DERIVATIVE_ORDER = 4
-MAX_TRANSVERSE_DERIVATIVE_ORDER_FOR_SPLINE = 1
+MAX_TRANSVERSE_DERIVATIVE_ORDER_FOR_SPLINE = 4
 DERIVATIVE_STEP = 5e-4
 SPLINE_INTEGRAL_POINTS = 10
 S_DERIVATIVE_SPLINE_ORDER = 4
@@ -35,8 +35,8 @@ PLOT_COMPENSATION_SOLENOID = False
 BETX = 0.09
 BETY = 0.0007
 
-MAIN_SOLENOID_S_AXIS = np.linspace(-2.399, 2.399, 401)
-COMP_SOLENOID_S_AXIS = np.linspace(-1.0, 1.0, 401)
+MAIN_SOLENOID_S_AXIS = np.linspace(-2.399, 2.399, 201)
+COMP_SOLENOID_S_AXIS = np.linspace(-1.0, 1.0, 201)
 COMP_SOLENOID_DISTANCE_FROM_IP = 12.0
 
 
@@ -698,6 +698,7 @@ if comparison_fields:
     fig_fields, axes_fields = plt.subplots(
         len(comparison_fields), 3,
         figsize=(15, 4.0 * len(comparison_fields)),
+        sharex=True,
         squeeze=False,
         num=1000,
     )
