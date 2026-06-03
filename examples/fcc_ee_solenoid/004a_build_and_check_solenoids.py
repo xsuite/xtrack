@@ -28,6 +28,8 @@ USE_NEAR_AXIS_SIMPLIFIED_MODEL = False
 SAVE_SOLENOID_LINES_JSON = True
 X_FIELD_COMPARISON = 0
 Y_FIELD_COMPARISON = 0
+PLOT_MAIN_SOLENOID = True
+PLOT_COMPENSATION_SOLENOID = False
 
 BETX = 0.09
 BETY = 0.0007
@@ -627,17 +629,19 @@ comp_symplectic_error = symplectic_error(
 plt.close('all')
 
 comparison_fields = {
-    'main_solenoid': {
+}
+if PLOT_MAIN_SOLENOID:
+    comparison_fields['main_solenoid'] = {
         'field_data': main_field_data,
         'line': line_main_solenoid,
         'scale_b': 1.0,
-    },
-    'compensation_solenoid': {
+    }
+if PLOT_COMPENSATION_SOLENOID:
+    comparison_fields['compensation_solenoid'] = {
         'field_data': comp_field_data,
         'line': line_compensation_solenoid,
         'scale_b': comp_scale_b,
-    },
-}
+    }
 
 sampled_lines = {}
 for name, item in comparison_fields.items():
@@ -655,48 +659,49 @@ for name, item in comparison_fields.items():
         'bs': bs_model,
     }
 
-fig_fields, axes_fields = plt.subplots(
-    len(comparison_fields), 3,
-    figsize=(15, 4.0 * len(comparison_fields)),
-    squeeze=False,
-    num=1000,
-)
-
 field_components = [
     ('B_s [T]', 'bs'),
     ('B_x [T]', 'bx'),
     ('B_y [T]', 'by'),
 ]
 
-for row, (name, item) in enumerate(comparison_fields.items()):
-    field_data = item['field_data']
-    scale_b = item['scale_b']
-    field_values = {
-        'bs': scale_b * field_data['bs'],
-        'bx': scale_b * field_data['bx'][0],
-        'by': scale_b * field_data['by'][0],
-    }
-    model_values = sampled_lines[name]
+if comparison_fields:
+    fig_fields, axes_fields = plt.subplots(
+        len(comparison_fields), 3,
+        figsize=(15, 4.0 * len(comparison_fields)),
+        squeeze=False,
+        num=1000,
+    )
 
-    for col, (ylabel, component) in enumerate(field_components):
-        ax = axes_fields[row, col]
-        ax.plot(
-            field_data['s_axis'], field_values[component],
-            '-', label='field-map data')
-        ax.plot(
-            model_values['s'], model_values[component],
-            '--', label='SplineBoris')
-        ax.set_ylabel(f'{name}\n{ylabel}')
-        ax.grid(True, alpha=0.3)
-        if row == 0 and col == 0:
-            ax.legend(loc='best')
+    for row, (name, item) in enumerate(comparison_fields.items()):
+        field_data = item['field_data']
+        scale_b = item['scale_b']
+        field_values = {
+            'bs': scale_b * field_data['bs'],
+            'bx': scale_b * field_data['bx'][0],
+            'by': scale_b * field_data['by'][0],
+        }
+        model_values = sampled_lines[name]
 
-for ax in axes_fields[-1, :]:
-    ax.set_xlabel('s [m]')
-fig_fields.suptitle(
-    'Tapered field-map data and SplineBoris-line comparison '
-    f'at x={X_FIELD_COMPARISON:g} m, y={Y_FIELD_COMPARISON:g} m')
-fig_fields.tight_layout()
+        for col, (ylabel, component) in enumerate(field_components):
+            ax = axes_fields[row, col]
+            ax.plot(
+                field_data['s_axis'], field_values[component],
+                '-', label='field-map data')
+            ax.plot(
+                model_values['s'], model_values[component],
+                '--', label='SplineBoris')
+            ax.set_ylabel(f'{name}\n{ylabel}')
+            ax.grid(True, alpha=0.3)
+            if row == 0 and col == 0:
+                ax.legend(loc='best')
+
+    for ax in axes_fields[-1, :]:
+        ax.set_xlabel('s [m]')
+    fig_fields.suptitle(
+        'Tapered field-map data and SplineBoris-line comparison '
+        f'at x={X_FIELD_COMPARISON:g} m, y={Y_FIELD_COMPARISON:g} m')
+    fig_fields.tight_layout()
 
 s_derivative_model_data = {}
 u_integral = np.linspace(-1.0, 1.0, SPLINE_INTEGRAL_POINTS)
