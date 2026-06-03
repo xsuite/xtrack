@@ -20,6 +20,7 @@ MAX_TRANSVERSE_DERIVATIVE_ORDER = 4
 MAX_TRANSVERSE_DERIVATIVE_ORDER_FOR_SPLINE = 4
 DERIVATIVE_STEP = 5e-4
 SPLINE_INTEGRAL_POINTS = 10
+DECREASE_S_POLY_ORDER_WITH_TRANSVERSE_ORDER = True
 S_DERIVATIVE_SPLINE_ORDER = 4
 MAX_S_DERIVATIVE_PLOT_ORDER = 5
 SPLINE_STEPS_PER_POINT = 10
@@ -44,8 +45,8 @@ MIXED_DERIVATIVE_SPECS = [
 BETX = 0.09
 BETY = 0.0007
 
-MAIN_SOLENOID_S_AXIS = np.linspace(-2.399, 2.399, 401)
-COMP_SOLENOID_S_AXIS = np.linspace(-1.0, 1.0, 401)
+MAIN_SOLENOID_S_AXIS = np.linspace(-2.399, 2.399, 201)
+COMP_SOLENOID_S_AXIS = np.linspace(-1.0, 1.0, 201)
 COMP_SOLENOID_DISTANCE_FROM_IP = 12.0
 
 
@@ -326,7 +327,10 @@ def extract_tapered_field_data(name, field_model, s_axis):
     bx_spline_data = {}
     by_spline_data = {}
     for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
-        degree = max(0, 4 - order)
+        if DECREASE_S_POLY_ORDER_WITH_TRANSVERSE_ORDER:
+            degree = max(0, 4 - order)
+        else:
+            degree = 4
         bx_spline_data[order] = {
             'degree': degree,
             'val_start': np.empty(n_intervals),
@@ -678,8 +682,12 @@ if SAVE_SOLENOID_LINES_JSON:
                 MAX_TRANSVERSE_DERIVATIVE_ORDER),
             'max_transverse_derivative_order_for_spline': (
                 MAX_TRANSVERSE_DERIVATIVE_ORDER_FOR_SPLINE),
+            'decrease_s_poly_order_with_transverse_order': (
+                DECREASE_S_POLY_ORDER_WITH_TRANSVERSE_ORDER),
             'spline_s_polynomial_degree_rule': (
-                'max(0, 4 - transverse_derivative_order)'),
+                'max(0, 4 - transverse_derivative_order)'
+                if DECREASE_S_POLY_ORDER_WITH_TRANSVERSE_ORDER
+                else '4'),
             'derivative_step': DERIVATIVE_STEP,
             'spline_integral_points': SPLINE_INTEGRAL_POINTS,
             's_derivative_spline_order': S_DERIVATIVE_SPLINE_ORDER,
