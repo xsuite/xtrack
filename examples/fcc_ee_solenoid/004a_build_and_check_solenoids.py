@@ -3,6 +3,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import xtrack as xt
+from scipy.interpolate import LSQUnivariateSpline
 
 from tilted_solenoid import TiltedSolenoid
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
@@ -15,10 +16,10 @@ THETA = -0.015
 PARTICLE = 'positron'
 ENERGY0 = 45.6e9
 
-MAX_TRANSVERSE_DERIVATIVE_ORDER = 2
+MAX_TRANSVERSE_DERIVATIVE_ORDER = 3
 DERIVATIVE_STEP = 5e-4
 SPLINE_INTEGRAL_POINTS = 10
-S_DERIVATIVE_POLY_ORDER = 5
+S_DERIVATIVE_SPLINE_ORDER = 4
 MAX_S_DERIVATIVE_PLOT_ORDER = 4
 SPLINE_STEPS_PER_POINT = 10
 TAPER_LENGTH = 0.15  # m
@@ -31,8 +32,8 @@ Y_FIELD_COMPARISON = 0
 BETX = 0.09
 BETY = 0.0007
 
-MAIN_SOLENOID_S_AXIS = np.linspace(-2.399, 2.399, 101)
-COMP_SOLENOID_S_AXIS = np.linspace(-1.0, 1.0, 101)
+MAIN_SOLENOID_S_AXIS = np.linspace(-2.399, 2.399, 401)
+COMP_SOLENOID_S_AXIS = np.linspace(-1.0, 1.0, 401)
 COMP_SOLENOID_DISTANCE_FROM_IP = 12.0
 
 
@@ -52,6 +53,14 @@ def smooth_edge_taper(s_axis, taper_length):
     taper[s_axis == s_min] = 0.0
     taper[s_axis == s_max] = 0.0
     return taper
+
+
+def fit_slice_boundary_spline(s_unique, values_unique, s_axis):
+    return LSQUnivariateSpline(
+        s_unique, values_unique,
+        t=s_axis[1:-1],
+        k=S_DERIVATIVE_SPLINE_ORDER,
+    )
 
 
 def extract_tapered_field_data(name, field_model, s_axis):
@@ -148,51 +157,71 @@ def extract_tapered_field_data(name, field_model, s_axis):
             by_integral_values[order] = (
                 by_integral_derivatives[order] * taper_integral)
 
-    poly_order = min(S_DERIVATIVE_POLY_ORDER, SPLINE_INTEGRAL_POINTS - 1)
-    u_integral = np.linspace(-1.0, 1.0, SPLINE_INTEGRAL_POINTS)
     length = np.diff(s_axis)
-    max_s_derivative_plot_order = min(MAX_S_DERIVATIVE_PLOT_ORDER, poly_order)
+    max_s_derivative_plot_order = min(
+        MAX_S_DERIVATIVE_PLOT_ORDER, S_DERIVATIVE_SPLINE_ORDER)
 
-    bs_s_derivative_start = np.empty(n_intervals)
-    bs_s_derivative_end = np.empty(n_intervals)
-    for ii in range(n_intervals):
-        coefficients = np.polyfit(
-            u_integral, bs_integral_values[ii], poly_order)
-        derivative_coefficients = np.polyder(coefficients)
-        bs_s_derivative_start[ii] = (
-            np.polyval(derivative_coefficients, -1.0) * 2.0 / length[ii])
-        bs_s_derivative_end[ii] = (
-            np.polyval(derivative_coefficients, 1.0) * 2.0 / length[ii])
+    s_flat = s_integral.ravel()
+    order_sort = np.argsort(s_flat)
+    s_sorted = s_flat[order_sort]
+    s_unique, s_unique_start = np.unique(s_sorted, return_index=True)
+    s_unique_count = np.diff(np.r_[s_unique_start, len(s_sorted)])
+
+    s_fit_splines = {}
+    values_sorted = bs_integral_values.ravel()[order_sort]
+    values_unique = np.add.reduceat(
+        values_sorted, s_unique_start) / s_unique_count
+    s_fit_splines['bs'] = fit_slice_boundary_spline(
+        s_unique, values_unique, s_axis)
+
+    s_fit_splines['bx'] = {}
+    s_fit_splines['by'] = {}
+    for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
+        for component, values, destination in (
+                ('bx', bx_integral_values[order], s_fit_splines['bx']),
+                ('by', by_integral_values[order], s_fit_splines['by'])):
+            values_sorted = values.ravel()[order_sort]
+            values_unique = np.add.reduceat(
+                values_sorted, s_unique_start) / s_unique_count
+            destination[order] = fit_slice_boundary_spline(
+                s_unique, values_unique, s_axis)
+
+    bs = s_fit_splines['bs'](s_axis)
+    bx = {
+        order: s_fit_splines['bx'][order](s_axis)
+        for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1)
+    }
+    by = {
+        order: s_fit_splines['by'][order](s_axis)
+        for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1)
+    }
+    bx_y_pure[0] = np.array(bx[0], copy=True)
+    by_y_pure[0] = np.array(by[0], copy=True)
+
+    bs[0] = 0.0
+    bs[-1] = 0.0
+    for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
+        bx[order][0] = 0.0
+        bx[order][-1] = 0.0
+        by[order][0] = 0.0
+        by[order][-1] = 0.0
+
+    bs_s_derivative_start = s_fit_splines['bs'].derivative(1)(s_axis[:-1])
+    bs_s_derivative_end = s_fit_splines['bs'].derivative(1)(s_axis[1:])
 
     bx_s_derivatives_start = {}
     bx_s_derivatives_end = {}
     by_s_derivatives_start = {}
     by_s_derivatives_end = {}
     for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1):
-        bx_s_derivatives_start[order] = np.empty(n_intervals)
-        bx_s_derivatives_end[order] = np.empty(n_intervals)
-        by_s_derivatives_start[order] = np.empty(n_intervals)
-        by_s_derivatives_end[order] = np.empty(n_intervals)
-
-        for ii in range(n_intervals):
-            bx_coefficients = np.polyfit(
-                u_integral, bx_integral_values[order][ii], poly_order)
-            by_coefficients = np.polyfit(
-                u_integral, by_integral_values[order][ii], poly_order)
-            bx_derivative_coefficients = np.polyder(bx_coefficients)
-            by_derivative_coefficients = np.polyder(by_coefficients)
-            bx_s_derivatives_start[order][ii] = (
-                np.polyval(bx_derivative_coefficients, -1.0)
-                * 2.0 / length[ii])
-            bx_s_derivatives_end[order][ii] = (
-                np.polyval(bx_derivative_coefficients, 1.0)
-                * 2.0 / length[ii])
-            by_s_derivatives_start[order][ii] = (
-                np.polyval(by_derivative_coefficients, -1.0)
-                * 2.0 / length[ii])
-            by_s_derivatives_end[order][ii] = (
-                np.polyval(by_derivative_coefficients, 1.0)
-                * 2.0 / length[ii])
+        bx_s_derivatives_start[order] = (
+            s_fit_splines['bx'][order].derivative(1)(s_axis[:-1]))
+        bx_s_derivatives_end[order] = (
+            s_fit_splines['bx'][order].derivative(1)(s_axis[1:]))
+        by_s_derivatives_start[order] = (
+            s_fit_splines['by'][order].derivative(1)(s_axis[:-1]))
+        by_s_derivatives_end[order] = (
+            s_fit_splines['by'][order].derivative(1)(s_axis[1:]))
 
     bs_s_derivative_start[0] = 0.0
     bs_s_derivative_end[-1] = 0.0
@@ -203,45 +232,57 @@ def extract_tapered_field_data(name, field_model, s_axis):
         by_s_derivatives_end[order][-1] = 0.0
 
     s_derivative_plot_data = {}
-    s_derivative_fit_values = {
-        'bx': bx_integral_values[0],
-        'by': by_integral_values[0],
+    raw_derivative_values = {
+        'bx': bx0_integral * taper_integral,
+        'by': by0_integral * taper_integral,
         'bs': bs_integral_values,
     }
     for derivative_order in range(1, max_s_derivative_plot_order + 1):
         s_derivative_plot_data[derivative_order] = {
-            's': s_integral.ravel(),
+            's': s_unique,
         }
 
-        for component, values in s_derivative_fit_values.items():
-            derivative_values = np.empty_like(values)
-            for ii in range(n_intervals):
-                coefficients = np.polyfit(
-                    u_integral, values[ii], poly_order)
-                derivative_coefficients = np.polyder(
-                    coefficients, derivative_order)
-                derivative_values[ii] = (
-                    np.polyval(derivative_coefficients, u_integral)
-                    * (2.0 / length[ii])**derivative_order)
-
+        for component, values in raw_derivative_values.items():
+            values_sorted = values.ravel()[order_sort]
+            derivative_values = (
+                np.add.reduceat(values_sorted, s_unique_start)
+                / s_unique_count
+            )
+            for _ in range(derivative_order):
+                derivative_values = np.gradient(
+                    derivative_values,
+                    s_unique,
+                    edge_order=2,
+                )
             s_derivative_plot_data[derivative_order][component] = (
-                derivative_values.ravel())
+                derivative_values)
 
     bs_integral_average = (
-        np.trapezoid(bs_integral_values, s_integral)
-        / np.diff(s_axis)
+        np.array([
+            s_fit_splines['bs'].integral(s_axis[ii], s_axis[ii + 1])
+            for ii in range(n_intervals)
+        ])
+        / length
     )
     bx_integral_average = {
         order: (
-            np.trapezoid(bx_integral_values[order], s_integral)
-            / np.diff(s_axis)
+            np.array([
+                s_fit_splines['bx'][order].integral(
+                    s_axis[ii], s_axis[ii + 1])
+                for ii in range(n_intervals)
+            ])
+            / length
         )
         for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1)
     }
     by_integral_average = {
         order: (
-            np.trapezoid(by_integral_values[order], s_integral)
-            / np.diff(s_axis)
+            np.array([
+                s_fit_splines['by'][order].integral(
+                    s_axis[ii], s_axis[ii + 1])
+                for ii in range(n_intervals)
+            ])
+            / length
         )
         for order in range(MAX_TRANSVERSE_DERIVATIVE_ORDER + 1)
     }
@@ -482,7 +523,8 @@ def sample_splineboris_line(line, s0, x=0.0, y=0.0):
 
 
 assert MAX_TRANSVERSE_DERIVATIVE_ORDER <= xt.SplineBoris._SB_MAX_MULTIPOLE_ORDER - 1
-assert MAX_S_DERIVATIVE_PLOT_ORDER <= min(S_DERIVATIVE_POLY_ORDER, SPLINE_INTEGRAL_POINTS - 1)
+assert S_DERIVATIVE_SPLINE_ORDER == 4
+assert MAX_S_DERIVATIVE_PLOT_ORDER <= min(S_DERIVATIVE_SPLINE_ORDER, 4)
 
 
 # Build the two physical solenoid models and extract the tapered field data.
@@ -519,7 +561,7 @@ if SAVE_SOLENOID_LINES_JSON:
                 MAX_TRANSVERSE_DERIVATIVE_ORDER),
             'derivative_step': DERIVATIVE_STEP,
             'spline_integral_points': SPLINE_INTEGRAL_POINTS,
-            's_derivative_poly_order': S_DERIVATIVE_POLY_ORDER,
+            's_derivative_spline_order': S_DERIVATIVE_SPLINE_ORDER,
             'max_s_derivative_plot_order': MAX_S_DERIVATIVE_PLOT_ORDER,
             'spline_steps_per_point': SPLINE_STEPS_PER_POINT,
             'taper_length': TAPER_LENGTH,
@@ -658,8 +700,11 @@ fig_fields.tight_layout()
 
 s_derivative_model_data = {}
 u_integral = np.linspace(-1.0, 1.0, SPLINE_INTEGRAL_POINTS)
-poly_order = min(S_DERIVATIVE_POLY_ORDER, SPLINE_INTEGRAL_POINTS - 1)
-max_s_derivative_plot_order = min(MAX_S_DERIVATIVE_PLOT_ORDER, poly_order)
+splineboris_poly_order = min(4, SPLINE_INTEGRAL_POINTS - 1)
+max_s_derivative_plot_order = min(
+    MAX_S_DERIVATIVE_PLOT_ORDER,
+    S_DERIVATIVE_SPLINE_ORDER,
+    splineboris_poly_order)
 
 for name, item in comparison_fields.items():
     field_data = item['field_data']
@@ -698,7 +743,7 @@ for name, item in comparison_fields.items():
             derivative_values = np.empty_like(values)
             for ii, element in enumerate(line.elements):
                 coefficients = np.polyfit(
-                    u_integral, values[ii], poly_order)
+                    u_integral, values[ii], splineboris_poly_order)
                 derivative_coefficients = np.polyder(
                     coefficients, derivative_order)
                 derivative_values[ii] = (
