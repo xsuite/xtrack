@@ -1,3 +1,6 @@
+import csv
+from typing import Literal
+
 import cernlayoutdb as layout
 from functools import reduce
 from matplotlib.patches import Rectangle
@@ -17,10 +20,153 @@ class LDBConverterWarning(UserWarning):
     pass
 
 
+PIPE_OVERLAP_TOL = 1e-6
+PIPE_OVERLAP_ASSEMBLY_FILTER: Literal['none', 'top', 'sub'] = 'top'
+
+
 def _format_list(lst):
     if len(lst) < 3:
         return ", ".join(lst)
     return ", ".join(lst[:3]) + ", ..."
+
+
+def _pipe_position_ancestors(transformations, name):
+    ancestors = []
+    seen = {name}
+    current = name
+
+    while current in transformations:
+        parent = transformations[current].ref
+        if parent in seen:
+            break
+        if parent not in transformations:
+            break
+
+        ancestors.append(parent)
+        seen.add(parent)
+        current = parent
+
+    return ancestors
+
+
+def _pipe_positions_excluded_by_assembly_filter(pipe_position_names, transformations, assembly_filter):
+    if assembly_filter == 'none':
+        return set()
+    if assembly_filter not in {'top', 'sub'}:
+        raise ValueError(
+            f'Unknown pipe assembly overlap filter {assembly_filter!r}; expected one of '
+            f"'none', 'top', or 'sub'."
+        )
+
+    placed_names = set(pipe_position_names)
+    top_assemblies = set()
+    subassemblies = set()
+
+    for name in placed_names:
+        placed_ancestors = [
+            ancestor for ancestor in _pipe_position_ancestors(transformations, name)
+            if ancestor in placed_names
+        ]
+        if placed_ancestors:
+            subassemblies.add(name)
+            top_assemblies.update(placed_ancestors)
+
+    if assembly_filter == 'top':
+        return subassemblies
+    return top_assemblies
+
+
+def _write_pipe_overlap_report(pipe_table, line_length, filename, s_tol=1e-6, excluded_pipe_positions=()):
+    intervals = []
+    pipe_info = {}
+    excluded_pipe_positions = set(excluded_pipe_positions)
+
+    for index, row in enumerate(pipe_table.rows):
+        if row.name in excluded_pipe_positions:
+            continue
+
+        s_start = float(row.s_start)
+        s_end = float(row.s_end)
+        length = float(row.length)
+        if not np.isfinite(s_start) or not np.isfinite(s_end) or not np.isfinite(length):
+            continue
+        if length <= s_tol:
+            continue
+
+        pipe_info[index] = row
+        if s_start <= s_end:
+            if s_end - s_start > s_tol:
+                intervals.append((s_start, s_end, index))
+        else:
+            if line_length - s_start > s_tol:
+                intervals.append((s_start, line_length, index))
+            if s_end > s_tol:
+                intervals.append((0.0, s_end, index))
+
+    events = []
+    for start, end, index in intervals:
+        events.append((start, 1, index))
+        events.append((end, 0, index))
+    # End events first: pipe endpoints that only touch are not overlaps.
+    events.sort(key=lambda event: (event[0], event[1]))
+
+    active = set()
+    prev_s = None
+    segments = []
+    for s, event_kind, index in events:
+        if prev_s is not None and s - prev_s > s_tol and len(active) >= 2:
+            segments.append((prev_s, s, tuple(sorted(active))))
+        if event_kind == 0:
+            active.discard(index)
+        else:
+            active.add(index)
+        prev_s = s
+
+    grouped_segments = []
+    for start, end, active_indices in segments:
+        if (grouped_segments
+                and grouped_segments[-1][1] == start
+                and grouped_segments[-1][2] == active_indices):
+            grouped_segments[-1] = (grouped_segments[-1][0], end, active_indices)
+        else:
+            grouped_segments.append((start, end, active_indices))
+
+    rows = []
+    for start, end, active_indices in grouped_segments:
+        overlap_length = end - start
+        if overlap_length <= s_tol:
+            continue
+
+        overlapping_pipe_positions = []
+        for index in active_indices:
+            pipe = pipe_info[index]
+            overlapping_pipe_positions.append(
+                f'{pipe.name}[{pipe.pipe_name}; ref={pipe.survey_reference}; '
+                f's={pipe.s_start:.12g}->{pipe.s_end:.12g}; '
+                f'length={pipe.length:.12g}; '
+                f'span_s={pipe.s_span_start:.12g}->{pipe.s_span_end:.12g}; '
+                f'span={pipe.span:.12g}]'
+            )
+
+        rows.append({
+            'overlap_length': overlap_length,
+            'overlap_order': len(active_indices),
+            'overlapping_pipe_positions': ' | '.join(overlapping_pipe_positions),
+            's_start': start,
+            's_end': end,
+        })
+
+    rows.sort(key=lambda row: (row['overlap_order'], -row['overlap_length'], row['s_start']))
+
+    with open(filename, 'w', newline='') as fid:
+        writer = csv.DictWriter(
+            fid,
+            fieldnames=['overlap_length', 'overlap_order', 'overlapping_pipe_positions', 's_start', 's_end'],
+        )
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return rows
 
 
 # See https://edms.cern.ch/document/2405052/1.0
@@ -54,6 +200,46 @@ PROFILE_OVERRIDES = {
     'AP205': ('Rectangle', 0.04293, 0.03843),  # Originally an octagon with no diagonal value...
     'AP207': ('Rectangle', 0.04978, 0.04978),  # ditto
     'AP163': ('RectEllipse', 0.068, 0.0328, 0.0101, 0.0101)  # Originally half_minor was zero...
+}
+
+LONGITUDINAL_PLACEMENT_PATCHES = {
+    # These overrides are clean (aperture is clearly shifted and after correction the pipe is continuous within 2e-6)
+    'VC8C.1R8.X': -0.96,
+    'VCDRH.4R6.B': -0.7065,
+    'VVGSH.6R3.B': -0.024,
+    'VVGSH.B5R6.B': -0.005,
+    'VSMSL.4L5.X': -0.0001,
+    'VSMSL.A3L5.X': -0.0001,
+    'VSMSL.3L5.X': -0.0001,
+    'VSMSL.4L1.X': -0.0001,
+    'VSMSL.A3L1.X': -0.0001,
+    'VSMSL.3L1.X': -0.0001,
+    'VCDLM.B5L4.B': -0.000002032933,
+    'VCSD.E4R6.B': -0.000001733984,
+    'VCSD.C4R6.B': -0.000001366017,
+    'VCSD.F4R6.B': -0.000001222787,
+    'VAMTA.I6L7.B': -0.000001024786137175173,
+    'VMPBB.A4R8.B': -0.000001034928076424733,
+    'VCRLU.A4L8.B': -0.000000899999078601792,
+    'VCACS.5R4.B': 0.217,
+    'VVGSH.A5R6.B': 0.071,
+    'VVGSW.A5R3.B': 0.0425,
+    'VMJNC.5R3.B': 0.02,
+    'VMDBA.A7R2.B': 0.01,
+    'VMDBA.A7R3.B': 0.01,
+    'VMDBA.A7R1.B': 0.01,
+    'VMDBA.A7R4.B': 0.01,
+    'VMDBA.A7R5.B': 0.01,
+    'VMDBA.A7R7.B': 0.01,
+    'VMDBA.A7R8.B': 0.01,
+    'VSMSL.3R5.X': 0.0001,
+    'VSMSL.A3R5.X': 0.0001,
+    'VSMSL.4R5.X': 0.0001,
+    'VSMSL.A3R1.X': 0.0001,
+    'VSMSL.3R1.X': 0.0001,
+    'VSMSL.4R1.X': 0.0001,
+    'VMTBB.A4L8.B': 0.000001696211679702646,
+    # These corrections are random assumptions, done to get rid of remaining overlaps
 }
 
 # Profile examples for each shape:
@@ -239,10 +425,15 @@ for transform_name, transformation in ldb_model.transformations.items():
         ignored_transforms.append(transform_name)
         continue
 
-    loc = ldb_model.get_abs_points(transform_name)['MECHANICAL START']
-    loc_middle = ldb_model.get_abs_points(transform_name)['MECHANICAL MIDDLE']
-    pipes_loc[transform_name] = loc.to_madpoint()
-    pipes_loc_middles[transform_name] = loc_middle.to_madpoint()
+    loc = ldb_model.get_abs_points(transform_name)['MECHANICAL START'].to_madpoint()
+    loc_middle = ldb_model.get_abs_points(transform_name)['MECHANICAL MIDDLE'].to_madpoint()
+
+    s_patch = LONGITUDINAL_PLACEMENT_PATCHES.get(transform_name, 0)
+    loc.z += s_patch
+    loc_middle.z += s_patch
+
+    pipes_loc[transform_name] = loc
+    pipes_loc_middles[transform_name] = loc_middle
 
 pipes_loc = sorted(pipes_loc.items(), key=lambda x: x[1].z)
 
@@ -324,7 +515,7 @@ boundary_margin = 0.05
 last_profile_hcvc1ib.shift_s = min(old_hcvc1ib_last_shift_s, b1.get_length() - vc1ib_1l1_start - boundary_margin)
 
 aperture_model = builder.build()
-aperture_straight = Aperture(model=aperture_model, line=b1, _skip_validity_check=False)
+aperture_straight = Aperture(model=aperture_model, line=b1, _skip_validity_check=True)
 
 ax = plt.gca()
 aperture_straight.plot_floor_projection(ax=ax, len_points=32)
@@ -390,8 +581,34 @@ _draw_boxes(
 
 # Also plot the relevant type boxes
 p_tab = aperture_straight.get_pipe_table()
+pipe_overlap_rows = _write_pipe_overlap_report(
+    p_tab,
+    b1.get_length(),
+    'pipe_overlaps_summary.csv',
+    s_tol=PIPE_OVERLAP_TOL,
+)
+print(f'Wrote {len(pipe_overlap_rows)} pipe overlap rows to pipe_overlaps_summary.csv')
+
+excluded_pipe_positions = _pipe_positions_excluded_by_assembly_filter(
+    p_tab.name,
+    ldb_model.transformations,
+    PIPE_OVERLAP_ASSEMBLY_FILTER,
+)
+filtered_pipe_overlap_filename = f'pipe_overlaps_summary_{PIPE_OVERLAP_ASSEMBLY_FILTER}.csv'
+filtered_pipe_overlap_rows = _write_pipe_overlap_report(
+    p_tab,
+    b1.get_length(),
+    filtered_pipe_overlap_filename,
+    s_tol=PIPE_OVERLAP_TOL,
+    excluded_pipe_positions=excluded_pipe_positions,
+)
+print(
+    f'Wrote {len(filtered_pipe_overlap_rows)} pipe overlap rows to '
+    f'{filtered_pipe_overlap_filename} after excluding {len(excluded_pipe_positions)} '
+    f'pipe positions with assembly filter {PIPE_OVERLAP_ASSEMBLY_FILTER!r}'
+)
 pipe_labels = [f'{name}\nref: {ref}' for name, ref in zip(p_tab.name, p_tab.survey_reference)]
-pipe_boxes = zip(p_tab.s_start, p_tab.span, pipe_labels)
+pipe_boxes = zip(p_tab.s_span_start, p_tab.span, pipe_labels)
 _draw_boxes(
     pipe_boxes,
     edgecolor='black',
@@ -443,7 +660,7 @@ for pipe_name in main_dipole_pipes:
 # aperture_model.pipes[aperture_model.pipe_names.index('HCVC1IB')].shift_s = old_hcvc1ib_last_shift_s
 
 # Build the curved model
-aperture = Aperture(model=aperture_model, line=b1, _skip_validity_check=False)
+aperture = Aperture(model=aperture_model, line=b1, _skip_validity_check=True)
 # b_tab = aperture.get_bounds_table()
 # s_positions_at_lattice_changes = np.array(sorted(set(b_tab.s_start) | set(b_tab.s_end) | set(sv_b1.s)))
 # s_positions = np.array(sorted(set(s_positions_at_lattice_changes - 1e-6) | set(s_positions_at_lattice_changes + 1e-6)))

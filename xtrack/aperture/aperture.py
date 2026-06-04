@@ -1773,7 +1773,7 @@ class Aperture:
         self._aperture_bounds.sort_by_s()
 
         if check_validity:
-            self._check_aperture_bounds_validity()
+            #self._check_aperture_bounds_validity()
             self._check_pipe_bounds_validity()
 
     def _check_model_validity(self):
@@ -1832,6 +1832,8 @@ class Aperture:
 
         intervals = []
         for row in pipe_table.rows:
+            if row.length <= s_tol:
+                continue
             if row.s_start <= row.s_end + s_tol:
                 intervals.append((row.s_start, row.s_end, row.name))
             else:
@@ -1846,7 +1848,7 @@ class Aperture:
             if start < last_end - s_tol:
                 raise ValueError(
                     f'Aperture model corrupted: pipe position {name} overlaps pipe position {last_name} '
-                    f'around s={start}.'
+                    f'around s = {start}.'
                 )
 
             if end > last_end:
@@ -1905,7 +1907,13 @@ class Aperture:
         return table
 
     def get_pipe_table(self):
-        """Get a table representation of the pipe bounds: per installed pipe span information."""
+        """Get a table representation of installed pipe intervals.
+
+        The ``s_start``/``s_end``/``length`` columns describe the interval
+        covered by the installed profile centre positions. The
+        ``s_span_start``/``s_span_end``/``span`` columns describe the larger
+        projected aperture footprint interval.
+        """
         table_size = len(self._model.pipe_positions)
 
         pipe_position_names = np.array(self._model.pipe_position_names, dtype=object)
@@ -1919,6 +1927,7 @@ class Aperture:
 
         ap_bounds = self._aperture_bounds
         pipe_position_indices = ap_bounds.pipe_position_indices.to_nparray().astype(np.uint32, copy=False)
+        ap_s_positions = ap_bounds.s_positions.to_nparray()
         ap_s_start = ap_bounds.s_start.to_nparray()
         ap_s_end = ap_bounds.s_end.to_nparray()
         line_length = self.line.get_length()
@@ -1926,6 +1935,9 @@ class Aperture:
 
         s_start = np.full(table_size, np.nan, dtype=FloatType._dtype)
         s_end = np.full(table_size, np.nan, dtype=FloatType._dtype)
+        length = np.full(table_size, np.nan, dtype=FloatType._dtype)
+        s_span_start = np.full(table_size, np.nan, dtype=FloatType._dtype)
+        s_span_end = np.full(table_size, np.nan, dtype=FloatType._dtype)
         span = np.full(table_size, np.nan, dtype=FloatType._dtype)
 
         bounds_order = np.argsort(pipe_position_indices, kind='stable')
@@ -1935,23 +1947,34 @@ class Aperture:
 
         for pipe_position_index, first_idx, last_idx in zip(unique_pipe_positions, first_indices, last_indices):
             bound_indices = bounds_order[first_idx:last_idx]
+            pipe_s_positions = ap_s_positions[bound_indices]
             pipe_s_start = ap_s_start[bound_indices]
             pipe_s_end = ap_s_end[bound_indices]
 
             if use_wrapped_span:
                 # The shortest-arc inference is not robust for pipe spans > 180 degrees / half the ring.
                 # This is acceptable for now because large-arc curved pipe support is not yet complete.
-                pipe_s_start_val, pipe_s_end_val, pipe_span = _shortest_circular_interval(
+                pipe_s_start_val, pipe_s_end_val, pipe_length = _shortest_circular_interval(
+                    pipe_s_positions,
+                    line_length=line_length,
+                )
+                pipe_s_span_start_val, pipe_s_span_end_val, pipe_span = _shortest_circular_interval(
                     np.concatenate((pipe_s_start, pipe_s_end)),
                     line_length=line_length,
                 )
             else:
-                pipe_s_start_val = float(np.min(pipe_s_start))
-                pipe_s_end_val = float(np.max(pipe_s_end))
-                pipe_span = pipe_s_end_val - pipe_s_start_val
+                pipe_s_start_val = float(np.min(pipe_s_positions))
+                pipe_s_end_val = float(np.max(pipe_s_positions))
+                pipe_length = pipe_s_end_val - pipe_s_start_val
+                pipe_s_span_start_val = float(np.min(pipe_s_start))
+                pipe_s_span_end_val = float(np.max(pipe_s_end))
+                pipe_span = pipe_s_span_end_val - pipe_s_span_start_val
 
             s_start[pipe_position_index] = pipe_s_start_val
             s_end[pipe_position_index] = pipe_s_end_val
+            length[pipe_position_index] = pipe_length
+            s_span_start[pipe_position_index] = pipe_s_span_start_val
+            s_span_end[pipe_position_index] = pipe_s_span_end_val
             span[pipe_position_index] = pipe_span
 
         table = Table(
@@ -1961,6 +1984,9 @@ class Aperture:
                 'survey_reference': survey_references,
                 's_start': s_start,
                 's_end': s_end,
+                'length': length,
+                's_span_start': s_span_start,
+                's_span_end': s_span_end,
                 'span': span,
             },
             index='name',

@@ -542,13 +542,20 @@ def test_get_pipe_table_handles_regular_and_wrapped_pipes(test_context):
     regular = pipe_table.rows['pipe_regular']
     xo.assert_allclose(regular.s_start, 10.0, atol=1e-9, rtol=0)
     xo.assert_allclose(regular.s_end, 20.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(regular.length, 10.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(regular.s_span_start, 10.0, atol=5e-4, rtol=0)
+    xo.assert_allclose(regular.s_span_end, 20.0, atol=5e-4, rtol=0)
     xo.assert_allclose(regular.span, 10.0, atol=1e-9, rtol=0)
 
     wrapped = pipe_table.rows['pipe_wrapped']
-    xo.assert_allclose(wrapped.s_start, 74.7542, atol=5e-4, rtol=0)
-    xo.assert_allclose(wrapped.s_end, 2.72965, atol=5e-4, rtol=0)
+    xo.assert_allclose(wrapped.s_start, 75.13834, atol=5e-5, rtol=0)
+    xo.assert_allclose(wrapped.s_end, 3.58262, atol=5e-5, rtol=0)
+    xo.assert_allclose(wrapped.length, 8.44428, atol=5e-5, rtol=0)
+    xo.assert_allclose(wrapped.s_span_start, 74.7542, atol=5e-4, rtol=0)
+    xo.assert_allclose(wrapped.s_span_end, 2.72965, atol=5e-4, rtol=0)
     xo.assert_allclose(wrapped.span, 7.97542, atol=5e-4, rtol=0)
     assert wrapped.s_start > wrapped.s_end
+    assert wrapped.s_span_start > wrapped.s_span_end
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -565,6 +572,9 @@ def test_pipe_overlap_validation_allows_wrapped_and_regular_non_overlapping_pipe
     middle = pipe_table.rows['pipe_middle']
     xo.assert_allclose(middle.s_start, 30.0, atol=1e-9, rtol=0)
     xo.assert_allclose(middle.s_end, 40.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(middle.length, 10.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(middle.s_span_start, 30.0, atol=5e-4, rtol=0)
+    xo.assert_allclose(middle.s_span_end, 40.0, atol=5e-4, rtol=0)
     xo.assert_allclose(middle.span, 10.0, atol=1e-9, rtol=0)
 
 
