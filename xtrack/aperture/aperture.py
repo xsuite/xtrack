@@ -52,20 +52,14 @@ def _deduplicate_legend(ax):
         ax.legend(unique.values(), unique.keys())
 
 
-def _survey_is_closed(survey: Table, s_tol: float = 1e-6) -> bool:
+def _survey_is_closed(survey: Table, tol: float = 1e-6) -> bool:
     if len(survey.Z) < 2:
         return False
 
     dx = survey.X[-1] - survey.X[0]
     dy = survey.Y[-1] - survey.Y[0]
     dz = survey.Z[-1] - survey.Z[0]
-    return dx * dx + dy * dy + dz * dz < s_tol
-
-
-def _resolve_ring_flag(ring: bool | Literal['auto'], survey: Table) -> bool:
-    if ring == 'auto':
-        return _survey_is_closed(survey)
-    return bool(ring)
+    return dx * dx + dy * dy + dz * dz < tol
 
 
 def _shortest_circular_interval(points: np.ndarray, line_length: float) -> tuple[float, float, float]:
@@ -679,7 +673,7 @@ class Aperture:
         halo_params: Optional[dict] = None,
         context: Optional[XContext] = None,
         s_tol=1e-6,
-        ring: bool | Literal['auto'] = 'auto',
+        is_ring: bool | Literal['auto'] = 'auto',
         _skip_validity_check=False,
     ):
         self.line = line
@@ -689,7 +683,7 @@ class Aperture:
         self.s_tol = s_tol
 
         self.survey = line.survey()
-        self.ring = _resolve_ring_flag(ring, self.survey)
+        self.is_ring = _survey_is_closed(self.survey) if is_ring == 'auto' else bool(is_ring)
 
         # Add angle and rot_s_rad
         self.survey['angle'] = np.zeros_like(self.survey.s)
@@ -726,7 +720,7 @@ class Aperture:
         json = {
             'model': self._model.to_dict(),
             'halo_params': self.halo_params,
-            'ring': self.ring,
+            'ring': self.is_ring,
         }
         json_dump(json, filename)
 
@@ -743,7 +737,7 @@ class Aperture:
             line=line,
             model=model,
             halo_params=halo_params,
-            ring=ring,
+            is_ring=ring,
             context=context,
             **kwargs,
         )
@@ -1768,12 +1762,11 @@ class Aperture:
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
             survey=self._survey_data,
-            is_ring=int(self.ring),
+            is_ring=int(self.is_ring),
         )
         self._aperture_bounds.sort_by_s()
 
         if check_validity:
-            #self._check_aperture_bounds_validity()
             self._check_pipe_bounds_validity()
 
     def _check_model_validity(self):
@@ -1794,47 +1787,15 @@ class Aperture:
                     f'the index is {survey_at_idx}.'
                 )
 
-    def _check_aperture_bounds_validity(self, s_tol = 1e-6):
-        # Check validity
-        last_right = -np.inf
-
-        if self._aperture_bounds.count < 1:
-            raise ValueError('No aperture bounds computed. Is the model empty?')
-
-        for idx in range(self._aperture_bounds.count):
-            left = self._aperture_bounds.s_start[idx]
-            centre = self._aperture_bounds.s_positions[idx]
-            right = self._aperture_bounds.s_end[idx]
-
-            pipe_pos_idx = self._aperture_bounds.pipe_position_indices[idx]
-            profile_pos_idx = self._aperture_bounds.profile_position_indices[idx]
-            pipe_position_name = self._model.pipe_position_name_for_position_index(pipe_pos_idx)
-            pipe_name, profile_name = self._model.pipe_profile_names_for_indices(pipe_pos_idx, profile_pos_idx)
-
-            if not (centre - left > -s_tol and right - centre > -s_tol):
-                raise ValueError(
-                    f'Aperture model corrupted for {pipe_position_name} (pipe {pipe_name}) and profile {profile_name} '
-                    f'at index {profile_pos_idx}: the computed s location {centre} is not inside the computed bounds '
-                    f'[{left}, {right}]'
-                )
-
-            if last_right > left + s_tol:
-                raise ValueError(
-                    f'Aperture model corrupted for pipe {pipe_name} and profile {profile_name}): the '
-                    f'aperture bounds [{left}, {right}] overlap the preceding profile whose s_end = {last_right}'
-                )
-
-            last_right = max(last_right, right)
-
-    def _check_pipe_bounds_validity(self, s_tol=1e-6):
+    def _check_pipe_bounds_validity(self):
         pipe_table = self.get_pipe_table()
         line_length = self.line.get_length()
 
         intervals = []
         for row in pipe_table.rows:
-            if row.length <= s_tol:
+            if row.length <= self.s_tol:
                 continue
-            if row.s_start <= row.s_end + s_tol:
+            if row.s_start <= row.s_end + self.s_tol:
                 intervals.append((row.s_start, row.s_end, row.name))
             else:
                 intervals.append((row.s_start, line_length, row.name))
@@ -1845,7 +1806,7 @@ class Aperture:
         last_end = -np.inf
         last_name = None
         for start, end, name in intervals:
-            if start < last_end - s_tol:
+            if start < last_end - self.s_tol:
                 raise ValueError(
                     f'Aperture model corrupted: pipe position {name} overlaps pipe position {last_name} '
                     f'around s = {start}.'
@@ -1931,7 +1892,7 @@ class Aperture:
         ap_s_start = ap_bounds.s_start.to_nparray()
         ap_s_end = ap_bounds.s_end.to_nparray()
         line_length = self.line.get_length()
-        use_wrapped_span = self.ring
+        use_wrapped_span = self.is_ring
 
         s_start = np.full(table_size, np.nan, dtype=FloatType._dtype)
         s_end = np.full(table_size, np.nan, dtype=FloatType._dtype)

@@ -1,4 +1,5 @@
 import csv
+from itertools import repeat
 from typing import Literal
 
 import cernlayoutdb as layout
@@ -20,7 +21,7 @@ class LDBConverterWarning(UserWarning):
     pass
 
 
-PIPE_OVERLAP_TOL = 1e-6
+PIPE_OVERLAP_TOL = 1e-3
 PIPE_OVERLAP_ASSEMBLY_FILTER: Literal['none', 'top', 'sub'] = 'top'
 
 
@@ -203,7 +204,7 @@ PROFILE_OVERRIDES = {
 }
 
 LONGITUDINAL_PLACEMENT_PATCHES = {
-    # These overrides are clean (aperture is clearly shifted and after correction the pipe is continuous within 2e-6)
+    # These overrides are clean (aperture is clearly shifted and after correction the pipe is continuous within 1e-6)
     'VC8C.1R8.X': -0.96,
     'VCDRH.4R6.B': -0.7065,
     'VVGSH.6R3.B': -0.024,
@@ -214,13 +215,6 @@ LONGITUDINAL_PLACEMENT_PATCHES = {
     'VSMSL.4L1.X': -0.0001,
     'VSMSL.A3L1.X': -0.0001,
     'VSMSL.3L1.X': -0.0001,
-    'VCDLM.B5L4.B': -0.000002032933,
-    'VCSD.E4R6.B': -0.000001733984,
-    'VCSD.C4R6.B': -0.000001366017,
-    'VCSD.F4R6.B': -0.000001222787,
-    'VAMTA.I6L7.B': -0.000001024786137175173,
-    'VMPBB.A4R8.B': -0.000001034928076424733,
-    'VCRLU.A4L8.B': -0.000000899999078601792,
     'VCACS.5R4.B': 0.217,
     'VVGSH.A5R6.B': 0.071,
     'VVGSW.A5R3.B': 0.0425,
@@ -238,8 +232,90 @@ LONGITUDINAL_PLACEMENT_PATCHES = {
     'VSMSL.A3R1.X': 0.0001,
     'VSMSL.3R1.X': 0.0001,
     'VSMSL.4R1.X': 0.0001,
-    'VMTBB.A4L8.B': 0.000001696211679702646,
-    # These corrections are random assumptions, done to get rid of remaining overlaps
+    # Clean overrides sub-1mm
+    # 'VCDLM.B5L4.B': -0.000002032933,
+    # 'VCSD.E4R6.B': -0.000001733984,
+    # 'VCSD.C4R6.B': -0.000001366017,
+    # 'VCSD.F4R6.B': -0.000001222787,
+    # 'VAMTA.I6L7.B': -0.000001024786137175173,
+    # 'VMPBB.A4R8.B': -0.000001034928076424733,
+    # 'VCRLU.A4L8.B': -0.000000899999078601792,
+    # 'VMTBB.A4L8.B': 0.000001696211679702646,
+    # These corrections are random assumptions, done to get rid of remaining overlaps. Need to be reviewed!
+    'VCACS.5L4.B': 0.017,  # shift into the 17 mm gap after it; overlap range s=(9988.63800348, 9995.92900348)
+    'VSSG.B5R6.B': -0.299393,  # overlap range s=(16928.9680287, 16946.8245357)
+    'VMAOA.A5L4.B': 6.65,  # overlap range s=(9989.29600348, 9995.92900348)
+    'VSSG.B5L6.B': -0.1481,  # overlap range s=(16402.6498287, 16404.9125287)
+    'BPMQBCZB.4L1.B1': -0.0337,  # overlap range s=(26507.2013752, 26507.2350752)
+    'VSCSD.4L1.B': 0.0337,  # overlap range s=(26507.2013752, 26507.2350752)
+    'BPMQBCZB.4R1.B1': 0.0337,  # overlap range s=(137.599566482, 152.037270158)
+    'VSCSD.4R1.B': -0.0337,  # overlap range s=(137.599566482, 152.037270158)
+    'BPMQBCZB.4L5.B1': -0.0337,  # overlap range s=(13177.7594884, 13177.7931884)
+    'VSCSD.4L5.B': 0.0337,  # overlap range s=(13177.7594884, 13177.7931884)
+    'VSCST.A4R5.B': -0.0151,  # overlap range s=(13466.7981248, 13481.0880287)
+    'VCDED.6R4.B': 0.015,  # overlap range s=(10139.7335884, 10146.2585884)
+    'VMAWC.A5R4.B': 0.01,  # overlap range s=(10041.5105035, 10041.5205035)
+    'VFCDO.D6R1.B': -0.008,  # overlap range s=(210.801070158, 211.121070158)
+    'VVGRT.I5L2.B': 0.007,  # overlap range s=(3169.98947016, 3170.35747016)
+    'VMVIFAAA.A4R5.B': 0.001,  # overlap range s=(13497.3271287, 13500.5461287)
+    'VCDW.5R4.B': -0.000632,  # overlap range s=(10057.4125121, 10063.7119004)
+    'VMWIIAAA.B4R1.B': -0.0003,  # overlap range s=(163.539370158, 166.285070158)
+    'VCBKKAAA.B4L1.B': -0.0003,  # overlap range s=(26504.3151752, 26506.0168752)
+    'VMANA.A5L4.B': 0.000295,  # overlap range s=(9894.62244228, 9897.96714794)
+    'BPMWI.A5L4.B1': -0.000201,  # overlap range s=(9938.16549662, 9938.75029596)
+    'VSSB.6R5.B': -0.000106,  # overlap range s=(13554.8420347, 13562.2352287)
+    'VSTB.B6R5.B': 0.000106,  # overlap range s=(13554.8420347, 13562.2352287)
+    'VSSB.6R1.B': -0.000106,  # overlap range s=(224.792976158, 232.186170158)
+    'VSTB.B6R1.B': 0.000106,  # overlap range s=(224.792976158, 232.186170158)
+    'VSSB.5L5.B': -0.0001,  # overlap range s=(13119.4618884, 13126.8550884)
+    'VSSB.5R5.B': -0.0001,  # overlap range s=(13533.4420287, 13540.8352287)
+    'VSTB.B5L5.B': 0.0001,  # overlap range s=(13119.4618884, 13126.8550884)
+    'VSTB.B5R5.B': 0.0001,  # overlap range s=(13533.4420287, 13540.8352287)
+    # Random assumptions, sub-1mm
+    # 'VSSB.6L5.B': -9.4000000899500006e-05,  # overlap range s=(13098.0618824, 13105.4550884)
+    # 'VSTB.B6L5.B': 9.4000000899500006e-05,  # overlap range s=(13098.0618824, 13105.4550884)
+    # 'VMAAB.B5R4.B': 4.4816981244400003e-05,  # overlap range s=(10056.0025104, 10056.3124872)
+    # 'VMSIR.B6L2.B': 3.2243334317199998e-05,  # overlap range s=(3117.56246289, 3122.01243382)
+    # 'VCSIF.6L2.B': -3.1669210329000012e-06,  # fits between VMSIR.B6L2.B and VMSIR.A6L2.B; overlap range s=(3122.01243699, 3126.16243994)
+    # 'VMSIR.A6L2.B': 2.7051764845940002e-05,  # fits before VCSIE.6L2.B; overlap range s=(3126.16247218, 3130.61247016)
+    # 'VMSIP.6L2.B': 2.0904661141699999e-05,  # overlap range s=(3130.91247055, 3135.36245281)
+    # 'VCDWH.B5R4.B': 2.0737155864499999e-05,  # overlap range s=(10070.4625095, 10076.6124989)
+    # 'BSRTM.5R4.B1': -1.8762046238400001e-05,  # overlap range s=(10069.8625275, 10070.8625095)
+    # 'VCSIE.6L2.B': -8.3564964370499996e-06,  # overlap range s=(3126.46247556, 3130.91247016)
+    # 'VMAPB.A6R8.B': -6.0745951486799998e-06,  # overlap range s=(23512.6014691, 23512.6014752)
+    # 'VMAPB.C6R8.B': -4.85845885123e-06,  # overlap range s=(23521.5014704, 23521.5014752)
+    # 'VMSDU.A4R6.B': 3.8907965063100004e-06,  # overlap range s=(16698.4775259, 16698.4775298)
+    # 'BPMWB.4R8.B1': 2.5683111744e-06,  # overlap range s=(23429.8114659, 23430.2764636)
+    # 'VMACA.A5R4.B': -0.000798,  # overlap range s=(10080.767198135, 10080.766400247)
+    # Things that cannot be fixed by simple single-element shifts we just remove:
+    'BQKV.6L4.B1': None,
+    'VCBIIAAA.A6L4.B': None,
+    'VMABD.4L8.B': None,
+    'VMAIIAAH.4R1.B': None,
+    'VVGST.B1L2.X': None,
+    # Sub-1mm overlaps that cannot be fixed by a simple shift
+    # - VMABD.4L8.B/VCRLV.A4L8.B overlap range s = (23195.2253395, 23196.1203406)
+    # - VVGST.B1L2.X/VMABD.B1L2.X overlap range s = (3313.16854079, 3313.16954079)
+    # - VCBIIAAA.E4R1.B/VMAIIAAH.4R1.B overlap range s = (163.759070158, 166.584070158)
+    # - VCBIIAAA.5R4.B/VMACA.A5R4.B overlap range s = (10079.2575391, 10080.9667412)
+    # - VCBIIAAE.A4L5.B/VMWIIAAA.A4L5.B overlap range s = (13170.5601884, 13171.3997884)
+    # - VMWIIAAA.A4R5.B/VCBIIAAE.A4R5.B overlap range s = (13487.4843287, 13488.3239287)
+    # - VCBKKAAA.A4L5.B/VMBLKAAK.A4L5.B overlap range s = (13174.7182884, 13176.5749884)
+    # - VMWIIAAA.C4L5.B/VCBIIAAA.A4L5.B overlap range s = (13165.8386884, 13165.8389884)
+    # - VMBKIAAA.A4R5.B/VVGSC.D4R5.B overlap range s = (13484.1661287, 13484.4508287)
+    # - VVGSC.E4R5.B/VMWIIAAA.4R5.B overlap range s = (13491.3574287, 13491.6621287)
+    # - VCDAY.A5L4.B/VMAAB.B5L4.B overlap range s = (9898.53864766, 9901.92245093)
+    # - VCTCC.4L2.X/VMJQQDDA.4L2.X overlap range s = (3240.74564428, 3246.62751607)
+    # - VVGSW.D5R4.B/VMANC.A5R4.B overlap range s = (10055.3274991, 10055.7024376)
+    # - VCSIM.A6R8.B/VMZBA.6R8.B overlap range s = (23508.1514629, 23508.1514752)
+    # - VCTCW.6L2.B/VCSIG.6L2.B overlap range s = (3117.36247016, 3121.71246585)
+    # - VCSIM.E6R8.B/VMZAF.6R8.B overlap range s = (23525.9514766, 23530.4014752)
+    # - VCSIF.6L2.B/VMSIR.A6L2.B overlap range s = (3122.01246606, 3126.4624672)
+}
+
+TYPE_APERTURE_PLACEMENT_PATCHES = {
+    # These are guesses to remove overlaps
+    'HCVMAAQ': (0, -0.01),
 }
 
 # Profile examples for each shape:
@@ -380,6 +456,7 @@ for type_name, type_ in ldb_model.types.items():
 
     profiles = aperture_straight.aperture_alias
     offsets = (aperture_straight.offset_x, aperture_straight.offset_y, aperture_straight.offset_z)
+    s_patches = TYPE_APERTURE_PLACEMENT_PATCHES.get(type_name, repeat(0, len(profiles)))
 
     if not beam_specific_type:
         pipes = [(None, builder.new_pipe(type_name, curvature=0))]
@@ -389,14 +466,13 @@ for type_name, type_ in ldb_model.types.items():
             ('E', builder.new_pipe(type_name + '/E', curvature=0)),
         ]
 
-    for profile, side, off_x, off_y, off_z in zip(profiles, element_type_aperture, *offsets):
+    for profile, side, off_x, off_y, off_z, s_patch in zip(profiles, element_type_aperture, *offsets, s_patches):
         mad_off = layout.LDBPoint(x=off_x, y=off_y, z=off_z).to_madpoint()
-
         for side_marker, pipe in pipes:
             if side_marker is None or side is None or side_marker in side:
                 pipe.place_profile(
                     profile,
-                    shift_s=mad_off.z,
+                    shift_s=mad_off.z + s_patch,
                     shift_x=mad_off.x,
                     shift_y=mad_off.y,
                 )
@@ -429,6 +505,12 @@ for transform_name, transformation in ldb_model.transformations.items():
     loc_middle = ldb_model.get_abs_points(transform_name)['MECHANICAL MIDDLE'].to_madpoint()
 
     s_patch = LONGITUDINAL_PLACEMENT_PATCHES.get(transform_name, 0)
+
+    if s_patch is None:
+        # Don't even include the element
+        ignored_transforms.append(transform_name)
+        continue
+
     loc.z += s_patch
     loc_middle.z += s_patch
 
@@ -437,10 +519,31 @@ for transform_name, transformation in ldb_model.transformations.items():
 
 pipes_loc = sorted(pipes_loc.items(), key=lambda x: x[1].z)
 
+excluded_pipe_positions = _pipe_positions_excluded_by_assembly_filter(
+    [transform_name for transform_name, _ in pipes_loc],
+    ldb_model.transformations,
+    PIPE_OVERLAP_ASSEMBLY_FILTER,
+)
+if excluded_pipe_positions:
+    pipes_loc = [
+        (transform_name, loc)
+        for transform_name, loc in pipes_loc
+        if transform_name not in excluded_pipe_positions
+    ]
+    for transform_name in excluded_pipe_positions:
+        pipes_loc_middles.pop(transform_name, None)
+
 
 if ignored_transforms:
-    warn(f'Ignored {len(ignored_transforms)} transforms without target types, or whose target types are not valid '
-         f'apertures: {_format_list(ignored_transforms)}', LDBConverterWarning)
+    warn(f'Ignored {len(ignored_transforms)} transforms without target types, whose target types are not valid '
+         f'apertures, or which were excluded purposefully due to data errors: {_format_list(ignored_transforms)}',
+         LDBConverterWarning)
+if excluded_pipe_positions:
+    warn(
+        f'Excluded {len(excluded_pipe_positions)} pipe positions using assembly filter '
+        f'{PIPE_OVERLAP_ASSEMBLY_FILTER!r}: {_format_list(sorted(excluded_pipe_positions))}',
+        LDBConverterWarning,
+    )
 
 
 # Refer pipe locations to survey elements
@@ -461,6 +564,9 @@ transform_to_sv_point = dict(zip([transform_name for transform_name, _ in pipes_
 
 # Place pipes in the model
 for transform_name, mad_point in pipes_loc:
+    if transform_name in excluded_pipe_positions:
+        continue
+
     type_name = ldb_model.transformations[transform_name].target_type
     s_pos = mad_point.z
     pipe_to_place = None
@@ -515,7 +621,16 @@ boundary_margin = 0.05
 last_profile_hcvc1ib.shift_s = min(old_hcvc1ib_last_shift_s, b1.get_length() - vc1ib_1l1_start - boundary_margin)
 
 aperture_model = builder.build()
-aperture_straight = Aperture(model=aperture_model, line=b1, _skip_validity_check=True)
+aperture_straight = Aperture(model=aperture_model, line=b1, s_tol=PIPE_OVERLAP_TOL)
+
+p_tab = aperture_straight.get_pipe_table()
+pipe_overlap_rows = _write_pipe_overlap_report(
+    p_tab,
+    b1.get_length(),
+    'pipe_overlaps_summary.csv',
+    s_tol=PIPE_OVERLAP_TOL,
+)
+print(f'Wrote {len(pipe_overlap_rows)} pipe overlap rows to pipe_overlaps_summary.csv')
 
 ax = plt.gca()
 aperture_straight.plot_floor_projection(ax=ax, len_points=32)
@@ -580,33 +695,6 @@ _draw_boxes(
 )
 
 # Also plot the relevant type boxes
-p_tab = aperture_straight.get_pipe_table()
-pipe_overlap_rows = _write_pipe_overlap_report(
-    p_tab,
-    b1.get_length(),
-    'pipe_overlaps_summary.csv',
-    s_tol=PIPE_OVERLAP_TOL,
-)
-print(f'Wrote {len(pipe_overlap_rows)} pipe overlap rows to pipe_overlaps_summary.csv')
-
-excluded_pipe_positions = _pipe_positions_excluded_by_assembly_filter(
-    p_tab.name,
-    ldb_model.transformations,
-    PIPE_OVERLAP_ASSEMBLY_FILTER,
-)
-filtered_pipe_overlap_filename = f'pipe_overlaps_summary_{PIPE_OVERLAP_ASSEMBLY_FILTER}.csv'
-filtered_pipe_overlap_rows = _write_pipe_overlap_report(
-    p_tab,
-    b1.get_length(),
-    filtered_pipe_overlap_filename,
-    s_tol=PIPE_OVERLAP_TOL,
-    excluded_pipe_positions=excluded_pipe_positions,
-)
-print(
-    f'Wrote {len(filtered_pipe_overlap_rows)} pipe overlap rows to '
-    f'{filtered_pipe_overlap_filename} after excluding {len(excluded_pipe_positions)} '
-    f'pipe positions with assembly filter {PIPE_OVERLAP_ASSEMBLY_FILTER!r}'
-)
 pipe_labels = [f'{name}\nref: {ref}' for name, ref in zip(p_tab.name, p_tab.survey_reference)]
 pipe_boxes = zip(p_tab.s_span_start, p_tab.span, pipe_labels)
 _draw_boxes(
@@ -660,12 +748,15 @@ for pipe_name in main_dipole_pipes:
 # aperture_model.pipes[aperture_model.pipe_names.index('HCVC1IB')].shift_s = old_hcvc1ib_last_shift_s
 
 # Build the curved model
-aperture = Aperture(model=aperture_model, line=b1, _skip_validity_check=True)
-# b_tab = aperture.get_bounds_table()
-# s_positions_at_lattice_changes = np.array(sorted(set(b_tab.s_start) | set(b_tab.s_end) | set(sv_b1.s)))
-# s_positions = np.array(sorted(set(s_positions_at_lattice_changes - 1e-6) | set(s_positions_at_lattice_changes + 1e-6)))
-# s_positions %= b1.get_length()
-# aperture.plot_extents(s_positions)
+aperture = Aperture(model=aperture_model, line=b1, s_tol=PIPE_OVERLAP_TOL)
+b_tab = aperture.get_bounds_table()
+s_positions_at_lattice_changes = np.array(sorted(set(b_tab.s_start) | set(b_tab.s_end) | set(sv_b1.s)))
+s_positions = np.array(sorted(set(s_positions_at_lattice_changes - PIPE_OVERLAP_TOL) | set(s_positions_at_lattice_changes + PIPE_OVERLAP_TOL)))
+s_positions %= b1.get_length()
+s_positions = sorted(s_positions)
+aperture.plot_extents(s_positions)
+plt.show()
+
 plt.plot(sv_b1.Z, sv_b1.X, c='red', label='B1')
 plt.plot(sv_b2.Z, sv_b2.X, c='blue', label='B2')
 ax = plt.gca()

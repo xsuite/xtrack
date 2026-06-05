@@ -602,14 +602,14 @@ def test_aperture_json_roundtrip_preserves_explicit_ring_flag(test_context, tmp_
         _context=test_context,
     )
 
-    ap = Aperture(line, model, context=test_context, ring=False)
+    ap = Aperture(line, model, context=test_context, is_ring=False)
     path = tmp_path / 'aperture.json'
 
     ap.to_json(path)
     loaded = Aperture.from_json(path, line=line, context=test_context)
 
-    assert ap.ring is False
-    assert loaded.ring is False
+    assert ap.is_ring is False
+    assert loaded.is_ring is False
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
