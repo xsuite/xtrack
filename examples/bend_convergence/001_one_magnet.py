@@ -39,7 +39,7 @@ import xtrack as xt
 env = xt.Environment()
 line = env.new_line(components=[
     env.new('b', 'Bend', length=2, angle=np.pi/4, knl=[0, 0, 2.],
-            model='rot-kick-rot', 
+            model='rot-kick-rot-high-order', 
             integrator='yoshida4', # is actually yoshida6
             num_multipole_kicks=1000)
 ])
