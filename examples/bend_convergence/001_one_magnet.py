@@ -7,7 +7,7 @@ mad.load('MAD', "sequence")
 mad.load('MAD.element', "sbend")
 
 mad.send("""
-seq = sequence { l = 2, sbend { l = 2, angle=2*math.pi/1000 , knl={0, 0, 2.}}, beam = beam {} }
+seq = sequence { l = 2, sbend { l = 2, angle=math.pi/4 , knl={0, 0, 2.}}, beam = beam {} }
 """)
 # mad.send("""
 # seq = sequence { l = 2, sbend { l = 2, angle=math.pi/4}, beam = beam {} }
@@ -38,7 +38,7 @@ import xtrack as xt
 
 env = xt.Environment()
 line = env.new_line(components=[
-    env.new('b', 'Bend', length=2, angle=2*np.pi/1000, knl=[0, 0, 2.],
+    env.new('b', 'Bend', length=2, angle=np.pi/4, knl=[0, 0, 2.],
             model='rot-kick-rot', 
             integrator='yoshida4', # is actually yoshida6
             num_multipole_kicks=1000)
