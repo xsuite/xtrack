@@ -2,11 +2,12 @@ import xtrack as xt
 from time import perf_counter
 
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
-
+line.build_tracker()
 p0 = line.build_particles(x=1e-5)
 
 num_turns = 1000
 
+print('Tracking with default integrator...')
 p = p0.copy()
 t0 = perf_counter()
 line.track(p, num_turns=num_turns)

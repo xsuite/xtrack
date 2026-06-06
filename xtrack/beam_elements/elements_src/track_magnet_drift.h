@@ -441,13 +441,43 @@ void track_magnet_drift_single_particle(
         case 7:
             // 4th order Yoshida integrator for a curved bend (h and k0 only)
             // (integrator coefficients from MAD-NG)
-            track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
-            LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, -0.17560359597982889 * length, h);
-            LocalParticle_set_px(part, LocalParticle_get_px(part) - (-1.7024143839193155) * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, -0.17560359597982889 * length, h);
-            LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
-            track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
+            // track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
+            // LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
+            // track_polar_drift_single_particle(part, -0.17560359597982889 * length, h);
+            // LocalParticle_set_px(part, LocalParticle_get_px(part) - (-1.7024143839193155) * k0 * LocalParticle_get_chi(part) * length);
+            // track_polar_drift_single_particle(part, -0.17560359597982889 * length, h);
+            // LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
+            // track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
+
+            // Sixth order Yoshida integrator for a curved bend (h and k0 only)
+            // (integrator coefficients from MAD-NG)
+            // DRIFT_COEFFS:
+            //          {3.922568052387799819591407413100e-01,
+            //           5.100434119184584780271052295575e-01,
+            //           -4.710533854097565531482416645304e-01,
+            //           6.875316825251809316199569366290e-02};
+            // KICK_COEFFS:
+            //          {7.845136104775599639182814826199e-01,
+            //           2.355732133593569921359289764951e-01,
+            //           -1.177679984178870098432412305556e+00,
+            //           1.315186320683906284756403692882e+00};
+            track_polar_drift_single_particle(part, 3.922568052387799819591407413100e-01 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 7.845136104775599639182814826199e-01 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, 5.100434119184584780271052295575e-01 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 2.355732133593569921359289764951e-01 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, -4.710533854097565531482416645304e-01 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - (-1.177679984178870098432412305556e+00) * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, 6.875316825251809316199569366290e-02 * length, h);
+
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.315186320683906284756403692882e+00 * k0 * LocalParticle_get_chi(part) * length);
+
+            track_polar_drift_single_particle(part, 6.875316825251809316199569366290e-02 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - (-1.177679984178870098432412305556e+00) * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, -4.710533854097565531482416645304e-01 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 2.355732133593569921359289764951e-01 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, 5.100434119184584780271052295575e-01 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 7.845136104775599639182814826199e-01 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, 3.922568052387799819591407413100e-01 * length, h);
             break;
         default:
             break;
