@@ -1,13 +1,15 @@
 from pymadng import MAD
 import numpy as np
 
-# length = 2
-# angle = np.pi / 4
-# knl = [0, 0, 0.]
+length = 2
+angle = np.pi / 4
+knl = [0, 0, 0.]
+x_test = 1e-4
 
-length = 14
-angle = 2 * np.pi / 1200
-knl = [0, 0, 10.]
+# length = 14
+# angle = 2 * np.pi / 1200
+# knl = [0, 0, 10.]
+# x_test = 1e-3
 
 xsuite_models = [
     'rot-kick-rot-low-order',
@@ -37,7 +39,7 @@ seq = sequence {{
     x_list = []
     for ss in slices:
         mad['tbl', 'flw'] = mad.track(
-            sequence='seq', observe=0, save='"atall"', X0={'x': 0e-3},
+            sequence='seq', observe=0, save='"atall"', X0={'x': x_test},
             method=madng_method, model=f"'{madng_model}'",
             nslice=ss)
         df = mad.tbl.to_df()
@@ -62,7 +64,7 @@ for model in xsuite_models:
     for ss in slices:
         line.configure_bend_model(
             edge='full', core=model, num_multipole_kicks=7 * ss)
-        tw = line.twiss(betx=1, bety=1, x=0e-3)
+        tw = line.twiss(betx=1, bety=1, x=x_test)
         x_list_xt.append(tw.x[-1])
     xsuite_x_by_model[model] = x_list_xt
 
