@@ -450,6 +450,7 @@ void track_magnet_drift_single_particle(
             track_polar_drift_single_particle(part, -0.17560359597982889 * length, h);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
             track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
+            break;
         case 8:
             // // Sixth order Yoshida integrator for a curved bend (h and k0 only)
             // // (integrator coefficients from MAD-NG)
