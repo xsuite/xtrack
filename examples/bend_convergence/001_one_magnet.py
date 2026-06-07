@@ -4,11 +4,19 @@ import numpy as np
 length = 2
 angle = np.pi / 4
 knl = [0, 0, 0.]
+
+# length = 14
+# angle = np.pi / 1200
+# knl = [0, 0, 10.]
+
 xsuite_models = [
     'rot-kick-rot-low-order',
     'rot-kick-rot',
     'rot-kick-rot-high-order',
 ]
+
+
+
 
 slices = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
 
