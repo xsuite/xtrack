@@ -8,7 +8,7 @@ import numpy as np
 
 length = 14
 angle = 2 * np.pi / 1200
-knl = [0, 0, 10.]
+knl = [0, 0, 2.]
 x_test = 1e-4
 
 xsuite_models = [
