@@ -19,6 +19,7 @@ slices = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
 
 madng_model = 'DKD'
 madng_method = 6
+madng_reference_slices = slices[-1]
 
 with MAD() as mad:
 
@@ -41,6 +42,8 @@ seq = sequence {{
             nslice=ss)
         df = mad.tbl.to_df()
         x_list.append(df['x'].values[-1])
+
+madng_reference_x = x_list[-1]
 
 import xtrack as xt
 
@@ -65,11 +68,15 @@ for model in xsuite_models:
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.loglog(slices, np.abs(np.array(x_list)-x_list[-1]), '.-', label='MAD-NG')
+plt.figure(1)
+plt.loglog(slices, np.abs(np.array(x_list) - madng_reference_x),
+           '.-', label='MAD-NG')
 for model, x_list_xt in xsuite_x_by_model.items():
-    plt.loglog(slices, np.abs(np.array(x_list_xt)-x_list_xt[-1]), '.-',
+    plt.loglog(slices, np.abs(np.array(x_list_xt) - madng_reference_x), '.-',
                label=f'Xsuite {model}')
 plt.xlabel('Number of slices')
+plt.ylabel(f'|x - x_MAD-NG({madng_reference_slices} slices)|')
 plt.legend()
+
 
 plt.show()
