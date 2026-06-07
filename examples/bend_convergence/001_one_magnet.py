@@ -1,15 +1,15 @@
 from pymadng import MAD
 import numpy as np
 
-length = 2
-angle = np.pi / 4
-knl = [0, 0, 0.]
-x_test = 1e-4
+# length = 2
+# angle = np.pi / 4
+# knl = [0, 0, 0.]
+# x_test = 1e-4
 
-# length = 14
-# angle = 2 * np.pi / 1200
-# knl = [0, 0, 10.]
-# x_test = 1e-3
+length = 14
+angle = 2 * np.pi / 1200
+knl = [0, 0, 10.]
+x_test = 1e-4
 
 xsuite_models = [
     'rot-kick-rot-low-order',
