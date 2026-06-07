@@ -71,14 +71,27 @@ for model in xsuite_models:
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
-plt.loglog(slices, np.abs(np.array(x_list) - madng_reference_x),
+plt.loglog(slices, np.abs(np.array(x_list) - x_list[-1]),
            '.-', label='MAD-NG')
 for model, x_list_xt in xsuite_x_by_model.items():
-    plt.loglog(slices, np.abs(np.array(x_list_xt) - madng_reference_x), '.-',
+    plt.loglog(slices, np.abs(np.array(x_list_xt) - x_list_xt[-1]), '.-',
                label=f'Xsuite {model}')
+plt.xlabel('Number of slices')
+plt.ylabel('|x - x(last slice)|')
+plt.legend()
+
+plt.figure(2)
+plt.loglog(slices, np.abs(np.array(x_list) - madng_reference_x),
+           '.-', label='MAD-NG')
+for model in xsuite_models:
+    x_list_xt = xsuite_x_by_model[model]
+    plt.loglog(
+        slices,
+        np.abs(np.array(x_list_xt) - madng_reference_x),
+        '.-',
+        label=f'Xsuite {model}')
 plt.xlabel('Number of slices')
 plt.ylabel(f'|x - x_MAD-NG({madng_reference_slices} slices)|')
 plt.legend()
-
 
 plt.show()
