@@ -212,6 +212,62 @@ void track_expanded_combined_dipole_quad_single_particle(
 
 }
 
+// OLD IMPLEMENTATION
+// GPUFUN
+// void track_curved_exact_bend_single_particle(
+//     LocalParticle* part,  // LocalParticle to track
+//     const double length,  // length of the element
+//     const double k0,      // normal dipole strength
+//     const double h        // curvature
+// ) {
+
+//     // Here we assume that the caller has ensured h != 0
+
+//     double const k0_chi = k0 * LocalParticle_get_chi(part);
+
+//     if (fabs(k0_chi) < 1e-8) {
+//         track_polar_drift_single_particle(part, length, h);
+//         return;
+//     }
+
+//     const double rvv = LocalParticle_get_rvv(part);
+//     // Particle coordinates
+//     const double x = LocalParticle_get_x(part);
+//     const double y = LocalParticle_get_y(part);
+//     const double px = LocalParticle_get_px(part);
+//     const double py = LocalParticle_get_py(part);
+//     const double s = length;
+
+//     const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
+//     const double A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
+//     const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
+
+//     double new_x, new_px, new_y, delta_ell;
+
+//     // The case for non-zero curvature, s is arc length
+//     // Useful constants
+//     const double C = pz - k0_chi * ((1 / h) + x);
+//     new_px = px * cos(s * h) + C * sin(s * h);
+//     double const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
+//     // double const d_new_px_ds = new_px / new_pz;
+
+//     const double d_new_px_ds = C * h * cos(h * s) - h * px * sin(h * s);
+
+//     // Update particle coordinates
+//     new_x = (new_pz * h - d_new_px_ds - k0_chi) / (h * k0_chi);
+//     const double D = asin(A * px) - asin(A * new_px);
+//     new_y = y + ((py * s) / (k0_chi / h)) + (py / k0_chi) * D;
+
+//     delta_ell = ((one_plus_delta * s * h) / k0_chi) + (one_plus_delta / k0_chi) * D;
+
+//     // Update Particles object
+//     LocalParticle_set_x(part, new_x);
+//     LocalParticle_set_px(part, new_px);
+//     LocalParticle_set_y(part, new_y);
+//     LocalParticle_add_to_zeta(part, length - delta_ell / rvv);
+//     LocalParticle_add_to_s(part, s);
+// }
+
 GPUFUN
 void track_curved_exact_bend_single_particle(
     LocalParticle* part,  // LocalParticle to track
