@@ -2,6 +2,20 @@
 #define XTRACK_TRACK_FIELDEXPANSION_H
 
 typedef struct {
+    int ny;      /* requested output order in y */
+    int ncoef;   /* stored phi_i coefficients: 0..ny+1 */
+    int na, nb, deg;
+    int mmin, mmax, moff, nm;
+    int qemin, nq;
+    double h;
+    double *c;   /* c[i,m,k], polynomial coeff of s^k in q^m term */
+    double *V;   /* scratch: c[i,m](s)   */
+    double *D1;   /* scratch: d_s c[i,m]  */
+    double *D2;   /* scratch: d2_s c[i,m]  */
+    double *Q;   /* scratch: q^e, e=qemin.. */
+} Expansion;
+
+typedef struct {
     double phi;
     double Bx, By, Bs;
     double Ax, Ay, As;
