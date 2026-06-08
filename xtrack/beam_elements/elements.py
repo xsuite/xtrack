@@ -5003,6 +5003,7 @@ class FieldExpansion(BeamElement):
             number of powers in y to include,
         
     """
+    
     isthick = True
     behaves_like_drift = True
     has_backtrack = False
@@ -5012,35 +5013,73 @@ class FieldExpansion(BeamElement):
     _xofields = {
         "length" : xo.Float64,
         "h": xo.Float64,
-
         "ny": xo.Int64,
         "deg": xo.Int64,
-        
         "nstep": xo.Int64,
         "ds": xo.Float64,
+        
+        "a": xo.Float64[:],
+        "b": xo.Float64[:],
+        "bs": xo.Float64[:],
+        
+        "na": xo.Int64,
+        "nb": xo.Int64,
+        "deg": xo.Int64,
+        
+        "_ncoef": xo.Int64,
+        "_mmax": xo.Int64,
+        "_mmin": xo.Int64,
+        "_moff": xo.Int64,
+        "_nm": xo.Int64,
+        
+        "_qemin": xo.Int64,
+        "_nq": xo.Int64,
+        
+        "_c": xo.Float64[:],
+        
     }
     
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/track_fieldexpansion.h"',
+        '#include "xtrack/beam_elements/elements_src/create_fieldexpansion.h"',
     ]
     
-    def __init__(self, length, h, aa, bb, bs, ny, nstep=10, **kwargs):
-        super().__init__(**kwargs)
-        
-        self.length = length
-        self.h = h
-        self.nstep = nstep
-        self.ds = length/nstep
+    _kernels = {'build_expansion': xo.Kernel(
+            c_name='build_expansion',
+            args=[xo.Arg(xo.ThisClass, name='el')]
+        )
+    }
+    
+    def __init__(self, length, h, a, b, bs, ny, nstep=10, **kwargs):
+        kwargs['length'] = length
+        kwargs['h'] = h
+        kwargs['nstep'] = nstep
+        kwargs['ds'] = length/nstep
        
-        self.aa = np.asarray(aa, dtype=np.float64)
-        self.bb = np.asarray(bb, dtype=np.float64)
-        self.bs = np.asarray(bs, dtype=np.float64)
+        kwargs['a'] = np.asarray(a, dtype=np.float64).flatten()
+        kwargs['b'] = np.asarray(b, dtype=np.float64).flatten()
+        kwargs['bs'] = np.asarray(bs, dtype=np.float64).flatten()
 
-        self.na = aa.shape[0]
-        self.nb = bb.shape[0]
+        kwargs['na'] = a.shape[0]
+        kwargs['nb'] = b.shape[0]
+        kwargs['ny'] = ny
 
-        self.deg = aa.shape[1] - 1
+        kwargs['deg'] = a.shape[1] - 1
         
-        if bb.shape[1] != self.deg + 1 or bs.shape[0] != self.deg + 1:
+        if b.shape[1] != kwargs['deg'] + 1 or bs.shape[0] != kwargs['deg'] + 1:
             raise ValueError("Invalid input shapes")
         
+        kwargs['_ncoef'] = kwargs['ny'] + 2  # store phi_0..phi_{ny+1} so By is also order ny
+        kwargs['_mmax'] = kwargs['na'] if kwargs['na'] > (kwargs['nb'] - 1) else (kwargs['nb'] - 1)
+        kwargs['_mmin'] = -2 * ((kwargs['_ncoef'] - 1) // 2)
+        kwargs['_moff'] = -kwargs['_mmin']
+        kwargs['_nm'] = kwargs['_mmax'] - kwargs['_mmin'] + 1
+
+        kwargs['_qemin'] = kwargs['_mmin'] - 1
+        kwargs['_nq'] = (kwargs['_mmax'] + 2) - kwargs['_qemin'] + 1
+
+        kwargs.setdefault("_c", np.zeros(kwargs['_ncoef'] * kwargs['_nm'] * (kwargs['deg'] + 1)))
+        
+        super().__init__(**kwargs)
+        
+        self.build_expansion(el=self)
