@@ -236,31 +236,44 @@ void track_curved_exact_bend_single_particle(
     const double px = LocalParticle_get_px(part);
     const double py = LocalParticle_get_py(part);
     const double s = length;
-
     const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
-    const double A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
+
+    // angle-related quantities
+    const double angle = h * s;
+    const double sin_angle = sin(angle);
+    const double cos_angle = cos(angle);
+    const double sin_half_angle = sin(angle / 2);
+
+    // auxiliary quantities
     const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
-
-    double new_x, new_px, new_y, delta_ell;
-
-    // The case for non-zero curvature, s is arc length
-    // Useful constants
     const double C = pz - k0_chi * ((1 / h) + x);
-    new_px = px * cos(s * h) + C * sin(s * h);
-    double const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
-    // double const d_new_px_ds = new_px / new_pz;
 
-    const double d_new_px_ds = C * h * cos(h * s) - h * px * sin(h * s);
+    // new px
+    const double new_px = px * cos_angle + C * sin_angle;
 
-    // Update particle coordinates
-    new_x = (new_pz * h - d_new_px_ds - k0_chi) / (h * k0_chi);
-    const double D = asin(A * px) - asin(A * new_px);
-    new_y = y + ((py * s) / (k0_chi / h)) + (py / k0_chi) * D;
+    // new pz
+    const double new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
 
-    delta_ell = ((one_plus_delta * s * h) / k0_chi) + (one_plus_delta / k0_chi) * D;
+    // delta pz (rationalized, see physics manual)
+    const double delta_pz = (px - new_px) * (px + new_px) / (pz + new_pz);
+
+    // Delta D
+    const double delta_D = -2 * C * POW2(sin_half_angle) - px * sin_angle;
+
+    // Delta x
+    const double delta_x = (delta_pz - delta_D) / k0_chi;
+
+    // new y
+    const double denom = sqrt(POW2(one_plus_delta) - POW2(py));
+    const double asin_diff = asin(px / denom) - asin(new_px / denom);
+    const double new_y = y + (py * s * h / k0_chi) + (py / k0_chi) * asin_diff;
+    
+    // Delta zeta
+    const double delta_ell = (one_plus_delta * s * h / k0_chi)
+                           + (one_plus_delta / k0_chi) * asin_diff;
 
     // Update Particles object
-    LocalParticle_set_x(part, new_x);
+    LocalParticle_add_to_x(part, delta_x);
     LocalParticle_set_px(part, new_px);
     LocalParticle_set_y(part, new_y);
     LocalParticle_add_to_zeta(part, length - delta_ell / rvv);
