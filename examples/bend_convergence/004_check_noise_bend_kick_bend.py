@@ -90,6 +90,7 @@ for model, x_list_xt in xsuite_x_by_model.items():
 plt.xlabel('Number of slices')
 plt.ylabel('|x - x(1 slice)|')
 plt.suptitle(title)
+plt.ylim(1e-18, 1e-8)
 plt.legend()
 
 
