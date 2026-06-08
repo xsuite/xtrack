@@ -12,7 +12,7 @@ void build_expansion(
     const double *b,
 )
 {
-    Expansion *f = (Expansion *)xcalloc(1, sizeof(*f));
+    Expansion *f = (Expansion *)calloc(1, sizeof(*f));
     f->h = h;
     f->ny = ny;
     f->ncoef = ny + 2;      /* store phi_0..phi_{ny+1} so By is also order ny */
@@ -25,11 +25,11 @@ void build_expansion(
     f->nm = f->mmax - f->mmin + 1; 
     f->qemin = f->mmin - 1;
     f->nq = (f->mmax + 2) - f->qemin + 1;
-    f->c = (double *)xcalloc((size_t)f->ncoef * (size_t)f->nm * (size_t)(deg + 1), sizeof(double));
-    f->V = (double *)xcalloc((size_t)f->ncoef * (size_t)f->nm, sizeof(double));
-    f->D1 = (double *)xcalloc((size_t)f->ncoef * (size_t)f->nm, sizeof(double));
-    f->D2 = (double *)xcalloc((size_t)f->ncoef * (size_t)f->nm, sizeof(double));
-    f->Q = (double *)xcalloc((size_t)f->nq, sizeof(double));
+    f->c = (double *)calloc((size_t)f->ncoef * (size_t)f->nm * (size_t)(deg + 1), sizeof(double));
+    f->V = (double *)calloc((size_t)f->ncoef * (size_t)f->nm, sizeof(double));
+    f->D1 = (double *)calloc((size_t)f->ncoef * (size_t)f->nm, sizeof(double));
+    f->D2 = (double *)calloc((size_t)f->ncoef * (size_t)f->nm, sizeof(double));
+    f->Q = (double *)calloc((size_t)f->nq, sizeof(double));
 
     int nmax = (na > nb) ? na : nb;
     double invfact[nmax + 1];

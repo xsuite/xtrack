@@ -56,7 +56,6 @@ void FieldExpansion_track_local_particle(
 
     const double nstep = FieldExpansionData_get_nstep(el);
     const double ds = FieldExpansionData_get_ds(el);
-    printf("nstep = %e\n", nstep);
     const double beta0 = LocalParticle_get_beta0(part);
 
     const double x = LocalParticle_get_x(part);
