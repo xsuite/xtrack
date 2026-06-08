@@ -4908,7 +4908,7 @@ class ElectronCooler(BeamElement):
             longitudinal component of the magnetic field. This is a measure
             of the magnetic field quality. With the ideal magnetic field quality 
             being 0.
-        space_charge : float, optional
+        space_charge : float, optional length, h, bs, a, b
             Whether space charge of electron beam is enabled. 0 is off and 1 is on.
 
     """
@@ -4983,3 +4983,64 @@ class ElectronCooler(BeamElement):
 
 class ThinSliceNotNeededError(Exception):
     pass
+
+
+class FieldExpansion(BeamElement):
+    """
+    Specifies the field expansion in general derivatives on axis in straight or curved frame 
+
+    Parameters
+        ----------
+        h : float
+            Curvature of the element, in 1/m. For straight elements, h=0.
+        a : array, shape na, deg+1, floats
+            describing the polynomial coefficients for the skew multipoles. First index is multipole order, second index is polynomial coefficient.
+        b : array, shape nb, deg+1, floats
+            describing the polynomial coefficients for the normal multipoles. First index is multipole order, second index is polynomial coefficient.
+        bs : array, shape deg+1, floats 
+            describing the polynomial coefficients for the longitudinal field component. Index is polynomial coefficient,
+        ny : int
+            number of powers in y to include,
+        
+    """
+    isthick = True
+    behaves_like_drift = True
+    has_backtrack = False
+    allow_loss_refinement = False
+    allow_rot_and_shift = False
+
+    _xofields = {
+        "length" : xo.Float64,
+        "h": xo.Float64,
+
+        "ny": xo.Int64,
+        "deg": xo.Int64,
+        
+        "nstep": xo.Int64,
+        "ds": xo.Float64,
+    }
+    
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/track_fieldexpansion.h"',
+    ]
+    
+    def __init__(self, length, h, aa, bb, bs, ny, nstep=10, **kwargs):
+        super().__init__(**kwargs)
+        
+        self.length = length
+        self.h = h
+        self.nstep = nstep
+        self.ds = length/nstep
+       
+        self.aa = np.asarray(aa, dtype=np.float64)
+        self.bb = np.asarray(bb, dtype=np.float64)
+        self.bs = np.asarray(bs, dtype=np.float64)
+
+        self.na = aa.shape[0]
+        self.nb = bb.shape[0]
+
+        self.deg = aa.shape[1] - 1
+        
+        if bb.shape[1] != self.deg + 1 or bs.shape[0] != self.deg + 1:
+            raise ValueError("Invalid input shapes")
+        
