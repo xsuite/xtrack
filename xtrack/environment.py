@@ -614,8 +614,8 @@ class Environment:
         '''
         Deprecated. Create a new composer.
 
-        ..warning:: The `new_composer` method is deprecated and will be removed in
-        a future version. Use `new_line` with `compose=True` instead.
+        .. warning:: The `new_builder` method is deprecated and will be removed in
+           a future version. Use `new_line` with `compose=True` instead.
 
         Parameters
         ----------
