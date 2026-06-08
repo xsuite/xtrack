@@ -3,6 +3,7 @@ import json
 
 import numpy as np
 from cpymad.madx import Madx
+import pytest
 
 import xpart as xp
 import xtrack as xt
@@ -270,6 +271,7 @@ def test_orbit_correction_thread(test_context):
     assert kicks_x.std() < 5e-5
     assert kicks_y.std() < 5e-5
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_correct_trajectory_transfer_line(test_context):
 
