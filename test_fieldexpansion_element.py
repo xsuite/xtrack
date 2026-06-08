@@ -8,7 +8,7 @@ bs = np.array([1,5])
 ny = 5
 length=1
 
-line = xt.Line(elements=[xt.FieldExpansion(length=length, h=h, aa=a, bb=b, bs=bs, ny=ny)])
+line = xt.Line(elements=[xt.FieldExpansion(length=length, h=h, a=a, b=b, bs=bs, ny=ny)])
 p = xt.Particles(x=0.01)
 line.track(p)
 print(p.x)
