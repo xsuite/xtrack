@@ -5036,6 +5036,10 @@ class FieldExpansion(BeamElement):
         "_nq": xo.Int64,
         
         "_c": xo.Float64[:],
+        "_V": xo.Float64[:],
+        "_D1": xo.Float64[:],
+        "_D2": xo.Float64[:],
+        "_Q": xo.Float64[:],       
         
     }
     
@@ -5079,6 +5083,11 @@ class FieldExpansion(BeamElement):
         kwargs['_nq'] = (kwargs['_mmax'] + 2) - kwargs['_qemin'] + 1
 
         kwargs.setdefault("_c", np.zeros(kwargs['_ncoef'] * kwargs['_nm'] * (kwargs['deg'] + 1)))
+        
+        kwargs.setdefault("_V", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
+        kwargs.setdefault("_D1", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
+        kwargs.setdefault("_D2", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
+        kwargs.setdefault("_Q", np.zeros(kwargs['_nq']))
         
         super().__init__(**kwargs)
         
