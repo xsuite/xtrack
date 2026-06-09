@@ -287,54 +287,63 @@ void track_curved_exact_bend_single_particle(
 
     const double rvv = LocalParticle_get_rvv(part);
     // Particle coordinates
-    const double x = LocalParticle_get_x(part);
-    const double y = LocalParticle_get_y(part);
-    const double px = LocalParticle_get_px(part);
+    const double x0 = LocalParticle_get_x(part);
+    const double y0 = LocalParticle_get_y(part);
+    const double px0 = LocalParticle_get_px(part);
     const double py = LocalParticle_get_py(part);
     const double s = length;
     const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
 
     // angle-related quantities
-    const double angle = h * s;
-    const double sin_angle = sin(angle);
-    const double cos_angle = cos(angle);
-    const double sin_half_angle = sin(angle / 2);
+    const double hs = h * s;
+    const double sin_hs = sin(hs);
+    const double cos_hs = cos(hs);
+    const double sin_hs_2 = sin(hs / 2);
 
     // auxiliary quantities
-    const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
-    const double C = pz - k0_chi * ((1 / h) + x);
+    const double pz0 = sqrt(POW2(one_plus_delta) - POW2(px0) - POW2(py));
+    const double C = pz0 - k0_chi * ((1.0 / h) + x0);
 
-    // new px
-    const double new_px = px * cos_angle + C * sin_angle;
+    // p_x(s)
+    const double pxs = px0 * cos_hs + C * sin_hs;
 
-    // new pz
-    const double new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
+    // p_z(s)
+    const double pzs = sqrt(POW2(one_plus_delta) - POW2(pxs) - POW2(py));
 
-    // delta pz (rationalized, see physics manual)
-    const double delta_pz = (px - new_px) * (px + new_px) / (pz + new_pz);
+    // Delta p_z(s), rationalized
+    const double delta_pz = (px0 - pxs) * (px0 + pxs) / (pz0 + pzs);
 
     // Delta D
-    const double delta_D = -2 * C * POW2(sin_half_angle) - px * sin_angle;
+    const double delta_D = -2 * C * POW2(sin_hs_2) - px0 * sin_hs;
 
     // Delta x
     const double delta_x = (delta_pz - delta_D) / k0_chi;
 
+    // Delta p_x(s)
+    const double delta_px = -2 * px0 * POW2(sin_hs_2) + C * sin_hs;
+
+    // Delta a(s), stable asin difference
+    const double N_a = px0 * delta_pz - pz0 * delta_px;
+    const double D_a = pz0 * pzs + px0 * pxs;
+    const double delta_a = atan2(N_a, D_a);
+
+    // Common vertical and longitudinal integral
+    const double integ = (hs + delta_a) / k0_chi;
+
     // new y
-    const double denom = sqrt(POW2(one_plus_delta) - POW2(py));
-    const double asin_diff = asin(px / denom) - asin(new_px / denom);
-    const double new_y = y + (py * s * h / k0_chi) + (py / k0_chi) * asin_diff;
-    
-    // Delta zeta
-    const double delta_ell = (one_plus_delta * s * h / k0_chi)
-                           + (one_plus_delta / k0_chi) * asin_diff;
+    const double new_y = y0 + py * integ;
+
+    // Delta ell
+    const double delta_ell = one_plus_delta * integ;
 
     // Update Particles object
     LocalParticle_add_to_x(part, delta_x);
-    LocalParticle_set_px(part, new_px);
+    LocalParticle_set_px(part, pxs);
     LocalParticle_set_y(part, new_y);
     LocalParticle_add_to_zeta(part, length - delta_ell / rvv);
     LocalParticle_add_to_s(part, s);
 }
+
 
 GPUFUN
 void track_straight_exact_bend_single_particle(
