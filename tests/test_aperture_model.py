@@ -1,7 +1,6 @@
 import itertools
 
 import json
-from itertools import zip_longest
 from pathlib import Path
 
 import numpy as np
@@ -12,10 +11,11 @@ import xtrack as xt
 from cpymad.madx import Madx
 from xobjects.general import allclose_with_outliers
 from xobjects.test_helpers import for_all_test_contexts, requires_context
-from xtrack.aperture.aperture import Aperture, ProfilesView, TypePositionsView, TypesView
+from xtrack.aperture.aperture import Aperture, ProfilesView
+from xtrack.aperture.views import PipePositionsView, PipesView
 from xtrack.aperture.structures import (
-    ApertureModel, Pipe, Circle, Ellipse, FloatType, Polygon, Profile,
-    ProfilePosition, Rectangle, RectEllipse, SurveyData, PipePosition
+    ApertureModel, Pipe, Circle, FloatType, Polygon, Profile,
+    ProfilePosition, Rectangle, SurveyData, PipePosition
 )
 from xtrack.aperture.transform import matrix_to_transform, transform_matrix
 
@@ -324,8 +324,6 @@ def test_bounds_table_for_perfect_overlap_interval(test_context):
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_aperture_model_views(test_context):
-    env = xt.Environment()
-    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=1.0)])
     model = ApertureModel(
         pipe_positions=[
             PipePosition(
@@ -350,8 +348,8 @@ def test_aperture_model_views(test_context):
     )
 
     profiles = ProfilesView(model)
-    pipes = TypesView(model)
-    pipe_positions = TypePositionsView(model)
+    pipes = PipesView(model)
+    pipe_positions = PipePositionsView(model)
     pipe0 = pipes[0]
     positions = pipe0
 
@@ -892,8 +890,8 @@ def test_points_inside_polygon_simpler(kernels):
     ]
 )
 def test_get_aperture_sigmas_at_element_analytic(method, shape, aper_params, aper_tol, beam_params, halo_params, expected, context):
-    def madx_list(l):
-        return '{' + ', '.join([str(v) for v in l]) + '}'
+    def madx_list(values):
+        return '{' + ', '.join([str(v) for v in values]) + '}'
 
     halo_params_for_test = {
         'emitx_norm': beam_params['exn'],
@@ -1214,8 +1212,8 @@ def test_get_aperture_sigmas_at_element_vs_madx(
 
     MAD-X uses a different approach to computing N1 when dispersion is present, hence we only test the cases without.
     """
-    def madx_list(l):
-        return '{' + ', '.join([str(v) for v in l]) + '}'
+    def madx_list(values):
+        return '{' + ', '.join([str(v) for v in values]) + '}'
 
     halo_params_for_test = {
         'emitx_norm': exn,
@@ -1479,7 +1477,6 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
     s_samples = np.linspace(0, 3 * length, 51, dtype=FloatType._dtype)
     sections_table = ap.cross_sections_at_s(s_samples)
     sections = sections_table.cross_section
-    poses = sections_table.pose
 
     for ii in range(1, len(sections)):
         xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
@@ -1710,13 +1707,13 @@ def test_aperture_bounds_large_curved_ring_single_type_wraparound_regression(tes
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_at_s_interpolate_circles_to_cone(test_context):
     env = xt.Environment()
-    l = 1.0
+    length = 1.0
     angle = np.deg2rad(30.0)
     l_straight = 1.0 / np.sin(angle / 2)
     rho = 0.5 * l_straight / np.sin(angle / 2)
     l_curv = rho * angle
 
-    drift = env.new('drift', xt.Drift, length=l)
+    drift = env.new('drift', xt.Drift, length=length)
     bend_plus = env.new('bend_plus', xt.Bend, length=l_curv, angle=angle, k0=0)
     bend_minus = env.new('bend_minus', xt.Bend, length=l_curv, angle=-angle, k0=0)
     line = env.new_line(name='line', components=[drift, bend_plus, drift, drift, bend_minus, drift])
@@ -2033,14 +2030,14 @@ def test_cross_sections_at_s_interpolated_sections_stay_closed(test_context):
 def test_open_line_aperture_bounds_do_not_wrap_search(test_context):
     env = xt.Environment()
 
-    l = 1.0
+    length = 1.0
     dx = 1.0
     angle = np.deg2rad(30.0)
     l_straight = dx / np.sin(angle / 2)
     rho = 0.5 * l_straight / np.sin(angle / 2)
     l_curv = rho * angle
 
-    drift = env.new('drift', xt.Drift, length=l)
+    drift = env.new('drift', xt.Drift, length=length)
     rot_plus = env.new('rot_plus', xt.Bend, length=l_curv, angle=angle, k0=0)
     rot_minus = env.new('rot_minus', xt.Bend, length=l_curv, angle=-angle, k0=0)
     line = env.new_line(name='line', components=[drift, rot_plus, drift, drift, rot_minus, drift])
