@@ -653,6 +653,7 @@ def test_track_log_and_merit_function(test_context):
     # Below numbers obtained by first only matching the tunes, then the above
     x_optimized = [-1.40280327,  0.81538019,  0.31203146,  0.52495916, -0.05239972]
     merit_function.set_x(x_optimized)
+    opt.solve()
     assert np.all(opt.target_status(ret=True)['tol_met'])
 
     # Now prepare to track and to log intensity and sextupole strength
