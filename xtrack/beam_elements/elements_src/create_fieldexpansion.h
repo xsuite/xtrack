@@ -41,8 +41,9 @@ void build_expansion(
     const int moff = FieldExpansionData_get__moff(el);
     const int nm = FieldExpansionData_get__nm(el);
 
-    double c[ncoef * nm * (deg + 1)];
-    memset(c, 0, sizeof(c));
+    //double c[ncoef * nm * (deg + 1)];
+    double *c = (double *) FieldExpansionData_getp__c(el);
+    //memset(c, 0, sizeof(c));
 
     int nmax = (na > nb) ? na : nb;
     double invfact[nmax + 1];
@@ -99,9 +100,9 @@ void build_expansion(
         }
     }
 
-    for (int i = 0; i < ncoef * nm * (deg+1); ++i){
-        FieldExpansionData_set__c(el, i, c[i]);
-    }
+    // for (int i = 0; i < ncoef * nm * (deg+1); ++i){
+    //     FieldExpansionData_set__c(el, i, c[i]);
+    // }
 }
 
 #endif
