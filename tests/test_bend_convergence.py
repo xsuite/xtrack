@@ -66,6 +66,10 @@ def test_one_bend_rot_kick_rot_models_converged_at_expected_num_slices(
         edge='full', core=model, num_multipole_kicks=7 * 10000)
     tw_reference = line.twiss(betx=1, bety=1, x=x_test)
 
+    line.configure_bend_model(
+        edge='full', core='bend-kick-bend', num_multipole_kicks=7 * 10)
+    tw_bend_kick_bend = line.twiss(betx=1, bety=1, x=x_test)
+
     xo.assert_allclose(tw_converged.x[-1], tw_reference.x[-1],
                        rtol=0, atol=1e-14)
     xo.assert_allclose(tw_converged.px[-1], tw_reference.px[-1],
@@ -73,6 +77,15 @@ def test_one_bend_rot_kick_rot_models_converged_at_expected_num_slices(
     xo.assert_allclose(tw_converged.y[-1], tw_reference.y[-1],
                        rtol=0, atol=1e-14)
     xo.assert_allclose(tw_converged.py[-1], tw_reference.py[-1],
+                       rtol=0, atol=1e-14)
+
+    xo.assert_allclose(tw_converged.x[-1], tw_bend_kick_bend.x[-1],
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_converged.px[-1], tw_bend_kick_bend.px[-1],
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_converged.y[-1], tw_bend_kick_bend.y[-1],
+                       rtol=0, atol=1e-14)
+    xo.assert_allclose(tw_converged.py[-1], tw_bend_kick_bend.py[-1],
                        rtol=0, atol=1e-14)
 
 
