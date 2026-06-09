@@ -1,6 +1,17 @@
 #ifndef create_fieldexpansion_H
 #define create_fieldexpansion_H
 
+/* Index of c[i,m,k] in the c array, ordered as 
+c[0,mmin,0] ... c[0,mmin,deg], c[0,mmin+1,0] ... c[0,mmin+1,deg], ..., c[0,mmin+nm-1,0] ... c[0,mmin+nm-1,deg],
+c[1,mmin,0] ... c[1,mmin,deg], c[1,mmin+1,0] ... c[1,mmin+1,deg], ..., c[1,mmin+nm-1,0] ... c[1,mmin+nm-1,deg],
+... c[ncoef-1, mmin+nm-1, deg]
+moff=-mmin is the offset to be added to m to get the correct index, 
+since m does not necessarily start at 0
+*/
+
+const int cidx(int i, int m, int k, int nm, int moff, int deg) {
+    return (i * nm + (m+moff)) * (deg + 1) + k;
+}
 
 
 void build_expansion(
@@ -31,6 +42,7 @@ void build_expansion(
     const int nm = FieldExpansionData_get__nm(el);
 
     double c[ncoef * nm * (deg + 1)];
+    memset(c, 0, sizeof(c));
 
     int nmax = (na > nb) ? na : nb;
     double invfact[nmax + 1];
@@ -45,32 +57,30 @@ void build_expansion(
     /* phi_0(s) = sum_m c[0,m](s) q^m
     c[0,m] = - sum_(n>=m) (-1)^(n-m) / (h^n m! (n-m)!) a_n(s) */
     for (int m = 0; m <= na; ++m) {
-        double *dst = cptr(f, 0, m + moff);
         /* a_0(s)=int_0^s b_s(u)du contributes -a_0 to phi_0. 
         CAREFUL: this will neglect the highest order in the polynomial, 
         only up to given degree in a0 is kept */
         if (m==0) {
         for (int k = 0; k < deg; ++k)
-            dst[k + 1] = bs[k] / (double)(k + 1);
+            c[cidx(0,0,k+1,nm,moff,deg)] = bs[k] / (double)(k + 1);
         }
         for (int n = (m > 1 ? m : 1); n <= na; ++n) {
             double sgn = ((n - m) & 1) ? -1.0 : 1.0;
             double fac = -sgn * invhpow[n] * invfact[m] * invfact[n - m];
             const double *an = a + (size_t)(n - 1) * (size_t)(deg + 1);
-            for (int k = 0; k <= deg; ++k) dst[k] += fac * an[k];
+            for (int k = 0; k <= deg; ++k) c[cidx(0,m,k,nm,moff,deg)] += fac * an[k];
         }
     }
-    
+
     /* phi_1(q,s) = sum_m c[1,m](s) q^m
     c[1,m] = - sum_(n>=m+1) (-1)^(n-1-m) / (h^(n-1) m! (n-1-m)!) b_n(s) */
     if (ncoef > 1) {
         for (int m = 0; m <= nb - 1; ++m) {
-            double *dst = cptr(f, 1, m + moff);
             for (int n = m + 1; n <= nb; ++n) {
                 double sgn = ((n - 1 - m) & 1) ? -1.0 : 1.0;
                 double fac = -sgn * invhpow[n - 1] * invfact[m] * invfact[n - 1 - m];
                 const double *bn = b + (size_t)(n - 1) * (size_t)(deg + 1);
-                for (int k = 0; k <= deg; ++k) dst[k] += fac * bn[k];
+                for (int k = 0; k <= deg; ++k) c[cidx(1,m,k,nm,moff,deg)] += fac * bn[k];
             }
         }
     }
@@ -80,24 +90,19 @@ void build_expansion(
     C[i+2,m,k] = -(C[i,m+2,k+2]*(k+2)*(k+1) + C[i,m+2,k]*h^2*(m+2)^2) */
     for (int i = 0; i + 2 < ncoef; ++i) {
         for (int m = mmin; m <= mmax - 2; ++m) {
-
-            const double *src = ccptr(f, i, (m + 2) + moff);  /* memory location of C[i,m+2,0], taking into account that the minimal value is not zero by moff */
-            double *dst = cptr(f, i + 2, m + moff);  /* memory location of C[i+2,m,0] */
             double lam = h * h * (double)(m + 2) * (double)(m + 2);
             for (int k = 0; k <= deg; ++k) {
-                double v = lam * src[k];
-                if (k + 2 <= deg) v += (double)(k + 2) * (double)(k + 1) * src[k + 2];
-                dst[k] = -v;
+                double v = lam * c[cidx(i,m+2,k,nm,moff,deg)];
+                if (k + 2 <= deg) v += (double)(k + 2) * (double)(k + 1) * c[cidx(i,m+2,k+2,nm,moff,deg)];
+                c[cidx(i+2,m,k,nm,moff,deg)] = -v;
             }
         }
     }
 
     for (int i = 0; i < ncoef * nm * (deg+1); ++i){
-        FieldExpansionData_set__c(el, c[i], i);
+        FieldExpansionData_set__c(el, i, c[i]);
     }
-
 }
-
 
 #endif
 
