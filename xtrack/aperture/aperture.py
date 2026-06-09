@@ -7,6 +7,7 @@ from typing import Literal, cast
 import numpy as np
 
 import xobjects as xo
+from xtrack.beam_elements.apertures import LimitPolygon
 from xdeps.table import Table
 from xobjects.context import XContext
 from xtrack import TwissInit, TwissTable
@@ -915,7 +916,17 @@ class Aperture:
 
     def get_limit_elements(self, s_positions: list[float]) -> dict[float, LimitElement]:
         """Obtain interpolated cross-sections as limit beam elements."""
-        pass
+        cross_sections_table = self.cross_sections_at_s(s_positions)
+        limit_elements = {}
+        for s, row in zip(s_positions, cross_sections_table):
+            cross_section = row.cross_section
+            limit_poly = LimitPolygon(
+                x_vertices=cross_section[:, 0],
+                y_vertices=cross_section[:, 1],
+            )
+            limit_elements[s] = limit_poly
+
+        return limit_elements
 
     def plot_extents(
         self,

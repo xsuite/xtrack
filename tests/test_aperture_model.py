@@ -18,6 +18,7 @@ from xtrack.aperture.structures import (
     ProfilePosition, Rectangle, SurveyData, PipePosition
 )
 from xtrack.aperture.transform import matrix_to_transform, transform_matrix
+from xdeps.table import Table
 
 TOY_RING_SEQUENCE = """
     ! Toy Ring, 4 arcs
@@ -457,6 +458,34 @@ def test_aperture_model_views(test_context):
     assert [pp.profile.name for pp in positions[:]] == ['rect0', 'rect0']
     with pytest.raises(AttributeError):
         positions.append(positions[0])
+
+
+def test_get_limit_elements(monkeypatch):
+    ap = Aperture.__new__(Aperture)
+    cross_sections = np.array(
+        [
+            [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]],
+            [[2.0, 0.0], [3.0, 0.0], [2.0, 1.0]],
+        ],
+        dtype=FloatType._dtype,
+    )
+    table = Table(
+        data={
+            'index': np.array([0, 1], dtype=np.int64),
+            'cross_section': cross_sections,
+        },
+        index='index',
+    )
+    monkeypatch.setattr(ap, 'cross_sections_at_s', lambda s_positions: table)
+
+    out = ap.get_limit_elements([1.5, 3.5])
+
+    assert list(out) == [1.5, 3.5]
+    assert all(isinstance(value, xt.LimitPolygon) for value in out.values())
+    xo.assert_allclose(out[1.5].x_vertices, [0.0, 1.0, 0.0], atol=0, rtol=0)
+    xo.assert_allclose(out[1.5].y_vertices, [0.0, 0.0, 1.0], atol=0, rtol=0)
+    xo.assert_allclose(out[3.5].x_vertices, [2.0, 3.0, 2.0], atol=0, rtol=0)
+    xo.assert_allclose(out[3.5].y_vertices, [0.0, 0.0, 1.0], atol=0, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
