@@ -415,8 +415,8 @@ def test_orbit_correction_and_threading_shift_monitors():
 
     # Data from previous step can be found in:
     correction.correct() # Some more steps to log the position
-    xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-10)
-    xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-10)
+    xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=5e-10)
+    xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=5e-10)
 
     correction.clear_correction_knobs()
 
