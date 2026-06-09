@@ -6,8 +6,14 @@
 #ifndef XTRACK_DEFAULT_MAGNET_CONFIG_H
 #define XTRACK_DEFAULT_MAGNET_CONFIG_H
 
-#define BEND_DEFAULT_MODEL       (3) // rot-kick-rot
-#define RBEND_DEFAULT_MODEL      (3) // rot-kick-rot
+
+// #define BEND_DEFAULT_MODEL       (3) // rot-kick-rot
+// #define RBEND_DEFAULT_MODEL      (3) // rot-kick-rot
+
+// TEST:
+#define BEND_DEFAULT_MODEL       (2) // bend-kick-bend
+#define RBEND_DEFAULT_MODEL      (2) // bend-kick-bend
+
 #define QUADRUPOLE_DEFAULT_MODEL (4) // mat-kick-mat
 #define SEXTUPOLE_DEFAULT_MODEL  (6) // drift-kick-drift-expanded
 #define OCTUPOLE_DEFAULT_MODEL   (6) // drift-kick-drift-expanded
