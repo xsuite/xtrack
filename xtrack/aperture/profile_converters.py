@@ -86,6 +86,54 @@ def _profile_from_limit_polygon(element: apertures.LimitPolygon) -> Tuple[ShapeT
     return polygon, 0, 0
 
 
+@singledispatch
+def limit_element_from_profile(shape: ShapeTypes) -> LimitElement:
+    """Convert a profile shape to the matching limit beam element."""
+    raise NotImplementedError(f"Unsupported profile shape: {type(shape)}")
+
+
+@limit_element_from_profile.register
+def _limit_element_from_circle(shape: Circle) -> apertures.LimitEllipse:
+    return apertures.LimitEllipse(a=float(shape.radius), b=float(shape.radius))
+
+
+@limit_element_from_profile.register
+def _limit_element_from_ellipse(shape: Ellipse) -> apertures.LimitEllipse:
+    return apertures.LimitEllipse(a=float(shape.half_major), b=float(shape.half_minor))
+
+
+@limit_element_from_profile.register
+def _limit_element_from_rectangle(shape: Rectangle) -> apertures.LimitRect:
+    return apertures.LimitRect(
+        min_x=-float(shape.half_width),
+        max_x=float(shape.half_width),
+        min_y=-float(shape.half_height),
+        max_y=float(shape.half_height),
+    )
+
+
+@limit_element_from_profile.register
+def _limit_element_from_rectellipse(shape: RectEllipse) -> apertures.LimitRectEllipse:
+    return apertures.LimitRectEllipse(
+        max_x=float(shape.half_width),
+        max_y=float(shape.half_height),
+        a=float(shape.half_major),
+        b=float(shape.half_minor),
+    )
+
+
+@limit_element_from_profile.register
+def _limit_element_from_racetrack(shape: Racetrack) -> apertures.LimitRacetrack:
+    return apertures.LimitRacetrack(
+        min_x=-float(shape.half_width),
+        max_x=float(shape.half_width),
+        min_y=-float(shape.half_height),
+        max_y=float(shape.half_height),
+        a=float(shape.half_major),
+        b=float(shape.half_minor),
+    )
+
+
 def profile_from_madx_aperture(shape: str, params: List[float]) -> Optional[ShapeTypes]:
     converter, allowed_len_params = {
         'circle': (_profile_from_madx_circle, 1),

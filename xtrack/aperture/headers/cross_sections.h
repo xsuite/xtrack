@@ -28,6 +28,9 @@ uint32_t cross_section_at_s(
     const SurveyData,
     const uint32_t lower_bound,
     float_type* cross_section,
+    int32_t* out_profile_index,
+    float_type* out_offset_x,
+    float_type* out_offset_y,
     float_type* out_tol_r,
     float_type* out_tol_x,
     float_type* out_tol_y,
@@ -39,6 +42,9 @@ void cross_sections_at_s(
     const ApertureBounds,
     const SurveyData,
     float_type* cross_sections,
+    int32_t* profile_index,
+    float_type* offset_x,
+    float_type* offset_y,
     float_type* tol_r,
     float_type* tol_x,
     float_type* tol_y,
@@ -68,6 +74,16 @@ static inline void bounds_on_s_for_aperture(
     float_type* max_s);
 
 static inline uint32_t find_active_profile_for_s(const ApertureBounds, const float_type s, const uint32_t lower_bound);
+static inline int8_t aperture_bound_is_orthogonal(const ApertureBounds, const uint32_t bound_idx);
+static inline uint32_t aperture_bound_profile_index(const ApertureModel, const ApertureBounds, const uint32_t bound_idx);
+static inline void aperture_profile_origin_in_plane(
+    const ApertureModel model,
+    const ApertureBounds bounds,
+    const SurveyData survey,
+    const uint32_t bound_idx,
+    const Pose pipe_in_plane,
+    float_type* out_x,
+    float_type* out_y);
 
 
 static inline Pose pose_from_pipe_position(const PipePosition pipe_pos)
@@ -373,6 +389,9 @@ void cross_sections_at_s(
     const ApertureBounds bounds,
     const SurveyData survey,
     float_type* cross_sections,
+    int32_t* profile_index,
+    float_type* offset_x,
+    float_type* offset_y,
     float_type* tol_r,
     float_type* tol_x,
     float_type* tol_y,
@@ -398,6 +417,9 @@ void cross_sections_at_s(
             survey,
             bound_idx,
             cross_sections + i * ProfilePolygons_get_len_points(profile_polys) * 2,
+            profile_index ? &profile_index[i] : NULL,
+            offset_x ? &offset_x[i] : NULL,
+            offset_y ? &offset_y[i] : NULL,
             tol_r ? &tol_r[i] : NULL,
             tol_x ? &tol_x[i] : NULL,
             tol_y ? &tol_y[i] : NULL,
@@ -425,11 +447,18 @@ uint32_t cross_section_at_s(
     const SurveyData survey,
     const uint32_t lower_bound,
     float_type* cross_section,
+    int32_t* out_profile_index,
+    float_type* out_offset_x,
+    float_type* out_offset_y,
     float_type* out_tol_r,
     float_type* out_tol_x,
     float_type* out_tol_y,
     int8_t* out_is_convex
 )
+/*
+    Build the cross-section at the sampled survey position `s` where
+    `s = survey_at_s[idx_cross_section]`.
+*/
 {
     const float_type eps = APER_PRECISION;
     const uint32_t len_points = ProfilePolygons_get_len_points(profile_polys);
@@ -437,6 +466,10 @@ uint32_t cross_section_at_s(
     const uint32_t num_bounds = ApertureBounds_get_count(bounds);
     const float_type s = SurveyData_get_s(survey_at_s, idx_cross_section);
     Point2D* poly_at_s = (Point2D*)cross_section;
+
+    if (out_profile_index) *out_profile_index = -1;
+    if (out_offset_x) *out_offset_x = NAN;
+    if (out_offset_y) *out_offset_y = NAN;
 
     uint32_t bound_idx = interpolate_aperture_tolerances_at_s(
         model, bounds, s, lower_bound, out_tol_r, out_tol_x, out_tol_y);
@@ -450,8 +483,10 @@ uint32_t cross_section_at_s(
         return bound_idx;
     }
 
+    /* Installed survey s of the active profile selected by `bound_idx`. */
     const float_type s_center = ApertureBounds_get_s_positions(bounds, bound_idx);
 
+    /* Active profile at the target s, plus its immediate predecessor/successor in bounds order. */
     const Point2D* poly_center = NULL;
     const Point2D* poly_left = NULL;
     const Point2D* poly_right = NULL;
@@ -470,16 +505,22 @@ uint32_t cross_section_at_s(
     if (bound_idx + 1 < num_bounds && pipe_pos_idx == ApertureBounds_get_pipe_position_indices(bounds, bound_idx + 1))
         curvature_right = curvature;
 
+    /* Sampled cross-section plane at the target s, in world coordinates. */
     const Pose plane_in_world = pose_matrix_from_survey(survey_at_s, idx_cross_section);
+    /* Reference frame of the active pipe position, in world coordinates. */
     const Pose pipe_in_world = aperture_pipe_pose_in_world(pipe_pos, survey);
+    /* Transform world coordinates into the active pipe frame. */
     const Pose world_in_pipe = pose_inverse_rigid(pipe_in_world);
+    /* Sampled plane expressed in the active pipe frame, and its inverse. */
     const Pose plane_in_pipe = matrix_multiply(world_in_pipe, plane_in_world);
     const Pose pipe_in_plane = pose_inverse_rigid(plane_in_pipe);
 
+    /* Fetch center/left/right polygons and poses, all expressed in the active pipe frame. */
     get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx, world_in_pipe, &poly_center, &pose_center);
     const char has_left = get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx - 1, world_in_pipe, &poly_left, &pose_left);
     const char has_right = get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx + 1, world_in_pipe, &poly_right, &pose_right);
 
+    /* All `*_plane` polygons are expressed in sampled cross-section plane coordinates. */
     Point2D poly_center_plane[len_points];
     Point2D poly_left_plane[len_points];
     Point2D poly_right_plane[len_points];
@@ -488,17 +529,78 @@ uint32_t cross_section_at_s(
     if (has_right) project_3d_polygon_to_plane(poly_right, pose_right, pipe_in_plane, len_points, poly_right_plane);
 
     if (fabs(s - s_center) < eps) {
+        /* If the target s is very close to the installed s of the active profile,
+           just use that profile without interpolation -- already projected to
+           the right plane! */
         for (uint32_t j = 0; j < len_points; j++) poly_at_s[j] = poly_center_plane[j];
+
+        /* If additionally the profile is orthogonal to the survey, we can
+           already memorise the profile index and offsets (for the cases where
+           we want to additionally recover the logical shape at s, not just
+           the polygon). */
+        if (aperture_bound_is_orthogonal(bounds, bound_idx)) {
+            if (out_profile_index) *out_profile_index = (int32_t)aperture_bound_profile_index(model, bounds, bound_idx);
+            if (out_offset_x || out_offset_y) {
+                float_type center_x = NAN, center_y = NAN;
+                aperture_profile_origin_in_plane(model, bounds, survey, bound_idx, pipe_in_plane, &center_x, &center_y);
+                if (out_offset_x) *out_offset_x = center_x;
+                if (out_offset_y) *out_offset_y = center_y;
+            }
+        }
         if (out_is_convex) *out_is_convex = polygon_is_convex((const Point2D*)poly_at_s, len_points);
         return bound_idx;
     }
 
+    /*
+        If the interpolated profiles are orthogonal to the survey (which implies
+        there are two of them, not three, and additionally the profiles are the
+        same, then we can recover the interpolated profile as a logical shape,
+        not just a polygon.
+    */
+    const uint32_t side_idx = (s >= s_center) ? (bound_idx + 1) : (bound_idx - 1);
+    const char has_side = (s >= s_center) ? (bound_idx + 1 < num_bounds) : (bound_idx > 0);
+    if (has_side
+        && ApertureBounds_get_pipe_position_indices(bounds, side_idx) == pipe_pos_idx
+        && aperture_bound_is_orthogonal(bounds, bound_idx)
+        && aperture_bound_is_orthogonal(bounds, side_idx))
+    {
+        const uint32_t center_profile_idx = aperture_bound_profile_index(model, bounds, bound_idx);
+        const uint32_t side_profile_idx = aperture_bound_profile_index(model, bounds, side_idx);
+        const float_type s_side = ApertureBounds_get_s_positions(bounds, side_idx);
+        const float_type ds = s_side - s_center;
+
+        if (center_profile_idx == side_profile_idx && fabs(ds) >= eps) {
+            float_type center_x = NAN, center_y = NAN;
+            float_type side_x = NAN, side_y = NAN;
+            const float_type w_side = clamp_value((s - s_center) / ds, 0.f, 1.f);
+            const float_type w_center = 1.f - w_side;
+
+            aperture_profile_origin_in_plane(model, bounds, survey, bound_idx, pipe_in_plane, &center_x, &center_y);
+            aperture_profile_origin_in_plane(model, bounds, survey, side_idx, pipe_in_plane, &side_x, &side_y);
+
+            if (out_profile_index) *out_profile_index = (int32_t)center_profile_idx;
+            if (out_offset_x) *out_offset_x = w_center * center_x + w_side * side_x;
+            if (out_offset_y) *out_offset_y = w_center * center_y + w_side * side_y;
+        }
+    }
+
+    /*
+        General case: interpolate the points.
+
+        1. Find the best cyclic shift to align center-left and center-right
+           polygons with the center polygon.
+        2. For each point in the center polygon, interpolate either with the
+           left or right polygon depending on which side of s_center the target
+           s is, using the cyclic shifts to align the polygons.
+           -> See intersect_segment_with_plane_and_project_xy for the algorithm.
+    */
     const uint32_t shift_center_left = has_left
         ? find_best_cyclic_shift_plane(poly_center_plane, poly_left_plane, num_unique_points)
         : 0;
     const uint32_t shift_center_right = has_right
         ? find_best_cyclic_shift_plane(poly_center_plane, poly_right_plane, num_unique_points)
         : 0;
+    /* Try the side on which the target s lies first: center->right for s >= s_center, else left->center. */
     const char prefer_right = (s >= s_center);
 
     for (uint32_t j = 0; j < num_unique_points; j++) {
@@ -507,6 +609,7 @@ uint32_t cross_section_at_s(
 
         for (uint32_t attempt = 0; attempt < 2 && !has_intersection; attempt++)
         {
+            /* Interpolate either center->right or left->center, using cyclic shifts to align vertices. */
             const int use_right = (attempt == 0) ? prefer_right : !prefer_right;
             if ((use_right && !has_right) || (!use_right && !has_left)) continue;
 
@@ -518,13 +621,13 @@ uint32_t cross_section_at_s(
             const uint32_t idx_b = use_right ? (j + shift_center_right) % num_unique_points : j;
             const float_type segment_curvature = use_right ? curvature_right : curvature_left;
 
-            const Point3D point_a_type = pose_apply_point(
+            const Point3D point_a_pipe = pose_apply_point(
                 *pose_a, (Point3D){ poly_a[idx_a].x, poly_a[idx_a].y, 0.f });
-            const Point3D point_b_type = pose_apply_point(
+            const Point3D point_b_pipe = pose_apply_point(
                 *pose_b, (Point3D){ poly_b[idx_b].x, poly_b[idx_b].y, 0.f });
 
             has_intersection = intersect_segment_with_plane_and_project_xy(
-                point_a_type, point_b_type, plane_in_pipe, pipe_in_plane, segment_curvature, &hit_point_plane);
+                point_a_pipe, point_b_pipe, plane_in_pipe, pipe_in_plane, segment_curvature, &hit_point_plane);
         }
 
         poly_at_s[j] = has_intersection ? hit_point_plane : poly_center_plane[j];
@@ -533,6 +636,56 @@ uint32_t cross_section_at_s(
     if (out_is_convex)
         *out_is_convex = polygon_is_convex((const Point2D*)poly_at_s, len_points);
     return bound_idx;
+}
+
+
+static inline int8_t aperture_bound_is_orthogonal(const ApertureBounds bounds, const uint32_t bound_idx)
+{
+    return fabs(
+        ApertureBounds_get_s_end(bounds, bound_idx) - ApertureBounds_get_s_start(bounds, bound_idx)
+    ) <= APER_PRECISION;
+}
+
+
+static inline uint32_t aperture_bound_profile_index(
+    const ApertureModel model,
+    const ApertureBounds bounds,
+    const uint32_t bound_idx
+)
+{
+    const uint32_t pipe_pos_idx = ApertureBounds_get_pipe_position_indices(bounds, bound_idx);
+    const PipePosition pipe_pos = ApertureModel_getp1_pipe_positions(model, pipe_pos_idx);
+    const uint32_t pipe_idx = PipePosition_get_pipe_index(pipe_pos);
+    const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(bounds, bound_idx);
+    return ApertureModel_get_pipes_positions_profile_index(model, pipe_idx, profile_pos_idx);
+}
+
+
+static inline void aperture_profile_origin_in_plane(
+    const ApertureModel model,
+    const ApertureBounds bounds,
+    const SurveyData survey,
+    const uint32_t bound_idx,
+    const Pose pipe_in_plane,
+    float_type* out_x,
+    float_type* out_y
+)
+{
+    const uint32_t pipe_pos_idx = ApertureBounds_get_pipe_position_indices(bounds, bound_idx);
+    const uint32_t profile_pos_idx = ApertureBounds_get_profile_position_indices(bounds, bound_idx);
+
+    const PipePosition pipe_pos = ApertureModel_getp1_pipe_positions(model, pipe_pos_idx);
+    const uint32_t pipe_idx = PipePosition_get_pipe_index(pipe_pos);
+    const Pipe pipe = ApertureModel_getp1_pipes(model, pipe_idx);
+    const ProfilePosition profile_pos = Pipe_getp1_positions(pipe, profile_pos_idx);
+    const float_type curvature = Pipe_get_curvature(pipe);
+
+    Pose profile_in_pipe;
+    aperture_profile_pose_frame(pipe_pos, profile_pos, curvature, survey, identity(), &profile_in_pipe);
+
+    const Point3D origin_in_plane = pose_apply_point(pipe_in_plane, plane_initial_point(profile_in_pipe));
+    if (out_x) *out_x = origin_in_plane.x;
+    if (out_y) *out_y = origin_in_plane.y;
 }
 
 

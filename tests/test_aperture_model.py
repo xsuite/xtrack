@@ -11,6 +11,7 @@ import xtrack as xt
 from cpymad.madx import Madx
 from xobjects.general import allclose_with_outliers
 from xobjects.test_helpers import for_all_test_contexts, requires_context
+from xtrack.aperture.builder import ApertureBuilder
 from xtrack.aperture.aperture import Aperture, ProfilesView
 from xtrack.aperture.views import PipePositionsView, PipesView
 from xtrack.aperture.structures import (
@@ -460,32 +461,84 @@ def test_aperture_model_views(test_context):
         positions.append(positions[0])
 
 
-def test_get_limit_elements(monkeypatch):
-    ap = Aperture.__new__(Aperture)
-    cross_sections = np.array(
-        [
-            [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]],
-            [[2.0, 0.0], [3.0, 0.0], [2.0, 1.0]],
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_get_limit_elements_reconstructs_limit_ellipse(test_context):
+    env = xt.Environment()
+    length = 10.0
+    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=length)])
+    sv = line.survey()
+
+    builder = ApertureBuilder(line)
+    builder.new_profile('ellipse0', 'Ellipse', half_major=1.2, half_minor=0.8)
+    builder.new_pipe(
+        'pipe0',
+        positions=[
+            builder.place_profile('ellipse0', shift_s=0.0, shift_x=-0.4, shift_y=0.2),
+            builder.place_profile('ellipse0', shift_s=length, shift_x=0.6, shift_y=-0.4),
         ],
-        dtype=FloatType._dtype,
     )
-    table = Table(
-        data={
-            'index': np.array([0, 1], dtype=np.int64),
-            'cross_section': cross_sections,
-        },
-        index='index',
+    builder.place_pipe('pipe0', 'pipe0', sv.name[0], shift_x=0.3, shift_y=-0.1)
+    model = builder.build(context=test_context)
+
+    ap = Aperture(line=line, model=model, context=test_context)
+
+    sections = ap.cross_sections_at_s([5.0])
+    assert sections.profile_index[0] == 0
+    xo.assert_allclose(sections.offset_x[0], 0.7, atol=1e-12, rtol=0)
+    xo.assert_allclose(sections.offset_y[0], -0.3, atol=1e-12, rtol=0)
+
+    element = ap.get_limit_elements([5.0])[5.0]
+    assert isinstance(element, xt.LimitEllipse)
+    xo.assert_allclose(element.a, 1.2, atol=1e-12, rtol=0)
+    xo.assert_allclose(element.b, 0.8, atol=1e-12, rtol=0)
+    xo.assert_allclose(element.shift_x, 0.7, atol=1e-12, rtol=0)
+    xo.assert_allclose(element.shift_y, -0.3, atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_get_limit_elements_reconstructs_limit_racetrack_and_falls_back_to_polygon(test_context):
+    env = xt.Environment()
+    length = 9.0
+    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=length)])
+    sv = line.survey()
+
+    builder = ApertureBuilder(line)
+    builder.new_profile(
+        'racetrack0',
+        'Racetrack',
+        half_width=1.5,
+        half_height=0.7,
+        half_major=0.2,
+        half_minor=0.2,
     )
-    monkeypatch.setattr(ap, 'cross_sections_at_s', lambda s_positions: table)
+    builder.new_pipe(
+        'pipe0',
+        positions=[
+            builder.place_profile('racetrack0', shift_s=0.0, shift_x=-0.2, shift_y=0.1),
+            builder.place_profile('racetrack0', shift_s=4.0, shift_x=0.4, shift_y=-0.3),
+            builder.place_profile('racetrack0', shift_s=7.0, shift_x=0.8, shift_y=0.2, rot_x_rad=np.deg2rad(10.0)),
+        ],
+    )
+    builder.place_pipe('pipe0', 'pipe0', sv.name[0])
+    model = builder.build(context=test_context)
 
-    out = ap.get_limit_elements([1.5, 3.5])
+    ap = Aperture(line=line, model=model, context=test_context)
 
-    assert list(out) == [1.5, 3.5]
-    assert all(isinstance(value, xt.LimitPolygon) for value in out.values())
-    xo.assert_allclose(out[1.5].x_vertices, [0.0, 1.0, 0.0], atol=0, rtol=0)
-    xo.assert_allclose(out[1.5].y_vertices, [0.0, 0.0, 1.0], atol=0, rtol=0)
-    xo.assert_allclose(out[3.5].x_vertices, [2.0, 3.0, 2.0], atol=0, rtol=0)
-    xo.assert_allclose(out[3.5].y_vertices, [0.0, 0.0, 1.0], atol=0, rtol=0)
+    sections = ap.cross_sections_at_s([2.0, 5.5])
+    assert sections.profile_index[0] == 0
+    xo.assert_allclose(sections.offset_x[0], 0.1, atol=1e-12, rtol=0)
+    xo.assert_allclose(sections.offset_y[0], -0.1, atol=1e-12, rtol=0)
+    assert sections.profile_index[1] == -1
+    assert np.isnan(sections.offset_x[1])
+    assert np.isnan(sections.offset_y[1])
+
+    elements = ap.get_limit_elements([2.0, 5.5])
+    assert isinstance(elements[2.0], xt.LimitRacetrack)
+    xo.assert_allclose(elements[2.0].a, 0.2, atol=1e-12, rtol=0)
+    xo.assert_allclose(elements[2.0].b, 0.2, atol=1e-12, rtol=0)
+    xo.assert_allclose(elements[2.0].shift_x, 0.1, atol=1e-12, rtol=0)
+    xo.assert_allclose(elements[2.0].shift_y, -0.1, atol=1e-12, rtol=0)
+    assert isinstance(elements[5.5], xt.LimitPolygon)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

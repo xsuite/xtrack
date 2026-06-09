@@ -5,7 +5,6 @@ import numpy as np
 
 import xobjects as xo
 from xobjects.context import XContext
-from xtrack.aperture.transform import poly2d_to_homogeneous
 from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
 from xtrack.twiss import TwissTable
@@ -449,6 +448,9 @@ class ApertureModel(xo.Struct):
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(SurveyData, name='survey'),
                 xo.Arg(FloatType, pointer=True, name='cross_sections'),
+                xo.Arg(xo.Int32, pointer=True, name='profile_index'),
+                xo.Arg(FloatType, pointer=True, name='offset_x'),
+                xo.Arg(FloatType, pointer=True, name='offset_y'),
                 xo.Arg(FloatType, pointer=True, name='tol_r'),
                 xo.Arg(FloatType, pointer=True, name='tol_x'),
                 xo.Arg(FloatType, pointer=True, name='tol_y'),

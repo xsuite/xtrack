@@ -12,12 +12,13 @@ from xdeps.table import Table
 from xobjects.context import XContext
 from xtrack import TwissInit, TwissTable
 from xtrack.aperture.profile_converters import (
-    LimitElement, profile_from_limit_element, profile_from_madx_aperture
+    LimitElement, limit_element_from_profile, profile_from_limit_element,
+    profile_from_madx_aperture,
 )
 from xtrack.aperture.structures import (
     ApertureBounds, ApertureModel, BeamData, Circle, FloatType, Pipe,
-    PipePosition, Profile, ProfilePolygons, ProfilePosition,
-    Rectangle, RectEllipse, ShapeTypes, SurveyData, TwissData,
+    PipePosition, Profile, ProfilePolygons, ProfilePosition, Rectangle,
+    RectEllipse, ShapeTypes, SurveyData, TwissData,
 )
 from xtrack.json import dump as json_dump
 from xtrack.json import load as json_load
@@ -885,6 +886,9 @@ class Aperture:
         sv_resampled = self._survey_data.resample(s_positions)
 
         cross_sections = np.zeros(shape=(len(s_positions), self.num_profile_points, 2), dtype=FloatType._dtype)
+        profile_index = np.full(shape=len(s_positions), fill_value=-1, dtype=np.int32)
+        offset_x = np.full(shape=len(s_positions), fill_value=np.nan, dtype=FloatType._dtype)
+        offset_y = np.full(shape=len(s_positions), fill_value=np.nan, dtype=FloatType._dtype)
         tol_r = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
         tol_x = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
         tol_y = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
@@ -895,6 +899,9 @@ class Aperture:
             aperture_bounds=self._aperture_bounds,
             survey=self._survey_data,
             cross_sections=cross_sections,
+            profile_index=profile_index,
+            offset_x=offset_x,
+            offset_y=offset_y,
             tol_r=tol_r,
             tol_x=tol_x,
             tol_y=tol_y,
@@ -906,6 +913,9 @@ class Aperture:
             's': s_positions,
             'pose': poses,
             'cross_section': cross_sections,
+            'profile_index': profile_index,
+            'offset_x': offset_x,
+            'offset_y': offset_y,
             'tol_r': tol_r,
             'tol_x': tol_x,
             'tol_y': tol_y,
@@ -918,15 +928,39 @@ class Aperture:
         """Obtain interpolated cross-sections as limit beam elements."""
         cross_sections_table = self.cross_sections_at_s(s_positions)
         limit_elements = {}
-        for s, row in zip(s_positions, cross_sections_table):
+        for s, row in zip(s_positions, cross_sections_table.rows):
             cross_section = row.cross_section
-            limit_poly = LimitPolygon(
-                x_vertices=cross_section[:, 0],
-                y_vertices=cross_section[:, 1],
+            limit_elements[s] = self._limit_element_for_cross_section(
+                profile_index=int(row.profile_index),
+                offset_x=float(row.offset_x),
+                offset_y=float(row.offset_y),
+                cross_section=cross_section,
             )
-            limit_elements[s] = limit_poly
 
         return limit_elements
+
+    def _limit_element_for_cross_section(
+        self,
+        profile_index: int,
+        offset_x: float,
+        offset_y: float,
+        cross_section: np.ndarray,
+    ) -> LimitElement:
+        if profile_index != -1:
+            profile = self._model.profiles[profile_index]
+            try:
+                limit = limit_element_from_profile(profile.shape)
+                limit.shift_x = offset_x
+                limit.shift_y = offset_y
+                return limit
+            except NotImplementedError:
+                # Fall back to LimitPolygon
+                pass
+
+        return LimitPolygon(
+            x_vertices=cross_section[:-1, 0],
+            y_vertices=cross_section[:-1, 1],
+        )
 
     def plot_extents(
         self,
