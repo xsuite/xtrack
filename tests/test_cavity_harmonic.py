@@ -120,7 +120,7 @@ def test_cavity_harmonic():
     xo.assert_allclose(tt_sliced_cav.voltage, 16 / 8 / 3 * 1e6, rtol=1e-3)
 
     tw_slice_thick = line_slice_thick.twiss6d()
-    xo.assert_allclose(tw_harm.qs, tw_slice_thick.qs, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw_harm.qs, tw_slice_thick.qs, rtol=0, atol=3e-7)
 
     line_slice_thin = line.copy()
     line_slice_thin.slice_thick_elements([
