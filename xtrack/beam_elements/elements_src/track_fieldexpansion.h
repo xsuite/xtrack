@@ -206,41 +206,26 @@ void hamiltonian_flow(Expansion *f, const double beta0,
 
 void FieldExpansion_track_local_particle(
     FieldExpansionData el,
-    LocalParticle* part)
+    LocalParticle* part0)
 {
 
     const double nstep  = FieldExpansionData_get_nstep(el);
     const double ds     = FieldExpansionData_get_ds(el);
-    const double beta0  = LocalParticle_get_beta0(part);
-
-    const double x      = LocalParticle_get_x(part);
-    const double px     = LocalParticle_get_px(part);
-    const double y      = LocalParticle_get_y(part);
-    const double py     = LocalParticle_get_py(part);
-    const double tau    = LocalParticle_get_zeta(part) / beta0;
-    const double ptau   = LocalParticle_get_ptau(part);
-    double z[6] = {x, px, y, py, tau, ptau};
 
     Expansion f;
-
     f.ny    = FieldExpansionData_get_ny(el);
     f.ncoef = FieldExpansionData_get__ncoef(el);
-
     f.na    = FieldExpansionData_get_na(el);
     f.nb    = FieldExpansionData_get_nb(el);
     f.deg   = FieldExpansionData_get_deg(el);
-
     f.mmin  = FieldExpansionData_get__mmin(el);
     f.mmax  = FieldExpansionData_get__mmax(el);
     f.moff  = FieldExpansionData_get__moff(el);
     f.nm    = FieldExpansionData_get__nm(el);
-
     f.qemin = FieldExpansionData_get__qemin(el);
     f.nq    = FieldExpansionData_get__nq(el);
-
     f.h     = FieldExpansionData_get_h(el);
     f.c     = (double *)FieldExpansionData_getp__c(el);
-
     f.V     = (double *)FieldExpansionData_getp__V(el);
     f.D1    = (double *)FieldExpansionData_getp__D1(el);
     f.D2    = (double *)FieldExpansionData_getp__D2(el);
@@ -248,43 +233,64 @@ void FieldExpansion_track_local_particle(
 
     HamiltonianFlow flow;
 
-    // Momentum has to be continuous, vector potential discontinuous, update canonical momentum
-    FieldValue v;
-    evaluate_expansion(&f, z[0], z[2], 0, &v);
-    z[1] += v.Ax;
-    z[3] += v.Ay;
+    START_PER_PARTICLE_BLOCK(part0, part);
+        const double beta0  = LocalParticle_get_beta0(part);
 
-    double s = 0;
-    double ztmp[6];
-    for (int step = 0; step < nstep; ++step) {
-        double k1[6], k2[6], k3[6], k4[6];
+        const double x      = LocalParticle_get_x(part);
+        const double px     = LocalParticle_get_px(part);
+        const double y      = LocalParticle_get_y(part);
+        const double py     = LocalParticle_get_py(part);
+        const double tau    = LocalParticle_get_zeta(part) / beta0;
+        const double ptau   = LocalParticle_get_ptau(part);
+        const double ax     = LocalParticle_get_ax(part);
+        const double ay     = LocalParticle_get_ay(part);
+        double z[6] = {x, px, y, py, tau, ptau};
 
-        hamiltonian_flow(&f, beta0, s, z, &flow);
-        memcpy(k1, flow.rhs, sizeof(k1));
-        for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k1[i];
+        // Momentum has to be continuous, vector potential discontinuous, update canonical momentum
+        FieldValue v;
+        evaluate_expansion(&f, z[0], z[2], 0, &v);
+        z[1] += v.Ax - ax;
+        z[3] += v.Ay - ay;
 
-        hamiltonian_flow(&f, beta0, s + 0.5 * ds, ztmp, &flow);
-        memcpy(k2, flow.rhs, sizeof(k2));
-        for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k2[i];
+        double s = 0;
+        double ztmp[6];
+        for (int step = 0; step < nstep; ++step) {
+            double k1[6], k2[6], k3[6], k4[6];
 
-        hamiltonian_flow(&f, beta0, s + 0.5 * ds, ztmp, &flow);
-        memcpy(k3, flow.rhs, sizeof(k3));
-        for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + ds * k3[i];
+            hamiltonian_flow(&f, beta0, s, z, &flow);
+            memcpy(k1, flow.rhs, sizeof(k1));
+            for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k1[i];
 
-        hamiltonian_flow(&f, beta0, s + ds, ztmp, &flow);
-        memcpy(k4, flow.rhs, sizeof(k4));
-        for (int i = 0; i < 6; ++i) z[i] += ds * (k1[i] + 2.0*k2[i] + 2.0*k3[i] + k4[i]) / 6.0;
+            hamiltonian_flow(&f, beta0, s + 0.5 * ds, ztmp, &flow);
+            memcpy(k2, flow.rhs, sizeof(k2));
+            for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + 0.5 * ds * k2[i];
 
-        s += ds;
-    }
+            hamiltonian_flow(&f, beta0, s + 0.5 * ds, ztmp, &flow);
+            memcpy(k3, flow.rhs, sizeof(k3));
+            for (int i = 0; i < 6; ++i) ztmp[i] = z[i] + ds * k3[i];
 
-    LocalParticle_set_x(part, z[0]);
-    LocalParticle_set_px(part, z[1]);
-    LocalParticle_set_y(part, z[2]);
-    LocalParticle_set_py(part, z[3]);
-    LocalParticle_set_zeta(part, z[4]*beta0);
-    LocalParticle_set_ptau(part, z[5]);
-    LocalParticle_add_to_s(part, ds*nstep);
+            hamiltonian_flow(&f, beta0, s + ds, ztmp, &flow);
+            memcpy(k4, flow.rhs, sizeof(k4));
+            for (int i = 0; i < 6; ++i) z[i] += ds * (k1[i] + 2.0*k2[i] + 2.0*k3[i] + k4[i]) / 6.0;
+
+            s += ds;
+        }
+
+        // Back to zero vector potential for next element
+        evaluate_expansion(&f, z[0], z[2], 0, &v);
+        z[1] -= v.Ax;
+        z[3] -= v.Ay;
+
+        LocalParticle_set_x(part, z[0]);
+        LocalParticle_set_px(part, z[1]);
+        LocalParticle_set_y(part, z[2]);
+        LocalParticle_set_py(part, z[3]);
+        LocalParticle_set_zeta(part, z[4]*beta0);
+        LocalParticle_set_ptau(part, z[5]);
+        LocalParticle_set_ax(part, 0);
+        LocalParticle_set_ay(part, 0);
+        LocalParticle_add_to_s(part, ds*nstep);
+    END_PER_PARTICLE_BLOCK
 }
 
 #endif
