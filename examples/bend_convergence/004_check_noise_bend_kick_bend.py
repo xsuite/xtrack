@@ -11,7 +11,6 @@ angle = 2 * np.pi / 1000
 k2l = 0
 x_test = 1e-4
 
-
 knl = [0, 0, k2l]
 
 xsuite_models = [
