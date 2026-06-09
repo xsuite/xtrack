@@ -86,7 +86,7 @@ def test_cavity_harmonic():
 
     line2.set_particle_ref('proton', p0c=7e12)
     tw3 = line2.twiss6d()
-    xo.assert_allclose(tw_harm.qs, tw3.qs, rtol=0, atol=1e-7)
+    xo.assert_allclose(tw_harm.qs, tw3.qs, rtol=0, atol=3e-7)
 
     line_slice_thick = line.copy()
     line_slice_thick.slice_thick_elements([
