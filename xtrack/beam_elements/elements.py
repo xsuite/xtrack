@@ -5058,7 +5058,7 @@ class FieldExpansion(BeamElement):
        
         kwargs['a'] = np.asarray(a, dtype=np.float64).flatten()
         kwargs['b'] = np.asarray(b, dtype=np.float64).flatten()
-        kwargs['bs'] = np.asarray(bs, dtype=np.float64).flatten()
+        kwargs['bs'] = np.asarray(bs, dtype=np.float64)
 
         kwargs['na'] = a.shape[0]
         kwargs['nb'] = b.shape[0]
