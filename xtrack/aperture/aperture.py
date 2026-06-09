@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Collection
-from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, cast
+from collections.abc import Collection, Iterable
+from typing import Literal, cast
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from xdeps.table import Table
 from xobjects.context import XContext
 from xtrack import TwissInit, TwissTable
 from xtrack.aperture.profile_converters import (
-    LimitTypes, profile_from_limit_element, profile_from_madx_aperture
+    LimitElement, profile_from_limit_element, profile_from_madx_aperture
 )
 from xtrack.aperture.structures import (
     ApertureBounds, ApertureModel, BeamData, Circle, FloatType, Pipe,
@@ -29,10 +29,10 @@ from xtrack.aperture.views import (
 from xtrack.aperture.transform import transform_matrix
 
 DTypeFloat = np.dtype[FloatType._dtype]
-NDArrayNx2 = np.ndarray[Tuple[int, Literal[2]], DTypeFloat]
-NDArrayNxMx2 = np.ndarray[Tuple[int, int, Literal[2]], DTypeFloat]
-HomogenousMatrix = np.ndarray[Tuple[Literal[4], Literal[4]], DTypeFloat]
-HomogenousMatrices = np.ndarray[Tuple[int, Literal[4], Literal[4]], DTypeFloat]
+NDArrayNx2 = np.ndarray[tuple[int, Literal[2]], DTypeFloat]
+NDArrayNxMx2 = np.ndarray[tuple[int, int, Literal[2]], DTypeFloat]
+HomogenousMatrix = np.ndarray[tuple[Literal[4], Literal[4]], DTypeFloat]
+HomogenousMatrices = np.ndarray[tuple[int, Literal[4], Literal[4]], DTypeFloat]
 
 
 def _survey_is_closed(survey: Table, tol: float = 1e-6) -> bool:
@@ -85,12 +85,13 @@ class Aperture:
         line: Line,
         model: ApertureModel,
         num_profile_points: int = 128,
-        halo_params: Optional[dict] = None,
-        context: Optional[XContext] = None,
+        halo_params: dict | None = None,
+        context: XContext | None = None,
         s_tol=1e-6,
         is_ring: bool | Literal['auto'] = 'auto',
         _skip_validity_check=False,
     ):
+        """Bind an aperture model to a line and precompute the derived geometry."""
         self.line = line
         self._model = model  # positioning of pipes in line frame
         self.halo_params = self.halo_params.copy()
@@ -112,8 +113,8 @@ class Aperture:
         self._survey_data = SurveyData.from_survey_table(self.survey, context=self.context)
         self.num_profile_points = num_profile_points
 
-        self._aperture_bounds: Optional[ApertureBounds] = None
-        self._profile_polygons: Optional[ProfilePolygons] = None
+        self._aperture_bounds: ApertureBounds | None = None
+        self._profile_polygons: ProfilePolygons | None = None
         self._build_aperture_bounds(check_validity=not _skip_validity_check)
 
         if halo_params is not None:
@@ -121,17 +122,21 @@ class Aperture:
 
     @property
     def profiles(self) -> ProfilesView:
+        """Return the profile collection view."""
         return ProfilesView(self._model)
 
     @property
     def pipe_positions(self) -> PipePositionsView:
+        """Return the pipe-position collection view."""
         return PipePositionsView(self._model)
 
     @property
     def pipes(self) -> PipesView:
+        """Return the pipe collection view."""
         return PipesView(self._model)
 
     def to_json(self, filename):
+        """Serialize the aperture model and halo parameters to JSON."""
         json = {
             'model': self._model.to_dict(),
             'halo_params': self.halo_params,
@@ -141,6 +146,7 @@ class Aperture:
 
     @classmethod
     def from_json(cls, filename, line, **kwargs):
+        """Load an aperture from JSON and bind it to `line`."""
         context = kwargs.pop('context', None)
         if context is None:
             context = getattr(line, '_context', None)
@@ -159,6 +165,7 @@ class Aperture:
 
     @classmethod
     def from_line_with_madx_metadata(cls, line, include_offsets=True, context=None, **kwargs):
+        """Build an aperture from MAD-X layout metadata attached to a line."""
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
         name_to_sv_index = dict(zip(survey.name, range(len(survey))))
@@ -306,6 +313,7 @@ class Aperture:
 
     @classmethod
     def from_line_with_associated_apertures(cls, line, context=None, **kwargs):
+        """Build an aperture from Xsuite elements that reference associated apertures."""
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not an element
         name_to_sv_index = dict(zip(survey.name, range(len(survey_names))))
@@ -396,6 +404,7 @@ class Aperture:
 
     @classmethod
     def from_line_with_limits(cls, line, context=None, **kwargs):
+        """Build an aperture from limit elements installed in the line."""
         survey = line.survey()
         survey_names = survey.name[:-1]  # _end_point is not a limit
         name_to_sv_index = dict(zip(survey.name, range(len(survey_names))))
@@ -410,7 +419,7 @@ class Aperture:
 
         for name in progress(survey_names, desc="Building aperture data", total=len(survey_names)):
             element = line[name]
-            if not isinstance(element, LimitTypes):
+            if not isinstance(element, LimitElement):
                 continue
 
             indices[name] = aper_idx
@@ -455,21 +464,22 @@ class Aperture:
         return aperture
 
     def polygon_for_profile(self, profile: Profile, num_points: int) -> NDArrayNx2:
+        """Sample a profile boundary as a 2D polygon."""
         return profile.build_polygon(len_points=num_points)
 
     @classmethod
     def _build_aperture_model(
             cls,
             line: Line,
-            pipe_indices: Dict[str, int],
-            pipe_list: List[Pipe],
-            pipe_position_list: List[PipePosition],
-            pipe_position_names: List[str],
-            profile_indices: Dict[str, int],
-            profile_list: List[ShapeTypes],
+            pipe_indices: dict[str, int],
+            pipe_list: list[Pipe],
+            pipe_position_list: list[PipePosition],
+            pipe_position_names: list[str],
+            profile_indices: dict[str, int],
+            profile_list: list[ShapeTypes],
             context: XContext,
             **kwargs,
-    ) -> 'Aperture':
+    ) -> Aperture:
         """Build the Aperture class and its comprising xobjects.
 
         Parameters
@@ -522,10 +532,10 @@ class Aperture:
     def get_aperture_sigmas_at_element(
             self,
             element_name: str,
-            resolution: Optional[float] = None,
-            twiss: Optional[TwissTable] = None,
+            resolution: float | None = None,
+            twiss: TwissTable | None = None,
             **kwargs,
-    ) -> Tuple[Table, TwissTable]:
+    ) -> tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at element ``element_name``.
 
         Parameters
@@ -551,13 +561,13 @@ class Aperture:
     def get_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
-            twiss_init: Optional[TwissInit] = None,
+            twiss_init: TwissInit | None = None,
             method: Literal['bisection', 'rays', 'exact'] = 'rays',
             envelopes_num_points: int = 36,
             num_rays: int = 32,
             output_max_envelopes: bool = False,
             output_cross_sections: bool = False,
-    ) -> Tuple[Table, TwissTable]:
+    ) -> tuple[Table, TwissTable]:
         """Compute the maximum number of sigmas at which the beam fits in the aperture at element ``element_name``.
 
         Parameters
@@ -682,9 +692,9 @@ class Aperture:
     def get_hvd_aperture_sigmas_at_element(
             self,
             element_name: str,
-            resolution: Optional[float] = None,
-            twiss: Optional[TwissTable] = None,
-    ) -> Tuple[np.ndarray, TwissTable, np.ndarray]:
+            resolution: float | None = None,
+            twiss: TwissTable | None = None,
+    ) -> tuple[np.ndarray, TwissTable, np.ndarray]:
         """Compute horizontal, vertical and horizontal max aperture sigmas at element ``element_name``.
 
         Parameters
@@ -710,8 +720,8 @@ class Aperture:
     def get_hvd_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
-            twiss_init: Optional[TwissInit] = None,
-    ) -> Tuple[np.ndarray, TwissTable, np.ndarray]:
+            twiss_init: TwissInit | None = None,
+    ) -> tuple[np.ndarray, TwissTable, np.ndarray]:
         """Compute horizontal, vertical and horizontal max aperture sigmas.
 
         Parameters
@@ -769,10 +779,10 @@ class Aperture:
             self,
             element_name: str,
             sigmas: float,
-            resolution: Optional[float] = None,
-            twiss: Optional[TwissTable] = None,
+            resolution: float | None = None,
+            twiss: TwissTable | None = None,
             **kwargs,
-    ) -> Tuple[np.ndarray, TwissTable]:
+    ) -> tuple[np.ndarray, TwissTable]:
         """Compute beam-envelope polygons at the cuts of ``element_name`` for a fixed sigma value.
 
         Parameters
@@ -804,10 +814,10 @@ class Aperture:
             self,
             s_positions: Iterable[float],
             sigmas: float,
-            twiss_init: Optional[TwissInit] = None,
+            twiss_init: TwissInit | None = None,
             envelopes_num_points: int = 128,
             include_aper_tols: bool = True,
-    ) -> Tuple[np.ndarray, TwissTable]:
+    ) -> tuple[np.ndarray, TwissTable]:
         """Compute beam-envelope polygons at the requested ``s_positions`` for a fixed sigma value.
 
         Parameters
@@ -857,9 +867,10 @@ class Aperture:
     def cross_sections_at_element(
         self,
         element_name: str,
-        resolution: Optional[float],
+        resolution: float | None,
         extents: bool = False,
     ) -> Table:
+        """Return aperture cross-sections sampled across an element."""
         s_positions = self._get_cuts_at_element(element_name, resolution)
         return self.cross_sections_at_s(s_positions, extents=extents)
 
@@ -868,6 +879,7 @@ class Aperture:
         s_positions: Collection[float],
         extents: bool = False,
     ) -> Table:
+        """Return aperture cross-sections at the requested `s` positions."""
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         sv_resampled = self._survey_data.resample(s_positions)
 
@@ -901,17 +913,22 @@ class Aperture:
             table_data.update(self._axis_extents_for_cross_sections(cross_sections))
         return Table(table_data, index='index')
 
+    def get_limit_elements(self, s_positions: list[float]) -> dict[float, LimitElement]:
+        """Obtain interpolated cross-sections as limit beam elements."""
+        pass
+
     def plot_extents(
         self,
         s_positions: Collection[float],
-        sigmas: Optional[float] = None,
-        twiss_init: Optional[TwissInit] = None,
+        sigmas: float | None = None,
+        twiss_init: TwissInit | None = None,
         method: Literal['bisection', 'rays', 'exact'] = 'rays',
         envelopes_num_points: int = 64,
         include_aper_tols: bool = False,
-        plot_s_positions: Optional[Collection[float]] = None,
+        plot_s_positions: Collection[float] | None = None,
         axs=None,
     ):
+        """Plot beam envelope and aperture extents over `s`."""
         s_positions = np.asarray(s_positions, dtype=FloatType._dtype)
         plot_s_positions = np.asarray(
             s_positions if plot_s_positions is None else plot_s_positions,
@@ -979,7 +996,7 @@ class Aperture:
 
         return fig, axs
 
-    def plot_at_element(self, name, resolution=0.1, sigmas=None, method=None, middle='beam', ax=None):
+    def plot_at_element(self, name: str, resolution: float = 0.1, sigmas: float | None = None, method: str | None = None, middle='beam', ax=None):
         """Display a transverse plot of the beam at an element ``name``.
 
         Parameters
@@ -1041,7 +1058,7 @@ class Aperture:
         ax.legend()
         return ax
 
-    def plot_n1_at_element(self, name, resolution=0.1, method='rays', middle='beam', ax=None, **kwargs):
+    def plot_n1_at_element(self, name: str, resolution: float = 0.1, method: str = 'rays', middle='beam', ax=None, **kwargs):
         """Display a transverse plot of the beam at n1 at element ``name``.
 
         Parameters
@@ -1104,6 +1121,7 @@ class Aperture:
         colour: Literal['profile', 'pipe'] = 'pipe',
         legend=True,
     ):
+        """Plot all installed pipes projected onto the floor plane."""
         from matplotlib import pyplot as plt
         ax = ax or plt.gca()
 
@@ -1126,7 +1144,7 @@ class Aperture:
 
         return ax
 
-    def _get_cuts_at_element(self, element_name: str, resolution: Optional[float]) -> List[float]:
+    def _get_cuts_at_element(self, element_name: str, resolution: float | None) -> list[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
         element = self.line[element_name]
         s_start = self.line._get_s_position(element_name)
@@ -1372,7 +1390,7 @@ class Aperture:
     def _sliced_twiss_at_s(
             self,
             s_positions: Iterable[float],
-            twiss_init: Optional[TwissInit] = None,
+            twiss_init: TwissInit | None = None,
     ) -> TwissTable:
         """Get a twiss table for the line with entries at each requested `s`.
 
@@ -1456,7 +1474,7 @@ class Aperture:
         }
 
     @classmethod
-    def _guess_original_mad_name(cls, element_name) -> Any:
+    def _guess_original_mad_name(cls, element_name: str) -> str:
         """Given a name of an element in a line, de-mangle the original MAD-X name.
 
         When importing a line from MAD-X, names can be mangled in two ways:
