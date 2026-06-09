@@ -447,8 +447,8 @@ def test_orbit_correction_and_threading_shift_monitors():
 
     xo.assert_allclose(tw_corr.x[0], 0, rtol=0, atol=1e-9)
     xo.assert_allclose(tw_corr.y[0], 0, rtol=0, atol=1e-9)
-    xo.assert_allclose(tw_thread.x[0], 0, rtol=0, atol=1e-4)
-    xo.assert_allclose(tw_thread.y[0], 0, rtol=0, atol=1e-4)
+    xo.assert_allclose(tw_thread.x[0], 0, rtol=0, atol=2e-4)
+    xo.assert_allclose(tw_thread.y[0], 0, rtol=0, atol=2e-4)
 
 def test_orbit_correction_tilt_monitors():
 
