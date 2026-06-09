@@ -373,12 +373,14 @@ class _HasKnlKsl:
 
         knl = np.zeros(nn, dtype=np.float64)
         ksl = np.zeros(nn, dtype=np.float64)
-        knl[: len(self.knl)] += self.knl
-        ksl[: len(self.ksl)] += self.ksl
+        knl[: len(self.knl)] += self._context.nparray_from_context_array(self.knl)
+        ksl[: len(self.ksl)] += self._context.nparray_from_context_array(self.ksl)
 
         if 'knl_rel' in self._xo_fnames:
-            knl[: len(self.knl_rel)] += self.main_strength * self.knl_rel
-            ksl[: len(self.ksl_rel)] += self.main_strength * self.ksl_rel
+            knl[: len(self.knl_rel)] += self._context.nparray_from_context_array(
+                self.main_strength * self.knl_rel)
+            ksl[: len(self.ksl_rel)] += self._context.nparray_from_context_array(
+                self.main_strength * self.ksl_rel)
 
         if 'k0' in self._xo_fnames:
             if hasattr(self, '_k0'): # To bypass k0 = from_angle

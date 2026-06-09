@@ -191,8 +191,15 @@ class RandomRutherford(RandomUniform):
 
         super().__init__(**kwargs)
 
-        if not isinstance(self._context, xo.ContextCpu):
-            raise ValueError('Rutherford random generator is not currently supported on GPU.')
+        # The Rutherford sampler runs on CPU and CUDA (Cupy): its C path uses
+        # only bounded loops and plain f64 math, with DBL_MAX/DBL_EPSILON
+        # supplied by xtrack/headers/constants.h on GPU. OpenCL is still
+        # excluded because exponential_integral_Ei.h relies on a file-scope
+        # `static const` lookup table, which is illegal in OpenCL C.
+        if isinstance(self._context, xo.ContextPyopencl):
+            raise ValueError(
+                'Rutherford random generator is not currently supported on '
+                'OpenCL (ContextPyopencl).')
 
     def set_parameters(self, A, B, lower_val, upper_val):
         self.compile_kernels(particles_class=xt.Particles, only_if_needed=True)
