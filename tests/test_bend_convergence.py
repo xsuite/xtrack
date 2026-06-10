@@ -1,8 +1,14 @@
+import pathlib
+
 import numpy as np
 import pytest
 
 import xobjects as xo
 import xtrack as xt
+
+
+test_data_folder = pathlib.Path(
+        __file__).parent.joinpath('../test_data').absolute()
 
 
 def test_bend_kick_bend_noise_10000_vs_1_slice():
@@ -120,3 +126,26 @@ def test_one_bend_on_zero_orbit_is_zero(model):
         edge='full', core=model, num_multipole_kicks=7 * 20000)
     tw_20000_slices = line.twiss(betx=1, bety=1, x=0)
     xo.assert_allclose(tw_20000_slices.x[-1], 0, rtol=0, atol=1e-16)
+
+
+def test_lhc_chromaticity_consistent_with_bend_kick_bend():
+    line = xt.load(
+        test_data_folder / 'hllhc15_thick/lhc_thick_with_knobs.json')
+    line['vrf400'] = 16
+
+    tw4d_rot_kick_rot = line.twiss4d()
+    tw6d_rot_kick_rot = line.twiss6d()
+
+    line.configure_bend_model(core='bend-kick-bend')
+    tw4d_bend_kick_bend = line.twiss4d()
+    tw6d_bend_kick_bend = line.twiss6d()
+
+    xo.assert_allclose(tw4d_bend_kick_bend.dqx, tw4d_rot_kick_rot.dqx,
+                       rtol=0, atol=1e-4)
+    xo.assert_allclose(tw4d_bend_kick_bend.dqy, tw4d_rot_kick_rot.dqy,
+                       rtol=0, atol=1e-4)
+
+    xo.assert_allclose(tw6d_bend_kick_bend.dqx, tw6d_rot_kick_rot.dqx,
+                       rtol=0, atol=1e-4)
+    xo.assert_allclose(tw6d_bend_kick_bend.dqy, tw6d_rot_kick_rot.dqy,
+                       rtol=0, atol=1e-4)
