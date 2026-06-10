@@ -212,6 +212,62 @@ void track_expanded_combined_dipole_quad_single_particle(
 
 }
 
+// OLD IMPLEMENTATION
+// GPUFUN
+// void track_curved_exact_bend_single_particle(
+//     LocalParticle* part,  // LocalParticle to track
+//     const double length,  // length of the element
+//     const double k0,      // normal dipole strength
+//     const double h        // curvature
+// ) {
+
+//     // Here we assume that the caller has ensured h != 0
+
+//     double const k0_chi = k0 * LocalParticle_get_chi(part);
+
+//     if (fabs(k0_chi) < 1e-8) {
+//         track_polar_drift_single_particle(part, length, h);
+//         return;
+//     }
+
+//     const double rvv = LocalParticle_get_rvv(part);
+//     // Particle coordinates
+//     const double x = LocalParticle_get_x(part);
+//     const double y = LocalParticle_get_y(part);
+//     const double px = LocalParticle_get_px(part);
+//     const double py = LocalParticle_get_py(part);
+//     const double s = length;
+
+//     const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
+//     const double A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
+//     const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
+
+//     double new_x, new_px, new_y, delta_ell;
+
+//     // The case for non-zero curvature, s is arc length
+//     // Useful constants
+//     const double C = pz - k0_chi * ((1 / h) + x);
+//     new_px = px * cos(s * h) + C * sin(s * h);
+//     double const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
+//     // double const d_new_px_ds = new_px / new_pz;
+
+//     const double d_new_px_ds = C * h * cos(h * s) - h * px * sin(h * s);
+
+//     // Update particle coordinates
+//     new_x = (new_pz * h - d_new_px_ds - k0_chi) / (h * k0_chi);
+//     const double D = asin(A * px) - asin(A * new_px);
+//     new_y = y + ((py * s) / (k0_chi / h)) + (py / k0_chi) * D;
+
+//     delta_ell = ((one_plus_delta * s * h) / k0_chi) + (one_plus_delta / k0_chi) * D;
+
+//     // Update Particles object
+//     LocalParticle_set_x(part, new_x);
+//     LocalParticle_set_px(part, new_px);
+//     LocalParticle_set_y(part, new_y);
+//     LocalParticle_add_to_zeta(part, length - delta_ell / rvv);
+//     LocalParticle_add_to_s(part, s);
+// }
+
 GPUFUN
 void track_curved_exact_bend_single_particle(
     LocalParticle* part,  // LocalParticle to track
@@ -231,41 +287,63 @@ void track_curved_exact_bend_single_particle(
 
     const double rvv = LocalParticle_get_rvv(part);
     // Particle coordinates
-    const double x = LocalParticle_get_x(part);
-    const double y = LocalParticle_get_y(part);
-    const double px = LocalParticle_get_px(part);
+    const double x0 = LocalParticle_get_x(part);
+    const double y0 = LocalParticle_get_y(part);
+    const double px0 = LocalParticle_get_px(part);
     const double py = LocalParticle_get_py(part);
     const double s = length;
-
     const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
-    const double A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
-    const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
 
-    double new_x, new_px, new_y, delta_ell;
+    // angle-related quantities
+    const double hs = h * s;
+    const double sin_hs = sin(hs);
+    const double cos_hs = cos(hs);
+    const double sin_hs_2 = sin(hs / 2);
 
-    // The case for non-zero curvature, s is arc length
-    // Useful constants
-    const double C = pz - k0_chi * ((1 / h) + x);
-    new_px = px * cos(s * h) + C * sin(s * h);
-    double const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
-    // double const d_new_px_ds = new_px / new_pz;
+    // auxiliary quantities
+    const double pz0 = sqrt(POW2(one_plus_delta) - POW2(px0) - POW2(py));
+    const double C = pz0 - k0_chi * ((1.0 / h) + x0);
 
-    const double d_new_px_ds = C * h * cos(h * s) - h * px * sin(h * s);
+    // p_x(s)
+    const double pxs = px0 * cos_hs + C * sin_hs;
 
-    // Update particle coordinates
-    new_x = (new_pz * h - d_new_px_ds - k0_chi) / (h * k0_chi);
-    const double D = asin(A * px) - asin(A * new_px);
-    new_y = y + ((py * s) / (k0_chi / h)) + (py / k0_chi) * D;
+    // p_z(s)
+    const double pzs = sqrt(POW2(one_plus_delta) - POW2(pxs) - POW2(py));
 
-    delta_ell = ((one_plus_delta * s * h) / k0_chi) + (one_plus_delta / k0_chi) * D;
+    // Delta p_z(s), rationalized
+    const double delta_pz = (px0 - pxs) * (px0 + pxs) / (pz0 + pzs);
+
+    // Delta D
+    const double delta_D = -2 * C * POW2(sin_hs_2) - px0 * sin_hs;
+
+    // Delta x
+    const double delta_x = (delta_pz - delta_D) / k0_chi;
+
+    // Delta p_x(s)
+    const double delta_px = -2 * px0 * POW2(sin_hs_2) + C * sin_hs;
+
+    // Delta a(s), stable asin difference
+    const double N_a = px0 * delta_pz - pz0 * delta_px;
+    const double D_a = pz0 * pzs + px0 * pxs;
+    const double delta_a = atan2(N_a, D_a);
+
+    // Common vertical and longitudinal integral
+    const double integ = (hs + delta_a) / k0_chi;
+
+    // new y
+    const double new_y = y0 + py * integ;
+
+    // Delta ell
+    const double delta_ell = one_plus_delta * integ;
 
     // Update Particles object
-    LocalParticle_set_x(part, new_x);
-    LocalParticle_set_px(part, new_px);
+    LocalParticle_add_to_x(part, delta_x);
+    LocalParticle_set_px(part, pxs);
     LocalParticle_set_y(part, new_y);
     LocalParticle_add_to_zeta(part, length - delta_ell / rvv);
     LocalParticle_add_to_s(part, s);
 }
+
 
 GPUFUN
 void track_straight_exact_bend_single_particle(
@@ -408,6 +486,8 @@ void track_magnet_drift_single_particle(
     // drift_model = 6 : solenoid (caller has ensured k0=0, k1=0, h=0, ks!=0)
     // drift_model = 7 : bend (h!=0 + k0) modeled with with 4th order Yoshida
     //                   integrator (rot-kick_from_k0-rot)
+    // drift_model = 8 : bend (h!=0 + k0) modeled with with 6th order Yoshida
+    //                   integrator (rot-kick_from_k0-rot)
 
     if (drift_model == -1) {
         return;
@@ -448,6 +528,25 @@ void track_magnet_drift_single_particle(
             track_polar_drift_single_particle(part, -0.17560359597982889 * length, h);
             LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.3512071919596578 * k0 * LocalParticle_get_chi(part) * length);
             track_polar_drift_single_particle(part, 0.6756035959798289 * length, h);
+            break;
+        case 8:
+            // // Sixth order Yoshida integrator for a curved bend (h and k0 only)
+            // // (integrator coefficients from MAD-NG)
+            track_polar_drift_single_particle(part, 3.922568052387799819591407413100e-01 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 7.845136104775599639182814826199e-01 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, 5.100434119184584780271052295575e-01 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 2.355732133593569921359289764951e-01 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, -4.710533854097565531482416645304e-01 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - (-1.177679984178870098432412305556e+00) * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, 6.875316825251809316199569366290e-02 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 1.315186320683906284756403692882e+00 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, 6.875316825251809316199569366290e-02 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - (-1.177679984178870098432412305556e+00) * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, -4.710533854097565531482416645304e-01 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 2.355732133593569921359289764951e-01 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, 5.100434119184584780271052295575e-01 * length, h);
+            LocalParticle_set_px(part, LocalParticle_get_px(part) - 7.845136104775599639182814826199e-01 * k0 * LocalParticle_get_chi(part) * length);
+            track_polar_drift_single_particle(part, 3.922568052387799819591407413100e-01 * length, h);
             break;
         default:
             break;

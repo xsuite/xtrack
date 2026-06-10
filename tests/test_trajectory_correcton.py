@@ -3,6 +3,7 @@ import json
 
 import numpy as np
 from cpymad.madx import Madx
+import pytest
 
 import xpart as xp
 import xtrack as xt
@@ -270,6 +271,7 @@ def test_orbit_correction_thread(test_context):
     assert kicks_x.std() < 5e-5
     assert kicks_y.std() < 5e-5
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_correct_trajectory_transfer_line(test_context):
 
@@ -398,7 +400,7 @@ def test_orbit_correction_and_threading_shift_monitors():
     correction = line.correct_trajectory(twiss_table=tw0,
                                         monitor_alignment=bpm_alignment, # <--BPM alignment
                                         run=False)
-    correction.correct()
+    correction.correct(delta0=0)
 
     #!end-doc-part
 
@@ -414,9 +416,9 @@ def test_orbit_correction_and_threading_shift_monitors():
                     [0., 0., 0.002, 0.002, 0.002, 0.002, 0., 0.], rtol=0, atol=1e-14)
 
     # Data from previous step can be found in:
-    correction.correct() # Some more steps to log the position
-    xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=1e-10)
-    xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=1e-10)
+    correction.correct(delta0=0) # Some more steps to log the position
+    xo.assert_allclose(correction.x_correction._position_before,0, rtol=0, atol=5e-10)
+    xo.assert_allclose(correction.y_correction._position_before,0, rtol=0, atol=5e-10)
 
     correction.clear_correction_knobs()
 

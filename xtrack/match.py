@@ -839,11 +839,11 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
 
     def get_jacobian(self, x=None, f0=None):
         if self.use_tpsa:
-            return self.get_jacobian_tpsa()
+            return self.get_jacobian_tpsa(x)
         else:
             return super().get_jacobian(x, f0=f0)
 
-    def get_jacobian_tpsa(self):
+    def get_jacobian_tpsa(self, x=None):
         from .madng_interface import ActionTwissMadngTPSA
         action = None
         for a in self.actions:
@@ -853,7 +853,11 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
         if action is None:
             raise RuntimeError('No ActionTwissMadngTPSA found in actions for TPSA jacobian computation')
 
-
+        # acquire_jacobian() reads the Jacobian as the linear part of the
+        # differential-algebra map from the last MAD-NG track.
+        # Re-track only if different point requested, to avoid redundant MAD-NG calls: self(x) re-tracks at x
+        if x is not None and not np.allclose(x, self._get_x(), rtol=1e-12, atol=0):
+            self(x)
 
         jacobian = action.acquire_jacobian()
 

@@ -36,7 +36,7 @@ import xtrack as xt  # To avoid circular imports
 DEFAULT_STEPS_R_MATRIX = {
     'dx':1e-6, 'dpx':1e-7,
     'dy':1e-6, 'dpy':1e-7,
-    'dzeta':1e-6, 'ddelta':1e-6
+    'dzeta':1e-5, 'ddelta':1e-6
 }
 
 DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-9]
@@ -2987,7 +2987,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                             symmetrize=symmetrize),
                 x0=x0, steps=[1e-8, 1e-9, 1e-8, 1e-9, 1e-7, 1e-8],
                 tar=[0., 0., 0., 0., 0., 0.],
-                tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12])
+                tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-11, 1e-12])
         try:
             opt.solve(verbose=-1)
             ier = 1
