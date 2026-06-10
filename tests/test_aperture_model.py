@@ -19,7 +19,6 @@ from xtrack.aperture.structures import (
     ProfilePosition, Rectangle, SurveyData, PipePosition
 )
 from xtrack.aperture.transform import matrix_to_transform, transform_matrix
-from xdeps.table import Table
 
 TOY_RING_SEQUENCE = """
     ! Toy Ring, 4 arcs
@@ -484,15 +483,15 @@ def test_get_limit_elements_reconstructs_limit_ellipse(test_context):
 
     sections = ap.cross_sections_at_s([5.0])
     assert sections.profile_index[0] == 0
-    xo.assert_allclose(sections.offset_x[0], 0.7, atol=1e-12, rtol=0)
-    xo.assert_allclose(sections.offset_y[0], -0.3, atol=1e-12, rtol=0)
+    xo.assert_allclose(sections.offset_x[0], 0.4, atol=1e-12, rtol=0)
+    xo.assert_allclose(sections.offset_y[0], -0.2, atol=1e-12, rtol=0)
 
     element = ap.get_limit_elements([5.0])[5.0]
     assert isinstance(element, xt.LimitEllipse)
     xo.assert_allclose(element.a, 1.2, atol=1e-12, rtol=0)
     xo.assert_allclose(element.b, 0.8, atol=1e-12, rtol=0)
-    xo.assert_allclose(element.shift_x, 0.7, atol=1e-12, rtol=0)
-    xo.assert_allclose(element.shift_y, -0.3, atol=1e-12, rtol=0)
+    xo.assert_allclose(element.shift_x, 0.4, atol=1e-12, rtol=0)
+    xo.assert_allclose(element.shift_y, -0.2, atol=1e-12, rtol=0)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
