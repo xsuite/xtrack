@@ -1,13 +1,13 @@
 import xtrack as xt
 import numpy as np
 
-h = 0.2
-a = np.array([[1,0.1,-0.2],[1,0.1,-0.2]])
-b = np.array([[1,0.1,-0.2],[1,0.1,-0.2]])
-bs = np.array([0.1,0.2,0.1])
+h = 0
+a = np.array([[0]])
+b = np.array([[1]])
+bs = np.array([0])
 ny = 5
 length=0.01
-fexp = xt.FieldExpansion(length=length, h=h, a=a, b=b, bs=bs, ny=ny)
+fexp = xt.FieldExpansion(length=length, h=h, a=a, b=b, bs=bs, ny=ny, nstep=10)
 
 line = xt.Line(elements=[fexp])
 p = xt.Particles(x=0.01)

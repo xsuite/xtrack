@@ -5013,6 +5013,7 @@ class FieldExpansion(BeamElement):
     _xofields = {
         "length" : xo.Float64,
         "h": xo.Float64,
+        "cartesian": xo.Int64,
         "ny": xo.Int64,
         "deg": xo.Int64,
         "nstep": xo.Int64,
@@ -5051,12 +5052,13 @@ class FieldExpansion(BeamElement):
     _kernels = {'build_expansion': xo.Kernel(
             c_name='build_expansion',
             args=[xo.Arg(xo.ThisClass, name='el')]
-        )
+        ), 
     }
     
     def __init__(self, length, h, a, b, bs, ny, nstep=10, **kwargs):
         kwargs['length'] = length
         kwargs['h'] = h
+        kwargs['cartesian'] = h == 0
         kwargs['nstep'] = nstep
         kwargs['ds'] = length/nstep
        
@@ -5074,13 +5076,18 @@ class FieldExpansion(BeamElement):
             raise ValueError("Invalid input shapes")
         
         kwargs['_ncoef'] = kwargs['ny'] + 2  # store phi_0..phi_{ny+1} so By is also order ny
+        
         kwargs['_mmax'] = kwargs['na'] if kwargs['na'] > (kwargs['nb'] - 1) else (kwargs['nb'] - 1)
-        kwargs['_mmin'] = -2 * ((kwargs['_ncoef'] - 1) // 2)
-        kwargs['_moff'] = -kwargs['_mmin']
-        kwargs['_nm'] = kwargs['_mmax'] - kwargs['_mmin'] + 1
-
-        kwargs['_qemin'] = kwargs['_mmin'] - 1
+        if kwargs['cartesian']:
+            kwargs['_mmin'] = 0
+            kwargs['_moff'] = 0
+            kwargs['_qemin'] = 0  # CHECK
+        else:
+            kwargs['_mmin'] = -2 * ((kwargs['_ncoef'] - 1) // 2)
+            kwargs['_moff'] = -kwargs['_mmin']
+            kwargs['_qemin'] = kwargs['_mmin'] - 1  #CHECK
         kwargs['_nq'] = (kwargs['_mmax'] + 2) - kwargs['_qemin'] + 1
+        kwargs['_nm'] = kwargs['_mmax'] - kwargs['_mmin'] + 1
 
         kwargs.setdefault("_c", np.zeros(kwargs['_ncoef'] * kwargs['_nm'] * (kwargs['deg'] + 1)))
         
