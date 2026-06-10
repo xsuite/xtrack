@@ -8,6 +8,7 @@ typedef struct {
     int mmin, mmax, moff, nm;
     int qemin, nq;
     double h;
+    double cartesian;
     double *c;   /* c[i,m,k], polynomial coeff of s^k in q^m term */
     double *V;   /* scratch: c[i,m](s)   */
     double *D1;   /* scratch: d_s c[i,m]  */
@@ -72,11 +73,93 @@ void delta_from_ptau(const double beta0, double ptau,
     }
 }
 
+int evaluate_cartesian_expansion(Expansion *f, double x, double y, double s, FieldValue *out) {
+
+    memset(out, 0, sizeof(*out));
+
+    double *V = f->V;
+    double *D1 = f->D1;
+    double *D2 = f->D2;
+    double *X = f->Q;
+
+    fs_prepare_s(f, s);
+
+    /* x powers */
+    X[0] = pow(x, (double)f->qemin);
+    for (int t = 1; t < f->nq; ++t) X[t] = X[t - 1] * x;
+    #define XPOW(E) X[(E) - f->qemin]
+
+    /* As(x,0,s) */
+    if (f->ncoef > 1) {
+        for (int m = 0; m <= f->mmax; ++m) {
+            int j = m + f->moff;
+            const double c1m = V[1 * f->nm + j];  /* c[1,m] */
+            const double dc1m = f->D1[1 * f->nm + j];  /* c[1,m]'*/
+            const double xp = XPOW(m + 1) / (double)(m + 1);
+            out->As     += c1m * xp;
+            out->dAs_ds += dc1m * xp;
+            out->dAs_dx += c1m * XPOW(m);
+        }
+    }
+
+    double yi = 1.0; /* y^i / i! */
+    for (int i = 0; i <= f->ny; ++i) {
+        double sphi = 0.0, gx = 0.0, gs = 0.0, gy = 0.0;
+        double dgx_dx = 0.0, dgx_ds = 0.0;
+        double dgs_dx = 0.0, dgs_ds = 0.0;
+
+        for (int m = f->mmin; m <= f->mmax; ++m) {
+            const int j = m + f->moff;
+            const double cim   = V[i * f->nm + j];        /* c[i,m] */
+            const double ci1m  = V[(i + 1) * f->nm + j];  /* c[i+1,m] */
+            const double dcim  = D1[i * f->nm + j];       /* c[i,m]' */
+            const double ddcim = D2[i * f->nm + j];       /* c[i,m]'' */
+
+            const double xm  = XPOW(m);                  /* x^m */
+            const double xm1 = XPOW(m - 1);              /* x^(m-1) */
+            const double xm2 = XPOW(m - 2);              /* x^(m-2) */
+            
+            sphi += cim  * xm;
+            gx   += (double)m * cim  * xm1;
+            gy   += ci1m * xm;
+            gs   += dcim * xm;
+
+            dgx_dx += (double)m * (double)(m - 1) * cim * xm2;
+            dgx_ds += (double)m * dcim * xm1;
+            dgs_dx += (double)m * dcim * xm1;
+            dgs_ds += ddcim * xm;
+        }
+
+        out->phi += sphi * yi;  /* c[i,m] x^m y^i/i!*/
+        out->Bx  -= gx   * yi;  /* -h m c[i,m] x^(m-1) y^i/i! */
+        out->By  -= gy   * yi;  /* -c[i+1,m] x^m y^i/i! */
+        out->Bs  -= gs   * yi;  /* -c[i,m]' x^(m-1) y^i/i! */
+
+        /* A_x, A_s through order ny in y: need i = 0..ny-1 */
+        if (i < f->ny) {
+            double yi1 = yi * y / (double)(i + 1);  /* y^(i+1)/(i+1)! */
+            out->Ax += gs * yi1;                    /* -c[i,m]' x^(m-1) y^(i+1)/(i+1)! */
+            out->As -= gx * yi1;                    /* -h m c[i,m] x^(m-1) y^i/i! */
+            out->dAx_dx += dgs_dx  * yi1;
+            out->dAx_ds += dgs_ds  * yi1;
+            out->dAs_dx += -dgx_dx * yi1;
+            out->dAs_ds += -dgx_ds * yi1;
+        }
+
+        yi *= y / (double)(i + 1);
+    }
+
+    out->dAx_dy = -out->Bs;
+    out->dAs_dy =  out->Bx;
+
+    return 0;
+    #undef QPOW
+}
 
 
-int evaluate_expansion(Expansion *f, double x, double y, double s, FieldValue *out) {
+int evaluate_bent_expansion(Expansion *f, double x, double y, double s, FieldValue *out) {
     const double q = 1.0 + f->h * x;
-    if (q == 0.0) return -1; /* singular chart */
+        if (q == 0.0) return -1; /* singular chart */
 
     memset(out, 0, sizeof(*out));
 
@@ -104,10 +187,10 @@ int evaluate_expansion(Expansion *f, double x, double y, double s, FieldValue *o
             const double g = QPOW(m + 1) - QPOW(-1);
             const double den = f->h * (double)(m + 2);
             if (c1m != 0.0) {
-                out->As += c1m * g / den;
+                out->As     += c1m * g / den;
                 out->dAs_dx += c1m * (((double)(m + 1)) * QPOW(m) + QPOW(-2)) / (double)(m + 2);
             }
-            if (dc1m != 0.0) out->dAs_ds += dc1m * g / den;            
+            if (dc1m != 0.0) out->dAs_ds += dc1m * g / den;         
         }
     }
 
@@ -119,17 +202,18 @@ int evaluate_expansion(Expansion *f, double x, double y, double s, FieldValue *o
 
         for (int m = f->mmin; m <= f->mmax; ++m) {
             const int j = m + f->moff;
-            const double cim = V[i * f->nm + j];         /* c[i,m] */
-            const double ci1m = V[(i + 1) * f->nm + j];  /* c[i+1,m] */
-            const double dcim = D1[i * f->nm + j];       /* c[i,m]' */
-            const double ddcim = D2[i * f->nm + j];      /* c[i,m]'' */
-            const double qm = QPOW(m);                   /* q^m */
+            const double cim   = V[i * f->nm + j];        /* c[i,m] */
+            const double ci1m  = V[(i + 1) * f->nm + j];  /* c[i+1,m] */
+            const double dcim  = D1[i * f->nm + j];       /* c[i,m]' */
+            const double ddcim = D2[i * f->nm + j];       /* c[i,m]'' */
+
+            const double qm  = QPOW(m);                  /* q^m */
             const double qm1 = QPOW(m - 1);              /* q^(m-1) */
             const double qm2 = QPOW(m - 2);              /* q^(m-2) */
 
             sphi += cim * qm;                            /* c[i,m] q^m */
             gx   += f->h * (double)m * cim * qm1;        /* h m c[i,m] q^(m-1) */
-            gy   += ci1m * qm;         /* c[i+1,m] q^m */
+            gy   += ci1m * qm;                           /* c[i+1,m] q^m */
             gs   += dcim * qm1;                          /* c[i,m]' q^(m-1) */
 
             dgx_dx += f->h * f->h * (double)m * (double)(m-1) * cim * qm2;
@@ -146,8 +230,8 @@ int evaluate_expansion(Expansion *f, double x, double y, double s, FieldValue *o
         /* A_x, A_s through order ny in y: need i = 0..ny-1 */
         if (i < f->ny) {
             double yi1 = yi * y / (double)(i + 1);  /* y^(i+1)/(i+1)! */
-            out->Ax += gs * yi1;  /* -c[i,m]' q^(m-1) y^(i+1)/(i+1)! */
-            out->As -= gx * yi1;  /* -h m c[i,m] q^(m-1) y^i/i! *//* -h m c[i,m] q^(m-1) y^i/i! */
+            out->Ax += gs * yi1;                    /* -c[i,m]' q^(m-1) y^(i+1)/(i+1)! */
+            out->As -= gx * yi1;                    /* -h m c[i,m] q^(m-1) y^i/i! */
             out->dAx_dx += dgs_dx  * yi1;
             out->dAx_ds += dgs_ds  * yi1;
             out->dAs_dx += -dgx_dx * yi1;
@@ -162,6 +246,14 @@ int evaluate_expansion(Expansion *f, double x, double y, double s, FieldValue *o
 
     return 0;
     #undef QPOW
+}
+
+int evaluate_expansion(Expansion *f, double x, double y, double s, FieldValue *out) {
+    if (f->cartesian) {
+        return evaluate_cartesian_expansion(f, x, y, s, out);
+    } else {
+        return evaluate_bent_expansion(f, x, y, s, out);
+    }
 }
 
 void hamiltonian_flow(Expansion *f, const double beta0,
@@ -213,23 +305,24 @@ void FieldExpansion_track_local_particle(
     const double ds     = FieldExpansionData_get_ds(el);
 
     Expansion f;
-    f.ny    = FieldExpansionData_get_ny(el);
-    f.ncoef = FieldExpansionData_get__ncoef(el);
-    f.na    = FieldExpansionData_get_na(el);
-    f.nb    = FieldExpansionData_get_nb(el);
-    f.deg   = FieldExpansionData_get_deg(el);
-    f.mmin  = FieldExpansionData_get__mmin(el);
-    f.mmax  = FieldExpansionData_get__mmax(el);
-    f.moff  = FieldExpansionData_get__moff(el);
-    f.nm    = FieldExpansionData_get__nm(el);
-    f.qemin = FieldExpansionData_get__qemin(el);
-    f.nq    = FieldExpansionData_get__nq(el);
-    f.h     = FieldExpansionData_get_h(el);
-    f.c     = (double *)FieldExpansionData_getp__c(el);
-    f.V     = (double *)FieldExpansionData_getp__V(el);
-    f.D1    = (double *)FieldExpansionData_getp__D1(el);
-    f.D2    = (double *)FieldExpansionData_getp__D2(el);
-    f.Q     = (double *)FieldExpansionData_getp__Q(el);
+    f.ny         = FieldExpansionData_get_ny(el);
+    f.ncoef      = FieldExpansionData_get__ncoef(el);
+    f.na         = FieldExpansionData_get_na(el);
+    f.nb         = FieldExpansionData_get_nb(el);
+    f.deg        = FieldExpansionData_get_deg(el);
+    f.mmin       = FieldExpansionData_get__mmin(el);
+    f.mmax       = FieldExpansionData_get__mmax(el);
+    f.moff       = FieldExpansionData_get__moff(el);
+    f.nm         = FieldExpansionData_get__nm(el);
+    f.qemin      = FieldExpansionData_get__qemin(el);
+    f.nq         = FieldExpansionData_get__nq(el);
+    f.h          = FieldExpansionData_get_h(el);
+    f.cartesian  = FieldExpansionData_get_cartesian(el);
+    f.c          = (double *)FieldExpansionData_getp__c(el);
+    f.V          = (double *)FieldExpansionData_getp__V(el);
+    f.D1         = (double *)FieldExpansionData_getp__D1(el);
+    f.D2         = (double *)FieldExpansionData_getp__D2(el);
+    f.Q          = (double *)FieldExpansionData_getp__Q(el);
 
     HamiltonianFlow flow;
 

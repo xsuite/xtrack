@@ -13,11 +13,71 @@ const int cidx(int i, int m, int k, int nm, int moff, int deg) {
     return (i * nm + (m+moff)) * (deg + 1) + k;
 }
 
+void build_cartesian_expansion(FieldExpansionData el){
+    const double h = FieldExpansionData_get_h(el);
+    const int ncoef = FieldExpansionData_get__ncoef(el);
+    const int na = FieldExpansionData_get_na(el);
+    const int nb = FieldExpansionData_get_nb(el);
+    const int deg = FieldExpansionData_get_deg(el);
+    double a[na * (deg + 1)];
+    for (int i = 0; i < na*(deg+1); ++i){
+        a[i] = FieldExpansionData_get_a(el,i);
+    }
+    double b[nb * (deg + 1)];
+    for (int i = 0; i < nb*(deg+1); ++i){
+        b[i] = FieldExpansionData_get_b(el,i);
+    }
+    double bs[deg + 1];
+    for (int i = 0; i < deg + 1; ++i){
+        bs[i] = FieldExpansionData_get_bs(el,i);
+    }
 
-void build_expansion(
-    FieldExpansionData el
-)
-{
+    const int mmax = FieldExpansionData_get__mmax(el);
+    const int moff = FieldExpansionData_get__moff(el);
+    const int nm = FieldExpansionData_get__nm(el);
+
+    double *c = (double *) FieldExpansionData_getp__c(el);
+
+    int nmax = (na > nb) ? na : nb;
+    double invfact[nmax + 1];
+    double invhpow[nmax + 1];
+    invfact[0] = 1.0;
+    invhpow[0] = 1.0;
+    for (int n = 1; n <= nmax; ++n) {
+        invfact[n] = invfact[n - 1] / (double)n;
+        invhpow[n] = invhpow[n - 1] / h;
+    }
+
+    for (int k = 0; k < deg; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = bs[k] / (double)(k + 1);
+
+    for (int n = 1; n <= na; ++n) {
+        const double fac = -invfact[n];
+        const double *an = a + (size_t)(n - 1) * (size_t)(deg + 1);
+        for (int k = 0; k <= deg; ++k) c[cidx(0,n,k,nm,moff,deg)] += fac * an[k];
+    }
+    if (ncoef > 1) {
+        for (int n = 1; n <= nb; ++n) {
+            const double fac = -invfact[n - 1];
+            const double *bn = b + (size_t)(n - 1) * (size_t)(deg + 1);
+            for (int k = 0; k <= deg; ++k) c[cidx(1,n-1,k,nm,moff,deg)] += fac * bn[k];
+        }
+    }
+
+    for (int i = 0; i + 2 < ncoef; ++i) {
+        for (int m = 0; m <= mmax; ++m) {
+            for (int k = 0; k <= deg; ++k) {
+                double v = 0.0;
+                if (m + 2 < mmax)
+                    v += (double)(m + 2) * (double)(m + 1) * c[cidx(i,m+2,k,nm,moff,deg)];
+                if (k + 2 <= deg) 
+                    v += (double)(k + 2) * (double)(k + 1) * c[cidx(i,m,k+2,nm,moff,deg)];
+                c[cidx(i+2,m,k,nm,moff,deg)] = -v;
+            }
+        }
+    }
+}
+
+void build_bent_expansion(FieldExpansionData el){
     const double h = FieldExpansionData_get_h(el);
     const int ncoef = FieldExpansionData_get__ncoef(el);
     const int na = FieldExpansionData_get_na(el);
@@ -41,9 +101,7 @@ void build_expansion(
     const int moff = FieldExpansionData_get__moff(el);
     const int nm = FieldExpansionData_get__nm(el);
 
-    //double c[ncoef * nm * (deg + 1)];
     double *c = (double *) FieldExpansionData_getp__c(el);
-    //memset(c, 0, sizeof(c));
 
     int nmax = (na > nb) ? na : nb;
     double invfact[nmax + 1];
@@ -55,16 +113,13 @@ void build_expansion(
         invhpow[n] = invhpow[n - 1] / h;
     }
 
+    /* a_0(s)=int_0^s b_s(u)du contributes -a_0 to phi_0. 
+    CAREFUL: this will neglect the highest order in the polynomial, 
+    only up to given degree in a0 is kept */
+    for (int k = 0; k < deg; ++k) c[cidx(0,0,k+1,nm,moff,deg)] = bs[k] / (double)(k + 1);
     /* phi_0(s) = sum_m c[0,m](s) q^m
     c[0,m] = - sum_(n>=m) (-1)^(n-m) / (h^n m! (n-m)!) a_n(s) */
     for (int m = 0; m <= na; ++m) {
-        /* a_0(s)=int_0^s b_s(u)du contributes -a_0 to phi_0. 
-        CAREFUL: this will neglect the highest order in the polynomial, 
-        only up to given degree in a0 is kept */
-        if (m==0) {
-        for (int k = 0; k < deg; ++k)
-            c[cidx(0,0,k+1,nm,moff,deg)] = bs[k] / (double)(k + 1);
-        }
         for (int n = (m > 1 ? m : 1); n <= na; ++n) {
             double sgn = ((n - m) & 1) ? -1.0 : 1.0;
             double fac = -sgn * invhpow[n] * invfact[m] * invfact[n - m];
@@ -99,10 +154,14 @@ void build_expansion(
             }
         }
     }
+}
 
-    // for (int i = 0; i < ncoef * nm * (deg+1); ++i){
-    //     FieldExpansionData_set__c(el, i, c[i]);
-    // }
+void build_expansion(FieldExpansionData el){
+    if (FieldExpansionData_get_cartesian(el)) {
+        build_cartesian_expansion(el);
+    } else {
+        build_bent_expansion(el);
+    }
 }
 
 #endif
