@@ -3285,14 +3285,14 @@ class Magnet(_BendCommon, BeamElement):
             - ``bend-kick-bend``: use a thick (curved, if ``h`` non-zero) exact
                 bend map for ``k0``, ``h``, and handle the other strengths in
                 the kicks.
-            - ``rot-kick-rot-low-order``: use an exact drift map (polar, 
+            - ``rot-kick-rot-low-order``: use an exact drift map (polar,
                 if ``h`` non-zero) and handle all strengths in the kicks.
             - ``rot-kick-rot``: nested integration scheme, alternating: 1. Yoshida-4
                 slices with exact drift maps (polar, if ``h`` non-zero) and k0-only
-                kicks and 2. kicks for the remaining strengths.
-            -   ``rot-kick-rot-high-order``: nested integration scheme, alternating: 
-                1. Yoshida-6 slices with exact drift maps (polar, if ``h`` non-zero) and k0-only
-                kicks and 2. kicks for the remaining strengths.
+                kicks; 2. kicks for the remaining strengths.
+            -   ``rot-kick-rot-high-order``: nested integration scheme, alternating:
+                1. Yoshida-6 slices with exact drift maps (polar, if ``h`` non-zero)
+                and k0-only kicks; 2. kicks for the remaining strengths.
             - ``mat-kick-mat``: use an expanded combined-function magnet map
                 for ``k0``, ``k1``, ``h``, and handle the other strengths in
                 the kicks.
