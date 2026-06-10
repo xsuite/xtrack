@@ -370,9 +370,9 @@ void FieldExpansion_track_local_particle(
         }
 
         // Back to zero vector potential for next element
-        evaluate_expansion(&f, z[0], z[2], 0, &v);
-        z[1] -= v.Ax;
-        z[3] -= v.Ay;
+        // evaluate_expansion(&f, z[0], z[2], 0, &v);
+        // z[1] -= v.Ax;
+        // z[3] -= v.Ay;
 
         LocalParticle_set_x(part, z[0]);
         LocalParticle_set_px(part, z[1]);
