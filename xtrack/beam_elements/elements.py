@@ -5081,11 +5081,11 @@ class FieldExpansion(BeamElement):
         if kwargs['cartesian']:
             kwargs['_mmin'] = 0
             kwargs['_moff'] = 0
-            kwargs['_qemin'] = 0  # CHECK
+            kwargs['_qemin'] = 0
         else:
             kwargs['_mmin'] = -2 * ((kwargs['_ncoef'] - 1) // 2)
             kwargs['_moff'] = -kwargs['_mmin']
-            kwargs['_qemin'] = kwargs['_mmin'] - 1  #CHECK
+            kwargs['_qemin'] = kwargs['_mmin'] - 1
         kwargs['_nq'] = (kwargs['_mmax'] + 2) - kwargs['_qemin'] + 1
         kwargs['_nm'] = kwargs['_mmax'] - kwargs['_mmin'] + 1
 
