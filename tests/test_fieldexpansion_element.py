@@ -1,8 +1,7 @@
 import xtrack as xt
 import numpy as np
 
-
-def test_sdep():
+def test_h_sdep():
     h = 0.1
     a = np.array([[1, 0.1],[0.2, 0], [0.3, 0.1]])
     b = np.array([[0.1, 0.1],[0.5, 0]])
@@ -20,6 +19,26 @@ def test_sdep():
     assert np.isclose(p0.y[0], 0.02753048)
     assert np.isclose(p0.py[0], 0.20394359)
     assert np.isclose(p0.zeta[0], -0.00020263)
+    assert np.isclose(p0.ptau[0], 0)
+    
+def test_sdep():
+    h = 0
+    a = np.array([[1, 0.1],[0.2, 0], [0.3, 0.1]])
+    b = np.array([[0.1, 0.1],[0.5, 0]])
+    bs = np.array([0.1, 0])
+    ny = 5
+    length=0.2
+    fexp = xt.FieldExpansion(length=length, h=h, a=a, b=b, bs=bs, ny=ny, nstep=100)
+
+    p0 = xt.Particles(x=0.01, y=0.007, tau=0.002, beta0=0.7)
+    line = xt.Line(elements=[fexp])
+    line.track(p0, _force_no_end_turn_actions=True)
+
+    assert np.isclose(p0.x[0], 0.00765466)
+    assert np.isclose(p0.px[0], -0.02167055)
+    assert np.isclose(p0.y[0], 0.02747711)
+    assert np.isclose(p0.py[0], 0.20351503)
+    assert np.isclose(p0.zeta[0], -1.64816266e-05)
     assert np.isclose(p0.ptau[0], 0)
 
 def test_twiss():
