@@ -8,7 +8,7 @@ def test_h_sdep():
     bs = np.array([0.1, 0.0])
     ny = 5
     length=0.2
-    fexp = xt.FieldExpansion(length=length, h=h, a=a, b=b, bs=bs, ny=ny, nstep=100)
+    fexp = xt.BentFieldExpansion(length=length, h=h, a=a, b=b, bs=bs, ny=ny, nstep=100)
 
     p0 = xt.Particles(x=0.01, y=0.007, tau=0.002, beta0=0.7)
     line = xt.Line(elements=[fexp])
@@ -23,13 +23,12 @@ def test_h_sdep():
     assert np.isclose(p0.s[0], length)
     
 def test_sdep():
-    h = 0
     a = np.array([[1.0, 0.1], [0.2, 0.0], [0.3, 0.1]])
     b = np.array([[0.1, 0.1], [0.5, 0.0]])
     bs = np.array([0.1, 0.0])
     ny = 5
     length=0.2
-    fexp = xt.FieldExpansion(length=length, h=h, a=a, b=b, bs=bs, ny=ny, nstep=100)
+    fexp = xt.StraightFieldExpansion(length=length, a=a, b=b, bs=bs, ny=ny, nstep=100)
 
     p0 = xt.Particles(x=0.01, y=0.007, tau=0.002, beta0=1)
     line = xt.Line(elements=[fexp])
@@ -56,11 +55,11 @@ def test_twiss():
 
     myfodo = xt.Line(elements=[
         xt.Drift(length=1.2),
-        xt.FieldExpansion(length=0.1, h=0, a=np.array([[0]]), b=np.array([[0],[7]]), bs=np.array([0]), ny=5),
+        xt.StraightFieldExpansion(length=0.1, a=np.array([[0]]), b=np.array([[0],[7]]), bs=np.array([0]), ny=5),
         xt.Drift(length=0.5),
-        xt.FieldExpansion(length=0.2, h=0.1, a=np.array([[0]]), b=np.array([[0.1]]), bs=np.array([0]), ny=5),
+        xt.BentFieldExpansion(length=0.2, h=0.1, a=np.array([[0]]), b=np.array([[0.1]]), bs=np.array([0]), ny=5),
         xt.Drift(length=0.5),
-        xt.FieldExpansion(length=0.1, h=0, a=np.array([[0]]), b=np.array([[0],[-7]]), bs=np.array([0]), ny=5)
+        xt.StraightFieldExpansion(length=0.1, a=np.array([[0]]), b=np.array([[0],[-7]]), bs=np.array([0]), ny=5)
     ])
     myfodo.particle_ref = xt.Particles(particle_id=11, q0=1, mass0=1)
     mytw = myfodo.twiss4d()
