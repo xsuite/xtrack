@@ -92,7 +92,7 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s, Fiel
 #define EVALUATE_EXPANSION evaluate_expansion_straight
 #define FIELDEXPANSIONDATA StraightFieldExpansionData
 #define DATA StraightFieldExpansionData
-#include "track_fieldexpansion.inc"
+#include "track_fieldexpansion.h"
 #undef TRACK_EXPANSION
 #undef HAMILTONIAN_FLOW
 #undef EVALUATE_EXPANSION

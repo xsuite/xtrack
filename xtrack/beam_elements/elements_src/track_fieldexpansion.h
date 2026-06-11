@@ -37,8 +37,12 @@ void HAMILTONIAN_FLOW(Expansion *f, const double beta0,
     flow->dH_ds = -q * (pix * flow->pot.dAx_ds / root + flow->pot.dAs_ds);   
 }
 
+#ifndef CONCATDATA2
 #define CONCATDATA2(a,b) a##b
+#endif
+#ifndef CONCATDATA
 #define CONCATDATA(a,b) CONCATDATA2(a,b)
+#endif
 
 void TRACK_EXPANSION(
     FIELDEXPANSIONDATA el,

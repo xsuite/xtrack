@@ -101,7 +101,7 @@ int evaluate_expansion_bent(Expansion *f, double x, double y, double s, FieldVal
 #define EVALUATE_EXPANSION evaluate_expansion_bent
 #define FIELDEXPANSIONDATA BentFieldExpansionData
 #define DATA BentFieldExpansionData
-#include "track_fieldexpansion.inc"
+#include "track_fieldexpansion.h"
 #undef TRACK_EXPANSION
 #undef HAMILTONIAN_FLOW
 #undef EVALUATE_EXPANSION
