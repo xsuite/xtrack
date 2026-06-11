@@ -588,8 +588,8 @@ def test_splineboris_homogeneous_analytic(field_angle, make_uniform_splineboris)
     p.px = 1e-3  # small transverse momentum to create a visible helix
 
     # Analytic solution for the helix angle
-    kin_xp = p.kin_xprime[0]
-    kin_yp = p.kin_yprime[0]
+    kin_xp = p.kin_xp[0]
+    kin_yp = p.kin_yp[0]
     x = p.x[0]
     y = p.y[0]
 
@@ -693,8 +693,8 @@ def test_splineboris_homogeneous_analytic(field_angle, make_uniform_splineboris)
     line.track(p)
     x_end_splineboris = p.x[0]
     y_end_splineboris = p.y[0]
-    xp_final_splineboris = p.kin_xprime[0]
-    yp_final_splineboris = p.kin_yprime[0]
+    xp_final_splineboris = p.kin_xp[0]
+    yp_final_splineboris = p.kin_yp[0]
 
     xo.assert_allclose(x_final, x_end_splineboris, atol=1e-12, rtol=1e-5)
     xo.assert_allclose(y_final, y_end_splineboris, atol=1e-12, rtol=1e-5)
