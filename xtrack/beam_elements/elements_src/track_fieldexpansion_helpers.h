@@ -1,3 +1,10 @@
+#ifndef TRACK_FIELDEXPANSION_HELPERS_H
+#define TRACK_FIELDEXPANSION_HELPERS_H
+
+const int cidx(int i, int m, int k, int nm, int moff, int deg) {
+    return (i * nm + (m+moff)) * (deg + 1) + k;
+}
+
 typedef struct {
     int ny;      /* requested output order in y */
     int ncoef;   /* stored phi_i coefficients: 0..ny+1 */
@@ -69,3 +76,5 @@ void delta_from_ptau(const double beta0, double ptau,
         *ddelta1 = (1.0 / beta0 + ptau) / (*delta1);
     }
 }
+
+#endif

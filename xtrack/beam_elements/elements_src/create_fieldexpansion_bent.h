@@ -1,6 +1,8 @@
 #ifndef create_fieldexpansion_bent_H
 #define create_fieldexpansion_bent_H
 
+#include "track_fieldexpansion_helpers.h"
+
 /* Index of c[i,m,k] in the c array, ordered as 
 c[0,mmin,0] ... c[0,mmin,deg], c[0,mmin+1,0] ... c[0,mmin+1,deg], ..., c[0,mmin+nm-1,0] ... c[0,mmin+nm-1,deg],
 c[1,mmin,0] ... c[1,mmin,deg], c[1,mmin+1,0] ... c[1,mmin+1,deg], ..., c[1,mmin+nm-1,0] ... c[1,mmin+nm-1,deg],
@@ -9,9 +11,6 @@ moff=-mmin is the offset to be added to m to get the correct index,
 since m does not necessarily start at 0
 */
 
-const int cidx(int i, int m, int k, int nm, int moff, int deg) {
-    return (i * nm + (m+moff)) * (deg + 1) + k;
-}
 
 void build_expansion_bent(BentFieldExpansionData el){
     const double h  = BentFieldExpansionData_get_h(el);
