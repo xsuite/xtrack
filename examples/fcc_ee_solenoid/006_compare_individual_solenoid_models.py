@@ -186,7 +186,7 @@ for ii in range(len(s_axis) - 1):
         val_end=bs_values[ii + 1],
         der_end=(bs_derivative if USE_PIECEWISE_LINEAR_SPLINES
                  else bs_s_derivative[ii + 1]),
-        integral=bs_integral_average,
+        mean=bs_integral_average,
     )
 
     bx_splines = []
@@ -303,14 +303,14 @@ for ii in range(len(s_axis) - 1):
             der_start=bx_der_start,
             val_end=bx_val_end,
             der_end=bx_der_end,
-            integral=bx_integral_average,
+            mean=bx_integral_average,
         ))
         by_splines.append(xt.Spline4(
             val_start=by_val_start,
             der_start=by_der_start,
             val_end=by_val_end,
             der_end=by_der_end,
-            integral=by_integral_average,
+            mean=by_integral_average,
         ))
 
     element = xt.SplineBoris(

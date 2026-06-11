@@ -181,7 +181,7 @@ def build_splineboris_line(name, field_data, scale_b):
             der_start=bs_der_start,
             val_end=field_data['bs'][ii + 1],
             der_end=bs_der_end,
-            integral=bs_integral_average,
+            mean=bs_integral_average,
         )
 
         bx = []
@@ -248,14 +248,14 @@ def build_splineboris_line(name, field_data, scale_b):
                 der_start=bx_der_start,
                 val_end=bx_val_end,
                 der_end=bx_der_end,
-                integral=bx_integral_average,
+                mean=bx_integral_average,
             ))
             by.append(xt.Spline4(
                 val_start=by_val_start,
                 der_start=by_der_start,
                 val_end=by_val_end,
                 der_end=by_der_end,
-                integral=by_integral_average,
+                mean=by_integral_average,
             ))
 
         elements.append(xt.SplineBoris(

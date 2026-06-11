@@ -49,8 +49,8 @@ def test_data_dir():
 def make_uniform_splineboris():
     def _make(Bx=0, By=0, Bs=0, s_start=0, s_end=1, n_steps=100,
                 multipole_order=1, radiation_flag=0, scale_b=1.0, kn=None, ks=None):
-        # Uniform field: Hermite params (val_start, der_start, val_end, der_end, integral)
-        # For a constant field B, all boundary values = B, derivatives = 0, integral = B
+        # Uniform field: Hermite params (val_start, der_start, val_end, der_end, mean)
+        # For a constant field B, all boundary values = B, derivatives = 0, mean = B
         Bx_h = [Bx, 0, Bx, 0, Bx]
         By_h = [By, 0, By, 0, By]
         Bs_h = [Bs, 0, Bs, 0, Bs]
@@ -212,7 +212,16 @@ def test_splineboris_to_dict_from_dict_roundtrip(test_context):
     assert isinstance(element_dict['bs'], dict)
     assert isinstance(element_dict['by'], list)
     assert isinstance(element_dict['bx'], list)
+    assert element_dict['bs']['mean'] == 0.5
+    assert 'integral' not in element_dict['bs']
     assert 'multipole_order' not in element_dict
+
+    legacy_ctor_dict = element_dict.copy()
+    legacy_ctor_dict.pop('__class__', None)
+    legacy_ctor_dict['bs'] = legacy_ctor_dict['bs'].copy()
+    legacy_ctor_dict['bs']['integral'] = legacy_ctor_dict['bs'].pop('mean')
+    with pytest.raises(ValueError, match='mean'):
+        xt.SplineBoris(_context=test_context, **legacy_ctor_dict)
 
     roundtrip = xt.SplineBoris.from_dict(element_dict, _context=test_context)
 

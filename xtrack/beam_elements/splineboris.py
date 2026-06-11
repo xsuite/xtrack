@@ -16,18 +16,18 @@ from .elements import SynchrotronRadiationRecord
 _POLY_ORDER = 4
 _NUM_COEFFS = _POLY_ORDER + 1
 _MAX_MULTIPOLE_ORDER = 7
-_HERMITE_SUFFIXES = ("val_start", "der_start", "val_end", "der_end", "integral")
+_HERMITE_SUFFIXES = ("val_start", "der_start", "val_end", "der_end", "mean")
 
 
 @dataclass
 class Spline4:
-    """Hermite boundary data used by ``SplineBoris``."""
+    """Hermite boundary data and interval mean used by ``SplineBoris``."""
 
     val_start: float
     der_start: float
     val_end: float
     der_end: float
-    integral: float
+    mean: float
 
     def as_list(self):
         return [
@@ -35,7 +35,7 @@ class Spline4:
             self.der_start,
             self.val_end,
             self.der_end,
-            self.integral,
+            self.mean,
         ]
 
     def as_dict(self):
@@ -44,7 +44,7 @@ class Spline4:
             'der_start': self.der_start,
             'val_end': self.val_end,
             'der_end': self.der_end,
-            'integral': self.integral,
+            'mean': self.mean,
         }
 
     def as_np_array(self):
@@ -84,7 +84,7 @@ def _sanitize_init_tuple_elements(data, name):
         return data
 
     if isinstance(data, dict):
-        required = ('val_start', 'der_start', 'val_end', 'der_end', 'integral')
+        required = ('val_start', 'der_start', 'val_end', 'der_end', 'mean')
         missing = [kk for kk in required if kk not in data]
         if missing:
             raise ValueError(f"{name} is missing keys: {missing}")
