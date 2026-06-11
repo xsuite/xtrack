@@ -3,16 +3,16 @@ import xtrack as xt
 import xobjects as xo
 import numpy as np
 import pathlib
+import pytest
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 def test_native_madloader_lhc_thin():
 
     env = xt.load(test_data_folder / 'hllhc15_noerrors_nobb/sequence.madx',
                 reverse_lines=['lhcb2'])
-    env.lhcb1.set_particle_ref('proton', p0c=7000e9)
-    env.lhcb2.set_particle_ref('proton', p0c=7000e9)
 
     mad = Madx()
     mad.call(str(test_data_folder / 'hllhc15_noerrors_nobb/sequence.madx'))

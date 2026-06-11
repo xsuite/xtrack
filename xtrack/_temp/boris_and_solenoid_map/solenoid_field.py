@@ -1,3 +1,5 @@
+from math import factorial
+
 import numpy as np
 import scipy
 # Hampton et al., Closed-form expressions for the magnetic fields of rectangular
@@ -78,6 +80,51 @@ class SolenoidField:
         By[mask_r_nonzero] = Br[mask_r_nonzero] * y[mask_r_nonzero] / r[mask_r_nonzero]
 
         return Bx, By, Bz
+
+    @staticmethod
+    def finite_difference_coefficients(offsets, derivative_order):
+        offsets = np.asarray(offsets, dtype=float)
+        matrix = np.vstack([offsets**ii for ii in range(len(offsets))])
+        rhs = np.zeros(len(offsets))
+        rhs[derivative_order] = factorial(derivative_order)
+        return np.linalg.solve(matrix, rhs)
+
+    def compute_pure_field_derivatives(
+            self, s, direction, step, component, max_order=4, min_order=1):
+        offsets = np.arange(-4, 5)
+        zero = np.zeros_like(s)
+        component_index = {'x': 0, 'y': 1, 'z': 2}[component]
+        field_at_offsets = []
+
+        for offset in offsets:
+            if direction == 'x':
+                x = zero + offset * step
+                y = zero
+            elif direction == 'y':
+                x = zero
+                y = zero + offset * step
+            else:
+                raise ValueError("direction must be 'x' or 'y'")
+
+            field_at_offsets.append(self.get_field(x, y, s)[component_index])
+
+        field_at_offsets = np.array(field_at_offsets)
+
+        derivatives = {}
+        for order in range(min_order, max_order + 1):
+            coefficients = SolenoidField.finite_difference_coefficients(
+                offsets, order)
+            derivatives[order] = (
+                np.tensordot(coefficients, field_at_offsets, axes=(0, 0))
+                / step**order
+            )
+
+        return derivatives
+
+    def compute_pure_by_derivatives(self, s, direction, step, max_order=4):
+        return self.compute_pure_field_derivatives(
+            s=s, direction=direction, step=step,
+            component='y', max_order=max_order, min_order=1)
 
 class Multifield:
 

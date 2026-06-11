@@ -3,12 +3,29 @@ import numpy as np
 
 from ..general import _pkg_root
 from ..base_element import BeamElement
-from .slice_base import _SliceBase, COMMON_SLICE_XO_FIELDS
+from .slice_base import (
+    _SliceBase, COMMON_SLICE_XO_FIELDS,
+    _raise_if_parent_has_transverse_rotation,
+)
 from .elements import (
     Bend, Quadrupole, Sextupole,
     Octupole, RBend, UniformSolenoid, DipoleEdge, Marker, MultipoleEdge
 )
 from ..survey import advance_element as survey_advance_element
+
+def _parent_total_kn_ks(parent):
+    if parent.length == 0:
+        raise ValueError(
+            'Equivalent edge elements need a parent with non-zero length.')
+    knl, ksl = parent.get_total_knl_ksl()
+    return knl / parent.length, ksl / parent.length
+
+def _parent_total_kn_ks_for_multipole_edge(parent):
+    kn, ks = _parent_total_kn_ks(parent)
+    kn[0] = 0
+    ks[0] = 0
+    return kn, ks
+
 
 class _ThinSliceEdgeBase(_SliceBase):
 
@@ -29,9 +46,12 @@ class ThinSliceBendEntry(_ThinSliceEdgeBase, BeamElement):
 
     def get_equivalent_element(self):
 
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_entry_active:
+            kn, _ = _parent_total_kn_ks(self._parent)
             return DipoleEdge(
-                k=self._parent._k0,
+                k=kn[0],
                 e1=self._parent.edge_entry_angle,
                 e1_fd=self._parent.edge_entry_angle_fdown,
                 hgap=self._parent.edge_entry_hgap,
@@ -57,9 +77,12 @@ class ThinSliceBendExit(_ThinSliceEdgeBase, BeamElement):
 
     def get_equivalent_element(self):
 
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_exit_active:
+            kn, _ = _parent_total_kn_ks(self._parent)
             return DipoleEdge(
-                k=self._parent._k0,
+                k=kn[0],
                 e1=self._parent.edge_exit_angle,
                 e1_fd=self._parent.edge_exit_angle_fdown,
                 hgap=self._parent.edge_exit_hgap,
@@ -85,10 +108,13 @@ class ThinSliceQuadrupoleEntry(_ThinSliceEdgeBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_entry_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, self._parent.k1],
-                ks=[0, self._parent.k1s],
+                kn=kn,
+                ks=ks,
                 is_exit=False,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -108,10 +134,13 @@ class ThinSliceQuadrupoleExit(_ThinSliceEdgeBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_exit_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, self._parent.k1],
-                ks=[0, self._parent.k1s],
+                kn=kn,
+                ks=ks,
                 is_exit=True,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -131,10 +160,13 @@ class ThinSliceSextupoleEntry(_ThinSliceEdgeBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_entry_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, 0, self._parent.k2],
-                ks=[0, 0, self._parent.k2s],
+                kn=kn,
+                ks=ks,
                 is_exit=False,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -154,10 +186,13 @@ class ThinSliceSextupoleExit(_ThinSliceEdgeBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_exit_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, 0, self._parent.k2],
-                ks=[0, 0, self._parent.k2s],
+                kn=kn,
+                ks=ks,
                 is_exit=True,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -177,10 +212,13 @@ class ThinSliceOctupoleEntry(_ThinSliceEdgeBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_entry_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, 0, 0, self._parent.k3],
-                ks=[0, 0, 0, self._parent.k3s],
+                kn=kn,
+                ks=ks,
                 is_exit=False,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -200,10 +238,13 @@ class ThinSliceOctupoleExit(_ThinSliceEdgeBase, BeamElement):
     ]
 
     def get_equivalent_element(self):
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.edge_exit_active:
+            kn, ks = _parent_total_kn_ks_for_multipole_edge(self._parent)
             return MultipoleEdge(
-                kn=[0, 0, 0, self._parent.k3],
-                ks=[0, 0, 0, self._parent.k3s],
+                kn=kn,
+                ks=ks,
                 is_exit=True,
                 shift_x=self._parent.shift_x,
                 shift_y=self._parent.shift_y,
@@ -241,13 +282,16 @@ class ThinSliceRBendEntry(_ThinSliceEdgeBase, BeamElement):
 
     def get_equivalent_element(self):
 
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.rbend_model == "straight-body":
             return self # No replacement possible (not yet supported), element
                         # left where it is
 
         if self._parent.edge_entry_active:
+            kn, _ = _parent_total_kn_ks(self._parent)
             return DipoleEdge(
-                k=self._parent._k0,
+                k=kn[0],
                 e1=self._parent.edge_entry_angle + self._parent.angle / 2,
                 e1_fd=self._parent.edge_entry_angle_fdown,
                 hgap=self._parent.edge_entry_hgap,
@@ -330,13 +374,16 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
 
     def get_equivalent_element(self):
 
+        _raise_if_parent_has_transverse_rotation(self._parent)
+
         if self._parent.rbend_model == "straight-body":
             return self # No replacement possible (not yet supported), element
                         # left where it is
 
         if self._parent.edge_exit_active:
+            kn, _ = _parent_total_kn_ks(self._parent)
             return DipoleEdge(
-                k=self._parent._k0,
+                k=kn[0],
                 e1=self._parent.edge_exit_angle + self._parent.angle / 2,
                 e1_fd=self._parent.edge_exit_angle_fdown,
                 hgap=self._parent.edge_exit_hgap,
@@ -408,4 +455,3 @@ class ThinSliceRBendExit(_ThinSliceEdgeBase, BeamElement):
                     ref_rot_s_rad   = 0,
                 )
         return v, w
-

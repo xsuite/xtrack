@@ -297,12 +297,12 @@ line['on_sol_corr_ipa'] = 1
 line['on_sol_corr_ipd'] = 1
 line['on_sol_corr_ipg'] = 1
 line['on_sol_corr_ipj'] = 1
-tw_on_corr = line.twiss4d(strengths=True, zero_at=ip_name)
+tw_on_corr = line.twiss4d(strengths=True, zero_at='ipg')
 # nl_chrom_on_corr = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
 two_on_corr = line.twiss(
     strengths=True,
     init=tw_off,
-    init_at='ipj')
+    init_at='ipg')
 
 env.to_json('fccee_z_lcc_non_local_solenoid.json')
 

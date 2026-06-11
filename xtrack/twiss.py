@@ -36,7 +36,7 @@ import xtrack as xt  # To avoid circular imports
 DEFAULT_STEPS_R_MATRIX = {
     'dx':1e-6, 'dpx':1e-7,
     'dy':1e-6, 'dpy':1e-7,
-    'dzeta':1e-6, 'ddelta':1e-6
+    'dzeta':1e-5, 'ddelta':1e-6
 }
 
 DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-9]
@@ -60,7 +60,7 @@ CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
 
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
-OTHER_FIELDS_FROM_ATTR=['angle', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length', '_angle_force_body']
+OTHER_FIELDS_FROM_ATTR=['angle', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'bs', 'length', '_angle_force_body']
 OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name', 'parent_type', 'prototype']
 SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle', 'angle_rad']
 
@@ -329,7 +329,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `dzeta`: longitudinal dispersion vs delta
     Output fields present when `strengths=True` (or `radiation_integrals=True`):
         - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole integrated strengths
-        - `angle`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
+        - `angle`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `bs`, `length`,
           `element_type`, `isthick`, `parent_name`, `prototype`: element properties
     Output fields present when `radiation_analysis=True`:
         - `energy_loss`: energy loss per turn [eV]
@@ -2987,7 +2987,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                             symmetrize=symmetrize),
                 x0=x0, steps=[1e-8, 1e-9, 1e-8, 1e-9, 1e-7, 1e-8],
                 tar=[0., 0., 0., 0., 0., 0.],
-                tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12])
+                tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-11, 1e-12])
         try:
             opt.solve(verbose=-1)
             ier = 1
@@ -4742,6 +4742,11 @@ class TwissTable(Table):
         damping_constant_y_s = r0/3 * gamma0**3 * clight/self.line_length * (i2 - i4y)
         damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.line_length * (2*i2 + i4)
 
+        # Damping partition numbers:
+        J_x = 1 - i4x / i2
+        J_y = 1 - i4y / i2
+        J_zeta = 2 + i4 / i2
+
         # Velocity direction (for spin)
         ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
         xp = kin_px / ps
@@ -4789,6 +4794,9 @@ class TwissTable(Table):
             'rad_int_damping_constant_x_s': damping_constant_x_s,
             'rad_int_damping_constant_y_s': damping_constant_y_s,
             'rad_int_damping_constant_zeta_s': damping_constant_zeta_s,
+            'rad_int_partition_number_x': J_x,
+            'rad_int_partition_number_y': J_y,
+            'rad_int_partition_number_zeta': J_zeta,
         }
 
         out = Table({'name': self.name, 's': self.s, 'length':self.length} | cols)
@@ -5513,7 +5521,7 @@ def _get_spin_polarization(tw, line, method):
 
         By = kappa_x * brho_part
         Bx = -kappa_y * brho_part
-        Bz = tw.ks * brho_ref
+        Bz = tw.ks * brho_ref + tw.bs
         B_mod = np.sqrt(Bx**2 + By**2 + Bz**2)
         B_mod[B_mod == 0] = 999. # avoid division by zero
 
