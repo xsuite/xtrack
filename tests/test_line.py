@@ -993,6 +993,42 @@ def test_line_attr_ks():
     )
 
 
+def test_line_attr_splineboris_bs():
+    from xtrack.twiss import OTHER_FIELDS_FROM_ATTR
+
+    assert 'bs' in OTHER_FIELDS_FROM_ATTR
+
+    line = xt.Line(
+        elements=[
+            xt.Drift(length=1),
+            xt.SplineBoris(
+                length=2,
+                bs=xt.Spline4(1, 2, 3, 4, 5),
+                scale_b=1.7,
+            ),
+        ],
+    )
+
+    line.build_tracker()
+
+    xo.assert_allclose(
+        line.attr['bs'],
+        [0, 5 * 1.7],
+        rtol=0,
+        atol=1e-14,
+    )
+
+    line[1].bs[4] = 7
+    line[1].scale_b = 2.5
+
+    xo.assert_allclose(
+        line.attr['bs'],
+        [0, 7 * 2.5],
+        rtol=0,
+        atol=1e-14,
+    )
+
+
 @for_all_test_contexts
 def test_insert_thin_elements_at_s_basic(test_context):
 
