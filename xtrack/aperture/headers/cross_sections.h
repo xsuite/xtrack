@@ -258,12 +258,25 @@ static inline void project_3d_polygon_to_plane(
 }
 
 
+static inline uint32_t polygon_index_with_shift_orientation(
+    const uint32_t idx,
+    const uint32_t shift,
+    const uint32_t len_points,
+    const int8_t reverse_orientation
+)
+{
+    if (!reverse_orientation) return (idx + shift) % len_points;
+    return len_points - 1 - ((idx + shift) % len_points);
+}
+
+
 static inline uint32_t find_best_cyclic_shift_plane(
     const Point2D* p0_plane,
     const Point2D* p1_plane,
-    const uint32_t n
+    const uint32_t n,
+    const int8_t reverse_orientation
 )
-/* Find `shift` that minimises sum of squared distances between `p0[j]` and `p1[(j + shift) % n]`. */
+/* Find `shift` that minimises sum of squared distances between `p0[j]` and the orientation-aware `p1` index. */
 {
     float_type best_cost = INFINITY;
     uint32_t best_shift = 0;
@@ -271,7 +284,8 @@ static inline uint32_t find_best_cyclic_shift_plane(
     for (uint32_t shift = 0; shift < n; shift++) {
         float_type cost = 0.f;
         for (uint32_t j = 0; j < n; j++) {
-            const uint32_t k = (j + shift) % n;
+            const uint32_t k = polygon_index_with_shift_orientation(
+                j, shift, n, reverse_orientation);
             const float_type dx = p0_plane[j].x - p1_plane[k].x;
             const float_type dy = p0_plane[j].y - p1_plane[k].y;
             cost += dx * dx + dy * dy;
@@ -283,6 +297,23 @@ static inline uint32_t find_best_cyclic_shift_plane(
     }
 
     return best_shift;
+}
+
+
+static inline int8_t projected_polygon_orientation_differs(
+    const Pose profile_a,
+    const Pose profile_b,
+    const Pose plane_in_frame
+)
+/*
+    Determine whether the 2D contour orientation induced by projection onto the
+    target plane differs between two profile planes.
+*/
+{
+    const Point3D plane_normal = plane_normal_vector(plane_in_frame);
+    const float_type sign_a = point3d_dot(plane_normal_vector(profile_a), plane_normal);
+    const float_type sign_b = point3d_dot(plane_normal_vector(profile_b), plane_normal);
+    return sign_a * sign_b < 0.f;
 }
 
 
@@ -493,11 +524,19 @@ uint32_t cross_section_at_s(
         return bound_idx;
     }
 
+    const int8_t reverse_center_left = has_left
+        ? projected_polygon_orientation_differs(pose_center, pose_left, plane_in_pipe)
+        : 0;
+    const int8_t reverse_center_right = has_right
+        ? projected_polygon_orientation_differs(pose_center, pose_right, plane_in_pipe)
+        : 0;
     const uint32_t shift_center_left = has_left
-        ? find_best_cyclic_shift_plane(poly_center_plane, poly_left_plane, num_unique_points)
+        ? find_best_cyclic_shift_plane(
+            poly_center_plane, poly_left_plane, num_unique_points, reverse_center_left)
         : 0;
     const uint32_t shift_center_right = has_right
-        ? find_best_cyclic_shift_plane(poly_center_plane, poly_right_plane, num_unique_points)
+        ? find_best_cyclic_shift_plane(
+            poly_center_plane, poly_right_plane, num_unique_points, reverse_center_right)
         : 0;
     const char prefer_right = (s >= s_center);
 
@@ -514,8 +553,14 @@ uint32_t cross_section_at_s(
             const Pose* pose_b = use_right ? &pose_right : &pose_center;
             const Point2D* poly_a = use_right ? poly_center : poly_left;
             const Point2D* poly_b = use_right ? poly_right : poly_center;
-            const uint32_t idx_a = use_right ? j : (j + shift_center_left) % num_unique_points;
-            const uint32_t idx_b = use_right ? (j + shift_center_right) % num_unique_points : j;
+            const uint32_t idx_a = use_right
+                ? j
+                : polygon_index_with_shift_orientation(
+                    j, shift_center_left, num_unique_points, reverse_center_left);
+            const uint32_t idx_b = use_right
+                ? polygon_index_with_shift_orientation(
+                    j, shift_center_right, num_unique_points, reverse_center_right)
+                : j;
             const float_type segment_curvature = use_right ? curvature_right : curvature_left;
 
             const Point3D point_a_type = pose_apply_point(

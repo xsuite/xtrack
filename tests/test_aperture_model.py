@@ -54,6 +54,47 @@ def _polygon_area(points):
     return 0.5 * abs(np.dot(x[:-1], y[1:]) + x[-1] * y[0] - np.dot(y[:-1], x[1:]) - y[-1] * x[0])
 
 
+def _polygon_signed_area(points):
+    x = points[:, 0]
+    y = points[:, 1]
+    return 0.5 * (
+        np.dot(x[:-1], y[1:]) + x[-1] * y[0]
+        - np.dot(y[:-1], x[1:]) - y[-1] * x[0]
+    )
+
+
+def _best_cyclic_shift(points_ref, points_other):
+    best_shift = 0
+    best_cost = np.inf
+    for shift in range(len(points_ref)):
+        cost = np.sum((points_ref - np.roll(points_other, -shift, axis=0)) ** 2)
+        if cost < best_cost:
+            best_cost = cost
+            best_shift = shift
+    return best_shift, best_cost
+
+
+def _pose_apply_polygon(points, pose):
+    poly_h = np.column_stack([
+        points[:, 0],
+        points[:, 1],
+        np.zeros(len(points)),
+        np.ones(len(points)),
+    ])
+    return (pose @ poly_h.T).T[:, :3]
+
+
+def _plane_normal(pose):
+    return pose[:3, 2]
+
+
+def _orientation_aware_indices(num_points, shift, reverse_orientation):
+    jj = np.arange(num_points)
+    if not reverse_orientation:
+        return (jj + shift) % num_points
+    return num_points - 1 - ((jj + shift) % num_points)
+
+
 TEST_DATA_DIR = Path(__file__).resolve().parent.parent / 'test_data'
 
 
@@ -84,6 +125,63 @@ def test_matrix_to_transform_roundtrip(kwargs):
         **kwargs,
     }.items():
         xo.assert_allclose(getattr(out, key), value, atol=1e-14, rtol=0)
+
+
+def test_rot_y_pi_projection_reverses_polygon_order_and_breaks_cyclic_matching():
+    left_pose = transform_matrix()
+    right_pose = transform_matrix(shift_z=1.0, rot_y_rad=-np.pi)
+
+    poly_local = np.array([
+        [1.0, 0.0],
+        [0.5, 1.0],
+        [-0.5, 1.0],
+        [-1.0, 0.0],
+        [-0.3, -0.8],
+        [0.3, -0.8],
+        [1.0, 0.0],
+    ])
+
+    left_world = _pose_apply_polygon(poly_local, left_pose)
+    right_world = _pose_apply_polygon(poly_local, right_pose)
+
+    left_xy = left_world[:, :2]
+    right_xy = right_world[:, :2]
+    cut_plane_normal = np.array([0.0, 0.0, 1.0])
+    left_projection_sign = np.dot(_plane_normal(left_pose), cut_plane_normal)
+    right_projection_sign = np.dot(_plane_normal(right_pose), cut_plane_normal)
+
+    assert _polygon_signed_area(left_xy) > 0
+    assert _polygon_signed_area(right_xy) < 0
+    assert left_projection_sign * right_projection_sign < 0
+
+    reverse_orientation = left_projection_sign * right_projection_sign < 0
+
+    shift_same_order, cost_same_order = _best_cyclic_shift(left_xy[:-1], right_xy[:-1])
+    shift_reversed, cost_reversed = _best_cyclic_shift(left_xy[:-1], right_xy[-2::-1])
+
+    assert cost_same_order > 0.1
+    xo.assert_allclose(cost_reversed, 0.0, atol=1e-14, rtol=0)
+
+    mid_bad = 0.5 * (
+        left_world[:-1, :2]
+        + np.roll(right_world[:-1, :2], -shift_same_order, axis=0)
+    )
+
+    wrong_shift_with_reversal = right_world[
+        _orientation_aware_indices(len(right_world) - 1, shift_same_order, reverse_orientation),
+        :2,
+    ]
+    mid_wrong_shift = 0.5 * (left_world[:-1, :2] + wrong_shift_with_reversal)
+
+    right_world_oriented = right_world[
+        _orientation_aware_indices(len(right_world) - 1, shift_reversed, reverse_orientation),
+        :2,
+    ]
+    mid_good = 0.5 * (left_world[:-1, :2] + right_world_oriented)
+
+    xo.assert_allclose(mid_good, left_xy[:-1], atol=1e-14, rtol=0)
+    assert _polygon_area(mid_bad) < 0.6 * _polygon_area(left_xy)
+    assert _polygon_area(mid_wrong_shift) < 0.6 * _polygon_area(left_xy)
 
 
 @pytest.fixture(scope="module")

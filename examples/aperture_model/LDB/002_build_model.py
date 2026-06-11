@@ -10,6 +10,7 @@ import numpy as np
 import operator
 import xdeps as xd
 import xtrack as xt
+import xobjects as xo
 from xtrack.aperture import Aperture, ApertureBuilder
 from xtrack.aperture.structures import Polygon
 from xtrack.aperture.transform import poly2d_to_homogeneous
@@ -23,6 +24,8 @@ class LDBConverterWarning(UserWarning):
 
 PIPE_OVERLAP_TOL = 1e-3
 PIPE_OVERLAP_ASSEMBLY_FILTER: Literal['none', 'top', 'sub'] = 'top'
+
+context = xo.ContextCpu(omp_num_threads='auto')
 
 
 def _format_list(lst):
@@ -620,8 +623,8 @@ vc1ib_1l1_start = dict(pipes_loc)['VC1IB.1L1.X'].z
 boundary_margin = 0.05
 last_profile_hcvc1ib.shift_s = min(old_hcvc1ib_last_shift_s, b1.get_length() - vc1ib_1l1_start - boundary_margin)
 
-aperture_model = builder.build()
-aperture_straight = Aperture(model=aperture_model, line=b1, s_tol=PIPE_OVERLAP_TOL)
+aperture_model = builder.build(context=context)
+aperture_straight = Aperture(model=aperture_model, line=b1, s_tol=PIPE_OVERLAP_TOL, context=context)
 
 p_tab = aperture_straight.get_pipe_table()
 pipe_overlap_rows = _write_pipe_overlap_report(
@@ -748,7 +751,7 @@ for pipe_name in main_dipole_pipes:
 # aperture_model.pipes[aperture_model.pipe_names.index('HCVC1IB')].shift_s = old_hcvc1ib_last_shift_s
 
 # Build the curved model
-aperture = Aperture(model=aperture_model, line=b1, s_tol=PIPE_OVERLAP_TOL)
+aperture = Aperture(model=aperture_model, line=b1, s_tol=PIPE_OVERLAP_TOL, context=context)
 b_tab = aperture.get_bounds_table()
 s_positions_at_lattice_changes = np.array(sorted(set(b_tab.s_start) | set(b_tab.s_end) | set(sv_b1.s)))
 s_positions = np.array(sorted(set(s_positions_at_lattice_changes - PIPE_OVERLAP_TOL) | set(s_positions_at_lattice_changes + PIPE_OVERLAP_TOL)))
