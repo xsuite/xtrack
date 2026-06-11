@@ -118,7 +118,7 @@ void TRACK_EXPANSION(
         }
 
         // Back to zero vector potential for next element
-        EVALUATE_EXPANSION(&f, z[0], z[2], 0, &v);
+        EVALUATE_EXPANSION(&f, z[0], z[2], s, &v);
         z[1] -= v.Ax;
         z[3] -= v.Ay;
 
