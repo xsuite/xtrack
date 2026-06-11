@@ -14,6 +14,7 @@ const int cidx(int i, int m, int k, int nm, int moff, int deg) {
 }
 
 void build_cartesian_expansion(FieldExpansionData el){
+    printf("cartesian");
     const double h = FieldExpansionData_get_h(el);
     const int ncoef = FieldExpansionData_get__ncoef(el);
     const int na = FieldExpansionData_get_na(el);
@@ -67,9 +68,9 @@ void build_cartesian_expansion(FieldExpansionData el){
         for (int m = 0; m <= mmax; ++m) {
             for (int k = 0; k <= deg; ++k) {
                 double v = 0.0;
-                if (m + 2 < mmax)
+                if (m + 2 <= mmax)
                     v += (double)(m + 2) * (double)(m + 1) * c[cidx(i,m+2,k,nm,moff,deg)];
-                if (k + 2 <= deg) 
+                if (k + 2 <= deg)
                     v += (double)(k + 2) * (double)(k + 1) * c[cidx(i,m,k+2,nm,moff,deg)];
                 c[cidx(i+2,m,k,nm,moff,deg)] = -v;
             }
