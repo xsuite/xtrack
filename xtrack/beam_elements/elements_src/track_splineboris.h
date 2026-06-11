@@ -7,6 +7,7 @@
 
 #include "xtrack/headers/track.h"
 #include "xtrack/beam_elements/splineboris_src/spline_B_field_eval.h" // evaluate_B for Bx, By, Bs (scalar version)
+#include "xtrack/beam_elements/elements_src/track_magnet_kick.h"
 #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
 // Forward declarations for random functions needed by synrad_spectrum.h
 // (These are normally declared in random headers but we avoid including them
@@ -29,6 +30,10 @@ void SplineBoris_single_particle(
     const double   shift_x,
     const double   shift_y,
     const double   scale_b,
+    const int64_t  order,
+    const double   inv_factorial_order,
+    GPUGLMEM const double* knl,
+    GPUGLMEM const double* ksl,
     const int64_t  radiation_flag,
     SynchrotronRadiationRecordData radiation_record
 ){
@@ -173,6 +178,48 @@ void SplineBoris_single_particle(
         Bx *= scale_b;
         By *= scale_b;
         Bs *= scale_b;
+
+        double Bx_mp = 0.0;
+        double By_mp = 0.0;
+        double Bs_mp = 0.0;
+
+        if (order >= 0 && L != 0.0) {
+            evaluate_field_from_strengths(
+                p0c_ev,
+                q0,
+                xh - shift_x,
+                yh - shift_y,
+                L,
+                order,
+                inv_factorial_order,
+                knl,
+                ksl,
+                -1,
+                1.0,
+                NULL,
+                NULL,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                &Bx_mp,
+                &By_mp,
+                &Bs_mp);
+
+            Bx += Bx_mp;
+            By += By_mp;
+            Bs += Bs_mp;
+        }
 
         // --------------------------------------------------------------
         //  (2) FIRST HALF-KICK from (Bx, By)

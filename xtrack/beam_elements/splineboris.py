@@ -171,6 +171,25 @@ def _validate_and_convert_to_array(bs, by, bx):
     return bs_array, by_array, bx_array, multipole_order
 
 
+def _prepare_knl_ksl(knl=None, ksl=None):
+    lengths = [1]
+    if knl is not None:
+        lengths.append(len(knl))
+    if ksl is not None:
+        lengths.append(len(ksl))
+
+    target_len = max(lengths)
+    knl_array = np.zeros(target_len, dtype=np.float64)
+    ksl_array = np.zeros(target_len, dtype=np.float64)
+
+    if knl is not None:
+        knl_array[:len(knl)] = np.asarray(knl, dtype=np.float64)
+    if ksl is not None:
+        ksl_array[:len(ksl)] = np.asarray(ksl, dtype=np.float64)
+
+    return knl_array, ksl_array
+
+
 class SplineBoris(BeamElement):
     '''
     Thick element integrating the Lorentz force with a Boris stepper in a
@@ -205,7 +224,12 @@ class SplineBoris(BeamElement):
     radiation_flag : int, optional
         Radiation model flag. ``0`` disables radiation, non-zero values select
         synchrotron radiation models as for other thick elements.
-
+    knl : array-like, optional
+        Integrated strengths of additional normal multipole components in
+        m**(-order). The corresponding kick is split over the Boris steps.
+    ksl : array-like, optional
+        Integrated strengths of additional skew multipole components in
+        m**(-order). The corresponding kick is split over the Boris steps.
     '''
 
     isthick = True
@@ -222,6 +246,8 @@ class SplineBoris(BeamElement):
 
     _xofields = {
         'bs'                : xo.Float64[_SB_NUM_COEFFS],
+        'knl'               : xo.Float64[:],
+        'ksl'               : xo.Float64[:],
         'by'                : xo.Float64[:, _SB_NUM_COEFFS],
         'bx'                : xo.Float64[:, _SB_NUM_COEFFS],
         'multipole_order'   : xo.Int64,
@@ -267,9 +293,14 @@ class SplineBoris(BeamElement):
         length = float(length)
 
         radiation_flag = kwargs.pop('radiation_flag', 0)
+        knl = kwargs.pop('knl', None)
+        ksl = kwargs.pop('ksl', None)
+        knl, ksl = _prepare_knl_ksl(knl=knl, ksl=ksl)
 
         super().__init__(
             bs=bs_array,
+            knl=knl,
+            ksl=ksl,
             by=by_array,
             bx=bx_array,
             multipole_order=multipole_order,
@@ -285,9 +316,16 @@ class SplineBoris(BeamElement):
     def to_dict(self, copy_to_cpu=True):
         out = super().to_dict(copy_to_cpu=copy_to_cpu)
 
-        bs_xo = out.pop('bs')
-        by_xo = out.pop('by')
-        bx_xo = out.pop('bx')
+        bs_xo = out.pop('bs', None)
+        by_xo = out.pop('by', None)
+        bx_xo = out.pop('bx', None)
+
+        if bs_xo is None:
+            bs_xo = self._context.nparray_from_context_array(self.bs)
+        if by_xo is None:
+            by_xo = self._context.nparray_from_context_array(self.by)
+        if bx_xo is None:
+            bx_xo = self._context.nparray_from_context_array(self.bx)
 
         out['bs'] = Spline4(*bs_xo).as_dict()
 
@@ -306,6 +344,12 @@ class SplineBoris(BeamElement):
         out['bx'] = bx
 
         out.pop('multipole_order', None)
+
+        if 'knl' in out and np.allclose(out['knl'], 0, atol=1e-16):
+            out.pop('knl', None)
+
+        if 'ksl' in out and np.allclose(out['ksl'], 0, atol=1e-16):
+            out.pop('ksl', None)
 
         return out
 

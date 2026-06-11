@@ -7,6 +7,7 @@
 #define XTRACK_SPLINEBORIS_H
 
 #include "xtrack/headers/track.h"
+#include "xtrack/headers/factorial.h"
 #include "xtrack/beam_elements/elements_src/track_splineboris.h"
 
 
@@ -19,6 +20,10 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
     const double shift_x = SplineBorisData_get_shift_x(el);
     const double shift_y = SplineBorisData_get_shift_y(el);
     const double scale_b = SplineBorisData_get_scale_b(el);
+    const int64_t order = SplineBorisData_len_knl(el) - 1;
+    const double inv_factorial_order = one_over_factorial(order);
+    GPUGLMEM const double *knl = SplineBorisData_getp1_knl(el, 0);
+    GPUGLMEM const double *ksl = SplineBorisData_getp1_ksl(el, 0);
     const int64_t radiation_flag = SplineBorisData_get_radiation_flag(el);
     SynchrotronRadiationRecordData radiation_record = 
         (SynchrotronRadiationRecordData) SplineBorisData_getp_internal_record(el, part0);
@@ -78,6 +83,10 @@ void SplineBoris_track_local_particle(SplineBorisData el, LocalParticle* part0){
             shift_x,
             shift_y,
             scale_b,
+            order,
+            inv_factorial_order,
+            knl,
+            ksl,
             radiation_flag,
             radiation_record
         );
