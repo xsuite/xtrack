@@ -109,7 +109,7 @@ class SplineBorisSequence:
             der_start=float(dpoly(l0)),
             val_end=float(poly(l1)),
             der_end=float(dpoly(l1)),
-            integral=float((ipoly(l1) - ipoly(l0)) / ds),
+            mean=float((ipoly(l1) - ipoly(l0)) / ds),
         )
 
     @classmethod
@@ -158,7 +158,7 @@ class SplineBorisSequence:
         s_ends = []
 
         zero_spline = Spline4(
-            val_start=0.0, der_start=0.0, val_end=0.0, der_end=0.0, integral=0.0
+            val_start=0.0, der_start=0.0, val_end=0.0, der_end=0.0, mean=0.0
         )
 
         for i in range(n_regions):
