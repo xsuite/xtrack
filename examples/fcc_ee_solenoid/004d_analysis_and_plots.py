@@ -69,57 +69,6 @@ tw = line.twiss6d(strengths=True, polarization_analysis=True)
 two = line.twiss(betx=tw_off.betx[0], bety=tw_off.bety[0])
 
 
-#########################################
-# Extract B_s from the Twiss table      #
-#########################################
-
-idx_splineboris = np.where(tw.element_type == 'SplineBoris')[0]
-
-sampled_segments = []
-for ii in idx_splineboris:
-    s_ring = np.array([tw.s[ii], tw.s[ii] + tw.length[ii]])
-    bs_local = np.array([tw.bs[ii], tw.bs[ii]])
-    sampled_segments.append((s_ring, bs_local))
-
-s_plot_chunks = []
-bs_plot_chunks = []
-current_s = []
-current_bs = []
-previous_s_end = None
-
-for s_ring, bs_local in sampled_segments:
-    starts_new_region = (
-        previous_s_end is None
-        or abs(s_ring[0] - previous_s_end) > 1e-9
-    )
-
-    if starts_new_region and current_s:
-        s_region = np.concatenate(current_s)
-        bs_region = np.concatenate(current_bs)
-        s_plot_chunks.append(np.r_[s_region[0], s_region, s_region[-1]])
-        bs_plot_chunks.append(np.r_[0.0, bs_region, 0.0])
-        current_s = []
-        current_bs = []
-
-    if current_s and abs(s_ring[0] - previous_s_end) <= 1e-9:
-        current_s.append(s_ring[1:])
-        current_bs.append(bs_local[1:])
-    else:
-        current_s.append(s_ring)
-        current_bs.append(bs_local)
-
-    previous_s_end = s_ring[-1]
-
-if current_s:
-    s_region = np.concatenate(current_s)
-    bs_region = np.concatenate(current_bs)
-    s_plot_chunks.append(np.r_[s_region[0], s_region, s_region[-1]])
-    bs_plot_chunks.append(np.r_[0.0, bs_region, 0.0])
-
-s_bs = np.concatenate(s_plot_chunks)
-bs = np.concatenate(bs_plot_chunks)
-
-
 ######################
 # Radiation analysis #
 ######################
@@ -141,7 +90,6 @@ dE_ds_eV_per_m[dE_ds_eV_per_m < 0] = 0.0
 
 tw_off.zero_at(IP_PLOT)
 tw.zero_at(IP_PLOT)
-s_bs = s_bs - tw['s', IP_PLOT]
 
 
 #########
@@ -155,7 +103,7 @@ ax1 = fig1.add_subplot(5, 1, 1)
 tw_off.plot(ax=ax1)
 
 ax2 = fig1.add_subplot(5, 1, 2, sharex=ax1)
-ax2.plot(s_bs, bs)
+ax2.plot(tw.s, tw.bs)
 ax2.set_ylabel(r'$B_s$ [T]')
 ax2.grid(True)
 
@@ -188,7 +136,7 @@ ax1 = fig2.add_subplot(5, 1, 1)
 tw_off.plot(ax=ax1)
 
 ax2 = fig2.add_subplot(5, 1, 2, sharex=ax1)
-ax2.plot(s_bs, bs)
+ax2.plot(tw.s, tw.bs)
 ax2.set_ylabel(r'$B_s$ [T]')
 ax2.grid(True)
 
