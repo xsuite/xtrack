@@ -329,6 +329,89 @@ def test_splineboris_multipole_field_contributes_to_mean_radiation():
     xo.assert_allclose(tracked_delta_e_ev, expected_delta_e_ev, rtol=5e-3, atol=0)
 
 
+def test_splineboris_scale_b_does_not_scale_multipole_components():
+    length = 1.2
+    n_steps = 30
+    knl = [2.0e-3, -1.0e-2]
+    ksl = [-1.5e-3, 4.0e-3]
+
+    el_scale_1 = xt.SplineBoris(
+        length=length,
+        n_steps=n_steps,
+        knl=knl,
+        ksl=ksl,
+        scale_b=1.0,
+    )
+    el_scale_7 = xt.SplineBoris(
+        length=length,
+        n_steps=n_steps,
+        knl=knl,
+        ksl=ksl,
+        scale_b=7.0,
+    )
+
+    p_scale_1 = xt.Particles(
+        p0c=7e9,
+        x=1.3e-3,
+        px=2.1e-4,
+        y=-0.7e-3,
+        py=-1.2e-4,
+        delta=3e-4,
+    )
+    p_scale_7 = p_scale_1.copy()
+
+    xt.Line(elements=[el_scale_1]).track(p_scale_1)
+    xt.Line(elements=[el_scale_7]).track(p_scale_7)
+
+    xo.assert_allclose(p_scale_7.x, p_scale_1.x, rtol=0, atol=1e-15)
+    xo.assert_allclose(p_scale_7.px, p_scale_1.px, rtol=0, atol=1e-15)
+    xo.assert_allclose(p_scale_7.y, p_scale_1.y, rtol=0, atol=1e-15)
+    xo.assert_allclose(p_scale_7.py, p_scale_1.py, rtol=0, atol=1e-15)
+    xo.assert_allclose(p_scale_7.zeta, p_scale_1.zeta, rtol=0, atol=1e-15)
+
+
+def test_splineboris_spline_and_multipole_fields_add_for_mean_radiation():
+    length = 1.0
+    n_steps = 100
+    B_spline_T = 1.25
+    B_multipole_T = 0.75
+    B_total_T = B_spline_T + B_multipole_T
+    p0c = 5e9
+    brho = p0c / clight
+    knl0 = B_multipole_T * length / brho
+
+    by_h = [B_spline_T, 0, B_spline_T, 0, B_spline_T]
+
+    particles = xt.Particles(
+        p0c=p0c,
+        px=1e-4,
+        py=-1e-4,
+        delta=0,
+        mass0=xt.ELECTRON_MASS_EV,
+    )
+    particles_before = particles.copy()
+
+    splineboris = xt.SplineBoris(
+        length=length,
+        n_steps=n_steps,
+        by=(xt.Spline4(*by_h),),
+        knl=[knl0],
+        radiation_flag=1,
+    )
+    splineboris.track(particles)
+
+    gamma = (particles_before.energy / particles_before.mass0)[0]
+    gamma0 = particles_before.gamma0[0]
+    rho_0 = brho / B_total_T
+    mass0_kg = particles_before.mass0 * qe / clight**2
+    r0 = qe**2 / (4 * np.pi * epsilon_0 * mass0_kg * clight**2)
+    ps = (2 * r0 * clight * mass0_kg * clight**2 * gamma0**2 * gamma**2) / (3 * rho_0**2)
+    expected_delta_e_ev = -ps * (length / clight) / qe
+    tracked_delta_e_ev = ((particles.ptau - particles_before.ptau) * particles.p0c)[0]
+
+    xo.assert_allclose(tracked_delta_e_ev, expected_delta_e_ev, rtol=5e-3, atol=0)
+
+
 def test_splineboris_scale_b_scales_field_and_tracking(make_uniform_splineboris):
     scale_b = 2.5
     Bx = 0.03
@@ -1435,6 +1518,53 @@ def test_splineboris_spin_uniform_solenoid(case, atol, make_uniform_splineboris)
     xo.assert_allclose(p.spin_x[0], p_ref.spin_x[0], atol=atol, rtol=0)
     xo.assert_allclose(p.spin_y[0], p_ref.spin_y[0], atol=atol, rtol=0)
     xo.assert_allclose(p.spin_z[0], p_ref.spin_z[0], atol=atol, rtol=0)
+
+
+def test_splineboris_spin_multipole_dipole_component():
+    spin_x = 0.1
+    spin_z = 0.2
+    spin_y = np.sqrt(1 - spin_x**2 - spin_z**2)
+
+    p = xt.Particles(
+        p0c=700e9,
+        mass0=xt.ELECTRON_MASS_EV,
+        anomalous_magnetic_moment=0.00115965218128,
+        x=1e-3,
+        px=1e-5,
+        y=2e-3,
+        py=2e-5,
+        delta=1e-3,
+        spin_x=spin_x,
+        spin_y=spin_y,
+        spin_z=spin_z,
+    )
+    p_ref = p.copy()
+
+    length = 0.02
+    k0 = 0.01
+    n_steps = 100
+
+    line_ref = xt.Line(elements=[
+        xt.Bend(length=length, angle=0.0, k0=k0),
+        xt.Marker(),
+    ])
+    line_ref.configure_spin(spin_model='auto')
+    line_ref.track(p_ref)
+
+    line_splineboris = xt.Line(elements=[
+        xt.SplineBoris(
+            length=length,
+            n_steps=n_steps,
+            knl=[k0 * length],
+        )
+    ])
+    line_splineboris.particle_ref = p.copy()
+    line_splineboris.configure_spin(spin_model='auto')
+    line_splineboris.track(p)
+
+    xo.assert_allclose(p.spin_x[0], p_ref.spin_x[0], atol=3e-8, rtol=0)
+    xo.assert_allclose(p.spin_y[0], p_ref.spin_y[0], atol=3e-8, rtol=0)
+    xo.assert_allclose(p.spin_z[0], p_ref.spin_z[0], atol=3e-8, rtol=0)
 
 
 
