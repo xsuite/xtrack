@@ -20,7 +20,6 @@ COMPENSATION_CORRECTOR_LENGTH = 1.0
 
 SOLENOID_INSERTION_S_TOL = 1e-8
 
-SAMPLES_PER_ELEMENT = 10
 SET_SOLENOID_KNOBS_FOR_PLOT = True
 ON_SOL_VALUE_FOR_PLOT = 1.0
 ON_COMP_SOL_VALUE_FOR_PLOT = 1.0
@@ -196,51 +195,31 @@ env.to_json(OUTPUT_LATTICE_JSON)
 print(f'Wrote {OUTPUT_LATTICE_JSON}')
 
 
-############################################
-# Inspect installed SplineBoris longitudinal field #
-############################################
+###############################################
+# Inspect installed SplineBoris mean field Bs #
+###############################################
 
 if SET_SOLENOID_KNOBS_FOR_PLOT:
     for ip_name in IP_NAMES:
         env[f'on_sol_{ip_name}'] = ON_SOL_VALUE_FOR_PLOT
         env[f'on_comp_sol_{ip_name}'] = ON_COMP_SOL_VALUE_FOR_PLOT
 
-table = line.get_table()
+table = line.get_table(attr=True)
 idx_splineboris = np.where(table.element_type == 'SplineBoris')[0]
 
 s_bs_plot_chunks = []
 bs_plot_chunks = []
 sampled_segments = []
-bs_by_element = {}
-bs_integral_by_element = {}
 bs_integral_main_solenoids = 0.0
 bs_integral_compensation_solenoids = 0.0
 
 for ii in idx_splineboris:
     name = table.name[ii]
-    env_name = table.env_name[ii]
-    element = env.get(env_name)
-
-    s_local = np.linspace(0.0, element.length, SAMPLES_PER_ELEMENT + 1)
-    _, _, bs_local = element.get_field(
-        np.zeros_like(s_local),
-        np.zeros_like(s_local),
-        s_local,
-    )
-
-    # Replace possible non-covered samples by zero before integrating/plotting.
-    bs_local = np.nan_to_num(bs_local, nan=0.0)
-    s_ring = table.s_start[ii] + s_local
-    bs_integral = np.trapezoid(bs_local, s_ring)
-
-    bs_by_element[name] = {
-        's_ring': s_ring,
-        'bs': bs_local,
-        'env_name': env_name,
-        'scale_b': element.scale_b,
-        'integral': bs_integral,
-    }
-    bs_integral_by_element[name] = bs_integral
+    bs_mean = table.bs[ii]
+    length = table.length[ii]
+    s_ring = np.array([table.s_start[ii], table.s_end[ii]])
+    bs_local = np.array([bs_mean, bs_mean])
+    bs_integral = bs_mean * length
 
     if name.startswith('sol_slice_'):
         bs_integral_main_solenoids += bs_integral
@@ -312,7 +291,7 @@ ax_bs_ring.legend(loc='best')
 fig_bs_ring.tight_layout()
 
 print(f'Found {len(idx_splineboris)} SplineBoris elements')
-print(f'Extracted {len(s_bs)} B_s plot samples')
+print(f'Extracted {len(s_bs)} B_s plot samples from line attributes')
 print(
     f'Integral main solenoids: '
     f'{bs_integral_main_solenoids:.12g} T m')

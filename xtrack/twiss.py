@@ -329,7 +329,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `dzeta`: longitudinal dispersion vs delta
     Output fields present when `strengths=True` (or `radiation_integrals=True`):
         - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole integrated strengths
-        - `angle`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
+        - `angle`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `bs`, `length`,
           `element_type`, `isthick`, `parent_name`, `prototype`: element properties
     Output fields present when `radiation_analysis=True`:
         - `energy_loss`: energy loss per turn [eV]
@@ -5521,7 +5521,7 @@ def _get_spin_polarization(tw, line, method):
 
         By = kappa_x * brho_part
         Bx = -kappa_y * brho_part
-        Bz = tw.ks * brho_ref
+        Bz = tw.ks * brho_ref + tw.bs
         B_mod = np.sqrt(Bx**2 + By**2 + Bz**2)
         B_mod[B_mod == 0] = 999. # avoid division by zero
 

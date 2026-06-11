@@ -10,7 +10,6 @@ INPUT_LATTICE_JSON = HERE / 'fccee_z_lcc_splineboris_solenoids_coupling_correcte
 
 IP_NAMES = ['ipa', 'ipd', 'ipg', 'ipj']
 IP_PLOT = 'ipg'
-SAMPLES_PER_SPLINEBORIS_ELEMENT = 4
 
 
 ################################
@@ -70,25 +69,17 @@ tw = line.twiss6d(strengths=True, polarization_analysis=True)
 two = line.twiss(betx=tw_off.betx[0], bety=tw_off.bety[0])
 
 
-################################################
-# Extract B_s directly from SplineBoris elements #
-################################################
+#########################################
+# Extract B_s from the Twiss table      #
+#########################################
 
-table = line.get_table()
-idx_splineboris = np.where(table.element_type == 'SplineBoris')[0]
+idx_splineboris = np.where(tw.element_type == 'SplineBoris')[0]
 
 sampled_segments = []
 for ii in idx_splineboris:
-    element = env.get(table.env_name[ii])
-    s_local = np.linspace(
-        0.0, element.length, SAMPLES_PER_SPLINEBORIS_ELEMENT + 1)
-    _, _, bs_local = element.get_field(
-        np.zeros_like(s_local),
-        np.zeros_like(s_local),
-        s_local,
-    )
-    bs_local = np.nan_to_num(bs_local, nan=0.0)
-    sampled_segments.append((table.s_start[ii] + s_local, bs_local))
+    s_ring = np.array([tw.s[ii], tw.s[ii] + tw.length[ii]])
+    bs_local = np.array([tw.bs[ii], tw.bs[ii]])
+    sampled_segments.append((s_ring, bs_local))
 
 s_plot_chunks = []
 bs_plot_chunks = []
