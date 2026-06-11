@@ -586,3 +586,74 @@ def test_madng_orbit_bump():
     opt.solve()
 
     assert opt._err.call_counter < 7
+
+
+def test_madng_track():
+    pytest.importorskip('pymadng')
+
+    # Small, fast line (so the MAD-NG model builds quickly): Low energy
+    # (beta0 ~ 0.73) so the Xsuite zeta/delta -> MAD-NG t/pt conversion
+    # is genuinely exercised (zeta = t * beta0, delta = ptau2delta(pt, beta0)).
+    line = xt.Line(
+        elements=[
+            xt.Drift(length=1.0),
+            xt.Quadrupole(length=0.5, k1=0.08),
+            xt.Drift(length=0.6),
+            xt.Bend(length=0.8, k0=0.05, angle=0.05 * 0.8),
+            xt.Drift(length=0.6),
+            xt.Quadrupole(length=0.5, k1=-0.08),
+            xt.Drift(length=1.0),
+        ],
+        element_names=['d1', 'qf', 'd2', 'b1', 'd3', 'qd', 'd4'],
+    )
+    line.particle_ref = xt.Particles(p0c=1e9)  # proton, beta0 ~ 0.73
+    line.build_tracker()
+    assert line.particle_ref.beta0[0] < 0.8  # conversion is non-trivial here
+
+    coords = ('x', 'px', 'y', 'py', 'zeta', 'delta')
+
+    # ----------------------- single particle -------------------------------------
+    init1 = dict(x=1e-4, px=2e-5, y=-1.5e-4, py=1e-5, zeta=2e-3, delta=1e-3)
+
+    p = line.build_particles(**init1)
+    line.track(p)
+
+    tw1 = line.madng_track(**init1)
+
+    # one particle -> 1-D columns
+    assert np.ndim(tw1['x_ng']) == 1
+    for cc in coords:
+        xo.assert_allclose(
+            tw1[f'{cc}_ng', '_end_point'], getattr(p, cc)[0], rtol=1e-5, atol=5e-9)
+
+    # ----------------------- multiple particles ---------------------------------
+    initN = dict(
+        x=np.array([1e-4, -2e-4, 0.5e-4]),
+        px=np.array([2e-5, -1e-5, 0.0]),
+        y=np.array([-1.5e-4, 1e-4, 2e-4]),
+        py=np.array([1e-5, 0.0, -2e-5]),
+        zeta=np.array([2e-3, -1e-3, 0.0]),
+        delta=np.array([1e-3, -5e-4, 2e-3]),
+    )
+
+    p = line.build_particles(**initN)
+    line.track(p)
+
+    twN = line.madng_track(**initN)
+
+    # several particles -> 2-D columns (n_elements, n_particles), id-ordered
+    n_elem = len(twN.name)
+    n_part = initN['x'].size
+    assert twN['x_ng'].shape == (n_elem, n_part)
+    for cc in coords:
+        xo.assert_allclose(
+            twN[f'{cc}_ng', '_end_point'], getattr(p, cc), rtol=1e-5, atol=5e-9)
+
+    # ------------- only one alias per MAD-NG coordinate is allowed ---------------
+    # zeta and t both map to MAD-NG 't'; delta, ptau and pt all map to 'pt'.
+    with pytest.raises(ValueError):
+        line.madng_track(zeta=1e-3, t=1e-3)
+    with pytest.raises(ValueError):
+        line.madng_track(delta=1e-3, pt=1e-3)
+    with pytest.raises(ValueError):
+        line.madng_track(delta=1e-3, ptau=1e-3)

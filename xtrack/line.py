@@ -45,7 +45,7 @@ from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type)
 from .mad_loader import MadLoader
 from .mad_writer import to_madx_sequence
-from .madng_interface import (_survey_ng, _tw_ng, build_madng_model,
+from .madng_interface import (_survey_ng, _track_ng, _tw_ng, build_madng_model,
                               discard_madng_model, line_to_madng,
                               regen_madng_model)
 from .match import Action, closed_orbit_correction, match_knob_line, match_line
@@ -6543,6 +6543,7 @@ class Line:
     discard_madng_model = doc_group("MAD-NG Integration")(discard_madng_model)
     regen_madng_model = doc_group("MAD-NG Integration")(regen_madng_model)
     madng_twiss = doc_group("MAD-NG Integration")(_tw_ng)
+    madng_track = doc_group("MAD-NG Integration")(_track_ng)
     madng_survey = doc_group("MAD-NG Integration")(_survey_ng)
 
 
