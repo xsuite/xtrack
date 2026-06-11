@@ -13,12 +13,12 @@ OUTPUT_LATTICE_JSON = HERE / 'temp_fcc_ee_lcc_splineboris_solenoids.json'
 IP_NAMES = ['ipa', 'ipd', 'ipg', 'ipj']
 
 COMP_SOLENOID_DISTANCE_FROM_IP = 12.0
-MAIN_SOLENOID_CORRECTOR_DS = 1.8
+MAIN_SOLENOID_CORRECTOR_DS_START = 1.23
+MAIN_SOLENOID_CORRECTOR_DS_END = 2.29
 COMPENSATION_CORRECTOR_MARKER_DS = 11.95
 COMPENSATION_CORRECTOR_LENGTH = 1.0
 
 SOLENOID_INSERTION_S_TOL = 1e-8
-SOLENOID_CORRECTOR_INSERTION_S_TOL = 0.03
 
 SAMPLES_PER_ELEMENT = 10
 SET_SOLENOID_KNOBS_FOR_PLOT = True
@@ -105,32 +105,56 @@ for ip_name in IP_NAMES:
                   at=COMP_SOLENOID_DISTANCE_FROM_IP, from_=ip_name),
     ], s_tol=SOLENOID_INSERTION_S_TOL)
 
-    # These two correctors are inserted inside the main solenoid. They are the
-    # only insertions for which we allow a loose tolerance, so the lattice is
-    # not cut just to hit the requested location exactly.
+    # The first corrector on each side is distributed over the outer part of
+    # the main solenoid, following the same interval used in 001a.
     env[f'acbh1_sol_right_{ip_name}'] = 0
     env[f'acbv1_sol_right_{ip_name}'] = 0
     env[f'acbh1_sol_left_{ip_name}'] = 0
     env[f'acbv1_sol_left_{ip_name}'] = 0
 
-    line.insert([
-        env.new(
-            f'corr_sol_1_right_{ip_name}', xt.Multipole,
-            knl=[env.ref[f'acbh1_sol_right_{ip_name}']],
-            ksl=[env.ref[f'acbv1_sol_right_{ip_name}']],
-            length=1., isthick=False,
-            at=MAIN_SOLENOID_CORRECTOR_DS,
-            from_=ip_name,
-        ),
-        env.new(
-            f'corr_sol_1_left_{ip_name}', xt.Multipole,
-            knl=[env.ref[f'acbh1_sol_left_{ip_name}']],
-            ksl=[env.ref[f'acbv1_sol_left_{ip_name}']],
-            length=1., isthick=False,
-            at=-MAIN_SOLENOID_CORRECTOR_DS,
-            from_=ip_name,
-        ),
-    ], s_tol=SOLENOID_CORRECTOR_INSERTION_S_TOL)
+    table_region = line.get_table().rows[
+        f'end_ds_start_straight_{ip_name}':f'end_straight_start_ds_{ip_name}']
+    s_ip = table_region['s', ip_name]
+
+    table_corrector_right = table_region.rows[
+        s_ip + MAIN_SOLENOID_CORRECTOR_DS_START:
+        s_ip + MAIN_SOLENOID_CORRECTOR_DS_END:'s']
+    assert np.all(table_corrector_right.element_type == 'SplineBoris')
+    assert all(
+        env_name.startswith(f'sol_slice_{ip_name}_')
+        for env_name in table_corrector_right.env_name)
+    length_corrector_right = (
+        table_corrector_right['s_end'][-1]
+        - table_corrector_right['s_start'][0])
+
+    for env_name in table_corrector_right.env_name:
+        element = env.get(env_name)
+        env.ref[env_name].knl[0] += (
+            env.ref[f'acbh1_sol_right_{ip_name}']
+            / length_corrector_right * element.length)
+        env.ref[env_name].ksl[0] += (
+            env.ref[f'acbv1_sol_right_{ip_name}']
+            / length_corrector_right * element.length)
+
+    table_corrector_left = table_region.rows[
+        s_ip - MAIN_SOLENOID_CORRECTOR_DS_END:
+        s_ip - MAIN_SOLENOID_CORRECTOR_DS_START:'s']
+    assert np.all(table_corrector_left.element_type == 'SplineBoris')
+    assert all(
+        env_name.startswith(f'sol_slice_{ip_name}_')
+        for env_name in table_corrector_left.env_name)
+    length_corrector_left = (
+        table_corrector_left['s_end'][-1]
+        - table_corrector_left['s_start'][0])
+
+    for env_name in table_corrector_left.env_name:
+        element = env.get(env_name)
+        env.ref[env_name].knl[0] += (
+            env.ref[f'acbh1_sol_left_{ip_name}']
+            / length_corrector_left * element.length)
+        env.ref[env_name].ksl[0] += (
+            env.ref[f'acbv1_sol_left_{ip_name}']
+            / length_corrector_left * element.length)
 
     # Markers and correctors used later by the orbit/coupling correction near
     # the compensation solenoids.
