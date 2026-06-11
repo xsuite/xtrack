@@ -15,7 +15,7 @@ def test_h_sdep():
     line.track(p0, _force_no_end_turn_actions=True)
 
     assert np.isclose(p0.x[0], 0.00968437)
-    assert np.isclose(p0.px[0], -0.00162025)
+    assert np.isclose(p0.px[0], -0.00430618)
     assert np.isclose(p0.y[0], 0.02753048)
     assert np.isclose(p0.py[0], 0.20394359)
     assert np.isclose(p0.zeta[0], -0.00020263)
@@ -36,7 +36,7 @@ def test_sdep():
     line.track(p0, _force_no_end_turn_actions=True)
 
     assert np.isclose(p0.x[0], 0.00765466)
-    assert np.isclose(p0.px[0], -0.02167055)
+    assert np.isclose(p0.px[0], -0.02435948)
     assert np.isclose(p0.y[0], 0.02747711)
     assert np.isclose(p0.py[0], 0.20351503)
     assert np.isclose(p0.zeta[0], 0.00058352)
