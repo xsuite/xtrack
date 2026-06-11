@@ -325,6 +325,7 @@ void FieldExpansion_track_local_particle(
     f.Q          = (double *)FieldExpansionData_getp__Q(el);
 
     HamiltonianFlow flow;
+    FieldValue v;
 
     START_PER_PARTICLE_BLOCK(part0, part);
         const double beta0  = LocalParticle_get_beta0(part);
@@ -340,7 +341,6 @@ void FieldExpansion_track_local_particle(
         double z[6] = {x, px, y, py, tau, ptau};
 
         // Momentum has to be continuous, vector potential discontinuous, update canonical momentum
-        FieldValue v;
         evaluate_expansion(&f, z[0], z[2], 0, &v);
         z[1] += v.Ax - ax;
         z[3] += v.Ay - ay;
