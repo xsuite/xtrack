@@ -392,7 +392,7 @@ def test_madng_interface_amplitude_detuning_and_second_order_chrom():
 def test_madng_match_optics():
     collider = xt.Environment.from_json(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
-    collider.vars.load_madx(test_data_folder /
+    collider.vars.load(test_data_folder /
                     'hllhc15_thick/opt_round_150_1500.madx')
 
     line = collider.lhcb1

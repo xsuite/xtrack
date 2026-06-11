@@ -2697,7 +2697,7 @@ class EnvVars:
 
     def load_madx(self, filename=None, string=None):
         """Deprecated: see `_load_madx` instead."""
-        warn('EnvVars.load_madx is deprecated, use `xtrack.load` instead.'
+        warn('EnvVars.load_madx is deprecated, use `EnvVars.load` instead.'
              + DEPRECATION_INFO_PREP_1_0,
              FutureWarning)
         self._load_madx(filename=filename, string=string)
