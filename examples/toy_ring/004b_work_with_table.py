@@ -36,32 +36,32 @@ tab = line.twiss4d(strengths=True)
 tab.show()
 # prints:
 #
-# name                   s             x            px             y            py ...
-# mqf.1                  0   5.27539e-10   7.91903e-12             0             0
-# d1.1                 0.3   5.27539e-10  -7.91903e-12             0             0
-# mb1.1                1.3    5.1962e-10  -7.91903e-12             0             0
-# d2.1                 4.3   4.27314e-10  -4.04126e-11             0             0
-# mqd.1                5.3   3.86901e-10  -4.04126e-11             0             0
-# d3.1                 5.6   3.86901e-10   4.04127e-11             0             0
-# mb2.1                6.6   4.27314e-10   4.04127e-11             0             0
-# d4.1                 9.6   5.19621e-10   7.91896e-12             0             0
-# mqf.2               10.6    5.2754e-10   7.91896e-12             0             0
-# d1.2                10.9    5.2754e-10   -7.9191e-12             0             0
-# mb1.2               11.9    5.1962e-10   -7.9191e-12             0             0
-# d2.2                14.9   4.27314e-10  -4.04126e-11             0             0
-# mqd.2               15.9   3.86901e-10  -4.04126e-11             0             0
-# d3.2                16.2   3.86901e-10   4.04127e-11             0             0
-# mb2.2               17.2   4.27314e-10   4.04127e-11             0             0
-# d4.2                20.2   5.19621e-10   7.91901e-12             0             0
-# _end_point          21.2    5.2754e-10   7.91901e-12             0             0
+# name       element_type             s          betx          bety ...
+# mqf.1      Quadrupole               0       1.27738       4.79104
+# d1.1       Drift                  0.3       1.27738       4.79104
+# mb1.1      Bend                   1.3       2.26749       5.20838
+# d2.1       Drift                  4.3       2.88391       8.99176
+# mqd.1      Quadrupole             5.3       1.72481       11.0967
+# d3.1       Drift                  5.6       1.72481       11.0967
+# mb2.1      Bend                   6.6       2.88391       8.99176
+# d4.1       Drift                  9.6       2.26749       5.20838
+# mqf.2      Quadrupole            10.6       1.27738       4.79104
+# d1.2       Drift                 10.9       1.27738       4.79104
+# mb1.2      Bend                  11.9       2.26749       5.20838
+# d2.2       Drift                 14.9       2.88391       8.99176
+# mqd.2      Quadrupole            15.9       1.72481       11.0967
+# d3.2       Drift                 16.2       1.72481       11.0967
+# mb2.2      Bend                  17.2       2.88391       8.99176
+# d4.2       Drift                 20.2       2.26749       5.20838
+# _end_point                       21.2       1.27738       4.79104
 
-# Access to a single element of the table
+# Single values can be accessed using the column name and the row name. For example:
 tab['s', 'mb2.1'] # is 6.6
 
-# Access to a single column of the table
+# Entire columns can be accessed using the column name. For example:
 tab['s'] # is [0.0, 0.3, 1.3, 4.3, 5.3, 5.6, 6.6, 9.6, 10.6, 10.9, 11.9, ...
 
-# The `.cols` attribute can be used to access selected columns (the output is 
+# The `.cols` attribute can be used to access multiple columns (the output is 
 # a Table object). For example:
 tab.cols['betx bety alfx alfy']
 # returns:
@@ -115,120 +115,110 @@ tab.rows[['mqf.1', 'mqd.1']]
 # returns:
 #
 # TwissTable: 2 rows, 98 cols
-# name              s             x            px             y            py ...
-# mqf.1             0   5.27539e-10   7.91903e-12             0             0
-# mqd.1           5.3   3.86901e-10  -4.04126e-11             0             0
+# TwissTable: 2 rows, 98 cols
+# name  element_type             s          betx          bety ...
+# mqf.1 Quadrupole               0       1.27738       4.79104
+# mqd.1 Quadrupole             5.3       1.72481       11.0967
 
 # Regular expressions can be used to select rows
 tab.rows['mb.*']
 # returns:
 #
-# Table: 4 rows, 94 cols
-# name          s element_type isthick isreplica parent_name iscollective
-# mb1.1       1.3 Bend            True     False        None        False
-# mb2.1       6.6 Bend            True     False        None        False
-# mb1.2      11.9 Bend            True     False        None        False
-# mb2.2      17.2 Bend            True     False        None        False
-
+# TwissTable: 4 rows, 98 cols
+# name  element_type             s          betx          bety ...
+# mb1.1 Bend                   1.3       2.26749       5.20838
+# mb2.1 Bend                   6.6       2.88391       8.99176
+# mb1.2 Bend                  11.9       2.26749       5.20838
+# mb2.2 Bend                  17.2       2.88391       8.99176
 
 # Elements can be selected by type using the match search (applicable to any column)
 tab.rows.match(element_type='Quadrupole')
 # returns:
 #
-# Table: 4 rows, 94 cols
-# name          s element_type isthick isreplica parent_name iscollective
-# mqf.1         0 Quadrupole      True     False        None        False
-# mqd.1       5.3 Quadrupole      True     False        None        False
-# mqf.2      10.6 Quadrupole      True     False        None        False
-# mqd.2      15.9 Quadrupole      True     False        None        False
+# TwissTable: 4 rows, 98 cols
+# name  element_type             s          betx          bety ...
+# mqf.1 Quadrupole               0       1.27738       4.79104
+# mqd.1 Quadrupole             5.3       1.72481       11.0967
+# mqf.2 Quadrupole            10.6       1.27738       4.79104
+# mqd.2 Quadrupole            15.9       1.72481       11.0967
 
 # rows.match supports regular expressions
 tab.rows.match(element_type='Quad.*|Be.*')
 # returns:
-# LineTable: 8 rows, 186 cols
-# name              s element_type isthick isreplica parent_name ...
-# mqf.1             0 Quadrupole      True     False None       
-# mb1.1           1.3 Bend            True     False None       
-# mqd.1           5.3 Quadrupole      True     False None       
-# mb2.1           6.6 Bend            True     False None       
-# mqf.2          10.6 Quadrupole      True     False None       
-# mb1.2          11.9 Bend            True     False None       
-# mqd.2          15.9 Quadrupole      True     False None       
-# mb2.2          17.2 Bend            True     False None
+# TwissTable: 8 rows, 98 cols
+# name  element_type             s          betx          bety ...
+# mqf.1 Quadrupole               0       1.27738       4.79104
+# mb1.1 Bend                   1.3       2.26749       5.20838
+# mqd.1 Quadrupole             5.3       1.72481       11.0967
+# mb2.1 Bend                   6.6       2.88391       8.99176
+# mqf.2 Quadrupole            10.6       1.27738       4.79104
+# mb1.2 Bend                  11.9       2.26749       5.20838
+# mqd.2 Quadrupole            15.9       1.72481       11.0967
+# mb2.2 Bend                  17.2       2.88391       8.99176
 
 # rows.match_not can be used to select rows not matching a given condition.
 # For example to select all elements that are not drifts:
 tab.rows.match_not(element_type='Drift')
 #
 # TwissTable: 9 rows, 98 cols
-# name                   s             x            px             y            py ...
-# mqf.1                  0   5.27539e-10   7.91903e-12             0             0
-# mb1.1                1.3    5.1962e-10  -7.91903e-12             0             0
-# mqd.1                5.3   3.86901e-10  -4.04126e-11             0             0
-# mb2.1                6.6   4.27314e-10   4.04127e-11             0             0
-# mqf.2               10.6    5.2754e-10   7.91896e-12             0             0
-# mb1.2               11.9    5.1962e-10   -7.9191e-12             0             0
-# mqd.2               15.9   3.86901e-10  -4.04126e-11             0             0
-# mb2.2               17.2   4.27314e-10   4.04127e-11             0             0
-# _end_point          21.2    5.2754e-10   7.91901e-12             0             0
+# name  element_type             s          betx          bety ...
+# mqd.1 Quadrupole             5.3       1.72481       11.0967
+# d3.1  Drift                  5.6       1.72481       11.0967
+# mb2.1 Bend                   6.6       2.88391       8.99176
+# d4.1  Drift                  9.6       2.26749       5.20838
+# mqf.2 Quadrupole            10.6       1.27738       4.79104
+# d1.2  Drift                 10.9       1.27738       4.79104
+# mb1.2 Bend                  11.9       2.26749       5.20838
+# d2.2  Drift                 14.9       2.88391       8.99176
+# mqd.2 Quadrupole            15.9       1.72481       11.0967
 
 # A section of the table can be selected using names
 tab.rows['mqd.1':'mqd.2']
 # returns:
 #
-# Table: 9 rows, 94 cols
-# name          s element_type isthick isreplica parent_name iscollective
-# mqd.1       5.3 Quadrupole      True     False        None        False
-# d3.1        5.6 Drift           True     False        None        False
-# mb2.1       6.6 Bend            True     False        None        False
-# d4.1        9.6 Drift           True     False        None        False
-# mqf.2      10.6 Quadrupole      True     False        None        False
-# d1.2       10.9 Drift           True     False        None        False
-# mb1.2      11.9 Bend            True     False        None        False
-# d2.2       14.9 Drift           True     False        None        False
-# mqd.2      15.9 Quadrupole      True     False        None        False
+# TwissTable: 9 rows, 98 cols
+# name  element_type             s          betx          bety ...
+# mqd.1 Quadrupole             5.3       1.72481       11.0967
+# d3.1  Drift                  5.6       1.72481       11.0967
+# mb2.1 Bend                   6.6       2.88391       8.99176
+# d4.1  Drift                  9.6       2.26749       5.20838
+# mqf.2 Quadrupole            10.6       1.27738       4.79104
+# d1.2  Drift                 10.9       1.27738       4.79104
+# mb1.2 Bend                  11.9       2.26749       5.20838
+# d2.2  Drift                 14.9       2.88391       8.99176
+# mqd.2 Quadrupole            15.9       1.72481       11.0967
 
 # A section of the ring can be selected using the s coordinate
 tab.rows[3.0:7.0:'s']
 # returns:
 #
-# Table: 4 rows, 94 cols
-# name         s element_type isthick isreplica parent_name iscollective
-# d2.1       4.3 Drift           True     False        None        False
-# mqd.1      5.3 Quadrupole      True     False        None        False
-# d3.1       5.6 Drift           True     False        None        False
-# mb2.1      6.6 Bend            True     False        None        False
+# TwissTable: 4 rows, 98 cols
+# name  element_type             s          betx          bety ...
+# d2.1  Drift                  4.3       2.88391       8.99176
+# mqd.1 Quadrupole             5.3       1.72481       11.0967
+# d3.1  Drift                  5.6       1.72481       11.0967
+# mb2.1 Bend                   6.6       2.88391       8.99176
 
-# A section of the ring can be selected using indexes relative one element
+# A section of the table can be selected using indexes relative one element
 # (e.g. to get from three elements upstream of 'mqd.1' to two elements
 # downstream of 'mb2.1')
 tab.rows['mqd.1<<3':'mb2.1>>2']
 # returns:
 #
-# Table: 8 rows, 94 cols
-# name          s element_type isthick isreplica parent_name iscollective
-# d1.1        0.3 Drift           True     False        None        False
-# mb1.1       1.3 Bend            True     False        None        False
-# d2.1        4.3 Drift           True     False        None        False
-# mqd.1       5.3 Quadrupole      True     False        None        False
-# d3.1        5.6 Drift           True     False        None        False
-# mb2.1       6.6 Bend            True     False        None        False
-# d4.1        9.6 Drift           True     False        None        False
-# mqf.2      10.6 Quadrupole      True     False        None        False
-
-# Each of the selection methods above returns a valid table, hence selections
-# can be chained. For example:
-tab.rows[0:10:'s'].rows['mb.*']
-# returns:
-#
-# Table: 2 rows, 94 cols
-# name         s element_type isthick isreplica parent_name iscollective
-# mb1.1      1.3 Bend            True     False        None        False
-# mb2.1      6.6 Bend            True     False        None        False
+# TwissTable: 8 rows, 98 cols
+# name  element_type             s          betx          bety ...
+# d1.1  Drift                  0.3       1.27738       4.79104
+# mb1.1 Bend                   1.3       2.26749       5.20838
+# d2.1  Drift                  4.3       2.88391       8.99176
+# mqd.1 Quadrupole             5.3       1.72481       11.0967
+# d3.1  Drift                  5.6       1.72481       11.0967
+# mb2.1 Bend                   6.6       2.88391       8.99176
+# d4.1  Drift                  9.6       2.26749       5.20838
+# mqf.2 Quadrupole            10.6       1.27738       4.79104
 
 # As rows and column selectors return Table objects they can be chained for example
 # in the following we select rows in the range 'd1.1'-'d2.2', which are not of type Drift,
-# and match the regular expression 'mb.*' and we select the cols `betx` and `bety`:
+# and that match the regular expression 'mb.*' and we select the columns `betx` and `bety`:
 tab.rows['d1.1':'d2.2'].rows.match_not(element_type='Drift').rows.match(name='mb.*').cols['betx bety']
 # returns:
 #
