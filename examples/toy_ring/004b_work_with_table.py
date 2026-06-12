@@ -61,7 +61,8 @@ tab['s', 'mb2.1'] # is 6.6
 # Access to a single column of the table
 tab['s'] # is [0.0, 0.3, 1.3, 4.3, 5.3, 5.6, 6.6, 9.6, 10.6, 10.9, 11.9, ...
 
-# Access to selected columns (the output is a Table object)
+# The `.cols` attribute can be used to access selected columns (the output is 
+# a Table object). For example:
 tab.cols['betx bety alfx alfy']
 # returns:
 #
@@ -109,7 +110,16 @@ tab.cols['betx dx dx/sqrt(betx)']
 # d4.2             2.26749       2.24303       1.48958
 # _end_point       1.27738       2.27721       2.01486
 
-# Regular expressions can be used to select elements by name
+# The .rows attribute can be used access selected rows
+tab.rows[['mqf.1', 'mqd.1']]
+# returns:
+#
+# TwissTable: 2 rows, 98 cols
+# name              s             x            px             y            py ...
+# mqf.1             0   5.27539e-10   7.91903e-12             0             0
+# mqd.1           5.3   3.86901e-10  -4.04126e-11             0             0
+
+# Regular expressions can be used to select rows
 tab.rows['mb.*']
 # returns:
 #
@@ -120,7 +130,6 @@ tab.rows['mb.*']
 # mb1.2      11.9 Bend            True     False        None        False
 # mb2.2      17.2 Bend            True     False        None        False
 
- # The output of this operation is a table, hence row selections
 
 # Elements can be selected by type using the match search (applicable to any column)
 tab.rows.match(element_type='Quadrupole')
@@ -133,7 +142,7 @@ tab.rows.match(element_type='Quadrupole')
 # mqf.2      10.6 Quadrupole      True     False        None        False
 # mqd.2      15.9 Quadrupole      True     False        None        False
 
-# Match supports regular expressions
+# rows.match supports regular expressions
 tab.rows.match(element_type='Quad.*|Be.*')
 # returns:
 # LineTable: 8 rows, 186 cols
@@ -145,7 +154,23 @@ tab.rows.match(element_type='Quad.*|Be.*')
 # mqf.2          10.6 Quadrupole      True     False None       
 # mb1.2          11.9 Bend            True     False None       
 # mqd.2          15.9 Quadrupole      True     False None       
-# mb2.2          17.2 Bend            True     False None   
+# mb2.2          17.2 Bend            True     False None
+
+# rows.match_not can be used to select rows not matching a given condition.
+# For example to select all elements that are not drifts:
+tab.rows.match_not(element_type='Drift')
+#
+# TwissTable: 9 rows, 98 cols
+# name                   s             x            px             y            py ...
+# mqf.1                  0   5.27539e-10   7.91903e-12             0             0
+# mb1.1                1.3    5.1962e-10  -7.91903e-12             0             0
+# mqd.1                5.3   3.86901e-10  -4.04126e-11             0             0
+# mb2.1                6.6   4.27314e-10   4.04127e-11             0             0
+# mqf.2               10.6    5.2754e-10   7.91896e-12             0             0
+# mb1.2               11.9    5.1962e-10   -7.9191e-12             0             0
+# mqd.2               15.9   3.86901e-10  -4.04126e-11             0             0
+# mb2.2               17.2   4.27314e-10   4.04127e-11             0             0
+# _end_point          21.2    5.2754e-10   7.91901e-12             0             0
 
 # A section of the table can be selected using names
 tab.rows['mqd.1':'mqd.2']
@@ -201,17 +226,14 @@ tab.rows[0:10:'s'].rows['mb.*']
 # mb1.1      1.3 Bend            True     False        None        False
 # mb2.1      6.6 Bend            True     False        None        False
 
-
-# All attributes extracted by `line.attr[...]` can be included in the table
-# using `attr=True`. For example, using `tab.cols[...]` to select columns, we
-# we can get the focusing strength of all quadrupoles in the ring:
-tab = line.get_table(attr=True)
-tab.rows[tab.element_type=='Quadrupole'].cols['s length k1l']
+# As rows and column selectors return Table objects they can be chained for example
+# in the following we select rows in the range 'd1.1'-'d2.2', which are not of type Drift,
+# and match the regular expression 'mb.*' and we select the cols `betx` and `bety`:
+tab.rows['d1.1':'d2.2'].rows.match_not(element_type='Drift').rows.match(name='mb.*').cols['betx bety']
 # returns:
 #
-# Table: 4 rows, 4 cols
-# name          s length   k1l
-# mqf.1         0    0.3  0.03
-# mqd.1       5.3    0.3 -0.21
-# mqf.2      10.6    0.3  0.03
-# mqd.2      15.9    0.3 -0.21
+# TwissTable: 3 rows, 3 cols
+# name           betx          bety
+# mb1.1       2.26749       5.20838
+# mb2.1       2.88391       8.99176
+# mb1.2       2.26749       5.20838
