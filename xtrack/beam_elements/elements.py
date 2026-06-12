@@ -5214,3 +5214,12 @@ class BentFieldExpansion(BeamElement):
         super().__init__(**kwargs)
         
         self.build_expansion(el=self)
+
+
+class FieldExpansion(BeamElement):
+    def __new__(cls, *args, **kwargs):
+        if 'h' in kwargs and kwargs['h'] > 1e-9:
+            return BentFieldExpansion(*args, **kwargs)
+        else:
+            kwargs.pop('h', None)
+            return StraightFieldExpansion(*args, **kwargs)
