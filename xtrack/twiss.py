@@ -64,6 +64,10 @@ OTHER_FIELDS_FROM_ATTR=['angle', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks
 OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name', 'parent_type', 'prototype']
 SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle', 'angle_rad']
 
+DEFAULT_COL_ORDER = [
+    'name', 'element_type', 's', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'
+    'dpx', 'dpy', 'x', 'y', 'px', 'py', 'delta', 'zeta']
+
 
 def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
@@ -1082,6 +1086,9 @@ def twiss_line(line, particle_ref=None, method=None,
 
     twiss_res['periodic'] = periodic
     twiss_res['completed_init'] = completed_init
+
+    # Sort col names
+    twiss_res._sort_col_names()
 
     return _add_action_in_res(twiss_res, input_kwargs)
 
@@ -4809,6 +4816,19 @@ class TwissTable(Table):
 
         return out
 
+    def _sort_col_names(self):
+        old_col_names = self._col_names
+        col_name_set = set(old_col_names)
+        new_col_names = []
+        for nn in DEFAULT_COL_ORDER:
+            if nn in col_name_set:
+                new_col_names.append(nn)
+        set_sorted_col_names = set(new_col_names)
+        for nn in old_col_names:
+            if nn not in set_sorted_col_names:
+                new_col_names.append(nn)
+        self._col_names = new_col_names
+
 def _complete_twiss_init(start, end, init_at, init,
                         line, reverse,
                         x, px, y, py, zeta, delta,
@@ -5661,3 +5681,6 @@ def _6d_w_matrix(betx, bety, alfx, alfy, bets, dx, dpx, dy, dpy):
     out[2, 5] = dy
     out[3, 5] = dpy
     return out
+
+
+
