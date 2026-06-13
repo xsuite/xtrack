@@ -13,9 +13,7 @@ line['on_chicane_tune_corr'] = 1
 
 # Install monitor at foil
 monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=6000, num_particles=1)
-line.discard_tracker()
-line.insert_element(index='bi1.tstr1l1', element=monitor, name='monitor_at_foil')
-line.build_tracker()
+line.insert('monitor_at_foil', monitor, at='bi1.tstr1l1')
 
 fname = '../../test_data/psb_chicane/inj_distrib.dat'
 df = pd.read_table(fname, skiprows=3,
@@ -48,12 +46,12 @@ p_injection = xt.ParticlesInjectionSample(particles_to_inject=part_for_injection
                                         num_particles_to_inject=7)
 
 line.discard_tracker()
-line.insert_element(index='bi1.tstr1l1', element=p_injection, name='injection')
+line.insert('injection', p_injection, at='bi1.tstr1l1')
 
 
 # Add monitor at end line
 monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=10, num_particles=100)
-line.insert_element(index='p16ring1$end', element=monitor, name='monitor_at_end')
+line.insert('monitor_at_end', monitor, at='p16ring1$end')
 
 line.build_tracker()
 
