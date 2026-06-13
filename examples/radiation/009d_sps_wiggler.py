@@ -72,14 +72,16 @@ tt = line.get_table()
 s_start_wig = tt['s', 'actcsg.31780']
 
 line.discard_tracker()
-line.insert_element(name='wig1', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+0*0.5)
-line.insert_element(name='wig2', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+1*0.5)
-line.insert_element(name='wig3', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+2*0.5)
-line.insert_element(name='wig4', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+3*0.5)
-line.insert_element(name='wig5', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+4*0.5)
-line.insert_element(name='wig6', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+5*0.5)
-line.insert_element(name='wig7', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+6*0.5)
-line.insert_element(name='wig8', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+7*0.5)
+line.insert([
+    env.new('wig1', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+0*0.5),
+    env.new('wig2', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+1*0.5),
+    env.new('wig3', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+2*0.5),
+    env.new('wig4', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+3*0.5),
+    env.new('wig5', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+4*0.5),
+    env.new('wig6', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+5*0.5),
+    env.new('wig7', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+6*0.5),
+    env.new('wig8', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+7*0.5),
+])
 
 line['k_wig'] = 0
 line['wig1'].k0 = 'k_wig'
