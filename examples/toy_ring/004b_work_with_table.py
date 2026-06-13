@@ -188,7 +188,8 @@ tab.rows['mqd.1':'mqd.2']
 # d2.2  Drift                 14.9       2.88391       8.99176
 # mqd.2 Quadrupole            15.9       1.72481       11.0967
 
-# A section of the ring can be selected using the s coordinate
+# A section of the table can be selected using any given column. For example,
+# to select all elements between s=3 and s=7:
 tab.rows[3.0:7.0:'s']
 # returns:
 #
