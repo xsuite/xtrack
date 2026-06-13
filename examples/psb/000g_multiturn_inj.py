@@ -37,9 +37,6 @@ part_for_injection.px = df["x'"].values  * 1e-3 * (1 + part_for_injection.delta)
 part_for_injection.py = df["y'"].values  * 1e-3 * (1 + part_for_injection.delta)
 part_for_injection.weight = 10
 
-
-
-
 p_injection = xt.ParticlesInjectionSample(particles_to_inject=part_for_injection,
                                         line=line,
                                         element_name='injection',
