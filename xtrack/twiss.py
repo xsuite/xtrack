@@ -3762,6 +3762,27 @@ class TwissTable(Table):
     }
 
     def __init__(self, *args, **kwargs):
+        """
+        Table returned by :meth:`xtrack.Line.twiss`.
+
+        ``TwissTable`` stores element-by-element optics, closed orbit,
+        transfer information, and global quantities produced by Twiss
+        calculations. It extends :class:`xtrack.Table` with Twiss-specific
+        helpers for initial conditions, beam covariance, response matrices,
+        normalized coordinates, plotting, reversing, concatenating, and
+        IBS/synchrotron-radiation post-processing.
+
+        Parameters
+        ----------
+        *args
+            Positional arguments passed to :class:`xtrack.Table`.
+        periodic : bool, optional
+            Whether the stored Twiss solution is periodic. If not provided,
+            the value is taken from ``data["periodic"]`` when available,
+            otherwise it defaults to ``False``.
+        **kwargs
+            Keyword arguments passed to :class:`xtrack.Table`.
+        """
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
         super().__init__(*args, **kwargs)
         self['periodic'] = kwargs.get('periodic', kwargs.get('data', {}).get('periodic', False))
@@ -5681,6 +5702,5 @@ def _6d_w_matrix(betx, bety, alfx, alfy, bets, dx, dpx, dy, dpy):
     out[2, 5] = dy
     out[3, 5] = dpy
     return out
-
 
 
