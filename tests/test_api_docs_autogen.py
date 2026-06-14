@@ -27,8 +27,8 @@ def _iter_public_members(cls):
 
 @pytest.mark.parametrize(
     "cls",
-    [xt.Line, xt.Environment],
-    ids=["Line", "Environment"],
+    [xt.Line, xt.Environment, xt.TwissTable],
+    ids=["Line", "Environment", "TwissTable"],
 )
 def test_public_api_members_have_docstrings(cls):
     missing_methods = []
