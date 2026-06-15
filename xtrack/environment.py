@@ -1989,6 +1989,14 @@ def _parse_kwargs(cls, kwargs, _eval):
 
 
 class EnvElements:
+    """
+    Container for elements stored in an environment.
+
+    Instances are available as ``env.elements``. The container provides
+    dictionary-like access to named elements and returns reference-aware views
+    when the environment has variable management enabled.
+    """
+
     def __init__(self, env):
         self.env = env
 
@@ -2055,6 +2063,14 @@ class EnvElements:
 
 
 class EnvParticles:
+    """
+    Container for named particle references stored in an environment.
+
+    Instances are available as ``env.particles``. The container provides
+    dictionary-like access to particle objects and returns reference-aware views
+    when the environment has variable management enabled.
+    """
+
     def __init__(self, env):
         self.env = env
 
@@ -2128,6 +2144,13 @@ class EnvParticles:
 
 
 class EnvXfields:
+    """
+    Accessor for Xfields-related environment helpers.
+
+    Instances are available as ``env.xfields`` and expose helpers for
+    beam-beam configuration workflows.
+    """
+
     def __init__(self, env):
         self.env = env
 
@@ -2175,6 +2198,13 @@ class EnvXfields:
 
 
 class EnvRef:
+    """
+    Reference container for environment objects.
+
+    Instances are available as ``env.ref`` and provide access to xdeps
+    references for variables, elements, particle references, and lines.
+    """
+
     def __init__(self, env):
         self.env = env
 
@@ -2229,6 +2259,12 @@ class EnvRef:
 
 
 class EnvLines(UserDict):
+    """
+    Container for lines stored in an environment.
+
+    Instances are available as ``env.lines`` and provide dictionary-like access
+    to named :class:`xtrack.Line` objects.
+    """
 
     def __init__(self, env):
         self.data = {}
@@ -2440,6 +2476,13 @@ def _make_var_management(element_dict, particles, dct=None):
     return _var_management
 
 class EnvParticleRef:
+    """
+    Proxy for the environment reference particle.
+
+    Instances are used internally by :class:`xtrack.Environment` to expose the
+    current reference particle while allowing the reference particle to be stored
+    either directly or by name.
+    """
 
     def __init__(self, env):
         self.env = env
@@ -2465,6 +2508,13 @@ class EnvParticleRef:
         return self._resolved.copy(**kwargs)
 
 class EnvVars:
+    """
+    Container for variables stored in an environment.
+
+    Instances are available as ``env.vars`` and provide dictionary-like access
+    to environment variables, expressions, variable values, and variable table
+    generation.
+    """
 
     def __init__(self, env):
         self.env = env
