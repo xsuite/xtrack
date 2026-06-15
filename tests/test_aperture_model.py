@@ -11,7 +11,7 @@ import xtrack as xt
 from cpymad.madx import Madx
 from xobjects.general import allclose_with_outliers
 from xobjects.test_helpers import for_all_test_contexts, requires_context
-from xtrack.aperture.aperture import Aperture, ProfilesView
+from xtrack.aperture.aperture import Aperture, ProfilesView, _split_wrapped_s_interval
 from xtrack.aperture.views import PipePositionsView, PipesView
 from xtrack.aperture.structures import (
     ApertureModel, Pipe, Circle, FloatType, Polygon, Profile,
@@ -701,6 +701,21 @@ def test_pipe_overlap_validation_allows_wrapped_and_regular_non_overlapping_pipe
     xo.assert_allclose(middle.s_span_start, 30.0, atol=5e-4, rtol=0)
     xo.assert_allclose(middle.s_span_end, 40.0, atol=5e-4, rtol=0)
     xo.assert_allclose(middle.span, 10.0, atol=1e-9, rtol=0)
+
+
+def test_split_wrapped_s_interval_without_wrap():
+    intervals = _split_wrapped_s_interval(3.0, 7.0, line_length=10.0, wrap=False, s_tol=1e-9)
+    assert intervals == [(3.0, 7.0)]
+
+
+def test_split_wrapped_s_interval_with_non_wrapped_ring_interval():
+    intervals = _split_wrapped_s_interval(3.0, 7.0, line_length=10.0, wrap=True, s_tol=1e-9)
+    assert intervals == [(3.0, 7.0)]
+
+
+def test_split_wrapped_s_interval_with_wrapped_ring_interval():
+    intervals = _split_wrapped_s_interval(8.0, 2.0, line_length=10.0, wrap=True, s_tol=1e-9)
+    assert intervals == [(8.0, 10.0), (0.0, 2.0)]
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

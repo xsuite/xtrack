@@ -47,6 +47,12 @@ def _survey_is_closed(survey: Table, tol: float = 1e-6) -> bool:
 
 
 def _shortest_circular_interval(points: np.ndarray, line_length: float) -> tuple[float, float, float]:
+    """Return the shortest wrapped ``s`` interval covering ``points`` on a ring.
+
+    The returned ``(s_start, s_end, span)`` uses wrapped interval semantics:
+    when the interval crosses the end of the line, ``s_start > s_end`` and the
+    covered arc is understood modulo ``line_length``.
+    """
     if points.size == 0:
         raise ValueError('Cannot determine a circular interval from an empty point set.')
 
@@ -63,6 +69,29 @@ def _shortest_circular_interval(points: np.ndarray, line_length: float) -> tuple
     s_end = float(points[gap_idx])
     span = float((s_end - s_start) % line_length)
     return s_start, s_end, span
+
+
+def _split_wrapped_s_interval(
+    start: float,
+    end: float,
+    *,
+    line_length: float,
+    wrap: bool,
+    s_tol: float,
+) -> list[tuple[float, float]]:
+    """Split an ``s`` interval into non-wrapping segments.
+
+    If ``wrap`` is false, the interval is returned unchanged as ``[(start, end)]``.
+    If ``wrap`` is true, ``start`` and ``end`` are normalised modulo
+    ``line_length`` and a wrapped interval is expanded into two ordinary
+    segments, ``[(start, line_length), (0, end)]``.
+    """
+    if wrap:
+        start = float(np.mod(start, line_length))
+        end = float(np.mod(end, line_length))
+        if start > end + s_tol:
+            return [(start, line_length), (0.0, end)]
+    return [(start, end)]
 
 
 class Aperture:
@@ -1131,15 +1160,66 @@ class Aperture:
         len_points=4,
         colour: Literal['profile', 'pipe'] = 'pipe',
         legend=True,
+        origin: str | None = None,
+        s_range: tuple[float, float] | None = None,
+        aspect: Literal['auto', 'equal'] = 'auto',
     ):
         """Plot all installed pipes projected onto the floor plane."""
         from matplotlib import pyplot as plt
         ax = ax or plt.gca()
 
-        for pipe_position in self.pipe_positions:
+        pipe_table = self.get_pipe_table()
+        line_length = self.line.get_length()
+        origin_s = 0.0
+        plot_shift = np.identity(4)
+
+        if s_range and s_range[0] > s_range[1]:
+            raise ValueError('The `origin` pipe position is outside of the `s_range` specified.')
+
+        if origin is not None:
+            origin_pipe_position = self.pipe_positions[origin]
+            origin_survey_ref = origin_pipe_position.survey_reference_name
+            origin_row = pipe_table.rows[origin]
+            origin_s = float(np.asarray(origin_row.s_start).item())
+
+            origin_sv_ref_transform = survey_relative_transform(self.survey, 0, origin_survey_ref)
+            origin_transform = origin_sv_ref_transform @ origin_pipe_position.transformation
+            plot_shift = np.linalg.inv(origin_transform)
+
+        def _in_s_range(row) -> bool:
+            if s_range is None:
+                return True
+
+            window_start = origin_s + s_range[0]
+            window_end = origin_s + s_range[1]
+
+            if not self.is_ring:
+                return row.s_end >= window_start - self.s_tol and row.s_start <= window_end + self.s_tol
+
+            window_width = s_range[1] - s_range[0]
+            if window_width >= line_length - self.s_tol:
+                return True
+
+            row_segments = _split_wrapped_s_interval(
+                row.s_start, row.s_end, line_length=line_length, wrap=True, s_tol=self.s_tol,
+            )
+            window_segments = _split_wrapped_s_interval(
+                window_start, window_end, line_length=line_length, wrap=True, s_tol=self.s_tol,
+            )
+            return any(
+                row_start <= window_end_seg + self.s_tol and window_start_seg <= row_end + self.s_tol
+                for row_start, row_end in row_segments
+                for window_start_seg, window_end_seg in window_segments
+            )
+
+        for row in pipe_table.rows:
+            if not _in_s_range(row):
+                continue
+
+            pipe_position = self.pipe_positions[row.name]
             pipe = pipe_position.pipe
             sv_ref_transform = survey_relative_transform(self.survey, 0, pipe_position.survey_reference_name)
-            transform = sv_ref_transform @ pipe_position.transformation
+            transform = plot_shift @ sv_ref_transform @ pipe_position.transformation
             pipe.plot_projection(
                 ax=ax,
                 plane='zx',
@@ -1153,6 +1233,7 @@ class Aperture:
             _deduplicate_legend(ax)
             ax.legend()
 
+        ax.set_aspect(aspect)
         return ax
 
     def _get_cuts_at_element(self, element_name: str, resolution: float | None) -> list[float]:
@@ -1239,11 +1320,16 @@ class Aperture:
         for row in pipe_table.rows:
             if row.length <= self.s_tol:
                 continue
-            if row.s_start <= row.s_end + self.s_tol:
-                intervals.append((row.s_start, row.s_end, row.name))
-            else:
-                intervals.append((row.s_start, line_length, row.name))
-                intervals.append((0.0, row.s_end, row.name))
+            intervals.extend(
+                (start, end, row.name)
+                for start, end in _split_wrapped_s_interval(
+                    row.s_start,
+                    row.s_end,
+                    line_length=line_length,
+                    wrap=self.is_ring,
+                    s_tol=self.s_tol,
+                )
+            )
 
         intervals.sort(key=lambda interval: interval[0])
 

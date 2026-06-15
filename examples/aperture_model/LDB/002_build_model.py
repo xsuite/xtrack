@@ -235,6 +235,7 @@ LONGITUDINAL_PLACEMENT_PATCHES = {
     'VSMSL.A3R1.X': 0.0001,
     'VSMSL.3R1.X': 0.0001,
     'VSMSL.4R1.X': 0.0001,
+    'BQSV.5R4.B1': 0.14,
     # Clean overrides sub-1mm
     # 'VCDLM.B5L4.B': -0.000002032933,
     # 'VCSD.E4R6.B': -0.000001733984,
@@ -296,6 +297,7 @@ LONGITUDINAL_PLACEMENT_PATCHES = {
     'VMABD.4L8.B': None,
     'VMAIIAAH.4R1.B': None,
     'VVGST.B1L2.X': None,
+    'BSRTRB.5L4.B1': None,
     # Sub-1mm overlaps that cannot be fixed by a simple shift
     # - VMABD.4L8.B/VCRLV.A4L8.B overlap range s = (23195.2253395, 23196.1203406)
     # - VVGST.B1L2.X/VMABD.B1L2.X overlap range s = (3313.16854079, 3313.16954079)
@@ -620,7 +622,7 @@ for transform_name, mad_point in pipes_loc:
 last_profile_hcvc1ib = builder._pipes['HCVC1IB'].positions[1]
 old_hcvc1ib_last_shift_s = last_profile_hcvc1ib.shift_s
 vc1ib_1l1_start = dict(pipes_loc)['VC1IB.1L1.X'].z
-boundary_margin = 0.05
+boundary_margin = 0.001
 last_profile_hcvc1ib.shift_s = min(old_hcvc1ib_last_shift_s, b1.get_length() - vc1ib_1l1_start - boundary_margin)
 
 aperture_model = builder.build(context=context)
