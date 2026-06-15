@@ -240,7 +240,7 @@ def test_context_specific_prebuilt_kernel_selection(mocker, tmp_path):
     with (tmp_path / 'test_module_cpu_serial.json').open('w') as fd:
         json.dump({**metadata_template, 'context': 'serial'}, fd)
     with (tmp_path / 'test_module_cpu_openmp.json').open('w') as fd:
-        json.dump({**metadata_template, 'context': 'omp'}, fd)
+        json.dump({**metadata_template, 'context': 'openmp'}, fd)
 
     from xsuite.prebuild_kernels import get_suitable_kernel
 
@@ -261,6 +261,52 @@ def test_context_specific_prebuilt_kernel_selection(mocker, tmp_path):
     assert omp_info['module_name'] == 'test_module_cpu_openmp'
 
 
+def test_regenerate_kernels_multiple_contexts(mocker, tmp_path, temp_context_default_func):
+
+    skip_if_forbid_compile()
+
+    kernel_defs = [
+        ("test_module", {
+            "config": {},
+            "classes": [xt.Drift],
+        }),
+    ]
+
+    mocker.patch('xsuite.kernel_definitions.kernel_definitions', kernel_defs)
+    mocker.patch('xsuite.prebuild_kernels.kernel_definitions', kernel_defs)
+
+    from xsuite.prebuild_kernels import regenerate_kernels
+    regenerate_kernels(
+        kernels=['test_module'],
+        location=tmp_path,
+        n_threads=0,
+        context='serial,openmp',
+    )
+
+    assert (tmp_path / 'test_module_cpu_serial.c').exists()
+    assert (tmp_path / 'test_module_cpu_serial.json').exists()
+    assert (tmp_path / 'test_module_cpu_openmp.c').exists()
+    assert (tmp_path / 'test_module_cpu_openmp.json').exists()
+
+
+def test_cli_kind_argument_accepts_multiple_values(monkeypatch, mocker):
+    import xsuite.cli as xsuite_cli
+
+    regenerate_kernels = mocker.patch('xsuite.cli.regenerate_kernels')
+
+    monkeypatch.setattr(
+        'sys.argv',
+        ['xsuite-prebuild', 'regenerate', '--kind', 'serial,openmp'],
+    )
+
+    xsuite_cli.main()
+
+    regenerate_kernels.assert_called_once_with(
+        n_threads=None,
+        context=('serial', 'openmp'),
+    )
+
+
 def test_clear_kernels_preserves_other_context(tmp_path):
 
     for filename in (
@@ -275,7 +321,7 @@ def test_clear_kernels_preserves_other_context(tmp_path):
 
     from xsuite.prebuild_kernels import clear_kernels
 
-    clear_kernels(location=tmp_path, context='omp')
+    clear_kernels(location=tmp_path, context='openmp')
 
     assert (tmp_path / 'test_module_cpu_serial.json').exists()
     assert (tmp_path / 'test_module_cpu_serial.c').exists()
