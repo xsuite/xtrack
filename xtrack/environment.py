@@ -2646,7 +2646,7 @@ class EnvVars:
                 old_expr = str(tt.expr)
                 new_expr = old_expr.replace(str(r_old), str(r_new))
                 if verbose:
-                    print(f"replancing {old_expr} with {new_expr}")
+                    print(f"replacing {old_expr} with {new_expr}")
                 mgr.set_value(rt, eval(new_expr, mgr.containers))
 
         if verbose:
