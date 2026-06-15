@@ -1402,7 +1402,7 @@ class Environment:
 
         Returns
         -------
-        vars : object
+        vars : xtrack.environment.EnvVars
             Dictionary-like container of variables.
         """
         return self._line_vars

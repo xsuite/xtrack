@@ -5490,7 +5490,7 @@ class Line:
 
         Returns
         -------
-        vars : object
+        vars : xtrack.environment.EnvVars
             Dictionary-like container of variables.
         """
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
