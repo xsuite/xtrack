@@ -174,6 +174,21 @@ class SurveyTable(Table):
     _error_on_row_not_found = True
 
     def reverse(self):
+        """
+        Build a survey table for the reverse local reference frame.
+
+        The returned table has the element order reversed and survey quantities
+        transformed to the reverse local reference frame. The longitudinal position
+        is transformed as ``s -> line_length - s``. The global coordinates are
+        transformed as ``X -> -X``, ``Y -> Y``, and ``Z -> -Z``. The survey
+        orientation matrix is transformed consistently with the reversed global
+        frame and reversed local frame axes.
+
+        Returns
+        -------
+        xtrack.survey.SurveyTable
+            Survey table corresponding to the reverse local reference frame.
+        """
 
         new_cols = {}
 
@@ -224,7 +239,17 @@ class SurveyTable(Table):
 
     def plot(self, element_width = None, legend = True, **kwargs):
         """
-        Plot the survey using xplt.FloorPlot
+        Plot the survey using ``xplt.FloorPlot``.
+
+        Parameters
+        ----------
+        element_width : float, optional
+            Width used to draw elements in the floor plot. If not provided, a
+            value is chosen from the extent of the survey.
+        legend : bool, optional
+            Whether to add a matplotlib legend.
+        **kwargs
+            Additional keyword arguments passed to ``xplt.FloorPlot``.
         """
         # Import the xplt module here
         # (Not at the top as not default installation with xsuite)
@@ -256,6 +281,22 @@ class SurveyTable(Table):
             plt.legend()
 
     def to_pandas(self, index=None, columns=None):
+        """
+        Convert the survey table to a pandas DataFrame.
+
+        Parameters
+        ----------
+        index : str, optional
+            Column to use as the DataFrame index.
+        columns : sequence of str, optional
+            Columns to include in the DataFrame. If not provided, all table
+            columns are included.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame containing the selected survey table columns.
+        """
         if columns is None:
             columns = self._col_names
 
