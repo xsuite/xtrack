@@ -6552,6 +6552,14 @@ class Line:
 
 
 class LineTable(Table):
+    """
+    Table returned by :meth:`xtrack.Line.get_table`.
+
+    ``LineTable`` stores one row per line element plus the ``'_end_point'`` row.
+    It contains element names, longitudinal positions, element types, lengths,
+    and other line-description columns. It extends :class:`xtrack.Table` and
+    supports the standard table row and column selection interface.
+    """
 
     # Messages to be shown when accessing deprecated fields
     _DEPRECATED_FIELDS = {
