@@ -41,6 +41,7 @@ def _iter_public_members(cls):
     [
         xt.Line,
         xt.Environment,
+        xt.Table,
         xt.TwissTable,
         SurveyTable,
         LineTable,
@@ -56,6 +57,7 @@ def _iter_public_members(cls):
     ids=[
         "Line",
         "Environment",
+        "Table",
         "TwissTable",
         "SurveyTable",
         "LineTable",

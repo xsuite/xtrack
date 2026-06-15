@@ -138,6 +138,9 @@ def _parse_headers(text):
 
 
 class Table(_XdepsTable):
+    """
+    Extension of :class:`xdeps.Table` with xtrack serialization helpers.
+    """
 
     # Messages to be shown when accessing deprecated fields
     _DEPRECATED_FIELDS = None
@@ -158,8 +161,6 @@ class Table(_XdepsTable):
         if depr_fields is not None and name in depr_fields:
             warn(depr_fields[name], FutureWarning)
         return super().__getattribute__(name)
-
-    """Extension of :class:`xdeps.Table` with export/import helpers."""
 
     # ------------------------------------------------------------------
     # Selection helpers
@@ -298,7 +299,28 @@ class Table(_XdepsTable):
 
     def to_dict(self, *, include=None, exclude=None,
                 missing='error', include_meta=True):
-        """Serialize the table to a dictionary, applying optional filters."""
+        """
+        Serialize the table to a dictionary.
+
+        Parameters
+        ----------
+        include : str or iterable of str, optional
+            Names of columns, attributes, or metadata entries to include. If
+            omitted, all columns and attributes are included.
+        exclude : str or iterable of str, optional
+            Names of columns, attributes, or metadata entries to exclude.
+        missing : {"error", "ignore"}, optional
+            Policy for names requested in ``include`` or ``exclude`` that are
+            not present in the table.
+        include_meta : bool, optional
+            If ``True``, include metadata describing dropped columns,
+            dropped attributes, table class, and xtrack version when relevant.
+
+        Returns
+        -------
+        dict
+            Serialized table data with ``columns`` and ``attrs`` entries.
+        """
 
         column_order = list(self._col_names)
         raw_attrs = {kk: vv for kk, vv in self._data.items() if kk not in column_order}
@@ -382,7 +404,19 @@ class Table(_XdepsTable):
 
     @classmethod
     def from_dict(cls, dct: Dict[str, Any]):
-        """Construct a table from its dictionary representation."""
+        """
+        Construct a table from its dictionary representation.
+
+        Parameters
+        ----------
+        dct : dict
+            Dictionary produced by :meth:`to_dict`.
+
+        Returns
+        -------
+        xtrack.Table
+            Reconstructed table.
+        """
 
         payload = dict(dct)
         table_class_name = payload.get('__class__')
@@ -416,12 +450,40 @@ class Table(_XdepsTable):
     # JSON helpers
     # ------------------------------------------------------------------
     def to_json(self, file, indent=1, **kwargs):
-        """Dump the table to JSON using the xtrack JSON utilities."""
+        """
+        Dump the table to JSON using the xtrack JSON utilities.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like
+            Output target.
+        indent : int or None, optional
+            Indentation passed to the JSON writer.
+        **kwargs
+            Additional keyword arguments passed to :meth:`to_dict`.
+
+        Returns
+        -------
+        None
+            The table is written to ``file``.
+        """
         json_utils.dump(self.to_dict(**kwargs), file, sort_keys=False, indent=indent)
 
     @classmethod
     def from_json(cls, file):
-        """Load a serialized table from a JSON file or file-like object."""
+        """
+        Load a serialized table from JSON.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like
+            JSON file or file-like object to read.
+
+        Returns
+        -------
+        xtrack.Table
+            Reconstructed table.
+        """
         if isinstance(file, io.IOBase):
             dct = json.load(file)
         else:
@@ -696,7 +758,33 @@ class Table(_XdepsTable):
 
     def to_hdf5(self, file, *, include=None, exclude=None,
                 missing='error', include_meta=True, group=None):
-        """Persist the table into an HDF5 file or group."""
+        """
+        Persist the table into an HDF5 file or group.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like or h5py.File or h5py.Group
+            HDF5 output target.
+        include : str or iterable of str, optional
+            Names of columns or attributes to include. If omitted, all columns
+            and attributes are included.
+        exclude : str or iterable of str, optional
+            Names of columns or attributes to exclude.
+        missing : {"error", "ignore"}, optional
+            Policy for names requested in ``include`` or ``exclude`` that are
+            not present in the table.
+        include_meta : bool, optional
+            If ``True``, include metadata describing dropped columns,
+            dropped attributes, column dtypes, table class, and xtrack version.
+        group : str or None, optional
+            HDF5 group where the table is written. If ``None``, write to the
+            root target.
+
+        Returns
+        -------
+        None
+            The table is written to the HDF5 target.
+        """
 
         target, h5file, close_file = self._resolve_hdf5_target(
             file, mode='w', group=group)
@@ -818,7 +906,22 @@ class Table(_XdepsTable):
 
     @classmethod
     def from_hdf5(cls, file, *, group=None):
-        """Load a table from an HDF5 file or group."""
+        """
+        Load a table from an HDF5 file or group.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like or h5py.File or h5py.Group
+            HDF5 input target.
+        group : str or None, optional
+            HDF5 group containing the serialized table. If ``None``, the file
+            must contain exactly one group.
+
+        Returns
+        -------
+        xtrack.Table
+            Reconstructed table.
+        """
 
         if group is None:
             import h5py
@@ -954,7 +1057,30 @@ class Table(_XdepsTable):
 
     def to_csv(self, file, *, include=None, exclude=None,
                missing='error', include_meta=True):
-        """Write the table to CSV, embedding metadata as comments."""
+        """
+        Write the table to CSV, embedding metadata as comments.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like
+            CSV output target.
+        include : str or iterable of str, optional
+            Names of columns or attributes to include. If omitted, all columns
+            and attributes are included.
+        exclude : str or iterable of str, optional
+            Names of columns or attributes to exclude.
+        missing : {"error", "ignore"}, optional
+            Policy for names requested in ``include`` or ``exclude`` that are
+            not present in the table.
+        include_meta : bool, optional
+            If ``True``, write metadata comments describing dropped columns,
+            dropped attributes, column dtypes, table class, and xtrack version.
+
+        Returns
+        -------
+        None
+            The table is written to ``file``.
+        """
 
         column_order = list(self._col_names)
         raw_attrs = {kk: vv for kk, vv in self._data.items()
@@ -1058,7 +1184,19 @@ class Table(_XdepsTable):
 
     @classmethod
     def from_csv(cls, file):
-        """Reconstruct a table instance from CSV data."""
+        """
+        Reconstruct a table instance from CSV data.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like
+            CSV file or file-like object to read.
+
+        Returns
+        -------
+        xtrack.Table
+            Reconstructed table.
+        """
         if isinstance(file, io.IOBase):
             content = file.read().splitlines()
         else:
@@ -1165,6 +1303,11 @@ class Table(_XdepsTable):
         column_widths : Mapping[str, int], optional
             Per-column minimum widths overriding the defaults. Non-numeric
             columns stay left-aligned; numeric ones keep right alignment.
+
+        Returns
+        -------
+        None
+            The table is written to ``file``.
         """
 
         if float_precision <= 0:
@@ -1555,7 +1698,19 @@ class Table(_XdepsTable):
 
     @classmethod
     def from_tfs(cls, file):
-        """Load a table from a TFS file."""
+        """
+        Load a table from a TFS file.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like
+            TFS input source.
+
+        Returns
+        -------
+        xtrack.Table
+            Reconstructed table.
+        """
         header_text, file = _prepare_header_source(file)
         parsed_headers = _parse_headers(header_text)
 
