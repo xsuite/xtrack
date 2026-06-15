@@ -2812,8 +2812,26 @@ class EnvVars:
         self.remove(name)
 
 class VarsTable(xd.Table):
+    """
+    Table returned by environment variable table methods.
+
+    ``VarsTable`` stores one row per environment variable, with columns for the
+    variable name, current value, and expression. It is returned by methods such
+    as ``env.vars.get_table()`` and extends :class:`xdeps.Table`.
+    """
 
     def to_dict(self):
+        """
+        Convert the variable table to a dictionary.
+
+        Variables defined by expressions are stored as expression strings;
+        independent variables are stored as their current numerical values.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping variable names to expressions or values.
+        """
         out = {}
         for nn, ee, vv in zip(self['name'], self['expr'], self['value']):
             if ee is not None:

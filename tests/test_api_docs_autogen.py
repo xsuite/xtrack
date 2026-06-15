@@ -3,8 +3,8 @@ import inspect
 import pytest
 
 import xtrack as xt
+from xtrack.environment import ENVIRONMENT_DOC_GROUP_ORDER, VarsTable
 from xtrack.survey import SurveyTable
-from xtrack.environment import ENVIRONMENT_DOC_GROUP_ORDER
 from xtrack.line import LINE_DOC_GROUP_ORDER, LineTable
 
 
@@ -28,8 +28,8 @@ def _iter_public_members(cls):
 
 @pytest.mark.parametrize(
     "cls",
-    [xt.Line, xt.Environment, xt.TwissTable, SurveyTable, LineTable],
-    ids=["Line", "Environment", "TwissTable", "SurveyTable", "LineTable"],
+    [xt.Line, xt.Environment, xt.TwissTable, SurveyTable, LineTable, VarsTable],
+    ids=["Line", "Environment", "TwissTable", "SurveyTable", "LineTable", "VarsTable"],
 )
 def test_public_api_members_have_docstrings(cls):
     missing_methods = []
