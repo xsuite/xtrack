@@ -127,7 +127,7 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
 
     # Set up the temporary kernels directory
     kernel_defs = [
-        ("test_module", {
+        ("test_module_per_elem", {
             "config": {},
             "classes": [
                 xt.Drift,
@@ -142,7 +142,7 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
             ],
             'extra_classes': [xt.Particles]
         }),
-        ("test_module_rand", {
+        ("test_module_per_elem_rand", {
             "config": {},
             "classes": [],
             "extra_classes": [
@@ -171,20 +171,20 @@ def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_fun
 
     # Try regenerating the kernels
     from xsuite.prebuild_kernels import regenerate_kernels
-    regenerate_kernels(kernels=['test_module', 'test_module_rand'], location=tmp_path)
+    regenerate_kernels(kernels=['test_module_per_elem', 'test_module_per_elem_rand'], location=tmp_path)
 
     # Check if the expected files were created
     so_file_exists = False
     for path in tmp_path.iterdir():
-        if not path.name.startswith('test_module_cpu_serial.'):
+        if not path.name.startswith('test_module_per_elem_cpu_serial.'):
             continue
         if path.suffix not in ('.so', '.dll', '.dylib', '.pyd'):
             continue
         so_file_exists = True
     assert so_file_exists
 
-    assert (tmp_path / 'test_module_cpu_serial.c').exists()
-    assert (tmp_path / 'test_module_cpu_serial.json').exists()
+    assert (tmp_path / 'test_module_per_elem_cpu_serial.c').exists()
+    assert (tmp_path / 'test_module_per_elem_cpu_serial.json').exists()
 
     # Test that reloading the kernel works
     cffi_compile = mocker.patch.object(cffi.FFI, 'compile')
