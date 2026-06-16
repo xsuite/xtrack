@@ -173,6 +173,10 @@ class SurveyTable(Table):
 
     _error_on_row_not_found = True
 
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('sep_count', '::::')
+        super().__init__(*args, **kwargs)
+
     def reverse(self):
         """
         Build a survey table for the reverse local reference frame.
@@ -193,8 +197,7 @@ class SurveyTable(Table):
         new_cols = {}
 
         element_properties = ['name', 'element_type', 'isthick', 'drift_length',
-                                'length', 'prototype'
-                             ]
+                              'length', 'prototype']
 
         for kk in element_properties:
             new_cols[kk] = self._data[kk].copy()
@@ -258,10 +261,16 @@ class SurveyTable(Table):
         # Shallow copy of self
         out_sv_table = SurveyTable.__new__(SurveyTable)
         out_sv_table.__dict__.update(self.__dict__)
-        out_sv_table._data = self._data.copy()
+        out_sv_table._data = {
+            kk: (vv.copy() if hasattr(vv, 'copy') else vv)
+            for kk, vv in self._data.items()
+        }
 
         # Removing the count for repeated elements
-        out_sv_table.name = np.array([nn.split('::')[0] for nn in out_sv_table.name])
+        out_sv_table._data['name'] = np.array([nn.split('::')[0] for nn in out_sv_table._data['name']])
+        out_sv_table._index_cache = None
+        out_sv_table._count_cache = None
+        out_sv_table._names_cache = None
 
         # Setting element width for plotting
         if element_width is None:
@@ -317,8 +326,8 @@ class SurveyTable(Table):
 # ==================================================
 def survey_from_line(
         line,
-        X0 = 0, Y0 = 0, Z0 = 0, theta0 = 0, phi0 = 0, psi0 = 0,
-        element0 = 0, values_at_element_exit = False, reverse = True):
+        X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
+        element0=0, values_at_element_exit=False, reverse=False):
     """Execute SURVEY command. Based on MAD-X equivalent.
     Attributes, must be given in this order in the dictionary:
     X0        (float)    Initial X position in meters.
@@ -533,8 +542,23 @@ def _get_survey_quantities_from_v_w(V, E_matrix):
     }
 
 
-def survey_relative_transform(survey: SurveyTable, source: str | int, destination: str | int) -> np.ndarray:
-    """Generate a 3D transformation matrix from survey point `source` to `destination`."""
+def survey_relative_transform(survey: SurveyTable, source: str | int, destination: str | int, reversed=False) -> np.ndarray:
+    """Generate a 3D transformation matrix from survey point `source` to `destination`.
+
+    If `reversed`, take the transformation that points from the end point of `source` to the end point of `destination`.
+    """
+
+    if reversed:
+        if source != survey.name[-1]:
+            source = survey.rows.get_index(source) + 1
+        if destination != survey.name[-1]:
+            destination = survey.rows.get_index(destination) + 1
+    else:
+        if isinstance(source, str):
+            source = survey.rows.get_index(source)
+        if isinstance(destination, str):
+            destination = survey.rows.get_index(destination)
+
     src_row = survey.rows[source]
     dest_row = survey.rows[destination]
 

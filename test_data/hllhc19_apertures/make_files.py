@@ -41,11 +41,12 @@ apm = mad.get_ap_irs()
 lhc.b1.metadata["aperture_offsets"] = {}
 lhc.b2.metadata["aperture_offsets"] = {}
 for ipn in range(1, 9):
-    for beam in "14":
+    for beam in "12":
         tfs = Table.from_tfs(base_dir / "temp" / f"offset.ip{ipn}.b{beam}.tfs")
         line = lhc.b1 if beam == "1" else lhc.b2
         tfs_data = tfs._data.copy()
         tfs_data['name'] = [name for name in tfs_data['name']]  # clear StringArray
+        tfs_data["reversed"] = beam == "2"
         line.metadata["aperture_offsets"][f"ip{ipn}"] = tfs_data
 
 lhc.to_json(base_dir / "lhc_aperture.json")
@@ -54,7 +55,7 @@ context = ContextCpu(omp_num_threads='auto')
 
 lines = {
     "b1": lhc.b1,
-    #"b2": lhc.b2,
+    "b2": lhc.b2,
 }
 apertures = {
     beam: Aperture.from_line_with_madx_metadata(
@@ -66,9 +67,6 @@ apertures = {
     for beam, line in lines.items()
 }
 
-apertures['b1'].to_json(base_dir / "aperture_model_b1.json")
-apertures['b1'] = Aperture.from_json(base_dir / "aperture_model_b1.json", lhc.b1)
-
 line_tables = {beam: line.get_table() for beam, line in lines.items()}
 
 def _get_nearest_element_name(line_table, s_position):
@@ -77,12 +75,20 @@ def _get_nearest_element_name(line_table, s_position):
     return line_table.name[idx]
 
 
+def _beam_s_direction(beam):
+    # B2 is represented in the reversed ring direction. Convert IR-local
+    # coordinates to the Xtrack ring coordinate with the same convention used
+    # by examples/aperture_model/benchmark2/000_ap_irs.py.
+    return -1.0 if beam == "b2" else 1.0
+
+
+def _ir_local_to_ring_s(s_local, s_ip, line_length, beam):
+    return np.mod(s_ip + _beam_s_direction(beam) * s_local, line_length)
+
+
 for ir_name in sorted(apm):
     ir = apm[ir_name]
     beam = ir_name[-2:]
-
-    if beam == 'b2':
-        continue
 
     line = lines[beam]
     line_table = line_tables[beam]
@@ -124,7 +130,7 @@ for ir_name in sorted(apm):
     s_ip_m = ir.rows[f"{ip_name}.*"].s[0]
     s_ip_x = line_table.rows[f"{ip_name}.*"].s[0]
     s_local = np.asarray(ir.s - s_ip_m, dtype=float)
-    s_positions = np.mod(s_local + s_ip_x, line.get_length())
+    s_positions = _ir_local_to_ring_s(s_local, s_ip_x, line.get_length(), beam)
     order = np.argsort(s_positions)
     undo_order = np.empty_like(order)
     undo_order[order] = np.arange(len(order))
@@ -177,7 +183,7 @@ for ir_name in sorted(apm):
             {
                 "beam": beam,
                 "ip_name": ip_name,
-                "s_local": np.asarray(s_local, dtype=float).tolist(),
+                "s_positions": np.asarray(s_positions, dtype=float).tolist(),
                 "n1_madx": np.asarray(n1_madx, dtype=float).tolist(),
                 "halo_params": reference_halo_params,
             },
