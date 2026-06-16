@@ -25,6 +25,7 @@ from .multiline_legacy.multiline_legacy import MultilineLegacy
 from .progress_indicator import progress
 from .view import View
 from .general import DEPRECATION_INFO_PREP_1_0
+from .table import Table
 
 ReferType = Literal['start', 'center', 'centre', 'end']
 
@@ -3457,13 +3458,13 @@ class EnvVars:
     def __delitem__(self, name):
         self.remove(name)
 
-class VarsTable(xd.Table):
+class VarsTable(Table):
     """
     Table returned by environment variable table methods.
 
     ``VarsTable`` stores one row per environment variable, with columns for the
     variable name, current value, and expression. It is returned by methods such
-    as ``env.vars.get_table()`` and extends :class:`xdeps.Table`.
+    as ``env.vars.get_table()`` and extends :class:`xtrack.Table`.
     """
 
     def to_dict(self):
