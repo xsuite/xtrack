@@ -6556,55 +6556,64 @@ class LineTable(Table):
     Table returned by :meth:`xtrack.Line.get_table`.
 
     ``LineTable`` stores one row per line element plus the ``'_end_point'`` row.
-    It contains element names, longitudinal positions, element types, lengths,
-    and other line-description columns. It extends :class:`xtrack.Table` and
-    supports the standard table row and column selection interface.
-
-    Parameters
-    ----------
-    data : mapping
-        Table data passed to :class:`xtrack.Table`.
-    **kwargs
-        Additional keyword arguments passed to :class:`xtrack.Table`.
-
-    Examples
-    --------
-    Build a compact line table:
-
-    >>> import numpy as np
-    >>> from xtrack.line import LineTable
-    >>> tab = LineTable({
-    ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
-    ...                      dtype=object),
-    ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
-    ...                              dtype=object),
-    ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
-    ...     "length": np.array([0.3, 1.0, 3.0, 0.0]),
-    ...     "isthick": np.array([True, True, True, False]),
-    ... })
-    >>> tab
-    LineTable: 4 rows, 5 cols
-    name       element_type             s        length isthick
-    mqf.1      Quadrupole               0           0.3    True
-    d1.1       Drift                  0.3             1    True
-    mb1.1      Bend                   1.3             3    True
-    _end_point                        4.3             0   False
-
-    Select columns or rows:
-
-    >>> tab.cols["s length"]
-    LineTable: 4 rows, 3 cols
-    name                   s        length
-    mqf.1                  0           0.3
-    d1.1                 0.3             1
-    mb1.1                1.3             3
-    _end_point           4.3             0
-    >>> tab.rows.match(element_type="Drift|Bend")
-    LineTable: 2 rows, 5 cols
-    name  element_type             s        length isthick
-    d1.1  Drift                  0.3             1    True
-    mb1.1 Bend                   1.3             3    True
+    It summarizes the line layout: element names, element types, longitudinal
+    positions, lengths, thickness flags, and optional element attributes.
     """
+
+    def __init__(self, data, *args, **kwargs):
+        """
+        Create a line table.
+
+        Parameters
+        ----------
+        data : mapping
+            Mapping containing line-table columns. Typical columns include
+            ``name``, ``element_type``, ``s``, ``length``, ``isthick``, and
+            optional element attributes.
+        *args
+            Additional positional arguments passed to :class:`xtrack.Table`.
+        **kwargs
+            Additional keyword arguments passed to :class:`xtrack.Table`.
+
+        Examples
+        --------
+        Build a compact line table:
+
+        >>> import numpy as np
+        >>> from xtrack.line import LineTable
+        >>> tab = LineTable({
+        ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
+        ...                      dtype=object),
+        ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
+        ...                              dtype=object),
+        ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
+        ...     "length": np.array([0.3, 1.0, 3.0, 0.0]),
+        ...     "isthick": np.array([True, True, True, False]),
+        ... })
+        >>> tab
+        LineTable: 4 rows, 5 cols
+        name       element_type             s        length isthick
+        mqf.1      Quadrupole               0           0.3    True
+        d1.1       Drift                  0.3             1    True
+        mb1.1      Bend                   1.3             3    True
+        _end_point                        4.3             0   False
+
+        Select columns or rows:
+
+        >>> tab.cols["s length"]
+        LineTable: 4 rows, 3 cols
+        name                   s        length
+        mqf.1                  0           0.3
+        d1.1                 0.3             1
+        mb1.1                1.3             3
+        _end_point           4.3             0
+        >>> tab.rows.match(element_type="Drift|Bend")
+        LineTable: 2 rows, 5 cols
+        name  element_type             s        length isthick
+        d1.1  Drift                  0.3             1    True
+        mb1.1 Bend                   1.3             3    True
+        """
+        super().__init__(data, *args, **kwargs)
 
     # Messages to be shown when accessing deprecated fields
     _DEPRECATED_FIELDS = {

@@ -3462,43 +3462,52 @@ class VarsTable(Table):
     """
     Table returned by environment variable table methods.
 
-    ``VarsTable`` stores one row per environment variable, with columns for the
-    variable name, current value, and expression. It is returned by methods such
-    as ``env.vars.get_table()`` and extends :class:`xtrack.Table`.
-
-    Parameters
-    ----------
-    data : mapping
-        Table data passed to :class:`xtrack.Table`.
-    **kwargs
-        Additional keyword arguments passed to :class:`xtrack.Table`.
-
-    Examples
-    --------
-    Build a small variable table:
-
-    >>> import numpy as np
-    >>> from xtrack.environment import VarsTable
-    >>> tab = VarsTable({
-    ...     "name": np.array(["kqf", "kqd", "on_rf"], dtype=object),
-    ...     "value": np.array([0.12, -0.18, 1.0]),
-    ...     "expr": np.array([None, "-1.5 * kqf", None], dtype=object),
-    ... })
-    >>> tab
-    VarsTable: 3 rows, 3 cols
-    name          value expr
-    kqf            0.12 None
-    kqd           -0.18 -1.5 * kqf
-    on_rf             1 None
-
-    Select variables by name pattern:
-
-    >>> tab.rows.match(name="kq.*")
-    VarsTable: 2 rows, 3 cols
-    name         value expr
-    kqf           0.12 None
-    kqd          -0.18 -1.5 * kqf
+    ``VarsTable`` stores one row per environment variable. The main columns are
+    the variable name, its current value, and the expression that defines it,
+    when present. It is returned by methods such as ``env.vars.get_table()``.
     """
+
+    def __init__(self, data, *args, **kwargs):
+        """
+        Create a variable table.
+
+        Parameters
+        ----------
+        data : mapping
+            Mapping containing variable-table columns. Typical columns are
+            ``name``, ``value``, and ``expr``.
+        *args
+            Additional positional arguments passed to :class:`xtrack.Table`.
+        **kwargs
+            Additional keyword arguments passed to :class:`xtrack.Table`.
+
+        Examples
+        --------
+        Build a small variable table:
+
+        >>> import numpy as np
+        >>> from xtrack.environment import VarsTable
+        >>> tab = VarsTable({
+        ...     "name": np.array(["kqf", "kqd", "on_rf"], dtype=object),
+        ...     "value": np.array([0.12, -0.12, 1.0]),
+        ...     "expr": np.array([None, "-kqf", None], dtype=object),
+        ... })
+        >>> tab
+        VarsTable: 3 rows, 3 cols
+        name          value expr
+        kqf            0.12 None
+        kqd           -0.12 -kqf
+        on_rf             1 None
+
+        Select variables by name pattern:
+
+        >>> tab.rows.match(name="kq.*")
+        VarsTable: 2 rows, 3 cols
+        name         value expr
+        kqf           0.12 None
+        kqd          -0.12 -kqf
+        """
+        super().__init__(data, *args, **kwargs)
 
     def to_dict(self):
         """

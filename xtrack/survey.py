@@ -163,57 +163,68 @@ class SurveyTable(Table):
     """
     Table for survey data.
 
-    ``SurveyTable`` stores element-by-element survey coordinates and
-    orientations. It extends :class:`xtrack.Table` and supports the standard
-    row and column selection interface.
-
-    Parameters
-    ----------
-    data : mapping
-        Table data passed to :class:`xtrack.Table`.
-    **kwargs
-        Additional keyword arguments passed to :class:`xtrack.Table`.
-
-    Examples
-    --------
-    Build a compact survey table:
-
-    >>> import numpy as np
-    >>> from xtrack.survey import SurveyTable
-    >>> tab = SurveyTable({
-    ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
-    ...                      dtype=object),
-    ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
-    ...                              dtype=object),
-    ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
-    ...     "X": np.array([0.0, 0.0, 0.0, 3.0]),
-    ...     "Y": np.array([0.0, 0.0, 0.0, 0.0]),
-    ...     "Z": np.array([0.0, 0.3, 1.3, 3.7]),
-    ... })
-    >>> tab
-    SurveyTable: 4 rows, 6 cols
-    name       element_type             s             X             Y             Z
-    mqf.1      Quadrupole               0             0             0             0
-    d1.1       Drift                  0.3             0             0           0.3
-    mb1.1      Bend                   1.3             0             0           1.3
-    _end_point                        4.3             3             0           3.7
-
-    Select coordinates or a longitudinal range:
-
-    >>> tab.cols["s X Z"]
-    SurveyTable: 4 rows, 4 cols
-    name                   s             X             Z
-    mqf.1                  0             0             0
-    d1.1                 0.3             0           0.3
-    mb1.1                1.3             0           1.3
-    _end_point           4.3             3           3.7
-    >>> tab.rows[0.0:1.5:"s"]
-    SurveyTable: 3 rows, 6 cols
-    name  element_type             s             X             Y             Z
-    mqf.1 Quadrupole               0             0             0             0
-    d1.1  Drift                  0.3             0             0           0.3
-    mb1.1 Bend                   1.3             0             0           1.3
+    ``SurveyTable`` stores the surveyed position and orientation of each
+    element along a line. Typical columns include the longitudinal position
+    ``s``, global coordinates such as ``X``, ``Y``, and ``Z``, and orientation
+    data such as the local reference-frame basis vectors or rotation matrices.
     """
+
+    def __init__(self, data, *args, **kwargs):
+        """
+        Create a survey table.
+
+        Parameters
+        ----------
+        data : mapping
+            Mapping containing survey-table columns. Typical columns include
+            ``name``, ``element_type``, ``s``, ``X``, ``Y``, ``Z``, and
+            orientation data.
+        *args
+            Additional positional arguments passed to :class:`xtrack.Table`.
+        **kwargs
+            Additional keyword arguments passed to :class:`xtrack.Table`.
+
+        Examples
+        --------
+        Build a compact survey table:
+
+        >>> import numpy as np
+        >>> from xtrack.survey import SurveyTable
+        >>> tab = SurveyTable({
+        ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
+        ...                      dtype=object),
+        ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
+        ...                              dtype=object),
+        ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
+        ...     "X": np.array([0.0, 0.0, 0.0, 3.0]),
+        ...     "Y": np.array([0.0, 0.0, 0.0, 0.0]),
+        ...     "Z": np.array([0.0, 0.3, 1.3, 3.7]),
+        ... })
+        >>> tab
+        SurveyTable: 4 rows, 6 cols
+        name       element_type             s             X             Y             Z
+        mqf.1      Quadrupole               0             0             0             0
+        d1.1       Drift                  0.3             0             0           0.3
+        mb1.1      Bend                   1.3             0             0           1.3
+        _end_point                        4.3             3             0           3.7
+
+        Select coordinates or a longitudinal range:
+
+        >>> tab.cols["s X Z"]
+        SurveyTable: 4 rows, 4 cols
+        name                   s             X             Z
+        mqf.1                  0             0             0
+        d1.1                 0.3             0           0.3
+        mb1.1                1.3             0           1.3
+        _end_point           4.3             3           3.7
+        >>> tab.rows[0.0:1.5:"s"]
+        SurveyTable: 3 rows, 6 cols
+        name  element_type             s             X             Y             Z
+        mqf.1 Quadrupole               0             0             0             0
+        d1.1  Drift                  0.3             0             0           0.3
+        mb1.1 Bend                   1.3             0             0           1.3
+        """
+        super().__init__(data, *args, **kwargs)
 
     _DEPRECATED_FIELDS = {
         'p0': ('`p0` is deprecated, please use `XYZ` instead'

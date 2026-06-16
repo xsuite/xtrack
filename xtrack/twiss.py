@@ -3740,61 +3740,10 @@ class TwissTable(Table):
     """
     Table returned by :meth:`xtrack.Line.twiss`.
 
-    ``TwissTable`` stores element-by-element optics, closed-orbit coordinates,
-    transfer information, and global quantities produced by Twiss calculations.
-    It extends :class:`xtrack.Table` and supports the standard table row and
-    column selection interface.
-
-    Parameters
-    ----------
-    data : mapping
-        Table data passed to :class:`xtrack.Table`.
-    periodic : bool, optional
-        Whether the stored Twiss solution is periodic.
-    **kwargs
-        Additional keyword arguments passed to :class:`xtrack.Table`.
-
-    Examples
-    --------
-    Build a compact Twiss-like table:
-
-    >>> import numpy as np
-    >>> import xtrack as xt
-    >>> tab = xt.TwissTable({
-    ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
-    ...                      dtype=object),
-    ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
-    ...                              dtype=object),
-    ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
-    ...     "betx": np.array([1.28, 1.28, 2.27, 1.28]),
-    ...     "bety": np.array([4.79, 4.79, 5.21, 4.79]),
-    ...     "dx": np.array([2.28, 2.28, 2.24, 2.28]),
-    ... })
-    >>> tab
-    TwissTable: 4 rows, 6 cols
-    name       element_type             s          betx          bety            dx
-    mqf.1      Quadrupole               0          1.28          4.79          2.28
-    d1.1       Drift                  0.3          1.28          4.79          2.28
-    mb1.1      Bend                   1.3          2.27          5.21          2.24
-    _end_point                        4.3          1.28          4.79          2.28
-
-    Select optics columns, including expressions:
-
-    >>> tab.cols["betx bety dx/sqrt(betx)"]
-    TwissTable: 4 rows, 4 cols
-    name                betx          bety dx/sqrt(betx)
-    mqf.1               1.28          4.79       2.01525
-    d1.1                1.28          4.79       2.01525
-    mb1.1               2.27          5.21       1.48674
-    _end_point          1.28          4.79       2.01525
-
-    Select elements by type:
-
-    >>> tab.rows.match(element_type="Quadrupole|Bend")
-    TwissTable: 2 rows, 6 cols
-    name  element_type             s          betx          bety            dx
-    mqf.1 Quadrupole               0          1.28          4.79          2.28
-    mb1.1 Bend                   1.3          2.27          5.21          2.24
+    ``TwissTable`` stores element-by-element optics and closed-orbit data
+    produced by Twiss calculations. Typical columns include longitudinal
+    position, beta functions, alpha functions, dispersion, phase advances,
+    coordinates, momenta, and element strengths when requested.
     """
 
     # Messages to be shown when accessing deprecated fields
@@ -3820,19 +3769,18 @@ class TwissTable(Table):
                       + DEPRECATION_INFO_PREP_1_0),
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, data, *args, **kwargs):
         """
-        Table returned by :meth:`xtrack.Line.twiss`.
+        Create a Twiss table.
 
         ``TwissTable`` stores element-by-element optics, closed orbit,
         transfer information, and global quantities produced by Twiss
-        calculations. It extends :class:`xtrack.Table` with Twiss-specific
-        helpers for initial conditions, beam covariance, response matrices,
-        normalized coordinates, plotting, reversing, concatenating, and
-        IBS/synchrotron-radiation post-processing.
+        calculations.
 
         Parameters
         ----------
+        data : mapping
+            Mapping containing Twiss-table columns and scalar attributes.
         *args
             Positional arguments passed to :class:`xtrack.Table`.
         periodic : bool, optional
@@ -3841,10 +3789,53 @@ class TwissTable(Table):
             otherwise it defaults to ``False``.
         **kwargs
             Keyword arguments passed to :class:`xtrack.Table`.
+
+        Examples
+        --------
+        Build a compact Twiss-like table:
+
+        >>> import numpy as np
+        >>> import xtrack as xt
+        >>> tab = xt.TwissTable({
+        ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
+        ...                      dtype=object),
+        ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
+        ...                              dtype=object),
+        ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
+        ...     "betx": np.array([1.28, 1.28, 2.27, 1.28]),
+        ...     "bety": np.array([4.79, 4.79, 5.21, 4.79]),
+        ...     "dx": np.array([2.28, 2.28, 2.24, 2.28]),
+        ... })
+        >>> tab
+        TwissTable: 4 rows, 6 cols
+        name       element_type             s          betx          bety            dx
+        mqf.1      Quadrupole               0          1.28          4.79          2.28
+        d1.1       Drift                  0.3          1.28          4.79          2.28
+        mb1.1      Bend                   1.3          2.27          5.21          2.24
+        _end_point                        4.3          1.28          4.79          2.28
+
+        Select optics columns, including expressions:
+
+        >>> tab.cols["betx bety dx/sqrt(betx)"]
+        TwissTable: 4 rows, 4 cols
+        name                betx          bety dx/sqrt(betx)
+        mqf.1               1.28          4.79       2.01525
+        d1.1                1.28          4.79       2.01525
+        mb1.1               2.27          5.21       1.48674
+        _end_point          1.28          4.79       2.01525
+
+        Select elements by type:
+
+        >>> tab.rows.match(element_type="Quadrupole|Bend")
+        TwissTable: 2 rows, 6 cols
+        name  element_type             s          betx          bety            dx
+        mqf.1 Quadrupole               0          1.28          4.79          2.28
+        mb1.1 Bend                   1.3          2.27          5.21          2.24
         """
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
-        super().__init__(*args, **kwargs)
-        self['periodic'] = kwargs.get('periodic', kwargs.get('data', {}).get('periodic', False))
+        periodic = kwargs.pop('periodic', data.get('periodic', False))
+        super().__init__(data, *args, **kwargs)
+        self['periodic'] = periodic
 
     _error_on_row_not_found = True
 
@@ -6083,4 +6074,3 @@ def _6d_w_matrix(betx, bety, alfx, alfy, bets, dx, dpx, dy, dpy):
     out[2, 5] = dy
     out[3, 5] = dpy
     return out
-

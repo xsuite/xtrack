@@ -160,15 +160,13 @@ class Table(_XdepsTable):
         _copy_cols=False,
     ):
         """
-        Create a table from named numpy arrays.
+        Create a table from column data.
 
-        A table stores columns with a common length and optional scalar
-        attributes. Columns can be accessed by name, individual values can be
-        accessed by column and row, and the ``rows`` and ``cols`` accessors can
-        be used to build table views. Row selectors support names, regular
-        expressions, name ranges, value ranges on a selected column, and
-        relative offsets such as ``"mqf.1<<2"``. Column selectors support
-        column names and simple expressions involving columns.
+        Tables are used throughout xtrack to return structured results, such as
+        line descriptions, survey data, and Twiss data. They behave like
+        lightweight data frames with named columns, a configurable row index,
+        readable text output, row and column selection helpers, and
+        serialization methods.
 
         Parameters
         ----------
