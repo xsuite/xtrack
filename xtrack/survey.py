@@ -162,6 +162,57 @@ def advance_element(
 class SurveyTable(Table):
     """
     Table for survey data.
+
+    ``SurveyTable`` stores element-by-element survey coordinates and
+    orientations. It extends :class:`xtrack.Table` and supports the standard
+    row and column selection interface.
+
+    Parameters
+    ----------
+    data : mapping
+        Table data passed to :class:`xtrack.Table`.
+    **kwargs
+        Additional keyword arguments passed to :class:`xtrack.Table`.
+
+    Examples
+    --------
+    Build a compact survey table:
+
+    >>> import numpy as np
+    >>> from xtrack.survey import SurveyTable
+    >>> tab = SurveyTable({
+    ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
+    ...                      dtype=object),
+    ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
+    ...                              dtype=object),
+    ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
+    ...     "X": np.array([0.0, 0.0, 0.0, 3.0]),
+    ...     "Y": np.array([0.0, 0.0, 0.0, 0.0]),
+    ...     "Z": np.array([0.0, 0.3, 1.3, 3.7]),
+    ... })
+    >>> tab
+    SurveyTable: 4 rows, 6 cols
+    name       element_type             s             X             Y             Z
+    mqf.1      Quadrupole               0             0             0             0
+    d1.1       Drift                  0.3             0             0           0.3
+    mb1.1      Bend                   1.3             0             0           1.3
+    _end_point                        4.3             3             0           3.7
+
+    Select coordinates or a longitudinal range:
+
+    >>> tab.cols["s X Z"]
+    SurveyTable: 4 rows, 4 cols
+    name                   s             X             Z
+    mqf.1                  0             0             0
+    d1.1                 0.3             0           0.3
+    mb1.1                1.3             0           1.3
+    _end_point           4.3             3           3.7
+    >>> tab.rows[0.0:1.5:"s"]
+    SurveyTable: 3 rows, 6 cols
+    name  element_type             s             X             Y             Z
+    mqf.1 Quadrupole               0             0             0             0
+    d1.1  Drift                  0.3             0             0           0.3
+    mb1.1 Bend                   1.3             0             0           1.3
     """
 
     _DEPRECATED_FIELDS = {
