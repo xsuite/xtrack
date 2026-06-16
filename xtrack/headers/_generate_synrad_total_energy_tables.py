@@ -3,6 +3,42 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+"""
+Generate deterministic inverse-CDF tables for total synchrotron-radiation
+energy loss.
+
+The runtime ``quantum-efficient`` radiation mode does not need individual
+photon energies. It only needs the total energy lost in a slice. For a fixed
+number of emitted photons N, this script tabulates the distribution of
+
+    X_N = x_1 + x_2 + ... + x_N,
+
+where each ``x_i`` is an independent photon energy normalized by the critical
+energy, ``x_i = E_i / E_c``. Tables are generated for powers of two,
+``N = 1, 2, 4, ..., 256``.
+
+The table generation is deterministic, not Monte Carlo:
+
+1. The single-photon synchrotron spectrum ``S(x)`` is evaluated on a grid.
+2. ``S(x)`` is integrated to build the one-photon CDF, then converted to a
+   binned probability mass on a uniform energy grid.
+3. Multi-photon distributions are produced by FFT self-convolution:
+   PDF_2 = PDF_1 * PDF_1, PDF_4 = PDF_2 * PDF_2, and so on.
+4. Each resulting CDF is inverted on a probability grid concentrated in both
+   tails, currently down to ``TAIL_PROBABILITY_MIN``.
+5. The generated C header stores ``log(X_N)`` quantiles, which improves
+   interpolation in the low-energy tail where values span many orders of
+   magnitude.
+
+At runtime, after sampling the photon count from a Poisson distribution, the
+count is decomposed into powers of two. For example, 312 photons are sampled as
+``256 + 32 + 16 + 8``. One inverse-CDF table lookup is done for each chunk, and
+the sampled chunk energies are summed. This replaces hundreds of individual
+photon-energy samples with a few table lookups while preserving the total
+energy-loss distribution up to the accuracy of the deterministic tables and
+interpolation.
+"""
+
 from pathlib import Path
 
 import numpy as np
@@ -27,6 +63,7 @@ X_LOW_MAX = 1e-2
 
 
 def synrad(x):
+    """Evaluate the normalized single-photon synchrotron spectrum S(x)."""
     x = np.asarray(x)
     out = np.zeros_like(x, dtype=float)
 
@@ -117,6 +154,7 @@ def synrad(x):
 
 
 def make_probability_grid():
+    """Build the inverse-CDF probability grid, with extra points in both tails."""
     n_tail = int(round(
         np.log10(TAIL_PROBABILITY_MAX / TAIL_PROBABILITY_MIN)
         * TAIL_POINTS_PER_DECADE))
@@ -131,7 +169,8 @@ def make_probability_grid():
         [0.0], u_tail, u_center, 1.0 - u_tail[::-1], [1.0])))
 
 
-def make_single_photon_mass():
+def make_single_photon_probability_mass():
+    """Discretize the one-photon spectrum into probabilities on the energy grid."""
     uniform_edges = np.linspace(0.0, X_MAX, int(round(X_MAX / DX)) + 1)
     low_y = np.linspace(0.0, X_LOW_MAX ** (1.0 / 3.0), N_LOW_GRID)
     low_x = low_y**3
@@ -149,6 +188,7 @@ def make_single_photon_mass():
 
 
 def convolve_same_grid(mass):
+    """Self-convolve a probability mass while keeping the configured grid size."""
     out = fftconvolve(mass, mass)[:mass.size]
     out = np.maximum(out, 0.0)
     out /= np.sum(out)
@@ -156,6 +196,7 @@ def convolve_same_grid(mass):
 
 
 def quantiles_from_mass(mass, u_grid, power):
+    """Interpolate inverse-CDF values from a binned total-energy distribution."""
     cdf = np.cumsum(mass)
     cdf /= cdf[-1]
     values = (np.arange(mass.size) + 0.5 * power) * DX
@@ -165,6 +206,7 @@ def quantiles_from_mass(mass, u_grid, power):
 
 
 def write_c_array(fid, name, values):
+    """Write a one-dimensional double array in C header syntax."""
     fid.write(f"static const double {name}[XTRACK_SYNRAD_TOTAL_ENERGY_TABLE_SIZE] = {{\n")
     for ii in range(0, values.size, 4):
         chunk = values[ii:ii + 4]
@@ -176,10 +218,11 @@ def write_c_array(fid, name, values):
 
 
 def main():
+    """Generate all power-of-two inverse-CDF tables and write the C header."""
     u_grid = make_probability_grid()
     out_path = Path(__file__).with_name("synrad_total_energy_tables.h")
 
-    masses = {1: make_single_photon_mass()}
+    masses = {1: make_single_photon_probability_mass()}
     for power in POWERS[1:]:
         masses[power] = convolve_same_grid(masses[power // 2])
         print(f"convolved {power}")
