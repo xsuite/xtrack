@@ -268,6 +268,13 @@ GPUFUN
 double synrad_gen_total_energy_normalized_for_power2_chunk(
         LocalParticle *part, int64_t nphot){
 
+    // For nphot = 1, 2, 4, ..., 256, the table stores
+    // log(F_nphot^{-1}(u)), where F_nphot is the CDF of the sum of nphot
+    // independent synchrotron-radiation photon energies normalized to the
+    // critical energy. At runtime, a uniform random number u is drawn,
+    // log(F^{-1}(u)) is interpolated on the shared probability grid, and exp()
+    // turns it into one random sample of the total normalized energy loss.
+    // This inverse-CDF sampling avoids generating each photon individually.
     const double* table = synrad_get_total_energy_log_table_power2(nphot);
     if (table != 0){
         double const u = RandomUniform_generate(part);
@@ -300,6 +307,9 @@ GPUFUN
 double synrad_gen_total_energy_normalized_power2(
         LocalParticle *part, int64_t nphot){
 
+    // Arbitrary photon counts are represented as a sum of power-of-two chunks
+    // (for example 300 = 256 + 32 + 8 + 4). Each chunk is sampled from its
+    // inverse-CDF table and the independent chunk energies are summed.
     double total = 0.0;
     int64_t nphot_left = nphot;
     while (nphot_left > 0){
