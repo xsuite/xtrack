@@ -8,6 +8,7 @@
 
 #include "xtrack/headers/track.h"
 #include "xtrack/random/random_src/uniform_accurate.h"
+#include "xtrack/headers/synrad_total_energy_tables.h"
 
 
 #define SQRT3 1.732050807568877
@@ -215,6 +216,153 @@ double synrad_average_number_of_photons(double mass0, double q0,
     double const curv = B_T / P0_J * Q0_coulomb;
     double const kick = curv * lpath;
     return 2.5/SQRT3*ALPHA_EM*beta0_gamma0*fabs(kick);
+}
+
+GPUFUN
+int64_t synrad_gen_photon_count(LocalParticle *part, double average_nphotons){
+
+    if (average_nphotons <= 0.0)
+        return 0;
+
+    if (average_nphotons < 700.0){
+        double const threshold = exp(-average_nphotons);
+        double product = 1.0;
+        int64_t nphot = -1;
+        do {
+            nphot++;
+            product *= RandomUniform_generate(part);
+        } while (product > threshold);
+        return nphot;
+    }
+
+    double n = RandomExponential_generate(part);
+    int64_t nphot = 0;
+    while (n < average_nphotons) {
+        nphot++;
+        n += RandomExponential_generate(part);
+    }
+    return nphot;
+}
+
+GPUFUN
+int64_t synrad_largest_power_of_two_leq(int64_t value){
+    int64_t out = 1;
+    while (out <= value / 2)
+        out *= 2;
+    if (out > 256)
+        out = 256;
+    return out;
+}
+
+GPUFUN
+double synrad_gen_total_energy_normalized_exact_for_n_photons(
+        LocalParticle *part, int64_t nphot){
+
+    double total = 0.0;
+    for (int64_t ii = 0; ii < nphot; ii++)
+        total += synrad_gen_photon_energy_normalized(part);
+    return total;
+}
+
+GPUFUN
+double synrad_gen_total_energy_normalized_for_power2_chunk(
+        LocalParticle *part, int64_t nphot){
+
+    const double* table = synrad_get_total_energy_log_table_power2(nphot);
+    if (table != 0){
+        double const u = RandomUniform_generate(part);
+        if (u <= synrad_total_energy_u_grid[0])
+            return exp(table[0]);
+        if (u >= synrad_total_energy_u_grid[XTRACK_SYNRAD_TOTAL_ENERGY_TABLE_SIZE - 1])
+            return exp(table[XTRACK_SYNRAD_TOTAL_ENERGY_TABLE_SIZE - 1]);
+
+        int64_t i_low = 0;
+        int64_t i_high = XTRACK_SYNRAD_TOTAL_ENERGY_TABLE_SIZE - 1;
+        while (i_high - i_low > 1){
+            int64_t const i_mid = (i_low + i_high) / 2;
+            if (synrad_total_energy_u_grid[i_mid] <= u)
+                i_low = i_mid;
+            else
+                i_high = i_mid;
+        }
+
+        double const u_low = synrad_total_energy_u_grid[i_low];
+        double const u_high = synrad_total_energy_u_grid[i_high];
+        double const w = (u - u_low) / (u_high - u_low);
+        double const log_value = (1.0 - w) * table[i_low] + w * table[i_high];
+        return exp(log_value);
+    }
+
+    return synrad_gen_total_energy_normalized_exact_for_n_photons(part, nphot);
+}
+
+GPUFUN
+double synrad_gen_total_energy_normalized_power2(
+        LocalParticle *part, int64_t nphot){
+
+    double total = 0.0;
+    int64_t nphot_left = nphot;
+    while (nphot_left > 0){
+        int64_t const chunk = synrad_largest_power_of_two_leq(nphot_left);
+        total += synrad_gen_total_energy_normalized_for_power2_chunk(
+            part, chunk);
+        nphot_left -= chunk;
+    }
+    return total;
+}
+
+GPUFUN
+int64_t synrad_emit_total_energy_loss(LocalParticle *part, double B_T,
+                            double lpath /* m */){
+
+    if (fabs(B_T) < 1e-4)
+        return 0;
+
+    // TODO Introduce effect of chi and mass_ratio!!!
+    double const mass0 = LocalParticle_get_mass0(part); // eV
+    double const q0 = LocalParticle_get_q0(part); // e
+    double const gamma0  = LocalParticle_get_gamma0(part);
+    double const beta0  = LocalParticle_get_beta0(part);
+
+    double const average_nphotons = synrad_average_number_of_photons(
+        mass0, q0, beta0 * gamma0, B_T, lpath);
+    int64_t const nphot = synrad_gen_photon_count(part, average_nphotons);
+
+    if (nphot == 0)
+        return 0;
+
+    double const Q0_coulomb = fabs(q0) * QELEM;
+
+    double const mass0_kg = mass0 * QELEM / C_LIGHT / C_LIGHT;
+    double const P0_J = mass0_kg * beta0 * gamma0 * C_LIGHT;
+    double const curv = B_T / P0_J * Q0_coulomb;
+
+    double const delta  = LocalParticle_get_delta(part);
+    double gamma = gamma0 * (1 + delta); // Ultra-relativistic approximation
+
+    double const initial_energy = LocalParticle_get_energy0(part)
+	                          + LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part); // eV
+    double energy_loss_total = 0.0; // eV
+
+    double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
+    double const energy_critical = c1 * (gamma*gamma*gamma0) * curv; // eV
+    energy_loss_total = synrad_gen_total_energy_normalized_power2(part, nphot)
+                      * energy_critical; // eV
+
+    if (energy_loss_total >= initial_energy)
+        energy_loss_total = initial_energy;
+
+    if (energy_loss_total >= initial_energy)
+      LocalParticle_set_state(part, XT_LOST_ALL_E_IN_SYNRAD); // used to flag this kind of loss
+    else{
+      double const energy = initial_energy - energy_loss_total;
+      double f_t = energy/initial_energy;
+      LocalParticle_update_delta(part, (LocalParticle_get_delta(part)+1) * f_t - 1);
+      LocalParticle_scale_px(part, f_t);
+      LocalParticle_scale_py(part, f_t);
+    }
+
+    return nphot;
 }
 
 GPUFUN
