@@ -12,6 +12,10 @@ from scipy.signal import fftconvolve
 
 POWERS = [1 << ii for ii in range(9)]
 
+TAIL_PROBABILITY_MIN = 1e-15
+TAIL_PROBABILITY_MAX = 1e-2
+TAIL_POINTS_PER_DECADE = 160
+
 # Uniform grid used for convolution of normalized photon energies.
 DX = 1e-4
 X_MAX = 256.0
@@ -113,8 +117,16 @@ def synrad(x):
 
 
 def make_probability_grid():
-    u_tail = np.logspace(-12, -2, 1600)
-    u_center = np.linspace(1e-2, 1 - 1e-2, 1601)
+    n_tail = int(round(
+        np.log10(TAIL_PROBABILITY_MAX / TAIL_PROBABILITY_MIN)
+        * TAIL_POINTS_PER_DECADE))
+    u_tail = np.logspace(
+        np.log10(TAIL_PROBABILITY_MIN),
+        np.log10(TAIL_PROBABILITY_MAX),
+        n_tail,
+    )
+    u_center = np.linspace(
+        TAIL_PROBABILITY_MAX, 1 - TAIL_PROBABILITY_MAX, 1601)
     return np.unique(np.concatenate((
         [0.0], u_tail, u_center, 1.0 - u_tail[::-1], [1.0])))
 
@@ -181,6 +193,7 @@ def main():
         fid.write("// Method: deterministic quadrature of the single-photon spectrum\n")
         fid.write("// followed by FFT self-convolution on a uniform grid.\n")
         fid.write(f"// Convolution grid: DX = {DX}, X_MAX = {X_MAX}\n")
+        fid.write(f"// Probability tails resolved down to {TAIL_PROBABILITY_MIN:.1e}.\n")
         fid.write("// Probability grid is concentrated in both tails; table values store\n")
         fid.write("// log(total normalized energy) for interpolation.\n\n")
         fid.write("#ifndef XTRACK_SYNRAD_TOTAL_ENERGY_TABLES_H\n")
