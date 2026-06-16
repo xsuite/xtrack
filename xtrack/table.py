@@ -9,6 +9,7 @@ import json
 import math
 import numbers
 import os
+import re
 import tempfile
 from typing import Any, Dict, Iterable, Mapping, Optional
 from warnings import warn
@@ -139,11 +140,162 @@ def _parse_headers(text):
 
 class Table(_XdepsTable):
     """
-    Extension of :class:`xdeps.Table` with xtrack serialization helpers.
+    Table with row and column selection plus xtrack serialization helpers.
     """
 
     # Messages to be shown when accessing deprecated fields
     _DEPRECATED_FIELDS = None
+
+    def __init__(
+        self,
+        data,
+        col_names=None,
+        index='name',
+        sep_count="::",
+        sep_previous="<<",
+        sep_next=">>",
+        cast_strings=True,
+        regex_flags=re.IGNORECASE,
+        verify=True,
+        _copy_cols=False,
+    ):
+        """
+        Create a table from named numpy arrays.
+
+        A table stores columns with a common length and optional scalar
+        attributes. Columns can be accessed by name, individual values can be
+        accessed by column and row, and the ``rows`` and ``cols`` accessors can
+        be used to build table views. Row selectors support names, regular
+        expressions, name ranges, value ranges on a selected column, and
+        relative offsets such as ``"mqf.1<<2"``. Column selectors support
+        column names and simple expressions involving columns.
+
+        Parameters
+        ----------
+        data : mapping
+            Mapping from names to numpy arrays or scalar attributes. Entries
+            listed in ``col_names`` are table columns and must all have the
+            same length when ``verify`` is ``True``.
+        col_names : sequence of str, optional
+            Column names to expose as table columns. If omitted, all keys in
+            ``data`` are used as columns.
+        index : str or None, optional
+            Column used for named row lookup. If ``None``, named row selection
+            is disabled.
+        sep_count : str, optional
+            Separator used to select repeated row names, for example
+            ``"mb::1"``.
+        sep_previous : str, optional
+            Separator used to select rows upstream of a named row, for example
+            ``"mb<<2"``.
+        sep_next : str, optional
+            Separator used to select rows downstream of a named row, for
+            example ``"mb>>2"``.
+        cast_strings : bool, optional
+            If ``True``, string arrays are stored with object dtype.
+        regex_flags : int, optional
+            Flags passed to :func:`re.compile` for row and column matching.
+        verify : bool, optional
+            If ``True``, validate column types, column lengths, and the index
+            column.
+        _copy_cols : bool, optional
+            If ``True``, copy column arrays during construction.
+
+        Examples
+        --------
+        Build a small optics-like table:
+
+        >>> import numpy as np
+        >>> import xtrack as xt
+        >>> tab = xt.Table({
+        ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "d2.1", "mqd.1"]),
+        ...     "element_type": np.array(
+        ...         ["Quadrupole", "Drift", "Bend", "Drift", "Quadrupole"]),
+        ...     "s": np.array([0.0, 0.3, 1.3, 4.3, 5.3]),
+        ...     "betx": np.array([1.28, 1.28, 2.27, 2.88, 1.72]),
+        ...     "bety": np.array([4.79, 4.79, 5.21, 8.99, 11.10]),
+        ... })
+
+        Print the table:
+
+        >>> tab.show()
+        name  element_type             s          betx          bety
+        mqf.1 Quadrupole               0          1.28          4.79
+        d1.1  Drift                  0.3          1.28          4.79
+        mb1.1 Bend                   1.3          2.27          5.21
+        d2.1  Drift                  4.3          2.88          8.99
+        mqd.1 Quadrupole             5.3          1.72          11.1
+
+        Access a single value or a full column:
+
+        >>> float(tab["s", "mb1.1"])
+        1.3
+        >>> tab["s"]
+        array([0. , 0.3, 1.3, 4.3, 5.3])
+
+        Select columns, including expressions:
+
+        >>> tab.cols["betx bety"]
+        Table: 5 rows, 3 cols
+        name           betx          bety
+        mqf.1          1.28          4.79
+        d1.1           1.28          4.79
+        mb1.1          2.27          5.21
+        d2.1           2.88          8.99
+        mqd.1          1.72          11.1
+        >>> tab.cols["betx bety betx/bety"]
+        Table: 5 rows, 4 cols
+        name           betx          bety     betx/bety
+        mqf.1          1.28          4.79      0.267223
+        d1.1           1.28          4.79      0.267223
+        mb1.1          2.27          5.21      0.435701
+        d2.1           2.88          8.99      0.320356
+        mqd.1          1.72          11.1      0.154955
+
+        Select rows by name, regular expression, column match, or range:
+
+        >>> tab.rows[["mqf.1", "mqd.1"]]
+        Table: 2 rows, 5 cols
+        name  element_type             s          betx          bety
+        mqf.1 Quadrupole               0          1.28          4.79
+        mqd.1 Quadrupole             5.3          1.72          11.1
+        >>> tab.rows["mb.*"]
+        Table: 1 row, 5 cols
+        name  element_type             s          betx          bety
+        mb1.1 Bend                   1.3          2.27          5.21
+        >>> tab.rows.match(element_type="Quadrupole")
+        Table: 2 rows, 5 cols
+        name  element_type             s          betx          bety
+        mqf.1 Quadrupole               0          1.28          4.79
+        mqd.1 Quadrupole             5.3          1.72          11.1
+        >>> tab.rows[0.0:2.0:"s"]
+        Table: 3 rows, 5 cols
+        name  element_type             s          betx          bety
+        mqf.1 Quadrupole               0          1.28          4.79
+        d1.1  Drift                  0.3          1.28          4.79
+        mb1.1 Bend                   1.3          2.27          5.21
+
+        Row and column selections return table objects and can be chained:
+
+        >>> tab.rows["mqf.1":"d2.1"].rows.match_not(
+        ...     element_type="Drift").cols["s betx bety"]
+        Table: 2 rows, 4 cols
+        name              s          betx          bety
+        mqf.1             0          1.28          4.79
+        mb1.1           1.3          2.27          5.21
+        """
+        super().__init__(
+            data=data,
+            col_names=col_names,
+            index=index,
+            sep_count=sep_count,
+            sep_previous=sep_previous,
+            sep_next=sep_next,
+            cast_strings=cast_strings,
+            regex_flags=regex_flags,
+            verify=verify,
+            _copy_cols=_copy_cols,
+        )
 
     def __getitem__(self, key):
         depr_fields = object.__getattribute__(self, '_DEPRECATED_FIELDS')
