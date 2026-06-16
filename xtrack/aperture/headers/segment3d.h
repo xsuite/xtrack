@@ -48,24 +48,25 @@ float_type segment_get_length(LineSegment3D segment) {
 }
 
 
-float_type segment3d_get_length(Segment3D segment) {
+static inline float_type segment3d_get_length(Segment3D segment) {
     switch (segment.type) {
         case SEGMENT3D_LINE:
             return segment_get_length(segment.line);
         case SEGMENT3D_ARC:
             return segment.arc.length;
     }
+    return NAN;
 }
 
 
-inline Point3D line_segment_point_at(const LineSegment3D segment, const float_type frac_length)
+static inline Point3D line_segment_point_at(const LineSegment3D segment, const float_type frac_length)
 {
     const Point3D direction = point3d_sub(segment.end, segment.start);
     return point3d_add_scaled(segment.start, direction, frac_length);
 }
 
 
-inline Point3D arc_segment_point_at(const ArcSegment3D segment, const float_type frac_length)
+static inline Point3D arc_segment_point_at(const ArcSegment3D segment, const float_type frac_length)
 {
     const float_type length = frac_length * segment.length;
     const float_type curvature = segment.curvature;
@@ -93,7 +94,7 @@ inline Point3D arc_segment_point_at(const ArcSegment3D segment, const float_type
 }
 
 
-inline Point3D segment_point_at(const Segment3D segment, const float_type frac_length)
+static inline Point3D segment_point_at(const Segment3D segment, const float_type frac_length)
 {
     switch (segment.type) {
         case SEGMENT3D_LINE:
@@ -104,7 +105,7 @@ inline Point3D segment_point_at(const Segment3D segment, const float_type frac_l
 }
 
 
-inline Point3D plane_initial_point(const Pose plane)
+static inline Point3D plane_initial_point(const Pose plane)
 /*
     Given a pose defining a plane (z = 0 in the local `plane` frame), return
     its initial point.
@@ -118,7 +119,7 @@ inline Point3D plane_initial_point(const Pose plane)
 }
 
 
-inline Point3D plane_normal_vector(const Pose plane)
+static inline Point3D plane_normal_vector(const Pose plane)
 /*
     Given a pose defining a plane (z = 0 in the local `plane` frame), return
     its normal point.
@@ -363,7 +364,7 @@ float_type arc_segment_plane_intersect(
 }
 
 
-inline float_type segment3d_plane_intersect(const Segment3D segment, const Point3D plane_point, const Point3D normal)
+static inline float_type segment3d_plane_intersect(const Segment3D segment, const Point3D plane_point, const Point3D normal)
 /*
     Given a `segment` (line or arc) and a plane defined with a point and a normal, get a parameter `t` along
     the length of the `segment` at which the plane intersects the segment. If `t` is not in [0, 1] the plane
@@ -376,10 +377,11 @@ inline float_type segment3d_plane_intersect(const Segment3D segment, const Point
         case SEGMENT3D_ARC:
             return arc_segment_plane_intersect(segment.arc, plane_point, normal);
     }
+    return NAN;
 }
 
 
-inline float_type closest_t_on_line_segment(const Point3D p, const LineSegment3D segment)
+static inline float_type closest_t_on_line_segment(const Point3D p, const LineSegment3D segment)
 /*
     Closest point parameter `t` on segment [a,b] to point p. Parameter `t` is unconstrained,
     if the point strictly on the segment is needed, clamp to [0, 1].
@@ -399,7 +401,7 @@ inline float_type closest_t_on_line_segment(const Point3D p, const LineSegment3D
 }
 
 
-inline float_type closest_t_on_arc_segment(const Point3D p, const ArcSegment3D segment)
+static inline float_type closest_t_on_arc_segment(const Point3D p, const ArcSegment3D segment)
 /*
     Closest point parameter t on an ArcSegment3D to point p.
 
@@ -450,7 +452,7 @@ inline float_type closest_t_on_arc_segment(const Point3D p, const ArcSegment3D s
 }
 
 
-inline float_type closest_t_on_segment(const Point3D p, const Segment3D segment)
+static inline float_type closest_t_on_segment(const Point3D p, const Segment3D segment)
 /*
     Get parameter `t` of the point along the `segment` closest to `p`.
 */
@@ -461,6 +463,7 @@ inline float_type closest_t_on_segment(const Point3D p, const Segment3D segment)
         case SEGMENT3D_ARC:
             return closest_t_on_arc_segment(p, segment.arc);
     }
+    return NAN;
 }
 
 #endif  /* XT_APERTURE_SEGMENT3D_H */
