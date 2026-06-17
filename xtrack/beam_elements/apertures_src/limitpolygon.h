@@ -21,12 +21,20 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
     }
 
     int64_t N_edg = LimitPolygonData_len_x_vertices(el);
+    double const min_x = LimitPolygonData_get_min_x(el);
+    double const max_x = LimitPolygonData_get_max_x(el);
+    double const min_y = LimitPolygonData_get_min_y(el);
+    double const max_y = LimitPolygonData_get_max_y(el);
 
     START_PER_PARTICLE_BLOCK(part0, part);
 
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
 
+        if (x < min_x || x > max_x || y < min_y || y > max_y) {
+          LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
+          continue;
+        }
 
         int64_t ii = 0;
         int64_t jj = N_edg-1;
@@ -93,15 +101,19 @@ void LimitPolygon_impact_point_and_normal(
         double y_out_curr = y_out[i_imp];
 
         for (int64_t ii=0; ii<N_edg; ii++){
-	        double t_border;
-	        double t_ii;
-            double const den = ((y_out_curr-y_in_curr)*(Vx[ii+1]-Vx[ii])
-			    +(x_in_curr-x_out_curr)*(Vy[ii+1]-Vy[ii]));
-            if (den == 0.){
-                // it is the case when the normal top the segment is perpendicular to the edge
-                // the case case overlapping the edge is not possible (this would not allow Pin inside and Pout outside - a point on the edge is condidered outside)
-                // the only case left is segment parallel to tue edge => no intersection
-                t_border = -2.;
+          int64_t const ii_next = (ii + 1) % N_edg;
+          double t_border;
+          double t_ii;
+          double const den =
+              ((y_out_curr - y_in_curr) * (Vx[ii_next] - Vx[ii]) +
+               (x_in_curr - x_out_curr) * (Vy[ii_next] - Vy[ii]));
+          if (den == 0.) {
+            // it is the case when the normal top the segment is perpendicular
+            // to the edge the case case overlapping the edge is not possible
+            // (this would not allow Pin inside and Pout outside - a point on
+            // the edge is condidered outside) the only case left is segment
+            // parallel to tue edge => no intersection
+            t_border = -2.;
 	        }
             else{
                 t_border=((y_out_curr-y_in_curr)*(x_in_curr-Vx[ii])

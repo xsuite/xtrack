@@ -119,3 +119,30 @@ def test_limitpolygon_impact_point_and_normal():
     xo.assert_allclose(Nx, np.array([-1.0, 0.0]), atol=1e-14, rtol=0)
     xo.assert_allclose(Ny, np.array([0.0, 1.0]), atol=1e-14, rtol=0)
     assert np.all(i_found >= 0)
+
+
+def test_limitpolygon_bounding_box_is_stored():
+    x_vertices = np.array([2.0, -3.0, 1.5, -1.0]) * 1e-2
+    y_vertices = np.array([1.0, -2.5, 3.0, -1.5]) * 1e-2
+
+    aper = xt.LimitPolygon(
+        x_vertices=x_vertices,
+        y_vertices=y_vertices,
+    )
+
+    xo.assert_allclose(aper.min_x, np.min(x_vertices), atol=0, rtol=0)
+    xo.assert_allclose(aper.max_x, np.max(x_vertices), atol=0, rtol=0)
+    xo.assert_allclose(aper.min_y, np.min(y_vertices), atol=0, rtol=0)
+    xo.assert_allclose(aper.max_y, np.max(y_vertices), atol=0, rtol=0)
+
+    aper_dict = aper.to_dict()
+    assert "min_x" not in aper_dict
+    assert "max_x" not in aper_dict
+    assert "min_y" not in aper_dict
+    assert "max_y" not in aper_dict
+
+    aper_roundtrip = xt.LimitPolygon.from_dict(aper_dict)
+    xo.assert_allclose(aper_roundtrip.min_x, aper.min_x, atol=0, rtol=0)
+    xo.assert_allclose(aper_roundtrip.max_x, aper.max_x, atol=0, rtol=0)
+    xo.assert_allclose(aper_roundtrip.min_y, aper.min_y, atol=0, rtol=0)
+    xo.assert_allclose(aper_roundtrip.max_y, aper.max_y, atol=0, rtol=0)

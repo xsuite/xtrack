@@ -227,6 +227,10 @@ class LimitPolygon(BeamElement):
         "y_vertices": xo.Float64[:],
         "x_normal": xo.Float64[:],
         "y_normal": xo.Float64[:],
+        "min_x": xo.Float64,
+        "max_x": xo.Float64,
+        "min_y": xo.Float64,
+        "max_y": xo.Float64,
         "resc_fac": xo.Float64,
     }
 
@@ -276,12 +280,30 @@ class LimitPolygon(BeamElement):
                     path, scale=scale, curved_steps=curved_steps, line_steps=2
                 )
             assert len(x_vertices) == len(y_vertices)
+            context = kwargs.get("_context", None)
+            if context is None and kwargs.get("_buffer", None) is not None:
+                context = kwargs["_buffer"].context
+            if context is not None and hasattr(context, "nparray_from_context_array"):
+                x_vertices_np = np.asarray(
+                    context.nparray_from_context_array(x_vertices), dtype=np.float64
+                )
+                y_vertices_np = np.asarray(
+                    context.nparray_from_context_array(y_vertices), dtype=np.float64
+                )
+            else:
+                x_vertices_np = np.asarray(x_vertices, dtype=np.float64)
+                y_vertices_np = np.asarray(y_vertices, dtype=np.float64)
 
             if "x_normal" not in kwargs.keys():
                 kwargs["x_normal"] = len(x_vertices)
 
             if "y_normal" not in kwargs.keys():
                 kwargs["y_normal"] = len(x_vertices)
+
+            kwargs["min_x"] = float(np.min(x_vertices_np))
+            kwargs["max_x"] = float(np.max(x_vertices_np))
+            kwargs["min_y"] = float(np.min(y_vertices_np))
+            kwargs["max_y"] = float(np.max(y_vertices_np))
 
             if "resc_fac" not in kwargs.keys():
                 kwargs["resc_fac"] = 1.0
@@ -317,11 +339,16 @@ class LimitPolygon(BeamElement):
 
     def to_dict(self, **kwargs):
         out= super().to_dict(**kwargs)
+        for kk in ("min_x", "max_x", "min_y", "max_y"):
+            out.pop(kk, None)
         out["svg"]=self.svg
         return out
 
     @classmethod
     def from_dict(cls, d, **kwargs):
+        d = d.copy()
+        for kk in ("min_x", "max_x", "min_y", "max_y"):
+            d.pop(kk, None)
         if 'svg' in d.keys() and d['svg'] is not None:
             d.pop('x_vertices')
             d.pop('y_vertices')
