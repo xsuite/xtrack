@@ -3839,6 +3839,11 @@ class TwissTable(Table):
 
     _error_on_row_not_found = True
 
+    def _select_rows(self, rows):
+        out = super()._select_rows(rows)
+        out._data.pop('periodic', None)
+        return out
+
     def to_pandas(self, index=None, columns=None):
         """
         Convert the Twiss table to a pandas DataFrame.
