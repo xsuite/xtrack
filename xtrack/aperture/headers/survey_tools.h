@@ -14,7 +14,7 @@ typedef struct {
 } SurveyEntry_s;
 
 
-inline float_type get_survey_max_s(const SurveyData survey)
+static inline float_type get_survey_max_s(const SurveyData survey)
 /* Get the max s of the survey. */
 {
     // Rely on the fact that the last element is `_end_point` (length = 0).
@@ -24,7 +24,7 @@ inline float_type get_survey_max_s(const SurveyData survey)
 }
 
 
-inline Pose pose_matrix_from_survey(const SurveyData survey, const uint32_t idx) {
+static inline Pose pose_matrix_from_survey(const SurveyData survey, const uint32_t idx) {
     Pose m;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
@@ -35,7 +35,7 @@ inline Pose pose_matrix_from_survey(const SurveyData survey, const uint32_t idx)
 }
 
 
-inline Point3D survey_point(SurveyData survey, uint32_t idx) {
+static inline Point3D survey_point(SurveyData survey, uint32_t idx) {
     Pose pose = pose_matrix_from_survey(survey, idx);
     return (Point3D) {
         .x = pose.mat[0][3],
@@ -45,7 +45,7 @@ inline Point3D survey_point(SurveyData survey, uint32_t idx) {
 }
 
 
-inline LineSegment3D survey_line_segment(SurveyData survey, uint32_t idx) {
+static inline LineSegment3D survey_line_segment(SurveyData survey, uint32_t idx) {
     const Point3D entry = survey_point(survey, idx);
     const Point3D exit = survey_point(survey, idx + 1);
     return (LineSegment3D) {
@@ -55,7 +55,7 @@ inline LineSegment3D survey_line_segment(SurveyData survey, uint32_t idx) {
 }
 
 
-inline ArcSegment3D survey_arc_segment(SurveyData survey, uint32_t idx) {
+static inline ArcSegment3D survey_arc_segment(SurveyData survey, uint32_t idx) {
     const Pose start = pose_matrix_from_survey(survey, idx);
     const float_type length = SurveyData_get_length(survey, idx);
     const float_type angle = SurveyData_get_angle(survey, idx);
@@ -70,7 +70,7 @@ inline ArcSegment3D survey_arc_segment(SurveyData survey, uint32_t idx) {
 }
 
 
-inline Segment3D survey_segment(SurveyData survey, uint32_t idx) {
+static inline Segment3D survey_segment(SurveyData survey, uint32_t idx) {
     const float_type angle = SurveyData_get_angle(survey, idx);
     const float_type length = SurveyData_get_length(survey, idx);
 

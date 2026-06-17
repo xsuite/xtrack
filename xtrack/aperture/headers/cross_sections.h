@@ -96,7 +96,6 @@ void build_profile_polygons(
 {
     const uint32_t num_profiles = ProfilePolygons_get_count(profile_polygons);
     const uint32_t num_cross_sections = ApertureBounds_get_count(aperture_bounds);
-    const uint32_t num_survey_entries = SurveyData_len_s(survey);
 
     /* First generate polygons for profiles */
     for (uint32_t idx = 0; idx < num_profiles; idx++)
