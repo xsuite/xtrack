@@ -35,6 +35,8 @@ NDArrayNxMx2 = np.ndarray[tuple[int, int, Literal[2]], DTypeFloat]
 HomogenousMatrix = np.ndarray[tuple[Literal[4], Literal[4]], DTypeFloat]
 HomogenousMatrices = np.ndarray[tuple[int, Literal[4], Literal[4]], DTypeFloat]
 
+SigmasCalculationEnum = Literal['bisection', 'rays', 'exact']
+
 
 def _survey_is_closed(survey: Table, tol: float = 1e-6) -> bool:
     if len(survey.Z) < 2:
@@ -493,10 +495,6 @@ class Aperture:
         )
         return aperture
 
-    def polygon_for_profile(self, profile: Profile, num_points: int) -> NDArrayNx2:
-        """Sample a profile boundary as a 2D polygon."""
-        return profile.build_polygon(len_points=num_points)
-
     @classmethod
     def _build_aperture_model(
             cls,
@@ -592,7 +590,7 @@ class Aperture:
             self,
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
-            method: Literal['bisection', 'rays', 'exact'] = 'rays',
+            method: SigmasCalculationEnum = 'rays',
             envelopes_num_points: int = 36,
             num_rays: int = 32,
             output_max_envelopes: bool = False,
@@ -756,9 +754,9 @@ class Aperture:
 
         Parameters
         ----------
-        s_positions : Iterable[float]
+        s_positions
             Locations at which to compute the desired quantities.
-        twiss_init : TwissInit, optional
+        twiss_init
             Initial conditions for the twiss.
 
         Returns
@@ -962,13 +960,49 @@ class Aperture:
         s_positions: Collection[float],
         sigmas: float | None = None,
         twiss_init: TwissInit | None = None,
-        method: Literal['bisection', 'rays', 'exact'] = 'rays',
+        method: SigmasCalculationEnum = 'rays',
         envelopes_num_points: int = 64,
         include_aper_tols: bool = False,
         plot_s_positions: Collection[float] | None = None,
         axs=None,
     ):
-        """Plot beam envelope and aperture extents over `s`."""
+        """Plot beam-envelope and aperture extents along the beam line.
+
+        Parameters
+        ----------
+        s_positions
+            Longitudinal positions at which the aperture cross-sections and beam
+            envelopes are evaluated.
+        sigmas
+            Sigma level used to build the beam envelope. If omitted, the minimum
+            available aperture sigma across ``s_positions`` is computed using
+            ``method``.
+        twiss_init
+            Twiss initial conditions forwarded to the envelope and aperture-sigma
+            computations.
+        method
+            Method used to compute the maximum aperture sigmas when ``sigmas`` is not given.
+        envelopes_num_points
+            Number of points used to discretise each transverse beam envelope.
+        include_aper_tols
+            Whether aperture tolerances should be included in the beam-envelope
+            computation.
+        plot_s_positions
+            Coordinates to be used on the horizontal axis. If omitted, ``s_positions``
+            are used directly. This is useful when the data are evaluated at one
+            set of longitudinal positions but should be displayed against another
+            abscissa, for example a shifted, reversed, or externally defined coordinate.
+        axs
+            Two axes on which to draw the horizontal and vertical extents. If
+            not provided, a new figure with two shared-x subplots is created.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            Figure containing the plots.
+        axs : sequence of matplotlib.axes.Axes
+            The x- and y-extent axes, in that order.
+        """
         s_positions = np.asarray(s_positions, dtype=FloatType._dtype)
         plot_s_positions = np.asarray(
             s_positions if plot_s_positions is None else plot_s_positions,
@@ -1036,23 +1070,36 @@ class Aperture:
 
         return fig, axs
 
-    def plot_at_element(self, name: str, resolution: float = 0.1, sigmas: float | None = None, method: str | None = None, middle='beam', ax=None):
+    def plot_at_element(
+            self,
+            name: str,
+            resolution: float = 0.1,
+            sigmas: float | None = None,
+            method: SigmasCalculationEnum | None = None,
+            middle='beam',
+            ax=None,
+    ):
         """Display a transverse plot of the beam at an element ``name``.
 
         Parameters
         ----------
-        name : str
+        name
             Name of the element at which to plot.
-        resolution : float
+        resolution
             The desired resolution, in metres along s, of the plot.
-        sigmas : Optional[float]
+        sigmas
             The number of sigmas to plot. If None, compute n1 using ``method``.
-        method : str
+        method
             If ``sigmas`` is None, plot the maximum sigma for element, calculated using ``method``.
-        middle : str
+        middle
             Whether the plot should be centred around the ``aperture`` middle, or ``beam`` reference.
-        ax : matplotlib.axes.Axes
+        ax
             Axes object to plot on, if not given, spawn a new one.
+
+        Returns
+        -------
+        ax : matplotlib.axes.Axes
+            Plot's axes object.
         """
         from matplotlib import pyplot as plt
         ax = ax or plt.gca()
@@ -1098,23 +1145,36 @@ class Aperture:
         ax.legend()
         return ax
 
-    def plot_n1_at_element(self, name: str, resolution: float = 0.1, method: str = 'rays', middle='beam', ax=None, **kwargs):
+    def plot_n1_at_element(
+        self,
+        name: str,
+        resolution: float = 0.1,
+        method: SigmasCalculationEnum = 'rays',
+        middle='beam',
+        ax=None,
+        **kwargs,
+    ):
         """Display a transverse plot of the beam at n1 at element ``name``.
 
         Parameters
         ----------
-        name : str
+        name
             Name of the element at which to plot.
-        resolution : float
+        resolution
             The desired resolution, in metres along s, of the plot.
-        method : str
+        method
             The method to use to calculate ``n1`` and the envelope.
-        middle : str
+        middle
             Whether the plot should be centred around the ``aperture`` middle, or ``beam`` reference.
-        ax : matplotlib.axes.Axes
+        ax
             Axes object to plot on, if not given, spawn a new one.
         **kwargs
             More arguments to pass to matplotlib.
+
+        Returns
+        -------
+        ax : matplotlib.axes.Axes
+            Plot's axes object.
         """
         from matplotlib import pyplot as plt
         ax = ax or plt.gca()
@@ -1164,7 +1224,34 @@ class Aperture:
         s_range: tuple[float, float] | None = None,
         aspect: Literal['auto', 'equal'] = 'auto',
     ):
-        """Plot all installed pipes projected onto the floor plane."""
+        """Plot installed pipe segments projected onto the floor plane.
+
+        Parameters
+        ----------
+        ax
+            Axes object to plot on. If not given, use the current axes.
+        len_points
+            Number of points used to discretise each pipe profile for plotting.
+        colour
+            Colouring mode passed to the individual pipe projection plots.
+        legend
+            Whether to draw a deduplicated legend for the projected pipes.
+        origin
+            Name of a pipe position to use as the plotting origin. When given,
+            the floor projection is expressed in the local frame of that pipe
+            position.
+        s_range
+            Longitudinal window, relative to ``origin`` when provided, used to
+            restrict which pipe segments are plotted. On rings, wrapped ranges
+            are handled across the end of the line.
+        aspect
+            Aspect ratio applied to the axes after plotting.
+
+        Returns
+        -------
+        ax : matplotlib.axes.Axes
+            Axes containing the floor projection.
+        """
         from matplotlib import pyplot as plt
         ax = ax or plt.gca()
 
@@ -1346,8 +1433,25 @@ class Aperture:
                 last_end = end
                 last_name = name
 
-    def get_bounds_table(self):
-        """Get a table representation of the aperture bounds: per installed profile span information."""
+    def get_bounds_table(self) -> Table:
+        """Return per-profile aperture-bound information as a table.
+
+        Returns
+        -------
+        bounds_table
+            Table with the following columns:
+            - ``name``: name of the aperture bound, formed from the pipe-position
+              name and, when needed, a ``::i`` suffix identifying the profile
+              order within the pipe
+            - ``pipe_name``: name of the pipe in which the installed profile appears
+            - ``profile_name``: name of the installed profile
+            - ``s``: survey position at which the installed profile plane
+              intersects the reference curve
+            - ``s_start``, ``s_end``: longitudinal footprint of the installed
+              profile on the survey
+            - ``shape``: profile shape name
+            - ``shape_param``: dictionary of profile shape parameters
+        """
         ap_bounds = self._aperture_bounds
         table_size = ap_bounds.count
 
@@ -1382,7 +1486,7 @@ class Aperture:
             shapes_all[i] = type(shape).__name__
             shape_params_all[i] = shape._to_dict()
 
-        table = Table(
+        bounds_table = Table(
             data={
                 'name': pipe_position_names_all[pipe_position_indices],
                 'pipe_name': pipe_names_all[pipe_indices],
@@ -1395,15 +1499,27 @@ class Aperture:
             },
             index='name',
         )
-        return table
+        return bounds_table
 
     def get_pipe_table(self):
-        """Get a table representation of installed pipe intervals.
+        """Return installed-pipe interval information as a table.
 
-        The ``s_start``/``s_end``/``length`` columns describe the interval
-        covered by the installed profile centre positions. The
-        ``s_span_start``/``s_span_end``/``span`` columns describe the larger
-        projected aperture footprint interval.
+        Returns
+        -------
+        pipe_table
+            Table with the following columns:
+            - ``name``: pipe-position name
+            - ``pipe_name``: underlying pipe (type) name
+            - ``survey_reference``: survey element used as the placement reference
+            - ``s_start``, ``s_end``: interval covered by the installed profile
+              centre positions
+            - ``length``: length of that centre-position interval
+            - ``s_span_start``, ``s_span_end``: longitudinal footprint of the
+              projected aperture itself
+            - ``span``: length of that aperture-footprint interval
+
+            For rings, wrapped intervals are represented with ``s_start > s_end``
+            and likewise for ``s_span_start > s_span_end``.
         """
         table_size = len(self._model.pipe_positions)
 
@@ -1493,9 +1609,9 @@ class Aperture:
 
         Parameters
         ----------
-        s_positions : Iterable[float]
+        s_positions
             s-positions for the sliced twiss.
-        twiss_init : TwissInit, optional
+        twiss_init
             Initial conditions for the twiss.
         """
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
@@ -1583,7 +1699,7 @@ class Aperture:
 
         Parameters
         ----------
-        element_name : str
+        element_name
             Name of a beam element.
         """
         pattern = r"(?P<prefix>.*?)(?:[:]\d+)?(?:/[^/]+)?"
@@ -1592,7 +1708,7 @@ class Aperture:
 
     @classmethod
     def _get_per_pipe_madx_offsets(cls, madx_offsets):
-        """Parse MAD-X imported aperture offsets metadata to obtain per-element (type) transformations."""
+        """Parse MAD-X imported aperture offsets metadata to obtain per-element (pipe) transformations."""
         offsets = {}
         for section in madx_offsets.values():
             reference_name = section['reference']
@@ -1620,6 +1736,7 @@ class Aperture:
 
     @classmethod
     def _is_broken_madx_aperture(cls, shape):
+        """Given a shape instance created based on a MAD-X description, guess if the shape is invalid."""
         if isinstance(shape, Circle):
             return shape.radius < 1e-6 or shape.radius > 9.98
 
