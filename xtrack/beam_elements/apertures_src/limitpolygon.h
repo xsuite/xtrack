@@ -8,15 +8,14 @@
 
 #include "xtrack/headers/track.h"
 
-
 #ifndef NO_LIMITPOLYGON_TRACK_LOCAL_PARTICLE
-
 
 GPUFUN
 void LimitPolygon_track_local_particle(LimitPolygonData el,
-		LocalParticle* part0){
+    LocalParticle* part0)
+{
 
-    if(LocalParticle_check_track_flag(part0, XS_FLAG_IGNORE_LOCAL_APERTURE)){
+    if (LocalParticle_check_track_flag(part0, XS_FLAG_IGNORE_LOCAL_APERTURE)) {
         return;
     }
 
@@ -27,17 +26,16 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
     double const max_y = LimitPolygonData_get_max_y(el);
 
     START_PER_PARTICLE_BLOCK(part0, part);
-
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
 
         if (x < min_x || x > max_x || y < min_y || y > max_y) {
-          LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
-          continue;
+            LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
+            continue;
         }
 
         int64_t ii = 0;
-        int64_t jj = N_edg-1;
+        int64_t jj = N_edg - 1;
         int64_t is_alive = 0;
         while (ii < N_edg) {
             const double Vx_ii = LimitPolygonData_get_x_vertices(el, ii);
@@ -45,42 +43,39 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
             const double Vy_ii = LimitPolygonData_get_y_vertices(el, ii);
             const double Vy_jj = LimitPolygonData_get_y_vertices(el, jj);
 
-            if (((Vy_ii>y) != (Vy_jj>y)) &&
-                      (x < (Vx_jj-Vx_ii) * (y-Vy_ii)
-                      / (Vy_jj-Vy_ii) + Vx_ii))
-            {
+            if (((Vy_ii > y) != (Vy_jj > y)) && (x < (Vx_jj - Vx_ii) * (y - Vy_ii) / (Vy_jj - Vy_ii) + Vx_ii)) {
                 is_alive = !is_alive;
             }
             jj = ii;
-            ii ++;
+            ii++;
         }
 
         // I assume that if I am in the function is because
         // the particle is alive
-            if (!is_alive){
-               LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
+        if (!is_alive) {
+            LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
         }
-
     END_PER_PARTICLE_BLOCK;
 }
 #endif
 
 GPUKERN
 void LimitPolygon_impact_point_and_normal(
-		             LimitPolygonData el,
-                GPUGLMEM const double* x_in,
-                GPUGLMEM const double* y_in,
-                GPUGLMEM const double* z_in,
-                GPUGLMEM const double* x_out,
-                GPUGLMEM const double* y_out,
-                GPUGLMEM const double* z_out,
-                         const int64_t n_impacts,
-                GPUGLMEM double* x_inters,
-                GPUGLMEM double* y_inters,
-                GPUGLMEM double* z_inters,
-                GPUGLMEM double* Nx_inters,
-                GPUGLMEM double* Ny_inters,
-                GPUGLMEM int64_t* i_found){
+    LimitPolygonData el,
+    GPUGLMEM const double* x_in,
+    GPUGLMEM const double* y_in,
+    GPUGLMEM const double* z_in,
+    GPUGLMEM const double* x_out,
+    GPUGLMEM const double* y_out,
+    GPUGLMEM const double* z_out,
+    const int64_t n_impacts,
+    GPUGLMEM double* x_inters,
+    GPUGLMEM double* y_inters,
+    GPUGLMEM double* z_inters,
+    GPUGLMEM double* Nx_inters,
+    GPUGLMEM double* Ny_inters,
+    GPUGLMEM int64_t* i_found)
+{
 
     double const tol = 1e-13;
 
@@ -92,7 +87,6 @@ void LimitPolygon_impact_point_and_normal(
     double resc_fac = LimitPolygonData_get_resc_fac(el);
 
     VECTORIZE_OVER(i_imp, n_impacts);
-
         double t_min_curr = 1.;
         int64_t i_found_curr = -1;
         double x_in_curr = x_in[i_imp];
@@ -100,49 +94,46 @@ void LimitPolygon_impact_point_and_normal(
         double x_out_curr = x_out[i_imp];
         double y_out_curr = y_out[i_imp];
 
-        for (int64_t ii=0; ii<N_edg; ii++){
-          int64_t const ii_next = (ii + 1) % N_edg;
-          double t_border;
-          double t_ii;
-          double const den =
-              ((y_out_curr - y_in_curr) * (Vx[ii_next] - Vx[ii]) +
-               (x_in_curr - x_out_curr) * (Vy[ii_next] - Vy[ii]));
-          if (den == 0.) {
-            // it is the case when the normal top the segment is perpendicular
-            // to the edge the case case overlapping the edge is not possible
-            // (this would not allow Pin inside and Pout outside - a point on
-            // the edge is condidered outside) the only case left is segment
-            // parallel to tue edge => no intersection
-            t_border = -2.;
-	        }
-            else{
-                t_border=((y_out_curr-y_in_curr)*(x_in_curr-Vx[ii])
-		         +(x_in_curr-x_out_curr)*(y_in_curr-Vy[ii]))/den;
-	        }
+        for (int64_t ii = 0; ii < N_edg; ii++) {
+            int64_t const ii_next = (ii + 1) % N_edg;
+            double t_border;
+            double t_ii;
+            double const den = ((y_out_curr - y_in_curr) * (Vx[ii_next] - Vx[ii]) + (x_in_curr - x_out_curr) * (Vy[ii_next] - Vy[ii]));
+            if (den == 0.) {
+                // it is the case when the normal top the segment is perpendicular
+                // to the edge the case case overlapping the edge is not possible
+                // (this would not allow Pin inside and Pout outside - a point on
+                // the edge is considered outside) the only case left is segment
+                // parallel to tue edge => no intersection
+                t_border = -2.;
+            } else {
+                t_border = ((y_out_curr - y_in_curr) * (x_in_curr - Vx[ii])
+                               + (x_in_curr - x_out_curr) * (y_in_curr - Vy[ii]))
+                    / den;
+            }
 
-            if (t_border>=0.-tol && t_border<=1.+tol){
-                t_ii = (Nx[ii]*(Vx[ii]-x_in_curr)
-		            +Ny[ii]*(Vy[ii]-y_in_curr))
-		            /(Nx[ii]*(x_out_curr-x_in_curr)
-	                +Ny[ii]*(y_out_curr-y_in_curr));
-                if (t_ii>=0.-tol && t_ii<t_min_curr+tol){
+            if (t_border >= 0. - tol && t_border <= 1. + tol) {
+                t_ii = (Nx[ii] * (Vx[ii] - x_in_curr)
+                           + Ny[ii] * (Vy[ii] - y_in_curr))
+                    / (Nx[ii] * (x_out_curr - x_in_curr)
+                        + Ny[ii] * (y_out_curr - y_in_curr));
+                if (t_ii >= 0. - tol && t_ii < t_min_curr + tol) {
                     t_min_curr = t_ii;
                     i_found_curr = ii;
-		        }
+                }
             }
-	    }
+        }
 
-        t_min_curr=resc_fac*t_min_curr;
-        x_inters[i_imp]=t_min_curr*x_out_curr+(1.-t_min_curr)*x_in_curr;
-        y_inters[i_imp]=t_min_curr*y_out_curr+(1.-t_min_curr)*y_in_curr;
-        z_inters[i_imp]=0;
+        t_min_curr = resc_fac * t_min_curr;
+        x_inters[i_imp] = t_min_curr * x_out_curr + (1. - t_min_curr) * x_in_curr;
+        y_inters[i_imp] = t_min_curr * y_out_curr + (1. - t_min_curr) * y_in_curr;
+        z_inters[i_imp] = 0;
 
-        if (i_found_curr>=0){
+        if (i_found_curr >= 0) {
             Nx_inters[i_imp] = Nx[i_found_curr];
             Ny_inters[i_imp] = Ny[i_found_curr];
-	    }
+        }
         i_found[i_imp] = i_found_curr;
-
     END_VECTORIZE;
 }
 
