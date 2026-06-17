@@ -1501,6 +1501,89 @@ class Aperture:
         )
         return bounds_table
 
+    def s_around_transitions(
+        self,
+        tol: float | None = None,
+        resolution: float | None = None,
+        s_range: tuple[float, float] | None = None,
+    ) -> np.ndarray:
+        """Return sampling positions around aperture-profile transitions.
+
+        The positions are built from the longitudinal locations of the
+        installed aperture bounds. For each stored ``s`` position, the method
+        emits points at ``s - tol`` and ``s + tol``. This is useful when
+        sampling quantities that can change abruptly at profile transitions.
+
+        Parameters
+        ----------
+        tol
+            Offset applied on both sides of each transition bound. If omitted,
+            use ``self.s_tol``.
+        resolution
+            If provided, add a regular grid of sampling points spaced by this
+            step size and union it with the transition-based points.
+        s_range
+            If provided, restrict the returned positions to this longitudinal
+            interval. For rings, wrapped intervals are supported.
+
+        Returns
+        -------
+        np.ndarray
+            Sorted, unique ``s`` positions clipped to the line extent.
+        """
+        line_length = float(self.line.get_length())
+        tol = self.s_tol if tol is None else float(tol)
+
+        if tol < 0:
+            raise ValueError('`tol` must be non-negative.')
+        if resolution is not None and resolution <= 0:
+            raise ValueError('`resolution` must be positive.')
+        if s_range is not None and not self.is_ring and s_range[0] > s_range[1]:
+            raise ValueError('Wrapped `s_range` is only supported for ring apertures.')
+
+        bounds_table = self.get_bounds_table()
+        bound_positions = np.asarray(bounds_table.s, dtype=FloatType._dtype)
+        bound_positions = bound_positions[np.isfinite(bound_positions)]
+
+        # Sample immediately on both sides of each installed aperture bound.
+        s_positions = np.concatenate([bound_positions - tol, bound_positions + tol])
+
+        if resolution is not None:
+            if s_range is None:
+                range_segments = [(0.0, line_length)]
+            else:
+                range_segments = _split_wrapped_s_interval(
+                    *s_range,
+                    line_length=line_length,
+                    wrap=self.is_ring,
+                    s_tol=tol,
+                )
+
+            # On wrapped ring intervals, build the regular grid segment by segment.
+            grid = [
+                np.arange(seg_start, seg_end + 0.5 * resolution, resolution, dtype=FloatType._dtype)
+                for seg_start, seg_end in range_segments
+            ]
+            s_positions = np.concatenate([s_positions] + grid)
+
+        s_positions = np.clip(s_positions, 0.0, line_length)
+
+        if s_range is not None:
+            range_segments = _split_wrapped_s_interval(
+                float(s_range[0]),
+                float(s_range[1]),
+                    line_length=line_length,
+                    wrap=self.is_ring,
+                    s_tol=tol,
+            )
+            # Keep points inside the requested window, including wrapped windows on rings
+            mask = np.zeros(len(s_positions), dtype=bool)
+            for seg_start, seg_end in range_segments:
+                mask |= (s_positions >= seg_start) & (s_positions <= seg_end)
+            s_positions = s_positions[mask]
+
+        return np.unique(s_positions)
+
     def get_pipe_table(self):
         """Return installed-pipe interval information as a table.
 

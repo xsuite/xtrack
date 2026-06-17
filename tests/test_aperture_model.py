@@ -265,6 +265,34 @@ def _make_pipe_table_test_ring(test_context, *, extra_pipe_positions=None):
     return line, model
 
 
+def _make_transition_test_aperture(test_context):
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=10.0)])
+    sv = line.survey()
+
+    model = ApertureModel(
+        line=line,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+        ],
+        pipes=[Pipe(curvature=0.0, positions=[
+            ProfilePosition(profile_index=0, shift_s=3.0),
+            ProfilePosition(profile_index=0, shift_s=7.0),
+        ])],
+        profiles=[Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0)],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0'],
+        profile_names=['profile0'],
+        _context=test_context,
+    )
+    return Aperture(line=line, model=model, context=test_context)
+
+
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_from_line_with_aperture_type_bounds(test_context):
     mad = Madx(stdout=None)
@@ -716,6 +744,37 @@ def test_split_wrapped_s_interval_with_non_wrapped_ring_interval():
 def test_split_wrapped_s_interval_with_wrapped_ring_interval():
     intervals = _split_wrapped_s_interval(8.0, 2.0, line_length=10.0, wrap=True, s_tol=1e-9)
     assert intervals == [(8.0, 10.0), (0.0, 2.0)]
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_s_around_transitions_basic_pattern_and_resolution(test_context):
+    ap = _make_transition_test_aperture(test_context)
+
+    s_positions = ap.s_around_transitions(tol=0.5)
+    xo.assert_allclose(s_positions, [2.5, 3.5, 6.5, 7.5], atol=1e-12, rtol=0)
+
+    s_positions_with_grid = ap.s_around_transitions(tol=0.5, resolution=2.0, s_range=(2.0, 8.0))
+    xo.assert_allclose(s_positions_with_grid, [2.0, 2.5, 3.5, 4.0, 6.0, 6.5, 7.5, 8.0], atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_s_around_transitions_wrapped_ring_range(test_context):
+    line, model = _make_pipe_table_test_ring(test_context)
+    ap = Aperture(line, model, context=test_context, _skip_validity_check=True)
+
+    bounds_table = ap.get_bounds_table()
+    wrapped_mask = np.asarray(bounds_table.name) == 'pipe_wrapped'
+    wrapped_positions = np.asarray(bounds_table.s[wrapped_mask], dtype=float)
+    expected = np.unique(np.clip(
+        np.concatenate([wrapped_positions - 0.1, wrapped_positions + 0.1]),
+        0.0,
+        line.get_length(),
+    ))
+
+    s_positions = ap.s_around_transitions(tol=0.1, s_range=(74.0, 4.0))
+
+    xo.assert_allclose(s_positions, expected, atol=1e-12, rtol=0)
+    assert np.all((s_positions >= 74.0) | (s_positions <= 4.0))
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
