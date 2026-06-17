@@ -210,7 +210,7 @@ def test_twiss_and_survey(
 
             nemitt_x = mad_ref.sequence[seq_name].beam.exn
             nemitt_y = mad_ref.sequence[seq_name].beam.eyn
-            Sigmas = twtst.get_betatron_sigmas(nemitt_x, nemitt_y)
+            Sigmas = twtst.get_beam_covariance(nemitt_x, nemitt_y)
 
             for nn in twtst._col_names:
                 if nn in twtst._DEPRECATED_FIELDS:
