@@ -18,7 +18,7 @@ typedef struct {
     float_type tol_y;  // vertical tolerance for point-in-aperture check
 } BeamApertureLocalData;
 
-void build_profile_polygons(const ApertureModel, const ProfilePolygons, ApertureBounds, const SurveyData survey);
+void build_profile_polygons(const ApertureModel, const ProfilePolygons, ApertureBounds, const SurveyData survey, const int8_t is_ring);
 uint32_t cross_section_at_s(
     const SurveyData survey_at_s,
     const uint32_t idx_cross_section,
@@ -52,7 +52,8 @@ uint32_t interpolate_aperture_tolerances_at_s(
     float_type* out_tol_x,
     float_type* out_tol_y);
 
-static inline float_type survey_s_for_aperture(const PipePosition, const ProfilePosition, const float_type curvature, const SurveyData, uint32_t*);
+static inline float_type survey_s_for_aperture(const PipePosition, const ProfilePosition, const float_type curvature, const SurveyData, const int8_t is_ring, uint32_t*);
+static inline float_type normalize_s_near_reference(const float_type s, const float_type reference_s, const float_type survey_length);
 static inline void bounds_on_s_for_aperture(
     const PipePosition,
     const ProfilePosition,
@@ -61,6 +62,8 @@ static inline void bounds_on_s_for_aperture(
     const Point2D* const,
     const uint32_t num_poly_points,
     const uint32_t installed_survey_index,
+    const int8_t is_ring,
+    const float_type reference_s,
     float_type* min_s,
     float_type* max_s);
 
@@ -83,7 +86,8 @@ void build_profile_polygons(
     const ApertureModel model,
     const ProfilePolygons profile_polygons,
     const ApertureBounds aperture_bounds,
-    const SurveyData survey
+    const SurveyData survey,
+    const int8_t is_ring
 )
     /*
       Based on the aperture model and cross section location data, generate
@@ -92,7 +96,6 @@ void build_profile_polygons(
 {
     const uint32_t num_profiles = ProfilePolygons_get_count(profile_polygons);
     const uint32_t num_cross_sections = ApertureBounds_get_count(aperture_bounds);
-    const uint32_t num_survey_entries = SurveyData_len_s(survey);
 
     /* First generate polygons for profiles */
     for (uint32_t idx = 0; idx < num_profiles; idx++)
@@ -129,14 +132,14 @@ void build_profile_polygons(
 
         /* Get the survey s where the aperture actually sits */
         uint32_t installed_survey_index;
-        const float_type found_s = survey_s_for_aperture(pipe_pos, profile_pos, curvature, survey, &installed_survey_index);
+        const float_type found_s = survey_s_for_aperture(pipe_pos, profile_pos, curvature, survey, is_ring, &installed_survey_index);
 
         ApertureBounds_set_s_positions(aperture_bounds, idx, found_s);
 
         /* Get the bounds in s that the aperture spans */
         float_type min_s, max_s;
         const Point2D* const profile_points = (Point2D*)poly;
-        bounds_on_s_for_aperture(pipe_pos, profile_pos, curvature, survey, profile_points, len_points, installed_survey_index, &min_s, &max_s);
+        bounds_on_s_for_aperture(pipe_pos, profile_pos, curvature, survey, profile_points, len_points, installed_survey_index, is_ring, found_s, &min_s, &max_s);
         ApertureBounds_set_s_start(aperture_bounds, idx, min_s);
         ApertureBounds_set_s_end(aperture_bounds, idx, max_s);
     }
@@ -254,12 +257,25 @@ static inline void project_3d_polygon_to_plane(
 }
 
 
+static inline uint32_t polygon_index_with_shift_orientation(
+    const uint32_t idx,
+    const uint32_t shift,
+    const uint32_t len_points,
+    const int8_t reverse_orientation
+)
+{
+    if (!reverse_orientation) return (idx + shift) % len_points;
+    return len_points - 1 - ((idx + shift) % len_points);
+}
+
+
 static inline uint32_t find_best_cyclic_shift_plane(
     const Point2D* p0_plane,
     const Point2D* p1_plane,
-    const uint32_t n
+    const uint32_t n,
+    const int8_t reverse_orientation
 )
-/* Find `shift` that minimises sum of squared distances between `p0[j]` and `p1[(j + shift) % n]`. */
+/* Find `shift` that minimises sum of squared distances between `p0[j]` and the orientation-aware `p1` index. */
 {
     float_type best_cost = INFINITY;
     uint32_t best_shift = 0;
@@ -267,7 +283,8 @@ static inline uint32_t find_best_cyclic_shift_plane(
     for (uint32_t shift = 0; shift < n; shift++) {
         float_type cost = 0.f;
         for (uint32_t j = 0; j < n; j++) {
-            const uint32_t k = (j + shift) % n;
+            const uint32_t k = polygon_index_with_shift_orientation(
+                j, shift, n, reverse_orientation);
             const float_type dx = p0_plane[j].x - p1_plane[k].x;
             const float_type dy = p0_plane[j].y - p1_plane[k].y;
             cost += dx * dx + dy * dy;
@@ -279,6 +296,23 @@ static inline uint32_t find_best_cyclic_shift_plane(
     }
 
     return best_shift;
+}
+
+
+static inline int8_t projected_polygon_orientation_differs(
+    const Pose profile_a,
+    const Pose profile_b,
+    const Pose plane_in_frame
+)
+/*
+    Determine whether the 2D contour orientation induced by projection onto the
+    target plane differs between two profile planes.
+*/
+{
+    const Point3D plane_normal = plane_normal_vector(plane_in_frame);
+    const float_type sign_a = point3d_dot(plane_normal_vector(profile_a), plane_normal);
+    const float_type sign_b = point3d_dot(plane_normal_vector(profile_b), plane_normal);
+    return sign_a * sign_b < 0.f;
 }
 
 
@@ -489,11 +523,19 @@ uint32_t cross_section_at_s(
         return bound_idx;
     }
 
+    const int8_t reverse_center_left = has_left
+        ? projected_polygon_orientation_differs(pose_center, pose_left, plane_in_pipe)
+        : 0;
+    const int8_t reverse_center_right = has_right
+        ? projected_polygon_orientation_differs(pose_center, pose_right, plane_in_pipe)
+        : 0;
     const uint32_t shift_center_left = has_left
-        ? find_best_cyclic_shift_plane(poly_center_plane, poly_left_plane, num_unique_points)
+        ? find_best_cyclic_shift_plane(
+            poly_center_plane, poly_left_plane, num_unique_points, reverse_center_left)
         : 0;
     const uint32_t shift_center_right = has_right
-        ? find_best_cyclic_shift_plane(poly_center_plane, poly_right_plane, num_unique_points)
+        ? find_best_cyclic_shift_plane(
+            poly_center_plane, poly_right_plane, num_unique_points, reverse_center_right)
         : 0;
     const char prefer_right = (s >= s_center);
 
@@ -510,8 +552,14 @@ uint32_t cross_section_at_s(
             const Pose* pose_b = use_right ? &pose_right : &pose_center;
             const Point2D* poly_a = use_right ? poly_center : poly_left;
             const Point2D* poly_b = use_right ? poly_right : poly_center;
-            const uint32_t idx_a = use_right ? j : (j + shift_center_left) % num_unique_points;
-            const uint32_t idx_b = use_right ? (j + shift_center_right) % num_unique_points : j;
+            const uint32_t idx_a = use_right
+                ? j
+                : polygon_index_with_shift_orientation(
+                    j, shift_center_left, num_unique_points, reverse_center_left);
+            const uint32_t idx_b = use_right
+                ? polygon_index_with_shift_orientation(
+                    j, shift_center_right, num_unique_points, reverse_center_right)
+                : j;
             const float_type segment_curvature = use_right ? curvature_right : curvature_left;
 
             const Point3D point_a_type = pose_apply_point(
@@ -621,6 +669,7 @@ static inline float_type survey_s_for_aperture(
     const ProfilePosition profile_pos,
     const float_type curvature,
     const SurveyData survey,
+    const int8_t is_ring,
     uint32_t* found_survey_index
 )
 /*
@@ -634,7 +683,7 @@ static inline float_type survey_s_for_aperture(
     const float_type eps = APER_PRECISION;
     const uint32_t num_survey_entries = SurveyData_len_s(survey);
     const uint32_t survey_idx = PipePosition_get_survey_index(pipe_pos);
-    const uint8_t wrap = survey_is_closed(survey);
+    const uint8_t wrap = is_ring;
 
     // Transformation from plane (s = 0) -> world
     Pose plane_in_world;
@@ -657,7 +706,6 @@ static inline float_type survey_s_for_aperture(
         const float_type t = segment3d_plane_intersect(segment, plane_point, normal);
 
         const float_type pipe_s = SurveyData_get_s(survey, it.index);
-
         if (
             /* Candidate s on this segment, or... */
             (-eps < t && t < 1 + eps) ||
@@ -666,8 +714,8 @@ static inline float_type survey_s_for_aperture(
                 we get t > 1 + eps, but for the adjacent one t < -eps (or analogously on the left
                 side). Detect if there was a sign change, and if so return the current solution.
             */
-            (it.offset > 0 && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
-            (it.offset < 0 && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
+            (it.offset > 0 && isfinite(t) && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
+            (it.offset < 0 && isfinite(t) && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
         ) {
             const float_type dist = t * segment3d_get_length(segment);
             found_s = pipe_s + dist;
@@ -686,6 +734,34 @@ static inline float_type survey_s_for_aperture(
 }
 
 
+static inline float_type normalize_s_near_reference(
+    const float_type s,
+    const float_type reference_s,
+    const float_type survey_length
+)
+/*
+    Normalize a closed-survey `s` value to the representative closest to
+    `reference_s`.
+
+    On a closed survey the same physical point can appear as values that differ
+    by integer multiples of the survey length.
+*/
+{
+    if (!isfinite(s) || !isfinite(reference_s) || !(survey_length > 0)) {
+        return s;
+    }
+
+    float_type delta = s - reference_s;
+    delta = fmod(delta, survey_length);
+
+    const float_type half_length = 0.5 * survey_length;
+    if (delta > half_length) delta -= survey_length;
+    if (delta < -half_length) delta += survey_length;
+
+    return reference_s + delta;
+}
+
+
 static inline void bounds_on_s_for_aperture(
     const PipePosition pipe_pos,
     const ProfilePosition profile_pos,
@@ -694,6 +770,8 @@ static inline void bounds_on_s_for_aperture(
     const Point2D* const profile_points,
     const uint32_t num_poly_points,
     const uint32_t installed_survey_index,
+    const int8_t is_ring,
+    const float_type reference_s,
     float_type* min_s,
     float_type* max_s
 )
@@ -712,7 +790,8 @@ static inline void bounds_on_s_for_aperture(
 {
     const float_type eps = APER_PRECISION;
     const uint32_t num_survey_entries = SurveyData_len_s(survey);
-    const uint8_t wrap = survey_is_closed(survey);
+    const uint8_t wrap = is_ring;
+    const float_type survey_length = SurveyData_get_s(survey, num_survey_entries - 1) - SurveyData_get_s(survey, 0);
 
     // Transformation profile local -> world frame
     Pose profile_in_world;
@@ -741,6 +820,15 @@ static inline void bounds_on_s_for_aperture(
         do
         {
             const Segment3D seg = survey_segment(survey, it.index);
+            const float_type seg_len = segment3d_get_length(seg);
+
+            /*
+                Zero-length survey segments are not valid projection candidates:
+                any point can be "projected" onto a point, giving t = 0 and always
+                leading to acceptance of the point as a bound.
+            */
+            if (seg_len < eps) continue;
+
             const float_type t = closest_t_on_segment(pt_in_world, seg);
 
             if (
@@ -751,11 +839,10 @@ static inline void bounds_on_s_for_aperture(
                     we get t > 1 + eps, but for the adjacent one t < -eps (or analogously on the left
                     side). Detect if there was a sign change, and if so return the current solution.
                 */
-                (it.offset > 0 && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
-                (it.offset < 0 && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
-            ) {
+                (it.offset > 0 && isfinite(t) && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
+                (it.offset < 0 && isfinite(t) && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
+        ) {
                 const float_type seg_s_start = SurveyData_get_s(survey, it.index);
-                const float_type seg_len = segment3d_get_length(seg);
                 closest_s = seg_s_start + t * seg_len;
                 break;
             }
@@ -763,6 +850,8 @@ static inline void bounds_on_s_for_aperture(
             if (it.offset >= 0 && isfinite(t)) last_t_right = t;
             if (it.offset <= 0 && isfinite(t)) last_t_left = t;
         } while (zigzag_iterator_next(&it));
+
+        closest_s = normalize_s_near_reference(closest_s, reference_s, survey_length);
 
         if (closest_s < out_min) out_min = closest_s;
         if (closest_s > out_max) out_max = closest_s;

@@ -462,6 +462,7 @@ class Tracker:
                     config=self.config,
                     tracker_element_classes=self.line_element_classes,
                     classes=extra_classes,
+                    context=self._context,
                 )
 
             if kernel_info:
@@ -1557,6 +1558,7 @@ class Tracker:
             config=self.line.config,
             tracker_element_classes=self.line_element_classes,
             classes=[],
+            context=self._context,
             verbose=True
         )
 

@@ -3,8 +3,7 @@ import xobjects as xo
 import numpy as np
 import matplotlib.pyplot as plt
 from xtrack.aperture.aperture import Aperture
-from xtrack.aperture.transform import transform_matrix
-from xtrack.aperture.structures import ApertureModel, Pipe, Circle, Profile, ProfilePosition, Rectangle, PipePosition
+from xtrack.aperture.transform import arc_matrix, poly2d_to_homogeneous, transform_matrix
 
 
 TOY_RING_SEQUENCE = """
@@ -72,32 +71,6 @@ def matrix_from_survey_point(sv_row):
     return matrix
 
 
-def poly2d_to_hom(poly2d):
-    num_points = poly2d.shape[0]
-    poly_hom = np.column_stack((poly2d, np.zeros(num_points), np.ones(num_points))).T
-    return poly_hom
-
-
-def arc_matrix(length: float, angle: float, tilt: float) -> np.ndarray:
-    if abs(angle) < 1e-9:
-        return transform_matrix(shift_z=length, rot_z_rad=tilt)
-
-    ct = np.cos(tilt)
-    st = np.sin(tilt)
-    ca = np.cos(angle)
-    sa = np.sin(angle)
-    dx = length * (ca - 1) / angle
-    ds = length * sa / angle
-    return np.array(
-        [
-            [ct * ca, -st, -ct * sa, ct * dx],
-            [st * ca, ct, -st * sa, st * dx],
-            [sa, 0.0, ca, ds],
-            [0.0, 0.0, 0.0, 1.0],
-        ]
-    )
-
-
 seen_installed_profiles = False
 for pipe_pos in aper._model.pipe_positions:
     aper_pipe = aper._model.pipe_for_position(pipe_pos)
@@ -111,7 +84,7 @@ for pipe_pos in aper._model.pipe_positions:
 
         num_points = 100
         poly = aper.polygon_for_profile(profile, num_points)
-        poly_hom = poly2d_to_hom(poly)
+        poly_hom = poly2d_to_homogeneous(poly)
 
         profile_matrix_trans = transform_matrix(
             shift_x=profile_pos.shift_x,
@@ -165,7 +138,7 @@ xo.assert_allclose(poses, expected_poses, atol=1e-6, rtol=1e-6)
 seen_cross_sections = False
 for idx, s in enumerate(s_for_cuts):
     profile = profiles[idx]
-    profile_hom = poly2d_to_hom(profile)
+    profile_hom = poly2d_to_homogeneous(profile)
     profile_in_sv_frame = poses[idx] @ profile_hom
 
     xs, ys, zs = profile_in_sv_frame[:3]

@@ -9,7 +9,7 @@ from xtrack.aperture.structures import (
 )
 from xtrack.beam_elements import apertures
 
-LimitTypes = Union[
+LimitElement = Union[
     apertures.LimitRect,
     apertures.LimitEllipse,
     apertures.LimitRectEllipse,
@@ -19,13 +19,13 @@ LimitTypes = Union[
 
 
 @singledispatch
-def profile_from_limit_element(element: LimitTypes) -> Tuple[ShapeTypes, float, float]:
+def profile_from_limit_element(element: LimitElement) -> Tuple[ShapeTypes, float, float]:
     """
     Convert a limit beam element to a profile object.
 
     Parameters
     ----------
-    element: LimitTypes
+    element: LimitElement
         Element to convert to a profile.
     Returns:
         A tuple consting of the profile type, x offset, and y offset.
