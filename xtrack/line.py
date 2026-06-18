@@ -1251,8 +1251,8 @@ class Line:
         ----------
         name : str
             Name of the new element.
-        cls : str or class
-            Element type (or parent element name when cloning/replicating).
+        prototype : str or class
+            Element type or prototype element name when cloning/replicating.
         at : float or str, optional
             Position at which the created element is placed.
         from_ : str, optional
@@ -1261,6 +1261,10 @@ class Line:
             Extra metadata associated with the created element.
         force : bool, optional
             If ``True``, allow replacing an existing element with the same name.
+        cls : str or class, optional
+            Deprecated alias for ``prototype``.
+        parent : str or class, optional
+            Deprecated alias for ``prototype``.
         **kwargs
             Element attributes forwarded to ``Environment.new(...)``.
 

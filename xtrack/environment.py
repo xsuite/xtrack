@@ -256,10 +256,11 @@ class Environment:
         self._metadata = value
 
     @doc_group("Editing, Inspection, Variables and Configuration")
-    def new(self, name, parent, mode=None, at=None, from_=None,
+    def new(self, name, prototype=None, mode=None, at=None, from_=None,
             anchor=None, from_anchor=None,
             extra=None,
-            mirror=False, force=False, import_from=None, **kwargs):
+            mirror=False, force=False, import_from=None, parent=None,
+            **kwargs):
 
         '''
         Create a new element or line.
@@ -268,13 +269,15 @@ class Environment:
         ----------
         name : str
             Name of the new element or line
-        parent : str or class
-            Parent class or name of the parent element
+        prototype : str or class
+            Prototype class or name of the prototype element
+        parent : str or class, optional
+            Deprecated alias for ``prototype``.
         mode : str, optional
-             - clone: clone the parent element or line.
-               The parent element or line is copied, together with the associated
+             - clone: clone the prototype element or line.
+               The prototype element or line is copied, together with the associated
                expressions.
-             - replica: replicate the parent elements or lines are made.
+             - replica: replicate the prototype elements or lines are made.
              - import: clone from a different environment. `import_from` must be
                provided.
         at : float or str, optional
@@ -294,6 +297,25 @@ class Environment:
             provided.
         '''
 
+        # Backward compatibility: `parent` used to be the public name for what
+        # is now called `prototype`.
+        if parent is not None:
+            if prototype is not None:
+                raise TypeError(
+                    'Only one of `prototype` and deprecated `parent` can be '
+                    'provided.')
+            warn('The `parent` argument of `Environment.new(...)` is '
+                 'deprecated. Use `prototype` instead.'
+                 + DEPRECATION_INFO_PREP_1_0,
+                 FutureWarning, stacklevel=2)
+            prototype = parent
+
+        if prototype is None:
+            raise TypeError(
+                "Environment.new() missing required argument: 'prototype'")
+
+        parent = prototype
+
         if name in self.elements and not force:
             raise ValueError(f'Element `{name}` already exists')
 
@@ -304,6 +326,7 @@ class Environment:
             all_kwargs.pop('from_')
             all_kwargs.pop('anchor')
             all_kwargs.pop('from_anchor')
+            all_kwargs.pop('parent')
             all_kwargs.pop('kwargs')
             all_kwargs.update(kwargs)
             return xt.Place(self.new(**all_kwargs), at=at, from_=from_,
@@ -336,11 +359,13 @@ class Environment:
             return self.new_line(name=name, **kwargs)
 
         if mode == 'replica':
-            assert parent in self.elements, f'Element {parent} not found, cannot replicate'
+            assert parent in self.elements, (
+                f'Prototype element {parent} not found, cannot replicate')
             kwargs['parent_name'] = xo.String(parent)
             parent = xt.Replica
         elif mode == 'clone':
-            assert parent in self.elements, f'Element {parent} not found, cannot clone'
+            assert parent in self.elements, (
+                f'Prototype element {parent} not found, cannot clone')
         else:
             assert mode is None, f'Unknown mode {mode}'
 
@@ -358,11 +383,11 @@ class Environment:
 
         needs_instantiation = True
         parent_element = None
-        prototype = None
+        element_prototype = None
         if isinstance(parent, str):
             if parent in self.elements:
                 # Clone an existing element
-                prototype = parent
+                element_prototype = parent
                 self.elements[name] = xt.Replica(parent_name=parent)
                 self.replace_replica(name)
 
@@ -386,7 +411,7 @@ class Environment:
 
         ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
 
-        if needs_instantiation: # Parent is a class and not another element
+        if needs_instantiation: # Prototype is a class and not another element
             self.elements[name] = parent(**value_kwargs)
 
         self._set_kwargs(name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
@@ -400,7 +425,7 @@ class Environment:
             for kk in extra:
                 self.ref[name].extra[kk] = extra[kk]
 
-        self._element_dict[name].prototype = prototype
+        self._element_dict[name].prototype = element_prototype
 
         return name
 

@@ -3,6 +3,9 @@ import numpy as np
 import xtrack as xt
 import xdeps as xd
 from functools import cmp_to_key
+from warnings import warn
+
+from .general import DEPRECATION_INFO_PREP_1_0
 
 
 class Composer:
@@ -40,10 +43,38 @@ class Composer:
         args_str = ', '.join(parts)
         return f'Composer({args_str})'
 
-    def new(self, name, cls, at=None, from_=None, extra=None, force=False,
-            **kwargs):
+    def new(self, name, prototype=None, at=None, from_=None, extra=None,
+            force=False, cls=None, parent=None, **kwargs):
+        # Backward compatibility: `cls` was the old Composer/Line name for the
+        # element type or prototype.
+        if cls is not None:
+            if prototype is not None:
+                raise TypeError(
+                    'Only one of `prototype` and deprecated `cls` can be '
+                    'provided.')
+            warn('The `cls` argument of `Line.new(...)` is deprecated. Use '
+                 '`prototype` instead.' + DEPRECATION_INFO_PREP_1_0,
+                 FutureWarning, stacklevel=3)
+            prototype = cls
+
+        # Backward compatibility: accept the deprecated Environment-style
+        # `parent` alias when creating elements from Line.new(...).
+        if parent is not None:
+            if prototype is not None:
+                raise TypeError(
+                    'Only one of `prototype` and deprecated `parent` can be '
+                    'provided.')
+            warn('The `parent` argument of `Line.new(...)` is deprecated. Use '
+                 '`prototype` instead.' + DEPRECATION_INFO_PREP_1_0,
+                 FutureWarning, stacklevel=3)
+            prototype = parent
+
+        if prototype is None:
+            raise TypeError("Line.new() missing required argument: 'prototype'")
+
         out = self.env.new(
-            name, cls, at=at, from_=from_, extra=extra, force=force, **kwargs)
+            name, prototype, at=at, from_=from_, extra=extra, force=force,
+            **kwargs)
         self.components.append(out)
         return out
 
