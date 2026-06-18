@@ -161,28 +161,6 @@ static inline void write_survey_entry(
 }
 
 
-static inline uint32_t find_survey_segment_for_s(
-    const SurveyData survey,
-    const float_type s_target
-)
-{
-    const uint32_t survey_len = SurveyData_len_s(survey);
-    uint32_t left = 0;
-    uint32_t right = survey_len - 2;
-
-    while (left < right) {
-        const uint32_t mid = left + (right - left + 1) / 2;
-        if (SurveyData_get_s(survey, mid) <= s_target) {
-            left = mid;
-        } else {
-            right = mid - 1;
-        }
-    }
-
-    return left;
-}
-
-
 void resample_survey_table(
     const SurveyData survey,
     const float_type* const s,
@@ -210,7 +188,7 @@ void resample_survey_table(
     const float_type s_last = SurveyData_get_s(survey, survey_len - 1);
 
     uint32_t i_survey = 0;
-    uint8_t i_survey_initialized = 0;
+
     for (uint32_t i_sliced = 0; i_sliced < sliced_len; i_sliced++) {
         const float_type s_target = s[i_sliced];
 
@@ -230,11 +208,6 @@ void resample_survey_table(
         if (s_target >= s_last - eps) {
             write_survey_entry(sliced, i_sliced, interpolate_survey_table_entry(survey, s_last, survey_len - 2));
             continue;
-        }
-
-        if (!i_survey_initialized || s_target < SurveyData_get_s(survey, i_survey)) {
-            i_survey = find_survey_segment_for_s(survey, s_target);
-            i_survey_initialized = 1;
         }
 
         // Fast-forward through survey to find the relevant survey segment for the s_target

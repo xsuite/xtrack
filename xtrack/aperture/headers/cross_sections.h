@@ -68,7 +68,6 @@ static inline void bounds_on_s_for_aperture(
     float_type* max_s);
 
 static inline uint32_t find_active_profile_for_s(const ApertureBounds, const float_type s, const uint32_t lower_bound);
-static inline uint32_t find_active_profile_for_s_binary(const ApertureBounds, const float_type s);
 
 
 static inline Pose pose_from_pipe_position(const PipePosition pipe_pos)
@@ -417,16 +416,9 @@ void cross_sections_at_s(
     #endif
 
     uint32_t bound_idx = 0;
-    uint8_t bound_idx_initialized = 0;
-    IF_OMP_PRAGMA("omp parallel for firstprivate(bound_idx, bound_idx_initialized)")
+    IF_OMP_PRAGMA("omp parallel for firstprivate(bound_idx)")
     for (uint32_t i = 0; i < num_cross_sections; i++)
     {
-        const float_type target_s = SurveyData_get_s(survey_at_s, i);
-        if (!bound_idx_initialized || target_s < ApertureBounds_get_s_start(bounds, bound_idx)) {
-            bound_idx = find_active_profile_for_s_binary(bounds, target_s);
-            bound_idx_initialized = 1;
-        }
-
         bound_idx = cross_section_at_s(
             survey_at_s,
             i,
@@ -901,28 +893,6 @@ static inline uint32_t find_active_profile_for_s(
     }
 
     return idx;
-}
-
-
-static inline uint32_t find_active_profile_for_s_binary(
-    const ApertureBounds aperture_bounds,
-    const float_type target_s
-)
-{
-    const uint32_t num_bounds = ApertureBounds_get_count(aperture_bounds);
-    uint32_t left = 0;
-    uint32_t right = num_bounds - 1;
-
-    while (left < right) {
-        const uint32_t mid = left + (right - left + 1) / 2;
-        if (ApertureBounds_get_s_start(aperture_bounds, mid) <= target_s) {
-            left = mid;
-        } else {
-            right = mid - 1;
-        }
-    }
-
-    return left;
 }
 
 #endif /* XTRACK_CROSS_SECTIONS_H */
