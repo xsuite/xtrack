@@ -95,13 +95,13 @@ class Environment:
 
             env = xt.Environment()
             env['a'] = 3 # Define a variable
-            env.new('mq1', prototype='Quadrupole', length=0.3, k1='a')
-            env.new('mq2', prototype='Quadrupole', length=0.3, k1='-a')
+            env.new('mq1', 'Quadrupole', length=0.3, k1='a')
+            env.new('mq2', 'Quadrupole', length=0.3, k1='-a')
 
             ln = env.new_line(name='myline', components=[
                 'mq1',
-                env.new('mymark', prototype='Marker', at=10.0),
-                env.new('mq1_clone', prototype='mq1', k1='2*a'),
+                env.new('mymark', 'Marker', at=10.0),
+                env.new('mq1_clone', 'mq1', k1='2*a'),
                 env.place('mq2', at=20.0, from_='mymark'),
                 ])
 
@@ -226,9 +226,9 @@ class Environment:
             import xtrack as xt
 
             env = xt.Environment()
-            env.new('qf', prototype='Quadrupole', length=1.0)
-            env.new('qd', prototype='Quadrupole', length=1.0)
-            env.new('ip', prototype='Marker')
+            env.new('qf', 'Quadrupole', length=1.0)
+            env.new('qd', 'Quadrupole', length=1.0)
+            env.new('ip', 'Marker')
 
             env.new_line(name='cell', components=[
                 env.place('ip', at=0.0),
@@ -272,7 +272,7 @@ class Environment:
 
             env = xt.Environment()
             env['kq'] = 0.2
-            env.new('qf', prototype='Quadrupole', length=1.0)
+            env.new('qf', 'Quadrupole', length=1.0)
             env.ref['qf'].k1 = 2 * env.ref['kq']
 
             env.ref['qf'].k1.xdeps.info()
@@ -354,8 +354,8 @@ class Environment:
 
             env = xt.Environment()
             env['kqf'] = 0.2
-            env.new('qf', prototype='Quadrupole', length=1.0, k1='kqf')
-            env.new('qd', prototype='qf', k1='-kqf')
+            env.new('qf', 'Quadrupole', length=1.0, k1='kqf')
+            env.new('qd', 'qf', k1='-kqf')
 
             env.ref['qd'].k1.xdeps.info()
             # Info for element_refs['qd'].k1
@@ -652,13 +652,13 @@ class Environment:
 
             env = xt.Environment()
             env['a'] = 3 # Define a variable
-            env.new('mq1', prototype='Quadrupole', length=0.3, k1='a')
-            env.new('mq2', prototype='Quadrupole', length=0.3, k1='-a')
+            env.new('mq1', 'Quadrupole', length=0.3, k1='a')
+            env.new('mq2', 'Quadrupole', length=0.3, k1='-a')
 
             ln = env.new_line(name='myline', components=[
                 'mq1',
-                env.new('mymark', prototype='Marker', at=10.0),
-                env.new('mq1_clone', prototype='mq1', k1='2*a'),
+                env.new('mymark', 'Marker', at=10.0),
+                env.new('mq1_clone', 'mq1', k1='2*a'),
                 env.place('mq2', at=20.0, from_='mymark'),
             ])
         """
@@ -717,8 +717,8 @@ class Environment:
             import xtrack as xt
 
             env = xt.Environment()
-            env.new('qf', prototype='Quadrupole', length=2.0)
-            env.new('mk', prototype='Marker')
+            env.new('qf', 'Quadrupole', length=2.0)
+            env.new('mk', 'Marker')
 
             line = env.new_line(components=[
                 env.place('qf', at=3.0),
@@ -1858,7 +1858,7 @@ class Environment:
             import xtrack as xt
 
             env = xt.Environment()
-            env.new('qf', prototype='Quadrupole', length=1.0)
+            env.new('qf', 'Quadrupole', length=1.0)
 
             env.remove('qf')
 
@@ -1976,7 +1976,7 @@ class Environment:
 
             env = xt.Environment()
             env['kq'] = 0.2
-            env.new('qf', prototype='Quadrupole', length=1.0, k1='kq')
+            env.new('qf', 'Quadrupole', length=1.0, k1='kq')
 
             element = env.get('qf')
             value = env.get('kq')
@@ -2019,7 +2019,7 @@ class Environment:
             env = xt.Environment()
             env['a'] = 2.0
             env['kq'] = '3*a'
-            env.new('qf', prototype='Quadrupole', length=1.0, k1='kq')
+            env.new('qf', 'Quadrupole', length=1.0, k1='kq')
 
             env.info('kq')
             # Info for vars['kq']
