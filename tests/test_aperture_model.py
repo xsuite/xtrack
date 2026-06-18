@@ -294,6 +294,14 @@ def _make_transition_test_aperture(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_does_not_add_columns_to_survey(test_context):
+    aperture = _make_transition_test_aperture(test_context)
+
+    assert 'angle' not in aperture.survey._col_names
+    assert 'rot_s_rad' not in aperture.survey._col_names
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_from_line_with_aperture_type_bounds(test_context):
     mad = Madx(stdout=None)
     mad.input(TOY_RING_SEQUENCE)
@@ -1504,16 +1512,19 @@ def test_get_aperture_sigmas_at_element_vs_madx(
 def test_survey_resample_out_of_range_returns_nans_with_precision_tolerance(context):
     eps = 1e-6
     env = xt.Environment()
-    drift = env.new('drift', xt.Drift, length=1.0)
-    line = env.new_line(name='line', components=[drift])
+    bend = env.new(
+        'bend', xt.Bend, length=1.0, angle=0.1, rot_s_rad=0.2)
+    line = env.new_line(name='line', components=[bend])
     survey_table = line.survey()
-    # Add angle and rot_s_rad
-    survey_table['angle'] = np.zeros_like(survey_table.s)
-    survey_table['rot_s_rad'] = np.zeros_like(survey_table.s)
-    survey_table['angle'][:-1] = line.attr['angle'] # shorter by one because survey has '_end_point'
-    survey_table['rot_s_rad'][:-1] = line.attr['rot_s_rad'] # shorter by one because survey has '_end_point'
 
-    survey = SurveyData.from_survey_table(survey_table, context=context)
+    survey = SurveyData.from_survey_table(
+        survey_table, line=line, context=context)
+
+    assert 'angle' not in survey_table._col_names
+    assert 'rot_s_rad' not in survey_table._col_names
+    xo.assert_allclose(survey.angle, [0.1, 0.0], atol=0, rtol=0)
+    xo.assert_allclose(survey.tilt, [0.2, 0.0], atol=0, rtol=0)
+
     s_query = np.array([
         -2 * eps,
         -0.5 * eps,

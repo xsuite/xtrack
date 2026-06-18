@@ -133,16 +133,10 @@ class Aperture:
         self.survey = line.survey()
         self.is_ring = _survey_is_closed(self.survey) if is_ring == 'auto' else bool(is_ring)
 
-        # Add angle and rot_s_rad
-        self.survey['angle'] = np.zeros_like(self.survey.s)
-        self.survey['rot_s_rad'] = np.zeros_like(self.survey.s)
-        self.survey['angle'][:-1] = line.attr['angle'] # shorter by one because survey has '_end_point'
-        self.survey['rot_s_rad'][:-1] = line.attr['rot_s_rad'] # shorter by one because survey has '_end_point'
-
         if not _skip_validity_check:
             self._check_model_validity()
 
-        self._survey_data = SurveyData.from_survey_table(self.survey, context=self.context)
+        self._survey_data = SurveyData.from_survey_table(self.survey, line, context=self.context)
         self.num_profile_points = num_profile_points
 
         self._aperture_bounds: ApertureBounds | None = None
@@ -1572,9 +1566,9 @@ class Aperture:
             range_segments = _split_wrapped_s_interval(
                 float(s_range[0]),
                 float(s_range[1]),
-                    line_length=line_length,
-                    wrap=self.is_ring,
-                    s_tol=tol,
+                line_length=line_length,
+                wrap=self.is_ring,
+                s_tol=tol,
             )
             # Keep points inside the requested window, including wrapped windows on rings
             mask = np.zeros(len(s_positions), dtype=bool)

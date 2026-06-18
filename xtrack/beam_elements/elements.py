@@ -2319,7 +2319,7 @@ class RBend(_BendCommon, BeamElement):
 
     Parameters
     ----------
-    length_straith : float
+    length_strait : float
         Length of the element in meters along the axis of the magnet (straight line
         between entry and exit points). This is different from the length of the
         reference trajectory, i.e. the increase of the `s` coordinate through the

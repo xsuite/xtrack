@@ -246,7 +246,7 @@ static inline TwissLocalData twiss_data_get_entry(const TwissData twiss_data, co
 }
 
 
-void compute_max_aperture_sigma_bisection(
+void get_max_aperture_sigma_bisection(
     ApertureModel model,
     SurveyData survey,
     ProfilePolygons profile_polygons,
@@ -470,7 +470,7 @@ static inline float_type compute_n1_for_point(
 }
 
 
-void compute_max_aperture_sigma_rays(
+void get_max_aperture_sigma_rays(
     ApertureModel model,
     SurveyData survey,
     ProfilePolygons profile_polygons,
@@ -601,7 +601,7 @@ void compute_max_aperture_sigma_rays(
 }
 
 
-void compute_max_aperture_sigma_exact(
+void get_max_aperture_sigma_exact(
     ApertureModel model,
     SurveyData survey,
     ProfilePolygons profile_polygons,

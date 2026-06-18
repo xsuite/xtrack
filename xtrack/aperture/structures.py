@@ -1,4 +1,3 @@
-from warnings import warn
 from typing import Collection, List, Tuple, Union, get_args
 
 import numpy as np
@@ -8,7 +7,6 @@ from xobjects.context import XContext
 from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
 from xtrack.twiss import TwissTable
-from xtrack.general import DEPRECATION_INFO_PREP_1_0
 
 FloatType = xo.Float64
 
@@ -388,7 +386,12 @@ class SurveyData(xo.Struct):
         )
 
     @classmethod
-    def from_survey_table(cls, survey_table: SurveyTable, context: XContext = None) -> 'SurveyData':
+    def from_survey_table(
+        cls,
+        survey_table: SurveyTable,
+        line: 'xtrack.Line',
+        context: XContext = None,
+    ) -> 'SurveyData':
         s = np.zeros(shape=(len(survey_table),), dtype=FloatType._dtype)
         poses = np.zeros(shape=(len(survey_table), 4, 4), dtype=FloatType._dtype)
         angles = np.zeros_like(s)
@@ -402,9 +405,11 @@ class SurveyData(xo.Struct):
             poses[idx, :3, 1] = row.ey[0]
             poses[idx, :3, 2] = row.ez[0]
             poses[idx, :, 3] = np.hstack([row.X[0], row.Y[0], row.Z[0], 1])
-            angles[idx] = row.angle[0]
             lengths[idx] = row.length[0]
-            tilts[idx] = row.rot_s_rad[0]
+
+        # The survey has an additional endpoint without a corresponding element.
+        angles[:-1] = line.attr['angle']
+        tilts[:-1] = line.attr['rot_s_rad']
 
         survey_data = cls(s=s, pose=poses, angle=angles, length=lengths, tilt=tilts, _context=context)
         return survey_data
@@ -455,7 +460,7 @@ class ApertureModel(xo.Struct):
             ],
         ),
         'get_max_aperture_sigma_bisection': xo.Kernel(
-            c_name='compute_max_aperture_sigma_bisection',
+            c_name='get_max_aperture_sigma_bisection',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
                 xo.Arg(SurveyData, name='survey'),
@@ -471,7 +476,7 @@ class ApertureModel(xo.Struct):
             ],
         ),
         'get_max_aperture_sigma_rays': xo.Kernel(
-            c_name='compute_max_aperture_sigma_rays',
+            c_name='get_max_aperture_sigma_rays',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
                 xo.Arg(SurveyData, name='survey'),
@@ -489,7 +494,7 @@ class ApertureModel(xo.Struct):
             ],
         ),
         'get_max_aperture_sigma_exact': xo.Kernel(
-            c_name='compute_max_aperture_sigma_exact',
+            c_name='get_max_aperture_sigma_exact',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
                 xo.Arg(SurveyData, name='survey'),
@@ -608,43 +613,13 @@ class ApertureModel(xo.Struct):
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_max_aperture_sigma_bisection(model=self, **kwargs)
 
-    def compute_max_aperture_sigma_bisection(self, **kwargs) -> None:
-        warn(
-            '`ApertureModel.compute_max_aperture_sigma_bisection()` is '
-            'deprecated and will be removed in future versions. Please use '
-            '`ApertureModel.get_max_aperture_sigma_bisection()` instead.'
-            + DEPRECATION_INFO_PREP_1_0,
-            FutureWarning,
-        )
-        return self.get_max_aperture_sigma_bisection(**kwargs)
-
     def get_max_aperture_sigma_rays(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_max_aperture_sigma_rays(model=self, **kwargs)
 
-    def compute_max_aperture_sigma_rays(self, **kwargs) -> None:
-        warn(
-            '`ApertureModel.compute_max_aperture_sigma_rays()` is deprecated '
-            'and will be removed in future versions. Please use '
-            '`ApertureModel.get_max_aperture_sigma_rays()` instead.'
-            + DEPRECATION_INFO_PREP_1_0,
-            FutureWarning,
-        )
-        return self.get_max_aperture_sigma_rays(**kwargs)
-
     def get_max_aperture_sigma_exact(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_max_aperture_sigma_exact(model=self, **kwargs)
-
-    def compute_max_aperture_sigma_exact(self, **kwargs) -> None:
-        warn(
-            '`ApertureModel.compute_max_aperture_sigma_exact()` is deprecated '
-            'and will be removed in future versions. Please use '
-            '`ApertureModel.get_max_aperture_sigma_exact()` instead.'
-            + DEPRECATION_INFO_PREP_1_0,
-            FutureWarning,
-        )
-        return self.get_max_aperture_sigma_exact(**kwargs)
 
     def get_beam_envelopes_at_sigma(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
