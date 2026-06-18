@@ -84,23 +84,25 @@ class Environment:
          - get_expr(...): returns the expression for a variable.
          - new(...): creates a new element.
          - new_line(...): creates a new line.
-         - place(...): creates a place object, which can be user in new_line(...).
+         - place(...): creates a place object, which can be used in new_line(...).
 
         Examples
         --------
 
         .. code-block:: python
 
+            import xtrack as xt
+
             env = xt.Environment()
             env['a'] = 3 # Define a variable
-            env.new('mq1', xt.Quadrupole, length=0.3, k1='a')  # Create an element
-            env.new('mq2', xt.Quadrupole, length=0.3, k1='-a')  # Create another element
+            env.new('mq1', prototype='Quadrupole', length=0.3, k1='a')
+            env.new('mq2', prototype='Quadrupole', length=0.3, k1='-a')
 
             ln = env.new_line(name='myline', components=[
-                'mq',  # Add the element 'mq' at the start of the line
-                env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
-                env.new('mq1_clone', 'mq1', k1='2*a'),   # Clone 'mq1' with a different k1
-                env.place('mq2', at=20.0, from_='mymark'),  # Place 'mq2' at s=20
+                'mq1',
+                env.new('mymark', prototype='Marker', at=10.0),
+                env.new('mq1_clone', prototype='mq1', k1='2*a'),
+                env.place('mq2', at=20.0, from_='mymark'),
                 ])
 
         '''
@@ -216,6 +218,32 @@ class Environment:
         -------
         lines : xtrack.environment.EnvLines
             Dictionary-like container exposing lines by name.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', prototype='Quadrupole', length=1.0)
+            env.new('qd', prototype='Quadrupole', length=1.0)
+            env.new('ip', prototype='Marker')
+
+            env.new_line(name='cell', components=[
+                env.place('ip', at=0.0),
+                env.place('qf', at=2.0, from_='ip'),
+                env.place('qd', at=4.0, from_='qf'),
+            ])
+
+            env.lines['cell'].get_table().show()
+            # name                   s element_type isthick ...
+            # ip                     0 Marker         False
+            # ||drift_1              0 Drift           True
+            # qf                   1.5 Quadrupole      True
+            # ||drift_2            2.5 Drift           True
+            # qd                   5.5 Quadrupole      True
+            # _end_point           6.5                False
         """
         return self._lines
 
@@ -228,10 +256,32 @@ class Environment:
         """
         xdeps reference container for variables, elements, particles, and lines.
 
+        References can be used to build deferred expressions that stay linked
+        to the underlying environment quantities.
+
         Returns
         -------
         ref : xtrack.environment.EnvRef
             Reference container for environment objects.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kq'] = 0.2
+            env.new('qf', prototype='Quadrupole', length=1.0)
+            env.ref['qf'].k1 = 2 * env.ref['kq']
+
+            env.ref['qf'].k1.xdeps.info()
+            # Info for element_refs['qf'].k1
+            #
+            # value: 0.4
+            #
+            # controlled by expr:
+            #   element_refs['qf'].k1 = (2 * vars['kq'])
         """
         return self._ref
 
@@ -575,7 +625,7 @@ class Environment:
         refer : str, optional
             Specifies which part of the component the ``at`` position will refer
             to. Allowed values are ``start``, ``center`` (default; also allowed
-            is ``centre```), and ``end``.
+            is ``centre``), and ``end``.
         length : float | str, optional
             Length of the line to be built by the composer. Can be an expression.
             If not specified, the length will be the minimum length that can
@@ -598,16 +648,18 @@ class Environment:
         --------
         .. code-block:: python
 
+            import xtrack as xt
+
             env = xt.Environment()
             env['a'] = 3 # Define a variable
-            env.new('mq1', xt.Quadrupole, length=0.3, k1='a')  # Create an element
-            env.new('mq2', xt.Quadrupole, length=0.3, k1='-a')  # Create another element
+            env.new('mq1', prototype='Quadrupole', length=0.3, k1='a')
+            env.new('mq2', prototype='Quadrupole', length=0.3, k1='-a')
 
             ln = env.new_line(name='myline', components=[
-                'mq',  # Add the element 'mq' at the start of the line
-                env.new('mymark', xt.Marker, at=10.0),  # Create a marker at s=10
-                env.new('mq1_clone', 'mq1', k1='2a'),   # Clone 'mq1' with a different k1
-                env.place('mq2', at=20.0, from='mymark'),  # Place 'mq2' at s=20
+                'mq1',
+                env.new('mymark', prototype='Marker', at=10.0),
+                env.new('mq1_clone', prototype='mq1', k1='2*a'),
+                env.place('mq2', at=20.0, from_='mymark'),
             ])
         """
 
@@ -728,7 +780,7 @@ class Environment:
         refer : str, optional
             Specifies which part of the component the ``at`` position will refer
             to. Allowed values are ``start``, ``center`` (default; also allowed
-            is ``centre```), and ``end``.
+            is ``centre``), and ``end``.
         length : float | str, optional
             Length of the line to be built by the composer. Can be an expression.
             If not specified, the length will be the minimum length that can
@@ -885,18 +937,26 @@ class Environment:
 
         Parameters
         ----------
+        line : xtrack.Line
+            Line to import. Its elements, variables, particle reference,
+            configuration, and metadata are copied into this environment.
         suffix_for_common_elements : str, optional
             Suffix to be added to the names of the elements that are common to
             the imported line and the line in this environment. If None,
-            '_{source_line_name}' is used.
+            ``'/{line_name}'`` is used.
         rename_elements : dict, optional
             Dictionary with the elements to be renamed. The keys are the names
-            of the elements in `line`, and the values are the new names.
+            of the elements in ``line``, and the values are the new names.
         line_name : str, optional
             Name of the new line. If None, the name of the imported line is used.
         overwrite_vars : bool, optional
             If True, the variables in the imported line will overwrite the
             variables with the same name in this environment. Default is False.
+
+        Returns
+        -------
+        None
+            This method modifies the environment in place.
         """
         line_name = line_name or line.name
         if suffix_for_common_elements is None:
@@ -1145,15 +1205,15 @@ class Environment:
     @doc_group("Constructors and Serialization")
     @classmethod
     def from_json(cls, file, **kwargs):
-        """Constructs an environment from a JSON file.
+        """Construct an environment from a JSON file.
 
         Parameters
         ----------
         file : str or file-like object
             Path to the JSON file or file-like object.
-            If filename ends with '.gz' file is decompressed.
+            If the filename ends with ``.gz``, the file is decompressed.
         **kwargs : dict
-            Additional keyword arguments passed to `Environment.from_dict`.
+            Additional keyword arguments passed to ``Environment.from_dict``.
 
         Returns
         -------
@@ -1167,15 +1227,22 @@ class Environment:
 
     @doc_group("Constructors and Serialization")
     def to_json(self, file, indent=1, **kwargs):
-        '''Save the environment to a json file.
+        '''Save the environment to a JSON file.
 
         Parameters
         ----------
-        file: str or file-like object
+        file : str or file-like object
             The file to save to. If a string is provided, a file is opened and
             closed. If a file-like object is provided, it is used directly.
-        **kwargs:
-            Additional keyword arguments are passed to the `Environment.to_dict` method.
+        indent : int, optional
+            Indentation level used for the JSON output. Default is 1.
+        **kwargs
+            Additional keyword arguments passed to ``Environment.to_dict``.
+
+        Returns
+        -------
+        None
+            This method writes the serialized environment to ``file``.
 
         '''
 
@@ -1199,10 +1266,16 @@ class Environment:
 
         Parameters
         ----------
-        file: str
+        filename : str, optional
             The MAD-X file to load from.
+        madx : cpymad.madx.Madx, optional
+            Existing MAD-X instance to load from.
+        stdout : object, optional
+            Stream used by the legacy MAD-X loader.
+        return_lines : bool, optional
+            Whether to return individual lines instead of an environment.
         **kwargs
-            Additional keyword arguments are passed to the `Line.from_madx_sequence`
+            Additional keyword arguments are passed to the ``Line.from_madx_sequence``
             method.
 
         Returns
@@ -1225,13 +1298,30 @@ class Environment:
     @property_with_doc_group("Editing, Inspection, Variables and Configuration")
     def elements(self):
         """
-        Container of elements stored in the environment.
+        Container of named beam elements stored in the environment.
+
+        Use this container to inspect, add, replace, or remove elements by
+        name. Element names share the environment namespace with variables,
+        particles, and lines.
 
         Returns
         -------
         elements : xtrack.environment.EnvElements
             Dictionary-like container of elements. When expression management
             is enabled, item access returns reference-aware views.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.elements['qf'] = xt.Quadrupole(length=1.0, k1=0.2)
+
+            env.elements.get_table().show()
+            # name element_type isthick isreplica parent_name ... length
+            # qf   Quadrupole      True     False None        ...      1
         """
         return self._elements
 
@@ -1240,11 +1330,28 @@ class Environment:
         """
         Container of named particle references stored in the environment.
 
+        Named particles can be used as reusable reference particles for lines
+        or accessed directly through the environment.
+
         Returns
         -------
         particles : xtrack.environment.EnvParticles
             Dictionary-like container of particles. When expression management
             is enabled, item access returns reference-aware views.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['pc'] = 7e12
+            env.new_particle('lhc_proton', 'proton', p0c='pc')
+
+            env.particles.get_table().show()
+            # name          mass0 charge0 energy0   p0c gamma0 beta0
+            # lhc_proton 9.38272e+08   1   7e+12 7e+12 7460.52     1
         """
         return self._particles_container
 
@@ -1336,6 +1443,30 @@ class Environment:
         -------
         functions : object
             Dictionary-like container of functions available in expressions.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['t_turn_s'] = 0.5
+            env.functions['ramp'] = xt.FunctionPieceWiseLinear(
+                x=[0, 1], y=[0.2, 0.4])
+            env['kq'] = env.functions['ramp'](env.ref['t_turn_s'])
+
+            env.ref['kq'].xdeps.info()
+            # Info for vars['kq']
+            #
+            # value: 0.30000000000000004
+            #
+            # controlled by expr:
+            #   vars['kq'] = f['ramp'](vars['t_turn_s'])
+            #
+            # expr_dependencies:
+            #   f['ramp'] = <xdeps.functions.FunctionPieceWiseLinear object at ...>
+            #   vars['t_turn_s'] = 0.5
         """
         return self._xdeps_fref
 
@@ -1564,6 +1695,22 @@ class Environment:
         -------
         vars : xtrack.environment.EnvVars
             Dictionary-like container of variables.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.vars['a'] = 2.0
+            env.vars['b'] = '3*a'
+
+            env.vars.get_table().show()
+            # name       value expr
+            # t_turn_s       0 None
+            # a              2 None
+            # b              6 (3.0 * a)
         """
         return self._line_vars
 
@@ -1572,9 +1719,10 @@ class Environment:
         """
         Convenience accessor to variable values.
 
-        .. warning: `Environment.varval[...]` is deprecated and will be removed
+        .. warning::
+           ``Environment.varval[...]`` is deprecated and will be removed
            in a future version. To access the value of a variable you can simply use 
-           Environment[...]."
+           ``Environment[...]``.
 
         Equivalent to ``environment.vars.val``.
 
@@ -1596,9 +1744,10 @@ class Environment:
         """
         Short alias for variable values.
 
-        .. warning: `Environment.vv[...]` is deprecated and will be removed
+        .. warning::
+           ``Environment.vv[...]`` is deprecated and will be removed
            in a future version. To access the value of a variable you can simply use
-           Environment[...]."
+           ``Environment[...]``.
 
         Equivalent to ``environment.varval`` (or ``environment.vars.val``).
 
