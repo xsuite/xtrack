@@ -12,6 +12,7 @@ from cpymad.madx import Madx
 from xobjects.general import allclose_with_outliers
 from xobjects.test_helpers import for_all_test_contexts, requires_context
 from xtrack.aperture.aperture import Aperture, ProfilesView, _split_wrapped_s_interval
+from xtrack.aperture.builder import ApertureBuilder
 from xtrack.aperture.views import PipePositionsView, PipesView
 from xtrack.aperture.structures import (
     ApertureModel, Pipe, Circle, FloatType, Polygon, Profile,
@@ -1546,6 +1547,108 @@ def test_survey_resample_out_of_range_returns_nans_with_precision_tolerance(cont
 
 
 @pytest.mark.parametrize(
+    "rbend_model,angle_diff,default_entry_shift",
+    [
+        ('straight-body', 'angle', False),
+        ('straight-body', 'zero', False),
+        ('curved-body', 'angle', False),
+        ('straight-body', 'zero', True),
+    ],
+)
+@pytest.mark.parametrize(
+    "rot_s_rad,shift_y",
+    [
+        (0, 0),
+        (0.3, 0.4),
+    ],
+)
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_survey_resample_rbend_matches_sliced_survey(
+    test_context,
+    rbend_model,
+    angle_diff,
+    default_entry_shift,
+    rot_s_rad,
+    shift_y,
+):
+    angle = np.pi / 6
+    env = xt.Environment()
+    drift = env.new('drift', xt.Drift, length=10)
+    env.new(
+        'rbend',
+        xt.RBend,
+        length_straight=10,
+        angle=angle,
+        rbend_angle_diff=angle if angle_diff == 'angle' else 0,
+        rbend_model=rbend_model,
+        rot_s_rad=rot_s_rad,
+        shift_y=shift_y,
+    )
+    rbend = env['rbend']
+
+    if not default_entry_shift:
+        rbend.rbend_compensate_sagitta = False
+        # Ensure that the survey inside the bend is continuous at the entry
+        rbend.rbend_shift = (
+            np.cos(rbend._angle_in)
+            - np.sqrt(1 - (np.sin(rbend._angle_in) - 0.5 * rbend.h * rbend.length_straight ) ** 2)
+        ) / rbend.h
+
+    line = env.new_line(components=[drift, 'rbend', drift])
+    thick_survey = line.survey()
+    survey_data = SurveyData.from_survey_table(
+        thick_survey, line=line, context=test_context)
+    survey_poses = survey_data.pose.to_nparray()
+
+    # RBend metadata is auxiliary: converting the survey must not alter any
+    # position or orientation already stored in the original table.
+    xo.assert_allclose(
+        survey_poses[:, :3, :3],
+        thick_survey.E_matrix,
+        atol=0,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        survey_poses[:, :3, 3],
+        thick_survey.XYZ,
+        atol=0,
+        rtol=0,
+    )
+
+    rbend_start = 10.0
+    cuts = np.linspace(rbend_start + 0.1, rbend_start + rbend.length - 0.1, 17)
+
+    # An explicitly sliced line provides the reference poses inside the RBend,
+    # including any transverse shift or roll applied to the element.
+    sliced_line = line.copy()
+    sliced_line.cut_at_s(cuts)
+    sliced_survey = sliced_line.survey()
+
+    sliced_xyz = []
+    sliced_orientations = []
+    for s_cut in cuts:
+        matches = np.flatnonzero(np.isclose(sliced_survey.s, s_cut, atol=1e-12, rtol=0))
+        assert len(matches) == 1
+        sliced_xyz.append(sliced_survey.XYZ[matches[0]])
+        sliced_orientations.append(sliced_survey.E_matrix[matches[0]])
+
+    resampled = survey_data.resample(cuts)
+    resampled_poses = resampled.pose.to_nparray()
+    xo.assert_allclose(
+        resampled_poses[:, :3, 3],
+        sliced_xyz,
+        atol=2e-13,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        resampled_poses[:, :3, :3],
+        sliced_orientations,
+        atol=2e-13,
+        rtol=0,
+    )
+
+
+@pytest.mark.parametrize(
     'rot_x_rad,rot_y_rad,dx,dy,ds1,ds2,ds_bounds1,ds_bounds2',
     [
         (0, 0, 0, 0, 0, 0, 0, 0),
@@ -1692,6 +1795,104 @@ def test_aperture_bounds_and_cross_sections_curved_survey_follows_pipe(test_cont
 
     for ii in range(1, len(sections)):
         xo.assert_allclose(np.linalg.norm(sections[ii], axis=1), radius, atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_follow_straight_body_rbend(test_context):
+    env = xt.Environment()
+    angle = np.deg2rad(35.0)
+    env.new(
+        'rbend',
+        xt.RBend,
+        length_straight=3.2,
+        angle=angle,
+        rbend_angle_diff=angle,
+        rbend_model='straight-body',
+    )
+    rbend = env['rbend']
+    line = env.new_line(name='line', components=['rbend'])
+
+    builder = ApertureBuilder(line)
+    builder.new_profile('circle', Circle, radius=0.1)
+    builder.new_pipe(
+        'pipe',
+        positions=[
+            builder.place_profile(
+                'circle',
+                shift_s=0.25 * rbend.length_straight,
+            ),
+            builder.place_profile(
+                'circle',
+                shift_s=0.75 * rbend.length_straight,
+            ),
+        ],
+    )
+    builder.place_pipe('pipe', 'pipe', 'rbend')
+    model = builder.build(context=test_context)
+
+    aperture = Aperture(
+        line=line,
+        model=model,
+        context=test_context,
+        num_profile_points=64,
+    )
+    bounds = aperture.get_bounds_table()
+
+    # Profiles installed along the straight body still use the RBend's survey
+    # length as their longitudinal coordinate.
+    expected_s = rbend.length * np.array([0.25, 0.75])
+    xo.assert_allclose(
+        bounds.s,
+        expected_s,
+        atol=1e-12,
+        rtol=0,
+    )
+    xo.assert_allclose(bounds.s_start, expected_s, atol=1e-12, rtol=0)
+    xo.assert_allclose(bounds.s_end, expected_s, atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_ignore_translation_discontinuity(
+    test_context,
+):
+    env = xt.Environment()
+    env.new('drift_before', xt.Drift, length=1)
+    env.new('translation', xt.Translation, shift_x=10)
+    env.new('drift_after', xt.Drift, length=1)
+    line = env.new_line(
+        name='line',
+        components=['drift_before', 'translation', 'drift_after'],
+    )
+
+    builder = ApertureBuilder(line)
+    builder.new_profile('circle', Circle, radius=0.01)
+    builder.new_pipe(
+        'pipe',
+        positions=[builder.place_profile('circle')],
+    )
+    builder.place_pipe(
+        'pipe',
+        'pipe',
+        'translation',
+        # The profile plane intersects the translated drift at s=1.5.
+        shift_x=10,
+        shift_z=0.5,
+        rot_y_rad=3 * np.pi / 4,
+    )
+    model = builder.build(context=test_context)
+
+    aperture = Aperture(
+        line=line,
+        model=model,
+        context=test_context,
+        num_profile_points=64,
+    )
+    bounds = aperture.get_bounds_table()
+
+    # The zero-length Translation is a discontinuity, not a segment joining
+    # its unshifted pose to the shifted pose of the following drift.
+    xo.assert_allclose(bounds.s, [1.5], atol=1e-12, rtol=0)
+    assert bounds.s_start[0] < bounds.s[0] < bounds.s_end[0]
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

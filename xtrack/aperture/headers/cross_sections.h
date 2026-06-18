@@ -717,8 +717,13 @@ static inline float_type survey_s_for_aperture(
             (it.offset > 0 && isfinite(t) && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
             (it.offset < 0 && isfinite(t) && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
         ) {
-            const float_type dist = t * segment3d_get_length(segment);
-            found_s = pipe_s + dist;
+            /*
+                Convert the geometric segment fraction to survey s. For a
+                straight-body RBend, the segment has length_straight while
+                SurveyData stores the RBend reference length (angle / h).
+            */
+            const float_type segment_s_span = SurveyData_get_s(survey, it.index + 1) - pipe_s;
+            found_s = pipe_s + t * segment_s_span;
             *found_survey_index = it.index;
             break;
         }
@@ -842,8 +847,16 @@ static inline void bounds_on_s_for_aperture(
                 (it.offset > 0 && isfinite(t) && isfinite(last_t_right) && signbit(t) != signbit(last_t_right)) ||
                 (it.offset < 0 && isfinite(t) && isfinite(last_t_left) && signbit(t) != signbit(last_t_left))
         ) {
-                const float_type seg_s_start = SurveyData_get_s(survey, it.index);
-                closest_s = seg_s_start + t * seg_len;
+                const float_type seg_s_start =
+                    SurveyData_get_s(survey, it.index);
+                /*
+                    Convert the geometric segment fraction to survey s. For a
+                    straight-body RBend, the segment has length_straight while
+                    SurveyData stores the RBend reference length (angle / h).
+                */
+                const float_type seg_s_span =
+                    SurveyData_get_s(survey, it.index + 1) - seg_s_start;
+                closest_s = seg_s_start + t * seg_s_span;
                 break;
             }
 

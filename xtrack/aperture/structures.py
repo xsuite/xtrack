@@ -358,6 +358,8 @@ class SurveyData(xo.Struct):
     angle = FloatType[:]
     length = FloatType[:]
     tilt = FloatType[:]
+    rbend_shift_x_in = FloatType[:]
+    rbend_angle_in = FloatType[:]
 
     _extra_c_sources = [
         '#include "xtrack/aperture/headers/survey_tools.h"',
@@ -382,6 +384,10 @@ class SurveyData(xo.Struct):
             angle=np.zeros(shape=(length,), dtype=FloatType._dtype),
             length=np.zeros(shape=(length,), dtype=FloatType._dtype),
             tilt=np.zeros(shape=(length,), dtype=FloatType._dtype),
+            rbend_shift_x_in=np.full(
+                shape=(length,), fill_value=np.nan, dtype=FloatType._dtype),
+            rbend_angle_in=np.full(
+                shape=(length,), fill_value=np.nan, dtype=FloatType._dtype),
             _context=context,
         )
 
@@ -397,6 +403,8 @@ class SurveyData(xo.Struct):
         angles = np.zeros_like(s)
         lengths = np.zeros_like(s)
         tilts = np.zeros_like(s)
+        rbend_shift_x_in = np.full_like(s, np.nan)
+        rbend_angle_in = np.full_like(s, np.nan)
 
         for idx, row in enumerate(survey_table.rows):
             row = survey_table.rows[idx]
@@ -411,7 +419,24 @@ class SurveyData(xo.Struct):
         angles[:-1] = line.attr['angle']
         tilts[:-1] = line.attr['rot_s_rad']
 
-        survey_data = cls(s=s, pose=poses, angle=angles, length=lengths, tilt=tilts, _context=context)
+        # Straight-body RBends use an internal reference line that differs from
+        # the element entrance frame stored in the survey table.
+        from xtrack.beam_elements.elements import RBend
+        for idx, element in enumerate(line._elements):
+            if isinstance(element, RBend) and element.rbend_model == 'straight-body':
+                rbend_shift_x_in[idx] = element._x0_in
+                rbend_angle_in[idx] = element._angle_in
+
+        survey_data = cls(
+            s=s,
+            pose=poses,
+            angle=angles,
+            length=lengths,
+            tilt=tilts,
+            rbend_shift_x_in=rbend_shift_x_in,
+            rbend_angle_in=rbend_angle_in,
+            _context=context,
+        )
         return survey_data
 
     def resample(self, s_positions: Collection[float]) -> 'SurveyData':
