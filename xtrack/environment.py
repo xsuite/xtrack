@@ -295,6 +295,30 @@ class Environment:
         str or Place
             Name of the created element or line or a Place object if at or from_ is
             provided.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kqf'] = 0.2
+            env.new('qf', prototype='Quadrupole', length=1.0, k1='kqf')
+            env.new('qd', prototype='qf', k1='-kqf')
+
+            env.ref['qd'].k1.xdeps.info()
+            # Info for element_refs['qd'].k1
+            #
+            # value: -0.2
+            #
+            # controlled by expr:
+            #   element_refs['qd'].k1 = (-vars['kqf'])
+            #
+            # expr_dependencies:
+            #   vars['kqf'] = 0.2
+            #
+            # controlled_targets: None
         '''
 
         # Backward compatibility: `parent` used to be the public name for what
@@ -633,6 +657,36 @@ class Environment:
         -------
         Place
             The new place object.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', prototype='Quadrupole', length=2.0)
+            env.new('mk', prototype='Marker')
+
+            line = env.new_line(components=[
+                env.place('qf', at=3.0),
+            ])
+
+            line.insert([
+                env.place('mk', at=0, from_='qf', from_anchor='center'),
+            ])
+
+            line.get_table().show()
+            # name                      s element_type             isthick ...
+            # ||drift_1                 0 Drift                       True
+            # qf_entry                  2 Marker                     False
+            # qf..entry_map             2 ThinSliceQuadrupoleEntry   False
+            # qf..0                     2 ThickSliceQuadrupole        True
+            # mk                        3 Marker                     False
+            # qf..1                     3 ThickSliceQuadrupole        True
+            # qf..exit_map              4 ThinSliceQuadrupoleExit    False
+            # qf_exit                   4 Marker                     False
+            # _end_point                4                            False
         '''
 
         if obj is not None:
@@ -1575,6 +1629,19 @@ class Environment:
         -------
         value : float
             Value of the expression.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['a'] = 2.0
+
+            value = env.eval('3*a + 1')
+
+            # value is 7.0
         '''
 
         return self.vars.eval(expr)
@@ -1634,6 +1701,19 @@ class Environment:
         ----------
         key : str
             Name of the object to remove.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', prototype='Quadrupole', length=1.0)
+
+            env.remove('qf')
+
+            # 'qf' is no longer in env
         """
 
         if key in self._element_dict:
@@ -1739,6 +1819,20 @@ class Environment:
         element : Element or float
             Element or value of the variable.
 
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kq'] = 0.2
+            env.new('qf', prototype='Quadrupole', length=1.0, k1='kq')
+
+            element = env.get('qf')
+            value = env.get('kq')
+
+            # element is the Quadrupole object; value is 0.2
         '''
 
         if key in self._element_dict:
@@ -1766,6 +1860,39 @@ class Environment:
         -------
         None
             This method displays information and does not return a value.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['a'] = 2.0
+            env['kq'] = '3*a'
+            env.new('qf', prototype='Quadrupole', length=1.0, k1='kq')
+
+            env.info('kq')
+            # Info for vars['kq']
+            #
+            # value: 6.0
+            #
+            # controlled by expr:
+            #   vars['kq'] = (3.0 * vars['a'])
+            #
+            # expr_dependencies:
+            #   vars['a'] = 2.0
+            #
+            # controlled_targets:
+            #    element_refs['qf'].k1
+
+            env.info('qf')
+            # Element of type:  Quadrupole
+            # name                value   expr
+            # k1                  6.0     vars['kq']
+            # k1s                 0.0     None
+            # length              1.0     None
+            # ...
         '''
 
         if key in self.elements:
@@ -1790,6 +1917,21 @@ class Environment:
         -------
         expr : Expression
             Expression associated to the variable
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['a'] = 2.0
+            env['b'] = '3*a'
+
+            expr = env.get_expr('b')
+
+            # expr is the expression controlling b.
+            # env.get_expr('a') returns None because a is a constant.
         '''
 
         return self.vars.get_expr(var)
@@ -1808,6 +1950,20 @@ class Environment:
         -------
         expr : Expression
             New expression.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['a'] = 2.0
+
+            expr = env.new_expr('3*a + 1')
+            env['b'] = expr
+
+            # env['b'] is 7.0
         '''
         return self.vars.new_expr(expr)
 
