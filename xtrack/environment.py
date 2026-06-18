@@ -340,6 +340,14 @@ class Environment:
             is reversed.
         import_from : Environment, optional. Only to be used when mode is 'import'.
 
+        Notes
+        -----
+        ``Environment.new`` can instantiate only the built-in element classes
+        supported by the line builder. For user-defined element classes, or
+        other element types that are not supported by ``Environment.new``,
+        instantiate the element explicitly, store it in ``env.elements``, and
+        attach deferred expressions through the environment view.
+
         Returns
         -------
         str or Place
@@ -369,6 +377,27 @@ class Environment:
             #   vars['kqf'] = 0.2
             #
             # controlled_targets: None
+
+        Unsupported or user-defined element classes can be added explicitly:
+
+        .. code-block:: python
+
+            import xtrack as xt
+
+            class MyElement:
+                def __init__(self, myparam=0):
+                    self.myparam = myparam
+
+                def track(self, particles):
+                    pass
+
+            env = xt.Environment()
+            env['a'] = 2.0
+            env.elements['myelem'] = MyElement(myparam=0)
+            env['myelem'].myparam = '3*a'
+
+            env['myelem'].myparam
+            # 6.0
         '''
 
         # Backward compatibility: `parent` used to be the public name for what
