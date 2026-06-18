@@ -270,9 +270,17 @@ void compute_max_aperture_sigma_bisection(
 
     // TODO: Make this also compatible with GPUs
     uint32_t cross_section_bound_index = 0;
-    IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
+    uint8_t cross_section_bound_index_initialized = 0;
+    IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index, cross_section_bound_index_initialized)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
+        const float_type s = SurveyData_get_s(survey_at_s, idx_slice);
+        if (!cross_section_bound_index_initialized
+            || s < ApertureBounds_get_s_start(aperture_bounds, cross_section_bound_index)) {
+            cross_section_bound_index = find_active_profile_for_s_binary(aperture_bounds, s);
+            cross_section_bound_index_initialized = 1;
+        }
+
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         Point2D aperture_points[len_points];
         BeamApertureLocalData s_aperture_data = {
@@ -347,7 +355,8 @@ void compute_beam_envelopes_at_sigma(
 
     // TODO: Make this also compatible with GPUs
     uint32_t bound_index = 0;
-    IF_OMP_PRAGMA("omp parallel for firstprivate(bound_index)")
+    uint8_t bound_index_initialized = 0;
+    IF_OMP_PRAGMA("omp parallel for firstprivate(bound_index, bound_index_initialized)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
         float_type s = TwissData_get_s(twiss_at_s, idx_slice);
@@ -358,6 +367,11 @@ void compute_beam_envelopes_at_sigma(
         };
 
         if (include_aper_tols) {
+            if (!bound_index_initialized || s < ApertureBounds_get_s_start(aperture_bounds, bound_index)) {
+                bound_index = find_active_profile_for_s_binary(aperture_bounds, s);
+                bound_index_initialized = 1;
+            }
+
             bound_index = interpolate_aperture_tolerances_at_s(
                 model, aperture_bounds, s, bound_index,
                 &s_aperture_data.tol_r, &s_aperture_data.tol_x, &s_aperture_data.tol_y);
@@ -482,9 +496,17 @@ void compute_max_aperture_sigma_rays(
 
     // TODO: Make this also compatible with GPUs
     uint32_t cross_section_bound_index = 0;
-    IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
+    uint8_t cross_section_bound_index_initialized = 0;
+    IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index, cross_section_bound_index_initialized)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
+        const float_type s = SurveyData_get_s(survey_at_s, idx_slice);
+        if (!cross_section_bound_index_initialized
+            || s < ApertureBounds_get_s_start(aperture_bounds, cross_section_bound_index)) {
+            cross_section_bound_index = find_active_profile_for_s_binary(aperture_bounds, s);
+            cross_section_bound_index_initialized = 1;
+        }
+
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         Point2D aperture_points[len_points];
         int8_t aperture_is_convex = 0;
@@ -604,9 +626,17 @@ void compute_max_aperture_sigma_exact(
     #endif
 
     uint32_t cross_section_bound_index = 0;
-    IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index)")
+    uint8_t cross_section_bound_index_initialized = 0;
+    IF_OMP_PRAGMA("omp parallel for firstprivate(cross_section_bound_index, cross_section_bound_index_initialized)")
     for (uint32_t idx_slice = 0; idx_slice < num_slices; idx_slice++)
     {
+        const float_type s = SurveyData_get_s(survey_at_s, idx_slice);
+        if (!cross_section_bound_index_initialized
+            || s < ApertureBounds_get_s_start(aperture_bounds, cross_section_bound_index)) {
+            cross_section_bound_index = find_active_profile_for_s_binary(aperture_bounds, s);
+            cross_section_bound_index_initialized = 1;
+        }
+
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         Point2D aperture_points[len_points];
         int8_t aperture_is_convex = 0;
