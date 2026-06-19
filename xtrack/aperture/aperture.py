@@ -1186,7 +1186,7 @@ class Aperture:
                 sliced_twiss=sliced_twiss,
                 method=method,
             )
-            sigmas = float(np.min(n1_table.n1))
+            sigmas = float(np.nanmin(n1_table.n1))
 
         envelopes_table = self.get_envelope_for_twiss(
             sliced_twiss=sliced_twiss,
