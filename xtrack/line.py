@@ -5405,6 +5405,38 @@ class Line:
         -------
         Line
             New line containing independent element copies.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kq'] = 0.2
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1='kq'),
+                env.new('d1', 'Drift', length=1.0),
+            ])
+
+            line_b = line.clone(suffix='b')
+            line_b.element_names
+            # ['qf.b', 'd1.b']
+
+            line_b.ref['qf.b'].k1.xdeps.expr
+            # vars['kq']
+
+            env['kq'] = 0.3
+            line['qf'].k1
+            # 0.3
+            line_b['qf.b'].k1
+            # 0.3
+
+            line_b['qf.b'].k1 = 0.4
+            line['qf'].k1
+            # 0.3
+            line_b['qf.b'].k1
+            # 0.4
         """
         self._method_incompatible_with_compose()
         out = self.replicate(suffix=suffix, mirror=mirror)
