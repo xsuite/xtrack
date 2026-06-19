@@ -125,6 +125,12 @@ class Line:
     and other lines that can be shared across lattice descriptions. The
     dictionary ``line.element_dict`` maps element names to the corresponding
     element objects.
+
+    A line can be in normal mode or in compose mode, as indicated by
+    ``line.mode``. In compose mode, elements are placed with
+    ``line.place(...)`` and ``line.new(...)`` by their longitudinal position
+    and/or relative to each other; the line is resolved later with
+    ``line.end_compose()``.
     """
 
     def __init__(self, elements=None, element_names=None, particle_ref=None,
