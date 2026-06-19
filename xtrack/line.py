@@ -1312,6 +1312,36 @@ class Line:
         -------
         None
             This method updates the line in place.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+            line.new('qd', 'Quadrupole', length=0.5, k1=-0.2, at=3.0)
+
+            line.mode
+            # 'compose'
+
+            line.end_compose()
+
+            line.mode
+            # 'normal'
+
+            line.get_table().cols['name s_center'].show()
+            # name            s_center
+            # ||drift_1          0.375
+            # qf                     1
+            # ||drift_2              2
+            # qd                     3
+            # ||drift_3          4.125
+            # _end_point             5
         """
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
@@ -1339,6 +1369,31 @@ class Line:
         -------
         None
             This method switches the line state in place.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+            line.new('qd', 'Quadrupole', length=0.5, k1=-0.2, at=3.0)
+            line.end_compose()
+
+            line.mode
+            # 'normal'
+
+            line.regenerate_from_composer()
+
+            line.mode
+            # 'compose'
+
+            line.composer.components
+            # [Place(qf, at=1.0), Place(qd, at=3.0)]
         """
         self._element_names = '__COMPOSE__'
         self._mode = 'compose'
@@ -1366,8 +1421,32 @@ class Line:
 
         Returns
         -------
-        Place
-            The placed component descriptor appended to the composer.
+        None
+            This method appends the placement to the composer in place.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+
+            line.composer.components
+            # [Place(qf, at=1.0)]
+
+            line.end_compose()
+
+            line.get_table().cols['name s_center'].show()
+            # name            s_center
+            # ||drift_1          0.375
+            # qf                     1
+            # ||drift_2          3.125
+            # _end_point             5
         """
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
@@ -1405,6 +1484,27 @@ class Line:
         str or Place
             Name of the created element, or a ``Place`` object when placement
             arguments are provided.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(length=5.0, compose=True)
+
+            place = line.new(
+                'qf', 'Quadrupole', length=0.5, k1=0.2, at=1.0)
+
+            place
+            # Place(qf, at=1.0)
+
+            'qf' in line.env.elements
+            # True
+
+            line.composer.components
+            # [Place(qf, at=1.0)]
         """
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
@@ -1505,6 +1605,23 @@ class Line:
         -------
         str
             ``'normal'`` or ``'compose'``.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(length=5.0, compose=True)
+
+            line.mode
+            # 'compose'
+
+            line.end_compose()
+
+            line.mode
+            # 'normal'
         """
         return self._mode
 
@@ -1529,7 +1646,29 @@ class Line:
 
     @property_with_doc_group("Compose Mode")
     def composer(self):
-        """Builder used when the line is in ``compose`` mode."""
+        """
+        Builder used when the line is in ``compose`` mode.
+
+        Returns
+        -------
+        Composer
+            Compose-mode builder object associated with the line.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+
+            line.composer.components
+            # [Place(qf, at=1.0)]
+        """
         return self._composer
 
     @composer.setter
