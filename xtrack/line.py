@@ -3839,8 +3839,29 @@ class Line:
 
         Returns
         -------
-        new_line: Line
-            A new line with the elements cycled.
+        line : Line
+            The line itself, after cycling.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('d1', 'Drift', length=1.0),
+                env.new('qd', 'Quadrupole', length=0.5),
+                env.new('d2', 'Drift', length=1.0),
+            ])
+
+            line.element_names
+            # ['qf', 'd1', 'qd', 'd2']
+
+            line.cycle('qd')
+            line.element_names
+            # ['qd', 'd2', 'qf', 'd1']
 
         """
 
@@ -5296,6 +5317,38 @@ class Line:
         -------
         Line or None
             Mirrored line when ``inplace=False``, otherwise ``None``.
+
+        Notes
+        -----
+        The unary minus operator, ``-line``, is a shortcut for
+        ``line.mirror(inplace=False)``.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('d1', 'Drift', length=1.0),
+                env.new('qd', 'Quadrupole', length=0.5),
+            ])
+
+            line_mirror = line.mirror(inplace=False)
+
+            line.element_names
+            # ['qf', 'd1', 'qd']
+            line_mirror.element_names
+            # ['qd', 'd1', 'qf']
+
+            (-line).element_names
+            # ['qd', 'd1', 'qf']
+
+            line.mirror()
+            line.element_names
+            # ['qd', 'd1', 'qf']
         """
         assert inplace in [True, False]
         if inplace == False:
