@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from cpymad.madx import Madx
 import xobjects as xo
 
-from rdt_calculation import compute_rdt
+from rdt_calculation import get_rdt
 
 mad = Madx()
 mad.call('../../test_data/lhc_2024/lhc.seq')
@@ -52,7 +52,7 @@ bety_mad_at_s = np.interp(tw.s, s_mad, twmad.bety)
 alfx_mad_at_s = np.interp(tw.s, s_mad, twmad.alfx)
 alfy_mad_at_s = np.interp(tw.s, s_mad, twmad.alfy)
 
-rdt_mad_at_s = compute_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_s,
+rdt_mad_at_s = get_rdt(r11_mad_at_s, r12_mad_at_s, r21_mad_at_s, r22_mad_at_s,
                            betx_mad_at_s, bety_mad_at_s, alfx_mad_at_s, alfy_mad_at_s)
 
 # Compute element R matrix

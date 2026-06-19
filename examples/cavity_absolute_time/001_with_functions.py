@@ -9,7 +9,7 @@ from functools import partial
 line = xt.load('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 # line.cycle('ip1')
 line.build_tracker()
-line.vv['vrf400'] = 16
+line['vrf400'] = 16
 
 for vv in line.vars.get_table().rows[
     'on_x.*|on_sep.*|on_crab.*|on_alice|on_lhcb|corr_.*'].name:

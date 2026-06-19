@@ -1,4 +1,3 @@
-import xtrack as xt
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -15,6 +14,11 @@ s_positions = np.unique(s_positions)
 aperture.plot_extents(s_positions=s_positions, sigmas=1)
 plt.show()
 
-sv = ring.survey()
-sv.plot()
+aperture.pipes['mb'].plot_projection(plane='zx')
+plt.show()
+
+aperture.profiles['dipole'].plot()
+plt.show()
+
+aperture.plot_floor_projection()
 plt.show()

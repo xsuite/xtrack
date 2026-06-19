@@ -73,7 +73,8 @@ plt.plot(tw_plus.s, dx_zeta_4d_rf_on_crab_on, label='rf on, crab on', color='g')
 plt.plot(tw_plus.s, dx_zeta_rf_off_crab_on, label='rf off, crab on', color='m')
 plt.plot(tw_plus.s, dx_zeta_4d_rf_on_crab_off, label='rf on, crab off', color='b')
 plt.plot(tw_plus.s, dx_zeta_rf_off_crab_off, label='rf off, crab off', color='r')
-plt.axvline(x=line.get_s_position('ip4'), color='k', linestyle='--', label='ip4')
+tt = line.get_table()
+plt.axvline(x=tt['s', 'ip4'], color='k', linestyle='--', label='ip4')
 plt.legend()
 plt.xlabel('s [m]')
 plt.ylabel('dx/dzeta')
@@ -108,5 +109,4 @@ plt.xlabel('s [m]')
 plt.ylabel('dx/dzeta')
 
 plt.show()
-
 

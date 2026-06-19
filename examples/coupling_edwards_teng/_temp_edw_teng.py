@@ -3,7 +3,7 @@ import xtrack as xt
 
 
 
-def _compute_edwards_teng_initial(RR):
+def _get_edwards_teng_initial(RR):
 
     AA = RR[:2, :2]
     BB = RR[:2, 2:4]

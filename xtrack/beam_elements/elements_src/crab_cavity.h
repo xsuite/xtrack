@@ -29,6 +29,8 @@ void CrabCavity_track_local_particle(CrabCavityData el, LocalParticle* part0)
         /*ksl*/                   NULL,
         /*pn*/                    NULL,
         /*ps*/                    NULL,
+        /*phase_n*/               NULL,
+        /*phase_s*/               NULL,
         /*num_kicks*/             CrabCavityData_get_num_kicks(el),
         /*model*/                 CrabCavityData_get_model(el),
         /*default_model*/         6, // drift-kick-drift-expanded

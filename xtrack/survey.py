@@ -8,13 +8,14 @@
 
 
 import numpy as np
+from warnings import warn
 
 from .table import Table
+from .general import DEPRECATION_INFO_PREP_1_0
 
 # Required functions
 # ==================================================
-def get_w_from_angles(theta, phi, psi):
-    """W matrix, see MAD-X manual"""
+def get_E_from_angles(theta, phi, psi):
     costhe = np.cos(theta)
     cosphi = np.cos(phi)
     cospsi = np.cos(psi)
@@ -161,52 +162,138 @@ def advance_element(
 class SurveyTable(Table):
     """
     Table for survey data.
+
+    ``SurveyTable`` stores the surveyed position and orientation of each
+    element along a line. Typical columns include the longitudinal position
+    ``s``, global coordinates such as ``X``, ``Y``, and ``Z``, and orientation
+    data such as the local reference-frame basis vectors or rotation matrices.
     """
+
+    def __init__(self, data, *args, **kwargs):
+        """
+        Create a survey table.
+
+        Parameters
+        ----------
+        data : mapping
+            Mapping containing survey-table columns. Typical columns include
+            ``name``, ``element_type``, ``s``, ``X``, ``Y``, ``Z``, and
+            orientation data.
+        *args
+            Additional positional arguments passed to :class:`xtrack.Table`.
+        **kwargs
+            Additional keyword arguments passed to :class:`xtrack.Table`.
+
+        Examples
+        --------
+        Build a compact survey table:
+
+        >>> import numpy as np
+        >>> from xtrack.survey import SurveyTable
+        >>> tab = SurveyTable({
+        ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
+        ...                      dtype=object),
+        ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
+        ...                              dtype=object),
+        ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
+        ...     "X": np.array([0.0, 0.0, 0.0, 3.0]),
+        ...     "Y": np.array([0.0, 0.0, 0.0, 0.0]),
+        ...     "Z": np.array([0.0, 0.3, 1.3, 3.7]),
+        ... })
+        >>> tab
+        SurveyTable: 4 rows, 6 cols
+        name       element_type             s             X             Y             Z
+        mqf.1      Quadrupole               0             0             0             0
+        d1.1       Drift                  0.3             0             0           0.3
+        mb1.1      Bend                   1.3             0             0           1.3
+        _end_point                        4.3             3             0           3.7
+
+        Select coordinates or a longitudinal range:
+
+        >>> tab.cols["s X Z"]
+        SurveyTable: 4 rows, 4 cols
+        name                   s             X             Z
+        mqf.1                  0             0             0
+        d1.1                 0.3             0           0.3
+        mb1.1                1.3             0           1.3
+        _end_point           4.3             3           3.7
+        >>> tab.rows[0.0:1.5:"s"]
+        SurveyTable: 3 rows, 6 cols
+        name  element_type             s             X             Y             Z
+        mqf.1 Quadrupole               0             0             0             0
+        d1.1  Drift                  0.3             0             0           0.3
+        mb1.1 Bend                   1.3             0             0           1.3
+        """
+        super().__init__(data, *args, **kwargs)
+
+    _DEPRECATED_FIELDS = {
+        'p0': ('`p0` is deprecated, please use `XYZ` instead'
+                      + DEPRECATION_INFO_PREP_1_0),
+        'W': ('`W` is deprecated, please use `E_matrix` instead'
+                      + DEPRECATION_INFO_PREP_1_0)
+    }
 
     _error_on_row_not_found = True
 
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('sep_count', '::::')
+        super().__init__(*args, **kwargs)
+
     def reverse(self):
+        """
+        Build a survey table for the reverse local reference frame.
+
+        The returned table has the element order reversed and survey quantities
+        transformed to the reverse local reference frame. The longitudinal position
+        is transformed as ``s -> line_length - s``. The global coordinates are
+        transformed as ``X -> -X``, ``Y -> Y``, and ``Z -> -Z``. The survey
+        orientation matrix is transformed consistently with the reversed global
+        frame and reversed local frame axes.
+
+        Returns
+        -------
+        xtrack.survey.SurveyTable
+            Survey table corresponding to the reverse local reference frame.
+        """
 
         new_cols = {}
 
         element_properties = ['name', 'element_type', 'isthick', 'drift_length',
-                                'length', 'angle', 'rot_s_rad',
-                                'ref_shift_x', 'ref_shift_y',
-                                'ref_rot_x_rad', 'ref_rot_y_rad', 'ref_rot_s_rad']
+                              'length', 'prototype']
 
         for kk in element_properties:
-            new_cols[kk] = self[kk].copy()
+            new_cols[kk] = self._data[kk].copy()
             new_cols[kk][:-1] = new_cols[kk][:-1][::-1]
-            new_cols[kk][-1] = self[kk][-1]
+            new_cols[kk][-1] = self._data[kk][-1]
 
         itake = slice(1, None, None)
 
         # s vector
-        new_cols['s'] = self['s'].copy()
+        new_cols['s'] = self._data['s'].copy()
         new_cols['s'][:-1] = new_cols['s'][itake][::-1]
-        new_cols['s'][-1] = self['s'][0]
+        new_cols['s'][-1] = self._data['s'][0]
 
-        new_cols['s'] = self['s'][-1] - new_cols['s']
+        new_cols['s'] = self._data['s'][-1] - new_cols['s']
 
-        new_W = self.W.copy()
-        new_W[:-1, :, :] = new_W[itake, :, :][::-1, :, :]
-        new_W[-1, :, :] = self.W[0, :, :]
+        new_E_matrix = self.E_matrix.copy()
+        new_E_matrix[:-1, :, :] = new_E_matrix[itake, :, :][::-1, :, :]
+        new_E_matrix[-1, :, :] = self.E_matrix[0, :, :]
 
-        new_V = self.p0.copy()
+        new_V = self.XYZ.copy()
         new_V[:-1, :] = new_V[itake, :][::-1, :]
-        new_V[-1, :] = self.p0[0, :]
+        new_V[-1, :] = self.XYZ[0, :]
 
         # Reverse X and Z in the global frame
         new_V[:, 0] *= -1
         new_V[:, 2] *= -1
-        new_W[:, 0, :] *= -1
-        new_W[:, 2, :] *= -1
+        new_E_matrix[:, 0, :] *= -1
+        new_E_matrix[:, 2, :] *= -1
 
         # Reverse ix and iy of the local frame
-        new_W[:, :, 0] *= -1
-        new_W[:, :, 2] *= -1
+        new_E_matrix[:, :, 0] *= -1
+        new_E_matrix[:, :, 2] *= -1
 
-        derived_quantities = _compute_survey_quantities_from_v_w(new_V, new_W)
+        derived_quantities = _get_survey_quantities_from_v_w(new_V, new_E_matrix)
         new_cols.update(derived_quantities)
 
         out = SurveyTable(
@@ -217,7 +304,17 @@ class SurveyTable(Table):
 
     def plot(self, element_width = None, legend = True, **kwargs):
         """
-        Plot the survey using xplt.FloorPlot
+        Plot the survey using ``xplt.FloorPlot``.
+
+        Parameters
+        ----------
+        element_width : float, optional
+            Width used to draw elements in the floor plot. If not provided, a
+            value is chosen from the extent of the survey.
+        legend : bool, optional
+            Whether to add a matplotlib legend.
+        **kwargs
+            Additional keyword arguments passed to ``xplt.FloorPlot``.
         """
         # Import the xplt module here
         # (Not at the top as not default installation with xsuite)
@@ -226,10 +323,16 @@ class SurveyTable(Table):
         # Shallow copy of self
         out_sv_table = SurveyTable.__new__(SurveyTable)
         out_sv_table.__dict__.update(self.__dict__)
-        out_sv_table._data = self._data.copy()
+        out_sv_table._data = {
+            kk: (vv.copy() if hasattr(vv, 'copy') else vv)
+            for kk, vv in self._data.items()
+        }
 
         # Removing the count for repeated elements
-        out_sv_table.name = np.array([nn.split('::')[0] for nn in out_sv_table.name])
+        out_sv_table._data['name'] = np.array([nn.split('::')[0] for nn in out_sv_table._data['name']])
+        out_sv_table._index_cache = None
+        out_sv_table._count_cache = None
+        out_sv_table._names_cache = None
 
         # Setting element width for plotting
         if element_width is None:
@@ -249,6 +352,22 @@ class SurveyTable(Table):
             plt.legend()
 
     def to_pandas(self, index=None, columns=None):
+        """
+        Convert the survey table to a pandas DataFrame.
+
+        Parameters
+        ----------
+        index : str, optional
+            Column to use as the DataFrame index.
+        columns : sequence of str, optional
+            Columns to include in the DataFrame. If not provided, all table
+            columns are included.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame containing the selected survey table columns.
+        """
         if columns is None:
             columns = self._col_names
 
@@ -269,9 +388,9 @@ class SurveyTable(Table):
 # ==================================================
 def survey_from_line(
         line,
-        X0 = 0, Y0 = 0, Z0 = 0, theta0 = 0, phi0 = 0, psi0 = 0,
-        element0 = 0, values_at_element_exit = False, reverse = True):
-    """Execute SURVEY command. Based on MAref_shift_x equivalent.
+        X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
+        element0=0, values_at_element_exit=False, reverse=False):
+    """Execute SURVEY command. Based on MAD-X equivalent.
     Attributes, must be given in this order in the dictionary:
     X0        (float)    Initial X position in meters.
     Y0        (float)    Initial Y position in meters.
@@ -290,29 +409,17 @@ def survey_from_line(
     tt      = line.get_table(attr = True)
 
     # Extract angle and tilt from elements
-    angle   = tt.angle_rad
+    angle   = tt.angle
     tilt    = tt.rot_s_rad
 
     # Extract drift lengths
     drift_length = tt.length
     drift_length[~tt.isthick] = 0
 
-    # Extract xy shifts from elements
-    ref_shift_x = tt.ref_shift_x
-    ref_shift_y = tt.ref_shift_y
-
-    # Handling of XRotation, YRotation and SRotation elements
-    ref_rot_angle_rad   = tt.ref_rot_angle_rad
-    ref_rot_x_rad    = ref_rot_angle_rad * np.array(tt.element_type == 'XRotation')
-    # The minus sign accounts for the discrepancy between the definition of the
-    # y-rotation between the survey and the tracking (MAD-X convention)
-    ref_rot_y_rad    = -ref_rot_angle_rad * np.array(tt.element_type == 'YRotation')
-    ref_rot_s_rad    = ref_rot_angle_rad * np.array(tt.element_type == 'SRotation')
-
     if isinstance(element0, str):
         element0 = line.element_names.index(element0)
 
-    V, W = compute_survey(
+    V, E_matrix = get_survey(
         elements        = line._elements,
         X0              = X0,
         Y0              = Y0,
@@ -323,14 +430,9 @@ def survey_from_line(
         drift_length    = drift_length[:-1],
         angle           = angle[:-1],
         tilt            = tilt[:-1],
-        ref_shift_x     = ref_shift_x[:-1],
-        ref_shift_y     = ref_shift_y[:-1],
-        ref_rot_x_rad   = ref_rot_x_rad[:-1],
-        ref_rot_y_rad   = ref_rot_y_rad[:-1],
-        ref_rot_s_rad   = ref_rot_s_rad[:-1],
         element0        = element0)
 
-    derived_quantities = _compute_survey_quantities_from_v_w(V, W)
+    derived_quantities = _get_survey_quantities_from_v_w(V, E_matrix)
 
     out_columns = derived_quantities
     out_scalars = {}
@@ -339,15 +441,9 @@ def survey_from_line(
     out_columns["name"]             = tt.name
     out_columns["element_type"]     = tt.element_type
     out_columns['isthick']          = tt.isthick
+    out_columns['prototype']        = tt.prototype
     out_columns['drift_length']     = drift_length
     out_columns['length']           = tt.length
-    out_columns['angle']            = angle
-    out_columns['rot_s_rad']        = tt.rot_s_rad
-    out_columns['ref_shift_x']      = ref_shift_x
-    out_columns['ref_shift_y']      = ref_shift_y
-    out_columns['ref_rot_x_rad']    = ref_rot_x_rad
-    out_columns['ref_rot_y_rad']    = ref_rot_y_rad
-    out_columns['ref_rot_s_rad']    = ref_rot_s_rad
 
     out_columns["s"]                = tt.s
 
@@ -361,11 +457,10 @@ def survey_from_line(
     return out
 
 
-def compute_survey(
+def get_survey(
         elements,
         X0, Y0, Z0, theta0, phi0, psi0,
         drift_length, angle, tilt,
-        ref_shift_x, ref_shift_y, ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad,
         element0 = 0, backtrack=False):
     """
     Compute survey from initial position and orientation.
@@ -379,14 +474,9 @@ def compute_survey(
         drift_forward           = drift_length[element0:]
         angle_forward           = angle[element0:]
         tilt_forward            = tilt[element0:]
-        ref_shift_x_forward     = ref_shift_x[element0:]
-        ref_shift_y_forward     = ref_shift_y[element0:]
-        ref_rot_x_rad_forward   = ref_rot_x_rad[element0:]
-        ref_rot_y_rad_forward   = ref_rot_y_rad[element0:]
-        ref_rot_s_rad_forward   = ref_rot_s_rad[element0:]
 
         # Evaluate forward survey
-        (V_forward, W_forward)    = compute_survey(
+        (V_forward, E_forward)    = get_survey(
             elements        = elements_forward,
             X0              = X0,
             Y0              = Y0,
@@ -397,12 +487,6 @@ def compute_survey(
             drift_length    = drift_forward,
             angle           = angle_forward,
             tilt            = tilt_forward,
-            ref_shift_x     = ref_shift_x_forward,
-            ref_shift_y     = ref_shift_y_forward,
-            ref_rot_x_rad   = ref_rot_x_rad_forward,
-            ref_rot_y_rad   = ref_rot_y_rad_forward,
-            ref_rot_s_rad   = ref_rot_s_rad_forward,
-            element0        = 0,
             backtrack       = backtrack)
 
         # Backward section of survey
@@ -410,14 +494,8 @@ def compute_survey(
         drift_backward          = np.array(drift_length[:element0][::-1])
         angle_backward          = np.array(angle[:element0][::-1])
         tilt_backward           = np.array(tilt[:element0][::-1])
-        ref_shift_x_backward    = np.array(ref_shift_x[:element0][::-1])
-        ref_shift_y_backward    = np.array(ref_shift_y[:element0][::-1])
-        ref_rot_x_rad_backward  = np.array(ref_rot_x_rad[:element0][::-1])
-        ref_rot_y_rad_backward  = np.array(ref_rot_y_rad[:element0][::-1])
-        ref_rot_s_rad_backward  = np.array(ref_rot_s_rad[:element0][::-1])
-
         # Evaluate backward survey
-        (V_backward, W_backward)   = compute_survey(
+        (V_backward, E_backward)   = get_survey(
             elements        = elements_backward,
             X0              = X0,
             Y0              = Y0,
@@ -428,38 +506,30 @@ def compute_survey(
             drift_length    = drift_backward,
             angle           = angle_backward,
             tilt            = tilt_backward,
-            ref_shift_x     = ref_shift_x_backward,
-            ref_shift_y     = ref_shift_y_backward,
-            ref_rot_x_rad   = ref_rot_x_rad_backward,
-            ref_rot_y_rad   = ref_rot_y_rad_backward,
-            ref_rot_s_rad   = ref_rot_s_rad_backward,
             element0        = 0,
             backtrack       = not backtrack)
 
         # Concatenate forward and backward
-        W       = np.array(W_backward[::-1][:-1] + W_forward)
+        E_matrix       = np.array(E_backward[::-1][:-1] + E_forward)
         V       = np.array(V_backward[::-1][:-1] + V_forward)
-        return V, W
+        return V, E_matrix
 
     # Initialise lists for storing the survey
-    W       = []
-    V       = []
+    E_matrix = []
+    V = []
 
     # Initial position and orientation
     v   = np.array([X0, Y0, Z0])
-    w   = get_w_from_angles(
+    w   = get_E_from_angles(
         theta       = theta0,
         phi         = phi0,
         psi         = psi0)
 
     # Advancing element by element
-    for ee, ll, aa, tt, xx, yy, rx, ry, rs, in zip(
-        elements, drift_length, angle, tilt,
-        ref_shift_x, ref_shift_y,
-        ref_rot_x_rad, ref_rot_y_rad, ref_rot_s_rad):
+    for ee, ll, aa, tt in zip(elements, drift_length, angle, tilt):
 
         # Store position and orientation at element entrance
-        W.append(w)
+        E_matrix.append(w)
         V.append(v)
 
         if hasattr(ee, '_propagate_survey'):
@@ -469,11 +539,6 @@ def compute_survey(
             if backtrack:
                 ll = -ll
                 aa = -aa
-                xx = -xx
-                yy = -yy
-                rx = -rx
-                ry = -ry
-                rs = -rs
 
             # Advancing
             v, w = advance_element(
@@ -482,33 +547,42 @@ def compute_survey(
                 length          = ll,
                 angle           = aa,
                 tilt            = tt,
-                ref_shift_x     = xx,
-                ref_shift_y     = yy,
-                ref_rot_x_rad   = rx,
-                ref_rot_y_rad   = ry,
-                ref_rot_s_rad   = rs)
+                ref_shift_x     = 0.,
+                ref_shift_y     = 0.,
+                ref_rot_x_rad   = 0.,
+                ref_rot_y_rad   = 0.,
+                ref_rot_s_rad   = 0.)
 
     # Last marker
-    W.append(w)
+    E_matrix.append(w)
     V.append(v)
 
     # Return data for SurveyTable object
-    return V, W
+    return V, E_matrix
 
 
-def _compute_survey_quantities_from_v_w(V, W):
+def compute_survey(*args, **kwargs):
+    warn(
+        '`compute_survey()` is deprecated and will be removed in future '
+        'versions. Please use `get_survey()` instead.'
+        + DEPRECATION_INFO_PREP_1_0,
+        FutureWarning,
+    )
+    return get_survey(*args, **kwargs)
 
-    W = np.array(W)
+
+def _get_survey_quantities_from_v_w(V, E_matrix):
+
+    E_matrix = np.array(E_matrix)
     V = np.array(V)
 
-    theta = np.arctan2(W[:, 0, 2], W[:, 2, 2])
-    psi = np.arctan2(W[:, 1, 0], W[:, 1, 1])
-    phi = np.arctan2(W[:, 1, 2], W[:, 1, 1] / np.cos(psi))
+    theta = np.arctan2(E_matrix[:, 0, 2], E_matrix[:, 2, 2])
+    psi = np.arctan2(E_matrix[:, 1, 0], E_matrix[:, 1, 1])
+    phi = np.arctan2(E_matrix[:, 1, 2], E_matrix[:, 1, 1] / np.cos(psi))
 
-    ex = W[:, :, 0]
-    ey = W[:, :, 1]
-    ez = W[:, :, 2]
-    p0 = V.copy()
+    ex = E_matrix[:, :, 0]
+    ey = E_matrix[:, :, 1]
+    ez = E_matrix[:, :, 2]
     X = V[:, 0]
     Y = V[:, 1]
     Z = V[:, 2]
@@ -523,20 +597,37 @@ def _compute_survey_quantities_from_v_w(V, W):
         'ex': ex,
         'ey': ey,
         'ez': ez,
-        'p0': p0,
-        'W': W
+        'XYZ': V.copy(),
+        'E_matrix': E_matrix.copy(),
+        'p0': V.copy(), # deprecated
+        'W': E_matrix # deprecated
     }
 
 
-def survey_relative_transform(survey: SurveyTable, source: str | int, destination: str | int) -> np.ndarray:
-    """Generate a 3D transformation matrix from survey point `source` to `destination`."""
+def survey_relative_transform(survey: SurveyTable, source: str | int, destination: str | int, reversed=False) -> np.ndarray:
+    """Generate a 3D transformation matrix from survey point `source` to `destination`.
+
+    If `reversed`, take the transformation that points from the end point of `source` to the end point of `destination`.
+    """
+
+    if reversed:
+        if source != survey.name[-1]:
+            source = survey.rows.get_index(source) + 1
+        if destination != survey.name[-1]:
+            destination = survey.rows.get_index(destination) + 1
+    else:
+        if isinstance(source, str):
+            source = survey.rows.get_index(source)
+        if isinstance(destination, str):
+            destination = survey.rows.get_index(destination)
+
     src_row = survey.rows[source]
     dest_row = survey.rows[destination]
 
     def _row_to_matrix(row):
         matrix = np.identity(4)
-        matrix[:3, :3] = row.W
-        matrix[:3, 3] = row.p0
+        matrix[:3, :3] = row.E_matrix
+        matrix[:3, 3] = row.XYZ
         return matrix
 
     src_mat = _row_to_matrix(src_row)

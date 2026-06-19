@@ -252,7 +252,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e0'] == False
     assert_allclose(tt['s', 'e0'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e0'], 1, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e0'], 0.3, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e0'], 0.3, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e0'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0'], 2e-3, rtol=0, atol=1e-14)
@@ -273,7 +273,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e1'] == False
     assert_allclose(tt['s', 'e1'], 1., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e1'], 0.5, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e1'], 0.0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e1'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e1'], 0.1, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e1'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e1'], 1e-3, rtol=0, atol=1e-14)
@@ -294,7 +294,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e2'] == False
     assert_allclose(tt['s', 'e2'], 1.5, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e2'], 0.3, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e2'], 0.0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e2'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e2'], 0.3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e2'], 3e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e2'], 4e-3, rtol=0, atol=1e-14)
@@ -315,7 +315,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e3'] == False
     assert_allclose(tt['s', 'e3'], 1.8, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e3'], 0.4, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e3'], 0.0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e3'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e3'], 0.4, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e3'], 5e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e3'], 6e-3, rtol=0, atol=1e-14)
@@ -336,7 +336,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e4'] == False
     assert_allclose(tt['s', 'e4'], 2.2, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e4'], 0.4, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e4'], 0.1, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e4'], 0.1, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e4'], 0.7, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e4'], 5e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e4'], 6e-3, rtol=0, atol=1e-14)
@@ -357,7 +357,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e5'] == False
     assert_allclose(tt['s', 'e5'], 2.2, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e5'], 5.0, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e5'], 0.0, rtol=0, atol=1e-14)
@@ -377,7 +377,7 @@ def test_attr_replicas(test_context, check_expr, use_copy):
     assert tt['isthick', 'e6'] == True
     assert tt['iscollective', 'e6'] == False
     assert_allclose(tt['length', 'e6'], 1, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e6'], 0.3, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e6'], 0.3, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e6'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6'], 2e-3, rtol=0, atol=1e-14)
@@ -433,7 +433,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e0..1'] == False
     assert_allclose(tt['s', 'e0..1'], 2./3., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e0..1'], 1/2, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e0..1'], 0.3/2, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e0..1'], 0.3/2, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e0..1'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..1'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..1'], 2e-3, rtol=0, atol=1e-14)
@@ -454,7 +454,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e0..exit_map'] == False
     assert_allclose(tt['s', 'e0..exit_map'], 1., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e0..exit_map'], 0., rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e0..exit_map'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e0..exit_map'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e0..exit_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..exit_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..exit_map'], 2e-3, rtol=0, atol=1e-14)
@@ -475,7 +475,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e0..entry_map'] == False
     assert_allclose(tt['s', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e0..entry_map'], 0., rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e0..entry_map'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e0..entry_map'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e0..entry_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..entry_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..entry_map'], 2e-3, rtol=0, atol=1e-14)
@@ -496,7 +496,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'drift_e0..1'] == False
     assert_allclose(tt['s', 'drift_e0..1'], 1./3, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'drift_e0..1'], 1/3, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'drift_e0..1'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'drift_e0..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'drift_e0..1'], 0, rtol=0, atol=1e-14)
@@ -517,7 +517,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e1..1'] == False
     assert_allclose(tt['s', 'e1..1'], 1 + .5*2./3., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e1..1'], 0.5*1/2, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e1..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e1..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e1..1'], 0.1, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e1..1'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e1..1'], 1e-3, rtol=0, atol=1e-14)
@@ -538,7 +538,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'drift_e1..1'] == False
     assert_allclose(tt['s', 'drift_e1..1'], 1 + 0.5 * 1./3, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'drift_e1..1'], 0.5 * 1/3, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'drift_e1..1'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'drift_e1..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'drift_e1..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'drift_e1..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'drift_e1..1'], 0, rtol=0, atol=1e-14)
@@ -559,7 +559,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e1_entry'] == False
     assert_allclose(tt['s', 'e1_entry'], 1, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e1_entry'], 0., rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e1_entry'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e1_entry'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e1_entry'], 0, rtol=0, atol=1e-14)
@@ -580,7 +580,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e2..1'] == False
     assert_allclose(tt['s', 'e2..1'], 1.5 + .3*2./3., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e2..1'], 0.3*1/2, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e2..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e2..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e2..1'], 0.3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e2..1'], 3e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e2..1'], 4e-3, rtol=0, atol=1e-14)
@@ -601,7 +601,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'drift_e2..1'] == False
     assert_allclose(tt['s', 'drift_e2..1'], 1.5 + .3*1./3., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'drift_e2..1'], 0.3*1/3, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'drift_e2..1'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'drift_e2..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'drift_e2..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'drift_e2..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'drift_e2..1'], 0, rtol=0, atol=1e-14)
@@ -622,7 +622,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e3..1'] == False
     assert_allclose(tt['s', 'e3..1'], 1.8 + .4*2./3., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e3..1'], 0.4*1/2, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e3..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e3..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e3..1'], 0.4, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e3..1'], 5e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e3..1'], 6e-3, rtol=0, atol=1e-14)
@@ -643,7 +643,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'drift_e3..1'] == False
     assert_allclose(tt['s', 'drift_e3..1'], 1.8 + .4*1./3., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'drift_e3..1'], 0.4*1/3, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'drift_e3..1'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'drift_e3..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'drift_e3..1'], 0, rtol=0, atol=1e-14)
@@ -665,7 +665,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e5'] == False
     assert_allclose(tt['s', 'e5'], 2.2, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e5'], 5.0, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e5'], 0.0, rtol=0, atol=1e-14)
@@ -686,7 +686,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e6..1'] == False
     assert_allclose(tt['s', 'e6..1'], 7.2 + 2./3., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e6..1'], 1/2, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e6..1'], 0.3/2, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e6..1'], 0.3/2, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e6..1'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..1'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..1'], 2e-3, rtol=0, atol=1e-14)
@@ -707,7 +707,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e6..exit_map'] == False
     assert_allclose(tt['s', 'e6..exit_map'], 7.2 + 1., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e6..exit_map'], 0., rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e6..exit_map'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e6..exit_map'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e6..exit_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..exit_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..exit_map'], 2e-3, rtol=0, atol=1e-14)
@@ -728,7 +728,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e6..entry_map'] == False
     assert_allclose(tt['s', 'e6..entry_map'], 7.2, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e6..entry_map'], 0., rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e6..entry_map'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e6..entry_map'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e6..entry_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..entry_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..entry_map'], 2e-3, rtol=0, atol=1e-14)
@@ -749,7 +749,7 @@ def test_attr_thin_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'drift_e6..1'] == False
     assert_allclose(tt['s', 'drift_e6..1'], 7.2 + 1./3, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'drift_e6..1'], 1/3, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'drift_e6..1'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'drift_e6..1'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'drift_e6..1'], 0, rtol=0, atol=1e-14)
@@ -805,7 +805,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e0..1'] == False
     assert_allclose(tt['s', 'e0..1'], 1./2., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e0..1'], 1/2, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e0..1'], 0.3/2, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e0..1'], 0.3/2, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e0..1'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..1'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..1'], 2e-3, rtol=0, atol=1e-14)
@@ -826,7 +826,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e0..exit_map'] == False
     assert_allclose(tt['s', 'e0..exit_map'], 1., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e0..exit_map'], 0., rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e0..exit_map'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e0..exit_map'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e0..exit_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..exit_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..exit_map'], 2e-3, rtol=0, atol=1e-14)
@@ -847,7 +847,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e0..entry_map'] == False
     assert_allclose(tt['s', 'e0..entry_map'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e0..entry_map'], 0., rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e0..entry_map'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e0..entry_map'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e0..entry_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e0..entry_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e0..entry_map'], 2e-3, rtol=0, atol=1e-14)
@@ -868,7 +868,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e1..1'] == False
     assert_allclose(tt['s', 'e1..1'], 1 + .5 / 2, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e1..1'], 0.5*1/2, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e1..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e1..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e1..1'], 0.1, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e1..1'], 2e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e1..1'], 1e-3, rtol=0, atol=1e-14)
@@ -889,7 +889,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e1_entry'] == False
     assert_allclose(tt['s', 'e1_entry'], 1, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e1_entry'], 0., rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e1_entry'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e1_entry'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e1_entry'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e1_entry'], 0, rtol=0, atol=1e-14)
@@ -910,7 +910,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e2..1'] == False
     assert_allclose(tt['s', 'e2..1'], 1.5 + .3 / 2., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e2..1'], 0.3*1/2, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e2..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e2..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e2..1'], 0.3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e2..1'], 3e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e2..1'], 4e-3, rtol=0, atol=1e-14)
@@ -931,7 +931,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e3..1'] == False
     assert_allclose(tt['s', 'e3..1'], 1.8 + .4 /2., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e3..1'], 0.4*1/2, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e3..1'], 0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e3..1'], 0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e3..1'], 0.4, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e3..1'], 5e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e3..1'], 6e-3, rtol=0, atol=1e-14)
@@ -953,7 +953,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e5'] == False
     assert_allclose(tt['s', 'e5'], 2.2, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e5'], 5.0, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e5'], 0.0, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e5'], 0.0, rtol=0, atol=1e-14)
@@ -974,7 +974,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e6..1'] == False
     assert_allclose(tt['s', 'e6..1'], 7.2 + 1./2., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e6..1'], 1/2, rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e6..1'], 0.3/2, rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e6..1'], 0.3/2, rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e6..1'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..1'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..1'], 2e-3, rtol=0, atol=1e-14)
@@ -995,7 +995,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e6..exit_map'] == False
     assert_allclose(tt['s', 'e6..exit_map'], 7.2 + 1., rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e6..exit_map'], 0., rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e6..exit_map'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e6..exit_map'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e6..exit_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..exit_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..exit_map'], 2e-3, rtol=0, atol=1e-14)
@@ -1016,7 +1016,7 @@ def test_attr_thick_slicing(test_context, check_expr, use_copy):
     assert tt['iscollective', 'e6..entry_map'] == False
     assert_allclose(tt['s', 'e6..entry_map'], 7.2 + 0, rtol=0, atol=1e-14)
     assert_allclose(tt['length', 'e6..entry_map'], 0., rtol=0, atol=1e-14)
-    assert_allclose(tt['angle_rad', 'e6..entry_map'], 0., rtol=0, atol=1e-14)
+    assert_allclose(tt['angle', 'e6..entry_map'], 0., rtol=0, atol=1e-14)
     assert_allclose(tt['rot_s_rad', 'e6..entry_map'], 0.2, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_x', 'e6..entry_map'], 1e-3, rtol=0, atol=1e-14)
     assert_allclose(tt['shift_y', 'e6..entry_map'], 2e-3, rtol=0, atol=1e-14)

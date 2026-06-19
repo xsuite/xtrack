@@ -26,7 +26,7 @@ beta0 = line.particle_ref.beta0[0]
 
 dzeta = tw.line_length * df_hz / f_rf
 
-line.append('zeta_shift', xt.ZetaShift(dzeta=dzeta))
+line.append('time_delay', xt.TimeDelay(shift_zeta=dzeta))
 
 tw_6d_offmom = line.twiss()
 
@@ -40,7 +40,7 @@ f0 = 1/tw.t_rev0
 delta_trim = -1/h_rf/eta/f0*df_hz
 
 # Use 4d twiss on machine without zeta shift
-line['zeta_shift'].dzeta = 0
+line['time_delay'].shift_zeta = 0
 tw_on_mom = line.twiss(delta0=0, method='4d')
 tw_off_mom = line.twiss(delta0=delta_trim, method='4d')
 dzeta_from_twiss = (tw_off_mom['zeta'][-1] - tw_off_mom['zeta'][0])

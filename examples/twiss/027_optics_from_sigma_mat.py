@@ -12,8 +12,8 @@ line = xt.load(
     '../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 line.set_particle_ref('proton', p0c=7e12)
 
-line.vv['vrf400'] = 16
-line.vv['kqsx3.l1'] = 3e-6
+line['vrf400'] = 16
+line['kqsx3.l1'] = 3e-6
 
 tw = line.twiss(method='6d')
 

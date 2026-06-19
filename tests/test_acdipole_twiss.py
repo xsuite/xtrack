@@ -25,7 +25,7 @@ def test_ac_dipole_twiss(test_context: Any, qx_shift: float, qy_shift: float):
     line.build_tracker(_context=test_context)
     base_tws = line.twiss(method="4d")
     nat_qx, nat_qy = base_tws["qx"], base_tws["qy"]
-    e5_pos = line.get_s_position("e5")
+    e5_pos = line.get_table()['s', 'e5']
     e5_betx = base_tws.rows["e5"]["betx"].item()
     e5_bety = base_tws.rows["e5"]["bety"].item()
 
@@ -78,7 +78,6 @@ def test_ac_dipole_madng_twiss(test_context: Any, qx_shift: float, qy_shift: flo
     line.build_tracker(_context=test_context)
     base_tws = line.twiss(method="4d")
     nat_qx, nat_qy = base_tws["qx"], base_tws["qy"]
-    e5_pos = line.get_s_position("e5")
     e5_betx = base_tws.rows["e5"]["betx"].item()
     e5_bety = base_tws.rows["e5"]["bety"].item()
 
@@ -99,8 +98,7 @@ def test_ac_dipole_madng_twiss(test_context: Any, qx_shift: float, qy_shift: flo
         twiss_mode=True,
     )
 
-    line.insert("e5_hacd", at=e5_pos)
-    line.insert("e5_vacd", at=e5_pos)
+    line.insert(["e5_vacd", "e5_hacd"], at='e5@start')
 
     line.build_tracker(_context=test_context)
     tws_both = line.twiss(method="4d")

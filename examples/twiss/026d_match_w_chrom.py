@@ -21,9 +21,9 @@ ksfs = ['ksf1.a81b1', 'ksf1.a12b1', 'ksf1.a45b1', 'ksf1.a56b1']
 ksds = ['ksd2.a81b1', 'ksd2.a12b1', 'ksd2.a45b1', 'ksd2.a56b1']
 
 for kk in ksfs:
-    line.vv[kk] = 0.06
+    line[kk] = 0.06
 for kk in ksds:
-    line.vv[kk] = -0.099
+    line[kk] = -0.099
 
 twl = line.twiss()
 

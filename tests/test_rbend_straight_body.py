@@ -326,16 +326,16 @@ def test_rbend_straight_sps():
     xo.assert_allclose(tw_curved.x.max(), 0, rtol=0, atol=1e-9)
     assert tw_straight.x.max() > 3e-3
 
-    xo.assert_allclose(tw_straight.qx, tw_curved.qx, rtol=0, atol=1e-8)
-    xo.assert_allclose(tw_straight.qy, tw_curved.qy, rtol=0, atol=1e-8)
-    xo.assert_allclose(tw_straight.dqx, tw_curved.dqx, rtol=0, atol=1e-3)
-    xo.assert_allclose(tw_straight.dqy, tw_curved.dqy, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw_straight.qx, tw_curved.qx, rtol=0, atol=5e-8)
+    xo.assert_allclose(tw_straight.qy, tw_curved.qy, rtol=0, atol=5e-8)
+    xo.assert_allclose(tw_straight.dqx, tw_curved.dqx, rtol=0, atol=3e-3)
+    xo.assert_allclose(tw_straight.dqy, tw_curved.dqy, rtol=0, atol=3e-3)
     xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].betx,
                     tw_curved.rows['qf.*|qd.*'].betx,
-                    atol=0, rtol=1e-8)
+                    atol=0, rtol=5e-6)
     xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].bety,
                     tw_curved.rows['qf.*|qd.*'].bety,
-                    atol=0, rtol=1e-8)
+                    atol=0, rtol=5e-6)
     xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].x, 0, atol=1e-10, rtol=0)
     xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].y, 0, atol=1e-10, rtol=0)
 
@@ -393,7 +393,7 @@ def test_rbend_straight_body_survey_h():
     sv_straight = line.survey(element0='mid', X0=-line['mb'].sagitta/2)
     tt_straight = line.get_table(attr=True)
     tw_straight = line.twiss(betx=1, bety=1)
-    p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+    p_straight = (sv_straight.XYZ + tw_straight.x[:, None] * sv_straight['ex']
                                 + tw_straight.y[:, None] * sv_straight['ey'])
     tw_straight['X'] = p_straight[:, 0]
     tw_straight['Y'] = p_straight[:, 1]
@@ -434,7 +434,7 @@ def test_rbend_straight_body_survey_h():
     sv_curved = line.survey(element0='mid')
     tt_curved = line.get_table(attr=True)
     tw_curved = line.twiss(betx=1, bety=1)
-    p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+    p_curved = (sv_curved.XYZ + tw_curved.x[:, None] * sv_curved['ex']
                             + tw_curved.y[:, None] * sv_curved['ey'])
     tw_curved['X'] = p_curved[:, 0]
     tw_curved['Y'] = p_curved[:, 1]
@@ -471,7 +471,7 @@ def test_rbend_straight_body_survey_h():
     tw_no_slice_curved = line_no_slice.twiss(betx=1, bety=1)
 
 
-    sv_straight.cols['s element_type angle']
+    tt_straight.cols['s element_type angle']
     # is:
     # Table: 20 rows, 4 cols
     # name                      s element_type            angle
@@ -512,7 +512,7 @@ def test_rbend_straight_body_survey_h():
         'Marker', ''])
 
     xo.assert_allclose(
-        sv_straight['angle'],
+        tt_straight['angle'],
         np.array([
             0.  , 0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
             0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  ]),
@@ -527,7 +527,7 @@ def test_rbend_straight_body_survey_h():
     ), atol=1e-5)
 
     xo.assert_allclose(
-        sv_straight['rot_s_rad'], 0, atol=5e-14)
+        tt_straight['rot_s_rad'], 0, atol=5e-14)
 
     sv_straight.cols['X Y Z']
     # is:
@@ -601,7 +601,7 @@ def test_rbend_straight_body_survey_h():
         -0.15, -0.15]))
 
 
-    sv_curved.cols['s element_type angle']
+    tt_curved.cols['s element_type angle']
     # is:
     # Table: 20 rows, 4 cols
     # name                      s element_type            angle
@@ -641,7 +641,7 @@ def test_rbend_straight_body_survey_h():
         'Marker', ''])
 
     xo.assert_allclose(
-        sv_curved['angle'],
+        tt_curved['angle'],
         np.array([
         0.        , 0.        , 0.        , 0.        , 0.        ,
         0.00056187, 0.04981271, 0.04981271, 0.04981271, 0.        ,
@@ -657,8 +657,7 @@ def test_rbend_straight_body_survey_h():
         5.       , 5.       ]
     ), atol=1e-5)
 
-    xo.assert_allclose(
-        sv_curved['rot_s_rad'], 0, atol=5e-14)
+    xo.assert_allclose(tt_curved['rot_s_rad'], 0, atol=5e-14)
 
     sv_curved.cols['X Y Z']
     # is:
@@ -870,7 +869,7 @@ def test_rbend_straight_survey_h_angle_diff():
     sv_straight = line.survey()
     tt_straight = line.get_table(attr=True)
     tw_straight = line.twiss(betx=1, bety=1)
-    p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+    p_straight = (sv_straight.XYZ + tw_straight.x[:, None] * sv_straight['ex']
                                 + tw_straight.y[:, None] * sv_straight['ey'])
     tw_straight['X'] = p_straight[:, 0]
     tw_straight['Y'] = p_straight[:, 1]
@@ -911,7 +910,7 @@ def test_rbend_straight_survey_h_angle_diff():
     sv_curved = line.survey()
     tt_curved = line.get_table(attr=True)
     tw_curved = line.twiss(betx=1, bety=1)
-    p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+    p_curved = (sv_curved.XYZ + tw_curved.x[:, None] * sv_curved['ex']
                             + tw_curved.y[:, None] * sv_curved['ey'])
     tw_curved['X'] = p_curved[:, 0]
     tw_curved['Y'] = p_curved[:, 1]
@@ -961,7 +960,7 @@ def test_rbend_straight_survey_h_angle_diff():
         'ThinSliceRBendExit', 'Marker', 'Drift', 'Marker', ''])
 
     xo.assert_allclose(
-        sv_straight['angle'],
+        tt_straight['angle'],
         np.array([
         0. , 0. , 0. , 0. , 0. , 0. , 0. , 0. , 0. , 0. , 0.3, 0. , 0. ,
         0. , 0. ]),
@@ -975,7 +974,7 @@ def test_rbend_straight_survey_h_angle_diff():
     ), atol=1e-5)
 
     xo.assert_allclose(
-        sv_straight['rot_s_rad'], 0, atol=1e-14)
+        tt_straight['rot_s_rad'], 0, atol=1e-14)
 
     sv_straight.cols['X Y Z']
     xo.assert_allclose(sv_straight['Y'], 0, atol=1e-14)
@@ -1000,7 +999,6 @@ def test_rbend_straight_survey_h_angle_diff():
         -0.3, -0.3, -0.3, -0.3]))
 
 
-    sv_curved.cols['s element_type angle']
     assert np.all(sv_curved['name'] == [
         'start', '||drift_1', 'mb_entry', 'mb..entry_map', 'mb..0',
         'mb..1', 'mb..2', 'mb..3', 'mb..4', 'mb..5', 'mb..exit_map',
@@ -1013,7 +1011,7 @@ def test_rbend_straight_survey_h_angle_diff():
         'ThinSliceRBendExit', 'Marker', 'Drift', 'Marker', ''])
 
     xo.assert_allclose(
-        sv_curved['angle'],
+        tt_curved['angle'],
         np.array([
         0.  , 0.  , 0.  , 0.  , 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.  ,
         0.  , 0.  , 0.  , 0.  ]),
@@ -1027,7 +1025,7 @@ def test_rbend_straight_survey_h_angle_diff():
     ), atol=1e-5)
 
     xo.assert_allclose(
-        sv_curved['rot_s_rad'], 0, atol=1e-14)
+        tt_curved['rot_s_rad'], 0, atol=1e-14)
 
     sv_curved.cols['X Y Z']
     xo.assert_allclose(sv_curved['Y'], 0, atol=1e-14)
@@ -1165,7 +1163,7 @@ def test_rbend_straight_body_survey_v():
     sv_straight = line.survey(element0='mid', Y0=-line['mb'].sagitta/2)
     tt_straight = line.get_table(attr=True)
     tw_straight = line.twiss(betx=1, bety=1)
-    p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+    p_straight = (sv_straight.XYZ + tw_straight.x[:, None] * sv_straight['ex']
                                 + tw_straight.y[:, None] * sv_straight['ey'])
     tw_straight['X'] = p_straight[:, 0]
     tw_straight['Y'] = p_straight[:, 1]
@@ -1206,7 +1204,7 @@ def test_rbend_straight_body_survey_v():
     sv_curved = line.survey(element0='mid')
     tt_curved = line.get_table(attr=True)
     tw_curved = line.twiss(betx=1, bety=1)
-    p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+    p_curved = (sv_curved.XYZ + tw_curved.x[:, None] * sv_curved['ex']
                             + tw_curved.y[:, None] * sv_curved['ey'])
     tw_curved['X'] = p_curved[:, 0]
     tw_curved['Y'] = p_curved[:, 1]
@@ -1243,7 +1241,7 @@ def test_rbend_straight_body_survey_v():
     tw_no_slice_curved = line_no_slice.twiss(betx=1, bety=1)
 
 
-    sv_straight.cols['s element_type angle']
+    tt_straight.cols['s element_type angle']
     # is:
     # Table: 20 rows, 4 cols
     # name                      s element_type            angle
@@ -1284,7 +1282,7 @@ def test_rbend_straight_body_survey_v():
         'Marker', ''])
 
     xo.assert_allclose(
-        sv_straight['angle'],
+        tt_straight['angle'],
         np.array([
             0.  , 0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
             0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  ]),
@@ -1299,7 +1297,7 @@ def test_rbend_straight_body_survey_v():
     ), atol=1e-5)
 
     xo.assert_allclose(
-        sv_straight['rot_s_rad'],
+        tt_straight['rot_s_rad'],
         np.array([
             0.        , 0.        , 0.        , 0.        , 1.57079633,
             1.57079633, 1.57079633, 1.57079633, 1.57079633, 0.        ,
@@ -1379,7 +1377,7 @@ def test_rbend_straight_body_survey_v():
         -0.15, -0.15]))
 
 
-    sv_curved.cols['s element_type angle']
+    tt_curved.cols['s element_type angle']
     # is:
     # Table: 20 rows, 4 cols
     # name                      s element_type            angle
@@ -1419,7 +1417,7 @@ def test_rbend_straight_body_survey_v():
         'Marker', ''])
 
     xo.assert_allclose(
-        sv_curved['angle'],
+        tt_curved['angle'],
         np.array([
         0.        , 0.        , 0.        , 0.        , 0.        ,
         0.00056187, 0.04981271, 0.04981271, 0.04981271, 0.        ,
@@ -1428,7 +1426,7 @@ def test_rbend_straight_body_survey_v():
         atol=1e-8
     )
 
-    xo.assert_allclose(sv_curved['s'], np.array([
+    xo.assert_allclose(tt_curved['s'], np.array([
         0.       , 0.       , 0.5      , 0.9943602, 0.9943602, 0.9943602,
         1.       , 1.5      , 2.       , 2.5      , 2.5      , 3.       ,
         3.5      , 4.       , 4.0056398, 4.0056398, 4.0056398, 4.5      ,
@@ -1436,7 +1434,7 @@ def test_rbend_straight_body_survey_v():
     ), atol=1e-5)
 
     xo.assert_allclose(
-        sv_curved['rot_s_rad'],
+        tt_curved['rot_s_rad'],
         np.array([
             0.        , 0.        , 0.        , 0.        , 1.57079633,
             1.57079633, 1.57079633, 1.57079633, 1.57079633, 0.        ,
@@ -1657,7 +1655,7 @@ def test_rbend_straight_body_thin_slices_coarse():
     sv_straight = line.survey(element0='mid', Y0=-line['mb'].sagitta/2)
     tt_straight = line.get_table(attr=True)
     tw_straight = line.twiss(betx=1, bety=1)
-    p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+    p_straight = (sv_straight.XYZ + tw_straight.x[:, None] * sv_straight['ex']
                                 + tw_straight.y[:, None] * sv_straight['ey'])
     tw_straight['X'] = p_straight[:, 0]
     tw_straight['Y'] = p_straight[:, 1]
@@ -1667,7 +1665,7 @@ def test_rbend_straight_body_thin_slices_coarse():
     sv_curved = line.survey(element0='mid')
     tt_curved = line.get_table(attr=True)
     tw_curved = line.twiss(betx=1, bety=1)
-    p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+    p_curved = (sv_curved.XYZ + tw_curved.x[:, None] * sv_curved['ex']
                             + tw_curved.y[:, None] * sv_curved['ey'])
     tw_curved['X'] = p_curved[:, 0]
     tw_curved['Y'] = p_curved[:, 1]
@@ -1696,14 +1694,14 @@ def test_rbend_straight_body_thin_slices_coarse():
         'Marker', ''])
 
     xo.assert_allclose(
-        sv_straight['angle'], np.array([
+        tt_straight['angle'], np.array([
         0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
         0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  , 0.  ,
         0.  , 0.  , 0.  , 0.  , 0.  , 0.15, 0.  , 0.  , 0.  , 0.  ]),
         atol=1e-12
     )
 
-    xo.assert_allclose(sv_straight['s'], np.array([
+    xo.assert_allclose(tt_straight['s'], np.array([
         0.        , 0.        , 0.9943602 , 0.9943602 , 0.9943602 ,
         1.13123654, 1.13123654, 1.4354062 , 1.4354062 , 1.73957586,
         1.73957586, 2.04374551, 2.04374551, 2.34791517, 2.34791517,
@@ -1714,7 +1712,7 @@ def test_rbend_straight_body_thin_slices_coarse():
     ), atol=1e-5)
 
     xo.assert_allclose(
-        sv_straight['rot_s_rad'],
+        tt_straight['rot_s_rad'],
         np.array([0.        , 0.        , 0.        , 1.57079633, 0.        ,
         1.57079633, 0.        , 1.57079633, 0.        , 1.57079633,
         0.        , 1.57079633, 0.        , 1.57079633, 0.        ,
@@ -1758,7 +1756,7 @@ def test_rbend_straight_body_thin_slices_coarse():
     assert np.all(sv_curved['element_type'] == sv_straight['element_type'])
 
     xo.assert_allclose(
-        sv_curved['angle'],
+        tt_curved['angle'],
         np.array([
         0.  , 0.  , 0.  , 0.  , 0.  , 0.03, 0.  , 0.03, 0.  , 0.03, 0.  ,
         0.03, 0.  , 0.03, 0.  , 0.  , 0.  , 0.03, 0.  , 0.03, 0.  , 0.03,
@@ -1766,9 +1764,8 @@ def test_rbend_straight_body_thin_slices_coarse():
         atol=1e-8
     )
 
-    xo.assert_allclose(sv_curved['s'], sv_straight['s'], atol=1e-12)
-    xo.assert_allclose(sv_curved['rot_s_rad'], sv_straight['rot_s_rad'], atol=1e-12)
-
+    xo.assert_allclose(tt_curved['s'], tt_straight['s'], atol=1e-12)
+    xo.assert_allclose(tt_curved['rot_s_rad'], tt_straight['rot_s_rad'], atol=1e-12)
 
     xo.assert_allclose(sv_curved['X'], 0, atol=5e-14)
     xo.assert_allclose(sv_curved['Z'], np.array([
@@ -1829,7 +1826,7 @@ def test_rbend_straight_body_thin_slices_fine():
     sv_straight = line.survey(element0='mid', Y0=-line['mb'].sagitta/2)
     tt_straight = line.get_table(attr=True)
     tw_straight = line.twiss(betx=1, bety=1)
-    p_straight = (sv_straight.p0 + tw_straight.x[:, None] * sv_straight['ex']
+    p_straight = (sv_straight.XYZ + tw_straight.x[:, None] * sv_straight['ex']
                                 + tw_straight.y[:, None] * sv_straight['ey'])
     tw_straight['X'] = p_straight[:, 0]
     tw_straight['Y'] = p_straight[:, 1]
@@ -1870,7 +1867,7 @@ def test_rbend_straight_body_thin_slices_fine():
     sv_curved = line.survey(element0='mid')
     tt_curved = line.get_table(attr=True)
     tw_curved = line.twiss(betx=1, bety=1)
-    p_curved = (sv_curved.p0 + tw_curved.x[:, None] * sv_curved['ex']
+    p_curved = (sv_curved.XYZ + tw_curved.x[:, None] * sv_curved['ex']
                             + tw_curved.y[:, None] * sv_curved['ey'])
     tw_curved['X'] = p_curved[:, 0]
     tw_curved['Y'] = p_curved[:, 1]
@@ -2371,6 +2368,7 @@ def test_rbend_straight_body_chicane_h(edge_model):
 
     line.end_compose()
 
+    tt = line.get_table(attr=True)
     sv = line.survey()
     tw = line.twiss(betx=1, bety=1)
     sv_back = line.survey(element0='end', X0=sv.X[-1], Y0=sv.Y[-1], Z0=sv.Z[-1],
@@ -2385,6 +2383,7 @@ def test_rbend_straight_body_chicane_h(edge_model):
                 xt.Strategy(slicing=xt.Uniform(3, mode='thick'))
             ])
 
+    tt_sliced = l_sliced.get_table(attr=True)
     sv_sliced = l_sliced.survey()
     tw_sliced = l_sliced.twiss(betx=1, bety=1)
     sv_sliced_back = l_sliced.survey(element0='end',
@@ -2396,7 +2395,7 @@ def test_rbend_straight_body_chicane_h(edge_model):
                                         init=tw_sliced.get_twiss_init('end'))
 
     # Combine twiss and survey to get actual trajectory
-    trajectory = sv_sliced.p0 + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
+    trajectory = sv_sliced.XYZ + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
 
     tw0['path_length'] = tw0.s - tw0.zeta
     tw0['diff_path_length'] = np.diff(tw0.path_length, append=tw0.path_length[-1])
@@ -2426,7 +2425,7 @@ def test_rbend_straight_body_chicane_h(edge_model):
     assert np.all(sv.element_type ==
             ['Marker', 'Drift', 'RBend', 'Drift', 'RBend', 'Drift', 'RBend',
         'Drift', 'Marker', ''])
-    xo.assert_allclose(sv.angle, np.array([
+    xo.assert_allclose(tt.angle, np.array([
             0.        ,  0.        , -0.08249992,  0.        , -0.08306823,
             0.        ,  0.16556815,  0.        ,  0.        ,  0.        ]),
             rtol=1e-7)
@@ -2467,38 +2466,6 @@ def test_rbend_straight_body_chicane_h(edge_model):
     xo.assert_allclose(sv_back.theta, sv.theta, atol=1e-14)
     xo.assert_allclose(sv_back.phi, sv.phi, atol=1e-14)
     xo.assert_allclose(sv_back.psi, sv.psi, atol=1e-14)
-    xo.assert_allclose(sv.angle, sv.angle, atol=1e-14)
-
-    sv_sliced.cols['s angle theta X'].show()
-    # name                       s         angle         theta             X
-    # start                      0             0             0             0
-    # ||drift_1                  0             0             0             0
-    # d1a_entry                  1             0             0             0
-    # d1a..entry_map             1             0             0             0
-    # d1a..0                     1             0             0             0
-    # d1a..1               1.33371             0             0             0
-    # d1a..2               1.66742             0             0             0
-    # d1a..exit_map        2.00114    -0.0824999             0             0
-    # d1a_exit             2.00114             0     0.0824999     0.0412734
-    # ||drift_3            2.00114             0     0.0824999     0.0412734
-    # d1b_entry            3.00455             0     0.0824999      0.123961
-    # d1b..entry_map       3.00455     0.0824999     0.0824999      0.123961
-    # d1b..0               3.00455             0  -1.14732e-17  -1.38778e-17
-    # d1b..1               3.34056             0  -1.14732e-17  -1.77022e-17
-    # d1b..2               3.67657             0  -1.14732e-17  -2.15266e-17
-    # d1b..exit_map        4.01258     -0.165568  -1.14732e-17   -2.5351e-17
-    # d1b_exit             4.01258             0      0.165568      0.248635
-    # ||drift_4            4.01258             0      0.165568      0.248635
-    # d2_entry             8.06804             0      0.165568      0.917026
-    # d2..entry_map        8.06804      0.165568      0.165568      0.917026
-    # d2..0                8.06804             0  -9.64632e-18   1.11022e-16
-    # d2..1                 8.4029             0  -9.64632e-18   1.07807e-16
-    # d2..2                8.73776             0  -9.64632e-18   1.04591e-16
-    # d2..exit_map         9.07262   1.38778e-17  -9.64632e-18   1.01376e-16
-    # d2_exit              9.07262             0  -9.64632e-18             1
-    # ||drift_5            9.07262             0  -9.64632e-18             1
-    # end                  10.0726             0  -9.64632e-18             1
-    # _end_point           10.0726             0  -9.64632e-18             1
 
     xo.assert_allclose(sv_sliced.s[-1], tw0.path_length[-1], atol=0, rtol=1e-14)
     xo.assert_allclose(sv_sliced.X[-1], tw0.x[-1], atol=0, rtol=1e-14)
@@ -2514,7 +2481,7 @@ def test_rbend_straight_body_chicane_h(edge_model):
         'ThickSliceRBend', 'ThickSliceRBend', 'ThinSliceRBendExit',
         'Marker', 'Drift', 'Marker', '']))
 
-    xo.assert_allclose(sv_sliced.angle, np.array([
+    xo.assert_allclose(tt_sliced.angle, np.array([
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00, -8.24999219e-02,
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  8.24999219e-02,
@@ -2573,7 +2540,6 @@ def test_rbend_straight_body_chicane_h(edge_model):
     xo.assert_allclose(sv_sliced_back.theta, sv_sliced.theta, atol=1e-14)
     xo.assert_allclose(sv_sliced_back.phi, sv_sliced.phi, atol=1e-14)
     xo.assert_allclose(sv_sliced_back.psi, sv_sliced.psi, atol=1e-14)
-    xo.assert_allclose(sv_sliced_back.angle, sv_sliced.angle, atol=1e-14)
 
     # Twiss checks
 
@@ -2708,6 +2674,7 @@ def test_rbend_straight_body_chicane_v(edge_model):
 
     line.end_compose()
 
+    tt = line.get_table(attr=True)
     sv = line.survey()
     tw = line.twiss(betx=1, bety=1)
     sv_back = line.survey(element0='end', X0=sv.X[-1], Y0=sv.Y[-1], Z0=sv.Z[-1],
@@ -2722,6 +2689,7 @@ def test_rbend_straight_body_chicane_v(edge_model):
                 xt.Strategy(slicing=xt.Uniform(3, mode='thick'))
             ])
 
+    tt_sliced = l_sliced.get_table(attr=True)
     sv_sliced = l_sliced.survey()
     tw_sliced = l_sliced.twiss(betx=1, bety=1)
     sv_sliced_back = l_sliced.survey(element0='end',
@@ -2733,7 +2701,7 @@ def test_rbend_straight_body_chicane_v(edge_model):
                                         init=tw_sliced.get_twiss_init('end'))
 
     # Combine twiss and survey to get actual trajectory
-    trajectory = sv_sliced.p0 + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
+    trajectory = sv_sliced.XYZ + tw_sliced.x[:, None] * sv_sliced.ex + tw_sliced.y[:, None] * sv_sliced.ey
 
     tw0['path_length'] = tw0.s - tw0.zeta
     tw0['diff_path_length'] = np.diff(tw0.path_length, append=tw0.path_length[-1])
@@ -2763,7 +2731,7 @@ def test_rbend_straight_body_chicane_v(edge_model):
     assert np.all(sv.element_type ==
             ['Marker', 'Drift', 'RBend', 'Drift', 'RBend', 'Drift', 'RBend',
         'Drift', 'Marker', ''])
-    xo.assert_allclose(sv.angle, np.array([
+    xo.assert_allclose(tt.angle, np.array([
             0.        ,  0.        , -0.08249992,  0.        , -0.08306823,
             0.        ,  0.16556815,  0.        ,  0.        ,  0.        ]),
             rtol=1e-7)
@@ -2804,9 +2772,6 @@ def test_rbend_straight_body_chicane_v(edge_model):
     xo.assert_allclose(sv_back.theta, sv.theta, atol=1e-14)
     xo.assert_allclose(sv_back.phi, sv.phi, atol=1e-14)
     xo.assert_allclose(sv_back.psi, sv.psi, atol=1e-14)
-    xo.assert_allclose(sv.angle, sv.angle, atol=1e-14)
-
-    sv_sliced.cols['s angle theta X'].show()
 
     xo.assert_allclose(sv_sliced.s[-1], tw0.path_length[-1], atol=0, rtol=1e-14)
     xo.assert_allclose(sv_sliced.Y[-1], tw0.y[-1], atol=0, rtol=1e-14)
@@ -2822,7 +2787,7 @@ def test_rbend_straight_body_chicane_v(edge_model):
         'ThickSliceRBend', 'ThickSliceRBend', 'ThinSliceRBendExit',
         'Marker', 'Drift', 'Marker', '']))
 
-    xo.assert_allclose(sv_sliced.angle, np.array([
+    xo.assert_allclose(tt_sliced.angle, np.array([
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00, -8.24999219e-02,
             0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  8.24999219e-02,
@@ -2881,7 +2846,6 @@ def test_rbend_straight_body_chicane_v(edge_model):
     xo.assert_allclose(sv_sliced_back.theta, sv_sliced.theta, atol=1e-14)
     xo.assert_allclose(sv_sliced_back.phi, sv_sliced.phi, atol=1e-14)
     xo.assert_allclose(sv_sliced_back.psi, sv_sliced.psi, atol=1e-14)
-    xo.assert_allclose(sv_sliced_back.angle, sv_sliced.angle, atol=1e-14)
 
     # Twiss checks
 

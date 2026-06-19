@@ -175,8 +175,8 @@ class RFMultipole(Element):
     """
     H= -l sum   Re[ (kn[n](zeta) + i ks[n](zeta) ) (x+iy)**(n+1)/ n ]
 
-    kn[n](z) = k_n cos(2pi w tau + pn/180*pi)
-    ks[n](z) = k_n cos(2pi w tau + pn/180*pi)
+    kn[n](z) = k_n cos(2pi w tau + pn/180*pi + phase_n)
+    ks[n](z) = k_n cos(2pi w tau + ps/180*pi + phase_s)
 
     """
 
@@ -184,15 +184,22 @@ class RFMultipole(Element):
         ("voltage", "volt", "Voltage", 0),
         ("frequency", "hertz", "Frequency", 0),
         ("lag", "degree", "Delay in the cavity sin(lag - w tau)", 0),
+        ("phase", "rad", "Phase of the cavity", 0),
         ("knl", "", "...", lambda: [0]),
         ("ksl", "", "...", lambda: [0]),
         ("pn", "", "...", lambda: [0]),
         ("ps", "", "...", lambda: [0]),
+        ("phase_n", "rad", "...", lambda: [0]),
+        ("phase_s", "rad", "...", lambda: [0]),
     ]
 
     @property
     def order(self):
-        return max(len(self.knl), len(self.ksl)) - 1
+        return max(
+            len(self.knl), len(self.ksl),
+            len(self.pn), len(self.ps),
+            len(self.phase_n), len(self.phase_s),
+        ) - 1
 
     def track(self, p):
         sin = p._m.sin
@@ -207,6 +214,8 @@ class RFMultipole(Element):
         ksl = _arrayofsize(self.ksl, order + 1)
         pn = _arrayofsize(self.pn, order + 1) * deg2rad
         ps = _arrayofsize(self.ps, order + 1) * deg2rad
+        phase_n = _arrayofsize(self.phase_n, order + 1)
+        phase_s = _arrayofsize(self.phase_s, order + 1)
         x = p.x
         y = p.y
         dpx = 0
@@ -215,8 +224,8 @@ class RFMultipole(Element):
         zre = 1
         zim = 0
         for ii in range(order + 1):
-            pn_ii = pn[ii] - ktau
-            ps_ii = ps[ii] - ktau
+            pn_ii = pn[ii] + phase_n[ii] - ktau
+            ps_ii = ps[ii] + phase_s[ii] - ktau
             cn = cos(pn_ii)
             sn = sin(pn_ii)
             cs = cos(ps_ii)
@@ -238,7 +247,7 @@ class RFMultipole(Element):
         chi = p.chi
         p.px += -chi * dpx
         p.py += chi * dpy
-        dv0 = self.voltage * sin(self.lag * deg2rad - ktau)
+        dv0 = self.voltage * sin(self.phase + self.lag * deg2rad - ktau)
         p.add_to_energy(p.charge_ratio * p.q0 * (dv0 - p.p0c * k * dptr))
 
 
@@ -291,8 +300,17 @@ class XYShift(Element):
         p.x -= self.dx
         p.y -= self.dy
 
+class Translation(Element):
+    """shift of the reference"""
 
+    _description = [
+        ("shift_x", "m", "Horizontal shift", 0),
+        ("shift_y", "m", "Vertical shift", 0),
+    ]
 
+    def track(self, p):
+        p.x -= self.shift_x
+        p.y -= self.shift_y
 
 class Elens(Element):
     """Hollow Electron Lens"""
@@ -656,6 +674,24 @@ class SRotation(Element):
         p.px = xn
         p.py = yn
 
+class Rotation(Element):
+    """Rotation of the reference frame"""
+
+    _description = [
+        ("rot_s_rad", "rad", "Rotation angle around s axis (positive y to x)", 0)
+    ]
+
+    def track(self, p):
+        cz = p._m.cos(self.rot_s_rad)
+        sz = p._m.sin(self.rot_s_rad)
+        xn = cz * p.x + sz * p.y
+        yn = -sz * p.x + cz * p.y
+        p.x = xn
+        p.y = yn
+        xn = cz * p.px + sz * p.py
+        yn = -sz * p.px + cz * p.py
+        p.px = xn
+        p.py = yn
 
 class LimitRect(Element):
     _description = [

@@ -31,7 +31,7 @@ beta0 = line.particle_ref.beta0[0]
 dzeta = tw0.line_length * df_hz / f_rf
 
 # Append delay element to the line
-line.append('zeta_shift', xt.ZetaShift(dzeta=dzeta))
+line.append('time_delay', xt.TimeDelay(shift_zeta=dzeta))
 
 # Twiss
 tw1 = line.twiss()
@@ -63,9 +63,9 @@ plt.close('all')
 plt.figure()
 plt.plot(mon.zeta[:, :].T, mon.delta[:, :].T * 1e4, color='C0')
 plt.xlabel(r'$\zeta$ [m]')
-plt.ylabel('$\delta$ [$10^{-4}$]')
+plt.ylabel(r'$\delta$ [$10^{-4}$]')
 plt.xlim(-.8, .8)
 plt.ylim(delta_expected * 1e4 - 4, delta_expected * 1e4 + 4)
 plt.axhline(delta_expected * 1e4, color='r', linestyle='--',
-            label='$\delta$ expected')
+            label=r'$\delta$ expected')
 plt.show()

@@ -1,5 +1,5 @@
 import numpy as np
-def compute_rdt(r11, r12, r21, r22, betx, bety, alfx, alfy):
+def get_rdt(r11, r12, r21, r22, betx, bety, alfx, alfy):
 
     '''
     Developed by CERN OMC team.

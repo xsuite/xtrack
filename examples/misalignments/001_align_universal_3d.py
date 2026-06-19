@@ -75,11 +75,11 @@ theta0, phi0, psi0 = p1.get_theta_phi_psi()
 
 line = xt.Line(
     elements=[
-        xt.XYShift(dx=p1.x, dy=p1.y),
+        xt.Translation(shift_x=p1.x, shift_y=p1.y),
         xt.DriftExact(length=p1.z),
-        xt.YRotation(angle=np.rad2deg(theta0)),
-        xt.XRotation(angle=np.rad2deg(-phi0)),  # angle flip, unsure why
-        xt.SRotation(angle=np.rad2deg(psi0)),
+        xt.Rotation(rot_y_rad=theta0),
+        xt.Rotation(rot_x_rad=-phi0),
+        xt.Rotation(rot_s_rad=psi0),
     ]
 )
 
@@ -92,11 +92,11 @@ theta1, phi1, psi1 = dr.get_theta_phi_psi()
 
 line3 = xt.Line(
     elements=[
-        xt.XYShift(dx=dr.x, dy=dr.y),
+        xt.Translation(shift_x=dr.x, shift_y=dr.y),
         xt.DriftExact(length=dr.z),
-        xt.YRotation(angle=np.rad2deg(theta1)),
-        xt.XRotation(angle=np.rad2deg(-phi1)),  # angle flip, unsure why
-        xt.SRotation(angle=np.rad2deg(psi1)),
+        xt.Rotation(rot_y_rad=theta1),
+        xt.Rotation(rot_x_rad=-phi1),
+        xt.Rotation(rot_s_rad=psi1),
     ]
 )
 

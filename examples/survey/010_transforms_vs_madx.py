@@ -78,7 +78,7 @@ line.configure_drift_model(model='exact')
 sv = line.survey()
 tw = line.twiss(betx=1, bety=1, x=1e-3, y=2e-3)
 
-p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.p0
+p = tw.x[:, None] * sv.ex + tw.y[:, None] * sv.ey + sv.XYZ
 X = p[:, 0]
 Y = p[:, 1]
 Z = p[:, 2]

@@ -6,6 +6,7 @@
 import numpy as np
 import pytest
 import pathlib
+import warnings
 from cpymad.madx import Madx
 from scipy.stats import linregress
 from scipy import constants as cst
@@ -29,11 +30,9 @@ def test_constructor(test_context):
         xt.Multipole(_context=test_context, knl=[2, 3]),
         xt.RFMultipole(_context=test_context, knl=[2]),
         xt.Cavity(_context=test_context, voltage=3.),
-        xt.SRotation(_context=test_context, angle=0),
-        xt.XRotation(_context=test_context, angle=0),
-        xt.YRotation(_context=test_context, angle=0),
-        xt.ZetaShift(_context=test_context, dzeta=3E-4),
-        xt.XYShift(_context=test_context, dx=1),
+        xt.Rotation(_context=test_context, rot_s_rad=0),
+        xt.TimeDelay(_context=test_context, shift_zeta=3E-4),
+        xt.Translation(_context=test_context, shift_x=1),
         xt.DipoleEdge(_context=test_context, h=1),
         xt.LimitRect(_context=test_context, min_x=5),
         xt.LimitRectEllipse(_context=test_context, max_x=6),
@@ -65,6 +64,155 @@ def test_constructor(test_context):
                     nee._xobject._offset:nee._xobject._size]).sum() == 0
 
 
+def test_rfmultipole_phase_n_s_and_deprecated_pn_ps_warnings():
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter('always')
+        rfm = xt.RFMultipole(
+            knl=[1],
+            phase=0.3,
+            phase_n=[0.1],
+            phase_s=[0.2],
+        )
+    assert len(record) == 0
+    xo.assert_allclose(rfm.phase, 0.3)
+    xo.assert_allclose(rfm.phase_n[0], 0.1)
+    xo.assert_allclose(rfm.phase_s[0], 0.2)
+
+    rfm_dict = rfm.to_dict()
+    assert 'phase' in rfm_dict
+    assert 'phase_n' in rfm_dict
+    assert 'phase_s' in rfm_dict
+    xo.assert_allclose(rfm_dict['phase'], 0.3)
+    xo.assert_allclose(rfm_dict['phase_n'][0], 0.1)
+    xo.assert_allclose(rfm_dict['phase_s'][0], 0.2)
+
+    rfm_from_dict = xt.RFMultipole.from_dict(rfm_dict)
+    xo.assert_allclose(rfm_from_dict.phase, 0.3)
+    xo.assert_allclose(rfm_from_dict.phase_n[0], 0.1)
+    xo.assert_allclose(rfm_from_dict.phase_s[0], 0.2)
+
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter('always')
+        xt.RFMultipole(knl=[1], pn=[0], ps=[0])
+    assert len(record) == 0
+
+    with pytest.warns(FutureWarning, match='`pn`'):
+        rfm = xt.RFMultipole(knl=[1], pn=[1])
+
+    with pytest.warns(FutureWarning, match='`ps`'):
+        rfm.ps[0] = 1
+
+    with pytest.warns(FutureWarning, match='`pn`'):
+        rfm.pn = [0, 2, 0, 0, 0, 0]
+
+    with pytest.warns(FutureWarning, match='`lag`'):
+        rfm = xt.RFMultipole(knl=[1], lag=1)
+
+    with pytest.warns(FutureWarning, match='`lag`'):
+        rfm.lag = 2
+
+
+@pytest.mark.parametrize('phase_arg', ['pn', 'ps', 'phase_n', 'phase_s'])
+def test_rf_phase_arguments_are_rejected_on_non_rf_multipoles(phase_arg):
+    with pytest.raises(NameError, match=phase_arg):
+        xt.Multipole(knl=[1], **{phase_arg: [0]})
+
+
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+def test_rfmultipole_phase_n_s_are_summed_with_pn_ps_in_tracking():
+    ctx = xo.ContextCpu()
+
+    knl = [0.1, 0.2]
+    ksl = [-0.15, 0.05]
+    pn = np.array([10., 20.])
+    ps = np.array([30., 40.])
+    phase_n = np.array([0.11, 0.22])
+    phase_s = np.array([0.33, 0.44])
+
+    elem_new = xt.RFMultipole(
+        _context=ctx,
+        knl=knl,
+        ksl=ksl,
+        pn=pn,
+        ps=ps,
+        phase_n=phase_n,
+        phase_s=phase_s,
+        frequency=400e6,
+    )
+    elem_ref = xt.RFMultipole(
+        _context=ctx,
+        knl=knl,
+        ksl=ksl,
+        pn=pn + np.rad2deg(phase_n),
+        ps=ps + np.rad2deg(phase_s),
+        frequency=400e6,
+    )
+
+    particles = xp.Particles(
+        _context=ctx,
+        p0c=1e9,
+        x=[1e-3],
+        px=[2e-5],
+        y=[-2e-3],
+        py=[-3e-5],
+        zeta=[0.02],
+    )
+
+    line_new = xt.Line(elements=[elem_new])
+    line_ref = xt.Line(elements=[elem_ref])
+    line_new.build_tracker(_context=ctx)
+    line_ref.build_tracker(_context=ctx)
+
+    p_new = particles.copy()
+    p_ref = particles.copy()
+    line_new.track(p_new)
+    line_ref.track(p_ref)
+
+    for nn in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
+        xo.assert_allclose(getattr(p_new, nn), getattr(p_ref, nn),
+                           rtol=1e-14, atol=1e-14)
+
+
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+def test_rfmultipole_phase_is_summed_with_lag_in_tracking():
+    ctx = xo.ContextCpu()
+    phase = 0.23
+
+    elem_phase = xt.RFMultipole(
+        _context=ctx,
+        knl=[0],
+        voltage=1000,
+        frequency=400e6,
+        phase=phase,
+    )
+    elem_lag = xt.RFMultipole(
+        _context=ctx,
+        knl=[0],
+        voltage=1000,
+        frequency=400e6,
+        lag=np.rad2deg(phase),
+    )
+
+    particles = xp.Particles(
+        _context=ctx,
+        p0c=1e9,
+        zeta=[0.02],
+    )
+
+    line_phase = xt.Line(elements=[elem_phase])
+    line_lag = xt.Line(elements=[elem_lag])
+    line_phase.build_tracker(_context=ctx)
+    line_lag.build_tracker(_context=ctx)
+
+    p_phase = particles.copy()
+    p_lag = particles.copy()
+    line_phase.track(p_phase)
+    line_lag.track(p_lag)
+
+    xo.assert_allclose(p_phase.delta, p_lag.delta, rtol=1e-14, atol=1e-14)
+
+
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @pytest.mark.parametrize(
     'element_cls,args',
     [
@@ -81,6 +229,166 @@ def test_constructor(test_context):
 def test_rotations_constructors_on_inconsistent_input(element_cls, args):
     with pytest.raises(ValueError):
         element_cls(**args)
+
+
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+def test_rotation_against_legacy_rotations():
+    rot = xt.Rotation(rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3)
+    assert rot.seq == 'yxs'
+    assert rot._first_rot == 1
+    assert rot._second_rot == 0
+    assert rot._third_rot == 2
+
+    rot.seq = 'sxy'
+    assert rot._first_rot == 2
+    assert rot._second_rot == 0
+    assert rot._third_rot == 1
+    assert rot.seq == 'sxy'
+
+    dct = rot.to_dict()
+    assert set(dct.keys()) == {
+        '__class__', 'rot_s_rad', 'rot_x_rad', 'rot_y_rad', 'seq'}
+    rot2 = xt.Rotation.from_dict(dct)
+    assert rot2.rot_s_rad == rot.rot_s_rad
+    assert rot2.rot_x_rad == rot.rot_x_rad
+    assert rot2.rot_y_rad == rot.rot_y_rad
+    assert rot2.seq == rot.seq
+
+    for seq in ['yxs', 'xsy', 'sxy', 'syx', 'xys', 'ysx']:
+        env = xt.Environment()
+        env.new('end_marker', xt.Marker)
+        env.elements['rot'] = xt.Rotation(
+            rot_s_rad=0.1, rot_x_rad=0.2, rot_y_rad=0.3, seq=seq)
+
+        line = env.new_line(components=['rot', 'end_marker'])
+        line.particle_ref = xt.Particles(p0c=1e9)
+
+        rot = line['rot']
+        legacy_rots = []
+        for ax in rot.seq:
+            if ax == 'x':
+                legacy_rots.append(
+                    xt.XRotation(angle=np.rad2deg(rot.rot_x_rad)))
+            elif ax == 'y':
+                legacy_rots.append(
+                    xt.YRotation(angle=np.rad2deg(rot.rot_y_rad)))
+            elif ax == 's':
+                legacy_rots.append(
+                    xt.SRotation(angle=np.rad2deg(rot.rot_s_rad)))
+
+        env.elements['r1'] = legacy_rots[0]
+        env.elements['r2'] = legacy_rots[1]
+        env.elements['r3'] = legacy_rots[2]
+        line_legacy = env.new_line(components=['r1', 'r2', 'r3', 'end_marker'])
+        line_legacy.particle_ref = xt.Particles(p0c=1e9)
+
+        sv = line.survey(
+            X0=0.1, Y0=0.2, Z0=0.3, theta0=0.4, phi0=0.5, psi0=0.6)
+        sv_legacy = line_legacy.survey(
+            X0=0.1, Y0=0.2, Z0=0.3, theta0=0.4, phi0=0.5, psi0=0.6)
+
+        sv_back = line.survey(
+            element0='end_marker',
+            X0=sv.X[-1], Y0=sv.Y[-1], Z0=sv.Z[-1],
+            theta0=sv.theta[-1], phi0=sv.phi[-1], psi0=sv.psi[-1])
+
+        for vv in ['X', 'Y', 'Z', 'theta', 'phi', 'psi']:
+            xo.assert_allclose(
+                getattr(sv, vv)[-1], getattr(sv_legacy, vv)[-1],
+                atol=1e-12)
+            xo.assert_allclose(
+                getattr(sv, vv), getattr(sv_back, vv), atol=1e-12)
+
+        tw = line.twiss(betx=1, bety=1, x=0.01, px=0.02, y=0.03, py=0.04)
+        tw_legacy = line_legacy.twiss(
+            betx=1, bety=1, x=0.01, px=0.02, y=0.03, py=0.04)
+
+        for vv in ['x', 'px', 'y', 'py']:
+            xo.assert_allclose(
+                getattr(tw, vv)[-1], getattr(tw_legacy, vv)[-1],
+                atol=1e-12)
+
+        tw_back = line.twiss(
+            init_at='end_marker',
+            x=tw.x[-1], px=tw.px[-1], y=tw.y[-1], py=tw.py[-1],
+            betx=tw.betx[-1], bety=tw.bety[-1],
+            alfx=tw.alfx[-1], alfy=tw.alfy[-1])
+        for vv in ['x', 'px', 'y', 'py']:
+            xo.assert_allclose(
+                getattr(tw, vv), getattr(tw_back, vv), atol=1e-12)
+
+
+@pytest.mark.filterwarnings('ignore::FutureWarning')
+def test_translation_against_legacy_xyshift():
+    shift = xt.Translation(shift_x=0.1, shift_y=0.2)
+    dct = shift.to_dict()
+    assert set(dct.keys()) == {'__class__', 'shift_x', 'shift_y'}
+    shift2 = xt.Translation.from_dict(dct)
+    assert shift2.shift_x == shift.shift_x
+    assert shift2.shift_y == shift.shift_y
+
+    for shift_x, shift_y in [
+        (0.1, 0.2),
+        (-0.3, 0.4),
+        (0.5, -0.6),
+    ]:
+        env = xt.Environment()
+        env.new('end_marker', xt.Marker)
+        env.elements['shift'] = xt.Translation(
+            shift_x=shift_x, shift_y=shift_y)
+
+        line = env.new_line(components=['shift', 'end_marker'])
+        line.particle_ref = xt.Particles(p0c=1e9)
+
+        env.elements['legacy_shift'] = xt.XYShift(dx=shift_x, dy=shift_y)
+        line_legacy = env.new_line(
+            components=['legacy_shift', 'end_marker'])
+        line_legacy.particle_ref = xt.Particles(p0c=1e9)
+
+        sv = line.survey(
+            X0=0.1, Y0=0.2, Z0=0.3, theta0=0.4, phi0=0.5, psi0=0.6)
+        sv_legacy = line_legacy.survey(
+            X0=0.1, Y0=0.2, Z0=0.3, theta0=0.4, phi0=0.5, psi0=0.6)
+
+        sv_back = line.survey(
+            element0='end_marker',
+            X0=sv.X[-1], Y0=sv.Y[-1], Z0=sv.Z[-1],
+            theta0=sv.theta[-1], phi0=sv.phi[-1], psi0=sv.psi[-1])
+
+        for vv in ['X', 'Y', 'Z', 'theta', 'phi', 'psi']:
+            xo.assert_allclose(
+                getattr(sv, vv)[-1], getattr(sv_legacy, vv)[-1],
+                atol=1e-12)
+            xo.assert_allclose(
+                getattr(sv, vv), getattr(sv_back, vv), atol=1e-12)
+
+        tw = line.twiss(betx=1, bety=1, x=0.01, px=0.02, y=0.03, py=0.04)
+        tw_legacy = line_legacy.twiss(
+            betx=1, bety=1, x=0.01, px=0.02, y=0.03, py=0.04)
+
+        for vv in ['x', 'px', 'y', 'py']:
+            xo.assert_allclose(
+                getattr(tw, vv)[-1], getattr(tw_legacy, vv)[-1],
+                atol=1e-12)
+
+        tw_back = line.twiss(
+            init_at='end_marker',
+            x=tw.x[-1], px=tw.px[-1], y=tw.y[-1], py=tw.py[-1],
+            betx=tw.betx[-1], bety=tw.bety[-1],
+            alfx=tw.alfx[-1], alfy=tw.alfy[-1])
+        for vv in ['x', 'px', 'y', 'py']:
+            xo.assert_allclose(
+                getattr(tw, vv), getattr(tw_back, vv), atol=1e-12)
+
+        particles = xt.Particles(
+            p0c=1e9, x=0.01, px=0.02, y=0.03, py=0.04)
+        particles_legacy = particles.copy()
+        line.track(particles)
+        line_legacy.track(particles_legacy)
+        for vv in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
+            xo.assert_allclose(
+                getattr(particles, vv), getattr(particles_legacy, vv),
+                atol=1e-12)
 
 
 @pytest.mark.parametrize(
@@ -125,11 +433,9 @@ def test_backtrack(test_context):
         xt.RFMultipole(_context=test_context, knl=[2]),
         xt.ReferenceEnergyIncrease(_context=test_context, Delta_p0c=42),
         xt.Cavity(_context=test_context, voltage=3.),
-        xt.SRotation(_context=test_context, angle=4),
-        xt.XRotation(_context=test_context, angle=0.3),
-        xt.YRotation(_context=test_context, angle=0.7),
-        xt.ZetaShift(_context=test_context, dzeta=3E-4),
-        xt.XYShift(_context=test_context, dx=1),
+        xt.Rotation(_context=test_context, rot_s_rad=0.2, rot_x_rad=0.3, rot_y_rad=0.4, seq='xsy'),
+        xt.TimeDelay(_context=test_context, shift_zeta=3E-4),
+        xt.Translation(_context=test_context, shift_x=1),
         xt.DipoleEdge(_context=test_context, h=1),
         xt.LimitRect(_context=test_context, min_x=5),
         xt.LimitRectEllipse(_context=test_context, max_x=6),
@@ -379,8 +685,8 @@ def test_elens(test_context):
 
 @for_all_test_contexts
 def test_elens_measured_radial(test_context):
-    def compute_coef(r_measured, j_measured, r_1_new, r_2_new,
-                     r_1_old, r_2_old, p_order = 13):
+    def get_coef(r_measured, j_measured, r_1_new, r_2_new,
+                     r_1_old, r_2_old, p_order = 12):
         new_r = r_measured*(r_2_new-r_1_new)/(r_2_old-r_1_old)
         new_j = j_measured*(r_2_old-r_1_old)/(r_2_new-r_1_new)
 
@@ -414,7 +720,7 @@ def test_elens_measured_radial(test_context):
     r     = np.linspace(0.20338983,12,60)
     j     = np.append(np.append(np.linspace(0,4,20)*0,
            np.linspace(4,8,20)/np.linspace(4,8,20)), np.linspace(8,12,20)*0)
-    C     = compute_coef(r, j, 1.4, 2.8, 4.0, 8.0)
+    C     = get_coef(r, j, 1.4, 2.8, 4.0, 8.0)
 
     elens_radial_profile = xt.Elens(current=5, inner_radius=1.4e-3,
                 outer_radius=2.8e-3, elens_length=3, voltage=10e3,
@@ -1189,8 +1495,11 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
 def test_simplified_accelerator_segment_correlated_noise(test_context):
     npart = int(1E6)
     scale = 1E-6
-    random_matrix = np.reshape(np.random.rand(36),(6,6))
-    data = np.transpose(np.random.multivariate_normal(np.zeros(6),random_matrix,npart))
+    random_matrix = np.reshape(np.random.rand(36), (6, 6))
+    # Build a symmetric positive-semidefinite covariance matrix.
+    covariance_seed = random_matrix @ random_matrix.T
+    data = np.transpose(
+        np.random.multivariate_normal(np.zeros(6), covariance_seed, npart))
     covariance_matrix = np.cov(data)
 
     particles = xp.Particles(_context=test_context,
@@ -1287,9 +1596,10 @@ def test_multipole_tilt_90_deg(test_context):
     m = xt.Multipole(knl=[0.1, 0], hxl=0.1, length=2, _context=test_context)
     p = xt.Particles(x = 0, y=0, delta=1, p0c=1e12, _context=test_context)
     ln = xt.Line(elements=[
-        xt.SRotation(angle=-90.),
+        xt.Rotation(rot_s_rad=-np.pi/2),
         m,
-        xt.SRotation(angle=90.)])
+        xt.Rotation(rot_s_rad=np.pi/2)
+    ])
     ln.build_tracker(_context=test_context)
     ln.track(p)
 

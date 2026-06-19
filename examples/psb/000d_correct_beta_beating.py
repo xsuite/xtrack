@@ -8,8 +8,7 @@ import xdeps as xd
 import matplotlib.pyplot as plt
 
 line = xt.load('psb_02_with_chicane_time_functions.json')
-line.insert_element(element=xt.Marker(), name='mker_match', at_s=79.874)
-line.build_tracker()
+line.insert('mker_match', xt.Marker(), at=79.874)
 
 line['on_chicane_k0'] = 0
 line['on_chicane_k2'] = 0

@@ -81,7 +81,7 @@ line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu())
 line.configure_radiation(model=None)
 
-# line.vv['vkick'] = 1e-6
+# line['vkick'] = 1e-6
 # line['mdv.10107'].ksl[0] = line.vars['vkick']
 line['qd.10110'].shift_y = 'vkick'
 

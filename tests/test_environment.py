@@ -4,6 +4,8 @@ import xdeps as xd
 import numpy as np
 import pytest
 import json
+import sys
+import types
 from pathlib import Path
 
 test_data_folder = Path(__file__).parent.joinpath('../test_data').absolute()
@@ -23,62 +25,62 @@ def test_vars_and_element_access_modes(container_type):
 
     ee = {'env': env, 'line': line}[container_type]
 
-    assert ee.vv['b'] == 2 * 2 + 1
+    assert ee['b'] == 2 * 2 + 1
 
     ee.vars['a'] = ee.vars['k.1']
-    assert ee.vv['b'] == 2 * 1 + 1
+    assert ee['b'] == 2 * 1 + 1
 
     ee.vars(a=3.)
     ee.vars({'k.1': 'a'})
-    assert ee.vv['k.1'] == 3.
-    assert ee.vv['b'] == 2 * 3 + 3.
+    assert ee['k.1'] == 3.
+    assert ee['b'] == 2 * 3 + 3.
 
     ee.vars['k.1'] = 2 * ee.vars['a'] + 5
-    assert ee.vv['k.1'] == 2 * 3 + 5
-    assert ee.vv['b'] == 2 * 3 + 2 * 3 + 5
+    assert ee['k.1'] == 2 * 3 + 5
+    assert ee['b'] == 2 * 3 + 2 * 3 + 5
 
     ee.vars.set('a', 4.)
-    assert ee.vv['k.1'] == 2 * 4 + 5
-    assert ee.vv['b'] == 2 * 4 + 2 * 4 + 5
+    assert ee['k.1'] == 2 * 4 + 5
+    assert ee['b'] == 2 * 4 + 2 * 4 + 5
 
     ee.vars.set('k.1', '2*a + 5')
-    assert ee.vv['k.1'] == 2 * 4 + 5
-    assert ee.vv['b'] == 2 * 4 + 2 * 4 + 5
+    assert ee['k.1'] == 2 * 4 + 5
+    assert ee['b'] == 2 * 4 + 2 * 4 + 5
 
     ee.vars.set('k.1', 3 * ee.vars['a'] + 6)
-    assert ee.vv['k.1'] == 3 * 4 + 6
-    assert ee.vv['b'] == 2 * 4 + 3 * 4 + 6
+    assert ee['k.1'] == 3 * 4 + 6
+    assert ee['b'] == 2 * 4 + 3 * 4 + 6
 
     env.set('c', '2*b')
-    assert env.vv['c'] == 2 * (2 * 4 + 3 * 4 + 6)
+    assert env['c'] == 2 * (2 * 4 + 3 * 4 + 6)
     env.set('d', 6)
-    assert env.vv['d'] == 6
+    assert env['d'] == 6
     env.set('d', '7')
-    assert env.vv['d'] == 7
+    assert env['d'] == 7
 
     ee.set('a', 0.)
-    assert ee.vv['k.1'] == 3 * 0 + 6
-    assert ee.vv['b'] == 2 * 0 + 3 * 0 + 6
+    assert ee['k.1'] == 3 * 0 + 6
+    assert ee['b'] == 2 * 0 + 3 * 0 + 6
 
     ee.set('a', 2.)
     ee.set('k.1', '2 * a + 5')
-    assert ee.vv['k.1'] == 2 * 2 + 5
-    assert ee.vv['b'] == 2 * 2 + 2 * 2 + 5
+    assert ee['k.1'] == 2 * 2 + 5
+    assert ee['b'] == 2 * 2 + 2 * 2 + 5
 
     ee.set('k.1', 3 * ee.vars['a'] + 6)
-    assert ee.vv['k.1'] == 3 * 2 + 6
-    assert ee.vv['b'] == 2 * 2 + 3 * 2 + 6
+    assert ee['k.1'] == 3 * 2 + 6
+    assert ee['b'] == 2 * 2 + 3 * 2 + 6
 
     assert hasattr(ee.ref['k.1'], '_value') # is a Ref
 
     ee.ref['a'] = 0
-    assert ee.vv['k.1'] == 3 * 0 + 6
-    assert ee.vv['b'] == 2 * 0 + 3 * 0 + 6
+    assert ee['k.1'] == 3 * 0 + 6
+    assert ee['b'] == 2 * 0 + 3 * 0 + 6
 
     ee.ref['a'] = 2
     ee.ref['k.1'] = 2 * ee.ref['a'] + 5
-    assert ee.vv['k.1'] == 2 * 2 + 5
-    assert ee.vv['b'] == 2 * 2 + 2 * 2 + 5
+    assert ee['k.1'] == 2 * 2 + 5
+    assert ee['b'] == 2 * 2 + 2 * 2 + 5
 
     #--------------------------------------------------
 
@@ -121,7 +123,7 @@ def test_vars_and_element_access_modes(container_type):
     assert line.get('bb1') is not env.get('bb')
     assert line.get('bb') is env.get('bb')
 
-    a = env.vv['a']
+    a = env['a']
     assert line['bb1'].length == 3 * a
     assert line['bb1'].k0 == 2 * (2 * a + 5)
     assert line['bb1'].angle == 5.
@@ -140,7 +142,7 @@ def test_vars_and_element_access_modes(container_type):
 
     old_a = a
     line.vars['a'] = 3.
-    a = line.vv['a']
+    a = line['a']
     assert line['bb1'].length == 3 * a
     assert line['bb1'].k0 == 2 * (2 * a + 5)
     assert line['bb1'].angle == 5.
@@ -355,7 +357,7 @@ def test_assemble_ring():
 
     ])
 
-    l_hc = env.vv['l.halfcell']
+    l_hc = env['l.halfcell']
     xo.assert_allclose(l_hc, l_hc, atol=1e-14, rtol=0)
     tt_hc = halfcell.get_table(attr=True)
     assert np.all(tt_hc.name == np.array(
@@ -386,9 +388,9 @@ def test_assemble_ring():
     xo.assert_allclose(tt_hc['s_center', 'corrector.d'] - tt_hc['s_center', 'mq.d'],
                     0.8, atol=1e-14, rtol=0)
     xo.assert_allclose(tt_hc['s_center', 'mb.2'], l_hc / 2, atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env.vv['l.mb'] - 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env['l.mb'] - 1,
                         atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env.vv['l.mb'] + 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env['l.mb'] + 1,
                     atol=1e-14, rtol=0)
 
 
@@ -528,7 +530,7 @@ def test_assemble_ring():
     xo.assert_allclose(sv_ring.Y[-1], 0, atol=1e-12, rtol=0)
     xo.assert_allclose(sv_ring.Z[-1], 0, atol=1e-12, rtol=0)
 
-    xo.assert_allclose(sv_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
+    xo.assert_allclose(tt_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
 
     ## Insertion
 
@@ -783,7 +785,7 @@ def test_assemble_ring_builders():
     halfcell = halfcell.build()
 
 
-    l_hc = env.vv['l.halfcell']
+    l_hc = env['l.halfcell']
     xo.assert_allclose(l_hc, l_hc, atol=1e-14, rtol=0)
     tt_hc = halfcell.get_table(attr=True)
     assert np.all(tt_hc.name == np.array(
@@ -814,9 +816,9 @@ def test_assemble_ring_builders():
     xo.assert_allclose(tt_hc['s_center', 'corrector.d'] - tt_hc['s_center', 'mq.d'],
                     0.8, atol=1e-14, rtol=0)
     xo.assert_allclose(tt_hc['s_center', 'mb.2'], l_hc / 2, atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env.vv['l.mb'] - 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env['l.mb'] - 1,
                         atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env.vv['l.mb'] + 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env['l.mb'] + 1,
                     atol=1e-14, rtol=0)
 
 
@@ -947,7 +949,7 @@ def test_assemble_ring_builders():
     xo.assert_allclose(sv_ring.Y[-1], 0, atol=1e-12, rtol=0)
     xo.assert_allclose(sv_ring.Z[-1], 0, atol=1e-12, rtol=0)
 
-    xo.assert_allclose(sv_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
+    xo.assert_allclose(tt_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
 
     ## Insertion
 
@@ -1212,7 +1214,7 @@ def test_assemble_ring_repeated_elements():
 
     ])
 
-    l_hc = env.vv['l.halfcell']
+    l_hc = env['l.halfcell']
     xo.assert_allclose(l_hc, l_hc, atol=1e-14, rtol=0)
     tt_hc = halfcell.get_table(attr=True)
     assert np.all(tt_hc.name == np.array(
@@ -1243,9 +1245,9 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(tt_hc['s_center', 'corrector.d'] - tt_hc['s_center', 'mq.d'],
                     0.8, atol=1e-14, rtol=0)
     xo.assert_allclose(tt_hc['s_center', 'mb.2'], l_hc / 2, atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env.vv['l.mb'] - 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.1'], tt_hc['s_center', 'mb.2'] - env['l.mb'] - 1,
                         atol=1e-14, rtol=0)
-    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env.vv['l.mb'] + 1,
+    xo.assert_allclose(tt_hc['s_center', 'mb.3'], tt_hc['s_center', 'mb.2'] + env['l.mb'] + 1,
                     atol=1e-14, rtol=0)
 
     cell = -halfcell + halfcell
@@ -1335,7 +1337,7 @@ def test_assemble_ring_repeated_elements():
     xo.assert_allclose(sv_ring.Y[-1], 0, atol=1e-12, rtol=0)
     xo.assert_allclose(sv_ring.Z[-1], 0, atol=1e-12, rtol=0)
 
-    xo.assert_allclose(sv_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
+    xo.assert_allclose(tt_ring.angle.sum(), 2*np.pi, atol=1e-12, rtol=0)
 
     ## Insertion
 
@@ -1739,6 +1741,19 @@ def test_repeated_elements():
     assert np.all(tt_mult.s == np.array(
         [0. , 0.5, 1. , 1. , 1.5, 2. , 2.5, 3. , 3. , 3.5, 4. , 4.5, 5. ]))
 
+def test_line_table_prototype():
+
+    env = xt.Environment()
+    env.new('q0', 'Quadrupole', length=1.0)
+    env.new('q1', 'q0')
+    env.new('q2', 'q1')
+
+    line = env.new_line(components=['q0', 'q1', 'q2'])
+    tt = line.get_table()
+
+    assert np.all(tt.name == np.array(['q0', 'q1', 'q2', '_end_point']))
+    assert np.all(tt.prototype == np.array([None, 'q0', 'q1', None]))
+
 def test_select_in_multiline():
 
     # --- Parameters
@@ -1834,10 +1849,18 @@ def test_inpection_methods(container_type):
     assert xd.refs.is_ref(ee.vars['b'])
 
     # View methods get_expr, get_value, get_info, get_table (for now)
-    assert xd.refs.is_ref(ee['bb'].get_expr('k0'))
-    assert str(ee['bb'].get_expr('k0')) == "(2.0 * vars['b'])"
-    assert ee['bb'].get_expr('k0')._value == 2 * (2 * 2 + 1)
-    assert ee['bb'].get_value('k0') == 2 * (2 * 2 + 1)
+    with pytest.warns(FutureWarning, match='View.get_expr'):
+        assert xd.refs.is_ref(ee['bb'].get_expr('k0'))
+    with pytest.warns(FutureWarning, match='View.get_expr'):
+        assert str(ee['bb'].get_expr('k0')) == "(2.0 * vars['b'])"
+    with pytest.warns(FutureWarning, match='View.get_expr'):
+        assert ee['bb'].get_expr('k0')._value == 2 * (2 * 2 + 1)
+    with pytest.warns(FutureWarning, match='View.get_value'):
+        assert ee['bb'].get_value('k0') == 2 * (2 * 2 + 1)
+    with pytest.warns(FutureWarning, match='View.get_info'):
+        ee['bb'].get_info('k0')
+    assert 'length' in ee['bb']._xofields
+    assert list(ee['bb']._xofields) == list(ee['bb']._get_viewed_object()._xofields)
 
     tt = ee['bb'].get_table()
     assert tt['value', 'k0'] == 2 * (2 * 2 + 1)
@@ -1999,7 +2022,7 @@ def test_copy_element_from_other_env():
     env2 = xt.Environment()
     env2['var'] = 4
     env2['var2'] = '2 * var'
-    env2.copy_element_from('quad', env1, 'quad/env2')
+    env2._copy_element_from('quad', env1, 'quad/env2')
 
     assert env2['quad/env2'].length == 4
     assert env2['quad/env2'].knl[0] == 0
@@ -4491,6 +4514,33 @@ def test_sandwitch_thin_elements_insert():
         4.95, 5.05, 9., 11., 13.9, 14., 19., 21., 40., 40., 40., 40., 40., 40.],
         atol=1e-14)
 
+def test_place_at_element_name():
+
+    env = xt.Environment()
+
+    env.new('m_ref', xt.Marker)
+    env.new('m_at_ref', xt.Marker)
+
+    p_at_ref = env.place('m_at_ref', at='m_ref')
+
+    assert p_at_ref.at == 0
+    assert p_at_ref.from_ == 'm_ref'
+    assert p_at_ref.anchor is None
+    assert p_at_ref.from_anchor is None
+
+    line = env.new_line(components=[
+        env.place('m_ref', at=5.),
+        p_at_ref,
+    ])
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == [
+        '||drift_1', 'm_ref', 'm_at_ref', '_end_point'
+    ])
+    xo.assert_allclose(tt.s, [0., 5., 5., 5.],
+                       rtol=0, atol=1e-14)
+
 def test_environment_set_suppress_expression():
 
     env = xt.Environment()
@@ -4508,3 +4558,140 @@ def test_environment_set_suppress_expression():
     assert str(env.ref['q'].knl[1].xdeps.expr) == "(3.0 * vars['a'])"
     env.set('q', knl=[0.0, 0.2])
     assert env.ref['q'].knl[1].xdeps.expr is None
+
+def test_insert_from_anchor_center():
+
+    env = xt.Environment()
+
+    line = env.new_line(components=[
+        env.new('q', xt.Quadrupole, length=2)]
+    )
+
+    env.new('mark', xt.Marker)
+    line.insert([env.place('mark', at=0, from_='q', from_anchor='center')])
+
+    tt = line.get_table()
+
+    assert np.all(tt.name == [
+        'q_entry', 'q..entry_map', 'q..0', 'mark', 'q..1', 'q..exit_map',
+        'q_exit', '_end_point'])
+    xo.assert_allclose(tt.s, [0., 0., 0., 1., 1., 2., 2., 2.], rtol=0, atol=1e-14)
+
+
+def test_environment_xfields_beambeam_facade(monkeypatch):
+
+    env = xt.Environment()
+    calls = []
+
+    def fake_install(env_arg, *args, **kwargs):
+        calls.append(('install', env_arg, args, kwargs))
+        return 'installed'
+
+    def fake_configure(env_arg, *args, **kwargs):
+        calls.append(('configure', env_arg, args, kwargs))
+        return 'configured'
+
+    def fake_apply(env_arg, *args, **kwargs):
+        calls.append(('apply', env_arg, args, kwargs))
+        return 'applied'
+
+    monkeypatch.setattr(
+        xt.MultilineLegacy, 'install_beambeam_interactions', fake_install)
+    monkeypatch.setattr(
+        xt.MultilineLegacy, 'configure_beambeam_interactions', fake_configure)
+    monkeypatch.setattr(
+        xt.MultilineLegacy, 'apply_filling_pattern', fake_apply)
+
+    assert isinstance(env.xfields, xt.EnvXfields)
+    assert env.xfields is env.xfields
+
+    assert env.xfields.install_beambeam_interactions(
+        clockwise_line='cw',
+        anticlockwise_line='acw',
+        ip_names=['ip1'],
+        num_long_range_encounters_per_side=[0],
+        num_slices_head_on=1,
+        harmonic_number=35640,
+        bunch_spacing_buckets=10,
+        sigmaz=0.075) == 'installed'
+    assert calls[-1] == (
+        'install', env, (), {
+            'clockwise_line': 'cw',
+            'anticlockwise_line': 'acw',
+            'ip_names': ['ip1'],
+            'num_long_range_encounters_per_side': [0],
+            'num_slices_head_on': 1,
+            'harmonic_number': 35640,
+            'bunch_spacing_buckets': 10,
+            'sigmaz': 0.075,
+            'delay_at_ips_slots': None,
+        })
+
+    assert env.xfields.configure_beambeam_interactions(
+        num_particles=1.2e11,
+        nemitt_x=2.5e-6,
+        nemitt_y=2.5e-6) == 'configured'
+    assert calls[-1] == (
+        'configure', env, (), {
+            'num_particles': 1.2e11,
+            'nemitt_x': 2.5e-6,
+            'nemitt_y': 2.5e-6,
+            'crab_strong_beam': True,
+            'use_antisymmetry': False,
+            'separation_bumps': None,
+        })
+
+    assert env.xfields.apply_filling_pattern([1], [1], 0, 0) == 'applied'
+    assert calls[-1] == (
+        'apply', env, (), {
+            'filling_pattern_cw': [1],
+            'filling_pattern_acw': [1],
+            'i_bunch_cw': 0,
+            'i_bunch_acw': 0,
+        })
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Environment\.install_beambeam_interactions\(\.\.\.\)` is deprecated'):
+        assert env.install_beambeam_interactions(
+            clockwise_line='cw',
+            anticlockwise_line='acw',
+            ip_names=['ip1'],
+            num_long_range_encounters_per_side=[0],
+            num_slices_head_on=1,
+            harmonic_number=35640,
+            bunch_spacing_buckets=10,
+            sigmaz=0.075) == 'installed'
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Environment\.configure_beambeam_interactions\(\.\.\.\)` is deprecated'):
+        assert env.configure_beambeam_interactions(
+            num_particles=1.2e11,
+            nemitt_x=2.5e-6,
+            nemitt_y=2.5e-6) == 'configured'
+
+    with pytest.warns(
+            FutureWarning,
+            match=r'`Environment\.apply_filling_pattern\(\.\.\.\)` is deprecated'):
+        assert env.apply_filling_pattern([1], [1], 0, 0) == 'applied'
+
+
+def test_environment_xcoll_facade(monkeypatch):
+
+    class FakeXcollEnvironmentAPI:
+        def __init__(self, env):
+            self._env = env
+
+    xcoll_module = types.ModuleType('xcoll')
+    environment_tools_module = types.ModuleType('xcoll.environment_tools')
+    environment_tools_module.XcollEnvironmentAPI = FakeXcollEnvironmentAPI
+    xcoll_module.environment_tools = environment_tools_module
+    monkeypatch.setitem(sys.modules, 'xcoll', xcoll_module)
+    monkeypatch.setitem(sys.modules, 'xcoll.environment_tools', environment_tools_module)
+
+    env = xt.Environment()
+
+    assert isinstance(env.xcoll, FakeXcollEnvironmentAPI)
+    assert env.xcoll is env.xcoll
+    assert env.xcoll._env is env

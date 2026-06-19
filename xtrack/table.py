@@ -9,15 +9,17 @@ import json
 import math
 import numbers
 import os
-import shlex
+import re
 import tempfile
 from typing import Any, Dict, Iterable, Mapping, Optional
+from warnings import warn
 
 import numpy as np
 import pandas as pd
 
 from xdeps import Table as _XdepsTable
 import xtrack as xt
+from .general import DEPRECATION_INFO_PREP_1_0
 
 from . import json as json_utils
 
@@ -137,7 +139,178 @@ def _parse_headers(text):
 
 
 class Table(_XdepsTable):
-    """Extension of :class:`xdeps.Table` with export/import helpers."""
+    """
+    Table with row and column selection plus xtrack serialization helpers.
+    """
+
+    # Messages to be shown when accessing deprecated fields
+    _DEPRECATED_FIELDS = None
+
+    def __init__(
+        self,
+        data,
+        col_names=None,
+        index='name',
+        sep_count="::",
+        sep_previous="<<",
+        sep_next=">>",
+        cast_strings=True,
+        regex_flags=re.IGNORECASE,
+        verify=True,
+        _copy_cols=False,
+    ):
+        """
+        Create a table from column data.
+
+        Tables are used throughout xtrack to return structured results, such as
+        line descriptions, survey data, and Twiss data. They behave like
+        lightweight data frames with named columns, a configurable row index,
+        readable text output, row and column selection helpers, and
+        serialization methods.
+
+        Parameters
+        ----------
+        data : mapping
+            Mapping from names to numpy arrays or scalar attributes. Entries
+            listed in ``col_names`` are table columns and must all have the
+            same length when ``verify`` is ``True``.
+        col_names : sequence of str, optional
+            Column names to expose as table columns. If omitted, all keys in
+            ``data`` are used as columns.
+        index : str or None, optional
+            Column used for named row lookup. If ``None``, named row selection
+            is disabled.
+        sep_count : str, optional
+            Separator used to select repeated row names, for example
+            ``"mb::1"``.
+        sep_previous : str, optional
+            Separator used to select rows upstream of a named row, for example
+            ``"mb<<2"``.
+        sep_next : str, optional
+            Separator used to select rows downstream of a named row, for
+            example ``"mb>>2"``.
+        cast_strings : bool, optional
+            If ``True``, string arrays are stored with object dtype.
+        regex_flags : int, optional
+            Flags passed to :func:`re.compile` for row and column matching.
+        verify : bool, optional
+            If ``True``, validate column types, column lengths, and the index
+            column.
+        _copy_cols : bool, optional
+            If ``True``, copy column arrays during construction.
+
+        Examples
+        --------
+        Build a small optics-like table:
+
+        >>> import numpy as np
+        >>> import xtrack as xt
+        >>> tab = xt.Table({
+        ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "d2.1", "mqd.1"]),
+        ...     "element_type": np.array(
+        ...         ["Quadrupole", "Drift", "Bend", "Drift", "Quadrupole"]),
+        ...     "s": np.array([0.0, 0.3, 1.3, 4.3, 5.3]),
+        ...     "betx": np.array([1.28, 1.28, 2.27, 2.88, 1.72]),
+        ...     "bety": np.array([4.79, 4.79, 5.21, 8.99, 11.10]),
+        ... })
+
+        Print the table:
+
+        >>> tab.show()
+        name  element_type             s          betx          bety
+        mqf.1 Quadrupole               0          1.28          4.79
+        d1.1  Drift                  0.3          1.28          4.79
+        mb1.1 Bend                   1.3          2.27          5.21
+        d2.1  Drift                  4.3          2.88          8.99
+        mqd.1 Quadrupole             5.3          1.72          11.1
+
+        Access a single value or a full column:
+
+        >>> float(tab["s", "mb1.1"])
+        1.3
+        >>> tab["s"]
+        array([0. , 0.3, 1.3, 4.3, 5.3])
+
+        Select columns, including expressions:
+
+        >>> tab.cols["betx bety"]
+        Table: 5 rows, 3 cols
+        name           betx          bety
+        mqf.1          1.28          4.79
+        d1.1           1.28          4.79
+        mb1.1          2.27          5.21
+        d2.1           2.88          8.99
+        mqd.1          1.72          11.1
+        >>> tab.cols["betx bety betx/bety"]
+        Table: 5 rows, 4 cols
+        name           betx          bety     betx/bety
+        mqf.1          1.28          4.79      0.267223
+        d1.1           1.28          4.79      0.267223
+        mb1.1          2.27          5.21      0.435701
+        d2.1           2.88          8.99      0.320356
+        mqd.1          1.72          11.1      0.154955
+
+        Select rows by name, regular expression, column match, or range:
+
+        >>> tab.rows[["mqf.1", "mqd.1"]]
+        Table: 2 rows, 5 cols
+        name  element_type             s          betx          bety
+        mqf.1 Quadrupole               0          1.28          4.79
+        mqd.1 Quadrupole             5.3          1.72          11.1
+        >>> tab.rows["mb.*"]
+        Table: 1 row, 5 cols
+        name  element_type             s          betx          bety
+        mb1.1 Bend                   1.3          2.27          5.21
+        >>> tab.rows.match(element_type="Quadrupole")
+        Table: 2 rows, 5 cols
+        name  element_type             s          betx          bety
+        mqf.1 Quadrupole               0          1.28          4.79
+        mqd.1 Quadrupole             5.3          1.72          11.1
+        >>> tab.rows[0.0:2.0:"s"]
+        Table: 3 rows, 5 cols
+        name  element_type             s          betx          bety
+        mqf.1 Quadrupole               0          1.28          4.79
+        d1.1  Drift                  0.3          1.28          4.79
+        mb1.1 Bend                   1.3          2.27          5.21
+
+        Row and column selections return table objects and can be chained:
+
+        >>> tab.rows["mqf.1":"d2.1"].rows.match_not(
+        ...     element_type="Drift").cols["s betx bety"]
+        Table: 2 rows, 4 cols
+        name              s          betx          bety
+        mqf.1             0          1.28          4.79
+        mb1.1           1.3          2.27          5.21
+        """
+        super().__init__(
+            data=data,
+            col_names=col_names,
+            index=index,
+            sep_count=sep_count,
+            sep_previous=sep_previous,
+            sep_next=sep_next,
+            cast_strings=cast_strings,
+            regex_flags=regex_flags,
+            verify=verify,
+            _copy_cols=_copy_cols,
+        )
+
+    def __getitem__(self, key):
+        depr_fields = object.__getattribute__(self, '_DEPRECATED_FIELDS')
+        if depr_fields is not None:
+            if isinstance(key, (tuple, list)):
+                first_key = key[0]
+            else:
+                first_key = key
+            if first_key in depr_fields:
+                warn(depr_fields[first_key], FutureWarning)
+        return super().__getitem__(key)
+
+    def __getattribute__(self, name):
+        depr_fields = object.__getattribute__(self, '_DEPRECATED_FIELDS')
+        if depr_fields is not None and name in depr_fields:
+            warn(depr_fields[name], FutureWarning)
+        return super().__getattribute__(name)
 
     # ------------------------------------------------------------------
     # Selection helpers
@@ -276,7 +449,28 @@ class Table(_XdepsTable):
 
     def to_dict(self, *, include=None, exclude=None,
                 missing='error', include_meta=True):
-        """Serialize the table to a dictionary, applying optional filters."""
+        """
+        Serialize the table to a dictionary.
+
+        Parameters
+        ----------
+        include : str or iterable of str, optional
+            Names of columns, attributes, or metadata entries to include. If
+            omitted, all columns and attributes are included.
+        exclude : str or iterable of str, optional
+            Names of columns, attributes, or metadata entries to exclude.
+        missing : {"error", "ignore"}, optional
+            Policy for names requested in ``include`` or ``exclude`` that are
+            not present in the table.
+        include_meta : bool, optional
+            If ``True``, include metadata describing dropped columns,
+            dropped attributes, table class, and xtrack version when relevant.
+
+        Returns
+        -------
+        dict
+            Serialized table data with ``columns`` and ``attrs`` entries.
+        """
 
         column_order = list(self._col_names)
         raw_attrs = {kk: vv for kk, vv in self._data.items() if kk not in column_order}
@@ -360,7 +554,19 @@ class Table(_XdepsTable):
 
     @classmethod
     def from_dict(cls, dct: Dict[str, Any]):
-        """Construct a table from its dictionary representation."""
+        """
+        Construct a table from its dictionary representation.
+
+        Parameters
+        ----------
+        dct : dict
+            Dictionary produced by :meth:`to_dict`.
+
+        Returns
+        -------
+        xtrack.Table
+            Reconstructed table.
+        """
 
         payload = dict(dct)
         table_class_name = payload.get('__class__')
@@ -394,12 +600,40 @@ class Table(_XdepsTable):
     # JSON helpers
     # ------------------------------------------------------------------
     def to_json(self, file, indent=1, **kwargs):
-        """Dump the table to JSON using the xtrack JSON utilities."""
+        """
+        Dump the table to JSON using the xtrack JSON utilities.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like
+            Output target.
+        indent : int or None, optional
+            Indentation passed to the JSON writer.
+        **kwargs
+            Additional keyword arguments passed to :meth:`to_dict`.
+
+        Returns
+        -------
+        None
+            The table is written to ``file``.
+        """
         json_utils.dump(self.to_dict(**kwargs), file, sort_keys=False, indent=indent)
 
     @classmethod
     def from_json(cls, file):
-        """Load a serialized table from a JSON file or file-like object."""
+        """
+        Load a serialized table from JSON.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like
+            JSON file or file-like object to read.
+
+        Returns
+        -------
+        xtrack.Table
+            Reconstructed table.
+        """
         if isinstance(file, io.IOBase):
             dct = json.load(file)
         else:
@@ -674,7 +908,33 @@ class Table(_XdepsTable):
 
     def to_hdf5(self, file, *, include=None, exclude=None,
                 missing='error', include_meta=True, group=None):
-        """Persist the table into an HDF5 file or group."""
+        """
+        Persist the table into an HDF5 file or group.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like or h5py.File or h5py.Group
+            HDF5 output target.
+        include : str or iterable of str, optional
+            Names of columns or attributes to include. If omitted, all columns
+            and attributes are included.
+        exclude : str or iterable of str, optional
+            Names of columns or attributes to exclude.
+        missing : {"error", "ignore"}, optional
+            Policy for names requested in ``include`` or ``exclude`` that are
+            not present in the table.
+        include_meta : bool, optional
+            If ``True``, include metadata describing dropped columns,
+            dropped attributes, column dtypes, table class, and xtrack version.
+        group : str or None, optional
+            HDF5 group where the table is written. If ``None``, write to the
+            root target.
+
+        Returns
+        -------
+        None
+            The table is written to the HDF5 target.
+        """
 
         target, h5file, close_file = self._resolve_hdf5_target(
             file, mode='w', group=group)
@@ -796,7 +1056,22 @@ class Table(_XdepsTable):
 
     @classmethod
     def from_hdf5(cls, file, *, group=None):
-        """Load a table from an HDF5 file or group."""
+        """
+        Load a table from an HDF5 file or group.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like or h5py.File or h5py.Group
+            HDF5 input target.
+        group : str or None, optional
+            HDF5 group containing the serialized table. If ``None``, the file
+            must contain exactly one group.
+
+        Returns
+        -------
+        xtrack.Table
+            Reconstructed table.
+        """
 
         if group is None:
             import h5py
@@ -932,7 +1207,30 @@ class Table(_XdepsTable):
 
     def to_csv(self, file, *, include=None, exclude=None,
                missing='error', include_meta=True):
-        """Write the table to CSV, embedding metadata as comments."""
+        """
+        Write the table to CSV, embedding metadata as comments.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like
+            CSV output target.
+        include : str or iterable of str, optional
+            Names of columns or attributes to include. If omitted, all columns
+            and attributes are included.
+        exclude : str or iterable of str, optional
+            Names of columns or attributes to exclude.
+        missing : {"error", "ignore"}, optional
+            Policy for names requested in ``include`` or ``exclude`` that are
+            not present in the table.
+        include_meta : bool, optional
+            If ``True``, write metadata comments describing dropped columns,
+            dropped attributes, column dtypes, table class, and xtrack version.
+
+        Returns
+        -------
+        None
+            The table is written to ``file``.
+        """
 
         column_order = list(self._col_names)
         raw_attrs = {kk: vv for kk, vv in self._data.items()
@@ -1036,7 +1334,19 @@ class Table(_XdepsTable):
 
     @classmethod
     def from_csv(cls, file):
-        """Reconstruct a table instance from CSV data."""
+        """
+        Reconstruct a table instance from CSV data.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like
+            CSV file or file-like object to read.
+
+        Returns
+        -------
+        xtrack.Table
+            Reconstructed table.
+        """
         if isinstance(file, io.IOBase):
             content = file.read().splitlines()
         else:
@@ -1143,6 +1453,11 @@ class Table(_XdepsTable):
         column_widths : Mapping[str, int], optional
             Per-column minimum widths overriding the defaults. Non-numeric
             columns stay left-aligned; numeric ones keep right alignment.
+
+        Returns
+        -------
+        None
+            The table is written to ``file``.
         """
 
         if float_precision <= 0:
@@ -1533,7 +1848,19 @@ class Table(_XdepsTable):
 
     @classmethod
     def from_tfs(cls, file):
-        """Load a table from a TFS file."""
+        """
+        Load a table from a TFS file.
+
+        Parameters
+        ----------
+        file : str or path-like or file-like
+            TFS input source.
+
+        Returns
+        -------
+        xtrack.Table
+            Reconstructed table.
+        """
         header_text, file = _prepare_header_source(file)
         parsed_headers = _parse_headers(header_text)
 

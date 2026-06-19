@@ -2,6 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
+import copy
 from typing import List
 from warnings import warn
 
@@ -15,6 +16,7 @@ import xtrack as xt
 from ..base_element import BeamElement
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..general import DEPRECATION_INFO_PREP_1_0
+from ..survey import advance_element as survey_advance_element
 
 from xtrack.internal_record import RecordIndex
 
@@ -36,6 +38,7 @@ _INDEX_TO_MODEL_CURVED = {
     5: 'drift-kick-drift-exact',
     6: 'drift-kick-drift-expanded',
     7: 'rot-kick-rot-low-order',
+    8: 'rot-kick-rot-high-order',
 }
 _MODEL_TO_INDEX_CURVED = {k: v for v, k in _INDEX_TO_MODEL_CURVED.items()} | {'expanded': 4}
 
@@ -152,6 +155,10 @@ class SynchrotronRadiationRecord(xo.HybridClass):
         'particle_id': xo.Int64[:],
         'particle_delta': xo.Float64[:]
     }
+
+# Imported here (after SynchrotronRadiationRecord definition) to avoid
+# circular import issues while keeping SplineBoris in its own module.
+from .splineboris import Spline4, SplineBoris
 
 class _HasIntegrator:
 
@@ -372,12 +379,14 @@ class _HasKnlKsl:
 
         knl = np.zeros(nn, dtype=np.float64)
         ksl = np.zeros(nn, dtype=np.float64)
-        knl[: len(self.knl)] += self.knl
-        ksl[: len(self.ksl)] += self.ksl
+        knl[: len(self.knl)] += self._context.nparray_from_context_array(self.knl)
+        ksl[: len(self.ksl)] += self._context.nparray_from_context_array(self.ksl)
 
         if 'knl_rel' in self._xo_fnames:
-            knl[: len(self.knl_rel)] += self.main_strength * self.knl_rel
-            ksl[: len(self.ksl_rel)] += self.main_strength * self.ksl_rel
+            knl[: len(self.knl_rel)] += self._context.nparray_from_context_array(
+                self.main_strength * self.knl_rel)
+            ksl[: len(self.ksl_rel)] += self._context.nparray_from_context_array(
+                self.main_strength * self.ksl_rel)
 
         if 'k0' in self._xo_fnames:
             if hasattr(self, '_k0'): # To bypass k0 = from_angle
@@ -420,10 +429,20 @@ class _HasKnlKsl:
         ksl = kwargs.pop('ksl', None)
         pn = kwargs.pop('pn', None) # Phase for RF multipoles
         ps = kwargs.pop('ps', None) # Phase for RF multipoles
+        phase_n = kwargs.pop('phase_n', None) # Phase for RF multipoles
+        phase_s = kwargs.pop('phase_s', None) # Phase for RF multipoles
+
+        for nn, vv in {
+                'pn': pn, 'ps': ps,
+                'phase_n': phase_n, 'phase_s': phase_s}.items():
+            if vv is not None and nn not in self._xofields:
+                raise NameError(f"Invalid keyword argument `{nn}`")
 
         order = order or DEFAULT_MULTIPOLE_ORDER
         multipolar_kwargs = self._prepare_multipolar_params(order,
-                                            knl=knl, ksl=ksl, pn=pn, ps=ps)
+                                            knl=knl, ksl=ksl,
+                                            pn=pn, ps=ps,
+                                            phase_n=phase_n, phase_s=phase_s)
         kwargs.update(multipolar_kwargs)
 
         model = kwargs.pop('model', None)
@@ -440,6 +459,26 @@ class _HasKnlKsl:
 
         if integrator is not None:
             self.integrator = integrator
+
+    @staticmethod
+    def _warn_if_deprecated_phase_is_nonzero(value, name, new_name):
+
+        need_warn = False
+        if np.isscalar(value) and value != 0:
+            need_warn = True
+        elif not np.isscalar(value):
+            for v in value:
+                if v != 0:
+                    need_warn = True
+                    break
+
+        if need_warn:
+            warn(f'`{name}` (in degrees) is deprecated and will be removed '
+                 f'in a future version. Please use `{new_name}` (in radians) '
+                 f'instead. Note that if both `{name}` and `{new_name}` are '
+                 f'set, the effect is the sum of the two with `{name}` '
+                 f'converted to radians.',
+                 FutureWarning, stacklevel=2)
 
     def _prepare_multipolar_params(
         self,
@@ -786,14 +825,15 @@ class Cavity(_HasModelRF, _HasIntegrator, BeamElement):
 
     @lag.setter
     def lag(self, value):
-        # TODO: Warning to be activated when acc-models repos are updated
-        # if value != 0:
-        #     warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
-        #          "Please use `phase` (in radians) instead. "
-        #          "Note that if both `lag` and `phase` are set, the effect is the sum of the two," \
-        #          " with `lag` converted to radians. "
-        #          + DEPRECATION_INFO_PREP_1_0,
-        #          FutureWarning, stacklevel=2)
+        if value != 0:
+            warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
+                 "Please use `phase` (in radians) instead. If you see this warning "
+                 "while loading a saved line from a previous version of Xsuite, please "
+                 "regenerate the line with the current version to use phase instead of lag. "
+                 "Note that if both `lag` and `phase` are set, the effect is the sum of the two, "
+                 " with `lag` converted to radians. "
+                 + DEPRECATION_INFO_PREP_1_0,
+                 FutureWarning, stacklevel=2)
         self._lag = value
 
     @property
@@ -906,14 +946,15 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
 
     @lag.setter
     def lag(self, value):
-        # TODO: Warning to be activated when acc-models repos are updated
-        # if value != 0:
-        #     warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
-        #          "Please use `phase` (in radians) instead. "
-        #          "Note that if both `lag` and `phase` are set, the effect is the sum of the two," \
-        #          " with `lag` converted to radians. "
-        #          + DEPRECATION_INFO_PREP_1_0,
-        #          FutureWarning, stacklevel=2)
+        if value != 0:
+            warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
+                 "Please use `phase` (in radians) instead. If you see this warning "
+                 "while loading a saved line from a previous version of Xsuite, please "
+                 "regenerate the line with the current version to use phase instead of lag. "
+                 "Note that if both `lag` and `phase` are set, the effect is the sum of the two, "
+                 " with `lag` converted to radians. "
+                 + DEPRECATION_INFO_PREP_1_0,
+                 FutureWarning, stacklevel=2)
         self._lag = value
 
     @property
@@ -928,8 +969,6 @@ class CrabCavity(_HasModelRF, _HasIntegrator, BeamElement):
     def _drift_slice_class(self):
         return xt.DriftSliceCrabCavity
 
-
-
 class XYShift(BeamElement):
     '''
     Beam element modeling an transverse shift of the reference system, by applying
@@ -937,6 +976,8 @@ class XYShift(BeamElement):
 
         x_new = x_old - dx
         y_new = y_old - dy
+
+    .. warning:: The XYShift element is deprecated and will be removed in a future version. Please use the Translation element instead.
 
     Parameters
     ----------
@@ -958,6 +999,90 @@ class XYShift(BeamElement):
     _extra_c_sources = [
         '#include "xtrack/beam_elements/elements_src/xyshift.h"',
     ]
+
+    def __init__(self, dx=None, dy=None, **kwargs):
+
+        warn("XYShift is deprecated and will be removed in a future version. Please use Translation instead."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+
+        super().__init__(dx=dx, dy=dy, **kwargs)
+
+    def _propagate_survey(self, v, w, backtrack):
+
+        shift_x = self.dx
+        shift_y = self.dy
+
+        if backtrack:
+            fback = -1
+        else:
+            fback = 1
+
+        v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = 0,
+                    tilt            = 0,
+                    ref_shift_x     = fback * shift_x,
+                    ref_shift_y     = fback * shift_y,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+        return v, w
+
+class Translation(BeamElement):
+    '''
+    Beam element modeling a transverse shift of the reference system, by applying
+    the following transformation to the particle coordinates:
+
+        x_new = x_old - shift_x
+        y_new = y_old - shift_y
+
+    Parameters
+    ----------
+    shift_x : float
+        Horizontal shift in meters. Default is ``0``.
+    shift_y : float
+        Vertical shift in meters. Default is ``0``.
+
+    '''
+    _xofields = {
+        'shift_x': xo.Float64,
+        'shift_y': xo.Float64,
+        }
+
+    allow_loss_refinement = True
+    has_backtrack = True
+    allow_rot_and_shift = False
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/translation.h"',
+    ]
+
+    def _propagate_survey(self, v, w, backtrack):
+
+        shift_x = self.shift_x
+        shift_y = self.shift_y
+
+        if backtrack:
+            fback = -1
+        else:
+            fback = 1
+
+        v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = 0,
+                    tilt            = 0,
+                    ref_shift_x     = fback * shift_x,
+                    ref_shift_y     = fback * shift_y,
+                    ref_rot_x_rad   = 0,
+                    ref_rot_y_rad   = 0,
+                    ref_rot_s_rad   = 0,
+                )
+        return v, w
 
 
 class Elens(BeamElement):
@@ -1079,10 +1204,123 @@ class Wire(BeamElement):
         '#include "xtrack/beam_elements/elements_src/wire.h"',
     ]
 
+_ROT_AX_TO_ID = {'x': 0, 'y': 1, 's': 2}
+_ROT_ID_TO_AX = {0: 'x', 1: 'y', 2: 's'}
+
+class Rotation(xt.BeamElement):
+
+    allow_rot_and_shift = False
+    has_backtrack = True
+    allow_loss_refinement = True
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/rotation.h"',
+    ]
+
+    _noexpr_fields = ['seq']
+
+    _skip_in_to_dict = ['_first_rot', '_second_rot', '_third_rot']
+    _store_in_to_dict = ['seq']
+
+    _xofields = {
+        'rot_s_rad': xo.Float64,
+        'rot_x_rad': xo.Float64,
+        'rot_y_rad': xo.Float64,
+        '_first_rot': xo.Field(xo.Int8, default=1),  # default to 'y' rotation
+        '_second_rot': xo.Field(xo.Int8, default=0),  # default to 'x' rotation
+        '_third_rot': xo.Field(xo.Int8, default=2),  # default to 's' rotation
+    }
+
+    def __init__(self, rot_s_rad=0, rot_x_rad=0, rot_y_rad=0, seq='yxs', **kwargs):
+
+        """"
+        3D rotation element.
+
+        Parameters
+        ----------
+        rot_s_rad : float
+            Rotation around the longitudinal axis applied to the element [rad].
+        rot_x_rad : float
+            Rotation around the horizontal axis applied to the element [rad].
+        rot_y_rad : float
+            Rotation around the vertical axis applied to the element [rad].
+        seq : str
+            Sequence of rotations, as a permutation of 'x', 'y', 's'.
+            Default is 'yxs', which means that the first rotation applied to
+            the element is around y, then around x, and finally around s.
+
+        """
+
+        super().__init__(**kwargs)
+        self.rot_s_rad = rot_s_rad
+        self.rot_x_rad = rot_x_rad
+        self.rot_y_rad = rot_y_rad
+        self.seq = seq  # this will set the _first_rot, _second_rot, _third_rot fields
+
+    def to_dict(self, *args, **kwargs):
+        out = super().to_dict(*args, **kwargs)
+        if out['seq'] == 'yxs': # default sequence, can be omitted for brevity
+            out.pop('seq')
+        return out
+
+    def __repr__(self):
+        return (f"Rotation(rot_s_rad={self.rot_s_rad}, rot_x_rad={self.rot_x_rad}, "
+                f"rot_y_rad={self.rot_y_rad}, seq='{self.seq}')")
+
+    @property
+    def seq(self):
+        out = (_ROT_ID_TO_AX[self._first_rot] +
+               _ROT_ID_TO_AX[self._second_rot] +
+               _ROT_ID_TO_AX[self._third_rot])
+        return out
+
+    @seq.setter
+    def seq(self, value):
+        if len(value) != 3 or set(value) != {'x', 'y', 's'}:
+            raise ValueError("Sequence must be a permutation of 'x', 'y', 's'")
+        self._first_rot = _ROT_AX_TO_ID[value[0]]
+        self._second_rot = _ROT_AX_TO_ID[value[1]]
+        self._third_rot = _ROT_AX_TO_ID[value[2]]
+
+    def _propagate_survey(self, v, w, backtrack):
+
+        seq = self.seq
+        fback = 1
+        if backtrack:
+            seq = seq[::-1]  # reverse the sequence for backtracking
+            fback = -1
+
+        for ax in seq:
+            if ax == 'x':
+                rx, ry, rs = self.rot_x_rad, 0, 0
+            elif ax == 'y':
+                rx, ry, rs = 0, self.rot_y_rad, 0
+            elif ax == 's':
+                rx, ry, rs = 0, 0, self.rot_s_rad
+            else:
+                raise ValueError(f"Invalid rotation axis '{ax}' in sequence '{self.seq}'")
+
+            v, w = survey_advance_element(
+                        v               = v,
+                        w               = w,
+                        length          = 0,
+                        angle           = 0,
+                        tilt            = 0,
+                        ref_shift_x     = 0,
+                        ref_shift_y     = 0,
+                        ref_rot_x_rad   = fback * rx,
+                        ref_rot_y_rad   = -fback * ry,
+                        ref_rot_s_rad   = fback * rs,
+                    )
+        return v, w
+
 
 class SRotation(BeamElement):
     """
     Beam element modeling a rotation of the reference system around the s-axis.
+
+    .. warning:: SRotation is deprecated and will be removed in a future version. Please use Rotation(rot_s_rad=...) instead.
+
     The sign convention is such that:
 
             px_out = px_in * cos(angle) - py_in * sin(angle)
@@ -1117,6 +1355,11 @@ class SRotation(BeamElement):
         parameters are given, their consistency will be checked.
         """
 
+        warn("SRotation is deprecated and will be removed in a future version. "
+             "Please use Rotation(rot_s_rad=...) instead. "
+                + DEPRECATION_INFO_PREP_1_0,
+                FutureWarning, stacklevel=2)
+
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
@@ -1150,10 +1393,36 @@ class SRotation(BeamElement):
         self.cos_z = np.cos(anglerad)
         self.sin_z = np.sin(anglerad)
 
+    def _propagate_survey(self, v, w, backtrack):
+
+        fback = 1
+        if backtrack:
+            fback = -1
+
+        rx, ry, rs = 0, 0, np.deg2rad(self.angle)
+
+        v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = 0,
+                    tilt            = 0,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = fback * rx,
+                    ref_rot_y_rad   = -fback * ry,
+                    ref_rot_s_rad   = fback * rs,
+                )
+
+        return v, w
+
 
 class XRotation(BeamElement):
     """
     Beam element modeling a rotation of the reference system around the x-axis.
+
+    .. warning:: XRotation is deprecated and will be removed in a future version. Please use Rotation(rot_x_rad=...) instead.
+
     The sign convention is such that:
 
           py_out = py_in * cos(angle) + pz_in * sin(angle)
@@ -1196,6 +1465,11 @@ class XRotation(BeamElement):
         """
         # Note MAD-X node_value('other_bv ') is ignored
 
+        warn("XRotation is deprecated and will be removed in a future version. "
+             "Please use Rotation(rot_x_rad=...) instead. "
+                + DEPRECATION_INFO_PREP_1_0,
+                FutureWarning, stacklevel=2)
+
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
@@ -1230,6 +1504,29 @@ class XRotation(BeamElement):
             cos_angle=cos_angle, sin_angle=sin_angle, tan_angle=tan_angle,
             **kwargs)
 
+    def _propagate_survey(self, v, w, backtrack):
+
+        fback = 1
+        if backtrack:
+            fback = -1
+
+        rx, ry, rs = np.deg2rad(self.angle), 0, 0
+
+        v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = 0,
+                    tilt            = 0,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = fback * rx,
+                    ref_rot_y_rad   = -fback * ry,
+                    ref_rot_s_rad   = fback * rs,
+                )
+        return v, w
+
+
     @property
     def angle(self):
         return np.arctan2(self.sin_angle,self.cos_angle) * (180.0 / np.pi)
@@ -1245,6 +1542,9 @@ class XRotation(BeamElement):
 class YRotation(BeamElement):
     """
     Beam element modeling a rotation of the reference system around the y-axis.
+
+    .. warning:: YRotation is deprecated and will be removed in a future version. Please use Rotation(rot_y_rad=...) instead.
+
     The sign convention is such that:
 
             px_out = px_in * cos(angle) - pz_in * sin(angle)
@@ -1285,6 +1585,11 @@ class YRotation(BeamElement):
         calculate the missing values from the others. If more than necessary
         parameters are given, their consistency will be checked.
         """
+
+        warn("YRotation is deprecated and will be removed in a future version. "
+             "Please use Rotation(rot_y_rad=...) instead. "
+                + DEPRECATION_INFO_PREP_1_0,
+                FutureWarning, stacklevel=2)
 
         if '_xobject' in kwargs and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -1333,9 +1638,34 @@ class YRotation(BeamElement):
         self.sin_angle = np.sin(anglerad)
         self.tan_angle = np.tan(anglerad)
 
+    def _propagate_survey(self, v, w, backtrack):
+
+        fback = 1
+        if backtrack:
+            fback = -1
+
+        rx, ry, rs = 0, np.deg2rad(self.angle), 0
+
+        v, w = survey_advance_element(
+                    v               = v,
+                    w               = w,
+                    length          = 0,
+                    angle           = 0,
+                    tilt            = 0,
+                    ref_shift_x     = 0,
+                    ref_shift_y     = 0,
+                    ref_rot_x_rad   = fback * rx,
+                    ref_rot_y_rad   = -fback * ry,
+                    ref_rot_s_rad   = fback * rs,
+                )
+
+        return v, w
+
 
 class ZetaShift(BeamElement):
     '''Beam element modeling a time delay.
+
+    .. warning:: ZetaShift is deprecated and will be removed in a future version. Please use TimeDelay instead.
 
     Parameters
     ----------
@@ -1357,6 +1687,37 @@ class ZetaShift(BeamElement):
     ]
 
     _store_in_to_dict = ['dzeta']
+
+    def __init__(self, *args, **kwargs):
+        warn("ZetaShift is deprecated and will be removed in a future version. Please use TimeDelay instead."
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+        super().__init__(*args, **kwargs)
+
+class TimeDelay(BeamElement):
+
+    '''Beam element modeling a time delay, by applying the following transformation
+    to the variable ``zeta``:
+
+        zeta_new = zeta_old + shift_zeta
+
+    Parameters
+    ----------
+
+    shift_zeta : float
+        Time shift in meters added to the variable ``zeta``. Default is ``0``.
+
+    '''
+
+    _xofields={
+        'shift_zeta': xo.Float64,
+        }
+
+    has_backtrack = True
+    allow_rot_and_shift = False
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/timedelay.h"',
+    ]
 
 class Misalignment(BeamElement):
     """Beam element modeling a misalignment of a strait or curved element.
@@ -2931,8 +3292,14 @@ class Magnet(_BendCommon, BeamElement):
             - ``bend-kick-bend``: use a thick (curved, if ``h`` non-zero) exact
                 bend map for ``k0``, ``h``, and handle the other strengths in
                 the kicks.
-            - ``rot-kick-rot``: use an exact drift map (polar, if ``h`` non-zero)
-                and handle all strengths in the kicks.
+            - ``rot-kick-rot-low-order``: use an exact drift map (polar,
+                if ``h`` non-zero) and handle all strengths in the kicks.
+            - ``rot-kick-rot``: nested integration scheme, alternating: 1. Yoshida-4
+                slices with exact drift maps (polar, if ``h`` non-zero) and k0-only
+                kicks; 2. kicks for the remaining strengths.
+            -   ``rot-kick-rot-high-order``: nested integration scheme, alternating:
+                1. Yoshida-6 slices with exact drift maps (polar, if ``h`` non-zero)
+                and k0-only kicks; 2. kicks for the remaining strengths.
             - ``mat-kick-mat``: use an expanded combined-function magnet map
                 for ``k0``, ``k1``, ``h``, and handle the other strengths in
                 the kicks.
@@ -3366,14 +3733,20 @@ class RFMultipole(_HasKnlKsl, BeamElement):
         Integrated strength of the skew rf-multipole components in units of m^-n.
     order : int
         Order of the multipole. If not provided, it will be inferred from knl and/or ksl.
+    phase_n : array
+        Phase of the normal components in radians.
+    phase_s : array
+        Phase of the skew components in radians.
     pn : array
-        Phase of the normal components in degrees.
+        Deprecated. Phase of the normal components in degrees.
     ps : array
-        Phase of the skew components in degrees.
+        Deprecated. Phase of the skew components in degrees.
     voltage : float
         Longitudinal voltage. Default is ``0``.
+    phase : float
+        Longitudinal phase in radians seen by the reference particle. Default is ``0``.
     lag : float
-        Longitudinal phase seen by the reference particle. Default is ``0``.
+        Deprecated longitudinal phase in degrees, added to `phase`. Default is ``0``.
     """.strip()
 
     __doc__ = '\n    '.join([_docstring_start, _for_docstring_alignment, '\n',
@@ -3383,12 +3756,15 @@ class RFMultipole(_HasKnlKsl, BeamElement):
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
+        'phase': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
         'pn': xo.Float64[:],
         'ps': xo.Float64[:],
+        'phase_n': xo.Float64[:],
+        'phase_s': xo.Float64[:],
         'absolute_time': xo.Int64,
     }
 
@@ -3403,7 +3779,76 @@ class RFMultipole(_HasKnlKsl, BeamElement):
 
     _rename = {
         'order': '_order',
+        'lag': '_lag',
+        'pn': '_pn',
+        'ps': '_ps',
     }
+
+    def __init__(self, **kwargs):
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        pn = kwargs.get('pn')
+        ps = kwargs.get('ps')
+        lag = kwargs.pop('lag', None)
+        if pn is not None:
+            self._warn_if_deprecated_phase_is_nonzero(pn, 'pn', 'phase_n')
+        if ps is not None:
+            self._warn_if_deprecated_phase_is_nonzero(ps, 'ps', 'phase_s')
+
+        super().__init__(**kwargs)
+
+        if lag is not None:
+            self.lag = lag
+
+    @property
+    def lag(self):
+        return self._lag
+
+    @lag.setter
+    def lag(self, value):
+        if value != 0:
+            warn("`lag` (in degrees) is deprecated and will be removed in a future version. "
+                 "Please use `phase` (in radians) instead. "
+                 "Note that if both `lag` and `phase` are set, the effect is the sum of the two,"
+                 " with `lag` converted to radians. "
+                 + DEPRECATION_INFO_PREP_1_0,
+                 FutureWarning, stacklevel=2)
+        self._lag = value
+
+    @property
+    def pn(self):
+        return self._buffer.context.linked_array_type.from_array(
+            self._pn,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_pn_setitem')
+
+    @pn.setter
+    def pn(self, value):
+        self.pn[:] = value
+
+    def _pn_setitem(self, index, value):
+        self._warn_if_deprecated_phase_is_nonzero(value, 'pn', 'phase_n')
+        self._pn[index] = value
+
+    @property
+    def ps(self):
+        return self._buffer.context.linked_array_type.from_array(
+            self._ps,
+            mode='setitem_from_container',
+            container=self,
+            container_setitem_name='_ps_setitem')
+
+    @ps.setter
+    def ps(self, value):
+        self.ps[:] = value
+
+    def _ps_setitem(self, index, value):
+        self._warn_if_deprecated_phase_is_nonzero(value, 'ps', 'phase_s')
+        self._ps[index] = value
 
 
 class DipoleEdge(BeamElement):
@@ -4339,7 +4784,7 @@ class SecondOrderTaylorMap(BeamElement):
 
         '''
         if start == end:
-            # start == end will lead to compute_R_matrix() computing a
+            # start == end will lead to get_R_matrix() computing a
             # full one-turn response matrix (but here we would rather expect identity)
             raise NotImplementedError('end element must be after start element')
 
@@ -4351,10 +4796,10 @@ class SecondOrderTaylorMap(BeamElement):
         twinit = tw.get_twiss_init(start)
         twinit_out = tw.get_twiss_init(end)
 
-        RR = line.compute_R_matrix(
+        RR = line.get_R_matrix(
             start=start, end=end, particle_on_co=twinit.particle_on_co
             )['R_matrix']
-        TT = line.compute_T_matrix(start=start, end=end,
+        TT = line.get_T_matrix(start=start, end=end,
                                     particle_on_co=twinit.particle_on_co)
 
         x_co_in = np.array([

@@ -504,9 +504,9 @@ def test_slice_twice():
 
     # Check first table
 
-    xo.assert_allclose(tt_first_slice.angle_rad, np.array(
+    xo.assert_allclose(tt_first_slice.angle, np.array(
         [0.  , 0.  , 0.05, 0.15, 0.15, 0.05, 0.  , 0.  , 0.  ]), rtol=0, atol=1e-12)
-    xo.assert_allclose(np.sum(tt_first_slice.angle_rad), 0.4, rtol=0, atol=1e-12)
+    xo.assert_allclose(np.sum(tt_first_slice.angle), 0.4, rtol=0, atol=1e-12)
 
     xo.assert_allclose(tt_first_slice.k0l, np.array(
         [0. , 0. , 0.4, 1.2, 1.2, 0.4, 0. , 0. , 0. ]), rtol=0, atol=1e-12)
@@ -556,7 +556,7 @@ def test_slice_twice():
          'ThinSliceBendExit', 'Marker', ''])
     )
 
-    xo.assert_allclose(tt_second_slice.angle_rad, np.array(
+    xo.assert_allclose(tt_second_slice.angle, np.array(
         [0.    , 0.    , 0.    , 0.    , 0.0125, 0.    , 0.0125, 0.    ,
          0.0125, 0.    , 0.0125, 0.    , 0.    , 0.    , 0.    , 0.0375,
          0.    , 0.0375, 0.    , 0.0375, 0.    , 0.0375, 0.    , 0.    ,
@@ -564,7 +564,7 @@ def test_slice_twice():
          0.0375, 0.    , 0.    , 0.    , 0.    , 0.0125, 0.    , 0.0125,
          0.    , 0.0125, 0.    , 0.0125, 0.    , 0.    , 0.    , 0.    ,
          0.    ]), rtol=0, atol=1e-12)
-    xo.assert_allclose(np.sum(tt_second_slice.angle_rad), 0.4, rtol=0, atol=1e-12)
+    xo.assert_allclose(np.sum(tt_second_slice.angle), 0.4, rtol=0, atol=1e-12)
 
     xo.assert_allclose(tt_second_slice.k0l, np.array(
         [0. , 0. , 0. , 0. , 0.1, 0. , 0.1, 0. , 0.1, 0. , 0.1, 0. , 0. ,

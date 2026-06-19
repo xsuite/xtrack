@@ -2,12 +2,12 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-from warnings import warn
 
 import io
 import json
 from functools import partial
 from typing import Literal
+from warnings import warn
 
 import numpy as np
 from scipy.constants import c as clight
@@ -36,7 +36,7 @@ import xtrack as xt  # To avoid circular imports
 DEFAULT_STEPS_R_MATRIX = {
     'dx':1e-6, 'dpx':1e-7,
     'dy':1e-6, 'dpy':1e-7,
-    'dzeta':1e-6, 'ddelta':1e-6
+    'dzeta':1e-5, 'ddelta':1e-6
 }
 
 DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-9]
@@ -60,9 +60,13 @@ CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
 
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
-OTHER_FIELDS_FROM_ATTR=['angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length', '_angle_force_body']
-OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name', 'parent_type']
-SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle_rad']
+OTHER_FIELDS_FROM_ATTR=['angle', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'bs', 'length', '_angle_force_body']
+OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name', 'parent_type', 'prototype']
+SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle', 'angle_rad']
+
+DEFAULT_COL_ORDER = [
+    'name', 'element_type', 's', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'
+    'dpx', 'dpy', 'x', 'y', 'px', 'py', 'delta', 'zeta']
 
 
 def twiss_line(line, particle_ref=None, method=None,
@@ -329,8 +333,8 @@ def twiss_line(line, particle_ref=None, method=None,
         - `dzeta`: longitudinal dispersion vs delta
     Output fields present when `strengths=True` (or `radiation_integrals=True`):
         - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole integrated strengths
-        - `angle_rad`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
-          `element_type`, `isthick`, `parent_name`: element properties
+        - `angle`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `bs`, `length`,
+          `element_type`, `isthick`, `parent_name`, `prototype`: element properties
     Output fields present when `radiation_analysis=True`:
         - `energy_loss`: energy loss per turn [eV]
         - `damping_constants_turns`, `damping_constants_s`: damping constants in
@@ -874,7 +878,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['steps_r_matrix'] = steps_R_matrix # deprecated
         twiss_res._data['R_matrix_ebe'] = RR_ebe
 
-        _compute_global_quantities(line=line, twiss_res=twiss_res, method=method)
+        _get_global_quantities(line=line, twiss_res=twiss_res, method=method)
 
         twiss_res._data['eigenvalues'] = eigenvalues.copy()
         twiss_res._data['rotation_matrix'] = Rot.copy()
@@ -883,7 +887,7 @@ def twiss_line(line, particle_ref=None, method=None,
         (chrom is True)
         or (chrom is None and periodic))):
 
-        cols_chrom, scalars_chrom = _compute_chromatic_functions(
+        cols_chrom, scalars_chrom = _get_chromatic_functions(
             line=line,
             init=init,
             delta_chrom=delta_chrom,
@@ -925,12 +929,14 @@ def twiss_line(line, particle_ref=None, method=None,
                 line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
                 _, RR, _, _, _, RR_ebe = _find_periodic_solution(
-                    line=line, particle_on_co=particle_on_co,
-                    particle_ref=particle_ref, method='6d',
-                    co_search_settings=co_search_settings,
-                    continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+                    line=line,
+                    particle_ref=None,
+                    method='6d',
+                    particle_on_co=twiss_res.particle_on_co,
+                    co_search_settings=None,
+                    continue_on_closed_orbit_error=None,
+                    co_guess=None,
                     steps_R_matrix=steps_R_matrix,
-                    co_guess=co_guess,
                     symplectify=False,
                     matrix_responsiveness_tol=matrix_responsiveness_tol,
                     matrix_stability_tol=None,
@@ -945,7 +951,7 @@ def twiss_line(line, particle_ref=None, method=None,
                                             # to campture small damping effects
                     )
 
-        eneloss_damp_res = _compute_eneloss_and_damping_rates(
+        eneloss_damp_res = _get_eneloss_and_damping_rates(
                 particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
                 W_matrix=twiss_res.W_matrix,
                 px_co=twiss_res.px, py_co=twiss_res.py,
@@ -953,20 +959,20 @@ def twiss_line(line, particle_ref=None, method=None,
                 line=line, radiation_method=radiation_method)
         twiss_res._data.update(eneloss_damp_res)
 
-        for kk in ['angle_rad', 'rot_s_rad', 'length', 'radiation_flag']:
+        for kk in ['angle_rad', 'angle', 'rot_s_rad', 'length', 'radiation_flag']:
             if kk not in twiss_res._data:
                 aa = line.attr[kk]
                 twiss_res[kk] = np.concatenate([aa, [aa[0]*0]])
 
         # Equilibrium emittances
         if radiation_method == 'kick_as_co':
-            eq_emitts = _compute_equilibrium_emittance_kick_as_co(
+            eq_emitts = _get_equilibrium_emittance_kick_as_co(
                 twiss_res=twiss_res,
                 damping_constants_turns=eneloss_damp_res['damping_constants_turns'],
                 radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
         elif radiation_method == 'full':
-            eq_emitts = _compute_equilibrium_emittance_full(twiss_res=twiss_res,
+            eq_emitts = _get_equilibrium_emittance_full(twiss_res=twiss_res,
                         R_matrix_ebe=RR_ebe,
                         radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
@@ -991,10 +997,10 @@ def twiss_line(line, particle_ref=None, method=None,
         _add_strengths_to_twiss_res(twiss_res, line)
 
     if radiation_integrals:
-        twiss_res._compute_radiation_integrals(add_to_tw=True)
+        twiss_res._get_radiation_integrals(add_to_tw=True)
 
     if polarization_analysis:
-        _compute_spin_polarization(twiss_res, line, method)
+        _get_spin_polarization(twiss_res, line, method)
 
     if coupling_edw_teng:
         if not periodic:
@@ -1011,7 +1017,7 @@ def twiss_line(line, particle_ref=None, method=None,
         bety1, bety2 = twiss_res['bety1'], twiss_res['bety2']
         alfx1, alfx2 = twiss_res['alfx1'], twiss_res['alfx2']
         alfy1, alfy2 = twiss_res['alfy1'], twiss_res['alfy2']
-        coupling_result = _compute_coupling_elements_edwards_teng(
+        coupling_result = _get_coupling_elements_edwards_teng(
             W_matrix=twiss_res['W_matrix'],
             mux=twiss_res['mux'],
             muy=twiss_res['muy'],
@@ -1080,6 +1086,9 @@ def twiss_line(line, particle_ref=None, method=None,
 
     twiss_res['periodic'] = periodic
     twiss_res['completed_init'] = completed_init
+
+    # Sort col names
+    twiss_res._sort_col_names()
 
     return _add_action_in_res(twiss_res, input_kwargs)
 
@@ -1301,7 +1310,7 @@ def _twiss_open(
         })
 
     if not only_orbit and compute_lattice_functions:
-        lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
+        lattice_functions, i_replace = _get_lattice_functions(Ws, use_full_inverse, s_co)
         twiss_res_element_by_element.update(lattice_functions)
 
     extra_data = {}
@@ -1339,7 +1348,7 @@ def _twiss_open(
     return twiss_res
 
 
-def _compute_lattice_functions(Ws, use_full_inverse, s_co):
+def _get_lattice_functions(Ws, use_full_inverse, s_co):
 
     # For removal ot thin groups of elements
     i_take = [0]
@@ -1486,7 +1495,7 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
     return res, i_replace
 
 
-def _compute_coupling_elements_edwards_teng(
+def _get_coupling_elements_edwards_teng(
         W_matrix: np.ndarray,
         mux: np.ndarray,
         muy: np.ndarray,
@@ -1512,7 +1521,7 @@ def _compute_coupling_elements_edwards_teng(
     # RR = WW0 @ Rot @ WW0_inv
 
     # # Edwards-Teng initial conditions
-    # edw_teng_init = _compute_edwards_teng_initial(RR)
+    # edw_teng_init = _get_edwards_teng_initial(RR)
 
     # # Edwards-Teng parameters along the ring
     # edw_teng_cols = _propagate_edwards_teng(
@@ -1525,7 +1534,7 @@ def _compute_coupling_elements_edwards_teng(
     # )
 
     # Coupling RDTs from Edwards-Teng parameters
-    rdts = _compute_coupling_rdts(edw_teng_cols['r11'], edw_teng_cols['r12'],
+    rdts = _get_coupling_rdts(edw_teng_cols['r11'], edw_teng_cols['r12'],
                                   edw_teng_cols['r21'], edw_teng_cols['r22'],
                                   edw_teng_cols['betx'], edw_teng_cols['bety'],
                                   edw_teng_cols['alfx'], edw_teng_cols['alfy'])
@@ -1544,7 +1553,7 @@ def _compute_coupling_elements_edwards_teng(
 
     return out
 
-def _compute_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
+def _get_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
 
     '''
     Developed by CERN OMC team.
@@ -1599,7 +1608,7 @@ def _compute_coupling_rdts(r11, r12, r21, r22, betx, bety, alfx, alfy):
 
     return {'f1001': f1001, 'f1010': f1010, 'f0110': f0110}
 
-def _compute_edwards_teng_initial(RR):
+def _get_edwards_teng_initial(RR):
 
     AA = RR[:2, :2]
     BB = RR[:2, 2:4]
@@ -1676,7 +1685,7 @@ def _edwards_teng_from_one_turn_at_all_locations(WW, qx, qy):
         RR = WW0 @ Rot @ WW0_inv
 
         # Edwards-Teng initial conditions
-        edw_teng_init = _compute_edwards_teng_initial(RR)
+        edw_teng_init = _get_edwards_teng_initial(RR)
 
         RR_ET=edw_teng_init['RR_ET0']
 
@@ -1816,7 +1825,7 @@ def _propagate_edwards_teng(WW, mux, muy, RR_ET0, betx0, alfx0, bety0, alfy0):
     return out_dict
 
 
-def _compute_global_quantities(line, twiss_res, method):
+def _get_global_quantities(line, twiss_res, method):
 
         s_vect = twiss_res['s']
         line_length = line.tracker._tracker_data_base.line_length
@@ -1932,7 +1941,7 @@ def _compute_global_quantities(line, twiss_res, method):
             twiss_res['c_phi1'] = c_phi1
             twiss_res['c_phi2'] = c_phi2
 
-def _compute_chromatic_functions(line, init, delta_chrom,
+def _get_chromatic_functions(line, init, delta_chrom,
                     delta0, zeta0,
                     steps_R_matrix,
                     matrix_responsiveness_tol, matrix_stability_tol, symplectify,
@@ -1984,14 +1993,14 @@ def _compute_chromatic_functions(line, init, delta_chrom,
                     include_collective=include_collective,
                     )
                 tw_init_chrom.particle_on_co = part_chrom
-                RR_chrom = line.compute_R_matrix(
+                RR_chrom = line.get_R_matrix(
                                             particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                             start=start, end=end, num_turns=num_turns,
                                             steps=steps_R_matrix,
                                             symmetrize=False,
                                             include_collective=include_collective,
                                             )['R_matrix']
-                (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
+                (WW_chrom, _, _, _) = lnf.get_linear_normal_form(RR_chrom,
                                         only_4d_block=(method == '4d'),
                                         responsiveness_tol=matrix_responsiveness_tol,
                                         stability_tol=matrix_stability_tol,
@@ -2168,7 +2177,7 @@ def _compute_chromatic_functions(line, init, delta_chrom,
     return cols_chrom, scalars_chrom
 
 
-def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
+def _get_eneloss_and_damping_rates(particle_on_co, R_matrix,
                                        px_co, py_co, ptau_co, W_matrix,
                                        t_rev0, line, radiation_method):
     diff_ptau = np.diff(ptau_co)
@@ -2209,7 +2218,7 @@ def _extract_sr_distribution_properties(twiss_res):
     if np.any(radiation_flag == 2):
         raise ValueError('Incompatible radiation flag')
 
-    hx, hy, kappa0_x, kappa0_y = _compute_trajectory_curvatures(twiss_res)
+    hx, hy, kappa0_x, kappa0_y = _get_trajectory_curvatures(twiss_res)
     hh = np.sqrt(hx**2 + hy**2)
 
     ptau_co = twiss_res['ptau']
@@ -2247,7 +2256,7 @@ def _extract_sr_distribution_properties(twiss_res):
 
     return res
 
-def _compute_equilibrium_emittance_kick_as_co(twiss_res,
+def _get_equilibrium_emittance_kick_as_co(twiss_res,
                                   damping_constants_turns,
                                   radiation_method):
 
@@ -2363,7 +2372,7 @@ def _compute_equilibrium_emittance_kick_as_co(twiss_res,
 
     return res
 
-def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
+def _get_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
                                         radiation_method):
 
     kin_px_co = twiss_res['kin_px']
@@ -2403,7 +2412,7 @@ def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
     RR = RR_ebe_hat[-1, :, :]
 
     lnf = xt.linear_normal_form
-    WW, _, Rot, lam_eig = lnf.compute_linear_normal_form(RR)
+    WW, _, Rot, lam_eig = lnf.get_linear_normal_form(RR)
     DSigma = np.zeros_like(RR_ebe_hat)
 
     # The following is needed if RR is in px, py instead of x', y'
@@ -2433,7 +2442,7 @@ def _compute_equilibrium_emittance_full(twiss_res, R_matrix_ebe,
         if d_delta_sq_ave[ii] > 0:
             DSigma0 += RR_ebe_hat_inv[ii, :, :] @ DSigma[ii, :, :] @ RR_ebe_hat_inv[ii, :, :].T
 
-    CC_split, _, RRR, reig = lnf.compute_linear_normal_form(Rot)
+    CC_split, _, RRR, reig = lnf.get_linear_normal_form(Rot)
     reig_full = np.zeros_like(Rot, dtype=complex)
     reig_full[0, 0] = reig[0]
     reig_full[1, 1] = reig[0].conjugate()
@@ -2597,7 +2606,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
             RR = R_matrix
             lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol,
                                                 only_4d=(method == '4d'))
-            W, _, Rot, eigenvalues = lnf.compute_linear_normal_form(
+            W, _, Rot, eigenvalues = lnf.get_linear_normal_form(
                         RR, only_4d_block=(method == '4d'),
                         symplectify=symplectify,
                         responsiveness_tol=matrix_responsiveness_tol,
@@ -2605,7 +2614,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         else:
             steps_R_matrix['adapted'] = False
             for iter in range(2):
-                RR_out = line.compute_R_matrix(
+                RR_out = line.get_R_matrix(
                     steps=steps_R_matrix,
                     particle_on_co=part_on_co,
                     start=start,
@@ -2623,7 +2632,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     lnf._assert_matrix_responsiveness(RR,
                         matrix_responsiveness_tol, only_4d=(method == '4d'))
 
-                W, _, Rot, eigenvalues = lnf.compute_linear_normal_form(
+                W, _, Rot, eigenvalues = lnf.get_linear_normal_form(
                             RR, only_4d_block=(method == '4d'),
                             symplectify=symplectify,
                             responsiveness_tol=None,
@@ -2985,7 +2994,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                             symmetrize=symmetrize),
                 x0=x0, steps=[1e-8, 1e-9, 1e-8, 1e-9, 1e-7, 1e-8],
                 tar=[0., 0., 0., 0., 0., 0.],
-                tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12])
+                tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-11, 1e-12])
         try:
             opt.solve(verbose=-1)
             ier = 1
@@ -3030,7 +3039,7 @@ def _one_turn_map(p, particle_ref, line, zeta_shift, start, end, num_turns, symm
 
     if line.energy_program is not None:
         dp0c = line.energy_program.get_p0c_increse_per_turn_at_t_s(
-                                                        line.vv['t_turn_s'])
+                                                        line['t_turn_s'])
         part.update_p0c_and_energy_deviations(p0c = part._xobject.p0c[0] + dp0c)
 
     line.track(part, ele_start=start, ele_stop=end, num_turns=num_turns)
@@ -3084,7 +3093,7 @@ def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, zeta_shift, delta0, 
         p[4] - zeta0,
         p[5] - delta0])
 
-def compute_R_matrix(
+def get_R_matrix(
         line, particle_on_co,
         steps=None,
         start=None, end=None,
@@ -3208,6 +3217,16 @@ def compute_R_matrix(
         out['R_matrix_ebe'] = None
 
     return out
+
+
+def compute_R_matrix(*args, **kwargs):
+    warn(
+        '`compute_R_matrix()` is deprecated and will be removed in future '
+        'versions. Please use `get_R_matrix()` instead.'
+        + DEPRECATION_INFO_PREP_1_0,
+        FutureWarning,
+    )
+    return get_R_matrix(*args, **kwargs)
 
 
 def _updated_kwargs_from_locals(kwargs, loc):
@@ -3718,6 +3737,14 @@ class TwissInit:
 
 
 class TwissTable(Table):
+    """
+    Table returned by :meth:`xtrack.Line.twiss`.
+
+    ``TwissTable`` stores element-by-element optics and closed-orbit data
+    produced by Twiss calculations. Typical columns include longitudinal
+    position, beta functions, alpha functions, dispersion, phase advances,
+    coordinates, momenta, and element strengths when requested.
+    """
 
     # Messages to be shown when accessing deprecated fields
     _DEPRECATED_FIELDS = {
@@ -3738,30 +3765,102 @@ class TwissTable(Table):
                            + DEPRECATION_INFO_PREP_1_0),
         'circumference': ('`circumference` is deprecated, use `line_length` instead.'
                           + DEPRECATION_INFO_PREP_1_0),
+        'angle_rad': ('`angle_rad` is deprecated, use `angle` instead.'
+                      + DEPRECATION_INFO_PREP_1_0),
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, data, *args, **kwargs):
+        """
+        Create a Twiss table.
+
+        ``TwissTable`` stores element-by-element optics, closed orbit,
+        transfer information, and global quantities produced by Twiss
+        calculations.
+
+        Parameters
+        ----------
+        data : mapping
+            Mapping containing Twiss-table columns and scalar attributes.
+        *args
+            Positional arguments passed to :class:`xtrack.Table`.
+        periodic : bool, optional
+            Whether the stored Twiss solution is periodic. If not provided,
+            the value is taken from ``data["periodic"]`` when available,
+            otherwise it defaults to ``False``.
+        **kwargs
+            Keyword arguments passed to :class:`xtrack.Table`.
+
+        Examples
+        --------
+        Build a compact Twiss-like table:
+
+        >>> import numpy as np
+        >>> import xtrack as xt
+        >>> tab = xt.TwissTable({
+        ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
+        ...                      dtype=object),
+        ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
+        ...                              dtype=object),
+        ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
+        ...     "betx": np.array([1.28, 1.28, 2.27, 1.28]),
+        ...     "bety": np.array([4.79, 4.79, 5.21, 4.79]),
+        ...     "dx": np.array([2.28, 2.28, 2.24, 2.28]),
+        ... })
+        >>> tab
+        TwissTable: 4 rows, 6 cols
+        name       element_type             s          betx          bety            dx
+        mqf.1      Quadrupole               0          1.28          4.79          2.28
+        d1.1       Drift                  0.3          1.28          4.79          2.28
+        mb1.1      Bend                   1.3          2.27          5.21          2.24
+        _end_point                        4.3          1.28          4.79          2.28
+
+        Select optics columns, including expressions:
+
+        >>> tab.cols["betx bety dx/sqrt(betx)"]
+        TwissTable: 4 rows, 4 cols
+        name                betx          bety dx/sqrt(betx)
+        mqf.1               1.28          4.79       2.01525
+        d1.1                1.28          4.79       2.01525
+        mb1.1               2.27          5.21       1.48674
+        _end_point          1.28          4.79       2.01525
+
+        Select elements by type:
+
+        >>> tab.rows.match(element_type="Quadrupole|Bend")
+        TwissTable: 2 rows, 6 cols
+        name  element_type             s          betx          bety            dx
+        mqf.1 Quadrupole               0          1.28          4.79          2.28
+        mb1.1 Bend                   1.3          2.27          5.21          2.24
+        """
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
-        super().__init__(*args, **kwargs)
-        self['periodic'] = kwargs.get('periodic', kwargs.get('data', {}).get('periodic', False))
+        periodic = kwargs.pop('periodic', data.get('periodic', False))
+        super().__init__(data, *args, **kwargs)
+        self['periodic'] = periodic
 
     _error_on_row_not_found = True
 
-    def __getitem__(self, key):
-        if isinstance(key, (tuple, list)):
-            first_key = key[0]
-        else:
-            first_key = key
-        if first_key in self._DEPRECATED_FIELDS:
-            warn(self._DEPRECATED_FIELDS[first_key], FutureWarning)
-        return super().__getitem__(key)
-
-    def __getattribute__(self, name):
-        if name in object.__getattribute__(self, '_DEPRECATED_FIELDS'):
-            warn(object.__getattribute__(self, '_DEPRECATED_FIELDS')[name], FutureWarning)
-        return super().__getattribute__(name)
+    def _select_rows(self, rows):
+        out = super()._select_rows(rows)
+        out._data.pop('periodic', None)
+        return out
 
     def to_pandas(self, index=None, columns=None):
+        """
+        Convert the Twiss table to a pandas DataFrame.
+
+        Parameters
+        ----------
+        index : str, optional
+            Column to use as the DataFrame index.
+        columns : sequence of str, optional
+            Columns to include in the DataFrame. If not provided, all table
+            columns are included.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame containing the selected Twiss table columns.
+        """
         if columns is None:
             columns = self._col_names
 
@@ -3791,6 +3890,27 @@ class TwissTable(Table):
 
     def to_hdf5(self, file, *, include=None, exclude=None,
                 missing='error', include_meta=True, group='twiss_table'):
+        """
+        Write the Twiss table to an HDF5 file.
+
+        Parameters
+        ----------
+        file : str or pathlib.Path or h5py.File
+            Output HDF5 file path or open HDF5 file object.
+        include : sequence of str, optional
+            Columns or metadata fields to include. If not provided, all supported
+            fields are included unless excluded.
+        exclude : sequence of str, optional
+            Columns or metadata fields to exclude.
+        missing : {"error", "ignore"}, optional
+            Policy for names in ``include`` or ``exclude`` that are not present in
+            the table.
+        include_meta : bool, optional
+            Whether to include table metadata.
+        group : str, optional
+            HDF5 group in which the table is stored. Defaults to
+            ``"twiss_table"``.
+        """
         super().to_hdf5(
             file,
             include=include,
@@ -3802,6 +3922,22 @@ class TwissTable(Table):
 
     @classmethod
     def from_hdf5(cls, file, *, group='twiss_table'):
+        """
+        Load a Twiss table from an HDF5 file.
+
+        Parameters
+        ----------
+        file : str or pathlib.Path or h5py.File
+            Input HDF5 file path or open HDF5 file object.
+        group : str, optional
+            HDF5 group from which the table is loaded. Defaults to
+            ``"twiss_table"``.
+
+        Returns
+        -------
+        xtrack.TwissTable
+            Twiss table loaded from the HDF5 file.
+        """
         return super().from_hdf5(
             file,
             group=group,
@@ -3812,6 +3948,34 @@ class TwissTable(Table):
                default_column_width=None, float_precision=8,
                numeric_column_width=16, column_formats=None,
                column_widths=None):
+        """
+        Write the Twiss table to a TFS file.
+
+        Parameters
+        ----------
+        file : str or pathlib.Path or file-like object
+            Output TFS file path or writable file-like object.
+        include : sequence of str, optional
+            Columns or metadata fields to include. If not provided, all supported
+            fields are included unless excluded.
+        exclude : sequence of str, optional
+            Columns or metadata fields to exclude.
+        missing : {"error", "ignore"}, optional
+            Policy for names in ``include`` or ``exclude`` that are not present in
+            the table.
+        include_meta : bool, optional
+            Whether to include table metadata as TFS headers.
+        default_column_width : int, optional
+            Default width used for TFS columns.
+        float_precision : int, optional
+            Number of significant digits used for floating-point values.
+        numeric_column_width : int, optional
+            Width used for numeric TFS columns.
+        column_formats : dict, optional
+            Per-column TFS format strings.
+        column_widths : dict, optional
+            Per-column TFS column widths.
+        """
 
         if exclude is None:
             exclude = []
@@ -3834,9 +3998,42 @@ class TwissTable(Table):
 
     @classmethod
     def from_tfs(cls, file):
+        """
+        Load a Twiss table from a TFS file.
+
+        Parameters
+        ----------
+        file : str or pathlib.Path or file-like object
+            Input TFS file path or readable file-like object.
+
+        Returns
+        -------
+        xtrack.TwissTable
+            Twiss table loaded from the TFS file.
+        """
         return super().from_tfs(file)
 
     def get_twiss_init(self, at_element):
+        """
+        Build Twiss initial conditions from this table at an element.
+
+        The returned object contains the closed-orbit particle, W matrix, phase
+        advances, and available chromatic quantities extracted from the selected
+        row of the table. It can be passed as the ``init`` argument to
+        :meth:`xtrack.Line.twiss` to start a Twiss calculation from the same
+        optics conditions.
+
+        Parameters
+        ----------
+        at_element : str or int
+            Element name or row index at which the initial conditions are
+            extracted. The table must contain values at element entry.
+
+        Returns
+        -------
+        xtrack.TwissInit
+            Initial conditions for a Twiss calculation at the selected element.
+        """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
@@ -3903,13 +4100,68 @@ class TwissTable(Table):
                         reference_frame=self.reference_frame)
 
     def get_betatron_sigmas(self, nemitt_x, nemitt_y):
-        # For backward compatibility
+        """
+        Compute transverse beam covariance from normalized emittances.
+
+        .. warning::
+
+            This method is deprecated and will be removed in a future version.
+            Use :meth:`get_beam_covariance` instead, with ``nemitt_x`` and
+            ``nemitt_y``.
+
+        Parameters
+        ----------
+        nemitt_x : float
+            Horizontal normalized emittance.
+        nemitt_y : float
+            Vertical normalized emittance.
+
+        Returns
+        -------
+        xtrack.Table
+            Table containing the beam covariance matrix elements along the line.
+        """
+        warn(
+            '`TwissTable.get_betatron_sigmas()` is deprecated and will be '
+            'removed in future versions. Use '
+            '`TwissTable.get_beam_covariance()` instead.',
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.get_beam_covariance(
             nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
     def get_beam_covariance(self,
             nemitt_x=None, nemitt_y=None, nemitt_zeta=None,
             gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
+        """
+        Compute the beam covariance matrix along the line.
+
+        The covariance matrix is built from the W matrices stored in the Twiss
+        table and the provided transverse and longitudinal emittances. Normalized
+        emittances are converted to geometric emittances using the reference
+        particle beta and gamma.
+
+        Parameters
+        ----------
+        nemitt_x : float, optional
+            Horizontal normalized emittance.
+        nemitt_y : float, optional
+            Vertical normalized emittance.
+        nemitt_zeta : float, optional
+            Longitudinal normalized emittance.
+        gemitt_x : float, optional
+            Horizontal geometric emittance.
+        gemitt_y : float, optional
+            Vertical geometric emittance.
+        gemitt_zeta : float, optional
+            Longitudinal geometric emittance.
+
+        Returns
+        -------
+        xtrack.Table
+            Table containing the beam covariance matrix elements along the line.
+        """
 
         # See MAD8 physics manual (Eq. 8.59)
 
@@ -4205,6 +4457,28 @@ class TwissTable(Table):
         )
 
     def get_R_matrix(self, start, end):
+        """
+        Compute the transfer matrix between two table locations.
+
+        The matrix is reconstructed from the W matrices and phase advances stored
+        in the Twiss table. Both ``start`` and ``end`` identify rows in the table
+        and are used as the boundary locations of the transfer. For tables with
+        ``values_at == "entry"`` (default), this is the transfer from the entry of
+        ``start`` to the entry of ``end``.
+
+        Parameters
+        ----------
+        start : str or int
+            Element name or row index at which the transfer starts.
+        end : str or int
+            Element name or row index at which the transfer ends. The end row must
+            be after the start row in the table.
+
+        Returns
+        -------
+        numpy.ndarray
+            Six-by-six transfer matrix from ``start`` to ``end``.
+        """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
@@ -4241,6 +4515,21 @@ class TwissTable(Table):
         return R_matrix
 
     def get_R_matrix_table(self):
+        """
+        Compute transfer matrices from the first table row to all rows.
+
+        For each row, the transfer matrix is reconstructed from the W matrix at
+        that row, the W matrix at the first row, and the phase advances relative
+        to the first row.
+
+        Returns
+        -------
+        xtrack.Table
+            Table with one row per Twiss-table row. It contains the element names,
+            longitudinal positions, the full ``R_matrix`` array for each row, and
+            scalar columns ``r11`` through ``r66`` with the individual matrix
+            elements.
+        """
 
         Rot = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
 
@@ -4277,6 +4566,35 @@ class TwissTable(Table):
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None, _force_at_element=None):
+        """
+        Convert particle coordinates to normalized coordinates.
+
+        Particle physical coordinates are transformed using the closed orbit and
+        W matrix stored in this Twiss table at each particle's ``at_element``.
+        If normalized emittances are provided, the normalized coordinates are
+        scaled by the square root of the corresponding emittance.
+
+        Parameters
+        ----------
+        particles : xtrack.Particles
+            Particles whose coordinates are converted.
+        nemitt_x : float, optional
+            Horizontal normalized emittance used to scale ``x_norm`` and
+            ``px_norm``.
+        nemitt_y : float, optional
+            Vertical normalized emittance used to scale ``y_norm`` and
+            ``py_norm``.
+        nemitt_zeta : float, optional
+            Longitudinal normalized emittance used to scale ``zeta_norm`` and
+            ``pzeta_norm``.
+
+        Returns
+        -------
+        xtrack.Table
+            Table indexed by ``particle_id`` with columns ``particle_id``,
+            ``at_element``, ``x_norm``, ``px_norm``, ``y_norm``, ``py_norm``,
+            ``zeta_norm``, and ``pzeta_norm``.
+        """
 
         ctx2np = particles._context.nparray_from_context_array
         at_element_particles = ctx2np(particles.at_element)
@@ -4336,6 +4654,23 @@ class TwissTable(Table):
                       'pzeta_norm': pzeta_norm}, index='particle_id')
 
     def reverse(self):
+        """
+        Build a Twiss table for the reverse local reference frame.
+
+        The returned table has the element order reversed and optics quantities
+        transformed to the reverse local reference frame. The transverse and
+        longitudinal coordinates are transformed as ``x -> -x``, ``y -> y``,
+        and ``zeta -> -zeta``. The momenta and longitudinal position are
+        transformed as ``px -> px``, ``py -> -py``, and
+        ``s -> line_length - s``. The phase advances are transformed as
+        ``mux -> mux[0] - mux`` and ``muy -> muy[0] - muy``. The reference frame
+        is switched between ``"proper"`` and ``"reverse"``.
+
+        Returns
+        -------
+        xtrack.TwissTable
+            Twiss table corresponding to the reverse local reference frame.
+        """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
         assert self.name[-1] == '_end_point' # Needed for the present implementation
@@ -4354,6 +4689,7 @@ class TwissTable(Table):
             itake = slice(1, None, None)
 
         for kk in self._col_names:
+            # Accessing with _data to avoid triggering deprecation warnings
             if (kk == 'name' or kk == 'env_name'
                     or kk in NORMAL_STRENGTHS_FROM_ATTR
                     or kk in SKEW_STRENGTHS_FROM_ATTR
@@ -4361,16 +4697,16 @@ class TwissTable(Table):
                     or kk in OTHER_FIELDS_FROM_TABLE
             ):
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
-                new_data[kk][-1] = self[kk][-1]
+                new_data[kk][-1] = self._data[kk][-1]
             elif kk == 'W_matrix':
                 new_data[kk][:-1, :, :] = new_data[kk][itake, :, :][::-1, :, :]
-                new_data[kk][-1, :, :] = self[kk][0, :, :]
+                new_data[kk][-1, :, :] = self._data[kk][0, :, :]
             else:
                 if kk in ['kin_xprime', 'kin_yprime']:
                     # deprecated fields, to be removed in the future
                     continue # handled separately below for backward compatibility
                 new_data[kk][:-1] = new_data[kk][itake][::-1]
-                new_data[kk][-1] = self[kk][0]
+                new_data[kk][-1] = self._data[kk][0]
 
         out = self.__class__(data=new_data, col_names=self._col_names)
 
@@ -4480,6 +4816,23 @@ class TwissTable(Table):
     ind_per_table = []
 
     def add_strengths(self, line=None):
+        """
+        Add integrated element strengths to the Twiss table.
+
+        The strength columns are computed from the elements in ``line`` and added
+        to this table in place. If ``line`` is not provided, the line stored in the
+        Twiss action is used when available.
+
+        Parameters
+        ----------
+        line : xtrack.Line, optional
+            Line from which the element strengths are read.
+
+        Returns
+        -------
+        xtrack.TwissTable
+            This Twiss table, with strength columns added when a line is available.
+        """
         if line is None and hasattr(self,"_action"):
             line = self._action.line
         if line is not None:
@@ -4488,6 +4841,25 @@ class TwissTable(Table):
 
     @classmethod
     def concatenate(cls, tables_to_concat):
+        """
+        Concatenate compatible Twiss tables.
+
+        The input tables are joined in order. Common boundary rows are removed
+        when needed to avoid duplicating the shared element, and cyclic quantities
+        such as phase advances are shifted to remain continuous across table
+        boundaries.
+
+        Parameters
+        ----------
+        tables_to_concat : sequence of xtrack.TwissTable
+            Twiss tables to concatenate. All tables must have the same
+            ``values_at`` and ``reference_frame``.
+
+        Returns
+        -------
+        xtrack.TwissTable
+            Concatenated Twiss table.
+        """
 
         # Check values_at compatibility
         assert len(set([tt.values_at for tt in tables_to_concat])) == 1, (
@@ -4554,11 +4926,45 @@ class TwissTable(Table):
         return new_table
 
     def zero_at(self, name):
+        """
+        Shift cyclic quantities to be zero at an element.
+
+        The values of cyclic columns, such as phase advances, are shifted in place
+        by subtracting their value at ``name``.
+
+        Parameters
+        ----------
+        name : str
+            Element name at which cyclic quantities are set to zero.
+        """
         for kk in CYCLICAL_QUANTITIES:
             if kk in self:
                 self[kk] -= self[kk, name]
 
     def target(self, tars=None, value=None, at=None, **kwargs):
+        """
+        Build matching targets from this Twiss table.
+
+        This is a convenience wrapper around :class:`xtrack.TargetSet`. If
+        ``value`` is not provided, this Twiss table is used as the reference value
+        for the targets.
+
+        Parameters
+        ----------
+        tars : str or sequence of str, optional
+            Twiss quantities to target.
+        value : float, xdeps.GreaterThan, xdeps.LessThan, xtrack.TwissTable, optional
+            Target value. If not provided, this Twiss table is used.
+        at : str, optional
+            Element name at which the targets are evaluated.
+        **kwargs
+            Additional keyword arguments passed to :class:`xtrack.TargetSet`.
+
+        Returns
+        -------
+        xtrack.TargetSet
+            Matching targets built from the requested quantities.
+        """
         if value is None:
             value = self
         tarset = xt.TargetSet(tars=tars, value=value, at=at,
@@ -4665,7 +5071,7 @@ class TwissTable(Table):
 
         return pl
 
-    def _compute_radiation_integrals(self, add_to_tw=False):
+    def _get_radiation_integrals(self, add_to_tw=False):
 
         kin_px = self['kin_px']
         kin_py = self['kin_py']
@@ -4690,7 +5096,7 @@ class TwissTable(Table):
         dxprime = dpx * (1 - delta) - kin_px
         dyprime = dpy * (1 - delta) - kin_py
 
-        kappa_x, kappa_y, kappa0_x, kappa0_y = _compute_trajectory_curvatures(self)
+        kappa_x, kappa_y, kappa0_x, kappa0_y = _get_trajectory_curvatures(self)
         kappa = np.sqrt(kappa_x**2 + kappa_y**2)
         kappa0 = np.sqrt(kappa0_x**2 + kappa0_y**2)
 
@@ -4741,6 +5147,11 @@ class TwissTable(Table):
         damping_constant_y_s = r0/3 * gamma0**3 * clight/self.line_length * (i2 - i4y)
         damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.line_length * (2*i2 + i4)
 
+        # Damping partition numbers:
+        J_x = 1 - i4x / i2
+        J_y = 1 - i4y / i2
+        J_zeta = 2 + i4 / i2
+
         # Velocity direction (for spin)
         ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
         xp = kin_px / ps
@@ -4788,6 +5199,9 @@ class TwissTable(Table):
             'rad_int_damping_constant_x_s': damping_constant_x_s,
             'rad_int_damping_constant_y_s': damping_constant_y_s,
             'rad_int_damping_constant_zeta_s': damping_constant_zeta_s,
+            'rad_int_partition_number_x': J_x,
+            'rad_int_partition_number_y': J_y,
+            'rad_int_partition_number_zeta': J_zeta,
         }
 
         out = Table({'name': self.name, 's': self.s, 'length':self.length} | cols)
@@ -4799,6 +5213,19 @@ class TwissTable(Table):
             self._data.update(scalars)
 
         return out
+
+    def _sort_col_names(self):
+        old_col_names = self._col_names
+        col_name_set = set(old_col_names)
+        new_col_names = []
+        for nn in DEFAULT_COL_ORDER:
+            if nn in col_name_set:
+                new_col_names.append(nn)
+        set_sorted_col_names = set(new_col_names)
+        for nn in old_col_names:
+            if nn not in set_sorted_col_names:
+                new_col_names.append(nn)
+        self._col_names = new_col_names
 
 def _complete_twiss_init(start, end, init_at, init,
                         line, reverse,
@@ -5034,7 +5461,7 @@ def _build_sigma_table(Sigma, s=None, name=None):
 
     return Table(res_data)
 
-def compute_T_matrix_line(line, start, end, particle_on_co=None,
+def get_T_matrix_line(line, start, end, particle_on_co=None,
                             steps=None):
 
     steps = _complete_steps_r_matrix_with_default(steps)
@@ -5052,13 +5479,13 @@ def compute_T_matrix_line(line, start, end, particle_on_co=None,
 
         p_plus[kk] = particle_on_co.copy()
         setattr(p_plus[kk], kk, getattr(particle_on_co, kk) + steps['d' + kk])
-        R_plus[kk] = line.compute_R_matrix(
+        R_plus[kk] = line.get_R_matrix(
                             start=start, end=end,
                             particle_on_co=p_plus[kk])['R_matrix']
 
         p_minus[kk] = particle_on_co.copy()
         setattr(p_minus[kk], kk, getattr(particle_on_co, kk) - steps['d' + kk])
-        R_minus[kk] = line.compute_R_matrix(
+        R_minus[kk] = line.get_R_matrix(
                             start=start, end=end,
                             particle_on_co=p_minus[kk])['R_matrix']
 
@@ -5078,6 +5505,16 @@ def compute_T_matrix_line(line, start, end, particle_on_co=None,
         / p_plus['delta']._xobject.beta0[0])
 
     return TT
+
+
+def compute_T_matrix_line(*args, **kwargs):
+    warn(
+        '`compute_T_matrix_line()` is deprecated and will be removed in future '
+        'versions. Please use `get_T_matrix_line()` instead.'
+        + DEPRECATION_INFO_PREP_1_0,
+        FutureWarning,
+    )
+    return get_T_matrix_line(*args, **kwargs)
 
 def _multiturn_twiss(tw0, num_turns, kwargs):
     tw_curr = tw0
@@ -5248,7 +5685,8 @@ def _add_strengths_to_twiss_res(twiss_res, line):
     for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
                 + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
         twiss_res._col_names.append(kk)
-        twiss_res._data[kk] = tt[kk].copy()
+        # using _data to bypass the warning on deprecated fields
+        twiss_res._data[kk] = tt._data[kk].copy()
 
 def _find_spin_fixed_point(line, particle_on_co):
 
@@ -5288,7 +5726,7 @@ def _errfun_spin(s, line, particle_on_co):
                         pp.spin_y[0] - sy,
                         pp.spin_z[0] - sz])
 
-def _compute_spin_polarization(tw, line, method):
+def _get_spin_polarization(tw, line, method):
 
     with xt.line._preserve_config(line):
 
@@ -5303,7 +5741,7 @@ def _compute_spin_polarization(tw, line, method):
         for kk in steps_R_matrix:
             steps_R_matrix[kk] *= 0.1
 
-        out = line.compute_R_matrix(particle_on_co=tw.particle_on_co,
+        out = line.get_R_matrix(particle_on_co=tw.particle_on_co,
                                                             element_by_element=True,
                                                             steps=steps_R_matrix)
         mon_r_ebe = out['mon_ebe']
@@ -5501,7 +5939,7 @@ def _compute_spin_polarization(tw, line, method):
 
         By = kappa_x * brho_part
         Bx = -kappa_y * brho_part
-        Bz = tw.ks * brho_ref
+        Bz = tw.ks * brho_ref + tw.bs
         B_mod = np.sqrt(Bx**2 + By**2 + Bz**2)
         B_mod[B_mod == 0] = 999. # avoid division by zero
 
@@ -5579,9 +6017,9 @@ def _compute_spin_polarization(tw, line, method):
             tw._data[nn] = other_data[nn]
 
 
-def _compute_trajectory_curvatures(twiss_res):
+def _get_trajectory_curvatures(twiss_res):
 
-    angle_rad = twiss_res['angle_rad']
+    angle = twiss_res['angle']
     rot_s_rad = twiss_res['rot_s_rad']
     x = twiss_res['x']
     y = twiss_res['y']
@@ -5592,10 +6030,10 @@ def _compute_trajectory_curvatures(twiss_res):
 
     # Curvature of the reference trajectory
     mask = length != 0
-    kappa0_x = 0 * angle_rad
-    kappa0_y = 0 * angle_rad
-    kappa0_x[mask] = angle_rad[mask] * np.cos(rot_s_rad[mask]) / length[mask]
-    kappa0_y[mask] = angle_rad[mask] * np.sin(rot_s_rad[mask]) / length[mask]
+    kappa0_x = 0 * angle
+    kappa0_y = 0 * angle
+    kappa0_x[mask] = angle[mask] * np.cos(rot_s_rad[mask]) / length[mask]
+    kappa0_y[mask] = angle[mask] * np.sin(rot_s_rad[mask]) / length[mask]
 
     # Compute x', y', x'', y''
     ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)

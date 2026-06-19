@@ -344,7 +344,7 @@ class MultilineLegacy:
 
     def __getitem__(self, key: str):
         if key in self.vars:
-            return self.vv[key]
+            return self.vars.val[key]
 
         if key in self.lines:
             return self.lines[key]

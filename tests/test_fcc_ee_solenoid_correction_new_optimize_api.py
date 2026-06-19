@@ -25,9 +25,9 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api(tmp_path):
     tt = line.get_table()
     bz_data_file = test_data_folder / 'fcc_ee/Bz_closed_before_quads.dat'
 
-    line.vars['voltca1_ref'] = line.vv['voltca1']
+    line.vars['voltca1_ref'] = line['voltca1']
     if 'voltca2' in line.vars.keys():
-        line.vars['voltca2_ref'] = line.vv['voltca2']
+        line.vars['voltca2_ref'] = line['voltca2']
     else:
         line.vars['voltca2_ref'] = 0
 
@@ -66,10 +66,10 @@ def test_fcc_ee_solenoid_correction_new_optimizer_api(tmp_path):
     line.insert(what='sol_start_' + ip_sol, obj=xt.Marker(), at=s_ip + ds_sol_start)
     line.insert(what='sol_end_' + ip_sol, obj=xt.Marker(), at=s_ip + ds_sol_end)
 
-    sol_start_tilt = xt.YRotation(angle=-theta_tilt * 180 / np.pi)
-    sol_end_tilt = xt.YRotation(angle=+theta_tilt * 180 / np.pi)
-    sol_start_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
-    sol_end_shift = xt.XYShift(dx=l_solenoid/2 * np.tan(theta_tilt))
+    sol_start_tilt = xt.Rotation(rot_y_rad=-theta_tilt)
+    sol_end_tilt = xt.Rotation(rot_y_rad=+theta_tilt)
+    sol_start_shift = xt.Translation(shift_x=l_solenoid/2 * np.tan(theta_tilt))
+    sol_end_shift = xt.Translation(shift_x=l_solenoid/2 * np.tan(theta_tilt))
 
     line.env.elements['sol_start_tilt_'+ip_sol] = sol_start_tilt
     line.env.elements['sol_end_tilt_'+ip_sol] = sol_end_tilt

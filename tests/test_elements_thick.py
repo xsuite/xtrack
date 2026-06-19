@@ -1117,10 +1117,10 @@ def test_fringe_implementations(test_context):
     p_ng = p0.copy()
     p_ptc = p0.copy()
 
-    R_ng = line.compute_R_matrix(particle_on_co=p0.copy())['R_matrix']
+    R_ng = line.get_R_matrix(particle_on_co=p0.copy())['R_matrix']
     line.track(p_ng)
     line.config.XTRACK_FRINGE_FROM_PTC = True
-    R_ptc = line.compute_R_matrix(particle_on_co=p0.copy())['R_matrix']
+    R_ptc = line.get_R_matrix(particle_on_co=p0.copy())['R_matrix']
     line.track(p_ptc)
 
     p_ng.move(_context=xo.context_default)
@@ -1499,9 +1499,9 @@ def test_sextupole_cpymad(test_context):
     xo.assert_allclose(elem.k2, 3, rtol=0, atol=1e-14)
     xo.assert_allclose(elem.k2s, 10, rtol=0, atol=1e-14)
 
-    line_mad.vv['knob_a'] = 0.5
-    line_mad.vv['knob_b'] = 0.6
-    line_mad.vv['knob_l'] = 0.7
+    line_mad['knob_a'] = 0.5
+    line_mad['knob_b'] = 0.6
+    line_mad['knob_l'] = 0.7
 
     xo.assert_allclose(elem.length, 0.7, rtol=0, atol=1e-14)
     xo.assert_allclose(elem.k2, 1.5, rtol=0, atol=1e-14)
@@ -1622,9 +1622,9 @@ def test_sextupole_native(test_context):
     xo.assert_allclose(elem.k2, 3, rtol=0, atol=1e-14)
     xo.assert_allclose(elem.k2s, 10, rtol=0, atol=1e-14)
 
-    line_mad.vv['knob_a'] = 0.5
-    line_mad.vv['knob_b'] = 0.6
-    line_mad.vv['knob_l'] = 0.7
+    line_mad['knob_a'] = 0.5
+    line_mad['knob_b'] = 0.6
+    line_mad['knob_l'] = 0.7
 
     xo.assert_allclose(elem.length, 0.7, rtol=0, atol=1e-14)
     xo.assert_allclose(elem.k2, 1.5, rtol=0, atol=1e-14)
@@ -1949,11 +1949,11 @@ def test_solenoid_shifted_and_rotated_multipolar_kick(test_context):
     line_test.build_tracker(_context=test_context)
 
     elements_sol = [solenoid_no_kick] + 3 * [
-        xt.XYShift(dx=mult_shift_x),
-        xt.YRotation(angle=np.rad2deg(-mult_rot_y_rad)),
+        xt.Translation(shift_x=mult_shift_x),
+        xt.Rotation(rot_y_rad=-mult_rot_y_rad),
         kick,
-        xt.YRotation(angle=np.rad2deg(mult_rot_y_rad)),
-        xt.XYShift(dx=-mult_shift_x),
+        xt.Rotation(rot_y_rad=mult_rot_y_rad),
+        xt.Translation(shift_x=-mult_shift_x),
         solenoid_no_kick
     ]
     line_ref = xt.Line(elements=elements_sol)
@@ -2105,12 +2105,12 @@ def test_solenoid_multipole_rotations():
     ########################################
     hrot_components_in = [
         env.new('hrot_drift0', xt.Drift, length=1),
-        env.new('hshift_in', xt.XYShift, dx=np.sin(XING_RAD) * L_SOL / 2),
-        env.new('hrot_in', xt.YRotation, angle=-np.rad2deg(XING_RAD))]
+        env.new('hshift_in', xt.Translation, shift_x=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('hrot_in', xt.Rotation, rot_y_rad=-XING_RAD)]
 
     hrot_components_out = [
-        env.new('hrot_out', xt.YRotation, angle=np.rad2deg(XING_RAD)),
-        env.new('hshift_out', xt.XYShift, dx=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('hrot_out', xt.Rotation, rot_y_rad=XING_RAD),
+        env.new('hshift_out', xt.Translation, shift_x=np.sin(XING_RAD) * L_SOL / 2),
         env.new('hrot_drift1', xt.Drift, length=1)]
 
     hrot_components_sol = [
@@ -2131,12 +2131,11 @@ def test_solenoid_multipole_rotations():
     ########################################
     vrot_components_in = [
         env.new('vrot_drift0', xt.Drift, length=1),
-        env.new('vshift_in', xt.XYShift, dy=np.sin(XING_RAD) * L_SOL / 2),
-        env.new('vrot_in', xt.XRotation, angle=np.rad2deg(XING_RAD))]
-    # TODO: Minus sign difference here as still inconsistent definition with XRotation and YRotation
+        env.new('vshift_in', xt.Translation, shift_y=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('vrot_in', xt.Rotation, rot_x_rad=XING_RAD)]
     vrot_components_out = [
-        env.new('vrot_out', xt.XRotation, angle=-np.rad2deg(XING_RAD)),
-        env.new('vshift_out', xt.XYShift, dy=np.sin(XING_RAD) * L_SOL / 2),
+        env.new('vrot_out', xt.Rotation, rot_x_rad=-XING_RAD),
+        env.new('vshift_out', xt.Translation, shift_y=np.sin(XING_RAD) * L_SOL / 2),
         env.new('vrot_drift1', xt.Drift, length=1)]
 
     vrot_components_sol = [

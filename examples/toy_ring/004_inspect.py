@@ -9,22 +9,22 @@ env = xt.Environment()
 line = env.new_line(components=[
     env.new('mqf.1', xt.Quadrupole, length=0.3, k1=0.1),
     env.new('d1.1',  xt.Drift, length=1),
-    env.new('mb1.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb1.1', xt.Bend, length=lbend, angle=pi / 2),
     env.new('d2.1',  xt.Drift, length=1),
 
     env.new('mqd.1', xt.Quadrupole, length=0.3, k1=-0.7),
     env.new('d3.1',  xt.Drift, length=1),
-    env.new('mb2.1', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb2.1', xt.Bend, length=lbend, angle=pi / 2),
     env.new('d4.1',  xt.Drift, length=1),
 
     env.new('mqf.2', xt.Quadrupole, length=0.3, k1=0.1),
     env.new('d1.2',  xt.Drift, length=1),
-    env.new('mb1.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb1.2', xt.Bend, length=lbend, angle=pi / 2),
     env.new('d2.2',  xt.Drift, length=1),
 
     env.new('mqd.2', xt.Quadrupole, length=0.3, k1=-0.7),
     env.new('d3.2',  xt.Drift, length=1),
-    env.new('mb2.2', xt.Bend, length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
+    env.new('mb2.2', xt.Bend, length=lbend, angle=pi / 2),
     env.new('d4.2',  xt.Drift, length=1),
 ])
 line.set_particle_ref('proton', p0c=1.2e9)
@@ -97,9 +97,8 @@ tab.rows['mb.*']
 # mb1.2      11.9 Bend            True     False        None        False
 # mb2.2      17.2 Bend            True     False        None        False
 
-
-# Elements can be selected by type
-tab.rows[tab.element_type == 'Quadrupole']
+# Elements can be selected by type using the match search (applicable to any column)
+tab.rows.match(element_type='Quadrupole')
 # returns:
 #
 # Table: 4 rows, 94 cols
@@ -109,7 +108,21 @@ tab.rows[tab.element_type == 'Quadrupole']
 # mqf.2      10.6 Quadrupole      True     False        None        False
 # mqd.2      15.9 Quadrupole      True     False        None        False
 
-# A section of the ring can be selected using names
+# Match supports regular expressions
+tab.rows.match(element_type='Quad.*|Be.*')
+# returns:
+# LineTable: 8 rows, 186 cols
+# name              s element_type isthick isreplica parent_name ...
+# mqf.1             0 Quadrupole      True     False None       
+# mb1.1           1.3 Bend            True     False None       
+# mqd.1           5.3 Quadrupole      True     False None       
+# mb2.1           6.6 Bend            True     False None       
+# mqf.2          10.6 Quadrupole      True     False None       
+# mb1.2          11.9 Bend            True     False None       
+# mqd.2          15.9 Quadrupole      True     False None       
+# mb2.2          17.2 Bend            True     False None   
+
+# A section of the table can be selected using names
 tab.rows['mqd.1':'mqd.2']
 # returns:
 #
@@ -156,15 +169,6 @@ tab.rows['mqd.1<<3':'mb2.1>>2']
 # Each of the selection methods above returns a valid table, hence selections
 # can be chained. For example:
 tab.rows[0:10:'s'].rows['mb.*']
-# returns:
-#
-# Table: 2 rows, 94 cols
-# name         s element_type isthick isreplica parent_name iscollective
-# mb1.1      1.3 Bend            True     False        None        False
-# mb2.1      6.6 Bend            True     False        None        False
-
-# or more efficiently
-tab.rows[0:10:'s','mb.*']
 # returns:
 #
 # Table: 2 rows, 94 cols

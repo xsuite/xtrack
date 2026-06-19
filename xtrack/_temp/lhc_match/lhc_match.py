@@ -1,6 +1,8 @@
 import numpy as np
+from warnings import warn
 
 import xtrack as xt
+from xtrack.general import DEPRECATION_INFO_PREP_1_0
 
 ARC_NAMES = ['12', '23', '34', '45', '56', '67', '78', '81']
 
@@ -117,7 +119,7 @@ def match_arc_phase_advance(collider, arc_name,
     return opt
 
 
-def compute_ats_phase_advances_for_auxiliary_irs(line_name,
+def get_ats_phase_advances_for_auxiliary_irs(line_name,
         tw_sq_a81_ip1_a12, tw_sq_a45_ip5_a56,
         muxip1_l, muyip1_l, muxip1_r, muyip1_r,
         muxip5_l, muyip5_l, muxip5_r, muyip5_r,
@@ -158,6 +160,17 @@ def compute_ats_phase_advances_for_auxiliary_irs(line_name,
 
     return (mux_ir2_target, muy_ir2_target, mux_ir4_target, muy_ir4_target,
             mux_ir6_target, muy_ir6_target, mux_ir8_target, muy_ir8_target)
+
+
+def compute_ats_phase_advances_for_auxiliary_irs(*args, **kwargs):
+    warn(
+        '`compute_ats_phase_advances_for_auxiliary_irs()` is deprecated and '
+        'will be removed in future versions. Please use '
+        '`get_ats_phase_advances_for_auxiliary_irs()` instead.'
+        + DEPRECATION_INFO_PREP_1_0,
+        FutureWarning,
+    )
+    return get_ats_phase_advances_for_auxiliary_irs(*args, **kwargs)
 
 
 def propagate_optics_from_beta_star(collider, ip_name, line_name,
@@ -894,7 +907,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
     # Set mcbx by hand
-    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    testkqx2=abs(collider['kqx.l2'])*7000./0.3
     acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6 # Value for 170 urad crossing
     for icorr in [1, 2, 3]:
         collider.vars[f'acbxh{icorr}.l2_from_on_x2h'] = acbx_xing_ir2
@@ -918,7 +931,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
     # Set mcbx by hand
-    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    testkqx2=abs(collider['kqx.l2'])*7000./0.3
     acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6
     for icorr in [1, 2, 3]:
         collider.vars[f'acbxv{icorr}.l2_from_on_x2v'] = acbx_xing_ir2
@@ -943,7 +956,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand (reduce value by 10, to test matching algorithm)
-    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    testkqx8=abs(collider['kqx.l8'])*7000./0.3
     acbx_xing_ir8 = 1.0e-6 if testkqx8 > 210. else 11.0e-6 # Value for 170 urad crossing
 
     # Set mcbx by hand
@@ -989,7 +1002,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand
-    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    testkqx8=abs(collider['kqx.l8'])*7000./0.3
     acbx_xing_ir8 = 1.0e-6 if testkqx8 > 210. else 11.0e-6 # Value for 170 urad crossing
     # Set MCBX by hand
     for icorr in [1, 2, 3]:
@@ -1026,7 +1039,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand
-    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    testkqx2=abs(collider['kqx.l2'])*7000./0.3
     acbx_sep_ir2 = 18e-6 if testkqx2 > 210. else 16e-6
 
     for icorr in [1, 2, 3]:
@@ -1053,7 +1066,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand
-    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    testkqx2=abs(collider['kqx.l2'])*7000./0.3
     acbx_sep_ir2 = 18e-6 if testkqx2 > 210. else 16e-6
 
     for icorr in [1, 2, 3]:
@@ -1080,7 +1093,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand
-    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    testkqx8=abs(collider['kqx.l8'])*7000./0.3
     acbx_sep_ir8 = 18e-6 if testkqx8 > 210. else 16e-6
 
     for icorr in [1, 2, 3]:
@@ -1107,7 +1120,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     )
 
     # Set mcbx by hand
-    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    testkqx8=abs(collider['kqx.l8'])*7000./0.3
     acbx_sep_ir8 = 18e-6 if testkqx8 > 210. else 16e-6
 
     for icorr in [1, 2, 3]:

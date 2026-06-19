@@ -86,7 +86,7 @@ def test_get_non_collective_line(test_context):
     assert nc_line.get('e7') is line.get('e7')
     assert nc_line.tracker.line is nc_line
 
-    xo.assert_allclose(nc_line.get_s_elements(), line.get_s_elements(),
+    xo.assert_allclose(nc_line.get_table().s, line.get_table().s,
                     rtol=0, atol=1e-15)
 
     assert nc_line.tracker is not line.tracker

@@ -119,7 +119,6 @@ for ff in fnames:
     start = content.find('INTEGRATION_CODE[[')
     end = content.find(']]', start)
 
-
     part_before = content[:start]
     part_integration_code = content[start:end + 2]  # include the closing brackets
     part_after = content[end + 2:]
@@ -136,7 +135,6 @@ for ff in fnames:
     new_integration_code = integration_code
     for key, value in replacements.items():
         new_integration_code = new_integration_code.replace(key, value)
-
 
     new_content = part_before + new_integration_code + part_after
 

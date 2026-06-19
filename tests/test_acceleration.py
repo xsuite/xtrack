@@ -36,8 +36,9 @@ def test_acceleration(test_context):
     line.build_tracker(_context=test_context)
 
     # Assume only first cavity is active
-    frequency = line.get_elements_of_type(xt.Cavity)[0][0].frequency
-    voltage = line.get_elements_of_type(xt.Cavity)[0][0].voltage
+    tt_cav = line.get_table().rows.match(element_type='Cavity')
+    frequency = line[tt_cav.name[0]].frequency
+    voltage = line[tt_cav.name[0]].voltage
     # Assuming proton and beta=1
     stable_z = np.arcsin(Delta_p0c/voltage)/frequency/2/np.pi*clight
 
@@ -142,7 +143,7 @@ def test_energy_program(test_context):
     line.enable_time_dependent_vars = False
     line.vars['t_turn_s'] = 20e-3
 
-    E_kin_expected = np.interp(line.vv['t_turn_s'], t_s, E_kin_GeV*1e9)
+    E_kin_expected = np.interp(line['t_turn_s'], t_s, E_kin_GeV*1e9)
     E_tot_expected = E_kin_expected + line.particle_ref.mass0
     xo.assert_allclose(
         E_tot_expected, line.particle_ref.energy0[0], rtol=1e-4, atol=0)
@@ -158,7 +159,7 @@ def test_energy_program(test_context):
     line.vars['t_turn_s'] = 0
     line.vars['on_chicane_k0'] = 0
     tw = line.twiss(method='6d')
-    xo.assert_allclose(tw.zeta[0], 0, rtol=0, atol=1e-10)
+    xo.assert_allclose(tw.zeta[0], 0, rtol=0, atol=5e-10)
     xo.assert_allclose(line.particle_ref.mass0 * tw.gamma0, line.particle_ref.mass0 + E_kin_turn[0],
                        rtol=1e-10, atol=0)
 

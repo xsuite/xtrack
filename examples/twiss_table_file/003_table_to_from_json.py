@@ -90,7 +90,7 @@ include = [
 #  'k3sl',
 #  'k4sl',
 #  'k5sl',
- 'angle_rad',
+ 'angle',
  'rot_s_rad',
  'hkick',
  'vkick',

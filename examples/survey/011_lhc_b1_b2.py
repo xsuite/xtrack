@@ -14,8 +14,8 @@ sv2 = env.lhcb2.survey(theta0=np.pi, element0='ip5')
 tw1 = env.lhcb1.twiss4d()
 tw2 = env.lhcb2.twiss4d()
 
-pb1_global = tw1.x[:, None] * sv1.ex + tw1.y[:, None] * sv1.ey + sv1.p0
-pb2_global = tw2.x[:, None] * sv2.ex + tw2.y[:, None] * sv2.ey + sv2.p0
+pb1_global = tw1.x[:, None] * sv1.ex + tw1.y[:, None] * sv1.ey + sv1.XYZ
+pb2_global = tw2.x[:, None] * sv2.ex + tw2.y[:, None] * sv2.ey + sv2.XYZ
 
 xb1_global = pb1_global[:, 0]
 xb2_global = pb2_global[:, 0]

@@ -390,6 +390,7 @@ def test_magnet_curved_quad(test_context):
         length=2.0,
         k1=-0.3,
         angle=0.05*2.0,
+        model='rot-kick-rot',
         num_multipole_kicks=15,
         _context=test_context,
     )
@@ -946,6 +947,49 @@ def test_edge_multipole_fringe_without_dipole_component(test_context):
     xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
 
 
+def test_multipole_edge_scales_with_chi():
+    test_context = xo.ContextCpu()
+    chi = 0.7
+    kn = [0, 1.3, -0.4]
+    ks = [0, 0.2, 0.6]
+
+    edge = xt.MultipoleEdge(kn=kn, ks=ks, order=2, _context=test_context)
+    edge_ref = xt.MultipoleEdge(
+        kn=[kk * chi for kk in kn],
+        ks=[kk * chi for kk in ks],
+        order=2,
+        _context=test_context,
+    )
+
+    p0 = xt.Particles(
+        p0c=1e9,
+        x=2e-2,
+        px=1e-3,
+        y=-1.5e-2,
+        py=-2e-3,
+        zeta=3e-2,
+        delta=0.03,
+        _context=test_context,
+    )
+
+    p_test = p0.copy()
+    p_ref = p0.copy()
+    p_test.chi = chi
+
+    edge.track(p_test)
+    edge_ref.track(p_ref)
+
+    p_test_cpu = p_test.copy(_context=xo.ContextCpu())
+    p_ref_cpu = p_ref.copy(_context=xo.ContextCpu())
+
+    xo.assert_allclose(p_test_cpu.x, p_ref_cpu.x, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test_cpu.y, p_ref_cpu.y, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test_cpu.zeta, p_ref_cpu.zeta, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test_cpu.px, p_ref_cpu.px, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test_cpu.py, p_ref_cpu.py, atol=1e-15, rtol=0)
+    xo.assert_allclose(p_test_cpu.delta, p_ref_cpu.delta, atol=1e-15, rtol=0)
+
+
 @for_all_test_contexts(excluding='ContextPyopencl')
 def test_edge_full_model_with_dipole_component_no_angle(test_context):
     e_test = MagnetEdge(
@@ -992,7 +1036,7 @@ def test_edge_full_model_with_dipole_component_and_angle(test_context):
         half_gap=0.4, k_order=2, _context=test_context
     )
     e_ref = [
-        xt.YRotation(angle=np.rad2deg(-0.2)),
+        xt.Rotation(rot_y_rad=-0.2),
         # The rotation is also the other way than in the underlying map :'(
         xt.DipoleEdge(model='full', k=3, fint=0.3, hgap=0.4),
         xt.MultipoleEdge(kn=[0, 4, 5], order=2),
@@ -1037,7 +1081,7 @@ def test_edge_full_model_with_dipole_component_and_angle_exit(test_context):
         xt.Wedge(angle=-0.2, k=3, k1=4),
         xt.MultipoleEdge(kn=[0, 4, 5], is_exit=True, order=2),
         xt.DipoleEdge(model='full', k=-3, fint=0.3, hgap=0.4),
-        xt.YRotation(angle=np.rad2deg(-0.2)),
+        xt.Rotation(rot_y_rad=-0.2),
     ]
 
     p0 = xt.Particles(

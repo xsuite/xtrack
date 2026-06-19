@@ -15,6 +15,23 @@ from xobjects.test_helpers import for_all_test_contexts
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
+
+def test_twiss_table_row_slice_drops_periodic():
+    tw = xt.TwissTable(
+        {
+            'name': np.array(['a', 'b', 'c'], dtype=object),
+            's': np.array([0., 1., 2.]),
+            'periodic': True,
+        },
+        col_names=['name', 's'],
+    )
+
+    tw_slice = tw.rows['a':'b']
+
+    assert tw.periodic is True
+    assert 'periodic' not in tw_slice
+
+
 @for_all_test_contexts
 def test_twiss_4d_fodo_vs_beta_rel(test_context):
     ## Generate a simple line
@@ -55,6 +72,7 @@ def test_twiss_4d_fodo_vs_beta_rel(test_context):
         xo.assert_allclose(tw_at_s.dqx, tw_4d_list[0].dqx, atol=1e-4, rtol=0)
         xo.assert_allclose(tw_at_s.dqy, tw_4d_list[0].dqy, atol=1e-4, rtol=0)
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_coupled_beta(test_context):
     mad = Madx(stdout=False)
@@ -100,6 +118,7 @@ def test_coupled_beta(test_context):
         xo.assert_allclose(tw.c_minus, cmin_ref, rtol=0, atol=1e-5)
 
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_twiss_zeta0_delta0(test_context):
 
@@ -362,14 +381,14 @@ def test_get_R_matrix():
     # # Checks
     R_prod = R_IP6_IP3 @ R_IP3_IP6
 
-    from xtrack.linear_normal_form import compute_linear_normal_form
+    from xtrack.linear_normal_form import get_linear_normal_form
     eig = np.linalg.eig
     norm = np.linalg.norm
 
     R_matrix = tw.R_matrix
 
-    W_ref, invW_ref, Rot_ref, _ = compute_linear_normal_form(R_matrix)
-    W_prod, invW_prod, Rot_prod, _ = compute_linear_normal_form(R_prod)
+    W_ref, invW_ref, Rot_ref, _ = get_linear_normal_form(R_matrix)
+    W_prod, invW_prod, Rot_prod, _ = get_linear_normal_form(R_prod)
 
 
     for i_mode in range(3):
@@ -398,15 +417,15 @@ def test_get_R_matrix():
     R_prod_4d = R_IP6_IP3_4d @ R_IP3_IP6_4d
 
     # Checks
-    from xtrack.linear_normal_form import compute_linear_normal_form
+    from xtrack.linear_normal_form import get_linear_normal_form
     eig = np.linalg.eig
     norm = np.linalg.norm
 
     R_matrix_4d = tw4d.R_matrix
 
-    W_ref_4d, invW_ref_4d, Rot_ref_4d, _ = compute_linear_normal_form(
+    W_ref_4d, invW_ref_4d, Rot_ref_4d, _ = get_linear_normal_form(
         R_matrix_4d, only_4d_block=True)
-    W_prod_4d, invW_prod_4d, Rot_prod_4d, _ = compute_linear_normal_form(
+    W_prod_4d, invW_prod_4d, Rot_prod_4d, _ = get_linear_normal_form(
         R_prod_4d, only_4d_block=True)
 
     for i_mode in range(3):
@@ -1722,7 +1741,13 @@ def test_twiss_strength_reverse_vs_madx(test_context, sandbox_cwd):
     twm1 = xt.Table(mad1.table.twisslhcb1)
     twm2 = xt.Table(mad1.table.twisslhcb2)
 
-    collider = xt.Environment.from_madx(madx=mad1)
+    b1 = xt.Line.from_madx_sequence(mad1.sequence.lhcb1, deferred_expressions=True)
+    b2 = xt.Line.from_madx_sequence(mad1.sequence.lhcb2, deferred_expressions=True)
+
+    collider = xt.Environment(lines={'lhcb1': b1, 'lhcb2': b2})
+    collider.lhcb1.set_particle_ref('proton', p0c=7e12)
+    collider.lhcb2.set_particle_ref('proton', p0c=7e12)
+    collider.lhcb2.twiss_default['reverse'] = True
 
     collider.build_trackers(_context=test_context)
     tw = collider.twiss(strengths=True, method='4d')
@@ -1952,6 +1977,25 @@ def test_twiss_add_strengths(test_context):
     assert "length" not in tw.keys()
     tw.add_strengths()
     assert "length" in tw.keys()
+
+def test_twiss_prototype_with_strengths():
+
+    env = xt.Environment(particle_ref=xp.Particles(
+        mass0=xp.PROTON_MASS_EV, q0=1, p0c=1e8))
+    env.new('q0', 'Quadrupole', length=1.0, k1=0.1)
+    env.new('q1', 'q0')
+    env.new('q2', 'q1')
+
+    line = env.new_line(components=['q0', 'q1', 'q2'])
+    line.build_tracker()
+
+    tw = line.twiss(method='4d', betx=1, bety=1)
+    tw_with_strengths = line.twiss(method='4d', betx=1, bety=1,
+                                   strengths=True)
+
+    assert 'prototype' not in tw.keys()
+    assert np.all(tw_with_strengths.prototype == np.array(
+        [None, 'q0', 'q1', None]))
 
 def test_coupling_calculations():
 

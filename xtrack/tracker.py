@@ -462,6 +462,7 @@ class Tracker:
                     config=self.config,
                     tracker_element_classes=self.line_element_classes,
                     classes=extra_classes,
+                    context=self._context,
                 )
 
             if kernel_info:
@@ -1557,6 +1558,7 @@ class Tracker:
             config=self.line.config,
             tracker_element_classes=self.line_element_classes,
             classes=[],
+            context=self._context,
             verbose=True
         )
 
@@ -1605,7 +1607,7 @@ class Tracker:
             if log[kk] == None:
                 if kk not in self.line.log_last_track:
                     self.line.log_last_track[kk] = []
-                self.line.log_last_track[kk].append(self.line.vv[kk])
+                self.line.log_last_track[kk].append(self.line[kk])
             else:
                 ff = log[kk]
                 val = ff(self.line, plog)

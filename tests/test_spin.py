@@ -682,8 +682,8 @@ def test_spin_y_rotation():
 
     line = env.new_line(
         length=1., components=[
-            env.new('yrot', xt.YRotation, angle=12, at=0.2),
-            env.new('inv_yrot', xt.YRotation, angle=-12, at=0.4),
+            env.new('yrot', xt.Rotation, rot_y_rad=np.deg2rad(12), at=0.2),
+            env.new('inv_yrot', xt.Rotation, rot_y_rad=np.deg2rad(-12), at=0.4),
         ]
     )
 
@@ -742,8 +742,8 @@ def test_spin_x_rotation():
 
     line = env.new_line(
         length=1., components=[
-            env.new('xrot', xt.XRotation, angle=12, at=0.2),
-            env.new('inv_xrot', xt.XRotation, angle=-12, at=0.4),
+            env.new('xrot', xt.Rotation, rot_x_rad=np.deg2rad(12), at=0.2),
+            env.new('inv_xrot', xt.Rotation, rot_x_rad=np.deg2rad(-12), at=0.4),
         ]
     )
 
@@ -802,8 +802,8 @@ def test_spin_s_rotation():
 
     line = env.new_line(
         length=1., components=[
-            env.new('srot', xt.SRotation, angle=12, at=0.2),
-            env.new('inv_srot', xt.SRotation, angle=-12, at=0.4),
+            env.new('srot', xt.Rotation, rot_s_rad=np.deg2rad(12), at=0.2),
+            env.new('inv_srot', xt.Rotation, rot_s_rad=np.deg2rad(-12), at=0.4),
         ]
     )
 
@@ -864,9 +864,10 @@ def test_spin_rot_s_rad():
 
     line_ref = env.new_line(
         length=1., components=[
-            env.new('srot', xt.SRotation, angle=np.rad2deg(0.1)),
+            env.new('srot', xt.Rotation, rot_s_rad=0.1),
             env.new('mref', xt.Magnet, k0=0.1, length=0.2),
-            env.new('inv_srot', xt.SRotation, angle=np.rad2deg(-0.1))]
+            env.new('inv_srot', xt.Rotation, rot_s_rad=-0.1),
+        ]
     )
 
     tw_test = line_test.twiss(

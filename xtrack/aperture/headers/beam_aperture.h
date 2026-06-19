@@ -176,89 +176,6 @@ void get_beam_envelope(
 }
 
 
-char horizontal_ray_intersects_segment(const Point2D* q, const Point2D* a, const Point2D* b)
-{
-    // Straddle test
-    const int above_a = (a->y > q->y);
-    const int above_b = (b->y > q->y);
-    if (above_a == above_b) return 0;
-
-    /* We are within the horizontal "strip" delimited by `a.y` and `b.y`.
-
-       To check the intersection, we compare the tangent of ab segment and
-       the aq segment (here assuming `b` above `a`, otherwise we need to flip
-       the comparison -- done on the `return` line):
-
-           tan_segment = (b.y - a.y) / (b.x - a.x)
-           tan_point = (q.y - a.y) / (q.x - a.x)
-           intersects = tan_point >= tan_segment
-
-       To avoid division by zero we can cross-multiply:
-    */
-    const float_type dx = b->x - a->x;
-    const float_type dy = b->y - a->y;
-
-    const float_type lhs = dx * (q->y - a->y);
-    const float_type rhs = (q->x - a->x) * dy;
-
-    return (dy > 0) ? (lhs > rhs) : (lhs < rhs);
-}
-
-
-char is_point_inside_polygon(const Point2D* point, const Point2D* points, const int len_points)
-/* Determine if a point is inside a polygon.
-
-Assume the polygon is closed, i.e. that points[-1] == points[0].
-
-Contract: len_points=len(points)
-*/
-{
-    char inside = 0;
-    for (int i = 0; i < len_points - 1; i++)
-    {
-        const Point2D* a = &points[i];
-        const Point2D* b = &points[i + 1];
-        inside ^= horizontal_ray_intersects_segment(point, a, b);
-    }
-
-    // If count is odd, point is inside (return true), otherwise return false
-    return inside;
-}
-
-
-char _is_point_inside_polygon(const float_type* point, const float_type* points, const int len_points)
-/* This function is exposed for testing purposes */
-{
-    return is_point_inside_polygon((const Point2D*) point, (const Point2D*) points, len_points);
-}
-
-
-char points_inside_polygon(const Point2D* points, const Point2D* poly_points, const int len_points, const int len_poly_points)
-/* Given a set of point, determine if they are inside a polygon. False if there
-is at least one point outside of the polygon, and true if all points
-are contained in the polygon.
-
-Assume the polygon is closed, i.e. that poly_points[-1] == poly_points[0].
-
-Contract: len_points=len(points); len_poly_points=len(poly_points)
-*/
-{
-    for (int i = 0; i < len_points; i++)
-    {
-        const Point2D point = points[i];
-        if (!is_point_inside_polygon(&point, poly_points, len_poly_points))
-            return 0;
-    }
-    return 1;
-}
-
-
-char _points_inside_polygon(const float_type* points, const float_type* poly_points, const int len_points, const int len_poly_points)
-{
-    return points_inside_polygon((const Point2D*) points, (const Point2D*) poly_points, len_points, len_poly_points);
-}
-
-
 float_type max_aperture_sigma_bisect_one_slice(
     const BeamLocalData *beam_data,
     const TwissLocalData *twiss_data,
@@ -283,7 +200,7 @@ Contract: len(out_points)=len_points; len_poly_points=len(poly_points)
     while (hi - lo > tol) {
         const float_type mid = (lo + hi) / 2;
         get_beam_envelope(beam_data, twiss_data, aperture_data, mid, len_points, out_points);
-        char inside = points_inside_polygon(out_points, poly_points, len_points, len_poly_points);
+        char inside = points_inside_polygon_points(out_points, poly_points, len_points, len_poly_points);
 
         if (inside) lo = mid;
         else hi = mid;

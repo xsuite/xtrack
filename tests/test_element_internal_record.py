@@ -270,8 +270,9 @@ def test_record_with_twiss(test_context):
         input_data = json.load(fid)
     line = xt.Line.from_dict(input_data['line'])
     line.particle_ref = xp.Particles.from_dict(input_data['particle'])
-    line.insert(obj=TestElement(n_kicks=n_kicks0), what='test0', at=line.get_s_position('ip1'))
-    line.insert(obj=TestElement(n_kicks=n_kicks1), what='test1', at=line.get_s_position('ip5'))
+    tt = line.get_table()
+    line.insert(obj=TestElement(n_kicks=n_kicks0), what='test0', at=tt['s', 'ip1'])
+    line.insert(obj=TestElement(n_kicks=n_kicks1), what='test1', at=tt['s', 'ip5'])
 
     line._needs_rng = True
     line.build_tracker(_context=test_context)

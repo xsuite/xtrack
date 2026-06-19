@@ -27,7 +27,7 @@ env['circumference'] = tw4d.line_length
 env['df_hz'] = 0.  # desired shift in RF frequency
 
 env['dzeta'] = 'circumference * df_hz / frf'
-env.new('z_shift', xt.ZetaShift, dzeta='dzeta')
+env.new('z_shift', xt.TimeDelay, shift_zeta='dzeta')
 line.append('z_shift')
 
 tw0 = line.twiss6d()
@@ -42,7 +42,6 @@ plt.plot(tw1.s, tw1.x, label=f'df_hz=10 Hz, delta={tw1.delta[0]:.2e}')
 plt.xlabel('s [m]')
 plt.ylabel(r'$\delta$')
 plt.legend()
-plt.title('PS with radial steering matched via ZetaShift')
 
 tt_bpm = tt.rows['pr\.bpm[0-9].*']
 

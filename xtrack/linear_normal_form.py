@@ -4,8 +4,9 @@
 # ######################################### #
 
 import numpy as np
+from warnings import warn
 
-from .general import _print
+from .general import _print, DEPRECATION_INFO_PREP_1_0
 
 
 def healy_symplectify(M):
@@ -57,7 +58,7 @@ def Rot2D(phi):
     return np.array([[ np.cos(phi), np.sin(phi)],
                      [-np.sin(phi), np.cos(phi)]])
 
-def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
+def get_linear_normal_form(M, symplectify=False, only_4d_block=False,
                         responsiveness_tol=None,
                         stability_tol=None):
 
@@ -191,6 +192,17 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
     eigenvalues = w0[modes]
 
     return W, invW, R, eigenvalues
+
+
+def compute_linear_normal_form(*args, **kwargs):
+    warn(
+        '`compute_linear_normal_form()` is deprecated and will be removed in '
+        'future versions. Please use `get_linear_normal_form()` instead.'
+        + DEPRECATION_INFO_PREP_1_0,
+        FutureWarning,
+    )
+    return get_linear_normal_form(*args, **kwargs)
+
 
 def _assert_matrix_responsiveness(M,
                 responsiveness_tol, only_4d=False):

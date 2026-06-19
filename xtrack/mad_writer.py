@@ -369,6 +369,8 @@ def acdipole_to_mad_str(eref, mad_type=MadType.MADNG, substituted_vars=None):
     return tokens
 
 def rfmultipole_to_mad_str(eref, mad_type=MadType.MADX, substituted_vars=None):
+    raise NotImplementedError('Conversion of xtrack RFMultipole to mad-x not supported')
+
     """
     Convert an RF multipole element to a MADX/MAD-NG string representation.
 

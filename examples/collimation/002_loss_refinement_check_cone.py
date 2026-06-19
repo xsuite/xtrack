@@ -33,21 +33,21 @@ rot_deg_aper_1 = 10.
 
 # aper_0_sandwitch
 line_aper_0 = xt.Line(
-    elements=[xt.XYShift(dx=shift_aper_0[0], dy=shift_aper_0[1]),
-              xt.SRotation(angle=rot_deg_aper_0),
+    elements=[xt.Translation(shift_x=shift_aper_0[0], shift_y=shift_aper_0[1]),
+              xt.Rotation(rot_s_rad=np.deg2rad(rot_deg_aper_0)),
               aper_0,
               xt.Multipole(knl=[0.00]),
-              xt.SRotation(angle=-rot_deg_aper_0),
-              xt.XYShift(dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
+              xt.Rotation(rot_s_rad=-np.deg2rad(rot_deg_aper_0)),
+              xt.Translation(shift_x=-shift_aper_0[0], shift_y=-shift_aper_0[1])])
 
 # aper_1_sandwitch
 line_aper_1 = xt.Line(
-    elements=[xt.XYShift(dx=shift_aper_1[0], dy=shift_aper_1[1]),
-              xt.SRotation(angle=rot_deg_aper_1),
+    elements=[xt.Translation(shift_x=shift_aper_1[0], shift_y=shift_aper_1[1]),
+              xt.Rotation(rot_s_rad=np.deg2rad(rot_deg_aper_1)),
               aper_1,
               xt.Multipole(knl=[0.00]),
-              xt.SRotation(angle=-rot_deg_aper_1),
-              xt.XYShift(dx=-shift_aper_1[0], dy=-shift_aper_1[1])])
+              xt.Rotation(rot_s_rad=-np.deg2rad(rot_deg_aper_1)),
+              xt.Translation(shift_x=-shift_aper_1[0], shift_y=-shift_aper_1[1])])
 
 # Build example line
 line=xt.Line(
@@ -97,8 +97,9 @@ assert np.all(r_calc[mask_lost]>1e-2)
 i_aper_1 = line.elements.index(aper_1)
 assert np.all(particles.at_element[mask_lost]==i_aper_1)
 assert np.all(particles.at_element[~mask_lost]==0)
-s0 = line.get_s_elements()[line.elements.index(aper_0)]
-s1 = line.get_s_elements()[line.elements.index(aper_1)]
+tt = line.get_table()
+s0 = tt.s[line.elements.index(aper_0)]
+s1 = tt.s[line.elements.index(aper_1)]
 r0 = np.sqrt(aper_0.a_squ)
 r1 = np.sqrt(aper_1.a_squ)
 s_expected = s0 + (r_calc-r0)/(r1 - r0)*(s1 - s0)
@@ -149,8 +150,9 @@ ax.plot3D(
         color='k', linewidth=3)
 s_check = []
 r_check = []
+tt_interp = interp_line.get_table()
 for ee, ss in zip(interp_line.elements,
-                  interp_line.get_s_elements()):
+                  tt_interp.s[:-1]):
     if ee.__class__ is xt.LimitPolygon:
         ax.plot3D(
                 ee.x_closed,

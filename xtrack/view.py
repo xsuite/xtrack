@@ -1,4 +1,8 @@
+from warnings import warn
+
 import numpy as np
+
+from .general import DEPRECATION_INFO_PREP_1_0
 from .table import Table
 
 class View:
@@ -17,22 +21,28 @@ class View:
         # return type("View",(self._obj.__class__,),{})
         return self._obj.__class__
 
-    def get_value(self, key=None):
+    def _get_value(self, key=None):
         if not hasattr(self._obj, "keys") and not hasattr(self._obj, "_xofields"):
             raise ValueError("get_value not supported for this object")
 
         if key is None:
             if hasattr(self._obj, "_xofields"):
-                return {kk: self.get_value(kk) for kk in self._obj._xofields}
+                return {kk: self._get_value(kk) for kk in self._obj._xofields}
             else:
-                return {kk: self.get_value(kk) for kk in dir(self._obj)}
+                return {kk: self._get_value(kk) for kk in dir(self._obj)}
 
         if hasattr(self._obj, "__iter__"):
             return self._obj[key]
         else:
             return getattr(self._obj, key)
 
-    def get_expr(self, key=None, index=None):
+    def get_value(self, key=None):
+        warn('`View.get_value` is deprecated and will be removed in a future version. '
+             'Please inspect the reference using `env.ref[\'myobj\'].xdeps.value` instead.'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+        return self._get_value(key)
+
+    def _get_expr(self, key=None, index=None):
         if index is not None:
             if key is None:
                 raise ValueError('`key` must be provided when `index` is provided.')
@@ -44,17 +54,22 @@ class View:
 
         if key is None:
             if hasattr(self._obj, "_xofields"):
-                return {kk: self.get_expr(kk) for kk in self._obj._xofields}
+                return {kk: self._get_expr(kk) for kk in self._obj._xofields}
             else:
-                return {kk: self.get_expr(kk) for kk in dir(self._obj)}
+                return {kk: self._get_expr(kk) for kk in dir(self._obj)}
 
         if hasattr(self._obj, "__iter__"):
             return self._ref[key]._expr
         else:
             return getattr(self._ref, key)._expr
 
+    def get_expr(self, key=None, index=None):
+        warn('`View.get_expr` is deprecated and will be removed in a future version. '
+             'Please inspect the reference using `env.ref[\'myobj\'].xdeps.expr` instead.'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+        return self._get_expr(key, index)
 
-    def get_info(self, key=None):
+    def _get_info(self, key=None):
         if not hasattr(self._obj, "keys") and not hasattr(self._obj, "_xofields"):
             raise ValueError("get_info not supported for this object")
 
@@ -67,13 +82,19 @@ class View:
             else:
                 return getattr(self._ref, key)._info()
 
+    def get_info(self, key=None):
+        warn('`View.get_info` is deprecated and will be removed in a future version. '
+             'Please inspect the reference using `env.ref[\'myobj\'].xdeps.info()` instead.'
+             + DEPRECATION_INFO_PREP_1_0, FutureWarning, stacklevel=2)
+        return self._get_info(key)
+
     def get_table(self):
 
         if not hasattr(self._obj, "keys") and not hasattr(self._obj, "_xofields"):
             raise ValueError("get_table not supported for this object")
 
-        out_expr = self.get_expr()
-        out_value = self.get_value()
+        out_expr = self._get_expr()
+        out_value = self._get_value()
 
         value = [out_value[kk] for kk in out_expr.keys()]
         for ii, vv in enumerate(value):
@@ -124,6 +145,12 @@ class View:
 
     def __len__(self):
         return len(self._obj)
+
+    def __iter__(self):
+        return iter(self._obj)
+
+    def __contains__(self, item):
+        return item in self._obj
 
     def __add__(self, other):
         return self._obj + other

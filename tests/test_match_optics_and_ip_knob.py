@@ -152,7 +152,7 @@ def test_ip_knob_matching(test_context):
     xo.assert_allclose(opt.targets[7].tol, 0.9e-10, atol=1e-14, rtol=0)
 
     # Set mcmbx by hand (as in mad-x script)
-    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    testkqx8=abs(collider['kqx.l8'])*7000./0.3
     if testkqx8> 210.:
         acbx_xing_ir8 = 1.0e-6   # Value for 170 urad crossing
     else:
@@ -174,7 +174,7 @@ def test_ip_knob_matching(test_context):
     collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
     collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
 
-    init_mcbx_plus = collider.varval['acbxh1.l8_from_on_x8h']
+    init_mcbx_plus = collider['acbxh1.l8_from_on_x8h']
 
     # First round of optimization without changing mcbx
     opt.disable(vary='mcbx')
@@ -273,7 +273,7 @@ def test_ip_knob_matching(test_context):
         )
 
     # Set mcmbx by hand (as in mad-x script)
-    testkqx8 = abs(collider.varval['kqx.l8'])*7000./0.3
+    testkqx8 = abs(collider['kqx.l8'])*7000./0.3
     if testkqx8 > 210.:
         acbx_sep_ir8 = 18e-6   # Value for 170 urad crossing
     else:
@@ -418,8 +418,8 @@ def test_match_ir8_optics(test_context):
     mux_b2_target = 3.007814449420657
     muy_b2_target = 2.878419154545405
 
-    collider.varval['kq6.l8b1'] *= 1.1
-    collider.varval['kq6.r8b1'] *= 1.1
+    collider['kq6.l8b1'] *= 1.1
+    collider['kq6.r8b1'] *= 1.1
 
     tab_boundary_right = collider.lhcb1.twiss(
         start='ip8', end='ip1.l1',
@@ -479,15 +479,15 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 
     # Check that the unperturbed machine is a solution
-    collider.varval['kq6.l8b1'] /= 1.1
-    collider.varval['kq6.r8b1'] /= 1.1
+    collider['kq6.l8b1'] /= 1.1
+    collider['kq6.r8b1'] /= 1.1
 
     opt.clear_log()
     assert opt.log()['tol_met', 0] == 'yyyyyyyyyyyyyy'
 
     # Break again and clear log
-    collider.varval['kq6.l8b1'] *= 1.1
-    collider.varval['kq6.r8b1'] *= 1.1
+    collider['kq6.l8b1'] *= 1.1
+    collider['kq6.r8b1'] *= 1.1
     opt.clear_log()
     assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 
@@ -561,8 +561,8 @@ def test_match_ir8_optics(test_context):
 
     # Beam 2
 
-    collider.varval['kq6.l8b2'] *= 1.1
-    collider.varval['kq6.r8b2'] *= 1.1
+    collider['kq6.l8b2'] *= 1.1
+    collider['kq6.r8b2'] *= 1.1
 
     tab_boundary_right = collider.lhcb2.twiss(
         start='ip8', end='ip1.l1',
@@ -619,15 +619,15 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 
     # Check that the unperturbed machine is a solution
-    collider.varval['kq6.l8b2'] /= 1.1
-    collider.varval['kq6.r8b2'] /= 1.1
+    collider['kq6.l8b2'] /= 1.1
+    collider['kq6.r8b2'] /= 1.1
 
     opt.clear_log()
     assert opt.log()['tol_met', 0] == 'yyyyyyyyyyyyyy'
 
     # Break again and clear log
-    collider.varval['kq6.l8b2'] *= 1.1
-    collider.varval['kq6.r8b2'] *= 1.1
+    collider['kq6.l8b2'] *= 1.1
+    collider['kq6.r8b2'] *= 1.1
     opt.clear_log()
     assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 

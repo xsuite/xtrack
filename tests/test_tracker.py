@@ -69,7 +69,7 @@ def test_cycle(test_context):
     d0 = xt.Drift()
     c0 = xt.Cavity()
     d1 = xt.Drift()
-    r0 = xt.SRotation()
+    r0 = xt.Rotation()
     particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=1.05)
 
     for collective in [True, False]:
@@ -97,7 +97,7 @@ def test_cycle(test_context):
             assert cline.element_names[3] == 'e1'
 
             assert isinstance(cline.elements[0], xt.Drift)
-            assert isinstance(cline.elements[1], xt.SRotation)
+            assert isinstance(cline.elements[1], xt.Rotation)
             assert isinstance(cline.elements[2], xt.Drift)
             assert isinstance(cline.elements[3], xt.Cavity)
 
@@ -468,17 +468,17 @@ def test_optimize_for_tracking(test_context, multiline):
     num_turns = 10
 
     line.track(p_no_optimized, num_turns=num_turns, time=True)
-    df_before_optimize = line.to_pandas()
+    df_before_optimize = line.get_table().to_pandas()
     n_markers_before_optimize = (df_before_optimize.element_type == 'Marker').sum()
     assert n_markers_before_optimize > 4 # There are at least the IPs
 
     line.optimize_for_tracking(keep_markers=True)
-    df_optimize_keep_markers = line.to_pandas()
+    df_optimize_keep_markers = line.get_table().to_pandas()
     n_markers_optimize_keep = (df_optimize_keep_markers.element_type == 'Marker').sum()
     assert n_markers_optimize_keep == n_markers_before_optimize
 
     line.optimize_for_tracking(keep_markers=['ip1', 'ip5'])
-    df_optimize_ip15 = line.to_pandas()
+    df_optimize_ip15 = line.get_table().to_pandas()
     n_markers_optimize_ip15 = (df_optimize_ip15.element_type == 'Marker').sum()
     assert n_markers_optimize_ip15 == 2
 
@@ -487,7 +487,7 @@ def test_optimize_for_tracking(test_context, multiline):
     assert type(line['mb.b10l3.b1..1']) is xt.SimpleThinBend
     assert type(line['mq.10l3.b1..1']) is xt.SimpleThinQuadrupole
 
-    df_optimize = line.to_pandas()
+    df_optimize = line.get_table().to_pandas()
     n_markers_optimize = (df_optimize.element_type == 'Marker').sum()
     assert n_markers_optimize == 0
 
@@ -653,6 +653,7 @@ def test_track_log_and_merit_function(test_context):
     # Below numbers obtained by first only matching the tunes, then the above
     x_optimized = [-1.40280327,  0.81538019,  0.31203146,  0.52495916, -0.05239972]
     merit_function.set_x(x_optimized)
+    opt.solve()
     assert np.all(opt.target_status(ret=True)['tol_met'])
 
     # Now prepare to track and to log intensity and sextupole strength
@@ -675,12 +676,12 @@ def test_track_log_and_merit_function(test_context):
     # Define time-dependent behaviour of the quadrupoles
     line.functions['fun_kqfa'] = xt.FunctionPieceWiseLinear(
         x=[0, 0.5e-3],
-        y=[line.vv['kqfa'], 0.313],
+        y=[line['kqfa'], 0.313],
     )
     line.vars['kqfa'] = line.functions['fun_kqfa'](line.vars['t_turn_s'])
     line.vars['kse2'] = 9
 
-    kqfa_before = line.vv['kqfa']
+    kqfa_before = line['kqfa']
 
     def measure_intensity(_, particles):
         ctx2np = particles._context.nparray_from_context_array
@@ -708,7 +709,7 @@ def test_track_log_and_merit_function(test_context):
     assert slope > 0
     assert residual < 1e-28
     xo.assert_allclose(line.log_last_track['kqfa'][0], kqfa_before, atol=1e-14, rtol=0)
-    xo.assert_allclose(line.log_last_track['kqfa'][-1], line.vv['kqfa'], atol=1e-14, rtol=0)
+    xo.assert_allclose(line.log_last_track['kqfa'][-1], line['kqfa'], atol=1e-14, rtol=0)
 
     # Check that intensity is decreasing
     intensity = np.array(line.log_last_track['intensity'])

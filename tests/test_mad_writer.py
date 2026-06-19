@@ -42,10 +42,10 @@ def test_mad_writer(case):
         ll.vars['on_x1'] = 100 # Check kicker expressions
         ll.vars['on_sep2'] = 2 # Check kicker expressions
         ll.vars['on_x5'] = 123 # Check kicker expressions
-        ll.vv['kqtf.b1'] += 1e-5 # Check quad expressions
-        ll.vv['ksf.b1'] += 1e-3  # Check sext expressions
-        ll.vv['kqs.l4b1'] += 1e-4 # Check skew expressions
-        ll.vv['kof.a34b1'] = 3 # Check oct expressions
+        ll['kqtf.b1'] += 1e-5 # Check quad expressions
+        ll['ksf.b1'] += 1e-3  # Check sext expressions
+        ll['kqs.l4b1'] += 1e-4 # Check skew expressions
+        ll['kof.a34b1'] = 3 # Check oct expressions
         ll.vars['on_crab1'] = -190 # Check cavity expressions
         ll.vars['on_crab5'] = -130 # Check cavity expressions
 
@@ -90,3 +90,12 @@ def test_mad_writer_bend():
         assert el1.length == el2.length
         assert el1.angle == el2.angle
         assert el1.k0 == el2.k0
+
+
+def test_mad_writer_rfmultipole_not_supported():
+    line = xt.Line(elements={'rfm': xt.RFMultipole(knl=[1])},
+                   element_names=['rfm'])
+
+    with pytest.raises(NotImplementedError,
+                       match='Conversion of xtrack RFMultipole to mad-x not supported'):
+        line.to_madx_sequence('seq')

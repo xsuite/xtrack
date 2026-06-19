@@ -32,6 +32,8 @@ void ThickSliceCrabCavity_track_local_particle(ThickSliceCrabCavityData el, Loca
         /*ksl*/                   NULL,
         /*pn*/                    NULL,
         /*ps*/                    NULL,
+        /*phase_n*/               NULL,
+        /*phase_s*/               NULL,
         /*num_kicks*/             ThickSliceCrabCavityData_get__parent_num_kicks(el),
         /*model*/                 ThickSliceCrabCavityData_get__parent_model(el),
         /*default_model*/         6, // drift-kick-drift-expanded

@@ -373,17 +373,17 @@ class Aperture:
 
     def aperture(self):
         if len(self.mad_el.aper_vx) > 2:
-            builder = self.Assembler(
+            assembler = self.Assembler(
                     self.name + "_aper",
                     self.classes.LimitPolygon,
                     x_vertices=self.mad_el.aper_vx,
                     y_vertices=self.mad_el.aper_vy,
                 )
             if self.dx or self.dy or self.aper_tilt:
-                builder.shift_x = self.dx
-                builder.shift_y = self.dy
-                builder.rot_s_rad = self.aper_tilt
-            return [builder]
+                assembler.shift_x = self.dx
+                assembler.shift_y = self.dy
+                assembler.rot_s_rad = self.aper_tilt
+            return [assembler]
         else:
             conveter = getattr(self.loader, "convert_" + self.apertype, None)
             if conveter is None:
@@ -1338,27 +1338,27 @@ class MadLoader:
     def convert_srotation(self, ee):
         if self.bv == -1:
             raise NotImplementedError("SRotation for bv=-1 are not yet supported.")
-        angle = ee.angle*180/np.pi
+        angle = ee.angle
         el = self.Assembler(
-            ee.name, self.classes.SRotation, angle=angle
+            ee.name, self.classes.Rotation, rot_s_rad=angle
         )
         return self.make_composite_element([el], ee)
 
     def convert_xrotation(self, ee):
         if self.bv == -1:
             raise NotImplementedError("XRotation for bv=-1 are not yet supported.")
-        angle = ee.angle*180/np.pi
+        angle = ee.angle
         el = self.Assembler(
-            ee.name, self.classes.XRotation, angle=angle
+            ee.name, self.classes.Rotation, rot_x_rad=angle
         )
         return self.make_composite_element([el], ee)
 
     def convert_yrotation(self, ee):
         if self.bv == -1:
             raise NotImplementedError("YRotation for bv=-1 are not yet supported.")
-        angle = ee.angle*180/np.pi
+        angle = ee.angle
         el = self.Assembler(
-            ee.name, self.classes.YRotation, angle=angle
+            ee.name, self.classes.Rotation, rot_y_rad=angle
         )
         return self.make_composite_element([el], ee)
 
@@ -1366,7 +1366,7 @@ class MadLoader:
         if self.bv == -1:
             raise NotImplementedError("Translation for bv=-1 are not yet supported.")
         el_transverse = self.Assembler(
-            ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
+            ee.name, self.classes.Translation, shift_x=ee.dx, shift_y=ee.dy
         )
         if ee.ds:
             raise NotImplementedError # Need to implement ShiftS element

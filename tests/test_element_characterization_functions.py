@@ -121,8 +121,9 @@ def test_is_drift_behaves_like_drift():
 
     line.cut_at_s([0.6, 1.5])
     assert_allclose(length, line.get_length(), rtol=0, atol=1e-15)
-    assert_allclose(line.get_s_position('drift_e0..2..1'), 0.6, rtol=0, atol=1e-15)
-    assert_allclose(line.get_s_position('e1..1..1'), 1.5, rtol=0, atol=1e-15)
+    tt = line.get_table()
+    assert_allclose(tt['s', 'drift_e0..2..1'], 0.6, rtol=0, atol=1e-15)
+    assert_allclose(tt['s', 'e1..1..1'], 1.5, rtol=0, atol=1e-15)
 
     assert _is_drift(line['drift_e0..2..1'], line)
     assert _behaves_like_drift(line['drift_e0..2..1'], line)

@@ -32,6 +32,7 @@ line.match(
 #!end-doc-part
 
 tw = line.twiss()
+tt = line.get_table()
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -39,15 +40,15 @@ fig = plt.figure(1, figsize=(6.4*1.2, 4.8*0.8))
 ax = fig.add_subplot(111)
 ax.plot(tw_before.s, tw_before.y*1000, label='y')
 ax.plot(tw.s, tw.y*1000, label='y')
-ax.axvline(x=line.get_s_position('mb.b28l8.b1'), color='r', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.30l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.28l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.26l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mcbv.24l8.b1'), color='k', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mq.33l8.b1'), color='g', linestyle='--', alpha=0.5)
-ax.axvline(x=line.get_s_position('mq.23l8.b1'), color='g', linestyle='--', alpha=0.5)
-ax.set_xlim(line.get_s_position('mq.33l8.b1') - 10,
-            line.get_s_position('mq.23l8.b1') + 10)
+ax.axvline(x=tt['s', 'mb.b28l8.b1'], color='r', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.30l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.28l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.26l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mcbv.24l8.b1'], color='k', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mq.33l8.b1'], color='g', linestyle='--', alpha=0.5)
+ax.axvline(x=tt['s', 'mq.23l8.b1'], color='g', linestyle='--', alpha=0.5)
+ax.set_xlim(tt['s', 'mq.33l8.b1'] - 10,
+            tt['s', 'mq.23l8.b1'] + 10)
 ax.set_xlabel('s [m]')
 ax.set_ylabel('y [mm]')
 ax.set_ylim(-0.5, 10)

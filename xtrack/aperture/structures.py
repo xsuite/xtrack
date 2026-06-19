@@ -1,3 +1,4 @@
+from warnings import warn
 from typing import Collection, List, Tuple, Union, get_args
 
 import numpy as np
@@ -7,6 +8,7 @@ from xobjects.context import XContext
 from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
 from xtrack.twiss import TwissTable
+from xtrack.general import DEPRECATION_INFO_PREP_1_0
 
 FloatType = xo.Float64
 
@@ -17,6 +19,9 @@ class Circle(xo.Struct):
     def __repr__(self):
         return f'Circle(radius={self.radius})'
 
+    def valid(self):
+        return self.radius > 0
+
 
 class Rectangle(xo.Struct):
     half_width = FloatType
@@ -25,6 +30,9 @@ class Rectangle(xo.Struct):
     def __repr__(self):
         return f'Rectangle(half_width={self.half_width}, half_height={self.half_height})'
 
+    def valid(self):
+        return np.min((self.half_width, self.half_height)) > 0
+
 
 class Ellipse(xo.Struct):
     half_major = FloatType
@@ -32,6 +40,9 @@ class Ellipse(xo.Struct):
 
     def __repr__(self):
         return f'Ellipse(half_major={self.half_major}, half_minor={self.half_minor})'
+
+    def valid(self):
+        return np.min((self.half_major, self.half_minor)) > 0
 
 
 class RectEllipse(xo.Struct):
@@ -44,6 +55,9 @@ class RectEllipse(xo.Struct):
         return (f'RectEllipse(half_width={self.half_width}, half_height={self.half_height}, '
                 f'half_major={self.half_major}, half_minor={self.half_minor})')
 
+    def valid(self):
+        return np.min((self.half_width, self.half_height, self.half_major, self.half_minor)) > 0
+
 
 class Racetrack(xo.Struct):
     half_width = FloatType
@@ -52,8 +66,11 @@ class Racetrack(xo.Struct):
     half_minor = FloatType
 
     def __repr__(self):
-        return (f'RectEllipse(half_width={self.half_width}, half_height={self.half_height}, '
+        return (f'Racetrack(half_width={self.half_width}, half_height={self.half_height}, '
                 f'half_major={self.half_major}, half_minor={self.half_minor})')
+
+    def valid(self):
+        return np.min((self.half_width, self.half_height)) > 0
 
 
 class Octagon(xo.Struct):
@@ -64,12 +81,64 @@ class Octagon(xo.Struct):
     def __repr__(self):
         return f'Octagon(half_width={self.half_width}, half_height={self.half_height}, half_diagonal={self.half_diagonal})'
 
+    def valid(self):
+        return np.min((self.half_width, self.half_height, self.half_diagonal)) > 0
+
 
 class Polygon(xo.Struct):
     vertices = FloatType[:, 2]
 
+    _extra_c_sources = [
+        '#include "xtrack/aperture/headers/polygon.h"',
+    ]
+
+    _kernels = {
+        'is_point_inside_polygon': xo.Kernel(
+            c_name='is_point_inside_polygon',
+            args=[
+                xo.Arg(xo.ThisClass, name='polygon'),
+                xo.Arg(FloatType, pointer=True, name='point'),
+            ],
+            ret=xo.Arg(xo.Int8),
+        ),
+        'points_inside_polygon': xo.Kernel(
+            c_name='points_inside_polygon',
+            args=[
+                xo.Arg(xo.ThisClass, name='polygon'),
+                xo.Arg(FloatType, pointer=True, name='points'),
+                xo.Arg(xo.UInt32, name='len_points'),
+            ],
+            ret=xo.Arg(xo.Int8),
+        ),
+    }
+
     def __repr__(self):
         return f'<Polygon: {self.vertices._shape[0]} vertices>'
+
+    def is_point_inside_polygon(self, point) -> bool:
+        point = np.asarray(point, dtype=FloatType._dtype)
+        if point.shape != (2,):
+            raise ValueError(f'Expected a point with shape (2,), got {point.shape}.')
+
+        self.compile_kernels(only_if_needed=True)
+        return bool(self._context.kernels.is_point_inside_polygon(polygon=self, point=point))
+
+    def points_inside_polygon(self, points) -> bool:
+        points = np.asarray(points, dtype=FloatType._dtype)
+        if points.ndim != 2 or points.shape[1] != 2:
+            raise ValueError(f'Expected points with shape (n, 2), got {points.shape}.')
+
+        self.compile_kernels(only_if_needed=True)
+        return bool(
+            self._context.kernels.points_inside_polygon(
+                polygon=self,
+                points=points,
+                len_points=points.shape[0],
+            )
+        )
+
+    def valid(self):
+        raise NotImplementedError('Validation not yet implemented for a polygon shape.')
 
 
 class SVGShape(xo.Struct):
@@ -224,6 +293,16 @@ class ApertureBounds(xo.Struct):
     s_start = FloatType[:]
     s_end = FloatType[:]
 
+    def sort_by_s(self, s_tol=1e-9):
+        s_start = self.s_start.to_nparray()
+        order = np.argsort(np.round(s_start / s_tol), kind='stable')
+
+        self.pipe_position_indices.to_nplike()[...] = self.pipe_position_indices.to_nparray()[order]
+        self.profile_position_indices.to_nplike()[...] = self.profile_position_indices.to_nparray()[order]
+        self.s_positions.to_nplike()[...] = self.s_positions.to_nparray()[order]
+        self.s_start.to_nplike()[...] = self.s_start.to_nparray()[order]
+        self.s_end.to_nplike()[...] = self.s_end.to_nparray()[order]
+
 
 class ProfilePolygons(xo.Struct):
     count = xo.UInt32
@@ -357,6 +436,7 @@ class ApertureModel(xo.Struct):
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(SurveyData, name='survey'),
+                xo.Arg(xo.Int8, name='is_ring'),
             ],
         ),
         'cross_sections_at_s': xo.Kernel(
@@ -374,7 +454,7 @@ class ApertureModel(xo.Struct):
                 xo.Arg(xo.Int8, pointer=True, name='is_convex'),
             ],
         ),
-        'compute_max_aperture_sigma_bisection': xo.Kernel(
+        'get_max_aperture_sigma_bisection': xo.Kernel(
             c_name='compute_max_aperture_sigma_bisection',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
@@ -390,7 +470,7 @@ class ApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='sigmas'),
             ],
         ),
-        'compute_max_aperture_sigma_rays': xo.Kernel(
+        'get_max_aperture_sigma_rays': xo.Kernel(
             c_name='compute_max_aperture_sigma_rays',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
@@ -408,7 +488,7 @@ class ApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='sigmas'),
             ],
         ),
-        'compute_max_aperture_sigma_exact': xo.Kernel(
+        'get_max_aperture_sigma_exact': xo.Kernel(
             c_name='compute_max_aperture_sigma_exact',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
@@ -426,7 +506,7 @@ class ApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='sigmas'),
             ],
         ),
-        'compute_beam_envelopes_at_sigma': xo.Kernel(
+        'get_beam_envelopes_at_sigma': xo.Kernel(
             c_name='compute_beam_envelopes_at_sigma',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
@@ -438,25 +518,6 @@ class ApertureModel(xo.Struct):
                 xo.Arg(xo.Int8, name='include_aper_tols'),
                 xo.Arg(FloatType, pointer=True, name='out_envelope'),
             ],
-        ),
-        '_points_inside_polygon': xo.Kernel(
-            c_name='_points_inside_polygon',
-            args=[
-                xo.Arg(FloatType, pointer=True, name='points'),
-                xo.Arg(FloatType, pointer=True, name='poly_points'),
-                xo.Arg(xo.UInt32, name='len_points'),
-                xo.Arg(xo.UInt32, name='len_poly_points'),
-            ],
-            ret=xo.Arg(xo.Int8),
-        ),
-        '_is_point_inside_polygon': xo.Kernel(
-            c_name='_is_point_inside_polygon',
-            args=[
-                xo.Arg(FloatType, pointer=True, name='point'),
-                xo.Arg(FloatType, pointer=True, name='points'),
-                xo.Arg(xo.UInt32, name='len_points'),
-            ],
-            ret=xo.Arg(xo.Int8),
         ),
     }
 
@@ -543,26 +604,48 @@ class ApertureModel(xo.Struct):
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.cross_sections_at_s(model=self, is_convex=is_convex, **kwargs)
 
-    def compute_max_aperture_sigma_bisection(self, **kwargs) -> None:
+    def get_max_aperture_sigma_bisection(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.compute_max_aperture_sigma_bisection(model=self, **kwargs)
+        self._context.kernels.get_max_aperture_sigma_bisection(model=self, **kwargs)
+
+    def compute_max_aperture_sigma_bisection(self, **kwargs) -> None:
+        warn(
+            '`ApertureModel.compute_max_aperture_sigma_bisection()` is '
+            'deprecated and will be removed in future versions. Please use '
+            '`ApertureModel.get_max_aperture_sigma_bisection()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_max_aperture_sigma_bisection(**kwargs)
+
+    def get_max_aperture_sigma_rays(self, **kwargs) -> None:
+        self.compile_kernels(only_if_needed=True)
+        self._context.kernels.get_max_aperture_sigma_rays(model=self, **kwargs)
 
     def compute_max_aperture_sigma_rays(self, **kwargs) -> None:
+        warn(
+            '`ApertureModel.compute_max_aperture_sigma_rays()` is deprecated '
+            'and will be removed in future versions. Please use '
+            '`ApertureModel.get_max_aperture_sigma_rays()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_max_aperture_sigma_rays(**kwargs)
+
+    def get_max_aperture_sigma_exact(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.compute_max_aperture_sigma_rays(model=self, **kwargs)
+        self._context.kernels.get_max_aperture_sigma_exact(model=self, **kwargs)
 
     def compute_max_aperture_sigma_exact(self, **kwargs) -> None:
-        self.compile_kernels(only_if_needed=True)
-        self._context.kernels.compute_max_aperture_sigma_exact(model=self, **kwargs)
+        warn(
+            '`ApertureModel.compute_max_aperture_sigma_exact()` is deprecated '
+            'and will be removed in future versions. Please use '
+            '`ApertureModel.get_max_aperture_sigma_exact()` instead.'
+            + DEPRECATION_INFO_PREP_1_0,
+            FutureWarning,
+        )
+        return self.get_max_aperture_sigma_exact(**kwargs)
 
-    def compute_beam_envelopes_at_sigma(self, **kwargs) -> None:
+    def get_beam_envelopes_at_sigma(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.compute_beam_envelopes_at_sigma(model=self, **kwargs)
-
-    def _points_inside_polygon(self, **kwargs) -> bool:
-        self.compile_kernels(only_if_needed=True)
-        return bool(self._context.kernels._points_inside_polygon(**kwargs))
-
-    def _is_point_inside_polygon(self, **kwargs) -> bool:
-        self.compile_kernels(only_if_needed=True)
-        return bool(self._context.kernels._is_point_inside_polygon(**kwargs))
+        self._context.kernels.get_beam_envelopes_at_sigma(model=self, **kwargs)
