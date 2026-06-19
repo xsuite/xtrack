@@ -1278,6 +1278,35 @@ def _build_single_marker_aperture_model(context):
 
 
 @pytest.mark.parametrize('method', ['bisection', 'rays', 'exact'])
+def test_get_aperture_sigmas_from_twiss_matches_at_s(method, context):
+    aperture_model, tw = _build_single_marker_aperture_model(context)
+
+    at_s_table, sliced_twiss = aperture_model.get_aperture_sigmas_at_s(
+        s_positions=tw.s,
+        twiss_init=tw.get_twiss_init(at_element='m1'),
+        method=method,
+        envelopes_num_points=144,
+        output_cross_sections=True,
+        output_max_envelopes=True,
+    )
+    from_twiss_table = aperture_model.get_aperture_sigmas_from_twiss(
+        sliced_twiss=sliced_twiss,
+        method=method,
+        envelopes_num_points=144,
+        output_cross_sections=True,
+        output_max_envelopes=True,
+    )
+
+    for column in ('s', 'n1', 'cross_section', 'envelope'):
+        xo.assert_allclose(
+            from_twiss_table[column],
+            at_s_table[column],
+            atol=1e-12,
+            rtol=0,
+        )
+
+
+@pytest.mark.parametrize('method', ['bisection', 'rays', 'exact'])
 def test_get_aperture_sigmas_at_element_output_cross_sections_match_cross_sections_at_s(method, context):
     aperture_model, tw = _build_single_marker_aperture_model(context)
 
@@ -1321,7 +1350,36 @@ def test_get_aperture_sigmas_at_element_output_envelopes_match_get_envelope_at_s
         twiss=tw,
         envelopes_num_points=144,
     )
-    xo.assert_allclose(envelope_points, ref_envelopes, atol=1e-10, rtol=0)
+    xo.assert_allclose(envelope_points, ref_envelopes.cross_section, atol=1e-10, rtol=0)
+
+
+def test_get_envelope_at_s_can_return_extents_without_polygons(context):
+    aperture_model, tw = _build_single_marker_aperture_model(context)
+
+    envelope_table, _ = aperture_model.get_envelope_at_element(
+        element_name='m1',
+        sigmas=3,
+        resolution=None,
+        twiss=tw,
+        envelopes_num_points=144,
+        extents=True,
+    )
+    extents_table, _ = aperture_model.get_envelope_at_element(
+        element_name='m1',
+        sigmas=3,
+        resolution=None,
+        twiss=tw,
+        envelopes_num_points=144,
+        polygons=False,
+        extents=True,
+    )
+
+    polygons = envelope_table.cross_section
+    xo.assert_allclose(extents_table.min_x, np.min(polygons[:, :, 0], axis=1), atol=1e-12, rtol=0)
+    xo.assert_allclose(extents_table.max_x, np.max(polygons[:, :, 0], axis=1), atol=1e-12, rtol=0)
+    xo.assert_allclose(extents_table.min_y, np.min(polygons[:, :, 1], axis=1), atol=1e-12, rtol=0)
+    xo.assert_allclose(extents_table.max_y, np.max(polygons[:, :, 1], axis=1), atol=1e-12, rtol=0)
+    assert 'cross_section' not in extents_table._col_names
 
 
 def test_get_aperture_sigmas_at_element_output_envelopes_exact_is_contained_in_full_envelope(context):
@@ -1347,7 +1405,7 @@ def test_get_aperture_sigmas_at_element_output_envelopes_exact_is_contained_in_f
         envelopes_num_points=2048,
     )
 
-    for exact_env, full_env in zip(envelope_points, ref_envelopes):
+    for exact_env, full_env in zip(envelope_points, ref_envelopes.cross_section):
         assert exact_env[:, 0].min() >= full_env[:, 0].min()
         assert exact_env[:, 0].max() <= full_env[:, 0].max()
         assert exact_env[:, 1].min() >= full_env[:, 1].min()
@@ -2303,7 +2361,15 @@ def test_cross_sections_at_s_returns_axis_extents(test_context):
                 transformation=transform_matrix(),
             ),
         ],
-        pipes=[Pipe(curvature=0.0, positions=[ProfilePosition(profile_index=0)])],
+        pipes=[
+            Pipe(
+                curvature=0.0,
+                positions=[
+                    ProfilePosition(profile_index=0, shift_s=0.0),
+                    ProfilePosition(profile_index=0, shift_s=1.0),
+                ],
+            ),
+        ],
         profiles=[Profile(shape=Rectangle(half_width=2.0, half_height=1.5), tol_r=0, tol_x=0, tol_y=0)],
         pipe_names=['pipe0'],
         pipe_position_names=['pipe0'],
@@ -2311,12 +2377,63 @@ def test_cross_sections_at_s_returns_axis_extents(test_context):
     )
 
     ap = Aperture(line=line, model=model, context=test_context)
-    sections_table = ap.cross_sections_at_s([0.0], extents=True)
+    sections_table = ap.cross_sections_at_s([0.0, 0.5], extents=True, polygons=False)
+    sections_with_polygons = ap.cross_sections_at_s([0.0, 0.5], extents=True)
 
-    xo.assert_allclose(sections_table.min_x, [-2.0], atol=1e-12, rtol=0)
-    xo.assert_allclose(sections_table.max_x, [2.0], atol=1e-12, rtol=0)
-    xo.assert_allclose(sections_table.min_y, [-1.5], atol=1e-12, rtol=0)
-    xo.assert_allclose(sections_table.max_y, [1.5], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.min_x, [-2.0, -2.0], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.max_x, [2.0, 2.0], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.min_y, [-1.5, -1.5], atol=1e-12, rtol=0)
+    xo.assert_allclose(sections_table.max_y, [1.5, 1.5], atol=1e-12, rtol=0)
+    for column in ('min_x', 'max_x', 'min_y', 'max_y'):
+        xo.assert_allclose(
+            sections_table[column],
+            sections_with_polygons[column],
+            atol=1e-12,
+            rtol=0,
+        )
+    assert 'cross_section' not in sections_table._col_names
+    assert 'cross_section' in sections_with_polygons._col_names
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_invalid_section_has_nan_polygon_and_extents(test_context):
+    env = xt.Environment()
+    line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=3.0)])
+    sv = line.survey()
+
+    model = ApertureModel(
+        line=line,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+        ],
+        pipes=[
+            Pipe(
+                curvature=0.0,
+                positions=[
+                    ProfilePosition(profile_index=0, shift_s=1.0),
+                    ProfilePosition(profile_index=0, shift_s=2.0),
+                ],
+            ),
+        ],
+        profiles=[Profile(shape=Circle(radius=0.1), tol_r=0, tol_x=0, tol_y=0)],
+        pipe_names=['pipe0'],
+        pipe_position_names=['pipe0'],
+        profile_names=['profile0'],
+    )
+
+    ap = Aperture(line=line, model=model, context=test_context)
+    sections = ap.cross_sections_at_s([0.0], extents=True)
+
+    assert np.all(np.isnan(sections.cross_section))
+    assert np.isnan(sections.min_x[0])
+    assert np.isnan(sections.max_x[0])
+    assert np.isnan(sections.min_y[0])
+    assert np.isnan(sections.max_y[0])
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

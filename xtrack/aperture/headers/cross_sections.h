@@ -31,7 +31,11 @@ uint32_t cross_section_at_s(
     float_type* out_tol_r,
     float_type* out_tol_x,
     float_type* out_tol_y,
-    int8_t* out_is_convex);
+    int8_t* out_is_convex,
+    float_type* out_min_x,
+    float_type* out_max_x,
+    float_type* out_min_y,
+    float_type* out_max_y);
 void cross_sections_at_s(
     const SurveyData survey_at_s,
     const ApertureModel,
@@ -42,7 +46,11 @@ void cross_sections_at_s(
     float_type* tol_r,
     float_type* tol_x,
     float_type* tol_y,
-    int8_t* is_convex);
+    int8_t* is_convex,
+    float_type* min_x,
+    float_type* max_x,
+    float_type* min_y,
+    float_type* max_y);
 uint32_t interpolate_aperture_tolerances_at_s(
     const ApertureModel model,
     const ApertureBounds bounds,
@@ -68,6 +76,13 @@ static inline void bounds_on_s_for_aperture(
     float_type* max_s);
 
 static inline uint32_t find_active_profile_for_s(const ApertureBounds, const float_type s, const uint32_t lower_bound);
+static inline void update_axis_extents_for_segment(
+    const Point2D p0,
+    const Point2D p1,
+    float_type* min_x,
+    float_type* max_x,
+    float_type* min_y,
+    float_type* max_y);
 
 
 static inline Pose pose_from_pipe_position(const PipePosition pipe_pos)
@@ -406,10 +421,15 @@ void cross_sections_at_s(
     float_type* tol_r,
     float_type* tol_x,
     float_type* tol_y,
-    int8_t* is_convex
+    int8_t* is_convex,
+    float_type* min_x,
+    float_type* max_x,
+    float_type* min_y,
+    float_type* max_y
 )
 {
     const uint32_t num_cross_sections = SurveyData_len_s(survey_at_s);
+    const uint32_t len_points = ProfilePolygons_get_len_points(profile_polys);
 
     #ifdef XO_CONTEXT_CPU
         int completed = 0;
@@ -419,6 +439,8 @@ void cross_sections_at_s(
     IF_OMP_PRAGMA("omp parallel for firstprivate(bound_idx)")
     for (uint32_t i = 0; i < num_cross_sections; i++)
     {
+        float_type* cross_section = cross_sections ? cross_sections + i * len_points * 2 : NULL;
+
         bound_idx = cross_section_at_s(
             survey_at_s,
             i,
@@ -427,11 +449,15 @@ void cross_sections_at_s(
             bounds,
             survey,
             bound_idx,
-            cross_sections + i * ProfilePolygons_get_len_points(profile_polys) * 2,
+            cross_section,
             tol_r ? &tol_r[i] : NULL,
             tol_x ? &tol_x[i] : NULL,
             tol_y ? &tol_y[i] : NULL,
-            is_convex ? &is_convex[i] : NULL
+            is_convex ? &is_convex[i] : NULL,
+            min_x ? &min_x[i] : NULL,
+            max_x ? &max_x[i] : NULL,
+            min_y ? &min_y[i] : NULL,
+            max_y ? &max_y[i] : NULL
         );
 
         #ifdef XO_CONTEXT_CPU
@@ -443,6 +469,54 @@ void cross_sections_at_s(
     #ifdef XO_CONTEXT_CPU
         printf("\n");
     #endif
+}
+
+static inline void update_axis_extents_for_segment(
+    const Point2D p0,
+    const Point2D p1,
+    float_type* min_x,
+    float_type* max_x,
+    float_type* min_y,
+    float_type* max_y
+)
+{
+    /*
+        Propagate invalid polygon points into every requested extent. Multiplication by zero leaves finite coordinates
+        neutral while preserving NaNs.
+    */
+    const float_type validity = 0.f * (p0.x + p0.y + p1.x + p1.y);
+    if (min_x) *min_x += validity;
+    if (max_x) *max_x += validity;
+    if (min_y) *min_y += validity;
+    if (max_y) *max_y += validity;
+
+    if (p0.y == 0.f) {
+        if (min_x && p0.x < *min_x) *min_x = p0.x;
+        if (max_x && p0.x > *max_x) *max_x = p0.x;
+    }
+    if (p1.y == 0.f) {
+        if (min_x && p1.x < *min_x) *min_x = p1.x;
+        if (max_x && p1.x > *max_x) *max_x = p1.x;
+    }
+    if ((p0.y < 0.f && p1.y > 0.f) || (p0.y > 0.f && p1.y < 0.f)) {
+        const float_type x = p0.x - p0.y * (p1.x - p0.x) / (p1.y - p0.y);
+        if (min_x && x < *min_x) *min_x = x;
+        if (max_x && x > *max_x) *max_x = x;
+    }
+
+    if (p0.x == 0.f) {
+        if (min_y && p0.y < *min_y) *min_y = p0.y;
+        if (max_y && p0.y > *max_y) *max_y = p0.y;
+    }
+    if (p1.x == 0.f) {
+        if (min_y && p1.y < *min_y) *min_y = p1.y;
+        if (max_y && p1.y > *max_y) *max_y = p1.y;
+    }
+    if ((p0.x < 0.f && p1.x > 0.f) || (p0.x > 0.f && p1.x < 0.f)) {
+        const float_type y = p0.y - p0.x * (p1.y - p0.y) / (p1.x - p0.x);
+        if (min_y && y < *min_y) *min_y = y;
+        if (max_y && y > *max_y) *max_y = y;
+    }
 }
 
 
@@ -458,7 +532,11 @@ uint32_t cross_section_at_s(
     float_type* out_tol_r,
     float_type* out_tol_x,
     float_type* out_tol_y,
-    int8_t* out_is_convex
+    int8_t* out_is_convex,
+    float_type* out_min_x,
+    float_type* out_max_x,
+    float_type* out_min_y,
+    float_type* out_max_y
 )
 {
     const float_type eps = APER_PRECISION;
@@ -468,14 +546,27 @@ uint32_t cross_section_at_s(
     const float_type s = SurveyData_get_s(survey_at_s, idx_cross_section);
     Point2D* poly_at_s = (Point2D*)cross_section;
 
+    if (out_min_x) *out_min_x = INFINITY;
+    if (out_max_x) *out_max_x = -INFINITY;
+    if (out_min_y) *out_min_y = INFINITY;
+    if (out_max_y) *out_max_y = -INFINITY;
+
+    // Find the active profile and interpolate its mechanical tolerances at s.
     uint32_t bound_idx = interpolate_aperture_tolerances_at_s(
         model, bounds, s, lower_bound, out_tol_r, out_tol_x, out_tol_y);
 
+    // Positions outside all aperture bounds have no cross-section
     if (bound_idx >= num_bounds) {
-        for (uint32_t j = 0; j < len_points; j++) {
-            poly_at_s[j].x = NAN;
-            poly_at_s[j].y = NAN;
+        if (poly_at_s) {
+            for (uint32_t j = 0; j < len_points; j++) {
+                poly_at_s[j].x = NAN;
+                poly_at_s[j].y = NAN;
+            }
         }
+        if (out_min_x) *out_min_x = NAN;
+        if (out_max_x) *out_max_x = NAN;
+        if (out_min_y) *out_min_y = NAN;
+        if (out_max_y) *out_max_y = NAN;
         if (out_is_convex) *out_is_convex = 0;
         return bound_idx;
     }
@@ -494,18 +585,27 @@ uint32_t cross_section_at_s(
     const Pipe pipe = ApertureModel_getp1_pipes(model, pipe_idx);
     const float_type curvature = Pipe_get_curvature(pipe);
 
+    /*
+        Curved interpolation is only valid between profiles belonging to the same installed pipe. Across a pipe
+        transition, use straight segments.
+    */
     if (bound_idx > 0 && pipe_pos_idx == ApertureBounds_get_pipe_position_indices(bounds, bound_idx - 1))
         curvature_left = curvature;
 
     if (bound_idx + 1 < num_bounds && pipe_pos_idx == ApertureBounds_get_pipe_position_indices(bounds, bound_idx + 1))
         curvature_right = curvature;
 
+    /*
+        Express the requested survey plane in pipe coordinates. Intersections are constructed in the pipe frame and
+        finally projected onto this plane.
+    */
     const Pose plane_in_world = pose_matrix_from_survey(survey_at_s, idx_cross_section);
     const Pose pipe_in_world = aperture_pipe_pose_in_world(pipe_pos, survey);
     const Pose world_in_pipe = pose_inverse_rigid(pipe_in_world);
     const Pose plane_in_pipe = matrix_multiply(world_in_pipe, plane_in_world);
     const Pose pipe_in_plane = pose_inverse_rigid(plane_in_pipe);
 
+    // Load the active profile and its immediate neighbours in pipe coordinates.
     get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx, world_in_pipe, &poly_center, &pose_center);
     const char has_left = get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx - 1, world_in_pipe, &poly_left, &pose_left);
     const char has_right = get_aperture_polygon_and_pose(model, profile_polys, bounds, survey, bound_idx + 1, world_in_pipe, &poly_right, &pose_right);
@@ -517,12 +617,34 @@ uint32_t cross_section_at_s(
     if (has_left) project_3d_polygon_to_plane(poly_left, pose_left, pipe_in_plane, len_points, poly_left_plane);
     if (has_right) project_3d_polygon_to_plane(poly_right, pose_right, pipe_in_plane, len_points, poly_right_plane);
 
+    // At an installed profile, its projection is already the requested section.
     if (fabs(s - s_center) < eps) {
-        for (uint32_t j = 0; j < len_points; j++) poly_at_s[j] = poly_center_plane[j];
-        if (out_is_convex) *out_is_convex = polygon_is_convex((const Point2D*)poly_at_s, len_points);
+        if (poly_at_s) {
+            for (uint32_t j = 0; j < len_points; j++) poly_at_s[j] = poly_center_plane[j];
+        }
+        for (uint32_t j = 0; j + 1 < len_points; j++) {
+            update_axis_extents_for_segment(
+                poly_center_plane[j],
+                poly_center_plane[j + 1],
+                out_min_x,
+                out_max_x,
+                out_min_y,
+                out_max_y
+            );
+        }
+        if (out_min_x && !isfinite(*out_min_x)) *out_min_x = NAN;
+        if (out_max_x && !isfinite(*out_max_x)) *out_max_x = NAN;
+        if (out_min_y && !isfinite(*out_min_y)) *out_min_y = NAN;
+        if (out_max_y && !isfinite(*out_max_y)) *out_max_y = NAN;
+        if (out_is_convex)
+            *out_is_convex = polygon_is_convex((const Point2D*)poly_center_plane, len_points);
         return bound_idx;
     }
 
+    /*
+        Match corresponding vertices between neighbouring profiles. Their
+        sampled polygons may differ by orientation and cyclic starting index.
+    */
     const int8_t reverse_center_left = has_left
         ? projected_polygon_orientation_differs(pose_center, pose_left, plane_in_pipe)
         : 0;
@@ -538,11 +660,17 @@ uint32_t cross_section_at_s(
             poly_center_plane, poly_right_plane, num_unique_points, reverse_center_right)
         : 0;
     const char prefer_right = (s >= s_center);
+    Point2D first_point = (Point2D){ .x = NAN, .y = NAN };
+    Point2D previous_point = first_point;
 
     for (uint32_t j = 0; j < num_unique_points; j++) {
         char has_intersection = 0;
         Point2D hit_point_plane = (Point2D){ .x = NAN, .y = NAN };
 
+        /*
+            Connect matched vertices on the preferred side of the active profile and intersect that segment with the
+            plane. Try the opposite side if the preferred neighbour does not produce an intersection.
+        */
         for (uint32_t attempt = 0; attempt < 2 && !has_intersection; attempt++)
         {
             const int use_right = (attempt == 0) ? prefer_right : !prefer_right;
@@ -571,10 +699,38 @@ uint32_t cross_section_at_s(
                 point_a_type, point_b_type, plane_in_pipe, pipe_in_plane, segment_curvature, &hit_point_plane);
         }
 
-        poly_at_s[j] = has_intersection ? hit_point_plane : poly_center_plane[j];
+        const Point2D point = hit_point_plane;
+        if (poly_at_s) poly_at_s[j] = point;
+        if (j == 0) {
+            first_point = point;
+        }
+        else {
+            update_axis_extents_for_segment(
+                previous_point,
+                point,
+                out_min_x,
+                out_max_x,
+                out_min_y,
+                out_max_y
+            );
+        }
+        previous_point = point;
     }
-    poly_at_s[len_points - 1] = poly_at_s[0];
-    if (out_is_convex)
+    // Close the streamed polygon and include its final edge in the extents.
+    update_axis_extents_for_segment(
+        previous_point,
+        first_point,
+        out_min_x,
+        out_max_x,
+        out_min_y,
+        out_max_y
+    );
+    if (poly_at_s) poly_at_s[len_points - 1] = first_point;
+    if (out_min_x && !isfinite(*out_min_x)) *out_min_x = NAN;
+    if (out_max_x && !isfinite(*out_max_x)) *out_max_x = NAN;
+    if (out_min_y && !isfinite(*out_min_y)) *out_min_y = NAN;
+    if (out_max_y && !isfinite(*out_max_y)) *out_max_y = NAN;
+    if (out_is_convex && poly_at_s)
         *out_is_convex = polygon_is_convex((const Point2D*)poly_at_s, len_points);
     return bound_idx;
 }

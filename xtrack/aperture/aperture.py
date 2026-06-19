@@ -627,6 +627,68 @@ class Aperture:
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
         sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
+        table = self.get_aperture_sigmas_from_twiss(
+            sliced_twiss=sliced_twiss,
+            method=method,
+            envelopes_num_points=envelopes_num_points,
+            num_rays=num_rays,
+            output_max_envelopes=output_max_envelopes,
+            output_cross_sections=output_cross_sections,
+        )
+        return table, sliced_twiss
+
+    def get_aperture_sigmas_from_twiss(
+        self,
+        sliced_twiss: TwissTable,
+        method: SigmasCalculationEnum = 'rays',
+        envelopes_num_points: int = 36,
+        num_rays: int = 32,
+        output_max_envelopes: bool = False,
+        output_cross_sections: bool = False,
+    ) -> Table:
+        """Compute the maximum aperture sigmas from an already sampled Twiss table.
+
+        Unlike :meth:`get_aperture_sigmas_at_s`, this method does not slice the
+        line or calculate Twiss parameters. Each row of ``sliced_twiss`` is used
+        directly to determine the maximum beam size that fits in the aperture.
+
+        Parameters
+        ----------
+        sliced_twiss
+            Twiss table containing the longitudinal positions and optical
+            quantities at which to compute the aperture sigmas.
+        method
+            Algorithm used to determine the limiting sigma:
+
+            - ``'rays'`` estimates the limit along evenly spaced ray directions.
+            - ``'exact'`` samples the halo racetrack and emits additional rays
+              from those points.
+            - ``'bisection'`` searches for the largest envelope polygon contained
+              in the aperture polygon.
+        envelopes_num_points
+            Number of points used to discretise beam-envelope polygons.
+        num_rays
+            Number of evenly spaced ray directions used by the ``'rays'`` and
+            ``'exact'`` methods.
+        output_max_envelopes
+            Whether to include beam-envelope polygons at the computed sigma.
+        output_cross_sections
+            Whether to include the interpolated aperture cross-sections.
+
+        Returns
+        -------
+        table
+            Table with one row per row of ``sliced_twiss`` and the following
+            columns:
+
+            - ``index``: row index.
+            - ``s``: longitudinal position.
+            - ``n1``: maximum number of beam sigmas that fit in the aperture.
+            - ``cross_section``: aperture polygon, included when
+              ``output_cross_sections`` is true.
+            - ``envelope``: beam-envelope polygon at ``n1``, included when
+              ``output_max_envelopes`` is true.
+        """
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         survey_at_s = self._survey_data.resample(twiss_at_s.s)
@@ -709,7 +771,7 @@ class Aperture:
             table_data['cross_section'] = interpolated_points
         if output_max_envelopes:
             table_data['envelope'] = envelope_at_max_sigma
-        return Table(table_data, index='index'), sliced_twiss
+        return Table(table_data, index='index')
 
     def get_hvd_aperture_sigmas_at_element(
             self,
@@ -804,7 +866,7 @@ class Aperture:
             resolution: float | None = None,
             twiss: TwissTable | None = None,
             **kwargs,
-    ) -> tuple[np.ndarray, TwissTable]:
+    ) -> tuple[Table, TwissTable]:
         """Compute beam-envelope polygons at the cuts of ``element_name`` for a fixed sigma value.
 
         Parameters
@@ -824,8 +886,7 @@ class Aperture:
         Returns
         -------
         A two-tuple ``(envelopes, sliced_twiss)``, where:
-        - ``envelopes`` are the beam cross-section polygons at the requested sigma: a numpy array of shape
-          ``(num_cuts, envelopes_num_points, 2)``.
+        - ``envelopes`` is the table returned by :meth:`get_envelope_at_s`.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
         s_positions = self._get_cuts_at_element(element_name, resolution)
@@ -839,7 +900,9 @@ class Aperture:
             twiss_init: TwissInit | None = None,
             envelopes_num_points: int = 128,
             include_aper_tols: bool = True,
-    ) -> tuple[np.ndarray, TwissTable]:
+            polygons: bool = True,
+            extents: bool = False,
+    ) -> tuple[Table, TwissTable]:
         """Compute beam-envelope polygons at the requested ``s_positions`` for a fixed sigma value.
 
         Parameters
@@ -854,20 +917,89 @@ class Aperture:
             Number of points to use when discretising the beam cross-section polygon.
         include_aper_tols
             If true, include the aperture mechanical tolerances associated with the active profile at each ``s``.
+        polygons
+            Whether to include the beam-envelope polygons in the output table.
+        extents
+            Whether to include the horizontal and vertical envelope extents.
 
         Returns
         -------
         A two-tuple ``(envelopes, sliced_twiss)``, where:
-        - ``envelopes`` are the beam cross-section polygons at the requested sigma: a numpy array of shape
-          ``(len(s_positions), envelopes_num_points, 2)``.
+        - ``envelopes`` is a table containing the sampled longitudinal positions and
+          the requested polygon and extent outputs.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
         sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
+        envelope_table = self.get_envelope_for_twiss(
+            sliced_twiss=sliced_twiss,
+            sigmas=sigmas,
+            envelopes_num_points=envelopes_num_points,
+            include_aper_tols=include_aper_tols,
+            polygons=polygons,
+            extents=extents,
+        )
+        return envelope_table, sliced_twiss
+
+    def get_envelope_for_twiss(
+        self,
+        sliced_twiss: TwissTable,
+        sigmas: float,
+        envelopes_num_points: int,
+        include_aper_tols: bool,
+        polygons: bool,
+        extents: bool,
+    ) -> Table:
+        """Compute beam envelopes from an already sampled Twiss table.
+
+        Unlike :meth:`get_envelope_at_s`, this method does not slice the line or
+        calculate Twiss parameters. Each row of ``sliced_twiss`` is used directly
+        to construct the beam envelope at the requested sigma level.
+
+        Parameters
+        ----------
+        sliced_twiss
+            Twiss table containing the longitudinal positions and optical
+            quantities at which to compute the envelopes.
+        sigmas
+            Sigma level at which to evaluate the beam envelope.
+        envelopes_num_points
+            Number of points used to discretise each envelope polygon.
+        include_aper_tols
+            Whether to enlarge the beam envelope by the mechanical tolerances of
+            the active aperture profile at each longitudinal position.
+        polygons
+            Whether to include the discretised envelope polygons in the output.
+        extents
+            Whether to include the minimum and maximum horizontal and vertical
+            coordinates of each envelope.
+
+        Returns
+        -------
+        table
+            Table with one row per row of ``sliced_twiss`` and the following
+            columns:
+
+            - ``index``: row index.
+            - ``s``: longitudinal position.
+            - ``cross_section``: envelope polygon, included when ``polygons`` is
+              true.
+            - ``min_x`` and ``max_x``: horizontal extents, included when
+              ``extents`` is true.
+            - ``min_y`` and ``max_y``: vertical extents, included when
+              ``extents`` is true.
+        """
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
 
-        envelopes = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
+        envelopes = (
+            np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
+            if polygons else None
+        )
+        min_x = np.zeros(num_slices, dtype=FloatType._dtype) if extents else None
+        max_x = np.zeros(num_slices, dtype=FloatType._dtype) if extents else None
+        min_y = np.zeros(num_slices, dtype=FloatType._dtype) if extents else None
+        max_y = np.zeros(num_slices, dtype=FloatType._dtype) if extents else None
 
         self._model.get_beam_envelopes_at_sigma(
             aperture_bounds=self._aperture_bounds,
@@ -877,9 +1009,22 @@ class Aperture:
             envelope_num_points=envelopes_num_points,
             include_aper_tols=int(include_aper_tols),
             out_envelope=envelopes,
+            min_x=min_x,
+            max_x=max_x,
+            min_y=min_y,
+            max_y=max_y,
         )
 
-        return envelopes, sliced_twiss
+        table_data = {
+            'index': np.arange(num_slices),
+            's': np.asarray(sliced_twiss.s, dtype=FloatType._dtype),
+        }
+        if polygons:
+            table_data['cross_section'] = envelopes
+        if extents:
+            table_data.update(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
+
+        return Table(table_data, index='index')
 
     def poses_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices:
         """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
@@ -900,15 +1045,34 @@ class Aperture:
         self,
         s_positions: Collection[float],
         extents: bool = False,
+        polygons: bool = True,
     ) -> Table:
-        """Return aperture cross-sections at the requested `s` positions."""
+        """Return aperture cross-sections at the requested `s` positions.
+
+        Parameters
+        ----------
+        s_positions
+            Longitudinal positions at which to evaluate the aperture.
+        extents
+            Whether to include the aperture intersections with the transverse
+            coordinate axes.
+        polygons
+            Whether to include the interpolated cross-section polygons.
+        """
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         sv_resampled = self._survey_data.resample(s_positions)
 
-        cross_sections = np.zeros(shape=(len(s_positions), self.num_profile_points, 2), dtype=FloatType._dtype)
+        cross_sections = (
+            np.zeros(shape=(len(s_positions), self.num_profile_points, 2), dtype=FloatType._dtype)
+            if polygons else None
+        )
         tol_r = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
         tol_x = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
         tol_y = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
+        min_x = np.zeros(shape=len(s_positions), dtype=FloatType._dtype) if extents else None
+        max_x = np.zeros(shape=len(s_positions), dtype=FloatType._dtype) if extents else None
+        min_y = np.zeros(shape=len(s_positions), dtype=FloatType._dtype) if extents else None
+        max_y = np.zeros(shape=len(s_positions), dtype=FloatType._dtype) if extents else None
 
         self._model.cross_sections_at_s(
             survey_at_s=sv_resampled,
@@ -919,6 +1083,10 @@ class Aperture:
             tol_r=tol_r,
             tol_x=tol_x,
             tol_y=tol_y,
+            min_x=min_x,
+            max_x=max_x,
+            min_y=min_y,
+            max_y=max_y,
         )
         poses = sv_resampled.pose.to_nparray()
 
@@ -926,13 +1094,14 @@ class Aperture:
             'index': np.arange(len(s_positions)),
             's': s_positions,
             'pose': poses,
-            'cross_section': cross_sections,
             'tol_r': tol_r,
             'tol_x': tol_x,
             'tol_y': tol_y,
         }
+        if polygons:
+            table_data['cross_section'] = cross_sections
         if extents:
-            table_data.update(self._axis_extents_for_cross_sections(cross_sections))
+            table_data.update(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
         return Table(table_data, index='index')
 
     def get_limit_elements(self, s_positions: list[float]) -> dict[float, LimitElement]:
@@ -1008,27 +1177,31 @@ class Aperture:
         undo_order[order] = np.arange(len(order))
         s_sorted = s_positions[order]
 
+        sliced_twiss = self._sliced_twiss_at_s(
+            s_positions=s_sorted,
+            twiss_init=twiss_init,
+        )
         if sigmas is None:
-            n1_table, _ = self.get_aperture_sigmas_at_s(
-                s_positions=s_sorted,
-                twiss_init=twiss_init,
+            n1_table = self.get_aperture_sigmas_from_twiss(
+                sliced_twiss=sliced_twiss,
                 method=method,
             )
             sigmas = float(np.min(n1_table.n1))
 
-        envelopes, _ = self.get_envelope_at_s(
-            s_positions=s_sorted,
+        envelopes_table = self.get_envelope_for_twiss(
+            sliced_twiss=sliced_twiss,
             sigmas=sigmas,
-            twiss_init=twiss_init,
             envelopes_num_points=envelopes_num_points,
             include_aper_tols=include_aper_tols,
+            polygons=False,
+            extents=True,
         )
-        sections_table = self.cross_sections_at_s(s_sorted, extents=True)
+        sections_table = self.cross_sections_at_s(s_sorted, extents=True, polygons=False)
 
-        min_envel_x = np.min(envelopes[:, :, 0], axis=1)[undo_order]
-        max_envel_x = np.max(envelopes[:, :, 0], axis=1)[undo_order]
-        min_envel_y = np.min(envelopes[:, :, 1], axis=1)[undo_order]
-        max_envel_y = np.max(envelopes[:, :, 1], axis=1)[undo_order]
+        min_envel_x = np.asarray(envelopes_table.min_x, dtype=FloatType._dtype)[undo_order]
+        max_envel_x = np.asarray(envelopes_table.max_x, dtype=FloatType._dtype)[undo_order]
+        min_envel_y = np.asarray(envelopes_table.min_y, dtype=FloatType._dtype)[undo_order]
+        max_envel_y = np.asarray(envelopes_table.max_y, dtype=FloatType._dtype)[undo_order]
 
         min_aper_x = np.asarray(sections_table.min_x, dtype=FloatType._dtype)[undo_order]
         max_aper_x = np.asarray(sections_table.max_x, dtype=FloatType._dtype)[undo_order]
@@ -1105,6 +1278,8 @@ class Aperture:
         s_positions = self._get_cuts_at_element(name, resolution)
         beam_tols, _ = self.get_envelope_at_s(s_positions=s_positions, sigmas=sigmas, include_aper_tols=True)
         beam_no_tols, _ = self.get_envelope_at_s(s_positions=s_positions, sigmas=sigmas, include_aper_tols=False)
+        beam_tols = beam_tols.cross_section
+        beam_no_tols = beam_no_tols.cross_section
         profiles = self.cross_sections_at_s(s_positions=s_positions)
 
         polygons = profiles.cross_section
@@ -1716,52 +1891,6 @@ class Aperture:
 
         sliced_twiss = full_twiss.rows[tw_indices]
         return sliced_twiss
-
-    @staticmethod
-    def _axis_extents_for_cross_sections(cross_sections: np.ndarray) -> dict[str, np.ndarray]:
-        x0 = cross_sections[:, :-1, 0]
-        y0 = cross_sections[:, :-1, 1]
-        x1 = cross_sections[:, 1:, 0]
-        y1 = cross_sections[:, 1:, 1]
-
-        with np.errstate(divide='ignore', invalid='ignore'):
-            dy = y1 - y0
-            t_x_axis = -y0 / dy
-            crosses_x_axis = ((y0 < 0) & (y1 > 0)) | ((y0 > 0) & (y1 < 0))
-            x_axis_interp = np.where(crosses_x_axis, x0 + t_x_axis * (x1 - x0), np.nan)
-            x_axis_vertices = np.where(y0 == 0, x0, np.nan)
-            x_axis_vertices_next = np.where(y1 == 0, x1, np.nan)
-            on_x_axis = (y0 == 0) & (y1 == 0)
-            x_axis_seg0 = np.where(on_x_axis, x0, np.nan)
-            x_axis_seg1 = np.where(on_x_axis, x1, np.nan)
-            x_candidates = np.concatenate(
-                [x_axis_interp, x_axis_vertices, x_axis_vertices_next, x_axis_seg0, x_axis_seg1],
-                axis=1,
-            )
-
-            dx = x1 - x0
-            t_y_axis = -x0 / dx
-            crosses_y_axis = ((x0 < 0) & (x1 > 0)) | ((x0 > 0) & (x1 < 0))
-            y_axis_interp = np.where(crosses_y_axis, y0 + t_y_axis * (y1 - y0), np.nan)
-            y_axis_vertices = np.where(x0 == 0, y0, np.nan)
-            y_axis_vertices_next = np.where(x1 == 0, y1, np.nan)
-            on_y_axis = (x0 == 0) & (x1 == 0)
-            y_axis_seg0 = np.where(on_y_axis, y0, np.nan)
-            y_axis_seg1 = np.where(on_y_axis, y1, np.nan)
-            y_candidates = np.concatenate(
-                [y_axis_interp, y_axis_vertices, y_axis_vertices_next, y_axis_seg0, y_axis_seg1],
-                axis=1,
-            )
-
-        has_x = np.any(np.isfinite(x_candidates), axis=1)
-        has_y = np.any(np.isfinite(y_candidates), axis=1)
-
-        return {
-            'min_x': np.where(has_x, np.nanmin(x_candidates, axis=1), np.nan),
-            'max_x': np.where(has_x, np.nanmax(x_candidates, axis=1), np.nan),
-            'min_y': np.where(has_y, np.nanmin(y_candidates, axis=1), np.nan),
-            'max_y': np.where(has_y, np.nanmax(y_candidates, axis=1), np.nan),
-        }
 
     @classmethod
     def _guess_original_mad_name(cls, element_name: str) -> str:

@@ -482,6 +482,10 @@ class ApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='tol_x'),
                 xo.Arg(FloatType, pointer=True, name='tol_y'),
                 xo.Arg(xo.Int8, pointer=True, name='is_convex'),
+                xo.Arg(FloatType, pointer=True, name='min_x'),
+                xo.Arg(FloatType, pointer=True, name='max_x'),
+                xo.Arg(FloatType, pointer=True, name='min_y'),
+                xo.Arg(FloatType, pointer=True, name='max_y'),
             ],
         ),
         'get_max_aperture_sigma_bisection': xo.Kernel(
@@ -547,6 +551,10 @@ class ApertureModel(xo.Struct):
                 xo.Arg(xo.UInt32, name='envelope_num_points'),
                 xo.Arg(xo.Int8, name='include_aper_tols'),
                 xo.Arg(FloatType, pointer=True, name='out_envelope'),
+                xo.Arg(FloatType, pointer=True, name='min_x'),
+                xo.Arg(FloatType, pointer=True, name='max_x'),
+                xo.Arg(FloatType, pointer=True, name='min_y'),
+                xo.Arg(FloatType, pointer=True, name='max_y'),
             ],
         ),
     }
@@ -630,9 +638,25 @@ class ApertureModel(xo.Struct):
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.build_profile_polygons(model=self, **kwargs)
 
-    def cross_sections_at_s(self, is_convex=None, **kwargs) -> None:
+    def cross_sections_at_s(
+        self,
+        is_convex=None,
+        min_x=None,
+        max_x=None,
+        min_y=None,
+        max_y=None,
+        **kwargs,
+    ) -> None:
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.cross_sections_at_s(model=self, is_convex=is_convex, **kwargs)
+        self._context.kernels.cross_sections_at_s(
+            model=self,
+            is_convex=is_convex,
+            min_x=min_x,
+            max_x=max_x,
+            min_y=min_y,
+            max_y=max_y,
+            **kwargs,
+        )
 
     def get_max_aperture_sigma_bisection(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
@@ -646,6 +670,20 @@ class ApertureModel(xo.Struct):
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_max_aperture_sigma_exact(model=self, **kwargs)
 
-    def get_beam_envelopes_at_sigma(self, **kwargs) -> None:
+    def get_beam_envelopes_at_sigma(
+        self,
+        min_x=None,
+        max_x=None,
+        min_y=None,
+        max_y=None,
+        **kwargs,
+    ) -> None:
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.get_beam_envelopes_at_sigma(model=self, **kwargs)
+        self._context.kernels.get_beam_envelopes_at_sigma(
+            model=self,
+            min_x=min_x,
+            max_x=max_x,
+            min_y=min_y,
+            max_y=max_y,
+            **kwargs,
+        )
