@@ -19,6 +19,20 @@ def _polygon_centroid(x, y):
     return np.array([cx, cy])
 
 
+def _distance_sq_point_to_segment(point, p0, p1):
+    delta = p1 - p0
+    seg_len_sq = np.dot(delta, delta)
+    if seg_len_sq == 0:
+        diff = point - p0
+        return np.dot(diff, diff)
+
+    t = np.dot(point - p0, delta) / seg_len_sq
+    t = np.clip(t, 0.0, 1.0)
+    projection = p0 + t * delta
+    diff = point - projection
+    return np.dot(diff, diff)
+
+
 def test_limitpolygon_area_signed():
     x_ccw = np.array([-2.0, 2.0, 2.0, -2.0]) * 1e-2
     y_ccw = np.array([-1.0, -1.0, 1.5, 1.5]) * 1e-2
@@ -37,13 +51,9 @@ def test_limitpolygon_area_signed():
     assert signed_expected > 0
 
     xo.assert_allclose(aper_ccw.area, abs(signed_expected), atol=0, rtol=0)
-    xo.assert_allclose(
-        aper_ccw.get_area(signed=True), signed_expected, atol=0, rtol=0
-    )
+    xo.assert_allclose(aper_ccw.get_area(signed=True), signed_expected, atol=0, rtol=0)
     xo.assert_allclose(aper_cw.area, abs(signed_expected), atol=0, rtol=0)
-    xo.assert_allclose(
-        aper_cw.get_area(signed=True), -signed_expected, atol=0, rtol=0
-    )
+    xo.assert_allclose(aper_cw.get_area(signed=True), -signed_expected, atol=0, rtol=0)
 
 
 def test_limitpolygon_normals_point_inward():
@@ -121,7 +131,7 @@ def test_limitpolygon_impact_point_and_normal():
     assert np.all(i_found >= 0)
 
 
-def test_limitpolygon_bounding_box_is_stored():
+def test_limitpolygon_inner_radius_is_derived():
     x_vertices = np.array([2.0, -3.0, 1.5, -1.0]) * 1e-2
     y_vertices = np.array([1.0, -2.5, 3.0, -1.5]) * 1e-2
 
@@ -130,19 +140,52 @@ def test_limitpolygon_bounding_box_is_stored():
         y_vertices=y_vertices,
     )
 
-    xo.assert_allclose(aper.min_x, np.min(x_vertices), atol=0, rtol=0)
-    xo.assert_allclose(aper.max_x, np.max(x_vertices), atol=0, rtol=0)
-    xo.assert_allclose(aper.min_y, np.min(y_vertices), atol=0, rtol=0)
-    xo.assert_allclose(aper.max_y, np.max(y_vertices), atol=0, rtol=0)
+    x_closed = np.concatenate([x_vertices, x_vertices[:1]])
+    y_closed = np.concatenate([y_vertices, y_vertices[:1]])
+    expected_inner_radius_sq = min(
+        _distance_sq_point_to_segment(
+            np.array([0.0, 0.0]),
+            np.array([x0, y0]),
+            np.array([x1, y1]),
+        )
+        for x0, y0, x1, y1 in zip(
+            x_closed[:-1], y_closed[:-1], x_closed[1:], y_closed[1:]
+        )
+    )
+
+    xo.assert_allclose(
+        aper.inner_radius_sq, expected_inner_radius_sq, atol=1e-15, rtol=0
+    )
 
     aper_dict = aper.to_dict()
-    assert "min_x" not in aper_dict
-    assert "max_x" not in aper_dict
-    assert "min_y" not in aper_dict
-    assert "max_y" not in aper_dict
+    assert "inner_radius_sq" not in aper_dict
 
     aper_roundtrip = xt.LimitPolygon.from_dict(aper_dict)
-    xo.assert_allclose(aper_roundtrip.min_x, aper.min_x, atol=0, rtol=0)
-    xo.assert_allclose(aper_roundtrip.max_x, aper.max_x, atol=0, rtol=0)
-    xo.assert_allclose(aper_roundtrip.min_y, aper.min_y, atol=0, rtol=0)
-    xo.assert_allclose(aper_roundtrip.max_y, aper.max_y, atol=0, rtol=0)
+    xo.assert_allclose(
+        aper_roundtrip.inner_radius_sq, aper.inner_radius_sq, atol=1e-15, rtol=0
+    )
+
+
+def test_limitpolygon_inner_radius_matches_rectangle():
+    x_vertices = np.array([-2.0, 2.0, 2.0, -2.0]) * 1e-2
+    y_vertices = np.array([-1.5, -1.5, 1.5, 1.5]) * 1e-2
+
+    aper = xt.LimitPolygon(x_vertices=x_vertices, y_vertices=y_vertices)
+
+    xo.assert_allclose(aper.inner_radius_sq, (1.5e-2) ** 2, atol=1e-15, rtol=0)
+
+
+def test_limitpolygon_inner_circle_particles_survive():
+    x_vertices = np.array([-2.0, 2.0, 2.0, -2.0]) * 1e-2
+    y_vertices = np.array([-1.5, -1.5, 1.5, 1.5]) * 1e-2
+
+    aper = xt.LimitPolygon(x_vertices=x_vertices, y_vertices=y_vertices)
+
+    angles = np.linspace(0, 2 * np.pi, 16, endpoint=False)
+    radius = 0.99 * np.sqrt(aper.inner_radius_sq)
+    sample_x = radius * np.cos(angles)
+    sample_y = radius * np.sin(angles)
+
+    particles = xt.Particles(p0c=6500e9, x=sample_x, y=sample_y)
+    aper.track(particles)
+    xo.assert_allclose(particles.state, 1)

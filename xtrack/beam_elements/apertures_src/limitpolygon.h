@@ -20,17 +20,13 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
     }
 
     int64_t N_edg = LimitPolygonData_len_x_vertices(el);
-    double const min_x = LimitPolygonData_get_min_x(el);
-    double const max_x = LimitPolygonData_get_max_x(el);
-    double const min_y = LimitPolygonData_get_min_y(el);
-    double const max_y = LimitPolygonData_get_max_y(el);
+    double const inner_radius_sq = LimitPolygonData_get_inner_radius_sq(el);
 
     START_PER_PARTICLE_BLOCK(part0, part);
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
 
-        if (x < min_x || x > max_x || y < min_y || y > max_y) {
-            LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
+        if (x * x + y * y <= inner_radius_sq) {
             continue;
         }
 

@@ -117,20 +117,6 @@ def test_aperture_polygon(test_context):
     aper.track(parttest)
     xo.assert_allclose(ctx2np(parttest.state), 0)
 
-    xo.assert_allclose(aper.min_x, np.min(x_vertices), atol=0, rtol=0)
-    xo.assert_allclose(aper.max_x, np.max(x_vertices), atol=0, rtol=0)
-    xo.assert_allclose(aper.min_y, np.min(y_vertices), atol=0, rtol=0)
-    xo.assert_allclose(aper.max_y, np.max(y_vertices), atol=0, rtol=0)
-
-    part_bbox_reject = xp.Particles(
-        _context=test_context,
-        p0c=6500e9,
-        x=np.array([aper.max_x + 1e-4]),
-        y=np.array([0.0]),
-    )
-    aper.track(part_bbox_reject)
-    xo.assert_allclose(ctx2np(part_bbox_reject.state), 0)
-
 
 @pytest.mark.parametrize("loader", ['cpymad', 'native'])
 def test_mad_import(loader):
