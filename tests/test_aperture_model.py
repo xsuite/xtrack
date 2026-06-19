@@ -2437,6 +2437,53 @@ def test_cross_sections_at_s_invalid_section_has_nan_polygon_and_extents(test_co
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_at_s_wraps_profile_neighbours_on_ring(test_context):
+    env = xt.Environment()
+    bend = env.new('bend', xt.Bend, length=1.0, angle=np.pi / 2, k0=0)
+    line = env.new_line(name='line', components=[bend] * 4)
+    sv = line.survey()
+
+    model = ApertureModel(
+        line=line,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+            PipePosition(
+                pipe_index=0,
+                survey_reference_name=sv.name[3],
+                survey_index=3,
+                transformation=transform_matrix(),
+            ),
+        ],
+        pipes=[
+            Pipe(
+                curvature=np.pi / 2,
+                positions=[ProfilePosition(profile_index=0, shift_s=0.5)],
+            ),
+        ],
+        profiles=[Profile(shape=Circle(radius=0.01), tol_r=0, tol_x=0, tol_y=0)],
+        pipe_names=['pipe0'],
+        pipe_position_names=['after_seam', 'before_seam'],
+        profile_names=['profile0'],
+    )
+
+    aperture = Aperture(line=line, model=model, context=test_context, is_ring=True)
+    bounds = aperture.get_bounds_table()
+    xo.assert_allclose(bounds.s, [0.5, 3.5], atol=1e-12, rtol=0)
+
+    sections = aperture.cross_sections_at_s([0.1])
+
+    assert np.all(np.isfinite(sections.cross_section))
+    # TODO: This only asserts that there is a cross section. We should assert on the shape, but since this is
+    #  interpolated across pipes, it falls back to a straight line interpolation, so the shape is not a circle.
+    #  Perhaps we should still do the curved interpolation if the curvature is constant between the interpolands.
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_cross_sections_at_s_compare_straight_curved(test_context):
     env = xt.Environment()
     angle = np.deg2rad(35.0)

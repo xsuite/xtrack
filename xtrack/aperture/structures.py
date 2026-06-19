@@ -451,6 +451,8 @@ class ApertureModel(xo.Struct):
     pipe_positions = PipePosition[:]
     pipes = Pipe[:]
     profiles = Profile[:]
+    is_ring = xo.Int8
+    survey_length = FloatType
 
     _extra_c_sources = [
         '#include "xtrack/aperture/headers/cross_sections.h"',
@@ -466,7 +468,6 @@ class ApertureModel(xo.Struct):
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(SurveyData, name='survey'),
-                xo.Arg(xo.Int8, name='is_ring'),
             ],
         ),
         'cross_sections_at_s': xo.Kernel(
@@ -567,13 +568,15 @@ class ApertureModel(xo.Struct):
         pipe_names: List[str],
         profile_names: List[str],
         pipe_position_names: List[str],
+        is_ring: bool = False,
+        survey_length: float = np.nan,
         **kwargs,
     ):
         if len(pipe_names) != len(pipes):
             raise ValueError("Length of pipe_names and pipe_names must match.")
 
         if len(profile_names) != len(profiles):
-            raise ValueError("Length of profiles and profiles must match.")
+            raise ValueError("Length of profile_names and profiles must match.")
 
         if len(pipe_position_names) != len(pipe_positions):
             raise ValueError("Length of pipe_position_names and pipe_positions must match.")
@@ -582,7 +585,14 @@ class ApertureModel(xo.Struct):
         self.profile_names = profile_names
         self.pipe_position_names = pipe_position_names
 
-        super().__init__(pipe_positions=pipe_positions, pipes=pipes, profiles=profiles, **kwargs)
+        super().__init__(
+            pipe_positions=pipe_positions,
+            pipes=pipes,
+            profiles=profiles,
+            is_ring=int(is_ring),
+            survey_length=survey_length,
+            **kwargs,
+        )
 
     def pipe_name_for_index(self, idx: int) -> str:
         return self.pipe_names[idx]

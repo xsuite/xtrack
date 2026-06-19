@@ -132,6 +132,8 @@ class Aperture:
 
         self.survey = line.survey()
         self.is_ring = _survey_is_closed(self.survey) if is_ring == 'auto' else bool(is_ring)
+        self._model.is_ring = int(self.is_ring)
+        self._model.survey_length = self.line.get_length()
 
         if not _skip_validity_check:
             self._check_model_validity()
@@ -166,7 +168,6 @@ class Aperture:
         json = {
             'model': self._model.to_dict(),
             'halo_params': self.halo_params,
-            'ring': self.is_ring,
         }
         json_dump(json, filename)
 
@@ -179,7 +180,7 @@ class Aperture:
         json = json_load(filename)
         model = ApertureModel(**json['model'], _context=context)
         halo_params = json['halo_params']
-        ring = kwargs.pop('ring', json.get('ring', 'auto'))
+        ring = kwargs.pop('ring', bool(model.is_ring))
         return cls(
             line=line,
             model=model,
@@ -1543,7 +1544,6 @@ class Aperture:
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
             survey=self._survey_data,
-            is_ring=int(self.is_ring),
         )
         self._aperture_bounds.sort_by_s()
 
