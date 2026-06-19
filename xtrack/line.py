@@ -116,9 +116,15 @@ def find_index_repeated2(item, lst,count=0):
 class Line:
 
     """
-    Beam line object. `Line.element_names` contains the ordered list of beam
-    elements, `Line.element_dict` is a dictionary associating to each name the
-    corresponding beam element object.
+    Ordered sequence of beam elements used for tracking, optics calculations,
+    matching, and lattice manipulation.
+
+    A line stores the sequence of element names in ``line.element_names`` and
+    resolves these names in its associated environment, available as
+    ``line.env``. The environment owns the named elements, variables, particles,
+    and other lines that can be shared across lattice descriptions. The
+    dictionary ``line.element_dict`` maps element names to the corresponding
+    element objects.
     """
 
     def __init__(self, elements=None, element_names=None, particle_ref=None,
