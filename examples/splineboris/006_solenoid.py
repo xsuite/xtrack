@@ -110,6 +110,8 @@ for ii, piece in enumerate(spline_data):
     splineboris_elements.append(
         xt.SplineBoris(
             length=piece['s_end'] - piece['s_start'],
+            # Match the field-map resolution: one Boris step per interval
+            # between adjacent data points in this piece.
             n_steps=max(1, piece['idx_end'] - piece['idx_start']),
             bs=piece['bs'],
             bx=piece['bx'],

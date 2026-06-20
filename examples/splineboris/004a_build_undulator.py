@@ -1,9 +1,9 @@
 """
 Spin tracking with undulators and radiation.
 
-This script loads the SLS MADX file, builds an undulator from fitted Spline4
-field data, computes twiss with spin tracking and radiation, and displays
-results.
+This script builds and corrects an SLS undulator from fitted Spline4 field
+data, saves it to JSON, computes twiss with spin tracking and radiation, and
+displays results.
 """
 
 import xtrack as xt
@@ -19,18 +19,10 @@ multipole_order = 3
 # Particle reference
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
 
-# Load SLS MADX file
-madx_file = Path(__file__).resolve().parent.parent.parent / 'test_data' / 'sls' / 'sls.madx'
-env = xt.load(str(madx_file))
-line_sls = env.ring
-
-# Configure bend model
-line_sls.configure_bend_model(core='mat-kick-mat')
-
-# Set particle reference
-line_sls.particle_ref = p0.copy()
+env = xt.Environment()
 
 BASE_DIR = Path(__file__).resolve().parent
+UNDULATOR_JSON = BASE_DIR / 'sls_undulator.json'
 
 # Load the raw field map data from shared test_data
 field_map_path = BASE_DIR.parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
@@ -71,6 +63,8 @@ for ii, piece in enumerate(spline_data):
     element_name = f'undulator_splineboris_{ii}'
     env.elements[element_name] = xt.SplineBoris(
         length=piece['s_end'] - piece['s_start'],
+        # Match the field-map resolution: one Boris step per interval
+        # between adjacent data points in this piece.
         n_steps=max(1, piece['idx_end'] - piece['idx_start']),
         bs=piece['bs'],
         bx=piece['bx'],
@@ -136,8 +130,11 @@ opt = piecewise_undulator.match(
 )
 opt.step(2)
 
-
 piecewise_undulator.particle_ref.anomalous_magnetic_moment = 0.00115965218128
+
+# Save the corrected undulator before enabling radiation below. Example 005
+# reloads this file and inserts the undulator into the SLS ring.
+piecewise_undulator.to_json(UNDULATOR_JSON)
 
 tw_undulator_corr_spin = piecewise_undulator.twiss4d(
     betx=1, bety=1, 
