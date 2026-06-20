@@ -2387,6 +2387,46 @@ class Line:
         knob_value_end : float
             Value of the knob after the matching. Defaults to 1.
 
+        Examples
+        --------
+        .. code-block:: python
+
+            import xpart as xp
+            import xtrack as xt
+
+            line = xt.Line(elements=[
+                xt.Drift(length=1.0),
+                xt.Multipole(knl=[0, 0.20], length=0.1),
+                xt.Drift(length=1.0),
+                xt.Multipole(knl=[0, -0.20], length=0.1),
+            ] * 8)
+            line.particle_ref = xp.Particles(
+                p0c=7e9, mass0=xp.PROTON_MASS_EV)
+
+            line.vars['kqf'] = 0.20
+            line.vars['kqd'] = -0.20
+            for ii, name in enumerate(line.element_names):
+                if isinstance(line[name], xt.Multipole):
+                    line.element_refs[name].knl[1] = (
+                        line.vars['kqf'] if ii % 4 == 1 else line.vars['kqd'])
+
+            line.build_tracker()
+            tw0 = line.twiss(method='4d')
+
+            opt = line.match_knob(
+                knob_name='qx_knob',
+                knob_value_start=tw0.qx,
+                knob_value_end=tw0.qx + 1e-3,
+                method='4d', verbose=False, run=False,
+                vary=xt.Vary('kqf', step=1e-6),
+                targets=xt.Target('qx', tw0.qx + 1e-3, tol=1e-6))
+            opt.solve()
+            opt.generate_knob()
+
+            line['qx_knob'] = tw0.qx + 5e-4
+            tw = line.twiss(method='4d')
+            assert abs(tw.qx - (tw0.qx + 5e-4)) < 1e-6
+
         '''
         if not self._has_valid_tracker():
             self.build_tracker()
