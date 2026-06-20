@@ -55,12 +55,9 @@ for wig_place in wiggler_places:
     insertions.append(env.place(piecewise_undulator, anchor='start', at=tt['s', wig_place]))
 line_sls.insert(insertions)
 
-line_sls.configure_radiation(model='mean')
-
 line_sls.build_tracker()
 
-tw_sls = line_sls.twiss4d(radiation_integrals=True, spin=True, polarization_analysis=True,
-                          radiation_method='full')
+tw_sls = line_sls.twiss4d(radiation_integrals=True, spin=True, polarization_analysis=True)
 
 # Extract and print results
 print("=" * 80)
@@ -95,8 +92,7 @@ import matplotlib.pyplot as plt
 plt.close('all')
 tw_sls.plot('x y')
 tw_sls.plot('betx bety', 'dx dy')
-tw_sls.plot('betx2 bety2')
+tw_sls.plot('betx2 bety1')
 tw_sls.plot('spin_x spin_z')
 tw_sls.plot('spin_y')
-tw_sls.plot('delta')
 plt.show()

@@ -139,12 +139,12 @@ plt.show()
 undulator.configure_radiation(model='mean')
 
 # Run twiss4d including radiation effects (average energy loss)
-tw_undulator_corr_spin_rad = undulator.twiss4d(
+tw_undulator_corr_spin_rad = undulator.twiss(
     betx=1, bety=1,
     include_collective=True,
     spin=True,
     spin_x=0.5, spin_y=0.25, spin_z=0.25,
-    radiation_method='full' 
+    radiation_method='full'
 )
 
 # Plot results to compare with/without radiation
