@@ -2,6 +2,7 @@ import inspect
 
 import pytest
 
+import xdeps as xd
 import xtrack as xt
 from xtrack.environment import (
     ENVIRONMENT_DOC_GROUP_ORDER,
@@ -16,6 +17,7 @@ from xtrack.environment import (
 )
 from xtrack.survey import SurveyTable
 from xtrack.line import LINE_DOC_GROUP_ORDER, LineTable
+from xtrack.match import KnobOptimizer
 
 
 def _iter_public_members(cls):
@@ -53,6 +55,8 @@ def _iter_public_members(cls):
         EnvParticleRef,
         EnvXfields,
         VarsTable,
+        xd.Optimize,
+        KnobOptimizer,
     ],
     ids=[
         "Line",
@@ -69,6 +73,8 @@ def _iter_public_members(cls):
         "EnvParticleRef",
         "EnvXfields",
         "VarsTable",
+        "Optimize",
+        "KnobOptimizer",
     ],
 )
 def test_public_api_members_have_docstrings(cls):
