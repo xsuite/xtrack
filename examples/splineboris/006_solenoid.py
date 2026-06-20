@@ -6,7 +6,6 @@ import pandas as pd
 import xtrack as xt
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 from xtrack._temp.splineboris.field_fitter import FieldFitter
-from xtrack._temp.splineboris.splineboris_sequence import SplineBorisSequence
 import matplotlib.pyplot as plt
 
 plt.rcParams.update({"font.size": 14})
@@ -58,7 +57,6 @@ fitter = FieldFitter(
     deg=multipole_order - 1,
     field_tol=1e-4,
 )
-df_fit_pars = fitter.df_fit_pars
 
 # # After FieldFitter construction
 # s = fitter.s_full
@@ -98,21 +96,42 @@ df_fit_pars = fitter.df_fit_pars
 # plt.show()
 # #exit()
 
-# Build solenoid using SplineBorisSequence - automatically creates one SplineBoris
-# element per polynomial piece with n_steps based on the data point count
-seq = SplineBorisSequence(
-    df_fit_pars=df_fit_pars,
+# Get the fitted field data for each longitudinal interval. Tracking settings
+# are intentionally applied below when constructing the SplineBoris elements.
+spline_data = fitter.get_spline_data(
     multipole_order=multipole_order,
-    steps_per_point=1,  # one integration step per data point
 )
+
+# Build the SplineBoris elements explicitly, using one integration step per
+# field-map interval.
+splineboris_elements = []
+splineboris_element_names = []
+for ii, piece in enumerate(spline_data):
+    splineboris_elements.append(
+        xt.SplineBoris(
+            length=piece['s_end'] - piece['s_start'],
+            n_steps=max(1, piece['idx_end'] - piece['idx_start']),
+            bs=piece['bs'],
+            bx=piece['bx'],
+            by=piece['by'],
+        )
+    )
+    splineboris_element_names.append(f'solenoid_splineboris_{ii}')
 
 # Evaluate the reconstructed field along the on-axis longitudinal direction
 x0, y0 = fitter.xy_point
-# Bx_eval = np.array([seq.evaluate_field(x0, y0, s)[0] for s in fitter.s_full])
-# By_eval = np.array([seq.evaluate_field(x0, y0, s)[1] for s in fitter.s_full])
-# Bs_eval = np.array([seq.evaluate_field(x0, y0, s)[2] for s in fitter.s_full])
 
-# # Compare the SplineBorisSequence field evaluation against the analytical solenoid field
+# def evaluate_spline_field(x, y, s):
+#     for piece, element in zip(spline_data, splineboris_elements):
+#         if piece['s_start'] <= s <= piece['s_end']:
+#             return element.get_field(x, y, s - piece['s_start'])
+#     raise ValueError(f's={s} is outside the fitted field range')
+
+# Bx_eval = np.array([evaluate_spline_field(x0, y0, s)[0] for s in fitter.s_full])
+# By_eval = np.array([evaluate_spline_field(x0, y0, s)[1] for s in fitter.s_full])
+# Bs_eval = np.array([evaluate_spline_field(x0, y0, s)[2] for s in fitter.s_full])
+
+# # Compare the reconstructed field against the analytical solenoid field
 # Bx_ref, By_ref, Bs_ref = sf.get_field(
 #     x0 * np.ones_like(fitter.s_full),
 #     y0 * np.ones_like(fitter.s_full),
@@ -127,7 +146,7 @@ x0, y0 = fitter.xy_point
 #     [r"$B_x$", r"$B_y$", r"$B_s$"],
 # ):
 #     ax.plot(fitter.s_full, comp_ref, label="Analytical")
-#     ax.plot(fitter.s_full, comp_eval, "--", label="SplineBorisSequence")
+#     ax.plot(fitter.s_full, comp_eval, "--", label="SplineBoris")
 #     ax.set_ylabel(f"{label} [T]")
 #     ax.legend()
 #     ax.grid(True, alpha=0.3)
@@ -136,8 +155,11 @@ x0, y0 = fitter.xy_point
 # ax3.set_xlabel("s [m]")
 # plt.show()
 
-# Get the Line of SplineBoris elements
-line_splineboris = seq.to_line()
+# Build the line from the explicitly constructed elements.
+line_splineboris = xt.Line(
+    elements=splineboris_elements,
+    element_names=splineboris_element_names,
+)
 line_splineboris.config.XTRACK_MULTIPOLE_NO_SYNRAD = False  # enable spin tracking
 line_splineboris.build_tracker()
 
