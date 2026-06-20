@@ -1,8 +1,9 @@
 """
 SLS simulation with undulators, closed spin tracking and radiation.
 
-This script loads the SLS MADX file, builds undulator using SplineBorisSequence,
-inserts wigglers at 11 locations, computes twiss with spin tracking and radiation.
+This script loads the SLS MADX file, builds an undulator from fitted Spline4
+field data, inserts wigglers at 11 locations, and computes twiss with spin
+tracking and radiation.
 """
 
 import xtrack as xt
@@ -10,7 +11,6 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 from xtrack._temp.splineboris.field_fitter import FieldFitter
-from xtrack._temp.splineboris.splineboris_sequence import SplineBorisSequence
 
 
 multipole_order = 3
@@ -53,17 +53,27 @@ field_fitter = FieldFitter(
     deg=multipole_order-1,
 )
 
-# Build undulator using SplineBorisSequence - automatically creates one SplineBoris
-# element per polynomial piece with n_steps based on the data point count
-seq = SplineBorisSequence(
-    df_fit_pars=field_fitter.df_fit_pars,
+# Get the fitted field data for each longitudinal interval. Tracking settings
+# are intentionally applied below when constructing the SplineBoris elements.
+spline_data = field_fitter.get_spline_data(
     multipole_order=multipole_order,
-    steps_per_point=1,
 )
 
-# Get the Line of SplineBoris elements (pass env for insert support)
-piecewise_undulator = seq.to_line(env=env)
-l_wig = seq.length
+# Build and register the SplineBoris elements explicitly.
+undulator_element_names = []
+for ii, piece in enumerate(spline_data):
+    element_name = f'undulator_splineboris_{ii}'
+    env.elements[element_name] = xt.SplineBoris(
+        length=piece['s_end'] - piece['s_start'],
+        n_steps=max(1, piece['idx_end'] - piece['idx_start']),
+        bs=piece['bs'],
+        bx=piece['bx'],
+        by=piece['by'],
+    )
+    undulator_element_names.append(element_name)
+
+piecewise_undulator = env.new_line(components=undulator_element_names)
+l_wig = sum(piece['s_end'] - piece['s_start'] for piece in spline_data)
 
 piecewise_undulator.build_tracker()
 
