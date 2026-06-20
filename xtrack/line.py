@@ -2394,22 +2394,16 @@ class Line:
             import xpart as xp
             import xtrack as xt
 
-            line = xt.Line(elements=[
-                xt.Drift(length=1.0),
-                xt.Multipole(knl=[0, 0.20], length=0.1),
-                xt.Drift(length=1.0),
-                xt.Multipole(knl=[0, -0.20], length=0.1),
-            ] * 8)
+            env = xt.Environment()
+            env['kqf'] = 0.20
+            env['kqd'] = -0.20
+            env.new('qf', xt.Multipole, knl=[0, 'kqf'], length=0.1)
+            env.new('qd', xt.Multipole, knl=[0, 'kqd'], length=0.1)
+            env.new('dr', xt.Drift, length=1.0)
+
+            line = env.new_line(components=['dr', 'qf', 'dr', 'qd'] * 8)
             line.particle_ref = xp.Particles(
                 p0c=7e9, mass0=xp.PROTON_MASS_EV)
-
-            line.vars['kqf'] = 0.20
-            line.vars['kqd'] = -0.20
-            for ii, name in enumerate(line.element_names):
-                if isinstance(line[name], xt.Multipole):
-                    line.element_refs[name].knl[1] = (
-                        line.vars['kqf'] if ii % 4 == 1 else line.vars['kqd'])
-
             line.build_tracker()
             tw0 = line.twiss(method='4d')
 
