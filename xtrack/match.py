@@ -1177,6 +1177,18 @@ def match_knob_line(line, knob_name, vary, targets, knob_value_start,
     return knob_opt
 
 class KnobOptimizer:
+    """
+    Optimizer used by :meth:`xtrack.Line.match_knob`.
+
+    The object wraps the :class:`xdeps.Optimize` instance that matches the
+    auxiliary variables used to build a new knob. Attribute access is forwarded
+    to the wrapped optimizer, so methods such as ``solve``, ``target_status``,
+    ``vary_status``, ``log`` and ``reload`` can be used directly on the
+    ``KnobOptimizer`` instance.
+
+    After solving, call :meth:`generate_knob` to install the linear knob
+    expression in the line.
+    """
 
     def __init__(self, line, knob_name, vary, targets,
                     knob_value_start, knob_value_end,
@@ -1227,6 +1239,13 @@ class KnobOptimizer:
         return object.__dir__(self) + dir(self.opt)
 
     def generate_knob(self):
+        """
+        Generate the knob expression from the matched auxiliary variables.
+
+        The generated knob is linear between ``knob_value_start`` and
+        ``knob_value_end``. The line variables listed in ``vary`` receive an
+        added expression term controlled by ``knob_name``.
+        """
         self.line.vars[self.knob_name] = self.knob_value_end
         for vv in self.vary:
             var_value = self.line.vars[vv.name]._value

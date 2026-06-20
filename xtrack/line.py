@@ -2387,6 +2387,14 @@ class Line:
         knob_value_end : float
             Value of the knob after the matching. Defaults to 1.
 
+        Returns
+        -------
+        KnobOptimizer
+            Returned :class:`xtrack.match.KnobOptimizer` used to match and
+            generate the knob. It exposes the underlying
+            :class:`xdeps.Optimize` methods, and provides
+            :meth:`generate_knob` to install the matched knob expression.
+
         Examples
         --------
         .. code-block:: python
