@@ -207,7 +207,8 @@ class SplineBoris(BeamElement):
     bx : Spline4 or tuple/list of (Spline4 or None), optional
         Hermite data for the skew multipole components (Bx channel). A single
         ``Spline4`` corresponds to derivative order 0. A tuple/list item index
-        gives the derivative order; ``None`` entries are treated as zero.
+        gives the transverse derivative order with respect to ``x``;
+        ``None`` entries are treated as zero.
     by : Spline4 or tuple/list of (Spline4 or None), optional
         Hermite data for the normal multipole components (By channel), with
         the same indexing semantics as ``bx``.
@@ -230,6 +231,56 @@ class SplineBoris(BeamElement):
     ksl : array-like, optional
         Integrated strengths of additional skew multipole components in
         m**(-order). The corresponding kick is split over the Boris steps.
+
+    Examples
+    --------
+    Build a one-meter element with a normal dipole field plus a normal
+    quadrupole-gradient term and track particles through it:
+
+    .. code-block:: python
+
+        import xtrack as xt
+
+        bs0 = xt.Spline4(
+            val_start=0.02, der_start=0.0,
+            val_end=0.02, der_end=0.0,
+            mean=0.02,
+        )
+        bx0 = xt.Spline4(
+            val_start=0.03, der_start=0.0,
+            val_end=0.03, der_end=0.0,
+            mean=0.03,
+        )
+        by0 = xt.Spline4(
+            val_start=0.1, der_start=0.0,
+            val_end=0.1, der_end=0.0,
+            mean=0.1,
+        )
+        by1 = xt.Spline4(
+            val_start=20.0, der_start=0.0,
+            val_end=20.0, der_end=0.0,
+            mean=20.0,
+        )
+
+        element = xt.SplineBoris(
+            bs=bs0,
+            by=(by0, by1),  # By = by0(s) + by1(s) * x + ...
+            bx=(bx0,),      # Bx skew dipole component
+            length=1.0,
+            n_steps=100,
+        )
+
+        line = xt.Line(elements=[element])
+        line.particle_ref = xt.Particles("electron", p0c=1e9)
+
+        particles = line.particle_ref.copy()
+        particles.x = 1e-3
+        line.track(particles)
+
+    Higher-order normal or skew components can be supplied by adding entries to
+    ``by`` or ``bx``. The tuple index is the transverse derivative order with
+    respect to ``x``: ``by=(by0, by1, by2)`` defines normal dipole,
+    quadrupole-gradient and sextupole-like terms.
     '''
 
     isthick = True
