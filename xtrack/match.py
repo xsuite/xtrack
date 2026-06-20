@@ -1209,6 +1209,60 @@ class KnobOptimizer:
     def __init__(self, line, knob_name, vary, targets,
                     knob_value_start, knob_value_end,
                     **kwargs):
+        """
+        Create a knob optimizer.
+
+        Parameters
+        ----------
+        line : xtrack.Line
+            Line on which the knob will be defined.
+        knob_name : str
+            Name of the knob to be generated.
+        vary : Vary or list of Vary
+            Existing variables used to match the requested targets.
+        targets : Target or list of Target
+            Targets to be matched when the knob is set to
+            ``knob_value_end``.
+        knob_value_start : float
+            Knob value corresponding to the line state before matching.
+        knob_value_end : float
+            Knob value corresponding to the matched line state.
+        **kwargs
+            Additional arguments passed to :meth:`xtrack.Line.match`.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xpart as xp
+            import xtrack as xt
+            from xtrack.match import KnobOptimizer
+
+            env = xt.Environment()
+            env['kqf'] = 0.20
+            env['kqd'] = -0.20
+            env.new('qf', xt.Multipole, knl=[0, 'kqf'], length=0.1)
+            env.new('qd', xt.Multipole, knl=[0, 'kqd'], length=0.1)
+            env.new('dr', xt.Drift, length=1.0)
+
+            line = env.new_line(components=['dr', 'qf', 'dr', 'qd'] * 8)
+            line.particle_ref = xp.Particles(
+                p0c=7e9, mass0=xp.PROTON_MASS_EV)
+            line.build_tracker()
+            tw0 = line.twiss(method='4d')
+
+            opt = KnobOptimizer(
+                line=line,
+                knob_name='qx_knob',
+                knob_value_start=tw0.qx,
+                knob_value_end=tw0.qx + 1e-3,
+                vary=xt.Vary('kqf', step=1e-6),
+                targets=xt.Target('qx', tw0.qx + 1e-3, tol=1e-6),
+                method='4d',
+                verbose=False)
+            opt.solve()
+            opt.generate_knob()
+        """
 
         if not isinstance (vary, (list, tuple)):
             vary = [vary]
