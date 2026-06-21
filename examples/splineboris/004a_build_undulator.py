@@ -4,10 +4,7 @@ import matplotlib.pyplot as plt
 from xtrack._temp.splineboris.field_fitter import FieldFitter
 
 
-# Particle reference
-p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
 
-env = xt.Environment()
 
 #################################################
 # Polynomial fit on the data from the field map #
@@ -71,6 +68,13 @@ spline_data = field_fitter.get_spline_data()
 #      )
 # }
 
+#######################################
+# Build Xsuite model of the undulator #
+#######################################
+
+env = xt.Environment()
+env.set_particle_ref('positron', p0c=2.7e9)
+
 # Build and register the SplineBoris elements explicitly.
 undulator_element_names = []
 for ii, piece in enumerate(spline_data):
@@ -90,9 +94,12 @@ for ii, piece in enumerate(spline_data):
     undulator_element_names.append(element_name)
 
 undulator = env.new_line(components=undulator_element_names)
-l_wig = undulator.get_length()
 
-undulator.particle_ref = p0.copy()
+
+###########################################################################
+# Install thin dipole correctors at the edges of the undulator to control #
+# trajectory along the undulator.                                         #
+###########################################################################
 
 # Create env variables for corrector strengths (needed for matching)
 env['k0l_corr1'] = 0.
@@ -110,19 +117,19 @@ env.new('corr2', xt.Multipole, knl=['k0l_corr2'], ksl=['k0sl_corr2'])
 env.new('corr3', xt.Multipole, knl=['k0l_corr3'], ksl=['k0sl_corr3'])
 env.new('corr4', xt.Multipole, knl=['k0l_corr4'], ksl=['k0sl_corr4'])
 
-# Insert correctors at nearest element boundary (s_tol avoids slicing)
+# Insert correctors
+l_undulator = undulator.get_length()
 undulator.insert([
     env.place('corr1', at=0.02),
     env.place('corr2', at=0.1),
-    env.place('corr3', at=l_wig - 0.1),
-    env.place('corr4', at=l_wig - 0.02),
-], s_tol=5e-3)
+    env.place('corr3', at=l_undulator - 0.1),
+    env.place('corr4', at=l_undulator - 0.02),
+], s_tol=5e-3) # large s_tol avoids slicing the SplineBoris elements
 
-# Matching targets use corrector element names for intermediate positions
+# Use optimizer to control the orbit
 opt = undulator.match(
     solve=False,
-    betx=0, bety=0,
-    only_orbit=True,
+    betx=1, bety=1,
     include_collective=True,
     vary=xt.VaryList(['k0l_corr1', 'k0sl_corr1',
                       'k0l_corr2', 'k0sl_corr2',
@@ -135,67 +142,21 @@ opt = undulator.match(
         xt.TargetSet(x=0., y=0, at='corr3')
         ],
 )
-opt.step(2)
+opt.solve()
 
-undulator.particle_ref.anomalous_magnetic_moment = 0.00115965218128
-
-# Save the corrected undulator before enabling radiation below. Example 005
-# reloads this file and inserts the undulator into the SLS ring.
+###############################
+# Save undulator to json file #
+###############################
 
 undulator.to_json('sls_undulator.json')
 
-tw_undulator_corr_spin = undulator.twiss4d(
-    betx=1, bety=1,
-    spin=True,
-    spin_x=0.5, spin_y=0.25, spin_z=0.25
-    )
-tw_undulator_corr_spin.plot('x y')
-tw_undulator_corr_spin.plot('betx bety', 'dx dy')
-tw_undulator_corr_spin.plot('spin_x')
-tw_undulator_corr_spin.plot('spin_y')
-tw_undulator_corr_spin.plot('spin_z')
+##################################
+# Plot orbit along the undulator #
+##################################
 
+import matplotlib.pyplot as plt
 
-# Enable radiation on all elements
-undulator.configure_radiation(model='mean')
+tw_undulator = undulator.twiss4d(betx=1, bety=1)
+tw_undulator.plot('x y')
 
-# Run twiss4d including radiation effects (average energy loss)
-tw_undulator_corr_spin_rad = undulator.twiss(
-    betx=1, bety=1,
-    include_collective=True,
-    spin=True,
-    spin_x=0.5, spin_y=0.25, spin_z=0.25,
-    radiation_method='full'
-)
-
-# Plot results to compare with/without radiation
-fig, axs = plt.subplots(3, 1, figsize=(9, 10), sharex=True)
-
-# Plot closed orbit x
-axs[0].plot(tw_undulator_corr_spin.s, tw_undulator_corr_spin.x, label='no rad')
-axs[0].plot(tw_undulator_corr_spin_rad.s, tw_undulator_corr_spin_rad.x, label='with rad')
-axs[0].set_ylabel('x [m]')
-axs[0].legend()
-axs[0].grid(True)
-
-# Plot energy loss (delta)
-axs[1].plot(tw_undulator_corr_spin.s, tw_undulator_corr_spin.delta, label='delta (no rad)', linestyle='-')
-axs[1].plot(tw_undulator_corr_spin_rad.s, tw_undulator_corr_spin_rad.delta, label='delta (with rad)', linestyle='--')
-axs[1].set_ylabel('delta (relative energy deviation)')
-axs[1].legend()
-axs[1].grid(True)
-
-# Plot spin components
-axs[2].plot(tw_undulator_corr_spin.s, tw_undulator_corr_spin.spin_x, label='spin_x (no rad)', linestyle='-')
-axs[2].plot(tw_undulator_corr_spin.s, tw_undulator_corr_spin.spin_y, label='spin_y (no rad)', linestyle='-')
-axs[2].plot(tw_undulator_corr_spin.s, tw_undulator_corr_spin.spin_z, label='spin_z (no rad)', linestyle='-')
-axs[2].plot(tw_undulator_corr_spin_rad.s, tw_undulator_corr_spin_rad.spin_x, label='spin_x (with rad)', linestyle='--')
-axs[2].plot(tw_undulator_corr_spin_rad.s, tw_undulator_corr_spin_rad.spin_y, label='spin_y (with rad)', linestyle='--')
-axs[2].plot(tw_undulator_corr_spin_rad.s, tw_undulator_corr_spin_rad.spin_z, label='spin_z (with rad)', linestyle='--')
-axs[2].set_ylabel('spin')
-axs[2].set_xlabel('s [m]')
-axs[2].legend()
-axs[2].grid(True)
-
-plt.tight_layout()
 plt.show()
