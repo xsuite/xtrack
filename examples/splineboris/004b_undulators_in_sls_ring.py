@@ -21,13 +21,21 @@ p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=E0)
 # used as the destination because import_line cannot yet copy SplineBoris
 # elements from another environment.
 piecewise_undulator = xt.load(UNDULATOR_JSON)
-env = piecewise_undulator.env
+# env = piecewise_undulator.env
+# env['undulator'] = piecewise_undulator
 
 # Load the SLS ring and import it into the undulator environment.
 madx_file = Path(__file__).resolve().parent.parent.parent / 'test_data' / 'sls' / 'sls.madx'
-sls_env = xt.load(str(madx_file))
-env.import_line(sls_env.ring, line_name='ring')
+env = xt.load(str(madx_file))
+
 line_sls = env.lines['ring']
+env.import_line(piecewise_undulator, line_name='undulator')
+
+
+# env.import_line(sls_env.ring, line_name='ring')
+# line_sls = env.lines['ring']
+
+
 
 # Configure bend model
 line_sls.configure_bend_model(core='mat-kick-mat')
@@ -52,7 +60,7 @@ wiggler_places = [
 tt = line_sls.get_table()
 insertions = []
 for wig_place in wiggler_places:
-    insertions.append(env.place(piecewise_undulator, anchor='start', at=tt['s', wig_place]))
+    insertions.append(env.place(env['undulator'].copy(), anchor='start', at=tt['s', wig_place]))
 line_sls.insert(insertions)
 
 line_sls.build_tracker()
