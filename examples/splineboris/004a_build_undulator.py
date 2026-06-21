@@ -7,9 +7,7 @@ displays results.
 """
 
 import xtrack as xt
-from pathlib import Path
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from xtrack._temp.splineboris.field_fitter import FieldFitter
 
@@ -21,11 +19,8 @@ p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
 
 env = xt.Environment()
 
-BASE_DIR = Path(__file__).resolve().parent
-UNDULATOR_JSON = BASE_DIR / 'sls_undulator.json'
-
 # Load the raw field map data from shared test_data
-field_map_path = BASE_DIR.parent.parent / "test_data" / "sls" / "undulator_field_map.txt"
+field_map_path = "../../test_data/sls/undulator_field_map.txt"
 df_raw_data = pd.read_csv(
     field_map_path,
     sep=r"\s+",
@@ -120,7 +115,8 @@ undulator.particle_ref.anomalous_magnetic_moment = 0.00115965218128
 
 # Save the corrected undulator before enabling radiation below. Example 005
 # reloads this file and inserts the undulator into the SLS ring.
-undulator.to_json(UNDULATOR_JSON)
+
+undulator.to_json('sls_undulator.json')
 
 tw_undulator_corr_spin = undulator.twiss4d(
     betx=1, bety=1,
@@ -133,7 +129,6 @@ tw_undulator_corr_spin.plot('spin_x')
 tw_undulator_corr_spin.plot('spin_y')
 tw_undulator_corr_spin.plot('spin_z')
 
-plt.show()
 
 # Enable radiation on all elements
 undulator.configure_radiation(model='mean')
