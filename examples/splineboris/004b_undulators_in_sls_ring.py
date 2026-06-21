@@ -1,48 +1,18 @@
-"""
-SLS simulation with undulators, closed spin tracking and radiation.
-
-This script loads the SLS MADX file and the corrected undulator saved by
-example 004, inserts it at 11 locations, and computes twiss with spin tracking
-and radiation.
-"""
-
 import xtrack as xt
-from pathlib import Path
 import matplotlib.pyplot as plt
 
-E0 = 2.7e9
-BASE_DIR = Path(__file__).resolve().parent
-UNDULATOR_JSON = BASE_DIR / 'sls_undulator.json'
-
-# Particle reference
-p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=E0)
-
-# Load the corrected undulator produced by example 004. Its environment is
-# used as the destination because import_line cannot yet copy SplineBoris
-# elements from another environment.
-piecewise_undulator = xt.load(UNDULATOR_JSON)
-# env = piecewise_undulator.env
-# env['undulator'] = piecewise_undulator
-
-# Load the SLS ring and import it into the undulator environment.
-madx_file = Path(__file__).resolve().parent.parent.parent / 'test_data' / 'sls' / 'sls.madx'
+# Load the SLS ring
+madx_file = '../../test_data/sls/sls.madx'
 env = xt.load(str(madx_file))
-
 line_sls = env.lines['ring']
-env.import_line(piecewise_undulator, line_name='undulator')
+line_sls.set_particle_ref('positron', p0c=2.7e9)
+tt = line_sls.get_table()
 
+# Import the undulator in the environment containing the ring
+undulator = xt.load('./sls_undulator.json')
+env.import_line(undulator, line_name='undulator')
 
-# env.import_line(sls_env.ring, line_name='ring')
-# line_sls = env.lines['ring']
-
-
-
-# Configure bend model
-line_sls.configure_bend_model(core='mat-kick-mat')
-
-# Set particle reference
-line_sls.particle_ref = p0.copy()
-
+# Install the undulator at several locations in the ring
 wiggler_places = [
     'ars02_uind_0500_1',
     'ars03_uind_0380_1',
@@ -56,15 +26,20 @@ wiggler_places = [
     'ars11_uind_0610_1',
     'ars12_uind_0500_1',
 ]
-
-tt = line_sls.get_table()
 insertions = []
 for wig_place in wiggler_places:
-    insertions.append(env.place(env['undulator'], anchor='start', at=tt['s', wig_place]))
+    insertions.append(
+        env.place(env['undulator'], anchor='start', at=tt['s_start', wig_place]))
 line_sls.insert(insertions)
 
-line_sls.build_tracker()
+# Twiss with undulators
+tw = line_sls.twiss4d()
 
+#!end-doc-part
+
+line_sls.particle_ref.anomalous_magnetic_moment=1.15965218076e-3
+
+# Twiss with undulators
 tw_sls = line_sls.twiss4d(radiation_integrals=True, spin=True, polarization_analysis=True)
 
 # Extract and print results
