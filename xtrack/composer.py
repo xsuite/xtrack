@@ -263,8 +263,6 @@ class Composer:
 
         return out
 
-
-
 def _flatten_components(env, components, refer='center'):
 
     if refer not in ['start', 'center', 'centre', 'end']:
@@ -274,38 +272,41 @@ def _flatten_components(env, components, refer='center'):
 
     flatt_components = []
     for nn in components:
-        if ((is_line_from_place := (isinstance(nn, Place) and isinstance(nn.name, xt.Line)))
-            or (is_line_from_str := (isinstance(nn, str) and isinstance(env[nn], xt.Line)))):
 
-            if is_line_from_place:
-                anchor = nn.anchor
-                line = nn.name
-            elif is_line_from_str:
-                anchor = None
-                line = env[nn]
-            else:
-                raise RuntimeError('This should never happen')
+        this_line = None
+        anchor = None
+        if isinstance(nn, Place) and isinstance(nn.name, xt.Line):
+            this_line = nn.name
+            anchor = nn.anchor
+        if isinstance(nn, str) and isinstance(env[nn], xt.Line):
+            this_line = env[nn]
+            anchor = None
+        if isinstance(nn, Place) and nn.name in env.lines:
+            this_line = env.lines[nn.name]
+            anchor = nn.anchor
 
-            if isinstance(line, xt.Composer):
-                line = line.build(name=None, inplace=False)
-            elif isinstance(line, xt.Line) and line.mode == 'compose':
-                line = line.composer.build(name=None, inplace=False)
+        if this_line is not None:
+
+            if isinstance(this_line, xt.Composer):
+                this_line = this_line.build(name=None, inplace=False)
+            elif isinstance(this_line, xt.Line) and this_line.mode == 'compose':
+                this_line = this_line.composer.build(name=None, inplace=False)
 
             if anchor is None:
                 anchor = refer or 'center'
 
-            if not line.element_names:
+            if not this_line.element_names:
                 continue
-            sub_components = list(line.element_names).copy()
+            sub_components = list(this_line.element_names).copy()
             if nn.at is not None:
                 if isinstance(nn.at, str):
-                    at = line._xdeps_eval.eval(nn.at)
+                    at = this_line._xdeps_eval.eval(nn.at)
                 else:
                     at = nn.at
                 if anchor=='center' or anchor=='centre':
-                    at_of_start_first_element = at - line.get_length() / 2
+                    at_of_start_first_element = at - this_line.get_length() / 2
                 elif anchor=='end':
-                    at_of_start_first_element = at - line.get_length()
+                    at_of_start_first_element = at - this_line.get_length()
                 elif anchor=='start':
                     at_of_start_first_element = at
                 else:

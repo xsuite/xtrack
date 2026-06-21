@@ -60,7 +60,7 @@ wiggler_places = [
 tt = line_sls.get_table()
 insertions = []
 for wig_place in wiggler_places:
-    insertions.append(env.place(env['undulator'].copy(), anchor='start', at=tt['s', wig_place]))
+    insertions.append(env.place(env['undulator'], anchor='start', at=tt['s', wig_place]))
 line_sls.insert(insertions)
 
 line_sls.build_tracker()
