@@ -59,7 +59,7 @@ class FieldFitter:
             self,
             raw_data,
             xy_point=(0, 0),
-            distance_unit=0.001,
+            distance_unit=1.,
             min_region_size=10,
             deg=2,
             field_tol=1e-3,
@@ -249,7 +249,7 @@ class FieldFitter:
         """
         self.df_fit_pars.to_csv(file_path, index=True)
 
-    def get_spline_data(self, multipole_order):
+    def get_spline_data(self):
         """Return fitted field data suitable for constructing SplineBoris elements.
 
         The fitted regions of the different field components need not have the
@@ -272,6 +272,8 @@ class FieldFitter:
             :class:`xtrack.Spline4`; ``bx`` and ``by`` are tuples of
             :class:`xtrack.Spline4` with ``multipole_order`` entries.
         """
+        multipole_order = self.deg + 1
+
         if not isinstance(multipole_order, (int, np.integer)):
             raise TypeError("multipole_order must be an integer")
         if multipole_order <= 0:
