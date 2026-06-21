@@ -8,15 +8,10 @@ displays results.
 
 import xtrack as xt
 import pandas as pd
-import matplotlib.pyplot as plt
 
-
-multipole_order = 3
-
-# Particle reference
-p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
-
-env = xt.Environment()
+#################################################
+# Polynomial fit on the data from the field map #
+#################################################
 
 # Load the raw field map data from shared test_data
 field_map_path = "../../test_data/sls/undulator_field_map.txt"
@@ -77,6 +72,14 @@ spline_data = field_fitter.get_spline_data()
 # }
 
 
+#######################################
+# Build Xsuite model of the undulator #
+#######################################
+
+# Create an xtrack environment
+env = xt.Environment()
+env.set_particle_ref('electron', p0c=2.7e9)
+
 # Build SplineBoris elements for each interval using the fitted field data:
 undulator_element_names = []
 for ii, piece in enumerate(spline_data):
@@ -95,10 +98,8 @@ for ii, piece in enumerate(spline_data):
     )
     undulator_element_names.append(element_name)
 
+# Assemble the undulator line
 undulator = env.new_line(components=undulator_element_names)
-l_wig = undulator.get_length()
-
-undulator.particle_ref = p0.copy()
 
 ###########################################################################
 # Install thin dipole correctors at the edges of the undulator to control #
@@ -121,19 +122,19 @@ env.new('corr2', xt.Multipole, knl=['k0l_corr2'], ksl=['k0sl_corr2'])
 env.new('corr3', xt.Multipole, knl=['k0l_corr3'], ksl=['k0sl_corr3'])
 env.new('corr4', xt.Multipole, knl=['k0l_corr4'], ksl=['k0sl_corr4'])
 
-# Insert correctors at nearest element boundary (s_tol avoids slicing)
+# Insert correctors
+l_undulator = undulator.get_length()
 undulator.insert([
     env.place('corr1', at=0.02),
     env.place('corr2', at=0.1),
-    env.place('corr3', at=l_wig - 0.1),
-    env.place('corr4', at=l_wig - 0.02),
-], s_tol=5e-3)
+    env.place('corr3', at=l_undulator - 0.1),
+    env.place('corr4', at=l_undulator - 0.02),
+], s_tol=5e-3) # large s_tol avoids slicing the SplineBoris elements
 
-# Matching targets use corrector element names for intermediate positions
+# Use optimizer to control the orbit
 opt = undulator.match(
     solve=False,
-    betx=0, bety=0,
-    only_orbit=True,
+    betx=1, bety=1,
     include_collective=True,
     vary=xt.VaryList(['k0l_corr1', 'k0sl_corr1',
                       'k0l_corr2', 'k0sl_corr2',
@@ -146,14 +147,22 @@ opt = undulator.match(
         xt.TargetSet(x=0., y=0, at='corr3')
         ],
 )
-opt.step(2)
+opt.solve()
+
+###############################
+# Save undulator to json file #
+###############################
+
+undulator.to_json('sls_undulator.json')
+
+####################
+# Checks and plots #
+####################
 
 undulator.particle_ref.anomalous_magnetic_moment = 0.00115965218128
 
 # Save the corrected undulator before enabling radiation below. Example 005
 # reloads this file and inserts the undulator into the SLS ring.
-
-undulator.to_json('sls_undulator.json')
 
 tw_undulator_corr_spin = undulator.twiss4d(
     betx=1, bety=1,
@@ -178,6 +187,8 @@ tw_undulator_corr_spin_rad = undulator.twiss(
     spin_x=0.5, spin_y=0.25, spin_z=0.25,
     radiation_method='full'
 )
+
+import matplotlib.pyplot as plt
 
 # Plot results to compare with/without radiation
 fig, axs = plt.subplots(3, 1, figsize=(9, 10), sharex=True)
