@@ -249,7 +249,7 @@ class FieldFitter:
         """
         self.df_fit_pars.to_csv(file_path, index=True)
 
-    def get_spline_data(self, multipole_order):
+    def get_spline_data(self):
         """Return fitted field data suitable for constructing SplineBoris elements.
 
         The fitted regions of the different field components need not have the
@@ -259,11 +259,6 @@ class FieldFitter:
         such as ``n_steps``, field-map shifts, and radiation settings remain the
         responsibility of the caller.
 
-        Parameters
-        ----------
-        multipole_order : int
-            Number of normal and skew transverse field orders to return.
-
         Returns
         -------
         list[dict]
@@ -272,6 +267,8 @@ class FieldFitter:
             :class:`xtrack.Spline4`; ``bx`` and ``by`` are tuples of
             :class:`xtrack.Spline4` with ``multipole_order`` entries.
         """
+        multipole_order = self.deg + 1
+
         if not isinstance(multipole_order, (int, np.integer)):
             raise TypeError("multipole_order must be an integer")
         if multipole_order <= 0:

@@ -1,18 +1,8 @@
-"""
-Spin tracking with undulators and radiation.
-
-This script builds and corrects an SLS undulator from fitted Spline4 field
-data, saves it to JSON, computes twiss with spin tracking and radiation, and
-displays results.
-"""
-
 import xtrack as xt
 import pandas as pd
 import matplotlib.pyplot as plt
 from xtrack._temp.splineboris.field_fitter import FieldFitter
 
-
-multipole_order = 3
 
 # Particle reference
 p0 = xt.Particles(mass0=xt.ELECTRON_MASS_EV, q0=1, p0c=2.7e9)
@@ -36,14 +26,12 @@ field_fitter = FieldFitter(
     xy_point=(0, 0),
     distance_unit=distance_unit,
     min_region_size=10,
-    deg=multipole_order-1,
+    deg=2
 )
 
 # Get the fitted field data for each longitudinal interval. Tracking settings
 # are intentionally applied below when constructing the SplineBoris elements.
-spline_data = field_fitter.get_spline_data(
-    multipole_order=multipole_order,
-)
+spline_data = field_fitter.get_spline_data()
 
 # Build and register the SplineBoris elements explicitly.
 undulator_element_names = []
