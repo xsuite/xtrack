@@ -877,7 +877,9 @@ class Environment:
         new_name = new_name or name
         cls = type(source._element_dict[name])
 
-        if (cls not in xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW + [xt.DipoleEdge] # No issue in copying DipoleEdge while creating it requires handling properties which are strings.
+        if (cls not in xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
+            + [xt.DipoleEdge] # No issue in copying DipoleEdge while creating it requires handling properties which are strings.
+            + [xt.SplineBoris] # No issue in copying SplineBoris while creating it requires xt.Slice4 arguments
             and 'ThickSlice' not in cls.__name__ and 'ThinSlice' not in cls.__name__
             and 'DriftSlice' not in cls.__name__):
             raise ValueError(
