@@ -69,7 +69,7 @@ spline_data = field_fitter.get_spline_data()
 #######################################
 
 env = xt.Environment()
-env.set_particle_ref('positron', p0c=2.7e9)
+env.set_particle_ref('electron', p0c=2.7e9)
 
 # Build and register the SplineBoris elements explicitly.
 undulator_element_names = []

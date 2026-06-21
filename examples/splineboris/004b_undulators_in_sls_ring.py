@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 madx_file = '../../test_data/sls/sls.madx'
 env = xt.load(str(madx_file))
 line_sls = env.lines['ring']
-line_sls.set_particle_ref('positron', p0c=2.7e9)
+line_sls.set_particle_ref('electron', p0c=2.7e9)
 tt = line_sls.get_table()
 
 # Import the undulator in the environment containing the ring
