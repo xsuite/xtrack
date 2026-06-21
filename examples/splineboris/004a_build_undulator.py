@@ -1,10 +1,5 @@
 import xtrack as xt
 import pandas as pd
-import matplotlib.pyplot as plt
-from xtrack._temp.splineboris.field_fitter import FieldFitter
-
-
-
 
 #################################################
 # Polynomial fit on the data from the field map #
@@ -20,7 +15,8 @@ df_raw_data = pd.read_csv(
 ).set_index(["X", "Y", "Z"])
 
 # Use fitting procedure to extract field and derivatives on the reference trajectory.
-# This class is taylored for this example data, use your own fitting procedure for other datasets.
+# This class is taylored for this example data, use your own fitting procedure
+# for other datasets.
 from xtrack._temp.splineboris.field_fitter import FieldFitter
 field_fitter = FieldFitter(
     raw_data=df_raw_data,
@@ -95,13 +91,12 @@ for ii, piece in enumerate(spline_data):
 
 undulator = env.new_line(components=undulator_element_names)
 
-
 ###########################################################################
 # Install thin dipole correctors at the edges of the undulator to control #
 # trajectory along the undulator.                                         #
 ###########################################################################
 
-# Create env variables for corrector strengths (needed for matching)
+# Knobs controlling the correctors
 env['k0l_corr1'] = 0.
 env['k0l_corr2'] = 0.
 env['k0l_corr3'] = 0.
@@ -111,7 +106,7 @@ env['k0sl_corr2'] = 0.
 env['k0sl_corr3'] = 0.
 env['k0sl_corr4'] = 0.
 
-# Create corrector elements with expressions referencing env variables
+# Create correcto elements
 env.new('corr1', xt.Multipole, knl=['k0l_corr1'], ksl=['k0sl_corr1'])
 env.new('corr2', xt.Multipole, knl=['k0l_corr2'], ksl=['k0sl_corr2'])
 env.new('corr3', xt.Multipole, knl=['k0l_corr3'], ksl=['k0sl_corr3'])
