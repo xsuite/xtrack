@@ -19,12 +19,10 @@ df_raw_data = pd.read_csv(
 ).set_index(["X", "Y", "Z"])
 
 # Distance unit in meters (the dataset uses mm, so 1 mm = 0.001 m)
-distance_unit = 0.001
-
 field_fitter = FieldFitter(
     raw_data=df_raw_data,
     xy_point=(0, 0),
-    distance_unit=distance_unit,
+    distance_unit= 0.001,
     min_region_size=10,
     deg=2
 )

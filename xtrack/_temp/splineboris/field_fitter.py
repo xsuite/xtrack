@@ -59,7 +59,7 @@ class FieldFitter:
             self,
             raw_data,
             xy_point=(0, 0),
-            distance_unit=0.001,
+            distance_unit=1.,
             min_region_size=10,
             deg=2,
             field_tol=1e-3,
