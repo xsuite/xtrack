@@ -152,6 +152,10 @@ undulator.to_json('sls_undulator.json')
 import matplotlib.pyplot as plt
 
 tw_undulator = undulator.twiss4d(betx=1, bety=1)
-tw_undulator.plot('x y')
+
+fig_orbit = plt.figure(1, figsize=(10, 6))
+tw_undulator.plot('x y', figure=fig_orbit)
+fig_orbit.savefig('splineboris_undulator_trajectory.png', dpi=200,
+                  bbox_inches='tight')
 
 plt.show()

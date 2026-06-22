@@ -35,6 +35,12 @@ line_sls.insert(insertions)
 # Twiss with undulators
 tw = line_sls.twiss4d()
 
+# Plot and save the closed orbit
+fig_closed_orbit = plt.figure(1, figsize=(10, 6))
+tw.plot('x y', figure=fig_closed_orbit)
+fig_closed_orbit.savefig('splineboris_sls_closed_orbit.png', dpi=200,
+                         bbox_inches='tight')
+
 #!end-doc-part
 
 line_sls.particle_ref.anomalous_magnetic_moment=1.15965218076e-3
@@ -80,7 +86,8 @@ for kk in tw_sls.keys():
 # Plotting:
 import matplotlib.pyplot as plt
 plt.close('all')
-tw_sls.plot('x y')
+fig_co = plt.figure(1, figsize=(10, 6))
+tw_sls.plot('x y', figure=fig_co)
 tw_sls.plot('betx bety', 'dx dy')
 tw_sls.plot('betx2 bety1')
 tw_sls.plot('spin_x spin_z')
