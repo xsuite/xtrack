@@ -92,7 +92,14 @@ def _split_wrapped_s_interval(
         start = float(np.mod(start, line_length))
         end = float(np.mod(end, line_length))
         if start > end + s_tol:
-            return [(start, line_length), (0.0, end)]
+            return [
+                (segment_start, segment_end)
+                for segment_start, segment_end in (
+                    (start, line_length),
+                    (0.0, end),
+                )
+                if segment_end - segment_start > s_tol
+            ]
     return [(start, end)]
 
 

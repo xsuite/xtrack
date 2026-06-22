@@ -755,6 +755,11 @@ def test_split_wrapped_s_interval_with_wrapped_ring_interval():
     assert intervals == [(8.0, 10.0), (0.0, 2.0)]
 
 
+def test_split_wrapped_s_interval_drops_zero_length_segment_at_ring_boundary():
+    intervals = _split_wrapped_s_interval(8.0, 10.0, line_length=10.0, wrap=True, s_tol=1e-9)
+    assert intervals == [(8.0, 10.0)]
+
+
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_s_around_transitions_basic_pattern_and_resolution(test_context):
     ap = _make_transition_test_aperture(test_context)
