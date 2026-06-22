@@ -21,7 +21,33 @@ _HERMITE_SUFFIXES = ("val_start", "der_start", "val_end", "der_end", "mean")
 
 @dataclass
 class Spline4:
-    """Hermite boundary data and interval mean used by ``SplineBoris``."""
+    """Data defining a fourth-order longitudinal polynomial.
+
+    The five values constrain a quantity ``f(s)`` over one longitudinal
+    interval: its value and derivative at both boundaries, and its mean over
+    the interval. Together they uniquely define the fourth-order polynomial
+    used by :class:`SplineBoris`.
+
+    Parameters
+    ----------
+    val_start : float
+        Value of ``f`` at the entrance of the interval.
+    der_start : float
+        Longitudinal derivative ``df/ds`` at the entrance of the interval.
+    val_end : float
+        Value of ``f`` at the exit of the interval.
+    der_end : float
+        Longitudinal derivative ``df/ds`` at the exit of the interval.
+    mean : float
+        Mean value of ``f`` over the interval.
+
+    Notes
+    -----
+    The units depend on the quantity represented. For a magnetic-field
+    component, ``val_start``, ``val_end``, and ``mean`` are in tesla, while
+    ``der_start`` and ``der_end`` are in tesla per meter. For transverse field
+    derivatives, the corresponding additional inverse-meter powers apply.
+    """
 
     val_start: float
     der_start: float
@@ -30,6 +56,13 @@ class Spline4:
     mean: float
 
     def as_list(self):
+        """Return the values in constructor and storage order.
+
+        Returns
+        -------
+        list of float
+            ``[val_start, der_start, val_end, der_end, mean]``.
+        """
         return [
             self.val_start,
             self.der_start,
@@ -39,6 +72,14 @@ class Spline4:
         ]
 
     def as_dict(self):
+        """Return the values as a serializable dictionary.
+
+        Returns
+        -------
+        dict
+            Mapping with the keys ``val_start``, ``der_start``, ``val_end``,
+            ``der_end``, and ``mean``.
+        """
         return {
             'val_start': self.val_start,
             'der_start': self.der_start,
@@ -48,6 +89,13 @@ class Spline4:
         }
 
     def as_np_array(self):
+        """Return the values as a one-dimensional NumPy array.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of shape ``(5,)`` in constructor and storage order.
+        """
         return np.array(self.as_list())
 
 # Canonical naming convention for the polynomial coefficients
