@@ -17,6 +17,7 @@ from xtrack.aperture.transform import poly2d_to_homogeneous
 from xtrack.survey import survey_relative_transform
 from warnings import warn
 
+# Run 000_download_model.py to download the lattice, optics, and LDB snapshot file before running this script.
 
 class LDBConverterWarning(UserWarning):
     pass
@@ -638,7 +639,7 @@ pipe_overlap_rows = _write_pipe_overlap_report(
 print(f'Wrote {len(pipe_overlap_rows)} pipe overlap rows to pipe_overlaps_summary.csv')
 
 ax = plt.gca()
-aperture_straight.plot_floor_projection(ax=ax, len_points=32)
+aperture_straight.plot_floor_projection(ax=ax)
 ax.set_aspect('auto')
 plt.title('LHC LS3 Aperture and Survey Floor Plot (Straightened)')
 
@@ -754,19 +755,4 @@ for pipe_name in main_dipole_pipes:
 
 # Build the curved model
 aperture = Aperture(model=aperture_model, line=b1, s_tol=PIPE_OVERLAP_TOL, context=context)
-b_tab = aperture.get_bounds_table()
-s_positions_at_lattice_changes = np.array(sorted(set(b_tab.s_start) | set(b_tab.s_end) | set(sv_b1.s)))
-s_positions = np.array(sorted(set(s_positions_at_lattice_changes - PIPE_OVERLAP_TOL) | set(s_positions_at_lattice_changes + PIPE_OVERLAP_TOL)))
-s_positions %= b1.get_length()
-s_positions = sorted(s_positions)
-aperture.plot_extents(s_positions)
-plt.show()
-
-plt.plot(sv_b1.Z, sv_b1.X, c='red', label='B1')
-plt.plot(sv_b2.Z, sv_b2.X, c='blue', label='B2')
-ax = plt.gca()
-aperture.plot_floor_projection(ax=ax, len_points=32)
-ax.set_aspect('auto')
-plt.title('LHC LS3 Aperture and Survey Floor Plot (Pipe Model for B1)')
-plt.xlabel('$Z$ [m]')
-plt.ylabel('$X$ [m]')
+aperture.to_json('b1_aperture.json')

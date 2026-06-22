@@ -42,11 +42,12 @@ aper_bisect = n1_bisect.cross_section
 max_envelope = n1_bisect.envelope
 
 # Get envelope at arbitrary sigma
-envelopes, tw_envel = aperture_model.get_envelope_at_element(
+envelopes_table, tw_envel = aperture_model.get_envelope_at_element(
     element_name=mqxfa_name,
     resolution=0.1,
     sigmas=1,
 )
+envelopes = envelopes_table.cross_section
 
 aper_table = aperture_model.cross_sections_at_element(
     element_name=mqxfa_name,
