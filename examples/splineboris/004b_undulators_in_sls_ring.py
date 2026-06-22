@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 madx_file = '../../test_data/sls/sls.madx'
 env = xt.load(str(madx_file))
 line_sls = env.lines['ring']
-line_sls.set_particle_ref('electron', p0c=2.7e9)
+line_sls.set_particle_ref('positron', p0c=2.7e9)
 tt = line_sls.get_table()
 
 # Import the undulator in the environment containing the ring
@@ -66,9 +66,16 @@ print(f"  eq_gemitt_y = {tw_sls.rad_int_eq_gemitt_y:.4e}")
 print()
 print(f"C^-: {tw_sls.c_minus:.4e}")
 print()
-print(f"Spin polarization: {tw_sls.spin_polarization_eq:.4e}")
+print(f"Spin polarization: {tw_sls.spin_polarization_eq}")
 print()
 print("=" * 80)
+
+import numpy as np
+for kk in tw_sls.keys():
+    if kk.startswith('spin'):
+        if not np.isscalar(getattr(tw_sls, kk)):
+            continue
+        print(f"{kk}: {getattr(tw_sls, kk)}")
 
 # Plotting:
 import matplotlib.pyplot as plt
