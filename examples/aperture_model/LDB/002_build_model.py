@@ -639,7 +639,7 @@ pipe_overlap_rows = _write_pipe_overlap_report(
 print(f'Wrote {len(pipe_overlap_rows)} pipe overlap rows to pipe_overlaps_summary.csv')
 
 ax = plt.gca()
-aperture_straight.plot_floor_projection(ax=ax, len_points=32)
+aperture_straight.plot_floor_projection(ax=ax)
 ax.set_aspect('auto')
 plt.title('LHC LS3 Aperture and Survey Floor Plot (Straightened)')
 

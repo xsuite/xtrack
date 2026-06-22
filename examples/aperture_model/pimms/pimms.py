@@ -190,6 +190,6 @@ for row in ring_table.rows:
         builder.place_pipe(name, drift_pipe.name, survey_reference=name)
 
 aperture_model = builder.build()
-aperture = Aperture(line=ring, model=aperture_model)
+aperture = Aperture(line=ring, model=aperture_model, _skip_validity_check=True)
 
 ring.twiss_default['method'] = '4d'

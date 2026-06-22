@@ -25,7 +25,7 @@ from xtrack.line import Line
 from xtrack.progress_indicator import progress
 from xtrack.survey import survey_relative_transform
 from xtrack.aperture.views import (
-    PipePositionsView, PipesView, ProfilesView, _deduplicate_legend,
+    PipePositionsView, PipesView, ProfilesView,
 )
 from xtrack.aperture.transform import transform_matrix
 
@@ -1387,9 +1387,7 @@ class Aperture:
     def plot_floor_projection(
         self,
         ax=None,
-        len_points=4,
-        colour: Literal['profile', 'pipe'] = 'pipe',
-        legend=True,
+        max_curve_angle_rad: float = np.deg2rad(1),
         origin: str | None = None,
         s_range: tuple[float, float] | None = None,
         aspect: Literal['auto', 'equal'] = 'auto',
@@ -1400,12 +1398,8 @@ class Aperture:
         ----------
         ax
             Axes object to plot on. If not given, use the current axes.
-        len_points
-            Number of points used to discretise each pipe profile for plotting.
-        colour
-            Colouring mode passed to the individual pipe projection plots.
-        legend
-            Whether to draw a deduplicated legend for the projected pipes.
+        max_curve_angle_rad
+            Maximum angular step used to draw curved pipe boundaries and axes.
         origin
             Name of a pipe position to use as the plotting origin. When given,
             the floor projection is expressed in the local frame of that pipe
@@ -1422,76 +1416,16 @@ class Aperture:
         ax : matplotlib.axes.Axes
             Axes containing the floor projection.
         """
-        from matplotlib import pyplot as plt
-        ax = ax or plt.gca()
+        from xtrack.aperture.plot import plot_floor_projection
 
-        pipe_table = self.get_pipe_table()
-        line_length = self.line.get_length()
-        origin_s = 0.0
-        plot_shift = np.identity(4)
-
-        if s_range and s_range[0] > s_range[1]:
-            raise ValueError('The `origin` pipe position is outside of the `s_range` specified.')
-
-        if origin is not None:
-            origin_pipe_position = self.pipe_positions[origin]
-            origin_survey_ref = origin_pipe_position.survey_reference_name
-            origin_row = pipe_table.rows[origin]
-            origin_s = float(np.asarray(origin_row.s_start).item())
-
-            origin_sv_ref_transform = survey_relative_transform(self.survey, 0, origin_survey_ref)
-            origin_transform = origin_sv_ref_transform @ origin_pipe_position.transformation
-            plot_shift = np.linalg.inv(origin_transform)
-
-        def _in_s_range(row) -> bool:
-            if s_range is None:
-                return True
-
-            window_start = origin_s + s_range[0]
-            window_end = origin_s + s_range[1]
-
-            if not self.is_ring:
-                return row.s_end >= window_start - self.s_tol and row.s_start <= window_end + self.s_tol
-
-            window_width = s_range[1] - s_range[0]
-            if window_width >= line_length - self.s_tol:
-                return True
-
-            row_segments = _split_wrapped_s_interval(
-                row.s_start, row.s_end, line_length=line_length, wrap=True, s_tol=self.s_tol,
-            )
-            window_segments = _split_wrapped_s_interval(
-                window_start, window_end, line_length=line_length, wrap=True, s_tol=self.s_tol,
-            )
-            return any(
-                row_start <= window_end_seg + self.s_tol and window_start_seg <= row_end + self.s_tol
-                for row_start, row_end in row_segments
-                for window_start_seg, window_end_seg in window_segments
-            )
-
-        for row in pipe_table.rows:
-            if not _in_s_range(row):
-                continue
-
-            pipe_position = self.pipe_positions[row.name]
-            pipe = pipe_position.pipe
-            sv_ref_transform = survey_relative_transform(self.survey, 0, pipe_position.survey_reference_name)
-            transform = plot_shift @ sv_ref_transform @ pipe_position.transformation
-            pipe.plot_projection(
-                ax=ax,
-                plane='zx',
-                transform=transform,
-                len_points=len_points,
-                colour=colour,
-                legend=False
-            )
-
-        if legend:
-            _deduplicate_legend(ax)
-            ax.legend()
-
-        ax.set_aspect(aspect)
-        return ax
+        return plot_floor_projection(
+            self,
+            ax=ax,
+            max_curve_angle_rad=max_curve_angle_rad,
+            origin=origin,
+            s_range=s_range,
+            aspect=aspect,
+        )
 
     def _get_cuts_at_element(self, element_name: str, resolution: float | None) -> list[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
