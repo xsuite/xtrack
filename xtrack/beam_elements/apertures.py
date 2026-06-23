@@ -304,16 +304,13 @@ class LimitPolygon(BeamElement):
             context = kwargs.get("_context", None)
             if context is None and kwargs.get("_buffer", None) is not None:
                 context = kwargs["_buffer"].context
-            if context is not None and hasattr(context, "nparray_from_context_array"):
-                x_vertices_np = np.asarray(
-                    context.nparray_from_context_array(x_vertices), dtype=np.float64
-                )
-                y_vertices_np = np.asarray(
-                    context.nparray_from_context_array(y_vertices), dtype=np.float64
-                )
-            else:
-                x_vertices_np = np.asarray(x_vertices, dtype=np.float64)
-                y_vertices_np = np.asarray(y_vertices, dtype=np.float64)
+            if context is not None and isinstance(x_vertices, context.nplike_array_type):
+                x_vertices = context.nparray_from_context_array(x_vertices)
+            if context is not None and isinstance(y_vertices, context.nplike_array_type):
+                y_vertices = context.nparray_from_context_array(y_vertices)
+
+            x_vertices_np = np.asarray(x_vertices, dtype=np.float64)
+            y_vertices_np = np.asarray(y_vertices, dtype=np.float64)
 
             if "x_normal" not in kwargs.keys():
                 kwargs["x_normal"] = len(x_vertices)
