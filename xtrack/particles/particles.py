@@ -2134,6 +2134,27 @@ def ptau2delta(ptau, beta0):
     _beta0 = 1 / beta0
     return np.sqrt(1 + 2*ptau*_beta0 + ptau**2) - 1
 
+def delta2ptau(delta, beta0):
+    """Convert relative momentum deviation dp/p to transverse momentum pt/p.
+
+    Inverse of :func:`ptau2delta`.
+
+    Parameters
+    ----------
+    delta : float
+        Relative momentum deviation (dp/p, dimensionless).
+    beta0 : float
+        Particle relativistic beta (v/c).
+
+    Returns
+    -------
+    float
+        Transverse momentum relative to total momentum (pt/p, dimensionless).
+    """
+
+    _beta0 = 1 / beta0
+    return np.sqrt((delta + 1)**2 + _beta0**2 - 1) - _beta0
+
 def dptau2ddelta(ptau, beta0):
     """Calculate derivative of relative momentum deviation dp/p with respect to pt.
 
