@@ -119,7 +119,7 @@ for pipe_pos in ap._model.pipe_positions:
 
     for profile_pos in aper_pipe.positions:
         profile = ap._model.profile_for_position(profile_pos)
-        poly = ap.polygon_for_profile(profile, 256)
+        poly = profile.build_polygon(len_points=256)
         poly_hom = poly2d_to_hom(poly)
         profile_matrix = transform_matrix(
             shift_x=profile_pos.shift_x,

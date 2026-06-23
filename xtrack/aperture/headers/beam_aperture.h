@@ -38,6 +38,25 @@ typedef struct {
     float_type halo_primary;      // n sigma of primary halo
 } BeamLocalData;
 
+#ifdef XO_CONTEXT_CPU
+static inline void report_progress(const char* label, const int completed, const int total, int* reported_percent)
+{
+    const int percent = 100 * completed / total;
+    const int previous_percent = 100 * (completed - 1) / total;
+    if (percent == previous_percent && completed != total)
+        return;
+
+    IF_OMP_PRAGMA("omp critical(aperture_progress)")
+    {
+        if (percent > *reported_percent) {
+            *reported_percent = percent;
+            printf("%s: %d%%\r", label, percent);
+            fflush(stdout);
+        }
+    }
+}
+#endif
+
 
 static inline Racetrack_s halo_racetrack(
     const TwissLocalData *twiss,
@@ -246,7 +265,7 @@ static inline TwissLocalData twiss_data_get_entry(const TwissData twiss_data, co
 }
 
 
-void compute_max_aperture_sigma_bisection(
+void get_max_aperture_sigma_bisection(
     ApertureModel model,
     SurveyData survey,
     ProfilePolygons profile_polygons,
@@ -266,6 +285,7 @@ void compute_max_aperture_sigma_bisection(
 
     #ifdef XO_CONTEXT_CPU
         int completed = 0;
+        int reported_percent = -1;
     #endif
 
     // TODO: Make this also compatible with GPUs
@@ -290,6 +310,10 @@ void compute_max_aperture_sigma_bisection(
             &s_aperture_data.tol_r,
             &s_aperture_data.tol_x,
             &s_aperture_data.tol_y,
+            NULL,
+            NULL,
+            NULL,
+            NULL,
             NULL
         );
         s_aperture_data.n_points = len_points;
@@ -310,15 +334,17 @@ void compute_max_aperture_sigma_bisection(
         );
         sigmas[idx_slice] = sigma;
         if (out_envelope_at_max_sigma != NULL)
-            memcpy(out_envelope_at_max_sigma + idx_slice * envelope_num_points * 2, envelope_points, envelope_num_points * sizeof(Point2D));
+            memcpy(
+                out_envelope_at_max_sigma + idx_slice * envelope_num_points * 2,
+                envelope_points,
+                envelope_num_points * sizeof(Point2D)
+            );
 
         #ifdef XO_CONTEXT_CPU
-            IF_OMP_PRAGMA("omp critical")
-            {
-                completed++;
-                printf("Computing sigmas: %d%%\r", 100 * completed / num_slices);
-                fflush(stdout);
-            }
+            int completed_now;
+            IF_OMP_PRAGMA("omp atomic capture")
+            completed_now = ++completed;
+            report_progress("Computing sigmas", completed_now, num_slices, &reported_percent);
         #endif
     }
 
@@ -336,13 +362,20 @@ void compute_beam_envelopes_at_sigma(
     const float_type sigmas,
     const uint32_t envelope_num_points,
     const int8_t include_aper_tols,
-    float_type* const out_envelope
+    float_type* const out_envelope,
+    float_type* min_x,
+    float_type* max_x,
+    float_type* min_y,
+    float_type* max_y
 ) {
+    const int8_t is_ring = ApertureModel_get_is_ring(model);
+    const float_type survey_length = ApertureModel_get_survey_length(model);
     const uint32_t num_slices = TwissData_len_x(twiss_at_s);
     BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 
     #ifdef XO_CONTEXT_CPU
         int completed = 0;
+        int reported_percent = -1;
     #endif
 
     // TODO: Make this also compatible with GPUs
@@ -363,23 +396,40 @@ void compute_beam_envelopes_at_sigma(
                 &s_aperture_data.tol_r, &s_aperture_data.tol_x, &s_aperture_data.tol_y);
         }
 
-        Point2D* out_points = (Point2D*)(out_envelope + idx_slice * envelope_num_points * 2);
-        get_beam_envelope(
-            &s_beam_data,
-            &s_twiss_data,
-            &s_aperture_data,
-            sigmas,
-            envelope_num_points,
-            out_points
-        );
+        const Racetrack_s beam_rt = beam_racetrack(&s_twiss_data, &s_beam_data);
+        const Racetrack_s halo_rt = halo_racetrack(&s_twiss_data, &s_beam_data, &s_aperture_data);
+        const Racetrack_s envelope_rt = add_racetracks(halo_rt, scale_racetrack(beam_rt, sigmas));
+
+        if (out_envelope) {
+            Point2D* out_points = (Point2D*)(out_envelope + idx_slice * envelope_num_points * 2);
+            get_beam_envelope_from_racetracks(
+                &s_twiss_data,
+                &s_beam_data,
+                halo_rt,
+                beam_rt,
+                sigmas,
+                envelope_num_points,
+                out_points
+            );
+        }
+
+        if (min_x || max_x || min_y || max_y) {
+            const float_type dispersion_x = fabs(s_twiss_data.dx * s_beam_data.delta_rms);
+            const float_type dispersion_y = fabs(s_twiss_data.dy * s_beam_data.delta_rms);
+            const float_type half_width = envelope_rt.h + dispersion_x;
+            const float_type half_height = envelope_rt.v + dispersion_y;
+
+            if (min_x) min_x[idx_slice] = s_twiss_data.x - half_width;
+            if (max_x) max_x[idx_slice] = s_twiss_data.x + half_width;
+            if (min_y) min_y[idx_slice] = s_twiss_data.y - half_height;
+            if (max_y) max_y[idx_slice] = s_twiss_data.y + half_height;
+        }
 
         #ifdef XO_CONTEXT_CPU
-            IF_OMP_PRAGMA("omp critical")
-            {
-                completed++;
-                printf("Computing beam envelopes: %d%%\r", 100 * completed / num_slices);
-                fflush(stdout);
-            }
+            int completed_now;
+            IF_OMP_PRAGMA("omp atomic capture")
+            completed_now = ++completed;
+            report_progress("Computing beam envelopes", completed_now, num_slices, &reported_percent);
         #endif
     }
 
@@ -456,7 +506,7 @@ static inline float_type compute_n1_for_point(
 }
 
 
-void compute_max_aperture_sigma_rays(
+void get_max_aperture_sigma_rays(
     ApertureModel model,
     SurveyData survey,
     ProfilePolygons profile_polygons,
@@ -478,6 +528,7 @@ void compute_max_aperture_sigma_rays(
 
     #ifdef XO_CONTEXT_CPU
         int completed = 0;
+        int reported_percent = -1;
     #endif
 
     // TODO: Make this also compatible with GPUs
@@ -488,9 +539,7 @@ void compute_max_aperture_sigma_rays(
         const TwissLocalData s_twiss_data = twiss_data_get_entry(twiss_at_s, idx_slice);
         Point2D aperture_points[len_points];
         int8_t aperture_is_convex = 0;
-        BeamApertureLocalData s_aperture_data = {
-            .points = aperture_points,
-        };
+        BeamApertureLocalData s_aperture_data = { .points = aperture_points };
         cross_section_bound_index = cross_section_at_s(
             survey_at_s,
             idx_slice,
@@ -503,7 +552,11 @@ void compute_max_aperture_sigma_rays(
             &s_aperture_data.tol_r,
             &s_aperture_data.tol_x,
             &s_aperture_data.tol_y,
-            &aperture_is_convex
+            &aperture_is_convex,
+            NULL,
+            NULL,
+            NULL,
+            NULL
         );
         s_aperture_data.n_points = len_points;
         if (out_interpolated_apertures != NULL)
@@ -564,12 +617,10 @@ void compute_max_aperture_sigma_rays(
         }
 
         #ifdef XO_CONTEXT_CPU
-            IF_OMP_PRAGMA("omp critical")
-            {
-                completed++;
-                printf("Computing sigmas: %d%%\r", 100 * completed / num_slices);
-                fflush(stdout);
-            }
+            int completed_now;
+            IF_OMP_PRAGMA("omp atomic capture")
+            completed_now = ++completed;
+            report_progress("Computing sigmas", completed_now, num_slices, &reported_percent);
         #endif
     }
 
@@ -579,7 +630,7 @@ void compute_max_aperture_sigma_rays(
 }
 
 
-void compute_max_aperture_sigma_exact(
+void get_max_aperture_sigma_exact(
     ApertureModel model,
     SurveyData survey,
     ProfilePolygons profile_polygons,
@@ -601,6 +652,7 @@ void compute_max_aperture_sigma_exact(
 
     #ifdef XO_CONTEXT_CPU
         int completed = 0;
+        int reported_percent = -1;
     #endif
 
     uint32_t cross_section_bound_index = 0;
@@ -625,7 +677,11 @@ void compute_max_aperture_sigma_exact(
             &s_aperture_data.tol_r,
             &s_aperture_data.tol_x,
             &s_aperture_data.tol_y,
-            &aperture_is_convex
+            &aperture_is_convex,
+            NULL,
+            NULL,
+            NULL,
+            NULL
         );
         s_aperture_data.n_points = len_points;
         if (out_interpolated_apertures != NULL)
@@ -701,12 +757,10 @@ void compute_max_aperture_sigma_exact(
         }
 
         #ifdef XO_CONTEXT_CPU
-            IF_OMP_PRAGMA("omp critical")
-            {
-                completed++;
-                printf("Computing sigmas: %d%%\r", 100 * completed / num_slices);
-                fflush(stdout);
-            }
+            int completed_now;
+            IF_OMP_PRAGMA("omp atomic capture")
+            completed_now = ++completed;
+            report_progress("Computing sigmas", completed_now, num_slices, &reported_percent);
         #endif
     }
 

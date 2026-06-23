@@ -23,6 +23,13 @@ SHAPE_CLASSES = get_args(ShapeTypes)
 SHAPE_CLASSES_BY_NAME = {shape_cls.__name__: shape_cls for shape_cls in SHAPE_CLASSES}
 
 
+def _survey_is_closed(line, tol: float = 1e-6) -> bool:
+    survey = line.survey()
+    start = np.array([survey.X[0], survey.Y[0], survey.Z[0]], dtype=float)
+    end = np.array([survey.X[-1], survey.Y[-1], survey.Z[-1]], dtype=float)
+    return np.linalg.norm(end - start) < tol
+
+
 def _shape_from_input(shape: str | type, **shape_params):
     """Build a profile shape object from a string name or shape class.
 
@@ -408,5 +415,7 @@ class ApertureBuilder:
             pipe_names=pipe_names,
             pipe_position_names=pipe_position_names,
             profile_names=profile_names,
+            is_ring=_survey_is_closed(self.line),
+            survey_length=self.line.get_length(),
             _context=context,
         )

@@ -83,7 +83,7 @@ for pipe_pos in aper._model.pipe_positions:
         profile = aper._model.profile_for_position(profile_pos)
 
         num_points = 100
-        poly = aper.polygon_for_profile(profile, num_points)
+        poly = profile.build_polygon(len_points=num_points)
         poly_hom = poly2d_to_homogeneous(poly)
 
         profile_matrix_trans = transform_matrix(
