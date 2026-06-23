@@ -567,6 +567,27 @@ class ReferenceEnergyIncrease(BeamElement):
     allow_rot_and_shift = False
 
 
+class ReferenceEnergyChange(BeamElement):
+
+    '''Beam element setting the reference momentum to an absolute value.
+
+    Parameters
+    ----------
+    p0c : float
+        New reference momentum in eV/c. Default is ``0``.
+
+    '''
+
+    _xofields = {
+        'p0c': xo.Float64}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/referenceenergychange.h"',
+    ]
+
+    allow_rot_and_shift = False
+
+
 class Marker(BeamElement):
     """A marker beam element with no effect on the particles.
     """

@@ -5,6 +5,7 @@ checks = [
     (xt.Multipole,               dict(allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.Marker,                  dict(_isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.ReferenceEnergyIncrease, dict(_isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
+    (xt.ReferenceEnergyChange,   dict(_isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.Cavity,                  dict(_isthick=True, allow_rot_and_shift=True , rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.Translation,             dict(_isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
     (xt.ZetaShift,               dict(_isthick=False, allow_rot_and_shift=False, rot_and_shift_from_parent=None , _inherit_strengths=None)),
