@@ -4922,7 +4922,7 @@ class ElectronCooler(BeamElement):
             longitudinal component of the magnetic field. This is a measure
             of the magnetic field quality. With the ideal magnetic field quality 
             being 0.
-        space_charge : float, optional
+        space_charge : float, optional length, h, bs, a, b
             Whether space charge of electron beam is enabled. 0 is off and 1 is on.
 
     """
@@ -4997,3 +4997,243 @@ class ElectronCooler(BeamElement):
 
 class ThinSliceNotNeededError(Exception):
     pass
+
+class StraightFieldExpansion(BeamElement):
+    """
+    Specifies the field expansion in general derivatives on axis in straight or curved frame 
+
+    Parameters
+        ----------
+        h : float
+            Curvature of the element, in 1/m. For straight elements, h=0.
+        a : array, shape na, deg+1, floats
+            describing the polynomial coefficients for the skew multipoles. First index is multipole order, second index is polynomial coefficient.
+        b : array, shape nb, deg+1, floats
+            describing the polynomial coefficients for the normal multipoles. First index is multipole order, second index is polynomial coefficient.
+        bs : array, shape deg+1, floats 
+            describing the polynomial coefficients for the longitudinal field component. Index is polynomial coefficient,
+        ny : int
+            number of powers in y to include,
+        
+    """
+    
+    isthick = True
+    behaves_like_drift = True
+    has_backtrack = False
+    allow_loss_refinement = False
+    allow_rot_and_shift = False
+
+    _xofields = {
+        "length" : xo.Float64,
+        "h": xo.Float64,
+        "straight": xo.Int64,
+        "ny": xo.Int64,
+        "deg": xo.Int64,
+        "nstep": xo.Int64,
+        "ds": xo.Float64,
+        
+        "a": xo.Float64[:],
+        "b": xo.Float64[:],
+        "bs": xo.Float64[:],
+        
+        "na": xo.Int64,
+        "nb": xo.Int64,
+        "deg": xo.Int64,
+        
+        "_ncoef": xo.Int64,
+        "_mmax": xo.Int64,
+        "_mmin": xo.Int64,
+        "_moff": xo.Int64,
+        "_nm": xo.Int64,
+        
+        "_qemin": xo.Int64,
+        "_nq": xo.Int64,
+        
+        "_c": xo.Float64[:],
+        "_V": xo.Float64[:],
+        "_D1": xo.Float64[:],
+        "_D2": xo.Float64[:],
+        "_Q": xo.Float64[:],       
+        
+    }
+    
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/track_fieldexpansion_straight.h"',
+        '#include "xtrack/beam_elements/elements_src/create_fieldexpansion_straight.h"',
+    ]
+    
+    _kernels = {'build_expansion': xo.Kernel(
+            c_name='build_expansion_straight',
+            args=[xo.Arg(xo.ThisClass, name='el')]
+        ), 
+    }
+    
+    def __init__(self, length, a, b, bs, ny, nstep=10, **kwargs):
+        kwargs['length'] = length
+        kwargs['h'] = 0
+        kwargs['straight'] = 1
+        kwargs['nstep'] = nstep
+        kwargs['ds'] = length/nstep
+       
+        kwargs['a'] = np.asarray(a, dtype=np.float64).flatten()
+        kwargs['b'] = np.asarray(b, dtype=np.float64).flatten()
+        kwargs['bs'] = np.asarray(bs, dtype=np.float64)
+
+        kwargs['na'] = a.shape[0]
+        kwargs['nb'] = b.shape[0]
+        kwargs['ny'] = ny
+
+        kwargs['deg'] = a.shape[1] - 1
+        
+        if b.shape[1] != kwargs['deg'] + 1 or bs.shape[0] != kwargs['deg'] + 1:
+            raise ValueError("Invalid input shapes")
+        
+        kwargs['_ncoef'] = kwargs['ny'] + 2  # store phi_0..phi_{ny+1} so By is also order ny
+        
+        kwargs['_mmax'] = kwargs['na'] if kwargs['na'] > (kwargs['nb'] - 1) else (kwargs['nb'] - 1)
+        if kwargs['straight']:
+            kwargs['_mmin'] = 0
+            kwargs['_moff'] = 0
+            kwargs['_qemin'] = 0
+        else:
+            kwargs['_mmin'] = -2 * ((kwargs['_ncoef'] - 1) // 2)
+            kwargs['_moff'] = -kwargs['_mmin']
+            kwargs['_qemin'] = kwargs['_mmin'] - 1
+        kwargs['_nq'] = (kwargs['_mmax'] + 2) - kwargs['_qemin'] + 1
+        kwargs['_nm'] = kwargs['_mmax'] - kwargs['_mmin'] + 1
+
+        kwargs.setdefault("_c", np.zeros(kwargs['_ncoef'] * kwargs['_nm'] * (kwargs['deg'] + 1)))
+        
+        kwargs.setdefault("_V", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
+        kwargs.setdefault("_D1", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
+        kwargs.setdefault("_D2", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
+        kwargs.setdefault("_Q", np.zeros(kwargs['_nq']))
+        
+        super().__init__(**kwargs)
+        
+        self.build_expansion(el=self)
+        
+class BentFieldExpansion(BeamElement):
+    """
+    Specifies the field expansion in general derivatives on axis in straight or curved frame 
+
+    Parameters
+        ----------
+        h : float
+            Curvature of the element, in 1/m. For straight elements, h=0.
+        a : array, shape na, deg+1, floats
+            describing the polynomial coefficients for the skew multipoles. First index is multipole order, second index is polynomial coefficient.
+        b : array, shape nb, deg+1, floats
+            describing the polynomial coefficients for the normal multipoles. First index is multipole order, second index is polynomial coefficient.
+        bs : array, shape deg+1, floats 
+            describing the polynomial coefficients for the longitudinal field component. Index is polynomial coefficient,
+        ny : int
+            number of powers in y to include,
+        
+    """
+    
+    isthick = True
+    behaves_like_drift = True
+    has_backtrack = False
+    allow_loss_refinement = False
+    allow_rot_and_shift = False
+
+    _xofields = {
+        "length" : xo.Float64,
+        "h": xo.Float64,
+        "straight": xo.Int64,
+        "ny": xo.Int64,
+        "deg": xo.Int64,
+        "nstep": xo.Int64,
+        "ds": xo.Float64,
+        
+        "a": xo.Float64[:],
+        "b": xo.Float64[:],
+        "bs": xo.Float64[:],
+        
+        "na": xo.Int64,
+        "nb": xo.Int64,
+        "deg": xo.Int64,
+        
+        "_ncoef": xo.Int64,
+        "_mmax": xo.Int64,
+        "_mmin": xo.Int64,
+        "_moff": xo.Int64,
+        "_nm": xo.Int64,
+        
+        "_qemin": xo.Int64,
+        "_nq": xo.Int64,
+        
+        "_c": xo.Float64[:],
+        "_V": xo.Float64[:],
+        "_D1": xo.Float64[:],
+        "_D2": xo.Float64[:],
+        "_Q": xo.Float64[:],       
+        
+    }
+    
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/track_fieldexpansion_bent.h"',
+        '#include "xtrack/beam_elements/elements_src/create_fieldexpansion_bent.h"',
+    ]
+    
+    _kernels = {'build_expansion': xo.Kernel(
+            c_name='build_expansion_bent',
+            args=[xo.Arg(xo.ThisClass, name='el')]
+        ), 
+    }
+    
+    def __init__(self, length, h, a, b, bs, ny, nstep=10, **kwargs):
+        assert h > 1e-4, "Use straight element with h=0!"
+        kwargs['length'] = length
+        kwargs['h'] = h
+        kwargs['straight'] = 0
+        kwargs['nstep'] = nstep
+        kwargs['ds'] = length/nstep
+       
+        kwargs['a'] = np.asarray(a, dtype=np.float64).flatten()
+        kwargs['b'] = np.asarray(b, dtype=np.float64).flatten()
+        kwargs['bs'] = np.asarray(bs, dtype=np.float64)
+
+        kwargs['na'] = a.shape[0]
+        kwargs['nb'] = b.shape[0]
+        kwargs['ny'] = ny
+
+        kwargs['deg'] = a.shape[1] - 1
+        
+        if b.shape[1] != kwargs['deg'] + 1 or bs.shape[0] != kwargs['deg'] + 1:
+            raise ValueError("Invalid input shapes")
+        
+        kwargs['_ncoef'] = kwargs['ny'] + 2  # store phi_0..phi_{ny+1} so By is also order ny
+        
+        kwargs['_mmax'] = kwargs['na'] if kwargs['na'] > (kwargs['nb'] - 1) else (kwargs['nb'] - 1)
+        if kwargs['straight']:
+            kwargs['_mmin'] = 0
+            kwargs['_moff'] = 0
+            kwargs['_qemin'] = 0
+        else:
+            kwargs['_mmin'] = -2 * ((kwargs['_ncoef'] - 1) // 2)
+            kwargs['_moff'] = -kwargs['_mmin']
+            kwargs['_qemin'] = kwargs['_mmin'] - 1
+        kwargs['_nq'] = (kwargs['_mmax'] + 2) - kwargs['_qemin'] + 1
+        kwargs['_nm'] = kwargs['_mmax'] - kwargs['_mmin'] + 1
+
+        kwargs.setdefault("_c", np.zeros(kwargs['_ncoef'] * kwargs['_nm'] * (kwargs['deg'] + 1)))
+        
+        kwargs.setdefault("_V", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
+        kwargs.setdefault("_D1", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
+        kwargs.setdefault("_D2", np.zeros(kwargs['_ncoef'] * kwargs['_nm']))
+        kwargs.setdefault("_Q", np.zeros(kwargs['_nq']))
+        
+        super().__init__(**kwargs)
+        
+        self.build_expansion(el=self)
+
+
+class FieldExpansion(BeamElement):
+    def __new__(cls, *args, **kwargs):
+        if 'h' in kwargs and kwargs['h'] > 1e-9:
+            return BentFieldExpansion(*args, **kwargs)
+        else:
+            kwargs.pop('h', None)
+            return StraightFieldExpansion(*args, **kwargs)
