@@ -1698,7 +1698,7 @@ class TimeDelay(BeamElement):
     '''Beam element modeling a time delay, by applying the following transformation
     to the variable ``zeta``:
 
-        zeta_new = zeta_old + shift_zeta
+        zeta_new = zeta_old - shift_zeta
 
     Parameters
     ----------
