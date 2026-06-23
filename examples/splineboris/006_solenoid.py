@@ -98,9 +98,7 @@ fitter = FieldFitter(
 
 # Get the fitted field data for each longitudinal interval. Tracking settings
 # are intentionally applied below when constructing the SplineBoris elements.
-spline_data = fitter.get_spline_data(
-    multipole_order=multipole_order,
-)
+spline_data = fitter.get_spline_data()
 
 # Build the SplineBoris elements explicitly, using one integration step per
 # field-map interval.
