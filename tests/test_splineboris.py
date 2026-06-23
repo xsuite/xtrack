@@ -185,9 +185,7 @@ def undulator_rotated_fit_pars_df(test_data_dir):
 
 
 def test_field_fitter_get_spline_data_matches_sequence(solenoid_field_fitter):
-    spline_data = solenoid_field_fitter.get_spline_data(
-        multipole_order=SOLENOID_MULTIPOLE_ORDER,
-    )
+    spline_data = solenoid_field_fitter.get_spline_data()
     sequence = SplineBorisSequence(
         df_fit_pars=solenoid_field_fitter.df_fit_pars,
         multipole_order=SOLENOID_MULTIPOLE_ORDER,
