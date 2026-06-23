@@ -3520,7 +3520,15 @@ class Line:
 
         .. code-block:: python
 
-            ## Insertion of elements from the environment
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('q0', xt.Quadrupole, length=1.0, at=2.0),
+                env.new('m0', xt.Marker, at=5.0),
+                env.new('q1', xt.Quadrupole, length=1.0, at=8.0),
+                env.new('end', xt.Marker, at=10.0),
+            ])
 
             # Create a set of new elements to be placed
             env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
@@ -3531,27 +3539,22 @@ class Line:
 
             # Insert the new elements in the line
             line.insert([
-                env.place('s1', at=5.),
-                env.place('s2', anchor='end', at=-5., from_='start@q1'),
-                env.place(['m1', 'm2'], at='start@m0'),
-                env.place('m3', at='end@m0'),
+                env.place('s1', at=1.0),
+                env.place('s2', anchor='end', at=-0.5, from_='q1@start'),
+                env.place(['m1', 'm2'], at='m0@start'),
+                env.place('m3', at='m0@end'),
                 ])
 
-        .. code-block:: python
-
-            ## Insertion of elements instantiated by the user using the class
-            ## constructor
-
-            # Instantiate elements using the 
-            mysext =  xt.Sextupole(length=0.1, k2=0.2)
-            myaperture =  xt.LimitEllipse(a=0.01, b=0.02)
+            # Elements can also be instantiated directly by the user
+            mysext = xt.Sextupole(length=0.1, k2=0.2)
+            myaperture = xt.LimitEllipse(a=0.01, b=0.02)
 
             # Insert the element in the line and, contextually, define its name:
-            line.insert('s1', mysext, at=5., from_='q1')
+            line.insert('s3', mysext, at=0.75, from_='q1@end')
 
             # Alternatively, add the element to the environment and then do the insertion:
             env.elements['ap1'] = myaperture
-            line.insert('ap1', at='start@q0')
+            line.insert('ap1', at='q0@start')
 
         """
 
