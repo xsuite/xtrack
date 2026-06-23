@@ -1537,10 +1537,10 @@ COMMON_TEST_CASES = [
 ]
 @pytest.mark.parametrize(
     'case,atol',
-    zip(
+    list(zip(
         [case['case'].copy() for case in COMMON_TEST_CASES],
         [3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 2e-5, 1e-5, 2e-8, 1e-5, 2e-5],
-    ),
+    )),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
 def test_splineboris_spin_uniform_solenoid(case, atol, make_uniform_splineboris):
@@ -1636,10 +1636,10 @@ def test_splineboris_spin_multipole_dipole_component():
 
 @pytest.mark.parametrize(
     'case,atol',
-    zip(
+    list(zip(
         [case['case'].copy() for case in COMMON_TEST_CASES],
         [6e-8, 6e-8, 6e-8, 6e-8, 6e-8, 6e-8, 6e-5, 3e-5, 2e-7, 3e-5, 6e-5],
-    ),
+    )),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
 def test_splineboris_spin_quadrupole(case, atol):
