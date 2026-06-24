@@ -10,7 +10,8 @@ import xobjects as xo
 from xtrack.beam_elements.apertures import LimitPolygon
 from xdeps.table import Table
 from xobjects.context import XContext
-from xtrack import TwissInit, TwissTable
+from xtrack.twiss import TwissInit, TwissTable
+from xtrack.api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
 from xtrack.aperture.profile_converters import (
     LimitElement, profile_from_limit_element, profile_from_madx_aperture
 )
@@ -103,22 +104,30 @@ def _split_wrapped_s_interval(
     return [(start, end)]
 
 
-class Aperture:
-    halo_params = {
-        "emitx_norm": 3.5e-6,  # normalized emittance x
-        "emity_norm": 3.5e-6,  # normalized emittance y
-        "delta_rms": 0.0,  # rms energy spread
-        "tol_co": 0.0,  # tolerance for closed orbit
-        "tol_disp": 0.0,  # tolerance for normalized dispersion
-        "tol_disp_ref": 1.8,  # tolerance for reference dispersion derivative
-        "tol_disp_ref_beta": 170,  # tolerance for reference dispersion beta
-        "tol_beta_beating": 1.0,  # tolerance for beta beating in sigma
-        "halo_x": 6.0,  # n sigma of horizontal halo
-        "halo_y": 6.0,  # n sigma of vertical halo
-        "halo_r": 6.0,  # n sigma of 45 degree halo
-        "halo_primary": 6.0,  # n sigma of primary halo
-    }
+_aperture_doc_groups = GroupedAPICollector([
+    "Loading and Serialization",
+    "Aperture Computations",
+    "Introspection",
+    "Visualization",
+])
 
+DEFAULT_HALO_PARAMS = {
+    "emitx_norm": 3.5e-6,
+    "emity_norm": 3.5e-6,
+    "delta_rms": 0.0,
+    "tol_co": 0.0,
+    "tol_disp": 0.0,
+    "tol_disp_ref": 1.8,
+    "tol_disp_ref_beta": 170,
+    "tol_beta_beating": 1.0,
+    "halo_x": 6.0,
+    "halo_y": 6.0,
+    "halo_r": 6.0,
+    "halo_primary": 6.0,
+}
+
+
+class Aperture:
     def __init__(
         self,
         line: Line,
@@ -133,7 +142,7 @@ class Aperture:
         """Bind an aperture model to a line and precompute the derived geometry."""
         self.line = line
         self._model = model  # positioning of pipes in line frame
-        self.halo_params = self.halo_params.copy()
+        self._halo_params = DEFAULT_HALO_PARAMS.copy()
         self.context = context or xo.ContextCpu()
         self.s_tol = s_tol
 
@@ -155,21 +164,62 @@ class Aperture:
         if halo_params is not None:
             self.halo_params.update(halo_params)
 
-    @property
+    @classmethod
+    def _generate_doc_rst(cls, *, include_summary_table=True):
+        """Generate API documentation in RST format."""
+        from xtrack.api_docs import generate_grouped_class_rst
+
+        return generate_grouped_class_rst(cls, include_summary_table=include_summary_table)
+
+    @property_with_doc_group("Introspection")
+    def halo_params(self) -> dict:
+        """Dictionary of halo parameters controlling beam-envelope and aperture-sigma computations.
+
+        The keys and their default values are:
+
+        ========================  =======  =====================================================
+        Key                       Default  Description
+        ========================  =======  =====================================================
+        ``emitx_norm``            3.5e-6   Normalised horizontal emittance [m·rad]
+        ``emity_norm``            3.5e-6   Normalised vertical emittance [m·rad]
+        ``delta_rms``             0.0      RMS momentum spread
+        ``tol_co``                0.0      Closed-orbit tolerance [m]
+        ``tol_disp``              0.0      Normalised dispersion tolerance [m]
+        ``tol_disp_ref``          1.8      Reference dispersion derivative tolerance [m]
+        ``tol_disp_ref_beta``     170      Reference dispersion beta-function [m]
+        ``tol_beta_beating``      1.0      Beta-beating tolerance [sigma]
+        ``halo_x``                6.0      Horizontal halo size [sigma]
+        ``halo_y``                6.0      Vertical halo size [sigma]
+        ``halo_r``                6.0      45° halo size [sigma]
+        ``halo_primary``          6.0      Primary halo size [sigma]
+        ========================  =======  =====================================================
+
+        The dictionary is mutable; individual entries can be changed with
+        ``aperture.halo_params['key'] = value`` or in bulk with
+        ``aperture.halo_params.update({...})``.
+        """
+        return self._halo_params
+
+    @halo_params.setter
+    def halo_params(self, value: dict):
+        self._halo_params = value
+
+    @property_with_doc_group("Introspection")
     def profiles(self) -> ProfilesView:
         """Return the profile collection view."""
         return ProfilesView(self._model)
 
-    @property
+    @property_with_doc_group("Introspection")
     def pipe_positions(self) -> PipePositionsView:
         """Return the pipe-position collection view."""
         return PipePositionsView(self._model)
 
-    @property
+    @property_with_doc_group("Introspection")
     def pipes(self) -> PipesView:
         """Return the pipe collection view."""
         return PipesView(self._model)
 
+    @doc_group("Loading and Serialization")
     def to_json(self, filename):
         """Serialize the aperture model and halo parameters to JSON."""
         json = {
@@ -178,9 +228,10 @@ class Aperture:
         }
         json_dump(json, filename)
 
+    @doc_group("Loading and Serialization")
     @classmethod
     def from_json(cls, filename, line, **kwargs):
-        """Load an aperture from JSON and bind it to `line`."""
+        """Load an aperture from JSON and bind it to ``line``."""
         context = kwargs.pop('context', None)
         if context is None:
             context = getattr(line, '_context', None)
@@ -197,6 +248,7 @@ class Aperture:
             **kwargs,
         )
 
+    @doc_group("Loading and Serialization")
     @classmethod
     def from_line_with_madx_metadata(cls, line, include_offsets=True, context=None, **kwargs):
         """Build an aperture from MAD-X layout metadata attached to a line."""
@@ -345,6 +397,7 @@ class Aperture:
         )
         return aperture
 
+    @doc_group("Loading and Serialization")
     @classmethod
     def from_line_with_associated_apertures(cls, line, context=None, **kwargs):
         """Build an aperture from Xsuite elements that reference associated apertures."""
@@ -436,6 +489,7 @@ class Aperture:
         )
         return aperture
 
+    @doc_group("Loading and Serialization")
     @classmethod
     def from_line_with_limits(cls, line, context=None, **kwargs):
         """Build an aperture from limit elements installed in the line."""
@@ -559,6 +613,7 @@ class Aperture:
 
         return aperture
 
+    @doc_group("Aperture Computations")
     def get_aperture_sigmas_at_element(
             self,
             element_name: str,
@@ -588,6 +643,7 @@ class Aperture:
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_aperture_sigmas_at_s(s_positions, twiss_init, **kwargs)
 
+    @doc_group("Aperture Computations")
     def get_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
@@ -598,7 +654,7 @@ class Aperture:
             output_max_envelopes: bool = False,
             output_cross_sections: bool = False,
     ) -> tuple[Table, TwissTable]:
-        """Compute the maximum number of sigmas at which the beam fits in the aperture at element ``element_name``.
+        """Compute the maximum number of sigmas at which the beam fits in the aperture at the given ``s_positions``.
 
         Parameters
         ----------
@@ -635,7 +691,7 @@ class Aperture:
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
         sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
-        table = self.get_aperture_sigmas_from_twiss(
+        table = self.get_aperture_sigmas_for_twiss(
             sliced_twiss=sliced_twiss,
             method=method,
             envelopes_num_points=envelopes_num_points,
@@ -645,7 +701,8 @@ class Aperture:
         )
         return table, sliced_twiss
 
-    def get_aperture_sigmas_from_twiss(
+    @doc_group("Aperture Computations")
+    def get_aperture_sigmas_for_twiss(
         self,
         sliced_twiss: TwissTable,
         method: SigmasCalculationEnum = 'rays',
@@ -781,13 +838,14 @@ class Aperture:
             table_data['envelope'] = envelope_at_max_sigma
         return Table(table_data, index='index')
 
+    @doc_group("Aperture Computations")
     def get_hvd_aperture_sigmas_at_element(
             self,
             element_name: str,
             resolution: float | None = None,
             twiss: TwissTable | None = None,
     ) -> tuple[np.ndarray, TwissTable, np.ndarray]:
-        """Compute horizontal, vertical and horizontal max aperture sigmas at element ``element_name``.
+        """Compute horizontal, vertical and diagonal (45°) max aperture sigmas at element ``element_name``.
 
         Parameters
         ----------
@@ -809,12 +867,13 @@ class Aperture:
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_hvd_aperture_sigmas_at_s(s_positions=s_positions, twiss_init=twiss_init)
 
+    @doc_group("Aperture Computations")
     def get_hvd_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
     ) -> tuple[np.ndarray, TwissTable, np.ndarray]:
-        """Compute horizontal, vertical and horizontal max aperture sigmas.
+        """Compute horizontal, vertical and diagonal (45°) max aperture sigmas at the given ``s_positions``.
 
         Parameters
         ----------
@@ -867,6 +926,7 @@ class Aperture:
 
         return ray_sigmas, sliced_twiss, interpolated_points
 
+    @doc_group("Aperture Computations")
     def get_envelope_at_element(
             self,
             element_name: str,
@@ -901,6 +961,7 @@ class Aperture:
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
 
+    @doc_group("Aperture Computations")
     def get_envelope_at_s(
             self,
             s_positions: Iterable[float],
@@ -948,6 +1009,7 @@ class Aperture:
         )
         return envelope_table, sliced_twiss
 
+    @doc_group("Aperture Computations")
     def get_envelope_for_twiss(
         self,
         sliced_twiss: TwissTable,
@@ -1034,11 +1096,13 @@ class Aperture:
 
         return Table(table_data, index='index')
 
+    @doc_group("Aperture Computations")
     def poses_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices:
         """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
         sv_resampled = self._survey_data.resample(s_positions)
         return sv_resampled.pose.to_nparray()
 
+    @doc_group("Aperture Computations")
     def cross_sections_at_element(
         self,
         element_name: str,
@@ -1049,6 +1113,7 @@ class Aperture:
         s_positions = self._get_cuts_at_element(element_name, resolution)
         return self.cross_sections_at_s(s_positions, extents=extents)
 
+    @doc_group("Aperture Computations")
     def cross_sections_at_s(
         self,
         s_positions: Collection[float],
@@ -1112,6 +1177,7 @@ class Aperture:
             table_data.update(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
         return Table(table_data, index='index')
 
+    @doc_group("Aperture Computations")
     def get_limit_elements(self, s_positions: list[float]) -> dict[float, LimitElement]:
         """Obtain interpolated cross-sections as limit beam elements."""
         cross_sections_table = self.cross_sections_at_s(s_positions)
@@ -1126,6 +1192,7 @@ class Aperture:
 
         return limit_elements
 
+    @doc_group("Visualization")
     def plot_extents(
         self,
         s_positions: Collection[float],
@@ -1190,7 +1257,7 @@ class Aperture:
             twiss_init=twiss_init,
         )
         if sigmas is None:
-            n1_table = self.get_aperture_sigmas_from_twiss(
+            n1_table = self.get_aperture_sigmas_for_twiss(
                 sliced_twiss=sliced_twiss,
                 method=method,
             )
@@ -1245,6 +1312,7 @@ class Aperture:
 
         return fig, axs
 
+    @doc_group("Visualization")
     def plot_at_element(
             self,
             name: str,
@@ -1322,6 +1390,7 @@ class Aperture:
         ax.legend()
         return ax
 
+    @doc_group("Visualization")
     def plot_n1_at_element(
         self,
         name: str,
@@ -1391,6 +1460,7 @@ class Aperture:
         ax.legend()
         return ax
 
+    @doc_group("Visualization")
     def plot_floor_projection(
         self,
         ax=None,
@@ -1547,6 +1617,7 @@ class Aperture:
                 last_end = end
                 last_name = name
 
+    @doc_group("Introspection")
     def get_bounds_table(self) -> Table:
         """Return per-profile aperture-bound information as a table.
 
@@ -1615,6 +1686,7 @@ class Aperture:
         )
         return bounds_table
 
+    @doc_group("Introspection")
     def s_around_transitions(
         self,
         tol: float | None = None,
@@ -1698,6 +1770,7 @@ class Aperture:
 
         return np.unique(s_positions)
 
+    @doc_group("Introspection")
     def get_pipe_table(self):
         """Return installed-pipe interval information as a table.
 
@@ -1903,3 +1976,6 @@ class Aperture:
             )
 
         return False
+
+
+Aperture.__doc_groups__ = _aperture_doc_groups.collect(Aperture)

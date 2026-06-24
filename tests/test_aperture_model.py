@@ -9,8 +9,9 @@ import pytest
 import xobjects as xo
 import xtrack as xt
 from cpymad.madx import Madx
+
 from xobjects.general import allclose_with_outliers
-from xobjects.test_helpers import for_all_test_contexts, requires_context
+from xobjects.test_helpers import for_all_test_contexts, requires_context, skip_if_forbid_compile
 from xtrack.aperture.aperture import Aperture, ProfilesView, _split_wrapped_s_interval
 from xtrack.aperture.builder import ApertureBuilder
 from xtrack.aperture.views import PipePositionsView, PipesView
@@ -326,6 +327,8 @@ def test_from_line_with_aperture_type_bounds(test_context):
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_zigzag_iterator_wrap_and_bounds(test_context):
+    skip_if_forbid_compile()
+
     ZIGZAG_TEST_SOURCE = r"""
         #include "xtrack/aperture/headers/zigzag_iterate.h"
 
@@ -1462,7 +1465,7 @@ def _build_single_marker_aperture_model(context):
 
 
 @pytest.mark.parametrize('method', ['bisection', 'rays', 'exact'])
-def test_get_aperture_sigmas_from_twiss_matches_at_s(method, context):
+def test_get_aperture_sigmas_for_twiss_matches_at_s(method, context):
     aperture_model, tw = _build_single_marker_aperture_model(context)
 
     at_s_table, sliced_twiss = aperture_model.get_aperture_sigmas_at_s(
@@ -1473,7 +1476,7 @@ def test_get_aperture_sigmas_from_twiss_matches_at_s(method, context):
         output_cross_sections=True,
         output_max_envelopes=True,
     )
-    from_twiss_table = aperture_model.get_aperture_sigmas_from_twiss(
+    from_twiss_table = aperture_model.get_aperture_sigmas_for_twiss(
         sliced_twiss=sliced_twiss,
         method=method,
         envelopes_num_points=144,

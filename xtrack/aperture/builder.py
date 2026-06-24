@@ -298,9 +298,9 @@ class ApertureBuilder:
             Full 4x4 homogeneous transform from the survey reference to the
             pipe frame.
         shift_x, shift_y, shift_z : float, optional
-            Translation components used when ``transformation`` is not given.
+            Translation component used when ``transformation`` is not given.
         rot_y_rad, rot_x_rad, rot_z_rad : float, optional
-            Rotation components used when ``transformation`` is not given.
+            Rotation component used when ``transformation`` is not given.
 
         Returns
         -------
