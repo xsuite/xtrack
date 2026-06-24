@@ -1077,7 +1077,10 @@ static inline uint32_t find_active_profile_for_s(
 /*
     Find an anchor profile index for interpolation at target_s.
 
-    Assumes bounds are non-overlapping and ordered by s.
+    Assumes bounds are non-overlapping within the configured model tolerance
+    and ordered by s up to that tolerance. Bounds can have small local
+    inversions to keep profiles of the same installed pipe adjacent across a
+    tolerated pipe overlap.
 
     Returns:
     --------
@@ -1105,6 +1108,11 @@ static inline uint32_t find_active_profile_for_s(
         && target_s >= ApertureBounds_get_s_start(aperture_bounds, 0)
     ) ? 0 : lower_bound;
 
+    /*
+        Small local inversions, bounded by the model tolerance, can be present
+        to keep one installed pipe's profiles adjacent. The forward scan then
+        changes pipe only after passing the preceding bound in that order.
+    */
     while (idx + 1 < num_bounds && target_s >= ApertureBounds_get_s_start(aperture_bounds, idx + 1)) {
         idx++;
     }

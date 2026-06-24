@@ -740,6 +740,185 @@ def test_pipe_overlap_validation_allows_wrapped_and_regular_non_overlapping_pipe
     xo.assert_allclose(middle.span, 10.0, atol=1e-9, rtol=0)
 
 
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_cross_sections_do_not_interpolate_between_pipes_overlapping_within_tolerance(test_context):
+    env = xt.Environment()
+    line = env.new_line(
+        name='line',
+        components=[env.new('drift', xt.Drift, length=4.5)],
+    )
+    sv = line.survey()
+
+    overlap = 5e-4
+    model = ApertureModel(
+        line=line,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+            PipePosition(
+                pipe_index=1,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(shift_z=1.0),
+            ),
+            PipePosition(
+                pipe_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(shift_z=3.0),
+            ),
+        ],
+        pipes=[
+            Pipe(curvature=0.0, positions=[
+                ProfilePosition(profile_index=0, shift_s=0.0),
+                ProfilePosition(profile_index=0, shift_s=1.0 + overlap),
+            ]),
+            Pipe(curvature=0.0, positions=[
+                ProfilePosition(profile_index=1, shift_s=0.0),
+                ProfilePosition(profile_index=1, shift_s=1.0),
+            ]),
+        ],
+        profiles=[
+            Profile(shape=Circle(radius=0.1), tol_r=0, tol_x=0, tol_y=0),
+            Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
+        ],
+        pipe_names=['small_pipe', 'large_pipe'],
+        pipe_position_names=['small_pipe', 'large_pipe', 'small_pipe_again'],
+        profile_names=['small_circle', 'large_circle'],
+    )
+
+    aperture = Aperture(
+        line=line,
+        model=model,
+        context=test_context,
+        s_tol=1e-3,
+        num_profile_points=64,
+    )
+
+    # The accepted sub-tolerance overlap does not corrupt the per-pipe table.
+    pipe_table = aperture.get_pipe_table()
+    small_pipe = pipe_table.rows['small_pipe']
+    large_pipe = pipe_table.rows['large_pipe']
+    small_pipe_again = pipe_table.rows['small_pipe_again']
+    xo.assert_allclose(
+        [
+            small_pipe.s_start,
+            small_pipe.s_end,
+            small_pipe.s_span_start,
+            small_pipe.s_span_end,
+        ],
+        [0.0, 1.0 + overlap, 0.0, 1.0 + overlap],
+        atol=1e-12,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        [
+            large_pipe.s_start,
+            large_pipe.s_end,
+            large_pipe.s_span_start,
+            large_pipe.s_span_end,
+        ],
+        [1.0, 2.0, 1.0, 2.0],
+        atol=1e-12,
+        rtol=0,
+    )
+    xo.assert_allclose(
+        [small_pipe_again.s_start, small_pipe_again.s_end],
+        [3.0, 4.0 + overlap],
+        atol=1e-12,
+        rtol=0,
+    )
+
+    # Reordering is per installed pipe position, even when a pipe type is
+    # installed more than once.
+    xo.assert_allclose(
+        aperture._aperture_bounds.pipe_position_indices.to_nparray(),
+        [0, 0, 1, 1, 2, 2],
+        atol=0,
+        rtol=0,
+    )
+
+    # These points are away from the overlap and lie in exactly one pipe.
+    # Each cylindrical pipe must retain its constant circular cross-section.
+    sections = aperture.cross_sections_at_s([0.5, 1.5, 3.5]).cross_section
+    radii = np.linalg.norm(sections, axis=2)
+    xo.assert_allclose(np.mean(radii, axis=1), [0.1, 1.0, 0.1], atol=1e-12, rtol=0)
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_aperture_bounds_preserve_overlap_larger_than_tolerance(test_context):
+    env = xt.Environment()
+    line = env.new_line(
+        name='line',
+        components=[env.new('drift', xt.Drift, length=2.5)],
+    )
+    sv = line.survey()
+
+    overlap = 2e-3
+    model = ApertureModel(
+        line=line,
+        pipe_positions=[
+            PipePosition(
+                pipe_index=0,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(),
+            ),
+            PipePosition(
+                pipe_index=1,
+                survey_reference_name=sv.name[0],
+                survey_index=0,
+                transformation=transform_matrix(shift_z=1.0),
+            ),
+        ],
+        pipes=[
+            Pipe(curvature=0.0, positions=[
+                ProfilePosition(profile_index=0, shift_s=0.0),
+                ProfilePosition(profile_index=0, shift_s=1.0 + overlap),
+            ]),
+            Pipe(curvature=0.0, positions=[
+                ProfilePosition(profile_index=1, shift_s=0.0),
+                ProfilePosition(profile_index=1, shift_s=1.0),
+            ]),
+        ],
+        profiles=[
+            Profile(shape=Circle(radius=0.1), tol_r=0, tol_x=0, tol_y=0),
+            Profile(shape=Circle(radius=1.0), tol_r=0, tol_x=0, tol_y=0),
+        ],
+        pipe_names=['small_pipe', 'large_pipe'],
+        pipe_position_names=['small_pipe', 'large_pipe'],
+        profile_names=['small_circle', 'large_circle'],
+    )
+
+    with pytest.raises(ValueError, match='overlaps pipe position'):
+        Aperture(
+            line=line,
+            model=model,
+            context=test_context,
+            s_tol=1e-3,
+        )
+
+    aperture = Aperture(
+        line=line,
+        model=model,
+        context=test_context,
+        s_tol=1e-3,
+        _skip_validity_check=True,
+    )
+
+    # Intentional overlaps larger than the tolerance retain geometric order.
+    xo.assert_allclose(
+        aperture._aperture_bounds.pipe_position_indices.to_nparray(),
+        [0, 1, 0, 1],
+        atol=0,
+        rtol=0,
+    )
+
+
 def test_split_wrapped_s_interval_without_wrap():
     intervals = _split_wrapped_s_interval(3.0, 7.0, line_length=10.0, wrap=False, s_tol=1e-9)
     assert intervals == [(3.0, 7.0)]

@@ -1487,6 +1487,10 @@ class Aperture:
             survey=self._survey_data,
         )
         self._aperture_bounds.sort_by_s()
+        self._aperture_bounds.reorder_for_tolerated_pipe_overlaps(
+            s_tol=self.s_tol,
+            is_ring=self.is_ring,
+        )
 
         if check_validity:
             self._check_pipe_bounds_validity()
