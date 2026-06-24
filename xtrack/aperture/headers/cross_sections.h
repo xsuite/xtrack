@@ -432,7 +432,6 @@ void cross_sections_at_s(
     float_type* max_y
 )
 {
-    const int8_t is_ring = ApertureModel_get_is_ring(model);
     const uint32_t num_cross_sections = SurveyData_len_s(survey_at_s);
     const uint32_t len_points = ProfilePolygons_get_len_points(profile_polys);
 
