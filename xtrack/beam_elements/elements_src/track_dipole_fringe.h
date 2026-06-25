@@ -83,6 +83,227 @@ void DipoleFringe_single_particle(
     LocalParticle_set_zeta(part, new_zeta);
 }
 
+/*
+ * Fixed-cost approximate inverse of the MAD-NG dipole-fringe map.
+ *
+ * The exact inverse reduces to a scalar equation for the entrance py. The
+ * quadratic predictor expands fi0 through py^2 and is followed by one
+ * analytic Newton correction evaluated with the exact fi0. There is no
+ * convergence loop.
+ */
+
+typedef struct DipoleFringeInverseTerms_s {
+    double b0;
+    double c3;
+    double relp;
+    double tfac;
+    double fi0;
+    double kx;
+    double ky;
+    double kz;
+} DipoleFringeInverseTerms;
+
+GPUFUN
+int64_t DipoleFringe_inverse_terms(
+        const double px,
+        const double pt,
+        const double delta,
+        const double beta0,
+        const double chi,
+        const double fint,
+        const double hgap,
+        const double k0,
+        const double py,
+        DipoleFringeInverseTerms* terms
+) {
+    const double fh = hgap * fint;
+    const double fsad = (fh > 10e-10) ? 1. / (72. * fh) : 0.;
+    const double b0 = k0 * chi;
+    const double dpp = POW2(1. + delta);
+    const double pz_sq = dpp - POW2(px) - POW2(py);
+    if (!(pz_sq > 0.) || !isfinite(pz_sq)) return 1;
+
+    const double pz = sqrt(pz_sq);
+    const double _pz = 1. / pz;
+    const double relp = 1. / sqrt(dpp);
+    const double tfac = -(1. / beta0 + pt);
+    const double c2 = 2. * b0 * fh;
+    const double c3 = POW2(b0) * fsad * relp;
+
+    const double xp = px * _pz;
+    const double yp = py * _pz;
+    const double xyp = xp * yp;
+    const double yp2 = 1. + POW2(yp);
+    const double xp2 = POW2(xp);
+    const double _yp2 = 1. / yp2;
+
+    const double fi0 = atan(xp * _yp2)
+        - c2 * (1. + xp2 * (1. + yp2)) * pz;
+    const double cos2_fi0 = POW2(cos(fi0));
+    if (!(cos2_fi0 > 0.) || !isfinite(cos2_fi0)) return 2;
+
+    const double co2 = b0 / cos2_fi0;
+    const double co1 = co2 / (1. + POW2(xp * _yp2)) * _yp2;
+    const double co3 = co2 * c2;
+
+    const double fi1 = co1 - 2. * co3 * xp * (1. + yp2) * pz;
+    const double fi2 = -2. * co1 * xyp * _yp2
+        - 2. * co3 * xp * xyp * pz;
+    const double fi3 = -co3 * (1. + xp2 * (1. + yp2));
+
+    const double kx = fi1 * (1. + xp2) * _pz
+        + fi2 * xyp * _pz - fi3 * xp;
+    const double ky = fi1 * xyp * _pz
+        + fi2 * yp2 * _pz - fi3 * yp;
+    const double kz = fi1 * tfac * xp * POW2(_pz)
+        + fi2 * tfac * yp * POW2(_pz) - fi3 * tfac * _pz;
+
+    if (!isfinite(b0) || !isfinite(c3) || !isfinite(relp)
+            || !isfinite(tfac) || !isfinite(fi0) || !isfinite(kx)
+            || !isfinite(ky) || !isfinite(kz)) return 3;
+
+    terms->b0 = b0;
+    terms->c3 = c3;
+    terms->relp = relp;
+    terms->tfac = tfac;
+    terms->fi0 = fi0;
+    terms->kx = kx;
+    terms->ky = ky;
+    terms->kz = kz;
+    return 0;
+}
+
+GPUFUN
+int64_t DipoleFringe_single_particle_inverse_quadratic_corrected(
+        LocalParticle* part,
+        const double fint,
+        const double hgap,
+        const double k0
+) {
+    if (fabs(k0) < 10e-10) return 0;
+
+    const double beta0 = LocalParticle_get_beta0(part);
+    if (beta0 == 0. || !isfinite(beta0)) return 1;
+
+    const double exit_x = LocalParticle_get_x(part);
+    const double px = LocalParticle_get_px(part);
+    const double exit_y = LocalParticle_get_y(part);
+    const double exit_py = LocalParticle_get_py(part);
+    const double exit_zeta = LocalParticle_get_zeta(part);
+    const double pt = LocalParticle_get_ptau(part);
+    const double delta = LocalParticle_get_delta(part);
+    const double chi = LocalParticle_get_chi(part);
+
+    const double fh = hgap * fint;
+    const double fsad = (fh > 10e-10) ? 1. / (72. * fh) : 0.;
+    const double b0 = k0 * chi;
+    const double c2 = 2. * b0 * fh;
+    const double dpp = POW2(1. + delta);
+    const double px2 = POW2(px);
+    const double a = dpp - px2;
+    if (!(a > 0.) || !isfinite(a)) return 2;
+
+    const double s = sqrt(a);
+    const double relp = 1. / sqrt(dpp);
+    const double c3 = POW2(b0) * fsad * relp;
+    const double phi_c = atan(px / s) - c2 * (dpp + px2) / s;
+    const double phi_2 = -px / (2. * dpp * s)
+        + c2 * (dpp - 5. * px2) / (2. * POW3(s));
+    const double tan_phi_c = tan(phi_c);
+    const double sec2_phi_c = 1. + POW2(tan_phi_c);
+    const double eta = exit_py + 4. * c3 * POW3(exit_y)
+        + b0 * tan_phi_c * exit_y;
+    const double alpha = b0 * exit_y * sec2_phi_c * phi_2;
+    double discriminant = 1. - 4. * alpha * eta;
+
+    double discriminant_scale = fabs(4. * alpha * eta);
+    if (discriminant_scale < 1.) discriminant_scale = 1.;
+    const double discriminant_tolerance = 64. * DBL_EPSILON
+        * discriminant_scale;
+    if (!isfinite(tan_phi_c) || !isfinite(eta) || !isfinite(alpha)
+            || !isfinite(discriminant)
+            || discriminant < -discriminant_tolerance) return 3;
+    if (discriminant < 0.) discriminant = 0.;
+
+    double entry_py = eta;
+    if (alpha != 0.) {
+        entry_py = 2. * eta / (1. + sqrt(discriminant));
+    }
+    if (!isfinite(entry_py) || !(a - POW2(entry_py) > 0.)) return 3;
+
+    DipoleFringeInverseTerms terms;
+    if (DipoleFringe_inverse_terms(
+            px, pt, delta, beta0, chi, fint, hgap, k0, entry_py,
+            &terms) != 0) return 4;
+
+    /* One fixed analytic correction of the quadratic predictor. */
+    const double pz = sqrt(a - POW2(entry_py));
+    const double u = px * pz / a;
+    const double du_dpy = -px * entry_py / (a * pz);
+    const double dshape_dpy = -entry_py / pz
+        + 4. * px2 * entry_py / POW3(pz)
+        + 3. * px2 * POW3(entry_py) / (POW4(pz) * pz);
+    const double dfi0_dpy = du_dpy / (1. + POW2(u))
+        - c2 * dshape_dpy;
+    const double tan_fi0 = tan(terms.fi0);
+    const double residual = entry_py
+        - 4. * terms.c3 * POW3(exit_y)
+        - terms.b0 * tan_fi0 * exit_y - exit_py;
+    const double residual_derivative = 1.
+        - terms.b0 * exit_y * (1. + POW2(tan_fi0)) * dfi0_dpy;
+
+    if (isfinite(residual) && isfinite(residual_derivative)
+            && fabs(residual_derivative) > 1e-14) {
+        const double corrected_py = entry_py - residual / residual_derivative;
+        if (isfinite(corrected_py) && a - POW2(corrected_py) > 0.) {
+            DipoleFringeInverseTerms corrected_terms;
+            if (DipoleFringe_inverse_terms(
+                    px, pt, delta, beta0, chi, fint, hgap, k0,
+                    corrected_py, &corrected_terms) == 0) {
+                entry_py = corrected_py;
+                terms = corrected_terms;
+            }
+        }
+    }
+
+    const double exit_y2 = POW2(exit_y);
+    const double entry_y = exit_y - 0.5 * terms.ky * exit_y2;
+    const double entry_x = exit_x - 0.5 * terms.kx * exit_y2;
+    const double entry_zeta = exit_zeta - beta0 * (
+        0.5 * terms.kz * exit_y2
+        + terms.c3 * POW4(exit_y) * POW2(terms.relp) * terms.tfac);
+
+    /* Select the same square-root branch as the direct map. */
+    const double branch_value = 1. - terms.ky * exit_y;
+    double branch_scale = fabs(terms.ky * exit_y);
+    if (branch_scale < 1.) branch_scale = 1.;
+    if (branch_value < -64. * DBL_EPSILON * branch_scale) return 5;
+
+    if (!isfinite(entry_x) || !isfinite(entry_y)
+            || !isfinite(entry_py) || !isfinite(entry_zeta)) return 6;
+
+    LocalParticle_set_x(part, entry_x);
+    LocalParticle_set_y(part, entry_y);
+    LocalParticle_set_py(part, entry_py);
+    LocalParticle_set_zeta(part, entry_zeta);
+    return 0;
+}
+
+GPUFUN
+void DipoleFringe_single_particle_backtrack(
+        LocalParticle* part,
+        const double fint,
+        const double hgap,
+        const double k0
+) {
+    const int64_t status =
+        DipoleFringe_single_particle_inverse_quadratic_corrected(
+            part, fint, hgap, k0);
+    if (status != 0) {
+        LocalParticle_kill_particle(part, -32);
+    }
+}
+
 #endif // no XTRACK_FRINGE_FROM_PTC
 
 
@@ -173,6 +394,18 @@ void DipoleFringe_single_particle(
     LocalParticle_set_py(part, new_py);
     LocalParticle_add_to_zeta(part, -d_tau * beta0); // PTC uses tau = ct
 }
+
+GPUFUN
+void DipoleFringe_single_particle_backtrack(
+        LocalParticle* part,
+        const double fint,
+        const double hgap,
+        const double k0
+) {
+    if (fabs(k0) < 10e-10) return;
+    LocalParticle_kill_particle(part, -32);
+}
+
 #endif // XTRACK_FRINGE_FROM_PTC
 
 

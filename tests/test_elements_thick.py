@@ -1139,6 +1139,37 @@ def test_fringe_implementations(test_context):
 
 
 @for_all_test_contexts
+def test_full_dipole_edge_backtrack(test_context):
+
+    skip_if_forbid_compile()
+
+    fringe = xt.DipoleEdge(
+        k=0.12, fint=100, hgap=0.035, model='full')
+
+    line = xt.Line(elements=[fringe])
+    line.particle_ref = xp.Particles(
+        mass0=xp.PROTON_MASS_EV, beta0=0.5)
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+
+    p0 = line.build_particles(px=0.5, py=0.001, y=0.01, delta=0.1)
+    p_test = p0.copy(_context=test_context)
+
+    line.track(p_test)
+    assert np.all(p_test.state == 1)
+    line.track(p_test, backtrack=True)
+
+    p0.move(_context=xo.context_default)
+    p_test.move(_context=xo.context_default)
+
+    assert np.all(p_test.state == 1)
+    for coordinate in ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']:
+        xo.assert_allclose(
+            getattr(p_test, coordinate), getattr(p0, coordinate),
+            rtol=0, atol=1e-12)
+
+
+@for_all_test_contexts
 def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
     # Check bend
@@ -1188,8 +1219,8 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
     xo.assert_allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
-    # Same for dipole edge
-    de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3)
+    # Same for a full dipole edge
+    de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3, model='full')
     line = xt.Line(elements=[de])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
@@ -1198,16 +1229,27 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
                                 zeta=0.05, delta=0.01)
     p1 = p0.copy(_context=test_context)
     line.track(p1)
-    p1.move(_context=xo.context_default)
     assert np.all(p1.state == 1)
-    line.configure_bend_model(edge='full')
     p2 = p1.copy(_context=test_context)
     line.track(p2, backtrack=True)
-    p2.move(_context=xo.context_default)
-    assert np.all(p2.state == -32)
 
-    # Same for combined function magnet
-    cfm = xt.Bend(length=1.0, k1=0.2, angle=0.1)
+    p0.move(_context=xo.context_default)
+    p2.move(_context=xo.context_default)
+    assert np.all(p2.state == 1)
+    xo.assert_allclose(p2.s, p0.s, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.x, p0.x, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.px, p0.px, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.y, p0.y, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.py, p0.py, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.zeta, p0.zeta, atol=1e-14, rtol=0)
+    xo.assert_allclose(p2.delta, p0.delta, atol=1e-14, rtol=0)
+
+    # Same for a combined-function magnet with dipole-only full edges
+    cfm = xt.Bend(
+        length=1.0, k1=0.2, angle=0.1,
+        edge_entry_model='dipole-only', edge_exit_model='dipole-only',
+        edge_entry_fint=0.5, edge_exit_fint=0.5,
+        edge_entry_hgap=0.03, edge_exit_hgap=0.03)
     line = xt.Line(elements=[cfm])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
     line.reset_s_at_end_turn = False
