@@ -410,6 +410,8 @@ void track_magnet_particles(
 
     double core_length, core_length_curved,factor_knl_ksl_body,
            factor_knl_ksl_edge,factor_backtrack_edge;
+    uint8_t edge_entry_is_exit = 0;
+    uint8_t edge_exit_is_exit = 1;
     // Backtracking
     if (LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK)) {
         core_length = -length * weight;
@@ -424,6 +426,11 @@ void track_magnet_particles(
         VSWAP(edge_entry_angle_fdown, edge_exit_angle_fdown);
         VSWAP(edge_entry_fint, edge_exit_fint);
         VSWAP(edge_entry_hgap, edge_exit_hgap);
+        {
+            const uint8_t tmp_is_exit = edge_entry_is_exit;
+            edge_entry_is_exit = edge_exit_is_exit;
+            edge_exit_is_exit = tmp_is_exit;
+        }
         VSWAP(theta_in, theta_out);
         VSWAP(cos_theta_in, cos_theta_out);
         VSWAP(sin_theta_in, sin_theta_out);
@@ -489,7 +496,8 @@ void track_magnet_particles(
         track_magnet_edge_particles(
             part0,
             edge_entry_model,
-            0, // is_exit
+            0, // is_exit in the current tracking direction
+            edge_entry_is_exit, // physical_is_exit
             edge_entry_hgap,
             knorm,
             kskew,
@@ -612,7 +620,8 @@ void track_magnet_particles(
         track_magnet_edge_particles(
             part0,
             edge_exit_model,
-            1, // is_exit
+            1, // is_exit in the current tracking direction
+            edge_exit_is_exit, // physical_is_exit
             edge_exit_hgap,
             knorm,
             kskew,
