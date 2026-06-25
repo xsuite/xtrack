@@ -99,7 +99,7 @@ def solenoid_field():
     return SolenoidField(**SOLENOID_MODEL_PARAMS)
 
 @pytest.fixture(scope="module")
-def solenoid_vs_varsol_fit_pars_df(solenoid_field):
+def solenoid_field_fitter(solenoid_field):
     sf = solenoid_field
 
     x_axis = np.linspace(
@@ -165,7 +165,12 @@ def solenoid_vs_varsol_fit_pars_df(solenoid_field):
     assert idx_end_max == SOLENOID_N_STEPS, f"Unexpected idx_end max: {idx_end_max}"
     assert point_count == SOLENOID_Z_POINT_COUNT, f"Unexpected point_count: {point_count}"
 
-    return df_fit_pars
+    return fitter
+
+
+@pytest.fixture(scope="module")
+def solenoid_vs_varsol_fit_pars_df(solenoid_field_fitter):
+    return solenoid_field_fitter.df_fit_pars
 
 @pytest.fixture(scope="module")
 def undulator_fit_pars_df(test_data_dir):
@@ -177,6 +182,58 @@ def undulator_rotated_fit_pars_df(test_data_dir):
         test_data_dir / "sls" / "undulator_fit_pars_rotated.csv",
         index_col=FIT_PARS_INDEX_COLS,
     )
+
+
+def test_field_fitter_get_spline_data_matches_sequence(solenoid_field_fitter):
+    spline_data = solenoid_field_fitter.get_spline_data()
+    sequence = SplineBorisSequence(
+        df_fit_pars=solenoid_field_fitter.df_fit_pars,
+        multipole_order=SOLENOID_MULTIPOLE_ORDER,
+    )
+
+    assert len(spline_data) == len(sequence.elements)
+    for piece, element, s_start, s_end in zip(
+        spline_data,
+        sequence.elements,
+        sequence.s_starts,
+        sequence.s_ends,
+    ):
+        assert set(piece) == {
+            "s_start", "s_end", "idx_start", "idx_end", "bs", "bx", "by"
+        }
+        assert isinstance(piece["bs"], xt.Spline4)
+        assert all(isinstance(spline, xt.Spline4) for spline in piece["bx"])
+        assert all(isinstance(spline, xt.Spline4) for spline in piece["by"])
+        assert len(piece["bx"]) == SOLENOID_MULTIPOLE_ORDER
+        assert len(piece["by"]) == SOLENOID_MULTIPOLE_ORDER
+        assert piece["s_start"] == s_start
+        assert piece["s_end"] == s_end
+        xo.assert_allclose(piece["bs"].as_list(), element.bs, rtol=0, atol=1e-14)
+        xo.assert_allclose(
+            [spline.as_list() for spline in piece["bx"]],
+            element.bx,
+            rtol=0,
+            atol=1e-14,
+        )
+        xo.assert_allclose(
+            [spline.as_list() for spline in piece["by"]],
+            element.by,
+            rtol=0,
+            atol=1e-14,
+        )
+
+    elements = [
+        xt.SplineBoris(
+            length=piece["s_end"] - piece["s_start"],
+            n_steps=max(1, piece["idx_end"] - piece["idx_start"]),
+            bs=piece["bs"],
+            bx=piece["bx"],
+            by=piece["by"],
+        )
+        for piece in spline_data
+    ]
+    line = xt.Line(elements=elements)
+    xo.assert_allclose(line.get_length(), sequence.length, rtol=0, atol=1e-14)
 
 
 
@@ -1480,10 +1537,10 @@ COMMON_TEST_CASES = [
 ]
 @pytest.mark.parametrize(
     'case,atol',
-    zip(
+    list(zip(
         [case['case'].copy() for case in COMMON_TEST_CASES],
         [3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 2e-5, 1e-5, 2e-8, 1e-5, 2e-5],
-    ),
+    )),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
 def test_splineboris_spin_uniform_solenoid(case, atol, make_uniform_splineboris):
@@ -1579,10 +1636,10 @@ def test_splineboris_spin_multipole_dipole_component():
 
 @pytest.mark.parametrize(
     'case,atol',
-    zip(
+    list(zip(
         [case['case'].copy() for case in COMMON_TEST_CASES],
         [6e-8, 6e-8, 6e-8, 6e-8, 6e-8, 6e-8, 6e-5, 3e-5, 2e-7, 3e-5, 6e-5],
-    ),
+    )),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
 def test_splineboris_spin_quadrupole(case, atol):

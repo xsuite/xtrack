@@ -21,7 +21,33 @@ _HERMITE_SUFFIXES = ("val_start", "der_start", "val_end", "der_end", "mean")
 
 @dataclass
 class Spline4:
-    """Hermite boundary data and interval mean used by ``SplineBoris``."""
+    """Data defining a fourth-order longitudinal polynomial.
+
+    The five values constrain a quantity ``f(s)`` over one longitudinal
+    interval: its value and derivative at both boundaries, and its mean over
+    the interval. Together they uniquely define the fourth-order polynomial
+    used by :class:`SplineBoris`.
+
+    Parameters
+    ----------
+    val_start : float
+        Value of ``f`` at the entrance of the interval.
+    der_start : float
+        Longitudinal derivative ``df/ds`` at the entrance of the interval.
+    val_end : float
+        Value of ``f`` at the exit of the interval.
+    der_end : float
+        Longitudinal derivative ``df/ds`` at the exit of the interval.
+    mean : float
+        Mean value of ``f`` over the interval.
+
+    Notes
+    -----
+    The units depend on the quantity represented. For a magnetic-field
+    component, ``val_start``, ``val_end``, and ``mean`` are in tesla, while
+    ``der_start`` and ``der_end`` are in tesla per meter. For transverse field
+    derivatives, the corresponding additional inverse-meter powers apply.
+    """
 
     val_start: float
     der_start: float
@@ -30,6 +56,13 @@ class Spline4:
     mean: float
 
     def as_list(self):
+        """Return the values in constructor and storage order.
+
+        Returns
+        -------
+        list of float
+            ``[val_start, der_start, val_end, der_end, mean]``.
+        """
         return [
             self.val_start,
             self.der_start,
@@ -39,6 +72,14 @@ class Spline4:
         ]
 
     def as_dict(self):
+        """Return the values as a serializable dictionary.
+
+        Returns
+        -------
+        dict
+            Mapping with the keys ``val_start``, ``der_start``, ``val_end``,
+            ``der_end``, and ``mean``.
+        """
         return {
             'val_start': self.val_start,
             'der_start': self.der_start,
@@ -48,6 +89,13 @@ class Spline4:
         }
 
     def as_np_array(self):
+        """Return the values as a one-dimensional NumPy array.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of shape ``(5,)`` in constructor and storage order.
+        """
         return np.array(self.as_list())
 
 # Canonical naming convention for the polynomial coefficients
@@ -207,7 +255,8 @@ class SplineBoris(BeamElement):
     bx : Spline4 or tuple/list of (Spline4 or None), optional
         Hermite data for the skew multipole components (Bx channel). A single
         ``Spline4`` corresponds to derivative order 0. A tuple/list item index
-        gives the derivative order; ``None`` entries are treated as zero.
+        gives the transverse derivative order with respect to ``x``;
+        ``None`` entries are treated as zero.
     by : Spline4 or tuple/list of (Spline4 or None), optional
         Hermite data for the normal multipole components (By channel), with
         the same indexing semantics as ``bx``.
@@ -230,6 +279,56 @@ class SplineBoris(BeamElement):
     ksl : array-like, optional
         Integrated strengths of additional skew multipole components in
         m**(-order). The corresponding kick is split over the Boris steps.
+
+    Examples
+    --------
+    Build a one-meter element with a normal dipole field plus a normal
+    quadrupole-gradient term and track particles through it:
+
+    .. code-block:: python
+
+        import xtrack as xt
+
+        bs0 = xt.Spline4(
+            val_start=0.02, der_start=0.0,
+            val_end=0.02, der_end=0.0,
+            mean=0.02,
+        )
+        bx0 = xt.Spline4(
+            val_start=0.03, der_start=0.0,
+            val_end=0.03, der_end=0.0,
+            mean=0.03,
+        )
+        by0 = xt.Spline4(
+            val_start=0.1, der_start=0.0,
+            val_end=0.1, der_end=0.0,
+            mean=0.1,
+        )
+        by1 = xt.Spline4(
+            val_start=20.0, der_start=0.0,
+            val_end=20.0, der_end=0.0,
+            mean=20.0,
+        )
+
+        element = xt.SplineBoris(
+            bs=bs0,
+            by=(by0, by1),  # By = by0(s) + by1(s) * x + ...
+            bx=(bx0,),      # Bx skew dipole component
+            length=1.0,
+            n_steps=100,
+        )
+
+        line = xt.Line(elements=[element])
+        line.particle_ref = xt.Particles("electron", p0c=1e9)
+
+        particles = line.particle_ref.copy()
+        particles.x = 1e-3
+        line.track(particles)
+
+    Higher-order normal or skew components can be supplied by adding entries to
+    ``by`` or ``bx``. The tuple index is the transverse derivative order with
+    respect to ``x``: ``by=(by0, by1, by2)`` defines normal dipole,
+    quadrupole-gradient and sextupole-like terms.
     '''
 
     isthick = True

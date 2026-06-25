@@ -567,6 +567,27 @@ class ReferenceEnergyIncrease(BeamElement):
     allow_rot_and_shift = False
 
 
+class ReferenceEnergyChange(BeamElement):
+
+    '''Beam element setting the reference momentum to an absolute value.
+
+    Parameters
+    ----------
+    p0c : float
+        New reference momentum in eV/c. Default is ``0``.
+
+    '''
+
+    _xofields = {
+        'p0c': xo.Float64}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/referenceenergychange.h"',
+    ]
+
+    allow_rot_and_shift = False
+
+
 class Marker(BeamElement):
     """A marker beam element with no effect on the particles.
     """
@@ -1698,7 +1719,7 @@ class TimeDelay(BeamElement):
     '''Beam element modeling a time delay, by applying the following transformation
     to the variable ``zeta``:
 
-        zeta_new = zeta_old + shift_zeta
+        zeta_new = zeta_old - shift_zeta
 
     Parameters
     ----------
@@ -2319,7 +2340,7 @@ class RBend(_BendCommon, BeamElement):
 
     Parameters
     ----------
-    length_straith : float
+    length_strait : float
         Length of the element in meters along the axis of the magnet (straight line
         between entry and exit points). This is different from the length of the
         reference trajectory, i.e. the increase of the `s` coordinate through the

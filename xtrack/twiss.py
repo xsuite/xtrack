@@ -659,12 +659,14 @@ def twiss_line(line, particle_ref=None, method=None,
                         **kwargs)
         return _add_action_in_res(res, input_kwargs)
 
-    if radiation_method is None and line._radiation_model is not None:
-        if line._radiation_model == 'quantum':
-            raise ValueError(
+    if line._radiation_model == 'quantum':
+        raise ValueError(
                 'twiss cannot be called when the radiation model is ``quantum``')
-        if method == '4d':
-            raise RuntimeError('4d twiss cannot be called when radiation is present')
+
+    if line._radiation_model is not None and method == '4d':
+        raise RuntimeError('4d twiss cannot be called when radiation is present')
+
+    if radiation_method is None and line._radiation_model is not None:
         radiation_method = 'kick_as_co'
 
     if radiation_method is not None and radiation_method != 'full':

@@ -14,6 +14,30 @@ from ..svgutils import svg_to_points
 
 UNLIMITED = 1e10  # could use np.inf but better safe than sorry
 
+def _compute_inner_radius_sq(x_vertices, y_vertices):
+    x0 = x_vertices
+    y0 = y_vertices
+    x1 = np.roll(x_vertices, -1)
+    y1 = np.roll(y_vertices, -1)
+
+    dx = x1 - x0
+    dy = y1 - y0
+    seg_len_sq = dx * dx + dy * dy
+
+    # Project the origin onto every edge at once and clamp to the segment.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        t = -(x0 * dx + y0 * dy) / seg_len_sq
+    t = np.where(seg_len_sq > 0.0, np.clip(t, 0.0, 1.0), 0.0)
+
+    x_proj = x0 + t * dx
+    y_proj = y0 + t * dy
+    distances_sq = x_proj * x_proj + y_proj * y_proj
+
+    if np.any(seg_len_sq == 0.0):
+        distances_sq = np.where(seg_len_sq == 0.0, x0 * x0 + y0 * y0, distances_sq)
+
+    return float(np.min(distances_sq))
+
 
 class LimitRect(BeamElement):
     """
@@ -227,6 +251,7 @@ class LimitPolygon(BeamElement):
         "y_vertices": xo.Float64[:],
         "x_normal": xo.Float64[:],
         "y_normal": xo.Float64[:],
+        "inner_radius_sq": xo.Float64,
         "resc_fac": xo.Float64,
     }
 
@@ -276,12 +301,25 @@ class LimitPolygon(BeamElement):
                     path, scale=scale, curved_steps=curved_steps, line_steps=2
                 )
             assert len(x_vertices) == len(y_vertices)
+            context = kwargs.get("_context", None)
+            if context is None and kwargs.get("_buffer", None) is not None:
+                context = kwargs["_buffer"].context
+            if context is not None and isinstance(x_vertices, context.nplike_array_type):
+                x_vertices = context.nparray_from_context_array(x_vertices)
+            if context is not None and isinstance(y_vertices, context.nplike_array_type):
+                y_vertices = context.nparray_from_context_array(y_vertices)
+
+            x_vertices_np = np.asarray(x_vertices, dtype=np.float64)
+            y_vertices_np = np.asarray(y_vertices, dtype=np.float64)
 
             if "x_normal" not in kwargs.keys():
                 kwargs["x_normal"] = len(x_vertices)
 
             if "y_normal" not in kwargs.keys():
                 kwargs["y_normal"] = len(x_vertices)
+
+            if "inner_radius_sq" not in kwargs.keys():
+                kwargs["inner_radius_sq"] = _compute_inner_radius_sq(x_vertices_np, y_vertices_np)
 
             if "resc_fac" not in kwargs.keys():
                 kwargs["resc_fac"] = 1.0
@@ -317,11 +355,20 @@ class LimitPolygon(BeamElement):
 
     def to_dict(self, **kwargs):
         out= super().to_dict(**kwargs)
+        for kk in ("inner_radius_sq",):
+            out.pop(kk, None)
         out["svg"]=self.svg
         return out
 
     @classmethod
     def from_dict(cls, d, **kwargs):
+        d = d.copy()
+        for kk in (
+            "min_x", "max_x", "min_y", "max_y",
+            "inner_min_x", "inner_max_x", "inner_min_y", "inner_max_y",
+            "inner_radius_sq",
+        ):
+            d.pop(kk, None)
         if 'svg' in d.keys() and d['svg'] is not None:
             d.pop('x_vertices')
             d.pop('y_vertices')
