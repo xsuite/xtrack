@@ -1,7 +1,7 @@
 import xtrack as xt
 import numpy as np
 
-# Add eval method to Table (to be moved to xtrack)
+# Add eval method to Table (to be done properly in xtrack)
 _TO_ADD = {}
 _TO_ADD.update(xt.functions.Functions._mathfunctions)
 for nn in xt.functions.Functions._mathfunctions:
