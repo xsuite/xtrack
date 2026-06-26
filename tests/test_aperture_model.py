@@ -269,7 +269,9 @@ def _make_pipe_table_test_ring(test_context, *, extra_pipe_positions=None):
 
 def _make_transition_test_aperture(test_context):
     env = xt.Environment()
+    env.particle_ref = xt.Particles(p0c=5e9, mass0=xt.PROTON_MASS_EV)
     line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=10.0)])
+    line.particle_ref = env.particle_ref
     sv = line.survey()
 
     model = ApertureModel(
@@ -295,12 +297,60 @@ def _make_transition_test_aperture(test_context):
     return Aperture(line=line, model=model, context=test_context)
 
 
+def _transition_test_twiss_init(aperture):
+    return xt.TwissInit(
+        particle_ref=aperture.line.particle_ref,
+        betx=1.0,
+        alfx=0.0,
+        bety=1.0,
+        alfy=0.0,
+        dx=0.0,
+        dpx=0.0,
+        dy=0.0,
+        dpy=0.0,
+    )
+
+
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_aperture_does_not_add_columns_to_survey(test_context):
     aperture = _make_transition_test_aperture(test_context)
 
     assert 'angle' not in aperture.survey._col_names
     assert 'rot_s_rad' not in aperture.survey._col_names
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_hvd_aperture_sigmas_returns_table(test_context):
+    aperture = _make_transition_test_aperture(test_context)
+    twiss_init = _transition_test_twiss_init(aperture)
+
+    hvd_table, sliced_twiss = aperture.get_hvd_aperture_sigmas_at_s([4.0, 5.0], twiss_init=twiss_init)
+
+    assert list(hvd_table._col_names) == [
+        'index',
+        's',
+        'n1_horizontal',
+        'n1_vertical',
+        'n1_diagonal',
+        'cross_section',
+    ]
+    xo.assert_allclose(hvd_table.s, sliced_twiss.s, atol=1e-14, rtol=0)
+    assert hvd_table.cross_section.shape == (2, aperture.num_profile_points, 2)
+
+
+def test_plot_transverse_accepts_element_and_s_positions():
+    aperture = _make_transition_test_aperture(xo.ContextCpu())
+    twiss_init = _transition_test_twiss_init(aperture)
+
+    from matplotlib import pyplot as plt
+
+    fig, axs = plt.subplots(1, 2)
+    aperture.plot_transverse('drift', resolution=2.0, sigmas=1.0, twiss_init=twiss_init, ax=axs[0])
+    aperture.plot_transverse(s_positions=[4.0, 6.0], sigmas=1.0, twiss_init=twiss_init, ax=axs[1])
+
+    assert axs[0].has_data()
+    assert axs[1].has_data()
+    plt.close(fig)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -699,10 +749,18 @@ def test_bounds_table_for_interval_spanning_multiple_types(test_context):
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_get_pipe_table_handles_regular_and_wrapped_pipes(test_context):
-    line, model = _make_pipe_table_test_ring(test_context)
+    line, model = _make_pipe_table_test_ring(
+        test_context,
+        extra_pipe_positions=[('pipe_before_regular', 'bend::0', 0.0)],
+    )
     ap = Aperture(line, model, context=test_context, _skip_validity_check=True)
 
     pipe_table = ap.get_pipe_table()
+    assert list(pipe_table.name) == ['pipe_before_regular', 'pipe_regular', 'pipe_wrapped']
+
+    before_regular = pipe_table.rows['pipe_before_regular']
+    xo.assert_allclose(before_regular.s_start, 0.0, atol=1e-9, rtol=0)
+    xo.assert_allclose(before_regular.s_end, 10.0, atol=1e-9, rtol=0)
 
     regular = pipe_table.rows['pipe_regular']
     xo.assert_allclose(regular.s_start, 10.0, atol=1e-9, rtol=0)
@@ -2072,7 +2130,7 @@ def test_aperture_bounds_follow_straight_body_rbend(test_context):
             ),
         ],
     )
-    builder.place_pipe('pipe', 'pipe', 'rbend')
+    builder.place_pipe('pipe', 'pipe', at='rbend')
     model = builder.build(context=test_context)
 
     aperture = Aperture(

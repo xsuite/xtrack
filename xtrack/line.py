@@ -3544,7 +3544,7 @@ class Line:
                 env.place('s2', anchor='end', at=-0.5, from_='q1@start'),
                 env.place(['m1', 'm2'], at='m0@start'),
                 env.place('m3', at='m0@end'),
-                ])
+            ])
 
             # Elements can also be instantiated directly by the user
             mysext = xt.Sextupole(length=0.1, k2=0.2)
