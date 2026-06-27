@@ -122,17 +122,28 @@ def test_get_suitable_kernel_raises_when_binary_is_missing(kernel_location):
 
 def test_get_suitable_kernel_raises_on_version_mismatch(kernel_location):
     module_name = 'test_kernel_cpu_serial'
+    other_module_name = 'test_kernel_extra_cpu_serial'
     versions = _versions()
     versions['xtrack'] = '0.0.bad'
     _write_metadata(kernel_location, module_name=module_name, versions=versions)
+    _write_metadata(
+        kernel_location,
+        module_name=other_module_name,
+        versions=versions,
+    )
     pk._kernel_binary_file(module_name, kernel_location).touch()
+    pk._kernel_binary_file(other_module_name, kernel_location).touch()
 
     with pytest.raises(pk.PrebuiltKernelNotFoundError) as err:
         pk.get_suitable_kernel({}, [], [], context=xo.ContextCpu())
 
     message = str(err.value)
     assert 'package versions do not match' in message
-    assert 'xtrack==0.0.bad' in message
+    assert message.count(
+        'cached kernels need xtrack==0.0.bad, but the current environment has'
+    ) == 1
+    assert module_name not in message
+    assert other_module_name not in message
 
 
 def test_get_suitable_kernel_raises_on_config_mismatch(kernel_location):
