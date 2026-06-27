@@ -242,7 +242,10 @@ def test_context_specific_prebuilt_kernel_selection(mocker, tmp_path):
     with (tmp_path / 'test_module_cpu_openmp.json').open('w') as fd:
         json.dump({**metadata_template, 'context': 'openmp'}, fd)
 
-    from xsuite.prebuild_kernels import get_suitable_kernel
+    from xsuite.prebuild_kernels import _kernel_binary_file, get_suitable_kernel
+
+    _kernel_binary_file('test_module_cpu_serial', tmp_path).touch()
+    _kernel_binary_file('test_module_cpu_openmp', tmp_path).touch()
 
     serial_info = get_suitable_kernel(
         config={},
