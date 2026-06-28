@@ -148,15 +148,25 @@ def test_get_suitable_kernel_raises_on_version_mismatch(kernel_location):
 
 def test_get_suitable_kernel_raises_on_config_mismatch(kernel_location):
     module_name = 'test_kernel_cpu_serial'
+    farther_module_name = 'test_kernel_farther_cpu_serial'
     _write_metadata(kernel_location, module_name=module_name, config={'a': 1})
+    _write_metadata(
+        kernel_location,
+        module_name=farther_module_name,
+        config={'a': 1, 'b': 1},
+    )
     pk._kernel_binary_file(module_name, kernel_location).touch()
+    pk._kernel_binary_file(farther_module_name, kernel_location).touch()
 
     with pytest.raises(pk.PrebuiltKernelNotFoundError) as err:
         pk.get_suitable_kernel({'a': 2}, [], [], context=xo.ContextCpu())
 
     message = str(err.value)
     assert 'no cached kernel matches' in message
+    assert 'Closest cached kernel' in message
     assert 'different configuration' in message
+    assert module_name in message
+    assert farther_module_name not in message
 
 
 def test_get_suitable_kernel_raises_on_context_mismatch(kernel_location):
