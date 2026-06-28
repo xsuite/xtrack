@@ -224,6 +224,18 @@ def test_get_suitable_kernel_returns_none_with_context_cpu_opt_out(
     assert pk.get_suitable_kernel({}, [], [], context=xo.ContextCpu()) is None
 
 
+def test_get_suitable_kernel_returns_none_for_openmp_context(kernel_location):
+    assert (
+        pk.get_suitable_kernel(
+            {},
+            [],
+            [],
+            context=xo.ContextCpu(omp_num_threads='auto'),
+        )
+        is None
+    )
+
+
 def test_missing_xsuite_raises_actionable_error(missing_xsuite):
     context = xo.ContextCpu()
 
@@ -254,6 +266,15 @@ def test_missing_xsuite_allows_jit_with_context_cpu_opt_out(
 ):
     monkeypatch.setattr(context_cpu, 'allow_no_prebuilt_kernel', True)
     context = xo.ContextCpu()
+    add_kernel_calls = _patch_add_kernels(monkeypatch, context)
+
+    DummyStruct.compile_class_kernels(context, only_if_needed=False)
+
+    assert len(add_kernel_calls) == 1
+
+
+def test_missing_xsuite_allows_jit_for_openmp_context(missing_xsuite, monkeypatch):
+    context = xo.ContextCpu(omp_num_threads='auto')
     add_kernel_calls = _patch_add_kernels(monkeypatch, context)
 
     DummyStruct.compile_class_kernels(context, only_if_needed=False)
