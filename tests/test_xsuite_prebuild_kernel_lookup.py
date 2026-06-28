@@ -206,6 +206,42 @@ def test_get_suitable_kernel_raises_on_missing_class(kernel_location):
     assert 'missing requested class(es): Requested' in str(err.value)
 
 
+def test_closest_kernel_prefers_missing_class_over_config_mismatch(
+    kernel_location,
+):
+    class Requested:
+        pass
+
+    class RequestedStruct:
+        _DressingClass = Requested
+
+    module_name = 'test_kernel_cpu_serial'
+    config_mismatch_module_name = 'test_kernel_config_mismatch_cpu_serial'
+    _write_metadata(kernel_location, module_name=module_name)
+    _write_metadata(
+        kernel_location,
+        module_name=config_mismatch_module_name,
+        config={'a': 1},
+    )
+    pk._kernel_binary_file(module_name, kernel_location).touch()
+    pk._kernel_binary_file(config_mismatch_module_name, kernel_location).touch()
+
+    with pytest.raises(pk.PrebuiltKernelNotFoundError) as err:
+        pk.get_suitable_kernel(
+            {},
+            [],
+            [RequestedStruct],
+            context=xo.ContextCpu(),
+        )
+
+    message = str(err.value)
+    assert 'Closest cached kernel' in message
+    assert 'missing requested class(es): Requested' in message
+    assert module_name in message
+    assert config_mismatch_module_name not in message
+    assert 'different configuration' not in message
+
+
 def test_get_suitable_kernel_returns_none_with_environment_opt_out(
     monkeypatch,
     kernel_location,
