@@ -9,6 +9,7 @@ import pytest
 
 import xobjects as xo
 import xobjects.context_cpu as context_cpu
+import xtrack as xt
 import xsuite.prebuild_kernels as pk
 
 
@@ -277,6 +278,26 @@ def test_missing_xsuite_raises_actionable_error(missing_xsuite):
 
     with pytest.raises(ImportError) as err:
         DummyStruct.compile_class_kernels(context, only_if_needed=True)
+
+    message = str(err.value)
+    assert 'pip install xsuite' in message
+    assert 'XSUITE_ALLOW_NO_PREBUILT_KERNELS' in message
+
+
+def test_tracker_missing_xsuite_raises_actionable_error(missing_xsuite):
+    tracker = xt.Tracker.__new__(xt.Tracker)
+    buffer = type('Buffer', (), {'context': xo.ContextCpu()})()
+    tracker_data = type(
+        'TrackerData',
+        (),
+        {'_buffer': buffer, 'line_element_classes': []},
+    )()
+    tracker._tracker_data_cache = {None: tracker_data}
+    tracker.line = type('Line', (), {'config': {}})()
+    tracker.use_prebuilt_kernels = True
+
+    with pytest.raises(ImportError) as err:
+        tracker._build_kernel(compile=True)
 
     message = str(err.value)
     assert 'pip install xsuite' in message
