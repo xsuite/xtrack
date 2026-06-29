@@ -4,7 +4,7 @@
 # ######################################### #
 
 from pathlib import Path
-from typing import LiteralString
+from typing import Literal, TypeAlias, get_args
 
 from xobjects.general import _print  # noqa: F401
 import requests
@@ -28,14 +28,15 @@ class _LOC:
 START = _LOC('START')
 END = _LOC('END')
 
-ANCHOR_NAMES = ('start', 'center', 'centre', 'end')
+AnchorName: TypeAlias = Literal['start', 'center', 'centre', 'end']
+ANCHOR_NAMES = get_args(AnchorName)
 
 
 def parse_anchor_spec(
         element_name: str,
         *,
-        default_anchor: LiteralString[*ANCHOR_NAMES] = None,
-) -> tuple[str, LiteralString[*ANCHOR_NAMES] | None]:
+        default_anchor: AnchorName | None = None,
+) -> tuple[str, AnchorName | None]:
     """Parse an ``element@anchor`` string.
 
     Parameters
