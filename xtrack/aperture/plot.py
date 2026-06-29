@@ -28,6 +28,20 @@ class _ProjectedProfile:
     endpoints_curvilinear: np.ndarray
 
 
+@dataclass
+class PipeProjection:
+    polygons: list[np.ndarray]
+    axis: np.ndarray
+
+
+@dataclass
+class PipeSolid:
+    faces: list[np.ndarray]
+    axis: np.ndarray
+    profile_rings: list[np.ndarray]
+    longitudinal_lines: list[np.ndarray]
+
+
 def _shape_projection_extents(shape, direction: np.ndarray) -> tuple[float, float]:
     """Return the extrema of a shape projected onto a unit direction."""
     dx, dy = direction
@@ -157,9 +171,10 @@ def _rectellipse_boundary_candidates(shape: RectEllipse, direction: np.ndarray) 
 def _profile_projection_segment(
     shape,
     profile_to_plot: np.ndarray,
+    normal_axis: int,
 ) -> np.ndarray | None:
-    """Project a profile onto its floor-intersection line in profile coordinates."""
-    plane_coefficients = np.asarray(profile_to_plot[1, [0, 1, 3]], dtype=float)
+    """Project a profile onto its plot-plane intersection line in profile coordinates."""
+    plane_coefficients = np.asarray(profile_to_plot[normal_axis, [0, 1, 3]], dtype=float)
     normal = plane_coefficients[:2]
     offset = plane_coefficients[2]
     normal_sq = float(normal @ normal)
@@ -225,16 +240,16 @@ def _curvilinear_to_cartesian(points: np.ndarray, curvature: float) -> np.ndarra
 
 
 def _installed_profile_projection(
-    aperture,
-    pipe_position,
+    pipe,
     profile_position,
     pipe_to_plot: np.ndarray,
+    normal_axis: int,
+    curvature: float,
 ) -> _ProjectedProfile | None:
-    pipe = pipe_position.pipe
     profile = profile_position.profile.raw
-    profile_to_pipe = _profile_to_pipe_matrix(profile_position.raw, pipe.curvature)
+    profile_to_pipe = _profile_to_pipe_matrix(profile_position.raw, curvature)
     profile_to_plot = pipe_to_plot @ profile_to_pipe
-    segment_local = _profile_projection_segment(profile.shape, profile_to_plot)
+    segment_local = _profile_projection_segment(profile.shape, profile_to_plot, normal_axis)
     if segment_local is None:
         return None
 
@@ -246,7 +261,7 @@ def _installed_profile_projection(
     segment_pipe = (profile_to_pipe @ segment_homogeneous.T).T[:, :3]
     segment_curvilinear = _cartesian_to_curvilinear(
         segment_pipe,
-        pipe.curvature,
+        curvature,
         reference_s=float(profile_position.shift_s),
     )
     return _ProjectedProfile(
@@ -315,22 +330,266 @@ def _pipe_projection_polygons(
     return polygons
 
 
-def _pipe_axis_points(pipe, max_curve_angle_rad: float) -> np.ndarray:
+def _pipe_axis_points(pipe, curvature: float, max_curve_angle_rad: float) -> np.ndarray:
     start_s = float(pipe[0].shift_s)
     end_s = float(pipe[len(pipe) - 1].shift_s)
-    if abs(pipe.curvature) <= _GEOMETRY_TOL:
+    if abs(curvature) <= _GEOMETRY_TOL:
         num_intervals = 1
     else:
-        angle = abs(pipe.curvature * (end_s - start_s))
+        angle = abs(curvature * (end_s - start_s))
         num_intervals = max(1, int(np.ceil(angle / max_curve_angle_rad)))
     s_values = np.linspace(start_s, end_s, num_intervals + 1)
     points = np.column_stack([np.zeros_like(s_values), np.zeros_like(s_values), s_values])
-    return _curvilinear_to_cartesian(points, pipe.curvature)
+    return _curvilinear_to_cartesian(points, curvature)
+
+
+def _profile_polygon_curvilinear(profile_position, curvature: float, len_points: int) -> np.ndarray:
+    polygon = profile_position.profile.raw.build_polygon(len_points)
+    if len(polygon) > 1 and np.allclose(polygon[0], polygon[-1], atol=_GEOMETRY_TOL, rtol=0):
+        polygon = polygon[:-1]
+
+    profile_to_pipe = _profile_to_pipe_matrix(profile_position.raw, curvature)
+    polygon_homogeneous = np.column_stack([
+        polygon,
+        np.zeros(len(polygon)),
+        np.ones(len(polygon)),
+    ])
+    polygon_pipe = (profile_to_pipe @ polygon_homogeneous.T).T[:, :3]
+    return _cartesian_to_curvilinear(
+        polygon_pipe,
+        curvature,
+        reference_s=float(profile_position.shift_s),
+    )
+
+
+def _best_ring_alignment(previous: np.ndarray, current: np.ndarray) -> np.ndarray:
+    if len(previous) != len(current):
+        return current
+
+    best_cost = np.inf
+    best_ring = current
+    for candidate in (current, current[::-1]):
+        for shift in range(len(candidate)):
+            shifted = np.roll(candidate, shift, axis=0)
+            cost = float(np.sum((previous - shifted) ** 2))
+            if cost < best_cost:
+                best_cost = cost
+                best_ring = shifted
+    return best_ring.copy()
+
+
+def pipe_solid(pipe, *, frame='curved', len_points=32, max_curve_angle_rad=np.deg2rad(1)) -> PipeSolid:
+    if frame not in ('curved', 'straight'):
+        raise ValueError('Frame must be "curved" or "straight"')
+    if len_points < 3:
+        raise ValueError('`len_points` must be at least 3.')
+    if max_curve_angle_rad <= 0:
+        raise ValueError('`max_curve_angle_rad` must be positive.')
+
+    curvature = pipe.curvature if frame == 'curved' else 0.0
+    rings_curvilinear = []
+    for profile_position in pipe:
+        ring = _profile_polygon_curvilinear(profile_position, curvature, len_points)
+        if rings_curvilinear:
+            ring = _best_ring_alignment(rings_curvilinear[-1], ring)
+        rings_curvilinear.append(ring)
+
+    faces = []
+    profile_rings = []
+    longitudinal_lines = []
+    if rings_curvilinear:
+        profile_rings = [_curvilinear_to_cartesian(ring, curvature) for ring in rings_curvilinear]
+        faces.append(profile_rings[0][::-1])
+        faces.append(profile_rings[-1])
+
+    for start, end in zip(rings_curvilinear[:-1], rings_curvilinear[1:]):
+        delta_s = float(end[0, 2] - start[0, 2])
+        if abs(curvature) <= _GEOMETRY_TOL:
+            num_intervals = 1
+        else:
+            angle = abs(curvature * delta_s)
+            num_intervals = max(1, int(np.ceil(angle / max_curve_angle_rad)))
+
+        fractions = np.linspace(0.0, 1.0, num_intervals + 1)
+        rings = start[None, :, :] + fractions[:, None, None] * (end - start)[None, :, :]
+        rings_cartesian = np.array([_curvilinear_to_cartesian(ring, curvature) for ring in rings])
+        for jj in range(rings_cartesian.shape[1]):
+            longitudinal_lines.append(rings_cartesian[:, jj, :])
+
+        for ii in range(num_intervals):
+            ring_start = rings_cartesian[ii]
+            ring_end = rings_cartesian[ii + 1]
+            for jj in range(len(ring_start)):
+                kk = (jj + 1) % len(ring_start)
+                faces.append(np.array([
+                    ring_start[jj],
+                    ring_start[kk],
+                    ring_end[kk],
+                    ring_end[jj],
+                ]))
+
+    return PipeSolid(
+        faces=faces,
+        axis=_pipe_axis_points(pipe, curvature, max_curve_angle_rad),
+        profile_rings=profile_rings,
+        longitudinal_lines=longitudinal_lines,
+    )
 
 
 def _transform_points(points: np.ndarray, transform: np.ndarray) -> np.ndarray:
     homogeneous = np.column_stack([points, np.ones(len(points))])
     return (transform @ homogeneous.T).T[:, :3]
+
+
+def pipe_projection(
+    pipe,
+    pipe_to_plot: np.ndarray,
+    *,
+    plane='zx',
+    max_curve_angle_rad=np.deg2rad(1),
+) -> PipeProjection:
+    if plane not in ('zx', 'zy', 'sx', 'sy'):
+        raise ValueError("plane must be one of 'zx', 'zy', 'sx', or 'sy'")
+    if max_curve_angle_rad <= 0:
+        raise ValueError('`max_curve_angle_rad` must be positive.')
+
+    transverse_axis = {'x': 0, 'y': 1}[plane[1]]
+    normal_axis = 1 - transverse_axis
+    curvature = pipe.curvature if plane[0] == 'z' else 0.0
+
+    projected_profiles = [
+        _installed_profile_projection(pipe, profile_position, pipe_to_plot, normal_axis, curvature)
+        for profile_position in pipe
+    ]
+    _orient_profile_segments(projected_profiles)
+
+    polygons = [
+        _transform_points(polygon_pipe, pipe_to_plot)
+        for polygon_pipe in _pipe_projection_polygons(projected_profiles, curvature, max_curve_angle_rad)
+    ]
+    axis = _transform_points(_pipe_axis_points(pipe, curvature, max_curve_angle_rad), pipe_to_plot)
+
+    return PipeProjection(
+        polygons=[polygon[:, [2, transverse_axis]] for polygon in polygons],
+        axis=axis[:, [2, transverse_axis]],
+    )
+
+
+def plot_pipe_projection(
+    pipe,
+    *,
+    plane='zx',
+    ax=None,
+    colour='profile',
+    legend=True,
+    max_curve_angle_rad=np.deg2rad(1),
+):
+    if colour not in ('profile', 'pipe'):
+        raise ValueError("colour must be either 'profile' or 'pipe'")
+
+    from matplotlib import pyplot as plt
+    from matplotlib.patches import Polygon as PolygonPatch
+
+    ax = ax or plt.gca()
+    ax.set_aspect('equal')
+    ax.set_title(f'{pipe.name}')
+    palette = plt.rcParams['axes.prop_cycle'].by_key().get('color', ['C0'])
+
+    projection = pipe_projection(
+        pipe,
+        np.identity(4),
+        plane=plane,
+        max_curve_angle_rad=max_curve_angle_rad,
+    )
+    pipe_colour = _hashed_colour(pipe.name, palette)
+    for polygon_plot in projection.polygons:
+        patch = PolygonPatch(
+            polygon_plot,
+            closed=True,
+            facecolor=pipe_colour,
+            edgecolor=pipe_colour,
+            alpha=0.45,
+            linewidth=0.8,
+        )
+        ax.add_patch(patch)
+
+    ax.plot(projection.axis[:, 0], projection.axis[:, 1], color=pipe_colour, linestyle='--', label='pipe axis')
+    ax.set_xlabel(f'{plane[0]} [m]')
+    ax.set_ylabel(f'{plane[1]} [m]')
+    if legend:
+        handles, labels = ax.get_legend_handles_labels()
+        unique = {}
+        for handle, label in zip(handles, labels):
+            if label and label not in unique:
+                unique[label] = handle
+        if unique:
+            ax.legend(unique.values(), unique.keys())
+    return ax
+
+
+def plot_pipe_3d(
+    pipe,
+    *,
+    frame='curved',
+    len_points=32,
+    max_curve_angle_rad=np.deg2rad(1),
+    ax=None,
+    alpha=0.35,
+):
+    from matplotlib import pyplot as plt
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+    ax = ax or plt.figure(figsize=(10, 8)).add_subplot(111, projection='3d')
+    ax.set_title(f'{pipe.name}')
+    palette = plt.rcParams['axes.prop_cycle'].by_key().get('color', ['C0'])
+    colour = _hashed_colour(pipe.name, palette)
+
+    solid = pipe_solid(
+        pipe,
+        frame=frame,
+        len_points=len_points,
+        max_curve_angle_rad=max_curve_angle_rad,
+    )
+    faces_plot = [face[:, [2, 0, 1]] for face in solid.faces]
+    if faces_plot:
+        collection = Poly3DCollection(
+            faces_plot,
+            facecolors=colour,
+            edgecolors='none',
+            linewidths=0.0,
+            alpha=alpha,
+        )
+        ax.add_collection3d(collection)
+
+    for ring in solid.profile_rings:
+        ring_plot = ring[:, [2, 0, 1]]
+        ring_plot = np.vstack([ring_plot, ring_plot[0]])
+        ax.plot(ring_plot[:, 0], ring_plot[:, 1], ring_plot[:, 2], color=colour, linewidth=1.0)
+
+    for line in solid.longitudinal_lines:
+        line_plot = line[:, [2, 0, 1]]
+        ax.plot(line_plot[:, 0], line_plot[:, 1], line_plot[:, 2], color=colour, linewidth=0.35, alpha=0.6)
+
+    axis_plot = solid.axis[:, [2, 0, 1]]
+    ax.plot(axis_plot[:, 0], axis_plot[:, 1], axis_plot[:, 2], color=colour, linestyle='--', label='pipe axis')
+
+    ax.set_xlabel(f"{'z' if frame == 'curved' else 's'} [m]")
+    ax.set_ylabel('x [m]')
+    ax.set_zlabel('y [m]')
+    if faces_plot:
+        stacked = np.vstack(faces_plot + [axis_plot])
+        mins = stacked.min(axis=0)
+        maxs = stacked.max(axis=0)
+        centres = 0.5 * (mins + maxs)
+        half_span = 0.5 * np.max(maxs - mins)
+        if half_span <= _GEOMETRY_TOL:
+            half_span = 1.0
+        ax.set_xlim(centres[0] - half_span, centres[0] + half_span)
+        ax.set_ylim(centres[1] - half_span, centres[1] + half_span)
+        ax.set_zlim(centres[2] - half_span, centres[2] + half_span)
+    ax.legend()
+    ax.set_box_aspect((1, 1, 1))
+    return ax
 
 
 def _hashed_colour(name: str, palette: list[str]) -> str:
@@ -410,8 +669,8 @@ def plot_floor_projection(
     *,
     ax=None,
     max_curve_angle_rad=np.deg2rad(1),
-    origin=None,
-    s_range=None,
+    origin: str | float = None,
+    s_range: tuple[float, float] = None,
     aspect='auto',
 ):
     """Plot analytically projected installed pipe sections onto the floor."""
@@ -429,7 +688,7 @@ def plot_floor_projection(
     plot_shift = np.identity(4)
     origin_s = 0.0
 
-    if origin is not None:
+    if isinstance(origin, str):
         origin_position = aperture.pipe_positions[origin]
         origin_row = pipe_table.rows[origin]
         origin_s = float(np.asarray(origin_row.s_start).item())
@@ -437,6 +696,12 @@ def plot_floor_projection(
             aperture.survey, 0, origin_position.survey_reference_name
         )
         plot_shift = np.linalg.inv(origin_survey @ origin_position.transformation)
+    elif isinstance(origin, float):
+        origin_s = origin
+        origin_survey = aperture._survey_data.resample([origin]).pose.to_nparray()[0]
+        plot_shift = np.linalg.inv(origin_survey)
+    elif origin is not None:
+        raise ValueError('`origin` must be str or float.')
 
     patches = []
     for row in pipe_table.rows:
@@ -451,20 +716,16 @@ def plot_floor_projection(
         pipe_to_plot = plot_shift @ survey_transform @ pipe_position.transformation
         colour = _hashed_colour(pipe.name, palette)
 
-        projected_profiles = [
-            _installed_profile_projection(aperture, pipe_position, profile_position, pipe_to_plot)
-            for profile_position in pipe
-        ]
-        _orient_profile_segments(projected_profiles)
+        projection = pipe_projection(
+            pipe,
+            pipe_to_plot,
+            plane='zx',
+            max_curve_angle_rad=max_curve_angle_rad,
+        )
 
-        for polygon_pipe in _pipe_projection_polygons(
-            projected_profiles,
-            pipe.curvature,
-            max_curve_angle_rad,
-        ):
-            polygon_plot = _transform_points(polygon_pipe, pipe_to_plot)
+        for polygon_plot in projection.polygons:
             patch = PolygonPatch(
-                polygon_plot[:, [2, 0]],
+                polygon_plot,
                 closed=True,
                 facecolor=colour,
                 edgecolor=colour,
@@ -481,11 +742,7 @@ def plot_floor_projection(
             ax.add_patch(patch)
             patches.append(patch)
 
-        axis_plot = _transform_points(
-            _pipe_axis_points(pipe, max_curve_angle_rad),
-            pipe_to_plot,
-        )
-        ax.plot(axis_plot[:, 2], axis_plot[:, 0], color=colour, linestyle='--')
+        ax.plot(projection.axis[:, 0], projection.axis[:, 1], color=colour, linestyle='--')
 
     _enable_pipe_annotations(ax, patches)
     ax.set_xlabel('Z [m]')

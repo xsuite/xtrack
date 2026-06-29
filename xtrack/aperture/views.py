@@ -459,106 +459,35 @@ class PipeView:
     def values(self):
         return list(self)
 
-    def build_polygons_3d(self, frame: Frame = 'curved', len_points=128):
-        def _poly_in_pipe(profile_pos_view):
-            poly_2d = profile_pos_view.profile.raw.build_polygon(len_points)
-            poly_hom = poly2d_to_homogeneous(poly_2d)
-            profile_position_matrix = profile_pos_view.get_transform(frame=frame)
-            return profile_position_matrix @ poly_hom
-
-        polygons = np.array([_poly_in_pipe(prof_pos_view) for prof_pos_view in self])
-        return polygons
-
-    def plot_projection(
+    def plot(
         self,
         plane: Literal['zx', 'zy', 'sx', 'sy'] = 'zx',
-        len_points=32,
-        transform: np.ndarray = np.identity(4),
         ax=None,
         colour: Literal['profile', 'pipe'] = 'profile',
         legend: bool = True,
+        max_curve_angle_rad=np.deg2rad(1),
     ):
-        if colour not in ('profile', 'pipe'):
-            raise ValueError("colour must be either 'profile' or 'pipe'")
+        from xtrack.aperture.plot import plot_pipe_projection
 
-        frame = {'z': 'curved', 's': 'straight'}[plane[0]]
+        return plot_pipe_projection(
+            self,
+            plane=plane,
+            ax=ax,
+            colour=colour,
+            legend=legend,
+            max_curve_angle_rad=max_curve_angle_rad,
+        )
 
-        # Plot setup
-        import matplotlib.pyplot as plt
-        ax = ax or plt.gca()
-        ax.set_aspect('equal')
-        ax.set_title(f'{self.name}')
-        palette = plt.rcParams['axes.prop_cycle'].by_key().get('color', ['C0'])
+    def plot_3d(self, frame: Frame = 'curved', len_points=32, max_curve_angle_rad=np.deg2rad(1), ax=None):
+        from xtrack.aperture.plot import plot_pipe_3d
 
-        # Plot the projected polygons
-        polys = self.build_polygons_3d(frame=frame, len_points=len_points)  # noqa
-        for poly, prof_view in zip(polys, self):
-            label = prof_view.profile.name if colour == 'profile' else ''
-            line_colour = _hashed_color(prof_view.profile.name if colour == 'profile' else self.name, palette)
-            poly_trans = transform @ poly
-            xs, ys, zs = poly_trans[:3]
-            ax.plot(zs, {'x': xs, 'y': ys}[plane[1]], label=label, color=line_colour)
-
-        # Plot the pipe axis
-        min_s, max_s = self[0].shift_s, self[len(self) - 1].shift_s
-        ss = np.linspace(min_s, max_s, len_points)
-        h = self.curvature if frame == 'curved' else 0
-        points = np.array([transform @ arc_matrix(length=s, angle=h * s, tilt=0) for s in ss])
-        coords_z = points[:, 2, 3]
-        coords_xy = points[:, 'xy'.index(plane[1]), 3]
-        axis_colour = _hashed_color(self.name, palette)
-        ax.plot(coords_z, coords_xy, color=axis_colour, linestyle='--', label=self.name)
-
-        # Plot labels
-        ax.set_xlabel(f'{plane[0]} [m]')
-        ax.set_ylabel(f'{plane[1]} [m]')
-        if legend:
-            _deduplicate_legend(ax)
-
-    def plot_3d(self, frame: Frame = 'curved', len_points=32, ax=None):
-        if frame not in ('curved', 'straight'):
-            return ValueError('Frame must be "curved" or "straight"')
-
-        # Plot setup
-        import matplotlib.pyplot as plt
-        ax = ax or plt.figure(figsize=(10, 8)).add_subplot(111, projection='3d')
-        ax.set_title(f'{self.name}')
-        palette = plt.rcParams['axes.prop_cycle'].by_key().get('color', ['C0'])
-
-        # Plot the profile polygons
-        polys = self.build_polygons_3d(frame=frame, len_points=len_points)
-        all_points = []
-        for poly, prof_view in zip(polys, self):
-            points = np.asarray(poly[:3], dtype=float).T
-            points = np.vstack([points, points[0]])
-            all_points.append(points)
-            colour = _hashed_color(prof_view.profile.name, palette)
-            ax.plot(points[:, 2], points[:, 0], points[:, 1], alpha=0.85, label=prof_view.profile.name, color=colour)
-
-        # Plot the pipe axis
-        min_s, max_s = self[0].shift_s, self[len(self) - 1].shift_s
-        ss = np.linspace(min_s, max_s, len_points)
-        h = self.curvature if frame == 'curved' else 0
-        axis_points = np.array([arc_matrix(length=s, angle=h * s, tilt=0)[:3, 3] for s in ss])
-        axis_colour = _hashed_color(self.name, palette)
-        ax.plot(axis_points[:, 2], axis_points[:, 0], axis_points[:, 1], color=axis_colour, linestyle='--', label=self.name)
-
-        # Plot labels and set axes scaling
-        ax.set_xlabel(f"{'z' if frame == 'curved' else 's'} [m]")
-        ax.set_ylabel('x [m]')
-        ax.set_zlabel('y [m]')
-        if all_points:
-            stacked = np.vstack(all_points)
-            mins = stacked.min(axis=0)
-            maxs = stacked.max(axis=0)
-            centres = 0.5 * (mins + maxs)
-            half_span = 0.5 * np.max(maxs - mins)
-            ax.set_xlim(centres[2] - half_span, centres[2] + half_span)
-            ax.set_ylim(centres[0] - half_span, centres[0] + half_span)
-            ax.set_zlim(centres[1] - half_span, centres[1] + half_span)
-        _deduplicate_legend(ax)
-        ax.set_box_aspect((1, 1, 1))
-        return ax
+        return plot_pipe_3d(
+            self,
+            frame=frame,
+            len_points=len_points,
+            max_curve_angle_rad=max_curve_angle_rad,
+            ax=ax,
+        )
 
 
 class PipesView:

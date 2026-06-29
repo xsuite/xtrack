@@ -291,15 +291,116 @@ class ApertureBounds(xo.Struct):
     s_start = FloatType[:]
     s_end = FloatType[:]
 
-    def sort_by_s(self, s_tol=1e-9):
+    _ordered_field_names = (
+        'pipe_position_indices',
+        'profile_position_indices',
+        's_positions',
+        's_start',
+        's_end',
+    )
+
+    def reorder(self, order: np.ndarray) -> None:
+        """Apply the same ordering to all per-bound arrays."""
+        order = np.asarray(order)
+        if np.array_equal(order, np.arange(self.count)):
+            return
+
+        for field_name in self._ordered_field_names:
+            field = getattr(self, field_name)
+            field.to_nplike()[...] = field.to_nparray()[order]
+
+    def sort_by_s(self, s_tol: float = 1e-9) -> None:
+        """Sort geometrically; tolerated pipe overlaps may be reordered later."""
         s_start = self.s_start.to_nparray()
         order = np.argsort(np.round(s_start / s_tol), kind='stable')
+        self.reorder(order)
 
-        self.pipe_position_indices.to_nplike()[...] = self.pipe_position_indices.to_nparray()[order]
-        self.profile_position_indices.to_nplike()[...] = self.profile_position_indices.to_nparray()[order]
-        self.s_positions.to_nplike()[...] = self.s_positions.to_nparray()[order]
-        self.s_start.to_nplike()[...] = self.s_start.to_nparray()[order]
-        self.s_end.to_nplike()[...] = self.s_end.to_nparray()[order]
+    def reorder_for_tolerated_pipe_overlaps(self, s_tol: float, is_ring: bool = False) -> None:
+        """Keep profiles of minimally overlapping installed pipes adjacent.
+
+        Bounds are initially sorted by ``s_start``. If the end of one installed
+        pipe follows the start of the next one by no more than ``s_tol``, that
+        ordering can interleave their profiles and make interpolation connect
+        profiles from different pipes. Move a pipe's next profile across such
+        bounds, but only when both the pipe overlap and every crossed
+        ``s_start`` inversion are within ``s_tol``.
+
+        The resulting ``s_start`` order is therefore monotonic up to
+        ``s_tol``. Physical bound coordinates are not modified.
+        """
+        if self.count < 2 or s_tol <= 0:
+            return
+
+        pipe_indices = self.pipe_position_indices.to_nparray()
+        profile_indices = self.profile_position_indices.to_nparray()
+        s_positions = self.s_positions.to_nparray()
+        s_start = self.s_start.to_nparray()
+
+        pipe_intervals = {}
+        wrapped_pipes = set()
+        for pipe_index in np.unique(pipe_indices):
+            in_pipe = pipe_indices == pipe_index
+            pipe_s = s_positions[in_pipe]
+            pipe_profile_indices = profile_indices[in_pipe]
+            profile_order = np.argsort(pipe_profile_indices, kind='stable')
+            pipe_s_in_profile_order = pipe_s[profile_order]
+            if is_ring and np.any(np.diff(pipe_s_in_profile_order) < -s_tol):
+                wrapped_pipes.add(pipe_index)
+                continue
+            pipe_intervals[pipe_index] = (
+                float(np.min(pipe_s)),
+                float(np.max(pipe_s)),
+            )
+
+        order = np.arange(self.count)
+        ii = 0
+        while ii + 1 < len(order):
+            pipe_index = pipe_indices[order[ii]]
+            profile_index = profile_indices[order[ii]]
+            if pipe_index in wrapped_pipes:
+                ii += 1
+                continue
+
+            # Profile positions in a pipe are stored with consecutive indices
+            # along that pipe; interpolation uses adjacent profile positions.
+            expected_profile_index = profile_index + 1
+            candidates = np.flatnonzero(
+                (pipe_indices[order[ii + 1:]] == pipe_index)
+                & (profile_indices[order[ii + 1:]] == expected_profile_index)
+            )
+            if len(candidates) == 0:
+                ii += 1
+                continue
+
+            jj = ii + 1 + int(candidates[0])
+            if jj == ii + 1:
+                ii += 1
+                continue
+
+            next_bound = order[jj]
+            crossed_bounds = order[ii + 1:jj]
+            crossed_pipes = np.unique(pipe_indices[crossed_bounds])
+            pipe_start, pipe_end = pipe_intervals[pipe_index]
+
+            tolerated_pipe_overlap = True
+            for crossed_pipe in crossed_pipes:
+                if crossed_pipe == pipe_index or crossed_pipe not in pipe_intervals:
+                    tolerated_pipe_overlap = False
+                    break
+                crossed_start, _ = pipe_intervals[crossed_pipe]
+                overlap = pipe_end - crossed_start
+                if crossed_start < pipe_start or overlap < 0 or overlap > s_tol:
+                    tolerated_pipe_overlap = False
+                    break
+
+            if tolerated_pipe_overlap:
+                tolerated_bound_inversion = np.all(s_start[next_bound] - s_start[crossed_bounds] <= s_tol)
+                if tolerated_bound_inversion:
+                    order[ii + 1:jj + 1] = np.concatenate(([next_bound], crossed_bounds))
+
+            ii += 1
+
+        self.reorder(order)
 
 
 class ProfilePolygons(xo.Struct):
