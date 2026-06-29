@@ -558,7 +558,7 @@ def test_splineboris_backtrack_twiss_checks_s():
         q0=1.0,
         energy0=1e9,
     )
-    line.build_tracker(use_prebuilt_kernels=False)
+    line.build_tracker()
 
     tw_forward = line.twiss(
         method='4d',
