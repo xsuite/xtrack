@@ -3,8 +3,9 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from enum import Enum
 from pathlib import Path
+from typing import LiteralString
+
 from xobjects.general import _print  # noqa: F401
 import requests
 import gzip
@@ -26,6 +27,49 @@ class _LOC:
 
 START = _LOC('START')
 END = _LOC('END')
+
+ANCHOR_NAMES = ('start', 'center', 'centre', 'end')
+
+
+def parse_anchor_spec(
+        element_name: str,
+        *,
+        default_anchor: LiteralString[*ANCHOR_NAMES] = None,
+) -> tuple[str, LiteralString[*ANCHOR_NAMES] | None]:
+    """Parse an ``element@anchor`` string.
+
+    Parameters
+    ----------
+    element_name : str
+        Element name, optionally followed by ``@start``, ``@center``,
+        ``@centre``, or ``@end``.
+    default_anchor : str, optional
+        Anchor returned when ``spec`` does not contain ``@``.
+
+    Returns
+    -------
+    element_name : str
+        Element name without the anchor suffix.
+    anchor : str or None
+        Parsed anchor, or ``default_anchor`` when no anchor suffix is present.
+    """
+    if default_anchor is not None and default_anchor not in ANCHOR_NAMES:
+        raise ValueError(f'Invalid default anchor `{default_anchor}`.')
+
+    if '@' not in element_name:
+        return element_name, default_anchor
+
+    element_name, anchor = element_name.rsplit('@', 1)
+
+    if not element_name:
+        raise ValueError(f'Invalid anchored element specification `{element_name}`.')
+
+    if anchor not in ANCHOR_NAMES:
+        raise ValueError(
+            f'Invalid anchor `{anchor}` in `{element_name}`. Allowed anchors are: {ANCHOR_NAMES}.'
+        )
+
+    return element_name, anchor
 
 def read_url(url, timeout=0.1, binary=False):
     """

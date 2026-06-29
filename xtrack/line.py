@@ -3544,7 +3544,7 @@ class Line:
                 env.place('s2', anchor='end', at=-0.5, from_='q1@start'),
                 env.place(['m1', 'm2'], at='m0@start'),
                 env.place('m3', at='m0@end'),
-                ])
+            ])
 
             # Elements can also be instantiated directly by the user
             mysext = xt.Sextupole(length=0.1, k2=0.2)
@@ -4714,9 +4714,9 @@ class Line:
 
         Parameters
         ----------
-        element_type: str
+        element_type: str | type
             Type of the elements for which internal logging is started.
-        capacity: int
+        capacity: int | dict[str, int]
             Capacity of the internal record.
 
         Returns
@@ -4727,8 +4727,7 @@ class Line:
         """
         self._method_incompatible_with_compose()
         self._check_valid_tracker()
-        return start_internal_logging_for_elements_of_type(self.tracker,
-                                                    element_type, capacity)
+        return start_internal_logging_for_elements_of_type(self.tracker, element_type, capacity)
 
     @doc_group("Element Internal Logging")
     def stop_internal_logging_for_all_elements(self, reinitialize_io_buffer=False):

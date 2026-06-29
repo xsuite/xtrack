@@ -50,9 +50,9 @@ for name in ["MB.B10L5", "MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
     xs_name = b1.get_table().rows[f'{name.lower()}.*'].name[0]
 
     fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
-    aperture_model.plot_n1_at_element(xs_name, method='rays', middle='aperture', ax=axs[0, 0])
-    aperture_model.plot_n1_at_element(xs_name, method='bisection', middle='aperture', ax=axs[0, 1])
-    aperture_model.plot_n1_at_element(xs_name, method='exact', middle='aperture', ax=axs[1, 0])
+    aperture_model.plot_transverse(xs_name, method='rays', middle='aperture', ax=axs[0, 0])
+    aperture_model.plot_transverse(xs_name, method='bisection', middle='aperture', ax=axs[0, 1])
+    aperture_model.plot_transverse(xs_name, method='exact', middle='aperture', ax=axs[1, 0])
     plt.sca(axs[1, 1])
     ap.plot_halo_name(name)
 
@@ -65,9 +65,9 @@ for name in ["MB.B10L5", "MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
 
 
     fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
-    aperture_model.plot_at_element(xs_name, middle='aperture', method='rays', ax=axs[0, 0])
-    aperture_model.plot_at_element(xs_name, middle='aperture', method='bisection', ax=axs[0, 1])
-    aperture_model.plot_at_element(xs_name, middle='aperture', method='exact', ax=axs[1, 0])
+    aperture_model.plot_transverse(xs_name, middle='aperture', method='rays', ax=axs[0, 0])
+    aperture_model.plot_transverse(xs_name, middle='aperture', method='bisection', ax=axs[0, 1])
+    aperture_model.plot_transverse(xs_name, middle='aperture', method='exact', ax=axs[1, 0])
     plt.sca(axs[1, 1])
     ap.plot_halo_name(name, n1=n1_pyoptics)
 
