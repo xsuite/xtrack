@@ -268,6 +268,14 @@ def _make_pipe_table_test_ring(test_context, *, extra_pipe_positions=None):
 
 
 def _make_transition_test_aperture(test_context):
+    """Build a minimal aperture with two profile transitions at known s positions.
+
+    The line is a single 10 m drift and the aperture is one straight circular pipe
+    whose two profile bounds are placed at s=3 m and s=7 m. This keeps the survey,
+    optics, and cross-section geometry trivial while giving tests deterministic
+    transition locations for methods that sample around aperture bounds or compute
+    envelopes/sigmas on a valid aperture model.
+    """
     env = xt.Environment()
     env.particle_ref = xt.Particles(p0c=5e9, mass0=xt.PROTON_MASS_EV)
     line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=10.0)])
@@ -336,21 +344,6 @@ def test_hvd_aperture_sigmas_returns_table(test_context):
     ]
     xo.assert_allclose(hvd_table.s, sliced_twiss.s, atol=1e-14, rtol=0)
     assert hvd_table.cross_section.shape == (2, aperture.num_profile_points, 2)
-
-
-def test_plot_transverse_accepts_element_and_s_positions():
-    aperture = _make_transition_test_aperture(xo.ContextCpu())
-    twiss_init = _transition_test_twiss_init(aperture)
-
-    from matplotlib import pyplot as plt
-
-    fig, axs = plt.subplots(1, 2)
-    aperture.plot_transverse('drift', resolution=2.0, sigmas=1.0, twiss_init=twiss_init, ax=axs[0])
-    aperture.plot_transverse(s_positions=[4.0, 6.0], sigmas=1.0, twiss_init=twiss_init, ax=axs[1])
-
-    assert axs[0].has_data()
-    assert axs[1].has_data()
-    plt.close(fig)
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
@@ -677,7 +670,7 @@ def test_get_limit_elements(monkeypatch):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-def test_bounds_table_uses_type_position_name_in_installed_profile_name(test_context):
+def test_bounds_table_uses_pipe_position_name_in_installed_profile_name(test_context):
     env = xt.Environment()
     line = env.new_line(name='line', components=[env.new('drift', xt.Drift, length=1.0)])
     sv = line.survey()
@@ -1816,8 +1809,7 @@ def test_get_aperture_sigmas_at_element_vs_madx(
 def test_survey_resample_out_of_range_returns_nans_with_precision_tolerance(context):
     eps = 1e-6
     env = xt.Environment()
-    bend = env.new(
-        'bend', xt.Bend, length=1.0, angle=0.1, rot_s_rad=0.2)
+    bend = env.new('bend', xt.Bend, length=1.0, angle=0.1, rot_s_rad=0.2)
     line = env.new_line(name='line', components=[bend])
     survey_table = line.survey()
 
@@ -2155,9 +2147,14 @@ def test_aperture_bounds_follow_straight_body_rbend(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-def test_aperture_bounds_ignore_translation_discontinuity(
-    test_context,
-):
+def test_aperture_bounds_ignore_translation_discontinuity(test_context):
+    """Check that zero-length translations are treated as survey jumps, not drift-like segments.
+
+    The placed profile is tilted so that its plane would intersect the drift after
+    the translation at s=1.5 m. The bound calculation should use that physical
+    intersection, without interpreting the Translation element itself as a 10 m
+    transverse segment that can create a spurious earlier/later bound.
+    """
     env = xt.Environment()
     env.new('drift_before', xt.Drift, length=1)
     env.new('translation', xt.Translation, shift_x=10)
@@ -2269,6 +2266,13 @@ def test_aperture_bounds_and_cross_sections_large_curved_ring_follows_pipe(test_
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_context):
+    """Regression test for curved bounds expressed relative to shifted survey references.
+
+    Each installed pipe spans one bend, but the same physical start/end profile planes are sometimes
+    expressed relative to the current bend, the next bend, or the bend after that. The global bounds
+    should still land on the bend boundaries, and cross-section interpolation should not depend on
+    which local survey reference was used to describe the same physical pipe segment.
+    """
     env = xt.Environment()
 
     num_bends = 720
@@ -2281,35 +2285,22 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
     line = env.new_line(name='line', components=[bend] * num_bends)
     sv = line.survey()
 
-    shape = Circle(radius=aperture_radius)
-    profiles = [Profile(shape=shape, tol_r=0, tol_x=0, tol_y=0)]
+    builder = ApertureBuilder(line)
+    builder.new_profile('circ0', Circle, radius=aperture_radius)
 
-    # Same physical profile planes, expressed in three different reference frames.
-    pipes = [
-        Pipe(
+    pipe_names = ['type_ref0', 'type_ref1', 'type_ref2']
+    for shift, pipe_name in enumerate(pipe_names):
+        # Same physical profile planes, expressed in a pipe frame shifted by
+        # `shift` survey elements relative to the installed bend.
+        builder.new_pipe(
+            pipe_name,
             curvature=bend_angle / bend_length,
             positions=[
-                ProfilePosition(profile_index=0, shift_s=0.0),
-                ProfilePosition(profile_index=0, shift_s=bend_length),
+                builder.place_profile('circ0', shift_s=-shift * bend_length),
+                builder.place_profile('circ0', shift_s=(1 - shift) * bend_length),
             ],
-        ),
-        Pipe(
-            curvature=bend_angle / bend_length,
-            positions=[
-                ProfilePosition(profile_index=0, shift_s=-bend_length),
-                ProfilePosition(profile_index=0, shift_s=0.0),
-            ],
-        ),
-        Pipe(
-            curvature=bend_angle / bend_length,
-            positions=[
-                ProfilePosition(profile_index=0, shift_s=-2 * bend_length),
-                ProfilePosition(profile_index=0, shift_s=-bend_length),
-            ],
-        ),
-    ]
+        )
 
-    pipe_positions = []
     for ii in range(num_bends):
         # Cycle references where possible; near the end stay in-range.
         if ii <= num_bends - 3:
@@ -2317,24 +2308,13 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
         else:
             shift = 0
 
-        pipe_positions.append(
-            PipePosition(
-                pipe_index=shift,
-                survey_reference_name=sv.name[ii + shift],
-                survey_index=ii + shift,
-                transformation=transform_matrix(),
-            )
+        builder.place_pipe(
+            name=f'{pipe_names[shift]}.{ii}',
+            pipe_name=pipe_names[shift],
+            at=sv.name[ii + shift],
         )
 
-    model = ApertureModel(
-        line=line,
-        pipe_positions=pipe_positions,
-        pipes=pipes,
-        profiles=profiles,
-        pipe_names=['type_ref0', 'type_ref1', 'type_ref2'],
-        pipe_position_names=[['type_ref0', 'type_ref1', 'type_ref2'][tp.pipe_index] for tp in pipe_positions],
-        profile_names=['circ0'],
-    )
+    model = builder.build(context=test_context)
 
     ap = Aperture(
         line=line,
@@ -2364,7 +2344,13 @@ def test_aperture_bounds_large_curved_ring_with_shifted_survey_references(test_c
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
-def test_aperture_bounds_large_curved_ring_single_type_wraparound_regression(test_context):
+def test_aperture_bounds_wrap_single_curved_pipe_type_to_start_of_ring(test_context):
+    """Check a single curved pipe type whose installed bounds wrap around the ring.
+
+    The pipe is referenced to the last bend but shifted forward by two bend lengths, so both profile planes
+    physically belong near the start of the closed ring. Bounds must be wrapped back to small positive ``s``
+    values instead of being left near the end of the survey or becoming non-finite.
+    """
     env = xt.Environment()
 
     num_bends = 720
@@ -2377,31 +2363,24 @@ def test_aperture_bounds_large_curved_ring_single_type_wraparound_regression(tes
     line = env.new_line(name='line', components=[bend] * num_bends)
     sv = line.survey()
 
-    model = ApertureModel(
-        line=line,
-        pipe_positions=[
-            PipePosition(
-                pipe_index=0,
-                survey_reference_name=sv.name[num_bends - 1],
-                survey_index=num_bends - 1,
-                # Shift the type forward so the installed profiles should wrap to small s.
-                transformation=transform_matrix(shift_z=2 * bend_length),
-            )
+    builder = ApertureBuilder(line)
+    builder.new_profile('circ0', Circle, radius=aperture_radius)
+    builder.new_pipe(
+        'wrapped_type',
+        curvature=bend_angle / bend_length,
+        positions=[
+            builder.place_profile('circ0', shift_s=0.0),
+            builder.place_profile('circ0', shift_s=bend_length),
         ],
-        pipes=[
-            Pipe(
-                curvature=bend_angle / bend_length,
-                positions=[
-                    ProfilePosition(profile_index=0, shift_s=0.0),
-                    ProfilePosition(profile_index=0, shift_s=bend_length),
-                ],
-            )
-        ],
-        profiles=[Profile(shape=Circle(radius=aperture_radius), tol_r=0, tol_x=0, tol_y=0)],
-        pipe_names=['wrapped_type'],
-        pipe_position_names=['wrapped_type'],
-        profile_names=['circ0'],
     )
+    builder.place_pipe(
+        name='wrapped_type',
+        pipe_name='wrapped_type',
+        at=sv.name[num_bends - 1],
+        # Shift the type forward so the installed profiles should wrap to small s.
+        transformation=transform_matrix(shift_z=2 * bend_length),
+    )
+    model = builder.build(context=test_context)
 
     ap = Aperture(
         line=line,

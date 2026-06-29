@@ -170,7 +170,7 @@ def test_aperture_builder_places_pipe_at_multiple_references():
 
     placed = pipe.place("install", at=["drift::0", "drift::1"])
 
-    assert [pipe_position.name for pipe_position in placed] == ["install_0", "install_1"]
+    assert [pipe_position.name for pipe_position in placed] == ["install.0", "install.1"]
     assert [pipe_position.pipe_name for pipe_position in placed] == ["type0", "type0"]
     assert [pipe_position.survey_reference for pipe_position in placed] == ["drift::0", "drift::1"]
     assert builder.pipe_positions == placed
