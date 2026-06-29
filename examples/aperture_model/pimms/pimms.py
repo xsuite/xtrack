@@ -1,5 +1,3 @@
-import re
-
 import xtrack as xt
 import numpy as np
 from xtrack.aperture import Aperture, ApertureBuilder
@@ -169,11 +167,11 @@ for row in ring_table.rows:
     length = s_end - s_start
 
     if name.startswith('mb'):
-        builder.place_pipe(name, pipe_mb.name, survey_reference=name)
+        builder.place_pipe(name, pipe_mb.name, at=name)
     elif name.startswith('q'):
-        builder.place_pipe(name, pipe_mq.name, survey_reference=name)
+        builder.place_pipe(name, pipe_mq.name, at=name)
     elif name.startswith('ms'):
-        builder.place_pipe(name, pipe_ms.name, survey_reference=name)
+        builder.place_pipe(name, pipe_ms.name, at=name)
     elif length > 1e-6:
         key = round(length / 1e-6)
         if key in drift_pipes:
@@ -187,7 +185,7 @@ for row in ring_table.rows:
                 ],
             )
             drift_pipes[key] = drift_pipe
-        builder.place_pipe(name, drift_pipe.name, survey_reference=name)
+        builder.place_pipe(name, drift_pipe.name, at=name)
 
 aperture_model = builder.build()
 aperture = Aperture(line=ring, model=aperture_model)
