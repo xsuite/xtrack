@@ -15,7 +15,8 @@ import pytest
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, for_all_test_contexts)
 from xtrack import Line, Node, Multipole
 
 test_data_folder = pathlib.Path(
@@ -430,9 +431,9 @@ def test_get_elements_of_type_is_deprecated():
     assert names == ['cav']
 
 
+@allow_no_prebuilt_kernels
 def test_insert_omp():
 
-    skip_if_forbid_compile()
 
     ctx = xo.ContextCpu(omp_num_threads='auto')
     buffer = ctx.new_buffer()
@@ -845,9 +846,9 @@ def test_from_json_to_json(tmp_path):
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_config_propagation(test_context):
 
-    skip_if_forbid_compile()
 
     line = xt.Line(elements=10*[xt.Drift(length=1)])
     line.config.TEST1 = True

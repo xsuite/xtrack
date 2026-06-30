@@ -11,7 +11,8 @@ import xtrack as xt
 from cpymad.madx import Madx
 
 from xobjects.general import allclose_with_outliers
-from xobjects.test_helpers import for_all_test_contexts, requires_context, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, for_all_test_contexts, requires_context)
 from xtrack.aperture.aperture import Aperture, ProfilesView, _split_wrapped_s_interval
 from xtrack.aperture.builder import ApertureBuilder
 from xtrack.aperture.views import PipePositionsView, PipesView
@@ -369,8 +370,8 @@ def test_from_line_with_aperture_type_bounds(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+@allow_no_prebuilt_kernels
 def test_zigzag_iterator_wrap_and_bounds(test_context):
-    skip_if_forbid_compile()
 
     ZIGZAG_TEST_SOURCE = r"""
         #include "xtrack/aperture/headers/zigzag_iterate.h"

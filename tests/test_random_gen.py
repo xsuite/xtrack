@@ -11,15 +11,16 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, fix_random_seed, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, fix_random_seed, for_all_test_contexts)
 
 
 @for_all_test_contexts
 @fix_random_seed(1465841)
 @pytest.mark.parametrize('generator', ['RandomUniform', 'RandomUniformAccurate'])
+@allow_no_prebuilt_kernels
 def test_random_generation(test_context, generator):
 
-    skip_if_forbid_compile()
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1,2,3])
     part._init_random_number_generator()
@@ -100,4 +101,3 @@ def test_reproducibility(test_context):
         results2 = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
         results2 = test_context.nparray_from_context_array(results2)
         assert np.all(results1 == results2)
-

@@ -10,7 +10,8 @@ import copy
 import pytest
 
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, for_all_test_contexts)
 import xtrack as xt
 import xpart as xp
 
@@ -24,9 +25,9 @@ rB = 53.50625
 iterations = 7
 
 @for_all_test_contexts(excluding=('ContextPyopencl',))
+@allow_no_prebuilt_kernels
 def test_random_generation_ruth(test_context):
 
-    skip_if_forbid_compile()
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1,2,3])
     part._init_random_number_generator()
@@ -158,4 +159,3 @@ def test_cpu_gpu_distribution_match():
     assert ks.statistic < 0.01, (
         f"CPU-vs-GPU Rutherford distributions disagree: "
         f"KS={ks.statistic:.4f} (p={ks.pvalue:.3g})")
-

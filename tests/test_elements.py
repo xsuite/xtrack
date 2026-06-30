@@ -14,8 +14,8 @@ import ducktrack as dtk
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import (for_all_test_contexts, fix_random_seed,
-                                   skip_if_forbid_compile)
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, fix_random_seed, for_all_test_contexts)
 from xtrack.beam_elements.elements import _angle_from_trig
 
 test_data_folder = pathlib.Path(
@@ -552,9 +552,9 @@ def test_drift_exact_and_expanded(test_context):
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_drift_exact_and_expanded_legacy(test_context):
 
-    skip_if_forbid_compile()
 
     line = xt.Line(elements=[xt.Drift(length=1.), xt.Drift(length=2.), xt.Drift(length=3.)])
     ltot = line.get_length()
@@ -917,9 +917,9 @@ void TestElement_track_local_particle(TestElementData el,
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_per_particle_kernel(test_context):
 
-    skip_if_forbid_compile()
 
     class TestElement(xt.BeamElement):
         _xofields = {

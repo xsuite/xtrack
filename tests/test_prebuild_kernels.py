@@ -10,7 +10,7 @@ import pytest
 
 import xobjects as xo
 import xtrack as xt
-from xobjects.test_helpers import skip_if_forbid_compile
+from xobjects.test_helpers import allow_no_prebuilt_kernels
 
 
 @pytest.fixture
@@ -26,9 +26,9 @@ def with_verbose():
         os.environ['XSUITE_VERBOSE'] = old_verbose
 
 
+@allow_no_prebuilt_kernels
 def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, with_verbose):
 
-    skip_if_forbid_compile()
 
     # Set up the temporary kernels directory
     kernel_defs = [
@@ -121,9 +121,9 @@ def test_prebuild_kernels(mocker, tmp_path, temp_context_default_func, capsys, w
     captured = capsys.readouterr()
     assert 'Found suitable prebuilt kernel `111_test_module_cpu_serial`' in captured.out
 
+@allow_no_prebuilt_kernels
 def test_per_element_prebuild_kernels(mocker, tmp_path, temp_context_default_func):
 
-    skip_if_forbid_compile()
 
     # Set up the temporary kernels directory
     kernel_defs = [
@@ -264,9 +264,9 @@ def test_context_specific_prebuilt_kernel_selection(mocker, tmp_path):
     assert omp_info['module_name'] == 'test_module_cpu_openmp'
 
 
+@allow_no_prebuilt_kernels
 def test_regenerate_kernels_multiple_contexts(mocker, tmp_path, temp_context_default_func):
 
-    skip_if_forbid_compile()
 
     kernel_defs = [
         ("test_module", {

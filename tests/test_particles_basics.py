@@ -9,7 +9,8 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, for_all_test_contexts)
 
 
 def _check_consistency_energy_variables(particles):
@@ -338,9 +339,9 @@ def test_python_delta_setter(test_context):
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_LocalParticle_add_to_energy(test_context):
 
-    skip_if_forbid_compile()
 
     class TestElement(xt.BeamElement):
         _xofields={
@@ -417,9 +418,9 @@ def test_LocalParticle_add_to_energy(test_context):
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_LocalParticle_update_delta(test_context):
 
-    skip_if_forbid_compile()
 
     class TestElement(xt.BeamElement):
         _xofields={
@@ -463,9 +464,9 @@ def test_LocalParticle_update_delta(test_context):
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_LocalParticle_update_ptau(test_context):
 
-    skip_if_forbid_compile()
 
     class TestElement(xt.BeamElement):
         _xofields={
@@ -509,9 +510,9 @@ def test_LocalParticle_update_ptau(test_context):
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_LocalParticle_update_pzeta(test_context):
 
-    skip_if_forbid_compile()
 
     class TestElement(xt.BeamElement):
         _xofields={
@@ -557,9 +558,9 @@ def test_LocalParticle_update_pzeta(test_context):
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_LocalParticle_update_p0c(test_context):
 
-    skip_if_forbid_compile()
 
     class TestElement(xt.BeamElement):
         _xofields={
@@ -606,9 +607,9 @@ def test_LocalParticle_update_p0c(test_context):
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_LocalParticle_angles(test_context):
 
-    skip_if_forbid_compile()
 
     class ScaleAng(xt.BeamElement):
         _xofields={
@@ -742,5 +743,3 @@ def test_update_rigidity0(test_context):
     assert np.allclose(pb82.p0c/82,p.p0c)
     pb82.rigidity0=p.rigidity0
     assert np.allclose(pb82.p0c/82,p.p0c)
-
-
