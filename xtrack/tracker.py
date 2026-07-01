@@ -456,7 +456,11 @@ class Tracker:
                     XSK_PREBUILT_KERNELS_LOCATION,
                 )
             except ImportError as err:
-                if not xo.context_cpu.require_prebuilt_kernel(self._context):
+                requested_classes = (
+                    list(self.line_element_classes) + list(extra_classes)
+                )
+                if not xo.context_cpu.require_prebuilt_kernel(
+                        self._context, classes=requested_classes):
                     kernel_info = None
                 else:
                     raise ImportError(

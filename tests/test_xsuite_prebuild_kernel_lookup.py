@@ -4,6 +4,7 @@
 # ########################################### #
 import builtins
 import json
+import types
 
 import pytest
 
@@ -14,6 +15,11 @@ import xsuite.prebuild_kernels as pk
 
 
 class DummyStruct(xo.Struct):
+    value = xo.Float64
+
+
+class OptOutStruct(xo.Struct):
+    allow_no_prebuilt_kernel = True
     value = xo.Float64
 
 
@@ -207,6 +213,28 @@ def test_get_suitable_kernel_raises_on_missing_class(kernel_location):
     assert 'missing requested class(es): Requested' in str(err.value)
 
 
+def test_get_suitable_kernel_returns_none_with_class_opt_out(kernel_location):
+    class Requested:
+        allow_no_prebuilt_kernel = True
+
+    class RequestedStruct:
+        _DressingClass = Requested
+
+    module_name = 'test_kernel_cpu_serial'
+    _write_metadata(kernel_location, module_name=module_name)
+    pk._kernel_binary_file(module_name, kernel_location).touch()
+
+    assert (
+        pk.get_suitable_kernel(
+            {},
+            [],
+            [RequestedStruct],
+            context=xo.ContextCpu(),
+        )
+        is None
+    )
+
+
 def test_closest_kernel_prefers_missing_class_over_config_mismatch(
     kernel_location,
 ):
@@ -330,6 +358,18 @@ def test_missing_xsuite_allows_jit_with_context_cpu_opt_out(
     assert len(add_kernel_calls) == 1
 
 
+def test_missing_xsuite_allows_jit_with_class_opt_out(
+    missing_xsuite,
+    monkeypatch,
+):
+    context = xo.ContextCpu()
+    add_kernel_calls = _patch_add_kernels(monkeypatch, context)
+
+    OptOutStruct.compile_class_kernels(context, only_if_needed=False)
+
+    assert len(add_kernel_calls) == 1
+
+
 def test_missing_xsuite_allows_jit_for_openmp_context(missing_xsuite, monkeypatch):
     context = xo.ContextCpu(omp_num_threads='auto')
     add_kernel_calls = _patch_add_kernels(monkeypatch, context)
@@ -337,3 +377,42 @@ def test_missing_xsuite_allows_jit_for_openmp_context(missing_xsuite, monkeypatc
     DummyStruct.compile_class_kernels(context, only_if_needed=False)
 
     assert len(add_kernel_calls) == 1
+
+
+def test_tracker_missing_xsuite_allows_jit_with_class_opt_out(
+    missing_xsuite,
+    monkeypatch,
+):
+    tracker = xt.Tracker.__new__(xt.Tracker)
+    context = xo.ContextCpu()
+    out_kernel = object()
+    build_kernel_calls = []
+
+    def build_kernels(*args, **kwargs):
+        build_kernel_calls.append((args, kwargs))
+        return {'track_line': out_kernel}
+
+    monkeypatch.setattr(context, 'build_kernels', build_kernels)
+    buffer = type('Buffer', (), {'context': context})()
+    tracker_data = type(
+        'TrackerData',
+        (),
+        {
+            '_buffer': buffer,
+            'line_element_classes': [OptOutStruct],
+            'kernel_element_classes': [],
+        },
+    )()
+    tracker._tracker_data_cache = {None: tracker_data}
+    tracker.line = type('Line', (), {'config': {}})()
+    tracker.use_prebuilt_kernels = True
+    tracker.extra_headers = []
+    tracker.track_flags = type('TrackFlags', (), {'c_header_flag_mapping': ''})()
+    tracker.get_kernel_descriptions = types.MethodType(
+        lambda self, kernel_element_classes: {'track_line': xo.Kernel(args=[])},
+        tracker,
+    )
+    tracker._config_to_headers = types.MethodType(lambda self: [], tracker)
+
+    assert tracker._build_kernel(compile=True) is out_kernel
+    assert len(build_kernel_calls) == 1
