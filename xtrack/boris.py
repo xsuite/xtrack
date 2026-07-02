@@ -4,6 +4,67 @@ from scipy.constants import c as clight
 from scipy.constants import e as qe
 
 class BorisSpatialIntegrator:
+    """
+    Track particles through a magnetic field map with a spatial Boris stepper.
+
+    The element advances particles from ``s_start`` to ``s_end`` using
+    ``n_steps`` fixed longitudinal steps. The magnetic field is supplied by a
+    Python callable evaluated at each step midpoint. Only magnetic fields are
+    supported; no electric-field kick is applied.
+
+    Parameters
+    ----------
+    fieldmap_callable : callable
+        Function called as ``fieldmap_callable(x, y, z)``. It must accept arrays
+        of particle coordinates in meters and return ``(Bx, By, Bz)`` arrays in
+        tesla.
+    s_start : float
+        Initial longitudinal coordinate, in meters, used when evaluating the
+        field map.
+    s_end : float
+        Final longitudinal coordinate, in meters, used when evaluating the
+        field map.
+    n_steps : int
+        Number of fixed spatial Boris steps between ``s_start`` and ``s_end``.
+    verbose : bool, optional
+        If ``True``, print a progress line while tracking.
+
+    Attributes
+    ----------
+    length : float
+        Tracking length, equal to ``s_end - s_start``.
+    log_trajectories : bool
+        If set to ``True`` before tracking, store the per-step particle
+        coordinates in ``x_log``, ``y_log`` and ``z_log``.
+
+    Examples
+    --------
+    The field-map callable can be any vectorized Python function returning the
+    magnetic-field components in tesla:
+
+    .. code-block:: python
+
+        import xtrack as xt
+
+        def zero_field(x, y, z):
+            return 0 * x, 0 * y, 0 * z
+
+        integrator = xt.BorisSpatialIntegrator(
+            fieldmap_callable=zero_field,
+            s_start=0.0,
+            s_end=10.0,
+            n_steps=1000,
+        )
+
+        particles = xt.Particles(
+            "proton", p0c=1e9, x=[1e-2], px=[15e-3], zeta=1.0
+        )
+        integrator.track(particles)
+
+    For non-zero fields, replace ``zero_field`` with a callable returning the
+    local ``Bx``, ``By`` and ``Bz`` field components at the requested
+    coordinates.
+    """
 
     isthick = True
 
@@ -18,6 +79,18 @@ class BorisSpatialIntegrator:
         self.log_trajectories = False
 
     def track(self, p):
+        """
+        Track an ``xtrack.Particles`` object through the configured field map.
+
+        Only particles with ``state > 0`` are advanced. Lost particles are left
+        unchanged. When ``log_trajectories`` is ``True``, the coordinates after
+        each Boris step are stored in ``x_log``, ``y_log`` and ``z_log``.
+
+        Parameters
+        ----------
+        p : xtrack.Particles
+            Particles to be tracked in place.
+        """
 
         mask_alive = p.state > 0
 

@@ -152,10 +152,10 @@ COMMON_TEST_CASES = [
 
 @pytest.mark.parametrize(
     'case,atol',
-    zip(
+    list(zip(
         [case['case'].copy() for case in COMMON_TEST_CASES],
         [4e-06, 4e-05, 3e-05, 2e-05, 3e-05, 4e-05, 0.04, 0.02, 3e-05, 0.02, 0.04],
-    ),
+    )),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
 def test_kicker(case, atol):
@@ -198,10 +198,10 @@ def test_kicker(case, atol):
 
 @pytest.mark.parametrize(
     'case,atol',
-    zip(
+    list(zip(
         [case['case'].copy() for case in COMMON_TEST_CASES],
         [3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 2e-5, 1e-5, 2e-8, 1e-5, 2e-5],
-    ),
+    )),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
 def test_uniform_solenoid(case, atol):
@@ -247,10 +247,10 @@ def test_uniform_solenoid(case, atol):
 @pytest.mark.filterwarnings('ignore::FutureWarning')
 @pytest.mark.parametrize(
     'case,atol',
-    zip(
+    list(zip(
         [case['case'].copy() for case in COMMON_TEST_CASES],
         [3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 3e-8, 2e-5, 1e-5, 2e-8, 1e-5, 2e-5],
-    ),
+    )),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
 def test_legacy_solenoid(case, atol):
@@ -295,10 +295,10 @@ def test_legacy_solenoid(case, atol):
 
 @pytest.mark.parametrize(
     'case,atol',
-    zip(
+    list(zip(
         [case['case'].copy() for case in COMMON_TEST_CASES],
         [7e-6, 7e-6, 7e-6, 7e-6, 7e-6, 7e-6, 7e-3, 4e-3, 8e-6, 4e-3, 7e-3],
-    ),
+    )),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
 def test_bend(case, atol):
@@ -377,10 +377,10 @@ def test_spin_drift(h):
 
 @pytest.mark.parametrize(
     'case,atol',
-    zip(
+    list(zip(
         [case['case'].copy() for case in COMMON_TEST_CASES],
         [6e-8, 6e-8, 6e-8, 6e-8, 6e-8, 6e-8, 6e-5, 3e-5, 2e-7, 3e-5, 6e-5],
-    ),
+    )),
     ids=[case['id'] for case in COMMON_TEST_CASES],
 )
 def test_quadrupole(case, atol):

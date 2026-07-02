@@ -1,4 +1,3 @@
-from warnings import warn
 from typing import Collection, List, Tuple, Union, get_args
 
 import numpy as np
@@ -8,7 +7,6 @@ from xobjects.context import XContext
 from xtrack.particles import Particles
 from xtrack.survey import SurveyTable
 from xtrack.twiss import TwissTable
-from xtrack.general import DEPRECATION_INFO_PREP_1_0
 
 FloatType = xo.Float64
 
@@ -293,15 +291,116 @@ class ApertureBounds(xo.Struct):
     s_start = FloatType[:]
     s_end = FloatType[:]
 
-    def sort_by_s(self, s_tol=1e-9):
+    _ordered_field_names = (
+        'pipe_position_indices',
+        'profile_position_indices',
+        's_positions',
+        's_start',
+        's_end',
+    )
+
+    def reorder(self, order: np.ndarray) -> None:
+        """Apply the same ordering to all per-bound arrays."""
+        order = np.asarray(order)
+        if np.array_equal(order, np.arange(self.count)):
+            return
+
+        for field_name in self._ordered_field_names:
+            field = getattr(self, field_name)
+            field.to_nplike()[...] = field.to_nparray()[order]
+
+    def sort_by_s(self, s_tol: float = 1e-9) -> None:
+        """Sort geometrically; tolerated pipe overlaps may be reordered later."""
         s_start = self.s_start.to_nparray()
         order = np.argsort(np.round(s_start / s_tol), kind='stable')
+        self.reorder(order)
 
-        self.pipe_position_indices.to_nplike()[...] = self.pipe_position_indices.to_nparray()[order]
-        self.profile_position_indices.to_nplike()[...] = self.profile_position_indices.to_nparray()[order]
-        self.s_positions.to_nplike()[...] = self.s_positions.to_nparray()[order]
-        self.s_start.to_nplike()[...] = self.s_start.to_nparray()[order]
-        self.s_end.to_nplike()[...] = self.s_end.to_nparray()[order]
+    def reorder_for_tolerated_pipe_overlaps(self, s_tol: float, is_ring: bool = False) -> None:
+        """Keep profiles of minimally overlapping installed pipes adjacent.
+
+        Bounds are initially sorted by ``s_start``. If the end of one installed
+        pipe follows the start of the next one by no more than ``s_tol``, that
+        ordering can interleave their profiles and make interpolation connect
+        profiles from different pipes. Move a pipe's next profile across such
+        bounds, but only when both the pipe overlap and every crossed
+        ``s_start`` inversion are within ``s_tol``.
+
+        The resulting ``s_start`` order is therefore monotonic up to
+        ``s_tol``. Physical bound coordinates are not modified.
+        """
+        if self.count < 2 or s_tol <= 0:
+            return
+
+        pipe_indices = self.pipe_position_indices.to_nparray()
+        profile_indices = self.profile_position_indices.to_nparray()
+        s_positions = self.s_positions.to_nparray()
+        s_start = self.s_start.to_nparray()
+
+        pipe_intervals = {}
+        wrapped_pipes = set()
+        for pipe_index in np.unique(pipe_indices):
+            in_pipe = pipe_indices == pipe_index
+            pipe_s = s_positions[in_pipe]
+            pipe_profile_indices = profile_indices[in_pipe]
+            profile_order = np.argsort(pipe_profile_indices, kind='stable')
+            pipe_s_in_profile_order = pipe_s[profile_order]
+            if is_ring and np.any(np.diff(pipe_s_in_profile_order) < -s_tol):
+                wrapped_pipes.add(pipe_index)
+                continue
+            pipe_intervals[pipe_index] = (
+                float(np.min(pipe_s)),
+                float(np.max(pipe_s)),
+            )
+
+        order = np.arange(self.count)
+        ii = 0
+        while ii + 1 < len(order):
+            pipe_index = pipe_indices[order[ii]]
+            profile_index = profile_indices[order[ii]]
+            if pipe_index in wrapped_pipes:
+                ii += 1
+                continue
+
+            # Profile positions in a pipe are stored with consecutive indices
+            # along that pipe; interpolation uses adjacent profile positions.
+            expected_profile_index = profile_index + 1
+            candidates = np.flatnonzero(
+                (pipe_indices[order[ii + 1:]] == pipe_index)
+                & (profile_indices[order[ii + 1:]] == expected_profile_index)
+            )
+            if len(candidates) == 0:
+                ii += 1
+                continue
+
+            jj = ii + 1 + int(candidates[0])
+            if jj == ii + 1:
+                ii += 1
+                continue
+
+            next_bound = order[jj]
+            crossed_bounds = order[ii + 1:jj]
+            crossed_pipes = np.unique(pipe_indices[crossed_bounds])
+            pipe_start, pipe_end = pipe_intervals[pipe_index]
+
+            tolerated_pipe_overlap = True
+            for crossed_pipe in crossed_pipes:
+                if crossed_pipe == pipe_index or crossed_pipe not in pipe_intervals:
+                    tolerated_pipe_overlap = False
+                    break
+                crossed_start, _ = pipe_intervals[crossed_pipe]
+                overlap = pipe_end - crossed_start
+                if crossed_start < pipe_start or overlap < 0 or overlap > s_tol:
+                    tolerated_pipe_overlap = False
+                    break
+
+            if tolerated_pipe_overlap:
+                tolerated_bound_inversion = np.all(s_start[next_bound] - s_start[crossed_bounds] <= s_tol)
+                if tolerated_bound_inversion:
+                    order[ii + 1:jj + 1] = np.concatenate(([next_bound], crossed_bounds))
+
+            ii += 1
+
+        self.reorder(order)
 
 
 class ProfilePolygons(xo.Struct):
@@ -360,6 +459,8 @@ class SurveyData(xo.Struct):
     angle = FloatType[:]
     length = FloatType[:]
     tilt = FloatType[:]
+    rbend_shift_x_in = FloatType[:]
+    rbend_angle_in = FloatType[:]
 
     _extra_c_sources = [
         '#include "xtrack/aperture/headers/survey_tools.h"',
@@ -384,16 +485,27 @@ class SurveyData(xo.Struct):
             angle=np.zeros(shape=(length,), dtype=FloatType._dtype),
             length=np.zeros(shape=(length,), dtype=FloatType._dtype),
             tilt=np.zeros(shape=(length,), dtype=FloatType._dtype),
+            rbend_shift_x_in=np.full(
+                shape=(length,), fill_value=np.nan, dtype=FloatType._dtype),
+            rbend_angle_in=np.full(
+                shape=(length,), fill_value=np.nan, dtype=FloatType._dtype),
             _context=context,
         )
 
     @classmethod
-    def from_survey_table(cls, survey_table: SurveyTable, context: XContext = None) -> 'SurveyData':
+    def from_survey_table(
+        cls,
+        survey_table: SurveyTable,
+        line: 'xtrack.Line',
+        context: XContext = None,
+    ) -> 'SurveyData':
         s = np.zeros(shape=(len(survey_table),), dtype=FloatType._dtype)
         poses = np.zeros(shape=(len(survey_table), 4, 4), dtype=FloatType._dtype)
         angles = np.zeros_like(s)
         lengths = np.zeros_like(s)
         tilts = np.zeros_like(s)
+        rbend_shift_x_in = np.full_like(s, np.nan)
+        rbend_angle_in = np.full_like(s, np.nan)
 
         for idx, row in enumerate(survey_table.rows):
             row = survey_table.rows[idx]
@@ -402,11 +514,30 @@ class SurveyData(xo.Struct):
             poses[idx, :3, 1] = row.ey[0]
             poses[idx, :3, 2] = row.ez[0]
             poses[idx, :, 3] = np.hstack([row.X[0], row.Y[0], row.Z[0], 1])
-            angles[idx] = row.angle[0]
             lengths[idx] = row.length[0]
-            tilts[idx] = row.rot_s_rad[0]
 
-        survey_data = cls(s=s, pose=poses, angle=angles, length=lengths, tilt=tilts, _context=context)
+        # The survey has an additional endpoint without a corresponding element.
+        angles[:-1] = line.attr['angle']
+        tilts[:-1] = line.attr['rot_s_rad']
+
+        # Straight-body RBends use an internal reference line that differs from
+        # the element entrance frame stored in the survey table.
+        from xtrack.beam_elements.elements import RBend
+        for idx, element in enumerate(line._elements):
+            if isinstance(element, RBend) and element.rbend_model == 'straight-body':
+                rbend_shift_x_in[idx] = element._x0_in
+                rbend_angle_in[idx] = element._angle_in
+
+        survey_data = cls(
+            s=s,
+            pose=poses,
+            angle=angles,
+            length=lengths,
+            tilt=tilts,
+            rbend_shift_x_in=rbend_shift_x_in,
+            rbend_angle_in=rbend_angle_in,
+            _context=context,
+        )
         return survey_data
 
     def resample(self, s_positions: Collection[float]) -> 'SurveyData':
@@ -421,6 +552,8 @@ class ApertureModel(xo.Struct):
     pipe_positions = PipePosition[:]
     pipes = Pipe[:]
     profiles = Profile[:]
+    is_ring = xo.Int8
+    survey_length = FloatType
 
     _extra_c_sources = [
         '#include "xtrack/aperture/headers/cross_sections.h"',
@@ -436,7 +569,6 @@ class ApertureModel(xo.Struct):
                 xo.Arg(ProfilePolygons, name='profile_polygons'),
                 xo.Arg(ApertureBounds, name='aperture_bounds'),
                 xo.Arg(SurveyData, name='survey'),
-                xo.Arg(xo.Int8, name='is_ring'),
             ],
         ),
         'cross_sections_at_s': xo.Kernel(
@@ -452,10 +584,14 @@ class ApertureModel(xo.Struct):
                 xo.Arg(FloatType, pointer=True, name='tol_x'),
                 xo.Arg(FloatType, pointer=True, name='tol_y'),
                 xo.Arg(xo.Int8, pointer=True, name='is_convex'),
+                xo.Arg(FloatType, pointer=True, name='min_x'),
+                xo.Arg(FloatType, pointer=True, name='max_x'),
+                xo.Arg(FloatType, pointer=True, name='min_y'),
+                xo.Arg(FloatType, pointer=True, name='max_y'),
             ],
         ),
         'get_max_aperture_sigma_bisection': xo.Kernel(
-            c_name='compute_max_aperture_sigma_bisection',
+            c_name='get_max_aperture_sigma_bisection',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
                 xo.Arg(SurveyData, name='survey'),
@@ -471,7 +607,7 @@ class ApertureModel(xo.Struct):
             ],
         ),
         'get_max_aperture_sigma_rays': xo.Kernel(
-            c_name='compute_max_aperture_sigma_rays',
+            c_name='get_max_aperture_sigma_rays',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
                 xo.Arg(SurveyData, name='survey'),
@@ -489,7 +625,7 @@ class ApertureModel(xo.Struct):
             ],
         ),
         'get_max_aperture_sigma_exact': xo.Kernel(
-            c_name='compute_max_aperture_sigma_exact',
+            c_name='get_max_aperture_sigma_exact',
             args=[
                 xo.Arg(xo.ThisClass, name='model'),
                 xo.Arg(SurveyData, name='survey'),
@@ -517,6 +653,10 @@ class ApertureModel(xo.Struct):
                 xo.Arg(xo.UInt32, name='envelope_num_points'),
                 xo.Arg(xo.Int8, name='include_aper_tols'),
                 xo.Arg(FloatType, pointer=True, name='out_envelope'),
+                xo.Arg(FloatType, pointer=True, name='min_x'),
+                xo.Arg(FloatType, pointer=True, name='max_x'),
+                xo.Arg(FloatType, pointer=True, name='min_y'),
+                xo.Arg(FloatType, pointer=True, name='max_y'),
             ],
         ),
     }
@@ -529,13 +669,15 @@ class ApertureModel(xo.Struct):
         pipe_names: List[str],
         profile_names: List[str],
         pipe_position_names: List[str],
+        is_ring: bool = False,
+        survey_length: float = np.nan,
         **kwargs,
     ):
         if len(pipe_names) != len(pipes):
             raise ValueError("Length of pipe_names and pipe_names must match.")
 
         if len(profile_names) != len(profiles):
-            raise ValueError("Length of profiles and profiles must match.")
+            raise ValueError("Length of profile_names and profiles must match.")
 
         if len(pipe_position_names) != len(pipe_positions):
             raise ValueError("Length of pipe_position_names and pipe_positions must match.")
@@ -544,7 +686,14 @@ class ApertureModel(xo.Struct):
         self.profile_names = profile_names
         self.pipe_position_names = pipe_position_names
 
-        super().__init__(pipe_positions=pipe_positions, pipes=pipes, profiles=profiles, **kwargs)
+        super().__init__(
+            pipe_positions=pipe_positions,
+            pipes=pipes,
+            profiles=profiles,
+            is_ring=int(is_ring),
+            survey_length=survey_length,
+            **kwargs,
+        )
 
     def pipe_name_for_index(self, idx: int) -> str:
         return self.pipe_names[idx]
@@ -600,52 +749,52 @@ class ApertureModel(xo.Struct):
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.build_profile_polygons(model=self, **kwargs)
 
-    def cross_sections_at_s(self, is_convex=None, **kwargs) -> None:
+    def cross_sections_at_s(
+        self,
+        is_convex=None,
+        min_x=None,
+        max_x=None,
+        min_y=None,
+        max_y=None,
+        **kwargs,
+    ) -> None:
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.cross_sections_at_s(model=self, is_convex=is_convex, **kwargs)
+        self._context.kernels.cross_sections_at_s(
+            model=self,
+            is_convex=is_convex,
+            min_x=min_x,
+            max_x=max_x,
+            min_y=min_y,
+            max_y=max_y,
+            **kwargs,
+        )
 
     def get_max_aperture_sigma_bisection(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_max_aperture_sigma_bisection(model=self, **kwargs)
 
-    def compute_max_aperture_sigma_bisection(self, **kwargs) -> None:
-        warn(
-            '`ApertureModel.compute_max_aperture_sigma_bisection()` is '
-            'deprecated and will be removed in future versions. Please use '
-            '`ApertureModel.get_max_aperture_sigma_bisection()` instead.'
-            + DEPRECATION_INFO_PREP_1_0,
-            FutureWarning,
-        )
-        return self.get_max_aperture_sigma_bisection(**kwargs)
-
     def get_max_aperture_sigma_rays(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_max_aperture_sigma_rays(model=self, **kwargs)
-
-    def compute_max_aperture_sigma_rays(self, **kwargs) -> None:
-        warn(
-            '`ApertureModel.compute_max_aperture_sigma_rays()` is deprecated '
-            'and will be removed in future versions. Please use '
-            '`ApertureModel.get_max_aperture_sigma_rays()` instead.'
-            + DEPRECATION_INFO_PREP_1_0,
-            FutureWarning,
-        )
-        return self.get_max_aperture_sigma_rays(**kwargs)
 
     def get_max_aperture_sigma_exact(self, **kwargs) -> None:
         self.compile_kernels(only_if_needed=True)
         self._context.kernels.get_max_aperture_sigma_exact(model=self, **kwargs)
 
-    def compute_max_aperture_sigma_exact(self, **kwargs) -> None:
-        warn(
-            '`ApertureModel.compute_max_aperture_sigma_exact()` is deprecated '
-            'and will be removed in future versions. Please use '
-            '`ApertureModel.get_max_aperture_sigma_exact()` instead.'
-            + DEPRECATION_INFO_PREP_1_0,
-            FutureWarning,
-        )
-        return self.get_max_aperture_sigma_exact(**kwargs)
-
-    def get_beam_envelopes_at_sigma(self, **kwargs) -> None:
+    def get_beam_envelopes_at_sigma(
+        self,
+        min_x=None,
+        max_x=None,
+        min_y=None,
+        max_y=None,
+        **kwargs,
+    ) -> None:
         self.compile_kernels(only_if_needed=True)
-        self._context.kernels.get_beam_envelopes_at_sigma(model=self, **kwargs)
+        self._context.kernels.get_beam_envelopes_at_sigma(
+            model=self,
+            min_x=min_x,
+            max_x=max_x,
+            min_y=min_y,
+            max_y=max_y,
+            **kwargs,
+        )

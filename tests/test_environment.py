@@ -1663,6 +1663,44 @@ def test_env_new():
     assert env[ret].b == 3
 
 
+def test_env_new_prototype_keyword_and_deprecated_parent():
+
+    env = xt.Environment()
+
+    env.new('q0', prototype='Quadrupole', length=1.0)
+    assert isinstance(env['q0'], xt.Quadrupole)
+
+    env.new('q1', prototype='q0')
+    assert isinstance(env['q1'], xt.Quadrupole)
+    assert env['q1'].prototype == 'q0'
+
+    with pytest.warns(FutureWarning, match='`parent` argument'):
+        env.new('q2', parent='q0')
+    assert isinstance(env['q2'], xt.Quadrupole)
+    assert env['q2'].prototype == 'q0'
+
+    with pytest.raises(TypeError, match='Only one of `prototype`'):
+        env.new('q3', prototype='Quadrupole', parent='q0')
+
+
+def test_line_new_prototype_keyword_and_deprecated_aliases():
+
+    line = xt.Environment().new_line(compose=True)
+
+    line.new('q0', prototype='Quadrupole', length=1.0, at=1.0)
+    assert isinstance(line.env['q0'], xt.Quadrupole)
+
+    with pytest.warns(FutureWarning, match='`parent` argument'):
+        line.new('q1', parent='q0', at=2.0)
+    assert isinstance(line.env['q1'], xt.Quadrupole)
+    assert line.env['q1'].prototype == 'q0'
+
+    with pytest.warns(FutureWarning, match='`cls` argument'):
+        line.new('q2', cls='q0', at=3.0)
+    assert isinstance(line.env['q2'], xt.Quadrupole)
+    assert line.env['q2'].prototype == 'q0'
+
+
 def test_neg_line():
 
     line = xt.Line(elements=[xt.Bend(k0=0.5), xt.Quadrupole(k1=0.1)])

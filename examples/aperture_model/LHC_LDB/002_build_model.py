@@ -17,6 +17,7 @@ from xtrack.aperture.transform import poly2d_to_homogeneous
 from xtrack.survey import survey_relative_transform
 from warnings import warn
 
+# Run 000_download_model.py to download the lattice, optics, and LDB snapshot file before running this script.
 
 class LDBConverterWarning(UserWarning):
     pass
@@ -201,9 +202,10 @@ ELEMENT_APERTURE_TYPE_OVERRIDES = {
 }
 
 PROFILE_OVERRIDES = {
-    'AP205': ('Rectangle', 0.04293, 0.03843),  # Originally an octagon with no diagonal value...
     'AP207': ('Rectangle', 0.04978, 0.04978),  # ditto
     'AP163': ('RectEllipse', 0.068, 0.0328, 0.0101, 0.0101)  # Originally half_minor was zero...
+    # Should be fixed now:
+    # 'AP205': ('Rectangle', 0.04293, 0.03843),  # Originally an octagon with no diagonal value...
 }
 
 LONGITUDINAL_PLACEMENT_PATCHES = {
@@ -596,7 +598,7 @@ for transform_name, mad_point in pipes_loc:
 
         # Get the rough survey position at s
         survey_x_at_s = np.interp(s_profile, sv_b1_straight.Z, sv_b1_straight.X)
-        survey_y_at_s = np.interp(s_profile, sv_b1_straight.Y, sv_b1_straight.X)
+        survey_y_at_s = np.interp(s_profile, sv_b1_straight.Z, sv_b1_straight.Y)
 
         # Check that the survey is inside the polygon
         poly = Polygon(vertices=poly_hom[(0, 1), :].T)
@@ -615,7 +617,7 @@ for transform_name, mad_point in pipes_loc:
     from_ref_to_here = np.linalg.inv(from_ip1_to_ref) @ from_ip1_to_here
 
     if pipe_to_place:
-        builder.place_pipe(transform_name, pipe_to_place, transformation=from_ref_to_here, survey_reference=survey_ref)
+        builder.place_pipe(transform_name, pipe_to_place, transformation=from_ref_to_here, at=survey_ref)
 
 # Clip the pipe that crosses the ring boundary. This avoids placing the single-turn model
 # past _end_point until the aperture model supports wrapped pipe spans.
@@ -638,7 +640,7 @@ pipe_overlap_rows = _write_pipe_overlap_report(
 print(f'Wrote {len(pipe_overlap_rows)} pipe overlap rows to pipe_overlaps_summary.csv')
 
 ax = plt.gca()
-aperture_straight.plot_floor_projection(ax=ax, len_points=32)
+aperture_straight.plot_floor_projection(ax=ax)
 ax.set_aspect('auto')
 plt.title('LHC LS3 Aperture and Survey Floor Plot (Straightened)')
 
@@ -754,19 +756,4 @@ for pipe_name in main_dipole_pipes:
 
 # Build the curved model
 aperture = Aperture(model=aperture_model, line=b1, s_tol=PIPE_OVERLAP_TOL, context=context)
-b_tab = aperture.get_bounds_table()
-s_positions_at_lattice_changes = np.array(sorted(set(b_tab.s_start) | set(b_tab.s_end) | set(sv_b1.s)))
-s_positions = np.array(sorted(set(s_positions_at_lattice_changes - PIPE_OVERLAP_TOL) | set(s_positions_at_lattice_changes + PIPE_OVERLAP_TOL)))
-s_positions %= b1.get_length()
-s_positions = sorted(s_positions)
-aperture.plot_extents(s_positions)
-plt.show()
-
-plt.plot(sv_b1.Z, sv_b1.X, c='red', label='B1')
-plt.plot(sv_b2.Z, sv_b2.X, c='blue', label='B2')
-ax = plt.gca()
-aperture.plot_floor_projection(ax=ax, len_points=32)
-ax.set_aspect('auto')
-plt.title('LHC LS3 Aperture and Survey Floor Plot (Pipe Model for B1)')
-plt.xlabel('$Z$ [m]')
-plt.ylabel('$X$ [m]')
+aperture.to_json('b1_aperture.json')

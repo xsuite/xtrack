@@ -24,7 +24,7 @@ n1_rays, tw_rays = aperture_model.get_aperture_sigmas_at_element(
 sig_rays = n1_rays.n1
 aper_rays = n1_rays.cross_section
 
-sig_hvd_rays, _, _ = aperture_model.get_hvd_aperture_sigmas_at_element(
+hvd_rays, _ = aperture_model.get_hvd_aperture_sigmas_at_element(
     element_name=mqxfa_name,
     resolution=0.1,
 )
@@ -42,11 +42,12 @@ aper_bisect = n1_bisect.cross_section
 max_envelope = n1_bisect.envelope
 
 # Get envelope at arbitrary sigma
-envelopes, tw_envel = aperture_model.get_envelope_at_element(
+envelopes_table, tw_envel = aperture_model.get_envelope_at_element(
     element_name=mqxfa_name,
     resolution=0.1,
     sigmas=1,
 )
+envelopes = envelopes_table.cross_section
 
 aper_table = aperture_model.cross_sections_at_element(
     element_name=mqxfa_name,
@@ -55,9 +56,9 @@ aper_table = aperture_model.cross_sections_at_element(
 aper_envel = aper_table.cross_section
 
 # PLOT envelope sigmas
-plt.plot(tw_rays.s, sig_hvd_rays[:, 0], label=r'horizonal envelope [$\sigma$] (rays)')
-plt.plot(tw_rays.s, sig_hvd_rays[:, 1], label=r'vertical envelope [$\sigma$] (rays)')
-plt.plot(tw_rays.s, sig_hvd_rays[:, 2], label=r'diagonal envelope [$\sigma$] (rays)')
+plt.plot(tw_rays.s, hvd_rays.n1_horizontal, label=r'horizonal envelope [$\sigma$] (rays)')
+plt.plot(tw_rays.s, hvd_rays.n1_vertical, label=r'vertical envelope [$\sigma$] (rays)')
+plt.plot(tw_rays.s, hvd_rays.n1_diagonal, label=r'diagonal envelope [$\sigma$] (rays)')
 plt.plot(tw_rays.s, sig_rays, label=r'min envelope [$\sigma$] (rays)', linestyle=':')
 
 plt.plot(tw_bisect.s, sig_bisect, label=r'max envelope [$\sigma$] (bisection)', linestyle='--')

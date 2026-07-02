@@ -10,7 +10,8 @@ import xobjects as xo
 from xtrack.beam_elements.apertures import LimitPolygon
 from xdeps.table import Table
 from xobjects.context import XContext
-from xtrack import TwissInit, TwissTable
+from xtrack.twiss import TwissInit, TwissTable
+from xtrack.api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
 from xtrack.aperture.profile_converters import (
     LimitElement, profile_from_limit_element, profile_from_madx_aperture
 )
@@ -25,7 +26,7 @@ from xtrack.line import Line
 from xtrack.progress_indicator import progress
 from xtrack.survey import survey_relative_transform
 from xtrack.aperture.views import (
-    PipePositionsView, PipesView, ProfilesView, _deduplicate_legend,
+    PipePositionsView, PipesView, ProfilesView,
 )
 from xtrack.aperture.transform import transform_matrix
 
@@ -34,6 +35,8 @@ NDArrayNx2 = np.ndarray[tuple[int, Literal[2]], DTypeFloat]
 NDArrayNxMx2 = np.ndarray[tuple[int, int, Literal[2]], DTypeFloat]
 HomogenousMatrix = np.ndarray[tuple[Literal[4], Literal[4]], DTypeFloat]
 HomogenousMatrices = np.ndarray[tuple[int, Literal[4], Literal[4]], DTypeFloat]
+
+SigmasCalculationEnum = Literal['bisection', 'rays', 'exact']
 
 
 def _survey_is_closed(survey: Table, tol: float = 1e-6) -> bool:
@@ -90,26 +93,41 @@ def _split_wrapped_s_interval(
         start = float(np.mod(start, line_length))
         end = float(np.mod(end, line_length))
         if start > end + s_tol:
-            return [(start, line_length), (0.0, end)]
+            return [
+                (segment_start, segment_end)
+                for segment_start, segment_end in (
+                    (start, line_length),
+                    (0.0, end),
+                )
+                if segment_end - segment_start > s_tol
+            ]
     return [(start, end)]
 
 
-class Aperture:
-    halo_params = {
-        "emitx_norm": 3.5e-6,  # normalized emittance x
-        "emity_norm": 3.5e-6,  # normalized emittance y
-        "delta_rms": 0.0,  # rms energy spread
-        "tol_co": 0.0,  # tolerance for closed orbit
-        "tol_disp": 0.0,  # tolerance for normalized dispersion
-        "tol_disp_ref": 1.8,  # tolerance for reference dispersion derivative
-        "tol_disp_ref_beta": 170,  # tolerance for reference dispersion beta
-        "tol_beta_beating": 1.0,  # tolerance for beta beating in sigma
-        "halo_x": 6.0,  # n sigma of horizontal halo
-        "halo_y": 6.0,  # n sigma of vertical halo
-        "halo_r": 6.0,  # n sigma of 45 degree halo
-        "halo_primary": 6.0,  # n sigma of primary halo
-    }
+_aperture_doc_groups = GroupedAPICollector([
+    "Loading and Serialization",
+    "Aperture Computations",
+    "Introspection",
+    "Visualization",
+])
 
+DEFAULT_HALO_PARAMS = {
+    "emitx_norm": 3.5e-6,
+    "emity_norm": 3.5e-6,
+    "delta_rms": 0.0,
+    "tol_co": 0.0,
+    "tol_disp": 0.0,
+    "tol_disp_ref": 1.8,
+    "tol_disp_ref_beta": 170,
+    "tol_beta_beating": 1.0,
+    "halo_x": 6.0,
+    "halo_y": 6.0,
+    "halo_r": 6.0,
+    "halo_primary": 6.0,
+}
+
+
+class Aperture:
     def __init__(
         self,
         line: Line,
@@ -124,23 +142,19 @@ class Aperture:
         """Bind an aperture model to a line and precompute the derived geometry."""
         self.line = line
         self._model = model  # positioning of pipes in line frame
-        self.halo_params = self.halo_params.copy()
+        self._halo_params = DEFAULT_HALO_PARAMS.copy()
         self.context = context or xo.ContextCpu()
         self.s_tol = s_tol
 
         self.survey = line.survey()
         self.is_ring = _survey_is_closed(self.survey) if is_ring == 'auto' else bool(is_ring)
-
-        # Add angle and rot_s_rad
-        self.survey['angle'] = np.zeros_like(self.survey.s)
-        self.survey['rot_s_rad'] = np.zeros_like(self.survey.s)
-        self.survey['angle'][:-1] = line.attr['angle'] # shorter by one because survey has '_end_point'
-        self.survey['rot_s_rad'][:-1] = line.attr['rot_s_rad'] # shorter by one because survey has '_end_point'
+        self._model.is_ring = int(self.is_ring)
+        self._model.survey_length = self.line.get_length()
 
         if not _skip_validity_check:
             self._check_model_validity()
 
-        self._survey_data = SurveyData.from_survey_table(self.survey, context=self.context)
+        self._survey_data = SurveyData.from_survey_table(self.survey, line, context=self.context)
         self.num_profile_points = num_profile_points
 
         self._aperture_bounds: ApertureBounds | None = None
@@ -150,40 +164,81 @@ class Aperture:
         if halo_params is not None:
             self.halo_params.update(halo_params)
 
-    @property
+    @classmethod
+    def _generate_doc_rst(cls, *, include_summary_table=True):
+        """Generate API documentation in RST format."""
+        from xtrack.api_docs import generate_grouped_class_rst
+
+        return generate_grouped_class_rst(cls, include_summary_table=include_summary_table)
+
+    @property_with_doc_group("Introspection")
+    def halo_params(self) -> dict:
+        """Dictionary of halo parameters controlling beam-envelope and aperture-sigma computations.
+
+        The keys and their default values are:
+
+        ========================  =======  =====================================================
+        Key                       Default  Description
+        ========================  =======  =====================================================
+        ``emitx_norm``            3.5e-6   Normalised horizontal emittance [m·rad]
+        ``emity_norm``            3.5e-6   Normalised vertical emittance [m·rad]
+        ``delta_rms``             0.0      RMS momentum spread
+        ``tol_co``                0.0      Closed-orbit tolerance [m]
+        ``tol_disp``              0.0      Normalised dispersion tolerance [m]
+        ``tol_disp_ref``          1.8      Reference dispersion derivative tolerance [m]
+        ``tol_disp_ref_beta``     170      Reference dispersion beta-function [m]
+        ``tol_beta_beating``      1.0      Beta-beating tolerance [sigma]
+        ``halo_x``                6.0      Horizontal halo size [sigma]
+        ``halo_y``                6.0      Vertical halo size [sigma]
+        ``halo_r``                6.0      45° halo size [sigma]
+        ``halo_primary``          6.0      Primary halo size [sigma]
+        ========================  =======  =====================================================
+
+        The dictionary is mutable; individual entries can be changed with
+        ``aperture.halo_params['key'] = value`` or in bulk with
+        ``aperture.halo_params.update({...})``.
+        """
+        return self._halo_params
+
+    @halo_params.setter
+    def halo_params(self, value: dict):
+        self._halo_params = value
+
+    @property_with_doc_group("Introspection")
     def profiles(self) -> ProfilesView:
         """Return the profile collection view."""
         return ProfilesView(self._model)
 
-    @property
+    @property_with_doc_group("Introspection")
     def pipe_positions(self) -> PipePositionsView:
         """Return the pipe-position collection view."""
         return PipePositionsView(self._model)
 
-    @property
+    @property_with_doc_group("Introspection")
     def pipes(self) -> PipesView:
         """Return the pipe collection view."""
         return PipesView(self._model)
 
+    @doc_group("Loading and Serialization")
     def to_json(self, filename):
         """Serialize the aperture model and halo parameters to JSON."""
         json = {
             'model': self._model.to_dict(),
             'halo_params': self.halo_params,
-            'ring': self.is_ring,
         }
         json_dump(json, filename)
 
+    @doc_group("Loading and Serialization")
     @classmethod
     def from_json(cls, filename, line, **kwargs):
-        """Load an aperture from JSON and bind it to `line`."""
+        """Load an aperture from JSON and bind it to ``line``."""
         context = kwargs.pop('context', None)
         if context is None:
             context = getattr(line, '_context', None)
         json = json_load(filename)
         model = ApertureModel(**json['model'], _context=context)
         halo_params = json['halo_params']
-        ring = kwargs.pop('ring', json.get('ring', 'auto'))
+        ring = kwargs.pop('ring', bool(model.is_ring))
         return cls(
             line=line,
             model=model,
@@ -193,6 +248,7 @@ class Aperture:
             **kwargs,
         )
 
+    @doc_group("Loading and Serialization")
     @classmethod
     def from_line_with_madx_metadata(cls, line, include_offsets=True, context=None, **kwargs):
         """Build an aperture from MAD-X layout metadata attached to a line."""
@@ -341,6 +397,7 @@ class Aperture:
         )
         return aperture
 
+    @doc_group("Loading and Serialization")
     @classmethod
     def from_line_with_associated_apertures(cls, line, context=None, **kwargs):
         """Build an aperture from Xsuite elements that reference associated apertures."""
@@ -432,6 +489,7 @@ class Aperture:
         )
         return aperture
 
+    @doc_group("Loading and Serialization")
     @classmethod
     def from_line_with_limits(cls, line, context=None, **kwargs):
         """Build an aperture from limit elements installed in the line."""
@@ -492,10 +550,6 @@ class Aperture:
             **kwargs,
         )
         return aperture
-
-    def polygon_for_profile(self, profile: Profile, num_points: int) -> NDArrayNx2:
-        """Sample a profile boundary as a 2D polygon."""
-        return profile.build_polygon(len_points=num_points)
 
     @classmethod
     def _build_aperture_model(
@@ -559,6 +613,7 @@ class Aperture:
 
         return aperture
 
+    @doc_group("Aperture Computations")
     def get_aperture_sigmas_at_element(
             self,
             element_name: str,
@@ -588,17 +643,18 @@ class Aperture:
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_aperture_sigmas_at_s(s_positions, twiss_init, **kwargs)
 
+    @doc_group("Aperture Computations")
     def get_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
-            method: Literal['bisection', 'rays', 'exact'] = 'rays',
+            method: SigmasCalculationEnum = 'rays',
             envelopes_num_points: int = 36,
             num_rays: int = 32,
             output_max_envelopes: bool = False,
             output_cross_sections: bool = False,
     ) -> tuple[Table, TwissTable]:
-        """Compute the maximum number of sigmas at which the beam fits in the aperture at element ``element_name``.
+        """Compute the maximum number of sigmas at which the beam fits in the aperture at the given ``s_positions``.
 
         Parameters
         ----------
@@ -635,6 +691,69 @@ class Aperture:
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
         sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
+        table = self.get_aperture_sigmas_for_twiss(
+            sliced_twiss=sliced_twiss,
+            method=method,
+            envelopes_num_points=envelopes_num_points,
+            num_rays=num_rays,
+            output_max_envelopes=output_max_envelopes,
+            output_cross_sections=output_cross_sections,
+        )
+        return table, sliced_twiss
+
+    @doc_group("Aperture Computations")
+    def get_aperture_sigmas_for_twiss(
+        self,
+        sliced_twiss: TwissTable,
+        method: SigmasCalculationEnum = 'rays',
+        envelopes_num_points: int = 36,
+        num_rays: int = 32,
+        output_max_envelopes: bool = False,
+        output_cross_sections: bool = False,
+    ) -> Table:
+        """Compute the maximum aperture sigmas from an already sampled Twiss table.
+
+        Unlike :meth:`get_aperture_sigmas_at_s`, this method does not slice the
+        line or calculate Twiss parameters. Each row of ``sliced_twiss`` is used
+        directly to determine the maximum beam size that fits in the aperture.
+
+        Parameters
+        ----------
+        sliced_twiss
+            Twiss table containing the longitudinal positions and optical
+            quantities at which to compute the aperture sigmas.
+        method
+            Algorithm used to determine the limiting sigma:
+
+            - ``'rays'`` estimates the limit along evenly spaced ray directions.
+            - ``'exact'`` samples the halo racetrack and emits additional rays
+              from those points.
+            - ``'bisection'`` searches for the largest envelope polygon contained
+              in the aperture polygon.
+        envelopes_num_points
+            Number of points used to discretise beam-envelope polygons.
+        num_rays
+            Number of evenly spaced ray directions used by the ``'rays'`` and
+            ``'exact'`` methods.
+        output_max_envelopes
+            Whether to include beam-envelope polygons at the computed sigma.
+        output_cross_sections
+            Whether to include the interpolated aperture cross-sections.
+
+        Returns
+        -------
+        table
+            Table with one row per row of ``sliced_twiss`` and the following
+            columns:
+
+            - ``index``: row index.
+            - ``s``: longitudinal position.
+            - ``n1``: maximum number of beam sigmas that fit in the aperture.
+            - ``cross_section``: aperture polygon, included when
+              ``output_cross_sections`` is true.
+            - ``envelope``: beam-envelope polygon at ``n1``, included when
+              ``output_max_envelopes`` is true.
+        """
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         survey_at_s = self._survey_data.resample(twiss_at_s.s)
@@ -717,15 +836,16 @@ class Aperture:
             table_data['cross_section'] = interpolated_points
         if output_max_envelopes:
             table_data['envelope'] = envelope_at_max_sigma
-        return Table(table_data, index='index'), sliced_twiss
+        return Table(table_data, index='index')
 
+    @doc_group("Aperture Computations")
     def get_hvd_aperture_sigmas_at_element(
             self,
             element_name: str,
             resolution: float | None = None,
             twiss: TwissTable | None = None,
-    ) -> tuple[np.ndarray, TwissTable, np.ndarray]:
-        """Compute horizontal, vertical and horizontal max aperture sigmas at element ``element_name``.
+    ) -> tuple[Table, TwissTable]:
+        """Compute horizontal, vertical and diagonal (45°) max aperture sigmas at element ``element_name``.
 
         Parameters
         ----------
@@ -747,28 +867,28 @@ class Aperture:
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_hvd_aperture_sigmas_at_s(s_positions=s_positions, twiss_init=twiss_init)
 
+    @doc_group("Aperture Computations")
     def get_hvd_aperture_sigmas_at_s(
             self,
             s_positions: Iterable[float],
             twiss_init: TwissInit | None = None,
-    ) -> tuple[np.ndarray, TwissTable, np.ndarray]:
-        """Compute horizontal, vertical and horizontal max aperture sigmas.
+    ) -> tuple[Table, TwissTable]:
+        """Compute horizontal, vertical and diagonal (45°) max aperture sigmas at the given ``s_positions``.
 
         Parameters
         ----------
-        s_positions : Iterable[float]
+        s_positions
             Locations at which to compute the desired quantities.
-        twiss_init : TwissInit, optional
+        twiss_init
             Initial conditions for the twiss.
 
         Returns
         -------
-        A three-tuple ``(sigmas, sliced_twiss, aperture_polygons)``:
-        - ```sigmas`` is an array of shape `(len(s_positions), 3)`, containing the maximum number of sigmas fitting in
-          the aperture in the horizontal, vertical and horizontal directions at each s-position.
-        - ``sliced_twiss`` is the twiss table computed as part of the calculation
-        - ``aperture_polygons`` are the aperture cross-sections at each of the ``s_positions``: a numpy array of shape
-          ``(len(s_positions), cross_sections_num_points, 2)``.
+        A two-tuple ``(table, sliced_twiss)``:
+        - ``table`` is an :class:`xdeps.table.Table` with columns ``s``,
+          ``n1_horizontal``, ``n1_vertical``, ``n1_diagonal``, and
+          ``cross_section``.
+        - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
         sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
         num_slices = len(sliced_twiss.s)
@@ -801,10 +921,21 @@ class Aperture:
         sigmas_h = np.minimum(ray_sigmas[:, 0], ray_sigmas[:, 4])
         sigmas_v = np.minimum(ray_sigmas[:, 2], ray_sigmas[:, 6])
         sigmas_d = np.minimum.reduce([ray_sigmas[:, 1], ray_sigmas[:, 3], ray_sigmas[:, 5], ray_sigmas[:, 7]])
-        ray_sigmas = np.c_[sigmas_h, sigmas_v, sigmas_d]
+        table = Table(
+            {
+                'index': np.arange(len(sliced_twiss)),
+                's': sliced_twiss.s,
+                'n1_horizontal': sigmas_h,
+                'n1_vertical': sigmas_v,
+                'n1_diagonal': sigmas_d,
+                'cross_section': interpolated_points,
+            },
+            index='index',
+        )
 
-        return ray_sigmas, sliced_twiss, interpolated_points
+        return table, sliced_twiss
 
+    @doc_group("Aperture Computations")
     def get_envelope_at_element(
             self,
             element_name: str,
@@ -812,7 +943,7 @@ class Aperture:
             resolution: float | None = None,
             twiss: TwissTable | None = None,
             **kwargs,
-    ) -> tuple[np.ndarray, TwissTable]:
+    ) -> tuple[Table, TwissTable]:
         """Compute beam-envelope polygons at the cuts of ``element_name`` for a fixed sigma value.
 
         Parameters
@@ -832,14 +963,14 @@ class Aperture:
         Returns
         -------
         A two-tuple ``(envelopes, sliced_twiss)``, where:
-        - ``envelopes`` are the beam cross-section polygons at the requested sigma: a numpy array of shape
-          ``(num_cuts, envelopes_num_points, 2)``.
+        - ``envelopes`` is the table returned by :meth:`get_envelope_at_s`.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
         s_positions = self._get_cuts_at_element(element_name, resolution)
         twiss_init = twiss.get_twiss_init(at_element=element_name) if twiss else None
         return self.get_envelope_at_s(s_positions, sigmas, twiss_init, **kwargs)
 
+    @doc_group("Aperture Computations")
     def get_envelope_at_s(
             self,
             s_positions: Iterable[float],
@@ -847,7 +978,9 @@ class Aperture:
             twiss_init: TwissInit | None = None,
             envelopes_num_points: int = 128,
             include_aper_tols: bool = True,
-    ) -> tuple[np.ndarray, TwissTable]:
+            polygons: bool = True,
+            extents: bool = False,
+    ) -> tuple[Table, TwissTable]:
         """Compute beam-envelope polygons at the requested ``s_positions`` for a fixed sigma value.
 
         Parameters
@@ -862,20 +995,90 @@ class Aperture:
             Number of points to use when discretising the beam cross-section polygon.
         include_aper_tols
             If true, include the aperture mechanical tolerances associated with the active profile at each ``s``.
+        polygons
+            Whether to include the beam-envelope polygons in the output table.
+        extents
+            Whether to include the horizontal and vertical envelope extents.
 
         Returns
         -------
         A two-tuple ``(envelopes, sliced_twiss)``, where:
-        - ``envelopes`` are the beam cross-section polygons at the requested sigma: a numpy array of shape
-          ``(len(s_positions), envelopes_num_points, 2)``.
+        - ``envelopes`` is a table containing the sampled longitudinal positions and
+          the requested polygon and extent outputs.
         - ``sliced_twiss`` is the twiss table computed as part of the calculation.
         """
         sliced_twiss = self._sliced_twiss_at_s(s_positions=s_positions, twiss_init=twiss_init)
+        envelope_table = self.get_envelope_for_twiss(
+            sliced_twiss=sliced_twiss,
+            sigmas=sigmas,
+            envelopes_num_points=envelopes_num_points,
+            include_aper_tols=include_aper_tols,
+            polygons=polygons,
+            extents=extents,
+        )
+        return envelope_table, sliced_twiss
+
+    @doc_group("Aperture Computations")
+    def get_envelope_for_twiss(
+        self,
+        sliced_twiss: TwissTable,
+        sigmas: float,
+        envelopes_num_points: int,
+        include_aper_tols: bool,
+        polygons: bool,
+        extents: bool,
+    ) -> Table:
+        """Compute beam envelopes from an already sampled Twiss table.
+
+        Unlike :meth:`get_envelope_at_s`, this method does not slice the line or
+        calculate Twiss parameters. Each row of ``sliced_twiss`` is used directly
+        to construct the beam envelope at the requested sigma level.
+
+        Parameters
+        ----------
+        sliced_twiss
+            Twiss table containing the longitudinal positions and optical
+            quantities at which to compute the envelopes.
+        sigmas
+            Sigma level at which to evaluate the beam envelope.
+        envelopes_num_points
+            Number of points used to discretise each envelope polygon.
+        include_aper_tols
+            Whether to enlarge the beam envelope by the mechanical tolerances of
+            the active aperture profile at each longitudinal position.
+        polygons
+            Whether to include the discretised envelope polygons in the output.
+        extents
+            Whether to include the minimum and maximum horizontal and vertical
+            coordinates of each envelope.
+
+        Returns
+        -------
+        table
+            Table with one row per row of ``sliced_twiss`` and the following
+            columns:
+
+            - ``index``: row index.
+            - ``s``: longitudinal position.
+            - ``cross_section``: envelope polygon, included when ``polygons`` is
+              true.
+            - ``min_x`` and ``max_x``: horizontal extents, included when
+              ``extents`` is true.
+            - ``min_y`` and ``max_y``: vertical extents, included when
+              ``extents`` is true.
+        """
         num_slices = len(sliced_twiss.s)
         twiss_at_s = TwissData.from_twiss_table(self.line.particle_ref, sliced_twiss)
         beam_data = BeamData(**self.halo_params)
 
-        envelopes = np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
+        envelopes = (
+            np.zeros(shape=(num_slices, envelopes_num_points, 2), dtype=FloatType._dtype)
+            if polygons else None
+        )
+        min_x = np.zeros(num_slices, dtype=FloatType._dtype) if extents else None
+        max_x = np.zeros(num_slices, dtype=FloatType._dtype) if extents else None
+        min_y = np.zeros(num_slices, dtype=FloatType._dtype) if extents else None
+        max_y = np.zeros(num_slices, dtype=FloatType._dtype) if extents else None
 
         self._model.get_beam_envelopes_at_sigma(
             aperture_bounds=self._aperture_bounds,
@@ -885,15 +1088,30 @@ class Aperture:
             envelope_num_points=envelopes_num_points,
             include_aper_tols=int(include_aper_tols),
             out_envelope=envelopes,
+            min_x=min_x,
+            max_x=max_x,
+            min_y=min_y,
+            max_y=max_y,
         )
 
-        return envelopes, sliced_twiss
+        table_data = {
+            'index': np.arange(num_slices),
+            's': np.asarray(sliced_twiss.s, dtype=FloatType._dtype),
+        }
+        if polygons:
+            table_data['cross_section'] = envelopes
+        if extents:
+            table_data.update(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
 
+        return Table(table_data, index='index')
+
+    @doc_group("Aperture Computations")
     def poses_at_s(self, s_positions: Collection[float]) -> HomogenousMatrices:
         """Return a local coordinate system (each represented by a homogeneous matrix) at all ``s_positions``."""
         sv_resampled = self._survey_data.resample(s_positions)
         return sv_resampled.pose.to_nparray()
 
+    @doc_group("Aperture Computations")
     def cross_sections_at_element(
         self,
         element_name: str,
@@ -904,19 +1122,39 @@ class Aperture:
         s_positions = self._get_cuts_at_element(element_name, resolution)
         return self.cross_sections_at_s(s_positions, extents=extents)
 
+    @doc_group("Aperture Computations")
     def cross_sections_at_s(
         self,
         s_positions: Collection[float],
         extents: bool = False,
+        polygons: bool = True,
     ) -> Table:
-        """Return aperture cross-sections at the requested `s` positions."""
+        """Return aperture cross-sections at the requested `s` positions.
+
+        Parameters
+        ----------
+        s_positions
+            Longitudinal positions at which to evaluate the aperture.
+        extents
+            Whether to include the aperture intersections with the transverse
+            coordinate axes.
+        polygons
+            Whether to include the interpolated cross-section polygons.
+        """
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
         sv_resampled = self._survey_data.resample(s_positions)
 
-        cross_sections = np.zeros(shape=(len(s_positions), self.num_profile_points, 2), dtype=FloatType._dtype)
+        cross_sections = (
+            np.zeros(shape=(len(s_positions), self.num_profile_points, 2), dtype=FloatType._dtype)
+            if polygons else None
+        )
         tol_r = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
         tol_x = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
         tol_y = np.zeros(shape=len(s_positions), dtype=FloatType._dtype)
+        min_x = np.zeros(shape=len(s_positions), dtype=FloatType._dtype) if extents else None
+        max_x = np.zeros(shape=len(s_positions), dtype=FloatType._dtype) if extents else None
+        min_y = np.zeros(shape=len(s_positions), dtype=FloatType._dtype) if extents else None
+        max_y = np.zeros(shape=len(s_positions), dtype=FloatType._dtype) if extents else None
 
         self._model.cross_sections_at_s(
             survey_at_s=sv_resampled,
@@ -927,6 +1165,10 @@ class Aperture:
             tol_r=tol_r,
             tol_x=tol_x,
             tol_y=tol_y,
+            min_x=min_x,
+            max_x=max_x,
+            min_y=min_y,
+            max_y=max_y,
         )
         poses = sv_resampled.pose.to_nparray()
 
@@ -934,15 +1176,17 @@ class Aperture:
             'index': np.arange(len(s_positions)),
             's': s_positions,
             'pose': poses,
-            'cross_section': cross_sections,
             'tol_r': tol_r,
             'tol_x': tol_x,
             'tol_y': tol_y,
         }
+        if polygons:
+            table_data['cross_section'] = cross_sections
         if extents:
-            table_data.update(self._axis_extents_for_cross_sections(cross_sections))
+            table_data.update(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
         return Table(table_data, index='index')
 
+    @doc_group("Aperture Computations")
     def get_limit_elements(self, s_positions: list[float]) -> dict[float, LimitElement]:
         """Obtain interpolated cross-sections as limit beam elements."""
         cross_sections_table = self.cross_sections_at_s(s_positions)
@@ -957,18 +1201,55 @@ class Aperture:
 
         return limit_elements
 
+    @doc_group("Visualization")
     def plot_extents(
         self,
         s_positions: Collection[float],
         sigmas: float | None = None,
         twiss_init: TwissInit | None = None,
-        method: Literal['bisection', 'rays', 'exact'] = 'rays',
+        method: SigmasCalculationEnum = 'rays',
         envelopes_num_points: int = 64,
         include_aper_tols: bool = False,
         plot_s_positions: Collection[float] | None = None,
         axs=None,
     ):
-        """Plot beam envelope and aperture extents over `s`."""
+        """Plot beam-envelope and aperture extents along the beam line.
+
+        Parameters
+        ----------
+        s_positions
+            Longitudinal positions at which the aperture cross-sections and beam
+            envelopes are evaluated.
+        sigmas
+            Sigma level used to build the beam envelope. If omitted, the minimum
+            available aperture sigma across ``s_positions`` is computed using
+            ``method``.
+        twiss_init
+            Twiss initial conditions forwarded to the envelope and aperture-sigma
+            computations.
+        method
+            Method used to compute the maximum aperture sigmas when ``sigmas`` is not given.
+        envelopes_num_points
+            Number of points used to discretise each transverse beam envelope.
+        include_aper_tols
+            Whether aperture tolerances should be included in the beam-envelope
+            computation.
+        plot_s_positions
+            Coordinates to be used on the horizontal axis. If omitted, ``s_positions``
+            are used directly. This is useful when the data are evaluated at one
+            set of longitudinal positions but should be displayed against another
+            abscissa, for example a shifted, reversed, or externally defined coordinate.
+        axs
+            Two axes on which to draw the horizontal and vertical extents. If
+            not provided, a new figure with two shared-x subplots is created.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            Figure containing the plots.
+        axs : sequence of matplotlib.axes.Axes
+            The x- and y-extent axes, in that order.
+        """
         s_positions = np.asarray(s_positions, dtype=FloatType._dtype)
         plot_s_positions = np.asarray(
             s_positions if plot_s_positions is None else plot_s_positions,
@@ -980,27 +1261,32 @@ class Aperture:
         undo_order[order] = np.arange(len(order))
         s_sorted = s_positions[order]
 
+        sliced_twiss = self._sliced_twiss_at_s(
+            s_positions=s_sorted,
+            twiss_init=twiss_init,
+        )
+        sigmas_was_computed = sigmas is None
         if sigmas is None:
-            n1_table, _ = self.get_aperture_sigmas_at_s(
-                s_positions=s_sorted,
-                twiss_init=twiss_init,
+            n1_table = self.get_aperture_sigmas_for_twiss(
+                sliced_twiss=sliced_twiss,
                 method=method,
             )
-            sigmas = float(np.min(n1_table.n1))
+            sigmas = float(np.nanmin(n1_table.n1))
 
-        envelopes, _ = self.get_envelope_at_s(
-            s_positions=s_sorted,
+        envelopes_table = self.get_envelope_for_twiss(
+            sliced_twiss=sliced_twiss,
             sigmas=sigmas,
-            twiss_init=twiss_init,
             envelopes_num_points=envelopes_num_points,
             include_aper_tols=include_aper_tols,
+            polygons=False,
+            extents=True,
         )
-        sections_table = self.cross_sections_at_s(s_sorted, extents=True)
+        sections_table = self.cross_sections_at_s(s_sorted, extents=True, polygons=False)
 
-        min_envel_x = np.min(envelopes[:, :, 0], axis=1)[undo_order]
-        max_envel_x = np.max(envelopes[:, :, 0], axis=1)[undo_order]
-        min_envel_y = np.min(envelopes[:, :, 1], axis=1)[undo_order]
-        max_envel_y = np.max(envelopes[:, :, 1], axis=1)[undo_order]
+        min_envel_x = np.asarray(envelopes_table.min_x, dtype=FloatType._dtype)[undo_order]
+        max_envel_x = np.asarray(envelopes_table.max_x, dtype=FloatType._dtype)[undo_order]
+        min_envel_y = np.asarray(envelopes_table.min_y, dtype=FloatType._dtype)[undo_order]
+        max_envel_y = np.asarray(envelopes_table.max_y, dtype=FloatType._dtype)[undo_order]
 
         min_aper_x = np.asarray(sections_table.min_x, dtype=FloatType._dtype)[undo_order]
         max_aper_x = np.asarray(sections_table.max_x, dtype=FloatType._dtype)[undo_order]
@@ -1034,39 +1320,112 @@ class Aperture:
         ax_y.set_ylabel(r'y [m]')
         ax_y.set_xlabel('s [m]')
 
+        sigma_label = 'n_1' if sigmas_was_computed else 'n'
+        fig.suptitle(
+            fr"Extents and beam envelope at ${sigma_label} = {sigmas:.3g}$ and "
+            fr"$s \in [{np.min(plot_s_positions):.3g}, {np.max(plot_s_positions):.3g}]$"
+        )
+
         return fig, axs
 
-    def plot_at_element(self, name: str, resolution: float = 0.1, sigmas: float | None = None, method: str | None = None, middle='beam', ax=None):
-        """Display a transverse plot of the beam at an element ``name``.
+    @doc_group("Visualization")
+    def plot_transverse(
+            self,
+            name: str | None = None,
+            s_positions: Collection[float] | None = None,
+            resolution: float = 0.1,
+            sigmas: float | None = None,
+            method: SigmasCalculationEnum = 'rays',
+            twiss_init: TwissInit | None = None,
+            middle='beam',
+            ax=None,
+    ):
+        """Display transverse aperture cross-sections and beam envelopes.
 
         Parameters
         ----------
-        name : str
-            Name of the element at which to plot.
-        resolution : float
-            The desired resolution, in metres along s, of the plot.
-        sigmas : Optional[float]
-            The number of sigmas to plot. If None, compute n1 using ``method``.
-        method : str
-            If ``sigmas`` is None, plot the maximum sigma for element, calculated using ``method``.
-        middle : str
+        name
+            Name of the element at which to plot. If given, ``s_positions`` are
+            obtained from the element entry, exit, and optional resolution cuts.
+        s_positions
+            Longitudinal positions to plot directly. Provide either ``name`` or
+            ``s_positions``.
+        resolution
+            The desired resolution, in metres along s, when plotting an element.
+        sigmas
+            The number of sigmas to plot. If ``None``, compute and plot the
+            limiting ``n1`` using ``method``.
+        method
+            If ``sigmas`` is ``None``, method used to compute the limiting
+            ``n1``.
+        twiss_init
+            Optional initial Twiss conditions forwarded to the envelope and
+            aperture-sigma calculations.
+        middle
             Whether the plot should be centred around the ``aperture`` middle, or ``beam`` reference.
-        ax : matplotlib.axes.Axes
+        ax
             Axes object to plot on, if not given, spawn a new one.
+
+        Returns
+        -------
+        ax : matplotlib.axes.Axes
+            Plot's axes object.
         """
         from matplotlib import pyplot as plt
         ax = ax or plt.gca()
 
+        if (name is None) == (s_positions is None):
+            raise ValueError("Provide exactly one of `name` or `s_positions`.")
+
+        if name is not None:
+            s_positions = self._get_cuts_at_element(name, resolution)
+            title_location = name
+        else:
+            s_positions = np.asarray(s_positions, dtype=FloatType._dtype)
+            title_location = 'requested s positions'
+
         if sigmas is None:
-            n1_tab, _ = self.get_aperture_sigmas_at_element(name, method=method, resolution=resolution)
-            sigmas = min(n1_tab.n1)
-
-        s_positions = self._get_cuts_at_element(name, resolution)
-        beam_tols, _ = self.get_envelope_at_s(s_positions=s_positions, sigmas=sigmas, include_aper_tols=True)
-        beam_no_tols, _ = self.get_envelope_at_s(s_positions=s_positions, sigmas=sigmas, include_aper_tols=False)
-        profiles = self.cross_sections_at_s(s_positions=s_positions)
-
-        polygons = profiles.cross_section
+            n1_tab, _ = self.get_aperture_sigmas_at_s(
+                s_positions=s_positions,
+                twiss_init=twiss_init,
+                method=method,
+                envelopes_num_points=128,
+                output_max_envelopes=True,
+                output_cross_sections=True,
+            )
+            sigmas = float(np.min(n1_tab.n1))
+            beam_tols = n1_tab.envelope
+            beam_no_tols = None
+            polygons = n1_tab.cross_section
+            beam_label = f'envelope ({method}, min($n_1$) = {sigmas:.3f})'
+            title_sigma = fr"min($n_1$) = {sigmas:.3f}"
+        else:
+            sliced_twiss = self._sliced_twiss_at_s(
+                s_positions=s_positions,
+                twiss_init=twiss_init,
+            )
+            beam_tols = self.get_envelope_for_twiss(
+                sliced_twiss=sliced_twiss,
+                sigmas=sigmas,
+                envelopes_num_points=128,
+                include_aper_tols=True,
+                polygons=True,
+                extents=False,
+            )
+            beam_no_tols = self.get_envelope_for_twiss(
+                sliced_twiss=sliced_twiss,
+                sigmas=sigmas,
+                envelopes_num_points=128,
+                include_aper_tols=False,
+                polygons=True,
+                extents=False,
+            )
+            beam_tols = beam_tols.cross_section
+            beam_no_tols = beam_no_tols.cross_section
+            profiles = self.cross_sections_at_s(s_positions=s_positions)
+            polygons = profiles.cross_section
+            beam_label = 'envelope (with tolerances)'
+            title_sigma = fr"$n$ = {sigmas:.3f}"
 
         if middle == 'aperture':
             middle = (np.min(polygons, axis=1) + np.max(polygons, axis=1)) / 2
@@ -1083,158 +1442,68 @@ class Aperture:
 
         seen = False
         for pt, mid in zip(beam_tols, middle):
-            label = 'envelope (with tolerances)' if not seen else ''
+            label = beam_label if not seen else ''
             ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='royalblue', linestyle='-', label=label)
             seen = True
 
-        seen = False
-        for pt, mid in zip(beam_no_tols, middle):
-            label = 'envelope (no tolerances)' if not seen else ''
-            ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='skyblue', linestyle=':', label=label)
-            seen = True
+        if beam_no_tols is not None:
+            seen = False
+            for pt, mid in zip(beam_no_tols, middle):
+                label = 'envelope (no tolerances)' if not seen else ''
+                ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='skyblue', linestyle=':', label=label)
+                seen = True
 
         ax.set_aspect('equal')
-        ax.set_title(fr"Envelope at {name}, s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], $n$ = {sigmas:.3f}")
-        ax.legend()
-        return ax
-
-    def plot_n1_at_element(self, name: str, resolution: float = 0.1, method: str = 'rays', middle='beam', ax=None, **kwargs):
-        """Display a transverse plot of the beam at n1 at element ``name``.
-
-        Parameters
-        ----------
-        name : str
-            Name of the element at which to plot.
-        resolution : float
-            The desired resolution, in metres along s, of the plot.
-        method : str
-            The method to use to calculate ``n1`` and the envelope.
-        middle : str
-            Whether the plot should be centred around the ``aperture`` middle, or ``beam`` reference.
-        ax : matplotlib.axes.Axes
-            Axes object to plot on, if not given, spawn a new one.
-        **kwargs
-            More arguments to pass to matplotlib.
-        """
-        from matplotlib import pyplot as plt
-        ax = ax or plt.gca()
-
-        n1_table, _ = self.get_aperture_sigmas_at_element(
-            element_name=name,
-            resolution=resolution,
-            method=method,
-            envelopes_num_points=128,
-            output_max_envelopes=True,
-            output_cross_sections=True,
+        ax.set_title(
+            fr"Transverse aperture at {title_location}, "
+            fr"s $\in$ [{s_positions[0]:.2f}, {s_positions[-1]:.2f}], {title_sigma}"
         )
-
-        n1 = np.min(n1_table.n1)
-        polygons = n1_table.cross_section
-        beam = n1_table.envelope
-
-        if middle == 'aperture':
-            middle = (np.min(polygons, axis=1) + np.max(polygons, axis=1)) / 2
-        elif middle == 'beam':
-            middle = np.zeros(shape=(len(n1_table), 2))
-        else:
-            raise ValueError("Middle must be either 'aperture' or 'beam'")
-
-        for pt, mid in zip(polygons, middle):
-            ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c='gray', linestyle='--')
-
-        seen = False
-        colour = {'rays': 'r', 'bisection': 'b', 'exact': 'g'}[method]
-        for pt, mid in zip(beam, middle):
-            label = f'envelope ({method}, min($n_1$) = {n1:.3f})' if not seen else ''
-            ax.plot(pt[:, 0] - mid[0], pt[:, 1] - mid[1], c=colour, label=label, **kwargs)
-            seen = True
-
-        ax.set_aspect('equal')
-        ax.set_title(fr"Max envelopes at {name}, s $\in$ [{n1_table.s[0]:.2f}, {n1_table.s[-1]:.2f}], min($n_1$) = {n1:.3f}")
         ax.legend()
         return ax
 
+    @doc_group("Visualization")
     def plot_floor_projection(
         self,
         ax=None,
-        len_points=4,
-        colour: Literal['profile', 'pipe'] = 'pipe',
-        legend=True,
+        max_curve_angle_rad: float = np.deg2rad(1),
         origin: str | None = None,
         s_range: tuple[float, float] | None = None,
         aspect: Literal['auto', 'equal'] = 'auto',
     ):
-        """Plot all installed pipes projected onto the floor plane."""
-        from matplotlib import pyplot as plt
-        ax = ax or plt.gca()
+        """Plot installed pipe segments projected onto the floor plane.
 
-        pipe_table = self.get_pipe_table()
-        line_length = self.line.get_length()
-        origin_s = 0.0
-        plot_shift = np.identity(4)
+        Parameters
+        ----------
+        ax
+            Axes object to plot on. If not given, use the current axes.
+        max_curve_angle_rad
+            Maximum angular step used to draw curved pipe boundaries and axes.
+        origin
+            Name of a pipe position to use as the plotting origin. When given,
+            the floor projection is expressed in the local frame of that pipe
+            position.
+        s_range
+            Longitudinal window, relative to ``origin`` when provided, used to
+            restrict which pipe segments are plotted. On rings, wrapped ranges
+            are handled across the end of the line.
+        aspect
+            Aspect ratio applied to the axes after plotting.
 
-        if s_range and s_range[0] > s_range[1]:
-            raise ValueError('The `origin` pipe position is outside of the `s_range` specified.')
+        Returns
+        -------
+        ax : matplotlib.axes.Axes
+            Axes containing the floor projection.
+        """
+        from xtrack.aperture.plot import plot_floor_projection
 
-        if origin is not None:
-            origin_pipe_position = self.pipe_positions[origin]
-            origin_survey_ref = origin_pipe_position.survey_reference_name
-            origin_row = pipe_table.rows[origin]
-            origin_s = float(np.asarray(origin_row.s_start).item())
-
-            origin_sv_ref_transform = survey_relative_transform(self.survey, 0, origin_survey_ref)
-            origin_transform = origin_sv_ref_transform @ origin_pipe_position.transformation
-            plot_shift = np.linalg.inv(origin_transform)
-
-        def _in_s_range(row) -> bool:
-            if s_range is None:
-                return True
-
-            window_start = origin_s + s_range[0]
-            window_end = origin_s + s_range[1]
-
-            if not self.is_ring:
-                return row.s_end >= window_start - self.s_tol and row.s_start <= window_end + self.s_tol
-
-            window_width = s_range[1] - s_range[0]
-            if window_width >= line_length - self.s_tol:
-                return True
-
-            row_segments = _split_wrapped_s_interval(
-                row.s_start, row.s_end, line_length=line_length, wrap=True, s_tol=self.s_tol,
-            )
-            window_segments = _split_wrapped_s_interval(
-                window_start, window_end, line_length=line_length, wrap=True, s_tol=self.s_tol,
-            )
-            return any(
-                row_start <= window_end_seg + self.s_tol and window_start_seg <= row_end + self.s_tol
-                for row_start, row_end in row_segments
-                for window_start_seg, window_end_seg in window_segments
-            )
-
-        for row in pipe_table.rows:
-            if not _in_s_range(row):
-                continue
-
-            pipe_position = self.pipe_positions[row.name]
-            pipe = pipe_position.pipe
-            sv_ref_transform = survey_relative_transform(self.survey, 0, pipe_position.survey_reference_name)
-            transform = plot_shift @ sv_ref_transform @ pipe_position.transformation
-            pipe.plot_projection(
-                ax=ax,
-                plane='zx',
-                transform=transform,
-                len_points=len_points,
-                colour=colour,
-                legend=False
-            )
-
-        if legend:
-            _deduplicate_legend(ax)
-            ax.legend()
-
-        ax.set_aspect(aspect)
-        return ax
+        return plot_floor_projection(
+            self,
+            ax=ax,
+            max_curve_angle_rad=max_curve_angle_rad,
+            origin=origin,
+            s_range=s_range,
+            aspect=aspect,
+        )
 
     def _get_cuts_at_element(self, element_name: str, resolution: float | None) -> list[float]:
         """Get list of s positions so that the element ``element_name`` is cut with a ``resolution``."""
@@ -1287,9 +1556,12 @@ class Aperture:
             profile_polygons=self._profile_polygons,
             aperture_bounds=self._aperture_bounds,
             survey=self._survey_data,
-            is_ring=int(self.is_ring),
         )
         self._aperture_bounds.sort_by_s()
+        self._aperture_bounds.reorder_for_tolerated_pipe_overlaps(
+            s_tol=self.s_tol,
+            is_ring=self.is_ring,
+        )
 
         if check_validity:
             self._check_pipe_bounds_validity()
@@ -1346,8 +1618,26 @@ class Aperture:
                 last_end = end
                 last_name = name
 
-    def get_bounds_table(self):
-        """Get a table representation of the aperture bounds: per installed profile span information."""
+    @doc_group("Introspection")
+    def get_bounds_table(self) -> Table:
+        """Return per-profile aperture-bound information as a table.
+
+        Returns
+        -------
+        bounds_table
+            Table with the following columns:
+            - ``name``: name of the aperture bound, formed from the pipe-position
+              name and, when needed, a ``::i`` suffix identifying the profile
+              order within the pipe
+            - ``pipe_name``: name of the pipe in which the installed profile appears
+            - ``profile_name``: name of the installed profile
+            - ``s``: survey position at which the installed profile plane
+              intersects the reference curve
+            - ``s_start``, ``s_end``: longitudinal footprint of the installed
+              profile on the survey
+            - ``shape``: profile shape name
+            - ``shape_param``: dictionary of profile shape parameters
+        """
         ap_bounds = self._aperture_bounds
         table_size = ap_bounds.count
 
@@ -1382,7 +1672,7 @@ class Aperture:
             shapes_all[i] = type(shape).__name__
             shape_params_all[i] = shape._to_dict()
 
-        table = Table(
+        bounds_table = Table(
             data={
                 'name': pipe_position_names_all[pipe_position_indices],
                 'pipe_name': pipe_names_all[pipe_indices],
@@ -1395,15 +1685,112 @@ class Aperture:
             },
             index='name',
         )
-        return table
+        return bounds_table
 
+    @doc_group("Introspection")
+    def s_around_transitions(
+        self,
+        tol: float | None = None,
+        resolution: float | None = None,
+        s_range: tuple[float, float] | None = None,
+    ) -> np.ndarray:
+        """Return sampling positions around aperture-profile transitions.
+
+        The positions are built from the longitudinal locations of the
+        installed aperture bounds. For each stored ``s`` position, the method
+        emits points at ``s - tol`` and ``s + tol``. This is useful when
+        sampling quantities that can change abruptly at profile transitions.
+
+        Parameters
+        ----------
+        tol
+            Offset applied on both sides of each transition bound. If omitted,
+            use ``self.s_tol``.
+        resolution
+            If provided, add a regular grid of sampling points spaced by this
+            step size and union it with the transition-based points.
+        s_range
+            If provided, restrict the returned positions to this longitudinal
+            interval. For rings, wrapped intervals are supported.
+
+        Returns
+        -------
+        np.ndarray
+            Sorted, unique ``s`` positions clipped to the line extent.
+        """
+        line_length = float(self.line.get_length())
+        tol = self.s_tol if tol is None else float(tol)
+
+        if tol < 0:
+            raise ValueError('`tol` must be non-negative.')
+        if resolution is not None and resolution <= 0:
+            raise ValueError('`resolution` must be positive.')
+        if s_range is not None and not self.is_ring and s_range[0] > s_range[1]:
+            raise ValueError('Wrapped `s_range` is only supported for ring apertures.')
+
+        bounds_table = self.get_bounds_table()
+        bound_positions = np.asarray(bounds_table.s, dtype=FloatType._dtype)
+        bound_positions = bound_positions[np.isfinite(bound_positions)]
+
+        # Sample immediately on both sides of each installed aperture bound.
+        s_positions = np.concatenate([bound_positions - tol, bound_positions + tol])
+
+        if resolution is not None:
+            if s_range is None:
+                range_segments = [(0.0, line_length)]
+            else:
+                range_segments = _split_wrapped_s_interval(
+                    *s_range,
+                    line_length=line_length,
+                    wrap=self.is_ring,
+                    s_tol=tol,
+                )
+
+            # On wrapped ring intervals, build the regular grid segment by segment.
+            grid = [
+                np.arange(seg_start, seg_end + 0.5 * resolution, resolution, dtype=FloatType._dtype)
+                for seg_start, seg_end in range_segments
+            ]
+            s_positions = np.concatenate([s_positions] + grid)
+
+        s_positions = np.clip(s_positions, 0.0, line_length)
+
+        if s_range is not None:
+            range_segments = _split_wrapped_s_interval(
+                float(s_range[0]),
+                float(s_range[1]),
+                line_length=line_length,
+                wrap=self.is_ring,
+                s_tol=tol,
+            )
+            # Keep points inside the requested window, including wrapped windows on rings
+            mask = np.zeros(len(s_positions), dtype=bool)
+            for seg_start, seg_end in range_segments:
+                mask |= (s_positions >= seg_start) & (s_positions <= seg_end)
+            s_positions = s_positions[mask]
+
+        return np.unique(s_positions)
+
+    @doc_group("Introspection")
     def get_pipe_table(self):
-        """Get a table representation of installed pipe intervals.
+        """Return installed-pipe interval information as a table.
 
-        The ``s_start``/``s_end``/``length`` columns describe the interval
-        covered by the installed profile centre positions. The
-        ``s_span_start``/``s_span_end``/``span`` columns describe the larger
-        projected aperture footprint interval.
+        Returns
+        -------
+        pipe_table
+            Table with the following columns:
+            - ``name``: pipe-position name
+            - ``pipe_name``: underlying pipe (type) name
+            - ``survey_reference``: survey element used as the placement reference
+            - ``s_start``, ``s_end``: interval covered by the installed profile
+              centre positions
+            - ``length``: length of that centre-position interval
+            - ``s_span_start``, ``s_span_end``: longitudinal footprint of the
+              projected aperture itself
+            - ``span``: length of that aperture-footprint interval
+
+            For rings, wrapped intervals are represented with ``s_start > s_end``
+            and likewise for ``s_span_start > s_span_end``.
         """
         table_size = len(self._model.pipe_positions)
 
@@ -1482,7 +1869,8 @@ class Aperture:
             },
             index='name',
         )
-        return table
+        order = np.argsort(s_start, kind='stable')
+        return table.rows[order]
 
     def _sliced_twiss_at_s(
             self,
@@ -1493,9 +1881,9 @@ class Aperture:
 
         Parameters
         ----------
-        s_positions : Iterable[float]
+        s_positions
             s-positions for the sliced twiss.
-        twiss_init : TwissInit, optional
+        twiss_init
             Initial conditions for the twiss.
         """
         s_positions = np.array(s_positions, dtype=FloatType._dtype)
@@ -1524,52 +1912,6 @@ class Aperture:
         sliced_twiss = full_twiss.rows[tw_indices]
         return sliced_twiss
 
-    @staticmethod
-    def _axis_extents_for_cross_sections(cross_sections: np.ndarray) -> dict[str, np.ndarray]:
-        x0 = cross_sections[:, :-1, 0]
-        y0 = cross_sections[:, :-1, 1]
-        x1 = cross_sections[:, 1:, 0]
-        y1 = cross_sections[:, 1:, 1]
-
-        with np.errstate(divide='ignore', invalid='ignore'):
-            dy = y1 - y0
-            t_x_axis = -y0 / dy
-            crosses_x_axis = ((y0 < 0) & (y1 > 0)) | ((y0 > 0) & (y1 < 0))
-            x_axis_interp = np.where(crosses_x_axis, x0 + t_x_axis * (x1 - x0), np.nan)
-            x_axis_vertices = np.where(y0 == 0, x0, np.nan)
-            x_axis_vertices_next = np.where(y1 == 0, x1, np.nan)
-            on_x_axis = (y0 == 0) & (y1 == 0)
-            x_axis_seg0 = np.where(on_x_axis, x0, np.nan)
-            x_axis_seg1 = np.where(on_x_axis, x1, np.nan)
-            x_candidates = np.concatenate(
-                [x_axis_interp, x_axis_vertices, x_axis_vertices_next, x_axis_seg0, x_axis_seg1],
-                axis=1,
-            )
-
-            dx = x1 - x0
-            t_y_axis = -x0 / dx
-            crosses_y_axis = ((x0 < 0) & (x1 > 0)) | ((x0 > 0) & (x1 < 0))
-            y_axis_interp = np.where(crosses_y_axis, y0 + t_y_axis * (y1 - y0), np.nan)
-            y_axis_vertices = np.where(x0 == 0, y0, np.nan)
-            y_axis_vertices_next = np.where(x1 == 0, y1, np.nan)
-            on_y_axis = (x0 == 0) & (x1 == 0)
-            y_axis_seg0 = np.where(on_y_axis, y0, np.nan)
-            y_axis_seg1 = np.where(on_y_axis, y1, np.nan)
-            y_candidates = np.concatenate(
-                [y_axis_interp, y_axis_vertices, y_axis_vertices_next, y_axis_seg0, y_axis_seg1],
-                axis=1,
-            )
-
-        has_x = np.any(np.isfinite(x_candidates), axis=1)
-        has_y = np.any(np.isfinite(y_candidates), axis=1)
-
-        return {
-            'min_x': np.where(has_x, np.nanmin(x_candidates, axis=1), np.nan),
-            'max_x': np.where(has_x, np.nanmax(x_candidates, axis=1), np.nan),
-            'min_y': np.where(has_y, np.nanmin(y_candidates, axis=1), np.nan),
-            'max_y': np.where(has_y, np.nanmax(y_candidates, axis=1), np.nan),
-        }
-
     @classmethod
     def _guess_original_mad_name(cls, element_name: str) -> str:
         """Given a name of an element in a line, de-mangle the original MAD-X name.
@@ -1583,7 +1925,7 @@ class Aperture:
 
         Parameters
         ----------
-        element_name : str
+        element_name
             Name of a beam element.
         """
         pattern = r"(?P<prefix>.*?)(?:[:]\d+)?(?:/[^/]+)?"
@@ -1592,7 +1934,7 @@ class Aperture:
 
     @classmethod
     def _get_per_pipe_madx_offsets(cls, madx_offsets):
-        """Parse MAD-X imported aperture offsets metadata to obtain per-element (type) transformations."""
+        """Parse MAD-X imported aperture offsets metadata to obtain per-element (pipe) transformations."""
         offsets = {}
         for section in madx_offsets.values():
             reference_name = section['reference']
@@ -1620,6 +1962,7 @@ class Aperture:
 
     @classmethod
     def _is_broken_madx_aperture(cls, shape):
+        """Given a shape instance created based on a MAD-X description, guess if the shape is invalid."""
         if isinstance(shape, Circle):
             return shape.radius < 1e-6 or shape.radius > 9.98
 
@@ -1635,3 +1978,6 @@ class Aperture:
             )
 
         return False
+
+
+Aperture.__doc_groups__ = _aperture_doc_groups.collect(Aperture)

@@ -24,6 +24,7 @@ ONLY_XTRACK_ELEMENTS = [
     SecondOrderTaylorMap,
     Marker,
     ReferenceEnergyIncrease,
+    ReferenceEnergyChange,
     Cavity,
     CrabCavity,
     Elens,

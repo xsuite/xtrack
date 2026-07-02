@@ -59,7 +59,7 @@ class FieldFitter:
             self,
             raw_data,
             xy_point=(0, 0),
-            distance_unit=0.001,
+            distance_unit=1.,
             min_region_size=10,
             deg=2,
             field_tol=1e-3,
@@ -248,6 +248,188 @@ class FieldFitter:
         The DataFrame has a MultiIndex with levels ``('field_component', 'derivative_x', 'region_name', 's_start', 's_end', 'idx_start', 'idx_end', 'param_index')``.
         """
         self.df_fit_pars.to_csv(file_path, index=True)
+
+    def get_spline_data(self):
+        """Return fitted field data suitable for constructing SplineBoris elements.
+
+        The fitted regions of the different field components need not have the
+        same longitudinal boundaries. This method splits them at every boundary
+        and returns one dictionary for each resulting interval. The dictionaries
+        contain only fitted field data and interval metadata; tracking choices
+        such as ``n_steps``, field-map shifts, and radiation settings remain the
+        responsibility of the caller.
+
+        Returns
+        -------
+        list[dict]
+            Each dictionary contains ``s_start``, ``s_end``, ``idx_start``,
+            ``idx_end``, ``bs``, ``bx``, and ``by``. ``bs`` is an
+            :class:`xtrack.Spline4`; ``bx`` and ``by`` are tuples of
+            :class:`xtrack.Spline4` with ``multipole_order`` entries.
+        """
+        multipole_order = self.deg + 1
+
+        if not isinstance(multipole_order, (int, np.integer)):
+            raise TypeError("multipole_order must be an integer")
+        if multipole_order <= 0:
+            raise ValueError("multipole_order must be a positive integer")
+        if self.df_fit_pars is None or len(self.df_fit_pars) == 0:
+            raise RuntimeError("Call fit() before get_spline_data().")
+
+        index_columns = (
+            "field_component",
+            "derivative_x",
+            "region_name",
+            "s_start",
+            "s_end",
+            "idx_start",
+            "idx_end",
+            "param_index",
+        )
+        if all(column in self.df_fit_pars.columns for column in index_columns):
+            df_fit_pars = self.df_fit_pars.copy()
+        else:
+            df_fit_pars = self.df_fit_pars.reset_index()
+
+        required_columns = (*index_columns, "param_value")
+        missing_columns = [
+            column for column in required_columns
+            if column not in df_fit_pars.columns
+        ]
+        if missing_columns:
+            raise ValueError(
+                "df_fit_pars is missing required columns: "
+                f"{missing_columns}"
+            )
+
+        boundary_pairs = {
+            (float(row[s_column]), int(row[idx_column]))
+            for _, row in df_fit_pars.iterrows()
+            for s_column, idx_column in (
+                ("s_start", "idx_start"),
+                ("s_end", "idx_end"),
+            )
+        }
+        boundary_pairs = sorted(boundary_pairs, key=lambda pair: pair[0])
+
+        zero_spline = xt.Spline4(
+            val_start=0.0,
+            der_start=0.0,
+            val_end=0.0,
+            der_end=0.0,
+            mean=0.0,
+        )
+        spline_data = []
+
+        for (s_start, idx_start), (s_end, idx_end) in zip(
+            boundary_pairs[:-1], boundary_pairs[1:]
+        ):
+            if s_end <= s_start:
+                continue
+
+            mask = (
+                (df_fit_pars["s_start"] <= s_start)
+                & (df_fit_pars["s_end"] >= s_end)
+            )
+            valid_parameters = df_fit_pars[mask]
+            if valid_parameters.empty:
+                continue
+
+            bs = zero_spline
+            bx_by_order = {}
+            by_by_order = {}
+
+            groups = valid_parameters.groupby(
+                ["field_component", "derivative_x", "s_start", "s_end"]
+            )
+            for (component, derivative, piece_start, piece_end), group in groups:
+                derivative = int(derivative)
+                if component in ("Bx", "By", "Bskew", "Bnorm"):
+                    if derivative >= multipole_order:
+                        continue
+
+                group = group.sort_values("param_index")
+                parameter_indices = tuple(group["param_index"].astype(int))
+                parameter_values = group["param_value"].to_numpy(dtype=float)
+                expected_indices = tuple(
+                    range(len(xt.SplineBoris._SB_HERMITE_SUFFIXES))
+                )
+                group_key = (
+                    component,
+                    derivative,
+                    float(piece_start),
+                    float(piece_end),
+                )
+                if parameter_indices != expected_indices:
+                    raise ValueError(
+                        f"Malformed Hermite group {group_key}: expected exactly "
+                        f"{len(expected_indices)} rows with param_index values "
+                        f"{list(expected_indices)}"
+                    )
+                if not np.isfinite(parameter_values).all():
+                    raise ValueError(
+                        f"Malformed Hermite group {group_key}: all Hermite "
+                        "values must be finite"
+                    )
+
+                spline = self._spline_for_sub_interval(
+                    piece_start=float(piece_start),
+                    piece_end=float(piece_end),
+                    hermite_values=parameter_values,
+                    sub_interval_start=s_start,
+                    sub_interval_end=s_end,
+                )
+                if component == "Bs":
+                    bs = spline
+                elif component in ("Bx", "Bskew"):
+                    bx_by_order[derivative] = spline
+                elif component in ("By", "Bnorm"):
+                    by_by_order[derivative] = spline
+
+            spline_data.append({
+                "s_start": s_start,
+                "s_end": s_end,
+                "idx_start": idx_start,
+                "idx_end": idx_end,
+                "bs": bs,
+                "bx": tuple(
+                    bx_by_order.get(order, zero_spline)
+                    for order in range(multipole_order)
+                ),
+                "by": tuple(
+                    by_by_order.get(order, zero_spline)
+                    for order in range(multipole_order)
+                ),
+            })
+
+        return spline_data
+
+    @staticmethod
+    def _spline_for_sub_interval(
+        piece_start,
+        piece_end,
+        hermite_values,
+        sub_interval_start,
+        sub_interval_end,
+    ):
+        """Express fitted Hermite data on a sub-interval of its fit region."""
+        poly = FieldFitter._poly(piece_start, piece_end, hermite_values)
+        derivative = poly.deriv()
+        integral = poly.integ()
+
+        local_start = float(sub_interval_start - piece_start)
+        local_end = float(sub_interval_end - piece_start)
+        length = local_end - local_start
+
+        return xt.Spline4(
+            val_start=float(poly(local_start)),
+            der_start=float(derivative(local_start)),
+            val_end=float(poly(local_end)),
+            der_end=float(derivative(local_end)),
+            mean=float(
+                (integral(local_end) - integral(local_start)) / length
+            ),
+        )
 
     # PRIVATE
     # This method extracts on-axis data from the raw DataFrame and fits it to polynomials.

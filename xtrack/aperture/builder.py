@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, get_args
+from typing import Optional, Sequence, get_args
 
 import numpy as np
 
@@ -15,12 +15,21 @@ from xtrack.aperture.structures import (
     ProfilePosition,
     ShapeTypes,
     PipePosition,
+    SurveyData,
 )
 from xtrack.aperture.transform import transform_matrix
+from xtrack.general import parse_anchor_spec
 
 
 SHAPE_CLASSES = get_args(ShapeTypes)
 SHAPE_CLASSES_BY_NAME = {shape_cls.__name__: shape_cls for shape_cls in SHAPE_CLASSES}
+
+
+def _survey_is_closed(line, tol: float = 1e-6) -> bool:
+    survey = line.survey()
+    start = np.array([survey.X[0], survey.Y[0], survey.Z[0]], dtype=float)
+    end = np.array([survey.X[-1], survey.Y[-1], survey.Z[-1]], dtype=float)
+    return np.linalg.norm(end - start) < tol
 
 
 def _shape_from_input(shape: str | type, **shape_params):
@@ -114,6 +123,48 @@ class PipeBlueprint:
         self.positions.append(profile_position)
         return profile_position
 
+    def _as_pipe_view(self):
+        from xtrack.aperture.views import PipeView
+
+        profile_names = list(self.builder._profiles.keys())
+        profile_name_to_index = {name: ii for ii, name in enumerate(profile_names)}
+        profiles = [Profile(**self.builder._profiles[name]._to_dict()) for name in profile_names]
+        positions = [
+            ProfilePosition(
+                profile_index=profile_name_to_index[position.profile_name],
+                shift_s=position.shift_s,
+                shift_x=position.shift_x,
+                shift_y=position.shift_y,
+                rot_y_rad=position.rot_y_rad,
+                rot_x_rad=position.rot_x_rad,
+                rot_s_rad=position.rot_s_rad,
+            )
+            for position in sorted(self.positions, key=lambda position: position.shift_s)
+        ]
+        model = ApertureModel(
+            pipe_positions=[],
+            pipes=[Pipe(curvature=self.curvature, positions=positions)],
+            profiles=profiles,
+            pipe_names=[self.name],
+            pipe_position_names=[],
+            profile_names=profile_names,
+            is_ring=False,
+            survey_length=0.0,
+        )
+        return PipeView(model, 0)
+
+    def plot(self, *args, **kwargs):
+        """Plot pipe projection using the same box-style view as :class:`PipeView`."""
+        return self._as_pipe_view().plot(*args, **kwargs)
+
+    def plot_3d(self, *args, **kwargs):
+        """Plot pipe as a 3D solid using the same view as :class:`PipeView`."""
+        return self._as_pipe_view().plot_3d(*args, **kwargs)
+
+    def place(self, name: str | Sequence[str], at: str | Sequence[str], **kwargs):
+        """Install this pipe in the builder."""
+        return self.builder.place_pipe(name=name, pipe_name=self.name, at=at, **kwargs)
+
 
 @dataclass
 class PipePositionBlueprint:
@@ -121,10 +172,6 @@ class PipePositionBlueprint:
     pipe_name: str
     survey_reference: str
     transformation: np.ndarray
-
-
-TypeBlueprint = PipeBlueprint
-TypePositionBlueprint = PipePositionBlueprint
 
 
 class ApertureBuilder:
@@ -140,6 +187,22 @@ class ApertureBuilder:
         self._profiles: dict[str, Profile] = {}
         self._pipes: dict[str, PipeBlueprint] = {}
         self._pipe_positions: list[PipePositionBlueprint] = []
+        self._survey_data: SurveyData | None = None
+
+    @property
+    def profiles(self) -> dict[str, Profile]:
+        """Registered profile blueprints keyed by name."""
+        return self._profiles
+
+    @property
+    def pipes(self) -> dict[str, PipeBlueprint]:
+        """Registered pipe blueprints keyed by name."""
+        return self._pipes
+
+    @property
+    def pipe_positions(self) -> list[PipePositionBlueprint]:
+        """Registered installed pipe positions."""
+        return self._pipe_positions
 
     def new_profile(
         self,
@@ -261,14 +324,62 @@ class ApertureBuilder:
         self._pipes[name] = pipe
         return pipe
 
-    def new_type(self, *args, **kwargs):
-        return self.new_pipe(*args, **kwargs)
+    def _get_survey_data(self) -> SurveyData:
+        if self._survey_data is None:
+            self._survey_data = SurveyData.from_survey_table(self.line.survey(), self.line)
+        return self._survey_data
+
+    @staticmethod
+    def _row_value(row, field: str) -> float:
+        return float(np.asarray(getattr(row, field)).item())
+
+    @staticmethod
+    def _pose_to_matrix(pose) -> np.ndarray:
+        return np.array(pose, dtype=float, copy=True)
+
+    @staticmethod
+    def _row_by_exact_name(table, name: str):
+        for row in table.rows:
+            if row.name == name:
+                return row
+        raise KeyError(name)
+
+    def _anchor_transform(self, survey_reference: str, anchor: str | None) -> np.ndarray:
+        if anchor in (None, "start"):
+            return np.identity(4)
+
+        table = self.line.get_table()
+        try:
+            element_row = self._row_by_exact_name(table, survey_reference)
+        except KeyError as error:
+            raise ValueError(f"Unknown element `{survey_reference}` in aperture pipe placement.") from error
+
+        if anchor in ("center", "centre"):
+            anchor_s = self._row_value(element_row, "s_center")
+        elif anchor == "end":
+            anchor_s = self._row_value(element_row, "s_end")
+        else:
+            raise ValueError(f"Invalid anchor `{anchor}`.")
+
+        survey = self.line.survey()
+        try:
+            survey_row = self._row_by_exact_name(survey, survey_reference)
+        except KeyError as error:
+            raise ValueError(f"Unknown survey reference `{survey_reference}` in aperture pipe placement.") from error
+
+        reference_pose = np.identity(4)
+        reference_pose[:3, :3] = survey_row.E_matrix
+        reference_pose[:3, 3] = survey_row.XYZ
+
+        anchor_survey = self._get_survey_data().resample([anchor_s])
+        anchor_pose = self._pose_to_matrix(anchor_survey.pose.to_nplike()[0])
+        return np.linalg.inv(reference_pose) @ anchor_pose
 
     def place_pipe(
         self,
-        name: str,
+        name: str | Sequence[str],
         pipe_name: str,
-        survey_reference: str,
+        at: str | Sequence[str],
         transformation: Optional[np.ndarray] = None,
         shift_x: Optional[float] = None,
         shift_y: Optional[float] = None,
@@ -276,7 +387,7 @@ class ApertureBuilder:
         rot_y_rad: Optional[float] = None,
         rot_x_rad: Optional[float] = None,
         rot_z_rad: Optional[float] = None,
-    ) -> PipePositionBlueprint:
+    ) -> PipePositionBlueprint | list[PipePositionBlueprint]:
         """Create and register a pipe-position blueprint.
 
         Parameters
@@ -285,15 +396,19 @@ class ApertureBuilder:
             Name of the installed pipe position.
         pipe_name : str
             Name of the pipe to install.
-        survey_reference : str
-            Name of the survey entry used as the installation reference.
+        at : str
+            Survey entry used as the installation reference. The syntax
+            ``element@anchor`` can be used with anchors ``start``, ``center``,
+            ``centre``, and ``end``. The stored survey reference remains the
+            element name; the requested anchor offset is encoded in the stored
+            transformation.
         transformation : np.ndarray, optional
             Full 4x4 homogeneous transform from the survey reference to the
             pipe frame.
         shift_x, shift_y, shift_z : float, optional
-            Translation components used when ``transformation`` is not given.
+            Translation component used when ``transformation`` is not given.
         rot_y_rad, rot_x_rad, rot_z_rad : float, optional
-            Rotation components used when ``transformation`` is not given.
+            Rotation component used when ``transformation`` is not given.
 
         Returns
         -------
@@ -306,8 +421,34 @@ class ApertureBuilder:
             If the pipe-position name already exists, or if both a full matrix
             and transform components are supplied.
         """
+        if not isinstance(at, str):
+            at_values = list(at)
+            if isinstance(name, str):
+                names = [f"{name}.{ii}" for ii in range(len(at_values))]
+            else:
+                names = list(name)
+                if len(names) != len(at_values):
+                    raise ValueError("Expected `name` and `at` to have the same length.")
+            return [
+                self.place_pipe(
+                    name=position_name,
+                    pipe_name=pipe_name,
+                    at=at_value,
+                    transformation=transformation,
+                    shift_x=shift_x,
+                    shift_y=shift_y,
+                    shift_z=shift_z,
+                    rot_y_rad=rot_y_rad,
+                    rot_x_rad=rot_x_rad,
+                    rot_z_rad=rot_z_rad,
+                )
+                for position_name, at_value in zip(names, at_values)
+            ]
+
         if any(pipe_position.name == name for pipe_position in self._pipe_positions):
             raise ValueError(f"Pipe position `{name}` already exists.")
+
+        survey_reference, anchor = parse_anchor_spec(at, default_anchor="start")
 
         transform_fields = {
             "shift_x": shift_x,
@@ -327,6 +468,8 @@ class ApertureBuilder:
         else:
             transformation = np.array(transformation, dtype=float, copy=True)
 
+        transformation = self._anchor_transform(survey_reference, anchor) @ transformation
+
         pipe_position = PipePositionBlueprint(
             name=name,
             pipe_name=pipe_name,
@@ -335,9 +478,6 @@ class ApertureBuilder:
         )
         self._pipe_positions.append(pipe_position)
         return pipe_position
-
-    def place_type(self, *args, **kwargs):
-        return self.place_pipe(*args, **kwargs)
 
     def build(self, context: Optional[XContext] = None) -> ApertureModel:
         """Build an :class:`ApertureModel` in the requested context.
@@ -408,5 +548,7 @@ class ApertureBuilder:
             pipe_names=pipe_names,
             pipe_position_names=pipe_position_names,
             profile_names=profile_names,
+            is_ring=_survey_is_closed(self.line),
+            survey_length=self.line.get_length(),
             _context=context,
         )

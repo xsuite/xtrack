@@ -6,12 +6,50 @@
 
 
 typedef struct {
-    float_type s;       // position along the beamline}
-    float_type angle;   // angle of the pose vector
-    float_type length;  // length of the segment
-    float_type tilt;    // tilt of the segment
-    Pose pose; // pose matrix (4x4) for each entry
+    float_type s;                   // position along the beamline}
+    float_type angle;               // angle of the pose vector
+    float_type length;              // length of the segment
+    float_type tilt;                // tilt of the segment
+    Pose pose;                      // pose matrix (4x4) for each entry
+    // The following are only used if the survey segment represents an straight-body RBend (or a similar object, which
+    // curves the reference frame externally, but has a straight body internally). If unused, they are set to NAN.
+    float_type rbend_shift_x_in;    // for an RBend: x-shift between the pose origin and the magnet axis
+    float_type rbend_angle_in;      // for an RBend: angle between the survey so far (s at pose) and the magnet axis
 } SurveyEntry_s;
+
+
+static inline Pose survey_arc_matrix(
+    const float_type length,
+    const float_type angle,
+    const float_type tilt
+) {
+    if (fabs(angle) < APER_PRECISION) {
+        return transform_to_matrix((Transform) {.s = length});
+    }
+
+    const float_type ct = cos(tilt), st = sin(tilt);
+    const float_type ca = cos(angle), sa = sin(angle);
+    const float_type dx = length * (ca - 1) / angle;
+    const float_type ds = length * sa / angle;
+    return (Pose) {
+        .mat = {
+            {
+                ct * ct * ca + st * st,
+                ct * st * (ca - 1),
+                -ct * sa,
+                ct * dx,
+            },
+            {
+                ct * st * (ca - 1),
+                st * st * ca + ct * ct,
+                -st * sa,
+                st * dx,
+            },
+            {ct * sa, st * sa, ca, ds},
+            {0, 0, 0, 1},
+        }
+    };
+}
 
 
 static inline float_type get_survey_max_s(const SurveyData survey)
@@ -35,22 +73,50 @@ static inline Pose pose_matrix_from_survey(const SurveyData survey, const uint32
 }
 
 
-static inline Point3D survey_point(SurveyData survey, uint32_t idx) {
-    Pose pose = pose_matrix_from_survey(survey, idx);
-    return (Point3D) {
-        .x = pose.mat[0][3],
-        .y = pose.mat[1][3],
-        .z = pose.mat[2][3]
+static inline LineSegment3D survey_line_segment(SurveyData survey, uint32_t idx) {
+    const Pose start_pose = pose_matrix_from_survey(survey, idx);
+    const float_type length = SurveyData_get_length(survey, idx);
+    const Point3D entry = pose_apply_point(start_pose, (Point3D) {0, 0, 0});
+    const Point3D exit = pose_apply_point(start_pose, (Point3D) {0, 0, length});
+    return (LineSegment3D) {
+        .start = entry,
+        .end = exit
     };
 }
 
 
-static inline LineSegment3D survey_line_segment(SurveyData survey, uint32_t idx) {
-    const Point3D entry = survey_point(survey, idx);
-    const Point3D exit = survey_point(survey, idx + 1);
+static inline LineSegment3D survey_straight_rbend_segment(
+    SurveyData survey,
+    uint32_t idx
+) {
+    const float_type angle = SurveyData_get_angle(survey, idx);
+    const float_type length = SurveyData_get_length(survey, idx);
+    const float_type angle_in =
+        SurveyData_get_rbend_angle_in(survey, idx);
+    const float_type angle_out = angle - angle_in;
+    const float_type length_straight =
+        length / angle * (sin(angle_in) + sin(angle_out));
+    const float_type tilt = SurveyData_get_tilt(survey, idx);
+    const float_type shift_x_in =
+        SurveyData_get_rbend_shift_x_in(survey, idx);
+
+    Pose body_start_pose = matrix_multiply(
+        pose_matrix_from_survey(survey, idx),
+        survey_arc_matrix(0, angle_in, tilt));
+    body_start_pose = matrix_multiply(
+        body_start_pose,
+        transform_to_matrix((Transform) {
+            .x = -shift_x_in * cos(tilt),
+            .y = -shift_x_in * sin(tilt),
+        }));
+
+    const Point3D body_start = pose_apply_point(
+        body_start_pose, (Point3D) {0, 0, 0});
+    const Point3D body_end = pose_apply_point(
+        body_start_pose, (Point3D) {0, 0, length_straight});
     return (LineSegment3D) {
-        .start = entry,
-        .end = exit
+        .start = body_start,
+        .end = body_end
     };
 }
 
@@ -73,8 +139,19 @@ static inline ArcSegment3D survey_arc_segment(SurveyData survey, uint32_t idx) {
 static inline Segment3D survey_segment(SurveyData survey, uint32_t idx) {
     const float_type angle = SurveyData_get_angle(survey, idx);
     const float_type length = SurveyData_get_length(survey, idx);
+    const float_type rbend_angle_in = SurveyData_get_rbend_angle_in(survey, idx);
 
-    if (fabs(angle) < APER_PRECISION || fabs(length) < APER_PRECISION)
+    // The stored poses include the RBend edge rotations; construct the
+    // internal straight body from its entrance alignment instead.
+    if (isfinite(rbend_angle_in) && fabs(angle) >= APER_PRECISION)
+    {
+        return (Segment3D) {
+            .type = SEGMENT3D_LINE,
+            .line = survey_straight_rbend_segment(survey, idx)
+        };
+    }
+    else if (fabs(angle) < APER_PRECISION
+        || fabs(length) < APER_PRECISION)
     {
         return (Segment3D) {
             .type = SEGMENT3D_LINE,
@@ -103,13 +180,26 @@ SurveyEntry_s interpolate_survey_table_entry(
 
     SurveyEntry_s entry;
     entry.tilt = SurveyData_get_tilt(survey, i_survey);
+    entry.rbend_shift_x_in = SurveyData_get_rbend_shift_x_in(survey, i_survey);
+    entry.rbend_angle_in = SurveyData_get_rbend_angle_in(survey, i_survey);
 
     if (fabs(s_target - s_current) < eps) {
-        // Simply copy the current survey entry
+        // Target is current, simply copy the current survey entry
         entry.s = SurveyData_get_s(survey, i_survey);
         entry.angle = SurveyData_get_angle(survey, i_survey);
         entry.length = SurveyData_get_length(survey, i_survey);
         entry.pose = pose_matrix_from_survey(survey, i_survey);
+        // tilt and RBend related fields are already in
+    }
+    else if (fabs(s_target - s_next) < eps) {
+        // Target is next, simply copy the next survey entry
+        entry.s = SurveyData_get_s(survey, i_survey + 1);
+        entry.angle = SurveyData_get_angle(survey, i_survey + 1);
+        entry.length = SurveyData_get_length(survey, i_survey + 1);
+        entry.tilt = SurveyData_get_tilt(survey, i_survey + 1);
+        entry.rbend_shift_x_in = SurveyData_get_rbend_shift_x_in(survey, i_survey + 1);
+        entry.rbend_angle_in = SurveyData_get_rbend_angle_in(survey, i_survey + 1);
+        entry.pose = pose_matrix_from_survey(survey, i_survey + 1);
     }
     else {
         // Properly interpolate between the current and the next survey entry
@@ -119,8 +209,33 @@ SurveyEntry_s interpolate_survey_table_entry(
         entry.s = s_current + entry.length;
 
         const Pose pose_current = pose_matrix_from_survey(survey, i_survey);
-        const Pose tilted_arc = arc_matrix(entry.length, entry.angle, 0);
-        entry.pose = matrix_multiply(pose_current, tilted_arc);
+        if (isfinite(entry.rbend_angle_in) && fabs(SurveyData_get_angle(survey, i_survey)) >= eps) {
+            /*
+                This is a special case for a straight-body RBend.
+                Enter using its entrance rotation and axis shift, then advance by the corresponding body length.
+            */
+            const float_type full_angle = SurveyData_get_angle(survey, i_survey);
+            const float_type full_length = SurveyData_get_length(survey, i_survey);
+            const float_type angle_in = entry.rbend_angle_in;
+            const float_type angle_out = full_angle - angle_in;
+            const float_type length_straight = full_length / full_angle * (sin(angle_in) + sin(angle_out));
+            const float_type shift_x_in = entry.rbend_shift_x_in;
+
+            const Pose entry_rotation = survey_arc_matrix(0, angle_in, entry.tilt);
+            const Pose body_transform = transform_to_matrix((Transform) {
+                .x = -shift_x_in * cos(entry.tilt),
+                .y = -shift_x_in * sin(entry.tilt),
+                .s = t * length_straight,
+            });
+            entry.pose = matrix_multiply(
+                matrix_multiply(pose_current, entry_rotation),
+                body_transform
+            );
+        }
+        else {
+            const Pose tilted_arc = survey_arc_matrix(entry.length, entry.angle, entry.tilt);
+            entry.pose = matrix_multiply(pose_current, tilted_arc);
+        }
     }
 
     return entry;
@@ -134,6 +249,8 @@ static inline SurveyEntry_s survey_entry_nan(void)
     entry.angle = NAN;
     entry.length = NAN;
     entry.tilt = NAN;
+    entry.rbend_shift_x_in = NAN;
+    entry.rbend_angle_in = NAN;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             entry.pose.mat[i][j] = NAN;
@@ -153,6 +270,8 @@ static inline void write_survey_entry(
     SurveyData_set_angle(sliced, i_sliced, entry.angle);
     SurveyData_set_length(sliced, i_sliced, entry.length);
     SurveyData_set_tilt(sliced, i_sliced, entry.tilt);
+    SurveyData_set_rbend_shift_x_in(sliced, i_sliced, entry.rbend_shift_x_in);
+    SurveyData_set_rbend_angle_in(sliced, i_sliced, entry.rbend_angle_in);
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             SurveyData_set_pose(sliced, i_sliced, i, j, entry.pose.mat[i][j]);

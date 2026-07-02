@@ -48,6 +48,34 @@ def test_acceleration(test_context):
     xo.assert_allclose(p_co._xobject.zeta[0], stable_z, atol=0, rtol=1e-2)
 
 
+@for_all_test_contexts
+def test_reference_energy_change(test_context):
+    new_p0c = 1.5e9
+    element = xt.ReferenceEnergyChange(_context=test_context, p0c=new_p0c)
+    particles = xp.Particles(
+        _context=test_context,
+        p0c=1.4e9,
+        delta=[0, 1e-3],
+        px=[1e-6, -1e-6],
+        py=[2e-6, 0],
+        zeta=[0.1, -0.2],
+    )
+
+    particles_before = particles.copy(_context=xo.ContextCpu())
+    element.track(particles)
+    particles.move(_context=xo.ContextCpu())
+
+    xo.assert_allclose(particles.p0c, new_p0c, atol=0, rtol=0)
+    xo.assert_allclose(particles.energy, particles_before.energy,
+                       atol=1e-6, rtol=1e-14)
+    xo.assert_allclose(particles.px,
+                       particles_before.px * particles_before.p0c / new_p0c,
+                       atol=1e-14, rtol=0)
+    xo.assert_allclose(particles.py,
+                       particles_before.py * particles_before.p0c / new_p0c,
+                       atol=1e-14, rtol=0)
+
+
 @for_all_test_contexts(excluding=('ContextPyopencl',))
 def test_energy_program(test_context):
 
