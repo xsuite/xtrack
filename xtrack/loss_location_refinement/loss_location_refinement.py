@@ -196,6 +196,9 @@ class LossLocationRefinement:
                     interp_line.discard_tracker() # Free tracker data
                     del interp_line
                     for nn in elements_to_delete:
+                        if nn.startswith('||drift_'):
+                            ll = self.line.get(nn).length
+                            del self.line.env._drift_cache[ll]
                         sz = self.line.env._element_dict[nn]._xobject._size
                         oo = self.line.env._element_dict[nn]._xobject._offset
                         self.line._buffer.free(oo, sz)
