@@ -1937,6 +1937,242 @@ class Line:
             multi_element_monitor_at=multi_element_monitor_at,
             **kwargs)
 
+    @doc_group("Tracking and Analysis")
+    def get_local_momentum_acceptance(
+        self,
+        *,
+        elements=None,
+        twiss=None,
+        scattering='off',
+        x_offset: float = 0.0,
+        y_offset: float = 0.0,
+        x_norm_offset: float = 0.0,
+        y_norm_offset: float = 0.0,
+        nemitt_x=None,
+        nemitt_y=None,
+        delta_negative_limit: float = -0.10,
+        delta_positive_limit: float = +0.10,
+        delta_step_size: float = 0.01,
+        n_turns: int = 512,
+        with_progress: bool | int = False,
+        verbose: bool = False,
+        **kwargs):
+        """
+        Compute the local momentum acceptance (LMA) along the line by tracking a
+        grid of momentum offsets (δ) from the **entrance** of selected
+        elements and reporting the largest surviving negative and positive δ.
+
+        The δ grid is centered on the local closed orbit at each element, and offsets
+        can be applied (either physical x/y or normalized x/y in σ units).
+
+        Parameters
+        ----------
+        elements : list of str or array-like of str, optional
+            Names of the elements at whose entrance the LMA is evaluated.
+            If ``None`` (default), all elements in the line are used.
+            If multiple elements share the same ``s``, only the first encountered
+            is used.
+        twiss : xt.TwissTable, optional
+            Twiss table to define the closed orbit and optics. By default,
+            a 6D solution is computed with `self.twiss(method='6d')`. You can
+            override the method with `method=...` in `**kwargs`.
+        scattering : str, optional
+            Wheter scattering has been enabled or not (`'on'` or `'off'`).
+        x_offset : float, default 0.0
+            Horizontal physical offset in meters. Mutually exclusive with
+            `x_norm_offset`.
+        y_offset : float, default 0.0
+            Vertical physical offset in meters. Mutually exclusive with
+            `y_norm_offset`.
+        x_norm_offset : float, default 0.0
+            Horizontal normalized offset in units of σx (rms). Mutually exclusive
+            with `x_offset`.
+        y_norm_offset : float, default 0.0
+            Vertical normalized offset in units of σy (rms). Mutually exclusive
+            with `y_offset`.
+        nemitt_x : float
+            Horizontal normalized emittance (m·rad, rms).
+        nemitt_y : float
+            Vertical normalized emittance (m·rad, rms).
+        delta_negative_limit : float, default -0.10
+            Lower bound of the δ scan (inclusive). Must be < 0.
+        delta_positive_limit : float, default +0.10
+            Upper bound of the δ scan (inclusive). Must be > 0.
+        delta_step_size : float, default 0.01
+            Step for the δ grid. Must be > 0. The positive end is included
+            with a half-step guard to reduce floating-point exclusion.
+        n_turns : int, default 512
+            Number of turns to track.
+        with_progress : bool | int, default False
+            If truthy, shows a per-element progress bar.
+        verbose : bool, default False
+            If True, enables tracker progress for each element scan.
+        **kwargs
+            Passed through to `self.twiss` and `build_particles`.
+
+        Selection semantics
+        -------------------
+        - LMA is evaluated at the **entrance** of each element.
+        - If multiple elements share the same `s`, only the first encountered is used.
+
+        Algorithm (per selected element)
+        --------------------------------
+        1. Build particles on closed orbit with the requested (normalized or physical) offsets.
+        2. Apply the δ grid by shifting the initial δ around `delta_co`.
+        3. Track for `n_turns` turns from the element to itself.
+        4. Among surviving particles, report:
+        - `deltan` = min of the *initial* δ of survivors,
+        - `deltap` = max of the *initial* δ of survivors.
+        If none survive, `deltan` = `deltap` = 0.0
+
+        Returns
+        -------
+        xt.Table
+            Table indexed by `'name'` with columns:
+            - `name` (str): Element name.
+            - `s` (float): Element entrance position (m).
+            - `deltan` (float): Largest surviving negative δ (may be 0).
+            - `deltap` (float): Largest surviving positive δ (may be 0).
+        """
+        if self.particle_ref is None:
+            raise ValueError("Line.particle_ref must be set to build probe particles.")
+
+        # Mutual exclusivity: physical vs normalized offsets
+        if x_offset != 0.0 and x_norm_offset != 0.0:
+            raise ValueError("Provide either x_offset or x_norm_offset, not both.")
+        if y_offset != 0.0 and y_norm_offset != 0.0:
+            raise ValueError("Provide either y_offset or y_norm_offset, not both.")
+
+        if nemitt_x is None or nemitt_y is None:
+            raise ValueError("nemitt_x and nemitt_y must be provided.")
+
+        if delta_negative_limit >= 0:
+            raise ValueError("delta_negative_limit must be < 0")
+        if delta_positive_limit <= 0:
+            raise ValueError("delta_positive_limit must be > 0")
+        if delta_step_size <= 0:
+            raise ValueError("delta_step_size must be > 0")
+        if n_turns <= 0:
+            raise ValueError("n_turns must be > 0")
+
+        if elements is not None:
+            if not hasattr(elements, '__iter__') or isinstance(elements, str):
+                raise ValueError("`elements` must be an iterable of strings, not a scalar.")
+            elements = list(elements)
+            if not all(isinstance(e, str) for e in elements):
+                raise ValueError("All entries in `elements` must be strings.")
+            invalid = [e for e in elements if e not in self.element_names]
+            if invalid:
+                raise ValueError(
+                    f"The following elements were not found in the line: {invalid}")
+
+        if not self._has_valid_tracker():
+            self.build_tracker()
+
+        # Compute twiss (use 6D by default, overridable via kwargs['method'])
+        twiss_method = kwargs.pop('method', '6d')
+        if twiss is None:
+            if scattering == 'on':
+                self.scattering.disable()
+            twiss = self.twiss(method=twiss_method, reverse=False)
+            if scattering == 'on':
+                self.scattering.enable()
+
+        if elements is None:
+            tt = self.get_table()
+            elements = tt.name
+
+        # Delta grid
+        deltas = np.arange(delta_negative_limit, delta_positive_limit + 0.5 * delta_step_size,
+                           delta_step_size)
+        n_part = len(deltas)
+
+        rows = []
+        seen_s = set()
+
+        iterable = progress(elements, desc="Local Momentum Acceptance") if with_progress else elements
+
+        for ii, ee in enumerate(iterable):
+            s_here = float(twiss['s', ee])
+
+            # Some elements may share the same s
+            if s_here in seen_s:
+                continue
+            seen_s.add(s_here)
+
+            ## Prepare test particles
+            # The longitudinal closed orbit need to be manually supplied
+            zeta_co = twiss['zeta', ee]
+            delta_co = twiss['delta', ee]
+
+            if scattering == 'on':
+                self.scattering.disable()
+
+            # Extract W_matrix and particle_on_co from the already-computed twiss
+            tw_init = twiss.get_twiss_init(at_element=ee)
+
+            idx_at_element = self.element_names.index(ee)
+
+            # On-momentum, matched, test particles
+            particles = self.build_particles(
+                _context=self._context,
+                num_particles=n_part,
+                x_norm=x_norm_offset,
+                y_norm=y_norm_offset,
+                zeta=zeta_co,
+                delta=delta_co,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                W_matrix=tw_init.W_matrix,
+                particle_on_co=tw_init.particle_on_co,
+            )
+            particles.at_element[:] = idx_at_element
+            particles.s[:] = s_here
+            particles.start_tracking_at_element = -1
+
+            if scattering == 'on':
+                self.scattering.enable()
+
+            # Add the delta grid
+            delta_temp = particles.delta.copy()
+            delta_temp += deltas
+            particles.update_delta(delta_temp)
+
+            initial_deltas = particles.delta.copy()
+
+            # Apply absolute offsets, if any
+            particles.x += x_offset
+            particles.y += y_offset
+
+            print(f"\nTrack test particles from reference point #{ii}")
+            self.track(
+                particles,
+                ele_start=ee,
+                ele_stop=ee,
+                num_turns=n_turns,
+                with_progress=1 if verbose else 0
+            )
+
+            mask_alive = (particles.state == 1)
+            if np.any(mask_alive):
+                surviving_pids = particles.filter(mask_alive).particle_id
+                deltan = float(np.min(initial_deltas[surviving_pids]))
+                deltap = float(np.max(initial_deltas[surviving_pids]))
+            else:
+                deltan = float(0.0)
+                deltap = float(0.0)
+
+            rows.append({
+                'name': ee,
+                's': s_here,
+                'deltan': deltan,
+                'deltap': deltap
+            })
+
+        cols = {k: np.array([r[k] for r in rows]) for k in rows[0].keys()}
+
+        return xt.Table(cols, index='name')
+
     @doc_group("Line Editing")
     def slice_thick_elements(self, slicing_strategies):
         """
