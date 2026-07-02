@@ -11,7 +11,7 @@ import pytest
 import xobjects as xo
 import xobjects.context_cpu as context_cpu
 import xtrack as xt
-import xsuite.prebuild_kernels as pk
+import xsuite.prebuild_kernels as xsprebkern
 
 
 class DummyStruct(xo.Struct):
@@ -25,10 +25,10 @@ class OptOutStruct(xo.Struct):
 
 def _versions():
     return {
-        'xtrack': pk.xt.__version__,
-        'xfields': pk.xf.__version__,
-        'xcoll': pk.xc.__version__,
-        'xobjects': pk.xo.__version__,
+        'xtrack': xsprebkern.xt.__version__,
+        'xfields': xsprebkern.xf.__version__,
+        'xcoll': xsprebkern.xc.__version__,
+        'xobjects': xsprebkern.xo.__version__,
     }
 
 
@@ -65,8 +65,8 @@ def _restore_no_prebuilt_kernel_flags(monkeypatch):
 
 @pytest.fixture
 def kernel_location(monkeypatch, tmp_path):
-    monkeypatch.setattr(pk, 'XSK_PREBUILT_KERNELS_LOCATION', tmp_path)
-    monkeypatch.setattr(pk, 'kernel_definitions', [('test_kernel', {})])
+    monkeypatch.setattr(xsprebkern, 'XSK_PREBUILT_KERNELS_LOCATION', tmp_path)
+    monkeypatch.setattr(xsprebkern, 'kernel_definitions', [('test_kernel', {})])
     return tmp_path
 
 
@@ -95,9 +95,9 @@ def _patch_add_kernels(monkeypatch, context):
 def test_get_suitable_kernel_success(kernel_location):
     module_name = 'test_kernel_cpu_serial'
     _write_metadata(kernel_location, module_name=module_name)
-    pk._kernel_binary_file(module_name, kernel_location).touch()
+    xsprebkern._kernel_binary_file(module_name, kernel_location).touch()
 
-    kernel_info = pk.get_suitable_kernel(
+    kernel_info = xsprebkern.get_suitable_kernel(
         config={},
         tracker_element_classes=[],
         classes=[],
@@ -111,8 +111,8 @@ def test_get_suitable_kernel_success(kernel_location):
 
 
 def test_get_suitable_kernel_raises_when_no_cached_kernels(kernel_location):
-    with pytest.raises(pk.PrebuiltKernelNotFoundError) as err:
-        pk.get_suitable_kernel({}, [], [], context=xo.ContextCpu())
+    with pytest.raises(xsprebkern.PrebuiltKernelNotFoundError) as err:
+        xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu())
 
     assert 'no cached kernels were found' in str(err.value)
     assert 'XSUITE_ALLOW_NO_PREBUILT_KERNELS' in str(err.value)
@@ -121,8 +121,8 @@ def test_get_suitable_kernel_raises_when_no_cached_kernels(kernel_location):
 def test_get_suitable_kernel_raises_when_binary_is_missing(kernel_location):
     _write_metadata(kernel_location)
 
-    with pytest.raises(pk.PrebuiltKernelNotFoundError) as err:
-        pk.get_suitable_kernel({}, [], [], context=xo.ContextCpu())
+    with pytest.raises(xsprebkern.PrebuiltKernelNotFoundError) as err:
+        xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu())
 
     assert 'no compiled cached kernels were found' in str(err.value)
 
@@ -138,11 +138,11 @@ def test_get_suitable_kernel_raises_on_version_mismatch(kernel_location):
         module_name=other_module_name,
         versions=versions,
     )
-    pk._kernel_binary_file(module_name, kernel_location).touch()
-    pk._kernel_binary_file(other_module_name, kernel_location).touch()
+    xsprebkern._kernel_binary_file(module_name, kernel_location).touch()
+    xsprebkern._kernel_binary_file(other_module_name, kernel_location).touch()
 
-    with pytest.raises(pk.PrebuiltKernelNotFoundError) as err:
-        pk.get_suitable_kernel({}, [], [], context=xo.ContextCpu())
+    with pytest.raises(xsprebkern.PrebuiltKernelNotFoundError) as err:
+        xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu())
 
     message = str(err.value)
     assert 'package versions do not match' in message
@@ -162,11 +162,11 @@ def test_get_suitable_kernel_raises_on_config_mismatch(kernel_location):
         module_name=farther_module_name,
         config={'a': 1, 'b': 1},
     )
-    pk._kernel_binary_file(module_name, kernel_location).touch()
-    pk._kernel_binary_file(farther_module_name, kernel_location).touch()
+    xsprebkern._kernel_binary_file(module_name, kernel_location).touch()
+    xsprebkern._kernel_binary_file(farther_module_name, kernel_location).touch()
 
-    with pytest.raises(pk.PrebuiltKernelNotFoundError) as err:
-        pk.get_suitable_kernel({'a': 2}, [], [], context=xo.ContextCpu())
+    with pytest.raises(xsprebkern.PrebuiltKernelNotFoundError) as err:
+        xsprebkern.get_suitable_kernel({'a': 2}, [], [], context=xo.ContextCpu())
 
     message = str(err.value)
     assert 'no cached kernel matches' in message
@@ -183,10 +183,10 @@ def test_get_suitable_kernel_raises_on_context_mismatch(kernel_location):
         module_name=module_name,
         context='openmp',
     )
-    pk._kernel_binary_file(module_name, kernel_location).touch()
+    xsprebkern._kernel_binary_file(module_name, kernel_location).touch()
 
-    with pytest.raises(pk.PrebuiltKernelNotFoundError) as err:
-        pk.get_suitable_kernel({}, [], [], context=xo.ContextCpu())
+    with pytest.raises(xsprebkern.PrebuiltKernelNotFoundError) as err:
+        xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu())
 
     assert 'context `openmp`' in str(err.value)
 
@@ -200,10 +200,10 @@ def test_get_suitable_kernel_raises_on_missing_class(kernel_location):
 
     module_name = 'test_kernel_cpu_serial'
     _write_metadata(kernel_location, module_name=module_name)
-    pk._kernel_binary_file(module_name, kernel_location).touch()
+    xsprebkern._kernel_binary_file(module_name, kernel_location).touch()
 
-    with pytest.raises(pk.PrebuiltKernelNotFoundError) as err:
-        pk.get_suitable_kernel(
+    with pytest.raises(xsprebkern.PrebuiltKernelNotFoundError) as err:
+        xsprebkern.get_suitable_kernel(
             {},
             [],
             [RequestedStruct],
@@ -222,10 +222,10 @@ def test_get_suitable_kernel_returns_none_with_class_opt_out(kernel_location):
 
     module_name = 'test_kernel_cpu_serial'
     _write_metadata(kernel_location, module_name=module_name)
-    pk._kernel_binary_file(module_name, kernel_location).touch()
+    xsprebkern._kernel_binary_file(module_name, kernel_location).touch()
 
     assert (
-        pk.get_suitable_kernel(
+        xsprebkern.get_suitable_kernel(
             {},
             [],
             [RequestedStruct],
@@ -252,11 +252,11 @@ def test_closest_kernel_prefers_missing_class_over_config_mismatch(
         module_name=config_mismatch_module_name,
         config={'a': 1},
     )
-    pk._kernel_binary_file(module_name, kernel_location).touch()
-    pk._kernel_binary_file(config_mismatch_module_name, kernel_location).touch()
+    xsprebkern._kernel_binary_file(module_name, kernel_location).touch()
+    xsprebkern._kernel_binary_file(config_mismatch_module_name, kernel_location).touch()
 
-    with pytest.raises(pk.PrebuiltKernelNotFoundError) as err:
-        pk.get_suitable_kernel(
+    with pytest.raises(xsprebkern.PrebuiltKernelNotFoundError) as err:
+        xsprebkern.get_suitable_kernel(
             {},
             [],
             [RequestedStruct],
@@ -277,7 +277,7 @@ def test_get_suitable_kernel_returns_none_with_environment_opt_out(
 ):
     monkeypatch.setenv('XSUITE_ALLOW_NO_PREBUILT_KERNELS', '1')
 
-    assert pk.get_suitable_kernel({}, [], [], context=xo.ContextCpu()) is None
+    assert xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu()) is None
 
 
 def test_get_suitable_kernel_returns_none_with_context_cpu_opt_out(
@@ -286,12 +286,12 @@ def test_get_suitable_kernel_returns_none_with_context_cpu_opt_out(
 ):
     monkeypatch.setattr(context_cpu, 'allow_no_prebuilt_kernel', True)
 
-    assert pk.get_suitable_kernel({}, [], [], context=xo.ContextCpu()) is None
+    assert xsprebkern.get_suitable_kernel({}, [], [], context=xo.ContextCpu()) is None
 
 
 def test_get_suitable_kernel_returns_none_for_openmp_context(kernel_location):
     assert (
-        pk.get_suitable_kernel(
+        xsprebkern.get_suitable_kernel(
             {},
             [],
             [],
