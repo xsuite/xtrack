@@ -459,6 +459,16 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         elif particles is None:
             raise RuntimeError("Please provide particles to track!")
 
+        # A non-Particles object (e.g. a TPSA map from xtrack.tpsa) is tracked by its
+        # registered backend; the native doubles path below is never touched.
+        if not isinstance(particles, xt.Particles):
+            from xtrack.tracking_backends import backend_for
+            backend = backend_for(particles)
+            if backend is not None:
+                return backend.track_element(self, particles)
+            raise TypeError(
+                f"No tracking backend registered for {type(particles)}")
+
         if self.needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
 

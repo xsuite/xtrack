@@ -185,7 +185,7 @@ void track_magnet_body_single_particle(
     }
     else{
 
-        
+
     // START GENERATED INTEGRATION CODE
 
     if (integrator == 1){ // TEAPOT
@@ -448,12 +448,16 @@ void track_magnet_particles(
     #endif
 
     // Tapering
+#ifndef XT_FLAVOR_TPSA
+    // delta_taper is a double param, get_delta is XT_NUM. Tapering is a radiation-
+    // adjacent double feature, so it's off in the TPSA bridge (track_flags==0).
     if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)){
         part0->ipart = 0;
         delta_taper = LocalParticle_get_delta(part0); // I can use part0 because
                                                       // there is only one particle
                                                       // when doing the tapering
     }
+#endif
 
     #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag){

@@ -1875,7 +1875,7 @@ class Line:
 
         Parameters
         ----------
-        particles: xpart.Particles
+        particles: xpart.Particles or xtrack.tpsa.ParticlesTpsa
             The particles to track
         ele_start: int or str, optional
             The element to start tracking from (inclusive). If an integer is
@@ -1915,6 +1915,24 @@ class Line:
             of the progress bar. If True, 100 is taken by default. By default,
             equals to False and no progress bar is displayed.
         """
+
+        # A non-Particles object (e.g. a TPSA map from xtrack.tpsa) is tracked by its
+        # registered backend; the native doubles path below is never touched.
+        if not isinstance(particles, xt.Particles):
+            from xtrack.tracking_backends import backend_for
+            backend = backend_for(particles)
+            if backend is not None:
+                return backend.track_line(
+                    self,
+                    particles,
+                    ele_start=ele_start,
+                    ele_stop=ele_stop,
+                    num_elements=num_elements,
+                    num_turns=num_turns,
+                    turn_by_turn_monitor=turn_by_turn_monitor,
+                )
+            raise TypeError(
+                f"No tracking backend registered for {type(particles)}")
 
         if not self._has_valid_tracker():
             self.build_tracker()

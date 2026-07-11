@@ -51,8 +51,8 @@ void track_magnet_kick_single_particle(
 ){
 
     double const chi = LocalParticle_get_chi(part);
-    double const x = LocalParticle_get_x(part);
-    double const y = LocalParticle_get_y(part);
+    XT_NUM const x = LocalParticle_get_x(part);
+    XT_NUM const y = LocalParticle_get_y(part);
 
     double knl_main[4] = {k0, k1, k2, k3};
     double ksl_main[4] = {k0s, k1s, k2s, k3s};
@@ -95,14 +95,14 @@ void track_magnet_kick_single_particle(
     );
 
     // Correct for the curvature
-    double dpx = 0;
-    double dpy = 0;
-    double dzeta = 0;
+    XT_NUM dpx = 0.0*x;
+    XT_NUM dpy = 0.0*x;
+    XT_NUM dzeta = 0.0*x;
 
     if (rot_frame) {
         double const hl = h * length * kick_weight + hxl * kick_weight;
         dpx += hl * (1. + LocalParticle_get_delta(part));
-        double const rv0v = 1./LocalParticle_get_rvv(part);
+        XT_NUM const rv0v = 1./LocalParticle_get_rvv(part);
         dzeta += -rv0v * hl * x;
     }
 
@@ -181,8 +181,8 @@ uint8_t kick_is_inactive(
 
 GPUFUN
 void kick_simple_single_coordinates(
-    double const x,
-    double const y,
+    XT_NUM_CONST_ARG x,   // by const-ref for non-scalar XT_NUM (tpsa copy-constructor doesn't copy coefficients);
+    XT_NUM_CONST_ARG y,   // by value for native C doubles. See XT_NUM_CONST_ARG in track.h.
     double const chi,
     int64_t order,
     double inv_factorial,
@@ -190,8 +190,8 @@ void kick_simple_single_coordinates(
     const double* ksl,
     double factor,
     double kick_weight,
-    double *dpx,
-    double *dpy
+    XT_NUM *dpx,
+    XT_NUM *dpy
 ) {
 
     // Return if null knl/ksl pointers
@@ -203,13 +203,13 @@ void kick_simple_single_coordinates(
 
     int64_t index = order;
 
-    double dpx_mul = chi * knl[index] * factor * inv_factorial;
-    double dpy_mul = chi * ksl[index] * factor * inv_factorial;
+    XT_NUM dpx_mul = 0.0*x + chi * knl[index] * factor * inv_factorial;
+    XT_NUM dpy_mul = 0.0*x + chi * ksl[index] * factor * inv_factorial;
 
     while( index > 0 )
     {
-        double const zre = dpx_mul * x - dpy_mul * y;
-        double const zim = dpx_mul * y + dpy_mul * x;
+        XT_NUM const zre = dpx_mul * x - dpy_mul * y;
+        XT_NUM const zim = dpx_mul * y + dpy_mul * x;
 
         inv_factorial *= index;
         index -= 1;
@@ -239,10 +239,10 @@ void kick_simple_single_particle(
     double kick_weight
 ) {
     double const chi = LocalParticle_get_chi(part);
-    double const x = LocalParticle_get_x(part);
-    double const y = LocalParticle_get_y(part);
+    XT_NUM const x = LocalParticle_get_x(part);
+    XT_NUM const y = LocalParticle_get_y(part);
 
-    double dpx, dpy;
+    XT_NUM dpx = 0.0*x, dpy = 0.0*x;
 
     kick_simple_single_coordinates(
         x,
@@ -261,6 +261,11 @@ void kick_simple_single_particle(
     LocalParticle_add_to_py(part, dpy);
 }
 
+#ifndef XT_FLAVOR_TPSA
+// Radiation/field helper: emits physical fields to double* outputs, so it cannot be a
+// Taylor map. This is unreachable in the bridge (only called from WITH_RADIATION, which is
+// excluded through a macro by XTRACK_MULTIPOLE_NO_SYNRAD); excluded from the TPSA flavor so the
+// coordinate args don't need to be XT_NUM.
 GPUFUN
 void evaluate_field_from_strengths(
     double const p0c,
@@ -368,5 +373,6 @@ void evaluate_field_from_strengths(
     *Bz_T = ks * brho_0; // [T]
 
 }
+#endif // XT_FLAVOR_TPSA (evaluate_field_from_strengths)
 
 #endif

@@ -1,0 +1,661 @@
+"""Tests for ``xtrack.tpsa``: the cffi bridge that tracks a 6D TPSA map through
+Xtrack elements via the external ``libgtpsa_core.so``.
+
+Skipped wholesale unless ``XTRACK_GTPSA_LIB`` points at a file in a built
+``gtpsa_lib`` directory.
+"""
+
+import gc
+import os
+
+import numpy as np
+import pytest
+
+import xobjects as xo
+import xtrack as xt
+import xtrack.tpsa as xtpsa
+from xtrack.tpsa import _gtpsa
+from xtrack.tpsa._bridge_particle import COORD_FIELDS, REF_FIELDS, XtBridgeParticle
+from xtrack.tpsa.backend import num_bridge, registry_classes, type_id_for
+from xtrack.tpsa.registry import COORDS, REF_VARS, TYPE_IDS
+
+
+def _gtpsa_available():
+    if not os.environ.get('XTRACK_GTPSA_LIB'):
+        return False
+    try:
+        _gtpsa.lib()
+        _gtpsa._bridge_sources()
+        return True
+    except Exception:
+        return False
+
+
+pytestmark = pytest.mark.skipif(
+    not _gtpsa_available(),
+    reason='libgtpsa_core.so unavailable; set XTRACK_GTPSA_LIB')
+
+P0C = 7e12
+MASS0 = xt.PROTON_MASS_EV
+X0 = dict(x=1e-4, px=1.5e-4, y=-1e-4, py=1e-4, zeta=1e-3, delta=2e-3)
+
+
+def _backend():
+    from xtrack.tracking_backends import _BACKENDS
+    return _BACKENDS[xtpsa.ParticlesTpsa]
+
+
+def _map(order=2, **kwargs):
+    return xtpsa.ParticlesTpsa(order=order, p0c=P0C, mass0=MASS0,
+                               **{**X0, **kwargs})
+
+
+def _line(specs):
+    """Build and prepare an ``xt.Line`` for tracking from ``[(name, element), ...]``."""
+    line = xt.Line(elements=[e for _, e in specs],
+                   element_names=[n for n, _ in specs])
+    line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0, q0=1)
+    line.build_tracker()
+    return line
+
+
+def _demo_line():
+    return _line([('d0', xt.Drift(length=1.2)),
+                  ('q', xt.Quadrupole(length=0.5, k1=0.08)),
+                  ('d1', xt.DriftExact(length=0.9)),
+                  ('b', xt.Bend(length=1.5, k0=0.008, angle=0.02)),
+                  ('d2', xt.Drift(length=0.7))])
+
+
+def _native_orbit(line, coords=None):
+    p = line.build_particles(**(coords or X0))
+    line.track(p)
+    return np.array([float(getattr(p, c)[0]) for c in COORDS])
+
+
+def _fd_jac(line, h=1e-7):
+    """Central-difference Jacobian of the line map at ``X0``."""
+    jac = np.zeros((6, 6))
+    for j, c in enumerate(COORDS):
+        plus, minus = dict(X0), dict(X0)
+        plus[c] += h
+        minus[c] -= h
+        jac[:, j] = (_native_orbit(line, plus) - _native_orbit(line, minus)) / (2 * h)
+    return jac
+
+
+# --------------------------------------------------------------------------- #
+# Descriptors: deduplication, num_variables/order, truncation integrity
+# --------------------------------------------------------------------------- #
+
+def test_descriptor_dedup():
+    a = _gtpsa.Descriptor.new(6, 2)
+    b = _gtpsa.Descriptor.new(6, 2)
+    assert a is b and a == b and hash(a) == hash(b)
+
+    other_order = _gtpsa.Descriptor.new(6, 3)
+    other_nv = _gtpsa.Descriptor.new(4, 2)
+    assert a is not other_order and a != other_order
+    assert a is not other_nv and a != other_nv
+    assert a != 'not a descriptor'
+    assert repr(a) == 'Descriptor(nv=6, order=2)'
+    # the module keeps a live set of all descriptors it has built
+    live = _gtpsa.live_descriptors()
+    assert a in live and other_order in live and other_nv in live
+    assert len(live) == 3
+
+
+@pytest.mark.parametrize('num_variables, order', [(2, 1), (4, 2), (6, 3), (6, 5)])
+def test_descriptor_reads_nv_and_order_from_c(num_variables, order):
+    d = _gtpsa.Descriptor.new(num_variables, order)
+    assert d.n_variables == num_variables
+    assert d.order == order
+    assert d.ptr is not None
+
+
+def test_descriptor_order_zero_is_coerced():
+    with pytest.warns(UserWarning, match='coerced'):
+        d = _gtpsa.Descriptor.new(6, 0)
+    assert d.order == 1
+
+
+def test_live_descriptors_and_wrap():
+    d = _gtpsa.Descriptor.new(6, 4)
+    live = _gtpsa.live_descriptors()
+    assert d in live
+    assert all(isinstance(x, _gtpsa.Descriptor) for x in live)
+    # the same C pointer always wraps to the same Python object
+    assert _gtpsa._wrap_desc(d.ptr) is d
+
+
+def test_maps_share_descriptor_by_order():
+    a, b = _map(order=2), _map(order=2)
+    c = _map(order=3)
+    assert a.descriptor is b.descriptor
+    assert a.descriptor is not c.descriptor
+    assert (a.order, a.n_variables) == (2, 6)
+    assert (c.order, c.n_variables) == (3, 6)
+    # the six coordinate series of one map share its descriptor
+    assert all(s.descriptor is a.descriptor for s in a.coords)
+
+
+def test_order_truncation_integrity():
+    """A map only carries terms up to its own order, and the shared ones agree.
+
+    Note: querying a monomial above the descriptor order is not a Python error.
+    GTPSA aborts the process ("mad_tpsa.c: invalid monomial").
+    """
+    el = xt.Sextupole(length=0.3, k2=50.0)
+    m2, m3 = _map(order=2), _map(order=3)
+    el.track(m2)
+    el.track(m3)
+
+    assert m2.descriptor is not m3.descriptor
+
+    low = m2.monomial_coeffs('px')
+    high = m3.monomial_coeffs('px')
+
+    # the order-2 map holds nothing above order 2 ...
+    assert max(sum(mono) for mono in low) <= 2
+    # ... while the order-3 map does, and those terms are real
+    third = {mono: c for mono, c in high.items() if sum(mono) == 3}
+    assert third and all(c != 0.0 for c in third.values())
+
+    # every term they share is bit-identical
+    for mono, coeff in low.items():
+        assert high[mono] == coeff
+
+    # a query at exactly the max order is safe
+    assert m2.coefficient('px', (2, 0, 0, 0, 0, 0)) == low.get((2, 0, 0, 0, 0, 0), 0.0)
+
+
+# --------------------------------------------------------------------------- #
+# TPSA primitives
+# --------------------------------------------------------------------------- #
+
+def test_tpsa_var_and_accessors():
+    d = _gtpsa.Descriptor.new(6, 2)
+    t = _gtpsa.Tpsa.var(d, 2, 0.25)     # variable indices are 1-based
+    assert t.descriptor is d
+    assert t.order == 2
+    assert t.const_part == 0.25
+    assert t.grad() == [0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+
+    zero = _gtpsa.Tpsa(d)
+    assert zero.const_part == 0.0
+    assert zero.grad() == [0.0] * 6
+
+
+def test_tpsa_coefficient_forms():
+    el = xt.Sextupole(length=0.3, k2=50.0)
+    m = _map(order=3)
+    el.track(m)
+    series = m.x
+
+    monos = [(0, 0, 0, 0, 0, 0), (1, 0, 0, 0, 0, 0), (0, 1, 0, 0, 0, 1)]
+    batch = series.coefficient(monos)
+    assert batch.shape == (3,)
+    for i, mono in enumerate(monos):
+        single = series.coefficient(mono)
+        assert isinstance(single, float)
+        assert single == series.get(mono) == batch[i]
+
+    # coefficient() and monomial_coeffs() agree term by term
+    coeffs = series.monomial_coeffs()
+    for mono, value in coeffs.items():
+        assert series.coefficient(mono) == value
+    assert all(abs(v) > 1e-14 for v in coeffs.values())
+    assert len(series.monomial_coeffs(tol=1e30)) == 0
+
+    # the ParticlesTpsa wrappers delegate to the same series
+    assert m.coefficient('x', monos[1]) == series.get(monos[1])
+    assert m.coefficient(0, monos[1]) == series.get(monos[1])
+    assert m.monomial_coeffs('x') == coeffs
+    assert set(m.monomial_coeffs()) == set(COORDS)
+
+    with pytest.raises(ValueError, match='one monomial'):
+        series.coefficient(np.zeros((2, 2, 6), dtype=int))
+
+
+# --------------------------------------------------------------------------- #
+# ParticlesTpsa surface
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize('kwargs', [
+    dict(p0c=P0C, mass0=MASS0, delta=2e-3),
+    dict(energy0=P0C, mass0=MASS0),
+    dict(gamma0=7460.0, mass0=MASS0),
+])
+def test_reference_algebra_matches_particles(kwargs):
+    m = xtpsa.ParticlesTpsa(order=2, **kwargs)
+    p = xt.Particles(**kwargs)
+    for var in REF_VARS:
+        expected = float(np.asarray(getattr(p, var)).reshape(-1)[0])
+        xo.assert_allclose(getattr(m, var), expected, rtol=1e-12, atol=0)
+
+
+def test_scalar_guard():
+    with pytest.raises(ValueError, match='single map'):
+        xtpsa.ParticlesTpsa(order=2, x=[1e-4, 2e-4], p0c=P0C, mass0=MASS0)
+
+
+def test_fresh_map_is_identity():
+    """A new map is the identity around its coordinates."""
+    m = _map(order=3)
+    xo.assert_allclose(m.const_part, [X0[c] for c in COORDS], rtol=0, atol=0)
+    xo.assert_allclose(m.jacobian(), np.eye(6), rtol=0, atol=0)
+
+
+def test_getattr_and_to_particles():
+    m = _map(order=2)
+    assert isinstance(m.x, _gtpsa.Tpsa)
+    assert isinstance(m.beta0, float)
+    with pytest.raises(AttributeError):
+        m.bogus
+
+    p = m.to_particles()
+    assert isinstance(p, xt.Particles)
+    for c in COORDS:
+        assert float(getattr(p, c)[0]) == X0[c]
+
+
+def test_from_coords_view():
+    m = _map(order=2)
+    view = xtpsa.ParticlesTpsa._from_coords(m.coords)
+    assert view.coords[0] is m.coords[0]        # shared series, not copies
+    assert view.order == 2
+    assert view._bridge is None                 # not trackable
+    xo.assert_allclose(view.const_part, m.const_part, rtol=0, atol=0)
+    with pytest.raises(AttributeError, match='no reference particle'):
+        view.beta0
+
+
+def test_bridge_particle_struct():
+    assert COORD_FIELDS == COORDS
+    assert REF_FIELDS == REF_VARS
+
+    ffi = _gtpsa.ffi()
+    bufs = [ffi.new('double*', float(X0[c])) for c in COORDS]
+    refs = {r: 1.0 for r in REF_VARS}
+    bp = num_bridge(bufs, refs, line_length=26658.0)
+
+    assert isinstance(bp, XtBridgeParticle)
+    assert bp.state == 1 and bp.at_element == 0 and bp.track_flags == 0
+    assert bp.line_length == 26658.0
+    for c, buf in zip(COORDS, bufs):
+        assert getattr(bp, c) == int(ffi.cast('uintptr_t', buf))
+    for r in REF_VARS:
+        assert getattr(bp, r) == 1.0
+
+
+# --------------------------------------------------------------------------- #
+# Bridging: TPSA tracking must reproduce native tracking
+# --------------------------------------------------------------------------- #
+
+ELEMENTS = [
+    pytest.param(lambda: xt.Drift(length=1.2), id='Drift'),
+    pytest.param(lambda: xt.DriftExact(length=0.9), id='DriftExact'),
+    pytest.param(lambda: xt.Marker(), id='Marker'),
+    pytest.param(lambda: xt.Quadrupole(length=1.0, k1=0.06), id='Quadrupole'),
+    pytest.param(lambda: xt.Quadrupole(length=1.0, k1=0.06, num_multipole_kicks=3),
+                 id='Quadrupole-kicks'),
+    pytest.param(lambda: xt.Quadrupole(length=1.0, k1s=0.04), id='Quadrupole-skew'),
+    pytest.param(lambda: xt.Sextupole(length=0.4, k2=1.5), id='Sextupole'),
+    pytest.param(lambda: xt.Octupole(length=0.3, k3=60.0), id='Octupole'),
+    pytest.param(lambda: xt.Bend(length=1.5, k0=0.008, angle=0.02), id='Bend'),
+    pytest.param(lambda: xt.RBend(length_straight=2.0, k0=0.008, k1=0.02, angle=0.02),
+                 id='RBend'),
+    pytest.param(lambda: xt.Multipole(knl=[0.001, 0.02, 0.3], ksl=[0.0, 0.01, 0.0]),
+                 id='Multipole-thin'),
+    pytest.param(lambda: xt.Multipole(knl=[0.002], hxl=0.002), id='Multipole-hxl'),
+    pytest.param(lambda: xt.Multipole(knl=[0.0, 0.05], length=0.5), id='Multipole-thick'),
+    pytest.param(lambda: xt.UniformSolenoid(length=2.0, ks=0.1), id='UniformSolenoid'),
+    pytest.param(lambda: xt.Cavity(length=0.5, voltage=2e6, frequency=400e6, phase=np.pi),
+                 id='Cavity-thick'),
+    pytest.param(lambda: xt.Cavity(voltage=1e6, frequency=400e6, phase=np.pi),
+                 id='Cavity-thin'),
+    pytest.param(lambda: xt.LimitRectEllipse(max_x=0.05, max_y=0.04, a=0.05, b=0.04),
+                 id='LimitRectEllipse'),
+]
+
+
+@pytest.mark.parametrize('make_element', ELEMENTS)
+def test_track_element_matches_native(make_element):
+    element = make_element()
+    reference = _native_orbit(_line([('e', element)]))
+
+    m = _map(order=2)
+    element.track(m)
+    xo.assert_allclose(m.const_part, reference, rtol=0, atol=1e-13)
+
+
+def test_track_line_matches_native():
+    line = _demo_line()
+    reference = _native_orbit(line)
+
+    m = _map(order=2)
+    line.track(m)
+    xo.assert_allclose(m.const_part, reference, rtol=0, atol=1e-14)
+    xo.assert_allclose(m.jacobian(), _fd_jac(line), rtol=0, atol=1e-6)
+
+
+def test_track_line_partial_range():
+    line = _demo_line()
+
+    by_name = _map(order=2)
+    line.track(by_name, ele_stop='d1')
+    by_count = _map(order=2)
+    line.track(by_count, num_elements=2)
+    xo.assert_allclose(by_name.const_part, by_count.const_part, rtol=0, atol=0)
+
+    from_name = _map(order=2)
+    line.track(from_name, ele_start='q', ele_stop='b')
+    from_index = _map(order=2)
+    line.track(from_index, ele_start=1, ele_stop=3)
+    xo.assert_allclose(from_name.const_part, from_index.const_part, rtol=0, atol=0)
+
+    # a partial range is a prefix of the full one
+    full = _map(order=2)
+    line.track(full)
+    assert not np.allclose(full.const_part, by_name.const_part)
+
+
+def test_track_num_twin_bit_identical():
+    element = xt.Quadrupole(length=0.5, k1=0.08)
+    line = _line([('q', element)])
+
+    p = line.build_particles(**X0)
+    xtpsa.track_num_twin(element, p)
+    twin = np.array([float(getattr(p, c)[0]) for c in COORDS])
+
+    xo.assert_allclose(twin, _native_orbit(line), rtol=0, atol=0)
+
+    with pytest.raises(TypeError, match='expects xt.Particles'):
+        xtpsa.track_num_twin(element, _map())
+
+
+def test_registry_typeids():
+    classes = registry_classes()
+    assert len(classes) == len(TYPE_IDS)
+    for name, type_id in TYPE_IDS.items():
+        assert classes[type_id].__name__ == name
+        assert type_id_for(name) == type_id
+
+    with pytest.raises(NotImplementedError, match='no libgtpsa.so TPSA wrapper'):
+        type_id_for('NotAnElement')
+
+    # an unregistered element cannot be tracked as a map
+    assert 'Translation' not in TYPE_IDS
+    with pytest.raises(NotImplementedError, match='Translation'):
+        xt.Translation(shift_x=1e-3).track(_map())
+
+
+# --------------------------------------------------------------------------- #
+# Monitors
+# --------------------------------------------------------------------------- #
+
+def test_one_turn_ebe_records_full_maps():
+    line = _demo_line()
+    m = _map(order=2)
+    line.track(m, turn_by_turn_monitor='ONE_TURN_EBE')
+
+    mon = line.record_last_track
+    assert isinstance(mon, xtpsa.TpsaMonitor)
+    n = len(line.element_names)
+    assert len(mon) == n + 1
+    assert mon.const_part.shape == (n + 1, 6)
+    assert mon.jacobian().shape == (n + 1, 6, 6)
+    assert 'n_slots=%d' % (n + 1) in repr(mon)
+
+    # first slot is the map on entry, last slot is the map on exit
+    xo.assert_allclose(mon.const_part[0], [X0[c] for c in COORDS], rtol=0, atol=0)
+    xo.assert_allclose(mon.const_part[-1], m.const_part, rtol=0, atol=0)
+
+    slot = mon[-1]
+    assert isinstance(slot, xtpsa.ParticlesTpsa)
+    xo.assert_allclose(slot.const_part, m.const_part, rtol=0, atol=0)
+
+    series = mon.x
+    assert len(series) == n + 1
+    assert all(isinstance(t, _gtpsa.Tpsa) and t.order == 2 for t in series)
+    with pytest.raises(AttributeError):
+        mon.bogus
+
+
+def test_tpsa_monitor_slot_guard():
+    line = _demo_line()
+    m = _map(order=2)
+    mon = xtpsa.TpsaMonitor(1, m.descriptor)
+    with pytest.raises(ValueError, match='slots'):
+        line.track(m, turn_by_turn_monitor=mon)
+
+
+def test_particles_monitor_true():
+    line = _demo_line()
+    m = _map(order=2)
+    line.track(m, turn_by_turn_monitor=True)
+
+    mon = line.record_last_track
+    assert isinstance(mon, xt.ParticlesMonitor)
+    recorded = np.array([float(getattr(mon, c)[0, 0]) for c in COORDS])
+    xo.assert_allclose(recorded, [X0[c] for c in COORDS], rtol=0, atol=1e-14)
+
+
+def test_placed_particles_monitor():
+    """A ParticlesMonitor placed *in* the line records the map's orbit at its slot."""
+    mon = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=1, particle_id_range=(0, 1))
+    line = _line([('d0', xt.Drift(length=1.2)),
+                  ('q', xt.Quadrupole(length=0.5, k1=0.08)),
+                  ('b', xt.Bend(length=1.5, k0=0.008, angle=0.02)),
+                  ('mon', mon),
+                  ('d1', xt.Drift(length=0.7))])
+
+    line.track(_map(order=2))
+    recorded = np.array([float(getattr(mon, c)[0, 0]) for c in COORDS])
+
+    # the same line without the monitor, tracked up to where the monitor sat
+    plain = _line([('d0', xt.Drift(length=1.2)),
+                   ('q', xt.Quadrupole(length=0.5, k1=0.08)),
+                   ('b', xt.Bend(length=1.5, k0=0.008, angle=0.02)),
+                   ('d1', xt.Drift(length=0.7))])
+    up_to_monitor = _map(order=2)
+    plain.track(up_to_monitor, ele_stop='d1')
+
+    p = plain.build_particles(**X0)
+    plain.track(p, ele_stop='d1')
+    native = np.array([float(getattr(p, c)[0]) for c in COORDS])
+
+    xo.assert_allclose(recorded, up_to_monitor.const_part, rtol=0, atol=1e-13)
+    xo.assert_allclose(recorded, native, rtol=0, atol=1e-12)
+
+
+def test_invalid_monitor():
+    line = _demo_line()
+    with pytest.raises(ValueError, match='invalid turn_by_turn_monitor'):
+        line.track(_map(), turn_by_turn_monitor='NOPE')
+
+
+# --------------------------------------------------------------------------- #
+# Range and loss handling
+# --------------------------------------------------------------------------- #
+
+def test_range_errors():
+    line = _demo_line()
+
+    with pytest.raises(NotImplementedError, match='multi-turn'):
+        line.track(_map(), num_turns=3)
+    with pytest.raises(ValueError, match='ele_start'):
+        line.track(_map(), ele_start=99)
+    with pytest.raises(ValueError, match='both num_elements and ele_stop'):
+        line.track(_map(), ele_stop=2, num_elements=1)
+    with pytest.raises(NotImplementedError, match='wrap-around'):
+        line.track(_map(), ele_start=2, ele_stop=1)
+
+
+def test_map_loss_raises():
+    line = _line([('d0', xt.Drift(length=1.2)),
+                  ('ap', xt.LimitRectEllipse(max_x=1e-6, max_y=1e-6, a=1e-6, b=1e-6)),
+                  ('d1', xt.Drift(length=0.9))])
+    m = xtpsa.ParticlesTpsa(order=1, p0c=P0C, mass0=MASS0, x=1e-2)
+    with pytest.raises(RuntimeError, match="lost at element index 1 \\('ap'\\)"):
+        line.track(m)
+
+
+# --------------------------------------------------------------------------- #
+# The per-line ElementRefData cache
+# --------------------------------------------------------------------------- #
+
+def test_refdata_cache_released_with_line():
+    backend = _backend()
+    buffers_before = len(xo.context_default._buffers)
+    entries_before = len(backend._refdata_cache)
+
+    line = _demo_line()
+    line.track(_map())
+    assert len(backend._refdata_cache) == entries_before + 1
+
+    del line
+    gc.collect()
+    # the cache holds the line weakly, so its ElementRefData (and buffer) go with it
+    assert len(backend._refdata_cache) == entries_before
+    assert len(xo.context_default._buffers) == buffers_before
+
+
+def test_refdata_cache_reused_and_revalidated():
+    backend = _backend()
+    line = _demo_line()
+
+    line.track(_map())
+    entries = len(backend._refdata_cache)
+    first = backend._refdata_cache[line][2]
+
+    line.track(_map())
+    assert len(backend._refdata_cache) == entries
+    assert backend._refdata_cache[line][2] == first   # reused, not rebuilt
+
+    # in-place parameter edits are seen without rebuilding (shared tracker buffer)
+    before = _map()
+    line.track(before)
+    line.element_dict['q'].k1 = 0.5
+    after = _map()
+    line.track(after)
+    assert not np.allclose(before.const_part, after.const_part)
+    assert backend._refdata_cache[line][2] == first
+    xo.assert_allclose(after.const_part, _native_orbit(line), rtol=0, atol=1e-14)
+
+    # a stale element_names tuple invalidates the entry instead of being trusted
+    names, erd, _ = backend._refdata_cache[line]
+    backend._refdata_cache[line] = (('bogus',), erd, 0)
+    rebuilt = _map()
+    line.track(rebuilt)
+    assert backend._refdata_cache[line][0] == names
+    xo.assert_allclose(rebuilt.const_part, after.const_part, rtol=0, atol=0)
+
+    # distinct lines get distinct entries
+    other = _demo_line()
+    other.track(_map())
+    assert len(backend._refdata_cache) == entries + 1
+
+
+# --------------------------------------------------------------------------- #
+# Library loading and the compiled-bridge cache
+# --------------------------------------------------------------------------- #
+
+def test_lib_and_ffi_singletons():
+    assert _gtpsa.lib() is _gtpsa.lib()
+    assert _gtpsa.ffi() is _gtpsa.ffi()
+
+
+def test_missing_lib_error(monkeypatch, tmp_path):
+    monkeypatch.setenv('XTRACK_GTPSA_LIB', str(tmp_path / 'nope.so'))
+    monkeypatch.setattr(_gtpsa, '_lib', None)
+    with pytest.raises(RuntimeError, match='build.sh'):
+        _gtpsa.lib()
+
+    monkeypatch.delenv('XTRACK_GTPSA_LIB')
+    with pytest.raises(RuntimeError, match='XTRACK_GTPSA_LIB is not set'):
+        _gtpsa._gtpsa_dir()
+
+
+def test_bridge_sources_present():
+    sources = _gtpsa._bridge_sources()
+    assert all(os.path.exists(s) for s in sources)
+    assert any(s.endswith('xt_bridge.cpp') for s in sources)
+    assert any(os.sep + 'generated' + os.sep in s for s in sources)
+
+
+def test_cache_key_is_content_addressed(monkeypatch, tmp_path):
+    source = tmp_path / 'fake.hpp'
+    source.write_text('one')
+    monkeypatch.setattr(_gtpsa, '_bridge_sources', lambda: [str(source)])
+
+    key = _gtpsa._bridge_cache_key('tpsa')
+    assert key.startswith('bridge_tpsa_')
+    assert _gtpsa._bridge_cache_key('tpsa') == key          # deterministic
+    assert _gtpsa._bridge_cache_key('num') != key           # per flavor
+
+    source.write_text('two')
+    assert _gtpsa._bridge_cache_key('tpsa') != key          # content addressed
+
+
+@pytest.mark.parametrize('flavor', ['num', 'tpsa'])
+def test_bridge_lib_memoized(flavor):
+    assert _gtpsa.bridge_lib(flavor) is _gtpsa.bridge_lib(flavor)
+
+
+@pytest.mark.parametrize('flavor', ['num', 'tpsa'])
+def test_bridge_lib_uses_disk_cache(monkeypatch, flavor):
+    """With the in-process memo dropped, the module must load from the cached .so."""
+    from xobjects.context_cpu import ContextCpu
+
+    _gtpsa.bridge_lib(flavor)                     # ensure it is built on disk
+    monkeypatch.delitem(_gtpsa._bridge_modules, flavor)
+
+    def no_compile(*args, **kwargs):
+        raise AssertionError('rebuilt instead of using the cached .so')
+
+    monkeypatch.setattr(ContextCpu, 'build_kernels', no_compile)
+
+    kernels = _gtpsa.bridge_lib(flavor)
+    assert f'xt_bridge_track_element_{flavor}' in kernels
+    assert f'xt_bridge_track_line_{flavor}' in kernels
+
+
+def test_bridge_lib_force_rebuilds(monkeypatch):
+    from xobjects.context_cpu import ContextCpu, _so_for_module_name
+
+    # Compile under a private module name and restore the memo afterwards, so that
+    # under `pytest -n auto` this never rewrites the shared .so another worker is loading.
+    cached = _gtpsa.bridge_lib('num')
+    monkeypatch.setitem(_gtpsa._bridge_modules, 'num', cached)
+    module_name = 'bridge_num_forcetest_%d' % os.getpid()
+    monkeypatch.setattr(_gtpsa, '_bridge_cache_key', lambda flavor: module_name)
+
+    build_kernels = ContextCpu.build_kernels
+    calls = []
+
+    def spy(self, *args, **kwargs):
+        calls.append(kwargs.get('module_name'))
+        return build_kernels(self, *args, **kwargs)
+
+    monkeypatch.setattr(ContextCpu, 'build_kernels', spy)
+
+    try:
+        kernels = _gtpsa.bridge_lib('num', force=True)
+        assert calls == [module_name]      # force=True compiles, cache notwithstanding
+        assert 'xt_bridge_track_element_num' in kernels
+    finally:
+        so = _so_for_module_name(
+            module_name, os.path.join(_gtpsa._gtpsa_dir(), '_bridge_cache'))
+        so.unlink(missing_ok=True)
+
+
+def test_bridge_lib_bad_flavor():
+    with pytest.raises(ValueError, match='flavor must be one of'):
+        _gtpsa.bridge_lib('bogus')
+
+
+def test_bridge_entry():
+    fn, ffi = _gtpsa.bridge_entry('tpsa', 'xt_bridge_track_line_tpsa')
+    assert callable(fn)
+    assert hasattr(ffi, 'cast')

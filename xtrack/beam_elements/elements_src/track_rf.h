@@ -47,21 +47,28 @@ void track_rf_kick_single_particle(
         frequency += (harmonic / t_rev0);
     }
 
+#if !defined(XT_FLAVOR_TPSA) && !defined(XT_FLAVOR_NUM)
+    // t_sim / at_turn are turn-bookkeeping vars, excluded from the TPSA/NUM bridge
+    // Absolute-time cavities are native-only.
     if (absolute_time == 1) {
         double const t_sim = LocalParticle_get_t_sim(part);
         int64_t const at_turn = LocalParticle_get_at_turn(part);
         phase0 += 2 * PI * at_turn * frequency * t_sim;
     }
+#endif
 
-    double const zeta  = LocalParticle_get_zeta(part);
+    XT_NUM const zeta  = LocalParticle_get_zeta(part);
     double const q = fabs(LocalParticle_get_q0(part)) * LocalParticle_get_charge_ratio(part);
-    double const tau = zeta / beta0;
+    XT_NUM const tau = zeta / beta0;
 
-    double const energy_kick = q * voltage
+    XT_NUM const energy_kick = q * voltage
         * sin(phase0 + DEG2RAD * lag + phase
               - (2.0 * PI) / C_LIGHT * frequency * tau);
 
     double rfmultipole_energy_kick = 0;
+#ifndef XT_FLAVOR_TPSA
+    // rfmultipole kick reads x,y as doubles; only RFMultipole/CrabCavity use order>=0.
+    // A plain Cavity passes order=-1 (inactive), so the TPSA flavor omits this block.
     if (order >= 0) {
 
         double dpx = 0.0;
@@ -154,6 +161,7 @@ void track_rf_kick_single_particle(
         LocalParticle_add_to_py(part, py_kick);
 
     }
+#endif  // !XT_FLAVOR_TPSA (rfmultipole + transverse-kick blocks)
 
 
     if (!kill_energy_kick) {
@@ -215,7 +223,7 @@ void track_rf_body_single_particle(
             code;\
         }
 
-    
+
     // START GENERATED INTEGRATION CODE
 
     if (integrator == 1){ // TEAPOT

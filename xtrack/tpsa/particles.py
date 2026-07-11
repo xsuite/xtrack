@@ -1,0 +1,150 @@
+"""ParticlesTpsa: a 6D TPSA map (one truncated power series per coordinate)."""
+
+from __future__ import annotations
+
+from typing import Any, Iterable, Sequence
+
+import numpy as np
+import xtrack as xt
+
+from . import _gtpsa
+from ._bridge_particle import XtBridgeParticle, _COORDS, _REF_VARS
+
+
+class ParticlesTpsa:
+    """6 coordinates as TPSA around a reference orbit.  Identity map in -> element map out.
+
+    Construction mimics ``xt.Particles``: an internal single-particle ``xt.Particles``
+    (``_ref_particle``) resolves all reference algebra (``p0c``/``energy0``/``gamma0``/
+    ``beta0``/...) exactly as native particles do.
+    ``coords`` is the list of 6 ``Tpsa`` ([x, px, y, py, zeta, delta]) expanded around
+    that reference orbit. The dispatcher passes their handles to the shared object.
+    Read the result with ``.const_part`` (orbit) and ``.jacobian()`` (transfer matrix R),
+    or per-coordinate ``.x`` etc.
+    """
+
+    coords: list[_gtpsa.Tpsa] | None = None
+
+    def __init__(self, order: int = 1, **kwargs: Any) -> None:
+        # Single source of truth for kwargs and derived values.
+        self._ref_particle = xt.Particles(**kwargs)
+        if len(np.atleast_1d(self._ref_particle.x)) != 1:
+            raise ValueError("ParticlesTpsa is a single map: pass scalar coordinates")
+        desc = _gtpsa.Descriptor.new(6, order)
+        self.coords = [
+            _gtpsa.Tpsa.var(desc, i + 1, self._ref(c))
+            for i, c in enumerate(_COORDS)
+        ]
+        self._bridge = self._build_bridge()
+
+    def _build_bridge(self) -> XtBridgeParticle:
+        """The ABI struct as an xobject: coordinate handles and reference variables.
+
+        Coordinate ``tpsa_t*`` addresses are stable for the life of the ``Tpsa`` objects
+        and the shared object writes the map in place through them, so they are set once here.
+        The reference (doubles) variables never change during tracking. Per-track fields
+        (state/at_element/track_flags/line_length) are refreshed by the backend.
+        """
+        ffi = _gtpsa.ffi()
+        bp = XtBridgeParticle()
+        for c, t in zip(_COORDS, self.coords):
+            setattr(bp, c, int(ffi.cast("uintptr_t", t._p)))
+        for r in _REF_VARS:
+            setattr(bp, r, self._ref(r))
+        return bp
+
+    @classmethod
+    def _from_coords(
+        cls,
+        coords: Iterable[_gtpsa.Tpsa],
+        ref_particle: xt.Particles | None = None,
+    ) -> ParticlesTpsa:
+        """A map over existing ``Tpsa`` handles without using the ABI.
+
+        For read-only views of a map produced elsewhere (e.g. one recorded slot of a
+        ``TpsaMonitor``). The six series are shared, not copied. Not trackable.
+        """
+        obj = object.__new__(cls)
+        obj.coords = list(coords)
+        obj._ref_particle = ref_particle
+        obj._bridge = None
+        return obj
+
+    def _ref(self, name: str) -> float:
+        """A reference scalar as ``float`` (per-particle vars are length-1 arrays)."""
+        if self._ref_particle is None:
+            raise AttributeError(f"{name}: this map view carries no reference particle")
+        return float(np.asarray(getattr(self._ref_particle, name)).reshape(-1)[0])
+
+    def to_particles(self) -> xt.Particles:
+        """A fresh single ``xt.Particles`` at the current const part (validation use)."""
+        p = self._ref_particle.copy()
+        for c, v in zip(_COORDS, self.const_part):
+            setattr(p, c, [v])
+        return p
+
+    def __getattr__(self, name: str) -> _gtpsa.Tpsa | float:
+        if name in _COORDS:
+            return self.coords[_COORDS.index(name)]
+        if name in _REF_VARS:
+            return self._ref(name)
+        raise AttributeError(name)
+
+    @property
+    def descriptor(self) -> _gtpsa.Descriptor:
+        """The GTPSA ``Descriptor`` shared by the six coordinate series (from C)."""
+        return self.coords[0].descriptor
+
+    @property
+    def order(self) -> int:
+        """Truncation order, read back from the coordinate series (single source of truth)."""
+        return self.coords[0].order
+
+    @property
+    def n_variables(self) -> int:
+        """Number of variables of the underlying descriptor (from C)."""
+        return self.coords[0].descriptor.n_variables
+
+    @property
+    def const_part(self) -> np.ndarray:
+        """Tracked orbit: the order-0 part of each coordinate (length-6 array)."""
+        return np.array([c.const_part for c in self.coords])
+
+    def jacobian(self) -> np.ndarray:
+        """The 6x6 order-1 transfer matrix R."""
+        return np.array([c.grad() for c in self.coords])
+
+    def _series(self, coord: str | int) -> _gtpsa.Tpsa:
+        """The ``Tpsa`` output series for ``coord`` (name like ``'x'`` or index 0..5)."""
+        if isinstance(coord, str):
+            return self.coords[_COORDS.index(coord)]
+        return self.coords[coord]
+
+    def coefficient(
+        self,
+        coord: str | int,
+        monomials: Sequence[int] | Sequence[Sequence[int]] | np.ndarray,
+    ) -> float | np.ndarray:
+        """Coefficient(s) of the ``coord`` output series for one or multiple monomials.
+
+        ``coord`` selects the output polynomial (``'x'``, ``'px'``, ... or index 0..5).
+        A monomial is a length-6 tuple of per-variable orders over
+        ``[x, px, y, py, zeta, delta]`` (the same keys ``monomial_coeffs`` returns).
+        ``monomials`` is one such monomial (-> ``float``) or an iterable of them,
+        e.g. a list of tuples or an ``(N, 6)`` array (-> length-N array); arrays are
+        converted to tuples internally, for example
+        the x^2*px^2 term of x is ``coefficient('x', (2, 2, 0, 0, 0, 0))``.
+        """
+        return self._series(coord).coefficient(monomials)
+
+    def monomial_coeffs(
+        self, coord: str | int | None = None, tol: float = 1e-14
+    ) -> dict[tuple[int, ...], float] | dict[str, dict[tuple[int, ...], float]]:
+        """All ``|c| > tol`` coefficients as ``{monomial_tuple: coefficient}``.
+
+        With ``coord`` given, returns that output series' dictionary.
+        With ``coord=None``, returns ``{coord_name: {monomial_tuple: coefficient}}`` for all.
+        """
+        if coord is not None:
+            return self._series(coord).monomial_coeffs(tol)
+        return {c: s.monomial_coeffs(tol) for c, s in zip(_COORDS, self.coords)}

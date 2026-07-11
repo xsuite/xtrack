@@ -11,11 +11,11 @@
 
 GPUFUN
 void track_expanded_drift_single_particle(LocalParticle* part, double length){
-    double const rpp    = LocalParticle_get_rpp(part);
-    double const rv0v    = 1./LocalParticle_get_rvv(part);
-    double const xp     = LocalParticle_get_px(part) * rpp;
-    double const yp     = LocalParticle_get_py(part) * rpp;
-    double const dzeta  = 1 - rv0v * ( 1. + ( xp*xp + yp*yp ) / 2. );
+    XT_NUM const rpp    = LocalParticle_get_rpp(part);
+    XT_NUM const rv0v    = 1./LocalParticle_get_rvv(part);
+    XT_NUM const xp     = LocalParticle_get_px(part) * rpp;
+    XT_NUM const yp     = LocalParticle_get_py(part) * rpp;
+    XT_NUM const dzeta  = 1 - rv0v * ( 1. + ( xp*xp + yp*yp ) / 2. );
 
     LocalParticle_add_to_x(part, xp * length );
     LocalParticle_add_to_y(part, yp * length );
@@ -26,14 +26,14 @@ void track_expanded_drift_single_particle(LocalParticle* part, double length){
 
 GPUFUN
 void track_exact_drift_single_particle(LocalParticle* part, double length){
-    double const px = LocalParticle_get_px(part);
-    double const py = LocalParticle_get_py(part);
-    double const rv0v    = 1./LocalParticle_get_rvv(part);
-    double const one_plus_delta = 1. + LocalParticle_get_delta(part);
+    XT_NUM const px = LocalParticle_get_px(part);
+    XT_NUM const py = LocalParticle_get_py(part);
+    XT_NUM const rv0v    = 1./LocalParticle_get_rvv(part);
+    XT_NUM const one_plus_delta = 1. + LocalParticle_get_delta(part);
 
-    double const one_over_pz = 1./sqrt(one_plus_delta*one_plus_delta
+    XT_NUM const one_over_pz = 1./sqrt(one_plus_delta*one_plus_delta
                                        - px * px - py * py);
-    double const dzeta = 1 - rv0v * one_plus_delta * one_over_pz;
+    XT_NUM const dzeta = 1 - rv0v * one_plus_delta * one_over_pz;
 
     LocalParticle_add_to_x(part, px * one_over_pz * length);
     LocalParticle_add_to_y(part, py * one_over_pz * length);
@@ -50,33 +50,31 @@ void track_polar_drift_single_particle(
 
     // Based on SUBROUTINE Sprotr in PTC and curex_drift in MAD-NG
 
-    const double rvv = LocalParticle_get_rvv(part);
+    const XT_NUM rvv = LocalParticle_get_rvv(part);
     // Particle coordinates
-    const double x = LocalParticle_get_x(part);
-    const double y = LocalParticle_get_y(part);
-    const double px = LocalParticle_get_px(part);
-    const double py = LocalParticle_get_py(part);
+    const XT_NUM x = LocalParticle_get_x(part);
+    const XT_NUM y = LocalParticle_get_y(part);
+    const XT_NUM px = LocalParticle_get_px(part);
+    const XT_NUM py = LocalParticle_get_py(part);
     const double s = length;
 
-    const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
-    const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
-
-    double new_x, new_px, new_y, delta_ell;
+    const XT_NUM one_plus_delta = LocalParticle_get_delta(part) + 1.0;
+    const XT_NUM pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
 
     // Polar drift
     double const rho = 1 / h;
     const double ca = cos(h * s);
     const double sa = sin(h * s);
     const double sa2 = sin(0.5 * h * s);
-    const double _pz = 1 / pz;
-    const double pxt = px * _pz;
-    const double _ptt = 1 / (ca - sa * pxt);
-    const double pst = (x + rho) * sa * _pz * _ptt;
+    const XT_NUM _pz = 1 / pz;
+    const XT_NUM pxt = px * _pz;
+    const XT_NUM _ptt = 1 / (ca - sa * pxt);
+    const XT_NUM pst = (x + rho) * sa * _pz * _ptt;
 
-    new_x = (x + rho * (2 * sa2 * sa2 + sa * pxt)) * _ptt;
-    new_px = ca * px + sa * pz;
-    new_y = y + pst * py;
-    delta_ell = one_plus_delta * (x + rho) * sa / ca / pz / (1 - px * sa / ca / pz);
+    const XT_NUM new_x = (x + rho * (2 * sa2 * sa2 + sa * pxt)) * _ptt;
+    const XT_NUM new_px = ca * px + sa * pz;
+    const XT_NUM new_y = y + pst * py;
+    const XT_NUM delta_ell = one_plus_delta * (x + rho) * sa / ca / pz / (1 - px * sa / ca / pz);
 
     // Update Particles object
     LocalParticle_set_x(part, new_x);
@@ -97,32 +95,33 @@ void track_expanded_combined_dipole_quad_single_particle(
 ) {
     // From madx: https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/8695bd422dc403a01aa185e9fea16603bbd5b3e1/src/trrun.f90#L4320
     // Particle coordinates
-    const double x = LocalParticle_get_x(part);
-    const double y = LocalParticle_get_y(part);
-    const double px = LocalParticle_get_px(part);
-    const double py = LocalParticle_get_py(part);
-    const double rvv = LocalParticle_get_rvv(part);
+    const XT_NUM x = LocalParticle_get_x(part);
+    const XT_NUM y = LocalParticle_get_y(part);
+    const XT_NUM px = LocalParticle_get_px(part);
+    const XT_NUM py = LocalParticle_get_py(part);
+    const XT_NUM rvv = LocalParticle_get_rvv(part);
 
     // In MAD-X (delta + 1) is computed:
     // const double delta_plus_1 = sqrt(pt*pt + 2.0*pt*beti + 1.0);
-    const double delta_plus_1 = LocalParticle_get_delta(part) + 1;
+    const XT_NUM delta_plus_1 = LocalParticle_get_delta(part) + 1;
     const double chi = LocalParticle_get_chi(part);
 
-    const double k0 = chi * k0_ / delta_plus_1;
-    const double k1 = chi * k1_ / delta_plus_1;
+    const XT_NUM k0 = chi * k0_ / delta_plus_1;
+    const XT_NUM k1 = chi * k1_ / delta_plus_1;
 
-    const double Kx = k0 * h + k1;
-    const double Ky = -k1;
+    const XT_NUM Kx = k0 * h + k1;
+    const XT_NUM Ky = -k1;
 
-    double x_, px_, y_, py_, Sx, Sy, Cx, Cy;
+    // Initialize (tpsa has no default constructor).
+    XT_NUM Sx = 0.0*x, Sy = 0.0*x, Cx = 0.0*x, Cy = 0.0*x;
 
     if (Kx > 0.0) {
-        double sqrt_Kx = sqrt(Kx);
+        XT_NUM sqrt_Kx = sqrt(Kx);
         Sx = sin(sqrt_Kx * length) / sqrt_Kx;
         Cx = cos(sqrt_Kx * length);
     }
     else if (Kx < 0.0) {
-        double sqrt_Kx = sqrt(-Kx); // the imaginary part
+        XT_NUM sqrt_Kx = sqrt(-Kx); // the imaginary part
         Sx = sinh(sqrt_Kx * length) / sqrt_Kx; // sin(ix) = i sinh(x)
         Cx = cosh(sqrt_Kx * length); // cos(ix) = cosh(x)
     }
@@ -132,12 +131,12 @@ void track_expanded_combined_dipole_quad_single_particle(
     }
 
     if (Ky > 0.0) {
-        double sqrt_Ky = sqrt(Ky);
+        XT_NUM sqrt_Ky = sqrt(Ky);
         Sy = sin(sqrt_Ky * length) / sqrt_Ky;
         Cy = cos(sqrt_Ky * length);
     }
     else if (Ky < 0.0) {
-        double sqrt_Ky = sqrt(-Ky); // the imaginary part
+        XT_NUM sqrt_Ky = sqrt(-Ky); // the imaginary part
         Sy = sinh(sqrt_Ky * length) / sqrt_Ky; // sin(ix) = i sinh(x)
         Cy = cosh(sqrt_Ky * length);  // cos(ix) = cosh(x)
     }
@@ -147,18 +146,18 @@ void track_expanded_combined_dipole_quad_single_particle(
     }
 
     // useful quantities
-    const double xp = px / delta_plus_1;
-    const double yp = py / delta_plus_1;
-    const double A = -Kx * x - k0 + h;
-    const double B = xp;
-    const double C = -Ky * y;
-    const double D = yp;
+    const XT_NUM xp = px / delta_plus_1;
+    const XT_NUM yp = py / delta_plus_1;
+    const XT_NUM A = -Kx * x - k0 + h;
+    const XT_NUM B = 1.0 * xp;   // 1.0 * forces a value copy: `= xp` would call the
+    const XT_NUM C = -Ky * y;    // copy-constructor trap which only copies descriptor
+    const XT_NUM D = 1.0 * yp;   // (not coefficients)
 
     // transverse map
-    x_ = x * Cx + xp * Sx;
-    y_ = y * Cy + yp * Sy;
-    px_ = (A * Sx + B * Cx) * delta_plus_1;
-    py_ = (C * Sy + D * Cy) * delta_plus_1;
+    XT_NUM x_ = x * Cx + xp * Sx;
+    const XT_NUM y_ = y * Cy + yp * Sy;
+    const XT_NUM px_ = (A * Sx + B * Cx) * delta_plus_1;
+    const XT_NUM py_ = (C * Sy + D * Cy) * delta_plus_1;
 
     if (NONZERO(Kx))
         x_ = x_ + (k0 - h) * (Cx - 1.0) / Kx;
@@ -166,7 +165,7 @@ void track_expanded_combined_dipole_quad_single_particle(
         x_ = x_ - (k0 - h) * 0.5 * POW2(length);
 
     // longitudinal map
-    double length_ = length; // will be the total path length traveled by the particle
+    XT_NUM length_ = 0.0*x + length; // will be the total path length traveled by the particle
     if (NONZERO(Kx)) {
         length_ -= (h * ((Cx - 1.0) * xp + Sx * A + length * (k0 - h))) / Kx;
         length_ += 0.5 * (
@@ -201,7 +200,7 @@ void track_expanded_combined_dipole_quad_single_particle(
         length_ += 0.5 * POW2(D) * length;
     }
 
-    const double dzeta = length - length_ / rvv;
+    const XT_NUM dzeta = length - length_ / rvv;
 
     LocalParticle_set_x(part, x_);
     LocalParticle_set_px(part, px_);
@@ -285,14 +284,14 @@ void track_curved_exact_bend_single_particle(
         return;
     }
 
-    const double rvv = LocalParticle_get_rvv(part);
+    const XT_NUM rvv = LocalParticle_get_rvv(part);
     // Particle coordinates
-    const double x0 = LocalParticle_get_x(part);
-    const double y0 = LocalParticle_get_y(part);
-    const double px0 = LocalParticle_get_px(part);
-    const double py = LocalParticle_get_py(part);
+    const XT_NUM x0 = LocalParticle_get_x(part);
+    const XT_NUM y0 = LocalParticle_get_y(part);
+    const XT_NUM px0 = LocalParticle_get_px(part);
+    const XT_NUM py = LocalParticle_get_py(part);
     const double s = length;
-    const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
+    const XT_NUM one_plus_delta = LocalParticle_get_delta(part) + 1.0;
 
     // angle-related quantities
     const double hs = h * s;
@@ -301,40 +300,40 @@ void track_curved_exact_bend_single_particle(
     const double sin_hs_2 = sin(hs / 2);
 
     // auxiliary quantities
-    const double pz0 = sqrt(POW2(one_plus_delta) - POW2(px0) - POW2(py));
-    const double C = pz0 - k0_chi * ((1.0 / h) + x0);
+    const XT_NUM pz0 = sqrt(POW2(one_plus_delta) - POW2(px0) - POW2(py));
+    const XT_NUM C = pz0 - k0_chi * ((1.0 / h) + x0);
 
     // p_x(s)
-    const double pxs = px0 * cos_hs + C * sin_hs;
+    const XT_NUM pxs = px0 * cos_hs + C * sin_hs;
 
     // p_z(s)
-    const double pzs = sqrt(POW2(one_plus_delta) - POW2(pxs) - POW2(py));
+    const XT_NUM pzs = sqrt(POW2(one_plus_delta) - POW2(pxs) - POW2(py));
 
     // Delta p_z(s), rationalized
-    const double delta_pz = (px0 - pxs) * (px0 + pxs) / (pz0 + pzs);
+    const XT_NUM delta_pz = (px0 - pxs) * (px0 + pxs) / (pz0 + pzs);
 
     // Delta D
-    const double delta_D = -2 * C * POW2(sin_hs_2) - px0 * sin_hs;
+    const XT_NUM delta_D = -2 * C * POW2(sin_hs_2) - px0 * sin_hs;
 
     // Delta x
-    const double delta_x = (delta_pz - delta_D) / k0_chi;
+    const XT_NUM delta_x = (delta_pz - delta_D) / k0_chi;
 
     // Delta p_x(s)
-    const double delta_px = -2 * px0 * POW2(sin_hs_2) + C * sin_hs;
+    const XT_NUM delta_px = -2 * px0 * POW2(sin_hs_2) + C * sin_hs;
 
     // Delta a(s), stable asin difference
-    const double N_a = px0 * delta_pz - pz0 * delta_px;
-    const double D_a = pz0 * pzs + px0 * pxs;
-    const double delta_a = atan2(N_a, D_a);
+    const XT_NUM N_a = px0 * delta_pz - pz0 * delta_px;
+    const XT_NUM D_a = pz0 * pzs + px0 * pxs;
+    const XT_NUM delta_a = atan2(N_a, D_a);
 
     // Common vertical and longitudinal integral
-    const double integ = (hs + delta_a) / k0_chi;
+    const XT_NUM integ = (hs + delta_a) / k0_chi;
 
     // new y
-    const double new_y = y0 + py * integ;
+    const XT_NUM new_y = y0 + py * integ;
 
     // Delta ell
-    const double delta_ell = one_plus_delta * integ;
+    const XT_NUM delta_ell = one_plus_delta * integ;
 
     // Update Particles object
     LocalParticle_add_to_x(part, delta_x);
@@ -361,29 +360,27 @@ void track_straight_exact_bend_single_particle(
         return;
     }
 
-    const double rvv = LocalParticle_get_rvv(part);
+    const XT_NUM rvv = LocalParticle_get_rvv(part);
     // Particle coordinates
-    const double x = LocalParticle_get_x(part);
-    const double y = LocalParticle_get_y(part);
-    const double px = LocalParticle_get_px(part);
-    const double py = LocalParticle_get_py(part);
+    const XT_NUM x = LocalParticle_get_x(part);
+    const XT_NUM y = LocalParticle_get_y(part);
+    const XT_NUM px = LocalParticle_get_px(part);
+    const XT_NUM py = LocalParticle_get_py(part);
     const double s = length;
 
-    const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
-    const double A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
-    const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
-
-    double new_x, new_px, new_y, delta_ell;
+    const XT_NUM one_plus_delta = LocalParticle_get_delta(part) + 1.0;
+    const XT_NUM A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
+    const XT_NUM pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
 
     // STRAIGHT EXACT BEND
     // The case for zero curvature -- straight bend, s is Cartesian length
-    new_px = px - k0_chi * s;
-    new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k0_chi;
+    const XT_NUM new_px = px - k0_chi * s;
+    const XT_NUM new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k0_chi;
 
-    const double D = asin(A * px) - asin(A * new_px);
-    new_y = y + (py / k0_chi) * D;
+    const XT_NUM D = asin(A * px) - asin(A * new_px);
+    const XT_NUM new_y = y + (py / k0_chi) * D;
 
-    delta_ell = (one_plus_delta / k0_chi) * D;
+    const XT_NUM delta_ell = (one_plus_delta / k0_chi) * D;
 
     // Update Particles object
     LocalParticle_set_x(part, new_x);
@@ -417,39 +414,38 @@ void track_solenoid_single_particle(
     const double skl = sk * length;
 
     // Particle coordinates
-    const double x = LocalParticle_get_x(part) - x0_solenoid;
-    const double px = LocalParticle_get_px(part);
-    const double y = LocalParticle_get_y(part) - y0_solenoid;
-    const double py = LocalParticle_get_py(part);
-    const double delta = LocalParticle_get_delta(part);
-    const double rvv = LocalParticle_get_rvv(part);
+    const XT_NUM x = LocalParticle_get_x(part) - x0_solenoid;
+    const XT_NUM px = LocalParticle_get_px(part);
+    const XT_NUM y = LocalParticle_get_y(part) - y0_solenoid;
+    const XT_NUM py = LocalParticle_get_py(part);
+    const XT_NUM delta = LocalParticle_get_delta(part);
+    const XT_NUM rvv = LocalParticle_get_rvv(part);
 
     // set up constants
-    const double pk1 = px + sk * y;
-    const double pk2 = py - sk * x;
-    const double ptr2 = pk1 * pk1 + pk2 * pk2;
-    const double one_plus_delta = 1 + delta;
-    const double one_plus_delta_sq = one_plus_delta * one_plus_delta;
-    const double pz = sqrt(one_plus_delta_sq - ptr2);
+    const XT_NUM pk1 = px + sk * y;
+    const XT_NUM pk2 = py - sk * x;
+    const XT_NUM ptr2 = pk1 * pk1 + pk2 * pk2;
+    const XT_NUM one_plus_delta = 1 + delta;
+    const XT_NUM one_plus_delta_sq = one_plus_delta * one_plus_delta;
+    const XT_NUM pz = sqrt(one_plus_delta_sq - ptr2);
 
     // set up constants
-    const double cosTh = cos(skl / pz);
-    const double sinTh = sin(skl / pz);
+    const XT_NUM cosTh = cos(skl / pz);
+    const XT_NUM sinTh = sin(skl / pz);
 
-    const double si = sin(skl / pz) / sk;
-    const double rps[4] = {
-        cosTh * x + sinTh * y,
-        cosTh * px + sinTh * py,
-        cosTh * y - sinTh * x,
-        cosTh * py - sinTh * px
-    };
-    double const new_x = cosTh * rps[0] + si * rps[1];
-    double const new_px = cosTh * rps[1] - sk * sinTh * rps[0];
-    double const new_y = cosTh * rps[2] + si * rps[3];
-    double const new_py = cosTh * rps[3] - sk * sinTh * rps[2];
-    double const add_to_zeta = length * (1 - one_plus_delta / (pz * rvv));
-    double const new_ax = -0.5 * ks * new_y;
-    double const new_ay = 0.5 * ks * new_x;
+    const XT_NUM si = sin(skl / pz) / sk;
+    // rps[4] unrolled: an array of the non-default-constructible XT_NUM is unsafe.
+    const XT_NUM rps0 = cosTh * x + sinTh * y;
+    const XT_NUM rps1 = cosTh * px + sinTh * py;
+    const XT_NUM rps2 = cosTh * y - sinTh * x;
+    const XT_NUM rps3 = cosTh * py - sinTh * px;
+    const XT_NUM new_x = cosTh * rps0 + si * rps1;
+    const XT_NUM new_px = cosTh * rps1 - sk * sinTh * rps0;
+    const XT_NUM new_y = cosTh * rps2 + si * rps3;
+    const XT_NUM new_py = cosTh * rps3 - sk * sinTh * rps2;
+    const XT_NUM add_to_zeta = length * (1 - one_plus_delta / (pz * rvv));
+    const XT_NUM new_ax = -0.5 * ks * new_y;
+    const XT_NUM new_ay = 0.5 * ks * new_x;
 
     LocalParticle_set_x(part, new_x + x0_solenoid);
     LocalParticle_set_px(part, new_px);

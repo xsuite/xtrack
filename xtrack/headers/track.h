@@ -10,6 +10,20 @@
 #include "xobjects/headers/atomicadd.h"
 #include "xtrack/headers/constants.h"
 
+// Per-coordinate number type: double for normal tracking, overridable (e.g. to
+// a TPSA type) by a translation unit that wants to track a non-scalar particle.
+#ifndef XT_NUM
+#define XT_NUM double
+#endif
+
+// Pass a coordinate as a read-only function argument. Native tracking is
+// compiled as C, where call-by-value `const XT_NUM` (a double) is correct. A non-scalar
+// XT_NUM (e.g. a TPSA whose copy-constructor only copies the descriptor) must be passed by const
+// reference to avoid losing its value on copy. The C++ translation unit overrides this to `const XT_NUM&`.
+#ifndef XT_NUM_CONST_ARG
+#define XT_NUM_CONST_ARG const XT_NUM
+#endif
+
 /*
     The particle tracking "decorators" for all the contexts.
 */

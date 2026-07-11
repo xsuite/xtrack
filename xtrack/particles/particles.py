@@ -83,6 +83,332 @@ per_particle_vars = (
 )
 
 
+class LocalParticleFlavor:
+    """Storage/type/formatting policy for generated LocalParticle field accessors.
+
+    One instance per backend so the get/set/add/scale bodies come from a single
+    generator instead of manually creating them. The native double SoA (``part->v[ipart]``)
+    and the TPSA/NUM bridge single-map variants differ only in the storage expression, scalar type,
+    function qualifier and (for TPSA) the extra templated overload. This is all handled here.
+    """
+
+    def __init__(
+        self,
+        *,
+        per_particle_vars=(),
+        getter_specs=(),
+        store_indexed=None,
+        store_scalar=None,
+        rw_open=None,
+        get_open=None,
+        freeze=False,
+        rhs="value",
+        get_term="}",
+        get_indexed=None,
+        get_scalar=None,
+        struct_open=None,
+        struct_close=None,
+        struct_scalar_vars=(),
+        struct_pointer_vars=(),
+        scalar_field=None,
+        pointer_field=None,
+        struct_tail=(),
+        to_particles_value=None,
+    ):
+        self.per_particle_vars = per_particle_vars
+        self._getter_specs = getter_specs  # list of (tt, vv, indexed)
+        # struct layout policy (used by gen_local_particle_struct); defaults empty so a
+        # bridge accessor-only flavor need not set them.
+        self.struct_open = struct_open
+        self.struct_close = struct_close
+        self.struct_scalar_vars = struct_scalar_vars  # list of (tt, vv) inline fields
+        self.struct_pointer_vars = (
+            struct_pointer_vars  # list of (tt, vv) pointer fields
+        )
+        self._scalar_field = scalar_field  # (tt, vv) -> field line
+        self._pointer_field = pointer_field
+        self.struct_tail = struct_tail  # fixed trailing field lines
+        # what LocalParticle_to_Particles writes per var: native writes the value as-is;
+        # TPSA writes the const part ([0]) since the monitor ParticlesData is doubles.
+        self._to_particles_value = to_particles_value or (
+            lambda vv: f"LocalParticle_get_{vv}(source)"
+        )
+        self._store_indexed = store_indexed  # lvalue "...{vv}..." format string
+        self._store_scalar = store_scalar
+        # getter read expression defaults to the lvalue (native), TPSA snapshots it
+        # via `1.0 * mad::tpsa_ref(...)` (copy-constructor omitting coefficients), so it can differ.
+        self._get_indexed = get_indexed or store_indexed
+        self._get_scalar = get_scalar or store_scalar
+        self._rw_open = rw_open  # (op_name, vv, tt) -> list[str] openers
+        self._get_open = get_open  # (vv, tt) -> list[str] opener lines
+        self.freeze = freeze
+        self.rhs = rhs
+        self.get_term = get_term
+
+    def store(self, vv, indexed):
+        return (self._store_indexed if indexed else self._store_scalar).format(vv=vv)
+
+    def get_value(self, vv, indexed):
+        return (self._get_indexed if indexed else self._get_scalar).format(vv=vv)
+
+    def to_particles_value(self, vv):
+        return self._to_particles_value(vv)
+
+    def scalar_field(self, tt, vv):
+        return self._scalar_field(tt, vv)
+
+    def pointer_field(self, tt, vv):
+        return self._pointer_field(tt, vv)
+
+    def getter_specs(self):
+        return self._getter_specs
+
+    def rw_open(self, op_name, vv, tt):
+        return self._rw_open(op_name, vv, tt)
+
+    def get_open(self, vv, tt):
+        return self._get_open(vv, tt)
+
+    def guard_open(self, vv):
+        return [f"#ifndef FREEZE_VAR_{vv}"] if self.freeze else []
+
+    def guard_close(self):
+        return ["#endif"] if self.freeze else []
+
+
+def _native_local_particle_flavor():
+    """The double SoA flavor, reproduces the current hand-written emission exactly."""
+
+    def rw_open(op_name, vv, tt):
+        return [
+            "\n        GPUFUN\n        void LocalParticle_"
+            + op_name
+            + "_"
+            + vv
+            + f"(LocalParticle* part, {tt._c_type} value)"
+            + "{"
+        ]
+
+    def get_open(vv, tt):
+        return [
+            "GPUFUN",
+            f"{tt._c_type} LocalParticle_get_" + vv + "(LocalParticle* part)" + "{",
+        ]
+
+    getter_specs = [(tt, vv, False) for tt, vv in size_vars + scalar_vars] + [
+        (tt, vv, True) for tt, vv in per_particle_vars
+    ]
+    return LocalParticleFlavor(
+        per_particle_vars=per_particle_vars,
+        getter_specs=getter_specs,
+        store_indexed="part->{vv}[part->ipart]",
+        store_scalar="part->{vv}",
+        rw_open=rw_open,
+        get_open=get_open,
+        freeze=True,
+        struct_open="typedef struct {",
+        struct_close="} LocalParticle;",
+        struct_scalar_vars=size_vars + scalar_vars,
+        struct_pointer_vars=per_particle_vars,
+        scalar_field=lambda tt, vv: "                 " + tt._c_type + "  " + vv + ";",
+        pointer_field=lambda tt, vv: "    GPUGLMEM " + tt._c_type + "* " + vv + ";",
+        struct_tail=[
+            "             int64_t ipart;",
+            "             int64_t endpart;",
+            "             uint64_t track_flags;",
+            "             double line_length;",
+            "    GPUGLMEM int8_t* io_buffer;",
+        ],
+    )
+
+
+def gen_local_particle_struct(flavor):
+    """Emit the ``LocalParticle`` struct definition from a ``LocalParticleFlavor``.
+
+    Inline scalar fields, then per-particle pointer fields, then the fixed tail. The
+    field set comes from the same variable lists as the accessors, so the native SoA struct
+    and the bridge single-map struct share one generator.
+    """
+    L = [flavor.struct_open]
+    for tt, vv in flavor.struct_scalar_vars:
+        L.append(flavor.scalar_field(tt, vv))
+    for tt, vv in flavor.struct_pointer_vars:
+        L.append(flavor.pointer_field(tt, vv))
+    L += list(flavor.struct_tail)
+    L.append(flavor.struct_close)
+    return "\n".join(L)
+
+
+def gen_local_particle_particles_bridge(flavor):
+    """Emit ``Particles_to_LocalParticle`` + ``LocalParticle_to_Particles`` from a flavor.
+
+    Returns ``(particles_to_local, local_to_particles)``.  ``to_Particles`` writes each
+    field via ``flavor.to_particles_value``, where the TPSA flavor records the
+    const part into the (doubles) monitor buffer.  The field set is the same var lists
+    as the struct/accessors.
+    """
+    L = [
+        """
+        GPUFUN
+        void Particles_to_LocalParticle(ParticlesData source,
+                                        LocalParticle* dest,
+                                        int64_t id,
+                                        int64_t eid){"""
+    ]
+    for tt, vv in flavor.struct_scalar_vars:
+        L.append(f"  dest->{vv} = ParticlesData_get_" + vv + "(source);")
+    for tt, vv in flavor.struct_pointer_vars:
+        L.append(f"  dest->{vv} = ParticlesData_getp1_" + vv + "(source, 0);")
+    L.append("  dest->ipart = id;")
+    L.append("  dest->endpart = eid;")
+    L.append("}")
+    particles_to_local = "\n".join(L)
+
+    L = [
+        """
+        GPUFUN
+        void LocalParticle_to_Particles(LocalParticle* source,
+                                        ParticlesData dest,
+                                        int64_t id,
+                                        int64_t set_scalar){"""
+    ]
+    L.append("if (set_scalar){")
+    for tt, vv in flavor.struct_scalar_vars:
+        L.append(
+            "  ParticlesData_set_"
+            + vv
+            + "(dest,"
+            + "      "
+            + flavor.to_particles_value(vv)
+            + ");"
+        )
+    L.append("}")
+    for tt, vv in flavor.struct_pointer_vars:
+        L.append(
+            "  ParticlesData_set_"
+            + vv
+            + "(dest, id, "
+            + "      "
+            + flavor.to_particles_value(vv)
+            + ");"
+        )
+    L.append("}")
+    local_to_particles = "\n".join(L)
+
+    return particles_to_local, local_to_particles
+
+
+def tpsa_bridge_local_particle_flavor(coord_var_names):
+    """TPSA bridge flavor: single-map coords as ``mad::tpsa`` through ``p->NAME`` handles.
+
+    Each coordinate is an ``XT_COORD*``. The lvalue is ``mad::tpsa_ref(p->NAME)`` and the getter
+    snapshots by value via ``1.0 * ...`` (tpsa copy-constructor omits coefficients).  set/add/scale emit two
+    overloads: a templated ``mad::tpsa_base<A>&`` and a plain ``double``.
+    """
+    names = list(coord_var_names)
+
+    def rw_open(op_name, vv, tt):
+        return [
+            f"template<class A> static inline void LocalParticle_{op_name}_{vv}"
+            f"(LocalParticle* p, const mad::tpsa_base<A>& v){{",
+            f"static inline void LocalParticle_{op_name}_{vv}(LocalParticle* p, double v){{",
+        ]
+
+    def get_open(vv, tt):
+        return [f"static inline mad::tpsa LocalParticle_get_{vv}(LocalParticle* p){{"]
+
+    return LocalParticleFlavor(
+        per_particle_vars=[(None, nm) for nm in names],
+        getter_specs=[(None, nm, True) for nm in names],
+        store_indexed="mad::tpsa_ref(p->{vv})",
+        store_scalar="mad::tpsa_ref(p->{vv})",
+        get_indexed="1.0 * mad::tpsa_ref(p->{vv})",
+        get_scalar="1.0 * mad::tpsa_ref(p->{vv})",
+        rw_open=rw_open,
+        get_open=get_open,
+        freeze=False,
+        rhs="v",
+    )
+
+
+def num_bridge_local_particle_flavor(coord_var_names):
+    """NUM bridge flavor: the ``_num`` flavour, single-map coords as plain ``double*``.
+
+    Same struct/ABI as TPSA but ``XT_COORD == double``, so the lvalue is ``*p->NAME``.
+    This is the flavor whose output must stay bit-identical to native tracking.
+    """
+    names = list(coord_var_names)
+
+    def rw_open(op_name, vv, tt):
+        return [
+            f"static inline void LocalParticle_{op_name}_{vv}(LocalParticle* p, double v){{"
+        ]
+
+    def get_open(vv, tt):
+        return [f"static inline double LocalParticle_get_{vv}(LocalParticle* p){{"]
+
+    return LocalParticleFlavor(
+        per_particle_vars=[(None, nm) for nm in names],
+        getter_specs=[(None, nm, True) for nm in names],
+        store_indexed="*p->{vv}",
+        store_scalar="*p->{vv}",
+        rw_open=rw_open,
+        get_open=get_open,
+        freeze=False,
+        rhs="v",
+    )
+
+
+def bridge_struct_local_particle_flavor(coord_var_names, struct_tail):
+    """Struct-layout flavor for the bridge's single-map ``LocalParticle``.
+
+    It is type-agnostic (coords are ``XT_COORD*``, a compile-time macro, so one struct serves
+    both TPSA and NUM).  Refs/ints are reached through the ``bp`` xobject pointer supplied via
+    ``struct_tail`` (the bridge-specific bookkeeping).
+    """
+    return LocalParticleFlavor(
+        struct_open="struct LocalParticle {",
+        struct_close="};",
+        struct_pointer_vars=[(None, nm) for nm in coord_var_names],
+        pointer_field=lambda tt, vv: f"    XT_COORD *{vv};",
+        struct_tail=struct_tail,
+    )
+
+
+def gen_local_particle_field_accessors(flavor):
+    """Emit LocalParticle get/set/add/scale accessors from a ``LocalParticleFlavor``.
+
+    Returns ``(adders, getters, setters, scalers)`` source strings. Factored out of
+    ``gen_local_particle_api`` so one generator serves the native double build and the
+    TPSA/NUM bridge (flavor-parametric LocalParticle API).
+    """
+
+    def rw(op_name, op_sym, terminator):
+        lines = []
+        for tt, vv in flavor.per_particle_vars:
+            store = flavor.store(vv, indexed=True)
+            for opener in flavor.rw_open(op_name, vv, tt):
+                lines.append(opener)
+                lines += flavor.guard_open(vv)
+                lines.append(f"  {store} {op_sym} {flavor.rhs};")
+                lines += flavor.guard_close()
+                lines.append(terminator)
+        return "\n".join(lines)
+
+    adders = rw("add_to", "+=", "}\n")
+    scalers = rw("scale", "*=", "}\n")
+    setters = rw("set", "=", "}")
+
+    lines = []
+    for tt, vv, indexed in flavor.getter_specs():
+        lines += flavor.get_open(vv, tt)
+        lines.append(f"  return {flavor.get_value(vv, indexed=indexed)};")
+        lines.append(flavor.get_term)
+    getters = "\n".join(lines)
+
+    return adders, getters, setters, scalers
+
+
 def gen_local_particle_api():
     src_lines = [
         '#include "xobjects/headers/common.h"',
@@ -90,166 +416,49 @@ def gen_local_particle_api():
         '#include "xtrack/particles/rng_src/particles_rng.h"',
     ]
     for name, mass in mass__dict__.items():
-        if name.endswith('_MASS_EV'):
-            src_lines.append(f'#define {name} {mass}')
+        if name.endswith("_MASS_EV"):
+            src_lines.append(f"#define {name} {mass}")
 
-    src_lines.append('typedef struct {')
-
-    for tt, vv in size_vars + scalar_vars:
-        src_lines.append('                 ' + tt._c_type + '  ' + vv + ';')
-
-    for tt, vv in per_particle_vars:
-        src_lines.append('    GPUGLMEM ' + tt._c_type + '* ' + vv + ';')
-
-    src_lines.append('             int64_t ipart;')
-    src_lines.append('             int64_t endpart;')
-    src_lines.append('             uint64_t track_flags;')
-    src_lines.append('             double line_length;')
-    src_lines.append('    GPUGLMEM int8_t* io_buffer;')
-    src_lines.append('} LocalParticle;')
-    src_typedef = '\n'.join(src_lines)
+    # struct definition -- field set from the flavor policy (shared with the bridge).
+    src_lines.append(gen_local_particle_struct(_native_local_particle_flavor()))
+    src_typedef = "\n".join(src_lines)
 
     # Get io buffer
     src_lines = []
     src_lines.append(
-        '''
+        """
         GPUFUN
         GPUGLMEM int8_t* LocalParticle_get_io_buffer(LocalParticle* part){
             return part->io_buffer;
         }
 
-        '''
+        """
     )
 
     # Get track flag
     src_lines.append(
-        '''
+        """
         GPUFUN
         uint64_t LocalParticle_check_track_flag(LocalParticle* part, uint8_t index){
             return (part->track_flags >> index) & 1;
         }
-    '''
+    """
     )
 
-    # Particles_to_LocalParticle
-    src_lines.append(
-        '''
-        GPUFUN
-        void Particles_to_LocalParticle(ParticlesData source,
-                                        LocalParticle* dest,
-                                        int64_t id,
-                                        int64_t eid){'''
+    # Particles_to_LocalParticle + LocalParticle_to_Particles -- flavor-driven so the
+    # bridge/monitor can reuse them (TPSA to_Particles records the const part).  The
+    # io_buffer/track_flag glue above shares src_lines with Particles_to_LocalParticle.
+    _p2l, src_local_to_particles = gen_local_particle_particles_bridge(
+        _native_local_particle_flavor()
     )
-    for _, vv in size_vars + scalar_vars:
-        src_lines.append(
-            f'  dest->{vv} = ParticlesData_get_' + vv + '(source);'
-        )
+    src_lines.append(_p2l)
+    src_particles_to_local = "\n".join(src_lines)
 
-    for _, vv in per_particle_vars:
-        src_lines.append(
-            f'  dest->{vv} = ParticlesData_getp1_' + vv + '(source, 0);'
-        )
-
-    src_lines.append('  dest->ipart = id;')
-    src_lines.append('  dest->endpart = eid;')
-    src_lines.append('}')
-    src_particles_to_local = '\n'.join(src_lines)
-
-    # LocalParticle_to_Particles
-    src_lines = []
-    src_lines.append(
-        '''
-        GPUFUN
-        void LocalParticle_to_Particles(LocalParticle* source,
-                                        ParticlesData dest,
-                                        int64_t id,
-                                        int64_t set_scalar){'''
+    # Adders / getters / setters / scalers -- emitted from the flavor policy so the
+    # TPSA/NUM bridge can reuse the same generator (see gen_local_particle_field_accessors).
+    src_adders, src_getters, src_setters, src_scalers = (
+        gen_local_particle_field_accessors(_native_local_particle_flavor())
     )
-    src_lines.append('if (set_scalar){')
-    for _, vv in size_vars + scalar_vars:
-        src_lines.append(
-            '  ParticlesData_set_' + vv + '(dest,'
-                                          f'      LocalParticle_get_{vv}(source));'
-        )
-    src_lines.append('}')
-
-    for _, vv in per_particle_vars:
-        src_lines.append(
-            '  ParticlesData_set_' + vv + '(dest, id, '
-                                          f'      LocalParticle_get_{vv}(source));'
-        )
-    src_lines.append('}')
-    src_local_to_particles = '\n'.join(src_lines)
-
-    # Adders
-    src_lines = []
-    for tt, vv in per_particle_vars:
-        src_lines.append(
-            '''
-        GPUFUN
-        void LocalParticle_add_to_''' + vv + f'(LocalParticle* part, {tt._c_type} value)'
-            + '{'
-        )
-        src_lines.append(f'#ifndef FREEZE_VAR_{vv}')
-        src_lines.append(f'  part->{vv}[part->ipart] += value;')
-        src_lines.append('#endif')
-        src_lines.append('}\n')
-    src_adders = '\n'.join(src_lines)
-
-    # Scalers
-    src_lines = []
-    for tt, vv in per_particle_vars:
-        src_lines.append(
-            '''
-        GPUFUN
-        void LocalParticle_scale_''' + vv + f'(LocalParticle* part, {tt._c_type} value)'
-            + '{'
-        )
-        src_lines.append(f'#ifndef FREEZE_VAR_{vv}')
-        src_lines.append(f'  part->{vv}[part->ipart] *= value;')
-        src_lines.append('#endif')
-        src_lines.append('}\n')
-    src_scalers = '\n'.join(src_lines)
-
-    # Setters
-    src_lines = []
-    for tt, vv in per_particle_vars:
-        src_lines.append(
-            '''
-        GPUFUN
-        void LocalParticle_set_''' + vv + f'(LocalParticle* part, {tt._c_type} value)'
-            + '{'
-        )
-        src_lines.append(f'#ifndef FREEZE_VAR_{vv}')
-        src_lines.append(f'  part->{vv}[part->ipart] = value;')
-        src_lines.append('#endif')
-        src_lines.append('}')
-    src_setters = '\n'.join(src_lines)
-
-    # Getters
-    src_lines = []
-
-    for tt, vv in size_vars + scalar_vars:
-        src_lines.append('GPUFUN')
-        src_lines.append(
-            f'{tt._c_type} LocalParticle_get_' + vv
-            + '(LocalParticle* part)'
-            + '{'
-        )
-        src_lines.append(f'  return part->{vv};')
-        src_lines.append('}')
-
-    for tt, vv in per_particle_vars:
-        src_lines.append('GPUFUN')
-        src_lines.append(
-            f'{tt._c_type} LocalParticle_get_' + vv
-            + '(LocalParticle* part)'
-            + '{'
-        )
-        src_lines.append(f'  return part->{vv}[part->ipart];')
-        src_lines.append('}')
-
-    src_getters = '\n'.join(src_lines)
 
     # Angles
     src_angles_lines = []
