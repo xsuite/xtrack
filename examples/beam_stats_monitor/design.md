@@ -248,6 +248,8 @@ mon.sigma_x
 mon.cov_x_px
 mon.gemitt_x
 mon.nemitt_x
+mon.gemitt_x_projected
+mon.nemitt_x_projected
 ```
 
 Definitions:
@@ -273,28 +275,146 @@ num_particles
 mean_x, mean_px, mean_y, mean_py, mean_zeta, mean_delta
 sigma_x, sigma_px, sigma_y, sigma_py, sigma_zeta, sigma_delta
 cov_x_px, cov_y_py, cov_zeta_delta
-gemitt_x, gemitt_y, gemitt_zeta_delta
-nemitt_x, nemitt_y, nemitt_zeta_delta
+gemitt_x, gemitt_y, gemitt_zeta
+nemitt_x, nemitt_y, nemitt_zeta
+gemitt_x_projected, gemitt_y_projected, gemitt_zeta_projected
+nemitt_x_projected, nemitt_y_projected, nemitt_zeta_projected
 ```
 
-The transverse emittance definitions are:
+The default emittances should be the coupled normal-mode emittances. The labels
+`x`, `y`, and `zeta` identify the modes sorted to be closest to the horizontal,
+vertical, and longitudinal coordinates.
+
+Projected emittances should be explicitly named with the `_projected` suffix.
+For example:
 
 ```text
-gemitt_x = sqrt(var_x * var_px - cov_x_px**2)
-nemitt_x = gemitt_x * beta0 * gamma0
+gemitt_x_projected = sqrt(var_x * var_px - cov_x_px**2)
+nemitt_x_projected = gemitt_x_projected * beta0 * gamma0
 ```
 
 and similarly for `y`.
 
-For longitudinal emittance, use explicit naming in the first version:
+For longitudinal projected emittance, the coordinate convention needs to be
+explicit. The preferred full coupled covariance should use:
 
 ```text
-gemitt_zeta_delta
-nemitt_zeta_delta
+(x, px, y, py, zeta, pzeta)
 ```
 
-This avoids hiding the convention difference between existing monitors that use
-`delta` and `pzeta = ptau / beta0`.
+with:
+
+```text
+pzeta = ptau / beta0
+```
+
+The existing `xfields.CollectiveMonitor` uses `delta` for longitudinal
+projected emittance, while `xcoll.EmittanceMonitor` uses `pzeta`. The new
+monitor should make the convention explicit and avoid silently mixing them.
+
+## Coupled Emittances and Optics From Sigma
+
+The monitor should support coupled emittances as done by
+`xcoll.EmittanceMonitor`, and should also allow optics estimation from the
+measured covariance matrix using the method shown in:
+
+```text
+xtrack/examples/twiss/027_optics_from_sigma_mat.py
+```
+
+These calculations should be performed as Python-side postprocessing from the
+stored weighted moments, not in the tracking kernel.
+
+For each logged record and bin, reconstruct the weighted covariance matrix:
+
+```text
+Sigma = cov(x, px, y, py, zeta, pzeta)
+```
+
+To support coupled emittances and optics, the `stats` expansion must request
+all first moments and all pairwise second moments for:
+
+```python
+coords = ["x", "px", "y", "py", "zeta", "pzeta"]
+```
+
+Then compute the normal-mode emittances from:
+
+```python
+from xtrack.linear_normal_form import S, sort_modes
+
+eival, eivec = np.linalg.eig(Sigma @ S)
+modes = sort_modes(eivec, eival)
+
+gemitt_x = eival[modes[0]].imag
+gemitt_y = eival[modes[1]].imag
+gemitt_zeta = eival[modes[2]].imag
+
+nemitt_x = gemitt_x * beta0 * gamma0
+nemitt_y = gemitt_y * beta0 * gamma0
+nemitt_zeta = gemitt_zeta * beta0 * gamma0
+```
+
+The mode sorting should reuse the `xtrack.linear_normal_form.sort_modes`
+convention. This sorts the modes to be closest to:
+
+```text
+mode 0 -> x-like
+mode 1 -> y-like
+mode 2 -> zeta-like
+```
+
+based on the eigenvectors. The labels therefore mean "mode closest to x/y/zeta"
+according to this sorting, not an invariant identity in pathological cases.
+
+It would be useful to factor the shared logic into a helper in `xtrack`, for
+example:
+
+```python
+xt.get_modes_from_sigma(Sigma)
+```
+
+or initially a private helper used by `BeamStatsMonitor`. The helper should
+return the sorted eigenvalues/eigenvectors, the coupled emittances, and enough
+pairing information to reconstruct a dummy map for optics estimation.
+
+For optics estimation, follow the example in `027_optics_from_sigma_mat.py`:
+
+1. Compute eigenvalues and eigenvectors of `Sigma @ S`.
+2. Sort the modes consistently.
+3. Construct a dummy stable one-turn matrix with arbitrary phase advances and
+   the same eigenvectors.
+4. Call `twiss(..., R_matrix=dummy_R, chrom=False)` on a dummy line.
+
+The monitor API should expose this as a method rather than storing optics
+arrays by default:
+
+```python
+tw_from_sigma = mon.optics_from_sigma(
+    turn=100,
+    slot=0,
+    slice=None,  # None can mean aggregate over slices
+)
+```
+
+For vectorized use, a later extension can provide:
+
+```python
+tw_table = mon.get_optics_from_sigma(aggregate_slices=True)
+```
+
+The implementation needs the full ordered conjugate eigenmode pairs to build
+the dummy map. `sort_modes` currently returns one positive-orientation member
+of each physical pair; for optics reconstruction we should either extend the
+helper to return ordered pairs or add a companion function for this purpose.
+
+Safeguards:
+
+- if `num_particles` is below a configurable threshold, return `nan` or warn;
+- if `Sigma @ S` is singular, ill-conditioned, or rank deficient, return `nan`
+  or warn;
+- sorting can be ambiguous for nearly degenerate modes or very strong coupling,
+  and this should be documented.
 
 ## Data Shape and Access
 
@@ -320,6 +440,7 @@ mon.num_particles
 mon.mean_x
 mon.sigma_x
 mon.nemitt_x
+mon.nemitt_x_projected
 ```
 
 The monitor should avoid exposing internal ring-buffer indices as the primary
@@ -441,9 +562,17 @@ storage = "memory"
    sigmas
    covariances
    projected geometric and normalized emittances
+   coupled geometric and normalized emittances
    ```
 
-8. Implement selected bunch support:
+8. Implement full 6D covariance reconstruction and helper functions for:
+
+   ```text
+   coupled emittances sorted as x-like, y-like, zeta-like modes
+   optics estimation from Sigma
+   ```
+
+9. Implement selected bunch support:
 
    ```text
    filled_slots
@@ -452,10 +581,10 @@ storage = "memory"
    num_bunches
    ```
 
-9. Implement coasting mode as a one-domain slicer with a public API that hides
+10. Implement coasting mode as a one-domain slicer with a public API that hides
    the fake bunch axis by default.
 
-10. Implement optional HDF5 output:
+11. Implement optional HDF5 output:
 
     ```text
     output_file
@@ -466,7 +595,7 @@ storage = "memory"
     stable file metadata
     ```
 
-11. Add tests comparing:
+12. Add tests comparing:
 
     - weighted means and sigmas against NumPy calculations
     - selected bunch behavior
@@ -474,6 +603,8 @@ storage = "memory"
     - `every_n_turns` turn selection
     - HDF5 append/flush layout
     - transverse emittance against covariance calculations
+    - coupled emittances against `xtrack.linear_normal_form` sorting
+    - optics from measured Sigma against the method in `027_optics_from_sigma_mat.py`
 
-12. Only after the new monitor is stable, decide on wrappers and deprecation
+13. Only after the new monitor is stable, decide on wrappers and deprecation
     strategy for older monitors.
