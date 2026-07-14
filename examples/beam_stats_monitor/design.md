@@ -608,3 +608,27 @@ storage = "memory"
 
 13. Only after the new monitor is stable, decide on wrappers and deprecation
     strategy for older monitors.
+
+## Current Implementation Status
+
+An initial implementation exists on branch `dev/beamstatsmonitor`. The slicer
+infrastructure has been moved to `xtrack/xtrack/slicers/`, with compatibility
+wrappers left in `xfields/xfields/slicers/` and
+`xfields/xfields/beam_elements/element_with_slicer.py`. The new monitor class
+is `xtrack.BeamStatsMonitor`, implemented in
+`xtrack/xtrack/monitors/beam_stats_monitor.py` and exported from `xtrack`.
+
+The current monitor supports in-memory recording of weighted `num_particles`,
+means, sigmas, covariances, and projected geometric/normalized emittances. It
+supports `start_at_turn`, `stop_at_turn`, `every_n_turns`, `filled_slots`,
+`selected_slots`, `filling_scheme`, `num_bunches`, and `coasting=True`.
+Coupled normal-mode emittances, optics-from-sigma, and HDF5/file output are
+not implemented yet.
+
+Examples live in `xtrack/examples/beam_stats_monitor/`:
+`000_basic_bunched.py`, `001_selected_slots.py`, `002_coasting.py`,
+`003_projected_emittance.py`, and `004_plot_slice_stats.py`. The examples are
+included in the user guide through `xsuite/docs/conf.py`, and the guide section
+is in `xsuite/docs/particles_monitor.rst`. The API reference entry is in
+`xsuite/docs/apireference.rst`. Focused tests are in
+`xtrack/tests/test_beam_stats_monitor.py`.
