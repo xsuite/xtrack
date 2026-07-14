@@ -72,6 +72,8 @@ def test_beam_stats_monitor_selected_slots():
     monitor.track(particles)
 
     assert_equal(monitor.selected_slots, [1])
+    assert monitor.zeta_centers.shape == (1, 1)
+    assert_allclose(monitor.zeta_centers, [[-10.]])
     assert_allclose(monitor.num_particles, [[[4.]]])
     assert_allclose(monitor.mean_x, [[[12.5]]])
 

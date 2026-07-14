@@ -243,7 +243,15 @@ class BeamStatsMonitor(ElementWithSlicer):
             ``(n_selected_slots, num_slices)``. In coasting mode the shape is
             ``(num_slices,)``.
         """
-        return self._public_shape(self._as_np_2d(self.slicer.zeta_centers))
+        base_centers = np.asarray(self._context.nparray_from_context_array(
+            self.slicer._zeta_slice_centers))
+        if self.coasting:
+            return base_centers
+
+        bunch_spacing_zeta = float(self.slicer.bunch_spacing_zeta)
+        return (
+            base_centers[None, :]
+            - self._selected_slots[:, None] * bunch_spacing_zeta)
 
     def __getattr__(self, attr):
         if '_data' in self.__dict__ and attr in self._data:
