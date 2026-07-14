@@ -3,43 +3,41 @@ import numpy as np
 
 import xtrack as xt
 
-NUM_TURNS = 300
-NUM_PARTICLES = 50
-
-# Load the PIMMS lattice from the test data.
-env = xt.load("../../test_data/pimms/PIMMS.seq")
+# Load the PIMMS lattice and set particle_ref
+env = xt.load(["../../test_data/pimms/PIMMS.seq",
+               "../../test_data/pimms/pimms_optics.str"])
 line = env.pimms
-line.particle_ref = xt.Particles("proton", kinetic_energy0=100e6)
+line.set_particle_ref("proton", kinetic_energy0=100e6)
 
-line["kqfa"] = 0.30247
-line["kqfb"] = 0.523281
-line["kqd"] = -0.518932
-
-# Add an RF cavity to provide longitudinal focusing.
+# Add an RF cavity
 line.insert("pimms_cavity", xt.Cavity(harmonic=7, voltage=10e3), at=0.001)
 
-# No zeta_range or num_slices are provided: this records whole-beam stats.
+# Create a BeamStatsMonitor to record beam statistics at each turn.
 monitor = xt.BeamStatsMonitor(
     start_at_turn=0,
-    stop_at_turn=NUM_TURNS,
+    stop_at_turn=300,
     stats=["num_particles", "mean_x", "mean_zeta", "sigma_x"],
 )
 
+# Insert the monitor at the beginning of the line
 line.insert("beam_stats_monitor", monitor, at=0)
 
-rng = np.random.default_rng(12345)
-particles = line.build_particles(
-    x=1e-3 + 0.2e-3 * rng.normal(size=NUM_PARTICLES),
-    px=20e-6 * rng.normal(size=NUM_PARTICLES),
-    zeta=0.05 + 0.01 * rng.normal(size=NUM_PARTICLES),
-    delta=1e-4 * rng.normal(size=NUM_PARTICLES),
+# Generate a bunch
+np.random.seed(12345)
+particles = line.xpart.generate_matched_gaussian_bunch(
+    num_particles=50,
+    total_intensity_particles=1e10,
+    nemitt_x=1e-6,
+    nemitt_y=1e-6,
+    sigma_z=0.01,
 )
 
-line.track(particles, num_turns=NUM_TURNS,
+# Track
+line.track(particles, num_turns=300,
            with_progress=10 # progress bar updated every 10 turns
 )
 
-# Inspect what has been recorded.
+# Inspect what has been recorded by the monitor
 monitor.stats  # is ('num_particles', 'mean_x', 'mean_zeta', 'sigma_x')
 monitor.available_levels  # is ('beam',)
 monitor.default_level  # is 'beam'
