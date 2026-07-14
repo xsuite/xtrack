@@ -24,6 +24,66 @@ class BeamStatsMonitor(ElementWithSlicer):
 
     The stored `num_particles` is the sum of particle weights in each bin.
     All derived quantities are weighted by the same particle weights.
+
+    Parameters
+    ----------
+    start_at_turn : int, optional
+        First turn to record, inclusive.
+    stop_at_turn : int, optional
+        Last turn to record, exclusive. If not provided, only
+        `start_at_turn` is recorded.
+    every_n_turns : int, optional
+        Record one turn every `every_n_turns` turns.
+    zeta_range : tuple[float, float]
+        Longitudinal range covered by the slicer. For bunched beams this is
+        the range around each selected bunch. For coasting beams this is the
+        full monitored longitudinal range.
+    num_slices : int
+        Number of longitudinal slices per selected bunch or coasting domain.
+    coasting : bool, optional
+        If ``True``, treat the beam as one longitudinal domain and hide the
+        artificial bunch axis in public accessors by default.
+    num_bunches : int, optional
+        Number of consecutive filled slots, starting from slot 0. Used only
+        when neither `filled_slots` nor `filling_scheme` is provided.
+    filling_scheme : array_like of int or bool, optional
+        Low-level filling scheme. Non-zero entries identify filled physical
+        slots.
+    filled_slots : array_like of int, optional
+        Physical slot numbers which are filled. This is an alternative to
+        `filling_scheme`.
+    selected_slots : array_like of int, optional
+        Physical slot numbers to record. If omitted, all filled slots are
+        recorded. The output bunch axis follows this order.
+    bunch_spacing_zeta : float, optional
+        Longitudinal spacing between adjacent physical slots.
+    stats : sequence of str, optional
+        Statistics to record. Supported values are ``"num_particles"``,
+        ``"mean_<coord>"``, ``"sigma_<coord>"``, ``"cov_<coord1>_<coord2>"``,
+        ``"gemitt_<plane>_projected"``, and
+        ``"nemitt_<plane>_projected"``, where coordinates are ``x``, ``px``,
+        ``y``, ``py``, ``zeta``, and ``delta``, and planes are ``x``, ``y``,
+        and ``zeta``.
+    output_file : str or path-like, optional
+        Reserved for future HDF5 output support.
+    storage : str, optional
+        Reserved for future storage mode selection. Only ``None`` and
+        ``"memory"`` are currently accepted.
+    buffer_size : int, optional
+        Reserved for future HDF5 buffering support.
+    **kwargs
+        Additional keyword arguments passed to the underlying xobjects
+        initialization.
+
+    Notes
+    -----
+    Public statistic arrays have shape
+    ``(n_logged_turns, n_selected_slots, num_slices)`` for bunched beams. In
+    coasting mode the selected-slot axis is hidden by default, giving shape
+    ``(n_logged_turns, num_slices)``.
+
+    Coupled normal-mode emittances are intentionally not enabled yet. Request
+    projected emittances with the ``_projected`` suffix.
     """
 
     allow_loss_refinement = True
@@ -110,26 +170,79 @@ class BeamStatsMonitor(ElementWithSlicer):
 
     @property
     def stats(self):
+        """
+        Recorded statistic names.
+
+        Returns
+        -------
+        tuple of str
+            Names of the statistics recorded by this monitor.
+        """
         return self._stats_names
 
     @property
     def turns(self):
+        """
+        Logged turn numbers.
+
+        Returns
+        -------
+        numpy.ndarray
+            One-dimensional array containing the machine turns stored in the
+            first axis of each recorded statistic.
+        """
         return self._turns.copy()
 
     @property
     def selected_slots(self):
+        """
+        Physical slot numbers recorded by the monitor.
+
+        Returns
+        -------
+        numpy.ndarray
+            One-dimensional array of selected physical slot numbers. The order
+            matches the bunch axis of stored bunched-beam data.
+        """
         return self._selected_slots.copy()
 
     @property
     def filled_slots(self):
+        """
+        Physical slot numbers present in the beam.
+
+        Returns
+        -------
+        numpy.ndarray
+            One-dimensional array of filled physical slot numbers.
+        """
         return self._filled_slots.copy()
 
     @property
     def coasting(self):
+        """
+        Whether the monitor uses coasting-beam output conventions.
+
+        Returns
+        -------
+        bool
+            ``True`` if the artificial bunch axis is hidden by default in
+            public accessors.
+        """
         return self._coasting
 
     @property
     def zeta_centers(self):
+        """
+        Longitudinal slice centers.
+
+        Returns
+        -------
+        numpy.ndarray
+            Slice-center coordinates. For bunched beams the shape is
+            ``(n_selected_slots, num_slices)``. In coasting mode the shape is
+            ``(num_slices,)``.
+        """
         return self._public_shape(self._as_np_2d(self.slicer.zeta_centers))
 
     def __getattr__(self, attr):
@@ -138,11 +251,58 @@ class BeamStatsMonitor(ElementWithSlicer):
         return getattr(super(), attr)
 
     def get(self, stat, keep_bunch_axis=False):
+        """
+        Return one recorded statistic.
+
+        Parameters
+        ----------
+        stat : str
+            Name of the recorded statistic to return.
+        keep_bunch_axis : bool, optional
+            If ``True``, always return the canonical shape
+            ``(n_logged_turns, n_selected_slots, num_slices)``. If ``False``,
+            coasting-mode output drops the artificial selected-slot axis.
+
+        Returns
+        -------
+        numpy.ndarray
+            Recorded data for the requested statistic.
+
+        Raises
+        ------
+        ValueError
+            If `stat` was not requested when constructing the monitor.
+        """
         if stat not in self._data:
             raise ValueError(f'Statistic `{stat}` is not recorded')
         return self._public_shape(self._data[stat], keep_bunch_axis)
 
     def track(self, particles, _slice_result=None, _other_bunch_slicers=None):
+        """
+        Record beam statistics for the current turn when selected.
+
+        Parameters
+        ----------
+        particles : xtrack.Particles
+            Particles to slice and accumulate.
+        _slice_result : dict, optional
+            Internal precomputed slicing result shared by collective elements.
+        _other_bunch_slicers : sequence, optional
+            Internal slicer data received from other pipeline partners.
+
+        Returns
+        -------
+        None or xtrack.PipelineStatus
+            ``None`` when tracking can continue immediately. A
+            ``PipelineStatus`` is returned when pipeline communication puts the
+            element on hold.
+
+        Notes
+        -----
+        The current turn is read from ``particles.at_turn``. Turns outside
+        ``[start_at_turn, stop_at_turn)`` or not aligned with
+        `every_n_turns` are skipped without slicing.
+        """
         turn = self._current_turn(particles)
         if not self._logs_turn(turn):
             return None
