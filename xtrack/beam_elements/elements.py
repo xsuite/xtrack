@@ -4986,12 +4986,10 @@ class ThinSliceNotNeededError(Exception):
 
 class StraightFieldExpansion(BeamElement):
     """
-    Specifies the field expansion in general derivatives on axis in straight or curved frame 
+    Specifies the field expansion in general derivatives on axis in straight frame.
 
     Parameters
         ----------
-        h : float
-            Curvature of the element, in 1/m. For straight elements, h=0.
         a : array, shape na, deg+1, floats
             describing the polynomial coefficients for the skew multipoles. First index is multipole order, second index is polynomial coefficient.
         b : array, shape nb, deg+1, floats
@@ -5048,7 +5046,7 @@ class StraightFieldExpansion(BeamElement):
         '#include "xtrack/beam_elements/elements_src/create_fieldexpansion_straight.h"',
     ]
     
-    _kernels = {'build_expansion': xo.Kernel(
+    _kernels = {'build_expansion_straight': xo.Kernel(
             c_name='build_expansion_straight',
             args=[xo.Arg(xo.ThisClass, name='el')]
         ), 
@@ -5097,16 +5095,16 @@ class StraightFieldExpansion(BeamElement):
         
         super().__init__(**kwargs)
         
-        self.build_expansion(el=self)
+        self.build_expansion_straight(el=self)
         
 class BentFieldExpansion(BeamElement):
     """
-    Specifies the field expansion in general derivatives on axis in straight or curved frame 
+    Specifies the field expansion in general derivatives on axis in curved frame.
 
     Parameters
         ----------
         h : float
-            Curvature of the element, in 1/m. For straight elements, h=0.
+            Curvature of the element, in 1/m. For straight elements, h=0, use StraightFieldExpansion.
         a : array, shape na, deg+1, floats
             describing the polynomial coefficients for the skew multipoles. First index is multipole order, second index is polynomial coefficient.
         b : array, shape nb, deg+1, floats
@@ -5163,7 +5161,7 @@ class BentFieldExpansion(BeamElement):
         '#include "xtrack/beam_elements/elements_src/create_fieldexpansion_bent.h"',
     ]
     
-    _kernels = {'build_expansion': xo.Kernel(
+    _kernels = {'build_expansion_bent': xo.Kernel(
             c_name='build_expansion_bent',
             args=[xo.Arg(xo.ThisClass, name='el')]
         ), 
@@ -5213,7 +5211,7 @@ class BentFieldExpansion(BeamElement):
         
         super().__init__(**kwargs)
         
-        self.build_expansion(el=self)
+        self.build_expansion_bent(el=self)
 
 
 class FieldExpansion(BeamElement):
