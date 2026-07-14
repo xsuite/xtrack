@@ -64,6 +64,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [
     xt.Bend, xt.RBend, xt.Quadrupole, xt.Sextupole, xt.Octupole, xt.Multipole,
     xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
     xt.Cavity, xt.RFMultipole, xt.CrabCavity, xt.ReferenceEnergyIncrease,
+    xt.ReferenceEnergyChange,
     xt.Translation, xt.Rotation, xt.XRotation, xt.TimeDelay,
     xt.XYShift, xt.XRotation, xt.YRotation, xt.SRotation, xt.ZetaShift,
     xt.LimitRacetrack, xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
@@ -116,15 +117,30 @@ def find_index_repeated2(item, lst,count=0):
 class Line:
 
     """
-    Beam line object. `Line.element_names` contains the ordered list of beam
-    elements, `Line.element_dict` is a dictionary associating to each name the
-    corresponding beam element object.
+    Ordered sequence of beam elements used for tracking, optics calculations,
+    matching, and lattice manipulation.
+
+    A line stores the sequence of element names in ``line.element_names`` and
+    resolves these names in its associated environment, available as
+    ``line.env``. The environment owns the named elements, variables, particles,
+    and other lines that can be shared across lattice descriptions. The
+    dictionary ``line.element_dict`` maps element names to the corresponding
+    element objects.
+
+    A line can be in normal mode or in compose mode, as indicated by
+    ``line.mode``. In compose mode, elements are placed with
+    ``line.place(...)`` and ``line.new(...)`` by their longitudinal position
+    and/or relative to each other; the line is resolved later with
+    ``line.end_compose()``.
     """
 
     def __init__(self, elements=None, element_names=None, particle_ref=None,
                  energy_program=None, env=None, compose=False,
                  components=None, length=None, refer=None, mirror=None, s_tol=None):
         """
+        Create a line. Every line has an associated environment, available as
+        ``line.env``.
+
         Parameters
         ----------
         elements : dict or list of beam elements
@@ -157,13 +173,95 @@ class Line:
         refer : str, optional
             Specifies which part of the component the ``at`` position will refer
             to. Allowed values are ``start``, ``center`` (default; also allowed
-            is ``centre```), and ``end``. Can only be given if ``compose`` is true.
+            is ``centre``), and ``end``. Can only be given if ``compose`` is true.
         mirror : bool, optional
             Whether the line should be mirrored after creation. Can only be given
             if ``compose`` is true.
         s_tol : float, optional
             Difference between two s positions below which they should be
             treated as the same location. Can only be given if ``compose`` is true.
+
+        Notes
+        -----
+        For most new lattices it is more convenient to create an
+        :class:`xtrack.Environment` and build lines with
+        ``env.new_line(...)``. The environment keeps variables, elements,
+        particles, and lines in one namespace and provides helpers for element
+        creation and placement.
+
+        Examples
+        --------
+        Build a line through the line constructor:
+
+        .. code-block:: python
+
+            import xtrack as xt
+
+            line = xt.Line(
+                elements={
+                    'qf': xt.Quadrupole(length=0.5, k1=0.2),
+                    'd1': xt.Drift(length=1.0),
+                    'qd': xt.Quadrupole(length=0.5, k1=-0.2),
+                },
+                element_names=['qf', 'd1', 'qd'],
+            )
+
+            line.get_table().show()
+            # name         s element_type isthick ...
+            # qf           0 Quadrupole      True
+            # d1         0.5 Drift           True
+            # qd         1.5 Quadrupole      True
+            # _end_point   2                False
+
+        Build a line through an environment:
+
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kq'] = 0.2
+
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1='kq'),
+                env.new('d1', 'Drift', length=1.0),
+                env.new('qd', 'Quadrupole', length=0.5, k1='-kq'),
+            ])
+
+            line.element_names
+            # ['qf', 'd1', 'qd']
+
+            line.env is env
+            # True
+
+        Elements that are not supported by ``env.new(...)`` can be
+        instantiated explicitly, added to ``env.elements``, and then used by
+        name when building the line:
+
+        .. code-block:: python
+
+            import xtrack as xt
+
+            class MyElement:
+                def __init__(self, myparam=0):
+                    self.myparam = myparam
+
+                def track(self, particles):
+                    pass
+
+            env = xt.Environment()
+            env['a'] = 2.0
+            env.elements['myelem'] = MyElement(myparam=0)
+            env['myelem'].myparam = '3*a'
+
+            line = env.new_line(components=[
+                env.new('mk0', 'Marker'),
+                'myelem',
+                env.new('mk1', 'Marker'),
+            ])
+
+            line['myelem'].myparam
+            # 6.0
         """
 
         self._composer = None
@@ -172,6 +270,7 @@ class Line:
         self._metadata = None
         self._tracker = None
         self._xcoll = None
+        self._xpart = None
 
         self.config = xt.tracker.TrackerConfig()
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
@@ -1061,7 +1160,7 @@ class Line:
         ----------
         shallow : bool, optional
             If False (default), a deep copy is returned.
-            If True, a shallow copy is returned, i.e. the line is plced in the
+            If True, a shallow copy is returned, i.e. the line is placed in the
             same environment and shares variables and elements with the original.
         _context: xobjects.Context
             xobjects context to be used for the copy
@@ -1072,6 +1171,24 @@ class Line:
         -------
         line_copy : Line
             Copy of the line.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kq'] = 0.2
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1='kq'),
+            ])
+
+            line_copy = line.copy()
+            line_copy['qf'].k1 = 0.4
+
+            line['qf'].k1
+            # 0.2
         '''
 
         if shallow==True:
@@ -1137,6 +1254,23 @@ class Line:
         -------
         out : Line
             New line containing the selected portion.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('mk', 'Marker'),
+                env.new('qd', 'Quadrupole', length=0.5),
+            ])
+
+            subline = line.select(start='mk')
+            subline.element_names
+            # ['mk', 'qd']
         """
 
         self._method_incompatible_with_compose()
@@ -1180,6 +1314,36 @@ class Line:
         -------
         None
             This method updates the line in place.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+            line.new('qd', 'Quadrupole', length=0.5, k1=-0.2, at=3.0)
+
+            line.mode
+            # 'compose'
+
+            line.end_compose()
+
+            line.mode
+            # 'normal'
+
+            line.get_table().cols['name s_center'].show()
+            # name            s_center
+            # ||drift_1          0.375
+            # qf                     1
+            # ||drift_2              2
+            # qd                     3
+            # ||drift_3          4.125
+            # _end_point             5
         """
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
@@ -1207,6 +1371,31 @@ class Line:
         -------
         None
             This method switches the line state in place.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+            line.new('qd', 'Quadrupole', length=0.5, k1=-0.2, at=3.0)
+            line.end_compose()
+
+            line.mode
+            # 'normal'
+
+            line.regenerate_from_composer()
+
+            line.mode
+            # 'compose'
+
+            line.composer.components
+            # [Place(qf, at=1.0), Place(qd, at=3.0)]
         """
         self._element_names = '__COMPOSE__'
         self._mode = 'compose'
@@ -1234,8 +1423,32 @@ class Line:
 
         Returns
         -------
-        Place
-            The placed component descriptor appended to the composer.
+        None
+            This method appends the placement to the composer in place.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+
+            line.composer.components
+            # [Place(qf, at=1.0)]
+
+            line.end_compose()
+
+            line.get_table().cols['name s_center'].show()
+            # name            s_center
+            # ||drift_1          0.375
+            # qf                     1
+            # ||drift_2          3.125
+            # _end_point             5
         """
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
@@ -1251,8 +1464,8 @@ class Line:
         ----------
         name : str
             Name of the new element.
-        cls : str or class
-            Element type (or parent element name when cloning/replicating).
+        prototype : str or class
+            Element type or prototype element name when cloning/replicating.
         at : float or str, optional
             Position at which the created element is placed.
         from_ : str, optional
@@ -1261,6 +1474,10 @@ class Line:
             Extra metadata associated with the created element.
         force : bool, optional
             If ``True``, allow replacing an existing element with the same name.
+        cls : str or class, optional
+            Deprecated alias for ``prototype``.
+        parent : str or class, optional
+            Deprecated alias for ``prototype``.
         **kwargs
             Element attributes forwarded to ``Environment.new(...)``.
 
@@ -1269,6 +1486,27 @@ class Line:
         str or Place
             Name of the created element, or a ``Place`` object when placement
             arguments are provided.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(length=5.0, compose=True)
+
+            place = line.new(
+                'qf', 'Quadrupole', length=0.5, k1=0.2, at=1.0)
+
+            place
+            # Place(qf, at=1.0)
+
+            'qf' in line.env.elements
+            # True
+
+            line.composer.components
+            # [Place(qf, at=1.0)]
         """
         if self.mode != 'compose':
             raise ValueError('Line is not in compose mode')
@@ -1369,6 +1607,23 @@ class Line:
         -------
         str
             ``'normal'`` or ``'compose'``.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(length=5.0, compose=True)
+
+            line.mode
+            # 'compose'
+
+            line.end_compose()
+
+            line.mode
+            # 'normal'
         """
         return self._mode
 
@@ -1393,7 +1648,29 @@ class Line:
 
     @property_with_doc_group("Compose Mode")
     def composer(self):
-        """Builder used when the line is in ``compose`` mode."""
+        """
+        Builder used when the line is in ``compose`` mode.
+
+        Returns
+        -------
+        Composer
+            Compose-mode builder object associated with the line.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env.new('qf', 'Quadrupole', length=0.5, k1=0.2)
+
+            line = env.new_line(length=5.0, compose=True)
+            line.place('qf', at=1.0)
+
+            line.composer.components
+            # [Place(qf, at=1.0)]
+        """
         return self._composer
 
     @composer.setter
@@ -1514,6 +1791,17 @@ class Line:
             except ImportError as error:
                 raise ImportError("Please install Xcoll to use this feature.") from error
         return self._xcoll
+
+    @property_with_doc_group("Reference Particle and Particle Generation")
+    def xpart(self):
+        """Xpart particle-generation helpers associated with this line."""
+        if self._xpart is None:
+            try:
+                from xpart.line_tools import XpartLineAPI
+                self._xpart = XpartLineAPI(self)
+            except ImportError as error:
+                raise ImportError("Please install Xpart to use this feature.") from error
+        return self._xpart
 
     @property_with_doc_group("Upcoming Deprecations")
     def scattering(self):
@@ -2112,6 +2400,48 @@ class Line:
         knob_value_end : float
             Value of the knob after the matching. Defaults to 1.
 
+        Returns
+        -------
+        KnobOptimizer
+            Returned :class:`xtrack.match.KnobOptimizer` used to match and
+            generate the knob. It exposes the underlying
+            :class:`xdeps.Optimize` methods, and provides
+            :meth:`generate_knob` to install the matched knob expression.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xpart as xp
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kqf'] = 0.20
+            env['kqd'] = -0.20
+            env.new('qf', xt.Multipole, knl=[0, 'kqf'], length=0.1)
+            env.new('qd', xt.Multipole, knl=[0, 'kqd'], length=0.1)
+            env.new('dr', xt.Drift, length=1.0)
+
+            line = env.new_line(components=['dr', 'qf', 'dr', 'qd'] * 8)
+            line.particle_ref = xp.Particles(
+                p0c=7e9, mass0=xp.PROTON_MASS_EV)
+            line.build_tracker()
+            tw0 = line.twiss(method='4d')
+
+            opt = line.match_knob(
+                knob_name='qx_knob',
+                knob_value_start=tw0.qx,
+                knob_value_end=tw0.qx + 1e-3,
+                method='4d', verbose=False, run=False,
+                vary=xt.Vary('kqf', step=1e-6),
+                targets=xt.Target('qx', tw0.qx + 1e-3, tol=1e-6))
+            opt.solve()
+            opt.generate_knob()
+
+            line['qx_knob'] = tw0.qx + 5e-4
+            tw = line.twiss(method='4d')
+            assert abs(tw.qx - (tw0.qx + 5e-4)) < 1e-6
+
         '''
         if not self._has_valid_tracker():
             self.build_tracker()
@@ -2215,12 +2545,8 @@ class Line:
         if not self._has_valid_tracker():
             self.build_tracker()
 
-        if reverse is None:
-            reverse = self.twiss_default.get('reverse', False)
-
         return survey_from_line(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
-                                   phi0=phi0, psi0=psi0, element0=element0,
-                                   reverse=reverse)
+                                   phi0=phi0, psi0=psi0, element0=element0)
 
     @doc_group("Matching and Corrections")
     def correct_trajectory(self, run=True, n_iter='auto', start=None, end=None,
@@ -3030,7 +3356,53 @@ class Line:
 
     @doc_group("Line Editing")
     def cut_at_s(self, s: Iterable[float], s_tol=1e-6, return_slices=False):
-        """Slice the line so that positions in s never fall inside an element."""
+        """
+        Slice the line in place at positions ``s``.
+
+        Parameters
+        ----------
+        s : iterable of float
+            Longitudinal positions where element boundaries are required.
+        s_tol : float, optional
+            Tolerance used when deciding whether a cut already coincides with
+            an existing boundary.
+        return_slices : bool, optional
+            If ``True``, return the slice information produced by the slicer.
+
+        Returns
+        -------
+        object or None
+            Slice information when ``return_slices`` is ``True``; otherwise
+            ``None``. The line is modified in place.
+
+        Notes
+        -----
+        This method fails if any element that needs to be cut does not support
+        slicing.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=2.0),
+            ])
+
+            line.cut_at_s([1.0])
+
+            line.get_table().cols['s_start s_center s_end'].show()
+            # name                s_start s_center s_end
+            # qf_entry                  0        0     0
+            # qf..entry_map             0        0     0
+            # qf..0                     0      0.5     1
+            # qf..1                     1      1.5     2
+            # qf..exit_map              2        2     2
+            # qf_exit                   2        2     2
+            # _end_point                2        2     2
+        """
 
         self._method_incompatible_with_compose()
 
@@ -3161,7 +3533,15 @@ class Line:
 
         .. code-block:: python
 
-            ## Insertion of elements from the environment
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('q0', xt.Quadrupole, length=1.0, at=2.0),
+                env.new('m0', xt.Marker, at=5.0),
+                env.new('q1', xt.Quadrupole, length=1.0, at=8.0),
+                env.new('end', xt.Marker, at=10.0),
+            ])
 
             # Create a set of new elements to be placed
             env.new('s1', xt.Sextupole, length=0.1, k2=0.2)
@@ -3172,27 +3552,22 @@ class Line:
 
             # Insert the new elements in the line
             line.insert([
-                env.place('s1', at=5.),
-                env.place('s2', anchor='end', at=-5., from_='start@q1'),
-                env.place(['m1', 'm2'], at='start@m0'),
-                env.place('m3', at='end@m0'),
-                ])
+                env.place('s1', at=1.0),
+                env.place('s2', anchor='end', at=-0.5, from_='q1@start'),
+                env.place(['m1', 'm2'], at='m0@start'),
+                env.place('m3', at='m0@end'),
+            ])
 
-        .. code-block:: python
-
-            ## Insertion of elements instantiated by the user using the class
-            ## constructor
-
-            # Instantiate elements using the 
-            mysext =  xt.Sextupole(length=0.1, k2=0.2)
-            myaperture =  xt.LimitEllipse(a=0.01, b=0.02)
+            # Elements can also be instantiated directly by the user
+            mysext = xt.Sextupole(length=0.1, k2=0.2)
+            myaperture = xt.LimitEllipse(a=0.01, b=0.02)
 
             # Insert the element in the line and, contextually, define its name:
-            line.insert('s1', mysext, at=5., from_='q1')
+            line.insert('s3', mysext, at=0.75, from_='q1@end')
 
             # Alternatively, add the element to the environment and then do the insertion:
             env.elements['ap1'] = myaperture
-            line.insert('ap1', at='start@q0')
+            line.insert('ap1', at='q0@start')
 
         """
 
@@ -3309,6 +3684,23 @@ class Line:
             If the element is shorter than `s_tol`, it is removed without creating
             a replacement drift. Default is 1e-10.
 
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('mk', 'Marker'),
+                env.new('qd', 'Quadrupole', length=0.5),
+            ])
+
+            line.remove('mk')
+            line.element_names
+            # ['qf', 'qd']
+
         """
 
         self._method_incompatible_with_compose()
@@ -3358,7 +3750,23 @@ class Line:
         s_tol : float (optional)
             Tolerance for the length of the elements. If the difference in length
             is larger than `s_tol`, the replacement is not performed and an
-            error is raised.error is raised. Default is 1e-10.
+            error is raised. Default is 1e-10.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1=0.2),
+            ])
+            env.new('qd', 'Quadrupole', length=0.5, k1=-0.2)
+
+            line.replace('qf', 'qd')
+            line.element_names
+            # ['qd']
 
         """
 
@@ -3628,8 +4036,29 @@ class Line:
 
         Returns
         -------
-        new_line: Line
-            A new line with the elements cycled.
+        line : Line
+            The line itself, after cycling.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('d1', 'Drift', length=1.0),
+                env.new('qd', 'Quadrupole', length=0.5),
+                env.new('d2', 'Drift', length=1.0),
+            ])
+
+            line.element_names
+            # ['qf', 'd1', 'qd', 'd2']
+
+            line.cycle('qd')
+            line.element_names
+            # ['qd', 'd2', 'qf', 'd1']
 
         """
 
@@ -4297,9 +4726,9 @@ class Line:
 
         Parameters
         ----------
-        element_type: str
+        element_type: str | type
             Type of the elements for which internal logging is started.
-        capacity: int
+        capacity: int | dict[str, int]
             Capacity of the internal record.
 
         Returns
@@ -4310,8 +4739,7 @@ class Line:
         """
         self._method_incompatible_with_compose()
         self._check_valid_tracker()
-        return start_internal_logging_for_elements_of_type(self.tracker,
-                                                    element_type, capacity)
+        return start_internal_logging_for_elements_of_type(self.tracker, element_type, capacity)
 
     @doc_group("Element Internal Logging")
     def stop_internal_logging_for_all_elements(self, reinitialize_io_buffer=False):
@@ -5085,6 +5513,38 @@ class Line:
         -------
         Line or None
             Mirrored line when ``inplace=False``, otherwise ``None``.
+
+        Notes
+        -----
+        The unary minus operator, ``-line``, is a shortcut for
+        ``line.mirror(inplace=False)``.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('d1', 'Drift', length=1.0),
+                env.new('qd', 'Quadrupole', length=0.5),
+            ])
+
+            line_mirror = line.mirror(inplace=False)
+
+            line.element_names
+            # ['qf', 'd1', 'qd']
+            line_mirror.element_names
+            # ['qd', 'd1', 'qf']
+
+            (-line).element_names
+            # ['qd', 'd1', 'qf']
+
+            line.mirror()
+            line.element_names
+            # ['qd', 'd1', 'qf']
         """
         assert inplace in [True, False]
         if inplace == False:
@@ -5194,6 +5654,38 @@ class Line:
         -------
         Line
             New line containing independent element copies.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            env['kq'] = 0.2
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1='kq'),
+                env.new('d1', 'Drift', length=1.0),
+            ])
+
+            line_b = line.clone(suffix='b')
+            line_b.element_names
+            # ['qf.b', 'd1.b']
+
+            line_b.ref['qf.b'].k1.xdeps.expr
+            # vars['kq']
+
+            env['kq'] = 0.3
+            line['qf'].k1
+            # 0.3
+            line_b['qf.b'].k1
+            # 0.3
+
+            line_b['qf.b'].k1 = 0.4
+            line['qf'].k1
+            # 0.3
+            line_b['qf.b'].k1
+            # 0.4
         """
         self._method_incompatible_with_compose()
         out = self.replicate(suffix=suffix, mirror=mirror)
@@ -5330,6 +5822,19 @@ class Line:
         -------
         value : float
             Value of the expression.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line()
+            line['a'] = 2.0
+
+            line.eval('3*a + 1')
+            # 7.0
         '''
 
         return self.vars.eval(expr)
@@ -5490,8 +5995,25 @@ class Line:
 
         Returns
         -------
-        vars : object
+        vars : xtrack.environment.EnvVars
             Dictionary-like container of variables.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line()
+            line.vars['a'] = 2.0
+            line.vars['b'] = '3*a'
+
+            line.vars.get_table().show()
+            # name       value expr
+            # t_turn_s       0 None
+            # a              2 None
+            # b              6 (3.0 * a)
         """
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline.vars
@@ -5558,9 +6080,10 @@ class Line:
         """
         Convenience accessor to variable values.
 
-        .. warning: `Line.varval[...]` is deprecated and will be removed
+        .. warning::
+           ``Line.varval[...]`` is deprecated and will be removed
            in a future version. To access the value of a variable you can simply use
-           Line[...]."
+           ``Line[...]``.
 
         Equivalent to ``line.vars.val``.
 
@@ -5582,11 +6105,12 @@ class Line:
         """
         Short alias for variable values.
 
-        .. warning: `Line.vv[...]` is deprecated and will be removed
+        .. warning::
+           ``Line.vv[...]`` is deprecated and will be removed
            in a future version. To access the value of a variable you can simply use
-           Line[...]."
+           ``Line[...]``.
 
-        Equivalent to `line.varval`` (or `line.vars.val``).
+        Equivalent to ``line.varval`` (or ``line.vars.val``).
 
         Returns
         -------
@@ -5644,6 +6168,24 @@ class Line:
         -------
         element : Element or float
             Element or value of the variable.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=1.0, k1=0.2),
+            ])
+            line['a'] = 3.0
+
+            line.get('qf')
+            # Quadrupole(...)
+
+            line.get('a')
+            # 3.0
         '''
         return self.env.get(key)
 
@@ -5708,6 +6250,20 @@ class Line:
         -------
         expr : Expression
             Expression associated to the variable
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line()
+            line['a'] = 2.0
+            line['b'] = '3*a'
+
+            line.get_expr('b')
+            # (3.0 * vars['a'])
         '''
         return self.env.get_expr(var)
 
@@ -5725,6 +6281,20 @@ class Line:
         -------
         expr : Expression
             New xdeps expression object.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line()
+            line['a'] = 2.0
+
+            line['b'] = line.new_expr('3*a + 1')
+            line['b']
+            # 7.0
         """
         return self.env.new_expr(var)
 
@@ -5749,12 +6319,50 @@ class Line:
         -------
         functions : object
             Dictionary-like container of functions available in expressions.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line()
+            line['t_turn_s'] = 0.5
+            line.functions['ramp'] = xt.FunctionPieceWiseLinear(
+                x=[0, 1], y=[0.2, 0.4])
+            line['kq'] = line.functions['ramp'](line.ref['t_turn_s'])
+
+            line['kq']
+            # 0.30000000000000004
         """
         return self._xdeps_fref
 
     @property_with_doc_group("Line Editing")
     def element_dict(self):
-        """Dictionary-like container of elements in the line environment."""
+        """
+        Dictionary-like container of elements in the line environment.
+
+        Returns
+        -------
+        element_dict : dict
+            Mapping from element names to element objects. The dictionary is
+            shared with the parent environment.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=1.0),
+            ])
+
+            line.element_dict['qf'].length
+            # 1.0
+        """
         return self.env.element_dict
 
     @property
@@ -5793,7 +6401,29 @@ class Line:
 
     @property_with_doc_group("Line Editing")
     def element_names(self):
-        """Ordered list of element names defining the line sequence."""
+        """
+        Ordered list of element names defining the line sequence.
+
+        Returns
+        -------
+        element_names : list of str
+            Names of elements in line order.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5),
+                env.new('mk', 'Marker'),
+            ])
+
+            line.element_names
+            # ['qf', 'mk']
+        """
         return self._element_names
 
     @element_names.setter
@@ -5805,7 +6435,29 @@ class Line:
 
     @property_with_doc_group("Line Editing")
     def elements(self):
-        """Tuple-like container of element-object views in line order."""
+        """
+        Tuple-like container of element-object views in line order.
+
+        Returns
+        -------
+        elements : tuple
+            Element views ordered according to ``line.element_names``.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            import xtrack as xt
+
+            env = xt.Environment()
+            line = env.new_line(components=[
+                env.new('qf', 'Quadrupole', length=0.5, k1=0.2),
+                env.new('qd', 'Quadrupole', length=0.5, k1=-0.2),
+            ])
+
+            [ee.k1 for ee in line.elements]
+            # [0.2, -0.2]
+        """
         return tuple([self.env.elements[nn] for nn in self.element_names])
 
     @property
@@ -6210,6 +6862,8 @@ class Line:
                 '_own_ks': AttrDefinition(name='ks'),
                 '_own_ks_profile_0': AttrDefinition(name='ks_profile', index=0),
                 '_own_ks_profile_1': AttrDefinition(name='ks_profile', index=1),
+                '_own_bs_mean': AttrDefinition(name='bs', index=4),
+                '_own_scale_b': AttrDefinition(name='scale_b'),
 
                 '_own_k0': AttrDefinition(name='k0'),
                 '_own_k1': AttrDefinition(name='k1'),
@@ -6447,6 +7101,7 @@ class Line:
                 'k5sl': lambda attr: attr['_k5sl_no_rel'] + attr['_k5sl_rel'] * attr['_main_strength'],
                 'ks': lambda attr: (attr['_own_ks'] + attr['_parent_ks'] * attr._inherit_strengths
                                     + 0.5 * (attr['_own_ks_profile_0'] + attr['_own_ks_profile_1'])),
+                'bs': lambda attr: attr['_own_bs_mean'] * attr['_own_scale_b'],
                 'hkick': lambda attr: attr["angle"] - attr["k0l"],
                 'vkick': lambda attr: attr["k0sl"],
             }
@@ -6549,6 +7204,68 @@ class Line:
 
 
 class LineTable(Table):
+    """
+    Table returned by :meth:`xtrack.Line.get_table`.
+
+    ``LineTable`` stores one row per line element plus the ``'_end_point'`` row.
+    It summarizes the line layout: element names, element types, longitudinal
+    positions, lengths, thickness flags, and optional element attributes.
+    """
+
+    def __init__(self, data, *args, **kwargs):
+        """
+        Create a line table.
+
+        Parameters
+        ----------
+        data : mapping
+            Mapping containing line-table columns. Typical columns include
+            ``name``, ``element_type``, ``s``, ``length``, ``isthick``, and
+            optional element attributes.
+        *args
+            Additional positional arguments passed to :class:`xtrack.Table`.
+        **kwargs
+            Additional keyword arguments passed to :class:`xtrack.Table`.
+
+        Examples
+        --------
+        Build a compact line table:
+
+        >>> import numpy as np
+        >>> from xtrack.line import LineTable
+        >>> tab = LineTable({
+        ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
+        ...                      dtype=object),
+        ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
+        ...                              dtype=object),
+        ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
+        ...     "length": np.array([0.3, 1.0, 3.0, 0.0]),
+        ...     "isthick": np.array([True, True, True, False]),
+        ... })
+        >>> tab
+        LineTable: 4 rows, 5 cols
+        name       element_type             s        length isthick
+        mqf.1      Quadrupole               0           0.3    True
+        d1.1       Drift                  0.3             1    True
+        mb1.1      Bend                   1.3             3    True
+        _end_point                        4.3             0   False
+
+        Select columns or rows:
+
+        >>> tab.cols["s length"]
+        LineTable: 4 rows, 3 cols
+        name                   s        length
+        mqf.1                  0           0.3
+        d1.1                 0.3             1
+        mb1.1                1.3             3
+        _end_point           4.3             0
+        >>> tab.rows.match(element_type="Drift|Bend")
+        LineTable: 2 rows, 5 cols
+        name  element_type             s        length isthick
+        d1.1  Drift                  0.3             1    True
+        mb1.1 Bend                   1.3             3    True
+        """
+        super().__init__(data, *args, **kwargs)
 
     # Messages to be shown when accessing deprecated fields
     _DEPRECATED_FIELDS = {

@@ -5,16 +5,16 @@
 import numpy as np
 import pytest
 from scipy.constants import c as clight
-from xobjects.test_helpers import skip_if_forbid_compile
+from xobjects.test_helpers import allow_no_prebuilt_kernels
 
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
 
+@allow_no_prebuilt_kernels
 def test_check_is_active_sorting_openmp():
 
-    skip_if_forbid_compile()
 
     test_context = xo.ContextCpu(omp_num_threads=5)
 
@@ -94,9 +94,9 @@ def test_check_is_active_sorting_openmp():
         xo.ContextCpu(omp_num_threads=4),
     ]
 )
+@allow_no_prebuilt_kernels
 def test_check_is_active_sorting_cpu_default(test_context):
 
-    skip_if_forbid_compile()
 
     class TestElement(xt.BeamElement):
         _xofields = {

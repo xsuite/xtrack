@@ -2,9 +2,22 @@ import inspect
 
 import pytest
 
+import xdeps as xd
 import xtrack as xt
-from xtrack.environment import ENVIRONMENT_DOC_GROUP_ORDER
-from xtrack.line import LINE_DOC_GROUP_ORDER
+from xtrack.environment import (
+    ENVIRONMENT_DOC_GROUP_ORDER,
+    EnvElements,
+    EnvLines,
+    EnvParticleRef,
+    EnvParticles,
+    EnvRef,
+    EnvVars,
+    EnvXfields,
+    VarsTable,
+)
+from xtrack.survey import SurveyTable
+from xtrack.line import LINE_DOC_GROUP_ORDER, LineTable
+from xtrack.match import KnobOptimizer
 
 
 def _iter_public_members(cls):
@@ -27,8 +40,44 @@ def _iter_public_members(cls):
 
 @pytest.mark.parametrize(
     "cls",
-    [xt.Line, xt.Environment],
-    ids=["Line", "Environment"],
+    [
+        xt.Line,
+        xt.Environment,
+        xt.Table,
+        xt.TwissTable,
+        SurveyTable,
+        LineTable,
+        EnvVars,
+        EnvElements,
+        EnvParticles,
+        EnvLines,
+        EnvRef,
+        EnvParticleRef,
+        EnvXfields,
+        VarsTable,
+        xt.TrajectoryCorrection,
+        xd.Optimize,
+        KnobOptimizer,
+    ],
+    ids=[
+        "Line",
+        "Environment",
+        "Table",
+        "TwissTable",
+        "SurveyTable",
+        "LineTable",
+        "EnvVars",
+        "EnvElements",
+        "EnvParticles",
+        "EnvLines",
+        "EnvRef",
+        "EnvParticleRef",
+        "EnvXfields",
+        "VarsTable",
+        "TrajectoryCorrection",
+        "Optimize",
+        "KnobOptimizer",
+    ],
 )
 def test_public_api_members_have_docstrings(cls):
     missing_methods = []

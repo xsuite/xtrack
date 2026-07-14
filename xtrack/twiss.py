@@ -36,7 +36,7 @@ import xtrack as xt  # To avoid circular imports
 DEFAULT_STEPS_R_MATRIX = {
     'dx':1e-6, 'dpx':1e-7,
     'dy':1e-6, 'dpy':1e-7,
-    'dzeta':1e-6, 'ddelta':1e-6
+    'dzeta':1e-5, 'ddelta':1e-6
 }
 
 DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-9]
@@ -60,9 +60,13 @@ CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
 
 NORMAL_STRENGTHS_FROM_ATTR=['k0l', 'k1l', 'k2l', 'k3l', 'k4l', 'k5l']
 SKEW_STRENGTHS_FROM_ATTR=['k0sl', 'k1sl', 'k2sl', 'k3sl', 'k4sl', 'k5sl']
-OTHER_FIELDS_FROM_ATTR=['angle', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'length', '_angle_force_body']
+OTHER_FIELDS_FROM_ATTR=['angle', 'angle_rad', 'rot_s_rad', 'hkick', 'vkick', 'ks', 'bs', 'length', '_angle_force_body']
 OTHER_FIELDS_FROM_TABLE=['element_type', 'isthick', 'parent_name', 'parent_type', 'prototype']
 SIGN_FLIP_FOR_ATTR_REVERSE=['k0l', 'k2l', 'k4l', 'k1sl', 'k3sl', 'k5sl', 'vkick', 'angle', 'angle_rad']
+
+DEFAULT_COL_ORDER = [
+    'name', 'element_type', 's', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'
+    'dpx', 'dpy', 'x', 'y', 'px', 'py', 'delta', 'zeta']
 
 
 def twiss_line(line, particle_ref=None, method=None,
@@ -329,7 +333,7 @@ def twiss_line(line, particle_ref=None, method=None,
         - `dzeta`: longitudinal dispersion vs delta
     Output fields present when `strengths=True` (or `radiation_integrals=True`):
         - `k0l`–`k5l`, `k0sl`–`k5sl`: normal/skew multipole integrated strengths
-        - `angle`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `length`,
+        - `angle`, `rot_s_rad`, `hkick`, `vkick`, `ks`, `bs`, `length`,
           `element_type`, `isthick`, `parent_name`, `prototype`: element properties
     Output fields present when `radiation_analysis=True`:
         - `energy_loss`: energy loss per turn [eV]
@@ -655,12 +659,14 @@ def twiss_line(line, particle_ref=None, method=None,
                         **kwargs)
         return _add_action_in_res(res, input_kwargs)
 
-    if radiation_method is None and line._radiation_model is not None:
-        if line._radiation_model == 'quantum':
-            raise ValueError(
+    if line._radiation_model == 'quantum':
+        raise ValueError(
                 'twiss cannot be called when the radiation model is ``quantum``')
-        if method == '4d':
-            raise RuntimeError('4d twiss cannot be called when radiation is present')
+
+    if line._radiation_model is not None and method == '4d':
+        raise RuntimeError('4d twiss cannot be called when radiation is present')
+
+    if radiation_method is None and line._radiation_model is not None:
         radiation_method = 'kick_as_co'
 
     if radiation_method is not None and radiation_method != 'full':
@@ -1082,6 +1088,9 @@ def twiss_line(line, particle_ref=None, method=None,
 
     twiss_res['periodic'] = periodic
     twiss_res['completed_init'] = completed_init
+
+    # Sort col names
+    twiss_res._sort_col_names()
 
     return _add_action_in_res(twiss_res, input_kwargs)
 
@@ -2987,7 +2996,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                             symmetrize=symmetrize),
                 x0=x0, steps=[1e-8, 1e-9, 1e-8, 1e-9, 1e-7, 1e-8],
                 tar=[0., 0., 0., 0., 0., 0.],
-                tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12])
+                tols=[1e-12, 1e-12, 1e-12, 1e-12, 1e-11, 1e-12])
         try:
             opt.solve(verbose=-1)
             ier = 1
@@ -3730,6 +3739,14 @@ class TwissInit:
 
 
 class TwissTable(Table):
+    """
+    Table returned by :meth:`xtrack.Line.twiss`.
+
+    ``TwissTable`` stores element-by-element optics and closed-orbit data
+    produced by Twiss calculations. Typical columns include longitudinal
+    position, beta functions, alpha functions, dispersion, phase advances,
+    coordinates, momenta, and element strengths when requested.
+    """
 
     # Messages to be shown when accessing deprecated fields
     _DEPRECATED_FIELDS = {
@@ -3754,14 +3771,98 @@ class TwissTable(Table):
                       + DEPRECATION_INFO_PREP_1_0),
     }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, data, *args, **kwargs):
+        """
+        Create a Twiss table.
+
+        ``TwissTable`` stores element-by-element optics, closed orbit,
+        transfer information, and global quantities produced by Twiss
+        calculations.
+
+        Parameters
+        ----------
+        data : mapping
+            Mapping containing Twiss-table columns and scalar attributes.
+        *args
+            Positional arguments passed to :class:`xtrack.Table`.
+        periodic : bool, optional
+            Whether the stored Twiss solution is periodic. If not provided,
+            the value is taken from ``data["periodic"]`` when available,
+            otherwise it defaults to ``False``.
+        **kwargs
+            Keyword arguments passed to :class:`xtrack.Table`.
+
+        Examples
+        --------
+        Build a compact Twiss-like table:
+
+        >>> import numpy as np
+        >>> import xtrack as xt
+        >>> tab = xt.TwissTable({
+        ...     "name": np.array(["mqf.1", "d1.1", "mb1.1", "_end_point"],
+        ...                      dtype=object),
+        ...     "element_type": np.array(["Quadrupole", "Drift", "Bend", ""],
+        ...                              dtype=object),
+        ...     "s": np.array([0.0, 0.3, 1.3, 4.3]),
+        ...     "betx": np.array([1.28, 1.28, 2.27, 1.28]),
+        ...     "bety": np.array([4.79, 4.79, 5.21, 4.79]),
+        ...     "dx": np.array([2.28, 2.28, 2.24, 2.28]),
+        ... })
+        >>> tab
+        TwissTable: 4 rows, 6 cols
+        name       element_type             s          betx          bety            dx
+        mqf.1      Quadrupole               0          1.28          4.79          2.28
+        d1.1       Drift                  0.3          1.28          4.79          2.28
+        mb1.1      Bend                   1.3          2.27          5.21          2.24
+        _end_point                        4.3          1.28          4.79          2.28
+
+        Select optics columns, including expressions:
+
+        >>> tab.cols["betx bety dx/sqrt(betx)"]
+        TwissTable: 4 rows, 4 cols
+        name                betx          bety dx/sqrt(betx)
+        mqf.1               1.28          4.79       2.01525
+        d1.1                1.28          4.79       2.01525
+        mb1.1               2.27          5.21       1.48674
+        _end_point          1.28          4.79       2.01525
+
+        Select elements by type:
+
+        >>> tab.rows.match(element_type="Quadrupole|Bend")
+        TwissTable: 2 rows, 6 cols
+        name  element_type             s          betx          bety            dx
+        mqf.1 Quadrupole               0          1.28          4.79          2.28
+        mb1.1 Bend                   1.3          2.27          5.21          2.24
+        """
         kwargs['sep_count'] = kwargs.get('sep_count', '::::')
-        super().__init__(*args, **kwargs)
-        self['periodic'] = kwargs.get('periodic', kwargs.get('data', {}).get('periodic', False))
+        periodic = kwargs.pop('periodic', data.get('periodic', False))
+        super().__init__(data, *args, **kwargs)
+        self['periodic'] = periodic
 
     _error_on_row_not_found = True
 
+    def _select_rows(self, rows):
+        out = super()._select_rows(rows)
+        out._data.pop('periodic', None)
+        return out
+
     def to_pandas(self, index=None, columns=None):
+        """
+        Convert the Twiss table to a pandas DataFrame.
+
+        Parameters
+        ----------
+        index : str, optional
+            Column to use as the DataFrame index.
+        columns : sequence of str, optional
+            Columns to include in the DataFrame. If not provided, all table
+            columns are included.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame containing the selected Twiss table columns.
+        """
         if columns is None:
             columns = self._col_names
 
@@ -3791,6 +3892,27 @@ class TwissTable(Table):
 
     def to_hdf5(self, file, *, include=None, exclude=None,
                 missing='error', include_meta=True, group='twiss_table'):
+        """
+        Write the Twiss table to an HDF5 file.
+
+        Parameters
+        ----------
+        file : str or pathlib.Path or h5py.File
+            Output HDF5 file path or open HDF5 file object.
+        include : sequence of str, optional
+            Columns or metadata fields to include. If not provided, all supported
+            fields are included unless excluded.
+        exclude : sequence of str, optional
+            Columns or metadata fields to exclude.
+        missing : {"error", "ignore"}, optional
+            Policy for names in ``include`` or ``exclude`` that are not present in
+            the table.
+        include_meta : bool, optional
+            Whether to include table metadata.
+        group : str, optional
+            HDF5 group in which the table is stored. Defaults to
+            ``"twiss_table"``.
+        """
         super().to_hdf5(
             file,
             include=include,
@@ -3802,6 +3924,22 @@ class TwissTable(Table):
 
     @classmethod
     def from_hdf5(cls, file, *, group='twiss_table'):
+        """
+        Load a Twiss table from an HDF5 file.
+
+        Parameters
+        ----------
+        file : str or pathlib.Path or h5py.File
+            Input HDF5 file path or open HDF5 file object.
+        group : str, optional
+            HDF5 group from which the table is loaded. Defaults to
+            ``"twiss_table"``.
+
+        Returns
+        -------
+        xtrack.TwissTable
+            Twiss table loaded from the HDF5 file.
+        """
         return super().from_hdf5(
             file,
             group=group,
@@ -3812,6 +3950,34 @@ class TwissTable(Table):
                default_column_width=None, float_precision=8,
                numeric_column_width=16, column_formats=None,
                column_widths=None):
+        """
+        Write the Twiss table to a TFS file.
+
+        Parameters
+        ----------
+        file : str or pathlib.Path or file-like object
+            Output TFS file path or writable file-like object.
+        include : sequence of str, optional
+            Columns or metadata fields to include. If not provided, all supported
+            fields are included unless excluded.
+        exclude : sequence of str, optional
+            Columns or metadata fields to exclude.
+        missing : {"error", "ignore"}, optional
+            Policy for names in ``include`` or ``exclude`` that are not present in
+            the table.
+        include_meta : bool, optional
+            Whether to include table metadata as TFS headers.
+        default_column_width : int, optional
+            Default width used for TFS columns.
+        float_precision : int, optional
+            Number of significant digits used for floating-point values.
+        numeric_column_width : int, optional
+            Width used for numeric TFS columns.
+        column_formats : dict, optional
+            Per-column TFS format strings.
+        column_widths : dict, optional
+            Per-column TFS column widths.
+        """
 
         if exclude is None:
             exclude = []
@@ -3834,9 +4000,42 @@ class TwissTable(Table):
 
     @classmethod
     def from_tfs(cls, file):
+        """
+        Load a Twiss table from a TFS file.
+
+        Parameters
+        ----------
+        file : str or pathlib.Path or file-like object
+            Input TFS file path or readable file-like object.
+
+        Returns
+        -------
+        xtrack.TwissTable
+            Twiss table loaded from the TFS file.
+        """
         return super().from_tfs(file)
 
     def get_twiss_init(self, at_element):
+        """
+        Build Twiss initial conditions from this table at an element.
+
+        The returned object contains the closed-orbit particle, W matrix, phase
+        advances, and available chromatic quantities extracted from the selected
+        row of the table. It can be passed as the ``init`` argument to
+        :meth:`xtrack.Line.twiss` to start a Twiss calculation from the same
+        optics conditions.
+
+        Parameters
+        ----------
+        at_element : str or int
+            Element name or row index at which the initial conditions are
+            extracted. The table must contain values at element entry.
+
+        Returns
+        -------
+        xtrack.TwissInit
+            Initial conditions for a Twiss calculation at the selected element.
+        """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
@@ -3903,13 +4102,68 @@ class TwissTable(Table):
                         reference_frame=self.reference_frame)
 
     def get_betatron_sigmas(self, nemitt_x, nemitt_y):
-        # For backward compatibility
+        """
+        Compute transverse beam covariance from normalized emittances.
+
+        .. warning::
+
+            This method is deprecated and will be removed in a future version.
+            Use :meth:`get_beam_covariance` instead, with ``nemitt_x`` and
+            ``nemitt_y``.
+
+        Parameters
+        ----------
+        nemitt_x : float
+            Horizontal normalized emittance.
+        nemitt_y : float
+            Vertical normalized emittance.
+
+        Returns
+        -------
+        xtrack.Table
+            Table containing the beam covariance matrix elements along the line.
+        """
+        warn(
+            '`TwissTable.get_betatron_sigmas()` is deprecated and will be '
+            'removed in future versions. Use '
+            '`TwissTable.get_beam_covariance()` instead.',
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.get_beam_covariance(
             nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
     def get_beam_covariance(self,
             nemitt_x=None, nemitt_y=None, nemitt_zeta=None,
             gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
+        """
+        Compute the beam covariance matrix along the line.
+
+        The covariance matrix is built from the W matrices stored in the Twiss
+        table and the provided transverse and longitudinal emittances. Normalized
+        emittances are converted to geometric emittances using the reference
+        particle beta and gamma.
+
+        Parameters
+        ----------
+        nemitt_x : float, optional
+            Horizontal normalized emittance.
+        nemitt_y : float, optional
+            Vertical normalized emittance.
+        nemitt_zeta : float, optional
+            Longitudinal normalized emittance.
+        gemitt_x : float, optional
+            Horizontal geometric emittance.
+        gemitt_y : float, optional
+            Vertical geometric emittance.
+        gemitt_zeta : float, optional
+            Longitudinal geometric emittance.
+
+        Returns
+        -------
+        xtrack.Table
+            Table containing the beam covariance matrix elements along the line.
+        """
 
         # See MAD8 physics manual (Eq. 8.59)
 
@@ -4205,6 +4459,28 @@ class TwissTable(Table):
         )
 
     def get_R_matrix(self, start, end):
+        """
+        Compute the transfer matrix between two table locations.
+
+        The matrix is reconstructed from the W matrices and phase advances stored
+        in the Twiss table. Both ``start`` and ``end`` identify rows in the table
+        and are used as the boundary locations of the transfer. For tables with
+        ``values_at == "entry"`` (default), this is the transfer from the entry of
+        ``start`` to the entry of ``end``.
+
+        Parameters
+        ----------
+        start : str or int
+            Element name or row index at which the transfer starts.
+        end : str or int
+            Element name or row index at which the transfer ends. The end row must
+            be after the start row in the table.
+
+        Returns
+        -------
+        numpy.ndarray
+            Six-by-six transfer matrix from ``start`` to ``end``.
+        """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
@@ -4241,6 +4517,21 @@ class TwissTable(Table):
         return R_matrix
 
     def get_R_matrix_table(self):
+        """
+        Compute transfer matrices from the first table row to all rows.
+
+        For each row, the transfer matrix is reconstructed from the W matrix at
+        that row, the W matrix at the first row, and the phase advances relative
+        to the first row.
+
+        Returns
+        -------
+        xtrack.Table
+            Table with one row per Twiss-table row. It contains the element names,
+            longitudinal positions, the full ``R_matrix`` array for each row, and
+            scalar columns ``r11`` through ``r66`` with the individual matrix
+            elements.
+        """
 
         Rot = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
 
@@ -4277,6 +4568,35 @@ class TwissTable(Table):
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    nemitt_zeta=None, _force_at_element=None):
+        """
+        Convert particle coordinates to normalized coordinates.
+
+        Particle physical coordinates are transformed using the closed orbit and
+        W matrix stored in this Twiss table at each particle's ``at_element``.
+        If normalized emittances are provided, the normalized coordinates are
+        scaled by the square root of the corresponding emittance.
+
+        Parameters
+        ----------
+        particles : xtrack.Particles
+            Particles whose coordinates are converted.
+        nemitt_x : float, optional
+            Horizontal normalized emittance used to scale ``x_norm`` and
+            ``px_norm``.
+        nemitt_y : float, optional
+            Vertical normalized emittance used to scale ``y_norm`` and
+            ``py_norm``.
+        nemitt_zeta : float, optional
+            Longitudinal normalized emittance used to scale ``zeta_norm`` and
+            ``pzeta_norm``.
+
+        Returns
+        -------
+        xtrack.Table
+            Table indexed by ``particle_id`` with columns ``particle_id``,
+            ``at_element``, ``x_norm``, ``px_norm``, ``y_norm``, ``py_norm``,
+            ``zeta_norm``, and ``pzeta_norm``.
+        """
 
         ctx2np = particles._context.nparray_from_context_array
         at_element_particles = ctx2np(particles.at_element)
@@ -4336,6 +4656,23 @@ class TwissTable(Table):
                       'pzeta_norm': pzeta_norm}, index='particle_id')
 
     def reverse(self):
+        """
+        Build a Twiss table for the reverse local reference frame.
+
+        The returned table has the element order reversed and optics quantities
+        transformed to the reverse local reference frame. The transverse and
+        longitudinal coordinates are transformed as ``x -> -x``, ``y -> y``,
+        and ``zeta -> -zeta``. The momenta and longitudinal position are
+        transformed as ``px -> px``, ``py -> -py``, and
+        ``s -> line_length - s``. The phase advances are transformed as
+        ``mux -> mux[0] - mux`` and ``muy -> muy[0] - muy``. The reference frame
+        is switched between ``"proper"`` and ``"reverse"``.
+
+        Returns
+        -------
+        xtrack.TwissTable
+            Twiss table corresponding to the reverse local reference frame.
+        """
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
         assert self.name[-1] == '_end_point' # Needed for the present implementation
@@ -4481,6 +4818,23 @@ class TwissTable(Table):
     ind_per_table = []
 
     def add_strengths(self, line=None):
+        """
+        Add integrated element strengths to the Twiss table.
+
+        The strength columns are computed from the elements in ``line`` and added
+        to this table in place. If ``line`` is not provided, the line stored in the
+        Twiss action is used when available.
+
+        Parameters
+        ----------
+        line : xtrack.Line, optional
+            Line from which the element strengths are read.
+
+        Returns
+        -------
+        xtrack.TwissTable
+            This Twiss table, with strength columns added when a line is available.
+        """
         if line is None and hasattr(self,"_action"):
             line = self._action.line
         if line is not None:
@@ -4489,6 +4843,25 @@ class TwissTable(Table):
 
     @classmethod
     def concatenate(cls, tables_to_concat):
+        """
+        Concatenate compatible Twiss tables.
+
+        The input tables are joined in order. Common boundary rows are removed
+        when needed to avoid duplicating the shared element, and cyclic quantities
+        such as phase advances are shifted to remain continuous across table
+        boundaries.
+
+        Parameters
+        ----------
+        tables_to_concat : sequence of xtrack.TwissTable
+            Twiss tables to concatenate. All tables must have the same
+            ``values_at`` and ``reference_frame``.
+
+        Returns
+        -------
+        xtrack.TwissTable
+            Concatenated Twiss table.
+        """
 
         # Check values_at compatibility
         assert len(set([tt.values_at for tt in tables_to_concat])) == 1, (
@@ -4555,11 +4928,45 @@ class TwissTable(Table):
         return new_table
 
     def zero_at(self, name):
+        """
+        Shift cyclic quantities to be zero at an element.
+
+        The values of cyclic columns, such as phase advances, are shifted in place
+        by subtracting their value at ``name``.
+
+        Parameters
+        ----------
+        name : str
+            Element name at which cyclic quantities are set to zero.
+        """
         for kk in CYCLICAL_QUANTITIES:
             if kk in self:
                 self[kk] -= self[kk, name]
 
     def target(self, tars=None, value=None, at=None, **kwargs):
+        """
+        Build matching targets from this Twiss table.
+
+        This is a convenience wrapper around :class:`xtrack.TargetSet`. If
+        ``value`` is not provided, this Twiss table is used as the reference value
+        for the targets.
+
+        Parameters
+        ----------
+        tars : str or sequence of str, optional
+            Twiss quantities to target.
+        value : float, xdeps.GreaterThan, xdeps.LessThan, xtrack.TwissTable, optional
+            Target value. If not provided, this Twiss table is used.
+        at : str, optional
+            Element name at which the targets are evaluated.
+        **kwargs
+            Additional keyword arguments passed to :class:`xtrack.TargetSet`.
+
+        Returns
+        -------
+        xtrack.TargetSet
+            Matching targets built from the requested quantities.
+        """
         if value is None:
             value = self
         tarset = xt.TargetSet(tars=tars, value=value, at=at,
@@ -4742,6 +5149,11 @@ class TwissTable(Table):
         damping_constant_y_s = r0/3 * gamma0**3 * clight/self.line_length * (i2 - i4y)
         damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.line_length * (2*i2 + i4)
 
+        # Damping partition numbers:
+        J_x = 1 - i4x / i2
+        J_y = 1 - i4y / i2
+        J_zeta = 2 + i4 / i2
+
         # Velocity direction (for spin)
         ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
         xp = kin_px / ps
@@ -4789,6 +5201,9 @@ class TwissTable(Table):
             'rad_int_damping_constant_x_s': damping_constant_x_s,
             'rad_int_damping_constant_y_s': damping_constant_y_s,
             'rad_int_damping_constant_zeta_s': damping_constant_zeta_s,
+            'rad_int_partition_number_x': J_x,
+            'rad_int_partition_number_y': J_y,
+            'rad_int_partition_number_zeta': J_zeta,
         }
 
         out = Table({'name': self.name, 's': self.s, 'length':self.length} | cols)
@@ -4800,6 +5215,19 @@ class TwissTable(Table):
             self._data.update(scalars)
 
         return out
+
+    def _sort_col_names(self):
+        old_col_names = self._col_names
+        col_name_set = set(old_col_names)
+        new_col_names = []
+        for nn in DEFAULT_COL_ORDER:
+            if nn in col_name_set:
+                new_col_names.append(nn)
+        set_sorted_col_names = set(new_col_names)
+        for nn in old_col_names:
+            if nn not in set_sorted_col_names:
+                new_col_names.append(nn)
+        self._col_names = new_col_names
 
 def _complete_twiss_init(start, end, init_at, init,
                         line, reverse,
@@ -5513,7 +5941,7 @@ def _get_spin_polarization(tw, line, method):
 
         By = kappa_x * brho_part
         Bx = -kappa_y * brho_part
-        Bz = tw.ks * brho_ref
+        Bz = tw.ks * brho_ref + tw.bs
         B_mod = np.sqrt(Bx**2 + By**2 + Bz**2)
         B_mod[B_mod == 0] = 999. # avoid division by zero
 

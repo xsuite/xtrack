@@ -170,7 +170,7 @@ if use_wakes:
    wakefield.needs_hidden_lost_particles = True
 
    # Insert element in the line
-   line.insert_element(element=wakefield,name="wakefield", at_s=0)
+   line.insert('wakefield', wakefield, at=0)
 
 #################
 # Build Tracker #

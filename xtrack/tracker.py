@@ -455,13 +455,26 @@ class Tracker:
                     get_suitable_kernel,
                     XSK_PREBUILT_KERNELS_LOCATION,
                 )
-            except ImportError:
-                kernel_info = None
+            except ImportError as err:
+                requested_classes = (
+                    list(self.line_element_classes) + list(extra_classes)
+                )
+                if not xo.context_cpu.require_prebuilt_kernel(
+                        self._context, classes=requested_classes):
+                    kernel_info = None
+                else:
+                    raise ImportError(
+                        'Xsuite is required to load prebuilt kernels but could '
+                        'not be imported. Please install it with '
+                        f'`pip install xsuite`. '
+                        f'{xo.context_cpu.no_prebuilt_kernel_jit_message()}'
+                    ) from err
             else:
                 kernel_info = get_suitable_kernel(
                     config=self.config,
                     tracker_element_classes=self.line_element_classes,
                     classes=extra_classes,
+                    context=self._context,
                 )
 
             if kernel_info:
@@ -1557,6 +1570,7 @@ class Tracker:
             config=self.line.config,
             tracker_element_classes=self.line_element_classes,
             classes=[],
+            context=self._context,
             verbose=True
         )
 

@@ -11,9 +11,7 @@ line['on_chicane_tune_corr'] = 1
 
 # Install monitor at foil
 monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=6000, num_particles=1)
-line.discard_tracker()
-line.insert_element(index='bi1.tstr1l1', element=monitor, name='monitor_at_foil')
-line.build_tracker()
+line.insert('monitor_at_foil', monitor, at='bi1.tstr1l1')
 
 p = line.build_particles(x=0, px=0, y=0, py=0, delta=0, zeta=0)
 

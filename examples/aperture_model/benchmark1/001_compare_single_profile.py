@@ -71,7 +71,12 @@ for name in ["MB.A9L5", "MQXFA.A1R5", "MBXF.4R5", "TAXN.4L5"]:
         num_rays=360,
     )
     sigmas_exact = n1_exact.n1
-    envel, _ = aperture_model.get_envelope_at_s(s_positions=[s], sigmas=sigmas_bisection[0], envelopes_num_points=101)
+    envel_table, _ = aperture_model.get_envelope_at_s(
+        s_positions=[s],
+        sigmas=sigmas_bisection[0],
+        envelopes_num_points=101,
+    )
+    envel = envel_table.cross_section
 
     cross_sections_table = aperture_model.cross_sections_at_s(s_positions=[s])
     cross_sections = cross_sections_table.cross_section

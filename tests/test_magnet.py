@@ -390,6 +390,7 @@ def test_magnet_curved_quad(test_context):
         length=2.0,
         k1=-0.3,
         angle=0.05*2.0,
+        model='rot-kick-rot',
         num_multipole_kicks=15,
         _context=test_context,
     )

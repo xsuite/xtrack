@@ -249,6 +249,8 @@ def gen_py_lattice(env):
             for kk, vv in cc.__dict__.items():
                 if vv is None or kk == 'name':
                     continue
+                if kk == 'env':
+                    continue
                 if hasattr(vv, '_expr'): # has expression
                     # Get string representation of expression
                     env['__temp__'] = vv

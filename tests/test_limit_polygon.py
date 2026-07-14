@@ -37,13 +37,9 @@ def test_limitpolygon_area_signed():
     assert signed_expected > 0
 
     xo.assert_allclose(aper_ccw.area, abs(signed_expected), atol=0, rtol=0)
-    xo.assert_allclose(
-        aper_ccw.get_area(signed=True), signed_expected, atol=0, rtol=0
-    )
+    xo.assert_allclose(aper_ccw.get_area(signed=True), signed_expected, atol=0, rtol=0)
     xo.assert_allclose(aper_cw.area, abs(signed_expected), atol=0, rtol=0)
-    xo.assert_allclose(
-        aper_cw.get_area(signed=True), -signed_expected, atol=0, rtol=0
-    )
+    xo.assert_allclose(aper_cw.get_area(signed=True), -signed_expected, atol=0, rtol=0)
 
 
 def test_limitpolygon_normals_point_inward():
@@ -119,3 +115,19 @@ def test_limitpolygon_impact_point_and_normal():
     xo.assert_allclose(Nx, np.array([-1.0, 0.0]), atol=1e-14, rtol=0)
     xo.assert_allclose(Ny, np.array([0.0, 1.0]), atol=1e-14, rtol=0)
     assert np.all(i_found >= 0)
+
+
+def test_limitpolygon_inner_circle_particles_survive():
+    x_vertices = np.array([-2.0, 2.0, 2.0, -2.0]) * 1e-2
+    y_vertices = np.array([-1.5, -1.5, 1.5, 1.5]) * 1e-2
+
+    aper = xt.LimitPolygon(x_vertices=x_vertices, y_vertices=y_vertices)
+
+    angles = np.linspace(0, 2 * np.pi, 16, endpoint=False)
+    radius = 0.99 * 1.5e-2
+    sample_x = radius * np.cos(angles)
+    sample_y = radius * np.sin(angles)
+
+    particles = xt.Particles(p0c=6500e9, x=sample_x, y=sample_y)
+    aper.track(particles)
+    xo.assert_allclose(particles.state, 1)

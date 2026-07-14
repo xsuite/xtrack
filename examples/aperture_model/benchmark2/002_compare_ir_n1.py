@@ -1,32 +1,18 @@
+import json
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import xtrack as xt
-from lhcoptics import LHCOptics
 from xdeps import Table
 from xobjects import ContextCpu
 from xtrack.aperture import Aperture
 
-which_ir = '2'
 
-base = "./acc-models-lhc/"
+BASE_DIR = Path(__file__).resolve().parents[3] / "test_data" / "hllhc19_apertures"
+which_ir = "2"
 
-lhc = xt.load(f"{base}/xsuite/lhc_aperture.json")
-lhc.vars.load(f"{base}/strengths/cycle_round_v0/opt_6000.madx")
-lhc.set_particle_ref(p0c=450e9)
-
-opt = LHCOptics.from_xsuite(lhc)
-mad = opt.make_madx_model()
-apm = mad.get_ap_irs()
-
-lhc.b1.metadata["aperture_offsets"] = {}
-lhc.b2.metadata["aperture_offsets"] = {}
-for ipn in range(1, 9):
-    for beam in "14":
-        tfs = Table.from_tfs(f"./temp/offset.ip{ipn}.b{beam}.tfs")
-        line = lhc.b1 if beam == "1" else lhc.b2
-        line.metadata["aperture_offsets"][f"ip{ipn}"] = tfs._data.copy()
-
-ir = apm[f"ir{which_ir}b1"]
+lhc = xt.load(BASE_DIR / "lhc_aperture.json")
 
 context = ContextCpu(omp_num_threads="auto")
 b1 = lhc.b1
@@ -36,24 +22,12 @@ aperture_model = Aperture.from_line_with_madx_metadata(
     include_offsets=True,
     context=context,
 )
+reference = json.loads((BASE_DIR / f"ir{which_ir}b1.json").read_text())
 
-aperture_model.halo_params.update(
-    {
-        "emitx_norm": ir.exn,
-        "emity_norm": ir.eyn,
-        "delta_rms": ir.dp_bucket_size,
-        "tol_co": ir.co_radius,
-        "tol_disp": ir.paras_dx,
-        "tol_disp_ref": ir.dqf,
-        "tol_disp_ref_beta": ir.betaqfx,
-        "tol_beta_beating": ir.beta_beating,
-    }
-)
+aperture_model.halo_params.update(reference["halo_params"])
 
-s_ip_m, = ir.rows[f"ip{which_ir}:1"].s
-s_ip_x, = b1.get_table().rows[f"ip{which_ir}"].s
-s_positions = np.array(ir.s - s_ip_m + s_ip_x, dtype=float)
-n1_madx = np.array(ir.n1, dtype=float)
+s_positions = np.array(reference["s_positions"], dtype=float)
+n1_madx = np.array(reference["n1_madx"], dtype=float)
 
 n1_rays, twiss = aperture_model.get_aperture_sigmas_at_s(
     s_positions=s_positions,

@@ -16,3 +16,4 @@ xtrack/prebuilt_kernels
 !xtrack/prebuilt_kernels/*.py
 checkpoint_restart.dat
 .idea
+.claude/

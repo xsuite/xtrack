@@ -34,7 +34,7 @@ n_cav = 6
 
 mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10 / n_cav   # To stay in the linear region
 mad.sequence.sps.elements['actcse.31632'].freq = 3
-mad.sequence.sps.elements['actcse.31632'].phase = np.pi
+mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 
 mad.input('twiss, table=tw6d;')
@@ -49,30 +49,39 @@ line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
 line.cycle('bpv.11706', inplace=True)
 
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.11706',
-                    name='cav1')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.21508',
-                    name='cav2')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.41508',
-                    name='cav4')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508',
-                    name='cav5')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508',
-                    name='cav6')
+env = line.env
+# Create thin cavities with same properties as actcse.31632
+env.new('cav1', 'actcse.31632', length=0)
+env.new('cav2', 'actcse.31632', length=0)
+env.new('cav3', 'actcse.31632', length=0)
+env.new('cav4', 'actcse.31632', length=0)
+env.new('cav5', 'actcse.31632', length=0)
+env.new('cav6', 'actcse.31632', length=0)
+
+line.insert([
+    env.place('cav1', at='bpv.11706'),
+    env.place('cav2', at='bpv.21508'),
+    env.place('cav3', at='bpv.31508'),
+    env.place('cav4', at='bpv.41508'),
+    env.place('cav5', at='bpv.51508'),
+    env.place('cav6', at='bpv.61508'),
+])
 
 tt = line.get_table()
 
 s_start_wig = tt['s', 'actcsg.31780']
 
 line.discard_tracker()
-line.insert_element(name='wig1', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+0*0.5)
-line.insert_element(name='wig2', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+1*0.5)
-line.insert_element(name='wig3', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+2*0.5)
-line.insert_element(name='wig4', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+3*0.5)
-line.insert_element(name='wig5', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+4*0.5)
-line.insert_element(name='wig6', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+5*0.5)
-line.insert_element(name='wig7', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+6*0.5)
-line.insert_element(name='wig8', element=xt.Bend(length=0.5, rot_s_rad=np.pi/2), at_s=s_start_wig+0.1+7*0.5)
+line.insert([
+    env.new('wig1', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+0*0.5),
+    env.new('wig2', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+1*0.5),
+    env.new('wig3', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+2*0.5),
+    env.new('wig4', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+3*0.5),
+    env.new('wig5', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+4*0.5),
+    env.new('wig6', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+5*0.5),
+    env.new('wig7', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+6*0.5),
+    env.new('wig8', xt.Bend, length=0.5, rot_s_rad=np.pi/2, at=s_start_wig+0.1+7*0.5),
+])
 
 line['k_wig'] = 0
 line['wig1'].k0 = 'k_wig'

@@ -27,12 +27,13 @@ sig_rays = n1_rays.n1
 aper_rays = n1_rays.cross_section
 
 # Calculate extents
-envel, tw_envel = aperture_model.get_envelope_at_s(
+envel_table, tw_envel = aperture_model.get_envelope_at_s(
     s_positions=np.linspace(0, lhc_length, int(lhc_length)),
     sigmas=5,
     envelopes_num_points=12,
     include_aper_tols=False,
 )
+envel = envel_table.cross_section
 
 cs_s = np.linspace(0, lhc_length, int(lhc_length))
 cs_table = aperture_model.cross_sections_at_s(s_positions=cs_s)

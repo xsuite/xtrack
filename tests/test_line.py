@@ -15,7 +15,8 @@ import pytest
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, for_all_test_contexts)
 from xtrack import Line, Node, Multipole
 
 test_data_folder = pathlib.Path(
@@ -184,6 +185,26 @@ def test_line_xcoll_facade(monkeypatch):
             FutureWarning,
             match=r'`Line\.collimators` is deprecated'):
         assert line.collimators is line.xcoll.collimators
+
+
+def test_line_xpart_facade(monkeypatch):
+
+    class FakeXpartLineAPI:
+        def __init__(self, line):
+            self.line = line
+
+    xpart_module = types.ModuleType('xpart')
+    line_tools_module = types.ModuleType('xpart.line_tools')
+    line_tools_module.XpartLineAPI = FakeXpartLineAPI
+    xpart_module.line_tools = line_tools_module
+    monkeypatch.setitem(sys.modules, 'xpart', xpart_module)
+    monkeypatch.setitem(sys.modules, 'xpart.line_tools', line_tools_module)
+
+    line = xt.Line(elements=[], element_names=[])
+
+    assert isinstance(line.xpart, FakeXpartLineAPI)
+    assert line.xpart is line.xpart
+    assert line.xpart.line is line
 
 
 def test_remove_redundant_apertures():
@@ -430,9 +451,9 @@ def test_get_elements_of_type_is_deprecated():
     assert names == ['cav']
 
 
+@allow_no_prebuilt_kernels
 def test_insert_omp():
 
-    skip_if_forbid_compile()
 
     ctx = xo.ContextCpu(omp_num_threads='auto')
     buffer = ctx.new_buffer()
@@ -845,9 +866,9 @@ def test_from_json_to_json(tmp_path):
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_config_propagation(test_context):
 
-    skip_if_forbid_compile()
 
     line = xt.Line(elements=10*[xt.Drift(length=1)])
     line.config.TEST1 = True
@@ -988,6 +1009,42 @@ def test_line_attr_ks():
     xo.assert_allclose(
         line.attr['ks'],
         [0, 0.3, 0.5 * (0.6 + 1.4), 0.5 * (0.8 + 1.6)],
+        rtol=0,
+        atol=1e-14,
+    )
+
+
+def test_line_attr_splineboris_bs():
+    from xtrack.twiss import OTHER_FIELDS_FROM_ATTR
+
+    assert 'bs' in OTHER_FIELDS_FROM_ATTR
+
+    line = xt.Line(
+        elements=[
+            xt.Drift(length=1),
+            xt.SplineBoris(
+                length=2,
+                bs=xt.Spline4(1, 2, 3, 4, 5),
+                scale_b=1.7,
+            ),
+        ],
+    )
+
+    line.build_tracker()
+
+    xo.assert_allclose(
+        line.attr['bs'],
+        [0, 5 * 1.7],
+        rtol=0,
+        atol=1e-14,
+    )
+
+    line[1].bs[4] = 7
+    line[1].scale_b = 2.5
+
+    xo.assert_allclose(
+        line.attr['bs'],
+        [0, 7 * 2.5],
         rtol=0,
         atol=1e-14,
     )

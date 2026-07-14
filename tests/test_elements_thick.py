@@ -13,7 +13,8 @@ from cpymad.madx import Madx
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, for_all_test_contexts, skip_if_forbid_compile)
 from xtrack.mad_loader import MadLoader
 from xtrack.slicing import Strategy, Uniform
 
@@ -1102,9 +1103,9 @@ def test_import_thick_quad_from_madx_and_slice_native():
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_fringe_implementations(test_context):
 
-    skip_if_forbid_compile()
 
     fringe = xt.DipoleEdge(k=0.12, fint=100, hgap=0.035, model='full')
 
@@ -2215,6 +2216,7 @@ def test_solenoid_multipole_rotations():
         ('quantum', {}),
     ],
 )
+@allow_no_prebuilt_kernels(skip_when_forbid_compile=False)
 def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
 
     if config.get('XTRACK_SYNRAD_KICK_SAME_AS_FIRST', False):
@@ -2282,6 +2284,7 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
         ('quantum', {}),
     ],
 )
+@allow_no_prebuilt_kernels(skip_when_forbid_compile=False)
 def test_solenoid_with_kicks_radiation(radiation_mode, config):
 
     if config.get('XTRACK_SYNRAD_KICK_SAME_AS_FIRST', False):

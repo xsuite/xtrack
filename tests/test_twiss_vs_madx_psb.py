@@ -2,6 +2,7 @@ import pathlib
 
 import numpy as np
 from cpymad.madx import Madx
+import pytest
 
 import xobjects as xo
 import xpart as xp
@@ -12,6 +13,7 @@ from scipy.constants import c as clight
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
+@pytest.mark.filterwarnings('ignore::xtrack.mad_parser.loader.MADLoaderWarning')
 @for_all_test_contexts
 def test_twiss_psb(test_context):
 
@@ -26,7 +28,6 @@ def test_twiss_psb(test_context):
 
     env = xt.load(test_data_folder / 'psb_injection/psb_injection.seq')
     line = env['psb']
-    line.set_particle_ref('proton', gamma0=mad.sequence['psb'].beam.gamma)
 
     line.build_tracker(_context=test_context)
     beta0 = line.particle_ref.beta0[0]
@@ -129,4 +130,3 @@ def test_twiss_psb(test_context):
 
     xo.assert_allclose(tw.dqx, twmad.summary.dq1 * beta0, rtol=0, atol=1e-3)
     xo.assert_allclose(tw.dqy, twmad.summary.dq2 * beta0, rtol=0, atol=1e-3)
-

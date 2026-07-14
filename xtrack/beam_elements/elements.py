@@ -2,6 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2025.                 #
 # ######################################### #
+import copy
 from typing import List
 from warnings import warn
 
@@ -37,6 +38,7 @@ _INDEX_TO_MODEL_CURVED = {
     5: 'drift-kick-drift-exact',
     6: 'drift-kick-drift-expanded',
     7: 'rot-kick-rot-low-order',
+    8: 'rot-kick-rot-high-order',
 }
 _MODEL_TO_INDEX_CURVED = {k: v for v, k in _INDEX_TO_MODEL_CURVED.items()} | {'expanded': 4}
 
@@ -153,6 +155,10 @@ class SynchrotronRadiationRecord(xo.HybridClass):
         'particle_id': xo.Int64[:],
         'particle_delta': xo.Float64[:]
     }
+
+# Imported here (after SynchrotronRadiationRecord definition) to avoid
+# circular import issues while keeping SplineBoris in its own module.
+from .splineboris import Spline4, SplineBoris
 
 class _HasIntegrator:
 
@@ -373,12 +379,14 @@ class _HasKnlKsl:
 
         knl = np.zeros(nn, dtype=np.float64)
         ksl = np.zeros(nn, dtype=np.float64)
-        knl[: len(self.knl)] += self.knl
-        ksl[: len(self.ksl)] += self.ksl
+        knl[: len(self.knl)] += self._context.nparray_from_context_array(self.knl)
+        ksl[: len(self.ksl)] += self._context.nparray_from_context_array(self.ksl)
 
         if 'knl_rel' in self._xo_fnames:
-            knl[: len(self.knl_rel)] += self.main_strength * self.knl_rel
-            ksl[: len(self.ksl_rel)] += self.main_strength * self.ksl_rel
+            knl[: len(self.knl_rel)] += self._context.nparray_from_context_array(
+                self.main_strength * self.knl_rel)
+            ksl[: len(self.ksl_rel)] += self._context.nparray_from_context_array(
+                self.main_strength * self.ksl_rel)
 
         if 'k0' in self._xo_fnames:
             if hasattr(self, '_k0'): # To bypass k0 = from_angle
@@ -556,6 +564,27 @@ class ReferenceEnergyIncrease(BeamElement):
     ]
 
     has_backtrack = True
+    allow_rot_and_shift = False
+
+
+class ReferenceEnergyChange(BeamElement):
+
+    '''Beam element setting the reference momentum to an absolute value.
+
+    Parameters
+    ----------
+    p0c : float
+        New reference momentum in eV/c. Default is ``0``.
+
+    '''
+
+    _xofields = {
+        'p0c': xo.Float64}
+
+    _extra_c_sources = [
+        '#include "xtrack/beam_elements/elements_src/referenceenergychange.h"',
+    ]
+
     allow_rot_and_shift = False
 
 
@@ -1690,7 +1719,7 @@ class TimeDelay(BeamElement):
     '''Beam element modeling a time delay, by applying the following transformation
     to the variable ``zeta``:
 
-        zeta_new = zeta_old + shift_zeta
+        zeta_new = zeta_old - shift_zeta
 
     Parameters
     ----------
@@ -2311,7 +2340,7 @@ class RBend(_BendCommon, BeamElement):
 
     Parameters
     ----------
-    length_straith : float
+    length_strait : float
         Length of the element in meters along the axis of the magnet (straight line
         between entry and exit points). This is different from the length of the
         reference trajectory, i.e. the increase of the `s` coordinate through the
@@ -3284,8 +3313,14 @@ class Magnet(_BendCommon, BeamElement):
             - ``bend-kick-bend``: use a thick (curved, if ``h`` non-zero) exact
                 bend map for ``k0``, ``h``, and handle the other strengths in
                 the kicks.
-            - ``rot-kick-rot``: use an exact drift map (polar, if ``h`` non-zero)
-                and handle all strengths in the kicks.
+            - ``rot-kick-rot-low-order``: use an exact drift map (polar,
+                if ``h`` non-zero) and handle all strengths in the kicks.
+            - ``rot-kick-rot``: nested integration scheme, alternating: 1. Yoshida-4
+                slices with exact drift maps (polar, if ``h`` non-zero) and k0-only
+                kicks; 2. kicks for the remaining strengths.
+            -   ``rot-kick-rot-high-order``: nested integration scheme, alternating:
+                1. Yoshida-6 slices with exact drift maps (polar, if ``h`` non-zero)
+                and k0-only kicks; 2. kicks for the remaining strengths.
             - ``mat-kick-mat``: use an expanded combined-function magnet map
                 for ``k0``, ``k1``, ``h``, and handle the other strengths in
                 the kicks.

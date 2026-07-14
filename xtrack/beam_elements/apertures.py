@@ -276,6 +276,13 @@ class LimitPolygon(BeamElement):
                     path, scale=scale, curved_steps=curved_steps, line_steps=2
                 )
             assert len(x_vertices) == len(y_vertices)
+            context = kwargs.get("_context", None)
+            if context is None and kwargs.get("_buffer", None) is not None:
+                context = kwargs["_buffer"].context
+            if context is not None and isinstance(x_vertices, context.nplike_array_type):
+                x_vertices = context.nparray_from_context_array(x_vertices)
+            if context is not None and isinstance(y_vertices, context.nplike_array_type):
+                y_vertices = context.nparray_from_context_array(y_vertices)
 
             if "x_normal" not in kwargs.keys():
                 kwargs["x_normal"] = len(x_vertices)
@@ -322,6 +329,12 @@ class LimitPolygon(BeamElement):
 
     @classmethod
     def from_dict(cls, d, **kwargs):
+        d = d.copy()
+        for kk in (
+            "min_x", "max_x", "min_y", "max_y",
+            "inner_min_x", "inner_max_x", "inner_min_y", "inner_max_y",
+        ):
+            d.pop(kk, None)
         if 'svg' in d.keys() and d['svg'] is not None:
             d.pop('x_vertices')
             d.pop('y_vertices')

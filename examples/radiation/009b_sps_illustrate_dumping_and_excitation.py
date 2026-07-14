@@ -24,7 +24,7 @@ n_cav = 6
 
 mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10 / n_cav   # To stay in the linear region
 mad.sequence.sps.elements['actcse.31632'].freq = 10
-mad.sequence.sps.elements['actcse.31632'].phase = np.pi
+mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 mad.input('twiss, table=tw6d;')
 twm6d = mad.table.tw6d
@@ -36,18 +36,25 @@ line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
                                   deferred_expressions=True)
 line.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
-line.cycle('bpv.11706_entry', inplace=True)
+line.cycle('bpv.11706', inplace=True)
 
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.11706_entry',
-                    name='cav1')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.21508_entry',
-                    name='cav2')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.41508_entry',
-                    name='cav4')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508_entry',
-                    name='cav5')
-line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508_entry',
-                    name='cav6')
+# Create thin cavities with same properties as actcse.31632
+env = line.env
+env.new('cav1', 'actcse.31632', length=0)
+env.new('cav2', 'actcse.31632', length=0)
+env.new('cav3', 'actcse.31632', length=0)
+env.new('cav4', 'actcse.31632', length=0)
+env.new('cav5', 'actcse.31632', length=0)
+env.new('cav6', 'actcse.31632', length=0)
+
+line.insert([
+    env.place('cav1', at='bpv.11706'),
+    env.place('cav2', at='bpv.21508'),
+    env.place('cav3', at='bpv.31508'),
+    env.place('cav4', at='bpv.41508'),
+    env.place('cav5', at='bpv.51508'),
+    env.place('cav6', at='bpv.61508'),
+])
 
 tt = line.get_table()
 
@@ -61,6 +68,7 @@ slicing_strategies = [
     Strategy(slicing=Teapot(1)),  # Default
     Strategy(slicing=Teapot(2), element_type=xt.Bend),
     Strategy(slicing=Teapot(8), element_type=xt.Quadrupole),
+    Strategy(slicing=None, element_type=xt.Cavity),
 ]
 
 line.slice_thick_elements(slicing_strategies)

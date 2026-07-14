@@ -31,6 +31,24 @@ TRANSLATE_PARAMS = {
     "harmon": "harmonic",
 }
 
+BEAM_TO_PARTICLE_REF = {
+    "mass": "mass0",
+    "charge": "q0",
+    "energy": "energy0",
+    "pc": "p0c",
+    "brho": "rigidity0",
+    "gamma": "gamma0",
+    "beta": "beta0",
+}
+
+BEAM_PARTICLE_ALIASES = {
+    "antiproton": "anti-proton",
+    "anti-proton": "anti-proton",
+    "posmuon": "muon+",
+    "negmuon": "muon-",
+    "ion": "ion",
+}
+
 CONSTANTS = {
     "pi": np.pi,
     "twopi": np.pi * 2,
@@ -175,6 +193,7 @@ class MadxLoader:
             self._parse_elements(parsed_dict["elements"])
             composers = self._parse_lines(parsed_dict["lines"])
             self._parse_parameters(parsed_dict["parameters"])
+            self._parse_beams(parsed_dict["beams"])
             self.composers.update(composers)
 
         # Handle variables obtained from arrow operations
@@ -266,7 +285,50 @@ class MadxLoader:
             params, extras = get_params(el_params, parent=element)
             self._set_element(element, self.env, **params, extra=extras)
 
-    def _parse_components(self, composer, elements: List[Tuple[str, Union[ElementType, LineType]]]):
+    def _parse_beams(self, beams: List[Dict[str, VarType]]):
+        for beam_params in beams:
+            self._parse_beam(beam_params)
+
+    def _parse_beam(self, beam_params: Dict[str, VarType]):
+        params = beam_params.copy()
+        sequence = params.pop('sequence', None)
+        particle = params.pop('particle', None)
+
+        particle_ref_kwargs = {}
+        if particle is not None:
+            particle_name = BEAM_PARTICLE_ALIASES.get(str(particle).lower(), str(particle).lower())
+            if particle_name != 'ion':
+                particle_ref_kwargs['pdg_id_0'] = particle_name
+
+        for key, ref_key in BEAM_TO_PARTICLE_REF.items():
+            if key not in params:
+                continue
+            value = params.pop(key)
+            if key in {'mass', 'energy', 'pc'}:
+                value = value * 1e9
+            particle_ref_kwargs[ref_key] = value
+
+        if params:
+            # Anything left here is a MAD-X beam option we do not map to the
+            # reference particle and therefore ignore.
+            _warn(f'Ignoring unsupported beam parameters {params}.')
+
+        beam_name = 'madx_beam' if sequence is None else f'madx_beam_for_{sequence}'
+        self.env.new_particle(beam_name, force=True, **particle_ref_kwargs)
+        self.env.particle_ref = beam_name
+
+        if sequence is None:
+            for line in self.env.lines.values():
+                line.particle_ref = beam_name
+        elif sequence in self.env.lines:
+            self.env.lines[sequence].particle_ref = beam_name
+        else:
+            _warn(f'Cannot set the beam on {sequence} as it does not exist.')
+
+    def _parse_components(
+            self, composer,
+            elements: List[Tuple[str, Union[ElementType, LineType]]]
+    ):
         for name, element in elements:
             params = element.copy()
             parent = params.pop('parent', None)

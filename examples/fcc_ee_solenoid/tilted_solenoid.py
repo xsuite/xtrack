@@ -1,5 +1,3 @@
-from math import factorial
-
 import numpy as np
 
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
@@ -33,44 +31,11 @@ class TiltedSolenoid:
 
         return bx, by, bz
 
-    @staticmethod
-    def finite_difference_coefficients(offsets, derivative_order):
-        offsets = np.asarray(offsets, dtype=float)
-        matrix = np.vstack([offsets**ii for ii in range(len(offsets))])
-        rhs = np.zeros(len(offsets))
-        rhs[derivative_order] = factorial(derivative_order)
-        return np.linalg.solve(matrix, rhs)
-
     def compute_pure_field_derivatives(
             self, s, direction, step, component, max_order=4, min_order=1):
-        offsets = np.arange(-4, 5)
-        zero = np.zeros_like(s)
-        component_index = {'x': 0, 'y': 1, 'z': 2}[component]
-        field_at_offsets = []
-
-        for offset in offsets:
-            if direction == 'x':
-                x = zero + offset * step
-                y = zero
-            elif direction == 'y':
-                x = zero
-                y = zero + offset * step
-            else:
-                raise ValueError("direction must be 'x' or 'y'")
-
-            field_at_offsets.append(self.get_field(x, y, s)[component_index])
-
-        field_at_offsets = np.array(field_at_offsets)
-
-        derivatives = {}
-        for order in range(min_order, max_order + 1):
-            coefficients = self.finite_difference_coefficients(offsets, order)
-            derivatives[order] = (
-                np.tensordot(coefficients, field_at_offsets, axes=(0, 0))
-                / step**order
-            )
-
-        return derivatives
+        return SolenoidField.compute_pure_field_derivatives(
+            self, s=s, direction=direction, step=step, component=component,
+            max_order=max_order, min_order=min_order)
 
     def compute_pure_by_derivatives(self, s, direction, step, max_order=4):
         return self.compute_pure_field_derivatives(

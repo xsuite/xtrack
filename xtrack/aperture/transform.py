@@ -1,6 +1,9 @@
-from typing import NamedTuple
+from typing import NamedTuple, Literal
 
 import numpy as np
+
+
+Frame = Literal['curved', 'straight']
 
 
 class Transform(NamedTuple):
@@ -13,12 +16,12 @@ class Transform(NamedTuple):
 
 
 def transform_matrix(
-    shift_x=0,
-    shift_y=0,
-    shift_z=0,
-    rot_y_rad=0,
-    rot_x_rad=0,
-    rot_z_rad=0,
+    shift_x=0.,
+    shift_y=0.,
+    shift_z=0.,
+    rot_y_rad=0.,
+    rot_x_rad=0.,
+    rot_z_rad=0.,
 ):
     """Generate a 3D transformation matrix.
 
@@ -109,3 +112,31 @@ def matrix_to_transform(matrix: np.ndarray) -> Transform:
         rot_x_rad=float(rot_x_rad),
         rot_z_rad=float(rot_z_rad),
     )
+
+
+def arc_matrix(length: float, angle: float, tilt: float) -> np.ndarray:
+    """Generate a 4x4 homogeneous transformation matrix for an arc, given its parameters."""
+    if abs(angle) < 1e-9:
+        return transform_matrix(shift_z=length, rot_z_rad=tilt)
+
+    ct = np.cos(tilt)
+    st = np.sin(tilt)
+    ca = np.cos(angle)
+    sa = np.sin(angle)
+    dx = length * (ca - 1) / angle
+    ds = length * sa / angle
+    return np.array(
+        [
+            [ct * ca, -st, -ct * sa, ct * dx],
+            [st * ca, ct, -st * sa, st * dx],
+            [sa, 0.0, ca, ds],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
+
+
+def poly2d_to_homogeneous(poly2d: np.ndarray) -> np.ndarray:
+    """Convert a 2D polygon to 3D homogeneous coordinates."""
+    num_points = poly2d.shape[0]
+    poly_hom = np.column_stack((poly2d, np.zeros(num_points), np.ones(num_points))).T
+    return poly_hom

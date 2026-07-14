@@ -92,7 +92,7 @@ def test_radiation_wiggler():
 
 def test_radiation_integrals_sls_combined_function_magnets():
 
-    env = xt.load(test_data_folder / 'sls_2.0/b075_2024.09.25.madx')
+    env = xt.load(test_data_folder / 'sls/sls.madx')
     line = env.ring
     line.particle_ref = xt.Particles(energy0=2.7e9, mass0=xt.ELECTRON_MASS_EV)
     line.configure_bend_model(num_multipole_kicks=20)

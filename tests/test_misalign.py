@@ -616,7 +616,7 @@ def test_thin_slice_misaligned_bend_valid_invalid(transformations, valid):
     line = env.new_line(components=[
         env.new(
             name='b',
-            parent='Bend',
+            prototype='Bend',
             angle=0.1,
             k0=0,
             length=2,

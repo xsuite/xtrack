@@ -80,6 +80,66 @@ static inline char polygon_is_convex(const Point2D *poly, int len_poly)
 }
 
 
+static inline char horizontal_ray_intersects_segment(const Point2D* q, const Point2D* a, const Point2D* b)
+{
+    // Straddle test
+    const int above_a = (a->y > q->y);
+    const int above_b = (b->y > q->y);
+    if (above_a == above_b) return 0;
+
+    const float_type dx = b->x - a->x;
+    const float_type dy = b->y - a->y;
+
+    const float_type lhs = dx * (q->y - a->y);
+    const float_type rhs = (q->x - a->x) * dy;
+
+    return (dy > 0) ? (lhs > rhs) : (lhs < rhs);
+}
+
+
+static inline char is_point_inside_polygon_points(const Point2D* point, const Point2D* points, const int len_points)
+/*
+    Determine if a point is inside a polygon.
+
+    Assume the polygon is closed, i.e. that points[-1] == points[0].
+*/
+{
+    char inside = 0;
+    for (int i = 0; i < len_points - 1; i++)
+    {
+        const Point2D* a = &points[i];
+        const Point2D* b = &points[i + 1];
+        inside ^= horizontal_ray_intersects_segment(point, a, b);
+    }
+
+    // If count is odd, point is inside (return true), otherwise return false
+    return inside;
+}
+
+
+static inline char points_inside_polygon_points(
+    const Point2D* points,
+    const Point2D* poly_points,
+    const int len_points,
+    const int len_poly_points)
+/*
+    Given a set of point, determine if they are inside a polygon. False if there
+    is at least one point outside of the polygon, and true if all points
+    are contained in the polygon.
+
+    Assume the polygon is closed, i.e. that poly_points[-1] == poly_points[0].
+*/
+{
+    for (int i = 0; i < len_points; i++)
+    {
+        const Point2D point = points[i];
+        if (!is_point_inside_polygon_points(&point, poly_points, len_poly_points))
+            return 0;
+    }
+    return 1;
+}
+
+
 static inline Racetrack_s add_racetracks(Racetrack_s rt1, Racetrack_s rt2)
 /* Minkowski sum of two racetracks */
 {

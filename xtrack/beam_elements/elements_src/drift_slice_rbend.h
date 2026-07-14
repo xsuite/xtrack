@@ -22,7 +22,6 @@
 
             double weight = DriftSliceRBendData_get_weight(el);
             int64_t rbend_model = DriftSliceRBendData_get__parent_rbend_model(el);
-            double full_length;
             double length_drift;
             double ds_corr = 0;
             double full_length_curved = DriftSliceRBendData_get__parent_length(el);

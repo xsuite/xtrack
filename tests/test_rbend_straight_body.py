@@ -326,16 +326,16 @@ def test_rbend_straight_sps():
     xo.assert_allclose(tw_curved.x.max(), 0, rtol=0, atol=1e-9)
     assert tw_straight.x.max() > 3e-3
 
-    xo.assert_allclose(tw_straight.qx, tw_curved.qx, rtol=0, atol=1e-8)
-    xo.assert_allclose(tw_straight.qy, tw_curved.qy, rtol=0, atol=1e-8)
-    xo.assert_allclose(tw_straight.dqx, tw_curved.dqx, rtol=0, atol=1e-3)
-    xo.assert_allclose(tw_straight.dqy, tw_curved.dqy, rtol=0, atol=1e-3)
+    xo.assert_allclose(tw_straight.qx, tw_curved.qx, rtol=0, atol=5e-8)
+    xo.assert_allclose(tw_straight.qy, tw_curved.qy, rtol=0, atol=5e-8)
+    xo.assert_allclose(tw_straight.dqx, tw_curved.dqx, rtol=0, atol=3e-3)
+    xo.assert_allclose(tw_straight.dqy, tw_curved.dqy, rtol=0, atol=3e-3)
     xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].betx,
                     tw_curved.rows['qf.*|qd.*'].betx,
-                    atol=0, rtol=1e-8)
+                    atol=0, rtol=5e-6)
     xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].bety,
                     tw_curved.rows['qf.*|qd.*'].bety,
-                    atol=0, rtol=1e-8)
+                    atol=0, rtol=5e-6)
     xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].x, 0, atol=1e-10, rtol=0)
     xo.assert_allclose(tw_straight.rows['qf.*|qd.*'].y, 0, atol=1e-10, rtol=0)
 

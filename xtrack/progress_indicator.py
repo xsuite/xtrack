@@ -96,9 +96,12 @@ try:
     with warnings.catch_warnings(): # To avoid warnings from tqdm.autonotebook (experimental module)
         warnings.simplefilter("ignore")
         from tqdm.autonotebook import tqdm
-        from tqdm.notebook import tqdm_notebook
+        try:
+            from tqdm.notebook import tqdm_notebook
+        except:
+            tqdm_notebook = None
 
-    if tqdm is tqdm_notebook:  # tqdm determined we're in a notebook.
+    if tqdm_notebook is not None and tqdm is tqdm_notebook:  # tqdm determined we're in a notebook.
         class PatchedTqdm(tqdm):
             """Patched version of tqdm_notebook.
 

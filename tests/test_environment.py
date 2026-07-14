@@ -1663,6 +1663,44 @@ def test_env_new():
     assert env[ret].b == 3
 
 
+def test_env_new_prototype_keyword_and_deprecated_parent():
+
+    env = xt.Environment()
+
+    env.new('q0', prototype='Quadrupole', length=1.0)
+    assert isinstance(env['q0'], xt.Quadrupole)
+
+    env.new('q1', prototype='q0')
+    assert isinstance(env['q1'], xt.Quadrupole)
+    assert env['q1'].prototype == 'q0'
+
+    with pytest.warns(FutureWarning, match='`parent` argument'):
+        env.new('q2', parent='q0')
+    assert isinstance(env['q2'], xt.Quadrupole)
+    assert env['q2'].prototype == 'q0'
+
+    with pytest.raises(TypeError, match='Only one of `prototype`'):
+        env.new('q3', prototype='Quadrupole', parent='q0')
+
+
+def test_line_new_prototype_keyword_and_deprecated_aliases():
+
+    line = xt.Environment().new_line(compose=True)
+
+    line.new('q0', prototype='Quadrupole', length=1.0, at=1.0)
+    assert isinstance(line.env['q0'], xt.Quadrupole)
+
+    with pytest.warns(FutureWarning, match='`parent` argument'):
+        line.new('q1', parent='q0', at=2.0)
+    assert isinstance(line.env['q1'], xt.Quadrupole)
+    assert line.env['q1'].prototype == 'q0'
+
+    with pytest.warns(FutureWarning, match='`cls` argument'):
+        line.new('q2', cls='q0', at=3.0)
+    assert isinstance(line.env['q2'], xt.Quadrupole)
+    assert line.env['q2'].prototype == 'q0'
+
+
 def test_neg_line():
 
     line = xt.Line(elements=[xt.Bend(k0=0.5), xt.Quadrupole(k1=0.1)])
@@ -4695,3 +4733,37 @@ def test_environment_xcoll_facade(monkeypatch):
     assert isinstance(env.xcoll, FakeXcollEnvironmentAPI)
     assert env.xcoll is env.xcoll
     assert env.xcoll._env is env
+
+def test_environment_new_with_name_in_at():
+
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new('m1', xt.Marker, at=2.0),
+        env.new('m2', xt.Marker, at='m1')
+    ])
+
+    tt = line.get_table()
+    assert np.all(tt.name == np.array(['||drift_1', 'm1', 'm2', '_end_point']))
+    xo.assert_allclose(tt.s, np.array([0.0, 2.0, 2.0, 2.0]), rtol=0, atol=1e-15)
+
+
+def test_environment_import_anonymous_line():
+
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new('m1', xt.Marker, at=2.0),
+        env.new('m2', xt.Marker, at='m1')
+    ])
+
+    env2 = xt.Environment()
+    line2 = env2.import_line(line)
+
+    tt = line.get_table()
+    tt2 = line2.get_table()
+
+    assert np.all(tt.name == tt2.name)
+    xo.assert_allclose(tt.s_center, tt2.s_center)
+
+    assert env is not env2
+    assert line.env is env
+    assert line2.env is env2

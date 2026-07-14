@@ -10,13 +10,21 @@ import xobjects as xo
 line = xt.load('../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
 line.set_particle_ref('proton', p0c=7e12)
 
+env = line.env
+
 num_particles = 50
-monitor_ip5 = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=15,
+
+# Create the monitors
+env.elements['mymon5'] = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=15,
                                     num_particles=num_particles)
-monitor_ip8 = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=15,
+env.elements['mymon8'] = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=15,
                                     num_particles=num_particles)
-line.insert_element(index='ip5', element=monitor_ip5, name='mymon5')
-line.insert_element(index='ip8', element=monitor_ip8, name='mymon8')
+
+# Place the monitors in the line
+line.insert([
+    env.place('mymon5', at='ip5'),
+    env.place('mymon8', at='ip8'),
+])
 
 particles = xp.generate_matched_gaussian_bunch(line=line,
                                                num_particles=num_particles,

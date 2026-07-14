@@ -5,6 +5,7 @@
 
 from .acdipole import ACDipole
 from .elements import *
+from .splineboris import *
 from .exciter import Exciter
 from .apertures import *
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
