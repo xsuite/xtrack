@@ -528,9 +528,13 @@ void track_magnet_particles(
         XT_NUM _kproto = LocalParticle_get_x(part0);
         #define XT_KZERO (0.0 * _kproto)
         #define XT_KL(v) (0.0 * _kproto + (v))
+        /* XT_K(slot, v): parametric if this strength's address was registered for the
+         * current element (XT_KNOB_SET in the header), else a constant lift of v. */
+        #define XT_K(slot, v) xt_knob(xt_cur_addr[slot], (v))
 #else
         #define XT_KZERO 0.0
         #define XT_KL(v) (v)
+        #define XT_K(slot, v) (v)
 #endif
 
         if (integrator == 0){
@@ -553,7 +557,7 @@ void track_magnet_particles(
         if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
             // If there are active kicks the number of kicks is guessed. Otherwise,
             // only the drift is performed.
-            if (!kick_is_inactive(order, knl, ksl, XT_KL(k0), XT_KL(k1), XT_KL(k2), XT_KL(k3), XT_KL(k0s), XT_KL(k1s), XT_KL(k2s), XT_KL(k3s), h)){
+            if (!kick_is_inactive(order, knl, ksl, XT_K(0,k0), XT_K(1,k1), XT_K(2,k2), XT_K(3,k3), XT_K(4,k0s), XT_K(5,k1s), XT_K(6,k2s), XT_K(7,k3s), h)){
                 if (fabs(h) < 1e-8){
                     num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
                 }
@@ -576,8 +580,8 @@ void track_magnet_particles(
         int8_t drift_model=0;
         configure_tracking_model(
             model,
-            XT_KL(k0),
-            XT_KL(k1),
+            XT_K(0,k0),
+            XT_K(1,k1),
             h,
             XT_KL(ks),
             &k0_drift,
@@ -605,7 +609,7 @@ void track_magnet_particles(
                 k0_drift, k1_drift, ks_drift, h_drift,
                 k0_kick, k1_kick, h_kick, hxl,
                 k0_h_correction, k1_h_correction,
-                XT_KL(k2), XT_KL(k3), XT_KL(k0s), XT_KL(k1s), XT_KL(k2s), XT_KL(k3s),
+                XT_K(2,k2), XT_K(3,k3), XT_K(4,k0s), XT_K(5,k1s), XT_K(6,k2s), XT_K(7,k3s),
                 dks_ds,
                 x0_solenoid, y0_solenoid,
                 radiation_flag,
@@ -625,6 +629,7 @@ void track_magnet_particles(
         }
         #undef XT_KZERO
         #undef XT_KL
+        #undef XT_K
     }
 
     if (edge_exit_active){

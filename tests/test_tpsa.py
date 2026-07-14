@@ -758,3 +758,46 @@ def test_particles_tpsa_with_knobs_descriptor():
     assert p.descriptor.monomial_length == 8          # 6 coords + 2 params
     assert np.allclose(p.jacobian(), np.eye(6))       # identity map before tracking
     assert np.allclose(p.param_jacobian(), 0.0)       # no knob dependence yet
+
+
+def test_parametric_track_matches_fd():
+    """Route B end-to-end: one knobbed track gives d(coord)/d(knob) == central FD."""
+    env = xt.Environment()
+    env['kqf'] = 0.02
+    env['kqd'] = -0.015
+    env['ksx'] = 3.0
+    line = env.new_line(components=[
+        env.new('d0', xt.Drift, length=0.5),
+        env.new('qf', xt.Quadrupole, length=1.0, k1='kqf'),
+        env.new('d1', xt.Drift, length=1.2),
+        env.new('sx', xt.Sextupole, length=0.3, k2='ksx'),
+        env.new('d2', xt.Drift, length=1.2),
+        env.new('qd', xt.Quadrupole, length=1.0, k1='kqd'),
+        env.new('d3', xt.Drift, length=0.5),
+    ])
+    # deliberately NOT building the tracker here: the first track builds it and
+    # relocates element buffers, which the knob-address table must account for.
+    names = ['kqf', 'kqd', 'ksx']
+
+    p = xtpsa.ParticlesTpsa(order=2, knobs=xtpsa.Knobs(line, names),
+                            p0c=P0C, mass0=MASS0, **X0)
+    line.track(p)
+    pj = p.param_jacobian()                      # (6, 3)
+    assert np.abs(pj).max() > 1e-6               # knob dependence is actually injected
+
+    def orbit():
+        q = xtpsa.ParticlesTpsa(order=1, p0c=P0C, mass0=MASS0, **X0)
+        line.track(q)
+        return q.const_part
+
+    fd = np.zeros((6, len(names)))
+    h = 1e-6
+    for j, nm in enumerate(names):
+        v0 = line[nm]
+        line[nm] = v0 + h
+        hi = orbit()
+        line[nm] = v0 - h
+        lo = orbit()
+        line[nm] = v0
+        fd[:, j] = (hi - lo) / (2 * h)
+    assert np.allclose(pj, fd, atol=1e-8), np.abs(pj - fd).max()

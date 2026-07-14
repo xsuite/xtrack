@@ -37,6 +37,16 @@
 #define XT_STRENGTH_CONST(s) (s)   /* const part of a strength (identity for double) */
 #endif
 
+// Parametric-knob address slots. A knobbable magnet header records a strength field's
+// buffer address in a slot (0..7 = k0,k1,k2,k3,k0s,k1s,k2s,k3s) before tracking; the
+// body's XT_K lift looks it up. No-ops for the double build (native + plain tpsa).
+#ifndef XT_KNOB_SET
+#define XT_KNOB_SET(slot, addr) ((void)0)
+#endif
+#ifndef XT_KNOB_CLEAR
+#define XT_KNOB_CLEAR() ((void)0)
+#endif
+
 /*
     The particle tracking "decorators" for all the contexts.
 */

@@ -17,6 +17,9 @@ void Octupole_track_local_particle(
         LocalParticle* part0
 ) {
 
+    XT_KNOB_SET(3, OctupoleData_getp_k3(el));   // slot 3 = k3
+    XT_KNOB_SET(7, OctupoleData_getp_k3s(el));  // slot 7 = k3s
+
     track_magnet_particles(
         /*weight*/                1.,
         /*part0*/                 part0,

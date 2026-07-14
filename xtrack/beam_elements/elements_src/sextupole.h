@@ -17,6 +17,9 @@ void Sextupole_track_local_particle(
         LocalParticle* part0
 ) {
 
+    XT_KNOB_SET(2, SextupoleData_getp_k2(el));   // slot 2 = k2
+    XT_KNOB_SET(6, SextupoleData_getp_k2s(el));  // slot 6 = k2s
+
     track_magnet_particles(
         /*weight*/                1.,
         /*part0*/                 part0,

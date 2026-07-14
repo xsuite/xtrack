@@ -76,7 +76,14 @@ def ffi() -> cffi.FFI:
 # (C++, linking the shared object), yielding two cffi API-mode modules, which are track functions.
 # The built ``.so`` is cached on disk keyed by (registry, flavor, xtrack rev): a matching one is
 # re-imported without recompiling; a stale key rebuilds.
-_BRIDGE_FLAVORS = ("num", "tpsa")
+_BRIDGE_FLAVORS = ("num", "tpsa", "tpsa_param")
+# Preprocessor defines per flavor. tpsa_param = tpsa + parametric knobs:
+# XT_STRENGTH becomes mad::tpsa and strengths flow through the knob table.
+_FLAVOR_DEFINES = {
+    "num": ["-DXT_FLAVOR_NUM"],
+    "tpsa": ["-DXT_FLAVOR_TPSA"],
+    "tpsa_param": ["-DXT_FLAVOR_TPSA", "-DXT_KNOBS"],
+}
 _bridge_modules: dict[str, dict[str, KernelCpu]] = {}  # flavor -> kernels
 _bridge_ctx: ContextCpu | None = None
 
@@ -111,25 +118,26 @@ def _xtrack_rev() -> str:
         return "unknown"
 
 
-def _knobs_measure(flavor: str) -> bool:
-    """Throwaway §2.1 measurement toggle: compile the tpsa flavor with -DXT_KNOBS
-    (constant-tpsa strengths) when XT_BRIDGE_KNOBS=1.  Folded into the cache key so it
-    gets its own module and never collides with the plain tpsa build."""
-    return flavor == "tpsa" and os.environ.get("XT_BRIDGE_KNOBS") == "1"
-
-
 def _bridge_entry_cdef(f: str) -> str:
-    return (
+    cdef = (
         f"void xt_bridge_track_element_{f}(int64_t type_id, void* el, void* p);\n"
         f"void xt_bridge_track_line_{f}(void* ref, int64_t ele_start, "
         f"int64_t num_elements, void* p, void* mon, int64_t flag_monitor);\n"
     )
+    if f == "tpsa_param":  # the parametric flavor also exposes the knob-table setter
+        cdef += (
+            f"void xt_bridge_set_knob_table_{f}(const void** addrs, const void** tpsas, "
+            f"const void* proto, int64_t n);\n"
+        )
+    return cdef
 
 
 def _bridge_kernel_descs(f: str) -> dict[str, Kernel]:
     import xobjects as xo
 
     names = [f"xt_bridge_track_element_{f}", f"xt_bridge_track_line_{f}"]
+    if f == "tpsa_param":
+        names.append(f"xt_bridge_set_knob_table_{f}")
     return {n: xo.Kernel(args=[], c_name=n) for n in names}
 
 
@@ -146,6 +154,7 @@ def _bridge_sources() -> list[str]:
     files = [
         os.path.join(here, "xt_bridge.cpp"),
         os.path.join(here, "xt_local_particle.hpp"),
+        os.path.join(here, "xt_knob.hpp"),
     ]
     files += sorted(
         os.path.join(gen, f)
@@ -170,11 +179,7 @@ def _bridge_cache_key(flavor: str) -> str:
     h = hashlib.sha1()
     h.update(
         json.dumps(
-            {
-                "flavor": flavor,
-                "xtrack": _xtrack_rev(),
-                "knobs": _knobs_measure(flavor),
-            },
+            {"flavor": flavor, "xtrack": _xtrack_rev()},
             sort_keys=True,
         ).encode()
     )
@@ -225,9 +230,8 @@ def bridge_lib(flavor: str, force: bool = False) -> dict[str, KernelCpu]:
             compiler_language="c++",
             extra_cdef=_bridge_entry_cdef(flavor),
             extra_compile_args=[
-                f"-DXT_FLAVOR_{flavor.upper()}",
+                *_FLAVOR_DEFINES[flavor],
                 "-DXTRACK_MULTIPOLE_NO_SYNRAD",
-                *(["-DXT_KNOBS"] if _knobs_measure(flavor) else []),
                 f"-I{here}",
                 f"-I{here}/build",
             ],

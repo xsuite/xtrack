@@ -47,6 +47,11 @@ def _element_ptr(element: xt.BeamElement, ffi: cffi.FFI | None = None) -> Any:
     return _xobject_ptr(element._xobject, ffi)
 
 
+def _flavor(particles: ParticlesTpsa) -> str:
+    """The bridge flavor a map needs: ``tpsa_param`` when it carries knobs, else ``tpsa``."""
+    return "tpsa_param" if particles.knobs is not None else "tpsa"
+
+
 def registry_classes() -> list[type[xt.BeamElement]]:
     """The registry's element classes, ordered so that ``index == typeid``.
 
@@ -130,9 +135,46 @@ class GtpsaBackend:
         """Track ``particles`` (a ``ParticlesTpsa`` map) through one ``element`` in place."""
         type_id = type_id_for(type(element).__name__)
         p = _fill_struct(particles)
-        fn, ffi = _gtpsa.bridge_entry("tpsa", "xt_bridge_track_element_tpsa")
+        flavor = _flavor(particles)
+        if particles.knobs is not None:
+            self._set_knob_table(particles, flavor)
+        fn, ffi = _gtpsa.bridge_entry(flavor, f"xt_bridge_track_element_{flavor}")
         fn(type_id, _element_ptr(element, ffi), _xobject_ptr(p, ffi))
         return particles
+
+    def _set_knob_table(self, particles: ParticlesTpsa, flavor: str) -> None:
+        """Push the knob table (addresses -> parametric strength TPSAs) into the C flavor.
+
+        Rebuilt before every track: element buffers may realloc, so the field addresses
+        are recomputed by ``Knobs.table()`` each call. Knobbed elements with active edges
+        are rejected (edge knob sensitivities are not implemented yet).
+        """
+        knobs = particles.knobs
+        for elem, _ in knobs._targets:
+            el = knobs.line.element_dict[elem]
+            if getattr(el, "edge_entry_active", 0) or getattr(
+                el, "edge_exit_active", 0
+            ):
+                raise NotImplementedError(
+                    f"knobbed element '{elem}' has active edges; edge knob sensitivities "
+                    f"are not supported yet (set edge_entry_active/edge_exit_active to 0)"
+                )
+        addrs, ptrs = knobs.table()
+        fn, ffi = _gtpsa.bridge_entry(flavor, f"xt_bridge_set_knob_table_{flavor}")
+        mad_ffi = _gtpsa.ffi()
+        n = len(addrs)
+        if n:
+            a_arr = ffi.new("void*[]", [ffi.cast("void*", int(a)) for a in addrs])
+            t_arr = ffi.new(
+                "void*[]",
+                [ffi.cast("void*", int(mad_ffi.cast("uintptr_t", p))) for p in ptrs],
+            )
+        else:
+            a_arr = t_arr = ffi.NULL
+        proto = ffi.cast(
+            "void*", int(mad_ffi.cast("uintptr_t", particles.coords[0]._p))
+        )
+        fn(a_arr, t_arr, proto, n)
 
     def track_line(
         self,
@@ -158,8 +200,19 @@ class GtpsaBackend:
             line, ele_start, ele_stop, num_elements, num_turns
         )
         mon, flag = self._resolve_monitor(line, particles, turn_by_turn_monitor, num)
-        fn, ffi = _gtpsa.bridge_entry("tpsa", "xt_bridge_track_line_tpsa")
+        flavor = _flavor(particles)
+        fn, ffi = _gtpsa.bridge_entry(flavor, f"xt_bridge_track_line_{flavor}")
+        # _refdata_ptr builds the tracker (relocating element buffers into it), so the
+        # knob-address table MUST be computed after it, against the same buffers the C
+        # loop reads. (Computing it earlier keys the table to pre-relocation addresses.)
         ref_ptr = self._refdata_ptr(line, ffi)
+        if particles.knobs is not None:
+            if particles.knobs.line is not line:
+                raise ValueError(
+                    "ParticlesTpsa knobs were built for a different line than the "
+                    "one being tracked"
+                )
+            self._set_knob_table(particles, flavor)
         p = _fill_struct(particles)
         # RF cavities read the revolution time off the ring circumference.
         p.line_length = float(line.tracker._tracker_data_base.line_length)
