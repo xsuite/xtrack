@@ -17,6 +17,9 @@ void Quadrupole_track_local_particle(
         LocalParticle* part0
 ) {
 
+    XT_KNOB_SET(1, QuadrupoleData_getp_k1(el));   // slot 1 = k1
+    XT_KNOB_SET(5, QuadrupoleData_getp_k1s(el));  // slot 5 = k1s
+
     track_magnet_particles(
         /*weight*/                1.,
         /*part0*/                 part0,

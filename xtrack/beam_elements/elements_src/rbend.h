@@ -17,6 +17,9 @@ void RBend_track_local_particle(
     LocalParticle* part0
 ) {
 
+    XT_KNOB_SET(0, RBendData_getp_k0(el));   // slot 0 = k0
+    XT_KNOB_SET(1, RBendData_getp_k1(el));   // slot 1 = k1
+
     track_magnet_particles(
         /*weight*/                1.,
         /*part0*/                 part0,

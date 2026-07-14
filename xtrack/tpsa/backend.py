@@ -164,7 +164,11 @@ class GtpsaBackend:
         # RF cavities read the revolution time off the ring circumference.
         p.line_length = float(line.tracker._tracker_data_base.line_length)
         mon_ptr = ffi.NULL if mon is None else _xobject_ptr(mon._xobject, ffi)
-        fn(ref_ptr, ele_start, num, _xobject_ptr(p, ffi), mon_ptr, flag)
+        # Route A: build the per-position dispatch array + push the knob table so the
+        # ~20-30 knobbed instances run the tpsa-strength kernel (all else stays double).
+        # _keep pins the arrays for the duration of the C call.
+        knob_ptr, _keep = self._knob_dispatch(line, particles, ele_start, num, ffi)
+        fn(ref_ptr, ele_start, num, _xobject_ptr(p, ffi), mon_ptr, flag, knob_ptr)
         line.tracker.record_last_track = (
             mon  # Line.record_last_track proxies the tracker
         )
@@ -176,6 +180,61 @@ class GtpsaBackend:
                 f"loss point is meaningless"
             )
         return particles
+
+    def _knob_dispatch(
+        self,
+        line: xt.Line,
+        particles: ParticlesTpsa,
+        ele_start: int,
+        num: int,
+        ffi: cffi.FFI,
+    ) -> tuple[Any, list[Any]]:
+        """Route A knob setup. Returns ``(knob_dispatch_ptr, keepalive)``.
+
+        ``knob_dispatch_ptr`` is ``NULL`` when the map carries no knobs (pure-double
+        path). Otherwise it is an ``int64_t[num]`` array holding ``real_typeid + 1``
+        at every knobbed instance's loop position and 0 elsewhere. The
+        knob table (field address -> parametric TPSA) is pushed via ``xt_knob_set_table``
+        before tracking. Both the address table and the dispatch array are rebuilt every
+        track (xobjects buffers may realloc). ``keepalive`` must outlive the C call.
+        """
+        knobs = particles.knobs
+        if knobs is None:
+            return ffi.NULL, []
+
+        knobbed = {e for e, _ in knobs._targets}
+        for name in knobbed:  # edge sensitivities are const in this milestone -> refuse
+            el = line.element_dict[name]
+            if getattr(el, "edge_entry_active", 0) or getattr(
+                el, "edge_exit_active", 0
+            ):
+                raise NotImplementedError(
+                    f"knobbed element '{name}' has active edges; turn edges off "
+                    f"(edge sensitivities are not parametric in this milestone)"
+                )
+
+        # Per-position dispatch array (real_typeid + 1 marks a knobbed instance).
+        kd = np.zeros(num, dtype=np.int64)
+        for j in range(num):
+            name = line.element_names[ele_start + j]
+            if name in knobbed:
+                kd[j] = type_id_for(type(line.element_dict[name]).__name__) + 1
+
+        # Push the knob table (field addr -> parametric TPSA). Cast everything to the
+        # bridge ffi via raw integer addresses (cross-ffi cdata is not interchangeable).
+        addrs, ptrs = knobs.table()
+        shared = _gtpsa.ffi()
+        addr_arr = ffi.new("void*[]", [ffi.cast("void*", int(a)) for a in addrs])
+        tpsa_arr = ffi.new(
+            "void*[]",
+            [ffi.cast("void*", int(shared.cast("uintptr_t", p))) for p in ptrs],
+        )
+        proto = ffi.cast("void*", int(shared.cast("uintptr_t", particles.coords[0]._p)))
+        set_fn, _ = _gtpsa.bridge_entry("tpsa", "xt_knob_set_table")
+        set_fn(addr_arr, tpsa_arr, proto, len(addrs))
+
+        kd_ptr = ffi.cast("int64_t*", kd.ctypes.data)
+        return kd_ptr, [kd, addr_arr, tpsa_arr]
 
     def _resolve_monitor(
         self,

@@ -119,17 +119,26 @@ def _knobs_measure(flavor: str) -> bool:
 
 
 def _bridge_entry_cdef(f: str) -> str:
-    return (
+    cdef = (
         f"void xt_bridge_track_element_{f}(int64_t type_id, void* el, void* p);\n"
         f"void xt_bridge_track_line_{f}(void* ref, int64_t ele_start, "
-        f"int64_t num_elements, void* p, void* mon, int64_t flag_monitor);\n"
+        f"int64_t num_elements, void* p, void* mon, int64_t flag_monitor, "
+        f"const int64_t* knob_dispatch);\n"
     )
+    if f == "tpsa":  # Route knob table, linked in from xt_bridge_knob.cpp
+        cdef += (
+            "void xt_knob_set_table(const void** addrs, const void** tpsas, "
+            "const void* proto, int64_t n);\n"
+        )
+    return cdef
 
 
 def _bridge_kernel_descs(f: str) -> dict[str, Kernel]:
     import xobjects as xo
 
     names = [f"xt_bridge_track_element_{f}", f"xt_bridge_track_line_{f}"]
+    if f == "tpsa":
+        names.append("xt_knob_set_table")
     return {n: xo.Kernel(args=[], c_name=n) for n in names}
 
 
@@ -146,6 +155,8 @@ def _bridge_sources() -> list[str]:
     files = [
         os.path.join(here, "xt_bridge.cpp"),
         os.path.join(here, "xt_local_particle.hpp"),
+        os.path.join(here, "xt_bridge_knob.cpp"),  # Knob object
+        os.path.join(here, "xt_knob.hpp"),
     ]
     files += sorted(
         os.path.join(gen, f)
@@ -216,6 +227,15 @@ def bridge_lib(flavor: str, force: bool = False) -> dict[str, KernelCpu]:
         with open(os.path.join(here, "xt_bridge.cpp")) as fid:
             src = fid.read()
         os.makedirs(cache_dir, exist_ok=True)
+        # Route A: the tpsa-strength knob kernel can't share a translation unit with the double
+        # kernel (argument dependent lookup clash), so it is compiled as its OWN translation unit
+        # and linked into the tpsa bridge .so via extra_source_files (cffi's set_source(sources=...)).
+        # It defines XT_KNOBS, so the shared tpsa compile args are enough. The main TU never
+        # sees XT_KNOBS and stays double, so num/plain-tpsa stay identical (only reached via
+        # knob_dispatch). No knob source for num.
+        extra_source_files = (
+            [os.path.join(here, "xt_bridge_knob.cpp")] if flavor == "tpsa" else None
+        )
         kernels = _bridge_ctx.build_kernels(
             kernel_descriptions=descs,
             module_name=module_name,
@@ -232,6 +252,7 @@ def bridge_lib(flavor: str, force: bool = False) -> dict[str, KernelCpu]:
                 f"-I{here}/build",
             ],
             extra_link_args=["-l:libgtpsa_core.so", f"-L{here}", f"-Wl,-rpath,{here}"],
+            extra_source_files=extra_source_files,
         )
     _bridge_modules[flavor] = kernels
     return kernels
