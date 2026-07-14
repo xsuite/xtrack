@@ -14,9 +14,25 @@ deprecation of existing monitors can be considered later.
 
 ## Main Concept
 
-`BeamStatsMonitor` records weighted beam statistics on a longitudinal grid.
-For bunched beams, the grid is defined per selected bunch. For coasting beams,
-the grid covers one longitudinal domain, typically the full circumference.
+`BeamStatsMonitor` records weighted beam statistics at one or more aggregation
+levels:
+
+```text
+beam  -> one statistic per logged turn
+bunch -> one statistic per logged turn and selected bunch
+slice -> one statistic per logged turn, selected bunch, and slice
+```
+
+The most detailed available level is determined by the constructor inputs. If
+no bunch or slice inputs are provided, only whole-beam statistics are recorded.
+If bunch inputs are provided without slice inputs, per-bunch statistics are
+recorded and whole-beam statistics are available as a reduction. If slice
+inputs are provided, per-slice statistics are recorded and per-bunch and
+whole-beam statistics are available as reductions.
+
+For bunched beams, the slice grid is defined per selected bunch. For coasting
+beams, the slice grid covers one longitudinal domain, typically the full
+circumference.
 
 The efficient bunched-beam scaling should be:
 
@@ -30,7 +46,45 @@ moved to `xtrack`, with `xfields` importing them from there.
 
 ## Proposed User API
 
-Example for one bunch:
+Example for the whole beam:
+
+```python
+mon = xt.BeamStatsMonitor(
+    start_at_turn=0,
+    stop_at_turn=1000,
+    stats=["num_particles", "mean_x", "mean_y", "sigma_x", "sigma_y"],
+)
+
+mon.mean_x.shape
+# (n_logged_turns,)
+
+mon.get("mean_x", turn=100)
+# scalar
+```
+
+Example for bunch-by-bunch statistics:
+
+```python
+mon = xt.BeamStatsMonitor(
+    start_at_turn=0,
+    stop_at_turn=1000,
+    filled_slots=[0, 1, 2, 3, 4, 5],
+    selected_slots=[2, 3],
+    bunch_spacing_zeta=25.0,
+    stats=["num_particles", "mean_x", "mean_y"],
+)
+
+mon.mean_x.shape
+# (n_logged_turns, n_selected_bunches)
+
+mon.get("mean_x", slot=2)
+# shape (n_logged_turns,)
+
+mon.get("mean_x", level="beam")
+# shape (n_logged_turns,)
+```
+
+Example for slice-by-slice statistics in one bunch:
 
 ```python
 mon = xt.BeamStatsMonitor(
@@ -40,6 +94,12 @@ mon = xt.BeamStatsMonitor(
     num_slices=64,
     stats=["num_particles", "mean_x", "mean_y", "sigma_x", "sigma_y"],
 )
+
+mon.mean_x.shape
+# (n_logged_turns, 1, n_slices)
+
+mon.get("mean_x", level="bunch")
+# shape (n_logged_turns, 1)
 ```
 
 Example for a train of consecutive bunches:
@@ -69,6 +129,12 @@ mon = xt.BeamStatsMonitor(
     bunch_spacing_zeta=25.0,
     stats=["num_particles", "mean_x", "mean_y"],
 )
+
+mon.get("mean_x", level="slice", slot=2)
+# shape (n_logged_turns, n_slices)
+
+mon.get("mean_x", level="bunch", slot=[2, 3])
+# shape (n_logged_turns, 2)
 ```
 
 Example for a coasting beam:
@@ -109,8 +175,12 @@ else:
 Defaults:
 
 ```text
-num_bunches = 1
-selected_slots = all filled slots
+without bunch or slice inputs:
+    use beam mode with no bunch axis
+
+in bunch or slice mode:
+    num_bunches = 1
+    selected_slots = all filled slots
 ```
 
 `selected_slots` should be the public API for monitoring only a subset of
@@ -414,16 +484,29 @@ Safeguards:
 
 ## Data Shape and Access
 
-Canonical stored shape:
+The default public statistic level is the most detailed level available from
+the monitor:
 
 ```text
-(n_logged_turns, n_selected_bunches, n_slices)
+beam mode  -> (n_logged_turns,)
+bunch mode -> (n_logged_turns, n_selected_bunches)
+slice mode -> (n_logged_turns, n_selected_bunches, n_slices)
 ```
 
-For coasting mode, the public accessors may drop the bunch axis:
+For coasting slice mode, the artificial bunch axis is hidden by default:
 
 ```text
 (n_logged_turns, n_slices)
+```
+
+The available reductions are exposed through:
+
+```python
+mon.available_levels
+# e.g. ("beam", "bunch", "slice")
+
+mon.default_level
+# e.g. "slice"
 ```
 
 Common public properties:
@@ -448,20 +531,28 @@ mon.slot_index(3)          # physical slot -> selected-slot axis index
 mon.slice_index(zeta=0.03) # zeta coordinate -> slice axis index
 ```
 
-The primary convenience getter accepts the same physical selectors:
+The primary convenience getter accepts a `level` selector and physical
+selectors:
 
 ```python
 mon.get("mean_x", turn=100)
-mon.get("mean_x", turn=100, slot=3)
-mon.get("mean_x", turn=100, slot=3, slice_index=12)
-mon.get("mean_x", turn=100, slot=3, zeta=0.03)
+mon.get("mean_x", level="beam", turn=100)
+mon.get("mean_x", level="bunch", turn=100, slot=3)
+mon.get("mean_x", level="slice", turn=100, slot=3, slice_index=12)
+mon.get("mean_x", level="slice", turn=100, slot=3, zeta=0.03)
 ```
 
 Scalar selectors remove the corresponding axis unless `keepdims=True`.
 
 The monitor should avoid exposing internal ring-buffer indices as the primary
 API. If the first logged turn is turn 100, then `mon.mean_x[0]` and
-`mon.get("mean_x", turn=100)` refer to the same logged turn.
+`mon.get("mean_x", turn=100)` refer to the same logged turn at the default
+level.
+
+Reductions must be computed from weighted primitive sums, not by averaging
+derived statistics. For example, bunch-level `sigma_x` from slice data is
+computed by first summing `sum_weight`, `sum_weight_x`, and `sum_weight_x_x`
+over slices, then applying the weighted variance formula.
 
 ## HDF5 Output
 
@@ -576,14 +667,24 @@ storage = "memory"
    coupled geometric and normalized emittances
    ```
 
-8. Implement full 6D covariance reconstruction and helper functions for:
+8. Implement beam, bunch, and slice aggregation levels with `level=` access:
+
+   ```text
+   level="beam"
+   level="bunch"
+   level="slice"
+   available_levels
+   default_level
+   ```
+
+9. Implement full 6D covariance reconstruction and helper functions for:
 
    ```text
    coupled emittances sorted as x-like, y-like, zeta-like modes
    optics estimation from Sigma
    ```
 
-9. Implement selected bunch support:
+10. Implement selected bunch support:
 
    ```text
    filled_slots
@@ -592,10 +693,10 @@ storage = "memory"
    num_bunches
    ```
 
-10. Implement coasting mode as a one-domain slicer with a public API that hides
+11. Implement coasting mode as a one-domain slicer with a public API that hides
    the fake bunch axis by default.
 
-11. Implement optional HDF5 output:
+12. Implement optional HDF5 output:
 
     ```text
     output_file
@@ -606,9 +707,10 @@ storage = "memory"
     stable file metadata
     ```
 
-12. Add tests comparing:
+13. Add tests comparing:
 
     - weighted means and sigmas against NumPy calculations
+    - beam, bunch, and slice aggregation levels
     - selected bunch behavior
     - coasting mode shape and values
     - `every_n_turns` turn selection
@@ -617,7 +719,7 @@ storage = "memory"
     - coupled emittances against `xtrack.linear_normal_form` sorting
     - optics from measured Sigma against the method in `027_optics_from_sigma_mat.py`
 
-13. Only after the new monitor is stable, decide on wrappers and deprecation
+14. Only after the new monitor is stable, decide on wrappers and deprecation
     strategy for older monitors.
 
 ## Current Implementation Status
@@ -632,12 +734,14 @@ is `xtrack.BeamStatsMonitor`, implemented in
 The current monitor supports in-memory recording of weighted `num_particles`,
 means, sigmas, covariances, and projected geometric/normalized emittances. It
 supports `start_at_turn`, `stop_at_turn`, `every_n_turns`, `filled_slots`,
-`selected_slots`, `filling_scheme`, `num_bunches`, and `coasting=True`.
-Coupled normal-mode emittances, optics-from-sigma, and HDF5/file output are
-not implemented yet.
+`selected_slots`, `filling_scheme`, `num_bunches`, `coasting=True`, and
+beam/bunch/slice access through `level=`, `available_levels`, and
+`default_level`. Coupled normal-mode emittances, optics-from-sigma, and
+HDF5/file output are not implemented yet.
 
 Examples live in `xtrack/examples/beam_stats_monitor/`:
-`000_basic_bunched.py`, `001_selected_slots.py`, `002_coasting.py`,
+`000_basic_bunched.py` (whole beam), `001_selected_slots.py` (per bunch),
+`002_coasting.py`,
 `003_projected_emittance.py`, and `004_plot_slice_stats.py`. The examples are
 included in the user guide through `xsuite/docs/conf.py`, and the guide section
 is in `xsuite/docs/particles_monitor.rst`. The API reference entry is in

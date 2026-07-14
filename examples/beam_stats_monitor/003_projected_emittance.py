@@ -20,8 +20,6 @@ particles = xt.Particles(
 monitor = xt.BeamStatsMonitor(
     start_at_turn=0,
     stop_at_turn=1,
-    zeta_range=(-0.3, 0.3),
-    num_slices=1,
     stats=[
         "num_particles",
         "gemitt_x_projected",
@@ -34,7 +32,8 @@ monitor = xt.BeamStatsMonitor(
 monitor.track(particles)
 
 print("recorded statistics:", monitor.stats)
-print("num_particles:", monitor.num_particles[0, 0, 0])
-print("gemitt_x_projected:", monitor.gemitt_x_projected[0, 0, 0])
-print("nemitt_x_projected:", monitor.nemitt_x_projected[0, 0, 0])
-print("gemitt_y_projected:", monitor.get("gemitt_y_projected")[0, 0, 0])
+print("available levels:", monitor.available_levels)
+print("num_particles:", monitor.num_particles[0])
+print("gemitt_x_projected:", monitor.gemitt_x_projected[0])
+print("nemitt_x_projected:", monitor.nemitt_x_projected[0])
+print("gemitt_y_projected:", monitor.get("gemitt_y_projected")[0])

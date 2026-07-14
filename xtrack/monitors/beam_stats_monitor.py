@@ -20,9 +20,9 @@ _DEFAULT_STATS = (
 
 class BeamStatsMonitor(ElementWithSlicer):
     """
-    Monitor weighted beam statistics on a longitudinal slicing grid.
+    Monitor weighted beam statistics.
 
-    The stored `num_particles` is the sum of particle weights in each bin.
+    The stored `num_particles` is the sum of particle weights.
     All derived quantities are weighted by the same particle weights.
 
     Parameters
@@ -34,12 +34,13 @@ class BeamStatsMonitor(ElementWithSlicer):
         `start_at_turn` is recorded.
     every_n_turns : int, optional
         Record one turn every `every_n_turns` turns.
-    zeta_range : tuple[float, float]
-        Longitudinal range covered by the slicer. For bunched beams this is
-        the range around each selected bunch. For coasting beams this is the
-        full monitored longitudinal range.
-    num_slices : int
+    zeta_range : tuple[float, float], optional
+        Longitudinal range covered by the slicer. If omitted together with
+        `num_slices`, the monitor records whole-beam or per-bunch statistics
+        without longitudinal slicing.
+    num_slices : int, optional
         Number of longitudinal slices per selected bunch or coasting domain.
+        Must be provided together with `zeta_range`.
     coasting : bool, optional
         If ``True``, treat the beam as one longitudinal domain and hide the
         artificial bunch axis in public accessors by default.
@@ -77,10 +78,11 @@ class BeamStatsMonitor(ElementWithSlicer):
 
     Notes
     -----
-    Public statistic arrays have shape
-    ``(n_logged_turns, n_selected_slots, num_slices)`` for bunched beams. In
-    coasting mode the selected-slot axis is hidden by default, giving shape
-    ``(n_logged_turns, num_slices)``.
+    Public statistic arrays have shape ``(n_logged_turns,)`` for whole-beam
+    statistics, ``(n_logged_turns, n_selected_slots)`` for per-bunch
+    statistics, and ``(n_logged_turns, n_selected_slots, num_slices)`` for
+    per-slice statistics. In coasting slice mode the selected-slot axis is
+    hidden by default, giving shape ``(n_logged_turns, num_slices)``.
 
     Coupled normal-mode emittances are intentionally not enabled yet. Request
     projected emittances with the ``_projected`` suffix.
@@ -118,10 +120,12 @@ class BeamStatsMonitor(ElementWithSlicer):
             raise NotImplementedError(
                 '`buffer_size` is reserved for HDF5/file storage')
 
-        if zeta_range is None:
-            raise ValueError('`zeta_range` must be provided')
-        if num_slices is None:
-            raise ValueError('`num_slices` must be provided')
+        slice_mode = zeta_range is not None or num_slices is not None
+        if (zeta_range is None) != (num_slices is None):
+            raise ValueError(
+                '`zeta_range` and `num_slices` must be provided together')
+        if coasting and not slice_mode:
+            raise ValueError('`coasting=True` requires longitudinal slicing')
         if stop_at_turn is None:
             stop_at_turn = start_at_turn + 1
         if every_n_turns <= 0:
@@ -131,13 +135,30 @@ class BeamStatsMonitor(ElementWithSlicer):
         stats = _normalize_stats(stats)
         _check_supported_stats(stats)
 
-        (filled_slots, selected_slots, bunch_selection,
-         filling_scheme) = _normalize_filling(
-             num_bunches=num_bunches,
-             filled_slots=filled_slots,
-             filling_scheme=filling_scheme,
-             selected_slots=selected_slots,
-             coasting=coasting)
+        bunch_mode = (not slice_mode and _has_bunch_inputs(
+            num_bunches=num_bunches,
+            filled_slots=filled_slots,
+            filling_scheme=filling_scheme,
+            selected_slots=selected_slots,
+            bunch_spacing_zeta=bunch_spacing_zeta))
+
+        if slice_mode or bunch_mode:
+            (filled_slots, selected_slots, bunch_selection,
+             filling_scheme) = _normalize_filling(
+                 num_bunches=num_bunches,
+                 filled_slots=filled_slots,
+                 filling_scheme=filling_scheme,
+                 selected_slots=selected_slots,
+                 coasting=coasting)
+            if (not coasting and len(selected_slots) > 1
+                    and bunch_spacing_zeta is None):
+                raise ValueError(
+                    '`bunch_spacing_zeta` must be provided when more than one '
+                    'slot is selected')
+        else:
+            filled_slots = np.array([], dtype=np.int64)
+            selected_slots = np.array([], dtype=np.int64)
+            bunch_selection = np.array([], dtype=np.int64)
 
         self.start_at_turn = int(start_at_turn)
         self.stop_at_turn = int(stop_at_turn)
@@ -150,23 +171,55 @@ class BeamStatsMonitor(ElementWithSlicer):
         self._selected_slots = selected_slots.copy()
         self._filled_slots = filled_slots.copy()
         self._bunch_selection = bunch_selection.copy()
+        self._slice_mode = bool(slice_mode)
+        self._bunch_mode = bool(bunch_mode)
 
         slicer_moments = _moments_for_stats(stats)
+        self._moment_names = ('num_particles', *slicer_moments)
+
+        if slice_mode:
+            slicer_zeta_range = zeta_range
+            slicer_num_slices = num_slices
+        elif bunch_mode:
+            slicer_num_slices = 1
+            if bunch_spacing_zeta is None:
+                slicer_zeta_range = (-1., 1.)
+            else:
+                half_spacing = 0.5 * float(bunch_spacing_zeta)
+                slicer_zeta_range = (-half_spacing, half_spacing)
+        else:
+            slicer_zeta_range = None
+            slicer_num_slices = None
+
         super().__init__(
             slicer_moments=slicer_moments,
-            zeta_range=zeta_range,
-            num_slices=num_slices,
+            zeta_range=slicer_zeta_range,
+            num_slices=slicer_num_slices,
             bunch_spacing_zeta=bunch_spacing_zeta,
             filling_scheme=filling_scheme,
             filled_slots=filled_slots,
             bunch_selection=bunch_selection,
             **kwargs)
 
-        data_shape = (len(self._turns), len(selected_slots), int(num_slices))
-        self._data = {}
-        for name in stats:
-            fill_value = 0.0 if name == 'num_particles' else np.nan
-            self._data[name] = np.full(data_shape, fill_value, dtype=float)
+        if slice_mode:
+            data_shape = (
+                len(self._turns), len(selected_slots), int(num_slices))
+            self._available_levels = (
+                ('beam', 'slice') if coasting else ('beam', 'bunch', 'slice'))
+            self._default_level = 'slice'
+        elif bunch_mode:
+            data_shape = (len(self._turns), len(selected_slots))
+            self._available_levels = ('beam', 'bunch')
+            self._default_level = 'bunch'
+        else:
+            data_shape = (len(self._turns),)
+            self._available_levels = ('beam',)
+            self._default_level = 'beam'
+
+        self._moments_data = {}
+        for name in self._moment_names:
+            self._moments_data[name] = np.zeros(data_shape, dtype=float)
+        self._beta0_gamma0_data = np.zeros(len(self._turns), dtype=float)
 
     @property
     def stats(self):
@@ -232,17 +285,44 @@ class BeamStatsMonitor(ElementWithSlicer):
         return self._coasting
 
     @property
+    def available_levels(self):
+        """
+        Aggregation levels available from this monitor.
+
+        Returns
+        -------
+        tuple of str
+            Any of ``"beam"``, ``"bunch"``, and ``"slice"``.
+        """
+        return self._available_levels
+
+    @property
+    def default_level(self):
+        """
+        Default aggregation level used by statistic attributes and `get`.
+
+        Returns
+        -------
+        str
+            Most detailed available aggregation level.
+        """
+        return self._default_level
+
+    @property
     def zeta_centers(self):
         """
         Longitudinal slice centers.
 
         Returns
         -------
-        numpy.ndarray
-            Slice-center coordinates. For bunched beams the shape is
+        numpy.ndarray or None
+            Slice-center coordinates. Returns ``None`` when the monitor is not
+            in slice mode. For bunched beams the shape is
             ``(n_selected_slots, num_slices)``. In coasting mode the shape is
             ``(num_slices,)``.
         """
+        if 'slice' not in self.available_levels:
+            return None
         base_centers = np.asarray(self._context.nparray_from_context_array(
             self.slicer._zeta_slice_centers))
         if self.coasting:
@@ -254,12 +334,12 @@ class BeamStatsMonitor(ElementWithSlicer):
             - self._selected_slots[:, None] * bunch_spacing_zeta)
 
     def __getattr__(self, attr):
-        if '_data' in self.__dict__ and attr in self._data:
+        if '_stats_names' in self.__dict__ and attr in self._stats_names:
             return self.get(attr)
         return getattr(super(), attr)
 
-    def get(self, stat, *, turn=None, slot=None, slice_index=None, zeta=None,
-            keepdims=False):
+    def get(self, stat, *, level=None, turn=None, slot=None, slice_index=None,
+            zeta=None, keepdims=False):
         """
         Return one recorded statistic.
 
@@ -267,6 +347,9 @@ class BeamStatsMonitor(ElementWithSlicer):
         ----------
         stat : str
             Name of the recorded statistic to return.
+        level : {"beam", "bunch", "slice"}, optional
+            Aggregation level to return. If omitted, the most detailed
+            available level is used.
         turn : int, optional
             Machine turn to select. The value must be present in
             :attr:`turns`. If omitted, all logged turns are returned.
@@ -288,19 +371,23 @@ class BeamStatsMonitor(ElementWithSlicer):
         Returns
         -------
         numpy.ndarray
-            Recorded data for the requested statistic. Without selectors,
-            bunched-beam data has shape
-            ``(n_logged_turns, n_selected_slots, num_slices)``. Scalar
-            selectors remove the selected axes unless `keepdims` is ``True``.
+            Recorded data for the requested statistic and aggregation level.
+            Scalar selectors remove the selected axes unless `keepdims` is
+            ``True``.
 
         Raises
         ------
         ValueError
             If `stat` was not requested when constructing the monitor, or if a
-            selector does not correspond to recorded data.
+            selector does not correspond to recorded data or to the requested
+            aggregation level.
         """
-        if stat not in self._data:
+        if stat not in self._stats_names:
             raise ValueError(f'Statistic `{stat}` is not recorded')
+
+        level = self._normalize_level(level)
+        self._check_selectors_for_level(
+            level=level, slot=slot, slice_index=slice_index, zeta=zeta)
 
         if slice_index is not None and zeta is not None:
             raise ValueError('Only one of `slice_index` and `zeta` can be '
@@ -309,23 +396,34 @@ class BeamStatsMonitor(ElementWithSlicer):
         if zeta is not None:
             slice_index = self.slice_index(zeta, slot=slot)
 
+        moments = self._moments_at_level(level)
+        out = self._compute_stat_from_moments(stat, moments, level=level)
+
         turn_selector, turn_is_scalar = self._turn_selector(turn)
-        slot_selector, slot_is_scalar = self._slot_selector(slot)
-        slice_selector, slice_is_scalar = self._slice_selector(slice_index)
-
-        out = self._data[stat]
         out = self._apply_selector(out, turn_selector, axis=0)
-        out = self._apply_selector(out, slot_selector, axis=1)
-        out = self._apply_selector(out, slice_selector, axis=2)
 
-        if self.coasting:
-            out = np.take(out, 0, axis=1)
+        slot_is_scalar = False
+        slice_is_scalar = False
+
+        if level in ('bunch', 'slice') and not self.coasting:
+            slot_selector, slot_is_scalar = self._slot_selector(slot)
+            out = self._apply_selector(out, slot_selector, axis=1)
+
+        if level == 'slice':
+            if self.coasting:
+                out = np.take(out, 0, axis=1)
+                slice_axis = 1
+            else:
+                slice_axis = 2
+            slice_selector, slice_is_scalar = self._slice_selector(
+                slice_index)
+            out = self._apply_selector(out, slice_selector, axis=slice_axis)
 
         if not keepdims:
             squeeze_axes = []
             if turn_is_scalar:
                 squeeze_axes.append(0)
-            if slot_is_scalar and not self.coasting:
+            if slot_is_scalar and level in ('bunch', 'slice'):
                 squeeze_axes.append(1)
             if slice_is_scalar:
                 squeeze_axes.append(1 if self.coasting else 2)
@@ -384,6 +482,8 @@ class BeamStatsMonitor(ElementWithSlicer):
         int
             Slice index along the last axis of the stored statistic arrays.
         """
+        if 'slice' not in self.available_levels:
+            raise ValueError('`zeta` can be mapped only for slice statistics')
         if slot is None and not self.coasting:
             if len(self._selected_slots) != 1:
                 raise ValueError(
@@ -432,12 +532,13 @@ class BeamStatsMonitor(ElementWithSlicer):
         if not self._logs_turn(turn):
             return None
 
-        status = super().track(
-            particles,
-            _slice_result=_slice_result,
-            _other_bunch_slicers=_other_bunch_slicers)
-        if status is not None:
-            return status
+        if self.slicer is not None:
+            status = super().track(
+                particles,
+                _slice_result=_slice_result,
+                _other_bunch_slicers=_other_bunch_slicers)
+            if status is not None:
+                return status
 
         i_record = (turn - self.start_at_turn) // self.every_n_turns
         self._record(i_record, particles)
@@ -456,27 +557,56 @@ class BeamStatsMonitor(ElementWithSlicer):
         return (turn - self.start_at_turn) % self.every_n_turns == 0
 
     def _record(self, i_record, particles):
-        for name in self._stats_names:
-            self._data[name][i_record, :, :] = self._compute_stat(
-                name, particles)
+        if self.slicer is None:
+            self._record_particle_moments(i_record, particles)
+        else:
+            self._record_slicer_moments(i_record)
+        self._beta0_gamma0_data[i_record] = self._beta0_gamma0(particles)
 
-    def _compute_stat(self, name, particles):
+    def _record_slicer_moments(self, i_record):
+        for name in self._moment_names:
+            if name == 'num_particles':
+                value = self._weights()
+            else:
+                value = self._sum_moment(name)
+            if self._bunch_mode:
+                value = value[:, 0]
+            self._moments_data[name][i_record, ...] = value
+
+    def _record_particle_moments(self, i_record, particles):
+        mask = self._active_particle_mask(particles)
+        weight = self._particle_array(particles.weight)[mask]
+        self._moments_data['num_particles'][i_record] = np.sum(weight)
+        for name in self._moment_names:
+            if name == 'num_particles':
+                continue
+            if name in _COORDS:
+                value = self._particle_array(getattr(particles, name))[mask]
+                self._moments_data[name][i_record] = np.sum(weight * value)
+            else:
+                coord1, coord2 = _parse_coord_pair(name)
+                value1 = self._particle_array(getattr(particles, coord1))[mask]
+                value2 = self._particle_array(getattr(particles, coord2))[mask]
+                self._moments_data[name][i_record] = np.sum(
+                    weight * value1 * value2)
+
+    def _compute_stat_from_moments(self, name, moments, level):
         if name == 'num_particles':
-            return self._weights()
+            return moments['num_particles']
 
         kind, rest = name.split('_', 1)
         if kind == 'mean':
-            return self._mean(rest)
+            return self._mean_from_moments(rest, moments)
         if kind == 'sigma':
-            return self._sigma(rest)
+            return self._sigma_from_moments(rest, moments)
         if kind == 'cov':
             coord1, coord2 = _parse_coord_pair(rest)
-            return self._cov(coord1, coord2)
+            return self._cov_from_moments(coord1, coord2, moments)
         if kind in ('gemitt', 'nemitt'):
             plane = rest.removesuffix('_projected')
-            out = self._projected_gemitt(plane)
+            out = self._projected_gemitt_from_moments(plane, moments)
             if kind == 'nemitt':
-                out = out * self._beta0_gamma0(particles)
+                out = out * self._beta0_gamma0_at_level(level)
             return out
 
         raise ValueError(f'Unsupported statistic `{name}`')
@@ -484,38 +614,68 @@ class BeamStatsMonitor(ElementWithSlicer):
     def _weights(self):
         return self._as_np_2d(self.slicer.num_particles)
 
-    def _sum(self, coord1, coord2=None):
-        if coord2 is None:
-            return self._as_np_2d(self.slicer.sum(coord1))
+    def _sum_moment(self, name):
+        if name in _COORDS:
+            return self._as_np_2d(self.slicer.sum(name))
+        coord1, coord2 = _parse_coord_pair(name)
         return self._as_np_2d(self.slicer.sum(coord1, coord2))
 
-    def _mean(self, coord):
-        weights = self._weights()
+    def _mean_from_moments(self, coord, moments):
+        weights = moments['num_particles']
         out = np.full_like(weights, np.nan, dtype=float)
-        np.divide(self._sum(coord), weights, out=out, where=weights > 0)
+        np.divide(moments[coord], weights, out=out, where=weights > 0)
         return out
 
-    def _cov(self, coord1, coord2):
-        weights = self._weights()
+    def _cov_from_moments(self, coord1, coord2, moments):
+        weights = moments['num_particles']
         out = np.full_like(weights, np.nan, dtype=float)
-        mean_product = self._mean(coord1) * self._mean(coord2)
-        np.divide(self._sum(coord1, coord2), weights, out=out,
+        mean_product = (
+            self._mean_from_moments(coord1, moments)
+            * self._mean_from_moments(coord2, moments))
+        np.divide(moments[_moment_name(coord1, coord2)], weights, out=out,
                   where=weights > 0)
         out -= mean_product
         return out
 
-    def _sigma(self, coord):
-        var = self._cov(coord, coord)
+    def _sigma_from_moments(self, coord, moments):
+        var = self._cov_from_moments(coord, coord, moments)
         return np.sqrt(np.maximum(var, 0))
 
-    def _projected_gemitt(self, plane):
+    def _projected_gemitt_from_moments(self, plane, moments):
         if plane not in _PLANES:
             raise ValueError(f'Unknown projected emittance plane `{plane}`')
         coord, momentum = _PLANES[plane]
         determinant = (
-            self._cov(coord, coord) * self._cov(momentum, momentum)
-            - self._cov(coord, momentum) ** 2)
+            self._cov_from_moments(coord, coord, moments)
+            * self._cov_from_moments(momentum, momentum, moments)
+            - self._cov_from_moments(coord, momentum, moments) ** 2)
         return np.sqrt(np.maximum(determinant, 0))
+
+    def _moments_at_level(self, level):
+        if level == self.default_level:
+            return self._moments_data
+
+        moments = {}
+        for name, value in self._moments_data.items():
+            if self.default_level == 'slice':
+                if level == 'bunch':
+                    moments[name] = np.sum(value, axis=2)
+                elif level == 'beam':
+                    moments[name] = np.sum(value, axis=(1, 2))
+            elif self.default_level == 'bunch' and level == 'beam':
+                moments[name] = np.sum(value, axis=1)
+            else:
+                moments[name] = value
+        return moments
+
+    def _beta0_gamma0_at_level(self, level):
+        if level == 'beam':
+            return self._beta0_gamma0_data
+        if level == 'bunch':
+            return self._beta0_gamma0_data[:, None]
+        if self.coasting:
+            return self._beta0_gamma0_data[:, None]
+        return self._beta0_gamma0_data[:, None, None]
 
     def _beta0_gamma0(self, particles):
         beta0 = self._context.nparray_from_context_array(
@@ -530,15 +690,47 @@ class BeamStatsMonitor(ElementWithSlicer):
             out = out.reshape(1, -1)
         return out
 
+    def _particle_array(self, array):
+        return np.asarray(self._context.nparray_from_context_array(array))
+
+    def _active_particle_mask(self, particles):
+        state = self._particle_array(particles.state)
+        return state > 0
+
+    def _normalize_level(self, level):
+        if level is None:
+            return self.default_level
+        if level not in self.available_levels:
+            raise ValueError(
+                f'`level` must be one of {self.available_levels}, got '
+                f'{level!r}')
+        return level
+
+    def _check_selectors_for_level(self, *, level, slot, slice_index, zeta):
+        if level == 'beam':
+            if slot is not None:
+                raise ValueError('`slot` cannot be used with level="beam"')
+            if slice_index is not None or zeta is not None:
+                raise ValueError(
+                    '`slice_index` and `zeta` cannot be used with '
+                    'level="beam"')
+        elif level == 'bunch':
+            if slice_index is not None or zeta is not None:
+                raise ValueError(
+                    '`slice_index` and `zeta` cannot be used with '
+                    'level="bunch"')
+        elif level == 'slice' and self.coasting and slot is not None:
+            raise ValueError('`slot` cannot be used for coasting slice data')
+
     def _turn_selector(self, turn):
         if turn is None:
             return slice(None), False
-        return self.record_index(turn), True
+        return _value_indices(self._turns, turn, 'turn')
 
     def _slot_selector(self, slot):
         if slot is None:
             return slice(None), False
-        return self.slot_index(slot), True
+        return _value_indices(self._selected_slots, slot, 'slot')
 
     def _slice_selector(self, slice_index):
         if slice_index is None:
@@ -552,7 +744,7 @@ class BeamStatsMonitor(ElementWithSlicer):
             indices = [slice(None)] * array.ndim
             indices[axis] = selector
             return array[tuple(indices)]
-        return np.take(array, [selector], axis=axis)
+        return np.take(array, np.atleast_1d(selector), axis=axis)
 
 
 def _normalize_stats(stats):
@@ -563,12 +755,32 @@ def _normalize_stats(stats):
     return tuple(out)
 
 
+def _has_bunch_inputs(*, num_bunches, filled_slots, filling_scheme,
+                      selected_slots, bunch_spacing_zeta):
+    return (
+        filled_slots is not None
+        or filling_scheme is not None
+        or selected_slots is not None
+        or bunch_spacing_zeta is not None
+        or int(num_bunches) != 1)
+
+
 def _value_index(values, value, name):
     value = _as_int(value, name)
     matches = np.nonzero(values == value)[0]
     if len(matches) == 0:
         raise ValueError(f'`{name}`={value} is not recorded')
     return int(matches[0])
+
+
+def _value_indices(values, value, name):
+    value_array = np.asarray(value)
+    is_scalar = value_array.ndim == 0
+    flat_values = value_array.reshape(-1)
+    indices = np.array([
+        _value_index(values, item, name) for item in flat_values],
+        dtype=np.int64)
+    return indices, is_scalar
 
 
 def _normalize_slice_index(index, num_slices, name):

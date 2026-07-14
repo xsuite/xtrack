@@ -25,8 +25,6 @@ particles = xt.Particles(
 monitor = xt.BeamStatsMonitor(
     start_at_turn=0,
     stop_at_turn=1,
-    zeta_range=(-0.2, 0.2),
-    num_slices=1,
     filled_slots=[0, 2, 5],
     selected_slots=[2, 5],
     bunch_spacing_zeta=bunch_spacing_zeta,
@@ -36,16 +34,17 @@ monitor = xt.BeamStatsMonitor(
 monitor.track(particles)
 
 assert np.all(monitor.selected_slots == [2, 5])
-assert monitor.mean_x.shape == (1, 2, 1)
+assert monitor.available_levels == ("beam", "bunch")
+assert monitor.mean_x.shape == (1, 2)
 
 # The selected-slot axis follows selected_slots: slot 2 first, slot 5 second.
 print("selected slots:", monitor.selected_slots)
-print("zeta centers per selected slot:")
-print(monitor.zeta_centers)
 
-for i_slot, slot in enumerate(monitor.selected_slots):
+for slot in monitor.selected_slots:
     print(
         "slot", slot,
-        "num_particles", monitor.num_particles[0, i_slot, 0],
-        "mean_x", monitor.mean_x[0, i_slot, 0],
+        "num_particles", monitor.get("num_particles", slot=slot)[0],
+        "mean_x", monitor.get("mean_x", slot=slot)[0],
     )
+
+print("beam mean_x:", monitor.get("mean_x", level="beam")[0])
