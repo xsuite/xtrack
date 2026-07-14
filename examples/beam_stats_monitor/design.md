@@ -152,12 +152,8 @@ mon.mean_x.shape
 # (n_logged_turns, n_selected_bunches, n_slices)
 ```
 
-An advanced getter can preserve a uniform shape:
-
-```python
-mon.get("mean_x", keep_bunch_axis=True)
-# always (n_logged_turns, n_domains, n_slices)
-```
+The first implementation does not expose an option to preserve the artificial
+bunch axis for coasting beams.
 
 For coasting beams, consider a later option:
 
@@ -443,14 +439,29 @@ mon.nemitt_x
 mon.nemitt_x_projected
 ```
 
-The monitor should avoid exposing internal ring-buffer indices as the primary
-API. If the first logged turn is turn 100, then:
+Raw statistic arrays remain NumPy arrays. For direct indexing, helper methods
+translate physical coordinates to array indices:
 
 ```python
-mon.mean_x[0]
+mon.record_index(100)      # machine turn -> logged-record index
+mon.slot_index(3)          # physical slot -> selected-slot axis index
+mon.slice_index(zeta=0.03) # zeta coordinate -> slice axis index
 ```
 
-should correspond to turn 100.
+The primary convenience getter accepts the same physical selectors:
+
+```python
+mon.get("mean_x", turn=100)
+mon.get("mean_x", turn=100, slot=3)
+mon.get("mean_x", turn=100, slot=3, slice_index=12)
+mon.get("mean_x", turn=100, slot=3, zeta=0.03)
+```
+
+Scalar selectors remove the corresponding axis unless `keepdims=True`.
+
+The monitor should avoid exposing internal ring-buffer indices as the primary
+API. If the first logged turn is turn 100, then `mon.mean_x[0]` and
+`mon.get("mean_x", turn=100)` refer to the same logged turn.
 
 ## HDF5 Output
 

@@ -27,10 +27,9 @@ monitor.track(particles)
 
 # In coasting mode the artificial bunch axis is hidden by default.
 assert monitor.num_particles.shape == (1, 4)
-assert monitor.get("num_particles", keep_bunch_axis=True).shape == (1, 1, 4)
+assert monitor.get("num_particles", turn=0).shape == (4,)
 
 print("zeta centers:", monitor.zeta_centers)
 print("public shape:", monitor.num_particles.shape)
-print("canonical shape:", monitor.get("num_particles", keep_bunch_axis=True).shape)
 print("num_particles:", monitor.num_particles[0, :])
 print("mean_x:", monitor.mean_x[0, :])

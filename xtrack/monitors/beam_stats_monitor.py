@@ -258,7 +258,8 @@ class BeamStatsMonitor(ElementWithSlicer):
             return self.get(attr)
         return getattr(super(), attr)
 
-    def get(self, stat, keep_bunch_axis=False):
+    def get(self, stat, *, turn=None, slot=None, slice_index=None, zeta=None,
+            keepdims=False):
         """
         Return one recorded statistic.
 
@@ -266,24 +267,140 @@ class BeamStatsMonitor(ElementWithSlicer):
         ----------
         stat : str
             Name of the recorded statistic to return.
-        keep_bunch_axis : bool, optional
-            If ``True``, always return the canonical shape
-            ``(n_logged_turns, n_selected_slots, num_slices)``. If ``False``,
-            coasting-mode output drops the artificial selected-slot axis.
+        turn : int, optional
+            Machine turn to select. The value must be present in
+            :attr:`turns`. If omitted, all logged turns are returned.
+        slot : int, optional
+            Physical bunch slot to select. The value must be present in
+            :attr:`selected_slots`. If omitted, all selected slots are
+            returned.
+        slice_index : int, optional
+            Longitudinal slice index to select. If omitted, all slices are
+            returned. Mutually exclusive with `zeta`.
+        zeta : float, optional
+            Longitudinal coordinate to map to a slice index. For bunched
+            beams with more than one selected slot, `slot` must also be
+            provided. Mutually exclusive with `slice_index`.
+        keepdims : bool, optional
+            If ``True``, scalar selections keep their corresponding axes with
+            length one. If ``False``, scalar-selected axes are removed.
 
         Returns
         -------
         numpy.ndarray
-            Recorded data for the requested statistic.
+            Recorded data for the requested statistic. Without selectors,
+            bunched-beam data has shape
+            ``(n_logged_turns, n_selected_slots, num_slices)``. Scalar
+            selectors remove the selected axes unless `keepdims` is ``True``.
 
         Raises
         ------
         ValueError
-            If `stat` was not requested when constructing the monitor.
+            If `stat` was not requested when constructing the monitor, or if a
+            selector does not correspond to recorded data.
         """
         if stat not in self._data:
             raise ValueError(f'Statistic `{stat}` is not recorded')
-        return self._public_shape(self._data[stat], keep_bunch_axis)
+
+        if slice_index is not None and zeta is not None:
+            raise ValueError('Only one of `slice_index` and `zeta` can be '
+                             'provided')
+
+        if zeta is not None:
+            slice_index = self.slice_index(zeta, slot=slot)
+
+        turn_selector, turn_is_scalar = self._turn_selector(turn)
+        slot_selector, slot_is_scalar = self._slot_selector(slot)
+        slice_selector, slice_is_scalar = self._slice_selector(slice_index)
+
+        out = self._data[stat]
+        out = self._apply_selector(out, turn_selector, axis=0)
+        out = self._apply_selector(out, slot_selector, axis=1)
+        out = self._apply_selector(out, slice_selector, axis=2)
+
+        if self.coasting:
+            out = np.take(out, 0, axis=1)
+
+        if not keepdims:
+            squeeze_axes = []
+            if turn_is_scalar:
+                squeeze_axes.append(0)
+            if slot_is_scalar and not self.coasting:
+                squeeze_axes.append(1)
+            if slice_is_scalar:
+                squeeze_axes.append(1 if self.coasting else 2)
+            for axis in reversed(squeeze_axes):
+                out = np.squeeze(out, axis=axis)
+
+        return out
+
+    def record_index(self, turn):
+        """
+        Return the recorded-row index corresponding to a machine turn.
+
+        Parameters
+        ----------
+        turn : int
+            Machine turn. It must be present in :attr:`turns`.
+
+        Returns
+        -------
+        int
+            Index along the first axis of the stored statistic arrays.
+        """
+        return _value_index(self._turns, turn, 'turn')
+
+    def slot_index(self, slot):
+        """
+        Return the bunch-axis index corresponding to a physical slot.
+
+        Parameters
+        ----------
+        slot : int
+            Physical bunch slot. It must be present in
+            :attr:`selected_slots`.
+
+        Returns
+        -------
+        int
+            Index along the selected-slot axis.
+        """
+        return _value_index(self._selected_slots, slot, 'slot')
+
+    def slice_index(self, zeta, slot=None):
+        """
+        Return the longitudinal slice index containing a zeta coordinate.
+
+        Parameters
+        ----------
+        zeta : float
+            Longitudinal coordinate.
+        slot : int, optional
+            Physical slot used to interpret `zeta` for bunched beams. Required
+            when more than one slot is selected.
+
+        Returns
+        -------
+        int
+            Slice index along the last axis of the stored statistic arrays.
+        """
+        if slot is None and not self.coasting:
+            if len(self._selected_slots) != 1:
+                raise ValueError(
+                    '`slot` must be provided when mapping `zeta` with '
+                    'multiple selected slots')
+            slot = int(self._selected_slots[0])
+
+        if slot is not None:
+            self.slot_index(slot)
+            zeta = float(zeta) + slot * float(self.slicer.bunch_spacing_zeta)
+
+        index = int(np.floor((float(zeta) - float(self.slicer.zeta_range[0]))
+                             / float(self.slicer.dzeta)))
+        if index < 0 or index >= int(self.slicer.num_slices):
+            raise ValueError(f'`zeta`={zeta} is outside the monitored '
+                             'zeta range')
+        return index
 
     def track(self, particles, _slice_result=None, _other_bunch_slicers=None):
         """
@@ -413,10 +530,29 @@ class BeamStatsMonitor(ElementWithSlicer):
             out = out.reshape(1, -1)
         return out
 
-    def _public_shape(self, array, keep_bunch_axis=False):
-        if self.coasting and not keep_bunch_axis:
-            return array[:, 0, :] if array.ndim == 3 else array[0, :]
-        return array
+    def _turn_selector(self, turn):
+        if turn is None:
+            return slice(None), False
+        return self.record_index(turn), True
+
+    def _slot_selector(self, slot):
+        if slot is None:
+            return slice(None), False
+        return self.slot_index(slot), True
+
+    def _slice_selector(self, slice_index):
+        if slice_index is None:
+            return slice(None), False
+        return _normalize_slice_index(
+            slice_index, int(self.slicer.num_slices), 'slice_index'), True
+
+    @staticmethod
+    def _apply_selector(array, selector, axis):
+        if isinstance(selector, slice):
+            indices = [slice(None)] * array.ndim
+            indices[axis] = selector
+            return array[tuple(indices)]
+        return np.take(array, [selector], axis=axis)
 
 
 def _normalize_stats(stats):
@@ -425,6 +561,31 @@ def _normalize_stats(stats):
         if stat not in out:
             out.append(stat)
     return tuple(out)
+
+
+def _value_index(values, value, name):
+    value = _as_int(value, name)
+    matches = np.nonzero(values == value)[0]
+    if len(matches) == 0:
+        raise ValueError(f'`{name}`={value} is not recorded')
+    return int(matches[0])
+
+
+def _normalize_slice_index(index, num_slices, name):
+    index = _as_int(index, name)
+    if index < 0:
+        index += num_slices
+    if index < 0 or index >= num_slices:
+        raise ValueError(f'`{name}`={index} is outside the recorded slice '
+                         'range')
+    return index
+
+
+def _as_int(value, name):
+    value_as_int = int(value)
+    if value_as_int != value:
+        raise ValueError(f'`{name}` must be an integer')
+    return value_as_int
 
 
 def _check_supported_stats(stats):

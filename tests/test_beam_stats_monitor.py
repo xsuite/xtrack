@@ -44,6 +44,19 @@ def test_beam_stats_monitor_weighted_stats_and_turn_selection():
     assert_allclose(
         monitor.cov_x_px[:, 0, :],
         [[0.08888888888888888, 0.], [0.08888888888888888, 0.]])
+    assert monitor.record_index(2) == 1
+    assert monitor.slot_index(0) == 0
+    assert monitor.slice_index(0.5) == 1
+    assert_allclose(monitor.get('mean_x', turn=2), [[5. / 3., 10.]])
+    assert_allclose(monitor.get('mean_x', slot=0), monitor.mean_x[:, 0, :])
+    assert_allclose(monitor.get('mean_x', turn=2, slot=0),
+                    [5. / 3., 10.])
+    assert_allclose(monitor.get('mean_x', turn=2, slot=0, slice_index=1),
+                    10.)
+    assert_allclose(monitor.get('mean_x', turn=2, slot=0, zeta=0.5),
+                    10.)
+    assert monitor.get('mean_x', turn=2, slot=0, zeta=0.5,
+                       keepdims=True).shape == (1, 1, 1)
 
 
 @allow_no_prebuilt_kernels
@@ -76,6 +89,10 @@ def test_beam_stats_monitor_selected_slots():
     assert_allclose(monitor.zeta_centers, [[-10.]])
     assert_allclose(monitor.num_particles, [[[4.]]])
     assert_allclose(monitor.mean_x, [[[12.5]]])
+    assert monitor.slot_index(1) == 0
+    assert monitor.slice_index(-10., slot=1) == 0
+    assert_allclose(monitor.get('mean_x', slot=1), [[12.5]])
+    assert_allclose(monitor.get('mean_x', slot=1, zeta=-10.), [12.5])
 
 
 @allow_no_prebuilt_kernels
@@ -103,6 +120,5 @@ def test_beam_stats_monitor_coasting_shape():
 
     assert monitor.num_particles.shape == (1, 2)
     assert_allclose(monitor.num_particles, [[2., 1.]])
-    assert monitor.get('num_particles', keep_bunch_axis=True).shape == (
-        1, 1, 2)
+    assert_allclose(monitor.get('num_particles', turn=0), [2., 1.])
     assert_allclose(monitor.zeta_centers, [-0.5, 0.5])

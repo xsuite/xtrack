@@ -49,10 +49,9 @@ monitor.mean_x.shape  # is (3, 1, 3)
 monitor.num_particles[0, 0, :]  # is array([2.0, 2.0, 3.0])
 
 # A recorded statistic can be accessed as an attribute or with monitor.get().
-i_record = list(monitor.turns).index(2)
-monitor.mean_x[i_record, 0, :]  # is array([0.00086, 0.00258, 0.00430])
-monitor.get("mean_x")[i_record, 0, :]  # same as above
+monitor.mean_x[monitor.record_index(2), monitor.slot_index(0), :]
+monitor.get("mean_x", turn=2, slot=0)  # same as above
 
 # Covariances and sigmas follow the same indexing convention.
-monitor.sigma_x[i_record, 0, :]  # is array([0.0, 0.00086, 0.0])
-monitor.cov_x_px[i_record, 0, :]  # is array([0.0, -3.32e-8, 0.0])
+monitor.get("sigma_x", turn=2, slot=0)
+monitor.get("cov_x_px", turn=2, slot=0, slice_index=1)
