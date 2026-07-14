@@ -18,7 +18,7 @@ line["kqd"] = -0.518932
 # Add an RF cavity to provide longitudinal focusing.
 line.insert("pimms_cavity", xt.Cavity(harmonic=7, voltage=10e3), at=0.001)
 
-# No zeta_range or num_slices are provided: this records whole-beam statistics.
+# No zeta_range or num_slices are provided: this records whole-beam stats.
 monitor = xt.BeamStatsMonitor(
     start_at_turn=0,
     stop_at_turn=NUM_TURNS,
