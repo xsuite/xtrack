@@ -111,6 +111,13 @@ def _xtrack_rev() -> str:
         return "unknown"
 
 
+def _knobs_measure(flavor: str) -> bool:
+    """Throwaway §2.1 measurement toggle: compile the tpsa flavor with -DXT_KNOBS
+    (constant-tpsa strengths) when XT_BRIDGE_KNOBS=1.  Folded into the cache key so it
+    gets its own module and never collides with the plain tpsa build."""
+    return flavor == "tpsa" and os.environ.get("XT_BRIDGE_KNOBS") == "1"
+
+
 def _bridge_entry_cdef(f: str) -> str:
     return (
         f"void xt_bridge_track_element_{f}(int64_t type_id, void* el, void* p);\n"
@@ -162,7 +169,14 @@ def _bridge_cache_key(flavor: str) -> str:
     """
     h = hashlib.sha1()
     h.update(
-        json.dumps({"flavor": flavor, "xtrack": _xtrack_rev()}, sort_keys=True).encode()
+        json.dumps(
+            {
+                "flavor": flavor,
+                "xtrack": _xtrack_rev(),
+                "knobs": _knobs_measure(flavor),
+            },
+            sort_keys=True,
+        ).encode()
     )
     for path in _bridge_sources():
         with open(path, "rb") as fid:
@@ -213,6 +227,7 @@ def bridge_lib(flavor: str, force: bool = False) -> dict[str, KernelCpu]:
             extra_compile_args=[
                 f"-DXT_FLAVOR_{flavor.upper()}",
                 "-DXTRACK_MULTIPOLE_NO_SYNRAD",
+                *(["-DXT_KNOBS"] if _knobs_measure(flavor) else []),
                 f"-I{here}",
                 f"-I{here}/build",
             ],
@@ -254,39 +269,79 @@ class Descriptor:
         self._d = ptr
 
     @classmethod
-    def new(cls, num_variables: int, order: int) -> Descriptor:
+    def new(
+        cls,
+        num_variables: int,
+        order: int,
+        num_parameters: int = 0,
+        param_order: int = 1,
+    ) -> Descriptor:
         """Create (or reuse) a GTPSA descriptor with ``num_variables`` variables and max ``order``.
 
-        MAD-NG reuses equivalent descriptors, so this returns the same ``Descriptor``
-        object for the same ``(num_variables, order)``.
-        Warns if MAD-NG coerces ``order`` (requesting order 0 coerces to order 1).
+        With ``num_parameters > 0``, adds parameters: extra variables at monomial
+        positions ``num_variables..num_variables+num_parameters-1`` whose combined order
+        is capped at ``param_order``.
+        GTPSA reuses equivalent descriptors, so this returns the same ``Descriptor``
+        object for the same arguments.
+        Warns if GTPSA library coerces ``order``/``param_order`` (minimum is 1).
         """
-        d = _wrap_desc(lib().mad_desc_newv(num_variables, order))
-        if d.order != order:
+        if num_parameters > 0:
+            d = _wrap_desc(
+                lib().mad_desc_newvp(num_variables, order, num_parameters, param_order)
+            )
+        else:
+            d = _wrap_desc(lib().mad_desc_newv(num_variables, order))
+        if d.order != order or (num_parameters > 0 and d.param_order != param_order):
             import warnings
             warnings.warn(
-                f"Requested order {order} coerced to {d.order} (MAD-NG minimum)",
-                stacklevel=2)
+                f"Requested order {order}/param_order {param_order} coerced to "
+                f"{d.order}/{d.param_order} (GTPSA minimum)",
+                stacklevel=2,
+            )
         return d
 
     @property
     def ptr(self) -> Any:
         return self._d
 
-    def _getnv(self) -> tuple[int, int]:
+    def _getnv(self) -> tuple[int, int, int, int]:
         mo = ffi().new("unsigned char*")
-        n = lib().mad_desc_getnv(self._d, mo, ffi().NULL, ffi().NULL)
-        return n, mo[0]
+        np_ = ffi().new("int*")
+        po = ffi().new("unsigned char*")
+        n = lib().mad_desc_getnv(self._d, mo, np_, po)
+        return n, mo[0], np_[0], po[0]
 
     @property
     def n_variables(self) -> int:
-        """Number of variables (queried from C, GTPSA's ``nv``)."""
+        """Number of variables (queried from C, GTPSA's ``nv``; excludes parameters)."""
         return self._getnv()[0]
 
     @property
     def order(self) -> int:
-        """Maximum order (queried from C)."""
+        """Maximum order (queried from C, GTPSA's ``mo``)."""
         return self._getnv()[1]
+
+    @property
+    def n_parameters(self) -> int:
+        """Number of parameters (queried from C, GTPSA's ``np``)."""
+        return self._getnv()[2]
+
+    @property
+    def param_order(self) -> int:
+        """Combined parameter order cap (queried from C, GTPSA's ``po``)."""
+        return self._getnv()[3]
+
+    @property
+    def monomial_length(self) -> int:
+        """Length of a full monomial: ``n_variables + n_parameters``."""
+        n, _, np_, _ = self._getnv()
+        return n + np_
+
+    def is_valid_monomial(self, monomial: Iterable[int]) -> bool:
+        """Whether ``monomial`` is representable (querying beyond-order aborts C)."""
+        m = [int(x) for x in monomial]
+        arr = ffi().new("unsigned char[]", m)
+        return bool(lib().mad_desc_isvalidm(self._d, len(m), arr))
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Descriptor) and self._d == other._d
@@ -295,7 +350,9 @@ class Descriptor:
         return int(ffi().cast("uintptr_t", self._d))
 
     def __repr__(self) -> str:
-        nv, order = self._getnv()
+        nv, order, np_, po = self._getnv()
+        if np_:
+            return f"Descriptor(nv={nv}, order={order}, np={np_}, po={po})"
         return f"Descriptor(nv={nv}, order={order})"
 
 
@@ -335,6 +392,19 @@ class Tpsa:
         expanded around value ``v``."""
         t = cls(desc)
         lib().mad_tpsa_setvar(t._p, float(v), int(iv), 0.0)
+        return t
+
+    @classmethod
+    def param(cls, desc: Descriptor, ip: int, v: float = 0.0) -> Tpsa:
+        """Create identity parameter ``ip`` (index starting from 1, monomial slot
+        ``n_variables + ip - 1``) on ``desc``, expanded around value ``v``.
+
+        The handle is created with ``mo=1`` (setprm requires it); parameters are
+        exact order-1 seeds, use them in arithmetic to build higher orders.
+        """
+        t = cls.__new__(cls)
+        t._p = lib().mad_tpsa_newd(desc.ptr, 1)
+        lib().mad_tpsa_setprm(t._p, float(v), int(ip))
         return t
 
     @property
@@ -380,8 +450,9 @@ class Tpsa:
         """All coefficients with ``|c| > tol`` as ``{monomial_tuple: coefficient}``.
 
         Enumerates only the stored (nonzero) terms via ``mad_tpsa_cycle``.
+        Monomials are full length ``n_variables + n_parameters``.
         """
-        n = self.descriptor.n_variables
+        n = self.descriptor.monomial_length
         m = ffi().new("unsigned char[]", n)
         v = ffi().new("double*")
         out = {}
@@ -392,7 +463,7 @@ class Tpsa:
         return out
 
     def grad(self) -> list[float]:
-        """Order-1 coefficients (d out / d var_j), one per variable."""
+        """Order-1 coefficients (d out / d var_j), one per variable (parameters excluded)."""
         n = self.descriptor.n_variables
         g = []
         for j in range(n):
@@ -400,3 +471,74 @@ class Tpsa:
             mono[j] = 1
             g.append(self.get(mono))
         return g
+
+    def param_grad(self) -> list[float]:
+        """Order-1 coefficients (d out / d param_j), one per parameter."""
+        nv, _, np_, _ = self.descriptor._getnv()
+        g = []
+        for j in range(np_):
+            mono = [0] * (nv + np_)
+            mono[nv + j] = 1
+            g.append(self.get(mono))
+        return g
+
+    # --- arithmetic (fresh result on the same descriptor; scalars mix freely) --- #
+
+    def _new_like(self) -> Tpsa:
+        return Tpsa(self.descriptor)
+
+    def _binop(self, other: Tpsa, fn: str) -> Tpsa:
+        r = self._new_like()
+        getattr(lib(), fn)(self._p, other._p, r._p)
+        return r
+
+    def __add__(self, other: Tpsa | float) -> Tpsa:
+        if isinstance(other, Tpsa):
+            return self._binop(other, "mad_tpsa_add")
+        r = self._new_like()
+        lib().mad_tpsa_axpb(1.0, self._p, float(other), r._p)
+        return r
+
+    __radd__ = __add__
+
+    def __sub__(self, other: Tpsa | float) -> Tpsa:
+        if isinstance(other, Tpsa):
+            return self._binop(other, "mad_tpsa_sub")
+        return self.__add__(-float(other))
+
+    def __rsub__(self, other: float) -> Tpsa:
+        r = self._new_like()
+        lib().mad_tpsa_axpb(-1.0, self._p, float(other), r._p)
+        return r
+
+    def __mul__(self, other: Tpsa | float) -> Tpsa:
+        if isinstance(other, Tpsa):
+            return self._binop(other, "mad_tpsa_mul")
+        r = self._new_like()
+        lib().mad_tpsa_scl(self._p, float(other), r._p)
+        return r
+
+    __rmul__ = __mul__
+
+    def __truediv__(self, other: Tpsa | float) -> Tpsa:
+        if isinstance(other, Tpsa):
+            return self._binop(other, "mad_tpsa_div")
+        return self.__mul__(1.0 / float(other))
+
+    def __rtruediv__(self, other: float) -> Tpsa:
+        r = self._new_like()
+        lib().mad_tpsa_inv(self._p, float(other), r._p)
+        return r
+
+    def __pow__(self, other: int | float) -> Tpsa:
+        r = self._new_like()
+        lib().mad_tpsa_pown(self._p, float(other), r._p)
+        return r
+
+    def __neg__(self) -> Tpsa:
+        return self.__mul__(-1.0)
+
+    def copy(self) -> Tpsa:
+        r = self._new_like()
+        lib().mad_tpsa_copy(self._p, r._p)
+        return r

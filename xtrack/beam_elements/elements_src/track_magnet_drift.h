@@ -89,8 +89,8 @@ GPUFUN
 void track_expanded_combined_dipole_quad_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
-    const double k0_,     // normal dipole strength
-    const double k1_,     // normal quadrupole strength
+    XT_STRENGTH_CONST_ARG k0_,     // normal dipole strength
+    XT_STRENGTH_CONST_ARG k1_,     // normal quadrupole strength
     const double h        // curvature
 ) {
     // From madx: https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/8695bd422dc403a01aa185e9fea16603bbd5b3e1/src/trrun.f90#L4320
@@ -271,13 +271,13 @@ GPUFUN
 void track_curved_exact_bend_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
-    const double k0,      // normal dipole strength
+    XT_STRENGTH_CONST_ARG k0,      // normal dipole strength
     const double h        // curvature
 ) {
 
     // Here we assume that the caller has ensured h != 0
 
-    double const k0_chi = k0 * LocalParticle_get_chi(part);
+    XT_STRENGTH const k0_chi = k0 * LocalParticle_get_chi(part);
 
     if (fabs(k0_chi) < 1e-8) {
         track_polar_drift_single_particle(part, length, h);
@@ -348,12 +348,12 @@ GPUFUN
 void track_straight_exact_bend_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
-    const double k0       // normal dipole strength
+    XT_STRENGTH_CONST_ARG k0       // normal dipole strength
 ) {
 
     // Here we assume that the caller has ensured h != 0
 
-    double const k0_chi = k0 * LocalParticle_get_chi(part);
+    XT_STRENGTH const k0_chi = k0 * LocalParticle_get_chi(part);
 
     if (fabs(k0_chi) < 1e-8) {
         track_exact_drift_single_particle(part, length);
@@ -394,11 +394,11 @@ GPUFUN
 void track_solenoid_single_particle(
     LocalParticle* part,
     double length,
-    double ks,
+    XT_STRENGTH_CONST_ARG ks,
     double x0_solenoid,
     double y0_solenoid
 ) {
-    const double sk = ks / 2;
+    const XT_STRENGTH sk = ks / 2;
 
     if (IS_ZERO(sk)) {
         track_exact_drift_single_particle(part, length);
@@ -411,7 +411,7 @@ void track_solenoid_single_particle(
         return;
     }
 
-    const double skl = sk * length;
+    const XT_STRENGTH skl = sk * length;
 
     // Particle coordinates
     const XT_NUM x = LocalParticle_get_x(part) - x0_solenoid;
@@ -464,9 +464,9 @@ GPUFUN
 void track_magnet_drift_single_particle(
     LocalParticle* part,  // LocalParticle to track
     const double length,  // length of the element
-    const double k0,      // normal dipole strength
-    const double k1,      // normal quadrupole strength
-    const double ks,      // solenoid strength
+    XT_STRENGTH_CONST_ARG k0,      // normal dipole strength
+    XT_STRENGTH_CONST_ARG k1,      // normal quadrupole strength
+    XT_STRENGTH_CONST_ARG ks,      // solenoid strength
     const double h,       // curvature
     const double x0_solenoid,
     const double y0_solenoid,

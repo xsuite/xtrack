@@ -40,22 +40,22 @@ void track_magnet_body_single_particle(
     const int8_t kick_rot_frame,
     const int8_t drift_model,
     const int8_t integrator,
-    const double k0_drift,
-    const double k1_drift,
-    const double ks_drift,
+    XT_STRENGTH_CONST_ARG k0_drift,
+    XT_STRENGTH_CONST_ARG k1_drift,
+    XT_STRENGTH_CONST_ARG ks_drift,
     const double h_drift,
-    const double k0_kick,
-    const double k1_kick,
+    XT_STRENGTH_CONST_ARG k0_kick,
+    XT_STRENGTH_CONST_ARG k1_kick,
     const double h_kick,
     const double hxl,
-    const double k0_h_correction,
-    const double k1_h_correction,
-    const double k2,
-    const double k3,
-    const double k0s,
-    const double k1s,
-    const double k2s,
-    const double k3s,
+    XT_STRENGTH_CONST_ARG k0_h_correction,
+    XT_STRENGTH_CONST_ARG k1_h_correction,
+    XT_STRENGTH_CONST_ARG k2,
+    XT_STRENGTH_CONST_ARG k3,
+    XT_STRENGTH_CONST_ARG k0s,
+    XT_STRENGTH_CONST_ARG k1s,
+    XT_STRENGTH_CONST_ARG k2s,
+    XT_STRENGTH_CONST_ARG k3s,
     const double dks_ds,
     const double x0_solenoid,
     const double y0_solenoid,
@@ -519,6 +519,20 @@ void track_magnet_particles(
 
     if (body_active){
 
+        // Knob build: lift the double strengths to constant tpsas (borrowing a
+        // coordinate's descriptor) so the retyped inner chain runs tpsa
+        // arithmetic. XT_KL/XT_KZERO are identities for the double build, so
+        // native + plain-tpsa stay the same. Params stay double -> native.
+        // Tapering (which mutates them) is untouched.
+#ifdef XT_KNOBS
+        XT_NUM _kproto = LocalParticle_get_x(part0);
+        #define XT_KZERO (0.0 * _kproto)
+        #define XT_KL(v) (0.0 * _kproto + (v))
+#else
+        #define XT_KZERO 0.0
+        #define XT_KL(v) (v)
+#endif
+
         if (integrator == 0){
             integrator = default_integrator;
         }
@@ -539,7 +553,7 @@ void track_magnet_particles(
         if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
             // If there are active kicks the number of kicks is guessed. Otherwise,
             // only the drift is performed.
-            if (!kick_is_inactive(order, knl, ksl, k0, k1, k2, k3, k0s, k1s, k2s, k3s, h)){
+            if (!kick_is_inactive(order, knl, ksl, XT_KL(k0), XT_KL(k1), XT_KL(k2), XT_KL(k3), XT_KL(k0s), XT_KL(k1s), XT_KL(k2s), XT_KL(k3s), h)){
                 if (fabs(h) < 1e-8){
                     num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
                 }
@@ -553,17 +567,19 @@ void track_magnet_particles(
             }
         }
 
-        double k0_drift=0, k1_drift=0, h_drift=0, ks_drift=0;
-        double k0_kick=0, k1_kick=0, h_kick=0;
-        double k0_h_correction=0, k1_h_correction=0;
+        XT_STRENGTH k0_drift=XT_KZERO, k1_drift=XT_KZERO, ks_drift=XT_KZERO;
+        double h_drift=0;
+        XT_STRENGTH k0_kick=XT_KZERO, k1_kick=XT_KZERO;
+        double h_kick=0;
+        XT_STRENGTH k0_h_correction=XT_KZERO, k1_h_correction=XT_KZERO;
         int8_t kick_rot_frame=0;
         int8_t drift_model=0;
         configure_tracking_model(
             model,
-            k0,
-            k1,
+            XT_KL(k0),
+            XT_KL(k1),
             h,
-            ks,
+            XT_KL(ks),
             &k0_drift,
             &k1_drift,
             &h_drift,
@@ -589,7 +605,7 @@ void track_magnet_particles(
                 k0_drift, k1_drift, ks_drift, h_drift,
                 k0_kick, k1_kick, h_kick, hxl,
                 k0_h_correction, k1_h_correction,
-                k2, k3, k0s, k1s, k2s, k3s,
+                XT_KL(k2), XT_KL(k3), XT_KL(k0s), XT_KL(k1s), XT_KL(k2s), XT_KL(k3s),
                 dks_ds,
                 x0_solenoid, y0_solenoid,
                 radiation_flag,
@@ -607,6 +623,8 @@ void track_magnet_particles(
                 LocalParticle_add_to_zeta(part, ds);
             END_PER_PARTICLE_BLOCK;
         }
+        #undef XT_KZERO
+        #undef XT_KL
     }
 
     if (edge_exit_active){

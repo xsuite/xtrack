@@ -7,14 +7,39 @@
 
 #include "xtrack/headers/track.h"
 
+#ifdef XT_KNOBS
+// Knob build only: lift a double multipole array to a vector of constant
+// tpsas so it can go through the XT_STRENGTH* kick.  Empty (NULL/order<0) -> NULL ptr,
+// so kick_simple's null-guard early-returns exactly as with the plain double path.
+static inline std::vector<mad::tpsa> _xt_lift_arr(const double* a, int64_t n, LocalParticle* part){
+    std::vector<mad::tpsa> v;
+    if (a == NULL || n <= 0) return v;
+    XT_NUM proto = LocalParticle_get_x(part);
+    v.reserve(n);
+    for (int64_t i = 0; i < n; i++) v.emplace_back(0.0 * proto + a[i]);
+    return v;
+}
+static inline const mad::tpsa* _xt_lift_ptr(const std::vector<mad::tpsa>& v){
+    return v.empty() ? (const mad::tpsa*)0 : v.data();
+}
+#define XT_KICK_SIMPLE(pt, ord, invf, KN, KS, fac, kw) do { \
+        std::vector<mad::tpsa> _kn = _xt_lift_arr((KN), (ord)+1, (pt)); \
+        std::vector<mad::tpsa> _ks = _xt_lift_arr((KS), (ord)+1, (pt)); \
+        kick_simple_single_particle((pt),(ord),(invf),_xt_lift_ptr(_kn),_xt_lift_ptr(_ks),(fac),(kw)); \
+    } while(0)
+#else
+#define XT_KICK_SIMPLE(pt, ord, invf, KN, KS, fac, kw) \
+        kick_simple_single_particle((pt),(ord),(invf),(KN),(KS),(fac),(kw))
+#endif
+
 
 GPUFUN
 void kick_simple_single_particle(
     LocalParticle* part,
     int64_t order,
     double inv_factorial,
-    const double* knl,
-    const double* ksl,
+    const XT_STRENGTH* knl,
+    const XT_STRENGTH* ksl,
     double factor,
     double kick_weight
 );
@@ -35,18 +60,18 @@ void track_magnet_kick_single_particle(
     double rel_ref_strength,
     double const factor_knl_ksl,
     double kick_weight,
-    double k0,
-    double k1,
-    double k2,
-    double k3,
-    double k0s,
-    double k1s,
-    double k2s,
-    double k3s,
+    XT_STRENGTH_CONST_ARG k0,
+    XT_STRENGTH_CONST_ARG k1,
+    XT_STRENGTH_CONST_ARG k2,
+    XT_STRENGTH_CONST_ARG k3,
+    XT_STRENGTH_CONST_ARG k0s,
+    XT_STRENGTH_CONST_ARG k1s,
+    XT_STRENGTH_CONST_ARG k2s,
+    XT_STRENGTH_CONST_ARG k3s,
     double h,
     double hxl,
-    double k0_h_correction,
-    double k1_h_correction,
+    XT_STRENGTH_CONST_ARG k0_h_correction,
+    XT_STRENGTH_CONST_ARG k1_h_correction,
     uint8_t rot_frame
 ){
 
@@ -54,16 +79,13 @@ void track_magnet_kick_single_particle(
     XT_NUM const x = LocalParticle_get_x(part);
     XT_NUM const y = LocalParticle_get_y(part);
 
-    double knl_main[4] = {k0, k1, k2, k3};
-    double ksl_main[4] = {k0s, k1s, k2s, k3s};
+    // Staging arrays scaled by length; brace-init avoids default-constructing
+    // the non-default-constructible XT_STRENGTH (tpsa) elements.
+    XT_STRENGTH knl_main[4] = {k0 * length, k1 * length, k2 * length, k3 * length};
+    XT_STRENGTH ksl_main[4] = {k0s * length, k1s * length, k2s * length, k3s * length};
 
-    for (int index = 0; index < 4; index++) {
-        knl_main[index] = knl_main[index] * length;
-        ksl_main[index] = ksl_main[index] * length;
-    }
-
-    // multipolar kick
-    kick_simple_single_particle(
+    // multipolar kick (element knl/ksl are doubles; lifted to const tpsa under XT_KNOBS)
+    XT_KICK_SIMPLE(
         part,
         order,
         inv_factorial_order,
@@ -74,7 +96,7 @@ void track_magnet_kick_single_particle(
     );
 
     // multipolar kick
-    kick_simple_single_particle(
+    XT_KICK_SIMPLE(
         part,
         order_rel,
         inv_factorial_order_rel,
@@ -84,6 +106,7 @@ void track_magnet_kick_single_particle(
         kick_weight
     );
 
+    // main kick: knl_main/ksl_main are already XT_STRENGTH (tpsa under XT_KNOBS)
     kick_simple_single_particle(
         part,
         /* order */ 3,
@@ -150,14 +173,14 @@ uint8_t kick_is_inactive(
     int64_t order,
     GPUGLMEM const double* knl,
     GPUGLMEM const double* ksl,
-    double k0,
-    double k1,
-    double k2,
-    double k3,
-    double k0s,
-    double k1s,
-    double k2s,
-    double k3s,
+    XT_STRENGTH_CONST_ARG k0,
+    XT_STRENGTH_CONST_ARG k1,
+    XT_STRENGTH_CONST_ARG k2,
+    XT_STRENGTH_CONST_ARG k3,
+    XT_STRENGTH_CONST_ARG k0s,
+    XT_STRENGTH_CONST_ARG k1s,
+    XT_STRENGTH_CONST_ARG k2s,
+    XT_STRENGTH_CONST_ARG k3s,
     double h
 ){
     if (h != 0) return 0;
@@ -186,8 +209,8 @@ void kick_simple_single_coordinates(
     double const chi,
     int64_t order,
     double inv_factorial,
-    const double* knl,
-    const double* ksl,
+    const XT_STRENGTH* knl,
+    const XT_STRENGTH* ksl,
     double factor,
     double kick_weight,
     XT_NUM *dpx,
@@ -214,8 +237,8 @@ void kick_simple_single_coordinates(
         inv_factorial *= index;
         index -= 1;
 
-        double this_knl = chi * knl[index] * factor;
-        double this_ksl = chi * ksl[index] * factor;
+        XT_STRENGTH this_knl = chi * knl[index] * factor;
+        XT_STRENGTH this_ksl = chi * ksl[index] * factor;
 
         dpx_mul = this_knl * inv_factorial + zre;
         dpy_mul = this_ksl * inv_factorial + zim;
@@ -233,8 +256,8 @@ void kick_simple_single_particle(
     LocalParticle* part,
     int64_t order,
     double inv_factorial,
-    const double* knl,
-    const double* ksl,
+    const XT_STRENGTH* knl,
+    const XT_STRENGTH* ksl,
     double factor,
     double kick_weight
 ) {

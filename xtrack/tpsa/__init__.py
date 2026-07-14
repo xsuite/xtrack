@@ -19,6 +19,7 @@ Only supported for CPU. Set XTRACK_GTPSA_LIB to the .so path.
 from __future__ import annotations
 
 from .particles import ParticlesTpsa
+from .knobs import Knobs
 from .track import track_num_twin
 from .backend import GtpsaBackend
 from ._tpsa_monitor import TpsaMonitor
@@ -26,4 +27,4 @@ from xtrack.tracking_backends import register_tracking_backend
 
 register_tracking_backend(ParticlesTpsa, GtpsaBackend())
 
-__all__ = ["ParticlesTpsa", "TpsaMonitor", "track_num_twin", "GtpsaBackend"]
+__all__ = ["ParticlesTpsa", "Knobs", "TpsaMonitor", "track_num_twin", "GtpsaBackend"]

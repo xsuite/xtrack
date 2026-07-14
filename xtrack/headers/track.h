@@ -24,6 +24,19 @@
 #define XT_NUM_CONST_ARG const XT_NUM
 #endif
 
+// Per-strength number type: double for normal tracking, overridable (to a TPSA type)
+// so lattice knobs can be TPSA parameters. Identity for double.
+// A non-scalar XT_STRENGTH is passed by const-reference (copy-constructor caveat, as XT_NUM).
+#ifndef XT_STRENGTH
+#define XT_STRENGTH double
+#endif
+#ifndef XT_STRENGTH_CONST_ARG
+#define XT_STRENGTH_CONST_ARG const XT_STRENGTH
+#endif
+#ifndef XT_STRENGTH_CONST
+#define XT_STRENGTH_CONST(s) (s)   /* const part of a strength (identity for double) */
+#endif
+
 /*
     The particle tracking "decorators" for all the contexts.
 */

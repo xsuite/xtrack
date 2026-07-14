@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Sequence
 
 import numpy as np
 import xtrack as xt
 
 from . import _gtpsa
 from ._bridge_particle import XtBridgeParticle, _COORDS, _REF_VARS
+
+if TYPE_CHECKING:
+    from .knobs import Knobs
 
 
 class ParticlesTpsa:
@@ -21,21 +24,34 @@ class ParticlesTpsa:
     that reference orbit. The dispatcher passes their handles to the shared object.
     Read the result with ``.const_part`` (orbit) and ``.jacobian()`` (transfer matrix R),
     or per-coordinate ``.x`` etc.
+
+    With ``knobs=Knobs(line, names, order=po)`` the descriptor gains ``np = len(knobs)``
+    GTPSA parameters: monomial keys become length ``6 + np`` ordered
+    ``[x, px, y, py, zeta, delta, p1..pnp]``, and ``param_jacobian``/``sensitivity``
+    expose ``d coord / d knob`` after one parametric track.
     """
 
     coords: list[_gtpsa.Tpsa] | None = None
 
-    def __init__(self, order: int = 1, **kwargs: Any) -> None:
+    def __init__(self, order: int = 1, knobs: Knobs | None = None, **kwargs: Any) -> None:
         # Single source of truth for kwargs and derived values.
         self._ref_particle = xt.Particles(**kwargs)
         if len(np.atleast_1d(self._ref_particle.x)) != 1:
             raise ValueError("ParticlesTpsa is a single map: pass scalar coordinates")
-        desc = _gtpsa.Descriptor.new(6, order)
+        self.knobs = knobs
+        if knobs is None:
+            desc = _gtpsa.Descriptor.new(6, order)
+        else:
+            desc = _gtpsa.Descriptor.new(
+                6, order, num_parameters=len(knobs), param_order=knobs.order
+            )
         self.coords = [
             _gtpsa.Tpsa.var(desc, i + 1, self._ref(c))
             for i, c in enumerate(_COORDS)
         ]
         self._bridge = self._build_bridge()
+        if knobs is not None:
+            knobs._bind(desc)  # build param seeds + attribute TPSAs (idempotent)
 
     def _build_bridge(self) -> XtBridgeParticle:
         """The ABI struct as an xobject: coordinate handles and reference variables.
@@ -68,6 +84,7 @@ class ParticlesTpsa:
         obj.coords = list(coords)
         obj._ref_particle = ref_particle
         obj._bridge = None
+        obj.knobs = None  # a view carries no knobs; params live in the coefficients
         return obj
 
     def _ref(self, name: str) -> float:
@@ -106,6 +123,27 @@ class ParticlesTpsa:
         return self.coords[0].descriptor.n_variables
 
     @property
+    def n_parameters(self) -> int:
+        """Number of knob parameters (``np``) of the underlying descriptor (0 if none)."""
+        return self.coords[0].descriptor.n_parameters
+
+    @property
+    def knob_names(self) -> list[str]:
+        """The knob variable names, in parameter order (empty if no knobs)."""
+        return list(self.knobs.names) if self.knobs is not None else []
+
+    def param_jacobian(self) -> np.ndarray:
+        """(6, np) first-order sensitivities d coord / d knob."""
+        return np.array([c.param_grad() for c in self.coords])
+
+    def sensitivity(self, coord: str | int, knob: str | int) -> float:
+        """First-order d coord / d knob (knob by name or 0-based param index)."""
+        if self.knobs is None:
+            raise ValueError("no knobs: build ParticlesTpsa(..., knobs=Knobs(...))")
+        ip = self.knobs.names.index(knob) if isinstance(knob, str) else knob
+        return self._series(coord).param_grad()[ip]
+
+    @property
     def const_part(self) -> np.ndarray:
         """Tracked orbit: the order-0 part of each coordinate (length-6 array)."""
         return np.array([c.const_part for c in self.coords])
@@ -128,13 +166,28 @@ class ParticlesTpsa:
         """Coefficient(s) of the ``coord`` output series for one or multiple monomials.
 
         ``coord`` selects the output polynomial (``'x'``, ``'px'``, ... or index 0..5).
-        A monomial is a length-6 tuple of per-variable orders over
-        ``[x, px, y, py, zeta, delta]`` (the same keys ``monomial_coeffs`` returns).
-        ``monomials`` is one such monomial (-> ``float``) or an iterable of them,
-        e.g. a list of tuples or an ``(N, 6)`` array (-> length-N array); arrays are
-        converted to tuples internally, for example
+        A monomial is a length ``6 + np`` tuple of per-variable orders over
+        ``[x, px, y, py, zeta, delta, p1..pnp]`` (the same keys ``monomial_coeffs``
+        returns. ``np`` = number of knob parameters, 0 without knobs).
+        ``monomials`` is one monomial (-> ``float``) or an iterable of them,
+        e.g. a list of tuples or an ``(N, 6+np)`` array (-> length-N array).
+        Arrays are converted to tuples internally, for example
         the x^2*px^2 term of x is ``coefficient('x', (2, 2, 0, 0, 0, 0))``.
+
+        A malformed or beyond-order monomial raises ``ValueError`` here rather than
+        letting the C library ``exit(1)`` the interpreter (see ``is_valid_monomial``).
         """
+        desc = self.descriptor
+        arr = np.asarray(monomials)
+        rows = arr.reshape(1, -1) if arr.ndim == 1 else arr
+        for row in rows:
+            mono = tuple(int(v) for v in row)
+            if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
+                raise ValueError(
+                    f"invalid monomial {mono}: expected length {desc.monomial_length} "
+                    f"(6 vars + {desc.n_parameters} params) and total order within the "
+                    f"descriptor's order/param-order"
+                )
         return self._series(coord).coefficient(monomials)
 
     def monomial_coeffs(

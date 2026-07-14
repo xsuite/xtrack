@@ -659,3 +659,102 @@ def test_bridge_entry():
     fn, ffi = _gtpsa.bridge_entry('tpsa', 'xt_bridge_track_line_tpsa')
     assert callable(fn)
     assert hasattr(ffi, 'cast')
+
+
+# --- Knobs (parametric TPSA) --------------------------------------------- #
+
+def _knob_line():
+    """Toy line: knob-driven quads incl. a var->var chain (kqc = 2*klink)."""
+    env = xt.Environment()
+    env['kqa'] = 0.012
+    env['kqb'] = -0.020
+    env['klink'] = 0.003
+    env['kqc'] = '2.0 * klink'
+    return env.new_line(components=[
+        env.new('mq1', xt.Quadrupole, length=1.0, k1='0.5*kqa + kqb'),
+        env.new('mq2', xt.Quadrupole, length=1.0, k1='kqa'),
+        env.new('mq3', xt.Quadrupole, length=1.0, k1='kqc'),
+        env.new('d1', xt.Drift, length=2.0),
+    ])
+
+
+def test_knobs_target_enumeration():
+    kn = xtpsa.Knobs(_knob_line(), ['kqa', 'kqb', 'klink'])
+    assert len(kn) == 3
+    assert kn._targets == [('mq1', 'k1'), ('mq2', 'k1'), ('mq3', 'k1')]
+
+
+def test_knobs_bad_name():
+    with pytest.raises(KeyError, match='not a line variable'):
+        xtpsa.Knobs(_knob_line(), ['nope'])
+
+
+def test_knobs_strength_jacobian_vs_fd():
+    line = _knob_line()
+    names = ['kqa', 'kqb', 'klink']
+    kn = xtpsa.Knobs(line, names)
+    sj = kn.strength_jacobian()          # self-binds, no descriptor needed
+
+    def fd(elem, attr, knob, h=1e-6):
+        v0 = line[knob]
+        line[knob] = v0 + h
+        hi = float(getattr(line.element_dict[elem], attr))
+        line[knob] = v0 - h
+        lo = float(getattr(line.element_dict[elem], attr))
+        line[knob] = v0
+        return (hi - lo) / (2 * h)
+
+    expected = {('mq1', 'k1'): [0.5, 1.0, 0.0],
+                ('mq2', 'k1'): [1.0, 0.0, 0.0],
+                ('mq3', 'k1'): [0.0, 0.0, 2.0]}
+    for t, grads in sj.items():
+        assert np.allclose(grads, expected[t], atol=1e-12)
+        assert np.allclose(grads, [fd(*t, n) for n in names], atol=1e-8)
+
+
+def test_knobs_table_address_sanity_and_refresh():
+    line = _knob_line()
+    kn = xtpsa.Knobs(line, ['kqa', 'kqb', 'klink'])
+    addrs, ptrs = kn.table()
+    assert len(addrs) == len(ptrs) == 3
+    # the recorded field address reads back the live strength
+    for (e, a), addr in zip(kn._targets, addrs):
+        read = _gtpsa.ffi().cast('double*', addr)[0]
+        assert abs(read - float(getattr(line.element_dict[e], a))) < 1e-15
+
+    # a knob change is picked up on the next table() (expansions rebuilt)
+    line['kqa'] = 0.05
+    kn.table()
+    assert np.isclose(float(line.element_dict['mq2'].k1), 0.05)
+    assert np.allclose(kn.strength_jacobian()[('mq2', 'k1')], [1.0, 0.0, 0.0], atol=1e-12)
+
+
+def test_knobs_array_target_unsupported():
+    env = xt.Environment()
+    env['kk'] = 0.1
+    line = env.new_line(components=[env.new('m', xt.Multipole, knl=[0, 'kk'])])
+    with pytest.raises(NotImplementedError, match='array target'):
+        xtpsa.Knobs(line, ['kk'])
+
+
+def test_knobs_self_bind_matches_external_descriptor():
+    """strength_jacobian is the same whether Knobs self-binds or a map bound it."""
+    line = _knob_line()
+    kn_self = xtpsa.Knobs(line, ['kqa', 'kqb'])
+    self_sj = kn_self.strength_jacobian()
+
+    kn_map = xtpsa.Knobs(line, ['kqa', 'kqb'])
+    xtpsa.ParticlesTpsa(order=2, knobs=kn_map, p0c=P0C, mass0=MASS0)  # binds kn_map
+    for t in kn_map._targets:
+        assert np.allclose(kn_map.strength_jacobian()[t], self_sj[t], atol=1e-14)
+
+
+def test_particles_tpsa_with_knobs_descriptor():
+    line = _knob_line()
+    kn = xtpsa.Knobs(line, ['kqa', 'kqb'], order=1)
+    p = xtpsa.ParticlesTpsa(order=2, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
+    assert p.n_parameters == 2
+    assert p.knob_names == ['kqa', 'kqb']
+    assert p.descriptor.monomial_length == 8          # 6 coords + 2 params
+    assert np.allclose(p.jacobian(), np.eye(6))       # identity map before tracking
+    assert np.allclose(p.param_jacobian(), 0.0)       # no knob dependence yet
