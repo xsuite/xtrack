@@ -1,5 +1,6 @@
 import xtrack as xt
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Fringe from 0 to 0.1 over length 0.05, with derivatives zero at the endpoints
 bfringe=np.array([[0,0,120,-1600]])
