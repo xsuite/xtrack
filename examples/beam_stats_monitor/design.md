@@ -24,12 +24,6 @@ The efficient bunched-beam scaling should be:
 n_logged_turns * n_selected_bunches * n_slices
 ```
 
-not:
-
-```text
-n_turns * sampling_frequency / frev
-```
-
 The monitor should build on the capabilities currently provided by
 `xfields.ElementWithSlicer` and `xfields.UniformBinSlicer`. These should be
 moved to `xtrack`, with `xfields` importing them from there.
