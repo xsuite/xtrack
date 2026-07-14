@@ -7,14 +7,11 @@ NUM_SLOTS = 7
 NUM_PARTICLES_PER_BUNCH = 30
 BUNCH_INTENSITY = 1e10
 
-# Load the PIMMS lattice from the test data.
-env = xt.load("../../test_data/pimms/PIMMS.seq")
+# Load the PIMMS lattice and set particle_ref.
+env = xt.load(["../../test_data/pimms/PIMMS.seq",
+               "../../test_data/pimms/pimms_optics.str"])
 line = env.pimms
-line.particle_ref = xt.Particles("proton", kinetic_energy0=100e6)
-
-line["kqfa"] = 0.30247
-line["kqfb"] = 0.523281
-line["kqd"] = -0.518932
+line.set_particle_ref("proton", kinetic_energy0=100e6)
 
 # Add an RF cavity and use its bucket spacing to define the bunch train.
 harmonic = 7
@@ -25,7 +22,7 @@ line.insert("pimms_cavity", xt.Cavity(harmonic=harmonic, voltage=10e3),
 filled_slots = np.arange(NUM_SLOTS)
 filling_scheme = np.ones(NUM_SLOTS, dtype=int)
 
-# No zeta_range or num_slices are provided: this records bunch-by-bunch stats.
+# Define a monitor to record bunch-by-bunch statistics at each turn
 monitor = xt.BeamStatsMonitor(
     start_at_turn=0,
     stop_at_turn=NUM_TURNS,
@@ -34,8 +31,11 @@ monitor = xt.BeamStatsMonitor(
     stats=["num_particles", "mean_x", "mean_zeta", "sigma_x"],
 )
 
-np.random.seed(12345)
+# Insert the monitor at the beginning of the line
+line.insert("beam_stats_monitor", monitor, at=0)
 
+# Generate a multi-bunch beam with a sinusoidal offset in x.
+np.random.seed(12345)
 particles = line.xpart.generate_matched_gaussian_multibunch_beam(
     filling_scheme=filling_scheme,
     bunch_num_particles=NUM_PARTICLES_PER_BUNCH,
@@ -48,8 +48,7 @@ particles = line.xpart.generate_matched_gaussian_multibunch_beam(
 particles.x = -1e-3 * np.sin(
     2 * np.pi * particles.zeta / (NUM_SLOTS * bunch_spacing_zeta))
 
-line.insert("beam_stats_monitor", monitor, at=0)
-
+# Track
 line.track(particles, num_turns=NUM_TURNS,
            with_progress=10)  # progress bar updated every 10 turns
 
