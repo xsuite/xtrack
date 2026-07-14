@@ -29,6 +29,7 @@ from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
 from .pipeline import (PipelineStatus, PipelineMultiTracker, PipelineBranch,
                         PipelineManager)
 
+from .slicers import *
 from .monitors import *
 from . import linear_normal_form
 from .multiline_legacy import MultilineLegacy, MultiTwiss

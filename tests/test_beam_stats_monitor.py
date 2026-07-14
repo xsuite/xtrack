@@ -1,0 +1,106 @@
+import numpy as np
+from numpy.testing import assert_allclose, assert_equal
+
+from xobjects.test_helpers import allow_no_prebuilt_kernels
+
+import xtrack as xt
+
+
+@allow_no_prebuilt_kernels
+def test_beam_stats_monitor_weighted_stats_and_turn_selection():
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 3., 10.],
+        px=[0.1, 0.3, 1.0],
+        y=[2., 4., 20.],
+        py=[0.2, 0.4, 2.0],
+        zeta=[-0.5, -0.25, 0.5],
+        delta=[0.01, 0.03, 0.1],
+        weight=[2., 1., 4.],
+    )
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=3,
+        every_n_turns=2,
+        zeta_range=(-1., 1.),
+        num_slices=2,
+        stats=[
+            'num_particles', 'mean_x', 'sigma_x', 'cov_x_px',
+            'gemitt_x_projected', 'nemitt_x_projected'],
+    )
+
+    for _ in range(3):
+        monitor.track(particles)
+        particles.at_turn += 1
+
+    assert_equal(monitor.turns, [0, 2])
+    assert_allclose(monitor.num_particles[:, 0, :], [[3., 4.], [3., 4.]])
+    assert_allclose(
+        monitor.mean_x[:, 0, :],
+        [[5. / 3., 10.], [5. / 3., 10.]])
+    assert_allclose(
+        monitor.sigma_x[:, 0, :],
+        [[np.sqrt(8. / 9.), 0.], [np.sqrt(8. / 9.), 0.]])
+    assert_allclose(
+        monitor.cov_x_px[:, 0, :],
+        [[0.08888888888888888, 0.], [0.08888888888888888, 0.]])
+
+
+@allow_no_prebuilt_kernels
+def test_beam_stats_monitor_selected_slots():
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 2., 10., 20.],
+        px=[0., 0., 0., 0.],
+        y=[0., 0., 0., 0.],
+        py=[0., 0., 0., 0.],
+        zeta=[-0.2, 0.2, -10.2, -9.8],
+        delta=[0., 0., 0., 0.],
+        weight=[1., 1., 3., 1.],
+    )
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        zeta_range=(-0.5, 0.5),
+        num_slices=1,
+        filled_slots=[0, 1],
+        selected_slots=[1],
+        bunch_spacing_zeta=10.,
+        stats=['num_particles', 'mean_x'],
+    )
+
+    monitor.track(particles)
+
+    assert_equal(monitor.selected_slots, [1])
+    assert_allclose(monitor.num_particles, [[[4.]]])
+    assert_allclose(monitor.mean_x, [[[12.5]]])
+
+
+@allow_no_prebuilt_kernels
+def test_beam_stats_monitor_coasting_shape():
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 3.],
+        px=[0., 0.],
+        y=[0., 0.],
+        py=[0., 0.],
+        zeta=[-0.5, 0.5],
+        delta=[0., 0.],
+        weight=[2., 1.],
+    )
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        coasting=True,
+        zeta_range=(-1., 1.),
+        num_slices=2,
+        stats=['num_particles', 'mean_x'],
+    )
+
+    monitor.track(particles)
+
+    assert monitor.num_particles.shape == (1, 2)
+    assert_allclose(monitor.num_particles, [[2., 1.]])
+    assert monitor.get('num_particles', keep_bunch_axis=True).shape == (
+        1, 1, 2)
+    assert_allclose(monitor.zeta_centers, [-0.5, 0.5])
