@@ -40,6 +40,19 @@ def test_sdep():
     assert np.isclose(p0.py[0], 0.20351503)
     assert np.isclose(p0.zeta[0], 0.00058352)
     assert np.isclose(p0.ptau[0], 0)
+    
+def test_repeatability():
+    fexp1 = xt.FieldExpansion(length=0.2, h=0.1, a=np.array([[1]]), b=np.array([[0]]), bs=np.array([0]), ny=5, nstep=100)
+    fexp2 = xt.FieldExpansion(length=0.2, h=0, a=np.array([[0, 0.1]]), b=np.array([[1,0]]), bs=np.array([0,0]), ny=5, nstep=100)
+    fexp3 = xt.FieldExpansion(length=0.2, h=0.1, a=np.array([[1]]), b=np.array([[0]]), bs=np.array([0]), ny=5, nstep=100)
+    p1 = xt.Particles(x=0.1)
+    p2 = xt.Particles(x=0.1)
+    p3 = xt.Particles(x=0.1)
+    fexp1.track(p1)
+    fexp2.track(p2)
+    fexp3.track(p3)
+    
+    assert np.isclose(p1.x[0], p3.x[0])
 
 def test_twiss():
     fodo = xt.Line(elements=[
