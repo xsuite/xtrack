@@ -50,7 +50,8 @@ void TRACK_EXPANSION(
 {
 
     const double nstep  = CONCATDATA(DATA, _get_nstep(el));
-    const double ds     = CONCATDATA(DATA, _get_ds(el));
+    double ds     = CONCATDATA(DATA, _get_ds(el));
+    double sstart = 0;
 
     Expansion f;
     f.ny         = CONCATDATA(DATA, _get_ny)(el);
@@ -71,6 +72,9 @@ void TRACK_EXPANSION(
     f.D1         = (double *)CONCATDATA(DATA, _getp__D1)(el);
     f.D2         = (double *)CONCATDATA(DATA, _getp__D2)(el);
     f.Q          = (double *)CONCATDATA(DATA, _getp__Q)(el);
+
+    int64_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
+    if (backtrack) {sstart = ds * nstep; ds = -ds;}
 
     HamiltonianFlow flow;
     FieldValue v;
@@ -93,7 +97,7 @@ void TRACK_EXPANSION(
         z[1] += v.Ax - ax;
         z[3] += v.Ay - ay;
 
-        double s = 0;
+        double s = sstart;
         double ztmp[6];
         for (int step = 0; step < nstep; ++step) {
             double k1[6], k2[6], k3[6], k4[6];
