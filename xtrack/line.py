@@ -1930,6 +1930,7 @@ class Line:
                     num_elements=num_elements,
                     num_turns=num_turns,
                     turn_by_turn_monitor=turn_by_turn_monitor,
+                    multi_element_monitor_at=multi_element_monitor_at,
                 )
             raise TypeError(
                 f"No tracking backend registered for {type(particles)}")

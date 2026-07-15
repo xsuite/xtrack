@@ -51,6 +51,7 @@ class TpsaMonitor:
         self.n_slots = int(n_slots)
         self.descriptor = descriptor
         self._ref_particle = ref_particle
+        self.obs_names = None   # set for a multi_element_monitor_at record: slot i -> position
         # Destinations must outlive the C call: mad_tpsa_copy writes into them in place.
         self._slots = [[_gtpsa.Tpsa(descriptor) for _ in _COORDS]
                        for _ in range(self.n_slots)]
@@ -67,6 +68,13 @@ class TpsaMonitor:
         """Slot ``i`` as a ``ParticlesTpsa`` map view (shares the recorded series)."""
         from .particles import ParticlesTpsa
         return ParticlesTpsa._from_coords(self._slots[i], self._ref_particle)
+
+    def at(self, name) -> ParticlesTpsa:
+        """The recorded map at a named position (multi_element_monitor_at records only)."""
+        if self.obs_names is None:
+            raise ValueError("this monitor has no named positions (not a "
+                             "multi_element_monitor_at record)")
+        return self[self.obs_names.index(name)]
 
     def __getattr__(self, name: str) -> np.ndarray:
         # mon.x, mon.px, ... -> object array of the per-slot Tpsa for that coordinate.

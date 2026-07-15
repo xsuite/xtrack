@@ -12,6 +12,7 @@ from ._bridge_particle import XtBridgeParticle, _COORDS, _REF_VARS
 
 if TYPE_CHECKING:
     from .knobs import Knobs
+    from .optics import TpsaOptics
 
 
 class ParticlesTpsa:
@@ -152,6 +153,36 @@ class ParticlesTpsa:
         """The 6x6 order-1 transfer matrix R."""
         return np.array([c.grad() for c in self.coords])
 
+    def optics(self) -> TpsaOptics:
+        """Uncoupled optics (betx, alfx, mux, dx, ...) + knob gradients from this map."""
+        from .optics import TpsaOptics
+
+        return TpsaOptics(self)
+
+    def set_const_part(self, values: Sequence[float] | np.ndarray) -> None:
+        """Set the order-0 part (orbit) of each coordinate from a length-6 array."""
+        v = np.asarray(values, dtype=float).reshape(-1)
+        if v.size != 6:
+            raise ValueError(f"const_part must be length 6, got {v.size}")
+        for c, x in zip(self.coords, v):
+            c.set_const_part(x)
+
+    def set_jacobian(self, R: np.ndarray) -> None:
+        """Set the 6x6 order-1 transfer matrix R (the 6 variables only).
+
+        Always a 6x6 over ``[x, px, y, py, zeta, delta]``, even when the descriptor has
+        knob parameters: only the order-1 *variable* block is written; the parameter
+        columns are left untouched (``set1`` is normally not used to seed parameters).
+        """
+        R = np.asarray(R, dtype=float)
+        if R.shape != (6, 6):
+            raise ValueError(f"jacobian must be 6x6, got {R.shape}")
+        for i, c in enumerate(self.coords):
+            for j in range(6):
+                mono = [0] * 6
+                mono[j] = 1
+                c.set(mono, R[i, j])
+
     def _series(self, coord: str | int) -> _gtpsa.Tpsa:
         """The ``Tpsa`` output series for ``coord`` (name like ``'x'`` or index 0..5)."""
         if isinstance(coord, str):
@@ -189,6 +220,27 @@ class ParticlesTpsa:
                     f"descriptor's order/param-order"
                 )
         return self._series(coord).coefficient(monomials)
+
+    def set_coefficient(
+        self, coord: str | int, monomial: Sequence[int] | np.ndarray, value: float
+    ) -> None:
+        """Set the coefficient of one ``monomial`` of the ``coord`` output series.
+
+        ``coord`` selects the output polynomial (``'x'``, ``'px'``, ... or index 0..5).
+        ``monomial`` is a length ``6 + np`` tuple of per-variable orders over
+        ``[x, px, y, py, zeta, delta, p1..pnp]`` (same shape ``coefficient`` accepts).
+        A malformed or beyond-order monomial raises ``ValueError`` rather than letting
+        the C library ``exit(1)`` the interpreter (see ``is_valid_monomial``).
+        """
+        desc = self.descriptor
+        mono = tuple(int(v) for v in np.asarray(monomial).reshape(-1))
+        if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
+            raise ValueError(
+                f"invalid monomial {mono}: expected length {desc.monomial_length} "
+                f"(6 vars + {desc.n_parameters} params) and total order within the "
+                f"descriptor's order/param-order"
+            )
+        self._series(coord).set(mono, value)
 
     def monomial_coeffs(
         self, coord: str | int | None = None, tol: float = 1e-14
