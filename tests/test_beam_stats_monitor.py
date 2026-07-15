@@ -123,9 +123,7 @@ def test_beam_stats_monitor_weighted_stats_and_turn_selection():
                     [5. / 3., 10.])
     assert_allclose(monitor.get('mean_x', turn=2, slot=0, slice_index=1),
                     10.)
-    assert_allclose(monitor.get('mean_x', turn=2, slot=0, zeta=0.5),
-                    10.)
-    assert monitor.get('mean_x', turn=2, slot=0, zeta=0.5,
+    assert monitor.get('mean_x', turn=2, slot=0, slice_index=1,
                        keepdims=True).shape == (1, 1, 1)
     assert_allclose(monitor.get('mean_x', level='bunch'),
                     [[45. / 7.], [45. / 7.]])
@@ -168,7 +166,7 @@ def test_beam_stats_monitor_selected_slots():
     assert monitor.slot_index(1) == 0
     assert monitor.slice_index(-10., slot=1) == 0
     assert_allclose(monitor.get('mean_x', slot=1), [[12.5]])
-    assert_allclose(monitor.get('mean_x', slot=1, zeta=-10.), [12.5])
+    assert_allclose(monitor.get('mean_x', slot=1, slice_index=0), [12.5])
 
 
 @allow_no_prebuilt_kernels

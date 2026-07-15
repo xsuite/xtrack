@@ -532,7 +532,6 @@ mon.get("mean_x", turn=100)
 mon.get("mean_x", level="beam", turn=100)
 mon.get("mean_x", level="bunch", turn=100, slot=3)
 mon.get("mean_x", level="slice", turn=100, slot=3, slice_index=12)
-mon.get("mean_x", level="slice", turn=100, slot=3, zeta=0.03)
 ```
 
 Scalar selectors remove the corresponding axis unless `keepdims=True`.

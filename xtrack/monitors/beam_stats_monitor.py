@@ -63,8 +63,50 @@ class BeamStatsMonitor(BeamElement):
     """
     Monitor weighted beam statistics.
 
-    This monitor stores primitive weighted sums directly in xobjects arrays.
-    Derived statistics are computed on access from those primitive sums.
+    The monitor records beam statistics over selected turns. It operates in
+    one of three modes selected from the constructor inputs:
+
+    - beam mode: no bunch or slice inputs are provided. One value is recorded
+      per logged turn for the whole beam.
+    - bunch mode: bunch inputs are provided without slice inputs. One value is
+      recorded per logged turn and selected physical slot. Whole-beam
+      statistics are also available.
+    - slice mode: `zeta_range` and `num_slices` are provided. One value is
+      recorded per logged turn, selected physical slot, and longitudinal slice.
+      Per-bunch and whole-beam statistics are also available.
+
+    All statistics are weighted by ``particles.weight``. The public
+    ``num_particles`` quantity is therefore the sum of particle weights in each
+    bin, not the number of macroparticles.
+
+    Requested statistics are available as attributes at the most detailed
+    recorded level, for example ``monitor.mean_x``. The :meth:`get` method
+    gives access to a specific aggregation level and accepts physical
+    selectors:
+
+    .. code-block:: python
+
+        monitor.get("mean_x")
+        # Default level, with shape depending on the monitor mode.
+
+        monitor.get("mean_x", level="beam")
+        # Shape: (n_logged_turns,)
+
+        monitor.get("mean_x", level="bunch")
+        # Shape: (n_logged_turns, n_selected_slots)
+
+        monitor.get("mean_x", level="bunch", slot=3)
+        # Shape: (n_logged_turns,)
+
+        monitor.get("mean_x", level="slice")
+        # Shape: (n_logged_turns, n_selected_slots, n_slices)
+
+        monitor.get("mean_x", level="slice", slot=3, slice_index=12)
+        # Shape: (n_logged_turns,)
+
+    Scalar selectors such as ``turn=10``, ``slot=3``, or ``slice_index=12``
+    remove the selected axis by default. Use ``keepdims=True`` to preserve
+    length-one axes.
 
     Parameters
     ----------
@@ -346,7 +388,7 @@ class BeamStatsMonitor(BeamElement):
         return getattr(super(), attr)
 
     def get(self, stat, *, level=None, turn=None, slot=None, slice_index=None,
-            zeta=None, keepdims=False):
+            keepdims=False):
         """
         Return a recorded statistic with optional physical selectors.
 
@@ -362,8 +404,6 @@ class BeamStatsMonitor(BeamElement):
             Physical selected slot or slots to select.
         slice_index : int, optional
             Slice index to select.
-        zeta : float, optional
-            Longitudinal coordinate mapped to a slice index.
         keepdims : bool, optional
             Preserve axes selected by scalar selectors.
         """
@@ -372,13 +412,7 @@ class BeamStatsMonitor(BeamElement):
 
         level = self._normalize_level(level)
         self._check_selectors_for_level(
-            level=level, slot=slot, slice_index=slice_index, zeta=zeta)
-
-        if slice_index is not None and zeta is not None:
-            raise ValueError('Only one of `slice_index` and `zeta` can be '
-                             'provided')
-        if zeta is not None:
-            slice_index = self.slice_index(zeta, slot=slot)
+            level=level, slot=slot, slice_index=slice_index)
 
         moments = self._moments_at_level(level)
         out = self._compute_stat_from_moments(stat, moments, level=level)
@@ -585,22 +619,20 @@ class BeamStatsMonitor(BeamElement):
                 f'{level!r}')
         return level
 
-    def _check_selectors_for_level(self, *, level, slot, slice_index, zeta):
+    def _check_selectors_for_level(self, *, level, slot, slice_index):
         """
         Reject selectors that are incompatible with an aggregation level.
         """
         if level == 'beam':
             if slot is not None:
                 raise ValueError('`slot` cannot be used with level="beam"')
-            if slice_index is not None or zeta is not None:
+            if slice_index is not None:
                 raise ValueError(
-                    '`slice_index` and `zeta` cannot be used with '
-                    'level="beam"')
+                    '`slice_index` cannot be used with level="beam"')
         elif level == 'bunch':
-            if slice_index is not None or zeta is not None:
+            if slice_index is not None:
                 raise ValueError(
-                    '`slice_index` and `zeta` cannot be used with '
-                    'level="bunch"')
+                    '`slice_index` cannot be used with level="bunch"')
 
     def _turn_selector(self, turn):
         """
