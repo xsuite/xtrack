@@ -30,9 +30,12 @@ recorded and whole-beam statistics are available as a reduction. If slice
 inputs are provided, per-slice statistics are recorded and per-bunch and
 whole-beam statistics are available as reductions.
 
-For bunched beams, the slice grid is defined per selected bunch. For coasting
-beams, the slice grid covers one longitudinal domain, typically the full
-circumference.
+For bunched beams, the slice grid is defined per selected bunch.
+
+Coasting-beam support is intentionally deferred. The first kernel-first
+implementation should focus on whole-beam, bunch-by-bunch, and slice-by-slice
+statistics for bunched beams. Coasting behavior, wrapping, and public shape
+conventions will be designed after the bunched implementation is stable.
 
 The efficient bunched-beam scaling should be:
 
@@ -40,9 +43,22 @@ The efficient bunched-beam scaling should be:
 n_logged_turns * n_selected_bunches * n_slices
 ```
 
-The monitor should build on the capabilities currently provided by
-`xfields.ElementWithSlicer` and `xfields.UniformBinSlicer`. These should be
-moved to `xtrack`, with `xfields` importing them from there.
+The monitor should be a self-contained logging element with its own tracking
+kernel. It should not inherit from `ElementWithSlicer` and should not store data
+through `CompressedProfile`.
+
+The kernel should directly accumulate weighted primitive moments into the
+monitor storage:
+
+```text
+particles -> active-particle filter -> turn/slot/slice bin -> atomicAdd
+```
+
+`UniformBinSlicer` remains a current-pass slicing primitive for other
+collective elements. `BeamStatsMonitor` can share low-level C helper functions
+with the slicer where this stays clean, but monitor-specific concepts such as
+turn logging, storage shape, reductions, and HDF5 output should remain in
+`BeamStatsMonitor`.
 
 ## Proposed User API
 
@@ -137,19 +153,6 @@ mon.get("mean_x", level="bunch", slot=[2, 3])
 # shape (n_logged_turns, 2)
 ```
 
-Example for a coasting beam:
-
-```python
-mon = xt.BeamStatsMonitor(
-    start_at_turn=0,
-    stop_at_turn=1000,
-    coasting=True,
-    zeta_range=(-circumference / 2, circumference / 2),
-    num_slices=1024,
-    stats=["num_particles", "mean_x", "sigma_x"],
-)
-```
-
 ## Filling Scheme and Bunch Selection
 
 The first version should keep the filling API simple.
@@ -196,44 +199,6 @@ selected_slots = split_slots_for_rank(filled_slots, rank, size)
 
 The output bunch axis should follow `selected_slots` order.
 
-## Coasting Beams
-
-A coasting beam can be represented internally as one longitudinal domain with
-many slices:
-
-```text
-n_domains = 1
-zeta_range = full monitored range, often full circumference
-num_slices = number of ring bins
-```
-
-The public API should not expose a fake bunch axis by default. For coasting
-mode:
-
-```python
-mon.mean_x.shape
-# (n_logged_turns, n_slices)
-```
-
-For bunched mode:
-
-```python
-mon.mean_x.shape
-# (n_logged_turns, n_selected_bunches, n_slices)
-```
-
-The first implementation does not expose an option to preserve the artificial
-bunch axis for coasting beams.
-
-For coasting beams, consider a later option:
-
-```python
-wrap_zeta=True
-circumference=circumference
-```
-
-Without wrapping, particles outside `zeta_range` are not counted.
-
 ## Turn Selection
 
 The monitor should support logging only a subset of turns.
@@ -270,6 +235,40 @@ turns=[100, 101, 105, 200]
 
 with `turns` mutually exclusive with `start_at_turn`, `stop_at_turn`,
 and `every_n_turns`.
+
+The tracking kernel should not infer the current turn from particle 0. Mixed
+`at_turn` values in one particles object are acceptable. For each active
+particle, the kernel should use that particle's own `at_turn` to decide whether
+the particle contributes and to compute the logged-record index.
+
+This implies:
+
+```text
+if particle.state <= 0:
+    skip
+elif particle.at_turn is not logged:
+    skip
+else:
+    i_record = record index corresponding to particle.at_turn
+    accumulate into that record
+```
+
+For the MVP regular-grid turn selection, the record index is:
+
+```text
+i_record = (particle.at_turn - start_at_turn) // every_n_turns
+```
+
+after checking that:
+
+```text
+start_at_turn <= particle.at_turn < stop_at_turn
+(particle.at_turn - start_at_turn) % every_n_turns == 0
+```
+
+This policy avoids the ambiguity of using `particles.at_turn[0]` when particle
+0 is lost or stale, and it naturally supports particles from multiple turns in
+the same array.
 
 ## Weighted Statistics
 
@@ -493,12 +492,6 @@ bunch mode -> (n_logged_turns, n_selected_bunches)
 slice mode -> (n_logged_turns, n_selected_bunches, n_slices)
 ```
 
-For coasting slice mode, the artificial bunch axis is hidden by default:
-
-```text
-(n_logged_turns, n_slices)
-```
-
 The available reductions are exposed through:
 
 ```python
@@ -553,6 +546,66 @@ Reductions must be computed from weighted primitive sums, not by averaging
 derived statistics. For example, bunch-level `sigma_x` from slice data is
 computed by first summing `sum_weight`, `sum_weight_x`, and `sum_weight_x_x`
 over slices, then applying the weighted variance formula.
+
+## Tracking Kernel Architecture
+
+`BeamStatsMonitor` should own the arrays that store raw weighted moments over
+logged records. The tracking kernel should write directly into these arrays
+with atomic additions.
+
+The kernel responsibilities are:
+
+```text
+for each active particle:
+    read particle.at_turn
+    reject particles outside the logged turn selection
+    compute logged-record index
+    compute selected slot index when needed
+    compute slice index when needed
+    atomicAdd requested raw weighted moments
+```
+
+The kernel should skip lost particles (`state <= 0`). It should not require the
+active particles to be compacted and should not assume that particle 0 is active
+or representative of the current turn.
+
+The monitor should support three internal binning configurations:
+
+```text
+beam mode:
+    one bin per logged turn
+    no zeta cut
+    no slot or slice axis
+
+bunch mode:
+    one bin per logged turn and selected slot
+    zeta is used only to identify the selected slot
+    no public slice axis
+
+slice mode:
+    one bin per logged turn, selected slot, and slice
+    zeta is used for both slot and slice assignment
+```
+
+The monitor should store primitive sums, not derived statistics. Python-side
+accessors compute means, sigmas, covariances, emittances, and reductions from
+the stored primitive sums. Coupled emittances and optics-from-sigma remain
+Python-side postprocessing.
+
+`UniformBinSlicer` should not be extended to include monitor logging semantics.
+If duplication becomes a maintenance issue, factor only the low-level C
+building blocks that are genuinely shared:
+
+```text
+active-particle handling
+selected-slot lookup
+zeta -> slot mapping
+zeta -> slice mapping
+weighted moment atomic accumulation
+```
+
+The public `BeamStatsMonitor` behavior should not depend on `ElementWithSlicer`
+or `CompressedProfile`.
 
 ## HDF5 Output
 
@@ -636,14 +689,25 @@ storage = "memory"
 
 ## Implementation Steps
 
-1. Move `UniformBinSlicer` and `ElementWithSlicer` capabilities from `xfields`
-   to `xtrack`.
+1. Add `xt.BeamStatsMonitor` as a standalone `BeamElement`, not as a subclass
+   of `ElementWithSlicer`.
 
-2. Update `xfields` to import the moved slicer infrastructure from `xtrack`.
+2. Define the monitor storage for primitive weighted sums with shapes matching
+   the selected aggregation mode:
 
-3. Add `xt.BeamStatsMonitor` using the moved slicer machinery.
+   ```text
+   beam  -> (n_logged_turns,)
+   bunch -> (n_logged_turns, n_selected_bunches)
+   slice -> (n_logged_turns, n_selected_bunches, n_slices)
+   ```
 
-4. Implement turn selection:
+3. Implement high-level `stats` expansion to the required primitive moments.
+
+4. Implement the tracking kernel that filters lost particles, supports mixed
+   `at_turn` values, computes the target record/bin, and atomic-adds the
+   requested primitive weighted moments.
+
+5. Implement turn selection:
 
    ```text
    start_at_turn
@@ -652,11 +716,17 @@ storage = "memory"
    turns property
    ```
 
-5. Implement weighted primitive accumulation for the required moments.
+6. Implement selected bunch support:
 
-6. Implement high-level `stats` expansion to required moments.
+   ```text
+   filled_slots
+   selected_slots
+   filling_scheme
+   num_bunches
+   bunch_spacing_zeta
+   ```
 
-7. Implement public derived properties:
+7. Implement public derived properties from primitive sums:
 
    ```text
    num_particles
@@ -684,19 +754,7 @@ storage = "memory"
    optics estimation from Sigma
    ```
 
-10. Implement selected bunch support:
-
-   ```text
-   filled_slots
-   selected_slots
-   filling_scheme
-   num_bunches
-   ```
-
-11. Implement coasting mode as a one-domain slicer with a public API that hides
-   the fake bunch axis by default.
-
-12. Implement optional HDF5 output:
+10. Implement optional HDF5 output:
 
     ```text
     output_file
@@ -707,43 +765,54 @@ storage = "memory"
     stable file metadata
     ```
 
-13. Add tests comparing:
+11. Add tests comparing:
 
     - weighted means and sigmas against NumPy calculations
     - beam, bunch, and slice aggregation levels
     - selected bunch behavior
-    - coasting mode shape and values
     - `every_n_turns` turn selection
+    - mixed `at_turn` particles in one tracking call
+    - lost particle filtering, including lost particle 0
+    - CPU/GPU/OpenMP behavior where available
     - HDF5 append/flush layout
     - transverse emittance against covariance calculations
     - coupled emittances against `xtrack.linear_normal_form` sorting
     - optics from measured Sigma against the method in `027_optics_from_sigma_mat.py`
 
-14. Only after the new monitor is stable, decide on wrappers and deprecation
+12. Consider factoring shared C helpers with `UniformBinSlicer` only after the
+    standalone monitor behavior is stable.
+
+13. Only after the new monitor is stable, decide on wrappers and deprecation
     strategy for older monitors.
 
 ## Current Implementation Status
 
-An initial implementation exists on branch `dev/beamstatsmonitor`. The slicer
-infrastructure has been moved to `xtrack/xtrack/slicers/`, with compatibility
-wrappers left in `xfields/xfields/slicers/` and
-`xfields/xfields/beam_elements/element_with_slicer.py`. The new monitor class
-is `xtrack.BeamStatsMonitor`, implemented in
-`xtrack/xtrack/monitors/beam_stats_monitor.py` and exported from `xtrack`.
+The current implementation is the kernel-first standalone monitor described
+above. `xtrack.BeamStatsMonitor` is implemented in
+`xtrack/xtrack/monitors/beam_stats_monitor.py`, with its tracking kernel in
+`xtrack/xtrack/monitors/beam_stats_monitor.h`.
 
-The current monitor supports in-memory recording of weighted `num_particles`,
+The monitor owns xobjects storage for primitive weighted sums and the kernel
+writes directly into that storage. It does not inherit from
+`ElementWithSlicer`, does not use `UniformBinSlicer`, and does not store data
+through `CompressedProfile`.
+
+The implementation supports in-memory recording of weighted `num_particles`,
 means, sigmas, covariances, and projected geometric/normalized emittances. It
 supports `start_at_turn`, `stop_at_turn`, `every_n_turns`, `filled_slots`,
-`selected_slots`, `filling_scheme`, `num_bunches`, `coasting=True`, and
-beam/bunch/slice access through `level=`, `available_levels`, and
-`default_level`. Coupled normal-mode emittances, optics-from-sigma, and
-HDF5/file output are not implemented yet.
+`selected_slots`, `filling_scheme`, `num_bunches`, and beam/bunch/slice access
+through `level=`, `available_levels`, and `default_level`. The kernel filters
+lost particles and uses each active particle's own `at_turn`, so mixed-turn
+particle arrays are accepted.
+
+Coupled normal-mode emittances, optics-from-sigma, HDF5/file output, and
+coasting-beam support are not implemented yet.
 
 Examples live in `xtrack/examples/beam_stats_monitor/`:
-`000_basic_bunched.py` (whole beam), `001_selected_slots.py` (per bunch),
-`002_coasting.py`,
-`003_projected_emittance.py`, and `004_plot_slice_stats.py`. The examples are
-included in the user guide through `xsuite/docs/conf.py`, and the guide section
-is in `xsuite/docs/particles_monitor.rst`. The API reference entry is in
+`000_beam_stats.py` (whole beam), `001_bunch_by_bunch_stats.py` (per bunch),
+`002_selected_slots.py`, `004_projected_emittance.py`, and
+`005_plot_slice_stats.py`. The examples are included in the user guide through
+`xsuite/docs/conf.py`, and the guide section is in
+`xsuite/docs/particles_monitor.rst`. The API reference entry is in
 `xsuite/docs/apireference.rst`. Focused tests are in
 `xtrack/tests/test_beam_stats_monitor.py`.
