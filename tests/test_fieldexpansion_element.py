@@ -1,7 +1,7 @@
 import xtrack as xt
 import numpy as np
-import xobjects
-xobjects.context_cpu.allow_no_prebuilt_kernel = True
+import xobjects as xo
+xo.context_cpu.allow_no_prebuilt_kernel = True
 
 def test_h_sdep():
     h = 0.1
@@ -73,4 +73,24 @@ def test_twiss():
     assert np.allclose(tw.dx, mytw.dx)
     assert np.allclose(tw.dy, mytw.dy)
     
+def test_backtrack():
+    h = 0.1
+    a = np.array([[1.0, 0.1], [0.2, 0.0], [0.3, 0.1]])
+    b = np.array([[0.1, 0.1], [0.5, 0.0]])
+    bs = np.array([0.1, 0.0])
+    ny = 5
+    length=0.2
+    fexp = xt.FieldExpansion(length=length, h=h, a=a, b=b, bs=bs, ny=ny, nstep=100)
+
+    p0 = xt.Particles(x=0.01, y=0.007, tau=0.002, beta0=0.7)
+    line = xt.Line(elements=[fexp])
     
+    p_test = p0.copy()
+    line.track(p_test)
+    line.track(p_test, backtrack=True)
+
+    assert np.all(p_test.state == 1)
+    for coordinate in ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']:
+        xo.assert_allclose(
+            getattr(p_test, coordinate), getattr(p0, coordinate),
+            rtol=0, atol=1e-12)

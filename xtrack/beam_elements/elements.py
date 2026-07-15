@@ -5038,7 +5038,7 @@ class StraightFieldExpansion(BeamElement):
     
     isthick = True
     behaves_like_drift = True
-    has_backtrack = False
+    has_backtrack = True
     allow_loss_refinement = False
     allow_rot_and_shift = False
 
@@ -5153,7 +5153,7 @@ class BentFieldExpansion(BeamElement):
     
     isthick = True
     behaves_like_drift = True
-    has_backtrack = False
+    has_backtrack = True
     allow_loss_refinement = False
     allow_rot_and_shift = False
 
