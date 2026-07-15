@@ -16,6 +16,12 @@ ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
 # Tilt with respect to the beam axis
 theta = -0.015
 
+sol_half_length = 1.23
+
+# Location of first dipole corrector (overlaid with solenoid)
+ds_start = 1.23
+ds_end = 2.29
+
 for ip_name in ip_names:
 
     line.cycle(f'end_ds_start_straight_{ip_name}')
@@ -24,7 +30,7 @@ for ip_name in ip_names:
     print(f'IP {ip_name}:')
 
     # Analytic field map
-    sf = TiltedSolenoid(L=1.23*2, a=0.13, B0=2., theta=theta)
+    sf = TiltedSolenoid(L=sol_half_length*2, a=0.13, B0=2., theta=theta)
 
     # s coordinate along the beam axis
     s = np.linspace(-2.399, 2.399, 201)
@@ -127,8 +133,7 @@ for ip_name in ip_names:
     tt_region = line.get_table().rows[f'end_ds_start_straight_{ip_name}':f'end_straight_start_ds_{ip_name}']
     s_ip = tt_region['s', ip_name]
 
-    ds_start = 1.23
-    ds_end = 2.29
+
     tt_kicker_right= tt_region.rows[s_ip + ds_start: s_ip + ds_end:'s']
     assert np.all(tt_kicker_right.element_type == 'VariableSolenoid')
     l_tot = tt_kicker_right['s_end'][-1] - tt_kicker_right['s_start'][0]
@@ -140,9 +145,7 @@ for ip_name in ip_names:
         env.ref[nn].knl[0] += env.ref[f'acbh1_sol_right_{ip_name}']/l_tot * ee.length
         env.ref[nn].ksl[0] += env.ref[f'acbv1_sol_right_{ip_name}']/l_tot * ee.length
 
-    ds_start = -2.29
-    ds_end = -1.23
-    tt_kicker_left = tt_region.rows[s_ip + ds_start: s_ip + ds_end:'s']
+    tt_kicker_left = tt_region.rows[s_ip - ds_end: s_ip - ds_start:'s']
     assert np.all(tt_kicker_left.element_type == 'VariableSolenoid')
     l_tot = tt_kicker_left['s_end'][-1] - tt_kicker_left['s_start'][0]
 
