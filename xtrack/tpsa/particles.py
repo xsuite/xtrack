@@ -12,6 +12,7 @@ from ._bridge_particle import XtBridgeParticle, _COORDS, _REF_VARS
 
 if TYPE_CHECKING:
     from .knobs import Knobs
+    from .optics import TpsaOptics
 
 
 class ParticlesTpsa:
@@ -151,6 +152,12 @@ class ParticlesTpsa:
     def jacobian(self) -> np.ndarray:
         """The 6x6 order-1 transfer matrix R."""
         return np.array([c.grad() for c in self.coords])
+
+    def optics(self) -> TpsaOptics:
+        """Uncoupled optics (betx, alfx, mux, dx, ...) + knob gradients from this map."""
+        from .optics import TpsaOptics
+
+        return TpsaOptics(self)
 
     def set_const_part(self, values: Sequence[float] | np.ndarray) -> None:
         """Set the order-0 part (orbit) of each coordinate from a length-6 array."""

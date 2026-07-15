@@ -18,6 +18,7 @@ from xtrack.tpsa import _gtpsa
 from xtrack.tpsa._bridge_particle import COORD_FIELDS, REF_FIELDS, XtBridgeParticle
 from xtrack.tpsa.backend import num_bridge, registry_classes, type_id_for
 from xtrack.tpsa.registry import COORDS, REF_VARS, TYPE_IDS
+from xtrack.twiss import _6d_w_matrix
 
 
 def _gtpsa_available():
@@ -989,3 +990,116 @@ def test_multi_element_monitor_records_parameters():
     i = line.element_names.index("mq3")
     for c in COORDS:
         assert mon.at("mq3").monomial_coeffs(c) == ebe_mon[i].monomial_coeffs(c)
+
+
+# --------------------------------------------------------------------------- #
+# TpsaOptics: Ripken optical functions (betx/bety/...) + knob derivatives read
+# straight off a map's Jacobian (A-matrix), MAD-NG madl_gphys.mad style.
+# --------------------------------------------------------------------------- #
+
+
+def test_optics_identity_roundtrip():
+    """Reading optics off ``set_jacobian(_6d_w_matrix(...))`` returns the seed values."""
+    W = _6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, -0.03, 0.05)
+    m = _map(order=2)
+    m.set_jacobian(W)
+    o = m.optics()
+    xo.assert_allclose(o.betx, 3.0, rtol=0, atol=1e-13)
+    xo.assert_allclose(o.bety, 4.0, rtol=0, atol=1e-13)
+    xo.assert_allclose(o.alfx, 0.7, rtol=0, atol=1e-13)
+    xo.assert_allclose(o.alfy, -0.4, rtol=0, atol=1e-13)
+    xo.assert_allclose([o.dx, o.dpx, o.dy, o.dpy], [0.1, 0.02, -0.03, 0.05],
+                       rtol=0, atol=1e-13)
+    assert set(o.to_dict()) == {"betx", "bety", "alfx", "alfy", "mux", "muy",
+                                "dx", "dpx", "dy", "dpy"}
+
+
+def test_optics_drift_propagation():
+    """On-axis, optics after a drift follow the analytic beta(L) = b0 - 2 a0 L + g0 L^2."""
+    L = 2.5
+    line = _line([("d", xt.Drift(length=L))])
+    betx0, alfx0 = 3.0, 0.7
+    gamx0 = (1 + alfx0 ** 2) / betx0
+    m = xtpsa.ParticlesTpsa(order=2, p0c=P0C, mass0=MASS0)  # on-axis identity
+    m.set_jacobian(_6d_w_matrix(betx0, 4.0, alfx0, -0.4, 1.0, 0.0, 0.0, 0.0, 0.0))
+    line.track(m)
+    o = m.optics()
+    xo.assert_allclose(o.betx, betx0 - 2 * alfx0 * L + gamx0 * L ** 2, rtol=0, atol=1e-12)
+    xo.assert_allclose(o.alfx, alfx0 - gamx0 * L, rtol=0, atol=1e-12)
+
+
+def test_optics_values_vs_twiss():
+    """Optics off the tracked map match ``line.twiss`` at the same position."""
+    line = _demo_line()
+    init = dict(betx=3.0, bety=4.0, alfx=0.7, alfy=-0.4, dx=0.1, dpx=0.02, dy=0.0, dpy=0.0)
+    tw = line.twiss(**init)
+    m = _map(order=2, x=0, px=0, y=0, py=0, zeta=0, delta=0)
+    m.set_jacobian(_6d_w_matrix(init["betx"], init["bety"], init["alfx"], init["alfy"],
+                                1.0, init["dx"], init["dpx"], init["dy"], init["dpy"]))
+    line.track(m, multi_element_monitor_at=["d1"])
+    o = line.record_multi_element_last_track.at("d1").optics()
+    i = list(line.element_names).index("d1")
+    for name in ("betx", "bety", "alfx", "alfy", "dx", "mux"):
+        xo.assert_allclose(getattr(o, name), getattr(tw, name)[i], rtol=1e-9, atol=1e-11)
+
+
+def _param_map(A0, dA, order=2):
+    """A knobbed map with Jacobian ``A0`` and injected ``d A(i,j)/d knob`` (``dA[(i,j)]``)."""
+    line = _knob_line()
+    line.build_tracker()
+    kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
+    m = xtpsa.ParticlesTpsa(order=order, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
+    m.set_jacobian(A0)
+    nv = m.n_variables
+    for (i, j), g in dA.items():
+        for k, gk in enumerate(g):
+            mono = [0] * (nv + len(g))
+            mono[j] = 1
+            mono[nv + k] = 1
+            m.set_coefficient(COORDS[i], tuple(mono), gk)
+    return m
+
+
+def test_optics_knob_gradient():
+    """d(optics)/d(knob) is the chain rule on the map's mixed coefficients."""
+    A0 = _6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, 0.0, 0.0)
+    dA = {(0, 0): [1.3, -0.5], (0, 1): [0.4, 0.9], (1, 0): [0.2, 0.1],
+          (1, 1): [-0.7, 0.3], (0, 5): [0.05, -0.02]}
+    o = _param_map(A0, dA).optics()
+
+    # analytic: d betx = 2 A00 dA00 + 2 A01 dA01 ; d dx = dA05
+    xo.assert_allclose(o.gradient("betx"),
+                       2 * A0[0, 0] * np.array(dA[(0, 0)])
+                       + 2 * A0[0, 1] * np.array(dA[(0, 1)]), rtol=0, atol=1e-13)
+    xo.assert_allclose(o.gradient("dx"), dA[(0, 5)], rtol=0, atol=1e-13)
+
+    # finite difference (along kqa) of betx built from A0 + h*dA
+    def betx_at(h):
+        Ah = A0.copy()
+        for (i, j), g in dA.items():
+            Ah[i, j] += h * g[0]
+        mm = _map(order=1)
+        mm.set_jacobian(Ah)
+        return mm.optics().betx
+
+    hh = 1e-6
+    fd = (betx_at(hh) - betx_at(-hh)) / (2 * hh)
+    xo.assert_allclose(o.gradient("betx")[0], fd, rtol=1e-6, atol=1e-8)
+
+
+def test_optics_gradient_guards():
+    """Gradients need knobs and order >= 2; values always work."""
+    plain = _map(order=2)
+    plain.set_jacobian(_6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, 0.0, 0.0))
+    assert plain.optics().betx > 0                       # values fine without knobs
+    with pytest.raises(ValueError, match="no knobs"):
+        plain.optics().gradient("betx")
+
+    line = _knob_line()
+    line.build_tracker()
+    kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
+    m1 = xtpsa.ParticlesTpsa(order=1, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
+    with pytest.raises(ValueError, match="order >= 2"):
+        m1.optics().gradient("betx")
+    with pytest.raises(KeyError, match="unknown optical function"):
+        _param_map(np.eye(6), {}).optics().gradient("nope")
