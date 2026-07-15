@@ -22,6 +22,8 @@ sol_half_length = 1.23
 ds_start = 1.23
 ds_end = 2.29
 
+B0 = 2. # T
+
 for ip_name in ip_names:
 
     line.cycle(f'end_ds_start_straight_{ip_name}')
@@ -30,7 +32,7 @@ for ip_name in ip_names:
     print(f'IP {ip_name}:')
 
     # Analytic field map
-    sf = TiltedSolenoid(L=sol_half_length*2, a=0.13, B0=2., theta=theta)
+    sf = TiltedSolenoid(L=sol_half_length*2, a=0.13, B0=B0, theta=theta)
 
     # s coordinate along the beam axis
     s = np.linspace(-2.399, 2.399, 201)
