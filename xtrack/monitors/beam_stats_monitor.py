@@ -209,23 +209,51 @@ class BeamStatsMonitor(BeamElement):
         if every_n_turns <= 0:
             raise ValueError('`every_n_turns` must be positive')
 
-        stats = _DEFAULT_STATS if stats is None else tuple(stats)
-        stats = _normalize_stats(stats)
+        # Keep requested stats in user order while ignoring duplicates.
+        raw_stats = _DEFAULT_STATS if stats is None else tuple(stats)
+        stats = []
+        for stat in raw_stats:
+            if stat not in stats:
+                stats.append(stat)
+        stats = tuple(stats)
         _check_supported_stats(stats)
 
-        bunch_mode = (not slice_mode and _has_bunch_inputs(
-            num_bunches=num_bunches,
-            filled_slots=filled_slots,
-            filling_scheme=filling_scheme,
-            selected_slots=selected_slots,
-            bunch_spacing_zeta=bunch_spacing_zeta))
+        # Bunch mode is selected by any bunch-related input, unless slice
+        # inputs already selected the more detailed slice mode.
+        bunch_mode = (
+            not slice_mode
+            and (filled_slots is not None
+                 or filling_scheme is not None
+                 or selected_slots is not None
+                 or bunch_spacing_zeta is not None
+                 or int(num_bunches) != 1))
 
         if slice_mode or bunch_mode:
-            filled_slots, selected_slots = _normalize_filling(
-                num_bunches=num_bunches,
-                filled_slots=filled_slots,
-                filling_scheme=filling_scheme,
-                selected_slots=selected_slots)
+            # Normalize the public filling inputs into physical filled slots
+            # and selected slots. The output bunch axis follows selected_slots.
+            if filled_slots is not None and filling_scheme is not None:
+                raise ValueError('Only one of `filled_slots` and '
+                                 '`filling_scheme` can be provided')
+            if filling_scheme is not None:
+                filling_scheme = np.asarray(filling_scheme, dtype=np.int64)
+                filled_slots = np.nonzero(filling_scheme)[0].astype(np.int64)
+            elif filled_slots is not None:
+                filled_slots = np.asarray(filled_slots, dtype=np.int64)
+            else:
+                filled_slots = np.arange(int(num_bunches), dtype=np.int64)
+
+            if len(filled_slots) == 0:
+                raise ValueError('At least one filled slot is required')
+            if selected_slots is None:
+                selected_slots = filled_slots.copy()
+            else:
+                selected_slots = np.asarray(selected_slots, dtype=np.int64)
+
+            missing = [
+                slot for slot in selected_slots if slot not in set(filled_slots)]
+            if missing:
+                raise ValueError(f'`selected_slots` contains unfilled slots: '
+                                 f'{missing}')
             if len(selected_slots) > 1 and bunch_spacing_zeta is None:
                 raise ValueError(
                     '`bunch_spacing_zeta` must be provided when more than one '
@@ -243,7 +271,21 @@ class BeamStatsMonitor(BeamElement):
         else:
             filled_slots = np.array([], dtype=np.int64)
             selected_slots = np.array([], dtype=np.int64)
-        slot_to_selected = _make_slot_to_selected(selected_slots)
+
+        # Dense lookup used by the C kernel to map a physical slot number to
+        # the selected-slot axis index in O(1), preserving selected_slots order.
+        if len(selected_slots) == 0:
+            slot_to_selected = np.array([], dtype=np.int64)
+        else:
+            max_slot = int(np.max(selected_slots))
+            if max_slot < 0:
+                raise ValueError('Slot numbers must be non-negative')
+            slot_to_selected = np.full(max_slot + 1, -1, dtype=np.int64)
+            for ii, slot in enumerate(selected_slots):
+                slot = int(slot)
+                if slot < 0:
+                    raise ValueError('Slot numbers must be non-negative')
+                slot_to_selected[slot] = ii
 
         turns = np.arange(
             int(start_at_turn), int(stop_at_turn), int(every_n_turns),
@@ -656,8 +698,14 @@ class BeamStatsMonitor(BeamElement):
         """
         if slice_index is None:
             return slice(None), False
-        return _normalize_slice_index(
-            slice_index, int(self._num_slices), 'slice_index'), True
+        # Accept negative indices with NumPy-like semantics.
+        index = _as_int(slice_index, 'slice_index')
+        if index < 0:
+            index += int(self._num_slices)
+        if index < 0 or index >= int(self._num_slices):
+            raise ValueError(f'`slice_index`={index} is outside the recorded '
+                             'slice range')
+        return index, True
 
     @staticmethod
     def _apply_selector(array, selector, axis):
@@ -669,78 +717,6 @@ class BeamStatsMonitor(BeamElement):
             indices[axis] = selector
             return array[tuple(indices)]
         return np.take(array, np.atleast_1d(selector), axis=axis)
-
-
-def _normalize_stats(stats):
-    """
-    Return statistic names with duplicates removed while preserving order.
-    """
-    out = []
-    for stat in stats:
-        if stat not in out:
-            out.append(stat)
-    return tuple(out)
-
-
-def _has_bunch_inputs(*, num_bunches, filled_slots, filling_scheme,
-                      selected_slots, bunch_spacing_zeta):
-    """
-    Return whether constructor inputs request bunched-beam binning.
-    """
-    return (
-        filled_slots is not None
-        or filling_scheme is not None
-        or selected_slots is not None
-        or bunch_spacing_zeta is not None
-        or int(num_bunches) != 1)
-
-
-def _normalize_filling(*, num_bunches, filled_slots, filling_scheme,
-                       selected_slots):
-    """
-    Normalize filling inputs into filled and selected physical slot arrays.
-    """
-    if filled_slots is not None and filling_scheme is not None:
-        raise ValueError('Only one of `filled_slots` and `filling_scheme` can '
-                         'be provided')
-    if filling_scheme is not None:
-        filling_scheme = np.asarray(filling_scheme, dtype=np.int64)
-        filled_slots = np.nonzero(filling_scheme)[0].astype(np.int64)
-    elif filled_slots is not None:
-        filled_slots = np.asarray(filled_slots, dtype=np.int64)
-    else:
-        filled_slots = np.arange(int(num_bunches), dtype=np.int64)
-
-    if len(filled_slots) == 0:
-        raise ValueError('At least one filled slot is required')
-    if selected_slots is None:
-        selected_slots = filled_slots.copy()
-    else:
-        selected_slots = np.asarray(selected_slots, dtype=np.int64)
-
-    missing = [slot for slot in selected_slots if slot not in set(filled_slots)]
-    if missing:
-        raise ValueError(f'`selected_slots` contains unfilled slots: '
-                         f'{missing}')
-    return filled_slots, selected_slots
-
-
-def _make_slot_to_selected(selected_slots):
-    """
-    Build a dense physical-slot to selected-axis-index lookup table.
-    """
-    if len(selected_slots) == 0:
-        return np.array([], dtype=np.int64)
-    max_slot = int(np.max(selected_slots))
-    if max_slot < 0:
-        raise ValueError('Slot numbers must be non-negative')
-    out = np.full(max_slot + 1, -1, dtype=np.int64)
-    for ii, slot in enumerate(selected_slots):
-        slot = int(slot)
-        if slot < 0:
-            raise ValueError('Slot numbers must be non-negative')
-        out[slot] = ii
-    return out
 
 
 def _value_index(values, value, name):
@@ -765,19 +741,6 @@ def _value_indices(values, value, name):
         _value_index(values, item, name) for item in flat_values],
         dtype=np.int64)
     return indices, is_scalar
-
-
-def _normalize_slice_index(index, num_slices, name):
-    """
-    Normalize and validate a possibly negative slice index.
-    """
-    index = _as_int(index, name)
-    if index < 0:
-        index += num_slices
-    if index < 0 or index >= num_slices:
-        raise ValueError(f'`{name}`={index} is outside the recorded slice '
-                         'range')
-    return index
 
 
 def _as_int(value, name):
