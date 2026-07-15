@@ -19,14 +19,13 @@ bunch_spacing_zeta = line.get_length() / harmonic
 line.insert("pimms_cavity", xt.Cavity(harmonic=harmonic, voltage=10e3),
             at=0.001)
 
-filled_slots = np.arange(NUM_SLOTS)
 filling_scheme = np.ones(NUM_SLOTS, dtype=int)
 
 # Define a monitor to record bunch-by-bunch statistics at each turn
 monitor = xt.BeamStatsMonitor(
     start_at_turn=0,
     stop_at_turn=NUM_TURNS,
-    filled_slots=filled_slots,
+    filling_scheme=filling_scheme,
     bunch_spacing_zeta=bunch_spacing_zeta,
     stats=["num_particles", "mean_x", "mean_zeta", "sigma_x"],
 )

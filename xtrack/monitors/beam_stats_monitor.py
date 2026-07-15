@@ -196,7 +196,7 @@ class BeamStatsMonitor(ElementWithSlicer):
             zeta_range=slicer_zeta_range,
             num_slices=slicer_num_slices,
             bunch_spacing_zeta=bunch_spacing_zeta,
-            filling_scheme=filling_scheme,
+            filling_scheme=None,
             filled_slots=filled_slots,
             bunch_selection=bunch_selection,
             **kwargs)

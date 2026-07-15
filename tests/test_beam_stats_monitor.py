@@ -55,7 +55,7 @@ def test_beam_stats_monitor_bunch_stats():
     monitor = xt.BeamStatsMonitor(
         start_at_turn=0,
         stop_at_turn=1,
-        filled_slots=[0, 1],
+        filling_scheme=[1, 1],
         bunch_spacing_zeta=10.,
         stats=['num_particles', 'mean_x'],
     )
