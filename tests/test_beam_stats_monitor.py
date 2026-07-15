@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose, assert_equal
 
 from xobjects.test_helpers import allow_no_prebuilt_kernels
@@ -202,3 +203,23 @@ def test_beam_stats_monitor_mixed_turns_and_lost_particle_zero():
     assert_allclose(monitor.get('num_particles', level='beam'), [3., 0., 4.])
     assert_allclose(monitor.get('mean_x', level='beam'),
                     [5. / 3., np.nan, 10.])
+
+
+def test_beam_stats_monitor_requires_spacing_for_non_default_slots():
+    with pytest.raises(ValueError, match='bunch_spacing_zeta'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            filled_slots=[1],
+            selected_slots=[1],
+            stats=['num_particles'],
+        )
+
+    with pytest.raises(ValueError, match='bunch_spacing_zeta'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            filled_slots=[0, 1],
+            selected_slots=[0],
+            stats=['num_particles'],
+        )

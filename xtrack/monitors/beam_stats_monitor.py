@@ -11,10 +11,13 @@ _PLANES = {
     'zeta': ('zeta', 'delta'),
 }
 
-_SECOND_MOMENTS = tuple(
-    f'{coord1}_{coord2}'
-    for ii, coord1 in enumerate(_COORDS)
-    for coord2 in _COORDS[ii:]
+_SECOND_MOMENTS = (
+    'x_x', 'x_px', 'x_y', 'x_py', 'x_zeta', 'x_delta',
+    'px_px', 'px_y', 'px_py', 'px_zeta', 'px_delta',
+    'y_y', 'y_py', 'y_zeta', 'y_delta',
+    'py_py', 'py_zeta', 'py_delta',
+    'zeta_zeta', 'zeta_delta',
+    'delta_delta',
 )
 
 _DEFAULT_STATS = (
@@ -185,6 +188,16 @@ class BeamStatsMonitor(BeamElement):
                 raise ValueError(
                     '`bunch_spacing_zeta` must be provided when more than one '
                     'slot is selected')
+            if (bunch_spacing_zeta is None
+                    and (len(filled_slots) != 1 or filled_slots[0] != 0
+                         or len(selected_slots) != 1
+                         or selected_slots[0] != 0)):
+                raise ValueError(
+                    '`bunch_spacing_zeta` is required unless the monitor uses '
+                    'only physical slot 0')
+            if (bunch_spacing_zeta is not None
+                    and float(bunch_spacing_zeta) <= 0):
+                raise ValueError('`bunch_spacing_zeta` must be positive')
         else:
             filled_slots = np.array([], dtype=np.int64)
             selected_slots = np.array([], dtype=np.int64)
@@ -209,13 +222,10 @@ class BeamStatsMonitor(BeamElement):
             mode = 1
             num_selected_slots = len(selected_slots)
             num_slices_int = 1
-            if bunch_spacing_zeta is None:
-                z_min_edge = 0.0
-                dzeta = 0.0
-            else:
-                half_spacing = 0.5 * float(bunch_spacing_zeta)
-                z_min_edge = -half_spacing
-                dzeta = 2.0 * half_spacing
+            z_min_edge = (
+                0.0 if bunch_spacing_zeta is None
+                else -0.5 * float(bunch_spacing_zeta))
+            dzeta = 0.0
             data_shape = (num_records, num_selected_slots)
             available_levels = ('beam', 'bunch')
             default_level = 'bunch'
@@ -244,7 +254,7 @@ class BeamStatsMonitor(BeamElement):
         data = {}
         for field in self._RAW_FIELDS:
             size = flat_size if field in needed_fields else 0
-            data[field] = np.zeros(size, dtype=float)
+            data[field] = size
 
         super().__init__(
             start_at_turn=int(start_at_turn),
