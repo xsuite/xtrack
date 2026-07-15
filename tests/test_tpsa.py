@@ -755,6 +755,237 @@ def test_particles_tpsa_with_knobs_descriptor():
     p = xtpsa.ParticlesTpsa(order=2, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
     assert p.n_parameters == 2
     assert p.knob_names == ['kqa', 'kqb']
-    assert p.descriptor.monomial_length == 8          # 6 coords + 2 params
-    assert np.allclose(p.jacobian(), np.eye(6))       # identity map before tracking
-    assert np.allclose(p.param_jacobian(), 0.0)       # no knob dependence yet
+    assert p.descriptor.monomial_length == 8  # 6 coords + 2 params
+    assert np.allclose(p.jacobian(), np.eye(6))  # identity map before tracking
+    assert np.allclose(p.param_jacobian(), 0.0)  # no knob dependence yet
+
+
+# --------------------------------------------------------------------------- #
+# Setters: set the const part (get0/set0), the Jacobian (get1/set1), any coeff
+# --------------------------------------------------------------------------- #
+
+
+def test_set_const_part_and_jacobian_round_trip():
+    m = _map(order=3)
+    orbit = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]) * 1e-3
+    m.set_const_part(orbit)
+    xo.assert_allclose(m.const_part, orbit, rtol=0, atol=0)  # exact
+
+    R = 0.1 * np.arange(36).reshape(6, 6) + np.eye(6)
+    m.set_jacobian(R)
+    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)  # exact
+
+    # setting the Jacobian leaves the const part untouched, and vice versa
+    xo.assert_allclose(m.const_part, orbit, rtol=0, atol=0)
+    m.set_const_part(np.zeros(6))
+    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)
+
+
+def test_set_const_part_and_jacobian_shape_guards():
+    m = _map(order=2)
+    with pytest.raises(ValueError, match="length 6"):
+        m.set_const_part(np.zeros(5))
+    with pytest.raises(ValueError, match="6x6"):
+        m.set_jacobian(np.zeros((6, 5)))
+
+
+def test_set_coefficient():
+    m = _map(order=3)
+    m.set_coefficient("x", (2, 0, 0, 0, 0, 0), 0.777)
+    assert m.coefficient("x", (2, 0, 0, 0, 0, 0)) == 0.777
+    # index form selects the same output series
+    m.set_coefficient(4, (0, 0, 0, 0, 0, 2), -1.5)  # zeta series, delta^2 term
+    assert m.coefficient("zeta", (0, 0, 0, 0, 0, 2)) == -1.5
+
+    # a malformed / beyond-order monomial raises rather than exit(1)-ing
+    with pytest.raises(ValueError, match="invalid monomial"):
+        m.set_coefficient("x", (0, 0, 0, 0, 0), 1.0)  # wrong length
+    with pytest.raises(ValueError, match="invalid monomial"):
+        m.set_coefficient("x", (3, 3, 0, 0, 0, 0), 1.0)  # order 6 > 3
+
+
+def test_set_jacobian_leaves_parameter_columns():
+    """set_jacobian writes the 6x6 variable block only; knob params stay untouched."""
+    line = _knob_line()
+    kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
+    m = xtpsa.ParticlesTpsa(order=2, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
+    # seed a knob dependence in the order-1 param block via a raw coefficient
+    m.set_coefficient("x", (0, 0, 0, 0, 0, 0, 1, 0), 0.25)  # d x / d kqa
+    before = m.param_jacobian().copy()
+
+    R = 0.1 * np.arange(36).reshape(6, 6) + np.eye(6)
+    m.set_jacobian(R)
+    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)  # variable block set
+    xo.assert_allclose(m.param_jacobian(), before, rtol=0, atol=0)  # params untouched
+    assert m.param_jacobian()[0, 0] == 0.25
+
+
+def test_set_jacobian_from_w_matrix():
+    """seed the map's Jacobian from a Twiss W-matrix (_6d_w_matrix)."""
+    from xtrack.twiss import _6d_w_matrix
+
+    W = _6d_w_matrix(
+        betx=12.0,
+        bety=8.0,
+        alfx=-1.5,
+        alfy=0.7,
+        bets=100.0,
+        dx=1.2,
+        dpx=0.03,
+        dy=-0.4,
+        dpy=0.01,
+    )
+    m = _map(order=2)
+    m.set_jacobian(W)
+    xo.assert_allclose(m.jacobian(), W, rtol=0, atol=0)
+    xo.assert_allclose(m.jacobian()[0, 0], np.sqrt(12.0), rtol=1e-14, atol=0)
+
+    # and from a real line.twiss() init row
+    fodo = _line(
+        [
+            ("qf", xt.Quadrupole(length=0.5, k1=0.6)),
+            ("d1", xt.Drift(length=1.0)),
+            ("qd", xt.Quadrupole(length=0.5, k1=-0.6)),
+            ("d2", xt.Drift(length=1.0)),
+        ]
+    )
+    tw = fodo.twiss(method="4d")
+    W2 = _6d_w_matrix(
+        tw.betx[0],
+        tw.bety[0],
+        tw.alfx[0],
+        tw.alfy[0],
+        1.0,
+        tw.dx[0],
+        tw.dpx[0],
+        tw.dy[0],
+        tw.dpy[0],
+    )
+    m2 = _map(order=2)
+    m2.set_jacobian(W2)
+    xo.assert_allclose(m2.jacobian(), W2, rtol=0, atol=0)
+
+
+# --------------------------------------------------------------------------- #
+# multi_element_monitor_at: full-map capture at only a few named positions,
+# recorded in the single C track pass
+# --------------------------------------------------------------------------- #
+
+
+def _observe_line():
+    return _line(
+        [
+            ("begin", xt.Marker()),
+            ("d0", xt.Drift(length=1.2)),
+            ("q1", xt.Quadrupole(length=0.5, k1=0.3)),
+            ("ip8", xt.Marker()),
+            ("b1", xt.Bend(length=2.0, k0=0.01, angle=0.02)),
+            ("d1", xt.Drift(length=0.8)),
+            ("end", xt.Marker()),
+        ]
+    )
+
+
+def test_multi_element_monitor_matches_ebe():
+    line = _observe_line()
+
+    # EBE reference (full map at every position)
+    ebe = _map(order=3)
+    line.track(ebe, turn_by_turn_monitor="ONE_TURN_EBE")
+    ebe_mon = line.record_last_track
+
+    at = ["begin", "ip8", "b1", "end"]
+    m = _map(order=3)
+    line.track(m, multi_element_monitor_at=at)
+    mon = line.record_multi_element_last_track
+
+    assert isinstance(mon, xtpsa.TpsaMonitor)
+    assert len(mon) == len(at)
+    assert mon.obs_names == at  # given in ascending order here -> preserved
+
+    names = list(line.element_names)
+    index = {"begin": 0, "end": len(names)}
+    for name in at:
+        i = index.get(name, names.index(name))
+        # full map (every monomial of every series) matches the EBE slot exactly
+        for c in COORDS:
+            assert mon.at(name).monomial_coeffs(c) == ebe_mon[i].monomial_coeffs(c)
+
+    # 'begin' is the seed identity map; 'end' is the fully-tracked map
+    xo.assert_allclose(
+        mon.at("begin").const_part, [X0[c] for c in COORDS], rtol=0, atol=0
+    )
+    xo.assert_allclose(mon.at("begin").jacobian(), np.eye(6), rtol=0, atol=0)
+    xo.assert_allclose(mon.at("end").const_part, m.const_part, rtol=0, atol=0)
+
+
+def test_multi_element_monitor_out_of_order_and_indices():
+    line = _observe_line()
+
+    # positions out of order: slots fill ascending, obs_names records that order
+    m = _map(order=2)
+    line.track(m, multi_element_monitor_at=["end", "begin", "ip8"])
+    mon = line.record_multi_element_last_track
+    assert mon.obs_names == ["begin", "ip8", "end"]
+    xo.assert_allclose(mon.at("begin").jacobian(), np.eye(6), rtol=0, atol=0)
+    xo.assert_allclose(mon.at("end").const_part, m.const_part, rtol=0, atol=0)
+
+    # integer / negative indices resolve like names (-1 -> the map after the line)
+    m2 = _map(order=2)
+    line.track(m2, multi_element_monitor_at=[0, 3, -1])
+    mon2 = line.record_multi_element_last_track
+    assert len(mon2) == 3
+    xo.assert_allclose(mon2[0].jacobian(), np.eye(6), rtol=0, atol=0)
+
+
+def test_multi_element_monitor_errors():
+    line = _observe_line()
+    with pytest.raises(ValueError, match="duplicate"):
+        line.track(_map(order=2), multi_element_monitor_at=["ip8", "ip8"])
+    # a monitor without named positions rejects .at()
+    plain = xtpsa.TpsaMonitor(1, _map(order=2).descriptor)
+    with pytest.raises(ValueError, match="no named positions"):
+        plain.at("ip8")
+
+
+def test_multi_element_monitor_records_parameters():
+    """A parametric (knobbed) map is recorded with its parameter part, not just the 6 vars.
+
+    ``mad_tpsa_copy`` snapshots the whole polynomial, so the knob columns (``param_jacobian``)
+    and every parameter monomial survive into each slot and evolve through tracking.
+    """
+    line = _knob_line()
+    line.build_tracker()
+    kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
+
+    def seeded():
+        m = xtpsa.ParticlesTpsa(order=2, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
+        assert m.descriptor.monomial_length == 8  # 6 vars + 2 params
+        m.set_coefficient("x", (0, 0, 0, 0, 0, 0, 1, 0), 0.5)  # d x  / d kqa
+        m.set_coefficient("py", (0, 0, 0, 0, 0, 0, 0, 1), -0.3)  # d py / d kqb
+        return m
+
+    at = ["begin", "mq3", "end"]
+    m = seeded()
+    line.track(m, multi_element_monitor_at=at)
+    mon = line.record_multi_element_last_track
+    # slot maps carry the parameter dimension too
+    assert mon.jacobian().shape[1:] == (6, 6)
+    assert mon.at("begin").param_jacobian().shape == (6, 2)
+
+    # 'begin', the injected knob dependence is recorded verbatim
+    assert mon.at("begin").param_jacobian()[0, 0] == 0.5
+    assert mon.at("begin").param_jacobian()[3, 1] == -0.3
+    # 'end', the fully-tracked live map, and the params did evolve
+    xo.assert_allclose(
+        mon.at("end").param_jacobian(), m.param_jacobian(), rtol=0, atol=0
+    )
+    assert not np.allclose(mon.at("end").param_jacobian(), 0.0)
+
+    # every parameter monomial matches a full ONE_TURN_EBE run at the same element
+    ebe = seeded()
+    line.track(ebe, turn_by_turn_monitor="ONE_TURN_EBE")
+    ebe_mon = line.record_last_track
+    i = line.element_names.index("mq3")
+    for c in COORDS:
+        assert mon.at("mq3").monomial_coeffs(c) == ebe_mon[i].monomial_coeffs(c)

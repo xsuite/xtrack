@@ -122,7 +122,8 @@ def _bridge_entry_cdef(f: str) -> str:
     return (
         f"void xt_bridge_track_element_{f}(int64_t type_id, void* el, void* p);\n"
         f"void xt_bridge_track_line_{f}(void* ref, int64_t ele_start, "
-        f"int64_t num_elements, void* p, void* mon, int64_t flag_monitor);\n"
+        f"int64_t num_elements, void* p, void* mon, int64_t flag_monitor, "
+        f"const int64_t* observe);\n"
     )
 
 
@@ -427,6 +428,16 @@ class Tpsa:
         m = [int(x) for x in monomial]
         arr = ffi().new("unsigned char[]", m)
         return lib().mad_tpsa_getm(self._p, len(m), arr)
+
+    def set_const_part(self, v: float) -> None:
+        """Set the constant part (zero-order coefficient) of the series."""
+        lib().mad_tpsa_seti(self._p, 0, 0.0, float(v))
+
+    def set(self, monomial: Iterable[int], v: float) -> None:
+        """Set the coefficient of ``monomial`` (iterable of per-variable orders) to ``v``."""
+        m = [int(x) for x in monomial]
+        arr = ffi().new("unsigned char[]", m)
+        lib().mad_tpsa_setm(self._p, len(m), arr, 0.0, float(v))
 
     def coefficient(
         self, monomials: Sequence[int] | Sequence[Sequence[int]] | np.ndarray
