@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Exact fringe from 0 to 0.1 over length 0.05, with derivatives zero at the endpoints
+# Fringe shape is specified as polynomial in s, lowest coefficient first
 bfringe=np.array([[0,0,120,-1600]])
 length = 0.05
 bmax = 0.1
