@@ -122,7 +122,8 @@ def _bridge_entry_cdef(f: str) -> str:
     cdef = (
         f"void xt_bridge_track_element_{f}(int64_t type_id, void* el, void* p);\n"
         f"void xt_bridge_track_line_{f}(void* ref, int64_t ele_start, "
-        f"int64_t num_elements, void* p, void* mon, int64_t flag_monitor);\n"
+        f"int64_t num_elements, void* p, void* mon, int64_t flag_monitor, "
+        f"const int64_t* observe);\n"
     )
     if f == "tpsa_param":  # the parametric flavor also exposes the knob-table setter
         cdef += (
@@ -221,6 +222,10 @@ def bridge_lib(flavor: str, force: bool = False) -> dict[str, KernelCpu]:
         with open(os.path.join(here, "xt_bridge.cpp")) as fid:
             src = fid.read()
         os.makedirs(cache_dir, exist_ok=True)
+        # Route B: knobs are a compile flavor (tpsa_param = -DXT_FLAVOR_TPSA -DXT_KNOBS),
+        # so strengths become mad::tpsa across the whole line and the address-keyed knob
+        # table (xt_knob.hpp, included directly into this one TU) supplies the parametric
+        # values. No separate knob translation unit to link.
         kernels = _bridge_ctx.build_kernels(
             kernel_descriptions=descs,
             module_name=module_name,
@@ -431,6 +436,16 @@ class Tpsa:
         m = [int(x) for x in monomial]
         arr = ffi().new("unsigned char[]", m)
         return lib().mad_tpsa_getm(self._p, len(m), arr)
+
+    def set_const_part(self, v: float) -> None:
+        """Set the constant part (zero-order coefficient) of the series."""
+        lib().mad_tpsa_seti(self._p, 0, 0.0, float(v))
+
+    def set(self, monomial: Iterable[int], v: float) -> None:
+        """Set the coefficient of ``monomial`` (iterable of per-variable orders) to ``v``."""
+        m = [int(x) for x in monomial]
+        arr = ffi().new("unsigned char[]", m)
+        lib().mad_tpsa_setm(self._p, len(m), arr, 0.0, float(v))
 
     def coefficient(
         self, monomials: Sequence[int] | Sequence[Sequence[int]] | np.ndarray

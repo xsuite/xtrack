@@ -184,7 +184,12 @@ class GtpsaBackend:
         ele_stop: int | str | None = None,
         num_elements: int | None = None,
         num_turns: int | None = None,
-        turn_by_turn_monitor: bool | str | xt.ParticlesMonitor | TpsaMonitor | None = None,
+        turn_by_turn_monitor: bool
+        | str
+        | xt.ParticlesMonitor
+        | TpsaMonitor
+        | None = None,
+        multi_element_monitor_at: list | None = None,
     ) -> ParticlesTpsa:
         """Track a ``ParticlesTpsa`` map through a contiguous element range in one C call.
 
@@ -195,13 +200,28 @@ class GtpsaBackend:
         ``turn_by_turn_monitor`` follows ``Line.track``: ``'ONE_TURN_EBE'`` records the
         FULL map before every element plus once at the end, into a ``TpsaMonitor`` left in
         ``line.record_last_track``.
+
+        ``multi_element_monitor_at`` is a list of positions (names, indices, or ``'begin'``/
+        ``'end'``): the full map is recorded at these positions in the same single C
+        pass, into a ``TpsaMonitor`` left in ``line.record_multi_element_last_track``.
+        Cheaper than EBE over a whole ring.
         """
         ele_start, num = self._resolve_range(
             line, ele_start, ele_stop, num_elements, num_turns
         )
-        mon, flag = self._resolve_monitor(line, particles, turn_by_turn_monitor, num)
         flavor = _flavor(particles)
         fn, ffi = _gtpsa.bridge_entry(flavor, f"xt_bridge_track_line_{flavor}")
+        if multi_element_monitor_at is not None:
+            mon, flag, observe = self._resolve_observe(
+                line, particles, multi_element_monitor_at, ele_start, num, ffi
+            )
+            record_attr = "record_multi_element_last_track"
+        else:
+            mon, flag = self._resolve_monitor(
+                line, particles, turn_by_turn_monitor, num
+            )
+            observe = ffi.NULL
+            record_attr = "record_last_track"
         # _refdata_ptr builds the tracker (relocating element buffers into it), so the
         # knob-address table MUST be computed after it, against the same buffers the C
         # loop reads. (Computing it earlier keys the table to pre-relocation addresses.)
@@ -217,10 +237,10 @@ class GtpsaBackend:
         # RF cavities read the revolution time off the ring circumference.
         p.line_length = float(line.tracker._tracker_data_base.line_length)
         mon_ptr = ffi.NULL if mon is None else _xobject_ptr(mon._xobject, ffi)
-        fn(ref_ptr, ele_start, num, _xobject_ptr(p, ffi), mon_ptr, flag)
-        line.tracker.record_last_track = (
-            mon  # Line.record_last_track proxies the tracker
-        )
+        fn(ref_ptr, ele_start, num, _xobject_ptr(p, ffi), mon_ptr, flag, observe)
+        setattr(
+            line.tracker, record_attr, mon
+        )  # Line.record_*_last_track proxies the tracker
         if p.state <= 0:
             at = p.at_element
             name = line.element_names[at] if at < len(line.element_names) else "?"
@@ -276,6 +296,48 @@ class GtpsaBackend:
             )
             return mon, 3
         raise ValueError(f"invalid turn_by_turn_monitor {turn_by_turn_monitor!r}")
+
+    def _resolve_pos(self, line, pos, ele_start, num):
+        """A position (name / index / 'begin' / 'end') -> absolute element index."""
+        n = len(line.element_names)
+        if isinstance(pos, str):
+            if pos == "begin":
+                return ele_start
+            if pos == "end":
+                return ele_start + num
+            return line.element_names.index(pos)
+        idx = int(pos)
+        return idx if idx >= 0 else n + idx
+
+    def _resolve_observe(self, line, particles, positions, ele_start, num, ffi):
+        """Build the (TpsaMonitor, flag=3, observe C-array) for ``multi_element_monitor_at``.
+
+        Records the full map at the given positions only, in one forward pass. Slots fill in
+        ascending position order; ``mon.obs_names`` maps slot -> position for read-back.
+        """
+        from ._tpsa_monitor import TpsaMonitor
+
+        idxs = [self._resolve_pos(line, a, ele_start, num) for a in positions]
+        for a, gi in zip(positions, idxs):
+            if not (ele_start <= gi <= ele_start + num):
+                raise ValueError(
+                    f"observe position {a!r} (index {gi}) is outside the tracked range "
+                    f"[{ele_start}, {ele_start + num}]"
+                )
+        order = sorted(range(len(positions)), key=idxs.__getitem__)
+        ks = [idxs[i] - ele_start for i in order]
+        if len(set(ks)) != len(ks):
+            raise ValueError(
+                f"multi_element_monitor_at has duplicate positions: {positions}"
+            )
+        observe = ffi.new("int64_t[]", num + 1)
+        for k in ks:
+            observe[k] = 1
+        mon = TpsaMonitor(
+            len(positions), particles.descriptor, ref_particle=particles._ref_particle
+        )
+        mon.obs_names = [positions[i] for i in order]  # slot i -> position
+        return mon, 3, observe
 
     def _resolve_range(
         self,

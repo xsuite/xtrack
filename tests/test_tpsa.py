@@ -18,6 +18,7 @@ from xtrack.tpsa import _gtpsa
 from xtrack.tpsa._bridge_particle import COORD_FIELDS, REF_FIELDS, XtBridgeParticle
 from xtrack.tpsa.backend import num_bridge, registry_classes, type_id_for
 from xtrack.tpsa.registry import COORDS, REF_VARS, TYPE_IDS
+from xtrack.twiss import _6d_w_matrix
 
 
 def _gtpsa_available():
@@ -801,3 +802,347 @@ def test_parametric_track_matches_fd():
         line[nm] = v0
         fd[:, j] = (hi - lo) / (2 * h)
     assert np.allclose(pj, fd, atol=1e-8), np.abs(pj - fd).max()
+
+
+# --------------------------------------------------------------------------- #
+# Setters: set the const part (get0/set0), the Jacobian (get1/set1), any coeff
+# --------------------------------------------------------------------------- #
+
+
+def test_set_const_part_and_jacobian_round_trip():
+    m = _map(order=3)
+    orbit = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]) * 1e-3
+    m.set_const_part(orbit)
+    xo.assert_allclose(m.const_part, orbit, rtol=0, atol=0)  # exact
+
+    R = 0.1 * np.arange(36).reshape(6, 6) + np.eye(6)
+    m.set_jacobian(R)
+    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)  # exact
+
+    # setting the Jacobian leaves the const part untouched, and vice versa
+    xo.assert_allclose(m.const_part, orbit, rtol=0, atol=0)
+    m.set_const_part(np.zeros(6))
+    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)
+
+
+def test_set_const_part_and_jacobian_shape_guards():
+    m = _map(order=2)
+    with pytest.raises(ValueError, match="length 6"):
+        m.set_const_part(np.zeros(5))
+    with pytest.raises(ValueError, match="6x6"):
+        m.set_jacobian(np.zeros((6, 5)))
+
+
+def test_set_coefficient():
+    m = _map(order=3)
+    m.set_coefficient("x", (2, 0, 0, 0, 0, 0), 0.777)
+    assert m.coefficient("x", (2, 0, 0, 0, 0, 0)) == 0.777
+    # index form selects the same output series
+    m.set_coefficient(4, (0, 0, 0, 0, 0, 2), -1.5)  # zeta series, delta^2 term
+    assert m.coefficient("zeta", (0, 0, 0, 0, 0, 2)) == -1.5
+
+    # a malformed / beyond-order monomial raises rather than exit(1)-ing
+    with pytest.raises(ValueError, match="invalid monomial"):
+        m.set_coefficient("x", (0, 0, 0, 0, 0), 1.0)  # wrong length
+    with pytest.raises(ValueError, match="invalid monomial"):
+        m.set_coefficient("x", (3, 3, 0, 0, 0, 0), 1.0)  # order 6 > 3
+
+
+def test_set_jacobian_leaves_parameter_columns():
+    """set_jacobian writes the 6x6 variable block only; knob params stay untouched."""
+    line = _knob_line()
+    kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
+    m = xtpsa.ParticlesTpsa(order=2, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
+    # seed a knob dependence in the order-1 param block via a raw coefficient
+    m.set_coefficient("x", (0, 0, 0, 0, 0, 0, 1, 0), 0.25)  # d x / d kqa
+    before = m.param_jacobian().copy()
+
+    R = 0.1 * np.arange(36).reshape(6, 6) + np.eye(6)
+    m.set_jacobian(R)
+    xo.assert_allclose(m.jacobian(), R, rtol=0, atol=0)  # variable block set
+    xo.assert_allclose(m.param_jacobian(), before, rtol=0, atol=0)  # params untouched
+    assert m.param_jacobian()[0, 0] == 0.25
+
+
+def test_set_jacobian_from_w_matrix():
+    """seed the map's Jacobian from a Twiss W-matrix (_6d_w_matrix)."""
+    from xtrack.twiss import _6d_w_matrix
+
+    W = _6d_w_matrix(
+        betx=12.0,
+        bety=8.0,
+        alfx=-1.5,
+        alfy=0.7,
+        bets=100.0,
+        dx=1.2,
+        dpx=0.03,
+        dy=-0.4,
+        dpy=0.01,
+    )
+    m = _map(order=2)
+    m.set_jacobian(W)
+    xo.assert_allclose(m.jacobian(), W, rtol=0, atol=0)
+    xo.assert_allclose(m.jacobian()[0, 0], np.sqrt(12.0), rtol=1e-14, atol=0)
+
+    # and from a real line.twiss() init row
+    fodo = _line(
+        [
+            ("qf", xt.Quadrupole(length=0.5, k1=0.6)),
+            ("d1", xt.Drift(length=1.0)),
+            ("qd", xt.Quadrupole(length=0.5, k1=-0.6)),
+            ("d2", xt.Drift(length=1.0)),
+        ]
+    )
+    tw = fodo.twiss(method="4d")
+    W2 = _6d_w_matrix(
+        tw.betx[0],
+        tw.bety[0],
+        tw.alfx[0],
+        tw.alfy[0],
+        1.0,
+        tw.dx[0],
+        tw.dpx[0],
+        tw.dy[0],
+        tw.dpy[0],
+    )
+    m2 = _map(order=2)
+    m2.set_jacobian(W2)
+    xo.assert_allclose(m2.jacobian(), W2, rtol=0, atol=0)
+
+
+# --------------------------------------------------------------------------- #
+# multi_element_monitor_at: full-map capture at only a few named positions,
+# recorded in the single C track pass
+# --------------------------------------------------------------------------- #
+
+
+def _observe_line():
+    return _line(
+        [
+            ("begin", xt.Marker()),
+            ("d0", xt.Drift(length=1.2)),
+            ("q1", xt.Quadrupole(length=0.5, k1=0.3)),
+            ("ip8", xt.Marker()),
+            ("b1", xt.Bend(length=2.0, k0=0.01, angle=0.02)),
+            ("d1", xt.Drift(length=0.8)),
+            ("end", xt.Marker()),
+        ]
+    )
+
+
+def test_multi_element_monitor_matches_ebe():
+    line = _observe_line()
+
+    # EBE reference (full map at every position)
+    ebe = _map(order=3)
+    line.track(ebe, turn_by_turn_monitor="ONE_TURN_EBE")
+    ebe_mon = line.record_last_track
+
+    at = ["begin", "ip8", "b1", "end"]
+    m = _map(order=3)
+    line.track(m, multi_element_monitor_at=at)
+    mon = line.record_multi_element_last_track
+
+    assert isinstance(mon, xtpsa.TpsaMonitor)
+    assert len(mon) == len(at)
+    assert mon.obs_names == at  # given in ascending order here -> preserved
+
+    names = list(line.element_names)
+    index = {"begin": 0, "end": len(names)}
+    for name in at:
+        i = index.get(name, names.index(name))
+        # full map (every monomial of every series) matches the EBE slot exactly
+        for c in COORDS:
+            assert mon.at(name).monomial_coeffs(c) == ebe_mon[i].monomial_coeffs(c)
+
+    # 'begin' is the seed identity map; 'end' is the fully-tracked map
+    xo.assert_allclose(
+        mon.at("begin").const_part, [X0[c] for c in COORDS], rtol=0, atol=0
+    )
+    xo.assert_allclose(mon.at("begin").jacobian(), np.eye(6), rtol=0, atol=0)
+    xo.assert_allclose(mon.at("end").const_part, m.const_part, rtol=0, atol=0)
+
+
+def test_multi_element_monitor_out_of_order_and_indices():
+    line = _observe_line()
+
+    # positions out of order: slots fill ascending, obs_names records that order
+    m = _map(order=2)
+    line.track(m, multi_element_monitor_at=["end", "begin", "ip8"])
+    mon = line.record_multi_element_last_track
+    assert mon.obs_names == ["begin", "ip8", "end"]
+    xo.assert_allclose(mon.at("begin").jacobian(), np.eye(6), rtol=0, atol=0)
+    xo.assert_allclose(mon.at("end").const_part, m.const_part, rtol=0, atol=0)
+
+    # integer / negative indices resolve like names (-1 -> the map after the line)
+    m2 = _map(order=2)
+    line.track(m2, multi_element_monitor_at=[0, 3, -1])
+    mon2 = line.record_multi_element_last_track
+    assert len(mon2) == 3
+    xo.assert_allclose(mon2[0].jacobian(), np.eye(6), rtol=0, atol=0)
+
+
+def test_multi_element_monitor_errors():
+    line = _observe_line()
+    with pytest.raises(ValueError, match="duplicate"):
+        line.track(_map(order=2), multi_element_monitor_at=["ip8", "ip8"])
+    # a monitor without named positions rejects .at()
+    plain = xtpsa.TpsaMonitor(1, _map(order=2).descriptor)
+    with pytest.raises(ValueError, match="no named positions"):
+        plain.at("ip8")
+
+
+def test_multi_element_monitor_records_parameters():
+    """A parametric (knobbed) map is recorded with its parameter part, not just the 6 vars.
+
+    ``mad_tpsa_copy`` snapshots the whole polynomial, so the knob columns (``param_jacobian``)
+    and every parameter monomial survive into each slot and evolve through tracking.
+    """
+    line = _knob_line()
+    line.build_tracker()
+    kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
+
+    def seeded():
+        m = xtpsa.ParticlesTpsa(order=2, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
+        assert m.descriptor.monomial_length == 8  # 6 vars + 2 params
+        m.set_coefficient("x", (0, 0, 0, 0, 0, 0, 1, 0), 0.5)  # d x  / d kqa
+        m.set_coefficient("py", (0, 0, 0, 0, 0, 0, 0, 1), -0.3)  # d py / d kqb
+        return m
+
+    at = ["begin", "mq3", "end"]
+    m = seeded()
+    line.track(m, multi_element_monitor_at=at)
+    mon = line.record_multi_element_last_track
+    # slot maps carry the parameter dimension too
+    assert mon.jacobian().shape[1:] == (6, 6)
+    assert mon.at("begin").param_jacobian().shape == (6, 2)
+
+    # 'begin', the injected knob dependence is recorded verbatim
+    assert mon.at("begin").param_jacobian()[0, 0] == 0.5
+    assert mon.at("begin").param_jacobian()[3, 1] == -0.3
+    # 'end', the fully-tracked live map, and the params did evolve
+    xo.assert_allclose(
+        mon.at("end").param_jacobian(), m.param_jacobian(), rtol=0, atol=0
+    )
+    assert not np.allclose(mon.at("end").param_jacobian(), 0.0)
+
+    # every parameter monomial matches a full ONE_TURN_EBE run at the same element
+    ebe = seeded()
+    line.track(ebe, turn_by_turn_monitor="ONE_TURN_EBE")
+    ebe_mon = line.record_last_track
+    i = line.element_names.index("mq3")
+    for c in COORDS:
+        assert mon.at("mq3").monomial_coeffs(c) == ebe_mon[i].monomial_coeffs(c)
+
+
+# --------------------------------------------------------------------------- #
+# TpsaOptics: optical functions (betx/bety/...) + knob derivatives read
+# straight off a map's Jacobian (A-matrix).
+# --------------------------------------------------------------------------- #
+
+
+def test_optics_identity_roundtrip():
+    """Reading optics off ``set_jacobian(_6d_w_matrix(...))`` returns the seed values."""
+    W = _6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, -0.03, 0.05)
+    m = _map(order=2)
+    m.set_jacobian(W)
+    o = m.optics()
+    xo.assert_allclose(o.betx, 3.0, rtol=0, atol=1e-13)
+    xo.assert_allclose(o.bety, 4.0, rtol=0, atol=1e-13)
+    xo.assert_allclose(o.alfx, 0.7, rtol=0, atol=1e-13)
+    xo.assert_allclose(o.alfy, -0.4, rtol=0, atol=1e-13)
+    xo.assert_allclose([o.dx, o.dpx, o.dy, o.dpy], [0.1, 0.02, -0.03, 0.05],
+                       rtol=0, atol=1e-13)
+    assert set(o.to_dict()) == {"betx", "bety", "alfx", "alfy", "mux", "muy",
+                                "dx", "dpx", "dy", "dpy"}
+
+
+def test_optics_drift_propagation():
+    """On-axis, optics after a drift follow the analytic beta(L) = b0 - 2 a0 L + g0 L^2."""
+    L = 2.5
+    line = _line([("d", xt.Drift(length=L))])
+    betx0, alfx0 = 3.0, 0.7
+    gamx0 = (1 + alfx0 ** 2) / betx0
+    m = xtpsa.ParticlesTpsa(order=2, p0c=P0C, mass0=MASS0)  # on-axis identity
+    m.set_jacobian(_6d_w_matrix(betx0, 4.0, alfx0, -0.4, 1.0, 0.0, 0.0, 0.0, 0.0))
+    line.track(m)
+    o = m.optics()
+    xo.assert_allclose(o.betx, betx0 - 2 * alfx0 * L + gamx0 * L ** 2, rtol=0, atol=1e-12)
+    xo.assert_allclose(o.alfx, alfx0 - gamx0 * L, rtol=0, atol=1e-12)
+
+
+def test_optics_values_vs_twiss():
+    """Optics off the tracked map match ``line.twiss`` at the same position."""
+    line = _demo_line()
+    init = dict(betx=3.0, bety=4.0, alfx=0.7, alfy=-0.4, dx=0.1, dpx=0.02, dy=0.0, dpy=0.0)
+    tw = line.twiss(**init)
+    m = _map(order=2, x=0, px=0, y=0, py=0, zeta=0, delta=0)
+    m.set_jacobian(_6d_w_matrix(init["betx"], init["bety"], init["alfx"], init["alfy"],
+                                1.0, init["dx"], init["dpx"], init["dy"], init["dpy"]))
+    line.track(m, multi_element_monitor_at=["d1"])
+    o = line.record_multi_element_last_track.at("d1").optics()
+    i = list(line.element_names).index("d1")
+    for name in ("betx", "bety", "alfx", "alfy", "dx", "mux"):
+        xo.assert_allclose(getattr(o, name), getattr(tw, name)[i], rtol=1e-9, atol=1e-11)
+
+
+def _param_map(A0, dA, order=2):
+    """A knobbed map with Jacobian ``A0`` and injected ``d A(i,j)/d knob`` (``dA[(i,j)]``)."""
+    line = _knob_line()
+    line.build_tracker()
+    kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
+    m = xtpsa.ParticlesTpsa(order=order, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
+    m.set_jacobian(A0)
+    nv = m.n_variables
+    for (i, j), g in dA.items():
+        for k, gk in enumerate(g):
+            mono = [0] * (nv + len(g))
+            mono[j] = 1
+            mono[nv + k] = 1
+            m.set_coefficient(COORDS[i], tuple(mono), gk)
+    return m
+
+
+def test_optics_knob_gradient():
+    """d(optics)/d(knob) is the chain rule on the map's mixed coefficients."""
+    A0 = _6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, 0.0, 0.0)
+    dA = {(0, 0): [1.3, -0.5], (0, 1): [0.4, 0.9], (1, 0): [0.2, 0.1],
+          (1, 1): [-0.7, 0.3], (0, 5): [0.05, -0.02]}
+    o = _param_map(A0, dA).optics()
+
+    # analytic: d betx = 2 A00 dA00 + 2 A01 dA01 ; d dx = dA05
+    xo.assert_allclose(o.gradient("betx"),
+                       2 * A0[0, 0] * np.array(dA[(0, 0)])
+                       + 2 * A0[0, 1] * np.array(dA[(0, 1)]), rtol=0, atol=1e-13)
+    xo.assert_allclose(o.gradient("dx"), dA[(0, 5)], rtol=0, atol=1e-13)
+
+    # finite difference (along kqa) of betx built from A0 + h*dA
+    def betx_at(h):
+        Ah = A0.copy()
+        for (i, j), g in dA.items():
+            Ah[i, j] += h * g[0]
+        mm = _map(order=1)
+        mm.set_jacobian(Ah)
+        return mm.optics().betx
+
+    hh = 1e-6
+    fd = (betx_at(hh) - betx_at(-hh)) / (2 * hh)
+    xo.assert_allclose(o.gradient("betx")[0], fd, rtol=1e-6, atol=1e-8)
+
+
+def test_optics_gradient_guards():
+    """Gradients need knobs and order >= 2; values always work."""
+    plain = _map(order=2)
+    plain.set_jacobian(_6d_w_matrix(3.0, 4.0, 0.7, -0.4, 1.0, 0.1, 0.02, 0.0, 0.0))
+    assert plain.optics().betx > 0                       # values fine without knobs
+    with pytest.raises(ValueError, match="no knobs"):
+        plain.optics().gradient("betx")
+
+    line = _knob_line()
+    line.build_tracker()
+    kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
+    m1 = xtpsa.ParticlesTpsa(order=1, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
+    with pytest.raises(ValueError, match="order >= 2"):
+        m1.optics().gradient("betx")
+    with pytest.raises(KeyError, match="unknown optical function"):
+        _param_map(np.eye(6), {}).optics().gradient("nope")

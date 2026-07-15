@@ -13,6 +13,8 @@ CDEF = r"""
     void  mad_tpsa_setval(void* t, double v);
     double mad_tpsa_geti(void* t, int i);
     double mad_tpsa_getm(void* t, int n, const unsigned char* m);
+    void  mad_tpsa_seti(void* t, int i, double a, double b);
+    void  mad_tpsa_setm(void* t, int n, const unsigned char* m, double a, double b);
     int    mad_tpsa_cycle(void* t, int i, int n, unsigned char* m, double* v);
     void  mad_tpsa_copy(const void* t, void* r);
     void  mad_tpsa_add(const void* a, const void* b, void* c);
