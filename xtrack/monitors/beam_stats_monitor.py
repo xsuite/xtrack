@@ -452,26 +452,61 @@ class BeamStatsMonitor(BeamElement):
         if stat not in self._stats_names:
             raise ValueError(f'Statistic `{stat}` is not recorded')
 
-        level = self._normalize_level(level)
-        self._check_selectors_for_level(
-            level=level, slot=slot, slice_index=slice_index)
+        # Choose the aggregation level and reject selectors for axes that are
+        # not present at that level.
+        if level is None:
+            level = self.default_level
+        elif level not in self.available_levels:
+            raise ValueError(
+                f'`level` must be one of {self.available_levels}, got '
+                f'{level!r}')
+        if level == 'beam':
+            if slot is not None:
+                raise ValueError('`slot` cannot be used with level="beam"')
+            if slice_index is not None:
+                raise ValueError(
+                    '`slice_index` cannot be used with level="beam"')
+        elif level == 'bunch' and slice_index is not None:
+            raise ValueError(
+                '`slice_index` cannot be used with level="bunch"')
 
         moments = self._moments_at_level(level)
         out = self._compute_stat_from_moments(stat, moments, level=level)
 
-        turn_selector, turn_is_scalar = self._turn_selector(turn)
+        # Convert physical selectors to array indices. Scalar selectors keep
+        # a length-one axis until the final optional squeeze.
+        if turn is None:
+            turn_selector, turn_is_scalar = slice(None), False
+        else:
+            turn_selector, turn_is_scalar = _value_indices(
+                self.turns, turn, 'turn')
         out = self._apply_selector(out, turn_selector, axis=0)
 
         slot_is_scalar = False
         slice_is_scalar = False
 
         if level in ('bunch', 'slice'):
-            slot_selector, slot_is_scalar = self._slot_selector(slot)
+            if slot is None:
+                slot_selector, slot_is_scalar = slice(None), False
+            else:
+                slot_selector, slot_is_scalar = _value_indices(
+                    self.selected_slots, slot, 'slot')
             out = self._apply_selector(out, slot_selector, axis=1)
 
         if level == 'slice':
-            slice_selector, slice_is_scalar = self._slice_selector(
-                slice_index)
+            if slice_index is None:
+                slice_selector, slice_is_scalar = slice(None), False
+            else:
+                # Accept negative indices with NumPy-like semantics.
+                slice_selector = _as_int(slice_index, 'slice_index')
+                if slice_selector < 0:
+                    slice_selector += int(self._num_slices)
+                if (slice_selector < 0
+                        or slice_selector >= int(self._num_slices)):
+                    raise ValueError(
+                        f'`slice_index`={slice_selector} is outside the '
+                        'recorded slice range')
+                slice_is_scalar = True
             out = self._apply_selector(out, slice_selector, axis=2)
 
         if not keepdims:
@@ -520,45 +555,38 @@ class BeamStatsMonitor(BeamElement):
                              'zeta range')
         return index
 
-    def _shape(self):
-        """
-        Return the native storage shape for primitive moment arrays.
-        """
-        if int(self._mode) == 0:
-            return (int(self._num_records),)
-        if int(self._mode) == 1:
-            return (int(self._num_records), int(self._num_selected_slots))
-        return (int(self._num_records), int(self._num_selected_slots),
-                int(self._num_slices))
-
-    def _moment_array(self, name):
-        """
-        Return one stored primitive moment reshaped to monitor axes.
-        """
-        if name == 'num_particles':
-            field = 'num_particles'
-        else:
-            field = _field_name_from_moment(name)
-        arr = _to_nparray(getattr(self.data, field))
-        return arr.reshape(self._shape())
-
-    def _stored_moments(self):
-        """
-        Return all primitive moments needed for requested statistics.
-        """
-        out = {name: self._moment_array(name) for name in self._moment_names}
-        out['sum_beta0_gamma0'] = _to_nparray(
-            self.data.sum_beta0_gamma0).reshape(self._shape())
-        return out
-
     def _moments_at_level(self, level):
         """
         Return primitive moments reduced to the requested aggregation level.
         """
-        moments = self._stored_moments()
+        # Reshape the flat xobjects arrays to the monitor axes before any
+        # requested reduction to coarser levels.
+        if int(self._mode) == 0:
+            data_shape = (int(self._num_records),)
+        elif int(self._mode) == 1:
+            data_shape = (
+                int(self._num_records), int(self._num_selected_slots))
+        else:
+            data_shape = (
+                int(self._num_records), int(self._num_selected_slots),
+                int(self._num_slices))
+
+        moments = {}
+        for name in self._moment_names:
+            if name == 'num_particles':
+                field = 'num_particles'
+            else:
+                field = _field_name_from_moment(name)
+            moments[name] = _to_nparray(
+                getattr(self.data, field)).reshape(data_shape)
+        moments['sum_beta0_gamma0'] = _to_nparray(
+            self.data.sum_beta0_gamma0).reshape(data_shape)
+
         if level == self.default_level:
             return moments
 
+        # Coarser levels are obtained by summing primitive moments, then
+        # computing the requested statistic from the reduced moments.
         out = {}
         for name, value in moments.items():
             if self.default_level == 'slice':
@@ -583,7 +611,8 @@ class BeamStatsMonitor(BeamElement):
         if kind == 'mean':
             return self._mean_from_moments(rest, moments)
         if kind == 'sigma':
-            return self._sigma_from_moments(rest, moments)
+            var = self._cov_from_moments(rest, rest, moments)
+            return np.sqrt(np.maximum(var, 0))
         if kind == 'cov':
             coord1, coord2 = _parse_coord_pair(rest)
             return self._cov_from_moments(coord1, coord2, moments)
@@ -591,7 +620,12 @@ class BeamStatsMonitor(BeamElement):
             plane = rest.removesuffix('_projected')
             out = self._projected_gemitt_from_moments(plane, moments)
             if kind == 'nemitt':
-                out = out * self._beta0_gamma0_from_moments(moments)
+                weights = moments['num_particles']
+                beta0_gamma0 = np.full_like(weights, np.nan, dtype=float)
+                np.divide(
+                    moments['sum_beta0_gamma0'], weights, out=beta0_gamma0,
+                    where=weights > 0)
+                out = out * beta0_gamma0
             return out
 
         raise ValueError(f'Unsupported statistic `{name}`')
@@ -619,13 +653,6 @@ class BeamStatsMonitor(BeamElement):
         out -= mean_product
         return out
 
-    def _sigma_from_moments(self, coord, moments):
-        """
-        Compute a weighted RMS beam size from primitive moments.
-        """
-        var = self._cov_from_moments(coord, coord, moments)
-        return np.sqrt(np.maximum(var, 0))
-
     def _projected_gemitt_from_moments(self, plane, moments):
         """
         Compute projected geometric emittance for one phase-space plane.
@@ -638,74 +665,6 @@ class BeamStatsMonitor(BeamElement):
             * self._cov_from_moments(momentum, momentum, moments)
             - self._cov_from_moments(coord, momentum, moments) ** 2)
         return np.sqrt(np.maximum(determinant, 0))
-
-    def _beta0_gamma0_from_moments(self, moments):
-        """
-        Compute the weighted average beta0*gamma0 for each bin.
-        """
-        weights = moments['num_particles']
-        out = np.full_like(weights, np.nan, dtype=float)
-        np.divide(moments['sum_beta0_gamma0'], weights, out=out,
-                  where=weights > 0)
-        return out
-
-    def _normalize_level(self, level):
-        """
-        Validate and default an aggregation level selector.
-        """
-        if level is None:
-            return self.default_level
-        if level not in self.available_levels:
-            raise ValueError(
-                f'`level` must be one of {self.available_levels}, got '
-                f'{level!r}')
-        return level
-
-    def _check_selectors_for_level(self, *, level, slot, slice_index):
-        """
-        Reject selectors that are incompatible with an aggregation level.
-        """
-        if level == 'beam':
-            if slot is not None:
-                raise ValueError('`slot` cannot be used with level="beam"')
-            if slice_index is not None:
-                raise ValueError(
-                    '`slice_index` cannot be used with level="beam"')
-        elif level == 'bunch':
-            if slice_index is not None:
-                raise ValueError(
-                    '`slice_index` cannot be used with level="bunch"')
-
-    def _turn_selector(self, turn):
-        """
-        Build an array selector for the turn axis.
-        """
-        if turn is None:
-            return slice(None), False
-        return _value_indices(self.turns, turn, 'turn')
-
-    def _slot_selector(self, slot):
-        """
-        Build an array selector for the selected-slot axis.
-        """
-        if slot is None:
-            return slice(None), False
-        return _value_indices(self.selected_slots, slot, 'slot')
-
-    def _slice_selector(self, slice_index):
-        """
-        Build an array selector for the slice axis.
-        """
-        if slice_index is None:
-            return slice(None), False
-        # Accept negative indices with NumPy-like semantics.
-        index = _as_int(slice_index, 'slice_index')
-        if index < 0:
-            index += int(self._num_slices)
-        if index < 0 or index >= int(self._num_slices):
-            raise ValueError(f'`slice_index`={index} is outside the recorded '
-                             'slice range')
-        return index, True
 
     @staticmethod
     def _apply_selector(array, selector, axis):
