@@ -7,6 +7,7 @@ from xobjects.test_helpers import allow_no_prebuilt_kernels
 import xtrack as xt
 
 
+@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_whole_beam_stats():
     particles = xt.Particles(
         p0c=7e12,

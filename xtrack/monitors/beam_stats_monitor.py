@@ -162,7 +162,6 @@ class BeamStatsMonitor(BeamElement):
 
     behaves_like_drift = True
     allow_loss_refinement = True
-    allow_no_prebuilt_kernel = True
 
     _RAW_FIELDS = ('num_particles', 'sum_beta0_gamma0',
                    *(f'sum_{coord}' for coord in _COORDS),

@@ -23,6 +23,10 @@ XTRACK_ELEMENTS_INIT_DEFAULTS = {
     'BeamProfileMonitor': {
         'range': 1,
     },
+    'BeamStatsMonitor': {
+        'start_at_turn': 0,
+        'stop_at_turn': 1,
+    },
     'LastTurnsMonitor': {
         'n_last_turns': 1,
         'num_particles': 1,
