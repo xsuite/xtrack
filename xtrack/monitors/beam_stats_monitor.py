@@ -366,6 +366,8 @@ class BeamStatsMonitor(BeamElement):
         self._available_levels = available_levels
         self._default_level = default_level
         self._output_file = output_file
+        if self._output_file is not None:
+            self._initialize_output_file()
 
     @property
     def stats(self):
@@ -836,6 +838,21 @@ class BeamStatsMonitor(BeamElement):
             'selected_slots', data=self.selected_slots.astype(np.int64))
         if self.zeta_centers is not None:
             h5file.create_dataset('zeta_centers', data=self.zeta_centers)
+
+    def _initialize_output_file(self):
+        """
+        Create a fresh HDF5 output file for this monitor.
+        """
+        try:
+            import h5py
+        except ModuleNotFoundError as exc:  # pragma: no cover
+            raise ModuleNotFoundError(
+                'h5py is required for BeamStatsMonitor HDF5 output'
+            ) from exc
+
+        with h5py.File(self._output_file, 'w') as h5file:
+            self._initialize_hdf5_file(h5file)
+            h5file.flush()
 
     def _validate_hdf5_file(self, h5file):
         """

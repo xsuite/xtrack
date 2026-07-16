@@ -621,6 +621,10 @@ mon = xt.BeamStatsMonitor(
 ```
 
 If `output_file` is not provided, no `h5py` import should be required.
+If `output_file` is provided, `h5py` is imported during monitor construction and
+the output file is opened in write mode to create a fresh BeamStatsMonitor HDF5
+file. Any existing file at that path is replaced at construction time, not at
+the first `save_to_file()` call.
 
 The first implementation should keep file output minimal. The monitor always
 keeps one configured frame of primitive moment arrays in memory. Providing

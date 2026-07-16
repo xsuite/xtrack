@@ -306,6 +306,31 @@ def test_beam_stats_monitor_save_to_file_hdf5(tmp_path):
                         monitor.get('num_particles', level='beam'))
 
 
+def test_beam_stats_monitor_output_file_is_initialized_on_creation(tmp_path):
+    h5py = pytest.importorskip('h5py')
+
+    output_file = tmp_path / 'beam_stats_monitor_existing.h5'
+    with h5py.File(output_file, 'w') as h5file:
+        h5file.create_dataset('old_data', data=[1, 2, 3])
+
+    xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=2,
+        stats=['num_particles', 'mean_x'],
+        output_file=output_file,
+    )
+
+    with h5py.File(output_file, 'r') as h5file:
+        assert 'old_data' not in h5file
+        assert h5file.attrs['class'] == 'BeamStatsMonitor'
+        assert_equal(h5file.attrs['stats'].astype(str),
+                     ['num_particles', 'mean_x'])
+        assert_equal(h5file['filled_slots'][...], [])
+        assert_equal(h5file['selected_slots'][...], [])
+        assert 'turns' not in h5file
+        assert 'stats' not in h5file
+
+
 @allow_no_prebuilt_kernels
 def test_beam_stats_monitor_hdf5_progressive_save_to_file(tmp_path):
     h5py = pytest.importorskip('h5py')
