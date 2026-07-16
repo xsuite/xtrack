@@ -33,95 +33,95 @@ void BeamStatsMonitor_track_local_particle(
     double const bunch_spacing_zeta =
         BeamStatsMonitorData_get__bunch_spacing_zeta(el);
 
-    BeamStatsMonitorRecord data = BeamStatsMonitorData_getp_data(el);
+    BeamStatsMonitorRecordData data = BeamStatsMonitorData_getp_data(el);
 
     GPUGLMEM double* num_particles =
-        BeamStatsMonitorRecord_getp1_num_particles(data, 0);
+        BeamStatsMonitorRecordData_getp1_num_particles(data, 0);
     GPUGLMEM double* sum_beta0_gamma0 =
-        BeamStatsMonitorRecord_getp1_sum_beta0_gamma0(data, 0);
+        BeamStatsMonitorRecordData_getp1_sum_beta0_gamma0(data, 0);
 
     GPUGLMEM double* sum_x =
-        (BeamStatsMonitorRecord_len_sum_x(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_x(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_x(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_x(data, 0) : NULL;
     GPUGLMEM double* sum_px =
-        (BeamStatsMonitorRecord_len_sum_px(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_px(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_px(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_px(data, 0) : NULL;
     GPUGLMEM double* sum_y =
-        (BeamStatsMonitorRecord_len_sum_y(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_y(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_y(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_y(data, 0) : NULL;
     GPUGLMEM double* sum_py =
-        (BeamStatsMonitorRecord_len_sum_py(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_py(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_py(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_py(data, 0) : NULL;
     GPUGLMEM double* sum_zeta =
-        (BeamStatsMonitorRecord_len_sum_zeta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_zeta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_zeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_zeta(data, 0) : NULL;
     GPUGLMEM double* sum_delta =
-        (BeamStatsMonitorRecord_len_sum_delta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_delta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_delta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_delta(data, 0) : NULL;
 
     GPUGLMEM double* sum_x_x =
-        (BeamStatsMonitorRecord_len_sum_x_x(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_x_x(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_x_x(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_x_x(data, 0) : NULL;
     GPUGLMEM double* sum_x_px =
-        (BeamStatsMonitorRecord_len_sum_x_px(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_x_px(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_x_px(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_x_px(data, 0) : NULL;
     GPUGLMEM double* sum_x_y =
-        (BeamStatsMonitorRecord_len_sum_x_y(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_x_y(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_x_y(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_x_y(data, 0) : NULL;
     GPUGLMEM double* sum_x_py =
-        (BeamStatsMonitorRecord_len_sum_x_py(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_x_py(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_x_py(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_x_py(data, 0) : NULL;
     GPUGLMEM double* sum_x_zeta =
-        (BeamStatsMonitorRecord_len_sum_x_zeta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_x_zeta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_x_zeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_x_zeta(data, 0) : NULL;
     GPUGLMEM double* sum_x_delta =
-        (BeamStatsMonitorRecord_len_sum_x_delta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_x_delta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_x_delta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_x_delta(data, 0) : NULL;
     GPUGLMEM double* sum_px_px =
-        (BeamStatsMonitorRecord_len_sum_px_px(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_px_px(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_px_px(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_px_px(data, 0) : NULL;
     GPUGLMEM double* sum_px_y =
-        (BeamStatsMonitorRecord_len_sum_px_y(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_px_y(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_px_y(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_px_y(data, 0) : NULL;
     GPUGLMEM double* sum_px_py =
-        (BeamStatsMonitorRecord_len_sum_px_py(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_px_py(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_px_py(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_px_py(data, 0) : NULL;
     GPUGLMEM double* sum_px_zeta =
-        (BeamStatsMonitorRecord_len_sum_px_zeta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_px_zeta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_px_zeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_px_zeta(data, 0) : NULL;
     GPUGLMEM double* sum_px_delta =
-        (BeamStatsMonitorRecord_len_sum_px_delta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_px_delta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_px_delta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_px_delta(data, 0) : NULL;
     GPUGLMEM double* sum_y_y =
-        (BeamStatsMonitorRecord_len_sum_y_y(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_y_y(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_y_y(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_y_y(data, 0) : NULL;
     GPUGLMEM double* sum_y_py =
-        (BeamStatsMonitorRecord_len_sum_y_py(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_y_py(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_y_py(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_y_py(data, 0) : NULL;
     GPUGLMEM double* sum_y_zeta =
-        (BeamStatsMonitorRecord_len_sum_y_zeta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_y_zeta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_y_zeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_y_zeta(data, 0) : NULL;
     GPUGLMEM double* sum_y_delta =
-        (BeamStatsMonitorRecord_len_sum_y_delta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_y_delta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_y_delta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_y_delta(data, 0) : NULL;
     GPUGLMEM double* sum_py_py =
-        (BeamStatsMonitorRecord_len_sum_py_py(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_py_py(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_py_py(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_py_py(data, 0) : NULL;
     GPUGLMEM double* sum_py_zeta =
-        (BeamStatsMonitorRecord_len_sum_py_zeta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_py_zeta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_py_zeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_py_zeta(data, 0) : NULL;
     GPUGLMEM double* sum_py_delta =
-        (BeamStatsMonitorRecord_len_sum_py_delta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_py_delta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_py_delta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_py_delta(data, 0) : NULL;
     GPUGLMEM double* sum_zeta_zeta =
-        (BeamStatsMonitorRecord_len_sum_zeta_zeta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_zeta_zeta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_zeta_zeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_zeta_zeta(data, 0) : NULL;
     GPUGLMEM double* sum_zeta_delta =
-        (BeamStatsMonitorRecord_len_sum_zeta_delta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_zeta_delta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_zeta_delta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_zeta_delta(data, 0) : NULL;
     GPUGLMEM double* sum_delta_delta =
-        (BeamStatsMonitorRecord_len_sum_delta_delta(data) > 0)
-        ? BeamStatsMonitorRecord_getp1_sum_delta_delta(data, 0) : NULL;
+        (BeamStatsMonitorRecordData_len_sum_delta_delta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_delta_delta(data, 0) : NULL;
 
     START_PER_PARTICLE_BLOCK(part0, part);
         if (LocalParticle_get_state(part) > 0) {

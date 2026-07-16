@@ -27,36 +27,38 @@ _DEFAULT_STATS = (
 )
 
 
-class BeamStatsMonitorRecord(xo.Struct):
-    num_particles = xo.Float64[:]
-    sum_beta0_gamma0 = xo.Float64[:]
-    sum_x = xo.Float64[:]
-    sum_px = xo.Float64[:]
-    sum_y = xo.Float64[:]
-    sum_py = xo.Float64[:]
-    sum_zeta = xo.Float64[:]
-    sum_delta = xo.Float64[:]
-    sum_x_x = xo.Float64[:]
-    sum_x_px = xo.Float64[:]
-    sum_x_y = xo.Float64[:]
-    sum_x_py = xo.Float64[:]
-    sum_x_zeta = xo.Float64[:]
-    sum_x_delta = xo.Float64[:]
-    sum_px_px = xo.Float64[:]
-    sum_px_y = xo.Float64[:]
-    sum_px_py = xo.Float64[:]
-    sum_px_zeta = xo.Float64[:]
-    sum_px_delta = xo.Float64[:]
-    sum_y_y = xo.Float64[:]
-    sum_y_py = xo.Float64[:]
-    sum_y_zeta = xo.Float64[:]
-    sum_y_delta = xo.Float64[:]
-    sum_py_py = xo.Float64[:]
-    sum_py_zeta = xo.Float64[:]
-    sum_py_delta = xo.Float64[:]
-    sum_zeta_zeta = xo.Float64[:]
-    sum_zeta_delta = xo.Float64[:]
-    sum_delta_delta = xo.Float64[:]
+class BeamStatsMonitorRecord(xo.HybridClass):
+    _xofields = {
+        'num_particles': xo.Float64[:],
+        'sum_beta0_gamma0': xo.Float64[:],
+        'sum_x': xo.Float64[:],
+        'sum_px': xo.Float64[:],
+        'sum_y': xo.Float64[:],
+        'sum_py': xo.Float64[:],
+        'sum_zeta': xo.Float64[:],
+        'sum_delta': xo.Float64[:],
+        'sum_x_x': xo.Float64[:],
+        'sum_x_px': xo.Float64[:],
+        'sum_x_y': xo.Float64[:],
+        'sum_x_py': xo.Float64[:],
+        'sum_x_zeta': xo.Float64[:],
+        'sum_x_delta': xo.Float64[:],
+        'sum_px_px': xo.Float64[:],
+        'sum_px_y': xo.Float64[:],
+        'sum_px_py': xo.Float64[:],
+        'sum_px_zeta': xo.Float64[:],
+        'sum_px_delta': xo.Float64[:],
+        'sum_y_y': xo.Float64[:],
+        'sum_y_py': xo.Float64[:],
+        'sum_y_zeta': xo.Float64[:],
+        'sum_y_delta': xo.Float64[:],
+        'sum_py_py': xo.Float64[:],
+        'sum_py_zeta': xo.Float64[:],
+        'sum_py_delta': xo.Float64[:],
+        'sum_zeta_zeta': xo.Float64[:],
+        'sum_zeta_delta': xo.Float64[:],
+        'sum_delta_delta': xo.Float64[:],
+    }
 
 
 class BeamStatsMonitor(BeamElement):
@@ -692,6 +694,13 @@ class BeamStatsMonitor(BeamElement):
             * self._cov_from_moments(momentum, momentum, moments)
             - self._cov_from_moments(coord, momentum, moments) ** 2)
         return np.sqrt(np.maximum(determinant, 0))
+
+    def _reset_data(self):
+        """
+        Clear all primitive moment arrays in the current frame.
+        """
+        for field in self._RAW_FIELDS:
+            getattr(self.data, field)[...] = 0.0
 
     @staticmethod
     def _apply_selector(array, selector, axis):

@@ -225,6 +225,38 @@ def test_beam_stats_monitor_requires_spacing_for_non_default_slots():
 
 
 @allow_no_prebuilt_kernels
+def test_beam_stats_monitor_reset_data():
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 3.],
+        px=[0., 0.],
+        y=[0., 0.],
+        py=[0., 0.],
+        zeta=[0., 0.],
+        delta=[0., 0.],
+        weight=[2., 1.],
+    )
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        stats=['num_particles', 'mean_x', 'sigma_x'],
+    )
+
+    monitor.track(particles)
+
+    assert_allclose(monitor.num_particles, [3.])
+    assert_allclose(monitor.mean_x, [5. / 3.])
+    assert isinstance(monitor.data.num_particles, np.ndarray)
+
+    monitor._reset_data()
+
+    assert_allclose(monitor.num_particles, [0.])
+    assert_allclose(monitor.mean_x, [0.])
+    for field in monitor._RAW_FIELDS:
+        assert_allclose(getattr(monitor.data, field), 0.)
+
+
+@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_to_dict_stores_configuration_only():
     particles = xt.Particles(
         p0c=7e12,
