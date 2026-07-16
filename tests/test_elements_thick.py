@@ -3088,14 +3088,14 @@ def test_delta_dipole_fringe():
     p0 = xt.Particles(y=0.002, delta=dd)
     p1 = p0.copy()
 
+    length = 0.05
+    b1 = 0.1
+    
     def fieldvalue(x,y,z):  
         # Polynomial dipole fringe field between 0 and 0.05 with max b1=0.1
         # b1 = -1600 z^3 + 120 z^2 converted to tesla
         return [0, (-1600*z**3 + 120*z**2 - 120*y**2*(1 - 40*z))* p0.rigidity0[0], (1600*y**3 + y*(-4800*z**2 + 240*z))* p0.rigidity0[0]]
 
-    length = 0.05
-    b1 = 0.1
-    
     # Backwards drift, fringe, backwards bend
     drift = xt.Line(elements=[xt.Drift(length=length/2)])
     bend = xt.Line(elements=[xt.Bend(k0=b1, length=length/2)])
@@ -3113,9 +3113,9 @@ def test_delta_dipole_fringe():
     PTCfringe = xt.Bend(length=0, k0=b1, edge_entry_model="full", edge_entry_fint=fint, edge_entry_hgap=gap/2, edge_exit_active=0)
     
     PTCfringe.track(p1)
-     
+    
+    # Slopes of py vs delta should be similar, original implementation had sign difference
     deg0 = np.polyfit(p0.delta, p0.py, 1)
     deg1 = np.polyfit(p1.delta, p1.py, 1)
     
-    # Slopes should be similar, original implementation had sign difference
-    assert np.isclose(deg0[0]/deg1[0], 1, rtol=1e-2)
+    assert np.allclose(deg0/deg1, 1, rtol=1e-2)
