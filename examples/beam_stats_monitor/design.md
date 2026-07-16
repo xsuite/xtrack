@@ -623,9 +623,9 @@ mon = xt.BeamStatsMonitor(
 If `output_file` is not provided, no `h5py` import should be required.
 
 The first implementation should keep file output minimal. The monitor always
-keeps the full configured primitive moment arrays in memory. Providing
-`output_file` enables HDF5 export in addition to the in-memory data; it is not a
-memory-saving streaming mode.
+keeps one configured frame of primitive moment arrays in memory. Providing
+`output_file` enables HDF5 export in addition to the in-memory frame; it is not
+a true file-backed streaming storage mode.
 
 There is no public `storage` mode and no `buffer_size`/flush-cadence argument in
 the first implementation. The presence or absence of `output_file` fully defines
@@ -635,6 +635,36 @@ the behavior:
 output_file is None      -> in-memory only
 output_file is provided  -> in-memory plus HDF5 output
 ```
+
+For simulations too large to keep in one monitor allocation, the monitor should
+facilitate a user-managed frame loop:
+
+```python
+mon = xt.BeamStatsMonitor(
+    start_at_turn=0,
+    stop_at_turn=1000,
+    output_file="monitor.h5",
+    stats=["num_particles", "mean_x", "sigma_x"],
+)
+
+for start in range(0, num_turns, 1000):
+    if start != 0:
+        mon.start_new_frame(start_at_turn=start)
+    line.track(particles, num_turns=1000)
+    mon.flush()
+```
+
+`start_new_frame(start_at_turn)` clears the primitive moment arrays and retargets
+the same-size logged-turn frame to a new start turn. It keeps `every_n_turns`
+and the number of logged records fixed, and computes:
+
+```text
+stop_at_turn = start_at_turn + n_records_per_frame * every_n_turns
+```
+
+The first implementation should not support arbitrary frame resizing through
+`start_new_frame`; users who need a different frame size should create a new
+monitor.
 
 The file should contain the requested derived statistics by default. This keeps
 the HDF5 output immediately usable without requiring a reader to reconstruct
@@ -666,12 +696,14 @@ Suggested HDF5 layout:
     stats
     available_levels
     default_level
-    start_at_turn
-    stop_at_turn
     every_n_turns
+    n_records_per_frame
     store_moments
 
 /turns                         shape (n_written_records,)
+/frames/start_at_turn          shape (n_written_frames,)
+/frames/stop_at_turn           shape (n_written_frames,)
+/frames/first_record_index     shape (n_written_frames,)
 /filled_slots                  shape (n_filled_bunches,)
 /selected_slots                shape (n_selected_bunches,)
 /zeta_centers                  shape (n_selected_bunches, n_slices)
@@ -709,28 +741,38 @@ mon.flush()
 ```
 
 with no arguments. `flush()` opens or creates the HDF5 file, validates static
-metadata if the file already exists, reads the number of already written records
-from `/turns`, and appends the missing suffix:
+metadata if the file already exists, and appends the current frame once:
 
 ```text
-n_written = len(file["/turns"])
-append records [n_written : n_configured_records)
+append mon.turns
+append one entry to /frames/*
+append current-frame derived statistics at all available levels
+append current-frame primitive moments if store_moments=True
 ```
 
 After appending, call the HDF5 flush method and close the file so another script
 can inspect the data by reopening it.
 
-The first implementation is append-only and assumes already written records are
-not modified later. This is appropriate for the normal workflow:
+Repeated `flush()` calls for the same frame should be no-ops in the same Python
+process. After `start_new_frame(...)`, the next `flush()` appends the new frame.
+
+The first implementation is append-only and assumes flushed frames are not
+modified later. This is appropriate for the normal workflow:
 
 ```python
 line.track(particles, num_turns=...)
 mon.flush()
 ```
 
-If particles are later tracked with `at_turn` values belonging to already
-flushed records, the in-memory monitor and HDF5 file can diverge. The first
-implementation does not try to detect or repair this case.
+If particles are later tracked with `at_turn` values belonging to already flushed
+turns, the in-memory monitor and HDF5 file can diverge. The first implementation
+does not try to detect or repair this case.
+
+`start_new_frame(start_at_turn)` is a convenience for memory management, not an
+automatic tracking controller. The user remains responsible for calling it with a
+start turn consistent with the particles' `at_turn` values before tracking the
+next frame. When `output_file` is active, users should call `flush()` before
+`start_new_frame(...)`; otherwise the current in-memory frame will be discarded.
 
 ## Implementation Steps
 
@@ -805,7 +847,8 @@ implementation does not try to detect or repair this case.
     output_file
     store_moments
     no-argument flush()
-    append-only missing-suffix writes
+    append-only current-frame writes
+    start_new_frame(start_at_turn)
     derived-stat datasets by default
     appendable datasets
     stable file metadata
