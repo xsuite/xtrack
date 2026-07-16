@@ -137,13 +137,13 @@ void DipoleFringe_single_particle(
     const double D_2_3 = -time_fac * yp / (pz * pz);
     const double D_3_3 =  time_fac / pz;
 
-    double fi0 = atan((xp / (1.0 + yp * yp)))-b * fint * hgap * 2.0 * ( 1.0 + xp * xp *(2.0 + yp * yp)) * _pz;
+    double fi0 = atan((xp / (1.0 + yp * yp)))-b * fint * hgap * 2.0 * ( 1.0 + xp * xp *(2.0 + yp * yp)) / pz;
     const double co2 = b / cos(fi0) / cos(fi0);
     const double co1 = co2 / (1.0 + POW2(xp / POW2(1.0 + yp * yp)));
 
-    const double fi_1 = co1 / (1.0 + yp*yp) - co2 * b * fint * hgap * 2.0*(2.0 * xp * (2.0 + yp * yp) * _pz);
-    const double fi_2 = -co1 * 2.0 * xp * yp / POW2(1.0 + yp * yp) - co2 * b * fint * hgap * 2.0 * (2.0 * xp* xp * yp) * _pz;
-    const double fi_3 = co2 * b * fint * hgap * 2.0 * (1.0 + xp * xp * (2.0 + yp*yp)) * POW2(_pz);
+    const double fi_1 = co1 / (1.0 + yp*yp) - co2 * b * fint * hgap * 2.0*(2.0 * xp * (2.0 + yp * yp) / pz);
+    const double fi_2 = -co1 * 2.0 * xp * yp / POW2(1.0 + yp * yp) - co2 * b * fint * hgap * 2.0 * (2.0 * xp* xp * yp) / pz;
+    const double fi_3 = co2 * b * fint * hgap * 2.0 * (1.0 + xp * xp * (2.0 + yp*yp)) / POW2(pz);
 
     fi0 = b * tan(fi0);
 
