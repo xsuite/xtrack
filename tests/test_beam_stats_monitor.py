@@ -135,6 +135,56 @@ def test_beam_stats_monitor_weighted_stats_and_turn_selection():
 
 
 @allow_no_prebuilt_kernels
+def test_beam_stats_monitor_pzeta_stats_and_projected_emittance():
+    particles = xt.Particles(
+        p0c=1e9,
+        x=[0., 0., 0.],
+        px=[0., 0., 0.],
+        y=[0., 0., 0.],
+        py=[0., 0., 0.],
+        zeta=[-0.5, 0.25, 1.0],
+        pzeta=[0.01, -0.02, 0.05],
+        weight=[2., 1., 4.],
+    )
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        stats=[
+            'num_particles',
+            'mean_delta', 'mean_pzeta',
+            'sigma_pzeta',
+            'cov_zeta_pzeta',
+            'gemitt_zeta_projected',
+            'nemitt_zeta_projected',
+        ],
+    )
+
+    monitor.track(particles)
+
+    weights = particles.weight
+    zeta = particles.zeta
+    delta = particles.delta
+    pzeta = particles.pzeta
+    mean_zeta = np.average(zeta, weights=weights)
+    mean_pzeta = np.average(pzeta, weights=weights)
+    var_zeta = np.average(zeta * zeta, weights=weights) - mean_zeta**2
+    var_pzeta = np.average(pzeta * pzeta, weights=weights) - mean_pzeta**2
+    cov_zeta_pzeta = (
+        np.average(zeta * pzeta, weights=weights) - mean_zeta * mean_pzeta)
+    gemitt_zeta = np.sqrt(var_zeta * var_pzeta - cov_zeta_pzeta**2)
+    beta0_gamma0 = np.average(
+        particles.beta0 * particles.gamma0, weights=weights)
+
+    assert_allclose(monitor.mean_delta, [np.average(delta, weights=weights)])
+    assert_allclose(monitor.mean_pzeta, [mean_pzeta])
+    assert_allclose(monitor.sigma_pzeta, [np.sqrt(var_pzeta)])
+    assert_allclose(monitor.cov_zeta_pzeta, [cov_zeta_pzeta])
+    assert_allclose(monitor.gemitt_zeta_projected, [gemitt_zeta])
+    assert_allclose(monitor.nemitt_zeta_projected,
+                    [gemitt_zeta * beta0_gamma0])
+
+
+@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_selected_slots():
     particles = xt.Particles(
         p0c=7e12,

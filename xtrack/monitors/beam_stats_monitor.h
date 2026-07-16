@@ -63,6 +63,9 @@ void BeamStatsMonitor_track_local_particle(
     GPUGLMEM double* sum_delta =
         (BeamStatsMonitorRecordData_len_sum_delta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_delta(data, 0) : NULL;
+    GPUGLMEM double* sum_pzeta =
+        (BeamStatsMonitorRecordData_len_sum_pzeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_pzeta(data, 0) : NULL;
 
     GPUGLMEM double* sum_x_x =
         (BeamStatsMonitorRecordData_len_sum_x_x(data) > 0)
@@ -82,6 +85,9 @@ void BeamStatsMonitor_track_local_particle(
     GPUGLMEM double* sum_x_delta =
         (BeamStatsMonitorRecordData_len_sum_x_delta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_x_delta(data, 0) : NULL;
+    GPUGLMEM double* sum_x_pzeta =
+        (BeamStatsMonitorRecordData_len_sum_x_pzeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_x_pzeta(data, 0) : NULL;
     GPUGLMEM double* sum_px_px =
         (BeamStatsMonitorRecordData_len_sum_px_px(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_px_px(data, 0) : NULL;
@@ -97,6 +103,9 @@ void BeamStatsMonitor_track_local_particle(
     GPUGLMEM double* sum_px_delta =
         (BeamStatsMonitorRecordData_len_sum_px_delta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_px_delta(data, 0) : NULL;
+    GPUGLMEM double* sum_px_pzeta =
+        (BeamStatsMonitorRecordData_len_sum_px_pzeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_px_pzeta(data, 0) : NULL;
     GPUGLMEM double* sum_y_y =
         (BeamStatsMonitorRecordData_len_sum_y_y(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_y_y(data, 0) : NULL;
@@ -109,6 +118,9 @@ void BeamStatsMonitor_track_local_particle(
     GPUGLMEM double* sum_y_delta =
         (BeamStatsMonitorRecordData_len_sum_y_delta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_y_delta(data, 0) : NULL;
+    GPUGLMEM double* sum_y_pzeta =
+        (BeamStatsMonitorRecordData_len_sum_y_pzeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_y_pzeta(data, 0) : NULL;
     GPUGLMEM double* sum_py_py =
         (BeamStatsMonitorRecordData_len_sum_py_py(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_py_py(data, 0) : NULL;
@@ -118,15 +130,24 @@ void BeamStatsMonitor_track_local_particle(
     GPUGLMEM double* sum_py_delta =
         (BeamStatsMonitorRecordData_len_sum_py_delta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_py_delta(data, 0) : NULL;
+    GPUGLMEM double* sum_py_pzeta =
+        (BeamStatsMonitorRecordData_len_sum_py_pzeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_py_pzeta(data, 0) : NULL;
     GPUGLMEM double* sum_zeta_zeta =
         (BeamStatsMonitorRecordData_len_sum_zeta_zeta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_zeta_zeta(data, 0) : NULL;
     GPUGLMEM double* sum_zeta_delta =
         (BeamStatsMonitorRecordData_len_sum_zeta_delta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_zeta_delta(data, 0) : NULL;
+    GPUGLMEM double* sum_zeta_pzeta =
+        (BeamStatsMonitorRecordData_len_sum_zeta_pzeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_zeta_pzeta(data, 0) : NULL;
     GPUGLMEM double* sum_delta_delta =
         (BeamStatsMonitorRecordData_len_sum_delta_delta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_delta_delta(data, 0) : NULL;
+    GPUGLMEM double* sum_pzeta_pzeta =
+        (BeamStatsMonitorRecordData_len_sum_pzeta_pzeta(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_pzeta_pzeta(data, 0) : NULL;
 
     START_PER_PARTICLE_BLOCK(part0, part);
         if (LocalParticle_get_state(part) > 0) {
@@ -194,6 +215,7 @@ void BeamStatsMonitor_track_local_particle(
                         double const py = LocalParticle_get_py(part);
                         double const zeta = LocalParticle_get_zeta(part);
                         double const delta = LocalParticle_get_delta(part);
+                        double const pzeta = LocalParticle_get_pzeta(part);
                         double const beta0_gamma0 =
                             LocalParticle_get_beta0(part)
                             * LocalParticle_get_gamma0(part);
@@ -212,6 +234,9 @@ void BeamStatsMonitor_track_local_particle(
                         if (sum_delta) {
                             atomicAdd(&sum_delta[index], weight * delta);
                         }
+                        if (sum_pzeta) {
+                            atomicAdd(&sum_pzeta[index], weight * pzeta);
+                        }
 
                         if (sum_x_x) atomicAdd(&sum_x_x[index], weight * x * x);
                         if (sum_x_px) atomicAdd(&sum_x_px[index], weight * x * px);
@@ -219,18 +244,22 @@ void BeamStatsMonitor_track_local_particle(
                         if (sum_x_py) atomicAdd(&sum_x_py[index], weight * x * py);
                         if (sum_x_zeta) atomicAdd(&sum_x_zeta[index], weight * x * zeta);
                         if (sum_x_delta) atomicAdd(&sum_x_delta[index], weight * x * delta);
+                        if (sum_x_pzeta) atomicAdd(&sum_x_pzeta[index], weight * x * pzeta);
                         if (sum_px_px) atomicAdd(&sum_px_px[index], weight * px * px);
                         if (sum_px_y) atomicAdd(&sum_px_y[index], weight * px * y);
                         if (sum_px_py) atomicAdd(&sum_px_py[index], weight * px * py);
                         if (sum_px_zeta) atomicAdd(&sum_px_zeta[index], weight * px * zeta);
                         if (sum_px_delta) atomicAdd(&sum_px_delta[index], weight * px * delta);
+                        if (sum_px_pzeta) atomicAdd(&sum_px_pzeta[index], weight * px * pzeta);
                         if (sum_y_y) atomicAdd(&sum_y_y[index], weight * y * y);
                         if (sum_y_py) atomicAdd(&sum_y_py[index], weight * y * py);
                         if (sum_y_zeta) atomicAdd(&sum_y_zeta[index], weight * y * zeta);
                         if (sum_y_delta) atomicAdd(&sum_y_delta[index], weight * y * delta);
+                        if (sum_y_pzeta) atomicAdd(&sum_y_pzeta[index], weight * y * pzeta);
                         if (sum_py_py) atomicAdd(&sum_py_py[index], weight * py * py);
                         if (sum_py_zeta) atomicAdd(&sum_py_zeta[index], weight * py * zeta);
                         if (sum_py_delta) atomicAdd(&sum_py_delta[index], weight * py * delta);
+                        if (sum_py_pzeta) atomicAdd(&sum_py_pzeta[index], weight * py * pzeta);
                         if (sum_zeta_zeta) {
                             atomicAdd(&sum_zeta_zeta[index],
                                       weight * zeta * zeta);
@@ -239,9 +268,17 @@ void BeamStatsMonitor_track_local_particle(
                             atomicAdd(&sum_zeta_delta[index],
                                       weight * zeta * delta);
                         }
+                        if (sum_zeta_pzeta) {
+                            atomicAdd(&sum_zeta_pzeta[index],
+                                      weight * zeta * pzeta);
+                        }
                         if (sum_delta_delta) {
                             atomicAdd(&sum_delta_delta[index],
                                       weight * delta * delta);
+                        }
+                        if (sum_pzeta_pzeta) {
+                            atomicAdd(&sum_pzeta_pzeta[index],
+                                      weight * pzeta * pzeta);
                         }
                     }
                 }

@@ -4,20 +4,23 @@ import xobjects as xo
 from ..base_element import BeamElement
 
 
-_COORDS = ('x', 'px', 'y', 'py', 'zeta', 'delta')
+_COORDS = (
+    'x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta',
+)
 _PLANES = {
     'x': ('x', 'px'),
     'y': ('y', 'py'),
-    'zeta': ('zeta', 'delta'),
+    'zeta': ('zeta', 'pzeta'),
 }
 
 _SECOND_MOMENTS = (
-    'x_x', 'x_px', 'x_y', 'x_py', 'x_zeta', 'x_delta',
-    'px_px', 'px_y', 'px_py', 'px_zeta', 'px_delta',
-    'y_y', 'y_py', 'y_zeta', 'y_delta',
-    'py_py', 'py_zeta', 'py_delta',
-    'zeta_zeta', 'zeta_delta',
+    'x_x', 'x_px', 'x_y', 'x_py', 'x_zeta', 'x_delta', 'x_pzeta',
+    'px_px', 'px_y', 'px_py', 'px_zeta', 'px_delta', 'px_pzeta',
+    'y_y', 'y_py', 'y_zeta', 'y_delta', 'y_pzeta',
+    'py_py', 'py_zeta', 'py_delta', 'py_pzeta',
+    'zeta_zeta', 'zeta_delta', 'zeta_pzeta',
     'delta_delta',
+    'pzeta_pzeta',
 )
 
 _DEFAULT_STATS = (
@@ -37,27 +40,34 @@ class BeamStatsMonitorRecord(xo.HybridClass):
         'sum_py': xo.Float64[:],
         'sum_zeta': xo.Float64[:],
         'sum_delta': xo.Float64[:],
+        'sum_pzeta': xo.Float64[:],
         'sum_x_x': xo.Float64[:],
         'sum_x_px': xo.Float64[:],
         'sum_x_y': xo.Float64[:],
         'sum_x_py': xo.Float64[:],
         'sum_x_zeta': xo.Float64[:],
         'sum_x_delta': xo.Float64[:],
+        'sum_x_pzeta': xo.Float64[:],
         'sum_px_px': xo.Float64[:],
         'sum_px_y': xo.Float64[:],
         'sum_px_py': xo.Float64[:],
         'sum_px_zeta': xo.Float64[:],
         'sum_px_delta': xo.Float64[:],
+        'sum_px_pzeta': xo.Float64[:],
         'sum_y_y': xo.Float64[:],
         'sum_y_py': xo.Float64[:],
         'sum_y_zeta': xo.Float64[:],
         'sum_y_delta': xo.Float64[:],
+        'sum_y_pzeta': xo.Float64[:],
         'sum_py_py': xo.Float64[:],
         'sum_py_zeta': xo.Float64[:],
         'sum_py_delta': xo.Float64[:],
+        'sum_py_pzeta': xo.Float64[:],
         'sum_zeta_zeta': xo.Float64[:],
         'sum_zeta_delta': xo.Float64[:],
+        'sum_zeta_pzeta': xo.Float64[:],
         'sum_delta_delta': xo.Float64[:],
+        'sum_pzeta_pzeta': xo.Float64[:],
     }
 
 
@@ -994,7 +1004,12 @@ def _check_supported_stats(stats):
         elif name.startswith('sigma_'):
             _check_coord(name[6:])
         elif name.startswith('cov_'):
-            _parse_coord_pair(name[4:])
+            coord1, coord2 = _parse_coord_pair(name[4:])
+            moment = _moment_name(coord1, coord2)
+            if moment not in _SECOND_MOMENTS:
+                raise ValueError(
+                    f'Unsupported covariance coordinate pair `{coord1}_'
+                    f'{coord2}`')
         elif name.startswith('gemitt_') or name.startswith('nemitt_'):
             plane = name.split('_', 1)[1].removesuffix('_projected')
             if plane not in _PLANES:

@@ -298,6 +298,7 @@ sum_weight_y
 sum_weight_py
 sum_weight_zeta
 sum_weight_delta
+sum_weight_pzeta
 sum_weight_x_x
 sum_weight_x_px
 sum_weight_px_px
@@ -337,9 +338,9 @@ MVP stats:
 
 ```text
 num_particles
-mean_x, mean_px, mean_y, mean_py, mean_zeta, mean_delta
-sigma_x, sigma_px, sigma_y, sigma_py, sigma_zeta, sigma_delta
-cov_x_px, cov_y_py, cov_zeta_delta
+mean_x, mean_px, mean_y, mean_py, mean_zeta, mean_delta, mean_pzeta
+sigma_x, sigma_px, sigma_y, sigma_py, sigma_zeta, sigma_delta, sigma_pzeta
+cov_x_px, cov_y_py, cov_zeta_delta, cov_zeta_pzeta
 gemitt_x, gemitt_y, gemitt_zeta
 nemitt_x, nemitt_y, nemitt_zeta
 gemitt_x_projected, gemitt_y_projected, gemitt_zeta_projected
@@ -355,13 +356,14 @@ For example:
 
 ```text
 gemitt_x_projected = sqrt(var_x * var_px - cov_x_px**2)
+gemitt_zeta_projected = sqrt(var_zeta * var_pzeta - cov_zeta_pzeta**2)
 nemitt_x_projected = gemitt_x_projected * beta0 * gamma0
 ```
 
-and similarly for `y`.
+and similarly for `y` and `zeta`.
 
-For longitudinal projected emittance, the coordinate convention needs to be
-explicit. The preferred full coupled covariance should use:
+For longitudinal projected emittance, the coordinate convention is explicit.
+The canonical full coupled covariance uses:
 
 ```text
 (x, px, y, py, zeta, pzeta)
@@ -375,7 +377,10 @@ pzeta = ptau / beta0
 
 The existing `xfields.CollectiveMonitor` uses `delta` for longitudinal
 projected emittance, while `xcoll.EmittanceMonitor` uses `pzeta`. The new
-monitor should make the convention explicit and avoid silently mixing them.
+monitor uses `pzeta` for longitudinal projected emittance and coupled
+covariance work. `delta` remains available as an ordinary logged coordinate and
+can be requested through statistics such as `mean_delta`, `sigma_delta`, and
+`cov_zeta_delta`.
 
 ## Coupled Emittances and Optics From Sigma
 
@@ -857,8 +862,9 @@ Implemented:
    nemitt_<plane>_projected
    ```
 
-   where coordinates are currently `x`, `px`, `y`, `py`, `zeta`, and `delta`,
-   and projected-emittance planes are `x`, `y`, and `zeta`.
+   where coordinates are currently `x`, `px`, `y`, `py`, `zeta`, `delta`, and
+   `pzeta`, and projected-emittance planes are `x`, `y`, and `zeta`.
+   The `zeta` projected-emittance plane uses `(zeta, pzeta)`.
 
 9. Optional HDF5 output is implemented with:
 
@@ -888,7 +894,8 @@ Implemented:
 
 Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 
-- weighted means, sigmas, covariances, and projected transverse emittance
+- weighted means, sigmas, covariances, pzeta statistics, and projected
+  transverse/longitudinal emittance
 - beam, bunch, and slice aggregation levels
 - selected bunch behavior
 - `every_n_turns` turn selection
@@ -908,7 +915,7 @@ Still deferred:
 1. Coupled normal-mode emittances without the `_projected` suffix. Requests for
    these currently raise `NotImplementedError`.
 
-2. Full 6D covariance reconstruction using the preferred
+2. Full 6D covariance reconstruction helpers using the
    `(x, px, y, py, zeta, pzeta)` convention.
 
 3. Optics-from-sigma helper methods.
@@ -931,10 +938,9 @@ Still deferred:
 
 10. Wrappers and deprecation strategy for older monitors.
 
-Important convention caveat: longitudinal projected emittance currently uses
-`(zeta, delta)` internally. Before implementing full coupled covariance work,
-the longitudinal momentum convention needs to be made explicit and aligned with
-the preferred `(zeta, pzeta)` convention described above.
+Longitudinal convention: both `delta` and `pzeta` are logged coordinates.
+Longitudinal projected emittance and future coupled covariance work use the
+canonical `(zeta, pzeta)` pair.
 
 Kernel caveat: touched-record tracking is now part of the monitor kernel.
 Prebuilt kernels need to be regenerated before the prebuilt-kernel path can set
