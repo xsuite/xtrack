@@ -72,22 +72,12 @@ monitor.turns  # is array([0, 1, 2, ..., 9])
 
 # The default slice-level shape is (logged turns, selected slots, slices).
 monitor.mean_x.shape  # is (10, 3, 48)
-monitor.zeta_centers.shape  # is (3, 48)
+monitor.zeta_centers.shape  # is (3, 48) - zeta_centers are the histogram centers
+                            # for the slices, and are the same for all turns.
 
-# Slice coordinates are reported for each selected physical slot.
-for slot, zeta_centers in zip(monitor.selected_slots, monitor.zeta_centers):
-    print("slot", slot, "zeta centers:", zeta_centers)
-
-# A longitudinal coordinate can be converted to a recorded slice index.
-slice_index = monitor.slice_index(
-    zeta=-selected_slots[0] * bunch_spacing_zeta + 0.01,
-    slot=selected_slots[0])
-print("example slice index:", slice_index)
-
-# Slice-level stats can be selected by turn, slot, and slice index.
-monitor.get(
-    "mean_x", level="slice", turn=5, slot=selected_slots[0],
-    slice_index=slice_index).shape  # is ()
+# Slice-level stats can be selected by turn and  slot
+slices_1_bunch_1_turn = monitor.get("mean_x", level="slice", turn=5, slot=1)
+slices_1_bunch_1_turn.shape  # is (48,)
 
 # Bunch-level and beam-level statistics are also available as reductions of
 # the recorded slice data.
