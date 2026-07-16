@@ -809,8 +809,8 @@ coasting-beam support are not implemented yet.
 
 Examples live in `xtrack/examples/beam_stats_monitor/`:
 `000_beam_stats.py` (whole beam), `001_bunch_by_bunch_stats.py` (per bunch),
-`002_selected_slots.py`, `004_projected_emittance.py`, and
-`005_plot_slice_stats.py`. The examples are included in the user guide through
+and `002_slice_by_slice_stats.py` (per slice). The examples are included in
+the user guide through
 `xsuite/docs/conf.py`, and the guide section is in
 `xsuite/docs/particles_monitor.rst`. The API reference entry is in
 `xsuite/docs/apireference.rst`. Focused tests are in
