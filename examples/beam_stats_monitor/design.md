@@ -617,37 +617,90 @@ File output should be optional and import `h5py` lazily:
 mon = xt.BeamStatsMonitor(
     ...,
     output_file="monitor.h5",
-    buffer_size=1000,
 )
 ```
 
 If `output_file` is not provided, no `h5py` import should be required.
 
-`buffer_size` is the number of logged records kept before flushing, not the
-number of machine turns. With `every_n_turns=10`, a `buffer_size` of 1000
-corresponds to 1000 logged records, i.e. 10000 tracked turns.
+The first implementation should keep file output minimal. The monitor always
+keeps the full configured primitive moment arrays in memory. Providing
+`output_file` enables HDF5 export in addition to the in-memory data; it is not a
+memory-saving streaming mode.
+
+There is no public `storage` mode and no `buffer_size`/flush-cadence argument in
+the first implementation. The presence or absence of `output_file` fully defines
+the behavior:
+
+```text
+output_file is None      -> in-memory only
+output_file is provided  -> in-memory plus HDF5 output
+```
+
+The file should contain the requested derived statistics by default. This keeps
+the HDF5 output immediately usable without requiring a reader to reconstruct
+means, sigmas, covariances, or emittances from primitive sums. Reductions should
+still be computed from primitive sums before writing; never derive coarser
+statistics by averaging already-derived finer statistics.
+
+Optional primitive moment output can be added through a dedicated flag, for
+example:
+
+```python
+mon = xt.BeamStatsMonitor(
+    ...,
+    output_file="monitor.h5",
+    store_moments=True,
+)
+```
+
+If primitive moments are stored, it is sufficient to store them at the most
+detailed recorded level because coarser primitive moments can be reduced exactly
+from there.
 
 Suggested HDF5 layout:
 
 ```text
-/turns                         shape (n_records_total,)
+/attrs:
+    schema_version
+    class = "BeamStatsMonitor"
+    stats
+    available_levels
+    default_level
+    start_at_turn
+    stop_at_turn
+    every_n_turns
+    store_moments
+
+/turns                         shape (n_written_records,)
+/filled_slots                  shape (n_filled_bunches,)
 /selected_slots                shape (n_selected_bunches,)
 /zeta_centers                  shape (n_selected_bunches, n_slices)
-/stats/num_particles           shape (n_records_total, n_selected_bunches, n_slices)
-/stats/mean_x                  shape (n_records_total, n_selected_bunches, n_slices)
-/stats/sigma_x                 shape (n_records_total, n_selected_bunches, n_slices)
-...
+
+/stats/beam/num_particles      shape (n_written_records,)
+/stats/beam/mean_x             shape (n_written_records,)
+/stats/beam/sigma_x            shape (n_written_records,)
+
+/stats/bunch/num_particles     shape (n_written_records, n_selected_bunches)
+/stats/bunch/mean_x            shape (n_written_records, n_selected_bunches)
+/stats/bunch/sigma_x           shape (n_written_records, n_selected_bunches)
+
+/stats/slice/num_particles     shape (n_written_records, n_selected_bunches, n_slices)
+/stats/slice/mean_x            shape (n_written_records, n_selected_bunches, n_slices)
+/stats/slice/sigma_x           shape (n_written_records, n_selected_bunches, n_slices)
+
+/moments/<default_level>/...    optional primitive moment datasets
 ```
+
+Only levels available for the monitor mode should be present. For example, beam
+mode writes only `/stats/beam`, bunch mode writes `/stats/beam` and
+`/stats/bunch`, and slice mode writes all three levels.
 
 Datasets should be appendable along the first axis:
 
 ```python
-maxshape=(None, n_selected_bunches, n_slices)
-chunks=(chunk_size, n_selected_bunches, n_slices)
+maxshape=(None, ...)
+chunks=(chunk_records, ...)
 ```
-
-After each flush, call the HDF5 flush method so another script can inspect the
-file by reopening it.
 
 Provide:
 
@@ -655,36 +708,29 @@ Provide:
 mon.flush()
 ```
 
-to manually flush a partially filled buffer.
-
-## Storage Modes
-
-The first implementation can support:
+with no arguments. `flush()` opens or creates the HDF5 file, validates static
+metadata if the file already exists, reads the number of already written records
+from `/turns`, and appends the missing suffix:
 
 ```text
-memory
-file
-memory_and_file
+n_written = len(file["/turns"])
+append records [n_written : n_configured_records)
 ```
 
-Suggested behavior:
+After appending, call the HDF5 flush method and close the file so another script
+can inspect the data by reopening it.
 
-- `memory`: keep all logged records in memory.
-- `file`: keep only the current buffer in memory and append flushed data to HDF5.
-- `memory_and_file`: keep all logged records and also append to HDF5.
+The first implementation is append-only and assumes already written records are
+not modified later. This is appropriate for the normal workflow:
 
-If `output_file` is provided and `storage` is not specified, a reasonable
-default is:
-
-```text
-storage = "file"
+```python
+line.track(particles, num_turns=...)
+mon.flush()
 ```
 
-For short simulations without `output_file`:
-
-```text
-storage = "memory"
-```
+If particles are later tracked with `at_turn` values belonging to already
+flushed records, the in-memory monitor and HDF5 file can diverge. The first
+implementation does not try to detect or repair this case.
 
 ## Implementation Steps
 
@@ -757,9 +803,10 @@ storage = "memory"
 
     ```text
     output_file
-    buffer_size
-    storage mode
-    flush()
+    store_moments
+    no-argument flush()
+    append-only missing-suffix writes
+    derived-stat datasets by default
     appendable datasets
     stable file metadata
     ```
@@ -806,6 +853,11 @@ particle arrays are accepted.
 
 Coupled normal-mode emittances, optics-from-sigma, HDF5/file output, and
 coasting-beam support are not implemented yet.
+
+Important convention caveat: longitudinal projected emittance currently uses
+`(zeta, delta)` internally. Before implementing full coupled covariance work,
+the longitudinal momentum convention needs to be made explicit and aligned with
+the preferred `(zeta, pzeta)` convention described above.
 
 Examples live in `xtrack/examples/beam_stats_monitor/`:
 `000_beam_stats.py` (whole beam), `001_bunch_by_bunch_stats.py` (per bunch),
