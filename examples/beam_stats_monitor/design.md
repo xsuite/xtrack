@@ -794,27 +794,29 @@ start turn consistent with the particles' `at_turn` values before tracking the
 next frame. When `output_file` is active, users should call `save_to_file()` before
 `start_new_frame(...)`; otherwise the current in-memory frame will be discarded.
 
-## Implementation Steps
+## Implementation Status
 
-1. Add `xt.BeamStatsMonitor` as a standalone `BeamElement`, not as a subclass
-   of `ElementWithSlicer`.
+The current implementation is the kernel-first standalone monitor described
+above. `xtrack.BeamStatsMonitor` is implemented in
+`xtrack/xtrack/monitors/beam_stats_monitor.py`, with its tracking kernel in
+`xtrack/xtrack/monitors/beam_stats_monitor.h`.
 
-2. Define the monitor storage for primitive weighted sums with shapes matching
-   the selected aggregation mode:
+Implemented:
 
-   ```text
-   beam  -> (n_logged_turns,)
-   bunch -> (n_logged_turns, n_selected_bunches)
-   slice -> (n_logged_turns, n_selected_bunches, n_slices)
-   ```
+1. `xt.BeamStatsMonitor` is a standalone `BeamElement`, not a subclass of
+   `ElementWithSlicer`.
 
-3. Implement high-level `stats` expansion to the required primitive moments.
+2. The monitor owns xobjects storage for primitive weighted sums. The record
+   object is an `xobjects.HybridClass`, so its fields are exposed as NumPy-like
+   arrays on the Python side and can be zeroed in place.
 
-4. Implement the tracking kernel that filters lost particles, supports mixed
-   `at_turn` values, computes the target record/bin, and atomic-adds the
-   requested primitive weighted moments.
+3. The tracking kernel writes directly into the monitor storage with atomic
+   additions. It does not use `UniformBinSlicer` or `CompressedProfile`.
 
-5. Implement turn selection:
+4. The kernel filters lost particles, uses each active particle's own
+   `at_turn`, and therefore accepts mixed-turn particle arrays.
+
+5. Regular-grid turn selection is implemented through:
 
    ```text
    start_at_turn
@@ -823,7 +825,7 @@ next frame. When `output_file` is active, users should call `save_to_file()` bef
    turns property
    ```
 
-6. Implement selected bunch support:
+6. Filling and selected-bunch inputs are implemented:
 
    ```text
    filled_slots
@@ -833,18 +835,7 @@ next frame. When `output_file` is active, users should call `save_to_file()` bef
    bunch_spacing_zeta
    ```
 
-7. Implement public derived properties from primitive sums:
-
-   ```text
-   num_particles
-   means
-   sigmas
-   covariances
-   projected geometric and normalized emittances
-   coupled geometric and normalized emittances
-   ```
-
-8. Implement beam, bunch, and slice aggregation levels with `level=` access:
+7. Beam, bunch, and slice modes are implemented, with reductions accessed by:
 
    ```text
    level="beam"
@@ -854,73 +845,102 @@ next frame. When `output_file` is active, users should call `save_to_file()` bef
    default_level
    ```
 
-9. Implement full 6D covariance reconstruction and helper functions for:
+8. Public derived statistics are computed from primitive weighted sums. The
+   implemented statistics are:
 
    ```text
-   coupled emittances sorted as x-like, y-like, zeta-like modes
-   optics estimation from Sigma
+   num_particles
+   mean_<coord>
+   sigma_<coord>
+   cov_<coord1>_<coord2>
+   gemitt_<plane>_projected
+   nemitt_<plane>_projected
    ```
 
-10. Implement optional HDF5 output:
+   where coordinates are currently `x`, `px`, `y`, `py`, `zeta`, and `delta`,
+   and projected-emittance planes are `x`, `y`, and `zeta`.
 
-    ```text
-    output_file
-    save_to_file()
-    touched-record tracking
-    append-only newly touched suffix writes
-    start_new_frame(start_at_turn)
-    derived-stat datasets by default
-    appendable datasets
-    stable file metadata
-    ```
+9. Optional HDF5 output is implemented with:
 
-11. Add tests comparing:
+   ```text
+   output_file
+   save_to_file()
+   save_to_file(path)
+   touched-record tracking
+   append-only newly touched suffix writes
+   start_new_frame(start_at_turn)
+   derived-stat datasets by default
+   appendable datasets
+   stable file metadata
+   ```
 
-    - weighted means and sigmas against NumPy calculations
-    - beam, bunch, and slice aggregation levels
-    - selected bunch behavior
-    - `every_n_turns` turn selection
-    - mixed `at_turn` particles in one tracking call
-    - lost particle filtering, including lost particle 0
-    - CPU/GPU/OpenMP behavior where available
-    - HDF5 append/save layout
-    - transverse emittance against covariance calculations
-    - coupled emittances against `xtrack.linear_normal_form` sorting
-    - optics from measured Sigma against the method in `027_optics_from_sigma_mat.py`
+   Passing `output_file` to the constructor initializes that file in write mode
+   immediately. Calling `save_to_file(path)` later creates the file if it does
+   not exist, or validates and appends to it if it already exists. Files remain
+   flat time series; they do not contain frame groups.
 
-12. Consider factoring shared C helpers with `UniformBinSlicer` only after the
-    standalone monitor behavior is stable.
+10. `start_new_frame(start_at_turn)` clears the in-memory primitive moment
+    arrays and touched-record flags in place, keeps the frame size and
+    `every_n_turns` fixed, and retargets the monitor to a new turn interval.
 
-13. Only after the new monitor is stable, decide on wrappers and deprecation
-    strategy for older monitors.
+11. Serialization through `to_dict()` stores the monitor configuration only,
+    not the recorded data arrays.
 
-## Current Implementation Status
+Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 
-The current implementation is the kernel-first standalone monitor described
-above. `xtrack.BeamStatsMonitor` is implemented in
-`xtrack/xtrack/monitors/beam_stats_monitor.py`, with its tracking kernel in
-`xtrack/xtrack/monitors/beam_stats_monitor.h`.
+- weighted means, sigmas, covariances, and projected transverse emittance
+- beam, bunch, and slice aggregation levels
+- selected bunch behavior
+- `every_n_turns` turn selection
+- mixed `at_turn` particles in one tracking call
+- lost-particle filtering, including lost particle 0
+- in-place reset of `HybridClass` record arrays
+- HDF5 schema, derived-stat layout, and absence of `/frames` and `/moments`
+- construction-time file initialization/truncation through `output_file`
+- `save_to_file(path)` create-or-append behavior
+- rejection of incompatible non-empty existing HDF5 files
+- progressive `save_to_file()` calls without rewriting prior records
+- `start_new_frame(start_at_turn)` followed by flat append into the same file
+- configuration-only `to_dict()` / `Line.to_dict()` behavior
 
-The monitor owns xobjects storage for primitive weighted sums and the kernel
-writes directly into that storage. It does not inherit from
-`ElementWithSlicer`, does not use `UniformBinSlicer`, and does not store data
-through `CompressedProfile`.
+Still deferred:
 
-The implementation supports in-memory recording of weighted `num_particles`,
-means, sigmas, covariances, and projected geometric/normalized emittances. It
-supports `start_at_turn`, `stop_at_turn`, `every_n_turns`, `filled_slots`,
-`selected_slots`, `filling_scheme`, `num_bunches`, and beam/bunch/slice access
-through `level=`, `available_levels`, and `default_level`. The kernel filters
-lost particles and uses each active particle's own `at_turn`, so mixed-turn
-particle arrays are accepted.
+1. Coupled normal-mode emittances without the `_projected` suffix. Requests for
+   these currently raise `NotImplementedError`.
 
-Coupled normal-mode emittances, optics-from-sigma, HDF5/file output, and
-coasting-beam support are not implemented yet.
+2. Full 6D covariance reconstruction using the preferred
+   `(x, px, y, py, zeta, pzeta)` convention.
+
+3. Optics-from-sigma helper methods.
+
+4. Coasting-beam support.
+
+5. Arbitrary turn lists such as `turns=[100, 101, 105, 200]`.
+
+6. Arbitrary frame resizing through `start_new_frame`; users who need a
+   different frame size should create a new monitor.
+
+7. Primitive moment output in HDF5. The current HDF5 output writes requested
+   derived statistics only.
+
+8. GPU/OpenMP test coverage where available, and coupled-emittance /
+   optics-from-sigma tests once those features exist.
+
+9. Factoring shared C helpers with `UniformBinSlicer`, if this becomes useful
+   after the standalone monitor behavior is stable.
+
+10. Wrappers and deprecation strategy for older monitors.
 
 Important convention caveat: longitudinal projected emittance currently uses
 `(zeta, delta)` internally. Before implementing full coupled covariance work,
 the longitudinal momentum convention needs to be made explicit and aligned with
 the preferred `(zeta, pzeta)` convention described above.
+
+Kernel caveat: touched-record tracking is now part of the monitor kernel.
+Prebuilt kernels need to be regenerated before the prebuilt-kernel path can set
+the touched flags. Development tests can force JIT compilation, and
+`save_to_file()` has a Python fallback that infers written records from nonzero
+`num_particles` for stale prebuilt kernels.
 
 Examples live in `xtrack/examples/beam_stats_monitor/`:
 `000_beam_stats.py` (whole beam), `001_bunch_by_bunch_stats.py` (per bunch),
@@ -928,5 +948,4 @@ and `002_slice_by_slice_stats.py` (per slice). The examples are included in
 the user guide through
 `xsuite/docs/conf.py`, and the guide section is in
 `xsuite/docs/particles_monitor.rst`. The API reference entry is in
-`xsuite/docs/apireference.rst`. Focused tests are in
-`xtrack/tests/test_beam_stats_monitor.py`.
+`xsuite/docs/apireference.rst`.
