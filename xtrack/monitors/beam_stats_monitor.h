@@ -34,9 +34,14 @@ void BeamStatsMonitor_track_local_particle(
         BeamStatsMonitorData_get__bunch_spacing_zeta(el);
 
     BeamStatsMonitorRecordData data = BeamStatsMonitorData_getp_data(el);
+    BeamStatsMonitorTouchedRecordsData touched_records_data =
+        BeamStatsMonitorData_getp_touched_records(el);
 
     GPUGLMEM double* num_particles =
         BeamStatsMonitorRecordData_getp1_num_particles(data, 0);
+    GPUGLMEM int64_t* touched_records =
+        BeamStatsMonitorTouchedRecordsData_getp1_value(
+            touched_records_data, 0);
     GPUGLMEM double* sum_beta0_gamma0 =
         BeamStatsMonitorRecordData_getp1_sum_beta0_gamma0(data, 0);
 
@@ -180,6 +185,8 @@ void BeamStatsMonitor_track_local_particle(
                     }
 
                     if (accepted) {
+                        touched_records[i_record] = 1;
+
                         double const weight = LocalParticle_get_weight(part);
                         double const x = LocalParticle_get_x(part);
                         double const px = LocalParticle_get_px(part);

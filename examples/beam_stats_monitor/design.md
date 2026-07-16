@@ -651,12 +651,13 @@ for start in range(0, num_turns, 1000):
     if start != 0:
         mon.start_new_frame(start_at_turn=start)
     line.track(particles, num_turns=1000)
-    mon.flush()
+    mon.save_to_file()
 ```
 
 `start_new_frame(start_at_turn)` clears the primitive moment arrays and retargets
-the same-size logged-turn frame to a new start turn. It keeps `every_n_turns`
-and the number of logged records fixed, and computes:
+the same-size logged-turn frame to a new start turn. It also clears the internal
+per-record touched flags used by `save_to_file()`. It keeps `every_n_turns` and the
+number of logged records fixed, and computes:
 
 ```text
 stop_at_turn = start_at_turn + n_records_per_frame * every_n_turns
@@ -672,20 +673,9 @@ means, sigmas, covariances, or emittances from primitive sums. Reductions should
 still be computed from primitive sums before writing; never derive coarser
 statistics by averaging already-derived finer statistics.
 
-Optional primitive moment output can be added through a dedicated flag, for
-example:
-
-```python
-mon = xt.BeamStatsMonitor(
-    ...,
-    output_file="monitor.h5",
-    store_moments=True,
-)
-```
-
-If primitive moments are stored, it is sufficient to store them at the most
-detailed recorded level because coarser primitive moments can be reduced exactly
-from there.
+Primitive moment output is intentionally not part of the first HDF5
+implementation. It can be added later if exact offline reprocessing becomes
+important.
 
 Suggested HDF5 layout:
 
@@ -698,12 +688,8 @@ Suggested HDF5 layout:
     default_level
     every_n_turns
     n_records_per_frame
-    store_moments
 
 /turns                         shape (n_written_records,)
-/frames/start_at_turn          shape (n_written_frames,)
-/frames/stop_at_turn           shape (n_written_frames,)
-/frames/first_record_index     shape (n_written_frames,)
 /filled_slots                  shape (n_filled_bunches,)
 /selected_slots                shape (n_selected_bunches,)
 /zeta_centers                  shape (n_selected_bunches, n_slices)
@@ -719,8 +705,6 @@ Suggested HDF5 layout:
 /stats/slice/num_particles     shape (n_written_records, n_selected_bunches, n_slices)
 /stats/slice/mean_x            shape (n_written_records, n_selected_bunches, n_slices)
 /stats/slice/sigma_x           shape (n_written_records, n_selected_bunches, n_slices)
-
-/moments/<default_level>/...    optional primitive moment datasets
 ```
 
 Only levels available for the monitor mode should be present. For example, beam
@@ -737,31 +721,51 @@ chunks=(chunk_records, ...)
 Provide:
 
 ```python
-mon.flush()
+mon.save_to_file()
 ```
 
-with no arguments. `flush()` opens or creates the HDF5 file, validates static
-metadata if the file already exists, and appends the current frame once:
+with no arguments. `save_to_file()` opens or creates the HDF5 file, validates static
+metadata if the file already exists, and appends only newly touched records from
+the current in-memory frame.
+
+Internally the monitor keeps one integer flag per record in the current frame.
+The tracking kernel sets the flag when any accepted particle contributes to that
+record. `save_to_file()` uses the highest touched record to decide how much of the
+current frame is ready to write. It uses the last turn already present in
+`/turns` to determine which prefix of the current frame was previously flushed.
+
+The touched-record tracking is part of the monitor kernel. After changing this
+kernel logic, prebuilt kernels need to be regenerated before the prebuilt-kernel
+path can set the flags. Until regenerated kernels are available, development
+tests can force JIT compilation, and the Python `save_to_file()` implementation can
+fall back to inferring written records from nonzero `num_particles`.
 
 ```text
-append mon.turns
-append one entry to /frames/*
-append current-frame derived statistics at all available levels
-append current-frame primitive moments if store_moments=True
+local_start = first current-frame record not already present in /turns
+local_stop = highest touched record + 1
+append current-frame records [local_start:local_stop)
 ```
 
 After appending, call the HDF5 flush method and close the file so another script
 can inspect the data by reopening it.
 
-Repeated `flush()` calls for the same frame should be no-ops in the same Python
-process. After `start_new_frame(...)`, the next `flush()` appends the new frame.
+Repeated `save_to_file()` calls without newly touched records are no-ops. Later calls
+after additional tracking append only the newly touched suffix, which supports
+progressive inspection while keeping the full configured frame in memory:
+
+```python
+line.track(particles, num_turns=10)
+mon.save_to_file()
+line.track(particles, num_turns=10)
+mon.save_to_file()
+```
 
 The first implementation is append-only and assumes flushed frames are not
 modified later. This is appropriate for the normal workflow:
 
 ```python
 line.track(particles, num_turns=...)
-mon.flush()
+mon.save_to_file()
 ```
 
 If particles are later tracked with `at_turn` values belonging to already flushed
@@ -771,7 +775,7 @@ does not try to detect or repair this case.
 `start_new_frame(start_at_turn)` is a convenience for memory management, not an
 automatic tracking controller. The user remains responsible for calling it with a
 start turn consistent with the particles' `at_turn` values before tracking the
-next frame. When `output_file` is active, users should call `flush()` before
+next frame. When `output_file` is active, users should call `save_to_file()` before
 `start_new_frame(...)`; otherwise the current in-memory frame will be discarded.
 
 ## Implementation Steps
@@ -845,9 +849,9 @@ next frame. When `output_file` is active, users should call `flush()` before
 
     ```text
     output_file
-    store_moments
-    no-argument flush()
-    append-only current-frame writes
+    save_to_file()
+    touched-record tracking
+    append-only newly touched suffix writes
     start_new_frame(start_at_turn)
     derived-stat datasets by default
     appendable datasets
@@ -863,7 +867,7 @@ next frame. When `output_file` is active, users should call `flush()` before
     - mixed `at_turn` particles in one tracking call
     - lost particle filtering, including lost particle 0
     - CPU/GPU/OpenMP behavior where available
-    - HDF5 append/flush layout
+    - HDF5 append/save layout
     - transverse emittance against covariance calculations
     - coupled emittances against `xtrack.linear_normal_form` sorting
     - optics from measured Sigma against the method in `027_optics_from_sigma_mat.py`

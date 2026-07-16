@@ -257,6 +257,152 @@ def test_beam_stats_monitor_reset_data():
 
 
 @allow_no_prebuilt_kernels
+def test_beam_stats_monitor_save_to_file_hdf5(tmp_path):
+    h5py = pytest.importorskip('h5py')
+
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 3., 10.],
+        px=[0.1, 0.3, 1.0],
+        y=[2., 4., 20.],
+        py=[0.2, 0.4, 2.0],
+        zeta=[-0.5, -0.25, 0.5],
+        delta=[0.01, 0.03, 0.1],
+        weight=[2., 1., 4.],
+    )
+    output_file = tmp_path / 'beam_stats_monitor.h5'
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        zeta_range=(-1., 1.),
+        num_slices=2,
+        stats=['num_particles', 'mean_x', 'sigma_x'],
+        output_file=output_file,
+    )
+
+    monitor.track(particles)
+    monitor.save_to_file()
+    monitor.save_to_file()
+
+    with h5py.File(output_file, 'r') as h5file:
+        assert h5file.attrs['schema_version'] == 1
+        assert h5file.attrs['class'] == 'BeamStatsMonitor'
+        assert h5file.attrs['default_level'] == 'slice'
+        assert h5file.attrs['n_records_per_frame'] == 1
+        assert_equal(h5file.attrs['stats'].astype(str),
+                     ['num_particles', 'mean_x', 'sigma_x'])
+        assert_equal(h5file.attrs['available_levels'].astype(str),
+                     ['beam', 'bunch', 'slice'])
+        assert_equal(h5file['turns'][...], [0])
+        assert 'frames' not in h5file
+        assert_equal(h5file['selected_slots'][...], [0])
+        assert_allclose(h5file['zeta_centers'][...], [[-0.5, 0.5]])
+        assert 'moments' not in h5file
+        assert_allclose(h5file['stats/slice/mean_x'][...],
+                        monitor.get('mean_x', level='slice'))
+        assert_allclose(h5file['stats/bunch/sigma_x'][...],
+                        monitor.get('sigma_x', level='bunch'))
+        assert_allclose(h5file['stats/beam/num_particles'][...],
+                        monitor.get('num_particles', level='beam'))
+
+
+@allow_no_prebuilt_kernels
+def test_beam_stats_monitor_hdf5_progressive_save_to_file(tmp_path):
+    h5py = pytest.importorskip('h5py')
+
+    output_file = tmp_path / 'beam_stats_monitor_progress.h5'
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=3,
+        stats=['num_particles', 'mean_x'],
+        output_file=output_file,
+    )
+    monitor.compile_kernels(only_if_needed=False)
+
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 3.],
+        px=[0., 0.],
+        y=[0., 0.],
+        py=[0., 0.],
+        zeta=[0., 0.],
+        delta=[0., 0.],
+        weight=[1., 1.],
+    )
+
+    monitor.track(particles)
+    monitor.save_to_file()
+
+    with h5py.File(output_file, 'r') as h5file:
+        assert_equal(h5file['turns'][...], [0])
+        assert_allclose(h5file['stats/beam/num_particles'][...], [2.])
+        assert_allclose(h5file['stats/beam/mean_x'][...], [2.])
+
+    particles.x = [10., 20.]
+    particles.at_turn += 1
+    monitor.track(particles)
+    monitor.save_to_file()
+    monitor.save_to_file()
+
+    with h5py.File(output_file, 'r') as h5file:
+        assert_equal(h5file['turns'][...], [0, 1])
+        assert_allclose(h5file['stats/beam/num_particles'][...], [2., 2.])
+        assert_allclose(h5file['stats/beam/mean_x'][...], [2., 15.])
+        assert 'frames' not in h5file
+        assert 'moments' not in h5file
+
+
+@allow_no_prebuilt_kernels
+def test_beam_stats_monitor_hdf5_start_new_frame(tmp_path):
+    h5py = pytest.importorskip('h5py')
+
+    output_file = tmp_path / 'beam_stats_monitor_new_frame.h5'
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        stats=['num_particles', 'mean_x'],
+        output_file=output_file,
+    )
+
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 3.],
+        px=[0., 0.],
+        y=[0., 0.],
+        py=[0., 0.],
+        zeta=[0., 0.],
+        delta=[0., 0.],
+        weight=[1., 1.],
+    )
+    monitor.track(particles)
+    monitor.save_to_file()
+
+    monitor.start_new_frame(start_at_turn=1)
+    assert_equal(monitor.turns, [1])
+    assert_allclose(monitor.num_particles, [0.])
+
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[10., 20.],
+        px=[0., 0.],
+        y=[0., 0.],
+        py=[0., 0.],
+        zeta=[0., 0.],
+        delta=[0., 0.],
+        weight=[1., 1.],
+        at_turn=[1, 1],
+    )
+    monitor.track(particles)
+    monitor.save_to_file()
+
+    with h5py.File(output_file, 'r') as h5file:
+        assert_equal(h5file['turns'][...], [0, 1])
+        assert_allclose(h5file['stats/beam/num_particles'][...], [2., 2.])
+        assert_allclose(h5file['stats/beam/mean_x'][...], [2., 15.])
+        assert 'frames' not in h5file
+
+
+@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_to_dict_stores_configuration_only():
     particles = xt.Particles(
         p0c=7e12,

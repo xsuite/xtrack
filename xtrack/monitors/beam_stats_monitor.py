@@ -61,6 +61,12 @@ class BeamStatsMonitorRecord(xo.HybridClass):
     }
 
 
+class BeamStatsMonitorTouchedRecords(xo.HybridClass):
+    _xofields = {
+        'value': xo.Int64[:],
+    }
+
+
 class BeamStatsMonitor(BeamElement):
     """
     Monitor weighted beam statistics.
@@ -137,8 +143,8 @@ class BeamStatsMonitor(BeamElement):
         Longitudinal spacing between adjacent physical slots.
     stats : sequence of str, optional
         Requested public statistics.
-    output_file, storage, buffer_size
-        Reserved for future file-backed storage support.
+    output_file : str or path-like, optional
+        HDF5 file where :meth:`save_to_file` appends the current frame.
     """
 
     _xofields = {
@@ -156,6 +162,7 @@ class BeamStatsMonitor(BeamElement):
         '_filled_slots': xo.Int64[:],
         '_slot_to_selected': xo.Int64[:],
         'data': BeamStatsMonitorRecord,
+        'touched_records': BeamStatsMonitorTouchedRecords,
     }
 
     _extra_c_sources = [
@@ -182,8 +189,6 @@ class BeamStatsMonitor(BeamElement):
                  bunch_spacing_zeta=None,
                  stats=None,
                  output_file=None,
-                 storage=None,
-                 buffer_size=None,
                  _xobject=None,
                  **kwargs):
         """
@@ -192,14 +197,8 @@ class BeamStatsMonitor(BeamElement):
 
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
+            self._output_file = None
             return
-
-        if output_file is not None or storage not in (None, 'memory'):
-            raise NotImplementedError(
-                'BeamStatsMonitor HDF5/file storage is not implemented yet')
-        if buffer_size is not None:
-            raise NotImplementedError(
-                '`buffer_size` is reserved for HDF5/file storage')
 
         slice_mode = zeta_range is not None or num_slices is not None
         if (zeta_range is None) != (num_slices is None):
@@ -358,6 +357,7 @@ class BeamStatsMonitor(BeamElement):
             _filled_slots=filled_slots,
             _slot_to_selected=slot_to_selected,
             data=data,
+            touched_records={'value': num_records},
             **kwargs)
 
         self._stats_names = stats
@@ -365,6 +365,7 @@ class BeamStatsMonitor(BeamElement):
         self._data_shape = data_shape
         self._available_levels = available_levels
         self._default_level = default_level
+        self._output_file = output_file
 
     @property
     def stats(self):
@@ -584,6 +585,58 @@ class BeamStatsMonitor(BeamElement):
                              'zeta range')
         return index
 
+    def save_to_file(self):
+        """
+        Append the current frame to the configured HDF5 output file.
+
+        Only newly touched records are appended. Use :meth:`start_new_frame`
+        to clear the in-memory frame and retarget the monitor to later turns.
+        """
+        if self._output_file is None:
+            return
+
+        try:
+            import h5py
+        except ModuleNotFoundError as exc:  # pragma: no cover
+            raise ModuleNotFoundError(
+                'h5py is required for BeamStatsMonitor HDF5 output'
+            ) from exc
+
+        with h5py.File(self._output_file, 'a') as h5file:
+            self._initialize_or_validate_hdf5_file(h5file)
+
+            local_start = self._get_local_start_index_from_hdf5(h5file)
+            local_stop = self._num_touched_records()
+            if local_stop <= local_start:
+                return
+
+            record_slice = slice(local_start, local_stop)
+            self._append_hdf5_dataset(h5file, 'turns', self.turns[record_slice])
+
+            stats_group = h5file.require_group('stats')
+            for level in self.available_levels:
+                level_group = stats_group.require_group(level)
+                for stat in self.stats:
+                    self._append_hdf5_dataset(
+                        level_group, stat,
+                        self.get(stat, level=level)[record_slice])
+
+            h5file.flush()
+
+    def start_new_frame(self, start_at_turn):
+        """
+        Clear data and retarget the same-size logged-turn frame.
+
+        The number of records and ``every_n_turns`` are kept fixed. The new
+        ``stop_at_turn`` is computed from the existing frame length.
+        """
+        start_at_turn = _as_int(start_at_turn, 'start_at_turn')
+        self.start_at_turn = start_at_turn
+        self.stop_at_turn = (
+            start_at_turn + int(self._num_records) * int(self.every_n_turns))
+        self._reset_data()
+        self._reset_touched_records()
+
     def _moments_at_level(self, level):
         """
         Return primitive moments reduced to the requested aggregation level.
@@ -701,6 +754,154 @@ class BeamStatsMonitor(BeamElement):
         """
         for field in self._RAW_FIELDS:
             getattr(self.data, field)[...] = 0.0
+
+    def _reset_touched_records(self):
+        """
+        Mark all records in the current frame as not touched.
+        """
+        self.touched_records.value[...] = 0
+
+    def _num_touched_records(self):
+        """
+        Number of records to write, inferred from touched-record flags.
+        """
+        touched = np.nonzero(_to_nparray(self.touched_records.value))[0]
+        if len(touched) > 0:
+            return int(touched[-1]) + 1
+
+        # Fallback for stale prebuilt kernels that do not yet set
+        # touched_records. Regenerated/JIT kernels use the explicit flags above.
+        weights = self._moments_at_level(self.default_level)['num_particles']
+        if weights.ndim == 1:
+            nonzero_records = np.nonzero(weights != 0)[0]
+        else:
+            axes = tuple(range(1, weights.ndim))
+            nonzero_records = np.nonzero(np.any(weights != 0, axis=axes))[0]
+        if len(nonzero_records) == 0:
+            return 0
+        return int(nonzero_records[-1]) + 1
+
+    def _get_local_start_index_from_hdf5(self, h5file):
+        """
+        Return the first current-frame record not already present in HDF5.
+        """
+        if 'turns' not in h5file or len(h5file['turns']) == 0:
+            return 0
+
+        last_turn = int(h5file['turns'][-1])
+        turns = self.turns
+        if len(turns) == 0:
+            return 0
+
+        matches = np.nonzero(turns == last_turn)[0]
+        if len(matches) > 0:
+            return int(matches[0]) + 1
+
+        if last_turn < turns[0]:
+            return 0
+
+        raise RuntimeError(
+            'Cannot append BeamStatsMonitor frame because the output file '
+            'already contains turns beyond the current frame')
+
+    def _initialize_or_validate_hdf5_file(self, h5file):
+        """
+        Create or validate the static HDF5 layout and metadata.
+        """
+        if 'schema_version' not in h5file.attrs:
+            if len(h5file.keys()) != 0:
+                raise ValueError(
+                    'Output HDF5 file is not empty and does not contain '
+                    'BeamStatsMonitor metadata')
+            self._initialize_hdf5_file(h5file)
+        else:
+            self._validate_hdf5_file(h5file)
+
+    def _initialize_hdf5_file(self, h5file):
+        """
+        Initialize static metadata and static datasets.
+        """
+        h5file.attrs['schema_version'] = 1
+        h5file.attrs['class'] = 'BeamStatsMonitor'
+        h5file.attrs['stats'] = np.array(self.stats, dtype='S')
+        h5file.attrs['available_levels'] = np.array(
+            self.available_levels, dtype='S')
+        h5file.attrs['default_level'] = self.default_level
+        h5file.attrs['every_n_turns'] = int(self.every_n_turns)
+        h5file.attrs['n_records_per_frame'] = int(self._num_records)
+
+        h5file.create_dataset(
+            'filled_slots', data=self.filled_slots.astype(np.int64))
+        h5file.create_dataset(
+            'selected_slots', data=self.selected_slots.astype(np.int64))
+        if self.zeta_centers is not None:
+            h5file.create_dataset('zeta_centers', data=self.zeta_centers)
+
+    def _validate_hdf5_file(self, h5file):
+        """
+        Validate high-level compatibility with an existing HDF5 file.
+        """
+        expected_attrs = {
+            'schema_version': 1,
+            'class': 'BeamStatsMonitor',
+            'stats': np.array(self.stats, dtype='S'),
+            'available_levels': np.array(self.available_levels, dtype='S'),
+            'default_level': self.default_level,
+            'every_n_turns': int(self.every_n_turns),
+            'n_records_per_frame': int(self._num_records),
+        }
+        for name, expected in expected_attrs.items():
+            if name not in h5file.attrs:
+                raise ValueError(
+                    f'Output HDF5 file is missing metadata `{name}`')
+            actual = h5file.attrs[name]
+            if isinstance(expected, np.ndarray):
+                if not np.array_equal(np.asarray(actual), expected):
+                    raise ValueError(
+                        f'Output HDF5 metadata `{name}` does not match '
+                        'this monitor')
+            elif actual != expected:
+                raise ValueError(
+                    f'Output HDF5 metadata `{name}` does not match this '
+                    'monitor')
+
+        self._check_hdf5_dataset_equal(
+            h5file, 'filled_slots', self.filled_slots.astype(np.int64))
+        self._check_hdf5_dataset_equal(
+            h5file, 'selected_slots', self.selected_slots.astype(np.int64))
+
+    @staticmethod
+    def _check_hdf5_dataset_equal(group, name, expected):
+        if name not in group:
+            raise ValueError(f'Output HDF5 file is missing dataset `{name}`')
+        if not np.array_equal(group[name][...], expected):
+            raise ValueError(
+                f'Output HDF5 dataset `{name}` does not match this monitor')
+
+    @staticmethod
+    def _append_hdf5_dataset(group, name, data):
+        """
+        Append an array along the first axis of an HDF5 dataset.
+        """
+        data = np.asarray(data)
+        tail_shape = data.shape[1:]
+        if name in group:
+            dataset = group[name]
+            if dataset.shape[1:] != tail_shape:
+                raise ValueError(
+                    f'Output HDF5 dataset `{dataset.name}` has shape '
+                    f'{dataset.shape}, expected tail shape {tail_shape}')
+        else:
+            dataset = group.create_dataset(
+                name,
+                shape=(0, *tail_shape),
+                maxshape=(None, *tail_shape),
+                chunks=(1, *tail_shape),
+                dtype=data.dtype)
+        old_size = dataset.shape[0]
+        new_size = old_size + data.shape[0]
+        dataset.resize((new_size, *dataset.shape[1:]))
+        dataset[old_size:new_size] = data
 
     @staticmethod
     def _apply_selector(array, selector, axis):
