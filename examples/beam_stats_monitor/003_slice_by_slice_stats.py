@@ -97,23 +97,18 @@ mean_x_bunch.shape  # is (10, 3)
 mean_x_beam = monitor.get("mean_x", level="beam")
 mean_x_beam.shape  # is (10,)
 
-# Plot sum_x = mean_x * num_particles versus absolute zeta for all turns.
-# The three bunches appear in the same axes at their physical zeta positions.
-turns_to_plot = monitor.turns
-mean_x = monitor.get("mean_x", turn=turns_to_plot)
-num_particles = monitor.get("num_particles", turn=turns_to_plot)
-sum_x = mean_x * num_particles
-
+# Plot the dipole moment (mean_x * num_particles) versus absolute zeta for all turns.
 import matplotlib.pyplot as plt
 plt.close('all')
 fig, ax = plt.subplots(figsize=(8, 4.5))
 
-for ii, turn in enumerate(turns_to_plot):
-    for slot in monitor.selected_slots:
-        slot_index = monitor.slot_index(slot)
-        label = f"turn {turn}" if slot == monitor.selected_slots[0] else None
+for turn in monitor.turns:
+    for slot_index, slot in enumerate(monitor.selected_slots):
+        label = f"turn {turn}" if slot_index == 0 else None
         ax.plot(
-            monitor.zeta_centers[slot_index], sum_x[ii, slot_index],
+            monitor.zeta_centers[slot_index],
+            (monitor.get("mean_x", turn=turn, slot=slot)
+             * monitor.get("num_particles", turn=turn, slot=slot)),
             "-", label=label)
 
 ax.set_xlabel("zeta [m]")
