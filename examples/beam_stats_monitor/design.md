@@ -291,17 +291,17 @@ All statistics should be weighted by `particles.weight`.
 Primitive accumulated data should be weighted sums:
 
 ```text
-sum_weight
-sum_weight_x
-sum_weight_px
-sum_weight_y
-sum_weight_py
-sum_weight_zeta
-sum_weight_delta
-sum_weight_pzeta
-sum_weight_x_x
-sum_weight_x_px
-sum_weight_px_px
+num_particles
+sum_x
+sum_px
+sum_y
+sum_py
+sum_zeta
+sum_delta
+sum_pzeta
+sum_x_x
+sum_x_px
+sum_px_px
 ...
 ```
 
@@ -381,6 +381,10 @@ monitor uses `pzeta` for longitudinal projected emittance and coupled
 covariance work. `delta` remains available as an ordinary logged coordinate and
 can be requested through statistics such as `mean_delta`, `sigma_delta`, and
 `cov_zeta_delta`.
+
+The stored pairwise moments intentionally include `zeta_delta` and
+`zeta_pzeta`, but not `delta_pzeta`. Therefore `cov_zeta_delta` and
+`cov_zeta_pzeta` are supported, while `cov_delta_pzeta` is rejected.
 
 ## Coupled Emittances and Optics From Sigma
 
@@ -548,8 +552,8 @@ level.
 
 Reductions must be computed from weighted primitive sums, not by averaging
 statistics. For example, bunch-level `sigma_x` from slice data is
-computed by first summing `sum_weight`, `sum_weight_x`, and `sum_weight_x_x`
-over slices, then applying the weighted variance formula.
+computed by first summing `num_particles`, `sum_x`, and `sum_x_x` over slices,
+then applying the weighted variance formula.
 
 ## Tracking Kernel Architecture
 
@@ -756,10 +760,8 @@ current frame is ready to write. It uses the last turn already present in
 `/turns` to determine which prefix of the current frame was previously flushed.
 
 The touched-record tracking is part of the monitor kernel. After changing this
-kernel logic, prebuilt kernels need to be regenerated before the prebuilt-kernel
-path can set the flags. Until regenerated kernels are available, development
-tests can force JIT compilation, and the Python `save_to_file()` implementation can
-fall back to inferring written records from nonzero `num_particles`.
+kernel logic or the record layout, prebuilt kernels need to be regenerated before
+running the prebuilt-kernel path.
 
 ```text
 local_start = first current-frame record not already present in /turns
@@ -865,6 +867,7 @@ Implemented:
    where coordinates are currently `x`, `px`, `y`, `py`, `zeta`, `delta`, and
    `pzeta`, and projected-emittance planes are `x`, `y`, and `zeta`.
    The `zeta` projected-emittance plane uses `(zeta, pzeta)`.
+   The `delta_pzeta` covariance pair is intentionally not stored or exposed.
 
 9. Optional HDF5 output is implemented with:
 
@@ -894,7 +897,7 @@ Implemented:
 
 Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 
-- weighted means, sigmas, covariances, pzeta statistics, and projected
+- weighted means, sigmas, supported covariances, pzeta statistics, and projected
   transverse/longitudinal emittance
 - beam, bunch, and slice aggregation levels
 - selected bunch behavior
@@ -941,12 +944,11 @@ Still deferred:
 Longitudinal convention: both `delta` and `pzeta` are logged coordinates.
 Longitudinal projected emittance and future coupled covariance work use the
 canonical `(zeta, pzeta)` pair.
+The `delta_pzeta` cross term is not part of the current stored moment set.
 
-Kernel caveat: touched-record tracking is now part of the monitor kernel.
-Prebuilt kernels need to be regenerated before the prebuilt-kernel path can set
-the touched flags. Development tests can force JIT compilation, and
-`save_to_file()` has a Python fallback that infers written records from nonzero
-`num_particles` for stale prebuilt kernels.
+Kernel note: touched-record tracking is part of the monitor kernel. When the
+record layout or kernel logic changes, prebuilt kernels need to be regenerated
+before running the prebuilt-kernel path.
 
 Examples live in `xtrack/examples/beam_stats_monitor/`:
 `000_beam_stats.py` (whole beam), `001_bunch_by_bunch_stats.py` (per bunch),
