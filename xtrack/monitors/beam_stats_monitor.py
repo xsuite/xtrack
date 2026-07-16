@@ -587,13 +587,19 @@ class BeamStatsMonitor(BeamElement):
                              'zeta range')
         return index
 
-    def save_to_file(self):
+    def save_to_file(self, output_file=None):
         """
-        Append the current frame to the configured HDF5 output file.
+        Append newly available records to an HDF5 output file.
 
-        Only newly touched records are appended. Use :meth:`start_new_frame`
-        to clear the in-memory frame and retarget the monitor to later turns.
+        If ``output_file`` is provided, it becomes the monitor output file. The
+        file is created if missing, or validated and appended to if it already
+        exists. Only newly touched records are appended. Use
+        :meth:`start_new_frame` to clear the in-memory frame and retarget the
+        monitor to later turns.
         """
+        if output_file is not None:
+            self._output_file = output_file
+
         if self._output_file is None:
             return
 

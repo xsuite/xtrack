@@ -728,9 +728,21 @@ Provide:
 mon.save_to_file()
 ```
 
-with no arguments. `save_to_file()` opens or creates the HDF5 file, validates static
-metadata if the file already exists, and appends only newly touched records from
-the current in-memory frame.
+for monitors configured with `output_file`. A monitor created without
+`output_file` can also be saved later by passing a filename:
+
+```python
+mon.save_to_file("monitor.h5")
+```
+
+In that case the provided path becomes the monitor output file. If the file does
+not exist, `save_to_file()` creates and initializes it. If it already exists,
+`save_to_file()` validates the static metadata and appends only newly touched
+records from the current in-memory frame. It does not truncate an existing file.
+
+The cleanup semantics are intentionally tied to construction: passing
+`output_file` to `BeamStatsMonitor(...)` initializes that path in write mode,
+while `save_to_file(path)` is a create-or-append operation.
 
 Internally the monitor keeps one integer flag per record in the current frame.
 The tracking kernel sets the flag when any accepted particle contributes to that
