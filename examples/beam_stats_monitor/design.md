@@ -304,7 +304,7 @@ sum_weight_px_px
 ...
 ```
 
-Public derived quantities:
+Statistics:
 
 ```python
 mon.num_particles
@@ -483,8 +483,8 @@ Safeguards:
 
 ## Data Shape and Access
 
-The default public statistic level is the most detailed level available from
-the monitor:
+The default statistic level is the most detailed level available from the
+monitor:
 
 ```text
 beam mode  -> (n_logged_turns,)
@@ -542,7 +542,7 @@ API. If the first logged turn is turn 100, then `mon.mean_x[0]` and
 level.
 
 Reductions must be computed from weighted primitive sums, not by averaging
-derived statistics. For example, bunch-level `sigma_x` from slice data is
+statistics. For example, bunch-level `sigma_x` from slice data is
 computed by first summing `sum_weight`, `sum_weight_x`, and `sum_weight_x_x`
 over slices, then applying the weighted variance formula.
 
@@ -586,7 +586,7 @@ slice mode:
     zeta is used for both slot and slice assignment
 ```
 
-The monitor should store primitive sums, not derived statistics. Python-side
+The monitor should store primitive sums, not statistics. Python-side
 accessors compute means, sigmas, covariances, emittances, and reductions from
 the stored primitive sums. Coupled emittances and optics-from-sigma remain
 Python-side postprocessing.
@@ -671,11 +671,11 @@ The first implementation should not support arbitrary frame resizing through
 `start_new_frame`; users who need a different frame size should create a new
 monitor.
 
-The file should contain the requested derived statistics by default. This keeps
+The file should contain the requested statistics by default. This keeps
 the HDF5 output immediately usable without requiring a reader to reconstruct
 means, sigmas, covariances, or emittances from primitive sums. Reductions should
 still be computed from primitive sums before writing; never derive coarser
-statistics by averaging already-derived finer statistics.
+statistics by averaging finer-level statistics.
 
 Primitive moment output is intentionally not part of the first HDF5
 implementation. It can be added later if exact offline reprocessing becomes
@@ -845,7 +845,7 @@ Implemented:
    default_level
    ```
 
-8. Public derived statistics are computed from primitive weighted sums. The
+8. Statistics are computed from primitive weighted sums. The
    implemented statistics are:
 
    ```text
@@ -869,7 +869,7 @@ Implemented:
    touched-record tracking
    append-only newly touched suffix writes
    start_new_frame(start_at_turn)
-   derived-stat datasets by default
+   statistic datasets by default
    appendable datasets
    stable file metadata
    ```
@@ -895,7 +895,7 @@ Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 - mixed `at_turn` particles in one tracking call
 - lost-particle filtering, including lost particle 0
 - in-place reset of `HybridClass` record arrays
-- HDF5 schema, derived-stat layout, and absence of `/frames` and `/moments`
+- HDF5 schema, statistics layout, and absence of `/frames` and `/moments`
 - construction-time file initialization/truncation through `output_file`
 - `save_to_file(path)` create-or-append behavior
 - rejection of incompatible non-empty existing HDF5 files
@@ -921,7 +921,7 @@ Still deferred:
    different frame size should create a new monitor.
 
 7. Primitive moment output in HDF5. The current HDF5 output writes requested
-   derived statistics only.
+   statistics only.
 
 8. GPU/OpenMP test coverage where available, and coupled-emittance /
    optics-from-sigma tests once those features exist.
