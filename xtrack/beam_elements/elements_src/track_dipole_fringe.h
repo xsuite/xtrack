@@ -57,14 +57,14 @@ void DipoleFringe_single_particle(
     const double xp2 = POW2(xp);
     const double _yp2 = 1./yp2;
 
-    const double fi0 = atan((xp*_yp2)) - c2*(1 + xp2*(1+yp2))*pz;
+    const double fi0 = atan((xp*_yp2)) - c2*(1 + xp2*(1+yp2))*_pz;
     const double co2 = b0/POW2(cos(fi0));
     const double co1 = co2/(1 + POW2(xp*_yp2))*_yp2;
     const double co3 = co2*c2;
 
-    const double fi1 =    co1          - co3*2*xp*(1+yp2)*pz;
-    const double fi2 = -2*co1*xyp*_yp2 - co3*2*xp*xyp    *pz;
-    const double fi3 =                 - co3*(1 + xp2*(1+yp2));
+    const double fi1 =    co1          - co3*2*xp*(1+yp2)*_pz;
+    const double fi2 = -2*co1*xyp*_yp2 - co3*2*xp*xyp    *_pz;
+    const double fi3 =                 + co3*(1 + xp2*(1+yp2))*POW2(_pz);
 
     const double kx = fi1*(1+xp2)*_pz   + fi2*xyp*_pz       - fi3*xp;
     const double ky = fi1*xyp*_pz       + fi2*yp2*_pz       - fi3*yp;
