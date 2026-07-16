@@ -198,10 +198,10 @@ def test_beam_stats_monitor_mixed_turns_and_lost_particle_zero():
     assert_allclose(monitor.num_particles[:, 0, :],
                     [[3., 0.], [0., 0.], [0., 4.]])
     assert_allclose(monitor.mean_x[:, 0, :],
-                    [[5. / 3., np.nan], [np.nan, np.nan], [np.nan, 10.]])
+                    [[5. / 3., 0.], [0., 0.], [0., 10.]])
     assert_allclose(monitor.get('num_particles', level='beam'), [3., 0., 4.])
     assert_allclose(monitor.get('mean_x', level='beam'),
-                    [5. / 3., np.nan, 10.])
+                    [5. / 3., 0., 10.])
 
 
 def test_beam_stats_monitor_requires_spacing_for_non_default_slots():

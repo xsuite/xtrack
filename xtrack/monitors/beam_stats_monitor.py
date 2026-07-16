@@ -620,7 +620,7 @@ class BeamStatsMonitor(BeamElement):
             out = self._projected_gemitt_from_moments(plane, moments)
             if kind == 'nemitt':
                 weights = moments['num_particles']
-                beta0_gamma0 = np.full_like(weights, np.nan, dtype=float)
+                beta0_gamma0 = np.zeros_like(weights, dtype=float)
                 np.divide(
                     moments['sum_beta0_gamma0'], weights, out=beta0_gamma0,
                     where=weights > 0)
@@ -634,7 +634,7 @@ class BeamStatsMonitor(BeamElement):
         Compute a weighted coordinate mean from primitive moments.
         """
         weights = moments['num_particles']
-        out = np.full_like(weights, np.nan, dtype=float)
+        out = np.zeros_like(weights, dtype=float)
         np.divide(moments[coord], weights, out=out, where=weights > 0)
         return out
 
@@ -643,7 +643,7 @@ class BeamStatsMonitor(BeamElement):
         Compute a weighted covariance from primitive moments.
         """
         weights = moments['num_particles']
-        out = np.full_like(weights, np.nan, dtype=float)
+        out = np.zeros_like(weights, dtype=float)
         mean_product = (
             self._mean_from_moments(coord1, moments)
             * self._mean_from_moments(coord2, moments))

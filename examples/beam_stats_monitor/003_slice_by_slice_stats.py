@@ -102,7 +102,7 @@ mean_x_beam.shape  # is (10,)
 turns_to_plot = monitor.turns
 mean_x = monitor.get("mean_x", turn=turns_to_plot)
 num_particles = monitor.get("num_particles", turn=turns_to_plot)
-sum_x = np.where(num_particles > 0, mean_x * num_particles, 0.0)
+sum_x = mean_x * num_particles
 
 import matplotlib.pyplot as plt
 plt.close('all')
