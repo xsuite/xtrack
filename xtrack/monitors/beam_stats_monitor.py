@@ -428,6 +428,34 @@ class BeamStatsMonitor(BeamElement):
             return self.get(attr)
         return getattr(super(), attr)
 
+    def to_dict(self, **kwargs):
+        """
+        Return the monitor configuration without logged data.
+        """
+        out = {
+            '__class__': self.__class__.__name__,
+            'start_at_turn': int(self.start_at_turn),
+            'stop_at_turn': int(self.stop_at_turn),
+            'every_n_turns': int(self.every_n_turns),
+            'stats': list(self._stats_names),
+        }
+
+        if 'slice' in self.available_levels:
+            out['zeta_range'] = (
+                float(self._z_min_edge),
+                float(self._z_min_edge)
+                + float(self._dzeta) * int(self._num_slices),
+            )
+            out['num_slices'] = int(self._num_slices)
+
+        if 'bunch' in self.available_levels:
+            out['filled_slots'] = self.filled_slots.tolist()
+            out['selected_slots'] = self.selected_slots.tolist()
+            if float(self._bunch_spacing_zeta) > 0:
+                out['bunch_spacing_zeta'] = float(self._bunch_spacing_zeta)
+
+        return out
+
     def get(self, stat, *, level=None, turn=None, slot=None, slice_index=None,
             keepdims=False):
         """

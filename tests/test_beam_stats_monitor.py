@@ -222,3 +222,57 @@ def test_beam_stats_monitor_requires_spacing_for_non_default_slots():
             selected_slots=[0],
             stats=['num_particles'],
         )
+
+
+@allow_no_prebuilt_kernels
+def test_beam_stats_monitor_to_dict_stores_configuration_only():
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 2.],
+        px=[0., 0.],
+        y=[0., 0.],
+        py=[0., 0.],
+        zeta=[-0.2, -10.2],
+        delta=[0., 0.],
+        weight=[1., 1.],
+    )
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=2,
+        every_n_turns=1,
+        zeta_range=(-0.5, 0.5),
+        num_slices=2,
+        filled_slots=[0, 1],
+        selected_slots=[1],
+        bunch_spacing_zeta=10.,
+        stats=['num_particles', 'mean_x'],
+    )
+    line = xt.Line(elements=[monitor])
+
+    line.track(particles, num_turns=1)
+    assert_allclose(monitor.num_particles, [[[1., 0.]], [[0., 0.]]])
+
+    monitor_dict = monitor.to_dict()
+    assert 'data' not in monitor_dict
+    assert monitor_dict == {
+        '__class__': 'BeamStatsMonitor',
+        'start_at_turn': 0,
+        'stop_at_turn': 2,
+        'every_n_turns': 1,
+        'stats': ['num_particles', 'mean_x'],
+        'zeta_range': (-0.5, 0.5),
+        'num_slices': 2,
+        'filled_slots': [0, 1],
+        'selected_slots': [1],
+        'bunch_spacing_zeta': 10.0,
+    }
+    assert 'data' not in line.to_dict()['elements']['e0']
+
+    line_from_dict = xt.Line.from_dict(line.to_dict())
+    monitor_from_dict = line_from_dict['e0']
+    assert monitor_from_dict.stats == ('num_particles', 'mean_x')
+    assert monitor_from_dict.available_levels == ('beam', 'bunch', 'slice')
+    assert_equal(monitor_from_dict.selected_slots, [1])
+    assert_allclose(monitor_from_dict.zeta_centers, [[-10.25, -9.75]])
+    assert_allclose(monitor_from_dict.num_particles,
+                    np.zeros((2, 1, 2)))
