@@ -1,7 +1,6 @@
 import xtrack as xt
 import numpy as np
 import xobjects as xo
-xo.context_cpu.allow_no_prebuilt_kernel = True
 
 def test_h_sdep():
     h = 0.1
