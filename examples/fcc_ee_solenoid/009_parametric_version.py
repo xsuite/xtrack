@@ -10,6 +10,8 @@ from tilted_solenoid import TiltedSolenoid
 
 t1 = time.time()
 
+plot=False
+
 env = xt.load('fccee_z_lcc.json')
 line = env.fccee_p_ring
 
@@ -18,13 +20,13 @@ ip_names = ['ipa'] #, 'ipd', 'ipg', 'ipj']
 # Tilt with respect to the beam axis
 theta = -0.015
 
-sol_half_length = 1.3
+sol_half_length = 1.5
 
 # Location of first dipole corrector (overlaid with solenoid)
-ds_start = 1.4
+ds_start = 1.3
 ds_end = 2.29
 
-B0 = 3. # T
+B0 = 2.5 # T
 
 r0 = 0.13
 
@@ -454,14 +456,14 @@ for ip_name in ip_names:
 # line['on_sol_corr_ipj'] = 0
 # tw_off = line.twiss4d(strengths=True, zero_at=ip_name)
 
-# line['on_sol_ipa'] = 1
-# line['on_sol_ipd'] = 1
-# line['on_sol_ipg'] = 1
-# line['on_sol_ipj'] = 1
-# line['on_sol_corr_ipa'] = 1
-# line['on_sol_corr_ipd'] = 1
-# line['on_sol_corr_ipg'] = 1
-# line['on_sol_corr_ipj'] = 1
+line['on_sol_ipa'] = 1
+line['on_sol_ipd'] = 1
+line['on_sol_ipg'] = 1
+line['on_sol_ipj'] = 1
+line['on_sol_corr_ipa'] = 1
+line['on_sol_corr_ipd'] = 1
+line['on_sol_corr_ipg'] = 1
+line['on_sol_corr_ipj'] = 1
 # tw_on_corr = line.twiss4d(strengths=True, zero_at='ipg')
 # # nl_chrom_on_corr = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
 # two_on_corr = line.twiss(
@@ -489,53 +491,62 @@ for ip_name in tw4d.rows['ip.*'].name:
 t2 = time.time()
 print(f'Took {t2-t1} s')
 
-import matplotlib.pyplot as plt
-plt.close('all')
-ip_plot = 'ipa'
-tw_off.zero_at(ip_plot)
-tw4d.zero_at(ip_plot)
+if plot:
 
-fig1 = plt.figure(figsize=(6.4, 4.8 * 1.8))
-ax1 = fig1.add_subplot(5,1,1)
-plty = tw4d.plot(ax=ax1)
+    import matplotlib.pyplot as plt
+    plt.close('all')
+    ip_plot = 'ipa'
+    tw4d.zero_at(ip_plot)
+    tw4d.zero_at(ip_plot)
 
-ax2 = fig1.add_subplot(5,1,2, sharex=ax1)
-ax2.plot(tw4d.s, tw4d.bs)
-ax2.set_ylabel(r'$B_s$ [T]')
-ax2.grid(True)
+    fig1 = plt.figure(figsize=(6.4, 4.8 * 1.8))
+    ax1 = fig1.add_subplot(5,1,1)
+    plty = tw4d.plot(ax=ax1)
 
-ax3 = fig1.add_subplot(5,1,3, sharex=ax1)
-ax3.plot(tw4d.s, tw4d.y * 1e3)
-ax3.set_ylabel('y [mm]')
-ax3.set_ylim(-0.3, 0.3)
-ax3.grid(True)
+    ax2 = fig1.add_subplot(5,1,2, sharex=ax1)
+    ax2.plot(tw4d.s, tw4d.bs)
+    ax2.set_ylabel(r'$B_s$ [T]')
+    ax2.grid(True)
 
-ax4 = fig1.add_subplot(5,1,4, sharex=ax1)
-ax4.plot(tw4d.s, tw4d.dy * 1e3)
-ax4.set_ylabel(r'$D_y$ [mm]')
-ax4.set_ylim(-0.3, 0.3)
-ax4.grid(True)
+    ax3 = fig1.add_subplot(5,1,3, sharex=ax1)
+    ax3.plot(tw4d.s, tw4d.y * 1e3)
+    ax3.set_ylabel('y [mm]')
+    ax3.set_ylim(-0.3, 0.3)
+    ax3.grid(True)
 
-ax5 = fig1.add_subplot(5,1,5, sharex=ax1)
-ax5.plot(tw4d.s, tw4d.betx2)
-ax5.plot(tw4d.s, tw4d.bety1)
-ax5.set_ylabel(r'$\beta_{x2,y1}$')
-ax5.grid(True)
+    ax4 = fig1.add_subplot(5,1,4, sharex=ax1)
+    ax4.plot(tw4d.s, tw4d.dy * 1e3)
+    ax4.set_ylabel(r'$D_y$ [mm]')
+    ax4.set_ylim(-0.3, 0.3)
+    ax4.grid(True)
 
-ax1.set_xlabel('')
-ax5.set_xlabel('s [m]')
+    ax5 = fig1.add_subplot(5,1,5, sharex=ax1)
+    ax5.plot(tw4d.s, tw4d.betx2)
+    ax5.plot(tw4d.s, tw4d.bety1)
+    ax5.set_ylabel(r'$\beta_{x2,y1}$')
+    ax5.grid(True)
 
-fig1.subplots_adjust(hspace=.25, top=0.95, bottom=0.06, left=0.14)
+    ax1.set_xlabel('')
+    ax5.set_xlabel('s [m]')
 
-ax5.set_xlim(-20, 20)
+    fig1.subplots_adjust(hspace=.25, top=0.95, bottom=0.06, left=0.14)
+
+    ax5.set_xlim(-20, 20)
 
 out = {
-    'sol_half_length': sol_half_length,
-    'B0': 'B0',
+    'B0': B0,
     'r0': r0,
+    'sol_half_length': sol_half_length,
     'ds_start': ds_start,
     'ds_end': ds_end,
     'gemitt_y': float(tw4d.rad_int_eq_gemitt_y) * 4 # for 4 ips
 }
 
+from pprint import pp
+pp(out)
+
+fout = (f'B0_{B0:.3f}_r0_{r0:.3f}_sol_half_length_{sol_half_length:.3f}'
+        f'_ds_start_{ds_start:.3f}_ds_end_{ds_end:.3f}.json')
+
+xt.json.dump(out, 'results/' + fout)
 
