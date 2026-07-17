@@ -44,4 +44,19 @@ XTRACK_ELEMENTS_INIT_DEFAULTS = {
         'data': (1,1,1,1),
         'obs_names': ['dummy']
     },
+    'BentFieldExpansion': {
+        'length': 0,
+        'a': np.array([[0]]),
+        'b': np.array([[0]]),
+        'bs': np.array([0]),
+        'ny': 0,
+        'h': 1
+    },
+    'StraightFieldExpansion': {
+        'length': 0,
+        'a': np.array([[0]]),
+        'b': np.array([[0]]),
+        'bs': np.array([0]),
+        'ny': 0
+    },
 }
