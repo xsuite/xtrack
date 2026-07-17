@@ -93,3 +93,32 @@ def test_backtrack():
         xo.assert_allclose(
             getattr(p_test, coordinate), getattr(p0, coordinate),
             rtol=0, atol=1e-12)
+        
+def test_against_boris():
+    p0 = xt.Particles(x=0.01, y=0.005, tau=0.001, px=0.003, py=0.004, ptau=0.002, beta0=0.7)
+    p1 = p0.copy()
+    length = 1
+    
+    a = np.array([[0.04, 0.2,  0.08], [0,    0, 0.1]])
+    b = np.array([[0.05, 0.04, 0.07], [0.01, 0, 0]])
+    bs = np.array([0.1,  0.02, 0])
+    
+    def fieldvalue(x,y,z):  
+        # Determined with bpmeth 
+        return ((0.1*z**2*x + 0.08*z**2 + 0.2*z - y**2*(4.8*x + 3.84)/48 + 0.01*y + 0.04) * p0.rigidity0[0],
+                (0.07*z**2 + 0.04*z + 0.01*x + 0.2/3*y**3 - 0.07*y**2 - y*(2.4*z**2 + 2.4*x**2 + 3.84*x - 0.48)/24 + 0.05) * p0.rigidity0[0],
+                (0.1*z*x**2 - 0.1*z*y**2 - 0.02*z + x*(0.16*z + 0.2) + y*(0.84*z + 0.24)/6 - 0.1) * p0.rigidity0[0])
+
+    boris = xt.BorisSpatialIntegrator(fieldmap_callable=fieldvalue, s_start=0, s_end=length, n_steps=500)
+    fexp = xt.FieldExpansion(length=length, a=a, b=b, bs=bs, ny=5, nstep=50)
+    
+    boris.track(p0)
+    fexp.track(p1)
+    
+    assert np.isclose(p0.x, p1.x)
+    assert np.isclose(p0.px, p1.px)
+    assert np.isclose(p0.y, p1.y)
+    assert np.isclose(p0.py, p1.py)
+    assert np.isclose(p0.zeta, p1.zeta)
+    assert np.isclose(p0.ptau, p1.ptau)
+    assert np.isclose(p0.s, p1.s)
