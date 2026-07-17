@@ -33,9 +33,6 @@
 #ifndef XT_STRENGTH_CONST_ARG
 #define XT_STRENGTH_CONST_ARG const XT_STRENGTH
 #endif
-#ifndef XT_STRENGTH_CONST
-#define XT_STRENGTH_CONST(s) (s)   /* const part of a strength (identity for double) */
-#endif
 
 // Parametric-knob address slots. A knobbable magnet header records a strength field's
 // buffer address in a slot (0..7 = k0,k1,k2,k3,k0s,k1s,k2s,k3s) before tracking; the

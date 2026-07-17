@@ -6,8 +6,8 @@ expands every element strength that depends on those variables into a
 for nonlinear ones). ``ParticlesTpsa(knobs=...)`` binds these seeds so the tracked
 map carries ``d coord / d knob`` sensitivities.
 
-This implementation supports scalar element attributes (e.g. ``k1``) only; array targets (``knl[2]``)
-raise ``NotImplementedError``.
+This implementation supports scalar element attributes (e.g. ``k1``) only.
+Array targets (``knl[2]``) raise ``NotImplementedError``.
 """
 
 from __future__ import annotations
