@@ -23,10 +23,10 @@ theta = -0.015
 sol_half_length = 1.5
 
 # Location of first dipole corrector (overlaid with solenoid)
-ds_start = 1.3
+ds_start = 1.5
 ds_end = 2.29
 
-B0 = 2.5 # T
+B0 = 2.75 # T
 
 r0 = 0.13
 
