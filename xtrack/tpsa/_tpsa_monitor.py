@@ -17,7 +17,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import xobjects as xo
 
-from . import _gtpsa
+import xgtpsa
+
 from ._bridge_particle import _COORDS
 
 if TYPE_CHECKING:
@@ -45,7 +46,7 @@ class TpsaMonitor:
     def __init__(
         self,
         n_slots: int,
-        descriptor: _gtpsa.Descriptor,
+        descriptor: xgtpsa.Descriptor,
         ref_particle: xt.Particles | None = None,
     ) -> None:
         self.n_slots = int(n_slots)
@@ -53,9 +54,9 @@ class TpsaMonitor:
         self._ref_particle = ref_particle
         self.obs_names = None   # set for a multi_element_monitor_at record: slot i -> position
         # Destinations must outlive the C call: mad_tpsa_copy writes into them in place.
-        self._slots = [[_gtpsa.Tpsa(descriptor) for _ in _COORDS]
+        self._slots = [[xgtpsa.Tpsa(descriptor) for _ in _COORDS]
                        for _ in range(self.n_slots)]
-        ffi = _gtpsa.ffi()
+        ffi = xgtpsa.ffi()
         addrs = [int(ffi.cast("uintptr_t", t._p)) for row in self._slots for t in row]
         self._xobject = XtBridgeTpsaMonitor(coords=addrs)   # slot-major destinations
         self._xobject.n_slots = self.n_slots

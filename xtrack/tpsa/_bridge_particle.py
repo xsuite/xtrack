@@ -1,6 +1,6 @@
 """The bridge ABI particle as an xobject.
 
-``XtBridgeParticle`` is the struct that crosses the libgtpsa.so ABI: it carries
+``XtBridgeParticle`` is the struct that crosses the bridge ABI: it carries
 the coordinates (``tpsa_t*`` in the TPSA flavor, ``double*`` in the ``_num``
 flavor, stored as ``UInt64`` addresses, since a ``tpsa_t`` is variable-size,
 GTPSA-owned memory that cannot live by value in a buffer), and more parameters.

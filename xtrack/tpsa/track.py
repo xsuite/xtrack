@@ -12,7 +12,9 @@ from __future__ import annotations
 import numpy as np
 import xtrack as xt
 
-from . import _gtpsa
+import xgtpsa
+
+from ._bridge_build import bridge_entry
 from .particles import _COORDS, _REF_VARS
 from .backend import _element_ptr, _xobject_ptr, num_bridge, type_id_for
 
@@ -28,9 +30,9 @@ def track_num_twin(element: xt.BeamElement, particles: xt.Particles) -> xt.Parti
     if not isinstance(particles, xt.Particles):
         raise TypeError(f"track_num_twin expects xt.Particles, got {type(particles)}")
     type_id = type_id_for(type(element).__name__)
-    fn, call_ffi = _gtpsa.bridge_entry("num", "xt_bridge_track_element_num")
+    fn, call_ffi = bridge_entry("num", "xt_bridge_track_element_num")
     ffi = (
-        _gtpsa.ffi()
+        xgtpsa.ffi()
     )  # allocates the coord double* buffers (their addresses are universal)
     el_ptr = _element_ptr(element, call_ffi)
     for i in range(len(particles.x)):

@@ -1,8 +1,7 @@
-"""Tests for ``xtrack.tpsa``: the cffi bridge that tracks a 6D TPSA map through
-Xtrack elements via the external ``libgtpsa_core.so``.
+"""Tests for ``xtrack.tpsa``: the compiled bridge that tracks a 6D TPSA map through
+Xtrack elements, on top of the standalone ``xgtpsa`` engine.
 
-Skipped wholesale unless ``XTRACK_GTPSA_LIB`` points at a file in a built
-``gtpsa_lib`` directory.
+Skipped wholesale unless the GTPSA core is built (gtpsa_lib/build.sh).
 """
 
 import gc
@@ -13,8 +12,9 @@ import pytest
 
 import xobjects as xo
 import xtrack as xt
+import xgtpsa
 import xtrack.tpsa as xtpsa
-from xtrack.tpsa import _gtpsa
+from xtrack.tpsa import _bridge_build
 from xtrack.tpsa._bridge_particle import COORD_FIELDS, REF_FIELDS, XtBridgeParticle
 from xtrack.tpsa.backend import num_bridge, registry_classes, type_id_for
 from xtrack.tpsa.registry import COORDS, REF_VARS, TYPE_IDS
@@ -22,11 +22,9 @@ from xtrack.twiss import _6d_w_matrix
 
 
 def _gtpsa_available():
-    if not os.environ.get('XTRACK_GTPSA_LIB'):
-        return False
     try:
-        _gtpsa.lib()
-        _gtpsa._bridge_sources()
+        xgtpsa.lib()
+        _bridge_build._bridge_sources()
         return True
     except Exception:
         return False
@@ -34,7 +32,8 @@ def _gtpsa_available():
 
 pytestmark = pytest.mark.skipif(
     not _gtpsa_available(),
-    reason='libgtpsa_core.so unavailable; set XTRACK_GTPSA_LIB')
+    reason="libgtpsa_core.so unavailable; run gtpsa_lib/build.sh",
+)
 
 P0C = 7e12
 MASS0 = xt.PROTON_MASS_EV
@@ -86,47 +85,8 @@ def _fd_jac(line, h=1e-7):
 
 
 # --------------------------------------------------------------------------- #
-# Descriptors: deduplication, num_variables/order, truncation integrity
+# Descriptors: Sharing, truncation integrity
 # --------------------------------------------------------------------------- #
-
-def test_descriptor_dedup():
-    a = _gtpsa.Descriptor.new(6, 2)
-    b = _gtpsa.Descriptor.new(6, 2)
-    assert a is b and a == b and hash(a) == hash(b)
-
-    other_order = _gtpsa.Descriptor.new(6, 3)
-    other_nv = _gtpsa.Descriptor.new(4, 2)
-    assert a is not other_order and a != other_order
-    assert a is not other_nv and a != other_nv
-    assert a != 'not a descriptor'
-    assert repr(a) == 'Descriptor(nv=6, order=2)'
-    # the module keeps a live set of all descriptors it has built
-    live = _gtpsa.live_descriptors()
-    assert a in live and other_order in live and other_nv in live
-    assert len(live) == 3
-
-
-@pytest.mark.parametrize('num_variables, order', [(2, 1), (4, 2), (6, 3), (6, 5)])
-def test_descriptor_reads_nv_and_order_from_c(num_variables, order):
-    d = _gtpsa.Descriptor.new(num_variables, order)
-    assert d.n_variables == num_variables
-    assert d.order == order
-    assert d.ptr is not None
-
-
-def test_descriptor_order_zero_is_coerced():
-    with pytest.warns(UserWarning, match='coerced'):
-        d = _gtpsa.Descriptor.new(6, 0)
-    assert d.order == 1
-
-
-def test_live_descriptors_and_wrap():
-    d = _gtpsa.Descriptor.new(6, 4)
-    live = _gtpsa.live_descriptors()
-    assert d in live
-    assert all(isinstance(x, _gtpsa.Descriptor) for x in live)
-    # the same C pointer always wraps to the same Python object
-    assert _gtpsa._wrap_desc(d.ptr) is d
 
 
 def test_maps_share_descriptor_by_order():
@@ -153,8 +113,8 @@ def test_order_truncation_integrity():
 
     assert m2.descriptor is not m3.descriptor
 
-    low = m2.monomial_coeffs('px')
-    high = m3.monomial_coeffs('px')
+    low = m2.monomial_coeffs("px")
+    high = m3.monomial_coeffs("px")
 
     # the order-2 map holds nothing above order 2 ...
     assert max(sum(mono) for mono in low) <= 2
@@ -167,24 +127,12 @@ def test_order_truncation_integrity():
         assert high[mono] == coeff
 
     # a query at exactly the max order is safe
-    assert m2.coefficient('px', (2, 0, 0, 0, 0, 0)) == low.get((2, 0, 0, 0, 0, 0), 0.0)
+    assert m2.coefficient("px", (2, 0, 0, 0, 0, 0)) == low.get((2, 0, 0, 0, 0, 0), 0.0)
 
 
 # --------------------------------------------------------------------------- #
-# TPSA primitives
+# TPSA coefficients
 # --------------------------------------------------------------------------- #
-
-def test_tpsa_var_and_accessors():
-    d = _gtpsa.Descriptor.new(6, 2)
-    t = _gtpsa.Tpsa.var(d, 2, 0.25)     # variable indices are 1-based
-    assert t.descriptor is d
-    assert t.order == 2
-    assert t.const_part == 0.25
-    assert t.grad() == [0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
-
-    zero = _gtpsa.Tpsa(d)
-    assert zero.const_part == 0.0
-    assert zero.grad() == [0.0] * 6
 
 
 def test_tpsa_coefficient_forms():
@@ -249,7 +197,7 @@ def test_fresh_map_is_identity():
 
 def test_getattr_and_to_particles():
     m = _map(order=2)
-    assert isinstance(m.x, _gtpsa.Tpsa)
+    assert isinstance(m.x, xgtpsa.Tpsa)
     assert isinstance(m.beta0, float)
     with pytest.raises(AttributeError):
         m.bogus
@@ -275,7 +223,7 @@ def test_bridge_particle_struct():
     assert COORD_FIELDS == COORDS
     assert REF_FIELDS == REF_VARS
 
-    ffi = _gtpsa.ffi()
+    ffi = xgtpsa.ffi()
     bufs = [ffi.new('double*', float(X0[c])) for c in COORDS]
     refs = {r: 1.0 for r in REF_VARS}
     bp = num_bridge(bufs, refs, line_length=26658.0)
@@ -382,7 +330,7 @@ def test_registry_typeids():
         assert classes[type_id].__name__ == name
         assert type_id_for(name) == type_id
 
-    with pytest.raises(NotImplementedError, match='no libgtpsa.so TPSA wrapper'):
+    with pytest.raises(NotImplementedError, match="not in the TPSA bridge registry"):
         type_id_for('NotAnElement')
 
     # an unregistered element cannot be tracked as a map
@@ -418,7 +366,7 @@ def test_one_turn_ebe_records_full_maps():
 
     series = mon.x
     assert len(series) == n + 1
-    assert all(isinstance(t, _gtpsa.Tpsa) and t.order == 2 for t in series)
+    assert all(isinstance(t, xgtpsa.Tpsa) and t.order == 2 for t in series)
     with pytest.raises(AttributeError):
         mon.bogus
 
@@ -563,23 +511,22 @@ def test_refdata_cache_reused_and_revalidated():
 # --------------------------------------------------------------------------- #
 
 def test_lib_and_ffi_singletons():
-    assert _gtpsa.lib() is _gtpsa.lib()
-    assert _gtpsa.ffi() is _gtpsa.ffi()
+    assert xgtpsa.lib() is xgtpsa.lib()
+    assert xgtpsa.ffi() is xgtpsa.ffi()
 
 
 def test_missing_lib_error(monkeypatch, tmp_path):
-    monkeypatch.setenv('XTRACK_GTPSA_LIB', str(tmp_path / 'nope.so'))
-    monkeypatch.setattr(_gtpsa, '_lib', None)
+    monkeypatch.setenv("XGTPSA_LIB", str(tmp_path / "nope.so"))
+    monkeypatch.setattr(xgtpsa._cffi, "_lib", None)
     with pytest.raises(RuntimeError, match='build.sh'):
-        _gtpsa.lib()
-
-    monkeypatch.delenv('XTRACK_GTPSA_LIB')
-    with pytest.raises(RuntimeError, match='XTRACK_GTPSA_LIB is not set'):
-        _gtpsa._gtpsa_dir()
+        xgtpsa.lib()
+    with pytest.raises(RuntimeError, match="build.sh"):
+        xgtpsa.include_dir()
+    assert not xgtpsa.have_core()
 
 
 def test_bridge_sources_present():
-    sources = _gtpsa._bridge_sources()
+    sources = _bridge_build._bridge_sources()
     assert all(os.path.exists(s) for s in sources)
     assert any(s.endswith('xt_bridge.cpp') for s in sources)
     assert any(os.sep + 'generated' + os.sep in s for s in sources)
@@ -588,20 +535,20 @@ def test_bridge_sources_present():
 def test_cache_key_is_content_addressed(monkeypatch, tmp_path):
     source = tmp_path / 'fake.hpp'
     source.write_text('one')
-    monkeypatch.setattr(_gtpsa, '_bridge_sources', lambda: [str(source)])
+    monkeypatch.setattr(_bridge_build, "_bridge_sources", lambda: [str(source)])
 
-    key = _gtpsa._bridge_cache_key('tpsa')
+    key = _bridge_build._bridge_cache_key("tpsa")
     assert key.startswith('bridge_tpsa_')
-    assert _gtpsa._bridge_cache_key('tpsa') == key          # deterministic
-    assert _gtpsa._bridge_cache_key('num') != key           # per flavor
+    assert _bridge_build._bridge_cache_key("tpsa") == key  # deterministic
+    assert _bridge_build._bridge_cache_key("num") != key  # per flavor
 
     source.write_text('two')
-    assert _gtpsa._bridge_cache_key('tpsa') != key          # content addressed
+    assert _bridge_build._bridge_cache_key("tpsa") != key  # content addressed
 
 
 @pytest.mark.parametrize('flavor', ['num', 'tpsa'])
 def test_bridge_lib_memoized(flavor):
-    assert _gtpsa.bridge_lib(flavor) is _gtpsa.bridge_lib(flavor)
+    assert _bridge_build.bridge_lib(flavor) is _bridge_build.bridge_lib(flavor)
 
 
 @pytest.mark.parametrize('flavor', ['num', 'tpsa'])
@@ -609,15 +556,15 @@ def test_bridge_lib_uses_disk_cache(monkeypatch, flavor):
     """With the in-process memo dropped, the module must load from the cached .so."""
     from xobjects.context_cpu import ContextCpu
 
-    _gtpsa.bridge_lib(flavor)                     # ensure it is built on disk
-    monkeypatch.delitem(_gtpsa._bridge_modules, flavor)
+    _bridge_build.bridge_lib(flavor)  # ensure it is built on disk
+    monkeypatch.delitem(_bridge_build._bridge_modules, flavor)
 
     def no_compile(*args, **kwargs):
         raise AssertionError('rebuilt instead of using the cached .so')
 
     monkeypatch.setattr(ContextCpu, 'build_kernels', no_compile)
 
-    kernels = _gtpsa.bridge_lib(flavor)
+    kernels = _bridge_build.bridge_lib(flavor)
     assert f'xt_bridge_track_element_{flavor}' in kernels
     assert f'xt_bridge_track_line_{flavor}' in kernels
 
@@ -627,10 +574,10 @@ def test_bridge_lib_force_rebuilds(monkeypatch):
 
     # Compile under a private module name and restore the memo afterwards, so that
     # under `pytest -n auto` this never rewrites the shared .so another worker is loading.
-    cached = _gtpsa.bridge_lib('num')
-    monkeypatch.setitem(_gtpsa._bridge_modules, 'num', cached)
+    cached = _bridge_build.bridge_lib("num")
+    monkeypatch.setitem(_bridge_build._bridge_modules, "num", cached)
     module_name = 'bridge_num_forcetest_%d' % os.getpid()
-    monkeypatch.setattr(_gtpsa, '_bridge_cache_key', lambda flavor: module_name)
+    monkeypatch.setattr(_bridge_build, "_bridge_cache_key", lambda flavor: module_name)
 
     build_kernels = ContextCpu.build_kernels
     calls = []
@@ -642,22 +589,21 @@ def test_bridge_lib_force_rebuilds(monkeypatch):
     monkeypatch.setattr(ContextCpu, 'build_kernels', spy)
 
     try:
-        kernels = _gtpsa.bridge_lib('num', force=True)
+        kernels = _bridge_build.bridge_lib("num", force=True)
         assert calls == [module_name]      # force=True compiles, cache notwithstanding
         assert 'xt_bridge_track_element_num' in kernels
     finally:
-        so = _so_for_module_name(
-            module_name, os.path.join(_gtpsa._gtpsa_dir(), '_bridge_cache'))
+        so = _so_for_module_name(module_name, _bridge_build._cache_dir())
         so.unlink(missing_ok=True)
 
 
 def test_bridge_lib_bad_flavor():
     with pytest.raises(ValueError, match='flavor must be one of'):
-        _gtpsa.bridge_lib('bogus')
+        _bridge_build.bridge_lib("bogus")
 
 
 def test_bridge_entry():
-    fn, ffi = _gtpsa.bridge_entry('tpsa', 'xt_bridge_track_line_tpsa')
+    fn, ffi = _bridge_build.bridge_entry("tpsa", "xt_bridge_track_line_tpsa")
     assert callable(fn)
     assert hasattr(ffi, 'cast')
 
@@ -720,7 +666,7 @@ def test_knobs_table_address_sanity_and_refresh():
     assert len(addrs) == len(ptrs) == 3
     # the recorded field address reads back the live strength
     for (e, a), addr in zip(kn._targets, addrs):
-        read = _gtpsa.ffi().cast('double*', addr)[0]
+        read = xgtpsa.ffi().cast("double*", addr)[0]
         assert abs(read - float(getattr(line.element_dict[e], a))) < 1e-15
 
     # a knob change is picked up on the next table() (expansions rebuilt)

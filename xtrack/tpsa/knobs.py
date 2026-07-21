@@ -14,8 +14,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import _gtpsa
-from ._gtpsa import Tpsa
+import xgtpsa
+
+from xgtpsa import Tpsa
 
 
 class _Dummy:
@@ -31,7 +32,7 @@ class Knobs:
             if n not in line.vars:
                 raise KeyError(f"knob {n!r} is not a line variable")
         self._targets = self._enumerate_targets()  # sorted [(elem, attr)]
-        self._desc: _gtpsa.Descriptor | None = None
+        self._desc: xgtpsa.Descriptor | None = None
         self._attr_tpsas: dict[tuple[str, str], Tpsa] = {}  # target -> expansion (owned)
         self._seed_vals: list[float] = []
 
@@ -62,7 +63,7 @@ class Knobs:
 
     # --- binding / expansion --------------------------------------------- #
 
-    def _bind(self, desc: _gtpsa.Descriptor) -> None:
+    def _bind(self, desc: xgtpsa.Descriptor) -> None:
         """Build param seeds and attribute TPSAs on ``desc`` (idempotent per desc).
 
         Called by ``ParticlesTpsa`` with the map's descriptor; standalone callers get
@@ -75,10 +76,10 @@ class Knobs:
     def _ensure_bound(self) -> None:
         """Bind to a self-owned descriptor for standalone use (no map needed)."""
         if self._desc is None:
-            self._expand(_gtpsa.Descriptor.new(
+            self._expand(xgtpsa.Descriptor.new(
                 6, 1, num_parameters=len(self), param_order=self.order))
 
-    def _expand(self, desc: _gtpsa.Descriptor) -> None:
+    def _expand(self, desc: xgtpsa.Descriptor) -> None:
         mgr = self.line._xdeps_manager
         self._seed_vals = [self.line[n] for n in self.names]
         seeds = [Tpsa.param(desc, i + 1, v) for i, v in enumerate(self._seed_vals)]
@@ -113,7 +114,7 @@ class Knobs:
         self._ensure_bound()
         if self._seed_vals != [self.line[n] for n in self.names]:
             self._expand(self._desc)
-        ffi = _gtpsa.ffi()
+        ffi = xgtpsa.ffi()
         addrs, ptrs = [], []
         for (e, a) in self._targets:
             addr = self._field_addr(e, a)
@@ -129,7 +130,7 @@ class Knobs:
 
     def _field_addr(self, elem: str, attr: str) -> int:
         """Absolute address of a scalar element field in its xobjects buffer."""
-        ffi = _gtpsa.ffi()
+        ffi = xgtpsa.ffi()
         xo = self.line.element_dict[elem]._xobject
         base = int(ffi.cast("uintptr_t", ffi.from_buffer(xo._buffer.buffer)))
         offs = {f.name: f.offset for f in type(xo)._fields}

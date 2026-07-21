@@ -1,4 +1,4 @@
-"""GtpsaBackend: routes ``ParticlesTpsa`` maps through libgtpsa.so.
+"""GtpsaBackend: routes ``ParticlesTpsa`` maps through the compiled bridge modules.
 
 Registered for ``ParticlesTpsa`` via ``register_tracking_backend`` at package import.
 ``BeamElement.track`` / ``Line.track`` dispatch here for non-native particle objects.
@@ -15,7 +15,9 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 import cffi
 import numpy as np
 
-from . import _gtpsa
+import xgtpsa
+
+from ._bridge_build import bridge_entry
 from .particles import ParticlesTpsa
 
 if TYPE_CHECKING:
@@ -34,10 +36,10 @@ def _xobject_ptr(xobj: xo.Struct | Any, ffi: cffi.FFI | None = None) -> Any:
     Works for both a compound element (``element._xobject``) and the bridge particle
     struct (which is an ``xo.Struct``).
     ``ffi`` must be the cffi that owns the callable the pointer is passed to (the one
-    returned by ``_gtpsa.bridge_entry``). Defaults to the shared dlopen ffi used
+    returned by ``bridge_entry``). Defaults to the shared dlopen ffi used
     for the "mad_*" functions.
     """
-    ffi = ffi or _gtpsa.ffi()
+    ffi = ffi or xgtpsa.ffi()
     buf = np.frombuffer(xobj._buffer.buffer, dtype="int8")
     return ffi.cast("void*", buf.ctypes.data + xobj._offset)
 
@@ -72,7 +74,7 @@ def type_id_for(cls_name: str, context: str = "") -> int:
         return TYPE_IDS[cls_name]
     except KeyError:
         raise NotImplementedError(
-            f"{context}{cls_name} has no libgtpsa.so TPSA wrapper yet "
+            f"{context}{cls_name} is not in the TPSA bridge registry yet "
             f"(supported: {', '.join(TYPE_IDS)})"
         ) from None
 
@@ -89,7 +91,8 @@ def num_bridge(
     Keep the buffers alive across the call.
     """
     from ._bridge_particle import XtBridgeParticle, _COORDS, _REF_VARS
-    ffi = _gtpsa.ffi()
+
+    ffi = xgtpsa.ffi()
     bp = XtBridgeParticle()
     for c, b in zip(_COORDS, coord_ptrs):
         setattr(bp, c, int(ffi.cast("uintptr_t", b)))
@@ -138,7 +141,7 @@ class GtpsaBackend:
         flavor = _flavor(particles)
         if particles.knobs is not None:
             self._set_knob_table(particles, flavor)
-        fn, ffi = _gtpsa.bridge_entry(flavor, f"xt_bridge_track_element_{flavor}")
+        fn, ffi = bridge_entry(flavor, f"xt_bridge_track_element_{flavor}")
         fn(type_id, _element_ptr(element, ffi), _xobject_ptr(p, ffi))
         return particles
 
@@ -160,8 +163,8 @@ class GtpsaBackend:
                     f"are not supported yet (set edge_entry_active/edge_exit_active to 0)"
                 )
         addrs, ptrs = knobs.table()
-        fn, ffi = _gtpsa.bridge_entry(flavor, f"xt_bridge_set_knob_table_{flavor}")
-        mad_ffi = _gtpsa.ffi()
+        fn, ffi = bridge_entry(flavor, f"xt_bridge_set_knob_table_{flavor}")
+        mad_ffi = xgtpsa.ffi()
         n = len(addrs)
         if n:
             a_arr = ffi.new("void*[]", [ffi.cast("void*", int(a)) for a in addrs])
@@ -210,7 +213,7 @@ class GtpsaBackend:
             line, ele_start, ele_stop, num_elements, num_turns
         )
         flavor = _flavor(particles)
-        fn, ffi = _gtpsa.bridge_entry(flavor, f"xt_bridge_track_line_{flavor}")
+        fn, ffi = bridge_entry(flavor, f"xt_bridge_track_line_{flavor}")
         if multi_element_monitor_at is not None:
             mon, flag, observe = self._resolve_observe(
                 line, particles, multi_element_monitor_at, ele_start, num, ffi
@@ -394,7 +397,7 @@ class GtpsaBackend:
         UnionRef order and mis-dispatches (SIGSEGV). Cached per line as a plain address,
         cast with the caller's ``ffi`` on each call (defaults to the shared ``mad_*`` ffi).
         """
-        ffi = ffi or _gtpsa.ffi()
+        ffi = ffi or xgtpsa.ffi()
         from xtrack.tracker import _element_ref_data_class_from_element_classes
 
         names = tuple(line.element_names)

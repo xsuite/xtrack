@@ -17,3 +17,5 @@ xtrack/prebuilt_kernels
 checkpoint_restart.dat
 .idea
 .claude/
+xtrack/tpsa/c_src/generated/
+xtrack/tpsa/c_src/_bridge_cache/

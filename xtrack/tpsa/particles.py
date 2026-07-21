@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Any, Iterable, Sequence
 import numpy as np
 import xtrack as xt
 
-from . import _gtpsa
+import xgtpsa
+
 from ._bridge_particle import XtBridgeParticle, _COORDS, _REF_VARS
 
 if TYPE_CHECKING:
@@ -32,7 +33,7 @@ class ParticlesTpsa:
     expose ``d coord / d knob`` after one parametric track.
     """
 
-    coords: list[_gtpsa.Tpsa] | None = None
+    coords: list[xgtpsa.Tpsa] | None = None
 
     def __init__(self, order: int = 1, knobs: Knobs | None = None, **kwargs: Any) -> None:
         # Single source of truth for kwargs and derived values.
@@ -41,13 +42,13 @@ class ParticlesTpsa:
             raise ValueError("ParticlesTpsa is a single map: pass scalar coordinates")
         self.knobs = knobs
         if knobs is None:
-            desc = _gtpsa.Descriptor.new(6, order)
+            desc = xgtpsa.Descriptor.new(6, order)
         else:
-            desc = _gtpsa.Descriptor.new(
+            desc = xgtpsa.Descriptor.new(
                 6, order, num_parameters=len(knobs), param_order=knobs.order
             )
         self.coords = [
-            _gtpsa.Tpsa.var(desc, i + 1, self._ref(c))
+            xgtpsa.Tpsa.var(desc, i + 1, self._ref(c))
             for i, c in enumerate(_COORDS)
         ]
         self._bridge = self._build_bridge()
@@ -62,7 +63,7 @@ class ParticlesTpsa:
         The reference (doubles) variables never change during tracking. Per-track fields
         (state/at_element/track_flags/line_length) are refreshed by the backend.
         """
-        ffi = _gtpsa.ffi()
+        ffi = xgtpsa.ffi()
         bp = XtBridgeParticle()
         for c, t in zip(_COORDS, self.coords):
             setattr(bp, c, int(ffi.cast("uintptr_t", t._p)))
@@ -73,7 +74,7 @@ class ParticlesTpsa:
     @classmethod
     def _from_coords(
         cls,
-        coords: Iterable[_gtpsa.Tpsa],
+        coords: Iterable[xgtpsa.Tpsa],
         ref_particle: xt.Particles | None = None,
     ) -> ParticlesTpsa:
         """A map over existing ``Tpsa`` handles without using the ABI.
@@ -101,7 +102,7 @@ class ParticlesTpsa:
             setattr(p, c, [v])
         return p
 
-    def __getattr__(self, name: str) -> _gtpsa.Tpsa | float:
+    def __getattr__(self, name: str) -> xgtpsa.Tpsa | float:
         if name in _COORDS:
             return self.coords[_COORDS.index(name)]
         if name in _REF_VARS:
@@ -109,7 +110,7 @@ class ParticlesTpsa:
         raise AttributeError(name)
 
     @property
-    def descriptor(self) -> _gtpsa.Descriptor:
+    def descriptor(self) -> xgtpsa.Descriptor:
         """The GTPSA ``Descriptor`` shared by the six coordinate series (from C)."""
         return self.coords[0].descriptor
 
@@ -183,7 +184,7 @@ class ParticlesTpsa:
                 mono[j] = 1
                 c.set(mono, R[i, j])
 
-    def _series(self, coord: str | int) -> _gtpsa.Tpsa:
+    def _series(self, coord: str | int) -> xgtpsa.Tpsa:
         """The ``Tpsa`` output series for ``coord`` (name like ``'x'`` or index 0..5)."""
         if isinstance(coord, str):
             return self.coords[_COORDS.index(coord)]
