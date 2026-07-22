@@ -386,7 +386,7 @@ The stored pairwise moments intentionally include `zeta_delta` and
 `zeta_pzeta`, but not `delta_pzeta`. Therefore `cov_zeta_delta` and
 `cov_zeta_pzeta` are supported, while `cov_delta_pzeta` is rejected.
 
-## Coupled Emittances and Optics From Sigma
+## Coupled Emittances and Optics From Covariance
 
 The monitor should support coupled emittances as done by
 `xcoll.EmittanceMonitor`, and should also allow optics estimation from the
@@ -412,7 +412,23 @@ all first moments and all pairwise second moments for:
 coords = ["x", "px", "y", "py", "zeta", "pzeta"]
 ```
 
-Then compute the normal-mode emittances from:
+Coupled normal-mode emittances should be ordinary requestable statistics:
+
+```python
+mon = xt.BeamStatsMonitor(
+    start_at_turn=0,
+    stop_at_turn=1000,
+    stats=[
+        "gemitt_x", "gemitt_y", "gemitt_zeta",
+        "nemitt_x", "nemitt_y", "nemitt_zeta",
+    ],
+)
+
+mon.gemitt_x
+mon.get("nemitt_y", level="bunch", slot=3)
+```
+
+Internally these statistics are computed from:
 
 ```python
 from xtrack.linear_normal_form import S, sort_modes
@@ -441,54 +457,146 @@ mode 2 -> zeta-like
 based on the eigenvectors. The labels therefore mean "mode closest to x/y/zeta"
 according to this sorting, not an invariant identity in pathological cases.
 
-It would be useful to factor the shared logic into a helper in `xtrack`, for
-example:
+The same covariance reconstruction should also support optics-like scalar
+statistics inferred from the covariance matrix. These should be requestable
+through `stats` so that they are available as arrays, through `get(...)`, and in
+HDF5 output like other statistics:
+
+```python
+mon = xt.BeamStatsMonitor(
+    start_at_turn=0,
+    stop_at_turn=1000,
+    stats=[
+        "betx", "alfx",
+        "bety", "alfy",
+        "betzeta", "alfzeta",
+        "dx", "dpx", "dy", "dpy",
+    ],
+)
+
+mon.betx
+mon.get("dx", level="slice", turn=100, slot=3, slice_index=12)
+```
+
+The optics-like stats should expand to the same full 6D covariance moment set as
+the coupled normal-mode emittances. This keeps the tracking kernel unchanged:
+the kernel still only accumulates primitive weighted moments, and all mode and
+optics calculations remain Python-side postprocessing.
+
+For convenience, grouped stat aliases can be added:
+
+```python
+stats=["normal_mode_emittances"]
+stats=["covariance_optics"]
+```
+
+with expansions:
+
+```text
+normal_mode_emittances ->
+    gemitt_x, gemitt_y, gemitt_zeta,
+    nemitt_x, nemitt_y, nemitt_zeta
+
+covariance_optics ->
+    betx, alfx, bety, alfy, betzeta, alfzeta,
+    dx, dpx, dy, dpy
+```
+
+The scalar names should remain accepted directly, so users can request only the
+small subset they need.
+
+It would be useful to factor the shared covariance-mode logic into a helper in
+`xtrack`, for example:
 
 ```python
 xt.get_modes_from_sigma(Sigma)
 ```
 
 or initially a private helper used by `BeamStatsMonitor`. The helper should
-return the sorted eigenvalues/eigenvectors, the coupled emittances, and enough
-pairing information to reconstruct a dummy map for optics estimation.
+return the sorted eigenvalues/eigenvectors, the coupled emittances, the
+normalizing matrix, and the derived optics-like quantities.
 
-For optics estimation, follow the example in `027_optics_from_sigma_mat.py`:
+For covariance optics, follow the example in `027_optics_from_sigma_mat.py`:
 
 1. Compute eigenvalues and eigenvectors of `Sigma @ S`.
 2. Sort the modes consistently.
-3. Construct a dummy stable one-turn matrix with arbitrary phase advances and
-   the same eigenvectors.
-4. Call `twiss(..., R_matrix=dummy_R, chrom=False)` on a dummy line.
+3. Build the conjugate eigenvector pairs from the three sorted mode
+   representatives and their complex conjugates.
+4. Construct a dummy stable one-turn matrix with arbitrary phase advances and
+   the same eigenvectors, if this remains the cleanest way to reuse existing
+   normal-form/Twiss machinery.
+5. Extract the `W_matrix`, Twiss parameters, and dispersion. The dummy map is an
+   implementation detail and should not be part of the public result.
 
-The monitor API should expose this as a method rather than storing optics
-arrays by default:
+The monitor API should also expose a scalar diagnostic method returning a dict
+for one selected bin:
 
 ```python
-tw_from_sigma = mon.optics_from_sigma(
+out = mon.optics_from_covariance(
+    level="beam",
     turn=100,
-    slot=0,
-    slice=None,  # None can mean aggregate over slices
+)
+
+out = mon.optics_from_covariance(
+    level="slice",
+    turn=100,
+    slot=3,
+    slice_index=12,
 )
 ```
 
-For vectorized use, a later extension can provide:
+The dict should omit the internal dummy `R_matrix`, but include the measured
+covariance, emittances, optics-like quantities, and enough metadata to diagnose
+the result:
 
 ```python
-tw_table = mon.get_optics_from_sigma(aggregate_slices=True)
+{
+    "status": "ok",
+    "message": "",
+    "covariance_matrix": Sigma,
+    "covariance_order": ("x", "px", "y", "py", "zeta", "pzeta"),
+    "W_matrix": W,
+    "gemitt_x": gemitt_x,
+    "gemitt_y": gemitt_y,
+    "gemitt_zeta": gemitt_zeta,
+    "nemitt_x": nemitt_x,
+    "nemitt_y": nemitt_y,
+    "nemitt_zeta": nemitt_zeta,
+    "betx": betx,
+    "alfx": alfx,
+    "bety": bety,
+    "alfy": alfy,
+    "betzeta": betzeta,
+    "alfzeta": alfzeta,
+    "dx": dx,
+    "dpx": dpx,
+    "dy": dy,
+    "dpy": dpy,
+    "num_particles": num_particles,
+    "beta0_gamma0": beta0_gamma0,
+    "condition_number": condition_number,
+}
 ```
 
-The implementation needs the full ordered conjugate eigenmode pairs to build
-the dummy map. `sort_modes` currently returns one positive-orientation member
-of each physical pair; for optics reconstruction we should either extend the
-helper to return ordered pairs or add a companion function for this purpose.
+The method should be scalar in the first implementation: one selected
+turn/slot/slice or aggregation level in, one dict out. Vectorized table-like
+output can be added later if needed. If the monitor did not store the full
+covariance moment set, this method should raise a clear error explaining that
+the user must request one of the coupled-emittance or covariance-optics stats.
 
 Safeguards:
 
-- if `num_particles` is below a configurable threshold, return `nan` or warn;
+- if `num_particles` is below a configurable threshold, return `nan` values for
+  the optics/emittance fields in the diagnostic dict and for the corresponding
+  stat arrays;
 - if `Sigma @ S` is singular, ill-conditioned, or rank deficient, return `nan`
-  or warn;
+  values rather than raising during ordinary statistic access;
 - sorting can be ambiguous for nearly degenerate modes or very strong coupling,
   and this should be documented.
+
+Warnings should be opt-in or limited to the scalar diagnostic method. Per-slice
+workflows can naturally produce many sparse or ill-conditioned bins, and warning
+on every failed bin would be too noisy for normal use.
 
 ## Data Shape and Access
 
@@ -921,7 +1029,8 @@ Still deferred:
 2. Full 6D covariance reconstruction helpers using the
    `(x, px, y, py, zeta, pzeta)` convention.
 
-3. Optics-from-sigma helper methods.
+3. Covariance-optics statistics and the scalar
+   `optics_from_covariance(...)` diagnostic dict method.
 
 4. Coasting-beam support.
 
@@ -934,7 +1043,7 @@ Still deferred:
    statistics only.
 
 8. GPU/OpenMP test coverage where available, and coupled-emittance /
-   optics-from-sigma tests once those features exist.
+   covariance-optics tests once those features exist.
 
 9. Factoring shared C helpers with `UniformBinSlicer`, if this becomes useful
    after the standalone monitor behavior is stable.
