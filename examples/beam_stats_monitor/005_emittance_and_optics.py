@@ -25,12 +25,21 @@ betx_model = tw.betx[0]
 bety_model = tw.bety[0]
 
 # Requesting normal-mode emittances or covariance optics makes the monitor store
-# the full 6D covariance moment set. The covariance and optics calculations are
-# done as Python-side postprocessing from those stored moments.
+# the full 6D covariance moment set. These stats can be mixed with ordinary beam
+# statistics in the same monitor. The covariance and optics calculations are
+# done as Python-side postprocessing from the stored primitive moments.
 monitor = xt.BeamStatsMonitor(
     start_at_turn=0,
     stop_at_turn=NUM_TURNS,
-    stats=["normal_mode_emittances", "covariance_optics"],
+    stats=[
+        "num_particles",
+        "mean_x", "mean_y", "sigma_x", "sigma_y",
+        "gemitt_x", "gemitt_y", "gemitt_zeta",
+        "nemitt_x", "nemitt_y", "nemitt_zeta",
+        "betx", "bety",
+        "alfx", "alfy",
+        "dx", "dpx",
+    ],
 )
 
 line.insert("beam_stats_monitor", monitor, at=0)
@@ -52,10 +61,14 @@ line.track(particles, num_turns=NUM_TURNS,
            with_progress=1)  # progress bar updated every turn
 
 # Inspect the recorded quantities.
-monitor.stats  # includes gemitt_*, nemitt_*, bet*, alf*, and dispersion stats
+monitor.stats  # includes ordinary stats, emittances, optics, and dispersion
 monitor.available_levels  # is ('beam',)
 monitor.default_level  # is 'beam'
 monitor.turns  # is array([0, 1, 2, ..., 19])
+
+# Ordinary beam statistics are recorded together with covariance-derived stats.
+monitor.mean_x.shape  # is (20,)
+monitor.sigma_x.shape  # is (20,)
 
 # Normal-mode emittances are available as arrays indexed by logged turn.
 monitor.nemitt_x.shape  # is (20,)
@@ -65,13 +78,6 @@ monitor.nemitt_zeta.shape  # is (20,)
 # Covariance optics are also available turn by turn.
 monitor.betx.shape  # is (20,)
 monitor.bety.shape  # is (20,)
-
-# A scalar diagnostic dictionary can be requested for one selected bin.
-diagnostics_turn_0 = monitor.optics_from_covariance(turn=0)
-diagnostics_turn_0["status"]  # is "ok"
-diagnostics_turn_0["covariance_order"]  # is ('x', 'px', 'y', 'py',
-                                        #     'zeta', 'pzeta')
-diagnostics_turn_0["betx"]  # same as monitor.get("betx", turn=0)
 
 # Plot measured emittances and beta functions versus turn.
 import matplotlib.pyplot as plt
