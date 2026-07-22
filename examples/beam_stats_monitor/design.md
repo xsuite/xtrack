@@ -1039,6 +1039,27 @@ Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 - `start_new_frame(start_at_turn)` followed by flat append into the same file
 - configuration-only `to_dict()` / `Line.to_dict()` behavior
 
+Next validation and review work:
+
+1. Test the covariance-derived emittances and optics with realistic generated
+   distributions, for example particles produced by `generate_gaussian_bunch`
+   or another matched/generated distribution workflow. These tests should check
+   that the monitor recovers the expected coupled emittances, Twiss-like
+   parameters, and dispersion within statistical tolerance.
+
+2. Review the covariance-optics implementation before extending the public
+   surface further. In particular, check the numerical failure policy, mode
+   sorting conventions, `W_matrix` normalization, sparse-bin behavior, and
+   whether any helper logic should be moved out of `BeamStatsMonitor` into a
+   shared xtrack utility.
+
+3. Check whether closed-orbit offsets are handled correctly in covariance
+   optics. The monitor computes covariance from weighted central moments, but
+   the interpretation of the returned `W_matrix`, Twiss-like quantities, and
+   dispersion should be validated when the particle distribution is centered on
+   a non-zero closed orbit or when the monitor is placed in a line with a
+   non-zero local orbit.
+
 Still deferred:
 
 1. Coasting-beam support.
