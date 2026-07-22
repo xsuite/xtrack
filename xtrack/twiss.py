@@ -3704,6 +3704,11 @@ class TwissInit:
         return WW[2, 2]**2 + WW[2, 3]**2
 
     @property
+    def betzeta(self):
+        WW = self.W_matrix
+        return WW[4, 4]**2 + WW[4, 5]**2
+
+    @property
     def alfx(self):
         WW = self.W_matrix
         return -WW[0, 0] * WW[1, 0] - WW[0, 1] * WW[1, 1]
@@ -3712,6 +3717,11 @@ class TwissInit:
     def alfy(self):
         WW = self.W_matrix
         return -WW[2, 2] * WW[3, 2] - WW[2, 3] * WW[3, 3]
+
+    @property
+    def alfzeta(self):
+        WW = self.W_matrix
+        return -WW[4, 4] * WW[5, 4] - WW[4, 5] * WW[5, 5]
 
     @property
     def dx(self):

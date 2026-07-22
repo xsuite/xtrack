@@ -1310,7 +1310,11 @@ def _covariance_optics_from_sigma(*, sigma, num_particles, beta0_gamma0,
         eigenvalues, eigenvectors = np.linalg.eig(sigma_s)
         modes = sort_modes(eigenvectors, eigenvalues)
         w_matrix = _build_w_matrix_from_eigenvectors(eigenvectors, modes)
-        optics = _twiss_parameters_from_w_matrix(w_matrix)
+        from xtrack.twiss import TwissInit
+        twiss_init = TwissInit(W_matrix=w_matrix)
+        optics = {
+            name: float(getattr(twiss_init, name))
+            for name in _COVARIANCE_OPTICS_STATS}
     except Exception as exc:
         out['message'] = str(exc)
         return out
@@ -1346,34 +1350,6 @@ def _empty_covariance_optics_result(*, sigma, num_particles, beta0_gamma0,
     for name in _COVARIANCE_DERIVED_STATS:
         out[name] = np.nan
     return out
-
-
-def _twiss_parameters_from_w_matrix(w_matrix):
-    """
-    Extract Twiss-like scalar quantities from a normalizing W matrix.
-    """
-    ww = np.asarray(w_matrix)
-    out = {
-        'betx': ww[0, 0]**2 + ww[0, 1]**2,
-        'alfx': -ww[0, 0] * ww[1, 0] - ww[0, 1] * ww[1, 1],
-        'bety': ww[2, 2]**2 + ww[2, 3]**2,
-        'alfy': -ww[2, 2] * ww[3, 2] - ww[2, 3] * ww[3, 3],
-        'betzeta': ww[4, 4]**2 + ww[4, 5]**2,
-        'alfzeta': -ww[4, 4] * ww[5, 4] - ww[4, 5] * ww[5, 5],
-    }
-
-    with np.errstate(divide='ignore', invalid='ignore'):
-        denominator = ww[5, 5] - ww[5, 4] * ww[4, 5] / ww[4, 4]
-        out['dx'] = (
-            ww[0, 5] - ww[0, 4] * ww[4, 5] / ww[4, 4]) / denominator
-        out['dpx'] = (
-            ww[1, 5] - ww[1, 4] * ww[4, 5] / ww[4, 4]) / denominator
-        out['dy'] = (
-            ww[2, 5] - ww[2, 4] * ww[4, 5] / ww[4, 4]) / denominator
-        out['dpy'] = (
-            ww[3, 5] - ww[3, 4] * ww[4, 5] / ww[4, 4]) / denominator
-
-    return {name: float(value) for name, value in out.items()}
 
 
 def _to_nparray(array):
