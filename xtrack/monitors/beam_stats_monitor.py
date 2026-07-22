@@ -1292,7 +1292,8 @@ def _covariance_optics_from_sigma(*, sigma, num_particles, beta0_gamma0,
         out['message'] = 'covariance matrix contains non-finite values'
         return out
 
-    from xtrack.linear_normal_form import S, sort_modes
+    from xtrack.linear_normal_form import (
+        S, sort_modes, _build_w_matrix_from_eigenvectors)
 
     sigma_s = sigma @ S
     try:
@@ -1308,7 +1309,7 @@ def _covariance_optics_from_sigma(*, sigma, num_particles, beta0_gamma0,
     try:
         eigenvalues, eigenvectors = np.linalg.eig(sigma_s)
         modes = sort_modes(eigenvectors, eigenvalues)
-        w_matrix = _w_matrix_from_covariance_modes(eigenvectors, modes)
+        w_matrix = _build_w_matrix_from_eigenvectors(eigenvectors, modes)
         optics = _twiss_parameters_from_w_matrix(w_matrix)
     except Exception as exc:
         out['message'] = str(exc)
@@ -1345,32 +1346,6 @@ def _empty_covariance_optics_result(*, sigma, num_particles, beta0_gamma0,
     for name in _COVARIANCE_DERIVED_STATS:
         out[name] = np.nan
     return out
-
-
-def _w_matrix_from_covariance_modes(eigenvectors, modes):
-    """
-    Build the real normalizing W matrix from sorted covariance modes.
-    """
-    from xtrack.linear_normal_form import S
-
-    eigenvectors = eigenvectors.copy()
-    for mode, coordinate_index in zip(modes, (0, 2, 4)):
-        phase = np.angle(eigenvectors[coordinate_index, mode])
-        eigenvectors[:, mode] *= np.exp(-1j * phase)
-
-    columns = []
-    for mode in modes:
-        avec = eigenvectors[:, mode].real
-        bvec = eigenvectors[:, mode].imag
-        n_inv_sq = avec @ S @ bvec
-        if n_inv_sq <= 0:
-            raise ValueError('invalid covariance mode orientation')
-        norm = 1.0 / np.sqrt(n_inv_sq)
-        columns.extend([avec * norm, bvec * norm])
-
-    w_matrix = np.array(columns).T
-    w_matrix[np.abs(w_matrix) < 1e-14] = 0.0
-    return w_matrix
 
 
 def _twiss_parameters_from_w_matrix(w_matrix):
