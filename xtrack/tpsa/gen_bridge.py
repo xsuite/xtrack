@@ -11,6 +11,7 @@ package (``xgtpsa._cffi.CDEF``), which holds nothing xtrack-derived.
 """
 
 import os
+import re
 
 import xtrack as xt
 from xobjects.context import sort_classes
@@ -57,6 +58,19 @@ HEADERS = {
     xt.LimitRectEllipse: "xtrack/beam_elements/apertures_src/limitrectellipse.h",
     xt.ParticlesMonitor: "xtrack/monitors/particles_monitor.h",
 }
+
+# ---------------------------------------------------------------------------- #
+# Knob-dependent strength fields are those whose C chain is XT_STRENGTH-retyped, so their
+# getter may safely a TPSA. Not a list of what is actually knobbed. Adding an
+# entry means doing that retype first. k0s is absent as no registered class carries it.
+#
+# In tpsa_param every listed field returns mad::tpsa, knobbed or not, since a getter has
+# one return type per module. The runtime lookup in xt_knob() then decides per instance:
+# hit gives the parametric TPSA, miss a constant one. Unknobbed elements therefore pay
+# TPSA arithmetic for nothing, the ~5% constant-lift tax that per-element dispatch would
+# remove. The num and tpsa flavors define the wrapper away to the raw double getter.
+# ---------------------------------------------------------------------------- #
+KNOB_DEPENDENT_FIELDS = ["k0", "k1", "k2", "k3", "k1s", "k2s", "k3s", "ks"]
 
 # ---------------------------------------------------------------------------- #
 # Particle-variable classification (drives struct, cdef, accessors).
@@ -163,6 +177,50 @@ def emit_element_capi():
         src = api.source if hasattr(api, "source") else api
         parts.append(specialize_source(src, specialize_for="cpu_serial"))
     return "\n".join(parts)
+
+
+def knob_dependent_pairs():
+    """``(<El>Data, field)`` pairs to wrap, from the registry.
+
+    Every listed field must exist on at least one registered class, so a typo or an
+    upstream rename fails at generation time rather than silently wrapping nothing.
+    """
+    pairs, found = [], set()
+    for cls in _sorted_elements():
+        struct = cls._XoStruct
+        names = {f.name for f in struct._fields}
+        for field in KNOB_DEPENDENT_FIELDS:
+            if field in names:
+                pairs.append((struct.__name__, field))
+                found.add(field)
+    missing = set(KNOB_DEPENDENT_FIELDS) - found
+    assert not missing, (
+        f"KNOB_DEPENDENT_FIELDS entries on no registered element class: {sorted(missing)}"
+    )
+    return pairs
+
+
+def wrap_knob_dependent_getters(src):
+    """Rename the generated strength getters and add knob-aware wrappers.
+
+    The getter bodies are not regenerated. The xobjects getter is renamed to
+    ``_raw`` and a wrapper is appended, so the rest of the C-API stays byte-identical
+    and the num and tpsa flavors keep the original name via the #define.
+    """
+    wrappers = []
+    for data, field in knob_dependent_pairs():
+        getter = f"{data}_get_{field}"
+        # \b keeps _get_k1 from matching _get_k1s.
+        src = re.sub(rf"\b{getter}\b", f"{getter}_raw", src)
+        wrappers.append(f"""
+#ifdef XT_KNOBS
+static inline xt_knob_tpsa {getter}(const {data} restrict obj){{
+    return xt_knob({data}_getp_{field}(({data}) obj), {getter}_raw(obj));
+}}
+#else
+#define {getter} {getter}_raw
+#endif""")
+    return "\n".join([src] + wrappers)
 
 
 def emit_dispatch_inc():
@@ -325,7 +383,10 @@ def _write(path, text):
 def main():
     _assert_var_classification()
     os.makedirs(GEN, exist_ok=True)
-    _write(os.path.join(GEN, "xt_element_capi.h"), emit_element_capi())
+    _write(
+        os.path.join(GEN, "xt_element_capi.h"),
+        wrap_knob_dependent_getters(emit_element_capi()),
+    )
     _write(os.path.join(GEN, "xt_dispatch.inc"), emit_dispatch_inc())
     _write(
         os.path.join(GEN, "xt_local_particle_struct.h"), emit_local_particle_struct()

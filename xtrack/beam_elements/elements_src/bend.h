@@ -17,8 +17,6 @@ void Bend_track_local_particle(
         LocalParticle* part0
 ) {
 
-    XT_KNOB_SET(0, BendData_getp_k0(el));   // slot 0 = k0
-    XT_KNOB_SET(1, BendData_getp_k1(el));   // slot 1 = k1
 
     track_magnet_particles(
         /*weight*/                1.0,
@@ -47,12 +45,12 @@ void Bend_track_local_particle(
         /*k0*/                    BendData_get_k0(el),
         /*k1*/                    BendData_get_k1(el),
         /*k2*/                    BendData_get_k2(el),
-        /*k3*/                    0.,
-        /*k0s*/                   0.,
-        /*k1s*/                   0.,
-        /*k2s*/                   0.,
-        /*k3s*/                   0.,
-        /*ks*/                    0.,
+        /*k3*/                    XT_STRENGTH_LIFT(0.),
+        /*k0s*/                   XT_STRENGTH_LIFT(0.),
+        /*k1s*/                   XT_STRENGTH_LIFT(0.),
+        /*k2s*/                   XT_STRENGTH_LIFT(0.),
+        /*k3s*/                   XT_STRENGTH_LIFT(0.),
+        /*ks*/                    XT_STRENGTH_LIFT(0.),
         /*dks_ds*/                0.,
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,

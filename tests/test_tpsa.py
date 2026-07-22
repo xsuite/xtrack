@@ -676,6 +676,53 @@ def test_knobs_table_address_sanity_and_refresh():
     assert np.allclose(kn.strength_jacobian()[('mq2', 'k1')], [1.0, 0.0, 0.0], atol=1e-12)
 
 
+def _nonlinear_knob_line():
+    """Toy line whose strength is quadratic in the knob (k1 = kqa**2)."""
+    env = xt.Environment()
+    env['kqa'] = 0.012
+    return env.new_line(components=[
+        env.new('mq1', xt.Quadrupole, length=1.0, k1='kqa * kqa'),
+        env.new('d1', xt.Drift, length=2.0),
+    ])
+
+
+def test_knobs_linearity_guard_classifies():
+    """The guard must recognise both cases, not just assume linearity."""
+    assert xtpsa.Knobs(_knob_line(), ['kqa', 'kqb', 'klink'])._probe_linearity()
+    assert not xtpsa.Knobs(_nonlinear_knob_line(), ['kqa'])._probe_linearity()
+
+
+@pytest.mark.parametrize('make_line, elem, expected', [
+    pytest.param(_knob_line, 'mq2', lambda k: 1.0, id='linear'),
+    pytest.param(_nonlinear_knob_line, 'mq1', lambda k: 2.0 * k, id='nonlinear'),
+])
+def test_knobs_gradient_correct_after_knob_change(make_line, elem, expected):
+    """Both refresh paths track d(strength)/d(knob) as the optimizer moves the knob."""
+    line = make_line()
+    kn = xtpsa.Knobs(line, ['kqa'])
+    kn.strength_jacobian()
+    for new_value in (0.05, -0.03, 0.11):
+        line['kqa'] = new_value
+        grad = kn.strength_jacobian()[(elem, 'k1')][0]
+        assert np.isclose(grad, expected(new_value), atol=1e-10)
+        assert np.isclose(kn._attr_tpsas[(elem, 'k1')].const_part,
+                          float(getattr(line.element_dict[elem], 'k1')), atol=1e-14)
+
+
+def test_knobs_refresh_does_not_recompile():
+    """A knob change must not rebuild the xdeps expansion function."""
+    line = _knob_line()
+    kn = xtpsa.Knobs(line, ['kqa', 'kqb', 'klink'])
+    kn.table()
+    compiled = kn._expansion_function
+    tpsas = dict(kn._attr_tpsas)
+    line['kqa'] = 0.05
+    kn.table()
+    assert kn._expansion_function is compiled
+    # the linear path writes through the same Tpsa objects the C table points at
+    assert all(kn._attr_tpsas[t] is tpsas[t] for t in kn._targets)
+
+
 def test_knobs_array_target_unsupported():
     env = xt.Environment()
     env['kk'] = 0.1
@@ -748,6 +795,36 @@ def test_parametric_track_matches_fd():
         line[nm] = v0
         fd[:, j] = (hi - lo) / (2 * h)
     assert np.allclose(pj, fd, atol=1e-8), np.abs(pj - fd).max()
+
+
+def test_parametric_track_solenoid_ks():
+    """Solenoid ks is knobbable now that the getter, not a slot, is the knob seam."""
+    env = xt.Environment()
+    env['ksol'] = 0.12
+    line = env.new_line(components=[
+        env.new('d0', xt.Drift, length=0.5),
+        env.new('sol', xt.UniformSolenoid, length=2.0, ks='ksol',
+                edge_entry_active=0, edge_exit_active=0),
+        env.new('d1', xt.Drift, length=0.5),
+    ])
+    p = xtpsa.ParticlesTpsa(order=2, knobs=xtpsa.Knobs(line, ['ksol']),
+                            p0c=P0C, mass0=MASS0, **X0)
+    line.track(p)
+    pj = p.param_jacobian()
+    assert np.abs(pj).max() > 1e-6, 'ks carries no knob dependence'
+
+    def orbit():
+        q = xtpsa.ParticlesTpsa(order=1, p0c=P0C, mass0=MASS0, **X0)
+        line.track(q)
+        return q.const_part
+
+    h = 1e-6
+    line['ksol'] = 0.12 + h
+    hi = orbit()
+    line['ksol'] = 0.12 - h
+    lo = orbit()
+    line['ksol'] = 0.12
+    assert np.allclose(pj[:, 0], (hi - lo) / (2 * h), atol=1e-8)
 
 
 # --------------------------------------------------------------------------- #

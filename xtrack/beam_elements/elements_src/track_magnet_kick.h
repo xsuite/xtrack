@@ -40,7 +40,7 @@ void kick_simple_single_particle(
     double inv_factorial,
     const XT_STRENGTH* knl,
     const XT_STRENGTH* ksl,
-    double factor,
+    XT_STRENGTH_CONST_ARG factor,
     double kick_weight
 );
 
@@ -57,7 +57,7 @@ void track_magnet_kick_single_particle(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    double rel_ref_strength,
+    XT_STRENGTH_CONST_ARG rel_ref_strength,
     double const factor_knl_ksl,
     double kick_weight,
     XT_STRENGTH_CONST_ARG k0,
@@ -91,7 +91,7 @@ void track_magnet_kick_single_particle(
         inv_factorial_order,
         knl,
         ksl,
-        factor_knl_ksl,
+        XT_STRENGTH_LIFT(factor_knl_ksl),
         kick_weight
     );
 
@@ -113,7 +113,7 @@ void track_magnet_kick_single_particle(
         /* inv_factorial_order */ 1. / (3 * 2),
         knl_main,
         ksl_main,
-        /* factor_knl_ksl */ 1,
+        /* factor_knl_ksl */ XT_STRENGTH_LIFT(1.0),
         kick_weight
     );
 
@@ -138,7 +138,7 @@ void track_magnet_kick_single_particle(
     // k0h correction can be computed from this term in the hamiltonian
     // H = 1/2 h k0 x^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    double k0l_mult = 0;
+    XT_STRENGTH k0l_mult = XT_STRENGTH_LIFT(0.0);
     if (order >= 0) {
         k0l_mult = knl[0] * factor_knl_ksl;
     }
@@ -150,7 +150,7 @@ void track_magnet_kick_single_particle(
     // k1h correction can be computed from this term in the hamiltonian
     // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    double k1l_mult = 0;
+    XT_STRENGTH k1l_mult = XT_STRENGTH_LIFT(0.0);
     if (order >= 1) {
         k1l_mult = knl[1] * factor_knl_ksl;
     }
@@ -211,7 +211,7 @@ void kick_simple_single_coordinates(
     double inv_factorial,
     const XT_STRENGTH* knl,
     const XT_STRENGTH* ksl,
-    double factor,
+    XT_STRENGTH_CONST_ARG factor,
     double kick_weight,
     XT_NUM *dpx,
     XT_NUM *dpy
@@ -258,7 +258,7 @@ void kick_simple_single_particle(
     double inv_factorial,
     const XT_STRENGTH* knl,
     const XT_STRENGTH* ksl,
-    double factor,
+    XT_STRENGTH_CONST_ARG factor,
     double kick_weight
 ) {
     double const chi = LocalParticle_get_chi(part);
@@ -304,7 +304,7 @@ void evaluate_field_from_strengths(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    double rel_ref_strength,
+    XT_STRENGTH_CONST_ARG rel_ref_strength,
     double const factor_knl_ksl,
     double k0,
     double k1,

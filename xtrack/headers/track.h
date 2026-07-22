@@ -34,14 +34,22 @@
 #define XT_STRENGTH_CONST_ARG const XT_STRENGTH
 #endif
 
-// Parametric-knob address slots. A knobbable magnet header records a strength field's
-// buffer address in a slot (0..7 = k0,k1,k2,k3,k0s,k1s,k2s,k3s) before tracking; the
-// body's XT_K lift looks it up. No-ops for the double build (native + plain tpsa).
-#ifndef XT_KNOB_SET
-#define XT_KNOB_SET(slot, addr) ((void)0)
+// Strength as a mutable by-value parameter, which tapering scales in place. A non-scalar
+// XT_STRENGTH cannot be copied by value, so there it becomes a const reference and
+// tapering is unavailable.
+#ifndef XT_STRENGTH_ARG
+#define XT_STRENGTH_ARG XT_STRENGTH
 #endif
-#ifndef XT_KNOB_CLEAR
-#define XT_KNOB_CLEAR() ((void)0)
+
+// Const part of a strength, for the paths that stay double (the magnet edges).
+#ifndef XT_STRENGTH_CONST
+#define XT_STRENGTH_CONST(v) (v)
+#endif
+
+// Lift a double constant to the strength type, for call sites passing a literal or a
+// genuinely double quantity where a strength is expected. Identity for the double build.
+#ifndef XT_STRENGTH_LIFT
+#define XT_STRENGTH_LIFT(v) (v)
 #endif
 
 /*

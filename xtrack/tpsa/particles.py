@@ -41,19 +41,25 @@ class ParticlesTpsa:
         if len(np.atleast_1d(self._ref_particle.x)) != 1:
             raise ValueError("ParticlesTpsa is a single map: pass scalar coordinates")
         self.knobs = knobs
+        # Knobs owns (or borrows) the parametric descriptor, so take it rather than
+        # building a second one. GTPSA interns descriptors by (nv, mo, np, po) anyway.
         if knobs is None:
             desc = xgtpsa.Descriptor.new(6, order)
-        else:
-            desc = xgtpsa.Descriptor.new(
+        elif knobs.descriptor is None:
+            desc = knobs.descriptor = xgtpsa.Descriptor.new(
                 6, order, num_parameters=len(knobs), param_order=knobs.order
             )
+        else:
+            desc = knobs.descriptor
+            if desc.order != order:
+                raise ValueError(
+                    f"knobs descriptor is order {desc.order}, map asks for {order}"
+                )
         self.coords = [
             xgtpsa.Tpsa.var(desc, i + 1, self._ref(c))
             for i, c in enumerate(_COORDS)
         ]
         self._bridge = self._build_bridge()
-        if knobs is not None:
-            knobs._bind(desc)  # build param seeds + attribute TPSAs (idempotent)
 
     def _build_bridge(self) -> XtBridgeParticle:
         """The ABI struct as an xobject: coordinate handles and reference variables.

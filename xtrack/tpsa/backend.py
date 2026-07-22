@@ -150,7 +150,8 @@ class GtpsaBackend:
 
         Rebuilt before every track: element buffers may realloc, so the field addresses
         are recomputed by ``Knobs.table()`` each call. Knobbed elements with active edges
-        are rejected (edge knob sensitivities are not implemented yet).
+        or with radiation on are rejected: the edge path takes the strength's const part
+        and tapering scales the strengths in place. Both is currently supported by TPSA.
         """
         knobs = particles.knobs
         for elem, _ in knobs._targets:
@@ -159,8 +160,13 @@ class GtpsaBackend:
                 el, "edge_exit_active", 0
             ):
                 raise NotImplementedError(
-                    f"knobbed element '{elem}' has active edges; edge knob sensitivities "
+                    f"knobbed element '{elem}' has active edges. Edge knob sensitivities "
                     f"are not supported yet (set edge_entry_active/edge_exit_active to 0)"
+                )
+            if getattr(el, "radiation_flag", 0):
+                raise NotImplementedError(
+                    f"knobbed element '{elem}' has radiation_flag set. Strength tapering "
+                    f"is a double-only feature (set radiation_flag to 0)"
                 )
         addrs, ptrs = knobs.table()
         fn, ffi = bridge_entry(flavor, f"xt_bridge_set_knob_table_{flavor}")

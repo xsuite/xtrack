@@ -17,8 +17,6 @@ void Octupole_track_local_particle(
         LocalParticle* part0
 ) {
 
-    XT_KNOB_SET(3, OctupoleData_getp_k3(el));   // slot 3 = k3
-    XT_KNOB_SET(7, OctupoleData_getp_k3s(el));  // slot 7 = k3s
 
     track_magnet_particles(
         /*weight*/                1.,
@@ -44,15 +42,15 @@ void Octupole_track_local_particle(
         /*delta_taper*/           OctupoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   0.,
-        /*k0*/                    0.,
-        /*k1*/                    0.,
-        /*k2*/                    0.,
+        /*k0*/                    XT_STRENGTH_LIFT(0.),
+        /*k1*/                    XT_STRENGTH_LIFT(0.),
+        /*k2*/                    XT_STRENGTH_LIFT(0.),
         /*k3*/                    OctupoleData_get_k3(el),
-        /*k0s*/                   0.,
-        /*k1s*/                   0.,
-        /*k2s*/                   0.,
+        /*k0s*/                   XT_STRENGTH_LIFT(0.),
+        /*k1s*/                   XT_STRENGTH_LIFT(0.),
+        /*k2s*/                   XT_STRENGTH_LIFT(0.),
         /*k3s*/                   OctupoleData_get_k3s(el),
-        /*ks*/                    0.,
+        /*ks*/                    XT_STRENGTH_LIFT(0.),
         /*dks_ds*/                0.,
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,

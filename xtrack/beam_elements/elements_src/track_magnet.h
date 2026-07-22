@@ -34,7 +34,7 @@ void track_magnet_body_single_particle(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    double rel_ref_strength,
+    XT_STRENGTH_CONST_ARG rel_ref_strength,
     const double factor_knl_ksl,
     const int64_t num_multipole_kicks,
     const int8_t kick_rot_frame,
@@ -298,7 +298,7 @@ void track_magnet_particles(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    double rel_ref_strength,
+    XT_STRENGTH_CONST_ARG rel_ref_strength,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t default_model,
@@ -310,15 +310,15 @@ void track_magnet_particles(
     double delta_taper,
     double h,
     double hxl,
-    double k0,
-    double k1,
-    double k2,
-    double k3,
-    double k0s,
-    double k1s,
-    double k2s,
-    double k3s,
-    double ks,
+    XT_STRENGTH_ARG k0,
+    XT_STRENGTH_ARG k1,
+    XT_STRENGTH_ARG k2,
+    XT_STRENGTH_ARG k3,
+    XT_STRENGTH_ARG k0s,
+    XT_STRENGTH_ARG k1s,
+    XT_STRENGTH_ARG k2s,
+    XT_STRENGTH_ARG k3s,
+    XT_STRENGTH_ARG ks,
     double dks_ds,
     double x0_solenoid,
     double y0_solenoid,
@@ -459,7 +459,7 @@ void track_magnet_particles(
     }
 #endif
 
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if !defined(XTRACK_MULTIPOLE_NO_SYNRAD) && !defined(XT_KNOBS)
         if (radiation_flag){
             // knl and ksl are scaled by the called functions below using factor_knl_ksl
             factor_knl_ksl_body *= (1. + delta_taper);
@@ -487,8 +487,10 @@ void track_magnet_particles(
             END_PER_PARTICLE_BLOCK;
         }
 
-        double knorm[] = {k0, k1, k2, k3};
-        double kskew[] = {k0s, k1s, k2s, k3s};
+        double knorm[] = {XT_STRENGTH_CONST(k0), XT_STRENGTH_CONST(k1),
+                          XT_STRENGTH_CONST(k2), XT_STRENGTH_CONST(k3)};
+        double kskew[] = {XT_STRENGTH_CONST(k0s), XT_STRENGTH_CONST(k1s),
+                          XT_STRENGTH_CONST(k2s), XT_STRENGTH_CONST(k3s)};
 
         track_magnet_edge_particles(
             part0,
@@ -504,9 +506,9 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * rel_ref_strength,
+            factor_knl_ksl_edge * XT_STRENGTH_CONST(rel_ref_strength),
             order_rel,
-            ks,
+            XT_STRENGTH_CONST(ks),
             x0_solenoid,
             y0_solenoid,
             length,
@@ -519,22 +521,13 @@ void track_magnet_particles(
 
     if (body_active){
 
-        // Knob build: lift the double strengths to constant tpsas (borrowing a
-        // coordinate's descriptor) so the retyped inner chain runs tpsa
-        // arithmetic. XT_KL/XT_KZERO are identities for the double build, so
-        // native + plain-tpsa stay the same. Params stay double -> native.
-        // Tapering (which mutates them) is untouched.
+        // Zero of the strength type, for the locals below. The strengths themselves
+        // arrive already typed, as the element getters are the knob seam.
 #ifdef XT_KNOBS
         XT_NUM _kproto = LocalParticle_get_x(part0);
         #define XT_KZERO (0.0 * _kproto)
-        #define XT_KL(v) (0.0 * _kproto + (v))
-        /* XT_K(slot, v): parametric if this strength's address was registered for the
-         * current element (XT_KNOB_SET in the header), else a constant lift of v. */
-        #define XT_K(slot, v) xt_knob(xt_cur_addr[slot], (v))
 #else
         #define XT_KZERO 0.0
-        #define XT_KL(v) (v)
-        #define XT_K(slot, v) (v)
 #endif
 
         if (integrator == 0){
@@ -557,7 +550,7 @@ void track_magnet_particles(
         if (num_multipole_kicks == 0) { // num_multipole_kicks = 0 means auto mode
             // If there are active kicks the number of kicks is guessed. Otherwise,
             // only the drift is performed.
-            if (!kick_is_inactive(order, knl, ksl, XT_K(0,k0), XT_K(1,k1), XT_K(2,k2), XT_K(3,k3), XT_K(4,k0s), XT_K(5,k1s), XT_K(6,k2s), XT_K(7,k3s), h)){
+            if (!kick_is_inactive(order, knl, ksl, k0, k1, k2, k3, k0s, k1s, k2s, k3s, h)){
                 if (fabs(h) < 1e-8){
                     num_multipole_kicks = 1; // straight magnet, one multipole kick in the middle
                 }
@@ -580,10 +573,10 @@ void track_magnet_particles(
         int8_t drift_model=0;
         configure_tracking_model(
             model,
-            XT_K(0,k0),
-            XT_K(1,k1),
+            k0,
+            k1,
             h,
-            XT_KL(ks),
+            ks,
             &k0_drift,
             &k1_drift,
             &h_drift,
@@ -609,7 +602,7 @@ void track_magnet_particles(
                 k0_drift, k1_drift, ks_drift, h_drift,
                 k0_kick, k1_kick, h_kick, hxl,
                 k0_h_correction, k1_h_correction,
-                XT_K(2,k2), XT_K(3,k3), XT_K(4,k0s), XT_K(5,k1s), XT_K(6,k2s), XT_K(7,k3s),
+                k2, k3, k0s, k1s, k2s, k3s,
                 dks_ds,
                 x0_solenoid, y0_solenoid,
                 radiation_flag,
@@ -628,13 +621,13 @@ void track_magnet_particles(
             END_PER_PARTICLE_BLOCK;
         }
         #undef XT_KZERO
-        #undef XT_KL
-        #undef XT_K
     }
 
     if (edge_exit_active){
-        double knorm[] = {k0, k1, k2, k3};
-        double kskew[] = {k0s, k1s, k2s, k3s};
+        double knorm[] = {XT_STRENGTH_CONST(k0), XT_STRENGTH_CONST(k1),
+                          XT_STRENGTH_CONST(k2), XT_STRENGTH_CONST(k3)};
+        double kskew[] = {XT_STRENGTH_CONST(k0s), XT_STRENGTH_CONST(k1s),
+                          XT_STRENGTH_CONST(k2s), XT_STRENGTH_CONST(k3s)};
 
         track_magnet_edge_particles(
             part0,
@@ -650,9 +643,9 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * rel_ref_strength,
+            factor_knl_ksl_edge * XT_STRENGTH_CONST(rel_ref_strength),
             order_rel,
-            ks,
+            XT_STRENGTH_CONST(ks),
             x0_solenoid,
             y0_solenoid,
             length,

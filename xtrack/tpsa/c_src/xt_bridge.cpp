@@ -19,15 +19,16 @@
 /* the generated C-API uses the C99 keyword `restrict`, which does not exist in C++,
  * but is supported by most C++ compilers. */
 #define restrict __restrict
-#include "generated/xt_element_capi.h"                  /* <El>Data + ElementRefData + XtBridgeParticle */
-#include "generated/xt_local_particle_gen.hpp"          /* field accessors (via XtBridgeParticle_get_*) */
 
-/* Parametric knobs: address-keyed strength table + per-element address slots. A
- * knobbable magnet header records its strength field addresses (XT_KNOB_SET) before
- * calling track_magnet_particles, whose internal lift (XT_K) looks them up. */
+/* Parametric knobs: address-keyed strength table. Included before the C-API, whose
+ * generated strength getters wrap themselves in xt_knob() so that a read of a knob
+ * target yields a parametric TPSA and every other read a constant one. */
 #ifdef XT_KNOBS
 #include "xt_knob.hpp"
 #endif
+
+#include "generated/xt_element_capi.h"                  /* <El>Data + ElementRefData + XtBridgeParticle */
+#include "generated/xt_local_particle_gen.hpp"          /* field accessors (via XtBridgeParticle_get_*) */
 
 #include "xtrack/headers/track.h"
 #include "xtrack/headers/particle_states.h"             /* XT_LOST_ON_APERTURE (aperture loss) */
@@ -79,7 +80,6 @@ void XT_F(xt_bridge_track_element)(int64_t type_id, void* el, void* p_){
     lp_bind(&part, p);
     XT_DECL_DERIVED(part);
     LocalParticle_update_delta(&part, LocalParticle_get_delta(&part));  /* refresh rvv,rpp,ptau */
-    XT_KNOB_CLEAR();   /* no stale knob-address slots from a previous element */
     xt_bridge_dispatch(type_id, el, &part);
 }
 
@@ -122,8 +122,8 @@ static inline void xt_tpsa_monitor_record(XtBridgeTpsaMonitor, LocalParticle*, i
  * at_element is maintained only in EBE mode: it counts elements tracked (0-based from
  * ele_start, like in xtrack's increment_at_element from a frsh particle). On loss, it
  * is the absolute line index, which Python maps back to the name.
- * Parametric knobs (tpsa_param flavor): strengths lift through the address-keyed knob
- * table (xt_knob.hpp), set from Python before the track, with no per-element routing here. */
+ * Parametric knobs (tpsa_param flavor): the generated element getters consult the
+ * address-keyed knob table (xt_knob.hpp), set from Python before the track. */
 extern "C"
 void XT_F(xt_bridge_track_line)(void* ref_, int64_t ele_start, int64_t num_elements,
                                void* p_, void* mon_, int64_t flag_monitor,
@@ -154,7 +154,6 @@ void XT_F(xt_bridge_track_line)(void* ref_, int64_t ele_start, int64_t num_eleme
         }
         void* el = ElementRefData_member_elements(ref, ii);
         int64_t type_id = ElementRefData_typeid_elements(ref, ii);
-        XT_KNOB_CLEAR();   /* no stale knob-address slots from a previous element */
         xt_bridge_dispatch(type_id, el, &part);
         if (XtBridgeParticle_get_state(p) <= 0){  /* loss: a map past its loss point is meaningless */
             XtBridgeParticle_set_at_element(p, ii);

@@ -46,12 +46,16 @@
     #include <vector>           /* lifting double multipole arrays -> constant tpsa */
     #define XT_STRENGTH mad::tpsa
     #define XT_STRENGTH_CONST_ARG const XT_STRENGTH&
+    /* A tpsa cannot be a mutable by-value parameter, so strengths arrive by const
+     * reference and tapering is unavailable here. */
+    #define XT_STRENGTH_ARG const XT_STRENGTH&
+    /* Const part, for the double-only edge path. */
+    #define XT_STRENGTH_CONST(v) ((v)[0])
+    /* Lift a double to a constant tpsa. Defined in xt_knob.hpp, which owns the
+     * prototype descriptor the lift borrows. */
+    #define XT_STRENGTH_LIFT(v) xt_knob_lift(v)
     /* fabs(tpsa) = |const part| is already provided by mad_tpsa.hpp and found via argument-dependent lookup
-     * (the tpsa types live in namespace mad). This matches the XT_TPSA_REL const-part branching.
-     * Knob-address slots (state lives in xt_knob.hpp, included after this by xt_bridge.cpp).
-     * The macros only expand at use sites in the physics, which come later still. */
-    #define XT_KNOB_SET(slot, addr) (xt_cur_addr[slot] = (addr))
-    #define XT_KNOB_CLEAR() xt_knob_clear_current()
+     * (the tpsa types live in namespace mad). This matches the XT_TPSA_REL const-part branching. */
   #endif
 #elif defined(XT_FLAVOR_NUM)
   #include <math.h>           /* global sqrt(double) for the physics' unqualified sqrt */
