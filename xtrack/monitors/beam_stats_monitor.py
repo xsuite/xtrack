@@ -12,6 +12,25 @@ _PLANES = {
     'y': ('y', 'py'),
     'zeta': ('zeta', 'pzeta'),
 }
+_CANONICAL_COORDS = ('x', 'px', 'y', 'py', 'zeta', 'pzeta')
+_NORMAL_MODE_EMITTANCE_STATS = (
+    'gemitt_x', 'gemitt_y', 'gemitt_zeta',
+    'nemitt_x', 'nemitt_y', 'nemitt_zeta',
+)
+_COVARIANCE_OPTICS_STATS = (
+    'betx', 'alfx',
+    'bety', 'alfy',
+    'betzeta', 'alfzeta',
+    'dx', 'dpx', 'dy', 'dpy',
+)
+_COVARIANCE_DERIVED_STATS = (
+    *_NORMAL_MODE_EMITTANCE_STATS,
+    *_COVARIANCE_OPTICS_STATS,
+)
+_STAT_ALIASES = {
+    'normal_mode_emittances': _NORMAL_MODE_EMITTANCE_STATS,
+    'covariance_optics': _COVARIANCE_OPTICS_STATS,
+}
 
 _SECOND_MOMENTS = (
     'x_x', 'x_px', 'x_y', 'x_py', 'x_zeta', 'x_delta', 'x_pzeta',
@@ -27,6 +46,12 @@ _DEFAULT_STATS = (
     'num_particles',
     'mean_x', 'mean_y',
     'sigma_x', 'sigma_y',
+)
+_FULL_COVARIANCE_MOMENTS = (
+    *_CANONICAL_COORDS,
+    *(f'{coord1}_{coord2}'
+      for ii, coord1 in enumerate(_CANONICAL_COORDS)
+      for coord2 in _CANONICAL_COORDS[ii:]),
 )
 
 
@@ -220,7 +245,7 @@ class BeamStatsMonitor(BeamElement):
             raise ValueError('`every_n_turns` must be positive')
 
         # Keep requested stats in user order while ignoring duplicates.
-        raw_stats = _DEFAULT_STATS if stats is None else tuple(stats)
+        raw_stats = _DEFAULT_STATS if stats is None else _expand_stats(stats)
         stats = []
         for stat in raw_stats:
             if stat not in stats:
@@ -597,6 +622,93 @@ class BeamStatsMonitor(BeamElement):
                              'zeta range')
         return index
 
+    def optics_from_covariance(self, *, level=None, turn=None, slot=None,
+                               slice_index=None, min_num_particles=1):
+        """
+        Return covariance-derived optics diagnostics for one selected bin.
+
+        The monitor must have stored the full 6D covariance moment set, for
+        example by requesting a coupled-emittance or covariance-optics
+        statistic. The returned dictionary contains the selected covariance
+        matrix, emittances, W matrix, Twiss parameters, dispersion, and status
+        metadata. The internal dummy map used to define the normal form is not
+        exposed.
+        """
+        self._check_full_covariance_moments_available()
+
+        if level is None:
+            level = self.default_level
+        elif level not in self.available_levels:
+            raise ValueError(
+                f'`level` must be one of {self.available_levels}, got '
+                f'{level!r}')
+        if level == 'beam':
+            if slot is not None:
+                raise ValueError('`slot` cannot be used with level="beam"')
+            if slice_index is not None:
+                raise ValueError(
+                    '`slice_index` cannot be used with level="beam"')
+        elif level == 'bunch' and slice_index is not None:
+            raise ValueError(
+                '`slice_index` cannot be used with level="bunch"')
+
+        if turn is None:
+            if len(self.turns) != 1:
+                raise ValueError(
+                    '`turn` must be provided when more than one turn is '
+                    'recorded')
+            turn_index = 0
+        else:
+            turn_index = self.record_index(turn)
+        indices = [turn_index]
+
+        if level in ('bunch', 'slice'):
+            if slot is None:
+                if len(self.selected_slots) != 1:
+                    raise ValueError(
+                        '`slot` must be provided when more than one slot is '
+                        'recorded')
+                slot_index = 0
+            else:
+                slot_index = self.slot_index(slot)
+            indices.append(slot_index)
+
+        if level == 'slice':
+            if slice_index is None:
+                if int(self._num_slices) != 1:
+                    raise ValueError(
+                        '`slice_index` must be provided when more than one '
+                        'slice is recorded')
+                slice_index = 0
+            else:
+                slice_index = _as_int(slice_index, 'slice_index')
+                if slice_index < 0:
+                    slice_index += int(self._num_slices)
+                if slice_index < 0 or slice_index >= int(self._num_slices):
+                    raise ValueError(
+                        f'`slice_index`={slice_index} is outside the '
+                        'recorded slice range')
+            indices.append(slice_index)
+
+        moments = self._moments_at_level(level)
+        indices = tuple(indices)
+        scalar_moments = {
+            name: np.asarray(value)[indices]
+            for name, value in moments.items()}
+        sigma = self._covariance_matrix_from_moments(scalar_moments)
+        num_particles = float(scalar_moments['num_particles'])
+        if num_particles > 0:
+            beta0_gamma0 = (
+                float(scalar_moments['sum_beta0_gamma0']) / num_particles)
+        else:
+            beta0_gamma0 = np.nan
+
+        return _covariance_optics_from_sigma(
+            sigma=sigma,
+            num_particles=num_particles,
+            beta0_gamma0=beta0_gamma0,
+            min_num_particles=min_num_particles)
+
     def save_to_file(self, output_file=None):
         """
         Append newly available records to an HDF5 output file.
@@ -706,6 +818,8 @@ class BeamStatsMonitor(BeamElement):
         """
         if name == 'num_particles':
             return moments['num_particles']
+        if name in _COVARIANCE_OPTICS_STATS:
+            return self._covariance_derived_stat_from_moments(name, moments)
 
         kind, rest = name.split('_', 1)
         if kind == 'mean':
@@ -717,17 +831,18 @@ class BeamStatsMonitor(BeamElement):
             coord1, coord2 = _parse_coord_pair(rest)
             return self._cov_from_moments(coord1, coord2, moments)
         if kind in ('gemitt', 'nemitt'):
-            plane = rest.removesuffix('_projected')
-            out = self._projected_gemitt_from_moments(plane, moments)
-            if kind == 'nemitt':
-                weights = moments['num_particles']
-                beta0_gamma0 = np.zeros_like(weights, dtype=float)
-                np.divide(
-                    moments['sum_beta0_gamma0'], weights, out=beta0_gamma0,
-                    where=weights > 0)
-                out = out * beta0_gamma0
-            return out
-
+            if rest.endswith('_projected'):
+                plane = rest.removesuffix('_projected')
+                out = self._projected_gemitt_from_moments(plane, moments)
+                if kind == 'nemitt':
+                    weights = moments['num_particles']
+                    beta0_gamma0 = np.zeros_like(weights, dtype=float)
+                    np.divide(
+                        moments['sum_beta0_gamma0'], weights, out=beta0_gamma0,
+                        where=weights > 0)
+                    out = out * beta0_gamma0
+                return out
+            return self._covariance_derived_stat_from_moments(name, moments)
         raise ValueError(f'Unsupported statistic `{name}`')
 
     def _mean_from_moments(self, coord, moments):
@@ -765,6 +880,58 @@ class BeamStatsMonitor(BeamElement):
             * self._cov_from_moments(momentum, momentum, moments)
             - self._cov_from_moments(coord, momentum, moments) ** 2)
         return np.sqrt(np.maximum(determinant, 0))
+
+    def _covariance_matrix_from_moments(self, moments):
+        """
+        Reconstruct covariance matrices over (x, px, y, py, zeta, pzeta).
+        """
+        shape = np.shape(moments['num_particles'])
+        out = np.zeros((*shape, 6, 6), dtype=float)
+        for ii, coord1 in enumerate(_CANONICAL_COORDS):
+            for jj, coord2 in enumerate(_CANONICAL_COORDS[ii:], start=ii):
+                cov = self._cov_from_moments(coord1, coord2, moments)
+                out[..., ii, jj] = cov
+                if jj != ii:
+                    out[..., jj, ii] = cov
+        return out
+
+    def _covariance_derived_stat_from_moments(self, name, moments):
+        """
+        Compute a covariance-derived scalar statistic over all bins.
+        """
+        self._check_full_covariance_moments_available()
+
+        weights = moments['num_particles']
+        beta0_gamma0 = np.full_like(weights, np.nan, dtype=float)
+        np.divide(moments['sum_beta0_gamma0'], weights, out=beta0_gamma0,
+                  where=weights > 0)
+        covariances = self._covariance_matrix_from_moments(moments)
+
+        out = np.full_like(weights, np.nan, dtype=float)
+        flat_out = out.reshape(-1)
+        flat_weights = weights.reshape(-1)
+        flat_beta0_gamma0 = beta0_gamma0.reshape(-1)
+        flat_covariances = covariances.reshape((-1, 6, 6))
+        for ii, (sigma, num_particles, beta_gamma) in enumerate(zip(
+                flat_covariances, flat_weights, flat_beta0_gamma0)):
+            result = _covariance_optics_from_sigma(
+                sigma=sigma,
+                num_particles=float(num_particles),
+                beta0_gamma0=float(beta_gamma),
+                min_num_particles=1)
+            flat_out[ii] = result[name]
+        return out
+
+    def _check_full_covariance_moments_available(self):
+        missing = [
+            name for name in _FULL_COVARIANCE_MOMENTS
+            if name not in self._moment_names]
+        if missing:
+            raise ValueError(
+                'Full 6D covariance moments are not stored. Request a '
+                'coupled-emittance stat such as `gemitt_x` or a '
+                'covariance-optics stat such as `betx` when constructing '
+                'the BeamStatsMonitor.')
 
     def _reset_data(self):
         """
@@ -982,22 +1149,24 @@ def _as_int(value, name):
     return value_as_int
 
 
+def _expand_stats(stats):
+    """
+    Expand grouped public statistic aliases into scalar statistic names.
+    """
+    out = []
+    for name in stats:
+        out.extend(_STAT_ALIASES.get(name, (name,)))
+    return tuple(out)
+
+
 def _check_supported_stats(stats):
     """
     Validate requested public statistics and raise for unsupported names.
     """
-    unsupported_coupled = [
-        name for name in stats
-        if (name.startswith('gemitt_') or name.startswith('nemitt_'))
-        and not name.endswith('_projected')
-    ]
-    if unsupported_coupled:
-        raise NotImplementedError(
-            'Coupled normal-mode emittances are not implemented yet. '
-            'Use `gemitt_*_projected` or `nemitt_*_projected` for now.')
-
     for name in stats:
         if name == 'num_particles':
+            continue
+        if name in _COVARIANCE_OPTICS_STATS:
             continue
         if name.startswith('mean_'):
             _check_coord(name[5:])
@@ -1037,15 +1206,20 @@ def _moments_for_stats(stats):
             moments.add(coord1)
             moments.add(coord2)
             moments.add(_moment_name(coord1, coord2))
+        elif name in _COVARIANCE_DERIVED_STATS:
+            moments.update(_FULL_COVARIANCE_MOMENTS)
         elif name.startswith('gemitt_') or name.startswith('nemitt_'):
             plane = name.split('_', 1)[1].removesuffix('_projected')
-            coord, momentum = _PLANES[plane]
-            moments.update([
-                coord, momentum,
-                _moment_name(coord, coord),
-                _moment_name(momentum, momentum),
-                _moment_name(coord, momentum),
-            ])
+            if name.endswith('_projected'):
+                coord, momentum = _PLANES[plane]
+                moments.update([
+                    coord, momentum,
+                    _moment_name(coord, coord),
+                    _moment_name(momentum, momentum),
+                    _moment_name(coord, momentum),
+                ])
+            else:
+                moments.update(_FULL_COVARIANCE_MOMENTS)
     return tuple(sorted(moments))
 
 
@@ -1090,6 +1264,141 @@ def _field_name_from_moment(name):
     if name in _COORDS or name in _SECOND_MOMENTS:
         return f'sum_{name}'
     raise ValueError(f'Unknown moment `{name}`')
+
+
+def _covariance_optics_from_sigma(*, sigma, num_particles, beta0_gamma0,
+                                  min_num_particles=1):
+    """
+    Compute normal-mode emittances and optics-like quantities from Sigma.
+    """
+    sigma = np.asarray(sigma, dtype=float)
+    out = _empty_covariance_optics_result(
+        sigma=sigma,
+        num_particles=num_particles,
+        beta0_gamma0=beta0_gamma0,
+        status='failed',
+        message='not computed')
+
+    if sigma.shape != (6, 6):
+        out['message'] = '`sigma` must have shape (6, 6)'
+        return out
+    if num_particles < min_num_particles:
+        out['status'] = 'insufficient_num_particles'
+        out['message'] = (
+            f'num_particles={num_particles} is below '
+            f'min_num_particles={min_num_particles}')
+        return out
+    if not np.all(np.isfinite(sigma)):
+        out['message'] = 'covariance matrix contains non-finite values'
+        return out
+
+    from xtrack.linear_normal_form import S, sort_modes
+
+    sigma_s = sigma @ S
+    try:
+        out['condition_number'] = float(np.linalg.cond(sigma_s))
+    except Exception:
+        out['condition_number'] = np.nan
+
+    if np.linalg.matrix_rank(sigma_s) < 6:
+        out['status'] = 'rank_deficient'
+        out['message'] = 'covariance matrix is rank deficient'
+        return out
+
+    try:
+        eigenvalues, eigenvectors = np.linalg.eig(sigma_s)
+        modes = sort_modes(eigenvectors, eigenvalues)
+        w_matrix = _w_matrix_from_covariance_modes(eigenvectors, modes)
+        optics = _twiss_parameters_from_w_matrix(w_matrix)
+    except Exception as exc:
+        out['message'] = str(exc)
+        return out
+
+    emittances = np.maximum(eigenvalues[modes].imag.real, 0.0)
+    out.update({
+        'status': 'ok',
+        'message': '',
+        'W_matrix': w_matrix,
+        'gemitt_x': float(emittances[0]),
+        'gemitt_y': float(emittances[1]),
+        'gemitt_zeta': float(emittances[2]),
+    })
+    out['nemitt_x'] = out['gemitt_x'] * beta0_gamma0
+    out['nemitt_y'] = out['gemitt_y'] * beta0_gamma0
+    out['nemitt_zeta'] = out['gemitt_zeta'] * beta0_gamma0
+    out.update(optics)
+    return out
+
+
+def _empty_covariance_optics_result(*, sigma, num_particles, beta0_gamma0,
+                                    status, message):
+    out = {
+        'status': status,
+        'message': message,
+        'covariance_matrix': np.asarray(sigma, dtype=float).copy(),
+        'covariance_order': _CANONICAL_COORDS,
+        'W_matrix': np.full((6, 6), np.nan),
+        'num_particles': float(num_particles),
+        'beta0_gamma0': float(beta0_gamma0),
+        'condition_number': np.nan,
+    }
+    for name in _COVARIANCE_DERIVED_STATS:
+        out[name] = np.nan
+    return out
+
+
+def _w_matrix_from_covariance_modes(eigenvectors, modes):
+    """
+    Build the real normalizing W matrix from sorted covariance modes.
+    """
+    from xtrack.linear_normal_form import S
+
+    eigenvectors = eigenvectors.copy()
+    for mode, coordinate_index in zip(modes, (0, 2, 4)):
+        phase = np.angle(eigenvectors[coordinate_index, mode])
+        eigenvectors[:, mode] *= np.exp(-1j * phase)
+
+    columns = []
+    for mode in modes:
+        avec = eigenvectors[:, mode].real
+        bvec = eigenvectors[:, mode].imag
+        n_inv_sq = avec @ S @ bvec
+        if n_inv_sq <= 0:
+            raise ValueError('invalid covariance mode orientation')
+        norm = 1.0 / np.sqrt(n_inv_sq)
+        columns.extend([avec * norm, bvec * norm])
+
+    w_matrix = np.array(columns).T
+    w_matrix[np.abs(w_matrix) < 1e-14] = 0.0
+    return w_matrix
+
+
+def _twiss_parameters_from_w_matrix(w_matrix):
+    """
+    Extract Twiss-like scalar quantities from a normalizing W matrix.
+    """
+    ww = np.asarray(w_matrix)
+    out = {
+        'betx': ww[0, 0]**2 + ww[0, 1]**2,
+        'alfx': -ww[0, 0] * ww[1, 0] - ww[0, 1] * ww[1, 1],
+        'bety': ww[2, 2]**2 + ww[2, 3]**2,
+        'alfy': -ww[2, 2] * ww[3, 2] - ww[2, 3] * ww[3, 3],
+        'betzeta': ww[4, 4]**2 + ww[4, 5]**2,
+        'alfzeta': -ww[4, 4] * ww[5, 4] - ww[4, 5] * ww[5, 5],
+    }
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        denominator = ww[5, 5] - ww[5, 4] * ww[4, 5] / ww[4, 4]
+        out['dx'] = (
+            ww[0, 5] - ww[0, 4] * ww[4, 5] / ww[4, 4]) / denominator
+        out['dpx'] = (
+            ww[1, 5] - ww[1, 4] * ww[4, 5] / ww[4, 4]) / denominator
+        out['dy'] = (
+            ww[2, 5] - ww[2, 4] * ww[4, 5] / ww[4, 4]) / denominator
+        out['dpy'] = (
+            ww[3, 5] - ww[3, 4] * ww[4, 5] / ww[4, 4]) / denominator
+
+    return {name: float(value) for name, value in out.items()}
 
 
 def _to_nparray(array):

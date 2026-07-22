@@ -184,6 +184,109 @@ def test_beam_stats_monitor_pzeta_stats_and_projected_emittance():
                     [gemitt_zeta * beta0_gamma0])
 
 
+def test_beam_stats_monitor_coupled_emittance_and_covariance_optics():
+    def w_2d(beta, alpha):
+        return np.array([
+            [np.sqrt(beta), 0.],
+            [-alpha / np.sqrt(beta), 1. / np.sqrt(beta)],
+        ])
+
+    gemitt_x = 1.0e-6
+    gemitt_y = 2.0e-6
+    gemitt_zeta = 3.0e-6
+    beta0_gamma0 = 7.0
+    weight = 11.0
+
+    betx = 3.0
+    alfx = 0.7
+    bety = 5.0
+    alfy = -0.4
+    betzeta = 2.5
+    alfzeta = 0.2
+
+    w_matrix = np.eye(6)
+    w_matrix[0:2, 0:2] = w_2d(betx, alfx)
+    w_matrix[2:4, 2:4] = w_2d(bety, alfy)
+    w_matrix[4:6, 4:6] = w_2d(betzeta, alfzeta)
+    sigma = w_matrix @ np.diag([
+        gemitt_x, gemitt_x,
+        gemitt_y, gemitt_y,
+        gemitt_zeta, gemitt_zeta,
+    ]) @ w_matrix.T
+
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        stats=[
+            'normal_mode_emittances',
+            'covariance_optics',
+            'gemitt_x_projected',
+        ],
+    )
+
+    assert monitor.stats == (
+        'gemitt_x', 'gemitt_y', 'gemitt_zeta',
+        'nemitt_x', 'nemitt_y', 'nemitt_zeta',
+        'betx', 'alfx', 'bety', 'alfy', 'betzeta', 'alfzeta',
+        'dx', 'dpx', 'dy', 'dpy',
+        'gemitt_x_projected',
+    )
+
+    monitor.data.num_particles[...] = weight
+    monitor.data.sum_beta0_gamma0[...] = weight * beta0_gamma0
+    coords = ('x', 'px', 'y', 'py', 'zeta', 'pzeta')
+    storage_order = ('x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta')
+    for ii, coord1 in enumerate(coords):
+        for jj, coord2 in enumerate(coords[ii:], start=ii):
+            if storage_order.index(coord1) <= storage_order.index(coord2):
+                field_name = f'sum_{coord1}_{coord2}'
+            else:
+                field_name = f'sum_{coord2}_{coord1}'
+            getattr(monitor.data, field_name)[...] = weight * sigma[ii, jj]
+
+    assert_allclose(monitor.gemitt_x, [gemitt_x], rtol=1e-12, atol=0)
+    assert_allclose(monitor.gemitt_y, [gemitt_y], rtol=1e-12, atol=0)
+    assert_allclose(monitor.gemitt_zeta, [gemitt_zeta], rtol=1e-12, atol=0)
+    assert_allclose(monitor.nemitt_x, [gemitt_x * beta0_gamma0],
+                    rtol=1e-12, atol=0)
+    assert_allclose(monitor.nemitt_y, [gemitt_y * beta0_gamma0],
+                    rtol=1e-12, atol=0)
+    assert_allclose(monitor.nemitt_zeta, [gemitt_zeta * beta0_gamma0],
+                    rtol=1e-12, atol=0)
+    assert_allclose(monitor.betx, [betx], rtol=1e-12, atol=0)
+    assert_allclose(monitor.alfx, [alfx], rtol=1e-12, atol=0)
+    assert_allclose(monitor.bety, [bety], rtol=1e-12, atol=0)
+    assert_allclose(monitor.alfy, [alfy], rtol=1e-12, atol=0)
+    assert_allclose(monitor.betzeta, [betzeta], rtol=1e-12, atol=0)
+    assert_allclose(monitor.alfzeta, [alfzeta], rtol=1e-12, atol=0)
+    assert_allclose(monitor.dx, [0.], atol=1e-14)
+    assert_allclose(monitor.dpx, [0.], atol=1e-14)
+    assert_allclose(monitor.dy, [0.], atol=1e-14)
+    assert_allclose(monitor.dpy, [0.], atol=1e-14)
+
+    out = monitor.optics_from_covariance(level='beam', turn=0)
+    assert out['status'] == 'ok'
+    assert out['covariance_order'] == coords
+    assert_allclose(out['covariance_matrix'], sigma, rtol=1e-15, atol=0)
+    assert_allclose(out['W_matrix'], w_matrix, rtol=1e-12, atol=1e-14)
+    assert_allclose(out['gemitt_x'], gemitt_x, rtol=1e-12, atol=0)
+    assert_allclose(out['nemitt_zeta'], gemitt_zeta * beta0_gamma0,
+                    rtol=1e-12, atol=0)
+    assert_allclose(out['betx'], betx, rtol=1e-12, atol=0)
+    assert_allclose(out['alfzeta'], alfzeta, rtol=1e-12, atol=0)
+
+
+def test_beam_stats_monitor_optics_from_covariance_requires_moments():
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        stats=['num_particles'],
+    )
+
+    with pytest.raises(ValueError, match='Full 6D covariance moments'):
+        monitor.optics_from_covariance(level='beam', turn=0)
+
+
 @allow_no_prebuilt_kernels
 def test_beam_stats_monitor_selected_slots():
     particles = xt.Particles(

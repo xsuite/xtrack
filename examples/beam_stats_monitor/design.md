@@ -968,16 +968,32 @@ Implemented:
    mean_<coord>
    sigma_<coord>
    cov_<coord1>_<coord2>
+   gemitt_<plane>
+   nemitt_<plane>
    gemitt_<plane>_projected
    nemitt_<plane>_projected
+   betx, alfx, bety, alfy, betzeta, alfzeta
+   dx, dpx, dy, dpy
    ```
 
    where coordinates are currently `x`, `px`, `y`, `py`, `zeta`, `delta`, and
-   `pzeta`, and projected-emittance planes are `x`, `y`, and `zeta`.
-   The `zeta` projected-emittance plane uses `(zeta, pzeta)`.
+   `pzeta`, and emittance planes are `x`, `y`, and `zeta`. Coupled normal-mode
+   emittances and covariance optics use the canonical
+   `(x, px, y, py, zeta, pzeta)` covariance matrix. The `zeta`
+   projected-emittance plane uses `(zeta, pzeta)`.
    The `delta_pzeta` covariance pair is intentionally not stored or exposed.
 
-9. Optional HDF5 output is implemented with:
+   The grouped stat aliases `normal_mode_emittances` and `covariance_optics`
+   are expanded at construction time to the corresponding scalar statistic
+   names.
+
+9. The scalar `optics_from_covariance(...)` method returns a diagnostic dict for
+   one selected bin. It includes the measured covariance matrix, covariance
+   coordinate order, `W_matrix`, coupled emittances, covariance-optics scalar
+   quantities, `num_particles`, `beta0_gamma0`, condition number, and
+   status/message fields. The internal dummy map is not exposed.
+
+10. Optional HDF5 output is implemented with:
 
    ```text
    output_file
@@ -996,17 +1012,19 @@ Implemented:
    not exist, or validates and appends to it if it already exists. Files remain
    flat time series; they do not contain frame groups.
 
-10. `start_new_frame(start_at_turn)` clears the in-memory primitive moment
+11. `start_new_frame(start_at_turn)` clears the in-memory primitive moment
     arrays and touched-record flags in place, keeps the frame size and
     `every_n_turns` fixed, and retargets the monitor to a new turn interval.
 
-11. Serialization through `to_dict()` stores the monitor configuration only,
+12. Serialization through `to_dict()` stores the monitor configuration only,
     not the recorded data arrays.
 
 Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 
 - weighted means, sigmas, supported covariances, pzeta statistics, and projected
   transverse/longitudinal emittance
+- coupled normal-mode emittances, covariance-optics scalar stats, grouped stat
+  aliases, and `optics_from_covariance(...)`
 - beam, bunch, and slice aggregation levels
 - selected bunch behavior
 - `every_n_turns` turn selection
@@ -1023,32 +1041,24 @@ Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 
 Still deferred:
 
-1. Coupled normal-mode emittances without the `_projected` suffix. Requests for
-   these currently raise `NotImplementedError`.
+1. Coasting-beam support.
 
-2. Full 6D covariance reconstruction helpers using the
-   `(x, px, y, py, zeta, pzeta)` convention.
+2. Arbitrary turn lists such as `turns=[100, 101, 105, 200]`.
 
-3. Covariance-optics statistics and the scalar
-   `optics_from_covariance(...)` diagnostic dict method.
-
-4. Coasting-beam support.
-
-5. Arbitrary turn lists such as `turns=[100, 101, 105, 200]`.
-
-6. Arbitrary frame resizing through `start_new_frame`; users who need a
+3. Arbitrary frame resizing through `start_new_frame`; users who need a
    different frame size should create a new monitor.
 
-7. Primitive moment output in HDF5. The current HDF5 output writes requested
+4. Primitive moment output in HDF5. The current HDF5 output writes requested
    statistics only.
 
-8. GPU/OpenMP test coverage where available, and coupled-emittance /
-   covariance-optics tests once those features exist.
+5. GPU/OpenMP test coverage where available.
 
-9. Factoring shared C helpers with `UniformBinSlicer`, if this becomes useful
+6. Vectorized table-like output for covariance optics if this becomes useful.
+
+7. Factoring shared C helpers with `UniformBinSlicer`, if this becomes useful
    after the standalone monitor behavior is stable.
 
-10. Wrappers and deprecation strategy for older monitors.
+8. Wrappers and deprecation strategy for older monitors.
 
 Longitudinal convention: both `delta` and `pzeta` are logged coordinates.
 Longitudinal projected emittance and future coupled covariance work use the
