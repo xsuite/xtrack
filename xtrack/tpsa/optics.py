@@ -39,18 +39,23 @@ class TpsaOptics:
         self.knob_names = list(m.knob_names)
         self._J = np.asarray(m.jacobian(), dtype=float)  # 6x6 A-matrix (const parts)
         self._has_order2 = m.order >= 2
-        # dJ[i, j] = d A(i,j) / d knob  (length-np vector), only where needed (rows 0..3,
-        # cols {0,1,2,3,5}); built only for a knobbed order-2 map.
+        self._m = m
+        self._nv = m.n_variables
+        # dJ[i, j] = d A(i,j) / d knob (length-np). Built lazily per (i,j) on first use
+        # (a value read touches no dJ; a gradient builds only the coefficients it needs).
         self._dJ: dict[tuple[int, int], np.ndarray] = {}
-        if self._np > 0 and self._has_order2:
-            nv = m.n_variables
-            for i in range(4):
-                for j in (0, 1, 2, 3, 5):
-                    monos = np.zeros((self._np, nv + self._np), dtype=int)
-                    monos[:, j] = 1
-                    for k in range(self._np):
-                        monos[k, nv + k] += 1
-                    self._dJ[(i, j)] = np.atleast_1d(m.coefficient(i, monos))
+
+    def _dJij(self, i: int, j: int) -> np.ndarray:
+        """``d A(i,j) / d knob`` (length-np), read from the map's mixed coefficients once."""
+        v = self._dJ.get((i, j))
+        if v is None:
+            monos = np.zeros((self._np, self._nv + self._np), dtype=int)
+            monos[:, j] = 1
+            for k in range(self._np):
+                monos[k, self._nv + k] += 1
+            v = np.atleast_1d(self._m.coefficient(i, monos))
+            self._dJ[(i, j)] = v
+        return v
 
     # --- values -------------------------------------------------------------- #
 
@@ -114,20 +119,20 @@ class TpsaOptics:
 
     def _grad_bet(self, plane: str) -> np.ndarray:
         i0, j0 = _PLANE[plane]
-        return (2 * self._J[i0, j0] * self._dJ[(i0, j0)]
-                + 2 * self._J[i0, j0 + 1] * self._dJ[(i0, j0 + 1)])
+        return (2 * self._J[i0, j0] * self._dJij(i0, j0)
+                + 2 * self._J[i0, j0 + 1] * self._dJij(i0, j0 + 1))
 
     def _grad_alf(self, plane: str) -> np.ndarray:
         i0, j0 = _PLANE[plane]
         J = self._J
-        return -(self._dJ[(i0, j0)] * J[i0 + 1, j0] + J[i0, j0] * self._dJ[(i0 + 1, j0)]
-                 + self._dJ[(i0, j0 + 1)] * J[i0 + 1, j0 + 1]
-                 + J[i0, j0 + 1] * self._dJ[(i0 + 1, j0 + 1)])
+        return -(self._dJij(i0, j0) * J[i0 + 1, j0] + J[i0, j0] * self._dJij(i0 + 1, j0)
+                 + self._dJij(i0, j0 + 1) * J[i0 + 1, j0 + 1]
+                 + J[i0, j0 + 1] * self._dJij(i0 + 1, j0 + 1))
 
     def _grad_mu(self, plane: str) -> np.ndarray:
         i0, j0 = _PLANE[plane]
         a11, a12 = self._J[i0, j0], self._J[i0, j0 + 1]
-        return ((a11 * self._dJ[(i0, j0 + 1)] - a12 * self._dJ[(i0, j0)])
+        return ((a11 * self._dJij(i0, j0 + 1) - a12 * self._dJij(i0, j0))
                 / (a11 ** 2 + a12 ** 2) / _TWO_PI)
 
     def _grad_betx(self): return self._grad_bet("x")
@@ -136,10 +141,10 @@ class TpsaOptics:
     def _grad_alfy(self): return self._grad_alf("y")
     def _grad_mux(self): return self._grad_mu("x")
     def _grad_muy(self): return self._grad_mu("y")
-    def _grad_dx(self): return self._dJ[(0, 5)]
-    def _grad_dpx(self): return self._dJ[(1, 5)]
-    def _grad_dy(self): return self._dJ[(2, 5)]
-    def _grad_dpy(self): return self._dJ[(3, 5)]
+    def _grad_dx(self): return self._dJij(0, 5)
+    def _grad_dpx(self): return self._dJij(1, 5)
+    def _grad_dy(self): return self._dJij(2, 5)
+    def _grad_dpy(self): return self._dJij(3, 5)
 
     def __repr__(self) -> str:
         return (f"TpsaOptics(betx={self.betx:.6g}, bety={self.bety:.6g}, "
