@@ -36,6 +36,10 @@ monitor = xt.BeamStatsMonitor(
         "mean_x", "mean_y", "sigma_x", "sigma_y",
         "gemitt_x", "gemitt_y", "gemitt_zeta",
         "nemitt_x", "nemitt_y", "nemitt_zeta",
+        "gemitt_x_projected", "gemitt_y_projected",
+        "gemitt_zeta_projected",
+        "nemitt_x_projected", "nemitt_y_projected",
+        "nemitt_zeta_projected",
         "betx", "bety",
         "alfx", "alfy",
         "dx", "dpx",
@@ -74,6 +78,10 @@ monitor.sigma_x.shape  # is (20,)
 monitor.nemitt_x.shape  # is (20,)
 monitor.nemitt_y.shape  # is (20,)
 monitor.nemitt_zeta.shape  # is (20,)
+
+# Projected emittances are available separately with the _projected suffix.
+monitor.nemitt_x_projected.shape  # is (20,)
+monitor.nemitt_y_projected.shape  # is (20,)
 
 # Covariance optics are also available turn by turn.
 monitor.betx.shape  # is (20,)
