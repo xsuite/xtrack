@@ -32,10 +32,13 @@ whole-beam statistics are available as reductions.
 
 For bunched beams, the slice grid is defined per selected bunch.
 
-Coasting-beam support is intentionally deferred. The first kernel-first
-implementation should focus on whole-beam, bunch-by-bunch, and slice-by-slice
-statistics for bunched beams. Coasting behavior, wrapping, and public shape
-conventions will be designed after the bunched implementation is stable.
+For coasting beams, the monitor should use one pseudo-bunch per logged turn and
+slice the full turn periodically. This lets `BeamStatsMonitor` cover the core
+functionality of `BeamPositionMonitor` and `BeamSizeMonitor`: sampled
+turn-by-turn centroids, intensities, sizes, and any other weighted statistic
+supported by the new monitor. Coasting mode uses a different slicing convention
+from bunched mode: it does not require a `zeta_range`, and the slice grid spans
+one full machine turn.
 
 The efficient bunched-beam scaling should be:
 
@@ -151,6 +154,27 @@ mon.get("mean_x", level="slice", slot=2)
 
 mon.get("mean_x", level="bunch", slot=[2, 3])
 # shape (n_logged_turns, 2)
+```
+
+Example for a coasting beam sampled within each turn:
+
+```python
+mon = xt.BeamStatsMonitor(
+    start_at_turn=0,
+    stop_at_turn=1000,
+    coasting=True,
+    num_slices=256,
+    stats=["num_particles", "mean_x", "mean_y", "sigma_x", "sigma_y"],
+)
+
+mon.mean_x.shape
+# (n_logged_turns, 1, n_slices)
+
+mon.get("mean_x", level="slice", turn=100)
+# shape (1, n_slices)
+
+tt = mon.time_centers(line_length=line.get_length(), beta0=particles.beta0[0])
+plt.plot(tt.ravel(), mon.mean_x[:, 0, :].ravel())
 ```
 
 ## Filling Scheme and Bunch Selection
@@ -269,6 +293,167 @@ start_at_turn <= particle.at_turn < stop_at_turn
 This policy avoids the ambiguity of using `particles.at_turn[0]` when particle
 0 is lost or stale, and it naturally supports particles from multiple turns in
 the same array.
+
+## Coasting Beams
+
+Coasting mode should be enabled explicitly:
+
+```python
+mon = xt.BeamStatsMonitor(
+    start_at_turn=0,
+    stop_at_turn=1000,
+    coasting=True,
+    num_slices=256,
+    stats=["num_particles", "mean_x", "mean_y", "sigma_x", "sigma_y"],
+)
+```
+
+In coasting mode, `num_slices` is required and defines the number of periodic
+samples per machine turn. The monitor stores one pseudo-bunch per logged turn:
+
+```text
+shape = (n_logged_turns, 1, n_slices)
+available_levels = ("beam", "bunch", "slice")
+default_level = "slice"
+selected_slots = [0]
+```
+
+Coasting mode should reject bunched-beam inputs whose meaning would be
+ambiguous:
+
+```text
+zeta_range
+filled_slots
+filling_scheme
+selected_slots
+bunch_spacing_zeta
+num_bunches != 1
+```
+
+The kernel should recover the circumference from the local particle, as done in
+`track_rf.h`:
+
+```c
+double const line_length = part->line_length;
+```
+
+For each active particle, coasting mode computes the continuous arrival-turn
+coordinate:
+
+```text
+u = particle.at_turn - particle.zeta / line_length
+```
+
+This is the same physical convention as the existing sampled monitors, whose
+sample index is based on:
+
+```text
+(particle.at_turn - start_at_turn) / frev
+    - particle.zeta / (particle.beta0 * c)
+```
+
+using `line_length = beta0 * c / frev`.
+
+The particle is assigned to the nearest logged reference turn and a periodic
+slice within that turn:
+
+```text
+effective_turn = floor(u + 0.5)
+phase = u - effective_turn              # approximately [-0.5, 0.5)
+i_slice = floor((phase + 0.5) * num_slices)
+```
+
+Boundary handling should be periodic. If roundoff gives `i_slice == num_slices`,
+wrap it to `0` and increment the effective turn consistently, or otherwise use
+an equivalent robust implementation that keeps the slice index in:
+
+```text
+0 <= i_slice < num_slices
+```
+
+After `effective_turn` is computed, regular turn selection applies to that
+effective turn:
+
+```text
+start_at_turn <= effective_turn < stop_at_turn
+(effective_turn - start_at_turn) % every_n_turns == 0
+```
+
+and:
+
+```text
+i_record = (effective_turn - start_at_turn) // every_n_turns
+```
+
+Statistics involving `zeta` should use the wrapped within-turn coordinate, not
+the unbounded particle coordinate:
+
+```text
+zeta_wrapped = -phase * line_length
+```
+
+Therefore `mean_zeta`, `sigma_zeta`, `cov_zeta_delta`, `cov_zeta_pzeta`, and
+the full covariance moment set remain meaningful for the sampled coasting beam.
+The other particle coordinates (`x`, `px`, `y`, `py`, `delta`, `pzeta`) are
+accumulated unchanged.
+
+For coasting mode, the `zeta_centers` property should return the periodic
+within-turn slice centers with shape:
+
+```text
+(1, n_slices)
+```
+
+centered on the reference particle:
+
+```text
+zeta_centers[0, i] = -(((i + 0.5) / n_slices) - 0.5) * line_length
+```
+
+This is the center of the same periodic binning used by the kernel for
+`zeta_wrapped`.
+
+To make multi-turn sampled plots convenient, the monitor should expose a
+data-oriented helper:
+
+```python
+tt = mon.time_centers(line_length=line.get_length(), beta0=particles.beta0[0])
+```
+
+For slice-like modes this returns an array with the same longitudinal-grid
+shape as the most detailed statistics:
+
+```text
+coasting mode -> (n_logged_turns, 1, n_slices)
+bunched slice mode -> (n_logged_turns, n_selected_bunches, n_slices)
+```
+
+The helper should use:
+
+```text
+time_centers = (turns * line_length - zeta_centers) / (beta0 * c)
+```
+
+with broadcasting over turns, selected slots, and slices. This is useful for
+coasting beams and also for bunched slice plots over multiple turns:
+
+```python
+tt = mon.time_centers(line_length=line.get_length(), beta0=particles.beta0[0])
+plt.plot(tt.ravel(), mon.mean_x[:, 0, :].ravel())
+```
+
+A lower-level helper returning unwrapped longitudinal centers can also be added
+if useful:
+
+```python
+zz = mon.zeta_centers_unwrapped(line_length=line.get_length())
+```
+
+with:
+
+```text
+zeta_centers_unwrapped = zeta_centers - turns * line_length
+```
 
 ## Weighted Statistics
 
@@ -607,6 +792,7 @@ monitor:
 beam mode  -> (n_logged_turns,)
 bunch mode -> (n_logged_turns, n_selected_bunches)
 slice mode -> (n_logged_turns, n_selected_bunches, n_slices)
+coasting mode -> (n_logged_turns, 1, n_slices)
 ```
 
 The available reductions are exposed through:
@@ -625,6 +811,7 @@ Common public properties:
 mon.turns
 mon.selected_slots
 mon.zeta_centers
+mon.time_centers(line_length=line.get_length(), beta0=particles.beta0[0])
 mon.num_particles
 mon.mean_x
 mon.sigma_x
@@ -640,6 +827,11 @@ mon.record_index(100)      # machine turn -> logged-record index
 mon.slot_index(3)          # physical slot -> selected-slot axis index
 mon.slice_index(zeta=0.03) # zeta coordinate -> slice axis index
 ```
+
+In coasting mode, `slot_index(0)` is the pseudo-bunch axis index and
+`slice_index(...)` maps wrapped within-turn `zeta` to the periodic slice grid.
+The `time_centers(...)` helper returns a broadcast array suitable for plotting
+sampled statistics over many turns.
 
 The primary convenience getter accepts a `level` selector and physical
 selectors:
@@ -674,7 +866,12 @@ The kernel responsibilities are:
 ```text
 for each active particle:
     read particle.at_turn
-    reject particles outside the logged turn selection
+    in coasting mode:
+        compute effective_turn and wrapped zeta from zeta / line_length
+    otherwise:
+        effective_turn = particle.at_turn
+        wrapped zeta = particle.zeta
+    reject particles outside the logged effective-turn selection
     compute logged-record index
     compute selected slot index when needed
     compute slice index when needed
@@ -701,6 +898,12 @@ bunch mode:
 slice mode:
     one bin per logged turn, selected slot, and slice
     zeta is used for both slot and slice assignment
+
+coasting mode:
+    one pseudo-bunch per logged turn
+    one periodic full-turn slice grid
+    zeta and at_turn jointly define effective turn and slice
+    zeta moments use the wrapped within-turn coordinate
 ```
 
 The monitor should store primitive sums, not statistics. Python-side
@@ -1062,7 +1265,7 @@ Next validation and review work:
 
 Still deferred:
 
-1. Coasting-beam support.
+1. Coasting-beam implementation according to the design above.
 
 2. Arbitrary turn lists such as `turns=[100, 101, 105, 200]`.
 
