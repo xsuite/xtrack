@@ -693,9 +693,10 @@ class BeamStatsMonitor(BeamElement):
                 raise ValueError(
                     '`line_length` must be provided in coasting mode')
             line_length = float(line_length)
-            phase = -float(zeta) / line_length
-            phase -= np.floor(phase + 0.5)
-            index = int(np.floor((phase + 0.5) * int(self._num_slices)))
+            relative_turn_fraction = -float(zeta) / line_length
+            relative_turn_fraction -= np.floor(relative_turn_fraction + 0.5)
+            index = int(np.floor(
+                (relative_turn_fraction + 0.5) * int(self._num_slices)))
             if index == int(self._num_slices):
                 index = 0
             return index
@@ -1173,9 +1174,10 @@ class BeamStatsMonitor(BeamElement):
         Return centers for the most detailed longitudinal grid.
         """
         if self.coasting:
-            phase = ((np.arange(int(self._num_slices)) + 0.5)
-                     / int(self._num_slices) - 0.5)
-            return (-phase * float(line_length))[None, :]
+            relative_turn_fraction = (
+                (np.arange(int(self._num_slices)) + 0.5)
+                / int(self._num_slices) - 0.5)
+            return (-relative_turn_fraction * float(line_length))[None, :]
         if 'slice' in self.available_levels:
             return self.zeta_centers
         if 'bunch' in self.available_levels:

@@ -359,8 +359,8 @@ slice within that turn:
 
 ```text
 effective_turn = floor(u + 0.5)
-phase = u - effective_turn              # approximately [-0.5, 0.5)
-i_slice = floor((phase + 0.5) * num_slices)
+relative_turn_fraction = u - effective_turn  # approximately [-0.5, 0.5)
+i_slice = floor((relative_turn_fraction + 0.5) * num_slices)
 ```
 
 Boundary handling should be periodic. If roundoff gives `i_slice == num_slices`,
@@ -389,7 +389,7 @@ Statistics involving `zeta` should use the wrapped within-turn coordinate, not
 the unbounded particle coordinate:
 
 ```text
-zeta_wrapped = -phase * line_length
+zeta_wrapped = -relative_turn_fraction * line_length
 ```
 
 Therefore `mean_zeta`, `sigma_zeta`, `cov_zeta_delta`, `cov_zeta_pzeta`, and
