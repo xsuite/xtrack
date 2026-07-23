@@ -279,10 +279,14 @@ class BeamStatsMonitor(BeamElement):
 
             if len(filled_slots) == 0:
                 raise ValueError('At least one filled slot is required')
+            if len(np.unique(filled_slots)) != len(filled_slots):
+                raise ValueError('`filled_slots` cannot contain duplicates')
             if selected_slots is None:
                 selected_slots = filled_slots.copy()
             else:
                 selected_slots = np.asarray(selected_slots, dtype=np.int64)
+            if len(np.unique(selected_slots)) != len(selected_slots):
+                raise ValueError('`selected_slots` cannot contain duplicates')
 
             missing = [
                 slot for slot in selected_slots if slot not in set(filled_slots)]

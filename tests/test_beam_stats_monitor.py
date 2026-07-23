@@ -377,6 +377,28 @@ def test_beam_stats_monitor_requires_spacing_for_non_default_slots():
         )
 
 
+def test_beam_stats_monitor_rejects_duplicate_slots():
+    with pytest.raises(ValueError, match='filled_slots.*duplicates'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            filled_slots=[0, 0],
+            selected_slots=[0],
+            bunch_spacing_zeta=10.,
+            stats=['num_particles'],
+        )
+
+    with pytest.raises(ValueError, match='selected_slots.*duplicates'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            filled_slots=[0, 1],
+            selected_slots=[1, 1],
+            bunch_spacing_zeta=10.,
+            stats=['num_particles'],
+        )
+
+
 @allow_no_prebuilt_kernels
 def test_beam_stats_monitor_reset_data():
     particles = xt.Particles(
