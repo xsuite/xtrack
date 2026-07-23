@@ -1663,6 +1663,24 @@ def test_env_new():
     assert env[ret].b == 3
 
 
+@pytest.mark.parametrize('cls_name', sorted(xt.line._ALLOWED_ELEMENT_TYPES_DICT.keys()))
+def test_env_new_allowed_elements(cls_name):
+    # Every class in `_ALLOWED_ELEMENT_TYPES_IN_NEW` must be constructible via `env.new(name, cls)`.
+    # If there are mandatory arguments, they must be special-cased below.
+    cls = xt.line._ALLOWED_ELEMENT_TYPES_DICT[cls_name]
+    env = xt.Environment()
+
+    if cls_name == 'Replica':
+        env.new('base', xt.Marker)
+        env.new('e', 'base', mode='replica')
+    elif cls_name == 'LimitPolygon':
+        env.new('e', cls, x_vertices=[-1, 1, 1, -1], y_vertices=[-1, -1, 1, 1])
+    else:
+        env.new('e', cls)
+
+    assert isinstance(env['e'], cls)
+
+
 def test_env_new_prototype_keyword_and_deprecated_parent():
 
     env = xt.Environment()
