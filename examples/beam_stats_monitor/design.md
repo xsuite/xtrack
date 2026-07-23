@@ -397,8 +397,10 @@ the full covariance moment set remain meaningful for the sampled coasting beam.
 The other particle coordinates (`x`, `px`, `y`, `py`, `delta`, `pzeta`) are
 accumulated unchanged.
 
-For coasting mode, the `zeta_centers` property should return the periodic
-within-turn slice centers with shape:
+For coasting mode, meter-valued slice centers require the line length. The
+plain `zeta_centers` property should therefore remain reserved for bunched
+slice grids, while line-length-aware helpers compute the periodic coasting
+centers when needed. The periodic within-turn centers have shape:
 
 ```text
 (1, n_slices)
@@ -411,7 +413,7 @@ zeta_centers[0, i] = -(((i + 0.5) / n_slices) - 0.5) * line_length
 ```
 
 This is the center of the same periodic binning used by the kernel for
-`zeta_wrapped`.
+`zeta_wrapped`, and should be computed inside the line-length-aware helpers.
 
 To make multi-turn sampled plots convenient, the monitor should expose a
 data-oriented helper:
@@ -810,7 +812,7 @@ Common public properties:
 ```python
 mon.turns
 mon.selected_slots
-mon.zeta_centers
+mon.zeta_centers  # bunched slice grids
 mon.time_centers(line_length=line.get_length(), beta0=particles.beta0[0])
 mon.num_particles
 mon.mean_x

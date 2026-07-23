@@ -32,6 +32,7 @@ void BeamStatsMonitor_track_local_particle(
         BeamStatsMonitorData_get__dzeta(el);
     double const bunch_spacing_zeta =
         BeamStatsMonitorData_get__bunch_spacing_zeta(el);
+    int64_t const coasting = (mode == 3);
 
     BeamStatsMonitorRecordData data = BeamStatsMonitorData_getp_data(el);
     BeamStatsMonitorTouchedRecordsData touched_records_data =
@@ -151,19 +152,50 @@ void BeamStatsMonitor_track_local_particle(
 
     START_PER_PARTICLE_BLOCK(part0, part);
         if (LocalParticle_get_state(part) > 0) {
-            int64_t const at_turn = LocalParticle_get_at_turn(part);
-            int64_t const turn_offset = at_turn - start_at_turn;
+            int64_t effective_turn = LocalParticle_get_at_turn(part);
+            double zeta = LocalParticle_get_zeta(part);
+            int64_t coasting_slice = 0;
+            int64_t accepted = 1;
 
-            if (at_turn >= start_at_turn && at_turn < stop_at_turn
+            if (coasting) {
+                double const line_length = part->line_length;
+                if (line_length <= 0.0) {
+                    accepted = 0;
+                } else {
+                    double const u = (
+                        (double)effective_turn - zeta / line_length);
+                    effective_turn = (int64_t)floor(u + 0.5);
+                    double relative_turn_fraction =
+                        u - (double)effective_turn;
+                    double slice_position =
+                        (relative_turn_fraction + 0.5) * (double)n_slices;
+                    coasting_slice = (int64_t)floor(slice_position);
+
+                    if (coasting_slice >= n_slices) {
+                        coasting_slice = n_slices - 1;
+                    } else if (coasting_slice < 0) {
+                        coasting_slice = 0;
+                    }
+                    zeta = -relative_turn_fraction * line_length;
+                }
+            }
+
+            int64_t const turn_offset = effective_turn - start_at_turn;
+
+            if (accepted
+                    && effective_turn >= start_at_turn
+                    && effective_turn < stop_at_turn
                     && turn_offset % every_n_turns == 0) {
                 int64_t const i_record = turn_offset / every_n_turns;
 
                 if (i_record >= 0 && i_record < n_records) {
                     int64_t index = i_record;
-                    int64_t accepted = 1;
 
-                    if (mode > 0) {
-                        double const zeta = LocalParticle_get_zeta(part);
+                    if (coasting) {
+                        index = (
+                            (i_record * n_selected) * n_slices
+                            + coasting_slice);
+                    } else if (mode > 0) {
                         int64_t slot = 0;
                         int64_t i_selected = 0;
 
@@ -213,7 +245,6 @@ void BeamStatsMonitor_track_local_particle(
                         double const px = LocalParticle_get_px(part);
                         double const y = LocalParticle_get_y(part);
                         double const py = LocalParticle_get_py(part);
-                        double const zeta = LocalParticle_get_zeta(part);
                         double const delta = LocalParticle_get_delta(part);
                         double const pzeta = LocalParticle_get_pzeta(part);
                         double const beta0_gamma0 =

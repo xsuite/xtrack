@@ -4,6 +4,7 @@ import xobjects as xo
 from ..base_element import BeamElement
 
 
+_C_LIGHT = 299792458.0
 _COORDS = (
     'x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta',
 )
@@ -176,6 +177,10 @@ class BeamStatsMonitor(BeamElement):
         Filled physical slots to record. Output follows this order.
     bunch_spacing_zeta : float, optional
         Longitudinal spacing between adjacent physical slots.
+    coasting : bool, optional
+        If True, use one pseudo-bunch per logged turn and slice the full
+        turn periodically. Requires `num_slices` and rejects bunched-beam
+        filling inputs.
     stats : sequence of str, optional
         Requested public statistics.
     output_file : str or path-like, optional
@@ -222,6 +227,7 @@ class BeamStatsMonitor(BeamElement):
                  filled_slots=None,
                  selected_slots=None,
                  bunch_spacing_zeta=None,
+                 coasting=False,
                  stats=None,
                  output_file=None,
                  _xobject=None,
@@ -235,8 +241,15 @@ class BeamStatsMonitor(BeamElement):
             self._output_file = None
             return
 
-        slice_mode = zeta_range is not None or num_slices is not None
-        if (zeta_range is None) != (num_slices is None):
+        coasting = bool(coasting)
+        if coasting and num_slices is None:
+            raise ValueError('`num_slices` must be provided in coasting mode')
+        if coasting and zeta_range is not None:
+            raise ValueError('`zeta_range` cannot be used in coasting mode')
+        slice_mode = (
+            (zeta_range is not None or num_slices is not None)
+            and not coasting)
+        if (not coasting) and (zeta_range is None) != (num_slices is None):
             raise ValueError(
                 '`zeta_range` and `num_slices` must be provided together')
         if stop_at_turn is None:
@@ -257,13 +270,25 @@ class BeamStatsMonitor(BeamElement):
         # inputs already selected the more detailed slice mode.
         bunch_mode = (
             not slice_mode
+            and not coasting
             and (filled_slots is not None
                  or filling_scheme is not None
                  or selected_slots is not None
                  or bunch_spacing_zeta is not None
                  or int(num_bunches) != 1))
+        if coasting and (
+                filled_slots is not None
+                or filling_scheme is not None
+                or selected_slots is not None
+                or bunch_spacing_zeta is not None
+                or int(num_bunches) != 1):
+            raise ValueError(
+                'Bunched-beam filling inputs cannot be used in coasting mode')
 
-        if slice_mode or bunch_mode:
+        if coasting:
+            filled_slots = np.array([0], dtype=np.int64)
+            selected_slots = np.array([0], dtype=np.int64)
+        elif slice_mode or bunch_mode:
             # Normalize the public filling inputs into physical filled slots
             # and selected slots. The output bunch axis follows selected_slots.
             if filled_slots is not None and filling_scheme is not None:
@@ -331,7 +356,16 @@ class BeamStatsMonitor(BeamElement):
             dtype=np.int64)
         num_records = len(turns)
 
-        if slice_mode:
+        if coasting:
+            mode = 3
+            num_selected_slots = 1
+            num_slices_int = int(num_slices)
+            z_min_edge = 0.0
+            dzeta = 1.0 / num_slices_int
+            data_shape = (num_records, num_selected_slots, num_slices_int)
+            available_levels = ('beam', 'bunch', 'slice')
+            default_level = 'slice'
+        elif slice_mode:
             mode = 2
             num_selected_slots = len(selected_slots)
             num_slices_int = int(num_slices)
@@ -362,7 +396,7 @@ class BeamStatsMonitor(BeamElement):
             available_levels = ('beam',)
             default_level = 'beam'
 
-        if slice_mode and num_slices_int <= 0:
+        if (slice_mode or coasting) and num_slices_int <= 0:
             raise ValueError('`num_slices` must be positive')
         if slice_mode and dzeta <= 0:
             raise ValueError('`zeta_range` must be increasing')
@@ -439,6 +473,13 @@ class BeamStatsMonitor(BeamElement):
         return _to_nparray(self._filled_slots).copy()
 
     @property
+    def coasting(self):
+        """
+        Whether the monitor uses full-turn periodic coasting slicing.
+        """
+        return int(self._mode) == 3
+
+    @property
     def available_levels(self):
         """
         Aggregation levels available from the recorded primitive moments.
@@ -459,10 +500,41 @@ class BeamStatsMonitor(BeamElement):
         """
         if 'slice' not in self.available_levels:
             return None
+        if self.coasting:
+            return None
         base = (float(self._z_min_edge) + (np.arange(int(self._num_slices))
                 + 0.5) * float(self._dzeta))
         spacing = float(self._bunch_spacing_zeta)
         return base[None, :] - self.selected_slots[:, None] * spacing
+
+    def zeta_centers_unwrapped(self, *, line_length):
+        """
+        Return longitudinal centers unwrapped over logged turns.
+        """
+        line_length = float(line_length)
+        centers = self._longitudinal_centers(line_length=line_length)
+        turn_offsets = self.turns * line_length
+        if centers.ndim == 0:
+            return centers - turn_offsets
+        if centers.ndim == 1:
+            return centers[None, :] - turn_offsets[:, None]
+        return centers[None, :, :] - turn_offsets[:, None, None]
+
+    def time_centers(self, *, line_length, beta0):
+        """
+        Return time centers for the monitor's most detailed longitudinal grid.
+        """
+        line_length = float(line_length)
+        beta0 = float(beta0)
+        centers = self._longitudinal_centers(line_length=line_length)
+        turn_offsets = self.turns * line_length
+        if centers.ndim == 0:
+            return (turn_offsets - centers) / (beta0 * _C_LIGHT)
+        if centers.ndim == 1:
+            return ((turn_offsets[:, None] - centers[None, :])
+                    / (beta0 * _C_LIGHT))
+        return ((turn_offsets[:, None, None] - centers[None, :, :])
+                / (beta0 * _C_LIGHT))
 
     def __getattr__(self, attr):
         """
@@ -483,8 +555,11 @@ class BeamStatsMonitor(BeamElement):
             'every_n_turns': int(self.every_n_turns),
             'stats': list(self._stats_names),
         }
+        if self.coasting:
+            out['coasting'] = True
+            out['num_slices'] = int(self._num_slices)
 
-        if 'slice' in self.available_levels:
+        if 'slice' in self.available_levels and not self.coasting:
             out['zeta_range'] = (
                 float(self._z_min_edge),
                 float(self._z_min_edge)
@@ -492,7 +567,7 @@ class BeamStatsMonitor(BeamElement):
             )
             out['num_slices'] = int(self._num_slices)
 
-        if 'bunch' in self.available_levels:
+        if 'bunch' in self.available_levels and not self.coasting:
             out['filled_slots'] = self.filled_slots.tolist()
             out['selected_slots'] = self.selected_slots.tolist()
             if float(self._bunch_spacing_zeta) > 0:
@@ -605,12 +680,25 @@ class BeamStatsMonitor(BeamElement):
         """
         return _value_index(self.selected_slots, slot, 'slot')
 
-    def slice_index(self, zeta, slot=None):
+    def slice_index(self, zeta, slot=None, line_length=None):
         """
         Return the slice index containing a longitudinal coordinate.
         """
         if 'slice' not in self.available_levels:
             raise ValueError('`zeta` can be mapped only for slice statistics')
+        if self.coasting:
+            if slot not in (None, 0):
+                raise ValueError('Coasting mode has only pseudo-slot 0')
+            if line_length is None:
+                raise ValueError(
+                    '`line_length` must be provided in coasting mode')
+            line_length = float(line_length)
+            phase = -float(zeta) / line_length
+            phase -= np.floor(phase + 0.5)
+            index = int(np.floor((phase + 0.5) * int(self._num_slices)))
+            if index == int(self._num_slices):
+                index = 0
+            return index
         if slot is None:
             if len(self.selected_slots) != 1:
                 raise ValueError(
@@ -1018,6 +1106,7 @@ class BeamStatsMonitor(BeamElement):
         h5file.attrs['default_level'] = self.default_level
         h5file.attrs['every_n_turns'] = int(self.every_n_turns)
         h5file.attrs['n_records_per_frame'] = int(self._num_records)
+        h5file.attrs['coasting'] = self.coasting
 
         h5file.create_dataset(
             'filled_slots', data=self.filled_slots.astype(np.int64))
@@ -1069,10 +1158,29 @@ class BeamStatsMonitor(BeamElement):
                     f'Output HDF5 metadata `{name}` does not match this '
                     'monitor')
 
+        actual_coasting = bool(h5file.attrs.get('coasting', False))
+        if actual_coasting != self.coasting:
+            raise ValueError(
+                'Output HDF5 metadata `coasting` does not match this monitor')
+
         self._check_hdf5_dataset_equal(
             h5file, 'filled_slots', self.filled_slots.astype(np.int64))
         self._check_hdf5_dataset_equal(
             h5file, 'selected_slots', self.selected_slots.astype(np.int64))
+
+    def _longitudinal_centers(self, *, line_length):
+        """
+        Return centers for the most detailed longitudinal grid.
+        """
+        if self.coasting:
+            phase = ((np.arange(int(self._num_slices)) + 0.5)
+                     / int(self._num_slices) - 0.5)
+            return (-phase * float(line_length))[None, :]
+        if 'slice' in self.available_levels:
+            return self.zeta_centers
+        if 'bunch' in self.available_levels:
+            return -self.selected_slots * float(self._bunch_spacing_zeta)
+        return np.asarray(0.0)
 
     @staticmethod
     def _check_hdf5_dataset_equal(group, name, expected):

@@ -400,6 +400,135 @@ def test_beam_stats_monitor_rejects_duplicate_slots():
 
 
 @allow_no_prebuilt_kernels
+def test_beam_stats_monitor_coasting_slice_stats():
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=3,
+        coasting=True,
+        num_slices=4,
+        stats=['num_particles', 'mean_x', 'mean_zeta'],
+    )
+    line = xt.Line(elements=[monitor, xt.Drift(length=8.)])
+    line.build_tracker(use_prebuilt_kernels=False)
+
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 2., 3., 4., 5., 6.],
+        px=[0., 0., 0., 0., 0., 0.],
+        y=[0., 0., 0., 0., 0., 0.],
+        py=[0., 0., 0., 0., 0., 0.],
+        zeta=[3., 1., -1., -3., 9., -9.],
+        delta=[0., 0., 0., 0., 0., 0.],
+        weight=[1., 1., 1., 1., 1., 1.],
+        at_turn=[1, 1, 1, 1, 1, 1],
+    )
+
+    line.track(particles, num_turns=1)
+
+    assert monitor.coasting
+    assert monitor.available_levels == ('beam', 'bunch', 'slice')
+    assert monitor.default_level == 'slice'
+    assert_equal(monitor.selected_slots, [0])
+    assert_equal(monitor.filled_slots, [0])
+    assert monitor.zeta_centers is None
+    assert monitor.num_particles.shape == (3, 1, 4)
+
+    assert_allclose(
+        monitor.num_particles[:, 0, :],
+        [[0., 1., 0., 0.],
+         [1., 1., 1., 1.],
+         [0., 0., 1., 0.]])
+    assert_allclose(
+        monitor.mean_x[:, 0, :],
+        [[0., 5., 0., 0.],
+         [1., 2., 3., 4.],
+         [0., 0., 6., 0.]])
+    assert_allclose(
+        monitor.mean_zeta[:, 0, :],
+        [[0., 1., 0., 0.],
+         [3., 1., -1., -3.],
+         [0., 0., -1., 0.]])
+    assert_allclose(
+        monitor.get('num_particles', level='beam'),
+        [1., 4., 1.])
+    assert_allclose(
+        monitor.get('mean_x', level='beam'),
+        [5., 2.5, 6.])
+    assert monitor.slice_index(9., line_length=8.) == 1
+    assert monitor.slice_index(-9., line_length=8.) == 2
+
+    assert_allclose(
+        monitor.zeta_centers_unwrapped(line_length=8.)[:, 0, :],
+        [[3., 1., -1., -3.],
+         [-5., -7., -9., -11.],
+         [-13., -15., -17., -19.]])
+    assert_allclose(
+        monitor.time_centers(line_length=8., beta0=1.)[:, 0, :] * 299792458.,
+        [[-3., -1., 1., 3.],
+         [5., 7., 9., 11.],
+         [13., 15., 17., 19.]])
+
+
+def test_beam_stats_monitor_coasting_rejects_bunched_inputs():
+    with pytest.raises(ValueError, match='zeta_range'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            coasting=True,
+            zeta_range=(-1., 1.),
+            num_slices=4,
+            stats=['num_particles'],
+        )
+
+    with pytest.raises(ValueError, match='Bunched-beam filling inputs'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            coasting=True,
+            num_slices=4,
+            selected_slots=[0],
+            stats=['num_particles'],
+        )
+
+    with pytest.raises(ValueError, match='num_slices'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            coasting=True,
+            stats=['num_particles'],
+        )
+
+
+def test_beam_stats_monitor_coasting_to_dict_stores_configuration_only():
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=3,
+        stop_at_turn=7,
+        every_n_turns=2,
+        coasting=True,
+        num_slices=5,
+        stats=['num_particles', 'mean_x'],
+    )
+
+    assert monitor.to_dict() == {
+        '__class__': 'BeamStatsMonitor',
+        'start_at_turn': 3,
+        'stop_at_turn': 7,
+        'every_n_turns': 2,
+        'stats': ['num_particles', 'mean_x'],
+        'coasting': True,
+        'num_slices': 5,
+    }
+
+    line = xt.Line(elements=[monitor])
+    line_from_dict = xt.Line.from_dict(line.to_dict())
+    monitor_from_dict = line_from_dict['e0']
+    assert monitor_from_dict.coasting
+    assert monitor_from_dict.num_particles.shape == (2, 1, 5)
+    assert_equal(monitor_from_dict.selected_slots, [0])
+    assert monitor_from_dict.zeta_centers is None
+
+
+@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_reset_data():
     particles = xt.Particles(
         p0c=7e12,
