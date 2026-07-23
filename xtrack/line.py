@@ -65,7 +65,7 @@ _ALLOWED_ELEMENT_TYPES_IN_NEW = [
     xt.UniformSolenoid, xt.Solenoid, xt.VariableSolenoid,
     xt.Cavity, xt.RFMultipole, xt.CrabCavity, xt.ReferenceEnergyIncrease,
     xt.ReferenceEnergyChange,
-    xt.Translation, xt.Rotation, xt.XRotation, xt.TimeDelay,
+    xt.Translation, xt.Rotation, xt.TimeDelay,
     xt.XYShift, xt.XRotation, xt.YRotation, xt.SRotation, xt.ZetaShift,
     xt.LimitRacetrack, xt.LimitRectEllipse, xt.LimitRect, xt.LimitEllipse,
     xt.LimitPolygon, xt.DipoleEdge, xt.LongitudinalLimitRect, xt.FirstOrderTaylorMap,
