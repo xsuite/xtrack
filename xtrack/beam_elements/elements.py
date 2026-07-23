@@ -4774,10 +4774,10 @@ class SecondOrderTaylorMap(BeamElement):
     ]
 
     _xofields={
-        'k': xo.Float64[6],
-        'R': xo.Float64[6,6],
-        'T': xo.Float64[6,6,6],
-        'length': xo.Float64
+        'k': xo.Field(xo.Float64[6], default=np.zeros(6, dtype=np.float64)),
+        'R': xo.Field(xo.Float64[6, 6], default=np.eye(6, dtype=np.float64)),
+        'T': xo.Field(xo.Float64[6, 6, 6], default=np.zeros((6, 6, 6), dtype=np.float64)),
+        'length': xo.Float64,
     }
 
     @classmethod
