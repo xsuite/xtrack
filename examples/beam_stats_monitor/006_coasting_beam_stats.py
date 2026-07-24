@@ -16,6 +16,13 @@ env = xt.load(["../../test_data/pimms/PIMMS.seq",
 line = env.pimms
 line.set_particle_ref("proton", kinetic_energy0=100e6)
 
+# Use the periodic Twiss parameters at the monitor location to initialize a
+# matched transverse wave.
+tw = line.twiss(method="4d")
+qx = tw.qx
+betx = tw.betx[0]
+alfx = tw.alfx[0]
+
 # Create a coasting BeamStatsMonitor to record full-turn slice statistics.
 monitor = xt.BeamStatsMonitor(
     start_at_turn=0,
@@ -44,8 +51,10 @@ particles = xt.Particles(
 )
 
 # Impress a sinusoidal horizontal modulation over the coasting beam.
-particles.x = AMPLITUDE_X * np.sin(
-    2 * np.pi * particles.zeta / line_length + MODULATION_PHASE)
+theta = -2 * np.pi * qx * particles.zeta / line_length + MODULATION_PHASE
+particles.x = AMPLITUDE_X * np.sin(theta)
+particles.px = (
+    AMPLITUDE_X / betx * (np.cos(theta) - alfx * np.sin(theta)))
 
 # Track for multiple turns.
 line.track(particles, num_turns=NUM_TURNS,
@@ -53,39 +62,38 @@ line.track(particles, num_turns=NUM_TURNS,
 
 # Inspect what has been recorded.
 monitor.stats  # is ('num_particles', 'mean_x', 'mean_zeta')
-monitor.available_levels  # is ('beam', 'bunch', 'slice')
+monitor.available_levels  # is ('beam', 'slice')
 monitor.default_level  # is 'slice'
 monitor.turns  # is array([0, 1, 2, ..., 7])
 
-# In coasting mode there is one pseudo-bunch per logged turn. The default
-# slice-level shape is (logged turns, 1, slices).
-monitor.mean_x.shape  # is (8, 1, 80)
+# In coasting mode the default slice-level shape is (logged turns, slices).
+monitor.mean_x.shape  # is (8, 80)
 monitor.zeta_centers  # is None
 
 # Use line-length-aware helpers to build unwrapped coordinates.
 tt = monitor.time_centers(line_length=line_length, beta0=beta0)
-tt.shape  # is (8, 1, 80)
+tt.shape  # is (8, 80)
 
 zz = monitor.zeta_centers_unwrapped(line_length=line_length)
-zz.shape  # is (8, 1, 80)
+zz.shape  # is (8, 80)
 
 # Plot the coasting-beam centroid as a function of unwrapped time.
 import matplotlib.pyplot as plt
 plt.close("all")
 fig, ax = plt.subplots(figsize=(8, 4.5))
 
-num_particles = np.asarray(monitor.num_particles)[:, 0, :]
-mean_x = np.asarray(monitor.mean_x)[:, 0, :]
+num_particles = np.asarray(monitor.num_particles)
+mean_x = np.asarray(monitor.mean_x)
 
 valid = num_particles > 0
-tt_plot = tt[:, 0, :][valid]
+tt_plot = tt[valid]
 mean_x_plot = mean_x[valid]
 
 ax.plot(
     tt_plot * 1e6,
     mean_x_plot * 1e3,
-    ".",
-    markersize=3,
+    "-",
+    linewidth=1.5,
 )
 
 ax.set_xlabel("time [us]")

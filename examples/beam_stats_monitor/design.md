@@ -32,8 +32,8 @@ whole-beam statistics are available as reductions.
 
 For bunched beams, the slice grid is defined per selected bunch.
 
-For coasting beams, the monitor should use one pseudo-bunch per logged turn and
-slice the full turn periodically. This lets `BeamStatsMonitor` cover the core
+For coasting beams, the monitor should expose one full-turn periodic slice grid
+per logged turn. This lets `BeamStatsMonitor` cover the core
 functionality of `BeamPositionMonitor` and `BeamSizeMonitor`: sampled
 turn-by-turn centroids, intensities, sizes, and any other weighted statistic
 supported by the new monitor. Coasting mode uses a different slicing convention
@@ -168,13 +168,13 @@ mon = xt.BeamStatsMonitor(
 )
 
 mon.mean_x.shape
-# (n_logged_turns, 1, n_slices)
+# (n_logged_turns, n_slices)
 
 mon.get("mean_x", level="slice", turn=100)
-# shape (1, n_slices)
+# shape (n_slices,)
 
 tt = mon.time_centers(line_length=line.get_length(), beta0=particles.beta0[0])
-plt.plot(tt.ravel(), mon.mean_x[:, 0, :].ravel())
+plt.plot(tt.ravel(), mon.mean_x.ravel())
 ```
 
 ## Filling Scheme and Bunch Selection
@@ -309,13 +309,15 @@ mon = xt.BeamStatsMonitor(
 ```
 
 In coasting mode, `num_slices` is required and defines the number of periodic
-samples per machine turn. The monitor stores one pseudo-bunch per logged turn:
+samples per machine turn. Internally the monitor stores one pseudo-bunch per
+logged turn to reuse the slice-mode kernel indexing, but this pseudo-bunch axis
+is not exposed in the public API:
 
 ```text
-shape = (n_logged_turns, 1, n_slices)
-available_levels = ("beam", "bunch", "slice")
+public shape = (n_logged_turns, n_slices)
+internal storage shape = (n_logged_turns, 1, n_slices)
+available_levels = ("beam", "slice")
 default_level = "slice"
-selected_slots = [0]
 ```
 
 Coasting mode should reject bunched-beam inputs whose meaning would be
@@ -403,13 +405,13 @@ slice grids, while line-length-aware helpers compute the periodic coasting
 centers when needed. The periodic within-turn centers have shape:
 
 ```text
-(1, n_slices)
+(n_slices,)
 ```
 
 centered on the reference particle:
 
 ```text
-zeta_centers[0, i] = -(((i + 0.5) / n_slices) - 0.5) * line_length
+zeta_centers[i] = -(((i + 0.5) / n_slices) - 0.5) * line_length
 ```
 
 This is the center of the same periodic binning used by the kernel for
@@ -426,7 +428,7 @@ For slice-like modes this returns an array with the same longitudinal-grid
 shape as the most detailed statistics:
 
 ```text
-coasting mode -> (n_logged_turns, 1, n_slices)
+coasting mode -> (n_logged_turns, n_slices)
 bunched slice mode -> (n_logged_turns, n_selected_bunches, n_slices)
 ```
 
@@ -441,7 +443,7 @@ coasting beams and also for bunched slice plots over multiple turns:
 
 ```python
 tt = mon.time_centers(line_length=line.get_length(), beta0=particles.beta0[0])
-plt.plot(tt.ravel(), mon.mean_x[:, 0, :].ravel())
+plt.plot(tt.ravel(), mon.mean_x.ravel())
 ```
 
 A lower-level helper returning unwrapped longitudinal centers can also be added
@@ -794,7 +796,7 @@ monitor:
 beam mode  -> (n_logged_turns,)
 bunch mode -> (n_logged_turns, n_selected_bunches)
 slice mode -> (n_logged_turns, n_selected_bunches, n_slices)
-coasting mode -> (n_logged_turns, 1, n_slices)
+coasting mode -> (n_logged_turns, n_slices)
 ```
 
 The available reductions are exposed through:
@@ -830,10 +832,10 @@ mon.slot_index(3)          # physical slot -> selected-slot axis index
 mon.slice_index(zeta=0.03) # zeta coordinate -> slice axis index
 ```
 
-In coasting mode, `slot_index(0)` is the pseudo-bunch axis index and
+In coasting mode, no public bunch level or slot selector is exposed.
 `slice_index(...)` maps wrapped within-turn `zeta` to the periodic slice grid.
-The `time_centers(...)` helper returns a broadcast array suitable for plotting
-sampled statistics over many turns.
+The `time_centers(...)` helper returns an array suitable for plotting sampled
+statistics over many turns.
 
 The primary convenience getter accepts a `level` selector and physical
 selectors:
@@ -902,7 +904,6 @@ slice mode:
     zeta is used for both slot and slice assignment
 
 coasting mode:
-    one pseudo-bunch per logged turn
     one periodic full-turn slice grid
     zeta and at_turn jointly define effective turn and slice
     zeta moments use the wrapped within-turn coordinate
@@ -1035,7 +1036,10 @@ Suggested HDF5 layout:
 
 Only levels available for the monitor mode should be present. For example, beam
 mode writes only `/stats/beam`, bunch mode writes `/stats/beam` and
-`/stats/bunch`, and slice mode writes all three levels.
+`/stats/bunch`, bunched slice mode writes all three levels, and coasting mode
+writes `/stats/beam` and `/stats/slice` with slice datasets shaped
+`(n_written_records, n_slices)`. Coasting mode should not write the internal
+pseudo-slot as `/stats/bunch`, `/filled_slots`, or `/selected_slots`.
 
 Datasets should be appendable along the first axis:
 

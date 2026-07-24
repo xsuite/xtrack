@@ -108,7 +108,7 @@ class BeamStatsMonitor(BeamElement):
     Monitor weighted beam statistics.
 
     The monitor records beam statistics over selected turns. It operates in
-    one of three modes selected from the constructor inputs:
+    one of four modes selected from the constructor inputs:
 
     - beam mode: no bunch or slice inputs are provided. One value is recorded
       per logged turn for the whole beam.
@@ -118,6 +118,9 @@ class BeamStatsMonitor(BeamElement):
     - slice mode: `zeta_range` and `num_slices` are provided. One value is
       recorded per logged turn, selected physical slot, and longitudinal slice.
       Per-bunch and whole-beam statistics are also available.
+    - coasting mode: `coasting=True` and `num_slices` are provided. One value
+      is recorded per logged turn and full-turn slice. Whole-beam statistics
+      are also available.
 
     All statistics are weighted by ``particles.weight``. The public
     ``num_particles`` quantity is therefore the sum of particle weights in each
@@ -178,9 +181,8 @@ class BeamStatsMonitor(BeamElement):
     bunch_spacing_zeta : float, optional
         Longitudinal spacing between adjacent physical slots.
     coasting : bool, optional
-        If True, use one pseudo-bunch per logged turn and slice the full
-        turn periodically. Requires `num_slices` and rejects bunched-beam
-        filling inputs.
+        If True, slice the full turn periodically for a coasting beam.
+        Requires `num_slices` and rejects bunched-beam filling inputs.
     stats : sequence of str, optional
         Requested public statistics.
     output_file : str or path-like, optional
@@ -363,7 +365,7 @@ class BeamStatsMonitor(BeamElement):
             z_min_edge = 0.0
             dzeta = 1.0 / num_slices_int
             data_shape = (num_records, num_selected_slots, num_slices_int)
-            available_levels = ('beam', 'bunch', 'slice')
+            available_levels = ('beam', 'slice')
             default_level = 'slice'
         elif slice_mode:
             mode = 2
@@ -514,6 +516,8 @@ class BeamStatsMonitor(BeamElement):
         line_length = float(line_length)
         centers = self._longitudinal_centers(line_length=line_length)
         turn_offsets = self.turns * line_length
+        if self.coasting:
+            return centers[None, :] - turn_offsets[:, None]
         if centers.ndim == 0:
             return centers - turn_offsets
         if centers.ndim == 1:
@@ -528,6 +532,9 @@ class BeamStatsMonitor(BeamElement):
         beta0 = float(beta0)
         centers = self._longitudinal_centers(line_length=line_length)
         turn_offsets = self.turns * line_length
+        if self.coasting:
+            return ((turn_offsets[:, None] - centers[None, :])
+                    / (beta0 * _C_LIGHT))
         if centers.ndim == 0:
             return (turn_offsets - centers) / (beta0 * _C_LIGHT)
         if centers.ndim == 1:
@@ -612,12 +619,16 @@ class BeamStatsMonitor(BeamElement):
             if slice_index is not None:
                 raise ValueError(
                     '`slice_index` cannot be used with level="beam"')
+        elif self.coasting and slot is not None:
+            raise ValueError('`slot` cannot be used in coasting mode')
         elif level == 'bunch' and slice_index is not None:
             raise ValueError(
                 '`slice_index` cannot be used with level="bunch"')
 
         moments = self._moments_at_level(level)
         out = self._compute_stat_from_moments(stat, moments, level=level)
+        if self.coasting and level == 'slice':
+            out = out[:, 0, :]
 
         # Convert physical selectors to array indices. Scalar selectors keep
         # a length-one axis until the final optional squeeze.
@@ -631,7 +642,7 @@ class BeamStatsMonitor(BeamElement):
         slot_is_scalar = False
         slice_is_scalar = False
 
-        if level in ('bunch', 'slice'):
+        if level in ('bunch', 'slice') and not self.coasting:
             if slot is None:
                 slot_selector, slot_is_scalar = slice(None), False
             else:
@@ -653,16 +664,18 @@ class BeamStatsMonitor(BeamElement):
                         f'`slice_index`={slice_selector} is outside the '
                         'recorded slice range')
                 slice_is_scalar = True
-            out = self._apply_selector(out, slice_selector, axis=2)
+            slice_axis = 1 if self.coasting else 2
+            out = self._apply_selector(out, slice_selector, axis=slice_axis)
 
         if not keepdims:
             squeeze_axes = []
             if turn_is_scalar:
                 squeeze_axes.append(0)
-            if slot_is_scalar and level in ('bunch', 'slice'):
+            if (slot_is_scalar and level in ('bunch', 'slice')
+                    and not self.coasting):
                 squeeze_axes.append(1)
             if slice_is_scalar:
-                squeeze_axes.append(2)
+                squeeze_axes.append(1 if self.coasting else 2)
             for axis in reversed(squeeze_axes):
                 out = np.squeeze(out, axis=axis)
 
@@ -687,8 +700,8 @@ class BeamStatsMonitor(BeamElement):
         if 'slice' not in self.available_levels:
             raise ValueError('`zeta` can be mapped only for slice statistics')
         if self.coasting:
-            if slot not in (None, 0):
-                raise ValueError('Coasting mode has only pseudo-slot 0')
+            if slot is not None:
+                raise ValueError('`slot` cannot be used in coasting mode')
             if line_length is None:
                 raise ValueError(
                     '`line_length` must be provided in coasting mode')
@@ -741,6 +754,8 @@ class BeamStatsMonitor(BeamElement):
             if slice_index is not None:
                 raise ValueError(
                     '`slice_index` cannot be used with level="beam"')
+        elif self.coasting and slot is not None:
+            raise ValueError('`slot` cannot be used in coasting mode')
         elif level == 'bunch' and slice_index is not None:
             raise ValueError(
                 '`slice_index` cannot be used with level="bunch"')
@@ -757,11 +772,12 @@ class BeamStatsMonitor(BeamElement):
 
         if level in ('bunch', 'slice'):
             if slot is None:
-                if len(self.selected_slots) != 1:
+                if self.coasting:
+                    slot_index = 0
+                elif len(self.selected_slots) != 1:
                     raise ValueError(
                         '`slot` must be provided when more than one slot is '
                         'recorded')
-                slot_index = 0
             else:
                 slot_index = self.slot_index(slot)
             indices.append(slot_index)
@@ -1109,10 +1125,11 @@ class BeamStatsMonitor(BeamElement):
         h5file.attrs['n_records_per_frame'] = int(self._num_records)
         h5file.attrs['coasting'] = self.coasting
 
-        h5file.create_dataset(
-            'filled_slots', data=self.filled_slots.astype(np.int64))
-        h5file.create_dataset(
-            'selected_slots', data=self.selected_slots.astype(np.int64))
+        if not self.coasting:
+            h5file.create_dataset(
+                'filled_slots', data=self.filled_slots.astype(np.int64))
+            h5file.create_dataset(
+                'selected_slots', data=self.selected_slots.astype(np.int64))
         if self.zeta_centers is not None:
             h5file.create_dataset('zeta_centers', data=self.zeta_centers)
 
@@ -1164,10 +1181,11 @@ class BeamStatsMonitor(BeamElement):
             raise ValueError(
                 'Output HDF5 metadata `coasting` does not match this monitor')
 
-        self._check_hdf5_dataset_equal(
-            h5file, 'filled_slots', self.filled_slots.astype(np.int64))
-        self._check_hdf5_dataset_equal(
-            h5file, 'selected_slots', self.selected_slots.astype(np.int64))
+        if not self.coasting:
+            self._check_hdf5_dataset_equal(
+                h5file, 'filled_slots', self.filled_slots.astype(np.int64))
+            self._check_hdf5_dataset_equal(
+                h5file, 'selected_slots', self.selected_slots.astype(np.int64))
 
     def _longitudinal_centers(self, *, line_length):
         """
@@ -1177,7 +1195,7 @@ class BeamStatsMonitor(BeamElement):
             relative_turn_fraction = (
                 (np.arange(int(self._num_slices)) + 0.5)
                 / int(self._num_slices) - 0.5)
-            return (-relative_turn_fraction * float(line_length))[None, :]
+            return -relative_turn_fraction * float(line_length)
         if 'slice' in self.available_levels:
             return self.zeta_centers
         if 'bunch' in self.available_levels:

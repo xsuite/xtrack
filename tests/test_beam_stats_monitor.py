@@ -426,25 +426,26 @@ def test_beam_stats_monitor_coasting_slice_stats():
     line.track(particles, num_turns=1)
 
     assert monitor.coasting
-    assert monitor.available_levels == ('beam', 'bunch', 'slice')
+    assert monitor.available_levels == ('beam', 'slice')
     assert monitor.default_level == 'slice'
     assert_equal(monitor.selected_slots, [0])
     assert_equal(monitor.filled_slots, [0])
     assert monitor.zeta_centers is None
-    assert monitor.num_particles.shape == (3, 1, 4)
+    assert monitor.num_particles.shape == (3, 4)
+    assert monitor.data.num_particles.shape == (12,)
 
     assert_allclose(
-        monitor.num_particles[:, 0, :],
+        monitor.num_particles,
         [[0., 1., 0., 0.],
          [1., 1., 1., 1.],
          [0., 0., 1., 0.]])
     assert_allclose(
-        monitor.mean_x[:, 0, :],
+        monitor.mean_x,
         [[0., 5., 0., 0.],
          [1., 2., 3., 4.],
          [0., 0., 6., 0.]])
     assert_allclose(
-        monitor.mean_zeta[:, 0, :],
+        monitor.mean_zeta,
         [[0., 1., 0., 0.],
          [3., 1., -1., -3.],
          [0., 0., -1., 0.]])
@@ -458,15 +459,67 @@ def test_beam_stats_monitor_coasting_slice_stats():
     assert monitor.slice_index(-9., line_length=8.) == 2
 
     assert_allclose(
-        monitor.zeta_centers_unwrapped(line_length=8.)[:, 0, :],
+        monitor.zeta_centers_unwrapped(line_length=8.),
         [[3., 1., -1., -3.],
          [-5., -7., -9., -11.],
          [-13., -15., -17., -19.]])
     assert_allclose(
-        monitor.time_centers(line_length=8., beta0=1.)[:, 0, :] * 299792458.,
+        monitor.time_centers(line_length=8., beta0=1.) * 299792458.,
         [[-3., -1., 1., 3.],
          [5., 7., 9., 11.],
          [13., 15., 17., 19.]])
+    assert_allclose(monitor.get('mean_x', turn=1), [1., 2., 3., 4.])
+    assert_allclose(monitor.get('mean_x', turn=1, slice_index=2), 3.)
+    assert monitor.get('mean_x', turn=1, slice_index=2,
+                       keepdims=True).shape == (1, 1)
+    with pytest.raises(ValueError, match='level.*beam.*slice'):
+        monitor.get('mean_x', level='bunch')
+    with pytest.raises(ValueError, match='slot.*coasting'):
+        monitor.get('mean_x', slot=0)
+    with pytest.raises(ValueError, match='slot.*coasting'):
+        monitor.slice_index(9., slot=0, line_length=8.)
+
+
+@allow_no_prebuilt_kernels
+def test_beam_stats_monitor_coasting_hdf5_public_shape(tmp_path):
+    h5py = pytest.importorskip('h5py')
+
+    output_file = tmp_path / 'beam_stats_monitor_coasting.h5'
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=3,
+        coasting=True,
+        num_slices=4,
+        stats=['num_particles', 'mean_x'],
+        output_file=output_file,
+    )
+    line = xt.Line(elements=[monitor, xt.Drift(length=8.)])
+    line.build_tracker(use_prebuilt_kernels=False)
+
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 2., 3., 4., 5., 6.],
+        zeta=[3., 1., -1., -3., 9., -9.],
+        weight=[1., 1., 1., 1., 1., 1.],
+        at_turn=[1, 1, 1, 1, 1, 1],
+    )
+
+    line.track(particles, num_turns=1)
+    monitor.save_to_file()
+
+    with h5py.File(output_file, 'r') as h5file:
+        assert bool(h5file.attrs['coasting'])
+        assert_equal(h5file.attrs['available_levels'].astype(str),
+                     ['beam', 'slice'])
+        assert h5file.attrs['default_level'] == 'slice'
+        assert 'bunch' not in h5file['stats']
+        assert 'filled_slots' not in h5file
+        assert 'selected_slots' not in h5file
+        assert_allclose(h5file['stats/slice/num_particles'][...],
+                        monitor.num_particles)
+        assert h5file['stats/slice/num_particles'].shape == (3, 4)
+        assert_allclose(h5file['stats/beam/num_particles'][...],
+                        [1., 4., 1.])
 
 
 def test_beam_stats_monitor_coasting_rejects_bunched_inputs():
@@ -523,7 +576,8 @@ def test_beam_stats_monitor_coasting_to_dict_stores_configuration_only():
     line_from_dict = xt.Line.from_dict(line.to_dict())
     monitor_from_dict = line_from_dict['e0']
     assert monitor_from_dict.coasting
-    assert monitor_from_dict.num_particles.shape == (2, 1, 5)
+    assert monitor_from_dict.available_levels == ('beam', 'slice')
+    assert monitor_from_dict.num_particles.shape == (2, 5)
     assert_equal(monitor_from_dict.selected_slots, [0])
     assert monitor_from_dict.zeta_centers is None
 
