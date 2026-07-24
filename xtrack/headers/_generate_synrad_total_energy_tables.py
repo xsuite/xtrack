@@ -835,7 +835,7 @@ def build_total_energy_quantile_tables(u_grid=None,
 
 def write_c_array(fid, name, values, size_macro="XTRACK_SYNRAD_TOTAL_ENERGY_TABLE_SIZE"):
     """Write a one-dimensional double array in C header syntax."""
-    fid.write(f"static const double {name}[{size_macro}] = {{\n")
+    fid.write(f"XTRACK_SYNRAD_TABLE_QUALIFIER double {name}[{size_macro}] = {{\n")
     for ii in range(0, values.size, 4):
         chunk = values[ii:ii + 4]
         fid.write("    " + ", ".join(f"{vv:.17e}" for vv in chunk))
@@ -882,6 +882,22 @@ def main():
         fid.write("// log(total normalized energy) for interpolation.\n\n")
         fid.write("#ifndef XTRACK_SYNRAD_TOTAL_ENERGY_TABLES_H\n")
         fid.write("#define XTRACK_SYNRAD_TOTAL_ENERGY_TABLES_H\n\n")
+        fid.write(
+            "// clang's CUDA/NVPTX backend places unqualified file-scope\n"
+            "// `static const` arrays in the hardware-limited 64KB PTX\n"
+            "// `.const` bank regardless of size, which these tables\n"
+            "// (together, ~1.7MB) overflow. NVRTC does not have this\n"
+            "// problem, as it demotes large arrays to global memory\n"
+            "// itself. Dropping `const` and adding `__device__` moves\n"
+            "// them to the (effectively unlimited) `.global` space under\n"
+            "// clang, while leaving NVRTC and CPU builds unaffected.\n"
+        )
+        fid.write("#if defined(__CUDACC__) && defined(__clang__)\n")
+        fid.write(
+            "    #define XTRACK_SYNRAD_TABLE_QUALIFIER __device__ static\n")
+        fid.write("#else\n")
+        fid.write("    #define XTRACK_SYNRAD_TABLE_QUALIFIER static const\n")
+        fid.write("#endif\n\n")
         fid.write(
             f"#define XTRACK_SYNRAD_TOTAL_ENERGY_TABLE_SIZE {table_size}\n")
         fid.write(
