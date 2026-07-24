@@ -266,7 +266,6 @@ class BeamStatsMonitor(BeamElement):
             if stat not in stats:
                 stats.append(stat)
         stats = tuple(stats)
-        _check_supported_stats(stats)
 
         # Bunch mode is selected by any bunch-related input, unless slice
         # inputs already selected the more detailed slice mode.
@@ -582,6 +581,82 @@ class BeamStatsMonitor(BeamElement):
 
         return out
 
+    def _validated_level(self, level, *, slot=None, slice_index=None):
+        """
+        Return a valid aggregation level and reject incompatible selectors.
+        """
+        if level is None:
+            level = self.default_level
+        elif level not in self.available_levels:
+            raise ValueError(
+                f'`level` must be one of {self.available_levels}, got '
+                f'{level!r}')
+
+        if level == 'beam':
+            if slot is not None:
+                raise ValueError('`slot` cannot be used with level="beam"')
+            if slice_index is not None:
+                raise ValueError(
+                    '`slice_index` cannot be used with level="beam"')
+        elif self.coasting and slot is not None:
+            raise ValueError('`slot` cannot be used in coasting mode')
+        elif level == 'bunch' and slice_index is not None:
+            raise ValueError(
+                '`slice_index` cannot be used with level="bunch"')
+        return level
+
+    def _normalized_slice_index(self, slice_index):
+        """
+        Return a non-negative slice index with NumPy-like negative indexing.
+        """
+        index = _as_int(slice_index, 'slice_index')
+        if index < 0:
+            index += int(self._num_slices)
+        if index < 0 or index >= int(self._num_slices):
+            raise ValueError(
+                f'`slice_index`={index} is outside the recorded slice range')
+        return index
+
+    def _scalar_moment_indices(self, level, *, turn=None, slot=None,
+                               slice_index=None):
+        """
+        Return internal moment-array indices for one selected bin.
+        """
+        if turn is None:
+            if len(self.turns) != 1:
+                raise ValueError(
+                    '`turn` must be provided when more than one turn is '
+                    'recorded')
+            turn_index = 0
+        else:
+            turn_index = self.record_index(turn)
+        indices = [turn_index]
+
+        if level in ('bunch', 'slice'):
+            if slot is None:
+                if self.coasting or len(self.selected_slots) == 1:
+                    slot_index = 0
+                else:
+                    raise ValueError(
+                        '`slot` must be provided when more than one slot is '
+                        'recorded')
+            else:
+                slot_index = self.slot_index(slot)
+            indices.append(slot_index)
+
+        if level == 'slice':
+            if slice_index is None:
+                if int(self._num_slices) != 1:
+                    raise ValueError(
+                        '`slice_index` must be provided when more than one '
+                        'slice is recorded')
+                slice_index = 0
+            else:
+                slice_index = self._normalized_slice_index(slice_index)
+            indices.append(slice_index)
+
+        return tuple(indices)
+
     def get(self, stat, *, level=None, turn=None, slot=None, slice_index=None,
             keepdims=False):
         """
@@ -605,25 +680,8 @@ class BeamStatsMonitor(BeamElement):
         if stat not in self._stats_names:
             raise ValueError(f'Statistic `{stat}` is not recorded')
 
-        # Choose the aggregation level and reject selectors for axes that are
-        # not present at that level.
-        if level is None:
-            level = self.default_level
-        elif level not in self.available_levels:
-            raise ValueError(
-                f'`level` must be one of {self.available_levels}, got '
-                f'{level!r}')
-        if level == 'beam':
-            if slot is not None:
-                raise ValueError('`slot` cannot be used with level="beam"')
-            if slice_index is not None:
-                raise ValueError(
-                    '`slice_index` cannot be used with level="beam"')
-        elif self.coasting and slot is not None:
-            raise ValueError('`slot` cannot be used in coasting mode')
-        elif level == 'bunch' and slice_index is not None:
-            raise ValueError(
-                '`slice_index` cannot be used with level="bunch"')
+        level = self._validated_level(
+            level, slot=slot, slice_index=slice_index)
 
         moments = self._moments_at_level(level)
         out = self._compute_stat_from_moments(stat, moments, level=level)
@@ -654,15 +712,7 @@ class BeamStatsMonitor(BeamElement):
             if slice_index is None:
                 slice_selector, slice_is_scalar = slice(None), False
             else:
-                # Accept negative indices with NumPy-like semantics.
-                slice_selector = _as_int(slice_index, 'slice_index')
-                if slice_selector < 0:
-                    slice_selector += int(self._num_slices)
-                if (slice_selector < 0
-                        or slice_selector >= int(self._num_slices)):
-                    raise ValueError(
-                        f'`slice_index`={slice_selector} is outside the '
-                        'recorded slice range')
+                slice_selector = self._normalized_slice_index(slice_index)
                 slice_is_scalar = True
             slice_axis = 1 if self.coasting else 2
             out = self._apply_selector(out, slice_selector, axis=slice_axis)
@@ -742,65 +792,12 @@ class BeamStatsMonitor(BeamElement):
         """
         self._check_full_covariance_moments_available()
 
-        if level is None:
-            level = self.default_level
-        elif level not in self.available_levels:
-            raise ValueError(
-                f'`level` must be one of {self.available_levels}, got '
-                f'{level!r}')
-        if level == 'beam':
-            if slot is not None:
-                raise ValueError('`slot` cannot be used with level="beam"')
-            if slice_index is not None:
-                raise ValueError(
-                    '`slice_index` cannot be used with level="beam"')
-        elif self.coasting and slot is not None:
-            raise ValueError('`slot` cannot be used in coasting mode')
-        elif level == 'bunch' and slice_index is not None:
-            raise ValueError(
-                '`slice_index` cannot be used with level="bunch"')
-
-        if turn is None:
-            if len(self.turns) != 1:
-                raise ValueError(
-                    '`turn` must be provided when more than one turn is '
-                    'recorded')
-            turn_index = 0
-        else:
-            turn_index = self.record_index(turn)
-        indices = [turn_index]
-
-        if level in ('bunch', 'slice'):
-            if slot is None:
-                if self.coasting:
-                    slot_index = 0
-                elif len(self.selected_slots) != 1:
-                    raise ValueError(
-                        '`slot` must be provided when more than one slot is '
-                        'recorded')
-            else:
-                slot_index = self.slot_index(slot)
-            indices.append(slot_index)
-
-        if level == 'slice':
-            if slice_index is None:
-                if int(self._num_slices) != 1:
-                    raise ValueError(
-                        '`slice_index` must be provided when more than one '
-                        'slice is recorded')
-                slice_index = 0
-            else:
-                slice_index = _as_int(slice_index, 'slice_index')
-                if slice_index < 0:
-                    slice_index += int(self._num_slices)
-                if slice_index < 0 or slice_index >= int(self._num_slices):
-                    raise ValueError(
-                        f'`slice_index`={slice_index} is outside the '
-                        'recorded slice range')
-            indices.append(slice_index)
+        level = self._validated_level(
+            level, slot=slot, slice_index=slice_index)
+        indices = self._scalar_moment_indices(
+            level, turn=turn, slot=slot, slice_index=slice_index)
 
         moments = self._moments_at_level(level)
-        indices = tuple(indices)
         scalar_moments = {
             name: np.asarray(value)[indices]
             for name, value in moments.items()}
@@ -1295,68 +1292,53 @@ def _expand_stats(stats):
     return tuple(out)
 
 
-def _check_supported_stats(stats):
-    """
-    Validate requested public statistics and raise for unsupported names.
-    """
-    for name in stats:
-        if name == 'num_particles':
-            continue
-        if name in _COVARIANCE_OPTICS_STATS:
-            continue
-        if name.startswith('mean_'):
-            _check_coord(name[5:])
-        elif name.startswith('sigma_'):
-            _check_coord(name[6:])
-        elif name.startswith('cov_'):
-            coord1, coord2 = _parse_coord_pair(name[4:])
-            moment = _moment_name(coord1, coord2)
-            if moment not in _SECOND_MOMENTS:
-                raise ValueError(
-                    f'Unsupported covariance coordinate pair `{coord1}_'
-                    f'{coord2}`')
-        elif name.startswith('gemitt_') or name.startswith('nemitt_'):
-            plane = name.split('_', 1)[1].removesuffix('_projected')
-            if plane not in _PLANES:
-                raise ValueError(f'Unknown emittance plane `{plane}`')
-        else:
-            raise ValueError(f'Unsupported statistic `{name}`')
-
-
 def _moments_for_stats(stats):
     """
     Return primitive moment names required by public statistics.
     """
     moments = set()
     for name in stats:
-        if name == 'num_particles':
-            continue
-        if name.startswith('mean_'):
-            moments.add(name[5:])
-        elif name.startswith('sigma_'):
-            coord = name[6:]
-            moments.add(coord)
-            moments.add(_moment_name(coord, coord))
-        elif name.startswith('cov_'):
-            coord1, coord2 = _parse_coord_pair(name[4:])
-            moments.add(coord1)
-            moments.add(coord2)
-            moments.add(_moment_name(coord1, coord2))
-        elif name in _COVARIANCE_DERIVED_STATS:
-            moments.update(_FULL_COVARIANCE_MOMENTS)
-        elif name.startswith('gemitt_') or name.startswith('nemitt_'):
-            plane = name.split('_', 1)[1].removesuffix('_projected')
-            if name.endswith('_projected'):
-                coord, momentum = _PLANES[plane]
-                moments.update([
-                    coord, momentum,
-                    _moment_name(coord, coord),
-                    _moment_name(momentum, momentum),
-                    _moment_name(coord, momentum),
-                ])
-            else:
-                moments.update(_FULL_COVARIANCE_MOMENTS)
+        moments.update(_moments_for_stat(name))
     return tuple(sorted(moments))
+
+
+def _moments_for_stat(name):
+    """
+    Return primitive moment names required by one public statistic.
+    """
+    if name == 'num_particles':
+        return ()
+    if name in _COVARIANCE_OPTICS_STATS:
+        return _FULL_COVARIANCE_MOMENTS
+    if name.startswith('mean_'):
+        coord = name[5:]
+        _check_coord(coord)
+        return (coord,)
+    if name.startswith('sigma_'):
+        coord = name[6:]
+        return (coord, _moment_name(coord, coord))
+    if name.startswith('cov_'):
+        coord1, coord2 = _parse_coord_pair(name[4:])
+        moment = _moment_name(coord1, coord2)
+        if moment not in _SECOND_MOMENTS:
+            raise ValueError(
+                f'Unsupported covariance coordinate pair `{coord1}_'
+                f'{coord2}`')
+        return (coord1, coord2, moment)
+    if name.startswith('gemitt_') or name.startswith('nemitt_'):
+        plane = name.split('_', 1)[1].removesuffix('_projected')
+        if plane not in _PLANES:
+            raise ValueError(f'Unknown emittance plane `{plane}`')
+        if not name.endswith('_projected'):
+            return _FULL_COVARIANCE_MOMENTS
+        coord, momentum = _PLANES[plane]
+        return (
+            coord, momentum,
+            _moment_name(coord, coord),
+            _moment_name(momentum, momentum),
+            _moment_name(coord, momentum),
+        )
+    raise ValueError(f'Unsupported statistic `{name}`')
 
 
 def _check_coord(coord):
