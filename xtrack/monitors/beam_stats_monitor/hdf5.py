@@ -28,6 +28,14 @@ def save_to_file(monitor, output_file=None):
                     level_group, stat,
                     monitor.get(stat, level=level)[record_slice])
 
+        if len(monitor.profile_coordinates) > 0:
+            profiles_group = h5file.require_group('profiles')
+            for coord in monitor.profile_coordinates:
+                profile_group = profiles_group.require_group(coord)
+                _append_hdf5_dataset(
+                    profile_group, 'counts',
+                    monitor.profiles[coord][record_slice])
+
         h5file.flush()
 
 
@@ -89,6 +97,8 @@ def _initialize_hdf5_file(monitor, h5file):
     h5file.attrs['every_n_turns'] = int(monitor.every_n_turns)
     h5file.attrs['n_records_per_frame'] = int(monitor._num_records)
     h5file.attrs['coasting'] = monitor.coasting
+    h5file.attrs['profile_coordinates'] = np.array(
+        monitor.profile_coordinates, dtype='S')
 
     if not monitor.coasting:
         h5file.create_dataset(
@@ -97,6 +107,17 @@ def _initialize_hdf5_file(monitor, h5file):
             'selected_slots', data=monitor.selected_slots.astype(np.int64))
     if monitor.zeta_centers is not None:
         h5file.create_dataset('zeta_centers', data=monitor.zeta_centers)
+
+    if len(monitor.profile_coordinates) > 0:
+        profiles_group = h5file.create_group('profiles')
+        profile_edges = monitor.profile_bin_edges
+        profile_centers = monitor.profile_bin_centers
+        for coord in monitor.profile_coordinates:
+            profile_group = profiles_group.create_group(coord)
+            profile_group.create_dataset(
+                'bin_edges', data=profile_edges[coord])
+            profile_group.create_dataset(
+                'bin_centers', data=profile_centers[coord])
 
 
 def _validate_hdf5_file(monitor, h5file):
@@ -108,6 +129,8 @@ def _validate_hdf5_file(monitor, h5file):
         'default_level': monitor.default_level,
         'every_n_turns': int(monitor.every_n_turns),
         'n_records_per_frame': int(monitor._num_records),
+        'profile_coordinates': np.array(
+            monitor.profile_coordinates, dtype='S'),
     }
     for name, expected in expected_attrs.items():
         if name not in h5file.attrs:
@@ -134,6 +157,25 @@ def _validate_hdf5_file(monitor, h5file):
             h5file, 'filled_slots', monitor.filled_slots.astype(np.int64))
         _check_hdf5_dataset_equal(
             h5file, 'selected_slots', monitor.selected_slots.astype(np.int64))
+
+    if len(monitor.profile_coordinates) == 0:
+        if 'profiles' in h5file:
+            raise ValueError(
+                'Output HDF5 file contains profiles but this monitor does not')
+    else:
+        if 'profiles' not in h5file:
+            raise ValueError('Output HDF5 file is missing group `profiles`')
+        for coord in monitor.profile_coordinates:
+            profile_path = f'profiles/{coord}'
+            if profile_path not in h5file:
+                raise ValueError(
+                    f'Output HDF5 file is missing group `{profile_path}`')
+            _check_hdf5_dataset_equal(
+                h5file, f'{profile_path}/bin_edges',
+                monitor.profile_bin_edges[coord])
+            _check_hdf5_dataset_equal(
+                h5file, f'{profile_path}/bin_centers',
+                monitor.profile_bin_centers[coord])
 
 
 def _check_hdf5_dataset_equal(group, name, expected):

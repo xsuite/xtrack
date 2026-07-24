@@ -37,6 +37,8 @@ void BeamStatsMonitor_track_local_particle(
     BeamStatsMonitorRecordData data = BeamStatsMonitorData_getp_data(el);
     BeamStatsMonitorTouchedRecordsData touched_records_data =
         BeamStatsMonitorData_getp_touched_records(el);
+    BeamStatsMonitorProfileRecordData profile_data =
+        BeamStatsMonitorData_getp__profile_data(el);
 
     GPUGLMEM double* num_particles =
         BeamStatsMonitorRecordData_getp1_num_particles(data, 0);
@@ -149,6 +151,33 @@ void BeamStatsMonitor_track_local_particle(
     GPUGLMEM double* sum_pzeta_pzeta =
         (BeamStatsMonitorRecordData_len_sum_pzeta_pzeta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_pzeta_pzeta(data, 0) : NULL;
+
+    int64_t const n_profiles =
+        BeamStatsMonitorProfileRecordData_len_num_bins(profile_data);
+    GPUGLMEM double* profile_counts =
+        (BeamStatsMonitorProfileRecordData_len_counts(profile_data) > 0)
+        ? BeamStatsMonitorProfileRecordData_getp1_counts(profile_data, 0)
+        : NULL;
+    GPUGLMEM int64_t* profile_offsets =
+        (n_profiles > 0)
+        ? BeamStatsMonitorProfileRecordData_getp1_offsets(profile_data, 0)
+        : NULL;
+    GPUGLMEM int64_t* profile_num_bins =
+        (n_profiles > 0)
+        ? BeamStatsMonitorProfileRecordData_getp1_num_bins(profile_data, 0)
+        : NULL;
+    GPUGLMEM int64_t* profile_coord_id =
+        (n_profiles > 0)
+        ? BeamStatsMonitorProfileRecordData_getp1_coord_id(profile_data, 0)
+        : NULL;
+    GPUGLMEM double* profile_min =
+        (n_profiles > 0)
+        ? BeamStatsMonitorProfileRecordData_getp1_min(profile_data, 0)
+        : NULL;
+    GPUGLMEM double* profile_bin_width =
+        (n_profiles > 0)
+        ? BeamStatsMonitorProfileRecordData_getp1_bin_width(profile_data, 0)
+        : NULL;
 
     START_PER_PARTICLE_BLOCK(part0, part);
         if (LocalParticle_get_state(part) > 0) {
@@ -310,6 +339,47 @@ void BeamStatsMonitor_track_local_particle(
                         if (sum_pzeta_pzeta) {
                             atomicAdd(&sum_pzeta_pzeta[index],
                                       weight * pzeta * pzeta);
+                        }
+
+                        if (profile_counts) {
+                            for (int64_t i_profile = 0;
+                                    i_profile < n_profiles; i_profile++) {
+                                double value = 0.0;
+                                int64_t const coord_id =
+                                    profile_coord_id[i_profile];
+                                if (coord_id == 0) {
+                                    value = x;
+                                } else if (coord_id == 1) {
+                                    value = px;
+                                } else if (coord_id == 2) {
+                                    value = y;
+                                } else if (coord_id == 3) {
+                                    value = py;
+                                } else if (coord_id == 4) {
+                                    value = zeta;
+                                } else if (coord_id == 5) {
+                                    value = delta;
+                                } else if (coord_id == 6) {
+                                    value = pzeta;
+                                }
+
+                                int64_t const n_profile_bins =
+                                    profile_num_bins[i_profile];
+                                int64_t const i_profile_bin = floor(
+                                    (value - profile_min[i_profile])
+                                    / profile_bin_width[i_profile]);
+
+                                if (i_profile_bin >= 0
+                                        && i_profile_bin < n_profile_bins) {
+                                    int64_t const profile_index =
+                                        profile_offsets[i_profile]
+                                        + index * n_profile_bins
+                                        + i_profile_bin;
+                                    atomicAdd(
+                                        &profile_counts[profile_index],
+                                        weight);
+                                }
+                            }
                         }
                     }
                 }

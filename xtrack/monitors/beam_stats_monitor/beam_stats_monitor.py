@@ -94,6 +94,17 @@ class BeamStatsMonitorTouchedRecords(xo.HybridClass):
     }
 
 
+class BeamStatsMonitorProfileRecord(xo.HybridClass):
+    _xofields = {
+        'counts': xo.Float64[:],
+        'offsets': xo.Int64[:],
+        'num_bins': xo.Int64[:],
+        'coord_id': xo.Int64[:],
+        'min': xo.Float64[:],
+        'bin_width': xo.Float64[:],
+    }
+
+
 class BeamStatsMonitor(BeamElement):
     """
     Monitor weighted beam statistics.
@@ -178,6 +189,9 @@ class BeamStatsMonitor(BeamElement):
         Requested public statistics.
     output_file : str or path-like, optional
         HDF5 file where :meth:`save_to_file` appends the current frame.
+    profiles : dict, optional
+        Optional weighted profile histograms, keyed by coordinate. Each value
+        must define ``range=(min, max)`` and ``num_bins``.
     """
 
     _xofields = {
@@ -196,6 +210,7 @@ class BeamStatsMonitor(BeamElement):
         '_slot_to_selected': xo.Int64[:],
         'data': BeamStatsMonitorRecord,
         'touched_records': BeamStatsMonitorTouchedRecords,
+        '_profile_data': BeamStatsMonitorProfileRecord,
     }
 
     _extra_c_sources = [
@@ -222,6 +237,7 @@ class BeamStatsMonitor(BeamElement):
                  bunch_spacing_zeta=None,
                  coasting=False,
                  stats=None,
+                 profiles=None,
                  output_file=None,
                  _xobject=None,
                  **kwargs):
@@ -231,6 +247,8 @@ class BeamStatsMonitor(BeamElement):
 
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
+            self._profile_coords = _profile_coords_from_ids(
+                _to_nparray(self._profile_data.coord_id))
             self._output_file = None
             return
 
@@ -405,6 +423,31 @@ class BeamStatsMonitor(BeamElement):
             size = flat_size if field in needed_fields else 0
             data[field] = size
 
+        profile_config = _validate_profiles(profiles)
+        profile_offsets = []
+        profile_total_size = 0
+        for config in profile_config.values():
+            profile_offsets.append(profile_total_size)
+            profile_total_size += flat_size * config['num_bins']
+        profile_data = {
+            'counts': np.zeros(profile_total_size),
+            'offsets': np.asarray(profile_offsets, dtype=np.int64),
+            'num_bins': np.asarray(
+                [config['num_bins'] for config in profile_config.values()],
+                dtype=np.int64),
+            'coord_id': np.asarray(
+                [_COORDS.index(coord) for coord in profile_config],
+                dtype=np.int64),
+            'min': np.asarray(
+                [config['range'][0] for config in profile_config.values()],
+                dtype=float),
+            'bin_width': np.asarray(
+                [(config['range'][1] - config['range'][0])
+                 / config['num_bins']
+                 for config in profile_config.values()],
+                dtype=float),
+        }
+
         super().__init__(
             start_at_turn=int(start_at_turn),
             stop_at_turn=int(stop_at_turn),
@@ -423,6 +466,7 @@ class BeamStatsMonitor(BeamElement):
             _slot_to_selected=slot_to_selected,
             data=data,
             touched_records={'value': num_records},
+            _profile_data=profile_data,
             **kwargs)
 
         self._stats_names = stats
@@ -430,6 +474,7 @@ class BeamStatsMonitor(BeamElement):
         self._data_shape = data_shape
         self._available_levels = available_levels
         self._default_level = default_level
+        self._profile_coords = tuple(profile_config)
         self._output_file = output_file
         if self._output_file is not None:
             _initialize_output_file(self)
@@ -570,7 +615,72 @@ class BeamStatsMonitor(BeamElement):
             if float(self._bunch_spacing_zeta) > 0:
                 out['bunch_spacing_zeta'] = float(self._bunch_spacing_zeta)
 
+        if len(self._profile_coords) > 0:
+            out['profiles'] = {
+                coord: {
+                    'range': tuple(float(vv)
+                                   for vv in self.profile_bin_edges[coord][
+                                       [0, -1]]),
+                    'num_bins': int(self.profile_num_bins[coord]),
+                }
+                for coord in self._profile_coords
+            }
+
         return out
+
+    @property
+    def profile_coordinates(self):
+        """
+        Coordinates for which weighted profiles are recorded.
+        """
+        return self._profile_coords
+
+    @property
+    def profile_num_bins(self):
+        """
+        Number of profile bins, keyed by coordinate.
+        """
+        num_bins = _to_nparray(self._profile_data.num_bins).astype(
+            np.int64, copy=False)
+        return {
+            coord: int(num_bins[ii])
+            for ii, coord in enumerate(self._profile_coords)
+        }
+
+    @property
+    def profile_bin_edges(self):
+        """
+        Profile bin edges, keyed by coordinate.
+        """
+        mins = _to_nparray(self._profile_data.min)
+        widths = _to_nparray(self._profile_data.bin_width)
+        num_bins = _to_nparray(self._profile_data.num_bins).astype(
+            np.int64, copy=False)
+        return {
+            coord: mins[ii] + widths[ii] * np.arange(num_bins[ii] + 1)
+            for ii, coord in enumerate(self._profile_coords)
+        }
+
+    @property
+    def profile_bin_centers(self):
+        """
+        Profile bin centers, keyed by coordinate.
+        """
+        edges = self.profile_bin_edges
+        return {
+            coord: 0.5 * (coord_edges[:-1] + coord_edges[1:])
+            for coord, coord_edges in edges.items()
+        }
+
+    @property
+    def profiles(self):
+        """
+        Weighted profile counts, keyed by coordinate.
+        """
+        return {
+            coord: self._profile_counts(coord)
+            for coord in self._profile_coords
+        }
 
     def _validated_level(self, level, *, slot=None, slice_index=None):
         """
@@ -881,6 +991,26 @@ class BeamStatsMonitor(BeamElement):
                 out[name] = value
         return out
 
+    def _profile_counts(self, coord):
+        """
+        Return one public profile-count array.
+        """
+        if coord not in self._profile_coords:
+            raise ValueError(f'Profile `{coord}` is not recorded')
+        i_profile = self._profile_coords.index(coord)
+        offsets = _to_nparray(self._profile_data.offsets).astype(
+            np.int64, copy=False)
+        num_bins = _to_nparray(self._profile_data.num_bins).astype(
+            np.int64, copy=False)
+        counts = _to_nparray(self._profile_data.counts)
+        start = int(offsets[i_profile])
+        stop = start + int(np.prod(self._data_shape)) * int(num_bins[i_profile])
+        out = counts[start:stop].reshape((*self._data_shape,
+                                          int(num_bins[i_profile])))
+        if self.coasting:
+            out = out[:, 0, :, :]
+        return out
+
     def _compute_stat_from_moments(self, name, moments, level):
         """
         Compute one public statistic from primitive moments.
@@ -1008,6 +1138,7 @@ class BeamStatsMonitor(BeamElement):
         """
         for field in self._RAW_FIELDS:
             getattr(self.data, field)[...] = 0.0
+        self._profile_data.counts[...] = 0.0
 
     def _reset_touched_records(self):
         """
@@ -1161,6 +1292,59 @@ def _check_coord(coord):
     """
     if coord not in _COORDS:
         raise ValueError(f'Unknown coordinate `{coord}`')
+
+
+def _validate_profiles(profiles):
+    """
+    Validate profile configuration and return normalized metadata.
+    """
+    if profiles is None:
+        return {}
+    if not isinstance(profiles, dict):
+        raise ValueError('`profiles` must be a dictionary')
+
+    out = {}
+    for coord, config in profiles.items():
+        _check_coord(coord)
+        if not isinstance(config, dict):
+            raise ValueError(f'Profile `{coord}` must be configured by a dict')
+        extra_keys = set(config) - {'range', 'num_bins'}
+        if extra_keys:
+            raise ValueError(
+                f'Profile `{coord}` has unsupported keys: '
+                f'{sorted(extra_keys)}')
+        if 'range' not in config:
+            raise ValueError(f'Profile `{coord}` is missing `range`')
+        if 'num_bins' not in config:
+            raise ValueError(f'Profile `{coord}` is missing `num_bins`')
+
+        try:
+            profile_range = tuple(float(vv) for vv in config['range'])
+        except TypeError as exc:
+            raise ValueError(
+                f'Profile `{coord}` range must have two entries') from exc
+        if len(profile_range) != 2:
+            raise ValueError(
+                f'Profile `{coord}` range must have two entries')
+        if profile_range[1] <= profile_range[0]:
+            raise ValueError(f'Profile `{coord}` range must be increasing')
+
+        num_bins = _as_int(config['num_bins'], f'profiles[{coord}].num_bins')
+        if num_bins <= 0:
+            raise ValueError(f'Profile `{coord}` num_bins must be positive')
+
+        out[coord] = {
+            'range': profile_range,
+            'num_bins': num_bins,
+        }
+    return out
+
+
+def _profile_coords_from_ids(coord_ids):
+    """
+    Return profile coordinate names from stored coordinate IDs.
+    """
+    return tuple(_COORDS[int(coord_id)] for coord_id in coord_ids)
 
 
 def _parse_coord_pair(name):

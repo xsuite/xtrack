@@ -1360,6 +1360,23 @@ Implemented:
 12. Serialization through `to_dict()` stores the monitor configuration only,
     not the recorded data arrays.
 
+13. Optional weighted profile logging is implemented through:
+
+    ```text
+    profiles
+    profile_coordinates
+    profile_num_bins
+    profile_bin_edges
+    profile_bin_centers
+    monitor.profiles[coord]
+    ```
+
+    The profile dictionary key is the coordinate. Profile counts use the same
+    public leading shape as the monitor's most detailed scalar statistics, with
+    one trailing profile-bin axis. In coasting mode, the internal pseudo-bunch
+    axis is hidden from the public profile arrays. HDF5 output stores profiles
+    under `/profiles/<coord>/...`.
+
 Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 
 - weighted means, sigmas, supported covariances, pzeta statistics, and projected
@@ -1379,6 +1396,8 @@ Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 - progressive `save_to_file()` calls without rewriting prior records
 - `start_new_frame(start_at_turn)` followed by flat append into the same file
 - configuration-only `to_dict()` / `Line.to_dict()` behavior
+- optional weighted profile logging for whole-beam, slice, and coasting modes
+- profile validation, reset, serialization, and HDF5 output
 
 Next validation and review work:
 
@@ -1420,10 +1439,7 @@ Still deferred:
 7. Factoring shared C helpers with `UniformBinSlicer`, if this becomes useful
    after the standalone monitor behavior is stable.
 
-8. Wrappers and deprecation strategy for older monitors.
-
-9. Optional profile logging in `BeamStatsMonitor`, as described in the
-   beam-profile section above, followed by decommissioning strategy for
+8. Wrappers and deprecation strategy for older monitors, including
    `BeamProfileMonitor`.
 
 Longitudinal convention: both `delta` and `pzeta` are logged coordinates.

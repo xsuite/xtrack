@@ -599,6 +599,162 @@ def test_beam_stats_monitor_coasting_rejects_start_new_frame():
 
 
 @allow_no_prebuilt_kernels
+def test_beam_stats_monitor_profiles_whole_beam():
+    particles = xt.Particles(
+        p0c=7e12,
+        x=[-0.75, -0.25, 0.25, 0.75, 1.25],
+        y=[0., 0., 0., 0., 0.],
+        weight=[1., 2., 3., 4., 5.],
+    )
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=2,
+        stats=['num_particles'],
+        profiles={
+            'x': {'range': (-1., 1.), 'num_bins': 4},
+            'y': {'range': (-1., 1.), 'num_bins': 2},
+        },
+    )
+    monitor.compile_kernels(only_if_needed=False)
+
+    monitor.track(particles)
+    particles.at_turn += 1
+    particles.x = [-0.75, -0.25, 0.25, 0.75, 1.25]
+    particles.weight = [5., 4., 3., 2., 1.]
+    monitor.track(particles)
+
+    assert monitor.profile_coordinates == ('x', 'y')
+    assert monitor.profile_num_bins == {'x': 4, 'y': 2}
+    assert_allclose(monitor.profile_bin_edges['x'],
+                    [-1., -0.5, 0., 0.5, 1.])
+    assert_allclose(monitor.profile_bin_centers['x'],
+                    [-0.75, -0.25, 0.25, 0.75])
+    assert_allclose(monitor.profiles['x'],
+                    [[1., 2., 3., 4.],
+                     [5., 4., 3., 2.]])
+    assert_allclose(monitor.profiles['y'],
+                    [[0., 15.],
+                     [0., 15.]])
+    assert_allclose(monitor.num_particles, [15., 15.])
+
+
+@allow_no_prebuilt_kernels
+def test_beam_stats_monitor_profiles_slice_and_coasting_shapes():
+    slice_particles = xt.Particles(
+        p0c=7e12,
+        x=[-0.75, -0.25, 0.25, 0.75],
+        zeta=[-0.75, -0.25, 0.25, 0.75],
+        weight=[1., 2., 3., 4.],
+    )
+    slice_monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        zeta_range=(-1., 1.),
+        num_slices=2,
+        stats=['num_particles'],
+        profiles={'x': {'range': (-1., 1.), 'num_bins': 4}},
+    )
+    slice_monitor.compile_kernels(only_if_needed=False)
+
+    slice_monitor.track(slice_particles)
+
+    assert slice_monitor.profiles['x'].shape == (1, 1, 2, 4)
+    assert_allclose(slice_monitor.profiles['x'][0, 0],
+                    [[1., 2., 0., 0.],
+                     [0., 0., 3., 4.]])
+
+    coasting_monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=3,
+        coasting=True,
+        num_slices=4,
+        stats=['num_particles'],
+        profiles={
+            'x': {'range': (0., 8.), 'num_bins': 4},
+            'zeta': {'range': (-4., 4.), 'num_bins': 4},
+        },
+    )
+    line = xt.Line(elements=[coasting_monitor, xt.Drift(length=8.)])
+    line.build_tracker(use_prebuilt_kernels=False)
+    coasting_particles = xt.Particles(
+        p0c=7e12,
+        x=[1., 3., 5., 7.],
+        zeta=[3., 1., -1., -3.],
+        weight=[1., 2., 3., 4.],
+        at_turn=[1, 1, 1, 1],
+    )
+
+    line.track(coasting_particles, num_turns=1)
+
+    assert coasting_monitor.profiles['x'].shape == (3, 4, 4)
+    assert_allclose(
+        coasting_monitor.profiles['x'],
+        np.array([
+            [[0., 0., 0., 0.],
+             [0., 0., 0., 0.],
+             [0., 0., 0., 0.],
+             [0., 0., 0., 0.]],
+            [[1., 0., 0., 0.],
+             [0., 2., 0., 0.],
+             [0., 0., 3., 0.],
+             [0., 0., 0., 4.]],
+            [[0., 0., 0., 0.],
+             [0., 0., 0., 0.],
+             [0., 0., 0., 0.],
+             [0., 0., 0., 0.]],
+        ]))
+    assert_allclose(
+        coasting_monitor.profiles['zeta'][1],
+        [[0., 0., 0., 1.],
+         [0., 0., 2., 0.],
+         [0., 3., 0., 0.],
+         [4., 0., 0., 0.]])
+
+
+def test_beam_stats_monitor_profiles_validation():
+    with pytest.raises(ValueError, match='Unknown coordinate'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            profiles={'not_a_coord': {'range': (-1., 1.), 'num_bins': 4}},
+        )
+
+    with pytest.raises(ValueError, match='missing `range`'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            profiles={'x': {'num_bins': 4}},
+        )
+
+    with pytest.raises(ValueError, match='num_bins.*positive'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            profiles={'x': {'range': (-1., 1.), 'num_bins': 0}},
+        )
+
+    with pytest.raises(ValueError, match='range.*increasing'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            profiles={'x': {'range': (1., -1.), 'num_bins': 4}},
+        )
+
+    with pytest.raises(ValueError, match='unsupported keys'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            profiles={
+                'x': {
+                    'coordinate': 'x',
+                    'range': (-1., 1.),
+                    'num_bins': 4,
+                },
+            },
+        )
+
+
+@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_reset_data():
     particles = xt.Particles(
         p0c=7e12,
@@ -614,18 +770,22 @@ def test_beam_stats_monitor_reset_data():
         start_at_turn=0,
         stop_at_turn=1,
         stats=['num_particles', 'mean_x', 'sigma_x'],
+        profiles={'x': {'range': (0., 4.), 'num_bins': 2}},
     )
+    monitor.compile_kernels(only_if_needed=False)
 
     monitor.track(particles)
 
     assert_allclose(monitor.num_particles, [3.])
     assert_allclose(monitor.mean_x, [5. / 3.])
+    assert_allclose(monitor.profiles['x'], [[2., 1.]])
     assert isinstance(monitor.data.num_particles, np.ndarray)
 
     monitor._reset_data()
 
     assert_allclose(monitor.num_particles, [0.])
     assert_allclose(monitor.mean_x, [0.])
+    assert_allclose(monitor.profiles['x'], [[0., 0.]])
     for field in monitor._RAW_FIELDS:
         assert_allclose(getattr(monitor.data, field), 0.)
 
@@ -651,8 +811,10 @@ def test_beam_stats_monitor_save_to_file_hdf5(tmp_path):
         zeta_range=(-1., 1.),
         num_slices=2,
         stats=['num_particles', 'mean_x', 'sigma_x'],
+        profiles={'x': {'range': (0., 12.), 'num_bins': 3}},
         output_file=output_file,
     )
+    monitor.compile_kernels(only_if_needed=False)
 
     monitor.track(particles)
     monitor.save_to_file()
@@ -678,6 +840,13 @@ def test_beam_stats_monitor_save_to_file_hdf5(tmp_path):
                         monitor.get('sigma_x', level='bunch'))
         assert_allclose(h5file['stats/beam/num_particles'][...],
                         monitor.get('num_particles', level='beam'))
+        assert_equal(h5file.attrs['profile_coordinates'].astype(str), ['x'])
+        assert_allclose(h5file['profiles/x/bin_edges'][...],
+                        [0., 4., 8., 12.])
+        assert_allclose(h5file['profiles/x/bin_centers'][...],
+                        [2., 6., 10.])
+        assert_allclose(h5file['profiles/x/counts'][...],
+                        monitor.profiles['x'])
 
 
 def test_beam_stats_monitor_output_file_is_initialized_on_creation(tmp_path):
@@ -932,6 +1101,7 @@ def test_beam_stats_monitor_to_dict_stores_configuration_only():
         selected_slots=[1],
         bunch_spacing_zeta=10.,
         stats=['num_particles', 'mean_x'],
+        profiles={'x': {'range': (-1., 1.), 'num_bins': 4}},
     )
     line = xt.Line(elements=[monitor])
 
@@ -951,6 +1121,7 @@ def test_beam_stats_monitor_to_dict_stores_configuration_only():
         'filled_slots': [0, 1],
         'selected_slots': [1],
         'bunch_spacing_zeta': 10.0,
+        'profiles': {'x': {'range': (-1.0, 1.0), 'num_bins': 4}},
     }
     assert 'data' not in line.to_dict()['elements']['e0']
 
@@ -962,3 +1133,6 @@ def test_beam_stats_monitor_to_dict_stores_configuration_only():
     assert_allclose(monitor_from_dict.zeta_centers, [[-10.25, -9.75]])
     assert_allclose(monitor_from_dict.num_particles,
                     np.zeros((2, 1, 2)))
+    assert monitor_from_dict.profile_coordinates == ('x',)
+    assert_allclose(monitor_from_dict.profiles['x'],
+                    np.zeros((2, 1, 2, 4)))
