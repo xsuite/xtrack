@@ -199,7 +199,7 @@ def bridge_lib(flavor: str, force: bool = False) -> dict[str, KernelCpu]:
                 "-include", "complex",
             ],
             extra_link_args=[
-                "-lgtpsa_core",
+                "-lmadng_tpsa",
                 f"-L{core_dir}",
                 f"-Wl,-rpath,{core_dir}",
             ],

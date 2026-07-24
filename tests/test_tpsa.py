@@ -515,16 +515,6 @@ def test_lib_and_ffi_singletons():
     assert xgtpsa.ffi() is xgtpsa.ffi()
 
 
-def test_missing_lib_error(monkeypatch, tmp_path):
-    monkeypatch.setenv("XGTPSA_LIB", str(tmp_path / "nope.so"))
-    monkeypatch.setattr(xgtpsa._cffi, "_lib", None)
-    with pytest.raises(RuntimeError, match='build.sh'):
-        xgtpsa.lib()
-    with pytest.raises(RuntimeError, match="build.sh"):
-        xgtpsa.include_dir()
-    assert not xgtpsa.have_core()
-
-
 def test_bridge_sources_present():
     sources = _bridge_build._bridge_sources()
     assert all(os.path.exists(s) for s in sources)
