@@ -1300,7 +1300,21 @@ Implemented:
    default_level
    ```
 
-8. Statistics are computed from primitive weighted sums. The
+8. Coasting mode is implemented with:
+
+   ```text
+   coasting=True
+   full-turn periodic slicing
+   zeta wrapping to the effective recorded turn
+   public levels ("beam", "slice")
+   public shape (n_logged_turns, n_slices)
+   line-length-aware time_centers(...) and zeta_centers_unwrapped(...)
+   ```
+
+   The internal pseudo-bunch axis is hidden from the public API and HDF5
+   output. `start_new_frame(...)` is rejected in coasting mode.
+
+9. Statistics are computed from primitive weighted sums. The
    implemented statistics are:
 
    ```text
@@ -1327,13 +1341,13 @@ Implemented:
    are expanded at construction time to the corresponding scalar statistic
    names.
 
-9. The scalar `optics_from_covariance(...)` method returns a diagnostic dict for
+10. The scalar `optics_from_covariance(...)` method returns a diagnostic dict for
    one selected bin. It includes the measured covariance matrix, covariance
    coordinate order, `W_matrix`, coupled emittances, covariance-optics scalar
    quantities, `num_particles`, `beta0_gamma0`, condition number, and
    status/message fields. The internal dummy map is not exposed.
 
-10. Optional HDF5 output is implemented with:
+11. Optional HDF5 output is implemented with:
 
    ```text
    output_file
@@ -1352,15 +1366,15 @@ Implemented:
    not exist, or validates and appends to it if it already exists. Files remain
    flat time series; they do not contain frame groups.
 
-11. `start_new_frame(start_at_turn)` clears the in-memory primitive moment
+12. `start_new_frame(start_at_turn)` clears the in-memory primitive moment
     arrays and touched-record flags in place, keeps the frame size and
     `every_n_turns` fixed, and retargets the monitor to a new turn interval.
     It is rejected in coasting mode.
 
-12. Serialization through `to_dict()` stores the monitor configuration only,
+13. Serialization through `to_dict()` stores the monitor configuration only,
     not the recorded data arrays.
 
-13. Optional weighted profile logging is implemented through:
+14. Optional weighted profile logging is implemented through:
 
     ```text
     profiles
@@ -1384,6 +1398,8 @@ Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 - coupled normal-mode emittances, covariance-optics scalar stats, grouped stat
   aliases, and `optics_from_covariance(...)`
 - beam, bunch, and slice aggregation levels
+- coasting mode, including zeta wrapping, public no-bunch shape, HDF5 output,
+  serialization, and frame-reuse rejection
 - selected bunch behavior
 - `every_n_turns` turn selection
 - mixed `at_turn` particles in one tracking call
@@ -1422,24 +1438,22 @@ Next validation and review work:
 
 Still deferred:
 
-1. Coasting-beam implementation according to the design above.
+1. Arbitrary turn lists such as `turns=[100, 101, 105, 200]`.
 
-2. Arbitrary turn lists such as `turns=[100, 101, 105, 200]`.
-
-3. Arbitrary frame resizing through `start_new_frame`; users who need a
+2. Arbitrary frame resizing through `start_new_frame`; users who need a
    different frame size should create a new monitor.
 
-4. Primitive moment output in HDF5. The current HDF5 output writes requested
+3. Primitive moment output in HDF5. The current HDF5 output writes requested
    statistics only.
 
-5. GPU/OpenMP test coverage where available.
+4. GPU/OpenMP test coverage where available.
 
-6. Vectorized table-like output for covariance optics if this becomes useful.
+5. Vectorized table-like output for covariance optics if this becomes useful.
 
-7. Factoring shared C helpers with `UniformBinSlicer`, if this becomes useful
+6. Factoring shared C helpers with `UniformBinSlicer`, if this becomes useful
    after the standalone monitor behavior is stable.
 
-8. Wrappers and deprecation strategy for older monitors, including
+7. Wrappers and deprecation strategy for older monitors, including
    `BeamProfileMonitor`.
 
 Longitudinal convention: both `delta` and `pzeta` are logged coordinates.
@@ -1453,8 +1467,12 @@ before running the prebuilt-kernel path.
 
 Examples live in `xtrack/examples/beam_stats_monitor/`:
 `000_beam_stats.py` (whole beam), `001_bunch_by_bunch_stats.py` (per bunch),
-and `002_slice_by_slice_stats.py` (per slice). The examples are included in
-the user guide through
-`xsuite/docs/conf.py`, and the guide section is in
+`002_slice_by_slice_stats.py` (per slice),
+`003_save_to_file_during_simulation.py` (progressive HDF5 save),
+`004_save_to_file_with_new_frame.py` (frame reuse),
+`005_emittance_and_optics.py` (covariance-derived quantities),
+`006_coasting_beam_stats.py` (coasting mode), and
+`007_beam_profiles.py` (profile logging). The examples are included in the
+user guide through `xsuite/docs/conf.py`, and the guide section is in
 `xsuite/docs/particles_monitor.rst`. The API reference entry is in
 `xsuite/docs/apireference.rst`.
