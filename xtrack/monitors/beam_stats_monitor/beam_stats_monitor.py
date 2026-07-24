@@ -1,32 +1,23 @@
 import numpy as np
 import xobjects as xo
 
-from ..base_element import BeamElement
+from ...base_element import BeamElement
+from .covariance import (
+    CANONICAL_COORDS as _CANONICAL_COORDS,
+    COVARIANCE_OPTICS_STATS as _COVARIANCE_OPTICS_STATS,
+    NORMAL_MODE_EMITTANCE_STATS as _NORMAL_MODE_EMITTANCE_STATS,
+    PLANES as _PLANES,
+    covariance_optics_from_sigma as _covariance_optics_from_sigma,
+)
+from .hdf5 import (
+    initialize_output_file as _initialize_output_file,
+    save_to_file as _save_to_file,
+)
 
 
 _C_LIGHT = 299792458.0
 _COORDS = (
     'x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta',
-)
-_PLANES = {
-    'x': ('x', 'px'),
-    'y': ('y', 'py'),
-    'zeta': ('zeta', 'pzeta'),
-}
-_CANONICAL_COORDS = ('x', 'px', 'y', 'py', 'zeta', 'pzeta')
-_NORMAL_MODE_EMITTANCE_STATS = (
-    'gemitt_x', 'gemitt_y', 'gemitt_zeta',
-    'nemitt_x', 'nemitt_y', 'nemitt_zeta',
-)
-_COVARIANCE_OPTICS_STATS = (
-    'betx', 'alfx',
-    'bety', 'alfy',
-    'betzeta', 'alfzeta',
-    'dx', 'dpx', 'dy', 'dpy',
-)
-_COVARIANCE_DERIVED_STATS = (
-    *_NORMAL_MODE_EMITTANCE_STATS,
-    *_COVARIANCE_OPTICS_STATS,
 )
 _STAT_ALIASES = {
     'normal_mode_emittances': _NORMAL_MODE_EMITTANCE_STATS,
@@ -441,7 +432,7 @@ class BeamStatsMonitor(BeamElement):
         self._default_level = default_level
         self._output_file = output_file
         if self._output_file is not None:
-            self._initialize_output_file()
+            _initialize_output_file(self)
 
     @property
     def stats(self):
@@ -825,39 +816,7 @@ class BeamStatsMonitor(BeamElement):
         :meth:`start_new_frame` to clear the in-memory frame and retarget the
         monitor to later turns.
         """
-        if output_file is not None:
-            self._output_file = output_file
-
-        if self._output_file is None:
-            return
-
-        try:
-            import h5py
-        except ModuleNotFoundError as exc:  # pragma: no cover
-            raise ModuleNotFoundError(
-                'h5py is required for BeamStatsMonitor HDF5 output'
-            ) from exc
-
-        with h5py.File(self._output_file, 'a') as h5file:
-            self._initialize_or_validate_hdf5_file(h5file)
-
-            local_start = self._get_local_start_index_from_hdf5(h5file)
-            local_stop = self._num_touched_records()
-            if local_stop <= local_start:
-                return
-
-            record_slice = slice(local_start, local_stop)
-            self._append_hdf5_dataset(h5file, 'turns', self.turns[record_slice])
-
-            stats_group = h5file.require_group('stats')
-            for level in self.available_levels:
-                level_group = stats_group.require_group(level)
-                for stat in self.stats:
-                    self._append_hdf5_dataset(
-                        level_group, stat,
-                        self.get(stat, level=level)[record_slice])
-
-            h5file.flush()
+        _save_to_file(self, output_file=output_file)
 
     def start_new_frame(self, start_at_turn):
         """
@@ -1076,118 +1035,6 @@ class BeamStatsMonitor(BeamElement):
             return 0
         return int(nonzero_records[-1]) + 1
 
-    def _get_local_start_index_from_hdf5(self, h5file):
-        """
-        Return the first current-frame record not already present in HDF5.
-        """
-        if 'turns' not in h5file or len(h5file['turns']) == 0:
-            return 0
-
-        last_turn = int(h5file['turns'][-1])
-        turns = self.turns
-        if len(turns) == 0:
-            return 0
-
-        matches = np.nonzero(turns == last_turn)[0]
-        if len(matches) > 0:
-            return int(matches[0]) + 1
-
-        if last_turn < turns[0]:
-            return 0
-
-        raise RuntimeError(
-            'Cannot append BeamStatsMonitor frame because the output file '
-            'already contains turns beyond the current frame')
-
-    def _initialize_or_validate_hdf5_file(self, h5file):
-        """
-        Create or validate the static HDF5 layout and metadata.
-        """
-        if 'schema_version' not in h5file.attrs:
-            if len(h5file.keys()) != 0:
-                raise ValueError(
-                    'Output HDF5 file is not empty and does not contain '
-                    'BeamStatsMonitor metadata')
-            self._initialize_hdf5_file(h5file)
-        else:
-            self._validate_hdf5_file(h5file)
-
-    def _initialize_hdf5_file(self, h5file):
-        """
-        Initialize static metadata and static datasets.
-        """
-        h5file.attrs['schema_version'] = 1
-        h5file.attrs['class'] = 'BeamStatsMonitor'
-        h5file.attrs['stats'] = np.array(self.stats, dtype='S')
-        h5file.attrs['available_levels'] = np.array(
-            self.available_levels, dtype='S')
-        h5file.attrs['default_level'] = self.default_level
-        h5file.attrs['every_n_turns'] = int(self.every_n_turns)
-        h5file.attrs['n_records_per_frame'] = int(self._num_records)
-        h5file.attrs['coasting'] = self.coasting
-
-        if not self.coasting:
-            h5file.create_dataset(
-                'filled_slots', data=self.filled_slots.astype(np.int64))
-            h5file.create_dataset(
-                'selected_slots', data=self.selected_slots.astype(np.int64))
-        if self.zeta_centers is not None:
-            h5file.create_dataset('zeta_centers', data=self.zeta_centers)
-
-    def _initialize_output_file(self):
-        """
-        Create a fresh HDF5 output file for this monitor.
-        """
-        try:
-            import h5py
-        except ModuleNotFoundError as exc:  # pragma: no cover
-            raise ModuleNotFoundError(
-                'h5py is required for BeamStatsMonitor HDF5 output'
-            ) from exc
-
-        with h5py.File(self._output_file, 'w') as h5file:
-            self._initialize_hdf5_file(h5file)
-            h5file.flush()
-
-    def _validate_hdf5_file(self, h5file):
-        """
-        Validate high-level compatibility with an existing HDF5 file.
-        """
-        expected_attrs = {
-            'schema_version': 1,
-            'class': 'BeamStatsMonitor',
-            'stats': np.array(self.stats, dtype='S'),
-            'available_levels': np.array(self.available_levels, dtype='S'),
-            'default_level': self.default_level,
-            'every_n_turns': int(self.every_n_turns),
-            'n_records_per_frame': int(self._num_records),
-        }
-        for name, expected in expected_attrs.items():
-            if name not in h5file.attrs:
-                raise ValueError(
-                    f'Output HDF5 file is missing metadata `{name}`')
-            actual = h5file.attrs[name]
-            if isinstance(expected, np.ndarray):
-                if not np.array_equal(np.asarray(actual), expected):
-                    raise ValueError(
-                        f'Output HDF5 metadata `{name}` does not match '
-                        'this monitor')
-            elif actual != expected:
-                raise ValueError(
-                    f'Output HDF5 metadata `{name}` does not match this '
-                    'monitor')
-
-        actual_coasting = bool(h5file.attrs.get('coasting', False))
-        if actual_coasting != self.coasting:
-            raise ValueError(
-                'Output HDF5 metadata `coasting` does not match this monitor')
-
-        if not self.coasting:
-            self._check_hdf5_dataset_equal(
-                h5file, 'filled_slots', self.filled_slots.astype(np.int64))
-            self._check_hdf5_dataset_equal(
-                h5file, 'selected_slots', self.selected_slots.astype(np.int64))
-
     def _longitudinal_centers(self, *, line_length):
         """
         Return centers for the most detailed longitudinal grid.
@@ -1202,39 +1049,6 @@ class BeamStatsMonitor(BeamElement):
         if 'bunch' in self.available_levels:
             return -self.selected_slots * float(self._bunch_spacing_zeta)
         return np.asarray(0.0)
-
-    @staticmethod
-    def _check_hdf5_dataset_equal(group, name, expected):
-        if name not in group:
-            raise ValueError(f'Output HDF5 file is missing dataset `{name}`')
-        if not np.array_equal(group[name][...], expected):
-            raise ValueError(
-                f'Output HDF5 dataset `{name}` does not match this monitor')
-
-    @staticmethod
-    def _append_hdf5_dataset(group, name, data):
-        """
-        Append an array along the first axis of an HDF5 dataset.
-        """
-        data = np.asarray(data)
-        tail_shape = data.shape[1:]
-        if name in group:
-            dataset = group[name]
-            if dataset.shape[1:] != tail_shape:
-                raise ValueError(
-                    f'Output HDF5 dataset `{dataset.name}` has shape '
-                    f'{dataset.shape}, expected tail shape {tail_shape}')
-        else:
-            dataset = group.create_dataset(
-                name,
-                shape=(0, *tail_shape),
-                maxshape=(None, *tail_shape),
-                chunks=(1, *tail_shape),
-                dtype=data.dtype)
-        old_size = dataset.shape[0]
-        new_size = old_size + data.shape[0]
-        dataset.resize((new_size, *dataset.shape[1:]))
-        dataset[old_size:new_size] = data
 
     @staticmethod
     def _apply_selector(array, selector, axis):
@@ -1382,92 +1196,6 @@ def _field_name_from_moment(name):
     if name in _COORDS or name in _SECOND_MOMENTS:
         return f'sum_{name}'
     raise ValueError(f'Unknown moment `{name}`')
-
-
-def _covariance_optics_from_sigma(*, sigma, num_particles, beta0_gamma0,
-                                  min_num_particles=1):
-    """
-    Compute normal-mode emittances and optics-like quantities from Sigma.
-    """
-    sigma = np.asarray(sigma, dtype=float)
-    out = _empty_covariance_optics_result(
-        sigma=sigma,
-        num_particles=num_particles,
-        beta0_gamma0=beta0_gamma0,
-        status='failed',
-        message='not computed')
-
-    if sigma.shape != (6, 6):
-        out['message'] = '`sigma` must have shape (6, 6)'
-        return out
-    if num_particles < min_num_particles:
-        out['status'] = 'insufficient_num_particles'
-        out['message'] = (
-            f'num_particles={num_particles} is below '
-            f'min_num_particles={min_num_particles}')
-        return out
-    if not np.all(np.isfinite(sigma)):
-        out['message'] = 'covariance matrix contains non-finite values'
-        return out
-
-    from xtrack.linear_normal_form import (
-        S, sort_modes, _build_w_matrix_from_eigenvectors)
-
-    sigma_s = sigma @ S
-    try:
-        out['condition_number'] = float(np.linalg.cond(sigma_s))
-    except Exception:
-        out['condition_number'] = np.nan
-
-    if np.linalg.matrix_rank(sigma_s) < 6:
-        out['status'] = 'rank_deficient'
-        out['message'] = 'covariance matrix is rank deficient'
-        return out
-
-    try:
-        eigenvalues, eigenvectors = np.linalg.eig(sigma_s)
-        modes = sort_modes(eigenvectors, eigenvalues)
-        w_matrix = _build_w_matrix_from_eigenvectors(eigenvectors, modes)
-        from xtrack.twiss import TwissInit
-        twiss_init = TwissInit(W_matrix=w_matrix)
-        optics = {
-            name: float(getattr(twiss_init, name))
-            for name in _COVARIANCE_OPTICS_STATS}
-    except Exception as exc:
-        out['message'] = str(exc)
-        return out
-
-    emittances = np.maximum(eigenvalues[modes].imag.real, 0.0)
-    out.update({
-        'status': 'ok',
-        'message': '',
-        'W_matrix': w_matrix,
-        'gemitt_x': float(emittances[0]),
-        'gemitt_y': float(emittances[1]),
-        'gemitt_zeta': float(emittances[2]),
-    })
-    out['nemitt_x'] = out['gemitt_x'] * beta0_gamma0
-    out['nemitt_y'] = out['gemitt_y'] * beta0_gamma0
-    out['nemitt_zeta'] = out['gemitt_zeta'] * beta0_gamma0
-    out.update(optics)
-    return out
-
-
-def _empty_covariance_optics_result(*, sigma, num_particles, beta0_gamma0,
-                                    status, message):
-    out = {
-        'status': status,
-        'message': message,
-        'covariance_matrix': np.asarray(sigma, dtype=float).copy(),
-        'covariance_order': _CANONICAL_COORDS,
-        'W_matrix': np.full((6, 6), np.nan),
-        'num_particles': float(num_particles),
-        'beta0_gamma0': float(beta0_gamma0),
-        'condition_number': np.nan,
-    }
-    for name in _COVARIANCE_DERIVED_STATS:
-        out[name] = np.nan
-    return out
 
 
 def _to_nparray(array):

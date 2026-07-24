@@ -1127,7 +1127,7 @@ This helper is not available in coasting mode.
 
 The current implementation is the kernel-first standalone monitor described
 above. `xtrack.BeamStatsMonitor` is implemented in
-`xtrack/xtrack/monitors/beam_stats_monitor.py`, with its tracking kernel in
+`xtrack/xtrack/monitors/beam_stats_monitor/`, with its tracking kernel in
 `xtrack/xtrack/monitors/beam_stats_monitor.h`.
 
 Implemented:
