@@ -196,9 +196,10 @@ def bridge_lib(flavor: str, force: bool = False) -> dict[str, KernelCpu]:
                 "-DXTRACK_MULTIPOLE_NO_SYNRAD",
                 f"-I{here}",
                 f"-I{xgtpsa.include_dir()}",
+                "-include", "complex",
             ],
             extra_link_args=[
-                "-l:libgtpsa_core.so",
+                "-lgtpsa_core",
                 f"-L{core_dir}",
                 f"-Wl,-rpath,{core_dir}",
             ],

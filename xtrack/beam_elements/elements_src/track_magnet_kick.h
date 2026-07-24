@@ -8,24 +8,55 @@
 #include "xtrack/headers/track.h"
 
 #ifdef XT_KNOBS
-// Knob build only: lift a double multipole array to a vector of constant
-// tpsas so it can go through the XT_STRENGTH* kick.  Empty (NULL/order<0) -> NULL ptr,
-// so kick_simple's null-guard early-returns exactly as with the plain double path.
-static inline std::vector<mad::tpsa> _xt_lift_arr(const double* a, int64_t n, LocalParticle* part){
-    std::vector<mad::tpsa> v;
-    if (a == NULL || n <= 0) return v;
-    XT_NUM proto = LocalParticle_get_x(part);
-    v.reserve(n);
-    for (int64_t i = 0; i < n; i++) v.emplace_back(0.0 * proto + a[i]);
-    return v;
-}
-static inline const mad::tpsa* _xt_lift_ptr(const std::vector<mad::tpsa>& v){
-    return v.empty() ? (const mad::tpsa*)0 : v.data();
-}
+#include <new>
+#include <type_traits>
+
+// Knob build only: lift a double multipole array to constant tpsas so it can
+// go through the XT_STRENGTH* kick.  mad::tpsa is non-movable, so it cannot be
+// stored portably in std::vector; construct the short-lived contiguous buffer
+// directly instead.
+class _xt_lifted_arr {
+public:
+    _xt_lifted_arr(const double* a, int64_t n, LocalParticle* part)
+        : storage_(NULL), data_(NULL), size_(0) {
+        if (a == NULL || n <= 0) return;
+
+        storage_ = new storage_t[n];
+        data_ = reinterpret_cast<mad::tpsa*>(storage_);
+
+        XT_NUM proto = LocalParticle_get_x(part);
+        for (; size_ < n; size_++) {
+            new (&data_[size_]) mad::tpsa(0.0 * proto + a[size_]);
+        }
+    }
+
+    ~_xt_lifted_arr() {
+        for (int64_t i = 0; i < size_; i++) {
+            data_[i].~tpsa();
+        }
+        delete[] storage_;
+    }
+
+    const mad::tpsa* ptr() const {
+        return data_;
+    }
+
+private:
+    typedef typename std::aligned_storage<
+        sizeof(mad::tpsa), alignof(mad::tpsa)>::type storage_t;
+
+    _xt_lifted_arr(const _xt_lifted_arr&);
+    _xt_lifted_arr& operator=(const _xt_lifted_arr&);
+
+    storage_t* storage_;
+    mad::tpsa* data_;
+    int64_t size_;
+};
+
 #define XT_KICK_SIMPLE(pt, ord, invf, KN, KS, fac, kw) do { \
-        std::vector<mad::tpsa> _kn = _xt_lift_arr((KN), (ord)+1, (pt)); \
-        std::vector<mad::tpsa> _ks = _xt_lift_arr((KS), (ord)+1, (pt)); \
-        kick_simple_single_particle((pt),(ord),(invf),_xt_lift_ptr(_kn),_xt_lift_ptr(_ks),(fac),(kw)); \
+        _xt_lifted_arr _kn((KN), (ord)+1, (pt)); \
+        _xt_lifted_arr _ks((KS), (ord)+1, (pt)); \
+        kick_simple_single_particle((pt),(ord),(invf),_kn.ptr(),_ks.ptr(),(fac),(kw)); \
     } while(0)
 #else
 #define XT_KICK_SIMPLE(pt, ord, invf, KN, KS, fac, kw) \
