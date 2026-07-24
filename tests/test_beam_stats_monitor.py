@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import xpart as xp
 from numpy.testing import assert_allclose, assert_equal
 
 from xobjects.test_helpers import allow_no_prebuilt_kernels
@@ -274,6 +275,92 @@ def test_beam_stats_monitor_coupled_emittance_and_covariance_optics():
                     rtol=1e-12, atol=0)
     assert_allclose(out['betx'], betx, rtol=1e-12, atol=0)
     assert_allclose(out['alfzeta'], alfzeta, rtol=1e-12, atol=0)
+
+
+@allow_no_prebuilt_kernels
+def test_beam_stats_monitor_covariance_optics_generated_matched_bunch():
+    np.random.seed(12345)
+
+    line = xt.Line(elements=[
+        xt.LineSegmentMap(
+            length=100.,
+            betx=3., alfx=0.7, qx=0.31,
+            bety=5., alfy=-0.4, qy=0.32,
+            longitudinal_mode='linear_fixed_rf',
+            voltage_rf=16e6,
+            frequency_rf=400.8e6,
+            phase_rf=np.pi,
+            slippage_length=100.,
+            momentum_compaction_factor=3.225e-4,
+        ),
+    ])
+    line.set_particle_ref('proton', p0c=7e12)
+    tw = line.twiss(method='6d')
+
+    nemitt_x = 2.0e-6
+    nemitt_y = 1.0e-6
+    total_intensity = 1.0e11
+    particles = xp.generate_matched_gaussian_bunch(
+        num_particles=30_000,
+        total_intensity_particles=total_intensity,
+        nemitt_x=nemitt_x,
+        nemitt_y=nemitt_y,
+        sigma_z=0.08,
+        line=line,
+        engine='linear',
+    )
+
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        stats=[
+            'num_particles',
+            'normal_mode_emittances',
+            'covariance_optics',
+            'nemitt_x_projected',
+            'nemitt_y_projected',
+            'nemitt_zeta_projected',
+        ],
+    )
+    monitor.track(particles)
+
+    out = monitor.optics_from_covariance(level='beam', turn=0)
+    assert out['status'] == 'ok'
+    assert_allclose(monitor.num_particles, [total_intensity])
+
+    # The generated bunch is uncoupled, so normal-mode and projected transverse
+    # emittances should both recover the generation inputs up to finite-sample
+    # noise.
+    assert_allclose(monitor.nemitt_x, [nemitt_x], rtol=3e-2, atol=0)
+    assert_allclose(monitor.nemitt_y, [nemitt_y], rtol=3e-2, atol=0)
+    assert_allclose(
+        monitor.nemitt_x_projected, [nemitt_x], rtol=3e-2, atol=0)
+    assert_allclose(
+        monitor.nemitt_y_projected, [nemitt_y], rtol=3e-2, atol=0)
+    assert_allclose(
+        monitor.nemitt_zeta, monitor.nemitt_zeta_projected,
+        rtol=1e-3, atol=0)
+
+    assert_allclose(monitor.betx, [tw.betx[0]], rtol=3e-2, atol=0)
+    assert_allclose(monitor.alfx, [tw.alfx[0]], rtol=5e-2, atol=0)
+    assert_allclose(monitor.bety, [tw.bety[0]], rtol=3e-2, atol=0)
+    assert_allclose(monitor.alfy, [tw.alfy[0]], rtol=5e-2, atol=0)
+
+    w_matrix = tw.W_matrix[0]
+    betzeta = w_matrix[4, 4]**2 + w_matrix[4, 5]**2
+    alfzeta = -(
+        w_matrix[4, 4] * w_matrix[5, 4]
+        + w_matrix[4, 5] * w_matrix[5, 5])
+    assert_allclose(monitor.betzeta, [betzeta], rtol=3e-2, atol=0)
+    assert_allclose(monitor.alfzeta, [alfzeta], atol=5e-2)
+
+    assert_allclose(monitor.dx, [tw.dx[0]], atol=3e-4)
+    assert_allclose(monitor.dpx, [tw.dpx[0]], atol=3e-4)
+    assert_allclose(monitor.dy, [tw.dy[0]], atol=3e-4)
+    assert_allclose(monitor.dpy, [tw.dpy[0]], atol=3e-4)
+
+    assert_allclose(out['nemitt_x'], monitor.nemitt_x[0])
+    assert_allclose(out['betx'], monitor.betx[0])
 
 
 def test_beam_stats_monitor_optics_from_covariance_requires_moments():

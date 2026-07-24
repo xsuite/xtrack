@@ -1397,6 +1397,9 @@ Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
   transverse/longitudinal emittance
 - coupled normal-mode emittances, covariance-optics scalar stats, grouped stat
   aliases, and `optics_from_covariance(...)`
+- covariance-derived emittances and optics from a realistic generated matched
+  Gaussian bunch tracked through the monitor, compared against the generation
+  inputs and model Twiss quantities within finite-sample tolerance
 - beam, bunch, and slice aggregation levels
 - coasting mode, including zeta wrapping, public no-bunch shape, HDF5 output,
   serialization, and frame-reuse rejection
@@ -1417,11 +1420,10 @@ Covered by focused tests in `xtrack/tests/test_beam_stats_monitor.py`:
 
 Next validation and review work:
 
-1. Test the covariance-derived emittances and optics with realistic generated
-   distributions, for example particles produced by `generate_gaussian_bunch`
-   or another matched/generated distribution workflow. These tests should check
-   that the monitor recovers the expected coupled emittances, Twiss-like
-   parameters, and dispersion within statistical tolerance.
+1. Broaden the generated-distribution covariance validation to coupled lattices
+   and non-zero-dispersion cases. The current generated matched-Gaussian test
+   covers the standard uncoupled workflow and checks emittances, Twiss-like
+   parameters, and near-zero dispersion within statistical tolerance.
 
 2. Review the covariance-optics implementation before extending the public
    surface further. In particular, check the numerical failure policy, mode
