@@ -61,7 +61,7 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s, Fiel
         }
 
         out->phi += sphi * yi;  /* c[i,m] x^m y^i/i!*/
-        out->Bx  -= gx   * yi;  /* -h m c[i,m] x^(m-1) y^i/i! */
+        out->Bx  -= gx   * yi;  /* -m c[i,m] x^(m-1) y^i/i! */
         out->By  -= gy   * yi;  /* -c[i+1,m] x^m y^i/i! */
         out->Bs  -= gs   * yi;  /* -c[i,m]' x^(m-1) y^i/i! */
 
@@ -69,7 +69,7 @@ int evaluate_expansion_straight(Expansion *f, double x, double y, double s, Fiel
         if (i < f->ny) {
             double yi1 = yi * y / (double)(i + 1);  /* y^(i+1)/(i+1)! */
             out->Ax += gs * yi1;                    /* -c[i,m]' x^(m-1) y^(i+1)/(i+1)! */
-            out->As -= gx * yi1;                    /* -h m c[i,m] x^(m-1) y^i/i! */
+            out->As -= gx * yi1;                    /* -m c[i,m] x^(m-1) y^i/i! */
             out->dAx_dx += dgs_dx  * yi1;
             out->dAx_ds += dgs_ds  * yi1;
             out->dAs_dx += -dgx_dx * yi1;
