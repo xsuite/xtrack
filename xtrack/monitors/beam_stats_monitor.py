@@ -869,6 +869,10 @@ class BeamStatsMonitor(BeamElement):
         The number of records and ``every_n_turns`` are kept fixed. The new
         ``stop_at_turn`` is computed from the existing frame length.
         """
+        if self.coasting:
+            raise ValueError(
+                '`start_new_frame` cannot be used in coasting mode')
+
         start_at_turn = _as_int(start_at_turn, 'start_at_turn')
         self.start_at_turn = start_at_turn
         self.stop_at_turn = (

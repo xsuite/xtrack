@@ -582,6 +582,22 @@ def test_beam_stats_monitor_coasting_to_dict_stores_configuration_only():
     assert monitor_from_dict.zeta_centers is None
 
 
+def test_beam_stats_monitor_coasting_rejects_start_new_frame():
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=3,
+        stop_at_turn=7,
+        every_n_turns=2,
+        coasting=True,
+        num_slices=5,
+        stats=['num_particles'],
+    )
+
+    with pytest.raises(ValueError, match='start_new_frame.*coasting'):
+        monitor.start_new_frame(start_at_turn=9)
+
+    assert_equal(monitor.turns, [3, 5])
+
+
 @allow_no_prebuilt_kernels
 def test_beam_stats_monitor_reset_data():
     particles = xt.Particles(

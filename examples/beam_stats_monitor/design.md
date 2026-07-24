@@ -994,6 +994,10 @@ The first implementation should not support arbitrary frame resizing through
 `start_new_frame`; users who need a different frame size should create a new
 monitor.
 
+Frame reuse should be rejected in coasting mode. The effective turn assignment
+depends jointly on `at_turn`, wrapped `zeta`, and the line circumference, so
+retargeting a reused frame risks ambiguous or inconsistent sampled turns.
+
 The file should contain the requested statistics by default. This keeps
 the HDF5 output immediately usable without requiring a reader to reconstruct
 means, sigmas, covariances, or emittances from primitive sums. Reductions should
@@ -1117,6 +1121,7 @@ automatic tracking controller. The user remains responsible for calling it with 
 start turn consistent with the particles' `at_turn` values before tracking the
 next frame. When `output_file` is active, users should call `save_to_file()` before
 `start_new_frame(...)`; otherwise the current in-memory frame will be discarded.
+This helper is not available in coasting mode.
 
 ## Implementation Status
 
@@ -1224,6 +1229,7 @@ Implemented:
 11. `start_new_frame(start_at_turn)` clears the in-memory primitive moment
     arrays and touched-record flags in place, keeps the frame size and
     `every_n_turns` fixed, and retargets the monitor to a new turn interval.
+    It is rejected in coasting mode.
 
 12. Serialization through `to_dict()` stores the monitor configuration only,
     not the recorded data arrays.
