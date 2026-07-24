@@ -787,6 +787,118 @@ Warnings should be opt-in or limited to the scalar diagnostic method. Per-slice
 workflows can naturally produce many sparse or ill-conditioned bins, and warning
 on every failed bin would be too noisy for normal use.
 
+## Beam Profiles
+
+`BeamStatsMonitor` should also support optional beam-profile logging, so that it
+can eventually cover the functionality of `xtrack.BeamProfileMonitor`.
+This should be integrated in `BeamStatsMonitor`, not implemented as a separate
+new monitor. The binning in time, bunch, slice, and coasting modes should be the
+same as for the scalar beam statistics.
+
+The profile API should use a plain dictionary. No separate profile-spec class is
+needed, and the dictionary key is the coordinate to histogram:
+
+```python
+mon = xt.BeamStatsMonitor(
+    start_at_turn=0,
+    stop_at_turn=1000,
+    coasting=True,
+    num_slices=256,
+    stats=["num_particles", "mean_x"],
+    profiles={
+        "x": {"range": (-5e-3, 5e-3), "num_bins": 100},
+        "y": {"range": (-5e-3, 5e-3), "num_bins": 100},
+        "delta": {"range": (-1e-3, 1e-3), "num_bins": 80},
+    },
+)
+```
+
+The profile key is the coordinate, full stop:
+
+```text
+profiles["x"]     -> histogram particle x
+profiles["y"]     -> histogram particle y
+profiles["delta"] -> histogram particle delta
+```
+
+There is no `coordinate` field and no independent custom profile name. This
+keeps the public API and HDF5 layout unambiguous. It also means that only one
+profile per coordinate is supported in one monitor. If a user needs two
+different `x` profiles with different ranges or bin counts, they should use two
+monitors.
+
+Supported profile coordinates should initially match the scalar coordinate set:
+
+```text
+x, px, y, py, zeta, delta, pzeta
+```
+
+For each profile, `range=(min, max)` and `num_bins` are required. A scalar
+range shorthand can be considered, but is not necessary for the first
+implementation. Particles outside the profile range are ignored for that
+profile only; they still contribute to scalar statistics and to any other
+profile whose range accepts them.
+
+Profile counts should be weighted in the same way as `num_particles`:
+
+```text
+profile count in bin = sum(particles.weight)
+```
+
+The public data should be exposed through dictionaries keyed by coordinate:
+
+```python
+mon.profiles["x"]             # weighted histogram counts
+mon.profile_bin_edges["x"]    # bin edges
+mon.profile_bin_centers["x"]  # bin centers
+```
+
+The profile count shapes follow the same public dimensionality as the most
+detailed scalar statistics, with one extra trailing profile-bin axis:
+
+```text
+beam mode          -> (n_logged_turns, n_profile_bins)
+bunch mode         -> (n_logged_turns, n_selected_bunches, n_profile_bins)
+bunched slice mode -> (n_logged_turns, n_selected_bunches, n_slices, n_profile_bins)
+coasting mode      -> (n_logged_turns, n_slices, n_profile_bins)
+```
+
+In coasting mode, the public profile arrays should not expose the internal
+pseudo-bunch axis. This matches the existing coasting statistics API.
+
+For `zeta` profiles, use the same coordinate convention as `zeta` statistics:
+coasting mode uses the wrapped within-turn coordinate, while bunched slice mode
+uses the local coordinate used for slice assignment. The raw unbounded coasting
+`zeta` is a different diagnostic and should not be hidden behind the `zeta`
+profile key.
+
+The tracking kernel should first determine the monitor bin exactly as it does
+for scalar moments. Then, for each requested profile, it should read the
+requested coordinate, compute the profile-bin index, and atomically add the
+particle weight to the corresponding count.
+
+Internally, profile storage should be separate from primitive moment storage.
+Profiles with different bin counts should be supported with packed arrays:
+
+```text
+profile_counts       flat Float64[:]
+profile_offsets      Int64[n_profiles]
+profile_num_bins     Int64[n_profiles]
+profile_coord_id     Int64[n_profiles]
+profile_min          Float64[n_profiles]
+profile_bin_width    Float64[n_profiles]
+```
+
+The flat index can be:
+
+```text
+profile_counts[
+    profile_offsets[i_profile]
+    + i_monitor_bin * profile_num_bins[i_profile]
+    + i_profile_bin
+]
+```
+
 ## Data Shape and Access
 
 The default statistic level is the most detailed level available from the
@@ -1036,6 +1148,13 @@ Suggested HDF5 layout:
 /stats/slice/num_particles     shape (n_written_records, n_selected_bunches, n_slices)
 /stats/slice/mean_x            shape (n_written_records, n_selected_bunches, n_slices)
 /stats/slice/sigma_x           shape (n_written_records, n_selected_bunches, n_slices)
+
+/profiles/x/counts            shape (..., n_x_bins)
+/profiles/x/bin_edges         shape (n_x_bins + 1,)
+/profiles/x/bin_centers       shape (n_x_bins,)
+/profiles/y/counts            shape (..., n_y_bins)
+/profiles/y/bin_edges         shape (n_y_bins + 1,)
+/profiles/y/bin_centers       shape (n_y_bins,)
 ```
 
 Only levels available for the monitor mode should be present. For example, beam
@@ -1044,6 +1163,13 @@ mode writes only `/stats/beam`, bunch mode writes `/stats/beam` and
 writes `/stats/beam` and `/stats/slice` with slice datasets shaped
 `(n_written_records, n_slices)`. Coasting mode should not write the internal
 pseudo-slot as `/stats/bunch`, `/filled_slots`, or `/selected_slots`.
+
+If profiles are requested, `/profiles/<coord>/counts` should use the same public
+leading shape as the default profile array for that monitor mode, followed by
+the profile-bin axis. In coasting mode this means
+`(n_written_records, n_slices, n_profile_bins)`, with no pseudo-bunch axis. The
+profile group name is the coordinate, so no separate coordinate attribute is
+needed.
 
 Datasets should be appendable along the first axis:
 
@@ -1295,6 +1421,10 @@ Still deferred:
    after the standalone monitor behavior is stable.
 
 8. Wrappers and deprecation strategy for older monitors.
+
+9. Optional profile logging in `BeamStatsMonitor`, as described in the
+   beam-profile section above, followed by decommissioning strategy for
+   `BeamProfileMonitor`.
 
 Longitudinal convention: both `delta` and `pzeta` are logged coordinates.
 Longitudinal projected emittance and future coupled covariance work use the
