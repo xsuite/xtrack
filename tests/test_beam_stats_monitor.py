@@ -409,7 +409,6 @@ def test_beam_stats_monitor_coasting_slice_stats():
         stats=['num_particles', 'mean_x', 'mean_zeta'],
     )
     line = xt.Line(elements=[monitor, xt.Drift(length=8.)])
-    line.build_tracker(use_prebuilt_kernels=False)
 
     particles = xt.Particles(
         p0c=7e12,
@@ -494,7 +493,6 @@ def test_beam_stats_monitor_coasting_hdf5_public_shape(tmp_path):
         output_file=output_file,
     )
     line = xt.Line(elements=[monitor, xt.Drift(length=8.)])
-    line.build_tracker(use_prebuilt_kernels=False)
 
     particles = xt.Particles(
         p0c=7e12,
@@ -615,7 +613,6 @@ def test_beam_stats_monitor_profiles_whole_beam():
             'y': {'range': (-1., 1.), 'num_bins': 2},
         },
     )
-    monitor.compile_kernels(only_if_needed=False)
 
     monitor.track(particles)
     particles.at_turn += 1
@@ -654,7 +651,6 @@ def test_beam_stats_monitor_profiles_slice_and_coasting_shapes():
         stats=['num_particles'],
         profiles={'x': {'range': (-1., 1.), 'num_bins': 4}},
     )
-    slice_monitor.compile_kernels(only_if_needed=False)
 
     slice_monitor.track(slice_particles)
 
@@ -675,7 +671,6 @@ def test_beam_stats_monitor_profiles_slice_and_coasting_shapes():
         },
     )
     line = xt.Line(elements=[coasting_monitor, xt.Drift(length=8.)])
-    line.build_tracker(use_prebuilt_kernels=False)
     coasting_particles = xt.Particles(
         p0c=7e12,
         x=[1., 3., 5., 7.],
@@ -772,7 +767,6 @@ def test_beam_stats_monitor_reset_data():
         stats=['num_particles', 'mean_x', 'sigma_x'],
         profiles={'x': {'range': (0., 4.), 'num_bins': 2}},
     )
-    monitor.compile_kernels(only_if_needed=False)
 
     monitor.track(particles)
 
@@ -814,7 +808,6 @@ def test_beam_stats_monitor_save_to_file_hdf5(tmp_path):
         profiles={'x': {'range': (0., 12.), 'num_bins': 3}},
         output_file=output_file,
     )
-    monitor.compile_kernels(only_if_needed=False)
 
     monitor.track(particles)
     monitor.save_to_file()
@@ -994,7 +987,6 @@ def test_beam_stats_monitor_hdf5_progressive_save_to_file(tmp_path):
         stats=['num_particles', 'mean_x'],
         output_file=output_file,
     )
-    monitor.compile_kernels(only_if_needed=False)
 
     particles = xt.Particles(
         p0c=7e12,
