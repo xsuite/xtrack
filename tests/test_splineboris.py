@@ -1159,6 +1159,7 @@ def test_splineboris_bend_radiation(make_uniform_splineboris):
     gamma = (particles_mean.energy / particles_mean.mass0)[0]
     gamma0 = particles_mean.gamma0[0]
     particles_qntm_0 = particles_mean.copy()
+    particles_qntm_kick_0 = particles_mean.copy()
 
     # Calculate bend angle from field
     P0_J = particles_mean.p0c[0] / clight * qe
@@ -1175,22 +1176,28 @@ def test_splineboris_bend_radiation(make_uniform_splineboris):
     # Create SplineBoris elements with radiation
     splineboris_mean = make_uniform_splineboris(Bx=0, By=B_T, Bs=0, s_start=s_start, s_end=s_end, n_steps=n_steps, radiation_flag=1)
     splineboris_qntm = make_uniform_splineboris(Bx=0, By=B_T, Bs=0, s_start=s_start, s_end=s_end, n_steps=n_steps, radiation_flag=2)
+    splineboris_qntm_kick = make_uniform_splineboris(Bx=0, By=B_T, Bs=0, s_start=s_start, s_end=s_end, n_steps=n_steps, radiation_flag=3)
 
     # Initialize random number generators
     particles_mean_0._init_random_number_generator()
     particles_qntm_0._init_random_number_generator()
+    particles_qntm_kick_0._init_random_number_generator()
 
     dct_mean_before = particles_mean_0.to_dict()
 
     # Track particles
     splineboris_mean.track(particles_mean_0)
     splineboris_qntm.track(particles_qntm_0)
+    splineboris_qntm_kick.track(particles_qntm_kick_0)
 
     dct_mean = particles_mean_0.to_dict()
     dct_qntm = particles_qntm_0.to_dict()
+    dct_qntm_kick = particles_qntm_kick_0.to_dict()
 
     # Test 1: Average and stochastic models should give same mean energy loss
     xo.assert_allclose(dct_mean['delta'], np.mean(dct_qntm['delta']),
+                       atol=0, rtol=5e-3)
+    xo.assert_allclose(dct_mean['delta'], np.mean(dct_qntm_kick['delta']),
                        atol=0, rtol=5e-3)
 
     # Test 2: Compare energy loss against Larmor formula
@@ -1261,6 +1268,18 @@ def test_splineboris_bend_radiation(make_uniform_splineboris):
 
     xo.assert_allclose(mean_photon_energy, E_ave_eV, rtol=1e-2, atol=0)
     xo.assert_allclose(std_photon_energy, np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=2e-3, atol=0)
+
+    line.configure_radiation(model='quantum-kick')
+    record = line.start_internal_logging_for_elements_of_type(
+        xt.SplineBoris, capacity=record_capacity
+    )
+    particles_test = particles_mean_0.copy()
+    particles_test_before = particles_test.copy()
+    line.track(particles_test)
+
+    Delta_E_test = (particles_test.ptau - particles_test_before.ptau) * particles_test.p0c
+    assert -np.sum(Delta_E_test) > 0
+    assert record._index.num_recorded == 0
 
 
 

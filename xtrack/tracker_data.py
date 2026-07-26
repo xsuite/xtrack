@@ -16,6 +16,41 @@ from xobjects.struct import Struct, MetaStruct
 from .line import Line, mk_class_namespace, _has_backtrack
 
 
+def _expand_element_classes_with_slice_classes(element_classes):
+    element_classes_with_slices = set()
+
+    for element_or_class in element_classes:
+        element_class = (element_or_class if isinstance(element_or_class, type)
+                         else element_or_class.__class__)
+        if issubclass(element_class, xo.Struct):
+            element_xostruct = element_class
+            element_dressing_class = element_class._DressingClass
+        else:
+            element_xostruct = element_class._XoStruct
+            element_dressing_class = element_class
+
+        if element_xostruct in element_classes_with_slices:
+            continue
+        element_classes_with_slices.add(element_xostruct)
+
+        for slice_attr in (
+                '_drift_slice_class', '_thick_slice_class',
+                '_thin_slice_class', '_entry_slice_class',
+                '_exit_slice_class'):
+            if isinstance(element_or_class, type):
+                descriptor = getattr(element_dressing_class, slice_attr, None)
+                if isinstance(descriptor, property):
+                    slice_class = descriptor.fget(None)
+                else:
+                    slice_class = descriptor
+            else:
+                slice_class = getattr(element_or_class, slice_attr, None)
+            if slice_class:
+                element_classes_with_slices.add(slice_class._XoStruct)
+
+    return element_classes_with_slices
+
+
 class SerializationHeader(xo.Struct):
     """
     In a predetermined place in the buffer we have the metadata
@@ -98,21 +133,8 @@ class TrackerData:
         if not check_passed:
             raise RuntimeError('The elements are not in the same buffer')
 
-        line_element_classes = set()
-        for ee in self._elements:
-            if ee._XoStruct in line_element_classes:
-                continue
-            line_element_classes.add(ee._XoStruct)
-            if hasattr(ee, '_drift_slice_class') and ee._drift_slice_class:
-                line_element_classes.add(ee._drift_slice_class._XoStruct)
-            if hasattr(ee, '_thick_slice_class') and ee._thick_slice_class:
-                line_element_classes.add(ee._thick_slice_class._XoStruct)
-            if hasattr(ee, '_thin_slice_class') and ee._thin_slice_class:
-                line_element_classes.add(ee._thin_slice_class._XoStruct)
-            if hasattr(ee, '_entry_slice_class') and ee._entry_slice_class:
-                line_element_classes.add(ee._entry_slice_class._XoStruct)
-            if hasattr(ee, '_exit_slice_class') and ee._exit_slice_class:
-                line_element_classes.add(ee._exit_slice_class._XoStruct)
+        line_element_classes = _expand_element_classes_with_slice_classes(
+            self._elements)
 
         self.line_element_classes = line_element_classes
         self.element_s_locations = tuple(element_s_locations)
@@ -288,4 +310,3 @@ class TrackerData:
     @property
     def kernel_element_classes(self):
         return self._element_ref_data.elements._itemtype._reftypes
-

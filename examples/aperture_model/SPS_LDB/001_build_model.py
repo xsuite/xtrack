@@ -1,4 +1,5 @@
 import csv
+import re
 from itertools import repeat
 from typing import Literal
 
@@ -22,8 +23,7 @@ class LDBConverterWarning(UserWarning):
     pass
 
 
-PIPE_OVERLAP_TOL = 1e-3
-PIPE_OVERLAP_ASSEMBLY_FILTER: Literal['none', 'top', 'sub'] = 'top'
+PIPE_OVERLAP_TOL = 3.1e-2
 
 context = xo.ContextCpu(omp_num_threads='auto')
 
@@ -32,53 +32,6 @@ def _format_list(lst):
     if len(lst) < 3:
         return ", ".join(lst)
     return ", ".join(lst[:3]) + ", ..."
-
-
-def _pipe_position_ancestors(transformations, name):
-    ancestors = []
-    seen = {name}
-    current = name
-
-    while current in transformations:
-        parent = transformations[current].ref
-        if parent in seen:
-            break
-        if parent not in transformations:
-            break
-
-        ancestors.append(parent)
-        seen.add(parent)
-        current = parent
-
-    return ancestors
-
-
-def _pipe_positions_excluded_by_assembly_filter(pipe_position_names, transformations, assembly_filter):
-    if assembly_filter == 'none':
-        return set()
-    if assembly_filter not in {'top', 'sub'}:
-        raise ValueError(
-            f'Unknown pipe assembly overlap filter {assembly_filter!r}; expected one of '
-            f"'none', 'top', or 'sub'."
-        )
-
-    placed_names = set(pipe_position_names)
-    top_assemblies = set()
-    subassemblies = set()
-
-    for name in placed_names:
-        placed_ancestors = [
-            ancestor for ancestor in _pipe_position_ancestors(transformations, name)
-            if ancestor in placed_names
-        ]
-        if placed_ancestors:
-            subassemblies.add(name)
-            top_assemblies.update(placed_ancestors)
-
-    if assembly_filter == 'top':
-        return subassemblies
-    return top_assemblies
-
 
 def _write_pipe_overlap_report(pipe_table, line_length, filename, s_tol=1e-6, excluded_pipe_positions=()):
     intervals = []
@@ -210,13 +163,19 @@ LONGITUDINAL_PLACEMENT_PATCHES = {}
 
 TYPE_APERTURE_PLACEMENT_PATCHES = {}
 
+IGNORED_TRANSFORMS = re.compile(
+    r'^(MB|QF|QD|LS|LO|AC|MD|TCE|MP|QM|BPV\.33108|BTVE\.61798|AEPA\.33404|AERB\.31302|BCTDC\.41435|BPMBV\.51303'
+    r'|BTVE\.61831|BTVE\.61876|BPCN\.20902|VVGST\.61737|VCTSC\.61752|VVGST\.61752|VTTE\.62005|BGIHA\.51634'
+    r'|BGIVA\.51674)')
+
 ldb_model = layout.Machine.from_pickle("SPS.pickle")
 
 # Load the SPS with its nominal curved survey
 sps = xt.load('sps.json')
 
 # Check that they can twiss
-sps.twiss4d()
+sps.twiss_default['method'] = '4d'
+sps.twiss()
 
 sv = sps.survey()
 
@@ -330,32 +289,10 @@ for transform_name, transformation in ldb_model.transformations.items():
 
 pipes_loc = sorted(pipes_loc.items(), key=lambda x: x[1].z)
 
-# excluded_pipe_positions = _pipe_positions_excluded_by_assembly_filter(
-#     [transform_name for transform_name, _ in pipes_loc],
-#     ldb_model.transformations,
-#     PIPE_OVERLAP_ASSEMBLY_FILTER,
-# )
-#
-# if excluded_pipe_positions:
-#     pipes_loc = [
-#         (transform_name, loc)
-#         for transform_name, loc in pipes_loc
-#         if transform_name not in excluded_pipe_positions
-#     ]
-#     for transform_name in excluded_pipe_positions:
-#         pipes_loc_middles.pop(transform_name, None)
-
-
 if ignored_transforms:
     warn(f'Ignored {len(ignored_transforms)} transforms without target types, whose target types are not valid '
          f'apertures, or which were excluded purposefully due to data errors: {_format_list(ignored_transforms)}',
          LDBConverterWarning)
-# if excluded_pipe_positions:
-#     warn(
-#         f'Excluded {len(excluded_pipe_positions)} pipe positions using assembly filter '
-#         f'{PIPE_OVERLAP_ASSEMBLY_FILTER!r}: {_format_list(sorted(excluded_pipe_positions))}',
-#         LDBConverterWarning,
-#     )
 
 
 # Refer pipe locations to survey elements
@@ -380,8 +317,8 @@ s_center_by_name = dict(zip(line_table.name, line_table.s_center))
 
 # Place pipes in the model
 for transform_name, mad_point in pipes_loc:
-    # if transform_name in excluded_pipe_positions:
-    #     continue
+    if re.match(IGNORED_TRANSFORMS, transform_name):
+        continue
 
     type_name = ldb_model.transformations[transform_name].target_type
     pipe_to_place = type_name
@@ -417,16 +354,8 @@ for transform_name, mad_point in pipes_loc:
     if pipe_to_place:
         builder.place_pipe(transform_name, pipe_to_place, transformation=from_ref_to_here, at=at)
 
-# Clip the pipe that crosses the ring boundary. This avoids placing the single-turn model
-# past _end_point until the aperture model supports wrapped pipe spans.
-# last_profile_hcvc1ib = builder._pipes['HCVC1IB'].positions[1]
-# old_hcvc1ib_last_shift_s = last_profile_hcvc1ib.shift_s
-# vc1ib_1l1_start = dict(pipes_loc)['VC1IB.1L1.X'].z
-# boundary_margin = 0.001
-# last_profile_hcvc1ib.shift_s = min(old_hcvc1ib_last_shift_s, b1.get_length() - vc1ib_1l1_start - boundary_margin)
-
 aperture_model = builder.build(context=context)
-aperture = Aperture(model=aperture_model, line=sps, s_tol=PIPE_OVERLAP_TOL, context=context, _skip_validity_check=True)
+aperture = Aperture(model=aperture_model, line=sps, s_tol=PIPE_OVERLAP_TOL, context=context)
 
 p_tab = aperture.get_pipe_table()
 pipe_overlap_rows = _write_pipe_overlap_report(
@@ -451,3 +380,8 @@ plt.plot(sv.Z, sv.X, color='blue', marker='o', linestyle='none')
 aperture.plot_floor_projection(ax=ax, aspect='equal')
 plt.title('SPS Aperture and Survey Floor Plot')
 plt.show()
+
+aperture.plot_extents(s_positions=aperture.s_around_transitions(resolution=0.1))
+plt.show()
+
+aperture.to_json('sps_aperture.json')

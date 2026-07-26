@@ -4454,7 +4454,12 @@ class Line:
         Parameters
         ----------
         model: str
-            Radiation model to use. Can be 'mean', 'quantum' or None.
+            Radiation model to use. Can be 'mean', 'quantum', 'quantum-kick'
+            or None. ``'mean'`` applies the average radiation energy loss.
+            ``'quantum'`` samples individual emitted photons, which can be
+            captured through internal radiation logging. ``'quantum-kick'``
+            samples the equivalent stochastic total radiation kick without
+            generating individual photon records.
         model_beamstrahlung: str
             Beamstrahlung model to use. Can be 'mean', 'quantum' or None.
         model_bhabha: str
@@ -4469,7 +4474,7 @@ class Line:
         if not self._has_valid_tracker():
             self.build_tracker(compile=False)
 
-        assert model in [None, 'mean', 'quantum']
+        assert model in [None, 'mean', 'quantum', 'quantum-kick']
         assert model_beamstrahlung in [None, 'mean', 'quantum']
         assert model_bhabha in [None, 'quantum']
 
@@ -4479,6 +4484,9 @@ class Line:
         elif model == 'quantum':
             radiation_flag = 2
             self._radiation_model = 'quantum'
+        elif model == 'quantum-kick':
+            radiation_flag = 3
+            self._radiation_model = 'quantum-kick'
         else:
             radiation_flag = 0
             self._radiation_model = None
@@ -4510,7 +4518,7 @@ class Line:
             if hasattr(ee, 'flag_bhabha'):
                 ee.flag_bhabha = bhabha_flag
 
-        if radiation_flag == 2 or beamstrahlung_flag == 2 or bhabha_flag == 1:
+        if radiation_flag in (2, 3) or beamstrahlung_flag == 2 or bhabha_flag == 1:
             self._needs_rng = True
 
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)

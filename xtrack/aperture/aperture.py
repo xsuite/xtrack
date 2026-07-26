@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Collection, Iterable
-from typing import Literal, cast
+from typing import Literal, cast, get_args
 
 import numpy as np
 
@@ -37,7 +37,6 @@ HomogenousMatrix = np.ndarray[tuple[Literal[4], Literal[4]], DTypeFloat]
 HomogenousMatrices = np.ndarray[tuple[int, Literal[4], Literal[4]], DTypeFloat]
 
 SigmasCalculationEnum = Literal['bisection', 'rays', 'exact']
-
 
 def _survey_is_closed(survey: Table, tol: float = 1e-6) -> bool:
     if len(survey.Z) < 2:
@@ -275,7 +274,7 @@ class Aperture:
         pipe_position_names = []
 
         for element_name in name_iter_with_progress:
-            element = line.element_dict[element_name]
+            element = line[element_name]
 
             # Discard line name suffix to get the aperture name
             aper_name = cls._guess_original_mad_name(element_name)
@@ -412,7 +411,6 @@ class Aperture:
         pipe_position_names = []
 
         for survey_name in progress(survey_names, desc="Building aperture data", total=len(survey_names)):
-            # Discard line name suffix to get the aperture name
             element = line[survey_name]
             aper_name = getattr(element, 'name_associated_aperture', None)
 
@@ -507,7 +505,8 @@ class Aperture:
 
         for name in progress(survey_names, desc="Building aperture data", total=len(survey_names)):
             element = line[name]
-            if not isinstance(element, LimitElement):
+            # TODO: Revert to using LimitElement directly once Python 3.11 is dropped.
+            if not isinstance(element, get_args(LimitElement)):
                 continue
 
             indices[name] = aper_idx
@@ -515,10 +514,12 @@ class Aperture:
             profiles.append(Profile(shape=profile))
 
             profile_position = ProfilePosition(profile_index=aper_idx)
+            profile_position.shift_x = center_x
+            profile_position.shift_y = center_y
             if element.transformations_active:
                 profile_position.shift_s = element.shift_s
-                profile_position.shift_x = element.shift_x
-                profile_position.shift_y = element.shift_y
+                profile_position.shift_x += element.shift_x
+                profile_position.shift_y += element.shift_y
                 # TODO: Is this really how it should be??
                 profile_position.rot_s_rad = element.rot_s_rad_no_frame
                 profile_position.rot_x_rad = element.rot_x_rad

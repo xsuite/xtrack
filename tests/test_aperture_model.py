@@ -482,6 +482,29 @@ def test_from_line_with_limits_type_bounds(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_from_line_with_limits_preserves_limit_polygon_geometry(test_context):
+    x_vertices = np.array([0.03, 0.0, -0.03, 0.0])
+    y_vertices = np.array([0.0, 0.02, 0.0, -0.02])
+    line = xt.Line(
+        elements=[xt.LimitPolygon(x_vertices=x_vertices, y_vertices=y_vertices)],
+        element_names=['aper'],
+    )
+
+    aperture_model = Aperture.from_line_with_limits(
+        line,
+        context=test_context,
+        _skip_validity_check=True,
+    )
+    section = aperture_model.cross_sections_at_s([0.0]).cross_section[0]
+
+    xo.assert_allclose(section[0], [x_vertices[0], y_vertices[0]], atol=1e-15, rtol=0)
+    assert np.min(section[:, 0]) < -0.02
+    assert np.max(section[:, 0]) > 0.02
+    assert np.min(section[:, 1]) < -0.01
+    assert np.max(section[:, 1]) > 0.01
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
 def test_bounds_table_for_perfect_overlap_interval(test_context):
     env = xt.load(string=TOY_RING_SEQUENCE, format='madx', install_limits=False)
     env.set_particle_ref('proton', p0c=1.2e9)

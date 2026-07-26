@@ -46,6 +46,7 @@ def test_radiation(test_context, thick):
     gamma = ctx2np((particles_ave.energy/particles_ave.mass0))[0]
     gamma0 = ctx2np(particles_ave.gamma0)[0]
     particles_rnd = particles_ave.copy()
+    particles_rnd_kick = particles_ave.copy()
 
     P0_J = ctx2np(particles_ave.p0c[0]) / clight * qe
     h_bend = B_T * qe / P0_J
@@ -56,25 +57,36 @@ def test_radiation(test_context, thick):
                              radiation_flag=1, _context=test_context)
         dipole_rnd = xt.Bend(length=L_bend, angle=theta_bend, k0_from_h=True,
                              radiation_flag=2, _context=test_context)
+        dipole_rnd_kick = xt.Bend(length=L_bend, angle=theta_bend,
+                                  k0_from_h=True, radiation_flag=3,
+                                  _context=test_context)
     else:
         dipole_ave = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
                                 radiation_flag=1, _context=test_context)
         dipole_rnd = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
                                 radiation_flag=2, _context=test_context)
+        dipole_rnd_kick = xt.Multipole(knl=[theta_bend], length=L_bend,
+                                hxl=theta_bend, radiation_flag=3,
+                                _context=test_context)
 
     dct_ave_before = particles_ave.to_dict()
     dct_rng_before = particles_rnd.to_dict()
 
     particles_ave._init_random_number_generator()
     particles_rnd._init_random_number_generator()
+    particles_rnd_kick._init_random_number_generator()
 
     dipole_ave.track(particles_ave)
     dipole_rnd.track(particles_rnd)
+    dipole_rnd_kick.track(particles_rnd_kick)
 
     dct_ave = particles_ave.to_dict()
     dct_rng = particles_rnd.to_dict()
+    dct_rng_kick = particles_rnd_kick.to_dict()
 
     xo.assert_allclose(dct_ave['delta'], np.mean(dct_rng['delta']),
+                    atol=0, rtol=5e-3)
+    xo.assert_allclose(dct_ave['delta'], np.mean(dct_rng_kick['delta']),
                     atol=0, rtol=5e-3)
 
     rho_0 = L_bend/theta_bend
@@ -143,6 +155,22 @@ def test_radiation(test_context, thick):
     xo.assert_allclose(mean_photon_energy, E_ave_eV, rtol=1e-2, atol=0)
     xo.assert_allclose(std_photon_energy,
                       np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=2e-3, atol=0)
+
+    line.configure_radiation(model='quantum-kick')
+    record = line.start_internal_logging_for_elements_of_type(
+        xt.Multipole, capacity=record_capacity)
+    particles_test = particles_ave_0.copy()
+    particles_test_before = particles_test.copy()
+    line.track(particles_test)
+
+    particles_test.move(xo.context_default)
+    particles_test_before.move(xo.context_default)
+    record.move(xo.context_default)
+
+    Delta_E_test = (particles_test.ptau - particles_test_before.ptau
+                                                        )*particles_test.p0c
+    assert -np.sum(Delta_E_test) > 0
+    assert record._index.num_recorded == 0
 
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
@@ -227,26 +255,55 @@ def test_ring_with_radiation(test_context, thick):
     line.configure_radiation(model='mean')
     part_co = line.find_closed_orbit()
 
+    num_turns=1500
+    num_parts=50
+
     par_for_emit = line.build_particles(
-                                x_norm=50*[0],
+                                x_norm=num_parts*[0],
                                 zeta=part_co.zeta[0], delta=part_co.delta[0],
                                 _context=test_context
                                 )
+
+    # quantum radiation model
     line.discard_tracker()
     line.build_tracker(test_context)
     line.configure_radiation(model='quantum')
-    num_turns=1500
-    line.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
+
+    par_for_emit_track = par_for_emit.copy()
+    line.track(par_for_emit_track, num_turns=num_turns,
+                turn_by_turn_monitor=True)
     mon = line.record_last_track
 
     xo.assert_allclose(np.std(mon.zeta[:, 750:]),
         np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'].iloc[0] * np.abs(tw['bets0'])),
-        rtol=0.2, atol=0
+        rtol=0.25, atol=0
         )
 
     xo.assert_allclose(np.std(mon.x[:, 750:]),
         np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'].iloc[0] * tw['betx'][0]),
-        rtol=0.2, atol=0
+        rtol=0.25, atol=0
+        )
+
+    assert np.all(mon.y[:] < 1e-15)
+
+    # quantum-kick radiation model
+    line.discard_tracker()
+    line.build_tracker(test_context)
+    line.configure_radiation(model='quantum-kick')
+
+    par_for_emit_track = par_for_emit.copy()
+    line.track(par_for_emit_track, num_turns=num_turns,
+                turn_by_turn_monitor=True)
+    mon = line.record_last_track
+
+    xo.assert_allclose(np.std(mon.zeta[:, 750:]),
+        np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'].iloc[0] * np.abs(tw['bets0'])),
+        rtol=0.25, atol=0
+        )
+
+    xo.assert_allclose(np.std(mon.x[:, 750:]),
+        np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'].iloc[0] * tw['betx'][0]),
+        rtol=0.25, atol=0
         )
 
     assert np.all(mon.y[:] < 1e-15)

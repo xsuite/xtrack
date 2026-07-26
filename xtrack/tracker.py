@@ -22,7 +22,7 @@ from .line import Line, _is_thick, _is_collective
 from .line import freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .progress_indicator import progress
-from .tracker_data import TrackerData
+from .tracker_data import TrackerData, _expand_element_classes_with_slice_classes
 from .track_flags import TrackFlags
 
 logger = logging.getLogger(__name__)
@@ -390,8 +390,8 @@ class Tracker:
                                multi_element_monitor=multi_element_monitor)
 
         if time:
-            t1 = perf_counter()
             self._context.synchronize()
+            t1 = perf_counter()
             self.time_last_track = t1 - t0
         else:
             self.time_last_track = None
@@ -488,15 +488,56 @@ class Tracker:
                 )
                 return kernels['track_line']
 
-        context = self._tracker_data_base._buffer.context
+        kernel_info = self._compile_kernel_from_classes(
+            context=self._tracker_data_base._buffer.context,
+            config=self.config,
+            tracker_element_classes=self._tracker_data_base.kernel_element_classes,
+            extra_classes=extra_classes,
+            extra_headers=self.extra_headers,
+            module_name=module_name,
+            containing_dir=containing_dir,
+            compile=compile,
+        )
+        return kernel_info['kernel']
 
-        kernel_element_classes = self._tracker_data_base.kernel_element_classes
+    @classmethod
+    def _compile_kernel_from_classes(
+            cls,
+            context,
+            config,
+            tracker_element_classes,
+            extra_classes=(),
+            extra_headers=(),
+            module_name=None,
+            containing_dir='.',
+            compile=True,
+    ):
+        kernel_element_classes = _expand_element_classes_with_slice_classes(
+            tracker_element_classes)
+        kernel_element_classes = sorted(
+            kernel_element_classes,
+            key=lambda cc: cc._DressingClass.__name__)
+
+        extra_xostructs = [
+            extra_class if issubclass(extra_class, xo.Struct)
+            else extra_class._XoStruct
+            for extra_class in extra_classes
+        ]
+
+        all_classes = list(kernel_element_classes)
+        for extra_class in extra_xostructs:
+            if extra_class not in all_classes:
+                all_classes.append(extra_class)
+
+        extra_kernels = {}
+        for element_class in all_classes:
+            extra_kernels.update(element_class._kernels)
 
         headers = []
 
-        headers.extend(self.extra_headers)
+        headers.extend(extra_headers)
         headers.append(_pkg_root.joinpath("headers/constants.h"))
-        headers.append(self.track_flags.c_header_flag_mapping)
+        headers.append(TrackFlags.c_header_flag_mapping)
 
         src_lines = []
         src_lines.append(
@@ -702,11 +743,11 @@ class Tracker:
 
         source_track = "\n".join(src_lines)
 
-        kernels = self.get_kernel_descriptions(kernel_element_classes)
+        kernels = cls.get_kernel_descriptions(kernel_element_classes)
         kernels.update(extra_kernels)
 
         # Compile!
-        if self._context.allow_prebuilt_kernels:
+        if context.allow_prebuilt_kernels:
             kwargs = {
                 'containing_dir': containing_dir,
                 'module_name': module_name,
@@ -718,8 +759,8 @@ class Tracker:
         out_kernels = context.build_kernels(
             sources=[source_track],
             kernel_descriptions=kernels,
-            extra_headers=self._config_to_headers() + headers,
-            extra_classes=kernel_element_classes + extra_classes,
+            extra_headers=cls._config_to_headers_from_config(config) + headers,
+            extra_classes=all_classes,
             apply_to_source=[_handle_per_particle_blocks],
             specialize=True,
             compile=compile,
@@ -727,9 +768,14 @@ class Tracker:
             extra_compile_args=(),
             **kwargs,
         )
-        return out_kernels['track_line']
+        return {
+            'kernel': out_kernels['track_line'],
+            'tracker_element_classes': kernel_element_classes,
+            'all_classes': all_classes,
+        }
 
-    def get_kernel_descriptions(self, kernel_element_classes):
+    @staticmethod
+    def get_kernel_descriptions(kernel_element_classes):
 
         tdata_type = _element_ref_data_class_from_element_classes(
             kernel_element_classes)
@@ -1482,8 +1528,12 @@ class Tracker:
         return tuple(sorted(items))
 
     def _config_to_headers(self):
+        return self._config_to_headers_from_config(self.config)
+
+    @staticmethod
+    def _config_to_headers_from_config(config):
         headers = []
-        for k, v in self.config.items():
+        for k, v in config.items():
             if not isinstance(v, bool):
                 headers.append(f'#define {k} {v}')
             elif v is True:

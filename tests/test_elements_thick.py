@@ -2214,6 +2214,7 @@ def test_solenoid_multipole_rotations():
         ('mean', {'XTRACK_SYNRAD_KICK_SAME_AS_FIRST': True}),
         ('mean', {'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST': True}),
         ('quantum', {}),
+        ('quantum-kick', {}),
     ],
 )
 @allow_no_prebuilt_kernels(skip_when_forbid_compile=False)
@@ -2282,6 +2283,7 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
         ('mean', {'XTRACK_SYNRAD_KICK_SAME_AS_FIRST': True}),
         ('mean', {'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST': True}),
         ('quantum', {}),
+        ('quantum-kick', {}),
     ],
 )
 @allow_no_prebuilt_kernels(skip_when_forbid_compile=False)

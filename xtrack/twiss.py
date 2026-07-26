@@ -659,14 +659,12 @@ def twiss_line(line, particle_ref=None, method=None,
                         **kwargs)
         return _add_action_in_res(res, input_kwargs)
 
-    if line._radiation_model == 'quantum':
-        raise ValueError(
-                'twiss cannot be called when the radiation model is ``quantum``')
-
-    if line._radiation_model is not None and method == '4d':
-        raise RuntimeError('4d twiss cannot be called when radiation is present')
-
     if radiation_method is None and line._radiation_model is not None:
+        if line._radiation_model in ('quantum', 'quantum-kick'):
+            raise ValueError(
+                'twiss cannot be called when the radiation model is stochastic')
+        if method == '4d':
+            raise RuntimeError('4d twiss cannot be called when radiation is present')
         radiation_method = 'kick_as_co'
 
     if radiation_method is not None and radiation_method != 'full':
@@ -2217,7 +2215,9 @@ def _get_eneloss_and_damping_rates(particle_on_co, R_matrix,
 def _extract_sr_distribution_properties(twiss_res):
 
     radiation_flag = twiss_res['radiation_flag']
-    if np.any(radiation_flag == 2):
+    if np.any(
+            (radiation_flag == 2)
+            | (radiation_flag == 3)):
         raise ValueError('Incompatible radiation flag')
 
     hx, hy, kappa0_x, kappa0_y = _get_trajectory_curvatures(twiss_res)
