@@ -1,3 +1,5 @@
+import pathlib
+
 import numpy as np
 import pytest
 import xobjects as xo
@@ -9,12 +11,317 @@ from xobjects.test_helpers import for_all_test_contexts
 import xtrack as xt
 
 
+test_data_folder = pathlib.Path(
+    __file__).parent.joinpath('../test_data').absolute()
+
+
 def _to_numpy(test_context, array):
     return test_context.nparray_from_context_array(array)
 
 
 def _to_context_array(test_context, values):
     return test_context.nparray_to_context_array(np.asarray(values))
+
+
+@pytest.fixture(scope='module')
+def pimms_line_for_beam_stats(temp_context_default_mod):
+    env = xt.load([
+        test_data_folder / 'pimms/PIMMS.seq',
+        test_data_folder / 'pimms/pimms_optics.str',
+    ])
+    line = env.pimms
+    line.set_particle_ref('proton', kinetic_energy0=100e6)
+    return line
+
+
+def _copy_pimms_line_with_cavity(pimms_line, harmonic):
+    line = pimms_line.copy()
+    line.insert(
+        'pimms_cavity', xt.Cavity(harmonic=harmonic, voltage=10e3),
+        at=0.001)
+    return line
+
+
+@for_all_test_contexts
+def test_beam_stats_monitor_example_whole_beam_end_to_end(
+        test_context, pimms_line_for_beam_stats):
+    num_turns = 4
+    total_intensity = 1e10
+    line = _copy_pimms_line_with_cavity(
+        pimms_line_for_beam_stats, harmonic=7)
+
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=num_turns,
+        stats=['num_particles', 'mean_x', 'mean_zeta', 'sigma_x'],
+    )
+    line.insert('beam_stats_monitor', monitor, at=0)
+
+    np.random.seed(12345)
+    particles = line.xpart.generate_matched_gaussian_bunch(
+        _context=test_context,
+        num_particles=40,
+        total_intensity_particles=total_intensity,
+        nemitt_x=1e-6,
+        nemitt_y=1e-6,
+        sigma_z=0.01,
+    )
+
+    line.build_tracker(_context=test_context)
+    line.track(particles, num_turns=num_turns)
+
+    assert monitor.stats == (
+        'num_particles', 'mean_x', 'mean_zeta', 'sigma_x')
+    assert monitor.available_levels == ('beam',)
+    assert monitor.default_level == 'beam'
+    assert_equal(monitor.turns, np.arange(num_turns))
+    assert monitor.mean_x.shape == (num_turns,)
+    assert monitor.num_particles.shape == (num_turns,)
+    assert_allclose(monitor.num_particles, total_intensity, rtol=1e-14)
+    assert_allclose(
+        monitor.get('mean_x', turn=1),
+        monitor.mean_x[monitor.record_index(1)])
+    assert np.all(np.isfinite(monitor.mean_x))
+    assert np.all(monitor.sigma_x > 0)
+
+
+@for_all_test_contexts
+def test_beam_stats_monitor_example_bunch_by_bunch_end_to_end(
+        test_context, pimms_line_for_beam_stats):
+    num_turns = 3
+    num_slots = 3
+    bunch_intensity = 1e10
+    line = _copy_pimms_line_with_cavity(
+        pimms_line_for_beam_stats, harmonic=num_slots)
+    bunch_spacing_zeta = line.get_length() / num_slots
+    filling_scheme = np.ones(num_slots, dtype=int)
+
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=num_turns,
+        filling_scheme=filling_scheme,
+        bunch_spacing_zeta=bunch_spacing_zeta,
+        stats=['num_particles', 'mean_x', 'mean_zeta', 'sigma_x'],
+    )
+    line.insert('beam_stats_monitor', monitor, at=0)
+
+    np.random.seed(12345)
+    particles = line.xpart.generate_matched_gaussian_multibunch_beam(
+        _context=test_context,
+        filling_scheme=filling_scheme,
+        bunch_num_particles=20,
+        bunch_intensity_particles=bunch_intensity,
+        nemitt_x=1e-8,
+        nemitt_y=1e-8,
+        sigma_z=0.01,
+        bucket_length=bunch_spacing_zeta,
+    )
+    zeta = _to_numpy(test_context, particles.zeta)
+    particles.x = _to_context_array(
+        test_context,
+        -1e-3 * np.sin(2 * np.pi * zeta
+                        / (num_slots * bunch_spacing_zeta)))
+
+    line.build_tracker(_context=test_context)
+    line.track(particles, num_turns=num_turns)
+
+    assert monitor.available_levels == ('beam', 'bunch')
+    assert monitor.default_level == 'bunch'
+    assert_equal(monitor.selected_slots, np.arange(num_slots))
+    assert_equal(monitor.turns, np.arange(num_turns))
+    assert monitor.mean_x.shape == (num_turns, num_slots)
+    assert_allclose(monitor.num_particles, bunch_intensity, rtol=1e-14)
+    assert_allclose(
+        monitor.get('num_particles', level='beam'),
+        num_slots * bunch_intensity, rtol=1e-14)
+
+    weighted_mean_x = (
+        np.sum(monitor.mean_x * monitor.num_particles, axis=1)
+        / np.sum(monitor.num_particles, axis=1))
+    assert_allclose(
+        monitor.get('mean_x', level='beam'), weighted_mean_x, rtol=1e-14)
+    assert monitor.get('mean_x', slot=1).shape == (num_turns,)
+    assert monitor.get('mean_x', turn=1, slot=[0, 2]).shape == (2,)
+
+
+@for_all_test_contexts
+def test_beam_stats_monitor_example_slice_by_slice_end_to_end(
+        test_context, pimms_line_for_beam_stats):
+    num_turns = 2
+    num_slots = 2
+    num_slices = 12
+    bunch_intensity = 1e10
+    zeta_range = (-5.0, 5.0)
+    line = _copy_pimms_line_with_cavity(
+        pimms_line_for_beam_stats, harmonic=num_slots)
+    bunch_spacing_zeta = line.get_length() / num_slots
+    filling_scheme = np.ones(num_slots, dtype=int)
+
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=num_turns,
+        filling_scheme=filling_scheme,
+        selected_slots=[0, 1],
+        bunch_spacing_zeta=bunch_spacing_zeta,
+        zeta_range=zeta_range,
+        num_slices=num_slices,
+        stats=['num_particles', 'mean_x', 'mean_zeta', 'sigma_x'],
+    )
+    line.insert('beam_stats_monitor', monitor, at=0)
+
+    np.random.seed(12345)
+    particles = line.xpart.generate_matched_gaussian_multibunch_beam(
+        _context=test_context,
+        filling_scheme=filling_scheme,
+        bunch_num_particles=80,
+        bunch_intensity_particles=bunch_intensity,
+        nemitt_x=1e-12,
+        nemitt_y=1e-12,
+        sigma_z=1.0,
+        bucket_length=bunch_spacing_zeta,
+    )
+    zeta = _to_numpy(test_context, particles.zeta)
+    x = _to_numpy(test_context, particles.x)
+    particles.x = _to_context_array(
+        test_context,
+        x + 1e-3 * np.sin(2 * np.pi * zeta
+                           / (0.3 * bunch_spacing_zeta)))
+
+    line.build_tracker(_context=test_context)
+    line.track(particles, num_turns=num_turns)
+
+    assert monitor.available_levels == ('beam', 'bunch', 'slice')
+    assert monitor.default_level == 'slice'
+    assert monitor.mean_x.shape == (num_turns, num_slots, num_slices)
+    assert monitor.zeta_centers.shape == (num_slots, num_slices)
+    assert monitor.get('mean_x', turn=1, slot=1).shape == (num_slices,)
+    assert monitor.get('mean_x', level='bunch').shape == (num_turns, num_slots)
+    assert monitor.get('mean_x', level='beam').shape == (num_turns,)
+    assert_allclose(
+        np.sum(monitor.num_particles, axis=2),
+        monitor.get('num_particles', level='bunch'))
+    assert_allclose(
+        np.sum(monitor.num_particles, axis=(1, 2)),
+        monitor.get('num_particles', level='beam'))
+    assert np.all(monitor.get('num_particles', level='beam') > 0)
+
+
+@for_all_test_contexts
+def test_beam_stats_monitor_example_profiles_end_to_end(
+        test_context, pimms_line_for_beam_stats):
+    num_turns = 4
+    num_particles = 120
+    total_intensity = 1e10
+    line = _copy_pimms_line_with_cavity(
+        pimms_line_for_beam_stats, harmonic=7)
+
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=num_turns,
+        stats=['num_particles', 'mean_x', 'sigma_x'],
+        profiles={
+            'x': {'range': (-1.0, 1.0), 'num_bins': 16},
+            'delta': {'range': (-0.1, 0.1), 'num_bins': 12},
+        },
+    )
+    line.insert('beam_stats_monitor', monitor, at=0)
+
+    rng = np.random.default_rng(12345)
+    particles = xt.Particles(
+        _context=test_context,
+        mass0=np.asarray(line.particle_ref.mass0).ravel()[0],
+        p0c=np.asarray(line.particle_ref.p0c).ravel()[0],
+        x=rng.normal(loc=4e-3, scale=1.5e-3, size=num_particles),
+        px=rng.normal(loc=0.0, scale=0.2e-3, size=num_particles),
+        y=rng.normal(loc=0.0, scale=1.0e-3, size=num_particles),
+        py=rng.normal(loc=0.0, scale=0.2e-3, size=num_particles),
+        zeta=rng.normal(loc=0.0, scale=0.01, size=num_particles),
+        delta=rng.normal(loc=0.0, scale=0.8e-3, size=num_particles),
+        weight=np.full(num_particles, total_intensity / num_particles),
+    )
+
+    line.build_tracker(_context=test_context)
+    line.track(particles, num_turns=num_turns)
+
+    assert monitor.profile_coordinates == ('x', 'delta')
+    assert monitor.profile_num_bins == {'x': 16, 'delta': 12}
+    assert monitor.profiles['x'].shape == (num_turns, 16)
+    assert monitor.profiles['delta'].shape == (num_turns, 12)
+    assert monitor.mean_x.shape == (num_turns,)
+    assert monitor.sigma_x.shape == (num_turns,)
+    assert_allclose(monitor.num_particles, total_intensity, rtol=1e-14)
+    assert_allclose(
+        np.sum(monitor.profiles['x'], axis=1), monitor.num_particles)
+    assert_allclose(
+        np.sum(monitor.profiles['delta'], axis=1), monitor.num_particles)
+
+
+@for_all_test_contexts
+def test_beam_stats_monitor_example_coasting_end_to_end(
+        test_context, pimms_line_for_beam_stats):
+    num_turns = 3
+    num_slices = 16
+    num_particles = 160
+    total_intensity = 1e10
+    amplitude_x = 1e-3
+    modulation_phase = 0.3
+    line = pimms_line_for_beam_stats.copy()
+
+    tw = line.twiss(method='4d')
+    qx = tw.qx
+    betx = tw.betx[0]
+    alfx = tw.alfx[0]
+
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=num_turns,
+        coasting=True,
+        num_slices=num_slices,
+        stats=['num_particles', 'mean_x', 'mean_zeta'],
+    )
+    line.insert('beam_stats_monitor', monitor, at=0)
+
+    line_length = line.get_length()
+    mass0 = np.asarray(line.particle_ref.mass0).ravel()[0]
+    p0c = np.asarray(line.particle_ref.p0c).ravel()[0]
+    beta0 = np.asarray(line.particle_ref.beta0).ravel()[0]
+    zeta = np.linspace(
+        -0.5 * line_length, 0.5 * line_length,
+        num_particles, endpoint=False)
+    zeta += 0.5 * line_length / num_particles
+    theta = -2 * np.pi * qx * zeta / line_length + modulation_phase
+    particles = xt.Particles(
+        _context=test_context,
+        mass0=mass0,
+        p0c=p0c,
+        zeta=zeta,
+        x=amplitude_x * np.sin(theta),
+        px=amplitude_x / betx * (np.cos(theta) - alfx * np.sin(theta)),
+        weight=np.full(num_particles, total_intensity / num_particles),
+    )
+
+    line.build_tracker(_context=test_context)
+    line.track(particles, num_turns=num_turns)
+
+    assert monitor.coasting
+    assert monitor.available_levels == ('beam', 'slice')
+    assert monitor.default_level == 'slice'
+    assert_equal(monitor.turns, np.arange(num_turns))
+    assert monitor.mean_x.shape == (num_turns, num_slices)
+    assert monitor.zeta_centers is None
+    assert monitor.time_centers(
+        line_length=line_length, beta0=beta0).shape == (num_turns, num_slices)
+    assert monitor.zeta_centers_unwrapped(
+        line_length=line_length).shape == (num_turns, num_slices)
+    assert_allclose(
+        monitor.get('num_particles', level='beam'),
+        total_intensity, rtol=1e-14)
+    assert np.all(np.isfinite(monitor.mean_x[monitor.num_particles > 0]))
 
 
 @for_all_test_contexts
