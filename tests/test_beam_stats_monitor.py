@@ -4,8 +4,7 @@ import xobjects as xo
 import xpart as xp
 from numpy.testing import assert_allclose, assert_equal
 
-from xobjects.test_helpers import (
-    allow_no_prebuilt_kernels, for_all_test_contexts)
+from xobjects.test_helpers import for_all_test_contexts
 
 import xtrack as xt
 
@@ -15,7 +14,6 @@ def _to_numpy(test_context, array):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_whole_beam_stats(test_context):
     particles = xt.Particles(
         _context=test_context,
@@ -53,7 +51,6 @@ def test_beam_stats_monitor_whole_beam_stats(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_bunch_stats(test_context):
     particles = xt.Particles(
         _context=test_context,
@@ -89,7 +86,6 @@ def test_beam_stats_monitor_bunch_stats(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_weighted_stats_and_turn_selection(test_context):
     particles = xt.Particles(
         _context=test_context,
@@ -151,7 +147,6 @@ def test_beam_stats_monitor_weighted_stats_and_turn_selection(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_pzeta_stats_and_projected_emittance(test_context):
     particles = xt.Particles(
         _context=test_context,
@@ -300,7 +295,6 @@ def test_beam_stats_monitor_coupled_emittance_and_covariance_optics(
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_covariance_optics_generated_matched_bunch(
         test_context):
     np.random.seed(12345)
@@ -401,7 +395,6 @@ def test_beam_stats_monitor_optics_from_covariance_requires_moments():
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_selected_slots(test_context):
     particles = xt.Particles(
         _context=test_context,
@@ -440,7 +433,6 @@ def test_beam_stats_monitor_selected_slots(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_mixed_turns_and_lost_particle_zero(test_context):
     particles = xt.Particles(
         _context=test_context,
@@ -519,7 +511,6 @@ def test_beam_stats_monitor_rejects_duplicate_slots():
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_coasting_slice_stats(test_context):
     monitor = xt.BeamStatsMonitor(
         _context=test_context,
@@ -603,7 +594,6 @@ def test_beam_stats_monitor_coasting_slice_stats(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_coasting_hdf5_public_shape(test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
@@ -724,7 +714,6 @@ def test_beam_stats_monitor_coasting_rejects_start_new_frame():
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_profiles_whole_beam(test_context):
     particles = xt.Particles(
         _context=test_context,
@@ -766,7 +755,6 @@ def test_beam_stats_monitor_profiles_whole_beam(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_profiles_slice_and_coasting_shapes(test_context):
     slice_particles = xt.Particles(
         _context=test_context,
@@ -886,7 +874,6 @@ def test_beam_stats_monitor_profiles_validation():
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_reset_data(test_context):
     particles = xt.Particles(
         _context=test_context,
@@ -926,7 +913,6 @@ def test_beam_stats_monitor_reset_data(test_context):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_save_to_file_hdf5(test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
@@ -1012,7 +998,6 @@ def test_beam_stats_monitor_output_file_is_initialized_on_creation(tmp_path):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_save_to_file_creates_filename(
         test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
@@ -1048,7 +1033,6 @@ def test_beam_stats_monitor_save_to_file_creates_filename(
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_save_to_file_appends_existing_filename(
         test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
@@ -1098,7 +1082,6 @@ def test_beam_stats_monitor_save_to_file_appends_existing_filename(
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_save_to_file_rejects_invalid_existing_file(
         test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
@@ -1134,7 +1117,6 @@ def test_beam_stats_monitor_save_to_file_rejects_invalid_existing_file(
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_hdf5_progressive_save_to_file(
         test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
@@ -1183,7 +1165,6 @@ def test_beam_stats_monitor_hdf5_progressive_save_to_file(
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_hdf5_start_new_frame(test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
@@ -1237,7 +1218,6 @@ def test_beam_stats_monitor_hdf5_start_new_frame(test_context, tmp_path):
 
 
 @for_all_test_contexts
-@allow_no_prebuilt_kernels
 def test_beam_stats_monitor_to_dict_stores_configuration_only(test_context):
     particles = xt.Particles(
         _context=test_context,
