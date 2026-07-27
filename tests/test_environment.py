@@ -1743,6 +1743,17 @@ def test_env_set_multi_dimensional_arrays():
     assert env['tm'].R[1, 4] == 0., 'stale expression on R[1,4] should have been cleared'
 
 
+def test_env_new_array_field_errors():
+    # Bad values for an array field must be reported against that field.
+    env = xt.Environment()
+
+    with pytest.raises(TypeError, match='knl should be an iterable'):
+        env.new('q', xt.Quadrupole, length=1, knl=5)
+
+    with pytest.raises(ValueError, match='R must be a rectangular array'):
+        env.new('tm', xt.SecondOrderTaylorMap, R=[[1., 2.], [3.]])
+
+
 def test_env_new_whole_array_reference():
     # Passing a whole array as a single reference wires each item to the
     # corresponding item of the referenced array.
