@@ -1681,6 +1681,80 @@ def test_env_new_allowed_elements(cls_name):
     assert isinstance(env['e'], cls)
 
 
+def test_env_new_multi_dimensional_arrays():
+    # env.new() must wire expressions nested at any depth. SecondOrderTaylorMap
+    # is used because its k/R/T are 1D/2D/3D array fields.
+    env = xt.Environment()
+    env['a'] = 2.
+
+    k = [0, 0, 0, 0, 0, 0]
+    k[1] = '3*a'
+    env.new('tm_k', xt.SecondOrderTaylorMap, k=k)
+    assert env['tm_k'].k[1] == 6.
+    assert env.ref['tm_k'].k[1].xdeps.expr == "(3.0 * vars['a'])"
+    env['a'] = 5.
+    assert env['tm_k'].k[1] == 15.
+    env['a'] = 2.
+
+    R = np.eye(6).tolist()
+    R[2][3] = '2*a'
+    env.new('tm_R', xt.SecondOrderTaylorMap, R=R)
+    expected_R = np.eye(6)
+    expected_R[2, 3] = 4.
+    xo.assert_allclose(env['tm_R'].R, expected_R, atol=0, rtol=0)
+    assert env.ref['tm_R'].R[2, 3].xdeps.expr == "(2.0 * vars['a'])"
+    env['a'] = 5.
+    assert env['tm_R'].R[2, 3] == 10.
+    env['a'] = 2.
+
+    T = np.zeros((6, 6, 6)).tolist()
+    T[1][2][3] = '4*a'
+    env.new('tm_T', xt.SecondOrderTaylorMap, T=T)
+    expected_T = np.zeros((6, 6, 6))
+    expected_T[1, 2, 3] = 8.
+    xo.assert_allclose(env['tm_T'].T, expected_T, atol=0, rtol=0)
+    assert env.ref['tm_T'].T[1, 2, 3].xdeps.expr == "(4.0 * vars['a'])"
+    env['a'] = 3.
+    assert env['tm_T'].T[1, 2, 3] == 12.
+
+
+def test_env_set_multi_dimensional_arrays():
+    # env.set() must wire a new expression, and clear a stale one when an
+    # expression-bearing cell is overwritten with a plain value.
+    env = xt.Environment()
+    env['a'] = 2.
+    env.new('tm', xt.SecondOrderTaylorMap)
+
+    env.set('tm', k=['3*a', 0, 0, 0, 0, 0])
+    assert env['tm'].k[0] == 6.
+
+    env.set('tm', k=[99, 0, 0, 0, 0, 0])
+    env['a'] = 100.
+    assert env['tm'].k[0] == 99., 'stale expression on k[0] should have been cleared'
+    env['a'] = 2.
+
+    R = np.eye(6).tolist()
+    R[1][4] = '5*a'
+    env.set('tm', R=R)
+    assert env['tm'].R[1, 4] == 10.
+
+    env.set('tm', R=np.eye(6).tolist())
+    env['a'] = 50.
+    assert env['tm'].R[1, 4] == 0., 'stale expression on R[1,4] should have been cleared'
+
+
+def test_env_new_whole_array_reference():
+    # Passing a whole array as a single reference wires each item to the
+    # corresponding item of the referenced array.
+    env = xt.Environment()
+    env.new('src', xt.Quadrupole, knl=[1, 2, 3])
+    env.new('dst', xt.Quadrupole, knl=env.ref['src'].knl)
+
+    assert env['dst'].knl[0] == 1.
+    env.set('src', knl=[9, 9, 9])
+    assert env['dst'].knl[0] == 9.
+
+
 def test_env_new_prototype_keyword_and_deprecated_parent():
 
     env = xt.Environment()

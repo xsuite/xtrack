@@ -2312,11 +2312,21 @@ class Environment:
                             f'length mismatch ({len(target)} vs {len_value})')
                 target[:len_value] = value_kwargs[kk]
                 if kk in ref_kwargs or not isinit:
-                    for ii, vvv in enumerate(value_kwargs[kk]):
-                        if ref_kwargs[kk][ii] is not None:
-                            getattr(container_refs[name], kk)[ii] = ref_kwargs[kk][ii]
+                    attr_ref = getattr(container_refs[name], kk)
+                    leaves = ref_kwargs[kk]
+                    if not isinstance(leaves, list):
+                        # Whole array passed as one reference: wire item by item.
+                        leaves = [((ii,), leaves[ii]) for ii in range(len_value)]
+                    for index_tuple, ref in leaves:
+                        # `arr[0]` and `arr[(0,)]` are distinct refs, so 1D must stay an int.
+                        idx = index_tuple[0] if len(index_tuple) == 1 else index_tuple
+                        if ref is not None:
+                            attr_ref[idx] = ref
                         elif not isinit:
-                            getattr(container_refs[name], kk)[ii] = value_kwargs[kk][ii]
+                            leaf_value = value_kwargs[kk]
+                            for ii in index_tuple:
+                                leaf_value = leaf_value[ii]
+                            attr_ref[idx] = leaf_value
             elif kk in ref_kwargs:
                 setattr(container_refs[name], kk, ref_kwargs[kk])
             else:
@@ -2477,7 +2487,74 @@ Environment.__doc_groups_ungrouped__ = _ENVIRONMENT_DOC_GROUP_COLLECTOR.validate
 )
 
 
+def _parse_array_value(vv, _eval, index=()):
+    """Recursively parse a (possibly nested, e.g. 2D/3D) array-like kwarg value.
+
+    Walks `vv` to arbitrary depth, evaluating any string leaf as a
+    deferred expression via `_eval`.
+
+    Parameters
+    ----------
+    vv : scalar, reference, string, or nested iterable of these
+        The value to parse.
+    _eval : callable
+        Evaluator turning a string expression into a reference.
+    index : tuple of int
+        Index path from the top-level kwarg to `vv`. Not meant to be
+        passed by callers; used internally to build leaf index tuples.
+
+    Returns
+    -------
+    value
+        `vv` with the same nesting structure, string leaves replaced by
+        their evaluated numeric value.
+    leaves : list of (index_tuple, ref_or_None)
+        One entry per scalar leaf of `vv`: the reference to wire up at
+        that index, or None if the leaf was a plain number with no
+        associated expression.
+    """
+    if hasattr(vv, '_value'):
+        return vv._value, [(index, vv)]
+    if isinstance(vv, str):
+        ref = _eval(vv)
+        value = ref._value if hasattr(ref, '_value') else ref
+        return value, [(index, ref)]
+    if hasattr(vv, '__iter__') and not isinstance(vv, (str, bytes)):
+        values = []
+        leaves = []
+        for ii, item in enumerate(vv):
+            sub_value, sub_leaves = _parse_array_value(item, _eval, index + (ii,))
+            values.append(sub_value)
+            leaves.extend(sub_leaves)
+        return values, leaves
+    return vv, [(index, None)]
+
+
 def _parse_kwargs(cls, kwargs, _eval):
+    """Split constructor/setter kwargs into references and plain values.
+
+    Any string value is evaluated as a deferred expression via `_eval`.
+    Array-valued xofields (including nested 2D/3D ones) are parsed
+    leaf-by-leaf with `_parse_array_value`.
+
+    Parameters
+    ----------
+    cls : type
+        The element (or `Particles`) class the kwargs are being parsed for.
+    kwargs : dict
+        Keyword arguments as passed by the caller.
+    _eval : callable
+        Evaluator turning a string expression into a reference.
+
+    Returns
+    -------
+    ref_kwargs : dict
+        References to set, keyed by attribute name. For array fields, the
+        value is a list of `(index_tuple, ref_or_None)` leaves (see
+        `_parse_array_value`); otherwise a single reference.
+    value_kwargs : dict
+        Plain numerical values to set, keyed by attribute name.
+    """
     ref_kwargs = {}
     value_kwargs = {}
     for kk in kwargs:
@@ -2485,26 +2562,13 @@ def _parse_kwargs(cls, kwargs, _eval):
             ref_kwargs[kk] = kwargs[kk]
             value_kwargs[kk] = kwargs[kk]._value
         elif (hasattr(cls, '_xofields') and kk in cls._xofields
-                and xo.array.is_array(cls._xofields[kk])):
+                and xo.array.is_array(
+                    cls._xofields[kk].ftype
+                    if isinstance(cls._xofields[kk], xo.Field)
+                    else cls._xofields[kk])):
             assert hasattr(kwargs[kk], '__iter__'), (
                 f'{kk} should be an iterable for {cls} element')
-            ref_vv = []
-            value_vv = []
-            for ii, vvv in enumerate(kwargs[kk]):
-                if hasattr(vvv, '_value'):
-                    ref_vv.append(vvv)
-                    value_vv.append(vvv._value)
-                elif isinstance(vvv, str):
-                    ref_vv.append(_eval(vvv))
-                    if hasattr(ref_vv[-1], '_value'):
-                        value_vv.append(ref_vv[-1]._value)
-                    else:
-                        value_vv.append(ref_vv[-1])
-                else:
-                    ref_vv.append(None)
-                    value_vv.append(vvv)
-            ref_kwargs[kk] = ref_vv
-            value_kwargs[kk] = value_vv
+            value_kwargs[kk], ref_kwargs[kk] = _parse_array_value(kwargs[kk], _eval)
         elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
             and (not hasattr(cls, '_noexpr_fields') or kk not in cls._noexpr_fields)):
             ref_kwargs[kk] = _eval(kwargs[kk])
