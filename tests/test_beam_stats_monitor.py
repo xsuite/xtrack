@@ -1,16 +1,24 @@
 import numpy as np
 import pytest
+import xobjects as xo
 import xpart as xp
 from numpy.testing import assert_allclose, assert_equal
 
-from xobjects.test_helpers import allow_no_prebuilt_kernels
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, for_all_test_contexts)
 
 import xtrack as xt
 
 
+def _to_numpy(test_context, array):
+    return test_context.nparray_from_context_array(array)
+
+
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_whole_beam_stats():
+def test_beam_stats_monitor_whole_beam_stats(test_context):
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 3., 10.],
         px=[0.1, 0.3, 1.0],
@@ -21,6 +29,7 @@ def test_beam_stats_monitor_whole_beam_stats():
         weight=[2., 1., 4.],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=3,
         every_n_turns=2,
@@ -43,9 +52,11 @@ def test_beam_stats_monitor_whole_beam_stats():
     assert_allclose(monitor.get('mean_x', turn=2), 45. / 7.)
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_bunch_stats():
+def test_beam_stats_monitor_bunch_stats(test_context):
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 2., 10., 20.],
         px=[0., 0., 0., 0.],
@@ -56,6 +67,7 @@ def test_beam_stats_monitor_bunch_stats():
         weight=[1., 1., 3., 1.],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
         filling_scheme=[1, 1],
@@ -76,9 +88,11 @@ def test_beam_stats_monitor_bunch_stats():
     assert_allclose(monitor.get('mean_x', level='beam', turn=0), 53. / 6.)
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_weighted_stats_and_turn_selection():
+def test_beam_stats_monitor_weighted_stats_and_turn_selection(test_context):
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 3., 10.],
         px=[0.1, 0.3, 1.0],
@@ -89,6 +103,7 @@ def test_beam_stats_monitor_weighted_stats_and_turn_selection():
         weight=[2., 1., 4.],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=3,
         every_n_turns=2,
@@ -135,9 +150,11 @@ def test_beam_stats_monitor_weighted_stats_and_turn_selection():
                     [45. / 7., 45. / 7.])
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_pzeta_stats_and_projected_emittance():
+def test_beam_stats_monitor_pzeta_stats_and_projected_emittance(test_context):
     particles = xt.Particles(
+        _context=test_context,
         p0c=1e9,
         x=[0., 0., 0.],
         px=[0., 0., 0.],
@@ -148,6 +165,7 @@ def test_beam_stats_monitor_pzeta_stats_and_projected_emittance():
         weight=[2., 1., 4.],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
         stats=[
@@ -162,10 +180,10 @@ def test_beam_stats_monitor_pzeta_stats_and_projected_emittance():
 
     monitor.track(particles)
 
-    weights = particles.weight
-    zeta = particles.zeta
-    delta = particles.delta
-    pzeta = particles.pzeta
+    weights = _to_numpy(test_context, particles.weight)
+    zeta = _to_numpy(test_context, particles.zeta)
+    delta = _to_numpy(test_context, particles.delta)
+    pzeta = _to_numpy(test_context, particles.pzeta)
     mean_zeta = np.average(zeta, weights=weights)
     mean_pzeta = np.average(pzeta, weights=weights)
     var_zeta = np.average(zeta * zeta, weights=weights) - mean_zeta**2
@@ -174,7 +192,8 @@ def test_beam_stats_monitor_pzeta_stats_and_projected_emittance():
         np.average(zeta * pzeta, weights=weights) - mean_zeta * mean_pzeta)
     gemitt_zeta = np.sqrt(var_zeta * var_pzeta - cov_zeta_pzeta**2)
     beta0_gamma0 = np.average(
-        particles.beta0 * particles.gamma0, weights=weights)
+        _to_numpy(test_context, particles.beta0 * particles.gamma0),
+        weights=weights)
 
     assert_allclose(monitor.mean_delta, [np.average(delta, weights=weights)])
     assert_allclose(monitor.mean_pzeta, [mean_pzeta])
@@ -185,7 +204,9 @@ def test_beam_stats_monitor_pzeta_stats_and_projected_emittance():
                     [gemitt_zeta * beta0_gamma0])
 
 
-def test_beam_stats_monitor_coupled_emittance_and_covariance_optics():
+@for_all_test_contexts
+def test_beam_stats_monitor_coupled_emittance_and_covariance_optics(
+        test_context):
     def w_2d(beta, alpha):
         return np.array([
             [np.sqrt(beta), 0.],
@@ -216,6 +237,7 @@ def test_beam_stats_monitor_coupled_emittance_and_covariance_optics():
     ]) @ w_matrix.T
 
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
         stats=[
@@ -277,8 +299,10 @@ def test_beam_stats_monitor_coupled_emittance_and_covariance_optics():
     assert_allclose(out['alfzeta'], alfzeta, rtol=1e-12, atol=0)
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_covariance_optics_generated_matched_bunch():
+def test_beam_stats_monitor_covariance_optics_generated_matched_bunch(
+        test_context):
     np.random.seed(12345)
 
     line = xt.Line(elements=[
@@ -309,8 +333,10 @@ def test_beam_stats_monitor_covariance_optics_generated_matched_bunch():
         line=line,
         engine='linear',
     )
+    particles = particles.copy(_context=test_context)
 
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
         stats=[
@@ -374,9 +400,11 @@ def test_beam_stats_monitor_optics_from_covariance_requires_moments():
         monitor.optics_from_covariance(level='beam', turn=0)
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_selected_slots():
+def test_beam_stats_monitor_selected_slots(test_context):
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 2., 10., 20.],
         px=[0., 0., 0., 0.],
@@ -387,6 +415,7 @@ def test_beam_stats_monitor_selected_slots():
         weight=[1., 1., 3., 1.],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
         zeta_range=(-0.5, 0.5),
@@ -410,9 +439,11 @@ def test_beam_stats_monitor_selected_slots():
     assert_allclose(monitor.get('mean_x', slot=1, slice_index=0), [12.5])
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_mixed_turns_and_lost_particle_zero():
+def test_beam_stats_monitor_mixed_turns_and_lost_particle_zero(test_context):
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[100., 1., 3., 10.],
         px=[0., 0., 0., 0.],
@@ -425,6 +456,7 @@ def test_beam_stats_monitor_mixed_turns_and_lost_particle_zero():
         at_turn=[0, 0, 0, 2],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=3,
         zeta_range=(-1., 1.),
@@ -486,9 +518,11 @@ def test_beam_stats_monitor_rejects_duplicate_slots():
         )
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_coasting_slice_stats():
+def test_beam_stats_monitor_coasting_slice_stats(test_context):
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=3,
         coasting=True,
@@ -496,8 +530,10 @@ def test_beam_stats_monitor_coasting_slice_stats():
         stats=['num_particles', 'mean_x', 'mean_zeta'],
     )
     line = xt.Line(elements=[monitor, xt.Drift(length=8.)])
+    line.build_tracker(_context=test_context)
 
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 2., 3., 4., 5., 6.],
         px=[0., 0., 0., 0., 0., 0.],
@@ -566,12 +602,14 @@ def test_beam_stats_monitor_coasting_slice_stats():
         monitor.slice_index(9., slot=0, line_length=8.)
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_coasting_hdf5_public_shape(tmp_path):
+def test_beam_stats_monitor_coasting_hdf5_public_shape(test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
     output_file = tmp_path / 'beam_stats_monitor_coasting.h5'
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=3,
         coasting=True,
@@ -580,8 +618,10 @@ def test_beam_stats_monitor_coasting_hdf5_public_shape(tmp_path):
         output_file=output_file,
     )
     line = xt.Line(elements=[monitor, xt.Drift(length=8.)])
+    line.build_tracker(_context=test_context)
 
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 2., 3., 4., 5., 6.],
         zeta=[3., 1., -1., -3., 9., -9.],
@@ -683,15 +723,18 @@ def test_beam_stats_monitor_coasting_rejects_start_new_frame():
     assert_equal(monitor.turns, [3, 5])
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_profiles_whole_beam():
+def test_beam_stats_monitor_profiles_whole_beam(test_context):
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[-0.75, -0.25, 0.25, 0.75, 1.25],
         y=[0., 0., 0., 0., 0.],
         weight=[1., 2., 3., 4., 5.],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=2,
         stats=['num_particles'],
@@ -722,15 +765,18 @@ def test_beam_stats_monitor_profiles_whole_beam():
     assert_allclose(monitor.num_particles, [15., 15.])
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_profiles_slice_and_coasting_shapes():
+def test_beam_stats_monitor_profiles_slice_and_coasting_shapes(test_context):
     slice_particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[-0.75, -0.25, 0.25, 0.75],
         zeta=[-0.75, -0.25, 0.25, 0.75],
         weight=[1., 2., 3., 4.],
     )
     slice_monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
         zeta_range=(-1., 1.),
@@ -747,6 +793,7 @@ def test_beam_stats_monitor_profiles_slice_and_coasting_shapes():
                      [0., 0., 3., 4.]])
 
     coasting_monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=3,
         coasting=True,
@@ -758,7 +805,9 @@ def test_beam_stats_monitor_profiles_slice_and_coasting_shapes():
         },
     )
     line = xt.Line(elements=[coasting_monitor, xt.Drift(length=8.)])
+    line.build_tracker(_context=test_context)
     coasting_particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 3., 5., 7.],
         zeta=[3., 1., -1., -3.],
@@ -836,9 +885,11 @@ def test_beam_stats_monitor_profiles_validation():
         )
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_reset_data():
+def test_beam_stats_monitor_reset_data(test_context):
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 3.],
         px=[0., 0.],
@@ -849,6 +900,7 @@ def test_beam_stats_monitor_reset_data():
         weight=[2., 1.],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
         stats=['num_particles', 'mean_x', 'sigma_x'],
@@ -860,7 +912,8 @@ def test_beam_stats_monitor_reset_data():
     assert_allclose(monitor.num_particles, [3.])
     assert_allclose(monitor.mean_x, [5. / 3.])
     assert_allclose(monitor.profiles['x'], [[2., 1.]])
-    assert isinstance(monitor.data.num_particles, np.ndarray)
+    if isinstance(test_context, xo.ContextCpu):
+        assert isinstance(monitor.data.num_particles, np.ndarray)
 
     monitor._reset_data()
 
@@ -868,14 +921,17 @@ def test_beam_stats_monitor_reset_data():
     assert_allclose(monitor.mean_x, [0.])
     assert_allclose(monitor.profiles['x'], [[0., 0.]])
     for field in monitor._RAW_FIELDS:
-        assert_allclose(getattr(monitor.data, field), 0.)
+        assert_allclose(_to_numpy(test_context, getattr(monitor.data, field)),
+                        0.)
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_save_to_file_hdf5(tmp_path):
+def test_beam_stats_monitor_save_to_file_hdf5(test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 3., 10.],
         px=[0.1, 0.3, 1.0],
@@ -887,6 +943,7 @@ def test_beam_stats_monitor_save_to_file_hdf5(tmp_path):
     )
     output_file = tmp_path / 'beam_stats_monitor.h5'
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
         zeta_range=(-1., 1.),
@@ -954,13 +1011,16 @@ def test_beam_stats_monitor_output_file_is_initialized_on_creation(tmp_path):
         assert 'stats' not in h5file
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_save_to_file_creates_filename(tmp_path):
+def test_beam_stats_monitor_save_to_file_creates_filename(
+        test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
     output_file = tmp_path / 'beam_stats_monitor_save_later.h5'
 
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 3.],
         px=[0., 0.],
@@ -971,6 +1031,7 @@ def test_beam_stats_monitor_save_to_file_creates_filename(tmp_path):
         weight=[1., 1.],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=2,
         stats=['num_particles', 'mean_x'],
@@ -986,12 +1047,15 @@ def test_beam_stats_monitor_save_to_file_creates_filename(tmp_path):
         assert_allclose(h5file['stats/beam/mean_x'][...], [2.])
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_save_to_file_appends_existing_filename(tmp_path):
+def test_beam_stats_monitor_save_to_file_appends_existing_filename(
+        test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
     output_file = tmp_path / 'beam_stats_monitor_append_later.h5'
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 3.],
         px=[0., 0.],
@@ -1003,6 +1067,7 @@ def test_beam_stats_monitor_save_to_file_appends_existing_filename(tmp_path):
     )
 
     first_monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=2,
         stats=['num_particles', 'mean_x'],
@@ -1012,6 +1077,7 @@ def test_beam_stats_monitor_save_to_file_appends_existing_filename(tmp_path):
     first_monitor.save_to_file()
 
     second_monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=2,
         stats=['num_particles', 'mean_x'],
@@ -1031,8 +1097,10 @@ def test_beam_stats_monitor_save_to_file_appends_existing_filename(tmp_path):
         assert_allclose(h5file['stats/beam/mean_x'][...], [2., 4.])
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_save_to_file_rejects_invalid_existing_file(tmp_path):
+def test_beam_stats_monitor_save_to_file_rejects_invalid_existing_file(
+        test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
     output_file = tmp_path / 'beam_stats_monitor_invalid.h5'
@@ -1040,6 +1108,7 @@ def test_beam_stats_monitor_save_to_file_rejects_invalid_existing_file(tmp_path)
         h5file.create_dataset('old_data', data=[1, 2, 3])
 
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 3.],
         px=[0., 0.],
@@ -1050,6 +1119,7 @@ def test_beam_stats_monitor_save_to_file_rejects_invalid_existing_file(tmp_path)
         weight=[1., 1.],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=2,
         stats=['num_particles', 'mean_x'],
@@ -1063,12 +1133,15 @@ def test_beam_stats_monitor_save_to_file_rejects_invalid_existing_file(tmp_path)
         assert 'old_data' in h5file
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_hdf5_progressive_save_to_file(tmp_path):
+def test_beam_stats_monitor_hdf5_progressive_save_to_file(
+        test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
     output_file = tmp_path / 'beam_stats_monitor_progress.h5'
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=3,
         stats=['num_particles', 'mean_x'],
@@ -1076,6 +1149,7 @@ def test_beam_stats_monitor_hdf5_progressive_save_to_file(tmp_path):
     )
 
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 3.],
         px=[0., 0.],
@@ -1108,12 +1182,14 @@ def test_beam_stats_monitor_hdf5_progressive_save_to_file(tmp_path):
         assert 'moments' not in h5file
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_hdf5_start_new_frame(tmp_path):
+def test_beam_stats_monitor_hdf5_start_new_frame(test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
     output_file = tmp_path / 'beam_stats_monitor_new_frame.h5'
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=1,
         stats=['num_particles', 'mean_x'],
@@ -1121,6 +1197,7 @@ def test_beam_stats_monitor_hdf5_start_new_frame(tmp_path):
     )
 
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 3.],
         px=[0., 0.],
@@ -1138,6 +1215,7 @@ def test_beam_stats_monitor_hdf5_start_new_frame(tmp_path):
     assert_allclose(monitor.num_particles, [0.])
 
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[10., 20.],
         px=[0., 0.],
@@ -1158,9 +1236,11 @@ def test_beam_stats_monitor_hdf5_start_new_frame(tmp_path):
         assert 'frames' not in h5file
 
 
+@for_all_test_contexts
 @allow_no_prebuilt_kernels
-def test_beam_stats_monitor_to_dict_stores_configuration_only():
+def test_beam_stats_monitor_to_dict_stores_configuration_only(test_context):
     particles = xt.Particles(
+        _context=test_context,
         p0c=7e12,
         x=[1., 2.],
         px=[0., 0.],
@@ -1171,6 +1251,7 @@ def test_beam_stats_monitor_to_dict_stores_configuration_only():
         weight=[1., 1.],
     )
     monitor = xt.BeamStatsMonitor(
+        _context=test_context,
         start_at_turn=0,
         stop_at_turn=2,
         every_n_turns=1,
@@ -1183,6 +1264,7 @@ def test_beam_stats_monitor_to_dict_stores_configuration_only():
         profiles={'x': {'range': (-1., 1.), 'num_bins': 4}},
     )
     line = xt.Line(elements=[monitor])
+    line.build_tracker(_context=test_context)
 
     line.track(particles, num_turns=1)
     assert_allclose(monitor.num_particles, [[[1., 0.]], [[0., 0.]]])
