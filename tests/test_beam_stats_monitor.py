@@ -13,6 +13,10 @@ def _to_numpy(test_context, array):
     return test_context.nparray_from_context_array(array)
 
 
+def _to_context_array(test_context, values):
+    return test_context.nparray_to_context_array(np.asarray(values))
+
+
 @for_all_test_contexts
 def test_beam_stats_monitor_whole_beam_stats(test_context):
     particles = xt.Particles(
@@ -735,8 +739,9 @@ def test_beam_stats_monitor_profiles_whole_beam(test_context):
 
     monitor.track(particles)
     particles.at_turn += 1
-    particles.x = [-0.75, -0.25, 0.25, 0.75, 1.25]
-    particles.weight = [5., 4., 3., 2., 1.]
+    particles.x = _to_context_array(
+        test_context, [-0.75, -0.25, 0.25, 0.75, 1.25])
+    particles.weight = _to_context_array(test_context, [5., 4., 3., 2., 1.])
     monitor.track(particles)
 
     assert monitor.profile_coordinates == ('x', 'y')
@@ -1150,7 +1155,7 @@ def test_beam_stats_monitor_hdf5_progressive_save_to_file(
         assert_allclose(h5file['stats/beam/num_particles'][...], [2.])
         assert_allclose(h5file['stats/beam/mean_x'][...], [2.])
 
-    particles.x = [10., 20.]
+    particles.x = _to_context_array(test_context, [10., 20.])
     particles.at_turn += 1
     monitor.track(particles)
     monitor.save_to_file()
