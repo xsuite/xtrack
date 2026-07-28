@@ -27,11 +27,10 @@ ds_start = 1.4
 ds_end = 2.29
 
 B0 = 3 # T
-B0_screen = -1. # T
+B0_screen = -1.4 # T
 r0 = 0.13
-r0_screen_sol = 0.09
-l_star = 2.4
-l_screen_sol = l_star - sol_half_length - 0.4
+r0_screen_sol = 0.13
+l_screen_sol = 0.6
 
 for ip_name in ip_names:
 
