@@ -543,7 +543,28 @@ if plot:
 
     fig1.subplots_adjust(hspace=.25, top=0.95, bottom=0.06, left=0.14)
 
-    ax5.set_xlim(-20, 20)
+    fig2 = plt.figure(2, figsize=(6.4, 4.8 * 1.8))
+    ax21 = fig2.add_subplot(4,1,1, sharex=ax1)
+    plty = tw4d.plot(ax=ax21)
+
+    ax22 = fig2.add_subplot(4,1,2, sharex=ax1)
+    ax22.plot(tw4d.s, tw4d.bs)
+    ax22.set_ylabel(r'$B_s$ [T]')
+    ax22.grid(True)
+
+    ax23 = fig2.add_subplot(4,1,3, sharex=ax1)
+    ax23.plot(tw4d.s, tw4d.k0sl / tw4d.length * rigidity0)
+    ax23.set_ylabel(r'$B_x$ [T]')
+    ax23.grid(True)
+
+    ax24 = fig2.add_subplot(4,1,4, sharex=ax1)
+    ax24.plot(tw4d.s, tw4d.rad_int_i5y_integrand)
+    ax24.set_ylabel(r'$i_5(s)$')
+    ax24.grid(True)
+    fig2.subplots_adjust(bottom=0.08, hspace=0.3)
+
+    ax1.set_xlim(-20, 20)
+
 
 out = {
     'B0': B0,
