@@ -10,7 +10,7 @@ from tilted_solenoid import TiltedSolenoid
 
 t1 = time.time()
 
-plot=False
+plot=True
 
 env = xt.load('fccee_z_lcc.json')
 line = env.fccee_p_ring
@@ -20,15 +20,18 @@ ip_names = ['ipa'] #, 'ipd', 'ipg', 'ipj']
 # Tilt with respect to the beam axis
 theta = -0.015
 
-sol_half_length = 1.5
+sol_half_length = 1.3
 
 # Location of first dipole corrector (overlaid with solenoid)
-ds_start = 1.5
+ds_start = 1.4
 ds_end = 2.29
 
-B0 = 2.75 # T
-
+B0 = 3 # T
+B0_screen = -1. # T
 r0 = 0.13
+r0_screen_sol = 0.09
+l_star = 2.4
+l_screen_sol = l_star - sol_half_length - 0.4
 
 for ip_name in ip_names:
 
@@ -39,12 +42,22 @@ for ip_name in ip_names:
 
     # Analytic field map
     sf = TiltedSolenoid(L=sol_half_length*2, a=r0, B0=B0, theta=theta)
+    sf_right = TiltedSolenoid(L=l_screen_sol, a=r0_screen_sol, B0=B0_screen, theta=theta,
+                              z0=sol_half_length + 0.5 * l_screen_sol)
+    sf_left = TiltedSolenoid(L=l_screen_sol, a=r0_screen_sol, B0=B0_screen, theta=theta,
+                              z0=-sol_half_length - 0.5 * l_screen_sol)
 
     # s coordinate along the beam axis
     s = np.linspace(-2.399, 2.399, 201)
 
     # Compute field on the beam reference trajectory in the beam frame
-    bx, by, bz = sf.get_field(0 * s, 0 * s, s)
+    bx_main, by_main, bz_main = sf.get_field(0 * s, 0 * s, s)
+    bx_right, by_right, bz_right = sf_right.get_field(0 * s, 0 * s, s)
+    bx_left, by_left, bz_left = sf_left.get_field(0 * s, 0 * s, s)
+
+    bx = bx_main + bx_right + bx_left
+    by = by_main + by_right + by_left
+    bz = bz_main + bz_right + bz_left
 
     # Normalized strengths
     rigidity0 = line.particle_ref.rigidity0[0]
@@ -545,8 +558,8 @@ out = {
 from pprint import pp
 pp(out)
 
-fout = (f'B0_{B0:.3f}_r0_{r0:.3f}_sol_half_length_{sol_half_length:.3f}'
-        f'_ds_start_{ds_start:.3f}_ds_end_{ds_end:.3f}.json')
+# fout = (f'B0_{B0:.3f}_r0_{r0:.3f}_sol_half_length_{sol_half_length:.3f}'
+#         f'_ds_start_{ds_start:.3f}_ds_end_{ds_end:.3f}.json')
 
-xt.json.dump(out, 'results/' + fout)
+# xt.json.dump(out, 'results/' + fout)
 
