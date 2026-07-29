@@ -125,8 +125,7 @@ def test_line_with_second_order_maps_split_at_octupoles(test_context):
                       ('maps', line_maps)):
         pp = ll.build_particles(x_norm=[0.5, 5., 0.5], y_norm=[0.5, 0.5, 5.],
                                 nemitt_x=2.5e-6, nemitt_y=2.5e-6)
-        ll.track(pp, num_turns=512, turn_by_turn_monitor=True,
-                 freeze_longitudinal=True)
+        ll.track(pp, num_turns=512, turn_by_turn_monitor=True)
         mon = ll.record_last_track
         ctx2np = test_context.nparray_from_context_array
         qx = [_tune_fft(ctx2np(mon.x)[jj, :]) for jj in range(3)]
