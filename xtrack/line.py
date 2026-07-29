@@ -24,7 +24,8 @@ from xtrack.twiss import (DEFAULT_MATRIX_RESPONSIVENESS_TOL,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           get_R_matrix,
                           get_T_matrix_line, find_closed_orbit_line,
-                          get_non_linear_chromaticity, twiss_line)
+                          get_non_linear_chromaticity, twiss_line,
+                          twiss_line_multibunch)
 
 from .api_categorization import GroupedAPICollector, doc_group, property_with_doc_group
 from . import beam_elements
@@ -2223,6 +2224,18 @@ class Line:
         return twiss_line(self, **tw_kwargs)
 
     twiss.__doc__ = twiss_line.__doc__
+
+    def twiss_multibunch(self, zeta_bunches=None, particles=None,
+                         method='4d', bunch_names=None,
+                         show_progress=True, mode='fast', **kwargs):
+        if not self._has_valid_tracker():
+            self.build_tracker()
+        return twiss_line_multibunch(
+            self, zeta_bunches=zeta_bunches, particles=particles,
+            method=method, bunch_names=bunch_names,
+            show_progress=show_progress, mode=mode, **kwargs)
+
+    twiss_multibunch.__doc__ = twiss_line_multibunch.__doc__
 
     @doc_group("Tracking and Analysis")
     def twiss4d(self, **kwargs):
@@ -5388,13 +5401,21 @@ class Line:
     def get_line_with_second_order_maps(self, split_at):
 
         '''
-        Return a new lines with segments definded by the elements in `split_at`
+        Return a new line with segments defined by the elements in `split_at`
         replaced by second order maps.
 
         Parameters
         ----------
         split_at : list of str
-            Names of elements at which to split the line.
+            Names of elements at which to split the line. These elements are
+            kept as they are in the new line and are excluded from the maps:
+            each map spans from the exit of one split element to the
+            entrance of the next. Hence also thick and/or nonlinear elements
+            can be preserved exactly by splitting at them (e.g. octupoles,
+            to retain their amplitude detuning). Repeated elements are
+            referred to by their disambiguated name 'name::N' (as shown in
+            the line table and in the twiss table); the same names are used
+            in the returned line.
 
         Returns
         -------
@@ -5403,15 +5424,30 @@ class Line:
         '''
         self._method_incompatible_with_compose()
 
-        ele_cut_ext = split_at.copy()
-        if self.element_names[0] not in ele_cut_ext:
-            ele_cut_ext.insert(0, self.element_names[0])
-        if self.element_names[-1] not in ele_cut_ext:
-            ele_cut_ext.append(self.element_names[-1])
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
+        # element names disambiguated for repeated elements ('name::N', as
+        # in the line table and in the twiss table); for non-repeated
+        # elements they coincide with the plain element names
+        ele_names = self._element_names_unique
+
+        missing = set(split_at) - set(ele_names)
+        if missing:
+            raise ValueError(f'Elements {sorted(missing)} are not present in the line')
+
+        ele_idx = {nn: ii for ii, nn in enumerate(ele_names)}
+
+        ele_cut_ext = split_at.copy()
+        if ele_names[0] not in ele_cut_ext:
+            ele_cut_ext.insert(0, ele_names[0])
+        if ele_names[-1] not in ele_cut_ext:
+            ele_cut_ext.append(ele_names[-1])
+
+        ele_cut_set = set(ele_cut_ext)
         ele_cut_sorted = []
-        for ee in self.element_names:
-            if ee in ele_cut_ext:
+        for ee in ele_names:
+            if ee in ele_cut_set:
                 ele_cut_sorted.append(ee)
 
         elements_map_line = []
@@ -5420,10 +5456,21 @@ class Line:
 
         for ii in range(len(ele_cut_sorted)-1):
             names_map_line.append(ele_cut_sorted[ii])
-            elements_map_line.append(self.get(ele_cut_sorted[ii]))
+            # element object by its unique name: `element_names` and
+            # `self.element_names` are index-aligned (all occurrences of a
+            # repeated element share the same object)
+            elements_map_line.append(self.get(self.element_names[ele_idx[ele_cut_sorted[ii]]]))
+
+            # the split element is placed in the new line as it is, hence it
+            # is excluded from the map: the map starts at its exit, i.e. at
+            # the entrance of the following element (relevant for thick
+            # split elements)
+            map_start = ele_names[ele_idx[ele_cut_sorted[ii]] + 1]
+            if map_start == ele_cut_sorted[ii+1]:
+                continue  # nothing between this element and the next cut
 
             smap = xt.SecondOrderTaylorMap.from_line(
-                                    self, start=ele_cut_sorted[ii],
+                                    self, start=map_start,
                                     end=ele_cut_sorted[ii+1],
                                     twiss_table=tw,
                                     _buffer=self._buffer)
@@ -5431,7 +5478,7 @@ class Line:
             elements_map_line.append(smap)
 
         names_map_line.append(ele_cut_sorted[-1])
-        elements_map_line.append(self.get(ele_cut_sorted[-1]))
+        elements_map_line.append(self.get(self.element_names[ele_idx[ele_cut_sorted[-1]]]))
 
         line_maps = Line(elements=elements_map_line, element_names=names_map_line)
         line_maps.particle_ref = self.particle_ref.copy()

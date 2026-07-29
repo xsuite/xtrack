@@ -4715,6 +4715,42 @@ def test_environment_xfields_beambeam_facade(monkeypatch):
         assert env.apply_filling_pattern([1], [1], 0, 0) == 'applied'
 
 
+def test_environment_xfields_multibunch_facade(monkeypatch):
+
+    import xtrack.multibunch_beambeam as mbb
+
+    env = xt.Environment()
+    calls = []
+
+    def fake_install(env_arg, *args, **kwargs):
+        calls.append(('install', env_arg, args, kwargs))
+        return 'the_setup'
+
+    monkeypatch.setattr(mbb, 'install_multibunch_beambeam', fake_install)
+
+    # install is the single env.xfields entry point; it delegates to the module
+    # function and returns the setup (all further operations are methods on it)
+    setup = env.xfields.install_multibunch_beambeam(
+        clockwise_line='cw', anticlockwise_line='acw',
+        ips=['ip1', 'ip2'],
+        num_long_range_encounters_per_side=2,
+        harmonic_number=35640, bunch_spacing_buckets=10,
+        nemitt_x=2.3e-6, nemitt_y=2.3e-6,
+        filling_clockwise=[1.0, 0.0], filling_anticlockwise=[0.0, 1.0])
+    assert setup == 'the_setup'
+    assert calls[-1] == (
+        'install', env, (), {
+            'clockwise_line': 'cw', 'anticlockwise_line': 'acw',
+            'ips': ['ip1', 'ip2'],
+            'num_long_range_encounters_per_side': 2,
+            'harmonic_number': 35640, 'bunch_spacing_buckets': 10,
+            'nemitt_x': 2.3e-6, 'nemitt_y': 2.3e-6,
+            'filling_clockwise': [1.0, 0.0], 'filling_anticlockwise': [0.0, 1.0],
+            'survey_separation': True,
+            'bb_suffix_cw': '_cw', 'bb_suffix_acw': '_acw',
+        })
+
+
 def test_environment_xcoll_facade(monkeypatch):
 
     class FakeXcollEnvironmentAPI:

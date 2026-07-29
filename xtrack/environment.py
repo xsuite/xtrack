@@ -2736,6 +2736,91 @@ class EnvXfields:
     def __init__(self, env):
         self.env = env
 
+    def install_multibunch_beambeam(self, clockwise_line, anticlockwise_line,
+                                    ips,
+                                    num_long_range_encounters_per_side,
+                                    harmonic_number, bunch_spacing_buckets,
+                                    nemitt_x, nemitt_y,
+                                    filling_clockwise, filling_anticlockwise,
+                                    survey_separation=True,
+                                    bb_suffix_cw='_cw', bb_suffix_acw='_acw'):
+        """
+        Install coherent multi-bunch beam-beam elements at N interaction points.
+
+        Places one :class:`xfields.BeamBeamBiGaussianMultibunch2D` element per
+        head-on and long-range (LR) encounter at every IP of two counter-
+        rotating rings (in the coherent rigid-bunch model), computes the
+        encounter geometry and returns a
+        :class:`xtrack.multibunch_beambeam.MultibunchBBSetup`. All further
+        operations are methods on that object: ``setup.solve()`` (per-bunch
+        self-consistent closed orbit), ``setup.second_order_maps()`` (a fast
+        sector-map copy), ``setup.load_solution(...)`` (transfer a converged
+        solution onto this lattice) and ``setup.set_filling(...)``.
+
+        The two lines follow the usual xsuite two-ring convention:
+        ``clockwise_line`` runs in ``+s`` and ``anticlockwise_line`` is the
+        *reversed* line (also running in ``+s``). The beam-beam element itself is
+        the twiss/survey observation point -- there are no separate markers.
+
+        Parameters
+        ----------
+        clockwise_line : str or xtrack.Line
+            Clockwise line (runs in +s) or its name.
+        anticlockwise_line : str or xtrack.Line
+            Anticlockwise line (the *reversed* line, runs in +s) or its name.
+        ips : dict or sequence of str
+            Either ``{ip_element_name: head_on_offset}`` to give each IP's
+            head-on bunch-pairing offset in slots explicitly (a clockwise bunch
+            in slot ``b`` collides head-on with the anticlockwise bunch in slot
+            ``b + offset`` mod ``n_slots``), or a list of IP element names
+            ``[ip1, ip2, ...]`` in which case the offsets are derived from the
+            ring geometry as ``round(2 * (s_ip - s_ref) / slot_len)`` with the
+            first IP as the pairing reference (offset zero).
+        num_long_range_encounters_per_side : int or dict
+            Number of LR encounters per side of each IP. An int applies to all
+            IPs; a ``{ip_name: int}`` mapping sets it per IP.
+        harmonic_number : int
+            RF harmonic number (e.g. 35640 for the LHC).
+        bunch_spacing_buckets : int
+            Bunch spacing in RF buckets (e.g. 10 for 25 ns in the LHC). Sets
+            ``n_slots = harmonic_number / bunch_spacing_buckets``.
+        nemitt_x, nemitt_y : float
+            Normalized transverse emittances (used for the beam sizes).
+        filling_clockwise, filling_anticlockwise : array_like
+            Per-slot bunch population of each beam, as an array of length
+            ``n_slots`` (number of particles per slot; zero = empty slot). This
+            encodes both which bunches are populated and their intensities.
+        survey_separation : bool, optional
+            If True (default), add the geometric survey separation of the two
+            rings at each encounter to the closed-orbit separation. Set to
+            False for a single-ring / flat geometry where only the closed-orbit
+            difference separates the beams.
+        bb_suffix_cw, bb_suffix_acw : str, optional
+            Suffixes appended to the encounter base names to form the beam-beam
+            element names of each beam (default ``'_cw'`` / ``'_acw'``).
+
+        Returns
+        -------
+        MultibunchBBSetup
+            The setup handle; call its :meth:`~xtrack.multibunch_beambeam.MultibunchBBSetup.solve`
+            (or :meth:`~xtrack.multibunch_beambeam.MultibunchBBSetup.second_order_maps`)
+            method next.
+        """
+        from .multibunch_beambeam import install_multibunch_beambeam
+        return install_multibunch_beambeam(
+            self.env,
+            clockwise_line=clockwise_line,
+            anticlockwise_line=anticlockwise_line,
+            ips=ips,
+            num_long_range_encounters_per_side=num_long_range_encounters_per_side,
+            harmonic_number=harmonic_number,
+            bunch_spacing_buckets=bunch_spacing_buckets,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            filling_clockwise=filling_clockwise,
+            filling_anticlockwise=filling_anticlockwise,
+            survey_separation=survey_separation,
+            bb_suffix_cw=bb_suffix_cw, bb_suffix_acw=bb_suffix_acw)
+
     def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
                                       ip_names,
                                       num_long_range_encounters_per_side,
