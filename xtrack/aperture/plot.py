@@ -246,8 +246,8 @@ def _installed_profile_projection(
     normal_axis: int,
     curvature: float,
 ) -> _ProjectedProfile | None:
-    profile = profile_position.profile.raw
-    profile_to_pipe = _profile_to_pipe_matrix(profile_position.raw, curvature)
+    profile = profile_position.profile
+    profile_to_pipe = _profile_to_pipe_matrix(profile_position, curvature)
     profile_to_plot = pipe_to_plot @ profile_to_pipe
     segment_local = _profile_projection_segment(profile.shape, profile_to_plot, normal_axis)
     if segment_local is None:
@@ -344,11 +344,11 @@ def _pipe_axis_points(pipe, curvature: float, max_curve_angle_rad: float) -> np.
 
 
 def _profile_polygon_curvilinear(profile_position, curvature: float, len_points: int) -> np.ndarray:
-    polygon = profile_position.profile.raw.build_polygon(len_points)
+    polygon = profile_position.profile.build_polygon(len_points)
     if len(polygon) > 1 and np.allclose(polygon[0], polygon[-1], atol=_GEOMETRY_TOL, rtol=0):
         polygon = polygon[:-1]
 
-    profile_to_pipe = _profile_to_pipe_matrix(profile_position.raw, curvature)
+    profile_to_pipe = _profile_to_pipe_matrix(profile_position, curvature)
     polygon_homogeneous = np.column_stack([
         polygon,
         np.zeros(len(polygon)),
@@ -599,36 +599,33 @@ def _hashed_colour(name: str, palette: list[str]) -> str:
     return palette[int.from_bytes(digest[:4], 'little') % len(palette)]
 
 
-def _split_wrapped_interval(start, end, line_length, s_tol):
-    start = float(np.mod(start, line_length))
-    end = float(np.mod(end, line_length))
-    if start > end + s_tol:
-        return [(start, line_length), (0.0, end)]
-    return [(start, end)]
-
-
-def _pipe_in_s_range(aperture, row, s_range, origin_s):
+def _pipe_table_filter_by_s_range(aperture, pipe_table, s_range, origin_s):
     if s_range is None:
-        return True
+        return pipe_table
 
-    window_start = origin_s + s_range[0]
-    window_end = origin_s + s_range[1]
-    if not aperture.is_ring:
-        return (
-            row.s_end >= window_start - aperture.s_tol
-            and row.s_start <= window_end + aperture.s_tol
-        )
+    s_start = np.asarray(pipe_table.s_start, dtype=float)
+    s_end = np.asarray(pipe_table.s_end, dtype=float)
+    s_tol = aperture.s_tol
 
-    line_length = aperture.line.get_length()
-    if s_range[1] - s_range[0] >= line_length - aperture.s_tol:
-        return True
-    row_segments = _split_wrapped_interval(row.s_start, row.s_end, line_length, aperture.s_tol)
-    window_segments = _split_wrapped_interval(window_start, window_end, line_length, aperture.s_tol)
-    return any(
-        row_start <= range_end + aperture.s_tol and range_start <= row_end + aperture.s_tol
-        for row_start, row_end in row_segments
-        for range_start, range_end in window_segments
+    line_length = float(aperture.line.get_length())
+    if aperture.is_ring and s_range[1] - s_range[0] >= line_length - s_tol:
+        return pipe_table
+
+    range_segments = aperture.get_wrapped_s_interval(
+        origin_s + s_range[0],
+        origin_s + s_range[1],
     )
+    wrapped_pipe = aperture.is_ring and s_start > s_end + s_tol
+    mask = np.zeros(len(pipe_table), dtype=bool)
+
+    for range_start, range_end in range_segments:
+        regular_overlap = (s_end >= range_start - s_tol) & (s_start <= range_end + s_tol)
+        if aperture.is_ring:
+            wrapped_overlap = (s_start <= range_end + s_tol) | (range_start <= s_end + s_tol)
+            regular_overlap = np.where(wrapped_pipe, wrapped_overlap, regular_overlap)
+        mask |= regular_overlap
+
+    return pipe_table.rows[mask]
 
 
 def _enable_pipe_annotations(ax, patches) -> None:
@@ -704,10 +701,8 @@ def plot_floor_projection(
         raise ValueError('`origin` must be str or float.')
 
     patches = []
+    pipe_table = _pipe_table_filter_by_s_range(aperture, pipe_table, s_range, origin_s)
     for row in pipe_table.rows:
-        if not _pipe_in_s_range(aperture, row, s_range, origin_s):
-            continue
-
         pipe_position = aperture.pipe_positions[row.name]
         pipe = pipe_position.pipe
         survey_transform = survey_relative_transform(

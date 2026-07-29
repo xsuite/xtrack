@@ -3,8 +3,10 @@ from pathlib import Path
 import xtrack as xt
 
 
-sps_ldb = layout.Machine.from_ldb("SPS", "LS3")
-sps_ldb.to_pickle("SPS.pickle")
+aperture_file = Path(__file__).parent / 'SPS.pickle'
+if not aperture_file.exists():
+    sps_ldb = layout.Machine.from_ldb("SPS", "LS3")
+    sps_ldb.to_pickle(str(aperture_file))
 
 lattice_file = Path(__file__).parent / 'sps.json'
 if not lattice_file.exists():

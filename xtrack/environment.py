@@ -433,7 +433,7 @@ class Environment:
             all_kwargs.pop('kwargs')
             all_kwargs.update(kwargs)
             return xt.Place(self.new(**all_kwargs), at=at, from_=from_,
-                         anchor=anchor, from_anchor=from_anchor)
+                         anchor=anchor, from_anchor=from_anchor, env=self)
 
         _ALLOWED_ELEMENT_TYPES_IN_NEW = xt.line._ALLOWED_ELEMENT_TYPES_IN_NEW
         _ALLOWED_ELEMENT_TYPES_DICT = xt.line._ALLOWED_ELEMENT_TYPES_DICT

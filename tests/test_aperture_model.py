@@ -11,7 +11,8 @@ import xtrack as xt
 from cpymad.madx import Madx
 
 from xobjects.general import allclose_with_outliers
-from xobjects.test_helpers import for_all_test_contexts, requires_context, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, for_all_test_contexts, requires_context)
 from xtrack.aperture.aperture import Aperture, ProfilesView, _split_wrapped_s_interval
 from xtrack.aperture.builder import ApertureBuilder
 from xtrack.aperture.views import PipePositionsView, PipesView
@@ -369,8 +370,8 @@ def test_from_line_with_aperture_type_bounds(test_context):
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+@allow_no_prebuilt_kernels
 def test_zigzag_iterator_wrap_and_bounds(test_context):
-    skip_if_forbid_compile()
 
     ZIGZAG_TEST_SOURCE = r"""
         #include "xtrack/aperture/headers/zigzag_iterate.h"
@@ -478,6 +479,29 @@ def test_from_line_with_limits_type_bounds(test_context):
     ):
         xo.assert_allclose(bound_s, expected_s, atol=1e-6)
         assert expected_name.startswith(pipe_name), f'mismatch at bound row {idx}'
+
+
+@for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))
+def test_from_line_with_limits_preserves_limit_polygon_geometry(test_context):
+    x_vertices = np.array([0.03, 0.0, -0.03, 0.0])
+    y_vertices = np.array([0.0, 0.02, 0.0, -0.02])
+    line = xt.Line(
+        elements=[xt.LimitPolygon(x_vertices=x_vertices, y_vertices=y_vertices)],
+        element_names=['aper'],
+    )
+
+    aperture_model = Aperture.from_line_with_limits(
+        line,
+        context=test_context,
+        _skip_validity_check=True,
+    )
+    section = aperture_model.cross_sections_at_s([0.0]).cross_section[0]
+
+    xo.assert_allclose(section[0], [x_vertices[0], y_vertices[0]], atol=1e-15, rtol=0)
+    assert np.min(section[:, 0]) < -0.02
+    assert np.max(section[:, 0]) > 0.02
+    assert np.min(section[:, 1]) < -0.01
+    assert np.max(section[:, 1]) > 0.01
 
 
 @for_all_test_contexts(excluding=('ContextPyopencl', 'ContextCupy'))

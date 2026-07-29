@@ -67,6 +67,7 @@ def _shape_from_input(shape: str | type, **shape_params):
 
 @dataclass
 class ProfilePositionBlueprint:
+    builder: ApertureBuilder
     profile_name: str
     shift_s: float = 0.0
     shift_x: float = 0.0
@@ -74,6 +75,10 @@ class ProfilePositionBlueprint:
     rot_y_rad: float = 0.0
     rot_x_rad: float = 0.0
     rot_s_rad: float = 0.0
+
+    @property
+    def profile(self):
+        return self.builder._profiles[self.profile_name]
 
 
 @dataclass
@@ -123,43 +128,37 @@ class PipeBlueprint:
         self.positions.append(profile_position)
         return profile_position
 
-    def _as_pipe_view(self):
-        from xtrack.aperture.views import PipeView
+    def __len__(self) -> int:
+        return len(self.positions)
 
-        profile_names = list(self.builder._profiles.keys())
-        profile_name_to_index = {name: ii for ii, name in enumerate(profile_names)}
-        profiles = [Profile(**self.builder._profiles[name]._to_dict()) for name in profile_names]
-        positions = [
-            ProfilePosition(
-                profile_index=profile_name_to_index[position.profile_name],
-                shift_s=position.shift_s,
-                shift_x=position.shift_x,
-                shift_y=position.shift_y,
-                rot_y_rad=position.rot_y_rad,
-                rot_x_rad=position.rot_x_rad,
-                rot_s_rad=position.rot_s_rad,
-            )
-            for position in sorted(self.positions, key=lambda position: position.shift_s)
-        ]
-        model = ApertureModel(
-            pipe_positions=[],
-            pipes=[Pipe(curvature=self.curvature, positions=positions)],
-            profiles=profiles,
-            pipe_names=[self.name],
-            pipe_position_names=[],
-            profile_names=profile_names,
-            is_ring=False,
-            survey_length=0.0,
-        )
-        return PipeView(model, 0)
+    def __getitem__(self, item: int) -> ProfilePositionBlueprint:
+        return sorted(self.positions, key=lambda position: position.shift_s)[item]
+
+    def __iter__(self):
+        return iter(sorted(self.positions, key=lambda position: position.shift_s))
+
+    @property
+    def length(self):
+        if not self.positions:
+            return 0.0
+        positions = sorted(self.positions, key=lambda position: position.shift_s)
+        return positions[-1].shift_s - positions[0].shift_s
+
+    @property
+    def angle(self):
+        return self.length * self.curvature
 
     def plot(self, *args, **kwargs):
         """Plot pipe projection using the same box-style view as :class:`PipeView`."""
-        return self._as_pipe_view().plot(*args, **kwargs)
+        from xtrack.aperture.plot import plot_pipe_projection
+
+        return plot_pipe_projection(self, *args, **kwargs)
 
     def plot_3d(self, *args, **kwargs):
         """Plot pipe as a 3D solid using the same view as :class:`PipeView`."""
-        return self._as_pipe_view().plot_3d(*args, **kwargs)
+        from xtrack.aperture.plot import plot_pipe_3d
+
+        return plot_pipe_3d(self, *args, **kwargs)
 
     def place(self, name: str | Sequence[str], at: str | Sequence[str], **kwargs):
         """Install this pipe in the builder."""
@@ -276,6 +275,7 @@ class ApertureBuilder:
             The created profile position blueprint.
         """
         return ProfilePositionBlueprint(
+            builder=self,
             profile_name=name,
             shift_s=shift_s,
             shift_x=shift_x,

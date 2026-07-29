@@ -191,10 +191,8 @@ def test_pipe_projection_uses_curvature_for_z_planes_and_straight_frame_for_s_pl
             builder.place_profile("circ0", shift_s=1.0),
         ],
     )
-    pipe_view = pipe._as_pipe_view()
-
-    projection_zx = pipe_projection(pipe_view, np.identity(4), plane="zx", max_curve_angle_rad=np.deg2rad(10))
-    projection_sx = pipe_projection(pipe_view, np.identity(4), plane="sx", max_curve_angle_rad=np.deg2rad(10))
+    projection_zx = pipe_projection(pipe, np.identity(4), plane="zx", max_curve_angle_rad=np.deg2rad(10))
+    projection_sx = pipe_projection(pipe, np.identity(4), plane="sx", max_curve_angle_rad=np.deg2rad(10))
 
     assert len(projection_zx.polygons) == 1
     assert len(projection_sx.polygons) == 1
@@ -218,10 +216,8 @@ def test_pipe_solid_uses_curvature_for_curved_frame_and_straight_frame_for_solid
             builder.place_profile("circ0", shift_s=1.0),
         ],
     )
-    pipe_view = pipe._as_pipe_view()
-
-    solid_curved = pipe_solid(pipe_view, frame="curved", len_points=8, max_curve_angle_rad=np.deg2rad(10))
-    solid_straight = pipe_solid(pipe_view, frame="straight", len_points=8, max_curve_angle_rad=np.deg2rad(10))
+    solid_curved = pipe_solid(pipe, frame="curved", len_points=8, max_curve_angle_rad=np.deg2rad(10))
+    solid_straight = pipe_solid(pipe, frame="straight", len_points=8, max_curve_angle_rad=np.deg2rad(10))
 
     assert len(solid_curved.faces) > len(solid_straight.faces)
     assert len(solid_curved.profile_rings) == 2

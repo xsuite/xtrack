@@ -204,8 +204,6 @@ ELEMENT_APERTURE_TYPE_OVERRIDES = {
 PROFILE_OVERRIDES = {
     'AP207': ('Rectangle', 0.04978, 0.04978),  # ditto
     'AP163': ('RectEllipse', 0.068, 0.0328, 0.0101, 0.0101)  # Originally half_minor was zero...
-    # Should be fixed now:
-    # 'AP205': ('Rectangle', 0.04293, 0.03843),  # Originally an octagon with no diagonal value...
 }
 
 LONGITUDINAL_PLACEMENT_PATCHES = {

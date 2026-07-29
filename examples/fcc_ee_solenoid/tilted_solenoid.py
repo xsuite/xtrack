@@ -5,9 +5,9 @@ from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 
 class TiltedSolenoid:
 
-    def __init__(self, L, a, B0, theta):
+    def __init__(self, L, a, B0, theta, z0=0):
 
-        self._sf = SolenoidField(L=L, a=a, B0=B0, z0=0)
+        self._sf = SolenoidField(L=L, a=a, B0=B0, z0=z0)
         self.theta = theta
         self._break = False
 

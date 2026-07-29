@@ -13,7 +13,8 @@ from cpymad.madx import Madx
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, for_all_test_contexts, skip_if_forbid_compile)
 from xtrack.mad_loader import MadLoader
 from xtrack.slicing import Strategy, Uniform
 
@@ -1102,9 +1103,9 @@ def test_import_thick_quad_from_madx_and_slice_native():
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_fringe_implementations(test_context):
 
-    skip_if_forbid_compile()
 
     fringe = xt.DipoleEdge(k=0.12, fint=100, hgap=0.035, model='full')
 
@@ -2213,8 +2214,10 @@ def test_solenoid_multipole_rotations():
         ('mean', {'XTRACK_SYNRAD_KICK_SAME_AS_FIRST': True}),
         ('mean', {'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST': True}),
         ('quantum', {}),
+        ('quantum-kick', {}),
     ],
 )
+@allow_no_prebuilt_kernels(skip_when_forbid_compile=False)
 def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
 
     if config.get('XTRACK_SYNRAD_KICK_SAME_AS_FIRST', False):
@@ -2280,8 +2283,10 @@ def test_drift_like_solenoid_with_kicks_radiation(radiation_mode, config):
         ('mean', {'XTRACK_SYNRAD_KICK_SAME_AS_FIRST': True}),
         ('mean', {'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST': True}),
         ('quantum', {}),
+        ('quantum-kick', {}),
     ],
 )
+@allow_no_prebuilt_kernels(skip_when_forbid_compile=False)
 def test_solenoid_with_kicks_radiation(radiation_mode, config):
 
     if config.get('XTRACK_SYNRAD_KICK_SAME_AS_FIRST', False):
@@ -3076,3 +3081,43 @@ def test_api_bend():
     assert bend2.k0 == 0.
     assert bend2.h == 0.1
     assert bend2.k0_from_h == False
+
+
+def test_delta_dipole_fringe():
+    # Test momentum dependence of dipole fringe, as corrected with respect to the PTC implementation
+    
+    dd = np.linspace(-0.05, 0.05, 11)
+    p0 = xt.Particles(y=0.002, delta=dd)
+    p1 = p0.copy()
+
+    length = 0.05
+    b1 = 0.1
+    
+    def fieldvalue(x,y,z):  
+        # Polynomial dipole fringe field between 0 and 0.05 with max b1=0.1
+        # b1 = -1600 z^3 + 120 z^2 converted to tesla
+        return [0, (-1600*z**3 + 120*z**2 - 120*y**2*(1 - 40*z))* p0.rigidity0[0], (1600*y**3 + y*(-4800*z**2 + 240*z))* p0.rigidity0[0]]
+
+    # Backwards drift, fringe, backwards bend
+    drift = xt.Line(elements=[xt.Drift(length=length/2)])
+    bend = xt.Line(elements=[xt.Bend(k0=b1, length=length/2)])
+    exactfringe = xt.BorisSpatialIntegrator(fieldmap_callable=fieldvalue, s_start=0, s_end=length, n_steps=1000)
+
+    drift.track(p0, backtrack=True)
+    exactfringe.track(p0)
+    bend.track(p0, backtrack=True)
+    
+    # Xsuite fringe with same parameters
+    gap = 0.04
+    ss = np.linspace(0,length,100)
+    bvals = -1600 * ss**3 + 120 * ss**2
+    fint = np.trapezoid((b1 - bvals)*bvals / b1**2 / gap, ss)
+    PTCfringe = xt.Bend(length=0, k0=b1, edge_entry_model="full", edge_entry_fint=fint, edge_entry_hgap=gap/2, edge_exit_active=0)
+    
+    PTCfringe.track(p1)
+    
+    # Slopes of py vs delta should be similar, original implementation had sign difference
+    deg0 = np.polyfit(p0.delta, p0.py, 1)
+    deg1 = np.polyfit(p1.delta, p1.py, 1)
+    
+    assert np.allclose(deg0/deg1, 1, rtol=1e-2)

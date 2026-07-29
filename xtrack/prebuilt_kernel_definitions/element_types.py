@@ -107,6 +107,7 @@ ONLY_XTRACK_ELEMENTS = [
     BeamPositionMonitor,
     BeamSizeMonitor,
     BeamProfileMonitor,
+    BeamStatsMonitor,
     LastTurnsMonitor,
     ParticlesMonitor,
     MultiElementMonitor,

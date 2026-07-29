@@ -258,6 +258,9 @@ void magnet_radiation(
         }
         synrad_emit_photons(part, B_perp_T, l_path, record_index, record);
     }
+    else if (radiation_flag == 3){
+        synrad_emit_total_energy_loss(part, B_perp_T, l_path);
+    }
 
     LocalParticle_add_to_px(part, new_ax);
     LocalParticle_add_to_py(part, new_ay);

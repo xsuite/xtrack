@@ -103,6 +103,9 @@ class ProfileView:
         ax.legend()
         return ax
 
+    def build_polygon(self, len_points):
+        return self.raw.build_polygon(len_points)
+
 
 class ProfilesView:
     __slots__ = ('_model',)
