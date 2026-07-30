@@ -820,6 +820,50 @@ def test_beam_stats_monitor_rejects_duplicate_slots():
         )
 
 
+def test_beam_stats_monitor_rejects_multiple_slot_definitions():
+    with pytest.raises(ValueError, match='Only one of `num_bunches`'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            num_bunches=2,
+            filled_slots=[0, 1],
+            stats=['num_particles'],
+        )
+
+    with pytest.raises(ValueError, match='Only one of `num_bunches`'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            num_bunches=2,
+            filling_scheme=[1, 1],
+            stats=['num_particles'],
+        )
+
+    with pytest.raises(ValueError, match='Only one of `num_bunches`'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            filled_slots=[0, 1],
+            filling_scheme=[1, 1],
+            stats=['num_particles'],
+        )
+
+
+def test_beam_stats_monitor_num_bunches_one_selects_bunch_mode():
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        num_bunches=1,
+        stats=['num_particles'],
+    )
+
+    assert monitor.available_levels == ('beam', 'bunch')
+    assert monitor.default_level == 'bunch'
+    assert_equal(monitor.filled_slots, [0])
+    assert_equal(monitor.selected_slots, [0])
+    assert monitor.num_particles.shape == (1, 1)
+
+
 @for_all_test_contexts
 def test_beam_stats_monitor_coasting_slice_stats(test_context):
     monitor = xt.BeamStatsMonitor(

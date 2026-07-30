@@ -172,12 +172,14 @@ class BeamStatsMonitor(BeamElement):
     num_slices : int, optional
         Number of longitudinal slices per selected bunch.
     num_bunches : int, optional
-        Number of consecutive filled slots when neither `filled_slots` nor
-        `filling_scheme` is provided.
+        Number of consecutive filled slots. Mutually exclusive with
+        `filled_slots` and `filling_scheme`.
     filling_scheme : array_like, optional
         Boolean/integer filling scheme identifying filled physical slots.
+        Mutually exclusive with `num_bunches` and `filled_slots`.
     filled_slots : array_like, optional
-        Explicit physical slot numbers which are filled.
+        Explicit physical slot numbers which are filled. Mutually exclusive
+        with `num_bunches` and `filling_scheme`.
     selected_slots : array_like, optional
         Filled physical slots to record. Output follows this order.
     bunch_spacing_zeta : float, optional
@@ -230,7 +232,7 @@ class BeamStatsMonitor(BeamElement):
                  every_n_turns=1,
                  zeta_range=None,
                  num_slices=None,
-                 num_bunches=1,
+                 num_bunches=None,
                  filling_scheme=None,
                  filled_slots=None,
                  selected_slots=None,
@@ -276,6 +278,8 @@ class BeamStatsMonitor(BeamElement):
                 stats.append(stat)
         stats = tuple(stats)
 
+        num_bunches_provided = num_bunches is not None
+
         # Bunch mode is selected by any bunch-related input, unless slice
         # inputs already selected the more detailed slice mode.
         bunch_mode = (
@@ -285,13 +289,13 @@ class BeamStatsMonitor(BeamElement):
                  or filling_scheme is not None
                  or selected_slots is not None
                  or bunch_spacing_zeta is not None
-                 or int(num_bunches) != 1))
+                 or num_bunches_provided))
         if coasting and (
                 filled_slots is not None
                 or filling_scheme is not None
                 or selected_slots is not None
                 or bunch_spacing_zeta is not None
-                or int(num_bunches) != 1):
+                or num_bunches_provided):
             raise ValueError(
                 'Bunched-beam filling inputs cannot be used in coasting mode')
 
@@ -301,16 +305,26 @@ class BeamStatsMonitor(BeamElement):
         elif slice_mode or bunch_mode:
             # Normalize the public filling inputs into physical filled slots
             # and selected slots. The output bunch axis follows selected_slots.
-            if filled_slots is not None and filling_scheme is not None:
-                raise ValueError('Only one of `filled_slots` and '
-                                 '`filling_scheme` can be provided')
+            provided_slot_definitions = [
+                name for name, is_provided in (
+                    ('`num_bunches`', num_bunches_provided),
+                    ('`filled_slots`', filled_slots is not None),
+                    ('`filling_scheme`', filling_scheme is not None),
+                )
+                if is_provided]
+            if len(provided_slot_definitions) > 1:
+                raise ValueError(
+                    'Only one of `num_bunches`, `filled_slots`, and '
+                    '`filling_scheme` can be provided')
             if filling_scheme is not None:
                 filling_scheme = np.asarray(filling_scheme, dtype=np.int64)
                 filled_slots = np.nonzero(filling_scheme)[0].astype(np.int64)
             elif filled_slots is not None:
                 filled_slots = np.asarray(filled_slots, dtype=np.int64)
-            else:
+            elif num_bunches_provided:
                 filled_slots = np.arange(int(num_bunches), dtype=np.int64)
+            else:
+                filled_slots = np.array([0], dtype=np.int64)
 
             if len(filled_slots) == 0:
                 raise ValueError('At least one filled slot is required')
