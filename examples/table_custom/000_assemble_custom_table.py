@@ -9,7 +9,7 @@ for nn in tt.element_type:
     if nn == 'DriftSlice':
         new_nn = 'DRIFT'
     elif nn.startswith('Limit'):
-        new_nn = 'LIMIT'
+        new_nn = 'DRIFT'
     keyword.append(new_nn)
 
 # Assemble a custom table with selected arrays
