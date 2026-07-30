@@ -171,6 +171,8 @@ class BeamStatsMonitor(BeamElement):
         `num_slices`.
     num_slices : int, optional
         Number of longitudinal slices per selected bunch.
+    bunch_spacing_zeta : float, optional
+        Longitudinal spacing between adjacent physical slots.
     num_bunches : int, optional
         Number of consecutive filled slots. Mutually exclusive with
         `filled_slots` and `filling_scheme`.
@@ -182,8 +184,6 @@ class BeamStatsMonitor(BeamElement):
         with `num_bunches` and `filling_scheme`.
     selected_slots : array_like, optional
         Filled physical slots to record. Output follows this order.
-    bunch_spacing_zeta : float, optional
-        Longitudinal spacing between adjacent physical slots.
     coasting : bool, optional
         If True, slice the full turn periodically for a coasting beam.
         Requires `num_slices` and rejects bunched-beam filling inputs.
@@ -232,11 +232,11 @@ class BeamStatsMonitor(BeamElement):
                  every_n_turns=1,
                  zeta_range=None,
                  num_slices=None,
+                 bunch_spacing_zeta=None,
                  num_bunches=None,
                  filling_scheme=None,
                  filled_slots=None,
                  selected_slots=None,
-                 bunch_spacing_zeta=None,
                  coasting=False,
                  stats=None,
                  profiles=None,
