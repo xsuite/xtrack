@@ -69,6 +69,12 @@ void BeamStatsMonitor_track_local_particle(
     GPUGLMEM double* sum_pzeta =
         (BeamStatsMonitorRecordData_len_sum_pzeta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_pzeta(data, 0) : NULL;
+    GPUGLMEM double* sum_charge_ratio =
+        (BeamStatsMonitorRecordData_len_sum_charge_ratio(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_charge_ratio(data, 0) : NULL;
+    GPUGLMEM double* sum_mass_ratio =
+        (BeamStatsMonitorRecordData_len_sum_mass_ratio(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_mass_ratio(data, 0) : NULL;
 
     GPUGLMEM double* sum_x_x =
         (BeamStatsMonitorRecordData_len_sum_x_x(data) > 0)
@@ -274,6 +280,10 @@ void BeamStatsMonitor_track_local_particle(
                         double const py = LocalParticle_get_py(part);
                         double const delta = LocalParticle_get_delta(part);
                         double const pzeta = LocalParticle_get_pzeta(part);
+                        double const charge_ratio =
+                            LocalParticle_get_charge_ratio(part);
+                        double const chi = LocalParticle_get_chi(part);
+                        double const mass_ratio = charge_ratio / chi;
                         double const beta0_gamma0 =
                             LocalParticle_get_beta0(part)
                             * LocalParticle_get_gamma0(part);
@@ -294,6 +304,14 @@ void BeamStatsMonitor_track_local_particle(
                         }
                         if (sum_pzeta) {
                             atomicAdd(&sum_pzeta[index], weight * pzeta);
+                        }
+                        if (sum_charge_ratio) {
+                            atomicAdd(&sum_charge_ratio[index],
+                                      weight * charge_ratio);
+                        }
+                        if (sum_mass_ratio) {
+                            atomicAdd(&sum_mass_ratio[index],
+                                      weight * mass_ratio);
                         }
 
                         if (sum_x_x) atomicAdd(&sum_x_x[index], weight * x * x);

@@ -396,6 +396,53 @@ def test_beam_stats_monitor_bunch_stats(test_context):
 
 
 @for_all_test_contexts
+def test_beam_stats_monitor_charge_and_mass_ratio_stats(test_context):
+    particles = xt.Particles(
+        _context=test_context,
+        p0c=7e12,
+        x=[1., 2., 10., 20.],
+        px=[0., 0., 0., 0.],
+        y=[0., 0., 0., 0.],
+        py=[0., 0., 0., 0.],
+        zeta=[-0.2, 0.2, -10.2, -9.8],
+        delta=[0., 0., 0., 0.],
+        weight=[1., 1., 3., 1.],
+        charge_ratio=[1., 2., 4., 8.],
+        mass_ratio=[1., 4., 2., 6.],
+    )
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=1,
+        filling_scheme=[1, 1],
+        bunch_spacing_zeta=10.,
+        stats=[
+            'num_particles',
+            'sum_charge_ratio',
+            'mean_charge_ratio',
+            'sum_mass_ratio',
+            'mean_mass_ratio',
+        ],
+    )
+
+    monitor.track(particles)
+
+    assert_allclose(monitor.num_particles, [[2., 4.]])
+    assert_allclose(monitor.sum_charge_ratio, [[3., 20.]])
+    assert_allclose(monitor.mean_charge_ratio, [[1.5, 5.]])
+    assert_allclose(monitor.sum_mass_ratio, [[5., 12.]])
+    assert_allclose(monitor.mean_mass_ratio, [[2.5, 3.]])
+    assert_allclose(
+        monitor.get('sum_charge_ratio', level='beam'), [23.])
+    assert_allclose(
+        monitor.get('mean_charge_ratio', level='beam'), [23. / 6.])
+    assert_allclose(
+        monitor.get('sum_mass_ratio', level='beam'), [17.])
+    assert_allclose(
+        monitor.get('mean_mass_ratio', level='beam'), [17. / 6.])
+
+
+@for_all_test_contexts
 def test_beam_stats_monitor_weighted_stats_and_turn_selection(test_context):
     particles = xt.Particles(
         _context=test_context,

@@ -19,6 +19,16 @@ _C_LIGHT = 299792458.0
 _COORDS = (
     'x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta',
 )
+_PARTICLE_PROPERTIES = (
+    'charge_ratio', 'mass_ratio',
+)
+_FIRST_MOMENTS = (
+    *_COORDS,
+    *_PARTICLE_PROPERTIES,
+)
+_PARTICLE_PROPERTY_SUM_STATS = (
+    *(f'sum_{name}' for name in _PARTICLE_PROPERTIES),
+)
 _STAT_ALIASES = {
     'normal_mode_emittances': _NORMAL_MODE_EMITTANCE_STATS,
     'covariance_optics': _COVARIANCE_OPTICS_STATS,
@@ -58,6 +68,8 @@ class BeamStatsMonitorRecord(xo.HybridClass):
         'sum_zeta': xo.Float64[:],
         'sum_delta': xo.Float64[:],
         'sum_pzeta': xo.Float64[:],
+        'sum_charge_ratio': xo.Float64[:],
+        'sum_mass_ratio': xo.Float64[:],
         'sum_x_x': xo.Float64[:],
         'sum_x_px': xo.Float64[:],
         'sum_x_y': xo.Float64[:],
@@ -139,6 +151,9 @@ class BeamStatsMonitor(BeamElement):
     All statistics are weighted by ``particles.weight``. The public
     ``num_particles`` quantity is therefore the sum of particle weights in each
     bin, not the number of macroparticles.
+    Particle species diagnostics can be requested with ``sum_charge_ratio``,
+    ``mean_charge_ratio``, ``sum_mass_ratio``, and ``mean_mass_ratio``; these
+    quantities use the same ``particles.weight`` weighting.
 
     Whole-beam statistics, obtained with ``level="beam"``, are computed from
     all accepted particles for the same effective turn. In bunched and sliced
@@ -240,7 +255,7 @@ class BeamStatsMonitor(BeamElement):
     allow_loss_refinement = True
 
     _RAW_FIELDS = ('num_particles', 'sum_beta0_gamma0',
-                   *(f'sum_{coord}' for coord in _COORDS),
+                   *(f'sum_{coord}' for coord in _FIRST_MOMENTS),
                    *(f'sum_{moment}' for moment in _SECOND_MOMENTS))
 
     def __init__(self, *,
@@ -1048,6 +1063,8 @@ class BeamStatsMonitor(BeamElement):
         """
         if name == 'num_particles':
             return moments['num_particles']
+        if name in _PARTICLE_PROPERTY_SUM_STATS:
+            return moments[name[4:]]
         if name in _COVARIANCE_OPTICS_STATS:
             return self._covariance_derived_stat_from_moments(name, moments)
 
@@ -1288,7 +1305,11 @@ def _moments_for_stat(name):
         return _FULL_COVARIANCE_MOMENTS
     if name.startswith('mean_'):
         coord = name[5:]
-        _check_coord(coord)
+        _check_first_moment_coord(coord)
+        return (coord,)
+    if name in _PARTICLE_PROPERTY_SUM_STATS:
+        coord = name[4:]
+        _check_first_moment_coord(coord)
         return (coord,)
     if name.startswith('sigma_'):
         coord = name[6:]
@@ -1322,6 +1343,14 @@ def _check_coord(coord):
     Validate a particle coordinate name.
     """
     if coord not in _COORDS:
+        raise ValueError(f'Unknown coordinate `{coord}`')
+
+
+def _check_first_moment_coord(coord):
+    """
+    Validate a particle quantity with a stored weighted sum.
+    """
+    if coord not in _FIRST_MOMENTS:
         raise ValueError(f'Unknown coordinate `{coord}`')
 
 
@@ -1408,7 +1437,7 @@ def _field_name_from_moment(name):
     """
     Return the record field name used to store a primitive moment.
     """
-    if name in _COORDS or name in _SECOND_MOMENTS:
+    if name in _FIRST_MOMENTS or name in _SECOND_MOMENTS:
         return f'sum_{name}'
     raise ValueError(f'Unknown moment `{name}`')
 

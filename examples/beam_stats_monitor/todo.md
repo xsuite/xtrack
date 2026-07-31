@@ -48,6 +48,7 @@
 
 ## Charge and mass statistics
 
+- Status: done.
 - First add low-risk statistics computed with the existing
   `particles.weight` weighting:
   - `sum_charge_ratio`
@@ -74,6 +75,6 @@
 
 1. Documentation and docstring terminology cleanup.
 2. Coasting slice boundary fix and tests.
-3. `particle_id_range` support.
-4. Charge and mass statistics.
+3. Charge and mass statistics.
+4. `particle_id_range` support.
 5. Revisit true alternate weighting modes only after the above are stable.
