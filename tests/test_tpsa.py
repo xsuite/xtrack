@@ -278,6 +278,26 @@ def test_track_element_matches_native(make_element):
     xo.assert_allclose(m.const_part, reference, rtol=0, atol=1e-13)
 
 
+def test_track_element_applies_transformations():
+    element = xt.Quadrupole(
+        length=1.0,
+        k1=0.06,
+        shift_x=3e-3,
+        shift_y=-2e-3,
+        rot_s_rad=0.2,
+    )
+    line = _line([('q', element)])
+    reference = _native_orbit(line)
+
+    m = _map(order=2)
+    element.track(m)
+    xo.assert_allclose(m.const_part, reference, rtol=0, atol=1e-13)
+
+    plain = xt.Quadrupole(length=1.0, k1=0.06)
+    plain_reference = _native_orbit(_line([('q', plain)]))
+    assert not np.allclose(reference, plain_reference, rtol=0, atol=1e-12)
+
+
 def test_track_line_matches_native():
     line = _demo_line()
     reference = _native_orbit(line)

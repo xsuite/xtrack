@@ -229,6 +229,31 @@ def emit_dispatch_inc():
     for cls in _sorted_elements():
         parts.append(f'#include "{HEADERS[cls]}"')
     parts.append("")
+    from xtrack.base_element import _generate_track_local_particle_with_transformations
+
+    def _static_isthick(cls):
+        value = cls.__dict__.get("_isthick", False)
+        return value if isinstance(value, bool) else False
+
+    for cls in _sorted_elements():
+        parts.append(
+            _generate_track_local_particle_with_transformations(
+                element_name=cls.__name__,
+                allow_rot_and_shift=(
+                    getattr(cls, "allow_rot_and_shift", True)
+                    or getattr(cls, "rot_and_shift_from_parent", False)
+                ),
+                rot_and_shift_from_parent=getattr(
+                    cls, "rot_and_shift_from_parent", False
+                ),
+                isthick=_static_isthick(cls),
+                xofields=cls._xofields,
+                is_thin_slice=(
+                    "_ThinSliceElementBase" in (base.__name__ for base in cls.__bases__)
+                ),
+            )
+        )
+    parts.append("")
     for name, tid in tids.items():
         parts.append(f"#define XT_TYPEID_{name.upper()} {tid}")
     parts.append("")
@@ -240,7 +265,8 @@ def emit_dispatch_inc():
         base = cls.__name__
         parts.append(f"        case XT_TYPEID_{base.upper()}:")
         parts.append(
-            f"            {base}_track_local_particle(({base}Data) el, part); break;"
+            f"            {base}_track_local_particle_with_transformations"
+            f"(({base}Data) el, part); break;"
         )
     parts.append("        default: break;  /* type_id is guarded on the Python side */")
     parts.append("    }")
