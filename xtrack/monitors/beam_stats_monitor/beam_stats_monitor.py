@@ -124,9 +124,26 @@ class BeamStatsMonitor(BeamElement):
       is recorded per logged turn and full-turn slice. Whole-beam statistics
       are also available.
 
+    In this monitor, "slot" means a bunch position on the bunch pattern grid,
+    where adjacent slots are separated in `zeta` by `bunch_spacing_zeta`.
+    Note that `bunch_spacing_zeta` is distinct from an RF bucket, which can be
+    finer than the bunch spacing.
+
+    The bunch pattern to be monitored can be specified using either
+    `filling_scheme` or `filled_slots`. For example,
+    `filling_scheme=[1, 0, 1, 1]` is equivalent to
+    `filled_slots=[0, 2, 3]`. The `selected_slots` argument can be used to
+    record only a subset of the filled slots. A "slice" is a longitudinal
+    subdivision inside a bunch, or a full-turn subdivision in coasting mode.
+
     All statistics are weighted by ``particles.weight``. The public
     ``num_particles`` quantity is therefore the sum of particle weights in each
     bin, not the number of macroparticles.
+
+    Whole-beam statistics, obtained with ``level="beam"``, are computed from
+    all accepted particles for the same effective turn. In bunched and sliced
+    modes, this means summing the recorded weighted sums over the selected
+    slots and slices; unselected filled slots do not contribute.
 
     Requested statistics are available as attributes at the most detailed
     recorded level, for example ``monitor.mean_x``. The :meth:`get` method
@@ -172,18 +189,18 @@ class BeamStatsMonitor(BeamElement):
     num_slices : int, optional
         Number of longitudinal slices per selected bunch.
     bunch_spacing_zeta : float, optional
-        Longitudinal spacing between adjacent physical slots.
+        Longitudinal spacing between adjacent bunch slots.
     num_bunches : int, optional
         Number of consecutive filled slots. Mutually exclusive with
         `filled_slots` and `filling_scheme`.
     filling_scheme : array_like, optional
-        Boolean/integer filling scheme identifying filled physical slots.
+        Slot-indexed boolean/integer filling scheme identifying filled slots.
         Mutually exclusive with `num_bunches` and `filled_slots`.
     filled_slots : array_like, optional
-        Explicit physical slot numbers which are filled. Mutually exclusive
+        Explicit slot numbers which are filled. Mutually exclusive
         with `num_bunches` and `filling_scheme`.
     selected_slots : array_like, optional
-        Filled physical slots to record. Output follows this order.
+        Filled slots to record. Output follows this order.
     coasting : bool, optional
         If True, slice the full turn periodically for a coasting beam.
         Requires `num_slices` and rejects bunched-beam filling inputs.
