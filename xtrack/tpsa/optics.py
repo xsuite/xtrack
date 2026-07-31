@@ -28,19 +28,19 @@ class TpsaOptics:
     """Uncoupled optics of a map, with per-knob first-order derivatives.
 
     Values (``.betx``, ``.alfx``, ``.mux``, ``.dx``, ... floats) come from the map's Jacobian.
-    ``.gradient(name)`` returns ``d name / d knob`` (length ``n_parameters``); needs a knobbed
+    ``.gradient(name)`` returns ``d name / d knob`` (length ``num_params``); needs a knobbed
     map of order >= 2 (the mixed derivative is an order-2 term).
     """
 
     _NAMES = ("betx", "bety", "alfx", "alfy", "mux", "muy", "dx", "dpx", "dy", "dpy")
 
     def __init__(self, m: ParticlesTpsa) -> None:
-        self._np = m.n_parameters
+        self._np = m.num_params
         self.knob_names = list(m.knob_names)
         self._J = np.asarray(m.jacobian(), dtype=float)  # 6x6 A-matrix (const parts)
         self._has_order2 = m.order >= 2
         self._m = m
-        self._nv = m.n_variables
+        self._nv = m.num_vars
         # dJ[i, j] = d A(i,j) / d knob (length-np). Built lazily per (i,j) on first use
         # (a value read touches no dJ; a gradient builds only the coefficients it needs).
         self._dJ: dict[tuple[int, int], np.ndarray] = {}
@@ -107,7 +107,7 @@ class TpsaOptics:
                              "(the mixed d A/d knob is an order-2 term)")
 
     def gradient(self, name: str) -> np.ndarray:
-        """``d name / d knob`` as a length-``n_parameters`` array (knobbed order-2 map)."""
+        """``d name / d knob`` as a length-``num_params`` array (knobbed order-2 map)."""
         self._need_knobs()
         if name not in self._NAMES:
             raise KeyError(f"unknown optical function {name!r}; one of {self._NAMES}")

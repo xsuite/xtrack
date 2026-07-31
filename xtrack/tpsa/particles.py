@@ -44,10 +44,10 @@ class ParticlesTpsa:
         # Knobs owns (or borrows) the parametric descriptor, so take it rather than
         # building a second one. GTPSA interns descriptors by (nv, mo, np, po) anyway.
         if knobs is None:
-            desc = xgtpsa.Descriptor.new(6, order)
+            desc = xgtpsa.Descriptor(6, order)
         elif knobs.descriptor is None:
-            desc = knobs.descriptor = xgtpsa.Descriptor.new(
-                6, order, num_parameters=len(knobs), param_order=knobs.order
+            desc = knobs.descriptor = xgtpsa.Descriptor(
+                6, order, num_params=len(knobs), param_order=knobs.order
             )
         else:
             desc = knobs.descriptor
@@ -56,7 +56,7 @@ class ParticlesTpsa:
                     f"knobs descriptor is order {desc.order}, map asks for {order}"
                 )
         self.coords = [
-            xgtpsa.Tpsa.var(desc, i + 1, self._ref(c))
+            desc.var(i + 1, self._ref(c))
             for i, c in enumerate(_COORDS)
         ]
         self._bridge = self._build_bridge()
@@ -72,7 +72,7 @@ class ParticlesTpsa:
         ffi = xgtpsa.ffi()
         bp = XtBridgeParticle()
         for c, t in zip(_COORDS, self.coords):
-            setattr(bp, c, int(ffi.cast("uintptr_t", t._p)))
+            setattr(bp, c, int(ffi.cast("uintptr_t", t.ptr)))
         for r in _REF_VARS:
             setattr(bp, r, self._ref(r))
         return bp
@@ -126,14 +126,14 @@ class ParticlesTpsa:
         return self.coords[0].order
 
     @property
-    def n_variables(self) -> int:
+    def num_vars(self) -> int:
         """Number of variables of the underlying descriptor (from C)."""
-        return self.coords[0].descriptor.n_variables
+        return self.coords[0].descriptor.num_vars
 
     @property
-    def n_parameters(self) -> int:
+    def num_params(self) -> int:
         """Number of knob parameters (``np``) of the underlying descriptor (0 if none)."""
-        return self.coords[0].descriptor.n_parameters
+        return self.coords[0].descriptor.num_params
 
     @property
     def knob_names(self) -> list[str]:
@@ -223,7 +223,7 @@ class ParticlesTpsa:
             if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
                 raise ValueError(
                     f"invalid monomial {mono}: expected length {desc.monomial_length} "
-                    f"(6 vars + {desc.n_parameters} params) and total order within the "
+                    f"(6 vars + {desc.num_params} params) and total order within the "
                     f"descriptor's order/param-order"
                 )
         return self._series(coord).coefficient(monomials)
@@ -244,7 +244,7 @@ class ParticlesTpsa:
         if len(mono) != desc.monomial_length or not desc.is_valid_monomial(mono):
             raise ValueError(
                 f"invalid monomial {mono}: expected length {desc.monomial_length} "
-                f"(6 vars + {desc.n_parameters} params) and total order within the "
+                f"(6 vars + {desc.num_params} params) and total order within the "
                 f"descriptor's order/param-order"
             )
         self._series(coord).set(mono, value)

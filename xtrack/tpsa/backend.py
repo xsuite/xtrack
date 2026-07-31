@@ -181,7 +181,7 @@ class GtpsaBackend:
         else:
             a_arr = t_arr = ffi.NULL
         proto = ffi.cast(
-            "void*", int(mad_ffi.cast("uintptr_t", particles.coords[0]._p))
+            "void*", int(mad_ffi.cast("uintptr_t", particles.coords[0].ptr))
         )
         fn(a_arr, t_arr, proto, n)
 

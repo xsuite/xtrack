@@ -133,8 +133,8 @@ class ActionTpsaTrack(Action):
         # The parametric descriptor is owned here, and both Knobs and every seeded
         # parametric map borrow it. The bare (knob-free) map keeps its own order-1
         # descriptor, as that is a genuinely different space.
-        self._parametric_descriptor = xgtpsa.Descriptor.new(
-            6, self.order, num_parameters=len(self.vary_names), param_order=1)
+        self._parametric_descriptor = xgtpsa.Descriptor(
+            6, self.order, num_params=len(self.vary_names), param_order=1)
         self._knobs = Knobs(self.line, self.vary_names, order=1,
                             descriptor=self._parametric_descriptor)
         self._already_prepared = True

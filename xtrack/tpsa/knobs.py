@@ -121,12 +121,12 @@ class Knobs:
     def _expand(self) -> None:
         """Build every target's expansion from scratch on the borrowed descriptor."""
         if self.descriptor is None:
-            self.descriptor = xgtpsa.Descriptor.new(
-                6, 1, num_parameters=len(self.names), param_order=self.order
+            self.descriptor = xgtpsa.Descriptor(
+                6, 1, num_params=len(self.names), param_order=self.order
             )
         self._seed_vals = [self.line[n] for n in self.names]
         seeds = [
-            Tpsa.param(self.descriptor, i + 1, v) for i, v in enumerate(self._seed_vals)
+            self.descriptor.param(i + 1, v) for i, v in enumerate(self._seed_vals)
         ]
         raw = self._run_expansion(seeds)
         attr_tpsas: dict[tuple[str, str], Tpsa] = {}
@@ -147,19 +147,19 @@ class Knobs:
         back to re-running the expansion each iteration.
         """
         # Maximum order must be at least the parameter order, so mo=2 here, not 1.
-        probe_descriptor = xgtpsa.Descriptor.new(
-            6, 2, num_parameters=len(self), param_order=2
+        probe_descriptor = xgtpsa.Descriptor(
+            6, 2, num_params=len(self), param_order=2
         )
         seeds = [
-            Tpsa.param(probe_descriptor, i + 1, self.line[n])
+            probe_descriptor.param(i + 1, self.line[n])
             for i, n in enumerate(self.names)
         ]
-        n_variables = probe_descriptor.n_variables
+        num_vars = probe_descriptor.num_vars
         for value in self._run_expansion(seeds).values():
             if not isinstance(value, Tpsa):
                 continue
             for monomial, _ in value.monomial_coeffs(tol).items():
-                if sum(monomial[n_variables:]) > 1:
+                if sum(monomial[num_vars:]) > 1:
                     return False
         return True
 
@@ -212,7 +212,7 @@ class Knobs:
                     f"field address for {e}.{a} reads {read!r}, expected {live!r}"
                 )
             addrs.append(addr)
-            ptrs.append(self._attr_tpsas[(e, a)]._p)
+            ptrs.append(self._attr_tpsas[(e, a)].ptr)
         return addrs, ptrs
 
     def _field_addr(self, elem: str, attr: str) -> int:

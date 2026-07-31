@@ -94,8 +94,8 @@ def test_maps_share_descriptor_by_order():
     c = _map(order=3)
     assert a.descriptor is b.descriptor
     assert a.descriptor is not c.descriptor
-    assert (a.order, a.n_variables) == (2, 6)
-    assert (c.order, c.n_variables) == (3, 6)
+    assert (a.order, a.num_vars) == (2, 6)
+    assert (c.order, c.num_vars) == (3, 6)
     # the six coordinate series of one map share its descriptor
     assert all(s.descriptor is a.descriptor for s in a.coords)
 
@@ -737,7 +737,7 @@ def test_particles_tpsa_with_knobs_descriptor():
     line = _knob_line()
     kn = xtpsa.Knobs(line, ['kqa', 'kqb'], order=1)
     p = xtpsa.ParticlesTpsa(order=2, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
-    assert p.n_parameters == 2
+    assert p.num_params == 2
     assert p.knob_names == ['kqa', 'kqb']
     assert p.descriptor.monomial_length == 8          # 6 coords + 2 params
     assert np.allclose(p.jacobian(), np.eye(6))       # identity map before tracking
@@ -1106,7 +1106,7 @@ def _param_map(A0, dA, order=2):
     kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
     m = xtpsa.ParticlesTpsa(order=order, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
     m.set_jacobian(A0)
-    nv = m.n_variables
+    nv = m.num_vars
     for (i, j), g in dA.items():
         for k, gk in enumerate(g):
             mono = [0] * (nv + len(g))

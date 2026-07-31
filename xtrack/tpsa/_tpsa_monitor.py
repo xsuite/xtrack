@@ -57,7 +57,7 @@ class TpsaMonitor:
         self._slots = [[xgtpsa.Tpsa(descriptor) for _ in _COORDS]
                        for _ in range(self.n_slots)]
         ffi = xgtpsa.ffi()
-        addrs = [int(ffi.cast("uintptr_t", t._p)) for row in self._slots for t in row]
+        addrs = [int(ffi.cast("uintptr_t", t.ptr)) for row in self._slots for t in row]
         self._xobject = XtBridgeTpsaMonitor(coords=addrs)   # slot-major destinations
         self._xobject.n_slots = self.n_slots
         self._xobject.n_coords = len(_COORDS)

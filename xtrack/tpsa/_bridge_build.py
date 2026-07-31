@@ -166,7 +166,6 @@ def bridge_lib(flavor: str, force: bool = False) -> dict[str, KernelCpu]:
         _bridge_ctx = ContextCpu()
     here = _src_dir()
     core = xgtpsa.core_library()
-    core_dir = os.path.dirname(core)
     cache_dir = _cache_dir()
     module_name = _bridge_cache_key(flavor)
     descs = _bridge_kernel_descs(flavor)
@@ -195,14 +194,9 @@ def bridge_lib(flavor: str, force: bool = False) -> dict[str, KernelCpu]:
                 *_FLAVOR_DEFINES[flavor],
                 "-DXTRACK_MULTIPOLE_NO_SYNRAD",
                 f"-I{here}",
-                f"-I{xgtpsa.include_dir()}",
                 "-include", "complex",
             ],
-            extra_link_args=[
-                "-lmadng_tpsa",
-                f"-L{core_dir}",
-                f"-Wl,-rpath,{core_dir}",
-            ],
+            extra_source_files=(),
         )
     _bridge_modules[flavor] = kernels
     return kernels
