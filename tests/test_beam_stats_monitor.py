@@ -948,6 +948,59 @@ def test_beam_stats_monitor_coasting_slice_stats(test_context):
 
 
 @for_all_test_contexts
+def test_beam_stats_monitor_coasting_folds_particles_to_effective_turn(
+        test_context):
+    line_length = 8.
+    eps = 1e-12
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=3,
+        coasting=True,
+        num_slices=4,
+        stats=['num_particles', 'mean_x'],
+    )
+    line = xt.Line(elements=[monitor, xt.Drift(length=line_length)])
+    line.build_tracker(_context=test_context)
+
+    particles = xt.Particles(
+        _context=test_context,
+        p0c=7e12,
+        x=[10., 20., 30., 40., 50., 60.],
+        px=[0., 0., 0., 0., 0., 0.],
+        y=[0., 0., 0., 0., 0., 0.],
+        py=[0., 0., 0., 0., 0., 0.],
+        zeta=[
+            line_length + 1.,
+            0.5 * line_length,
+            -0.5 * line_length + eps,
+            -0.5 * line_length,
+            -0.5 * line_length - eps,
+            -line_length - 1.,
+        ],
+        delta=[0., 0., 0., 0., 0., 0.],
+        weight=[1., 1., 1., 1., 1., 1.],
+        at_turn=[1, 1, 1, 1, 1, 1],
+    )
+
+    line.track(particles, num_turns=1)
+
+    assert_allclose(
+        monitor.num_particles,
+        [[0., 1., 0., 0.],
+         [1., 0., 0., 1.],
+         [2., 0., 1., 0.]])
+    assert_allclose(
+        monitor.mean_x,
+        [[0., 10., 0., 0.],
+         [20., 0., 0., 30.],
+         [45., 0., 60., 0.]])
+    assert_allclose(
+        monitor.get('num_particles', level='beam'),
+        [1., 2., 3.])
+
+
+@for_all_test_contexts
 def test_beam_stats_monitor_coasting_hdf5_public_shape(test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 

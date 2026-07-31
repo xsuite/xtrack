@@ -200,10 +200,8 @@ void BeamStatsMonitor_track_local_particle(
                         (relative_turn_fraction + 0.5) * (double)n_slices;
                     coasting_slice = (int64_t)floor(slice_position);
 
-                    if (coasting_slice >= n_slices) {
-                        coasting_slice = n_slices - 1;
-                    } else if (coasting_slice < 0) {
-                        coasting_slice = 0;
+                    if (coasting_slice < 0 || coasting_slice >= n_slices) {
+                        accepted = 0;
                     }
                     zeta = -relative_turn_fraction * line_length;
                 }

@@ -2,7 +2,7 @@
 
 ## Naming and terminology
 
-- Addressed in docstring and user guide.
+- Status: done in `xtrack` commit 949dc5293 and `xsuite` commit 22109c6.
 - Keep the class name `BeamStatsMonitor`.
 - Keep the public API centered on "slot" because the implementation is
   slot-based.
@@ -17,6 +17,7 @@
 
 ## Whole-beam statistics
 
+- Status: done in `xtrack` commit 949dc5293 and `xsuite` commit 22109c6.
 - Document that `level="beam"` means all accepted particles for the same
   effective turn.
 - In bunched and sliced modes, beam-level statistics are obtained by summing
@@ -28,14 +29,20 @@
 
 ## Coasting slice boundary behavior
 
-- Fix the coasting slice assignment in `beam_stats_monitor.h`.
-- Current behavior clamps numerically out-of-range slice indices to the first
-  or last slice.
-- Desired behavior:
+- Status: done.
+- Coasting mode should use `zeta` to determine the effective turn where each
+  particle belongs. If a particle is outside the current turn, the monitor
+  should fold it by the machine circumference, compute the corresponding turn
+  index, and update that turn's data when it is in the recorded range.
+- Fix the coasting slice assignment in `beam_stats_monitor.h` without changing
+  this turn-folding behavior.
+- Current boundary behavior clamps numerically out-of-range slice indices to
+  the first or last slice.
+- Desired boundary behavior:
   - Keep periodic full-turn folding for coasting beams.
-  - Avoid accumulating genuinely out-of-range particles into endpoint slices.
-  - Handle the periodic upper boundary consistently, wrapping to slice 0 only
-    when appropriate.
+  - After folding to the effective turn, reject particles outside the recorded
+    slice range instead of accumulating them into endpoint slices.
+  - Handle turn-boundary particles consistently.
 - Add regression tests with particles exactly on and close to coasting slice
   boundaries.
 
