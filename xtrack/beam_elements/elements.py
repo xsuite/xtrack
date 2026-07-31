@@ -5039,6 +5039,8 @@ class StraightFieldExpansion(BeamElement):
         "_D2": xo.Float64[:],
         "_Q": xo.Float64[:],       
         
+        "pkin_const": xo.Int64,
+        "sstart": xo.Float64,
     }
     
     _extra_c_sources = [
@@ -5052,12 +5054,13 @@ class StraightFieldExpansion(BeamElement):
         ), 
     }
     
-    def __init__(self, length, a, b, bs, ny, nstep=10, **kwargs):
+    def __init__(self, length, a, b, bs, ny, nstep=10, sstart=0, **kwargs):
         kwargs['length'] = length
         kwargs['h'] = 0
         kwargs['straight'] = 1
         kwargs['nstep'] = nstep
         kwargs['ds'] = length/nstep
+        kwargs['sstart'] = sstart
        
         kwargs['a'] = np.asarray(a, dtype=np.float64).flatten()
         kwargs['b'] = np.asarray(b, dtype=np.float64).flatten()
@@ -5068,6 +5071,11 @@ class StraightFieldExpansion(BeamElement):
         kwargs['ny'] = ny
 
         kwargs['deg'] = a.shape[1] - 1
+        
+        if "pkin_const" in kwargs:
+            kwargs["pkin_const"] = int(kwargs["pkin_const"])
+        else:
+            kwargs["pkin_const"] = 0  # Default is symplectic option
         
         if b.shape[1] != kwargs['deg'] + 1 or bs.shape[0] != kwargs['deg'] + 1:
             raise ValueError("Invalid input shapes")
@@ -5154,6 +5162,8 @@ class BentFieldExpansion(BeamElement):
         "_D2": xo.Float64[:],
         "_Q": xo.Float64[:],       
         
+        "pkin_const": xo.Int64,
+        "sstart": xo.Float64,
     }
     
     _extra_c_sources = [
@@ -5167,13 +5177,14 @@ class BentFieldExpansion(BeamElement):
         ), 
     }
     
-    def __init__(self, length, h, a, b, bs, ny, nstep=10, **kwargs):
+    def __init__(self, length, h, a, b, bs, ny, nstep=10, sstart=0, **kwargs):
         assert h > 1e-4, "Use straight element with h=0!"
         kwargs['length'] = length
         kwargs['h'] = h
         kwargs['straight'] = 0
         kwargs['nstep'] = nstep
         kwargs['ds'] = length/nstep
+        kwargs['sstart'] = sstart
        
         kwargs['a'] = np.asarray(a, dtype=np.float64).flatten()
         kwargs['b'] = np.asarray(b, dtype=np.float64).flatten()
@@ -5184,6 +5195,12 @@ class BentFieldExpansion(BeamElement):
         kwargs['ny'] = ny
 
         kwargs['deg'] = a.shape[1] - 1
+
+        if "pkin_const" in kwargs:
+            kwargs["pkin_const"] = int(kwargs["pkin_const"])
+        else:
+            kwargs["pkin_const"] = 0  # Default symplectic option
+        
         
         if b.shape[1] != kwargs['deg'] + 1 or bs.shape[0] != kwargs['deg'] + 1:
             raise ValueError("Invalid input shapes")

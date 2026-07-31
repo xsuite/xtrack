@@ -9,7 +9,7 @@ def test_h_sdep():
     bs = np.array([0.1, 0.0])
     ny = 5
     length=0.2
-    fexp = xt.FieldExpansion(length=length, h=h, a=a, b=b, bs=bs, ny=ny, nstep=100)
+    fexp = xt.FieldExpansion(length=length, h=h, a=a, b=b, bs=bs, ny=ny, nstep=100, pkin_const=True)
 
     p0 = xt.Particles(x=0.01, y=0.007, tau=0.002, beta0=0.7)
     line = xt.Line(elements=[fexp])
@@ -29,7 +29,7 @@ def test_sdep():
     bs = np.array([0.1, 0.0])
     ny = 5
     length=0.2
-    fexp = xt.FieldExpansion(length=length, a=a, b=b, bs=bs, ny=ny, nstep=100)
+    fexp = xt.FieldExpansion(length=length, a=a, b=b, bs=bs, ny=ny, nstep=100, pkin_const=True)
 
     p0 = xt.Particles(x=0.01, y=0.007, tau=0.002, beta0=0.7)
     line = xt.Line(elements=[fexp])
@@ -110,7 +110,7 @@ def test_against_boris():
                 (0.1*z*x**2 - 0.1*z*y**2 - 0.02*z + x*(0.16*z + 0.2) + y*(0.84*z + 0.24)/6 - 0.1) * p0.rigidity0[0])
 
     boris = xt.BorisSpatialIntegrator(fieldmap_callable=fieldvalue, s_start=0, s_end=length, n_steps=500)
-    fexp = xt.FieldExpansion(length=length, a=a, b=b, bs=bs, ny=5, nstep=50)
+    fexp = xt.FieldExpansion(length=length, a=a, b=b, bs=bs, ny=5, nstep=50, pkin_const=True)
     
     boris.track(p0)
     fexp.track(p1)

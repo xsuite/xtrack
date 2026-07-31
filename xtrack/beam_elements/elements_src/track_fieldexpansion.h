@@ -51,7 +51,7 @@ void TRACK_EXPANSION(
 
     const double nstep  = CONCATDATA(DATA, _get_nstep(el));
     double ds     = CONCATDATA(DATA, _get_ds(el));
-    double sstart = 0;
+    double sstart = CONCATDATA(DATA, _get_sstart)(el);
 
     Expansion f;
     f.ny         = CONCATDATA(DATA, _get_ny)(el);
@@ -76,6 +76,8 @@ void TRACK_EXPANSION(
     int64_t const backtrack = LocalParticle_check_track_flag(part0, XS_FLAG_BACKTRACK);
     if (backtrack) {sstart = ds * nstep; ds = -ds;}
 
+    int pkin_const = CONCATDATA(DATA, _get_pkin_const)(el);
+
     HamiltonianFlow flow;
     FieldValue v;
 
@@ -93,9 +95,11 @@ void TRACK_EXPANSION(
         double z[6] = {x, px, y, py, tau, ptau};
 
         // Momentum has to be continuous, vector potential discontinuous, update canonical momentum
-        EVALUATE_EXPANSION(&f, z[0], z[2], 0, &v);
-        z[1] += v.Ax - ax;
-        z[3] += v.Ay - ay;
+        if (pkin_const) {
+            EVALUATE_EXPANSION(&f, z[0], z[2], sstart, &v);
+            z[1] += v.Ax - ax;
+            z[3] += v.Ay - ay;
+        }
 
         double s = sstart;
         double ztmp[6];
@@ -123,8 +127,16 @@ void TRACK_EXPANSION(
 
         // Back to zero vector potential for next element
         EVALUATE_EXPANSION(&f, z[0], z[2], s, &v);
-        z[1] -= v.Ax;
-        z[3] -= v.Ay;
+        if (pkin_const) {
+            z[1] -= v.Ax;
+            z[3] -= v.Ay;
+            LocalParticle_set_ax(part, 0);
+            LocalParticle_set_ay(part, 0);
+        }
+        else {
+            LocalParticle_set_ax(part, v.Ax);
+            LocalParticle_set_ay(part, v.Ay);
+        }
 
         LocalParticle_set_x(part, z[0]);
         LocalParticle_set_px(part, z[1]);
@@ -132,8 +144,6 @@ void TRACK_EXPANSION(
         LocalParticle_set_py(part, z[3]);
         LocalParticle_set_zeta(part, z[4]*beta0);
         LocalParticle_set_ptau(part, z[5]);
-        LocalParticle_set_ax(part, 0);
-        LocalParticle_set_ay(part, 0);
         LocalParticle_add_to_s(part, ds*nstep);
     END_PER_PARTICLE_BLOCK
 }
