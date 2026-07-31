@@ -154,6 +154,9 @@ class BeamStatsMonitor(BeamElement):
     Particle species diagnostics can be requested with ``sum_charge_ratio``,
     ``mean_charge_ratio``, ``sum_mass_ratio``, and ``mean_mass_ratio``; these
     quantities use the same ``particles.weight`` weighting.
+    The optional ``particle_id_range=(start, stop)`` argument restricts
+    recording to particles with ``particle_id`` in the inclusive-lower,
+    exclusive-upper range ``[start, stop)``.
 
     Whole-beam statistics, obtained with ``level="beam"``, are computed from
     all accepted particles for the same effective turn. In bunched and sliced
@@ -219,6 +222,9 @@ class BeamStatsMonitor(BeamElement):
     coasting : bool, optional
         If True, slice the full turn periodically for a coasting beam.
         Requires `num_slices` and rejects bunched-beam filling inputs.
+    particle_id_range : tuple[int, int], optional
+        Inclusive-lower, exclusive-upper particle-id range to record. By
+        default all particles are recorded.
     stats : sequence of str, optional
         Requested public statistics.
     output_file : str or path-like, optional
@@ -239,6 +245,8 @@ class BeamStatsMonitor(BeamElement):
         '_z_min_edge': xo.Float64,
         '_dzeta': xo.Float64,
         '_bunch_spacing_zeta': xo.Float64,
+        '_particle_id_start': xo.Int64,
+        '_particle_id_stop': xo.Int64,
         '_selected_slots': xo.Int64[:],
         '_filled_slots': xo.Int64[:],
         '_slot_to_selected': xo.Int64[:],
@@ -270,6 +278,7 @@ class BeamStatsMonitor(BeamElement):
                  filled_slots=None,
                  selected_slots=None,
                  coasting=False,
+                 particle_id_range=None,
                  stats=None,
                  profiles=None,
                  output_file=None,
@@ -301,6 +310,8 @@ class BeamStatsMonitor(BeamElement):
             stop_at_turn = start_at_turn + 1
         if every_n_turns <= 0:
             raise ValueError('`every_n_turns` must be positive')
+        particle_id_start, particle_id_stop = _validate_particle_id_range(
+            particle_id_range)
 
         # Keep requested stats in user order while ignoring duplicates.
         raw_stats = _DEFAULT_STATS if stats is None else _expand_stats(stats)
@@ -507,6 +518,8 @@ class BeamStatsMonitor(BeamElement):
             _bunch_spacing_zeta=(
                 0.0 if bunch_spacing_zeta is None
                 else float(bunch_spacing_zeta)),
+            _particle_id_start=particle_id_start,
+            _particle_id_stop=particle_id_stop,
             _selected_slots=selected_slots,
             _filled_slots=filled_slots,
             _slot_to_selected=slot_to_selected,
@@ -561,6 +574,15 @@ class BeamStatsMonitor(BeamElement):
         Whether the monitor uses full-turn periodic coasting slicing.
         """
         return int(self._mode) == 3
+
+    @property
+    def particle_id_range(self):
+        """
+        Inclusive-lower, exclusive-upper particle-id range, or None.
+        """
+        if int(self._particle_id_start) < 0:
+            return None
+        return (int(self._particle_id_start), int(self._particle_id_stop))
 
     @property
     def available_levels(self):
@@ -643,6 +665,8 @@ class BeamStatsMonitor(BeamElement):
             'every_n_turns': int(self.every_n_turns),
             'stats': list(self._stats_names),
         }
+        if self.particle_id_range is not None:
+            out['particle_id_range'] = self.particle_id_range
         if self.coasting:
             out['coasting'] = True
             out['num_slices'] = int(self._num_slices)
@@ -1352,6 +1376,31 @@ def _check_first_moment_coord(coord):
     """
     if coord not in _FIRST_MOMENTS:
         raise ValueError(f'Unknown coordinate `{coord}`')
+
+
+def _validate_particle_id_range(particle_id_range):
+    """
+    Return normalized particle-id filter bounds.
+    """
+    if particle_id_range is None:
+        return -1, -1
+    try:
+        num_bounds = len(particle_id_range)
+    except TypeError as exc:
+        raise ValueError(
+            '`particle_id_range` must contain two integer bounds') from exc
+    if num_bounds != 2:
+        raise ValueError(
+            '`particle_id_range` must contain two integer bounds')
+    start = _as_int(particle_id_range[0], 'particle_id_range[0]')
+    stop = _as_int(particle_id_range[1], 'particle_id_range[1]')
+    if start < 0:
+        raise ValueError('`particle_id_range[0]` must be non-negative')
+    if stop <= start:
+        raise ValueError(
+            '`particle_id_range[1]` must be larger than '
+            '`particle_id_range[0]`')
+    return start, stop
 
 
 def _validate_profiles(profiles):

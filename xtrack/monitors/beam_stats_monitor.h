@@ -32,6 +32,10 @@ void BeamStatsMonitor_track_local_particle(
         BeamStatsMonitorData_get__dzeta(el);
     double const bunch_spacing_zeta =
         BeamStatsMonitorData_get__bunch_spacing_zeta(el);
+    int64_t const particle_id_start =
+        BeamStatsMonitorData_get__particle_id_start(el);
+    int64_t const particle_id_stop =
+        BeamStatsMonitorData_get__particle_id_stop(el);
     int64_t const coasting = (mode == 3);
 
     BeamStatsMonitorRecordData data = BeamStatsMonitorData_getp_data(el);
@@ -192,7 +196,15 @@ void BeamStatsMonitor_track_local_particle(
             int64_t coasting_slice = 0;
             int64_t accepted = 1;
 
-            if (coasting) {
+            if (particle_id_start >= 0) {
+                int64_t const particle_id = LocalParticle_get_particle_id(part);
+                if (particle_id < particle_id_start
+                        || particle_id >= particle_id_stop) {
+                    accepted = 0;
+                }
+            }
+
+            if (accepted && coasting) {
                 double const line_length = part->line_length;
                 if (line_length <= 0.0) {
                     accepted = 0;

@@ -63,6 +63,7 @@
 
 ## Particle-id selection
 
+- Status: done in working tree.
 - Add `particle_id_range=(start, stop)` to `BeamStatsMonitor`.
 - Prefer not to add a `num_particles` constructor argument because
   `num_particles` is already a public statistic.
