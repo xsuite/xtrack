@@ -6,7 +6,7 @@ import uuid
 
 import xtrack as xt
 
-from xtrack.particles.particles import ptau2delta, dptau2ddelta
+from xtrack.particles.particles import ptau2delta, delta2ptau, dptau2ddelta
 
 NG_XS_MAP = {
     'beta11': 'betx',
@@ -47,6 +47,8 @@ BETA0_COLUMNS = ['x', 'px', 'y', 'py', 't', 'pt',
 TW_BASE_COLUMNS = ['s', 'beta11', 'beta22', 'beta33', 'alfa11', 'alfa22', 'alfa33',
                    'gama11', 'gama22', 'gama33', 'x', 'px', 'y', 'py', 't', 'pt',
                    'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2', 'mu3']
+
+TRACK_BASE_COLUMNS = ['s', 'x', 'px', 'y', 'py', 't', 'pt']
 
 OPTFUN_QUANTITIES = ['beta11', 'beta22', 'alfa11', 'alfa22', 'gama11', 'gama22',
                      'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2']
@@ -424,6 +426,185 @@ def _tw_ng(line, rdts=(), normal_form=False,
             tw[nn+'_nf_ng'] = dct_nf[nn]
 
     return tw
+
+_TRACK_COORDS = ('x', 'px', 'y', 'py', 't', 'pt')
+
+
+def _build_track_X0_string(track_kwargs, beta0):
+    """Builds the MAD-NG ``X0`` string of initial *orbits* for tracking.
+
+    Coordinates are given in the MAD-NG phase space ``x, px, y, py, t, pt``.  The
+    Xsuite aliases in ``XS_NG_MAP`` are accepted and converted to the matching
+    MAD-NG coordinate: ``zeta -> t = zeta / beta0``, ``delta -> pt = ptau(delta)``
+    and ``ptau -> pt`` (identity).  At most one alias per MAD-NG coordinate may be
+    given (e.g. not both ``zeta`` and ``t``).  Each coordinate may be a scalar
+    (one particle) or array-like (one value per particle; scalars are broadcast).
+
+    Returns ``(X0_string, n_particles)``; ``('', 1)`` when no initial coordinates
+    are given (MAD-NG then tracks the reference orbit).
+    """
+    # Group the given input keys by the MAD-NG coordinate they set, so that two
+    # aliases for the same coordinate (e.g. ``zeta`` and ``t``) are rejected.
+    groups = {ng: [] for ng in _TRACK_COORDS}
+    for key in track_kwargs:
+        ng = key if key in _TRACK_COORDS else XS_NG_MAP.get(key)
+        if ng in groups:
+            groups[ng].append(key)
+
+    coords = {}
+    for ng, keys in groups.items():
+        if not keys:
+            continue
+        if len(keys) > 1:
+            raise ValueError(
+                f"Several initial conditions given for MAD-NG coordinate "
+                f"'{ng}': {keys}; pass only one of them.")
+        key = keys[0]
+        val = np.atleast_1d(np.asarray(track_kwargs[key], dtype=float))
+        if key == 'zeta':
+            val = val / beta0
+        elif key == 'delta':
+            val = delta2ptau(val, beta0)
+        # 't', 'pt', 'ptau' and the transverse coords are taken verbatim
+        coords[ng] = val
+    if not coords:
+        return '', 1
+
+    n_part = max(len(a) for a in coords.values())
+    if any(len(a) not in (1, n_part) for a in coords.values()):
+        raise ValueError(
+            'All initial-coordinate arrays must share the same length (or be scalars).')
+    coords = {k: (np.broadcast_to(a, (n_part,)) if len(a) == 1 else a)
+              for k, a in coords.items()}
+
+    cols = [k for k in _TRACK_COORDS if k in coords]  # canonical MAD-NG order
+
+    def _orbit(i):
+        return '{' + ', '.join(f'{k} = {float(coords[k][i])}' for k in cols) + '}'
+
+    if n_part == 1:
+        return f'X0 = {_orbit(0)}, ', 1
+    return 'X0 = { ' + ', '.join(_orbit(i) for i in range(n_part)) + ' }, ', n_part
+
+
+def _track_ng(line, nslice=3, X0=None, method=4, observe=1, model=None,
+              **track_kwargs):
+    """
+    Track particles through a line in MAD-NG.
+
+    This is the tracking counterpart of :func:`_tw_ng`, which calls
+    ``MAD.track`` instead ``twiss`` and returns the phase-space coordinates
+    along the sequence.
+
+    Parameters
+    ----------
+    nslice : int, optional
+        Number of slices used in MAD-NG tracking internals.
+    X0 : object, optional
+        Pre-built MAD-NG initial condition (e.g. a damap, for TPSA map tracking),
+        passed through verbatim. If not given, initial *orbits* are built from the
+        coordinates in ``track_kwargs`` (see :func:`_build_track_X0_string`).
+    method : int, optional
+        MAD-NG method identifier for the tracking call.
+    observe : int, optional
+        MAD-NG ``observe`` flag (``0`` observes at every element, ``1`` only at
+        markers/``$end``).
+    **track_kwargs
+        Additional keyword arguments. ``start``/``end`` select a range; the
+        coordinate keys give the initial orbit(s) in MAD-NG coordinates
+        ``x, px, y, py, t, pt``.  The Xsuite aliases ``zeta``/``delta`` are
+        converted (``t = zeta/beta0``, ``pt = ptau(delta)``); at most one alias
+        per MAD-NG coordinate may be given (see :func:`_build_track_X0_string`).
+        Each may be a scalar (one particle) or array-like (one value per particle,
+        scalars broadcast), so several particles are tracked in a single call.
+
+    Returns
+    -------
+    track : xtrack.TwissTable
+        Table with the tracked coordinates (``_ng`` suffixed columns) indexed by
+        the element names produced by MAD-NG.  With several particles each
+        ``*_ng`` column is 2-D, shape ``(n_elements, n_particles)``.
+    """
+
+    _action = ActionTwissMadng(line, {
+        "nslice": nslice,
+        **track_kwargs
+    })
+
+    if not hasattr(line.tracker, '_madng'):
+        line.build_madng_model()
+    mng = line.tracker._madng
+
+    start = track_kwargs.get('start', None)
+    end = track_kwargs.get('end', None)
+
+    if (start is None) != (end is None):
+        raise ValueError('Start and end must be specified together.')
+
+    beta0 = line.particle_ref.beta0[0]
+    if X0 is None:
+        X0_str, _ = _build_track_X0_string(track_kwargs, beta0)
+    else:
+        X0_str = f'X0 = {X0}, '
+
+    range_str = ''
+    if start is not None and end is not None:
+        range_str = f"range = '{start}/{end}', "
+
+    # Optional global integration-model override ('DKD' or 'TKT'). When None the
+    # MAD-NG flow default (or whatever each element carries) is used.
+    model_str = '' if model is None else f"model = '{model}', "
+
+    mng_script = ('''
+        -- track (mtbl kept global so pymadng recv can introspect it)
+        mtbl = MAD.track {sequence=''' f'{mng._sequence_name}, method={method},\
+        nslice={nslice}, observe={observe}, {model_str}{X0_str} {range_str}'
+        '''}
+        py:send(mtbl)
+        ''')
+
+    mng.send(mng_script)
+    res = mng.recv('mtbl').to_df()
+
+    # MAD-NG returns one row per (observation point, particle).  The ``id`` column
+    # identifies the particle and rows are interleaved by element.  For a
+    # single particle the ``*_ng`` columns stay 1-D (one value per element); for
+    # multiple particles they become 2-D arrays of shape (n_elements, n_particles),
+    # ordered by particle id (the order the initial coordinates were given in).
+    if 'id' in res.columns:
+        ids = np.asarray(res['id']).astype(int)
+        uids = np.unique(ids)
+    else:
+        ids = np.ones(len(res), dtype=int)
+        uids = np.array([1])
+    n_part = len(uids)
+
+    # element order (and names) taken from the first particle's rows
+    first = ids == uids[0]
+    raw_names = np.asarray(res['name'])[first]
+    names = np.array([n if n != '$end' else '_end_point' for n in raw_names])
+
+    tw = xt.TwissTable({"name": names})
+    tw._action = _action
+
+    for nn in TRACK_BASE_COLUMNS:
+        if nn not in res.columns:
+            continue
+        col = np.asarray(res[nn], dtype=float)
+        if n_part == 1:
+            tw[f"{nn}_ng"] = col[first]
+        else:
+            # group per particle, preserving element order within each
+            tw[f"{nn}_ng"] = np.column_stack([col[ids == u] for u in uids])
+
+    # Derived Xsuite-style coordinates
+    if 't_ng' in tw.cols:
+        tw['zeta_ng'] = tw['t_ng'] * beta0
+    if 'pt_ng' in tw.cols:
+        tw['delta_ng'] = ptau2delta(tw['pt_ng'], beta0)
+
+    return tw
+
 
 def madng_get_init(line, at):
     if not hasattr(line.tracker, '_madng'):
