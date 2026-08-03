@@ -20,7 +20,45 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
     }
 
     int64_t N_edg = LimitPolygonData_len_x_vertices(el);
-    double const inner_radius_sq = LimitPolygonData_get_inner_radius_sq(el);
+
+    // On CPU this will be used to short-circuit a positive check using
+    // an inscribed circle:
+    double inner_radius_sq = 0.0;
+
+    #ifdef XO_CONTEXT_CPU
+        // Compute `inner_radius_sq`
+        for (int64_t ii = 0; ii < N_edg; ii++) {
+            int64_t const jj = (ii + 1) % N_edg;
+            double const x0 = LimitPolygonData_get_x_vertices(el, ii);
+            double const y0 = LimitPolygonData_get_y_vertices(el, ii);
+            double const x1 = LimitPolygonData_get_x_vertices(el, jj);
+            double const y1 = LimitPolygonData_get_y_vertices(el, jj);
+            double const dx = x1 - x0;
+        double const dy = y1 - y0;
+        double const seg_len_sq = dx * dx + dy * dy;
+        double dist_sq;
+
+        // Distance from the origin to this edge segment. Project the origin
+        // onto the edge line, then clamp the projection to the finite segment.
+        if (seg_len_sq > 0.0) {
+            double t = -(x0 * dx + y0 * dy) / seg_len_sq;
+            if (t < 0.0) {
+                    t = 0.0;
+                } else if (t > 1.0) {
+                    t = 1.0;
+                }
+                double const x_proj = x0 + t * dx;
+                double const y_proj = y0 + t * dy;
+                dist_sq = x_proj * x_proj + y_proj * y_proj;
+            } else {
+                dist_sq = x0 * x0 + y0 * y0;
+            }
+
+            if (ii == 0 || dist_sq < inner_radius_sq) {
+                inner_radius_sq = dist_sq;
+            }
+        }
+    #endif
 
     START_PER_PARTICLE_BLOCK(part0, part);
         double const x = LocalParticle_get_x(part);

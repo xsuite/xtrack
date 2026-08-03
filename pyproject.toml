@@ -65,3 +65,6 @@ include = "xtrack"
 markers = [
     "context_dependent: marks test as one that depends on the execution context",
 ]
+
+[tool.ruff.format]
+quote-style = "single"

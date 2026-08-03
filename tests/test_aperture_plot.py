@@ -118,16 +118,16 @@ def test_rectellipse_projection_matches_dense_boundary_search():
 def test_profile_projection_segment_and_plane_degeneracies():
     rectangle = Rectangle(half_width=2.0, half_height=1.0)
 
-    segment = _profile_projection_segment(rectangle, np.identity(4))
+    segment = _profile_projection_segment(rectangle, np.identity(4), normal_axis=1)
     np.testing.assert_allclose(segment[:, 1], 0.0, atol=1e-14)
     np.testing.assert_allclose(np.sort(segment[:, 0]), [-2.0, 2.0], atol=1e-14)
 
     coplanar = transform_matrix(rot_x_rad=np.pi / 2)
     with pytest.raises(ValueError, match='coplanar'):
-        _profile_projection_segment(rectangle, coplanar)
+        _profile_projection_segment(rectangle, coplanar, normal_axis=1)
 
     parallel = transform_matrix(shift_y=1.0, rot_x_rad=np.pi / 2)
-    assert _profile_projection_segment(rectangle, parallel) is None
+    assert _profile_projection_segment(rectangle, parallel, normal_axis=1) is None
 
 
 @pytest.mark.parametrize('curvature', [-0.2, 0.0, 0.2])

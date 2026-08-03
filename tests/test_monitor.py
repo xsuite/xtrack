@@ -99,12 +99,28 @@ def test_monitor(test_context, line0, particles0):
 
     # Test to_dict/from_dict round trip
     dct = monitor.to_dict()
+    assert 'data' not in dct
+    assert dct['auto_to_numpy'] is True
     monitor2 = xt.ParticlesMonitor.from_dict(dct, _context=test_context)
+    assert bool(monitor2.auto_to_numpy) is True
     assert np.all(monitor2.x.shape == np.array([50, 10]))
+    assert np.all(monitor2.x == 0)
+    assert np.all(monitor2.at_turn == 0)
+    assert np.all(monitor2.particle_id == 0)
+
+    particles = particles0.copy(_context=test_context)
+    line.track(particles, num_turns=num_turns, turn_by_turn_monitor=monitor2)
     assert np.all(monitor2.at_turn[3, :] == np.arange(5, 15))
     assert np.all(monitor2.particle_id[:, 3] == np.arange(0, num_particles))
     assert np.all(monitor2.at_element[:, :] == 0)
     assert np.all(monitor2.pzeta[:, 0] == mon.pzeta[:, 5]) #5 in mon because the 0th entry of monitor is the 5th turn (5th entry in mon)
+
+    monitor.auto_to_numpy = False
+    dct = monitor.to_dict()
+    assert dct['auto_to_numpy'] is False
+    monitor2 = xt.ParticlesMonitor.from_dict(dct, _context=test_context)
+    assert bool(monitor2.auto_to_numpy) is False
+    monitor.auto_to_numpy = True
 
     # Test explicit monitor used in in stand-alone mode
     mon2 = xt.ParticlesMonitor(_context=test_context,
@@ -165,6 +181,14 @@ def test_monitor(test_context, line0, particles0):
     assert np.all(monitor_ip8.particle_id[:, 3] == np.arange(0, num_particles))
     assert np.all(monitor_ip8.at_element[:, :]
                         == line_w_monitor.element_names.index('ip8') - 1)
+
+    line_w_monitor_dct = line_w_monitor.to_dict()
+    assert 'data' not in line_w_monitor_dct['elements']['mymon5']
+    assert 'data' not in line_w_monitor_dct['elements']['mymon8']
+    line_w_monitor_reloaded = xt.Line.from_dict(line_w_monitor_dct)
+    reloaded_monitor_ip5 = line_w_monitor_reloaded['mymon5']
+    assert np.all(reloaded_monitor_ip5.x.shape == np.array([50, 10]))
+    assert np.all(reloaded_monitor_ip5.x == 0)
 
 
 @for_all_test_contexts
@@ -628,4 +652,3 @@ def test_multi_element_monitor(with_progress_bar, iscollective):
                     mon.data[turn,particle_id - mon.part_id_start,4,:], atol=1e-14)
     xo.assert_allclose(mon.get('delta', particle_id=particle_id, turn=turn),
                     mon.data[turn,particle_id - mon.part_id_start,5,:], atol=1e-14)
-

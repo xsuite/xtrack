@@ -1031,3 +1031,4 @@ def test_bucket_with_radiation():
     xo.assert_allclose(rfb_rad.Q_s, tw_rad.qs, rtol=0.01)
     xo.assert_allclose(rfb_no_rad.beta_z, tw_no_rad.bets0, rtol=0.015)
     xo.assert_allclose(rfb_rad.beta_z, tw_rad.bets0, rtol=0.015)
+    xo.assert_allclose(rfb_rad.z_sfp, tw_rad.zeta[0], rtol=0, atol=5e-7)

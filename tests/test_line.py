@@ -15,7 +15,8 @@ import pytest
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, for_all_test_contexts)
 from xtrack import Line, Node, Multipole
 
 test_data_folder = pathlib.Path(
@@ -184,6 +185,26 @@ def test_line_xcoll_facade(monkeypatch):
             FutureWarning,
             match=r'`Line\.collimators` is deprecated'):
         assert line.collimators is line.xcoll.collimators
+
+
+def test_line_xpart_facade(monkeypatch):
+
+    class FakeXpartLineAPI:
+        def __init__(self, line):
+            self.line = line
+
+    xpart_module = types.ModuleType('xpart')
+    line_tools_module = types.ModuleType('xpart.line_tools')
+    line_tools_module.XpartLineAPI = FakeXpartLineAPI
+    xpart_module.line_tools = line_tools_module
+    monkeypatch.setitem(sys.modules, 'xpart', xpart_module)
+    monkeypatch.setitem(sys.modules, 'xpart.line_tools', line_tools_module)
+
+    line = xt.Line(elements=[], element_names=[])
+
+    assert isinstance(line.xpart, FakeXpartLineAPI)
+    assert line.xpart is line.xpart
+    assert line.xpart.line is line
 
 
 def test_remove_redundant_apertures():
@@ -430,9 +451,9 @@ def test_get_elements_of_type_is_deprecated():
     assert names == ['cav']
 
 
+@allow_no_prebuilt_kernels
 def test_insert_omp():
 
-    skip_if_forbid_compile()
 
     ctx = xo.ContextCpu(omp_num_threads='auto')
     buffer = ctx.new_buffer()
@@ -845,9 +866,9 @@ def test_from_json_to_json(tmp_path):
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_config_propagation(test_context):
 
-    skip_if_forbid_compile()
 
     line = xt.Line(elements=10*[xt.Drift(length=1)])
     line.config.TEST1 = True

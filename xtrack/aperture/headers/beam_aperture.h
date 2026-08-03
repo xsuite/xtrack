@@ -368,8 +368,6 @@ void compute_beam_envelopes_at_sigma(
     float_type* min_y,
     float_type* max_y
 ) {
-    const int8_t is_ring = ApertureModel_get_is_ring(model);
-    const float_type survey_length = ApertureModel_get_survey_length(model);
     const uint32_t num_slices = TwissData_len_x(twiss_at_s);
     BeamLocalData s_beam_data = beam_data_get_entry(beam_data);
 

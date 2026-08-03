@@ -4733,3 +4733,37 @@ def test_environment_xcoll_facade(monkeypatch):
     assert isinstance(env.xcoll, FakeXcollEnvironmentAPI)
     assert env.xcoll is env.xcoll
     assert env.xcoll._env is env
+
+def test_environment_new_with_name_in_at():
+
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new('m1', xt.Marker, at=2.0),
+        env.new('m2', xt.Marker, at='m1')
+    ])
+
+    tt = line.get_table()
+    assert np.all(tt.name == np.array(['||drift_1', 'm1', 'm2', '_end_point']))
+    xo.assert_allclose(tt.s, np.array([0.0, 2.0, 2.0, 2.0]), rtol=0, atol=1e-15)
+
+
+def test_environment_import_anonymous_line():
+
+    env = xt.Environment()
+    line = env.new_line(components=[
+        env.new('m1', xt.Marker, at=2.0),
+        env.new('m2', xt.Marker, at='m1')
+    ])
+
+    env2 = xt.Environment()
+    line2 = env2.import_line(line)
+
+    tt = line.get_table()
+    tt2 = line2.get_table()
+
+    assert np.all(tt.name == tt2.name)
+    xo.assert_allclose(tt.s_center, tt2.s_center)
+
+    assert env is not env2
+    assert line.env is env
+    assert line2.env is env2

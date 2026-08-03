@@ -3383,7 +3383,9 @@ class Magnet(_BendCommon, BeamElement):
         Flag indicating if synchrotron radiation effects are enabled.
         If zero, no radiation effects are simulated; if 1, the ``mean``
         model is used; if 2, the ``quantum`` model is used and the
-        emitted photons are stored in the internal radiation record.
+        emitted photons are stored in the internal radiation record; if 3,
+        the ``quantum-kick`` model is used and only the total radiation kick
+        is generated.
     delta_taper : float, optional
         A value added to delta for the purposes of tapering. Default is 0.
     """

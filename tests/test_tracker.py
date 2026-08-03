@@ -12,7 +12,8 @@ from cpymad.madx import Madx
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xobjects.test_helpers import for_all_test_contexts, fix_random_seed, skip_if_forbid_compile
+from xobjects.test_helpers import (
+    allow_no_prebuilt_kernels, fix_random_seed, for_all_test_contexts)
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
@@ -126,6 +127,14 @@ def test_synrad_configuration(test_context):
         line.configure_radiation(model='quantum')
         for ee in line.elements:
             assert ee.radiation_flag == 2
+        p = xp.Particles(x=[0.01, 0.02], _context=test_context)
+        line.track(p)
+        p.move(_context=xo.ContextCpu())
+        assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
+
+        line.configure_radiation(model='quantum-kick')
+        for ee in line.elements:
+            assert ee.radiation_flag == 3
         p = xp.Particles(x=[0.01, 0.02], _context=test_context)
         line.track(p)
         p.move(_context=xo.ContextCpu())
@@ -353,9 +362,9 @@ def test_tracker_hashable_config():
     assert line.tracker._hashable_config() == expected
 
 
+@allow_no_prebuilt_kernels
 def test_tracker_config_to_headers():
 
-    skip_if_forbid_compile()
 
     line = xt.Line([])
     line.build_tracker()
@@ -378,10 +387,10 @@ def test_tracker_config_to_headers():
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_tracker_config(test_context):
     class TestElement(xt.BeamElement):
 
-        skip_if_forbid_compile()
 
         _xofields = {
             'dummy': xo.Float64,
@@ -720,9 +729,9 @@ def test_track_log_and_merit_function(test_context):
 
 
 @for_all_test_contexts
+@allow_no_prebuilt_kernels
 def test_init_io_buffer(test_context):
 
-    skip_if_forbid_compile()
 
     class TestElementRecord(xo.HybridClass):
         _xofields = {

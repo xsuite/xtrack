@@ -614,8 +614,12 @@ class MadxLoader:
         simply a polygon, instead of applying the MAD-X logic (testing first for
         a simple shape and then for a polygon).
         """
+        # MAD-X might save aperture parameters even if no aperture is actually
+        # specified, so we pop these first
+        aper_offsets = params.pop('aper_offset', (0, 0))
+
         if not {'apertype', 'aperture', 'aper_vx', 'aper_vy'} & set(params):
-            # No aperture parameters, nothing to do
+            # No aperture specified, nothing to do
             return
 
         if 'aper_vx' in params or 'aper_vy' in params:
@@ -639,7 +643,6 @@ class MadxLoader:
             # Ensure if defined, aperture is a list
             aperture = [aperture]
 
-        aper_offsets = params.pop('aper_offset', (0, 0))
         if len(aper_offsets) == 1:
             x_offset = aper_offsets[0]
             y_offset = 0.

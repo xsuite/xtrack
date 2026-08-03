@@ -11,6 +11,7 @@
 
 // MAD-NG implementation
 // https://github.com/MethodicalAcceleratorDesign/MAD/blob/d3cabd9cdebde62ebedb51bab61ac033b9159489/src/madl_dynmap.mad#L1864
+// Generating function changed to contain 1/pz instead of pz
 
 GPUFUN
 void DipoleFringe_single_particle(
@@ -57,14 +58,14 @@ void DipoleFringe_single_particle(
     const double xp2 = POW2(xp);
     const double _yp2 = 1./yp2;
 
-    const double fi0 = atan((xp*_yp2)) - c2*(1 + xp2*(1+yp2))*pz;
+    const double fi0 = atan((xp*_yp2)) - c2*(1 + xp2*(1+yp2))*_pz;
     const double co2 = b0/POW2(cos(fi0));
     const double co1 = co2/(1 + POW2(xp*_yp2))*_yp2;
     const double co3 = co2*c2;
 
-    const double fi1 =    co1          - co3*2*xp*(1+yp2)*pz;
-    const double fi2 = -2*co1*xyp*_yp2 - co3*2*xp*xyp    *pz;
-    const double fi3 =                 - co3*(1 + xp2*(1+yp2));
+    const double fi1 =    co1          - co3*2*xp*(1+yp2)*_pz;
+    const double fi2 = -2*co1*xyp*_yp2 - co3*2*xp*xyp    *_pz;
+    const double fi3 =                 + co3*(1 + xp2*(1+yp2))*POW2(_pz);
 
     const double kx = fi1*(1+xp2)*_pz   + fi2*xyp*_pz       - fi3*xp;
     const double ky = fi1*xyp*_pz       + fi2*yp2*_pz       - fi3*yp;
@@ -86,10 +87,17 @@ void DipoleFringe_single_particle(
 /*
  * Fixed-cost approximate inverse of the MAD-NG dipole-fringe map.
  *
- * The exact inverse reduces to a scalar equation for the entrance py. The
- * quadratic predictor expands fi0 through py^2 and is followed by one
- * analytic Newton correction evaluated with the exact fi0. There is no
- * convergence loop.
+ * The exact inverse reduces to a scalar equation for the entrance py q.
+ * With D=(1+delta)^2, a=D-px^2, pz=sqrt(a-q^2), and s=sqrt(a),
+ *
+ *   fi0(q) = atan(px*pz/a)
+ *            - c2*(1/pz + 2*px^2/pz^3 + px^2*q^2/pz^5),
+ *   fi0(q) = phi_c + phi_2*q^2 + O(q^4),
+ *   phi_c  = atan(px/s) - c2*(D+px^2)/s^3,
+ *   phi_2  = -px/(2*D*s) - c2*(D+7*px^2)/(2*s^5).
+ *
+ * The quadratic predictor is followed by one analytic Newton correction
+ * evaluated with the exact fi0. There is no convergence loop.
  */
 
 typedef struct DipoleFringeInverseTerms_s {
@@ -138,7 +146,7 @@ int64_t DipoleFringe_inverse_terms(
     const double _yp2 = 1. / yp2;
 
     const double fi0 = atan(xp * _yp2)
-        - c2 * (1. + xp2 * (1. + yp2)) * pz;
+        - c2 * (1. + xp2 * (1. + yp2)) * _pz;
     const double cos2_fi0 = POW2(cos(fi0));
     if (!(cos2_fi0 > 0.) || !isfinite(cos2_fi0)) return 2;
 
@@ -146,10 +154,10 @@ int64_t DipoleFringe_inverse_terms(
     const double co1 = co2 / (1. + POW2(xp * _yp2)) * _yp2;
     const double co3 = co2 * c2;
 
-    const double fi1 = co1 - 2. * co3 * xp * (1. + yp2) * pz;
+    const double fi1 = co1 - 2. * co3 * xp * (1. + yp2) * _pz;
     const double fi2 = -2. * co1 * xyp * _yp2
-        - 2. * co3 * xp * xyp * pz;
-    const double fi3 = -co3 * (1. + xp2 * (1. + yp2));
+        - 2. * co3 * xp * xyp * _pz;
+    const double fi3 = co3 * (1. + xp2 * (1. + yp2)) * POW2(_pz);
 
     const double kx = fi1 * (1. + xp2) * _pz
         + fi2 * xyp * _pz - fi3 * xp;
@@ -206,9 +214,10 @@ int64_t DipoleFringe_single_particle_inverse_quadratic_corrected(
     const double s = sqrt(a);
     const double relp = 1. / sqrt(dpp);
     const double c3 = POW2(b0) * fsad * relp;
-    const double phi_c = atan(px / s) - c2 * (dpp + px2) / s;
+    const double phi_c = atan(px / s)
+        - c2 * (dpp + px2) / POW3(s);
     const double phi_2 = -px / (2. * dpp * s)
-        + c2 * (dpp - 5. * px2) / (2. * POW3(s));
+        - c2 * (dpp + 7. * px2) / (2. * POW4(s) * s);
     const double tan_phi_c = tan(phi_c);
     const double sec2_phi_c = 1. + POW2(tan_phi_c);
     const double eta = exit_py + 4. * c3 * POW3(exit_y)
@@ -240,9 +249,9 @@ int64_t DipoleFringe_single_particle_inverse_quadratic_corrected(
     const double pz = sqrt(a - POW2(entry_py));
     const double u = px * pz / a;
     const double du_dpy = -px * entry_py / (a * pz);
-    const double dshape_dpy = -entry_py / pz
-        + 4. * px2 * entry_py / POW3(pz)
-        + 3. * px2 * POW3(entry_py) / (POW4(pz) * pz);
+    const double dshape_dpy = entry_py / POW3(pz)
+        + 8. * px2 * entry_py / (POW4(pz) * pz)
+        + 5. * px2 * POW3(entry_py) / (POW4(pz) * POW3(pz));
     const double dfi0_dpy = du_dpy / (1. + POW2(u))
         - c2 * dshape_dpy;
     const double tan_fi0 = tan(terms.fi0);
@@ -265,6 +274,19 @@ int64_t DipoleFringe_single_particle_inverse_quadratic_corrected(
             }
         }
     }
+
+    /* Reject cases outside the accuracy domain of the fixed-cost inverse. */
+    const double final_tan_fi0 = tan(terms.fi0);
+    const double final_fringe_kick =
+        4. * terms.c3 * POW3(exit_y)
+        + terms.b0 * final_tan_fi0 * exit_y;
+    const double final_residual =
+        entry_py - final_fringe_kick - exit_py;
+    double residual_scale = fabs(entry_py) + fabs(exit_py)
+        + fabs(final_fringe_kick);
+    if (residual_scale < 1.) residual_scale = 1.;
+    if (!isfinite(final_residual)
+            || fabs(final_residual) > 1e-12 * residual_scale) return 7;
 
     const double exit_y2 = POW2(exit_y);
     const double entry_y = exit_y - 0.5 * terms.ky * exit_y2;
@@ -310,6 +332,7 @@ void DipoleFringe_single_particle_backtrack(
 #ifdef XTRACK_FRINGE_FROM_PTC
 // The following is ported from PTC:
 //https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/master/libs/ptc/src/Sh_def_kind.f90#L4936
+// Generating function changed to contain 1/pz instead of pz
 
 GPUFUN
 void DipoleFringe_single_particle(
@@ -356,13 +379,13 @@ void DipoleFringe_single_particle(
     const double D_2_3 = -time_fac * yp / (pz * pz);
     const double D_3_3 =  time_fac / pz;
 
-    double fi0 = atan((xp / (1.0 + yp * yp)))-b * fint * hgap * 2.0 * ( 1.0 + xp * xp *(2.0 + yp * yp)) * pz;
+    double fi0 = atan((xp / (1.0 + yp * yp)))-b * fint * hgap * 2.0 * ( 1.0 + xp * xp *(2.0 + yp * yp)) / pz;
     const double co2 = b / cos(fi0) / cos(fi0);
     const double co1 = co2 / (1.0 + POW2(xp / POW2(1.0 + yp * yp)));
 
-    const double fi_1 = co1 / (1.0 + yp*yp) - co2 * b * fint * hgap * 2.0*(2.0 * xp * (2.0 + yp * yp) * pz);
-    const double fi_2 = -co1 * 2.0 * xp * yp / POW2(1.0 + yp * yp) - co2 * b * fint * hgap * 2.0 * (2.0 * xp* xp * yp) * pz;
-    const double fi_3 = -co2 * b * fint * hgap * 2.0 * (1.0 + xp * xp * (2.0 + yp*yp));
+    const double fi_1 = co1 / (1.0 + yp*yp) - co2 * b * fint * hgap * 2.0*(2.0 * xp * (2.0 + yp * yp) / pz);
+    const double fi_2 = -co1 * 2.0 * xp * yp / POW2(1.0 + yp * yp) - co2 * b * fint * hgap * 2.0 * (2.0 * xp* xp * yp) / pz;
+    const double fi_3 = co2 * b * fint * hgap * 2.0 * (1.0 + xp * xp * (2.0 + yp*yp)) / POW2(pz);
 
     fi0 = b * tan(fi0);
 
@@ -402,6 +425,8 @@ void DipoleFringe_single_particle_backtrack(
         const double hgap,
         const double k0
 ) {
+    (void)fint;
+    (void)hgap;
     if (fabs(k0) < 10e-10) return;
     LocalParticle_kill_particle(part, -32);
 }

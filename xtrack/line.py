@@ -270,6 +270,7 @@ class Line:
         self._metadata = None
         self._tracker = None
         self._xcoll = None
+        self._xpart = None
 
         self.config = xt.tracker.TrackerConfig()
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
@@ -1790,6 +1791,17 @@ class Line:
             except ImportError as error:
                 raise ImportError("Please install Xcoll to use this feature.") from error
         return self._xcoll
+
+    @property_with_doc_group("Reference Particle and Particle Generation")
+    def xpart(self):
+        """Xpart particle-generation helpers associated with this line."""
+        if self._xpart is None:
+            try:
+                from xpart.line_tools import XpartLineAPI
+                self._xpart = XpartLineAPI(self)
+            except ImportError as error:
+                raise ImportError("Please install Xpart to use this feature.") from error
+        return self._xpart
 
     @property_with_doc_group("Upcoming Deprecations")
     def scattering(self):
@@ -3544,7 +3556,7 @@ class Line:
                 env.place('s2', anchor='end', at=-0.5, from_='q1@start'),
                 env.place(['m1', 'm2'], at='m0@start'),
                 env.place('m3', at='m0@end'),
-                ])
+            ])
 
             # Elements can also be instantiated directly by the user
             mysext = xt.Sextupole(length=0.1, k2=0.2)
@@ -4442,7 +4454,12 @@ class Line:
         Parameters
         ----------
         model: str
-            Radiation model to use. Can be 'mean', 'quantum' or None.
+            Radiation model to use. Can be 'mean', 'quantum', 'quantum-kick'
+            or None. ``'mean'`` applies the average radiation energy loss.
+            ``'quantum'`` samples individual emitted photons, which can be
+            captured through internal radiation logging. ``'quantum-kick'``
+            samples the equivalent stochastic total radiation kick without
+            generating individual photon records.
         model_beamstrahlung: str
             Beamstrahlung model to use. Can be 'mean', 'quantum' or None.
         model_bhabha: str
@@ -4457,7 +4474,7 @@ class Line:
         if not self._has_valid_tracker():
             self.build_tracker(compile=False)
 
-        assert model in [None, 'mean', 'quantum']
+        assert model in [None, 'mean', 'quantum', 'quantum-kick']
         assert model_beamstrahlung in [None, 'mean', 'quantum']
         assert model_bhabha in [None, 'quantum']
 
@@ -4467,6 +4484,9 @@ class Line:
         elif model == 'quantum':
             radiation_flag = 2
             self._radiation_model = 'quantum'
+        elif model == 'quantum-kick':
+            radiation_flag = 3
+            self._radiation_model = 'quantum-kick'
         else:
             radiation_flag = 0
             self._radiation_model = None
@@ -4498,7 +4518,7 @@ class Line:
             if hasattr(ee, 'flag_bhabha'):
                 ee.flag_bhabha = bhabha_flag
 
-        if radiation_flag == 2 or beamstrahlung_flag == 2 or bhabha_flag == 1:
+        if radiation_flag in (2, 3) or beamstrahlung_flag == 2 or bhabha_flag == 1:
             self._needs_rng = True
 
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
@@ -4714,9 +4734,9 @@ class Line:
 
         Parameters
         ----------
-        element_type: str
+        element_type: str | type
             Type of the elements for which internal logging is started.
-        capacity: int
+        capacity: int | dict[str, int]
             Capacity of the internal record.
 
         Returns
@@ -4727,8 +4747,7 @@ class Line:
         """
         self._method_incompatible_with_compose()
         self._check_valid_tracker()
-        return start_internal_logging_for_elements_of_type(self.tracker,
-                                                    element_type, capacity)
+        return start_internal_logging_for_elements_of_type(self.tracker, element_type, capacity)
 
     @doc_group("Element Internal Logging")
     def stop_internal_logging_for_all_elements(self, reinitialize_io_buffer=False):
@@ -7331,6 +7350,8 @@ def mk_class_namespace(extra_classes):
     except ImportError:
         all_classes = element_classes + extra_classes
         log.warning("Xfields not installed")
+    if hasattr(xt, 'monitor_classes'):
+        all_classes += xt.monitor_classes
     try:
         import xcoll as xc
         all_classes += xc.element_classes

@@ -1,3 +1,4 @@
+import copy
 from collections.abc import Iterable
 import numpy as np
 import xtrack as xt
@@ -5,7 +6,7 @@ import xdeps as xd
 from functools import cmp_to_key
 from warnings import warn
 
-from .general import DEPRECATION_INFO_PREP_1_0
+from .general import DEPRECATION_INFO_PREP_1_0, parse_anchor_spec
 
 
 class Composer:
@@ -671,13 +672,10 @@ class Place:
 
         if isinstance(at, str):
             if '@' in at:
-                at_parts = at.split('@')
-                assert len(at_parts) == 2
                 assert from_ is None
                 assert from_anchor is None
+                from_, from_anchor = parse_anchor_spec(at)
                 at = 0
-                from_ = at_parts[0]
-                from_anchor = at_parts[1]
             elif env is not None and at in env._element_dict:
                 from_ = at
                 at = 0
@@ -685,10 +683,7 @@ class Place:
         if from_ is not None:
             assert isinstance(from_, str)
             if '@' in from_:
-                from_parts = from_.split('@')
-                assert len(from_parts) == 2
-                from_ = from_parts[0]
-                from_anchor = from_parts[1]
+                from_, from_anchor = parse_anchor_spec(from_)
 
         assert anchor in [None, 'center', 'centre', 'start', 'end']
         assert from_anchor in [None, 'center', 'centre', 'start', 'end']
@@ -711,12 +706,8 @@ class Place:
         return out
 
     def copy(self):
-        out = Place('dummy')
-        out.__dict__ = self.__dict__.copy()
+        out = copy.copy(self)
         return out
-
-
-
 
 
 def _argsort_s(seq, tol=10e-10):

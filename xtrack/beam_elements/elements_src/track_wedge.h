@@ -55,6 +55,22 @@ void Wedge_single_particle(
     LocalParticle_add_to_y(part, delta_y);
     LocalParticle_set_px(part, new_px);
     LocalParticle_add_to_zeta(part, -delta_ell / rvv);
+
+    // For spin we implement the effect of the reference frame rotation,
+    // but we do not yet implement the effect of the magnetic field on the spin.
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD // Spin tracking is disabled by the synrad compile flag
+        double const sin_angle = -sin(theta);
+        double const cos_angle = cos(theta);
+        /* Rotate spin */
+        double const spin_x_0 = LocalParticle_get_spin_x(part);
+        double const spin_z_0 = LocalParticle_get_spin_z(part);
+        if ((spin_x_0 != 0) || (spin_z_0 != 0)){
+            double const spin_x_1 = cos_angle*spin_x_0 - sin_angle*spin_z_0;
+            double const spin_z_1 = sin_angle*spin_x_0 + cos_angle*spin_z_0;
+            LocalParticle_set_spin_x(part, spin_x_1);
+            LocalParticle_set_spin_z(part, spin_z_1);
+        }
+    #endif
 }
 
 GPUFUN
