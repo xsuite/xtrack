@@ -7,7 +7,7 @@
 
 #include "xtrack/headers/track.h"
 
-#ifdef XT_KNOBS
+#if defined(XT_KNOBS) || defined(XT_TPSA_SLOTS)
 #include <new>
 #include <type_traits>
 

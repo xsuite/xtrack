@@ -55,7 +55,7 @@ def _line(specs):
     line = xt.Line(elements=[e for _, e in specs],
                    element_names=[n for n, _ in specs])
     line.particle_ref = xt.Particles(p0c=P0C, mass0=MASS0, q0=1)
-    line.build_tracker()
+    line.build_tracker(use_prebuilt_kernels=False)
     return line
 
 
@@ -807,6 +807,35 @@ def test_parametric_track_matches_fd():
     assert np.allclose(pj, fd, atol=1e-8), np.abs(pj - fd).max()
 
 
+def test_slot_parametric_track_matches_table_and_restores():
+    line_table = _knob_line()
+    line_slot = _knob_line()
+    names = ['kqa', 'kqb', 'klink']
+
+    p_table = xtpsa.ParticlesTpsa(order=2, knobs=xtpsa.Knobs(line_table, names),
+                                  p0c=P0C, mass0=MASS0, **X0)
+    p_slot = xtpsa.ParticlesTpsa(
+        order=2,
+        knobs=xtpsa.Knobs(line_slot, names, mode="slots"),
+        p0c=P0C,
+        mass0=MASS0,
+        **X0,
+    )
+
+    line_table.track(p_table)
+    line_slot.track(p_slot)
+
+    xo.assert_allclose(p_slot.const_part, p_table.const_part, rtol=0, atol=1e-13)
+    xo.assert_allclose(p_slot.jacobian(), p_table.jacobian(), rtol=0, atol=1e-13)
+    xo.assert_allclose(p_slot.param_jacobian(), p_table.param_jacobian(),
+                       rtol=0, atol=1e-13)
+
+    for elem, attr in p_slot.knobs._targets:
+        el = line_slot.element_dict[elem]
+        assert el._tpsa_enabled == 0
+        assert isinstance(getattr(el, attr), float)
+
+
 def test_parametric_track_solenoid_ks():
     """Solenoid ks is knobbable now that the getter, not a slot, is the knob seam."""
     env = xt.Environment()
@@ -1032,7 +1061,7 @@ def test_multi_element_monitor_records_parameters():
     and every parameter monomial survive into each slot and evolve through tracking.
     """
     line = _knob_line()
-    line.build_tracker()
+    line.build_tracker(use_prebuilt_kernels=False)
     kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
 
     def seeded():
@@ -1122,7 +1151,7 @@ def test_optics_values_vs_twiss():
 def _param_map(A0, dA, order=2):
     """A knobbed map with Jacobian ``A0`` and injected ``d A(i,j)/d knob`` (``dA[(i,j)]``)."""
     line = _knob_line()
-    line.build_tracker()
+    line.build_tracker(use_prebuilt_kernels=False)
     kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
     m = xtpsa.ParticlesTpsa(order=order, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
     m.set_jacobian(A0)
@@ -1172,7 +1201,7 @@ def test_optics_gradient_guards():
         plain.optics().gradient("betx")
 
     line = _knob_line()
-    line.build_tracker()
+    line.build_tracker(use_prebuilt_kernels=False)
     kn = xtpsa.Knobs(line, ["kqa", "kqb"], order=1)
     m1 = xtpsa.ParticlesTpsa(order=1, knobs=kn, p0c=P0C, mass0=MASS0, **X0)
     with pytest.raises(ValueError, match="order >= 2"):

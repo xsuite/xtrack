@@ -9,7 +9,8 @@ The benchmark intentionally does only tracking:
 - normal ``xt.Particles`` through the normal line;
 - scalar ``xtpsa.ParticlesTpsa`` through a non-parametric line;
 - parametric ``xtpsa.ParticlesTpsa`` through a line with the IR8 quadrupole
-  circuit variables promoted to GTPSA parameters.
+  circuit variables promoted to GTPSA parameters, using both the address-table
+  and element-owned pointer-slot prototypes.
 
 The IR8 knob list follows the optics matching setup in
 ``fast_optics_jacobian/utils.py``, but no matching or twiss computation is done.
@@ -133,6 +134,7 @@ def main():
     normal_line = collider.lhcb1
     scalar_line = normal_line.copy()
     param_line = normal_line.copy()
+    slot_line = normal_line.copy()
 
     start_idx = normal_line.element_names.index(args.start)
     end_idx = normal_line.element_names.index(args.end)
@@ -149,11 +151,13 @@ def main():
     print(f"TPSA map order: {args.order}")
     print(f"Parametric knobs: {len(IR8_VARY)}")
 
-    normal_line.build_tracker()
-    scalar_line.build_tracker()
-    param_line.build_tracker()
+    normal_line.build_tracker(use_prebuilt_kernels=False)
+    scalar_line.build_tracker(use_prebuilt_kernels=False)
+    param_line.build_tracker(use_prebuilt_kernels=False)
+    slot_line.build_tracker(use_prebuilt_kernels=False)
 
     knobs = xtpsa.Knobs(param_line, IR8_VARY, order=1)
+    slot_knobs = xtpsa.Knobs(slot_line, IR8_VARY, order=1, mode="slots")
     print(f"Parametric scalar targets: {len(knobs._targets)}")
 
     for _ in range(args.warmup):
@@ -161,12 +165,18 @@ def main():
                           ele_start=args.start, ele_stop=args.end)
         scalar_line.track(_tpsa_particle(scalar_line, args.order),
                           ele_start=args.start, ele_stop=args.end)
+        slot_line.track(_tpsa_particle(slot_line, args.order, knobs=slot_knobs),
+                        ele_start=args.start, ele_stop=args.end)
         param_line.track(_tpsa_particle(param_line, args.order, knobs=knobs),
                          ele_start=args.start, ele_stop=args.end)
 
     normal_particles = [_normal_particle(normal_line) for _ in range(args.repeats)]
     scalar_maps = [
         _tpsa_particle(scalar_line, args.order) for _ in range(args.repeats)
+    ]
+    slot_maps = [
+        _tpsa_particle(slot_line, args.order, knobs=slot_knobs)
+        for _ in range(args.repeats)
     ]
     param_maps = [
         _tpsa_particle(param_line, args.order, knobs=knobs)
@@ -178,7 +188,9 @@ def main():
                  args.repeats, args.start, args.end)
     _time_tracks("TPSA scalar line", scalar_line, scalar_maps,
                  args.repeats, args.start, args.end)
-    _time_tracks("TPSA parametric line", param_line, param_maps,
+    _time_tracks("TPSA param slot line", slot_line, slot_maps,
+                 args.repeats, args.start, args.end)
+    _time_tracks("TPSA param table line", param_line, param_maps,
                  args.repeats, args.start, args.end)
 
 

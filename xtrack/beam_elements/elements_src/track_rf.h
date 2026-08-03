@@ -213,7 +213,7 @@ void track_rf_body_single_particle(
 
     // Zero strengths: double 0. Normally, a zero constant tpsa under the knob
     // build (the drift's k0/k1/ks are XT_STRENGTH there, no double->tpsa& conversion).
-#ifdef XT_KNOBS
+#if defined(XT_KNOBS) || defined(XT_TPSA_SLOTS)
     #define XT_RF_KZ(part) (0.0 * LocalParticle_get_x(part))
 #else
     #define XT_RF_KZ(part) 0.

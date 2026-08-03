@@ -42,7 +42,7 @@
 
   /* Parametric-knob build: lattice strengths become TPSAs so knob dependence is in
    * the maps. Plain tpsa flavor keeps XT_STRENGTH == double (track.h default). */
-  #if defined(XT_KNOBS)
+  #if defined(XT_KNOBS) || defined(XT_TPSA_SLOTS)
     #include <vector>           /* lifting double multipole arrays -> constant tpsa */
     #define XT_STRENGTH mad::tpsa
     #define XT_STRENGTH_CONST_ARG const XT_STRENGTH&

@@ -6,7 +6,7 @@
  * The key is computed from the live el pointer, so there is no staleness window.
  * The table is set from Python before every track via the per-flavor setter below.
  *
- * Compiled only under XT_KNOBS (mad::tpsa is XT_STRENGTH there).
+ * Compiled under XT_KNOBS or XT_TPSA_SLOTS (mad::tpsa is XT_STRENGTH there).
  */
 #ifndef XT_KNOB_HPP
 #define XT_KNOB_HPP
@@ -38,6 +38,18 @@ extern "C" void XT_F(xt_bridge_set_knob_table)(
 /* A double as a constant TPSA on the prototype descriptor. */
 static inline xt_knob_tpsa xt_knob_lift(double v){
     return 0.0 * mad::tpsa_ref((tpsa_t*) xt_knob_proto) + v;
+}
+
+/* Slot flavor: prototype descriptor comes from the tracked map's first coord. */
+static inline void xt_slot_set_proto(const void* proto){
+    xt_knob_proto = (const tpsa_t*) proto;
+}
+
+/* The 8-byte scalar field storage is interpreted as raw pointer bits when the
+ * element's _tpsa_enabled flag is set. */
+static inline xt_knob_tpsa xt_slot(const double* slot){
+    const uintptr_t addr = *((const uintptr_t*) slot);
+    return 1.0 * mad::tpsa_ref((tpsa_t*) addr);
 }
 
 /* If addr is a registered knob, return a value copy of its parametric TPSA

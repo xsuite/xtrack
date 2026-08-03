@@ -523,7 +523,7 @@ void track_magnet_particles(
 
         // Zero of the strength type, for the locals below. The strengths themselves
         // arrive already typed, as the element getters are the knob seam.
-#ifdef XT_KNOBS
+#if defined(XT_KNOBS) || defined(XT_TPSA_SLOTS)
         XT_NUM _kproto = LocalParticle_get_x(part0);
         #define XT_KZERO (0.0 * _kproto)
 #else

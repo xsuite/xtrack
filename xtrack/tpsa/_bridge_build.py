@@ -27,13 +27,14 @@ if TYPE_CHECKING:
     from xobjects.context import Kernel
     from xobjects.context_cpu import ContextCpu, KernelCpu
 
-_BRIDGE_FLAVORS = ("num", "tpsa", "tpsa_param")
+_BRIDGE_FLAVORS = ("num", "tpsa", "tpsa_param", "tpsa_slot")
 # Preprocessor defines per flavor. tpsa_param = tpsa + parametric knobs:
 # XT_STRENGTH becomes mad::tpsa and strengths flow through the knob table.
 _FLAVOR_DEFINES = {
     "num": ["-DXT_FLAVOR_NUM"],
     "tpsa": ["-DXT_FLAVOR_TPSA"],
     "tpsa_param": ["-DXT_FLAVOR_TPSA", "-DXT_KNOBS"],
+    "tpsa_slot": ["-DXT_FLAVOR_TPSA", "-DXT_TPSA_SLOTS"],
 }
 _bridge_modules: dict[str, dict[str, KernelCpu]] = {}  # flavor -> kernels
 _bridge_ctx: ContextCpu | None = None

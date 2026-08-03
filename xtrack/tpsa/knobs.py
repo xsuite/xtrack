@@ -18,6 +18,8 @@ import xgtpsa
 
 from xgtpsa import Tpsa
 
+_SLOT_FIELDS = ("k0", "k1", "k2", "k3", "k1s", "k2s", "k3s", "ks")
+
 
 class _Dummy:
     """Attribute bag standing in for an element ref during expression expansion."""
@@ -30,10 +32,14 @@ class Knobs:
         names: list[str],
         order: int = 1,
         descriptor: xgtpsa.Descriptor | None = None,
+        mode: str = "table",
     ) -> None:
         self.line = line
         self.names = list(names)
         self.order = int(order)
+        if mode not in ("table", "slots"):
+            raise ValueError("mode must be 'table' or 'slots'")
+        self.mode = mode
         for n in self.names:
             if n not in line.vars:
                 raise KeyError(f"knob {n!r} is not a line variable")
@@ -53,6 +59,9 @@ class Knobs:
         # Linear means a knob change only moves constant terms, so a per-iteration
         # refresh is one set_const_part per target instead of a full re-expansion.
         self._expressions_are_linear: bool | None = None
+        self._slot_originals: list[tuple[Any, str, int, float]] = []
+        self._slot_flags: list[tuple[Any, int]] = []
+        self._slot_tpsas: list[Tpsa] = []
 
     def __len__(self) -> int:
         return len(self.names)
@@ -225,6 +234,60 @@ class Knobs:
             raise KeyError(f"{elem}.{attr}: no scalar field offset")
         return base + xo._offset + offs[attr]
 
+    def prepare_slots(self) -> None:
+        """Temporarily store TPSA pointer bits in participating element fields.
+
+        Prototype-only: when an element has any knobbed participating field, all
+        participating fields on that element are represented as TPSAs and the element's
+        real ``_tpsa_enabled`` flag is set. ``restore_slots`` must be called afterwards.
+        """
+        self.restore_slots()
+        self._refresh_values()
+        if not self._targets:
+            return
+
+        ffi = xgtpsa.ffi()
+        target_tpsas = dict(self._attr_tpsas)
+        proto = next(iter(target_tpsas.values()))
+        target_elements = sorted({elem for elem, _ in self._targets})
+
+        self._slot_tpsas = list(target_tpsas.values())
+        try:
+            for elem in target_elements:
+                el = self.line.element_dict[elem]
+                fields = {f.name for f in type(el._xobject)._fields}
+                slot_fields = [field for field in _SLOT_FIELDS if field in fields]
+                if not slot_fields:
+                    continue
+                self._slot_flags.append((el, int(getattr(el, "_tpsa_enabled", 0))))
+                for field in slot_fields:
+                    addr = self._field_addr(elem, field)
+                    raw_ptr = ffi.cast("double*", addr)
+                    raw_value = float(raw_ptr[0])
+                    self._slot_originals.append((el, field, addr, raw_value))
+                    tpsa = target_tpsas.get((elem, field))
+                    if tpsa is None:
+                        tpsa = 0.0 * proto + raw_value
+                        self._slot_tpsas.append(tpsa)
+                    ffi.cast("uintptr_t*", addr)[0] = int(
+                        ffi.cast("uintptr_t", tpsa.ptr)
+                    )
+                el._tpsa_enabled = 1
+        except Exception:
+            self.restore_slots()
+            raise
+
+    def restore_slots(self) -> None:
+        """Restore scalar field values and flags after ``prepare_slots``."""
+        ffi = xgtpsa.ffi()
+        for _, _, addr, value in reversed(self._slot_originals):
+            ffi.cast("double*", addr)[0] = value
+        for el, flag in reversed(self._slot_flags):
+            el._tpsa_enabled = flag
+        self._slot_originals = []
+        self._slot_flags = []
+        self._slot_tpsas = []
+
     def strength_jacobian(self) -> dict[tuple[str, str], list[float]]:
         """``d strength / d knob`` per driven element field (auto-binds a self-owned descriptor).
 
@@ -235,4 +298,7 @@ class Knobs:
         return {t: self._attr_tpsas[t].param_grad() for t in self._targets}
 
     def __repr__(self) -> str:
-        return f"Knobs(names={self.names}, order={self.order}, targets={self._targets})"
+        return (
+            f"Knobs(names={self.names}, order={self.order}, "
+            f"mode={self.mode!r}, targets={self._targets})"
+        )

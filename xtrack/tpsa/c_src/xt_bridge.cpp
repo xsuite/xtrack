@@ -7,9 +7,12 @@
 #include "xt_local_particle.hpp"                        /* flavor select + LocalParticle struct + glue */
 
 /* Flavor symbol suffix. Defined before the generated includes so xt_knob.hpp can
- * name the per-flavor set_knob_table entry point. tpsa_param = tpsa + knobs. */
+ * name flavor-specific entry points. tpsa_param = address table, tpsa_slot =
+ * element-owned pointer slots. */
 #if defined(XT_FLAVOR_TPSA) && defined(XT_KNOBS)
   #define XT_F(base) base##_tpsa_param
+#elif defined(XT_FLAVOR_TPSA) && defined(XT_TPSA_SLOTS)
+  #define XT_F(base) base##_tpsa_slot
 #elif defined(XT_FLAVOR_TPSA)
   #define XT_F(base) base##_tpsa
 #else
@@ -20,10 +23,10 @@
  * but is supported by most C++ compilers. */
 #define restrict __restrict
 
-/* Parametric knobs: address-keyed strength table. Included before the C-API, whose
- * generated strength getters wrap themselves in xt_knob() so that a read of a knob
- * target yields a parametric TPSA and every other read a constant one. */
-#ifdef XT_KNOBS
+/* Parametric knobs: address-keyed strength table or element-owned pointer slots.
+ * Included before the C-API, whose generated strength getters wrap themselves so
+ * that selected fields enter the physics as TPSAs. */
+#if defined(XT_KNOBS) || defined(XT_TPSA_SLOTS)
 #include "xt_knob.hpp"
 #endif
 
@@ -78,6 +81,9 @@ void XT_F(xt_bridge_track_element)(int64_t type_id, void* el, void* p_){
     XtBridgeParticle p = (XtBridgeParticle) p_;   /* opaque buffer pointer from Python */
     LocalParticle part;
     lp_bind(&part, p);
+#ifdef XT_TPSA_SLOTS
+    xt_slot_set_proto(part.x);
+#endif
     XT_DECL_DERIVED(part);
     LocalParticle_update_delta(&part, LocalParticle_get_delta(&part));  /* refresh rvv,rpp,ptau */
     xt_bridge_dispatch(type_id, el, &part);
@@ -134,6 +140,9 @@ void XT_F(xt_bridge_track_line)(void* ref_, int64_t ele_start, int64_t num_eleme
     XtBridgeTpsaMonitor tpsa_mon = (XtBridgeTpsaMonitor) mon_;   /* flag 3 */
     LocalParticle part;
     lp_bind(&part, p);
+#ifdef XT_TPSA_SLOTS
+    xt_slot_set_proto(part.x);
+#endif
     XT_DECL_DERIVED(part);   /* locals reused across the loop; s accumulates */
     /* Refresh derived coords (rvv,rpp,ptau) from delta once before the loop. Native
      * track_line never re-derives mid-line: the physics carries them as state and keeps

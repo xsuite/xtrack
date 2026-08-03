@@ -51,7 +51,11 @@ def _element_ptr(element: xt.BeamElement, ffi: cffi.FFI | None = None) -> Any:
 
 def _flavor(particles: ParticlesTpsa) -> str:
     """The bridge flavor a map needs: ``tpsa_param`` when it carries knobs, else ``tpsa``."""
-    return "tpsa_param" if particles.knobs is not None else "tpsa"
+    if particles.knobs is None:
+        return "tpsa"
+    if getattr(particles.knobs, "mode", "table") == "slots":
+        return "tpsa_slot"
+    return "tpsa_param"
 
 
 def registry_classes() -> list[type[xt.BeamElement]]:
@@ -139,21 +143,20 @@ class GtpsaBackend:
         type_id = type_id_for(type(element).__name__)
         p = _fill_struct(particles)
         flavor = _flavor(particles)
-        if particles.knobs is not None:
+        if flavor == "tpsa_param":
             self._set_knob_table(particles, flavor)
+        elif flavor == "tpsa_slot":
+            self._check_knobs_supported(particles.knobs)
+            particles.knobs.prepare_slots()
         fn, ffi = bridge_entry(flavor, f"xt_bridge_track_element_{flavor}")
-        fn(type_id, _element_ptr(element, ffi), _xobject_ptr(p, ffi))
+        try:
+            fn(type_id, _element_ptr(element, ffi), _xobject_ptr(p, ffi))
+        finally:
+            if flavor == "tpsa_slot":
+                particles.knobs.restore_slots()
         return particles
 
-    def _set_knob_table(self, particles: ParticlesTpsa, flavor: str) -> None:
-        """Push the knob table (addresses -> parametric strength TPSAs) into the C flavor.
-
-        Rebuilt before every track: element buffers may realloc, so the field addresses
-        are recomputed by ``Knobs.table()`` each call. Knobbed elements with active edges
-        or with radiation on are rejected: the edge path takes the strength's const part
-        and tapering scales the strengths in place. Both is currently supported by TPSA.
-        """
-        knobs = particles.knobs
+    def _check_knobs_supported(self, knobs) -> None:
         for elem, _ in knobs._targets:
             el = knobs.line.element_dict[elem]
             if getattr(el, "edge_entry_active", 0) or getattr(
@@ -168,6 +171,18 @@ class GtpsaBackend:
                     f"knobbed element '{elem}' has radiation_flag set. Strength tapering "
                     f"is a double-only feature (set radiation_flag to 0)"
                 )
+
+    def _set_knob_table(self, particles: ParticlesTpsa, flavor: str) -> None:
+        """Push the knob table (addresses -> parametric strength TPSAs) into the C flavor.
+
+        Rebuilt before every track: element buffers may realloc, so the field addresses
+        are recomputed by ``Knobs.table()`` each call. Knobbed elements with active edges
+        or with radiation on are rejected: the edge path takes the strength's const part
+        and tapering scales the strengths in place. Both are not currently supported by
+        TPSA.
+        """
+        knobs = particles.knobs
+        self._check_knobs_supported(knobs)
         addrs, ptrs = knobs.table()
         fn, ffi = bridge_entry(flavor, f"xt_bridge_set_knob_table_{flavor}")
         mad_ffi = xgtpsa.ffi()
@@ -235,18 +250,30 @@ class GtpsaBackend:
         # knob-address table MUST be computed after it, against the same buffers the C
         # loop reads. (Computing it earlier keys the table to pre-relocation addresses.)
         ref_ptr = self._refdata_ptr(line, ffi)
-        if particles.knobs is not None:
+        if flavor == "tpsa_param":
             if particles.knobs.line is not line:
                 raise ValueError(
                     "ParticlesTpsa knobs were built for a different line than the "
                     "one being tracked"
                 )
             self._set_knob_table(particles, flavor)
+        elif flavor == "tpsa_slot":
+            if particles.knobs.line is not line:
+                raise ValueError(
+                    "ParticlesTpsa knobs were built for a different line than the "
+                    "one being tracked"
+                )
+            self._check_knobs_supported(particles.knobs)
+            particles.knobs.prepare_slots()
         p = _fill_struct(particles)
         # RF cavities read the revolution time off the ring circumference.
         p.line_length = float(line.tracker._tracker_data_base.line_length)
         mon_ptr = ffi.NULL if mon is None else _xobject_ptr(mon._xobject, ffi)
-        fn(ref_ptr, ele_start, num, _xobject_ptr(p, ffi), mon_ptr, flag, observe)
+        try:
+            fn(ref_ptr, ele_start, num, _xobject_ptr(p, ffi), mon_ptr, flag, observe)
+        finally:
+            if flavor == "tpsa_slot":
+                particles.knobs.restore_slots()
         setattr(
             line.tracker, record_attr, mon
         )  # Line.record_*_last_track proxies the tracker

@@ -213,9 +213,16 @@ def wrap_knob_dependent_getters(src):
         # \b keeps _get_k1 from matching _get_k1s.
         src = re.sub(rf"\b{getter}\b", f"{getter}_raw", src)
         wrappers.append(f"""
-#ifdef XT_KNOBS
+#if defined(XT_KNOBS)
 static inline xt_knob_tpsa {getter}(const {data} restrict obj){{
     return xt_knob({data}_getp_{field}(({data}) obj), {getter}_raw(obj));
+}}
+#elif defined(XT_TPSA_SLOTS)
+static inline xt_knob_tpsa {getter}(const {data} restrict obj){{
+    if ({data}_get__tpsa_enabled(obj)){{
+        return xt_slot({data}_getp_{field}(({data}) obj));
+    }}
+    return xt_knob_lift({getter}_raw(obj));
 }}
 #else
 #define {getter} {getter}_raw
