@@ -9,10 +9,53 @@ import xtrack as xt
 
 import xgtpsa
 
-from ._bridge_particle import XtBridgeParticle, _COORDS, _REF_VARS
+import xobjects as xo
+
+_COORDS: tuple[str, ...] = ("x", "px", "y", "py", "zeta", "delta")
+_REF_VARS: tuple[str, ...] = (
+    "q0",
+    "mass0",
+    "beta0",
+    "gamma0",
+    "p0c",
+    "chi",
+    "charge_ratio",
+    "weight",
+    "anomalous_magnetic_moment",
+)
+_DERIVED_COORDS = ("ptau", "rvv", "rpp", "s")
+_LOCAL_COORDS = ("ax", "ay")
+_TPSA_NUM_FIELDS = _COORDS + _DERIVED_COORDS + _LOCAL_COORDS
+
+
+class TpsaParticleData(xo.Struct):
+    x = xo.UInt64
+    px = xo.UInt64
+    y = xo.UInt64
+    py = xo.UInt64
+    zeta = xo.UInt64
+    delta = xo.UInt64
+    ptau = xo.UInt64
+    rvv = xo.UInt64
+    rpp = xo.UInt64
+    s = xo.UInt64
+    ax = xo.UInt64
+    ay = xo.UInt64
+    q0 = xo.Float64
+    mass0 = xo.Float64
+    beta0 = xo.Float64
+    gamma0 = xo.Float64
+    p0c = xo.Float64
+    chi = xo.Float64
+    charge_ratio = xo.Float64
+    weight = xo.Float64
+    anomalous_magnetic_moment = xo.Float64
+    line_length = xo.Float64
+    state = xo.Int64
+    at_element = xo.Int64
+    track_flags = xo.UInt64
 
 if TYPE_CHECKING:
-    from .knobs import Knobs
     from .optics import TpsaOptics
 
 
@@ -27,41 +70,47 @@ class ParticlesTpsa:
     Read the result with ``.const_part`` (orbit) and ``.jacobian()`` (transfer matrix R),
     or per-coordinate ``.x`` etc.
 
-    With ``knobs=Knobs(line, names, order=po)`` the descriptor gains ``np = len(knobs)``
-    GTPSA parameters: monomial keys become length ``6 + np`` ordered
-    ``[x, px, y, py, zeta, delta, p1..pnp]``, and ``param_jacobian``/``sensitivity``
-    expose ``d coord / d knob`` after one parametric track.
+    For parametric tracking, pass a descriptor with GTPSA parameters and assign
+    descriptor parameters directly to participating element fields or line variables.
     """
 
     coords: list[xgtpsa.Tpsa] | None = None
 
-    def __init__(self, order: int = 1, knobs: Knobs | None = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        order: int = 1,
+        descriptor: xgtpsa.Descriptor | None = None,
+        **kwargs: Any,
+    ) -> None:
         # Single source of truth for kwargs and derived values.
         self._ref_particle = xt.Particles(**kwargs)
         if len(np.atleast_1d(self._ref_particle.x)) != 1:
             raise ValueError("ParticlesTpsa is a single map: pass scalar coordinates")
-        self.knobs = knobs
-        # Knobs owns (or borrows) the parametric descriptor, so take it rather than
-        # building a second one. GTPSA interns descriptors by (nv, mo, np, po) anyway.
-        if knobs is None:
-            desc = xgtpsa.Descriptor(6, order)
-        elif knobs.descriptor is None:
-            desc = knobs.descriptor = xgtpsa.Descriptor(
-                6, order, num_params=len(knobs), param_order=knobs.order
-            )
-        else:
-            desc = knobs.descriptor
+        if descriptor is not None:
+            desc = descriptor
+            if desc.num_vars != 6:
+                raise ValueError(
+                    f"ParticlesTpsa descriptor must have 6 variables, got {desc.num_vars}"
+                )
             if desc.order != order:
                 raise ValueError(
-                    f"knobs descriptor is order {desc.order}, map asks for {order}"
+                    f"descriptor is order {desc.order}, map asks for {order}"
                 )
+        else:
+            desc = xgtpsa.Descriptor(6, order)
         self.coords = [
             desc.var(i + 1, self._ref(c))
             for i, c in enumerate(_COORDS)
         ]
-        self._bridge = self._build_bridge()
+        self._local_series = {
+            name: desc.constant(self._ref(name)) for name in _DERIVED_COORDS
+        }
+        self._local_series.update({
+            name: xgtpsa.Tpsa(desc) for name in _LOCAL_COORDS
+        })
+        self._xobject = self._build_xobject()
 
-    def _build_bridge(self) -> XtBridgeParticle:
+    def _build_xobject(self) -> TpsaParticleData:
         """The ABI struct as an xobject: coordinate handles and reference variables.
 
         Coordinate ``tpsa_t*`` addresses are stable for the life of the ``Tpsa`` objects
@@ -70,11 +119,17 @@ class ParticlesTpsa:
         (state/at_element/track_flags/line_length) are refreshed by the backend.
         """
         ffi = xgtpsa.ffi()
-        bp = XtBridgeParticle()
+        bp = TpsaParticleData()
         for c, t in zip(_COORDS, self.coords):
             setattr(bp, c, int(ffi.cast("uintptr_t", t.ptr)))
+        for c in _DERIVED_COORDS + _LOCAL_COORDS:
+            setattr(bp, c, int(ffi.cast("uintptr_t", self._local_series[c].ptr)))
         for r in _REF_VARS:
             setattr(bp, r, self._ref(r))
+        bp.state = 1
+        bp.at_element = 0
+        bp.track_flags = 0
+        bp.line_length = 0.0
         return bp
 
     @classmethod
@@ -85,14 +140,14 @@ class ParticlesTpsa:
     ) -> ParticlesTpsa:
         """A map over existing ``Tpsa`` handles without using the ABI.
 
-        For read-only views of a map produced elsewhere (e.g. one recorded slot of a
-        ``TpsaMonitor``). The six series are shared, not copied. Not trackable.
+        For read-only views of a map produced elsewhere. The six series are shared,
+        not copied. Not trackable.
         """
         obj = object.__new__(cls)
         obj.coords = list(coords)
         obj._ref_particle = ref_particle
-        obj._bridge = None
-        obj.knobs = None  # a view carries no knobs; params live in the coefficients
+        obj._xobject = None
+        obj._local_series = None
         return obj
 
     def _ref(self, name: str) -> float:
@@ -132,23 +187,18 @@ class ParticlesTpsa:
 
     @property
     def num_params(self) -> int:
-        """Number of knob parameters (``np``) of the underlying descriptor (0 if none)."""
+        """Number of parameters (``np``) of the underlying descriptor (0 if none)."""
         return self.coords[0].descriptor.num_params
 
-    @property
-    def knob_names(self) -> list[str]:
-        """The knob variable names, in parameter order (empty if no knobs)."""
-        return list(self.knobs.names) if self.knobs is not None else []
-
     def param_jacobian(self) -> np.ndarray:
-        """(6, np) first-order sensitivities d coord / d knob."""
+        """(6, np) first-order sensitivities d coord / d parameter."""
         return np.array([c.param_grad() for c in self.coords])
 
     def sensitivity(self, coord: str | int, knob: str | int) -> float:
-        """First-order d coord / d knob (knob by name or 0-based param index)."""
-        if self.knobs is None:
-            raise ValueError("no knobs: build ParticlesTpsa(..., knobs=Knobs(...))")
-        ip = self.knobs.names.index(knob) if isinstance(knob, str) else knob
+        """First-order d coord / d parameter (0-based parameter index)."""
+        if isinstance(knob, str):
+            raise TypeError("ParticlesTpsa does not store parameter names")
+        ip = knob
         return self._series(coord).param_grad()[ip]
 
     @property
@@ -161,7 +211,7 @@ class ParticlesTpsa:
         return np.array([c.grad() for c in self.coords])
 
     def optics(self) -> TpsaOptics:
-        """Uncoupled optics (betx, alfx, mux, dx, ...) + knob gradients from this map."""
+        """Uncoupled optics (betx, alfx, mux, dx, ...) + parameter gradients."""
         from .optics import TpsaOptics
 
         return TpsaOptics(self)
@@ -178,7 +228,7 @@ class ParticlesTpsa:
         """Set the 6x6 order-1 transfer matrix R (the 6 variables only).
 
         Always a 6x6 over ``[x, px, y, py, zeta, delta]``, even when the descriptor has
-        knob parameters: only the order-1 *variable* block is written; the parameter
+        parameters: only the order-1 *variable* block is written; the parameter
         columns are left untouched (``set1`` is normally not used to seed parameters).
         """
         R = np.asarray(R, dtype=float)
@@ -206,7 +256,7 @@ class ParticlesTpsa:
         ``coord`` selects the output polynomial (``'x'``, ``'px'``, ... or index 0..5).
         A monomial is a length ``6 + np`` tuple of per-variable orders over
         ``[x, px, y, py, zeta, delta, p1..pnp]`` (the same keys ``monomial_coeffs``
-        returns. ``np`` = number of knob parameters, 0 without knobs).
+        returns. ``np`` = number of descriptor parameters, 0 without parameters).
         ``monomials`` is one monomial (-> ``float``) or an iterable of them,
         e.g. a list of tuples or an ``(N, 6+np)`` array (-> length-N array).
         Arrays are converted to tuples internally, for example

@@ -949,11 +949,10 @@ class OptimizeLine(xd.Optimize):
                 if use_tpsa:
                     if action_twiss_ng is None:
                         if tpsa_backend == 'gtpsa':
-                            from .tpsa.match_action import ActionTpsaTrack
-
-                            action_twiss_ng = ActionTpsaTrack(
-                                    line, [v.name for v in vary_flatten],
-                                    targets_flatten, **kwargs
+                            raise NotImplementedError(
+                                "The old gtpsa matching backend has been removed. "
+                                "Use tpsa_backend='madng' or track an explicit "
+                                "ParticlesTpsa map with descriptor parameters."
                             )
                         elif tpsa_backend == 'madng':
                             from .madng_interface import ActionTwissMadngTPSA

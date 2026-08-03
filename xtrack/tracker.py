@@ -27,6 +27,68 @@ from .track_flags import TrackFlags
 
 logger = logging.getLogger(__name__)
 
+
+def _float_or_tpsa_pairs(classes):
+    pairs = []
+    for cls in classes:
+        for field in getattr(cls, "_fields", ()):
+            if getattr(field.ftype, "_is_float_or_tpsa", False):
+                pairs.append((cls.__name__, field.name))
+    return pairs
+
+
+def _wrap_float_or_tpsa_getters(source, classes):
+    pairs = _float_or_tpsa_pairs(classes)
+    if not pairs:
+        return source
+
+    helpers = [
+        """
+#ifndef XTRACK_FLOAT_OR_TPSA_BITS_TO_DOUBLE
+static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){
+    union { uint64_t u; double d; } value;
+    value.u = bits;
+    return value.d;
+}
+#define XTRACK_FLOAT_OR_TPSA_BITS_TO_DOUBLE 1
+#endif
+"""
+    ]
+    for data, field in pairs:
+        getter = f"{data}_get_{field}"
+        helpers.append(f"""
+#ifdef XTRACK_NO_TPSA_TRACK
+#define {getter}(obj) xt_float_or_tpsa_bits_to_double(*((uint64_t*){data}_getp_{field}(obj)))
+#else
+#define {getter}(obj) xt_float_or_tpsa_get(({data}) obj, (uint64_t*){data}_getp_{field}(obj), {data}_get__tpsa_enabled(obj))
+#endif
+""")
+    block = "\n".join(helpers)
+    marker = '#include "xtrack/beam_elements/'
+    idx = source.find(marker)
+    if idx < 0:
+        return "\n".join([block, source])
+    return source[:idx] + block + "\n" + source[idx:]
+
+
+def _float_or_tpsa_getter_block(classes):
+    pairs = _float_or_tpsa_pairs(classes)
+    if not pairs:
+        return ""
+
+    blocks = []
+    for data, field in pairs:
+        getter = f"{data}_get_{field}"
+        blocks.append(f"""
+#ifdef XTRACK_NO_TPSA_TRACK
+#define {getter}(obj) xt_float_or_tpsa_bits_to_double(*((uint64_t*){data}_getp_{field}(obj)))
+#else
+#define {getter}(obj) xt_float_or_tpsa_get(({data}) obj, (uint64_t*){data}_getp_{field}(obj), {data}_get__tpsa_enabled(obj))
+#endif
+""")
+    return "\n".join(blocks)
+
+
 class Tracker:
 
     '''
@@ -756,12 +818,14 @@ class Tracker:
             # Saving kernels is unsupported on GPU
             kwargs = {}
 
+        apply_to_source = [_handle_per_particle_blocks]
+
         out_kernels = context.build_kernels(
             sources=[source_track],
             kernel_descriptions=kernels,
             extra_headers=cls._config_to_headers_from_config(config) + headers,
             extra_classes=all_classes,
-            apply_to_source=[_handle_per_particle_blocks],
+            apply_to_source=apply_to_source,
             specialize=True,
             compile=compile,
             save_source_as=f'{module_name}.c' if module_name else None,
@@ -1685,8 +1749,15 @@ class Tracker:
 
 
 class TrackerConfig(UserDict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'XTRACK_NO_TPSA_TRACK' not in self.data:
+            self.data['XTRACK_NO_TPSA_TRACK'] = True
 
     def __setitem__(self, idx, val):
+        if idx == 'XTRACK_NO_TPSA_TRACK':
+            super(TrackerConfig, self).__setitem__(idx, bool(val))
+            return
         if val is False and idx in self:
             del(self[idx]) # We don't want to store flags that are False
         else:
@@ -1699,6 +1770,8 @@ class TrackerConfig(UserDict):
                  + DEPRECATION_INFO_PREP_1_0, FutureWarning)
         if idx == 'data':
             object.__setattr__(self, idx, val)
+        elif idx == 'XTRACK_NO_TPSA_TRACK':
+            self.data[idx] = bool(val)
         elif val is not False and val is not None:
             self.data[idx] = val
         elif idx in self:

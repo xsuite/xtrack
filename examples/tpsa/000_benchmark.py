@@ -9,8 +9,7 @@ The benchmark intentionally does only tracking:
 - normal ``xt.Particles`` through the normal line;
 - scalar ``xtpsa.ParticlesTpsa`` through a non-parametric line;
 - parametric ``xtpsa.ParticlesTpsa`` through a line with the IR8 quadrupole
-  circuit variables promoted to GTPSA parameters, using both the address-table
-  and element-owned pointer-slot prototypes.
+  circuit variables promoted to GTPSA parameters.
 
 The IR8 knob list follows the optics matching setup in
 ``fast_optics_jacobian/utils.py``, but no matching or twiss computation is done.
@@ -28,6 +27,7 @@ import numpy as np
 
 import xtrack as xt
 import xtrack.tpsa as xtpsa
+import xgtpsa
 
 
 HERE = Path(__file__).resolve().parent
@@ -84,9 +84,16 @@ def _normal_particle(line):
     return xt.Particles(**_scalar_ref_kwargs(line), **X0)
 
 
-def _tpsa_particle(line, order, knobs=None):
-    return xtpsa.ParticlesTpsa(order=order, knobs=knobs,
+def _tpsa_particle(line, order, descriptor=None):
+    return xtpsa.ParticlesTpsa(order=order, descriptor=descriptor,
                                **_scalar_ref_kwargs(line), **X0)
+
+
+def _enable_line_variable_tpsa(line, names, descriptor):
+    for ii, name in enumerate(names):
+        if name not in line.vars:
+            raise KeyError(f"variable {name!r} is not in the line")
+        line.vars[name] = descriptor.param(ii + 1, float(line[name]))
 
 
 def _time_tracks(label, line, particles, repeats, ele_start, ele_stop):
@@ -134,7 +141,6 @@ def main():
     normal_line = collider.lhcb1
     scalar_line = normal_line.copy()
     param_line = normal_line.copy()
-    slot_line = normal_line.copy()
 
     start_idx = normal_line.element_names.index(args.start)
     end_idx = normal_line.element_names.index(args.end)
@@ -149,37 +155,31 @@ def main():
         f"({end_idx - start_idx} elements)"
     )
     print(f"TPSA map order: {args.order}")
-    print(f"Parametric knobs: {len(IR8_VARY)}")
+    print(f"Parametric variables: {len(IR8_VARY)}")
 
     normal_line.build_tracker(use_prebuilt_kernels=False)
     scalar_line.build_tracker(use_prebuilt_kernels=False)
     param_line.build_tracker(use_prebuilt_kernels=False)
-    slot_line.build_tracker(use_prebuilt_kernels=False)
 
-    knobs = xtpsa.Knobs(param_line, IR8_VARY, order=1)
-    slot_knobs = xtpsa.Knobs(slot_line, IR8_VARY, order=1, mode="slots")
-    print(f"Parametric scalar targets: {len(knobs._targets)}")
+    param_descriptor = xgtpsa.Descriptor(
+        6, args.order, num_params=len(IR8_VARY), param_order=1
+    )
+    _enable_line_variable_tpsa(param_line, IR8_VARY, param_descriptor)
 
     for _ in range(args.warmup):
         normal_line.track(_normal_particle(normal_line),
                           ele_start=args.start, ele_stop=args.end)
         scalar_line.track(_tpsa_particle(scalar_line, args.order),
                           ele_start=args.start, ele_stop=args.end)
-        slot_line.track(_tpsa_particle(slot_line, args.order, knobs=slot_knobs),
-                        ele_start=args.start, ele_stop=args.end)
-        param_line.track(_tpsa_particle(param_line, args.order, knobs=knobs),
+        param_line.track(_tpsa_particle(param_line, args.order, param_descriptor),
                          ele_start=args.start, ele_stop=args.end)
 
     normal_particles = [_normal_particle(normal_line) for _ in range(args.repeats)]
     scalar_maps = [
         _tpsa_particle(scalar_line, args.order) for _ in range(args.repeats)
     ]
-    slot_maps = [
-        _tpsa_particle(slot_line, args.order, knobs=slot_knobs)
-        for _ in range(args.repeats)
-    ]
     param_maps = [
-        _tpsa_particle(param_line, args.order, knobs=knobs)
+        _tpsa_particle(param_line, args.order, param_descriptor)
         for _ in range(args.repeats)
     ]
 
@@ -188,9 +188,7 @@ def main():
                  args.repeats, args.start, args.end)
     _time_tracks("TPSA scalar line", scalar_line, scalar_maps,
                  args.repeats, args.start, args.end)
-    _time_tracks("TPSA param slot line", slot_line, slot_maps,
-                 args.repeats, args.start, args.end)
-    _time_tracks("TPSA param table line", param_line, param_maps,
+    _time_tracks("TPSA parametric line", param_line, param_maps,
                  args.repeats, args.start, args.end)
 
 

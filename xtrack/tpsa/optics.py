@@ -1,12 +1,12 @@
-"""TpsaOptics: read optical functions (and their knob derivatives) off a map.
+"""TpsaOptics: read optical functions and parameter derivatives off a map.
 
 For a ``ParticlesTpsa`` whose Jacobian is the propagated normalizing matrix ``A``, the uncoupled optical
 functions are algebra on ``A``'s columns: ``betx = A00²+A01²``, ``alfx = -(A00·A10+A01·A11)``, ``mux = atan2(A01,A00)/2pi``, and the
 dispersion is the delta column.
 
-Because a *parametric* map carries knob dependence in every ``A(i,j)``, the derivative of any
-optical function with respect to a knob is a chain rule on the map's mixed coefficients
-``d A(i,j)/d knob_k = coeff(coord_i, [var_j=1, knob_k=1])``. No new C: values come from
+Because a *parametric* map carries parameter dependence in every ``A(i,j)``, the derivative of any
+optical function with respect to a parameter is a chain rule on the map's mixed coefficients
+``d A(i,j)/d param_k = coeff(coord_i, [var_j=1, param_k=1])``. No new C: values come from
 ``jacobian()``, gradients from ``coefficient()``.
 """
 
@@ -25,10 +25,10 @@ _PLANE = {"x": (0, 0), "y": (2, 2)}
 
 
 class TpsaOptics:
-    """Uncoupled optics of a map, with per-knob first-order derivatives.
+    """Uncoupled optics of a map, with per-parameter first-order derivatives.
 
     Values (``.betx``, ``.alfx``, ``.mux``, ``.dx``, ... floats) come from the map's Jacobian.
-    ``.gradient(name)`` returns ``d name / d knob`` (length ``num_params``); needs a knobbed
+    ``.gradient(name)`` returns ``d name / d parameter`` (length ``num_params``); needs a parametric
     map of order >= 2 (the mixed derivative is an order-2 term).
     """
 
@@ -36,17 +36,17 @@ class TpsaOptics:
 
     def __init__(self, m: ParticlesTpsa) -> None:
         self._np = m.num_params
-        self.knob_names = list(m.knob_names)
+        self.param_names = [f"p{ii + 1}" for ii in range(self._np)]
         self._J = np.asarray(m.jacobian(), dtype=float)  # 6x6 A-matrix (const parts)
         self._has_order2 = m.order >= 2
         self._m = m
         self._nv = m.num_vars
-        # dJ[i, j] = d A(i,j) / d knob (length-np). Built lazily per (i,j) on first use
+        # dJ[i, j] = d A(i,j) / d parameter (length-np). Built lazily per (i,j) on first use
         # (a value read touches no dJ; a gradient builds only the coefficients it needs).
         self._dJ: dict[tuple[int, int], np.ndarray] = {}
 
     def _dJij(self, i: int, j: int) -> np.ndarray:
-        """``d A(i,j) / d knob`` (length-np), read from the map's mixed coefficients once."""
+        """``d A(i,j) / d parameter`` (length-np), read from the map's mixed coefficients once."""
         v = self._dJ.get((i, j))
         if v is None:
             monos = np.zeros((self._np, self._nv + self._np), dtype=int)
@@ -97,24 +97,24 @@ class TpsaOptics:
         """All optical function values as ``{name: value}``."""
         return {n: getattr(self, n) for n in self._NAMES}
 
-    # --- knob gradients ------------------------------------------------------ #
+    # --- parameter gradients ------------------------------------------------- #
 
-    def _need_knobs(self) -> None:
+    def _need_parameters(self) -> None:
         if self._np == 0:
-            raise ValueError("no knobs: build ParticlesTpsa(..., knobs=Knobs(...))")
+            raise ValueError("no parameters: use a descriptor with num_params > 0")
         if not self._has_order2:
-            raise ValueError("knob gradient needs a map of order >= 2 "
-                             "(the mixed d A/d knob is an order-2 term)")
+            raise ValueError("parameter gradient needs a map of order >= 2 "
+                             "(the mixed d A/d parameter is an order-2 term)")
 
     def gradient(self, name: str) -> np.ndarray:
-        """``d name / d knob`` as a length-``num_params`` array (knobbed order-2 map)."""
-        self._need_knobs()
+        """``d name / d parameter`` as a length-``num_params`` array."""
+        self._need_parameters()
         if name not in self._NAMES:
             raise KeyError(f"unknown optical function {name!r}; one of {self._NAMES}")
         return getattr(self, "_grad_" + name)()
 
     def gradients(self) -> dict[str, np.ndarray]:
-        """All knob gradients as ``{name: array}``."""
+        """All parameter gradients as ``{name: array}``."""
         return {n: self.gradient(n) for n in self._NAMES}
 
     def _grad_bet(self, plane: str) -> np.ndarray:
@@ -148,4 +148,4 @@ class TpsaOptics:
 
     def __repr__(self) -> str:
         return (f"TpsaOptics(betx={self.betx:.6g}, bety={self.bety:.6g}, "
-                f"knobs={self.knob_names})")
+                f"params={self.param_names})")

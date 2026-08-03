@@ -7,7 +7,7 @@ from .general import _pkg_root, _print, START, END
 from .particles import (Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
                         enable_pyheadtail_interface, disable_pyheadtail_interface, masses)
 
-from .base_element import BeamElement, Replica
+from .base_element import BeamElement, Replica, FloatOrTpsa
 from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData

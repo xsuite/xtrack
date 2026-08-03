@@ -17,6 +17,57 @@ from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 from .particles import Particles
 from .track_flags import c_header_flag_mapping
 
+_FLOAT_OR_TPSA_FIELDS = ("k0", "k1", "k2", "k3", "k1s", "k2s", "k3s", "ks")
+
+
+def _is_tpsa_value(value):
+    return (
+        hasattr(value, "ptr")
+        and hasattr(value, "descriptor")
+        and hasattr(value, "const_part")
+    )
+
+
+def _float_to_uint64_bits(value):
+    return np.array([float(value)], dtype=np.float64).view(np.uint64)[0]
+
+
+def _uint64_bits_to_float(value):
+    return np.array([np.uint64(value)], dtype=np.uint64).view(np.float64)[0]
+
+
+class _FloatOrTpsaType(xo.scalar.NumpyScalar):
+    """8-byte field storing either double bits or a ``tpsa_t*`` pointer."""
+
+    _is_float_or_tpsa = True
+
+    def __init__(self):
+        super().__init__("uint64", "double")
+        self.__name__ = "FloatOrTpsa"
+
+    def _from_buffer(self, buffer, offset=0):
+        data = buffer.to_bytearray(offset, self._size)
+        return _uint64_bits_to_float(np.frombuffer(data, dtype=self._dtype)[0])
+
+    def _to_buffer(self, buffer, offset, value, info=None):
+        if _is_tpsa_value(value):
+            import xgtpsa
+
+            bits = int(xgtpsa.ffi().cast("uintptr_t", value.ptr))
+        else:
+            bits = int(_float_to_uint64_bits(value))
+        data = np.array([bits], dtype=self._dtype).tobytes()
+        buffer.update_from_buffer(offset, data)
+
+    def __call__(self, value=0):
+        return np.uint64(_float_to_uint64_bits(value))
+
+    def __repr__(self):
+        return "FloatOrTpsa"
+
+
+FloatOrTpsa = _FloatOrTpsaType()
+
 start_per_part_block = """
     {
     const int64_t XT_part_block_start_idx = part0->ipart; //only_for_context cpu_openmp
@@ -283,6 +334,10 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         data = data.copy()
         data['_xofields'] = xofields
+        data['_float_or_tpsa_fields'] = tuple(
+            nn for nn, tt in xofields.items()
+            if getattr(tt, '_is_float_or_tpsa', False)
+        )
 
         depends_on = []
         extra_c_source = [
@@ -420,6 +475,95 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
+        if getattr(self, "_float_or_tpsa_fields", ()):
+            object.__setattr__(self, "_tpsa_field_values", {})
+            object.__setattr__(self, "_tpsa_descriptor", None)
+
+    def __getattribute__(self, name):
+        if not name.startswith("_"):
+            try:
+                fields = object.__getattribute__(self, "_float_or_tpsa_fields")
+            except AttributeError:
+                fields = ()
+            if name in fields:
+                enabled = bool(object.__getattribute__(self, "_xobject")._tpsa_enabled)
+                if enabled:
+                    values = object.__getattribute__(self, "_tpsa_field_values")
+                    if name in values:
+                        return values[name]
+                return getattr(object.__getattribute__(self, "_xobject"), name)
+        return object.__getattribute__(self, name)
+
+    def __setattr__(self, name, value):
+        if not name.startswith("_"):
+            try:
+                fields = object.__getattribute__(self, "_float_or_tpsa_fields")
+            except AttributeError:
+                fields = ()
+            if name in fields:
+                self._set_float_or_tpsa_field(name, value)
+                return
+        object.__setattr__(self, name, value)
+
+    def _field_raw_bits(self, name):
+        xo_obj = self._xobject
+        offset = xo_obj._get_offset(name)
+        data = xo_obj._buffer.to_bytearray(offset, 8)
+        return int(np.frombuffer(data, dtype=np.uint64)[0])
+
+    def _field_raw_float(self, name):
+        return float(_uint64_bits_to_float(self._field_raw_bits(name)))
+
+    def _set_float_or_tpsa_field(self, name, value):
+        if _is_tpsa_value(value):
+            if not self._xobject._tpsa_enabled:
+                self.enable_tpsa(value.descriptor)
+            self._tpsa_field_values[name] = value
+            setattr(self._xobject, name, value)
+            return
+
+        if self._xobject._tpsa_enabled:
+            descriptor = self._tpsa_descriptor
+            if descriptor is None:
+                raise RuntimeError(
+                    f"{self.__class__.__name__} is TPSA-enabled but has no descriptor"
+                )
+            value = descriptor.constant(float(value))
+            self._tpsa_field_values[name] = value
+            setattr(self._xobject, name, value)
+        else:
+            setattr(self._xobject, name, float(value))
+
+    def enable_tpsa(self, descriptor_or_proto):
+        if _is_tpsa_value(descriptor_or_proto):
+            descriptor = descriptor_or_proto.descriptor
+        else:
+            descriptor = descriptor_or_proto
+        object.__setattr__(self, "_tpsa_descriptor", descriptor)
+        values = {}
+        for name in self._float_or_tpsa_fields:
+            if self._xobject._tpsa_enabled and name in self._tpsa_field_values:
+                value = self._tpsa_field_values[name]
+            else:
+                value = descriptor.constant(self._field_raw_float(name))
+            values[name] = value
+            setattr(self._xobject, name, value)
+        object.__setattr__(self, "_tpsa_field_values", values)
+        self._xobject._tpsa_enabled = 1
+
+    def disable_tpsa(self):
+        if not getattr(self._xobject, "_tpsa_enabled", 0):
+            return
+        for name in self._float_or_tpsa_fields:
+            value = self._tpsa_field_values.get(name)
+            if value is None:
+                value = self._field_raw_float(name)
+            else:
+                value = value.const_part
+            setattr(self._xobject, name, float(value))
+        self._xobject._tpsa_enabled = 0
+        object.__setattr__(self, "_tpsa_field_values", {})
+        object.__setattr__(self, "_tpsa_descriptor", None)
 
     @property
     def isthick(self):
@@ -468,6 +612,12 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                 return backend.track_element(self, particles)
             raise TypeError(
                 f"No tracking backend registered for {type(particles)}")
+
+        if getattr(self, "_tpsa_enabled", 0):
+            raise RuntimeError(
+                "Cannot track normal Particles through a TPSA-enabled "
+                f"{self.__class__.__name__}. Disable TPSA on the element first."
+            )
 
         if self.needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
@@ -740,4 +890,3 @@ class PyMethodDescriptor:
         return PyMethod(kernel_name=self.kernel_name,
                         element=instance,
                         additional_arg_names=self.additional_arg_names)
-

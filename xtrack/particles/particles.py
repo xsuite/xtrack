@@ -88,8 +88,8 @@ class LocalParticleFlavor:
 
     One instance per backend so the get/set/add/scale bodies come from a single
     generator instead of manually creating them. The native double SoA (``part->v[ipart]``)
-    and the TPSA/NUM bridge single-map variants differ only in the storage expression, scalar type,
-    function qualifier and (for TPSA) the extra templated overload. This is all handled here.
+    and the TPSA single-map variant differ only in the storage expression, scalar type,
+    function qualifier and the extra templated overload. This is all handled here.
     """
 
     def __init__(
@@ -117,8 +117,8 @@ class LocalParticleFlavor:
     ):
         self.per_particle_vars = per_particle_vars
         self._getter_specs = getter_specs  # list of (tt, vv, indexed)
-        # struct layout policy (used by gen_local_particle_struct); defaults empty so a
-        # bridge accessor-only flavor need not set them.
+        # struct layout policy (used by gen_local_particle_struct); defaults empty so
+        # accessor-only flavors need not set them.
         self.struct_open = struct_open
         self.struct_close = struct_close
         self.struct_scalar_vars = struct_scalar_vars  # list of (tt, vv) inline fields
@@ -227,7 +227,7 @@ def gen_local_particle_struct(flavor):
 
     Inline scalar fields, then per-particle pointer fields, then the fixed tail. The
     field set comes from the same variable lists as the accessors, so the native SoA struct
-    and the bridge single-map struct share one generator.
+    and the TPSA single-map struct share one generator.
     """
     L = [flavor.struct_open]
     for tt, vv in flavor.struct_scalar_vars:
@@ -239,7 +239,7 @@ def gen_local_particle_struct(flavor):
     return "\n".join(L)
 
 
-def gen_local_particle_particles_bridge(flavor):
+def gen_local_particle_particles_conversion(flavor):
     """Emit ``Particles_to_LocalParticle`` + ``LocalParticle_to_Particles`` from a flavor.
 
     Returns ``(particles_to_local, local_to_particles)``.  ``to_Particles`` writes each
@@ -298,8 +298,8 @@ def gen_local_particle_particles_bridge(flavor):
     return particles_to_local, local_to_particles
 
 
-def tpsa_bridge_local_particle_flavor(coord_var_names):
-    """TPSA bridge flavor: single-map coords as ``mad::tpsa`` through ``p->NAME`` handles.
+def tpsa_pointer_local_particle_flavor(coord_var_names):
+    """TPSA single-map flavor: coordinates as ``mad::tpsa`` through ``p->NAME`` handles.
 
     Each coordinate is an ``XT_COORD*``. The lvalue is ``mad::tpsa_ref(p->NAME)`` and the getter
     snapshots by value via ``1.0 * ...`` (tpsa copy-constructor omits coefficients).  set/add/scale emit two
@@ -331,40 +331,11 @@ def tpsa_bridge_local_particle_flavor(coord_var_names):
     )
 
 
-def num_bridge_local_particle_flavor(coord_var_names):
-    """NUM bridge flavor: the ``_num`` flavour, single-map coords as plain ``double*``.
-
-    Same struct/ABI as TPSA but ``XT_COORD == double``, so the lvalue is ``*p->NAME``.
-    This is the flavor whose output must stay bit-identical to native tracking.
-    """
-    names = list(coord_var_names)
-
-    def rw_open(op_name, vv, tt):
-        return [
-            f"static inline void LocalParticle_{op_name}_{vv}(LocalParticle* p, double v){{"
-        ]
-
-    def get_open(vv, tt):
-        return [f"static inline double LocalParticle_get_{vv}(LocalParticle* p){{"]
-
-    return LocalParticleFlavor(
-        per_particle_vars=[(None, nm) for nm in names],
-        getter_specs=[(None, nm, True) for nm in names],
-        store_indexed="*p->{vv}",
-        store_scalar="*p->{vv}",
-        rw_open=rw_open,
-        get_open=get_open,
-        freeze=False,
-        rhs="v",
-    )
-
-
-def bridge_struct_local_particle_flavor(coord_var_names, struct_tail):
-    """Struct-layout flavor for the bridge's single-map ``LocalParticle``.
+def pointer_struct_local_particle_flavor(coord_var_names, struct_tail):
+    """Struct-layout flavor for a pointer-backed single-map ``LocalParticle``.
 
     It is type-agnostic (coords are ``XT_COORD*``, a compile-time macro, so one struct serves
-    both TPSA and NUM).  Refs/ints are reached through the ``bp`` xobject pointer supplied via
-    ``struct_tail`` (the bridge-specific bookkeeping).
+    the TPSA coordinate storage). Refs/ints are supplied via ``struct_tail``.
     """
     return LocalParticleFlavor(
         struct_open="struct LocalParticle {",
@@ -380,7 +351,7 @@ def gen_local_particle_field_accessors(flavor):
 
     Returns ``(adders, getters, setters, scalers)`` source strings. Factored out of
     ``gen_local_particle_api`` so one generator serves the native double build and the
-    TPSA/NUM bridge (flavor-parametric LocalParticle API).
+    TPSA pointer-backed build (flavor-parametric LocalParticle API).
     """
 
     def rw(op_name, op_sym, terminator):
@@ -419,7 +390,7 @@ def gen_local_particle_api():
         if name.endswith("_MASS_EV"):
             src_lines.append(f"#define {name} {mass}")
 
-    # struct definition -- field set from the flavor policy (shared with the bridge).
+    # struct definition -- field set from the flavor policy.
     src_lines.append(gen_local_particle_struct(_native_local_particle_flavor()))
     src_typedef = "\n".join(src_lines)
 
@@ -446,16 +417,15 @@ def gen_local_particle_api():
     )
 
     # Particles_to_LocalParticle + LocalParticle_to_Particles -- flavor-driven so the
-    # bridge/monitor can reuse them (TPSA to_Particles records the const part).  The
     # io_buffer/track_flag glue above shares src_lines with Particles_to_LocalParticle.
-    _p2l, src_local_to_particles = gen_local_particle_particles_bridge(
+    _p2l, src_local_to_particles = gen_local_particle_particles_conversion(
         _native_local_particle_flavor()
     )
     src_lines.append(_p2l)
     src_particles_to_local = "\n".join(src_lines)
 
     # Adders / getters / setters / scalers -- emitted from the flavor policy so the
-    # TPSA/NUM bridge can reuse the same generator (see gen_local_particle_field_accessors).
+    # TPSA build can reuse the same generator (see gen_local_particle_field_accessors).
     src_adders, src_getters, src_setters, src_scalers = (
         gen_local_particle_field_accessors(_native_local_particle_flavor())
     )

@@ -1935,6 +1935,16 @@ class Line:
             raise TypeError(
                 f"No tracking backend registered for {type(particles)}")
 
+        tpsa_enabled = [
+            name for name, element in zip(self.element_names, self.elements)
+            if getattr(element, "_tpsa_enabled", 0)
+        ]
+        if tpsa_enabled:
+            raise RuntimeError(
+                "Cannot track normal Particles through TPSA-enabled elements "
+                f"(first: {tpsa_enabled[0]!r}). Disable TPSA on the elements first."
+            )
+
         if not self._has_valid_tracker():
             self.build_tracker()
 
