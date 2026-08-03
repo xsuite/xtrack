@@ -147,7 +147,7 @@ def main():
     if end_idx <= start_idx:
         raise ValueError(
             f"range {args.start!r}->{args.end!r} wraps around the cyclic line "
-            "and is not supported by the current TPSA backend"
+            "and is not supported by the current TPSA tracking path"
         )
 
     print(

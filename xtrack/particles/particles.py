@@ -346,6 +346,240 @@ def pointer_struct_local_particle_flavor(coord_var_names, struct_tail):
     )
 
 
+def gen_tpsa_local_particle_api(
+    coord_var_names,
+    ref_var_names,
+    particle_data_name="TpsaParticleData",
+):
+    """Emit the TPSA ``LocalParticle`` API for the tracker TPSA kernel."""
+    coords = list(coord_var_names)
+    accessors = "\n".join(
+        gen_local_particle_field_accessors(tpsa_pointer_local_particle_flavor(coords))
+    )
+
+    tail = [
+        f"    {particle_data_name} tp;",
+        "    double line_length;",
+        "    int64_t ipart, endpart, _num_active_particles, _num_lost_particles;",
+        "    uint64_t track_flags;",
+        "    int8_t* io_buffer;",
+    ]
+    struct_source = gen_local_particle_struct(
+        pointer_struct_local_particle_flavor(coords, tail)
+    )
+
+    ref_accessors = []
+    for nm in ref_var_names:
+        ref_accessors.append(
+            f"static inline double LocalParticle_get_{nm}(LocalParticle* p){{ "
+            f"return {particle_data_name}_get_{nm}(p->tp); }}"
+        )
+    for nm in ("state", "at_element"):
+        ref_accessors += [
+            f"static inline int64_t LocalParticle_get_{nm}(LocalParticle* p){{ "
+            f"return {particle_data_name}_get_{nm}(p->tp); }}",
+            f"static inline void LocalParticle_set_{nm}(LocalParticle* p, int64_t v){{ "
+            f"{particle_data_name}_set_{nm}(p->tp, v); }}",
+            f"static inline void LocalParticle_add_to_{nm}(LocalParticle* p, int64_t v){{ "
+            f"{particle_data_name}_set_{nm}(p->tp, {particle_data_name}_get_{nm}(p->tp) + v); }}",
+        ]
+
+    return f"""
+#ifndef XTRACK_TPSA_LOCAL_PARTICLE_H
+#define XTRACK_TPSA_LOCAL_PARTICLE_H
+
+#include <cstdint>
+#include <math.h>
+#include "mad_tpsa.hpp"
+
+using mad::tpsa;
+using mad::tpsa_ref;
+#define XT_FLAVOR_TPSA 1
+#define XT_NUM mad::tpsa
+#define XT_NUM_CONST_ARG const XT_NUM&
+#define XT_KNOBS 1
+#define XT_STRENGTH mad::tpsa
+#define XT_STRENGTH_CONST_ARG const XT_STRENGTH&
+#define XT_STRENGTH_ARG const XT_STRENGTH&
+#define XT_STRENGTH_CONST(v) ((v)[0])
+#define XT_STRENGTH_LIFT(v) xt_float_or_tpsa_lift(v)
+
+#define XT_TPSA_REL(OP) \\
+  template<class A> inline bool operator OP (const mad::tpsa_base<A>& a, double b){{ return a[0] OP b; }} \\
+  template<class A> inline bool operator OP (double a, const mad::tpsa_base<A>& b){{ return a OP b[0]; }} \\
+  template<class A, class B> inline bool operator OP (const mad::tpsa_base<A>& a, const mad::tpsa_base<B>& b){{ return a[0] OP b[0]; }}
+XT_TPSA_REL(>) XT_TPSA_REL(<) XT_TPSA_REL(>=) XT_TPSA_REL(<=) XT_TPSA_REL(==) XT_TPSA_REL(!=)
+#undef XT_TPSA_REL
+
+typedef tpsa_t XT_COORD;
+typedef void* SynchrotronRadiationRecordData;
+static tpsa_t* xt_tpsa_proto = nullptr;
+
+static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){{
+    union {{ uint64_t u; double d; }} value;
+    value.u = bits;
+    return value.d;
+}}
+#define XTRACK_FLOAT_OR_TPSA_BITS_TO_DOUBLE 1
+
+static inline XT_NUM xt_float_or_tpsa_lift(double value){{
+    return 0.0 * mad::tpsa_ref(xt_tpsa_proto) + value;
+}}
+
+static inline XT_NUM xt_float_or_tpsa_lift(uint64_t bits){{
+    return xt_float_or_tpsa_lift(xt_float_or_tpsa_bits_to_double(bits));
+}}
+
+template<class A>
+static inline XT_NUM xt_float_or_tpsa_lift(const mad::tpsa_base<A>& value){{
+    return 1.0 * value;
+}}
+
+#undef XT_STRENGTH
+#undef XT_STRENGTH_CONST_ARG
+#undef XT_STRENGTH_ARG
+#undef XT_STRENGTH_CONST
+#undef XT_STRENGTH_LIFT
+#define XT_STRENGTH mad::tpsa
+#define XT_STRENGTH_CONST_ARG const XT_STRENGTH&
+#define XT_STRENGTH_ARG const XT_STRENGTH&
+#define XT_STRENGTH_CONST(v) ((v)[0])
+#define XT_STRENGTH_LIFT(v) xt_float_or_tpsa_lift(v)
+
+template<class ElementData>
+static inline XT_NUM xt_float_or_tpsa_get(
+        ElementData, uint64_t* slot, int64_t tpsa_enabled){{
+    if (tpsa_enabled) {{
+        return 1.0 * mad::tpsa_ref((tpsa_t*)(uintptr_t)(*slot));
+    }}
+    return xt_float_or_tpsa_lift(*slot);
+}}
+
+{struct_source}
+
+static inline int64_t LocalParticle_get__num_active_particles(LocalParticle* p){{
+    return p->_num_active_particles;
+}}
+static inline uint64_t LocalParticle_check_track_flag(LocalParticle* p, uint8_t index){{
+    return (p->track_flags >> index) & 1;
+}}
+static inline void LocalParticle_exchange(LocalParticle*, int64_t, int64_t){{}}
+static inline void LocalParticle_add_to_at_turn(LocalParticle*, int64_t){{}}
+static inline int64_t LocalParticle_get_at_turn(LocalParticle*){{ return 0; }}
+static inline int64_t LocalParticle_get_particle_id(LocalParticle*){{ return 0; }}
+static inline int8_t* LocalParticle_get_io_buffer(LocalParticle* p){{ return p->io_buffer; }}
+
+{accessors}
+
+{chr(10).join(ref_accessors)}
+
+static inline double LocalParticle_get_energy0(LocalParticle* part) {{
+    double const p0c = LocalParticle_get_p0c(part);
+    double const m0  = LocalParticle_get_mass0(part);
+    return sqrt(p0c * p0c + m0 * m0);
+}}
+
+static inline void LocalParticle_update_delta(LocalParticle* part,
+        const XT_NUM& new_delta_value) {{
+    double const beta0 = LocalParticle_get_beta0(part);
+    XT_NUM const irpp = new_delta_value + 1.0;
+    XT_NUM const rpp = 1.0 / irpp;
+    XT_NUM const ptau = (sqrt(1.0 + 2.0 * beta0 * new_delta_value
+                              + new_delta_value * new_delta_value) - 1.0) / beta0;
+    XT_NUM const rvv = rpp * (1.0 + beta0 * ptau);
+    LocalParticle_set_delta(part, new_delta_value);
+    LocalParticle_set_rvv(part, rvv);
+    LocalParticle_set_rpp(part, rpp);
+    LocalParticle_set_ptau(part, ptau);
+}}
+
+static inline void LocalParticle_update_delta(LocalParticle* part, double value) {{
+    LocalParticle_update_delta(part, xt_float_or_tpsa_lift(value));
+}}
+
+static inline void LocalParticle_update_ptau(LocalParticle* part,
+        const XT_NUM& new_ptau_value) {{
+    double const beta0 = LocalParticle_get_beta0(part);
+    XT_NUM const delta = sqrt(1.0 + 2.0 * beta0 * new_ptau_value
+                              + new_ptau_value * new_ptau_value) - 1.0;
+    LocalParticle_update_delta(part, delta);
+}}
+
+static inline void LocalParticle_update_ptau(LocalParticle* part, double value) {{
+    LocalParticle_update_ptau(part, xt_float_or_tpsa_lift(value));
+}}
+
+static inline XT_NUM LocalParticle_get_pzeta(LocalParticle* part) {{
+    XT_NUM const ptau = LocalParticle_get_ptau(part);
+    double const beta0 = LocalParticle_get_beta0(part);
+    return ptau / beta0;
+}}
+
+static inline void LocalParticle_update_pzeta(LocalParticle* part,
+        const XT_NUM& new_pzeta_value) {{
+    double const beta0 = LocalParticle_get_beta0(part);
+    LocalParticle_update_ptau(part, beta0 * new_pzeta_value);
+}}
+
+static inline void LocalParticle_add_to_energy(LocalParticle* part,
+        const XT_NUM& delta_energy, int pz_only) {{
+    XT_NUM ptau = LocalParticle_get_ptau(part);
+    double const p0c = LocalParticle_get_p0c(part);
+    double const charge_ratio = LocalParticle_get_charge_ratio(part);
+    double const chi = LocalParticle_get_chi(part);
+    double const mass_ratio = charge_ratio / chi;
+
+    ptau += delta_energy / p0c / mass_ratio;
+
+    XT_NUM const old_rpp = LocalParticle_get_rpp(part);
+
+    LocalParticle_update_ptau(part, ptau);
+
+    if (!pz_only) {{
+        XT_NUM const new_rpp = LocalParticle_get_rpp(part);
+        XT_NUM const f = old_rpp / new_rpp;
+        LocalParticle_scale_px(part, f);
+        LocalParticle_scale_py(part, f);
+    }}
+}}
+
+static inline void LocalParticle_add_to_energy(LocalParticle* part,
+        double delta_energy, int pz_only) {{
+    LocalParticle_add_to_energy(part, xt_float_or_tpsa_lift(delta_energy), pz_only);
+}}
+
+static inline void increment_at_element(LocalParticle* part, int64_t increment) {{
+    LocalParticle_add_to_at_element(part, increment);
+}}
+
+static inline void increment_at_turn(LocalParticle* part, int) {{
+    LocalParticle_add_to_at_turn(part, 1);
+    LocalParticle_set_at_element(part, 0);
+    LocalParticle_set_s(part, 0.0);
+}}
+
+static inline void increment_at_turn_backtrack(
+        LocalParticle*, int, double, int64_t) {{}}
+
+static inline void LocalParticle_kill_particle(LocalParticle* part,
+        int64_t kill_state) {{
+    LocalParticle_set_x(part, 1e30);
+    LocalParticle_set_px(part, 1e30);
+    LocalParticle_set_y(part, 1e30);
+    LocalParticle_set_py(part, 1e30);
+    LocalParticle_set_zeta(part, 1e30);
+    LocalParticle_update_delta(part, -1.0);
+    LocalParticle_set_state(part, kill_state);
+}}
+
+static inline int64_t check_is_active(LocalParticle* part) {{
+    return LocalParticle_get_state(part) > 0;
+}}
+
+#endif
+"""
+
+
 def gen_local_particle_field_accessors(flavor):
     """Emit LocalParticle get/set/add/scale accessors from a ``LocalParticleFlavor``.
 

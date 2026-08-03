@@ -464,6 +464,8 @@ class Line:
         if 'config' in dct.keys():
             self.config.clear()
             self.config.data.update(dct['config'])
+            if 'XTRACK_NO_TPSA_TRACK' not in self.config.data:
+                self.config.data['XTRACK_NO_TPSA_TRACK'] = True
 
         if 'mode' in dct.keys():
             self._mode = dct['mode']
@@ -1684,6 +1686,8 @@ class Line:
 
     @config.setter
     def config(self, value):
+        if not isinstance(value, xt.tracker.TrackerConfig):
+            value = xt.tracker.TrackerConfig(value)
         self._config = value
 
     @property_with_doc_group("Inspection, Variables and Configuration")
@@ -1916,37 +1920,29 @@ class Line:
             equals to False and no progress bar is displayed.
         """
 
-        # A non-Particles object (e.g. a TPSA map from xtrack.tpsa) is tracked by its
-        # registered backend; the native doubles path below is never touched.
         if not isinstance(particles, xt.Particles):
-            from xtrack.tracking_backends import backend_for
-            backend = backend_for(particles)
-            if backend is not None:
-                return backend.track_line(
-                    self,
-                    particles,
-                    ele_start=ele_start,
-                    ele_stop=ele_stop,
-                    num_elements=num_elements,
-                    num_turns=num_turns,
-                    turn_by_turn_monitor=turn_by_turn_monitor,
-                    multi_element_monitor_at=multi_element_monitor_at,
-                )
-            raise TypeError(
-                f"No tracking backend registered for {type(particles)}")
-
-        tpsa_enabled = [
-            name for name, element in zip(self.element_names, self.elements)
-            if getattr(element, "_tpsa_enabled", 0)
-        ]
-        if tpsa_enabled:
-            raise RuntimeError(
-                "Cannot track normal Particles through TPSA-enabled elements "
-                f"(first: {tpsa_enabled[0]!r}). Disable TPSA on the elements first."
-            )
+            from xtrack.tpsa import ParticlesTpsa
+            if not isinstance(particles, ParticlesTpsa):
+                raise TypeError(f"Cannot track particles of type {type(particles)}")
+            if not self._has_valid_tracker():
+                self.build_tracker()
+            self.tracker.config.XTRACK_NO_TPSA_TRACK = False
+            return self.tracker._track(
+                particles,
+                ele_start=ele_start,
+                ele_stop=ele_stop,
+                num_elements=num_elements,
+                num_turns=num_turns,
+                turn_by_turn_monitor=turn_by_turn_monitor,
+                freeze_longitudinal=freeze_longitudinal,
+                time=time,
+                with_progress=with_progress,
+                multi_element_monitor_at=multi_element_monitor_at,
+                **kwargs)
 
         if not self._has_valid_tracker():
             self.build_tracker()
+        self.tracker.config.XTRACK_NO_TPSA_TRACK = True
 
         if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
             if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:

@@ -25,10 +25,6 @@ except ImportError as exc:
     ) from exc
 
 from .particles import ParticlesTpsa
-from .integrated_backend import IntegratedTpsaBackend
 from .optics import TpsaOptics
-from xtrack.tracking_backends import register_tracking_backend
 
-register_tracking_backend(ParticlesTpsa, IntegratedTpsaBackend())
-
-__all__ = ["ParticlesTpsa", "TpsaOptics", "IntegratedTpsaBackend"]
+__all__ = ["ParticlesTpsa", "TpsaOptics"]

@@ -4,7 +4,6 @@ import pytest
 import xgtpsa
 import xtrack as xt
 import xtrack.tpsa as xtpsa
-from xtrack.tracking_backends import _BACKENDS
 
 
 def _line(k1=0.1):
@@ -32,8 +31,16 @@ def _map(order=1, descriptor=None):
     )
 
 
-def test_particles_tpsa_backend_registered():
-    assert type(_BACKENDS[xtpsa.ParticlesTpsa]).__name__ == "IntegratedTpsaBackend"
+def test_particles_tpsa_uses_tracker_tpsa_config():
+    line = _line()
+    m = _map()
+    line.track(m)
+
+    assert line.tracker.config.XTRACK_NO_TPSA_TRACK is False
+    assert any(
+        all(name != "XTRACK_NO_TPSA_TRACK" for name, value in key)
+        for key in line.tracker.track_kernel
+    )
 
 
 def test_tpsa_line_track_matches_scalar_const_part():
@@ -69,22 +76,13 @@ def test_tpsa_line_track_matches_scalar_const_part():
     )
 
 
-def test_float_or_tpsa_field_assignment_and_scalar_guard():
+def test_float_or_tpsa_field_assignment():
     line = _line()
     descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
     line["q"].k1 = descriptor.param(1, 0.1)
 
     assert line["q"]._tpsa_enabled
     assert line["q"].k1.const_part == pytest.approx(0.1)
-
-    part = xt.Particles(
-        x=1e-4,
-        px=2e-5,
-        p0c=7e12,
-        mass0=xt.PROTON_MASS_EV,
-    )
-    with pytest.raises(RuntimeError, match="TPSA-enabled"):
-        line.track(part)
 
 
 def test_parametric_element_field_tracks_with_shared_descriptor():
