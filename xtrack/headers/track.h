@@ -46,12 +46,6 @@
 #define XT_STRENGTH_CONST(v) (v)
 #endif
 
-// Lift a double constant to the strength type, for call sites passing a literal or a
-// genuinely double quantity where a strength is expected. Identity for the double build.
-#ifndef XT_STRENGTH_LIFT
-#define XT_STRENGTH_LIFT(v) (v)
-#endif
-
 /*
     The particle tracking "decorators" for all the contexts.
 */

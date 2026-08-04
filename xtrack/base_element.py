@@ -36,6 +36,16 @@ def _uint64_bits_to_float(value):
     return np.array([np.uint64(value)], dtype=np.uint64).view(np.float64)[0]
 
 
+def _class_descriptor(cls, name):
+    for cc in cls.__mro__:
+        if name in cc.__dict__:
+            obj = cc.__dict__[name]
+            if isinstance(obj, property):
+                return obj
+            return None
+    return None
+
+
 class _FloatOrTpsaType(xo.scalar.NumpyScalar):
     """8-byte field storing either double bits or a ``tpsa_t*`` pointer."""
 
@@ -486,6 +496,8 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             except AttributeError:
                 fields = ()
             if name in fields:
+                if _class_descriptor(type(self), name) is not None:
+                    return object.__getattribute__(self, name)
                 enabled = bool(object.__getattribute__(self, "_xobject")._tpsa_enabled)
                 if enabled:
                     values = object.__getattribute__(self, "_tpsa_field_values")
@@ -501,6 +513,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             except AttributeError:
                 fields = ()
             if name in fields:
+                if _class_descriptor(type(self), name) is not None:
+                    object.__setattr__(self, name, value)
+                    return
                 self._set_float_or_tpsa_field(name, value)
                 return
         object.__setattr__(self, name, value)

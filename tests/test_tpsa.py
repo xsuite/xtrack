@@ -36,11 +36,20 @@ def test_particles_tpsa_uses_tracker_tpsa_config():
     m = _map()
     line.track(m)
 
-    assert line.tracker.config.XTRACK_NO_TPSA_TRACK is False
+    assert line.tracker.config.XTRACK_TPSA_TRACK is True
     assert any(
-        all(name != "XTRACK_NO_TPSA_TRACK" for name, value in key)
+        ("XTRACK_TPSA_TRACK", True) in key
         for key in line.tracker.track_kernel
     )
+
+
+def test_particles_tpsa_requires_synrad_disabled():
+    line = _line()
+    line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+    m = _map()
+
+    with pytest.raises(NotImplementedError, match="synchrotron radiation"):
+        line.track(m)
 
 
 def test_tpsa_line_track_matches_scalar_const_part():
@@ -60,6 +69,39 @@ def test_tpsa_line_track_matches_scalar_const_part():
     line_tpsa = _line()
     m = _map()
     line_tpsa.track(m)
+
+    assert np.allclose(
+        m.const_part,
+        [
+            float(part.x[0]),
+            float(part.px[0]),
+            float(part.y[0]),
+            float(part.py[0]),
+            float(part.zeta[0]),
+            float(part.delta[0]),
+        ],
+        rtol=0,
+        atol=1e-15,
+    )
+
+
+def test_tpsa_multiturn_track_matches_scalar_const_part():
+    line_scalar = _line()
+    part = xt.Particles(
+        x=1e-4,
+        px=2e-5,
+        y=0.0,
+        py=0.0,
+        zeta=0.0,
+        delta=0.0,
+        p0c=7e12,
+        mass0=xt.PROTON_MASS_EV,
+    )
+    line_scalar.track(part, num_turns=2)
+
+    line_tpsa = _line()
+    m = _map()
+    line_tpsa.track(m, num_turns=2)
 
     assert np.allclose(
         m.const_part,

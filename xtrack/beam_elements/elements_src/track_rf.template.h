@@ -275,7 +275,7 @@ void track_rf_particles(
     double body_length;
     double factor_knl_ksl_body;
 
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         lag += lag_taper;
         phase += phase_taper;
     #endif

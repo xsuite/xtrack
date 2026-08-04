@@ -11,7 +11,7 @@
 #include "xtrack/beam_elements/elements_src/track_magnet_edge.h"
 #include "xtrack/beam_elements/elements_src/track_magnet_configure.h"
 
-#ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+#if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
 #include "xtrack/beam_elements/elements_src/track_magnet_radiation.h"
 #endif
 
@@ -83,7 +83,7 @@ void track_magnet_body_single_particle(
             x0_solenoid, y0_solenoid, drift_model\
         )
 
-    #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if defined(XTRACK_TPSA_TRACK) || defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         #define WITH_RADIATION(ll, code)\
         {\
             code;\
@@ -441,16 +441,16 @@ void track_magnet_particles(
         factor_backtrack_edge = 1.;
     }
 
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         if (radiation_flag == 10){ // from parent
             radiation_flag = radiation_flag_parent;
         }
     #endif
 
     // Tapering
-#ifndef XT_FLAVOR_TPSA
+#ifndef XTRACK_TPSA_TRACK
     // delta_taper is a double param, get_delta is XT_NUM. Tapering is a radiation-
-    // adjacent double feature, so it's off in the TPSA bridge (track_flags==0).
+    // adjacent double feature, so it is disabled for the TPSA flavor.
     if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)){
         part0->ipart = 0;
         delta_taper = LocalParticle_get_delta(part0); // I can use part0 because
@@ -459,7 +459,7 @@ void track_magnet_particles(
     }
 #endif
 
-    #if !defined(XTRACK_MULTIPOLE_NO_SYNRAD) && !defined(XT_KNOBS)
+    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         if (radiation_flag){
             // knl and ksl are scaled by the called functions below using factor_knl_ksl
             factor_knl_ksl_body *= (1. + delta_taper);
@@ -522,8 +522,8 @@ void track_magnet_particles(
     if (body_active){
 
         // Zero of the strength type, for the locals below. The strengths themselves
-        // arrive already typed, as the element getters are the knob seam.
-#if defined(XT_KNOBS) || defined(XT_TPSA_SLOTS)
+        // arrive already typed, as the element getters define the strength type.
+#if defined(XTRACK_TPSA_TRACK) || defined(XT_TPSA_SLOTS)
         XT_NUM _kproto = LocalParticle_get_x(part0);
         #define XT_KZERO (0.0 * _kproto)
 #else

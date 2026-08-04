@@ -28,7 +28,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
       /*inv_factorial_order_rel*/ one_over_factorial(MultipoleData_len_knl_rel(el) - 1), // 1 / (order_rel)!
         /*knl_rel*/               MultipoleData_getp1_knl_rel(el, 0),
         /*ksl_rel*/               MultipoleData_getp1_ksl_rel(el, 0),
-        /*main_strength*/         XT_STRENGTH_LIFT((MultipoleData_get_main_is_skew(el)) ? (MultipoleData_get_ksl(el, MultipoleData_get_main_order(el))) : (MultipoleData_get_knl(el, MultipoleData_get_main_order(el)))),
+        /*main_strength*/         (MultipoleData_get_main_is_skew(el)) ? (MultipoleData_get_ksl(el, MultipoleData_get_main_order(el))) : (MultipoleData_get_knl(el, MultipoleData_get_main_order(el))),
         /*num_multipole_kicks*/   MultipoleData_get_num_multipole_kicks(el),
         /*model*/                 ((MultipoleData_get_isthick(el) <= 0) ? (-1) : MultipoleData_get_model(el)), // kick only if not thick
         /*default_model*/         MULTIPOLE_DEFAULT_MODEL,
@@ -36,7 +36,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*default_integrator*/    MULTIPOLE_DEFAULT_INTEGRATOR,
         /*radiation_flag*/        MultipoleData_get_radiation_flag(el),
         /*radiation_flag_parent*/ 0, // not used here
-        #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
+        #if defined(XTRACK_TPSA_TRACK) || defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         /*radiation_record*/      NULL,
         #else
         /*radiation_record*/      (SynchrotronRadiationRecordData) MultipoleData_getp_internal_record(el, part0),
@@ -44,15 +44,15 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         /*delta_taper*/           MultipoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   MultipoleData_get_hxl(el),
-        /*k0*/                   XT_STRENGTH_LIFT(0.),
-        /*k1*/                   XT_STRENGTH_LIFT(0.),
-        /*k2*/                   XT_STRENGTH_LIFT(0.),
-        /*k3*/                   XT_STRENGTH_LIFT(0.),
-        /*k0s*/                  XT_STRENGTH_LIFT(0.),
-        /*k1s*/                  XT_STRENGTH_LIFT(0.),
-        /*k2s*/                  XT_STRENGTH_LIFT(0.),
-        /*k3s*/                  XT_STRENGTH_LIFT(0.),
-        /*ks*/                   XT_STRENGTH_LIFT(0.),
+        /*k0*/                   0.,
+        /*k1*/                   0.,
+        /*k2*/                   0.,
+        /*k3*/                   0.,
+        /*k0s*/                  0.,
+        /*k1s*/                  0.,
+        /*k2s*/                  0.,
+        /*k3s*/                  0.,
+        /*ks*/                   0.,
         /*dks_ds*/                0.,
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,

@@ -217,8 +217,8 @@ void LocalParticle_add_to_energy(LocalParticle* part, XT_NUM_CONST_ARG delta_ene
 }
 
 
-#if !defined(XT_FLAVOR_TPSA) && !defined(XT_FLAVOR_NUM)  /* mutates reference quantities (p0c, gamma0, beta0):
-    out of scope for the map bridge (no REF setters) until the reference tail is made
+#ifndef XTRACK_TPSA_TRACK  /* mutates reference quantities (p0c, gamma0, beta0):
+    out of scope for non-scalar local particles (no REF setters) until the reference tail is made
     mutable.  Compiled normally for native doubles builds. */
 GPUFUN
 void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value)
@@ -256,7 +256,7 @@ void LocalParticle_kill_particle(LocalParticle* part, int64_t kill_state) {
     LocalParticle_set_y(part, 1e30);
     LocalParticle_set_py(part, 1e30);
     LocalParticle_set_zeta(part, 1e30);
-#ifdef XT_FLAVOR_TPSA
+#ifdef XTRACK_TPSA_TRACK
     LocalParticle_set_delta(part, -1.0);   // zero energy (map kill: state is the loss signal;
                                            // rvv/rpp/ptau are irrelevant for a dead particle)
 #else

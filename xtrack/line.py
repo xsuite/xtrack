@@ -464,8 +464,6 @@ class Line:
         if 'config' in dct.keys():
             self.config.clear()
             self.config.data.update(dct['config'])
-            if 'XTRACK_NO_TPSA_TRACK' not in self.config.data:
-                self.config.data['XTRACK_NO_TPSA_TRACK'] = True
 
         if 'mode' in dct.keys():
             self._mode = dct['mode']
@@ -1926,7 +1924,7 @@ class Line:
                 raise TypeError(f"Cannot track particles of type {type(particles)}")
             if not self._has_valid_tracker():
                 self.build_tracker()
-            self.tracker.config.XTRACK_NO_TPSA_TRACK = False
+            self.tracker.config.XTRACK_TPSA_TRACK = True
             return self.tracker._track(
                 particles,
                 ele_start=ele_start,
@@ -1942,7 +1940,7 @@ class Line:
 
         if not self._has_valid_tracker():
             self.build_tracker()
-        self.tracker.config.XTRACK_NO_TPSA_TRACK = True
+        self.tracker.config.XTRACK_TPSA_TRACK = False
 
         if hasattr(particles, '_needs_pipeline') and particles._needs_pipeline:
             if '_called_by_pipeline' not in kwargs or not kwargs['_called_by_pipeline']:

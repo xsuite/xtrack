@@ -47,8 +47,8 @@ void track_rf_kick_single_particle(
         frequency += (harmonic / t_rev0);
     }
 
-#if !defined(XT_FLAVOR_TPSA) && !defined(XT_FLAVOR_NUM)
-    // t_sim / at_turn are turn-bookkeeping vars, excluded from the TPSA/NUM bridge
+#ifndef XTRACK_TPSA_TRACK
+    // t_sim / at_turn are turn-bookkeeping vars, excluded from non-scalar tracking
     // Absolute-time cavities are native-only.
     if (absolute_time == 1) {
         double const t_sim = LocalParticle_get_t_sim(part);
@@ -66,7 +66,7 @@ void track_rf_kick_single_particle(
               - (2.0 * PI) / C_LIGHT * frequency * tau);
 
     double rfmultipole_energy_kick = 0;
-#ifndef XT_FLAVOR_TPSA
+#ifndef XTRACK_TPSA_TRACK
     // rfmultipole kick reads x,y as doubles; only RFMultipole/CrabCavity use order>=0.
     // A plain Cavity passes order=-1 (inactive), so the TPSA flavor omits this block.
     if (order >= 0) {
@@ -161,7 +161,7 @@ void track_rf_kick_single_particle(
         LocalParticle_add_to_py(part, py_kick);
 
     }
-#endif  // !XT_FLAVOR_TPSA (rfmultipole + transverse-kick blocks)
+#endif  // XTRACK_TPSA_TRACK (rfmultipole + transverse-kick blocks)
 
 
     if (!kill_energy_kick) {
@@ -211,9 +211,9 @@ void track_rf_body_single_particle(
             kill_energy_kick\
         )
 
-    // Zero strengths: double 0. Normally, a zero constant tpsa under the knob
+    // Zero strengths: double 0. Normally, a zero constant tpsa under the TPSA
     // build (the drift's k0/k1/ks are XT_STRENGTH there, no double->tpsa& conversion).
-#if defined(XT_KNOBS) || defined(XT_TPSA_SLOTS)
+#if defined(XTRACK_TPSA_TRACK) || defined(XT_TPSA_SLOTS)
     #define XT_RF_KZ(part) (0.0 * LocalParticle_get_x(part))
 #else
     #define XT_RF_KZ(part) 0.
@@ -371,7 +371,7 @@ void track_rf_particles(
     double body_length;
     double factor_knl_ksl_body;
 
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         lag += lag_taper;
         phase += phase_taper;
     #endif
@@ -410,9 +410,9 @@ void track_rf_particles(
             num_kicks = 1;
         }
 
-        // Strengths are all zero here (RF only needs drift_model out).  Under the knob
+        // Strengths are all zero here (RF only needs drift_model out).  Under the TPSA
         // build the strength type is tpsa, so zeros must be constant tpsa (XT_RF_KZ, defined
-        // above for RF_DRIFT: a zero constant tpsa under XT_KNOBS, plain 0. otherwise).
+        // above for RF_DRIFT: a zero constant tpsa in TPSA tracking, plain 0 otherwise).
         XT_STRENGTH k0_drift=XT_RF_KZ(part0), k1_drift=XT_RF_KZ(part0), ks_drift=XT_RF_KZ(part0);
         double h_drift;
         XT_STRENGTH k0_kick=XT_RF_KZ(part0), k1_kick=XT_RF_KZ(part0);

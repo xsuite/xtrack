@@ -7,49 +7,51 @@
 
 #include "xtrack/headers/track.h"
 
-#if defined(XT_KNOBS) || defined(XT_TPSA_SLOTS)
+#if defined(XTRACK_TPSA_TRACK) || defined(XT_TPSA_SLOTS)
 #include <new>
 #include <type_traits>
 
-// Knob build only: lift a double multipole array to constant tpsas so it can
+// TPSA build only: lift a double multipole array to constant tpsas so it can
 // go through the XT_STRENGTH* kick.  mad::tpsa is non-movable, so it cannot be
 // stored portably in std::vector; construct the short-lived contiguous buffer
 // directly instead.
 class _xt_lifted_arr {
 public:
+    typedef XT_STRENGTH strength_t;
+
     _xt_lifted_arr(const double* a, int64_t n, LocalParticle* part)
         : storage_(NULL), data_(NULL), size_(0) {
         if (a == NULL || n <= 0) return;
 
         storage_ = new storage_t[n];
-        data_ = reinterpret_cast<mad::tpsa*>(storage_);
+        data_ = reinterpret_cast<strength_t*>(storage_);
 
         XT_NUM proto = LocalParticle_get_x(part);
         for (; size_ < n; size_++) {
-            new (&data_[size_]) mad::tpsa(0.0 * proto + a[size_]);
+            new (&data_[size_]) strength_t(0.0 * proto + a[size_]);
         }
     }
 
     ~_xt_lifted_arr() {
         for (int64_t i = 0; i < size_; i++) {
-            data_[i].~tpsa();
+            data_[i].~strength_t();
         }
         delete[] storage_;
     }
 
-    const mad::tpsa* ptr() const {
+    const strength_t* ptr() const {
         return data_;
     }
 
 private:
     typedef typename std::aligned_storage<
-        sizeof(mad::tpsa), alignof(mad::tpsa)>::type storage_t;
+        sizeof(strength_t), alignof(strength_t)>::type storage_t;
 
     _xt_lifted_arr(const _xt_lifted_arr&);
     _xt_lifted_arr& operator=(const _xt_lifted_arr&);
 
     storage_t* storage_;
-    mad::tpsa* data_;
+    strength_t* data_;
     int64_t size_;
 };
 
@@ -115,14 +117,14 @@ void track_magnet_kick_single_particle(
     XT_STRENGTH knl_main[4] = {k0 * length, k1 * length, k2 * length, k3 * length};
     XT_STRENGTH ksl_main[4] = {k0s * length, k1s * length, k2s * length, k3s * length};
 
-    // multipolar kick (element knl/ksl are doubles; lifted to const tpsa under XT_KNOBS)
+    // multipolar kick (element knl/ksl are doubles; lifted to const tpsa in TPSA tracking)
     XT_KICK_SIMPLE(
         part,
         order,
         inv_factorial_order,
         knl,
         ksl,
-        XT_STRENGTH_LIFT(factor_knl_ksl),
+        factor_knl_ksl,
         kick_weight
     );
 
@@ -137,14 +139,14 @@ void track_magnet_kick_single_particle(
         kick_weight
     );
 
-    // main kick: knl_main/ksl_main are already XT_STRENGTH (tpsa under XT_KNOBS)
+    // main kick: knl_main/ksl_main are already XT_STRENGTH (tpsa in TPSA tracking)
     kick_simple_single_particle(
         part,
         /* order */ 3,
         /* inv_factorial_order */ 1. / (3 * 2),
         knl_main,
         ksl_main,
-        /* factor_knl_ksl */ XT_STRENGTH_LIFT(1.0),
+        /* factor_knl_ksl */ 1.0,
         kick_weight
     );
 
@@ -169,7 +171,7 @@ void track_magnet_kick_single_particle(
     // k0h correction can be computed from this term in the hamiltonian
     // H = 1/2 h k0 x^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    XT_STRENGTH k0l_mult = XT_STRENGTH_LIFT(0.0);
+    XT_STRENGTH k0l_mult = 0.0;
     if (order >= 0) {
         k0l_mult = knl[0] * factor_knl_ksl;
     }
@@ -181,7 +183,7 @@ void track_magnet_kick_single_particle(
     // k1h correction can be computed from this term in the hamiltonian
     // H = 1/3 hk1 x^3 - 1/2 hk1 xy^2
     // (see MAD 8 physics manual, eq. 5.15, and apply Hamilton's eq. dp/ds = -dH/dx)
-    XT_STRENGTH k1l_mult = XT_STRENGTH_LIFT(0.0);
+    XT_STRENGTH k1l_mult = 0.0;
     if (order >= 1) {
         k1l_mult = knl[1] * factor_knl_ksl;
     }
@@ -315,10 +317,10 @@ void kick_simple_single_particle(
     LocalParticle_add_to_py(part, dpy);
 }
 
-#ifndef XT_FLAVOR_TPSA
+#ifndef XTRACK_TPSA_TRACK
 // Radiation/field helper: emits physical fields to double* outputs, so it cannot be a
-// Taylor map. This is unreachable in the bridge (only called from WITH_RADIATION, which is
-// excluded through a macro by XTRACK_MULTIPOLE_NO_SYNRAD); excluded from the TPSA flavor so the
+// Taylor map. This is unreachable in TPSA tracking (only called from WITH_RADIATION, which is
+// excluded through a macro by XTRACK_MULTIPOLE_NO_SYNRAD); excluded from TPSA tracking so the
 // coordinate args don't need to be XT_NUM.
 GPUFUN
 void evaluate_field_from_strengths(
@@ -427,6 +429,6 @@ void evaluate_field_from_strengths(
     *Bz_T = ks * brho_0; // [T]
 
 }
-#endif // XT_FLAVOR_TPSA (evaluate_field_from_strengths)
+#endif // XTRACK_TPSA_TRACK (evaluate_field_from_strengths)
 
 #endif

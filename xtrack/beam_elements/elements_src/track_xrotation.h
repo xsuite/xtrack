@@ -27,7 +27,7 @@ void XRotation_single_particle(LocalParticle* part, double sin_angle, double cos
     XT_NUM t_hat = t - tan_angle*y*(1.0/beta0+pt)/(pz*ptt);
 
     /* Spin tracking is disabled by the synrad compile flag */
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
+    #if !defined(XTRACK_TPSA_TRACK) && !defined(XTRACK_MULTIPOLE_NO_SYNRAD)
         // Rotate spin
         double const spin_y_0 = LocalParticle_get_spin_y(part);
         double const spin_z_0 = LocalParticle_get_spin_z(part);

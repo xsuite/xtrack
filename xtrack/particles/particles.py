@@ -315,7 +315,7 @@ def tpsa_pointer_local_particle_flavor(coord_var_names):
         ]
 
     def get_open(vv, tt):
-        return [f"static inline mad::tpsa LocalParticle_get_{vv}(LocalParticle* p){{"]
+        return [f"static inline XT_NUM LocalParticle_get_{vv}(LocalParticle* p){{"]
 
     return LocalParticleFlavor(
         per_particle_vars=[(None, nm) for nm in names],
@@ -394,15 +394,53 @@ def gen_tpsa_local_particle_api(
 
 using mad::tpsa;
 using mad::tpsa_ref;
-#define XT_FLAVOR_TPSA 1
-#define XT_NUM mad::tpsa
+namespace xt_tpsa {{
+struct tpsa : public mad::tpsa {{
+    inline static thread_local tpsa_t* default_proto = nullptr;
+
+    using mad::tpsa::tpsa;
+
+    tpsa(double value)
+        : mad::tpsa(0.0 * mad::tpsa_ref(default_proto) + value) {{}}
+
+    tpsa& operator=(double value) {{
+        mad::tpsa::operator=(value);
+        return *this;
+    }}
+
+    tpsa& operator=(const tpsa& value) {{
+        mad::tpsa::operator=(static_cast<const mad::tpsa&>(value));
+        return *this;
+    }}
+
+    tpsa& operator=(tpsa&& value) {{
+        mad::tpsa::operator=(static_cast<const mad::tpsa&>(value));
+        return *this;
+    }}
+
+    template<class A>
+    tpsa& operator=(const mad::tpsa_base<A>& value) {{
+        mad::tpsa::operator=(value);
+        return *this;
+    }}
+}};
+
+struct default_scope {{
+    default_scope(tpsa_t* proto) {{
+        tpsa::default_proto = proto;
+    }}
+    ~default_scope() {{
+        tpsa::default_proto = nullptr;
+    }}
+}};
+}}
+
+#define XT_NUM xt_tpsa::tpsa
 #define XT_NUM_CONST_ARG const XT_NUM&
-#define XT_KNOBS 1
-#define XT_STRENGTH mad::tpsa
+#define XT_STRENGTH XT_NUM
 #define XT_STRENGTH_CONST_ARG const XT_STRENGTH&
 #define XT_STRENGTH_ARG const XT_STRENGTH&
 #define XT_STRENGTH_CONST(v) ((v)[0])
-#define XT_STRENGTH_LIFT(v) xt_float_or_tpsa_lift(v)
 
 #define XT_TPSA_REL(OP) \\
   template<class A> inline bool operator OP (const mad::tpsa_base<A>& a, double b){{ return a[0] OP b; }} \\
@@ -413,7 +451,6 @@ XT_TPSA_REL(>) XT_TPSA_REL(<) XT_TPSA_REL(>=) XT_TPSA_REL(<=) XT_TPSA_REL(==) XT
 
 typedef tpsa_t XT_COORD;
 typedef void* SynchrotronRadiationRecordData;
-static tpsa_t* xt_tpsa_proto = nullptr;
 
 static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){{
     union {{ uint64_t u; double d; }} value;
@@ -423,7 +460,7 @@ static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){{
 #define XTRACK_FLOAT_OR_TPSA_BITS_TO_DOUBLE 1
 
 static inline XT_NUM xt_float_or_tpsa_lift(double value){{
-    return 0.0 * mad::tpsa_ref(xt_tpsa_proto) + value;
+    return XT_NUM(value);
 }}
 
 static inline XT_NUM xt_float_or_tpsa_lift(uint64_t bits){{
@@ -432,19 +469,17 @@ static inline XT_NUM xt_float_or_tpsa_lift(uint64_t bits){{
 
 template<class A>
 static inline XT_NUM xt_float_or_tpsa_lift(const mad::tpsa_base<A>& value){{
-    return 1.0 * value;
+    return XT_NUM(value);
 }}
 
 #undef XT_STRENGTH
 #undef XT_STRENGTH_CONST_ARG
 #undef XT_STRENGTH_ARG
 #undef XT_STRENGTH_CONST
-#undef XT_STRENGTH_LIFT
-#define XT_STRENGTH mad::tpsa
+#define XT_STRENGTH XT_NUM
 #define XT_STRENGTH_CONST_ARG const XT_STRENGTH&
 #define XT_STRENGTH_ARG const XT_STRENGTH&
 #define XT_STRENGTH_CONST(v) ((v)[0])
-#define XT_STRENGTH_LIFT(v) xt_float_or_tpsa_lift(v)
 
 template<class ElementData>
 static inline XT_NUM xt_float_or_tpsa_get(
