@@ -270,6 +270,7 @@ class Line:
         self._metadata = None
         self._tracker = None
         self._xcoll = None
+        self._xfields = None
         self._xpart = None
 
         self.config = xt.tracker.TrackerConfig()
@@ -1791,6 +1792,17 @@ class Line:
             except ImportError as error:
                 raise ImportError("Please install Xcoll to use this feature.") from error
         return self._xcoll
+
+    @property_with_doc_group("Radiation, Spin and Intra-Beam Scattering")
+    def xfields(self):
+        """Xfields-specific helpers associated with this line."""
+        if self._xfields is None:
+            try:
+                from xfields.line_tools import XfieldsLineAPI
+                self._xfields = XfieldsLineAPI(self)
+            except ImportError as error:
+                raise ImportError("Please install Xfields to use this feature.") from error
+        return self._xfields
 
     @property_with_doc_group("Reference Particle and Particle Generation")
     def xpart(self):
