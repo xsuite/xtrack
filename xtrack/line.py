@@ -1984,7 +1984,7 @@ class Line:
         """
         Compute the local momentum acceptance (LMA) along the line by tracking a
         grid of momentum offsets (δ) from the **entrance** of selected
-        elements and reporting the largest surviving negative and positive δ.
+        elements and reporting the surviving negative and positive δ limits.
 
         The δ grid is centered on the local closed orbit at each element, and offsets
         can be applied (either physical x/y or normalized x/y in σ units).
@@ -2045,9 +2045,9 @@ class Line:
         2. Apply the δ grid by shifting the initial δ around `delta_co`.
         3. Track for `n_turns` turns from the element to itself.
         4. Among surviving particles, report:
-        - `deltan` = min of the *initial* δ of survivors,
-        - `deltap` = max of the *initial* δ of survivors.
-        If none survive, `deltan` = `deltap` = 0.0
+        - `delta_neg` = min of the *initial* δ of survivors,
+        - `delta_pos` = max of the *initial* δ of survivors.
+        If none survive, `delta_neg` = `delta_pos` = 0.0
 
         Returns
         -------
@@ -2055,8 +2055,8 @@ class Line:
             Table indexed by `'name'` with columns:
             - `name` (str): Element name.
             - `s` (float): Element entrance position (m).
-            - `deltan` (float): Largest surviving negative δ (may be 0).
-            - `deltap` (float): Largest surviving positive δ (may be 0).
+            - `delta_neg` (float): Surviving negative δ limit (may be 0).
+            - `delta_pos` (float): Surviving positive δ limit (may be 0).
         """
         if self.particle_ref is None:
             raise ValueError("Line.particle_ref must be set to build probe particles.")
@@ -2180,17 +2180,17 @@ class Line:
             mask_alive = (particles.state == 1)
             if np.any(mask_alive):
                 surviving_pids = particles.filter(mask_alive).particle_id
-                deltan = float(np.min(initial_deltas[surviving_pids]))
-                deltap = float(np.max(initial_deltas[surviving_pids]))
+                delta_neg = float(np.min(initial_deltas[surviving_pids]))
+                delta_pos = float(np.max(initial_deltas[surviving_pids]))
             else:
-                deltan = float(0.0)
-                deltap = float(0.0)
+                delta_neg = float(0.0)
+                delta_pos = float(0.0)
 
             rows.append({
                 'name': ee,
                 's': s_here,
-                'deltan': deltan,
-                'deltap': deltap
+                'delta_neg': delta_neg,
+                'delta_pos': delta_pos
             })
 
         cols = {k: np.array([r[k] for r in rows]) for k in rows[0].keys()}

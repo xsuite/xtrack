@@ -215,8 +215,8 @@ def test_elements_selects_subset(toy_ring):
     assert set(out.name) == set(expected_names)
     assert len(out.name) == len(expected_names)
     assert "s" in out.cols
-    assert "deltan" in out.cols
-    assert "deltap" in out.cols
+    assert "delta_neg" in out.cols
+    assert "delta_pos" in out.cols
 
 
 def test_s_window_selects_subset(toy_ring):
@@ -275,13 +275,13 @@ def test_norm_offset_all_survive(toy_ring):
     )
 
     delta_co = np.array([tw["delta", nn] for nn in tt_aper.name], dtype=float)
-    assert np.allclose(out.deltan, delta_co + delta_neg, atol=1e-12)
-    assert np.allclose(out.deltap, delta_co + delta_pos, atol=1e-12)
+    assert np.allclose(out.delta_neg, delta_co + delta_neg, atol=1e-12)
+    assert np.allclose(out.delta_pos, delta_co + delta_pos, atol=1e-12)
 
 
 def test_all_survive(toy_ring):
     """
-    For a small delta scan all particles survive; deltan/deltap must match
+    For a small delta scan all particles survive; delta_neg/delta_pos must match
     the scan bounds around the local closed-orbit delta.
     """
     line = toy_ring['line']
@@ -308,22 +308,22 @@ def test_all_survive(toy_ring):
     )
 
     assert "s" in out.cols
-    assert "deltan" in out.cols
-    assert "deltap" in out.cols
+    assert "delta_neg" in out.cols
+    assert "delta_pos" in out.cols
 
     assert len(out.s) == len(tt_aper.name)
     assert np.allclose(out.s, tt_aper.s, atol=1e-12)
 
     delta_co = np.array([tw["delta", nn] for nn in tt_aper.name], dtype=float)
-    assert np.all(out.deltan <= delta_co + 1e-12)
-    assert np.all(out.deltap >= delta_co - 1e-12)
-    assert np.allclose(out.deltan, delta_co + delta_neg, atol=1e-12)
-    assert np.allclose(out.deltap, delta_co + delta_pos, atol=1e-12)
+    assert np.all(out.delta_neg <= delta_co + 1e-12)
+    assert np.all(out.delta_pos >= delta_co - 1e-12)
+    assert np.allclose(out.delta_neg, delta_co + delta_neg, atol=1e-12)
+    assert np.allclose(out.delta_pos, delta_co + delta_pos, atol=1e-12)
 
 
 def test_all_lost(toy_ring):
     """
-    For a large delta scan all particles are lost; deltan=deltap=0 everywhere.
+    For a large delta scan all particles are lost; delta_neg=delta_pos=0 everywhere.
     """
     line = toy_ring['line']
     tw = toy_ring['twiss']
@@ -344,14 +344,14 @@ def test_all_lost(toy_ring):
     )
 
     assert "s" in out.cols
-    assert "deltan" in out.cols
-    assert "deltap" in out.cols
+    assert "delta_neg" in out.cols
+    assert "delta_pos" in out.cols
     assert len(out.s) == len(tt_aper.name)
     assert np.allclose(out.s, tt_aper.s, atol=1e-12)
-    assert np.all(out.deltan <= 0)
-    assert np.all(out.deltap >= 0)
-    assert np.allclose(out.deltan, 0, atol=1e-12)
-    assert np.allclose(out.deltap, 0, atol=1e-12)
+    assert np.all(out.delta_neg <= 0)
+    assert np.all(out.delta_pos >= 0)
+    assert np.allclose(out.delta_neg, 0, atol=1e-12)
+    assert np.allclose(out.delta_pos, 0, atol=1e-12)
 
 
 @pytest.mark.parametrize(
@@ -387,11 +387,11 @@ def test_all_lost_offset(toy_ring, x_offset, y_offset):
     )
 
     assert "s" in out.cols
-    assert "deltan" in out.cols
-    assert "deltap" in out.cols
+    assert "delta_neg" in out.cols
+    assert "delta_pos" in out.cols
     assert len(out.s) == len(tt_aper.name)
     assert np.allclose(out.s, tt_aper.s, atol=1e-12)
-    assert np.all(out.deltan <= 0)
-    assert np.all(out.deltap >= 0)
-    assert np.allclose(out.deltan, 0.0, atol=1e-12)
-    assert np.allclose(out.deltap, 0.0, atol=1e-12)
+    assert np.all(out.delta_neg <= 0)
+    assert np.all(out.delta_pos >= 0)
+    assert np.allclose(out.delta_neg, 0.0, atol=1e-12)
+    assert np.allclose(out.delta_pos, 0.0, atol=1e-12)
