@@ -632,8 +632,6 @@ class Tracker:
     ):
         if compile == 'force':
             use_prebuilt_kernels = False
-        elif self.config.XTRACK_TPSA_TRACK:
-            use_prebuilt_kernels = False
         elif not self._context.allow_prebuilt_kernels:  # only CPU serial
             use_prebuilt_kernels = False
         else:
@@ -668,13 +666,27 @@ class Tracker:
                 )
 
             if kernel_info:
+                particle_data_class = None
+                include_auxiliary_kernels = True
+                if self.config.XTRACK_TPSA_TRACK:
+                    from xtrack.tpsa.particles import TpsaParticleData
+                    from xgtpsa.paths import core_library
+
+                    particle_data_class = TpsaParticleData
+                    include_auxiliary_kernels = False
+                    preload_libraries = (core_library(),)
+                else:
+                    preload_libraries = ()
                 kernel_description = self.get_kernel_descriptions(
-                    kernel_element_classes=kernel_info['tracker_element_classes']
+                    kernel_element_classes=kernel_info['tracker_element_classes'],
+                    particle_data_class=particle_data_class,
+                    include_auxiliary_kernels=include_auxiliary_kernels,
                 )['track_line']
                 kernels = self._context.kernels_from_file(
                     module_name=kernel_info['module_name'],
                     containing_dir=XSK_PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions={'track_line': kernel_description},
+                    preload_libraries=preload_libraries,
                 )
                 return kernels['track_line']
 
@@ -1036,11 +1048,15 @@ class Tracker:
         sources = [source_track]
         extra_compile_args = ()
         extra_link_args = ()
+        extra_include_dirs = ()
+        extra_libraries = ()
+        extra_library_dirs = ()
+        preload_libraries = ()
         compiler_language = "c"
 
         if tpsa_track:
             import xgtpsa
-            from xgtpsa.paths import lib_dir
+            from xgtpsa.paths import LIB_BASENAME, core_library, lib_dir
             from xtrack.particles.particles import gen_tpsa_local_particle_api
             from xtrack.internal_record import RecordIdentifier, RecordIndex
             from xtrack.tpsa.particles import (
@@ -1091,12 +1107,11 @@ class Tracker:
             sources = [*tpsa_sources, source_track, _float_or_tpsa_undef_block(all_classes)]
             extra_compile_args = (
                 "-include", "complex",
-                f"-I{xgtpsa.include_dir()}",
             )
-            extra_link_args = (
-                f"-L{lib_dir()}",
-                "-lmadng_tpsa",
-            )
+            extra_include_dirs = (xgtpsa.include_dir(),)
+            extra_libraries = (LIB_BASENAME,)
+            extra_library_dirs = (lib_dir(),)
+            preload_libraries = (core_library(),)
             compiler_language = "c++"
             headers.insert(0, "#define restrict __restrict")
 
@@ -1117,6 +1132,10 @@ class Tracker:
                 save_source_as=f'{module_name}.c' if module_name else None,
                 extra_compile_args=extra_compile_args,
                 extra_link_args=extra_link_args,
+                extra_include_dirs=extra_include_dirs,
+                extra_libraries=extra_libraries,
+                extra_library_dirs=extra_library_dirs,
+                preload_libraries=preload_libraries,
                 compiler_language=compiler_language,
                 **kwargs,
             )

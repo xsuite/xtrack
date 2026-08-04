@@ -157,9 +157,9 @@ def main():
     print(f"TPSA map order: {args.order}")
     print(f"Parametric variables: {len(IR8_VARY)}")
 
-    normal_line.build_tracker(use_prebuilt_kernels=False)
-    scalar_line.build_tracker(use_prebuilt_kernels=False)
-    param_line.build_tracker(use_prebuilt_kernels=False)
+    normal_line.build_tracker(compile=False)
+    scalar_line.build_tracker(compile=False)
+    param_line.build_tracker(compile=False)
 
     param_descriptor = xgtpsa.Descriptor(
         6, args.order, num_params=len(IR8_VARY), param_order=1
