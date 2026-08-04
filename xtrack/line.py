@@ -7373,6 +7373,8 @@ def mk_class_namespace(extra_classes):
     except ImportError:
         all_classes = element_classes + extra_classes
         log.warning("Xfields not installed")
+    if hasattr(xt, 'monitor_classes'):
+        all_classes += xt.monitor_classes
     try:
         import xcoll as xc
         all_classes += xc.element_classes

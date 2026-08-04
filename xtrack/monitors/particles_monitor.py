@@ -22,6 +22,7 @@ def _monitor_init(
     num_particles=None,
     particle_id_range=None,
     auto_to_numpy=True,
+    **kwargs,
 ):
 
     '''
@@ -91,6 +92,7 @@ def _monitor_init(
             n_repetitions=n_repetitions,
             repetition_period=repetition_period,
             data=data_init,
+            **kwargs,
         )
 
         self._dressed_data = self._ParticlesClass(_xobject=self._xobject.data,
@@ -101,9 +103,43 @@ def _monitor_init(
             for tt, nn in self._ParticlesClass.per_particle_vars:
                 getattr(self.data, nn)[:] = 0
 
+def monitor_to_dict(self, **kwargs):
+    out = BeamElement.to_dict(self, **kwargs)
+    out.pop('data', None)
+    out['auto_to_numpy'] = bool(
+        out.pop('flag_auto_to_numpy', self.auto_to_numpy))
+    return out
+
+
 def monitor_from_dict(cls, dct, **kwargs):
-    xobj = cls._XoStruct(**dct, **kwargs)
-    return cls(_xobject=xobj)
+    dct = dct.copy()
+    dct.pop('__class__', None)
+    dct.pop('data', None)
+    dct.pop('n_records', None)
+
+    dct.setdefault('start_at_turn', 0)
+
+    part_id_start = dct.pop('part_id_start', None)
+    part_id_end = dct.pop('part_id_end', None)
+    if 'particle_id_range' not in dct and part_id_end is not None:
+        if part_id_start is None:
+            part_id_start = 0
+        dct['particle_id_range'] = (part_id_start, part_id_end)
+
+    ebe_mode = dct.pop('ebe_mode', 0)
+
+    if 'flag_auto_to_numpy' in dct:
+        dct['auto_to_numpy'] = bool(dct.pop('flag_auto_to_numpy'))
+
+    if dct.get('repetition_period', None) == -1:
+        dct.pop('repetition_period')
+    if 'repetition_period' not in dct and dct.get('n_repetitions', None) == 1:
+        dct.pop('n_repetitions')
+
+    if ebe_mode != 0:
+        dct['ebe_mode'] = ebe_mode
+
+    return BeamElement.from_dict.__func__(cls, dct, **kwargs)
 
 def auto_to_numpy(self):
     return self.flag_auto_to_numpy != 0
@@ -168,6 +204,7 @@ class ParticlesMonitor(BeamElement):
 
 ParticlesMonitor.__init__ = _monitor_init
 ParticlesMonitor.get_backtrack_element = _monitor_get_backtrack_element
+ParticlesMonitor.to_dict = monitor_to_dict
 ParticlesMonitor.from_dict = classmethod(monitor_from_dict)
 
 ParticlesMonitor.auto_to_numpy = property(auto_to_numpy, set_auto_to_numpy)
@@ -179,7 +216,3 @@ for tt, nn in per_particle_vars:
 for nn in ['pzeta', 'kin_px', 'kin_py', 'kin_ps', 'kin_xprime', 'kin_yprime',
            'kin_xp', 'kin_yp']:
     setattr(ParticlesMonitor, nn, _FieldOfMonitor(name=nn))
-
-
-
-

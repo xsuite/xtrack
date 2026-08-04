@@ -120,55 +120,8 @@ def get_linear_normal_form(M, symplectify=False, only_4d_block=False,
 
 
     modes = sort_modes(v0, w0)
-
-    ##################################################
-    #### Rotate eigenvectors to the Courant-Snyder parameterization ####
-    phase0 = np.log(v0[0,modes[0]]).imag
-    phase1 = np.log(v0[2,modes[1]]).imag
-    phase2 = np.log(v0[4,modes[2]]).imag
-
-    v0[:,modes[0]] *= np.exp(-1.j*phase0)
-    v0[:,modes[1]] *= np.exp(-1.j*phase1)
-    v0[:,modes[2]] *= np.exp(-1.j*phase2)
-
-    ##################################################
-    #### Construct W #################################
-
-    a1 = v0[:,modes[0]].real
-    a2 = v0[:,modes[1]].real
-    a3 = v0[:,modes[2]].real
-    b1 = v0[:,modes[0]].imag
-    b2 = v0[:,modes[1]].imag
-    b3 = v0[:,modes[2]].imag
-
-    n1_inv_sq = np.matmul(np.matmul(a1, S), b1)
-    n2_inv_sq = np.matmul(np.matmul(a2, S), b2)
-    n3_inv_sq = np.matmul(np.matmul(a3, S), b3)
-
-    if only_4d_block:
-        n3_inv_sq = 1.0 # Just to avoid errors
-
-    if not n1_inv_sq > 0:
-        raise ValueError('Invalid n1')
-    if not n2_inv_sq > 0:
-        raise ValueError('Invalid n2')
-    if not n3_inv_sq > 0 :
-        raise ValueError('Invalid n3')
-
-    n1 = 1./np.sqrt(n1_inv_sq)
-    n2 = 1./np.sqrt(n2_inv_sq)
-    n3 = 1./np.sqrt(n3_inv_sq)
-
-    a1 *= n1
-    a2 *= n2
-    a3 *= n3
-
-    b1 *= n1
-    b2 *= n2
-    b3 *= n3
-
-    W = np.array([a1,b1,a2,b2,a3,b3]).T
-    W[abs(W) < 1.e-14] = 0. # Set very small numbers to zero.
+    W = _build_w_matrix_from_eigenvectors(
+        v0, modes, only_4d_block=only_4d_block)
     #invW = np.matmul(np.matmul(S.T, W.T), S)
     invW = np.linalg.inv(W)
 
@@ -202,6 +155,41 @@ def compute_linear_normal_form(*args, **kwargs):
         FutureWarning,
     )
     return get_linear_normal_form(*args, **kwargs)
+
+
+def _build_w_matrix_from_eigenvectors(v0, modes, only_4d_block=False):
+    """
+    Build a real normalized W matrix from sorted complex eigenvectors.
+    """
+    v0 = v0.copy()
+
+    ##################################################
+    #### Rotate eigenvectors to the Courant-Snyder parameterization ####
+    for mode, row in zip(modes, (0, 2, 4)):
+        phase = np.log(v0[row, mode]).imag
+        v0[:, mode] *= np.exp(-1.j * phase)
+
+    ##################################################
+    #### Construct W #################################
+
+    columns = []
+    for ii, mode in enumerate(modes):
+        avec = v0[:, mode].real
+        bvec = v0[:, mode].imag
+        n_inv_sq = np.matmul(np.matmul(avec, S), bvec)
+
+        if only_4d_block and ii == 2:
+            n_inv_sq = 1.0 # Just to avoid errors
+
+        if not n_inv_sq > 0:
+            raise ValueError(f'Invalid n{ii + 1}')
+
+        norm = 1. / np.sqrt(n_inv_sq)
+        columns.extend([avec * norm, bvec * norm])
+
+    W = np.array(columns).T
+    W[abs(W) < 1.e-14] = 0. # Set very small numbers to zero.
+    return W
 
 
 def _assert_matrix_responsiveness(M,

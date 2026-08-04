@@ -1,28 +1,36 @@
-
 # Based on E. Boscolo, A. Ciarma, E. Burkhardt, https://cds.cern.ch/record/2948247
 # Nuclear Instruments and Methods in Physics Research A 1083 (2026) 171135
 
 import xtrack as xt
+import time
 
 from xtrack._temp.boris_and_solenoid_map.solenoid_field import SolenoidField
 import numpy as np
 from tilted_solenoid import TiltedSolenoid
 
+t1 = time.time()
+
+plot=True
+
 env = xt.load('fccee_z_lcc.json')
 line = env.fccee_p_ring
 
-ip_names = ['ipa', 'ipd', 'ipg', 'ipj']
+ip_names = ['ipa'] #, 'ipd', 'ipg', 'ipj']
 
 # Tilt with respect to the beam axis
 theta = -0.015
 
-sol_half_length = 1.23
+sol_half_length = 1.3
 
 # Location of first dipole corrector (overlaid with solenoid)
-ds_start = 1.23
+ds_start = 1.4
 ds_end = 2.29
 
-B0 = 2. # T
+B0 = 3 # T
+B0_screen = -1.4 # T
+r0 = 0.13
+r0_screen_sol = 0.13
+l_screen_sol = 0.6
 
 for ip_name in ip_names:
 
@@ -32,13 +40,23 @@ for ip_name in ip_names:
     print(f'IP {ip_name}:')
 
     # Analytic field map
-    sf = TiltedSolenoid(L=sol_half_length*2, a=0.13, B0=B0, theta=theta)
+    sf = TiltedSolenoid(L=sol_half_length*2, a=r0, B0=B0, theta=theta)
+    sf_right = TiltedSolenoid(L=l_screen_sol, a=r0_screen_sol, B0=B0_screen, theta=theta,
+                              z0=sol_half_length + 0.5 * l_screen_sol)
+    sf_left = TiltedSolenoid(L=l_screen_sol, a=r0_screen_sol, B0=B0_screen, theta=theta,
+                              z0=-sol_half_length - 0.5 * l_screen_sol)
 
     # s coordinate along the beam axis
     s = np.linspace(-2.399, 2.399, 201)
 
     # Compute field on the beam reference trajectory in the beam frame
-    bx, by, bz = sf.get_field(0 * s, 0 * s, s)
+    bx_main, by_main, bz_main = sf.get_field(0 * s, 0 * s, s)
+    bx_right, by_right, bz_right = sf_right.get_field(0 * s, 0 * s, s)
+    bx_left, by_left, bz_left = sf_left.get_field(0 * s, 0 * s, s)
+
+    bx = bx_main + bx_right + bx_left
+    by = by_main + by_right + by_left
+    bz = bz_main + bz_right + bz_left
 
     # Normalized strengths
     rigidity0 = line.particle_ref.rigidity0[0]
@@ -169,7 +187,6 @@ for ip_name in ip_names:
     ])
 
 
-# Configuration (which elements are used for the correction at each ip)
 config = {}
 config['ipa'] = {
     'quad_for_optics_correction': [
@@ -264,7 +281,7 @@ line['on_comp_sol_ipg'] = 0
 line['on_comp_sol_ipj'] = 0
 
 optimizers = {}
-for ip_name in config.keys():
+for ip_name in ip_names:
 
     print(f'IP {ip_name}:')
     line.cycle(f'end_ds_start_straight_{ip_name}')
@@ -438,19 +455,18 @@ for ip_name in config.keys():
     # Switch main solenoid off to leave the machine clean for the next IP correction
     line['on_sol_' + ip_name] = 0
 
-# Cycle to ipa before saving
-line.cycle('ipa')
+# # Cycle to ipa before saving
+# line.cycle('ipa')
 
-line['on_sol_ipa'] = 0
-line['on_sol_ipd'] = 0
-line['on_sol_ipg'] = 0
-line['on_sol_ipj'] = 0
-line['on_sol_corr_ipa'] = 0
-line['on_sol_corr_ipd'] = 0
-line['on_sol_corr_ipg'] = 0
-line['on_sol_corr_ipj'] = 0
-tw_off = line.twiss4d(strengths=True, zero_at=ip_name)
-nl_chrom_off = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
+# line['on_sol_ipa'] = 0
+# line['on_sol_ipd'] = 0
+# line['on_sol_ipg'] = 0
+# line['on_sol_ipj'] = 0
+# line['on_sol_corr_ipa'] = 0
+# line['on_sol_corr_ipd'] = 0
+# line['on_sol_corr_ipg'] = 0
+# line['on_sol_corr_ipj'] = 0
+# tw_off = line.twiss4d(strengths=True, zero_at=ip_name)
 
 line['on_sol_ipa'] = 1
 line['on_sol_ipd'] = 1
@@ -460,10 +476,110 @@ line['on_sol_corr_ipa'] = 1
 line['on_sol_corr_ipd'] = 1
 line['on_sol_corr_ipg'] = 1
 line['on_sol_corr_ipj'] = 1
+# tw_on_corr = line.twiss4d(strengths=True, zero_at='ipg')
+# # nl_chrom_on_corr = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
+# two_on_corr = line.twiss(
+#     strengths=True,
+#     init=tw_off,
+#     init_at='ipg')
 
-tw_on_corr = line.twiss4d(strengths=True, zero_at='ipg')
-# nl_chrom_on_corr = line.get_non_linear_chromaticity(delta0_range=(-1e-2, 1e-2))
-two_on_corr = line.twiss(
-    strengths=True,
-    init=tw_off,
-    init_at='ipg')
+line.particle_ref.anomalous_magnetic_moment = 0.00115965218128
+
+# Slice the IP regions
+line.cycle('end_ds_start_straight_ipa')
+tt = line.get_table()
+for ip_name in ip_names:
+    s_cut_right = np.arange(tt['s', ip_name] + 2.4, tt['s', ip_name] + 11, 0.2)
+    line.cut_at_s(s_cut_right)
+    s_cut_left = np.arange(tt['s', ip_name] - 11, tt['s', ip_name] - 2.4, 0.2)
+    line.cut_at_s(s_cut_left)
+
+tw4d = line.twiss4d(strengths=True, polarization_analysis=True, radiation_integrals=True)
+tw4d['bs'] = tw4d.ks * line.particle_ref.rigidity0[0]
+
+for ip_name in tw4d.rows['ip.*'].name:
+    tw4d['bs', ip_name] = np.nan # to avoid seeing zero at ips
+
+t2 = time.time()
+print(f'Took {t2-t1} s')
+
+if plot:
+
+    import matplotlib.pyplot as plt
+    plt.close('all')
+    ip_plot = 'ipa'
+    tw4d.zero_at(ip_plot)
+    tw4d.zero_at(ip_plot)
+
+    fig1 = plt.figure(figsize=(6.4, 4.8 * 1.8))
+    ax1 = fig1.add_subplot(5,1,1)
+    plty = tw4d.plot(ax=ax1)
+
+    ax2 = fig1.add_subplot(5,1,2, sharex=ax1)
+    ax2.plot(tw4d.s, tw4d.bs)
+    ax2.set_ylabel(r'$B_s$ [T]')
+    ax2.grid(True)
+
+    ax3 = fig1.add_subplot(5,1,3, sharex=ax1)
+    ax3.plot(tw4d.s, tw4d.y * 1e3)
+    ax3.set_ylabel('y [mm]')
+    ax3.set_ylim(-0.3, 0.3)
+    ax3.grid(True)
+
+    ax4 = fig1.add_subplot(5,1,4, sharex=ax1)
+    ax4.plot(tw4d.s, tw4d.dy * 1e3)
+    ax4.set_ylabel(r'$D_y$ [mm]')
+    ax4.set_ylim(-0.3, 0.3)
+    ax4.grid(True)
+
+    ax5 = fig1.add_subplot(5,1,5, sharex=ax1)
+    ax5.plot(tw4d.s, tw4d.betx2)
+    ax5.plot(tw4d.s, tw4d.bety1)
+    ax5.set_ylabel(r'$\beta_{x2,y1}$')
+    ax5.grid(True)
+
+    ax1.set_xlabel('')
+    ax5.set_xlabel('s [m]')
+
+    fig1.subplots_adjust(hspace=.25, top=0.95, bottom=0.06, left=0.14)
+
+    fig2 = plt.figure(2, figsize=(6.4, 4.8 * 1.8))
+    ax21 = fig2.add_subplot(4,1,1, sharex=ax1)
+    plty = tw4d.plot(ax=ax21)
+
+    ax22 = fig2.add_subplot(4,1,2, sharex=ax1)
+    ax22.plot(tw4d.s, tw4d.bs)
+    ax22.set_ylabel(r'$B_s$ [T]')
+    ax22.grid(True)
+
+    ax23 = fig2.add_subplot(4,1,3, sharex=ax1)
+    ax23.plot(tw4d.s, tw4d.k0sl / tw4d.length * rigidity0)
+    ax23.set_ylabel(r'$B_x$ [T]')
+    ax23.grid(True)
+
+    ax24 = fig2.add_subplot(4,1,4, sharex=ax1)
+    ax24.plot(tw4d.s, tw4d.rad_int_i5y_integrand)
+    ax24.set_ylabel(r'$i_5(s)$')
+    ax24.grid(True)
+    fig2.subplots_adjust(bottom=0.08, hspace=0.3)
+
+    ax1.set_xlim(-20, 20)
+
+
+out = {
+    'B0': B0,
+    'r0': r0,
+    'sol_half_length': sol_half_length,
+    'ds_start': ds_start,
+    'ds_end': ds_end,
+    'gemitt_y': float(tw4d.rad_int_eq_gemitt_y) * 4 # for 4 ips
+}
+
+from pprint import pp
+pp(out)
+
+# fout = (f'B0_{B0:.3f}_r0_{r0:.3f}_sol_half_length_{sol_half_length:.3f}'
+#         f'_ds_start_{ds_start:.3f}_ds_end_{ds_end:.3f}.json')
+
+# xt.json.dump(out, 'results/' + fout)
+
