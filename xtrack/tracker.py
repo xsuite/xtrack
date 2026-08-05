@@ -53,13 +53,32 @@ static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){
 }
 #define XTRACK_FLOAT_OR_TPSA_BITS_TO_DOUBLE 1
 #endif
+
+#ifndef XTRACK_FLOAT_OR_TPSA_GET_DOUBLE
+typedef unsigned char xt_float_or_tpsa_ord_t;
+typedef struct xt_float_or_tpsa_desc_ xt_float_or_tpsa_desc_t;
+typedef struct xt_float_or_tpsa_tpsa_ {
+    const xt_float_or_tpsa_desc_t *d;
+    xt_float_or_tpsa_ord_t lo, hi, mo, ao;
+    int32_t uid;
+    char nam[16];
+    double coef[];
+} xt_float_or_tpsa_tpsa_t;
+static inline double xt_float_or_tpsa_get_double(uint64_t bits, uint8_t enabled){
+    if (enabled) {
+        return ((xt_float_or_tpsa_tpsa_t*)(uintptr_t)bits)->coef[0];
+    }
+    return xt_float_or_tpsa_bits_to_double(bits);
+}
+#define XTRACK_FLOAT_OR_TPSA_GET_DOUBLE 1
+#endif
 """
     ]
     for data, field in pairs:
         getter = f"{data}_get_{field}"
         helpers.append(f"""
 #ifndef XTRACK_TPSA_TRACK
-#define {getter}(obj) xt_float_or_tpsa_bits_to_double(*((uint64_t*){data}_getp_{field}(obj)))
+#define {getter}(obj) xt_float_or_tpsa_get_double(*((uint64_t*){data}_getp_{field}(obj)), {data}_get__tpsa_enabled(obj))
 #else
 #define {getter}(obj) xt_float_or_tpsa_get(({data}) obj, (uint64_t*){data}_getp_{field}(obj), {data}_get__tpsa_enabled(obj))
 #endif
@@ -82,7 +101,7 @@ def _float_or_tpsa_getter_block(classes):
         getter = f"{data}_get_{field}"
         blocks.append(f"""
 #ifndef XTRACK_TPSA_TRACK
-#define {getter}(obj) xt_float_or_tpsa_bits_to_double(*((uint64_t*){data}_getp_{field}(obj)))
+#define {getter}(obj) xt_float_or_tpsa_get_double(*((uint64_t*){data}_getp_{field}(obj)), {data}_get__tpsa_enabled(obj))
 #else
 #define {getter}(obj) xt_float_or_tpsa_get(({data}) obj, (uint64_t*){data}_getp_{field}(obj), {data}_get__tpsa_enabled(obj))
 #endif
@@ -1042,6 +1061,10 @@ class Tracker:
             kwargs = {}
 
         apply_to_source = [_handle_per_particle_blocks]
+        if not tpsa_track:
+            apply_to_source.append(
+                lambda source: _wrap_float_or_tpsa_getters(source, all_classes)
+            )
 
         saved_depends = {}
         saved_extra_sources = {}

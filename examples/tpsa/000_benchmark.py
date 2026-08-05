@@ -10,6 +10,8 @@ The benchmark intentionally does only tracking:
 - scalar ``xtpsa.ParticlesTpsa`` through a non-parametric line;
 - parametric ``xtpsa.ParticlesTpsa`` through a line with the IR8 quadrupole
   circuit variables promoted to GTPSA parameters.
+- normal ``xt.Particles`` through the same parametric line, where scalar
+  tracking truncates TPSA-backed element parameters to their constant term.
 
 The IR8 knob list follows the optics matching setup in
 ``fast_optics_jacobian/utils.py``, but no matching or twiss computation is done.
@@ -169,12 +171,17 @@ def main():
     for _ in range(args.warmup):
         normal_line.track(_normal_particle(normal_line),
                           ele_start=args.start, ele_stop=args.end)
+        param_line.track(_normal_particle(param_line),
+                         ele_start=args.start, ele_stop=args.end)
         scalar_line.track(_tpsa_particle(scalar_line, args.order),
                           ele_start=args.start, ele_stop=args.end)
         param_line.track(_tpsa_particle(param_line, args.order, param_descriptor),
                          ele_start=args.start, ele_stop=args.end)
 
     normal_particles = [_normal_particle(normal_line) for _ in range(args.repeats)]
+    normal_on_param_particles = [
+        _normal_particle(param_line) for _ in range(args.repeats)
+    ]
     scalar_maps = [
         _tpsa_particle(scalar_line, args.order) for _ in range(args.repeats)
     ]
@@ -184,11 +191,13 @@ def main():
     ]
 
     print()
-    _time_tracks("normal particles", normal_line, normal_particles,
+    _time_tracks("scalar particles/TPSA line", param_line, normal_on_param_particles,
                  args.repeats, args.start, args.end)
-    _time_tracks("TPSA scalar line", scalar_line, scalar_maps,
+    _time_tracks("scalar particles/scalar line", normal_line, normal_particles,
                  args.repeats, args.start, args.end)
-    _time_tracks("TPSA parametric line", param_line, param_maps,
+    _time_tracks("TPSA particles/scalar line", scalar_line, scalar_maps,
+                 args.repeats, args.start, args.end)
+    _time_tracks("TPSA particles/TPSA line", param_line, param_maps,
                  args.repeats, args.start, args.end)
 
 

@@ -118,6 +118,57 @@ def test_tpsa_multiturn_track_matches_scalar_const_part():
     )
 
 
+def test_scalar_track_tpsa_enabled_element_uses_const_part():
+    line_scalar = _line(k1=0.125)
+    part_scalar = xt.Particles(
+        x=1e-4,
+        px=2e-5,
+        y=0.0,
+        py=0.0,
+        zeta=0.0,
+        delta=0.0,
+        p0c=7e12,
+        mass0=xt.PROTON_MASS_EV,
+    )
+    line_scalar.track(part_scalar)
+
+    line_tpsa_enabled = _line(k1=0.125)
+    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    line_tpsa_enabled["q"].k1 = descriptor.param(1, 0.125)
+    part_tpsa_enabled = xt.Particles(
+        x=1e-4,
+        px=2e-5,
+        y=0.0,
+        py=0.0,
+        zeta=0.0,
+        delta=0.0,
+        p0c=7e12,
+        mass0=xt.PROTON_MASS_EV,
+    )
+    line_tpsa_enabled.track(part_tpsa_enabled)
+
+    assert np.allclose(
+        [
+            float(part_tpsa_enabled.x[0]),
+            float(part_tpsa_enabled.px[0]),
+            float(part_tpsa_enabled.y[0]),
+            float(part_tpsa_enabled.py[0]),
+            float(part_tpsa_enabled.zeta[0]),
+            float(part_tpsa_enabled.delta[0]),
+        ],
+        [
+            float(part_scalar.x[0]),
+            float(part_scalar.px[0]),
+            float(part_scalar.y[0]),
+            float(part_scalar.py[0]),
+            float(part_scalar.zeta[0]),
+            float(part_scalar.delta[0]),
+        ],
+        rtol=0,
+        atol=1e-15,
+    )
+
+
 def test_float_or_tpsa_field_assignment():
     line = _line()
     descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
