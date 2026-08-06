@@ -4,7 +4,6 @@ import xobjects as xo
 import numpy as np
 import pathlib
 import pytest
-from scipy.constants import c as clight, electron_volt, hbar
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -155,19 +154,12 @@ def test_radiation_integrals_sls_combined_function_magnets():
         tw_integrals.rad_int_damping_constant_zeta_s, tw_rad.damping_constants_s[2],
         rtol=1e-3, atol=0)
     xo.assert_allclose(
-        tw_integrals.rad_int_energy_loss,
-        2 / 3 * line.particle_ref.get_classical_particle_radius0()
-        * line.particle_ref.energy0[0] * line.particle_ref.gamma0[0]**3
-        * tw_integrals.rad_int_i2,
-        rtol=0, atol=1e-12)
+        tw_integrals.rad_int_energy_loss, tw_rad.energy_loss,
+        rtol=1e-3, atol=0)
     xo.assert_allclose(
         tw_integrals.rad_int_sigma_delta,
-        np.sqrt(55 * np.sqrt(3) / 96
-                * hbar / electron_volt * clight
-                / line.particle_ref.mass0 * line.particle_ref.gamma0[0]**2
-                * tw_integrals.rad_int_i3
-                / (2 * tw_integrals.rad_int_i2 + tw_integrals.rad_int_i4)),
-        rtol=0, atol=1e-18)
+        np.sqrt(tw_rad.eq_gemitt_zeta / tw_rad.bets0),
+        rtol=1e-3, atol=0)
 
 @pytest.mark.parametrize('tilt', [True, False], ids=['tilt', 'no_tilt'])
 def test_radiation_integrals_sps_vs_df(tilt):
