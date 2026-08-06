@@ -65,37 +65,7 @@ def _float_or_tpsa_getter_block(classes):
     if not pairs:
         return ""
 
-    blocks = [
-        """
-#ifndef XTRACK_FLOAT_OR_TPSA_BITS_TO_DOUBLE
-static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){
-    union { uint64_t u; double d; } value;
-    value.u = bits;
-    return value.d;
-}
-#define XTRACK_FLOAT_OR_TPSA_BITS_TO_DOUBLE 1
-#endif
-
-#ifndef XTRACK_FLOAT_OR_TPSA_GET_DOUBLE
-typedef unsigned char xt_float_or_tpsa_ord_t;
-typedef struct xt_float_or_tpsa_desc_ xt_float_or_tpsa_desc_t;
-typedef struct xt_float_or_tpsa_tpsa_ {
-    const xt_float_or_tpsa_desc_t *d;
-    xt_float_or_tpsa_ord_t lo, hi, mo, ao;
-    int32_t uid;
-    char nam[16];
-    double coef[];
-} xt_float_or_tpsa_tpsa_t;
-static inline double xt_float_or_tpsa_get_double(uint64_t bits, uint8_t enabled){
-    if (enabled) {
-        return ((xt_float_or_tpsa_tpsa_t*)(uintptr_t)bits)->coef[0];
-    }
-    return xt_float_or_tpsa_bits_to_double(bits);
-}
-#define XTRACK_FLOAT_OR_TPSA_GET_DOUBLE 1
-#endif
-"""
-    ]
+    blocks = []
     for data, field in pairs:
         getter = f"{data}_get_{field}"
         blocks.append(f"""

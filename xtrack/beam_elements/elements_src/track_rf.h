@@ -211,16 +211,9 @@ void track_rf_body_single_particle(
             kill_energy_kick\
         )
 
-    // Zero strengths: double 0. Normally, a zero constant tpsa under the TPSA
-    // build (the drift's k0/k1/ks are XT_STRENGTH there, no double->tpsa& conversion).
-#if defined(XTRACK_TPSA_TRACK) || defined(XT_TPSA_SLOTS)
-    #define XT_RF_KZ(part) (0.0 * LocalParticle_get_x(part))
-#else
-    #define XT_RF_KZ(part) 0.
-#endif
     #define RF_DRIFT(part, dlength) \
         track_magnet_drift_single_particle(\
-            part, (dlength), XT_RF_KZ(part), XT_RF_KZ(part), XT_RF_KZ(part), 0.,\
+            part, (dlength), 0., 0., 0., 0.,\
             0., 0., drift_model\
         )
 
@@ -410,22 +403,19 @@ void track_rf_particles(
             num_kicks = 1;
         }
 
-        // Strengths are all zero here (RF only needs drift_model out).  Under the TPSA
-        // build the strength type is tpsa, so zeros must be constant tpsa (XT_RF_KZ, defined
-        // above for RF_DRIFT: a zero constant tpsa in TPSA tracking, plain 0 otherwise).
-        XT_STRENGTH k0_drift=XT_RF_KZ(part0), k1_drift=XT_RF_KZ(part0), ks_drift=XT_RF_KZ(part0);
+        XT_NUM k0_drift=0., k1_drift=0., ks_drift=0.;
         double h_drift;
-        XT_STRENGTH k0_kick=XT_RF_KZ(part0), k1_kick=XT_RF_KZ(part0);
+        XT_NUM k0_kick=0., k1_kick=0.;
         double h_kick;
-        XT_STRENGTH k0_h_correction=XT_RF_KZ(part0), k1_h_correction=XT_RF_KZ(part0);
+        XT_NUM k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame;
         int8_t drift_model;
         configure_tracking_model(
             model,
-            XT_RF_KZ(part0), // k0
-            XT_RF_KZ(part0), // k1
+            0, // k0
+            0, // k1
             0, // h
-            XT_RF_KZ(part0), // ks
+            0, // ks
             &k0_drift,
             &k1_drift,
             &h_drift,

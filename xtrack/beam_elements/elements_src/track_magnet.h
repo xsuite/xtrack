@@ -34,28 +34,28 @@ void track_magnet_body_single_particle(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    XT_STRENGTH_CONST_ARG rel_ref_strength,
+    XT_NUM_CONST_ARG rel_ref_strength,
     const double factor_knl_ksl,
     const int64_t num_multipole_kicks,
     const int8_t kick_rot_frame,
     const int8_t drift_model,
     const int8_t integrator,
-    XT_STRENGTH_CONST_ARG k0_drift,
-    XT_STRENGTH_CONST_ARG k1_drift,
-    XT_STRENGTH_CONST_ARG ks_drift,
+    XT_NUM_CONST_ARG k0_drift,
+    XT_NUM_CONST_ARG k1_drift,
+    XT_NUM_CONST_ARG ks_drift,
     const double h_drift,
-    XT_STRENGTH_CONST_ARG k0_kick,
-    XT_STRENGTH_CONST_ARG k1_kick,
+    XT_NUM_CONST_ARG k0_kick,
+    XT_NUM_CONST_ARG k1_kick,
     const double h_kick,
     const double hxl,
-    XT_STRENGTH_CONST_ARG k0_h_correction,
-    XT_STRENGTH_CONST_ARG k1_h_correction,
-    XT_STRENGTH_CONST_ARG k2,
-    XT_STRENGTH_CONST_ARG k3,
-    XT_STRENGTH_CONST_ARG k0s,
-    XT_STRENGTH_CONST_ARG k1s,
-    XT_STRENGTH_CONST_ARG k2s,
-    XT_STRENGTH_CONST_ARG k3s,
+    XT_NUM_CONST_ARG k0_h_correction,
+    XT_NUM_CONST_ARG k1_h_correction,
+    XT_NUM_CONST_ARG k2,
+    XT_NUM_CONST_ARG k3,
+    XT_NUM_CONST_ARG k0s,
+    XT_NUM_CONST_ARG k1s,
+    XT_NUM_CONST_ARG k2s,
+    XT_NUM_CONST_ARG k3s,
     const double dks_ds,
     const double x0_solenoid,
     const double y0_solenoid,
@@ -298,7 +298,7 @@ void track_magnet_particles(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    XT_STRENGTH_CONST_ARG rel_ref_strength,
+    XT_NUM_CONST_ARG rel_ref_strength,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t default_model,
@@ -310,15 +310,15 @@ void track_magnet_particles(
     double delta_taper,
     double h,
     double hxl,
-    XT_STRENGTH_ARG k0,
-    XT_STRENGTH_ARG k1,
-    XT_STRENGTH_ARG k2,
-    XT_STRENGTH_ARG k3,
-    XT_STRENGTH_ARG k0s,
-    XT_STRENGTH_ARG k1s,
-    XT_STRENGTH_ARG k2s,
-    XT_STRENGTH_ARG k3s,
-    XT_STRENGTH_ARG ks,
+    XT_NUM_ARG k0,
+    XT_NUM_ARG k1,
+    XT_NUM_ARG k2,
+    XT_NUM_ARG k3,
+    XT_NUM_ARG k0s,
+    XT_NUM_ARG k1s,
+    XT_NUM_ARG k2s,
+    XT_NUM_ARG k3s,
+    XT_NUM_ARG ks,
     double dks_ds,
     double x0_solenoid,
     double y0_solenoid,
@@ -487,10 +487,10 @@ void track_magnet_particles(
             END_PER_PARTICLE_BLOCK;
         }
 
-        double knorm[] = {XT_STRENGTH_CONST(k0), XT_STRENGTH_CONST(k1),
-                          XT_STRENGTH_CONST(k2), XT_STRENGTH_CONST(k3)};
-        double kskew[] = {XT_STRENGTH_CONST(k0s), XT_STRENGTH_CONST(k1s),
-                          XT_STRENGTH_CONST(k2s), XT_STRENGTH_CONST(k3s)};
+        double knorm[] = {XT_NUM_CONST_PART(k0), XT_NUM_CONST_PART(k1),
+                          XT_NUM_CONST_PART(k2), XT_NUM_CONST_PART(k3)};
+        double kskew[] = {XT_NUM_CONST_PART(k0s), XT_NUM_CONST_PART(k1s),
+                          XT_NUM_CONST_PART(k2s), XT_NUM_CONST_PART(k3s)};
 
         track_magnet_edge_particles(
             part0,
@@ -506,9 +506,9 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * XT_STRENGTH_CONST(rel_ref_strength),
+            factor_knl_ksl_edge * XT_NUM_CONST_PART(rel_ref_strength),
             order_rel,
-            XT_STRENGTH_CONST(ks),
+            XT_NUM_CONST_PART(ks),
             x0_solenoid,
             y0_solenoid,
             length,
@@ -520,15 +520,6 @@ void track_magnet_particles(
     }
 
     if (body_active){
-
-        // Zero of the strength type, for the locals below. The strengths themselves
-        // arrive already typed, as the element getters define the strength type.
-#if defined(XTRACK_TPSA_TRACK) || defined(XT_TPSA_SLOTS)
-        XT_NUM _kproto = LocalParticle_get_x(part0);
-        #define XT_KZERO (0.0 * _kproto)
-#else
-        #define XT_KZERO 0.0
-#endif
 
         if (integrator == 0){
             integrator = default_integrator;
@@ -564,11 +555,11 @@ void track_magnet_particles(
             }
         }
 
-        XT_STRENGTH k0_drift=XT_KZERO, k1_drift=XT_KZERO, ks_drift=XT_KZERO;
+        XT_NUM k0_drift=0., k1_drift=0., ks_drift=0.;
         double h_drift=0;
-        XT_STRENGTH k0_kick=XT_KZERO, k1_kick=XT_KZERO;
+        XT_NUM k0_kick=0., k1_kick=0.;
         double h_kick=0;
-        XT_STRENGTH k0_h_correction=XT_KZERO, k1_h_correction=XT_KZERO;
+        XT_NUM k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame=0;
         int8_t drift_model=0;
         configure_tracking_model(
@@ -620,14 +611,13 @@ void track_magnet_particles(
                 LocalParticle_add_to_zeta(part, ds);
             END_PER_PARTICLE_BLOCK;
         }
-        #undef XT_KZERO
     }
 
     if (edge_exit_active){
-        double knorm[] = {XT_STRENGTH_CONST(k0), XT_STRENGTH_CONST(k1),
-                          XT_STRENGTH_CONST(k2), XT_STRENGTH_CONST(k3)};
-        double kskew[] = {XT_STRENGTH_CONST(k0s), XT_STRENGTH_CONST(k1s),
-                          XT_STRENGTH_CONST(k2s), XT_STRENGTH_CONST(k3s)};
+        double knorm[] = {XT_NUM_CONST_PART(k0), XT_NUM_CONST_PART(k1),
+                          XT_NUM_CONST_PART(k2), XT_NUM_CONST_PART(k3)};
+        double kskew[] = {XT_NUM_CONST_PART(k0s), XT_NUM_CONST_PART(k1s),
+                          XT_NUM_CONST_PART(k2s), XT_NUM_CONST_PART(k3s)};
 
         track_magnet_edge_particles(
             part0,
@@ -643,9 +633,9 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * XT_STRENGTH_CONST(rel_ref_strength),
+            factor_knl_ksl_edge * XT_NUM_CONST_PART(rel_ref_strength),
             order_rel,
-            XT_STRENGTH_CONST(ks),
+            XT_NUM_CONST_PART(ks),
             x0_solenoid,
             y0_solenoid,
             length,

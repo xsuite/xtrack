@@ -2,17 +2,7 @@
 # This file is part of the Xtrack Package.    #
 # Copyright (c) CERN, 2026.                   #
 # ########################################### #
-"""Benchmark native and GTPSA tracking on an HL-LHC IR8 optics segment.
-
-The benchmark intentionally does only tracking:
-
-- normal ``xt.Particles`` through the normal line;
-- scalar ``xtpsa.ParticlesTpsa`` through a non-parametric line;
-- parametric ``xtpsa.ParticlesTpsa`` through a line with the IR8 quadrupole
-  circuit variables promoted to GTPSA parameters.
-- normal ``xt.Particles`` through the same parametric line, where scalar
-  tracking truncates TPSA-backed element parameters to their constant term.
-"""
+"""Benchmark native and GTPSA tracking on an HL-LHC IR8 optics segment."""
 
 from __future__ import annotations
 

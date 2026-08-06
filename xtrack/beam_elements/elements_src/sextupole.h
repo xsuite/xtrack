@@ -17,7 +17,6 @@ void Sextupole_track_local_particle(
         LocalParticle* part0
 ) {
 
-
     track_magnet_particles(
         /*weight*/                1.,
         /*part0*/                 part0,
@@ -42,15 +41,15 @@ void Sextupole_track_local_particle(
         /*delta_taper*/           SextupoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   0.,
-        /*k0*/                   0.,
-        /*k1*/                   0.,
+        /*k0*/                    0.,
+        /*k1*/                    0.,
         /*k2*/                    SextupoleData_get_k2(el),
-        /*k3*/                   0.,
-        /*k0s*/                  0.,
-        /*k1s*/                  0.,
+        /*k3*/                    0.,
+        /*k0s*/                   0.,
+        /*k1s*/                   0.,
         /*k2s*/                   SextupoleData_get_k2s(el),
-        /*k3s*/                  0.,
-        /*ks*/                   0.,
+        /*k3s*/                   0.,
+        /*ks*/                    0.,
         /*dks_ds*/                0.,
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,

@@ -49,7 +49,7 @@ void Magnet_track_local_particle(
         /*k1s*/                   MagnetData_get_k1s(el),
         /*k2s*/                   MagnetData_get_k2s(el),
         /*k3s*/                   MagnetData_get_k3s(el),
-        /*ks*/                   0.,
+        /*ks*/                    0.,
         /*dks_ds*/                0.,
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,

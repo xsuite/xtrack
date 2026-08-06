@@ -10,40 +10,137 @@
 #include "xobjects/headers/atomicadd.h"
 #include "xtrack/headers/constants.h"
 
-// Per-coordinate number type: double for normal tracking, overridable (e.g. to
-// a TPSA type) by a translation unit that wants to track a non-scalar particle.
+#ifdef XTRACK_TPSA_TRACK
+
+#include <cstdint>
+#include <math.h>
+#include "mad_tpsa.hpp"
+
+using mad::tpsa;
+using mad::tpsa_ref;
+namespace xt_tpsa {
+struct tpsa : public mad::tpsa {
+    inline static thread_local tpsa_t* default_proto = nullptr;
+
+    using mad::tpsa::tpsa;
+
+    tpsa(double value)
+        : mad::tpsa(0.0 * mad::tpsa_ref(default_proto) + value) {}
+
+    tpsa& operator=(double value) {
+        mad::tpsa::operator=(value);
+        return *this;
+    }
+
+    tpsa& operator=(const tpsa& value) {
+        mad::tpsa::operator=(static_cast<const mad::tpsa&>(value));
+        return *this;
+    }
+
+    tpsa& operator=(tpsa&& value) {
+        mad::tpsa::operator=(static_cast<const mad::tpsa&>(value));
+        return *this;
+    }
+
+    template<class A>
+    tpsa& operator=(const mad::tpsa_base<A>& value) {
+        mad::tpsa::operator=(value);
+        return *this;
+    }
+};
+
+struct default_scope {
+    default_scope(tpsa_t* proto) {
+        tpsa::default_proto = proto;
+    }
+    ~default_scope() {
+        tpsa::default_proto = nullptr;
+    }
+};
+}
+
+#define XT_NUM xt_tpsa::tpsa
+#define XT_NUM_CONST_ARG const XT_NUM&
+#define XT_NUM_ARG const XT_NUM&
+#define XT_NUM_CONST_PART(v) ((v)[0])
+
+#define XT_TPSA_REL(OP) \
+  template<class A> inline bool operator OP (const mad::tpsa_base<A>& a, double b){ return a[0] OP b; } \
+  template<class A> inline bool operator OP (double a, const mad::tpsa_base<A>& b){ return a OP b[0]; } \
+  template<class A, class B> inline bool operator OP (const mad::tpsa_base<A>& a, const mad::tpsa_base<B>& b){ return a[0] OP b[0]; }
+XT_TPSA_REL(>) XT_TPSA_REL(<) XT_TPSA_REL(>=) XT_TPSA_REL(<=) XT_TPSA_REL(==) XT_TPSA_REL(!=)
+#undef XT_TPSA_REL
+
+typedef tpsa_t XT_COORD;
+typedef void* SynchrotronRadiationRecordData;
+
+static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){
+    union { uint64_t u; double d; } value;
+    value.u = bits;
+    return value.d;
+}
+
+static inline XT_NUM xt_float_or_tpsa_lift(double value){
+    return XT_NUM(value);
+}
+
+static inline XT_NUM xt_float_or_tpsa_lift(uint64_t bits){
+    return xt_float_or_tpsa_lift(xt_float_or_tpsa_bits_to_double(bits));
+}
+
+template<class A>
+static inline XT_NUM xt_float_or_tpsa_lift(const mad::tpsa_base<A>& value){
+    return XT_NUM(value);
+}
+
+template<class ElementData>
+static inline XT_NUM xt_float_or_tpsa_get(
+        ElementData, uint64_t* slot, int64_t tpsa_enabled){
+    if (tpsa_enabled) {
+        return 1.0 * mad::tpsa_ref((tpsa_t*)(uintptr_t)(*slot));
+    }
+    return xt_float_or_tpsa_lift(*slot);
+}
+
+#else
+
+// Per-coordinate number type: double for normal tracking.
 #ifndef XT_NUM
 #define XT_NUM double
 #endif
-
-// Pass a coordinate as a read-only function argument. Native tracking is
-// compiled as C, where call-by-value `const XT_NUM` (a double) is correct. A non-scalar
-// XT_NUM (e.g. a TPSA whose copy-constructor only copies the descriptor) must be passed by const
-// reference to avoid losing its value on copy. The C++ translation unit overrides this to `const XT_NUM&`.
 #ifndef XT_NUM_CONST_ARG
 #define XT_NUM_CONST_ARG const XT_NUM
 #endif
-
-// Per-strength number type: double for normal tracking, overridable (to a TPSA type)
-// so lattice knobs can be TPSA parameters. Identity for double.
-// A non-scalar XT_STRENGTH is passed by const-reference (copy-constructor caveat, as XT_NUM).
-#ifndef XT_STRENGTH
-#define XT_STRENGTH double
+#ifndef XT_NUM_ARG
+#define XT_NUM_ARG XT_NUM
 #endif
-#ifndef XT_STRENGTH_CONST_ARG
-#define XT_STRENGTH_CONST_ARG const XT_STRENGTH
+#ifndef XT_NUM_CONST_PART
+#define XT_NUM_CONST_PART(v) (v)
 #endif
 
-// Strength as a mutable by-value parameter, which tapering scales in place. A non-scalar
-// XT_STRENGTH cannot be copied by value, so there it becomes a const reference and
-// tapering is unavailable.
-#ifndef XT_STRENGTH_ARG
-#define XT_STRENGTH_ARG XT_STRENGTH
-#endif
+static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){
+    union { uint64_t u; double d; } value;
+    value.u = bits;
+    return value.d;
+}
 
-// Const part of a strength, for the paths that stay double (the magnet edges).
-#ifndef XT_STRENGTH_CONST
-#define XT_STRENGTH_CONST(v) (v)
+typedef unsigned char xt_float_or_tpsa_ord_t;
+typedef struct xt_float_or_tpsa_desc_ xt_float_or_tpsa_desc_t;
+typedef struct xt_float_or_tpsa_tpsa_ {
+    const xt_float_or_tpsa_desc_t *d;
+    xt_float_or_tpsa_ord_t lo, hi, mo, ao;
+    int32_t uid;
+    char nam[16];
+    double coef[];
+} xt_float_or_tpsa_tpsa_t;
+
+static inline double xt_float_or_tpsa_get_double(uint64_t bits, uint8_t enabled){
+    if (enabled) {
+        return ((xt_float_or_tpsa_tpsa_t*)(uintptr_t)bits)->coef[0];
+    }
+    return xt_float_or_tpsa_bits_to_double(bits);
+}
+
 #endif
 
 /*

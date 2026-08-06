@@ -256,12 +256,7 @@ void LocalParticle_kill_particle(LocalParticle* part, int64_t kill_state) {
     LocalParticle_set_y(part, 1e30);
     LocalParticle_set_py(part, 1e30);
     LocalParticle_set_zeta(part, 1e30);
-#ifdef XTRACK_TPSA_TRACK
-    LocalParticle_set_delta(part, -1.0);   // zero energy (map kill: state is the loss signal;
-                                           // rvv/rpp/ptau are irrelevant for a dead particle)
-#else
     LocalParticle_update_delta(part, -1);  // zero energy
-#endif
     LocalParticle_set_state(part, kill_state);
 }
 

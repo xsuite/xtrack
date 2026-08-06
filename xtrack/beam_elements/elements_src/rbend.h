@@ -17,7 +17,6 @@ void RBend_track_local_particle(
     LocalParticle* part0
 ) {
 
-
     track_magnet_particles(
         /*weight*/                1.,
         /*part0*/                 part0,
@@ -45,12 +44,12 @@ void RBend_track_local_particle(
         /*k0*/                    RBendData_get_k0(el),
         /*k1*/                    RBendData_get_k1(el),
         /*k2*/                    RBendData_get_k2(el),
-        /*k3*/                   0.,
-        /*k0s*/                  0.,
-        /*k1s*/                  0.,
-        /*k2s*/                  0.,
-        /*k3s*/                  0.,
-        /*ks*/                   0.,
+        /*k3*/                    0.,
+        /*k0s*/                   0.,
+        /*k1s*/                   0.,
+        /*k2s*/                   0.,
+        /*k3s*/                   0.,
+        /*ks*/                    0.,
         /*dks_ds*/                0.,
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,

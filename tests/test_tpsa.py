@@ -13,14 +13,12 @@ def _line(k1=0.1):
         element_names=["q"],
     )
     line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
-    line.build_tracker(use_prebuilt_kernels=False)
+    line.build_tracker()
     return line
 
 
-def _map(order=1, descriptor=None):
-    return xtpsa.ParticlesTpsa(
-        order=order,
-        descriptor=descriptor,
+def _particle():
+    return xt.Particles(
         x=1e-4,
         px=2e-5,
         y=0.0,
@@ -30,6 +28,26 @@ def _map(order=1, descriptor=None):
         p0c=7e12,
         mass0=xt.PROTON_MASS_EV,
     )
+
+
+def _map(order=1, descriptor=None):
+    return xtpsa.ParticlesTpsa(
+        order=order,
+        descriptor=descriptor,
+        x=1e-4, px=2e-5, y=0.0, py=0.0, zeta=0.0, delta=0.0,
+        p0c=7e12,
+        mass0=xt.PROTON_MASS_EV,
+    )
+
+
+_SUPPORTED_FLOAT_OR_TPSA_ELEMENTS = [
+    (xt.Bend, {"length": 1.0, "k0": 0.01}, "k0"),
+    (xt.RBend, {"length_straight": 1.0, "k0": 0.01}, "k0"),
+    (xt.Quadrupole, {"length": 1.0, "k1": 0.1}, "k1"),
+    (xt.Sextupole, {"length": 1.0, "k2": 0.2}, "k2"),
+    (xt.Octupole, {"length": 1.0, "k3": 0.3}, "k3"),
+    (xt.UniformSolenoid, {"length": 1.0, "ks": 0.01}, "ks"),
+]
 
 
 def test_particles_tpsa_uses_tracker_tpsa_config():
@@ -55,16 +73,7 @@ def test_particles_tpsa_requires_synrad_disabled():
 
 def test_tpsa_line_track_matches_scalar_const_part():
     line_scalar = _line()
-    part = xt.Particles(
-        x=1e-4,
-        px=2e-5,
-        y=0.0,
-        py=0.0,
-        zeta=0.0,
-        delta=0.0,
-        p0c=7e12,
-        mass0=xt.PROTON_MASS_EV,
-    )
+    part = _particle()
     line_scalar.track(part)
 
     line_tpsa = _line()
@@ -88,16 +97,7 @@ def test_tpsa_line_track_matches_scalar_const_part():
 
 def test_tpsa_multiturn_track_matches_scalar_const_part():
     line_scalar = _line()
-    part = xt.Particles(
-        x=1e-4,
-        px=2e-5,
-        y=0.0,
-        py=0.0,
-        zeta=0.0,
-        delta=0.0,
-        p0c=7e12,
-        mass0=xt.PROTON_MASS_EV,
-    )
+    part = _particle()
     line_scalar.track(part, num_turns=2)
 
     line_tpsa = _line()
@@ -121,31 +121,13 @@ def test_tpsa_multiturn_track_matches_scalar_const_part():
 
 def test_scalar_track_tpsa_enabled_element_uses_const_part():
     line_scalar = _line(k1=0.125)
-    part_scalar = xt.Particles(
-        x=1e-4,
-        px=2e-5,
-        y=0.0,
-        py=0.0,
-        zeta=0.0,
-        delta=0.0,
-        p0c=7e12,
-        mass0=xt.PROTON_MASS_EV,
-    )
+    part_scalar = _particle()
     line_scalar.track(part_scalar)
 
     line_tpsa_enabled = _line(k1=0.125)
     descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
     line_tpsa_enabled["q"].k1 = descriptor.param(1, 0.125)
-    part_tpsa_enabled = xt.Particles(
-        x=1e-4,
-        px=2e-5,
-        y=0.0,
-        py=0.0,
-        zeta=0.0,
-        delta=0.0,
-        p0c=7e12,
-        mass0=xt.PROTON_MASS_EV,
-    )
+    part_tpsa_enabled = _particle()
     line_tpsa_enabled.track(part_tpsa_enabled)
 
     assert np.allclose(
@@ -263,6 +245,18 @@ def test_float_or_tpsa_field_assignment():
 
     assert line["q"]._tpsa_enabled
     assert line["q"].k1.const_part == pytest.approx(0.1)
+
+
+@pytest.mark.parametrize("element_cls, kwargs, field", _SUPPORTED_FLOAT_OR_TPSA_ELEMENTS)
+def test_supported_float_or_tpsa_elements_accept_tpsa_fields(
+        element_cls, kwargs, field):
+    element = element_cls(**kwargs)
+    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+
+    setattr(element, field, descriptor.param(1, kwargs[field]))
+
+    assert element._tpsa_enabled
+    assert getattr(element, field).const_part == pytest.approx(kwargs[field])
 
 
 def test_tpsa_enabled_element_to_dict_is_rejected():

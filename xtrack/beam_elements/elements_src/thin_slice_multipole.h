@@ -18,7 +18,6 @@
 GPUFUN
 void ThinSliceMultipole_track_local_particle(ThinSliceMultipoleData el, LocalParticle* part0){
 
-
     track_magnet_particles(
         /*weight*/                ThinSliceMultipoleData_get_weight(el),
         /*part0*/                 part0,
@@ -31,7 +30,7 @@ void ThinSliceMultipole_track_local_particle(ThinSliceMultipoleData el, LocalPar
       /*inv_factorial_order_rel*/ one_over_factorial(ThinSliceMultipoleData_len__parent_knl_rel(el) - 1), // 1 / (order_rel)!
         /*knl_rel*/               ThinSliceMultipoleData_getp1__parent_knl_rel(el, 0),
         /*ksl_rel*/               ThinSliceMultipoleData_getp1__parent_ksl_rel(el, 0),
-        /*main_strength*/         (ThinSliceMultipoleData_get__parent_main_is_skew(el)) ? (ThinSliceMultipoleData_get__parent_ksl(el, ThinSliceMultipoleData_get__parent_main_order(el))) : (ThinSliceMultipoleData_get__parent_knl(el, ThinSliceMultipoleData_get__parent_main_order(el))),
+        /*main_strength*/         ((ThinSliceMultipoleData_get__parent_main_is_skew(el)) ? (ThinSliceMultipoleData_get__parent_ksl(el, ThinSliceMultipoleData_get__parent_main_order(el))) : (ThinSliceMultipoleData_get__parent_knl(el, ThinSliceMultipoleData_get__parent_main_order(el)))),
         /*num_multipole_kicks*/   1, // kick only
         /*model*/                 -1, // kick only
         /*default_model*/         MULTIPOLE_DEFAULT_MODEL,
@@ -43,15 +42,15 @@ void ThinSliceMultipole_track_local_particle(ThinSliceMultipoleData el, LocalPar
         /*delta_taper*/           ThinSliceMultipoleData_get_delta_taper(el),
         /*h*/                     0.,
         /*hxl*/                   ThinSliceMultipoleData_get__parent_hxl(el),
-        /*k0*/                   0.,
-        /*k1*/                   0.,
-        /*k2*/                   0.,
-        /*k3*/                   0.,
-        /*k0s*/                  0.,
-        /*k1s*/                  0.,
-        /*k2s*/                  0.,
-        /*k3s*/                  0.,
-        /*ks*/                   0.,
+        /*k0*/                    0.,
+        /*k1*/                    0.,
+        /*k2*/                    0.,
+        /*k3*/                    0.,
+        /*k0s*/                   0.,
+        /*k1s*/                   0.,
+        /*k2s*/                   0.,
+        /*k3s*/                   0.,
+        /*ks*/                    0.,
         /*dks_ds*/                0.,
         /*x0_solenoid*/           0.,
         /*y0_solenoid*/           0.,
