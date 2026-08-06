@@ -4661,9 +4661,10 @@ class FirstOrderTaylorMap(BeamElement):
     length : float
         length of the element in meters.
     m0 : array_like
-        6x1 array of the zero order Taylor map coefficients.
+        6x1 array of the zero order Taylor map coefficients. Default is 0.
     m1 : array_like
-        6x6 array of the first order Taylor map coefficients.
+        6x6 array of the first order Taylor map coefficients. Default is
+        the identity matrix, so the element is an identity map by default.
     """
 
     isthick = True
@@ -4759,11 +4760,12 @@ class SecondOrderTaylorMap(BeamElement):
     length : float
         length of the element in meters.
     k : array_like
-        6x1 array of the zero order Taylor map coefficients.
+        6x1 array of the zero order Taylor map coefficients. Default is 0.
     R : array_like
-        6x6 array of the first order Taylor map coefficients.
+        6x6 array of the first order Taylor map coefficients. Default is
+        the identity matrix, so the element is an identity map by default.
     T : array_like
-        6x6x6 array of the second order Taylor map coefficients.
+        6x6x6 array of the second order Taylor map coefficients. Default is 0.
 
     '''
 
@@ -4774,10 +4776,10 @@ class SecondOrderTaylorMap(BeamElement):
     ]
 
     _xofields={
-        'k': xo.Float64[6],
-        'R': xo.Float64[6,6],
-        'T': xo.Float64[6,6,6],
-        'length': xo.Float64
+        'k': xo.Field(xo.Float64[6], default=np.zeros(6, dtype=np.float64)),
+        'R': xo.Field(xo.Float64[6, 6], default=np.eye(6, dtype=np.float64)),
+        'T': xo.Field(xo.Float64[6, 6, 6], default=np.zeros((6, 6, 6), dtype=np.float64)),
+        'length': xo.Float64,
     }
 
     @classmethod

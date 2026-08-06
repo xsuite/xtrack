@@ -32,6 +32,10 @@ void BeamStatsMonitor_track_local_particle(
         BeamStatsMonitorData_get__dzeta(el);
     double const bunch_spacing_zeta =
         BeamStatsMonitorData_get__bunch_spacing_zeta(el);
+    int64_t const particle_id_start =
+        BeamStatsMonitorData_get__particle_id_start(el);
+    int64_t const particle_id_stop =
+        BeamStatsMonitorData_get__particle_id_stop(el);
     int64_t const coasting = (mode == 3);
 
     BeamStatsMonitorRecordData data = BeamStatsMonitorData_getp_data(el);
@@ -69,6 +73,12 @@ void BeamStatsMonitor_track_local_particle(
     GPUGLMEM double* sum_pzeta =
         (BeamStatsMonitorRecordData_len_sum_pzeta(data) > 0)
         ? BeamStatsMonitorRecordData_getp1_sum_pzeta(data, 0) : NULL;
+    GPUGLMEM double* sum_charge_ratio =
+        (BeamStatsMonitorRecordData_len_sum_charge_ratio(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_charge_ratio(data, 0) : NULL;
+    GPUGLMEM double* sum_mass_ratio =
+        (BeamStatsMonitorRecordData_len_sum_mass_ratio(data) > 0)
+        ? BeamStatsMonitorRecordData_getp1_sum_mass_ratio(data, 0) : NULL;
 
     GPUGLMEM double* sum_x_x =
         (BeamStatsMonitorRecordData_len_sum_x_x(data) > 0)
@@ -186,7 +196,15 @@ void BeamStatsMonitor_track_local_particle(
             int64_t coasting_slice = 0;
             int64_t accepted = 1;
 
-            if (coasting) {
+            if (particle_id_start >= 0) {
+                int64_t const particle_id = LocalParticle_get_particle_id(part);
+                if (particle_id < particle_id_start
+                        || particle_id >= particle_id_stop) {
+                    accepted = 0;
+                }
+            }
+
+            if (accepted && coasting) {
                 double const line_length = part->line_length;
                 if (line_length <= 0.0) {
                     accepted = 0;
@@ -200,10 +218,8 @@ void BeamStatsMonitor_track_local_particle(
                         (relative_turn_fraction + 0.5) * (double)n_slices;
                     coasting_slice = (int64_t)floor(slice_position);
 
-                    if (coasting_slice >= n_slices) {
-                        coasting_slice = n_slices - 1;
-                    } else if (coasting_slice < 0) {
-                        coasting_slice = 0;
+                    if (coasting_slice < 0 || coasting_slice >= n_slices) {
+                        accepted = 0;
                     }
                     zeta = -relative_turn_fraction * line_length;
                 }
@@ -276,6 +292,10 @@ void BeamStatsMonitor_track_local_particle(
                         double const py = LocalParticle_get_py(part);
                         double const delta = LocalParticle_get_delta(part);
                         double const pzeta = LocalParticle_get_pzeta(part);
+                        double const charge_ratio =
+                            LocalParticle_get_charge_ratio(part);
+                        double const chi = LocalParticle_get_chi(part);
+                        double const mass_ratio = charge_ratio / chi;
                         double const beta0_gamma0 =
                             LocalParticle_get_beta0(part)
                             * LocalParticle_get_gamma0(part);
@@ -296,6 +316,14 @@ void BeamStatsMonitor_track_local_particle(
                         }
                         if (sum_pzeta) {
                             atomicAdd(&sum_pzeta[index], weight * pzeta);
+                        }
+                        if (sum_charge_ratio) {
+                            atomicAdd(&sum_charge_ratio[index],
+                                      weight * charge_ratio);
+                        }
+                        if (sum_mass_ratio) {
+                            atomicAdd(&sum_mass_ratio[index],
+                                      weight * mass_ratio);
                         }
 
                         if (sum_x_x) atomicAdd(&sum_x_x[index], weight * x * x);

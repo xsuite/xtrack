@@ -396,6 +396,186 @@ def test_beam_stats_monitor_bunch_stats(test_context):
 
 
 @for_all_test_contexts
+def test_beam_stats_monitor_charge_and_mass_ratio_stats(test_context):
+    particles = xt.Particles(
+        _context=test_context,
+        p0c=7e12,
+        x=[1., 2., 10., 20.],
+        px=[0., 0., 0., 0.],
+        y=[0., 0., 0., 0.],
+        py=[0., 0., 0., 0.],
+        zeta=[-0.2, 0.2, -10.2, -9.8],
+        delta=[0., 0., 0., 0.],
+        weight=[1., 1., 3., 1.],
+        charge_ratio=[1., 2., 4., 8.],
+        mass_ratio=[1., 4., 2., 6.],
+    )
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=1,
+        filling_scheme=[1, 1],
+        bunch_spacing_zeta=10.,
+        stats=[
+            'num_particles',
+            'sum_charge_ratio',
+            'mean_charge_ratio',
+            'sum_mass_ratio',
+            'mean_mass_ratio',
+        ],
+    )
+
+    monitor.track(particles)
+
+    assert_allclose(monitor.num_particles, [[2., 4.]])
+    assert_allclose(monitor.sum_charge_ratio, [[3., 20.]])
+    assert_allclose(monitor.mean_charge_ratio, [[1.5, 5.]])
+    assert_allclose(monitor.sum_mass_ratio, [[5., 12.]])
+    assert_allclose(monitor.mean_mass_ratio, [[2.5, 3.]])
+    assert_allclose(
+        monitor.get('sum_charge_ratio', level='beam'), [23.])
+    assert_allclose(
+        monitor.get('mean_charge_ratio', level='beam'), [23. / 6.])
+    assert_allclose(
+        monitor.get('sum_mass_ratio', level='beam'), [17.])
+    assert_allclose(
+        monitor.get('mean_mass_ratio', level='beam'), [17. / 6.])
+
+
+@for_all_test_contexts
+def test_beam_stats_monitor_particle_id_range_whole_beam(test_context):
+    particles = xt.Particles(
+        _context=test_context,
+        p0c=7e12,
+        x=[10., 20., 30., 40.],
+        px=[0., 0., 0., 0.],
+        y=[0., 0., 0., 0.],
+        py=[0., 0., 0., 0.],
+        zeta=[0., 0., 0., 0.],
+        delta=[0., 0., 0., 0.],
+        weight=[1., 2., 3., 4.],
+        particle_id=[5, 6, 7, 8],
+    )
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=1,
+        particle_id_range=(6, 8),
+        stats=['num_particles', 'mean_x'],
+    )
+
+    monitor.track(particles)
+
+    assert monitor.particle_id_range == (6, 8)
+    assert_allclose(monitor.num_particles, [5.])
+    assert_allclose(monitor.mean_x, [26.])
+
+
+@for_all_test_contexts
+def test_beam_stats_monitor_particle_id_range_bunched_and_sliced(
+        test_context):
+    particles = xt.Particles(
+        _context=test_context,
+        p0c=7e12,
+        x=[10., 20., 30., 40., 50.],
+        px=[0., 0., 0., 0., 0.],
+        y=[0., 0., 0., 0., 0.],
+        py=[0., 0., 0., 0., 0.],
+        zeta=[-0.25, 0.25, -10.25, -9.75, -0.25],
+        delta=[0., 0., 0., 0., 0.],
+        weight=[1., 2., 3., 4., 5.],
+        particle_id=[1, 2, 3, 4, 5],
+    )
+    bunch_monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=1,
+        filling_scheme=[1, 1],
+        bunch_spacing_zeta=10.,
+        particle_id_range=(2, 5),
+        stats=['num_particles', 'mean_x'],
+    )
+    slice_monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=1,
+        filling_scheme=[1, 1],
+        bunch_spacing_zeta=10.,
+        zeta_range=(-0.5, 0.5),
+        num_slices=2,
+        particle_id_range=(2, 5),
+        stats=['num_particles', 'mean_x'],
+    )
+
+    bunch_monitor.track(particles)
+    slice_monitor.track(particles)
+
+    assert_allclose(bunch_monitor.num_particles, [[2., 7.]])
+    assert_allclose(bunch_monitor.mean_x, [[20., 250. / 7.]])
+    assert_allclose(
+        bunch_monitor.get('num_particles', level='beam'), [9.])
+    assert_allclose(
+        bunch_monitor.get('mean_x', level='beam'), [290. / 9.])
+
+    assert_allclose(
+        slice_monitor.num_particles,
+        [[[0., 2.],
+          [3., 4.]]])
+    assert_allclose(
+        slice_monitor.mean_x,
+        [[[0., 20.],
+          [30., 40.]]])
+    assert_allclose(
+        slice_monitor.get('num_particles', level='bunch'), [[2., 7.]])
+    assert_allclose(
+        slice_monitor.get('mean_x', level='beam'), [290. / 9.])
+
+
+@for_all_test_contexts
+def test_beam_stats_monitor_particle_id_range_coasting(test_context):
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=3,
+        coasting=True,
+        num_slices=4,
+        particle_id_range=(1, 3),
+        stats=['num_particles', 'mean_x'],
+    )
+    line = xt.Line(elements=[monitor, xt.Drift(length=8.)])
+    line.build_tracker(_context=test_context)
+
+    particles = xt.Particles(
+        _context=test_context,
+        p0c=7e12,
+        x=[10., 20., 30., 40.],
+        px=[0., 0., 0., 0.],
+        y=[0., 0., 0., 0.],
+        py=[0., 0., 0., 0.],
+        zeta=[3., 1., -1., -3.],
+        delta=[0., 0., 0., 0.],
+        weight=[1., 1., 1., 1.],
+        at_turn=[1, 1, 1, 1],
+        particle_id=[0, 1, 2, 3],
+    )
+
+    line.track(particles, num_turns=1)
+
+    assert_allclose(
+        monitor.num_particles,
+        [[0., 0., 0., 0.],
+         [0., 1., 1., 0.],
+         [0., 0., 0., 0.]])
+    assert_allclose(
+        monitor.mean_x,
+        [[0., 0., 0., 0.],
+         [0., 20., 30., 0.],
+         [0., 0., 0., 0.]])
+    assert_allclose(
+        monitor.get('num_particles', level='beam'), [0., 2., 0.])
+
+
+@for_all_test_contexts
 def test_beam_stats_monitor_weighted_stats_and_turn_selection(test_context):
     particles = xt.Particles(
         _context=test_context,
@@ -704,6 +884,32 @@ def test_beam_stats_monitor_optics_from_covariance_requires_moments():
         monitor.optics_from_covariance(level='beam', turn=0)
 
 
+def test_beam_stats_monitor_rejects_invalid_particle_id_range():
+    with pytest.raises(ValueError, match='particle_id_range.*two'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            particle_id_range=3,
+            stats=['num_particles'],
+        )
+
+    with pytest.raises(ValueError, match='particle_id_range\\[0\\].*non-negative'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            particle_id_range=(-1, 3),
+            stats=['num_particles'],
+        )
+
+    with pytest.raises(ValueError, match='particle_id_range\\[1\\].*larger'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            particle_id_range=(3, 3),
+            stats=['num_particles'],
+        )
+
+
 @for_all_test_contexts
 def test_beam_stats_monitor_selected_slots(test_context):
     particles = xt.Particles(
@@ -820,6 +1026,50 @@ def test_beam_stats_monitor_rejects_duplicate_slots():
         )
 
 
+def test_beam_stats_monitor_rejects_multiple_slot_definitions():
+    with pytest.raises(ValueError, match='Only one of `num_bunches`'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            num_bunches=2,
+            filled_slots=[0, 1],
+            stats=['num_particles'],
+        )
+
+    with pytest.raises(ValueError, match='Only one of `num_bunches`'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            num_bunches=2,
+            filling_scheme=[1, 1],
+            stats=['num_particles'],
+        )
+
+    with pytest.raises(ValueError, match='Only one of `num_bunches`'):
+        xt.BeamStatsMonitor(
+            start_at_turn=0,
+            stop_at_turn=1,
+            filled_slots=[0, 1],
+            filling_scheme=[1, 1],
+            stats=['num_particles'],
+        )
+
+
+def test_beam_stats_monitor_num_bunches_one_selects_bunch_mode():
+    monitor = xt.BeamStatsMonitor(
+        start_at_turn=0,
+        stop_at_turn=1,
+        num_bunches=1,
+        stats=['num_particles'],
+    )
+
+    assert monitor.available_levels == ('beam', 'bunch')
+    assert monitor.default_level == 'bunch'
+    assert_equal(monitor.filled_slots, [0])
+    assert_equal(monitor.selected_slots, [0])
+    assert monitor.num_particles.shape == (1, 1)
+
+
 @for_all_test_contexts
 def test_beam_stats_monitor_coasting_slice_stats(test_context):
     monitor = xt.BeamStatsMonitor(
@@ -904,6 +1154,59 @@ def test_beam_stats_monitor_coasting_slice_stats(test_context):
 
 
 @for_all_test_contexts
+def test_beam_stats_monitor_coasting_folds_particles_to_effective_turn(
+        test_context):
+    line_length = 8.
+    eps = 1e-12
+    monitor = xt.BeamStatsMonitor(
+        _context=test_context,
+        start_at_turn=0,
+        stop_at_turn=3,
+        coasting=True,
+        num_slices=4,
+        stats=['num_particles', 'mean_x'],
+    )
+    line = xt.Line(elements=[monitor, xt.Drift(length=line_length)])
+    line.build_tracker(_context=test_context)
+
+    particles = xt.Particles(
+        _context=test_context,
+        p0c=7e12,
+        x=[10., 20., 30., 40., 50., 60.],
+        px=[0., 0., 0., 0., 0., 0.],
+        y=[0., 0., 0., 0., 0., 0.],
+        py=[0., 0., 0., 0., 0., 0.],
+        zeta=[
+            line_length + 1.,
+            0.5 * line_length,
+            -0.5 * line_length + eps,
+            -0.5 * line_length,
+            -0.5 * line_length - eps,
+            -line_length - 1.,
+        ],
+        delta=[0., 0., 0., 0., 0., 0.],
+        weight=[1., 1., 1., 1., 1., 1.],
+        at_turn=[1, 1, 1, 1, 1, 1],
+    )
+
+    line.track(particles, num_turns=1)
+
+    assert_allclose(
+        monitor.num_particles,
+        [[0., 1., 0., 0.],
+         [1., 0., 0., 1.],
+         [2., 0., 1., 0.]])
+    assert_allclose(
+        monitor.mean_x,
+        [[0., 10., 0., 0.],
+         [20., 0., 0., 30.],
+         [45., 0., 60., 0.]])
+    assert_allclose(
+        monitor.get('num_particles', level='beam'),
+        [1., 2., 3.])
+
+
+@for_all_test_contexts
 def test_beam_stats_monitor_coasting_hdf5_public_shape(test_context, tmp_path):
     h5py = pytest.importorskip('h5py')
 
@@ -984,6 +1287,7 @@ def test_beam_stats_monitor_coasting_to_dict_stores_configuration_only():
         every_n_turns=2,
         coasting=True,
         num_slices=5,
+        particle_id_range=(2, 8),
         stats=['num_particles', 'mean_x'],
     )
 
@@ -993,6 +1297,7 @@ def test_beam_stats_monitor_coasting_to_dict_stores_configuration_only():
         'stop_at_turn': 7,
         'every_n_turns': 2,
         'stats': ['num_particles', 'mean_x'],
+        'particle_id_range': (2, 8),
         'coasting': True,
         'num_slices': 5,
     }
@@ -1001,6 +1306,7 @@ def test_beam_stats_monitor_coasting_to_dict_stores_configuration_only():
     line_from_dict = xt.Line.from_dict(line.to_dict())
     monitor_from_dict = line_from_dict['e0']
     assert monitor_from_dict.coasting
+    assert monitor_from_dict.particle_id_range == (2, 8)
     assert monitor_from_dict.available_levels == ('beam', 'slice')
     assert monitor_from_dict.num_particles.shape == (2, 5)
     assert_equal(monitor_from_dict.selected_slots, [0])
@@ -1259,6 +1565,7 @@ def test_beam_stats_monitor_save_to_file_hdf5(test_context, tmp_path):
         assert h5file.attrs['class'] == 'BeamStatsMonitor'
         assert h5file.attrs['default_level'] == 'slice'
         assert h5file.attrs['n_records_per_frame'] == 1
+        assert_equal(h5file.attrs['particle_id_range'], [-1, -1])
         assert_equal(h5file.attrs['stats'].astype(str),
                      ['num_particles', 'mean_x', 'sigma_x'])
         assert_equal(h5file.attrs['available_levels'].astype(str),
@@ -1294,12 +1601,14 @@ def test_beam_stats_monitor_output_file_is_initialized_on_creation(tmp_path):
         start_at_turn=0,
         stop_at_turn=2,
         stats=['num_particles', 'mean_x'],
+        particle_id_range=(3, 5),
         output_file=output_file,
     )
 
     with h5py.File(output_file, 'r') as h5file:
         assert 'old_data' not in h5file
         assert h5file.attrs['class'] == 'BeamStatsMonitor'
+        assert_equal(h5file.attrs['particle_id_range'], [3, 5])
         assert_equal(h5file.attrs['stats'].astype(str),
                      ['num_particles', 'mean_x'])
         assert_equal(h5file['filled_slots'][...], [])
@@ -1551,6 +1860,7 @@ def test_beam_stats_monitor_to_dict_stores_configuration_only(test_context):
         filled_slots=[0, 1],
         selected_slots=[1],
         bunch_spacing_zeta=10.,
+        particle_id_range=(1, 3),
         stats=['num_particles', 'mean_x'],
         profiles={'x': {'range': (-1., 1.), 'num_bins': 4}},
     )
@@ -1573,6 +1883,7 @@ def test_beam_stats_monitor_to_dict_stores_configuration_only(test_context):
         'filled_slots': [0, 1],
         'selected_slots': [1],
         'bunch_spacing_zeta': 10.0,
+        'particle_id_range': (1, 3),
         'profiles': {'x': {'range': (-1.0, 1.0), 'num_bins': 4}},
     }
     assert 'data' not in line.to_dict()['elements']['e0']
@@ -1580,6 +1891,7 @@ def test_beam_stats_monitor_to_dict_stores_configuration_only(test_context):
     line_from_dict = xt.Line.from_dict(line.to_dict())
     monitor_from_dict = line_from_dict['e0']
     assert monitor_from_dict.stats == ('num_particles', 'mean_x')
+    assert monitor_from_dict.particle_id_range == (1, 3)
     assert monitor_from_dict.available_levels == ('beam', 'bunch', 'slice')
     assert_equal(monitor_from_dict.selected_slots, [1])
     assert_allclose(monitor_from_dict.zeta_centers, [[-10.25, -9.75]])
