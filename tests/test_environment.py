@@ -1664,6 +1664,7 @@ def test_env_new():
 
 
 @pytest.mark.parametrize('cls_name', sorted(xt.line._ALLOWED_ELEMENT_TYPES_DICT.keys()))
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 def test_env_new_allowed_elements(cls_name):
     # Every class in `_ALLOWED_ELEMENT_TYPES_IN_NEW` must be constructible via `env.new(name, cls)`.
     # If there are mandatory arguments, they must be special-cased below.
