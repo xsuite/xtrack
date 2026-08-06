@@ -2201,8 +2201,8 @@ def _element_ref_data_class_from_element_classes(element_classes):
         _reftypes = element_classes_xostruct
 
     class ElementRefData(xo.Struct):
-            elements = ElementRefClass[:]
-            names = xo.String[:]
+        elements = ElementRefClass[:]
+        names = xo.String[:]
 
     return ElementRefData
 

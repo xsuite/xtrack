@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import xobjects as xo
 import xgtpsa
 import xtrack as xt
 import xtrack.tpsa as xtpsa
@@ -169,6 +170,92 @@ def test_scalar_track_tpsa_enabled_element_uses_const_part():
     )
 
 
+def test_build_tracker_preserves_tpsa_enabled_elements_moved_to_common_buffer():
+    ctx = xo.ContextCpu()
+    buffer_a = ctx.new_buffer(capacity=1024)
+    buffer_b = ctx.new_buffer(capacity=1024)
+
+    q1 = xt.Quadrupole(length=1.0, k1=0.1, _buffer=buffer_a)
+    q2 = xt.Quadrupole(length=1.0, k1=0.2, _buffer=buffer_b)
+    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    k1_tpsa = descriptor.param(1, 0.2)
+    q2.k1 = k1_tpsa
+    q2_handles = q2._tpsa_handles
+
+    line = xt.Line(elements=[q1, q2], element_names=["q1", "q2"])
+    line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
+
+    assert line._element_dict["q1"]._buffer is not line._element_dict["q2"]._buffer
+    line.build_tracker(compile=False, use_prebuilt_kernels=False)
+
+    q1_after = line._element_dict["q1"]
+    q2_after = line._element_dict["q2"]
+    assert q2_after is q2
+    assert q2_after._tpsa_handles is q2_handles
+    assert q1_after._buffer is q2_after._buffer
+    assert q2_after._buffer is line.tracker._buffer
+    assert q2_after._xobject._tpsa_enabled
+    assert q2_after.k1 is k1_tpsa
+    assert q2_after.k1.const_part == pytest.approx(0.2)
+
+    scalar_line = xt.Line(
+        elements=[
+            xt.Quadrupole(length=1.0, k1=0.1),
+            xt.Quadrupole(length=1.0, k1=0.2),
+        ],
+        element_names=["q1", "q2"],
+    )
+    scalar_line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
+    scalar_line.build_tracker(use_prebuilt_kernels=False)
+
+    p_ref = xt.Particles(
+        x=1e-4, px=2e-5, y=0.0, py=0.0, zeta=0.0, delta=0.0,
+        p0c=7e12, mass0=xt.PROTON_MASS_EV,
+    )
+    p_moved = p_ref.copy()
+    scalar_line.track(p_ref)
+    line.track(p_moved)
+
+    assert np.allclose(
+        [
+            float(p_moved.x[0]),
+            float(p_moved.px[0]),
+            float(p_moved.y[0]),
+            float(p_moved.py[0]),
+            float(p_moved.zeta[0]),
+            float(p_moved.delta[0]),
+        ],
+        [
+            float(p_ref.x[0]),
+            float(p_ref.px[0]),
+            float(p_ref.y[0]),
+            float(p_ref.py[0]),
+            float(p_ref.zeta[0]),
+            float(p_ref.delta[0]),
+        ],
+        rtol=0,
+        atol=1e-15,
+    )
+
+
+def test_tpsa_enabled_element_copy_preserves_handles():
+    q = xt.Quadrupole(length=1.0, k1=0.1)
+    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    k1_tpsa = descriptor.param(1, 0.1)
+    q.k1 = k1_tpsa
+
+    q_copy = q.copy()
+
+    assert q_copy is not q
+    assert q_copy._xobject is not q._xobject
+    assert q_copy._buffer is not q._buffer
+    assert q_copy._xobject._tpsa_enabled
+    assert q_copy._tpsa_descriptor is q._tpsa_descriptor
+    assert q_copy._tpsa_handles is not q._tpsa_handles
+    assert q_copy.k1 is k1_tpsa
+    assert q_copy._field_raw_bits("k1") == q._field_raw_bits("k1")
+
+
 def test_float_or_tpsa_field_assignment():
     line = _line()
     descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
@@ -176,6 +263,22 @@ def test_float_or_tpsa_field_assignment():
 
     assert line["q"]._tpsa_enabled
     assert line["q"].k1.const_part == pytest.approx(0.1)
+
+
+def test_tpsa_enabled_element_to_dict_is_rejected():
+    line = _line()
+    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+    line["q"].k1 = descriptor.param(1, 0.1)
+
+    with pytest.raises(NotImplementedError, match="Serializing TPSA-enabled"):
+        line["q"].to_dict()
+
+
+def test_tpsa_constructor_assignment_without_container_is_rejected():
+    descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
+
+    with pytest.raises(ValueError, match="without an owning container"):
+        xt.Quadrupole(length=1.0, k1=descriptor.param(1, 0.1))
 
 
 def test_parametric_element_field_tracks_with_shared_descriptor():
