@@ -472,7 +472,7 @@ class Environment:
         else:
             assert mode is None, f'Unknown mode {mode}'
 
-        _eval = self._xdeps_eval.eval
+        eval_ = self._xdeps_eval.eval
 
         if not (isinstance(parent, str) or parent in _ALLOWED_ELEMENT_TYPES_IN_NEW):
             raise ValueError(
@@ -512,7 +512,7 @@ class Environment:
                              '`length_straight` parameter set accordingly, '
                              'instead of specifying the `rbarc` flag.')
 
-        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
+        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, eval_)
 
         if needs_instantiation: # Prototype is a class and not another element
             self.elements[name] = parent(**value_kwargs)
@@ -594,7 +594,7 @@ class Environment:
         if parent is None:
             parent = xt.Particles
 
-        _eval = self._xdeps_eval.eval
+        eval_ = self._xdeps_eval.eval
 
         needs_instantiation = True
         prototype = None
@@ -624,7 +624,7 @@ class Environment:
             if kk in xt.Particles._xofields and 'Arr' in xt.Particles._xofields[kk].__name__:
                 kwargs[kk] = [kwargs[kk]]
 
-        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, _eval)
+        ref_kwargs, value_kwargs = _parse_kwargs(parent, kwargs, eval_)
 
         if needs_instantiation: # Parent is a class and not another particle
             self.particles[name] = parent(**value_kwargs)
@@ -1949,7 +1949,7 @@ class Environment:
                 self.set(nn, *args, **kwargs)
             return
 
-        _eval = self._xdeps_eval.eval
+        eval_ = self._xdeps_eval.eval
 
         if hasattr(self, 'lines') and name in self.lines:
             raise ValueError('Cannot set a line')
@@ -1961,7 +1961,7 @@ class Environment:
             extra = kwargs.pop('extra', None)
 
             ref_kwargs, value_kwargs = xt.environment._parse_kwargs(
-                type(self._element_dict[name]), kwargs, _eval)
+                type(self._element_dict[name]), kwargs, eval_)
             self._set_kwargs(
                 name=name, ref_kwargs=ref_kwargs, value_kwargs=value_kwargs,
                 container=self._element_dict, container_refs=self._xdeps_eref,
@@ -1982,7 +1982,7 @@ class Environment:
             if 'extra' in kwargs and kwargs['extra'] is not None:
                 raise ValueError(f'Extra is only allowed for elements')
             if isinstance(value, str):
-                self.vars[name] = _eval(value)
+                self.vars[name] = eval_(value)
             else:
                 self.vars[name] = value
 
@@ -2282,10 +2282,11 @@ class Environment:
         name: str
             Name of the element.
         ref_kwargs: dict
-            Dictionary with the references to set. The keys are the attribute names,
-            and the values are the references.
+            Dictionary with the references to set, keyed by field name. For
+            array fields the value is a list of `(index, ref_or_None, item)`
+            entries, one per item of the array; otherwise a single reference.
         value_kwargs: dict
-            Dictionary with the values to set. The keys are the attribute names,
+            Dictionary with the values to set. The keys are the field names,
             and the values are the non-reference values.
         container: dict
             Dictionary with the elements.
@@ -2298,32 +2299,35 @@ class Environment:
             element without unregistering the refereces.
         """
 
-        for kk in value_kwargs:
-            if hasattr(value_kwargs[kk], '__iter__') and not isinstance(value_kwargs[kk], str):
-                len_value = len(value_kwargs[kk])
-                target = getattr(container[name], kk)
+        for field_name, value in value_kwargs.items():
+            if hasattr(value, '__iter__') and not isinstance(value, str):
+                len_value = len(value)
+                target = getattr(container[name], field_name)
                 if len(target) < len_value:
-                    if kk=='knl' or kk=='ksl' and name in self._element_dict:
+                    if field_name in ('knl', 'ksl') and name in self._element_dict:
                         self.extend_knl_ksl(len_value-1, element_names=[name])
-                        target = getattr(container[name], kk)
+                        target = getattr(container[name], field_name)
                     else:
                         raise ValueError(
-                            f'Cannot set attribute {kk} of element {name}: '
+                            f'Cannot set attribute {field_name} of element {name}: '
                             f'length mismatch ({len(target)} vs {len_value})')
-                target[:len_value] = value_kwargs[kk]
-                if kk in ref_kwargs or not isinit:
-                    for ii, vvv in enumerate(value_kwargs[kk]):
-                        if ref_kwargs[kk][ii] is not None:
-                            getattr(container_refs[name], kk)[ii] = ref_kwargs[kk][ii]
+                target[:len_value] = value
+                if field_name in ref_kwargs or not isinit:
+                    attr_ref = getattr(container_refs[name], field_name)
+                    for index, ref, item in ref_kwargs[field_name]:
+                        # `arr[0]` and `arr[(0,)]` are distinct refs, so 1D must stay an int.
+                        ref_key = index[0] if len(index) == 1 else index
+                        if ref is not None:
+                            attr_ref[ref_key] = ref
                         elif not isinit:
-                            getattr(container_refs[name], kk)[ii] = value_kwargs[kk][ii]
-            elif kk in ref_kwargs:
-                setattr(container_refs[name], kk, ref_kwargs[kk])
+                            attr_ref[ref_key] = item
+            elif field_name in ref_kwargs:
+                setattr(container_refs[name], field_name, ref_kwargs[field_name])
             else:
                 if not isinit:
-                    setattr(container_refs[name], kk, value_kwargs[kk])
+                    setattr(container_refs[name], field_name, value)
                 else:
-                    setattr(container[name], kk, value_kwargs[kk])
+                    setattr(container[name], field_name, value)
 
     twiss = doc_group("Analysis and Matching")(MultilineLegacy.twiss)
     build_trackers = doc_group("Tracker Setup")(MultilineLegacy.build_trackers)
@@ -2477,46 +2481,125 @@ Environment.__doc_groups_ungrouped__ = _ENVIRONMENT_DOC_GROUP_COLLECTOR.validate
 )
 
 
-def _parse_kwargs(cls, kwargs, _eval):
+def _parse_array_value(value, eval_, field_name):
+    """Parse the value assigned to an array field, item by item.
+
+    Handles arrays of any dimensionality. Items given as string
+    expressions are evaluated into references; the rest are kept as they
+    are.
+
+    Parameters
+    ----------
+    value : iterable, or a reference to one
+        The value assigned to the array field. May be multi-dimensional,
+        and may hold string expressions or references at any position.
+    eval_ : callable
+        Evaluator turning a string expression into a reference.
+    field_name : str
+        Name of the field, used in error messages.
+
+    Returns
+    -------
+    values : list
+        `value` with the same shape, expressions replaced by their
+        current numerical value.
+    leaves : list of (index, ref_or_None, item)
+        One entry per item of the array: where it goes, the reference to
+        wire there (None for a plain number), and its numerical value.
+    """
+    if hasattr(value, '_value'):
+        # The whole array is a single reference: wire item by item.
+        referenced = value._value
+        return referenced, [((ii,), value[ii], referenced[ii])
+                            for ii in range(len(referenced))]
+
+    # Object dtype keeps expressions as strings; a numeric dtype would
+    # stringify the numbers instead.
+    array = np.array(value, dtype=object)
+    values = np.empty(array.shape, dtype=object)
+    leaves = []
+    for index in np.ndindex(*array.shape):
+        item = array[index]
+        if isinstance(item, (list, tuple, np.ndarray)):
+            # Only a ragged input leaves a sequence at the deepest index.
+            raise ValueError(
+                f'{field_name} must be a rectangular array, but it has '
+                f'rows of differing length.')
+        ref = None
+        if isinstance(item, str):
+            ref = eval_(item)
+            item = ref._value if hasattr(ref, '_value') else ref
+        elif hasattr(item, '_value'):
+            ref = item
+            item = item._value
+        values[index] = item
+        leaves.append((index, ref, item))
+
+    return values.tolist(), leaves
+
+
+def _parse_kwargs(hybrid_class, kwargs, eval_):
+    """Split constructor/setter kwargs into references and plain values.
+
+    Any string value is evaluated as a deferred expression via `eval_`.
+    Values assigned to array fields are parsed item by item with
+    `_parse_array_value`.
+
+    Parameters
+    ----------
+    hybrid_class : type
+        The element (or `Particles`) class the kwargs are meant for.
+    kwargs : dict
+        Keyword arguments as passed by the caller.
+    eval_ : callable
+        Evaluator turning a string expression into a reference.
+
+    Returns
+    -------
+    ref_kwargs : dict
+        References to set, keyed by field name. For array fields this is
+        a list of `(index, ref_or_None, item)` entries (see
+        `_parse_array_value`),
+        otherwise a single reference.
+    value_kwargs : dict
+        Plain numerical values to set, keyed by field name.
+    """
     ref_kwargs = {}
     value_kwargs = {}
-    for kk in kwargs:
-        if hasattr(kwargs[kk], '_value'):
-            ref_kwargs[kk] = kwargs[kk]
-            value_kwargs[kk] = kwargs[kk]._value
-        elif (hasattr(cls, '_xofields') and kk in cls._xofields
-                and xo.array.is_array(cls._xofields[kk])):
-            assert hasattr(kwargs[kk], '__iter__'), (
-                f'{kk} should be an iterable for {cls} element')
-            ref_vv = []
-            value_vv = []
-            for ii, vvv in enumerate(kwargs[kk]):
-                if hasattr(vvv, '_value'):
-                    ref_vv.append(vvv)
-                    value_vv.append(vvv._value)
-                elif isinstance(vvv, str):
-                    ref_vv.append(_eval(vvv))
-                    if hasattr(ref_vv[-1], '_value'):
-                        value_vv.append(ref_vv[-1]._value)
-                    else:
-                        value_vv.append(ref_vv[-1])
-                else:
-                    ref_vv.append(None)
-                    value_vv.append(vvv)
-            ref_kwargs[kk] = ref_vv
-            value_kwargs[kk] = value_vv
-        elif (isinstance(kwargs[kk], str) and hasattr(cls, '_xofields')
-            and (not hasattr(cls, '_noexpr_fields') or kk not in cls._noexpr_fields)):
-            ref_kwargs[kk] = _eval(kwargs[kk])
-            if hasattr(ref_kwargs[kk], '_value'):
-                value_kwargs[kk] = ref_kwargs[kk]._value
-            else:
-                value_kwargs[kk] = ref_kwargs[kk]
-        elif isinstance(kwargs[kk], xo.String):
-            vvv = kwargs[kk].to_str()
-            value_kwargs[kk] = vvv
+    has_xofields = hasattr(hybrid_class, '_xofields')
+    xofields = getattr(hybrid_class, '_xofields', {})
+    noexpr_fields = getattr(hybrid_class, '_noexpr_fields', ())
+
+    for field_name, value in kwargs.items():
+        # `xo.Field` wraps the type only to attach a default.
+        field_type = xofields.get(field_name)
+        if isinstance(field_type, xo.Field):
+            field_type = field_type.ftype
+        is_array_field = (field_type is not None
+                          and xo.array.is_array(field_type))
+
+        # A whole array can also be given as a single reference.
+        is_ref = hasattr(value, '_value')
+        assigned = value._value if is_ref else value
+
+        if is_array_field and hasattr(assigned, '__iter__'):
+            value_kwargs[field_name], ref_kwargs[field_name] = \
+                _parse_array_value(value, eval_, field_name)
+        elif is_ref:
+            ref_kwargs[field_name] = value
+            value_kwargs[field_name] = value._value
+        elif is_array_field:
+            raise TypeError(
+                f'{field_name} should be an iterable for {hybrid_class} element')
+        elif (isinstance(value, str) and has_xofields
+                and field_name not in noexpr_fields):
+            ref = eval_(value)
+            ref_kwargs[field_name] = ref
+            value_kwargs[field_name] = ref._value if hasattr(ref, '_value') else ref
+        elif isinstance(value, xo.String):
+            value_kwargs[field_name] = value.to_str()
         else:
-            value_kwargs[kk] = kwargs[kk]
+            value_kwargs[field_name] = value
 
     return ref_kwargs, value_kwargs
 
@@ -3724,7 +3807,7 @@ class EnvVars:
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        _eval = self.env._xdeps_eval.eval
+        eval_ = self.env._xdeps_eval.eval
         if len(args) > 0:
             assert len(kwargs) == 0
             assert len(args) == 1
@@ -3736,7 +3819,7 @@ class EnvVars:
                 raise ValueError('Invalid argument')
         for kk in kwargs:
             if isinstance(kwargs[kk], str):
-                self[kk] = _eval(kwargs[kk])
+                self[kk] = eval_(kwargs[kk])
             else:
                 self[kk] = kwargs[kk]
 
