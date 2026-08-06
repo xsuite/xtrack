@@ -1816,10 +1816,15 @@ class Line:
                 raise ImportError("Please install Xpart to use this feature.") from error
         return self._xpart
 
-    @property_with_doc_group("Upcoming Deprecations")
+    @property_with_doc_group("Deprecated")
     def scattering(self):
         """
         Deprecated alias for ``line.xcoll.scattering``.
+
+        .. warning::
+            This property is deprecated and will be removed in a future version.
+            Use ``line.xcoll.scattering`` instead. This deprecation is part of
+            the interface cleanup in view of the 1.0 release.
 
         Returns
         -------
@@ -1827,14 +1832,20 @@ class Line:
             Xcoll scattering API bound to this line.
         """
         warn('`Line.scattering` is deprecated and will be removed in a future version. '
-             'Please use `Line.xcoll.scattering` instead.',
+             'Please use `Line.xcoll.scattering` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning, stacklevel=2)
         return self.xcoll.scattering
 
-    @property_with_doc_group("Upcoming Deprecations")
+    @property_with_doc_group("Deprecated")
     def collimators(self):
         """
         Deprecated alias for ``line.xcoll.collimators``.
+
+        .. warning::
+            This property is deprecated and will be removed in a future version.
+            Use ``line.xcoll.collimators`` instead. This deprecation is part of
+            the interface cleanup in view of the 1.0 release.
 
         Returns
         -------
@@ -1842,7 +1853,8 @@ class Line:
             Xcoll collimator API bound to this line.
         """
         warn('`Line.collimators` is deprecated and will be removed in a future version. '
-             'Please use `Line.xcoll.collimators` instead.',
+             'Please use `Line.xcoll.collimators` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
              FutureWarning, stacklevel=2)
         return self.xcoll.collimators
 
@@ -4811,14 +4823,19 @@ class Line:
 
         self._update_synrad_compile_flag()
 
-    @doc_group("Radiation, Spin and Intra-Beam Scattering")
+    @doc_group("Deprecated")
     def configure_intrabeam_scattering(
         self, element = None,
         update_every: int = None,
         **kwargs,
     ) -> None:
         """
-        Configures the IBS kick element in the line for tracking.
+        Deprecated alias for ``line.xfields.ibs_configure(...)``.
+
+        .. warning::
+            This method is deprecated and will be removed in a future version.
+            Use ``line.xfields.ibs_configure(...)`` instead. This deprecation
+            is part of the interface cleanup in view of the 1.0 release.
 
         Notes
         -----
@@ -4829,8 +4846,6 @@ class Line:
 
         Parameters
         ----------
-        line : xtrack.Line
-            The line in which the IBS kick element was inserted.
         element : IBSKick, optional
             If provided, the element is first inserted in the line,
             before proceeding to configuration. In this case the keyword
@@ -4858,13 +4873,13 @@ class Line:
             below transition energy.
         """
         self._method_incompatible_with_compose()
-        try:
-            from xfields.ibs import configure_intrabeam_scattering
-        except ImportError as error:
-            raise ImportError("Please install xfields to use this feature.") from error
-        configure_intrabeam_scattering(
-            self, element=element, update_every=update_every, **kwargs
-        )
+        warn('`Line.configure_intrabeam_scattering(...)` is deprecated and '
+             'will be removed in a future version. Please use '
+             '`Line.xfields.ibs_configure(...)` instead.'
+             + DEPRECATION_INFO_PREP_1_0,
+             FutureWarning, stacklevel=2)
+        return self.xfields.ibs_configure(
+            element=element, update_every=update_every, **kwargs)
 
     @doc_group("Radiation, Spin and Intra-Beam Scattering")
     def compensate_radiation_energy_loss(self, delta0='zero_mean', rtol_eneloss=1e-10,
