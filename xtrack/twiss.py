@@ -283,7 +283,9 @@ def twiss_line(line, particle_ref=None, method=None,
         - `x`, `px`, `y`, `py`, `zeta`, `delta`, `ptau`: coordinates
           of the closed orbit for the periodic twiss and of the beam trajectory
           for the open twiss. (ebe)
-        - `betx`, `bety`, `alfx`, `alfy`, `gamx`, `gamy`: Twiss parameters (ebe)
+        - `betx`, `bety`, `alfx`, `alfy`, `gamx`, `gamy`: Twiss parameters.
+          In the presence of linear coupling, these are respectively `betx1`,
+          `bety2`, `alfx1`, `alfy2`, `gamx1`, `gamy2` in the Mais-Ripken sense. (ebe)
         - `dx`, `dpx`, `dy`, `dpy`: dispersion functions (ebe)
         - `ddx`, `ddpx`, `ddy`, `ddpy`: second-order dispersion functions (ebe)
         - `dx_zeta`, `dpx_zeta`, `dy_zeta`, `dpy_zeta`: crab dispersion functions (ebe)
