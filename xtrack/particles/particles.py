@@ -538,7 +538,9 @@ class Particles(xo.HybridClass):
             ions to distinguish different particle types). The default is 0
             (undefined)
         weight : array_like of float, optional
-            Particle weight in number of particles (for collective simulations)
+            Particle weight in number of particles per macro-particle
+            (used for collective simulations, e.g. space charge, beam-beam,
+            wakefields, etc.)
         at_element : array_like of int, optional
             Identifier of the last element through which the particle has been
         parent_particle_id : array_like of int, optional
