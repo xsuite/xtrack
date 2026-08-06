@@ -12,9 +12,6 @@ The benchmark intentionally does only tracking:
   circuit variables promoted to GTPSA parameters.
 - normal ``xt.Particles`` through the same parametric line, where scalar
   tracking truncates TPSA-backed element parameters to their constant term.
-
-The IR8 knob list follows the optics matching setup in
-``fast_optics_jacobian/utils.py``, but no matching or twiss computation is done.
 """
 
 from __future__ import annotations

@@ -77,7 +77,6 @@ class TrackerData:
             _context=None,
             _buffer=None,
             _offset=None,
-            _no_resolve_parents=False,
     ):
         """
         Create an immutable line suitable for serialisation.
@@ -156,10 +155,6 @@ class TrackerData:
         ElementRefDataClass = xt.tracker._element_ref_data_class_from_element_classes(
                                             kernel_element_classes)
         self._element_ref_data = self.build_ref_data(_buffer, ElementRefDataClass)
-
-        # Resolve slice parents
-        if _no_resolve_parents:
-            return
 
         for nn in element_names:
             if not hasattr(self._element_dict[nn], '_parent'):

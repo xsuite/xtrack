@@ -43,7 +43,29 @@ def _wrap_float_or_tpsa_getters(source, classes):
     if not pairs:
         return source
 
-    helpers = [
+    block = _float_or_tpsa_getter_block(classes)
+    undef = _float_or_tpsa_undef_block(classes)
+    out = []
+    wrapped_any = False
+    for line in source.splitlines():
+        if '#include "xtrack/beam_elements/' in line:
+            out.append(block)
+            out.append(line)
+            out.append(undef)
+            wrapped_any = True
+        else:
+            out.append(line)
+    if not wrapped_any:
+        return source
+    return "\n".join(out)
+
+
+def _float_or_tpsa_getter_block(classes):
+    pairs = _float_or_tpsa_pairs(classes)
+    if not pairs:
+        return ""
+
+    blocks = [
         """
 #ifndef XTRACK_FLOAT_OR_TPSA_BITS_TO_DOUBLE
 static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){
@@ -74,29 +96,6 @@ static inline double xt_float_or_tpsa_get_double(uint64_t bits, uint8_t enabled)
 #endif
 """
     ]
-    for data, field in pairs:
-        getter = f"{data}_get_{field}"
-        helpers.append(f"""
-#ifndef XTRACK_TPSA_TRACK
-#define {getter}(obj) xt_float_or_tpsa_get_double(*((uint64_t*){data}_getp_{field}(obj)), {data}_get__tpsa_enabled(obj))
-#else
-#define {getter}(obj) xt_float_or_tpsa_get(({data}) obj, (uint64_t*){data}_getp_{field}(obj), {data}_get__tpsa_enabled(obj))
-#endif
-""")
-    block = "\n".join(helpers)
-    marker = '#include "xtrack/beam_elements/'
-    idx = source.find(marker)
-    if idx < 0:
-        return "\n".join([block, source])
-    return source[:idx] + block + "\n" + source[idx:]
-
-
-def _float_or_tpsa_getter_block(classes):
-    pairs = _float_or_tpsa_pairs(classes)
-    if not pairs:
-        return ""
-
-    blocks = []
     for data, field in pairs:
         getter = f"{data}_get_{field}"
         blocks.append(f"""
@@ -136,9 +135,7 @@ class Tracker:
         track_kernel=None,
         particles_monitor_class=None,
         extra_headers=(),
-        _prebuilding_kernels=False,
     ):
-
         # Check if there are collective elements
         self.iscollective = False
         for ee in line._elements:
@@ -184,14 +181,9 @@ class Tracker:
         else:
             ele_dict_non_collective = line._element_dict
 
-        if _prebuilding_kernels:
-            tt = None
-            element_s_locations = np.zeros(len(line.element_names))
-            line_length = 0.
-        else:
-            tt = line.get_table()
-            element_s_locations = tt.s[:-1]  # remove _end_point
-            line_length = tt.s[-1]
+        tt = line.get_table()
+        element_s_locations = tt.s[:-1]  # remove _end_point
+        line_length = tt.s[-1]
 
         tracker_data_base = TrackerData(
             allow_move=True, # Will move elements to the same buffer
@@ -203,13 +195,11 @@ class Tracker:
             extra_element_classes=(particles_monitor_class._XoStruct,
                                    xt.MultiElementMonitor._XoStruct),
             _context=_context,
-            _buffer=_buffer,
-            _no_resolve_parents=_prebuilding_kernels)
+            _buffer=_buffer)
 
-        if not _prebuilding_kernels:
-            tracker_data_base._line_table = tt
-            tracker_data_base._element_names_unique = tuple(
-                    tracker_data_base._line_table.name[:-1]) # remove _endpoint
+        tracker_data_base._line_table = tt
+        tracker_data_base._element_names_unique = tuple(
+                tracker_data_base._line_table.name[:-1]) # remove _endpoint
         line._freeze()
 
         if np.any([hasattr(ee, 'needs_rng') and ee.needs_rng for ee in line._elements]):
@@ -225,8 +215,7 @@ class Tracker:
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
 
-        if not _prebuilding_kernels:
-            self._get_twiss_mask_markers() # to cache it
+        self._get_twiss_mask_markers() # to cache it
 
         self.line = line
         self._init_io_buffer(io_buffer)
