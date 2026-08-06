@@ -358,6 +358,9 @@ def twiss_line(line, particle_ref=None, method=None,
           guide for definitions) (ebe)
         - `rad_int_eq_gemitt_x`, `rad_int_eq_gemitt_y`: geometric equilibrium
           emittances from radiation integrals.
+        - `rad_int_energy_loss`: energy loss per turn from radiation integrals [eV]
+        - `rad_int_sigma_delta`: equilibrium momentum spread from radiation
+          integrals.
         - `rad_int_damping_constant_x_s`, `rad_int_damping_constant_y_s`,
           `rad_int_damping_constant_zeta_s`: damping constants from radiation
           integrals
@@ -5155,6 +5158,11 @@ class TwissTable(Table):
                     / mass0 * gamma0**2 * i5x / (i2 - i4x))
         eq_gemitt_y = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
                     / mass0 * gamma0**2 * i5y / (i2 - i4y))
+        energy0 = self.particle_on_co.energy0[0]
+        energy_loss = 2 / 3 * r0 * energy0 * gamma0**3 * i2
+        sigma_delta = np.sqrt(55 * np.sqrt(3) / 96
+                              * hbar / electron_volt * clight
+                              / mass0 * gamma0**2 * i3 / (2 * i2 + i4))
 
         # Damping constants
         damping_constant_x_s = r0/3 * gamma0**3 * clight/self.line_length * (i2 - i4x)
@@ -5210,6 +5218,8 @@ class TwissTable(Table):
             'rad_int_i5y': i5y,
             'rad_int_eq_gemitt_x': eq_gemitt_x,
             'rad_int_eq_gemitt_y': eq_gemitt_y,
+            'rad_int_energy_loss': energy_loss,
+            'rad_int_sigma_delta': sigma_delta,
             'rad_int_damping_constant_x_s': damping_constant_x_s,
             'rad_int_damping_constant_y_s': damping_constant_y_s,
             'rad_int_damping_constant_zeta_s': damping_constant_zeta_s,

@@ -65,6 +65,7 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzeta', 'ptau',
                         'rad_int_i4y_integrand', 'rad_int_i5x_integrand', 'rad_int_i5y_integrand',
                         'rad_int_curly_hx', 'rad_int_curly_hy',
                         'rad_int_eq_gemitt_x', 'rad_int_eq_gemitt_y',
+                        'rad_int_energy_loss', 'rad_int_sigma_delta',
                         'rad_int_damping_constant_x_s', 'rad_int_damping_constant_y_s',
                         'rad_int_damping_constant_zeta_s',
 ]
