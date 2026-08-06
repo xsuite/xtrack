@@ -9,11 +9,11 @@
 
 GPUFUN
 void Drift_single_particle_expanded(LocalParticle* part, double length){
-    XT_NUM const rpp    = LocalParticle_get_rpp(part);
-    XT_NUM const rv0v    = 1./LocalParticle_get_rvv(part);
-    XT_NUM const xp     = LocalParticle_get_px(part) * rpp;
-    XT_NUM const yp     = LocalParticle_get_py(part) * rpp;
-    XT_NUM const dzeta  = 1 - rv0v * ( 1. + ( xp*xp + yp*yp ) / 2. );
+    xt_num_t const rpp    = LocalParticle_get_rpp(part);
+    xt_num_t const rv0v    = 1./LocalParticle_get_rvv(part);
+    xt_num_t const xp     = LocalParticle_get_px(part) * rpp;
+    xt_num_t const yp     = LocalParticle_get_py(part) * rpp;
+    xt_num_t const dzeta  = 1 - rv0v * ( 1. + ( xp*xp + yp*yp ) / 2. );
 
     LocalParticle_add_to_x(part, xp * length );
     LocalParticle_add_to_y(part, yp * length );
@@ -24,14 +24,14 @@ void Drift_single_particle_expanded(LocalParticle* part, double length){
 
 GPUFUN
 void Drift_single_particle_exact(LocalParticle* part, double length){
-    XT_NUM const px = LocalParticle_get_px(part);
-    XT_NUM const py = LocalParticle_get_py(part);
-    XT_NUM const rv0v    = 1./LocalParticle_get_rvv(part);
-    XT_NUM const one_plus_delta = 1. + LocalParticle_get_delta(part);
+    xt_num_t const px = LocalParticle_get_px(part);
+    xt_num_t const py = LocalParticle_get_py(part);
+    xt_num_t const rv0v    = 1./LocalParticle_get_rvv(part);
+    xt_num_t const one_plus_delta = 1. + LocalParticle_get_delta(part);
 
-    XT_NUM const one_over_pz = 1./sqrt(one_plus_delta*one_plus_delta
+    xt_num_t const one_over_pz = 1./sqrt(one_plus_delta*one_plus_delta
                                        - px * px - py * py);
-    XT_NUM const dzeta = 1 - rv0v * one_plus_delta * one_over_pz;
+    xt_num_t const dzeta = 1 - rv0v * one_plus_delta * one_over_pz;
 
     LocalParticle_add_to_x(part, px * one_over_pz * length);
     LocalParticle_add_to_y(part, py * one_over_pz * length);

@@ -29,8 +29,8 @@ void compute_dipole_edge_linear_coefficients(double const k, double const e1,
 GPUFUN
 void DipoleEdgeLinear_single_particle(LocalParticle* part, double r21, double r43){
 
-    XT_NUM const x = LocalParticle_get_x(part);
-    XT_NUM const y = LocalParticle_get_y(part);
+    xt_num_t const x = LocalParticle_get_x(part);
+    xt_num_t const y = LocalParticle_get_y(part);
     double const chi = LocalParticle_get_chi(part);
 
     LocalParticle_add_to_px(part, chi * r21*x);

@@ -59,10 +59,12 @@ struct default_scope {
 };
 }
 
-#define XT_NUM xt_tpsa::tpsa
-#define XT_NUM_CONST_ARG const XT_NUM&
-#define XT_NUM_ARG const XT_NUM&
-#define XT_NUM_CONST_PART(v) ((v)[0])
+typedef xt_tpsa::tpsa xt_num_t;
+typedef const xt_num_t& xt_num_arg_t;
+
+static inline double xt_num_const_part(xt_num_arg_t value){
+    return value[0];
+}
 
 #define XT_TPSA_REL(OP) \
   template<class A> inline bool operator OP (const mad::tpsa_base<A>& a, double b){ return a[0] OP b; } \
@@ -80,21 +82,21 @@ static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){
     return value.d;
 }
 
-static inline XT_NUM xt_float_or_tpsa_lift(double value){
-    return XT_NUM(value);
+static inline xt_num_t xt_float_or_tpsa_lift(double value){
+    return xt_num_t(value);
 }
 
-static inline XT_NUM xt_float_or_tpsa_lift(uint64_t bits){
+static inline xt_num_t xt_float_or_tpsa_lift(uint64_t bits){
     return xt_float_or_tpsa_lift(xt_float_or_tpsa_bits_to_double(bits));
 }
 
 template<class A>
-static inline XT_NUM xt_float_or_tpsa_lift(const mad::tpsa_base<A>& value){
-    return XT_NUM(value);
+static inline xt_num_t xt_float_or_tpsa_lift(const mad::tpsa_base<A>& value){
+    return xt_num_t(value);
 }
 
 template<class ElementData>
-static inline XT_NUM xt_float_or_tpsa_get(
+static inline xt_num_t xt_float_or_tpsa_get(
         ElementData, uint64_t* slot, int64_t tpsa_enabled){
     if (tpsa_enabled) {
         return 1.0 * mad::tpsa_ref((tpsa_t*)(uintptr_t)(*slot));
@@ -104,19 +106,12 @@ static inline XT_NUM xt_float_or_tpsa_get(
 
 #else
 
-// Per-coordinate number type: double for normal tracking.
-#ifndef XT_NUM
-#define XT_NUM double
-#endif
-#ifndef XT_NUM_CONST_ARG
-#define XT_NUM_CONST_ARG const XT_NUM
-#endif
-#ifndef XT_NUM_ARG
-#define XT_NUM_ARG XT_NUM
-#endif
-#ifndef XT_NUM_CONST_PART
-#define XT_NUM_CONST_PART(v) (v)
-#endif
+typedef double xt_num_t;
+typedef const xt_num_t xt_num_arg_t;
+
+static inline double xt_num_const_part(xt_num_arg_t value){
+    return value;
+}
 
 static inline double xt_float_or_tpsa_bits_to_double(uint64_t bits){
     union { uint64_t u; double d; } value;

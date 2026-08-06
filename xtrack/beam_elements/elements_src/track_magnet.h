@@ -34,28 +34,28 @@ void track_magnet_body_single_particle(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    XT_NUM_CONST_ARG rel_ref_strength,
+    xt_num_arg_t rel_ref_strength,
     const double factor_knl_ksl,
     const int64_t num_multipole_kicks,
     const int8_t kick_rot_frame,
     const int8_t drift_model,
     const int8_t integrator,
-    XT_NUM_CONST_ARG k0_drift,
-    XT_NUM_CONST_ARG k1_drift,
-    XT_NUM_CONST_ARG ks_drift,
+    xt_num_arg_t k0_drift,
+    xt_num_arg_t k1_drift,
+    xt_num_arg_t ks_drift,
     const double h_drift,
-    XT_NUM_CONST_ARG k0_kick,
-    XT_NUM_CONST_ARG k1_kick,
+    xt_num_arg_t k0_kick,
+    xt_num_arg_t k1_kick,
     const double h_kick,
     const double hxl,
-    XT_NUM_CONST_ARG k0_h_correction,
-    XT_NUM_CONST_ARG k1_h_correction,
-    XT_NUM_CONST_ARG k2,
-    XT_NUM_CONST_ARG k3,
-    XT_NUM_CONST_ARG k0s,
-    XT_NUM_CONST_ARG k1s,
-    XT_NUM_CONST_ARG k2s,
-    XT_NUM_CONST_ARG k3s,
+    xt_num_arg_t k0_h_correction,
+    xt_num_arg_t k1_h_correction,
+    xt_num_arg_t k2,
+    xt_num_arg_t k3,
+    xt_num_arg_t k0s,
+    xt_num_arg_t k1s,
+    xt_num_arg_t k2s,
+    xt_num_arg_t k3s,
     const double dks_ds,
     const double x0_solenoid,
     const double y0_solenoid,
@@ -298,7 +298,7 @@ void track_magnet_particles(
     double inv_factorial_order_rel,
     GPUGLMEM const double* knl_rel,
     GPUGLMEM const double* ksl_rel,
-    XT_NUM_CONST_ARG rel_ref_strength,
+    xt_num_arg_t rel_ref_strength,
     int64_t num_multipole_kicks,
     int8_t model,
     int8_t default_model,
@@ -310,15 +310,15 @@ void track_magnet_particles(
     double delta_taper,
     double h,
     double hxl,
-    XT_NUM_ARG k0,
-    XT_NUM_ARG k1,
-    XT_NUM_ARG k2,
-    XT_NUM_ARG k3,
-    XT_NUM_ARG k0s,
-    XT_NUM_ARG k1s,
-    XT_NUM_ARG k2s,
-    XT_NUM_ARG k3s,
-    XT_NUM_ARG ks,
+    xt_num_t k0,
+    xt_num_t k1,
+    xt_num_t k2,
+    xt_num_t k3,
+    xt_num_t k0s,
+    xt_num_t k1s,
+    xt_num_t k2s,
+    xt_num_t k3s,
+    xt_num_t ks,
     double dks_ds,
     double x0_solenoid,
     double y0_solenoid,
@@ -449,7 +449,7 @@ void track_magnet_particles(
 
     // Tapering
 #ifndef XTRACK_TPSA_TRACK
-    // delta_taper is a double param, get_delta is XT_NUM. Tapering is a radiation-
+    // delta_taper is a double param, get_delta is xt_num_t. Tapering is a radiation-
     // adjacent double feature, so it is disabled for the TPSA flavor.
     if (LocalParticle_check_track_flag(part0, XS_FLAG_SR_TAPER)){
         part0->ipart = 0;
@@ -487,10 +487,10 @@ void track_magnet_particles(
             END_PER_PARTICLE_BLOCK;
         }
 
-        double knorm[] = {XT_NUM_CONST_PART(k0), XT_NUM_CONST_PART(k1),
-                          XT_NUM_CONST_PART(k2), XT_NUM_CONST_PART(k3)};
-        double kskew[] = {XT_NUM_CONST_PART(k0s), XT_NUM_CONST_PART(k1s),
-                          XT_NUM_CONST_PART(k2s), XT_NUM_CONST_PART(k3s)};
+        double knorm[] = {xt_num_const_part(k0), xt_num_const_part(k1),
+                          xt_num_const_part(k2), xt_num_const_part(k3)};
+        double kskew[] = {xt_num_const_part(k0s), xt_num_const_part(k1s),
+                          xt_num_const_part(k2s), xt_num_const_part(k3s)};
 
         track_magnet_edge_particles(
             part0,
@@ -506,9 +506,9 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * XT_NUM_CONST_PART(rel_ref_strength),
+            factor_knl_ksl_edge * xt_num_const_part(rel_ref_strength),
             order_rel,
-            XT_NUM_CONST_PART(ks),
+            xt_num_const_part(ks),
             x0_solenoid,
             y0_solenoid,
             length,
@@ -555,11 +555,11 @@ void track_magnet_particles(
             }
         }
 
-        XT_NUM k0_drift=0., k1_drift=0., ks_drift=0.;
+        xt_num_t k0_drift=0., k1_drift=0., ks_drift=0.;
         double h_drift=0;
-        XT_NUM k0_kick=0., k1_kick=0.;
+        xt_num_t k0_kick=0., k1_kick=0.;
         double h_kick=0;
-        XT_NUM k0_h_correction=0., k1_h_correction=0.;
+        xt_num_t k0_h_correction=0., k1_h_correction=0.;
         int8_t kick_rot_frame=0;
         int8_t drift_model=0;
         configure_tracking_model(
@@ -614,10 +614,10 @@ void track_magnet_particles(
     }
 
     if (edge_exit_active){
-        double knorm[] = {XT_NUM_CONST_PART(k0), XT_NUM_CONST_PART(k1),
-                          XT_NUM_CONST_PART(k2), XT_NUM_CONST_PART(k3)};
-        double kskew[] = {XT_NUM_CONST_PART(k0s), XT_NUM_CONST_PART(k1s),
-                          XT_NUM_CONST_PART(k2s), XT_NUM_CONST_PART(k3s)};
+        double knorm[] = {xt_num_const_part(k0), xt_num_const_part(k1),
+                          xt_num_const_part(k2), xt_num_const_part(k3)};
+        double kskew[] = {xt_num_const_part(k0s), xt_num_const_part(k1s),
+                          xt_num_const_part(k2s), xt_num_const_part(k3s)};
 
         track_magnet_edge_particles(
             part0,
@@ -633,9 +633,9 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * XT_NUM_CONST_PART(rel_ref_strength),
+            factor_knl_ksl_edge * xt_num_const_part(rel_ref_strength),
             order_rel,
-            XT_NUM_CONST_PART(ks),
+            xt_num_const_part(ks),
             x0_solenoid,
             y0_solenoid,
             length,

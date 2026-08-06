@@ -315,7 +315,7 @@ def tpsa_pointer_local_particle_flavor(coord_var_names):
         ]
 
     def get_open(vv, tt):
-        return [f"static inline XT_NUM LocalParticle_get_{vv}(LocalParticle* p){{"]
+        return [f"static inline xt_num_t LocalParticle_get_{vv}(LocalParticle* p){{"]
 
     return LocalParticleFlavor(
         per_particle_vars=[(None, nm) for nm in names],
@@ -415,13 +415,13 @@ static inline double LocalParticle_get_energy0(LocalParticle* part) {{
 }}
 
 static inline void LocalParticle_update_delta(LocalParticle* part,
-        const XT_NUM& new_delta_value) {{
+        xt_num_arg_t new_delta_value) {{
     double const beta0 = LocalParticle_get_beta0(part);
-    XT_NUM const irpp = new_delta_value + 1.0;
-    XT_NUM const rpp = 1.0 / irpp;
-    XT_NUM const ptau = (sqrt(1.0 + 2.0 * beta0 * new_delta_value
+    xt_num_t const irpp = new_delta_value + 1.0;
+    xt_num_t const rpp = 1.0 / irpp;
+    xt_num_t const ptau = (sqrt(1.0 + 2.0 * beta0 * new_delta_value
                               + new_delta_value * new_delta_value) - 1.0) / beta0;
-    XT_NUM const rvv = rpp * (1.0 + beta0 * ptau);
+    xt_num_t const rvv = rpp * (1.0 + beta0 * ptau);
     LocalParticle_set_delta(part, new_delta_value);
     LocalParticle_set_rvv(part, rvv);
     LocalParticle_set_rpp(part, rpp);
@@ -433,9 +433,9 @@ static inline void LocalParticle_update_delta(LocalParticle* part, double value)
 }}
 
 static inline void LocalParticle_update_ptau(LocalParticle* part,
-        const XT_NUM& new_ptau_value) {{
+        xt_num_arg_t new_ptau_value) {{
     double const beta0 = LocalParticle_get_beta0(part);
-    XT_NUM const delta = sqrt(1.0 + 2.0 * beta0 * new_ptau_value
+    xt_num_t const delta = sqrt(1.0 + 2.0 * beta0 * new_ptau_value
                               + new_ptau_value * new_ptau_value) - 1.0;
     LocalParticle_update_delta(part, delta);
 }}
@@ -444,21 +444,21 @@ static inline void LocalParticle_update_ptau(LocalParticle* part, double value) 
     LocalParticle_update_ptau(part, xt_float_or_tpsa_lift(value));
 }}
 
-static inline XT_NUM LocalParticle_get_pzeta(LocalParticle* part) {{
-    XT_NUM const ptau = LocalParticle_get_ptau(part);
+static inline xt_num_t LocalParticle_get_pzeta(LocalParticle* part) {{
+    xt_num_t const ptau = LocalParticle_get_ptau(part);
     double const beta0 = LocalParticle_get_beta0(part);
     return ptau / beta0;
 }}
 
 static inline void LocalParticle_update_pzeta(LocalParticle* part,
-        const XT_NUM& new_pzeta_value) {{
+        xt_num_arg_t new_pzeta_value) {{
     double const beta0 = LocalParticle_get_beta0(part);
     LocalParticle_update_ptau(part, beta0 * new_pzeta_value);
 }}
 
 static inline void LocalParticle_add_to_energy(LocalParticle* part,
-        const XT_NUM& delta_energy, int pz_only) {{
-    XT_NUM ptau = LocalParticle_get_ptau(part);
+        xt_num_arg_t delta_energy, int pz_only) {{
+    xt_num_t ptau = LocalParticle_get_ptau(part);
     double const p0c = LocalParticle_get_p0c(part);
     double const charge_ratio = LocalParticle_get_charge_ratio(part);
     double const chi = LocalParticle_get_chi(part);
@@ -466,13 +466,13 @@ static inline void LocalParticle_add_to_energy(LocalParticle* part,
 
     ptau += delta_energy / p0c / mass_ratio;
 
-    XT_NUM const old_rpp = LocalParticle_get_rpp(part);
+    xt_num_t const old_rpp = LocalParticle_get_rpp(part);
 
     LocalParticle_update_ptau(part, ptau);
 
     if (!pz_only) {{
-        XT_NUM const new_rpp = LocalParticle_get_rpp(part);
-        XT_NUM const f = old_rpp / new_rpp;
+        xt_num_t const new_rpp = LocalParticle_get_rpp(part);
+        xt_num_t const f = old_rpp / new_rpp;
         LocalParticle_scale_px(part, f);
         LocalParticle_scale_py(part, f);
     }}

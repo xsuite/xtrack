@@ -28,27 +28,27 @@ void Wedge_single_particle(
         return;
     }
 
-    XT_NUM const rvv = LocalParticle_get_rvv(part);
+    xt_num_t const rvv = LocalParticle_get_rvv(part);
     // Particle coordinates
-    XT_NUM const x = LocalParticle_get_x(part);
-    XT_NUM const px = LocalParticle_get_px(part);
-    XT_NUM const py = LocalParticle_get_py(part);
+    xt_num_t const x = LocalParticle_get_x(part);
+    xt_num_t const px = LocalParticle_get_px(part);
+    xt_num_t const py = LocalParticle_get_py(part);
 
     // Useful constants
-    XT_NUM const one_plus_delta = LocalParticle_get_delta(part) + 1.0;
-    XT_NUM const A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
-    XT_NUM const pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
+    xt_num_t const one_plus_delta = LocalParticle_get_delta(part) + 1.0;
+    xt_num_t const A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
+    xt_num_t const pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
 
     // Map
-    XT_NUM const new_px = px * cos(theta) + (pz - b1 * x) * sin(theta);
+    xt_num_t const new_px = px * cos(theta) + (pz - b1 * x) * sin(theta);
 
-    XT_NUM const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
-    XT_NUM const new_x = x * cos(theta) \
+    xt_num_t const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
+    xt_num_t const new_x = x * cos(theta) \
         + (x * px * sin(2 * theta) + POW2(sin(theta)) * (2 * x * pz - b1 * POW2(x))) \
           / (new_pz + pz * cos(theta) - px * sin(theta));
-    XT_NUM const D = asin(A * px) - asin(A * new_px);
-    XT_NUM const delta_y = py * (theta + D) / b1;
-    XT_NUM const delta_ell = one_plus_delta * (theta + D) / b1;
+    xt_num_t const D = asin(A * px) - asin(A * new_px);
+    xt_num_t const delta_y = py * (theta + D) / b1;
+    xt_num_t const delta_ell = one_plus_delta * (theta + D) / b1;
 
     // Update particle coordinates
     LocalParticle_set_x(part, new_x);
@@ -83,14 +83,14 @@ void Quad_wedge_single_particle(
     const double b2 = k1 * LocalParticle_get_chi(part);
 
         // Particle coordinates
-    XT_NUM const x = LocalParticle_get_x(part);
-    XT_NUM const y = LocalParticle_get_y(part);
-    XT_NUM const px = LocalParticle_get_px(part);
-    XT_NUM const py = LocalParticle_get_py(part);
+    xt_num_t const x = LocalParticle_get_x(part);
+    xt_num_t const y = LocalParticle_get_y(part);
+    xt_num_t const px = LocalParticle_get_px(part);
+    xt_num_t const py = LocalParticle_get_py(part);
 
     // Map
-    XT_NUM const new_px = px - b2 * x*x * theta + b2 * y*y/2 * theta;
-    XT_NUM const new_py = py + b2 * x*y * theta;
+    xt_num_t const new_px = px - b2 * x*x * theta + b2 * y*y/2 * theta;
+    xt_num_t const new_py = py + b2 * x*y * theta;
 
     // Update particle coordinates
     LocalParticle_set_px(part, new_px);

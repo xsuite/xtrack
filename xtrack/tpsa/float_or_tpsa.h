@@ -12,11 +12,11 @@
 #include <new>
 #include <type_traits>
 
-// Convert a double coefficient array to a short-lived XT_NUM array. Scalar
+// Convert a double coefficient array to a short-lived xt_num_t array. Scalar
 // constructors convert each entry to a constant TPSA using the active descriptor.
 class xt_tpsa_lifted_array {
 public:
-    typedef XT_NUM value_t;
+    typedef xt_num_t value_t;
 
     xt_tpsa_lifted_array(const double* values, int64_t size)
         : storage_(NULL), data_(NULL), size_(0) {

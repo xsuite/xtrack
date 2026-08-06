@@ -27,13 +27,13 @@ void DipoleFringe_single_particle(
     const double beta0 = LocalParticle_get_beta0(part);
 
     // Particle coordinates
-    XT_NUM const x = LocalParticle_get_x(part);
-    XT_NUM const px = LocalParticle_get_px(part);
-    XT_NUM const y = LocalParticle_get_y(part);
-    XT_NUM const py = LocalParticle_get_py(part);
-    XT_NUM const t = LocalParticle_get_zeta(part) / beta0;
-    XT_NUM const pt = LocalParticle_get_ptau(part);
-    XT_NUM const delta = LocalParticle_get_delta(part);
+    xt_num_t const x = LocalParticle_get_x(part);
+    xt_num_t const px = LocalParticle_get_px(part);
+    xt_num_t const y = LocalParticle_get_y(part);
+    xt_num_t const py = LocalParticle_get_py(part);
+    xt_num_t const t = LocalParticle_get_zeta(part) / beta0;
+    xt_num_t const pt = LocalParticle_get_ptau(part);
+    xt_num_t const delta = LocalParticle_get_delta(part);
 
     const double fh = hgap * fint;
     const double fsad = (fh > 10e-10) ? 1./(72 * fh) : 0;
@@ -42,41 +42,41 @@ void DipoleFringe_single_particle(
     const double _beta = 1. / beta0 ;
     const double b0 = k0w; // MAD does something with the charge (to be checked)
 
-    XT_NUM const dpp = POW2(1. + delta);
-    XT_NUM const pz = sqrt(dpp - POW2(px) - POW2(py));
-    XT_NUM const _pz = 1./pz;
-    XT_NUM const relp = 1./sqrt(dpp);
-    XT_NUM const tfac = -(_beta + pt);
+    xt_num_t const dpp = POW2(1. + delta);
+    xt_num_t const pz = sqrt(dpp - POW2(px) - POW2(py));
+    xt_num_t const _pz = 1./pz;
+    xt_num_t const relp = 1./sqrt(dpp);
+    xt_num_t const tfac = -(_beta + pt);
 
     const double c2 = b0*fh*2;
-    XT_NUM const c3 = POW2(b0)*fsad*relp;
+    xt_num_t const c3 = POW2(b0)*fsad*relp;
 
-    XT_NUM const xp = px/pz;
-    XT_NUM const yp = py/pz;
-    XT_NUM const xyp = xp*yp;
-    XT_NUM const yp2 = 1.+POW2(yp);
-    XT_NUM const xp2 = POW2(xp);
-    XT_NUM const _yp2 = 1./yp2;
+    xt_num_t const xp = px/pz;
+    xt_num_t const yp = py/pz;
+    xt_num_t const xyp = xp*yp;
+    xt_num_t const yp2 = 1.+POW2(yp);
+    xt_num_t const xp2 = POW2(xp);
+    xt_num_t const _yp2 = 1./yp2;
 
-    XT_NUM const fi0 = atan((xp*_yp2)) - c2*(1 + xp2*(1+yp2))*_pz;
-    XT_NUM const co2 = b0/POW2(cos(fi0));
-    XT_NUM const co1 = co2/(1 + POW2(xp*_yp2))*_yp2;
-    XT_NUM const co3 = co2*c2;
+    xt_num_t const fi0 = atan((xp*_yp2)) - c2*(1 + xp2*(1+yp2))*_pz;
+    xt_num_t const co2 = b0/POW2(cos(fi0));
+    xt_num_t const co1 = co2/(1 + POW2(xp*_yp2))*_yp2;
+    xt_num_t const co3 = co2*c2;
 
-    XT_NUM const fi1 =    co1          - co3*2*xp*(1+yp2)*_pz;
-    XT_NUM const fi2 = -2*co1*xyp*_yp2 - co3*2*xp*xyp    *_pz;
-    XT_NUM const fi3 =                 + co3*(1 + xp2*(1+yp2))*POW2(_pz);
+    xt_num_t const fi1 =    co1          - co3*2*xp*(1+yp2)*_pz;
+    xt_num_t const fi2 = -2*co1*xyp*_yp2 - co3*2*xp*xyp    *_pz;
+    xt_num_t const fi3 =                 + co3*(1 + xp2*(1+yp2))*POW2(_pz);
 
-    XT_NUM const kx = fi1*(1+xp2)*_pz   + fi2*xyp*_pz       - fi3*xp;
-    XT_NUM const ky = fi1*xyp*_pz       + fi2*yp2*_pz       - fi3*yp;
-    XT_NUM const kz = fi1*tfac*xp*POW2(_pz) + fi2*tfac*yp*POW2(_pz) - fi3*tfac*_pz;
+    xt_num_t const kx = fi1*(1+xp2)*_pz   + fi2*xyp*_pz       - fi3*xp;
+    xt_num_t const ky = fi1*xyp*_pz       + fi2*yp2*_pz       - fi3*yp;
+    xt_num_t const kz = fi1*tfac*xp*POW2(_pz) + fi2*tfac*yp*POW2(_pz) - fi3*tfac*_pz;
 
-    XT_NUM const new_y = 2 * y / (1 + sqrt(1 - 2 * ky * y));
-    XT_NUM const new_x  = x  + 0.5 * kx * POW2(new_y);
-    XT_NUM const new_py = py - 4 * c3 * POW3(new_y) - b0 * tan(fi0) * new_y;
-    XT_NUM const new_t = t + 0.5 * kz * POW2(new_y) + c3 * POW4(new_y) * POW2(relp) * tfac;
+    xt_num_t const new_y = 2 * y / (1 + sqrt(1 - 2 * ky * y));
+    xt_num_t const new_x  = x  + 0.5 * kx * POW2(new_y);
+    xt_num_t const new_py = py - 4 * c3 * POW3(new_y) - b0 * tan(fi0) * new_y;
+    xt_num_t const new_t = t + 0.5 * kz * POW2(new_y) + c3 * POW4(new_y) * POW2(relp) * tfac;
 
-    XT_NUM const new_zeta = new_t * beta0;
+    xt_num_t const new_zeta = new_t * beta0;
 
     LocalParticle_set_x(part, new_x);
     LocalParticle_set_y(part, new_y);
