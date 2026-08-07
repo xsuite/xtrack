@@ -29,6 +29,7 @@ Convert `xtrack/xtrack/twiss.py` into a package:
 xtrack/xtrack/twiss/
     __init__.py
     constants.py
+    input_normalization.py
     core.py
     twiss_init.py
     twiss_table.py
@@ -100,6 +101,19 @@ Move shared constants and field lists:
 
 There is likely a small typo in `DEFAULT_COL_ORDER`: `'dy'` and `'dpx'` appear
 to be missing a comma, producing `'dydpx'`. Fix this with a focused test.
+
+### `input_normalization.py`
+
+Move small, non-numerical helpers that prepare `twiss_line(...)` inputs before
+the main computation:
+
+- `_handle_deprecated_twiss_kwargs`
+- `_apply_twiss_defaults`
+
+This keeps deprecation warning text and default-value compatibility out of the
+main orchestration path. It also makes it clearer which recursive calls still
+depend on the original `input_kwargs` payload, which is useful before replacing
+those recursive paths with explicit helpers.
 
 ### `twiss_init.py`
 
@@ -355,4 +369,6 @@ after the full package split.
 - Move `TwissInit` and `TwissTable` without changing their internals.
 - Add small helpers around deprecation handling and default assignment in
   `twiss_line`.
+- Replace the current `twiss_line` recursion gradually with explicit helper
+  phases for state preparation, range rewriting, and final result adjustment.
 - Avoid changing numerical formulas during structural refactoring.

@@ -3,8 +3,6 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from warnings import warn
-
 import numpy as np
 from scipy.constants import c as clight
 
@@ -15,12 +13,16 @@ else:
 
 import xobjects as xo
 from .. import linear_normal_form as lnf
-from ..general import _print, DEPRECATION_INFO_PREP_1_0
+from ..general import _print
 from .closed_orbit import ClosedOrbitSearchError, find_closed_orbit_line
 from .twiss_init import TwissInit, _W_phys2norm
 from .element_indexing import _str_to_index
 from .twiss_table import TwissTable
 from .transfer_matrices import _complete_steps_r_matrix_with_default
+from .input_normalization import (
+    _apply_twiss_defaults,
+    _handle_deprecated_twiss_kwargs,
+)
 from .spin import _get_spin_polarization
 from .non_linear_chromaticity import get_non_linear_chromaticity
 from .coupling_edw_teng import _get_coupling_elements_edwards_teng
@@ -368,103 +370,64 @@ def twiss_line(line, particle_ref=None, method=None,
         - `t_rev`: measured revolution period [s]
 
     """
-    if at_s is not None:
-        warn('`at_s` keyword is deprecated and will be removed in future versions. \n'
-        'The same functionality can be achieved making a shallow copy of the line '
-        '(e.g. `line_copy = line.copy(shallow=True)`), using the`line.cut_at_s(...)` '
-        ' functionality and then calling line_copy.twiss(...) on the cut line.'
-        + DEPRECATION_INFO_PREP_1_0,
-        FutureWarning)
-
-    if at_elements is not None:
-        warn('`at_elements` keyword is deprecated and will be removed in future versions. \n'
-        'The same functionality can be achieved by selecting the desired names after computing '
-        'the twiss, e.g. `line.twiss(...).rows[["ele1", "ele2", "ele3"]]`. '
-        'Regular expressions are also supported for the selection of element names, '
-        'e.g. `line.twiss(...).rows["quad.*"]`.'
-        + DEPRECATION_INFO_PREP_1_0,
-        FutureWarning)
-
-    if compute_chromatic_properties is not None:
-        warn('The `compute_chromatic_properties` keyword is deprecated and will be removed in future versions. \n'
-             'Please use `chrom` instead, which has the same behavior.'
-             + DEPRECATION_INFO_PREP_1_0,
-             FutureWarning)
-        chrom = compute_chromatic_properties
-
-    if r_sigma:
-        warn('The `r_sigma` keyword is deprecated and will be removed in future versions. \n'
-             'Please use `step_W_sigma` instead, which has the same behavior.'
-             + DEPRECATION_INFO_PREP_1_0,
-             FutureWarning)
-        step_W_sigma = r_sigma
-
-    if freeze_energy:
-        warn('The `freeze_energy` keyword is deprecated and will be removed in future versions. \n'
-             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities'
-             + DEPRECATION_INFO_PREP_1_0,
-             FutureWarning)
-
-    if freeze_longitudinal:
-        warn('The `freeze_longitudinal` keyword is deprecated and will be removed in future versions. \n'
-             'You can use twiss(method="4d", ...) to suppress the energy kick from RF cavities'
-             + DEPRECATION_INFO_PREP_1_0,
-             FutureWarning)
-
-    if polarization:
-        warn('The `polarization` keyword is deprecated and will be removed in future versions. \n'
-             'Please use `polarization_analysis` instead, which has the same behavior.'
-             + DEPRECATION_INFO_PREP_1_0,
-             FutureWarning)
-        polarization_analysis = polarization
-
-    if eneloss_and_damping:
-        warn('The `eneloss_and_damping` keyword is deprecated and will be removed in future versions. \n'
-             'Please use `radiation_analysis` instead, which has the same behavior.'
-             + DEPRECATION_INFO_PREP_1_0,
-             FutureWarning)
-        radiation_analysis = eneloss_and_damping
-
-    if steps_r_matrix is not None:
-        warn('The `steps_r_matrix` keyword is deprecated and will be removed in future versions. \n'
-             'Please use `steps_R_matrix` instead, which has the same behavior.'
-             + DEPRECATION_INFO_PREP_1_0,
-             FutureWarning)
-        steps_R_matrix = steps_r_matrix
+    (chrom, step_W_sigma, polarization_analysis, radiation_analysis,
+        steps_R_matrix) = _handle_deprecated_twiss_kwargs(
+        at_s=at_s,
+        at_elements=at_elements,
+        compute_chromatic_properties=compute_chromatic_properties,
+        r_sigma=r_sigma,
+        freeze_energy=freeze_energy,
+        freeze_longitudinal=freeze_longitudinal,
+        polarization=polarization,
+        eneloss_and_damping=eneloss_and_damping,
+        steps_r_matrix=steps_r_matrix,
+        chrom=chrom,
+        step_W_sigma=step_W_sigma,
+        polarization_analysis=polarization_analysis,
+        radiation_analysis=radiation_analysis,
+        steps_R_matrix=steps_R_matrix,
+    )
 
     input_kwargs = locals().copy()
 
-    # defaults
-    step_W_sigma=(step_W_sigma or 0.01)
-    nemitt_x=(nemitt_x or 1e-6)
-    nemitt_y=(nemitt_y or 1e-6)
-    delta_disp=(delta_disp or 1e-5)
-    delta_chrom=(delta_chrom or 5e-5)
-    zeta_disp=(zeta_disp or 1e-3)
-    zeta_shift=(zeta_shift or 0.0)
-    values_at_element_exit=(values_at_element_exit or False)
-    continue_on_closed_orbit_error=(continue_on_closed_orbit_error or False)
-    freeze_longitudinal=(freeze_longitudinal or False)
-    radiation_method=(radiation_method or None)
-    spin=(spin or False)
-    polarization_analysis=(polarization_analysis or False)
-    radiation_integrals=(radiation_integrals or False)
-    radiation_analysis=(radiation_analysis or False)
-    symplectify=(symplectify or False)
-    reverse=(reverse or False)
-    strengths=(strengths or False)
-    hide_thin_groups=(hide_thin_groups or False)
-    search_for_t_rev=(search_for_t_rev or False)
-    num_turns_search_t_rev=(num_turns_search_t_rev or None)
-    only_twiss_init=(only_twiss_init or False)
-    only_markers=(only_markers or False)
-    only_orbit=(only_orbit or False)
-    compute_R_element_by_element=(compute_R_element_by_element or False)
-    compute_lattice_functions=(compute_lattice_functions
-                        if compute_lattice_functions is not None else True)
-    chrom=(chrom if chrom is not None else None)
-    num_turns = (num_turns or 1)
-    disable_apertures = (disable_apertures if disable_apertures is not None else True)
+    (step_W_sigma, nemitt_x, nemitt_y, delta_disp, delta_chrom, zeta_disp,
+        zeta_shift, values_at_element_exit, continue_on_closed_orbit_error,
+        freeze_longitudinal, radiation_method, spin, polarization_analysis,
+        radiation_integrals, radiation_analysis, symplectify, reverse,
+        strengths, hide_thin_groups, search_for_t_rev, num_turns_search_t_rev,
+        only_twiss_init, only_markers, only_orbit, compute_R_element_by_element,
+        compute_lattice_functions, chrom, num_turns,
+        disable_apertures) = _apply_twiss_defaults(
+        step_W_sigma=step_W_sigma,
+        nemitt_x=nemitt_x,
+        nemitt_y=nemitt_y,
+        delta_disp=delta_disp,
+        delta_chrom=delta_chrom,
+        zeta_disp=zeta_disp,
+        zeta_shift=zeta_shift,
+        values_at_element_exit=values_at_element_exit,
+        continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+        freeze_longitudinal=freeze_longitudinal,
+        radiation_method=radiation_method,
+        spin=spin,
+        polarization_analysis=polarization_analysis,
+        radiation_integrals=radiation_integrals,
+        radiation_analysis=radiation_analysis,
+        symplectify=symplectify,
+        reverse=reverse,
+        strengths=strengths,
+        hide_thin_groups=hide_thin_groups,
+        search_for_t_rev=search_for_t_rev,
+        num_turns_search_t_rev=num_turns_search_t_rev,
+        only_twiss_init=only_twiss_init,
+        only_markers=only_markers,
+        only_orbit=only_orbit,
+        compute_R_element_by_element=compute_R_element_by_element,
+        compute_lattice_functions=compute_lattice_functions,
+        chrom=chrom,
+        num_turns=num_turns,
+        disable_apertures=disable_apertures,
+    )
 
     if disable_apertures:
         if not (line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE
