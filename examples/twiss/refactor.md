@@ -470,6 +470,10 @@ Already converted:
 - final base-result shaping is now isolated in helpers for metadata,
   optional reverse, measured revolution period, multiturn extension,
   `at_elements` selection, and periodic/completed-init tagging.
+- base Twiss preconditions and setup are now isolated in helpers for reverse
+  range handling, boundary init validation, matrix settings, particle-reference
+  preparation, method validation, init-mode validation, and open-Twiss momentum
+  offset validation.
 
 ### Phase 1: configuration preflight
 
@@ -592,6 +596,14 @@ or input compatibility handling. Candidate shape:
   `_select_twiss_result_at_elements(...)`, and
   `_add_periodicity_and_completed_init_to_twiss_result(...)`: extracted final
   result-shaping slices;
+- `_apply_base_twiss_reverse_range(...)`,
+  `_validate_base_twiss_boundary_init(...)`,
+  `_prepare_base_twiss_matrix_settings(...)`,
+  `_prepare_base_twiss_line_and_particle_ref(...)`,
+  `_validate_base_twiss_method(...)`,
+  `_validate_base_twiss_init_mode(...)`, and
+  `_validate_base_twiss_open_momentum_offsets(...)`: extracted precondition and
+  setup slices that should move into the eventual base Twiss engine;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 
