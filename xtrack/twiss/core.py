@@ -807,62 +807,22 @@ def twiss_line(line, particle_ref=None, method=None,
             include_collective=include_collective)
 
 
-        if radiation_analysis and not only_orbit:
-            assert 'R_matrix' in twiss_res._data
-            if method == '4d':
-                raise ValueError('method="4d" not supported for radiation_analysis=True')
-            with xt.line._preserve_config(line):
-                with xt.line._preserve_track_flags(line):
-                    line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
-                    line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
-                    _, RR, _, _, _, RR_ebe = _find_periodic_solution(
-                        line=line,
-                        particle_ref=None,
-                        method='6d',
-                        particle_on_co=twiss_res.particle_on_co,
-                        co_search_settings=None,
-                        continue_on_closed_orbit_error=None,
-                        co_guess=None,
-                        steps_R_matrix=steps_R_matrix,
-                        symplectify=False,
-                        matrix_responsiveness_tol=matrix_responsiveness_tol,
-                        matrix_stability_tol=None,
-                        start=start, end=end,
-                        nemitt_x=nemitt_x, nemitt_y=nemitt_y, step_W_sigma=step_W_sigma,
-                        delta0=None, zeta0=None, zeta_shift=zeta_shift,
-                        W_matrix=None, R_matrix=None,
-                        delta_disp=None,
-                        compute_R_element_by_element=True,
-                        only_markers=only_markers,
-                        factor_adapt_steps=0.03 # 10 times smaller than for optics
-                                                # to campture small damping effects
-                        )
-
-            eneloss_damp_res = _get_eneloss_and_damping_rates(
-                    particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
-                    W_matrix=twiss_res.W_matrix,
-                    px_co=twiss_res.px, py_co=twiss_res.py,
-                    ptau_co=twiss_res.ptau, t_rev0=twiss_res.t_rev0,
-                    line=line, radiation_method=radiation_method)
-            twiss_res._data.update(eneloss_damp_res)
-
-            for kk in ['angle_rad', 'angle', 'rot_s_rad', 'length', 'radiation_flag']:
-                if kk not in twiss_res._data:
-                    aa = line.attr[kk]
-                    twiss_res[kk] = np.concatenate([aa, [aa[0]*0]])
-
-            # Equilibrium emittances
-            if radiation_method == 'kick_as_co':
-                eq_emitts = _get_equilibrium_emittance_kick_as_co(
-                    twiss_res=twiss_res,
-                    damping_constants_turns=eneloss_damp_res['damping_constants_turns'],
-                    radiation_method=radiation_method)
-                twiss_res._data.update(eq_emitts)
-            elif radiation_method == 'full':
-                eq_emitts = _get_equilibrium_emittance_full(twiss_res=twiss_res,
-                            R_matrix_ebe=RR_ebe,
-                            radiation_method=radiation_method)
-                twiss_res._data.update(eq_emitts)
+        _add_radiation_analysis_to_twiss_result(
+            line=line,
+            twiss_res=twiss_res,
+            radiation_analysis=radiation_analysis,
+            only_orbit=only_orbit,
+            method=method,
+            steps_R_matrix=steps_R_matrix,
+            matrix_responsiveness_tol=matrix_responsiveness_tol,
+            start=start,
+            end=end,
+            nemitt_x=nemitt_x,
+            nemitt_y=nemitt_y,
+            step_W_sigma=step_W_sigma,
+            zeta_shift=zeta_shift,
+            only_markers=only_markers,
+            radiation_method=radiation_method)
 
         if method == '4d' and 'muzeta' in twiss_res._data:
             twiss_res.muzeta[:] = 0
@@ -1382,6 +1342,74 @@ def _add_chromatic_functions_to_twiss_result(
     twiss_res._data.update(cols_chrom)
     twiss_res._data.update(scalars_chrom)
     twiss_res._col_names += list(cols_chrom.keys())
+
+
+def _add_radiation_analysis_to_twiss_result(
+        line, twiss_res, radiation_analysis, only_orbit, method,
+        steps_R_matrix, matrix_responsiveness_tol, start, end, nemitt_x,
+        nemitt_y, step_W_sigma, zeta_shift, only_markers, radiation_method):
+
+    if not radiation_analysis or only_orbit:
+        return
+
+    assert 'R_matrix' in twiss_res._data
+    if method == '4d':
+        raise ValueError('method="4d" not supported for radiation_analysis=True')
+
+    with xt.line._preserve_config(line):
+        with xt.line._preserve_track_flags(line):
+            line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
+            line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
+            _, RR, _, _, _, RR_ebe = _find_periodic_solution(
+                line=line,
+                particle_ref=None,
+                method='6d',
+                particle_on_co=twiss_res.particle_on_co,
+                co_search_settings=None,
+                continue_on_closed_orbit_error=None,
+                co_guess=None,
+                steps_R_matrix=steps_R_matrix,
+                symplectify=False,
+                matrix_responsiveness_tol=matrix_responsiveness_tol,
+                matrix_stability_tol=None,
+                start=start, end=end,
+                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                step_W_sigma=step_W_sigma,
+                delta0=None, zeta0=None, zeta_shift=zeta_shift,
+                W_matrix=None, R_matrix=None,
+                delta_disp=None,
+                compute_R_element_by_element=True,
+                only_markers=only_markers,
+                factor_adapt_steps=0.03 # 10 times smaller than for optics
+                                        # to campture small damping effects
+                )
+
+    eneloss_damp_res = _get_eneloss_and_damping_rates(
+            particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
+            W_matrix=twiss_res.W_matrix,
+            px_co=twiss_res.px, py_co=twiss_res.py,
+            ptau_co=twiss_res.ptau, t_rev0=twiss_res.t_rev0,
+            line=line, radiation_method=radiation_method)
+    twiss_res._data.update(eneloss_damp_res)
+
+    for kk in ['angle_rad', 'angle', 'rot_s_rad', 'length', 'radiation_flag']:
+        if kk not in twiss_res._data:
+            aa = line.attr[kk]
+            twiss_res[kk] = np.concatenate([aa, [aa[0]*0]])
+
+    # Equilibrium emittances
+    if radiation_method == 'kick_as_co':
+        eq_emitts = _get_equilibrium_emittance_kick_as_co(
+            twiss_res=twiss_res,
+            damping_constants_turns=eneloss_damp_res['damping_constants_turns'],
+            radiation_method=radiation_method)
+        twiss_res._data.update(eq_emitts)
+    elif radiation_method == 'full':
+        eq_emitts = _get_equilibrium_emittance_full(
+            twiss_res=twiss_res,
+            R_matrix_ebe=RR_ebe,
+            radiation_method=radiation_method)
+        twiss_res._data.update(eq_emitts)
 
 
 def _align_open_twiss_phases_with_init(twiss_res, init, reverse):

@@ -458,6 +458,8 @@ Already converted:
   `_align_open_twiss_phases_with_init`.
 - first-order chromatic Twiss result enrichment is now isolated in
   `_add_chromatic_functions_to_twiss_result`.
+- radiation-analysis Twiss result enrichment is now isolated in
+  `_add_radiation_analysis_to_twiss_result`.
 
 ### Phase 1: configuration preflight
 
@@ -564,6 +566,9 @@ or input compatibility handling. Candidate shape:
   reverse handling;
 - `_add_chromatic_functions_to_twiss_result(...)`: extracted optional
   enrichment slice, covering first-order chromatic columns and scalars;
+- `_add_radiation_analysis_to_twiss_result(...)`: extracted optional enrichment
+  slice, covering damping, energy loss, radiation columns, and equilibrium
+  emittance updates;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 
