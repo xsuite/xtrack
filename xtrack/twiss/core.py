@@ -849,13 +849,14 @@ def twiss_line(line, particle_ref=None, method=None,
             periodic=periodic,
             reverse=reverse)
 
-        twiss_res._data['method'] = method
-        twiss_res._data['radiation_method'] = radiation_method
-        twiss_res._data['reference_frame'] = 'proper'
-        twiss_res._data['line_config'] = dict(line.config.copy())
+        _add_base_twiss_metadata(
+            line=line,
+            twiss_res=twiss_res,
+            method=method,
+            radiation_method=radiation_method)
 
-        if reverse:
-            twiss_res = twiss_res.reverse()
+        twiss_res = _reverse_twiss_result_if_needed(
+            twiss_res=twiss_res, reverse=reverse)
 
         # twiss_res.mux += init.mux - twiss_res.mux[0]
         # twiss_res.muy += init.muy - twiss_res.muy[0]
@@ -866,36 +867,22 @@ def twiss_line(line, particle_ref=None, method=None,
             _align_open_twiss_phases_with_init(
                 twiss_res=twiss_res, init=init, reverse=reverse)
 
-        if search_for_t_rev:
-            # Recompute t_rev0 to support case with only_orbit=True
-            line_length = twiss_res.s[-1]
-            beta0 = twiss_res.particle_on_co.beta0[0]
-            t_rev_0 = line_length/clight/beta0
-            twiss_res._data['t_rev'] = t_rev_0 - (
-                twiss_res.zeta[-1] - twiss_res.zeta[0])/(beta0*clight)
-            twiss_res._data['T_rev'] = twiss_res._data['t_rev'] # deprecated
+        _add_measured_revolution_period_if_requested(
+            twiss_res=twiss_res, search_for_t_rev=search_for_t_rev)
 
         if num_turns > 1:
 
             kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            kwargs.pop('num_turns')
-            kwargs.pop('init')
-            kwargs.pop('start')
-            kwargs.pop('end')
+            twiss_res = _extend_twiss_result_to_multiple_turns(
+                twiss_res=twiss_res, num_turns=num_turns, kwargs=kwargs)
 
-            tw_mt = _multiturn_twiss(tw0=twiss_res, num_turns=num_turns,
-                                     kwargs=kwargs)
-            tw_mt._data['_tw0'] = twiss_res
-            twiss_res = tw_mt
+        twiss_res = _select_twiss_result_at_elements(
+            twiss_res=twiss_res, at_elements=at_elements)
 
-        if at_elements is not None:
-            twiss_res = twiss_res.rows[at_elements]
-
-        twiss_res['periodic'] = periodic
-        twiss_res['completed_init'] = completed_init
-
-        # Sort col names
-        twiss_res._sort_col_names()
+        _add_periodicity_and_completed_init_to_twiss_result(
+            twiss_res=twiss_res,
+            periodic=periodic,
+            completed_init=completed_init)
 
         return _finalize_twiss_result(twiss_res, input_kwargs, zero_at=zero_at_requested)
 
@@ -1453,6 +1440,65 @@ def _add_edwards_teng_coupling_to_twiss_result(
     )
     for kk in coupling_result:
         twiss_res[kk] = coupling_result[kk]
+
+
+def _add_base_twiss_metadata(line, twiss_res, method, radiation_method):
+
+    twiss_res._data['method'] = method
+    twiss_res._data['radiation_method'] = radiation_method
+    twiss_res._data['reference_frame'] = 'proper'
+    twiss_res._data['line_config'] = dict(line.config.copy())
+
+
+def _reverse_twiss_result_if_needed(twiss_res, reverse):
+
+    if reverse:
+        return twiss_res.reverse()
+
+    return twiss_res
+
+
+def _add_measured_revolution_period_if_requested(twiss_res, search_for_t_rev):
+
+    if not search_for_t_rev:
+        return
+
+    # Recompute t_rev0 to support case with only_orbit=True
+    line_length = twiss_res.s[-1]
+    beta0 = twiss_res.particle_on_co.beta0[0]
+    t_rev_0 = line_length/clight/beta0
+    twiss_res._data['t_rev'] = t_rev_0 - (
+        twiss_res.zeta[-1] - twiss_res.zeta[0])/(beta0*clight)
+    twiss_res._data['T_rev'] = twiss_res._data['t_rev'] # deprecated
+
+
+def _extend_twiss_result_to_multiple_turns(twiss_res, num_turns, kwargs):
+
+    kwargs.pop('num_turns')
+    kwargs.pop('init')
+    kwargs.pop('start')
+    kwargs.pop('end')
+
+    tw_mt = _multiturn_twiss(tw0=twiss_res, num_turns=num_turns,
+                             kwargs=kwargs)
+    tw_mt._data['_tw0'] = twiss_res
+    return tw_mt
+
+
+def _select_twiss_result_at_elements(twiss_res, at_elements):
+
+    if at_elements is not None:
+        return twiss_res.rows[at_elements]
+
+    return twiss_res
+
+
+def _add_periodicity_and_completed_init_to_twiss_result(
+        twiss_res, periodic, completed_init):
+
+    twiss_res['periodic'] = periodic
+    twiss_res['completed_init'] = completed_init
+    twiss_res._sort_col_names()
 
 
 def _align_open_twiss_phases_with_init(twiss_res, init, reverse):

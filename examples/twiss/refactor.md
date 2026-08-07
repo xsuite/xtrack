@@ -467,6 +467,9 @@ Already converted:
 - spin polarization and Edwards-Teng coupling result enrichment are now isolated
   in `_add_spin_polarization_to_twiss_result` and
   `_add_edwards_teng_coupling_to_twiss_result`.
+- final base-result shaping is now isolated in helpers for metadata,
+  optional reverse, measured revolution period, multiturn extension,
+  `at_elements` selection, and periodic/completed-init tagging.
 
 ### Phase 1: configuration preflight
 
@@ -583,6 +586,12 @@ or input compatibility handling. Candidate shape:
 - `_add_spin_polarization_to_twiss_result(...)` and
   `_add_edwards_teng_coupling_to_twiss_result(...)`: extracted optional physics
   enrichment slices;
+- `_add_base_twiss_metadata(...)`, `_reverse_twiss_result_if_needed(...)`,
+  `_add_measured_revolution_period_if_requested(...)`,
+  `_extend_twiss_result_to_multiple_turns(...)`,
+  `_select_twiss_result_at_elements(...)`, and
+  `_add_periodicity_and_completed_init_to_twiss_result(...)`: extracted final
+  result-shaping slices;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 
