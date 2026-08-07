@@ -431,6 +431,9 @@ Already converted:
   `_line_start_element_name`.
 - the early input-rewrite branches for start-only and `init="full_periodic"`
   now share a single finalization return instead of finalizing separately.
+- the early input-rewrite branches now run after the flag/config preflight, so
+  freeze, cavity, radiation, aperture, and temporary-marker setup happen before
+  composed segment computation.
 - the later range-composition branches for loop-around and init-inside-range now
   share a single finalization return instead of finalizing separately.
 
