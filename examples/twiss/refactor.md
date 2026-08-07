@@ -460,6 +460,10 @@ Already converted:
   `_add_chromatic_functions_to_twiss_result`.
 - radiation-analysis Twiss result enrichment is now isolated in
   `_add_radiation_analysis_to_twiss_result`.
+- small result-convention and table-enrichment steps are now isolated in
+  `_apply_4d_longitudinal_result_convention`,
+  `_set_twiss_result_values_at`, and
+  `_add_strengths_and_radiation_integrals_to_twiss_result`.
 
 ### Phase 1: configuration preflight
 
@@ -569,6 +573,10 @@ or input compatibility handling. Candidate shape:
 - `_add_radiation_analysis_to_twiss_result(...)`: extracted optional enrichment
   slice, covering damping, energy loss, radiation columns, and equilibrium
   emittance updates;
+- `_apply_4d_longitudinal_result_convention(...)`,
+  `_set_twiss_result_values_at(...)`, and
+  `_add_strengths_and_radiation_integrals_to_twiss_result(...)`: extracted
+  result-convention and table-enrichment slices;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 

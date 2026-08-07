@@ -824,27 +824,18 @@ def twiss_line(line, particle_ref=None, method=None,
             only_markers=only_markers,
             radiation_method=radiation_method)
 
-        if method == '4d' and 'muzeta' in twiss_res._data:
-            twiss_res.muzeta[:] = 0
-            if 'qs' in twiss_res._data:
-                twiss_res._data['qs'] = 0
+        _apply_4d_longitudinal_result_convention(
+            twiss_res=twiss_res, method=method)
 
-        if values_at_element_exit:
-            raise NotImplementedError
-            # Untested
-            name_exit = twiss_res.name[:-1]
-            #twiss_res = twiss_res.rows[1:]
-            twiss_res = twiss_res._select_rows(slice(1,None,None))
-            twiss_res['name'][:] = name_exit
-            twiss_res._data['values_at'] = 'exit'
-        else:
-            twiss_res._data['values_at'] = 'entry'
+        twiss_res = _set_twiss_result_values_at(
+            twiss_res=twiss_res,
+            values_at_element_exit=values_at_element_exit)
 
-        if strengths or radiation_integrals:
-            _add_strengths_to_twiss_res(twiss_res, line)
-
-        if radiation_integrals:
-            twiss_res._get_radiation_integrals(add_to_tw=True)
+        _add_strengths_and_radiation_integrals_to_twiss_result(
+            line=line,
+            twiss_res=twiss_res,
+            strengths=strengths,
+            radiation_integrals=radiation_integrals)
 
         if polarization_analysis:
             _get_spin_polarization(twiss_res, line, method)
@@ -1410,6 +1401,40 @@ def _add_radiation_analysis_to_twiss_result(
             R_matrix_ebe=RR_ebe,
             radiation_method=radiation_method)
         twiss_res._data.update(eq_emitts)
+
+
+def _apply_4d_longitudinal_result_convention(twiss_res, method):
+
+    if method == '4d' and 'muzeta' in twiss_res._data:
+        twiss_res.muzeta[:] = 0
+        if 'qs' in twiss_res._data:
+            twiss_res._data['qs'] = 0
+
+
+def _set_twiss_result_values_at(twiss_res, values_at_element_exit):
+
+    if values_at_element_exit:
+        raise NotImplementedError
+        # Untested
+        name_exit = twiss_res.name[:-1]
+        #twiss_res = twiss_res.rows[1:]
+        twiss_res = twiss_res._select_rows(slice(1,None,None))
+        twiss_res['name'][:] = name_exit
+        twiss_res._data['values_at'] = 'exit'
+    else:
+        twiss_res._data['values_at'] = 'entry'
+
+    return twiss_res
+
+
+def _add_strengths_and_radiation_integrals_to_twiss_result(
+        line, twiss_res, strengths, radiation_integrals):
+
+    if strengths or radiation_integrals:
+        _add_strengths_to_twiss_res(twiss_res, line)
+
+    if radiation_integrals:
+        twiss_res._get_radiation_integrals(add_to_tw=True)
 
 
 def _align_open_twiss_phases_with_init(twiss_res, init, reverse):
