@@ -624,25 +624,27 @@ def twiss_line(line, particle_ref=None, method=None,
         ddx=None; ddpx=None; ddy=None; ddpy=None
         spin_x=None; spin_y=None; spin_z=None
 
+        composed_twiss_res = None
+
         # Twiss goes through the start of the line
         rv = (-1 if reverse else 1)
         if not periodic and (
             rv * _str_to_index(line, start) > rv * _str_to_index(line, end)):
 
             kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            tw_res = _handle_loop_around(kwargs)
-
-            return _finalize_twiss_result(tw_res, input_kwargs, zero_at=zero_at_requested)
+            composed_twiss_res = _handle_loop_around(kwargs)
 
         # init is not at the boundary
-        if (not periodic and not isinstance(init, str)
+        elif (not periodic and not isinstance(init, str)
                 and init.element_name != start
                 and init.element_name != end):
 
             kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            tw_res = _handle_init_inside_range(kwargs)
+            composed_twiss_res = _handle_init_inside_range(kwargs)
 
-            return _finalize_twiss_result(tw_res, input_kwargs, zero_at=zero_at_requested)
+        if composed_twiss_res is not None:
+            return _finalize_twiss_result(
+                composed_twiss_res, input_kwargs, zero_at=zero_at_requested)
 
         if reverse:
             if start is not None and end is not None:

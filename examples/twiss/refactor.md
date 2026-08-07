@@ -431,6 +431,8 @@ Already converted:
   `_line_start_element_name`.
 - the early input-rewrite branches for start-only and `init="full_periodic"`
   now share a single finalization return instead of finalizing separately.
+- the later range-composition branches for loop-around and init-inside-range now
+  share a single finalization return instead of finalizing separately.
 
 ### Phase 1: configuration preflight
 
