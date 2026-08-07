@@ -1218,18 +1218,29 @@ def _compute_one_turn_twiss_from_start(kwargs, line, start, init, betx, bety):
     kwargs.pop('start')
 
     if (init is None or init == 'periodic') and betx is None and bety is None:
-        # Periodic twiss
-        tw = twiss_line(**kwargs)
-        t1 = tw.rows[start:]
-        t2 = tw.rows[:start]
-        out = xt.TwissTable.concatenate([t1, t2])
-        out.zero_at(out.name[0])
-        out.name[-1] = '_end_point'
-        out['periodic'] = True
-        out['completed_init'] = tw.completed_init
-        return out
+        return _compute_periodic_one_turn_twiss_from_start(
+            kwargs=kwargs, start=start)
 
-    # Initial conditions are given -> open twiss
+    return _compute_open_one_turn_twiss_from_start(
+        kwargs=kwargs, line=line, start=start)
+
+
+def _compute_periodic_one_turn_twiss_from_start(kwargs, start):
+
+    tw = twiss_line(**kwargs)
+    t1 = tw.rows[start:]
+    t2 = tw.rows[:start]
+    out = xt.TwissTable.concatenate([t1, t2])
+    out.zero_at(out.name[0])
+    out.name[-1] = '_end_point'
+    out['periodic'] = True
+    out['completed_init'] = tw.completed_init
+    return out
+
+
+def _compute_open_one_turn_twiss_from_start(kwargs, line, start):
+
+    kwargs = kwargs.copy()
     kwargs.pop('end')
     t1o = twiss_line(start=start, end=xt.END, **kwargs)
     init_part2 = t1o.get_twiss_init('_end_point')
