@@ -21,7 +21,6 @@ from .constants import (
 )
 from .core import (
     ClosedOrbitSearchError,
-    TwissInit,
     TwissTable,
     compute_R_matrix,
     compute_T_matrix_line,
@@ -31,6 +30,7 @@ from .core import (
     get_non_linear_chromaticity,
     twiss_line,
 )
+from .init import TwissInit
 
 for _public_obj in (
     ClosedOrbitSearchError,
