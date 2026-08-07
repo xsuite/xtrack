@@ -39,7 +39,7 @@ xtrack/xtrack/twiss/
     non_linear_chromaticity.py
     radiation.py
     spin.py
-    coupling.py
+    coupling_edw_teng.py
     strengths.py
 ```
 
@@ -234,7 +234,7 @@ Move:
 Spin depends on radiation-integral quantities for polarization analysis, so
 expect imports from `radiation.py` or clear call ordering from `core.py`.
 
-### `coupling.py`
+### `coupling_edw_teng.py`
 
 Move:
 
@@ -245,7 +245,8 @@ Move:
 - `_edwards_teng_from_one_turn_at_all_locations`
 - `_propagate_edwards_teng`
 
-This keeps Edwards-Teng and coupling-related logic together.
+This keeps Edwards-Teng coupling logic together without implying it covers all
+coupling formalisms.
 
 ### `strengths.py`
 
@@ -303,7 +304,7 @@ change.
 7. Extract `transfer_matrices.py`.
 8. Extract `closed_orbit.py`.
 9. Extract `spin.py`.
-10. Extract `non_linear_chromaticity.py`, `radiation.py`, `coupling.py`, and
+10. Extract `non_linear_chromaticity.py`, `radiation.py`, `coupling_edw_teng.py`, and
    `strengths.py`.
 11. Refactor `twiss_line` into smaller orchestration helpers.
 
