@@ -21,12 +21,12 @@ from .constants import (
 )
 from .core import (
     ClosedOrbitSearchError,
-    TwissTable,
     find_closed_orbit_line,
     get_non_linear_chromaticity,
     twiss_line,
 )
-from .init import TwissInit
+from .twiss_init import TwissInit
+from .twiss_table import TwissTable
 from .transfer_matrices import (
     compute_R_matrix,
     compute_T_matrix_line,

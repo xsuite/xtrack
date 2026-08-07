@@ -30,10 +30,12 @@ xtrack/xtrack/twiss/
     __init__.py
     constants.py
     core.py
-    init.py
-    table.py
+    twiss_init.py
+    twiss_table.py
+    beam_covariance.py
     orbit.py
-    matrix.py
+    transfer_matrices.py
+    trajectory_curvatures.py
     chromatic.py
     radiation.py
     spin.py
@@ -49,10 +51,10 @@ Example public facade:
 
 ```python
 from .core import twiss_line
-from .init import TwissInit
-from .table import TwissTable
+from .twiss_init import TwissInit
+from .twiss_table import TwissTable
 from .orbit import ClosedOrbitSearchError, find_closed_orbit_line
-from .matrix import (
+from .transfer_matrices import (
     compute_R_matrix,
     compute_T_matrix_line,
     get_R_matrix,
@@ -99,7 +101,7 @@ Move shared constants and field lists:
 There is likely a small typo in `DEFAULT_COL_ORDER`: `'dy'` and `'dpx'` appear
 to be missing a comma, producing `'dydpx'`. Fix this with a focused test.
 
-### `init.py`
+### `twiss_init.py`
 
 Move:
 
@@ -112,7 +114,7 @@ Move:
 This isolates initial-condition construction, reference-frame handling, and
 normal-coordinate conversion.
 
-### `table.py`
+### `twiss_table.py`
 
 Move:
 
@@ -139,7 +141,7 @@ Move:
 
 This separates closed-orbit search from Twiss table construction.
 
-### `matrix.py`
+### `transfer_matrices.py`
 
 Move:
 
@@ -183,6 +185,26 @@ Move:
 This is a coherent physics feature and can be extracted after `core.py` is
 stable.
 
+### `trajectory_curvatures.py`
+
+Move:
+
+- `_get_trajectory_curvatures`
+
+This helper is currently used by radiation-integral calculations and by
+`TwissTable` methods that expose trajectory-curvature columns. Keeping it in a
+specific module avoids a vague `trajectory.py` bucket.
+
+### `beam_covariance.py`
+
+Move:
+
+- `_build_sigma_table`
+
+This keeps beam covariance table construction out of both `core.py` and
+`twiss_table.py`, while preserving the existing `TwissTable.get_beam_covariance`
+API.
+
 ### `radiation.py`
 
 Move:
@@ -192,7 +214,6 @@ Move:
 - `_get_equilibrium_emittance_kick_as_co`
 - `_get_equilibrium_emittance_full`
 - radiation-integral helper code
-- `_get_trajectory_curvatures`
 
 Radiation is relatively specialized and has many optional output fields, so it
 should be isolated from core Twiss flow.
@@ -272,9 +293,9 @@ change.
    for example `from .table import Table` becomes `from ..table import Table`.
 3. Run a minimal import check and a focused Twiss test.
 4. Extract `constants.py`.
-5. Extract `init.py`.
-6. Extract `table.py`.
-7. Extract `matrix.py`.
+5. Extract `twiss_init.py`.
+6. Extract `twiss_table.py`.
+7. Extract `transfer_matrices.py`.
 8. Extract `orbit.py`.
 9. Extract `chromatic.py`, `radiation.py`, `spin.py`, `coupling.py`, and
    `strengths.py`.
