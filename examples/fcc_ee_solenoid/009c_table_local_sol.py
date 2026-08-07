@@ -8,10 +8,16 @@ B0 = 3.
 sol_half_length = 1.3
 r0_local = 0.13
 
+# B0_local_list = np.array([0.0001, 0.2, 0.4, 0.6, 0.8,
+#                           1.0, 1.2, 1.4, 1.6, 1.8, 2.0,
+#                           2.2, 2.4, 2.6, 2.8, 3.0])
+# l_local_list = np.array([0.4, 0.6, 0.8])
+
 B0_local_list = np.array([0.0001, 0.2, 0.4, 0.6, 0.8,
                           1.0, 1.2, 1.4, 1.6, 1.8, 2.0,
-                          2.2, 2.4, 2.6, 2.8, 3.0])
-l_local_list = np.array([0.4, 0.6, 0.8])
+                          2.2, 2.4, 2.6, 2.8, 3.0,
+                          3.2, 3.4, 3.6])
+l_local_list = np.array([0.6])
 
 cols = {str(ll): 0*B0_local_list for ll in l_local_list}
 cols['B0_local'] = np.array(list(map(str, B0_local_list)))

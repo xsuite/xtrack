@@ -31,9 +31,9 @@ ds_end = 2.29
 B0 = 3 # T
 r0 = 0.13
 
-B0_local = -3 # T
+B0_local = -3.2 # T
 r0_local = 0.13
-l_local = 0.4
+l_local = 0.6
 
 for ip_name in ip_names:
 
