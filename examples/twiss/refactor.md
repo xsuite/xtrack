@@ -410,8 +410,9 @@ Already converted:
 - `start is not None and end is None`: now delegates the one-turn table
   composition to `_compute_one_turn_twiss_from_start`, which dispatches to
   explicit periodic and open one-turn helpers.
-- `init == "full_periodic"` with a range: now delegates the auxiliary full-line
-  Twiss and range Twiss composition to `_compute_range_from_full_periodic_init`.
+- `init == "full_periodic"` with a range: now separates full-periodic init
+  extraction (`_get_twiss_init_from_full_periodic`) from the requested range
+  segment computation.
 - loop-around open ranges: `_handle_loop_around` now delegates direction-specific
   segment construction to `_compute_forward_loop_around_twiss_part` or
   `_compute_reverse_loop_around_twiss_part`, then combines and re-aligns the
@@ -469,10 +470,10 @@ Convert branches that rewrite the requested range or initialization:
   `_compute_open_one_turn_twiss_from_start` helpers; the helper paths now call
   `_compute_twiss_segment`, which still delegates to `twiss_line` until the
   normalized segment engine is extracted.
-- `init == "full_periodic"` with a range. The branch is isolated in
-  `_compute_range_from_full_periodic_init`; it now calls `_compute_twiss_segment`,
-  which still delegates to `twiss_line` until the normalized segment engine is
-  extracted.
+- `init == "full_periodic"` with a range. The branch now prepares full-periodic
+  kwargs with `_prepare_kwargs_for_full_periodic_twiss`, extracts the init with
+  `_get_twiss_init_from_full_periodic`, then calls `_compute_twiss_segment` for
+  the requested range.
 
 These still need auxiliary Twiss computations, but those computations should be
 named explicitly instead of expressed as top-level recursion. Candidate helpers:
@@ -480,7 +481,8 @@ named explicitly instead of expressed as top-level recursion. Candidate helpers:
 - `_compute_one_turn_twiss_from_start(...)`
 - `_compute_periodic_one_turn_twiss_from_start(...)`
 - `_compute_open_one_turn_twiss_from_start(...)`
-- `_compute_range_from_full_periodic_init(...)`
+- `_prepare_kwargs_for_full_periodic_twiss(...)`
+- `_get_twiss_init_from_full_periodic(...)`
 
 These helpers now call `_compute_twiss_segment`. During the intermediate refactor
 that helper delegates to `twiss_line`, but the target shape is to implement it as

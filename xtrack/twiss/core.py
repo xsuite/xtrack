@@ -500,11 +500,14 @@ def twiss_line(line, particle_ref=None, method=None,
             )
         elif init == 'full_periodic' and (start is not None or end is not None):
             kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            composed_twiss_res = _compute_range_from_full_periodic_init(
-                kwargs=kwargs,
+            kwargs = _prepare_kwargs_for_full_periodic_twiss(kwargs)
+            init_from_full_periodic = _get_twiss_init_from_full_periodic(
+                kwargs=kwargs, start=start, init_at=init_at)
+            composed_twiss_res = _compute_twiss_segment(
+                kwargs,
                 start=start,
                 end=end,
-                init_at=init_at,
+                init=init_from_full_periodic,
             )
             if zero_at_requested is None:
                 composed_twiss_res.zero_at(start)
@@ -1221,7 +1224,7 @@ def _compute_twiss_segment(kwargs, **overrides):
     return twiss_line(**segment_kwargs)
 
 
-def _compute_range_from_full_periodic_init(kwargs, start, end, init_at):
+def _prepare_kwargs_for_full_periodic_twiss(kwargs):
 
     kwargs = kwargs.copy()
     kwargs.pop('init')
@@ -1229,10 +1232,14 @@ def _compute_range_from_full_periodic_init(kwargs, start, end, init_at):
     kwargs.pop('end')
     kwargs.pop('init_at')
 
-    tw = _compute_twiss_segment(kwargs) # Periodic twiss of the full line
-    init = tw.get_twiss_init(init_at or start)
+    return kwargs
 
-    return _compute_twiss_segment(kwargs, start=start, end=end, init=init)
+
+def _get_twiss_init_from_full_periodic(kwargs, start, init_at):
+
+    tw = _compute_twiss_segment(kwargs) # Periodic twiss of the full line
+
+    return tw.get_twiss_init(init_at or start)
 
 
 def _compute_one_turn_twiss_from_start(kwargs, line, start, init, betx, bety):
