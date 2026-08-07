@@ -43,6 +43,7 @@ plt.plot(B0_local_list, tt[str(l_plot)]*1e12)
 plt.xlabel(r'$B_\text{local}$ [T]')
 plt.ylabel('Vertical emittance [pm]')
 plt.suptitle(f'l_local = {l_plot}')
+plt.ylim(0.4, None)
 plt.show()
 
 # All curves
@@ -51,6 +52,7 @@ for ll in l_local_list:
     plt.plot(B0_local_list, tt[str(ll)]*1e12, label=f'l_local = {ll}')
 plt.xlabel(r'$B_\text{local}$ [T]')
 plt.ylabel('Vertical emittance [pm]')
+plt.ylim(0.4, None)
 plt.legend()
 
 plt.show()
