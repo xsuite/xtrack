@@ -408,6 +408,10 @@ Already converted:
   composition to `_compute_one_turn_twiss_from_start`.
 - `init == "full_periodic"` with a range: now delegates the auxiliary full-line
   Twiss and range Twiss composition to `_compute_range_from_full_periodic_init`.
+- loop-around open ranges: `_handle_loop_around` now delegates direction-specific
+  segment construction to `_compute_forward_loop_around_twiss_part` or
+  `_compute_reverse_loop_around_twiss_part`, then combines and re-aligns the
+  result in `_combine_loop_around_twiss_tables`.
 
 ### Phase 1: configuration preflight
 
@@ -469,7 +473,9 @@ composition behavior obvious. Test with:
 The remaining recursive helpers intentionally compute and concatenate multiple
 Twiss segments:
 
-- `_handle_loop_around`
+- `_handle_loop_around`. The branch is split into direction-specific segment
+  construction helpers and a table-combination helper; a later lower-level
+  segment engine can remove the internal `twiss_line` calls.
 - `_handle_init_inside_range`
 - `_multiturn_twiss`
 

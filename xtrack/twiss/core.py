@@ -993,55 +993,82 @@ def _handle_loop_around(kwargs):
     line = kwargs['line']
     reverse = kwargs['reverse']
 
-    ele_name_init = init.element_name
-
     # if reversed, elements in the line are sorted opposite to the twiss table
     if not reverse:
-        assert _str_to_index(line, end) < _str_to_index(line, start), (
-            'This function should not have been called')
-        if _str_to_index(line, ele_name_init) >= _str_to_index(line, start):
-            tw1 = twiss_line(start=start,
-                            end='_end_point',
-                            init=init, **kwargs)
-            twini_2 = tw1.get_twiss_init(at_element='_end_point')
-            twini_2.element_name = line._element_names_unique[0]
-            tw2 = twiss_line(start=line._element_names_unique[0], end=end,
-                                    init=twini_2, **kwargs)
-            completed_init = tw1.completed_init
-        elif _str_to_index(line, ele_name_init) <= _str_to_index(line, end):
-            tw2 = twiss_line(start=line._element_names_unique[0], end=end,
-                                init=init, **kwargs)
-            twini_1 = tw2.get_twiss_init(at_element=line._element_names_unique[0])
-            twini_1.element_name = '_end_point'
-            tw1 = twiss_line(start=start, end='_end_point',
-                                init=twini_1, **kwargs)
-            completed_init = tw2.completed_init
-        else:
-            raise RuntimeError(
-                'Boundary conditions not at start or end of the specified range')
+        tw1, tw2, completed_init = _compute_forward_loop_around_twiss_part(
+            kwargs=kwargs, line=line, start=start, end=end, init=init)
     else: # reversed
-        assert _str_to_index(line, end) > _str_to_index(line, start), (
-            'This function should not have been called')
-        if _str_to_index(line, ele_name_init) <= _str_to_index(line, start):
-            tw1 = twiss_line(start=start,
-                            end=line._element_names_unique[0],
-                            init=init, **kwargs)
-            twini_2 = tw1.get_twiss_init(at_element='_end_point')
-            twini_2.element_name = line._element_names_unique[-1]
-            tw2 = twiss_line(start=line._element_names_unique[-1], end=end,
-                                    init=twini_2, **kwargs)
-            completed_init = tw1.completed_init
-        elif _str_to_index(line, ele_name_init) >= _str_to_index(line, end):
-            tw2 = twiss_line(start=line._element_names_unique[-1], end=end,
-                                init=init, **kwargs)
-            twini_1 = tw2.get_twiss_init(at_element=line._element_names_unique[-1])
-            twini_1.element_name = line._element_names_unique[0]
-            tw1 = twiss_line(start=start, end=line._element_names_unique[0],
-                                init=twini_1, **kwargs)
-            completed_init = tw2.completed_init
-        else:
-            raise RuntimeError(
-                'Boundary conditions not at start or end of the specified range')
+        tw1, tw2, completed_init = _compute_reverse_loop_around_twiss_part(
+            kwargs=kwargs, line=line, start=start, end=end, init=init)
+
+    return _combine_loop_around_twiss_tables(tw1, tw2, init, completed_init)
+
+
+def _compute_forward_loop_around_twiss_part(kwargs, line, start, end, init):
+
+    ele_name_init = init.element_name
+
+    assert _str_to_index(line, end) < _str_to_index(line, start), (
+        'This function should not have been called')
+    if _str_to_index(line, ele_name_init) >= _str_to_index(line, start):
+        tw1 = twiss_line(
+            start=start, end='_end_point', init=init, **kwargs)
+        twini_2 = tw1.get_twiss_init(at_element='_end_point')
+        twini_2.element_name = line._element_names_unique[0]
+        tw2 = twiss_line(
+            start=line._element_names_unique[0], end=end,
+            init=twini_2, **kwargs)
+        completed_init = tw1.completed_init
+    elif _str_to_index(line, ele_name_init) <= _str_to_index(line, end):
+        tw2 = twiss_line(
+            start=line._element_names_unique[0], end=end, init=init, **kwargs)
+        twini_1 = tw2.get_twiss_init(at_element=line._element_names_unique[0])
+        twini_1.element_name = '_end_point'
+        tw1 = twiss_line(
+            start=start, end='_end_point', init=twini_1, **kwargs)
+        completed_init = tw2.completed_init
+    else:
+        raise RuntimeError(
+            'Boundary conditions not at start or end of the specified range')
+
+    return tw1, tw2, completed_init
+
+
+def _compute_reverse_loop_around_twiss_part(kwargs, line, start, end, init):
+
+    ele_name_init = init.element_name
+
+    assert _str_to_index(line, end) > _str_to_index(line, start), (
+        'This function should not have been called')
+    if _str_to_index(line, ele_name_init) <= _str_to_index(line, start):
+        tw1 = twiss_line(
+            start=start, end=line._element_names_unique[0], init=init,
+            **kwargs)
+        twini_2 = tw1.get_twiss_init(at_element='_end_point')
+        twini_2.element_name = line._element_names_unique[-1]
+        tw2 = twiss_line(
+            start=line._element_names_unique[-1], end=end,
+            init=twini_2, **kwargs)
+        completed_init = tw1.completed_init
+    elif _str_to_index(line, ele_name_init) >= _str_to_index(line, end):
+        tw2 = twiss_line(
+            start=line._element_names_unique[-1], end=end, init=init, **kwargs)
+        twini_1 = tw2.get_twiss_init(at_element=line._element_names_unique[-1])
+        twini_1.element_name = line._element_names_unique[0]
+        tw1 = twiss_line(
+            start=start, end=line._element_names_unique[0], init=twini_1,
+            **kwargs)
+        completed_init = tw2.completed_init
+    else:
+        raise RuntimeError(
+            'Boundary conditions not at start or end of the specified range')
+
+    return tw1, tw2, completed_init
+
+
+def _combine_loop_around_twiss_tables(tw1, tw2, init, completed_init):
+
+    ele_name_init = init.element_name
 
     tw_res = TwissTable.concatenate([tw1, tw2])
 
