@@ -425,6 +425,9 @@ Already converted:
 - non-multiturn segment composition: helper code now calls
   `_compute_twiss_segment`, which is the single boundary to replace when the
   normalized segment engine is extracted.
+- open one-turn composition no longer runs a dummy one-row Twiss just to recover
+  the first element name; it now reads the normalized start element name through
+  `_line_start_element_name`.
 
 ### Phase 1: configuration preflight
 

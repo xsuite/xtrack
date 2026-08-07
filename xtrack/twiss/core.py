@@ -1259,9 +1259,7 @@ def _compute_open_one_turn_twiss_from_start(kwargs, line, start):
     kwargs.pop('end')
     t1o = _compute_twiss_segment(kwargs, start=start, end=xt.END)
     init_part2 = t1o.get_twiss_init('_end_point')
-    # Dummy twiss to get the name at the start of the second part
-    init_part2.element_name = line.twiss(
-        start=xt.START, end=xt.START, betx=1, bety=1).name[0]
+    init_part2.element_name = _line_start_element_name(line)
 
     for kk in VARS_FOR_TWISS_INIT_GENERATION:
         kwargs.pop(kk, None)
@@ -1274,6 +1272,11 @@ def _compute_open_one_turn_twiss_from_start(kwargs, line, start):
     out = xt.TwissTable.concatenate([t1o, t2o])
     out['completed_init'] = t1o.completed_init
     return out
+
+
+def _line_start_element_name(line):
+
+    return line._element_names_unique[0]
 
 
 def _multiturn_twiss(tw0, num_turns, kwargs):
