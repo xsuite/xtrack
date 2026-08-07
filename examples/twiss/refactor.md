@@ -181,7 +181,7 @@ Move the main computation orchestration:
 - `_handle_loop_around`
 - `_handle_init_inside_range`
 - `_multiturn_twiss`
-- `_updated_kwargs_from_locals`
+- `_kwargs_for_composed_twiss_call`
 - `_str_to_index`
 
 After the package split works, refactor `twiss_line` internally so recursive
@@ -387,7 +387,7 @@ change.
 
 Several branches in `twiss_line` still call `twiss_line(...)` again after
 mutating a kwargs dictionary. That pattern makes control flow hard to follow and
-keeps `_updated_kwargs_from_locals` alive as scaffolding. The goal is not to
+keeps `_kwargs_for_composed_twiss_call` alive as scaffolding. The goal is not to
 remove every multi-segment Twiss computation in one step, but to replace hidden
 top-level re-entry with explicit phases and named helpers.
 
@@ -448,7 +448,7 @@ Target shape:
 - enter those contexts once;
 - run the main computation path without retrying through `twiss_line`.
 
-This phase should remove several uses of `_updated_kwargs_from_locals` while
+This phase should remove several uses of `_kwargs_for_composed_twiss_call` while
 preserving the existing context-manager boundaries. It should be tested with:
 
 - a normal 4d Twiss;
@@ -532,9 +532,10 @@ Test with:
 The readability cleanup is complete when:
 
 - recursive calls are removed outside the multi-turn continuation path;
-- `_updated_kwargs_from_locals` is removed, or no longer used to hide broad
+- `_kwargs_for_composed_twiss_call` is removed, or no longer used to hide broad
   state rewriting in the main body;
-- finalization happens once for public `TwissTable` results;
+- finalization happens once for public `TwissTable` results, with composed
+  branches feeding that same finalization path instead of returning early;
 - `TwissInit` early returns remain unchanged;
 - the public `twiss_line` signature and `ActionTwiss.kwargs` behavior are
   preserved.

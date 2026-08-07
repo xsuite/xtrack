@@ -488,7 +488,7 @@ def twiss_line(line, particle_ref=None, method=None,
             assert isinstance(end, str)  # index not supported anymore
 
         if start is not None and end is None:
-            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
             out = _compute_one_turn_twiss_from_start(
                 kwargs=kwargs,
                 line=line,
@@ -500,7 +500,7 @@ def twiss_line(line, particle_ref=None, method=None,
             return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
 
         if init == 'full_periodic' and (start is not None or end is not None):
-            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
             out = _compute_range_from_full_periodic_init(
                 kwargs=kwargs,
                 start=start,
@@ -624,7 +624,7 @@ def twiss_line(line, particle_ref=None, method=None,
         if not periodic and (
             rv * _str_to_index(line, start) > rv * _str_to_index(line, end)):
 
-            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
             tw_res = _handle_loop_around(kwargs)
 
             return _finalize_twiss_result(tw_res, input_kwargs, zero_at=zero_at_requested)
@@ -634,7 +634,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 and init.element_name != start
                 and init.element_name != end):
 
-            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
             tw_res = _handle_init_inside_range(kwargs)
 
             return _finalize_twiss_result(tw_res, input_kwargs, zero_at=zero_at_requested)
@@ -960,7 +960,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         if num_turns > 1:
 
-            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
             kwargs.pop('num_turns')
             kwargs.pop('init')
             kwargs.pop('start')
@@ -1192,7 +1192,13 @@ def _combine_init_inside_range_twiss_tables(tw1, tw2, init):
     return tw_res
 
 
-def _updated_kwargs_from_locals(kwargs, loc):
+def _kwargs_for_composed_twiss_call(kwargs, loc):
+    """Temporary kwargs refresh for composed Twiss calls.
+
+    This keeps existing recursive segment calls correct while the normalized
+    segment engine is being extracted. It should shrink or disappear once those
+    composed paths stop calling the public ``twiss_line`` wrapper.
+    """
 
     out = kwargs.copy()
 
