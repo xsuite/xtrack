@@ -444,6 +444,9 @@ Already converted:
 - periodic solution preparation for the normal segment path is now isolated in
   `_prepare_periodic_solution_for_twiss_segment`, which owns the default
   `steps_R_matrix` completion and delegates to `_find_periodic_solution`.
+- element-by-element segment propagation is now isolated in
+  `_propagate_twiss_segment_element_by_element`, which delegates to
+  `_twiss_open` with explicit arguments.
 
 ### Phase 1: configuration preflight
 
@@ -537,6 +540,9 @@ or input compatibility handling. Candidate shape:
 - `_prepare_periodic_solution_for_twiss_segment(...)`: first extracted slice of
   the normalized segment engine, covering periodic init and one-turn matrix
   preparation;
+- `_propagate_twiss_segment_element_by_element(...)`: extracted segment slice
+  covering propagation of a completed init into the element-by-element Twiss
+  table;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 
