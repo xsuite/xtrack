@@ -450,6 +450,12 @@ Already converted:
 - periodic solution metadata attachment is now isolated in
   `_add_periodic_solution_data_to_base_twiss`, including R matrices, ring
   quantities, eigenvalues, and rotation matrix.
+- base Twiss initialization completion is now isolated in
+  `_complete_init_for_base_twiss`; the caller still clears the init-generation
+  kwargs afterward because that state is reused by the remaining multiturn
+  continuation path.
+- open Twiss phase alignment with the provided init is now isolated in
+  `_align_open_twiss_phases_with_init`.
 
 ### Phase 1: configuration preflight
 
@@ -540,6 +546,8 @@ or input compatibility handling. Candidate shape:
   orchestrates optional outputs;
 - `_compute_twiss_segment(...)`: currently delegates to `twiss_line`, and should
   become the implementation point for one already-normalized segment;
+- `_complete_init_for_base_twiss(...)`: extracted slice of the normal one-pass
+  Twiss path, covering `TwissInit` completion and `completed_init` preservation;
 - `_prepare_periodic_solution_for_base_twiss(...)`: extracted slice of the
   normal one-pass Twiss path, covering periodic init and one-turn matrix
   preparation;
@@ -549,6 +557,9 @@ or input compatibility handling. Candidate shape:
 - `_add_periodic_solution_data_to_base_twiss(...)`: extracted slice of the
   normal one-pass Twiss path, covering periodic matrix and ring-level result
   data attachment;
+- `_align_open_twiss_phases_with_init(...)`: extracted slice of the normal
+  one-pass Twiss path, covering open-range phase and `dzeta` alignment after
+  reverse handling;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 

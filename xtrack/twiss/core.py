@@ -600,7 +600,7 @@ def twiss_line(line, particle_ref=None, method=None,
             return _finalize_twiss_result(
                 composed_twiss_res, input_kwargs, zero_at=zero_at_requested)
 
-        init = _complete_twiss_init(
+        init, completed_init = _complete_init_for_base_twiss(
             start=start, end=end, init_at=init_at, init=init,
             line=line, reverse=reverse,
             x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
@@ -611,7 +611,6 @@ def twiss_line(line, particle_ref=None, method=None,
             ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
             spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
         )
-        completed_init = (init.copy() if hasattr(init, 'copy') else init)
 
         # clean quantities embedded in init
         init_at=None
@@ -936,23 +935,8 @@ def twiss_line(line, particle_ref=None, method=None,
         # twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
 
         if not periodic and not only_orbit:
-            # Start phase advance with provided init
-            if ((twiss_res._orientation == 'forward' and not reverse)
-                    or (twiss_res._orientation == 'backward' and reverse)):
-                twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
-                if 'dzeta' in twiss_res._data:
-                    twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
-                if 'mux' in twiss_res._data:
-                    twiss_res.mux += init.mux - twiss_res.mux[0]
-                    twiss_res.muy += init.muy - twiss_res.muy[0]
-            elif ((twiss_res._orientation == 'forward' and reverse)
-                or (twiss_res._orientation == 'backward' and not reverse)):
-                twiss_res.muzeta += init.muzeta - twiss_res.muzeta[-1]
-                if 'dzeta' in twiss_res._data:
-                    twiss_res.dzeta += init.dzeta - twiss_res.dzeta[-1]
-                if 'mux' in twiss_res._data:
-                    twiss_res.mux += init.mux - twiss_res.mux[-1]
-                    twiss_res.muy += init.muy - twiss_res.muy[-1]
+            _align_open_twiss_phases_with_init(
+                twiss_res=twiss_res, init=init, reverse=reverse)
 
         if search_for_t_rev:
             # Recompute t_rev0 to support case with only_orbit=True
@@ -1250,6 +1234,33 @@ def _kwargs_for_preflighted_twiss_segment(kwargs):
     return segment_kwargs
 
 
+def _complete_init_for_base_twiss(
+        start, end, init_at, init, line, reverse,
+        x, px, y, py, zeta, delta,
+        alfx, alfy, betx, bety, bets,
+        dx, dpx, dy, dpy, dzeta,
+        mux, muy, muzeta,
+        ax_chrom, bx_chrom, ay_chrom, by_chrom,
+        ddx, ddpx, ddy, ddpy,
+        spin_x, spin_y, spin_z):
+
+    init = _complete_twiss_init(
+        start=start, end=end, init_at=init_at, init=init,
+        line=line, reverse=reverse,
+        x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
+        alfx=alfx, alfy=alfy, betx=betx, bety=bety, bets=bets,
+        dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
+        mux=mux, muy=muy, muzeta=muzeta,
+        ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom,
+        by_chrom=by_chrom,
+        ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
+        spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
+    )
+    completed_init = (init.copy() if hasattr(init, 'copy') else init)
+
+    return init, completed_init
+
+
 def _prepare_periodic_solution_for_base_twiss(
         line, particle_on_co, particle_ref, method, co_search_settings,
         continue_on_closed_orbit_error, delta0, zeta0, zeta_shift,
@@ -1332,6 +1343,27 @@ def _add_periodic_solution_data_to_base_twiss(
 
     twiss_res._data['eigenvalues'] = eigenvalues.copy()
     twiss_res._data['rotation_matrix'] = Rot.copy()
+
+
+def _align_open_twiss_phases_with_init(twiss_res, init, reverse):
+
+    # Start phase advance with provided init
+    if ((twiss_res._orientation == 'forward' and not reverse)
+            or (twiss_res._orientation == 'backward' and reverse)):
+        twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
+        if 'dzeta' in twiss_res._data:
+            twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
+        if 'mux' in twiss_res._data:
+            twiss_res.mux += init.mux - twiss_res.mux[0]
+            twiss_res.muy += init.muy - twiss_res.muy[0]
+    elif ((twiss_res._orientation == 'forward' and reverse)
+        or (twiss_res._orientation == 'backward' and not reverse)):
+        twiss_res.muzeta += init.muzeta - twiss_res.muzeta[-1]
+        if 'dzeta' in twiss_res._data:
+            twiss_res.dzeta += init.dzeta - twiss_res.dzeta[-1]
+        if 'mux' in twiss_res._data:
+            twiss_res.mux += init.mux - twiss_res.mux[-1]
+            twiss_res.muy += init.muy - twiss_res.muy[-1]
 
 
 def _prepare_kwargs_for_full_periodic_twiss(kwargs):
