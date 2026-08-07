@@ -31,6 +31,7 @@ xtrack/xtrack/twiss/
     constants.py
     input_normalization.py
     core.py
+    lattice_functions.py
     twiss_init.py
     twiss_table.py
     beam_covariance.py
@@ -176,7 +177,6 @@ Move the main computation orchestration:
 - `twiss_line`
 - `_twiss_open`
 - `_find_periodic_solution`
-- `_get_lattice_functions`
 - `_get_global_quantities`
 - `_handle_loop_around`
 - `_handle_init_inside_range`
@@ -184,11 +184,21 @@ Move the main computation orchestration:
 - `_add_action_in_res`
 - `_updated_kwargs_from_locals`
 - `_str_to_index`
-- `_renormalize_eigenvectors`
-- `_extract_twiss_parameters_with_inverse`
 
 After the package split works, refactor `twiss_line` internally. The signature
 should remain unchanged for API compatibility and documentation propagation.
+
+### `lattice_functions.py`
+
+Move:
+
+- `_get_lattice_functions`
+- `_renormalize_eigenvectors`
+- `_extract_twiss_parameters_with_inverse`
+
+These helpers transform the propagated normal-form matrices into Twiss lattice
+functions and phase advances. Keeping them out of `core.py` makes the main
+orchestration easier to scan without introducing a vague helper module.
 
 ### `non_linear_chromaticity.py`
 
