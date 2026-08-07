@@ -22,15 +22,17 @@ from .constants import (
 from .core import (
     ClosedOrbitSearchError,
     TwissTable,
-    compute_R_matrix,
-    compute_T_matrix_line,
     find_closed_orbit_line,
-    get_R_matrix,
-    get_T_matrix_line,
     get_non_linear_chromaticity,
     twiss_line,
 )
 from .init import TwissInit
+from .matrix import (
+    compute_R_matrix,
+    compute_T_matrix_line,
+    get_R_matrix,
+    get_T_matrix_line,
+)
 
 for _public_obj in (
     ClosedOrbitSearchError,
