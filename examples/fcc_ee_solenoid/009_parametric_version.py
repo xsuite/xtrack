@@ -1,6 +1,8 @@
 # Based on E. Boscolo, A. Ciarma, E. Burkhardt, https://cds.cern.ch/record/2948247
 # Nuclear Instruments and Methods in Physics Research A 1083 (2026) 171135
 
+from tkinter import TRUE
+
 import xtrack as xt
 import time
 
@@ -10,7 +12,7 @@ from tilted_solenoid import TiltedSolenoid
 
 t1 = time.time()
 
-plot=True
+plot = False
 
 env = xt.load('fccee_z_lcc.json')
 line = env.fccee_p_ring
@@ -27,10 +29,11 @@ ds_start = 1.4
 ds_end = 2.29
 
 B0 = 3 # T
-B0_screen = -1.4 # T
 r0 = 0.13
-r0_screen_sol = 0.13
-l_screen_sol = 0.6
+
+B0_local = -3 # T
+r0_local = 0.13
+l_local = 0.4
 
 for ip_name in ip_names:
 
@@ -41,10 +44,10 @@ for ip_name in ip_names:
 
     # Analytic field map
     sf = TiltedSolenoid(L=sol_half_length*2, a=r0, B0=B0, theta=theta)
-    sf_right = TiltedSolenoid(L=l_screen_sol, a=r0_screen_sol, B0=B0_screen, theta=theta,
-                              z0=sol_half_length + 0.5 * l_screen_sol)
-    sf_left = TiltedSolenoid(L=l_screen_sol, a=r0_screen_sol, B0=B0_screen, theta=theta,
-                              z0=-sol_half_length - 0.5 * l_screen_sol)
+    sf_right = TiltedSolenoid(L=l_local, a=r0_local, B0=B0_local, theta=theta,
+                              z0=sol_half_length + 0.5 * l_local)
+    sf_left = TiltedSolenoid(L=l_local, a=r0_local, B0=B0_local, theta=theta,
+                              z0=-sol_half_length - 0.5 * l_local)
 
     # s coordinate along the beam axis
     s = np.linspace(-2.399, 2.399, 201)
@@ -572,14 +575,22 @@ out = {
     'sol_half_length': sol_half_length,
     'ds_start': ds_start,
     'ds_end': ds_end,
+    'B0_local': B0_local,
+    'r0_local': r0_local,
+    'l_local': l_local,
     'gemitt_y': float(tw4d.rad_int_eq_gemitt_y) * 4 # for 4 ips
 }
 
 from pprint import pp
 pp(out)
 
-# fout = (f'B0_{B0:.3f}_r0_{r0:.3f}_sol_half_length_{sol_half_length:.3f}'
-#         f'_ds_start_{ds_start:.3f}_ds_end_{ds_end:.3f}.json')
+fout = (f'B0_{B0:.3f}_r0_{r0:.3f}_sol_half_length_{sol_half_length:.3f}'
+        f'_ds_start_{ds_start:.3f}_ds_end_{ds_end:.3f}')
 
-# xt.json.dump(out, 'results/' + fout)
+if B0_local !=0:
+    fout += f'_B0_local_{-B0_local:.3f}_r0_local_{r0_local:.3f}_l_local_{l_local:.3f}'
+
+out_path = 'results/' + fout + '.json'
+print(f'Saving results to {out_path}')
+xt.json.dump(out, out_path)
 
