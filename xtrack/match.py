@@ -843,15 +843,25 @@ class MeritFunctionLine(xd.MeritFunctionForMatch):
         else:
             return super().get_jacobian(x, f0=f0)
 
+    def notify_jacobian_point(self, flag):
+        """Solver hint: the upcoming eval is a Jacobian point (build the parametric map)
+        or a value-only line-search eval (build the cheap map). Harmless for non-TPSA."""
+        if not self.use_tpsa:
+            return
+        for a in self.actions:
+            if hasattr(a, "set_build_parametric"):
+                a.set_build_parametric(flag)
+
     def get_jacobian_tpsa(self, x=None):
-        from .madng_interface import ActionTwissMadngTPSA
+        # Either TPSA action (MAD-NG or native GTPSA) exposes acquire_jacobian().
         action = None
         for a in self.actions:
-            if isinstance(a, ActionTwissMadngTPSA):
+            if hasattr(a, 'acquire_jacobian'):
                 action = a
                 break
         if action is None:
-            raise RuntimeError('No ActionTwissMadngTPSA found in actions for TPSA jacobian computation')
+            raise RuntimeError('No TPSA action (with acquire_jacobian) found in actions '
+                               'for TPSA jacobian computation')
 
         # acquire_jacobian() reads the Jacobian as the linear part of the
         # differential-algebra map from the last MAD-NG track.
@@ -875,7 +885,7 @@ class OptimizeLine(xd.Optimize):
                     n_steps_max=20, default_tol=None,
                     solver=None, check_limits=True,
                     action_twiss=None, action_twiss_ng=None,
-                    use_tpsa=False, name="",
+                    use_tpsa=False, tpsa_backend='madng', name="",
                     **kwargs):
 
         if hasattr(targets, 'values'): # dict like
@@ -938,12 +948,23 @@ class OptimizeLine(xd.Optimize):
             if tt.action is None:
                 if use_tpsa:
                     if action_twiss_ng is None:
-                        from .madng_interface import ActionTwissMadngTPSA
+                        if tpsa_backend == 'gtpsa':
+                            raise NotImplementedError(
+                                "The old gtpsa matching backend has been removed. "
+                                "Use tpsa_backend='madng' or track an explicit "
+                                "ParticlesTpsa map with descriptor parameters."
+                            )
+                        elif tpsa_backend == 'madng':
+                            from .madng_interface import ActionTwissMadngTPSA
 
-                        action_twiss_ng = ActionTwissMadngTPSA(
-                                line, [v.name for v in vary_flatten], targets_flatten, {},
-                                    sum_rmat_tar=len(start_end_tuple_set), **kwargs
-                        )
+                            action_twiss_ng = ActionTwissMadngTPSA(
+                                    line, [v.name for v in vary_flatten], targets_flatten, {},
+                                        sum_rmat_tar=len(start_end_tuple_set), **kwargs
+                            )
+                        else:
+                            raise ValueError(
+                                f"unknown tpsa_backend {tpsa_backend!r}; "
+                                f"use 'madng' or 'gtpsa'")
                         action_twiss_ng.prepare()
                     tt.action = action_twiss_ng
                 else:

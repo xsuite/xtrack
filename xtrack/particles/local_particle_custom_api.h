@@ -18,12 +18,13 @@ double LocalParticle_get_energy0(LocalParticle* part) {
 
 
 GPUFUN
-void LocalParticle_update_ptau(LocalParticle* part, double new_ptau_value) {
+void LocalParticle_update_ptau(LocalParticle* part, xt_num_arg_t new_ptau_value) {
     double const beta0 = LocalParticle_get_beta0(part);
-    double const ptau = new_ptau_value;
-    double const irpp = sqrt(ptau * ptau + 2 * ptau / beta0 + 1);
-    double const new_rpp = 1. / irpp;
-    double const new_rvv = irpp / (1 + beta0 * ptau);
+    // 1.0* forces a value copy: a tpsa copy-init from an lvalue/ref is descriptor-only.
+    xt_num_t const ptau = 1.0 * new_ptau_value;
+    xt_num_t const irpp = sqrt(ptau * ptau + 2 * ptau / beta0 + 1);
+    xt_num_t const new_rpp = 1. / irpp;
+    xt_num_t const new_rvv = irpp / (1 + beta0 * ptau);
 
     LocalParticle_set_delta(part, irpp - 1);
     LocalParticle_set_rvv(part, new_rvv);
@@ -33,14 +34,14 @@ void LocalParticle_update_ptau(LocalParticle* part, double new_ptau_value) {
 
 
 GPUFUN
-void LocalParticle_update_delta(LocalParticle* part, double new_delta_value) {
+void LocalParticle_update_delta(LocalParticle* part, xt_num_arg_t new_delta_value) {
     double const beta0 = LocalParticle_get_beta0(part);
-    double const delta_beta0 = new_delta_value * beta0;
-    double const ptau_beta0 = sqrt(delta_beta0 * delta_beta0 + 2 * delta_beta0 * beta0 + 1) - 1;
-    double const one_plus_delta = 1 + new_delta_value;
-    double const rvv = (one_plus_delta) / (1 + ptau_beta0);
-    double const rpp = 1 / one_plus_delta;
-    double const ptau = ptau_beta0 / beta0;
+    xt_num_t const delta_beta0 = new_delta_value * beta0;
+    xt_num_t const ptau_beta0 = sqrt(delta_beta0 * delta_beta0 + 2 * delta_beta0 * beta0 + 1) - 1;
+    xt_num_t const one_plus_delta = 1 + new_delta_value;
+    xt_num_t const rvv = (one_plus_delta) / (1 + ptau_beta0);
+    xt_num_t const rpp = 1 / one_plus_delta;
+    xt_num_t const ptau = ptau_beta0 / beta0;
 
     LocalParticle_set_delta(part, new_delta_value);
     LocalParticle_set_rvv(part, rvv);
@@ -50,15 +51,15 @@ void LocalParticle_update_delta(LocalParticle* part, double new_delta_value) {
 
 
 GPUFUN
-double LocalParticle_get_pzeta(LocalParticle* part) {
-    double const ptau = LocalParticle_get_ptau(part);
+xt_num_t LocalParticle_get_pzeta(LocalParticle* part) {
+    xt_num_t const ptau = LocalParticle_get_ptau(part);
     double const beta0 = LocalParticle_get_beta0(part);
     return ptau / beta0;
 }
 
 
 GPUFUN
-void LocalParticle_update_pzeta(LocalParticle* part, double new_pzeta_value) {
+void LocalParticle_update_pzeta(LocalParticle* part, xt_num_arg_t new_pzeta_value) {
     double const beta0 = LocalParticle_get_beta0(part);
     LocalParticle_update_ptau(part, beta0 * new_pzeta_value);
 }
@@ -193,9 +194,9 @@ void increment_at_turn_backtrack(
 
 
 GPUFUN
-void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy, int pz_only )
+void LocalParticle_add_to_energy(LocalParticle* part, xt_num_arg_t delta_energy, int pz_only )
 {
-    double ptau = LocalParticle_get_ptau(part);
+    xt_num_t ptau = LocalParticle_get_ptau(part);
     double const p0c = LocalParticle_get_p0c(part);
     double const charge_ratio = LocalParticle_get_charge_ratio(part);
     double const chi = LocalParticle_get_chi(part);
@@ -203,19 +204,22 @@ void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy, int p
 
     ptau += delta_energy / p0c / mass_ratio;
 
-    double const old_rpp = LocalParticle_get_rpp(part);
+    xt_num_t const old_rpp = LocalParticle_get_rpp(part);
 
     LocalParticle_update_ptau(part, ptau);
 
     if (!pz_only) {
-        double const new_rpp = LocalParticle_get_rpp(part);
-        double const f = old_rpp / new_rpp;
+        xt_num_t const new_rpp = LocalParticle_get_rpp(part);
+        xt_num_t const f = old_rpp / new_rpp;
         LocalParticle_scale_px(part, f);
         LocalParticle_scale_py(part, f);
     }
 }
 
 
+#ifndef XTRACK_TPSA_TRACK  /* mutates reference quantities (p0c, gamma0, beta0):
+    out of scope for non-scalar local particles (no REF setters) until the reference tail is made
+    mutable.  Compiled normally for native doubles builds. */
 GPUFUN
 void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value)
 {
@@ -243,6 +247,7 @@ void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value)
     LocalParticle_scale_zeta(part, new_beta0 / old_beta0);
 
 }
+#endif  /* native-only (update_p0c) */
 
 GPUFUN
 void LocalParticle_kill_particle(LocalParticle* part, int64_t kill_state) {

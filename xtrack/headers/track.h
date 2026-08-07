@@ -10,6 +10,14 @@
 #include "xobjects/headers/atomicadd.h"
 #include "xtrack/headers/constants.h"
 
+#ifdef XTRACK_TPSA_TRACK
+    #include "xtrack/tpsa/headers/xt_tpsa.h"
+    #include "xtrack/tpsa/headers/lifted_array.h"
+#else
+    #include "xtrack/tpsa/headers/tpsa_compat.h"
+#endif
+
+
 /*
     The particle tracking "decorators" for all the contexts.
 */

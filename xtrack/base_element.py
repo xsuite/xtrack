@@ -17,6 +17,157 @@ from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 from .particles import Particles
 from .track_flags import c_header_flag_mapping
 
+_FLOAT_OR_TPSA_FIELDS = ("k0", "k1", "k2", "k3", "k1s", "k2s", "k3s", "ks")
+
+
+def _is_tpsa_value(value):
+    return (
+        hasattr(value, "ptr")
+        and hasattr(value, "descriptor")
+        and hasattr(value, "const_part")
+    )
+
+
+def _float_to_uint64_bits(value):
+    return np.array([float(value)], dtype=np.float64).view(np.uint64)[0]
+
+
+def _uint64_bits_to_float(value):
+    return np.array([np.uint64(value)], dtype=np.uint64).view(np.float64)[0]
+
+
+class _FloatOrTpsaType(xo.scalar.NumpyScalar):
+    """8-byte field storing either double bits or a ``tpsa_t*`` pointer."""
+
+    _is_float_or_tpsa = True
+
+    def __init__(self):
+        super().__init__("uint64", "double")
+        self.__name__ = "FloatOrTpsa"
+
+    def _from_buffer(self, buffer, offset=0, container=None):
+        data = buffer.to_bytearray(offset, self._size)
+        bits = np.frombuffer(data, dtype=self._dtype)[0]
+        enabled = False
+        if container is not None:
+            enabled = getattr(container, "_tpsa_enabled", 0)
+            if not enabled and hasattr(container, "_xobject"):
+                enabled = getattr(container._xobject, "_tpsa_enabled", 0)
+        if enabled:
+            import xgtpsa
+
+            ptr = xgtpsa.ffi().cast("void*", int(bits))
+            descriptor = getattr(container, "_tpsa_descriptor", None)
+            if descriptor is None and hasattr(container, "_DressingClass"):
+                raise ValueError(
+                    "Cannot decode a TPSA-enabled FloatOrTpsa field without "
+                    "the owning beam element"
+                )
+            return xgtpsa.Tpsa.from_ptr(ptr, descriptor=descriptor)
+        return _uint64_bits_to_float(bits)
+
+    def _to_buffer(self, buffer, offset, value, info=None, container=None):
+        if _is_tpsa_value(value):
+            if container is None:
+                raise ValueError(
+                    "FloatOrTpsa fields can only be initialized from scalars "
+                    "without an owning container"
+                )
+            import xgtpsa
+
+            bits = int(xgtpsa.ffi().cast("uintptr_t", value.ptr))
+        else:
+            bits = int(_float_to_uint64_bits(value))
+        data = np.array([bits], dtype=self._dtype).tobytes()
+        buffer.update_from_buffer(offset, data)
+
+    def __call__(self, value=0):
+        return np.uint64(_float_to_uint64_bits(value))
+
+    def __repr__(self):
+        return "FloatOrTpsa"
+
+
+FloatOrTpsa = _FloatOrTpsaType()
+
+
+class _FieldOfBeamElement:
+    def __init__(self, name, xo_field, base_descriptor):
+        self.name = name
+        self.xo_field = xo_field
+        self.base_descriptor = base_descriptor
+
+    def __get__(self, element, owner=None):
+        if element is None:
+            return self
+        if getattr(element._xobject, "_tpsa_enabled", 0):
+            handles = _get_tpsa_handles(element)
+            try:
+                return handles[self.name]
+            except KeyError:
+                value = self._read(element)
+                handles[self.name] = value
+                return value
+        return self._read(element)
+
+    def __set__(self, element, value):
+        if _is_tpsa_value(value):
+            if not isinstance(element._buffer.context, xo.ContextCpu):
+                raise NotImplementedError(
+                    "TPSA-enabled beam elements are only supported on CPU contexts")
+            if not getattr(element._xobject, "_tpsa_enabled", 0):
+                element.enable_tpsa(value.descriptor)
+            _set_tpsa_handle(element, self.name, value)
+            self._write(element, value)
+            element._xobject._tpsa_enabled = 1
+            return
+
+        if getattr(element._xobject, "_tpsa_enabled", 0):
+            descriptor = _get_tpsa_descriptor(element)
+            value = descriptor.constant(float(value))
+            _set_tpsa_handle(element, self.name, value)
+            self._write(element, value)
+            return
+
+        _get_tpsa_handles(element).pop(self.name, None)
+        self._write(element, float(value))
+
+    def _read(self, element):
+        ftype, offset = self.xo_field.get_offset(element._xobject)
+        return ftype._from_buffer(
+            element._xobject._buffer, offset, container=element)
+
+    def _write(self, element, value):
+        ftype, offset = self.xo_field.get_offset(element._xobject)
+        ftype._to_buffer(
+            element._xobject._buffer, offset, value, container=element)
+
+
+def _get_tpsa_handles(element):
+    handles = element.__dict__.get("_tpsa_handles")
+    if handles is None:
+        handles = {}
+        element.__dict__["_tpsa_handles"] = handles
+    return handles
+
+
+def _get_tpsa_descriptor(element):
+    descriptor = element.__dict__.get("_tpsa_descriptor")
+    if descriptor is None:
+        raise RuntimeError(
+            f"{element.__class__.__name__} is TPSA-enabled but has no descriptor"
+        )
+    return descriptor
+
+
+def _set_tpsa_handle(element, name, value):
+    descriptor = element.__dict__.get("_tpsa_descriptor")
+    if descriptor is None:
+        element.__dict__["_tpsa_descriptor"] = value.descriptor
+    elif descriptor is not value.descriptor:
+        raise ValueError("All TPSA fields on an element need to use the same descriptor")
+    _get_tpsa_handles(element)[name] = value
+
 start_per_part_block = """
     {
     const int64_t XT_part_block_start_idx = part0->ipart; //only_for_context cpu_openmp
@@ -283,6 +434,10 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         data = data.copy()
         data['_xofields'] = xofields
+        data['_float_or_tpsa_fields'] = tuple(
+            nn for nn, tt in xofields.items()
+            if getattr(tt, '_is_float_or_tpsa', False)
+        )
 
         depends_on = []
         extra_c_source = [
@@ -387,6 +542,12 @@ class MetaBeamElement(xo.MetaHybridClass):
             new_class._XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
 
+        for ff in new_class._XoStruct._fields:
+            if ff.ftype is FloatOrTpsa:
+                pyname = new_class._rename.get(ff.name, ff.name)
+                setattr(new_class, pyname, _FieldOfBeamElement(
+                    ff.name, ff, new_class.__dict__[pyname]))
+
         # Attach methods corresponding to per-particle kernels
         if '_per_particle_kernels' in data.keys():
             for nn, desc in data['_per_particle_kernels'].items():
@@ -420,6 +581,56 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
+        if getattr(self, "_float_or_tpsa_fields", ()):
+            self.__dict__.setdefault("_tpsa_handles", {})
+            self.__dict__.setdefault("_tpsa_descriptor", None)
+
+    def _field_raw_bits(self, name):
+        xo_obj = self._xobject
+        offset = xo_obj._get_offset(name)
+        data = xo_obj._buffer.to_bytearray(offset, 8)
+        return int(np.frombuffer(data, dtype=np.uint64)[0])
+
+    def _field_raw_float(self, name):
+        return float(_uint64_bits_to_float(self._field_raw_bits(name)))
+
+    def _set_float_or_tpsa_field(self, name, value):
+        getattr(type(self), name).__set__(self, value)
+
+    def enable_tpsa(self, descriptor_or_proto):
+        if not isinstance(self._buffer.context, xo.ContextCpu):
+            raise NotImplementedError(
+                "TPSA-enabled beam elements are only supported on CPU contexts")
+        if _is_tpsa_value(descriptor_or_proto):
+            descriptor = descriptor_or_proto.descriptor
+        else:
+            descriptor = descriptor_or_proto
+        self.__dict__["_tpsa_descriptor"] = descriptor
+        handles = {}
+        for name in self._float_or_tpsa_fields:
+            if self._xobject._tpsa_enabled:
+                value = getattr(self, name)
+            else:
+                value = descriptor.constant(self._field_raw_float(name))
+            handles[name] = value
+            setattr(self._xobject, name, value)
+        self.__dict__["_tpsa_handles"] = handles
+        self._xobject._tpsa_enabled = 1
+
+    def disable_tpsa(self):
+        if not getattr(self._xobject, "_tpsa_enabled", 0):
+            return
+        handles = _get_tpsa_handles(self)
+        for name in self._float_or_tpsa_fields:
+            value = handles.get(name)
+            if value is None:
+                value = self._field_raw_float(name)
+            else:
+                value = value.const_part
+            setattr(self._xobject, name, float(value))
+        self._xobject._tpsa_enabled = 0
+        self.__dict__["_tpsa_handles"] = {}
+        self.__dict__["_tpsa_descriptor"] = None
 
     @property
     def isthick(self):
@@ -458,6 +669,21 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                              + f"has no valid track method.")
         elif particles is None:
             raise RuntimeError("Please provide particles to track!")
+
+        if not isinstance(particles, xt.Particles):
+            from xtrack.tpsa import ParticlesTpsa
+            if not isinstance(particles, ParticlesTpsa):
+                raise TypeError(f"Cannot track particles of type {type(particles)}")
+            line = xt.Line(elements=[self], element_names=["__element__"])
+            line.particle_ref = particles._ref_particle.copy()
+            line.build_tracker(use_prebuilt_kernels=False)
+            return line.track(particles)
+
+        if getattr(self, "_tpsa_enabled", 0):
+            raise RuntimeError(
+                "Cannot track normal Particles through a TPSA-enabled "
+                f"{self.__class__.__name__}. Disable TPSA on the element first."
+            )
 
         if self.needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
@@ -555,6 +781,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             self.rot_s_rad_no_frame = rot_s_rad_no_frame
 
     def to_dict(self, **kwargs):
+        if getattr(self._xobject, "_tpsa_enabled", 0):
+            raise NotImplementedError(
+                "Serializing TPSA-enabled beam elements is not supported")
         dct = xo.HybridClass.to_dict(self, **kwargs)
         if self.name_associated_aperture is not None:
             dct['name_associated_aperture'] = self.name_associated_aperture
@@ -730,4 +959,3 @@ class PyMethodDescriptor:
         return PyMethod(kernel_name=self.kernel_name,
                         element=instance,
                         additional_arg_names=self.additional_arg_names)
-

@@ -13,7 +13,7 @@ from scipy.special import factorial
 import xobjects as xo
 import xtrack as xt
 
-from ..base_element import BeamElement
+from ..base_element import BeamElement, FloatOrTpsa
 from ..random import RandomUniformAccurate, RandomExponential, RandomNormal
 from ..general import DEPRECATION_INFO_PREP_1_0
 from ..survey import advance_element as survey_advance_element
@@ -2050,12 +2050,12 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
     has_backtrack = True
     allow_loss_refinement = True
 
-    _skip_in_to_dict = ['inv_factorial_order', 'h', 'k0_from_h']
+    _skip_in_to_dict = ['inv_factorial_order', 'h', 'k0_from_h', '_tpsa_enabled']
 
     _common_xofields = {
-        'k0': xo.Float64,
-        'k1': xo.Float64,
-        'k2': xo.Float64,
+        'k0': FloatOrTpsa,
+        'k1': FloatOrTpsa,
+        'k2': FloatOrTpsa,
         'h': xo.Float64,
         'angle': xo.Float64,
         'length': xo.Float64,
@@ -2083,6 +2083,7 @@ class _BendCommon(_HasKnlKsl, _HasIntegrator, _HasModelCurved):
         'knl_rel': xo.Float64[:],
         'ksl_rel': xo.Float64[:],
         'k0_from_h': xo.Field(xo.UInt64, default=1),
+        '_tpsa_enabled': xo.Field(xo.Int8, default=0),
     }
 
     _common_rename = {
@@ -2659,8 +2660,8 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     allow_loss_refinement = True
 
     _xofields={
-        'k2': xo.Float64,
-        'k2s': xo.Float64,
+        'k2': FloatOrTpsa,
+        'k2s': FloatOrTpsa,
         'length': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
@@ -2676,9 +2677,10 @@ class Sextupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
+        '_tpsa_enabled': xo.Field(xo.Int8, default=0),
     }
 
-    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+    _skip_in_to_dict = ['_order', 'inv_factorial_order', '_tpsa_enabled']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
@@ -2780,8 +2782,8 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     allow_loss_refinement = True
 
     _xofields={
-        'k3': xo.Float64,
-        'k3s': xo.Float64,
+        'k3': FloatOrTpsa,
+        'k3s': FloatOrTpsa,
         'length': xo.Float64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
@@ -2797,9 +2799,10 @@ class Octupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
+        '_tpsa_enabled': xo.Field(xo.Int8, default=0),
     }
 
-    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+    _skip_in_to_dict = ['_order', 'inv_factorial_order', '_tpsa_enabled']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
@@ -2900,8 +2903,8 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     allow_loss_refinement = True
 
     _xofields = {
-        'k1': xo.Float64,
-        'k1s': xo.Float64,
+        'k1': FloatOrTpsa,
+        'k1s': FloatOrTpsa,
         'length': xo.Float64,
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
@@ -2917,9 +2920,10 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
+        '_tpsa_enabled': xo.Field(xo.Int8, default=0),
     }
 
-    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+    _skip_in_to_dict = ['_order', 'inv_factorial_order', '_tpsa_enabled']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
@@ -3013,7 +3017,7 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
     allow_loss_refinement = True
 
     _xofields={
-        'ks': xo.Float64,
+        'ks': FloatOrTpsa,
         'length': xo.Float64,
         'x0': xo.Float64,
         'y0': xo.Float64,
@@ -3027,9 +3031,10 @@ class UniformSolenoid(_HasKnlKsl, _HasIntegrator, BeamElement):
         'integrator': xo.Int64,
         'radiation_flag': xo.Int64,
         'delta_taper': xo.Float64,
+        '_tpsa_enabled': xo.Field(xo.Int8, default=0),
     }
 
-    _skip_in_to_dict = ['_order', 'inv_factorial_order']  # defined by knl, etc.
+    _skip_in_to_dict = ['_order', 'inv_factorial_order', '_tpsa_enabled']  # defined by knl, etc.
 
     _rename = {
         'order': '_order',
