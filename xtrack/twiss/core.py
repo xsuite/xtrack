@@ -15,7 +15,7 @@ import xobjects as xo
 from .. import linear_normal_form as lnf
 from ..general import _print
 from .closed_orbit import ClosedOrbitSearchError, find_closed_orbit_line
-from .twiss_init import TwissInit, _W_phys2norm
+from .twiss_init import TwissInit, _W_phys2norm, _complete_twiss_init
 from .element_indexing import _str_to_index
 from .twiss_table import TwissTable
 from .transfer_matrices import _complete_steps_r_matrix_with_default
@@ -2184,78 +2184,6 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
     return auxtracker, names_inserted_markers
 
-
-def _complete_twiss_init(start, end, init_at, init,
-                        line, reverse,
-                        x, px, y, py, zeta, delta,
-                        alfx, alfy, betx, bety, bets,
-                        dx, dpx, dy, dpy, dzeta,
-                        mux, muy, muzeta,
-                        ax_chrom, bx_chrom, ay_chrom, by_chrom,
-                        ddx, ddpx, ddy, ddpy,
-                        spin_x, spin_y, spin_z
-                        ):
-
-    if isinstance(init, TwissInit) and init_at is not None:
-        init.element_name = init_at
-
-    if start is not None or end is not None:
-        assert start is not None and end is not None, (
-            'start and end must be provided together')
-        if init is None:
-
-            assert betx is not None and bety is not None, (
-                'betx and bety or init must be provided when start '
-                'and end are used')
-
-            init = xt.TwissInit(
-                element_name=init_at,
-                x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
-                betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
-                dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
-                mux=mux, muy=muy, muzeta=muzeta,
-                ax_chrom=ax_chrom, bx_chrom=bx_chrom,
-                ay_chrom=ay_chrom, by_chrom=by_chrom,
-                ddpx=ddpx, ddx=ddx, ddpy=ddpy, ddy=ddy,
-                spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
-                )
-        elif isinstance(init, TwissTable):
-            init = init.get_twiss_init(at_element=init_at)
-        else:
-            assert x is None and px is None and y is None and py is None
-            assert zeta is None and delta is None
-            assert betx is None and alfx is None and bety is None and alfy is None
-            assert bets is None
-            assert dx is None and dpx is None and dy is None and dpy is None
-            assert dzeta is None
-            assert mux is None and muy is None and muzeta is None
-            assert ax_chrom is None and bx_chrom is None
-            assert ay_chrom is None and by_chrom is None
-            assert ddpx is None and ddx is None and ddpy is None and ddy is None
-
-    if init is not None and not isinstance(init, str):
-        assert isinstance(init, TwissInit)
-        init = init.copy() # To avoid changing the one provided
-        if init._needs_complete():
-            assert isinstance(start, str), (
-                'start must be provided as name when an incomplete '
-                'init is provided')
-            init._complete(line=line,
-                    element_name=(init.element_name or start))
-
-        if init.reference_frame is None:
-            init.reference_frame = {
-                True: 'reverse', False: 'proper', None: None}[reverse]
-
-        if reverse is not None:
-            if init.reference_frame == 'proper':
-                assert not(reverse), ('``init`` needs to be given in the '
-                    'proper reference frame when ``reverse`` is False')
-            elif init is not None and init.reference_frame == 'reverse':
-                assert reverse is True, ('``init`` needs to be given in the '
-                    'reverse reference frame when ``reverse`` is True')
-
-    return init
 
 def _renormalize_eigenvectors(Ws):
     # Re normalize eigenvectors
