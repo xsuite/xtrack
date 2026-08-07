@@ -184,12 +184,13 @@ Move the main computation orchestration:
 - `_updated_kwargs_from_locals`
 - `_str_to_index`
 
-After the package split works, refactor `twiss_line` internally to remove
-recursive re-entry. The signature should remain unchanged for API compatibility
-and documentation propagation. The `zero_at` post-processing branch has already
-been converted from recursive re-entry into final result handling. The
-deprecated `at_s` path now switches to a temporary marker line and falls through
-to the normal computation path instead of recursively calling `twiss_line`.
+After the package split works, refactor `twiss_line` internally so recursive
+re-entry is only used where it is the clearest expression of a real composition.
+The signature should remain unchanged for API compatibility and documentation
+propagation. The `zero_at` post-processing branch has already been converted
+from recursive re-entry into final result handling. The deprecated `at_s` path
+now switches to a temporary marker line and falls through to the normal
+computation path instead of recursively calling `twiss_line`.
 
 ### `finalize.py`
 
@@ -415,6 +416,9 @@ Already converted:
 - init-inside-range open ranges: `_handle_init_inside_range` now separates marker
   support validation, segment construction, and table combination into named
   helpers.
+- multi-turn Twiss: `_multiturn_twiss` now separates turn-table construction,
+  continuation to the next turn, and final table concatenation into named
+  helpers.
 
 ### Phase 1: configuration preflight
 
@@ -450,10 +454,10 @@ Convert branches that rewrite the requested range or initialization:
 
 - `start is not None and end is None`. The branch is isolated in
   `_compute_one_turn_twiss_from_start`; a later lower-level segment engine can
-  remove its internal `twiss_line` calls.
+  replace its internal `twiss_line` calls if that improves maintainability.
 - `init == "full_periodic"` with a range. The branch is isolated in
   `_compute_range_from_full_periodic_init`; a later lower-level segment engine
-  can remove its internal `twiss_line` calls.
+  can replace its internal `twiss_line` calls if that improves maintainability.
 
 These still need auxiliary Twiss computations, but those computations should be
 named explicitly instead of expressed as top-level recursion. Candidate helpers:
@@ -461,10 +465,9 @@ named explicitly instead of expressed as top-level recursion. Candidate helpers:
 - `_compute_one_turn_twiss_from_start(...)`
 - `_compute_range_from_full_periodic_init(...)`
 
-These helpers can initially call a lower-level internal Twiss routine or, as an
-intermediate step, call `twiss_line` in one isolated place. The important
-improvement is to remove kwargs mutation from the main body and make the
-composition behavior obvious. Test with:
+These helpers can call `twiss_line` in one isolated place when that is readable.
+The important improvement is to remove kwargs mutation from the main body and
+make the composition behavior obvious. Test with:
 
 - start-only periodic Twiss;
 - start-only open Twiss with explicit init;
@@ -477,13 +480,16 @@ The remaining recursive helpers intentionally compute and concatenate multiple
 Twiss segments:
 
 - `_handle_loop_around`. The branch is split into direction-specific segment
-  construction helpers and a table-combination helper; a later lower-level
-  segment engine can remove the internal `twiss_line` calls.
+  construction helpers and a table-combination helper; keep the internal
+  `twiss_line` calls if they remain the clearest way to express the composition.
 - `_handle_init_inside_range`. The branch is split into support validation,
   `_compute_init_inside_range_twiss_parts`, and
-  `_combine_init_inside_range_twiss_tables`; a later lower-level segment engine
-  can remove the internal `twiss_line` calls.
-- `_multiturn_twiss`
+  `_combine_init_inside_range_twiss_tables`; keep the internal `twiss_line`
+  calls if they remain the clearest way to express the composition.
+- `_multiturn_twiss`. The branch is split into
+  `_compute_multiturn_twiss_parts`, `_continue_multiturn_twiss`, and
+  `_combine_multiturn_twiss_tables`; keep the internal `twiss_line` call if it
+  remains the clearest way to express the composition.
 
 Do these last. They probably need a lower-level private engine that assumes
 inputs are already normalized and can compute one segment without finalization
@@ -494,7 +500,7 @@ or input compatibility handling. Candidate shape:
   orchestrates optional outputs;
 - `_compute_twiss_segment(...)`: computes one already-normalized segment;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
-  public wrapper.
+  public wrapper, only if that is clearer than explicit recursive composition.
 
 Test with:
 
@@ -505,10 +511,12 @@ Test with:
 
 ### Exit criteria
 
-The recursion cleanup is complete when:
+The readability cleanup is complete when:
 
-- `twiss_line` no longer calls itself directly;
-- `_updated_kwargs_from_locals` is removed;
+- recursive calls are either removed or isolated behind helpers whose names
+  describe the composition being performed;
+- `_updated_kwargs_from_locals` is removed, or no longer used to hide broad
+  state rewriting in the main body;
 - finalization happens once for public `TwissTable` results;
 - `TwissInit` early returns remain unchanged;
 - the public `twiss_line` signature and `ActionTwiss.kwargs` behavior are

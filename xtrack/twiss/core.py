@@ -1250,26 +1250,50 @@ def _compute_one_turn_twiss_from_start(kwargs, line, start, init, betx, bety):
 
 
 def _multiturn_twiss(tw0, num_turns, kwargs):
+
+    twisses_to_merge = _compute_multiturn_twiss_parts(
+        tw0=tw0, num_turns=num_turns, kwargs=kwargs)
+
+    return _combine_multiturn_twiss_tables(twisses_to_merge)
+
+
+def _compute_multiturn_twiss_parts(tw0, num_turns, kwargs):
+
     tw_curr = tw0
     twisses_to_merge = []
-    line = kwargs['line']
 
     for i_turn in range(num_turns):
 
-        tw_start_turn = tw_curr.rows[0]
-        tw_start_turn.name[0] = f'_turn_{i_turn}'
-        twisses_to_merge.append(tw_start_turn)
+        twisses_to_merge.append(
+            _multiturn_start_row(tw_curr=tw_curr, i_turn=i_turn))
         twisses_to_merge.append(tw_curr)
 
         if i_turn == num_turns - 1:
             break # need n-1 twisses
 
-        tini1 = tw_curr.get_twiss_init(-1)
-        tini1.element_name = tw_curr.name[0]
-        tw_curr = twiss_line(**kwargs,
-            init=tini1, start=tw_curr.name[0],
-            end=line._element_names_unique[-1])
+        tw_curr = _continue_multiturn_twiss(tw_curr=tw_curr, kwargs=kwargs)
 
-    tw_mt = xt.TwissTable.concatenate(twisses_to_merge)
+    return twisses_to_merge
 
-    return tw_mt
+
+def _multiturn_start_row(tw_curr, i_turn):
+
+    tw_start_turn = tw_curr.rows[0]
+    tw_start_turn.name[0] = f'_turn_{i_turn}'
+    return tw_start_turn
+
+
+def _continue_multiturn_twiss(tw_curr, kwargs):
+
+    line = kwargs['line']
+    tini1 = tw_curr.get_twiss_init(-1)
+    tini1.element_name = tw_curr.name[0]
+
+    return twiss_line(
+        **kwargs, init=tini1, start=tw_curr.name[0],
+        end=line._element_names_unique[-1])
+
+
+def _combine_multiturn_twiss_tables(twisses_to_merge):
+
+    return xt.TwissTable.concatenate(twisses_to_merge)
