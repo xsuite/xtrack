@@ -25,6 +25,7 @@ from .closed_orbit import (
 )
 from .non_linear_chromaticity import get_non_linear_chromaticity
 from .core import (
+    trapz,
     twiss_line,
 )
 from .twiss_init import TwissInit
@@ -75,5 +76,6 @@ __all__ = [
     'get_R_matrix',
     'get_T_matrix_line',
     'get_non_linear_chromaticity',
+    'trapz',
     'twiss_line',
 ]

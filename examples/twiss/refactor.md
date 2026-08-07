@@ -218,10 +218,15 @@ Move:
 - `_extract_sr_distribution_properties`
 - `_get_equilibrium_emittance_kick_as_co`
 - `_get_equilibrium_emittance_full`
-- radiation-integral helper code
+- `_compute_radiation_integrals`
 
 Radiation is relatively specialized and has many optional output fields, so it
 should be isolated from core Twiss flow.
+
+Keep `TwissTable._get_radiation_integrals` as the table-facing API in
+`twiss_table.py`, but delegate the actual radiation-integral computation to
+`radiation.py`. This keeps the public table behavior, including `add_to_tw`,
+while moving the formula-heavy implementation into the radiation module.
 
 ### `spin.py`
 

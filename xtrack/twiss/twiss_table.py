@@ -7,9 +7,6 @@ from typing import Literal
 from warnings import warn
 
 import numpy as np
-from scipy.constants import c as clight
-from scipy.constants import hbar
-from scipy.constants import electron_volt
 
 from ..general import DEPRECATION_INFO_PREP_1_0
 from ..table import Table
@@ -25,7 +22,7 @@ from .constants import (
 )
 from .twiss_init import TwissInit, _W_phys2norm
 from .strengths import _add_strengths_to_twiss_res, _reverse_strengths
-from .trajectory_curvatures import _get_trajectory_curvatures
+from .radiation import _compute_radiation_integrals
 
 import xtrack as xt  # To avoid circular imports
 
@@ -1367,151 +1364,15 @@ class TwissTable(Table):
 
     def _get_radiation_integrals(self, add_to_tw=False):
 
-        kin_px = self['kin_px']
-        kin_py = self['kin_py']
-        delta = self['delta']
-        length = self['length']
-
-        betx = self['betx']             # Twiss beta function x
-        alfx = self['alfx']             # Twiss alpha x
-        gamx = self['gamx']             # Twiss gamma x
-        bety = self['bety']             # Twiss beta function y
-        alfy = self['alfy']             # Twiss alpha y
-        gamy = self['gamy']             # Twiss gamma y
-        dx = self['dx']                 # Dispersion x
-        dy = self['dy']                 # Dispersion y
-        dpx = self['dpx']               # Dispersion px
-        dpy = self['dpy']               # Dispersion py
-
-        mass0 = self.particle_on_co.mass0
-        r0 = self.particle_on_co.get_classical_particle_radius0()
-        gamma0 = self.particle_on_co.gamma0[0]
-
-        dxprime = dpx * (1 - delta) - kin_px
-        dyprime = dpy * (1 - delta) - kin_py
-
-        kappa_x, kappa_y, kappa0_x, kappa0_y = _get_trajectory_curvatures(self)
-        kappa = np.sqrt(kappa_x**2 + kappa_y**2)
-        kappa0 = np.sqrt(kappa0_x**2 + kappa0_y**2)
-
-        # quadrupole gradient
-        mask = length != 0
-        k1 = 0 * length
-        k1[mask] = self.k1l[mask] / length[mask]
-
-        # Curly H
-        Hx_rad = gamx * dx**2 + 2*alfx * dx * dxprime + betx * dxprime**2
-        Hy_rad = gamy * dy**2 + 2*alfy * dy * dyprime + bety * dyprime**2
-
-        # Integrands
-        i1x_integrand = kappa0_x * dx
-        i1y_integrand = kappa0_y * dy
-
-        i2_integrand = kappa * kappa
-
-        i3_integrand = np.abs(kappa * kappa * kappa)
-
-        i4x_integrand = dx * (kappa0_x * kappa**2 + 2 * k1 * kappa_x)
-        i4y_integrand = dy * (kappa0_y * kappa**2 - 2 * k1 * kappa_y)
-        i4_integrand = i4x_integrand + i4y_integrand
-
-
-        i5x_integrand = np.abs(kappa * kappa * kappa) * Hx_rad
-        i5y_integrand = np.abs(kappa * kappa * kappa) * Hy_rad
-
-        # Integrate
-        i1x = np.sum(i1x_integrand * length)
-        i1y = np.sum(i1y_integrand * length)
-        i2 = np.sum(i2_integrand * length)
-        i3 = np.sum(i3_integrand * length)
-        i4 = np.sum(i4_integrand * length)
-        i4x = np.sum(i4x_integrand * length)
-        i4y = np.sum(i4y_integrand * length)
-        i5x = np.sum(i5x_integrand * length)
-        i5y = np.sum(i5y_integrand * length)
-
-        # Emittances
-        eq_gemitt_x = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
-                    / mass0 * gamma0**2 * i5x / (i2 - i4x))
-        eq_gemitt_y = (55/(32 * 3**(1/2)) * hbar / electron_volt * clight
-                    / mass0 * gamma0**2 * i5y / (i2 - i4y))
-        energy0 = self.particle_on_co.energy0[0]
-        energy_loss = 2 / 3 * r0 * energy0 * gamma0**3 * i2
-        sigma_delta = np.sqrt(55 * np.sqrt(3) / 96
-                              * hbar / electron_volt * clight
-                              / mass0 * gamma0**2 * i3 / (2 * i2 + i4))
-
-        # Damping constants
-        damping_constant_x_s = r0/3 * gamma0**3 * clight/self.line_length * (i2 - i4x)
-        damping_constant_y_s = r0/3 * gamma0**3 * clight/self.line_length * (i2 - i4y)
-        damping_constant_zeta_s = r0/3 * gamma0**3 * clight/self.line_length * (2*i2 + i4)
-
-        # Damping partition numbers:
-        J_x = 1 - i4x / i2
-        J_y = 1 - i4y / i2
-        J_zeta = 2 + i4 / i2
-
-        # Velocity direction (for spin)
-        ps = np.sqrt((1 + delta)**2 - kin_px**2 - kin_py**2)
-        xp = kin_px / ps
-        yp = kin_py / ps
-        tempv = np.sqrt(xp**2 + yp**2 + 1)
-        iv_x = xp / tempv
-        iv_y = yp / tempv
-        iv_z = 1 / tempv
-
-        cols = {
-            'rad_int_curly_hx': Hx_rad,
-            'rad_int_curly_hy': Hy_rad,
-            'rad_int_i1x_integrand': i1x_integrand,
-            'rad_int_i1y_integrand': i1y_integrand,
-            'rad_int_l2_integrand': i2_integrand,
-            'rad_int_i3_integrand': i3_integrand,
-            'rad_int_i4_integrand': i4_integrand,
-            'rad_int_i4x_integrand': i4x_integrand,
-            'rad_int_i4y_integrand': i4y_integrand,
-            'rad_int_i5x_integrand': i5x_integrand,
-            'rad_int_i5y_integrand': i5y_integrand,
-            'rad_int_kappa0_x': kappa0_x,
-            'rad_int_kappa0_y': kappa0_y,
-            'rad_int_kappa0': kappa0,
-            'rad_int_kappa_x': kappa_x,
-            'rad_int_kappa_y': kappa_y,
-            'rad_int_kappa': kappa,
-            'rad_int_iv_x': iv_x,
-            'rad_int_iv_y': iv_y,
-            'rad_int_iv_z': iv_z,
-        }
-
-        scalars = {
-            'rad_int_i1x': i1x,
-            'rad_int_i1y': i1y,
-            'rad_int_i2': i2,
-            'rad_int_i3': i3,
-            'rad_int_i4': i4,
-            'rad_int_i4x': i4x,
-            'rad_int_i4y': i4y,
-            'rad_int_i5x': i5x,
-            'rad_int_i5y': i5y,
-            'rad_int_eq_gemitt_x': eq_gemitt_x,
-            'rad_int_eq_gemitt_y': eq_gemitt_y,
-            'rad_int_energy_loss': energy_loss,
-            'rad_int_sigma_delta': sigma_delta,
-            'rad_int_damping_constant_x_s': damping_constant_x_s,
-            'rad_int_damping_constant_y_s': damping_constant_y_s,
-            'rad_int_damping_constant_zeta_s': damping_constant_zeta_s,
-            'rad_int_partition_number_x': J_x,
-            'rad_int_partition_number_y': J_y,
-            'rad_int_partition_number_zeta': J_zeta,
-        }
-
-        out = Table({'name': self.name, 's': self.s, 'length':self.length} | cols)
-        out._data.update(scalars)
+        out = _compute_radiation_integrals(self)
 
         if add_to_tw:
-            for ncc, cc in cols.items():
-                self[ncc] = cc
-            self._data.update(scalars)
+            for nn in out._col_names:
+                if nn.startswith('rad_int_'):
+                    self[nn] = out[nn]
+            for nn, vv in out._data.items():
+                if nn.startswith('rad_int_') and nn not in out._col_names:
+                    self._data[nn] = vv
 
         return out
 
