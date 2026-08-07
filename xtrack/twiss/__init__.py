@@ -19,9 +19,11 @@ from .constants import (
     SKEW_STRENGTHS_FROM_ATTR,
     VARS_FOR_TWISS_INIT_GENERATION,
 )
-from .core import (
+from .closed_orbit import (
     ClosedOrbitSearchError,
     find_closed_orbit_line,
+)
+from .core import (
     get_non_linear_chromaticity,
     twiss_line,
 )

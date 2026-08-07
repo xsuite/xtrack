@@ -33,7 +33,7 @@ xtrack/xtrack/twiss/
     twiss_init.py
     twiss_table.py
     beam_covariance.py
-    orbit.py
+    closed_orbit.py
     transfer_matrices.py
     trajectory_curvatures.py
     chromatic.py
@@ -53,7 +53,7 @@ Example public facade:
 from .core import twiss_line
 from .twiss_init import TwissInit
 from .twiss_table import TwissTable
-from .orbit import ClosedOrbitSearchError, find_closed_orbit_line
+from .closed_orbit import ClosedOrbitSearchError, find_closed_orbit_line
 from .transfer_matrices import (
     compute_R_matrix,
     compute_T_matrix_line,
@@ -125,7 +125,7 @@ Consider whether radiation-integral table methods should stay here initially
 or move later to `radiation.py`. A conservative first step is to move the class
 as-is and only split radiation methods after behavior is covered by tests.
 
-### `orbit.py`
+### `closed_orbit.py`
 
 Move:
 
@@ -139,7 +139,8 @@ Move:
 - `_merit_function_co_t_rev`
 - `_find_closed_orbit_search_t_rev`
 
-This separates closed-orbit search from Twiss table construction.
+This separates closed-orbit search from Twiss table construction and avoids a
+generic `orbit.py` module name.
 
 ### `transfer_matrices.py`
 
@@ -296,10 +297,11 @@ change.
 5. Extract `twiss_init.py`.
 6. Extract `twiss_table.py`.
 7. Extract `transfer_matrices.py`.
-8. Extract `orbit.py`.
-9. Extract `chromatic.py`, `radiation.py`, `spin.py`, `coupling.py`, and
+8. Extract `closed_orbit.py`.
+9. Extract `spin.py`.
+10. Extract `chromatic.py`, `radiation.py`, `coupling.py`, and
    `strengths.py`.
-10. Refactor `twiss_line` into smaller orchestration helpers.
+11. Refactor `twiss_line` into smaller orchestration helpers.
 
 ## Characterization tests to run during the refactor
 
