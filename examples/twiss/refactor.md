@@ -422,6 +422,9 @@ Already converted:
 - multi-turn Twiss: `_multiturn_twiss` now separates turn-table construction,
   continuation to the next turn, and final table concatenation into named
   helpers.
+- non-multiturn segment composition: helper code now calls
+  `_compute_twiss_segment`, which is the single boundary to replace when the
+  normalized segment engine is extracted.
 
 ### Phase 1: configuration preflight
 
@@ -458,11 +461,13 @@ Convert branches that rewrite the requested range or initialization:
 - `start is not None and end is None`. The branch is isolated in
   `_compute_one_turn_twiss_from_start`, with separate
   `_compute_periodic_one_turn_twiss_from_start` and
-  `_compute_open_one_turn_twiss_from_start` helpers; the open helper should move
-  from public `twiss_line` recursion to the lower-level segment engine.
+  `_compute_open_one_turn_twiss_from_start` helpers; the helper paths now call
+  `_compute_twiss_segment`, which still delegates to `twiss_line` until the
+  normalized segment engine is extracted.
 - `init == "full_periodic"` with a range. The branch is isolated in
-  `_compute_range_from_full_periodic_init`; it should move from public
-  `twiss_line` recursion to the lower-level segment engine.
+  `_compute_range_from_full_periodic_init`; it now calls `_compute_twiss_segment`,
+  which still delegates to `twiss_line` until the normalized segment engine is
+  extracted.
 
 These still need auxiliary Twiss computations, but those computations should be
 named explicitly instead of expressed as top-level recursion. Candidate helpers:
@@ -472,10 +477,11 @@ named explicitly instead of expressed as top-level recursion. Candidate helpers:
 - `_compute_open_one_turn_twiss_from_start(...)`
 - `_compute_range_from_full_periodic_init(...)`
 
-These helpers can call `twiss_line` during the intermediate refactor, but the
-target shape is to call a private normalized segment engine for non-multiturn
-composition. The important improvement is to remove kwargs mutation from the
-main body and make the composition behavior obvious. Test with:
+These helpers now call `_compute_twiss_segment`. During the intermediate refactor
+that helper delegates to `twiss_line`, but the target shape is to implement it as
+a private normalized segment engine for non-multiturn composition. The important
+improvement is to remove kwargs mutation from the main body and make the
+composition behavior obvious. Test with:
 
 - start-only periodic Twiss;
 - start-only open Twiss with explicit init;
@@ -488,12 +494,12 @@ The remaining recursive helpers intentionally compute and concatenate multiple
 Twiss segments:
 
 - `_handle_loop_around`. The branch is split into direction-specific segment
-  construction helpers and a table-combination helper; its internal `twiss_line`
-  calls should move to the lower-level segment engine.
+  construction helpers and a table-combination helper; its segment calls now go
+  through `_compute_twiss_segment`.
 - `_handle_init_inside_range`. The branch is split into support validation,
   `_compute_init_inside_range_twiss_parts`, and
-  `_combine_init_inside_range_twiss_tables`; its internal `twiss_line` calls
-  should move to the lower-level segment engine.
+  `_combine_init_inside_range_twiss_tables`; its segment calls now go through
+  `_compute_twiss_segment`.
 - `_multiturn_twiss`. The branch is split into
   `_compute_multiturn_twiss_parts`, `_continue_multiturn_twiss`, and
   `_combine_multiturn_twiss_tables`; this is the one place where recursive
@@ -506,7 +512,8 @@ or input compatibility handling. Candidate shape:
 - `twiss_line(...)`: public compatibility wrapper;
 - `_twiss_line_normalized(...)`: validates/prepares normalized state and
   orchestrates optional outputs;
-- `_compute_twiss_segment(...)`: computes one already-normalized segment;
+- `_compute_twiss_segment(...)`: currently delegates to `twiss_line`, and should
+  become the implementation point for one already-normalized segment;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 

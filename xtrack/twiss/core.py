@@ -1011,21 +1011,25 @@ def _compute_forward_loop_around_twiss_part(kwargs, line, start, end, init):
     assert _str_to_index(line, end) < _str_to_index(line, start), (
         'This function should not have been called')
     if _str_to_index(line, ele_name_init) >= _str_to_index(line, start):
-        tw1 = twiss_line(
-            start=start, end='_end_point', init=init, **kwargs)
+        tw1 = _compute_twiss_segment(
+            kwargs,
+            start=start, end='_end_point', init=init)
         twini_2 = tw1.get_twiss_init(at_element='_end_point')
         twini_2.element_name = line._element_names_unique[0]
-        tw2 = twiss_line(
+        tw2 = _compute_twiss_segment(
+            kwargs,
             start=line._element_names_unique[0], end=end,
-            init=twini_2, **kwargs)
+            init=twini_2)
         completed_init = tw1.completed_init
     elif _str_to_index(line, ele_name_init) <= _str_to_index(line, end):
-        tw2 = twiss_line(
-            start=line._element_names_unique[0], end=end, init=init, **kwargs)
+        tw2 = _compute_twiss_segment(
+            kwargs,
+            start=line._element_names_unique[0], end=end, init=init)
         twini_1 = tw2.get_twiss_init(at_element=line._element_names_unique[0])
         twini_1.element_name = '_end_point'
-        tw1 = twiss_line(
-            start=start, end='_end_point', init=twini_1, **kwargs)
+        tw1 = _compute_twiss_segment(
+            kwargs,
+            start=start, end='_end_point', init=twini_1)
         completed_init = tw2.completed_init
     else:
         raise RuntimeError(
@@ -1041,23 +1045,25 @@ def _compute_reverse_loop_around_twiss_part(kwargs, line, start, end, init):
     assert _str_to_index(line, end) > _str_to_index(line, start), (
         'This function should not have been called')
     if _str_to_index(line, ele_name_init) <= _str_to_index(line, start):
-        tw1 = twiss_line(
-            start=start, end=line._element_names_unique[0], init=init,
-            **kwargs)
+        tw1 = _compute_twiss_segment(
+            kwargs,
+            start=start, end=line._element_names_unique[0], init=init)
         twini_2 = tw1.get_twiss_init(at_element='_end_point')
         twini_2.element_name = line._element_names_unique[-1]
-        tw2 = twiss_line(
+        tw2 = _compute_twiss_segment(
+            kwargs,
             start=line._element_names_unique[-1], end=end,
-            init=twini_2, **kwargs)
+            init=twini_2)
         completed_init = tw1.completed_init
     elif _str_to_index(line, ele_name_init) >= _str_to_index(line, end):
-        tw2 = twiss_line(
-            start=line._element_names_unique[-1], end=end, init=init, **kwargs)
+        tw2 = _compute_twiss_segment(
+            kwargs,
+            start=line._element_names_unique[-1], end=end, init=init)
         twini_1 = tw2.get_twiss_init(at_element=line._element_names_unique[-1])
         twini_1.element_name = line._element_names_unique[0]
-        tw1 = twiss_line(
-            start=start, end=line._element_names_unique[0], init=twini_1,
-            **kwargs)
+        tw1 = _compute_twiss_segment(
+            kwargs,
+            start=start, end=line._element_names_unique[0], init=twini_1)
         completed_init = tw2.completed_init
     else:
         raise RuntimeError(
@@ -1102,10 +1108,11 @@ def _combine_loop_around_twiss_tables(tw1, tw2, init, completed_init):
 
     return tw_res
 
+
 def _handle_init_inside_range(kwargs):
 
     kwargs = kwargs.copy()
-    line = kwargs.pop('line')
+    line = kwargs['line']
     start = kwargs.pop('start')
     end = kwargs.pop('end')
     init = kwargs.pop('init')
@@ -1145,10 +1152,10 @@ def _compute_init_inside_range_twiss_parts(kwargs, line, start, end, init,
 
     ele_name_init = init.element_name
 
-    tw1 = twiss_line(line, start=start, end=ele_name_init,
-                     init=init, reverse=reverse, **kwargs)
-    tw2 = twiss_line(line, start=ele_name_init, end=end,
-                     init=init, reverse=reverse, **kwargs)
+    tw1 = _compute_twiss_segment(
+        kwargs, start=start, end=ele_name_init, init=init, reverse=reverse)
+    tw2 = _compute_twiss_segment(
+        kwargs, start=ele_name_init, end=end, init=init, reverse=reverse)
 
     return tw1, tw2
 
@@ -1198,6 +1205,14 @@ def _updated_kwargs_from_locals(kwargs, loc):
     return out
 
 
+def _compute_twiss_segment(kwargs, **overrides):
+
+    segment_kwargs = kwargs.copy()
+    segment_kwargs.update(overrides)
+
+    return twiss_line(**segment_kwargs)
+
+
 def _compute_range_from_full_periodic_init(kwargs, start, end, init_at):
 
     kwargs = kwargs.copy()
@@ -1206,10 +1221,10 @@ def _compute_range_from_full_periodic_init(kwargs, start, end, init_at):
     kwargs.pop('end')
     kwargs.pop('init_at')
 
-    tw = twiss_line(**kwargs) # Periodic twiss of the full line
+    tw = _compute_twiss_segment(kwargs) # Periodic twiss of the full line
     init = tw.get_twiss_init(init_at or start)
 
-    return twiss_line(start=start, end=end, init=init, **kwargs)
+    return _compute_twiss_segment(kwargs, start=start, end=end, init=init)
 
 
 def _compute_one_turn_twiss_from_start(kwargs, line, start, init, betx, bety):
@@ -1227,7 +1242,7 @@ def _compute_one_turn_twiss_from_start(kwargs, line, start, init, betx, bety):
 
 def _compute_periodic_one_turn_twiss_from_start(kwargs, start):
 
-    tw = twiss_line(**kwargs)
+    tw = _compute_twiss_segment(kwargs)
     t1 = tw.rows[start:]
     t2 = tw.rows[:start]
     out = xt.TwissTable.concatenate([t1, t2])
@@ -1242,7 +1257,7 @@ def _compute_open_one_turn_twiss_from_start(kwargs, line, start):
 
     kwargs = kwargs.copy()
     kwargs.pop('end')
-    t1o = twiss_line(start=start, end=xt.END, **kwargs)
+    t1o = _compute_twiss_segment(kwargs, start=start, end=xt.END)
     init_part2 = t1o.get_twiss_init('_end_point')
     # Dummy twiss to get the name at the start of the second part
     init_part2.element_name = line.twiss(
@@ -1251,7 +1266,8 @@ def _compute_open_one_turn_twiss_from_start(kwargs, line, start):
     for kk in VARS_FOR_TWISS_INIT_GENERATION:
         kwargs.pop(kk, None)
     kwargs.pop('init')
-    t2o = twiss_line(start=xt.START, end=start, init=init_part2, **kwargs)
+    t2o = _compute_twiss_segment(
+        kwargs, start=xt.START, end=start, init=init_part2)
     # remove repeated element
     t2o = t2o.rows[:-1]
     t2o.name[-1] = '_end_point'
