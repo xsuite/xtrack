@@ -241,9 +241,15 @@ Move:
 This is a coherent physics feature and can be extracted after `core.py` is
 stable.
 
-Keep `_get_chromatic_functions` in `core.py` until the remaining orchestration
-around off-momentum Twiss calls is simplified. It now depends on `open_twiss.py`
-directly instead of on a private function local to `core.py`.
+### `chromatic_functions.py`
+
+Move:
+
+- `_get_chromatic_functions`
+
+This helper builds first-order chromatic Twiss columns from off-momentum Twiss
+results. It is distinct from `non_linear_chromaticity.py`, which exposes the
+public tune-scan helper for higher-order chromaticity.
 
 ### `trajectory_curvatures.py`
 
