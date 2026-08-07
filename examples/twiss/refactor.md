@@ -441,12 +441,15 @@ Already converted:
   preflight state transition explicit before composed segment computation.
 - the later range-composition branches for loop-around and init-inside-range now
   share a single finalization return instead of finalizing separately.
-- periodic solution preparation for the normal segment path is now isolated in
-  `_prepare_periodic_solution_for_twiss_segment`, which owns the default
+- periodic solution preparation for the normal one-pass Twiss path is now
+  isolated in `_prepare_periodic_solution_for_base_twiss`, which owns the default
   `steps_R_matrix` completion and delegates to `_find_periodic_solution`.
-- element-by-element segment propagation is now isolated in
-  `_propagate_twiss_segment_element_by_element`, which delegates to
+- element-by-element propagation for the normal one-pass Twiss path is now
+  isolated in `_propagate_base_twiss_element_by_element`, which delegates to
   `_twiss_open` with explicit arguments.
+- periodic solution metadata attachment is now isolated in
+  `_add_periodic_solution_data_to_base_twiss`, including R matrices, ring
+  quantities, eigenvalues, and rotation matrix.
 
 ### Phase 1: configuration preflight
 
@@ -537,12 +540,15 @@ or input compatibility handling. Candidate shape:
   orchestrates optional outputs;
 - `_compute_twiss_segment(...)`: currently delegates to `twiss_line`, and should
   become the implementation point for one already-normalized segment;
-- `_prepare_periodic_solution_for_twiss_segment(...)`: first extracted slice of
-  the normalized segment engine, covering periodic init and one-turn matrix
+- `_prepare_periodic_solution_for_base_twiss(...)`: extracted slice of the
+  normal one-pass Twiss path, covering periodic init and one-turn matrix
   preparation;
-- `_propagate_twiss_segment_element_by_element(...)`: extracted segment slice
-  covering propagation of a completed init into the element-by-element Twiss
-  table;
+- `_propagate_base_twiss_element_by_element(...)`: extracted slice of the normal
+  one-pass Twiss path, covering propagation of a completed init into the
+  element-by-element Twiss table;
+- `_add_periodic_solution_data_to_base_twiss(...)`: extracted slice of the
+  normal one-pass Twiss path, covering periodic matrix and ring-level result
+  data attachment;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 

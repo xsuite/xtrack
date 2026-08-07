@@ -705,7 +705,7 @@ def twiss_line(line, particle_ref=None, method=None,
         if periodic:
 
             init, R_matrix, steps_R_matrix, eigenvalues, Rot, RR_ebe = (
-                _prepare_periodic_solution_for_twiss_segment(
+                _prepare_periodic_solution_for_base_twiss(
                     line=line, particle_on_co=particle_on_co,
                     particle_ref=particle_ref, method=method,
                     co_search_settings=co_search_settings,
@@ -747,7 +747,7 @@ def twiss_line(line, particle_ref=None, method=None,
             raise NotImplementedError(
                 '``only_markers`` not implemented for ``radiation_analysis``')
 
-        twiss_res = _propagate_twiss_segment_element_by_element(
+        twiss_res = _propagate_base_twiss_element_by_element(
             line=line,
             init=init,
             start=start, end=end,
@@ -768,15 +768,15 @@ def twiss_line(line, particle_ref=None, method=None,
             ebe_monitor=_ebe_monitor)
 
         if not skip_global_quantities and not only_orbit:
-            twiss_res._data['R_matrix'] = R_matrix
-            twiss_res._data['steps_R_matrix'] = steps_R_matrix
-            twiss_res._data['steps_r_matrix'] = steps_R_matrix # deprecated
-            twiss_res._data['R_matrix_ebe'] = RR_ebe
-
-            _add_ring_quantities(line=line, twiss_res=twiss_res, method=method)
-
-            twiss_res._data['eigenvalues'] = eigenvalues.copy()
-            twiss_res._data['rotation_matrix'] = Rot.copy()
+            _add_periodic_solution_data_to_base_twiss(
+                line=line,
+                twiss_res=twiss_res,
+                method=method,
+                R_matrix=R_matrix,
+                steps_R_matrix=steps_R_matrix,
+                RR_ebe=RR_ebe,
+                eigenvalues=eigenvalues,
+                Rot=Rot)
 
         if (not only_orbit and (
             (chrom is True)
@@ -1250,7 +1250,7 @@ def _kwargs_for_preflighted_twiss_segment(kwargs):
     return segment_kwargs
 
 
-def _prepare_periodic_solution_for_twiss_segment(
+def _prepare_periodic_solution_for_base_twiss(
         line, particle_on_co, particle_ref, method, co_search_settings,
         continue_on_closed_orbit_error, delta0, zeta0, zeta_shift,
         steps_R_matrix, W_matrix, R_matrix, co_guess, delta_disp,
@@ -1291,7 +1291,7 @@ def _prepare_periodic_solution_for_twiss_segment(
         )
 
 
-def _propagate_twiss_segment_element_by_element(
+def _propagate_base_twiss_element_by_element(
         line, init, start, end, nemitt_x, nemitt_y, step_W_sigma,
         delta_disp, use_full_inverse, hide_thin_groups, only_markers,
         only_orbit, spin, compute_lattice_functions, continue_if_lost,
@@ -1317,6 +1317,21 @@ def _propagate_twiss_segment_element_by_element(
         _keep_initial_particles=keep_initial_particles,
         _initial_particles=initial_particles,
         _ebe_monitor=ebe_monitor)
+
+
+def _add_periodic_solution_data_to_base_twiss(
+        line, twiss_res, method, R_matrix, steps_R_matrix, RR_ebe,
+        eigenvalues, Rot):
+
+    twiss_res._data['R_matrix'] = R_matrix
+    twiss_res._data['steps_R_matrix'] = steps_R_matrix
+    twiss_res._data['steps_r_matrix'] = steps_R_matrix # deprecated
+    twiss_res._data['R_matrix_ebe'] = RR_ebe
+
+    _add_ring_quantities(line=line, twiss_res=twiss_res, method=method)
+
+    twiss_res._data['eigenvalues'] = eigenvalues.copy()
+    twiss_res._data['rotation_matrix'] = Rot.copy()
 
 
 def _prepare_kwargs_for_full_periodic_twiss(kwargs):
