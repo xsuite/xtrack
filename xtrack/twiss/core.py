@@ -1111,7 +1111,19 @@ def _handle_init_inside_range(kwargs):
     init = kwargs.pop('init')
     reverse = kwargs.pop('reverse')
 
-    ele_name_init =  init.element_name
+    _assert_init_inside_range_is_supported(
+        line=line, start=start, end=end, init=init, reverse=reverse)
+
+    tw1, tw2 = _compute_init_inside_range_twiss_parts(
+        kwargs=kwargs, line=line, start=start, end=end, init=init,
+        reverse=reverse)
+
+    return _combine_init_inside_range_twiss_tables(tw1, tw2, init)
+
+
+def _assert_init_inside_range_is_supported(line, start, end, init, reverse):
+
+    ele_name_init = init.element_name
     ele_init = line.get(ele_name_init)
     if isinstance(ele_init, xt.Replica):
         ele_init = ele_init.resolve()
@@ -1127,10 +1139,23 @@ def _handle_init_inside_range(kwargs):
         assert _str_to_index(line, ele_name_init) >= _str_to_index(line, start)
         assert _str_to_index(line, ele_name_init) <= _str_to_index(line, end)
 
+
+def _compute_init_inside_range_twiss_parts(kwargs, line, start, end, init,
+                                           reverse):
+
+    ele_name_init = init.element_name
+
     tw1 = twiss_line(line, start=start, end=ele_name_init,
                      init=init, reverse=reverse, **kwargs)
     tw2 = twiss_line(line, start=ele_name_init, end=end,
                      init=init, reverse=reverse, **kwargs)
+
+    return tw1, tw2
+
+
+def _combine_init_inside_range_twiss_tables(tw1, tw2, init):
+
+    ele_name_init = init.element_name
 
     tw_res = TwissTable.concatenate([tw1, tw2])
     tw_res['completed_init'] = tw1.completed_init

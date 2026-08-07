@@ -412,6 +412,9 @@ Already converted:
   segment construction to `_compute_forward_loop_around_twiss_part` or
   `_compute_reverse_loop_around_twiss_part`, then combines and re-aligns the
   result in `_combine_loop_around_twiss_tables`.
+- init-inside-range open ranges: `_handle_init_inside_range` now separates marker
+  support validation, segment construction, and table combination into named
+  helpers.
 
 ### Phase 1: configuration preflight
 
@@ -476,7 +479,10 @@ Twiss segments:
 - `_handle_loop_around`. The branch is split into direction-specific segment
   construction helpers and a table-combination helper; a later lower-level
   segment engine can remove the internal `twiss_line` calls.
-- `_handle_init_inside_range`
+- `_handle_init_inside_range`. The branch is split into support validation,
+  `_compute_init_inside_range_twiss_parts`, and
+  `_combine_init_inside_range_twiss_tables`; a later lower-level segment engine
+  can remove the internal `twiss_line` calls.
 - `_multiturn_twiss`
 
 Do these last. They probably need a lower-level private engine that assumes
