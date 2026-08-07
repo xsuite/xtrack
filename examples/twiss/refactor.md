@@ -464,6 +464,9 @@ Already converted:
   `_apply_4d_longitudinal_result_convention`,
   `_set_twiss_result_values_at`, and
   `_add_strengths_and_radiation_integrals_to_twiss_result`.
+- spin polarization and Edwards-Teng coupling result enrichment are now isolated
+  in `_add_spin_polarization_to_twiss_result` and
+  `_add_edwards_teng_coupling_to_twiss_result`.
 
 ### Phase 1: configuration preflight
 
@@ -577,6 +580,9 @@ or input compatibility handling. Candidate shape:
   `_set_twiss_result_values_at(...)`, and
   `_add_strengths_and_radiation_integrals_to_twiss_result(...)`: extracted
   result-convention and table-enrichment slices;
+- `_add_spin_polarization_to_twiss_result(...)` and
+  `_add_edwards_teng_coupling_to_twiss_result(...)`: extracted optional physics
+  enrichment slices;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 

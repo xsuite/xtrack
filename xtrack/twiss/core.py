@@ -837,33 +837,17 @@ def twiss_line(line, particle_ref=None, method=None,
             strengths=strengths,
             radiation_integrals=radiation_integrals)
 
-        if polarization_analysis:
-            _get_spin_polarization(twiss_res, line, method)
+        _add_spin_polarization_to_twiss_result(
+            line=line,
+            twiss_res=twiss_res,
+            method=method,
+            polarization_analysis=polarization_analysis)
 
-        if coupling_edw_teng:
-            if not periodic:
-                raise ValueError(
-                    'Computing Edwards-Teng coupling elements is only supported for periodic lines.'
-                )
-            if reverse:
-                raise NotImplementedError(
-                    'Computing Edwards-Teng coupling elements in reverse mode is not '
-                    'yet implemented.'
-                )
-            delta = twiss_res['delta']
-            betx1, betx2 = twiss_res['betx1'], twiss_res['betx2']
-            bety1, bety2 = twiss_res['bety1'], twiss_res['bety2']
-            alfx1, alfx2 = twiss_res['alfx1'], twiss_res['alfx2']
-            alfy1, alfy2 = twiss_res['alfy1'], twiss_res['alfy2']
-            coupling_result = _get_coupling_elements_edwards_teng(
-                W_matrix=twiss_res['W_matrix'],
-                mux=twiss_res['mux'],
-                muy=twiss_res['muy'],
-                qx=twiss_res['qx'],
-                qy=twiss_res['qy']
-            )
-            for kk in coupling_result:
-                twiss_res[kk] = coupling_result[kk]
+        _add_edwards_teng_coupling_to_twiss_result(
+            twiss_res=twiss_res,
+            coupling_edw_teng=coupling_edw_teng,
+            periodic=periodic,
+            reverse=reverse)
 
         twiss_res._data['method'] = method
         twiss_res._data['radiation_method'] = radiation_method
@@ -1435,6 +1419,40 @@ def _add_strengths_and_radiation_integrals_to_twiss_result(
 
     if radiation_integrals:
         twiss_res._get_radiation_integrals(add_to_tw=True)
+
+
+def _add_spin_polarization_to_twiss_result(
+        line, twiss_res, method, polarization_analysis):
+
+    if polarization_analysis:
+        _get_spin_polarization(twiss_res, line, method)
+
+
+def _add_edwards_teng_coupling_to_twiss_result(
+        twiss_res, coupling_edw_teng, periodic, reverse):
+
+    if not coupling_edw_teng:
+        return
+
+    if not periodic:
+        raise ValueError(
+            'Computing Edwards-Teng coupling elements is only supported for periodic lines.'
+        )
+    if reverse:
+        raise NotImplementedError(
+            'Computing Edwards-Teng coupling elements in reverse mode is not '
+            'yet implemented.'
+        )
+
+    coupling_result = _get_coupling_elements_edwards_teng(
+        W_matrix=twiss_res['W_matrix'],
+        mux=twiss_res['mux'],
+        muy=twiss_res['muy'],
+        qx=twiss_res['qx'],
+        qy=twiss_res['qy']
+    )
+    for kk in coupling_result:
+        twiss_res[kk] = coupling_result[kk]
 
 
 def _align_open_twiss_phases_with_init(twiss_res, init, reverse):
