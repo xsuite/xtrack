@@ -428,6 +428,8 @@ Already converted:
 - open one-turn composition no longer runs a dummy one-row Twiss just to recover
   the first element name; it now reads the normalized start element name through
   `_line_start_element_name`.
+- the early input-rewrite branches for start-only and `init="full_periodic"`
+  now share a single finalization return instead of finalizing separately.
 
 ### Phase 1: configuration preflight
 

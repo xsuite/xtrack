@@ -487,9 +487,10 @@ def twiss_line(line, particle_ref=None, method=None,
                          xt.END: line._element_names_unique[-1]}[end]
             assert isinstance(end, str)  # index not supported anymore
 
+        composed_twiss_res = None
         if start is not None and end is None:
             kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            out = _compute_one_turn_twiss_from_start(
+            composed_twiss_res = _compute_one_turn_twiss_from_start(
                 kwargs=kwargs,
                 line=line,
                 start=start,
@@ -497,19 +498,20 @@ def twiss_line(line, particle_ref=None, method=None,
                 betx=betx,
                 bety=bety,
             )
-            return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
-
-        if init == 'full_periodic' and (start is not None or end is not None):
+        elif init == 'full_periodic' and (start is not None or end is not None):
             kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            out = _compute_range_from_full_periodic_init(
+            composed_twiss_res = _compute_range_from_full_periodic_init(
                 kwargs=kwargs,
                 start=start,
                 end=end,
                 init_at=init_at,
             )
             if zero_at_requested is None:
-                out.zero_at(start)
-            return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
+                composed_twiss_res.zero_at(start)
+
+        if composed_twiss_res is not None:
+            return _finalize_twiss_result(
+                composed_twiss_res, input_kwargs, zero_at=zero_at_requested)
         elif (init is not None and init not in ['periodic', 'periodic_symmetric']
             or betx is not None or bety is not None):
             periodic = False
