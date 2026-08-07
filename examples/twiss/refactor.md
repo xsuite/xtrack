@@ -32,6 +32,7 @@ xtrack/xtrack/twiss/
     input_normalization.py
     core.py
     lattice_functions.py
+    ring_quantities.py
     twiss_init.py
     twiss_table.py
     beam_covariance.py
@@ -177,7 +178,6 @@ Move the main computation orchestration:
 - `twiss_line`
 - `_twiss_open`
 - `_find_periodic_solution`
-- `_get_global_quantities`
 - `_handle_loop_around`
 - `_handle_init_inside_range`
 - `_multiturn_twiss`
@@ -199,6 +199,17 @@ Move:
 These helpers transform the propagated normal-form matrices into Twiss lattice
 functions and phase advances. Keeping them out of `core.py` makes the main
 orchestration easier to scan without introducing a vague helper module.
+
+### `ring_quantities.py`
+
+Move:
+
+- `_add_ring_quantities`
+
+This helper enriches periodic Twiss results with ring-level quantities:
+revolution time, line length, slip factor, momentum compaction, tunes, and
+global coupling columns. The name is more specific than global quantities and
+matches the fact that these values are only added on periodic/ring results.
 
 ### `non_linear_chromaticity.py`
 
@@ -297,7 +308,7 @@ Once imports are stable, the next readability win is to reduce the size of
 - `_resolve_periodic_mode(...)`
 - `_prepare_line_state_for_twiss(...)`
 - `_compute_base_twiss(...)`
-- `_add_global_quantities(...)`
+- `_add_ring_quantities(...)`
 - `_add_optional_twiss_outputs(...)`
 - `_finalize_twiss_result(...)`
 
