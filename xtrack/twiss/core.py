@@ -572,8 +572,6 @@ def twiss_line(line, particle_ref=None, method=None,
     if at_s is not None:
         if reverse:
             raise NotImplementedError('``at_s`` not implemented for ``reverse``=True')
-        # Get all arguments
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         if np.isscalar(at_s):
             at_s = [at_s]
         assert at_elements is None
@@ -581,19 +579,10 @@ def twiss_line(line, particle_ref=None, method=None,
             ) = _build_auxiliary_tracker_with_extra_markers(
             tracker=line.tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
             algorithm='insert')
-        kwargs.pop('line')
-        kwargs.pop('at_s')
-        kwargs.pop('at_elements')
-        kwargs.pop('matrix_responsiveness_tol')
-        kwargs.pop('matrix_stability_tol')
-        kwargs.pop('strengths')
-        res = twiss_line(line=auxtracker.line,
-                        at_elements=names_inserted_markers,
-                        matrix_responsiveness_tol=matrix_responsiveness_tol,
-                        matrix_stability_tol=matrix_stability_tol,
-                        strengths=True,
-                        **kwargs)
-        return _finalize_twiss_result(res, input_kwargs, zero_at=zero_at_requested)
+        line = auxtracker.line
+        at_elements = names_inserted_markers
+        at_s = None
+        strengths = True
 
     if radiation_method is None and line._radiation_model is not None:
         if line._radiation_model in ('quantum', 'quantum-kick'):

@@ -187,7 +187,9 @@ Move the main computation orchestration:
 After the package split works, refactor `twiss_line` internally to remove
 recursive re-entry. The signature should remain unchanged for API compatibility
 and documentation propagation. The `zero_at` post-processing branch has already
-been converted from recursive re-entry into final result handling.
+been converted from recursive re-entry into final result handling. The
+deprecated `at_s` path now switches to a temporary marker line and falls through
+to the normal computation path instead of recursively calling `twiss_line`.
 
 ### `finalize.py`
 
