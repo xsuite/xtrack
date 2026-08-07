@@ -188,6 +188,16 @@ Move the main computation orchestration:
 After the package split works, refactor `twiss_line` internally. The signature
 should remain unchanged for API compatibility and documentation propagation.
 
+### `extra_markers.py`
+
+Move:
+
+- `_build_auxiliary_tracker_with_extra_markers`
+
+This helper belongs to the deprecated `at_s` path. It constructs a temporary
+tracker with inserted markers so `twiss_line` can reuse the normal
+`at_elements` selection path.
+
 ### `open_twiss.py`
 
 Move:
