@@ -3,6 +3,8 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+from contextlib import ExitStack
+
 import numpy as np
 from scipy.constants import c as clight
 
@@ -428,15 +430,6 @@ def twiss_line(line, particle_ref=None, method=None,
         disable_apertures=disable_apertures,
     )
 
-    if disable_apertures:
-        if not (line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE
-                and line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE):
-            with xt.line._preserve_track_flags(line):
-                line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
-                line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE = True
-                out = twiss_line(**input_kwargs)
-                return _finalize_twiss_result(out, input_kwargs)
-
     if only_markers:
         raise NotImplementedError('``only_markers`` not supported anymore')
 
@@ -454,570 +447,563 @@ def twiss_line(line, particle_ref=None, method=None,
     zero_at_requested = zero_at
     zero_at = None
 
-    if (init is not None or betx is not None or bety is not None) and start is None:
-        # is open twiss
-        start = xt.START
-        end = end or xt.END
+    with ExitStack() as twiss_context:
+        if disable_apertures:
+            if not (line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE
+                    and line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE):
+                twiss_context.enter_context(
+                    xt.line._preserve_track_flags(line))
+                line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
+                line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE = True
 
-    if num_turns != 1:
-        # Untested cases
-        assert num_turns > 0
-        assert start is None
-        assert end is None
-        assert init is None
-        assert reverse is False
+        if (init is not None or betx is not None or bety is not None) and start is None:
+            # is open twiss
+            start = xt.START
+            end = end or xt.END
 
-    if start is not None:
-        if isinstance(start, xt.match._LOC):
-            assert start in [xt.START, xt.END]
-            if reverse:
-                start = {xt.START: xt.END, xt.END: xt.START}[start]
-            start = {xt.START: line._element_names_unique[0],
-                     xt.END: line._element_names_unique[-1]}[start]
-        assert isinstance(start, str)  # index not supported anymore
+        if num_turns != 1:
+            # Untested cases
+            assert num_turns > 0
+            assert start is None
+            assert end is None
+            assert init is None
+            assert reverse is False
 
-    if end is not None:
-        if isinstance(end, xt.match._LOC):
-            assert end in [xt.START, xt.END]
-            if reverse:
-                end = {xt.START: xt.END, xt.END: xt.START}[end]
-            end = {xt.START: line._element_names_unique[0],
-                     xt.END: line._element_names_unique[-1]}[end]
-        assert isinstance(end, str)  # index not supported anymore
+        if start is not None:
+            if isinstance(start, xt.match._LOC):
+                assert start in [xt.START, xt.END]
+                if reverse:
+                    start = {xt.START: xt.END, xt.END: xt.START}[start]
+                start = {xt.START: line._element_names_unique[0],
+                         xt.END: line._element_names_unique[-1]}[start]
+            assert isinstance(start, str)  # index not supported anymore
 
-    if start is not None and end is None:
-        # One turn twiss from start to start
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs.pop('start')
-        if (init is None or init == 'periodic') and betx is None and bety is None:
-            # Periodic twiss
-            tw = twiss_line(**kwargs)
-            t1 = tw.rows[start:]
-            t2 = tw.rows[:start]
-            out = xt.TwissTable.concatenate([t1, t2])
-            out.zero_at(out.name[0])
-            out.name[-1] = '_end_point'
-            out['periodic'] = True
-            out['completed_init'] = tw.completed_init
-        else:
-            # Initial conditions are given -> open twiss
-            kwargs.pop('end')
-            t1o = twiss_line(start=start, end=xt.END, **kwargs)
-            init_part2 = t1o.get_twiss_init('_end_point')
-            # Dummy twiss to get the name at the start of the second part
-            init_part2.element_name = line.twiss(
-                start=xt.START, end=xt.START, betx=1, bety=1).name[0]
+        if end is not None:
+            if isinstance(end, xt.match._LOC):
+                assert end in [xt.START, xt.END]
+                if reverse:
+                    end = {xt.START: xt.END, xt.END: xt.START}[end]
+                end = {xt.START: line._element_names_unique[0],
+                         xt.END: line._element_names_unique[-1]}[end]
+            assert isinstance(end, str)  # index not supported anymore
 
-            for kk in VARS_FOR_TWISS_INIT_GENERATION:
-                kwargs.pop(kk, None)
-            kwargs.pop('init')
-            t2o = twiss_line(start=xt.START, end=start, init=init_part2, **kwargs)
-            # remove repeated element
-            t2o = t2o.rows[:-1]
-            t2o.name[-1] = '_end_point'
-            out = xt.TwissTable.concatenate([t1o, t2o])
-            out['completed_init'] = t1o.completed_init
-        return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
-
-    if init == 'full_periodic' and (start is not None or end is not None):
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs.pop('init')
-        kwargs.pop('start')
-        kwargs.pop('end')
-        kwargs.pop('init_at')
-        tw = twiss_line(**kwargs) # Periodic twiss of the full line
-        init = tw.get_twiss_init(init_at or start)
-        out = twiss_line(start=start, end=end, init=init, **kwargs)
-        if zero_at_requested is None:
-            out.zero_at(start)
-        return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
-    elif (init is not None and init not in ['periodic', 'periodic_symmetric']
-        or betx is not None or bety is not None):
-        periodic = False
-        periodic_mode = None
-    else:
-        periodic = True
-        periodic_mode = init or 'periodic'
-        assert x is None, '``x`` not supported for periodic twiss'
-        assert px is None, '``px`` not supported for periodic twiss'
-        assert y is None, '``y`` not supported for periodic twiss'
-        assert py is None, '``py`` not supported for periodic twiss'
-        assert zeta is None, '``zeta`` not supported for periodic twiss'
-        assert delta is None, '``delta`` not supported for periodic twiss'
-
-    if freeze_longitudinal:
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs.pop('freeze_longitudinal')
-
-        with xt.freeze_longitudinal(line):
-            return _finalize_twiss_result(
-                twiss_line(**kwargs), input_kwargs, zero_at=zero_at_requested)
-    elif freeze_energy:
-        if not line._energy_is_frozen():
+        if start is not None and end is None:
+            # One turn twiss from start to start
             kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-            kwargs.pop('freeze_energy')
-            with xt.line._preserve_config(line):
-                line.freeze_energy(force=True) # need to force for collective lines
-                return _finalize_twiss_result(
-                    twiss_line(freeze_energy=False, **kwargs), input_kwargs,
-                    zero_at=zero_at_requested)
+            kwargs.pop('start')
+            if (init is None or init == 'periodic') and betx is None and bety is None:
+                # Periodic twiss
+                tw = twiss_line(**kwargs)
+                t1 = tw.rows[start:]
+                t2 = tw.rows[:start]
+                out = xt.TwissTable.concatenate([t1, t2])
+                out.zero_at(out.name[0])
+                out.name[-1] = '_end_point'
+                out['periodic'] = True
+                out['completed_init'] = tw.completed_init
+            else:
+                # Initial conditions are given -> open twiss
+                kwargs.pop('end')
+                t1o = twiss_line(start=start, end=xt.END, **kwargs)
+                init_part2 = t1o.get_twiss_init('_end_point')
+                # Dummy twiss to get the name at the start of the second part
+                init_part2.element_name = line.twiss(
+                    start=xt.START, end=xt.START, betx=1, bety=1).name[0]
 
-    if method == '4d' and not line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK:
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        with xt.line._preserve_track_flags(line):
-            line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
-            return _finalize_twiss_result(
-                twiss_line(**kwargs), input_kwargs, zero_at=zero_at_requested)
+                for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                    kwargs.pop(kk, None)
+                kwargs.pop('init')
+                t2o = twiss_line(start=xt.START, end=start, init=init_part2, **kwargs)
+                # remove repeated element
+                t2o = t2o.rows[:-1]
+                t2o.name[-1] = '_end_point'
+                out = xt.TwissTable.concatenate([t1o, t2o])
+                out['completed_init'] = t1o.completed_init
+            return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
 
-    if at_s is not None:
-        if reverse:
-            raise NotImplementedError('``at_s`` not implemented for ``reverse``=True')
-        if np.isscalar(at_s):
-            at_s = [at_s]
-        assert at_elements is None
-        (auxtracker, names_inserted_markers
-            ) = _build_auxiliary_tracker_with_extra_markers(
-            tracker=line.tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
-            algorithm='insert')
-        line = auxtracker.line
-        at_elements = names_inserted_markers
-        at_s = None
-        strengths = True
-
-    if radiation_method is None and line._radiation_model is not None:
-        if line._radiation_model in ('quantum', 'quantum-kick'):
-            raise ValueError(
-                'twiss cannot be called when the radiation model is stochastic')
-        if method == '4d':
-            raise RuntimeError('4d twiss cannot be called when radiation is present')
-        radiation_method = 'kick_as_co'
-
-    if radiation_method is not None and radiation_method != 'full':
-        assert isinstance(line._context, xo.ContextCpu), (
-            'Twiss with radiation computation is only supported on CPU')
-        assert not line._context.openmp_enabled, (
-            'Twiss with radiation computation is not supported with OpenMP'
-            ' parallelization')
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
-        assert freeze_longitudinal is False
-        if (radiation_method == 'kick_as_co' and (
-            not line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST)):
-            with xt.line._preserve_track_flags(line):
-                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = True
-                return _finalize_twiss_result(
-                    twiss_line(**kwargs), input_kwargs, zero_at=zero_at_requested)
-        elif (radiation_method == 'scale_as_co' and (
-            not hasattr(line.config, 'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST') or
-            not line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST)):
-            with xt.line._preserve_config(line):
-                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-                return _finalize_twiss_result(
-                    twiss_line(**kwargs), input_kwargs, zero_at=zero_at_requested)
-
-    if radiation_method == 'kick_as_co':
-        assert line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST
-
-    if line.enable_time_dependent_vars:
-        raise RuntimeError('Time dependent variables not supported in Twiss')
-
-    if isinstance(init_at, xt.match._LOC):
-        if init_at.name == 'START':
-            init_at = start
-        elif init_at.name == 'END':
-            init_at = end
-
-    if isinstance(init, TwissTable):
-        if init_at is None:
-            init_at = start
-        init = init.get_twiss_init(at_element=init_at)
-        init_at = None
-
-    init = _complete_twiss_init(
-        start=start, end=end, init_at=init_at, init=init,
-        line=line, reverse=reverse,
-        x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
-        alfx=alfx, alfy=alfy, betx=betx, bety=bety, bets=bets,
-        dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
-        mux=mux, muy=muy, muzeta=muzeta,
-        ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom, by_chrom=by_chrom,
-        ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
-        spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
-    )
-    completed_init = (init.copy() if hasattr(init, 'copy') else init)
-
-    # clean quantities embedded in init
-    init_at=None
-    x=None; px=None; y=None; py=None; zeta=None; delta=None
-    alfx=None; alfy=None; betx=None; bety=None; bets=None
-    dx=None; dpx=None; dy=None; dpy=None; dzeta=None
-    mux=None; muy=None; muzeta=None
-    ax_chrom=None; bx_chrom=None; ay_chrom=None; by_chrom=None
-    ddx=None; ddpx=None; ddy=None; ddpy=None
-    spin_x=None; spin_y=None; spin_z=None
-
-    # Twiss goes through the start of the line
-    rv = (-1 if reverse else 1)
-    if not periodic and (
-        rv * _str_to_index(line, start) > rv * _str_to_index(line, end)):
-
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        tw_res = _handle_loop_around(kwargs)
-
-        return _finalize_twiss_result(tw_res, input_kwargs, zero_at=zero_at_requested)
-
-    # init is not at the boundary
-    if (not periodic and not isinstance(init, str)
-            and init.element_name != start
-            and init.element_name != end):
-
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        tw_res = _handle_init_inside_range(kwargs)
-
-        return _finalize_twiss_result(tw_res, input_kwargs, zero_at=zero_at_requested)
-
-    if reverse:
-        if start is not None and end is not None:
-            assert (_str_to_index(line, start) >= _str_to_index(line, end)), (
-                'start must be smaller than end in reverse mode')
-        start, end = end, start
-    else:
-        if start is not None and end is not None:
-            assert _str_to_index(line, start) <= _str_to_index(line, end), (
-                'start must be larger than end in forward mode')
-
-    if start is not None and init is None:
-        assert init is not None, (
-            'init must be provided if start and end are used')
-
-    if matrix_responsiveness_tol is None:
-        matrix_responsiveness_tol = line.matrix_responsiveness_tol
-    if matrix_stability_tol is None:
-        matrix_stability_tol = line.matrix_stability_tol
-
-    if (line._radiation_model is not None
-            and radiation_method != 'kick_as_co'):
-        matrix_stability_tol = None
-        if use_full_inverse is None:
-            use_full_inverse = True
-
-    if particle_ref is None:
-        if particle_on_co is not None:
-            particle_ref = particle_on_co.copy()
-        elif co_guess is None and hasattr(line, 'particle_ref'):
-            particle_ref = line.particle_ref
-
-    if line.iscollective and not include_collective:
-        _print(
-            'The line has collective elements.\n'
-            'In the twiss computation collective elements are'
-            ' replaced by drifts')
-        line = line._get_non_collective_line()
-
-    if particle_ref is None and co_guess is None:
-        raise ValueError(
-            "Either ``particle_ref`` or ``co_guess`` must be provided")
-
-    if method is None:
-        method = '6d'
-
-    assert method in ['6d', '4d'], 'Method must be ``6d`` or ``4d``'
-
-    if isinstance(init, str):
-        if init in ['preserve', 'preserve_start', 'preserve_end']:
-            raise ValueError(f'init={init} not anymore supported')
-        assert init == 'periodic' or 'full_periodic'
-
-    if not periodic:
-        if delta0 is not None or zeta0 is not None:
-            raise ValueError(
-                'delta0 and zeta0 cannot be provided for open twiss')
-
-    if periodic:
-
-        assert not _initial_particles
-
-        steps_R_matrix = _complete_steps_r_matrix_with_default(steps_R_matrix)
-
-        init, R_matrix, steps_R_matrix, eigenvalues, Rot, RR_ebe = _find_periodic_solution(
-            line=line, particle_on_co=particle_on_co,
-            particle_ref=particle_ref, method=method,
-            co_search_settings=co_search_settings,
-            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-            delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
-            steps_R_matrix=steps_R_matrix,
-            W_matrix=W_matrix, R_matrix=R_matrix,
-            co_guess=co_guess,
-            delta_disp=delta_disp, symplectify=symplectify,
-            matrix_responsiveness_tol=matrix_responsiveness_tol,
-            matrix_stability_tol=matrix_stability_tol,
-            start=start, end=end,
-            num_turns=num_turns,
-            co_search_at=co_search_at,
-            search_for_t_rev=search_for_t_rev,
-            spin=spin,
-            num_turns_search_t_rev=num_turns_search_t_rev,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y, step_W_sigma=step_W_sigma,
-            compute_R_element_by_element=compute_R_element_by_element,
-            only_markers=only_markers,
-            only_orbit=only_orbit,
-            periodic_mode=periodic_mode,
-            include_collective=include_collective,
-            )
-    else:
-        # force
-        skip_global_quantities = True
-
-    if only_twiss_init:
-        assert periodic, '``only_twiss_init`` can only be used in periodic mode'
-        if reverse:
-            return init.reverse()
+        if init == 'full_periodic' and (start is not None or end is not None):
+            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            kwargs.pop('init')
+            kwargs.pop('start')
+            kwargs.pop('end')
+            kwargs.pop('init_at')
+            tw = twiss_line(**kwargs) # Periodic twiss of the full line
+            init = tw.get_twiss_init(init_at or start)
+            out = twiss_line(start=start, end=end, init=init, **kwargs)
+            if zero_at_requested is None:
+                out.zero_at(start)
+            return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
+        elif (init is not None and init not in ['periodic', 'periodic_symmetric']
+            or betx is not None or bety is not None):
+            periodic = False
+            periodic_mode = None
         else:
-            return init
+            periodic = True
+            periodic_mode = init or 'periodic'
+            assert x is None, '``x`` not supported for periodic twiss'
+            assert px is None, '``px`` not supported for periodic twiss'
+            assert y is None, '``y`` not supported for periodic twiss'
+            assert py is None, '``py`` not supported for periodic twiss'
+            assert zeta is None, '``zeta`` not supported for periodic twiss'
+            assert delta is None, '``delta`` not supported for periodic twiss'
 
-    if only_markers and radiation_analysis:
-        raise NotImplementedError(
-            '``only_markers`` not implemented for ``radiation_analysis``')
+        if freeze_longitudinal:
+            twiss_context.enter_context(xt.freeze_longitudinal(line))
+            freeze_longitudinal = False
+        elif freeze_energy:
+            if not line._energy_is_frozen():
+                twiss_context.enter_context(xt.line._preserve_config(line))
+                line.freeze_energy(force=True) # need to force for collective lines
+                freeze_energy = False
 
-    twiss_res = _twiss_open(
-        line=line,
-        init=init,
-        start=start, end=end,
-        nemitt_x=nemitt_x,
-        nemitt_y=nemitt_y,
-        step_W_sigma=step_W_sigma,
-        delta_disp=delta_disp,
-        use_full_inverse=use_full_inverse,
-        hide_thin_groups=hide_thin_groups,
-        only_markers=only_markers,
-        only_orbit=only_orbit,
-        spin=spin,
-        compute_lattice_functions=compute_lattice_functions,
-        _continue_if_lost=_continue_if_lost,
-        _keep_tracking_data=_keep_tracking_data,
-        _keep_initial_particles=_keep_initial_particles,
-        _initial_particles=_initial_particles,
-        _ebe_monitor=_ebe_monitor)
+        if method == '4d' and not line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK:
+            twiss_context.enter_context(xt.line._preserve_track_flags(line))
+            line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
 
-    if not skip_global_quantities and not only_orbit:
-        twiss_res._data['R_matrix'] = R_matrix
-        twiss_res._data['steps_R_matrix'] = steps_R_matrix
-        twiss_res._data['steps_r_matrix'] = steps_R_matrix # deprecated
-        twiss_res._data['R_matrix_ebe'] = RR_ebe
+        if at_s is not None:
+            if reverse:
+                raise NotImplementedError('``at_s`` not implemented for ``reverse``=True')
+            if np.isscalar(at_s):
+                at_s = [at_s]
+            assert at_elements is None
+            (auxtracker, names_inserted_markers
+                ) = _build_auxiliary_tracker_with_extra_markers(
+                tracker=line.tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
+                algorithm='insert')
+            line = auxtracker.line
+            at_elements = names_inserted_markers
+            at_s = None
+            strengths = True
 
-        _add_ring_quantities(line=line, twiss_res=twiss_res, method=method)
+        if radiation_method is None and line._radiation_model is not None:
+            if line._radiation_model in ('quantum', 'quantum-kick'):
+                raise ValueError(
+                    'twiss cannot be called when the radiation model is stochastic')
+            if method == '4d':
+                raise RuntimeError('4d twiss cannot be called when radiation is present')
+            radiation_method = 'kick_as_co'
 
-        twiss_res._data['eigenvalues'] = eigenvalues.copy()
-        twiss_res._data['rotation_matrix'] = Rot.copy()
+        if radiation_method is not None and radiation_method != 'full':
+            assert isinstance(line._context, xo.ContextCpu), (
+                'Twiss with radiation computation is only supported on CPU')
+            assert not line._context.openmp_enabled, (
+                'Twiss with radiation computation is not supported with OpenMP'
+                ' parallelization')
+            assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
+            assert freeze_longitudinal is False
+            if (radiation_method == 'kick_as_co' and (
+                not line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST)):
+                twiss_context.enter_context(xt.line._preserve_track_flags(line))
+                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = True
+            elif (radiation_method == 'scale_as_co' and (
+                not hasattr(line.config, 'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST') or
+                not line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST)):
+                twiss_context.enter_context(xt.line._preserve_config(line))
+                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
 
-    if (not only_orbit and (
-        (chrom is True)
-        or (chrom is None and periodic))):
+        if radiation_method == 'kick_as_co':
+            assert line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST
 
-        cols_chrom, scalars_chrom = _get_chromatic_functions(
+        if line.enable_time_dependent_vars:
+            raise RuntimeError('Time dependent variables not supported in Twiss')
+
+        if isinstance(init_at, xt.match._LOC):
+            if init_at.name == 'START':
+                init_at = start
+            elif init_at.name == 'END':
+                init_at = end
+
+        if isinstance(init, TwissTable):
+            if init_at is None:
+                init_at = start
+            init = init.get_twiss_init(at_element=init_at)
+            init_at = None
+
+        init = _complete_twiss_init(
+            start=start, end=end, init_at=init_at, init=init,
+            line=line, reverse=reverse,
+            x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
+            alfx=alfx, alfy=alfy, betx=betx, bety=bety, bets=bets,
+            dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
+            mux=mux, muy=muy, muzeta=muzeta,
+            ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom, by_chrom=by_chrom,
+            ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
+            spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
+        )
+        completed_init = (init.copy() if hasattr(init, 'copy') else init)
+
+        # clean quantities embedded in init
+        init_at=None
+        x=None; px=None; y=None; py=None; zeta=None; delta=None
+        alfx=None; alfy=None; betx=None; bety=None; bets=None
+        dx=None; dpx=None; dy=None; dpy=None; dzeta=None
+        mux=None; muy=None; muzeta=None
+        ax_chrom=None; bx_chrom=None; ay_chrom=None; by_chrom=None
+        ddx=None; ddpx=None; ddy=None; ddpy=None
+        spin_x=None; spin_y=None; spin_z=None
+
+        # Twiss goes through the start of the line
+        rv = (-1 if reverse else 1)
+        if not periodic and (
+            rv * _str_to_index(line, start) > rv * _str_to_index(line, end)):
+
+            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            tw_res = _handle_loop_around(kwargs)
+
+            return _finalize_twiss_result(tw_res, input_kwargs, zero_at=zero_at_requested)
+
+        # init is not at the boundary
+        if (not periodic and not isinstance(init, str)
+                and init.element_name != start
+                and init.element_name != end):
+
+            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            tw_res = _handle_init_inside_range(kwargs)
+
+            return _finalize_twiss_result(tw_res, input_kwargs, zero_at=zero_at_requested)
+
+        if reverse:
+            if start is not None and end is not None:
+                assert (_str_to_index(line, start) >= _str_to_index(line, end)), (
+                    'start must be smaller than end in reverse mode')
+            start, end = end, start
+        else:
+            if start is not None and end is not None:
+                assert _str_to_index(line, start) <= _str_to_index(line, end), (
+                    'start must be larger than end in forward mode')
+
+        if start is not None and init is None:
+            assert init is not None, (
+                'init must be provided if start and end are used')
+
+        if matrix_responsiveness_tol is None:
+            matrix_responsiveness_tol = line.matrix_responsiveness_tol
+        if matrix_stability_tol is None:
+            matrix_stability_tol = line.matrix_stability_tol
+
+        if (line._radiation_model is not None
+                and radiation_method != 'kick_as_co'):
+            matrix_stability_tol = None
+            if use_full_inverse is None:
+                use_full_inverse = True
+
+        if particle_ref is None:
+            if particle_on_co is not None:
+                particle_ref = particle_on_co.copy()
+            elif co_guess is None and hasattr(line, 'particle_ref'):
+                particle_ref = line.particle_ref
+
+        if line.iscollective and not include_collective:
+            _print(
+                'The line has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            line = line._get_non_collective_line()
+
+        if particle_ref is None and co_guess is None:
+            raise ValueError(
+                "Either ``particle_ref`` or ``co_guess`` must be provided")
+
+        if method is None:
+            method = '6d'
+
+        assert method in ['6d', '4d'], 'Method must be ``6d`` or ``4d``'
+
+        if isinstance(init, str):
+            if init in ['preserve', 'preserve_start', 'preserve_end']:
+                raise ValueError(f'init={init} not anymore supported')
+            assert init == 'periodic' or 'full_periodic'
+
+        if not periodic:
+            if delta0 is not None or zeta0 is not None:
+                raise ValueError(
+                    'delta0 and zeta0 cannot be provided for open twiss')
+
+        if periodic:
+
+            assert not _initial_particles
+
+            steps_R_matrix = _complete_steps_r_matrix_with_default(steps_R_matrix)
+
+            init, R_matrix, steps_R_matrix, eigenvalues, Rot, RR_ebe = _find_periodic_solution(
+                line=line, particle_on_co=particle_on_co,
+                particle_ref=particle_ref, method=method,
+                co_search_settings=co_search_settings,
+                continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+                delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
+                steps_R_matrix=steps_R_matrix,
+                W_matrix=W_matrix, R_matrix=R_matrix,
+                co_guess=co_guess,
+                delta_disp=delta_disp, symplectify=symplectify,
+                matrix_responsiveness_tol=matrix_responsiveness_tol,
+                matrix_stability_tol=matrix_stability_tol,
+                start=start, end=end,
+                num_turns=num_turns,
+                co_search_at=co_search_at,
+                search_for_t_rev=search_for_t_rev,
+                spin=spin,
+                num_turns_search_t_rev=num_turns_search_t_rev,
+                nemitt_x=nemitt_x, nemitt_y=nemitt_y, step_W_sigma=step_W_sigma,
+                compute_R_element_by_element=compute_R_element_by_element,
+                only_markers=only_markers,
+                only_orbit=only_orbit,
+                periodic_mode=periodic_mode,
+                include_collective=include_collective,
+                )
+        else:
+            # force
+            skip_global_quantities = True
+
+        if only_twiss_init:
+            assert periodic, '``only_twiss_init`` can only be used in periodic mode'
+            if reverse:
+                return init.reverse()
+            else:
+                return init
+
+        if only_markers and radiation_analysis:
+            raise NotImplementedError(
+                '``only_markers`` not implemented for ``radiation_analysis``')
+
+        twiss_res = _twiss_open(
             line=line,
             init=init,
-            delta_chrom=delta_chrom,
-            delta0=delta0,
-            zeta0=zeta0,
-            steps_R_matrix=steps_R_matrix,
-            matrix_responsiveness_tol=matrix_responsiveness_tol,
-            matrix_stability_tol=matrix_stability_tol,
-            symplectify=symplectify,
-            method=method,
-            use_full_inverse=use_full_inverse,
+            start=start, end=end,
             nemitt_x=nemitt_x,
             nemitt_y=nemitt_y,
-            on_momentum_twiss_res=twiss_res,
             step_W_sigma=step_W_sigma,
             delta_disp=delta_disp,
-            zeta_disp=zeta_disp,
-            start=start,
-            end=end,
-            num_turns=num_turns,
+            use_full_inverse=use_full_inverse,
             hide_thin_groups=hide_thin_groups,
             only_markers=only_markers,
-            periodic=periodic,
-            periodic_mode=periodic_mode,
-            include_collective=include_collective,
-        )
-        twiss_res._data.update(cols_chrom)
-        twiss_res._data.update(scalars_chrom)
-        twiss_res._col_names += list(cols_chrom.keys())
+            only_orbit=only_orbit,
+            spin=spin,
+            compute_lattice_functions=compute_lattice_functions,
+            _continue_if_lost=_continue_if_lost,
+            _keep_tracking_data=_keep_tracking_data,
+            _keep_initial_particles=_keep_initial_particles,
+            _initial_particles=_initial_particles,
+            _ebe_monitor=_ebe_monitor)
 
+        if not skip_global_quantities and not only_orbit:
+            twiss_res._data['R_matrix'] = R_matrix
+            twiss_res._data['steps_R_matrix'] = steps_R_matrix
+            twiss_res._data['steps_r_matrix'] = steps_R_matrix # deprecated
+            twiss_res._data['R_matrix_ebe'] = RR_ebe
 
+            _add_ring_quantities(line=line, twiss_res=twiss_res, method=method)
 
-    if radiation_analysis and not only_orbit:
-        assert 'R_matrix' in twiss_res._data
-        if method == '4d':
-            raise ValueError('method="4d" not supported for radiation_analysis=True')
-        with xt.line._preserve_config(line):
-            with xt.line._preserve_track_flags(line):
-                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
-                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
-                _, RR, _, _, _, RR_ebe = _find_periodic_solution(
-                    line=line,
-                    particle_ref=None,
-                    method='6d',
-                    particle_on_co=twiss_res.particle_on_co,
-                    co_search_settings=None,
-                    continue_on_closed_orbit_error=None,
-                    co_guess=None,
-                    steps_R_matrix=steps_R_matrix,
-                    symplectify=False,
-                    matrix_responsiveness_tol=matrix_responsiveness_tol,
-                    matrix_stability_tol=None,
-                    start=start, end=end,
-                    nemitt_x=nemitt_x, nemitt_y=nemitt_y, step_W_sigma=step_W_sigma,
-                    delta0=None, zeta0=None, zeta_shift=zeta_shift,
-                    W_matrix=None, R_matrix=None,
-                    delta_disp=None,
-                    compute_R_element_by_element=True,
-                    only_markers=only_markers,
-                    factor_adapt_steps=0.03 # 10 times smaller than for optics
-                                            # to campture small damping effects
-                    )
+            twiss_res._data['eigenvalues'] = eigenvalues.copy()
+            twiss_res._data['rotation_matrix'] = Rot.copy()
 
-        eneloss_damp_res = _get_eneloss_and_damping_rates(
-                particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
-                W_matrix=twiss_res.W_matrix,
-                px_co=twiss_res.px, py_co=twiss_res.py,
-                ptau_co=twiss_res.ptau, t_rev0=twiss_res.t_rev0,
-                line=line, radiation_method=radiation_method)
-        twiss_res._data.update(eneloss_damp_res)
+        if (not only_orbit and (
+            (chrom is True)
+            or (chrom is None and periodic))):
 
-        for kk in ['angle_rad', 'angle', 'rot_s_rad', 'length', 'radiation_flag']:
-            if kk not in twiss_res._data:
-                aa = line.attr[kk]
-                twiss_res[kk] = np.concatenate([aa, [aa[0]*0]])
-
-        # Equilibrium emittances
-        if radiation_method == 'kick_as_co':
-            eq_emitts = _get_equilibrium_emittance_kick_as_co(
-                twiss_res=twiss_res,
-                damping_constants_turns=eneloss_damp_res['damping_constants_turns'],
-                radiation_method=radiation_method)
-            twiss_res._data.update(eq_emitts)
-        elif radiation_method == 'full':
-            eq_emitts = _get_equilibrium_emittance_full(twiss_res=twiss_res,
-                        R_matrix_ebe=RR_ebe,
-                        radiation_method=radiation_method)
-            twiss_res._data.update(eq_emitts)
-
-    if method == '4d' and 'muzeta' in twiss_res._data:
-        twiss_res.muzeta[:] = 0
-        if 'qs' in twiss_res._data:
-            twiss_res._data['qs'] = 0
-
-    if values_at_element_exit:
-        raise NotImplementedError
-        # Untested
-        name_exit = twiss_res.name[:-1]
-        #twiss_res = twiss_res.rows[1:]
-        twiss_res = twiss_res._select_rows(slice(1,None,None))
-        twiss_res['name'][:] = name_exit
-        twiss_res._data['values_at'] = 'exit'
-    else:
-        twiss_res._data['values_at'] = 'entry'
-
-    if strengths or radiation_integrals:
-        _add_strengths_to_twiss_res(twiss_res, line)
-
-    if radiation_integrals:
-        twiss_res._get_radiation_integrals(add_to_tw=True)
-
-    if polarization_analysis:
-        _get_spin_polarization(twiss_res, line, method)
-
-    if coupling_edw_teng:
-        if not periodic:
-            raise ValueError(
-                'Computing Edwards-Teng coupling elements is only supported for periodic lines.'
+            cols_chrom, scalars_chrom = _get_chromatic_functions(
+                line=line,
+                init=init,
+                delta_chrom=delta_chrom,
+                delta0=delta0,
+                zeta0=zeta0,
+                steps_R_matrix=steps_R_matrix,
+                matrix_responsiveness_tol=matrix_responsiveness_tol,
+                matrix_stability_tol=matrix_stability_tol,
+                symplectify=symplectify,
+                method=method,
+                use_full_inverse=use_full_inverse,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                on_momentum_twiss_res=twiss_res,
+                step_W_sigma=step_W_sigma,
+                delta_disp=delta_disp,
+                zeta_disp=zeta_disp,
+                start=start,
+                end=end,
+                num_turns=num_turns,
+                hide_thin_groups=hide_thin_groups,
+                only_markers=only_markers,
+                periodic=periodic,
+                periodic_mode=periodic_mode,
+                include_collective=include_collective,
             )
+            twiss_res._data.update(cols_chrom)
+            twiss_res._data.update(scalars_chrom)
+            twiss_res._col_names += list(cols_chrom.keys())
+
+
+
+        if radiation_analysis and not only_orbit:
+            assert 'R_matrix' in twiss_res._data
+            if method == '4d':
+                raise ValueError('method="4d" not supported for radiation_analysis=True')
+            with xt.line._preserve_config(line):
+                with xt.line._preserve_track_flags(line):
+                    line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
+                    line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
+                    _, RR, _, _, _, RR_ebe = _find_periodic_solution(
+                        line=line,
+                        particle_ref=None,
+                        method='6d',
+                        particle_on_co=twiss_res.particle_on_co,
+                        co_search_settings=None,
+                        continue_on_closed_orbit_error=None,
+                        co_guess=None,
+                        steps_R_matrix=steps_R_matrix,
+                        symplectify=False,
+                        matrix_responsiveness_tol=matrix_responsiveness_tol,
+                        matrix_stability_tol=None,
+                        start=start, end=end,
+                        nemitt_x=nemitt_x, nemitt_y=nemitt_y, step_W_sigma=step_W_sigma,
+                        delta0=None, zeta0=None, zeta_shift=zeta_shift,
+                        W_matrix=None, R_matrix=None,
+                        delta_disp=None,
+                        compute_R_element_by_element=True,
+                        only_markers=only_markers,
+                        factor_adapt_steps=0.03 # 10 times smaller than for optics
+                                                # to campture small damping effects
+                        )
+
+            eneloss_damp_res = _get_eneloss_and_damping_rates(
+                    particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
+                    W_matrix=twiss_res.W_matrix,
+                    px_co=twiss_res.px, py_co=twiss_res.py,
+                    ptau_co=twiss_res.ptau, t_rev0=twiss_res.t_rev0,
+                    line=line, radiation_method=radiation_method)
+            twiss_res._data.update(eneloss_damp_res)
+
+            for kk in ['angle_rad', 'angle', 'rot_s_rad', 'length', 'radiation_flag']:
+                if kk not in twiss_res._data:
+                    aa = line.attr[kk]
+                    twiss_res[kk] = np.concatenate([aa, [aa[0]*0]])
+
+            # Equilibrium emittances
+            if radiation_method == 'kick_as_co':
+                eq_emitts = _get_equilibrium_emittance_kick_as_co(
+                    twiss_res=twiss_res,
+                    damping_constants_turns=eneloss_damp_res['damping_constants_turns'],
+                    radiation_method=radiation_method)
+                twiss_res._data.update(eq_emitts)
+            elif radiation_method == 'full':
+                eq_emitts = _get_equilibrium_emittance_full(twiss_res=twiss_res,
+                            R_matrix_ebe=RR_ebe,
+                            radiation_method=radiation_method)
+                twiss_res._data.update(eq_emitts)
+
+        if method == '4d' and 'muzeta' in twiss_res._data:
+            twiss_res.muzeta[:] = 0
+            if 'qs' in twiss_res._data:
+                twiss_res._data['qs'] = 0
+
+        if values_at_element_exit:
+            raise NotImplementedError
+            # Untested
+            name_exit = twiss_res.name[:-1]
+            #twiss_res = twiss_res.rows[1:]
+            twiss_res = twiss_res._select_rows(slice(1,None,None))
+            twiss_res['name'][:] = name_exit
+            twiss_res._data['values_at'] = 'exit'
+        else:
+            twiss_res._data['values_at'] = 'entry'
+
+        if strengths or radiation_integrals:
+            _add_strengths_to_twiss_res(twiss_res, line)
+
+        if radiation_integrals:
+            twiss_res._get_radiation_integrals(add_to_tw=True)
+
+        if polarization_analysis:
+            _get_spin_polarization(twiss_res, line, method)
+
+        if coupling_edw_teng:
+            if not periodic:
+                raise ValueError(
+                    'Computing Edwards-Teng coupling elements is only supported for periodic lines.'
+                )
+            if reverse:
+                raise NotImplementedError(
+                    'Computing Edwards-Teng coupling elements in reverse mode is not '
+                    'yet implemented.'
+                )
+            delta = twiss_res['delta']
+            betx1, betx2 = twiss_res['betx1'], twiss_res['betx2']
+            bety1, bety2 = twiss_res['bety1'], twiss_res['bety2']
+            alfx1, alfx2 = twiss_res['alfx1'], twiss_res['alfx2']
+            alfy1, alfy2 = twiss_res['alfy1'], twiss_res['alfy2']
+            coupling_result = _get_coupling_elements_edwards_teng(
+                W_matrix=twiss_res['W_matrix'],
+                mux=twiss_res['mux'],
+                muy=twiss_res['muy'],
+                qx=twiss_res['qx'],
+                qy=twiss_res['qy']
+            )
+            for kk in coupling_result:
+                twiss_res[kk] = coupling_result[kk]
+
+        twiss_res._data['method'] = method
+        twiss_res._data['radiation_method'] = radiation_method
+        twiss_res._data['reference_frame'] = 'proper'
+        twiss_res._data['line_config'] = dict(line.config.copy())
+
         if reverse:
-            raise NotImplementedError(
-                'Computing Edwards-Teng coupling elements in reverse mode is not '
-                'yet implemented.'
-            )
-        delta = twiss_res['delta']
-        betx1, betx2 = twiss_res['betx1'], twiss_res['betx2']
-        bety1, bety2 = twiss_res['bety1'], twiss_res['bety2']
-        alfx1, alfx2 = twiss_res['alfx1'], twiss_res['alfx2']
-        alfy1, alfy2 = twiss_res['alfy1'], twiss_res['alfy2']
-        coupling_result = _get_coupling_elements_edwards_teng(
-            W_matrix=twiss_res['W_matrix'],
-            mux=twiss_res['mux'],
-            muy=twiss_res['muy'],
-            qx=twiss_res['qx'],
-            qy=twiss_res['qy']
-        )
-        for kk in coupling_result:
-            twiss_res[kk] = coupling_result[kk]
+            twiss_res = twiss_res.reverse()
 
-    twiss_res._data['method'] = method
-    twiss_res._data['radiation_method'] = radiation_method
-    twiss_res._data['reference_frame'] = 'proper'
-    twiss_res._data['line_config'] = dict(line.config.copy())
+        # twiss_res.mux += init.mux - twiss_res.mux[0]
+        # twiss_res.muy += init.muy - twiss_res.muy[0]
+        # twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
+        # twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
 
-    if reverse:
-        twiss_res = twiss_res.reverse()
+        if not periodic and not only_orbit:
+            # Start phase advance with provided init
+            if ((twiss_res._orientation == 'forward' and not reverse)
+                    or (twiss_res._orientation == 'backward' and reverse)):
+                twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
+                if 'dzeta' in twiss_res._data:
+                    twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
+                if 'mux' in twiss_res._data:
+                    twiss_res.mux += init.mux - twiss_res.mux[0]
+                    twiss_res.muy += init.muy - twiss_res.muy[0]
+            elif ((twiss_res._orientation == 'forward' and reverse)
+                or (twiss_res._orientation == 'backward' and not reverse)):
+                twiss_res.muzeta += init.muzeta - twiss_res.muzeta[-1]
+                if 'dzeta' in twiss_res._data:
+                    twiss_res.dzeta += init.dzeta - twiss_res.dzeta[-1]
+                if 'mux' in twiss_res._data:
+                    twiss_res.mux += init.mux - twiss_res.mux[-1]
+                    twiss_res.muy += init.muy - twiss_res.muy[-1]
 
-    # twiss_res.mux += init.mux - twiss_res.mux[0]
-    # twiss_res.muy += init.muy - twiss_res.muy[0]
-    # twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
-    # twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
+        if search_for_t_rev:
+            # Recompute t_rev0 to support case with only_orbit=True
+            line_length = twiss_res.s[-1]
+            beta0 = twiss_res.particle_on_co.beta0[0]
+            t_rev_0 = line_length/clight/beta0
+            twiss_res._data['t_rev'] = t_rev_0 - (
+                twiss_res.zeta[-1] - twiss_res.zeta[0])/(beta0*clight)
+            twiss_res._data['T_rev'] = twiss_res._data['t_rev'] # deprecated
 
-    if not periodic and not only_orbit:
-        # Start phase advance with provided init
-        if ((twiss_res._orientation == 'forward' and not reverse)
-                or (twiss_res._orientation == 'backward' and reverse)):
-            twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
-            if 'dzeta' in twiss_res._data:
-                twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
-            if 'mux' in twiss_res._data:
-                twiss_res.mux += init.mux - twiss_res.mux[0]
-                twiss_res.muy += init.muy - twiss_res.muy[0]
-        elif ((twiss_res._orientation == 'forward' and reverse)
-            or (twiss_res._orientation == 'backward' and not reverse)):
-            twiss_res.muzeta += init.muzeta - twiss_res.muzeta[-1]
-            if 'dzeta' in twiss_res._data:
-                twiss_res.dzeta += init.dzeta - twiss_res.dzeta[-1]
-            if 'mux' in twiss_res._data:
-                twiss_res.mux += init.mux - twiss_res.mux[-1]
-                twiss_res.muy += init.muy - twiss_res.muy[-1]
+        if num_turns > 1:
 
-    if search_for_t_rev:
-        # Recompute t_rev0 to support case with only_orbit=True
-        line_length = twiss_res.s[-1]
-        beta0 = twiss_res.particle_on_co.beta0[0]
-        t_rev_0 = line_length/clight/beta0
-        twiss_res._data['t_rev'] = t_rev_0 - (
-            twiss_res.zeta[-1] - twiss_res.zeta[0])/(beta0*clight)
-        twiss_res._data['T_rev'] = twiss_res._data['t_rev'] # deprecated
+            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            kwargs.pop('num_turns')
+            kwargs.pop('init')
+            kwargs.pop('start')
+            kwargs.pop('end')
 
-    if num_turns > 1:
+            tw_mt = _multiturn_twiss(tw0=twiss_res, num_turns=num_turns,
+                                     kwargs=kwargs)
+            tw_mt._data['_tw0'] = twiss_res
+            twiss_res = tw_mt
 
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs.pop('num_turns')
-        kwargs.pop('init')
-        kwargs.pop('start')
-        kwargs.pop('end')
+        if at_elements is not None:
+            twiss_res = twiss_res.rows[at_elements]
 
-        tw_mt = _multiturn_twiss(tw0=twiss_res, num_turns=num_turns,
-                                 kwargs=kwargs)
-        tw_mt._data['_tw0'] = twiss_res
-        twiss_res = tw_mt
+        twiss_res['periodic'] = periodic
+        twiss_res['completed_init'] = completed_init
 
-    if at_elements is not None:
-        twiss_res = twiss_res.rows[at_elements]
+        # Sort col names
+        twiss_res._sort_col_names()
 
-    twiss_res['periodic'] = periodic
-    twiss_res['completed_init'] = completed_init
-
-    # Sort col names
-    twiss_res._sort_col_names()
-
-    return _finalize_twiss_result(twiss_res, input_kwargs, zero_at=zero_at_requested)
+        return _finalize_twiss_result(twiss_res, input_kwargs, zero_at=zero_at_requested)
 
 def _handle_loop_around(kwargs):
 

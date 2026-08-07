@@ -393,10 +393,22 @@ Already converted:
 - `zero_at`: now handled during finalization instead of by recomputing Twiss.
 - deprecated `at_s`: now switches to a temporary marker line and falls through
   to the normal path instead of recursively calling `twiss_line`.
+- `disable_apertures`: now enters the aperture-flag preservation context before
+  the main computation path instead of recursively calling `twiss_line`.
+- `method == "4d"` cavity-kill setup: now enters the track-flag preservation
+  context before the main computation path instead of recursively calling
+  `twiss_line`.
+- `freeze_longitudinal` and `freeze_energy`: now enter their line-state
+  contexts before the main computation path instead of recursively calling
+  `twiss_line`.
+- radiation flag setup for `kick_as_co` and `scale_as_co`: now enters the
+  required track/config preservation contexts before the main computation path
+  instead of recursively calling `twiss_line`.
 
 ### Phase 1: configuration preflight
 
-Convert the branches that only set line/tracker state before Twiss computation:
+Converted the branches that only set line/tracker state before Twiss
+computation:
 
 - `disable_apertures`
 - `freeze_longitudinal`
