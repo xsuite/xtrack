@@ -434,6 +434,9 @@ Already converted:
 - the early input-rewrite branches now run after the flag/config preflight, so
   freeze, cavity, radiation, aperture, and temporary-marker setup happen before
   composed segment computation.
+- `_compute_twiss_segment` now builds preflighted segment kwargs, avoiding
+  repeated setup-only requests such as aperture disabling, freeze flags, and
+  `at_s` marker insertion in each composed segment.
 - the later range-composition branches for loop-around and init-inside-range now
   share a single finalization return instead of finalizing separately.
 
