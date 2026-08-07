@@ -437,6 +437,8 @@ Already converted:
 - `_compute_twiss_segment` now builds preflighted segment kwargs, avoiding
   repeated setup-only requests such as aperture disabling, freeze flags, and
   `at_s` marker insertion in each composed segment.
+- freeze setup is now isolated in `_enter_twiss_freeze_context`, making the
+  preflight state transition explicit before composed segment computation.
 - the later range-composition branches for loop-around and init-inside-range now
   share a single finalization return instead of finalizing separately.
 

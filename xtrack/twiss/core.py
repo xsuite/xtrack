@@ -501,14 +501,12 @@ def twiss_line(line, particle_ref=None, method=None,
             assert zeta is None, '``zeta`` not supported for periodic twiss'
             assert delta is None, '``delta`` not supported for periodic twiss'
 
-        if freeze_longitudinal:
-            twiss_context.enter_context(xt.freeze_longitudinal(line))
-            freeze_longitudinal = False
-        elif freeze_energy:
-            if not line._energy_is_frozen():
-                twiss_context.enter_context(xt.line._preserve_config(line))
-                line.freeze_energy(force=True) # need to force for collective lines
-                freeze_energy = False
+        freeze_longitudinal, freeze_energy = _enter_twiss_freeze_context(
+            twiss_context=twiss_context,
+            line=line,
+            freeze_longitudinal=freeze_longitudinal,
+            freeze_energy=freeze_energy,
+        )
 
         if method == '4d' and not line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK:
             twiss_context.enter_context(xt.line._preserve_track_flags(line))
@@ -1198,6 +1196,21 @@ def _combine_init_inside_range_twiss_tables(tw1, tw2, init):
             tw_res._data[kk] = (tw1[kk], tw2[kk])
 
     return tw_res
+
+
+def _enter_twiss_freeze_context(
+        twiss_context, line, freeze_longitudinal, freeze_energy):
+
+    if freeze_longitudinal:
+        twiss_context.enter_context(xt.freeze_longitudinal(line))
+        freeze_longitudinal = False
+    elif freeze_energy:
+        if not line._energy_is_frozen():
+            twiss_context.enter_context(xt.line._preserve_config(line))
+            line.freeze_energy(force=True) # need to force for collective lines
+            freeze_energy = False
+
+    return freeze_longitudinal, freeze_energy
 
 
 def _kwargs_for_composed_twiss_call(kwargs, loc):
