@@ -777,41 +777,34 @@ def twiss_line(line, particle_ref=None, method=None,
                 eigenvalues=eigenvalues,
                 Rot=Rot)
 
-        if (not only_orbit and (
-            (chrom is True)
-            or (chrom is None and periodic))):
-
-            cols_chrom, scalars_chrom = _get_chromatic_functions(
-                line=line,
-                init=init,
-                delta_chrom=delta_chrom,
-                delta0=delta0,
-                zeta0=zeta0,
-                steps_R_matrix=steps_R_matrix,
-                matrix_responsiveness_tol=matrix_responsiveness_tol,
-                matrix_stability_tol=matrix_stability_tol,
-                symplectify=symplectify,
-                method=method,
-                use_full_inverse=use_full_inverse,
-                nemitt_x=nemitt_x,
-                nemitt_y=nemitt_y,
-                on_momentum_twiss_res=twiss_res,
-                step_W_sigma=step_W_sigma,
-                delta_disp=delta_disp,
-                zeta_disp=zeta_disp,
-                start=start,
-                end=end,
-                num_turns=num_turns,
-                hide_thin_groups=hide_thin_groups,
-                only_markers=only_markers,
-                periodic=periodic,
-                periodic_mode=periodic_mode,
-                include_collective=include_collective,
-            )
-            twiss_res._data.update(cols_chrom)
-            twiss_res._data.update(scalars_chrom)
-            twiss_res._col_names += list(cols_chrom.keys())
-
+        _add_chromatic_functions_to_twiss_result(
+            line=line,
+            twiss_res=twiss_res,
+            init=init,
+            chrom=chrom,
+            periodic=periodic,
+            only_orbit=only_orbit,
+            delta_chrom=delta_chrom,
+            delta0=delta0,
+            zeta0=zeta0,
+            steps_R_matrix=steps_R_matrix,
+            matrix_responsiveness_tol=matrix_responsiveness_tol,
+            matrix_stability_tol=matrix_stability_tol,
+            symplectify=symplectify,
+            method=method,
+            use_full_inverse=use_full_inverse,
+            nemitt_x=nemitt_x,
+            nemitt_y=nemitt_y,
+            step_W_sigma=step_W_sigma,
+            delta_disp=delta_disp,
+            zeta_disp=zeta_disp,
+            start=start,
+            end=end,
+            num_turns=num_turns,
+            hide_thin_groups=hide_thin_groups,
+            only_markers=only_markers,
+            periodic_mode=periodic_mode,
+            include_collective=include_collective)
 
 
         if radiation_analysis and not only_orbit:
@@ -1343,6 +1336,52 @@ def _add_periodic_solution_data_to_base_twiss(
 
     twiss_res._data['eigenvalues'] = eigenvalues.copy()
     twiss_res._data['rotation_matrix'] = Rot.copy()
+
+
+def _add_chromatic_functions_to_twiss_result(
+        line, twiss_res, init, chrom, periodic, only_orbit, delta_chrom,
+        delta0, zeta0, steps_R_matrix, matrix_responsiveness_tol,
+        matrix_stability_tol, symplectify, method, use_full_inverse,
+        nemitt_x, nemitt_y, step_W_sigma, delta_disp, zeta_disp,
+        start, end, num_turns, hide_thin_groups, only_markers,
+        periodic_mode, include_collective):
+
+    if only_orbit:
+        return
+
+    if not (chrom is True or (chrom is None and periodic)):
+        return
+
+    cols_chrom, scalars_chrom = _get_chromatic_functions(
+        line=line,
+        init=init,
+        delta_chrom=delta_chrom,
+        delta0=delta0,
+        zeta0=zeta0,
+        steps_R_matrix=steps_R_matrix,
+        matrix_responsiveness_tol=matrix_responsiveness_tol,
+        matrix_stability_tol=matrix_stability_tol,
+        symplectify=symplectify,
+        method=method,
+        use_full_inverse=use_full_inverse,
+        nemitt_x=nemitt_x,
+        nemitt_y=nemitt_y,
+        on_momentum_twiss_res=twiss_res,
+        step_W_sigma=step_W_sigma,
+        delta_disp=delta_disp,
+        zeta_disp=zeta_disp,
+        start=start,
+        end=end,
+        num_turns=num_turns,
+        hide_thin_groups=hide_thin_groups,
+        only_markers=only_markers,
+        periodic=periodic,
+        periodic_mode=periodic_mode,
+        include_collective=include_collective,
+    )
+    twiss_res._data.update(cols_chrom)
+    twiss_res._data.update(scalars_chrom)
+    twiss_res._col_names += list(cols_chrom.keys())
 
 
 def _align_open_twiss_phases_with_init(twiss_res, init, reverse):

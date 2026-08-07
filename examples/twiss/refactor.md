@@ -456,6 +456,8 @@ Already converted:
   continuation path.
 - open Twiss phase alignment with the provided init is now isolated in
   `_align_open_twiss_phases_with_init`.
+- first-order chromatic Twiss result enrichment is now isolated in
+  `_add_chromatic_functions_to_twiss_result`.
 
 ### Phase 1: configuration preflight
 
@@ -560,6 +562,8 @@ or input compatibility handling. Candidate shape:
 - `_align_open_twiss_phases_with_init(...)`: extracted slice of the normal
   one-pass Twiss path, covering open-range phase and `dzeta` alignment after
   reverse handling;
+- `_add_chromatic_functions_to_twiss_result(...)`: extracted optional
+  enrichment slice, covering first-order chromatic columns and scalars;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 
