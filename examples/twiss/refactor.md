@@ -36,7 +36,7 @@ xtrack/xtrack/twiss/
     closed_orbit.py
     transfer_matrices.py
     trajectory_curvatures.py
-    chromatic.py
+    non_linear_chromaticity.py
     radiation.py
     spin.py
     coupling.py
@@ -60,7 +60,7 @@ from .transfer_matrices import (
     get_R_matrix,
     get_T_matrix_line,
 )
-from .chromatic import get_non_linear_chromaticity
+from .non_linear_chromaticity import get_non_linear_chromaticity
 ```
 
 ## Important import consideration
@@ -176,15 +176,19 @@ Move the main computation orchestration:
 After the package split works, refactor `twiss_line` internally. The signature
 should remain unchanged for API compatibility and documentation propagation.
 
-### `chromatic.py`
+### `non_linear_chromaticity.py`
 
 Move:
 
-- `_get_chromatic_functions`
 - `get_non_linear_chromaticity`
 
 This is a coherent physics feature and can be extracted after `core.py` is
 stable.
+
+Keep `_get_chromatic_functions` in `core.py` until `_twiss_open` has a cleaner
+module boundary. It needs to run off-momentum Twiss calculations, and passing
+private core functions into `non_linear_chromaticity.py` would make the
+dependency harder to reason about.
 
 ### `trajectory_curvatures.py`
 
@@ -299,7 +303,7 @@ change.
 7. Extract `transfer_matrices.py`.
 8. Extract `closed_orbit.py`.
 9. Extract `spin.py`.
-10. Extract `chromatic.py`, `radiation.py`, `coupling.py`, and
+10. Extract `non_linear_chromaticity.py`, `radiation.py`, `coupling.py`, and
    `strengths.py`.
 11. Refactor `twiss_line` into smaller orchestration helpers.
 

@@ -23,8 +23,8 @@ from .closed_orbit import (
     ClosedOrbitSearchError,
     find_closed_orbit_line,
 )
+from .non_linear_chromaticity import get_non_linear_chromaticity
 from .core import (
-    get_non_linear_chromaticity,
     twiss_line,
 )
 from .twiss_init import TwissInit
