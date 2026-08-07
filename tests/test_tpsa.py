@@ -7,10 +7,29 @@ import xtrack as xt
 import xtrack.tpsa as xtpsa
 
 
+_SUPPORTED_FLOAT_OR_TPSA_ELEMENTS = [
+    ("b", xt.Bend, {"length": 1.0, "k0": 0.01}, "k0"),
+    ("rb", xt.RBend, {"length_straight": 1.0, "k0": 0.01}, "k0"),
+    ("q", xt.Quadrupole, {"length": 1.0, "k1": 0.1}, "k1"),
+    ("s", xt.Sextupole, {"length": 1.0, "k2": 0.2}, "k2"),
+    ("o", xt.Octupole, {"length": 1.0, "k3": 0.3}, "k3"),
+    ("sol", xt.UniformSolenoid, {"length": 1.0, "ks": 0.01}, "ks"),
+]
+
+
 def _line(k1=0.1):
+    elements = []
+    element_names = []
+    for name, element_cls, kwargs, field in _SUPPORTED_FLOAT_OR_TPSA_ELEMENTS:
+        element_kwargs = dict(kwargs)
+        if field == "k1":
+            element_kwargs[field] = k1
+        elements.append(element_cls(**element_kwargs))
+        element_names.append(name)
+
     line = xt.Line(
-        elements=[xt.Quadrupole(length=1.0, k1=k1)],
-        element_names=["q"],
+        elements=elements,
+        element_names=element_names,
     )
     line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
     line.build_tracker()
@@ -38,16 +57,6 @@ def _map(order=1, descriptor=None):
         p0c=7e12,
         mass0=xt.PROTON_MASS_EV,
     )
-
-
-_SUPPORTED_FLOAT_OR_TPSA_ELEMENTS = [
-    (xt.Bend, {"length": 1.0, "k0": 0.01}, "k0"),
-    (xt.RBend, {"length_straight": 1.0, "k0": 0.01}, "k0"),
-    (xt.Quadrupole, {"length": 1.0, "k1": 0.1}, "k1"),
-    (xt.Sextupole, {"length": 1.0, "k2": 0.2}, "k2"),
-    (xt.Octupole, {"length": 1.0, "k3": 0.3}, "k3"),
-    (xt.UniformSolenoid, {"length": 1.0, "ks": 0.01}, "ks"),
-]
 
 
 def test_particles_tpsa_uses_tracker_tpsa_config():
@@ -247,9 +256,9 @@ def test_float_or_tpsa_field_assignment():
     assert line["q"].k1.const_part == pytest.approx(0.1)
 
 
-@pytest.mark.parametrize("element_cls, kwargs, field", _SUPPORTED_FLOAT_OR_TPSA_ELEMENTS)
+@pytest.mark.parametrize("name, element_cls, kwargs, field", _SUPPORTED_FLOAT_OR_TPSA_ELEMENTS)
 def test_supported_float_or_tpsa_elements_accept_tpsa_fields(
-        element_cls, kwargs, field):
+        name, element_cls, kwargs, field):
     element = element_cls(**kwargs)
     descriptor = xgtpsa.Descriptor(6, 1, num_params=1, param_order=1)
 
