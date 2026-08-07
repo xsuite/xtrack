@@ -29,6 +29,7 @@ from ..twissplot import TwissPlot
 from ..table import Table
 from .init import TwissInit, _W_phys2norm
 from .element_indexing import _str_to_index
+from .strengths import _add_strengths_to_twiss_res, _reverse_strengths
 from .constants import (
     AT_TURN_FOR_TWISS,
     CYCLICAL_QUANTITIES,
@@ -41,7 +42,6 @@ from .constants import (
     NORMAL_STRENGTHS_FROM_ATTR,
     OTHER_FIELDS_FROM_ATTR,
     OTHER_FIELDS_FROM_TABLE,
-    SIGN_FLIP_FOR_ATTR_REVERSE,
     SKEW_STRENGTHS_FROM_ATTR,
     VARS_FOR_TWISS_INIT_GENERATION,
 )
@@ -5157,21 +5157,6 @@ def _find_closed_orbit_search_t_rev(line, num_turns_search_t_rev=None):
 
     return particle_on_co
 
-
-def _reverse_strengths(out):
-    ### Same convention as in MAD-X for reversing strengths
-    for kk in SIGN_FLIP_FOR_ATTR_REVERSE:
-        if kk in out:
-            val=out[kk]#avoid passing by setitem
-            np.negative(val,val)
-
-def _add_strengths_to_twiss_res(twiss_res, line):
-    tt = line.get_table(attr=True).rows[list(twiss_res.name)]
-    for kk in (NORMAL_STRENGTHS_FROM_ATTR + SKEW_STRENGTHS_FROM_ATTR
-                + OTHER_FIELDS_FROM_ATTR + OTHER_FIELDS_FROM_TABLE):
-        twiss_res._col_names.append(kk)
-        # using _data to bypass the warning on deprecated fields
-        twiss_res._data[kk] = tt._data[kk].copy()
 
 def _find_spin_fixed_point(line, particle_on_co):
 
