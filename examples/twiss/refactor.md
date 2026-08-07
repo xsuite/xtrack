@@ -184,17 +184,20 @@ Move the main computation orchestration:
 - `_updated_kwargs_from_locals`
 - `_str_to_index`
 
-After the package split works, refactor `twiss_line` internally. The signature
-should remain unchanged for API compatibility and documentation propagation.
+After the package split works, refactor `twiss_line` internally to remove
+recursive re-entry. The signature should remain unchanged for API compatibility
+and documentation propagation. The `zero_at` post-processing branch has already
+been converted from recursive re-entry into final result handling.
 
-### `twiss_action.py`
+### `finalize.py`
 
 Move:
 
-- `_add_action_in_res`
+- `_finalize_twiss_result`
 
-This helper attaches the `ActionTwiss` object used by matching workflows to
-Twiss results, while leaving `TwissInit` returns unchanged.
+This helper centralizes final result post-processing such as `zero_at` and
+attaches the `ActionTwiss` object used by matching workflows, while leaving
+`TwissInit` returns unchanged.
 
 ### `extra_markers.py`
 

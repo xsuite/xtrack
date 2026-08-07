@@ -22,7 +22,7 @@ from .periodic_solution import _find_periodic_solution
 from .chromatic_functions import _get_chromatic_functions, trapz
 from .extra_markers import _build_auxiliary_tracker_with_extra_markers
 from .open_twiss import _twiss_open
-from .twiss_action import _add_action_in_res
+from .finalize import _finalize_twiss_result
 from .spin import _get_spin_polarization
 from .non_linear_chromaticity import get_non_linear_chromaticity
 from .coupling_edw_teng import _get_coupling_elements_edwards_teng
@@ -435,7 +435,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
                 line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE = True
                 out = twiss_line(**input_kwargs)
-                return _add_action_in_res(out, input_kwargs)
+                return _finalize_twiss_result(out, input_kwargs)
 
     if only_markers:
         raise NotImplementedError('``only_markers`` not supported anymore')
@@ -451,6 +451,8 @@ def twiss_line(line, particle_ref=None, method=None,
         init = init.copy()
 
     kwargs = locals().copy()
+    zero_at_requested = zero_at
+    zero_at = None
 
     if (init is not None or betx is not None or bety is not None) and start is None:
         # is open twiss
@@ -464,13 +466,6 @@ def twiss_line(line, particle_ref=None, method=None,
         assert end is None
         assert init is None
         assert reverse is False
-
-    if zero_at is not None:
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs.pop('zero_at')
-        out = twiss_line(**kwargs)
-        out.zero_at(zero_at)
-        return _add_action_in_res(out, input_kwargs)
 
     if start is not None:
         if isinstance(start, xt.match._LOC):
@@ -522,7 +517,7 @@ def twiss_line(line, particle_ref=None, method=None,
             t2o.name[-1] = '_end_point'
             out = xt.TwissTable.concatenate([t1o, t2o])
             out['completed_init'] = t1o.completed_init
-        return _add_action_in_res(out, input_kwargs)
+        return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
 
     if init == 'full_periodic' and (start is not None or end is not None):
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
@@ -533,9 +528,9 @@ def twiss_line(line, particle_ref=None, method=None,
         tw = twiss_line(**kwargs) # Periodic twiss of the full line
         init = tw.get_twiss_init(init_at or start)
         out = twiss_line(start=start, end=end, init=init, **kwargs)
-        if zero_at is None:
+        if zero_at_requested is None:
             out.zero_at(start)
-        return _add_action_in_res(out, input_kwargs)
+        return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
     elif (init is not None and init not in ['periodic', 'periodic_symmetric']
         or betx is not None or bety is not None):
         periodic = False
@@ -555,21 +550,24 @@ def twiss_line(line, particle_ref=None, method=None,
         kwargs.pop('freeze_longitudinal')
 
         with xt.freeze_longitudinal(line):
-            return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
+            return _finalize_twiss_result(
+                twiss_line(**kwargs), input_kwargs, zero_at=zero_at_requested)
     elif freeze_energy:
         if not line._energy_is_frozen():
             kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
             kwargs.pop('freeze_energy')
             with xt.line._preserve_config(line):
                 line.freeze_energy(force=True) # need to force for collective lines
-                return _add_action_in_res(
-                    twiss_line(freeze_energy=False, **kwargs), input_kwargs)
+                return _finalize_twiss_result(
+                    twiss_line(freeze_energy=False, **kwargs), input_kwargs,
+                    zero_at=zero_at_requested)
 
     if method == '4d' and not line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK:
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         with xt.line._preserve_track_flags(line):
             line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
-            return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
+            return _finalize_twiss_result(
+                twiss_line(**kwargs), input_kwargs, zero_at=zero_at_requested)
 
     if at_s is not None:
         if reverse:
@@ -595,7 +593,7 @@ def twiss_line(line, particle_ref=None, method=None,
                         matrix_stability_tol=matrix_stability_tol,
                         strengths=True,
                         **kwargs)
-        return _add_action_in_res(res, input_kwargs)
+        return _finalize_twiss_result(res, input_kwargs, zero_at=zero_at_requested)
 
     if radiation_method is None and line._radiation_model is not None:
         if line._radiation_model in ('quantum', 'quantum-kick'):
@@ -618,13 +616,15 @@ def twiss_line(line, particle_ref=None, method=None,
             not line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST)):
             with xt.line._preserve_track_flags(line):
                 line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = True
-                return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
+                return _finalize_twiss_result(
+                    twiss_line(**kwargs), input_kwargs, zero_at=zero_at_requested)
         elif (radiation_method == 'scale_as_co' and (
             not hasattr(line.config, 'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST') or
             not line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST)):
             with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-                return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
+                return _finalize_twiss_result(
+                    twiss_line(**kwargs), input_kwargs, zero_at=zero_at_requested)
 
     if radiation_method == 'kick_as_co':
         assert line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST
@@ -675,7 +675,7 @@ def twiss_line(line, particle_ref=None, method=None,
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         tw_res = _handle_loop_around(kwargs)
 
-        return _add_action_in_res(tw_res, input_kwargs)
+        return _finalize_twiss_result(tw_res, input_kwargs, zero_at=zero_at_requested)
 
     # init is not at the boundary
     if (not periodic and not isinstance(init, str)
@@ -685,7 +685,7 @@ def twiss_line(line, particle_ref=None, method=None,
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         tw_res = _handle_init_inside_range(kwargs)
 
-        return _add_action_in_res(tw_res, input_kwargs)
+        return _finalize_twiss_result(tw_res, input_kwargs, zero_at=zero_at_requested)
 
     if reverse:
         if start is not None and end is not None:
@@ -1028,7 +1028,7 @@ def twiss_line(line, particle_ref=None, method=None,
     # Sort col names
     twiss_res._sort_col_names()
 
-    return _add_action_in_res(twiss_res, input_kwargs)
+    return _finalize_twiss_result(twiss_res, input_kwargs, zero_at=zero_at_requested)
 
 def _handle_loop_around(kwargs):
 
