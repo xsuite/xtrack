@@ -488,37 +488,15 @@ def twiss_line(line, particle_ref=None, method=None,
             assert isinstance(end, str)  # index not supported anymore
 
         if start is not None and end is None:
-            # One turn twiss from start to start
             kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-            kwargs.pop('start')
-            if (init is None or init == 'periodic') and betx is None and bety is None:
-                # Periodic twiss
-                tw = twiss_line(**kwargs)
-                t1 = tw.rows[start:]
-                t2 = tw.rows[:start]
-                out = xt.TwissTable.concatenate([t1, t2])
-                out.zero_at(out.name[0])
-                out.name[-1] = '_end_point'
-                out['periodic'] = True
-                out['completed_init'] = tw.completed_init
-            else:
-                # Initial conditions are given -> open twiss
-                kwargs.pop('end')
-                t1o = twiss_line(start=start, end=xt.END, **kwargs)
-                init_part2 = t1o.get_twiss_init('_end_point')
-                # Dummy twiss to get the name at the start of the second part
-                init_part2.element_name = line.twiss(
-                    start=xt.START, end=xt.START, betx=1, bety=1).name[0]
-
-                for kk in VARS_FOR_TWISS_INIT_GENERATION:
-                    kwargs.pop(kk, None)
-                kwargs.pop('init')
-                t2o = twiss_line(start=xt.START, end=start, init=init_part2, **kwargs)
-                # remove repeated element
-                t2o = t2o.rows[:-1]
-                t2o.name[-1] = '_end_point'
-                out = xt.TwissTable.concatenate([t1o, t2o])
-                out['completed_init'] = t1o.completed_init
+            out = _compute_one_turn_twiss_from_start(
+                kwargs=kwargs,
+                line=line,
+                start=start,
+                init=init,
+                betx=betx,
+                bety=bety,
+            )
             return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
 
         if init == 'full_periodic' and (start is not None or end is not None):
@@ -1180,6 +1158,43 @@ def _compute_range_from_full_periodic_init(kwargs, start, end, init_at):
     init = tw.get_twiss_init(init_at or start)
 
     return twiss_line(start=start, end=end, init=init, **kwargs)
+
+
+def _compute_one_turn_twiss_from_start(kwargs, line, start, init, betx, bety):
+
+    kwargs = kwargs.copy()
+    kwargs.pop('start')
+
+    if (init is None or init == 'periodic') and betx is None and bety is None:
+        # Periodic twiss
+        tw = twiss_line(**kwargs)
+        t1 = tw.rows[start:]
+        t2 = tw.rows[:start]
+        out = xt.TwissTable.concatenate([t1, t2])
+        out.zero_at(out.name[0])
+        out.name[-1] = '_end_point'
+        out['periodic'] = True
+        out['completed_init'] = tw.completed_init
+        return out
+
+    # Initial conditions are given -> open twiss
+    kwargs.pop('end')
+    t1o = twiss_line(start=start, end=xt.END, **kwargs)
+    init_part2 = t1o.get_twiss_init('_end_point')
+    # Dummy twiss to get the name at the start of the second part
+    init_part2.element_name = line.twiss(
+        start=xt.START, end=xt.START, betx=1, bety=1).name[0]
+
+    for kk in VARS_FOR_TWISS_INIT_GENERATION:
+        kwargs.pop(kk, None)
+    kwargs.pop('init')
+    t2o = twiss_line(start=xt.START, end=start, init=init_part2, **kwargs)
+    # remove repeated element
+    t2o = t2o.rows[:-1]
+    t2o.name[-1] = '_end_point'
+    out = xt.TwissTable.concatenate([t1o, t2o])
+    out['completed_init'] = t1o.completed_init
+    return out
 
 
 def _multiturn_twiss(tw0, num_turns, kwargs):
