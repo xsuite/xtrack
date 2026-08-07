@@ -29,7 +29,7 @@ from ..twissplot import TwissPlot
 from ..table import Table
 from .init import TwissInit, _W_phys2norm
 from .element_indexing import _str_to_index
-from .matrix import _complete_steps_r_matrix_with_default
+from .transfer_matrices import _complete_steps_r_matrix_with_default
 from .strengths import _add_strengths_to_twiss_res, _reverse_strengths
 from .constants import (
     AT_TURN_FOR_TWISS,

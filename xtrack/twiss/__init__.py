@@ -27,7 +27,7 @@ from .core import (
     twiss_line,
 )
 from .init import TwissInit
-from .matrix import (
+from .transfer_matrices import (
     compute_R_matrix,
     compute_T_matrix_line,
     get_R_matrix,
