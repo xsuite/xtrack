@@ -441,6 +441,9 @@ Already converted:
   preflight state transition explicit before composed segment computation.
 - the later range-composition branches for loop-around and init-inside-range now
   share a single finalization return instead of finalizing separately.
+- periodic solution preparation for the normal segment path is now isolated in
+  `_prepare_periodic_solution_for_twiss_segment`, which owns the default
+  `steps_R_matrix` completion and delegates to `_find_periodic_solution`.
 
 ### Phase 1: configuration preflight
 
@@ -531,6 +534,9 @@ or input compatibility handling. Candidate shape:
   orchestrates optional outputs;
 - `_compute_twiss_segment(...)`: currently delegates to `twiss_line`, and should
   become the implementation point for one already-normalized segment;
+- `_prepare_periodic_solution_for_twiss_segment(...)`: first extracted slice of
+  the normalized segment engine, covering periodic init and one-turn matrix
+  preparation;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 

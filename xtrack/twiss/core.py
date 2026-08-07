@@ -704,35 +704,34 @@ def twiss_line(line, particle_ref=None, method=None,
 
         if periodic:
 
-            assert not _initial_particles
-
-            steps_R_matrix = _complete_steps_r_matrix_with_default(steps_R_matrix)
-
-            init, R_matrix, steps_R_matrix, eigenvalues, Rot, RR_ebe = _find_periodic_solution(
-                line=line, particle_on_co=particle_on_co,
-                particle_ref=particle_ref, method=method,
-                co_search_settings=co_search_settings,
-                continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
-                steps_R_matrix=steps_R_matrix,
-                W_matrix=W_matrix, R_matrix=R_matrix,
-                co_guess=co_guess,
-                delta_disp=delta_disp, symplectify=symplectify,
-                matrix_responsiveness_tol=matrix_responsiveness_tol,
-                matrix_stability_tol=matrix_stability_tol,
-                start=start, end=end,
-                num_turns=num_turns,
-                co_search_at=co_search_at,
-                search_for_t_rev=search_for_t_rev,
-                spin=spin,
-                num_turns_search_t_rev=num_turns_search_t_rev,
-                nemitt_x=nemitt_x, nemitt_y=nemitt_y, step_W_sigma=step_W_sigma,
-                compute_R_element_by_element=compute_R_element_by_element,
-                only_markers=only_markers,
-                only_orbit=only_orbit,
-                periodic_mode=periodic_mode,
-                include_collective=include_collective,
+            init, R_matrix, steps_R_matrix, eigenvalues, Rot, RR_ebe = (
+                _prepare_periodic_solution_for_twiss_segment(
+                    line=line, particle_on_co=particle_on_co,
+                    particle_ref=particle_ref, method=method,
+                    co_search_settings=co_search_settings,
+                    continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+                    delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
+                    steps_R_matrix=steps_R_matrix,
+                    W_matrix=W_matrix, R_matrix=R_matrix,
+                    co_guess=co_guess,
+                    delta_disp=delta_disp, symplectify=symplectify,
+                    matrix_responsiveness_tol=matrix_responsiveness_tol,
+                    matrix_stability_tol=matrix_stability_tol,
+                    start=start, end=end,
+                    num_turns=num_turns,
+                    co_search_at=co_search_at,
+                    search_for_t_rev=search_for_t_rev,
+                    spin=spin,
+                    num_turns_search_t_rev=num_turns_search_t_rev,
+                    nemitt_x=nemitt_x, nemitt_y=nemitt_y, step_W_sigma=step_W_sigma,
+                    compute_R_element_by_element=compute_R_element_by_element,
+                    only_markers=only_markers,
+                    only_orbit=only_orbit,
+                    periodic_mode=periodic_mode,
+                    include_collective=include_collective,
+                    initial_particles=_initial_particles,
                 )
+            )
         else:
             # force
             skip_global_quantities = True
@@ -1249,6 +1248,47 @@ def _kwargs_for_preflighted_twiss_segment(kwargs):
     segment_kwargs['at_s'] = None
 
     return segment_kwargs
+
+
+def _prepare_periodic_solution_for_twiss_segment(
+        line, particle_on_co, particle_ref, method, co_search_settings,
+        continue_on_closed_orbit_error, delta0, zeta0, zeta_shift,
+        steps_R_matrix, W_matrix, R_matrix, co_guess, delta_disp,
+        symplectify, matrix_responsiveness_tol, matrix_stability_tol,
+        start, end, num_turns, co_search_at, search_for_t_rev, spin,
+        num_turns_search_t_rev, nemitt_x, nemitt_y, step_W_sigma,
+        compute_R_element_by_element, only_markers, only_orbit,
+        periodic_mode, include_collective, initial_particles):
+
+    assert not initial_particles
+
+    steps_R_matrix = _complete_steps_r_matrix_with_default(steps_R_matrix)
+
+    return _find_periodic_solution(
+        line=line, particle_on_co=particle_on_co,
+        particle_ref=particle_ref, method=method,
+        co_search_settings=co_search_settings,
+        continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+        delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
+        steps_R_matrix=steps_R_matrix,
+        W_matrix=W_matrix, R_matrix=R_matrix,
+        co_guess=co_guess,
+        delta_disp=delta_disp, symplectify=symplectify,
+        matrix_responsiveness_tol=matrix_responsiveness_tol,
+        matrix_stability_tol=matrix_stability_tol,
+        start=start, end=end,
+        num_turns=num_turns,
+        co_search_at=co_search_at,
+        search_for_t_rev=search_for_t_rev,
+        spin=spin,
+        num_turns_search_t_rev=num_turns_search_t_rev,
+        nemitt_x=nemitt_x, nemitt_y=nemitt_y, step_W_sigma=step_W_sigma,
+        compute_R_element_by_element=compute_R_element_by_element,
+        only_markers=only_markers,
+        only_orbit=only_orbit,
+        periodic_mode=periodic_mode,
+        include_collective=include_collective,
+        )
 
 
 def _prepare_kwargs_for_full_periodic_twiss(kwargs):
