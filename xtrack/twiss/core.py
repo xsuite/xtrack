@@ -22,6 +22,7 @@ from .periodic_solution import _find_periodic_solution
 from .chromatic_functions import _get_chromatic_functions, trapz
 from .extra_markers import _build_auxiliary_tracker_with_extra_markers
 from .open_twiss import _twiss_open
+from .twiss_action import _add_action_in_res
 from .spin import _get_spin_polarization
 from .non_linear_chromaticity import get_non_linear_chromaticity
 from .coupling_edw_teng import _get_coupling_elements_edwards_teng
@@ -1217,11 +1218,3 @@ def _multiturn_twiss(tw0, num_turns, kwargs):
     tw_mt = xt.TwissTable.concatenate(twisses_to_merge)
 
     return tw_mt
-
-def _add_action_in_res(res, kwargs):
-    if isinstance(res, xt.TwissInit):
-        return res
-    twiss_kwargs = kwargs.copy()
-    action = xt.match.ActionTwiss(**twiss_kwargs)
-    res._data['_action'] = action
-    return res

@@ -181,12 +181,20 @@ Move the main computation orchestration:
 - `_handle_loop_around`
 - `_handle_init_inside_range`
 - `_multiturn_twiss`
-- `_add_action_in_res`
 - `_updated_kwargs_from_locals`
 - `_str_to_index`
 
 After the package split works, refactor `twiss_line` internally. The signature
 should remain unchanged for API compatibility and documentation propagation.
+
+### `twiss_action.py`
+
+Move:
+
+- `_add_action_in_res`
+
+This helper attaches the `ActionTwiss` object used by matching workflows to
+Twiss results, while leaving `TwissInit` returns unchanged.
 
 ### `extra_markers.py`
 
