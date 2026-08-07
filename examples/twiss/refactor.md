@@ -31,6 +31,7 @@ xtrack/xtrack/twiss/
     constants.py
     input_normalization.py
     core.py
+    open_twiss.py
     lattice_functions_from_W.py
     ring_quantities.py
     periodic_solution.py
@@ -177,7 +178,6 @@ Keep compatibility imports stable.
 Move the main computation orchestration:
 
 - `twiss_line`
-- `_twiss_open`
 - `_handle_loop_around`
 - `_handle_init_inside_range`
 - `_multiturn_twiss`
@@ -187,6 +187,16 @@ Move the main computation orchestration:
 
 After the package split works, refactor `twiss_line` internally. The signature
 should remain unchanged for API compatibility and documentation propagation.
+
+### `open_twiss.py`
+
+Move:
+
+- `_twiss_open`
+
+This helper propagates a completed `TwissInit` through a selected range and
+builds the element-by-element `TwissTable`. It is the open/range Twiss engine,
+distinct from periodic-solution preparation and optional result enrichment.
 
 ### `periodic_solution.py`
 
@@ -231,10 +241,9 @@ Move:
 This is a coherent physics feature and can be extracted after `core.py` is
 stable.
 
-Keep `_get_chromatic_functions` in `core.py` until `_twiss_open` has a cleaner
-module boundary. It needs to run off-momentum Twiss calculations, and passing
-private core functions into `non_linear_chromaticity.py` would make the
-dependency harder to reason about.
+Keep `_get_chromatic_functions` in `core.py` until the remaining orchestration
+around off-momentum Twiss calls is simplified. It now depends on `open_twiss.py`
+directly instead of on a private function local to `core.py`.
 
 ### `trajectory_curvatures.py`
 
