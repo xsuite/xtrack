@@ -404,6 +404,8 @@ Already converted:
 - radiation flag setup for `kick_as_co` and `scale_as_co`: now enters the
   required track/config preservation contexts before the main computation path
   instead of recursively calling `twiss_line`.
+- `init == "full_periodic"` with a range: now delegates the auxiliary full-line
+  Twiss and range Twiss composition to `_compute_range_from_full_periodic_init`.
 
 ### Phase 1: configuration preflight
 
@@ -438,7 +440,9 @@ preserving the existing context-manager boundaries. It should be tested with:
 Convert branches that rewrite the requested range or initialization:
 
 - `start is not None and end is None`;
-- `init == "full_periodic"` with a range.
+- `init == "full_periodic"` with a range. The branch is isolated in
+  `_compute_range_from_full_periodic_init`; a later lower-level segment engine
+  can remove its internal `twiss_line` calls.
 
 These still need auxiliary Twiss computations, but those computations should be
 named explicitly instead of expressed as top-level recursion. Candidate helpers:

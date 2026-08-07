@@ -523,13 +523,12 @@ def twiss_line(line, particle_ref=None, method=None,
 
         if init == 'full_periodic' and (start is not None or end is not None):
             kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-            kwargs.pop('init')
-            kwargs.pop('start')
-            kwargs.pop('end')
-            kwargs.pop('init_at')
-            tw = twiss_line(**kwargs) # Periodic twiss of the full line
-            init = tw.get_twiss_init(init_at or start)
-            out = twiss_line(start=start, end=end, init=init, **kwargs)
+            out = _compute_range_from_full_periodic_init(
+                kwargs=kwargs,
+                start=start,
+                end=end,
+                init_at=init_at,
+            )
             if zero_at_requested is None:
                 out.zero_at(start)
             return _finalize_twiss_result(out, input_kwargs, zero_at=zero_at_requested)
@@ -1167,6 +1166,20 @@ def _updated_kwargs_from_locals(kwargs, loc):
     out.pop('input_kwargs', None)
 
     return out
+
+
+def _compute_range_from_full_periodic_init(kwargs, start, end, init_at):
+
+    kwargs = kwargs.copy()
+    kwargs.pop('init')
+    kwargs.pop('start')
+    kwargs.pop('end')
+    kwargs.pop('init_at')
+
+    tw = twiss_line(**kwargs) # Periodic twiss of the full line
+    init = tw.get_twiss_init(init_at or start)
+
+    return twiss_line(start=start, end=end, init=init, **kwargs)
 
 
 def _multiturn_twiss(tw0, num_turns, kwargs):
