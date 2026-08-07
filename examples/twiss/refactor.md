@@ -380,6 +380,108 @@ class TwissConfig:
 This should be internal only. The public `twiss_line(...)` signature should not
 change.
 
+## Plan to remove recursive `twiss_line` re-entry
+
+Several branches in `twiss_line` still call `twiss_line(...)` again after
+mutating a kwargs dictionary. That pattern makes control flow hard to follow and
+keeps `_updated_kwargs_from_locals` alive as scaffolding. The goal is not to
+remove every multi-segment Twiss computation in one step, but to replace hidden
+top-level re-entry with explicit phases and named helpers.
+
+Already converted:
+
+- `zero_at`: now handled during finalization instead of by recomputing Twiss.
+- deprecated `at_s`: now switches to a temporary marker line and falls through
+  to the normal path instead of recursively calling `twiss_line`.
+
+### Phase 1: configuration preflight
+
+Convert the branches that only set line/tracker state before Twiss computation:
+
+- `disable_apertures`
+- `freeze_longitudinal`
+- `freeze_energy`
+- `method == "4d"` cavity-kill flag setup
+- radiation flag setup for `kick_as_co` and `scale_as_co`
+
+Target shape:
+
+- normalize input arguments once;
+- determine all required context managers and flag changes before the base
+  computation;
+- enter those contexts once;
+- run the main computation path without retrying through `twiss_line`.
+
+This phase should remove several uses of `_updated_kwargs_from_locals` while
+preserving the existing context-manager boundaries. It should be tested with:
+
+- a normal 4d Twiss;
+- `test_twiss_disable_apertures`;
+- a focused `freeze_longitudinal` or `freeze_energy` case if the local kernel
+  configuration supports it;
+- a radiation-method smoke test where practical.
+
+### Phase 2: input rewriting
+
+Convert branches that rewrite the requested range or initialization:
+
+- `start is not None and end is None`;
+- `init == "full_periodic"` with a range.
+
+These still need auxiliary Twiss computations, but those computations should be
+named explicitly instead of expressed as top-level recursion. Candidate helpers:
+
+- `_compute_one_turn_twiss_from_start(...)`
+- `_compute_range_from_full_periodic_init(...)`
+
+These helpers can initially call a lower-level internal Twiss routine or, as an
+intermediate step, call `twiss_line` in one isolated place. The important
+improvement is to remove kwargs mutation from the main body and make the
+composition behavior obvious. Test with:
+
+- start-only periodic Twiss;
+- start-only open Twiss with explicit init;
+- `test_part_from_full_periodic`;
+- a `full_periodic + zero_at` smoke comparison.
+
+### Phase 3: range composition
+
+The remaining recursive helpers intentionally compute and concatenate multiple
+Twiss segments:
+
+- `_handle_loop_around`
+- `_handle_init_inside_range`
+- `_multiturn_twiss`
+
+Do these last. They probably need a lower-level private engine that assumes
+inputs are already normalized and can compute one segment without finalization
+or input compatibility handling. Candidate shape:
+
+- `twiss_line(...)`: public compatibility wrapper;
+- `_twiss_line_normalized(...)`: validates/prepares normalized state and
+  orchestrates optional outputs;
+- `_compute_twiss_segment(...)`: computes one already-normalized segment;
+- range-composition helpers call `_compute_twiss_segment(...)` rather than the
+  public wrapper.
+
+Test with:
+
+- loop-around open range;
+- init inside range at a marker;
+- `tests/test_ps_multiturn_twiss.py`;
+- reverse Twiss if touched by the helper split.
+
+### Exit criteria
+
+The recursion cleanup is complete when:
+
+- `twiss_line` no longer calls itself directly;
+- `_updated_kwargs_from_locals` is removed;
+- finalization happens once for public `TwissTable` results;
+- `TwissInit` early returns remain unchanged;
+- the public `twiss_line` signature and `ActionTwiss.kwargs` behavior are
+  preserved.
+
 ## Suggested migration order
 
 1. Create `xtrack/xtrack/twiss/` and move `twiss.py` to
@@ -395,7 +497,8 @@ change.
 9. Extract `spin.py`.
 10. Extract `non_linear_chromaticity.py`, `radiation.py`, `coupling_edw_teng.py`, and
    `strengths.py`.
-11. Refactor `twiss_line` into smaller orchestration helpers.
+11. Refactor `twiss_line` into smaller orchestration helpers, following the
+    recursion-removal phases above.
 
 ## Characterization tests to run during the refactor
 
@@ -439,6 +542,6 @@ after the full package split.
 - Move `TwissInit` and `TwissTable` without changing their internals.
 - Add small helpers around deprecation handling and default assignment in
   `twiss_line`.
-- Replace the current `twiss_line` recursion gradually with explicit helper
-  phases for state preparation, range rewriting, and final result adjustment.
+- Replace the current `twiss_line` recursion following the explicit plan above:
+  configuration preflight, input rewriting, then range composition.
 - Avoid changing numerical formulas during structural refactoring.
