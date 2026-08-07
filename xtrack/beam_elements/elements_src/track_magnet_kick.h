@@ -6,7 +6,17 @@
 #define XTRACK_TRACK_MAGNET_KICK_H
 
 #include "xtrack/headers/track.h"
-#include "xtrack/tpsa/float_or_tpsa.h"
+
+#ifdef XTRACK_TPSA_TRACK
+#define XT_KICK_SIMPLE(pt, ord, invf, KN, KS, fac, kw) do { \
+        xt_tpsa_lifted_array _kn((KN), (ord)+1); \
+        xt_tpsa_lifted_array _ks((KS), (ord)+1); \
+        kick_simple_single_particle((pt),(ord),(invf),_kn.ptr(),_ks.ptr(),(fac),(kw)); \
+    } while(0)
+#else
+#define XT_KICK_SIMPLE(pt, ord, invf, KN, KS, fac, kw) \
+        kick_simple_single_particle((pt),(ord),(invf),(KN),(KS),(fac),(kw))
+#endif
 
 
 GPUFUN

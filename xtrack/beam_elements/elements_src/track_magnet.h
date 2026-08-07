@@ -487,10 +487,10 @@ void track_magnet_particles(
             END_PER_PARTICLE_BLOCK;
         }
 
-        double knorm[] = {xt_num_const_part(k0), xt_num_const_part(k1),
-                          xt_num_const_part(k2), xt_num_const_part(k3)};
-        double kskew[] = {xt_num_const_part(k0s), xt_num_const_part(k1s),
-                          xt_num_const_part(k2s), xt_num_const_part(k3s)};
+        double knorm[] = {xt_num_truncate_to_double(k0), xt_num_truncate_to_double(k1),
+                          xt_num_truncate_to_double(k2), xt_num_truncate_to_double(k3)};
+        double kskew[] = {xt_num_truncate_to_double(k0s), xt_num_truncate_to_double(k1s),
+                          xt_num_truncate_to_double(k2s), xt_num_truncate_to_double(k3s)};
 
         track_magnet_edge_particles(
             part0,
@@ -506,9 +506,9 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * xt_num_const_part(rel_ref_strength),
+            factor_knl_ksl_edge * xt_num_truncate_to_double(rel_ref_strength),
             order_rel,
-            xt_num_const_part(ks),
+            xt_num_truncate_to_double(ks),
             x0_solenoid,
             y0_solenoid,
             length,
@@ -614,10 +614,10 @@ void track_magnet_particles(
     }
 
     if (edge_exit_active){
-        double knorm[] = {xt_num_const_part(k0), xt_num_const_part(k1),
-                          xt_num_const_part(k2), xt_num_const_part(k3)};
-        double kskew[] = {xt_num_const_part(k0s), xt_num_const_part(k1s),
-                          xt_num_const_part(k2s), xt_num_const_part(k3s)};
+        double knorm[] = {xt_num_truncate_to_double(k0), xt_num_truncate_to_double(k1),
+                          xt_num_truncate_to_double(k2), xt_num_truncate_to_double(k3)};
+        double kskew[] = {xt_num_truncate_to_double(k0s), xt_num_truncate_to_double(k1s),
+                          xt_num_truncate_to_double(k2s), xt_num_truncate_to_double(k3s)};
 
         track_magnet_edge_particles(
             part0,
@@ -633,9 +633,9 @@ void track_magnet_particles(
             order,
             knl_rel,
             ksl_rel,
-            factor_knl_ksl_edge * xt_num_const_part(rel_ref_strength),
+            factor_knl_ksl_edge * xt_num_truncate_to_double(rel_ref_strength),
             order_rel,
-            xt_num_const_part(ks),
+            xt_num_truncate_to_double(ks),
             x0_solenoid,
             y0_solenoid,
             length,

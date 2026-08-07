@@ -2,12 +2,8 @@
 // This file is part of the Xtrack Package.  //
 // Copyright (c) CERN, 2026.                 //
 // ######################################### //
-#ifndef XTRACK_TPSA_FLOAT_OR_TPSA_H
-#define XTRACK_TPSA_FLOAT_OR_TPSA_H
-
-#include "xtrack/headers/track.h"
-
-#ifdef XTRACK_TPSA_TRACK
+#ifndef XTRACK_TPSA_LIFTED_ARRAY_H
+#define XTRACK_TPSA_LIFTED_ARRAY_H
 
 #include <new>
 #include <type_traits>
@@ -52,18 +48,5 @@ private:
     value_t* data_;
     int64_t size_;
 };
-
-#define XT_KICK_SIMPLE(pt, ord, invf, KN, KS, fac, kw) do { \
-        xt_tpsa_lifted_array _kn((KN), (ord)+1); \
-        xt_tpsa_lifted_array _ks((KS), (ord)+1); \
-        kick_simple_single_particle((pt),(ord),(invf),_kn.ptr(),_ks.ptr(),(fac),(kw)); \
-    } while(0)
-
-#else
-
-#define XT_KICK_SIMPLE(pt, ord, invf, KN, KS, fac, kw) \
-        kick_simple_single_particle((pt),(ord),(invf),(KN),(KS),(fac),(kw))
-
-#endif
 
 #endif

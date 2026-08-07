@@ -301,7 +301,7 @@ def gen_local_particle_particles_conversion(flavor):
 def tpsa_pointer_local_particle_flavor(coord_var_names):
     """TPSA single-map flavor: coordinates as ``mad::tpsa`` through ``p->NAME`` handles.
 
-    Each coordinate is an ``XT_COORD*``. The lvalue is ``mad::tpsa_ref(p->NAME)`` and the getter
+    Each coordinate is a ``tpsa_t*``. The lvalue is ``mad::tpsa_ref(p->NAME)`` and the getter
     snapshots by value via ``1.0 * ...`` (tpsa copy-constructor omits coefficients).  set/add/scale emit two
     overloads: a templated ``mad::tpsa_base<A>&`` and a plain ``double``.
     """
@@ -334,14 +334,14 @@ def tpsa_pointer_local_particle_flavor(coord_var_names):
 def pointer_struct_local_particle_flavor(coord_var_names, struct_tail):
     """Struct-layout flavor for a pointer-backed single-map ``LocalParticle``.
 
-    It is type-agnostic (coords are ``XT_COORD*``, a compile-time macro, so one struct serves
-    the TPSA coordinate storage). Refs/ints are supplied via ``struct_tail``.
+    Coordinates point directly to the TPSA coordinate storage. Refs/ints are
+    supplied via ``struct_tail``.
     """
     return LocalParticleFlavor(
         struct_open="struct LocalParticle {",
         struct_close="};",
         struct_pointer_vars=[(None, nm) for nm in coord_var_names],
-        pointer_field=lambda tt, vv: f"    XT_COORD *{vv};",
+        pointer_field=lambda tt, vv: f"    tpsa_t *{vv};",
         struct_tail=struct_tail,
     )
 

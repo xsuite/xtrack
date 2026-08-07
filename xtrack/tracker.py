@@ -72,7 +72,7 @@ def _float_or_tpsa_getter_block(classes):
 #ifndef XTRACK_TPSA_TRACK
 #define {getter}(obj) xt_float_or_tpsa_get_double(*((uint64_t*){data}_getp_{field}(obj)), {data}_get__tpsa_enabled(obj))
 #else
-#define {getter}(obj) xt_float_or_tpsa_get(({data}) obj, (uint64_t*){data}_getp_{field}(obj), {data}_get__tpsa_enabled(obj))
+#define {getter}(obj) xt_float_or_tpsa_get((uint64_t*){data}_getp_{field}(obj), {data}_get__tpsa_enabled(obj))
 #endif
 """)
     return "\n".join(blocks)
