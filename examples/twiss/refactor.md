@@ -31,8 +31,9 @@ xtrack/xtrack/twiss/
     constants.py
     input_normalization.py
     core.py
-    lattice_functions.py
+    lattice_functions_from_W.py
     ring_quantities.py
+    periodic_solution.py
     twiss_init.py
     twiss_table.py
     beam_covariance.py
@@ -177,7 +178,6 @@ Move the main computation orchestration:
 
 - `twiss_line`
 - `_twiss_open`
-- `_find_periodic_solution`
 - `_handle_loop_around`
 - `_handle_init_inside_range`
 - `_multiturn_twiss`
@@ -188,7 +188,18 @@ Move the main computation orchestration:
 After the package split works, refactor `twiss_line` internally. The signature
 should remain unchanged for API compatibility and documentation propagation.
 
-### `lattice_functions.py`
+### `periodic_solution.py`
+
+Move:
+
+- `_find_periodic_solution`
+
+This helper finds or accepts the closed orbit, builds or validates the one-turn
+matrix, computes the periodic normal form, and returns the completed periodic
+`TwissInit`. Keeping it separate from `core.py` makes the main `twiss_line`
+path smaller while avoiding a callback into `twiss_line`.
+
+### `lattice_functions_from_W.py`
 
 Move:
 
@@ -196,9 +207,9 @@ Move:
 - `_renormalize_eigenvectors`
 - `_extract_twiss_parameters_with_inverse`
 
-These helpers transform the propagated normal-form matrices into Twiss lattice
-functions and phase advances. Keeping them out of `core.py` makes the main
-orchestration easier to scan without introducing a vague helper module.
+These helpers transform the propagated normal-form matrices `W` into Twiss
+lattice functions and phase advances. Keeping them out of `core.py` makes the
+main orchestration easier to scan without introducing a vague helper module.
 
 ### `ring_quantities.py`
 
