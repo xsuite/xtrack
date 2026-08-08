@@ -563,6 +563,10 @@ Prepared-request routing and composed open-range execution now live in
 `orchestration.py`. The public `core.py` module retains the `twiss_line`
 signature, documentation, input normalization, and temporary line-context
 setup, then delegates through one orchestration entry point.
+The orchestration layer delegates base-piece calls through
+`segment_computation.py`, while loop-around and init-inside-range execution live
+in `open_range_execution.py`. Pure range planning and table composition remain
+separate in `open_propagation.py` and `open_table_composition.py`.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
