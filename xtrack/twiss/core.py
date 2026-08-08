@@ -369,9 +369,46 @@ def twiss_line(line, particle_ref=None, method=None,
         data['zero_at_requested'] = data['zero_at']
         data['zero_at'] = None
 
-        # A start without an end requests one full turn from that location.
-        if (data['start'] is not None and data['end'] is None
-                and data['periodic']):
+        route = _select_twiss_route(data)
+
+        if route == 'periodic':
+            # Standard periodic Twiss, for the full line or a closed range.
+            data['init'], data['completed_init'] = (
+                _build_twiss_init_from_inputs(data))
+            _clear_twiss_init_input_fields(data)
+            data.update(_compute_periodic_twiss_init(data))
+            twiss_res = _compute_base_twiss(data)
+
+        elif route == 'open':
+            # Standard open Twiss from supplied init data.
+            data['init'], data['completed_init'] = (
+                _build_twiss_init_from_inputs(data))
+            _clear_twiss_init_input_fields(data)
+
+            init_element_name = data['init'].element_name
+            if data['start'] is None or data['end'] is None:
+                crosses_line_boundary = False
+            else:
+                direction_sign = -1 if data['reverse'] else 1
+                crosses_line_boundary = (
+                    direction_sign * _str_to_index(
+                        data['line'], data['start'])
+                    > direction_sign * _str_to_index(
+                        data['line'], data['end']))
+            init_is_at_boundary = init_element_name in (
+                data['start'], data['end'])
+            composed_open_range = (
+                crosses_line_boundary or not init_is_at_boundary)
+
+            if composed_open_range:
+                if crosses_line_boundary:
+                    twiss_res = _handle_loop_around(data.copy())
+                else:
+                    twiss_res = _handle_init_inside_range(data.copy())
+            else:
+                twiss_res = _compute_base_twiss(data)
+
+        elif route == 'periodic_one_turn_from_start':
             # Compute a full periodic table, then rotate it to the requested start.
             requested_start = data['start']
             one_turn_kwargs = data.copy()
@@ -391,7 +428,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res['periodic'] = True
             twiss_res['completed_init'] = full_twiss.completed_init
 
-        elif data['start'] is not None and data['end'] is None:
+        elif route == 'open_one_turn_from_start':
             # Propagate the two sides of the line boundary from the supplied init.
             requested_start = data['start']
             if data['reverse']:
@@ -422,8 +459,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res = TwissTable.concatenate([first_part, second_part])
             twiss_res['completed_init'] = first_part.completed_init
 
-        elif (data['init'] == 'full_periodic'
-                and (data['start'] is not None or data['end'] is not None)):
+        elif route == 'full_periodic_range':
             # Acquire a forward full-line periodic init, then propagate the range.
             periodic_kwargs = data.copy()
             periodic_kwargs['init'] = None
@@ -467,46 +503,28 @@ def twiss_line(line, particle_ref=None, method=None,
             if data['zero_at_requested'] is None:
                 twiss_res.zero_at(data['start'])
 
-        elif data['periodic']:
-            # Standard periodic Twiss, for the full line or a closed range.
-            data['init'], data['completed_init'] = (
-                _build_twiss_init_from_inputs(data))
-            _clear_twiss_init_input_fields(data)
-            data.update(_compute_periodic_twiss_init(data))
-            twiss_res = _compute_base_twiss(data)
-
         else:
-            # Standard open Twiss from supplied init data.
-            data['init'], data['completed_init'] = (
-                _build_twiss_init_from_inputs(data))
-            _clear_twiss_init_input_fields(data)
-
-            init_element_name = data['init'].element_name
-            if data['start'] is None or data['end'] is None:
-                crosses_line_boundary = False
-            else:
-                direction_sign = -1 if data['reverse'] else 1
-                crosses_line_boundary = (
-                    direction_sign * _str_to_index(
-                        data['line'], data['start'])
-                    > direction_sign * _str_to_index(
-                        data['line'], data['end']))
-            init_is_at_boundary = init_element_name in (
-                data['start'], data['end'])
-            composed_open_range = (
-                crosses_line_boundary or not init_is_at_boundary)
-
-            if composed_open_range:
-                if crosses_line_boundary:
-                    twiss_res = _handle_loop_around(data.copy())
-                else:
-                    twiss_res = _handle_init_inside_range(data.copy())
-            else:
-                twiss_res = _compute_base_twiss(data)
+            raise RuntimeError(f'Unexpected Twiss route: {route}')
 
         # All table-producing routes share the same public result finalization.
         return _finalize_twiss_result(
             twiss_res, input_kwargs, zero_at=data['zero_at_requested'])
+
+
+def _select_twiss_route(data):
+
+    if data['start'] is not None and data['end'] is None:
+        if data['periodic']:
+            return 'periodic_one_turn_from_start'
+        return 'open_one_turn_from_start'
+
+    if (data['init'] == 'full_periodic'
+            and (data['start'] is not None or data['end'] is not None)):
+        return 'full_periodic_range'
+
+    if data['periodic']:
+        return 'periodic'
+    return 'open'
 
 
 def _handle_loop_around(kwargs):
