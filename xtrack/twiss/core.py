@@ -997,6 +997,15 @@ class _TwissSegmentPiecePlan:
 
 
 @dataclass(frozen=True)
+class _LoopAroundTwissPlan:
+    first_table_piece: object
+    second_table_piece: object
+    init_piece_role: str
+    transfer_init_at: object
+    transfer_init_element_name: object
+
+
+@dataclass(frozen=True)
 class _OpenTwissPropagationPlan:
     output_direction: str
     crosses_line_start: bool
@@ -1238,83 +1247,139 @@ def _handle_loop_around(kwargs):
     line = kwargs['line']
     reverse = kwargs['reverse']
 
-    # if reversed, elements in the line are sorted opposite to the twiss table
-    if not reverse:
-        tw1, tw2, completed_init = _compute_forward_loop_around_twiss_part(
-            kwargs=kwargs, line=line, start=start, end=end, init=init)
-    else: # reversed
-        tw1, tw2, completed_init = _compute_reverse_loop_around_twiss_part(
-            kwargs=kwargs, line=line, start=start, end=end, init=init)
+    plan = _plan_loop_around_twiss_parts(
+        line=line, start=start, end=end, init=init, reverse=reverse)
+    tw1, tw2, completed_init = _execute_loop_around_twiss_plan(
+        kwargs=kwargs, plan=plan, init=init)
 
     return _combine_loop_around_twiss_tables(tw1, tw2, init, completed_init)
 
 
-def _compute_forward_loop_around_twiss_part(kwargs, line, start, end, init):
+def _plan_loop_around_twiss_parts(line, start, end, init, reverse):
 
     ele_name_init = init.element_name
+    if not reverse:
+        assert _str_to_index(line, end) < _str_to_index(line, start), (
+            'This function should not have been called')
+    else:
+        assert _str_to_index(line, end) > _str_to_index(line, start), (
+            'This function should not have been called')
 
-    assert _str_to_index(line, end) < _str_to_index(line, start), (
-        'This function should not have been called')
-    if _str_to_index(line, ele_name_init) >= _str_to_index(line, start):
-        tw1 = _compute_twiss_segment(
-            kwargs,
-            start=start, end='_end_point', init=init)
-        twini_2 = tw1.get_twiss_init(at_element='_end_point')
-        twini_2.element_name = line._element_names_unique[0]
-        tw2 = _compute_twiss_segment(
-            kwargs,
-            start=line._element_names_unique[0], end=end,
-            init=twini_2)
+    request = _TwissPropagationRequest(
+        line=line,
+        start=start,
+        end=end,
+        reverse=reverse,
+        periodic=False,
+        periodic_mode=None,
+        init_at=ele_name_init,
+    )
+    open_plan = _plan_open_twiss_propagation(
+        request=request, init_element_name=ele_name_init)
+
+    assert open_plan.crosses_line_start
+    first_table_piece, second_table_piece = (
+        _loop_around_table_pieces_from_open_plan(open_plan))
+    init_piece_role = _loop_around_init_piece_role(
+        line=line, start=start, end=end, init=init, reverse=reverse)
+    if init_piece_role == 'first_table_piece':
+        transfer_init_at = '_end_point'
+        transfer_init_element_name = second_table_piece.start
+    else:
+        transfer_init_at = second_table_piece.start
+        transfer_init_element_name = first_table_piece.end
+
+    return _LoopAroundTwissPlan(
+        first_table_piece=first_table_piece,
+        second_table_piece=second_table_piece,
+        init_piece_role=init_piece_role,
+        transfer_init_at=transfer_init_at,
+        transfer_init_element_name=transfer_init_element_name,
+    )
+
+
+def _loop_around_table_pieces_from_open_plan(open_plan):
+
+    if len(open_plan.pieces) == 2:
+        return open_plan.pieces
+
+    if len(open_plan.pieces) != 3:
+        raise RuntimeError('Unexpected loop-around Twiss plan')
+
+    if open_plan.pieces[0].role == 'start_to_init':
+        first_piece = _join_loop_around_piece_pair(
+            open_plan.pieces[0], open_plan.pieces[1])
+        second_piece = open_plan.pieces[2]
+        return first_piece, second_piece
+
+    if open_plan.pieces[0].role == 'start_to_line_boundary':
+        first_piece = open_plan.pieces[0]
+        second_piece = _join_loop_around_piece_pair(
+            open_plan.pieces[1], open_plan.pieces[2])
+        return first_piece, second_piece
+
+    raise RuntimeError('Unexpected loop-around Twiss plan')
+
+
+def _join_loop_around_piece_pair(first_piece, second_piece):
+
+    return _TwissSegmentPiecePlan(
+        role=f'{first_piece.role}+{second_piece.role}',
+        start=first_piece.start,
+        end=second_piece.end,
+        init_at=first_piece.init_at,
+    )
+
+
+def _loop_around_init_piece_role(line, start, end, init, reverse):
+
+    init_index = _str_to_index(line, init.element_name)
+    start_index = _str_to_index(line, start)
+    end_index = _str_to_index(line, end)
+
+    if not reverse:
+        if init_index >= start_index:
+            return 'first_table_piece'
+        if init_index <= end_index:
+            return 'second_table_piece'
+    else:
+        if init_index <= start_index:
+            return 'first_table_piece'
+        if init_index >= end_index:
+            return 'second_table_piece'
+
+    raise RuntimeError(
+        'Boundary conditions not at start or end of the specified range')
+
+
+def _execute_loop_around_twiss_plan(kwargs, plan, init):
+
+    if plan.init_piece_role == 'first_table_piece':
+        tw1 = _compute_twiss_segment_for_piece(
+            kwargs=kwargs, piece=plan.first_table_piece, init=init)
+        twini_2 = tw1.get_twiss_init(at_element=plan.transfer_init_at)
+        twini_2.element_name = plan.transfer_init_element_name
+        tw2 = _compute_twiss_segment_for_piece(
+            kwargs=kwargs, piece=plan.second_table_piece, init=twini_2)
         completed_init = tw1.completed_init
-    elif _str_to_index(line, ele_name_init) <= _str_to_index(line, end):
-        tw2 = _compute_twiss_segment(
-            kwargs,
-            start=line._element_names_unique[0], end=end, init=init)
-        twini_1 = tw2.get_twiss_init(at_element=line._element_names_unique[0])
-        twini_1.element_name = '_end_point'
-        tw1 = _compute_twiss_segment(
-            kwargs,
-            start=start, end='_end_point', init=twini_1)
+    elif plan.init_piece_role == 'second_table_piece':
+        tw2 = _compute_twiss_segment_for_piece(
+            kwargs=kwargs, piece=plan.second_table_piece, init=init)
+        twini_1 = tw2.get_twiss_init(at_element=plan.transfer_init_at)
+        twini_1.element_name = plan.transfer_init_element_name
+        tw1 = _compute_twiss_segment_for_piece(
+            kwargs=kwargs, piece=plan.first_table_piece, init=twini_1)
         completed_init = tw2.completed_init
     else:
-        raise RuntimeError(
-            'Boundary conditions not at start or end of the specified range')
+        raise RuntimeError('Unexpected loop-around Twiss plan init piece')
 
     return tw1, tw2, completed_init
 
 
-def _compute_reverse_loop_around_twiss_part(kwargs, line, start, end, init):
+def _compute_twiss_segment_for_piece(kwargs, piece, init):
 
-    ele_name_init = init.element_name
-
-    assert _str_to_index(line, end) > _str_to_index(line, start), (
-        'This function should not have been called')
-    if _str_to_index(line, ele_name_init) <= _str_to_index(line, start):
-        tw1 = _compute_twiss_segment(
-            kwargs,
-            start=start, end=line._element_names_unique[0], init=init)
-        twini_2 = tw1.get_twiss_init(at_element='_end_point')
-        twini_2.element_name = line._element_names_unique[-1]
-        tw2 = _compute_twiss_segment(
-            kwargs,
-            start=line._element_names_unique[-1], end=end,
-            init=twini_2)
-        completed_init = tw1.completed_init
-    elif _str_to_index(line, ele_name_init) >= _str_to_index(line, end):
-        tw2 = _compute_twiss_segment(
-            kwargs,
-            start=line._element_names_unique[-1], end=end, init=init)
-        twini_1 = tw2.get_twiss_init(at_element=line._element_names_unique[-1])
-        twini_1.element_name = line._element_names_unique[0]
-        tw1 = _compute_twiss_segment(
-            kwargs,
-            start=start, end=line._element_names_unique[0], init=twini_1)
-        completed_init = tw2.completed_init
-    else:
-        raise RuntimeError(
-            'Boundary conditions not at start or end of the specified range')
-
-    return tw1, tw2, completed_init
+    return _compute_twiss_segment(
+        kwargs, start=piece.start, end=piece.end, init=init)
 
 
 def _combine_loop_around_twiss_tables(tw1, tw2, init, completed_init):

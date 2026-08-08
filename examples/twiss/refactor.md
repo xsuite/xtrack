@@ -480,10 +480,9 @@ Already converted:
 - `init == "full_periodic"` with a range: now separates full-periodic init
   extraction (`_get_twiss_init_from_full_periodic`) from the requested range
   segment computation.
-- loop-around open ranges: `_handle_loop_around` now delegates direction-specific
-  segment construction to `_compute_forward_loop_around_twiss_part` or
-  `_compute_reverse_loop_around_twiss_part`, then combines and re-aligns the
-  result in `_combine_loop_around_twiss_tables`.
+- loop-around open ranges: `_handle_loop_around` now builds an explicit
+  `_LoopAroundTwissPlan`, keeping final table order separate from execution
+  order. The table combination remains unchanged.
 - init-inside-range open ranges: `_handle_init_inside_range` now separates marker
   support validation, segment construction, and table combination into named
   helpers.
