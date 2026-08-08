@@ -370,6 +370,14 @@ def twiss_line(line, particle_ref=None, method=None,
         data['zero_at'] = None
 
         route = _select_twiss_route(data)
+        if route == 'open_init_from_full_periodic':
+            # This is an open Twiss that differs only in how its init is
+            # acquired. Once the init is concrete, use the standard open path.
+            data['init'] = _compute_open_init_from_full_periodic(data)
+            data['init_at'] = None
+            if data['zero_at_requested'] is None:
+                data['zero_at_requested'] = data['start']
+            route = 'open'
 
         if route == 'periodic':
             # Standard periodic Twiss, for the full line or a closed range.
@@ -422,40 +430,6 @@ def twiss_line(line, particle_ref=None, method=None,
                 crosses_line_boundary=True,
                 one_turn_from_start=True)
 
-        elif route == 'full_periodic_range':
-            # Acquire a forward full-line periodic init, then propagate the range.
-            periodic_kwargs = data.copy()
-            periodic_kwargs['init'] = None
-            periodic_kwargs['start'] = None
-            periodic_kwargs['end'] = None
-            periodic_kwargs['init_at'] = None
-            periodic_kwargs['periodic'] = True
-            periodic_kwargs['periodic_mode'] = 'periodic'
-            periodic_kwargs['completed_init'] = periodic_kwargs['init']
-            _clear_twiss_init_input_fields(periodic_kwargs)
-            periodic_kwargs.update(
-                _compute_periodic_twiss_init(periodic_kwargs))
-            full_periodic_twiss = _compute_base_twiss(periodic_kwargs)
-            full_periodic_init = full_periodic_twiss.get_twiss_init(
-                data['init_at'] or data['start'])
-
-            range_kwargs = data.copy()
-            range_kwargs['init'] = full_periodic_init
-            range_kwargs['init_at'] = None
-            range_kwargs['init'], range_kwargs['completed_init'] = (
-                _build_twiss_init_from_inputs(range_kwargs))
-            _clear_twiss_init_input_fields(range_kwargs)
-
-            crosses_line_boundary, init_is_at_boundary = (
-                _get_open_twiss_range_flags(range_kwargs))
-            if not crosses_line_boundary and init_is_at_boundary:
-                twiss_res = _compute_base_twiss(range_kwargs)
-            else:
-                twiss_res = _handle_init_inside_range_and_line_wrap(
-                    range_kwargs, crosses_line_boundary)
-            if data['zero_at_requested'] is None:
-                twiss_res.zero_at(data['start'])
-
         else:
             raise RuntimeError(f'Unexpected Twiss route: {route}')
 
@@ -473,11 +447,30 @@ def _select_twiss_route(data):
 
     if (data['init'] == 'full_periodic'
             and (data['start'] is not None or data['end'] is not None)):
-        return 'full_periodic_range'
+        return 'open_init_from_full_periodic'
 
     if data['periodic']:
         return 'periodic'
     return 'open'
+
+
+def _compute_open_init_from_full_periodic(data):
+
+    periodic_kwargs = data.copy()
+    periodic_kwargs.update(
+        init=None,
+        start=None,
+        end=None,
+        init_at=None,
+        periodic=True,
+        periodic_mode='periodic',
+        completed_init=None,
+    )
+    _clear_twiss_init_input_fields(periodic_kwargs)
+    periodic_kwargs.update(_compute_periodic_twiss_init(periodic_kwargs))
+    full_periodic_twiss = _compute_base_twiss(periodic_kwargs)
+    return full_periodic_twiss.get_twiss_init(
+        data['init_at'] or data['start'])
 
 
 def _get_open_twiss_range_flags(data):
