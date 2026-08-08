@@ -14,10 +14,7 @@ from .chromatic_functions import trapz
 from .line_context import (
     _prepare_twiss_line_context,
 )
-from .base_computation import (
-    _compute_base_twiss,
-    _compute_base_twiss_after_explicit_init_completion,
-)
+from .base_computation import _compute_base_twiss
 from .base_init_acquisition import (
     _clear_twiss_init_inputs,
     _complete_init_for_base_twiss,
@@ -384,7 +381,7 @@ def twiss_line(line, particle_ref=None, method=None,
             one_turn_kwargs.pop('start')
             one_turn_plan = computation_plan.one_turn_propagation
 
-            full_twiss = _compute_twiss_segment(one_turn_kwargs)
+            full_twiss = _compute_base_twiss(one_turn_kwargs)
             first_part = full_twiss.rows[one_turn_plan.start:]
             second_part = full_twiss.rows[:one_turn_plan.start]
             twiss_res = TwissTable.concatenate([first_part, second_part])
@@ -400,9 +397,10 @@ def twiss_line(line, particle_ref=None, method=None,
             one_turn_kwargs.pop('end')
             one_turn_plan = computation_plan.one_turn_propagation
 
-            first_part = _compute_twiss_segment_for_piece(
-                kwargs=one_turn_kwargs,
-                piece=one_turn_plan.first_piece,
+            first_part = _compute_base_twiss(
+                one_turn_kwargs,
+                start=one_turn_plan.first_piece.start,
+                end=one_turn_plan.first_piece.end,
                 init=one_turn_kwargs['init'])
             second_part_init = first_part.get_twiss_init(
                 one_turn_plan.transfer_init_at)
@@ -412,9 +410,10 @@ def twiss_line(line, particle_ref=None, method=None,
             for field_name in VARS_FOR_TWISS_INIT_GENERATION:
                 one_turn_kwargs.pop(field_name, None)
             one_turn_kwargs.pop('init')
-            second_part = _compute_twiss_segment_for_piece(
-                kwargs=one_turn_kwargs,
-                piece=one_turn_plan.second_piece,
+            second_part = _compute_base_twiss(
+                one_turn_kwargs,
+                start=one_turn_plan.second_piece.start,
+                end=one_turn_plan.second_piece.end,
                 init=second_part_init)
             second_part = second_part.rows[:-1]  # remove repeated element
             second_part.name[-1] = '_end_point'
@@ -433,7 +432,7 @@ def twiss_line(line, particle_ref=None, method=None,
             periodic_kwargs.pop('start')
             periodic_kwargs.pop('end')
             periodic_kwargs.pop('init_at')
-            full_periodic_twiss = _compute_twiss_segment(periodic_kwargs)
+            full_periodic_twiss = _compute_base_twiss(periodic_kwargs)
             full_periodic_init = full_periodic_twiss.get_twiss_init(
                 acquisition_plan.init_at or data['start'])
 
@@ -449,32 +448,38 @@ def twiss_line(line, particle_ref=None, method=None,
                     range_kwargs, open_plan=open_plan)
             else:
                 assert len(open_plan.pieces) == 1
-                twiss_res = _compute_twiss_segment_for_piece(
-                    kwargs=range_kwargs,
-                    piece=open_plan.pieces[0],
+                piece = open_plan.pieces[0]
+                twiss_res = _compute_base_twiss(
+                    range_kwargs,
+                    start=piece.start,
+                    end=piece.end,
                     init=full_periodic_init)
             if data['zero_at_requested'] is None:
                 twiss_res.zero_at(data['start'])
 
         elif route == 'base':
-            # Complete the supplied init before direct or composed propagation.
-            data['init'], data['completed_init'] = _complete_init_for_base_twiss(
-                data=data)
-            _clear_twiss_init_inputs(data)
-
             open_plan = None
             if not data['periodic'] and not isinstance(data['init'], str):
                 open_plan = computation_plan.open_propagation
 
-            if open_plan is not None and open_plan.crosses_line_boundary:
-                twiss_res = _handle_loop_around(
-                    data.copy(), open_plan=open_plan)
-            elif open_plan is not None and not open_plan.init_is_at_boundary:
-                twiss_res = _handle_init_inside_range(
-                    data.copy(), open_plan=open_plan)
+            composed_open_range = (
+                open_plan is not None
+                and (open_plan.crosses_line_boundary
+                     or not open_plan.init_is_at_boundary))
+            if composed_open_range:
+                # Composition needs the concrete init before splitting the range.
+                data['init'], data['completed_init'] = (
+                    _complete_init_for_base_twiss(data=data))
+                _clear_twiss_init_inputs(data)
+
+                if open_plan.crosses_line_boundary:
+                    twiss_res = _handle_loop_around(
+                        data.copy(), open_plan=open_plan)
+                else:
+                    twiss_res = _handle_init_inside_range(
+                        data.copy(), open_plan=open_plan)
             else:
-                twiss_res = _compute_base_twiss_after_explicit_init_completion(
-                    data=data)
+                twiss_res = _compute_base_twiss(data)
 
         else:
             raise RuntimeError(f'Unexpected Twiss computation route: {route}')
@@ -482,25 +487,6 @@ def twiss_line(line, particle_ref=None, method=None,
         # All table-producing routes share the same public result finalization.
         return _finalize_twiss_result(
             twiss_res, input_kwargs, zero_at=data['zero_at_requested'])
-
-
-def _compute_twiss_segment(kwargs, **overrides):
-
-    # The line context is already prepared; disable public setup-only rewrites.
-    segment_kwargs = kwargs.copy()
-    segment_kwargs['disable_apertures'] = False
-    segment_kwargs['freeze_longitudinal'] = False
-    segment_kwargs['freeze_energy'] = False
-    segment_kwargs['at_s'] = None
-    segment_kwargs.update(overrides)
-
-    return _compute_base_twiss(segment_kwargs)
-
-
-def _compute_twiss_segment_for_piece(kwargs, piece, init):
-
-    return _compute_twiss_segment(
-        kwargs, start=piece.start, end=piece.end, init=init)
 
 
 def _handle_loop_around(kwargs, open_plan):
@@ -527,30 +513,36 @@ def _handle_loop_around(kwargs, open_plan):
         first_piece, second_piece, third_piece = open_plan.pieces
 
         if first_piece.role == 'start_to_init':
-            first_table = _compute_twiss_segment_for_piece(
-                kwargs=kwargs, piece=first_piece, init=init)
-            second_table = _compute_twiss_segment_for_piece(
-                kwargs=kwargs, piece=second_piece, init=init)
+            first_table = _compute_base_twiss(
+                kwargs, start=first_piece.start, end=first_piece.end,
+                init=init)
+            second_table = _compute_base_twiss(
+                kwargs, start=second_piece.start, end=second_piece.end,
+                init=init)
             first_side_table = _combine_init_inside_range_twiss_tables(
                 first_table, second_table, init)
             boundary_init = second_table.get_twiss_init('_end_point')
             boundary_init.element_name = third_piece.start
-            third_table = _compute_twiss_segment_for_piece(
-                kwargs=kwargs, piece=third_piece, init=boundary_init)
+            third_table = _compute_base_twiss(
+                kwargs, start=third_piece.start, end=third_piece.end,
+                init=boundary_init)
             twiss_tables = (first_side_table, third_table)
             completed_init = first_side_table.completed_init
 
         elif first_piece.role == 'start_to_line_boundary':
-            second_table = _compute_twiss_segment_for_piece(
-                kwargs=kwargs, piece=second_piece, init=init)
-            third_table = _compute_twiss_segment_for_piece(
-                kwargs=kwargs, piece=third_piece, init=init)
+            second_table = _compute_base_twiss(
+                kwargs, start=second_piece.start, end=second_piece.end,
+                init=init)
+            third_table = _compute_base_twiss(
+                kwargs, start=third_piece.start, end=third_piece.end,
+                init=init)
             second_side_table = _combine_init_inside_range_twiss_tables(
                 second_table, third_table, init)
             boundary_init = second_table.get_twiss_init(second_piece.start)
             boundary_init.element_name = first_piece.end
-            first_table = _compute_twiss_segment_for_piece(
-                kwargs=kwargs, piece=first_piece, init=boundary_init)
+            first_table = _compute_base_twiss(
+                kwargs, start=first_piece.start, end=first_piece.end,
+                init=boundary_init)
             twiss_tables = (first_table, second_side_table)
             completed_init = second_side_table.completed_init
 
@@ -576,20 +568,24 @@ def _handle_loop_around(kwargs, open_plan):
                 'Boundary conditions not at start or end of the specified range')
 
         if init_is_in_first_piece:
-            first_table = _compute_twiss_segment_for_piece(
-                kwargs=kwargs, piece=first_piece, init=init)
+            first_table = _compute_base_twiss(
+                kwargs, start=first_piece.start, end=first_piece.end,
+                init=init)
             boundary_init = first_table.get_twiss_init('_end_point')
             boundary_init.element_name = second_piece.start
-            second_table = _compute_twiss_segment_for_piece(
-                kwargs=kwargs, piece=second_piece, init=boundary_init)
+            second_table = _compute_base_twiss(
+                kwargs, start=second_piece.start, end=second_piece.end,
+                init=boundary_init)
             completed_init = first_table.completed_init
         else:
-            second_table = _compute_twiss_segment_for_piece(
-                kwargs=kwargs, piece=second_piece, init=init)
+            second_table = _compute_base_twiss(
+                kwargs, start=second_piece.start, end=second_piece.end,
+                init=init)
             boundary_init = second_table.get_twiss_init(second_piece.start)
             boundary_init.element_name = first_piece.end
-            first_table = _compute_twiss_segment_for_piece(
-                kwargs=kwargs, piece=first_piece, init=boundary_init)
+            first_table = _compute_base_twiss(
+                kwargs, start=first_piece.start, end=first_piece.end,
+                init=boundary_init)
             completed_init = second_table.completed_init
 
         twiss_tables = (first_table, second_table)
@@ -653,7 +649,7 @@ def _handle_init_inside_range(kwargs, open_plan):
 
     # Propagate both sides from the same init, then restore one continuous table.
     first_table, second_table = tuple(
-        _compute_twiss_segment(
+        _compute_base_twiss(
             kwargs,
             start=piece.start,
             end=piece.end,

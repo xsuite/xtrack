@@ -34,10 +34,18 @@ from .line_context import _set_twiss_periodic_mode
 from .multiturn import _kwargs_for_multiturn_continuation
 
 
-def _compute_base_twiss(data):
+def _compute_base_twiss(data, **overrides):
     """Run one normalized, non-composed Twiss computation."""
 
     data = data.copy()
+    # The public line context is already active. These options only control
+    # context setup and must not be applied again for individual segments.
+    data['disable_apertures'] = False
+    data['freeze_longitudinal'] = False
+    data['freeze_energy'] = False
+    data['at_s'] = None
+    data.update(overrides)
+
     _set_missing_base_twiss_inputs(data)
     _set_twiss_periodic_mode(data)
 
@@ -51,15 +59,8 @@ def _compute_base_twiss(data):
     data['init'], data['completed_init'] = _complete_init_for_base_twiss(
         data=data)
     _clear_twiss_init_inputs(data)
-    data['kwargs'] = data.copy()
-
-    return _compute_base_twiss_after_explicit_init_completion(data)
-
-
-def _compute_base_twiss_after_explicit_init_completion(data):
-    """Acquire any periodic init, propagate, and finish one base result."""
-
-    data = data.copy()
+    if 'kwargs' not in data:
+        data['kwargs'] = data.copy()
 
     if data['reverse']:
         if data['start'] is not None and data['end'] is not None:
