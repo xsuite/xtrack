@@ -1052,13 +1052,58 @@ def _handle_loop_around(kwargs, open_plan=None):
     line = kwargs['line']
     reverse = kwargs['reverse']
 
+    if open_plan is not None and len(open_plan.pieces) == 3:
+        twiss_tables, completed_init = _execute_three_piece_loop_around_plan(
+            kwargs=kwargs, open_plan=open_plan, init=init)
+        return _combine_loop_around_twiss_tables(
+            twiss_tables, init, completed_init)
+
     plan = _plan_loop_around_twiss_parts(
         line=line, start=start, end=end, init=init, reverse=reverse,
         open_plan=open_plan)
     tw1, tw2, completed_init = _execute_loop_around_twiss_plan(
         kwargs=kwargs, plan=plan, init=init)
 
-    return _combine_loop_around_twiss_tables(tw1, tw2, init, completed_init)
+    return _combine_loop_around_twiss_tables(
+        [tw1, tw2], init, completed_init)
+
+
+def _execute_three_piece_loop_around_plan(kwargs, open_plan, init):
+
+    first_piece, second_piece, third_piece = open_plan.pieces
+
+    if first_piece.role == 'start_to_init':
+        first_table = _compute_twiss_segment_for_piece(
+            kwargs=kwargs, piece=first_piece, init=init)
+        second_table = _compute_twiss_segment_for_piece(
+            kwargs=kwargs, piece=second_piece, init=init)
+        first_side_table = _combine_init_inside_range_twiss_tables(
+            first_table, second_table, init)
+        boundary_init = second_table.get_twiss_init('_end_point')
+        boundary_init.element_name = third_piece.start
+        third_table = _compute_twiss_segment_for_piece(
+            kwargs=kwargs, piece=third_piece, init=boundary_init)
+        loop_tables = (first_side_table, third_table)
+        completed_init = first_side_table.completed_init
+
+    elif first_piece.role == 'start_to_line_boundary':
+        second_table = _compute_twiss_segment_for_piece(
+            kwargs=kwargs, piece=second_piece, init=init)
+        third_table = _compute_twiss_segment_for_piece(
+            kwargs=kwargs, piece=third_piece, init=init)
+        second_side_table = _combine_init_inside_range_twiss_tables(
+            second_table, third_table, init)
+        boundary_init = second_table.get_twiss_init(second_piece.start)
+        boundary_init.element_name = first_piece.end
+        first_table = _compute_twiss_segment_for_piece(
+            kwargs=kwargs, piece=first_piece, init=boundary_init)
+        loop_tables = (first_table, second_side_table)
+        completed_init = second_side_table.completed_init
+
+    else:
+        raise RuntimeError('Unexpected three-piece loop-around Twiss plan')
+
+    return loop_tables, completed_init
 
 
 def _execute_loop_around_twiss_plan(kwargs, plan, init):
@@ -1176,7 +1221,7 @@ def _compute_twiss_segment(kwargs, **overrides):
     segment_kwargs = _kwargs_for_preflighted_twiss_segment(kwargs)
     segment_kwargs.update(overrides)
 
-    return twiss_line(**segment_kwargs)
+    return _compute_base_twiss(segment_kwargs)
 
 
 def _kwargs_for_preflighted_twiss_segment(kwargs):
@@ -1188,6 +1233,77 @@ def _kwargs_for_preflighted_twiss_segment(kwargs):
     segment_kwargs['at_s'] = None
 
     return segment_kwargs
+
+
+def _compute_base_twiss(data):
+    """Run one normalized, non-composed Twiss computation."""
+
+    data = data.copy()
+    _set_missing_base_twiss_inputs(data)
+    _set_base_twiss_periodic_mode(data)
+
+    computation_plan = _plan_twiss_computation(data, data['init'])
+    if computation_plan.route != 'base':
+        raise RuntimeError(
+            'A composed Twiss route reached the base segment engine: '
+            f'{computation_plan.route}')
+
+    data['twiss_computation_plan'] = computation_plan
+    data['init'], data['completed_init'] = _complete_init_for_base_twiss(
+        data=data)
+    _clear_twiss_init_inputs(data)
+    data['kwargs'] = data.copy()
+
+    base_twiss = _TwissBaseComputation(data)
+    base_twiss.prepare_for_propagation_from_init()
+
+    if data['only_twiss_init']:
+        assert data['periodic'], (
+            '``only_twiss_init`` can only be used in periodic mode')
+        return base_twiss.init_for_only_twiss_init()
+
+    if data['only_markers'] and data['radiation_analysis']:
+        raise NotImplementedError(
+            '``only_markers`` not implemented for ``radiation_analysis``')
+
+    twiss_res = base_twiss.propagate_from_init()
+    return base_twiss.finish_result(twiss_res)
+
+
+def _set_missing_base_twiss_inputs(data):
+
+    fields_defaulting_to_none = (
+        'start', 'end', 'init', 'init_at',
+        *VARS_FOR_TWISS_INIT_GENERATION,
+        'spin_x', 'spin_y', 'spin_z',
+    )
+    for field_name in fields_defaulting_to_none:
+        data.setdefault(field_name, None)
+
+
+def _set_base_twiss_periodic_mode(data):
+
+    init = data['init']
+    if (init is not None and init not in ['periodic', 'periodic_symmetric']
+            or data['betx'] is not None or data['bety'] is not None):
+        data['periodic'] = False
+        data['periodic_mode'] = None
+        return
+
+    data['periodic'] = True
+    data['periodic_mode'] = init or 'periodic'
+    for coordinate_name in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
+        assert data[coordinate_name] is None, (
+            f'``{coordinate_name}`` not supported for periodic twiss')
+
+
+def _clear_twiss_init_inputs(data):
+
+    data['init_at'] = None
+    for field_name in (
+            *VARS_FOR_TWISS_INIT_GENERATION,
+            'spin_x', 'spin_y', 'spin_z'):
+        data[field_name] = None
 
 
 def _apply_base_twiss_reverse_range(line, start, end, reverse):

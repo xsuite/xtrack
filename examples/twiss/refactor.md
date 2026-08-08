@@ -516,6 +516,15 @@ Init completion now receives the normalized computation dictionary as a single
 phase input, avoiding a large positional-style handoff and preparing the same
 boundary for private segment execution.
 
+Non-multiturn composed pieces now call `_compute_base_twiss` directly. This
+private engine accepts already-normalized state, completes/acquires the init,
+propagates one non-composed segment, and finishes its table without re-entering
+the public `twiss_line` compatibility wrapper. Multi-turn continuation remains
+the intentional recursive exception.
+Three-piece loop-around requests are executed as the three pieces expressed by
+the open propagation plan, with the line-boundary init transfer made explicit;
+they no longer depend on nested range routing to split a joined piece.
+
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
 result enrichment. Normalization and composed range routing remain outside the
