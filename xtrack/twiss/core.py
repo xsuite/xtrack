@@ -392,7 +392,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 twiss_res = _handle_init_inside_range_and_line_wrap(
                     data, crosses_line_boundary)
 
-        elif route == 'periodic_one_turn_from_start':
+        elif route == 'periodic_one_turn_custom_start':
             # Compute a full periodic table, then rotate it to the requested start.
             requested_start = data['start']
             one_turn_kwargs = data.copy()
@@ -411,7 +411,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res['periodic'] = True
             twiss_res['completed_init'] = full_twiss.completed_init
 
-        elif route == 'open_one_turn_from_start':
+        elif route == 'open_one_turn_custom_start':
             # A start without an end requests a wrapped open range of one turn.
             data['end'] = data['start']
             data['init'], data['completed_init'] = (
@@ -468,8 +468,8 @@ def _select_twiss_route(data):
 
     if data['start'] is not None and data['end'] is None:
         if data['periodic']:
-            return 'periodic_one_turn_from_start'
-        return 'open_one_turn_from_start'
+            return 'periodic_one_turn_custom_start'
+        return 'open_one_turn_custom_start'
 
     if (data['init'] == 'full_periodic'
             and (data['start'] is not None or data['end'] is not None)):
