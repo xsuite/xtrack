@@ -563,7 +563,7 @@ Base init completion and plan-driven periodic/open init acquisition now live in
 `base_init_acquisition.py`. The acquisition helper consumes the prepared state
 dictionary and returns only the updates needed by the later propagation phase.
 Prepared-request routing and composed open-range execution now live in
-`orchestration.py`. The public `core.py` module retains the `twiss_line`
+`base_orchestration.py`. The public `core.py` module retains the `twiss_line`
 signature, documentation, input normalization, and temporary line-context
 setup, then delegates through one orchestration entry point.
 The orchestration layer delegates base-piece calls through
@@ -571,7 +571,7 @@ The orchestration layer delegates base-piece calls through
 in `open_range_execution.py`. Pure range planning and table composition remain
 separate in `open_propagation.py` and `open_table_composition.py`.
 Periodic and open one-turn-from-start execution now lives in
-`one_turn_execution.py`; `orchestration.py` only selects that route and supplies
+`one_turn_execution.py`; `base_orchestration.py` only selects that route and supplies
 its computation and propagation plans.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the

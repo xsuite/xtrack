@@ -14,7 +14,7 @@ from .chromatic_functions import trapz
 from .line_context import (
     _prepare_twiss_line_context,
 )
-from .orchestration import _compute_twiss_with_prepared_line_context
+from .base_orchestration import _compute_twiss_with_prepared_line_context
 
 
 def twiss_line(line, particle_ref=None, method=None,
