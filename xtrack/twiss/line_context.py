@@ -7,7 +7,6 @@ import numpy as np
 import xobjects as xo
 
 from .extra_markers import _build_auxiliary_tracker_with_extra_markers
-from .twiss_init import _normalize_twiss_init_input
 
 import xtrack as xt  # To avoid circular imports
 
@@ -38,8 +37,6 @@ def _prepare_twiss_line_context(twiss_context, data):
 
     if line.enable_time_dependent_vars:
         raise RuntimeError('Time dependent variables not supported in Twiss')
-
-    _normalize_twiss_init_input(data)
 
     return data
 

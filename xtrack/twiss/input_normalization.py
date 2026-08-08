@@ -5,7 +5,7 @@
 
 from warnings import warn
 
-from ..general import DEPRECATION_INFO_PREP_1_0
+from ..general import DEPRECATION_INFO_PREP_1_0, _print
 
 
 def _normalize_twiss_inputs(twiss_kwargs, twiss_init_cls):
@@ -110,6 +110,74 @@ def _normalize_twiss_inputs(twiss_kwargs, twiss_init_cls):
         twiss_kwargs['init'] = twiss_kwargs['init'].copy()
 
     return twiss_kwargs, input_kwargs
+
+
+def _normalize_twiss_inputs_after_line_context(data):
+    """Finish normalization that depends on the prepared line and range."""
+
+    data = data.copy()
+
+    # Resolve symbolic init locations and TwissTable inputs after range names.
+    import xtrack as xt  # Local import avoids circular imports.
+    from .twiss_table import TwissTable
+
+    init_at = data['init_at']
+    if isinstance(init_at, xt.match._LOC):
+        if init_at.name == 'START':
+            data['init_at'] = data['start']
+        elif init_at.name == 'END':
+            data['init_at'] = data['end']
+
+    if isinstance(data['init'], TwissTable):
+        if data['init_at'] is None:
+            data['init_at'] = data['start']
+        data['init'] = data['init'].get_twiss_init(
+            at_element=data['init_at'])
+        data['init_at'] = None
+
+    if data['matrix_responsiveness_tol'] is None:
+        data['matrix_responsiveness_tol'] = (
+            data['line'].matrix_responsiveness_tol)
+    if data['matrix_stability_tol'] is None:
+        data['matrix_stability_tol'] = data['line'].matrix_stability_tol
+    if (data['line']._radiation_model is not None
+            and data['radiation_method'] != 'kick_as_co'):
+        data['matrix_stability_tol'] = None
+        if data['use_full_inverse'] is None:
+            data['use_full_inverse'] = True
+
+    if data['particle_ref'] is None:
+        if data['particle_on_co'] is not None:
+            data['particle_ref'] = data['particle_on_co'].copy()
+        elif data['co_guess'] is None and hasattr(data['line'], 'particle_ref'):
+            data['particle_ref'] = data['line'].particle_ref
+
+    if data['line'].iscollective and not data['include_collective']:
+        _print(
+            'The line has collective elements.\n'
+            'In the twiss computation collective elements are'
+            ' replaced by drifts')
+        data['line'] = data['line']._get_non_collective_line()
+
+    if data['particle_ref'] is None and data['co_guess'] is None:
+        raise ValueError(
+            "Either ``particle_ref`` or ``co_guess`` must be provided")
+
+    if data['method'] is None:
+        data['method'] = '6d'
+    assert data['method'] in ['6d', '4d'], (
+        'Method must be ``6d`` or ``4d``')
+
+    if isinstance(data['init'], str):
+        if data['init'] in ['preserve', 'preserve_start', 'preserve_end']:
+            raise ValueError(f"init={data['init']} not anymore supported")
+        assert data['init'] in ('periodic', 'full_periodic')
+    if (not data['periodic']
+            and (data['delta0'] is not None or data['zeta0'] is not None)):
+        raise ValueError(
+            'delta0 and zeta0 cannot be provided for open twiss')
+
+    return data
 
 
 def _handle_deprecated_twiss_kwargs(

@@ -5,10 +5,10 @@
 
 from contextlib import ExitStack
 
-from ..general import _print
 from .twiss_table import TwissTable
 from .input_normalization import (
     _normalize_twiss_inputs,
+    _normalize_twiss_inputs_after_line_context,
 )
 from .chromatic_functions import trapz
 from .line_context import (
@@ -365,54 +365,9 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_context=twiss_context,
             data=normalized_kwargs)
         data['kwargs'] = normalized_kwargs
-
-        data = data.copy()
+        data = _normalize_twiss_inputs_after_line_context(data)
         data['zero_at_requested'] = data['zero_at']
         data['zero_at'] = None
-
-        # Prepare the settings needed by both supplied and periodic init paths.
-        if data['matrix_responsiveness_tol'] is None:
-            data['matrix_responsiveness_tol'] = (
-                data['line'].matrix_responsiveness_tol)
-        if data['matrix_stability_tol'] is None:
-            data['matrix_stability_tol'] = data['line'].matrix_stability_tol
-        if (data['line']._radiation_model is not None
-                and data['radiation_method'] != 'kick_as_co'):
-            data['matrix_stability_tol'] = None
-            if data['use_full_inverse'] is None:
-                data['use_full_inverse'] = True
-
-        if data['particle_ref'] is None:
-            if data['particle_on_co'] is not None:
-                data['particle_ref'] = data['particle_on_co'].copy()
-            elif (data['co_guess'] is None
-                    and hasattr(data['line'], 'particle_ref')):
-                data['particle_ref'] = data['line'].particle_ref
-
-        if data['line'].iscollective and not data['include_collective']:
-            _print(
-                'The line has collective elements.\n'
-                'In the twiss computation collective elements are'
-                ' replaced by drifts')
-            data['line'] = data['line']._get_non_collective_line()
-
-        if data['particle_ref'] is None and data['co_guess'] is None:
-            raise ValueError(
-                "Either ``particle_ref`` or ``co_guess`` must be provided")
-
-        if data['method'] is None:
-            data['method'] = '6d'
-        assert data['method'] in ['6d', '4d'], (
-            'Method must be ``6d`` or ``4d``')
-
-        if isinstance(data['init'], str):
-            if data['init'] in ['preserve', 'preserve_start', 'preserve_end']:
-                raise ValueError(f"init={data['init']} not anymore supported")
-            assert data['init'] in ('periodic', 'full_periodic')
-        if (not data['periodic']
-                and (data['delta0'] is not None or data['zeta0'] is not None)):
-            raise ValueError(
-                'delta0 and zeta0 cannot be provided for open twiss')
 
         # A start without an end requests one full turn from that location.
         if (data['start'] is not None and data['end'] is None

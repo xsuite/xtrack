@@ -583,26 +583,6 @@ _PERIODIC_INIT_ARGUMENTS_FROM_BASE_DATA = (
 )
 
 
-def _normalize_twiss_init_input(data):
-
-    init_at = data['init_at']
-    if isinstance(init_at, xt.match._LOC):
-        if init_at.name == 'START':
-            data['init_at'] = data['start']
-        elif init_at.name == 'END':
-            data['init_at'] = data['end']
-
-    # Local import avoids a module cycle: twiss_table imports TwissInit.
-    from .twiss_table import TwissTable
-
-    if isinstance(data['init'], TwissTable):
-        if data['init_at'] is None:
-            data['init_at'] = data['start']
-        data['init'] = data['init'].get_twiss_init(
-            at_element=data['init_at'])
-        data['init_at'] = None
-
-
 def _build_twiss_init_from_inputs(data):
 
     init = data['init']
