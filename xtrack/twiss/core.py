@@ -386,12 +386,11 @@ def twiss_line(line, particle_ref=None, method=None,
 
             crosses_line_boundary, init_is_at_boundary = (
                 _get_open_twiss_range_flags(data))
-            if crosses_line_boundary:
-                twiss_res = _handle_loop_around(data.copy())
-            elif not init_is_at_boundary:
-                twiss_res = _handle_init_inside_range(data.copy())
-            else:
+            if not crosses_line_boundary and init_is_at_boundary:
                 twiss_res = _compute_base_twiss(data)
+            else:
+                twiss_res = _handle_init_inside_range_and_line_wrap(
+                    data, crosses_line_boundary)
 
         elif route == 'periodic_one_turn_from_start':
             # Compute a full periodic table, then rotate it to the requested start.
@@ -469,12 +468,11 @@ def twiss_line(line, particle_ref=None, method=None,
 
             crosses_line_boundary, init_is_at_boundary = (
                 _get_open_twiss_range_flags(range_kwargs))
-            if crosses_line_boundary:
-                twiss_res = _handle_loop_around(range_kwargs)
-            elif not init_is_at_boundary:
-                twiss_res = _handle_init_inside_range(range_kwargs)
-            else:
+            if not crosses_line_boundary and init_is_at_boundary:
                 twiss_res = _compute_base_twiss(range_kwargs)
+            else:
+                twiss_res = _handle_init_inside_range_and_line_wrap(
+                    range_kwargs, crosses_line_boundary)
             if data['zero_at_requested'] is None:
                 twiss_res.zero_at(data['start'])
 
@@ -518,7 +516,55 @@ def _get_open_twiss_range_flags(data):
     return crosses_line_boundary, init_is_at_boundary
 
 
-def _handle_loop_around(kwargs):
+def _handle_init_inside_range_and_line_wrap(
+        kwargs, crosses_line_boundary):
+
+    if not crosses_line_boundary:
+        kwargs = kwargs.copy()
+        line = kwargs['line']
+        start = kwargs.pop('start')
+        end = kwargs.pop('end')
+        init = kwargs.pop('init')
+        reverse = kwargs.pop('reverse')
+
+        # Bidirectional propagation from an interior init is supported at
+        # markers.
+        init_element_name = init.element_name
+        init_element = line.get(init_element_name)
+        if isinstance(init_element, xt.Replica):
+            init_element = init_element.resolve()
+        if not isinstance(init_element, xt.Marker):
+            raise ValueError(
+                'The element at the initial position is not a Marker. '
+                'This is not yet supported')
+
+        if reverse:
+            assert (_str_to_index(line, init_element_name)
+                    <= _str_to_index(line, start))
+            assert (_str_to_index(line, init_element_name)
+                    >= _str_to_index(line, end))
+        else:
+            assert (_str_to_index(line, init_element_name)
+                    >= _str_to_index(line, start))
+            assert (_str_to_index(line, init_element_name)
+                    <= _str_to_index(line, end))
+
+        # Propagate both sides from the same init, then restore one continuous
+        # table.
+        first_table, second_table = tuple(
+            _compute_base_twiss(
+                kwargs,
+                start=piece_start,
+                end=piece_end,
+                init=init,
+                reverse=reverse)
+            for piece_start, piece_end in (
+                (start, init_element_name),
+                (init_element_name, end),
+            ))
+
+        return _combine_init_inside_range_twiss_tables(
+            first_table, second_table, init)
 
     kwargs = kwargs.copy()
     init = kwargs.pop('init')
@@ -640,53 +686,6 @@ def _handle_loop_around(kwargs):
         twiss_res=twiss_res, twiss_tables=twiss_tables)
 
     return twiss_res
-
-
-def _handle_init_inside_range(kwargs):
-
-    kwargs = kwargs.copy()
-    line = kwargs['line']
-    start = kwargs.pop('start')
-    end = kwargs.pop('end')
-    init = kwargs.pop('init')
-    reverse = kwargs.pop('reverse')
-
-    # Bidirectional propagation from an interior init is supported at markers.
-    init_element_name = init.element_name
-    init_element = line.get(init_element_name)
-    if isinstance(init_element, xt.Replica):
-        init_element = init_element.resolve()
-    if not isinstance(init_element, xt.Marker):
-        raise ValueError(
-            'The element at the initial position is not a Marker. '
-            'This is not yet supported')
-
-    if reverse:
-        assert (_str_to_index(line, init_element_name)
-                <= _str_to_index(line, start))
-        assert (_str_to_index(line, init_element_name)
-                >= _str_to_index(line, end))
-    else:
-        assert (_str_to_index(line, init_element_name)
-                >= _str_to_index(line, start))
-        assert (_str_to_index(line, init_element_name)
-                <= _str_to_index(line, end))
-
-    # Propagate both sides from the same init, then restore one continuous table.
-    first_table, second_table = tuple(
-        _compute_base_twiss(
-            kwargs,
-            start=piece_start,
-            end=piece_end,
-            init=init,
-            reverse=reverse)
-        for piece_start, piece_end in (
-            (start, init_element_name),
-            (init_element_name, end),
-        ))
-
-    return _combine_init_inside_range_twiss_tables(
-        first_table, second_table, init)
 
 
 def _combine_init_inside_range_twiss_tables(first_table, second_table, init):
