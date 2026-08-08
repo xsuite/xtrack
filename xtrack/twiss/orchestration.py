@@ -4,9 +4,11 @@
 # ######################################### #
 
 from .base_computation import (
+    _compute_base_twiss_after_explicit_init_completion,
+)
+from .base_init_acquisition import (
     _clear_twiss_init_inputs,
     _complete_init_for_base_twiss,
-    _compute_base_twiss_after_explicit_init_completion,
 )
 from .computation_plan import _plan_twiss_computation
 from .constants import VARS_FOR_TWISS_INIT_GENERATION

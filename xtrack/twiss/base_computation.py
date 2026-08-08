@@ -11,7 +11,11 @@ from .base_preparation import (
     _validate_base_twiss_method,
     _validate_base_twiss_init_mode,
     _validate_base_twiss_open_momentum_offsets,
-    _periodic_solution_range_from_plan,
+)
+from .base_init_acquisition import (
+    _acquire_base_twiss_init,
+    _clear_twiss_init_inputs,
+    _complete_init_for_base_twiss,
 )
 from .base_propagation import _propagate_twiss_from_init
 from .base_result import (
@@ -35,8 +39,6 @@ from .computation_plan import _plan_twiss_computation
 from .constants import VARS_FOR_TWISS_INIT_GENERATION
 from .line_context import _set_twiss_periodic_mode
 from .multiturn import _kwargs_for_multiturn_continuation
-from .periodic_init import _compute_periodic_twiss_init_and_data
-from .twiss_init import _complete_twiss_init
 
 
 class _TwissBaseComputation:
@@ -48,7 +50,8 @@ class _TwissBaseComputation:
 
         self._prepare_range_and_line()
         self._validate_base_request()
-        self._acquire_init_according_to_plan()
+        acquisition_updates = _acquire_base_twiss_init(self.__dict__)
+        self.__dict__.update(acquisition_updates)
 
     def _prepare_range_and_line(self):
 
@@ -79,71 +82,6 @@ class _TwissBaseComputation:
         _validate_base_twiss_init_mode(init=self.init)
         _validate_base_twiss_open_momentum_offsets(
             periodic=self.periodic, delta0=self.delta0, zeta0=self.zeta0)
-
-    def _acquire_init_according_to_plan(self):
-
-        acquisition_plan = self.twiss_computation_plan.init_acquisition
-
-        if acquisition_plan.source == 'open_input':
-            assert not self.periodic
-            self.skip_global_quantities = True
-            return
-
-        if acquisition_plan.source != 'periodic_solution':
-            raise RuntimeError(
-                f'Unexpected Twiss init source: {acquisition_plan.source}')
-
-        assert self.periodic
-        self._acquire_periodic_init(acquisition_plan)
-
-    def _acquire_periodic_init(self, acquisition_plan):
-
-        periodic_start, periodic_end = _periodic_solution_range_from_plan(
-            acquisition_plan=acquisition_plan,
-            start=self.start,
-            end=self.end,
-        )
-        self.periodic_init_data = _compute_periodic_twiss_init_and_data(
-            line=self.line,
-            particle_on_co=self.particle_on_co,
-            particle_ref=self.particle_ref,
-            method=self.method,
-            co_search_settings=self.co_search_settings,
-            continue_on_closed_orbit_error=self.continue_on_closed_orbit_error,
-            delta0=self.delta0,
-            zeta0=self.zeta0,
-            zeta_shift=self.zeta_shift,
-            steps_R_matrix=self.steps_R_matrix,
-            W_matrix=self.W_matrix,
-            R_matrix=self.R_matrix,
-            co_guess=self.co_guess,
-            delta_disp=self.delta_disp,
-            symplectify=self.symplectify,
-            matrix_responsiveness_tol=self.matrix_responsiveness_tol,
-            matrix_stability_tol=self.matrix_stability_tol,
-            start=periodic_start,
-            end=periodic_end,
-            num_turns=self.num_turns,
-            co_search_at=self.co_search_at,
-            search_for_t_rev=self.search_for_t_rev,
-            spin=self.spin,
-            num_turns_search_t_rev=self.num_turns_search_t_rev,
-            nemitt_x=self.nemitt_x,
-            nemitt_y=self.nemitt_y,
-            step_W_sigma=self.step_W_sigma,
-            compute_R_element_by_element=self.compute_R_element_by_element,
-            only_markers=self.only_markers,
-            only_orbit=self.only_orbit,
-            periodic_mode=self.periodic_mode,
-            include_collective=self.include_collective,
-            initial_particles=self._initial_particles,
-        )
-        self.init = self.periodic_init_data.init
-        self.R_matrix = self.periodic_init_data.R_matrix
-        self.steps_R_matrix = self.periodic_init_data.steps_R_matrix
-        self.eigenvalues = self.periodic_init_data.eigenvalues
-        self.Rot = self.periodic_init_data.Rot
-        self.RR_ebe = self.periodic_init_data.RR_ebe
 
     def init_for_only_twiss_init(self):
 
@@ -388,36 +326,4 @@ def _set_missing_base_twiss_inputs(data):
     )
     for field_name in fields_defaulting_to_none:
         data.setdefault(field_name, None)
-
-
-def _clear_twiss_init_inputs(data):
-
-    data['init_at'] = None
-    for field_name in (
-            *VARS_FOR_TWISS_INIT_GENERATION,
-            'spin_x', 'spin_y', 'spin_z'):
-        data[field_name] = None
-
-
-def _complete_init_for_base_twiss(data):
-
-    init = _complete_twiss_init(
-        start=data['start'], end=data['end'], init_at=data['init_at'],
-        init=data['init'], line=data['line'], reverse=data['reverse'],
-        x=data['x'], px=data['px'], y=data['y'], py=data['py'],
-        zeta=data['zeta'], delta=data['delta'],
-        alfx=data['alfx'], alfy=data['alfy'],
-        betx=data['betx'], bety=data['bety'], bets=data['bets'],
-        dx=data['dx'], dpx=data['dpx'], dy=data['dy'], dpy=data['dpy'],
-        dzeta=data['dzeta'], mux=data['mux'], muy=data['muy'],
-        muzeta=data['muzeta'],
-        ax_chrom=data['ax_chrom'], bx_chrom=data['bx_chrom'],
-        ay_chrom=data['ay_chrom'], by_chrom=data['by_chrom'],
-        ddx=data['ddx'], ddpx=data['ddpx'],
-        ddy=data['ddy'], ddpy=data['ddpy'],
-        spin_x=data['spin_x'], spin_y=data['spin_y'], spin_z=data['spin_z'],
-    )
-    completed_init = (init.copy() if hasattr(init, 'copy') else init)
-
-    return init, completed_init
 

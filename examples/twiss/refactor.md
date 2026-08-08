@@ -559,6 +559,9 @@ The `_TwissBaseComputation` lifecycle and the private base-segment entry points
 now live in `base_computation.py`. This module composes the preparation, init
 acquisition, propagation, and result-finishing leaves without importing the
 public `core.py` wrapper.
+Base init completion and plan-driven periodic/open init acquisition now live in
+`base_init_acquisition.py`. The acquisition helper consumes the prepared state
+dictionary and returns only the updates needed by the later propagation phase.
 Prepared-request routing and composed open-range execution now live in
 `orchestration.py`. The public `core.py` module retains the `twiss_line`
 signature, documentation, input normalization, and temporary line-context
