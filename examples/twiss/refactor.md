@@ -450,6 +450,12 @@ The base Twiss path now also uses `_compute_periodic_twiss_init_and_data` and
 `_propagate_twiss_from_init` names at the call site. This is a small step toward
 keeping periodic init computation separate from propagation through the line.
 
+The first internal class boundary is `_TwissBaseComputation`, which owns the
+base-path preparation, periodic init acquisition, propagation from init, and
+periodic metadata attachment. Normalization, composed range routing, and result
+enrichment remain outside the class for now to avoid turning the first class
+step into a broad behavioral rewrite.
+
 Already converted:
 
 - `zero_at`: now handled during finalization instead of by recomputing Twiss.

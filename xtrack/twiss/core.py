@@ -645,113 +645,24 @@ def twiss_line(line, particle_ref=None, method=None,
             return _finalize_twiss_result(
                 composed_twiss_res, input_kwargs, zero_at=zero_at_requested)
 
-        start, end = _apply_base_twiss_reverse_range(
-            line=line, start=start, end=end, reverse=reverse)
-
-        _validate_base_twiss_boundary_init(start=start, init=init)
-
-        matrix_responsiveness_tol, matrix_stability_tol, use_full_inverse = (
-            _prepare_base_twiss_matrix_settings(
-                line=line,
-                radiation_method=radiation_method,
-                matrix_responsiveness_tol=matrix_responsiveness_tol,
-                matrix_stability_tol=matrix_stability_tol,
-                use_full_inverse=use_full_inverse))
-
-        line, particle_ref = _prepare_base_twiss_line_and_particle_ref(
-            line=line,
-            particle_ref=particle_ref,
-            particle_on_co=particle_on_co,
-            co_guess=co_guess,
-            include_collective=include_collective)
-
-        method = _validate_base_twiss_method(method)
-
-        _validate_base_twiss_init_mode(init=init)
-
-        _validate_base_twiss_open_momentum_offsets(
-            periodic=periodic, delta0=delta0, zeta0=zeta0)
-
-        if periodic:
-
-            periodic_init_data = _compute_periodic_twiss_init_and_data(
-                line=line, particle_on_co=particle_on_co,
-                particle_ref=particle_ref, method=method,
-                co_search_settings=co_search_settings,
-                continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                delta0=delta0, zeta0=zeta0, zeta_shift=zeta_shift,
-                steps_R_matrix=steps_R_matrix,
-                W_matrix=W_matrix, R_matrix=R_matrix,
-                co_guess=co_guess,
-                delta_disp=delta_disp, symplectify=symplectify,
-                matrix_responsiveness_tol=matrix_responsiveness_tol,
-                matrix_stability_tol=matrix_stability_tol,
-                start=start, end=end,
-                num_turns=num_turns,
-                co_search_at=co_search_at,
-                search_for_t_rev=search_for_t_rev,
-                spin=spin,
-                num_turns_search_t_rev=num_turns_search_t_rev,
-                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                step_W_sigma=step_W_sigma,
-                compute_R_element_by_element=compute_R_element_by_element,
-                only_markers=only_markers,
-                only_orbit=only_orbit,
-                periodic_mode=periodic_mode,
-                include_collective=include_collective,
-                initial_particles=_initial_particles,
-            )
-            init = periodic_init_data.init
-            R_matrix = periodic_init_data.R_matrix
-            steps_R_matrix = periodic_init_data.steps_R_matrix
-            eigenvalues = periodic_init_data.eigenvalues
-            Rot = periodic_init_data.Rot
-            RR_ebe = periodic_init_data.RR_ebe
-        else:
-            # force
-            skip_global_quantities = True
+        base_twiss = _TwissBaseComputation(locals().copy())
+        base_twiss.prepare_for_propagation_from_init()
 
         if only_twiss_init:
             assert periodic, '``only_twiss_init`` can only be used in periodic mode'
-            if reverse:
-                return init.reverse()
-            else:
-                return init
+            return base_twiss.init_for_only_twiss_init()
 
         if only_markers and radiation_analysis:
             raise NotImplementedError(
                 '``only_markers`` not implemented for ``radiation_analysis``')
 
-        twiss_res = _propagate_twiss_from_init(
-            line=line,
-            init=init,
-            start=start, end=end,
-            nemitt_x=nemitt_x,
-            nemitt_y=nemitt_y,
-            step_W_sigma=step_W_sigma,
-            delta_disp=delta_disp,
-            use_full_inverse=use_full_inverse,
-            hide_thin_groups=hide_thin_groups,
-            only_markers=only_markers,
-            only_orbit=only_orbit,
-            spin=spin,
-            compute_lattice_functions=compute_lattice_functions,
-            continue_if_lost=_continue_if_lost,
-            keep_tracking_data=_keep_tracking_data,
-            keep_initial_particles=_keep_initial_particles,
-            initial_particles=_initial_particles,
-            ebe_monitor=_ebe_monitor)
+        twiss_res = base_twiss.propagate_from_init()
+        base_twiss.add_periodic_solution_data_to(twiss_res)
 
-        if not skip_global_quantities and not only_orbit:
-            _add_periodic_solution_data_to_base_twiss(
-                line=line,
-                twiss_res=twiss_res,
-                method=method,
-                R_matrix=R_matrix,
-                steps_R_matrix=steps_R_matrix,
-                RR_ebe=RR_ebe,
-                eigenvalues=eigenvalues,
-                Rot=Rot)
+        (line, particle_ref, method, start, end, init, completed_init,
+            matrix_responsiveness_tol, matrix_stability_tol, use_full_inverse,
+            steps_R_matrix, R_matrix, eigenvalues, Rot, RR_ebe,
+            skip_global_quantities) = base_twiss.values_for_result_enrichment()
 
         _add_chromatic_functions_to_twiss_result(
             line=line,
@@ -906,6 +817,156 @@ class _PeriodicTwissInitData:
             Rot=Rot,
             RR_ebe=RR_ebe,
         )
+
+
+@dataclass
+class _TwissBaseComputation:
+    state: object
+    periodic_init_data: object = None
+
+    def prepare_for_propagation_from_init(self):
+
+        self._prepare_range_and_line()
+        self._validate_base_request()
+        self._acquire_periodic_init_if_needed()
+
+    def _prepare_range_and_line(self):
+
+        k = self.state
+        k['start'], k['end'] = _apply_base_twiss_reverse_range(
+            line=k['line'], start=k['start'], end=k['end'],
+            reverse=k['reverse'])
+
+        (k['matrix_responsiveness_tol'], k['matrix_stability_tol'],
+            k['use_full_inverse']) = _prepare_base_twiss_matrix_settings(
+                line=k['line'],
+                radiation_method=k['radiation_method'],
+                matrix_responsiveness_tol=k['matrix_responsiveness_tol'],
+                matrix_stability_tol=k['matrix_stability_tol'],
+                use_full_inverse=k['use_full_inverse'])
+
+        k['line'], k['particle_ref'] = _prepare_base_twiss_line_and_particle_ref(
+            line=k['line'],
+            particle_ref=k['particle_ref'],
+            particle_on_co=k['particle_on_co'],
+            co_guess=k['co_guess'],
+            include_collective=k['include_collective'])
+
+        k['method'] = _validate_base_twiss_method(k['method'])
+
+    def _validate_base_request(self):
+
+        k = self.state
+        _validate_base_twiss_boundary_init(start=k['start'], init=k['init'])
+        _validate_base_twiss_init_mode(init=k['init'])
+        _validate_base_twiss_open_momentum_offsets(
+            periodic=k['periodic'], delta0=k['delta0'], zeta0=k['zeta0'])
+
+    def _acquire_periodic_init_if_needed(self):
+
+        k = self.state
+        if not k['periodic']:
+            k['skip_global_quantities'] = True
+            return
+
+        self.periodic_init_data = _compute_periodic_twiss_init_and_data(
+            line=k['line'],
+            particle_on_co=k['particle_on_co'],
+            particle_ref=k['particle_ref'],
+            method=k['method'],
+            co_search_settings=k['co_search_settings'],
+            continue_on_closed_orbit_error=k['continue_on_closed_orbit_error'],
+            delta0=k['delta0'],
+            zeta0=k['zeta0'],
+            zeta_shift=k['zeta_shift'],
+            steps_R_matrix=k['steps_R_matrix'],
+            W_matrix=k['W_matrix'],
+            R_matrix=k['R_matrix'],
+            co_guess=k['co_guess'],
+            delta_disp=k['delta_disp'],
+            symplectify=k['symplectify'],
+            matrix_responsiveness_tol=k['matrix_responsiveness_tol'],
+            matrix_stability_tol=k['matrix_stability_tol'],
+            start=k['start'],
+            end=k['end'],
+            num_turns=k['num_turns'],
+            co_search_at=k['co_search_at'],
+            search_for_t_rev=k['search_for_t_rev'],
+            spin=k['spin'],
+            num_turns_search_t_rev=k['num_turns_search_t_rev'],
+            nemitt_x=k['nemitt_x'],
+            nemitt_y=k['nemitt_y'],
+            step_W_sigma=k['step_W_sigma'],
+            compute_R_element_by_element=k['compute_R_element_by_element'],
+            only_markers=k['only_markers'],
+            only_orbit=k['only_orbit'],
+            periodic_mode=k['periodic_mode'],
+            include_collective=k['include_collective'],
+            initial_particles=k['_initial_particles'],
+        )
+        k['init'] = self.periodic_init_data.init
+        k['R_matrix'] = self.periodic_init_data.R_matrix
+        k['steps_R_matrix'] = self.periodic_init_data.steps_R_matrix
+        k['eigenvalues'] = self.periodic_init_data.eigenvalues
+        k['Rot'] = self.periodic_init_data.Rot
+        k['RR_ebe'] = self.periodic_init_data.RR_ebe
+
+    def init_for_only_twiss_init(self):
+
+        init = self.state['init']
+        if self.state['reverse']:
+            return init.reverse()
+        return init
+
+    def propagate_from_init(self):
+
+        k = self.state
+        return _propagate_twiss_from_init(
+            line=k['line'],
+            init=k['init'],
+            start=k['start'],
+            end=k['end'],
+            nemitt_x=k['nemitt_x'],
+            nemitt_y=k['nemitt_y'],
+            step_W_sigma=k['step_W_sigma'],
+            delta_disp=k['delta_disp'],
+            use_full_inverse=k['use_full_inverse'],
+            hide_thin_groups=k['hide_thin_groups'],
+            only_markers=k['only_markers'],
+            only_orbit=k['only_orbit'],
+            spin=k['spin'],
+            compute_lattice_functions=k['compute_lattice_functions'],
+            continue_if_lost=k['_continue_if_lost'],
+            keep_tracking_data=k['_keep_tracking_data'],
+            keep_initial_particles=k['_keep_initial_particles'],
+            initial_particles=k['_initial_particles'],
+            ebe_monitor=k['_ebe_monitor'])
+
+    def add_periodic_solution_data_to(self, twiss_res):
+
+        k = self.state
+        if k['skip_global_quantities'] or k['only_orbit']:
+            return
+
+        _add_periodic_solution_data_to_base_twiss(
+            line=k['line'],
+            twiss_res=twiss_res,
+            method=k['method'],
+            R_matrix=k['R_matrix'],
+            steps_R_matrix=k['steps_R_matrix'],
+            RR_ebe=k['RR_ebe'],
+            eigenvalues=k['eigenvalues'],
+            Rot=k['Rot'])
+
+    def values_for_result_enrichment(self):
+
+        k = self.state
+        return (
+            k['line'], k['particle_ref'], k['method'], k['start'], k['end'],
+            k['init'], k['completed_init'], k['matrix_responsiveness_tol'],
+            k['matrix_stability_tol'], k['use_full_inverse'],
+            k['steps_R_matrix'], k['R_matrix'], k.get('eigenvalues'),
+            k.get('Rot'), k.get('RR_ebe'), k['skip_global_quantities'])
 
 
 @dataclass(frozen=True)
