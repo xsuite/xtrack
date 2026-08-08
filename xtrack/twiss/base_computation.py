@@ -3,15 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from .base_preparation import (
-    _apply_base_twiss_reverse_range,
-    _validate_base_twiss_boundary_init,
-    _prepare_base_twiss_matrix_settings,
-    _prepare_base_twiss_line_and_particle_ref,
-    _validate_base_twiss_method,
-    _validate_base_twiss_init_mode,
-    _validate_base_twiss_open_momentum_offsets,
-)
+from ..general import _print
 from .base_init_acquisition import (
     _acquire_base_twiss_init,
     _clear_twiss_init_inputs,
@@ -37,6 +29,7 @@ from .base_result import (
 )
 from .computation_plan import _plan_twiss_computation
 from .constants import VARS_FOR_TWISS_INIT_GENERATION
+from .element_indexing import _str_to_index
 from .line_context import _set_twiss_periodic_mode
 from .multiturn import _kwargs_for_multiturn_continuation
 
@@ -68,32 +61,61 @@ def _compute_base_twiss_after_explicit_init_completion(data):
 
     data = data.copy()
 
-    data['start'], data['end'] = _apply_base_twiss_reverse_range(
-        line=data['line'], start=data['start'], end=data['end'],
-        reverse=data['reverse'])
+    if data['reverse']:
+        if data['start'] is not None and data['end'] is not None:
+            assert (_str_to_index(data['line'], data['start'])
+                    >= _str_to_index(data['line'], data['end'])), (
+                'start must be smaller than end in reverse mode')
+        data['start'], data['end'] = data['end'], data['start']
+    elif data['start'] is not None and data['end'] is not None:
+        assert (_str_to_index(data['line'], data['start'])
+                <= _str_to_index(data['line'], data['end'])), (
+            'start must be larger than end in forward mode')
 
-    (data['matrix_responsiveness_tol'], data['matrix_stability_tol'],
-        data['use_full_inverse']) = _prepare_base_twiss_matrix_settings(
-            line=data['line'],
-            radiation_method=data['radiation_method'],
-            matrix_responsiveness_tol=data['matrix_responsiveness_tol'],
-            matrix_stability_tol=data['matrix_stability_tol'],
-            use_full_inverse=data['use_full_inverse'])
+    if data['matrix_responsiveness_tol'] is None:
+        data['matrix_responsiveness_tol'] = (
+            data['line'].matrix_responsiveness_tol)
+    if data['matrix_stability_tol'] is None:
+        data['matrix_stability_tol'] = data['line'].matrix_stability_tol
+    if (data['line']._radiation_model is not None
+            and data['radiation_method'] != 'kick_as_co'):
+        data['matrix_stability_tol'] = None
+        if data['use_full_inverse'] is None:
+            data['use_full_inverse'] = True
 
-    data['line'], data['particle_ref'] = (
-        _prepare_base_twiss_line_and_particle_ref(
-            line=data['line'],
-            particle_ref=data['particle_ref'],
-            particle_on_co=data['particle_on_co'],
-            co_guess=data['co_guess'],
-            include_collective=data['include_collective']))
-    data['method'] = _validate_base_twiss_method(data['method'])
+    if data['particle_ref'] is None:
+        if data['particle_on_co'] is not None:
+            data['particle_ref'] = data['particle_on_co'].copy()
+        elif data['co_guess'] is None and hasattr(data['line'], 'particle_ref'):
+            data['particle_ref'] = data['line'].particle_ref
 
-    _validate_base_twiss_boundary_init(
-        start=data['start'], init=data['init'])
-    _validate_base_twiss_init_mode(init=data['init'])
-    _validate_base_twiss_open_momentum_offsets(
-        periodic=data['periodic'], delta0=data['delta0'], zeta0=data['zeta0'])
+    if data['line'].iscollective and not data['include_collective']:
+        _print(
+            'The line has collective elements.\n'
+            'In the twiss computation collective elements are'
+            ' replaced by drifts')
+        data['line'] = data['line']._get_non_collective_line()
+
+    if data['particle_ref'] is None and data['co_guess'] is None:
+        raise ValueError(
+            "Either ``particle_ref`` or ``co_guess`` must be provided")
+
+    if data['method'] is None:
+        data['method'] = '6d'
+    assert data['method'] in ['6d', '4d'], (
+        'Method must be ``6d`` or ``4d``')
+
+    if data['start'] is not None and data['init'] is None:
+        assert data['init'] is not None, (
+            'init must be provided if start and end are used')
+    if isinstance(data['init'], str):
+        if data['init'] in ['preserve', 'preserve_start', 'preserve_end']:
+            raise ValueError(f"init={data['init']} not anymore supported")
+        assert data['init'] == 'periodic' or 'full_periodic'
+    if (not data['periodic']
+            and (data['delta0'] is not None or data['zeta0'] is not None)):
+        raise ValueError(
+            'delta0 and zeta0 cannot be provided for open twiss')
 
     data.update(_acquire_base_twiss_init(data))
 

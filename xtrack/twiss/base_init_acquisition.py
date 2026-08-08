@@ -3,7 +3,6 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from .base_preparation import _periodic_solution_range_from_plan
 from .constants import VARS_FOR_TWISS_INIT_GENERATION
 from .periodic_init import _compute_periodic_twiss_init_and_data
 from .twiss_init import _complete_twiss_init
@@ -72,11 +71,16 @@ def _acquire_base_twiss_init(data):
 
 def _acquire_periodic_base_twiss_init(data, acquisition_plan):
 
-    periodic_start, periodic_end = _periodic_solution_range_from_plan(
-        acquisition_plan=acquisition_plan,
-        start=data['start'],
-        end=data['end'],
-    )
+    assert acquisition_plan.computation_direction == 'forward'
+    if acquisition_plan.scope == 'full_line':
+        assert data['start'] is None and data['end'] is None
+        periodic_start = periodic_end = None
+    elif acquisition_plan.scope == 'requested_range':
+        assert data['start'] is not None and data['end'] is not None
+        periodic_start, periodic_end = data['start'], data['end']
+    else:
+        raise RuntimeError(
+            f'Unexpected periodic Twiss scope: {acquisition_plan.scope}')
     periodic_init_kwargs = {
         name: data[name]
         for name in _PERIODIC_INIT_ARGUMENTS_FROM_BASE_DATA

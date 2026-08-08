@@ -547,9 +547,9 @@ orchestrator.
 Periodic solution acquisition now lives in `periodic_init.py`, which returns a
 `_PeriodicTwissInitData` bundle. The base computation consumes that bundle
 before the separate propagation phase.
-Base request/range preparation and direct propagation from a completed init now
-live in `base_preparation.py` and `base_propagation.py`. Both are dependency
-leaves that do not import the high-level orchestrator.
+Base request/range preparation is now inline at the start of the linear base
+computation, while direct propagation from a completed init remains isolated in
+`base_propagation.py`.
 The intentional recursive continuation is isolated in `multiturn.py`; its local
 `twiss_line` import marks the sole recursive dependency explicitly.
 Base table enrichment and final shaping now live in `base_result.py`, including
@@ -801,14 +801,8 @@ or input compatibility handling. Candidate shape:
   `_select_twiss_result_at_elements(...)`, and
   `_add_periodicity_and_completed_init_to_twiss_result(...)`: extracted final
   result-shaping slices;
-- `_apply_base_twiss_reverse_range(...)`,
-  `_validate_base_twiss_boundary_init(...)`,
-  `_prepare_base_twiss_matrix_settings(...)`,
-  `_prepare_base_twiss_line_and_particle_ref(...)`,
-  `_validate_base_twiss_method(...)`,
-  `_validate_base_twiss_init_mode(...)`, and
-  `_validate_base_twiss_open_momentum_offsets(...)`: extracted precondition and
-  setup slices that should move into the eventual base Twiss engine;
+- base precondition and setup slices were inlined into the base Twiss engine
+  after their order and behavior had been isolated;
 - range-composition helpers call `_compute_twiss_segment(...)` rather than the
   public wrapper.
 
