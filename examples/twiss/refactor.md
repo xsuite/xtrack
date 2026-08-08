@@ -37,6 +37,7 @@ xtrack/xtrack/twiss/
     periodic_solution.py
     twiss_init.py
     twiss_table.py
+    computation_plan.py
     open_propagation.py
     beam_covariance.py
     closed_orbit.py
@@ -231,18 +232,28 @@ distinct from periodic-solution preparation and optional result enrichment.
 Move pure planning code for composed open Twiss propagation:
 
 - `_TwissPropagationRequest`
-- `_TwissInitAcquisitionPlan`
 - `_OpenTwissPiecePlan`
 - `_OpenTwissPropagationPlan`
 - `_LoopAroundTwissPlan`
 - `_OpenOneTurnTwissPlan`
-- `_plan_twiss_computation`
 - `_plan_open_twiss_propagation`
 - route-specific pure planners for loop-around, init-inside-range, and open
   one-turn-from-start
 
 Keep segment execution and table combination in `core.py` while they still call
 back into `_compute_twiss_segment`.
+
+### `computation_plan.py`
+
+Move pure planning code for the high-level Twiss flow:
+
+- `_TwissInitAcquisitionPlan`
+- `_TwissComputationPlan`
+- `_plan_twiss_computation`
+- `_plan_twiss_init_acquisition`
+
+This module records the target orchestration shape: acquire or compute a
+`TwissInit` first, then pass it to open propagation.
 
 ### `periodic_solution.py`
 
@@ -453,7 +464,8 @@ Init computation and Twiss propagation should remain separate in code:
 - the orchestration layer may connect the two phases, but should avoid hiding
   init computation inside segment propagation helpers.
 
-The planner structures in `open_propagation.py` document this target structure:
+The planner structures in `computation_plan.py` and `open_propagation.py`
+document this target structure:
 
 - `_TwissInitAcquisitionPlan`
 - `_PeriodicTwissInitData`
