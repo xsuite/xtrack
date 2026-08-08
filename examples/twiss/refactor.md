@@ -570,6 +570,9 @@ The orchestration layer delegates base-piece calls through
 `segment_computation.py`, while loop-around and init-inside-range execution live
 in `open_range_execution.py`. Pure range planning and table composition remain
 separate in `open_propagation.py` and `open_table_composition.py`.
+Periodic and open one-turn-from-start execution now lives in
+`one_turn_execution.py`; `orchestration.py` only selects that route and supplies
+its computation and propagation plans.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
