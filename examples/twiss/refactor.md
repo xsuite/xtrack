@@ -39,6 +39,7 @@ xtrack/xtrack/twiss/
     twiss_table.py
     computation_plan.py
     open_propagation.py
+    open_table_composition.py
     beam_covariance.py
     closed_orbit.py
     transfer_matrices.py
@@ -240,8 +241,18 @@ Move pure planning code for composed open Twiss propagation:
 - route-specific pure planners for loop-around, init-inside-range, and open
   one-turn-from-start
 
-Keep segment execution and table combination in `core.py` while they still call
-back into `_compute_twiss_segment`.
+Keep segment execution in `core.py` while it still calls back into
+`_compute_twiss_segment`.
+
+### `open_table_composition.py`
+
+Move table-composition code for composed open Twiss propagation:
+
+- `_combine_loop_around_twiss_tables`
+- `_combine_init_inside_range_twiss_tables`
+
+This keeps table merging, phase re-alignment, unsupported-column cleanup, and
+metadata reconciliation separate from segment execution.
 
 ### `computation_plan.py`
 

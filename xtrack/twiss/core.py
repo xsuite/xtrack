@@ -25,6 +25,10 @@ from .periodic_solution import _find_periodic_solution
 from .chromatic_functions import _get_chromatic_functions, trapz
 from .extra_markers import _build_auxiliary_tracker_with_extra_markers
 from .open_twiss import _twiss_open
+from .open_table_composition import (
+    _combine_loop_around_twiss_tables,
+    _combine_init_inside_range_twiss_tables,
+)
 from .open_propagation import (
     _plan_open_twiss_propagation,
     _plan_loop_around_twiss_parts,
@@ -1056,43 +1060,6 @@ def _execute_loop_around_twiss_plan(kwargs, plan, init):
     return tw1, tw2, completed_init
 
 
-def _combine_loop_around_twiss_tables(tw1, tw2, init, completed_init):
-
-    ele_name_init = init.element_name
-
-    tw_res = TwissTable.concatenate([tw1, tw2])
-
-    tw_res.s -= tw_res['s', ele_name_init] - init.s
-
-    tw_res['completed_init'] = completed_init
-
-    if 'mux' in tw_res.keys():
-        tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
-        tw_res.muy -= tw_res['muy', ele_name_init] - init.muy
-        tw_res.muzeta -= tw_res['muzeta', ele_name_init] - init.muzeta
-
-    if 'dzeta' in tw_res.keys():
-        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
-
-    # Not yet supported
-    if 'dmux' in tw_res.keys():
-        tw_res._data.pop('dmux')
-        tw_res._col_names.remove('dmux')
-    if 'dmuy' in tw_res.keys():
-        tw_res._data.pop('dmuy')
-        tw_res._col_names.remove('dmuy')
-
-    tw_res._data['loop_around'] = True
-
-    for kk in ['method', 'radiation_method', 'reference_frame']:
-        if tw1[kk] == tw2[kk]:
-            tw_res._data[kk] = tw1[kk]
-        else:
-            tw_res._data[kk] = (tw1[kk], tw2[kk])
-
-    return tw_res
-
-
 def _handle_init_inside_range(kwargs, open_plan=None):
 
     kwargs = kwargs.copy()
@@ -1143,38 +1110,6 @@ def _execute_init_inside_range_twiss_plan(kwargs, plan, init, reverse):
             init=init,
             reverse=reverse)
         for piece in plan.pieces)
-
-
-def _combine_init_inside_range_twiss_tables(tw1, tw2, init):
-
-    ele_name_init = init.element_name
-
-    tw_res = TwissTable.concatenate([tw1, tw2])
-    tw_res['completed_init'] = tw1.completed_init
-
-    tw_res.s -= tw_res['s', ele_name_init] - init.s
-    tw_res.mux -= tw_res['mux', ele_name_init] - init.mux
-    tw_res.muy -= tw_res['muy', ele_name_init] - init.muy
-    tw_res.muzeta -= tw_res['muzeta', ele_name_init] - init.muzeta
-
-    if 'dzeta' in tw_res:
-        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - init.dzeta
-
-    # Not correctly handled yet
-    if 'dmux' in tw_res.keys():
-        tw_res._data.pop('dmux')
-        tw_res._col_names.remove('dmux')
-    if 'dmuy' in tw_res.keys():
-        tw_res._data.pop('dmuy')
-        tw_res._col_names.remove('dmuy')
-
-    for kk in ['method', 'radiation_method', 'reference_frame']:
-        if tw1[kk] == tw2[kk]:
-            tw_res._data[kk] = tw1[kk]
-        else:
-            tw_res._data[kk] = (tw1[kk], tw2[kk])
-
-    return tw_res
 
 
 def _enter_twiss_freeze_context(
