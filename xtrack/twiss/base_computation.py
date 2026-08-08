@@ -9,7 +9,7 @@ from .base_init_acquisition import (
     _clear_twiss_init_inputs,
     _complete_init_for_base_twiss,
 )
-from .base_propagation import _propagate_twiss_from_init
+from .propagation import _propagate_twiss_from_init
 from .base_result import (
     _add_periodic_solution_data_to_base_twiss,
     _add_chromatic_functions_to_twiss_result,

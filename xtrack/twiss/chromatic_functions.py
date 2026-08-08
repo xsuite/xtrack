@@ -6,7 +6,7 @@
 import numpy as np
 
 from .. import linear_normal_form as lnf
-from .open_twiss import _twiss_open
+from .propagation import _propagate_twiss_from_init
 from .twiss_init import TwissInit
 
 if hasattr(np, 'trapezoid'): # numpy >= 2.0
@@ -122,7 +122,7 @@ def _get_chromatic_functions(line, init, delta_chrom,
                 tw_init_chrom.W_matrix = twinit_aux.W_matrix
 
             tw_chrom_res.append(
-                _twiss_open(
+                _propagate_twiss_from_init(
                     line=line,
                     init=tw_init_chrom,
                     start=start, end=end,
@@ -133,11 +133,11 @@ def _get_chromatic_functions(line, init, delta_chrom,
                     use_full_inverse=use_full_inverse,
                     hide_thin_groups=hide_thin_groups,
                     only_markers=only_markers,
-                    _continue_if_lost=False,
-                    _keep_tracking_data=False,
-                    _keep_initial_particles=False,
-                    _initial_particles=None,
-                    _ebe_monitor=None,
+                    continue_if_lost=False,
+                    keep_tracking_data=False,
+                    keep_initial_particles=False,
+                    initial_particles=None,
+                    ebe_monitor=None,
                 )
             )
 

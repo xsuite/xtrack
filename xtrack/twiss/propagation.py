@@ -13,7 +13,7 @@ from .twiss_table import TwissTable
 import xtrack as xt  # To avoid circular imports
 
 
-def _twiss_open(
+def _propagate_twiss_from_init(
         line,
         init,
         start,
@@ -28,12 +28,14 @@ def _twiss_open(
         only_orbit=False,
         spin=False,
         compute_lattice_functions=True,
-        _continue_if_lost=False,
-        _keep_tracking_data=False,
-        _keep_initial_particles=False,
-        _initial_particles=None,
-        _ebe_monitor=None,
+        continue_if_lost=False,
+        keep_tracking_data=False,
+        keep_initial_particles=False,
+        initial_particles=None,
+        ebe_monitor=None,
 ):
+    """Track an orbit and basis particles from a completed Twiss init."""
+
     if init.reference_frame == 'reverse':
         init = init.reverse()
 
@@ -77,8 +79,8 @@ def _twiss_open(
     scale_eigen = min(scale_transverse_x, scale_transverse_y, scale_longitudinal)
 
     context = line._context
-    if _initial_particles is not None: # used in match
-        part_for_twiss = _initial_particles.copy()
+    if initial_particles is not None: # used in match
+        part_for_twiss = initial_particles.copy()
     else:
         import xpart
         part_for_twiss = xpart.build_particles(_context=context,
@@ -109,11 +111,11 @@ def _twiss_open(
 
     part_for_twiss.at_turn = AT_TURN_FOR_TWISS # To avoid writing in monitors
 
-    if _keep_initial_particles:
+    if keep_initial_particles:
         part_for_twiss0 = part_for_twiss.copy()
 
-    if _ebe_monitor is not None:
-        _monitor = _ebe_monitor
+    if ebe_monitor is not None:
+        _monitor = ebe_monitor
     elif hasattr(line.tracker._tracker_data_base, '_reusable_ebe_monitor_for_twiss'):
         _monitor = line.tracker._tracker_data_base._reusable_ebe_monitor_for_twiss
     else:
@@ -137,7 +139,7 @@ def _twiss_open(
     # so that it is trashed if number of elements changes)
     line.tracker._tracker_data_base._reusable_ebe_monitor_for_twiss = line.record_last_track
 
-    if not _continue_if_lost:
+    if not continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (
             'Some test particles were lost during twiss! '
           + f'(state {np.unique(ctx2np(part_for_twiss.state))}, '
@@ -156,7 +158,7 @@ def _twiss_open(
             i_stop = len(line._element_names_unique) - 1
 
     recorded_state = line.record_last_track.state[:, i_start:i_stop+1].copy()
-    if not _continue_if_lost:
+    if not continue_if_lost:
         assert np.all(recorded_state == 1), (
              'Some test particles were lost during twiss! '
           + f'(state {np.unique(recorded_state)}, '
@@ -236,10 +238,10 @@ def _twiss_open(
 
     extra_data = {}
     extra_data['only_markers'] = only_markers
-    if _keep_tracking_data:
+    if keep_tracking_data:
         extra_data['tracking_data'] = line.record_last_track.copy()
 
-    if _keep_initial_particles:
+    if keep_initial_particles:
         extra_data['_initial_particles'] = part_for_twiss0.copy()
 
     if hide_thin_groups:
