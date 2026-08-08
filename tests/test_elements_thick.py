@@ -1293,6 +1293,7 @@ def test_import_thick_with_apertures_and_slice_cpymad():
         'drift_elm..2',                 # drift 2
         'elm_aper..3',                  # exit edge aperture
         'elm..exit_map',                # exit edge (+transform)
+        'elm_aper..4',                  # closing aperture
         'elm_exit',                     # exit marker
     ])
 
@@ -1364,6 +1365,7 @@ def test_import_thick_with_apertures_and_slice_native():
         'drift_elm..2',                 # drift 2
         'elm_aper..3',                  # exit edge aperture
         'elm..exit_map',                # exit edge (+transform)
+        'elm_aper..4',                  # closing aperture
         'elm_exit',                     # exit marker
     ])
 
