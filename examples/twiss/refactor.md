@@ -555,10 +555,10 @@ The intentional recursive continuation is isolated in `multiturn.py`; its local
 Base table enrichment and final shaping now live in `base_result.py`, including
 periodic metadata, chromatic/radiation analysis, output conventions, optional
 multi-turn extension, and open-phase alignment.
-The `_TwissBaseComputation` lifecycle and the private base-segment entry points
-now live in `base_computation.py`. This module composes the preparation, init
-acquisition, propagation, and result-finishing leaves without importing the
-public `core.py` wrapper.
+The private base-segment lifecycle now runs linearly in `base_computation.py`:
+prepare the request, acquire the init, propagate, then enrich and shape the
+result. Single-use forwarding methods were inlined so this order is visible in
+one function without importing the public `core.py` wrapper.
 Base init completion and plan-driven periodic/open init acquisition now live in
 `base_init_acquisition.py`. The acquisition helper consumes the prepared state
 dictionary and returns only the updates needed by the later propagation phase.
@@ -575,13 +575,9 @@ Periodic and open one-turn-from-start execution now lives in
 `base_one_turn_execution.py`; `base_orchestration.py` only selects that route
 and supplies its computation and propagation plans.
 
-The first internal class boundary is `_TwissBaseComputation`, which owns the
-base-path preparation, periodic init acquisition, propagation from init, and
-result enrichment. Normalization and composed range routing remain outside the
-class for now to avoid turning the first class step into a broad behavioral
-rewrite. The computation object stores its working data as attributes rather
-than as a nested state dictionary; this keeps the phase methods readable while
-the public `twiss_line(...)` signature remains unchanged.
+The base lifecycle uses the normalized state dictionary directly. The retained
+helper calls mark substantive preparation, acquisition, propagation, or result
+operations rather than one-use pass-through methods.
 
 Already converted:
 
