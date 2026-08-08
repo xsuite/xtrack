@@ -566,6 +566,8 @@ Prepared-request routing and composed open-range execution now live in
 `base_orchestration.py`. The public `core.py` module retains the `twiss_line`
 signature, documentation, input normalization, and temporary line-context
 setup, then delegates through one orchestration entry point.
+That entry point dispatches each planned route directly; the former pre-init
+and post-init helpers and their `None` sentinel handoff have been inlined.
 The orchestration layer delegates base-piece calls through
 `segment_computation.py`, while loop-around and init-inside-range execution live
 in `base_open_range_execution.py`. Pure range planning and table composition
@@ -602,8 +604,9 @@ Already converted:
   separate line-boundary pieces and transfer-init metadata. Periodic one-turn
   remains on the existing table-rotation path.
 - `init == "full_periodic"` with a range: now separates full-periodic init
-  acquisition (`_acquire_full_periodic_twiss_init`) from planned open
-  propagation over the requested range.
+  acquisition from planned open propagation over the requested range; the
+  acquisition steps are kept inline in the route branch so their order is
+  visible.
 - loop-around open ranges: `_handle_loop_around` now builds an explicit
   `_LoopAroundTwissPlan`, keeping final table order separate from execution
   order. The table combination remains unchanged.
@@ -717,10 +720,9 @@ Convert branches that rewrite the requested range or initialization:
   `_compute_open_one_turn_twiss_from_start` helpers; the helper paths now call
   `_compute_twiss_segment`, which calls `_compute_base_twiss` directly instead
   of re-entering the public `twiss_line` wrapper.
-- `init == "full_periodic"` with a range. The branch now prepares full-periodic
-  kwargs with `_prepare_kwargs_for_full_periodic_twiss`, extracts the init with
-  `_compute_full_periodic_twiss_init`, then calls `_compute_twiss_segment` for
-  the requested range.
+- `init == "full_periodic"` with a range. The branch now prepares the
+  full-periodic kwargs, computes and extracts the init, then propagates it over
+  the requested range directly in the route dispatcher.
 
 These still need auxiliary Twiss computations, but those computations should be
 named explicitly instead of expressed as top-level recursion. Candidate helpers:
@@ -728,8 +730,6 @@ named explicitly instead of expressed as top-level recursion. Candidate helpers:
 - `_compute_one_turn_twiss_from_start(...)`
 - `_compute_periodic_one_turn_twiss_from_start(...)`
 - `_compute_open_one_turn_twiss_from_start(...)`
-- `_prepare_kwargs_for_full_periodic_twiss(...)`
-- `_compute_full_periodic_twiss_init(...)`
 
 These helpers now call `_compute_twiss_segment`, which prepares reusable
 segment kwargs and runs `_compute_base_twiss`. The important improvement is to
