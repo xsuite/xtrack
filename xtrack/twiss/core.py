@@ -586,13 +586,13 @@ def twiss_line(line, particle_ref=None, method=None,
         elif init == 'full_periodic' and (start is not None or end is not None):
             kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
             kwargs = _prepare_kwargs_for_full_periodic_twiss(kwargs)
-            init_from_full_periodic = _get_twiss_init_from_full_periodic(
+            full_periodic_init = _compute_full_periodic_twiss_init(
                 kwargs=kwargs, start=start, init_at=init_at)
             composed_twiss_res = _compute_twiss_segment(
                 kwargs,
                 start=start,
                 end=end,
-                init=init_from_full_periodic,
+                init=full_periodic_init,
             )
             if zero_at_requested is None:
                 composed_twiss_res.zero_at(start)
@@ -2071,7 +2071,8 @@ def _prepare_kwargs_for_full_periodic_twiss(kwargs):
     return kwargs
 
 
-def _get_twiss_init_from_full_periodic(kwargs, start, init_at):
+def _compute_full_periodic_twiss_init(kwargs, start, init_at):
+    """Compute the full periodic Twiss and extract the requested init."""
 
     tw = _compute_twiss_segment(kwargs) # Periodic twiss of the full line
 

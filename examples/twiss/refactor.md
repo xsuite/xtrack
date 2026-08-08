@@ -481,7 +481,7 @@ Already converted:
   separate line-boundary pieces and transfer-init metadata. Periodic one-turn
   remains on the existing table-rotation path.
 - `init == "full_periodic"` with a range: now separates full-periodic init
-  extraction (`_get_twiss_init_from_full_periodic`) from the requested range
+  computation (`_compute_full_periodic_twiss_init`) from the requested range
   segment computation.
 - loop-around open ranges: `_handle_loop_around` now builds an explicit
   `_LoopAroundTwissPlan`, keeping final table order separate from execution
@@ -598,7 +598,7 @@ Convert branches that rewrite the requested range or initialization:
   of re-entering the public `twiss_line` wrapper.
 - `init == "full_periodic"` with a range. The branch now prepares full-periodic
   kwargs with `_prepare_kwargs_for_full_periodic_twiss`, extracts the init with
-  `_get_twiss_init_from_full_periodic`, then calls `_compute_twiss_segment` for
+  `_compute_full_periodic_twiss_init`, then calls `_compute_twiss_segment` for
   the requested range.
 
 These still need auxiliary Twiss computations, but those computations should be
@@ -608,7 +608,7 @@ named explicitly instead of expressed as top-level recursion. Candidate helpers:
 - `_compute_periodic_one_turn_twiss_from_start(...)`
 - `_compute_open_one_turn_twiss_from_start(...)`
 - `_prepare_kwargs_for_full_periodic_twiss(...)`
-- `_get_twiss_init_from_full_periodic(...)`
+- `_compute_full_periodic_twiss_init(...)`
 
 These helpers now call `_compute_twiss_segment`, which prepares reusable
 segment kwargs and runs `_compute_base_twiss`. The important improvement is to
