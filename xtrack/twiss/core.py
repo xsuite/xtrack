@@ -658,16 +658,16 @@ def _compute_composed_twiss_before_init_completion(
 
     elif route == 'full_periodic_range':
         call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
-        call_kwargs = _prepare_kwargs_for_full_periodic_twiss(call_kwargs)
-        full_periodic_init = _compute_full_periodic_twiss_init(
+        periodic_kwargs = _prepare_kwargs_for_full_periodic_twiss(call_kwargs)
+        full_periodic_init = _acquire_full_periodic_twiss_init(
+            kwargs=periodic_kwargs,
+            acquisition_plan=computation_plan.init_acquisition,
+            start=data['start'],
+        )
+        composed_twiss_res = _propagate_full_periodic_init_over_range(
             kwargs=call_kwargs,
-            start=data['start'],
-            init_at=data['init_at'])
-        composed_twiss_res = _compute_twiss_segment(
-            call_kwargs,
-            start=data['start'],
-            end=data['end'],
             init=full_periodic_init,
+            open_plan=computation_plan.open_propagation,
         )
         if data['zero_at_requested'] is None:
             composed_twiss_res.zero_at(data['start'])
@@ -708,6 +708,23 @@ def _open_propagation_plan_after_init_completion(data, computation_plan):
         open_plan = computation_plan.open_propagation
 
     return open_plan
+
+
+def _propagate_full_periodic_init_over_range(kwargs, init, open_plan):
+
+    range_kwargs = kwargs.copy()
+    range_kwargs['init'] = init
+    range_kwargs['init_at'] = None
+
+    if open_plan.crosses_line_boundary:
+        return _handle_loop_around(range_kwargs, open_plan=open_plan)
+
+    if not open_plan.init_is_at_boundary:
+        return _handle_init_inside_range(range_kwargs, open_plan=open_plan)
+
+    assert len(open_plan.pieces) == 1
+    return _compute_twiss_segment_for_piece(
+        kwargs=range_kwargs, piece=open_plan.pieces[0], init=init)
 
 
 @dataclass(frozen=True)
@@ -1678,12 +1695,16 @@ def _prepare_kwargs_for_full_periodic_twiss(kwargs):
     return kwargs
 
 
-def _compute_full_periodic_twiss_init(kwargs, start, init_at):
+def _acquire_full_periodic_twiss_init(kwargs, acquisition_plan, start):
     """Compute the full periodic Twiss and extract the requested init."""
+
+    assert acquisition_plan.source == 'full_periodic_solution'
+    assert acquisition_plan.scope == 'full_line'
+    assert acquisition_plan.computation_direction == 'forward'
 
     tw = _compute_twiss_segment(kwargs) # Periodic twiss of the full line
 
-    return tw.get_twiss_init(init_at or start)
+    return tw.get_twiss_init(acquisition_plan.init_at or start)
 
 
 def _compute_one_turn_twiss_from_start(kwargs, line, start, init, betx, bety):

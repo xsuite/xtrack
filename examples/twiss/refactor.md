@@ -499,6 +499,11 @@ The plan also selects the pre-init orchestration route (`base`,
 therefore consumes an explicit route instead of rediscovering it from the
 normalized inputs.
 
+For `full_periodic_range`, the plan now describes full-line periodic init
+acquisition separately from open propagation over the requested range. The
+acquired init is propagated through the planned boundary/init pieces instead
+of hiding range routing inside a generic segment call.
+
 The base Twiss path now also uses `_compute_periodic_twiss_init_and_data` and
 `_propagate_twiss_from_init` names at the call site. This is a small step toward
 keeping periodic init computation separate from propagation through the line.

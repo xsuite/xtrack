@@ -52,7 +52,8 @@ def _plan_twiss_computation(kwargs, init):
 
     request = _make_twiss_propagation_request(kwargs)
     route = _plan_twiss_route(request=request, init=init)
-    init_acquisition = _plan_twiss_init_acquisition(request)
+    init_acquisition = _plan_twiss_init_acquisition(
+        request=request, route=route)
     init_element_name = _planned_open_twiss_init_element_name(request, init)
     open_propagation = _plan_open_twiss_propagation(
         request=request, init_element_name=init_element_name)
@@ -76,9 +77,13 @@ def _plan_twiss_route(request, init):
     return 'base'
 
 
-def _plan_twiss_init_acquisition(request):
+def _plan_twiss_init_acquisition(request, route):
 
-    if request.periodic:
+    if route == 'full_periodic_range':
+        source = 'full_periodic_solution'
+        scope = 'full_line'
+        computation_direction = 'forward'
+    elif request.periodic:
         source = 'periodic_solution'
         computation_direction = 'forward'
         if request.start is None and request.end is None:
