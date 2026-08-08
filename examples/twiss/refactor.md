@@ -474,6 +474,10 @@ Already converted:
   range handling, boundary init validation, matrix settings, particle-reference
   preparation, method validation, init-mode validation, and open-Twiss momentum
   offset validation.
+- non-multiturn segment composition no longer re-enters the public
+  `twiss_line` wrapper. `_compute_twiss_segment` now prepares preflighted
+  segment kwargs and calls `_compute_base_twiss` directly. Multi-turn
+  continuation remains the only intentional recursive `twiss_line` call.
 
 ### Phase 1: configuration preflight
 
@@ -511,8 +515,8 @@ Convert branches that rewrite the requested range or initialization:
   `_compute_one_turn_twiss_from_start`, with separate
   `_compute_periodic_one_turn_twiss_from_start` and
   `_compute_open_one_turn_twiss_from_start` helpers; the helper paths now call
-  `_compute_twiss_segment`, which still delegates to `twiss_line` until the
-  normalized segment engine is extracted.
+  `_compute_twiss_segment`, which calls `_compute_base_twiss` directly instead
+  of re-entering the public `twiss_line` wrapper.
 - `init == "full_periodic"` with a range. The branch now prepares full-periodic
   kwargs with `_prepare_kwargs_for_full_periodic_twiss`, extracts the init with
   `_get_twiss_init_from_full_periodic`, then calls `_compute_twiss_segment` for
@@ -527,11 +531,10 @@ named explicitly instead of expressed as top-level recursion. Candidate helpers:
 - `_prepare_kwargs_for_full_periodic_twiss(...)`
 - `_get_twiss_init_from_full_periodic(...)`
 
-These helpers now call `_compute_twiss_segment`. During the intermediate refactor
-that helper delegates to `twiss_line`, but the target shape is to implement it as
-a private normalized segment engine for non-multiturn composition. The important
-improvement is to remove kwargs mutation from the main body and make the
-composition behavior obvious. Test with:
+These helpers now call `_compute_twiss_segment`, which prepares preflighted
+segment kwargs and runs `_compute_base_twiss`. The important improvement is to
+remove public-wrapper recursion and make the composition behavior obvious. Test
+with:
 
 - start-only periodic Twiss;
 - start-only open Twiss with explicit init;
@@ -562,8 +565,10 @@ or input compatibility handling. Candidate shape:
 - `twiss_line(...)`: public compatibility wrapper;
 - `_twiss_line_normalized(...)`: validates/prepares normalized state and
   orchestrates optional outputs;
-- `_compute_twiss_segment(...)`: currently delegates to `twiss_line`, and should
-  become the implementation point for one already-normalized segment;
+- `_compute_twiss_segment(...)`: prepares already-preflighted segment kwargs and
+  calls `_compute_base_twiss(...)` directly;
+- `_compute_base_twiss(...)`: normalized one-pass Twiss engine used by the public
+  wrapper and by composed non-multiturn segments;
 - `_complete_init_for_base_twiss(...)`: extracted slice of the normal one-pass
   Twiss path, covering `TwissInit` completion and `completed_init` preservation;
 - `_prepare_periodic_solution_for_base_twiss(...)`: extracted slice of the
