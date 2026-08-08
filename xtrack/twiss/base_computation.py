@@ -45,7 +45,14 @@ def _compute_base_twiss(data, **overrides):
     data['at_s'] = None
     data.update(overrides)
 
-    _set_missing_base_twiss_inputs(data)
+    # Internal segment calls can omit range and scalar-init fields that the
+    # public API normally supplies.
+    for field_name in (
+            'start', 'end', 'init', 'init_at',
+            *VARS_FOR_TWISS_INIT_GENERATION,
+            'spin_x', 'spin_y', 'spin_z'):
+        data.setdefault(field_name, None)
+
     _set_twiss_periodic_mode(data)
     data['init'], data['completed_init'] = _build_twiss_init_from_inputs(data)
     _clear_twiss_init_input_fields(data)
@@ -254,14 +261,3 @@ def _compute_base_twiss(data, **overrides):
         completed_init=data['completed_init'])
 
     return twiss_res
-
-
-def _set_missing_base_twiss_inputs(data):
-
-    fields_defaulting_to_none = (
-        'start', 'end', 'init', 'init_at',
-        *VARS_FOR_TWISS_INIT_GENERATION,
-        'spin_x', 'spin_y', 'spin_z',
-    )
-    for field_name in fields_defaulting_to_none:
-        data.setdefault(field_name, None)
