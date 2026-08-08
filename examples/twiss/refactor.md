@@ -494,6 +494,11 @@ and periodic-solution acquisition from the init-acquisition plan, and uses its
 scope to select a full-line or requested-range periodic solution. Propagation
 remains a separate phase after acquisition.
 
+The plan also selects the pre-init orchestration route (`base`,
+`one_turn_from_start`, or `full_periodic_range`). The composed-route dispatcher
+therefore consumes an explicit route instead of rediscovering it from the
+normalized inputs.
+
 The base Twiss path now also uses `_compute_periodic_twiss_init_and_data` and
 `_propagate_twiss_from_init` names at the call site. This is a small step toward
 keeping periodic init computation separate from propagation through the line.

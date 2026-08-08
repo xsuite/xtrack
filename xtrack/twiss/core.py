@@ -582,15 +582,15 @@ def twiss_line(line, particle_ref=None, method=None,
             init = init.get_twiss_init(at_element=init_at)
             init_at = None
 
+        twiss_computation_plan = _plan_twiss_computation(
+            locals().copy(), init)
         composed_twiss_res = _compute_composed_twiss_before_init_completion(
-            kwargs=kwargs, data=locals().copy())
+            kwargs=kwargs, data=locals().copy(),
+            computation_plan=twiss_computation_plan)
 
         if composed_twiss_res is not None:
             return _finalize_twiss_result(
                 composed_twiss_res, input_kwargs, zero_at=zero_at_requested)
-
-        twiss_computation_plan = _plan_twiss_computation(
-            locals().copy(), init)
 
         init, completed_init = _complete_init_for_base_twiss(
             start=start, end=end, init_at=init_at, init=init,
@@ -639,11 +639,13 @@ def twiss_line(line, particle_ref=None, method=None,
         return _finalize_twiss_result(twiss_res, input_kwargs, zero_at=zero_at_requested)
 
 
-def _compute_composed_twiss_before_init_completion(kwargs, data):
+def _compute_composed_twiss_before_init_completion(
+        kwargs, data, computation_plan):
 
     composed_twiss_res = None
+    route = computation_plan.route
 
-    if data['start'] is not None and data['end'] is None:
+    if route == 'one_turn_from_start':
         call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
         composed_twiss_res = _compute_one_turn_twiss_from_start(
             kwargs=call_kwargs,
@@ -654,8 +656,7 @@ def _compute_composed_twiss_before_init_completion(kwargs, data):
             bety=call_kwargs['bety'],
         )
 
-    elif (data['init'] == 'full_periodic'
-          and (data['start'] is not None or data['end'] is not None)):
+    elif route == 'full_periodic_range':
         call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
         call_kwargs = _prepare_kwargs_for_full_periodic_twiss(call_kwargs)
         full_periodic_init = _compute_full_periodic_twiss_init(
@@ -670,6 +671,9 @@ def _compute_composed_twiss_before_init_completion(kwargs, data):
         )
         if data['zero_at_requested'] is None:
             composed_twiss_res.zero_at(data['start'])
+
+    elif route != 'base':
+        raise RuntimeError(f'Unexpected Twiss computation route: {route}')
 
     return composed_twiss_res
 

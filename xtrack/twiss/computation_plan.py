@@ -21,6 +21,7 @@ class _TwissInitAcquisitionPlan:
 
 @dataclass(frozen=True)
 class _TwissComputationPlan:
+    route: str
     init_acquisition: object
     open_propagation: object
 
@@ -50,15 +51,29 @@ def _plan_twiss_computation(kwargs, init):
     """
 
     request = _make_twiss_propagation_request(kwargs)
+    route = _plan_twiss_route(request=request, init=init)
     init_acquisition = _plan_twiss_init_acquisition(request)
     init_element_name = _planned_open_twiss_init_element_name(request, init)
     open_propagation = _plan_open_twiss_propagation(
         request=request, init_element_name=init_element_name)
 
     return _TwissComputationPlan(
+        route=route,
         init_acquisition=init_acquisition,
         open_propagation=open_propagation,
     )
+
+
+def _plan_twiss_route(request, init):
+
+    if request.start is not None and request.end is None:
+        return 'one_turn_from_start'
+
+    if (init == 'full_periodic'
+            and (request.start is not None or request.end is not None)):
+        return 'full_periodic_range'
+
+    return 'base'
 
 
 def _plan_twiss_init_acquisition(request):
