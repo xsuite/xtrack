@@ -555,6 +555,10 @@ The intentional recursive continuation is isolated in `multiturn.py`; its local
 Base table enrichment and final shaping now live in `base_result.py`, including
 periodic metadata, chromatic/radiation analysis, output conventions, optional
 multi-turn extension, and open-phase alignment.
+The `_TwissBaseComputation` lifecycle and the private base-segment entry points
+now live in `base_computation.py`. This module composes the preparation, init
+acquisition, propagation, and result-finishing leaves without importing the
+public `core.py` wrapper.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
