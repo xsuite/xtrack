@@ -452,9 +452,9 @@ keeping periodic init computation separate from propagation through the line.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
-periodic metadata attachment. Normalization, composed range routing, and result
-enrichment remain outside the class for now to avoid turning the first class
-step into a broad behavioral rewrite.
+result enrichment. Normalization and composed range routing remain outside the
+class for now to avoid turning the first class step into a broad behavioral
+rewrite.
 
 Already converted:
 

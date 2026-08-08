@@ -657,119 +657,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 '``only_markers`` not implemented for ``radiation_analysis``')
 
         twiss_res = base_twiss.propagate_from_init()
-        base_twiss.add_periodic_solution_data_to(twiss_res)
-
-        (line, particle_ref, method, start, end, init, completed_init,
-            matrix_responsiveness_tol, matrix_stability_tol, use_full_inverse,
-            steps_R_matrix, R_matrix, eigenvalues, Rot, RR_ebe,
-            skip_global_quantities) = base_twiss.values_for_result_enrichment()
-
-        _add_chromatic_functions_to_twiss_result(
-            line=line,
-            twiss_res=twiss_res,
-            init=init,
-            chrom=chrom,
-            periodic=periodic,
-            only_orbit=only_orbit,
-            delta_chrom=delta_chrom,
-            delta0=delta0,
-            zeta0=zeta0,
-            steps_R_matrix=steps_R_matrix,
-            matrix_responsiveness_tol=matrix_responsiveness_tol,
-            matrix_stability_tol=matrix_stability_tol,
-            symplectify=symplectify,
-            method=method,
-            use_full_inverse=use_full_inverse,
-            nemitt_x=nemitt_x,
-            nemitt_y=nemitt_y,
-            step_W_sigma=step_W_sigma,
-            delta_disp=delta_disp,
-            zeta_disp=zeta_disp,
-            start=start,
-            end=end,
-            num_turns=num_turns,
-            hide_thin_groups=hide_thin_groups,
-            only_markers=only_markers,
-            periodic_mode=periodic_mode,
-            include_collective=include_collective)
-
-
-        _add_radiation_analysis_to_twiss_result(
-            line=line,
-            twiss_res=twiss_res,
-            radiation_analysis=radiation_analysis,
-            only_orbit=only_orbit,
-            method=method,
-            steps_R_matrix=steps_R_matrix,
-            matrix_responsiveness_tol=matrix_responsiveness_tol,
-            start=start,
-            end=end,
-            nemitt_x=nemitt_x,
-            nemitt_y=nemitt_y,
-            step_W_sigma=step_W_sigma,
-            zeta_shift=zeta_shift,
-            only_markers=only_markers,
-            radiation_method=radiation_method)
-
-        _apply_4d_longitudinal_result_convention(
-            twiss_res=twiss_res, method=method)
-
-        twiss_res = _set_twiss_result_values_at(
-            twiss_res=twiss_res,
-            values_at_element_exit=values_at_element_exit)
-
-        _add_strengths_and_radiation_integrals_to_twiss_result(
-            line=line,
-            twiss_res=twiss_res,
-            strengths=strengths,
-            radiation_integrals=radiation_integrals)
-
-        _add_spin_polarization_to_twiss_result(
-            line=line,
-            twiss_res=twiss_res,
-            method=method,
-            polarization_analysis=polarization_analysis)
-
-        _add_edwards_teng_coupling_to_twiss_result(
-            twiss_res=twiss_res,
-            coupling_edw_teng=coupling_edw_teng,
-            periodic=periodic,
-            reverse=reverse)
-
-        _add_base_twiss_metadata(
-            line=line,
-            twiss_res=twiss_res,
-            method=method,
-            radiation_method=radiation_method)
-
-        twiss_res = _reverse_twiss_result_if_needed(
-            twiss_res=twiss_res, reverse=reverse)
-
-        # twiss_res.mux += init.mux - twiss_res.mux[0]
-        # twiss_res.muy += init.muy - twiss_res.muy[0]
-        # twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
-        # twiss_res.dzeta += init.dzeta - twiss_res.dzeta[0]
-
-        if not periodic and not only_orbit:
-            _align_open_twiss_phases_with_init(
-                twiss_res=twiss_res, init=init, reverse=reverse)
-
-        _add_measured_revolution_period_if_requested(
-            twiss_res=twiss_res, search_for_t_rev=search_for_t_rev)
-
-        if num_turns > 1:
-
-            kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            twiss_res = _extend_twiss_result_to_multiple_turns(
-                twiss_res=twiss_res, num_turns=num_turns, kwargs=kwargs)
-
-        twiss_res = _select_twiss_result_at_elements(
-            twiss_res=twiss_res, at_elements=at_elements)
-
-        _add_periodicity_and_completed_init_to_twiss_result(
-            twiss_res=twiss_res,
-            periodic=periodic,
-            completed_init=completed_init)
+        twiss_res = base_twiss.finish_result(twiss_res)
 
         return _finalize_twiss_result(twiss_res, input_kwargs, zero_at=zero_at_requested)
 
@@ -942,6 +830,27 @@ class _TwissBaseComputation:
             initial_particles=k['_initial_particles'],
             ebe_monitor=k['_ebe_monitor'])
 
+    def finish_result(self, twiss_res):
+
+        self.add_periodic_solution_data_to(twiss_res)
+        self.add_chromatic_functions_to(twiss_res)
+        self.add_radiation_analysis_to(twiss_res)
+        _apply_4d_longitudinal_result_convention(
+            twiss_res=twiss_res, method=self.state['method'])
+        twiss_res = self.set_values_at(twiss_res)
+        self.add_strengths_and_radiation_integrals_to(twiss_res)
+        self.add_spin_polarization_to(twiss_res)
+        self.add_edwards_teng_coupling_to(twiss_res)
+        self.add_metadata_to(twiss_res)
+        twiss_res = self.reverse_result_if_needed(twiss_res)
+        self.align_open_phases_with_init(twiss_res)
+        self.add_measured_revolution_period_if_requested(twiss_res)
+        twiss_res = self.extend_to_multiple_turns_if_needed(twiss_res)
+        twiss_res = self.select_at_elements(twiss_res)
+        self.add_periodicity_and_completed_init_to(twiss_res)
+
+        return twiss_res
+
     def add_periodic_solution_data_to(self, twiss_res):
 
         k = self.state
@@ -958,15 +867,139 @@ class _TwissBaseComputation:
             eigenvalues=k['eigenvalues'],
             Rot=k['Rot'])
 
-    def values_for_result_enrichment(self):
+    def add_chromatic_functions_to(self, twiss_res):
 
         k = self.state
-        return (
-            k['line'], k['particle_ref'], k['method'], k['start'], k['end'],
-            k['init'], k['completed_init'], k['matrix_responsiveness_tol'],
-            k['matrix_stability_tol'], k['use_full_inverse'],
-            k['steps_R_matrix'], k['R_matrix'], k.get('eigenvalues'),
-            k.get('Rot'), k.get('RR_ebe'), k['skip_global_quantities'])
+        _add_chromatic_functions_to_twiss_result(
+            line=k['line'],
+            twiss_res=twiss_res,
+            init=k['init'],
+            chrom=k['chrom'],
+            periodic=k['periodic'],
+            only_orbit=k['only_orbit'],
+            delta_chrom=k['delta_chrom'],
+            delta0=k['delta0'],
+            zeta0=k['zeta0'],
+            steps_R_matrix=k['steps_R_matrix'],
+            matrix_responsiveness_tol=k['matrix_responsiveness_tol'],
+            matrix_stability_tol=k['matrix_stability_tol'],
+            symplectify=k['symplectify'],
+            method=k['method'],
+            use_full_inverse=k['use_full_inverse'],
+            nemitt_x=k['nemitt_x'],
+            nemitt_y=k['nemitt_y'],
+            step_W_sigma=k['step_W_sigma'],
+            delta_disp=k['delta_disp'],
+            zeta_disp=k['zeta_disp'],
+            start=k['start'],
+            end=k['end'],
+            num_turns=k['num_turns'],
+            hide_thin_groups=k['hide_thin_groups'],
+            only_markers=k['only_markers'],
+            periodic_mode=k['periodic_mode'],
+            include_collective=k['include_collective'])
+
+    def add_radiation_analysis_to(self, twiss_res):
+
+        k = self.state
+        _add_radiation_analysis_to_twiss_result(
+            line=k['line'],
+            twiss_res=twiss_res,
+            radiation_analysis=k['radiation_analysis'],
+            only_orbit=k['only_orbit'],
+            method=k['method'],
+            steps_R_matrix=k['steps_R_matrix'],
+            matrix_responsiveness_tol=k['matrix_responsiveness_tol'],
+            start=k['start'],
+            end=k['end'],
+            nemitt_x=k['nemitt_x'],
+            nemitt_y=k['nemitt_y'],
+            step_W_sigma=k['step_W_sigma'],
+            zeta_shift=k['zeta_shift'],
+            only_markers=k['only_markers'],
+            radiation_method=k['radiation_method'])
+
+    def set_values_at(self, twiss_res):
+
+        return _set_twiss_result_values_at(
+            twiss_res=twiss_res,
+            values_at_element_exit=self.state['values_at_element_exit'])
+
+    def add_strengths_and_radiation_integrals_to(self, twiss_res):
+
+        k = self.state
+        _add_strengths_and_radiation_integrals_to_twiss_result(
+            line=k['line'],
+            twiss_res=twiss_res,
+            strengths=k['strengths'],
+            radiation_integrals=k['radiation_integrals'])
+
+    def add_spin_polarization_to(self, twiss_res):
+
+        k = self.state
+        _add_spin_polarization_to_twiss_result(
+            line=k['line'],
+            twiss_res=twiss_res,
+            method=k['method'],
+            polarization_analysis=k['polarization_analysis'])
+
+    def add_edwards_teng_coupling_to(self, twiss_res):
+
+        k = self.state
+        _add_edwards_teng_coupling_to_twiss_result(
+            twiss_res=twiss_res,
+            coupling_edw_teng=k['coupling_edw_teng'],
+            periodic=k['periodic'],
+            reverse=k['reverse'])
+
+    def add_metadata_to(self, twiss_res):
+
+        k = self.state
+        _add_base_twiss_metadata(
+            line=k['line'],
+            twiss_res=twiss_res,
+            method=k['method'],
+            radiation_method=k['radiation_method'])
+
+    def reverse_result_if_needed(self, twiss_res):
+
+        return _reverse_twiss_result_if_needed(
+            twiss_res=twiss_res, reverse=self.state['reverse'])
+
+    def align_open_phases_with_init(self, twiss_res):
+
+        k = self.state
+        if not k['periodic'] and not k['only_orbit']:
+            _align_open_twiss_phases_with_init(
+                twiss_res=twiss_res, init=k['init'], reverse=k['reverse'])
+
+    def add_measured_revolution_period_if_requested(self, twiss_res):
+
+        _add_measured_revolution_period_if_requested(
+            twiss_res=twiss_res,
+            search_for_t_rev=self.state['search_for_t_rev'])
+
+    def extend_to_multiple_turns_if_needed(self, twiss_res):
+
+        k = self.state
+        if k['num_turns'] <= 1:
+            return twiss_res
+
+        kwargs = _kwargs_for_composed_twiss_call(k['kwargs'], k)
+        return _extend_twiss_result_to_multiple_turns(
+            twiss_res=twiss_res, num_turns=k['num_turns'], kwargs=kwargs)
+
+    def select_at_elements(self, twiss_res):
+
+        return _select_twiss_result_at_elements(
+            twiss_res=twiss_res, at_elements=self.state['at_elements'])
+
+    def add_periodicity_and_completed_init_to(self, twiss_res):
+
+        _add_periodicity_and_completed_init_to_twiss_result(
+            twiss_res=twiss_res,
+            periodic=self.state['periodic'],
+            completed_init=self.state['completed_init'])
 
 
 @dataclass(frozen=True)
