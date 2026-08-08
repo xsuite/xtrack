@@ -373,8 +373,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         if route == 'periodic':
             # Standard periodic Twiss, for the full line or a closed range.
-            data['init'], data['completed_init'] = (
-                _build_twiss_init_from_inputs(data))
+            data['completed_init'] = data['init']
             _clear_twiss_init_input_fields(data)
             data.update(_compute_periodic_twiss_init(data))
             twiss_res = _compute_base_twiss(data)
@@ -413,8 +412,7 @@ def twiss_line(line, particle_ref=None, method=None,
             requested_start = data['start']
             one_turn_kwargs = data.copy()
             one_turn_kwargs['start'] = None
-            one_turn_kwargs['init'], one_turn_kwargs['completed_init'] = (
-                _build_twiss_init_from_inputs(one_turn_kwargs))
+            one_turn_kwargs['completed_init'] = one_turn_kwargs['init']
             _clear_twiss_init_input_fields(one_turn_kwargs)
             one_turn_kwargs.update(
                 _compute_periodic_twiss_init(one_turn_kwargs))
@@ -468,8 +466,7 @@ def twiss_line(line, particle_ref=None, method=None,
             periodic_kwargs['init_at'] = None
             periodic_kwargs['periodic'] = True
             periodic_kwargs['periodic_mode'] = 'periodic'
-            periodic_kwargs['init'], periodic_kwargs['completed_init'] = (
-                _build_twiss_init_from_inputs(periodic_kwargs))
+            periodic_kwargs['completed_init'] = periodic_kwargs['init']
             _clear_twiss_init_input_fields(periodic_kwargs)
             periodic_kwargs.update(
                 _compute_periodic_twiss_init(periodic_kwargs))
