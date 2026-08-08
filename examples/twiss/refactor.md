@@ -113,6 +113,7 @@ the main computation:
 
 - `_handle_deprecated_twiss_kwargs`
 - `_apply_twiss_defaults`
+- `_normalize_twiss_inputs`
 
 This keeps deprecation warning text and default-value compatibility out of the
 main orchestration path. It also makes it clearer which recursive calls still
@@ -356,6 +357,7 @@ Once imports are stable, the next readability win is to reduce the size of
 
 - `_handle_deprecated_twiss_kwargs(...)`
 - `_apply_twiss_defaults(...)`
+- `_normalize_twiss_inputs(...)`
 - `_resolve_start_end_locations(...)`
 - `_resolve_periodic_mode(...)`
 - `_prepare_line_state_for_twiss(...)`
@@ -431,14 +433,14 @@ Already converted:
   `_line_start_element_name`.
 - the early input-rewrite branches for start-only and `init="full_periodic"`
   now share a single finalization return instead of finalizing separately.
-- the early input-rewrite branches now run after the flag/config preflight, so
+- the early input-rewrite branches now run after the flag/config setup, so
   freeze, cavity, radiation, aperture, and temporary-marker setup happen before
   composed segment computation.
-- `_compute_twiss_segment` now builds preflighted segment kwargs, avoiding
+- `_compute_twiss_segment` now builds prepared segment kwargs, avoiding
   repeated setup-only requests such as aperture disabling, freeze flags, and
   `at_s` marker insertion in each composed segment.
 - freeze setup is now isolated in `_enter_twiss_freeze_context`, making the
-  preflight state transition explicit before composed segment computation.
+  context state transition explicit before composed segment computation.
 - the later range-composition branches for loop-around and init-inside-range now
   share a single finalization return instead of finalizing separately.
 - periodic solution preparation for the normal one-pass Twiss path is now
@@ -475,11 +477,18 @@ Already converted:
   preparation, method validation, init-mode validation, and open-Twiss momentum
   offset validation.
 - non-multiturn segment composition no longer re-enters the public
-  `twiss_line` wrapper. `_compute_twiss_segment` now prepares preflighted
+  `twiss_line` wrapper. `_compute_twiss_segment` now prepares reusable
   segment kwargs and calls `_compute_base_twiss` directly. Multi-turn
   continuation remains the only intentional recursive `twiss_line` call.
+- public Twiss input normalization is now consolidated in
+  `_normalize_twiss_inputs`, which handles deprecated aliases, default values,
+  derived polarization/spin flags, and defensive `TwissInit` copying.
+- Twiss line/context setup is now consolidated in `_prepare_twiss_line_context`,
+  which resolves open/range defaults, periodic mode, temporary tracker flags,
+  freeze/radiation contexts, `at_s` marker insertion, and `TwissTable` init
+  extraction.
 
-### Phase 1: configuration preflight
+### Phase 1: line/context setup
 
 Converted the branches that only set line/tracker state before Twiss
 computation:
@@ -531,7 +540,7 @@ named explicitly instead of expressed as top-level recursion. Candidate helpers:
 - `_prepare_kwargs_for_full_periodic_twiss(...)`
 - `_get_twiss_init_from_full_periodic(...)`
 
-These helpers now call `_compute_twiss_segment`, which prepares preflighted
+These helpers now call `_compute_twiss_segment`, which prepares reusable
 segment kwargs and runs `_compute_base_twiss`. The important improvement is to
 remove public-wrapper recursion and make the composition behavior obvious. Test
 with:
@@ -565,7 +574,7 @@ or input compatibility handling. Candidate shape:
 - `twiss_line(...)`: public compatibility wrapper;
 - `_twiss_line_normalized(...)`: validates/prepares normalized state and
   orchestrates optional outputs;
-- `_compute_twiss_segment(...)`: prepares already-preflighted segment kwargs and
+- `_compute_twiss_segment(...)`: prepares already-normalized segment kwargs and
   calls `_compute_base_twiss(...)` directly;
 - `_compute_base_twiss(...)`: normalized one-pass Twiss engine used by the public
   wrapper and by composed non-multiturn segments;
@@ -693,5 +702,5 @@ after the full package split.
 - Add small helpers around deprecation handling and default assignment in
   `twiss_line`.
 - Replace the current `twiss_line` recursion following the explicit plan above:
-  configuration preflight, input rewriting, then range composition.
+  line/context setup, input rewriting, then range composition.
 - Avoid changing numerical formulas during structural refactoring.

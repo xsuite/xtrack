@@ -8,6 +8,110 @@ from warnings import warn
 from ..general import DEPRECATION_INFO_PREP_1_0
 
 
+def _normalize_twiss_inputs(twiss_kwargs, twiss_init_cls):
+
+    twiss_kwargs = twiss_kwargs.copy()
+
+    (twiss_kwargs['chrom'],
+     twiss_kwargs['step_W_sigma'],
+     twiss_kwargs['polarization_analysis'],
+     twiss_kwargs['radiation_analysis'],
+     twiss_kwargs['steps_R_matrix']) = _handle_deprecated_twiss_kwargs(
+        at_s=twiss_kwargs['at_s'],
+        at_elements=twiss_kwargs['at_elements'],
+        compute_chromatic_properties=twiss_kwargs['compute_chromatic_properties'],
+        r_sigma=twiss_kwargs['r_sigma'],
+        freeze_energy=twiss_kwargs['freeze_energy'],
+        freeze_longitudinal=twiss_kwargs['freeze_longitudinal'],
+        polarization=twiss_kwargs['polarization'],
+        eneloss_and_damping=twiss_kwargs['eneloss_and_damping'],
+        steps_r_matrix=twiss_kwargs['steps_r_matrix'],
+        chrom=twiss_kwargs['chrom'],
+        step_W_sigma=twiss_kwargs['step_W_sigma'],
+        polarization_analysis=twiss_kwargs['polarization_analysis'],
+        radiation_analysis=twiss_kwargs['radiation_analysis'],
+        steps_R_matrix=twiss_kwargs['steps_R_matrix'],
+    )
+
+    input_kwargs = twiss_kwargs.copy()
+
+    (twiss_kwargs['step_W_sigma'],
+     twiss_kwargs['nemitt_x'],
+     twiss_kwargs['nemitt_y'],
+     twiss_kwargs['delta_disp'],
+     twiss_kwargs['delta_chrom'],
+     twiss_kwargs['zeta_disp'],
+     twiss_kwargs['zeta_shift'],
+     twiss_kwargs['values_at_element_exit'],
+     twiss_kwargs['continue_on_closed_orbit_error'],
+     twiss_kwargs['freeze_longitudinal'],
+     twiss_kwargs['radiation_method'],
+     twiss_kwargs['spin'],
+     twiss_kwargs['polarization_analysis'],
+     twiss_kwargs['radiation_integrals'],
+     twiss_kwargs['radiation_analysis'],
+     twiss_kwargs['symplectify'],
+     twiss_kwargs['reverse'],
+     twiss_kwargs['strengths'],
+     twiss_kwargs['hide_thin_groups'],
+     twiss_kwargs['search_for_t_rev'],
+     twiss_kwargs['num_turns_search_t_rev'],
+     twiss_kwargs['only_twiss_init'],
+     twiss_kwargs['only_markers'],
+     twiss_kwargs['only_orbit'],
+     twiss_kwargs['compute_R_element_by_element'],
+     twiss_kwargs['compute_lattice_functions'],
+     twiss_kwargs['chrom'],
+     twiss_kwargs['num_turns'],
+     twiss_kwargs['disable_apertures']) = _apply_twiss_defaults(
+        step_W_sigma=twiss_kwargs['step_W_sigma'],
+        nemitt_x=twiss_kwargs['nemitt_x'],
+        nemitt_y=twiss_kwargs['nemitt_y'],
+        delta_disp=twiss_kwargs['delta_disp'],
+        delta_chrom=twiss_kwargs['delta_chrom'],
+        zeta_disp=twiss_kwargs['zeta_disp'],
+        zeta_shift=twiss_kwargs['zeta_shift'],
+        values_at_element_exit=twiss_kwargs['values_at_element_exit'],
+        continue_on_closed_orbit_error=twiss_kwargs['continue_on_closed_orbit_error'],
+        freeze_longitudinal=twiss_kwargs['freeze_longitudinal'],
+        radiation_method=twiss_kwargs['radiation_method'],
+        spin=twiss_kwargs['spin'],
+        polarization_analysis=twiss_kwargs['polarization_analysis'],
+        radiation_integrals=twiss_kwargs['radiation_integrals'],
+        radiation_analysis=twiss_kwargs['radiation_analysis'],
+        symplectify=twiss_kwargs['symplectify'],
+        reverse=twiss_kwargs['reverse'],
+        strengths=twiss_kwargs['strengths'],
+        hide_thin_groups=twiss_kwargs['hide_thin_groups'],
+        search_for_t_rev=twiss_kwargs['search_for_t_rev'],
+        num_turns_search_t_rev=twiss_kwargs['num_turns_search_t_rev'],
+        only_twiss_init=twiss_kwargs['only_twiss_init'],
+        only_markers=twiss_kwargs['only_markers'],
+        only_orbit=twiss_kwargs['only_orbit'],
+        compute_R_element_by_element=twiss_kwargs['compute_R_element_by_element'],
+        compute_lattice_functions=twiss_kwargs['compute_lattice_functions'],
+        chrom=twiss_kwargs['chrom'],
+        num_turns=twiss_kwargs['num_turns'],
+        disable_apertures=twiss_kwargs['disable_apertures'],
+    )
+
+    if twiss_kwargs['only_markers']:
+        raise NotImplementedError('``only_markers`` not supported anymore')
+
+    if twiss_kwargs['polarization_analysis']:
+        twiss_kwargs['spin'] = True
+        # Some quantities are needed for polarization. This could be decoupled
+        # in the future.
+        twiss_kwargs['radiation_integrals'] = True
+    if twiss_kwargs['spin']:
+        assert twiss_kwargs['reverse'] is False
+
+    if isinstance(twiss_kwargs['init'], twiss_init_cls):
+        twiss_kwargs['init'] = twiss_kwargs['init'].copy()
+
+    return twiss_kwargs, input_kwargs
+
+
 def _handle_deprecated_twiss_kwargs(
         *,
         at_s,
