@@ -547,6 +547,9 @@ orchestrator.
 Periodic solution acquisition now lives in `periodic_init.py`, which returns a
 `_PeriodicTwissInitData` bundle. The base computation consumes that bundle
 before the separate propagation phase.
+Base request/range preparation and direct propagation from a completed init now
+live in `base_preparation.py` and `base_propagation.py`. Both are dependency
+leaves that do not import the high-level orchestrator.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and

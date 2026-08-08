@@ -9,7 +9,6 @@ import numpy as np
 from scipy.constants import c as clight
 
 import xobjects as xo
-from ..general import _print
 from .closed_orbit import ClosedOrbitSearchError, find_closed_orbit_line
 from .twiss_init import TwissInit, _complete_twiss_init
 from .element_indexing import _str_to_index
@@ -20,8 +19,18 @@ from .input_normalization import (
 from .ring_quantities import _add_ring_quantities
 from .periodic_solution import _find_periodic_solution
 from .periodic_init import _compute_periodic_twiss_init_and_data
+from .base_preparation import (
+    _apply_base_twiss_reverse_range,
+    _validate_base_twiss_boundary_init,
+    _prepare_base_twiss_matrix_settings,
+    _prepare_base_twiss_line_and_particle_ref,
+    _validate_base_twiss_method,
+    _validate_base_twiss_init_mode,
+    _validate_base_twiss_open_momentum_offsets,
+    _periodic_solution_range_from_plan,
+)
+from .base_propagation import _propagate_twiss_from_init
 from .chromatic_functions import _get_chromatic_functions, trapz
-from .open_twiss import _twiss_open
 from .open_table_composition import (
     _combine_loop_around_twiss_tables,
     _combine_init_inside_range_twiss_tables,
@@ -1046,111 +1055,6 @@ def _clear_twiss_init_inputs(data):
         data[field_name] = None
 
 
-def _apply_base_twiss_reverse_range(line, start, end, reverse):
-
-    if reverse:
-        if start is not None and end is not None:
-            assert (_str_to_index(line, start) >= _str_to_index(line, end)), (
-                'start must be smaller than end in reverse mode')
-        return end, start
-
-    if start is not None and end is not None:
-        assert _str_to_index(line, start) <= _str_to_index(line, end), (
-            'start must be larger than end in forward mode')
-
-    return start, end
-
-
-def _validate_base_twiss_boundary_init(start, init):
-
-    if start is not None and init is None:
-        assert init is not None, (
-            'init must be provided if start and end are used')
-
-
-def _prepare_base_twiss_matrix_settings(
-        line, radiation_method, matrix_responsiveness_tol,
-        matrix_stability_tol, use_full_inverse):
-
-    if matrix_responsiveness_tol is None:
-        matrix_responsiveness_tol = line.matrix_responsiveness_tol
-    if matrix_stability_tol is None:
-        matrix_stability_tol = line.matrix_stability_tol
-
-    if (line._radiation_model is not None
-            and radiation_method != 'kick_as_co'):
-        matrix_stability_tol = None
-        if use_full_inverse is None:
-            use_full_inverse = True
-
-    return matrix_responsiveness_tol, matrix_stability_tol, use_full_inverse
-
-
-def _prepare_base_twiss_line_and_particle_ref(
-        line, particle_ref, particle_on_co, co_guess, include_collective):
-
-    if particle_ref is None:
-        if particle_on_co is not None:
-            particle_ref = particle_on_co.copy()
-        elif co_guess is None and hasattr(line, 'particle_ref'):
-            particle_ref = line.particle_ref
-
-    if line.iscollective and not include_collective:
-        _print(
-            'The line has collective elements.\n'
-            'In the twiss computation collective elements are'
-            ' replaced by drifts')
-        line = line._get_non_collective_line()
-
-    if particle_ref is None and co_guess is None:
-        raise ValueError(
-            "Either ``particle_ref`` or ``co_guess`` must be provided")
-
-    return line, particle_ref
-
-
-def _validate_base_twiss_method(method):
-
-    if method is None:
-        method = '6d'
-
-    assert method in ['6d', '4d'], 'Method must be ``6d`` or ``4d``'
-
-    return method
-
-
-def _validate_base_twiss_init_mode(init):
-
-    if isinstance(init, str):
-        if init in ['preserve', 'preserve_start', 'preserve_end']:
-            raise ValueError(f'init={init} not anymore supported')
-        assert init == 'periodic' or 'full_periodic'
-
-
-def _validate_base_twiss_open_momentum_offsets(periodic, delta0, zeta0):
-
-    if not periodic:
-        if delta0 is not None or zeta0 is not None:
-            raise ValueError(
-                'delta0 and zeta0 cannot be provided for open twiss')
-
-
-def _periodic_solution_range_from_plan(acquisition_plan, start, end):
-
-    assert acquisition_plan.computation_direction == 'forward'
-
-    if acquisition_plan.scope == 'full_line':
-        assert start is None and end is None
-        return None, None
-
-    if acquisition_plan.scope == 'requested_range':
-        assert start is not None and end is not None
-        return start, end
-
-    raise RuntimeError(
-        f'Unexpected periodic Twiss scope: {acquisition_plan.scope}')
-
-
 def _complete_init_for_base_twiss(data):
 
     init = _complete_twiss_init(
@@ -1172,34 +1076,6 @@ def _complete_init_for_base_twiss(data):
     completed_init = (init.copy() if hasattr(init, 'copy') else init)
 
     return init, completed_init
-
-
-def _propagate_twiss_from_init(
-        line, init, start, end, nemitt_x, nemitt_y, step_W_sigma,
-        delta_disp, use_full_inverse, hide_thin_groups, only_markers,
-        only_orbit, spin, compute_lattice_functions, continue_if_lost,
-        keep_tracking_data, keep_initial_particles, initial_particles,
-        ebe_monitor):
-
-    return _twiss_open(
-        line=line,
-        init=init,
-        start=start, end=end,
-        nemitt_x=nemitt_x,
-        nemitt_y=nemitt_y,
-        step_W_sigma=step_W_sigma,
-        delta_disp=delta_disp,
-        use_full_inverse=use_full_inverse,
-        hide_thin_groups=hide_thin_groups,
-        only_markers=only_markers,
-        only_orbit=only_orbit,
-        spin=spin,
-        compute_lattice_functions=compute_lattice_functions,
-        _continue_if_lost=continue_if_lost,
-        _keep_tracking_data=keep_tracking_data,
-        _keep_initial_particles=keep_initial_particles,
-        _initial_particles=initial_particles,
-        _ebe_monitor=ebe_monitor)
 
 
 def _add_periodic_solution_data_to_base_twiss(
