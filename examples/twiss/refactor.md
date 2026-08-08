@@ -411,12 +411,35 @@ The non-multiturn Twiss flow should make the conceptual phases visible:
 7. Keep reverse handling explicit in the plan instead of hiding it in endpoint
    rewrites.
 
+Two reverse-mode constraints are part of the target design:
+
+- With `reverse=True`, `start` and `end` are already interpreted in reversed
+  traversal order. Planning code should preserve that public meaning instead of
+  converting the endpoints back and forth between forward and reverse views.
+- For periodic Twiss with `reverse=True`, prefer computing the periodic solution
+  in the forward direction and then producing the requested reverse-ordered
+  output. Backtracking should only be used for cases where the forward periodic
+  solution cannot represent the requested result.
+
+This means the code should distinguish:
+
+- requested traversal order;
+- periodic solution computation order;
+- final table output order.
+
+Init computation and Twiss propagation should remain separate in code:
+
+- init acquisition computes or extracts a `TwissInit`;
+- propagation consumes a completed `TwissInit` and produces table pieces;
+- the orchestration layer may connect the two phases, but should avoid hiding
+  init computation inside segment propagation helpers.
+
 A passive planner has been added in `core.py` to document this target structure:
 
 - `_TwissInitAcquisitionPlan`
 - `_OpenTwissPropagationPlan`
 - `_TwissSegmentPiecePlan`
-- `_plan_twiss_propagation`
+- `_plan_twiss_computation`
 
 It is not used by the production path yet. The next step is to make the planner
 precise enough to replace the existing loop-around and init-inside-range helper

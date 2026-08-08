@@ -868,7 +868,7 @@ class _TwissPropagationRequest:
     init_at: object
 
     @property
-    def direction(self):
+    def requested_direction(self):
         return 'backward' if self.reverse else 'forward'
 
 
@@ -876,6 +876,7 @@ class _TwissPropagationRequest:
 class _TwissInitAcquisitionPlan:
     source: str
     scope: str
+    computation_direction: str
     init_at: object
 
 
@@ -889,14 +890,14 @@ class _TwissSegmentPiecePlan:
 
 @dataclass(frozen=True)
 class _OpenTwissPropagationPlan:
-    direction: str
+    output_direction: str
     crosses_line_start: bool
     init_is_at_boundary: bool
     pieces: tuple
 
 
 @dataclass(frozen=True)
-class _TwissPropagationPlan:
+class _TwissComputationPlan:
     init_acquisition: object
     open_propagation: object
 
@@ -914,12 +915,16 @@ def _make_twiss_propagation_request(kwargs):
     )
 
 
-def _plan_twiss_propagation(kwargs, init):
-    """Describe the target non-recursive Twiss flow.
+def _plan_twiss_computation(kwargs, init):
+    """Describe the target non-recursive Twiss orchestration.
 
     This is intentionally passive for now. It documents the desired structure:
-    periodic Twiss first obtains a TwissInit, then propagation is handled by the
-    same open-Twiss segment planner used by explicitly open Twiss requests.
+    init acquisition and Twiss propagation are separate phases. Periodic Twiss
+    first obtains a TwissInit, then propagation is handled by the same open-Twiss
+    segment planner used by explicitly open Twiss requests.
+    For reverse requests, start and end are already in the requested traversal
+    order. Periodic reverse requests should still prefer a forward periodic
+    solution and only reverse/order the table output afterward where possible.
     """
 
     request = _make_twiss_propagation_request(kwargs)
@@ -928,7 +933,7 @@ def _plan_twiss_propagation(kwargs, init):
     open_propagation = _plan_open_twiss_propagation(
         request=request, init_element_name=init_element_name)
 
-    return _TwissPropagationPlan(
+    return _TwissComputationPlan(
         init_acquisition=init_acquisition,
         open_propagation=open_propagation,
     )
@@ -938,6 +943,7 @@ def _plan_twiss_init_acquisition(request):
 
     if request.periodic:
         source = 'periodic_solution'
+        computation_direction = 'forward'
         if request.start is None and request.end is None:
             scope = 'full_line'
         else:
@@ -945,10 +951,12 @@ def _plan_twiss_init_acquisition(request):
     else:
         source = 'open_input'
         scope = 'not_applicable'
+        computation_direction = request.requested_direction
 
     return _TwissInitAcquisitionPlan(
         source=source,
         scope=scope,
+        computation_direction=computation_direction,
         init_at=request.init_at,
     )
 
@@ -991,7 +999,7 @@ def _plan_open_twiss_propagation(request, init_element_name):
         )
 
     return _OpenTwissPropagationPlan(
-        direction=request.direction,
+        output_direction=request.requested_direction,
         crosses_line_start=crosses_line_start,
         init_is_at_boundary=init_is_at_boundary,
         pieces=pieces,
