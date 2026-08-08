@@ -467,29 +467,34 @@ def twiss_line(line, particle_ref=None, method=None,
             if data['zero_at_requested'] is None:
                 twiss_res.zero_at(data['start'])
 
-        else:
+        elif data['periodic']:
+            # Standard periodic Twiss, for the full line or a closed range.
             data['init'], data['completed_init'] = (
                 _build_twiss_init_from_inputs(data))
             _clear_twiss_init_input_fields(data)
-            if data['periodic']:
-                data.update(_compute_periodic_twiss_init(data))
+            data.update(_compute_periodic_twiss_init(data))
+            twiss_res = _compute_base_twiss(data)
 
-            composed_open_range = False
-            if not data['periodic']:
-                init_element_name = data['init'].element_name
-                if data['start'] is None or data['end'] is None:
-                    crosses_line_boundary = False
-                else:
-                    direction_sign = -1 if data['reverse'] else 1
-                    crosses_line_boundary = (
-                        direction_sign * _str_to_index(
-                            data['line'], data['start'])
-                        > direction_sign * _str_to_index(
-                            data['line'], data['end']))
-                init_is_at_boundary = init_element_name in (
-                    data['start'], data['end'])
-                composed_open_range = (
-                    crosses_line_boundary or not init_is_at_boundary)
+        else:
+            # Standard open Twiss from supplied init data.
+            data['init'], data['completed_init'] = (
+                _build_twiss_init_from_inputs(data))
+            _clear_twiss_init_input_fields(data)
+
+            init_element_name = data['init'].element_name
+            if data['start'] is None or data['end'] is None:
+                crosses_line_boundary = False
+            else:
+                direction_sign = -1 if data['reverse'] else 1
+                crosses_line_boundary = (
+                    direction_sign * _str_to_index(
+                        data['line'], data['start'])
+                    > direction_sign * _str_to_index(
+                        data['line'], data['end']))
+            init_is_at_boundary = init_element_name in (
+                data['start'], data['end'])
+            composed_open_range = (
+                crosses_line_boundary or not init_is_at_boundary)
 
             if composed_open_range:
                 if crosses_line_boundary:
