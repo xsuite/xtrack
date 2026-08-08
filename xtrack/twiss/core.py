@@ -5,6 +5,7 @@
 
 from contextlib import ExitStack
 
+from ..general import _print
 from .twiss_table import TwissTable
 from .input_normalization import (
     _normalize_twiss_inputs,
@@ -18,8 +19,8 @@ from .twiss_init import (
     TwissInit,
     _build_twiss_init_from_inputs,
     _clear_twiss_init_input_fields,
+    _compute_periodic_twiss_init,
 )
-from .constants import VARS_FOR_TWISS_INIT_GENERATION
 from .element_indexing import _str_to_index
 from .finalize import _finalize_twiss_result
 
@@ -369,13 +370,62 @@ def twiss_line(line, particle_ref=None, method=None,
         data['zero_at_requested'] = data['zero_at']
         data['zero_at'] = None
 
+        # Prepare the settings needed by both supplied and periodic init paths.
+        if data['matrix_responsiveness_tol'] is None:
+            data['matrix_responsiveness_tol'] = (
+                data['line'].matrix_responsiveness_tol)
+        if data['matrix_stability_tol'] is None:
+            data['matrix_stability_tol'] = data['line'].matrix_stability_tol
+        if (data['line']._radiation_model is not None
+                and data['radiation_method'] != 'kick_as_co'):
+            data['matrix_stability_tol'] = None
+            if data['use_full_inverse'] is None:
+                data['use_full_inverse'] = True
+
+        if data['particle_ref'] is None:
+            if data['particle_on_co'] is not None:
+                data['particle_ref'] = data['particle_on_co'].copy()
+            elif (data['co_guess'] is None
+                    and hasattr(data['line'], 'particle_ref')):
+                data['particle_ref'] = data['line'].particle_ref
+
+        if data['line'].iscollective and not data['include_collective']:
+            _print(
+                'The line has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            data['line'] = data['line']._get_non_collective_line()
+
+        if data['particle_ref'] is None and data['co_guess'] is None:
+            raise ValueError(
+                "Either ``particle_ref`` or ``co_guess`` must be provided")
+
+        if data['method'] is None:
+            data['method'] = '6d'
+        assert data['method'] in ['6d', '4d'], (
+            'Method must be ``6d`` or ``4d``')
+
+        if isinstance(data['init'], str):
+            if data['init'] in ['preserve', 'preserve_start', 'preserve_end']:
+                raise ValueError(f"init={data['init']} not anymore supported")
+            assert data['init'] in ('periodic', 'full_periodic')
+        if (not data['periodic']
+                and (data['delta0'] is not None or data['zeta0'] is not None)):
+            raise ValueError(
+                'delta0 and zeta0 cannot be provided for open twiss')
+
         # A start without an end requests one full turn from that location.
         if (data['start'] is not None and data['end'] is None
                 and data['periodic']):
             # Compute a full periodic table, then rotate it to the requested start.
             requested_start = data['start']
             one_turn_kwargs = data.copy()
-            one_turn_kwargs.pop('start')
+            one_turn_kwargs['start'] = None
+            one_turn_kwargs['init'], one_turn_kwargs['completed_init'] = (
+                _build_twiss_init_from_inputs(one_turn_kwargs))
+            _clear_twiss_init_input_fields(one_turn_kwargs)
+            one_turn_kwargs.update(
+                _compute_periodic_twiss_init(one_turn_kwargs))
 
             full_twiss = _compute_base_twiss(one_turn_kwargs)
             first_part = full_twiss.rows[requested_start:]
@@ -397,20 +447,16 @@ def twiss_line(line, particle_ref=None, method=None,
                 line_boundary_start = data['line']._element_names_unique[0]
 
             one_turn_kwargs = data.copy()
-            one_turn_kwargs.pop('start')
-            one_turn_kwargs.pop('end')
+            one_turn_kwargs['start'] = requested_start
+            one_turn_kwargs['end'] = line_boundary_end
+            one_turn_kwargs['init'], one_turn_kwargs['completed_init'] = (
+                _build_twiss_init_from_inputs(one_turn_kwargs))
+            _clear_twiss_init_input_fields(one_turn_kwargs)
 
-            first_part = _compute_base_twiss(
-                one_turn_kwargs,
-                start=requested_start,
-                end=line_boundary_end,
-                init=one_turn_kwargs['init'])
+            first_part = _compute_base_twiss(one_turn_kwargs)
             second_part_init = first_part.get_twiss_init('_end_point')
             second_part_init.element_name = line_boundary_start
 
-            for field_name in VARS_FOR_TWISS_INIT_GENERATION:
-                one_turn_kwargs.pop(field_name, None)
-            one_turn_kwargs.pop('init')
             second_part = _compute_base_twiss(
                 one_turn_kwargs,
                 start=line_boundary_start,
@@ -425,10 +471,17 @@ def twiss_line(line, particle_ref=None, method=None,
                 and (data['start'] is not None or data['end'] is not None)):
             # Acquire a forward full-line periodic init, then propagate the range.
             periodic_kwargs = data.copy()
-            periodic_kwargs.pop('init')
-            periodic_kwargs.pop('start')
-            periodic_kwargs.pop('end')
-            periodic_kwargs.pop('init_at')
+            periodic_kwargs['init'] = None
+            periodic_kwargs['start'] = None
+            periodic_kwargs['end'] = None
+            periodic_kwargs['init_at'] = None
+            periodic_kwargs['periodic'] = True
+            periodic_kwargs['periodic_mode'] = 'periodic'
+            periodic_kwargs['init'], periodic_kwargs['completed_init'] = (
+                _build_twiss_init_from_inputs(periodic_kwargs))
+            _clear_twiss_init_input_fields(periodic_kwargs)
+            periodic_kwargs.update(
+                _compute_periodic_twiss_init(periodic_kwargs))
             full_periodic_twiss = _compute_base_twiss(periodic_kwargs)
             full_periodic_init = full_periodic_twiss.get_twiss_init(
                 data['init_at'] or data['start'])
@@ -436,6 +489,9 @@ def twiss_line(line, particle_ref=None, method=None,
             range_kwargs = data.copy()
             range_kwargs['init'] = full_periodic_init
             range_kwargs['init_at'] = None
+            range_kwargs['init'], range_kwargs['completed_init'] = (
+                _build_twiss_init_from_inputs(range_kwargs))
+            _clear_twiss_init_input_fields(range_kwargs)
 
             direction_sign = -1 if data['reverse'] else 1
             crosses_line_boundary = (
@@ -457,18 +513,15 @@ def twiss_line(line, particle_ref=None, method=None,
                 twiss_res.zero_at(data['start'])
 
         else:
-            composed_open_range = False
-            if not data['periodic'] and not isinstance(data['init'], str):
-                if data['init_at'] is not None:
-                    init_element_name = data['init_at']
-                elif (hasattr(data['init'], 'element_name')
-                        and data['init'].element_name is not None):
-                    init_element_name = data['init'].element_name
-                elif data['start'] is not None:
-                    init_element_name = data['start']
-                else:
-                    init_element_name = data['line']._element_names_unique[0]
+            data['init'], data['completed_init'] = (
+                _build_twiss_init_from_inputs(data))
+            _clear_twiss_init_input_fields(data)
+            if data['periodic']:
+                data.update(_compute_periodic_twiss_init(data))
 
+            composed_open_range = False
+            if not data['periodic']:
+                init_element_name = data['init'].element_name
                 if data['start'] is None or data['end'] is None:
                     crosses_line_boundary = False
                 else:
@@ -484,11 +537,6 @@ def twiss_line(line, particle_ref=None, method=None,
                     crosses_line_boundary or not init_is_at_boundary)
 
             if composed_open_range:
-                # Composition needs the concrete init before splitting the range.
-                data['init'], data['completed_init'] = (
-                    _build_twiss_init_from_inputs(data))
-                _clear_twiss_init_input_fields(data)
-
                 if crosses_line_boundary:
                     twiss_res = _handle_loop_around(data.copy())
                 else:

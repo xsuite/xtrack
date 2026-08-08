@@ -683,7 +683,11 @@ def _compute_periodic_twiss_init(data):
         periodic_start = periodic_end = None
     else:
         assert data['start'] is not None and data['end'] is not None
-        periodic_start, periodic_end = data['start'], data['end']
+        if data['reverse']:
+            # Periodic solutions are computed in forward physical order.
+            periodic_start, periodic_end = data['end'], data['start']
+        else:
+            periodic_start, periodic_end = data['start'], data['end']
 
     periodic_init_kwargs = {
         name: data[name]

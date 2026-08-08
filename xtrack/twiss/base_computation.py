@@ -3,12 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from ..general import _print
-from .twiss_init import (
-    _build_twiss_init_from_inputs,
-    _clear_twiss_init_input_fields,
-    _compute_periodic_twiss_init,
-)
+from .twiss_init import TwissInit
 from .propagation import _propagate_twiss_from_init
 from .base_result import (
     _add_periodic_solution_data_to_base_twiss,
@@ -27,14 +22,12 @@ from .base_result import (
     _add_periodicity_and_completed_init_to_twiss_result,
     _align_open_twiss_phases_with_init,
 )
-from .constants import VARS_FOR_TWISS_INIT_GENERATION
 from .element_indexing import _str_to_index
-from .line_context import _set_twiss_periodic_mode
 from .multiturn import _kwargs_for_multiturn_continuation
 
 
 def _compute_base_twiss(data, **overrides):
-    """Run one normalized, non-composed Twiss computation."""
+    """Propagate from a concrete init and finish one non-composed result."""
 
     data = data.copy()
     # The public line context is already active. These options only control
@@ -45,19 +38,10 @@ def _compute_base_twiss(data, **overrides):
     data['at_s'] = None
     data.update(overrides)
 
-    # Internal segment calls can omit range and scalar-init fields that the
-    # public API normally supplies.
-    for field_name in (
-            'start', 'end', 'init', 'init_at',
-            *VARS_FOR_TWISS_INIT_GENERATION,
-            'spin_x', 'spin_y', 'spin_z'):
-        data.setdefault(field_name, None)
-
-    _set_twiss_periodic_mode(data)
-    data['init'], data['completed_init'] = _build_twiss_init_from_inputs(data)
-    _clear_twiss_init_input_fields(data)
-    if 'kwargs' not in data:
-        data['kwargs'] = data.copy()
+    if 'init' in overrides and 'completed_init' not in overrides:
+        data['completed_init'] = data['init'].copy()
+    assert isinstance(data['init'], TwissInit), (
+        '_compute_base_twiss requires a concrete TwissInit')
 
     if data['reverse']:
         if data['start'] is not None and data['end'] is not None:
@@ -69,54 +53,6 @@ def _compute_base_twiss(data, **overrides):
         assert (_str_to_index(data['line'], data['start'])
                 <= _str_to_index(data['line'], data['end'])), (
             'start must be larger than end in forward mode')
-
-    if data['matrix_responsiveness_tol'] is None:
-        data['matrix_responsiveness_tol'] = (
-            data['line'].matrix_responsiveness_tol)
-    if data['matrix_stability_tol'] is None:
-        data['matrix_stability_tol'] = data['line'].matrix_stability_tol
-    if (data['line']._radiation_model is not None
-            and data['radiation_method'] != 'kick_as_co'):
-        data['matrix_stability_tol'] = None
-        if data['use_full_inverse'] is None:
-            data['use_full_inverse'] = True
-
-    if data['particle_ref'] is None:
-        if data['particle_on_co'] is not None:
-            data['particle_ref'] = data['particle_on_co'].copy()
-        elif data['co_guess'] is None and hasattr(data['line'], 'particle_ref'):
-            data['particle_ref'] = data['line'].particle_ref
-
-    if data['line'].iscollective and not data['include_collective']:
-        _print(
-            'The line has collective elements.\n'
-            'In the twiss computation collective elements are'
-            ' replaced by drifts')
-        data['line'] = data['line']._get_non_collective_line()
-
-    if data['particle_ref'] is None and data['co_guess'] is None:
-        raise ValueError(
-            "Either ``particle_ref`` or ``co_guess`` must be provided")
-
-    if data['method'] is None:
-        data['method'] = '6d'
-    assert data['method'] in ['6d', '4d'], (
-        'Method must be ``6d`` or ``4d``')
-
-    if data['start'] is not None and data['init'] is None:
-        assert data['init'] is not None, (
-            'init must be provided if start and end are used')
-    if isinstance(data['init'], str):
-        if data['init'] in ['preserve', 'preserve_start', 'preserve_end']:
-            raise ValueError(f"init={data['init']} not anymore supported")
-        assert data['init'] == 'periodic' or 'full_periodic'
-    if (not data['periodic']
-            and (data['delta0'] is not None or data['zeta0'] is not None)):
-        raise ValueError(
-            'delta0 and zeta0 cannot be provided for open twiss')
-
-    if data['periodic']:
-        data.update(_compute_periodic_twiss_init(data))
 
     if data['only_twiss_init']:
         assert data['periodic'], (
