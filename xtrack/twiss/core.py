@@ -592,16 +592,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 composed_twiss_res, input_kwargs, zero_at=zero_at_requested)
 
         init, completed_init = _complete_init_for_base_twiss(
-            start=start, end=end, init_at=init_at, init=init,
-            line=line, reverse=reverse,
-            x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
-            alfx=alfx, alfy=alfy, betx=betx, bety=bety, bets=bets,
-            dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
-            mux=mux, muy=muy, muzeta=muzeta,
-            ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom, by_chrom=by_chrom,
-            ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
-            spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
-        )
+            data=locals().copy())
 
         # clean quantities embedded in init
         init_at=None
@@ -1304,27 +1295,23 @@ def _periodic_solution_range_from_plan(acquisition_plan, start, end):
         f'Unexpected periodic Twiss scope: {acquisition_plan.scope}')
 
 
-def _complete_init_for_base_twiss(
-        start, end, init_at, init, line, reverse,
-        x, px, y, py, zeta, delta,
-        alfx, alfy, betx, bety, bets,
-        dx, dpx, dy, dpy, dzeta,
-        mux, muy, muzeta,
-        ax_chrom, bx_chrom, ay_chrom, by_chrom,
-        ddx, ddpx, ddy, ddpy,
-        spin_x, spin_y, spin_z):
+def _complete_init_for_base_twiss(data):
 
     init = _complete_twiss_init(
-        start=start, end=end, init_at=init_at, init=init,
-        line=line, reverse=reverse,
-        x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
-        alfx=alfx, alfy=alfy, betx=betx, bety=bety, bets=bets,
-        dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
-        mux=mux, muy=muy, muzeta=muzeta,
-        ax_chrom=ax_chrom, bx_chrom=bx_chrom, ay_chrom=ay_chrom,
-        by_chrom=by_chrom,
-        ddx=ddx, ddpx=ddpx, ddy=ddy, ddpy=ddpy,
-        spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
+        start=data['start'], end=data['end'], init_at=data['init_at'],
+        init=data['init'], line=data['line'], reverse=data['reverse'],
+        x=data['x'], px=data['px'], y=data['y'], py=data['py'],
+        zeta=data['zeta'], delta=data['delta'],
+        alfx=data['alfx'], alfy=data['alfy'],
+        betx=data['betx'], bety=data['bety'], bets=data['bets'],
+        dx=data['dx'], dpx=data['dpx'], dy=data['dy'], dpy=data['dpy'],
+        dzeta=data['dzeta'], mux=data['mux'], muy=data['muy'],
+        muzeta=data['muzeta'],
+        ax_chrom=data['ax_chrom'], bx_chrom=data['bx_chrom'],
+        ay_chrom=data['ay_chrom'], by_chrom=data['by_chrom'],
+        ddx=data['ddx'], ddpx=data['ddpx'],
+        ddy=data['ddy'], ddpy=data['ddpy'],
+        spin_x=data['spin_x'], spin_y=data['spin_y'], spin_z=data['spin_z'],
     )
     completed_init = (init.copy() if hasattr(init, 'copy') else init)
 

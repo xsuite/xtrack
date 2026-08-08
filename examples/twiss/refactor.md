@@ -512,6 +512,9 @@ high-level computation plan.
 The base Twiss path now also uses `_compute_periodic_twiss_init_and_data` and
 `_propagate_twiss_from_init` names at the call site. This is a small step toward
 keeping periodic init computation separate from propagation through the line.
+Init completion now receives the normalized computation dictionary as a single
+phase input, avoiding a large positional-style handoff and preparing the same
+boundary for private segment execution.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
