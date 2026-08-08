@@ -539,6 +539,8 @@ Line/range normalization and temporary tracker/config state now live in
 `line_context.py`. The public `twiss_line` entry point enters one context stack,
 prepares a normalized state dictionary, and delegates orchestration to
 `_compute_twiss_with_prepared_line_context`.
+Public requests and private base segments share the same periodic/open mode
+classification helper from that preparation module.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and

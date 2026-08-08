@@ -32,7 +32,10 @@ from .open_propagation import (
     _plan_init_inside_range_twiss_parts,
 )
 from .computation_plan import _plan_twiss_computation
-from .line_context import _prepare_twiss_line_context
+from .line_context import (
+    _prepare_twiss_line_context,
+    _set_twiss_periodic_mode,
+)
 from .finalize import _finalize_twiss_result
 from .spin import _get_spin_polarization
 from .non_linear_chromaticity import get_non_linear_chromaticity
@@ -1017,7 +1020,7 @@ def _compute_base_twiss(data):
 
     data = data.copy()
     _set_missing_base_twiss_inputs(data)
-    _set_base_twiss_periodic_mode(data)
+    _set_twiss_periodic_mode(data)
 
     computation_plan = _plan_twiss_computation(data, data['init'])
     if computation_plan.route != 'base':
@@ -1062,22 +1065,6 @@ def _set_missing_base_twiss_inputs(data):
     )
     for field_name in fields_defaulting_to_none:
         data.setdefault(field_name, None)
-
-
-def _set_base_twiss_periodic_mode(data):
-
-    init = data['init']
-    if (init is not None and init not in ['periodic', 'periodic_symmetric']
-            or data['betx'] is not None or data['bety'] is not None):
-        data['periodic'] = False
-        data['periodic_mode'] = None
-        return
-
-    data['periodic'] = True
-    data['periodic_mode'] = init or 'periodic'
-    for coordinate_name in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
-        assert data[coordinate_name] is None, (
-            f'``{coordinate_name}`` not supported for periodic twiss')
 
 
 def _clear_twiss_init_inputs(data):
