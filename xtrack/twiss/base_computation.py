@@ -27,7 +27,6 @@ from .base_result import (
     _add_periodicity_and_completed_init_to_twiss_result,
     _align_open_twiss_phases_with_init,
 )
-from .computation_plan import _plan_twiss_computation
 from .constants import VARS_FOR_TWISS_INIT_GENERATION
 from .element_indexing import _str_to_index
 from .line_context import _set_twiss_periodic_mode
@@ -48,14 +47,6 @@ def _compute_base_twiss(data, **overrides):
 
     _set_missing_base_twiss_inputs(data)
     _set_twiss_periodic_mode(data)
-
-    computation_plan = _plan_twiss_computation(data, data['init'])
-    if computation_plan.route != 'base':
-        raise RuntimeError(
-            'A composed Twiss route reached the base segment engine: '
-            f'{computation_plan.route}')
-
-    data['twiss_computation_plan'] = computation_plan
     data['init'], data['completed_init'] = _complete_init_for_base_twiss(
         data=data)
     _clear_twiss_init_inputs(data)

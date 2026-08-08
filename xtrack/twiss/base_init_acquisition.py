@@ -44,19 +44,10 @@ _PERIODIC_INIT_ARGUMENTS_FROM_BASE_DATA = (
 
 def _acquire_base_twiss_init(data):
 
-    acquisition_plan = data['twiss_computation_plan'].init_acquisition
-
-    if acquisition_plan.source == 'open_input':
-        assert not data['periodic']
+    if not data['periodic']:
         return {}
 
-    if acquisition_plan.source != 'periodic_solution':
-        raise RuntimeError(
-            f'Unexpected Twiss init source: {acquisition_plan.source}')
-
-    assert data['periodic']
-    periodic_init_data = _acquire_periodic_base_twiss_init(
-        data=data, acquisition_plan=acquisition_plan)
+    periodic_init_data = _acquire_periodic_base_twiss_init(data)
 
     return {
         'periodic_init_data': periodic_init_data,
@@ -69,18 +60,14 @@ def _acquire_base_twiss_init(data):
     }
 
 
-def _acquire_periodic_base_twiss_init(data, acquisition_plan):
+def _acquire_periodic_base_twiss_init(data):
 
-    assert acquisition_plan.computation_direction == 'forward'
-    if acquisition_plan.scope == 'full_line':
-        assert data['start'] is None and data['end'] is None
+    if data['start'] is None and data['end'] is None:
         periodic_start = periodic_end = None
-    elif acquisition_plan.scope == 'requested_range':
+    else:
         assert data['start'] is not None and data['end'] is not None
         periodic_start, periodic_end = data['start'], data['end']
-    else:
-        raise RuntimeError(
-            f'Unexpected periodic Twiss scope: {acquisition_plan.scope}')
+
     periodic_init_kwargs = {
         name: data[name]
         for name in _PERIODIC_INIT_ARGUMENTS_FROM_BASE_DATA
