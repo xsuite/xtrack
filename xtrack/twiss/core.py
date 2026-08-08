@@ -32,7 +32,6 @@ from .open_table_composition import (
 from .open_propagation import (
     _plan_loop_around_twiss_parts,
     _plan_init_inside_range_twiss_parts,
-    _plan_open_one_turn_twiss,
 )
 from .computation_plan import _plan_twiss_computation
 from .finalize import _finalize_twiss_result
@@ -645,15 +644,12 @@ def _compute_composed_twiss_before_init_completion(
     composed_twiss_res = None
     route = computation_plan.route
 
-    if route == 'one_turn_from_start':
+    if route in (
+            'periodic_one_turn_from_start', 'open_one_turn_from_start'):
         call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
-        composed_twiss_res = _compute_one_turn_twiss_from_start(
+        composed_twiss_res = _compute_one_turn_twiss_from_plan(
             kwargs=call_kwargs,
-            line=call_kwargs['line'],
-            start=call_kwargs['start'],
-            init=call_kwargs['init'],
-            betx=call_kwargs['betx'],
-            bety=call_kwargs['bety'],
+            computation_plan=computation_plan,
         )
 
     elif route == 'full_periodic_range':
@@ -1707,24 +1703,29 @@ def _acquire_full_periodic_twiss_init(kwargs, acquisition_plan, start):
     return tw.get_twiss_init(acquisition_plan.init_at or start)
 
 
-def _compute_one_turn_twiss_from_start(kwargs, line, start, init, betx, bety):
+def _compute_one_turn_twiss_from_plan(kwargs, computation_plan):
 
     kwargs = kwargs.copy()
     kwargs.pop('start')
+    route = computation_plan.route
+    propagation_plan = computation_plan.one_turn_propagation
 
-    if (init is None or init == 'periodic') and betx is None and bety is None:
+    if route == 'periodic_one_turn_from_start':
         return _compute_periodic_one_turn_twiss_from_start(
-            kwargs=kwargs, start=start)
+            kwargs=kwargs, plan=propagation_plan)
 
-    return _compute_open_one_turn_twiss_from_start(
-        kwargs=kwargs, line=line, start=start)
+    if route == 'open_one_turn_from_start':
+        return _compute_open_one_turn_twiss_from_start(
+            kwargs=kwargs, plan=propagation_plan)
+
+    raise RuntimeError(f'Unexpected one-turn Twiss route: {route}')
 
 
-def _compute_periodic_one_turn_twiss_from_start(kwargs, start):
+def _compute_periodic_one_turn_twiss_from_start(kwargs, plan):
 
     tw = _compute_twiss_segment(kwargs)
-    t1 = tw.rows[start:]
-    t2 = tw.rows[:start]
+    t1 = tw.rows[plan.start:]
+    t2 = tw.rows[:plan.start]
     out = xt.TwissTable.concatenate([t1, t2])
     out.zero_at(out.name[0])
     out.name[-1] = '_end_point'
@@ -1733,12 +1734,10 @@ def _compute_periodic_one_turn_twiss_from_start(kwargs, start):
     return out
 
 
-def _compute_open_one_turn_twiss_from_start(kwargs, line, start):
+def _compute_open_one_turn_twiss_from_start(kwargs, plan):
 
     kwargs = kwargs.copy()
     kwargs.pop('end')
-    plan = _plan_open_one_turn_twiss(line=line, start=start,
-                                     reverse=kwargs['reverse'])
 
     t1o = _compute_twiss_segment_for_piece(
         kwargs=kwargs, piece=plan.first_piece, init=kwargs['init'])

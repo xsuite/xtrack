@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from .open_propagation import (
     _TwissPropagationRequest,
+    _plan_open_one_turn_twiss,
     _plan_open_twiss_propagation,
 )
 
@@ -23,7 +24,14 @@ class _TwissInitAcquisitionPlan:
 class _TwissComputationPlan:
     route: str
     init_acquisition: object
+    one_turn_propagation: object
     open_propagation: object
+
+
+@dataclass(frozen=True)
+class _PeriodicOneTurnTwissPlan:
+    start: object
+    output_direction: str
 
 
 def _make_twiss_propagation_request(kwargs):
@@ -54,6 +62,8 @@ def _plan_twiss_computation(kwargs, init):
     route = _plan_twiss_route(request=request, init=init)
     init_acquisition = _plan_twiss_init_acquisition(
         request=request, route=route)
+    one_turn_propagation = _plan_one_turn_twiss_propagation(
+        request=request, route=route)
     init_element_name = _planned_open_twiss_init_element_name(request, init)
     open_propagation = _plan_open_twiss_propagation(
         request=request, init_element_name=init_element_name)
@@ -61,6 +71,7 @@ def _plan_twiss_computation(kwargs, init):
     return _TwissComputationPlan(
         route=route,
         init_acquisition=init_acquisition,
+        one_turn_propagation=one_turn_propagation,
         open_propagation=open_propagation,
     )
 
@@ -68,7 +79,9 @@ def _plan_twiss_computation(kwargs, init):
 def _plan_twiss_route(request, init):
 
     if request.start is not None and request.end is None:
-        return 'one_turn_from_start'
+        if request.periodic:
+            return 'periodic_one_turn_from_start'
+        return 'open_one_turn_from_start'
 
     if (init == 'full_periodic'
             and (request.start is not None or request.end is not None)):
@@ -81,6 +94,10 @@ def _plan_twiss_init_acquisition(request, route):
 
     if route == 'full_periodic_range':
         source = 'full_periodic_solution'
+        scope = 'full_line'
+        computation_direction = 'forward'
+    elif route == 'periodic_one_turn_from_start':
+        source = 'periodic_solution'
         scope = 'full_line'
         computation_direction = 'forward'
     elif request.periodic:
@@ -101,6 +118,24 @@ def _plan_twiss_init_acquisition(request, route):
         computation_direction=computation_direction,
         init_at=request.init_at,
     )
+
+
+def _plan_one_turn_twiss_propagation(request, route):
+
+    if route == 'periodic_one_turn_from_start':
+        return _PeriodicOneTurnTwissPlan(
+            start=request.start,
+            output_direction=request.requested_direction,
+        )
+
+    if route == 'open_one_turn_from_start':
+        return _plan_open_one_turn_twiss(
+            line=request.line,
+            start=request.start,
+            reverse=request.reverse,
+        )
+
+    return None
 
 
 def _planned_open_twiss_init_element_name(request, init):

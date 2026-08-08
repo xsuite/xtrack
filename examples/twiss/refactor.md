@@ -495,14 +495,19 @@ scope to select a full-line or requested-range periodic solution. Propagation
 remains a separate phase after acquisition.
 
 The plan also selects the pre-init orchestration route (`base`,
-`one_turn_from_start`, or `full_periodic_range`). The composed-route dispatcher
-therefore consumes an explicit route instead of rediscovering it from the
-normalized inputs.
+`periodic_one_turn_from_start`, `open_one_turn_from_start`, or
+`full_periodic_range`). The composed-route dispatcher therefore consumes an
+explicit route instead of rediscovering it from the normalized inputs.
 
 For `full_periodic_range`, the plan now describes full-line periodic init
 acquisition separately from open propagation over the requested range. The
 acquired init is propagated through the planned boundary/init pieces instead
 of hiding range routing inside a generic segment call.
+
+One-turn-from-start planning is also explicit. Periodic requests record the
+requested output direction while retaining forward periodic-solution
+acquisition; open requests receive their two boundary pieces directly from the
+high-level computation plan.
 
 The base Twiss path now also uses `_compute_periodic_twiss_init_and_data` and
 `_propagate_twiss_from_init` names at the call site. This is a small step toward
