@@ -544,6 +544,9 @@ classification helper from that preparation module.
 Pre-init composed routes, post-init composed routes, and the base route now
 converge on one `_finalize_twiss_result` call in the prepared-context
 orchestrator.
+Periodic solution acquisition now lives in `periodic_init.py`, which returns a
+`_PeriodicTwissInitData` bundle. The base computation consumes that bundle
+before the separate propagation phase.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
