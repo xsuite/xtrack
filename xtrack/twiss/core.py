@@ -5,7 +5,6 @@
 
 from contextlib import ExitStack
 
-from .twiss_init import TwissInit
 from .twiss_table import TwissTable
 from .input_normalization import (
     _normalize_twiss_inputs,
@@ -15,9 +14,10 @@ from .line_context import (
     _prepare_twiss_line_context,
 )
 from .base_computation import _compute_base_twiss
-from .base_init_acquisition import (
-    _clear_twiss_init_inputs,
-    _complete_init_for_base_twiss,
+from .twiss_init import (
+    TwissInit,
+    _build_twiss_init_from_inputs,
+    _clear_twiss_init_input_fields,
 )
 from .constants import VARS_FOR_TWISS_INIT_GENERATION
 from .element_indexing import _str_to_index
@@ -486,8 +486,8 @@ def twiss_line(line, particle_ref=None, method=None,
             if composed_open_range:
                 # Composition needs the concrete init before splitting the range.
                 data['init'], data['completed_init'] = (
-                    _complete_init_for_base_twiss(data=data))
-                _clear_twiss_init_inputs(data)
+                    _build_twiss_init_from_inputs(data))
+                _clear_twiss_init_input_fields(data)
 
                 if crosses_line_boundary:
                     twiss_res = _handle_loop_around(data.copy())

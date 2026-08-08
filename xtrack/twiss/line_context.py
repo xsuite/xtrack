@@ -7,7 +7,7 @@ import numpy as np
 import xobjects as xo
 
 from .extra_markers import _build_auxiliary_tracker_with_extra_markers
-from .twiss_table import TwissTable
+from .twiss_init import _normalize_twiss_init_input
 
 import xtrack as xt  # To avoid circular imports
 
@@ -39,8 +39,7 @@ def _prepare_twiss_line_context(twiss_context, data):
     if line.enable_time_dependent_vars:
         raise RuntimeError('Time dependent variables not supported in Twiss')
 
-    _resolve_twiss_init_location(data)
-    _extract_twiss_init_from_table(data)
+    _normalize_twiss_init_input(data)
 
     return data
 
@@ -190,24 +189,3 @@ def _prepare_radiation_tracking(twiss_context, data):
 
     if radiation_method == 'kick_as_co':
         assert line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST
-
-
-def _resolve_twiss_init_location(data):
-
-    init_at = data['init_at']
-    if isinstance(init_at, xt.match._LOC):
-        if init_at.name == 'START':
-            data['init_at'] = data['start']
-        elif init_at.name == 'END':
-            data['init_at'] = data['end']
-
-
-def _extract_twiss_init_from_table(data):
-
-    if not isinstance(data['init'], TwissTable):
-        return
-
-    if data['init_at'] is None:
-        data['init_at'] = data['start']
-    data['init'] = data['init'].get_twiss_init(at_element=data['init_at'])
-    data['init_at'] = None

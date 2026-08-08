@@ -4,10 +4,10 @@
 # ######################################### #
 
 from ..general import _print
-from .base_init_acquisition import (
-    _acquire_base_twiss_init,
-    _clear_twiss_init_inputs,
-    _complete_init_for_base_twiss,
+from .twiss_init import (
+    _build_twiss_init_from_inputs,
+    _clear_twiss_init_input_fields,
+    _compute_periodic_twiss_init,
 )
 from .propagation import _propagate_twiss_from_init
 from .base_result import (
@@ -47,9 +47,8 @@ def _compute_base_twiss(data, **overrides):
 
     _set_missing_base_twiss_inputs(data)
     _set_twiss_periodic_mode(data)
-    data['init'], data['completed_init'] = _complete_init_for_base_twiss(
-        data=data)
-    _clear_twiss_init_inputs(data)
+    data['init'], data['completed_init'] = _build_twiss_init_from_inputs(data)
+    _clear_twiss_init_input_fields(data)
     if 'kwargs' not in data:
         data['kwargs'] = data.copy()
 
@@ -109,7 +108,8 @@ def _compute_base_twiss(data, **overrides):
         raise ValueError(
             'delta0 and zeta0 cannot be provided for open twiss')
 
-    data.update(_acquire_base_twiss_init(data))
+    if data['periodic']:
+        data.update(_compute_periodic_twiss_init(data))
 
     if data['only_twiss_init']:
         assert data['periodic'], (

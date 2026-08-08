@@ -118,7 +118,8 @@ def _get_chromatic_functions(line, init, delta_chrom,
                     dpx=dpx + ddpx * dd,
                     dy=dy + ddy * dd,
                     dpy=dpy + ddpy * dd)
-                twinit_aux._complete(line, element_name=init.element_name)
+                twinit_aux._finish_initialization(
+                    line, element_name=init.element_name)
                 tw_init_chrom.W_matrix = twinit_aux.W_matrix
 
             tw_chrom_res.append(

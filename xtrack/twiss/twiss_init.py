@@ -11,6 +11,7 @@ import xobjects as xo
 
 from .. import json as json_utils
 from ..table import Table
+from .constants import VARS_FOR_TWISS_INIT_GENERATION
 from .element_indexing import _str_to_index
 
 import xtrack as xt  # To avoid circular imports
@@ -99,7 +100,7 @@ class TwissInit:
         self.reference_frame = reference_frame
 
         if line is not None and element_name is not None:
-            self._complete(line, element_name)
+            self._finish_initialization(line, element_name)
 
     def to_dict(self):
         '''
@@ -187,7 +188,7 @@ class TwissInit:
 
         return cls.from_dict(dct)
 
-    def _complete(self, line, element_name):
+    def _finish_initialization(self, line, element_name):
 
         if (line is not None and 'reverse' in line.twiss_default
             and line.twiss_default['reverse']):
@@ -280,7 +281,7 @@ class TwissInit:
 
         self.element_name = element_name
 
-    def _needs_complete(self):
+    def _has_deferred_inputs(self):
         return self._temp_co_data is not None or self._temp_optics_data is not None
 
     def copy(self):
@@ -526,81 +527,6 @@ def _W_phys2norm(x, px, y, py, zeta, pzeta, W_matrix, co_dict, nemitt_x=None, ne
     return XX_norm
 
 
-def _complete_twiss_init(start, end, init_at, init,
-                        line, reverse,
-                        x, px, y, py, zeta, delta,
-                        alfx, alfy, betx, bety, bets,
-                        dx, dpx, dy, dpy, dzeta,
-                        mux, muy, muzeta,
-                        ax_chrom, bx_chrom, ay_chrom, by_chrom,
-                        ddx, ddpx, ddy, ddpy,
-                        spin_x, spin_y, spin_z
-                        ):
-
-    if isinstance(init, TwissInit) and init_at is not None:
-        init.element_name = init_at
-
-    if start is not None or end is not None:
-        assert start is not None and end is not None, (
-            'start and end must be provided together')
-        if init is None:
-
-            assert betx is not None and bety is not None, (
-                'betx and bety or init must be provided when start '
-                'and end are used')
-
-            init = xt.TwissInit(
-                element_name=init_at,
-                x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
-                betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
-                dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
-                mux=mux, muy=muy, muzeta=muzeta,
-                ax_chrom=ax_chrom, bx_chrom=bx_chrom,
-                ay_chrom=ay_chrom, by_chrom=by_chrom,
-                ddpx=ddpx, ddx=ddx, ddpy=ddpy, ddy=ddy,
-                spin_x=spin_x, spin_y=spin_y, spin_z=spin_z
-                )
-        else:
-            from .twiss_table import TwissTable
-            if isinstance(init, TwissTable):
-                init = init.get_twiss_init(at_element=init_at)
-            else:
-                assert x is None and px is None and y is None and py is None
-                assert zeta is None and delta is None
-                assert betx is None and alfx is None and bety is None and alfy is None
-                assert bets is None
-                assert dx is None and dpx is None and dy is None and dpy is None
-                assert dzeta is None
-                assert mux is None and muy is None and muzeta is None
-                assert ax_chrom is None and bx_chrom is None
-                assert ay_chrom is None and by_chrom is None
-                assert ddpx is None and ddx is None and ddpy is None and ddy is None
-
-    if init is not None and not isinstance(init, str):
-        assert isinstance(init, TwissInit)
-        init = init.copy() # To avoid changing the one provided
-        if init._needs_complete():
-            assert isinstance(start, str), (
-                'start must be provided as name when an incomplete '
-                'init is provided')
-            init._complete(line=line,
-                    element_name=(init.element_name or start))
-
-        if init.reference_frame is None:
-            init.reference_frame = {
-                True: 'reverse', False: 'proper', None: None}[reverse]
-
-        if reverse is not None:
-            if init.reference_frame == 'proper':
-                assert not(reverse), ('``init`` needs to be given in the '
-                    'proper reference frame when ``reverse`` is False')
-            elif init is not None and init.reference_frame == 'reverse':
-                assert reverse is True, ('``init`` needs to be given in the '
-                    'reverse reference frame when ``reverse`` is True')
-
-    return init
-
-
 def _2d_w_matrix(bet, alf):
     sqrt_bet = np.sqrt(bet)
     return np.array([
@@ -619,3 +545,167 @@ def _6d_w_matrix(betx, bety, alfx, alfy, bets, dx, dpx, dy, dpy):
     out[2, 5] = dy
     out[3, 5] = dpy
     return out
+
+
+# Request-level init handling
+
+_PERIODIC_INIT_ARGUMENTS_FROM_BASE_DATA = (
+    'line',
+    'particle_on_co',
+    'particle_ref',
+    'method',
+    'co_search_settings',
+    'continue_on_closed_orbit_error',
+    'delta0',
+    'zeta0',
+    'zeta_shift',
+    'steps_R_matrix',
+    'W_matrix',
+    'R_matrix',
+    'co_guess',
+    'delta_disp',
+    'symplectify',
+    'matrix_responsiveness_tol',
+    'matrix_stability_tol',
+    'num_turns',
+    'co_search_at',
+    'search_for_t_rev',
+    'spin',
+    'num_turns_search_t_rev',
+    'nemitt_x',
+    'nemitt_y',
+    'step_W_sigma',
+    'compute_R_element_by_element',
+    'only_markers',
+    'only_orbit',
+    'periodic_mode',
+    'include_collective',
+)
+
+
+def _normalize_twiss_init_input(data):
+
+    init_at = data['init_at']
+    if isinstance(init_at, xt.match._LOC):
+        if init_at.name == 'START':
+            data['init_at'] = data['start']
+        elif init_at.name == 'END':
+            data['init_at'] = data['end']
+
+    # Local import avoids a module cycle: twiss_table imports TwissInit.
+    from .twiss_table import TwissTable
+
+    if isinstance(data['init'], TwissTable):
+        if data['init_at'] is None:
+            data['init_at'] = data['start']
+        data['init'] = data['init'].get_twiss_init(
+            at_element=data['init_at'])
+        data['init_at'] = None
+
+
+def _build_twiss_init_from_inputs(data):
+
+    init = data['init']
+    if isinstance(init, TwissInit) and data['init_at'] is not None:
+        init.element_name = data['init_at']
+
+    if data['start'] is not None or data['end'] is not None:
+        assert data['start'] is not None and data['end'] is not None, (
+            'start and end must be provided together')
+
+        if init is None:
+            assert data['betx'] is not None and data['bety'] is not None, (
+                'betx and bety or init must be provided when start '
+                'and end are used')
+            init_kwargs = {
+                name: data[name]
+                for name in VARS_FOR_TWISS_INIT_GENERATION
+            }
+            init_kwargs.update(
+                spin_x=data['spin_x'],
+                spin_y=data['spin_y'],
+                spin_z=data['spin_z'],
+            )
+            init = TwissInit(
+                element_name=data['init_at'], **init_kwargs)
+        else:
+            assert all(
+                data[name] is None
+                for name in VARS_FOR_TWISS_INIT_GENERATION)
+
+    if init is not None and not isinstance(init, str):
+        assert isinstance(init, TwissInit)
+        init = init.copy()  # Do not change the supplied init while completing it.
+        if init._has_deferred_inputs():
+            assert isinstance(data['start'], str), (
+                'start must be provided as name when an incomplete '
+                'init is provided')
+            init._finish_initialization(
+                line=data['line'],
+                element_name=(init.element_name or data['start']))
+
+        if init.reference_frame is None:
+            init.reference_frame = {
+                True: 'reverse', False: 'proper', None: None,
+            }[data['reverse']]
+
+        if data['reverse'] is not None:
+            if init.reference_frame == 'proper':
+                assert not data['reverse'], (
+                    '``init`` needs to be given in the proper reference '
+                    'frame when ``reverse`` is False')
+            elif init.reference_frame == 'reverse':
+                assert data['reverse'] is True, (
+                    '``init`` needs to be given in the reverse reference '
+                    'frame when ``reverse`` is True')
+
+    completed_init = (init.copy() if hasattr(init, 'copy') else init)
+    return init, completed_init
+
+
+def _clear_twiss_init_input_fields(data):
+
+    data['init_at'] = None
+    for field_name in (
+            *VARS_FOR_TWISS_INIT_GENERATION,
+            'spin_x', 'spin_y', 'spin_z'):
+        data[field_name] = None
+
+
+def _compute_periodic_twiss_init(data):
+
+    # Local imports avoid a module cycle: periodic_solution imports TwissInit.
+    from .periodic_solution import _find_periodic_solution
+    from .transfer_matrices import _complete_steps_r_matrix_with_default
+
+    assert data['periodic']
+    if data['start'] is None and data['end'] is None:
+        periodic_start = periodic_end = None
+    else:
+        assert data['start'] is not None and data['end'] is not None
+        periodic_start, periodic_end = data['start'], data['end']
+
+    periodic_init_kwargs = {
+        name: data[name]
+        for name in _PERIODIC_INIT_ARGUMENTS_FROM_BASE_DATA
+    }
+    periodic_init_kwargs.update(
+        start=periodic_start,
+        end=periodic_end,
+    )
+    assert not data['_initial_particles']
+    periodic_init_kwargs['steps_R_matrix'] = (
+        _complete_steps_r_matrix_with_default(
+            periodic_init_kwargs['steps_R_matrix']))
+
+    (init, R_matrix, steps_R_matrix, eigenvalues, Rot, RR_ebe
+     ) = _find_periodic_solution(**periodic_init_kwargs)
+
+    return {
+        'init': init,
+        'R_matrix': R_matrix,
+        'steps_R_matrix': steps_R_matrix,
+        'eigenvalues': eigenvalues,
+        'Rot': Rot,
+        'RR_ebe': RR_ebe,
+    }
