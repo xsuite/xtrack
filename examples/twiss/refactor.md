@@ -454,7 +454,9 @@ The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
 result enrichment. Normalization and composed range routing remain outside the
 class for now to avoid turning the first class step into a broad behavioral
-rewrite.
+rewrite. The computation object stores its working data as attributes rather
+than as a nested state dictionary; this keeps the phase methods readable while
+the public `twiss_line(...)` signature remains unchanged.
 
 Already converted:
 
