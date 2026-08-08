@@ -550,6 +550,8 @@ before the separate propagation phase.
 Base request/range preparation and direct propagation from a completed init now
 live in `base_preparation.py` and `base_propagation.py`. Both are dependency
 leaves that do not import the high-level orchestrator.
+The intentional recursive continuation is isolated in `multiturn.py`; its local
+`twiss_line` import marks the sole recursive dependency explicitly.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and

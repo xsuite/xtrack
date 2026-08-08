@@ -30,6 +30,10 @@ from .base_preparation import (
     _periodic_solution_range_from_plan,
 )
 from .base_propagation import _propagate_twiss_from_init
+from .multiturn import (
+    _kwargs_for_multiturn_continuation,
+    _extend_twiss_result_to_multiple_turns,
+)
 from .chromatic_functions import _get_chromatic_functions, trapz
 from .open_table_composition import (
     _combine_loop_around_twiss_tables,
@@ -961,20 +965,6 @@ def _execute_init_inside_range_twiss_plan(kwargs, plan, init, reverse):
         for piece in plan.pieces)
 
 
-def _kwargs_for_multiturn_continuation(kwargs, data):
-    """Refresh public-call kwargs for recursive multi-turn continuation."""
-
-    out = kwargs.copy()
-
-    for kk in kwargs.keys():
-        if kk in data:
-            out[kk] = data[kk]
-
-    out.pop('input_kwargs', None)
-
-    return out
-
-
 def _compute_twiss_segment(kwargs, **overrides):
 
     segment_kwargs = _kwargs_for_preflighted_twiss_segment(kwargs)
@@ -1305,19 +1295,6 @@ def _add_measured_revolution_period_if_requested(twiss_res, search_for_t_rev):
     twiss_res._data['T_rev'] = twiss_res._data['t_rev'] # deprecated
 
 
-def _extend_twiss_result_to_multiple_turns(twiss_res, num_turns, kwargs):
-
-    kwargs.pop('num_turns')
-    kwargs.pop('init')
-    kwargs.pop('start')
-    kwargs.pop('end')
-
-    tw_mt = _multiturn_twiss(tw0=twiss_res, num_turns=num_turns,
-                             kwargs=kwargs)
-    tw_mt._data['_tw0'] = twiss_res
-    return tw_mt
-
-
 def _select_twiss_result_at_elements(twiss_res, at_elements):
 
     if at_elements is not None:
@@ -1430,53 +1407,3 @@ def _compute_open_one_turn_twiss_from_start(kwargs, plan):
     out = xt.TwissTable.concatenate([t1o, t2o])
     out['completed_init'] = t1o.completed_init
     return out
-
-
-def _multiturn_twiss(tw0, num_turns, kwargs):
-
-    twisses_to_merge = _compute_multiturn_twiss_parts(
-        tw0=tw0, num_turns=num_turns, kwargs=kwargs)
-
-    return _combine_multiturn_twiss_tables(twisses_to_merge)
-
-
-def _compute_multiturn_twiss_parts(tw0, num_turns, kwargs):
-
-    tw_curr = tw0
-    twisses_to_merge = []
-
-    for i_turn in range(num_turns):
-
-        twisses_to_merge.append(
-            _multiturn_start_row(tw_curr=tw_curr, i_turn=i_turn))
-        twisses_to_merge.append(tw_curr)
-
-        if i_turn == num_turns - 1:
-            break # need n-1 twisses
-
-        tw_curr = _continue_multiturn_twiss(tw_curr=tw_curr, kwargs=kwargs)
-
-    return twisses_to_merge
-
-
-def _multiturn_start_row(tw_curr, i_turn):
-
-    tw_start_turn = tw_curr.rows[0]
-    tw_start_turn.name[0] = f'_turn_{i_turn}'
-    return tw_start_turn
-
-
-def _continue_multiturn_twiss(tw_curr, kwargs):
-
-    line = kwargs['line']
-    tini1 = tw_curr.get_twiss_init(-1)
-    tini1.element_name = tw_curr.name[0]
-
-    return twiss_line(
-        **kwargs, init=tini1, start=tw_curr.name[0],
-        end=line._element_names_unique[-1])
-
-
-def _combine_multiturn_twiss_tables(twisses_to_merge):
-
-    return xt.TwissTable.concatenate(twisses_to_merge)
