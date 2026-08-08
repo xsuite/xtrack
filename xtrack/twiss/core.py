@@ -612,19 +612,8 @@ def twiss_line(line, particle_ref=None, method=None,
             return _finalize_twiss_result(
                 composed_twiss_res, input_kwargs, zero_at=zero_at_requested)
 
-        base_twiss = _TwissBaseComputation(locals().copy())
-        base_twiss.prepare_for_propagation_from_init()
-
-        if only_twiss_init:
-            assert periodic, '``only_twiss_init`` can only be used in periodic mode'
-            return base_twiss.init_for_only_twiss_init()
-
-        if only_markers and radiation_analysis:
-            raise NotImplementedError(
-                '``only_markers`` not implemented for ``radiation_analysis``')
-
-        twiss_res = base_twiss.propagate_from_init()
-        twiss_res = base_twiss.finish_result(twiss_res)
+        twiss_res = _compute_base_twiss_after_explicit_init_completion(
+            data=locals().copy())
 
         return _finalize_twiss_result(twiss_res, input_kwargs, zero_at=zero_at_requested)
 
@@ -1249,6 +1238,12 @@ def _compute_base_twiss(data):
         data=data)
     _clear_twiss_init_inputs(data)
     data['kwargs'] = data.copy()
+
+    return _compute_base_twiss_after_explicit_init_completion(data)
+
+
+def _compute_base_twiss_after_explicit_init_completion(data):
+    """Acquire any periodic init, propagate, and finish one base result."""
 
     base_twiss = _TwissBaseComputation(data)
     base_twiss.prepare_for_propagation_from_init()

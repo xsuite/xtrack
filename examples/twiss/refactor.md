@@ -527,6 +527,10 @@ Composed non-multiturn routes pass normalized state dictionaries directly to
 their private helpers. Broad public-kwargs refresh is retained only as the
 narrowly named `_kwargs_for_multiturn_continuation`, supporting the intentional
 recursive multi-turn path.
+The public base fall-through and private segment engine now share
+`_compute_base_twiss_after_explicit_init_completion`. This keeps explicit init
+completion outside the shared lifecycle while centralizing periodic acquisition,
+propagation, and result finishing.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
