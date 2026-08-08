@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from .element_indexing import _str_to_index
 
 
+# Plan data
+
 @dataclass(frozen=True)
 class _TwissPropagationRequest:
     line: object
@@ -20,6 +22,7 @@ class _TwissPropagationRequest:
 
     @property
     def requested_direction(self):
+        # With reverse=True, start/end are already in reverse traversal order.
         return 'backward' if self.reverse else 'forward'
 
 
@@ -69,6 +72,8 @@ class _TwissComputationPlan:
     init_acquisition: object
     open_propagation: object
 
+
+# High-level planning
 
 def _make_twiss_propagation_request(kwargs):
 
@@ -139,6 +144,8 @@ def _planned_open_twiss_init_element_name(request, init):
     return request.line._element_names_unique[0]
 
 
+# Generic open propagation planning
+
 def _plan_open_twiss_propagation(request, init_element_name):
     """Plan open Twiss propagation after a TwissInit is available.
 
@@ -198,12 +205,15 @@ def _twiss_request_crosses_line_start(request):
     )
 
 
+# Piece planning
+
 def _plan_split_open_twiss_pieces(request, init_element_name,
                                   crosses_line_start):
 
     pieces = []
     if crosses_line_start:
-        pieces.extend(_plan_line_start_split_pieces(request, init_element_name))
+        pieces.extend(
+            _plan_line_boundary_split_pieces(request, init_element_name))
     else:
         pieces.extend(_plan_init_split_pieces(request, init_element_name))
 
@@ -228,7 +238,7 @@ def _plan_init_split_pieces(request, init_element_name):
     )
 
 
-def _plan_line_start_split_pieces(request, init_element_name):
+def _plan_line_boundary_split_pieces(request, init_element_name):
 
     line_start = request.line._element_names_unique[0]
     line_end = request.line._element_names_unique[-1]
@@ -299,6 +309,8 @@ def _plan_line_start_split_pieces(request, init_element_name):
     )
 
 
+# Route-specific plans
+
 def _plan_loop_around_twiss_parts(line, start, end, init, reverse):
 
     ele_name_init = init.element_name
@@ -322,6 +334,8 @@ def _plan_loop_around_twiss_parts(line, start, end, init, reverse):
         request=request, init_element_name=ele_name_init)
 
     _assert_open_plan_for_loop_around(open_plan)
+    # Table order stays start-boundary then boundary-end; execution starts from
+    # whichever table piece contains the provided init.
     first_table_piece, second_table_piece = (
         _loop_around_table_pieces_from_open_plan(open_plan))
     init_piece_role = _loop_around_init_piece_role(
@@ -341,6 +355,57 @@ def _plan_loop_around_twiss_parts(line, start, end, init, reverse):
         transfer_init_element_name=transfer_init_element_name,
     )
 
+
+def _plan_init_inside_range_twiss_parts(line, start, end, init, reverse):
+
+    request = _TwissPropagationRequest(
+        line=line,
+        start=start,
+        end=end,
+        reverse=reverse,
+        periodic=False,
+        periodic_mode=None,
+        init_at=init.element_name,
+    )
+    plan = _plan_open_twiss_propagation(
+        request=request, init_element_name=init.element_name)
+
+    _assert_open_plan_for_init_inside_range(plan)
+
+    return plan
+
+
+def _plan_open_one_turn_twiss(line, start, reverse):
+
+    if reverse:
+        line_boundary_end = line._element_names_unique[0]
+        line_boundary_start = line._element_names_unique[-1]
+    else:
+        line_boundary_end = line._element_names_unique[-1]
+        line_boundary_start = line._element_names_unique[0]
+
+    first_piece = _OpenTwissPiecePlan(
+        role='start_to_line_boundary',
+        start=start,
+        end=line_boundary_end,
+        init_at=start,
+    )
+    second_piece = _OpenTwissPiecePlan(
+        role='line_boundary_to_start',
+        start=line_boundary_start,
+        end=start,
+        init_at=line_boundary_start,
+    )
+
+    return _OpenOneTurnTwissPlan(
+        first_piece=first_piece,
+        second_piece=second_piece,
+        transfer_init_at='_end_point',
+        transfer_init_element_name=line_boundary_start,
+    )
+
+
+# Internal helpers
 
 def _loop_around_table_pieces_from_open_plan(open_plan):
 
@@ -394,52 +459,3 @@ def _loop_around_init_piece_role(line, start, end, init, reverse):
 
     raise RuntimeError(
         'Boundary conditions not at start or end of the specified range')
-
-
-def _plan_init_inside_range_twiss_parts(line, start, end, init, reverse):
-
-    request = _TwissPropagationRequest(
-        line=line,
-        start=start,
-        end=end,
-        reverse=reverse,
-        periodic=False,
-        periodic_mode=None,
-        init_at=init.element_name,
-    )
-    plan = _plan_open_twiss_propagation(
-        request=request, init_element_name=init.element_name)
-
-    _assert_open_plan_for_init_inside_range(plan)
-
-    return plan
-
-
-def _plan_open_one_turn_twiss(line, start, reverse):
-
-    if reverse:
-        line_boundary_end = line._element_names_unique[0]
-        line_boundary_start = line._element_names_unique[-1]
-    else:
-        line_boundary_end = line._element_names_unique[-1]
-        line_boundary_start = line._element_names_unique[0]
-
-    first_piece = _OpenTwissPiecePlan(
-        role='start_to_line_boundary',
-        start=start,
-        end=line_boundary_end,
-        init_at=start,
-    )
-    second_piece = _OpenTwissPiecePlan(
-        role='line_boundary_to_start',
-        start=line_boundary_start,
-        end=start,
-        init_at=line_boundary_start,
-    )
-
-    return _OpenOneTurnTwissPlan(
-        first_piece=first_piece,
-        second_piece=second_piece,
-        transfer_init_at='_end_point',
-        transfer_init_element_name=line_boundary_start,
-    )
