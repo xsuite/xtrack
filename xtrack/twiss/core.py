@@ -1006,6 +1006,14 @@ class _LoopAroundTwissPlan:
 
 
 @dataclass(frozen=True)
+class _OpenOneTurnTwissPlan:
+    first_piece: object
+    second_piece: object
+    transfer_init_at: object
+    transfer_init_element_name: object
+
+
+@dataclass(frozen=True)
 class _OpenTwissPropagationPlan:
     output_direction: str
     crosses_line_start: bool
@@ -2100,28 +2108,55 @@ def _compute_open_one_turn_twiss_from_start(kwargs, line, start):
 
     kwargs = kwargs.copy()
     kwargs.pop('end')
-    if kwargs['reverse']:
-        first_part_end = line._element_names_unique[0]
-        second_part_start = line._element_names_unique[-1]
-    else:
-        first_part_end = line._element_names_unique[-1]
-        second_part_start = _line_start_element_name(line)
+    plan = _plan_open_one_turn_twiss(line=line, start=start,
+                                     reverse=kwargs['reverse'])
 
-    t1o = _compute_twiss_segment(kwargs, start=start, end=first_part_end)
-    init_part2 = t1o.get_twiss_init('_end_point')
-    init_part2.element_name = second_part_start
+    t1o = _compute_twiss_segment_for_piece(
+        kwargs=kwargs, piece=plan.first_piece, init=kwargs['init'])
+    init_part2 = t1o.get_twiss_init(plan.transfer_init_at)
+    init_part2.element_name = plan.transfer_init_element_name
 
     for kk in VARS_FOR_TWISS_INIT_GENERATION:
         kwargs.pop(kk, None)
     kwargs.pop('init')
-    t2o = _compute_twiss_segment(
-        kwargs, start=second_part_start, end=start, init=init_part2)
+    t2o = _compute_twiss_segment_for_piece(
+        kwargs=kwargs, piece=plan.second_piece, init=init_part2)
     # remove repeated element
     t2o = t2o.rows[:-1]
     t2o.name[-1] = '_end_point'
     out = xt.TwissTable.concatenate([t1o, t2o])
     out['completed_init'] = t1o.completed_init
     return out
+
+
+def _plan_open_one_turn_twiss(line, start, reverse):
+
+    if reverse:
+        line_boundary_end = line._element_names_unique[0]
+        line_boundary_start = line._element_names_unique[-1]
+    else:
+        line_boundary_end = line._element_names_unique[-1]
+        line_boundary_start = _line_start_element_name(line)
+
+    first_piece = _OpenTwissPiecePlan(
+        role='start_to_line_boundary',
+        start=start,
+        end=line_boundary_end,
+        init_at=start,
+    )
+    second_piece = _OpenTwissPiecePlan(
+        role='line_boundary_to_start',
+        start=line_boundary_start,
+        end=start,
+        init_at=line_boundary_start,
+    )
+
+    return _OpenOneTurnTwissPlan(
+        first_piece=first_piece,
+        second_piece=second_piece,
+        transfer_init_at='_end_point',
+        transfer_init_element_name=line_boundary_start,
+    )
 
 
 def _line_start_element_name(line):

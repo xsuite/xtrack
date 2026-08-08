@@ -477,6 +477,9 @@ Already converted:
 - `start is not None and end is None`: now delegates the one-turn table
   composition to `_compute_one_turn_twiss_from_start`, which dispatches to
   explicit periodic and open one-turn helpers.
+- open one-turn-from-start now builds an explicit `_OpenOneTurnTwissPlan` with
+  separate line-boundary pieces and transfer-init metadata. Periodic one-turn
+  remains on the existing table-rotation path.
 - `init == "full_periodic"` with a range: now separates full-periodic init
   extraction (`_get_twiss_init_from_full_periodic`) from the requested range
   segment computation.
