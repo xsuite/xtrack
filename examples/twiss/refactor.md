@@ -437,6 +437,7 @@ Init computation and Twiss propagation should remain separate in code:
 A passive planner has been added in `core.py` to document this target structure:
 
 - `_TwissInitAcquisitionPlan`
+- `_PeriodicTwissInitData`
 - `_OpenTwissPropagationPlan`
 - `_TwissSegmentPiecePlan`
 - `_plan_twiss_computation`
@@ -444,6 +445,10 @@ A passive planner has been added in `core.py` to document this target structure:
 It is not used by the production path yet. The next step is to make the planner
 precise enough to replace the existing loop-around and init-inside-range helper
 branches one case at a time.
+
+The base Twiss path now also uses `_compute_periodic_twiss_init_and_data` and
+`_propagate_twiss_from_init` names at the call site. This is a small step toward
+keeping periodic init computation separate from propagation through the line.
 
 Already converted:
 
