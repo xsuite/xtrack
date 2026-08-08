@@ -38,8 +38,8 @@ xtrack/xtrack/twiss/
     twiss_init.py
     twiss_table.py
     computation_plan.py
-    open_propagation.py
-    open_table_composition.py
+    base_open_propagation.py
+    base_open_table_composition.py
     beam_covariance.py
     closed_orbit.py
     transfer_matrices.py
@@ -228,7 +228,7 @@ This helper propagates a completed `TwissInit` through a selected range and
 builds the element-by-element `TwissTable`. It is the open/range Twiss engine,
 distinct from periodic-solution preparation and optional result enrichment.
 
-### `open_propagation.py`
+### `base_open_propagation.py`
 
 Move pure planning code for composed open Twiss propagation:
 
@@ -244,7 +244,7 @@ Move pure planning code for composed open Twiss propagation:
 Keep segment execution in `core.py` while it still calls back into
 `_compute_twiss_segment`.
 
-### `open_table_composition.py`
+### `base_open_table_composition.py`
 
 Move table-composition code for composed open Twiss propagation:
 
@@ -474,7 +474,7 @@ Init computation and Twiss propagation should remain separate in code:
 - the orchestration layer may connect the two phases, but should avoid hiding
   init computation inside segment propagation helpers.
 
-The planner structures in `computation_plan.py` and `open_propagation.py`
+The planner structures in `computation_plan.py` and `base_open_propagation.py`
 document this target structure:
 
 - `_TwissInitAcquisitionPlan`
@@ -568,11 +568,12 @@ signature, documentation, input normalization, and temporary line-context
 setup, then delegates through one orchestration entry point.
 The orchestration layer delegates base-piece calls through
 `segment_computation.py`, while loop-around and init-inside-range execution live
-in `open_range_execution.py`. Pure range planning and table composition remain
-separate in `open_propagation.py` and `open_table_composition.py`.
+in `base_open_range_execution.py`. Pure range planning and table composition
+remain separate in `base_open_propagation.py` and
+`base_open_table_composition.py`.
 Periodic and open one-turn-from-start execution now lives in
-`one_turn_execution.py`; `base_orchestration.py` only selects that route and supplies
-its computation and propagation plans.
+`base_one_turn_execution.py`; `base_orchestration.py` only selects that route
+and supplies its computation and propagation plans.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and

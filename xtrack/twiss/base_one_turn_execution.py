@@ -64,4 +64,3 @@ def _compute_open_one_turn_twiss_from_start(kwargs, plan):
     out = xt.TwissTable.concatenate([t1o, t2o])
     out['completed_init'] = t1o.completed_init
     return out
-

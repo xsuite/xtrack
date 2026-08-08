@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass
 
-from .open_propagation import (
+from .base_open_propagation import (
     _TwissPropagationRequest,
     _plan_open_one_turn_twiss,
     _plan_open_twiss_propagation,

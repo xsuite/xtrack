@@ -4,11 +4,11 @@
 # ######################################### #
 
 from .element_indexing import _str_to_index
-from .open_propagation import (
+from .base_open_propagation import (
     _plan_init_inside_range_twiss_parts,
     _plan_loop_around_twiss_parts,
 )
-from .open_table_composition import (
+from .base_open_table_composition import (
     _combine_init_inside_range_twiss_tables,
     _combine_loop_around_twiss_tables,
 )
@@ -176,4 +176,3 @@ def _execute_init_inside_range_twiss_plan(kwargs, plan, init, reverse):
             init=init,
             reverse=reverse)
         for piece in plan.pieces)
-

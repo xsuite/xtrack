@@ -12,8 +12,8 @@ from .base_init_acquisition import (
 )
 from .computation_plan import _plan_twiss_computation
 from .finalize import _finalize_twiss_result
-from .one_turn_execution import _compute_one_turn_twiss_from_plan
-from .open_range_execution import (
+from .base_one_turn_execution import _compute_one_turn_twiss_from_plan
+from .base_open_range_execution import (
     _handle_init_inside_range,
     _handle_loop_around,
     _propagate_full_periodic_init_over_range,
