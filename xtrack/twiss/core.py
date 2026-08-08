@@ -577,30 +577,8 @@ def twiss_line(line, particle_ref=None, method=None,
             init = init.get_twiss_init(at_element=init_at)
             init_at = None
 
-        composed_twiss_res = None
-        if start is not None and end is None:
-            kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            composed_twiss_res = _compute_one_turn_twiss_from_start(
-                kwargs=kwargs,
-                line=line,
-                start=start,
-                init=init,
-                betx=betx,
-                bety=bety,
-            )
-        elif init == 'full_periodic' and (start is not None or end is not None):
-            kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            kwargs = _prepare_kwargs_for_full_periodic_twiss(kwargs)
-            full_periodic_init = _compute_full_periodic_twiss_init(
-                kwargs=kwargs, start=start, init_at=init_at)
-            composed_twiss_res = _compute_twiss_segment(
-                kwargs,
-                start=start,
-                end=end,
-                init=full_periodic_init,
-            )
-            if zero_at_requested is None:
-                composed_twiss_res.zero_at(start)
+        composed_twiss_res = _compute_composed_twiss_before_init_completion(
+            kwargs=kwargs, data=locals().copy())
 
         if composed_twiss_res is not None:
             return _finalize_twiss_result(
@@ -628,23 +606,8 @@ def twiss_line(line, particle_ref=None, method=None,
         ddx=None; ddpx=None; ddy=None; ddpy=None
         spin_x=None; spin_y=None; spin_z=None
 
-        composed_twiss_res = None
-
-        # Twiss goes through the start of the line
-        rv = (-1 if reverse else 1)
-        if not periodic and (
-            rv * _str_to_index(line, start) > rv * _str_to_index(line, end)):
-
-            kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            composed_twiss_res = _handle_loop_around(kwargs)
-
-        # init is not at the boundary
-        elif (not periodic and not isinstance(init, str)
-                and init.element_name != start
-                and init.element_name != end):
-
-            kwargs = _kwargs_for_composed_twiss_call(kwargs, locals().copy())
-            composed_twiss_res = _handle_init_inside_range(kwargs)
+        composed_twiss_res = _compute_composed_twiss_after_init_completion(
+            kwargs=kwargs, data=locals().copy())
 
         if composed_twiss_res is not None:
             return _finalize_twiss_result(
@@ -665,6 +628,80 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res = base_twiss.finish_result(twiss_res)
 
         return _finalize_twiss_result(twiss_res, input_kwargs, zero_at=zero_at_requested)
+
+
+def _compute_composed_twiss_before_init_completion(kwargs, data):
+
+    composed_twiss_res = None
+
+    if data['start'] is not None and data['end'] is None:
+        call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
+        composed_twiss_res = _compute_one_turn_twiss_from_start(
+            kwargs=call_kwargs,
+            line=call_kwargs['line'],
+            start=call_kwargs['start'],
+            init=call_kwargs['init'],
+            betx=call_kwargs['betx'],
+            bety=call_kwargs['bety'],
+        )
+
+    elif (data['init'] == 'full_periodic'
+          and (data['start'] is not None or data['end'] is not None)):
+        call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
+        call_kwargs = _prepare_kwargs_for_full_periodic_twiss(call_kwargs)
+        full_periodic_init = _compute_full_periodic_twiss_init(
+            kwargs=call_kwargs,
+            start=data['start'],
+            init_at=data['init_at'])
+        composed_twiss_res = _compute_twiss_segment(
+            call_kwargs,
+            start=data['start'],
+            end=data['end'],
+            init=full_periodic_init,
+        )
+        if data['zero_at_requested'] is None:
+            composed_twiss_res.zero_at(data['start'])
+
+    return composed_twiss_res
+
+
+def _compute_composed_twiss_after_init_completion(kwargs, data):
+
+    composed_twiss_res = None
+
+    if _twiss_goes_through_line_boundary(data):
+        call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
+        composed_twiss_res = _handle_loop_around(call_kwargs)
+
+    elif _init_is_inside_open_range(data):
+        call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
+        composed_twiss_res = _handle_init_inside_range(call_kwargs)
+
+    return composed_twiss_res
+
+
+def _twiss_goes_through_line_boundary(data):
+
+    rv = -1 if data['reverse'] else 1
+
+    return (
+        not data['periodic']
+        and rv * _str_to_index(data['line'], data['start'])
+        > rv * _str_to_index(data['line'], data['end'])
+    )
+
+
+def _init_is_inside_open_range(data):
+
+    init = data['init']
+
+    return (
+        not data['periodic']
+        and not isinstance(init, str)
+        and init.element_name != data['start']
+        and init.element_name != data['end']
+    )
+
 
 @dataclass(frozen=True)
 class _PeriodicTwissInitData:
