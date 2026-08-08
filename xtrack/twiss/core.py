@@ -1366,9 +1366,10 @@ def _handle_init_inside_range(kwargs):
     _assert_init_inside_range_is_supported(
         line=line, start=start, end=end, init=init, reverse=reverse)
 
-    tw1, tw2 = _compute_init_inside_range_twiss_parts(
-        kwargs=kwargs, line=line, start=start, end=end, init=init,
-        reverse=reverse)
+    plan = _plan_init_inside_range_twiss_parts(
+        line=line, start=start, end=end, init=init, reverse=reverse)
+    tw1, tw2 = _execute_init_inside_range_twiss_plan(
+        kwargs=kwargs, plan=plan, init=init, reverse=reverse)
 
     return _combine_init_inside_range_twiss_tables(tw1, tw2, init)
 
@@ -1392,17 +1393,38 @@ def _assert_init_inside_range_is_supported(line, start, end, init, reverse):
         assert _str_to_index(line, ele_name_init) <= _str_to_index(line, end)
 
 
-def _compute_init_inside_range_twiss_parts(kwargs, line, start, end, init,
-                                           reverse):
+def _plan_init_inside_range_twiss_parts(line, start, end, init, reverse):
 
-    ele_name_init = init.element_name
+    request = _TwissPropagationRequest(
+        line=line,
+        start=start,
+        end=end,
+        reverse=reverse,
+        periodic=False,
+        periodic_mode=None,
+        init_at=init.element_name,
+    )
+    plan = _plan_open_twiss_propagation(
+        request=request, init_element_name=init.element_name)
 
-    tw1 = _compute_twiss_segment(
-        kwargs, start=start, end=ele_name_init, init=init, reverse=reverse)
-    tw2 = _compute_twiss_segment(
-        kwargs, start=ele_name_init, end=end, init=init, reverse=reverse)
+    assert not plan.crosses_line_start
+    assert not plan.init_is_at_boundary
+    assert [piece.role for piece in plan.pieces] == [
+        'before_init', 'after_init']
 
-    return tw1, tw2
+    return plan
+
+
+def _execute_init_inside_range_twiss_plan(kwargs, plan, init, reverse):
+
+    return tuple(
+        _compute_twiss_segment(
+            kwargs,
+            start=piece.start,
+            end=piece.end,
+            init=init,
+            reverse=reverse)
+        for piece in plan.pieces)
 
 
 def _combine_init_inside_range_twiss_tables(tw1, tw2, init):

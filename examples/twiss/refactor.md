@@ -487,6 +487,9 @@ Already converted:
 - init-inside-range open ranges: `_handle_init_inside_range` now separates marker
   support validation, segment construction, and table combination into named
   helpers.
+- init-inside-range open ranges now route segment construction through the
+  open-propagation planner, while keeping the existing validation and table
+  combination behavior.
 - multi-turn Twiss: `_multiturn_twiss` now separates turn-table construction,
   continuation to the next turn, and final table concatenation into named
   helpers.
