@@ -185,7 +185,7 @@ Move the main computation orchestration:
 - `_handle_loop_around`
 - `_handle_init_inside_range`
 - `_multiturn_twiss`
-- `_kwargs_for_composed_twiss_call`
+- `_kwargs_for_multiturn_continuation`
 - `_str_to_index`
 
 After the package split works, refactor `twiss_line` internally so recursive
@@ -428,11 +428,10 @@ change.
 
 ## Plan to remove recursive `twiss_line` re-entry
 
-Several branches in `twiss_line` still call `twiss_line(...)` again after
-mutating a kwargs dictionary. That pattern makes control flow hard to follow and
-keeps `_kwargs_for_composed_twiss_call` alive as scaffolding. The goal is not to
-remove every multi-segment Twiss computation in one step, but to replace hidden
-top-level re-entry with explicit phases and named helpers.
+Historically, several branches in `twiss_line` called `twiss_line(...)` again
+after mutating a kwargs dictionary. The refactor below replaces that hidden
+top-level re-entry with explicit phases and named helpers. Multi-turn
+continuation remains recursive by design.
 
 ### Target orchestration shape
 
@@ -484,9 +483,9 @@ document this target structure:
 - `_OpenTwissPiecePlan`
 - `_plan_twiss_computation`
 
-The high-level computation planner now supplies the open propagation plan for
-the post-init non-periodic loop-around and init-inside-range composed paths.
-Periodic orchestration and one-turn-from-start are still future planner routes.
+The high-level computation planner supplies open propagation plans for
+post-init ranges, full-periodic ranges, and one-turn-from-start routes. Base
+periodic init acquisition is also selected by the computation plan.
 
 The computation plan is built before explicit init completion, while
 `init_at` is still available. The base computation now dispatches supplied-init
@@ -554,14 +553,14 @@ Already converted:
   required track/config preservation contexts before the main computation path
   instead of recursively calling `twiss_line`.
 - `start is not None and end is None`: now delegates the one-turn table
-  composition to `_compute_one_turn_twiss_from_start`, which dispatches to
+  composition to `_compute_one_turn_twiss_from_plan`, which dispatches to
   explicit periodic and open one-turn helpers.
 - open one-turn-from-start now builds an explicit `_OpenOneTurnTwissPlan` with
   separate line-boundary pieces and transfer-init metadata. Periodic one-turn
   remains on the existing table-rotation path.
 - `init == "full_periodic"` with a range: now separates full-periodic init
-  computation (`_compute_full_periodic_twiss_init`) from the requested range
-  segment computation.
+  acquisition (`_acquire_full_periodic_twiss_init`) from planned open
+  propagation over the requested range.
 - loop-around open ranges: `_handle_loop_around` now builds an explicit
   `_LoopAroundTwissPlan`, keeping final table order separate from execution
   order. The table combination remains unchanged.
