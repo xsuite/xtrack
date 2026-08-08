@@ -54,7 +54,7 @@ class _OpenOneTurnTwissPlan:
 @dataclass(frozen=True)
 class _OpenTwissPropagationPlan:
     output_direction: str
-    crosses_line_start: bool
+    crosses_line_boundary: bool
     init_is_at_boundary: bool
     pieces: tuple
 
@@ -69,10 +69,10 @@ def _plan_open_twiss_propagation(request, init_element_name):
     route-specific executors.
     """
 
-    crosses_line_start = _twiss_request_crosses_line_start(request)
+    crosses_line_boundary = _twiss_request_crosses_line_boundary(request)
     init_is_at_boundary = init_element_name in (request.start, request.end)
 
-    if init_is_at_boundary and not crosses_line_start:
+    if init_is_at_boundary and not crosses_line_boundary:
         pieces = (_OpenTwissPiecePlan(
             role='boundary_init',
             start=request.start,
@@ -83,12 +83,12 @@ def _plan_open_twiss_propagation(request, init_element_name):
         pieces = _plan_split_open_twiss_pieces(
             request=request,
             init_element_name=init_element_name,
-            crosses_line_start=crosses_line_start,
+            crosses_line_boundary=crosses_line_boundary,
         )
 
     return _OpenTwissPropagationPlan(
         output_direction=request.requested_direction,
-        crosses_line_start=crosses_line_start,
+        crosses_line_boundary=crosses_line_boundary,
         init_is_at_boundary=init_is_at_boundary,
         pieces=pieces,
     )
@@ -96,7 +96,7 @@ def _plan_open_twiss_propagation(request, init_element_name):
 
 def _assert_open_plan_for_init_inside_range(plan):
 
-    assert not plan.crosses_line_start
+    assert not plan.crosses_line_boundary
     assert not plan.init_is_at_boundary
     assert [piece.role for piece in plan.pieces] == [
         'before_init', 'after_init']
@@ -104,11 +104,11 @@ def _assert_open_plan_for_init_inside_range(plan):
 
 def _assert_open_plan_for_loop_around(plan):
 
-    assert plan.crosses_line_start
+    assert plan.crosses_line_boundary
     assert len(plan.pieces) in (2, 3)
 
 
-def _twiss_request_crosses_line_start(request):
+def _twiss_request_crosses_line_boundary(request):
 
     if request.start is None or request.end is None:
         return False
@@ -123,10 +123,10 @@ def _twiss_request_crosses_line_start(request):
 # Piece planning
 
 def _plan_split_open_twiss_pieces(request, init_element_name,
-                                  crosses_line_start):
+                                  crosses_line_boundary):
 
     pieces = []
-    if crosses_line_start:
+    if crosses_line_boundary:
         pieces.extend(
             _plan_line_boundary_split_pieces(request, init_element_name))
     else:

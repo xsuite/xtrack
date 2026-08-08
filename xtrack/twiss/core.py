@@ -29,7 +29,9 @@ from .open_propagation import (
     _plan_loop_around_twiss_parts,
     _plan_init_inside_range_twiss_parts,
     _plan_open_one_turn_twiss,
+    _twiss_request_crosses_line_boundary,
 )
+from .computation_plan import _make_twiss_propagation_request
 from .finalize import _finalize_twiss_result
 from .spin import _get_spin_polarization
 from .non_linear_chromaticity import get_non_linear_chromaticity
@@ -682,12 +684,10 @@ def _compute_composed_twiss_after_init_completion(kwargs, data):
 
 def _twiss_goes_through_line_boundary(data):
 
-    rv = -1 if data['reverse'] else 1
-
+    request = _make_twiss_propagation_request(data)
     return (
-        not data['periodic']
-        and rv * _str_to_index(data['line'], data['start'])
-        > rv * _str_to_index(data['line'], data['end'])
+        not request.periodic
+        and _twiss_request_crosses_line_boundary(request)
     )
 
 
