@@ -484,9 +484,9 @@ document this target structure:
 - `_OpenTwissPiecePlan`
 - `_plan_twiss_computation`
 
-The open propagation planner is now active for the non-periodic loop-around and
-init-inside-range composed paths. Periodic orchestration and one-turn-from-start
-are still future planner routes.
+The high-level computation planner now supplies the open propagation plan for
+the post-init non-periodic loop-around and init-inside-range composed paths.
+Periodic orchestration and one-turn-from-start are still future planner routes.
 
 The base Twiss path now also uses `_compute_periodic_twiss_init_and_data` and
 `_propagate_twiss_from_init` names at the call site. This is a small step toward

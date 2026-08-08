@@ -30,12 +30,11 @@ from .open_table_composition import (
     _combine_init_inside_range_twiss_tables,
 )
 from .open_propagation import (
-    _plan_open_twiss_propagation,
     _plan_loop_around_twiss_parts,
     _plan_init_inside_range_twiss_parts,
     _plan_open_one_turn_twiss,
 )
-from .computation_plan import _make_twiss_propagation_request
+from .computation_plan import _plan_twiss_computation
 from .finalize import _finalize_twiss_result
 from .spin import _get_spin_polarization
 from .non_linear_chromaticity import get_non_linear_chromaticity
@@ -612,8 +611,10 @@ def twiss_line(line, particle_ref=None, method=None,
         ddx=None; ddpx=None; ddy=None; ddpy=None
         spin_x=None; spin_y=None; spin_z=None
 
+        twiss_computation_plan = _plan_twiss_computation(locals().copy(), init)
         composed_twiss_res = _compute_composed_twiss_after_init_completion(
-            kwargs=kwargs, data=locals().copy())
+            kwargs=kwargs, data=locals().copy(),
+            computation_plan=twiss_computation_plan)
 
         if composed_twiss_res is not None:
             return _finalize_twiss_result(
@@ -671,39 +672,36 @@ def _compute_composed_twiss_before_init_completion(kwargs, data):
     return composed_twiss_res
 
 
-def _compute_composed_twiss_after_init_completion(kwargs, data):
+def _compute_composed_twiss_after_init_completion(
+        kwargs, data, computation_plan):
 
     composed_twiss_res = None
-    open_plan = _plan_composed_open_twiss_after_init_completion(data)
+    open_plan = _open_propagation_plan_after_init_completion(
+        data=data, computation_plan=computation_plan)
 
-    if open_plan is None:
-        return composed_twiss_res
+    if open_plan is not None:
+        call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
 
-    call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
+        if open_plan.crosses_line_boundary:
+            composed_twiss_res = _handle_loop_around(
+                call_kwargs, open_plan=open_plan)
 
-    if open_plan.crosses_line_boundary:
-        composed_twiss_res = _handle_loop_around(
-            call_kwargs, open_plan=open_plan)
-
-    elif not open_plan.init_is_at_boundary:
-        composed_twiss_res = _handle_init_inside_range(
-            call_kwargs, open_plan=open_plan)
+        elif not open_plan.init_is_at_boundary:
+            composed_twiss_res = _handle_init_inside_range(
+                call_kwargs, open_plan=open_plan)
 
     return composed_twiss_res
 
 
-def _plan_composed_open_twiss_after_init_completion(data):
+def _open_propagation_plan_after_init_completion(data, computation_plan):
 
     init = data['init']
+    open_plan = None
 
-    if data['periodic'] or isinstance(init, str):
-        return None
+    if not data['periodic'] and not isinstance(init, str):
+        open_plan = computation_plan.open_propagation
 
-    request = _make_twiss_propagation_request(data)
-    return _plan_open_twiss_propagation(
-        request=request,
-        init_element_name=init.element_name,
-    )
+    return open_plan
 
 
 @dataclass(frozen=True)
