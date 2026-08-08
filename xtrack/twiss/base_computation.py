@@ -152,7 +152,9 @@ def _compute_base_twiss(data, **overrides):
         initial_particles=data['_initial_particles'],
         ebe_monitor=data['_ebe_monitor'])
 
-    if not data['skip_global_quantities'] and not data['only_orbit']:
+    if (data['periodic']
+            and not data['skip_global_quantities']
+            and not data['only_orbit']):
         _add_periodic_solution_data_to_base_twiss(
             line=data['line'],
             twiss_res=twiss_res,

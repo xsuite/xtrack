@@ -48,7 +48,7 @@ def _acquire_base_twiss_init(data):
 
     if acquisition_plan.source == 'open_input':
         assert not data['periodic']
-        return {'skip_global_quantities': True}
+        return {}
 
     if acquisition_plan.source != 'periodic_solution':
         raise RuntimeError(
