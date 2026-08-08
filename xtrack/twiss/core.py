@@ -384,26 +384,12 @@ def twiss_line(line, particle_ref=None, method=None,
                 _build_twiss_init_from_inputs(data))
             _clear_twiss_init_input_fields(data)
 
-            init_element_name = data['init'].element_name
-            if data['start'] is None or data['end'] is None:
-                crosses_line_boundary = False
-            else:
-                direction_sign = -1 if data['reverse'] else 1
-                crosses_line_boundary = (
-                    direction_sign * _str_to_index(
-                        data['line'], data['start'])
-                    > direction_sign * _str_to_index(
-                        data['line'], data['end']))
-            init_is_at_boundary = init_element_name in (
-                data['start'], data['end'])
-            composed_open_range = (
-                crosses_line_boundary or not init_is_at_boundary)
-
-            if composed_open_range:
-                if crosses_line_boundary:
-                    twiss_res = _handle_loop_around(data.copy())
-                else:
-                    twiss_res = _handle_init_inside_range(data.copy())
+            crosses_line_boundary, init_is_at_boundary = (
+                _get_open_twiss_range_flags(data))
+            if crosses_line_boundary:
+                twiss_res = _handle_loop_around(data.copy())
+            elif not init_is_at_boundary:
+                twiss_res = _handle_init_inside_range(data.copy())
             else:
                 twiss_res = _compute_base_twiss(data)
 
@@ -481,22 +467,14 @@ def twiss_line(line, particle_ref=None, method=None,
                 _build_twiss_init_from_inputs(range_kwargs))
             _clear_twiss_init_input_fields(range_kwargs)
 
-            direction_sign = -1 if data['reverse'] else 1
-            crosses_line_boundary = (
-                direction_sign * _str_to_index(data['line'], data['start'])
-                > direction_sign * _str_to_index(data['line'], data['end']))
-            init_is_at_boundary = full_periodic_init.element_name in (
-                data['start'], data['end'])
+            crosses_line_boundary, init_is_at_boundary = (
+                _get_open_twiss_range_flags(range_kwargs))
             if crosses_line_boundary:
                 twiss_res = _handle_loop_around(range_kwargs)
             elif not init_is_at_boundary:
                 twiss_res = _handle_init_inside_range(range_kwargs)
             else:
-                twiss_res = _compute_base_twiss(
-                    range_kwargs,
-                    start=data['start'],
-                    end=data['end'],
-                    init=full_periodic_init)
+                twiss_res = _compute_base_twiss(range_kwargs)
             if data['zero_at_requested'] is None:
                 twiss_res.zero_at(data['start'])
 
@@ -522,6 +500,22 @@ def _select_twiss_route(data):
     if data['periodic']:
         return 'periodic'
     return 'open'
+
+
+def _get_open_twiss_range_flags(data):
+
+    start = data['start']
+    end = data['end']
+    if start is None or end is None:
+        crosses_line_boundary = False
+    else:
+        direction_sign = -1 if data['reverse'] else 1
+        crosses_line_boundary = (
+            direction_sign * _str_to_index(data['line'], start)
+            > direction_sign * _str_to_index(data['line'], end))
+
+    init_is_at_boundary = data['init'].element_name in (start, end)
+    return crosses_line_boundary, init_is_at_boundary
 
 
 def _handle_loop_around(kwargs):
