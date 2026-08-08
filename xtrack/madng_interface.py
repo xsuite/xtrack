@@ -36,8 +36,8 @@ XS_NG_MAP = {
 }
 
 BETA0_COLUMNS = ['x', 'px', 'y', 'py', 't', 'pt',
-                 'dx', 'dy', 'dpx', 'dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'phix',
-                 'wy', 'phiy', 'mu1', 'mu2', 'mu3', 'dmu1', 'dmu2', 'dmu3', 'r11',
+                 'dx', 'dy', 'dpx', 'dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', #'phix', 'phiy',
+                 'wy', 'mu1', 'mu2', 'mu3', 'dmu1', 'dmu2', 'dmu3', 'r11',
                  'r12', 'r21', 'r22', 'alfa11', 'alfa12', 'alfa13', 'alfa21',
                  'alfa22', 'alfa23', 'alfa31', 'alfa32', 'alfa33', 'beta11',
                  'beta12', 'beta13', 'beta21', 'beta22', 'beta23', 'beta31',
@@ -52,7 +52,9 @@ OPTFUN_QUANTITIES = ['beta11', 'beta22', 'alfa11', 'alfa22', 'gama11', 'gama22',
                      'dx', 'dy', 'dpx', 'dpy', 'mu1', 'mu2']
 
 CHROM_COLUMNS = ['dmu1', 'dmu2', 'dmu3', 'Dx', 'Dpx', 'Dy',
-                 'Dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'wy', 'phix', 'phiy']
+                 'Dpy', 'ddx', 'ddpx', 'ddy', 'ddpy', 'wx', 'wy',
+                 #'phix', 'phiy'
+                 ]
 
 COUPLING_COLUMNS = ['alfa12', 'alfa13', 'alfa21', 'alfa23', 'alfa31', 'alfa32',
                     'beta12', 'beta13', 'beta21', 'beta23', 'beta31', 'beta32',
@@ -356,15 +358,15 @@ def _tw_ng(line, rdts=(), normal_form=False,
     for nn in rdts:
         tw[nn] = np.atleast_1d(np.squeeze(out_dct[nn]))[:-1]
 
-    if compute_chromatic_properties:
-        temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng)
-        tw['ax_ng'] = np.imag(temp_x)
-        tw['bx_ng'] = np.real(temp_x)
-        temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng)
-        tw['ay_ng'] = np.imag(temp_y)
-        tw['by_ng'] = np.real(temp_y)
-        del tw['phix_ng']
-        del tw['phiy_ng']
+    # if compute_chromatic_properties:
+    #     temp_x = tw.wx_ng * np.exp(1j*2*np.pi*tw.phix_ng)
+    #     tw['ax_ng'] = np.imag(temp_x)
+    #     tw['bx_ng'] = np.real(temp_x)
+    #     temp_y = tw.wy_ng * np.exp(1j*2*np.pi*tw.phiy_ng)
+    #     tw['ay_ng'] = np.imag(temp_y)
+    #     tw['by_ng'] = np.real(temp_y)
+    #     del tw['phix_ng']
+    #     del tw['phiy_ng']
 
     if normal_form:
         mng_script_nf = (
