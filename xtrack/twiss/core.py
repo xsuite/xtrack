@@ -22,7 +22,6 @@ from .input_normalization import (
 from .ring_quantities import _add_ring_quantities
 from .periodic_solution import _find_periodic_solution
 from .chromatic_functions import _get_chromatic_functions, trapz
-from .extra_markers import _build_auxiliary_tracker_with_extra_markers
 from .open_twiss import _twiss_open
 from .open_table_composition import (
     _combine_loop_around_twiss_tables,
@@ -33,6 +32,7 @@ from .open_propagation import (
     _plan_init_inside_range_twiss_parts,
 )
 from .computation_plan import _plan_twiss_computation
+from .line_context import _prepare_twiss_line_context
 from .finalize import _finalize_twiss_result
 from .spin import _get_spin_polarization
 from .non_linear_chromaticity import get_non_linear_chromaticity
@@ -382,195 +382,47 @@ def twiss_line(line, particle_ref=None, method=None,
     """
     normalized_kwargs, input_kwargs = _normalize_twiss_inputs(
         twiss_kwargs=locals().copy(), twiss_init_cls=TwissInit)
-    (
-        step_W_sigma, nemitt_x, nemitt_y, delta_disp, delta_chrom,
-        zeta_disp, zeta_shift, values_at_element_exit,
-        continue_on_closed_orbit_error, freeze_longitudinal,
-        radiation_method, spin, polarization_analysis,
-        radiation_integrals, radiation_analysis, symplectify, reverse,
-        strengths, hide_thin_groups, search_for_t_rev,
-        num_turns_search_t_rev, only_twiss_init, only_markers, only_orbit,
-        compute_R_element_by_element, compute_lattice_functions, chrom,
-        num_turns, disable_apertures, steps_R_matrix, init,
-    ) = (
-        normalized_kwargs[field_name] for field_name in (
-            'step_W_sigma', 'nemitt_x', 'nemitt_y', 'delta_disp',
-            'delta_chrom', 'zeta_disp', 'zeta_shift',
-            'values_at_element_exit', 'continue_on_closed_orbit_error',
-            'freeze_longitudinal', 'radiation_method', 'spin',
-            'polarization_analysis', 'radiation_integrals',
-            'radiation_analysis', 'symplectify', 'reverse', 'strengths',
-            'hide_thin_groups', 'search_for_t_rev',
-            'num_turns_search_t_rev', 'only_twiss_init', 'only_markers',
-            'only_orbit', 'compute_R_element_by_element',
-            'compute_lattice_functions', 'chrom', 'num_turns',
-            'disable_apertures', 'steps_R_matrix', 'init',
-        )
-    )
-
-    kwargs = normalized_kwargs
-    zero_at_requested = zero_at
-    zero_at = None
 
     with ExitStack() as twiss_context:
-        if disable_apertures:
-            if not (line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE
-                    and line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE):
-                twiss_context.enter_context(
-                    xt.line._preserve_track_flags(line))
-                line.tracker.track_flags.XS_FLAG_IGNORE_GLOBAL_APERTURE = True
-                line.tracker.track_flags.XS_FLAG_IGNORE_LOCAL_APERTURE = True
-
-        if (init is not None or betx is not None or bety is not None) and start is None:
-            # is open twiss
-            start = xt.START
-            end = end or xt.END
-
-        if num_turns != 1:
-            # Untested cases
-            assert num_turns > 0
-            assert start is None
-            assert end is None
-            assert init is None
-            assert reverse is False
-
-        if start is not None:
-            if isinstance(start, xt.match._LOC):
-                assert start in [xt.START, xt.END]
-                if reverse:
-                    start = {xt.START: xt.END, xt.END: xt.START}[start]
-                start = {xt.START: line._element_names_unique[0],
-                         xt.END: line._element_names_unique[-1]}[start]
-            assert isinstance(start, str)  # index not supported anymore
-
-        if end is not None:
-            if isinstance(end, xt.match._LOC):
-                assert end in [xt.START, xt.END]
-                if reverse:
-                    end = {xt.START: xt.END, xt.END: xt.START}[end]
-                end = {xt.START: line._element_names_unique[0],
-                         xt.END: line._element_names_unique[-1]}[end]
-            assert isinstance(end, str)  # index not supported anymore
-
-        if (init is not None and init not in ['periodic', 'periodic_symmetric']
-            or betx is not None or bety is not None):
-            periodic = False
-            periodic_mode = None
-        else:
-            periodic = True
-            periodic_mode = init or 'periodic'
-            assert x is None, '``x`` not supported for periodic twiss'
-            assert px is None, '``px`` not supported for periodic twiss'
-            assert y is None, '``y`` not supported for periodic twiss'
-            assert py is None, '``py`` not supported for periodic twiss'
-            assert zeta is None, '``zeta`` not supported for periodic twiss'
-            assert delta is None, '``delta`` not supported for periodic twiss'
-
-        freeze_longitudinal, freeze_energy = _enter_twiss_freeze_context(
+        prepared_data = _prepare_twiss_line_context(
             twiss_context=twiss_context,
-            line=line,
-            freeze_longitudinal=freeze_longitudinal,
-            freeze_energy=freeze_energy,
-        )
+            data=normalized_kwargs)
+        prepared_data['kwargs'] = normalized_kwargs
+        return _compute_twiss_with_prepared_line_context(
+            data=prepared_data, input_kwargs=input_kwargs)
 
-        if method == '4d' and not line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK:
-            twiss_context.enter_context(xt.line._preserve_track_flags(line))
-            line.tracker.track_flags.XS_FLAG_KILL_CAVITY_KICK = True
 
-        if at_s is not None:
-            if reverse:
-                raise NotImplementedError('``at_s`` not implemented for ``reverse``=True')
-            if np.isscalar(at_s):
-                at_s = [at_s]
-            assert at_elements is None
-            (auxtracker, names_inserted_markers
-                ) = _build_auxiliary_tracker_with_extra_markers(
-                tracker=line.tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
-                algorithm='insert')
-            line = auxtracker.line
-            at_elements = names_inserted_markers
-            at_s = None
-            strengths = True
+def _compute_twiss_with_prepared_line_context(data, input_kwargs):
 
-        if radiation_method is None and line._radiation_model is not None:
-            if line._radiation_model in ('quantum', 'quantum-kick'):
-                raise ValueError(
-                    'twiss cannot be called when the radiation model is stochastic')
-            if method == '4d':
-                raise RuntimeError('4d twiss cannot be called when radiation is present')
-            radiation_method = 'kick_as_co'
+    data = data.copy()
+    data['zero_at_requested'] = data['zero_at']
+    data['zero_at'] = None
 
-        if radiation_method is not None and radiation_method != 'full':
-            assert isinstance(line._context, xo.ContextCpu), (
-                'Twiss with radiation computation is only supported on CPU')
-            assert not line._context.openmp_enabled, (
-                'Twiss with radiation computation is not supported with OpenMP'
-                ' parallelization')
-            assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
-            assert freeze_longitudinal is False
-            if (radiation_method == 'kick_as_co' and (
-                not line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST)):
-                twiss_context.enter_context(xt.line._preserve_track_flags(line))
-                line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = True
-            elif (radiation_method == 'scale_as_co' and (
-                not hasattr(line.config, 'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST') or
-                not line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST)):
-                twiss_context.enter_context(xt.line._preserve_config(line))
-                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
+    computation_plan = _plan_twiss_computation(data, data['init'])
+    data['twiss_computation_plan'] = computation_plan
+    composed_twiss_res = _compute_composed_twiss_before_init_completion(
+        data=data, computation_plan=computation_plan)
 
-        if radiation_method == 'kick_as_co':
-            assert line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST
+    if composed_twiss_res is not None:
+        return _finalize_twiss_result(
+            composed_twiss_res, input_kwargs,
+            zero_at=data['zero_at_requested'])
 
-        if line.enable_time_dependent_vars:
-            raise RuntimeError('Time dependent variables not supported in Twiss')
+    data['init'], data['completed_init'] = _complete_init_for_base_twiss(
+        data=data)
+    _clear_twiss_init_inputs(data)
 
-        if isinstance(init_at, xt.match._LOC):
-            if init_at.name == 'START':
-                init_at = start
-            elif init_at.name == 'END':
-                init_at = end
+    composed_twiss_res = _compute_composed_twiss_after_init_completion(
+        data=data, computation_plan=computation_plan)
 
-        if isinstance(init, TwissTable):
-            if init_at is None:
-                init_at = start
-            init = init.get_twiss_init(at_element=init_at)
-            init_at = None
+    if composed_twiss_res is not None:
+        return _finalize_twiss_result(
+            composed_twiss_res, input_kwargs,
+            zero_at=data['zero_at_requested'])
 
-        twiss_computation_plan = _plan_twiss_computation(
-            locals().copy(), init)
-        composed_twiss_res = _compute_composed_twiss_before_init_completion(
-            data=locals().copy(),
-            computation_plan=twiss_computation_plan)
-
-        if composed_twiss_res is not None:
-            return _finalize_twiss_result(
-                composed_twiss_res, input_kwargs, zero_at=zero_at_requested)
-
-        init, completed_init = _complete_init_for_base_twiss(
-            data=locals().copy())
-
-        # clean quantities embedded in init
-        init_at=None
-        x=None; px=None; y=None; py=None; zeta=None; delta=None
-        alfx=None; alfy=None; betx=None; bety=None; bets=None
-        dx=None; dpx=None; dy=None; dpy=None; dzeta=None
-        mux=None; muy=None; muzeta=None
-        ax_chrom=None; bx_chrom=None; ay_chrom=None; by_chrom=None
-        ddx=None; ddpx=None; ddy=None; ddpy=None
-        spin_x=None; spin_y=None; spin_z=None
-
-        composed_twiss_res = _compute_composed_twiss_after_init_completion(
-            data=locals().copy(),
-            computation_plan=twiss_computation_plan)
-
-        if composed_twiss_res is not None:
-            return _finalize_twiss_result(
-                composed_twiss_res, input_kwargs, zero_at=zero_at_requested)
-
-        twiss_res = _compute_base_twiss_after_explicit_init_completion(
-            data=locals().copy())
-
-        return _finalize_twiss_result(twiss_res, input_kwargs, zero_at=zero_at_requested)
+    twiss_res = _compute_base_twiss_after_explicit_init_completion(data=data)
+    return _finalize_twiss_result(
+        twiss_res, input_kwargs, zero_at=data['zero_at_requested'])
 
 
 def _compute_composed_twiss_before_init_completion(
@@ -1125,21 +977,6 @@ def _execute_init_inside_range_twiss_plan(kwargs, plan, init, reverse):
             init=init,
             reverse=reverse)
         for piece in plan.pieces)
-
-
-def _enter_twiss_freeze_context(
-        twiss_context, line, freeze_longitudinal, freeze_energy):
-
-    if freeze_longitudinal:
-        twiss_context.enter_context(xt.freeze_longitudinal(line))
-        freeze_longitudinal = False
-    elif freeze_energy:
-        if not line._energy_is_frozen():
-            twiss_context.enter_context(xt.line._preserve_config(line))
-            line.freeze_energy(force=True) # need to force for collective lines
-            freeze_energy = False
-
-    return freeze_longitudinal, freeze_energy
 
 
 def _kwargs_for_multiturn_continuation(kwargs, data):

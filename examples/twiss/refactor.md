@@ -535,6 +535,10 @@ The public entry point now uses `_normalize_twiss_inputs` as the single
 deprecated-alias/default/derived-flag normalization phase. The returned
 dictionary supplies normalized computation kwargs while preserving the
 pre-default public kwargs used by `ActionTwiss`.
+Line/range normalization and temporary tracker/config state now live in
+`line_context.py`. The public `twiss_line` entry point enters one context stack,
+prepares a normalized state dictionary, and delegates orchestration to
+`_compute_twiss_with_prepared_line_context`.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
