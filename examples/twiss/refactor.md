@@ -524,6 +524,10 @@ the intentional recursive exception.
 Three-piece loop-around requests are executed as the three pieces expressed by
 the open propagation plan, with the line-boundary init transfer made explicit;
 they no longer depend on nested range routing to split a joined piece.
+Composed non-multiturn routes pass normalized state dictionaries directly to
+their private helpers. Broad public-kwargs refresh is retained only as the
+narrowly named `_kwargs_for_multiturn_continuation`, supporting the intentional
+recursive multi-turn path.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and

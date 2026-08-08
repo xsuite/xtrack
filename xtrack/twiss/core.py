@@ -584,7 +584,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_computation_plan = _plan_twiss_computation(
             locals().copy(), init)
         composed_twiss_res = _compute_composed_twiss_before_init_completion(
-            kwargs=kwargs, data=locals().copy(),
+            data=locals().copy(),
             computation_plan=twiss_computation_plan)
 
         if composed_twiss_res is not None:
@@ -605,7 +605,7 @@ def twiss_line(line, particle_ref=None, method=None,
         spin_x=None; spin_y=None; spin_z=None
 
         composed_twiss_res = _compute_composed_twiss_after_init_completion(
-            kwargs=kwargs, data=locals().copy(),
+            data=locals().copy(),
             computation_plan=twiss_computation_plan)
 
         if composed_twiss_res is not None:
@@ -630,21 +630,21 @@ def twiss_line(line, particle_ref=None, method=None,
 
 
 def _compute_composed_twiss_before_init_completion(
-        kwargs, data, computation_plan):
+        data, computation_plan):
 
     composed_twiss_res = None
     route = computation_plan.route
 
     if route in (
             'periodic_one_turn_from_start', 'open_one_turn_from_start'):
-        call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
+        call_kwargs = data.copy()
         composed_twiss_res = _compute_one_turn_twiss_from_plan(
             kwargs=call_kwargs,
             computation_plan=computation_plan,
         )
 
     elif route == 'full_periodic_range':
-        call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
+        call_kwargs = data.copy()
         periodic_kwargs = _prepare_kwargs_for_full_periodic_twiss(call_kwargs)
         full_periodic_init = _acquire_full_periodic_twiss_init(
             kwargs=periodic_kwargs,
@@ -666,14 +666,14 @@ def _compute_composed_twiss_before_init_completion(
 
 
 def _compute_composed_twiss_after_init_completion(
-        kwargs, data, computation_plan):
+        data, computation_plan):
 
     composed_twiss_res = None
     open_plan = _open_propagation_plan_after_init_completion(
         data=data, computation_plan=computation_plan)
 
     if open_plan is not None:
-        call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
+        call_kwargs = data.copy()
 
         if open_plan.crosses_line_boundary:
             composed_twiss_res = _handle_loop_around(
@@ -1018,7 +1018,8 @@ class _TwissBaseComputation:
         if self.num_turns <= 1:
             return twiss_res
 
-        kwargs = _kwargs_for_composed_twiss_call(self.kwargs, self.__dict__)
+        kwargs = _kwargs_for_multiturn_continuation(
+            self.kwargs, self.__dict__)
         return _extend_twiss_result_to_multiple_turns(
             twiss_res=twiss_res, num_turns=self.num_turns, kwargs=kwargs)
 
@@ -1197,19 +1198,14 @@ def _enter_twiss_freeze_context(
     return freeze_longitudinal, freeze_energy
 
 
-def _kwargs_for_composed_twiss_call(kwargs, loc):
-    """Temporary kwargs refresh for composed Twiss calls.
-
-    This keeps existing recursive segment calls correct while the normalized
-    segment engine is being extracted. It should shrink or disappear once those
-    composed paths stop calling the public ``twiss_line`` wrapper.
-    """
+def _kwargs_for_multiturn_continuation(kwargs, data):
+    """Refresh public-call kwargs for recursive multi-turn continuation."""
 
     out = kwargs.copy()
 
     for kk in kwargs.keys():
-        if kk in loc:
-            out[kk] = loc[kk]
+        if kk in data:
+            out[kk] = data[kk]
 
     out.pop('input_kwargs', None)
 
