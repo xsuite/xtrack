@@ -989,7 +989,7 @@ class _TwissBaseComputation:
 
 
 @dataclass(frozen=True)
-class _TwissSegmentPiecePlan:
+class _OpenTwissPiecePlan:
     role: str
     start: object
     end: object
@@ -1092,17 +1092,16 @@ def _planned_open_twiss_init_element_name(request, init):
 def _plan_open_twiss_propagation(request, init_element_name):
     """Plan open Twiss propagation after a TwissInit is available.
 
-    The plan is expressed as output-table pieces, not yet as calls to
-    `_compute_twiss_segment`. Once this replaces the current composition
-    helpers, each piece can be mapped to the required segment call and table
-    concatenation step.
+    The plan is expressed as output-table pieces. Active composed Twiss routes
+    map these pieces to segment calls and keep table-combination policy in the
+    route-specific executors.
     """
 
     crosses_line_start = _twiss_request_crosses_line_start(request)
     init_is_at_boundary = init_element_name in (request.start, request.end)
 
     if init_is_at_boundary and not crosses_line_start:
-        pieces = (_TwissSegmentPiecePlan(
+        pieces = (_OpenTwissPiecePlan(
             role='boundary_init',
             start=request.start,
             end=request.end,
@@ -1121,6 +1120,26 @@ def _plan_open_twiss_propagation(request, init_element_name):
         init_is_at_boundary=init_is_at_boundary,
         pieces=pieces,
     )
+
+
+def _assert_open_plan_for_init_inside_range(plan):
+
+    assert not plan.crosses_line_start
+    assert not plan.init_is_at_boundary
+    assert [piece.role for piece in plan.pieces] == [
+        'before_init', 'after_init']
+
+
+def _assert_open_plan_for_loop_around(plan):
+
+    assert plan.crosses_line_start
+    assert len(plan.pieces) in (2, 3)
+
+
+def _compute_twiss_segment_for_piece(kwargs, piece, init):
+
+    return _compute_twiss_segment(
+        kwargs, start=piece.start, end=piece.end, init=init)
 
 
 def _twiss_request_crosses_line_start(request):
@@ -1150,13 +1169,13 @@ def _plan_split_open_twiss_pieces(request, init_element_name,
 def _plan_init_split_pieces(request, init_element_name):
 
     return (
-        _TwissSegmentPiecePlan(
+        _OpenTwissPiecePlan(
             role='before_init',
             start=request.start,
             end=init_element_name,
             init_at=init_element_name,
         ),
-        _TwissSegmentPiecePlan(
+        _OpenTwissPiecePlan(
             role='after_init',
             start=init_element_name,
             end=request.end,
@@ -1174,13 +1193,13 @@ def _plan_line_start_split_pieces(request, init_element_name):
 
     if init_element_name in (request.start, request.end):
         return (
-            _TwissSegmentPiecePlan(
+            _OpenTwissPiecePlan(
                 role='start_to_line_boundary',
                 start=request.start,
                 end=line_boundary_end,
                 init_at=init_element_name,
             ),
-            _TwissSegmentPiecePlan(
+            _OpenTwissPiecePlan(
                 role='line_boundary_to_end',
                 start=line_boundary_start,
                 end=request.end,
@@ -1194,19 +1213,19 @@ def _plan_line_start_split_pieces(request, init_element_name):
     if ((not request.reverse and init_index >= start_index)
             or (request.reverse and init_index <= start_index)):
         return (
-            _TwissSegmentPiecePlan(
+            _OpenTwissPiecePlan(
                 role='start_to_init',
                 start=request.start,
                 end=init_element_name,
                 init_at=init_element_name,
             ),
-            _TwissSegmentPiecePlan(
+            _OpenTwissPiecePlan(
                 role='init_to_line_boundary',
                 start=init_element_name,
                 end=line_boundary_end,
                 init_at=init_element_name,
             ),
-            _TwissSegmentPiecePlan(
+            _OpenTwissPiecePlan(
                 role='line_boundary_to_end',
                 start=line_boundary_start,
                 end=request.end,
@@ -1215,19 +1234,19 @@ def _plan_line_start_split_pieces(request, init_element_name):
         )
 
     return (
-        _TwissSegmentPiecePlan(
+        _OpenTwissPiecePlan(
             role='start_to_line_boundary',
             start=request.start,
             end=line_boundary_end,
             init_at=init_element_name,
         ),
-        _TwissSegmentPiecePlan(
+        _OpenTwissPiecePlan(
             role='line_boundary_to_init',
             start=line_boundary_start,
             end=init_element_name,
             init_at=init_element_name,
         ),
-        _TwissSegmentPiecePlan(
+        _OpenTwissPiecePlan(
             role='init_to_end',
             start=init_element_name,
             end=request.end,
@@ -1277,7 +1296,7 @@ def _plan_loop_around_twiss_parts(line, start, end, init, reverse):
     open_plan = _plan_open_twiss_propagation(
         request=request, init_element_name=ele_name_init)
 
-    assert open_plan.crosses_line_start
+    _assert_open_plan_for_loop_around(open_plan)
     first_table_piece, second_table_piece = (
         _loop_around_table_pieces_from_open_plan(open_plan))
     init_piece_role = _loop_around_init_piece_role(
@@ -1323,7 +1342,7 @@ def _loop_around_table_pieces_from_open_plan(open_plan):
 
 def _join_loop_around_piece_pair(first_piece, second_piece):
 
-    return _TwissSegmentPiecePlan(
+    return _OpenTwissPiecePlan(
         role=f'{first_piece.role}+{second_piece.role}',
         start=first_piece.start,
         end=second_piece.end,
@@ -1374,12 +1393,6 @@ def _execute_loop_around_twiss_plan(kwargs, plan, init):
         raise RuntimeError('Unexpected loop-around Twiss plan init piece')
 
     return tw1, tw2, completed_init
-
-
-def _compute_twiss_segment_for_piece(kwargs, piece, init):
-
-    return _compute_twiss_segment(
-        kwargs, start=piece.start, end=piece.end, init=init)
 
 
 def _combine_loop_around_twiss_tables(tw1, tw2, init, completed_init):
@@ -1472,10 +1485,7 @@ def _plan_init_inside_range_twiss_parts(line, start, end, init, reverse):
     plan = _plan_open_twiss_propagation(
         request=request, init_element_name=init.element_name)
 
-    assert not plan.crosses_line_start
-    assert not plan.init_is_at_boundary
-    assert [piece.role for piece in plan.pieces] == [
-        'before_init', 'after_init']
+    _assert_open_plan_for_init_inside_range(plan)
 
     return plan
 

@@ -434,17 +434,17 @@ Init computation and Twiss propagation should remain separate in code:
 - the orchestration layer may connect the two phases, but should avoid hiding
   init computation inside segment propagation helpers.
 
-A passive planner has been added in `core.py` to document this target structure:
+The planner structures in `core.py` document this target structure:
 
 - `_TwissInitAcquisitionPlan`
 - `_PeriodicTwissInitData`
 - `_OpenTwissPropagationPlan`
-- `_TwissSegmentPiecePlan`
+- `_OpenTwissPiecePlan`
 - `_plan_twiss_computation`
 
-It is not used by the production path yet. The next step is to make the planner
-precise enough to replace the existing loop-around and init-inside-range helper
-branches one case at a time.
+The open propagation planner is now active for the non-periodic loop-around and
+init-inside-range composed paths. Periodic orchestration and one-turn-from-start
+are still future planner routes.
 
 The base Twiss path now also uses `_compute_periodic_twiss_init_and_data` and
 `_propagate_twiss_from_init` names at the call site. This is a small step toward
