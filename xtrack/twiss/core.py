@@ -589,6 +589,9 @@ def twiss_line(line, particle_ref=None, method=None,
             return _finalize_twiss_result(
                 composed_twiss_res, input_kwargs, zero_at=zero_at_requested)
 
+        twiss_computation_plan = _plan_twiss_computation(
+            locals().copy(), init)
+
         init, completed_init = _complete_init_for_base_twiss(
             start=start, end=end, init_at=init_at, init=init,
             line=line, reverse=reverse,
@@ -611,7 +614,6 @@ def twiss_line(line, particle_ref=None, method=None,
         ddx=None; ddpx=None; ddy=None; ddpy=None
         spin_x=None; spin_y=None; spin_z=None
 
-        twiss_computation_plan = _plan_twiss_computation(locals().copy(), init)
         composed_twiss_res = _compute_composed_twiss_after_init_completion(
             kwargs=kwargs, data=locals().copy(),
             computation_plan=twiss_computation_plan)
@@ -736,7 +738,7 @@ class _TwissBaseComputation:
 
         self._prepare_range_and_line()
         self._validate_base_request()
-        self._acquire_periodic_init_if_needed()
+        self._acquire_init_according_to_plan()
 
     def _prepare_range_and_line(self):
 
@@ -768,12 +770,29 @@ class _TwissBaseComputation:
         _validate_base_twiss_open_momentum_offsets(
             periodic=self.periodic, delta0=self.delta0, zeta0=self.zeta0)
 
-    def _acquire_periodic_init_if_needed(self):
+    def _acquire_init_according_to_plan(self):
 
-        if not self.periodic:
+        acquisition_plan = self.twiss_computation_plan.init_acquisition
+
+        if acquisition_plan.source == 'open_input':
+            assert not self.periodic
             self.skip_global_quantities = True
             return
 
+        if acquisition_plan.source != 'periodic_solution':
+            raise RuntimeError(
+                f'Unexpected Twiss init source: {acquisition_plan.source}')
+
+        assert self.periodic
+        self._acquire_periodic_init(acquisition_plan)
+
+    def _acquire_periodic_init(self, acquisition_plan):
+
+        periodic_start, periodic_end = _periodic_solution_range_from_plan(
+            acquisition_plan=acquisition_plan,
+            start=self.start,
+            end=self.end,
+        )
         self.periodic_init_data = _compute_periodic_twiss_init_and_data(
             line=self.line,
             particle_on_co=self.particle_on_co,
@@ -792,8 +811,8 @@ class _TwissBaseComputation:
             symplectify=self.symplectify,
             matrix_responsiveness_tol=self.matrix_responsiveness_tol,
             matrix_stability_tol=self.matrix_stability_tol,
-            start=self.start,
-            end=self.end,
+            start=periodic_start,
+            end=periodic_end,
             num_turns=self.num_turns,
             co_search_at=self.co_search_at,
             search_for_t_rev=self.search_for_t_rev,
@@ -1250,6 +1269,22 @@ def _validate_base_twiss_open_momentum_offsets(periodic, delta0, zeta0):
         if delta0 is not None or zeta0 is not None:
             raise ValueError(
                 'delta0 and zeta0 cannot be provided for open twiss')
+
+
+def _periodic_solution_range_from_plan(acquisition_plan, start, end):
+
+    assert acquisition_plan.computation_direction == 'forward'
+
+    if acquisition_plan.scope == 'full_line':
+        assert start is None and end is None
+        return None, None
+
+    if acquisition_plan.scope == 'requested_range':
+        assert start is not None and end is not None
+        return start, end
+
+    raise RuntimeError(
+        f'Unexpected periodic Twiss scope: {acquisition_plan.scope}')
 
 
 def _complete_init_for_base_twiss(

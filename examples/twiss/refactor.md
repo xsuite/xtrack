@@ -488,6 +488,12 @@ The high-level computation planner now supplies the open propagation plan for
 the post-init non-periodic loop-around and init-inside-range composed paths.
 Periodic orchestration and one-turn-from-start are still future planner routes.
 
+The computation plan is built before explicit init completion, while
+`init_at` is still available. The base computation now dispatches supplied-init
+and periodic-solution acquisition from the init-acquisition plan, and uses its
+scope to select a full-line or requested-range periodic solution. Propagation
+remains a separate phase after acquisition.
+
 The base Twiss path now also uses `_compute_periodic_twiss_init_and_data` and
 `_propagate_twiss_from_init` names at the call site. This is a small step toward
 keeping periodic init computation separate from propagation through the line.

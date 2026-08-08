@@ -85,10 +85,10 @@ def _plan_twiss_init_acquisition(request):
 
 def _planned_open_twiss_init_element_name(request, init):
 
-    if hasattr(init, 'element_name'):
-        return init.element_name
     if request.init_at is not None:
         return request.init_at
+    if hasattr(init, 'element_name') and init.element_name is not None:
+        return init.element_name
     if request.start is not None:
         return request.start
     return request.line._element_names_unique[0]
