@@ -541,6 +541,9 @@ prepares a normalized state dictionary, and delegates orchestration to
 `_compute_twiss_with_prepared_line_context`.
 Public requests and private base segments share the same periodic/open mode
 classification helper from that preparation module.
+Pre-init composed routes, post-init composed routes, and the base route now
+converge on one `_finalize_twiss_result` call in the prepared-context
+orchestrator.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and

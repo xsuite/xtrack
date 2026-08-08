@@ -403,27 +403,21 @@ def _compute_twiss_with_prepared_line_context(data, input_kwargs):
 
     computation_plan = _plan_twiss_computation(data, data['init'])
     data['twiss_computation_plan'] = computation_plan
-    composed_twiss_res = _compute_composed_twiss_before_init_completion(
+    twiss_res = _compute_composed_twiss_before_init_completion(
         data=data, computation_plan=computation_plan)
 
-    if composed_twiss_res is not None:
-        return _finalize_twiss_result(
-            composed_twiss_res, input_kwargs,
-            zero_at=data['zero_at_requested'])
+    if twiss_res is None:
+        data['init'], data['completed_init'] = _complete_init_for_base_twiss(
+            data=data)
+        _clear_twiss_init_inputs(data)
 
-    data['init'], data['completed_init'] = _complete_init_for_base_twiss(
-        data=data)
-    _clear_twiss_init_inputs(data)
+        twiss_res = _compute_composed_twiss_after_init_completion(
+            data=data, computation_plan=computation_plan)
 
-    composed_twiss_res = _compute_composed_twiss_after_init_completion(
-        data=data, computation_plan=computation_plan)
+        if twiss_res is None:
+            twiss_res = _compute_base_twiss_after_explicit_init_completion(
+                data=data)
 
-    if composed_twiss_res is not None:
-        return _finalize_twiss_result(
-            composed_twiss_res, input_kwargs,
-            zero_at=data['zero_at_requested'])
-
-    twiss_res = _compute_base_twiss_after_explicit_init_completion(data=data)
     return _finalize_twiss_result(
         twiss_res, input_kwargs, zero_at=data['zero_at_requested'])
 
