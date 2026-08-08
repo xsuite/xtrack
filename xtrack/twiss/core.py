@@ -26,10 +26,10 @@ from .chromatic_functions import _get_chromatic_functions, trapz
 from .extra_markers import _build_auxiliary_tracker_with_extra_markers
 from .open_twiss import _twiss_open
 from .open_propagation import (
+    _plan_open_twiss_propagation,
     _plan_loop_around_twiss_parts,
     _plan_init_inside_range_twiss_parts,
     _plan_open_one_turn_twiss,
-    _twiss_request_crosses_line_boundary,
 )
 from .computation_plan import _make_twiss_propagation_request
 from .finalize import _finalize_twiss_result
@@ -670,36 +670,35 @@ def _compute_composed_twiss_before_init_completion(kwargs, data):
 def _compute_composed_twiss_after_init_completion(kwargs, data):
 
     composed_twiss_res = None
+    open_plan = _plan_composed_open_twiss_after_init_completion(data)
 
-    if _twiss_goes_through_line_boundary(data):
-        call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
-        composed_twiss_res = _handle_loop_around(call_kwargs)
+    if open_plan is None:
+        return composed_twiss_res
 
-    elif _init_is_inside_open_range(data):
-        call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
-        composed_twiss_res = _handle_init_inside_range(call_kwargs)
+    call_kwargs = _kwargs_for_composed_twiss_call(kwargs, data)
+
+    if open_plan.crosses_line_boundary:
+        composed_twiss_res = _handle_loop_around(
+            call_kwargs, open_plan=open_plan)
+
+    elif not open_plan.init_is_at_boundary:
+        composed_twiss_res = _handle_init_inside_range(
+            call_kwargs, open_plan=open_plan)
 
     return composed_twiss_res
 
 
-def _twiss_goes_through_line_boundary(data):
-
-    request = _make_twiss_propagation_request(data)
-    return (
-        not request.periodic
-        and _twiss_request_crosses_line_boundary(request)
-    )
-
-
-def _init_is_inside_open_range(data):
+def _plan_composed_open_twiss_after_init_completion(data):
 
     init = data['init']
 
-    return (
-        not data['periodic']
-        and not isinstance(init, str)
-        and init.element_name != data['start']
-        and init.element_name != data['end']
+    if data['periodic'] or isinstance(init, str):
+        return None
+
+    request = _make_twiss_propagation_request(data)
+    return _plan_open_twiss_propagation(
+        request=request,
+        init_element_name=init.element_name,
     )
 
 
@@ -1013,7 +1012,7 @@ def _compute_twiss_segment_for_piece(kwargs, piece, init):
         kwargs, start=piece.start, end=piece.end, init=init)
 
 
-def _handle_loop_around(kwargs):
+def _handle_loop_around(kwargs, open_plan=None):
 
     kwargs = kwargs.copy()
 
@@ -1025,7 +1024,8 @@ def _handle_loop_around(kwargs):
     reverse = kwargs['reverse']
 
     plan = _plan_loop_around_twiss_parts(
-        line=line, start=start, end=end, init=init, reverse=reverse)
+        line=line, start=start, end=end, init=init, reverse=reverse,
+        open_plan=open_plan)
     tw1, tw2, completed_init = _execute_loop_around_twiss_plan(
         kwargs=kwargs, plan=plan, init=init)
 
@@ -1093,7 +1093,7 @@ def _combine_loop_around_twiss_tables(tw1, tw2, init, completed_init):
     return tw_res
 
 
-def _handle_init_inside_range(kwargs):
+def _handle_init_inside_range(kwargs, open_plan=None):
 
     kwargs = kwargs.copy()
     line = kwargs['line']
@@ -1106,7 +1106,8 @@ def _handle_init_inside_range(kwargs):
         line=line, start=start, end=end, init=init, reverse=reverse)
 
     plan = _plan_init_inside_range_twiss_parts(
-        line=line, start=start, end=end, init=init, reverse=reverse)
+        line=line, start=start, end=end, init=init, reverse=reverse,
+        open_plan=open_plan)
     tw1, tw2 = _execute_init_inside_range_twiss_plan(
         kwargs=kwargs, plan=plan, init=init, reverse=reverse)
 

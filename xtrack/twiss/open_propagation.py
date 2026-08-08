@@ -226,7 +226,8 @@ def _plan_line_boundary_split_pieces(request, init_element_name):
 
 # Route-specific plans
 
-def _plan_loop_around_twiss_parts(line, start, end, init, reverse):
+def _plan_loop_around_twiss_parts(line, start, end, init, reverse,
+                                  open_plan=None):
 
     ele_name_init = init.element_name
     if not reverse:
@@ -236,17 +237,18 @@ def _plan_loop_around_twiss_parts(line, start, end, init, reverse):
         assert _str_to_index(line, end) > _str_to_index(line, start), (
             'This function should not have been called')
 
-    request = _TwissPropagationRequest(
-        line=line,
-        start=start,
-        end=end,
-        reverse=reverse,
-        periodic=False,
-        periodic_mode=None,
-        init_at=ele_name_init,
-    )
-    open_plan = _plan_open_twiss_propagation(
-        request=request, init_element_name=ele_name_init)
+    if open_plan is None:
+        request = _TwissPropagationRequest(
+            line=line,
+            start=start,
+            end=end,
+            reverse=reverse,
+            periodic=False,
+            periodic_mode=None,
+            init_at=ele_name_init,
+        )
+        open_plan = _plan_open_twiss_propagation(
+            request=request, init_element_name=ele_name_init)
 
     _assert_open_plan_for_loop_around(open_plan)
     # Table order stays start-boundary then boundary-end; execution starts from
@@ -271,23 +273,25 @@ def _plan_loop_around_twiss_parts(line, start, end, init, reverse):
     )
 
 
-def _plan_init_inside_range_twiss_parts(line, start, end, init, reverse):
+def _plan_init_inside_range_twiss_parts(line, start, end, init, reverse,
+                                        open_plan=None):
 
-    request = _TwissPropagationRequest(
-        line=line,
-        start=start,
-        end=end,
-        reverse=reverse,
-        periodic=False,
-        periodic_mode=None,
-        init_at=init.element_name,
-    )
-    plan = _plan_open_twiss_propagation(
-        request=request, init_element_name=init.element_name)
+    if open_plan is None:
+        request = _TwissPropagationRequest(
+            line=line,
+            start=start,
+            end=end,
+            reverse=reverse,
+            periodic=False,
+            periodic_mode=None,
+            init_at=init.element_name,
+        )
+        open_plan = _plan_open_twiss_propagation(
+            request=request, init_element_name=init.element_name)
 
-    _assert_open_plan_for_init_inside_range(plan)
+    _assert_open_plan_for_init_inside_range(open_plan)
 
-    return plan
+    return open_plan
 
 
 def _plan_open_one_turn_twiss(line, start, reverse):
