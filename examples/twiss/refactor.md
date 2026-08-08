@@ -531,6 +531,10 @@ The public base fall-through and private segment engine now share
 `_compute_base_twiss_after_explicit_init_completion`. This keeps explicit init
 completion outside the shared lifecycle while centralizing periodic acquisition,
 propagation, and result finishing.
+The public entry point now uses `_normalize_twiss_inputs` as the single
+deprecated-alias/default/derived-flag normalization phase. The returned
+dictionary supplies normalized computation kwargs while preserving the
+pre-default public kwargs used by `ActionTwiss`.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and

@@ -17,8 +17,7 @@ from .element_indexing import _str_to_index
 from .twiss_table import TwissTable
 from .transfer_matrices import _complete_steps_r_matrix_with_default
 from .input_normalization import (
-    _apply_twiss_defaults,
-    _handle_deprecated_twiss_kwargs,
+    _normalize_twiss_inputs,
 )
 from .ring_quantities import _add_ring_quantities
 from .periodic_solution import _find_periodic_solution
@@ -381,79 +380,35 @@ def twiss_line(line, particle_ref=None, method=None,
         - `t_rev`: measured revolution period [s]
 
     """
-    (chrom, step_W_sigma, polarization_analysis, radiation_analysis,
-        steps_R_matrix) = _handle_deprecated_twiss_kwargs(
-        at_s=at_s,
-        at_elements=at_elements,
-        compute_chromatic_properties=compute_chromatic_properties,
-        r_sigma=r_sigma,
-        freeze_energy=freeze_energy,
-        freeze_longitudinal=freeze_longitudinal,
-        polarization=polarization,
-        eneloss_and_damping=eneloss_and_damping,
-        steps_r_matrix=steps_r_matrix,
-        chrom=chrom,
-        step_W_sigma=step_W_sigma,
-        polarization_analysis=polarization_analysis,
-        radiation_analysis=radiation_analysis,
-        steps_R_matrix=steps_R_matrix,
-    )
-
-    input_kwargs = locals().copy()
-
-    (step_W_sigma, nemitt_x, nemitt_y, delta_disp, delta_chrom, zeta_disp,
-        zeta_shift, values_at_element_exit, continue_on_closed_orbit_error,
-        freeze_longitudinal, radiation_method, spin, polarization_analysis,
+    normalized_kwargs, input_kwargs = _normalize_twiss_inputs(
+        twiss_kwargs=locals().copy(), twiss_init_cls=TwissInit)
+    (
+        step_W_sigma, nemitt_x, nemitt_y, delta_disp, delta_chrom,
+        zeta_disp, zeta_shift, values_at_element_exit,
+        continue_on_closed_orbit_error, freeze_longitudinal,
+        radiation_method, spin, polarization_analysis,
         radiation_integrals, radiation_analysis, symplectify, reverse,
-        strengths, hide_thin_groups, search_for_t_rev, num_turns_search_t_rev,
-        only_twiss_init, only_markers, only_orbit, compute_R_element_by_element,
-        compute_lattice_functions, chrom, num_turns,
-        disable_apertures) = _apply_twiss_defaults(
-        step_W_sigma=step_W_sigma,
-        nemitt_x=nemitt_x,
-        nemitt_y=nemitt_y,
-        delta_disp=delta_disp,
-        delta_chrom=delta_chrom,
-        zeta_disp=zeta_disp,
-        zeta_shift=zeta_shift,
-        values_at_element_exit=values_at_element_exit,
-        continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-        freeze_longitudinal=freeze_longitudinal,
-        radiation_method=radiation_method,
-        spin=spin,
-        polarization_analysis=polarization_analysis,
-        radiation_integrals=radiation_integrals,
-        radiation_analysis=radiation_analysis,
-        symplectify=symplectify,
-        reverse=reverse,
-        strengths=strengths,
-        hide_thin_groups=hide_thin_groups,
-        search_for_t_rev=search_for_t_rev,
-        num_turns_search_t_rev=num_turns_search_t_rev,
-        only_twiss_init=only_twiss_init,
-        only_markers=only_markers,
-        only_orbit=only_orbit,
-        compute_R_element_by_element=compute_R_element_by_element,
-        compute_lattice_functions=compute_lattice_functions,
-        chrom=chrom,
-        num_turns=num_turns,
-        disable_apertures=disable_apertures,
+        strengths, hide_thin_groups, search_for_t_rev,
+        num_turns_search_t_rev, only_twiss_init, only_markers, only_orbit,
+        compute_R_element_by_element, compute_lattice_functions, chrom,
+        num_turns, disable_apertures, steps_R_matrix, init,
+    ) = (
+        normalized_kwargs[field_name] for field_name in (
+            'step_W_sigma', 'nemitt_x', 'nemitt_y', 'delta_disp',
+            'delta_chrom', 'zeta_disp', 'zeta_shift',
+            'values_at_element_exit', 'continue_on_closed_orbit_error',
+            'freeze_longitudinal', 'radiation_method', 'spin',
+            'polarization_analysis', 'radiation_integrals',
+            'radiation_analysis', 'symplectify', 'reverse', 'strengths',
+            'hide_thin_groups', 'search_for_t_rev',
+            'num_turns_search_t_rev', 'only_twiss_init', 'only_markers',
+            'only_orbit', 'compute_R_element_by_element',
+            'compute_lattice_functions', 'chrom', 'num_turns',
+            'disable_apertures', 'steps_R_matrix', 'init',
+        )
     )
 
-    if only_markers:
-        raise NotImplementedError('``only_markers`` not supported anymore')
-
-    if polarization_analysis:
-        spin = True
-        radiation_integrals = True # some quantities are needed for polarization
-                                   # could be decoupled in the future
-    if spin:
-        assert reverse is False
-
-    if isinstance(init, TwissInit):
-        init = init.copy()
-
-    kwargs = locals().copy()
+    kwargs = normalized_kwargs
     zero_at_requested = zero_at
     zero_at = None
 
