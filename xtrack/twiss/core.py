@@ -412,35 +412,15 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res['completed_init'] = full_twiss.completed_init
 
         elif route == 'open_one_turn_from_start':
-            # Propagate the two sides of the line boundary from the supplied init.
-            requested_start = data['start']
-            if data['reverse']:
-                line_boundary_end = data['line']._element_names_unique[0]
-                line_boundary_start = data['line']._element_names_unique[-1]
-            else:
-                line_boundary_end = data['line']._element_names_unique[-1]
-                line_boundary_start = data['line']._element_names_unique[0]
-
-            one_turn_kwargs = data.copy()
-            one_turn_kwargs['start'] = requested_start
-            one_turn_kwargs['end'] = line_boundary_end
-            one_turn_kwargs['init'], one_turn_kwargs['completed_init'] = (
-                _build_twiss_init_from_inputs(one_turn_kwargs))
-            _clear_twiss_init_input_fields(one_turn_kwargs)
-
-            first_part = _compute_base_twiss(one_turn_kwargs)
-            second_part_init = first_part.get_twiss_init('_end_point')
-            second_part_init.element_name = line_boundary_start
-
-            second_part = _compute_base_twiss(
-                one_turn_kwargs,
-                start=line_boundary_start,
-                end=requested_start,
-                init=second_part_init)
-            second_part = second_part.rows[:-1]  # remove repeated element
-            second_part.name[-1] = '_end_point'
-            twiss_res = TwissTable.concatenate([first_part, second_part])
-            twiss_res['completed_init'] = first_part.completed_init
+            # A start without an end requests a wrapped open range of one turn.
+            data['end'] = data['start']
+            data['init'], data['completed_init'] = (
+                _build_twiss_init_from_inputs(data))
+            _clear_twiss_init_input_fields(data)
+            twiss_res = _handle_init_inside_range_and_line_wrap(
+                data,
+                crosses_line_boundary=True,
+                one_turn_from_start=True)
 
         elif route == 'full_periodic_range':
             # Acquire a forward full-line periodic init, then propagate the range.
@@ -517,7 +497,7 @@ def _get_open_twiss_range_flags(data):
 
 
 def _handle_init_inside_range_and_line_wrap(
-        kwargs, crosses_line_boundary):
+        kwargs, crosses_line_boundary, one_turn_from_start=False):
 
     if not crosses_line_boundary:
         kwargs = kwargs.copy()
@@ -574,7 +554,9 @@ def _handle_init_inside_range_and_line_wrap(
     reverse = kwargs['reverse']
 
     # Confirm that the requested traversal crosses the physical line boundary.
-    if not reverse:
+    if one_turn_from_start:
+        assert start == end
+    elif not reverse:
         assert _str_to_index(line, end) < _str_to_index(line, start), (
             'This function should not have been called')
     else:
@@ -587,6 +569,25 @@ def _handle_init_inside_range_and_line_wrap(
     else:
         line_boundary_end = line._element_names_unique[-1]
         line_boundary_start = line._element_names_unique[0]
+
+    if one_turn_from_start:
+        # A start without an end requests one complete turn. Propagate across
+        # the physical line boundary, then replace the repeated start row with
+        # the conventional final _end_point row.
+        first_table = _compute_base_twiss(
+            kwargs, start=start, end=line_boundary_end, init=init)
+        boundary_init = first_table.get_twiss_init('_end_point')
+        boundary_init.element_name = line_boundary_start
+        second_table = _compute_base_twiss(
+            kwargs,
+            start=line_boundary_start,
+            end=start,
+            init=boundary_init)
+        second_table = second_table.rows[:-1]
+        second_table.name[-1] = '_end_point'
+        twiss_res = TwissTable.concatenate([first_table, second_table])
+        twiss_res['completed_init'] = first_table.completed_init
+        return twiss_res
 
     init_element_name = init.element_name
     init_index = _str_to_index(line, init_element_name)
