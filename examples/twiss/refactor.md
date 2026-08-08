@@ -552,6 +552,9 @@ live in `base_preparation.py` and `base_propagation.py`. Both are dependency
 leaves that do not import the high-level orchestrator.
 The intentional recursive continuation is isolated in `multiturn.py`; its local
 `twiss_line` import marks the sole recursive dependency explicitly.
+Base table enrichment and final shaping now live in `base_result.py`, including
+periodic metadata, chromatic/radiation analysis, output conventions, optional
+multi-turn extension, and open-phase alignment.
 
 The first internal class boundary is `_TwissBaseComputation`, which owns the
 base-path preparation, periodic init acquisition, propagation from init, and
