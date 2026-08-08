@@ -393,6 +393,35 @@ keeps `_kwargs_for_composed_twiss_call` alive as scaffolding. The goal is not to
 remove every multi-segment Twiss computation in one step, but to replace hidden
 top-level re-entry with explicit phases and named helpers.
 
+### Target orchestration shape
+
+The non-multiturn Twiss flow should make the conceptual phases visible:
+
+1. Normalize inputs and enter temporary line/tracker contexts.
+2. If the request is periodic, find the periodic solution for the requested
+   scope, either the full line or the selected range. This produces a
+   `TwissInit`.
+3. From that point on, treat periodic and open Twiss the same way: propagate
+   from an available `TwissInit` through an open segment plan.
+4. If the init is at a requested boundary and the range does not cross the line
+   start, the open propagation is a single piece.
+5. If the init is inside the requested range, split at the init location.
+6. If the requested range crosses the line start, split at the line boundary as
+   well. In the most general case this gives three table pieces to compose.
+7. Keep reverse handling explicit in the plan instead of hiding it in endpoint
+   rewrites.
+
+A passive planner has been added in `core.py` to document this target structure:
+
+- `_TwissInitAcquisitionPlan`
+- `_OpenTwissPropagationPlan`
+- `_TwissSegmentPiecePlan`
+- `_plan_twiss_propagation`
+
+It is not used by the production path yet. The next step is to make the planner
+precise enough to replace the existing loop-around and init-inside-range helper
+branches one case at a time.
+
 Already converted:
 
 - `zero_at`: now handled during finalization instead of by recomputing Twiss.
