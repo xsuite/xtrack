@@ -375,13 +375,16 @@ def twiss_line(line, particle_ref=None, method=None,
 
     """
     # Normalize all inputs without altering the line. The returned dictionaries
-    # describe the temporary tracker state needed by the calculation.
+    # describe modifications to be made to line.config and line.tracker.track_flags.
     (data, input_kwargs, track_flag_updates, config_updates
      ) = _normalize_twiss_inputs(
         twiss_kwargs=locals().copy(), twiss_init_cls=TwissInit)
 
     with ExitStack() as twiss_context:
-        # Apply the requested line state only for the duration of this call.
+        # Apply the requested temporary line state (line.config and
+        # line.tracker.track_flags). The `with ExitStack()` context manager
+        # ensures that the original line state is restored at the end or if
+        # an exception is raised.
         _apply_twiss_line_context(
             twiss_context=twiss_context,
             line=data['line'],
