@@ -376,7 +376,7 @@ def twiss_line(line, particle_ref=None, method=None,
     """
     # Normalize all inputs without altering the line. The returned dictionaries
     # describe modifications to be made to line.config and line.tracker.track_flags.
-    (data, input_kwargs, track_flag_updates, config_updates
+    (data, input_kwargs, track_flag_updates, line_config_updates
      ) = _normalize_twiss_inputs(
         twiss_kwargs=locals().copy(), twiss_init_cls=TwissInit)
 
@@ -389,7 +389,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_context=twiss_context,
             line=data['line'],
             track_flag_updates=track_flag_updates,
-            config_updates=config_updates,
+            line_config_updates=line_config_updates,
             freeze_longitudinal=data['freeze_longitudinal'],
             freeze_energy=data['freeze_energy'])
 
