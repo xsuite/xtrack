@@ -3,8 +3,8 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from .element_indexing import _str_to_index
 from .twiss_table import TwissTable
+from .twiss_init import _str_to_index
 
 import xtrack as xt  # To avoid circular imports
 

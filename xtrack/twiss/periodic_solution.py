@@ -6,8 +6,7 @@
 import numpy as np
 
 from .. import linear_normal_form as lnf
-from .element_indexing import _str_to_index
-from .twiss_init import TwissInit
+from .twiss_init import TwissInit, _str_to_index
 
 
 def _find_periodic_solution(line, particle_on_co, particle_ref, method,

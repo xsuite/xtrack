@@ -12,9 +12,19 @@ import xobjects as xo
 from .. import json as json_utils
 from ..table import Table
 from .constants import VARS_FOR_TWISS_INIT_GENERATION
-from .element_indexing import _str_to_index
 
 import xtrack as xt  # To avoid circular imports
+
+
+def _str_to_index(line, ele, allow_end_point=True):
+    if allow_end_point and ele == '_end_point':
+        return len(line._element_names_unique)
+    if isinstance(ele, str):
+        if ele not in line._element_names_unique:
+            raise ValueError(f'Element {ele} not found in line')
+        return line._element_names_unique.index(ele)
+    else:
+        return ele
 
 
 class TwissInit:

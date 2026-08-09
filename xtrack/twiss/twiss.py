@@ -10,38 +10,22 @@ from .input_normalization import (
     _normalize_twiss_inputs,
 )
 from .chromatic_functions import trapz
-from .line_context import (
-    _apply_twiss_line_context,
-)
 from .handle_init_inside_range_and_line_wrap import (
     _handle_init_inside_range_and_line_wrap,
 )
 from .optics_propagation import _propagate_twiss_from_init
-from .base_result import (
-    _add_periodic_solution_data_to_base_twiss,
-    _add_chromatic_functions_to_twiss_result,
-    _add_radiation_analysis_to_twiss_result,
-    _apply_4d_longitudinal_result_convention,
-    _set_twiss_result_values_at,
-    _add_strengths_and_radiation_integrals_to_twiss_result,
-    _add_spin_polarization_to_twiss_result,
-    _add_edwards_teng_coupling_to_twiss_result,
-    _add_base_twiss_metadata,
-    _reverse_twiss_result_if_needed,
-    _add_measured_revolution_period_if_requested,
-    _align_open_twiss_phases_with_init,
-)
+from . import twiss_postprocess_and_complementary_results as twpc
 from .multiturn import (
     _extend_twiss_result_to_multiple_turns,
     _kwargs_for_multiturn_continuation,
 )
 from .twiss_init import (
     TwissInit,
+    _str_to_index,
     _build_twiss_init_from_inputs,
     _clear_twiss_init_input_fields,
     _compute_periodic_twiss_init,
 )
-from .element_indexing import _str_to_index
 
 import xtrack as xt  # To avoid circular imports
 
@@ -569,21 +553,23 @@ def _compute_base_twiss(twiss_config):
     if (twiss_config['periodic']
             and not twiss_config['skip_global_quantities']
             and not twiss_config['only_orbit']):
-        _add_periodic_solution_data_to_base_twiss(twiss_config, twiss_res)
+        twpc._add_periodic_solution_data_to_base_twiss(
+            twiss_config, twiss_res)
 
-    _add_chromatic_functions_to_twiss_result(twiss_config, twiss_res)
-    _add_radiation_analysis_to_twiss_result(twiss_config, twiss_res)
-    _apply_4d_longitudinal_result_convention(twiss_config, twiss_res)
-    twiss_res = _set_twiss_result_values_at(twiss_config, twiss_res)
-    _add_strengths_and_radiation_integrals_to_twiss_result(twiss_config, twiss_res)
-    _add_spin_polarization_to_twiss_result(twiss_config, twiss_res)
-    _add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res)
-    _add_base_twiss_metadata(twiss_config, twiss_res)
+    twpc._add_chromatic_functions_to_twiss_result(twiss_config, twiss_res)
+    twpc._add_radiation_analysis_to_twiss_result(twiss_config, twiss_res)
+    twpc._apply_4d_longitudinal_result_convention(twiss_config, twiss_res)
+    twiss_res = twpc._set_twiss_result_values_at(twiss_config, twiss_res)
+    twpc._add_strengths_and_radiation_integrals_to_twiss_result(
+        twiss_config, twiss_res)
+    twpc._add_spin_polarization_to_twiss_result(twiss_config, twiss_res)
+    twpc._add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res)
+    twpc._add_base_twiss_metadata(twiss_config, twiss_res)
 
-    twiss_res = _reverse_twiss_result_if_needed(twiss_config, twiss_res)
+    twiss_res = twpc._reverse_twiss_result_if_needed(twiss_config, twiss_res)
     if not twiss_config['periodic'] and not twiss_config['only_orbit']:
-        _align_open_twiss_phases_with_init(twiss_config, twiss_res)
-    _add_measured_revolution_period_if_requested(twiss_config, twiss_res)
+        twpc._align_open_twiss_phases_with_init(twiss_config, twiss_res)
+    twpc._add_measured_revolution_period_if_requested(twiss_config, twiss_res)
 
     return twiss_res
 
@@ -618,3 +604,26 @@ def _get_open_twiss_range_flags(twiss_config):
 
     init_is_at_boundary = twiss_config['init'].element_name in (start, end)
     return crosses_line_boundary, init_is_at_boundary
+
+
+def _apply_twiss_line_context(
+        twiss_context, line, track_flag_updates, line_config_updates, *,
+        freeze_longitudinal, freeze_energy):
+    """Apply and automatically restore the normalized temporary line state."""
+
+    if freeze_longitudinal:
+        twiss_context.enter_context(xt.freeze_longitudinal(line))
+    elif freeze_energy:
+        if not line._energy_is_frozen():
+            twiss_context.enter_context(xt.line._preserve_config(line))
+            line.freeze_energy(force=True)  # force is needed for collective lines
+
+    if track_flag_updates:
+        twiss_context.enter_context(xt.line._preserve_track_flags(line))
+        for flag_name, value in track_flag_updates.items():
+            setattr(line.tracker.track_flags, flag_name, value)
+
+    if line_config_updates:
+        twiss_context.enter_context(xt.line._preserve_config(line))
+        for config_name, value in line_config_updates.items():
+            setattr(line.config, config_name, value)
