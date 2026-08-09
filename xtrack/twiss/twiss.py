@@ -14,7 +14,7 @@ from .chromatic_functions import trapz
 from .line_context import (
     _prepare_twiss_line_context,
 )
-from ._handle_init_inside_range_and_line_wrap import (
+from .handle_init_inside_range_and_line_wrap import (
     _handle_init_inside_range_and_line_wrap,
 )
 from .propagation import _propagate_twiss_from_init
@@ -491,12 +491,14 @@ def twiss_line(line, particle_ref=None, method=None,
         else:
             raise RuntimeError(f'Unexpected Twiss route: {route}')
 
-        # All table-producing routes share the same public result finalization.
         if isinstance(twiss_res, TwissInit):
             return twiss_res
+
         if data['zero_at_requested'] is not None:
             twiss_res.zero_at(data['zero_at_requested'])
+
         twiss_res._data['_action'] = xt.match.ActionTwiss(**input_kwargs)
+
         return twiss_res
 
 
