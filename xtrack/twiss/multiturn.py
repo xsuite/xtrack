@@ -65,7 +65,7 @@ def _multiturn_start_row(tw_curr, i_turn):
 def _continue_multiturn_twiss(tw_curr, kwargs):
 
     # This local import is the one intentional recursive dependency.
-    from .core import twiss_line
+    from .twiss import twiss_line
 
     line = kwargs['line']
     tini1 = tw_curr.get_twiss_init(-1)

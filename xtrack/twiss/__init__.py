@@ -25,7 +25,7 @@ from .closed_orbit import (
 )
 from .non_linear_chromaticity import get_non_linear_chromaticity
 from .strengths import _reverse_strengths
-from .core import (
+from .twiss import (
     trapz,
     twiss_line,
 )
