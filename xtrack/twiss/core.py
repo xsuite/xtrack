@@ -376,6 +376,8 @@ def twiss_line(line, particle_ref=None, method=None,
         data['zero_at_requested'] = data['zero_at']
         data['zero_at'] = None
 
+        # Determine the route (periodic / open / periodic_one_turn_custom_start
+        # / open_one_turn_custom_start / open_init_from_full_periodic)
         route = _select_twiss_route(data)
 
         if route == 'periodic':
