@@ -5,10 +5,35 @@
 
 from warnings import warn
 
+import numpy as np
+import xobjects as xo
+
 from ..general import DEPRECATION_INFO_PREP_1_0, _print
+from .extra_markers import _build_auxiliary_tracker_with_extra_markers
 
 
 def _normalize_twiss_inputs(twiss_kwargs, twiss_init_cls):
+
+    data, input_kwargs = _normalize_public_twiss_arguments(
+        twiss_kwargs, twiss_init_cls)
+
+    _resolve_open_twiss_range_defaults(data)
+    _validate_multiturn_request(data)
+    _resolve_twiss_range_endpoints(data)
+    _set_twiss_periodic_mode(data)
+    _normalize_twiss_method(data)
+    _prepare_twiss_at_s_markers(data)
+    _normalize_radiation_method(data)
+    _normalize_line_dependent_twiss_inputs(data)
+
+    if data['line'].enable_time_dependent_vars:
+        raise RuntimeError('Time dependent variables not supported in Twiss')
+
+    track_flags, config = _get_twiss_line_context_updates(data)
+    return data, input_kwargs, track_flags, config
+
+
+def _normalize_public_twiss_arguments(twiss_kwargs, twiss_init_cls):
 
     twiss_kwargs = twiss_kwargs.copy()
 
@@ -112,10 +137,8 @@ def _normalize_twiss_inputs(twiss_kwargs, twiss_init_cls):
     return twiss_kwargs, input_kwargs
 
 
-def _normalize_twiss_inputs_after_line_context(data):
-    """Finish normalization that depends on the prepared line and range."""
-
-    data = data.copy()
+def _normalize_line_dependent_twiss_inputs(data):
+    """Normalize inputs that depend on the selected line and range."""
 
     # Resolve symbolic init locations and TwissTable inputs after range names.
     import xtrack as xt  # Local import avoids circular imports.
@@ -163,11 +186,6 @@ def _normalize_twiss_inputs_after_line_context(data):
         raise ValueError(
             "Either ``particle_ref`` or ``co_guess`` must be provided")
 
-    if data['method'] is None:
-        data['method'] = '6d'
-    assert data['method'] in ['6d', '4d'], (
-        'Method must be ``6d`` or ``4d``')
-
     if isinstance(data['init'], str):
         if data['init'] in ['preserve', 'preserve_start', 'preserve_end']:
             raise ValueError(f"init={data['init']} not anymore supported")
@@ -177,7 +195,161 @@ def _normalize_twiss_inputs_after_line_context(data):
         raise ValueError(
             'delta0 and zeta0 cannot be provided for open twiss')
 
-    return data
+
+def _resolve_open_twiss_range_defaults(data):
+
+    import xtrack as xt  # Local import avoids circular imports.
+
+    if ((data['init'] is not None
+            or data['betx'] is not None
+            or data['bety'] is not None)
+            and data['start'] is None):
+        data['start'] = xt.START
+        data['end'] = data['end'] or xt.END
+
+
+def _validate_multiturn_request(data):
+
+    if data['num_turns'] == 1:
+        return
+
+    assert data['num_turns'] > 0
+    assert data['start'] is None
+    assert data['end'] is None
+    assert data['init'] is None
+    assert data['reverse'] is False
+
+
+def _resolve_twiss_range_endpoints(data):
+
+    data['start'] = _resolve_twiss_range_endpoint(
+        line=data['line'], endpoint=data['start'], reverse=data['reverse'])
+    data['end'] = _resolve_twiss_range_endpoint(
+        line=data['line'], endpoint=data['end'], reverse=data['reverse'])
+
+
+def _resolve_twiss_range_endpoint(line, endpoint, reverse):
+
+    import xtrack as xt  # Local import avoids circular imports.
+
+    if endpoint is None:
+        return None
+
+    if isinstance(endpoint, xt.match._LOC):
+        assert endpoint in [xt.START, xt.END]
+        if reverse:
+            endpoint = {xt.START: xt.END, xt.END: xt.START}[endpoint]
+        endpoint = {
+            xt.START: line._element_names_unique[0],
+            xt.END: line._element_names_unique[-1],
+        }[endpoint]
+
+    assert isinstance(endpoint, str)  # index not supported anymore
+    return endpoint
+
+
+def _set_twiss_periodic_mode(data):
+
+    init = data['init']
+    if (init is not None and init not in ['periodic', 'periodic_symmetric']
+            or data['betx'] is not None or data['bety'] is not None):
+        data['periodic'] = False
+        data['periodic_mode'] = None
+        return
+
+    data['periodic'] = True
+    data['periodic_mode'] = init or 'periodic'
+    for coordinate_name in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
+        assert data[coordinate_name] is None, (
+            f'``{coordinate_name}`` not supported for periodic twiss')
+
+
+def _normalize_twiss_method(data):
+
+    if data['method'] is None:
+        data['method'] = '6d'
+    assert data['method'] in ['6d', '4d'], (
+        'Method must be ``6d`` or ``4d``')
+
+
+def _prepare_twiss_at_s_markers(data):
+
+    if data['at_s'] is None:
+        return
+
+    if data['reverse']:
+        raise NotImplementedError('``at_s`` not implemented for ``reverse``=True')
+    if np.isscalar(data['at_s']):
+        data['at_s'] = [data['at_s']]
+    assert data['at_elements'] is None
+
+    auxtracker, names_inserted_markers = (
+        _build_auxiliary_tracker_with_extra_markers(
+            tracker=data['line'].tracker,
+            at_s=data['at_s'],
+            marker_prefix='inserted_twiss_marker',
+            algorithm='insert'))
+    data['line'] = auxtracker.line
+    data['at_elements'] = names_inserted_markers
+    data['at_s'] = None
+    data['strengths'] = True
+
+
+def _normalize_radiation_method(data):
+
+    line = data['line']
+    radiation_method = data['radiation_method']
+
+    if radiation_method is None and line._radiation_model is not None:
+        if line._radiation_model in ('quantum', 'quantum-kick'):
+            raise ValueError(
+                'twiss cannot be called when the radiation model is stochastic')
+        if data['method'] == '4d':
+            raise RuntimeError(
+                '4d twiss cannot be called when radiation is present')
+        radiation_method = 'kick_as_co'
+        data['radiation_method'] = radiation_method
+
+    if radiation_method is not None and radiation_method != 'full':
+        assert isinstance(line._context, xo.ContextCpu), (
+            'Twiss with radiation computation is only supported on CPU')
+        assert not line._context.openmp_enabled, (
+            'Twiss with radiation computation is not supported with OpenMP '
+            'parallelization')
+        assert radiation_method in ['kick_as_co', 'scale_as_co']
+
+
+def _get_twiss_line_context_updates(data):
+
+    line = data['line']
+    track_flags = {}
+    config = {}
+
+    if data['disable_apertures']:
+        track_flags.update(
+            XS_FLAG_IGNORE_GLOBAL_APERTURE=True,
+            XS_FLAG_IGNORE_LOCAL_APERTURE=True,
+        )
+
+    if data['method'] == '4d':
+        track_flags['XS_FLAG_KILL_CAVITY_KICK'] = True
+
+    if data['radiation_method'] == 'kick_as_co':
+        track_flags['XS_FLAG_SR_KICK_SAME_AS_FIRST'] = True
+    elif data['radiation_method'] == 'scale_as_co':
+        config['XTRACK_SYNRAD_SCALE_SAME_AS_FIRST'] = True
+
+    # Avoid entering preservation contexts when the line already has the
+    # requested state.
+    track_flags = {
+        name: value for name, value in track_flags.items()
+        if getattr(line.tracker.track_flags, name) != value
+    }
+    config = {
+        name: value for name, value in config.items()
+        if getattr(line.config, name, None) != value
+    }
+    return track_flags, config
 
 
 def _handle_deprecated_twiss_kwargs(

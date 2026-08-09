@@ -8,11 +8,10 @@ from contextlib import ExitStack
 from .twiss_table import TwissTable
 from .input_normalization import (
     _normalize_twiss_inputs,
-    _normalize_twiss_inputs_after_line_context,
 )
 from .chromatic_functions import trapz
 from .line_context import (
-    _prepare_twiss_line_context,
+    _apply_twiss_line_context,
 )
 from .handle_init_inside_range_and_line_wrap import (
     _handle_init_inside_range_and_line_wrap,
@@ -375,23 +374,21 @@ def twiss_line(line, particle_ref=None, method=None,
         - `t_rev`: measured revolution period [s]
 
     """
-    # Normalize the public API once before entering temporary line contexts.
-    normalized_kwargs, input_kwargs = _normalize_twiss_inputs(
+    # Normalize all inputs without altering the line. The returned dictionaries
+    # describe the temporary tracker state needed by the calculation.
+    (data, input_kwargs, track_flag_updates, config_updates
+     ) = _normalize_twiss_inputs(
         twiss_kwargs=locals().copy(), twiss_init_cls=TwissInit)
 
     with ExitStack() as twiss_context:
-        # For the twiss calculation we need to alter line.config and
-        # line.tracker.track_flags. This context manager takes care of restoring
-        # the original values after the twiss calculation is done or in case of
-        # an exception.
-
-        # Configure line.config and line.tracker.track_flags
-        data = _prepare_twiss_line_context(
+        # Apply the requested line state only for the duration of this call.
+        _apply_twiss_line_context(
             twiss_context=twiss_context,
-            data=normalized_kwargs)
-
-        # Further input normalization
-        data = _normalize_twiss_inputs_after_line_context(data)
+            line=data['line'],
+            track_flag_updates=track_flag_updates,
+            config_updates=config_updates,
+            freeze_longitudinal=data['freeze_longitudinal'],
+            freeze_energy=data['freeze_energy'])
 
         # Determine the route (periodic / open / periodic_one_turn_custom_start
         # / open_one_turn_custom_start / open_init_from_full_periodic)
@@ -494,7 +491,7 @@ def twiss_line(line, particle_ref=None, method=None,
         # Multi-turn case (calls twiss_line recursively)
         if data['num_turns'] > 1:
             multiturn_kwargs = _kwargs_for_multiturn_continuation(
-                normalized_kwargs, data)
+                input_kwargs, data)
             twiss_res = _extend_twiss_result_to_multiple_turns(
                 twiss_res=twiss_res,
                 num_turns=data['num_turns'],
@@ -519,12 +516,6 @@ def _compute_base_twiss(data):
     """Propagate from a concrete init and finish one non-composed result."""
 
     data = data.copy()
-    # The public line context is already active. These options only control
-    # context setup and must not be applied again for individual segments.
-    data['disable_apertures'] = False
-    data['freeze_longitudinal'] = False
-    data['freeze_energy'] = False
-    data['at_s'] = None
 
     assert isinstance(data['init'], TwissInit), (
         '_compute_base_twiss requires a concrete TwissInit')
