@@ -42,7 +42,6 @@ from .twiss_init import (
     _compute_periodic_twiss_init,
 )
 from .element_indexing import _str_to_index
-from .finalize import _finalize_twiss_result
 
 import xtrack as xt  # To avoid circular imports
 
@@ -493,8 +492,12 @@ def twiss_line(line, particle_ref=None, method=None,
             raise RuntimeError(f'Unexpected Twiss route: {route}')
 
         # All table-producing routes share the same public result finalization.
-        return _finalize_twiss_result(
-            twiss_res, input_kwargs, zero_at=data['zero_at_requested'])
+        if isinstance(twiss_res, TwissInit):
+            return twiss_res
+        if data['zero_at_requested'] is not None:
+            twiss_res.zero_at(data['zero_at_requested'])
+        twiss_res._data['_action'] = xt.match.ActionTwiss(**input_kwargs)
+        return twiss_res
 
 
 def _compute_base_twiss(data):
