@@ -6,7 +6,8 @@
 import numpy as np
 
 from .. import linear_normal_form as lnf
-from .twiss_init import TwissInit, _str_to_index
+from .defaults_and_input_preparation import _element_ref_to_index
+from .twiss_init import TwissInit
 
 
 def _find_periodic_solution(line, particle_on_co, particle_ref, method,
@@ -47,7 +48,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
             'start and end must be both None or both not None')
 
     if start is not None:
-        assert _str_to_index(line, start) <= _str_to_index(line, end)
+        assert (_element_ref_to_index(line, start)
+                <= _element_ref_to_index(line, end))
 
     if method == '4d' and delta0 is None:
         delta0 = 0

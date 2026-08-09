@@ -11,20 +11,12 @@ import xobjects as xo
 
 from .. import json as json_utils
 from ..table import Table
-from .defaults_and_input_preparation import VARS_FOR_TWISS_INIT_GENERATION
+from .defaults_and_input_preparation import (
+    VARS_FOR_TWISS_INIT_GENERATION,
+    _element_ref_to_index,
+)
 
 import xtrack as xt  # To avoid circular imports
-
-
-def _str_to_index(line, ele, allow_end_point=True):
-    if allow_end_point and ele == '_end_point':
-        return len(line._element_names_unique)
-    if isinstance(ele, str):
-        if ele not in line._element_names_unique:
-            raise ValueError(f'Element {ele} not found in line')
-        return line._element_names_unique.index(ele)
-    else:
-        return ele
 
 
 class TwissInit:
@@ -213,7 +205,8 @@ class TwissInit:
             assert line is not None, (
                 "``line`` must be provided if ``particle_on_co`` is None")
 
-            i_ele_in_line = _str_to_index(line, element_name, allow_end_point=False)
+            i_ele_in_line = _element_ref_to_index(
+                line, element_name, allow_end_point=False)
             s_ele_in_line = line.tracker._tracker_data_base.element_s_locations[i_ele_in_line]
 
             if input_reversed:

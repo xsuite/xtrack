@@ -7,6 +7,7 @@ from contextlib import ExitStack
 
 from .twiss_table import TwissTable
 from .defaults_and_input_preparation import (
+    _element_ref_to_index,
     _normalize_twiss_inputs,
 )
 from .chromatic_functions import trapz
@@ -21,7 +22,6 @@ from .multiturn import (
 )
 from .twiss_init import (
     TwissInit,
-    _str_to_index,
     _build_twiss_init_from_inputs,
     _clear_twiss_init_input_fields,
     _compute_periodic_twiss_init,
@@ -509,13 +509,17 @@ def _compute_base_twiss(twiss_config):
 
     if twiss_config['reverse']:
         if twiss_config['start'] is not None and twiss_config['end'] is not None:
-            assert (_str_to_index(twiss_config['line'], twiss_config['start'])
-                    >= _str_to_index(twiss_config['line'], twiss_config['end'])), (
+            assert (_element_ref_to_index(
+                        twiss_config['line'], twiss_config['start'])
+                    >= _element_ref_to_index(
+                        twiss_config['line'], twiss_config['end'])), (
                 'start must be smaller than end in reverse mode')
         twiss_config['start'], twiss_config['end'] = twiss_config['end'], twiss_config['start']
     elif twiss_config['start'] is not None and twiss_config['end'] is not None:
-        assert (_str_to_index(twiss_config['line'], twiss_config['start'])
-                <= _str_to_index(twiss_config['line'], twiss_config['end'])), (
+        assert (_element_ref_to_index(
+                    twiss_config['line'], twiss_config['start'])
+                <= _element_ref_to_index(
+                    twiss_config['line'], twiss_config['end'])), (
             'start must be larger than end in forward mode')
 
     if twiss_config['only_twiss_init']:
@@ -599,8 +603,10 @@ def _get_open_twiss_range_flags(twiss_config):
     else:
         direction_sign = -1 if twiss_config['reverse'] else 1
         crosses_line_boundary = (
-            direction_sign * _str_to_index(twiss_config['line'], start)
-            > direction_sign * _str_to_index(twiss_config['line'], end))
+            direction_sign * _element_ref_to_index(
+                twiss_config['line'], start)
+            > direction_sign * _element_ref_to_index(
+                twiss_config['line'], end))
 
     init_is_at_boundary = twiss_config['init'].element_name in (start, end)
     return crosses_line_boundary, init_is_at_boundary

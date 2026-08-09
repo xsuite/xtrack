@@ -9,7 +9,6 @@ import numpy as np
 import xobjects as xo
 
 from ..general import DEPRECATION_INFO_PREP_1_0, _print
-from .extra_markers import _build_auxiliary_tracker_with_extra_markers
 
 
 DEFAULT_STEPS_R_MATRIX = {
@@ -36,14 +35,53 @@ VARS_FOR_TWISS_INIT_GENERATION = [
 
 def _normalize_twiss_inputs(twiss_kwargs, twiss_init_cls):
 
+    import xtrack as xt  # Local import avoids circular imports.
+
     twiss_config, input_kwargs = _normalize_public_twiss_arguments(
         twiss_kwargs, twiss_init_cls)
 
-    _resolve_open_twiss_range_defaults(twiss_config)
-    _validate_multiturn_request(twiss_config)
-    _resolve_twiss_range_endpoints(twiss_config)
-    _set_twiss_periodic_mode(twiss_config)
-    _normalize_twiss_method(twiss_config)
+    # A supplied open init without an explicit range covers the full line.
+    if ((twiss_config['init'] is not None
+            or twiss_config['betx'] is not None
+            or twiss_config['bety'] is not None)
+            and twiss_config['start'] is None):
+        twiss_config['start'] = xt.START
+        twiss_config['end'] = twiss_config['end'] or xt.END
+
+    if twiss_config['num_turns'] != 1:
+        assert twiss_config['num_turns'] > 0
+        assert twiss_config['start'] is None
+        assert twiss_config['end'] is None
+        assert twiss_config['init'] is None
+        assert twiss_config['reverse'] is False
+
+    twiss_config['start'] = _resolve_twiss_range_endpoint(
+        line=twiss_config['line'],
+        endpoint=twiss_config['start'],
+        reverse=twiss_config['reverse'])
+    twiss_config['end'] = _resolve_twiss_range_endpoint(
+        line=twiss_config['line'],
+        endpoint=twiss_config['end'],
+        reverse=twiss_config['reverse'])
+
+    init = twiss_config['init']
+    if (init is not None and init not in ['periodic', 'periodic_symmetric']
+            or twiss_config['betx'] is not None
+            or twiss_config['bety'] is not None):
+        twiss_config['periodic'] = False
+        twiss_config['periodic_mode'] = None
+    else:
+        twiss_config['periodic'] = True
+        twiss_config['periodic_mode'] = init or 'periodic'
+        for coordinate_name in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
+            assert twiss_config[coordinate_name] is None, (
+                f'``{coordinate_name}`` not supported for periodic twiss')
+
+    if twiss_config['method'] is None:
+        twiss_config['method'] = '6d'
+    assert twiss_config['method'] in ['6d', '4d'], (
+        'Method must be ``6d`` or ``4d``')
+
     _prepare_twiss_at_s_markers(twiss_config)
     _normalize_radiation_method(twiss_config)
     _normalize_line_dependent_twiss_inputs(twiss_config)
@@ -220,38 +258,6 @@ def _normalize_line_dependent_twiss_inputs(twiss_config):
             'delta0 and zeta0 cannot be provided for open twiss')
 
 
-def _resolve_open_twiss_range_defaults(twiss_config):
-
-    import xtrack as xt  # Local import avoids circular imports.
-
-    if ((twiss_config['init'] is not None
-            or twiss_config['betx'] is not None
-            or twiss_config['bety'] is not None)
-            and twiss_config['start'] is None):
-        twiss_config['start'] = xt.START
-        twiss_config['end'] = twiss_config['end'] or xt.END
-
-
-def _validate_multiturn_request(twiss_config):
-
-    if twiss_config['num_turns'] == 1:
-        return
-
-    assert twiss_config['num_turns'] > 0
-    assert twiss_config['start'] is None
-    assert twiss_config['end'] is None
-    assert twiss_config['init'] is None
-    assert twiss_config['reverse'] is False
-
-
-def _resolve_twiss_range_endpoints(twiss_config):
-
-    twiss_config['start'] = _resolve_twiss_range_endpoint(
-        line=twiss_config['line'], endpoint=twiss_config['start'], reverse=twiss_config['reverse'])
-    twiss_config['end'] = _resolve_twiss_range_endpoint(
-        line=twiss_config['line'], endpoint=twiss_config['end'], reverse=twiss_config['reverse'])
-
-
 def _resolve_twiss_range_endpoint(line, endpoint, reverse):
 
     import xtrack as xt  # Local import avoids circular imports.
@@ -272,28 +278,14 @@ def _resolve_twiss_range_endpoint(line, endpoint, reverse):
     return endpoint
 
 
-def _set_twiss_periodic_mode(twiss_config):
-
-    init = twiss_config['init']
-    if (init is not None and init not in ['periodic', 'periodic_symmetric']
-            or twiss_config['betx'] is not None or twiss_config['bety'] is not None):
-        twiss_config['periodic'] = False
-        twiss_config['periodic_mode'] = None
-        return
-
-    twiss_config['periodic'] = True
-    twiss_config['periodic_mode'] = init or 'periodic'
-    for coordinate_name in ('x', 'px', 'y', 'py', 'zeta', 'delta'):
-        assert twiss_config[coordinate_name] is None, (
-            f'``{coordinate_name}`` not supported for periodic twiss')
-
-
-def _normalize_twiss_method(twiss_config):
-
-    if twiss_config['method'] is None:
-        twiss_config['method'] = '6d'
-    assert twiss_config['method'] in ['6d', '4d'], (
-        'Method must be ``6d`` or ``4d``')
+def _element_ref_to_index(line, element_ref, allow_end_point=True):
+    if allow_end_point and element_ref == '_end_point':
+        return len(line._element_names_unique)
+    if isinstance(element_ref, str):
+        if element_ref not in line._element_names_unique:
+            raise ValueError(f'Element {element_ref} not found in line')
+        return line._element_names_unique.index(element_ref)
+    return element_ref
 
 
 def _prepare_twiss_at_s_markers(twiss_config):
@@ -317,6 +309,44 @@ def _prepare_twiss_at_s_markers(twiss_config):
     twiss_config['at_elements'] = names_inserted_markers
     twiss_config['at_s'] = None
     twiss_config['strengths'] = True
+
+
+def _build_auxiliary_tracker_with_extra_markers(
+        tracker, at_s, marker_prefix, algorithm='auto'):
+
+    import xtrack as xt  # Local import avoids circular imports.
+
+    assert algorithm in ['auto', 'insert', 'regen_all_drift']
+    if algorithm == 'auto':
+        if len(at_s) < 10:
+            algorithm = 'insert'
+        else:
+            algorithm = 'regen_all_drifts'
+
+    auxline = xt.Line(
+        elements=tracker.line._element_dict.copy(),
+        element_names=list(tracker.line.element_names).copy())
+    if tracker.line.particle_ref is not None:
+        auxline.particle_ref = tracker.line.particle_ref.copy()
+
+    insertions = []
+    names_inserted_markers = []
+    for ii, ss in enumerate(at_s):
+        name = marker_prefix + f'{ii}'
+        insertions.append(auxline.env.new(name, 'Marker', at=ss))
+        names_inserted_markers.append(name)
+    auxline.insert(insertions)
+
+    auxtracker = xt.Tracker(
+        _buffer=tracker._buffer,
+        io_buffer=tracker.io_buffer,
+        line=auxline,
+        particles_monitor_class=None,
+    )
+    auxtracker.line.config = tracker.line.config.copy()
+    auxtracker.line._extra_config = tracker.line._extra_config.copy()
+
+    return auxtracker, names_inserted_markers
 
 
 def _normalize_radiation_method(twiss_config):

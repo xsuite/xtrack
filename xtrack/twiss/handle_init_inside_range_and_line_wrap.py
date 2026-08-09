@@ -3,8 +3,8 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+from .defaults_and_input_preparation import _element_ref_to_index
 from .twiss_table import TwissTable
-from .twiss_init import _str_to_index
 
 import xtrack as xt  # To avoid circular imports
 
@@ -33,15 +33,15 @@ def _handle_init_inside_range_and_line_wrap(
                 'This is not yet supported')
 
         if reverse:
-            assert (_str_to_index(line, init_element_name)
-                    <= _str_to_index(line, start))
-            assert (_str_to_index(line, init_element_name)
-                    >= _str_to_index(line, end))
+            assert (_element_ref_to_index(line, init_element_name)
+                    <= _element_ref_to_index(line, start))
+            assert (_element_ref_to_index(line, init_element_name)
+                    >= _element_ref_to_index(line, end))
         else:
-            assert (_str_to_index(line, init_element_name)
-                    >= _str_to_index(line, start))
-            assert (_str_to_index(line, init_element_name)
-                    <= _str_to_index(line, end))
+            assert (_element_ref_to_index(line, init_element_name)
+                    >= _element_ref_to_index(line, start))
+            assert (_element_ref_to_index(line, init_element_name)
+                    <= _element_ref_to_index(line, end))
 
         # Propagate both sides from the same init, then restore one continuous
         # table.
@@ -71,10 +71,12 @@ def _handle_init_inside_range_and_line_wrap(
     if one_turn_from_start:
         assert start == end
     elif not reverse:
-        assert _str_to_index(line, end) < _str_to_index(line, start), (
+        assert (_element_ref_to_index(line, end)
+                < _element_ref_to_index(line, start)), (
             'This function should not have been called')
     else:
-        assert _str_to_index(line, end) > _str_to_index(line, start), (
+        assert (_element_ref_to_index(line, end)
+                > _element_ref_to_index(line, start)), (
             'This function should not have been called')
 
     if reverse:
@@ -106,9 +108,9 @@ def _handle_init_inside_range_and_line_wrap(
         return twiss_res
 
     init_element_name = init.element_name
-    init_index = _str_to_index(line, init_element_name)
-    start_index = _str_to_index(line, start)
-    end_index = _str_to_index(line, end)
+    init_index = _element_ref_to_index(line, init_element_name)
+    start_index = _element_ref_to_index(line, start)
+    end_index = _element_ref_to_index(line, end)
 
     if init_element_name not in (start, end):
         # Build the side containing the init in both directions, then transfer
