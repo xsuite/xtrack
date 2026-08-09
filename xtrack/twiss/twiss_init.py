@@ -589,8 +589,11 @@ _PERIODIC_INIT_ARGUMENTS_FROM_BASE_DATA = (
 def _build_twiss_init_from_inputs(twiss_config):
 
     init = twiss_config['init']
-    if isinstance(init, TwissInit) and twiss_config['init_at'] is not None:
-        init.element_name = twiss_config['init_at']
+    if isinstance(init, TwissInit):
+        # The caller owns the supplied init. Complete and adjust only our copy.
+        init = init.copy()
+        if twiss_config['init_at'] is not None:
+            init.element_name = twiss_config['init_at']
 
     if twiss_config['start'] is not None or twiss_config['end'] is not None:
         assert twiss_config['start'] is not None and twiss_config['end'] is not None, (
@@ -618,7 +621,6 @@ def _build_twiss_init_from_inputs(twiss_config):
 
     if init is not None and not isinstance(init, str):
         assert isinstance(init, TwissInit)
-        init = init.copy()  # Do not change the supplied init while completing it.
         if init._has_deferred_inputs():
             assert isinstance(twiss_config['start'], str), (
                 'start must be provided as name when an incomplete '
@@ -642,8 +644,7 @@ def _build_twiss_init_from_inputs(twiss_config):
                     '``init`` needs to be given in the reverse reference '
                     'frame when ``reverse`` is True')
 
-    completed_init = (init.copy() if hasattr(init, 'copy') else init)
-    return init, completed_init
+    return init
 
 
 def _clear_twiss_init_input_fields(twiss_config):

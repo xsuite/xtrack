@@ -1179,6 +1179,33 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         xo.assert_allclose(np.std(particles_matrix.pzeta), np.std(particles_line.pzeta),
             atol=0, rtol=(25e-2 if longitudinal_mode.startswith('linear') else 2e-2))
 
+@for_all_test_contexts
+def test_supplied_twiss_init_is_not_modified(test_context):
+
+    line = xt.Line(
+        elements=[xt.Marker(), xt.Drift(length=1), xt.Marker()],
+        element_names=['start', 'drift', 'end'])
+    line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
+    line.build_tracker(_context=test_context)
+
+    supplied_init = xt.TwissInit(betx=1., bety=2.)
+    assert supplied_init.element_name is None
+    assert supplied_init.reference_frame is None
+    assert supplied_init._has_deferred_inputs()
+
+    tw = line.twiss(
+        method='4d', start='start', end='end',
+        init=supplied_init, init_at='start')
+
+    # Completing the init for Twiss must not alter the caller-owned object.
+    assert supplied_init.element_name is None
+    assert supplied_init.reference_frame is None
+    assert supplied_init._has_deferred_inputs()
+    assert tw.completed_init.element_name == 'start'
+    assert tw.completed_init.reference_frame == 'proper'
+    assert not tw.completed_init._has_deferred_inputs()
+
+
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_custom_twiss_init(test_context):
 

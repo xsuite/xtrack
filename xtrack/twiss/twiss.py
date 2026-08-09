@@ -362,7 +362,7 @@ def twiss_line(line, particle_ref=None, method=None,
     # describe modifications to be made to line.config and line.tracker.track_flags.
     (twiss_config, input_kwargs, track_flag_updates, line_config_updates
      ) = _normalize_twiss_inputs(
-        twiss_kwargs=locals().copy(), twiss_init_cls=TwissInit)
+        twiss_kwargs=locals().copy())
 
     with ExitStack() as twiss_context:
         # Apply the requested temporary line state (line.config and
@@ -383,15 +383,15 @@ def twiss_line(line, particle_ref=None, method=None,
 
         if route == 'periodic':
             # Standard periodic Twiss, for the full line or a closed range.
-            twiss_config['completed_init'] = twiss_config['init']
+            result_init = twiss_config['init']
             _clear_twiss_init_input_fields(twiss_config)
             twiss_config.update(_compute_periodic_twiss_init(twiss_config))
             twiss_res = _compute_base_twiss(twiss_config)
 
         elif route == 'open':
             # Standard open Twiss from supplied init data.
-            twiss_config['init'], twiss_config['completed_init'] = (
-                _build_twiss_init_from_inputs(twiss_config))
+            twiss_config['init'] = _build_twiss_init_from_inputs(twiss_config)
+            result_init = twiss_config['init'].copy()
             _clear_twiss_init_input_fields(twiss_config)
 
             crosses_line_boundary, init_is_at_boundary = (
@@ -408,7 +408,7 @@ def twiss_line(line, particle_ref=None, method=None,
             requested_start = twiss_config['start']
             one_turn_kwargs = twiss_config.copy()
             one_turn_kwargs['start'] = None
-            one_turn_kwargs['completed_init'] = one_turn_kwargs['init']
+            result_init = one_turn_kwargs['init']
             _clear_twiss_init_input_fields(one_turn_kwargs)
             one_turn_kwargs.update(
                 _compute_periodic_twiss_init(one_turn_kwargs))
@@ -419,13 +419,12 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res = TwissTable.concatenate([first_part, second_part])
             twiss_res.zero_at(twiss_res.name[0])
             twiss_res.name[-1] = '_end_point'
-            twiss_config['completed_init'] = one_turn_kwargs['completed_init']
 
         elif route == 'open_one_turn_custom_start':
             # A start without an end requests a wrapped open range of one turn.
             twiss_config['end'] = twiss_config['start']
-            twiss_config['init'], twiss_config['completed_init'] = (
-                _build_twiss_init_from_inputs(twiss_config))
+            twiss_config['init'] = _build_twiss_init_from_inputs(twiss_config)
+            result_init = twiss_config['init'].copy()
             _clear_twiss_init_input_fields(twiss_config)
             twiss_res = _handle_init_inside_range_and_line_wrap(
                 twiss_config,
@@ -444,7 +443,6 @@ def twiss_line(line, particle_ref=None, method=None,
                 init_at=None,
                 periodic=True,
                 periodic_mode='periodic',
-                completed_init=None,
             )
             _clear_twiss_init_input_fields(periodic_kwargs)
             periodic_kwargs.update(
@@ -454,8 +452,8 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_config['init'] = full_periodic_twiss.get_twiss_init(
                 twiss_config['init_at'] or twiss_config['start'])
             twiss_config['init_at'] = None
-            twiss_config['init'], twiss_config['completed_init'] = (
-                _build_twiss_init_from_inputs(twiss_config))
+            twiss_config['init'] = _build_twiss_init_from_inputs(twiss_config)
+            result_init = twiss_config['init'].copy()
             _clear_twiss_init_input_fields(twiss_config)
 
             crosses_line_boundary, init_is_at_boundary = (
@@ -488,7 +486,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res = twiss_res.rows[twiss_config['at_elements']]
 
         twiss_res['periodic'] = twiss_config['periodic']
-        twiss_res['completed_init'] = twiss_config['completed_init']
+        twiss_res['completed_init'] = result_init
         twiss_res._sort_col_names()
 
         if twiss_config['zero_at'] is not None:

@@ -99,12 +99,12 @@ def _apply_twiss_defaults(
     )
 
 
-def _normalize_twiss_inputs(twiss_kwargs, twiss_init_cls):
+def _normalize_twiss_inputs(twiss_kwargs):
 
     import xtrack as xt  # Local import avoids circular imports.
 
     twiss_config, input_kwargs = _normalize_public_twiss_arguments(
-        twiss_kwargs, twiss_init_cls)
+        twiss_kwargs)
 
     # A supplied open init without an explicit range covers the full line.
     if ((twiss_config['init'] is not None
@@ -161,7 +161,7 @@ def _normalize_twiss_inputs(twiss_kwargs, twiss_init_cls):
         twiss_config, input_kwargs, track_flag_updates, line_config_updates)
 
 
-def _normalize_public_twiss_arguments(twiss_kwargs, twiss_init_cls):
+def _normalize_public_twiss_arguments(twiss_kwargs):
 
     twiss_kwargs = twiss_kwargs.copy()
 
@@ -258,9 +258,6 @@ def _normalize_public_twiss_arguments(twiss_kwargs, twiss_init_cls):
         twiss_kwargs['radiation_integrals'] = True
     if twiss_kwargs['spin']:
         assert twiss_kwargs['reverse'] is False
-
-    if isinstance(twiss_kwargs['init'], twiss_init_cls):
-        twiss_kwargs['init'] = twiss_kwargs['init'].copy()
 
     return twiss_kwargs, input_kwargs
 

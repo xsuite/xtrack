@@ -104,7 +104,6 @@ def _handle_init_inside_range_and_line_wrap(
         second_table = second_table.rows[:-1]
         second_table.name[-1] = '_end_point'
         twiss_res = TwissTable.concatenate([first_table, second_table])
-        twiss_res['completed_init'] = first_table.completed_init
         return twiss_res
 
     init_element_name = init.element_name
@@ -136,7 +135,6 @@ def _handle_init_inside_range_and_line_wrap(
                 init=boundary_init,
                 compute_base_twiss=compute_base_twiss)
             twiss_tables = (first_side_table, third_table)
-            completed_init = first_side_table.completed_init
 
         else:
             second_table = _compute_twiss_range_piece(
@@ -155,7 +153,6 @@ def _handle_init_inside_range_and_line_wrap(
                 init=boundary_init,
                 compute_base_twiss=compute_base_twiss)
             twiss_tables = (first_table, second_side_table)
-            completed_init = second_side_table.completed_init
 
     else:
         # With a boundary init, propagate its side first and transfer across.
@@ -181,7 +178,6 @@ def _handle_init_inside_range_and_line_wrap(
                 kwargs, start=line_boundary_start, end=end,
                 init=boundary_init,
                 compute_base_twiss=compute_base_twiss)
-            completed_init = first_table.completed_init
         else:
             second_table = _compute_twiss_range_piece(
                 kwargs, start=line_boundary_start, end=end, init=init,
@@ -192,14 +188,12 @@ def _handle_init_inside_range_and_line_wrap(
                 kwargs, start=start, end=line_boundary_end,
                 init=boundary_init,
                 compute_base_twiss=compute_base_twiss)
-            completed_init = second_table.completed_init
 
         twiss_tables = (first_table, second_table)
 
     # Assemble the output in traversal order and align it with the supplied init.
     twiss_res = TwissTable.concatenate(twiss_tables)
     twiss_res.s -= twiss_res['s', init_element_name] - init.s
-    twiss_res['completed_init'] = completed_init
 
     if 'mux' in twiss_res.keys():
         twiss_res.mux -= twiss_res['mux', init_element_name] - init.mux
@@ -225,19 +219,14 @@ def _compute_twiss_range_piece(
         start=start,
         end=end,
         init=init,
-        completed_init=init.copy(),
     )
-    twiss_res = compute_base_twiss(piece_twiss_config)
-    # Composed routes use this metadata while joining their intermediate tables.
-    twiss_res['completed_init'] = piece_twiss_config['completed_init']
-    return twiss_res
+    return compute_base_twiss(piece_twiss_config)
 
 
 def _combine_init_inside_range_twiss_tables(first_table, second_table, init):
 
     init_element_name = init.element_name
     twiss_res = TwissTable.concatenate([first_table, second_table])
-    twiss_res['completed_init'] = first_table.completed_init
 
     twiss_res.s -= twiss_res['s', init_element_name] - init.s
     twiss_res.mux -= twiss_res['mux', init_element_name] - init.mux
