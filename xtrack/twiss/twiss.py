@@ -558,7 +558,7 @@ def _compute_base_twiss(twiss_config):
     if (twiss_config['periodic']
             and not twiss_config['skip_global_quantities']
             and not twiss_config['only_orbit']):
-        twpc._add_periodic_solution_data_to_base_twiss(
+        twpc._add_periodic_solution_data_to_twiss_result(
             twiss_config, twiss_res)
 
     twpc._add_chromatic_functions_to_twiss_result(twiss_config, twiss_res)
