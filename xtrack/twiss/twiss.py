@@ -14,7 +14,7 @@ from .handle_init_inside_range_and_line_wrap import (
     _handle_init_inside_range_and_line_wrap,
 )
 from .optics_propagation import _propagate_twiss_from_init
-from . import twiss_postprocess_and_complementary_results as twpc
+from . import twiss_postprocess_and_complem_results as twpc
 from .multiturn import (
     _extend_twiss_result_to_multiple_turns,
     _kwargs_for_multiturn_continuation,
