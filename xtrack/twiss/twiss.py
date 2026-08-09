@@ -497,7 +497,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res, input_kwargs, zero_at=data['zero_at_requested'])
 
 
-def _compute_base_twiss(data, **overrides):
+def _compute_base_twiss(data):
     """Propagate from a concrete init and finish one non-composed result."""
 
     data = data.copy()
@@ -507,10 +507,7 @@ def _compute_base_twiss(data, **overrides):
     data['freeze_longitudinal'] = False
     data['freeze_energy'] = False
     data['at_s'] = None
-    data.update(overrides)
 
-    if 'init' in overrides and 'completed_init' not in overrides:
-        data['completed_init'] = data['init'].copy()
     assert isinstance(data['init'], TwissInit), (
         '_compute_base_twiss requires a concrete TwissInit')
 
@@ -615,4 +612,3 @@ def _get_open_twiss_range_flags(data):
 
     init_is_at_boundary = data['init'].element_name in (start, end)
     return crosses_line_boundary, init_is_at_boundary
-

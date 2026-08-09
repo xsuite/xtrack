@@ -19,7 +19,7 @@ def _handle_init_inside_range_and_line_wrap(
         start = kwargs.pop('start')
         end = kwargs.pop('end')
         init = kwargs.pop('init')
-        reverse = kwargs.pop('reverse')
+        reverse = kwargs['reverse']
 
         # Bidirectional propagation from an interior init is supported at
         # markers.
@@ -46,12 +46,12 @@ def _handle_init_inside_range_and_line_wrap(
         # Propagate both sides from the same init, then restore one continuous
         # table.
         first_table, second_table = tuple(
-            compute_base_twiss(
+            _compute_twiss_range_piece(
                 kwargs,
                 start=piece_start,
                 end=piece_end,
                 init=init,
-                reverse=reverse)
+                compute_base_twiss=compute_base_twiss)
             for piece_start, piece_end in (
                 (start, init_element_name),
                 (init_element_name, end),
@@ -88,15 +88,17 @@ def _handle_init_inside_range_and_line_wrap(
         # A start without an end requests one complete turn. Propagate across
         # the physical line boundary, then replace the repeated start row with
         # the conventional final _end_point row.
-        first_table = compute_base_twiss(
-            kwargs, start=start, end=line_boundary_end, init=init)
+        first_table = _compute_twiss_range_piece(
+            kwargs, start=start, end=line_boundary_end, init=init,
+            compute_base_twiss=compute_base_twiss)
         boundary_init = first_table.get_twiss_init('_end_point')
         boundary_init.element_name = line_boundary_start
-        second_table = compute_base_twiss(
+        second_table = _compute_twiss_range_piece(
             kwargs,
             start=line_boundary_start,
             end=start,
-            init=boundary_init)
+            init=boundary_init,
+            compute_base_twiss=compute_base_twiss)
         second_table = second_table.rows[:-1]
         second_table.name[-1] = '_end_point'
         twiss_res = TwissTable.concatenate([first_table, second_table])
@@ -116,34 +118,40 @@ def _handle_init_inside_range_and_line_wrap(
             or (reverse and init_index <= start_index))
 
         if init_is_after_start:
-            first_table = compute_base_twiss(
-                kwargs, start=start, end=init_element_name, init=init)
-            second_table = compute_base_twiss(
+            first_table = _compute_twiss_range_piece(
+                kwargs, start=start, end=init_element_name, init=init,
+                compute_base_twiss=compute_base_twiss)
+            second_table = _compute_twiss_range_piece(
                 kwargs, start=init_element_name, end=line_boundary_end,
-                init=init)
+                init=init,
+                compute_base_twiss=compute_base_twiss)
             first_side_table = _combine_init_inside_range_twiss_tables(
                 first_table, second_table, init)
             boundary_init = second_table.get_twiss_init('_end_point')
             boundary_init.element_name = line_boundary_start
-            third_table = compute_base_twiss(
+            third_table = _compute_twiss_range_piece(
                 kwargs, start=line_boundary_start, end=end,
-                init=boundary_init)
+                init=boundary_init,
+                compute_base_twiss=compute_base_twiss)
             twiss_tables = (first_side_table, third_table)
             completed_init = first_side_table.completed_init
 
         else:
-            second_table = compute_base_twiss(
+            second_table = _compute_twiss_range_piece(
                 kwargs, start=line_boundary_start, end=init_element_name,
-                init=init)
-            third_table = compute_base_twiss(
-                kwargs, start=init_element_name, end=end, init=init)
+                init=init,
+                compute_base_twiss=compute_base_twiss)
+            third_table = _compute_twiss_range_piece(
+                kwargs, start=init_element_name, end=end, init=init,
+                compute_base_twiss=compute_base_twiss)
             second_side_table = _combine_init_inside_range_twiss_tables(
                 second_table, third_table, init)
             boundary_init = second_table.get_twiss_init(line_boundary_start)
             boundary_init.element_name = line_boundary_end
-            first_table = compute_base_twiss(
+            first_table = _compute_twiss_range_piece(
                 kwargs, start=start, end=line_boundary_end,
-                init=boundary_init)
+                init=boundary_init,
+                compute_base_twiss=compute_base_twiss)
             twiss_tables = (first_table, second_side_table)
             completed_init = second_side_table.completed_init
 
@@ -162,22 +170,26 @@ def _handle_init_inside_range_and_line_wrap(
                 'Boundary conditions not at start or end of the specified range')
 
         if init_is_in_first_piece:
-            first_table = compute_base_twiss(
-                kwargs, start=start, end=line_boundary_end, init=init)
+            first_table = _compute_twiss_range_piece(
+                kwargs, start=start, end=line_boundary_end, init=init,
+                compute_base_twiss=compute_base_twiss)
             boundary_init = first_table.get_twiss_init('_end_point')
             boundary_init.element_name = line_boundary_start
-            second_table = compute_base_twiss(
+            second_table = _compute_twiss_range_piece(
                 kwargs, start=line_boundary_start, end=end,
-                init=boundary_init)
+                init=boundary_init,
+                compute_base_twiss=compute_base_twiss)
             completed_init = first_table.completed_init
         else:
-            second_table = compute_base_twiss(
-                kwargs, start=line_boundary_start, end=end, init=init)
+            second_table = _compute_twiss_range_piece(
+                kwargs, start=line_boundary_start, end=end, init=init,
+                compute_base_twiss=compute_base_twiss)
             boundary_init = second_table.get_twiss_init(line_boundary_start)
             boundary_init.element_name = line_boundary_end
-            first_table = compute_base_twiss(
+            first_table = _compute_twiss_range_piece(
                 kwargs, start=start, end=line_boundary_end,
-                init=boundary_init)
+                init=boundary_init,
+                compute_base_twiss=compute_base_twiss)
             completed_init = second_table.completed_init
 
         twiss_tables = (first_table, second_table)
@@ -201,6 +213,19 @@ def _handle_init_inside_range_and_line_wrap(
         twiss_res=twiss_res, twiss_tables=twiss_tables)
 
     return twiss_res
+
+
+def _compute_twiss_range_piece(
+        data, *, start, end, init, compute_base_twiss):
+
+    piece_data = data.copy()
+    piece_data.update(
+        start=start,
+        end=end,
+        init=init,
+        completed_init=init.copy(),
+    )
+    return compute_base_twiss(piece_data)
 
 
 def _combine_init_inside_range_twiss_tables(first_table, second_table, init):
