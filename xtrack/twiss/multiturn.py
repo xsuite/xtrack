@@ -6,13 +6,13 @@
 import xtrack as xt  # To avoid circular imports
 
 
-def _kwargs_for_multiturn_continuation(kwargs, data):
+def _kwargs_for_multiturn_continuation(kwargs, twiss_config):
     """Refresh public-call kwargs for recursive multi-turn continuation."""
 
     out = kwargs.copy()
     for key in kwargs:
-        if key in data:
-            out[key] = data[key]
+        if key in twiss_config:
+            out[key] = twiss_config[key]
     # Apply zero_at only once, after the complete multi-turn table is assembled.
     out['zero_at'] = None
     out.pop('input_kwargs', None)

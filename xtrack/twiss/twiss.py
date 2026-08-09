@@ -376,7 +376,7 @@ def twiss_line(line, particle_ref=None, method=None,
     """
     # Normalize all inputs without altering the line. The returned dictionaries
     # describe modifications to be made to line.config and line.tracker.track_flags.
-    (data, input_kwargs, track_flag_updates, line_config_updates
+    (twiss_config, input_kwargs, track_flag_updates, line_config_updates
      ) = _normalize_twiss_inputs(
         twiss_kwargs=locals().copy(), twiss_init_cls=TwissInit)
 
@@ -387,42 +387,42 @@ def twiss_line(line, particle_ref=None, method=None,
         # an exception is raised.
         _apply_twiss_line_context(
             twiss_context=twiss_context,
-            line=data['line'],
+            line=twiss_config['line'],
             track_flag_updates=track_flag_updates,
             line_config_updates=line_config_updates,
-            freeze_longitudinal=data['freeze_longitudinal'],
-            freeze_energy=data['freeze_energy'])
+            freeze_longitudinal=twiss_config['freeze_longitudinal'],
+            freeze_energy=twiss_config['freeze_energy'])
 
         # Determine the route (periodic / open / periodic_one_turn_custom_start
         # / open_one_turn_custom_start / open_init_from_full_periodic)
-        route = _select_twiss_route(data)
+        route = _select_twiss_route(twiss_config)
 
         if route == 'periodic':
             # Standard periodic Twiss, for the full line or a closed range.
-            data['completed_init'] = data['init']
-            _clear_twiss_init_input_fields(data)
-            data.update(_compute_periodic_twiss_init(data))
-            twiss_res = _compute_base_twiss(data)
+            twiss_config['completed_init'] = twiss_config['init']
+            _clear_twiss_init_input_fields(twiss_config)
+            twiss_config.update(_compute_periodic_twiss_init(twiss_config))
+            twiss_res = _compute_base_twiss(twiss_config)
 
         elif route == 'open':
             # Standard open Twiss from supplied init data.
-            data['init'], data['completed_init'] = (
-                _build_twiss_init_from_inputs(data))
-            _clear_twiss_init_input_fields(data)
+            twiss_config['init'], twiss_config['completed_init'] = (
+                _build_twiss_init_from_inputs(twiss_config))
+            _clear_twiss_init_input_fields(twiss_config)
 
             crosses_line_boundary, init_is_at_boundary = (
-                _get_open_twiss_range_flags(data))
+                _get_open_twiss_range_flags(twiss_config))
             if not crosses_line_boundary and init_is_at_boundary:
-                twiss_res = _compute_base_twiss(data)
+                twiss_res = _compute_base_twiss(twiss_config)
             else:
                 twiss_res = _handle_init_inside_range_and_line_wrap(
-                    data, crosses_line_boundary,
+                    twiss_config, crosses_line_boundary,
                     compute_base_twiss=_compute_base_twiss)
 
         elif route == 'periodic_one_turn_custom_start':
             # Compute a full periodic table, then rotate it to the requested start.
-            requested_start = data['start']
-            one_turn_kwargs = data.copy()
+            requested_start = twiss_config['start']
+            one_turn_kwargs = twiss_config.copy()
             one_turn_kwargs['start'] = None
             one_turn_kwargs['completed_init'] = one_turn_kwargs['init']
             _clear_twiss_init_input_fields(one_turn_kwargs)
@@ -435,16 +435,16 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res = TwissTable.concatenate([first_part, second_part])
             twiss_res.zero_at(twiss_res.name[0])
             twiss_res.name[-1] = '_end_point'
-            data['completed_init'] = one_turn_kwargs['completed_init']
+            twiss_config['completed_init'] = one_turn_kwargs['completed_init']
 
         elif route == 'open_one_turn_custom_start':
             # A start without an end requests a wrapped open range of one turn.
-            data['end'] = data['start']
-            data['init'], data['completed_init'] = (
-                _build_twiss_init_from_inputs(data))
-            _clear_twiss_init_input_fields(data)
+            twiss_config['end'] = twiss_config['start']
+            twiss_config['init'], twiss_config['completed_init'] = (
+                _build_twiss_init_from_inputs(twiss_config))
+            _clear_twiss_init_input_fields(twiss_config)
             twiss_res = _handle_init_inside_range_and_line_wrap(
-                data,
+                twiss_config,
                 crosses_line_boundary=True,
                 one_turn_from_start=True,
                 compute_base_twiss=_compute_base_twiss)
@@ -452,7 +452,7 @@ def twiss_line(line, particle_ref=None, method=None,
         elif route == 'open_init_from_full_periodic':
             # Compute a forward full-line periodic table and take the open-range
             # init from the requested location.
-            periodic_kwargs = data.copy()
+            periodic_kwargs = twiss_config.copy()
             periodic_kwargs.update(
                 init=None,
                 start=None,
@@ -467,23 +467,23 @@ def twiss_line(line, particle_ref=None, method=None,
                 _compute_periodic_twiss_init(periodic_kwargs))
             full_periodic_twiss = _compute_base_twiss(periodic_kwargs)
 
-            data['init'] = full_periodic_twiss.get_twiss_init(
-                data['init_at'] or data['start'])
-            data['init_at'] = None
-            data['init'], data['completed_init'] = (
-                _build_twiss_init_from_inputs(data))
-            _clear_twiss_init_input_fields(data)
+            twiss_config['init'] = full_periodic_twiss.get_twiss_init(
+                twiss_config['init_at'] or twiss_config['start'])
+            twiss_config['init_at'] = None
+            twiss_config['init'], twiss_config['completed_init'] = (
+                _build_twiss_init_from_inputs(twiss_config))
+            _clear_twiss_init_input_fields(twiss_config)
 
             crosses_line_boundary, init_is_at_boundary = (
-                _get_open_twiss_range_flags(data))
+                _get_open_twiss_range_flags(twiss_config))
             if not crosses_line_boundary and init_is_at_boundary:
-                twiss_res = _compute_base_twiss(data)
+                twiss_res = _compute_base_twiss(twiss_config)
             else:
                 twiss_res = _handle_init_inside_range_and_line_wrap(
-                    data, crosses_line_boundary,
+                    twiss_config, crosses_line_boundary,
                     compute_base_twiss=_compute_base_twiss)
-            if data['zero_at'] is None:
-                twiss_res.zero_at(data['start'])
+            if twiss_config['zero_at'] is None:
+                twiss_res.zero_at(twiss_config['start'])
 
         else:
             raise RuntimeError(f'Unexpected Twiss route: {route}')
@@ -492,129 +492,129 @@ def twiss_line(line, particle_ref=None, method=None,
             return twiss_res
 
         # Multi-turn case (calls twiss_line recursively)
-        if data['num_turns'] > 1:
+        if twiss_config['num_turns'] > 1:
             multiturn_kwargs = _kwargs_for_multiturn_continuation(
-                input_kwargs, data)
+                input_kwargs, twiss_config)
             twiss_res = _extend_twiss_result_to_multiple_turns(
                 twiss_res=twiss_res,
-                num_turns=data['num_turns'],
+                num_turns=twiss_config['num_turns'],
                 kwargs=multiturn_kwargs)
 
-        if data['at_elements'] is not None:
-            twiss_res = twiss_res.rows[data['at_elements']]
+        if twiss_config['at_elements'] is not None:
+            twiss_res = twiss_res.rows[twiss_config['at_elements']]
 
-        twiss_res['periodic'] = data['periodic']
-        twiss_res['completed_init'] = data['completed_init']
+        twiss_res['periodic'] = twiss_config['periodic']
+        twiss_res['completed_init'] = twiss_config['completed_init']
         twiss_res._sort_col_names()
 
-        if data['zero_at'] is not None:
-            twiss_res.zero_at(data['zero_at'])
+        if twiss_config['zero_at'] is not None:
+            twiss_res.zero_at(twiss_config['zero_at'])
 
         twiss_res._data['_action'] = xt.match.ActionTwiss(**input_kwargs)
 
         return twiss_res
 
 
-def _compute_base_twiss(data):
+def _compute_base_twiss(twiss_config):
     """Propagate from a concrete init and finish one non-composed result."""
 
-    data = data.copy()
+    twiss_config = twiss_config.copy()
 
-    assert isinstance(data['init'], TwissInit), (
+    assert isinstance(twiss_config['init'], TwissInit), (
         '_compute_base_twiss requires a concrete TwissInit')
 
-    if data['reverse']:
-        if data['start'] is not None and data['end'] is not None:
-            assert (_str_to_index(data['line'], data['start'])
-                    >= _str_to_index(data['line'], data['end'])), (
+    if twiss_config['reverse']:
+        if twiss_config['start'] is not None and twiss_config['end'] is not None:
+            assert (_str_to_index(twiss_config['line'], twiss_config['start'])
+                    >= _str_to_index(twiss_config['line'], twiss_config['end'])), (
                 'start must be smaller than end in reverse mode')
-        data['start'], data['end'] = data['end'], data['start']
-    elif data['start'] is not None and data['end'] is not None:
-        assert (_str_to_index(data['line'], data['start'])
-                <= _str_to_index(data['line'], data['end'])), (
+        twiss_config['start'], twiss_config['end'] = twiss_config['end'], twiss_config['start']
+    elif twiss_config['start'] is not None and twiss_config['end'] is not None:
+        assert (_str_to_index(twiss_config['line'], twiss_config['start'])
+                <= _str_to_index(twiss_config['line'], twiss_config['end'])), (
             'start must be larger than end in forward mode')
 
-    if data['only_twiss_init']:
-        assert data['periodic'], (
+    if twiss_config['only_twiss_init']:
+        assert twiss_config['periodic'], (
             '``only_twiss_init`` can only be used in periodic mode')
-        if data['reverse']:
-            return data['init'].reverse()
-        return data['init']
+        if twiss_config['reverse']:
+            return twiss_config['init'].reverse()
+        return twiss_config['init']
 
-    if data['only_markers'] and data['radiation_analysis']:
+    if twiss_config['only_markers'] and twiss_config['radiation_analysis']:
         raise NotImplementedError(
             '``only_markers`` not implemented for ``radiation_analysis``')
 
     twiss_res = _propagate_twiss_from_init(
-        line=data['line'],
-        init=data['init'],
-        start=data['start'],
-        end=data['end'],
-        nemitt_x=data['nemitt_x'],
-        nemitt_y=data['nemitt_y'],
-        step_W_sigma=data['step_W_sigma'],
-        delta_disp=data['delta_disp'],
-        use_full_inverse=data['use_full_inverse'],
-        hide_thin_groups=data['hide_thin_groups'],
-        only_markers=data['only_markers'],
-        only_orbit=data['only_orbit'],
-        spin=data['spin'],
-        compute_lattice_functions=data['compute_lattice_functions'],
-        continue_if_lost=data['_continue_if_lost'],
-        keep_tracking_data=data['_keep_tracking_data'],
-        keep_initial_particles=data['_keep_initial_particles'],
-        initial_particles=data['_initial_particles'],
-        ebe_monitor=data['_ebe_monitor'])
+        line=twiss_config['line'],
+        init=twiss_config['init'],
+        start=twiss_config['start'],
+        end=twiss_config['end'],
+        nemitt_x=twiss_config['nemitt_x'],
+        nemitt_y=twiss_config['nemitt_y'],
+        step_W_sigma=twiss_config['step_W_sigma'],
+        delta_disp=twiss_config['delta_disp'],
+        use_full_inverse=twiss_config['use_full_inverse'],
+        hide_thin_groups=twiss_config['hide_thin_groups'],
+        only_markers=twiss_config['only_markers'],
+        only_orbit=twiss_config['only_orbit'],
+        spin=twiss_config['spin'],
+        compute_lattice_functions=twiss_config['compute_lattice_functions'],
+        continue_if_lost=twiss_config['_continue_if_lost'],
+        keep_tracking_data=twiss_config['_keep_tracking_data'],
+        keep_initial_particles=twiss_config['_keep_initial_particles'],
+        initial_particles=twiss_config['_initial_particles'],
+        ebe_monitor=twiss_config['_ebe_monitor'])
 
-    if (data['periodic']
-            and not data['skip_global_quantities']
-            and not data['only_orbit']):
-        _add_periodic_solution_data_to_base_twiss(data, twiss_res)
+    if (twiss_config['periodic']
+            and not twiss_config['skip_global_quantities']
+            and not twiss_config['only_orbit']):
+        _add_periodic_solution_data_to_base_twiss(twiss_config, twiss_res)
 
-    _add_chromatic_functions_to_twiss_result(data, twiss_res)
-    _add_radiation_analysis_to_twiss_result(data, twiss_res)
-    _apply_4d_longitudinal_result_convention(data, twiss_res)
-    twiss_res = _set_twiss_result_values_at(data, twiss_res)
-    _add_strengths_and_radiation_integrals_to_twiss_result(data, twiss_res)
-    _add_spin_polarization_to_twiss_result(data, twiss_res)
-    _add_edwards_teng_coupling_to_twiss_result(data, twiss_res)
-    _add_base_twiss_metadata(data, twiss_res)
+    _add_chromatic_functions_to_twiss_result(twiss_config, twiss_res)
+    _add_radiation_analysis_to_twiss_result(twiss_config, twiss_res)
+    _apply_4d_longitudinal_result_convention(twiss_config, twiss_res)
+    twiss_res = _set_twiss_result_values_at(twiss_config, twiss_res)
+    _add_strengths_and_radiation_integrals_to_twiss_result(twiss_config, twiss_res)
+    _add_spin_polarization_to_twiss_result(twiss_config, twiss_res)
+    _add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res)
+    _add_base_twiss_metadata(twiss_config, twiss_res)
 
-    twiss_res = _reverse_twiss_result_if_needed(data, twiss_res)
-    if not data['periodic'] and not data['only_orbit']:
-        _align_open_twiss_phases_with_init(data, twiss_res)
-    _add_measured_revolution_period_if_requested(data, twiss_res)
+    twiss_res = _reverse_twiss_result_if_needed(twiss_config, twiss_res)
+    if not twiss_config['periodic'] and not twiss_config['only_orbit']:
+        _align_open_twiss_phases_with_init(twiss_config, twiss_res)
+    _add_measured_revolution_period_if_requested(twiss_config, twiss_res)
 
     return twiss_res
 
 
-def _select_twiss_route(data):
+def _select_twiss_route(twiss_config):
 
-    if data['start'] is not None and data['end'] is None:
-        if data['periodic']:
+    if twiss_config['start'] is not None and twiss_config['end'] is None:
+        if twiss_config['periodic']:
             return 'periodic_one_turn_custom_start'
         return 'open_one_turn_custom_start'
 
-    if (data['init'] == 'full_periodic'
-            and (data['start'] is not None or data['end'] is not None)):
+    if (twiss_config['init'] == 'full_periodic'
+            and (twiss_config['start'] is not None or twiss_config['end'] is not None)):
         return 'open_init_from_full_periodic'
 
-    if data['periodic']:
+    if twiss_config['periodic']:
         return 'periodic'
     return 'open'
 
 
-def _get_open_twiss_range_flags(data):
+def _get_open_twiss_range_flags(twiss_config):
 
-    start = data['start']
-    end = data['end']
+    start = twiss_config['start']
+    end = twiss_config['end']
     if start is None or end is None:
         crosses_line_boundary = False
     else:
-        direction_sign = -1 if data['reverse'] else 1
+        direction_sign = -1 if twiss_config['reverse'] else 1
         crosses_line_boundary = (
-            direction_sign * _str_to_index(data['line'], start)
-            > direction_sign * _str_to_index(data['line'], end))
+            direction_sign * _str_to_index(twiss_config['line'], start)
+            > direction_sign * _str_to_index(twiss_config['line'], end))
 
-    init_is_at_boundary = data['init'].element_name in (start, end)
+    init_is_at_boundary = twiss_config['init'].element_name in (start, end)
     return crosses_line_boundary, init_is_at_boundary

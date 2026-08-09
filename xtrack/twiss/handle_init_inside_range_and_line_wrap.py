@@ -216,18 +216,18 @@ def _handle_init_inside_range_and_line_wrap(
 
 
 def _compute_twiss_range_piece(
-        data, *, start, end, init, compute_base_twiss):
+        twiss_config, *, start, end, init, compute_base_twiss):
 
-    piece_data = data.copy()
-    piece_data.update(
+    piece_twiss_config = twiss_config.copy()
+    piece_twiss_config.update(
         start=start,
         end=end,
         init=init,
         completed_init=init.copy(),
     )
-    twiss_res = compute_base_twiss(piece_data)
+    twiss_res = compute_base_twiss(piece_twiss_config)
     # Composed routes use this metadata while joining their intermediate tables.
-    twiss_res['completed_init'] = piece_data['completed_init']
+    twiss_res['completed_init'] = piece_twiss_config['completed_init']
     return twiss_res
 
 

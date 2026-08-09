@@ -583,59 +583,59 @@ _PERIODIC_INIT_ARGUMENTS_FROM_BASE_DATA = (
 )
 
 
-def _build_twiss_init_from_inputs(data):
+def _build_twiss_init_from_inputs(twiss_config):
 
-    init = data['init']
-    if isinstance(init, TwissInit) and data['init_at'] is not None:
-        init.element_name = data['init_at']
+    init = twiss_config['init']
+    if isinstance(init, TwissInit) and twiss_config['init_at'] is not None:
+        init.element_name = twiss_config['init_at']
 
-    if data['start'] is not None or data['end'] is not None:
-        assert data['start'] is not None and data['end'] is not None, (
+    if twiss_config['start'] is not None or twiss_config['end'] is not None:
+        assert twiss_config['start'] is not None and twiss_config['end'] is not None, (
             'start and end must be provided together')
 
         if init is None:
-            assert data['betx'] is not None and data['bety'] is not None, (
+            assert twiss_config['betx'] is not None and twiss_config['bety'] is not None, (
                 'betx and bety or init must be provided when start '
                 'and end are used')
             init_kwargs = {
-                name: data[name]
+                name: twiss_config[name]
                 for name in VARS_FOR_TWISS_INIT_GENERATION
             }
             init_kwargs.update(
-                spin_x=data['spin_x'],
-                spin_y=data['spin_y'],
-                spin_z=data['spin_z'],
+                spin_x=twiss_config['spin_x'],
+                spin_y=twiss_config['spin_y'],
+                spin_z=twiss_config['spin_z'],
             )
             init = TwissInit(
-                element_name=data['init_at'], **init_kwargs)
+                element_name=twiss_config['init_at'], **init_kwargs)
         else:
             assert all(
-                data[name] is None
+                twiss_config[name] is None
                 for name in VARS_FOR_TWISS_INIT_GENERATION)
 
     if init is not None and not isinstance(init, str):
         assert isinstance(init, TwissInit)
         init = init.copy()  # Do not change the supplied init while completing it.
         if init._has_deferred_inputs():
-            assert isinstance(data['start'], str), (
+            assert isinstance(twiss_config['start'], str), (
                 'start must be provided as name when an incomplete '
                 'init is provided')
             init._finish_initialization(
-                line=data['line'],
-                element_name=(init.element_name or data['start']))
+                line=twiss_config['line'],
+                element_name=(init.element_name or twiss_config['start']))
 
         if init.reference_frame is None:
             init.reference_frame = {
                 True: 'reverse', False: 'proper', None: None,
-            }[data['reverse']]
+            }[twiss_config['reverse']]
 
-        if data['reverse'] is not None:
+        if twiss_config['reverse'] is not None:
             if init.reference_frame == 'proper':
-                assert not data['reverse'], (
+                assert not twiss_config['reverse'], (
                     '``init`` needs to be given in the proper reference '
                     'frame when ``reverse`` is False')
             elif init.reference_frame == 'reverse':
-                assert data['reverse'] is True, (
+                assert twiss_config['reverse'] is True, (
                     '``init`` needs to be given in the reverse reference '
                     'frame when ``reverse`` is True')
 
@@ -643,41 +643,41 @@ def _build_twiss_init_from_inputs(data):
     return init, completed_init
 
 
-def _clear_twiss_init_input_fields(data):
+def _clear_twiss_init_input_fields(twiss_config):
 
-    data['init_at'] = None
+    twiss_config['init_at'] = None
     for field_name in (
             *VARS_FOR_TWISS_INIT_GENERATION,
             'spin_x', 'spin_y', 'spin_z'):
-        data[field_name] = None
+        twiss_config[field_name] = None
 
 
-def _compute_periodic_twiss_init(data):
+def _compute_periodic_twiss_init(twiss_config):
 
     # Local imports avoid a module cycle: periodic_solution imports TwissInit.
     from .periodic_solution import _find_periodic_solution
     from .transfer_matrices import _complete_steps_r_matrix_with_default
 
-    assert data['periodic']
-    if data['start'] is None and data['end'] is None:
+    assert twiss_config['periodic']
+    if twiss_config['start'] is None and twiss_config['end'] is None:
         periodic_start = periodic_end = None
     else:
-        assert data['start'] is not None and data['end'] is not None
-        if data['reverse']:
+        assert twiss_config['start'] is not None and twiss_config['end'] is not None
+        if twiss_config['reverse']:
             # Periodic solutions are computed in forward physical order.
-            periodic_start, periodic_end = data['end'], data['start']
+            periodic_start, periodic_end = twiss_config['end'], twiss_config['start']
         else:
-            periodic_start, periodic_end = data['start'], data['end']
+            periodic_start, periodic_end = twiss_config['start'], twiss_config['end']
 
     periodic_init_kwargs = {
-        name: data[name]
+        name: twiss_config[name]
         for name in _PERIODIC_INIT_ARGUMENTS_FROM_BASE_DATA
     }
     periodic_init_kwargs.update(
         start=periodic_start,
         end=periodic_end,
     )
-    assert not data['_initial_particles']
+    assert not twiss_config['_initial_particles']
     periodic_init_kwargs['steps_R_matrix'] = (
         _complete_steps_r_matrix_with_default(
             periodic_init_kwargs['steps_R_matrix']))

@@ -21,71 +21,71 @@ from .strengths import _add_strengths_to_twiss_res
 import xtrack as xt  # To avoid circular imports
 
 
-def _add_periodic_solution_data_to_base_twiss(data, twiss_res):
+def _add_periodic_solution_data_to_base_twiss(twiss_config, twiss_res):
 
-    twiss_res._data['R_matrix'] = data['R_matrix']
-    twiss_res._data['steps_R_matrix'] = data['steps_R_matrix']
-    twiss_res._data['steps_r_matrix'] = data['steps_R_matrix']  # deprecated
-    twiss_res._data['R_matrix_ebe'] = data['RR_ebe']
+    twiss_res._data['R_matrix'] = twiss_config['R_matrix']
+    twiss_res._data['steps_R_matrix'] = twiss_config['steps_R_matrix']
+    twiss_res._data['steps_r_matrix'] = twiss_config['steps_R_matrix']  # deprecated
+    twiss_res._data['R_matrix_ebe'] = twiss_config['RR_ebe']
 
     _add_ring_quantities(
-        line=data['line'], twiss_res=twiss_res, method=data['method'])
+        line=twiss_config['line'], twiss_res=twiss_res, method=twiss_config['method'])
 
-    twiss_res._data['eigenvalues'] = data['eigenvalues'].copy()
-    twiss_res._data['rotation_matrix'] = data['Rot'].copy()
+    twiss_res._data['eigenvalues'] = twiss_config['eigenvalues'].copy()
+    twiss_res._data['rotation_matrix'] = twiss_config['Rot'].copy()
 
 
-def _add_chromatic_functions_to_twiss_result(data, twiss_res):
+def _add_chromatic_functions_to_twiss_result(twiss_config, twiss_res):
 
-    if data['only_orbit']:
+    if twiss_config['only_orbit']:
         return
 
-    if not (data['chrom'] is True
-            or (data['chrom'] is None and data['periodic'])):
+    if not (twiss_config['chrom'] is True
+            or (twiss_config['chrom'] is None and twiss_config['periodic'])):
         return
 
     cols_chrom, scalars_chrom = _get_chromatic_functions(
-        line=data['line'],
-        init=data['init'],
-        delta_chrom=data['delta_chrom'],
-        delta0=data['delta0'],
-        zeta0=data['zeta0'],
-        steps_R_matrix=data['steps_R_matrix'],
-        matrix_responsiveness_tol=data['matrix_responsiveness_tol'],
-        matrix_stability_tol=data['matrix_stability_tol'],
-        symplectify=data['symplectify'],
-        method=data['method'],
-        use_full_inverse=data['use_full_inverse'],
-        nemitt_x=data['nemitt_x'],
-        nemitt_y=data['nemitt_y'],
+        line=twiss_config['line'],
+        init=twiss_config['init'],
+        delta_chrom=twiss_config['delta_chrom'],
+        delta0=twiss_config['delta0'],
+        zeta0=twiss_config['zeta0'],
+        steps_R_matrix=twiss_config['steps_R_matrix'],
+        matrix_responsiveness_tol=twiss_config['matrix_responsiveness_tol'],
+        matrix_stability_tol=twiss_config['matrix_stability_tol'],
+        symplectify=twiss_config['symplectify'],
+        method=twiss_config['method'],
+        use_full_inverse=twiss_config['use_full_inverse'],
+        nemitt_x=twiss_config['nemitt_x'],
+        nemitt_y=twiss_config['nemitt_y'],
         on_momentum_twiss_res=twiss_res,
-        step_W_sigma=data['step_W_sigma'],
-        delta_disp=data['delta_disp'],
-        zeta_disp=data['zeta_disp'],
-        start=data['start'],
-        end=data['end'],
-        num_turns=data['num_turns'],
-        hide_thin_groups=data['hide_thin_groups'],
-        only_markers=data['only_markers'],
-        periodic=data['periodic'],
-        periodic_mode=data['periodic_mode'],
-        include_collective=data['include_collective'],
+        step_W_sigma=twiss_config['step_W_sigma'],
+        delta_disp=twiss_config['delta_disp'],
+        zeta_disp=twiss_config['zeta_disp'],
+        start=twiss_config['start'],
+        end=twiss_config['end'],
+        num_turns=twiss_config['num_turns'],
+        hide_thin_groups=twiss_config['hide_thin_groups'],
+        only_markers=twiss_config['only_markers'],
+        periodic=twiss_config['periodic'],
+        periodic_mode=twiss_config['periodic_mode'],
+        include_collective=twiss_config['include_collective'],
     )
     twiss_res._data.update(cols_chrom)
     twiss_res._data.update(scalars_chrom)
     twiss_res._col_names += list(cols_chrom.keys())
 
 
-def _add_radiation_analysis_to_twiss_result(data, twiss_res):
+def _add_radiation_analysis_to_twiss_result(twiss_config, twiss_res):
 
-    if not data['radiation_analysis'] or data['only_orbit']:
+    if not twiss_config['radiation_analysis'] or twiss_config['only_orbit']:
         return
 
     assert 'R_matrix' in twiss_res._data
-    if data['method'] == '4d':
+    if twiss_config['method'] == '4d':
         raise ValueError('method="4d" not supported for radiation_analysis=True')
 
-    line = data['line']
+    line = twiss_config['line']
     with xt.line._preserve_config(line):
         with xt.line._preserve_track_flags(line):
             line.tracker.track_flags.XS_FLAG_SR_KICK_SAME_AS_FIRST = False
@@ -98,18 +98,18 @@ def _add_radiation_analysis_to_twiss_result(data, twiss_res):
                 co_search_settings=None,
                 continue_on_closed_orbit_error=None,
                 co_guess=None,
-                steps_R_matrix=data['steps_R_matrix'],
+                steps_R_matrix=twiss_config['steps_R_matrix'],
                 symplectify=False,
-                matrix_responsiveness_tol=data['matrix_responsiveness_tol'],
+                matrix_responsiveness_tol=twiss_config['matrix_responsiveness_tol'],
                 matrix_stability_tol=None,
-                start=data['start'], end=data['end'],
-                nemitt_x=data['nemitt_x'], nemitt_y=data['nemitt_y'],
-                step_W_sigma=data['step_W_sigma'],
-                delta0=None, zeta0=None, zeta_shift=data['zeta_shift'],
+                start=twiss_config['start'], end=twiss_config['end'],
+                nemitt_x=twiss_config['nemitt_x'], nemitt_y=twiss_config['nemitt_y'],
+                step_W_sigma=twiss_config['step_W_sigma'],
+                delta0=None, zeta0=None, zeta_shift=twiss_config['zeta_shift'],
                 W_matrix=None, R_matrix=None,
                 delta_disp=None,
                 compute_R_element_by_element=True,
-                only_markers=data['only_markers'],
+                only_markers=twiss_config['only_markers'],
                 factor_adapt_steps=0.03,
             )
 
@@ -118,7 +118,7 @@ def _add_radiation_analysis_to_twiss_result(data, twiss_res):
         W_matrix=twiss_res.W_matrix,
         px_co=twiss_res.px, py_co=twiss_res.py,
         ptau_co=twiss_res.ptau, t_rev0=twiss_res.t_rev0,
-        line=line, radiation_method=data['radiation_method'])
+        line=line, radiation_method=twiss_config['radiation_method'])
     twiss_res._data.update(eneloss_damp_res)
 
     for key in ['angle_rad', 'angle', 'rot_s_rad', 'length', 'radiation_flag']:
@@ -126,60 +126,60 @@ def _add_radiation_analysis_to_twiss_result(data, twiss_res):
             values = line.attr[key]
             twiss_res[key] = np.concatenate([values, [values[0] * 0]])
 
-    if data['radiation_method'] == 'kick_as_co':
+    if twiss_config['radiation_method'] == 'kick_as_co':
         eq_emitts = _get_equilibrium_emittance_kick_as_co(
             twiss_res=twiss_res,
             damping_constants_turns=(
                 eneloss_damp_res['damping_constants_turns']),
-            radiation_method=data['radiation_method'])
+            radiation_method=twiss_config['radiation_method'])
         twiss_res._data.update(eq_emitts)
-    elif data['radiation_method'] == 'full':
+    elif twiss_config['radiation_method'] == 'full':
         eq_emitts = _get_equilibrium_emittance_full(
             twiss_res=twiss_res,
             R_matrix_ebe=RR_ebe,
-            radiation_method=data['radiation_method'])
+            radiation_method=twiss_config['radiation_method'])
         twiss_res._data.update(eq_emitts)
 
 
-def _apply_4d_longitudinal_result_convention(data, twiss_res):
+def _apply_4d_longitudinal_result_convention(twiss_config, twiss_res):
 
-    if data['method'] == '4d' and 'muzeta' in twiss_res._data:
+    if twiss_config['method'] == '4d' and 'muzeta' in twiss_res._data:
         twiss_res.muzeta[:] = 0
         if 'qs' in twiss_res._data:
             twiss_res._data['qs'] = 0
 
 
-def _set_twiss_result_values_at(data, twiss_res):
+def _set_twiss_result_values_at(twiss_config, twiss_res):
 
-    if data['values_at_element_exit']:
+    if twiss_config['values_at_element_exit']:
         raise NotImplementedError
     twiss_res._data['values_at'] = 'entry'
     return twiss_res
 
 
-def _add_strengths_and_radiation_integrals_to_twiss_result(data, twiss_res):
+def _add_strengths_and_radiation_integrals_to_twiss_result(twiss_config, twiss_res):
 
-    if data['strengths'] or data['radiation_integrals']:
-        _add_strengths_to_twiss_res(twiss_res, data['line'])
-    if data['radiation_integrals']:
+    if twiss_config['strengths'] or twiss_config['radiation_integrals']:
+        _add_strengths_to_twiss_res(twiss_res, twiss_config['line'])
+    if twiss_config['radiation_integrals']:
         twiss_res._get_radiation_integrals(add_to_tw=True)
 
 
-def _add_spin_polarization_to_twiss_result(data, twiss_res):
+def _add_spin_polarization_to_twiss_result(twiss_config, twiss_res):
 
-    if data['polarization_analysis']:
-        _get_spin_polarization(twiss_res, data['line'], data['method'])
+    if twiss_config['polarization_analysis']:
+        _get_spin_polarization(twiss_res, twiss_config['line'], twiss_config['method'])
 
 
-def _add_edwards_teng_coupling_to_twiss_result(data, twiss_res):
+def _add_edwards_teng_coupling_to_twiss_result(twiss_config, twiss_res):
 
-    if not data['coupling_edw_teng']:
+    if not twiss_config['coupling_edw_teng']:
         return
-    if not data['periodic']:
+    if not twiss_config['periodic']:
         raise ValueError(
             'Computing Edwards-Teng coupling elements is only supported for '
             'periodic lines.')
-    if data['reverse']:
+    if twiss_config['reverse']:
         raise NotImplementedError(
             'Computing Edwards-Teng coupling elements in reverse mode is not '
             'yet implemented.')
@@ -194,24 +194,24 @@ def _add_edwards_teng_coupling_to_twiss_result(data, twiss_res):
         twiss_res[key] = coupling_result[key]
 
 
-def _add_base_twiss_metadata(data, twiss_res):
+def _add_base_twiss_metadata(twiss_config, twiss_res):
 
-    twiss_res._data['method'] = data['method']
-    twiss_res._data['radiation_method'] = data['radiation_method']
+    twiss_res._data['method'] = twiss_config['method']
+    twiss_res._data['radiation_method'] = twiss_config['radiation_method']
     twiss_res._data['reference_frame'] = 'proper'
-    twiss_res._data['line_config'] = dict(data['line'].config.copy())
+    twiss_res._data['line_config'] = dict(twiss_config['line'].config.copy())
 
 
-def _reverse_twiss_result_if_needed(data, twiss_res):
+def _reverse_twiss_result_if_needed(twiss_config, twiss_res):
 
-    if data['reverse']:
+    if twiss_config['reverse']:
         return twiss_res.reverse()
     return twiss_res
 
 
-def _add_measured_revolution_period_if_requested(data, twiss_res):
+def _add_measured_revolution_period_if_requested(twiss_config, twiss_res):
 
-    if not data['search_for_t_rev']:
+    if not twiss_config['search_for_t_rev']:
         return
 
     line_length = twiss_res.s[-1]
@@ -222,10 +222,10 @@ def _add_measured_revolution_period_if_requested(data, twiss_res):
     twiss_res._data['T_rev'] = twiss_res._data['t_rev']  # deprecated
 
 
-def _align_open_twiss_phases_with_init(data, twiss_res):
+def _align_open_twiss_phases_with_init(twiss_config, twiss_res):
 
-    init = data['init']
-    reverse = data['reverse']
+    init = twiss_config['init']
+    reverse = twiss_config['reverse']
     if ((twiss_res._orientation == 'forward' and not reverse)
             or (twiss_res._orientation == 'backward' and reverse)):
         twiss_res.muzeta += init.muzeta - twiss_res.muzeta[0]
