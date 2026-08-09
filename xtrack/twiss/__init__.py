@@ -3,21 +3,21 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from .constants import (
-    AT_TURN_FOR_TWISS,
-    CYCLICAL_QUANTITIES,
+from .defaults_and_input_preparation import (
     DEFAULT_CO_SEARCH_TOL,
-    DEFAULT_COL_ORDER,
     DEFAULT_MATRIX_RESPONSIVENESS_TOL,
     DEFAULT_MATRIX_STABILITY_TOL,
     DEFAULT_NUM_TURNS_SEARCH_T_REV,
     DEFAULT_STEPS_R_MATRIX,
+    VARS_FOR_TWISS_INIT_GENERATION,
+)
+from .optics_propagation import AT_TURN_FOR_TWISS
+from .strengths import (
     NORMAL_STRENGTHS_FROM_ATTR,
     OTHER_FIELDS_FROM_ATTR,
     OTHER_FIELDS_FROM_TABLE,
     SIGN_FLIP_FOR_ATTR_REVERSE,
     SKEW_STRENGTHS_FROM_ATTR,
-    VARS_FOR_TWISS_INIT_GENERATION,
 )
 from .closed_orbit import (
     ClosedOrbitSearchError,
@@ -30,7 +30,7 @@ from .twiss import (
     twiss_line,
 )
 from .twiss_init import TwissInit
-from .twiss_table import TwissTable
+from .twiss_table import CYCLICAL_QUANTITIES, DEFAULT_COL_ORDER, TwissTable
 from .transfer_matrices import (
     compute_R_matrix,
     compute_T_matrix_line,

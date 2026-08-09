@@ -6,11 +6,13 @@
 import numpy as np
 import xobjects as xo
 
-from .constants import AT_TURN_FOR_TWISS
 from .lattice_functions_from_W import _get_lattice_functions
 from .twiss_table import TwissTable
 
 import xtrack as xt  # To avoid circular imports
+
+
+AT_TURN_FOR_TWISS = -10  # Avoid writing in monitors installed in the line.
 
 
 def _propagate_twiss_from_init(

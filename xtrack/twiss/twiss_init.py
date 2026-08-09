@@ -11,7 +11,7 @@ import xobjects as xo
 
 from .. import json as json_utils
 from ..table import Table
-from .constants import VARS_FOR_TWISS_INIT_GENERATION
+from .defaults_and_input_preparation import VARS_FOR_TWISS_INIT_GENERATION
 
 import xtrack as xt  # To avoid circular imports
 

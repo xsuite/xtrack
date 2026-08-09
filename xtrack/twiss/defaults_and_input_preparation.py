@@ -12,6 +12,28 @@ from ..general import DEPRECATION_INFO_PREP_1_0, _print
 from .extra_markers import _build_auxiliary_tracker_with_extra_markers
 
 
+DEFAULT_STEPS_R_MATRIX = {
+    'dx': 1e-6, 'dpx': 1e-7,
+    'dy': 1e-6, 'dpy': 1e-7,
+    'dzeta': 1e-5, 'ddelta': 1e-6,
+}
+
+DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-9]
+
+DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
+DEFAULT_MATRIX_STABILITY_TOL = 2e-3
+DEFAULT_NUM_TURNS_SEARCH_T_REV = 10
+
+VARS_FOR_TWISS_INIT_GENERATION = [
+    'x', 'px', 'y', 'py', 'zeta', 'delta',
+    'betx', 'alfx', 'bety', 'alfy', 'bets',
+    'dx', 'dpx', 'dy', 'dpy', 'dzeta',
+    'mux', 'muy', 'muzeta',
+    'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
+    'ddx', 'ddpx', 'ddy', 'ddpy',
+]
+
+
 def _normalize_twiss_inputs(twiss_kwargs, twiss_init_cls):
 
     twiss_config, input_kwargs = _normalize_public_twiss_arguments(

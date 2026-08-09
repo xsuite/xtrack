@@ -8,7 +8,8 @@ from warnings import warn
 import numpy as np
 
 from ..general import DEPRECATION_INFO_PREP_1_0
-from .constants import AT_TURN_FOR_TWISS, DEFAULT_STEPS_R_MATRIX
+from .defaults_and_input_preparation import DEFAULT_STEPS_R_MATRIX
+from .optics_propagation import AT_TURN_FOR_TWISS
 
 
 def get_R_matrix(

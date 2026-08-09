@@ -6,7 +6,7 @@
 from contextlib import ExitStack
 
 from .twiss_table import TwissTable
-from .input_normalization import (
+from .defaults_and_input_preparation import (
     _normalize_twiss_inputs,
 )
 from .chromatic_functions import trapz

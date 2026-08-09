@@ -8,11 +8,11 @@ from functools import partial
 import numpy as np
 
 from ..general import _print
-from .constants import (
-    AT_TURN_FOR_TWISS,
+from .defaults_and_input_preparation import (
     DEFAULT_CO_SEARCH_TOL,
     DEFAULT_NUM_TURNS_SEARCH_T_REV,
 )
+from .optics_propagation import AT_TURN_FOR_TWISS
 
 import xtrack as xt  # To avoid circular imports
 

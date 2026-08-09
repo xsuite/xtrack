@@ -13,19 +13,25 @@ from .. import linear_normal_form as lnf
 from ..table import Table
 from ..twissplot import TwissPlot
 from .beam_covariance import _build_sigma_table
-from .constants import (
-    CYCLICAL_QUANTITIES,
-    DEFAULT_COL_ORDER,
+from .twiss_init import TwissInit, _W_phys2norm
+from .strengths import (
+    _add_strengths_to_twiss_res,
+    _reverse_strengths,
     NORMAL_STRENGTHS_FROM_ATTR,
     OTHER_FIELDS_FROM_ATTR,
     OTHER_FIELDS_FROM_TABLE,
     SKEW_STRENGTHS_FROM_ATTR,
 )
-from .twiss_init import TwissInit, _W_phys2norm
-from .strengths import _add_strengths_to_twiss_res, _reverse_strengths
 from .radiation import _compute_radiation_integrals
 
 import xtrack as xt  # To avoid circular imports
+
+
+CYCLICAL_QUANTITIES = ['mux', 'muy', 'dzeta', 's']
+
+DEFAULT_COL_ORDER = [
+    'name', 'element_type', 's', 'betx', 'bety', 'alfx', 'alfy', 'dx', 'dy'
+    'dpx', 'dpy', 'x', 'y', 'px', 'py', 'delta', 'zeta']
 
 
 class TwissTable(Table):
