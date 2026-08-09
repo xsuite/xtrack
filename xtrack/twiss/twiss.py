@@ -30,10 +30,11 @@ from .base_result import (
     _add_base_twiss_metadata,
     _reverse_twiss_result_if_needed,
     _add_measured_revolution_period_if_requested,
-    _extend_base_twiss_to_multiple_turns,
-    _select_twiss_result_at_elements,
-    _add_periodicity_and_completed_init_to_twiss_result,
     _align_open_twiss_phases_with_init,
+)
+from .multiturn import (
+    _extend_twiss_result_to_multiple_turns,
+    _kwargs_for_multiturn_continuation,
 )
 from .twiss_init import (
     TwissInit,
@@ -388,7 +389,6 @@ def twiss_line(line, particle_ref=None, method=None,
         data = _prepare_twiss_line_context(
             twiss_context=twiss_context,
             data=normalized_kwargs)
-        data['kwargs'] = normalized_kwargs
 
         # Further input normalization
         data = _normalize_twiss_inputs_after_line_context(data)
@@ -435,8 +435,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res = TwissTable.concatenate([first_part, second_part])
             twiss_res.zero_at(twiss_res.name[0])
             twiss_res.name[-1] = '_end_point'
-            twiss_res['periodic'] = True
-            twiss_res['completed_init'] = full_twiss.completed_init
+            data['completed_init'] = one_turn_kwargs['completed_init']
 
         elif route == 'open_one_turn_custom_start':
             # A start without an end requests a wrapped open range of one turn.
@@ -491,6 +490,22 @@ def twiss_line(line, particle_ref=None, method=None,
 
         if isinstance(twiss_res, TwissInit):
             return twiss_res
+
+        # Multi-turn case (calls twiss_line recursively)
+        if data['num_turns'] > 1:
+            multiturn_kwargs = _kwargs_for_multiturn_continuation(
+                normalized_kwargs, data)
+            twiss_res = _extend_twiss_result_to_multiple_turns(
+                twiss_res=twiss_res,
+                num_turns=data['num_turns'],
+                kwargs=multiturn_kwargs)
+
+        if data['at_elements'] is not None:
+            twiss_res = twiss_res.rows[data['at_elements']]
+
+        twiss_res['periodic'] = data['periodic']
+        twiss_res['completed_init'] = data['completed_init']
+        twiss_res._sort_col_names()
 
         if data['zero_at'] is not None:
             twiss_res.zero_at(data['zero_at'])
@@ -575,12 +590,6 @@ def _compute_base_twiss(data):
     if not data['periodic'] and not data['only_orbit']:
         _align_open_twiss_phases_with_init(data, twiss_res)
     _add_measured_revolution_period_if_requested(data, twiss_res)
-
-    if data['num_turns'] > 1:
-        twiss_res = _extend_base_twiss_to_multiple_turns(data, twiss_res)
-
-    twiss_res = _select_twiss_result_at_elements(data, twiss_res)
-    _add_periodicity_and_completed_init_to_twiss_result(data, twiss_res)
 
     return twiss_res
 

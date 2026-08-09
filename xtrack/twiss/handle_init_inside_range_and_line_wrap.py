@@ -225,7 +225,10 @@ def _compute_twiss_range_piece(
         init=init,
         completed_init=init.copy(),
     )
-    return compute_base_twiss(piece_data)
+    twiss_res = compute_base_twiss(piece_data)
+    # Composed routes use this metadata while joining their intermediate tables.
+    twiss_res['completed_init'] = piece_data['completed_init']
+    return twiss_res
 
 
 def _combine_init_inside_range_twiss_tables(first_table, second_table, init):

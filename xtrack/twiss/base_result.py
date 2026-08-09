@@ -8,10 +8,6 @@ from scipy.constants import c as clight
 
 from .chromatic_functions import _get_chromatic_functions
 from .coupling_edw_teng import _get_coupling_elements_edwards_teng
-from .multiturn import (
-    _extend_twiss_result_to_multiple_turns,
-    _kwargs_for_multiturn_continuation,
-)
 from .periodic_solution import _find_periodic_solution
 from .radiation import (
     _get_eneloss_and_damping_rates,
@@ -224,27 +220,6 @@ def _add_measured_revolution_period_if_requested(data, twiss_res):
     twiss_res._data['t_rev'] = t_rev_0 - (
         twiss_res.zeta[-1] - twiss_res.zeta[0]) / (beta0 * clight)
     twiss_res._data['T_rev'] = twiss_res._data['t_rev']  # deprecated
-
-
-def _extend_base_twiss_to_multiple_turns(data, twiss_res):
-
-    kwargs = _kwargs_for_multiturn_continuation(data['kwargs'], data)
-    return _extend_twiss_result_to_multiple_turns(
-        twiss_res=twiss_res, num_turns=data['num_turns'], kwargs=kwargs)
-
-
-def _select_twiss_result_at_elements(data, twiss_res):
-
-    if data['at_elements'] is not None:
-        return twiss_res.rows[data['at_elements']]
-    return twiss_res
-
-
-def _add_periodicity_and_completed_init_to_twiss_result(data, twiss_res):
-
-    twiss_res['periodic'] = data['periodic']
-    twiss_res['completed_init'] = data['completed_init']
-    twiss_res._sort_col_names()
 
 
 def _align_open_twiss_phases_with_init(data, twiss_res):
