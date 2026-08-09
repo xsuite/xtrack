@@ -13,6 +13,8 @@ def _kwargs_for_multiturn_continuation(kwargs, data):
     for key in kwargs:
         if key in data:
             out[key] = data[key]
+    # Apply zero_at only once, after the complete multi-turn table is assembled.
+    out['zero_at'] = None
     out.pop('input_kwargs', None)
     return out
 

@@ -392,8 +392,6 @@ def twiss_line(line, particle_ref=None, method=None,
 
         # Further input normalization
         data = _normalize_twiss_inputs_after_line_context(data)
-        data['zero_at_requested'] = data['zero_at']
-        data['zero_at'] = None
 
         # Determine the route (periodic / open / periodic_one_turn_custom_start
         # / open_one_turn_custom_start / open_init_from_full_periodic)
@@ -485,7 +483,7 @@ def twiss_line(line, particle_ref=None, method=None,
                 twiss_res = _handle_init_inside_range_and_line_wrap(
                     data, crosses_line_boundary,
                     compute_base_twiss=_compute_base_twiss)
-            if data['zero_at_requested'] is None:
+            if data['zero_at'] is None:
                 twiss_res.zero_at(data['start'])
 
         else:
@@ -494,8 +492,8 @@ def twiss_line(line, particle_ref=None, method=None,
         if isinstance(twiss_res, TwissInit):
             return twiss_res
 
-        if data['zero_at_requested'] is not None:
-            twiss_res.zero_at(data['zero_at_requested'])
+        if data['zero_at'] is not None:
+            twiss_res.zero_at(data['zero_at'])
 
         twiss_res._data['_action'] = xt.match.ActionTwiss(**input_kwargs)
 
