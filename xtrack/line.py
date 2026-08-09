@@ -35,9 +35,13 @@ from .beam_elements.elements import (_EDGE_MODEL_TO_INDEX,
                                      _MODEL_TO_INDEX_CURVED,
                                      _MODEL_TO_INDEX_DRIFT)
 from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
-from .composer import (_all_places, _flatten_components,
-                      _generate_element_names_with_drifts,
-                      _resolve_s_positions, _sort_places)
+from .composer.pipeline import (
+    _all_places,
+    _flatten_components,
+    _generate_element_names_with_drifts,
+    _resolve_s_positions,
+    _sort_places,
+)
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .general import _print, DEPRECATION_INFO_PREP_1_0
 from .internal_record import (start_internal_logging_for_elements_of_type,
