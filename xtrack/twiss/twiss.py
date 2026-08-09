@@ -358,8 +358,9 @@ def twiss_line(line, particle_ref=None, method=None,
         - `t_rev`: measured revolution period [s]
 
     """
-    # Normalize all inputs without altering the line. The returned dictionaries
-    # describe modifications to be made to line.config and line.tracker.track_flags.
+    # Normalize all inputs (handle defaults and deprecated arguments).
+    # Prepare dictionaries describing modifications to be made to line.config
+    # and line.tracker.track_flags.
     (twiss_config, input_kwargs, track_flag_updates, line_config_updates
      ) = _normalize_twiss_inputs(
         twiss_kwargs=locals().copy())
