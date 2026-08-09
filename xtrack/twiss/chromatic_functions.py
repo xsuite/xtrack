@@ -6,7 +6,7 @@
 import numpy as np
 
 from .. import linear_normal_form as lnf
-from .propagation import _propagate_twiss_from_init
+from .optics_propagation import _propagate_twiss_from_init
 from .twiss_init import TwissInit
 
 if hasattr(np, 'trapezoid'): # numpy >= 2.0

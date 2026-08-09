@@ -16,7 +16,7 @@ from .line_context import (
 from .handle_init_inside_range_and_line_wrap import (
     _handle_init_inside_range_and_line_wrap,
 )
-from .propagation import _propagate_twiss_from_init
+from .optics_propagation import _propagate_twiss_from_init
 from .base_result import (
     _add_periodic_solution_data_to_base_twiss,
     _add_chromatic_functions_to_twiss_result,
