@@ -13,15 +13,10 @@ from warnings import warn
 import xdeps as xd
 import xtrack as xt
 
-from .pipeline import (
-    _ALLOWED_ANCHORS,
-    _all_places,
-    _build_element_names,
-    _evaluate_length,
-    _expand_components,
-    _resolve_s_positions,
-    _sort_places,
-)
+from .components import _all_places, _evaluate_length, _expand_components
+from .ordering import _sort_places
+from .pipeline import _build_element_names
+from .positions import _ALLOWED_ANCHORS, _resolve_s_positions
 from ..general import DEPRECATION_INFO_PREP_1_0, parse_anchor_spec
 
 
