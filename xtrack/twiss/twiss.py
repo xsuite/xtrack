@@ -505,37 +505,40 @@ def _compute_base_twiss(twiss_config):
     assert isinstance(twiss_config['init'], TwissInit), (
         '_compute_base_twiss requires a concrete TwissInit')
 
-    if twiss_config['reverse']:
-        if twiss_config['start'] is not None and twiss_config['end'] is not None:
-            assert (_element_ref_to_index(
-                        twiss_config['line'], twiss_config['start'])
-                    >= _element_ref_to_index(
-                        twiss_config['line'], twiss_config['end'])), (
-                'start must be smaller than end in reverse mode')
-        twiss_config['start'], twiss_config['end'] = twiss_config['end'], twiss_config['start']
-    elif twiss_config['start'] is not None and twiss_config['end'] is not None:
-        assert (_element_ref_to_index(
-                    twiss_config['line'], twiss_config['start'])
-                <= _element_ref_to_index(
-                    twiss_config['line'], twiss_config['end'])), (
-            'start must be larger than end in forward mode')
+    line = twiss_config['line']
+    start = twiss_config['start']
+    end = twiss_config['end']
+    reverse = twiss_config['reverse']
+
+    # validate `start`` and `end`` and handle `reverse``
+    if start is not None and end is not None:
+        start_index = _element_ref_to_index(line, start)
+        end_index = _element_ref_to_index(line, end)
+        if reverse:
+            assert start_index >= end_index, (
+                'start must be at or after end in reverse mode')
+        else:
+            assert start_index <= end_index, (
+                'start must be at or before end in forward mode')
+
+    if reverse:
+        start, end = end, start
+    twiss_config['start'] = start
+    twiss_config['end'] = end
 
     if twiss_config['only_twiss_init']:
         assert twiss_config['periodic'], (
             '``only_twiss_init`` can only be used in periodic mode')
-        if twiss_config['reverse']:
+        if reverse:
             return twiss_config['init'].reverse()
+
         return twiss_config['init']
 
-    if twiss_config['only_markers'] and twiss_config['radiation_analysis']:
-        raise NotImplementedError(
-            '``only_markers`` not implemented for ``radiation_analysis``')
-
     twiss_res = _propagate_twiss_from_init(
-        line=twiss_config['line'],
+        line=line,
         init=twiss_config['init'],
-        start=twiss_config['start'],
-        end=twiss_config['end'],
+        start=start,
+        end=end,
         nemitt_x=twiss_config['nemitt_x'],
         nemitt_y=twiss_config['nemitt_y'],
         step_W_sigma=twiss_config['step_W_sigma'],
