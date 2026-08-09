@@ -6,7 +6,7 @@
 from contextlib import ExitStack
 
 from .twiss_table import TwissTable
-from .defaults_and_input_preparation import (
+from .twiss_defaults_and_input_preparation import (
     _element_ref_to_index,
     _normalize_twiss_inputs,
 )

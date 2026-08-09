@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from .defaults_and_input_preparation import (
+from .twiss_defaults_and_input_preparation import (
     DEFAULT_CO_SEARCH_TOL,
     DEFAULT_MATRIX_RESPONSIVENESS_TOL,
     DEFAULT_MATRIX_STABILITY_TOL,

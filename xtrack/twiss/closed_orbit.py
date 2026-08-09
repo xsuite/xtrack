@@ -8,7 +8,7 @@ from functools import partial
 import numpy as np
 
 from ..general import _print
-from .defaults_and_input_preparation import (
+from .twiss_defaults_and_input_preparation import (
     DEFAULT_CO_SEARCH_TOL,
     DEFAULT_NUM_TURNS_SEARCH_T_REV,
 )

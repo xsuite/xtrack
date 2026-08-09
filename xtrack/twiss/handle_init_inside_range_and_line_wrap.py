@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from .defaults_and_input_preparation import _element_ref_to_index
+from .twiss_defaults_and_input_preparation import _element_ref_to_index
 from .twiss_table import TwissTable
 
 import xtrack as xt  # To avoid circular imports

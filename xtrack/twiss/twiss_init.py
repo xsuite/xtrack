@@ -11,7 +11,7 @@ import xobjects as xo
 
 from .. import json as json_utils
 from ..table import Table
-from .defaults_and_input_preparation import (
+from .twiss_defaults_and_input_preparation import (
     VARS_FOR_TWISS_INIT_GENERATION,
     _element_ref_to_index,
 )

@@ -6,7 +6,7 @@
 import numpy as np
 
 from .. import linear_normal_form as lnf
-from .defaults_and_input_preparation import _element_ref_to_index
+from .twiss_defaults_and_input_preparation import _element_ref_to_index
 from .twiss_init import TwissInit
 
 
