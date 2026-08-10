@@ -53,11 +53,32 @@ def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
         )
         for index in range(len(source))
     ]
-    placements = _sort_resolved_placements(
-        placements,
-        s_tol=s_tol,
-        allow_non_existent_from=allow_non_existent_from,
+    # Sort placements by longitudinal center.
+    center_order = _argsort_s(
+        [placement.s_center for placement in placements],
+        tol=s_tol,
     )
+    center_sorted = [placements[index] for index in center_order]
+
+    # Group placements sharing the same longitudinal center.
+    groups = _group_by_position(center_sorted, s_tol)
+    name_index = {
+        placement.table_name: index for index, placement in enumerate(center_sorted)
+    }
+
+    # Order coincident placements according to their dependencies.
+    placements = []
+    group_start = 0
+    for group in groups:
+        placements.extend(
+            _order_coincident_group(
+                group,
+                group_start,
+                name_index,
+                allow_non_existent_from,
+            )
+        )
+        group_start += len(group)
 
     place_order = [placement.source_index for placement in placements]
     sorted_table = source.rows[place_order]
@@ -180,32 +201,6 @@ def _order_coincident_group(group, group_start, name_index, allow_non_existent_f
     )
     insert_before, insert_after = _build_group_insertions(group, from_inside)
     return _apply_group_insertions(group, base_order, insert_before, insert_after)
-
-
-def _sort_resolved_placements(placements, s_tol=1e-10, allow_non_existent_from=False):
-    """Sort immutable placements by coordinate and dependency order."""
-    center_order = _argsort_s(
-        [placement.s_center for placement in placements], tol=s_tol
-    )
-    center_sorted = [placements[index] for index in center_order]
-    groups = _group_by_position(center_sorted, s_tol)
-    name_index = {
-        placement.table_name: index for index, placement in enumerate(center_sorted)
-    }
-
-    sorted_placements = []
-    group_start = 0
-    for group in groups:
-        sorted_placements.extend(
-            _order_coincident_group(
-                group,
-                group_start,
-                name_index,
-                allow_non_existent_from,
-            )
-        )
-        group_start += len(group)
-    return sorted_placements
 
 
 def _argsort_s(sequence, tol=10e-10):
