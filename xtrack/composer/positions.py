@@ -78,36 +78,44 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                 continue
 
             self_length = length_by_name[place.name]
+
             if place.at is None:
-                previous = resolved_by_index.get(index - 1)
+                # Needs to be placed right after the previous
+                # component in the input list.
+
+                # Check if the previous component has been resolved.
+                previous = resolved_by_index.get(index - 1, None)
                 if previous is None:
-                    continue
-                from_name = place.from_
-                from_anchor = place.from_anchor
+                    continue  # Cannot resolve this place yet
+
+                s_start = previous.s_end
                 if not str(previous.name).startswith('||drift'):
                     from_name = previous.name
                     from_anchor = 'end'
-                s_start = previous.s_end
+                else:
+                    from_name = None
+                    from_anchor = None
             else:
+                # Needs to be placed based on `at`, `from_`, and `from_anchor`.
                 at = _evaluate_position_expression(place.at, aux_line._xdeps_eval)
-                from_length = None
-                s_start_from = None
+                s_from = 0
                 if place.from_ is not None:
+                    # Check if the referenced component has been resolved.
                     reference = resolved_by_name.get(place.from_)
                     if reference is None:
-                        continue
-                    from_length = reference.length
-                    s_start_from = reference.s_start
+                        continue  # Cannot resolve this place yet
 
-                s_start = _resolve_one_position(
-                    at,
-                    anchor=place.anchor,
-                    from_anchor=place.from_anchor,
-                    self_length=self_length,
-                    from_length=from_length,
-                    s_start_from=s_start_from,
-                    default_anchor=refer,
-                )
+                    if place.from_anchor is not None:
+                        reference_anchor = place.from_anchor
+                    else:
+                        reference_anchor = refer
+
+                    s_from = reference.s_start + _anchor_offset(
+                        reference_anchor, reference.length
+                    )
+
+                anchor = refer if place.anchor is None else place.anchor
+                s_start = s_from + at - _anchor_offset(anchor, self_length)
                 from_name = place.from_
                 from_anchor = place.from_anchor
 
@@ -158,29 +166,9 @@ def _anchor_offset(anchor, length):
     raise ValueError(f'Unknown anchor {anchor!r}.')
 
 
-def _with_default_anchor(anchor, default_anchor):
-    return default_anchor if anchor is None else anchor
-
-
-def _resolve_one_position(
-    at, anchor, from_anchor, self_length, from_length, s_start_from, default_anchor
-):
-    """Resolve one absolute start coordinate from an anchor relationship."""
-    if xd.refs.is_ref(at):
-        at = at._value
-
-    anchor = _with_default_anchor(anchor, default_anchor)
-    from_anchor = _with_default_anchor(from_anchor, default_anchor)
-
-    s_from = 0
-    if from_length is not None:
-        s_from = s_start_from + _anchor_offset(from_anchor, from_length)
-    return s_from + at - _anchor_offset(anchor, self_length)
-
-
 def _evaluate_position_expression(at, evaluator):
     if isinstance(at, str):
-        return evaluator.eval(at)
+        at = evaluator.eval(at)
     if xd.refs.is_ref(at):
         return at._value
     return at
