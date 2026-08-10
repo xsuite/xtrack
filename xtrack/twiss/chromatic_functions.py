@@ -228,23 +228,6 @@ def _get_chromatic_functions(line, init, delta_chrom,
         ddy = (dy_plus - dy_minus) / (delta_dxdy_plus - delta_dxdy_minus)
         ddpy = (dpy_plus - dpy_minus) / (delta_dxdy_plus - delta_dxdy_minus)
 
-
-
-        # mux = on_momentum_twiss_res.mux
-        # muy = on_momentum_twiss_res.muy
-        # x = on_momentum_twiss_res.x
-        # px = on_momentum_twiss_res.px
-        # y = on_momentum_twiss_res.y
-        # py = on_momentum_twiss_res.py
-        # ddqx = (tw_chrom_res[1].mux[-1] - 2 * mux[-1] + tw_chrom_res[0].mux[-1]
-        #         ) / delta_chrom**2
-        # ddqy = (tw_chrom_res[1].muy[-1] - 2 * muy[-1] + tw_chrom_res[0].muy[-1]
-        #         ) / delta_chrom**2
-        # ddx = (tw_chrom_res[1].x - 2 * x + tw_chrom_res[0].x) / delta_chrom**2
-        # ddpx = (tw_chrom_res[1].px - 2 * px + tw_chrom_res[0].px) / delta_chrom**2
-        # ddy = (tw_chrom_res[1].y - 2 * y + tw_chrom_res[0].y) / delta_chrom**2
-        # ddpy = (tw_chrom_res[1].py - 2 * py + tw_chrom_res[0].py) / delta_chrom**2
-
         cols_chrom.update({'ddx': ddx, 'ddpx': ddpx,
                            'ddy': ddy, 'ddpy': ddpy})
         scalars_chrom.update({'ddqx': ddqx, 'ddqy': ddqy})
