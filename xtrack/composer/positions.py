@@ -2,7 +2,6 @@
 
 import numpy as np
 import xdeps as xd
-import xtrack as xt
 
 from .models import ResolvedPlacement
 
@@ -13,6 +12,8 @@ _ALLOWED_ANCHORS = (None, 'center', 'centre', 'start', 'end')
 def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False):
     """Resolve placement specifications to a table of absolute coordinates."""
     places = list(seq_all_places)
+
+    # Use an auxiliary line to build a table of all the elements
     aux_line = env.new_line(
         components=[place.name for place in places],
         refer=refer,
@@ -30,7 +31,9 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
         table['from_anchor'] = np.array([], dtype=object)
         return table
 
-    lengths = xt.Table({'name': table.env_name, 'length': table.length})
+    length_by_name = dict(zip(table.env_name, table.length))
+
+    # Track resolved placements by input order and by referenced component name.
     resolved_by_index = {}
     resolved_by_name = {}
 
@@ -41,7 +44,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
             name=place.name,
             table_name=str(table.name[0]),
             env_name=str(table.env_name[0]),
-            length=lengths['length', place.name],
+            length=length_by_name[place.name],
             isthick=bool(table.isthick[0]),
             s_start=0,
             from_=place.from_,
@@ -65,7 +68,7 @@ def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False)
                     f'`at`. Error in placement `{place}`.'
                 )
 
-            self_length = lengths['length', place.name]
+            self_length = length_by_name[place.name]
             if place.at is None:
                 previous = resolved_by_index.get(index - 1)
                 if previous is None:
