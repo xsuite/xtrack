@@ -477,7 +477,23 @@ class Composer:
         return out
 
     def to_dict(self):
-        """Serialize this specification without environment element data."""
+        """Serialize the composer definition to a dictionary.
+
+        The dictionary contains the component placements and composer configuration,
+        but not the elements, variables, or lines stored in the environment. It can
+        be restored with :meth:`from_dict` using a compatible environment.
+
+        Returns
+        -------
+        dict
+            Dictionary representation of the composer.
+
+        Raises
+        ------
+        NotImplementedError
+            If a component is neither an element name nor an ``xtrack.Place``
+            object.
+        """
         data = {
             '__class__': self.__class__.__name__,
             'components': [],
@@ -530,7 +546,25 @@ class Composer:
 
     @classmethod
     def from_dict(cls, dct, env):
-        """Restore a composer while accepting legacy ``l`` length data."""
+        """Create a composer from a dictionary representation.
+
+        The environment must contain the elements, variables, and named lines
+        referenced by the serialized component definitions. The input dictionary is
+        not modified.
+
+        Parameters
+        ----------
+        dct : dict
+            Dictionary produced by :meth:`to_dict`.
+        env : xtrack.Environment
+            Environment in which the restored composer will resolve its components
+            and expressions.
+
+        Returns
+        -------
+        xtrack.Composer
+            Composer restored from the dictionary.
+        """
         data = dct.copy()
         data.pop('__class__', None)
         if 'l' in data:
