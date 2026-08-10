@@ -10,6 +10,32 @@ from .models import PlacementSpec, ResolvedPlacement
 _ALLOWED_ANCHORS = (None, 'center', 'centre', 'start', 'end')
 
 
+def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False):
+    """Resolve placement specifications to a table of absolute coordinates."""
+    table, placements = _resolve_placement_records(
+        seq_all_places,
+        env,
+        refer=refer,
+        diagnostics=diagnostics,
+    )
+    if not placements:
+        table['s_start'] = np.array([], dtype=float)
+        table['s_center'] = np.array([], dtype=float)
+        table['s_end'] = np.array([], dtype=float)
+        table['s'] = np.array([], dtype=float)
+        table['from_'] = np.array([], dtype=object)
+        table['from_anchor'] = np.array([], dtype=object)
+        return table
+
+    table['s_start'] = np.array([place.s_start for place in placements])
+    table['s_center'] = np.array([place.s_center for place in placements])
+    table['s_end'] = np.array([place.s_end for place in placements])
+    table['s'] = table['s_start'].copy()
+    table['from_'] = np.array([place.from_ for place in placements])
+    table['from_anchor'] = np.array([place.from_anchor for place in placements])
+    return table
+
+
 def _anchor_offset(anchor, length):
     """Return the distance from an element start to the selected anchor."""
     if anchor in ('center', 'centre'):
@@ -64,16 +90,6 @@ def _prepare_position_table(specs, env, refer):
     table = table.rows[:-1]
     lengths = xt.Table({'name': table.env_name, 'length': table.length})
     return aux_line, table, lengths
-
-
-def _add_empty_position_columns(table):
-    table['s_start'] = np.array([], dtype=float)
-    table['s_center'] = np.array([], dtype=float)
-    table['s_end'] = np.array([], dtype=float)
-    table['s'] = np.array([], dtype=float)
-    table['from_'] = np.array([], dtype=object)
-    table['from_anchor'] = np.array([], dtype=object)
-    return table
 
 
 def _evaluate_position_expression(at, evaluator):
@@ -286,16 +302,6 @@ def _raise_resolution_error(specs, unresolved):
     raise ValueError(f'Could not resolve placement dependencies: {blocked}.')
 
 
-def _add_resolved_position_columns(table, placements):
-    table['s_start'] = np.array([place.s_start for place in placements])
-    table['s_center'] = np.array([place.s_center for place in placements])
-    table['s_end'] = np.array([place.s_end for place in placements])
-    table['s'] = table['s_start'].copy()
-    table['from_'] = np.array([place.from_ for place in placements])
-    table['from_anchor'] = np.array([place.from_anchor for place in placements])
-    return table
-
-
 def _resolve_placement_records(places, env, refer='center', diagnostics=False):
     """Resolve public places and return the table skeleton plus immutable records."""
     specs = _placement_specs_from_places(places)
@@ -311,16 +317,3 @@ def _resolve_placement_records(places, env, refer='center', diagnostics=False):
         diagnostics=diagnostics,
     )
     return table, placements
-
-
-def _resolve_s_positions(seq_all_places, env, refer='center', diagnostics=False):
-    """Resolve placement specifications to a table of absolute coordinates."""
-    table, placements = _resolve_placement_records(
-        seq_all_places,
-        env,
-        refer=refer,
-        diagnostics=diagnostics,
-    )
-    if not placements:
-        return _add_empty_position_columns(table)
-    return _add_resolved_position_columns(table, placements)
