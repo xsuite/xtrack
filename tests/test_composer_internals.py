@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import xtrack as xt
-from xtrack.composer.components import _all_places
+from xtrack.composer.composer import _all_places
 from xtrack.composer.ordering import _sort_places
 from xtrack.composer.positions import (
     _anchor_offset,

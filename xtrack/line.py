@@ -35,7 +35,7 @@ from .beam_elements.elements import (_EDGE_MODEL_TO_INDEX,
                                      _MODEL_TO_INDEX_CURVED,
                                      _MODEL_TO_INDEX_DRIFT)
 from .beam_elements.slice_base import ID_RADIATION_FROM_PARENT
-from .composer.components import (
+from .composer.composer import (
     _all_places,
     _flatten_components,
     _generate_element_names_with_drifts,
