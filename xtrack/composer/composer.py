@@ -416,13 +416,44 @@ class Composer:
         )
         return _sort_places(table) if sort else table
 
-    def validate(self, s_tol=None):
-        """Validate the current placement specification without building a line."""
+    def validate(self, s_tol=None, check_overlaps=True):
+        """Validate the current component definitions.
+
+        Component positions and dependencies are resolved with detailed
+        diagnostics. The resolved components are then checked for overlaps and
+        against the requested line length. Gap-filling drifts are not created.
+
+        Parameters
+        ----------
+        s_tol : float, optional
+            Longitudinal tolerance used when checking overlaps and the requested
+            line length. If omitted, the composer's configured tolerance is used.
+        check_overlaps : bool, optional
+            If true, raise an error when components overlap. If false, skip the
+            overlap check. The default is true.
+
+        Returns
+        -------
+        None
+            Returns normally when the component definitions are valid.
+
+        Raises
+        ------
+        ValueError
+            If a placement reference is missing, the placement dependencies contain
+            a cycle, enabled overlap checking finds overlapping components, or the
+            components exceed the requested line length.
+        """
         if s_tol is None:
             s_tol = self.s_tol
         length = _evaluate_length(self.env, self.length)
         table = self.resolve_s_positions(sort=True, diagnostics=True)
-        _validate_placement_geometry(table, length=length, s_tol=s_tol)
+        _validate_placement_geometry(
+            table,
+            length=length,
+            s_tol=s_tol,
+            check_overlaps=check_overlaps,
+        )
 
     def flatten(self, inplace=False):
         """Return a shallow copy whose nested components have been expanded."""

@@ -157,18 +157,24 @@ def _generate_element_names_with_drifts(env, tt_sorted, length=None, s_tol=1e-6)
     return list(map(str, names_with_drifts))
 
 
-def _validate_placement_geometry(tt_sorted, length=None, s_tol=1e-6):
+def _validate_placement_geometry(
+    tt_sorted,
+    length=None,
+    s_tol=1e-6,
+    check_overlaps=True,
+):
     """Check resolved overlaps and length constraints without creating drifts."""
     if not len(tt_sorted):
         return
 
-    for index, name in enumerate(tt_sorted.env_name):
-        gap = tt_sorted['ds_upstream', index]
-        if gap < -s_tol:
-            raise ValueError(
-                f'Overlap before component {index} ({name!r}): previous '
-                f'element extends {-gap} m beyond its start.'
-            )
+    if check_overlaps:
+        for index, name in enumerate(tt_sorted.env_name):
+            gap = tt_sorted['ds_upstream', index]
+            if gap < -s_tol:
+                raise ValueError(
+                    f'Overlap before component {index} ({name!r}): previous '
+                    f'element extends {-gap} m beyond its start.'
+                )
 
     if length is not None:
         line_length = tt_sorted['s_end'][-1]

@@ -161,6 +161,24 @@ def test_composer_validate_does_not_materialize_drifts():
     assert set(env.elements.keys()) == element_names_before
 
 
+def test_composer_validate_can_skip_overlap_check():
+    env = xt.Environment()
+    env.new('a', xt.Drift, length=2)
+    env.new('b', xt.Drift, length=2)
+    composer = xt.Composer(
+        env,
+        components=[
+            xt.Place('a', at=0, anchor='start'),
+            xt.Place('b', at=1, anchor='start'),
+        ],
+    )
+
+    with pytest.raises(ValueError, match='Overlap before component'):
+        composer.validate()
+
+    assert composer.validate(check_overlaps=False) is None
+
+
 @pytest.mark.parametrize('field', ['anchor', 'from_anchor'])
 def test_place_rejects_unknown_anchor(field):
     with pytest.raises(ValueError, match='anchor'):
