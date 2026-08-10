@@ -31,7 +31,30 @@ class ResolvedPlacement:
 
 
 def _sort_places(tt_unsorted, s_tol=1e-10, allow_non_existent_from=False):
-    """Sort a placement table without mutating it."""
+    """Sort a placement table without mutating it.
+
+    Notes
+    -----
+    The following ordering rules are applied:
+
+    - Components are sorted by increasing ``s_center``. Only thin elements can
+      form a group at the same ``s``; for these elements ``s_start``, ``s_center``,
+      and ``s_end`` are identical. This is why ``s_center`` is used as the common
+      sorting coordinate.
+    - For thin elements at the same ``s`` (within ``s_tol``):
+      - input order is preserved unless placement dependencies establish an order;
+      - an element whose ``from_`` names an upstream element moves toward the
+        beginning of the group;
+      - an element whose ``from_`` names a downstream element moves toward the end
+        of the group;
+      - when ``from_`` names an element inside the group:
+        - an explicit ``from_anchor`` of ``'start'``, ``'center'``, or ``'centre'``
+          places the element before the element named by ``from_``;
+        - an explicit ``from_anchor`` of ``'end'`` places it after the element named
+          by ``from_``;
+        - an omitted ``from_anchor`` imposes no tie-break;
+      - sequential elements depend on the end of the previous occurrence.
+    """
     source = tt_unsorted.rows[:]
     if not len(source):
         source['i_place'] = np.array([], dtype=int)
