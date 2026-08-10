@@ -91,14 +91,11 @@ void track_magnet_edge_particles(
 
         const uint8_t backtrack = (factor_for_backtrack < 0);
 
-        // Backtracking traverses the same maps in reverse, so the face that is
-        // physically entered is the opposite one. Only the sign of k0 depends on
-        // it: the order of the maps below is the same in both directions (the
-        // reverse of the entry sequence is the exit sequence and vice versa).
+        // Backtracking enters the opposite face. The map order below is
+        // unaffected, since reversing one face's sequence gives the other's.
         if (is_exit != backtrack) k0 = -k0;
 
-        // The multipole fringe has no closed-form inverse, so backtracking is
-        // only supported when there is no multipole component to speak of.
+        // The multipole fringe has no closed-form inverse.
         if (backtrack && model == 1) {
             uint8_t has_multipole_fringe = 0;
             for (int64_t ii = 1; ii <= k_order; ii++) {
@@ -118,8 +115,7 @@ void track_magnet_edge_particles(
             }
         }
 
-        // Inverting a y-rotation or a (quadrupole) wedge is just flipping the
-        // sign of the angle, so the direction is folded into these values.
+        // Rotations and wedges are inverted by flipping the angle sign.
         const double rot_sign = backtrack ? 1.0 : -1.0;
         const double wedge_angle = rot_sign * face_angle;
 

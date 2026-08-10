@@ -385,7 +385,7 @@ void track_straight_exact_bend_single_particle(
     // (new_pz - pz)/k0_chi, with k0_chi cancelled exactly
     new_x = x + s * (new_px + px) / (new_pz + pz);
 
-    // sin and cos of asin(A*px) - asin(A*new_px), both scaled by A^2
+    // asin(A*px) - asin(A*new_px), from its sine and cosine
     const double D = atan2(px * d_pz - pz * d_px, pz * new_pz + px * new_px);
     new_y = y + (py / k0_chi) * D;
 

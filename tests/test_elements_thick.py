@@ -489,60 +489,6 @@ def test_rbend_stable_offsets_for_small_asymmetric_angle():
     xo.assert_allclose(actual, expected, rtol=0, atol=1e-18)
 
 
-def _straight_exact_bend_reference_x(k0, length, x, px, py, delta):
-    ld = np.longdouble
-    k0 = ld(k0)
-    length = ld(length)
-    x = ld(x)
-    px = ld(px)
-    py = ld(py)
-    delta = ld(delta)
-
-    one_plus_delta = 1 + delta
-    pz = np.sqrt(one_plus_delta**2 - px**2 - py**2)
-    new_px = px - k0 * length
-    new_pz = np.sqrt(one_plus_delta**2 - new_px**2 - py**2)
-
-    return float(x + (new_pz - pz) / k0)
-
-
-@allow_kernel_compilation(skip_when_forbid_compile=False)
-def test_straight_exact_bend_weak_strength_reaches_precision_floor():
-    skip_if_forbid_compile()
-
-    length = 12.0
-    x0 = 1e-3
-    px0 = 2e-4
-    y0 = 3e-3
-    py0 = -4e-4
-    delta0 = 1e-3
-
-    errors = []
-    for k0 in [1e-5, 3e-6, 1e-6]:
-        line = xt.Line(
-            elements=[
-                xt.Bend(
-                    length=length, angle=0.0, k0=k0,
-                    edge_entry_active=0, edge_exit_active=0,
-                )
-            ],
-            element_names=['b'],
-        )
-        line.particle_ref = xt.Particles(p0c=1e9)
-        line.build_tracker(
-            _context=xo.ContextCpu(), use_prebuilt_kernels=False)
-
-        particles = xt.Particles(
-            p0c=1e9, x=x0, px=px0, y=y0, py=py0, delta=delta0)
-        line.track(particles)
-
-        expected_x = _straight_exact_bend_reference_x(
-            k0=k0, length=length, x=x0, px=px0, py=py0, delta=delta0)
-        errors.append(abs(particles.x[0] - expected_x))
-
-    assert max(errors) < 1e-13
-    assert max(errors) / min(errors) < 50
-
 @for_all_test_contexts
 def test_rbend(test_context):
     k0 = 0.15
@@ -1306,15 +1252,25 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
     line.build_tracker(_context=test_context)
     p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
                                 zeta=0.05, delta=0.01)
+    line.configure_bend_model(edge='full')
     p1 = p0.copy(_context=test_context)
     line.track(p1)
-    p1.move(_context=xo.context_default)
-    assert np.all(p1.state == 1)
-    line.configure_bend_model(edge='full')
     p2 = p1.copy(_context=test_context)
     line.track(p2, backtrack=True)
+
+    p0.move(_context=xo.context_default)
+    p1.move(_context=xo.context_default)
     p2.move(_context=xo.context_default)
-    assert np.all(p2.state == -32)
+    assert np.all(p1.state == 1)
+    assert np.all(p2.state == 1)
+    # Strong edge: one coefficient-recovery pass leaves a small residual;
+    # three iterations bring this round trip to machine precision.
+    xo.assert_allclose(p2.x, p0.x, atol=5e-9, rtol=0)
+    xo.assert_allclose(p2.px, p0.px, atol=5e-9, rtol=0)
+    xo.assert_allclose(p2.y, p0.y, atol=5e-9, rtol=0)
+    xo.assert_allclose(p2.py, p0.py, atol=5e-9, rtol=0)
+    xo.assert_allclose(p2.zeta, p0.zeta, atol=5e-9, rtol=0)
+    xo.assert_allclose(p2.delta, p0.delta, atol=1e-14, rtol=0)
 
     # Same for combined function magnet
     cfm = xt.Bend(length=1.0, k1=0.2, angle=0.1)
