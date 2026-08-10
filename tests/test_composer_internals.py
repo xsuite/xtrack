@@ -4,10 +4,9 @@ import numpy as np
 import pytest
 
 import xtrack as xt
-from xtrack.composer.components import _all_places, _expand_components
+from xtrack.composer.components import _all_places
 from xtrack.composer.models import PlacementSpec, ResolvedPlacement
 from xtrack.composer.ordering import _sort_places
-from xtrack.composer.pipeline import _build_element_names
 from xtrack.composer.positions import (
     _anchor_offset,
     _placement_specs_from_places,
@@ -30,16 +29,16 @@ def test_all_places_consumes_nested_generator_once():
     assert places[1].at == 2
 
 
-def test_expand_components_does_not_mutate_named_line_place():
+def test_flatten_does_not_mutate_named_line_place():
     env = xt.Environment()
     env.new('marker', xt.Marker)
     env.new_line(name='subline', components=['marker'])
     place = xt.Place('subline', at=2, anchor='start')
 
-    expanded = _expand_components(env, [place])
+    flattened = xt.Composer(env, components=[place]).flatten()
 
     assert place.name == 'subline'
-    assert expanded[0].name == 'marker'
+    assert flattened.components[0].name == 'marker'
 
 
 def test_placement_specs_are_an_immutable_copy_boundary():
@@ -176,41 +175,36 @@ def test_ordering_tolerance_boundary(offset, expected):
     assert np.array_equal(sorted_table.name, expected)
 
 
-def test_pipeline_covers_sequential_and_positioned_paths():
+def test_composer_build_covers_sequential_and_positioned_paths():
     env = xt.Environment()
     env.new('drift', xt.Drift, length=1)
 
-    sequential = _build_element_names(
-        env, ['drift'], refer='center', length=3, s_tol=1e-12
-    )
-    positioned = _build_element_names(
+    sequential = xt.Composer(env, components=['drift'], length=3).build()
+    positioned = xt.Composer(
         env,
-        [xt.Place('drift', at=0, anchor='start')],
-        refer='center',
+        components=[xt.Place('drift', at=0, anchor='start')],
         length=3,
         s_tol=1e-12,
-    )
+    ).build()
 
-    assert sequential[0] == 'drift'
-    assert positioned[0] == 'drift'
-    assert len(sequential) == len(positioned) == 2
+    assert sequential.element_names[0] == 'drift'
+    assert positioned.element_names[0] == 'drift'
+    assert len(sequential.element_names) == len(positioned.element_names) == 2
 
 
-def test_pipeline_overlap_error_identifies_component():
+def test_composer_build_overlap_error_identifies_component():
     env = xt.Environment()
     env.new('a', xt.Drift, length=2)
     env.new('b', xt.Drift, length=2)
 
     with pytest.raises(ValueError) as error:
-        _build_element_names(
+        xt.Composer(
             env,
-            [
+            components=[
                 xt.Place('a', at=0, anchor='start'),
                 xt.Place('b', at=1, anchor='start'),
             ],
-            refer='center',
-            length=None,
             s_tol=1e-12,
-        )
+        ).build()
 
     assert "Overlap before component 1 ('b')" in str(error.value)

@@ -18,12 +18,6 @@ def _evaluate_length(env, length):
     return length
 
 
-def _expand_components(env, components, refer='center'):
-    """Resolve named lines and recursively expand all nested components."""
-    components = _resolve_lines_in_components(components, env)
-    return _flatten_components(env, components, refer=refer)
-
-
 def _build_sequential_element_names(env, components, length, s_tol):
     """Build the optimized path used when no explicit placements are present."""
     element_names = list(map(str, components))

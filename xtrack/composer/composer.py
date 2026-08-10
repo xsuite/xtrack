@@ -1,10 +1,9 @@
 """Public API for building lines from longitudinal component placements.
 
 The composer accepts a flexible component language: element names, ``Place``
-objects, lines, composers, and nested iterables. Materialization follows an
-explicit pipeline implemented in :mod:`xtrack._composer`: expand components,
-normalize placements, resolve coordinates, order coincident elements, and
-materialize positive gaps as drifts.
+objects, lines, composers, and nested iterables. Materialization expands
+components, normalizes placements, resolves coordinates, orders coincident
+elements, and fills positive gaps with drifts.
 """
 
 import copy
@@ -15,12 +14,14 @@ import xtrack as xt
 
 from .components import (
     _all_places,
+    _build_sequential_element_names,
     _evaluate_length,
-    _expand_components,
+    _flatten_components,
+    _generate_element_names_with_drifts,
+    _resolve_lines_in_components,
     _validate_placement_geometry,
 )
 from .ordering import _sort_places
-from .pipeline import _build_element_names
 from .positions import _ALLOWED_ANCHORS, _resolve_s_positions
 from ..general import DEPRECATION_INFO_PREP_1_0, parse_anchor_spec
 
@@ -350,17 +351,37 @@ class Composer:
             raise ValueError('Line must belong to the same environment as the Composer')
 
         length = _evaluate_length(self.env, self.length)
-        expanded_components = _expand_components(
-            self.env, self.components, refer=self.refer
+        expanded_components = _resolve_lines_in_components(
+            self.components,
+            self.env,
         )
-        element_names = _build_element_names(
+        expanded_components = _flatten_components(
             self.env,
             expanded_components,
             refer=self.refer,
-            length=length,
-            s_tol=s_tol,
-            diagnostics=diagnostics,
         )
+        if all(isinstance(component, str) for component in expanded_components):
+            element_names = _build_sequential_element_names(
+                self.env,
+                expanded_components,
+                length=length,
+                s_tol=s_tol,
+            )
+        else:
+            places = _all_places(expanded_components)
+            positions = _resolve_s_positions(
+                places,
+                self.env,
+                refer=self.refer,
+                diagnostics=diagnostics,
+            )
+            positions = _sort_places(positions)
+            element_names = _generate_element_names_with_drifts(
+                self.env,
+                positions,
+                length=length,
+                s_tol=s_tol,
+            )
 
         if line is None:
             line = xt.Line(env=self.env, element_names=element_names)
@@ -404,8 +425,14 @@ class Composer:
             Table containing one row per expanded component, including its
             ``s_start``, ``s_center``, and ``s_end`` positions.
         """
-        expanded_components = _expand_components(
-            self.env, self.components or [], refer=self.refer
+        expanded_components = _resolve_lines_in_components(
+            self.components or [],
+            self.env,
+        )
+        expanded_components = _flatten_components(
+            self.env,
+            expanded_components,
+            refer=self.refer,
         )
         places = _all_places(expanded_components)
         table = _resolve_s_positions(
@@ -472,7 +499,12 @@ class Composer:
 
         out = self.__class__(self.env)
         out.__dict__.update(self.__dict__)
-        out.components = _expand_components(self.env, self.components, refer=self.refer)
+        out.components = _resolve_lines_in_components(self.components, self.env)
+        out.components = _flatten_components(
+            self.env,
+            out.components,
+            refer=self.refer,
+        )
         out.components = _all_places(out.components)
         return out
 
