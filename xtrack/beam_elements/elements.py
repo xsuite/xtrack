@@ -2949,7 +2949,7 @@ class Quadrupole(_HasKnlKsl, _HasIntegrator, _HasModelStraight, BeamElement):
     @property
     def main_strength(self):
         """Returns the integrated strength of the main component, i.e. k1*length
-        if the main component is the normal one, or k1s*length if the main component 
+        if the main component is the normal one, or k1s*length if the main component
         is the skew one.
         """
         if self.main_is_skew:

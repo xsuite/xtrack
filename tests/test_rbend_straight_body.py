@@ -1,14 +1,85 @@
-import xtrack as xt
-import numpy as np
-import xobjects as xo
-from cpymad.madx import Madx
-from xobjects.test_helpers import for_all_test_contexts
-import pytest
-
 import pathlib
+
+import numpy as np
+import pytest
+import xobjects as xo
+import xpart as xp
+from cpymad.madx import Madx
+from xobjects.test_helpers import allow_no_prebuilt_kernels, for_all_test_contexts
+
+import xtrack as xt
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
+
+
+@allow_no_prebuilt_kernels(skip_when_forbid_compile=False)
+def test_weak_straight_exact_bend_tracking_reaches_conditioned_floor():
+    test_context = xo.ContextCpu()
+    p0 = xp.Particles(
+        p0c=10e9,
+        x=1e-3,
+        px=2e-4,
+        y=2e-3,
+        py=-3e-4,
+        delta=1e-3,
+        _context=test_context,
+    )
+
+    def track(angle):
+        bend = xt.Magnet(
+            length=3.0,
+            angle=0.0,
+            k0=angle / 3.0,
+            k0_from_h=False,
+            model='drift-kick-drift-exact',
+            num_multipole_kicks=0,
+        )
+
+        line = xt.Line(elements=[bend], element_names=['b'])
+        line.particle_ref = xp.Particles(p0c=10e9)
+        line.build_tracker(_context=test_context, use_prebuilt_kernels=False)
+
+        particles = p0.copy(_context=test_context)
+        line.track(particles)
+        particles.move(_context=xo.context_default)
+        return particles.x[0]
+
+    def conditioned_reference(angle):
+        one_plus_delta = float(p0.delta[0]) + 1.0
+        px = float(p0.px[0])
+        py = float(p0.py[0])
+        length = 3.0
+        k0 = angle / length
+        pz = np.sqrt(one_plus_delta**2 - px**2 - py**2)
+        new_px = px - k0 * length
+        new_pz = np.sqrt(one_plus_delta**2 - new_px**2 - py**2)
+        return float(p0.x[0]) + length * (new_px + px) / (new_pz + pz)
+
+    def old_reference(angle):
+        one_plus_delta = float(p0.delta[0]) + 1.0
+        px = float(p0.px[0])
+        py = float(p0.py[0])
+        length = 3.0
+        k0 = angle / length
+        pz = np.sqrt(one_plus_delta**2 - px**2 - py**2)
+        new_px = px - k0 * length
+        new_pz = np.sqrt(one_plus_delta**2 - new_px**2 - py**2)
+        return float(p0.x[0]) + (new_pz - pz) / k0
+
+    errors = []
+    old_errors = []
+    for angle in [3e-4, 3e-5, 3e-6]:
+        tracked_x = track(angle)
+        ref_x = conditioned_reference(angle)
+        errors.append(abs(tracked_x - ref_x))
+        old_errors.append(abs(old_reference(angle) - ref_x))
+
+    # With the old `(new_pz - pz) / k0` formula the error grows as the bend gets
+    # weaker. The conditioned source should stay near machine precision instead.
+    assert max(old_errors) > 1e-12
+    assert max(errors) < 5e-16
+
 
 @for_all_test_contexts
 def test_rbend_straight_body_edge_full(test_context):
@@ -1402,7 +1473,7 @@ def test_rbend_straight_body_survey_v():
     # end                       5 Marker                          0
     # _end_point                5                                 0
 
-    assert np.all(sv_curved['name'] == 
+    assert np.all(sv_curved['name'] ==
         ['start', '||drift_3::0', '||drift_4', 'mb_entry', 'mb..entry_map',
        'mb..0', 'mb..1', 'mb..2', 'mb..3', 'mid', 'mb..4', 'mb..5',
        'mb..6', 'mb..7', 'mb..exit_map', 'mb_exit', '||drift_5',
@@ -3064,4 +3135,3 @@ def test_rbend_curved_body_thick_slicing():
     xo.assert_allclose(tw_thick_back.x, tw_thick.x, atol=3e-10)
     xo.assert_allclose(tw_thin_back.x, tw_thin.x, atol=1e-13)
     xo.assert_allclose(tw_thick_cut_back.x, tw_thick_cut.x, atol=3e-10)
-
