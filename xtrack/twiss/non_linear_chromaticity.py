@@ -55,7 +55,7 @@ def get_non_linear_chromaticity(line, delta0_range, num_delta, fit_order=3, **kw
     out_data['momentum_compaction_factor'] = momentum_compaction_factor
     out_data['twiss'] = twiss
 
-    out = xt.Table(data = out_data, index='delta0',
+    out = xt.Table(data=out_data, index='delta0',
             col_names = ['delta0', 'qx', 'qy', 'momentum_compaction_factor'])
 
     return out
