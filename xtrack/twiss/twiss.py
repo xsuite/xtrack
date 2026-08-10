@@ -12,7 +12,7 @@ from .twiss_defaults_and_input_preparation import (
 )
 from .chromatic_functions import trapz
 from .handle_init_inside_range_and_line_wrap import (
-    _handle_init_inside_range_and_line_wrap,
+    _compute_twiss_handling_init_inside_range_and_line_wrap,
 )
 from .optics_propagation import _propagate_twiss_from_init
 from . import twiss_postprocess_and_complem_results as twpc
@@ -400,9 +400,10 @@ def twiss_line(line, particle_ref=None, method=None,
             if not crosses_line_boundary and init_is_at_boundary:
                 twiss_res = _compute_base_twiss(twiss_config)
             else:
-                twiss_res = _handle_init_inside_range_and_line_wrap(
-                    twiss_config, crosses_line_boundary,
-                    compute_base_twiss=_compute_base_twiss)
+                twiss_res = (
+                    _compute_twiss_handling_init_inside_range_and_line_wrap(
+                        twiss_config, crosses_line_boundary,
+                        compute_base_twiss=_compute_base_twiss))
 
         elif route == 'periodic_one_turn_custom_start':
             # Compute a full periodic table, then rotate it to the requested start.
@@ -427,11 +428,12 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_config['init'] = _build_twiss_init_from_inputs(twiss_config)
             result_init = twiss_config['init'].copy()
             _clear_twiss_init_input_fields(twiss_config)
-            twiss_res = _handle_init_inside_range_and_line_wrap(
-                twiss_config,
-                crosses_line_boundary=True,
-                one_turn_from_start=True,
-                compute_base_twiss=_compute_base_twiss)
+            twiss_res = (
+                _compute_twiss_handling_init_inside_range_and_line_wrap(
+                    twiss_config,
+                    crosses_line_boundary=True,
+                    one_turn_from_start=True,
+                    compute_base_twiss=_compute_base_twiss))
 
         elif route == 'open_init_from_full_periodic':
             # Compute a forward full-line periodic table and take the open-range
@@ -462,9 +464,10 @@ def twiss_line(line, particle_ref=None, method=None,
             if not crosses_line_boundary and init_is_at_boundary:
                 twiss_res = _compute_base_twiss(twiss_config)
             else:
-                twiss_res = _handle_init_inside_range_and_line_wrap(
-                    twiss_config, crosses_line_boundary,
-                    compute_base_twiss=_compute_base_twiss)
+                twiss_res = (
+                    _compute_twiss_handling_init_inside_range_and_line_wrap(
+                        twiss_config, crosses_line_boundary,
+                        compute_base_twiss=_compute_base_twiss))
             if twiss_config['zero_at'] is None:
                 twiss_res.zero_at(twiss_config['start'])
 
